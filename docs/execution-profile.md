@@ -40,7 +40,7 @@ Before the first probe run, the validation objectives are:
   record per-release lateness and skipped points. A delayed semaphore producer waits
   20 ms before signalling; the initially empty wait must complete after that delay.
 - Observe POSIX worker stack headroom using native test instrumentation. Exhaust its
-  bounded stack pool via attributes, require ENOMEM, release held slots and initialise
+  bounded stack pool via attributes, record the pinned failure outcome, release held slots and initialise
   an attribute again; this is allocation/recovery evidence, not long-term leak testing.
 
 `tests/execution` separates native and POSIX probes. The same POSIX functional cases run
@@ -57,7 +57,7 @@ Paths below are relative to the pinned Zephyr tree, not the moving latest branch
 
 | Concern | Native Zephyr | Selected POSIX comparison |
 | --- | --- | --- |
-| Lifecycle/ownership | `k_thread_create` uses caller-owned thread/stack objects; join before reuse. Static composition need not allocate a heap. | `lib/posix/options/pthread.c` maintains a bounded thread pool. Attribute initialisation obtains a stack when dynamic threads are enabled. Join/recycling and attribute ownership matter; `pthread_create` can return `EAGAIN`, attribute allocation can fail. |
+| Lifecycle/ownership | `k_thread_create` uses caller-owned thread/stack objects; join before reuse. Static composition need not allocate a heap. | `lib/posix/options/pthread.c` maintains a bounded thread pool. Attribute initialisation obtains a stack when dynamic threads are enabled. Join/recycling and attribute ownership matter; `pthread_create` can return `EAGAIN`, attribute stack allocation can fail. In this pin `pthread_attr_init` still returns success after a failed stack allocation; subsequent runnable-attribute validation returns `EINVAL`, so do not promise an `ENOMEM` result. |
 | Priorities | Lower numeric priority is more urgent; cooperative priorities are negative, pre-emptive non-negative. Composition chooses supported priorities explicitly. | `pthread.c` maps Zephyr negative priorities to `SCHED_FIFO`, non-negative to `SCHED_RR`, with reversed priority numbering. This mapping is not a claim of Linux-equivalent scheduling. |
 | Mutex | `kernel/mutex.c` implements ownership, recursive locking and priority inheritance, with nested-lock limitations documented in its source. | `options/mutex.c` wraps kernel mutexes but `pthread_mutexattr_setprotocol(PTHREAD_PRIO_INHERIT)` returns `ENOTSUP` in this pin. Native underlying inheritance does not establish the requested POSIX attribute contract. |
 | Timed waits | Native kernel relative/absolute uptime deadlines are distinct from RTC UTC. | `options/mutex.c`, `semaphore.c` and `mqueue.c` convert `CLOCK_REALTIME` absolute deadlines to millisecond kernel timeouts at entry using `timespec_to_timeout.c`; sub-millisecond time is truncated and long waits clamp to `UINT32_MAX` ms. Wall-clock adjustments before entry can affect those waits; an already converted wait is not a continuously tracked realtime deadline. |
