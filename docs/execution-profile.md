@@ -160,3 +160,5 @@ be replaced by the successful software checks or used to close #7/M2.
 No row establishes M2 completion while the physical controller/timing/resource cases remain
 Pending. M3 devices/network/watchdog, M4 persistence and M5 concurrent-load/full independent
 consumer qualification remain outside this increment.
+
+The first controller CTest run at `4a2feaa` built the test binary but failed its registration (`crux_controller_tests_NOT_BUILT`). Direct execution confirmed the five controller cases passed, but this was not counted as a successful CTest run. Including GoogleTest in the owning test directory fixes the directory-scoped discovery helper; final hosted verification must include the corrected registration. This CMake-only fix does not change the controller/Zephyr source inputs.
