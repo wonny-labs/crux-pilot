@@ -38,6 +38,10 @@ static int64_t monotonic_ms(void) {
 }
 
 static void *notify_worker(void *arg) {
+    int policy;
+    struct sched_param parameters;
+    CHECK(pthread_getschedparam(pthread_self(), &policy, &parameters) == 0);
+    printf("PROBE posix worker_policy=%d priority=%d\n", policy, parameters.sched_priority);
     struct timespec delay = {.tv_nsec = 20000000L};
     CHECK(nanosleep(&delay, NULL) == 0);
 #ifdef __ZEPHYR__
@@ -104,6 +108,8 @@ static void test_lifecycle_and_attributes(void) {
         CHECK(pthread_attr_destroy(&held[i]) == 0);
     }
     CHECK(pthread_attr_init(&attr) == 0);
+    CHECK(pthread_attr_getstacksize(&attr, &stack) == 0);
+    CHECK(stack == CONFIG_DYNAMIC_THREAD_STACK_SIZE);
     CHECK(pthread_attr_destroy(&attr) == 0);
 #endif
 }

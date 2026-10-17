@@ -44,13 +44,13 @@ jobs:
         working-directory: crux-pilot
         run: scripts/bootstrap-zephyr.sh --install-sdk
 
-      - name: Run native_sim RTC tests and build EVKB firmware
-        working-directory: crux-pilot
-        run: scripts/test-zephyr-time.sh "$CRUX_BOARD_TARGET"
-
       - name: Compare controller execution candidates without hardware
         working-directory: crux-pilot
         run: scripts/test-execution.sh
+
+      - name: Run native_sim RTC tests and build EVKB firmware
+        working-directory: crux-pilot
+        run: scripts/test-zephyr-time.sh "$CRUX_BOARD_TARGET"
 
       - name: Upload Zephyr reports and raw logs
         if: always()

@@ -70,3 +70,25 @@ Results, actual inputs, configuration identities, remaining physical cases and i
 review outcome will be recorded after execution. Existing recorded Time success/unset/error,
 UART/RTC and reset evidence remains applicable to unchanged Time production source; it
 cannot supply controller scheduling/resource evidence.
+
+## Proposed bounded software profile for independent review
+
+The candidate recommendation is native Zephyr execution in the reference composition,
+with Linux-specific monotonic sleep in its host composition. The portable consumer has
+no common OS-service dependency, so it does not need a POSIX dependency or Crux wrapper.
+The POSIX comparison remains evidence, not a platform-wide rejection of POSIX.
+
+| Area | Proposed reference composition support |
+| --- | --- |
+| Thread lifecycle | One caller-owned Zephyr thread/stack, created once for a finite scenario, normal return then `k_thread_join` before reuse. No cancellation, abort, detached lifecycle or restart contract. Linux may invoke the same scenario from its main thread. |
+| Scheduling | Zephyr pre-emptive priority 5, statically configured 4096-byte worker stack, no runtime policy changes. Physical stack sufficiency and scheduling performance remain Pending. |
+| Periodic release | A demonstrator period is a validation input, not a platform guarantee. `k_uptime_get`/absolute uptime sleep on Zephyr, `CLOCK_MONOTONIC` absolute sleep on Linux. After work crosses a deadline, skip elapsed phase points and resume at the first future point without a catch-up burst. |
+| Time ownership | One scenario execution context owns all Time init/get/set calls; no concurrent Shell/command writer is included. Explicit scenario set operations are controlled inputs, not an implicit default clock. UTC changes never select the next release. |
+| Synchronisation | Native `k_mutex` ownership/priority inheritance and `k_sem` bounded signalling/timed waits are tested services available to this composition. The single-owner scenario need not acquire an otherwise unnecessary mutex. No ISR use or nested-mutex guarantee is proposed. |
+| Messaging | Native one-slot `k_msgq` comparison demonstrates bounded delivery/full/empty/expiry. A controller messaging service is not required for this increment. |
+| Memory/failure | Static thread and message storage; no controller heap allocation. Probe queues/finite waits expose capacity/expiry results. A failed Time init is observable and prevents normal scenario execution; unset/read errors never fabricate UTC. |
+| Evidence limit | Linux verifies functional behaviour, native_sim verifies Zephyr integration, EVKB cross-build proves compilation/footprint only. Physical execution, actual stack use and latency/jitter qualification remain Pending. No real-time, ISR or production support guarantee is added. |
+
+This remains a proposal until the recorded independent evidence review returns PASS.
+A materially different outcome, public interface or guarantee must pass its applicable
+human gate rather than be inferred from this table.
