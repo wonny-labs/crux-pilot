@@ -21,13 +21,20 @@ fi
 
 test_output="$repo/build/zephyr/twister-time"
 native_sample_build="$repo/build/zephyr/native_sim_time"
+test_inputs="$repo/build/evidence/zephyr-test-inputs.json"
+pending_inputs="$repo/build/evidence/zephyr-test-inputs.pending.json"
+rm -f "$test_inputs" "$pending_inputs"
+"${CRUX_PYTHON:-python3}" "$repo/scripts/record-build-provenance.py" \
+    --workspace "$workspace" --capture-inputs "$pending_inputs"
 printf 'Running Crux Time Ztest scenarios on native_sim/native/64.\n'
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/zephyr_time" \
     -O "$test_output" --inline-logs)
+mv "$pending_inputs" "$test_inputs"
 
 printf '\nBuilding the Zephyr Time Shell sample for native_sim/native/64.\n'
 (cd "$workspace" && west build -p always -b native_sim/native/64 -d "$native_sample_build" \
     "$repo/samples/time" -- -DZEPHYR_EXTRA_MODULES="$repo" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+"$repo/scripts/select-clangd-database.sh" "$native_sample_build"
 
 printf '\nCross-building the Zephyr Time Shell sample for %s.\n' "$board"
-"$repo/scripts/build-target.sh" "$board"
+"$repo/scripts/build-target.sh" "$board" "$test_inputs"

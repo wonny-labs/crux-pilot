@@ -1,8 +1,8 @@
 menuconfig CRUX_PILOT_MODULE
-	bool "Crux Pilot module"
+	bool "Crux Zephyr module"
 	default y
 	help
-	  Enable discovery of Crux Pilot's Zephyr integration module.
+	  Enable discovery of Crux's Zephyr integration module.
 
 if CRUX_PILOT_MODULE
 

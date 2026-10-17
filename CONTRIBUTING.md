@@ -1,17 +1,15 @@
-# Contributing to Crux
-
-**Status:** Draft for review
+# Contributing to Crux Pilot
 
 ## Purpose and scope
 
-This guide defines contribution practices for Crux, an embedded software platform. It covers platform code, samples, reference applications, tests, build and CI tooling, and documentation. The same practices apply to human and AI-assisted contributions. A human remains accountable for review and acceptance.
+This guide defines the contribution and review practices for Crux Pilot. It applies to source code, samples, tests, documentation, build configuration and CI workflows in this repository.
 
-Use the [implementation plan](docs/plans/initial-implementation-plan.md), [Time API contract](docs/time-contract.md), [upstream reuse notes](docs/upstream-reuse.md), and [implementation status](docs/implementation-status.md) for current technical decisions and evidence. This guide complements those documents and does not override them. [AGENTS.md](AGENTS.md) provides additional repository-specific instructions for AI agents. Follow these practices as applicable; do not assume proposed or unconfigured automation is an active gate.
+Contributors must follow the technical decisions and validation procedures adopted for this repository that apply to their changes. The [initial implementation plan](docs/plans/initial-implementation-plan.md) records scope and acceptance criteria; the [Time API contract](docs/time-contract.md) records the implemented Time API contract; [upstream reuse notes](docs/upstream-reuse.md) record source assessments and reuse decisions; and [implementation status](docs/implementation-status.md) and [build evidence](docs/baseline.md) record actual results. A design proposal or working document is not binding merely because it exists; it becomes a requirement for this repository only when a repository decision adopts it. The [README](README.md) provides development setup and build/test commands. [AGENTS.md](AGENTS.md) provides workflow instructions and execution constraints for AI agents.
 
 ## Making changes
 
 - Keep each change focused on one coherent purpose. Separate unrelated changes where doing so improves review and testing.
-- Review the current architecture documents and applicable decisions before changing public contracts, dependency boundaries, module ownership or platform integration. Discuss material architecture changes before implementation, including alternatives and consumer impact. For accepted incompatible changes, explain the compatibility impact and required migration.
+- Review adopted repository decisions and applicable contracts before changing public interfaces, dependency boundaries, module ownership or platform integration. Architecture proposals may inform the review, but do not constrain implementation unless this repository adopts them. Discuss material architecture changes before implementation, including alternatives and consumer impact. For accepted incompatible changes, explain the compatibility impact and required migration.
 - Reuse suitable native Zephyr facilities and existing components rather than introducing speculative abstraction layers.
 - Use `crux_` for Crux-owned public C functions, types and exported variables, `CRUX_` for macros, enum constants and public header guards, and `crux` as the root namespace for Crux-owned C++ APIs. These prefixes are fixed for Crux. Detailed naming patterns and language standards are selected for the relevant interfaces and modules. Do not rename native Zephyr, vendor or third-party identifiers.
 - Follow the applicable language standard, formatting rules, compiler warning policy and configured static-analysis checks. Define memory ownership and relevant concurrency assumptions. Do not introduce blocking operations in interrupt context, and assess dynamic allocation and resource bounds where timing or predictability matters.
@@ -28,6 +26,8 @@ Keep branch names descriptive. No mandatory prefix list is defined. Before reque
 **Proposed merge default:** Squash-merge a reviewed PR when it represents one coherent change. The final squash commit must follow the commit message convention below. If its subject comes from the PR title, format the PR title accordingly.
 
 Retain individual commits when they represent independently meaningful changes whose history matters. Keep retained commits buildable and testable where practical. These are proposed practices, not claims that GitHub merge rules or branch protection have been configured.
+
+Requirements in this guide apply even when GitHub settings do not enforce them. Automated gates are limited to checks configured in the repository workflows; recommendations and proposals are not claims about configured enforcement.
 
 ## Commit messages
 
@@ -108,9 +108,9 @@ For AI-assisted contributions, the responsible human reviews the proposed plan a
 
 ## Testing and validation
 
-Choose tests according to the change and the claims being made, rather than requiring every environment for every PR.
+Choose tests according to the change and the claims being made. The table guides which evidence is appropriate; it does not require every environment to run for every PR.
 
-| Change | Expected validation approach |
+| Change | Validation to select when applicable |
 | --- | --- |
 | Portable logic or a public capability contract | Native host tests and applicable contract/conformance cases |
 | Zephyr integration or configuration | Applicable Zephyr build, `ztest`/Twister or `native_sim` checks |
@@ -118,7 +118,7 @@ Choose tests according to the change and the claims being made, rather than requ
 | Samples or reference applications | Build and run applicable scenarios, including failure cases where useful |
 | Documentation-only change | Review technical accuracy, links and consistency |
 
-Use the checks implemented in repository scripts and the [`host.yml`](.github/workflows/host.yml) and [`zephyr.yml`](.github/workflows/zephyr.yml) workflows as the available validation baseline. Consult the [README](README.md), [implementation status](docs/implementation-status.md), and [build evidence](docs/baseline.md) for commands and recorded results. Do not assume a proposed test tool, command or CI gate is implemented until it is present and working. Record failures and tests not run transparently. Security-sensitive changes require verification proportionate to their risk.
+Use repository scripts for local validation. The [`host.yml`](.github/workflows/host.yml) and [`zephyr.yml`](.github/workflows/zephyr.yml) files define the automated CI checks currently configured. Consult the [README](README.md), [implementation status](docs/implementation-status.md), and [build evidence](docs/baseline.md) for commands and recorded results. Do not assume a proposed test tool, command or CI gate is implemented until it is present and working. Record failures and tests not run transparently. Security-sensitive changes require verification proportionate to their risk.
 
 ## Documentation
 

@@ -56,14 +56,227 @@ Zephyr's v4.4 migration guide records minimum Python 3.12 and SDK 1.0.0. Exact r
 
 ## Hardware and range assessment
 
-- Selected board: NXP MIMXRT1060-EVKB. [Zephyr v4.4.0's board guide](https://github.com/zephyrproject-rtos/zephyr/blob/v4.4.0/boards/nxp/mimxrt1060_evk/doc/index.rst) maps EVKB to revision B; its out-of-box target uses QSPI, while HyperFlash is described as a board rework. The explicit build target `mimxrt1060_evk@B//qspi` compiled successfully. Since the board is not attached, the physical PCB marking, any flash rework, probe firmware, macOS USB serial device, and reset behavior remain unverified. No hardware operation was attempted.
-- User-provided NXP product-page specifications for MIMXRT1060-EVKB list the MIMXRT1062DVL6B processor, 64 Mbit QSPI flash, and 512 Mbit HyperFlash. This supports the EVKB product-level component inventory, but listing both memories does not establish which flash is connected/selected on the user's physical board or whether it was reworked. The actual board marking/revision, debug-probe identity/firmware, and macOS USB serial path remain unverified. Source: [NXP MIMXRT1060-EVKB product page](https://www.nxp.com/design/design-center/development-boards-and-designs/MIMXRT1060-EVKB?tab=Documentation_Tab).
-- User plans to use a SEGGER J-Link debug probe and the J41 USB connection for the console. Zephyr v4.4.0 lists the J-Link runner as supported by NXP and documents EVKB's SWD isolation jumpers (J9/J10), 20-pin JTAG/SWD header (J2), and OpenSDA USB-to-serial console on J41 with J45/J46 connected and 115200 baud, 8-N-1. These record the intended setup and upstream guidance, not actual probe model/firmware, USB enumeration, UART device path, or host tool installation; none was checked or operated. No jumper changes were made. Source: [Zephyr v4.4.0 EVK programming and debug guide](https://github.com/zephyrproject-rtos/zephyr/blob/v4.4.0/boards/nxp/mimxrt1060_evk/doc/index.rst).
-- Zephyr v4.4.0 documents the on-board OpenSDA interface as the USB-to-serial console via J41, with J45/J46 installed by default, and console settings 115200 baud, 8-N-1; SW9 is the documented reset button. These are upstream instructions, not observations of this user's board. Hardware acceptance still requires confirming the actual board/USB enumeration before any physical action.
+- Selected board target: NXP MIMXRT1060-EVKB. The user confirmed the physical board is revision B, SW4 is OFF–OFF–ON–OFF, and no HyperFlash rework was performed; this agrees with the selected `mimxrt1060_evk@B//qspi` target. The explicit target compiled and was later programmed; see [QSPI download evidence](#m4-qspi-download-and-breakpoint-verification-2026-10-17). The earlier generic DAPLink volume name alone did not establish these details.
+- User-provided NXP product-page specifications for MIMXRT1060-EVKB list the MIMXRT1062DVL6B processor, 64 Mbit QSPI flash, and 512 Mbit HyperFlash. The user-confirmed switch/rework state identifies the current board setup as QSPI without HyperFlash rework. The J-Link identity and UART device path are recorded in the M4 host preflight and J-Link check sections below. Source: [NXP MIMXRT1060-EVKB product page](https://www.nxp.com/design/design-center/development-boards-and-designs/MIMXRT1060-EVKB?tab=Documentation_Tab).
+- The user plans to use an external SEGGER J-Link. NXP's EVKB-specific guidance connects the probe to the 20-pin J2 header, removes J9/J10 to isolate the on-board SWD circuit, and uses J1 for board power and the OpenSDA UART/USB bridge. The EVKB user manual identifies J11/J13 as UART routing jumpers, shorted by default. NXP documents the default J40 power selection as pins 5-6. These are reference instructions only; verify the physical board revision and jumper labels before changing anything. Sources: [NXP external J-Link instructions](https://community.nxp.com/t5/i-MX-RT-Crossover-MCUs-Knowledge/Using-J-Link-with-MIMXRT1060-EVKB-or-MIMXRT1040-EVK/ta-p/1452717) and [MIMXRT1060-EVKB user manual](https://community.nxp.com/pwmxy87654/attachments/pwmxy87654/mcuxpresso-ide/9718/1/MIMXRT1060EVKBUM%20%282%29.pdf).
+- Connector discrepancy: the [Zephyr v4.4.0 EVKB guide](https://github.com/zephyrproject-rtos/zephyr/blob/v4.4.0/boards/nxp/mimxrt1060_evk/doc/index.rst) identifies J41 and J45/J46 for its documented console path, while the NXP EVKB manual and NXP's EVKB-specific external J-Link instructions identify J1 as the OpenSDA USB/UART connection and J11/J13 as UART routing. NXP SDK documentation also uses J41 for the on-board audio codec. The previous claim that J41 is the user's console USB connector is therefore withdrawn. For physical setup, follow the actual board revision's silkscreen/manual and first establish which USB connector enumerates as OpenSDA; do not assume the conflicting board-guide numbering applies to this EVKB.
+- User plans to use a 115200 baud, 8-N-1 serial terminal, consistent with NXP SDK examples. The current UART path is `/dev/cu.usbmodem11102`; successful console output and reset/session behavior remain unverified.
 - The v4.4 RT1060 EVK devicetree identifies `nxp,mimxrt1062`; its `rtc` alias points to an enabled `zephyr,rtc-counter` child nested under the SNVS RTC node (`nxp,imx-snvs-rtc`). The MCUX SNVS Counter driver consumes that RTC-compatible node, reports 1 Hz and `UINT32_MAX` top.
 - Zephyr `struct rtc_time` stores each calendar member, including `tm_year`, as `int`; it is not a `time_t` API.
 - The generic `rtc_counter` path uses `timeutil_timegm64()` for input but converts output through `time_t` and `gmtime_r()`. It rejects derived seconds above `UINT32_MAX`. Calendar seconds from 2000 through 2099 fit that unsigned 1 Hz counter range, but target `time_t`/libc behavior still needs a compile and test. The v4.4 DTS and counter driver identify the actual candidate SNVS path; a board build must confirm the selected Kconfig/devicetree configuration. Source inspection is not target acceptance.
 - The selected baseline's RTC sample sets `2024-11-17 04:19:00` on startup and its test expects `04:19:01`; it cannot be used as an unchanged Crux behavior or test oracle.
+
+## M4 host preflight (2026-10-17)
+
+The user authorized physical M4 verification on the MIMXRT1060-EVKB using SEGGER J-Link. At this
+initial pre-install check, a read-only USB/UART preflight found a DAPLink interface attached, but
+the physical PCB revision was unconfirmed and no external J-Link was detected. This probe status
+was superseded by the later installation check below. No firmware was written, and no reset was
+issued.
+
+Reproducible checks and actual results:
+
+| Command | Result |
+| --- | --- |
+| `system_profiler SPUSBDataType` | Found `DAPLink CMSIS-DAP`, ARM VID `0x0d28`, PID `0x0204`, plus unrelated hub/storage devices. No SEGGER/J-Link USB device appeared. |
+| `diskutil info /dev/disk5` | DAPLink mass-storage volume mounted as `/Volumes/RT1060-EVK`, 67.2 MB. This name suggests the RT1060 EVK family but does not confirm the PCB's EVKB marking or revision. |
+| `cat /Volumes/RT1060-EVK/DETAILS.TXT` | DAPLink Interface v0246, Bootloader v0244, interfaces MSD/CDC/HID/WebUSB. Read only. |
+| `ls -l /dev/cu.*` | Found `/dev/cu.usbmodem1402` in addition to Bluetooth/printer/debug-console devices. |
+| `python3 -c 'import importlib.util; print(bool(importlib.util.find_spec("serial")))'` | `False`; host Python has no pyserial module. A one-off standard-library `termios`/`select` reader was used instead; no package was installed. |
+| Standard-library read-only UART capture on `/dev/cu.usbmodem1402`, 115200 8-N-1, 8 seconds | 0 bytes received. It did not transmit, reset, or change the target. This alone does not show whether firmware is running or console routing is correct. The exact capture command is below. |
+| `command -v JLinkExe`; `find /Applications -maxdepth 4 -iname '*jlink*' -print` | No executable or matching application found in those locations. J-Link host tools are not currently available to this shell. |
+| `stat -f ... build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.bin .../zephyr.elf`; `shasum -a 256 ...` | Existing target artifacts are dated 2026-10-17 09:54:03 BST: BIN 65,976 bytes, SHA-256 `904f5a3480cc8a689d4710ef99787f0c03dcb178ae66f1581ce424e19a61dda6`; ELF 1,272,928 bytes, SHA-256 `20f6c93d2d0e30ff11fa310d127b2afda5a7e8e598b3ef9aa21dbe7b6e40a4fc`. |
+
+Exact passive UART capture command used:
+
+```sh
+python3 -c 'import os,termios,select,time; p="/dev/cu.usbmodem1402"; fd=os.open(p,os.O_RDONLY|os.O_NOCTTY|os.O_NONBLOCK); a=termios.tcgetattr(fd); a[0]=0; a[1]=0; a[2]=termios.CS8|termios.CREAD|termios.CLOCAL; a[3]=0; a[4]=termios.B115200; a[5]=termios.B115200; a[6][termios.VMIN]=0; a[6][termios.VTIME]=0; termios.tcsetattr(fd,termios.TCSANOW,a); end=time.time()+8; data=bytearray();
+while time.time()<end:
+ r,_,_=select.select([fd],[],[],min(.25,end-time.time()));
+ if r:
+  try: data.extend(os.read(fd,4096))
+  except BlockingIOError: pass
+print("Read-only 115200 8N1 capture, 8s, bytes:",len(data)); print(data.decode("utf-8",errors="replace"))'
+```
+
+NXP's EVKB-specific instructions connect an external J-Link to J2, remove J9/J10 to isolate the
+on-board SWD interface, and use J1 for power and the OpenSDA UART/USB bridge. The user manual lists
+J11/J13 as UART routing jumpers and J40 pins 5-6 as the default power selection. Keep that
+configuration subject to checking the actual PCB silkscreen/manual before changing jumpers. The
+board enumerates as generic `RT1060-EVK` DAPLink, which does not identify the PCB revision or flash
+rework. The first read-only SWD attempt failed, then connected after the J9/J10 correction at 100
+kHz; see [initial J-Link check](#m4-segger-and-swd-check-2026-10-17) and [successful SWD
+connection](#m4-swd-connection-after-j9j10-correction-2026-10-17). SEGGER tooling runs on macOS
+because the probe is attached to the Mac; the Dev Container has no direct USB access by default. Do
+not program until the physical board/revision and QSPI configuration are confirmed. Sources: [NXP
+external J-Link instructions](https://community.nxp.com/t5/i-MX-RT-Crossover-MCUs-Knowledge/Using-J-Link-with-MIMXRT1060-EVKB-or-MIMXRT1040-EVK/ta-p/1452717), [NXP EVKB user manual](https://community.nxp.com/pwmxy87654/attachments/pwmxy87654/mcuxpresso-ide/9718/1/MIMXRT1060EVKBUM%20%282%29.pdf), and [Docker Desktop USB/IP overview](https://docs.docker.com/desktop/features/usbip/).
+
+## M4 SEGGER and SWD check (2026-10-17)
+
+After the user installed SEGGER software and connected the probe, a host-side check confirmed the
+software and USB probe. The board's DAPLink interface remained connected as well. The first SWD
+attempt at 1000 kHz failed, as recorded below. A later attempt after the user corrected J9/J10
+succeeded at 100 kHz; see the follow-up section. Neither attempt issued a flash, erase, reset, or
+memory-write command.
+
+| Command / check | Actual result |
+| --- | --- |
+| `command -v JLinkExe`; `find /Applications /opt /usr/local/bin /opt/homebrew/bin -maxdepth 5 -iname 'JLinkExe*' -print` | `/usr/local/bin/JLinkExe` resolves to `/Applications/SEGGER/JLink_V986a/JLinkExe`. |
+| `JLinkExe -version` | Commander printed `V9.86a` and DLL `V9.86a`, then reported `Unknown command line option -version`; the banner is the version evidence, not a successful `-version` option. |
+| `system_profiler SPUSBDataType` | Found SEGGER J-Link VID `0x1366`, PID `0x1020`, USB serial `000602003106`, and ARM DAPLink CMSIS-DAP VID `0x0d28`, PID `0x0204`. The DAPLink serial port is currently `/dev/cu.usbmodem11102`. |
+| `printf 'ShowEmuList USB\nq\n' \| JLinkExe -NoGui 1` | Commander listed a J-Link PLUS with S/N `602003106`, hardware V12.00, firmware V12 built 2026-09-24, and `VTref=3.328V`. During this probe-list command, Commander automatically updated probe firmware from a build dated 2025-04-01; it reported `New firmware booted successfully`. This changed the probe firmware, not the MCU. |
+| `printf 'connect\nq\n' \| JLinkExe -USB 602003106 -Device MIMXRT1062xxx6A -If SWD -Speed 1000 -NoGui 1 -ExitOnError 1` | **Failed**, exit code 1: after selecting the requested device and initializing SWD, Commander reported `Could not connect to the target device.` It read `VTref=3.322V`. No reset/write/flash command was sent. |
+
+The initial failure was not evidence that the MCU or board was defective: the probe was enumerated
+and saw target voltage, while SWD did not respond. The user then corrected J9/J10, and the follow-up
+connection succeeded. The [SEGGER Commander reference](https://kb.segger.com/J-Link_Commander)
+documents probe selection and target connection; the [NXP EVKB J-Link
+instructions](https://community.nxp.com/t5/i-MX-RT-Crossover-MCUs-Knowledge/Using-J-Link-with-MIMXRT1060-EVKB-or-MIMXRT1040-EVK/ta-p/1452717)
+document this board's J2/J9/J10 setup.
+
+## M4 SWD connection after J9/J10 correction (2026-10-17)
+
+After the user corrected the J9/J10 setup, the host-side, read-only target-identification command
+succeeded at 100 kHz SWD. It established communication with the selected `MIMXRT1062xxx6A` device
+definition and identified an ARM Cortex-M7 core. No reset, erase, flash, or memory write was
+requested.
+
+```sh
+printf 'connect\nq\n' | JLinkExe -USB 602003106 -Device MIMXRT1062xxx6A -If SWD -Speed 100 -NoGui 1 -ExitOnError 1
+```
+
+Actual result: exit code `0`; Commander reported `VTref=3.322V`, SW-DP ID `0x0BD11477`, AHB-AP IDR
+`0x04770041`, Cortex-M7 r1p1, and CPUID `0x411FC271`. The preceding 1000 kHz attempt failed with
+`Could not connect to the target device`; the successful follow-up used the corrected J9/J10 setup
+and a conservative 100 kHz SWD speed. This confirms the current probe-to-target wiring/configuration
+and target core identification, but does not isolate which change was necessary. It does not
+establish the exact PCB revision, the active QSPI/HyperFlash wiring, firmware state, UART behavior,
+or RTC behavior. Preserve the generated firmware checksum and confirm the board marking and flash
+configuration before programming.
+
+## M4 J-Link GDB transport check (2026-10-17)
+
+Started the repository's macOS J-Link GDB Server launcher with the connected EVKB and J-Link PLUS.
+The server remained at `Waiting for GDB connection...`; it reported J-Link S/N `602003106`, target
+`MIMXRT1062xxx6A`, SWD at 400 kHz, target voltage `3.34 V`, and `Connected to target`. From the
+running Dev Container, connected the SDK GDB client to the Mac host and read core registers, without
+loading an ELF, resetting the board, or downloading firmware:
+
+```sh
+# macOS terminal
+./scripts/macos/start-jlink-gdbserver.command
+
+# Dev Container terminal
+"$ZEPHYR_SDK_INSTALL_DIR/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb" --batch \
+  -ex "set remotetimeout 10" \
+  -ex "target remote host.docker.internal:2331" \
+  -ex "info registers pc sp" -ex "detach" -ex "quit"
+```
+
+Actual result: the container GDB connected through `host.docker.internal:2331`, read PC `0x00217398`
+and SP `0x20200fa0`, then detached. J-Link GDB Server logged the client connection and register
+reads, then returned to waiting. The server was stopped with Ctrl-C. This verifies the probe-to-target
+SWD link at the requested 400 kHz and the container-to-Mac GDB transport for this session. It does
+not verify VS Code's `cppdbg` launch sequence, execute or identify the firmware, or validate the
+physical RTC. GDB warned that no executable was specified, as this read-only connection intentionally
+did not load the ELF. No reset or flash command was sent. The earlier target-connection-loss log was not
+reproduced in this run; its cause remains unknown. The board marking and active QSPI/HyperFlash
+configuration remain unconfirmed, so programming stays pending.
+
+## M4 manual GDB attach and image comparison (2026-10-17)
+
+To manually investigate the VS Code launch failure, started the macOS J-Link GDB Server using
+`scripts/macos/start-jlink-gdbserver.command`. It reported J-Link GDB Server V9.86a, probe S/N
+`602003106`, target `MIMXRT1062xxx6A`, SWD at 400 kHz, target voltage `3.34 V`, and `Connected to
+target`. From the running Dev Container, GDB attached to the target and read registers without
+issuing `load`, `monitor reset`, erase, or an explicit memory-write command:
+
+```sh
+"$ZEPHYR_SDK_INSTALL_DIR/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb" --batch -q \
+  build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf \
+  -ex 'set remotetimeout 60' \
+  -ex 'target remote host.docker.internal:2331' \
+  -ex 'info registers pc sp' -ex 'detach' -ex 'quit'
+```
+
+Actual result: exit code `0`; GDB read PC `0x6000231c` and SP `0x81e00000`. The ELF maps the PC
+to `__text_region_start + 92` in its external-flash `text` section. A read-only content comparison
+was then run against the same ELF:
+
+```sh
+"$ZEPHYR_SDK_INSTALL_DIR/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb" --batch -q \
+  build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf \
+  -ex 'set remotetimeout 60' \
+  -ex 'target remote host.docker.internal:2331' \
+  -ex 'compare-sections rom_start' -ex 'compare-sections text' \
+  -ex 'detach' -ex 'quit'
+```
+
+Actual result: GDB reported both `rom_start` (`0x60000000–0x600022c0`) and `text`
+(`0x600022c0–0x6000c1d8`) as `MIS-MATCHED` against the current ELF. This shows the contents at
+those target addresses do not match the current build; it does not establish whether the existing
+image is stale, from another build, or invalid. The generated ELF SHA-256 is
+`20f6c93d2d0e30ff11fa310d127b2afda5a7e8e598b3ef9aa21dbe7b6e40a4fc`; BIN SHA-256 is
+`904f5a3480cc8a689d4710ef99787f0c03dcb178ae66f1581ce424e19a61dda6`. The GDB client detached and
+the server was stopped with Ctrl-C. No firmware was downloaded, and no explicit reset, erase, or
+write command was issued. The mismatch supports investigating the existing QSPI image, but the
+physical PCB marking, SW4 setting, and any HyperFlash rework have not been visually confirmed; do
+not program until they are confirmed. This manual attach did not reproduce the VS Code
+`monitor reset`/disconnect sequence, so that launch failure remains unexplained.
+
+## M4 QSPI download and breakpoint verification (2026-10-17)
+
+The user confirmed the physical board is MIMXRT1060-EVKB revision B, SW4 is OFF–OFF–ON–OFF,
+and the board has not been modified for HyperFlash. This resolved the flash-selection precondition
+for the selected `mimxrt1060_evk@B//qspi` image. The external J-Link PLUS is S/N `602003106`;
+J-Link GDB Server ran on macOS at 400 kHz and reported `VTref=3.34 V`. GDB ran in the Dev
+Container and reached the macOS server through `host.docker.internal:2331`.
+
+The first Docker CLI build attempt did not inherit the Dev Container's configured PATH and failed
+before building with `FATAL ERROR: CMake is not installed or cannot be found; cannot build.`
+Adding the container's pinned tool venv to PATH fixed this environment issue. The reproducible
+container-terminal form is:
+
+```sh
+PATH=/opt/crux-cache/venv/bin:$PATH ./scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
+```
+
+Actual result: exit code `0`. CMake reconfiguration took 64.4 seconds and the incremental build
+completed in 7 steps. Reported static usage was 65,976 bytes FLASH and 8,448 bytes RAM. Artifact
+SHA-256 values were:
+
+```text
+zephyr.elf  20f6c93d2d0e30ff11fa310d127b2afda5a7e8e598b3ef9aa21dbe7b6e40a4fc
+zephyr.bin  904f5a3480cc8a689d4710ef99787f0c03dcb178ae66f1581ce424e19a61dda6
+```
+
+The GDB client then ran this sequence against the running host-side J-Link GDB Server:
+
+```sh
+/opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb --batch -q \
+  build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf \
+  -ex 'set remotetimeout 60' \
+  -ex 'target remote host.docker.internal:2331' \
+  -ex 'monitor reset' -ex 'load' -ex 'break main' -ex 'continue' \
+  -ex 'info registers pc sp' -ex 'bt' -ex 'detach' -ex 'quit'
+```
+
+`monitor reset` was explicitly issued before `load`; SEGGER documents this as a normal GDB setup
+sequence and defines the monitor reset operation as resetting and halting the target CPU. Reset
+changes target execution state; it is distinct from `monitor flash erase`. The subsequent `load`
+did write the identified QSPI image. GDB exited `0`, reported programming sections in the
+`0x60000000` flash range (65,972 bytes loaded; start address `0x600058f0`), set a breakpoint at
+`main` (`0x60002768`, `samples/time/src/main.c:7`), continued, and stopped at that breakpoint.
+At the stop, PC was `0x60002768`, SP was `0x80001ec0`, and the backtrace's top frame was `main`.
+The QSPI section programming and breakpoint entry demonstrate manual download-and-debug success;
+they do not verify serial output, RTC behavior, session-unset behavior after reset, or VS Code F5.
+
+After detaching, a separate read-only GDB `compare-sections` check reported both `rom_start`
+(`0x60000000–0x600022c0`) and `text` (`0x600022c0–0x6000c1d8`) as `matched`. The earlier
+read-only comparison recorded in the preceding section was performed before this programming and
+found mismatches. The J-Link GDB Server was stopped with Ctrl-C after verification. No further
+board operation was performed. SEGGER's documented GDB sequence and reset semantics:
+[J-Link GDB Server](https://kb.segger.com/J-Link_GDB_Server).
 
 ## M0–M1 work sequence
 
@@ -302,12 +515,12 @@ Clang-Tidy remains a recorded failure after two focused attempts. In the first a
 
 ### M5-06 unresolved material issues and next actions
 
-1. M4 physical acceptance is still pending. Identify the actual EVK revision/flash state, J-Link model/firmware, J41 serial path and reset method; only then perform separately authorized board verification. No flashing, reset, J-Link, UART or other hardware operation occurred here.
+1. M4 physical acceptance is partial. Board/revision/flash setup is confirmed by the user, and M4-01 passed after QSPI download and breakpoint verification. UART output, RTC behavior, reset/session semantics and physical timing still need verification. The earlier J41 serial-path assumption was corrected in the hardware assessment above.
 2. SNVS RTC read/write, no-data on silicon, progression, range behavior, reset semantics and serial Shell response have only compile/simulator evidence. Keep all hardware ACs pending until measured on the identified board.
-3. M5-03 still needs an authorized GitHub Actions run for external CI validation. Both workflows parse and define the intended coverage; no remote or push exists. M1-06's failure-propagation and no-hardware-operation criteria are met locally.
+3. M5-03 still needs a successful GitHub Actions run for external CI validation. Both workflows parse and define the intended coverage; `origin` is configured, but authenticated remote access and a successful Actions run have not been verified. M1-06's failure-propagation and no-implicit-hardware criteria are met locally.
 4. At this 2026-10-16 checkpoint, M2-08 focused host analysis failed on Clang-Tidy's `DeprecatedOrUnsafeBufferHandling` rule for checked standard C calls. The 2026-10-17 analyzer configuration and result are recorded below.
 5. Free host storage is now 20 GiB, below the plan's advisory 30–40 GiB headroom. No files were deleted. Avoid more large downloads/builds until space is reviewed.
-6. The user-provided product data lists both QSPI and HyperFlash, but the build target selects QSPI. Confirm the physical board's flash/rework state before any future programming.
+6. The user confirmed QSPI switch settings and no HyperFlash rework; the current `mimxrt1060_evk@B//qspi` image was programmed and verified at `main`. Any future flash operation should still use the recorded board setup and deliberate reset/download sequence.
 
 | Initial result | Resolution / current evidence |
 | --- | --- |
@@ -319,11 +532,11 @@ Clang-Tidy remains a recorded failure after two focused attempts. In the first a
 | Initial C++ formatter check rejected `time_port_zephyr.c`. | Applied the repository's clang-format and reran the full owned-code format check successfully. |
 | The first host sample verification used its pre-M3 path. | Moved the host target beneath `samples/time/host/`, updated the helper and README, and verified the sample in the clean debug directory. |
 
-No physical board, J-Link, UART, flash or reset operation was performed. Thus the build verifies target compilation and DTS integration, not SNVS hardware operation or persistence. The free-space check after the M5 builds reported 20 GiB. No files or images were deleted.
+At that earlier checkpoint, no physical board, J-Link, UART, flash or reset operation had been performed. Thus that build verified target compilation and DTS integration, not SNVS hardware operation or persistence. Later J-Link/QSPI evidence is recorded in [M4 QSPI download and breakpoint verification](#m4-qspi-download-and-breakpoint-verification-2026-10-17). The free-space check after the M5 builds reported 20 GiB. No files or images were deleted.
 
 ## Current blockers
 
-1. M0-05 and M4-01..08 remain pending for physical configuration and behavior: the actual PCB marking/rework and active flash selection, probe firmware, macOS USB serial device and reset remain unobserved because the board was not attached or operated.
+1. M0-05 and M4-01 pass. M4-02..07 remain pending for UART/RTC/reset behavior and physical test execution; M4-08 remains pending for timing bounds and limitations. The user-confirmed board/revision/SW4/rework state and QSPI download/debug result are recorded in [M4 QSPI download evidence](#m4-qspi-download-and-breakpoint-verification-2026-10-17).
 2. M5-03's GitHub Actions execution remains pending because no remote or push was created as instructed. Local workflow parsing and M1-06 failure-propagation verification are recorded above.
 3. Storage is 20 GiB free after the clean M5 build outputs. This is below the plan's advisory 30–40 GiB working-headroom target, not an official minimum. No files or images were deleted.
 4. Dev Container image, mount layout, workspace identity, SDK path, tool identities, host checks and clang-tidy were verified via Docker CLI. The CMake Tools extension is declared in the Dev Container; its preset selection and build actions in the VS Code UI were not exercised here.
@@ -621,17 +834,17 @@ The workflow lint command was `actionlint .github/workflows/host.yml .github/wor
 it exited 0 after that correction.
 Local equivalents for host debug/sanitizer builds and tests, format,
 dependency checks, analysis, native_sim/Twister and EVKB builds passed as recorded in the preceding
-sections. GitHub Actions itself has **not** run: this checkout has no commit and no remote. The
-original task boundary prohibits creating a remote or pushing, so M5-03 remains pending until the
-user publishes the reviewed tree and a workflow run completes. M1-06's local failure-propagation
-and no-implicit-hardware criteria remain independently verified.
+sections. GitHub Actions has **not** been verified in this evidence set. The current checkout has a
+configured `origin` and local `main` commit, but no remote Actions run has been verified here.
+M5-03 remains pending until the current workflow runs and artifacts are reviewed. M1-06's local
+failure-propagation and no-implicit-hardware criteria remain independently verified.
 
-To trigger the workflows, the user needs to create or select a GitHub repository, commit this tree,
-configure an authenticated `origin`, and push `main`. A push starts both workflows; later runs can
-be started from **Actions → host-foundation/zephyr-software → Run workflow**. GitHub CLI
-authentication (`gh auth login`) or the user's configured SSH/Git credential flow must be completed
-on the Mac. Credentials should remain local; no token needs to be added as a workflow secret. If
-Actions are disabled by repository policy, enable them in the repository's Actions settings.
+To trigger the workflows, push the reviewed `main` branch to the configured GitHub `origin`. A push
+starts both workflows; later runs can be started from **Actions → host-foundation/zephyr-software →
+Run workflow**. GitHub CLI authentication (`gh auth login`) or the user's configured SSH/Git
+credential flow must be completed on the Mac. Credentials should remain local; no token needs to be
+added as a workflow secret. If Actions are disabled by repository policy, enable them in the
+repository's Actions settings.
 
 ### Target build provenance
 
@@ -667,12 +880,166 @@ sources had 2/2 configurations and 4/4 test cases, with zero failures, errors, o
 manifest reports 11 target/build evidence files and 8 Twister report/log files; independent local
 verification recomputed every recorded file size and SHA-256 with no mismatch. It records the
 container image ID `sha256:c42936535e1b5a253afbeba80f1708208f7014aec63d76ff7a29e834fc785654`, all
-west revisions, and no Git commit because the working tree has not been committed. Exact ELF/BIN
-hashes and sizes are in the generated manifest. No remote, push, hardware operation or flash was
-performed.
+west revisions, and the local `HEAD` at build time. Exact ELF/BIN hashes and sizes are in the
+generated manifest. Later documentation edits make the current worktree dirty; they do not change
+the recorded image, but the manifest continues to describe the exact source snapshot at build time.
+No hardware flash was performed.
 
 | Acceptance criterion | Status | Evidence / remaining action |
 | --- | --- | --- |
 | M1-06: local commands and CI fail on actual check failures; target build does not invoke hardware | pass locally; GitHub CI pending | `set -euo pipefail`, a synthetic CMake exit-37 propagation probe, non-flashing target script, local workflow parsing and the local checks above. External CI execution is tracked separately as M5-03. |
-| M5-03: CI covers format, forbidden dependencies, host build/tests/analysis, native_sim tests and target build | pending | Workflow definitions and local equivalents are verified. A GitHub Actions run requires a user-created/selected GitHub repo, commit, authenticated push, then review of both workflow results/artifacts. |
+| M5-03: CI covers format, forbidden dependencies, host build/tests/analysis, native_sim tests and target build | pending | Workflow definitions and local equivalents are verified. `origin` is configured; authenticated access to it was unavailable to `git ls-remote` (`could not read Username for 'https://github.com': Device not configured`). Review both remote workflow results and artifacts when authentication is available. |
 | M5-04: record source/module/tool/image/config/size/checksum/report/log provenance | pass | `build/zephyr/mimxrt1060_evk_B_qspi/provenance.json`; all 19 referenced artifact and test-report file hashes/sizes independently matched. A future clean GitHub run will add its commit SHA and runner/run metadata. |
+
+## M4 VS Code download failure and fix (2026-10-17)
+
+### Reproduced failure and cause
+
+Used the already confirmed EVKB revision B, SW4 OFF–OFF–ON–OFF, no HyperFlash rework,
+J-Link PLUS S/N `602003106`, SWD 400 kHz, and 3.34 V target voltage. No switch or jumper was
+changed. Started `scripts/macos/start-jlink-gdbserver.command` on macOS and replayed the repository's
+launch configuration through the installed Microsoft C/C++ 1.34.4 `OpenDebugAD7` adapter inside the
+Dev Container as `vscode`. The adapter used Zephyr SDK 1.0.1 GDB 16.2. A temporary DAP client was
+used only to capture diagnostic requests/responses; no test framework was added to the repository.
+
+The original profile's `customLaunchSetupCommands` replaced the normal ELF loading and architecture
+detection. Its `program` property therefore did not cause GDB to load the file. The actual MI trace
+in `build/evidence/dap-before.jsonl` and `dap-before-console.log` shows:
+
+```text
+-target-select remote host.docker.internal:2331
+warning: No executable has been specified ...
+-interpreter-exec console "monitor reset"
+Resetting target
+-target-download
+^error,msg="No executable file specified.\nUse the \"file\" or \"exec-file\" command."
+-gdb-exit
+```
+
+The DAP `launch` response was `success:false`. There were no section-download messages in the
+server log for that failed attempt. Reset succeeded; the next download command failed locally in
+GDB because no executable had been selected. GDB then exited and closed the client socket. The
+J-Link server remained alive and accepted later clients without restarting. Thus this reproduced
+failure was a debugger setup error, rather than an observed QSPI programming failure.
+
+Microsoft documents that custom launch commands replace the default launch sequence; its
+[MIEngine source](https://github.com/microsoft/MIEngine/blob/main/src/MIDebugEngine/Engine.Impl/DebuggedProcess.cs)
+also shows the default `-file-exec-and-symbols`, architecture detection, remote connection and
+post-connection commands. Reference: [C/C++ launch configuration](https://code.visualstudio.com/docs/cpp/launch-json-reference).
+
+### Fix and actual verification
+
+The firmware profile now uses `miDebuggerServerAddress` and `postRemoteConnectCommands`, preserving
+default ELF loading and architecture detection. Only reset and download are added after the remote
+connection. `stopAtEntry:true` pauses at `z_arm_reset` after programming, before application code.
+Set a normal source breakpoint at `samples/time/src/main.c:7`, then continue to reach `main`.
+The deprecated architecture override is no longer needed for this profile. The attach profile
+explicitly loads the selected ELF's symbols and uses `stopAtConnect:true`; it sends no reset or
+image-download command. A focused attach check without `stopAtConnect` auto-continued and timed
+out waiting for a stop; the corrected attach check stopped and returned a valid stack trace.
+
+| Check | Actual result |
+| --- | --- |
+| First focused ELF-loading correction | Adapter download succeeded: MI `^done` with `load-size="65972"`; source breakpoint at `main.c:7` was reached. Logs: `build/evidence/dap-after.jsonl` and `dap-after-console.log`. |
+| Final standard remote profile, without an injected source breakpoint | Adapter launch succeeded and paused at `z_arm_reset`, `reset.S:147`, PC `0x600058f0`; stack trace succeeded. Logs: `dap-standard.jsonl` and `dap-standard-console.log`. |
+| Corrected attach profile | Launch stopped on connection and returned a stack trace through `arch_cpu_idle`; clean detach succeeded. Logs: `dap-attach-fixed.jsonl` and `dap-attach-fixed-console.log`. The earlier auto-continue/timeout is retained in `dap-attach.jsonl`. |
+| Actual VS Code F5, final profile | `Build firmware` completed with `ninja: no work to do`; download completed and the editor paused at `reset.S:147`. F5 continued to the real source breakpoint at `main.c:7`, displayed as **Paused on breakpoint**. F10 advanced to `main.c:9`, displayed as **Paused on step**. This was observed in the actual VS Code UI, not inferred from the CLI probe. |
+| Read-only comparison through the active VS Code Debug Console | `-exec compare-sections rom_start` reported `0x60000000 -- 0x600022c0: matched`; `-exec compare-sections text` reported `0x600022c0 -- 0x6000c1d8: matched`. |
+| Server lifetime | The same macOS server process accepted the failed launch, successful downloads, detach and attach checks, and the final UI session. No server restart was needed between them. |
+
+The final UI session remains paused at `main.c:9`, with the host J-Link GDB Server running so the
+user can continue debugging. No RTC timestamp was set and no UART acceptance sequence was run.
+The earlier screenshot's fatal `Failed to open remote socket` server exit was not reproduced.
+Its cause remains unknown; it must not be equated with the client-close message reproduced above.
+The historical `exited with code 42` message was also not reproduced and is not evidence that the
+firmware returned 42. The actual reproduced launch failure and successful final path are recorded
+independently of those older symptoms.
+
+### Reproduction, build delay and retained evidence
+
+From macOS, start the launcher above. In the Dev Container, use the firmware debug profile in
+VS Code, set the source breakpoint at `main.c:7`, press F5 to download, then F5 again from the
+startup entry point. Press F10 at `main` to step. For a direct build-only check:
+
+```sh
+PATH=/opt/crux-cache/venv/bin:$PATH scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'
+```
+
+During UI verification, the previous script forced a CMake reconfiguration on every invocation
+because it always passed extra CMake arguments to west. It now supplies those arguments only when
+creating the Ninja build system. Subsequent builds rely on Ninja's dependency tracking. The
+unchanged build returned `ninja: no work to do` in 2.065 seconds, with no reconfiguration; the same
+result was then observed in the actual F5 task. Raw output: `build/evidence/debug-incremental-build.log`.
+The first-build configuration command is unchanged. Shell syntax, launch JSON parsing and
+`git diff --check` passed. Production C sources were unchanged, so component unit tests were not
+repeated for this debugger/script correction.
+
+The combined host server transcript is retained as `build/evidence/jlink-download-session.log`;
+`jlink-server-before.log` is the original live capture spanning all attempts, despite its filename.
+The exact original launch request is in `launch-before.json`, the verified configuration in
+`launch-verified.json`, and the temporary protocol client in `replay-cppdbg.py`, all beneath ignored
+`build/evidence/`. Adapter diagnostics can be repeated from the repository on macOS with:
+
+```sh
+python3 build/evidence/replay-cppdbg.py standard .vscode/launch.json
+python3 build/evidence/replay-cppdbg.py attach-fixed .vscode/launch.json
+```
+
+These diagnostic commands connect to hardware; run them only after ending any active VS Code
+session, with the server already listening. The retained client names the current container and
+installed extension path; update those for a new container/extension installation. The original
+failed request can be replayed with `launch-before.json`, but it resets the target and reproduces
+the invalid download, so normal use should keep the corrected profile.
+
+Firmware checksums remained unchanged through the build and UI verification:
+
+```text
+zephyr.elf  20f6c93d2d0e30ff11fa310d127b2afda5a7e8e598b3ef9aa21dbe7b6e40a4fc
+zephyr.bin  904f5a3480cc8a689d4710ef99787f0c03dcb178ae66f1581ce424e19a61dda6
+```
+
+M4-01 remains **pass** with additional real VS Code evidence. M4-02 through M4-08 remain **pending**
+for their UART/RTC/timing/reset-session criteria; source stepping and flash comparison do not
+substitute for those tests.
+
+
+## First-push baseline preparation (2026-10-17)
+
+The architecture review found that F5 rebuilt the ELF/BIN while leaving the older
+`provenance.json` beside them. The reviewed ELF changed from `20f6c93d…` to `52f9c6ea…`;
+the manifest still recorded the former. This was an actual hash mismatch, not a firmware
+execution failure. It supersedes the earlier assumption that one successful manifest generation
+ensures later development outputs remain associated with that verification.
+
+The corrected development build and VS Code clean task invalidate prior provenance before
+changing outputs, including on failure. Pristine verification captures source/workspace inputs
+before building and refuses changed inputs afterwards. Dependency records contain actual Git
+HEADs and clean state as well as pinned revisions; Finder `.DS_Store` metadata is excluded without
+deleting it. Unrelated dirty source fingerprints are labelled not recoverable from Git. Accepted
+source baselines use a clean local commit. An input fingerprint is not a stored source archive.
+Test reports are linked only when an explicitly supplied successful test-input record matches
+those build inputs; a standalone target build does not silently attach an old Twister report.
+
+The shared command handler no longer owns the host-only banner. The host process owns its
+simulation explanation; the Zephyr sample prints `Crux Time sample`. The SNVS RTC priority is
+in `samples/time/boards/mimxrt1060_evk_mimxrt1062_qspi.conf`, rather than the common application
+configuration. Public APIs and capability semantics are unchanged. Repository/module identities
+remain appropriate to the current checkout; these changes add no platform-wide framework.
+
+The user reported that all guided UART steps worked: help, initial unset, valid set/get,
+progression, invalid-date rejection and subsequent reads. This is user-reported manual evidence,
+not a captured transaction report. Precise timing, post-2038/upper-range cases, reset-session
+behavior and the planned exclusive-UART pytest suite remain pending. Historical logs above are
+preserved; current summaries now acknowledge both successful download/debugging and this manual
+report. No additional board operation is needed to verify these software fixes.
+
+Initial safeguard regression checks passed before the full verification run. Commands and final
+results for the committed baseline will be recorded below. Adding a new board fragment to an
+existing Zephyr cache does not update its cached `CONF_FILE` list; a pristine configure is required
+once. Subsequent F5 launches reuse that configuration and remain incremental.
+
+The cached incremental diagnostic was stopped after confirming that `.config` still contained
+`CONFIG_RTC_INIT_PRIORITY=50` and the log merged only `prj.conf`. It was not a completed build or
+a hardware failure. The full verification run below uses a pristine configure and must show the
+board fragment merged with priority 61. Safeguard regression tests passed 4/4, including failed
+debug and clean commands returning the injected exit status 37 with the old manifest removed.

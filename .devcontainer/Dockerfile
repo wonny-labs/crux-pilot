@@ -7,6 +7,7 @@ RUN apt-get update \
         build-essential \
         ca-certificates \
         clang-18=1:18.1.3-1ubuntu1 \
+        clangd-18=1:18.1.3-1ubuntu1 \
         clang-tidy-18=1:18.1.3-1ubuntu1 \
         libclang-rt-18-dev=1:18.1.3-1ubuntu1 \
         ccache \
@@ -25,6 +26,7 @@ RUN apt-get update \
         ripgrep \
         wget \
         xz-utils \
+    && ln -sf /usr/bin/clangd-18 /usr/local/bin/clangd \
     && rm -rf /var/lib/apt/lists/* \
     && install -d -o vscode -g vscode /opt/crux-cache \
     && python3 -m pip install --break-system-packages --no-cache-dir \

@@ -17,8 +17,7 @@ class TimeCommandTest : public ::testing::Test {
     }
 };
 
-TEST_F(TimeCommandTest, BannerAndHelpIdentifyControlledSimulation) {
-    EXPECT_NE(std::strstr(crux_time_command_startup_banner(), "host simulation"), nullptr);
+TEST_F(TimeCommandTest, HelpIdentifiesUtcInput) {
     EXPECT_NE(std::strstr(crux_time_command_help_text(), "Input is UTC"), nullptr);
 }
 

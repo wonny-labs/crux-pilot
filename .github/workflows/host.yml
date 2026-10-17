@@ -29,6 +29,8 @@ jobs:
         run: ./scripts/bootstrap-host.sh
       - name: Verify host checks with network dependency resolution disabled
         run: ./scripts/check-host.sh
+      - name: Check build provenance safeguards
+        run: python3 -m unittest discover -s tests/build -v
       - name: Check format
         run: ./scripts/check-format.sh
       - name: Analyze host sources

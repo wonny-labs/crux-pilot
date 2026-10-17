@@ -23,3 +23,10 @@ handler for the documented `ERR INVALID_ARGUMENT` result.
 
 Host tests own portable behavior. Ztest covers native integration and the Shell boundary. The two
 suites do not duplicate every case across frameworks.
+
+## Build tools: `build/`
+
+Python standard-library `unittest` checks the provenance safeguards: changed input rejection,
+actual dependency HEAD/dirty-state checks, and invalidation of stale manifests even when a debug
+build fails. Run `python3 -m unittest discover -s tests/build -v` on Linux; host CI runs it too.
+No additional test framework is required.

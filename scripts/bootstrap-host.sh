@@ -14,5 +14,6 @@ mkdir -p "$cache_dir/cmake"
 
 cmake --preset "$host_preset" -S "$repo"
 cmake --build --preset "$host_preset"
+"$repo/scripts/select-clangd-database.sh" "$repo/build/linux/${host_preset#host-}"
 ctest --preset "$host_preset" \
     --output-junit "$repo/build/linux/${host_preset#host-}/ctest-junit.xml"

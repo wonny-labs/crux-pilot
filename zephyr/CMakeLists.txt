@@ -1,4 +1,4 @@
-message(STATUS "Crux Pilot Zephyr module discovered")
+message(STATUS "Crux Zephyr integration module discovered")
 
 if(CONFIG_CRUX_PILOT_MODULE)
     add_library(crux_base INTERFACE)

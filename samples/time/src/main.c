@@ -11,7 +11,7 @@ int main(void) {
         return -1;
     }
 
-    printk("Crux Pilot Time Zephyr sample. Use `time help` for commands.\n");
+    printk("Crux Time sample. Use `time help` for commands.\n");
     printk("CRUX_TIME_READY composition=zephyr\n");
     return 0;
 }

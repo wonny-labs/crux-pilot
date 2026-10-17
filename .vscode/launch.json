@@ -1,0 +1,71 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "EVKB QSPI: Flash",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Build firmware",
+      "MIMode": "gdb",
+      "miDebuggerPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+      "setupCommands": [
+        {
+          "text": "set remotetimeout 60",
+          "description": "Allow time for external QSPI flash programming",
+          "ignoreFailures": false
+        }
+      ],
+      "launchCompleteCommand": "exec-continue",
+      "stopAtEntry": true,
+      "externalConsole": false,
+      "miDebuggerServerAddress": "host.docker.internal:2331",
+      "postRemoteConnectCommands": [
+        {
+          "text": "monitor reset",
+          "description": "Reset and halt the target before programming",
+          "ignoreFailures": false
+        },
+        {
+          "text": "-target-download",
+          "description": "Program the QSPI image through the J-Link flash loader",
+          "ignoreFailures": false
+        }
+      ]
+    },
+    {
+      "name": "EVKB QSPI: Attach",
+      "type": "cppdbg",
+      "request": "launch",
+      "targetArchitecture": "arm",
+      "program": "${input:cruxElf}",
+      "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "miDebuggerPath": "${env:ZEPHYR_SDK_INSTALL_DIR}/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+      "customLaunchSetupCommands": [
+        {
+          "text": "-file-exec-and-symbols \"${input:cruxElf}\"",
+          "description": "Load symbols for the firmware already on the board",
+          "ignoreFailures": false
+        },
+        {
+          "text": "-target-select remote host.docker.internal:2331",
+          "description": "Connect to the Mac-hosted GDB Server without downloading",
+          "ignoreFailures": false
+        }
+      ],
+      "launchCompleteCommand": "None",
+      "stopAtConnect": true,
+      "stopAtEntry": false,
+      "externalConsole": false
+    }
+  ],
+  "inputs": [
+    {
+      "id": "cruxElf",
+      "type": "promptString",
+      "description": "Container path to the ELF matching the firmware already on the board"
+    }
+  ]
+}

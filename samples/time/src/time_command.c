@@ -177,10 +177,6 @@ const char *crux_time_command_help_text(void) {
            "Input is UTC.\n";
 }
 
-const char *crux_time_command_startup_banner(void) {
-    return "Crux Pilot Time host simulation (controlled clock; no wall-clock progression).\n";
-}
-
 const char *crux_time_command_cli_error_text(crux_status_t status) {
     switch (status) {
     case CRUX_OK:

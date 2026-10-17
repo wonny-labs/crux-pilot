@@ -11,6 +11,7 @@ host_preset="${CRUX_HOST_PRESET:-host-debug}"
 export CRUX_CACHE_DIR="${CRUX_CACHE_DIR:-${repo}/../.crux-cache}"
 cmake --preset "$host_preset" -S "$repo" -DFETCHCONTENT_FULLY_DISCONNECTED=ON
 cmake --build --preset "$host_preset"
+"$repo/scripts/select-clangd-database.sh" "$repo/build/linux/${host_preset#host-}"
 ctest --preset "$host_preset" \
     --output-junit "$repo/build/linux/${host_preset#host-}/ctest-junit.xml"
 "$repo/scripts/check-host-sample.sh" "$host_preset"

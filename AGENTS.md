@@ -4,7 +4,7 @@ Read `docs/plans/codex-start-instructions.md`, then the v0.5 plan and readiness 
 
 ## Current scope
 
-M0–M2 are implemented and their evidence is recorded in `docs/implementation-status.md`. The user has since authorized continuing the remaining development. Complete M3 Zephyr software integration and software-only M5 reproduction/architecture review. M4 physical board operations remain prohibited by the execution boundaries below; mark hardware evidence pending. Do not infer authorization to flash or operate hardware from the broad request to continue development.
+M0–M3 are implemented and their evidence is recorded in `docs/implementation-status.md`. The user has authorized continuing development, including M4 physical verification on the NXP MIMXRT1060-EVKB with SEGGER J-Link. Complete software-only M5 review and the authorized M4 checks when the board and probe are connected. Record commands and actual outcomes; do not mark physical criteria passed until observed on hardware.
 
 Preserve milestone AC identifiers and report evidence in `docs/implementation-status.md`. Do not start unrelated modules or change contracts without evidence.
 
@@ -22,4 +22,4 @@ Use this repository as the primary working directory. The parent `crux-workspace
 
 This is a private personal experiment. Use original work and appropriately licensed public upstream material. Do not copy company code, BSPs, slides, internal documents, Harness assets or credentials into the repo/container. Record upstream provenance and preserve licences.
 
-Remote creation/push, repository renaming and physical board operation are outside this handoff. Do not delete user files to recover space. Do not mount the user home, company source, credentials or Docker socket into the container by default. Discover tools/resources first; report required host installations or authentication that cannot be completed through the available execution environment. Do not infer permission to operate hardware from a connected device.
+Remote creation/push and repository renaming remain outside this handoff. Physical operation is authorized only for the user's MIMXRT1060-EVKB and SEGGER J-Link verification described in the current task; verify the board marking, flash configuration, probe, and connections before programming. Do not delete user files to recover space. Do not mount the user home, company source, credentials or Docker socket into the container by default. Discover tools/resources first; report required host installations or authentication that cannot be completed through the available execution environment. Do not copy company-owned materials into the repository or container.

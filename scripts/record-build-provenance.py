@@ -58,6 +58,7 @@ def source_snapshot(repo: Path) -> dict[str, Any]:
         }
     )
     digest = hashlib.sha256()
+    file_count = 0
     for relative in paths:
         path = repo / relative
         if not path.exists() and not path.is_symlink():
@@ -71,6 +72,7 @@ def source_snapshot(repo: Path) -> dict[str, Any]:
             kind, content = b"file", path.read_bytes()
         else:
             continue
+        file_count += 1
         digest.update(relative.encode() + b"\0" + kind + b"\0")
         digest.update(f"{mode:o}".encode() + b"\0" + hashlib.sha256(content).digest())
 
@@ -98,12 +100,47 @@ def source_snapshot(repo: Path) -> dict[str, Any]:
         "git_commit": head.stdout.strip() if head.returncode == 0 else None,
         "git_branch": branch.stdout.strip() or None,
         "dirty": any(counts.values()),
+        "recoverable_from_git": head.returncode == 0 and not any(counts.values()),
         "git_status_counts": counts,
         "snapshot_algorithm": SOURCE_HASH_ALGORITHM,
-        "snapshot_file_count": len(paths),
+        "snapshot_file_count": file_count,
         "snapshot_sha256": digest.hexdigest(),
         "west_manifest_sha256": sha256_file(repo / "west.yml"),
     }
+
+
+def workspace_inputs(repo: Path, workspace: Path) -> dict[str, Any]:
+    projects = []
+    listing = run(["west", "list", "--format={name}\t{revision}\t{path}"], workspace).stdout
+    for line in listing.splitlines():
+        name, revision, relative = line.split("\t", 2)
+        project = (workspace / relative).resolve()
+        if project == repo:
+            continue
+        head = run(["git", "rev-parse", "HEAD"], project).stdout.strip()
+        expected = run(["git", "rev-parse", f"{revision}^{{commit}}"], project).stdout.strip()
+        # Finder metadata is not a compiler input. Do not delete it from user checkouts.
+        dirty = run(["git", "status", "--porcelain=v1", "--untracked-files=all", "--",
+                     ".", ":(exclude)**/.DS_Store", ":(exclude).DS_Store"], project).stdout.strip()
+        if head != expected or dirty:
+            raise ValueError(f"Dependency {name} must match its pinned revision and be clean: "
+                             f"HEAD={head}, expected={expected}, status={dirty!r}")
+        projects.append({"name": name, "revision": revision, "path": relative,
+                         "git_commit": head, "dirty": False})
+    return {"source": source_snapshot(repo), "west_projects": projects,
+            "west_workspace_config_sha256": sha256_file(workspace / ".west/config")}
+
+
+def require_matching_inputs(expected: dict[str, Any], actual: dict[str, Any]) -> None:
+    if expected != actual:
+        raise ValueError("Source or workspace inputs changed during verification; rerun the checks")
+
+
+def write_json(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
+    temporary.replace(path)
 
 
 def cmake_cache(build_dir: Path) -> dict[str, str]:
@@ -192,19 +229,36 @@ def image_identity(repo: Path) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--build-dir", type=Path, required=True)
-    parser.add_argument("--target", required=True)
+    parser.add_argument("--build-dir", type=Path)
+    parser.add_argument("--target")
+    parser.add_argument("--capture-inputs", type=Path)
+    parser.add_argument("--inputs", type=Path)
+    parser.add_argument("--test-inputs", type=Path)
     parser.add_argument("--workspace", type=Path, default=Path(os.environ.get("CRUX_WORKSPACE", REPO.parent)))
     arguments = parser.parse_args()
 
     repo = REPO.resolve()
-    build_dir = arguments.build_dir.resolve()
-    build_dir.relative_to(repo)
     workspace = arguments.workspace.resolve()
-    build_root = build_dir / "zephyr"
     workspace_config = workspace / ".west/config"
     if not workspace_config.is_file():
         parser.error(f"west workspace configuration is missing: {workspace_config}")
+
+    if arguments.capture_inputs:
+        write_json(arguments.capture_inputs, workspace_inputs(repo, workspace))
+        print(f"Verification inputs: {arguments.capture_inputs}")
+        return 0
+    if not arguments.build_dir or not arguments.target or not arguments.inputs:
+        parser.error("recording requires --build-dir, --target and pre-build --inputs")
+    build_dir = arguments.build_dir.resolve()
+    build_dir.relative_to(repo)
+    output = build_dir / "provenance.json"
+    output.unlink(missing_ok=True)
+    build_root = build_dir / "zephyr"
+    captured_inputs = json.loads(arguments.inputs.read_text())
+    current_inputs = workspace_inputs(repo, workspace)
+    require_matching_inputs(captured_inputs, current_inputs)
+    if arguments.test_inputs:
+        require_matching_inputs(json.loads(arguments.test_inputs.read_text()), current_inputs)
 
     required_artifacts = [
         build_root / "zephyr.bin",
@@ -235,18 +289,12 @@ def main() -> int:
         "zephyr_toolchain_variant": cache.get("ZEPHYR_TOOLCHAIN_VARIANT"),
         "python_executable": cache.get("Python3_EXECUTABLE"),
     }
-    projects = []
-    project_list = run(
-        ["west", "list", "--format={name}\t{revision}\t{path}"], workspace
-    ).stdout
-    for line in project_list.splitlines():
-        name, revision, path = line.split("\t", 2)
-        projects.append({"name": name, "revision": revision, "path": path})
+    projects = current_inputs["west_projects"]
 
     artifacts = [file_record(path, path.relative_to(repo).as_posix()) for path in required_artifacts]
     test_root = repo / "build/zephyr/twister-time"
     test_files = []
-    if test_root.is_dir():
+    if arguments.test_inputs and test_root.is_dir():
         test_names = {
             "twister.json",
             "twister.xml",
@@ -261,13 +309,17 @@ def main() -> int:
 
     test_summary = None
     report = test_root / "twister_report.xml"
-    if report.is_file():
+    if arguments.test_inputs and report.is_file():
         root = ET.parse(report).getroot()
         suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
         test_summary = {
             key: sum(int(suite.attrib.get(key, 0)) for suite in suites)
             for key in ("tests", "failures", "errors", "skipped")
         }
+
+    if arguments.test_inputs and (not test_summary or test_summary["tests"] == 0
+                                 or any(test_summary[key] for key in ("failures", "errors", "skipped"))):
+        raise ValueError("Matching test inputs require a complete passing Twister report")
 
     for relative in (
         "build/evidence/evkb-build.log",
@@ -282,7 +334,8 @@ def main() -> int:
         path.name: sha256_file(path)
         for path in (build_root / ".config", build_root / "zephyr.dts")
     }
-    source = source_snapshot(repo)
+    require_matching_inputs(captured_inputs, workspace_inputs(repo, workspace))
+    source = current_inputs["source"]
     image = image_identity(repo)
     stable_image = {
         **image,
@@ -297,7 +350,7 @@ def main() -> int:
         "target": arguments.target,
         "configuration_sha256": config_hashes,
         "west_projects": projects,
-        "west_workspace_config_sha256": sha256_file(workspace_config),
+        "west_workspace_config_sha256": current_inputs["west_workspace_config_sha256"],
         "tools": tools,
         "image": stable_image,
         "build_outputs": artifacts[: len(required_artifacts)],
@@ -306,7 +359,7 @@ def main() -> int:
         json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "build_id": build_id,
         "repository": repo.name,
@@ -327,17 +380,17 @@ def main() -> int:
             ),
         },
         "west_projects": projects,
-        "west_workspace_config_sha256": sha256_file(workspace_config),
+        "west_workspace_config_sha256": current_inputs["west_workspace_config_sha256"],
+        "test_inputs_sha256": sha256_file(arguments.test_inputs) if arguments.test_inputs else None,
         "test_summary": test_summary,
         "test_artifacts": test_files,
         "artifacts": artifacts,
     }
-    output = build_dir / "provenance.json"
-    output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    write_json(output, manifest)
     print(f"Build provenance: {output}")
     print(f"Build identity:   {build_id}")
     print(f"Source snapshot:  {source['snapshot_sha256']} ({source['snapshot_file_count']} files)")
-    print(f"Dirty source:     {source['dirty']}")
+    print(f"Source recoverable from Git: {source['recoverable_from_git']}")
     print(f"Test summary:     {test_summary or 'no Twister report found'}")
     print(f"Artifacts hashed: {len(artifacts)}")
     return 0

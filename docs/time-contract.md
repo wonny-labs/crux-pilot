@@ -1,8 +1,8 @@
-# Crux Time host contract
+# Crux Time API contract
 
 This document records the M2 contract implemented by the host reference composition. It follows
 Sections 4–5 of the [initial implementation plan](plans/initial-implementation-plan.md). This is a
-bounded pilot contract, not a general clock framework.
+bounded Time API contract, not a general clock framework.
 
 ## Common status ownership
 
@@ -32,7 +32,7 @@ C++ callers include these headers and link to the C17 implementation through the
 `crux::time` usage target. Host GoogleTests exercise C++ calls against the C17 test composition;
 they do not independently verify a C++ consumer link to the production usage target.
 
-The pilot interval is `[2000-01-01T00:00:00 UTC, 2100-01-01T00:00:00 UTC)`. It uses UTC, second
+The supported interval is `[2000-01-01T00:00:00 UTC, 2100-01-01T00:00:00 UTC)`. It uses UTC, second
 precision, Gregorian calendar rules and no leap seconds. It does not promise binary ABI stability
 across compilers, concurrent access, ISR use, persistence across reset or a progressing host clock.
 
@@ -97,5 +97,6 @@ The Zephyr composition selects the standard `rtc` devicetree alias and calls `rt
 not expose Zephyr types in the public API or portable command handler. `crux_time_init()` checks
 device readiness, and the application prints readiness only after initialization succeeds. The
 upstream RTC Shell is disabled so it cannot bypass the shared command path. Native simulation
-verifies API mapping and command behavior; only an EVKB compile has been done, so real SNVS behavior
-remains unverified until M4 hardware testing.
+verifies API mapping and command behavior. EVKB download/debugging passed, and the user reports
+successful guided UART operation on hardware. Formal timing, upper-range and reset acceptance
+remains pending under M4; manual success does not supply those missing measurements.

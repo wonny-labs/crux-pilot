@@ -20,7 +20,6 @@ typedef struct crux_time_command_result {
 
 crux_time_command_result_t crux_time_command_execute(const char *input);
 const char *crux_time_command_help_text(void);
-const char *crux_time_command_startup_banner(void);
 const char *crux_time_command_cli_error_text(crux_status_t status);
 
 #ifdef __cplusplus

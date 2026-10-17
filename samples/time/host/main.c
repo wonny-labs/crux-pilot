@@ -23,7 +23,7 @@ static void report_result(crux_time_command_result_t result) {
 int main(void) {
     char line[INPUT_CAPACITY];
 
-    fputs(crux_time_command_startup_banner(), stdout);
+    puts("Crux Time host simulation (controlled clock; no wall-clock progression).");
     if (crux_time_init() != CRUX_OK) {
         fputs("ERR IO_ERROR\n", stderr);
         return 1;
