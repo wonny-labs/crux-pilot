@@ -1,0 +1,77 @@
+name: zephyr-software
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zephyr:
+    runs-on: ubuntu-24.04
+    env:
+      CRUX_WORKSPACE: ${{ github.workspace }}
+      CRUX_CACHE_DIR: ${{ github.workspace }}/../crux-cache
+      CRUX_PYTHON: ${{ github.workspace }}/../crux-tools/bin/python
+      ZEPHYR_SDK_INSTALL_DIR: ${{ github.workspace }}/../crux-cache/sdk/zephyr-sdk-1.0.1
+      CRUX_BOARD_TARGET: mimxrt1060_evk@B//qspi
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: crux-pilot
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Zephyr host packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential ca-certificates device-tree-compiler file gperf git \
+            libmagic1 libsdl2-dev pkg-config python3-dev python3-tk wget xz-utils
+
+      - name: Install pinned Python tools
+        run: |
+          python -m venv "$GITHUB_WORKSPACE/../crux-tools"
+          "$GITHUB_WORKSPACE/../crux-tools/bin/pip" install --disable-pip-version-check \
+            cmake==3.28.4 ninja==1.11.1 west==1.4.0 clang-format==18.1.8
+          echo "$GITHUB_WORKSPACE/../crux-tools/bin" >> "$GITHUB_PATH"
+
+      - name: Fetch pinned Zephyr workspace and install SDK
+        working-directory: crux-pilot
+        run: scripts/bootstrap-zephyr.sh --install-sdk
+
+      - name: Run native_sim RTC tests and build EVKB firmware
+        working-directory: crux-pilot
+        run: scripts/test-zephyr-time.sh "$CRUX_BOARD_TARGET"
+
+      - name: Upload Zephyr reports and raw logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zephyr-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            crux-pilot/build/zephyr/twister-time/twister.json
+            crux-pilot/build/zephyr/twister-time/twister.xml
+            crux-pilot/build/zephyr/twister-time/twister_report.xml
+            crux-pilot/build/zephyr/twister-time/twister_suite_report.xml
+            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/zephyr_time/*/build.log
+            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/zephyr_time/*/handler.log
+            crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/provenance.json
+            crux-pilot/build/evidence/evkb-build.log
+            crux-pilot/build/evidence/zephyr-rom-report.log
+            crux-pilot/build/evidence/zephyr-ram-report.log
+            crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/.config
+            crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.stat
+            crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.map
+            crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/rom.json
+            crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/ram.json
+          retention-days: 14
+          if-no-files-found: warn
+          include-hidden-files: true

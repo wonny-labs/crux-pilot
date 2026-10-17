@@ -1,0 +1,3 @@
+build:
+  kconfig: zephyr/Kconfig
+  cmake: zephyr

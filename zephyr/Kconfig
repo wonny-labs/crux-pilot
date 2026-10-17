@@ -1,0 +1,23 @@
+menuconfig CRUX_PILOT_MODULE
+	bool "Crux Pilot module"
+	default y
+	help
+	  Enable discovery of Crux Pilot's Zephyr integration module.
+
+if CRUX_PILOT_MODULE
+
+config CRUX_TIME
+	bool "Crux Time capability"
+	depends on RTC
+	default y
+	help
+	  Build the Crux Time common implementation and selected Zephyr RTC provider.
+
+config CRUX_TIME_TESTING
+	bool "Include Crux Time test controls"
+	depends on ZTEST && CRUX_TIME
+	default n
+	help
+	  Include private state-reset hooks for Crux Zephyr tests.
+
+endif # CRUX_PILOT_MODULE

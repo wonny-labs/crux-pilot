@@ -1,0 +1,23 @@
+tests:
+  crux.time.zephyr:
+    harness: ztest
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+    tags:
+      - crux
+      - time
+      - rtc
+  crux.time.zephyr_missing_rtc:
+    harness: ztest
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+    extra_args:
+      - DTC_OVERLAY_FILE=boards/native_sim_no_rtc.overlay
+    tags:
+      - crux
+      - time
+      - rtc

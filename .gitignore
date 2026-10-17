@@ -1,0 +1,21 @@
+# Host and Zephyr build output
+/build/
+/cmake-build-*/
+/twister-out/
+/zephyr/.cache/
+.DS_Store
+*.o
+*.a
+*.elf
+*.hex
+*.bin
+compile_commands.json
+*.plist
+
+# Python and local tooling
+__pycache__/
+.pytest_cache/
+.venv/
+
+# West state belongs to the parent workspace, but ignore it if misdirected.
+/.west/

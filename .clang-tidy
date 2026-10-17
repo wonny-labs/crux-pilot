@@ -1,0 +1,14 @@
+# Keep the C17 enum ABI and explicitly length-checked C library calls; these two
+# generic checks flag the language/library form rather than a project defect.
+Checks: >-
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  performance-*,
+  -performance-enum-size,
+  portability-*,
+  readability-identifier-naming
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*(components|samples|tests)/.*'
+FormatStyle: file
