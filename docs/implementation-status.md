@@ -21,6 +21,12 @@ and adds owned-target compiler-warning controls in Zephyr. Local verification an
 integration status are recorded in the [M1 exit evidence](baseline.md#platform-m1-exit-verification-2026-10-17).
 M2 implementation has not started as part of this work.
 
+Current platform M1 technical exit criteria are **Satisfied** at reviewed implementation
+revision `5c7bcd4`: clean Host/Zephyr CI, preserved target evidence, completed warning
+controls and the readiness risk record. [PR #4](https://github.com/wonny-labs/crux-pilot/pull/4)
+tracks final-head CI and review/integration; #2/#3 remain open until merge. This is an
+M1 exit candidate, not a declaration that unmerged changes are already in `main`.
+
 ## Authorised M0–M1 work
 
 | AC | Status | Evidence / next action |

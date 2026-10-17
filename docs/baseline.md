@@ -1623,6 +1623,15 @@ before changing inputs. Logs and machine-readable results are under ignored
 Both restoration hashes are `dbe0f87dd6b5ca01d490dfc43ba4b1356c3571b6d657c2e3ef86efb4f2213426`;
 Git confirms no runtime-source difference from the accepted baseline.
 
+The existing EVKB Ztest build also reconfigured and cross-compiled with the owned
+application warning policy: `cmake --build build/zephyr/m4-ztest --parallel 2`, exit 0,
+FLASH 85,812 B / RAM 9,920 B. Its inherited board/sample configuration is described in
+the preceding physical M4 section. Log: `build/evidence/m1-target-ztest-build.log`.
+This was a compile/link check, not another on-target test. The known upstream USB
+devicetree unit-address warning remains outside the owned C compiler policy.
+The Zephyr workflow now retains all four compilation databases with the usual
+reports so reviewers can inspect the actual warning flags independently.
+
 Format and dependency checks exited 0; retained output is
 `build/evidence/m1-format-dependencies.log`. Existing Host Debug/sanitizer 27/27 and
 physical UART 5/5 / target Ztest 2/2 evidence remains applicable to unchanged runtime
@@ -1635,3 +1644,28 @@ constraints before M3 peripheral and M4 storage qualification. M2 execution-prof
 reference-controller implementation has not started. PR review/integration and a green
 hosted run for the final committed source are the remaining acceptance steps; source
 revisions and hosted results must not be inferred from the uncommitted discovery run.
+
+### Clean-source acceptance and exit criteria
+
+Implementation revision `5c7bcd4740dbfea442bcc09505dfb57ddd602633` passed clean-checkout
+[Host CI](https://github.com/wonny-labs/crux-pilot/actions/runs/39070553995) and
+[Zephyr CI](https://github.com/wonny-labs/crux-pilot/actions/runs/39070553855).
+This resolves the discovery run's mixed-input provenance rejection. The evidence-publication
+follow-up adds compilation-database upload paths and these results; it changes neither
+runtime code nor the owned-target warning options. Final-head CI remains a prerequisite
+for integration and is visible on [PR #4](https://github.com/wonny-labs/crux-pilot/pull/4).
+
+| Current platform M1 exit criterion | Technical result | Evidence |
+| --- | --- | --- |
+| Clean checkout reproduces Host/Zephyr builds and applicable tests | Satisfied | Above hosted runs; Host and Zephyr test reports/provenance. Existing applicable sanitizer results remain under their recorded source identity. |
+| EVKB boot, download and debugging are recorded | Satisfied | Identified Pilot image, section comparisons, breakpoint and physical UART/RTC results; unchanged runtime source and matching rebuilt BIN. |
+| Initial GitHub Actions jobs succeed | Satisfied | Original main runs and the above clean implementation-revision runs. |
+| Owned formatting, compiler warnings and selected static analysis have controls/baseline | Satisfied | Host format/tidy/dependency gates, private owned Zephyr warning flags, four inspected compilation databases and both negative/restored controls. |
+| Hardware, boot-image and upstream-maintenance risks are documented | Satisfied | Platform M1 readiness record, with bounded fixture/routing, XIP/write and support-horizon dispositions. |
+
+The existing Time code, independent build interfaces, host/Zephyr tests and board
+configuration are preserved. No new hardware qualification is asserted. A separate AI
+reviewer context found no material readiness or warning-control finding; it is not a
+human approval or external audit. Technical M1 closure is supported once the final
+head stays green and PR review/integration completes. Issues #2/#3 are linked for closure
+on merge; they must not be closed based solely on an unmerged local implementation.
