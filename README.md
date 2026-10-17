@@ -1,122 +1,79 @@
 # Crux Pilot
 
-A personal platform architecture experiment for a portable C17 Time API, C++17 consumption, and
-Zephyr RTC integration. The repository contains the Crux module and sample; upstream Zephyr and
-west dependencies stay in the parent workspace.
+Crux is a reusable embedded software platform. This repository currently provides a portable C17 Time capability with Linux host and Zephyr RTC backends, samples and automated tests. C++17 tests exercise the public C API.
 
 ## Workspace and container
 
-Open `crux-pilot/` as the primary VS Code/Codex folder. The Dev Container mounts its parent west
-workspace at `/workspaces/crux` and opens `/workspaces/crux/crux-pilot`, so `west topdir` resolves to
-the workspace while the Git root remains the Crux repository.
+Open `crux-pilot/` in VS Code and use **Dev Containers: Reopen in Container**. The Linux Dev Container mounts the parent west workspace at `/workspaces/crux` and opens `/workspaces/crux/crux-pilot`. The Git root is the Crux repository. Upstream Zephyr, west dependencies and SDKs remain outside this Git tree.
 
-VS Code runs container commands as `vscode`. Use the same user for manual Docker execution;
-Git's `safe.directory` settings belong to that user. The Dev Container post-create command trusts
-only the exact workspace repositories. A manually started container needs that setup too;
-`docker exec` as root does not inherit it. For example, in an initialized container:
+Run container commands as `vscode`, including manual Docker commands. The Dev Container configures Git trust for the workspace repositories for this user. For example, in an initialised container:
 
 ```sh
 docker exec --user vscode --workdir /workspaces/crux/crux-pilot <container> \
   bash -c 'export PATH=/opt/crux-cache/venv/bin:$PATH; scripts/test-zephyr-time.sh "mimxrt1060_evk@B//qspi"'
 ```
 
-If west reports `cannot import contents of west.yml`, inspect the underlying Git error with
-`git -C /workspaces/crux/zephyr show manifest-rev:west.yml` with the build's user and environment.
-A dubious-ownership error requires the documented user/path setup; fetching dependencies again
-does not address it.
-
 ### VS Code C/C++ support
 
-The Dev Container installs clangd for C/C++ completion, navigation, diagnostics and formatting.
-Microsoft C/C++ remains installed for GDB debugging; its IntelliSense engine is disabled so it does
-not duplicate clangd's language analysis. CMake Tools remains the CMake workflow extension. The
-clangd extension and clangd server are provided by the LLVM project; other installed extensions are
-published by Microsoft, Red Hat or Arm.
-After changing the extension list or Dockerfile, use **Dev Containers: Rebuild and Reopen in
-Container** in VS Code to install the updates.
+The Dev Container uses clangd for code navigation and diagnostics, Microsoft C/C++ for GDB debugging, and CMake Tools for host builds. After changing the container configuration, use **Dev Containers: Rebuild and Reopen in Container**.
 
-The CMake host presets and Crux Zephyr build scripts generate `compile_commands.json` files. The
-standard host and Zephyr build scripts copy the active database to `build/clangd/`, which the root
-`.clangd` config selects. The most recent standard build therefore controls clangd's target-specific
-analysis. For a custom build directory, run `scripts/select-clangd-database.sh <build-directory>`.
-If headers or defines look wrong, check the clangd Output channel and active database before adding
-manual include paths.
+Build scripts select the active `compile_commands.json` in `build/clangd/`. The most recent build determines clangd's configuration. For a custom build directory, run `scripts/select-clangd-database.sh <build-directory>`.
 
-`marus25.cortex-debug` is not installed. The Microsoft C/C++ debugger connects to a GDB server,
-and Arm CMSIS Debugger is available for other J-Link workflows. Docker Desktop exposes the Mac
-host to the Dev Container as `host.docker.internal`. Start the Mac-hosted J-Link GDB Server first
-by double-clicking `scripts/macos/start-jlink-gdbserver.command`; it uses device
-`MIMXRT1062xxx6A`, SWD at 400 kHz, and TCP port 2331. This speed has been verified for QSPI
-download and a `main` breakpoint on the connected revision B board. Keep the Terminal window open
-while debugging and press Ctrl-C when done.
-The server listens beyond localhost, so run it only on a trusted network. Starting it may halt the
-target.
+### Flash and debug
 
-In **Run and Debug**, choose **EVKB QSPI: Flash** and press F5. VS Code runs
-`scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi'`, which reuses the CMake/Ninja build
-directory and rebuilds only changed inputs. The debugger then connects to the Mac-hosted GDB Server,
-loads its ELF and symbols, resets and programs the image through SEGGER's QSPI flash loader, then
-pauses at the startup entry point. Set a breakpoint at `samples/time/src/main.c:7` and press F5 to
-run to the sample, then use F10 to step through it.
-No ELF path prompt is needed. This profile assumes an MIMXRT1060-EVKB using its standard QSPI flash;
-it programs the board and should only be used after confirming the physical board and that its flash
-has not been reworked for HyperFlash. The Microsoft debug adapter download and source breakpoint
-were verified on this board; see [debugging evidence](docs/baseline.md#m4-vs-code-download-failure-and-fix-2026-10-17).
+Start `scripts/macos/start-jlink-gdbserver.command` on the Mac before debugging. It runs J-Link GDB Server for `MIMXRT1062xxx6A` over SWD at 400 kHz. The container connects through `host.docker.internal:2331`. Keep the server terminal open while debugging and press Ctrl-C when finished.
 
-To force a full source rebuild for the Zephyr target, run **Tasks: Run Clean Task** and choose
-**Clean firmware**; the next F5 rebuilds all compiled outputs while keeping the
-configured build directory. After adding new board configuration files, run the pristine
-verification build once so Zephyr rediscovers them; existing CMake caches retain their earlier
-`CONF_FILE` list. The root CMake Tools **CMake: Clean** command applies to the selected
-host preset, because the Zephyr target is configured through west. `scripts/build-target.sh` remains
-the pristine build path for verification and provenance reports; it is not used by F5.
+**Starting the server may halt the target. It listens beyond localhost, so run it only on a trusted network. Before programming, confirm the MIMXRT1060-EVKB revision B and its standard QSPI configuration, with no HyperFlash rework.**
 
-The separate **EVKB QSPI: Attach** profile is for debugging an
-image already on the board. It does not build, reset, or program; provide the ELF matching that
-image when prompted. The Mac-hosted GDB Server must already be running for either profile.
+In VS Code **Run and Debug**, select the profile for the intended operation:
 
-The firmware profile uses `miDebuggerServerAddress` and `postRemoteConnectCommands` so the
-Microsoft debugger retains its default ELF loading and architecture detection. The attach profile
-explicitly loads symbols before connecting. Replacing the default launch sequence with
-`customLaunchSetupCommands` without loading the ELF causes `-target-download` to fail with
-`No executable file specified`; GDB then disconnects before any download. `GDB closed TCP/IP
-connection` in the server log describes that client disconnect.
+| Profile | Behaviour |
+| --- | --- |
+| **EVKB QSPI: Flash** | F5 performs an incremental build, resets and programs the board, and stops at the startup entry. Set a breakpoint in `samples/time/src/main.c` and continue to step through the sample. |
+| **EVKB QSPI: Attach** | Connects without building, resetting or programming. Supply the ELF matching the image already on the board. |
+
+For a full source rebuild, use **Tasks: Run Clean Task → Clean firmware** before F5. After changing board configuration, use the pristine `scripts/build-target.sh 'mimxrt1060_evk@B//qspi'` path. CMake Tools' **CMake: Clean** applies to the host preset.
+
+Detailed setup and troubleshooting records are in the [debugging evidence](docs/baseline.md#m4-vs-code-download-failure-and-fix-2026-10-17).
 
 ## Linux development
 
-Run CMake, CTest, Twister, and Zephyr builds in the Dev Container. The usual host check configures
-and builds the sample and tests, runs GoogleTest/CTest, and checks the sample's stdin/stdout flow:
+Run build and software-test commands from the repository root in the Dev Container. For initial host dependency setup, build and tests:
 
 ```sh
 scripts/bootstrap-host.sh
+```
+
+For subsequent checks using the cached dependencies:
+
+```sh
 scripts/check-host.sh
 scripts/check-format.sh
 scripts/check-dependencies.sh
 scripts/analyze-host.sh
 ```
 
-This README documents the development environment and executable build/test commands. See
-[CONTRIBUTING.md](CONTRIBUTING.md) for contribution, commit, pull request, review, and validation
-practices.
+Run the optional ASan/UBSan configuration with:
 
-`host-sanitize` is the optional ASan/UBSan preset. The command
-`scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'` runs the native_sim Ztests, builds the Shell
-sample for native_sim, and cross-builds the EVKB QSPI image. It does not flash or reset hardware.
+```sh
+CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh
+```
 
-The target build creates `build/zephyr/mimxrt1060_evk_B_qspi/provenance.json`. It binds a
-content-addressed source snapshot and Git state to west project revisions, toolchain and image
-identity, target configuration, Twister reports, size reports, and firmware checksums. GitHub
-Actions uploads this manifest and the referenced evidence with 14-day retention. Both workflows
-can be started manually with `workflow_dispatch` after the repository is connected to GitHub.
+For initial Zephyr workspace and SDK setup, ensure sufficient disk space, then run:
 
-### Run GitHub Actions
+```sh
+scripts/bootstrap-zephyr.sh --install-sdk
+```
 
-After committing this repository to GitHub, a push or pull request starts both workflows:
-`host-foundation` checks the host build, tests, formatting, dependencies, and analysis;
-`zephyr-software` runs native_sim tests and builds the EVKB QSPI firmware. To rerun either one,
-open **Actions**, select the workflow, and choose **Run workflow**. No repository secrets are
-needed for these checks. The Zephyr job uploads the firmware, provenance, configuration, size
-reports, Twister results, and raw logs for 14 days.
+Run the Time integration tests and target build with:
+
+```sh
+scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
+```
+
+This command runs `native_sim` Ztests, builds the native simulation sample and cross-builds the EVKB QSPI image. It does not flash or reset hardware. See [tests/README.md](tests/README.md) for test coverage and the separate macOS physical UART workflow, which does reset the board.
+
+### Time sample
 
 The host sample uses a controlled clock rather than host wall time:
 
@@ -126,31 +83,19 @@ time set 2026-10-16T14:30:00
 time get
 ```
 
+### Run GitHub Actions
+
+Pushes and pull requests trigger [host-foundation](.github/workflows/host.yml) for host builds, tests and quality checks, and [zephyr-software](.github/workflows/zephyr.yml) for `native_sim` tests and the EVKB build. Either workflow can also be started from **Actions → Run workflow**. Test reports, firmware and build evidence are uploaded as configured in the workflows, with 14-day retention. These jobs do not operate physical hardware.
+
 ### Build and test provenance
 
-`scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'` records inputs before the
-native_sim tests and passes that successful input record to the pristine target build.
-The recorder rejects source/workspace changes during the run, dependency HEADs that differ from
-pinned revisions, and dependency modifications (excluding macOS Finder `.DS_Store` metadata).
-Only matching, successful tests are linked into `provenance.json`.
+The full Time verification command writes `build/zephyr/mimxrt1060_evk_B_qspi/provenance.json`, linking source and dependency revisions, toolchain, configuration, successful tests and firmware checksums. Keep inputs unchanged during verification and use a clean committed source tree for an accepted baseline. A dirty-tree fingerprint identifies inputs but is not a recoverable source archive.
 
-`scripts/build-target.sh <board>` can also build independently; it does not attach old test
-reports. An optional second argument supplies the successful test-input record from the full
-verification command. Both target build entry points and the VS Code clean task invalidate old
-provenance before changing outputs, including on failure. The full verification command also
-invalidates provenance before replacing its test reports. F5 produces development firmware without a verification manifest; use the
-pristine verification path when accepting an image. Verify recorded hashes before consuming a
-bundle that may have been changed by manual commands.
-
-The manifest records the source fingerprint, commit/dirty state, actual dependency commits,
-configuration, tools, size reports and firmware hashes. `source.recoverable_from_git` is true
-only for a clean committed source tree. A dirty fingerprint identifies development inputs but is
-not a recoverable source archive. Commit reviewed source before generating an accepted baseline.
+`scripts/build-target.sh <board>` provides a standalone pristine build without attaching earlier test reports. F5 produces development firmware without a verification manifest. Use the full verification path for an accepted build and check recorded hashes before relying on its evidence. See [build evidence](docs/baseline.md) for provenance details and recorded results.
 
 ### Configure only the host libraries
 
-When a consumer needs the library targets without the sample or test dependencies, configure C
-only, without GoogleTest or network access:
+To build libraries without samples, GoogleTest or C++ configuration:
 
 ```sh
 cmake -S . -B build/linux/library-only -G Ninja \
@@ -158,42 +103,21 @@ cmake -S . -B build/linux/library-only -G Ninja \
 cmake --build build/linux/library-only --target crux_time_common crux_time_host
 ```
 
-Applications link the same public usage target in Host and Zephyr builds:
+Host and Zephyr applications use the same public target:
 
 ```cmake
 target_link_libraries(my_app PRIVATE crux::time)
 ```
 
-For Host, add this repository with `add_subdirectory()` after disabling `BUILD_TESTING` and
-`CRUX_BUILD_HOST_SAMPLE` when those development targets are not needed. For Zephyr, discover this
-repository as a module and enable `CONFIG_CRUX_TIME=y`. The selected build entry point owns backend
-selection and propagates public headers; consumers do not link `crux_time_common`,
-`crux_time_host` or `crux_time_zephyr` directly. These remain internal build targets, even though
-CMake exposes their names. No install/export package or runtime backend selection is introduced.
-This consumer contract can carry into Crux without retaining the pilot repository name.
-
-The test-enabled build uses the pinned GoogleTest dependency and enables C++17 for the C++ tests.
-Production and sample code remain C17. Those tests exercise C++ calls through the public C API;
-there is no duplicate compile-only or link-only smoke target.
+For host integration, add this repository with `add_subdirectory()` after disabling `BUILD_TESTING` and `CRUX_BUILD_HOST_SAMPLE` when those targets are not needed. For Zephyr, discover the repository as a module and enable `CONFIG_CRUX_TIME=y`. The public target supplies headers and the selected backend. Consumers should not add private include paths or link implementation targets directly.
 
 ## Architecture and status
 
-`components/base` owns the common status header. `components/time` owns the portable API, shared
-source list, and private host/Zephyr backends. `samples/time` owns command parsing and presentation;
-the host process and Zephyr Shell adapter use the same C17 handler. The Zephyr module exports the
-base target independently and does not compile sample sources.
+`components/base` owns common status codes. `components/time` owns the public Time API, shared implementation and private host/Zephyr backends. `samples/time` owns command handling and presentation. `zephyr/` provides Crux's native module integration.
 
-Platform public headers stay with their owning component under `include/crux/`; internal and
-backend headers stay outside that public root. Applications receive headers through public CMake
-targets. See [header and dependency rules](CONTRIBUTING.md#public-headers-and-module-dependencies)
-for contributor requirements and the [Time ownership mapping](docs/time-contract.md#header-and-build-ownership).
+See the [Time contract](docs/time-contract.md) for behaviour and ownership, [upstream reuse notes](docs/upstream-reuse.md) for source assessments, and [CONTRIBUTING.md](CONTRIBUTING.md) for contribution, public-header and review rules. The [initial implementation plan](docs/plans/initial-implementation-plan.md) records the historical Time Pilot milestones M0–M5.
 
-See [the Time contract](docs/time-contract.md), [implementation plan](docs/plans/initial-implementation-plan.md),
-[implementation status](docs/implementation-status.md), [build evidence](docs/baseline.md), and
-[upstream reuse notes](docs/upstream-reuse.md). Software milestones M0–M3 and the software-only
-checks in M5 are recorded there. Both hosted GitHub Actions workflows passed for the reviewed
-source commit. M4 physical verification passed on EVKB QSPI: UART pytest 5/5 and target Ztest 2/2,
-including timing, range, progression and reset-session checks. See [physical test instructions](tests/README.md#physical-uart-target)
+For physical setup and test procedures, see [physical test instructions](tests/README.md#physical-uart-target)
 and the retained evidence in the baseline. These checks establish bounded behaviour, not drift or
 backup-power retention.
 See `docs/implementation-status.md` for current acceptance status. The private GitHub repository uses push and pull-request workflows; recorded hosted-run
