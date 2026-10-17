@@ -1,26 +1,53 @@
-# Crux pilot agent instructions
+# Crux development agent instructions
 
-Read `docs/plans/codex-start-instructions.md`, then the v0.5 plan and readiness review. The M0–M1 handoff is historical; this file and `docs/implementation-status.md` define active scope. Preserve AC identifiers and record evidence in `docs/implementation-status.md`.
+## Purpose and context
 
-## Current scope
+This is the source repository for Crux, an independent, reusable embedded software platform. Work from the existing implementation, not from an empty-project assumption. The current development focus is **M1 — Engineering and Target Foundation** in the ongoing Crux Platform Development Plan.
 
-M0–M3 are implemented and their evidence is recorded in `docs/implementation-status.md`. The user has authorized continuing development, including M4 physical verification on the NXP MIMXRT1060-EVKB with SEGGER J-Link. Complete software-only M5 review and the authorized M4 checks when the board and probe are connected. Record commands and actual outcomes; do not mark physical criteria passed until observed on hardware.
+Read the following before planning or changing code:
 
-Preserve milestone AC identifiers and report evidence in `docs/implementation-status.md`. Do not start unrelated modules or change contracts without evidence.
+- [CONTRIBUTING.md](CONTRIBUTING.md) for code ownership, public interfaces, Git/PR conventions and review requirements.
+- [README.md](README.md) for workspace setup, build commands and supported developer workflows.
+- The current **Crux Platform Vision, Architecture Concept, Architecture Design and Development Plan** in the separate private `wonny-labs/crux-platform` repository, preferably from a read-only sibling checkout. Locate and read them rather than assuming an outdated local copy is current.
+- Applicable component contracts, tests and implementation evidence in this repository.
 
-Use this repository as the primary working directory. The parent `crux-workspace/` is a west workspace, not a Git repository. The VS Code Dev Container should mount that parent at `/workspaces/crux` while opening `/workspaces/crux/crux-pilot` as `workspaceFolder`; verify `west topdir` resolves to `/workspaces/crux`. Keep upstream Zephyr, west projects, SDKs and caches outside this Git tree. The future internal `zephyr/` directory contains Crux integration metadata, not upstream source.
+The earlier Time Pilot plan in `docs/plans/initial-implementation-plan.md` and its **M0–M5** acceptance identifiers are historical **Pilot milestones**, not the new platform roadmap's M1–M5. `docs/implementation-status.md` and `docs/baseline.md` record what was actually verified in that pilot; they do not authorise unrelated work or prove later platform milestones complete. Do not merge the two milestone systems or re-run completed work without a specific reason.
 
-## Architecture and quality
+Current implemented contracts and verified source behaviour are the factual baseline. Working architecture proposals guide development but become implementation requirements only when adopted for the current work. Report material conflicts between the platform documents and existing implementation instead of silently rewriting either. If the private planning repository is inaccessible, report that limitation and avoid decisions that depend on its unread contents.
 
-- Preserve independent host CMake, C17 production compilation and C++17 consumption. Reuse official Zephyr example-application and samples from the selected baseline.
-- Use common `crux_status_t` by default; modules own domain states, data and necessary specialised results. Do not duplicate common codes in a Time-specific status type.
-- Use GoogleTest/CTest for host checks, Ztest/Twister for Zephyr checks and pytest for external integration/functional tests at their applicable milestones. Do not implement later capability tests prematurely.
-- Transferable APIs and sample output use Crux naming; keep host presentation and board configuration in their owning composition layers. Do not promote prototype Time constraints into platform-wide policy.
-- Keep changes proportional: no Unity, custom AI Harness, universal HAL/OSAL, service registry or speculative services.
-- Run checks appropriate to the active milestone. Record commands and actual results. Missing executions remain pending/fail, never passed by assumption.
+## Engineering approach
 
-## Ownership and execution boundaries
+- Preserve the existing C17 `components/base` and `components/time`, shared host/Zephyr sources, public `crux::time` usage target, and applicable test evidence unless changes are justified.
+- Keep portable components independent of Zephyr, board and vendor headers. Select environment-specific implementations explicitly and use Zephyr-native drivers, networking, storage and kernel facilities when suitable.
+- Evaluate a documented POSIX subset or a narrow capability-specific interface where actual portable consumers need one. Do not pre-emptively create a universal HAL/OSAL, generic service registry, or pass-through wrappers for native APIs.
+- Preserve public interface naming, header ownership, dependency visibility and contribution rules defined in `CONTRIBUTING.md`. Do not promote Time-specific range, session or thread-safety constraints into platform-wide rules.
+- Separate application policy from platform mechanisms. Do not introduce product-specific runtime integration, speculative capabilities or broad repository restructuring as part of M1.
+- Reuse existing build and test tools. Keep the west workspace separate from this Git repository; retain upstream Zephyr, vendor modules, SDKs and caches outside this source tree.
 
-This is a private personal experiment. Use original work and appropriately licensed public upstream material. Do not copy company code, BSPs, slides, internal documents, Harness assets or credentials into the repo/container. Record upstream provenance and preserve licences.
+## Autonomous work and review boundaries
 
-The user authorized publishing the reviewed baseline to the private `wonny-labs/crux-pilot` remote after final review; first-push and hosted CI evidence is recorded in `docs/implementation-status.md`. Repository renaming remains outside this handoff. Physical operation is authorized only for the user's MIMXRT1060-EVKB and SEGGER J-Link verification described in the current task; verify the board marking, flash configuration, probe, and connections before programming. Do not delete user files to recover space. Do not mount the user home, company source, credentials or Docker socket into the container by default. Discover tools/resources first; report required host installations or authentication that cannot be completed through the available execution environment. Do not copy company-owned materials into the repository or container.
+For an approved milestone goal or issue, inspect the current code, tests, repository status and recorded evidence. Identify satisfied requirements before creating or changing work items. Break remaining work into small, independently verifiable tasks, implement within the agreed scope, run applicable checks and record the results.
+
+AI may propose, create and maintain GitHub Issues, dependencies and progress when access is available. It may carry out routine implementation and fixes within approved scope without seeking approval for each edit. Avoid duplicate tickets and do not close work whose acceptance evidence is missing.
+
+**Escalate before adopting** significant public API or architecture changes, breaking compatibility, major dependency/toolchain upgrades, scope expansion, unsafe hardware operations or security-sensitive design decisions. Present the proposal and trade-offs for review. Prepare substantive changes on a dedicated development branch and submit a PR with actual validation evidence for human review. Do not push directly to `main`, merge a PR or change protected settings without explicit authorisation. Follow `CONTRIBUTING.md` for commits and PR content.
+
+For M1, prioritise remaining foundation work: verify the committed baseline and hosted CI, maintain formatting/static-analysis and dependency gates, and assess Ethernet, peripheral-test access and QSPI/XIP/boot-image feasibility. Record blockers and support limits rather than implementing M2–M5 features early. Continue with available independent work when another task is blocked.
+
+## Validation and evidence
+
+Use the existing repository checks as applicable:
+
+- `scripts/check-host.sh` and `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` for host behaviour and sanitizers.
+- `scripts/check-format.sh`, `scripts/analyze-host.sh` and `scripts/check-dependencies.sh` for formatting, static analysis and architecture boundaries.
+- `scripts/check-zephyr-smoke.sh` and `scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'` for Zephyr builds, `native_sim` and tests.
+
+Use the Linux Dev Container and documented west workspace configuration for supported commands. Choose tests appropriate to the change; do not rerun costly unrelated checks without a reason. Distinguish passing local tests, passing GitHub Actions, successful EVKB compilation and **physical-board test evidence**. None implies the others. Record the tested revision, commands, configurations, failures, skipped checks and relevant artefacts in the issue/PR or applicable evidence document. Do not report unexecuted or blocked tests as passing.
+
+## Safety and workspace boundaries
+
+Verify Git status and the baseline commit before modifying work. Preserve unrelated or uncommitted changes. Do not use destructive Git resets, force pushes, clean-ups or file deletion to resolve environmental problems without explicit approval.
+
+Physical EVKB programming, reset and other hardware operations require explicit authorisation for the **current task**, verified board/probe/Flash configuration and a safe execution setup. Past Pilot approvals do not authorise unattended hardware operations.
+
+Use original work and appropriately licensed upstream material only. Do not import employer-owned or other confidential code, documents, credentials or restricted assets. Keep secrets and unrelated personal paths outside the repository and container. Do not mount the user home directory or Docker socket by default. Do not modify the separate `crux-platform` planning repository unless explicitly requested.
