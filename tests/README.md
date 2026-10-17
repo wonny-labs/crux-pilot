@@ -28,5 +28,6 @@ suites do not duplicate every case across frameworks.
 
 Python standard-library `unittest` checks the provenance safeguards: changed input rejection,
 actual dependency HEAD/dirty-state checks, and invalidation of stale manifests even when a debug
-build fails. Run `python3 -m unittest discover -s tests/build -v` on Linux; host CI runs it too.
+build, clean command or native test run fails. Run
+`python3 -m unittest discover -s tests/build -v` on Linux; host CI runs it too.
 No additional test framework is required.

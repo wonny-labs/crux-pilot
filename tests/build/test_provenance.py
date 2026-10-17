@@ -72,7 +72,7 @@ class ProvenanceTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "must match its pinned revision"):
                 PROVENANCE.workspace_inputs(self.repo, self.root)
 
-    def test_failed_debug_build_invalidates_old_manifest(self):
+    def test_failed_build_or_test_invalidates_old_manifest(self):
         workspace = self.root
         (workspace / ".west").mkdir()
         (workspace / ".west/config").write_text("[manifest]\npath=repo\n")
@@ -88,11 +88,14 @@ class ProvenanceTest(unittest.TestCase):
         west.write_text("#!/bin/sh\nexit 37\n")
         west.chmod(0o755)
         environment = dict(os.environ, CRUX_WORKSPACE=str(workspace),
-                           PATH=f"{tools}:{os.environ['PATH']}")
-        result = subprocess.run(["bash", str(REPO / "scripts/build-debug-target.sh"), "test_board"],
-                                cwd=self.repo, env=environment, capture_output=True, text=True)
-        self.assertEqual(result.returncode, 37, result.stderr)
-        self.assertFalse(manifest.exists())
+                           PATH=f"{tools}:{os.environ['PATH']}", CRUX_PYTHON="/bin/true")
+        for name in ("build-debug-target.sh", "test-zephyr-time.sh"):
+            with self.subTest(script=name):
+                manifest.write_text('{"stale": true}\n')
+                result = subprocess.run(["bash", str(REPO / "scripts" / name), "test_board"],
+                                        cwd=self.repo, env=environment, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 37, result.stderr)
+                self.assertFalse(manifest.exists())
 
     def test_failed_clean_invalidates_old_manifest(self):
         output = self.root / "build"

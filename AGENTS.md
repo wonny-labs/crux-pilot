@@ -15,6 +15,7 @@ Use this repository as the primary working directory. The parent `crux-workspace
 - Preserve independent host CMake, C17 production compilation and C++17 consumption. Reuse official Zephyr example-application and samples from the selected baseline.
 - Use common `crux_status_t` by default; modules own domain states, data and necessary specialised results. Do not duplicate common codes in a Time-specific status type.
 - Use GoogleTest/CTest for host checks, Ztest/Twister for Zephyr checks and pytest for external integration/functional tests at their applicable milestones. Do not implement later capability tests prematurely.
+- Transferable APIs and sample output use Crux naming; keep host presentation and board configuration in their owning composition layers. Do not promote prototype Time constraints into platform-wide policy.
 - Keep changes proportional: no Unity, custom AI Harness, universal HAL/OSAL, service registry or speculative services.
 - Run checks appropriate to the active milestone. Record commands and actual results. Missing executions remain pending/fail, never passed by assumption.
 

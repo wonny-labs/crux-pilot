@@ -97,7 +97,7 @@ After the slice, update architecture documents only when evidence changes a gove
 
 ## 7. Current execution decision
 
-This section records the original M0–M1 handoff decision from 16 October 2026. It is historical: the user later authorized M2, M3 and software-only M5. Current AC status is maintained in `docs/implementation-status.md`; the active plan is v0.5. No remote publication or physical operation has been authorized.
+This section records the original M0–M1 handoff decision from 16 October 2026. It is historical: the user later authorized M2, M3 and software-only M5. Current AC status is maintained in `docs/implementation-status.md`; the active plan is v0.5. Remote publication and physical operation were not authorized at that historical handoff. Later authorizations and execution results are recorded in `AGENTS.md` and the current status table.
 
 Do not authorise a new AI Harness as a prerequisite. Thin standard commands, repository guidance, ordinary build/test tools and evidence are sufficient for this slice. Add automation later only for a repeated, observed need.
 

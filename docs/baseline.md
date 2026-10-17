@@ -1043,3 +1043,129 @@ The cached incremental diagnostic was stopped after confirming that `.config` st
 a hardware failure. The full verification run below uses a pristine configure and must show the
 board fragment merged with priority 61. Safeguard regression tests passed 4/4, including failed
 debug and clean commands returning the injected exit status 37 with the old manifest removed.
+
+
+### Committed software verification results
+
+The full run used clean source commit `bbf3d08af51c2c2e1fa0ae18d7315bac4da06a75`
+(76 tracked files), source fingerprint
+`cf549c68d36bc1de7422426dc73ad3168037414cb24d5ec5184ec7062b405bed`.
+The runtime image was inspected from Docker and recorded as
+`sha256:16f67fc22a7900e393c0cb2787d79c83f43c8aa505e911540d4c8e7c94c9eed5`.
+Host builds were recreated from removed generated `build/linux/debug` and
+`build/linux/sanitize` directories; upstream dependency caches were retained.
+Twister created fresh outputs, and both sample builds used pristine configurations.
+All commands ran as `vscode` with the parent workspace at `/workspaces/crux`.
+
+Reproducible commands inside the pinned Linux container:
+
+```sh
+export PATH=/opt/crux-cache/venv/bin:$PATH
+export CMAKE_BUILD_PARALLEL_LEVEL=2
+python3 -m unittest discover -s tests/build -v
+scripts/check-format.sh
+scripts/check-dependencies.sh
+# Remove only generated host outputs to reproduce this clean run.
+rm -rf build/linux/debug build/linux/sanitize
+scripts/check-host.sh
+CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh
+scripts/analyze-host.sh
+cmake -S . -B build/verification-libraries -G Ninja \
+  -DBUILD_TESTING=OFF -DCRUX_BUILD_HOST_SAMPLE=OFF
+cmake --build build/verification-libraries
+scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
+```
+
+| Check | Actual result | Retained output (ignored `build/evidence/`) |
+| --- | --- | --- |
+| Build safeguards | 4/4 tests passed; injected exit 37 propagated and stale manifest removed | `first-push-host.log`, final expanded coverage in `first-push-final-safeguards.log` |
+| Host Debug | 26/26 CTest cases and stdin/stdout sample passed | `first-push-host.log` |
+| ASan/UBSan | 26/26 CTest cases and sample passed | `first-push-host.log` |
+| Format and dependency boundaries | Passed | `first-push-host.log` |
+| Configured clang-tidy checks | Exit 0; non-owned diagnostics and existing NOLINT suppressions reported | `first-push-host.log` |
+| C-only libraries | Fresh configure/build passed with tests and host sample disabled; no C++ or GoogleTest configured | `first-push-host.log` |
+| Twister native_sim | 2/2 configurations, 4/4 cases passed | `first-push-zephyr.log`, `build/zephyr/twister-time/` |
+| native_sim sample | Pristine build passed; startup, unset, post-2038 set/read/progression, invalid-date rejection and preserved time passed | `first-push-native-check.log`, `first-push-native-shell.log` |
+| EVKB QSPI | Pristine configure/build passed; new board fragment merged and priority 61 confirmed | `first-push-zephyr.log` |
+| Workflow lint | Official actionlint 1.7.12 archive checksum verified; both workflows exited 0 | `first-push-workflows.log` |
+| Input rejection | Mismatched source and test records each failed and left no manifest | `first-push-provenance-check.log` |
+| Incremental reuse | Repeated F5 build reported `ninja: no work to do`; ELF unchanged and prior manifest absent | `first-push-incremental.log` |
+| Bundle consistency | All 19 artifact/report sizes and hashes matched; 4 actual dependency HEADs matched clean pinned checkouts | `first-push-hash-verification.log` |
+
+The first post-report incremental diagnostic expected the exact text `no work to do` and failed
+that output assertion. It was an oracle limitation: the ELF hash stayed unchanged, and the next
+incremental invocation explicitly reported no work. No production fix or timing allowance was
+introduced to hide it. The original diagnostic output is retained. Valid provenance was then
+regenerated with the matching original input records and the inspected runtime image ID.
+
+The native_sim runtime check launched
+`build/zephyr/native_sim_time/zephyr/zephyr.exe -uart_stdinout -rt`, waited up to 10 seconds for
+readiness/responses, issued `time get`, set `2038-01-19T03:14:08`, read twice across a 1.2-second
+host wait, rejected `2024-02-30T12:00:00`, and confirmed the last date still advanced. Raw output is
+retained. This is simulated RTC behavior, not physical SNVS timing acceptance.
+
+For an independent bundle check from the repository root:
+
+```sh
+python3 - <<'CHECK'
+import hashlib, json
+from pathlib import Path
+m = json.loads(Path('build/zephyr/mimxrt1060_evk_B_qspi/provenance.json').read_text())
+for entry in m['artifacts'] + m['test_artifacts']:
+    p = Path(entry['path'])
+    assert p.stat().st_size == entry['size_bytes']
+    assert hashlib.sha256(p.read_bytes()).hexdigest() == entry['sha256'], p
+assert m['source']['recoverable_from_git'] and not m['source']['dirty']
+print(m['source']['git_commit'], m['test_summary'])
+CHECK
+```
+
+The accepted software bundle is tied to the recorded commit above. Later changes only invalidate
+old provenance before a full test run replaces reports and expand that failure-path regression,
+plus update documentation. Component, sample, module and CMake source contents remain identical
+to the fully built commit. That control-flow safeguard is checked independently; its regression
+uses a temporary workspace and fake failing tools and never connects to hardware.
+
+Current firmware identity:
+
+```text
+ELF 3b75f71bf8b6909a93b6f13b07fdb52e1e217052f31499afc666ae66c68aa84a
+BIN 4f8632b29db35cb268bcdc48644da9127ed8d4ed3e09bf10551f14a8dfde764a
+```
+
+Linker allocation is FLASH **65,964 B**, RAM **8,448 B**. The symbol reports sum to
+65,952 B and 8,416 B respectively; those sums exclude alignment/padding and must not be presented
+as the allocated regions. No firmware from this preparation run was flashed or reset on the
+physical board. The earlier M4-01 image and user-reported UART checks remain distinct evidence.
+
+### First-push readiness and remaining acceptance
+
+The GitHub connector confirmed `wonny-labs/crux-pilot` is private and empty (the contents API
+explicitly returned `This repository is empty`). Local commit history was preserved rather than
+rewritten. Newly required build/debug helpers and editor settings are tracked; generated builds,
+SDK/cache contents, logs and Finder files remain ignored. Tracked JSON parsed successfully and a
+focused private-key/GitHub-token pattern scan found no matches; this is not a general security
+certification. First-push preparation observed 19 GiB free, with no user-file cleanup.
+
+M5-01 and corrected M5-04 pass for the software evidence above. Hosted Actions execution (M5-03)
+requires the first push and inspection of both workflow runs/artifacts. Formal M4 timing bounds,
+range/reset cases and exclusive-UART pytest execution remain pending. These do not prevent an
+initial implementation push, and the repository does not claim overall Pilot completion.
+
+Final recorder regeneration used the inspected image identity (supply the actual image ID for a
+different container):
+
+```sh
+CRUX_BUILD_IMAGE_ID=sha256:16f67fc22a7900e393c0cb2787d79c83f43c8aa505e911540d4c8e7c94c9eed5 \
+python3 scripts/record-build-provenance.py \
+  --build-dir build/zephyr/mimxrt1060_evk_B_qspi --target 'mimxrt1060_evk@B//qspi' \
+  --workspace /workspaces/crux --inputs build/evidence/target-inputs.json \
+  --test-inputs build/evidence/zephyr-test-inputs.json
+```
+
+The final expanded safeguard run passed 4/4 tests (including both failing build and failing
+Twister subcases). `git diff bbf3d08 -- components samples zephyr CMakeLists.txt CMakePresets.json`
+was empty: later edits do not change compiled platform/sample sources or their configuration.
+The accepted manifest continues to identify `bbf3d08`, and is not relabelled with a later commit.
+Local follow-up commits include the control-flow safeguard and this evidence; no remote push
+or hosted workflow execution was performed in this preparation task.

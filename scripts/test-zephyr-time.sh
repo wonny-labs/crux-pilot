@@ -19,6 +19,10 @@ if [[ -z "$board" ]]; then
     exit 2
 fi
 
+# Twister replaces reports referenced by an older bundle, even if this run fails.
+build_key="$(printf '%s' "$board" | sed -E 's/[^A-Za-z0-9_.-]+/_/g')"
+rm -f "$repo/build/zephyr/$build_key/provenance.json"
+
 test_output="$repo/build/zephyr/twister-time"
 native_sample_build="$repo/build/zephyr/native_sim_time"
 test_inputs="$repo/build/evidence/zephyr-test-inputs.json"

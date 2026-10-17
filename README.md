@@ -136,8 +136,9 @@ Only matching, successful tests are linked into `provenance.json`.
 
 `scripts/build-target.sh <board>` can also build independently; it does not attach old test
 reports. An optional second argument supplies the successful test-input record from the full
-verification command. Both target build entry points and the VS Code clean task invalidate old provenance before
-changing outputs, including on failure. F5 produces development firmware without a verification manifest; use the
+verification command. Both target build entry points and the VS Code clean task invalidate old
+provenance before changing outputs, including on failure. The full verification command also
+invalidates provenance before replacing its test reports. F5 produces development firmware without a verification manifest; use the
 pristine verification path when accepting an image. Verify recorded hashes before consuming a
 bundle that may have been changed by manual commands.
 
