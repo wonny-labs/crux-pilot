@@ -42,6 +42,14 @@ Within user-authorised work, AI may propose, create and maintain GitHub Issues, 
 
 Record satisfied acceptance criteria, remaining gaps, blockers and support limits against the active work. Distinguish investigation findings, recommended decisions, approved decisions and implemented behaviour. Select representative probes and tests that resolve material uncertainties; do not interpret a broad investigation as a requirement to verify every API combination. Completion claims must match the approved acceptance criteria and available evidence.
 
+## Bounded delegation for M2 issues #6 and #7
+
+For the user-authorised #6 → #7 execution, AI may select a provisional reference-controller execution profile and begin #7 without further intermediate human approval only after a separate reviewer subagent independently checks the governing requirements, actual source/configuration and test evidence and returns PASS. The reviewer must not author the implementation or rely solely on the author's conclusions. REVISE requires correction and another independent review; ESCALATE or a material unresolved disagreement requires a human decision.
+
+This delegation covers composition-local use of existing native Zephyr APIs or an evidenced POSIX subset within the pinned baseline and existing contracts. It does not approve a platform-wide standard, new Crux public interface, compatibility change, major dependency/toolchain change, architectural commitment, security-sensitive decision or new real-time guarantee. A universal OSAL and speculative services remain outside scope. Escalate when the required outcome exceeds these limits rather than broadening the delegation.
+
+Host and applicable `native_sim` evidence may support provisional implementation while physical timing/resource validation remains Pending. Record the independent verdict, selection rationale, evidence limits and remaining physical cases before proceeding. Do not claim target qualification, close #7 or declare M2 complete while required physical evidence is missing. The initial software execution prohibited hardware operations. The user's subsequent explicit authorisation permits scoped Flash, Reset and UART verification for PR #9 under its recorded physical test plan; it does not authorise PR merging or automatic issue/milestone closure. Prepare reviewed evidence for final human review. These task-specific limits do not weaken the general approval rules above.
+
 ## Validation and evidence
 
 Use the existing repository checks as applicable:

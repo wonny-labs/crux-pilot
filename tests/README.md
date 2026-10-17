@@ -73,3 +73,13 @@ The final successful reset case leaves the sample running at the safe test date
 `reset.jlink` script only resets, starts and disconnects; no erase, flash or fuse operation
 is hidden in a pytest fixture. The suite currently supports only the verified EVKB QSPI
 setup; other boards need their reset/transport procedure reviewed explicitly.
+
+
+## Execution and reference controller
+
+`tests/execution` compares the pinned native Zephyr/POSIX subset; its POSIX cases also run
+on Linux. `tests/controller` verifies sample-owned Time observations/recovery and monotonic
+phase logic. The maintained boundary-negative and host-runner failure checks are under
+`tests/build`. Host CTest includes the finite controller scenario, including sanitizer exit
+status; `scripts/test-controller.sh` validates normal/missing-RTC native_sim compositions
+and cross-builds EVKB without hardware access. See the [controller conditions and limits](../samples/controller/README.md).

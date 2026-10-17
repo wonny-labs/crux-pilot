@@ -44,6 +44,14 @@ jobs:
         working-directory: crux-pilot
         run: scripts/bootstrap-zephyr.sh --install-sdk
 
+      - name: Compare controller execution candidates without hardware
+        working-directory: crux-pilot
+        run: scripts/test-execution.sh
+
+      - name: Validate the early controller without hardware
+        working-directory: crux-pilot
+        run: scripts/test-controller.sh
+
       - name: Run native_sim RTC tests and build EVKB firmware
         working-directory: crux-pilot
         run: scripts/test-zephyr-time.sh "$CRUX_BOARD_TARGET"
@@ -66,6 +74,20 @@ jobs:
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/provenance.json
             crux-pilot/build/evidence/target-inputs.json
             crux-pilot/build/evidence/zephyr-test-inputs.json
+            crux-pilot/build/zephyr/twister-execution/
+            crux-pilot/build/zephyr/controller-normal/scenario.log
+            crux-pilot/build/zephyr/controller-missing-rtc/scenario.log
+            crux-pilot/build/zephyr/controller-evkb/zephyr/.config
+            crux-pilot/build/zephyr/controller-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/controller-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/controller-evkb/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/execution-native-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/execution-native-evkb/zephyr/.config
+            crux-pilot/build/zephyr/execution-native-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/execution-native-evkb/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/execution-native-evkb/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/execution-posix-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/execution-posix-evkb/zephyr/.config
             crux-pilot/build/evidence/evkb-build.log
             crux-pilot/build/evidence/zephyr-rom-report.log
             crux-pilot/build/evidence/zephyr-ram-report.log

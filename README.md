@@ -111,6 +111,9 @@ target_link_libraries(my_app PRIVATE crux::time)
 
 For host integration, add this repository with `add_subdirectory()` after disabling `BUILD_TESTING` and `CRUX_BUILD_HOST_SAMPLE` when those targets are not needed. For Zephyr, discover the repository as a module and enable `CONFIG_CRUX_TIME=y`. The public target supplies headers and the selected backend. Consumers should not add private include paths or link implementation targets directly.
 
+See the [early reference controller](samples/controller/README.md) for the M2 periodic
+Time consumer, software checks and explicitly Pending physical validation.
+
 ## Architecture and status
 
 `components/base` owns common status codes. `components/time` owns the public Time API, shared implementation and private host/Zephyr backends. `samples/time` owns command handling and presentation. `zephyr/` provides Crux's native module integration.
