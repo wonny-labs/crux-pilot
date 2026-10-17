@@ -1317,3 +1317,57 @@ The exact Dev Container command recorded above now exits 0 for the whole reposit
 `bash -n scripts/check-format.sh` and `git diff --check` also pass. The environment remains
 pinned to clang-format 18.1.8; the earlier format-check blocker is resolved. Firmware and
 application code did not change in this follow-up, so their builds were not repeated.
+
+
+## Final source review before publication (2026-10-17)
+
+The review covered the public C headers, Time state/error transitions, bounded Gregorian
+conversion, host/Zephyr backends, shared command parser, stdin/Shell adapters, CMake targets,
+Dev Container, build/provenance scripts, test cases, and both CI workflows against the adopted
+M0–M3 and software M5 goals. It did not operate hardware or generalise the Time constraints.
+
+One correctness issue was fixed in test-only code: injecting `CRUX_OK` as a one-shot host read
+status returned success without writing the output, allowing common code to consume an
+uninitialised value. Successful status injection now follows the normal stored-value read;
+error injection and production backend behaviour are unchanged. A focused GoogleTest checks
+that a successful injected read returns the stored value. The Time contract's state count
+was also corrected from two to three; its semantics did not change.
+
+Reproduction in the existing Linux amd64 Dev Container, as `vscode`, from the repository root,
+with `/opt/crux-cache/venv/bin` on PATH and `CMAKE_BUILD_PARALLEL_LEVEL=2`:
+
+```sh
+scripts/check-host.sh
+CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh
+scripts/check-format.sh
+scripts/check-dependencies.sh
+python3 -m unittest discover -s tests/build -v
+scripts/analyze-host.sh
+```
+
+Both host configurations passed 27/27 cases and the stdin/stdout sample. All other commands
+exited 0; provenance checks passed 4/4. Clang-tidy passed the configured owned-code policy;
+its log still reports suppressed upstream/non-owned warnings and existing suppressions.
+Logs are retained under ignored `build/evidence/final-review-*.log`.
+The preceding private-header rename verification passed native_sim 4/4 and pristine native_sim/
+EVKB sample builds. This follow-up changes the Host test injection path only, so Zephyr was
+not rebuilt again. It does not claim a newly generated clean-commit firmware bundle.
+`git diff --check`, Git object integrity and focused credential-pattern scans passed; no
+tracked build/cache/binary output or matching credential material was identified. Such a
+pattern scan is not an exhaustive secret audit.
+
+The reviewed structure meets the current portable Time slice: independent C17 implementation,
+C++ consumers through actual tests, private native types, shared command logic and public
+`crux::time` build usage. No unresolved source finding blocks an initial private push.
+Single-instance operation, caller serialisation, UTC seconds/range and session-only validity
+remain explicit limitations. Physical M4 evidence and actual hosted CI execution remain
+pending; passing software tests do not replace them.
+
+Publication transport was checked independently. The connected GitHub app confirms private
+`wonny-labs/crux-pilot` and push permission, but local HTTPS Git initially failed with
+`could not read Username ... terminal prompts disabled`. SSH, after using GitHub-published
+host keys in an ignored temporary known-hosts file, failed with `Permission denied (publickey)`.
+The official GitHub CLI 2.102.0 macOS archive was downloaded into ignored `build/tools/` and
+verified against its release checksum to support browser/device authentication without a
+system package installation. Authentication and push results are recorded separately when
+actually observed; no token or private key is added to this repository.

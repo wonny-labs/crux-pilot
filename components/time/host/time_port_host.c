@@ -44,7 +44,9 @@ crux_status_t crux_time_port_read(crux_time_instant_t *out) {
         if (status == CRUX_ERR_NO_DATA) {
             g_has_time = false;
         }
-        return status;
+        if (status != CRUX_OK) {
+            return status;
+        }
     }
 #endif
     if (!g_has_time) {

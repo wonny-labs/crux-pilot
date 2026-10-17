@@ -97,6 +97,17 @@ TEST_F(TimeApiTest, ReadFailureLeavesOutputAndValidityUnchanged) {
     EXPECT_EQ(out, expected);
 }
 
+TEST_F(TimeApiTest, SuccessfulInjectedReadReturnsStoredValue) {
+    constexpr crux_time_instant_t expected = 1'700'000'000;
+    crux_time_instant_t out = 321;
+
+    ASSERT_EQ(crux_time_init(), CRUX_OK);
+    ASSERT_EQ(crux_time_set(expected), CRUX_OK);
+    crux_time_host_test_next_read_status(CRUX_OK);
+    EXPECT_EQ(crux_time_get(&out), CRUX_OK);
+    EXPECT_EQ(out, expected);
+}
+
 TEST_F(TimeApiTest, BackendNoDataClearsCommonValidity) {
     constexpr crux_time_instant_t expected = 1'700'000'000;
     crux_time_instant_t out = 654;

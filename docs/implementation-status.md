@@ -119,3 +119,14 @@ The post-rename format blocker is now **resolved**. The configured formatter is 
 returned by Git during an unstaged rename. The script now skips nonexistent inputs, still
 rejects malformed untracked source, and passes the repository-wide check. See the
 [corrected diagnosis and verification](baseline.md#format-check-after-unstaged-renames-2026-10-17).
+
+
+## Final code review (2026-10-17)
+
+The bounded Time/platform review found and fixed one test-backend issue: a successful injected
+read status previously left its output uninitialised. It now reads the stored value, with a
+focused regression case. Host Debug and ASan/UBSan each passed 27/27 and their sample;
+format, dependency boundaries, configured analysis and 4 provenance checks passed.
+The earlier native_sim 4/4 and EVKB build results remain applicable to unchanged Zephyr code.
+No unresolved source finding blocks an initial private push. M4 and hosted M5-03 remain
+pending until their actual evidence is collected. See [review scope and results](baseline.md#final-source-review-before-publication-2026-10-17).

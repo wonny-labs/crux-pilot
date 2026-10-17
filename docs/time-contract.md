@@ -71,7 +71,7 @@ controls; production applications do not acquire those paths.
 
 ## State and error precedence
 
-The common implementation owns two session states:
+The common implementation owns three session states:
 
 1. **Not ready:** no successful backend initialisation has completed.
 2. **Ready but unset:** the backend is ready, but this session has not established a time.

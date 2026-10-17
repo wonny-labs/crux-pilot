@@ -10,6 +10,7 @@ extern "C" {
 
 void crux_time_host_test_reset(void);
 void crux_time_host_test_fail_next_init(void);
+/* Inject one read failure; CRUX_OK follows the normal stored-value read path. */
 void crux_time_host_test_next_read_status(crux_status_t status);
 void crux_time_host_test_fail_next_write(void);
 crux_status_t crux_time_host_test_advance(int64_t seconds);

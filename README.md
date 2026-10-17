@@ -194,5 +194,5 @@ See [the Time contract](docs/time-contract.md), [implementation plan](docs/plans
 checks in M5 are recorded there. Remaining M4 acceptance criteria and hosted GitHub Actions
 execution are pending. EVKB/J-Link download and source debugging passed, and the user reports successful guided
 UART operation. Formal M4 timing/range/reset evidence and UART automation remain outstanding.
-See `docs/implementation-status.md` for current acceptance status. The private GitHub repository
-exists and is empty; the first push will start the configured workflows.
+See `docs/implementation-status.md` for current acceptance status. The private GitHub repository uses push and pull-request workflows; recorded hosted-run
+results are tracked in `docs/implementation-status.md`.
