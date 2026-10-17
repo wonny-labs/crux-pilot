@@ -83,6 +83,9 @@ jobs:
             crux-pilot/build/zephyr/controller-evkb/zephyr/zephyr.bin
             crux-pilot/build/zephyr/execution-native-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/execution-native-evkb/zephyr/.config
+            crux-pilot/build/zephyr/execution-native-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/execution-native-evkb/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/execution-native-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/execution-posix-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/execution-posix-evkb/zephyr/.config
             crux-pilot/build/evidence/evkb-build.log
