@@ -18,3 +18,4 @@ target_include_directories(app PRIVATE
     "${CRUX_REPO_ROOT}/tests/time/private"
 )
 target_link_libraries(app PRIVATE crux::time)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)

@@ -8,6 +8,25 @@ The tested production image and test-image source identities are distinguished i
 [physical baseline](baseline.md#m4-physical-uart-and-rtc-acceptance-2026-10-17). This bounded
 verification does not establish clock drift, backup-power retention or concurrent API use.
 
+## Current platform roadmap M1
+
+The M0–M5 tables below describe the **historical Time Pilot**. The current Platform
+Development Plan uses different milestones. Its M1 readiness assessment is recorded
+in [platform M1 readiness](platform-m1-readiness.md), against planning source
+`7d2287bdb5a252ee5e1fc51c7142813ba37800d6`.
+
+The follow-up for issues [#2](https://github.com/wonny-labs/crux-pilot/issues/2) and
+[#3](https://github.com/wonny-labs/crux-pilot/issues/3) preserves the Pilot implementation
+and adds owned-target compiler-warning controls in Zephyr. Local verification and
+integration status are recorded in the [M1 exit evidence](baseline.md#platform-m1-exit-verification-2026-10-17).
+M2 implementation has not started as part of this work.
+
+Current platform M1 technical exit criteria are **Satisfied** at reviewed implementation
+revision `5c7bcd4`: clean Host/Zephyr CI, preserved target evidence, completed warning
+controls and the readiness risk record. [PR #4](https://github.com/wonny-labs/crux-pilot/pull/4)
+tracks final-head CI and review/integration; #2/#3 remain open until merge. This is an
+M1 exit candidate, not a declaration that unmerged changes are already in `main`.
+
 ## Authorised M0–M1 work
 
 | AC | Status | Evidence / next action |
