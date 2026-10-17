@@ -1,9 +1,9 @@
 # Reference-controller execution investigation
 
-Status: investigation in progress for #6. No profile is selected by this draft.
-Physical execution and timing/resource qualification are **Pending**: this task forbids
-hardware operations. Selection for provisional software implementation requires an
-independent reviewer PASS under the user-authorised #6/#7 delegation.
+Status: #6 independently reviewed; composition-local native Zephyr execution selected
+for the provisional #7 software implementation. Physical execution and timing/resource
+qualification are **Pending**: this task forbids hardware operations. This selection
+does not establish a platform-wide execution interface or complete M2 acceptance.
 
 ## Consumer and comparison conditions
 
@@ -67,18 +67,18 @@ Paths below are relative to the pinned Zephyr tree, not the moving latest branch
 ## Evidence and decision
 
 Results, actual inputs, configuration identities, remaining physical cases and independent
-review outcome will be recorded after execution. Existing recorded Time success/unset/error,
+review outcomes are recorded below. Existing recorded Time success/unset/error,
 UART/RTC and reset evidence remains applicable to unchanged Time production source; it
 cannot supply controller scheduling/resource evidence.
 
-## Proposed bounded software profile for independent review
+## Selected bounded software profile
 
-The candidate recommendation is native Zephyr execution in the reference composition,
+The independently reviewed selection is native Zephyr execution in the reference composition,
 with Linux-specific monotonic sleep in its host composition. The portable consumer has
 no common OS-service dependency, so it does not need a POSIX dependency or Crux wrapper.
 The POSIX comparison remains evidence, not a platform-wide rejection of POSIX.
 
-| Area | Proposed reference composition support |
+| Area | Provisional reference composition support |
 | --- | --- |
 | Thread lifecycle | One caller-owned Zephyr thread/stack, created once for a finite scenario, normal return then `k_thread_join` before reuse. No cancellation, abort, detached lifecycle or restart contract. Linux may invoke the same scenario from its main thread. |
 | Scheduling | Zephyr pre-emptive priority 5, statically configured 4096-byte worker stack, no runtime policy changes. Physical stack sufficiency and scheduling performance remain Pending. |
@@ -89,7 +89,7 @@ The POSIX comparison remains evidence, not a platform-wide rejection of POSIX.
 | Memory/failure | Static thread and message storage; no controller heap allocation. Probe queues/finite waits expose capacity/expiry results. A failed Time init is observable and prevents normal scenario execution; unset/read errors never fabricate UTC. |
 | Evidence limit | Linux verifies functional behaviour, native_sim verifies Zephyr integration, EVKB cross-build proves compilation/footprint only. Physical execution, actual stack use and latency/jitter qualification remain Pending. No real-time, ISR or production support guarantee is added. |
 
-This remains a proposal until the recorded independent evidence review returns PASS.
+The independent decision below permits this provisional software choice only.
 A materially different outcome, public interface or guarantee must pass its applicable
 human gate rather than be inferred from this table.
 
@@ -145,17 +145,68 @@ Physical target execution/timing/stack/resource validation remains **Pending** a
 be replaced by the successful software checks or used to close #7/M2.
 
 
+## Controller software verification
+
+At `8fab8f20`, hosted Host run
+[39076149309](https://github.com/wonny-labs/crux-pilot/actions/runs/39076149309)
+passed Debug and ASan/UBSan **34/34** each, including the 20-cycle host scenario and five
+controller unit cases. All six build-boundary/runner/provenance safeguard cases,
+configured formatting, expanded static analysis and dependency checks passed. The
+runner safeguard rejects a process that emits a completion marker and then exits with
+failure, so sanitizer shutdown failures cannot be hidden by the marker.
+
+Local Debug also passed 34/34. The first corrected-registration sanitizer run passed
+33/34: an unchanged Time command test completed its assertions but its process exceeded
+the 30-second exit limit. This failure is retained; its cause is unconfirmed. The focused
+retry passed 1/1 and the full unmodified sanitizer retry passed 34/34. No timeout increase,
+source workaround or sanitizer suppression was applied.
+
+Local `scripts/test-controller.sh` passed normal and missing-RTC native_sim scenarios
+and the EVKB B/QSPI cross-build. It began at `4a2feaa`; the subsequent `8fab8f20` change
+only repairs host CTest discovery and records that failure, leaving all Zephyr compiled
+inputs unchanged. Normal simulation recorded 20 cycles, unset Time at cycles 0–1, valid
+UTC thereafter and the backward UTC step at cycle 6, with increasing monotonic releases.
+RTC absence produced `init=-3` and failure with no cycles. The controller EVKB linker
+allocation is FLASH **37,536 B** / RAM **8,704 B**, with priority 5, a static 4096-byte
+worker stack and configured heap zero. Simulated 4056-byte unused-stack accounting is
+not a target stack measurement. Physical execution and resource sufficiency remain Pending.
+
+At the same clean `8fab8f203f1ab5587f76648877d5c127fc6cb278`, hosted Zephyr run
+[39076149315](https://github.com/wonny-labs/crux-pilot/actions/runs/39076149315)
+passed execution probes **9/9**, both candidate EVKB cross-builds, both controller
+native_sim scenarios, the controller EVKB cross-build and existing Time native_sim
+**4/4** plus sample builds. Downloaded artefact `12117605940` contains the actual
+reports, logs, controller map/configuration and ELF/BIN. The captured inputs identify
+the clean source and four clean pinned dependencies; the controller configuration
+identifies EVKB revision B/QSPI, 10,000 ticks/s and heap zero. The 37,536-byte controller
+BIN has SHA-256 `4be80bc7cfcfc116bebba08d3d9c56b347cc6452548da299f7bf09a446ed55d2`,
+matching the local BIN despite different build paths/debug ELF contents. This firmware
+has not been programmed or executed on hardware.
+
+Independent reviewer `/root/m2_reviewer` returned **PASS for the bounded #6/#7 software
+implementation and PR preparation for human review**, after inspecting the full diff,
+actual hosted reports/configurations/maps and recomputing the controller artefact hashes.
+No material unresolved implementation finding remains. This verdict permits software
+delivery only: physical acceptance remains Pending and #7/M2 stay open. The final
+publication changes after the tested implementation are documentation only; incorporating
+the already merged general guidance from #8 did not change the tested tracked tree.
+
+Local raw logs, input captures and artefact hashes are retained under ignored
+`build/evidence/m2`; hosted raw reports and generated artefacts are attached to the
+linked runs with 14-day retention. Preserve needed artefacts before expiry. The source
+scripts and durable result/limit summaries remain in this repository.
+
 ## M2 coverage and outstanding acceptance
 
 | M2 requirement | Evidence / remaining acceptance |
 | --- | --- |
 | Review base/Time boundaries before reorganisation | Existing module/header review and current source inspection retained; no component reorganisation or public contract change. |
 | Time contract, host/Zephyr success, unset, error and reset; EVKB RTC/UART | Existing Time contract, host/Zephyr suites and recorded physical UART5/5/target2/2 reused; source remains unchanged. New controller integration tests assess its own handling. |
-| Portable modules and prohibited-coupling detection | Host builds the same controller core; bounded checks cover core/headers, with deliberate Zephyr/board/vendor/header and environment-macro injection tests. New checks require actual passing results. |
+| Portable modules and prohibited-coupling detection | Host builds the same controller core; bounded checks cover core/headers, with passing deliberate Zephyr/board/vendor/header and environment-macro injection tests and clean restoration. |
 | Native/POSIX comparison, execution profile and API limitations | Investigation results and independent scoped PASS above; target timing/resource execution remains Pending. |
-| Early reference controller using Time and selected services; basic periodic scenario | Implemented software scenarios and unit cases await final verification/review; physical EVKB run remains Pending. |
+| Early reference controller using Time and selected services; basic periodic scenario | Host 34/34 and normal/missing-RTC native_sim scenarios pass; EVKB cross-build passes. Physical EVKB run remains Pending. |
 | Relevant synchronisation/timing cases and no universal OSAL | Native/POSIX probes9/9 and explicit overrun/ownership/timeout limits; native composition uses existing APIs, with no new shared execution API. |
-| Repeatable quality/CI and evidence | Existing paths extended for new sources and scenarios; final source checks and hosted results must be recorded. |
+| Repeatable quality/CI and evidence | Existing paths execute the new sources/scenarios; hosted Host/Zephyr results, actual source identities, artefact identity and failure history are recorded above. |
 
 No row establishes M2 completion while the physical controller/timing/resource cases remain
 Pending. M3 devices/network/watchdog, M4 persistence and M5 concurrent-load/full independent
