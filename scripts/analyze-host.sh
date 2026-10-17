@@ -34,4 +34,5 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/samples/time/host/main.c" \
     "$repo/tests/time/src/time_test.cpp" \
     "$repo/tests/time/src/calendar_test.cpp" \
-    "$repo/tests/time/src/command_test.cpp"
+    "$repo/tests/time/src/command_test.cpp" \
+    "$repo/tests/execution/src/posix.c"

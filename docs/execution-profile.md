@@ -94,3 +94,21 @@ A materially different outcome, public interface or guarantee must pass its appl
 human gate rather than be inferred from this table.
 
 The initial Zephyr POSIX build exposed a `<mqueue.h>`/signal-type configuration dependency: this pin requires `CONFIG_POSIX_REALTIME_SIGNALS=y` for the referenced `sigval`/`sigevent` declarations. The comparison configuration records that extra dependency. A probe variable also collided with the native `signal()` declaration and was renamed. These build failures are retained, not reported as passed tests.
+
+## Recorded intermediate evidence
+
+At `4d002b37`, hosted Linux run [39074635017](https://github.com/wonny-labs/crux-pilot/actions/runs/39074635017)
+passed 28/28 CTest cases and the existing sample/quality/provenance checks. The POSIX
+periodic probe recorded six releases, 80 ms aggregate and two skipped phase points.
+These millisecond observations are not jitter bounds.
+
+Zephyr run [39074635116](https://github.com/wonny-labs/crux-pilot/actions/runs/39074635116)
+passed the existing Time path and native execution 4/4, but failed to compile the POSIX
+probe for the configuration/name defects recorded above. Native periodic output was
+100 ms aggregate, four skipped phase points and zero recorded millisecond lateness;
+its stack accounting reported 4056 bytes unused out of 4096. Native simulation does
+not model the physical Cortex-M stack use or establish a 40-byte target stack need.
+The POSIX candidate and EVKB footprint comparison remain unverified at this checkpoint.
+Downloaded raw logs/JUnit and artefacts are retained under ignored `build/evidence/m2`.
+
+During local preparation, the first direct static-analysis run found a reserved feature-test macro definition and a swappable helper-parameter diagnostic. The macro was moved to the host target's compile definitions and the helper narrowed to realtime deadlines, without suppressions. Probe analysis is now included in the maintained host analysis path. The concurrent local Twister preparation attempt was stopped and retained as invalidated because source inputs changed; only a subsequent frozen-input run can be accepted.

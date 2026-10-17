@@ -1,6 +1,3 @@
-#ifndef __ZEPHYR__
-#define _POSIX_C_SOURCE 200809L
-#endif
 #include <errno.h>
 #include <fcntl.h>
 #include <mqueue.h>
@@ -22,9 +19,9 @@ static sem_t wake_signal;
 static pthread_mutex_t mutex;
 static int worker_result;
 
-static struct timespec after_ms(clockid_t clock, long ms) {
+static struct timespec realtime_after_ms(long ms) {
     struct timespec deadline;
-    CHECK(clock_gettime(clock, &deadline) == 0);
+    CHECK(clock_gettime(CLOCK_REALTIME, &deadline) == 0);
     deadline.tv_nsec += ms * 1000000L;
     deadline.tv_sec += deadline.tv_nsec / 1000000000L;
     deadline.tv_nsec %= 1000000000L;
@@ -56,7 +53,7 @@ static void *notify_worker(void *arg) {
 
 static void *mutex_worker(void *arg) {
     (void)arg;
-    struct timespec deadline = after_ms(CLOCK_REALTIME, 20);
+    struct timespec deadline = realtime_after_ms(20);
     worker_result = pthread_mutex_timedlock(&mutex, &deadline);
     if (worker_result == 0) {
         CHECK(pthread_mutex_unlock(&mutex) == 0);
@@ -141,14 +138,14 @@ static void test_semaphore_timeout(void) {
     CHECK(sem_init(&wake_signal, 0, 0) == 0);
     errno = 0;
     CHECK(sem_trywait(&wake_signal) == -1 && errno == EAGAIN);
-    struct timespec deadline = after_ms(CLOCK_REALTIME, 10);
+    struct timespec deadline = realtime_after_ms(10);
     int64_t start = monotonic_ms();
     CHECK(sem_timedwait(&wake_signal, &deadline) == -1 && errno == ETIMEDOUT);
     CHECK(monotonic_ms() - start >= 9);
     pthread_t thread;
     start = monotonic_ms();
     CHECK(pthread_create(&thread, NULL, notify_worker, NULL) == 0);
-    deadline = after_ms(CLOCK_REALTIME, 1000);
+    deadline = realtime_after_ms(1000);
     CHECK(sem_timedwait(&wake_signal, &deadline) == 0);
     CHECK(monotonic_ms() - start >= 19);
     CHECK(pthread_join(thread, NULL) == 0);
