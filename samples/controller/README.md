@@ -11,8 +11,8 @@ public contracts are unchanged.
 ## Scenario and verification conditions
 
 Conditions defined before the first controller run: 20 observations on a 100 ms monotonic
-phase grid, normal unloaded composition, one execution owner. Cycles0–1 observe unset
-Time. Cycle2 explicitly sets `1792238400` UTC seconds and cycle6 explicitly steps UTC
+phase grid, normal unloaded composition, one execution owner. Cycles 0–1 observe unset
+Time. Cycle 2 explicitly sets `1792238400` UTC seconds and cycle 6 explicitly steps UTC
 back to `1792234800`. These are deterministic scenario inputs, not an implicit date or
 synchronisation to the host. Unavailable/error results never display a numeric UTC.
 The host Time store remains deterministic; the target RTC may progress between cycles.
@@ -25,7 +25,7 @@ claimed. The 10-second runner and native join limits are test liveness bounds, n
 real-time guarantees. The [execution investigation](../../docs/execution-profile.md)
 records the independent decision and native/POSIX limitations.
 
-Zephyr uses one pre-emptive priority5 worker with a static4096-byte stack and no configured
+Zephyr uses one pre-emptive priority 5 worker with a static 4096-byte stack and no configured
 kernel heap. Linux invokes the same portable behaviour in its main thread with
 `CLOCK_MONOTONIC` absolute sleeps. Clock/sleep errors stop the host scenario; Time init/set
 failure stops either composition. `native_sim` missing-RTC validation must report failed
@@ -45,7 +45,7 @@ its default follows `CRUX_BUILD_HOST_SAMPLE`, preserving the library-only setup.
 and cross-builds `mimxrt1060_evk@B//qspi`. It performs no hardware operations. Scenario logs
 are under `build/zephyr/controller-{normal,missing-rtc}/scenario.log`; the EVKB build is
 under `build/zephyr/controller-evkb/`. Existing host/Zephyr workflows run these paths and
-retain reports/configuration/artefacts for14 days.
+retain reports/configuration/artefacts for 14 days.
 
 ## Physical verification — Pending
 
@@ -53,4 +53,4 @@ The new controller has not run on an EVKB. Actual period/lateness under the stat
 scenario, worker stack use/sufficiency, runtime resource/failure behaviour and the
 identified firmware's success/failure cases require a separately authorised physical
 run. A cross-build or simulated stack measurement cannot satisfy those criteria. M2
-and issue#7 remain open. Later concurrent network/storage-load qualification remains M5.
+and issue #7 remain open. Later concurrent network/storage-load qualification remains M5.

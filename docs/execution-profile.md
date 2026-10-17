@@ -124,18 +124,18 @@ findings concerning per-release/overrun observations, stack recovery, wake-up an
 bounds were corrected and independently re-reviewed. This is not platform-wide adoption.
 
 Clean local `d1e40d26` subsequently passed both EVKB candidate cross-builds as well as
-Host Debug/sanitizer28/28, native_sim9/9 and expanded analysis/format/dependencies.
+Host Debug/sanitizer 28/28, native_sim 9/9 and expanded analysis/format/dependencies.
 Before/after input captures match exactly, including four clean pinned dependencies.
-Native FLASH/RAM:52,328/17,412 bytes; POSIX:73,928/82,516 bytes. The earlier hosted
-`a95c489` POSIX image was16 Flash bytes smaller; the helper/macro/analysis changes and
+Native FLASH/RAM: 52,328/17,412 bytes; POSIX:73,928/82,516 bytes. The earlier hosted
+`a95c489` POSIX image was 16 Flash bytes smaller; the helper/macro/analysis changes and
 actual source identities are kept separate. These configurations include different test
 content and POSIX stack-pool/heap provisioning; the whole delta is not API overhead.
 
-POSIX native_sim recorded six releases over160 ms, ten skipped phase points and10 ms
-lateness per release, compared with native100 ms/four skipped/0 ms recorded lateness.
-Both observed4056 unused simulated-stack bytes. POSIX exhausted eight4096-byte stack
-slots; attribute initialisation still succeeded, subsequent stack query returnedEINVAL,
-and a usable4096-byte stack was verified after release. These results constrain the
+POSIX native_sim recorded six releases over 160 ms, ten skipped phase points and 10 ms
+lateness per release, compared with native 100 ms/four skipped/0 ms recorded lateness.
+Both observed 4056 unused simulated-stack bytes. POSIX exhausted eight 4096-byte stack
+slots; attribute initialisation still succeeded, subsequent stack query returned EINVAL,
+and a usable 4096-byte stack was verified after release. These results constrain the
 comparison, not physical scheduling/stack guarantees. Static pool ownership and native
 uptime fit the demonstrated consumer without a common OS dependency; this is the basis
 for the scoped native choice. POSIX remains an option for another evidenced consumer.
@@ -143,3 +143,20 @@ for the scoped native choice. POSIX remains an option for another evidenced cons
 The [early controller](../samples/controller/README.md) implements this bounded choice.
 Physical target execution/timing/stack/resource validation remains **Pending** and cannot
 be replaced by the successful software checks or used to close #7/M2.
+
+
+## M2 coverage and outstanding acceptance
+
+| M2 requirement | Evidence / remaining acceptance |
+| --- | --- |
+| Review base/Time boundaries before reorganisation | Existing module/header review and current source inspection retained; no component reorganisation or public contract change. |
+| Time contract, host/Zephyr success, unset, error and reset; EVKB RTC/UART | Existing Time contract, host/Zephyr suites and recorded physical UART5/5/target2/2 reused; source remains unchanged. New controller integration tests assess its own handling. |
+| Portable modules and prohibited-coupling detection | Host builds the same controller core; bounded checks cover core/headers, with deliberate Zephyr/board/vendor/header and environment-macro injection tests. New checks require actual passing results. |
+| Native/POSIX comparison, execution profile and API limitations | Investigation results and independent scoped PASS above; target timing/resource execution remains Pending. |
+| Early reference controller using Time and selected services; basic periodic scenario | Implemented software scenarios and unit cases await final verification/review; physical EVKB run remains Pending. |
+| Relevant synchronisation/timing cases and no universal OSAL | Native/POSIX probes9/9 and explicit overrun/ownership/timeout limits; native composition uses existing APIs, with no new shared execution API. |
+| Repeatable quality/CI and evidence | Existing paths extended for new sources and scenarios; final source checks and hosted results must be recorded. |
+
+No row establishes M2 completion while the physical controller/timing/resource cases remain
+Pending. M3 devices/network/watchdog, M4 persistence and M5 concurrent-load/full independent
+consumer qualification remain outside this increment.
