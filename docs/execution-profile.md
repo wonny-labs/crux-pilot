@@ -92,3 +92,5 @@ The POSIX comparison remains evidence, not a platform-wide rejection of POSIX.
 This remains a proposal until the recorded independent evidence review returns PASS.
 A materially different outcome, public interface or guarantee must pass its applicable
 human gate rather than be inferred from this table.
+
+The initial Zephyr POSIX build exposed a `<mqueue.h>`/signal-type configuration dependency: this pin requires `CONFIG_POSIX_REALTIME_SIGNALS=y` for the referenced `sigval`/`sigevent` declarations. The comparison configuration records that extra dependency. A probe variable also collided with the native `signal()` declaration and was renamed. These build failures are retained, not reported as passed tests.

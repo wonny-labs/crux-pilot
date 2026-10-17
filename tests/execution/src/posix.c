@@ -18,7 +18,7 @@
 #define CHECK(value) assert(value)
 #endif
 
-static sem_t signal;
+static sem_t wake_signal;
 static pthread_mutex_t mutex;
 static int worker_result;
 
@@ -50,7 +50,7 @@ static void *notify_worker(void *arg) {
     CHECK(unused > 0);
     printf("PROBE posix stack_unused_bytes=%zu\n", unused);
 #endif
-    CHECK(sem_post(&signal) == 0);
+    CHECK(sem_post(&wake_signal) == 0);
     return arg;
 }
 
@@ -77,16 +77,16 @@ static void test_lifecycle_and_attributes(void) {
     printf("PROBE posix default_stack=%zu policy=%d priority=%d\n", stack, policy,
            parameters.sched_priority);
     CHECK(pthread_attr_destroy(&attr) == 0);
-    CHECK(sem_init(&signal, 0, 0) == 0);
+    CHECK(sem_init(&wake_signal, 0, 0) == 0);
     for (int i = 0; i < 2; ++i) {
         pthread_t thread;
         void *result = NULL;
-        CHECK(pthread_create(&thread, NULL, notify_worker, &signal) == 0);
-        CHECK(sem_wait(&signal) == 0);
+        CHECK(pthread_create(&thread, NULL, notify_worker, &wake_signal) == 0);
+        CHECK(sem_wait(&wake_signal) == 0);
         CHECK(pthread_join(thread, &result) == 0);
-        CHECK(result == &signal);
+        CHECK(result == &wake_signal);
     }
-    CHECK(sem_destroy(&signal) == 0);
+    CHECK(sem_destroy(&wake_signal) == 0);
 #ifdef __ZEPHYR__
     pthread_attr_t held[16];
     int count = 0;
@@ -138,21 +138,21 @@ static void test_mutex_contention(void) {
 }
 
 static void test_semaphore_timeout(void) {
-    CHECK(sem_init(&signal, 0, 0) == 0);
+    CHECK(sem_init(&wake_signal, 0, 0) == 0);
     errno = 0;
-    CHECK(sem_trywait(&signal) == -1 && errno == EAGAIN);
+    CHECK(sem_trywait(&wake_signal) == -1 && errno == EAGAIN);
     struct timespec deadline = after_ms(CLOCK_REALTIME, 10);
     int64_t start = monotonic_ms();
-    CHECK(sem_timedwait(&signal, &deadline) == -1 && errno == ETIMEDOUT);
+    CHECK(sem_timedwait(&wake_signal, &deadline) == -1 && errno == ETIMEDOUT);
     CHECK(monotonic_ms() - start >= 9);
     pthread_t thread;
     start = monotonic_ms();
     CHECK(pthread_create(&thread, NULL, notify_worker, NULL) == 0);
     deadline = after_ms(CLOCK_REALTIME, 1000);
-    CHECK(sem_timedwait(&signal, &deadline) == 0);
+    CHECK(sem_timedwait(&wake_signal, &deadline) == 0);
     CHECK(monotonic_ms() - start >= 19);
     CHECK(pthread_join(thread, NULL) == 0);
-    CHECK(sem_destroy(&signal) == 0);
+    CHECK(sem_destroy(&wake_signal) == 0);
 }
 
 static void test_messages(void) {
