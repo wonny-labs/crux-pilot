@@ -1554,3 +1554,84 @@ passed 2/2 configurations and 4/4 cases, no failures/errors/warnings (306.93 s).
 Log: `build/evidence/m4/twister.log`. The owned-source format check, dependency-boundary
 check, `bash -n scripts/test-target.sh` and `git diff --check` passed. Host production code
 was unchanged, so the previously passing 27/27 Host runs were not repeated.
+
+## Platform M1 exit verification (2026-10-17)
+
+This section concerns current **Platform M1 — Engineering and target foundation**,
+not the historical Time Pilot milestones. Planning source is `crux-platform`
+`7d2287bdb5a252ee5e1fc51c7142813ba37800d6`; implementation base is clean `bd0def0`.
+The [readiness assessment](platform-m1-readiness.md) supplies issue #2's native
+support, access/fixture, ROM/image, QSPI/XIP and maintenance dispositions. No physical
+operation, new capability, partition change or upstream upgrade was performed.
+
+Issue #3 is addressed by private `-Wall -Wextra -Werror` on `crux_time_common`,
+`crux_time_zephyr`, and the owned sample/test `app` targets. Host policies are unchanged.
+The [contributor warning policy](../CONTRIBUTING.md#testing-and-validation) records the
+native warning-selection limits. Zephyr-wide `CONFIG_COMPILER_WARNINGS_AS_ERRORS` may
+remain disabled for samples; the owned-target command lines enforce this policy.
+Twister separately enables warnings-as-errors in its own test configurations.
+
+Reproduction used the existing Linux amd64 Dev Container as `vscode`, with
+`PATH=/opt/crux-cache/venv/bin:$PATH`, `CLANG_FORMAT=clang-format` and
+`CMAKE_BUILD_PARALLEL_LEVEL=2`:
+
+```sh
+scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
+scripts/check-format.sh
+scripts/check-dependencies.sh
+```
+
+The local discovery run passed 2/2 native_sim configurations and 4/4 cases, with no
+warnings (124.88 seconds), and pristine native_sim/EVKB sample compilation and link.
+The full wrapper exited 1 at provenance recording: the assessment documents were
+edited while that run was in progress. `record-build-provenance.py` correctly rejected
+it with `ValueError: Source or workspace inputs changed during verification; rerun the checks`.
+No local provenance manifest from that mixed-input run is accepted as a final bundle.
+The complete clean-checkout hosted workflow is required for the final source revision;
+its outcome and exact commit/run identity are recorded in the associated PR.
+The original discovery output remains in ignored `build/evidence/m1-zephyr.log`.
+
+`m1-warning-flags.json` records actual compile commands: each of the native_sim sample,
+EVKB sample and two Twister configurations contains six owned translation units with
+`-Wall -Wextra -Werror`. Sample upstream/generated units (103 native_sim / 154 EVKB)
+do not acquire general `-Werror`. Twister's upstream units retain its independent test
+policy. An initial inspection incorrectly required no upstream `-Werror` in Twister;
+the generated commands identified that oracle error. The corrected inspection checks
+sample isolation and records Twister's separate policy. No build option was changed to
+hide that result. Inspection code and results are retained in `build/evidence/`.
+
+For the negative control, temporarily append an unused static function named
+`crux_m1_warning_probe` to `components/time/src/time.c`, then run:
+
+```sh
+cmake --build build/zephyr/native_sim_time --parallel 2
+cmake --build build/zephyr/mimxrt1060_evk_B_qspi --parallel 2
+```
+
+Restore the original source bytes in a `finally` block and rebuild each configuration.
+The retained `m1-warning-probe.py` performs these steps and checks the original source
+hash, non-zero negative result with the named diagnostic, and zero restored-build result.
+Temporary source is not committed. The probe invalidates the older target manifest
+before changing inputs. Logs and machine-readable results are under ignored
+`build/evidence/m1-warning-*.log` and `m1-warning-probe.json`.
+
+| Configuration | Named unused-function probe | Original source restored |
+| --- | --- | --- |
+| native_sim sample | Exit 1, `-Werror=unused-function` | Exit 0 |
+| EVKB QSPI sample | Exit 1, `-Werror=unused-function` | Exit 0 |
+
+Both restoration hashes are `dbe0f87dd6b5ca01d490dfc43ba4b1356c3571b6d657c2e3ef86efb4f2213426`;
+Git confirms no runtime-source difference from the accepted baseline.
+
+Format and dependency checks exited 0; retained output is
+`build/evidence/m1-format-dependencies.log`. Existing Host Debug/sanitizer 27/27 and
+physical UART 5/5 / target Ztest 2/2 evidence remains applicable to unchanged runtime
+source; this change does not claim a new hardware test. The rebuilt BIN SHA-256 is
+`4f8632b29db35cb268bcdc48644da9127ed8d4ed3e09bf10551f14a8dfde764a`, matching the
+physically verified image. Host tests and configured analysis also run in hosted CI.
+
+M1's target/maintenance assessment now permits continued development with explicit
+constraints before M3 peripheral and M4 storage qualification. M2 execution-profile and
+reference-controller implementation has not started. PR review/integration and a green
+hosted run for the final committed source are the remaining acceptance steps; source
+revisions and hosted results must not be inferred from the uncommitted discovery run.

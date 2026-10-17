@@ -23,6 +23,7 @@ if(CONFIG_CRUX_TIME)
         "${CMAKE_CURRENT_LIST_DIR}/../components/time/src"
     )
     zephyr_library_link_libraries(crux_time_api)
+    target_compile_options(crux_time_common PRIVATE -Wall -Wextra -Werror)
     zephyr_library_compile_definitions_ifdef(CONFIG_CRUX_TIME_TESTING CRUX_TIME_TESTING=1)
 
     zephyr_library_named(crux_time_zephyr)
@@ -35,6 +36,7 @@ if(CONFIG_CRUX_TIME)
         "${CMAKE_CURRENT_LIST_DIR}/../components/time/src"
     )
     zephyr_library_link_libraries(crux_time_api)
+    target_compile_options(crux_time_zephyr PRIVATE -Wall -Wextra -Werror)
     set_property(TARGET crux_time_zephyr PROPERTY INTERFACE_CRUX_TIME_BACKEND zephyr_rtc)
     set_property(TARGET crux_time_zephyr APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_TIME_BACKEND)
 

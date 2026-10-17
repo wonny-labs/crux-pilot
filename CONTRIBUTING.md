@@ -137,6 +137,18 @@ For AI-assisted contributions, the responsible human reviews the proposed plan a
 
 ## Testing and validation
 
+Owned Host C/C++ targets use `-Wall -Wextra -Wpedantic -Werror`. Owned Zephyr
+component libraries and sample/test application targets use private
+`-Wall -Wextra -Werror` options. Zephyr's native headers use GNU extensions, so
+the Host pedantic policy is not applied to that composition. These options do
+not propagate to upstream Zephyr, vendor or generated targets. The pinned native
+warning selection is retained, including its disabled format-zero-length,
+pointer-sign and unused-but-set-variable categories; these are explicit initial
+baseline limits for the Zephyr composition, not claims of exhaustive analysis.
+No additional suppression is introduced for Crux code. Any future suppression must
+be scoped and justified in review; a successful build with upstream warnings
+is not permission to ignore owned-code warnings.
+
 Choose tests according to the change and the claims being made. The table guides which evidence is appropriate; it does not require every environment to run for every PR.
 
 | Change | Validation to select when applicable |

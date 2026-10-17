@@ -196,5 +196,8 @@ source commit. M4 physical verification passed on EVKB QSPI: UART pytest 5/5 and
 including timing, range, progression and reset-session checks. See [physical test instructions](tests/README.md#physical-uart-target)
 and the retained evidence in the baseline. These checks establish bounded behaviour, not drift or
 backup-power retention.
+Those M0–M5 identifiers belong to the historical Time Pilot. The current platform
+roadmap M1 assessment and later implementation constraints are recorded in
+[platform M1 readiness](docs/platform-m1-readiness.md).
 See `docs/implementation-status.md` for current acceptance status. The private GitHub repository uses push and pull-request workflows; recorded hosted-run
 results are tracked in `docs/implementation-status.md`.
