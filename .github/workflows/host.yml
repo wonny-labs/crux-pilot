@@ -29,6 +29,8 @@ jobs:
         run: ./scripts/bootstrap-host.sh
       - name: Verify host checks with network dependency resolution disabled
         run: ./scripts/check-host.sh
+      - name: Verify host sanitizers
+        run: CRUX_HOST_PRESET=host-sanitize ./scripts/check-host.sh
       - name: Check build provenance safeguards
         run: python3 -m unittest discover -s tests/build -v
       - name: Check format
@@ -43,6 +45,9 @@ jobs:
         with:
           name: host-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            build/linux/sanitize/ctest-junit.xml
+            build/linux/sanitize/Testing/Temporary/LastTest.log
+            build/linux/debug/samples/controller/host/controller.log
             build/linux/debug/ctest-junit.xml
             build/linux/debug/Testing/Temporary/LastTest.log
           retention-days: 14

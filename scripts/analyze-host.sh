@@ -35,4 +35,7 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/time/src/time_test.cpp" \
     "$repo/tests/time/src/calendar_test.cpp" \
     "$repo/tests/time/src/command_test.cpp" \
-    "$repo/tests/execution/src/posix.c"
+    "$repo/tests/execution/src/posix.c" \
+    "$repo/samples/controller/core/controller.c" \
+    "$repo/samples/controller/host/main.c" \
+    "$repo/tests/controller/controller_test.cpp"

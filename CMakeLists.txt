@@ -7,6 +7,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 include(CTest)
 option(CRUX_BUILD_HOST_SAMPLE "Build the host Time command-line sample" ON)
+option(CRUX_BUILD_REFERENCE_CONTROLLER "Build the early reference controller" ${CRUX_BUILD_HOST_SAMPLE})
 
 add_subdirectory(components/base)
 add_subdirectory(components/time)
@@ -23,6 +24,17 @@ endif()
 
 if(CRUX_BUILD_HOST_SAMPLE)
     add_subdirectory(samples/time/host)
+endif()
+
+if(CRUX_BUILD_REFERENCE_CONTROLLER OR BUILD_TESTING)
+    add_library(crux_controller_core STATIC samples/controller/core/controller.c)
+    target_include_directories(crux_controller_core PUBLIC samples/controller/include
+        PRIVATE components/time/include)
+    target_link_libraries(crux_controller_core PUBLIC crux::base)
+    target_compile_options(crux_controller_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+if(CRUX_BUILD_REFERENCE_CONTROLLER)
+    add_subdirectory(samples/controller/host)
 endif()
 
 if(BUILD_TESTING)
@@ -42,6 +54,7 @@ if(BUILD_TESTING)
     FetchContent_MakeAvailable(googletest)
 
     add_subdirectory(tests/time)
+    add_subdirectory(tests/controller)
     find_package(Threads REQUIRED)
     add_executable(crux_posix_probes tests/execution/src/posix.c)
     target_link_libraries(crux_posix_probes PRIVATE Threads::Threads rt)

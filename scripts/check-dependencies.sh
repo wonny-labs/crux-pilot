@@ -20,9 +20,22 @@ portable_paths=(
     "$repo/components/time/src"
     "$repo/components/time/include"
     "$repo/samples/time/src/time_command.c"
+    "$repo/samples/controller/core"
+    "$repo/samples/controller/include"
 )
 if rg -n "$native_include_pattern" "${portable_paths[@]}"; then
     printf 'Portable Time and command code must not include native operating-system headers.\n' >&2
+    exit 1
+fi
+
+controller_native_pattern='#\s*include\s*[<"](zephyr/|board\.h|fsl_[^">]*|cmsis[^">]*|stm32[^">]*)'
+if rg -n "$controller_native_pattern" "$repo/samples/controller/core" "$repo/samples/controller/include"; then
+    printf 'Portable controller code must not include native board or vendor headers.\n' >&2
+    exit 1
+fi
+if rg -n '^\s*#\s*(if|ifdef|ifndef).*(__ZEPHYR__|CONFIG_|__linux__|_WIN32|BOARD_)' \
+    "$repo/samples/controller/core" "$repo/samples/controller/include"; then
+    printf 'Environment selection belongs in controller composition, not portable code.\n' >&2
     exit 1
 fi
 

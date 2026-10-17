@@ -112,3 +112,34 @@ The POSIX candidate and EVKB footprint comparison remain unverified at this chec
 Downloaded raw logs/JUnit and artefacts are retained under ignored `build/evidence/m2`.
 
 During local preparation, the first direct static-analysis run found a reserved feature-test macro definition and a swappable helper-parameter diagnostic. The macro was moved to the host target's compile definitions and the helper narrowed to realtime deadlines, without suppressions. Probe analysis is now included in the maintained host analysis path. The concurrent local Twister preparation attempt was stopped and retained as invalidated because source inputs changed; only a subsequent frozen-input run can be accepted.
+
+## Independent decision and completed investigation
+
+Independent reviewer `/root/m2_reviewer` returned **PASS for provisional composition-local
+native Zephyr selection and #7 software start only**, after reconstructing requirements
+and inspecting source, actual reports and downloaded maps/configurations. The recorded
+[decision gate](https://github.com/wonny-labs/crux-pilot/issues/6#issuecomment-6242385007)
+retains the hardware/merge prohibitions and physical Pending status. Initial REVISE
+findings concerning per-release/overrun observations, stack recovery, wake-up and join
+bounds were corrected and independently re-reviewed. This is not platform-wide adoption.
+
+Clean local `d1e40d26` subsequently passed both EVKB candidate cross-builds as well as
+Host Debug/sanitizer28/28, native_sim9/9 and expanded analysis/format/dependencies.
+Before/after input captures match exactly, including four clean pinned dependencies.
+Native FLASH/RAM:52,328/17,412 bytes; POSIX:73,928/82,516 bytes. The earlier hosted
+`a95c489` POSIX image was16 Flash bytes smaller; the helper/macro/analysis changes and
+actual source identities are kept separate. These configurations include different test
+content and POSIX stack-pool/heap provisioning; the whole delta is not API overhead.
+
+POSIX native_sim recorded six releases over160 ms, ten skipped phase points and10 ms
+lateness per release, compared with native100 ms/four skipped/0 ms recorded lateness.
+Both observed4056 unused simulated-stack bytes. POSIX exhausted eight4096-byte stack
+slots; attribute initialisation still succeeded, subsequent stack query returnedEINVAL,
+and a usable4096-byte stack was verified after release. These results constrain the
+comparison, not physical scheduling/stack guarantees. Static pool ownership and native
+uptime fit the demonstrated consumer without a common OS dependency; this is the basis
+for the scoped native choice. POSIX remains an option for another evidenced consumer.
+
+The [early controller](../samples/controller/README.md) implements this bounded choice.
+Physical target execution/timing/stack/resource validation remains **Pending** and cannot
+be replaced by the successful software checks or used to close #7/M2.
