@@ -1,0 +1,10 @@
+tests:
+  crux.execution.native:
+    harness: ztest
+    platform_allow: [native_sim/native/64]
+    tags: [crux, execution]
+  crux.execution.posix:
+    harness: ztest
+    platform_allow: [native_sim/native/64]
+    extra_args: [EXTRA_CONF_FILE=posix.conf]
+    tags: [crux, execution, posix]
