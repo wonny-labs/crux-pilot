@@ -1415,3 +1415,142 @@ Neither hosted firmware nor this review was flashed to hardware.
 M5-03 is now pass. M4 physical timing/range/reset/raw-log acceptance remains pending.
 This publication-evidence follow-up changes documentation only; its later commit is not
 claimed as the source of the already identified firmware bundle above.
+
+## M4 physical UART and RTC acceptance (2026-10-17)
+
+Used the previously confirmed MIMXRT1060-EVKB PCB revision B, SW4 OFF–OFF–ON–OFF,
+without HyperFlash rework; external J-Link PLUS S/N 602003106 on J2, with J9/J10 isolation
+as previously confirmed. USB discovery again identified that probe and the DAPLink device.
+UART was `/dev/cu.usbmodem11102` via J41, 115200 baud. Commander V9.86a identified the
+Cortex-M7 at 400 kHz SWD and VTref 3.322 V; the GDB Server reported about 3.33 V.
+No fuse, lock, power-control or unsupported erase operation was performed.
+
+### Identified production sample and explicit download
+
+The image came from the successful hosted `df48e61` bundle, not from an unidentified
+local F5 build. Its manifest identifies clean source commit
+`df48e61fe96e120d1e911c594b13214053fcd6c1` and build ID
+`3b7d3602bb972f374a91912940421892260772c61cbd67db58d6886b65280ceb`.
+ELF SHA-256: `362ccac5f2d2e964eeec1abab9bb01a828ab6a495e1795c92ce4d6666a9ab889`.
+BIN SHA-256: `4f8632b29db35cb268bcdc48644da9127ed8d4ed3e09bf10551f14a8dfde764a`.
+The pytest fixture recomputed the ELF hash against that manifest before opening UART.
+
+Started `scripts/macos/start-jlink-gdbserver.command` on macOS and used SDK 1.0.1 GDB
+in the existing Linux container to execute the following against the host-visible ELF:
+
+```text
+set remotetimeout 60
+target remote host.docker.internal:2331
+monitor reset
+load
+compare-sections rom_start
+compare-sections text
+compare-sections rodata
+detach
+```
+
+Full reproduction uses `docker exec -u vscode -w /workspaces/crux/crux-pilot 46325e2f6fcc
+/opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb --batch -q
+<ELF> -ex '<command>' ...`. Initial download compared rom_start/text; the final restoration
+also compared rodata. All requested sections matched. `load` reported 65,960 section bytes;
+BIN size is 65,964 bytes including section alignment. These section comparisons are not a
+claim of a full raw-flash checksum. Logs: `build/evidence/m4/flash.log` and
+`restore-flash.log`, with their J-Link Server logs beside them.
+
+After programming, stopped the GDB Server. The host pytest fixture exclusively opened UART,
+issued explicit native Commander `r; g; q` commands using `tests/target/reset.jlink`, and
+captured the new boot/readiness output. The readiness marker is
+`CRUX_TIME_READY composition=zephyr`; its association with this image is established by
+manifest/ELF validation and the actual download/section-comparison log, not by treating the
+generic marker as a unique build ID. The plan now states this adopted contract consistently.
+
+### Maintained pytest UART suite and actual results
+
+Added `tests/target/` and the non-flashing `scripts/test-target.sh` entry point. The host
+venv pins pytest 8.3.5 and pyserial 3.5; actual host Python was 3.9.6 on macOS 15.7.4 arm64.
+The fixture requests pyserial exclusivity and kernel `TIOCEXCL`, so another normal UART
+program cannot join the run. Stop existing monitors/debug sessions before running it.
+Disconnects, timeouts and mismatches fail; output directories must be new so failed runs
+are not overwritten. Tests retain raw RX bytes, exact timestamped RX/TX bytes, results,
+monotonic timing/assertions, image inputs and reset logs. No flash runs in a pytest fixture.
+
+The exact final command, from the repository root:
+
+```sh
+scripts/test-target.sh \
+  --uart /dev/cu.usbmodem11102 \
+  --elf build/evidence/github-df48e61/zephyr/zephyr-39064901047-1/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.elf \
+  --manifest build/evidence/github-df48e61/zephyr/zephyr-39064901047-1/zephyr/mimxrt1060_evk_B_qspi/provenance.json \
+  --flash-log build/evidence/m4/restore-flash.log \
+  --probe 602003106 --board 'mimxrt1060_evk@B//qspi' \
+  --evidence build/evidence/m4/uart-run-02 \
+  -v --junitxml=build/evidence/m4/uart-run-02.junit.xml
+```
+
+Actual final result: **5 passed in 5.56 seconds**, no warnings. Pytest's JUnit timestamp is
+2026-10-17 21:20:21 BST; inputs record 20:20:21 UTC. Machine-generated summary:
+`build/evidence/m4/summary.json`; full console: `pytest-run-02.log`; raw data:
+`uart-run-02/uart-rx.bin`, `transactions.jsonl`, `inputs.json`, `reset.log`.
+
+| Check | Observed result |
+| --- | --- |
+| Fresh readiness / unset | Marker captured after reset; first get returned `ERR NOT_SET` |
+| Set/read bounds | Seven measured set-to-get intervals 0.101427–0.110739 s; all read deltas 0 s, within measured interval plus one 1-second RTC tick |
+| Progression | Four samples `1792238400, 1792238401, 1792238402, 1792238403` over 3.056239 monotonic host seconds; non-decreasing and advancing, within the 5-second limit |
+| Invalid syntax/calendar | Bad leap date, month 13, incomplete time, trailing Z and excess argument rejected; valid time continued |
+| Range | 1999-12-31 and 2100-01-01 rejected; post-2038 `2038-01-19T03:14:08` and near-upper `2099-12-31T23:59:50` set/read succeeded |
+| Reset session | Known valid time established, reset/go performed, new readiness captured, get returned `ERR NOT_SET`; safe date restored |
+| Transaction bounds | 34 commands, 0.050255–0.055399 s observed response intervals; 2-second command timeout, 10-second readiness timeout, 20-second reset-process timeout |
+
+The response timings include host serial polling/buffering and are not CPU execution-time
+measurements. The one-tick allowance was fixed before execution, not widened after failure.
+Progression is liveness evidence, not oscillator drift/accuracy. Final state: the production
+sample is running, UART/probe are released, and RTC advances from the safe test value
+`2026-10-17T12:00:00` UTC. No backup-power or persistent-retention behaviour is claimed.
+
+### Repeated-init target Ztest and preserved diagnostic failures
+
+Built the existing C17 Zephyr test application for the actual board, using the sample's
+board-specific RTC priority configuration rather than duplicating it:
+
+```sh
+west build -p always -b 'mimxrt1060_evk@B//qspi' \
+  -d crux-pilot/build/zephyr/m4-ztest crux-pilot/tests/zephyr_time -- \
+  -DZEPHYR_EXTRA_MODULES=/workspaces/crux/crux-pilot \
+  -DEXTRA_CONF_FILE=/workspaces/crux/crux-pilot/samples/time/boards/mimxrt1060_evk_mimxrt1062_qspi.conf
+```
+
+Added repeated-init-after-valid-set assertions to the existing RTC/command test; no public
+init command or production hook was added. The physical target suite passed **2/2**, with
+`PROJECT EXECUTION SUCCESSFUL`. Image SHA-256:
+`93cdb8edabe5290dd9a0c446a1f0d8b48c8644a109398ad54862ab295cc9180b`.
+The build used base commit `9304378` plus the reviewed test-source change; exact source-file
+SHA-256 is in `build/evidence/m4/ztest-inputs.json`. It is not claimed as a clean-source
+production bundle. Successful raw output is `ztest-uart-03.bin` / `ztest-uart-03.txt` and
+`ztest-result-03.log`; flash/reset/build logs are retained alongside them.
+
+Earlier results are retained, not replaced by a success-only report:
+
+- First UART suite: 5/5 passed; pytest selected `/` as root and warned about its cache.
+  The wrapper now explicitly supplies the repository root. Logs: `pytest-run-01.log`,
+  `uart-run-01/`, and `uart-run-01.junit.xml`.
+- First Ztest observation timed out with empty UART. GDB showed PC at `z_arm_reset`:
+  programming/detach left the core halted. Explicit Commander reset/go started execution.
+  Logs: `ztest-result.log`, `ztest-uart.bin`, `ztest-after-load-state.log`.
+- The first executed Ztest failed its private-backend `NO_DATA` assumption. Upstream
+  `rtc_counter_get_time()` reads counter+offset without requiring `epoch_valid`; unlike
+  the emulated RTC, it does not promise native `NO_DATA` before set. The public Crux API
+  correctly remained unset, as the UART suite had already verified. Tests now check that
+  public session contract; the unused private-port include path was removed. Host tests
+  continue to own no-backend-write fault/count checks. No production contract/driver was
+  relaxed. Logs: `ztest-result-02.log`, `ztest-uart-02.bin`, `ztest-reset-02.log`.
+
+After the target Ztest, the identified production sample was reflashed/compared and the
+final UART suite above passed. M4-01 through M4-08 are supported by this physical evidence.
+
+Post-correction software regression: `west twister -j 2 -p native_sim/native/64
+-T crux-pilot/tests/zephyr_time -O crux-pilot/build/zephyr/twister-m4 --inline-logs`
+passed 2/2 configurations and 4/4 cases, no failures/errors/warnings (306.93 s).
+Log: `build/evidence/m4/twister.log`. The owned-source format check, dependency-boundary
+check, `bash -n scripts/test-target.sh` and `git diff --check` passed. Host production code
+was unchanged, so the previously passing 27/27 Host runs were not repeated.

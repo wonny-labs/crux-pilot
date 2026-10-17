@@ -4,7 +4,7 @@ Read `docs/plans/codex-start-instructions.md`, then the v0.5 plan and readiness 
 
 ## Current scope
 
-M0–M3 are implemented and their evidence is recorded in `docs/implementation-status.md`. The user has authorized continuing development, including M4 physical verification on the NXP MIMXRT1060-EVKB with SEGGER J-Link. Complete software-only M5 review and the authorized M4 checks when the board and probe are connected. Record commands and actual outcomes; do not mark physical criteria passed until observed on hardware.
+M0–M3 are implemented and their evidence is recorded in `docs/implementation-status.md`. The user has authorized continuing development, including M4 physical verification on the NXP MIMXRT1060-EVKB with SEGGER J-Link. Software-only M5 review and the authorized M4 physical checks have passed with retained evidence. Future physical runs must use the documented image/probe/UART identity and explicit procedures. Record commands and actual outcomes; do not mark physical criteria passed until observed on hardware.
 
 Preserve milestone AC identifiers and report evidence in `docs/implementation-status.md`. Do not start unrelated modules or change contracts without evidence.
 

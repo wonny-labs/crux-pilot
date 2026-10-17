@@ -192,7 +192,9 @@ See [the Time contract](docs/time-contract.md), [implementation plan](docs/plans
 [implementation status](docs/implementation-status.md), [build evidence](docs/baseline.md), and
 [upstream reuse notes](docs/upstream-reuse.md). Software milestones M0–M3 and the software-only
 checks in M5 are recorded there. Both hosted GitHub Actions workflows passed for the reviewed
-source commit; remaining M4 physical acceptance criteria are pending. EVKB/J-Link download and source debugging passed, and the user reports successful guided
-UART operation. Formal M4 timing/range/reset evidence and UART automation remain outstanding.
+source commit. M4 physical verification passed on EVKB QSPI: UART pytest 5/5 and target Ztest 2/2,
+including timing, range, progression and reset-session checks. See [physical test instructions](tests/README.md#physical-uart-target)
+and the retained evidence in the baseline. These checks establish bounded behaviour, not drift or
+backup-power retention.
 See `docs/implementation-status.md` for current acceptance status. The private GitHub repository uses push and pull-request workflows; recorded hosted-run
 results are tracked in `docs/implementation-status.md`.

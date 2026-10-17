@@ -16,7 +16,8 @@ targets.
 ## Zephyr: `zephyr_time/`
 
 Twister builds and runs the C17 Ztest application on two `native_sim/native/64` configurations: one
-with an RTC alias and one without it. Tests cover Zephyr error mapping, RTC backend behavior, the
+with an RTC alias and one without it. The RTC case also runs on the EVKB using the explicitly
+selected board configuration documented in the baseline. Tests cover Zephyr error mapping, RTC backend behavior, the
 shared command handler, and the actual registered Zephyr Shell adapter using Zephyr's dummy Shell
 backend. The trailing-argument case verifies that Shell passes syntax errors to the shared Crux
 handler for the documented `ERR INVALID_ARGUMENT` result.
@@ -31,3 +32,44 @@ actual dependency HEAD/dirty-state checks, and invalidation of stale manifests e
 build, clean command or native test run fails. Run
 `python3 -m unittest discover -s tests/build -v` on Linux; host CI runs it too.
 No additional test framework is required.
+
+## Physical UART: `target/`
+
+This pytest suite runs on macOS against the already flashed EVKB QSPI sample. It uses
+pyserial at 115200 baud, a kernel-exclusive UART handle and J-Link Commander resets at
+400 kHz. Stop VS Code debugging, J-Link GDB Server and all Serial Monitor programs first.
+The suite never flashes. Its fixture validates the ELF against a provenance manifest and
+requires a retained GDB download/section-comparison log for that identified image.
+
+Prepare an isolated host environment (separate from the Linux build tools):
+
+```sh
+python3 -m venv build/tools/m4-venv
+build/tools/m4-venv/bin/python -m pip install -r tests/target/requirements.txt
+```
+
+Run after the explicit, documented download/verification step, with the actual artifact paths:
+
+```sh
+scripts/test-target.sh \
+  --uart /dev/cu.usbmodem11102 \
+  --elf <verified-zephyr.elf> --manifest <matching-provenance.json> \
+  --flash-log <gdb-download-and-compare.log> \
+  --probe 602003106 --board 'mimxrt1060_evk@B//qspi' \
+  --evidence build/evidence/m4/<new-run-directory> \
+  -v --junitxml=build/evidence/m4/<new-run>.junit.xml
+```
+
+The output directory must be new so failed evidence is not overwritten. Keep the pytest
+console log as well. Each run retains raw received bytes, timestamped RX/TX bytes and
+transaction/assertion results, firmware/source identity and reset output. Command timeout is
+2 seconds, readiness timeout is 10 seconds, and the reset tool timeout is 20 seconds. Each
+read-after-set bound uses the monotonic interval from the start of set to the end of get,
+plus one RTC tick (1 second). Progression is sampled four times at approximately 1-second
+intervals within 5 seconds; this verifies liveness, not oscillator drift.
+
+The final successful reset case leaves the sample running at the safe test date
+`2026-10-17T12:00:00` UTC (advancing), not synchronised to the host wall clock. The retained
+`reset.jlink` script only resets, starts and disconnects; no erase, flash or fuse operation
+is hidden in a pytest fixture. The suite currently supports only the verified EVKB QSPI
+setup; other boards need their reset/transport procedure reviewed explicitly.

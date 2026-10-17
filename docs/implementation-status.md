@@ -1,13 +1,12 @@
 # Crux implementation status
 
-Last evidence update: 2026-10-17. The repository contains the M0–M3 software implementation;
-software-only reproduction, architecture checks and both hosted CI workflows passed for
-committed source `df48e61`. The original M0–M1 handoff is historical. AC identifiers
-are retained from the v0.5 implementation plan. Build commands, exact tool context, and actual
-results are recorded in [baseline](baseline.md). The user authorized M4 verification on the
-MIMXRT1060-EVKB with SEGGER J-Link. Download/debugging passed, and the user reports that the
-guided UART scenarios worked. Full M4 acceptance still requires the specified timing, boundary,
-reset and raw-log evidence. The first push and both GitHub Actions runs succeeded; their artifacts were downloaded and verified.
+Last evidence update: 2026-10-17. M0–M3 software and software-only M5 checks are recorded;
+both hosted CI workflows passed for clean source `df48e61`. Physical M4 acceptance now also
+passes for the identified EVKB QSPI sample: retained UART pytest 5/5, target Ztest 2/2,
+readiness, progression, transaction bounds, boundary/rejection and reset-session evidence.
+The tested production image and test-image source identities are distinguished in the
+[physical baseline](baseline.md#m4-physical-uart-and-rtc-acceptance-2026-10-17). This bounded
+verification does not establish clock drift, backup-power retention or concurrent API use.
 
 ## Authorised M0–M1 work
 
@@ -18,7 +17,7 @@ reset and raw-log evidence. The first push and both GitHub Actions runs succeede
 | M0-03 | pass | Zephyr `v4.4.0` and example reference commits, GoogleTest `v1.15.2` commit/archive hash, installed SDK `v1.0.1`, west `1.4.0`, CMake/Ninja/clang-format/Clang identities and immutable base-image digest are recorded in [baseline](baseline.md#selected-pinned-inputs). |
 | M0-04 | pass | RTC startup write/sample metadata, Shell/C++ sample, module split, RT1062 alias, RTC fields and generic counter conversion assessed in [upstream-reuse](upstream-reuse.md). DTS tracing identifies the `zephyr,rtc-counter` child under `nxp,imx-snvs-rtc` and MCUX SNVS counter provider; no build is claimed. |
 | M0-05 | pass | User confirmed the physical board is MIMXRT1060-EVKB revision B, SW4 is OFF–OFF–ON–OFF, and no HyperFlash rework was performed. J-Link PLUS S/N 602003106 and UART `/dev/cu.usbmodem11102` are recorded. See [hardware assessment](baseline.md#hardware-and-range-assessment) and [QSPI download evidence](baseline.md#m4-qspi-download-and-breakpoint-verification-2026-10-17). |
-| M0-06 | pass | Source-level 2000–2099 assessment, including 32-bit seconds guard and `time_t` conversion, is recorded in [baseline](baseline.md#hardware-and-range-assessment). Native simulation covers the post-2038 conversion; physical upper-range acceptance remains pending under M4-05. Source inspection is not target proof. |
+| M0-06 | pass | Source-level 2000–2099 assessment, including 32-bit seconds guard and `time_t` conversion, is recorded in [baseline](baseline.md#hardware-and-range-assessment). Native simulation covers the post-2038 conversion; physical post-2038/upper-range acceptance subsequently passed under M4-05. Source inspection is not target proof. |
 | M1-01 | pass | C17 libraries and a C++17 GoogleTest executable build through root CMake; actual Time API tests consume public C headers. A separate generic smoke fixture is no longer maintained. The host-only library configure also succeeds without enabling C++ or fetching GoogleTest; see [2026-10-17 architecture verification](baseline.md#architecture-boundary-cleanup-2026-10-17). |
 | M1-02 | pass | `scripts/check-host.sh` configures/builds/tests on Linux with Zephyr unavailable and the pinned GoogleTest already cached. That recorded check passed 26/26 CTest cases and the host sample scenario; final review and hosted verification later passed 27/27; current evidence is in [2026-10-17 architecture verification](baseline.md#architecture-boundary-cleanup-2026-10-17). |
 | M1-03 | pass | `scripts/check-zephyr-smoke.sh` passed in the pinned container with `CRUX_BOARD_TARGET=mimxrt1060_evk@B//qspi`: native_sim Hello World built, upstream Ztest/Twister passed 1/1, C++ Hello World built, and EVKB Hello World cross-compiled. No flashing or hardware operation occurred. The initially missing `cmsis_6` import and its fix are recorded in [baseline](baseline.md#current-build-policy-2026-10-16). |
@@ -53,7 +52,7 @@ reset and raw-log evidence. The first push and both GitHub Actions runs succeede
 | AC | Status | Evidence / remaining limitation |
 | --- | --- | --- |
 | M3-01 | pass | The current common source list and sample-owned commands compile in both native_sim configurations, the native_sim sample and the EVKB sample. Both sample compilation databases show all six owned translation units use C17. See [manifest resolution and current verification](baseline.md#zephyr-manifest-blocker-resolution-2026-10-17). |
-| M3-02 | pass | The backend binds `DT_ALIAS(rtc)` and calls Zephyr's standard `rtc_get_time()`/`rtc_set_time()` API. EVKB generated DTS resolves that alias to upstream SNVS/Counter RTC integration and the QSPI target build compiles. The user reports successful basic SNVS-backed UART operation; formal timing, range and reset evidence remains pending under M4. |
+| M3-02 | pass | The backend binds `DT_ALIAS(rtc)` and calls Zephyr's standard `rtc_get_time()`/`rtc_set_time()` API. EVKB generated DTS resolves that alias to upstream SNVS/Counter RTC integration and the QSPI target build compiles. Retained physical M4 UART results now verify progression, timing bounds, range/rejection and reset-session behaviour. |
 | M3-03 | pass | The standard `samples/time` Zephyr application was rebuilt from pristine native_sim and EVKB build directories with the revised module/sample composition. No copied BSP/SDK or upstream patch was required. |
 | M3-04 | pass | The current C adapter compiled and its registered Shell command passed the trailing-argument rejection in both Twister configurations. A native_sim sample execution also showed explicit startup/readiness, `ERR NOT_SET`, rejection of excess arguments, successful set and advancing read-back. `CONFIG_RTC_SHELL` is disabled in the generated target config. See [current evidence](baseline.md#zephyr-manifest-blocker-resolution-2026-10-17). |
 | M3-05 | pass | Current C17 Ztests passed 4/4 executed cases in 2/2 native_sim configurations, covering native status mapping, backend/command behavior, missing RTC and actual Shell execution through the dummy backend. The earlier manifest error was caused by incomplete Git trust under the manual root build user; the configured `vscode` user resolves it. Reports and diagnostic transcripts are linked in [baseline](baseline.md#zephyr-manifest-blocker-resolution-2026-10-17). |
@@ -65,14 +64,14 @@ reset and raw-log evidence. The first push and both GitHub Actions runs succeede
 
 | AC | Status | Evidence / next action |
 | --- | --- | --- |
-| M4-01 | pass | User confirmed EVKB revision B, QSPI boot switch configuration, and no HyperFlash rework. ELF SHA-256 `20f6c93d…e40a4fc` was downloaded through J-Link at 400 kHz. Actual VS Code F5 reached the startup entry; continuing reached the source breakpoint at `main.c:7`, and F10 advanced to line 9. Both `rom_start` and `text` comparisons matched. See [VS Code failure and fix](baseline.md#m4-vs-code-download-failure-and-fix-2026-10-17). |
-| M4-02 | pending | User reports the guided UART commands worked, including the initial unset check. A retained boot/readiness transcript tied to the identified image is still missing; do not infer it from a debugger breakpoint. |
-| M4-03 | pending | User reports successful set/get and advancing time. The prescribed monotonic-host interval and sampled progression log have not been retained. |
-| M4-04 | pending | No physical transaction timing was collected. |
-| M4-05 | pending | User reports rejection of the guided invalid-date command and continued valid reads. Physical post-2038, upper-range and out-of-range cases with raw results remain unverified. |
-| M4-06 | pending | GDB issued a reset before downloading the image, but there was no known valid time set beforehand and no post-reset UART/API check. This does not satisfy the session-unset behavior criterion. |
-| M4-07 | pending | No hardware UART pytest fixture or raw UART transaction logs exist. Retained J-Link/GDB logs verify download/debug transport, not the required UART test ownership and timeout behavior. |
-| M4-08 | pending | Board setup, J-Link download/debugging and user-reported UART success are recorded. Timing bounds, automated transaction logs, range/reset cases and association with a specific tested image remain outstanding. |
+| M4-01 | pass | Reconfirmed the connected J-Link S/N 602003106, Cortex-M7 and ~3.33 V against the previously confirmed EVKB B / QSPI setup. Downloaded hosted clean-source `df48e61` ELF `362ccac5…a9ab889`; final rom_start/text/rodata comparisons matched. See [physical evidence](baseline.md#m4-physical-uart-and-rtc-acceptance-2026-10-17). |
+| M4-02 | pass | Final pytest captured readiness after reset and initial `ERR NOT_SET`, with ELF/manifest identity and verified flash log. Physical target Ztest 2/2 includes successful repeated init after valid set/read. The generic marker is associated externally with the image, not treated as a unique build ID. |
+| M4-03 | pass | Four physical UART reads advanced 1792238400→1792238403 over 3.056239 monotonic host seconds, non-decreasing and within the 5-second limit. Raw RX/TX and assertions retained in `build/evidence/m4/uart-run-02/`. |
+| M4-04 | pass | Seven measured set-to-get intervals 0.101427–0.110739 s; all read deltas 0 s, within the measured interval plus the fixed one-second RTC tick allowance. 34 command responses 0.050255–0.055399 s, bounded by a 2-second command timeout. This includes host serial polling, not CPU execution timing. |
+| M4-05 | pass | Physical UART rejected malformed syntax, invalid calendar dates, trailing Z/arguments and 1999/2100 bounds; the last valid time continued. Post-2038 and 2099-12-31T23:59:50 set/read passed, followed by safe-date restoration. |
+| M4-06 | pass | Established a valid time, issued native Commander reset/go, captured a fresh readiness marker, then observed `ERR NOT_SET`. Safe date was restored afterward. No backup-power retention claim is made. |
+| M4-07 | pass | Added standard pytest/pyserial UART suite with kernel TIOCEXCL and pyserial exclusivity, explicit 2 s command / 10 s readiness / 20 s reset timeouts, new evidence directories and complete raw RX/TX/reset/result logs. Final run passed 5/5 without warnings; initial warning and failing target diagnostic runs remain retained. No implicit flash in pytest. |
+| M4-08 | pass | [Physical baseline](baseline.md#m4-physical-uart-and-rtc-acceptance-2026-10-17) records board/configuration, probe/UART, tools, image/source hashes, commands, actual timing, raw logs and diagnostic failures. The current sample runs from the safe test date; drift, persistence and other boards remain outside the verified scope. |
 
 ## Software-only M5 reproduction and architecture exit review
 
@@ -82,7 +81,7 @@ reset and raw-log evidence. The first push and both GitHub Actions runs succeede
 | M5-02 | pass | A temporary malformed C++ source made `scripts/check-format.sh` fail with exit 1 and line diagnostics; the probe was removed, then the normal format check passed. The log is retained under ignored `build/evidence/`. |
 | M5-03 | pass | First push published local history through `df48e61`. [host-foundation](https://github.com/wonny-labs/crux-pilot/actions/runs/39064900805) and [zephyr-software](https://github.com/wonny-labs/crux-pilot/actions/runs/39064901047) both completed successfully for that SHA. Both artifact bundles were downloaded: Host JUnit reports 27 tests/0 failures, and Zephyr provenance reports 4 tests/0 failures/errors/skips. All 19 recorded artifact/report hashes and sizes match. See [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
 | M5-04 | pass | Hosted provenance identifies clean/recoverable source commit `df48e61`, 4 pinned clean dependencies, runner image identity and matching successful tests. All 19 artifact/report hashes and sizes were verified after download. Earlier mismatch/failure/invalidation probes remain recorded. The hosted ELF hash differs from the local build; BIN hashes match, without a claim of bit-identical ELF reproduction. See [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
-| M5-05 | pass | The review supports independent C-only host use, C++ consumption, shared C17 code, private native types and proportional complexity, with documented single-instance/session/range/serialization constraints. Host-only presentation and SNVS priority now belong to their composition/board layer. Basic hardware operation is user-reported; formal M4 timing/range/reset acceptance remains pending. |
+| M5-05 | pass | The review supports independent C-only host use, C++ consumption, shared C17 code, private native types and proportional complexity, with documented single-instance/session/range/serialization constraints. Host-only presentation and SNVS priority now belong to their composition/board layer. Physical M4 UART pytest and on-target Ztest now support the timing/range/reset and repeated-init acceptance criteria. |
 | M5-06 | pass | Hardware, external CI, complete clean reproduction and artefact provenance gaps and next actions are recorded. The manifest blocker is resolved with before/after evidence. No policy was generalised beyond this Time slice. |
 
 
@@ -139,3 +138,15 @@ Published the reviewed history to private `wonny-labs/crux-pilot/main`; remote S
 bundles were inspected. M5-03 is now **pass**. Earlier entries saying hosted CI was pending
 are historical. The evidence-document follow-up does not change compiled code. Physical
 M4-02 through M4-08 still require their retained measurements/logs and remain **pending**.
+
+
+## M4 completion (2026-10-17)
+
+M4-01 through M4-08 are **pass** with retained physical results: sample pytest 5/5 and
+on-target Ztest 2/2. The Ztest was corrected to validate public session-unset semantics
+instead of assuming every native RTC returns NO_DATA before set; repeated-init preservation
+was added. The production sample was restored and its final UART suite passed. See the
+[full evidence and reproduced diagnostics](baseline.md#m4-physical-uart-and-rtc-acceptance-2026-10-17).
+Earlier pending entries are historical. The new tests and evidence do not change production APIs.
+The corrected Zephyr tests also passed native_sim 4/4; format, dependency and shell/diff
+checks passed. The original raw timeout and native-backend-assumption failure are retained.
