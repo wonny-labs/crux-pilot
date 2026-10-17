@@ -3,7 +3,7 @@
 #include "crux_time_command.h"
 #include "crux_time_test.h"
 #include "time_port.h"
-#include "time_port_zephyr_internal.h"
+#include "time_port_internal.h"
 
 #include <errno.h>
 #include <zephyr/devicetree.h>

@@ -1,5 +1,5 @@
 #include "time_port.h"
-#include "time_port_zephyr_internal.h"
+#include "time_port_internal.h"
 
 #include <errno.h>
 #include <stdbool.h>

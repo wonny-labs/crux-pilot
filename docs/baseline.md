@@ -1169,3 +1169,124 @@ was empty: later edits do not change compiled platform/sample sources or their c
 The accepted manifest continues to identify `bbf3d08`, and is not relabelled with a later commit.
 Local follow-up commits include the control-flow safeguard and this evidence; no remote push
 or hosted workflow execution was performed in this preparation task.
+
+
+## Shared consumer build target (2026-10-17)
+
+The Host and Zephyr application build interfaces now both use
+`target_link_libraries(<application> PRIVATE crux::time)`. The existing Host target is
+unchanged. The Zephyr module adds the equivalent INTERFACE target and alias, composing
+its existing API requirements, common implementation and RTC backend. The Zephyr sample
+and Ztests consume it; Ztests retain private includes only for their internal test hooks.
+No runtime dispatch, new backend framework, installed package or API behaviour was added.
+README and the Time contract describe consumer ownership and migration boundaries.
+
+Verification ran in the existing Linux amd64 Dev Container `46325e2f6fcc`, as `vscode`,
+from `/workspaces/crux/crux-pilot`, with `/opt/crux-cache/venv/bin` prepended to PATH and
+`CMAKE_BUILD_PARALLEL_LEVEL=2`. Reproduction commands:
+
+```sh
+scripts/check-host.sh
+CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh
+scripts/check-format.sh
+scripts/check-dependencies.sh
+scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
+git diff --check
+```
+
+| Check | Actual result / retained log under ignored `build/evidence/` |
+| --- | --- |
+| Host Debug | Pass, 26/26 CTest cases and stdin/stdout sample; `build-interface-host.log` |
+| Host ASan/UBSan | Pass, 26/26 and sample; `build-interface-sanitizers-corrected.log` |
+| Format / dependency boundaries | Both exit 0; `build-interface-format.log`, `build-interface-dependencies.log` |
+| Twister | 2/2 configurations and 4/4 cases, no failures/errors; 155.98 seconds; `build-interface-zephyr.log` |
+| native_sim sample | Pristine build passed through `crux::time`; same Zephyr log |
+| EVKB QSPI sample | Pristine build, ROM/RAM reports and provenance generation passed; same Zephyr log |
+| Separate C application | Configure/build/run exit 0, with only `crux::time` as its link dependency; `build-interface-consumer.log` |
+| Whitespace | `git diff --check` exit 0 |
+
+An initial sanitizer invocation used nonexistent preset `host-asan-ubsan` and exited 1
+with `CMake Error: No such preset`. The existing preset is `host-sanitize`; correcting
+that command produced the passing run above. Original error: `build-interface-sanitizers.log`.
+No code change or speculative retry was needed.
+
+The separate C consumer lives only in ignored `build/interface-consumer/`. Its CMake
+project sets C17, disables BUILD_TESTING and CRUX_BUILD_HOST_SAMPLE, adds the repository
+with `add_subdirectory(../.. crux)`, creates a C executable and links only `crux::time`.
+Its source includes `<crux/time.h>` and checks init, set and read-back. Reproduce the
+retained temporary fixture with:
+
+```sh
+cmake -S build/interface-consumer -B build/interface-consumer/out -G Ninja
+cmake --build build/interface-consumer/out -j 2
+build/interface-consumer/out/consumer
+```
+
+This is a one-time consumer integration probe, not a new maintained smoke target.
+The committed Host sample and Zephyr sample exercise the maintained consumer paths.
+The probe uses no GoogleTest, C++ compiler or manual Crux include directory.
+
+EVKB ELF SHA-256 remains
+`3b75f71bf8b6909a93b6f13b07fdb52e1e217052f31499afc666ae66c68aa84a`;
+BIN remains `4f8632b29db35cb268bcdc48644da9127ed8d4ed3e09bf10551f14a8dfde764a`.
+Both match the earlier software baseline. This verification used an uncommitted source
+snapshot (build identity `839d5f9fde59cfbdfc014abc0de282d734d628e00e95f0af06a092010b1fba11`);
+its manifest correctly reports `recoverable_from_git=false`. Subsequent evidence-document
+edits are not claimed as inputs to that build. No hardware, reset, flash or remote push
+was performed. M4 and hosted CI acceptance remain unchanged; no new blocker was observed.
+
+
+## Module header and dependency review (2026-10-17)
+
+Retained component-local public headers; adopted contributor rules are in
+[CONTRIBUTING](../CONTRIBUTING.md#public-headers-and-module-dependencies), with a concrete
+[Time ownership mapping](time-contract.md#header-and-build-ownership). Inspection covered root,
+base, Time, sample, test and Zephyr CMake definitions and all owned header/include sites.
+Public platform headers are component-owned; private ports, adapter helpers and test controls
+are outside public roots. Applications use `crux::time`. No directory/global
+`include_directories()` or `zephyr_include_directories()` calls were found in the owned build
+files. Private implementation paths are target-scoped. Base remains independent of Time/Zephyr.
+The Host command helper's direct private Time public-header path and integration tests' explicit
+private paths are internal composition/test wiring; the contract records why they exist.
+No implementation violation requiring a code change was identified in this bounded review.
+
+`scripts/check-dependencies.sh` and `git diff --check` both exited 0 on the macOS host.
+This follow-up changes documentation only; firmware/Host builds were not repeated. The previous
+shared-consumer-target verification remains the build/test evidence, with its recorded dirty-input
+limitation. This source review is not proof of all future dependency boundaries; the existing
+script checks selected rules, not every possible include or CMake graph.
+
+## Private helper filename review (2026-10-17)
+
+The Zephyr-private helper header was renamed from
+`components/time/zephyr/time_port_zephyr_internal.h` to
+`components/time/zephyr/time_port_internal.h`. Its `zephyr` directory already defines
+its backend scope; retaining `zephyr` in this private helper's basename was redundant.
+The include guard and the Zephyr adapter/test references were updated together.
+The Zephyr-required application board configuration name
+`samples/time/boards/mimxrt1060_evk_mimxrt1062_qspi.conf` was retained because its board,
+SoC qualifier and flash variant identify the configuration Zephyr automatically selects.
+
+From the Linux Dev Container, `scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'`
+passed: Twister 2/2 configurations and 4/4 cases, native_sim sample build, and EVKB QSPI
+sample cross-build with ROM/RAM reports. The ELF and BIN hashes match the prior software
+baseline. Full output: ignored `build/evidence/final-zephyr-rename.log`. The run used dirty
+working-tree inputs and its provenance correctly does not claim Git recoverability. No
+hardware operation occurred. `scripts/check-dependencies.sh` and `git diff --check` also
+passed after the rename.
+
+The post-rename formatting check could not run. Exact command:
+
+```sh
+docker exec -u vscode -w /workspaces/crux/crux-pilot 46325e2f6fcc \
+  bash -lc 'export PATH=/opt/crux-cache/venv/bin:$PATH; scripts/check-format.sh'
+```
+
+Actual result: exit 1, `No such file or directory`. A second focused invocation checked
+`command -v clang-format-18` before running the same script and produced the same error;
+the formatter is absent from this container's PATH. No further retry was made. The affected
+owned sources are `components/time/zephyr/time_port_zephyr.c`,
+`components/time/zephyr/time_port_internal.h`, and `tests/zephyr_time/src/main.c`; the changed
+C/C++ lines only update the private header include/guard. `git diff --check` passes. The
+repository format script passed before this filename-only C/C++ edit; the post-rename format
+result remains unavailable, not passed.

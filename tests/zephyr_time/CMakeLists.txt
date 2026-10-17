@@ -13,10 +13,9 @@ target_sources(app PRIVATE
     "${CRUX_REPO_ROOT}/samples/time/src/time_shell.c"
 )
 target_include_directories(app PRIVATE
-    "${CRUX_REPO_ROOT}/components/time/include"
     "${CRUX_REPO_ROOT}/components/time/src"
     "${CRUX_REPO_ROOT}/components/time/zephyr"
     "${CRUX_REPO_ROOT}/samples/time/include"
     "${CRUX_REPO_ROOT}/tests/time/private"
 )
-target_link_libraries(app PRIVATE crux_time_common crux_time_zephyr)
+target_link_libraries(app PRIVATE crux::time)

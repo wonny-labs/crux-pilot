@@ -37,4 +37,10 @@ if(CONFIG_CRUX_TIME)
     zephyr_library_link_libraries(crux_time_api)
     set_property(TARGET crux_time_zephyr PROPERTY INTERFACE_CRUX_TIME_BACKEND zephyr_rtc)
     set_property(TARGET crux_time_zephyr APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_TIME_BACKEND)
+
+    add_library(crux_time INTERFACE)
+    add_library(crux::time ALIAS crux_time)
+    target_link_libraries(crux_time INTERFACE
+        crux_time_api crux_time_common crux_time_zephyr
+    )
 endif()

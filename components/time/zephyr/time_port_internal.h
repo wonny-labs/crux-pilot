@@ -1,5 +1,5 @@
-#ifndef CRUX_TIME_PORT_ZEPHYR_INTERNAL_H
-#define CRUX_TIME_PORT_ZEPHYR_INTERNAL_H
+#ifndef CRUX_TIME_PORT_INTERNAL_H
+#define CRUX_TIME_PORT_INTERNAL_H
 
 #include <crux/status.h>
 

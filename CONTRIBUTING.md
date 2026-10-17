@@ -17,6 +17,35 @@ Contributors must follow the technical decisions and validation procedures adopt
 - Treat third-party and generated code according to its applicable upstream rules. Record the source, licence and any maintained local patches. Follow upstream contribution requirements when submitting changes to upstream projects.
 - Keep Crux independent of employer-owned software and confidential materials. Do not import employer-owned or other unauthorised proprietary code, restricted information, secrets or credentials.
 
+## Public headers and module dependencies
+
+Keep platform public headers in the owning component at
+`components/<component>/include/crux/`. Repeated `include/crux/` directories are intentional:
+components own their files while consumers use the shared `<crux/...>` include namespace.
+Public paths must be unique across components; physical separation does not prevent collisions.
+Do not create a second central copy of a public header.
+
+- Publish only interfaces required by consumers. Keep private ports, implementation helpers and
+  native OS/chip headers in the owning implementation directory, outside public include roots.
+  Backends implementing an existing API do not each need a new public header tree.
+- Keep test controls outside public headers and expose their directories only to the affected
+  test targets. Sample-owned headers belong to samples, not the platform API.
+- Applications consume public CMake usage targets, such as `crux::time`, instead of naming
+  implementation/backend targets or adding another component's include directory themselves.
+  The target propagates its public headers and required dependencies.
+- Use target-scoped CMake requirements. Use PUBLIC/INTERFACE for requirements consumers need,
+  and PRIVATE for implementation-only requirements. Avoid directory/global include paths that
+  make undeclared Crux dependencies available everywhere. Keep native dependencies out of
+  portable public contracts and do not expose private directories transitively.
+- Module/composition build definitions may wire their own implementation targets and private
+  paths, including instrumented test variants. A reusable sample helper may receive public
+  declarations without binding a backend; the final application/test composition selects one
+  backend. Such wiring is internal and is not a supported consumer interface.
+
+Header placement supports ownership; dependency declarations and review enforce the boundaries.
+It does not establish binary ABI stability or require separate repositories/packages per module.
+See the [Time contract](docs/time-contract.md#header-and-build-ownership) for the current mapping.
+
 ## Git workflow
 
 Use a short-lived branch based on the current default branch for substantive code or architecture changes. Open a pull request (PR) for review before integration. Trivial documentation corrections may use a lighter process where appropriate.

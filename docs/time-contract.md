@@ -29,7 +29,11 @@ explicit initialise, get and set operations. `<crux/time_calendar.h>` defines a 
 calendar and conversion functions. These headers document the range, state, output, and call-context
 contract at the declarations. The public API is C17 and its function declarations support C++ consumers;
 C++ callers include these headers and link to the C17 implementation through the exported
-`crux::time` usage target. Host GoogleTests exercise C++ calls against the C17 test composition;
+`crux::time` usage target in both Host and Zephyr builds. Application consumers do not link
+internal common/backend targets or add Time public include paths themselves. The Host entry point
+selects the controlled host backend; the Zephyr module selects its RTC backend when
+`CONFIG_CRUX_TIME=y`. This is a CMake usage target, not a runtime dispatch layer or an installed
+package/ABI stability promise. Host GoogleTests exercise C++ calls against the C17 test composition;
 they do not independently verify a C++ consumer link to the production usage target.
 
 The supported interval is `[2000-01-01T00:00:00 UTC, 2100-01-01T00:00:00 UTC)`. It uses UTC, second
@@ -40,6 +44,30 @@ Calendar validation checks null pointers, field ranges and actual month length b
 supported year interval. Malformed combinations return `CRUX_ERR_INVALID_ARGUMENT`; valid dates
 outside the interval return `CRUX_ERR_OUT_OF_RANGE`. Instant conversion similarly rejects values
 outside the interval. Output arguments are assigned only on success.
+
+## Header and build ownership
+
+This component follows the [repository header/dependency rules](../CONTRIBUTING.md#public-headers-and-module-dependencies).
+
+| Files / target | Ownership and visibility |
+| --- | --- |
+| `components/base/include/crux/status.h` | Independent platform public header, provided by `crux::base` |
+| `components/time/include/crux/time.h`, `time_calendar.h` | Time public API, provided to applications through `crux::time` |
+| `components/time/src/time_port.h` | Private link-selected backend contract; no application include requirement |
+| `components/time/zephyr/time_port_internal.h` | Private native adapter helper; available explicitly to relevant integration tests |
+| `tests/time/private/*.h` | Test controls, excluded from public include roots and normal consumer requirements |
+| `samples/time/include/crux_time_command.h` | Sample-owned helper contract, not an exported Crux platform API |
+
+Host and Zephyr applications link `crux::time`; the base dependency follows the public Time
+headers. Internal host/Zephyr build definitions assemble the common implementation and selected
+backend. Their private port paths do not propagate to applications.
+
+The Host `crux_time_commands` helper currently receives Time's public header path privately and
+links `crux::base` for its exposed status type. It intentionally does not bind the production Time
+backend: the host sample supplies `crux::time`, whereas host tests supply the instrumented Time
+test composition. This is internal sample composition wiring, not a recipe for ordinary consumers.
+Zephyr integration tests explicitly access private headers to exercise adapter mapping and test
+controls; production applications do not acquire those paths.
 
 ## State and error precedence
 

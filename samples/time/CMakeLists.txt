@@ -11,4 +11,4 @@ endif()
 
 target_sources(app PRIVATE src/main.c src/time_shell.c src/time_command.c)
 target_include_directories(app PRIVATE include)
-target_link_libraries(app PRIVATE crux_time_common crux_time_zephyr)
+target_link_libraries(app PRIVATE crux::time)

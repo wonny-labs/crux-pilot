@@ -84,3 +84,36 @@ reset and raw-log evidence. GitHub Actions execution remains pending the first p
 | M5-04 | pass | Corrected provenance was verified against clean source commit `bbf3d08`: 19 artifact/report hashes and sizes, 4 actual pinned/clean dependency HEADs, container image identity and successful matching tests. Mismatched source/test inputs were rejected without a manifest. Incremental and clean commands invalidate earlier provenance; full test runs invalidate it before replacing reports. Dirty fingerprints explicitly do not claim source recoverability. Accepted firmware remains associated with that recorded source commit, not later documentation/tool-only commits. See [first-push verification](baseline.md#first-push-baseline-preparation-2026-10-17). |
 | M5-05 | pass | The review supports independent C-only host use, C++ consumption, shared C17 code, private native types and proportional complexity, with documented single-instance/session/range/serialization constraints. Host-only presentation and SNVS priority now belong to their composition/board layer. Basic hardware operation is user-reported; formal M4 timing/range/reset acceptance remains pending. |
 | M5-06 | pass | Hardware, external CI, complete clean reproduction and artefact provenance gaps and next actions are recorded. The manifest blocker is resolved with before/after evidence. No policy was generalised beyond this Time slice. |
+
+
+## Consumer build interface follow-up (2026-10-17)
+
+M1-04, M3-03 and M5-05 remain **pass**, with Host and Zephyr consumers now using the
+same `crux::time` target. Public headers and the selected backend propagate through
+that target; application code does not link internal implementation targets.
+The existing module/build entry points retain backend selection responsibility.
+
+Host Debug and ASan/UBSan each passed 26/26 tests and their sample scenario; native_sim
+passed 2/2 configurations, 4/4 cases; native_sim and EVKB samples built from pristine
+outputs. A temporary separate C consumer configured, linked and executed through the
+public target without manual include paths or test dependencies. Format/dependency and
+whitespace checks passed. One mistyped sanitizer preset was corrected; its original
+error is retained. See [commands, results and limitations](baseline.md#shared-consumer-build-target-2026-10-17).
+Firmware hashes are unchanged. This run used uncommitted inputs and is not a new
+clean-commit acceptance bundle. Physical M4 and hosted M5-03 status are unchanged.
+
+
+Module header review: M5-05 remains **pass**. Contributor rules now specify component-owned
+public headers, private/native/test visibility and target-scoped dependencies. Current header
+and CMake inspection found no required implementation correction; intentional sample/test
+composition wiring is documented. Dependency and whitespace checks passed; no build was repeated
+for this documentation-only follow-up. See [review evidence](baseline.md#module-header-and-dependency-review-2026-10-17).
+
+Private helper naming follow-up: shortened the Zephyr helper header to
+`components/time/zephyr/time_port_internal.h`; the Zephyr-qualified board `.conf` filename
+remains unchanged for automatic board/SoC/flash-variant matching. After the header rename,
+Twister passed 4/4, native_sim and EVKB builds passed, and dependency/whitespace checks passed.
+Firmware hashes are unchanged. See [verification evidence](baseline.md#private-helper-filename-review-2026-10-17).
+The post-rename format script remains unverified because `clang-format-18` is missing from the
+active container PATH; the exact failed command and error are recorded in the baseline. This is
+an environment/tool availability limitation, not a format pass.

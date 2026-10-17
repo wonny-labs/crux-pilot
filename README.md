@@ -158,6 +158,20 @@ cmake -S . -B build/linux/library-only -G Ninja \
 cmake --build build/linux/library-only --target crux_time_common crux_time_host
 ```
 
+Applications link the same public usage target in Host and Zephyr builds:
+
+```cmake
+target_link_libraries(my_app PRIVATE crux::time)
+```
+
+For Host, add this repository with `add_subdirectory()` after disabling `BUILD_TESTING` and
+`CRUX_BUILD_HOST_SAMPLE` when those development targets are not needed. For Zephyr, discover this
+repository as a module and enable `CONFIG_CRUX_TIME=y`. The selected build entry point owns backend
+selection and propagates public headers; consumers do not link `crux_time_common`,
+`crux_time_host` or `crux_time_zephyr` directly. These remain internal build targets, even though
+CMake exposes their names. No install/export package or runtime backend selection is introduced.
+This consumer contract can carry into Crux without retaining the pilot repository name.
+
 The test-enabled build uses the pinned GoogleTest dependency and enables C++17 for the C++ tests.
 Production and sample code remain C17. Those tests exercise C++ calls through the public C API;
 there is no duplicate compile-only or link-only smoke target.
@@ -168,6 +182,11 @@ there is no duplicate compile-only or link-only smoke target.
 source list, and private host/Zephyr backends. `samples/time` owns command parsing and presentation;
 the host process and Zephyr Shell adapter use the same C17 handler. The Zephyr module exports the
 base target independently and does not compile sample sources.
+
+Platform public headers stay with their owning component under `include/crux/`; internal and
+backend headers stay outside that public root. Applications receive headers through public CMake
+targets. See [header and dependency rules](CONTRIBUTING.md#public-headers-and-module-dependencies)
+for contributor requirements and the [Time ownership mapping](docs/time-contract.md#header-and-build-ownership).
 
 See [the Time contract](docs/time-contract.md), [implementation plan](docs/plans/initial-implementation-plan.md),
 [implementation status](docs/implementation-status.md), [build evidence](docs/baseline.md), and
