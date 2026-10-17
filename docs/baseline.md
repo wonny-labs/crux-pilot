@@ -1371,3 +1371,47 @@ The official GitHub CLI 2.102.0 macOS archive was downloaded into ignored `build
 verified against its release checksum to support browser/device authentication without a
 system package installation. Authentication and push results are recorded separately when
 actually observed; no token or private key is added to this repository.
+
+
+## First publication and hosted CI (2026-10-17)
+
+After explicit user authorization and completed browser authentication, the original local
+Git history was pushed to private `https://github.com/wonny-labs/crux-pilot.git` as `main`.
+The remote was empty beforehand. Push succeeded without force and set `origin/main` as
+upstream. Both local and GitHub API reported source SHA
+`df48e61fe96e120d1e911c594b13214053fcd6c1`. Authentication uses the macOS keyring; no secret
+was printed or committed. A command-scoped Git credential helper used the temporary official
+GitHub CLI; no global helper path pointing into ignored build output was installed.
+
+Both initial workflows completed successfully for exactly that source SHA:
+
+| Run | Actual result | Artifact |
+| --- | --- | --- |
+| [host-foundation 39064900805](https://github.com/wonny-labs/crux-pilot/actions/runs/39064900805) | Success: build, 27/27 CTest and sample, dependency-disabled host repeat, 4 provenance checks, format, configured analysis, boundaries | `host-39064900805-1`, 4,431 bytes |
+| [zephyr-software 39064901047](https://github.com/wonny-labs/crux-pilot/actions/runs/39064901047) | Success: pinned workspace/SDK installation, native_sim 2/2 configurations and 4/4 cases, native_sim and EVKB sample builds, provenance/reports | `zephyr-39064901047-1`, 669,970 bytes |
+
+Using `build/tools/github-cli/gh`, commands were `run view <run-id> --repo
+wonny-labs/crux-pilot --json status,conclusion,headSha,url` and `run download <run-id>
+--repo wonny-labs/crux-pilot --dir <ignored-evidence-directory>`. Retained metadata and
+unpacked bundles are under ignored `build/evidence/github-df48e61/`.
+
+The downloaded Host JUnit reports 27 tests and zero failures/skips. The downloaded Zephyr
+manifest identifies clean source `df48e61`, `recoverable_from_git=true`, four pinned/clean
+west dependencies, Ubuntu runner image `ubuntu24` / `20261012.334.1`, and four passing tests
+with zero failures/errors/skips. All 19 recorded artifact/report sizes and SHA-256 values
+were recomputed from the downloaded files and matched. The artifact path prefix `build/`
+is removed when resolving paths within the uploaded bundle's common root.
+
+Hosted build identity:
+`3b7d3602bb972f374a91912940421892260772c61cbd67db58d6886b65280ceb`.
+Hosted ELF SHA-256:
+`362ccac5f2d2e964eeec1abab9bb01a828ab6a495e1795c92ce4d6666a9ab889`.
+Hosted BIN SHA-256:
+`4f8632b29db35cb268bcdc48644da9127ed8d4ed3e09bf10551f14a8dfde764a`.
+The BIN matches the earlier local build; the ELF differs, so this is not a claim of
+bit-identical ELF reproduction. Linker allocation remains FLASH 65,964 B / RAM 8,448 B.
+Neither hosted firmware nor this review was flashed to hardware.
+
+M5-03 is now pass. M4 physical timing/range/reset/raw-log acceptance remains pending.
+This publication-evidence follow-up changes documentation only; its later commit is not
+claimed as the source of the already identified firmware bundle above.

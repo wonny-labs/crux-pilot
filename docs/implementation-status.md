@@ -1,13 +1,13 @@
 # Crux implementation status
 
 Last evidence update: 2026-10-17. The repository contains the M0–M3 software implementation;
-software-only reproduction and architecture checks passed for the committed baseline; hosted CI
-remains outstanding. The original M0–M1 handoff is historical. AC identifiers
+software-only reproduction, architecture checks and both hosted CI workflows passed for
+committed source `df48e61`. The original M0–M1 handoff is historical. AC identifiers
 are retained from the v0.5 implementation plan. Build commands, exact tool context, and actual
 results are recorded in [baseline](baseline.md). The user authorized M4 verification on the
 MIMXRT1060-EVKB with SEGGER J-Link. Download/debugging passed, and the user reports that the
 guided UART scenarios worked. Full M4 acceptance still requires the specified timing, boundary,
-reset and raw-log evidence. GitHub Actions execution remains pending the first push.
+reset and raw-log evidence. The first push and both GitHub Actions runs succeeded; their artifacts were downloaded and verified.
 
 ## Authorised M0–M1 work
 
@@ -20,11 +20,11 @@ reset and raw-log evidence. GitHub Actions execution remains pending the first p
 | M0-05 | pass | User confirmed the physical board is MIMXRT1060-EVKB revision B, SW4 is OFF–OFF–ON–OFF, and no HyperFlash rework was performed. J-Link PLUS S/N 602003106 and UART `/dev/cu.usbmodem11102` are recorded. See [hardware assessment](baseline.md#hardware-and-range-assessment) and [QSPI download evidence](baseline.md#m4-qspi-download-and-breakpoint-verification-2026-10-17). |
 | M0-06 | pass | Source-level 2000–2099 assessment, including 32-bit seconds guard and `time_t` conversion, is recorded in [baseline](baseline.md#hardware-and-range-assessment). Native simulation covers the post-2038 conversion; physical upper-range acceptance remains pending under M4-05. Source inspection is not target proof. |
 | M1-01 | pass | C17 libraries and a C++17 GoogleTest executable build through root CMake; actual Time API tests consume public C headers. A separate generic smoke fixture is no longer maintained. The host-only library configure also succeeds without enabling C++ or fetching GoogleTest; see [2026-10-17 architecture verification](baseline.md#architecture-boundary-cleanup-2026-10-17). |
-| M1-02 | pass | `scripts/check-host.sh` configures/builds/tests on Linux with Zephyr unavailable and the pinned GoogleTest already cached. The current check passed 26/26 CTest cases and the host sample scenario; current evidence is in [2026-10-17 architecture verification](baseline.md#architecture-boundary-cleanup-2026-10-17). |
+| M1-02 | pass | `scripts/check-host.sh` configures/builds/tests on Linux with Zephyr unavailable and the pinned GoogleTest already cached. That recorded check passed 26/26 CTest cases and the host sample scenario; final review and hosted verification later passed 27/27; current evidence is in [2026-10-17 architecture verification](baseline.md#architecture-boundary-cleanup-2026-10-17). |
 | M1-03 | pass | `scripts/check-zephyr-smoke.sh` passed in the pinned container with `CRUX_BOARD_TARGET=mimxrt1060_evk@B//qspi`: native_sim Hello World built, upstream Ztest/Twister passed 1/1, C++ Hello World built, and EVKB Hello World cross-compiled. No flashing or hardware operation occurred. The initially missing `cmsis_6` import and its fix are recorded in [baseline](baseline.md#current-build-policy-2026-10-16). |
 | M1-04 | pass | `zephyr/module.yml`, separate `zephyr/CMakeLists.txt`/Kconfig, pinned `west.yml` (including Zephyr's pinned `cmsis_6` dependency), and explicit `ZEPHYR_EXTRA_MODULES` are in place. Module discovery was observed in native_sim and EVKB builds; the current message is `Crux Zephyr integration module discovered`; host root has no `find_package(Zephyr)`. |
 | M1-05 | pass | Built pinned linux/amd64 Dev Container (latest image ID `sha256:dbbf1293a2032554bd9174c44059859e3cf8bc4f1b05b30e2fb093858b8dbbd7`). Docker CLI reproduced configured amd64, 4 GiB/2 CPU limits, parent bind to `/workspaces/crux`, primary Git root `/workspaces/crux/crux-pilot`, west topdir `/workspaces/crux`, visible sibling projects and persistent named cache volume. SDK path is set through `ZEPHYR_SDK_INSTALL_DIR`; exact mounted Git paths, including `cmsis_6`, are marked safe in the container post-create command. CMake Tools is declared as a Dev Container extension; VS Code CMake preset UI itself was not exercised. See [baseline execution evidence](baseline.md#current-build-policy-2026-10-16). |
-| M1-06 | pass | Bootstrap/check scripts use `set -euo pipefail`; host checks are offline; target script only builds and contains no flash/reset call. A fake CMake exit-37 probe confirmed `scripts/bootstrap-host.sh` propagates the failure; local checks and workflow parsing passed. GitHub Actions execution remains unverified (see M5-03); `origin` is configured, but authenticated remote workflow evidence is not available in this checkout. |
+| M1-06 | pass | Bootstrap/check scripts use `set -euo pipefail`; host checks are offline; target script only builds and contains no flash/reset call. A fake CMake exit-37 probe confirmed `scripts/bootstrap-host.sh` propagates the failure; local checks and workflow parsing passed. The first authenticated push and both hosted workflows passed (see M5-03); their downloaded reports and provenance are recorded below. |
 
 ## Authorised M2 work
 
@@ -78,10 +78,10 @@ reset and raw-log evidence. GitHub Actions execution remains pending the first p
 
 | AC | Status | Evidence / remaining limitation |
 | --- | --- | --- |
-| M5-01 | pass | Clean host Debug and ASan/UBSan builds each passed 26/26 CTest cases and the sample scenario. Fresh Twister configurations passed 4/4 cases; native_sim sample and pristine EVKB builds passed for clean commit `bbf3d08`. The native_sim sample also passed readiness/unset, post-2038 set/get/progression and invalid-date preservation. Later changes are confined to test-report invalidation safeguards and documentation; compiled component/sample sources are unchanged. See [first-push verification](baseline.md#first-push-baseline-preparation-2026-10-17). |
+| M5-01 | pass | Latest final-review Host Debug and ASan/UBSan checks each passed 27/27 and the sample scenario. Hosted clean-checkout verification for commit `df48e61` passed Host 27/27, native_sim 4/4, and native_sim/EVKB sample builds. The review corrected a test-only successful-read injection path. See [final source review](baseline.md#final-source-review-before-publication-2026-10-17) and [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
 | M5-02 | pass | A temporary malformed C++ source made `scripts/check-format.sh` fail with exit 1 and line diagnostics; the probe was removed, then the normal format check passed. The log is retained under ignored `build/evidence/`. |
-| M5-03 | pending | Host and Zephyr workflows support push, pull request and manual dispatch with read-only contents permission. Host CI runs format, dependency, tests and analysis. Zephyr CI installs pinned inputs, runs native_sim and EVKB builds, then uploads focused reports/logs and the provenance manifest for 14 days. Actionlint and local equivalent checks/builds pass. `origin` is configured, but a successful remote Actions run has not been recorded in the evidence reviewed here; inspect both workflow runs and artifacts before marking this passed. See [CI and provenance evidence](baseline.md#ci-and-build-artifact-provenance-2026-10-17). |
-| M5-04 | pass | Corrected provenance was verified against clean source commit `bbf3d08`: 19 artifact/report hashes and sizes, 4 actual pinned/clean dependency HEADs, container image identity and successful matching tests. Mismatched source/test inputs were rejected without a manifest. Incremental and clean commands invalidate earlier provenance; full test runs invalidate it before replacing reports. Dirty fingerprints explicitly do not claim source recoverability. Accepted firmware remains associated with that recorded source commit, not later documentation/tool-only commits. See [first-push verification](baseline.md#first-push-baseline-preparation-2026-10-17). |
+| M5-03 | pass | First push published local history through `df48e61`. [host-foundation](https://github.com/wonny-labs/crux-pilot/actions/runs/39064900805) and [zephyr-software](https://github.com/wonny-labs/crux-pilot/actions/runs/39064901047) both completed successfully for that SHA. Both artifact bundles were downloaded: Host JUnit reports 27 tests/0 failures, and Zephyr provenance reports 4 tests/0 failures/errors/skips. All 19 recorded artifact/report hashes and sizes match. See [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
+| M5-04 | pass | Hosted provenance identifies clean/recoverable source commit `df48e61`, 4 pinned clean dependencies, runner image identity and matching successful tests. All 19 artifact/report hashes and sizes were verified after download. Earlier mismatch/failure/invalidation probes remain recorded. The hosted ELF hash differs from the local build; BIN hashes match, without a claim of bit-identical ELF reproduction. See [hosted evidence](baseline.md#first-publication-and-hosted-ci-2026-10-17). |
 | M5-05 | pass | The review supports independent C-only host use, C++ consumption, shared C17 code, private native types and proportional complexity, with documented single-instance/session/range/serialization constraints. Host-only presentation and SNVS priority now belong to their composition/board layer. Basic hardware operation is user-reported; formal M4 timing/range/reset acceptance remains pending. |
 | M5-06 | pass | Hardware, external CI, complete clean reproduction and artefact provenance gaps and next actions are recorded. The manifest blocker is resolved with before/after evidence. No policy was generalised beyond this Time slice. |
 
@@ -130,3 +130,12 @@ format, dependency boundaries, configured analysis and 4 provenance checks passe
 The earlier native_sim 4/4 and EVKB build results remain applicable to unchanged Zephyr code.
 No unresolved source finding blocks an initial private push. M4 and hosted M5-03 remain
 pending until their actual evidence is collected. See [review scope and results](baseline.md#final-source-review-before-publication-2026-10-17).
+
+
+## First publication and hosted CI (2026-10-17)
+
+Published the reviewed history to private `wonny-labs/crux-pilot/main`; remote SHA matched
+`df48e61fe96e120d1e911c594b13214053fcd6c1`. Both hosted workflows passed and both artifact
+bundles were inspected. M5-03 is now **pass**. Earlier entries saying hosted CI was pending
+are historical. The evidence-document follow-up does not change compiled code. Physical
+M4-02 through M4-08 still require their retained measurements/logs and remain **pending**.
