@@ -70,3 +70,73 @@ allocated bytes, 64 reserved bytes and 4096 usable bytes. Negative controls reje
 prefixes and wrong object size. Firmware C/configuration and the identified BINs are
 unchanged. Qualifying runs must use a committed clean capture revision, recorded
 separately from the firmware revision, after independent review of this correction.
+
+## Qualifying physical results
+
+The separately authorised execution used firmware from clean
+`b6db69673094213fb4df609191dce9aead895d4d`, built by completed
+[Zephyr CI 39078171686](https://github.com/wonny-labs/crux-pilot/actions/runs/39078171686)
+(artefact `12118111089`). Corresponding [Host CI 39078171692](https://github.com/wonny-labs/crux-pilot/actions/runs/39078171692)
+passed Debug/sanitizer 34/34 each, 16 safeguards and configured quality checks. The
+capture correction was committed cleanly at `afb51605be9dc46a81ef64326d33e71b8573da07`;
+its twelve focused controls passed before retry. Subsequently, corrected-runner
+[Host CI 39078980991](https://github.com/wonny-labs/crux-pilot/actions/runs/39078980991)
+passed Debug/sanitizer 34/34 each, all 18 safeguards and configured quality checks.
+Capture source and firmware source are
+distinct identities: no firmware C, execution configuration or BIN changed for the retry.
+
+| Image / condition | Qualifying result |
+| --- | --- |
+| Native execution probe | `native-02`: three fresh boots, four native cases each, all pass. Lifecycle/join/static reuse, mutex PI/contention/expiry/recovery, semaphore expiry/delayed wake/capacity and bounded messages are evidenced by the actual assertions. |
+| Native periodic observation | Six 10 ms releases per boot; deliberate 25 ms work; 82 ms aggregate and two skipped phase points each run. Reported per-release millisecond lateness is zero. |
+| Reference controller | `controller-01`: three fresh boots, 20 observations each; unset at 0–1, valid after 2, backward UTC set at 6; monotonic phase and final joined completion pass each run. |
+| Controller timing observation | All 19 intervals per run are 100 ms at the recorded uptime resolution; reported lateness zero, skipped count zero. This normal scenario does not force an overrun. |
+| Native worker stack | 4096 usable / 4160 allocated / 64 reserved bytes; 3840 untouched, 256 observed used in every qualifying boot. |
+| Controller worker stack | 4096 usable / 4160 allocated / 64 reserved bytes; 3688 untouched, 408 observed used in every qualifying boot. Both exceed the unchanged 1024-byte short-run headroom objective. |
+| Static image allocation | Native FLASH 52,328 B / RAM 17,412 B; controller FLASH 37,536 B / RAM 8,704 B. Priority 5 and configured heap zero; observed stack usage is not total system-stack or worst-case resource qualification. |
+| Programming identity | Full BIN readback at ELF-verified `0x60000000` matched before every image's qualifying resets. Runtime preflight again identified probe 602003106, Cortex-M7 and VTref 3.322 V with exclusive UART. |
+
+Native BIN SHA-256:
+`59668e4e445e695c973f225a2a081a9c1278403ef76532ce8540da417cda4fc8`.
+Controller BIN SHA-256:
+`4be80bc7cfcfc116bebba08d3d9c56b347cc6452548da299f7bf09a446ed55d2`;
+the controller BIN also matches the earlier software-evidence image, without claiming
+identical debug ELFs. Independent image verification checked each ELF load segment,
+actual `rom_start`, exact board/SoC/QSPI/guard configuration, clean pinned dependencies
+and SDK 1.0.1 before programming.
+
+All qualifying bytes begin with one fresh boot; pre-reset drain bytes are preserved
+separately. The rejected `native-01` is not included in the qualifying counts. Its
+stale capture and observer correction remain recorded above. Controller programming
+also emitted the post-verify, post-quit `Could not start CPU core` diagnostic despite
+exit zero. It is explicitly retained in inputs/logs; each subsequent explicit reset/start
+had no such error and produced a complete fresh qualifying run. This establishes the
+planned reset/start path, not an explanation or cure for the disconnect diagnostic.
+
+The prior sanitizer process-exit timeout remains an **unresolved observation**. No
+recurrence in these unrelated physical runs can establish its cause. Physical POSIX
+behaviour remains unverified; no target POSIX performance comparison, concurrent-load,
+long-duration, sub-millisecond jitter, ISR or production guarantee is claimed. Existing
+Time/RTC contract evidence is reused; no electrical fault injection or M3 service was added.
+
+The last programmed image is the normal controller and its final finite scenario has
+completed. UART/probe processes were released. PR #9 remains Draft and unmerged; issues
+#6/#7 and M2 remain open for human review/integration rather than automatic closure.
+
+## Independent verdict and retained evidence
+
+The independent reviewer returned **PASS for the predeclared selected-native physical
+validation of PR #9**, after independently reconstructing all six qualifying raw UART
+runs, receive events, reset/program logs, source/configuration and artefact hashes.
+The reviewer authored no firmware/capture code and performed no hardware operation.
+This verdict is bounded physical acceptance; current runner CI and publication accuracy
+are separate checks, and final human integration/M2 decisions remain outstanding.
+
+The portable evidence archive is `crux-m2-physical-b6db696-afb5160.tar.gz` (922,891 bytes),
+SHA-256 `f9863c2f9f543950d0fcceee1d94180d3c3cc8e59f0674638367cf216ae8cdc3`.
+Its internal `SHA256SUMS` covers 106 raw evidence/source/firmware/CI files, including
+failed preparation and the actual independent physical review at that stage. A durable
+copy is retained with this chat's output artefacts; ignored build copies remain under
+`build/evidence/m2-physical`. Original manifest paths identify local source files; the
+archive contains their matching bytes under `firmware/` and `ci/` for portable inspection.
+Hosted artefacts have 14-day retention; this archive preserves the selected proof.

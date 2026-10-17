@@ -47,10 +47,23 @@ are under `build/zephyr/controller-{normal,missing-rtc}/scenario.log`; the EVKB 
 under `build/zephyr/controller-evkb/`. Existing host/Zephyr workflows run these paths and
 retain reports/configuration/artefacts for 14 days.
 
-## Physical verification — Pending
+## Physical verification — bounded evidence
 
-The new controller has not run on an EVKB. Actual period/lateness under the stated
-scenario, worker stack use/sufficiency, runtime resource/failure behaviour and the
-identified firmware's success/failure cases require a separately authorised physical
-run. A cross-build or simulated stack measurement cannot satisfy those criteria. M2
-and issue #7 remain open. Later concurrent network/storage-load qualification remains M5.
+[Authorised physical verification](../../docs/m2-physical-verification.md) ran the identified
+controller three times on EVKB B/QSPI: 20 cycles each, expected unset/valid Time and backward
+UTC step, independent monotonic phase, joined completion. Observed intervals were 100 ms at
+uptime resolution, with zero recorded millisecond lateness and no skipped phases in this
+normal unloaded scenario. Native execution probes separately exercise deliberate overrun,
+lifecycle, synchronisation, timeouts and bounded messages on the target.
+
+The requested usable worker stack is 4096 bytes; this ARM configuration allocates 4160
+including a 64-byte MPU guard. Physical controller high-water accounting observed 408 used /
+3688 untouched bytes, exceeding the predeclared 1024-byte short-run headroom objective.
+Simulator accounting is not used as a Cortex-M measurement. Configured heap zero and static
+Flash/RAM allocation are distinct from measured worker use or system worst-case sufficiency.
+
+The evidence retains the first rejected capture, observer correction and programmer
+post-disconnect diagnostic. The earlier sanitizer exit-timeout cause is still unresolved.
+Physical POSIX, long-duration/concurrent-load behaviour and worst-case timing/resource
+qualification are not established. PR #9 remains Draft and M2/issues #6/#7 open for human
+review and integration; passing this bounded physical plan does not authorise merging.
