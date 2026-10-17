@@ -118,13 +118,15 @@ initialize Time explicitly and do not set an implicit date. The host sample prin
 time. API no-data remains `CRUX_ERR_NO_DATA`; the command presentation maps it to `ERR NOT_SET`.
 The readiness marker says `composition=host-simulation` or `composition=zephyr`; it is not a build
 identity. A source/configuration ID and checksum manifest remain required for physical artefact
-acceptance.
+acceptance. Physical pytest associates readiness with the manifest-identified ELF through the
+explicit download and section-comparison log before accepting UART cases.
 
 The Zephyr composition selects the standard `rtc` devicetree alias and calls `rtc_get_time()` and
 `rtc_set_time()` through a private backend. It converts `struct rtc_time` at that boundary and does
 not expose Zephyr types in the public API or portable command handler. `crux_time_init()` checks
 device readiness, and the application prints readiness only after initialization succeeds. The
 upstream RTC Shell is disabled so it cannot bypass the shared command path. Native simulation
-verifies API mapping and command behavior. EVKB download/debugging passed, and the user reports
-successful guided UART operation on hardware. Formal timing, upper-range and reset acceptance
-remains pending under M4; manual success does not supply those missing measurements.
+verifies API mapping and command behavior. EVKB download/debugging and retained physical M4 checks passed: UART pytest 5/5 and target
+Ztest 2/2 cover progression, bounded set/read, representative upper-range/rejection cases,
+repeated init and reset-session behaviour. Actual measurements, firmware identity and raw logs
+are recorded in the baseline. These checks do not establish clock drift or persistent validity.

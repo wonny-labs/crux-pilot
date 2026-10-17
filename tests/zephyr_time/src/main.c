@@ -2,7 +2,6 @@
 
 #include "crux_time_command.h"
 #include "crux_time_test.h"
-#include "time_port.h"
 #include "time_port_internal.h"
 
 #include <errno.h>
@@ -56,12 +55,11 @@ ZTEST(crux_time_zephyr, test_rtc_backend_and_shared_command_contract) {
     zassert_equal(crux_time_init(), CRUX_OK);
 
     crux_time_instant_t instant = INT64_C(123456789);
-    zassert_equal(crux_time_port_read(&instant), CRUX_ERR_NO_DATA);
-    zassert_equal(instant, INT64_C(123456789));
     zassert_equal(crux_time_get(&instant), CRUX_ERR_NO_DATA);
+    zassert_equal(instant, INT64_C(123456789));
 
     assert_shell_result("time set 2024-01-01T00:00:00 extra", "ERR INVALID_ARGUMENT");
-    zassert_equal(crux_time_port_read(&instant), CRUX_ERR_NO_DATA);
+    zassert_equal(crux_time_get(&instant), CRUX_ERR_NO_DATA);
 
     const crux_time_command_result_t invalid_date =
         crux_time_command_execute("time set 2023-02-29T12:00:00");
@@ -69,7 +67,7 @@ ZTEST(crux_time_zephyr, test_rtc_backend_and_shared_command_contract) {
         crux_time_command_execute("time set 2024-01-01T00:00:00 extra");
     zassert_equal(invalid_date.status, CRUX_ERR_INVALID_ARGUMENT);
     zassert_equal(trailing_input.status, CRUX_ERR_INVALID_ARGUMENT);
-    zassert_equal(crux_time_port_read(&instant), CRUX_ERR_NO_DATA);
+    zassert_equal(crux_time_get(&instant), CRUX_ERR_NO_DATA);
 
     const crux_time_command_result_t set_result =
         crux_time_command_execute("time set 2038-01-19T03:14:08");
@@ -78,6 +76,10 @@ ZTEST(crux_time_zephyr, test_rtc_backend_and_shared_command_contract) {
     zassert_true(strcmp(set_result.text, "OK") == 0);
     zassert_equal(get_result.status, CRUX_OK);
     zassert_true(strcmp(get_result.text, "2038-01-19T03:14:08 UTC") == 0);
+
+    zassert_equal(crux_time_init(), CRUX_OK);
+    zassert_equal(crux_time_get(&instant), CRUX_OK);
+    zassert_true(instant >= INT64_C(2147483648));
 }
 #else
 ZTEST(crux_time_zephyr, test_missing_rtc_reports_not_ready) {
