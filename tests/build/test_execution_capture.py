@@ -15,7 +15,7 @@ def controller():
         value = "unavailable" if index < 2 else str(1792238400 if index < 6 else 1792234800)
         lines.extend([f"cycle={index} status={-4 if index < 2 else 0} valid={int(index >= 2)} "
                       f"utc={value} monotonic_ms={index * 100} lateness_ms=0", "schedule skipped=0"])
-    return "\n".join(lines + ["controller stack_bytes=4096 unused_bytes=3072 priority=5 heap_bytes=0",
+    return "\n".join(lines + ["controller stack_bytes=4160 unused_bytes=3072 priority=5 heap_bytes=0",
                               "CONTROLLER_COMPLETE cycles=20"])
 
 
@@ -25,7 +25,7 @@ def native():
     lines = ["*** Booting Zephyr OS build v4.4.0 ***"]
     lines += [f"PASS - test_{name} in 0.1 seconds" for name in names]
     lines += [f"PROBE native cycle={index} lateness_ms=0" for index in range(6)]
-    return "\n".join(lines + ["PROBE native periodic elapsed_ms=80 skipped=2 priority=5 stack_bytes=4096",
+    return "\n".join(lines + ["PROBE native periodic elapsed_ms=80 skipped=2 priority=5 stack_bytes=4160",
                               "PROBE native stack_unused_bytes=3072",
                               "PROJECT EXECUTION SUCCESSFUL"])
 
@@ -70,6 +70,14 @@ class ExecutionCaptureTest(unittest.TestCase):
     def test_repeated_boot_is_rejected(self):
         with self.assertRaises(AssertionError):
             CAPTURE.validate("*** Booting Zephyr\n" + controller(), "controller")
+
+    def test_pre_reset_prefix_is_rejected(self):
+        with self.assertRaises(AssertionError):
+            CAPTURE.validate("stale output\n" + controller(), "controller")
+
+    def test_wrong_physical_stack_object_size_is_rejected(self):
+        with self.assertRaises(AssertionError):
+            CAPTURE.validate(controller().replace("stack_bytes=4160", "stack_bytes=4096"), "controller")
 
 
 if __name__ == "__main__":

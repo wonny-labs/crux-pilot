@@ -44,3 +44,29 @@ validator tests pass on macOS; the full supported Linux suite must pass in hoste
 The first Commander `q` preparation invocation did not connect to the target and was not
 accepted as preflight. Explicit `connect` then identified probe 602003106, Cortex-M7 r1p1
 and VTref 3.327 V with exclusive UART access, without programming an image.
+
+## First native capture and oracle correction
+
+The first actual `b6db696` native attempt (`native-01`) is **FAILED**, not qualifying
+physical evidence. Programming and full 52,328-byte BIN readback succeeded, but Commander
+reported `Could not start CPU core` on disconnect despite exit zero. An explicit later
+reset/start produced a full four-case suite, preceded by stale partial output from the
+pre-reset execution. The validator rejected that mixed capture; all bytes and logs remain.
+This disconnect/start diagnostic is retained, not silently described as resolved.
+
+The target also exposed a mistaken observer assumption: `sizeof(worker_stack)` is
+**4160 bytes**, not the requested usable 4096. Pinned ARM `arch.h` selects a 64-byte MPU
+guard when `CONFIG_MPU_STACK_GUARD=y` and region minimum is 32. With userspace/FPU disabled,
+`K_THREAD_STACK_SIZEOF` maps to kernel-stack object size minus that reserved guard;
+`thread.c` accounts the resulting 4096-byte usable buffer. Actual linker maps independently
+show `0x1040` objects for both native worker and controller. The observed native unused
+3840 bytes in the rejected run is diagnostic only; the original minimum 1024/4096
+headroom objective is unchanged.
+
+The capture-only correction preserves/drains pre-reset bytes until 200 ms silence
+(with a five-second bound), then requires qualifying output to begin with exactly one
+fresh boot. It never trims qualifying bytes. The physical parser distinguishes 4160
+allocated bytes, 64 reserved bytes and 4096 usable bytes. Negative controls reject stale
+prefixes and wrong object size. Firmware C/configuration and the identified BINs are
+unchanged. Qualifying runs must use a committed clean capture revision, recorded
+separately from the firmware revision, after independent review of this correction.

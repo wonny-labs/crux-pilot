@@ -14,10 +14,12 @@ import time
 
 REPO = Path(__file__).resolve().parents[2]
 MIN_UNUSED = 1024  # Predeclared headroom objective for these short unloaded runs only.
+STACK_OBJECT_BYTES = 4160  # 4096 usable + 64-byte MPU guard in the verified ARM configuration.
 
 
 def validate(output, mode):
     assert output.count("*** Booting Zephyr") == 1, "Expected one fresh boot"
+    assert output.lstrip().startswith("*** Booting Zephyr"), "Stale pre-reset output"
     assert not re.search(r"CONTROLLER_FAILED|FAIL -|PROJECT EXECUTION FAILED|FATAL ERROR", output)
     if mode == "native":
         names = ("lifecycle_periodic_and_stack", "mutex_contention_timeout_and_recovery",
@@ -28,9 +30,9 @@ def validate(output, mode):
         cycles = re.findall(r"PROBE native cycle=(\d+) lateness_ms=(\d+)", output)
         assert [int(c) for c, _ in cycles] == list(range(6))
         periodic = re.search(r"PROBE native periodic elapsed_ms=(\d+) skipped=(\d+) "
-                             r"priority=5 stack_bytes=4096", output)
+                             r"priority=5 stack_bytes=4160", output)
         assert periodic and int(periodic[2]) >= 2
-        stack = re.search(r"PROBE native stack_unused_bytes=(\d+)", output)
+        stack = re.search(r"PROBE native stack_unused_bytes=(?P<unused>\d+)", output)
         assert stack
         result = dict(cycles=6, lateness_ms=[int(v) for _, v in cycles],
                       elapsed_ms=int(periodic[1]), skipped=int(periodic[2]), native_cases=4)
@@ -58,15 +60,16 @@ def validate(output, mode):
             if index:
                 assert deadlines[index] == deadlines[index - 1] + 100 * (skipped[index - 1] + 1)
         assert int(rows[6][3]) < int(rows[5][3])
-        stack = re.search(r"controller stack_bytes=4096 unused_bytes=(\d+) priority=5 heap_bytes=0",
+        stack = re.search(r"controller stack_bytes=4160 unused_bytes=(?P<unused>\d+) priority=5 heap_bytes=0",
                           output)
         assert stack
         result = dict(cycles=20, monotonic_ms=times,
                       intervals_ms=[b - a for a, b in zip(times, times[1:])],
                       lateness_ms=[int(row[5]) for row in rows], skipped=skipped)
-    unused = int(stack[1])
+    unused = int(stack["unused"])
     assert MIN_UNUSED <= unused <= 4096, "Scoped worker-stack headroom objective not met"
-    result.update(stack_bytes=4096, unused_bytes=unused, used_bytes=4096 - unused)
+    result.update(stack_bytes=4096, allocated_stack_bytes=STACK_OBJECT_BYTES,
+                  reserved_guard_bytes=64, unused_bytes=unused, used_bytes=4096 - unused)
     return result
 
 
@@ -105,12 +108,21 @@ def main():
     binary = Path(next(r["path"] for r in manifest["artifacts"] if r["path"].endswith("/zephyr.bin")))
     assert manifest["bin_address"] == 0x60000000
     assert manifest["elf_segments_match_bin"] and manifest["rom_start_at_bin_base"]
+    assert manifest["worker_stack_usable_bytes"] == 4096
+    assert manifest["worker_stack_object_bytes"] == STACK_OBJECT_BYTES
+    assert manifest["worker_stack_reserved_bytes"] == 64
     assert 0 < binary.stat().st_size < 8 * 1024 * 1024
     assert '"' not in str(binary) and "\n" not in str(binary)
     out = Path(args.evidence).resolve()
     out.mkdir(parents=True, exist_ok=False)
+    runner_status = subprocess.check_output(["git", "status", "--porcelain"], cwd=REPO, text=True)
+    assert not runner_status, "Capture source must be committed and clean"
+    runner_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPO, text=True).strip()
     metadata = dict(executed_at_utc=datetime.now(timezone.utc).isoformat(),
                     source=manifest["source"], manifest_sha256=sha(manifest_path),
+                    runner_source=dict(git_commit=runner_commit, dirty=False,
+                                       script_sha256=sha(Path(__file__)),
+                                       reset_script_sha256=sha(REPO / "tests/target/reset.jlink")),
                     board=args.board, probe=args.probe, uart=args.uart, baud=115200,
                     swd_khz=400, worker_unused_min_bytes=MIN_UNUSED, runs=3,
                     capture_timeout_seconds=20 if args.mode == "native" else 15,
@@ -127,15 +139,32 @@ def main():
         program = commander(args.probe, f'r\nh\nloadfile "{binary}", 0x60000000\n'
                             f'verifybin "{binary}", 0x60000000\nq\n', out / "program.log")
         assert "Verify successful" in program, "Full BIN readback verification did not succeed"
+        errors = [line for line in program.splitlines() if line.startswith("****** Error:")]
+        assert all("Could not start CPU core. (ErrorCode: -1)" in line for line in errors)
+        if errors:
+            assert program.index(errors[0]) > program.index("J-Link>q")
+        metadata["program_disconnect_diagnostics"] = errors
         metadata["program_log_sha256"] = sha(out / "program.log")
         metadata["vtref_volts"] = float(volts[1])
         (out / "inputs.json").write_text(json.dumps(metadata, indent=2) + "\n")
         for number in range(1, 4):
             run = out / f"run-{number:02d}"
             run.mkdir()
+            # Disconnect can resume the old image before the explicit qualifying reset.
+            # Preserve and drain that output; never trim bytes from the qualifying capture.
+            quiet = time.monotonic()
+            drain_end = quiet + 5
+            with (run / "pre-reset-uart.bin").open("wb") as before:
+                while time.monotonic() < drain_end and time.monotonic() - quiet < 0.2:
+                    chunk = port.read(4096)
+                    if chunk:
+                        before.write(chunk)
+                        quiet = time.monotonic()
+            assert time.monotonic() - quiet >= 0.2, "Pre-reset UART did not settle"
             port.reset_input_buffer()
             started = time.monotonic()
-            commander(args.probe, (REPO / "tests/target/reset.jlink").read_text(), run / "reset.log", 20)
+            reset = commander(args.probe, (REPO / "tests/target/reset.jlink").read_text(), run / "reset.log", 20)
+            assert "****** Error:" not in reset, "Reset/start diagnostic requires investigation"
             raw = bytearray()
             marker = b"PROJECT EXECUTION SUCCESSFUL" if args.mode == "native" else b"CONTROLLER_COMPLETE cycles=20"
             with (run / "uart-rx.bin").open("wb") as stream, (run / "receive.jsonl").open("w") as events:
