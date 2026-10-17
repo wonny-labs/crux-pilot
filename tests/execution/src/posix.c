@@ -38,6 +38,14 @@ static int64_t monotonic_ms(void) {
 }
 
 static void *notify_worker(void *arg) {
+    struct timespec delay = {.tv_nsec = 20000000L};
+    CHECK(nanosleep(&delay, NULL) == 0);
+#ifdef __ZEPHYR__
+    size_t unused = 0;
+    CHECK(k_thread_stack_space_get(k_current_get(), &unused) == 0);
+    CHECK(unused > 0);
+    printf("PROBE posix stack_unused_bytes=%zu\n", unused);
+#endif
     CHECK(sem_post(&signal) == 0);
     return arg;
 }
@@ -75,6 +83,25 @@ static void test_lifecycle_and_attributes(void) {
         CHECK(result == &signal);
     }
     CHECK(sem_destroy(&signal) == 0);
+#ifdef __ZEPHYR__
+    pthread_attr_t held[16];
+    int count = 0;
+    int allocation_result = 0;
+    for (; count < 16; ++count) {
+        allocation_result = pthread_attr_init(&held[count]);
+        if (allocation_result != 0) {
+            break;
+        }
+    }
+    CHECK(count > 0 && count < 16);
+    CHECK(allocation_result == ENOMEM);
+    printf("PROBE posix allocated_stack_slots=%d exhaustion=%d\n", count, allocation_result);
+    for (int i = 0; i < count; ++i) {
+        CHECK(pthread_attr_destroy(&held[i]) == 0);
+    }
+    CHECK(pthread_attr_init(&attr) == 0);
+    CHECK(pthread_attr_destroy(&attr) == 0);
+#endif
 }
 
 static void test_mutex_contention(void) {
@@ -109,9 +136,11 @@ static void test_semaphore_timeout(void) {
     CHECK(sem_timedwait(&signal, &deadline) == -1 && errno == ETIMEDOUT);
     CHECK(monotonic_ms() - start >= 9);
     pthread_t thread;
+    start = monotonic_ms();
     CHECK(pthread_create(&thread, NULL, notify_worker, NULL) == 0);
     deadline = after_ms(CLOCK_REALTIME, 1000);
     CHECK(sem_timedwait(&signal, &deadline) == 0);
+    CHECK(monotonic_ms() - start >= 19);
     CHECK(pthread_join(thread, NULL) == 0);
     CHECK(sem_destroy(&signal) == 0);
 }
@@ -134,17 +163,28 @@ static void test_messages(void) {
 
 static void test_periodic_monotonic(void) {
     int64_t start = monotonic_ms();
-    struct timespec deadline = after_ms(CLOCK_MONOTONIC, 0);
+    int64_t next = start + 10;
+    unsigned int skipped = 0;
     for (int i = 0; i < 6; ++i) {
-        deadline.tv_nsec += 10000000L;
-        if (deadline.tv_nsec >= 1000000000L) {
-            ++deadline.tv_sec;
-            deadline.tv_nsec -= 1000000000L;
-        }
+        struct timespec deadline = {.tv_sec = next / 1000, .tv_nsec = (next % 1000) * 1000000};
         CHECK(clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, NULL) == 0);
-        CHECK(monotonic_ms() >= (int64_t)deadline.tv_sec * 1000 + deadline.tv_nsec / 1000000);
+        int64_t released = monotonic_ms();
+        CHECK(released >= next);
+        printf("PROBE posix cycle=%d lateness_ms=%lld\n", i, (long long)(released - next));
+        if (i == 1) {
+            struct timespec work = {.tv_nsec = 25000000L};
+            CHECK(nanosleep(&work, NULL) == 0);
+        }
+        next += 10;
+        int64_t now = monotonic_ms();
+        while (next <= now) {
+            next += 10;
+            ++skipped;
+        }
     }
-    printf("PROBE posix periodic elapsed_ms=%lld\n", (long long)(monotonic_ms() - start));
+    CHECK(skipped >= 2);
+    printf("PROBE posix periodic elapsed_ms=%lld skipped=%u\n", (long long)(monotonic_ms() - start),
+           skipped);
 }
 
 #ifdef __ZEPHYR__

@@ -20,10 +20,11 @@ adopt a platform-wide standard or a new timing guarantee.
 
 Before the first probe run, the validation objectives are:
 
-- Six releases spaced by 10 ms using monotonic absolute deadlines, with no release
+- Six releases on a 10 ms monotonic phase grid, with no release
   earlier than its deadline. This is a short functional probe, not a 10 ms real-time
-  guarantee; completion time and jitter are measurements. A two-second thread join
-  bounds test liveness, not scheduling qualification.
+  guarantee; completion time and jitter are measurements. A two-second native thread join
+  bounds native liveness; POSIX joins rely on the 10-second host / 20-second Twister
+  outer harness bounds, not scheduling qualification.
 - Native thread create/join and static-stack reuse; POSIX create/join with result
   delivery and attribute validation. Report configured stack, policy and priority.
 - Mutex exclusion under contention, bounded lock expiry, subsequent lock success;
@@ -34,6 +35,13 @@ Before the first probe run, the validation objectives are:
 - Native timeouts must not expire before the requested 10 ms. POSIX finite-wait checks
   allow 1 ms for the pinned millisecond conversion and observation quantisation. No
   upper latency limit is asserted by a host or simulated test.
+- Deliberate 25 ms work after the second release crosses at least two deadlines. Skip
+  elapsed phase points and resume at the next future deadline, without catch-up bursts;
+  record per-release lateness and skipped points. A delayed semaphore producer waits
+  20 ms before signalling; the initially empty wait must complete after that delay.
+- Observe POSIX worker stack headroom using native test instrumentation. Exhaust its
+  bounded stack pool via attributes, require ENOMEM, release held slots and initialise
+  an attribute again; this is allocation/recovery evidence, not long-term leak testing.
 
 `tests/execution` separates native and POSIX probes. The same POSIX functional cases run
 on Linux and Zephyr, using environment-specific test assertions only. Both Zephyr

@@ -15,6 +15,7 @@ static void semaphore_worker(void *a, void *b, void *c) {
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
+    k_msleep(20);
     k_sem_give(&signal);
 }
 
@@ -34,13 +35,26 @@ static void periodic_worker(void *a, void *b, void *c) {
     ARG_UNUSED(b);
     ARG_UNUSED(c);
     int64_t start = k_uptime_get();
-    for (int i = 1; i <= 6; ++i) {
-        int64_t deadline = start + i * 10;
-        (void)k_sleep(K_TIMEOUT_ABS_MS(deadline));
-        zassert_true(k_uptime_get() >= deadline, "release before deadline");
+    int64_t next = start + 10;
+    unsigned int skipped = 0;
+    for (int i = 0; i < 6; ++i) {
+        (void)k_sleep(K_TIMEOUT_ABS_MS(next));
+        int64_t released = k_uptime_get();
+        zassert_true(released >= next, "release before deadline");
+        printk("PROBE native cycle=%d lateness_ms=%lld\n", i, (long long)(released - next));
+        if (i == 1) {
+            k_msleep(25);
+        }
+        next += 10;
+        int64_t now = k_uptime_get();
+        while (next <= now) {
+            next += 10;
+            ++skipped;
+        }
     }
-    printk("PROBE native periodic elapsed_ms=%lld priority=%d stack_bytes=%zu\n",
-           (long long)(k_uptime_get() - start), k_thread_priority_get(k_current_get()),
+    zassert_true(skipped >= 2, "deliberate overrun must skip elapsed releases");
+    printk("PROBE native periodic elapsed_ms=%lld skipped=%u priority=%d stack_bytes=%zu\n",
+           (long long)(k_uptime_get() - start), skipped, k_thread_priority_get(k_current_get()),
            sizeof(worker_stack));
 }
 
@@ -84,8 +98,10 @@ ZTEST(execution_native, test_semaphore_expiry_wakeup_and_capacity) {
     int64_t start = k_uptime_get();
     zassert_equal(k_sem_take(&signal, K_MSEC(10)), -EAGAIN);
     zassert_true(k_uptime_get() - start >= 10);
+    start = k_uptime_get();
     k_tid_t tid = start_worker(semaphore_worker);
     zassert_equal(k_sem_take(&signal, K_SECONDS(1)), 0);
+    zassert_true(k_uptime_get() - start >= 20);
     zassert_equal(k_thread_join(tid, K_SECONDS(1)), 0);
     k_sem_give(&signal);
     k_sem_give(&signal);
