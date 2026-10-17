@@ -1284,9 +1284,36 @@ docker exec -u vscode -w /workspaces/crux/crux-pilot 46325e2f6fcc \
 
 Actual result: exit 1, `No such file or directory`. A second focused invocation checked
 `command -v clang-format-18` before running the same script and produced the same error;
-the formatter is absent from this container's PATH. No further retry was made. The affected
+the failure was initially attributed to a missing formatter. That diagnosis was incorrect;
+see the resolution below. No further retry was made at that point. The affected
 owned sources are `components/time/zephyr/time_port_zephyr.c`,
 `components/time/zephyr/time_port_internal.h`, and `tests/zephyr_time/src/main.c`; the changed
 C/C++ lines only update the private header include/guard. `git diff --check` passes. The
 repository format script passed before this filename-only C/C++ edit; the post-rename format
-result remains unavailable, not passed.
+result was unavailable at that point and is resolved below.
+
+
+## Format check after unstaged renames (2026-10-17)
+
+The missing-tool diagnosis above is corrected. The Dev Container intentionally installs
+`clang-format==18.1.8` in `/opt/crux-cache/venv`, sets `CLANG_FORMAT=clang-format`, and
+prepends that environment to the VS Code remote PATH. CI uses the same pinned Python
+package. `clang-format-18` is not the configured executable. No installation change is needed.
+`/opt/crux-cache/venv/bin/clang-format --version` reports `clang-format version 18.1.8`.
+
+The actual failure was an unstaged header rename: `git ls-files --cached --others` returned
+both the tracked old pathname (already absent on disk) and the new untracked header. The
+formatter received a nonexistent input and returned exit 1, `No such file or directory`.
+This was reproduced with the previous script in a temporary Git repository. The check passed
+on the committed repository even before the script fix, confirming the tool was installed.
+
+`scripts/check-format.sh` now filters out nonexistent file paths while retaining existing
+tracked and untracked sources. In a temporary Git repository, the corrected script passed an
+existing tracked header, an unstaged header rename and a deleted-only header; it rejected a
+malformed untracked replacement with exit 1. No permanent test fixture was added. Actual log:
+ignored `build/evidence/format-rename-fix.log`.
+
+The exact Dev Container command recorded above now exits 0 for the whole repository.
+`bash -n scripts/check-format.sh` and `git diff --check` also pass. The environment remains
+pinned to clang-format 18.1.8; the earlier format-check blocker is resolved. Firmware and
+application code did not change in this follow-up, so their builds were not repeated.

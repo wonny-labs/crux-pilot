@@ -114,6 +114,8 @@ Private helper naming follow-up: shortened the Zephyr helper header to
 remains unchanged for automatic board/SoC/flash-variant matching. After the header rename,
 Twister passed 4/4, native_sim and EVKB builds passed, and dependency/whitespace checks passed.
 Firmware hashes are unchanged. See [verification evidence](baseline.md#private-helper-filename-review-2026-10-17).
-The post-rename format script remains unverified because `clang-format-18` is missing from the
-active container PATH; the exact failed command and error are recorded in the baseline. This is
-an environment/tool availability limitation, not a format pass.
+The post-rename format blocker is now **resolved**. The configured formatter is the installed
+`clang-format` 18.1.8, not `clang-format-18`. The failure came from an absent old pathname
+returned by Git during an unstaged rename. The script now skips nonexistent inputs, still
+rejects malformed untracked source, and passes the repository-wide check. See the
+[corrected diagnosis and verification](baseline.md#format-check-after-unstaged-renames-2026-10-17).
