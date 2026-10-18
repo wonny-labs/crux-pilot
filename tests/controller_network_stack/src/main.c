@@ -1,4 +1,5 @@
 #include <zephyr/ztest.h>
+#include <zephyr/net/net_compat.h>
 
 /* Real native sockets and production exchange; no syscall or clock mocks. */
 #include "../../../samples/controller/zephyr/network_client.c"
