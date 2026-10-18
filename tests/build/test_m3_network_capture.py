@@ -8,6 +8,39 @@ import capture_m3_network as runner
 
 
 class NetworkCaptureControls(unittest.TestCase):
+    def test_exact_normal_analyzer_prefix_without_global_whitespace_repair(self):
+        prefix=[(0.,''),(0.,'Thread analyze:'),
+            (0.,' m3-critical         : STACK: unused 3744 usage 352 / 4096 (8 %); CPU: 0 %'),
+            (0.,'                      : Total CPU cycles used: 0')]
+        fresh=[(1.,'*** Booting Zephyr'),(1.01,'M3_NET_BOOT source=abc profile=network-probe exposure=isolated-only')]
+        self.assertEqual(runner.fresh_network_rows(prefix+fresh,'abc','normal',native_output=True),fresh)
+        for extra in (' M3_WORK sequence=1 monotonic_ms=1 time=0 pressed=0 device=0',
+                      '\x1b[0mThread analyze:','bad : Total CPU cycles used: 0',
+                      'M3_NET_REQUESTED','FATAL ERROR'):
+            with self.assertRaises(ValueError):runner.fresh_network_rows([(0.,extra)]+fresh,'abc','normal',native_output=True)
+        with self.assertRaises(ValueError):runner.fresh_network_rows(prefix+fresh,'wrong','normal',native_output=True)
+    def test_reset_censored_analyzer_name_is_last_normal_row_only(self):
+        fragment=(0.,' idle      ')
+        fresh=[(1.,'*** Booting Zephyr'),(1.01,'M3_NET_BOOT source=abc profile=network-probe exposure=isolated-only')]
+        self.assertEqual(runner.fresh_network_rows([fragment]+fresh,'abc','normal',native_output=True),fresh)
+        self.assertEqual(runner.normal_reset_fragment([fragment]),fragment[1])
+        for prefix in ([fragment,(0.,'Thread analyze:')],[(0.,' unknown      ')],[(0.,' idle x')],
+                       [(0.,'\x1b[0midle')],[(0.,' M3_NET_REQUESTED')]):
+            with self.assertRaises(ValueError):runner.fresh_network_rows(prefix+fresh,'abc','normal',native_output=True)
+        with self.assertRaises(ValueError):runner.fresh_network_rows([fragment]+fresh,'abc',native_output=True)
+
+    def test_typed_native_logger_idle_prefix_is_profile_gated(self):
+        prefix=[(0.,'M3_NET_RESOURCE monotonic_ms=1 owned=0 contexts=0 rx_pkt_free=16 tx_pkt_free=16 rx_buf_free=32 tx_buf_free=32'),
+            (0.,'M3_NET_STATE monotonic_ms=1 link=0 address=1 service_ready=0'),
+            (0.,'M3_NET_STACK status=0 usable=4096 unused=2000'),
+            (0.,'M3_NET_LOGGER monotonic_ms=1 queue_snapshot_ms=1 found=1 status=0 configured=2048 usable=2048 unused=1560 priority=14 queued=0')]
+        fresh=[(1.,'*** Booting Zephyr'),(1.01,'M3_NET_BOOT source=abc profile=network-probe exposure=isolated-only')]
+        self.assertEqual(runner.fresh_network_rows(prefix+fresh,'abc',native_output=True),fresh)
+        with self.assertRaises(ValueError):runner.fresh_network_rows(prefix+fresh,'abc')
+        for extra in ('M3_NET_REQUESTED','M3_MDIO_FIRST_FAILURE valid=1','M3_OUTPUT_START window_ms=15000',
+                      prefix[-1][1]+' ', ' '+prefix[-1][1]):
+            with self.assertRaises(ValueError):runner.fresh_network_rows(prefix+[(0.,extra)]+fresh,'abc',native_output=True)
+
     def test_phy_image_cannot_be_used_for_full_qualification(self):
         with tempfile.TemporaryDirectory() as temporary:
             config = Path(temporary) / '.config'

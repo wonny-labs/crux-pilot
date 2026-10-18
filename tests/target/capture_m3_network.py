@@ -137,7 +137,14 @@ def wait_until(predicate, duration, receiver=None):
     raise ValueError('Declared observation deadline expired')
 
 
-def fresh_network_rows(rows, source, entry_profile='network'):
+def normal_reset_fragment(rows):
+    """Identify only a final known analyzer-name fragment cut by the planned reset."""
+    if rows and re.fullmatch(r'[ ]{0,64}(?:m3-critical|idle|main|ISR0)[ ]{0,32}',rows[-1][1]):
+        return rows[-1][1]
+    return None
+
+
+def fresh_network_rows(rows, source, entry_profile='network', *, native_output=False):
     banners = [i for i, (_, line) in enumerate(rows) if line.startswith('*** Booting Zephyr')]
     require(len(banners) <= 1, 'Duplicate boot during initial network checkpoint')
     if not banners:
@@ -149,14 +156,20 @@ def fresh_network_rows(rows, source, entry_profile='network'):
         r'M3_OBSERVER_ALIVE monotonic_ms=\d+ healthy=1 sequence=\d+ readiness=0',
         r'M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=\d+ main_status=0 main_usable=2048 main_unused=\d+',
         r'Thread analyze:',
-        r'(?:m3-critical|idle|main|ISR0)\s*: STACK: unused \d+ usage \d+ / \d+ \(\d+ %\); CPU: \d+ %',
-        r': Total CPU cycles used: \d+',
+        r'[ ]{0,64}(?:m3-critical|idle|main|ISR0)\s*: STACK: unused \d+ usage \d+ / \d+ \(\d+ %\); CPU: \d+ %',
+        r'[ ]{0,64}: Total CPU cycles used: \d+',
     )
-    require(all(any(re.fullmatch(pattern, line) for pattern in normal_patterns)
+    allowed = ('M3_NET_RESOURCE', 'M3_NET_STATE', 'M3_NET_STACK')
+    if native_output and entry_profile == 'network':
+        from m3_network_output import validate_native_records
+        validate_native_records(prefix)
+        allowed += ('M3_NET_LOGGER',)
+    fragment = normal_reset_fragment(prefix) if entry_profile == 'normal' else None
+    require(all(line == '' or ((any(re.fullmatch(pattern, line) for pattern in normal_patterns) or
+                (i == len(prefix)-1 and fragment is not None and line == fragment))
                 if entry_profile == 'normal' else
-                any(line.startswith(name + ' ') for name in
-                    ('M3_NET_RESOURCE', 'M3_NET_STATE', 'M3_NET_STACK'))
-                for _, line in prefix), 'Unexpected pre-reset activity')
+                any(line.startswith(name + ' ') for name in allowed))
+                for i, (_, line) in enumerate(prefix)), 'Unexpected pre-reset activity')
     require(all(r['service_ready'] == 0 for r in records(prefix, 'M3_NET_STATE')),
             'Pre-reset service was active')
     fresh = rows[banners[0]:]
@@ -362,13 +375,13 @@ def main():
                         wait_until(lambda: f'M3_NET_BOOT source={source} profile=network-probe' in receiver.text(), 10, receiver)
                         wait_until(lambda: any(r['monotonic_ms'] >= 1000 and
                             r['link'] == r['address'] == 1 and r['service_ready'] == 0
-                            for r in records(fresh_network_rows(receiver.rows, source, entry_profile), 'M3_NET_STATE')), 15, receiver)
-                        checkpoint_start = initial_checkpoint_boundary(fresh_network_rows(receiver.rows, source, entry_profile))
+                            for r in records(fresh_network_rows(receiver.rows, source, entry_profile, native_output=native_output), 'M3_NET_STATE')), 15, receiver)
+                        checkpoint_start = initial_checkpoint_boundary(fresh_network_rows(receiver.rows, source, entry_profile, native_output=native_output))
                         wait_until(lambda: time.monotonic() >= checkpoint_start + 4.5, 5, receiver)
                         require(receiver.text().count('*** Booting Zephyr') == 1 and
-                                'M3_NET_INIT result=0 ' in '\n'.join(s for _, s in fresh_network_rows(receiver.rows, source, entry_profile)) and
-                                'M3_NET_BASELINE contexts=0' in '\n'.join(s for _, s in fresh_network_rows(receiver.rows, source, entry_profile)), 'Wrong/failed fresh network boot')
-                        require(not records(fresh_network_rows(receiver.rows, source, entry_profile), 'M3_NET_EXCHANGE'), 'Automatic application traffic at boot')
+                                'M3_NET_INIT result=0 ' in '\n'.join(s for _, s in fresh_network_rows(receiver.rows, source, entry_profile, native_output=native_output)) and
+                                'M3_NET_BASELINE contexts=0' in '\n'.join(s for _, s in fresh_network_rows(receiver.rows, source, entry_profile, native_output=native_output)), 'Wrong/failed fresh network boot')
+                        require(not records(fresh_network_rows(receiver.rows, source, entry_profile, native_output=native_output), 'M3_NET_EXCHANGE'), 'Automatic application traffic at boot')
                     else:
                         from capture_m3 import normal_result
                         wait_until(lambda: len(records(receiver.rows, 'M3_OBSERVER_ALIVE')) >= 5, 15, receiver)
@@ -382,8 +395,13 @@ def main():
                     require(len(banners) == 1, 'Missing/duplicate recovery boot')
                     result = normal_result(receiver.rows[banners[0]:], source)
                 else:
-                    fresh = fresh_network_rows(receiver.rows, source, entry_profile)
+                    fresh = fresh_network_rows(receiver.rows, source, entry_profile, native_output=native_output)
                     require(fresh, 'Fresh network boot absent')
+                    if native_output and entry_profile == 'normal':
+                        prefix = receiver.rows[:next(i for i,(_,line) in enumerate(receiver.rows) if line.startswith('*** Booting Zephyr'))]
+                        (capture / 'pre-reset-prefix.json').write_text(json.dumps(dict(
+                            entry_profile='normal', right_censored_analyzer_fragment=normal_reset_fragment(prefix),
+                            excluded_from_qualification=True),indent=2)+'\n')
                     checkpoint(fresh, checkpoint_start, 0, native_output=native_output)
                     result = dict(status='PASS', profile='network', no_automatic_traffic=True)
                 (capture / 'result.json').write_text(json.dumps(result, indent=2))
