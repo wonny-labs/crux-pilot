@@ -128,7 +128,7 @@ static int test_option(int fd, int level, int option, void *value, socklen_t *le
 static int test_poll(struct zsock_pollfd *items, int count, int timeout) {
     zassert_equal(count, 1);
     zassert_true(timeout > 0 && timeout <= 2000);
-    elapsed += 100;
+    elapsed += MIN(100, timeout);
     if (scenario == POLL_INTERRUPT) {
         errno = EINTR;
         return -1;
@@ -249,43 +249,56 @@ ZTEST(network, test_cleanup_never_rebases_or_extends_round_deadline) {
     zassert_true(cleanup_uncertain);
 }
 
+ZTEST(network, test_expired_and_near_end_round_budget) {
+    zassert_equal(exchange(1, 1, 1, 0), -ETIMEDOUT);
+    zassert_equal(creates, 0);
+    elapsed = 149999;
+    scenario = POLL_INTERRUPT;
+    zassert_equal(exchange(1, 1, 1, 150000), -ETIMEDOUT);
+    zassert_equal(elapsed, 150000);
+    zassert_equal(creates, 1);
+    zassert_equal(closes, 1);
+    zassert_equal(settle_contexts(150000), -ETIMEDOUT);
+    zassert_true(cleanup_uncertain);
+}
+
 ZTEST(network, test_partial_tcp_and_datagram_echo) {
-    zassert_ok(exchange(1, 1, 1));
+    zassert_ok(exchange(1, 1, 1, elapsed + 2000));
     zassert_equal(transmitted, 32);
     zassert_equal(received, 32);
     zassert_equal(owned_sockets, 0);
     zassert_equal(closes, 1);
     transmitted = received = 0;
-    zassert_ok(exchange(2, 1, 1));
+    zassert_ok(exchange(2, 1, 1, elapsed + 2000));
     zassert_equal(transmitted, 32);
     zassert_equal(received, 32);
 }
 
 ZTEST(network, test_connect_and_stream_failures_close_once) {
     scenario = CONNECT_FAIL;
-    zassert_equal(exchange(1, 1, 1), -ECONNREFUSED);
+    zassert_equal(exchange(1, 1, 1, elapsed + 2000), -ECONNREFUSED);
     zassert_equal(closes, 1);
     scenario = CONNECT_ERROR;
-    zassert_equal(exchange(1, 1, 1), -ECONNREFUSED);
+    zassert_equal(exchange(1, 1, 1, elapsed + 2000), -ECONNREFUSED);
     zassert_equal(closes, 2);
     scenario = EOF_REPLY;
-    zassert_equal(exchange(1, 1, 1), -ECONNRESET);
+    zassert_equal(exchange(1, 1, 1, elapsed + 2000), -ECONNRESET);
     zassert_equal(closes, 3);
     zassert_equal(owned_sockets, 0);
 }
 
 ZTEST(network, test_udp_oversize_and_wrong_payload_rejected) {
     scenario = OVERSIZE_REPLY;
-    zassert_equal(exchange(2, 1, 1), -EMSGSIZE);
+    zassert_equal(exchange(2, 1, 1, elapsed + 2000), -EMSGSIZE);
     transmitted = received = 0;
     scenario = WRONG_REPLY;
-    zassert_equal(exchange(2, 1, 1), -EBADMSG);
+    zassert_equal(exchange(2, 1, 1, elapsed + 2000), -EBADMSG);
     zassert_equal(owned_sockets, 0);
 }
 
 ZTEST(network, test_repeated_interrupts_cannot_extend_deadline) {
     scenario = POLL_INTERRUPT;
-    zassert_equal(exchange(1, 1, 1), -ETIMEDOUT);
+    zassert_equal(exchange(1, 1, 1, elapsed + 2000), -ETIMEDOUT);
     zassert_equal(elapsed, 2000);
     zassert_equal(owned_sockets, 0);
     zassert_equal(closes, 1);
@@ -293,17 +306,17 @@ ZTEST(network, test_repeated_interrupts_cannot_extend_deadline) {
 
 ZTEST(network, test_interrupted_and_would_block_stream_send_recovers) {
     scenario = SEND_INTERRUPT;
-    zassert_ok(exchange(1, 1, 1));
+    zassert_ok(exchange(1, 1, 1, elapsed + 2000));
     transmitted = received = sends = 0;
     elapsed = 0;
     scenario = SEND_AGAIN;
-    zassert_ok(exchange(1, 1, 1));
+    zassert_ok(exchange(1, 1, 1, elapsed + 2000));
     zassert_equal(owned_sockets, 0);
 }
 
 ZTEST(network, test_failed_close_prevents_further_round_creation) {
     scenario = CLOSE_FAIL;
-    zassert_equal(exchange(2, 1, 1), -EIO);
+    zassert_equal(exchange(2, 1, 1, elapsed + 2000), -EIO);
     zassert_equal(owned_sockets, 1);
     zassert_equal(controller_network_round(2), -EBUSY);
     zassert_equal(creates, 1);

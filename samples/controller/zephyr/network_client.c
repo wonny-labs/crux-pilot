@@ -68,7 +68,8 @@ static int stream_transfer(int fd, uint8_t *data, size_t length, bool transmit, 
     return 0;
 }
 
-static int exchange(unsigned int protocol, unsigned int trial, unsigned int sequence) {
+static int exchange(unsigned int protocol, unsigned int trial, unsigned int sequence,
+                    int64_t round_deadline) {
     uint8_t request[32] = {'C', 'M', '3', 'N'};
     uint8_t response[33];
     sys_put_be32(protocol, request + 4);
@@ -80,7 +81,10 @@ static int exchange(unsigned int protocol, unsigned int trial, unsigned int sequ
     if (zsock_inet_pton(NET_AF_INET, "192.168.77.1", &peer.sin_addr) != 1) {
         return -EINVAL;
     }
-    int64_t deadline = k_uptime_get() + 2000;
+    int64_t deadline = MIN(k_uptime_get() + 2000, round_deadline);
+    if (k_uptime_get() >= deadline) {
+        return -ETIMEDOUT;
+    }
     int fd = zsock_socket(NET_AF_INET, protocol == 1 ? NET_SOCK_STREAM : NET_SOCK_DGRAM,
                           protocol == 1 ? NET_IPPROTO_TCP : NET_IPPROTO_UDP);
     if (fd < 0) {
@@ -159,7 +163,7 @@ static unsigned int native_contexts(void) {
 static int settle_contexts(int64_t round_deadline) {
     int64_t start = k_uptime_get();
     int64_t deadline = MIN(start + 5000, round_deadline);
-    while (native_contexts() != idle_contexts) {
+    for (;;) {
         if (k_uptime_get() >= deadline) {
             cleanup_uncertain = true;
             printk("M3_NET_CLEANUP result=%d expected_contexts=%u observed_contexts=%u "
@@ -167,6 +171,9 @@ static int settle_contexts(int64_t round_deadline) {
                    -ETIMEDOUT, idle_contexts, native_contexts(),
                    (long long)(k_uptime_get() - start));
             return -ETIMEDOUT;
+        }
+        if (native_contexts() == idle_contexts) {
+            break;
         }
         k_sleep(K_MSEC(10));
     }
@@ -254,7 +261,7 @@ int controller_network_round(unsigned int trial) {
                 return -ETIMEDOUT;
             }
             int64_t start = k_uptime_get();
-            int result = exchange(protocol, trial, sequence);
+            int result = exchange(protocol, trial, sequence, round_deadline);
             printk("M3_NET_EXCHANGE trial=%u protocol=%u sequence=%u result=%d "
                    "monotonic_ms=%lld elapsed_ms=%lld\n",
                    trial, protocol, sequence, result, (long long)k_uptime_get(),
