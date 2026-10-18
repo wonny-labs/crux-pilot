@@ -15,7 +15,7 @@ import sys
 import traceback
 import termios
 import threading
-import time
+import m3_clock as time
 
 from m3_health_oracle import require, validate, validate_stacks
 from m3_image import check_image
@@ -109,6 +109,7 @@ class Receiver:
             with (self.directory / 'uart-rx.bin').open('wb') as raw, \
                  (self.directory / 'receive.jsonl').open('w') as events, \
                  (self.directory / 'poll.jsonl').open('w') as polls:
+                (self.directory / 'clock.json').write_text(json.dumps(time.identity(), indent=2))
                 self.ready.set()
                 while not self.stop.is_set():
                     chunk = self.port.read(4096)
@@ -414,7 +415,7 @@ def main():
     runner_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip()
     args.evidence.mkdir(parents=True, exist_ok=False)
     records = {name: sha(Path(__file__).with_name(name)) for name in
-               (Path(__file__).name, 'm3_health_oracle.py', 'm3_image.py', 'jlink-tools.json')}
+               (Path(__file__).name, 'm3_health_oracle.py', 'm3_image.py', 'm3_clock.py', 'jlink-tools.json')}
     metadata = dict(executed_at_utc=datetime.now(timezone.utc).isoformat(), runner_commit=runner_commit,
                     runner_sha256=records, probe_manifest_sha256=sha(args.probe_manifest),
                     normal_manifest_sha256=sha(args.normal_manifest), recovery_bin_sha256=sha(args.recovery_bin),

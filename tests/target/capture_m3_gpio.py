@@ -10,7 +10,7 @@ import re
 import subprocess
 import sys
 import termios
-import time
+import m3_clock as time
 import traceback
 
 from capture_m3 import (Receiver, check_owners, commander, drain, normal_result,

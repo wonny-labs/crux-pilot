@@ -10,7 +10,7 @@ import signal
 import subprocess
 import sys
 import termios
-import time
+import m3_clock as time
 import traceback
 
 from capture_m3 import (HardwareStop, Receiver, check_owners, commander, drain, inventory,
@@ -78,6 +78,7 @@ def usb_association(tree):
 
 def _guard_check(session, directory, name, remaining=90):
     """Bind a current root-created guard record; fail before owner queries on mounted media."""
+    require(session.get('clock') == time.CLOCK_NAME, 'Guard/runner clocks differ')
     require(session['serial'] == USB_SERIAL and session['disk'].startswith('/dev/disk'), 'Wrong mount guard identity')
     require(sha(session['executable']) == session['sha256'] and
             time.monotonic() + remaining < session['deadline'], 'Guard changed/expired or insufficient budget')
@@ -167,7 +168,7 @@ def main():
     directory = args.evidence
     session = json.loads(args.guard_session.read_text())
     (directory / 'inputs.json').write_text(json.dumps(dict(image=image, recovery=recovery,
-        guard_session=session, runner_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
+        guard_session=session, clock=time.identity(), runner_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
         scripts={p.name: sha(p) for p in Path(__file__).parent.glob('*.py')}), indent=2))
     end = time.monotonic() + 1800
     SERIES_DEADLINE = end

@@ -5,7 +5,7 @@ import selectors
 import signal
 import socket
 import struct
-import time
+import m3_clock as time
 
 MAGIC = b'CM3N'
 PAYLOAD = b'crux-m3-payload!'
@@ -70,7 +70,7 @@ def serve(duration, mode, output, stopping=lambda: False):
         tcp.setblocking(False)
         ready.register(tcp, selectors.EVENT_READ)
         ready.register(udp, selectors.EVENT_READ)
-        output.write(json.dumps(dict(event='peer_ready', mode=mode, address=PEER,
+        output.write(json.dumps(dict(event='peer_ready', mode=mode, address=PEER, clock=time.CLOCK_NAME,
                                      monotonic=time.monotonic())) + '\n')
         output.flush()
         while time.monotonic() < deadline and count < 200 and not stopping():

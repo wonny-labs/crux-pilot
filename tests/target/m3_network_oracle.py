@@ -91,6 +91,7 @@ def validate_stage(rows, peer, trial, mode, link_down=False):
             len([r for r in peer if r['event'] == 'peer_closed']) == 1 and
             not any(r['event'] == 'rejected' for r in peer), 'Peer lifecycle/error')
     first, last = peer[0], peer[-1]
+    require(first.get('clock') == 'clock_gettime(CLOCK_MONOTONIC)', 'Peer receive clock domain mismatch')
     require(first['event'] == 'peer_ready' and last['event'] == 'peer_closed' and
             first['monotonic'] <= budget['received'] <= summary['received'] <= last['monotonic'],
             'Peer was not live for the whole round')

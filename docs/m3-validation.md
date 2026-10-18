@@ -501,3 +501,24 @@ functional-oracle failure permits the separately identified normal restoration.
 Physical #11 acceptance and integrated #12 trials remain Pending until actually
 executed and independently reviewed; successful software tests/builds do not
 satisfy those physical gates. No issue closure or PR merge is authorised here.
+
+Image qualification found a four-byte alignment hole in the network ELF load
+segment. The pinned build uses `objcopy --gap-fill 0xFF`, so those bytes are FF in
+the BIN while ELF segment padding is zero. The corrected checker maps every
+allocated file-backed section through its unique bounded load segment and
+reconstructs the entire BIN, including the expected FF holes. Code, hole,
+mapping, overlapping-section and duplicate-load tampering are rejected. Firmware
+bytes were not changed to accommodate the checker. New manifests distinguish
+section-byte verification from the historical whole-segment claim; historical
+manifests are accepted only after a fresh actual-image check.
+
+A separate preflight reproduced process-relative `time.monotonic()` origins in
+the Mac's Python 3.9.6. The M3 capture, peer and temporary-guard tools now explicitly
+share `clock_gettime(CLOCK_MONOTONIC)`; UTC is not used for test deadlines. A real
+child-process test brackets its timestamp inside the parent interval, and the
+capture/peer records identify the clock. No Ethernet trial had run with mixed
+origins. Earlier single-process GPIO/health timing remains within its original
+scope. The fresh guard's original invalid-origin record is retained; its remaining
+lifetime was conservatively bounded using the same process/start identity and
+reported elapsed age, with the complete bounded query duration plus floor/launch
+margin subtracted. No guard lifetime was extended and no second mount was tried.

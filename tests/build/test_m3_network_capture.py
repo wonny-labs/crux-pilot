@@ -46,7 +46,7 @@ class NetworkCaptureControls(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             d=Path(temp); executable=d/'guard'; executable.write_bytes(b'guard')
             log=d/'guard.log'; log.write_text('READY\nDENIED exact_DAPLink_USB_serial='+runner.USB_SERIAL+' disk=disk4\n')
-            session=dict(serial=runner.USB_SERIAL,disk='/dev/disk4', executable=str(executable),
+            session=dict(clock=runner.time.CLOCK_NAME,serial=runner.USB_SERIAL,disk='/dev/disk4', executable=str(executable),
                          sha256=runner.sha(executable), deadline=runner.time.monotonic()+5000,
                          pid=123,process_identity='123 guard start',log=str(log))
             tree=[{'USB Serial Number':runner.USB_SERIAL,'idVendor':0x0d28,'idProduct':0x0204,

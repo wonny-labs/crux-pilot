@@ -9,7 +9,7 @@ from m3_network_oracle import validate_stage
 def fixture(mode='echo'):
     rows = [(1., 'M3_NET_STATE monotonic_ms=1000 link=1 address=1 service_ready=0'),
             (1., 'M3_NET_ROUND_BUDGET trial=1 started_ms=1000 deadline_ms=151000')]
-    peer = [dict(event='peer_ready', monotonic=0.)]
+    peer = [dict(event='peer_ready', monotonic=0., clock='clock_gettime(CLOCK_MONOTONIC)')]
     for p in (1, 2):
         for s in range(1, 11):
             t = len(peer) + 1
