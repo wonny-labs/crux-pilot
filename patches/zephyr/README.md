@@ -83,3 +83,15 @@ snapshot or proof of IRQ history. Diagnostic output occurs after retention and c
 perturb later execution. No WCET, physical cause or corrected Link behaviour is
 inferred from these observations. The unchanged physical qualification remains
 required after any eventual fix.
+
+
+The private `m3-deferred-output.conf` is a separate opt-in software evaluation for
+that diagnostic. Native `LOG_PRINTK` queues raw records before the direct printk
+spinlock path; one native UART backend performs output later. This avoids a custom
+logging service but adds a finite 4096-byte buffer and 2048-byte logger stack at
+priority 14. It does not change the MDIO patch, timeout or poison policy. It has
+not been adopted for Ethernet or integrated qualification. Native_sim fixtures
+exercise long 64-bit records and actual forced-overflow loss reporting; output
+loss, incomplete records and unexpected configurations remain failures. UART wait,
+IRQ dispatch and native tick rounding are relevant source hypotheses, not an
+established physical cause of the earlier failure.

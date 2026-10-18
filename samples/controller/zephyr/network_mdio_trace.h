@@ -28,5 +28,10 @@ struct crux_m3_mdio_failure {
 
 bool crux_m3_mdio_failure_get(const struct device *dev, struct crux_m3_mdio_failure *out);
 void crux_m3_mdio_trace_observe(void);
+#ifdef CONFIG_CRUX_M3_DEFERRED_OUTPUT
+void crux_m3_deferred_start(void);
+void crux_m3_deferred_poll(void);
+void crux_m3_deferred_report(void);
+#endif
 
 #endif

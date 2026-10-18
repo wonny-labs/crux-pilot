@@ -83,6 +83,9 @@ def check_image(binary_path, elf_path, config_path, profile):
     if integrated:
         require(symbols.get('network_stack', {}).get('bytes') == 4160, 'Unexpected network stack object')
     config = Path(config_path).read_text().splitlines()
+    if 'CONFIG_CRUX_M3_DEFERRED_OUTPUT=y' in config:
+        require(profile == 'network' and symbols.get('logging_stack', {}).get('bytes') == 2112,
+                'Unexpected diagnostic logger stack object (2048 usable plus 64 guard)')
     required = ['CONFIG_BOARD_REVISION="B"', 'CONFIG_BOARD_TARGET="mimxrt1060_evk@B/mimxrt1062/qspi"',
                 'CONFIG_FLASH_BASE_ADDRESS=0x60000000', 'CONFIG_FLASH_SIZE=8192', 'CONFIG_XIP=y',
                 'CONFIG_NXP_IMXRT_BOOT_HEADER=y', 'CONFIG_FLASH_LOAD_OFFSET=0',
@@ -120,15 +123,54 @@ def check_image(binary_path, elf_path, config_path, profile):
         require(item in config, f'Unexpected configuration: {item}')
     return dict(elf_sections_match_bin=True, gap_fill=255, bin_address=0x60000000, bin_bytes=len(binary),
                 elf_load_segments=loads, worker_stack=symbols.get('work_stack'),
-                network_stack=symbols.get('network_stack'), main_stack=symbols.get('z_main_stack'))
+                network_stack=symbols.get('network_stack'), main_stack=symbols.get('z_main_stack'),
+                logger_stack=symbols.get('logging_stack'))
 
 
 def check_record_output(config_path):
     """Require the reviewed output path for new network/combined physical candidates."""
     config = Path(config_path).read_text().splitlines()
-    require('CONFIG_PRINTK_SYNC=y' in config and 'CONFIG_LOG=y' not in config,
-            'Required records are not synchronous direct printk')
+    if 'CONFIG_CRUX_M3_DEFERRED_OUTPUT=y' in config:
+        required = {
+            'CONFIG_CRUX_M3_NETWORK_PROBE=y', 'CONFIG_CRUX_M3_PHY_DIAGNOSTIC=y',
+            'CONFIG_CRUX_M3_MDIO_COMPLETION_FIX=y', 'CONFIG_CRUX_M3_MDIO_FAILURE_TRACE=y',
+            'CONFIG_LOG=y', 'CONFIG_LOG_PRINTK=y', 'CONFIG_LOG_MODE_DEFERRED=y',
+            'CONFIG_LOG_PROCESS_THREAD=y', 'CONFIG_LOG_PROCESS_THREAD_STACK_SIZE=2048',
+            'CONFIG_LOG_PROCESS_THREAD_CUSTOM_PRIORITY=y', 'CONFIG_LOG_PROCESS_THREAD_PRIORITY=14',
+            'CONFIG_LOG_PROCESS_THREAD_STARTUP_DELAY_MS=0', 'CONFIG_LOG_PROCESS_THREAD_SLEEP_MS=10',
+            'CONFIG_LOG_PROCESS_TRIGGER_THRESHOLD=1', 'CONFIG_LOG_BUFFER_SIZE=4096',
+            'CONFIG_LOG_DEFAULT_LEVEL=0', 'CONFIG_LOG_MAX_LEVEL=0', 'CONFIG_LOG_OVERRIDE_LEVEL=0',
+            'CONFIG_LOG_BACKEND_UART=y', 'CONFIG_LOG_BACKEND_UART_AUTOSTART=y',
+            'CONFIG_LOG_BACKEND_UART_OUTPUT_TEXT=y', 'CONFIG_THREAD_MONITOR=y', 'CONFIG_THREAD_NAME=y',
+        }
+        forbidden = {
+            'CONFIG_PRINTK_SYNC=y', 'CONFIG_LOG_MODE_IMMEDIATE=y', 'CONFIG_LOG_MODE_MINIMAL=y',
+            'CONFIG_LOG_BLOCK_IN_THREAD=y', 'CONFIG_LOG_MODE_OVERFLOW=y',
+            'CONFIG_LOG_BACKEND_UART_ASYNC=y', 'CONFIG_SHELL_LOG_BACKEND=y',
+            'CONFIG_CRUX_CONTROLLER_M3=y', 'CONFIG_CRUX_M3_CONTROLLER_NETWORK=y',
+            'CONFIG_LOG_BACKEND_SHOW_TIMESTAMP=y', 'CONFIG_LOG_BACKEND_SHOW_LEVEL=y',
+            'CONFIG_LOG_BACKEND_SHOW_COLOR=y', 'CONFIG_LOG_BACKEND_FORMAT_TIMESTAMP=y',
+            'CONFIG_LOG_FRONTEND=y', 'CONFIG_LOG_FRONTEND_ONLY=y', 'CONFIG_LOG_MULTIDOMAIN=y',
+        }
+        require(required.issubset(config) and not forbidden.intersection(config),
+                'Unreviewed deferred diagnostic output configuration')
+        # Only the native UART instance is permitted; capability/format symbols are not backends.
+        backends = {line for line in config if line.startswith('CONFIG_LOG_BACKEND_') and
+                    line.endswith('=y')}
+        require(backends.issubset({'CONFIG_LOG_BACKEND_UART=y',
+                'CONFIG_LOG_BACKEND_UART_AUTOSTART=y', 'CONFIG_LOG_BACKEND_UART_OUTPUT_TEXT=y',
+                'CONFIG_LOG_BACKEND_SUPPORTS_FORMAT_TIMESTAMP=y'}),
+                'Additional or unreviewed logging backend')
+    else:
+        require('CONFIG_PRINTK_SYNC=y' in config and 'CONFIG_LOG=y' not in config,
+                'Required records are not synchronous direct printk')
     if 'CONFIG_SHELL=y' in config:
         require('# CONFIG_SHELL_ECHO_STATUS is not set' in config and
                 'CONFIG_SHELL_PROMPT_UART=""' in config,
                 'Shell echo/prompt could interleave required records')
+
+
+def check_record_loss(rows):
+    """A native logger loss report invalidates required physical observations."""
+    require(not any('messages dropped' in line.lower() for _, line in rows),
+            'Native logger reported lost records')

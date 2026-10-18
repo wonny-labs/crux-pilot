@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_native_deferred_output LANGUAGES C)
+target_sources(app PRIVATE src/main.c)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)
+if(CRUX_TEST_OVERFLOW)
+    target_compile_definitions(app PRIVATE CRUX_TEST_OVERFLOW=1)
+endif()

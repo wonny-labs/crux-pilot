@@ -83,3 +83,18 @@ phase logic. The maintained boundary-negative and host-runner failure checks are
 `tests/build`. Host CTest includes the finite controller scenario, including sanitizer exit
 status; `scripts/test-controller.sh` validates normal/missing-RTC native_sim compositions
 and cross-builds EVKB without hardware access. See the [controller conditions and limits](../samples/controller/README.md).
+
+
+The native deferred-output evaluation is under `tests/native/deferred_output`.
+It runs the pinned Zephyr raw printk queue and UART backend on native_sim, including
+long signed/unsigned 64-bit output and a deliberately overflowing finite buffer.
+`verify_output.py` checks the actual handler logs and requires the shared physical
+loss validator to reject the real overflow marker. This is software evidence; it
+does not establish EVKB UART/IRQ timing or logger stack sufficiency.
+
+The native_sim board requires its fallback POSIX console. The fixture retains that
+compiled fallback but disables the separate POSIX logging backend; `LOG_PRINTK`
+returns through the deferred logger before the fallback character hook. Actual
+configuration and exact output counts must confirm that UART is the sole logging
+backend. Required record comparisons remove CR/LF endings only, retaining ANSI,
+whitespace, duplication and partial-line errors as failures.

@@ -229,7 +229,10 @@ def completed_series(diagnostic, completed):
 
 
 def phy_diagnostic_mode(config, diagnostic):
-    enabled = 'CONFIG_CRUX_M3_PHY_DIAGNOSTIC=y' in Path(config).read_text().splitlines()
+    lines = Path(config).read_text().splitlines()
+    require('CONFIG_CRUX_M3_DEFERRED_OUTPUT=y' not in lines,
+            'Deferred output requires its separately reviewed startup-only runner')
+    enabled = 'CONFIG_CRUX_M3_PHY_DIAGNOSTIC=y' in lines
     require(diagnostic or not enabled, 'PHY diagnostic image cannot qualify seven stages')
     return enabled
 

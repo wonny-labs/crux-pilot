@@ -28,6 +28,38 @@ def definition(text, declaration):
 
 
 class GeneratedDriverTests(unittest.TestCase):
+    def test_actual_deferred_completion_observer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = Path(directory)
+            headers = work / "zephyr"
+            (headers / "logging").mkdir(parents=True)
+            (headers / "device.h").write_text(
+                '#pragma once\n#include <stdbool.h>\nstruct device { int unused; };\n'
+                'const struct device *observer_device_get(int node);\n'
+                'bool device_is_ready(const struct device *dev);\n'
+                '#define DEVICE_DT_GET(node) observer_device_get(node)\n')
+            (headers / "devicetree.h").write_text(
+                '#define DT_NODELABEL(name) 1\n#define DT_PARENT(node) 2\n')
+            (headers / "kernel.h").write_text(
+                '#pragma once\n#include <stdint.h>\n#include <stddef.h>\n'
+                'struct k_thread { const char *name; struct {size_t size;} stack_info; };\n'
+                'typedef struct k_thread *k_tid_t;\n'
+                'int printk(const char *format, ...);\nint64_t k_uptime_get(void);\n'
+                'const char *k_thread_name_get(k_tid_t thread);\n'
+                'void k_thread_foreach(void (*callback)(const struct k_thread *, void *), void *);\n'
+                'int k_thread_stack_space_get(const struct k_thread *, size_t *);\n'
+                'int k_thread_priority_get(k_tid_t thread);\n')
+            (headers / "logging/log_ctrl.h").write_text(
+                '#include <stdint.h>\nuint32_t log_buffered_cnt(void);\n')
+            sample = ROOT / "samples/controller/zephyr"
+            subprocess.run([os.environ.get("CC", "cc"), "-std=c17", "-Wall", "-Wextra", "-Werror",
+                            "-DCONFIG_CRUX_M3_DEFERRED_OUTPUT=1", "-DCONFIG_LOG_PROCESS_THREAD_STACK_SIZE=2048",
+                            "-I", str(work), "-I", str(sample), str(sample / "network_mdio_trace.c"),
+                            str(Path(__file__).with_name("deferred_observer_model.c")),
+                            "-o", str(work / "observer")], check=True)
+            for scenario in ([], ["failure"], ["late"], ["duplicate"]):
+                subprocess.run([str(work / "observer")] + scenario, check=True)
+
     def test_actual_observer_quiet_until_retained_failure(self):
         with tempfile.TemporaryDirectory() as directory:
             work = Path(directory)

@@ -666,7 +666,8 @@ Ethernet acceptance. Its passive capture closed cleanly; normal fe9 firmware was
 then fully verified and freshly booted with commands disabled. That idle hand-off
 does not assert Time or network service readiness.
 
-A further default-off, private first-failure trace is under software evaluation.
+The default-off, private first-failure trace was physically observed once at
+`4fa6f14`, followed by full-verified fresh normal fe9 recovery.
 It retains the first failed wait in CPU context, including the actual wait branch,
 modular cycle delta and sequential register observations. The application adds no
 output until a retained failure is available, then emits one complete line after
@@ -675,3 +676,29 @@ thread. Logical models check retention and the actual observer's quiet-before-fa
 behaviour; they do not qualify physical timing, establish causation or approve a
 new image for target use. Seven-stage Ethernet and integrated physical acceptance
 remain Pending.
+
+The first retained failure was an interrupt-wait PHY0 BMSR read at 3,607 ms,
+`-ETIMEDOUT`116, with semaphore count1 observed afterwards. The 256880-cycle
+interval at 600 MHz is 428.133 us; native 100-us ticks and timeout rounding apply.
+This is consistent with a late completion token, without proving a physical
+cause or overlap with UART output. It is valid diagnostic evidence, not a
+corrected Ethernet or integrated qualification result.
+
+The native direct `PRINTK_SYNC` path holds IRQ exclusion over complete polling
+UART records. A separate default-off `m3-deferred-output.conf` evaluates native
+`LOG_PRINTK` deferred UART output in the first-failure diagnostic only. It adds a
+2048-byte native logger stack at priority 14 and 4096-byte finite buffer; producers
+do not wait for buffer space. One UART backend emits raw records, with Shell
+logging disabled. Lost-message reports invalidate observations. Logger allocation,
+usable stack and observed unused space must be distinguished; the prospective
+short-run minimum unused is 1024 bytes, without a worst-case claim. Target timestamps
+remain distinct from delayed receive times. Existing timing limits are unchanged.
+No ordinary network or integrated profile adopts this output choice yet; the
+option and its tests are software evaluation, with separate physical review required.
+
+The deferred diagnostic emits a START timestamp and at most one FINAL snapshot
+when its existing main-loop polling reaches 15000 ms. Getter timestamps bracket the
+CPU copy; a valid-zero observation is limited to that snapshot. It does not mean
+that every MDIO request succeeded or that no later failure can occur. Missing,
+late, duplicate or lossy window records are not evidence of absence. Native
+completion controls include a failure that appears after the final getter.

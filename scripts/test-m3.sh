@@ -15,8 +15,9 @@ python3 "$repo/scripts/record-build-provenance.py" --workspace "$workspace" --ca
 python3 "$repo/tests/native/mdio_completion/test_driver.py"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/controller_m3" \
     -T "$repo/tests/controller_network" -T "$repo/tests/controller_network_stack" \
-    -T "$repo/tests/controller_integrated" \
+    -T "$repo/tests/controller_integrated" -T "$repo/tests/native/deferred_output" \
     -O "$repo/build/zephyr/twister-m3" --inline-logs)
+python3 "$repo/tests/native/deferred_output/verify_output.py" "$repo/build/zephyr/twister-m3"
 for profile in probe normal; do
     configuration="$repo/samples/controller/zephyr/m3.conf"
     if [[ "$profile" == normal ]]; then
@@ -45,6 +46,13 @@ done
     -d "$repo/build/zephyr/m3-mdio-trace-evkb" "$repo/samples/controller/zephyr" -- \
     -DZEPHYR_EXTRA_MODULES="$repo" \
     -DEXTRA_CONF_FILE="$repo/samples/controller/zephyr/m3-network.conf;$repo/samples/controller/zephyr/m3-phy-diagnostic.conf;$repo/samples/controller/zephyr/m3-mdio-completion.conf;$repo/samples/controller/zephyr/m3-mdio-trace.conf" \
+    -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay" \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+# Deferred output remains a separate, unqualified startup diagnostic.
+(cd "$workspace" && west build -p always -b 'mimxrt1060_evk@B//qspi' \
+    -d "$repo/build/zephyr/m3-deferred-output-evkb" "$repo/samples/controller/zephyr" -- \
+    -DZEPHYR_EXTRA_MODULES="$repo" \
+    -DEXTRA_CONF_FILE="$repo/samples/controller/zephyr/m3-network.conf;$repo/samples/controller/zephyr/m3-phy-diagnostic.conf;$repo/samples/controller/zephyr/m3-mdio-completion.conf;$repo/samples/controller/zephyr/m3-mdio-trace.conf;$repo/samples/controller/zephyr/m3-deferred-output.conf" \
     -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay" \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 for profile in integrated-probe integrated-normal; do

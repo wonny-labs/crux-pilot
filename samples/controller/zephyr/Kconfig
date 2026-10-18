@@ -41,3 +41,13 @@ config CRUX_M3_MDIO_FAILURE_TRACE
 	help
 	  Retain a private first-failure record and print it once after app startup.
 	  This diagnostic does not alter timeout, IRQ or failed-transaction policy.
+
+config CRUX_M3_DEFERRED_OUTPUT
+	bool "Evaluate native deferred UART records in the MDIO diagnostic"
+	depends on CRUX_M3_MDIO_FAILURE_TRACE
+	depends on LOG_PRINTK && LOG_MODE_DEFERRED && LOG_PROCESS_THREAD
+	depends on THREAD_MONITOR && THREAD_NAME
+	default n
+	help
+	  Private diagnostic evaluation only, with bounded native logging resources.
+	  This is not an adopted network or integrated-controller output profile.

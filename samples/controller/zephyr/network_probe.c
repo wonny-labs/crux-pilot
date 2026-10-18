@@ -40,6 +40,9 @@ static void report_stack(void) {
 
 int main(void) {
     printk("M3_NET_BOOT source=%s profile=network-probe exposure=isolated-only\n", CRUX_M3_SOURCE);
+#ifdef CONFIG_CRUX_M3_DEFERRED_OUTPUT
+    crux_m3_deferred_start();
+#endif
 #ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
     crux_m3_mdio_trace_observe();
 #endif
@@ -64,9 +67,15 @@ int main(void) {
             round++;
             atomic_set(&requested, 0);
         }
+#ifdef CONFIG_CRUX_M3_DEFERRED_OUTPUT
+        crux_m3_deferred_poll();
+#endif
         if (k_uptime_get() >= next_report) {
 #ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
             crux_m3_mdio_trace_observe();
+#endif
+#ifdef CONFIG_CRUX_M3_DEFERRED_OUTPUT
+            crux_m3_deferred_report();
 #endif
             controller_network_report();
             report_stack();
