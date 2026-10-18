@@ -363,3 +363,19 @@ capture is bounded60s. No flash, watchdog arm, network or external pin drive is
 included. Failure stops, preserves raw records and leaves the identified unarmed
 normal image; no automatic retry or loosened limits. `capture_m3_gpio.py` retains
 the final rows, failed attempts and action-window timestamps.
+
+The first corrected SW5 capture (`physical-gpio-fe9f54f-03`) observed five press
+groups but failed the unchanged oracle: one press spanned938ms and one intermediate
+release had only one report. Independent raw reconstruction confirmed both
+failures. The preceding attempt02 stopped at ownership preflight and is recorded
+separately as blocked, not a functional failure. The blocked lookup ended after
+the user reconnected DAPLink USB; fresh serial identity and ownership then passed.
+
+The reviewed corrective stimulus uses spoken Korean press/release cues every4s
+(five pairs within the same45s window), with final release at36s. It retains the
+original firmware, observation minima and60s capture bound. Cue schedules, actual
+launch/completion times and failures are retained; they describe instructions,
+not measured physical button timings. Speech has bounded child termination/reap;
+late, failed or uncertain speech stops the trial. The user confirmed an actual
+local voice check was audible. Prior failures remain failures; the next trial
+requires fresh preflight and independent raw-result review.
