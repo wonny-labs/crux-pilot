@@ -8,6 +8,11 @@
 
 static atomic_t requested;
 
+#ifdef CONFIG_CRUX_M3_PHY_DIAGNOSTIC
+void network_phy_diagnostic_mac(unsigned int phase);
+void network_phy_diagnostic_after_round(void);
+#endif
+
 static int request_round(const struct shell *shell, size_t argc, char **argv) {
     ARG_UNUSED(shell);
     ARG_UNUSED(argc);
@@ -40,9 +45,15 @@ int main(void) {
     int64_t next_report = 0;
     for (unsigned int round = 1; round <= 7;) {
         if (atomic_cas(&requested, 1, 2)) {
+#ifdef CONFIG_CRUX_M3_PHY_DIAGNOSTIC
+            network_phy_diagnostic_mac(1);
+#endif
             result = controller_network_round(round);
             printk("M3_NET_ROUND trial=%u result=%d monotonic_ms=%lld\n", round, result,
                    (long long)k_uptime_get());
+#ifdef CONFIG_CRUX_M3_PHY_DIAGNOSTIC
+            network_phy_diagnostic_after_round();
+#endif
             report_stack();
             round++;
             atomic_set(&requested, 0);

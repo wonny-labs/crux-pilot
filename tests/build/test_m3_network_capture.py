@@ -8,6 +8,36 @@ import capture_m3_network as runner
 
 
 class NetworkCaptureControls(unittest.TestCase):
+    def test_phy_image_cannot_be_used_for_full_qualification(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            config = Path(temporary) / '.config'
+            config.write_text('CONFIG_CRUX_M3_PHY_DIAGNOSTIC=y\n')
+            with self.assertRaises(ValueError): runner.phy_diagnostic_mode(config, False)
+            self.assertTrue(runner.phy_diagnostic_mode(config, True))
+            config.write_text('# CONFIG_CRUX_M3_PHY_DIAGNOSTIC is not set\n')
+            self.assertFalse(runner.phy_diagnostic_mode(config, False))
+
+    def test_phy_observation_requires_complete_plausible_ordered_reads(self):
+        fields = ' eir=0 eimr=0 ecr=0 rcr=0 tcr=0 rdar=0 tdar=0 mscr=0 mmfr=0'
+        rows = [(1., 'M3_NET_MAC phase=1 monotonic_ms=1' + fields),
+                (2., 'M3_NET_MAC phase=2 monotonic_ms=2' + fields),
+                (3., 'M3_NET_PHY_CACHED result=0 monotonic_ms=3 link=1 speed=1 admin=1 running=1 carrier=1 oper=1')]
+        for i, reg in enumerate((0, 1, 1, 2, 3, 4, 5, 31)):
+            value = 0x22 if i == 3 else 0x1560
+            rows.append((4. + i, f'M3_NET_PHY_READ index={i} reg={reg} result=0 value={value} monotonic_ms={4+i}'))
+        rows.append((12., 'M3_NET_PHY_DONE reads=8 status=0 plausible=1 monotonic_ms=12'))
+        self.assertEqual(runner.phy_diagnostic_result(rows)['status'],
+                         'OBSERVED_PLAUSIBLE_NOT_TRANSACTION_PROOF')
+        bad = [rows[:-1], rows[:3] + rows[4:], rows + rows[-1:]]
+        for before, after in (('index=0', 'index=7'), ('reg=31', 'reg=30'),
+                              ('value=34', 'value=0'), ('value=5472', 'value=65535'),
+                              ('status=0', 'status=-5'), ('plausible=1', 'plausible=0'),
+                              ('eir=0', 'eir=4294967296'), (' rcr=0', ''),
+                              ('result=0', 'result=-5'), ('monotonic_ms=11', 'monotonic_ms=0')):
+            bad.append([(t, line.replace(before, after)) for t, line in rows])
+        for invalid in bad:
+            with self.assertRaises(ValueError): runner.phy_diagnostic_result(invalid)
+
     def test_diagnostic_cannot_publish_seven_stage_qualification(self):
         self.assertEqual(runner.stage_modes(True), ('echo',))
         result = runner.completed_series(True, 1)

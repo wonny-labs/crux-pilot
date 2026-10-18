@@ -613,3 +613,25 @@ Unknown transport/probe/peer/evidence state prohibits automatic programming;
 a defined functional failure allows only the preselected single normal restoration.
 Physical #11/#12 qualification, publication review and final support coverage remain
 Pending; no PR merge or issue/milestone closure is authorised by this work.
+
+### PHY and MAC diagnostic image
+
+The polling candidate subsequently reproduced a brief reported carrier loss
+followed by failed TCP/UDP exchanges. A separate opt-in configuration,
+`samples/controller/zephyr/m3-phy-diagnostic.conf`, supplements the network
+configuration for investigation only. It adds read-only RT1062 MAC observations
+around an explicit round and native PHY register reads after the round finishes.
+It performs no register writes, driver replacement or automatic application traffic.
+The ordinary network, controller and normal recovery profiles leave it disabled.
+
+Use this image only with `capture_m3_network.py --diagnostic-echo-only`; the runner
+rejects it for seven-stage qualification. Preserve the identified image, exact ABI
+map, raw records and peer/packet captures. Missing or implausible diagnostic
+completion stops further target operations. The five-second host observation limit
+does not cancel a blocked target driver call.
+
+PHY register reads can clear latched status and interleave with the native monitor.
+The two BMSR reads are not an atomic pair. A successful native return and plausible
+identity do not prove MDIO transaction completion in the pinned driver. These
+post-round observations cannot establish the cause of an earlier transient link
+event, qualify a driver correction or replace the original failure/recovery tests.

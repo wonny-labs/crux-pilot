@@ -222,6 +222,43 @@ def completed_series(diagnostic, completed):
                 'explicit restart for link restoration; original standalone normal final')
 
 
+def phy_diagnostic_mode(config, diagnostic):
+    enabled = 'CONFIG_CRUX_M3_PHY_DIAGNOSTIC=y' in Path(config).read_text().splitlines()
+    require(diagnostic or not enabled, 'PHY diagnostic image cannot qualify seven stages')
+    return enabled
+
+
+def phy_diagnostic_result(rows):
+    reads = records(rows, 'M3_NET_PHY_READ')
+    done = records(rows, 'M3_NET_PHY_DONE')
+    mac = records(rows, 'M3_NET_MAC')
+    cached = records(rows, 'M3_NET_PHY_CACHED')
+    require(len(done) == 1 and done[0]['reads'] == 8 and done[0]['status'] == 0
+            and done[0]['plausible'] == 1, 'PHY diagnostic missing or uncertain')
+    require(len(reads) == 8 and [r['index'] for r in reads] == list(range(8))
+            and [r['reg'] for r in reads] == [0, 1, 1, 2, 3, 4, 5, 31]
+            and all(r['result'] == 0 and 0 <= r['value'] <= 65535 for r in reads),
+            'Incomplete or invalid PHY read sequence')
+    require(reads[3]['value'] == 0x22 and reads[4]['value'] not in (0, 65535),
+            'Implausible PHY identity; native MDIO return alone is insufficient')
+    require(len(mac) == 2 and [r['phase'] for r in mac] == [1, 2]
+            and len(cached) == 1 and cached[0]['result'] == 0,
+            'Missing MAC or cached PHY observations')
+    fields = ('eir', 'eimr', 'ecr', 'rcr', 'tcr', 'rdar', 'tdar', 'mscr', 'mmfr')
+    require(all(all(key in r and isinstance(r[key], int) and 0 <= r[key] <= 0xffffffff
+                        for key in fields) for r in mac)
+            and all(key in cached[0] and cached[0][key] in (0, 1)
+                    for key in ('link', 'admin', 'running', 'carrier'))
+            and all(key in cached[0] and isinstance(cached[0][key], int)
+                    for key in ('speed', 'oper')), 'Incomplete MAC or cached PHY fields')
+    require(mac[0]['monotonic_ms'] <= mac[1]['monotonic_ms'] <= cached[0]['monotonic_ms']
+            <= reads[0]['monotonic_ms'] and
+            all(a['monotonic_ms'] <= b['monotonic_ms'] for a, b in zip(reads, reads[1:]))
+            and reads[-1]['monotonic_ms'] <= done[0]['monotonic_ms'],
+            'Reordered PHY diagnostic observations')
+    return dict(status='OBSERVED_PLAUSIBLE_NOT_TRANSACTION_PROOF', reads=8)
+
+
 def main():
     global SERIES_DEADLINE
     parser = argparse.ArgumentParser(description=__doc__)
@@ -243,6 +280,7 @@ def main():
     require(sha(recovery['binary']) == '238b352fd66bbfea984c4210510dd398cfe808fcb93c5f11a142fa4ba5bd24c0', 'Original recovery identity changed')
     from m3_image import check_record_output
     check_record_output(image['config'])
+    phy_diagnostic = phy_diagnostic_mode(image['config'], args.diagnostic_echo_only)
     errno_abi = verify_errno_map(args.errno_map, image)
     repo = Path(__file__).resolve().parents[2]
     require(not subprocess.check_output(['git', 'status', '--porcelain'], cwd=repo, text=True).strip(),
@@ -388,6 +426,14 @@ def main():
                         (case / 'transmit.json').write_text(json.dumps(dict(command='m3net', monotonic=written)))
                         wait_until(lambda: bool(records(receiver.rows[start:], 'M3_NET_ROUND')), 155, receiver)
                         summary = records(receiver.rows[start:], 'M3_NET_ROUND')[0]
+                        if phy_diagnostic:
+                            try:
+                                wait_until(lambda: bool(records(receiver.rows[start:], 'M3_NET_PHY_DONE')),
+                                           5, receiver)
+                                observed = phy_diagnostic_result(receiver.rows[start:])
+                                (case / 'phy-diagnostic.json').write_text(json.dumps(observed, indent=2))
+                            except Exception as error:
+                                raise HardwareStop('PHY observation incomplete or uncertain; no target changes') from error
                         wait_until(lambda: time.monotonic() >= summary['received'] + 4.5, 5, receiver)
                     finally:
                         finish_receiver(receiver)
