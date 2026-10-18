@@ -199,6 +199,18 @@ def select_entry_image(choice, image, recovery, previous=None):
     return (image, False) if choice == 'existing-network' else (recovery, True)
 
 
+def stage_modes(diagnostic):
+    return ('echo',) if diagnostic else ('echo', 'silence', 'echo', 'close', 'echo', 'echo', 'echo')
+
+
+def completed_series(diagnostic, completed):
+    require(completed == len(stage_modes(diagnostic)), 'Incomplete selected series')
+    return dict(status='DIAGNOSTIC_PASS' if diagnostic else 'PASS', stages=completed,
+                qualification=not diagnostic,
+                recovery='original standalone normal final' if diagnostic else
+                'explicit restart for link restoration; original standalone normal final')
+
+
 def main():
     global SERIES_DEADLINE
     parser = argparse.ArgumentParser(description=__doc__)
@@ -210,6 +222,8 @@ def main():
     parser.add_argument('--guard-session', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
     parser.add_argument('--uart', default='/dev/cu.usbmodem11302')
+    parser.add_argument('--diagnostic-echo-only', action='store_true',
+                        help='One echo round and normal restoration; never a qualification PASS')
     args = parser.parse_args()
     image, recovery = verify_manifest(args.manifest), verify_manifest(args.recovery_manifest)
     require(image['profile'] == 'network' and recovery['profile'] == 'normal', 'Wrong image roles')
@@ -227,6 +241,7 @@ def main():
     session = json.loads(args.guard_session.read_text())
     (directory / 'inputs.json').write_text(json.dumps(dict(image=image, recovery=recovery, entry_manifest=existing,
         guard_session=session, clock=time.identity(), errno_abi=errno_abi, errno_map_sha256=sha(args.errno_map), entry_image=args.entry_image, runner_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
+        diagnostic_echo_only=args.diagnostic_echo_only,
         scripts={p.name: sha(p) for p in Path(__file__).parent.glob('*.py')}), indent=2))
     end = time.monotonic() + 1800
     SERIES_DEADLINE = end
@@ -318,7 +333,8 @@ def main():
                 raise HardwareStop('Current firmware differs from explicitly selected known image; stop before changes')
             boot(image, 'program-network' if programming else 'resume-network-reset', programming)
             try:
-                for stage, mode in enumerate(('echo', 'silence', 'echo', 'close', 'echo', 'echo', 'echo'), 1):
+                completed = 0
+                for stage, mode in enumerate(stage_modes(args.diagnostic_echo_only), 1):
                     guard_check(session, directory, f'stage-{stage}')
                     require(time.monotonic() + (650 if stage == 6 else 400 if stage == 7 else 220) < end,
                             'Insufficient series budget including operator/recovery bounds')
@@ -375,6 +391,7 @@ def main():
                     except ValueError as error:
                         raise QualificationFailure(str(error)) from error
                     (case / 'result.json').write_text(json.dumps(result, indent=2))
+                    completed += 1
                     print('STAGE_PASS ' + str(stage), flush=True)
             except Exception as error:
                 (directory / 'qualification-failure.txt').write_text(traceback.format_exc())
@@ -386,8 +403,8 @@ def main():
                 raise HardwareStop('Unverified host/peer/transport state; no automatic restoration') from error
             else:
                 boot(recovery, 'final-normal-restoration', True)
-                (directory / 'result.json').write_text(json.dumps(dict(status='PASS', stages=7,
-                    recovery='explicit restart for link restoration; original standalone normal final'), indent=2))
+                (directory / 'result.json').write_text(json.dumps(
+                    completed_series(args.diagnostic_echo_only, completed), indent=2))
             finally:
                 release_peer(lease)
 

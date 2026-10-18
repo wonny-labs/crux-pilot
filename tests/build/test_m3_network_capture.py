@@ -8,6 +8,16 @@ import capture_m3_network as runner
 
 
 class NetworkCaptureControls(unittest.TestCase):
+    def test_diagnostic_cannot_publish_seven_stage_qualification(self):
+        self.assertEqual(runner.stage_modes(True), ('echo',))
+        result = runner.completed_series(True, 1)
+        self.assertEqual(result['status'], 'DIAGNOSTIC_PASS')
+        self.assertFalse(result['qualification'])
+        for diagnostic, count in ((True, 0), (True, 7), (False, 1), (False, 6)):
+            with self.assertRaises(ValueError): runner.completed_series(diagnostic, count)
+        self.assertEqual(runner.stage_modes(False), ('echo','silence','echo','close','echo','echo','echo'))
+        self.assertEqual(runner.completed_series(False, 7)['status'], 'PASS')
+
     def test_guard_uncertainty_is_hardware_stop(self):
         with patch.object(runner, '_guard_check', side_effect=ValueError('changed')):
             with self.assertRaises(runner.HardwareStop): runner.guard_check({}, None, 'x')
