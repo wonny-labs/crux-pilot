@@ -25,6 +25,16 @@ handler for the documented `ERR INVALID_ARGUMENT` result.
 Host tests own portable behavior. Ztest covers native integration and the Shell boundary. The two
 suites do not duplicate every case across frameworks.
 
+Run the Time Zephyr integration checks from the repository root in the Linux Dev Container,
+after setting up the west workspace and SDK:
+
+```sh
+scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
+```
+
+This runs `native_sim` Ztests, builds the native simulation sample and cross-builds the
+EVKB image. It does not program or reset the physical board.
+
 ## Build tools: `build/`
 
 Python standard-library `unittest` checks the provenance safeguards: changed input rejection,

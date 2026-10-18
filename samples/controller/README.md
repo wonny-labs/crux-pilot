@@ -65,8 +65,11 @@ Flash/RAM allocation are distinct from measured worker use or system worst-case 
 The evidence retains the first rejected capture, observer correction and programmer
 post-disconnect diagnostic. The earlier sanitizer exit-timeout cause is still unresolved.
 Physical POSIX, long-duration/concurrent-load behaviour and worst-case timing/resource
-qualification are not established. M2 was accepted and integrated through PR #9, squash commit `540ea7f`; issues #6/#7
-and M2 are closed. Its bounded evidence does not establish M3 acceptance.
+qualification are not established. The scoped M2 result was accepted and merged through
+[PR #9](https://github.com/wonny-labs/crux-pilot/pull/9) as commit
+[`540ea7f`](https://github.com/wonny-labs/crux-pilot/commit/540ea7f934987989e429ae3767352b153fb2e747),
+and M2 issues [#6](https://github.com/wonny-labs/crux-pilot/issues/6) and
+[#7](https://github.com/wonny-labs/crux-pilot/issues/7) are closed. Its bounded evidence does not establish M3 acceptance.
 
 ## Independent M3 GPIO and health probe
 
