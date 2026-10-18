@@ -34,7 +34,7 @@ static int wait_socket(int fd, short events, int64_t deadline) {
         if (result == 0) {
             return -ETIMEDOUT;
         }
-        /* Read EOF/error through recv or SO_ERROR, rather than treating HUP as success. */
+        /* Read EOF/error through recv or ZSOCK_SO_ERROR, rather than treating HUP as success. */
         if ((item.revents & (events | ZSOCK_POLLERR | ZSOCK_POLLHUP)) != 0) {
             return 0;
         }
@@ -72,14 +72,14 @@ static int exchange(unsigned int protocol, unsigned int trial, unsigned int sequ
     sys_put_be32(trial, request + 8);
     sys_put_be32(sequence, request + 12);
     memcpy(request + 16, "crux-m3-payload!", 16);
-    struct sockaddr_in peer = {.sin_family = AF_INET,
-                               .sin_port = htons(protocol == 1 ? 42420 : 42421)};
-    if (zsock_inet_pton(AF_INET, "192.168.77.1", &peer.sin_addr) != 1) {
+    struct net_sockaddr_in peer = {.sin_family = NET_AF_INET,
+                               .sin_port = net_htons(protocol == 1 ? 42420 : 42421)};
+    if (zsock_inet_pton(NET_AF_INET, "192.168.77.1", &peer.sin_addr) != 1) {
         return -EINVAL;
     }
     int64_t deadline = k_uptime_get() + 2000;
-    int fd = zsock_socket(AF_INET, protocol == 1 ? SOCK_STREAM : SOCK_DGRAM,
-                          protocol == 1 ? IPPROTO_TCP : IPPROTO_UDP);
+    int fd = zsock_socket(NET_AF_INET, protocol == 1 ? NET_SOCK_STREAM : NET_SOCK_DGRAM,
+                          protocol == 1 ? NET_IPPROTO_TCP : NET_IPPROTO_UDP);
     if (fd < 0) {
         return -errno;
     }
@@ -89,7 +89,7 @@ static int exchange(unsigned int protocol, unsigned int trial, unsigned int sequ
         result = -errno;
         goto close;
     }
-    if (zsock_connect(fd, (struct sockaddr *)&peer, sizeof(peer)) < 0) {
+    if (zsock_connect(fd, (struct net_sockaddr *)&peer, sizeof(peer)) < 0) {
         if (errno != EINPROGRESS) {
             result = -errno;
             goto close;
@@ -99,8 +99,8 @@ static int exchange(unsigned int protocol, unsigned int trial, unsigned int sequ
             goto close;
         }
         int error = 0;
-        socklen_t size = sizeof(error);
-        if (zsock_getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &size) < 0) {
+        net_socklen_t size = sizeof(error);
+        if (zsock_getsockopt(fd, ZSOCK_SOL_SOCKET, ZSOCK_SO_ERROR, &error, &size) < 0) {
             result = -errno;
             goto close;
         }
@@ -178,8 +178,8 @@ int controller_network_init(void) {
     }
     struct net_in_addr address;
     struct net_in_addr mask;
-    if (net_addr_pton(AF_INET, "192.168.77.2", &address) != 0 ||
-        net_addr_pton(AF_INET, "255.255.255.0", &mask) != 0 ||
+    if (net_addr_pton(NET_AF_INET, "192.168.77.2", &address) != 0 ||
+        net_addr_pton(NET_AF_INET, "255.255.255.0", &mask) != 0 ||
         net_if_ipv4_addr_add(interface, &address, NET_ADDR_MANUAL, 0) == NULL ||
         !net_if_ipv4_set_netmask_by_addr(interface, &address, &mask)) {
         interface = NULL;

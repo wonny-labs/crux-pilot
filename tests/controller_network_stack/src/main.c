@@ -1,5 +1,4 @@
 #include <zephyr/ztest.h>
-#include <zephyr/net/net_compat.h>
 
 /* Real native sockets and production exchange; no syscall or clock mocks. */
 #include "../../../samples/controller/zephyr/network_client.c"
@@ -17,12 +16,12 @@ static void echo_peer(void *kind, void *unused1, void *unused2) {
     ARG_UNUSED(unused1);
     ARG_UNUSED(unused2);
     unsigned int protocol = (uintptr_t)kind;
-    int listener = zsock_socket(AF_INET, protocol == 1 ? SOCK_STREAM : SOCK_DGRAM,
-                                protocol == 1 ? IPPROTO_TCP : IPPROTO_UDP);
-    struct sockaddr_in address = {.sin_family = AF_INET,
-                                  .sin_port = htons(protocol == 1 ? 42420 : 42421)};
-    net_addr_pton(AF_INET, "192.168.77.1", &address.sin_addr);
-    if (listener < 0 || zsock_bind(listener, (struct sockaddr *)&address, sizeof(address)) < 0 ||
+    int listener = zsock_socket(NET_AF_INET, protocol == 1 ? NET_SOCK_STREAM : NET_SOCK_DGRAM,
+                                protocol == 1 ? NET_IPPROTO_TCP : NET_IPPROTO_UDP);
+    struct net_sockaddr_in address = {.sin_family = NET_AF_INET,
+                                  .sin_port = net_htons(protocol == 1 ? 42420 : 42421)};
+    net_addr_pton(NET_AF_INET, "192.168.77.1", &address.sin_addr);
+    if (listener < 0 || zsock_bind(listener, (struct net_sockaddr *)&address, sizeof(address)) < 0 ||
         (protocol == 1 && zsock_listen(listener, 1) < 0)) {
         peer_error = errno;
         k_sem_give(&peer_ready);
@@ -52,12 +51,12 @@ static void echo_peer(void *kind, void *unused1, void *unused2) {
             printk("STACK_PEER protocol=1 sequence=%u result=%d\n", i + 1, result);
             zsock_close(client);
         } else {
-            struct sockaddr_in sender;
-            socklen_t size = sizeof(sender);
+            struct net_sockaddr_in sender;
+            net_socklen_t size = sizeof(sender);
             ssize_t length = zsock_recvfrom(listener, frame, sizeof(frame), 0,
-                                            (struct sockaddr *)&sender, &size);
+                                            (struct net_sockaddr *)&sender, &size);
             if (length == sizeof(frame)) {
-                zsock_sendto(listener, frame, sizeof(frame), 0, (struct sockaddr *)&sender, size);
+                zsock_sendto(listener, frame, sizeof(frame), 0, (struct net_sockaddr *)&sender, size);
             }
             printk("STACK_PEER protocol=2 sequence=%u length=%zd\n", i + 1, length);
         }
@@ -69,7 +68,7 @@ ZTEST(network_stack, test_native_round_and_cleanup) {
     loopback_enable_address_swap(false);
     struct net_if *loopback = net_if_get_default();
     struct net_in_addr address;
-    zassert_equal(net_addr_pton(AF_INET, "192.168.77.1", &address), 0);
+    zassert_equal(net_addr_pton(NET_AF_INET, "192.168.77.1", &address), 0);
     zassert_not_null(net_if_ipv4_addr_add(loopback, &address, NET_ADDR_MANUAL, 0));
     zassert_equal(controller_network_init(), 0);
     k_thread_create(&tcp_thread, tcp_stack, K_THREAD_STACK_SIZEOF(tcp_stack), echo_peer,
