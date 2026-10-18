@@ -5,6 +5,7 @@
   },
   "dll": {
     "path": "/Applications/SEGGER/JLink_V986a/libjlinkarm.9.86.1.dylib",
-    "sha256": "719086115a08e89bca3cf3e951b03378dcd1537311fbcb35e3736be9a70bf088"
+    "sha256": "719086115a08e89bca3cf3e951b03378dcd1537311fbcb35e3736be9a70bf088",
+    "alias": "/Applications/SEGGER/JLink_V986a/libjlinkarm.dylib"
   }
 }

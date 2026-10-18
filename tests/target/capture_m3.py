@@ -37,6 +37,9 @@ def verify_jlink_tools(manifest=None):
         path = Path(record['path'])
         require(path.is_absolute() and path.resolve() == path and
                 sha(path) == record['sha256'], 'J-Link tool identity changed; no probe access')
+    alias = Path(records['dll']['alias'])
+    require(alias.is_absolute() and alias.resolve() == Path(records['dll']['path']),
+            'J-Link DLL alias changed; no probe access')
     return records['executable']['path']
 
 
@@ -373,6 +376,7 @@ def main():
     parser.add_argument('--uart-serial', required=True)
     args = parser.parse_args()
     require(platform.system() == 'Darwin', 'Expected documented Mac hardware owner')
+    verify_jlink_tools()
     require(sha(args.recovery_bin) == '4be80bc7cfcfc116bebba08d3d9c56b347cc6452548da299f7bf09a446ed55d2',
             'Known-good M2 recovery image identity changed')
     probe_id, uart = '602003106', args.uart

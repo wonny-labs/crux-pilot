@@ -98,10 +98,21 @@ class RunnerControls(unittest.TestCase):
             exe, dll = Path(d).resolve() / 'exe', Path(d).resolve() / 'dll'
             exe.write_bytes(b'fixed-exe')
             dll.write_bytes(b'fixed-dll')
+            alias = Path(d).resolve() / 'dll-alias'
+            alias.symlink_to(dll)
             manifest = Path(d) / 'tools.json'
             manifest.write_text(json.dumps({name: dict(path=str(path), sha256=runner.sha(path))
                                              for name, path in [('executable', exe), ('dll', dll)]}))
+            records = json.loads(manifest.read_text())
+            records['dll']['alias'] = str(alias)
+            manifest.write_text(json.dumps(records))
             self.assertEqual(runner.verify_jlink_tools(manifest), str(exe))
+            alias.unlink()
+            alias.symlink_to(exe)
+            with self.assertRaises(ValueError):
+                runner.verify_jlink_tools(manifest)
+            alias.unlink()
+            alias.symlink_to(dll)
             dll.write_bytes(b'changed')
             with self.assertRaises(ValueError):
                 runner.verify_jlink_tools(manifest)
@@ -110,6 +121,20 @@ class RunnerControls(unittest.TestCase):
             with self.assertRaises(runner.HardwareStop):
                 runner.commander('602003106', 'q\n', Path(d) / 'out.log')
             launch.assert_not_called()
+
+    def test_tool_drift_rejected_before_firmware_or_serial_access(self):
+        arguments = ['capture_m3.py', '--probe-manifest', 'probe.json', '--normal-manifest',
+                     'normal.json', '--recovery-bin', 'recovery.bin', '--evidence', 'evidence',
+                     '--uart-serial', 'expected', '--program']
+        with patch.object(runner.sys, 'argv', arguments), \
+             patch.object(runner.platform, 'system', return_value='Darwin'), \
+             patch.object(runner, 'verify_jlink_tools', side_effect=ValueError('drift')), \
+             patch.object(runner, 'verify_manifest') as images, \
+             patch.object(runner.subprocess, 'check_output') as processes:
+            with self.assertRaises(ValueError):
+                runner.main()
+            images.assert_not_called()
+            processes.assert_not_called()
 
     def test_suppression_precedes_probe_open_and_unexpected_update_stops(self):
         with tempfile.TemporaryDirectory() as d:
