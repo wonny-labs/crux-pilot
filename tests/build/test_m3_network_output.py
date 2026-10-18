@@ -30,7 +30,7 @@ class NativeOutput(unittest.TestCase):
         with self.assertRaises(ValueError):logger_checkpoint(rows,.5)
     def test_identity_stack_priority_and_snapshot_bounds(self):
         for old,new in [('found=1','found=2'),('unused=1560','unused=1023'),('usable=2048','usable=2112'),
-                        ('priority=14','priority=0'),('queued=0','queued=4097'),
+                        ('priority=14','priority=0'),('queued=0','queued=16385'),
                         ('queue_snapshot_ms=1000','queue_snapshot_ms=1251'),
                         ('monotonic_ms=1001','monotonic_ms=1251')]:
             rows=fixture();rows[3]=(rows[3][0],rows[3][1].replace(old,new))

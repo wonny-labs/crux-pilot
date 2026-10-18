@@ -16,8 +16,10 @@ python3 "$repo/tests/native/mdio_completion/test_driver.py"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/controller_m3" \
     -T "$repo/tests/controller_network" -T "$repo/tests/controller_network_stack" \
     -T "$repo/tests/controller_integrated" -T "$repo/tests/native/deferred_output" \
+    -T "$repo/tests/native/network_output_burst" \
     -O "$repo/build/zephyr/twister-m3" --inline-logs)
 python3 "$repo/tests/native/deferred_output/verify_output.py" "$repo/build/zephyr/twister-m3"
+python3 "$repo/tests/native/network_output_burst/verify_output.py" "$repo/build/zephyr/twister-m3"
 for profile in probe normal; do
     configuration="$repo/samples/controller/zephyr/m3.conf"
     if [[ "$profile" == normal ]]; then

@@ -710,7 +710,7 @@ polling UART backend with the network probe and maintained MDIO correction. It
 excludes PHY/startup diagnostic observers. It is a sample-owned, unqualified
 composition; the diagnostic flag remains rejected by the seven-stage runner.
 Logger resources are fixed at priority 14, 2048 usable stack bytes (2112 allocated
-including guard) and a 4096-byte drop-new/nonblocking buffer. The minimum observed
+including guard) and a 16384-byte drop-new/nonblocking buffer. The minimum observed
 unused logger stack is 1024 bytes, a functional limit rather than a worst-case claim.
 
 Authoritative verdicts replay raw UART event bytes without stripping ANSI or spaces;
@@ -732,3 +732,14 @@ An initial partial group may be a single suffix ending in LOGGER before the firs
 RESOURCE; its present values are still checked. This capture-boundary exception
 cannot apply after the first RESOURCE. Functional round slicing remains at ACK;
 it does not discard the separate full-capture resource validation.
+
+The finite production-format native_sim comparison retained the rapid 4 KiB failure
+(56 delivered, 74 dropped) and rapid 8 KiB failure (112 delivered, 18 dropped). At
+16 KiB, all 130 records arrived with exact content/order and no loss; the pre-drain
+snapshot held 9,496 bytes. A 50 ms paced 4 KiB contrast also delivered 130; that delay
+is not a production guarantee. Printed fixture stack/queue fields are synthetic
+payload. The native ring API reserves one 32-bit word: usable capacities are 4,092,
+8,188 and 16,380 bytes, distinct from the configured allocations. The network-only
+16 KiB choice adds 12,288 static RAM bytes and leaves the startup diagnostic at
+4 KiB. It adds no producer wait or changed exchange/round deadline. These are volume
+observations, not target service-rate, WCET or physical qualification evidence.

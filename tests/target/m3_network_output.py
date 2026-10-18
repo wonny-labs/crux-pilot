@@ -74,7 +74,7 @@ def logger_pairs(rows, *, allow_prefix=False):
         require(logger['found'] == 1 and logger['status'] == 0 and
                 logger['configured'] == logger['usable'] == 2048 and
                 1024 <= logger['unused'] <= 2048 and logger['priority'] == 14 and
-                0 <= logger['queued'] <= 4096, 'Native logger resource observation failed')
+                0 <= logger['queued'] <= 16384, 'Native logger resource observation failed')
         previous = [j for j,(_,s) in enumerate(rows[:i]) if s.startswith('M3_NET_RESOURCE ')]
         if not previous:
             require(allow_prefix and i < first, 'Orphan native logger')
