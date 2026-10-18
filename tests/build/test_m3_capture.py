@@ -16,32 +16,47 @@ class RunnerControls(unittest.TestCase):
                        runner.subprocess.CompletedProcess([], 0, 'existing owner', ''),
                        runner.subprocess.CompletedProcess([], 2, '', '')):
             with self.subTest(result=result), tempfile.TemporaryDirectory() as d, \
-                 patch.object(runner.subprocess, 'run', return_value=result), \
-                 patch.object(runner.subprocess, 'check_output') as probe:
+                 patch.object(runner, 'inventory', return_value=result) as query:
                 with self.assertRaises(ValueError):
                     runner.check_owners('/dev/cu.usbmodem11102', Path(d) / 'owners.txt')
-                probe.assert_not_called()
-        with tempfile.TemporaryDirectory() as d, \
-             patch.object(runner.subprocess, 'run', side_effect=runner.subprocess.TimeoutExpired('lsof', 10)):
-            with self.assertRaises(runner.subprocess.TimeoutExpired):
-                runner.check_owners('/dev/cu.usbmodem11102', Path(d) / 'owners.txt')
+                self.assertEqual(query.call_count, 1)
 
     def test_probe_process_paths_and_python_entry_points_are_rejected(self):
         for process in ('123 /usr/local/bin/JLinkExe', '123 JLinkGDBServerCLExe',
                         '123 /usr/bin/python3 -m pyocd', ''):
             with self.subTest(process=process), tempfile.TemporaryDirectory() as d, \
-                 patch.object(runner.subprocess, 'run', return_value=runner.subprocess.CompletedProcess([], 1, '', '')), \
-                 patch.object(runner.subprocess, 'check_output', return_value=process):
+                 patch.object(runner, 'inventory', side_effect=[
+                     runner.subprocess.CompletedProcess([], 1, '', ''),
+                     runner.subprocess.CompletedProcess([], 0, process, '')]):
                 with self.assertRaises(ValueError):
                     runner.check_owners('/dev/cu.usbmodem11102', Path(d) / 'owners.txt')
 
-    def test_owner_inventory_is_bounded_and_accepts_no_owner(self):
+    def test_owner_inventory_accepts_only_clear_uart_and_probe_results(self):
         with tempfile.TemporaryDirectory() as d, \
-             patch.object(runner.subprocess, 'run', return_value=runner.subprocess.CompletedProcess([], 1, '', '')) as uart, \
-             patch.object(runner.subprocess, 'check_output', return_value='123 python3 capture_m3.py') as probe:
+             patch.object(runner, 'inventory', side_effect=[
+                 runner.subprocess.CompletedProcess([], 1, '', ''),
+                 runner.subprocess.CompletedProcess([], 0, '123 python3 capture_m3.py', '')]) as query:
             runner.check_owners('/dev/cu.usbmodem11102', Path(d) / 'owners.txt')
-            self.assertEqual(uart.call_args.kwargs['timeout'], 10)
-            self.assertEqual(probe.call_args.kwargs['timeout'], 10)
+            self.assertEqual(query.call_count, 2)
+
+    def test_unreapable_inventory_timeout_is_bounded_and_blocks_target(self):
+        with tempfile.TemporaryDirectory() as d, \
+             patch.object(runner.subprocess, 'Popen') as popen, \
+             patch.object(runner.os, 'killpg') as kill:
+            process = popen.return_value
+            process.pid = 12345
+            process.wait.side_effect = runner.subprocess.TimeoutExpired('lsof', 10)
+            with self.assertRaises(runner.HardwareStop):
+                runner.check_owners('/dev/cu.usbmodem11102', Path(d) / 'owners.txt')
+            self.assertEqual([x.kwargs['timeout'] for x in process.wait.call_args_list], [10, 1])
+            self.assertEqual(popen.call_count, 1)
+            self.assertTrue(popen.call_args.kwargs['start_new_session'])
+            self.assertNotEqual(popen.call_args.kwargs['stdout'], runner.subprocess.PIPE)
+            kill.assert_called_once_with(12345, runner.signal.SIGKILL)
+            process.communicate.assert_not_called()
+            record = json.loads((Path(d) / 'owners.txt').read_text())
+            self.assertEqual(record['status'], 'OWNERSHIP_UNVERIFIED')
+            self.assertIn('not reaped', record['cleanup'][0])
 
     def test_expected_exit_on_error_configuration_banner_is_informational(self):
         with tempfile.TemporaryDirectory() as d:

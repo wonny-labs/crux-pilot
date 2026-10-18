@@ -229,6 +229,33 @@ The corrected format command, configured analysis, dependency checks and 18 exis
 build-safeguard controls passed. The original missing-format-tool failure and the
 unexplained Calendar process-exit timeout are retained; later passes do not cure it.
 
+## Physical preflight outcome and hand-off
+
+The separate reviewer approved the exact `fe9f54f` standalone health images and
+recovery plan, conditional on successful current preflight. The first invocation
+stopped at the Mac UART ownership inventory: `lsof` remained uninterruptible after
+the declared timeout. Python's original timeout cleanup could wait indefinitely.
+The lead stopped the runner before serial open or any J-Link invocation. No M3
+image was programmed, reset or physically qualified, and Ethernet was untouched.
+The prior board image remains unchanged; its current runtime was not observed.
+
+The affected runner was revised to use a new process group, file-backed output,
+a 10-second wait and at most one further second to reap after group termination.
+An unreaped group is recorded as uncertain ownership and always stops target access.
+Negative controls cover this case without accessing hardware. There is no automatic
+retry, ownership exemption or weakened physical limit. A fresh successful ownership
+inventory and independent approval are required before resuming physical work.
+The original attempt, process state, exact image manifests and independent REVISE
+record remain in the portable evidence; an image-plan PASS is not runtime evidence.
+
+The last qualified local firmware source is `fe9f54f683eee41cb7700f3918d4c0123db99eae`.
+Its development BIN is 58,164 bytes (SHA-256
+`7b9cc541d75d03c3779d35985fe7a3cafd0de232b139784d80cc62927e1c8896`);
+its normal BIN is 41,232 bytes (SHA-256
+`238b352fd66bbfea984c4210510dd398cfe808fcb93c5f11a142fa4ba5bd24c0`).
+These are identified cross-builds, not physically tested firmware. Later tooling
+and documentation revisions are identified separately in the PR/evidence record.
+
 ## Acceptance coverage and held work
 
 The table references AC order in the linked authoritative issues. It records

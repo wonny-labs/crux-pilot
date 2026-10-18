@@ -6,6 +6,9 @@ import json
 from pathlib import Path
 from datetime import datetime, timezone
 import platform
+import os
+import signal
+import tempfile
 import re
 import subprocess
 import sys
@@ -292,14 +295,44 @@ def run_series(program, observe):
             observe('final-normal', False)
 
 
+def inventory(command, output):
+    """Fail closed without waiting indefinitely for an uninterruptible child."""
+    with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+        process = subprocess.Popen(command, stdout=stdout, stderr=stderr, start_new_session=True)
+        try:
+            code = process.wait(timeout=10)
+        except subprocess.TimeoutExpired as error:
+            cleanup = []
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except OSError as failure:
+                cleanup.append(repr(failure))
+            try:
+                process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                cleanup.append('created process group not reaped within grace; no retry')
+            stdout.seek(0)
+            stderr.seek(0)
+            output.write_text(json.dumps(dict(command=command, pid=process.pid, pgid=process.pid,
+                                             status='OWNERSHIP_UNVERIFIED', cleanup=cleanup,
+                                             stdout=stdout.read().decode(errors='replace'),
+                                             stderr=stderr.read().decode(errors='replace')), indent=2))
+            raise HardwareStop('Ownership inventory timed out; stop before target access') from error
+        stdout.seek(0)
+        stderr.seek(0)
+        return subprocess.CompletedProcess(command, code, stdout.read().decode(errors='strict'),
+                                           stderr.read().decode(errors='strict'))
+
+
 def check_owners(uart, output):
-    owners = subprocess.run(['lsof', uart], capture_output=True, text=True, timeout=10)
+    owners = inventory(['lsof', uart], output)
     output.write_text(owners.stdout + owners.stderr)
     require(owners.returncode == 1 and not owners.stdout and not owners.stderr,
             'UART already owned or ownership inventory uncertain')
-    processes = subprocess.check_output(['ps', '-axo', 'pid=,comm=,args='], text=True, timeout=10)
-    require(processes.strip(), 'Probe ownership inventory empty')
-    require(not re.search(r'(?im)(?:/|\s)(?:JLink\S*|openocd|pyocd(?:\.\S+)?)(?:\s|$)', processes),
+    result = inventory(['ps', '-axo', 'pid=,comm=,args='], output.with_suffix('.probe-status.json'))
+    require(result.returncode == 0 and not result.stderr and result.stdout.strip(),
+            'Probe ownership inventory uncertain')
+    require(not re.search(r'(?im)(?:/|\s)(?:JLink\S*|openocd|pyocd(?:\.\S+)?)(?:\s|$)', result.stdout),
             'Probe already owned')
 
 
