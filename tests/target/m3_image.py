@@ -62,6 +62,7 @@ def check_image(binary_path, elf_path, config_path, profile):
     require(profile in ('probe', 'normal'), 'Wrong profile')
     required += ['CONFIG_CRUX_M3_TEST_COMMANDS=y', 'CONFIG_SHELL=y'] if profile == 'probe' else ['# CONFIG_SHELL is not set']
     if profile == 'probe':
+        required += ['CONFIG_SHELL_STACK_SIZE=2048', 'CONFIG_SHELL_BACKEND_SERIAL=y']
         required += [f'# CONFIG_{module}_SHELL is not set' for module in ('KERNEL', 'DEVICE', 'DATE', 'DEVMEM')]
     for item in required:
         require(item in config, f'Unexpected configuration: {item}')
