@@ -635,3 +635,25 @@ The two BMSR reads are not an atomic pair. A successful native return and plausi
 identity do not prove MDIO transaction completion in the pinned driver. These
 post-round observations cannot establish the cause of an earlier transient link
 event, qualify a driver correction or replace the original failure/recovery tests.
+
+
+### Native MDIO completion correction candidate
+
+The e6b545f diagnostic completed ten TCP and seven UDP exchanges before native
+`-ENETDOWN` results. Its eight subsequent PHY reads all returned success with
+zero data, including implausible PHY identifiers. The attempt stopped and remains
+unqualified. Normal fe9 firmware was subsequently fully verified and freshly
+booted. The intervening failed read-only recovery inspection requested `13`
+words, which J-Link Commander interpreted as hexadecimal (19 words); strict
+length validation rejected that attempt before programming. The corrective
+normal-only recovery passed. Neither diagnostic data nor external SDRAM backing
+reads establish a coherent CPU snapshot or the original cause.
+
+An exact-source host model independently reproduced discarded wait errors and
+premature reads with an explicitly injected old completion token. A maintained,
+opt-in [native patch](../patches/zephyr/README.md) now provides a candidate for
+bounded completion/error handling without modifying the dependency checkout.
+Its source-level controls and target compilation do not establish a physical
+correction. The original seven-stage Ethernet acceptance and dependent integrated
+physical cases remain Pending; a new identified candidate and affected independent
+source/physical review are required before another target trial.

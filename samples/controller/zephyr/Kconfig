@@ -24,3 +24,12 @@ config CRUX_M3_INTEGRATED
 	bool "Require bounded network work in the M3 controller"
 	depends on CRUX_CONTROLLER_M3 && NETWORKING
 	default n
+
+config CRUX_M3_MDIO_COMPLETION_FIX
+	bool "Use the pinned reference-only MDIO completion correction"
+	depends on SOC_MIMXRT1062 && MDIO_NXP_ENET && !SMP && !ZERO_LATENCY_IRQS
+	default n
+	help
+	  Apply a maintained native driver patch to a generated build copy.
+	  A transaction timeout disables further MDIO requests until a fresh boot.
+	  This option does not establish physical Ethernet qualification.

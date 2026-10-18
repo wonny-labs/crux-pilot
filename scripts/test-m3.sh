@@ -12,6 +12,7 @@ pending="$repo/build/evidence/m3-inputs.pending.json"
 after="$repo/build/evidence/m3-inputs.after.json"
 rm -f "$inputs" "$pending" "$after"
 python3 "$repo/scripts/record-build-provenance.py" --workspace "$workspace" --capture-inputs "$pending"
+python3 "$repo/tests/native/mdio_completion/test_driver.py"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/controller_m3" \
     -T "$repo/tests/controller_network" -T "$repo/tests/controller_network_stack" \
     -T "$repo/tests/controller_integrated" \
@@ -30,6 +31,13 @@ done
     -d "$repo/build/zephyr/m3-network-evkb" "$repo/samples/controller/zephyr" -- \
     -DZEPHYR_EXTRA_MODULES="$repo" \
     -DEXTRA_CONF_FILE="$repo/samples/controller/zephyr/m3-network.conf" \
+    -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay" \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+# Keep the correction opt-in; retain the ordinary upstream-driver build above.
+(cd "$workspace" && west build -p always -b 'mimxrt1060_evk@B//qspi' \
+    -d "$repo/build/zephyr/m3-mdio-candidate-evkb" "$repo/samples/controller/zephyr" -- \
+    -DZEPHYR_EXTRA_MODULES="$repo" \
+    -DEXTRA_CONF_FILE="$repo/samples/controller/zephyr/m3-network.conf;$repo/samples/controller/zephyr/m3-mdio-completion.conf" \
     -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay" \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 for profile in integrated-probe integrated-normal; do
