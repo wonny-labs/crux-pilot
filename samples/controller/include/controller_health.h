@@ -29,6 +29,15 @@ extern "C" {
 bool controller_health_init(controller_health_t *health, int64_t freshness_ms);
 bool controller_health_observe(controller_health_t *health, int64_t now_ms,
                                controller_progress_t progress);
+/* Both required owners are observed even when one has already failed. */
+bool controller_health_joint_observe(controller_health_t *time_health,
+                                     controller_health_t *network_health, int64_t now_ms,
+                                     controller_progress_t time_progress,
+                                     controller_progress_t network_progress);
+/* Bounds for this finite M3 validation scenario, not platform guarantees. */
+bool controller_m3_arm_allowed(int64_t now_ms, int64_t healthy_since_ms, int64_t window_end_ms);
+bool controller_m3_fault_allowed(int64_t now_ms, int64_t request_deadline_ms,
+                                 int64_t window_end_ms);
 controller_readiness_t controller_readiness(bool time_ready, bool device_ready, bool network_ready,
                                             bool optional_ready);
 #ifdef __cplusplus

@@ -14,6 +14,7 @@ rm -f "$inputs" "$pending" "$after"
 python3 "$repo/scripts/record-build-provenance.py" --workspace "$workspace" --capture-inputs "$pending"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/controller_m3" \
     -T "$repo/tests/controller_network" -T "$repo/tests/controller_network_stack" \
+    -T "$repo/tests/controller_integrated" \
     -O "$repo/build/zephyr/twister-m3" --inline-logs)
 for profile in probe normal; do
     configuration="$repo/samples/controller/zephyr/m3.conf"
@@ -31,6 +32,17 @@ done
     -DEXTRA_CONF_FILE="$repo/samples/controller/zephyr/m3-network.conf" \
     -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay" \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+for profile in integrated-probe integrated-normal; do
+    configuration="$repo/samples/controller/zephyr/m3.conf;$repo/samples/controller/zephyr/m3-integrated.conf"
+    if [[ "$profile" == integrated-normal ]]; then
+        configuration+=";$repo/samples/controller/zephyr/m3-normal.conf"
+    fi
+    (cd "$workspace" && west build -p always -b 'mimxrt1060_evk@B//qspi' \
+        -d "$repo/build/zephyr/m3-$profile-evkb" "$repo/samples/controller/zephyr" -- \
+        -DZEPHYR_EXTRA_MODULES="$repo" -DEXTRA_CONF_FILE="$configuration" \
+        -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay" \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+done
 python3 "$repo/scripts/record-build-provenance.py" --workspace "$workspace" --capture-inputs "$after"
 cmp "$pending" "$after"
 mv "$pending" "$inputs"

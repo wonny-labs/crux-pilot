@@ -63,10 +63,11 @@ class NetworkPeerControls(unittest.TestCase):
                      patch.object(peer.time, 'monotonic', return_value=0):
                     peer.serve(1, mode, output)
                 tcp.bind.assert_called_once_with((peer.PEER, 42420))
+                tcp.setsockopt.assert_called_once_with(peer.socket.SOL_SOCKET, peer.socket.SO_REUSEADDR, 1)
                 udp.bind.assert_called_once_with((peer.PEER, 42421))
                 self.assertEqual(udp.recvfrom.call_count, 200)
-                self.assertEqual(udp.sendto.call_count, 200 if mode == 'echo' else 0)
-                self.assertEqual(udp.settimeout.call_count, 400 if mode == 'echo' else 200)
+                self.assertEqual(udp.sendto.call_count, 200 if mode in ('echo', 'close') else 0)
+                self.assertEqual(udp.settimeout.call_count, 400 if mode in ('echo', 'close') else 200)
                 self.assertEqual(json.loads(output.getvalue().splitlines()[-1])['event'], 'peer_closed')
                 tcp.__exit__.assert_called_once()
                 udp.__exit__.assert_called_once()
@@ -149,7 +150,7 @@ class NetworkPeerControls(unittest.TestCase):
                 self.assertEqual(stream.__exit__.call_count, 1 if mode == 'silence' else 200)
                 record = json.loads(output.getvalue().splitlines()[1])
                 self.assertEqual(record['protocol'], 'tcp')
-                self.assertEqual(record['response'], 'sent' if mode == 'echo' else 'withheld')
+                self.assertEqual(record['response'], 'sent' if mode == 'echo' else 'closed' if mode == 'close' else 'withheld')
 
     def test_spurious_accept_readiness_and_output_failure_are_bounded(self):
         from io import StringIO
@@ -178,3 +179,19 @@ class NetworkPeerControls(unittest.TestCase):
             tcp.__exit__.assert_called_once()
             udp.__exit__.assert_called_once()
             selector.__exit__.assert_called_once()
+
+    def test_requested_stop_closes_listener_without_exchange(self):
+        from io import StringIO
+        from unittest.mock import MagicMock
+        import json
+        tcp, udp, selector = MagicMock(), MagicMock(), MagicMock()
+        for item in (tcp, udp, selector):
+            item.__enter__.return_value = item
+        output = StringIO()
+        with patch.object(peer.socket, 'socket', side_effect=[tcp, udp]), \
+             patch.object(peer.selectors, 'DefaultSelector', return_value=selector):
+            peer.serve(300, 'echo', output, lambda: True)
+        self.assertEqual(json.loads(output.getvalue().splitlines()[-1])['exchanges'], 0)
+        tcp.accept.assert_not_called()
+        tcp.__exit__.assert_called_once()
+        udp.__exit__.assert_called_once()

@@ -50,10 +50,27 @@ def _commander(probe, commands, output):
     script.write_text('exec DisableAutoUpdateFW\nusb ' + probe + '\nconnect\n' + commands)
     environment = {key: value for key, value in os.environ.items() if not key.startswith('DYLD_')}
     with output.open('wb') as log:
-        subprocess.run([executable, '-Device',
-                        'MIMXRT1062xxx6A', '-If', 'SWD', '-Speed', '400', '-NoGui', '1',
-                        '-ExitOnError', '1', '-AutoConnect', '0', '-CommandFile', str(script)],
-                       stdout=log, stderr=subprocess.STDOUT, check=True, timeout=30, env=environment)
+        command = [executable, '-Device', 'MIMXRT1062xxx6A', '-If', 'SWD', '-Speed', '400',
+                   '-NoGui', '1', '-ExitOnError', '1', '-AutoConnect', '0', '-CommandFile', str(script)]
+        process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
+                                   start_new_session=True, env=environment)
+        try:
+            code = process.wait(timeout=30)
+        except subprocess.TimeoutExpired as error:
+            cleanup = []
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except OSError as failure:
+                cleanup.append(repr(failure))
+            try:
+                process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                cleanup.append('created process not reaped; no retry')
+            output.with_suffix('.timeout.json').write_text(json.dumps(dict(
+                status='PROBE_STATE_UNCERTAIN', pid=process.pid, pgid=process.pid,
+                cleanup=cleanup), indent=2))
+            raise HardwareStop('Probe timeout; state uncertain; no further hardware changes') from error
+        require(code == 0, 'Probe exited unsuccessfully; state uncertain')
     text = output.read_text(errors='replace')
     if re.search(r'Updating firmware:|Replacing firmware:|Waiting for new firmware', text):
         raise HardwareStop('Unexpected probe firmware maintenance; stop all target operations')
@@ -284,7 +301,7 @@ def verify_manifest(path):
     require(not manifest['source']['dirty'] and manifest['source']['recoverable_from_git'], 'Unfrozen source')
     for record in manifest['artifacts']:
         require(sha(record['path']) == record['sha256'], 'Changed image/configuration')
-    require(manifest['profile'] in ('probe', 'normal'), 'Wrong image profile')
+    require(manifest['profile'] in ('probe', 'normal', 'network', 'integrated-probe', 'integrated-normal'), 'Wrong image profile')
     required = [Path(manifest[name]).resolve() for name in ('binary', 'elf', 'config')]
     recorded = [Path(record['path']).resolve() for record in manifest['artifacts']]
     require(len(recorded) == len(set(recorded)) and all(p in recorded for p in required),
@@ -344,12 +361,16 @@ def inventory(command, output):
 
 
 def check_owners(uart, output):
-    owners = inventory(['lsof', uart], output)
+    paths = [uart]
+    if uart.startswith('/dev/cu.'):
+        paths.append(uart.replace('/dev/cu.', '/dev/tty.', 1))
+    owners = inventory(['lsof', *paths], output)
     output.write_text(owners.stdout + owners.stderr)
     require(owners.returncode == 1 and not owners.stdout and not owners.stderr,
             'UART already owned or ownership inventory uncertain')
     result = inventory(['ps', '-axo', 'pid=,comm=,args='], output.with_suffix('.probe-status.json'))
-    require(result.returncode == 0 and not result.stderr and result.stdout.strip(),
+    require(result.returncode == 0 and not result.stderr and result.stdout.strip() and
+            all(re.match(r'^\s*\d+\s+\S+', line) for line in result.stdout.splitlines()),
             'Probe ownership inventory uncertain')
     require(not re.search(r'(?im)(?:/|\s)(?:JLink\S*|openocd|pyocd(?:\.\S+)?)(?:\s|$)', result.stdout),
             'Probe already owned')

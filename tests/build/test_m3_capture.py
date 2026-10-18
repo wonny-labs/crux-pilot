@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import capture_m3 as runner
 
 
@@ -78,8 +78,9 @@ class RunnerControls(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             def fake_run(*args, **kwargs):
                 kwargs['stdout'].write(b'J-Link Commander will now exit on Error\nScript processing completed.\n')
+                process = Mock(); process.wait.return_value = 0; return process
             with patch.object(runner, 'verify_jlink_tools', return_value='/pinned/JLinkExe'), \
-                 patch.object(runner.subprocess, 'run', side_effect=fake_run):
+                 patch.object(runner.subprocess, 'Popen', side_effect=fake_run):
                 text = runner.commander('602003106', 'connect\nq\n', Path(d) / 'probe.log')
             self.assertIn('Script processing completed.', text)
 
@@ -89,9 +90,27 @@ class RunnerControls(unittest.TestCase):
             with self.subTest(diagnostic=diagnostic), tempfile.TemporaryDirectory() as d:
                 def fake_run(*args, **kwargs):
                     kwargs['stdout'].write(diagnostic.encode())
+                    process = Mock(); process.wait.return_value = 0; return process
                 with patch.object(runner, 'verify_jlink_tools', return_value='/pinned/JLinkExe'), \
-                     patch.object(runner.subprocess, 'run', side_effect=fake_run), self.assertRaises(runner.HardwareStop):
+                     patch.object(runner.subprocess, 'Popen', side_effect=fake_run), self.assertRaises(runner.HardwareStop):
                     runner.commander('602003106', 'connect\nq\n', Path(d) / 'probe.log')
+
+    def test_probe_timeout_has_bounded_reap_and_no_retry(self):
+        with tempfile.TemporaryDirectory() as d, \
+             patch.object(runner, 'verify_jlink_tools', return_value='/pinned/JLinkExe'), \
+             patch.object(runner.subprocess, 'Popen') as create, \
+             patch.object(runner.os, 'killpg') as terminate:
+            process = create.return_value
+            process.pid = 12345
+            process.wait.side_effect = runner.subprocess.TimeoutExpired('probe', 30)
+            output = Path(d) / 'probe.log'
+            with self.assertRaises(runner.HardwareStop):
+                runner.commander('602003106', 'IsHalted\nq\n', output)
+            self.assertEqual([c.kwargs['timeout'] for c in process.wait.call_args_list], [30, 1])
+            terminate.assert_called_once_with(12345, runner.signal.SIGKILL)
+            self.assertEqual(create.call_count, 1)
+            self.assertTrue(create.call_args.kwargs['start_new_session'])
+            self.assertEqual(json.loads(output.with_suffix('.timeout.json').read_text())['status'], 'PROBE_STATE_UNCERTAIN')
 
     def test_tool_drift_stops_before_probe_launch(self):
         with tempfile.TemporaryDirectory() as d:
@@ -117,7 +136,7 @@ class RunnerControls(unittest.TestCase):
             with self.assertRaises(ValueError):
                 runner.verify_jlink_tools(manifest)
         with patch.object(runner, 'verify_jlink_tools', side_effect=ValueError('drift')), \
-             patch.object(runner.subprocess, 'run') as launch, tempfile.TemporaryDirectory() as d:
+             patch.object(runner.subprocess, 'Popen') as launch, tempfile.TemporaryDirectory() as d:
             with self.assertRaises(runner.HardwareStop):
                 runner.commander('602003106', 'q\n', Path(d) / 'out.log')
             launch.assert_not_called()
@@ -147,8 +166,9 @@ class RunnerControls(unittest.TestCase):
                 self.assertTrue(script.startswith('exec DisableAutoUpdateFW\nusb 602003106\nconnect\n'))
                 self.assertFalse(any(k.startswith('DYLD_') for k in kwargs['env']))
                 kwargs['stdout'].write(b'Updating firmware: unexpected\n')
+                process = Mock(); process.wait.return_value = 0; return process
             with patch.object(runner, 'verify_jlink_tools', return_value='/pinned/JLinkExe'), \
-                 patch.object(runner.subprocess, 'run', side_effect=fake_run):
+                 patch.object(runner.subprocess, 'Popen', side_effect=fake_run):
                 with self.assertRaises(runner.HardwareStop):
                     runner.commander('602003106', 'q\n', output)
 

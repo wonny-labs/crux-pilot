@@ -449,3 +449,55 @@ a9a6d3a, frozen helpers/oracles, raw failures/results and independent reviews.
 Archive SHA256 6f9b6283bc27a767456cfd90abbf475339dea958acb59dc1a861ad1c7cf9ac5a;
 the archive was reopened and every relative manifest hash verified. Dirty,
 unfinished integrated-controller changes were neither built nor programmed.
+
+## Ethernet and combined-controller qualification preparation
+
+The next scoped configuration reuses the qualified SW5 input and the native
+network client in an integrated development composition. It has a 100 ms Time/
+GPIO owner (priority 5), one network owner (priority 6), and a main health observer.
+Each has 4096 usable stack bytes, with no application heap. The network owner
+starts no application traffic automatically. One explicit command admits a 60 s
+window; each complete TCP/UDP pair has a 14 s exchange/cleanup budget and a gap of
+at least 1 s after completion. Pair failures or window expiry publish inactive,
+unhealthy state. The same protocol, fixed peer and native resource fence are
+used by the independent network probe and the combined controller.
+
+Joint readiness and watchdog feeding require both actual owners' successful,
+fresh progress and carrier availability. Time freshness remains 500 ms; network
+freshness is 16000 ms, covering the bounded complete pair. Arming requires at
+least 1 s continuous joint health and 40 s remaining in the window. Owner-local
+fault requests expire after 15 s and require at least 25 s remaining when the
+owner handles them. Rejected requests cannot inject a stall. Native watchdog
+configuration remains 2000 ms with debug-halt pause. These are application test
+policies, not new Crux interfaces or platform timing guarantees.
+
+`tests/controller_integrated` executes the actual composition source with
+controlled clock, thread creation and driver/socket-owner seams. It tests the
+state machine; it cannot prove real scheduling, sockets or watchdog action.
+Native socket mock and actual stack fixtures remain distinct. The standalone
+normal profile preserves its previous behaviour. Integrated normal disables
+Shell/fault commands and remains unarmed without an automatic network window.
+
+The prospective #11 physical sequence uses seven explicit logical stages: echo,
+silence, echo, TCP closure with UDP echo, echo, physical link loss, then an explicit
+restart followed by echo after cable restoration. Each full round attempts ten
+TCP and ten UDP frames, with a 150 s absolute round budget and 2 s per exchange.
+Native context settling is capped at 5 s and clamped to the round deadline.
+Owned sockets must be zero; immutable idle contexts zero; RX/TX packet slabs
+16/16 free and data-buffer pools 32/32 free at declared idle checkpoints. Require
+three consecutive approximately 1 s idle reports within 5 s and at least 1024
+untouched main-stack bytes. A link-loss cleanup fence is retained as failed
+in-place reclamation; the preselected one restart is the recovery mechanism.
+It does not establish automatic recovery or leak-freedom across resets.
+
+The isolated peer binds only 192.168.77.1 on the dedicated AX88179/en5; the EVKB
+uses 192.168.77.2. Management networking is excluded. Ordinary peer lifetime is
+180 s, with 300 s for the physical-unplug stage to cover human response and the
+whole round. The complete series is bounded to 1800 s. The capture retains raw
+UART and both-end frame records; the pure oracle rejects identity, framing,
+resource, readiness, deadline and post-fence work discrepancies. USB mount/owner,
+probe, peer or transport uncertainty stops further target changes. Only a known
+functional-oracle failure permits the separately identified normal restoration.
+Physical #11 acceptance and integrated #12 trials remain Pending until actually
+executed and independently reviewed; successful software tests/builds do not
+satisfy those physical gates. No issue closure or PR merge is authorised here.

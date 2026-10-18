@@ -2,6 +2,7 @@
 import argparse
 import json
 import selectors
+import signal
 import socket
 import struct
 import time
@@ -54,12 +55,15 @@ def send_exact(stream, data, deadline):
         view = view[count:]
 
 
-def serve(duration, mode, output):
+def serve(duration, mode, output, stopping=lambda: False):
     deadline = time.monotonic() + duration
     count = 0
     with selectors.DefaultSelector() as ready, \
             socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp, \
             socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp:
+        # Permit bounded mode changes after our own accepted connections enter TIME_WAIT.
+        # SO_REUSEPORT remains off; a live listener still owns this exact address.
+        tcp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         tcp.bind((PEER, 42420))
         udp.bind((PEER, 42421))
         tcp.listen(1)
@@ -69,9 +73,9 @@ def serve(duration, mode, output):
         output.write(json.dumps(dict(event='peer_ready', mode=mode, address=PEER,
                                      monotonic=time.monotonic())) + '\n')
         output.flush()
-        while time.monotonic() < deadline and count < 200:
+        while time.monotonic() < deadline and count < 200 and not stopping():
             for key, _ in ready.select(max(0, min(0.25, deadline - time.monotonic()))):
-                if count >= 200 or time.monotonic() >= deadline:
+                if count >= 200 or time.monotonic() >= deadline or stopping():
                     break
                 exchange_deadline = min(deadline, time.monotonic() + 2)
                 protocol = 'tcp' if key.fileobj is tcp else 'udp'
@@ -89,7 +93,7 @@ def serve(duration, mode, output):
                                 send_exact(stream, data, exchange_deadline)
                             elif mode == 'silence':
                                 # Hold the accepted connection without sending a response.
-                                while time.monotonic() < min(deadline, exchange_deadline + 0.25):
+                                while time.monotonic() < min(deadline, exchange_deadline + 0.25) and not stopping():
                                     time.sleep(0.01)
                             # close mode deliberately closes after receiving the frame.
                             protocol = 'tcp'
@@ -99,7 +103,7 @@ def serve(duration, mode, output):
                         if address[0] != BOARD:
                             raise ValueError('Unexpected UDP peer')
                         trial, sequence = validate(data, 2)
-                        if mode == 'echo':
+                        if mode in ('echo', 'close'):
                             udp.settimeout(remaining(exchange_deadline))
                             if udp.sendto(data, address) != len(data):
                                 raise OSError('Incomplete UDP send')
@@ -107,7 +111,8 @@ def serve(duration, mode, output):
                     count += 1
                     record = dict(event='exchange', protocol=protocol, trial=trial,
                                   sequence=sequence, mode=mode, received_bytes=len(data),
-                                  response='sent' if mode == 'echo' else 'withheld',
+                                  response=('sent' if mode == 'echo' or (protocol == 'udp' and mode == 'close')
+                                            else 'closed' if mode == 'close' else 'withheld'),
                                   peer=address)
                 except (OSError, ValueError, EOFError, TimeoutError) as error:
                     count += 1
@@ -127,8 +132,13 @@ def main():
     parser.add_argument('--mode', choices=('echo', 'silence', 'close'), default='echo')
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
+    stop = [False]
+    def request_stop(signum, frame):
+        stop[0] = True
+    signal.signal(signal.SIGTERM, request_stop)
+    signal.signal(signal.SIGINT, request_stop)
     with open(args.output, 'x') as output:
-        serve(args.duration, args.mode, output)
+        serve(args.duration, args.mode, output, lambda: stop[0])
 
 
 if __name__ == '__main__':

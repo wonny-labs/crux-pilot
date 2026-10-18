@@ -357,4 +357,35 @@ ZTEST(network, test_readiness_failure_link_loss_and_explicit_recovery) {
     zassert_equal(owned_sockets, 0);
 }
 
+ZTEST(network, test_full_pair_reuses_cleanup_and_failed_tcp_never_claims_pair_progress) {
+    zassert_ok(controller_network_pair(1, 1, 14000));
+    zassert_equal(creates, 2);
+    zassert_equal(closes, 2);
+    zassert_true(service_ready);
+    scenario = CONNECT_FAIL;
+    zassert_equal(controller_network_pair(1, 2, elapsed + 14000), -ECONNREFUSED);
+    zassert_equal(creates, 3);
+    zassert_false(service_ready);
+    zassert_equal(owned_sockets, 0);
+    scenario = ECHO;
+    zassert_ok(controller_network_pair(1, 3, elapsed + 14000));
+    zassert_true(service_ready);
+    context_count = 1;
+    zassert_equal(controller_network_pair(1, 4, elapsed + 14000), -ETIMEDOUT);
+    zassert_true(cleanup_uncertain);
+    unsigned int before_creates = creates;
+    zassert_equal(controller_network_pair(1, 5, elapsed + 14000), -EBUSY);
+    zassert_equal(creates, before_creates);
+}
+
+ZTEST(network, test_pair_deadline_and_invalid_inputs_cannot_create_socket) {
+    zassert_equal(controller_network_pair(0, 1, 14000), -EINVAL);
+    zassert_equal(controller_network_pair(1, 0, 14000), -EINVAL);
+    zassert_equal(controller_network_pair(1, 1, 0), -ETIMEDOUT);
+    zassert_equal(creates, 0);
+    zassert_true(cleanup_uncertain);
+    zassert_equal(controller_network_pair(1, 2, 14000), -EBUSY);
+    zassert_equal(creates, 0);
+}
+
 ZTEST_SUITE(network, NULL, NULL, before, NULL, NULL);

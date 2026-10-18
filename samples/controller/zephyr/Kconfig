@@ -14,3 +14,8 @@ config CRUX_M3_TEST_COMMANDS
 config CRUX_M3_NETWORK_PROBE
 	bool "Build the bounded isolated M3 network probe"
 	default n
+
+config CRUX_M3_INTEGRATED
+	bool "Require bounded network work in the M3 controller"
+	depends on CRUX_CONTROLLER_M3 && NETWORKING
+	default n

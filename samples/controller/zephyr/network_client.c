@@ -198,8 +198,8 @@ void controller_network_report(void) {
            net_buf_get_available(tx_data));
     bool link = interface != NULL && net_if_is_carrier_ok(interface);
     service_ready = service_ready && link;
-    printk("M3_NET_STATE link=%d address=%d service_ready=%d\n", link, address_ready,
-           service_ready);
+    printk("M3_NET_STATE monotonic_ms=%lld link=%d address=%d service_ready=%d\n",
+           (long long)k_uptime_get(), link, address_ready, service_ready);
 }
 
 int controller_network_init(void) {
@@ -238,6 +238,52 @@ int controller_network_init(void) {
     return address_ready ? 0 : result;
 }
 
+static int perform_exchange(unsigned int protocol, unsigned int trial, unsigned int sequence,
+                            int64_t deadline) {
+    if (k_uptime_get() >= deadline) {
+        cleanup_uncertain = true;
+        return -ETIMEDOUT;
+    }
+    int64_t start = k_uptime_get();
+    int result = exchange(protocol, trial, sequence, deadline);
+    printk("M3_NET_EXCHANGE trial=%u protocol=%u sequence=%u result=%d "
+           "monotonic_ms=%lld elapsed_ms=%lld\n",
+           trial, protocol, sequence, result, (long long)k_uptime_get(),
+           (long long)(k_uptime_get() - start));
+    controller_network_report();
+    if (owned_sockets != 0) {
+        return -EBUSY;
+    }
+    if (settle_contexts(deadline) < 0) {
+        controller_network_report();
+        return -ETIMEDOUT;
+    }
+    controller_network_report();
+    return result;
+}
+
+int controller_network_pair(unsigned int trial, unsigned int sequence, int64_t deadline) {
+    if (interface == NULL || !address_ready || trial == 0 || sequence == 0) {
+        return -EINVAL;
+    }
+    if (owned_sockets != 0 || cleanup_uncertain || !baseline_valid) {
+        return -EBUSY;
+    }
+    service_ready = false;
+    deadline = MIN(deadline, k_uptime_get() + 14000);
+    if (settle_contexts(deadline) < 0) {
+        controller_network_report();
+        return -ETIMEDOUT;
+    }
+    int result = perform_exchange(1, trial, sequence, deadline);
+    if (result == 0) {
+        result = perform_exchange(2, trial, sequence, deadline);
+    }
+    service_ready = result == 0;
+    controller_network_report();
+    return result;
+}
+
 int controller_network_round(unsigned int trial) {
     if (interface == NULL || !address_ready || trial == 0) {
         return -EINVAL;
@@ -248,34 +294,21 @@ int controller_network_round(unsigned int trial) {
     service_ready = false;
     controller_network_report();
     int failures = 0;
-    int64_t round_deadline = k_uptime_get() + 150000;
+    int64_t round_start = k_uptime_get();
+    int64_t round_deadline = round_start + 150000;
+    printk("M3_NET_ROUND_BUDGET trial=%u started_ms=%lld deadline_ms=%lld\n", trial,
+           (long long)round_start, (long long)round_deadline);
     if (settle_contexts(round_deadline) < 0) {
         controller_network_report();
         return -ETIMEDOUT;
     }
     for (unsigned int protocol = 1; protocol <= 2; ++protocol) {
         for (unsigned int sequence = 1; sequence <= 10; ++sequence) {
-            if (k_uptime_get() >= round_deadline) {
-                cleanup_uncertain = true;
-                controller_network_report();
-                return -ETIMEDOUT;
-            }
-            int64_t start = k_uptime_get();
-            int result = exchange(protocol, trial, sequence, round_deadline);
-            printk("M3_NET_EXCHANGE trial=%u protocol=%u sequence=%u result=%d "
-                   "monotonic_ms=%lld elapsed_ms=%lld\n",
-                   trial, protocol, sequence, result, (long long)k_uptime_get(),
-                   (long long)(k_uptime_get() - start));
+            int result = perform_exchange(protocol, trial, sequence, round_deadline);
             failures += result != 0;
-            controller_network_report();
-            if (owned_sockets != 0) {
-                return -EBUSY;
+            if (owned_sockets != 0 || cleanup_uncertain) {
+                return result;
             }
-            if (settle_contexts(round_deadline) < 0) {
-                controller_network_report();
-                return -ETIMEDOUT;
-            }
-            controller_network_report();
         }
     }
     service_ready = failures == 0;

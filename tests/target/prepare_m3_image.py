@@ -36,7 +36,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--inputs', type=Path, required=True)
-    parser.add_argument('--profile', choices=('probe', 'normal'), required=True)
+    parser.add_argument('--profile', choices=('probe', 'normal', 'network', 'integrated-probe', 'integrated-normal'), required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     prepare(args.build, args.inputs, args.profile, args.output)

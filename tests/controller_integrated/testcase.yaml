@@ -1,0 +1,8 @@
+tests:
+  crux.controller.integrated.composition:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - controller
+      - network
+    timeout: 30

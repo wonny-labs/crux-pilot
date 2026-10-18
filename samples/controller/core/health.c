@@ -45,6 +45,27 @@ bool controller_health_observe(controller_health_t *health, int64_t now_ms,
     return health->progress_seen && now_ms - health->last_progress_ms <= health->freshness_ms;
 }
 
+bool controller_health_joint_observe(controller_health_t *time_health,
+                                     controller_health_t *network_health, int64_t now_ms,
+                                     controller_progress_t time_progress,
+                                     controller_progress_t network_progress) {
+    bool time_ok = controller_health_observe(time_health, now_ms, time_progress);
+    bool network_ok = controller_health_observe(network_health, now_ms, network_progress);
+    return time_ok && network_ok;
+}
+
+bool controller_m3_arm_allowed(int64_t now_ms, int64_t healthy_since_ms, int64_t window_end_ms) {
+    return now_ms >= 0 && healthy_since_ms >= 0 && now_ms >= healthy_since_ms &&
+           window_end_ms >= now_ms && now_ms - healthy_since_ms >= 1000 &&
+           window_end_ms - now_ms >= 40000;
+}
+
+bool controller_m3_fault_allowed(int64_t now_ms, int64_t request_deadline_ms,
+                                 int64_t window_end_ms) {
+    return now_ms >= 0 && request_deadline_ms > now_ms && window_end_ms >= now_ms &&
+           window_end_ms - now_ms >= 25000;
+}
+
 controller_readiness_t controller_readiness(bool time_ready, bool device_ready, bool network_ready,
                                             bool optional_ready) {
     if (!time_ready || !device_ready || !network_ready) {

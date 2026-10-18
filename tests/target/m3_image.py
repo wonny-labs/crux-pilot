@@ -49,23 +49,56 @@ def check_image(binary_path, elf_path, config_path, profile):
         for o in range(s[4], s[4] + s[5], 16):
             name, value, size, info, other, index = struct.unpack_from('<IIIBBH', elf, o)
             symbols[strings[name:].split(b'\0', 1)[0].decode(errors='replace')] = dict(address=value, bytes=size)
-    require(symbols.get('work_stack', {}).get('bytes') == 4160, 'Unexpected worker stack object')
-    require(symbols.get('z_main_stack', {}).get('bytes') == 2112, 'Unexpected main stack object')
+    require(profile in ('probe', 'normal', 'network', 'integrated-probe', 'integrated-normal'),
+            'Wrong profile')
+    integrated = profile.startswith('integrated-')
+    network = profile == 'network' or integrated
+    worker = profile != 'network'
+    commands = profile in ('probe', 'integrated-probe')
+    main_bytes = 4160 if network else 2112
+    if worker:
+        require(symbols.get('work_stack', {}).get('bytes') == 4160, 'Unexpected worker stack object')
+    else:
+        require('work_stack' not in symbols, 'Unexpected controller worker in network probe')
+    require(symbols.get('z_main_stack', {}).get('bytes') == main_bytes, 'Unexpected main stack object')
+    if integrated:
+        require(symbols.get('network_stack', {}).get('bytes') == 4160, 'Unexpected network stack object')
     config = Path(config_path).read_text().splitlines()
     required = ['CONFIG_BOARD_REVISION="B"', 'CONFIG_BOARD_TARGET="mimxrt1060_evk@B/mimxrt1062/qspi"',
                 'CONFIG_FLASH_BASE_ADDRESS=0x60000000', 'CONFIG_FLASH_SIZE=8192', 'CONFIG_XIP=y',
                 'CONFIG_NXP_IMXRT_BOOT_HEADER=y', 'CONFIG_FLASH_LOAD_OFFSET=0',
                 '# CONFIG_BOOTLOADER_MCUBOOT is not set', 'CONFIG_HEAP_MEM_POOL_SIZE=0', 'CONFIG_MPU_STACK_GUARD=y',
-                'CONFIG_MAIN_STACK_SIZE=2048', '# CONFIG_FPU is not set',
-                'CONFIG_ARM_MPU_REGION_MIN_ALIGN_AND_SIZE=32', 'CONFIG_CRUX_CONTROLLER_M3=y', 'CONFIG_WATCHDOG=y',
-                'CONFIG_HWINFO=y', 'CONFIG_GPIO=y', '# CONFIG_NETWORKING is not set']
-    require(profile in ('probe', 'normal'), 'Wrong profile')
-    required += ['CONFIG_CRUX_M3_TEST_COMMANDS=y', 'CONFIG_SHELL=y'] if profile == 'probe' else ['# CONFIG_SHELL is not set']
-    if profile == 'probe':
-        required += ['CONFIG_SHELL_STACK_SIZE=2048', 'CONFIG_SHELL_BACKEND_SERIAL=y']
+                f'CONFIG_MAIN_STACK_SIZE={4096 if network else 2048}', '# CONFIG_FPU is not set',
+                'CONFIG_ARM_MPU_REGION_MIN_ALIGN_AND_SIZE=32', 'CONFIG_GPIO=y']
+    if worker:
+        required += ['CONFIG_CRUX_CONTROLLER_M3=y', 'CONFIG_WATCHDOG=y', 'CONFIG_HWINFO=y']
+    else:
+        required += ['CONFIG_CRUX_M3_NETWORK_PROBE=y']
+        require('CONFIG_CRUX_CONTROLLER_M3=y' not in config, 'Conflicting controller composition')
+    if network:
+        required += ['CONFIG_NETWORKING=y', 'CONFIG_NET_IPV4=y', '# CONFIG_NET_IPV6 is not set',
+                     'CONFIG_NET_TCP=y', 'CONFIG_NET_UDP=y', 'CONFIG_NET_SOCKETS=y',
+                     '# CONFIG_NET_DHCPV4 is not set', 'CONFIG_NET_BUF_POOL_USAGE=y',
+                     'CONFIG_NET_PKT_RX_COUNT=16', 'CONFIG_NET_PKT_TX_COUNT=16',
+                     'CONFIG_NET_BUF_RX_COUNT=32', 'CONFIG_NET_BUF_TX_COUNT=32',
+                     'CONFIG_NET_MAX_CONTEXTS=4', 'CONFIG_NET_MAX_CONN=4', 'CONFIG_ZVFS_OPEN_MAX=8']
+    else:
+        required += ['# CONFIG_NETWORKING is not set']
+    if integrated:
+        required += ['CONFIG_CRUX_M3_INTEGRATED=y']
+    else:
+        require('CONFIG_CRUX_M3_INTEGRATED=y' not in config, 'Unexpected integration profile')
+    if commands:
+        required += ['CONFIG_CRUX_M3_TEST_COMMANDS=y']
+    else:
+        require('CONFIG_CRUX_M3_TEST_COMMANDS=y' not in config, 'Unexpected fault-command exposure')
+    if commands or profile == 'network':
+        required += ['CONFIG_SHELL=y', 'CONFIG_SHELL_STACK_SIZE=2048', 'CONFIG_SHELL_BACKEND_SERIAL=y']
         required += [f'# CONFIG_{module}_SHELL is not set' for module in ('KERNEL', 'DEVICE', 'DATE', 'DEVMEM')]
+    else:
+        required += ['# CONFIG_SHELL is not set']
     for item in required:
         require(item in config, f'Unexpected configuration: {item}')
     return dict(elf_segments_match_bin=True, bin_address=0x60000000, bin_bytes=len(binary),
-                elf_load_segments=loads, worker_stack=symbols['work_stack'],
-                main_stack=symbols.get('z_main_stack'))
+                elf_load_segments=loads, worker_stack=symbols.get('work_stack'),
+                network_stack=symbols.get('network_stack'), main_stack=symbols.get('z_main_stack'))

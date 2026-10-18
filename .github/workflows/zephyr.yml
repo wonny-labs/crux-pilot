@@ -52,7 +52,7 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-controller.sh
 
-      - name: Verify independent M3 GPIO and health paths without hardware
+      - name: Verify M3 device, network and controller paths without hardware
         working-directory: crux-pilot
         run: scripts/test-m3.sh
 
@@ -96,6 +96,18 @@ jobs:
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/m3-integrated-probe-evkb/zephyr/.config
+            crux-pilot/build/zephyr/m3-integrated-probe-evkb/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/m3-integrated-probe-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/m3-integrated-probe-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/m3-integrated-probe-evkb/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/m3-integrated-probe-evkb/compile_commands.json
+            crux-pilot/build/zephyr/m3-integrated-normal-evkb/zephyr/.config
+            crux-pilot/build/zephyr/m3-integrated-normal-evkb/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/m3-integrated-normal-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/m3-integrated-normal-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/m3-integrated-normal-evkb/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/m3-integrated-normal-evkb/compile_commands.json
             crux-pilot/build/evidence/zephyr-test-inputs.json
             crux-pilot/build/zephyr/twister-execution/
             crux-pilot/build/zephyr/controller-normal/scenario.log
