@@ -9,6 +9,8 @@ K_THREAD_STACK_DEFINE(tcp_stack, 4096);
 K_THREAD_STACK_DEFINE(udp_stack, 4096);
 K_SEM_DEFINE(peer_ready, 0, 2);
 static int peer_error;
+/* Upstream loopback test control: both endpoints are real local addresses. */
+extern void loopback_enable_address_swap(bool swap_addresses);
 
 static void echo_peer(void *kind, void *unused1, void *unused2) {
     ARG_UNUSED(unused1);
@@ -63,6 +65,7 @@ static void echo_peer(void *kind, void *unused1, void *unused2) {
 }
 
 ZTEST(network_stack, test_native_round_and_cleanup) {
+    loopback_enable_address_swap(false);
     struct net_if *loopback = net_if_get_default();
     struct net_in_addr address;
     zassert_equal(net_addr_pton(AF_INET, "192.168.77.1", &address), 0);
