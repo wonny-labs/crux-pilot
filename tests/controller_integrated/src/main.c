@@ -47,6 +47,8 @@ static int fake_pair(unsigned int trial, unsigned int sequence, int64_t deadline
     clock_ms += 100;
     return pair_result;
 }
+static void fake_report(void) {
+}
 static int fake_init(void) {
     return 0;
 }
@@ -151,6 +153,7 @@ static crux_status_t fake_advance(controller_schedule_t *schedule, int64_t now) 
 #define hwinfo_get_supported_reset_cause fake_cause
 #define hwinfo_get_reset_cause fake_cause
 #define hwinfo_clear_reset_cause fake_clear
+#define controller_network_report fake_report
 #define controller_network_init fake_init
 #define controller_network_pair fake_pair
 #define controller_device_init fake_init

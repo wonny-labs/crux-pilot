@@ -27,13 +27,32 @@ def check_image(binary_path, elf_path, config_path, profile):
         require(memory >= size and 0x60000000 <= address < address + size <= 0x60800000,
                 'ELF load outside verified firmware region')
         require(offset + size <= len(elf), 'Truncated ELF load')
-        loads.append(dict(offset=offset, address=address, bytes=size))
+        loads.append(dict(offset=offset, address=address, vma=vma, bytes=size))
     require(loads and min(s['address'] for s in loads) == 0x60000000, 'Wrong firmware base')
     require(max(s['address'] + s['bytes'] for s in loads) - 0x60000000 == len(binary), 'BIN span mismatch')
-    for s in loads:
-        o = s['address'] - 0x60000000
-        require(binary[o:o+s['bytes']] == elf[s['offset']:s['offset']+s['bytes']], 'ELF/BIN data mismatch')
     sections = [struct.unpack_from('<IIIIIIIIII', elf, h[6] + i * h[11]) for i in range(h[12])]
+    # Pinned objcopy --gap-fill=0xff copies allocated file-backed sections;
+    # PT_LOAD alignment holes are not section data and may be zero in the ELF.
+    expected = bytearray([0xff]) * len(binary)
+    covered = bytearray(len(binary))
+    section_count = 0
+    for section in sections:
+        name, kind, flags, vma, offset, size, link, info, align, entry = section
+        if not flags & 2 or kind == 8 or not size:
+            continue
+        candidates = [s for s in loads if s['offset'] <= offset and
+                      offset + size <= s['offset'] + s['bytes'] and
+                      vma - s['vma'] == offset - s['offset']]
+        require(len(candidates) == 1 and offset + size <= len(elf),
+                'Allocated section lacks one complete matching load segment')
+        segment = candidates[0]
+        target = segment['address'] + vma - segment['vma'] - 0x60000000
+        require(0 <= target < target + size <= len(binary) and not any(covered[target:target+size]),
+                'Allocated sections overlap or leave verified image bounds')
+        expected[target:target+size] = elf[offset:offset+size]
+        covered[target:target+size] = bytes([1]) * size
+        section_count += 1
+    require(section_count and binary == expected, 'ELF sections/BIN or pinned gap-fill mismatch')
     strings_section = sections[h[13]]
     strings = elf[strings_section[4]:strings_section[4] + strings_section[5]]
     names = {strings[s[0]:].split(b'\0', 1)[0]: s for s in sections}
@@ -99,6 +118,6 @@ def check_image(binary_path, elf_path, config_path, profile):
         required += ['# CONFIG_SHELL is not set']
     for item in required:
         require(item in config, f'Unexpected configuration: {item}')
-    return dict(elf_segments_match_bin=True, bin_address=0x60000000, bin_bytes=len(binary),
+    return dict(elf_sections_match_bin=True, gap_fill=255, bin_address=0x60000000, bin_bytes=len(binary),
                 elf_load_segments=loads, worker_stack=symbols.get('work_stack'),
                 network_stack=symbols.get('network_stack'), main_stack=symbols.get('z_main_stack'))

@@ -89,7 +89,12 @@ static void run_network(void *a, void *b, void *c) {
         atomic_set(&network_window_request, 3);
         return;
     }
+    int64_t next_idle_report = k_uptime_get() + 1000;
     while (!atomic_cas(&network_window_request, 1, 2)) {
+        if (k_uptime_get() >= next_idle_report) {
+            controller_network_report();
+            next_idle_report = k_uptime_get() + 1000;
+        }
         k_sleep(K_MSEC(100));
     }
     value.window_end_ms = k_uptime_get() + 60000;
@@ -144,6 +149,11 @@ static void run_network(void *a, void *b, void *c) {
     atomic_set(&network_window_request, 3);
     printk("M3_NET_WINDOW_STOP monotonic_ms=%lld result=%d\n", (long long)k_uptime_get(),
            value.status);
+    /* Observe native return after the window without starting another transaction. */
+    for (unsigned int report = 0; report < 3; ++report) {
+        controller_network_report();
+        k_sleep(K_MSEC(1000));
+    }
 }
 #endif
 

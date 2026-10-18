@@ -100,7 +100,7 @@ class ImageChecks(unittest.TestCase):
         for profile in ('normal', 'network', 'integrated-probe', 'integrated-normal'):
             with self.subTest(profile=profile), tempfile.TemporaryDirectory() as d:
                 image = fixture(Path(d), profile)
-                self.assertTrue(check_image(*image, profile)['elf_segments_match_bin'])
+                self.assertTrue(check_image(*image, profile)['elf_sections_match_bin'])
                 for wrong in ('probe', 'network', 'integrated-normal'):
                     if wrong != profile:
                         with self.assertRaises(ValueError):

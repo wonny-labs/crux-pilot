@@ -297,7 +297,10 @@ def capture(port, probe, directory, source, watchdog):
 def verify_manifest(path):
     manifest = json.loads(path.read_text())
     require(manifest['target'] == 'mimxrt1060_evk@B//qspi', 'Wrong target')
-    require(manifest['bin_address'] == 0x60000000 and manifest['elf_segments_match_bin'], 'Wrong image bounds')
+    require(manifest['bin_address'] == 0x60000000 and
+            (manifest.get('elf_sections_match_bin') is True or manifest.get('elf_segments_match_bin') is True), 'Wrong image bounds')
+    if manifest.get('elf_sections_match_bin'):
+        require(manifest.get('gap_fill') == 255, 'Unexpected pinned image gap fill')
     require(not manifest['source']['dirty'] and manifest['source']['recoverable_from_git'], 'Unfrozen source')
     for record in manifest['artifacts']:
         require(sha(record['path']) == record['sha256'], 'Changed image/configuration')
