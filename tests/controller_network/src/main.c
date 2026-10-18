@@ -30,6 +30,28 @@ static unsigned int sends;
 static size_t transmitted;
 static size_t received;
 static uint8_t saved[32];
+static unsigned int context_count;
+static bool release_context;
+
+static void test_contexts(net_context_cb_t callback, void *data) {
+    struct net_context context = {0};
+    for (unsigned int i = 0; i < context_count; ++i) {
+        callback(&context, data);
+    }
+}
+
+static bool test_used(struct net_context *context) {
+    ARG_UNUSED(context);
+    return true;
+}
+
+static int32_t test_sleep(k_timeout_t duration) {
+    elapsed += k_ticks_to_ms_floor64(duration.ticks);
+    if (release_context && elapsed >= 100) {
+        context_count = 0;
+    }
+    return 0;
+}
 
 static enum { INIT_OK, NO_INTERFACE, ADDRESS_FAIL, MASK_FAIL, UP_FAIL } init_scenario;
 static bool reported_link;
@@ -173,6 +195,9 @@ static int test_close(int fd) {
 #define zsock_recv test_receive
 #define zsock_close test_close
 #define k_uptime_get test_now
+#define k_sleep test_sleep
+#define net_context_foreach test_contexts
+#define net_context_is_used test_used
 #define net_if_get_default test_default
 #define net_if_ipv4_addr_add test_add_address
 #define net_if_ipv4_set_netmask_by_addr test_mask
@@ -188,11 +213,40 @@ static void before(void *fixture) {
     transmitted = received = 0;
     memset(saved, 0, sizeof(saved));
     owned_sockets = 0;
+    context_count = idle_contexts = 0;
+    baseline_valid = true;
+    cleanup_uncertain = release_context = false;
     address_ready = true;
     service_ready = false;
     init_scenario = INIT_OK;
     reported_link = true;
     interface = actual_default();
+}
+
+ZTEST(network, test_cleanup_waits_and_uncertain_state_fences_restart) {
+    context_count = 1;
+    release_context = true;
+    zassert_ok(settle_contexts(150000));
+    zassert_equal(elapsed, 100);
+    zassert_false(cleanup_uncertain);
+    release_context = false;
+    context_count = 1;
+    zassert_equal(settle_contexts(150000), -ETIMEDOUT);
+    zassert_equal(elapsed, 5100);
+    zassert_true(cleanup_uncertain);
+    zassert_equal(controller_network_round(1), -EBUSY);
+    zassert_equal(controller_network_init(), -EBUSY);
+    zassert_equal(creates, 0);
+}
+
+ZTEST(network, test_cleanup_never_rebases_or_extends_round_deadline) {
+    context_count = 1;
+    zassert_equal(controller_network_init(), -EBUSY);
+    zassert_equal(idle_contexts, 0);
+    cleanup_uncertain = false;
+    zassert_equal(settle_contexts(30), -ETIMEDOUT);
+    zassert_equal(elapsed, 30);
+    zassert_true(cleanup_uncertain);
 }
 
 ZTEST(network, test_partial_tcp_and_datagram_echo) {

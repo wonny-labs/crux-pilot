@@ -8,6 +8,7 @@ static struct k_thread udp_thread;
 K_THREAD_STACK_DEFINE(tcp_stack, 4096);
 K_THREAD_STACK_DEFINE(udp_stack, 4096);
 K_SEM_DEFINE(peer_ready, 0, 2);
+K_SEM_DEFINE(round_done, 0, 2);
 static int peer_error;
 /* Upstream loopback test control: both endpoints are real local addresses. */
 extern void loopback_enable_address_swap(bool swap_addresses);
@@ -19,9 +20,10 @@ static void echo_peer(void *kind, void *unused1, void *unused2) {
     int listener = zsock_socket(NET_AF_INET, protocol == 1 ? NET_SOCK_STREAM : NET_SOCK_DGRAM,
                                 protocol == 1 ? NET_IPPROTO_TCP : NET_IPPROTO_UDP);
     struct net_sockaddr_in address = {.sin_family = NET_AF_INET,
-                                  .sin_port = net_htons(protocol == 1 ? 42420 : 42421)};
+                                      .sin_port = net_htons(protocol == 1 ? 42420 : 42421)};
     net_addr_pton(NET_AF_INET, "192.168.77.1", &address.sin_addr);
-    if (listener < 0 || zsock_bind(listener, (struct net_sockaddr *)&address, sizeof(address)) < 0 ||
+    if (listener < 0 ||
+        zsock_bind(listener, (struct net_sockaddr *)&address, sizeof(address)) < 0 ||
         (protocol == 1 && zsock_listen(listener, 1) < 0)) {
         peer_error = errno;
         k_sem_give(&peer_ready);
@@ -33,7 +35,7 @@ static void echo_peer(void *kind, void *unused1, void *unused2) {
     k_sem_give(&peer_ready);
     for (unsigned int i = 0; i < 10; ++i) {
         struct zsock_pollfd poller = {.fd = listener, .events = ZSOCK_POLLIN};
-        if (zsock_poll(&poller, 1, 5000) <= 0) {
+        if (zsock_poll(&poller, 1, 150000) <= 0) {
             break;
         }
         uint8_t frame[32];
@@ -56,11 +58,13 @@ static void echo_peer(void *kind, void *unused1, void *unused2) {
             ssize_t length = zsock_recvfrom(listener, frame, sizeof(frame), 0,
                                             (struct net_sockaddr *)&sender, &size);
             if (length == sizeof(frame)) {
-                zsock_sendto(listener, frame, sizeof(frame), 0, (struct net_sockaddr *)&sender, size);
+                zsock_sendto(listener, frame, sizeof(frame), 0, (struct net_sockaddr *)&sender,
+                             size);
             }
             printk("STACK_PEER protocol=2 sequence=%u length=%zd\n", i + 1, length);
         }
     }
+    k_sem_take(&round_done, K_SECONDS(150));
     zsock_close(listener);
 }
 
@@ -70,7 +74,6 @@ ZTEST(network_stack, test_native_round_and_cleanup) {
     struct net_in_addr address;
     zassert_equal(net_addr_pton(NET_AF_INET, "192.168.77.1", &address), 0);
     zassert_not_null(net_if_ipv4_addr_add(loopback, &address, NET_ADDR_MANUAL, 0));
-    zassert_equal(controller_network_init(), 0);
     k_thread_create(&tcp_thread, tcp_stack, K_THREAD_STACK_SIZEOF(tcp_stack), echo_peer,
                     (void *)(uintptr_t)1, NULL, NULL, 5, 0, K_NO_WAIT);
     k_thread_create(&udp_thread, udp_stack, K_THREAD_STACK_SIZEOF(udp_stack), echo_peer,
@@ -78,9 +81,13 @@ ZTEST(network_stack, test_native_round_and_cleanup) {
     zassert_equal(k_sem_take(&peer_ready, K_SECONDS(2)), 0);
     zassert_equal(k_sem_take(&peer_ready, K_SECONDS(2)), 0);
     zassert_equal(peer_error, 0);
+    zassert_equal(controller_network_init(), 0);
+    zassert_equal(idle_contexts, 2, "Only the two fixture listeners belong in the baseline");
     controller_network_report();
     int result = controller_network_round(1);
     printk("STACK_ROUND result=%d\n", result);
+    k_sem_give(&round_done);
+    k_sem_give(&round_done);
     zassert_equal(k_thread_join(&tcp_thread, K_SECONDS(8)), 0);
     zassert_equal(k_thread_join(&udp_thread, K_SECONDS(8)), 0);
     for (unsigned int i = 0; i <= 12; ++i) {

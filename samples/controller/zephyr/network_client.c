@@ -16,6 +16,9 @@ static struct net_if *interface;
 static unsigned int owned_sockets;
 static bool address_ready;
 static bool service_ready;
+static bool baseline_valid;
+static unsigned int idle_contexts;
+static bool cleanup_uncertain;
 
 static int wait_socket(int fd, short events, int64_t deadline) {
     for (;;) {
@@ -73,7 +76,7 @@ static int exchange(unsigned int protocol, unsigned int trial, unsigned int sequ
     sys_put_be32(sequence, request + 12);
     memcpy(request + 16, "crux-m3-payload!", 16);
     struct net_sockaddr_in peer = {.sin_family = NET_AF_INET,
-                               .sin_port = net_htons(protocol == 1 ? 42420 : 42421)};
+                                   .sin_port = net_htons(protocol == 1 ? 42420 : 42421)};
     if (zsock_inet_pton(NET_AF_INET, "192.168.77.1", &peer.sin_addr) != 1) {
         return -EINVAL;
     }
@@ -147,6 +150,32 @@ static void count_context(struct net_context *context, void *value) {
     }
 }
 
+static unsigned int native_contexts(void) {
+    unsigned int count = 0;
+    net_context_foreach(count_context, &count);
+    return count;
+}
+
+static int settle_contexts(int64_t round_deadline) {
+    int64_t start = k_uptime_get();
+    int64_t deadline = MIN(start + 5000, round_deadline);
+    while (native_contexts() != idle_contexts) {
+        if (k_uptime_get() >= deadline) {
+            cleanup_uncertain = true;
+            printk("M3_NET_CLEANUP result=%d expected_contexts=%u observed_contexts=%u "
+                   "elapsed_ms=%lld restart_required=1\n",
+                   -ETIMEDOUT, idle_contexts, native_contexts(),
+                   (long long)(k_uptime_get() - start));
+            return -ETIMEDOUT;
+        }
+        k_sleep(K_MSEC(10));
+    }
+    printk("M3_NET_CLEANUP result=0 expected_contexts=%u observed_contexts=%u "
+           "elapsed_ms=%lld restart_required=0\n",
+           idle_contexts, native_contexts(), (long long)(k_uptime_get() - start));
+    return 0;
+}
+
 void controller_network_report(void) {
     struct k_mem_slab *rx;
     struct k_mem_slab *tx;
@@ -169,7 +198,7 @@ void controller_network_report(void) {
 int controller_network_init(void) {
     address_ready = false;
     service_ready = false;
-    if (owned_sockets != 0) {
+    if (owned_sockets != 0 || cleanup_uncertain) {
         return -EBUSY;
     }
     interface = net_if_get_default();
@@ -187,6 +216,18 @@ int controller_network_init(void) {
     }
     int result = net_if_up(interface);
     address_ready = result == 0 || result == -EALREADY;
+    if (address_ready) {
+        unsigned int observed = native_contexts();
+        if (baseline_valid && observed != idle_contexts) {
+            cleanup_uncertain = true;
+            address_ready = false;
+            return -EBUSY;
+        }
+        idle_contexts = observed;
+        baseline_valid = true;
+        printk("M3_NET_BASELINE contexts=%u\n", idle_contexts);
+        controller_network_report();
+    }
     return address_ready ? 0 : result;
 }
 
@@ -194,14 +235,24 @@ int controller_network_round(unsigned int trial) {
     if (interface == NULL || !address_ready || trial == 0) {
         return -EINVAL;
     }
-    if (owned_sockets != 0) {
+    if (owned_sockets != 0 || cleanup_uncertain || !baseline_valid) {
         return -EBUSY;
     }
     service_ready = false;
     controller_network_report();
     int failures = 0;
+    int64_t round_deadline = k_uptime_get() + 150000;
+    if (settle_contexts(round_deadline) < 0) {
+        controller_network_report();
+        return -ETIMEDOUT;
+    }
     for (unsigned int protocol = 1; protocol <= 2; ++protocol) {
         for (unsigned int sequence = 1; sequence <= 10; ++sequence) {
+            if (k_uptime_get() >= round_deadline) {
+                cleanup_uncertain = true;
+                controller_network_report();
+                return -ETIMEDOUT;
+            }
             int64_t start = k_uptime_get();
             int result = exchange(protocol, trial, sequence);
             printk("M3_NET_EXCHANGE trial=%u protocol=%u sequence=%u result=%d "
@@ -213,6 +264,11 @@ int controller_network_round(unsigned int trial) {
             if (owned_sockets != 0) {
                 return -EBUSY;
             }
+            if (settle_contexts(round_deadline) < 0) {
+                controller_network_report();
+                return -ETIMEDOUT;
+            }
+            controller_network_report();
         }
     }
     service_ready = failures == 0;
