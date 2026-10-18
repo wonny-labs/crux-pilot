@@ -379,3 +379,21 @@ not measured physical button timings. Speech has bounded child termination/reap;
 late, failed or uncertain speech stops the trial. The user confirmed an actual
 local voice check was audible. Prior failures remain failures; the next trial
 requires fresh preflight and independent raw-result review.
+
+Paced trial04 retained ten successful spoken cues but all45 action reports were
+released. The user reports performing later actions; this mismatch remains
+unexplained. A separate static-state diagnostic does not replace qualification.
+Its first attempt was blocked before target access. Attempt02 passed full normal
+BIN/probe verification without reset, then aborted on the12s acknowledgement
+limit: the held confirmation was recorded18.54s after the request and6.52s after
+capture ended. Its17 released reports cannot establish the later held state.
+The user confirmed release; both procedural failures remain retained.
+
+The reviewed diagnostic correction allows a30s held acknowledgement,1s settling
+and5s observation, then an explicit release acknowledgement and observation.
+Whole-capture checks and the90s total remain unchanged. The confirmed SW5 User
+GPIO input, with power management disabled, may be held for at most60s during
+this diagnostic; this reasoning does not apply to SW8 ON/OFF. Instructions require
+release at60s even if communication fails. Actual acknowledgement timestamps are
+not physical edges. Exact source review and fresh preflight are still required.
+An observed mismatch during confirmed hold stops further hardware attempts.
