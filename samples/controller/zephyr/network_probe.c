@@ -1,4 +1,7 @@
 #include "network_client.h"
+#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
+#include "network_mdio_trace.h"
+#endif
 
 #include <zephyr/kernel.h>
 #include <zephyr/shell/shell.h>
@@ -37,6 +40,9 @@ static void report_stack(void) {
 
 int main(void) {
     printk("M3_NET_BOOT source=%s profile=network-probe exposure=isolated-only\n", CRUX_M3_SOURCE);
+#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
+    crux_m3_mdio_trace_observe();
+#endif
     int result = controller_network_init();
     printk("M3_NET_INIT result=%d board=192.168.77.2 peer=192.168.77.1\n", result);
     if (result != 0) {
@@ -59,6 +65,9 @@ int main(void) {
             atomic_set(&requested, 0);
         }
         if (k_uptime_get() >= next_report) {
+#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
+            crux_m3_mdio_trace_observe();
+#endif
             controller_network_report();
             report_stack();
             next_report = k_uptime_get() + 1000;

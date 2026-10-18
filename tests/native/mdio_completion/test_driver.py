@@ -28,6 +28,51 @@ def definition(text, declaration):
 
 
 class GeneratedDriverTests(unittest.TestCase):
+    def test_actual_observer_quiet_until_retained_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = Path(directory)
+            headers = work / "zephyr"
+            headers.mkdir()
+            (headers / "device.h").write_text(
+                '#pragma once\n#include <stdbool.h>\nstruct device { int unused; };\n'
+                'const struct device *observer_device_get(int node);\n'
+                'bool device_is_ready(const struct device *dev);\n'
+                '#define DEVICE_DT_GET(node) observer_device_get(node)\n')
+            (headers / "devicetree.h").write_text(
+                '#define DT_NODELABEL(name) 1\n#define DT_PARENT(node) 2\n')
+            (headers / "kernel.h").write_text('int printk(const char *format, ...);\n')
+            sample = ROOT / "samples/controller/zephyr"
+            subprocess.run([os.environ.get("CC", "cc"), "-std=c17", "-Wall", "-Wextra", "-Werror",
+                            "-I", str(work), "-I", str(sample), str(sample / "network_mdio_trace.c"),
+                            str(Path(__file__).with_name("observer_model.c")),
+                            "-o", str(work / "observer")], check=True)
+            subprocess.run([str(work / "observer")], check=True)
+
+    def test_actual_first_failure_record(self):
+        with tempfile.TemporaryDirectory() as directory:
+            work = Path(directory)
+            generated = work / "driver.c"
+            PREPARE.prepare(ZEPHYR, generated)
+            text = generated.read_text()
+            (work / "candidate_fragments.inc").write_text("\n".join(
+                definition(text, "static int " + name + "(")
+                for name in ("nxp_enet_mdio_wait_xfer", "mdio_transfer")))
+            (work / "driver_data.inc").write_text(definition(text, "struct nxp_enet_mdio_data {") + ";\n")
+            (work / "trace_functions.inc").write_text(
+                definition(text, "static void nxp_enet_mdio_capture_failure(") + "\n"
+                + definition(text, "bool crux_m3_mdio_failure_get("))
+            (work / "driver_functions.inc").write_text((work / "trace_functions.inc").read_text()
+                                                        + "\n" + (work / "candidate_fragments.inc").read_text())
+            header = ZEPHYR.parent / "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_ENET.h"
+            macros = [line for line in header.read_text().splitlines() if re.match(
+                r"#define ENET_(EIR_MII_MASK|MMFR_(ST|OP|PA|RA|TA|DATA)(\(|_(MASK|SHIFT)))", line)]
+            (work / "register_macros.inc").write_text("\n".join(macros) + "\n")
+            subprocess.run([os.environ.get("CC", "cc"), "-std=c17", "-Wall", "-Wextra", "-Werror",
+                            "-DCONFIG_CRUX_M3_MDIO_FAILURE_TRACE=1", "-I", str(work),
+                            "-I", str(ROOT / "samples/controller/zephyr"),
+                            str(Path(__file__).with_name("trace_model.c")), "-o", str(work / "trace_model")], check=True)
+            subprocess.run([str(work / "trace_model")], check=True)
+
     def test_model_failure_invalidates_previous_m3_manifest(self):
         with tempfile.TemporaryDirectory() as directory:
             work = Path(directory)

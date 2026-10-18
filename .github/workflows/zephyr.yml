@@ -98,6 +98,13 @@ jobs:
             crux-pilot/build/zephyr/m3-mdio-candidate-evkb/zephyr/zephyr.bin
             crux-pilot/build/zephyr/m3-mdio-candidate-evkb/crux-mdio/
             crux-pilot/build/zephyr/m3-mdio-candidate-evkb/compile_commands.json
+            crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/.config
+            crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/m3-mdio-trace-evkb/crux-mdio/
+            crux-pilot/build/zephyr/m3-mdio-trace-evkb/compile_commands.json
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/.config
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.map

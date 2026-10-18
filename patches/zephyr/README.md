@@ -48,3 +48,38 @@ CMake source replacement. The model supplies W1C and interrupt effects explicitl
 it does not reproduce electrical timing, the physical IRQ seed, RTOS scheduling
 or worst-case execution. Target compilation and reviewed physical evidence remain
 separate gates. The ordinary profiles retain their original driver selection.
+
+
+## First-failure observation
+
+The first physical corrected candidate booted but did not reach Link readiness
+within the original 15-second window. No application exchange or post-round PHY
+observation ran. The failure does not identify a poisoned bus or the initial cause.
+A default-off `CONFIG_CRUX_M3_MDIO_FAILURE_TRACE` adds observation only to the
+PHY diagnostic composition. Append `m3-mdio-trace.conf` as well as the existing
+network, PHY diagnostic and completion-correction configuration files.
+
+The native driver retains its first wait failure in CPU-accessed BSS, publishing
+a valid flag last under single-core IRQ protection. A private getter copies that
+record under the same protection; it is not a public Crux interface. The record
+includes the actual wait branch, operation/PHY/register, result, transaction cycle
+observations, a monotonic timestamp, sequential read-only MAC fields and the native
+semaphore count. It performs no extra MDIO operation or register write. Later
+poison errors never overwrite the first failure or reset the failed state.
+
+The sample stays quiet until a retained failure exists, then reports native
+MDIO/PHY readiness with that one complete record through its existing output path. It owns no MDIO mutex and
+prints after releasing snapshot IRQ protection. It adds no thread, logging backend,
+command, retry or timing limit. Ordinary images do not compile the getter/record.
+The generated native translation unit uses scoped `-Wall -Wextra -Werror`; other
+upstream translation units retain their warning selection.
+
+The cycle fields are unsigned 32-bit modular observations; multiple wraps cannot
+be reconstructed. The frequency is the native counter frequency at observation.
+The millisecond timestamp is also 32-bit and wraps. These clocks are available in
+the selected POST_KERNEL initialisation path; this is not permission to reuse the
+observer in earlier boot phases. Fields are sequential, not a simultaneous hardware
+snapshot or proof of IRQ history. Diagnostic output occurs after retention and can
+perturb later execution. No WCET, physical cause or corrected Link behaviour is
+inferred from these observations. The unchanged physical qualification remains
+required after any eventual fix.

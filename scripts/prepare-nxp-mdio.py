@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 
 BASE_SHA256 = "dace869f1ce96490d2d278fb9e807d4589cf4f264ea5b3189996068774ad8292"
-PATCHED_SHA256 = "c7203e0134054e54361dd9628ac3d4d41d9dc78c150fea8f71f4b5fe89535781"
+PATCHED_SHA256 = "c65b7b84859eaf93a6bed2b89efba77f6ee8280120c2b463adf0d3c2264d22bf"
 RELATIVE_SOURCE = Path("drivers/ethernet/mdio/mdio_nxp_enet.c")
 PATCH = Path(__file__).resolve().parents[1] / "patches/zephyr/nxp-enet-mdio-completion.patch"
 

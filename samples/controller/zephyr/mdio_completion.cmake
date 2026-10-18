@@ -32,3 +32,9 @@ if(NOT crux_mdio_replaced EQUAL 1)
 endif()
 set_property(TARGET drivers__ethernet PROPERTY SOURCES "${crux_mdio_remaining}")
 target_sources(drivers__ethernet PRIVATE "${crux_mdio_generated}")
+
+set_source_files_properties("${crux_mdio_generated}" TARGET_DIRECTORY drivers__ethernet
+    PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Werror")
+if(CONFIG_CRUX_M3_MDIO_FAILURE_TRACE)
+    target_include_directories(drivers__ethernet PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
+endif()

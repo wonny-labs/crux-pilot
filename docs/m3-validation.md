@@ -657,3 +657,21 @@ Its source-level controls and target compilation do not establish a physical
 correction. The original seven-stage Ethernet acceptance and dependent integrated
 physical cases remain Pending; a new identified candidate and affected independent
 source/physical review are required before another target trial.
+
+The identified 7ea68ff candidate passed full binary verification and booted once,
+but all sixteen startup observations kept link and service readiness at zero.
+The fifteen-second readiness limit expired before any peer or exchange started;
+no post-round PHY diagnostic was performed. This is a failed startup trial, not
+Ethernet acceptance. Its passive capture closed cleanly; normal fe9 firmware was
+then fully verified and freshly booted with commands disabled. That idle hand-off
+does not assert Time or network service readiness.
+
+A further default-off, private first-failure trace is under software evaluation.
+It retains the first failed wait in CPU context, including the actual wait branch,
+modular cycle delta and sequential register observations. The application adds no
+output until a retained failure is available, then emits one complete line after
+copy protection ends. It adds no MDIO transaction, timeout extension or background
+thread. Logical models check retention and the actual observer's quiet-before-failure
+behaviour; they do not qualify physical timing, establish causation or approve a
+new image for target use. Seven-stage Ethernet and integrated physical acceptance
+remain Pending.

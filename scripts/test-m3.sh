@@ -40,6 +40,13 @@ done
     -DEXTRA_CONF_FILE="$repo/samples/controller/zephyr/m3-network.conf;$repo/samples/controller/zephyr/m3-mdio-completion.conf" \
     -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay" \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+# A separate observation build must not replace the ordinary or corrected probes.
+(cd "$workspace" && west build -p always -b 'mimxrt1060_evk@B//qspi' \
+    -d "$repo/build/zephyr/m3-mdio-trace-evkb" "$repo/samples/controller/zephyr" -- \
+    -DZEPHYR_EXTRA_MODULES="$repo" \
+    -DEXTRA_CONF_FILE="$repo/samples/controller/zephyr/m3-network.conf;$repo/samples/controller/zephyr/m3-phy-diagnostic.conf;$repo/samples/controller/zephyr/m3-mdio-completion.conf;$repo/samples/controller/zephyr/m3-mdio-trace.conf" \
+    -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay" \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 for profile in integrated-probe integrated-normal; do
     configuration="$repo/samples/controller/zephyr/m3.conf;$repo/samples/controller/zephyr/m3-integrated.conf"
     if [[ "$profile" == integrated-normal ]]; then

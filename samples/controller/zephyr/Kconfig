@@ -33,3 +33,11 @@ config CRUX_M3_MDIO_COMPLETION_FIX
 	  Apply a maintained native driver patch to a generated build copy.
 	  A transaction timeout disables further MDIO requests until a fresh boot.
 	  This option does not establish physical Ethernet qualification.
+
+config CRUX_M3_MDIO_FAILURE_TRACE
+	bool "Retain and observe the first native MDIO wait failure"
+	depends on CRUX_M3_MDIO_COMPLETION_FIX && CRUX_M3_PHY_DIAGNOSTIC
+	default n
+	help
+	  Retain a private first-failure record and print it once after app startup.
+	  This diagnostic does not alter timeout, IRQ or failed-transaction policy.
