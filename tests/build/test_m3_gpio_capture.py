@@ -65,6 +65,8 @@ class GPIOControls(unittest.TestCase):
             self.assertTrue((path/'failure.txt').is_file())
             self.assertTrue((path/'lines.json').is_file())
             self.assertTrue(any('DIAGNOSTIC_STOP' in str(c) for c in message.call_args_list))
+            self.assertGreaterEqual(clock[0],35)
+            self.assertLess(clock[0],40)
 
     def test_static_diagnostic_checks_ack_gap_and_final_tail(self):
         for mode in ('ack-gap', 'final-tail'):

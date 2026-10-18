@@ -234,10 +234,10 @@ def capture_diagnostic(port, directory):
             print('DIAGNOSTIC_HOLD' if phase == 'held' else 'DIAGNOSTIC_RELEASE', flush=True)
             acknowledgement = directory/f'operator-{phase}.json'
             while not acknowledgement.exists():
-                require(time.monotonic()-requested <= (12 if phase == 'held' else 30),
+                require(time.monotonic()-requested <= 30,
                         'Operator acknowledgement timeout; release button')
                 observe(.02)
-            require(time.monotonic()-requested <= (12 if phase == 'held' else 30),
+            require(time.monotonic()-requested <= 30,
                     'Late operator acknowledgement; release button')
             ack = json.loads(acknowledgement.read_text())
             require(ack.get('state') == phase, 'Wrong operator acknowledgement')
@@ -248,7 +248,7 @@ def capture_diagnostic(port, directory):
             begin = observe(5)
             states[phase] = diagnostic_state(list(receiver.rows), begin, expected)
             if phase == 'held':
-                require(time.monotonic()-requested <= 20, 'Held phase exceeded20s; release button')
+                require(time.monotonic()-requested <= 40, 'Held observation phase exceeded40s; release button')
         result = dict(scope='static SW5 investigation only; no five-group qualification',
                       states=states, status='OBSERVED' if all(v['matches'] for v in states.values()) else 'MISMATCH',
                       identity='full BIN verified; existing normal run; no reset or fresh boot claim')
@@ -290,9 +290,9 @@ def main():
                 binary_sha256=sha(image['binary']), runner_commit=subprocess.check_output(
                     ['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
                 runner_sha256=sha(Path(__file__)), uart=args.uart, uart_serial=args.uart_serial,
-                stimulus=('one operator-confirmed static hold/release; holdmax20s; no qualification'
+                stimulus=('one operator-confirmed static hold/release; holdmax60s; no qualification'
                           if args.diagnostic else 'five spoken press4s/release4s pairs within unchanged45s window; final released'),
-                limits=('90s total;5s baseline;heldack<=12s+6s observation;releaseack<=30s+6s observation;continuous whole capture'
+                limits=('90s total;5s baseline;heldack<=30s+6s observation;operator holdmax60s;releaseack<=30s+6s observation;continuous whole capture'
                         if args.diagnostic else 'baseline>=3s;45s action;5 presses;>=2 samples/press+gap;final released>=3s'),
                 operations=('verify current BIN; static diagnostic without reset; no qualification'
                             if args.diagnostic else 'verify current BIN; reset/start normal; capture only; no programming/network/watchdog'))
