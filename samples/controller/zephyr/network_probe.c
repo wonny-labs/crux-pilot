@@ -1,0 +1,116 @@
+#include "network_client.h"
+#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
+#include "network_mdio_trace.h"
+#endif
+
+#ifdef CONFIG_CRUX_M3_NATIVE_OUTPUT
+#include "native_logger.h"
+#include <zephyr/logging/log_ctrl.h>
+#endif
+
+#include <zephyr/kernel.h>
+#include <zephyr/shell/shell.h>
+#include <zephyr/sys/atomic.h>
+
+#include <errno.h>
+
+static atomic_t requested;
+
+#ifdef CONFIG_CRUX_M3_PHY_DIAGNOSTIC
+void network_phy_diagnostic_mac(unsigned int phase);
+void network_phy_diagnostic_after_round(void);
+#endif
+
+static int request_round(const struct shell *shell, size_t argc, char **argv) {
+    ARG_UNUSED(shell);
+    ARG_UNUSED(argc);
+    ARG_UNUSED(argv);
+    if (!atomic_cas(&requested, 0, -1)) {
+        printk("M3_NET_REJECTED busy\n");
+        return -EBUSY;
+    }
+    printk("M3_NET_REQUESTED\n");
+    atomic_set(&requested, 1);
+    return 0;
+}
+
+SHELL_CMD_REGISTER(m3net, NULL, "Request one bounded isolated network round", request_round);
+
+static void report_stack(void) {
+    size_t unused = 0;
+    int result = k_thread_stack_space_get(k_current_get(), &unused);
+    printk("M3_NET_STACK status=%d usable=%zu unused=%zu\n", result,
+           k_current_get()->stack_info.size, unused);
+}
+
+#ifdef CONFIG_CRUX_M3_NATIVE_OUTPUT
+static void report_logger(int64_t queued_at, unsigned int queued) {
+    struct m3_logger_resources logger = m3_logger_resources_get();
+    printk("M3_NET_LOGGER monotonic_ms=%lld queue_snapshot_ms=%lld found=%u status=%d "
+           "configured=%u usable=%zu "
+           "unused=%zu priority=%d queued=%u\n",
+           (long long)k_uptime_get(), (long long)queued_at, logger.found, logger.status,
+           (unsigned int)CONFIG_LOG_PROCESS_THREAD_STACK_SIZE, logger.usable, logger.unused,
+           logger.priority, queued);
+}
+#endif
+
+int main(void) {
+    printk("M3_NET_BOOT source=%s profile=network-probe exposure=isolated-only\n", CRUX_M3_SOURCE);
+#ifdef CONFIG_CRUX_M3_DEFERRED_OUTPUT
+    crux_m3_deferred_start();
+#endif
+#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
+    crux_m3_mdio_trace_observe();
+#endif
+    int result = controller_network_init();
+    printk("M3_NET_INIT result=%d board=192.168.77.2 peer=192.168.77.1\n", result);
+    if (result != 0) {
+        return 1;
+    }
+    int64_t next_report = 0;
+    for (unsigned int round = 1; round <= 7;) {
+        if (atomic_cas(&requested, 1, 2)) {
+#ifdef CONFIG_CRUX_M3_PHY_DIAGNOSTIC
+            network_phy_diagnostic_mac(1);
+#endif
+            result = controller_network_round(round);
+            printk("M3_NET_ROUND trial=%u result=%d monotonic_ms=%lld\n", round, result,
+                   (long long)k_uptime_get());
+#ifdef CONFIG_CRUX_M3_PHY_DIAGNOSTIC
+            network_phy_diagnostic_after_round();
+#endif
+#ifndef CONFIG_CRUX_M3_NATIVE_OUTPUT
+            report_stack();
+#endif
+            round++;
+            atomic_set(&requested, 0);
+        }
+#ifdef CONFIG_CRUX_M3_DEFERRED_OUTPUT
+        crux_m3_deferred_poll();
+#endif
+        if (k_uptime_get() >= next_report) {
+#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
+            crux_m3_mdio_trace_observe();
+#endif
+#ifdef CONFIG_CRUX_M3_DEFERRED_OUTPUT
+            crux_m3_deferred_report();
+#endif
+#ifdef CONFIG_CRUX_M3_NATIVE_OUTPUT
+            /* Sample the idle queue before enqueuing this resource report group. */
+            int64_t queued_at = k_uptime_get();
+            unsigned int queued = log_buffered_cnt();
+#endif
+            controller_network_report();
+            report_stack();
+#ifdef CONFIG_CRUX_M3_NATIVE_OUTPUT
+            report_logger(queued_at, queued);
+#endif
+            next_report = k_uptime_get() + 1000;
+        }
+        k_sleep(K_MSEC(100));
+    }
+    atomic_set(&requested, 2);
+    printk("M3_NET_STOP round_limit=7\n");
+    return 0;
+}

@@ -69,4 +69,82 @@ qualification are not established. The scoped M2 result was accepted and merged 
 [PR #9](https://github.com/wonny-labs/crux-pilot/pull/9) as commit
 [`540ea7f`](https://github.com/wonny-labs/crux-pilot/commit/540ea7f934987989e429ae3767352b153fb2e747),
 and M2 issues [#6](https://github.com/wonny-labs/crux-pilot/issues/6) and
-[#7](https://github.com/wonny-labs/crux-pilot/issues/7) are closed.
+[#7](https://github.com/wonny-labs/crux-pilot/issues/7) are closed. Its bounded evidence does not establish M3 acceptance.
+
+## Independent M3 GPIO and health probe
+
+M3 is in progress. This separate composition uses native GPIO for the onboard
+`sw0` input and observes actual critical-worker completion before allowing a
+watchdog feed. It adds no Crux public interface. The existing M2 composition and
+its finite UTC-step scenario remain available.
+
+From the documented Linux workspace, run `scripts/test-m3.sh` for the three
+`native_sim` GPIO/health scenarios, native-client socket controls and EVKB
+health probe/normal/network cross-builds. Outputs are
+under `build/zephyr/twister-m3`, `m3-probe-evkb`, `m3-normal-evkb` and
+`m3-network-evkb`; frozen inputs
+are retained at `build/evidence/m3-inputs.json`. This command performs no hardware
+operation. Host checks also exercise the portable readiness/freshness helper.
+
+For a manual build in that environment:
+
+```sh
+west build -p always -b 'mimxrt1060_evk@B//qspi' \
+  -d build/zephyr/m3-probe-evkb samples/controller/zephyr -- \
+  -DZEPHYR_EXTRA_MODULES="$PWD" \
+  -DEXTRA_CONF_FILE="$PWD/samples/controller/zephyr/m3.conf"
+```
+
+The development probe exposes `m3 status`, `m3 arm` and `m3 stall`. Arm is an
+explicit physical watchdog operation and stall deliberately stops critical work;
+use them only under the independently reviewed physical/recovery plan. Ordinary
+boot does neither. Add `m3-normal.conf` after `m3.conf` (semicolon-separated in
+`EXTRA_CONF_FILE`) for a normal image without Shell/test commands.
+
+`M3_WORK` reports input read status and an unset/valid Time status. `M3_PENDING`
+remains not ready: actual I/O stimulus and combined Ethernet integration are
+unqualified. The earlier Ethernet hold has been released; the standalone health
+image still contains the historical held-state diagnostic. Emulated GPIO transitions and the independent health probe cannot establish
+#10 real-I/O, #11 networking or #12 combined-integration acceptance. Refer to
+[the M3 execution record](../../docs/m3-validation.md) and the linked issue records
+for actual results, support limits and physical gates.
+
+## Isolated M3 network probe — software preparation
+
+`m3-network.conf` and `m3-network.overlay` select a separate native IPv4 client.
+Do not combine them with the independent health configuration. The overlay removes
+LED ownership of GPIO1.9 so PHY reset retains that pin, and selects local test MAC
+02:43:52:55:58:03. It uses EVKB 192.168.77.2/24 and Mac 192.168.77.1/24, with no
+DHCP, gateway or DNS. This configuration is for a direct isolated cable only.
+Confirm actual interface, MAC, cabling and current physical gate before execution.
+Successful cross-builds and instrumented native tests do not qualify real Ethernet.
+
+The Shell command `m3net` requests one round: ten framed TCP exchanges to port 42420,
+then ten UDP datagrams to port 42421. Each exchange has one monotonic 2 s deadline.
+Partial TCP transfers retain that deadline; UDP requires an exact 32-byte response
+from the connected peer, including trial/sequence and fixed payload. The same
+owner closes each socket before the next transaction. A close failure retains
+uncertain ownership and prevents further rounds. The probe accepts at most seven
+rounds: one baseline and three failure/recovery pairs. It sends no traffic at boot.
+
+For the Mac peer, after the separate reviewed physical/network gate:
+
+```sh
+python3 tests/target/m3_network_peer.py --mode echo --duration 60 --output peer.jsonl
+```
+
+The peer binds only 192.168.77.1, accepts only 192.168.77.2, and closes its sockets
+at its declared duration or 200 events. `--mode silence` withholds responses;
+`--mode close` closes TCP after receiving its frame and withholds UDP. Output files
+must be new. Logs identify receive/response facts and correlated trial/sequence.
+No listener should be exposed to shared networks; payloads contain no credentials
+or sensitive data. Remove the validation configuration to remove the Shell/client
+entry point. This is a test boundary, not production protocol/security approval.
+
+`M3_NET_STATE` distinguishes carrier, configured address and service success.
+Restored carrier alone cannot restore service readiness: a complete successful
+explicit round is required. `M3_NET_RESOURCE` reports application ownership and
+native context/pkt/buffer availability. These are observations, not a leak-free
+claim; physical cleanup acceptance still needs predeclared idle return bounds and
+both-end repeated failure/recovery evidence. The standalone network probe does
+not establish combined controller health/watchdog acceptance.

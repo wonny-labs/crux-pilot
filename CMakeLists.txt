@@ -27,7 +27,8 @@ if(CRUX_BUILD_HOST_SAMPLE)
 endif()
 
 if(CRUX_BUILD_REFERENCE_CONTROLLER OR BUILD_TESTING)
-    add_library(crux_controller_core STATIC samples/controller/core/controller.c)
+    add_library(crux_controller_core STATIC samples/controller/core/controller.c
+        samples/controller/core/health.c)
     target_include_directories(crux_controller_core PUBLIC samples/controller/include
         PRIVATE components/time/include)
     target_link_libraries(crux_controller_core PUBLIC crux::base)

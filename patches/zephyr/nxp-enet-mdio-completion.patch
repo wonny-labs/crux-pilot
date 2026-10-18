@@ -1,0 +1,181 @@
+--- a/drivers/ethernet/mdio/mdio_nxp_enet.c
++++ b/drivers/ethernet/mdio/mdio_nxp_enet.c
+@@ -5,6 +5,10 @@
+  */
+ 
+ #define DT_DRV_COMPAT nxp_enet_mdio
++
++#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
++#include "network_mdio_trace.h"
++#endif
+ 
+ #include <zephyr/kernel.h>
+ #include <zephyr/device.h>
+@@ -29,50 +33,115 @@
+ 	struct k_mutex mdio_mutex;
+ 	struct k_sem mdio_sem;
+ 	bool interrupt_up;
++	/* A timed-out operation remains uncertain until a new boot. */
++	bool xfer_failed;
++#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
++	uint32_t trace_wait_interrupt;
++	struct crux_m3_mdio_failure first_failure;
++#endif
+ };
+ 
+-/*
+- * This function is used for both read and write operations
+- * in order to wait for the completion of an MDIO transaction.
+- * It returns -ETIMEDOUT if timeout occurs as specified in DT,
+- * otherwise returns 0 if EIR MII bit is set indicting completed
+- * operation, otherwise -EIO.
+- */
++#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
++BUILD_ASSERT(DT_NUM_INST_STATUS_OKAY(nxp_enet_mdio) == 1);
++
++static void nxp_enet_mdio_capture_failure(struct nxp_enet_mdio_data *data,
++		uint8_t phy, uint8_t reg, enum mdio_opcode op, int result, uint32_t started)
++{
++	uint32_t elapsed = k_cycle_get_32() - started;
++	unsigned int key = irq_lock();
++
++	if (!data->first_failure.valid) {
++		struct crux_m3_mdio_failure *record = &data->first_failure;
++
++		record->monotonic_ms = (uint32_t)k_uptime_get();
++		record->started_cycles = started;
++		record->elapsed_cycles = elapsed;
++		record->clock_hz = sys_clock_hw_cycles_per_sec();
++		record->wait_interrupt = data->trace_wait_interrupt;
++		record->phy = phy;
++		record->reg = reg;
++		record->op = op;
++		record->result = result;
++		/* Sequential observations: hardware can progress while IRQs are masked. */
++		record->eir = data->base->EIR;
++		record->mmfr = data->base->MMFR;
++		record->eimr = data->base->EIMR;
++		record->ecr = data->base->ECR;
++		record->mscr = data->base->MSCR;
++		record->sem_count = k_sem_count_get(&data->mdio_sem);
++		record->valid = 1;
++	}
++	irq_unlock(key);
++}
++
++bool crux_m3_mdio_failure_get(const struct device *dev, struct crux_m3_mdio_failure *out)
++{
++	if (dev != DEVICE_DT_GET(DT_DRV_INST(0)) || out == NULL) {
++		return false;
++	}
++	struct nxp_enet_mdio_data *data = dev->data;
++	unsigned int key = irq_lock();
++	bool valid = data->first_failure.valid != 0;
++
++	if (valid) {
++		*out = data->first_failure;
++	}
++	irq_unlock(key);
++	return valid;
++}
++#endif
++
++/* Wait for this transaction; a semaphore timeout is never a successful read. */
+ static int nxp_enet_mdio_wait_xfer(const struct device *dev)
+ {
+ 	struct nxp_enet_mdio_data *data = dev->data;
+ 
+-	/* This function will not make sense from IRQ context */
++	if (!data->interrupt_up) {
++#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
++		data->trace_wait_interrupt = 0;
++#endif
++		return WAIT_FOR(data->base->EIR & ENET_EIR_MII_MASK,
++				CONFIG_MDIO_NXP_ENET_TIMEOUT, k_busy_wait(1)) ? 0 : -ETIMEDOUT;
++	}
++
++#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
++	data->trace_wait_interrupt = 1;
++#endif
++	return k_sem_take(&data->mdio_sem, K_USEC(CONFIG_MDIO_NXP_ENET_TIMEOUT)) == 0
++		       ? 0 : -ETIMEDOUT;
++}
++
++static int mdio_transfer(const struct device *dev, uint8_t prtad, uint8_t regad,
++			 enum mdio_opcode op, bool c45, uint16_t data_in, uint16_t *data_out)
++{
++	struct nxp_enet_mdio_data *data = dev->data;
++	int ret;
++	unsigned int key;
++#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
++	uint32_t started;
++#endif
++
++	/* Reject interrupt context before acquiring a sleeping mutex. */
+ 	if (k_is_in_isr()) {
+ 		return -EWOULDBLOCK;
+ 	}
+ 
+-	if (!data->interrupt_up) {
+-		/* If the interrupt is not available to use yet, just busy wait */
+-		k_busy_wait(CONFIG_MDIO_NXP_ENET_TIMEOUT);
+-		k_sem_give(&data->mdio_sem);
+-	}
+-
+-	/* Wait for the MDIO transaction to finish or time out */
+-	k_sem_take(&data->mdio_sem, K_USEC(CONFIG_MDIO_NXP_ENET_TIMEOUT));
+-
+-	return 0;
+-}
+-
+-static int mdio_transfer(const struct device *dev, uint8_t prtad, uint8_t regad,
+-			 enum mdio_opcode op, bool c45, uint16_t data_in, uint16_t *data_out)
+-{
+-	struct nxp_enet_mdio_data *data = dev->data;
+-	int ret;
+-
+ 	/* Only one MDIO bus operation attempt at a time */
+ 	(void)k_mutex_lock(&data->mdio_mutex, K_FOREVER);
++	if (data->xfer_failed) {
++		(void)k_mutex_unlock(&data->mdio_mutex);
++		return -EIO;
++	}
++
++	/* Single-core RT1062: exclude an old ISR between clearing and starting. */
++	key = irq_lock();
+ 
+ 	/*
+ 	 * Clear the bit (W1C) that indicates MDIO transfer is ready to
+ 	 * prepare to wait for it to be set once this transfer is done
+ 	 */
+ 	data->base->EIR = ENET_EIR_MII_MASK;
++	k_sem_reset(&data->mdio_sem);
+ 
+ 	/*
+ 	 * Write MDIO frame to MII management register which will
+@@ -85,6 +154,9 @@
+ 	 * TA = Turnaround, must be 2 to be valid
+ 	 * data = data to be written to the PHY register
+ 	 */
++#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
++	started = k_cycle_get_32();
++#endif
+ 	data->base->MMFR = ENET_MMFR_ST(c45 ? 0x0U : 0x1U)
+ 					 | ENET_MMFR_OP(op)
+ 					 | ENET_MMFR_PA(prtad)
+@@ -92,8 +164,15 @@
+ 					 | ENET_MMFR_TA(0x2U)
+ 					 | data_in;
+ 
++	irq_unlock(key);
++
+ 	ret = nxp_enet_mdio_wait_xfer(dev);
+ 	if (ret) {
++		/* Do not let a late completion satisfy any subsequent transaction. */
++		data->xfer_failed = true;
++#ifdef CONFIG_CRUX_M3_MDIO_FAILURE_TRACE
++		nxp_enet_mdio_capture_failure(data, prtad, regad, op, ret, started);
++#endif
+ 		(void)k_mutex_unlock(&data->mdio_mutex);
+ 		return ret;
+ 	}

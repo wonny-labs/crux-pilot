@@ -1,0 +1,22 @@
+common:
+  platform_allow:
+    - native_sim/native/64
+  tags:
+    - logging
+  timeout: 10
+  harness: console
+  harness_config:
+    type: one_line
+    regex:
+      - '^NETWORK_BURST_COMPLETE emitted=130 capacity=[0-9]+ queued_bytes=[0-9]+ usage_status=0$'
+tests:
+  crux.native.network_burst: {}
+  crux.native.network_paced:
+    extra_args:
+      - CRUX_TEST_PACED=ON
+  crux.native.network_burst_8k:
+    extra_configs:
+      - CONFIG_LOG_BUFFER_SIZE=8192
+  crux.native.network_burst_16k:
+    extra_configs:
+      - CONFIG_LOG_BUFFER_SIZE=16384

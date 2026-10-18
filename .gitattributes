@@ -1,0 +1,2 @@
+# Unified-diff context markers are data; applied source uses strict whitespace checks.
+patches/zephyr/*.patch -whitespace

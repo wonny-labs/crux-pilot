@@ -1,0 +1,16 @@
+common:
+  platform_allow:
+    - native_sim/native/64
+  tags:
+    - logging
+  timeout: 20
+  harness: console
+  harness_config:
+    type: one_line
+    regex:
+      - '^INTEGRATED_FIXTURE_COMPLETE emitted=[0-9]+ expected_loss=[01]$'
+tests:
+  crux.native.integrated_output: {}
+  crux.native.integrated_output_loss:
+    extra_args:
+      - CRUX_TEST_LOSS=ON

@@ -1,0 +1,64 @@
+mainmenu "Crux reference controller"
+
+source "Kconfig.zephyr"
+
+config CRUX_CONTROLLER_M3
+	bool "Build the independent M3 GPIO/health probe"
+	default n
+
+config CRUX_M3_TEST_COMMANDS
+	bool "Enable development watchdog arm/stall commands"
+	depends on CRUX_CONTROLLER_M3 && SHELL
+	default n
+
+config CRUX_M3_NETWORK_PROBE
+	bool "Build the bounded isolated M3 network probe"
+	default n
+
+config CRUX_M3_PHY_DIAGNOSTIC
+	bool "Observe PHY and MAC state in a diagnostic-only network image"
+	depends on CRUX_M3_NETWORK_PROBE && SOC_MIMXRT1062
+	default n
+
+config CRUX_M3_INTEGRATED
+	bool "Require bounded network work in the M3 controller"
+	depends on CRUX_CONTROLLER_M3 && NETWORKING
+	default n
+
+config CRUX_M3_MDIO_COMPLETION_FIX
+	bool "Use the pinned reference-only MDIO completion correction"
+	depends on SOC_MIMXRT1062 && MDIO_NXP_ENET && !SMP && !ZERO_LATENCY_IRQS
+	default n
+	help
+	  Apply a maintained native driver patch to a generated build copy.
+	  A transaction timeout disables further MDIO requests until a fresh boot.
+	  This option does not establish physical Ethernet qualification.
+
+config CRUX_M3_MDIO_FAILURE_TRACE
+	bool "Retain and observe the first native MDIO wait failure"
+	depends on CRUX_M3_MDIO_COMPLETION_FIX && CRUX_M3_PHY_DIAGNOSTIC
+	default n
+	help
+	  Retain a private first-failure record and print it once after app startup.
+	  This diagnostic does not alter timeout, IRQ or failed-transaction policy.
+
+config CRUX_M3_DEFERRED_OUTPUT
+	bool "Evaluate native deferred UART records in the MDIO diagnostic"
+	depends on CRUX_M3_MDIO_FAILURE_TRACE
+	depends on LOG_PRINTK && LOG_MODE_DEFERRED && LOG_PROCESS_THREAD
+	depends on THREAD_MONITOR && THREAD_NAME
+	default n
+	help
+	  Private diagnostic evaluation only, with bounded native logging resources.
+	  This is not an adopted network or integrated-controller output profile.
+
+config CRUX_M3_NATIVE_OUTPUT
+	bool "Use bounded native deferred UART output in the M3 reference consumer"
+	depends on (CRUX_M3_NETWORK_PROBE || CRUX_M3_INTEGRATED) && !CRUX_M3_PHY_DIAGNOSTIC
+	depends on CRUX_M3_MDIO_COMPLETION_FIX && !CRUX_M3_DEFERRED_OUTPUT
+	depends on LOG_PRINTK && LOG_MODE_DEFERRED && LOG_PROCESS_THREAD
+	depends on THREAD_MONITOR && THREAD_NAME
+	default n
+	help
+	  Sample-only composition with explicit logger resources and loss checks.
+	  Physical Ethernet qualification remains a separate requirement.

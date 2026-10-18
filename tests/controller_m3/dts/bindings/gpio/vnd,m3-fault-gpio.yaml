@@ -1,0 +1,6 @@
+description: Test-only GPIO API fixture for a controlled negative native read
+compatible: "vnd,m3-fault-gpio"
+include: gpio-controller.yaml
+gpio-cells:
+  - pin
+  - flags

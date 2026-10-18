@@ -1,0 +1,6 @@
+&m3_fault_gpio {
+    status = "okay";
+};
+&m3_button {
+    gpios = <&m3_fault_gpio 0 GPIO_ACTIVE_LOW>;
+};
