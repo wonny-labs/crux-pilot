@@ -13,12 +13,16 @@ pushes, PR delivery and scoped physical verification after independent review an
 successful preflight. It does not permit merging, auto-merge or issue/milestone
 closure. AGENTS.md and public contracts remain unchanged.
 
-The subsequent [user steering] holds Ethernet work and confirms that real I/O
+The earlier [user steering] held Ethernet work and confirmed that real I/O
 stimulus cannot currently be supplied. Therefore #11 implementation and all peer
 or network manipulation are held. #10 software and controlled native integration
 tests can proceed, but physical stimulus/response acceptance remains Pending.
 #12 independent diagnostics, readiness and health/watchdog work can proceed;
-final integration still requires qualified real #10/#11 hand-offs. Independent
+final integration still requires qualified real #10/#11 hand-offs. The user has
+subsequently requested resumption and offered physical stimulus. Software work
+may resume after its applicable review; current topology, stimulus availability
+and affected physical gates still require confirmation. Held-state descriptions
+below preserve the preceding partial delivery rather than new completion claims. Independent
 watchdog evidence cannot substitute for that combined controller result.
 
 The expected target is the previously confirmed EVKB PCB B, i.MX RT1062, standard
@@ -162,7 +166,8 @@ probe/normal manifests and their files immutable for qualification. After exact
 physical-plan PASS and ownership preflight, the explicit hardware entry point is
 `tests/target/capture_m3.py --probe-manifest <probe.json> --normal-manifest
 <normal.json> --recovery-bin <known-good-M2.bin> --evidence <new-directory>
---program`. It requires the existing Mac/probe/UART mapping, clean committed runner
+--uart <verified-device-path> --uart-serial <verified-USB-serial> --program`.
+It requires a unique matching DAPLink USB serial and path, clean committed runner
 source and the retained M2 recovery hash. This command must not be invoked merely
 because software controls pass.
 

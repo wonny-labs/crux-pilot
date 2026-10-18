@@ -336,6 +336,16 @@ def check_owners(uart, output):
             'Probe already owned')
 
 
+def select_uart(ports, uart, serial_number):
+    """Bind the explicitly selected path to one verified USB serial identity."""
+    require(bool(serial_number), 'Expected UART USB serial identity is required')
+    matches = [p for p in ports if p.get('serial_number') == serial_number]
+    require(len(matches) == 1 and matches[0].get('device') == uart and
+            matches[0].get('vid') == 0x0d28 and matches[0].get('pid') == 0x0204,
+            'UART mapping absent, ambiguous or wrong USB identity')
+    return matches
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--probe-manifest', type=Path, required=True)
@@ -343,11 +353,13 @@ def main():
     parser.add_argument('--recovery-bin', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
     parser.add_argument('--program', action='store_true', required=True)
+    parser.add_argument('--uart', default='/dev/cu.usbmodem11102')
+    parser.add_argument('--uart-serial', required=True)
     args = parser.parse_args()
     require(platform.system() == 'Darwin', 'Expected documented Mac hardware owner')
     require(sha(args.recovery_bin) == '4be80bc7cfcfc116bebba08d3d9c56b347cc6452548da299f7bf09a446ed55d2',
             'Known-good M2 recovery image identity changed')
-    probe_id, uart = '602003106', '/dev/cu.usbmodem11102'
+    probe_id, uart = '602003106', args.uart
     probe_image = verify_manifest(args.probe_manifest)
     normal_image = verify_manifest(args.normal_manifest)
     require(probe_image['profile'] == 'probe' and normal_image['profile'] == 'normal', 'Wrong image roles')
@@ -362,7 +374,8 @@ def main():
     metadata = dict(executed_at_utc=datetime.now(timezone.utc).isoformat(), runner_commit=runner_commit,
                     runner_sha256=records, probe_manifest_sha256=sha(args.probe_manifest),
                     normal_manifest_sha256=sha(args.normal_manifest), recovery_bin_sha256=sha(args.recovery_bin),
-                    probe=probe_id, uart=uart, baud=115200, swd_khz=400, network='held; no action',
+                    probe=probe_id, uart=uart, uart_serial=args.uart_serial,
+                    baud=115200, swd_khz=400, network='outside standalone health scope; no action',
                     scope='independent health probe; full M3 remains Pending')
     (args.evidence / 'inputs.json').write_text(json.dumps(metadata, indent=2) + '\n')
     lock_path = args.evidence.parent / 'evkb-602003106.lock'
@@ -371,9 +384,8 @@ def main():
         check_owners(uart, args.evidence / 'uart-owners.txt')
         import serial
         import serial.tools.list_ports
-        ports = [vars(p) for p in serial.tools.list_ports.comports() if p.device == uart]
-        require(len(ports) == 1 and ports[0].get('vid') == 0x0d28 and ports[0].get('pid') == 0x0204,
-                'UART mapping absent, ambiguous or wrong VID/PID')
+        ports = select_uart([vars(p) for p in serial.tools.list_ports.comports()],
+                            uart, args.uart_serial)
         (args.evidence / 'serial-inventory.json').write_text(json.dumps(ports, default=str, indent=2) + '\n')
         with serial.Serial(uart, 115200, timeout=.02, exclusive=True) as port:
             fcntl.ioctl(port.fileno(), termios.TIOCEXCL)

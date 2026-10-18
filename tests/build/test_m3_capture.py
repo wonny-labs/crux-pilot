@@ -11,6 +11,22 @@ import capture_m3 as runner
 
 
 class RunnerControls(unittest.TestCase):
+    def test_uart_selection_requires_unique_path_and_usb_identity(self):
+        port = dict(device='/dev/cu.usbmodem11302', serial_number='expected',
+                    vid=0x0d28, pid=0x0204)
+        self.assertEqual(runner.select_uart([port], port['device'], 'expected'), [port])
+        for ports, path, identity in (
+                ([], port['device'], 'expected'),
+                ([port, port], port['device'], 'expected'),
+                ([port], '/dev/cu.usbmodem11102', 'expected'),
+                ([port], port['device'], ''),
+                ([port], port['device'], 'other'),
+                ([dict(port, vid=1)], port['device'], 'expected'),
+                ([dict(port, pid=1)], port['device'], 'expected')):
+            with self.subTest(ports=ports, path=path, identity=identity):
+                with self.assertRaises(ValueError):
+                    runner.select_uart(ports, path, identity)
+
     def test_uncertain_uart_inventory_never_reaches_probe_inventory(self):
         for result in (runner.subprocess.CompletedProcess([], 1, '', 'inventory warning'),
                        runner.subprocess.CompletedProcess([], 0, 'existing owner', ''),
