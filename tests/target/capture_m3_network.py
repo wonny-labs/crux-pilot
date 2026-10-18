@@ -132,11 +132,18 @@ def fresh_network_rows(rows, source):
     require(len(banners) <= 1, 'Duplicate boot during initial network checkpoint')
     if not banners:
         return []
+    prefix = rows[:banners[0]]
+    require(all(any(line.startswith(name + ' ') for name in
+                    ('M3_NET_RESOURCE', 'M3_NET_STATE', 'M3_NET_STACK'))
+                for _, line in prefix), 'Unexpected pre-reset activity')
+    require(all(r['service_ready'] == 0 for r in records(prefix, 'M3_NET_STATE')),
+            'Pre-reset service was active')
     fresh = rows[banners[0]:]
     boots = records(fresh, 'M3_NET_BOOT')
     require(len(boots) <= 1, 'Duplicate network image identity')
     if not boots:
         return []
+    require(0 <= boots[0]['received'] - fresh[0][0] <= .5, 'Late fresh image identity')
     require(boots[0]['source'] == source and boots[0]['profile'] == 'network-probe',
             'Wrong fresh network image identity')
     return fresh
@@ -260,8 +267,8 @@ def main():
                         checkpoint_start = initial_checkpoint_boundary(fresh_network_rows(receiver.rows, source))
                         wait_until(lambda: time.monotonic() >= checkpoint_start + 4.5, 5, receiver)
                         require(receiver.text().count('*** Booting Zephyr') == 1 and
-                                'M3_NET_INIT result=0 ' in receiver.text() and
-                                'M3_NET_BASELINE contexts=0' in receiver.text(), 'Wrong/failed fresh network boot')
+                                'M3_NET_INIT result=0 ' in '\n'.join(s for _, s in fresh_network_rows(receiver.rows, source)) and
+                                'M3_NET_BASELINE contexts=0' in '\n'.join(s for _, s in fresh_network_rows(receiver.rows, source)), 'Wrong/failed fresh network boot')
                         require(not records(fresh_network_rows(receiver.rows, source), 'M3_NET_EXCHANGE'), 'Automatic application traffic at boot')
                     else:
                         from capture_m3 import normal_result

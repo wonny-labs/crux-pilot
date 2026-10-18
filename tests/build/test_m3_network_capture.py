@@ -102,6 +102,10 @@ class NetworkCaptureControls(unittest.TestCase):
         with self.assertRaises(ValueError):runner.initial_checkpoint_boundary(runner.fresh_network_rows(old+fresh[:-1],source))
         with self.assertRaises(ValueError):runner.fresh_network_rows(old+fresh,'wrong')
         with self.assertRaises(ValueError):runner.fresh_network_rows(fresh+fresh,source)
+        with self.assertRaises(ValueError):runner.fresh_network_rows([(10.,'M3_NET_EXCHANGE result=0')]+fresh,source)
+        with self.assertRaises(ValueError):runner.fresh_network_rows([(10.,'M3_NET_STATE service_ready=1')]+fresh,source)
+        late=list(fresh);late[1]=(11.6,late[1][1])
+        with self.assertRaises(ValueError):runner.fresh_network_rows(late,source)
 
     def test_existing_image_resumption_never_programs_or_erases(self):
         self.assertEqual(runner.image_commands('/known/image.bin',False),'r\ng\nq\n')
