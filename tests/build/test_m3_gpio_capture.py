@@ -23,6 +23,26 @@ def fixture():
 
 
 class GPIOControls(unittest.TestCase):
+    def test_static_diagnostic_does_not_replace_qualification(self):
+        released=[r for r in fixture() if 1<=r[0]<6]
+        self.assertTrue(gpio.diagnostic_state(released,1,0)['matches'])
+        self.assertFalse(gpio.diagnostic_state(released,1,1)['matches'])
+        held=[(t,s.replace('pressed=0','pressed=1')) for t,s in released]
+        self.assertTrue(gpio.diagnostic_state(held,1,1)['matches'])
+        with self.assertRaises(ValueError):gpio.diagnostic_state(released[:3],1,0)
+        with self.assertRaises(ValueError):gpio.diagnostic_state(released+[(5.5,'M3_WDT_ARMED')],1,0)
+        with self.assertRaises(ValueError):
+            gpio.diagnostic_state([r for r in released if not(r[1].startswith('M3_WORK ') and int(r[0])==3)],1,0)
+
+    def test_static_diagnostic_rejects_stale_ack_without_target_action(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(gpio,'Receiver') as reader, \
+             patch.object(gpio,'commander') as command:
+            path=Path(directory)
+            (path/'operator-held.json').write_text('{}')
+            with self.assertRaises(ValueError):gpio.capture_diagnostic(None,path)
+            reader.assert_not_called()
+            command.assert_not_called()
+
     def test_spoken_cue_schedule_and_failure_evidence(self):
         for index in range(10):
             with tempfile.TemporaryDirectory() as directory, \

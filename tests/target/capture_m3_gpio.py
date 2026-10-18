@@ -183,13 +183,90 @@ def capture_gpio(port, directory, source):
         raise
 
 
+def diagnostic_state(rows, since, expected):
+    selected = [(t, s) for t, s in rows if t >= since]
+    require(not any(re.search(r'M3_BOOT|Booting Zephyr|M3_WDT_|M3_FAULT_|FAILED|FATAL', s)
+                    for _, s in selected), 'Unexpected boot/fault during static diagnostic')
+    work = []
+    for t, s in selected:
+        if s.startswith('M3_WORK '):
+            match = re.fullmatch(r'M3_WORK sequence=(\d+) monotonic_ms=(\d+) time=(-?\d+) pressed=([01]) device=0', s)
+            require(match, 'Invalid diagnostic GPIO report')
+            work.append((t, int(match[1]), int(match[2]), int(match[4])))
+    require(len(work) >= 4 and work[-1][2] - work[0][2] >= 3000,
+            'Insufficient diagnostic state observations')
+    require(all(b[1] > a[1] and 0 < b[2]-a[2] <= 1250 and
+                abs((b[0]-a[0])*1000-(b[2]-a[2])) <= 250 for a, b in zip(work, work[1:])),
+            'Discontinuous diagnostic GPIO observations')
+    return dict(expected=expected, observed=[row[3] for row in work],
+                matches=all(row[3] == expected for row in work))
+
+
+def capture_diagnostic(port, directory):
+    """One operator-acknowledged static-state investigation; no qualification claim."""
+    require(not any((directory/f'operator-{phase}.json').exists() for phase in ('held', 'released')),
+            'Stale operator acknowledgements')
+    drain(port, directory)
+    receiver = Receiver(port, directory)
+    receiver.begin()
+    started = time.monotonic()
+    events = []
+    states = {}
+    try:
+        def observe(duration):
+            begin = time.monotonic()
+            while time.monotonic()-begin < duration:
+                require(receiver.failure is None, 'Diagnostic reader failed')
+                require(time.monotonic()-started <= 90, 'Diagnostic total bound exceeded')
+                time.sleep(.02)
+            return begin
+
+        baseline = observe(5)
+        states['baseline'] = diagnostic_state(list(receiver.rows), baseline, 0)
+        require(states['baseline']['matches'], 'Diagnostic baseline is not released')
+        for phase, expected in (('held', 1), ('released', 0)):
+            requested = time.monotonic()
+            events.append(dict(phase=phase, requested=requested))
+            (directory/'operator-events.json').write_text(json.dumps(events, indent=2))
+            print('DIAGNOSTIC_HOLD' if phase == 'held' else 'DIAGNOSTIC_RELEASE', flush=True)
+            acknowledgement = directory/f'operator-{phase}.json'
+            while not acknowledgement.exists():
+                require(time.monotonic()-requested <= 30, 'Operator acknowledgement timeout; release button')
+                observe(.02)
+            ack = json.loads(acknowledgement.read_text())
+            require(ack.get('state') == phase, 'Wrong operator acknowledgement')
+            events[-1].update(ack_received=time.monotonic(), operator=ack)
+            (directory/'operator-events.json').write_text(json.dumps(events, indent=2))
+            # Allow one report for reaction/ack delivery, then observe a stable state.
+            observe(1)
+            begin = observe(5)
+            states[phase] = diagnostic_state(list(receiver.rows), begin, expected)
+        result = dict(scope='static SW5 investigation only; no five-group qualification',
+                      states=states, status='OBSERVED' if all(v['matches'] for v in states.values()) else 'MISMATCH',
+                      identity='full BIN verified; existing normal run; no reset or fresh boot claim')
+        (directory/'diagnostic-result.json').write_text(json.dumps(result, indent=2))
+        return result
+    except Exception:
+        (directory/'failure.txt').write_text(traceback.format_exc())
+        raise
+    finally:
+        print('DIAGNOSTIC_STOP: release SW5 now', flush=True)
+        try:
+            receiver.finish()
+        finally:
+            (directory/'lines.json').write_text(json.dumps(receiver.rows, indent=2))
+            (directory/'uart.txt').write_text(receiver.text()+'\n')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--normal-manifest',type=Path,required=True)
     parser.add_argument('--evidence',type=Path,required=True)
     parser.add_argument('--uart',required=True)
     parser.add_argument('--uart-serial',required=True)
-    parser.add_argument('--reset',action='store_true',required=True)
+    action = parser.add_mutually_exclusive_group(required=True)
+    action.add_argument('--reset', action='store_true')
+    action.add_argument('--diagnostic', action='store_true')
     args=parser.parse_args()
     require(platform.system()=='Darwin','Expected Mac owner')
     verify_jlink_tools()
@@ -205,7 +282,8 @@ def main():
                 runner_sha256=sha(Path(__file__)), uart=args.uart, uart_serial=args.uart_serial,
                 stimulus='five spoken press4s/release4s pairs within unchanged45s window; final released',
                 limits='baseline>=3s;45s action;5 presses;>=2 samples/press+gap;final released>=3s',
-                operations='verify current BIN; reset/start normal; capture only; no programming/network/watchdog')
+                operations=('verify current BIN; static diagnostic without reset; no qualification'
+                            if args.diagnostic else 'verify current BIN; reset/start normal; capture only; no programming/network/watchdog'))
     (args.evidence/'inputs.json').write_text(json.dumps(inputs,indent=2))
     # Validate synthesis before any UART ownership check, target attach or reset.
     speak(['-o', str(args.evidence/'cue-preflight.aiff'), '누르세요 놓으세요'],
@@ -224,7 +302,9 @@ def main():
             require(voltage and 3<=float(voltage[1])<=3.6 and 'CPUID register: 0x411FC271' in text and
                     'DPIDR: 0x0BD11477' in text and re.search(r'S/N:\s*602003106\b',text) and
                     'Verify successful' in text,'Wrong current firmware/probe/CPU/voltage')
-            print(json.dumps(capture_gpio(port,args.evidence,image['source']['git_commit'][:12])),flush=True)
+            result = (capture_diagnostic(port, args.evidence) if args.diagnostic else
+                      capture_gpio(port,args.evidence,image['source']['git_commit'][:12]))
+            print(json.dumps(result),flush=True)
 
 
 if __name__=='__main__':
