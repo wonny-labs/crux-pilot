@@ -13,26 +13,19 @@ pushes, PR delivery and scoped physical verification after independent review an
 successful preflight. It does not permit merging, auto-merge or issue/milestone
 closure. AGENTS.md and public contracts remain unchanged.
 
-The [current SW5 physical result](#uart-remediation-and-sw5-physical-handoff) supersedes
-the earlier physical-input Pending status within its stated scope. Ethernet and
-combined-controller physical qualification remain Pending.
+The [current SW5 physical result](#uart-remediation-and-sw5-physical-handoff) and
+[qualified Ethernet hand-off](#qualified-ethernet-handoff) establish the identified
+#10 and #11 component paths. Combined-controller #12 physical acceptance remains
+Pending. Earlier Ethernet/stimulus holds were released by the recorded task
+resumption; fresh operator availability is still required for each physical series.
+The earlier failed SW8/SW5, carrier, diagnostic and timestamp attempts remain
+preserved and are not retrospectively passed. A component result does not establish
+simultaneous controller integration or final M3 completion.
 
-The earlier [user steering] held Ethernet work and confirmed that real I/O
-stimulus cannot currently be supplied. Therefore #11 implementation and all peer
-or network manipulation are held. #10 software and controlled native integration
-tests can proceed, but physical stimulus/response acceptance remains Pending.
-#12 independent diagnostics, readiness and health/watchdog work can proceed;
-final integration still requires qualified real #10/#11 hand-offs. The user has
-subsequently requested resumption and offered physical stimulus. Software work
-may resume after its applicable review; current topology, stimulus availability
-and affected physical gates still require confirmation. Held-state descriptions
-below preserve the preceding partial delivery rather than new completion claims. Independent
-watchdog evidence cannot substitute for that combined controller result.
-
-The expected target is the previously confirmed EVKB PCB B, i.MX RT1062, standard
-8 MiB QSPI and J-Link PLUS 602003106. Existing setup evidence is reused within its
-scope; software cannot detect an unreported wiring/jumper change. At plan authoring no physical
-operation had been performed for M3; current outcomes remain in the issue/PR records. The Mac management connection is excluded.
+The target remains the confirmed EVKB PCB B, i.MX RT1062, standard 8 MiB QSPI
+and J-Link PLUS 602003106. Software cannot detect an unreported wiring/jumper
+change. DAPLink/UART USB also supplies board power; its removal is a power-off.
+The Mac management connection is excluded from the dedicated Ethernet tests.
 
 ## Execution order and proposed composition
 
@@ -273,28 +266,26 @@ partial evidence, not replacement acceptance criteria or checked completion.
 
 | Issue / AC | Evidence or current disposition |
 | --- | --- |
-| #10 / 1 | Interface assessment above; selected real-input stimulus/access remains unresolved. |
-| #10 / 2 | Bounded software adapter/normal/error cases implemented; physical stimulus scenario remains Pending. |
-| #10 / 3 | Pending real non-UART repeatable stimulus/response. Emulation cannot satisfy it. |
-| #10 / 4 | Portable Host checks and native GPIO cases pass; current-head target/CI results remain in PR evidence. |
-| #10 / 5 | Source/configuration/build entry points retained; physical firmware/fixture hand-off is not yet qualified. |
-| #11 / 1–6 | Held by the user. No M3 Ethernet implementation, peer preparation or network manipulation. |
-| #12 / 1 | Independent health composition defined; combined #10/#11 composition still depends on qualified hand-offs. |
-| #12 / 2 | Stable source/progress/readiness/reset/error diagnostics implemented; physical results require the separate gate and records. |
-| #12 / 3 | Pending qualified real-I/O, TCP/UDP and combined controller runs. |
-| #12 / 4 | Time remains worker-owned; portable Host and native logic pass. Exact current-head CI/configuration identity is recorded in the PR. |
-| #12 / 5 | Progress-conditioned helper and bounded arm/stall design implemented/reviewed; physical workload coupling still requires actual trials. |
-| #12 / 6 | Independent watchdog trials require exact-image/runner/recovery PASS and preflight. They cannot substitute for combined M3 qualification. |
-| #12 / 7 | Reproduction, frozen inputs and raw evidence are retained; exact physical footprint/stack/timeout results must come from identified trials. |
-| #12 / 8 | This coverage record keeps missing physical/network/integration outcomes explicit. Full M3 remains incomplete. |
+| #10 / 1 | Interface assessment and actual SW5/GPIO5.0 selection; PHY reset GPIO1.9 remains separate. |
+| #10 / 2 | Bounded adapter/error cases and identified fe9 SW5 stimulus/response qualified. |
+| #10 / 3 | Actual five-group/45 s SW5 physical input/UART hand-off independently PASS. |
+| #10 / 4 | Portable Host/native GPIO checks and qualified physical source retained; current-head CI is recorded in the PR. |
+| #10 / 5 | Qualified fe9 source/configuration/fixture/build entry points retained; no other I/O path inferred. |
+| #11 / 1–6 | Identified d2 seven-stage TCP/UDP/link-loss/restart series, resource return and final normal recovery independently PASS; see qualified hand-off below. |
+| #12 / 1 | Three-owner composition and reviewed native-output preparation defined; combined physical validation remains Pending. |
+| #12 / 2 | Stable UART/source/readiness/error/reset facts and native logger checks implemented; integrated physical evidence Pending. |
+| #12 / 3 | Qualified SW5 and TCP/UDP hand-offs available; simultaneous controller physical runs Pending. |
+| #12 / 4 | Time remains worker-owned; applicable Host/native logic and output controls retained. Exact final source/configuration/CI is recorded in the PR. |
+| #12 / 5 | Joint workload-conditioned feeding and bounded per-owner faults implemented; physical workload coupling Pending. |
+| #12 / 6 | Original integrated healthy/Time-stall/network-stall watchdog trials Pending; standalone health trials cannot substitute. |
+| #12 / 7 | Component reproduction and exact firmware/raw evidence retained; changed integrated resources and physical observations still require their own gate. |
+| #12 / 8 | This coverage record identifies qualified components and missing combined outcomes. Full M3 remains incomplete. |
 
-The Draft PR and issue comments record current-head CI, review verdicts, later
-physical outcomes (if executed), archive identity and precise resume state.
-No issue/milestone closure, merge or Ready transition is authorised while these
-required outcomes are missing. Resume real I/O only when stimulus is available;
-resume Ethernet only after the user releases its hold and an isolated peer/link
-control path is confirmed. Preserve the failed attempts and re-review affected
-observers/configurations before retrying an invalid physical result.
+The Draft PR and issue comments identify current-head CI, independent verdicts,
+physical results, archive identities and resume state. Keep all issues/M3 open for
+human acceptance. Ready requires the complete original M3 success conditions;
+no merge or closure is authorised. Physical series require fresh runtime identity,
+ownership/protection, exact-image and actual operator-availability checks.
 
 ## Resumption and renewed preflight stop
 
@@ -693,8 +684,8 @@ logging disabled. Lost-message reports invalidate observations. Logger allocatio
 usable stack and observed unused space must be distinguished; the prospective
 short-run minimum unused is 1024 bytes, without a worst-case claim. Target timestamps
 remain distinct from delayed receive times. Existing timing limits are unchanged.
-No ordinary network or integrated profile adopts this output choice yet; the
-option and its tests are software evaluation, with separate physical review required.
+This diagnostic did not adopt a general output profile. The later network-only
+16 KiB composition is qualified below; integrated adoption has its separate gate.
 
 The deferred diagnostic emits a START timestamp and at most one FINAL snapshot
 when its existing main-loop polling reaches 15000 ms. Getter timestamps bracket the
@@ -755,4 +746,76 @@ actual production function, rejects the original two-read expression, and checks
 consistent TCP/UDP reports above the 32-bit uptime range. The failed physical
 series remains FAIL, and its full-verified `fe9f54f` normal restoration passed
 (commands off, fault injection off, worker/main unused 3776/1352 bytes). Stages
-4–7 were not attempted; complete Ethernet and integrated acceptance remain Pending.
+4–7 were not attempted in that failed series. The later d2 full-series result is
+recorded below; integrated physical acceptance remains Pending.
+
+
+## Qualified Ethernet hand-off
+
+Source `d2bee283e0cd1adbebc87e980f7a56faa3764355` passed all seven original
+physical Ethernet stages and independent raw/peer/oracle review: echo, silence,
+echo recovery, TCP close/UDP echo, echo recovery, actual RJ45 loss and actual
+reconnection plus explicit reset/recovery. Every stage recorded 20 bounded
+transactions. Full capture resource/stack/logger and unchanged timing checks
+passed. Three idle samples span 2002 ms; minimum observed main/logger unused
+values were 2928/1560 bytes. These are short observations, not worst-case limits.
+The final full-verified fe9 normal restoration passed, commands/fault injection
+off, worker/main unused 3776/1352 bytes. No integration acceptance is inferred.
+
+Qualified BIN: 115484 bytes, SHA256
+`8161960fb64643b7c0be580d81d1147bf545d093554ff826ec84442fcd4563e1`.
+All four exact-head CI runs succeeded; the preserved Zephyr push attempt-1 SDK
+403 rate-limit failure occurred before tests, and its single infrastructure retry
+passed. The [reviewed result](https://github.com/wonny-labs/crux-pilot/issues/11#issuecomment-6252853065)
+identifies the fixed peer/addresses, exact native configuration and component
+hand-off. Archive `crux-m3-network-d2bee28-actual-20261018.tar.gz`, 227 payloads,
+SHA256 `9f00c77f51d90182b3a23baa386301458d95295917271b8c155d65dac6541019`,
+references the exact-image/compiler-ABI/source/failure preparation supplement
+`crux-m3-network-timestamp-checkpoint-d2bee28-20261018.tar.gz`, SHA256
+`aae3c8a857cba134ce4122e50fea450c4b18a0cf87f4b6bbbf242482ce01a521`.
+All payload hashes were independently checked. Earlier failures remain retained;
+there is no universal MDIO hardware-cause, automatic recovery or M5 claim.
+
+## Integrated native-output preparation
+
+The reviewed #12 composition reuses the exact qualified client/header/overlay,
+maintained native MDIO patch and pinned dependencies. The private default-off
+native-output option now admits the integrated probe/normal roles, retaining the
+16 KiB nonblocking drop-new buffer, one UART backend, 2048-byte usable logger
+stack and priority 14. Existing worker/network/main priorities, health/window/
+watchdog policy and strict physical limits are unchanged. Mode-specific image
+checks bind this role without admitting diagnostics, alternate backends or
+blocking logging. Integrated native transport/PHY/output settings and generated
+patch identity of the probe must match the #11 hand-off. The normal role has four
+pinned Shell-disablement differences: runtime filtering y→n, runtime default level
+0→absent, and disabled LOG_CMDS/MDIO_SHELL symbols becoming absent. These are recorded
+explicitly, with no other native-setting difference allowed. Application role,
+worker stacks and development-command exposure are intentional composition differences.
+
+Every integrated observer/stack group gains a paired logger query, with queue
+count sampled before that group is enqueued. Closed-capture exact raw replay
+precedes full logger/stack and original functional/watchdog verdicts. Loss,
+malformed/duplicate/orphan/cross-reset records, insufficient short-run margins,
+and the first three consecutive idle queue snapshots fail conservatively. Raw
+pre-reset output is retained with its explicit prior role and excluded from new
+qualification; arbitrary repair or prefix skipping is forbidden. Target event
+timestamps remain distinct from delayed receive times.
+
+The finite native output fixture extracts production formats and runs actual
+main0/worker5/network6 producers, 10 Hz feed payloads, 1 Hz observer/stack/logger
+and pair bursts through native LOG_PRINTK. It delivered all 179 representative
+records in per-producer order with no loss; the separate 502-record rapid case
+delivered 227 and exposed 275 native drops. Actual-handler corruption controls
+reject spacing, ANSI, duplicates, truncation, sequence and phase-boundary errors.
+Functional/stack/fault/boot values are fixture payloads except the actual logger
+query; no real Time, GPIO, network or watchdog action is performed by this fixture.
+These output results do not satisfy the required integrated physical trials.
+
+The draft target compositions cross-build with owned-code warnings treated as
+errors. Probe BIN/RAM are 124192/63616 bytes; normal BIN/RAM are 107860/59712 bytes,
+with 13936 DTCM bytes in each. Worker/network/main stack objects are each 4160
+bytes for 4096 usable; logger allocation/usable are 2112/2048 bytes. These are
+configured build allocations, not measured high-water use. Clean committed images,
+compiler ABI and applicable CI must still pass their exact-image gate before
+physical use. The original combined short-run untouched minimum is 1024 bytes
+for each observed worker/network/main/logger stack; no acceptance limit is lowered.

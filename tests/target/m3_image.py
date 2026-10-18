@@ -84,8 +84,9 @@ def check_image(binary_path, elf_path, config_path, profile):
         require(symbols.get('network_stack', {}).get('bytes') == 4160, 'Unexpected network stack object')
     config = Path(config_path).read_text().splitlines()
     if {'CONFIG_CRUX_M3_DEFERRED_OUTPUT=y', 'CONFIG_CRUX_M3_NATIVE_OUTPUT=y'}.intersection(config):
-        require(profile == 'network' and symbols.get('logging_stack', {}).get('bytes') == 2112,
-                'Unexpected diagnostic logger stack object (2048 usable plus 64 guard)')
+        require((profile == 'network' or (integrated and 'CONFIG_CRUX_M3_NATIVE_OUTPUT=y' in config))
+                and symbols.get('logging_stack', {}).get('bytes') == 2112,
+                'Unexpected native logger stack object (2048 usable plus 64 guard)')
     required = ['CONFIG_BOARD_REVISION="B"', 'CONFIG_BOARD_TARGET="mimxrt1060_evk@B/mimxrt1062/qspi"',
                 'CONFIG_FLASH_BASE_ADDRESS=0x60000000', 'CONFIG_FLASH_SIZE=8192', 'CONFIG_XIP=y',
                 'CONFIG_NXP_IMXRT_BOOT_HEADER=y', 'CONFIG_FLASH_LOAD_OFFSET=0',
@@ -140,8 +141,12 @@ def check_record_output(config_path):
         else:
             require(not {'CONFIG_CRUX_M3_PHY_DIAGNOSTIC=y', 'CONFIG_CRUX_M3_MDIO_FAILURE_TRACE=y'}.intersection(config),
                     'Diagnostic observers cannot qualify the native network profile')
+        integrated = 'CONFIG_CRUX_M3_INTEGRATED=y' in config
+        require(not integrated or native, 'Diagnostic output cannot qualify integration')
+        require(('CONFIG_CRUX_M3_NETWORK_PROBE=y' in config) != integrated,
+                'Select one network or integrated native-output role')
         required = {
-            'CONFIG_CRUX_M3_NETWORK_PROBE=y', 'CONFIG_CRUX_M3_MDIO_COMPLETION_FIX=y',
+            'CONFIG_CRUX_M3_MDIO_COMPLETION_FIX=y',
             'CONFIG_LOG=y', 'CONFIG_LOG_PRINTK=y', 'CONFIG_LOG_MODE_DEFERRED=y',
             'CONFIG_LOG_PROCESS_THREAD=y', 'CONFIG_LOG_PROCESS_THREAD_STACK_SIZE=2048',
             'CONFIG_LOG_PROCESS_THREAD_CUSTOM_PRIORITY=y', 'CONFIG_LOG_PROCESS_THREAD_PRIORITY=14',
@@ -156,11 +161,16 @@ def check_record_output(config_path):
             'CONFIG_PRINTK_SYNC=y', 'CONFIG_LOG_MODE_IMMEDIATE=y', 'CONFIG_LOG_MODE_MINIMAL=y',
             'CONFIG_LOG_BLOCK_IN_THREAD=y', 'CONFIG_LOG_MODE_OVERFLOW=y',
             'CONFIG_LOG_BACKEND_UART_ASYNC=y', 'CONFIG_SHELL_LOG_BACKEND=y',
-            'CONFIG_CRUX_CONTROLLER_M3=y', 'CONFIG_CRUX_M3_CONTROLLER_NETWORK=y',
+            'CONFIG_CRUX_M3_CONTROLLER_NETWORK=y',
             'CONFIG_LOG_BACKEND_SHOW_TIMESTAMP=y', 'CONFIG_LOG_BACKEND_SHOW_LEVEL=y',
             'CONFIG_LOG_BACKEND_SHOW_COLOR=y', 'CONFIG_LOG_BACKEND_FORMAT_TIMESTAMP=y',
             'CONFIG_LOG_FRONTEND=y', 'CONFIG_LOG_FRONTEND_ONLY=y', 'CONFIG_LOG_MULTIDOMAIN=y',
         }
+        if integrated:
+            required |= {'CONFIG_CRUX_CONTROLLER_M3=y', 'CONFIG_CRUX_M3_INTEGRATED=y'}
+        else:
+            required.add('CONFIG_CRUX_M3_NETWORK_PROBE=y')
+            forbidden.add('CONFIG_CRUX_CONTROLLER_M3=y')
         require(required.issubset(config) and not forbidden.intersection(config),
                 'Unreviewed deferred diagnostic output configuration')
         # Only the native UART instance is permitted; capability/format symbols are not backends.

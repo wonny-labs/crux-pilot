@@ -144,13 +144,8 @@ def normal_reset_fragment(rows):
     return None
 
 
-def fresh_network_rows(rows, source, entry_profile='network', *, native_output=False):
-    banners = [i for i, (_, line) in enumerate(rows) if line.startswith('*** Booting Zephyr')]
-    require(len(banners) <= 1, 'Duplicate boot during initial network checkpoint')
-    if not banners:
-        return []
-    prefix = rows[:banners[0]]
-    require(entry_profile in ('network', 'normal'), 'Unknown pre-reset image role')
+def validate_normal_prefix(prefix):
+    """Accept only retained normal-image output before an explicitly planned reset."""
     normal_patterns = (
         r'M3_WORK sequence=\d+ monotonic_ms=\d+ time=-?\d+ pressed=[01] device=-?\d+',
         r'M3_OBSERVER_ALIVE monotonic_ms=\d+ healthy=1 sequence=\d+ readiness=0',
@@ -159,17 +154,30 @@ def fresh_network_rows(rows, source, entry_profile='network', *, native_output=F
         r'[ ]{0,64}(?:m3-critical|idle|main|ISR0)\s*: STACK: unused \d+ usage \d+ / \d+ \(\d+ %\); CPU: \d+ %',
         r'[ ]{0,64}: Total CPU cycles used: \d+',
     )
+    fragment = normal_reset_fragment(prefix)
+    require(all(line == '' or any(re.fullmatch(pattern, line) for pattern in normal_patterns) or
+                (i == len(prefix)-1 and fragment is not None and line == fragment)
+                for i, (_, line) in enumerate(prefix)), 'Unexpected pre-reset activity')
+    return fragment
+
+
+def fresh_network_rows(rows, source, entry_profile='network', *, native_output=False):
+    banners = [i for i, (_, line) in enumerate(rows) if line.startswith('*** Booting Zephyr')]
+    require(len(banners) <= 1, 'Duplicate boot during initial network checkpoint')
+    if not banners:
+        return []
+    prefix = rows[:banners[0]]
+    require(entry_profile in ('network', 'normal'), 'Unknown pre-reset image role')
     allowed = ('M3_NET_RESOURCE', 'M3_NET_STATE', 'M3_NET_STACK')
     if native_output and entry_profile == 'network':
         from m3_network_output import validate_native_records
         validate_native_records(prefix)
         allowed += ('M3_NET_LOGGER',)
-    fragment = normal_reset_fragment(prefix) if entry_profile == 'normal' else None
-    require(all(line == '' or ((any(re.fullmatch(pattern, line) for pattern in normal_patterns) or
-                (i == len(prefix)-1 and fragment is not None and line == fragment))
-                if entry_profile == 'normal' else
-                any(line.startswith(name + ' ') for name in allowed))
-                for i, (_, line) in enumerate(prefix)), 'Unexpected pre-reset activity')
+    if entry_profile == 'normal':
+        validate_normal_prefix(prefix)
+    else:
+        require(all(line == '' or any(line.startswith(name + ' ') for name in allowed)
+                    for _, line in prefix), 'Unexpected pre-reset activity')
     require(all(r['service_ready'] == 0 for r in records(prefix, 'M3_NET_STATE')),
             'Pre-reset service was active')
     fresh = rows[banners[0]:]

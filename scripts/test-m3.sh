@@ -16,10 +16,11 @@ python3 "$repo/tests/native/mdio_completion/test_driver.py"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/controller_m3" \
     -T "$repo/tests/controller_network" -T "$repo/tests/controller_network_stack" \
     -T "$repo/tests/controller_integrated" -T "$repo/tests/native/deferred_output" \
-    -T "$repo/tests/native/network_output_burst" \
+    -T "$repo/tests/native/network_output_burst" -T "$repo/tests/native/integrated_output" \
     -O "$repo/build/zephyr/twister-m3" --inline-logs)
 python3 "$repo/tests/native/deferred_output/verify_output.py" "$repo/build/zephyr/twister-m3"
 python3 "$repo/tests/native/network_output_burst/verify_output.py" "$repo/build/zephyr/twister-m3"
+python3 "$repo/tests/native/integrated_output/verify_output.py" "$repo/build/zephyr/twister-m3"
 for profile in probe normal; do
     configuration="$repo/samples/controller/zephyr/m3.conf"
     if [[ "$profile" == normal ]]; then
@@ -65,7 +66,8 @@ done
     -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay" \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 for profile in integrated-probe integrated-normal; do
-    configuration="$repo/samples/controller/zephyr/m3.conf;$repo/samples/controller/zephyr/m3-integrated.conf"
+    # Keep the qualified client/MDIO path; integrated output has its own physical gate.
+    configuration="$repo/samples/controller/zephyr/m3.conf;$repo/samples/controller/zephyr/m3-integrated.conf;$repo/samples/controller/zephyr/m3-mdio-completion.conf;$repo/samples/controller/zephyr/m3-native-output.conf"
     if [[ "$profile" == integrated-normal ]]; then
         configuration+=";$repo/samples/controller/zephyr/m3-normal.conf"
     fi

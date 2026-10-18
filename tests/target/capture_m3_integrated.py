@@ -21,6 +21,7 @@ from capture_m3_gpio import speak, spoken_cue
 from m3_network_oracle import records
 from m3_integrated_oracle import (default_state, pairs, stacks, validate_watchdog,
                                   validate_functional, validate_link_loss, idle_resources)
+from m3_integrated_output import logger_groups, idle_logger_checkpoint, retained_prefix
 
 
 class FunctionalFailure(ValueError): pass
@@ -45,7 +46,7 @@ def initial_rows(rows, source, commands):
     return fresh
 
 
-def initial_checkpoint_rows(rows, source, commands):
+def initial_checkpoint_rows(rows, source, commands, native_output=False):
     fresh=initial_rows(rows,source,commands)
     observers=[i for i,(_,line) in enumerate(fresh) if 'M3_OBSERVER_ALIVE ' in line]
     if len(observers)<5:return []
@@ -55,9 +56,53 @@ def initial_checkpoint_rows(rows, source, commands):
     paired=[i for i in range(fifth+1,upper) if 'M3_STACK ' in fresh[i][1]]
     if not paired and len(observers)==5:return []
     require(len(paired)==1,'Missing/duplicate fifth initial stack')
-    checkpoint=fresh[:paired[0]+1]
+    last=paired[0]
+    if native_output:
+        loggers=[i for i in range(last+1,upper) if fresh[i][1].startswith('M3_LOGGER ')]
+        if not loggers and len(observers)==5:return []
+        require(len(loggers)==1,'Missing/duplicate fifth native logger')
+        last=loggers[0]
+    checkpoint=fresh[:last+1]
     stacks(checkpoint)
+    if native_output:idle_logger_checkpoint(checkpoint)
     return checkpoint
+
+
+def native_handoff_identity(image):
+    """Bind the qualified driver and transport/output configuration, excluding application roles."""
+    config={}
+    for line in Path(image['config']).read_text().splitlines():
+        if line.startswith('# CONFIG_') and line.endswith(' is not set'):
+            key,value=line[2:-11],'n'
+        elif line.startswith('CONFIG_') and '=' in line:
+            key,value=line.split('=',1)
+        else:continue
+        if key.startswith(('CONFIG_ETH_', 'CONFIG_PHY_', 'CONFIG_MDIO_', 'CONFIG_NET_', 'CONFIG_LOG_')) or key in (
+                'CONFIG_CRUX_M3_MDIO_COMPLETION_FIX','CONFIG_CRUX_M3_NATIVE_OUTPUT','CONFIG_PRINTK_SYNC'):
+            config[key]=value
+    patch=image.get('native_patch',{})
+    identity={k:patch.get(k) for k in ('upstream_sha256','patch_sha256','generated_sha256')}
+    require(all(re.fullmatch(r'[0-9a-f]{64}',v or '') for v in identity.values()),
+            'Missing qualified native patch identity')
+    return dict(config=config,patch=identity)
+
+
+def normal_native_differences(probe,normal):
+    """Record only the pinned logger/Shell consequences of disabling development commands."""
+    left,right=native_handoff_identity(probe),native_handoff_identity(normal)
+    require(left['patch']==right['patch'], 'Integrated normal driver patch differs')
+    differences={key:(left['config'].get(key),right['config'].get(key))
+                 for key in set(left['config'])|set(right['config'])
+                 if left['config'].get(key)!=right['config'].get(key)}
+    require(differences=={'CONFIG_LOG_CMDS':('n',None),
+                         'CONFIG_LOG_RUNTIME_DEFAULT_LEVEL':('0',None),
+                         'CONFIG_MDIO_SHELL':('n',None),
+                         'CONFIG_LOG_RUNTIME_FILTERING':('y','n')},
+            'Unexpected integrated normal transport/output difference')
+    require('CONFIG_SHELL=y' in Path(probe['config']).read_text().splitlines() and
+            '# CONFIG_SHELL is not set' in Path(normal['config']).read_text().splitlines(),
+            'Expected development Shell disablement absent')
+    return differences
 
 
 def verify_network_handoff(path, probe):
@@ -72,7 +117,8 @@ def verify_network_handoff(path, probe):
             '#11 and integration pinned native dependencies differ')
     component_hashes={}
     for relative in ('samples/controller/zephyr/network_client.c','samples/controller/zephyr/network_client.h',
-                     'samples/controller/zephyr/m3-network.overlay'):
+                     'samples/controller/zephyr/m3-network.overlay','samples/controller/zephyr/native_logger.c',
+                     'samples/controller/zephyr/native_logger.h','patches/zephyr/nxp-enet-mdio-completion.patch'):
         blobs=[]
         for image in (network,probe):
             commit=image['source']['git_commit']
@@ -83,6 +129,9 @@ def verify_network_handoff(path, probe):
         component_hashes[relative]=hashlib.sha256(blobs[0]).hexdigest()
     require(handoff['component_source_sha256']==component_hashes,
             'Network component handoff hashes differ')
+    qualified=native_handoff_identity(network)
+    require(handoff.get('native_identity')==qualified and native_handoff_identity(probe)==qualified,
+            'Qualified native transport/PHY/output configuration or patch changed')
     result_path=Path(handoff['result_path']);root=result_path.parent
     result=json.loads(result_path.read_text())
     inputs=json.loads((root/'inputs.json').read_text())
@@ -113,6 +162,12 @@ class Series:
                 'Original normal changed')
         handoff=verify_network_handoff(args.network_handoff,self.images['probe'])
         for role in ('probe','normal'):check_record_output(self.images[role]['config'])
+        role_differences=normal_native_differences(self.images['probe'],self.images['normal'])
+        self.native_output={role:'CONFIG_CRUX_M3_NATIVE_OUTPUT=y' in
+                            Path(self.images[role]['config']).read_text().splitlines()
+                            for role in ('probe','normal')}
+        require(self.native_output['probe']==self.native_output['normal'], 'Combined output roles differ')
+        self.current_role='original'
         self.abi=verify_errno_map(args.errno_map,self.images['probe'])
         audio=json.loads(args.audio_confirmation.read_text())
         require(audio.get('voice')=='Yuna' and audio.get('heard') is True and
@@ -121,7 +176,7 @@ class Series:
         self.source=self.images['probe']['source']['git_commit'][:12]
         self.lease=dict(process=None,log=None)
         (self.directory/'inputs.json').write_text(json.dumps(dict(images=self.images,network_handoff=handoff,
-            guard=self.guard,clock=time.identity(),audio_confirmation=self.audio,errno_abi=self.abi,errno_map_sha256=sha(args.errno_map),runner_git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=R,text=True).strip(),scripts={str(p):sha(p) for p in [Path(__file__),Path(__file__).with_name('m3_integrated_oracle.py')]+sorted((R/'tests/target').glob('*.py'))}),indent=2))
+            guard=self.guard,clock=time.identity(),audio_confirmation=self.audio,errno_abi=self.abi,errno_map_sha256=sha(args.errno_map),native_role_differences=role_differences,runner_git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=R,text=True).strip(),scripts={str(p):sha(p) for p in [Path(__file__),Path(__file__).with_name('m3_integrated_oracle.py')]+sorted((R/'tests/target').glob('*.py'))}),indent=2))
 
     def target(self,commands,label):
         if time.monotonic()+120>=self.end or time.monotonic()+45>=self.case_end:
@@ -176,6 +231,7 @@ class Series:
         require(time.monotonic()+(260 if role=='probe' else 140)<self.end,'Insufficient case and normal-recovery reserve')
         self.case_end=min(self.end,time.monotonic()+(90 if name.startswith('watchdog-') else 120 if name.startswith('F2-') else 80))
         case=self.directory/name;case.mkdir()
+        entry_role=getattr(self,'current_role','original')
         drain(self.port,case)
         receiver=Receiver(self.port,case);receiver.begin()
         try:
@@ -186,9 +242,11 @@ class Series:
                 if 'Verify successful' not in text:raise HardwareStop('Full BIN verify absent')
             else:self.target('r\ng\nq\n',name)
             self.wait(lambda:f'M3_BOOT source={self.source} profile=integrated commands={int(role=="probe")} fault_default=off' in receiver.text(),10,receiver)
+            self.current_role=role
             baseline_box=[]
             def initial_ready():
-                candidate=initial_checkpoint_rows(receiver.rows,self.source,int(role=='probe'))
+                candidate=initial_checkpoint_rows(receiver.rows,self.source,int(role=='probe'),
+                                                  getattr(self,'native_output',{}).get(role,False))
                 if not candidate:return False
                 baseline_box.append(candidate)
                 return True
@@ -202,9 +260,33 @@ class Series:
         finally:
             try:net.finish_receiver(receiver)
             finally:
-                (case/'lines.json').write_text(json.dumps(receiver.rows,indent=2))
-                try:net.release_peer(self.lease)
-                finally:self.case_end=self.end
+                try:
+                    if getattr(self,'native_output',{}).get(role,False):
+                        from m3_uart import exact_event_rows
+                        try:
+                            receiver.rows=exact_event_rows(case)
+                            banners=[i for i,(_,s) in enumerate(receiver.rows)
+                                     if s.startswith('*** Booting Zephyr')]
+                            require(banners,'Missing exact fresh boot')
+                            prefix=receiver.rows[:banners[0]]
+                            fragment=retained_prefix(prefix,entry_role)
+                            (case/'pre-reset-prefix.json').write_text(json.dumps(dict(
+                                role=entry_role,
+                                right_censored_normal_fragment=fragment,
+                                excluded_from_qualification=True),indent=2)+'\n')
+                            fresh=receiver.rows[banners[0]:]
+                            logger_groups(fresh)
+                            first_epoch=fresh[:next((i for i in range(1,len(fresh))
+                                if fresh[i][1].startswith('*** Booting Zephyr')),len(fresh))]
+                            idle_logger_checkpoint(initial_checkpoint_rows(first_epoch,self.source,
+                                                   int(role=='probe'),True))
+                        except Exception as error:
+                            raise HardwareStop('Exact integrated UART/native output evidence uncertain') from error
+                finally:
+                    (case/'lines.json').write_text(json.dumps(receiver.rows,indent=2))
+                    try:net.release_peer(self.lease)
+                    finally:self.case_end=self.end
+        self.current_role=role
         if body is None:
             banners=[i for i,(_,line) in enumerate(receiver.rows) if line.startswith('*** Booting Zephyr')]
             require(len(banners)==1,'Final normal fresh boot absent/duplicated')

@@ -10,6 +10,10 @@
 #include <zephyr/drivers/hwinfo.h>
 #include <zephyr/drivers/watchdog.h>
 #include <zephyr/sys/atomic.h>
+#if defined(CONFIG_CRUX_M3_NATIVE_OUTPUT)
+#include "native_logger.h"
+#include <zephyr/logging/log_ctrl.h>
+#endif
 #if defined(CONFIG_CRUX_M3_INTEGRATED)
 #include "network_client.h"
 #include <zephyr/net/net_if.h>
@@ -484,6 +488,12 @@ int main(void) {
 #endif
         }
         if (now >= next_report) {
+#if defined(CONFIG_CRUX_M3_NATIVE_OUTPUT)
+            /* Observe before enqueueing this report, without affecting health decisions. */
+            int64_t queued_at = k_uptime_get();
+            unsigned int queued = log_buffered_cnt();
+            struct m3_logger_resources logger = m3_logger_resources_get();
+#endif
             size_t worker_unused = 0;
             size_t main_unused = 0;
             int worker_result = k_thread_stack_space_get(worker, &worker_unused);
@@ -514,6 +524,13 @@ int main(void) {
                    "worker_unused=%zu main_status=%d main_usable=%zu main_unused=%zu\n",
                    worker_result, sizeof(work_stack), K_THREAD_STACK_SIZEOF(work_stack),
                    worker_unused, main_result, k_current_get()->stack_info.size, main_unused);
+#endif
+#if defined(CONFIG_CRUX_M3_NATIVE_OUTPUT)
+            printk("M3_LOGGER monotonic_ms=%lld queue_snapshot_ms=%lld found=%u status=%d "
+                   "configured=%u usable=%zu unused=%zu priority=%d queued=%u\n",
+                   (long long)k_uptime_get(), (long long)queued_at, logger.found, logger.status,
+                   (unsigned int)CONFIG_LOG_PROCESS_THREAD_STACK_SIZE, logger.usable, logger.unused,
+                   logger.priority, queued);
 #endif
             if (now >= 2000 && atomic_get(&armed) == 0) {
                 thread_analyzer_print(0);
