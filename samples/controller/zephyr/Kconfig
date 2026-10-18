@@ -1,0 +1,12 @@
+mainmenu "Crux reference controller"
+
+source "Kconfig.zephyr"
+
+config CRUX_CONTROLLER_M3
+	bool "Build the independent M3 GPIO/health probe"
+	default n
+
+config CRUX_M3_TEST_COMMANDS
+	bool "Enable development watchdog arm/stall commands"
+	depends on CRUX_CONTROLLER_M3 && SHELL
+	default n

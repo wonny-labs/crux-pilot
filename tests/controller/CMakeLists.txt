@@ -1,5 +1,5 @@
 include(GoogleTest)
-add_executable(crux_controller_tests controller_test.cpp)
+add_executable(crux_controller_tests controller_test.cpp health_test.cpp)
 target_include_directories(crux_controller_tests PRIVATE ../time/private)
 target_link_libraries(crux_controller_tests PRIVATE crux_controller_core crux_time_test GTest::gtest_main)
 target_compile_options(crux_controller_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

@@ -1,0 +1,15 @@
+common:
+  harness: ztest
+  platform_allow:
+    - native_sim/native/64
+  integration_platforms:
+    - native_sim/native/64
+  tags:
+    - crux
+    - gpio
+    - health
+tests:
+  crux.m3.gpio_health: {}
+  crux.m3.missing_gpio:
+    extra_args:
+      - EXTRA_DTC_OVERLAY_FILE=boards/missing_button.overlay
