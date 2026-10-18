@@ -13,6 +13,10 @@ pushes, PR delivery and scoped physical verification after independent review an
 successful preflight. It does not permit merging, auto-merge or issue/milestone
 closure. AGENTS.md and public contracts remain unchanged.
 
+The [current SW5 physical result](#uart-remediation-and-sw5-physical-handoff) supersedes
+the earlier physical-input Pending status within its stated scope. Ethernet and
+combined-controller physical qualification remain Pending.
+
 The earlier [user steering] held Ethernet work and confirmed that real I/O
 stimulus cannot currently be supplied. Therefore #11 implementation and all peer
 or network manipulation are held. #10 software and controlled native integration
@@ -203,7 +207,7 @@ board bring-up or convert source support into physical support.
 
 | Interface | Intended operation and native path | Access and coexistence constraints | Current evidence and next disposition |
 | --- | --- | --- | --- |
-| GPIO | Read onboard EVKB SW5 (`sw0`, GPIO5.0, active-low/pull-up; common DTS label SW8) through native MCUX GPIO. The sample-owned adapter configures input only and preserves output on read failure. | Existing board input; no external drive or wiring. It avoids GPIO1.9 shared by LED/PHY reset. The user has now confirmed EVKB/SW5 and can provide stimulus. | Controlled `native_sim` transitions, missing-device and actual driver-error tests pass. Real stimulus/response remains unverified; confirm button action/observation before physical #10 qualification. |
+| GPIO | Read onboard EVKB SW5 (`sw0`, GPIO5.0, active-low/pull-up; common DTS label SW8) through native MCUX GPIO. The sample-owned adapter configures input only and preserves output on read failure. | Existing board input; no external drive or wiring. It avoids GPIO1.9 shared by LED/PHY reset. The user has now confirmed EVKB/SW5 and can provide stimulus. | Controlled `native_sim` transitions, missing-device and actual driver-error tests pass. Physical SW5 input qualification passed in the [identified normal composition](#uart-remediation-and-sw5-physical-handoff). Other pins and joint Ethernet operation remain unverified. |
 | I2C | Native LPI2C1/`arduino_i2c`, SDA AD_B1_01 and SCL AD_B1_00; candidate peripheral reads. | No confirmed external device/address, pull-ups or 3.3 V wiring; optional onboard sensor population is not established. | Unverified/unavailable fixture. Retain upstream driver; confirm actual device/routing/address before selecting a trial. No scan or pin drive was performed. |
 | General SPI | Native LPSPI1/`arduino_spi`: SD_B0_01 PCS0, SD_B0_00 SCK, SD_B0_03 SDI, SD_B0_02 SDO. | USDHC sharing and R278–R281 routing/population are unresolved; no safe fixture is confirmed. LPSPI3 shares LCD pins. | Unverified. Resolve routing and ownership before use; QSPI/XIP evidence is not SPI-transaction evidence. No rework or loopback is assumed. |
 | EEPROM | Existing AT24 I2C/AT25 SPI driver is a candidate. | No confirmed populated device, geometry, write-protect connection or disposable write range. | Unavailable fixture/unverified support. Do not write EEPROM or claim persistence; confirm all prerequisites before selecting it. M4 storage remains outside scope. |
@@ -397,3 +401,51 @@ this diagnostic; this reasoning does not apply to SW8 ON/OFF. Instructions requi
 release at60s even if communication fails. Actual acknowledgement timestamps are
 not physical edges. Exact source review and fresh preflight are still required.
 An observed mismatch during confirmed hold stops further hardware attempts.
+
+
+### UART remediation and SW5 physical handoff
+
+The manual Shell observation prompted re-identification rather than an assumed
+M3 continuation. The mapped firmware matched the complete 65,964-byte Time sample,
+not either M3 image. J-Link 602003106 reset then produced one fresh Time boot and
+READY on the identified DAPLink UART after 1.291543 s. Independent raw review
+confirmed operational UART/J-Link target association for that session.
+
+A bounded mount-attribute call reproduced the host lookup hang on the exact
+DAPLink virtual disk. Normal unmount also timed out. After USB disconnection
+cleared the blocked children, a temporary process-local mount veto for that exact
+USB serial/VID/PID kept the virtual disk unmounted; the original strict UART owner
+inventory then passed. This is a session workaround, not a permanent OS repair
+or permission to skip ownership checks. No persistent system/interface policy changed.
+
+The original fe9 normal image was programmed and all 41,232 bytes verified, BIN
+SHA256 238b352fd66bbfea984c4210510dd398cfe808fcb93c5f11a142fa4ba5bd24c0.
+Its first observation remains FAILED because the final stack line was truncated;
+`RESTORED_CAPTURE_TRUNCATED` records image restoration without passing that capture.
+The next GPIO preflight stopped on a reported idle halt, before UART/reset/cues.
+A reviewed state-aware preflight then observed running before BIN verification and
+an idle halt afterwards at PC 0x60006416 inside the exact image's `arch_cpu_idle`.
+This bounds the observed transition to that verification stage; it does not prove
+permanent post-detach halt or a firmware fault. No reflash followed.
+
+One explicit reset/start and the unchanged fresh normal baseline preceded the
+original 45 s five-group SW5 qualification. `physical-gpio-reidentified-fe9f54f-02`
+passed: action 45.017456 s; press reports 3/4/4/4/4 spanning 2000/3062/3000/3049/3000 ms;
+intermediate releases each 4 reports/3000 ms; final released 7 reports/6000 ms. Minimum
+untouched worker/main stacks were 3744/1352 bytes; maximum reader gap 47.234 ms.
+Independent reviewer `/root/m3_resume_review` reconstructed raw bytes and reran
+`fresh_rows`/`validate_gpio`: PASS for EVKB SW5/GPIO5.0 input handoff only.
+Previous failures remain retained and unexplained where applicable. Ethernet,
+other device paths and combined #12 qualification are not established by this run.
+
+The normal image has Shell/fault commands disabled; no watchdog arm, network
+operation or external pin drive occurred. The user disconnected DAPLink/UART
+before the temporary veto process was terminated. Last observed work advanced
+with SW5 released; power/execution after USB removal was not observed.
+
+Portable supplement `crux-m3-uart-gpio-fe9f54f-20261018.tar.gz` contains 307 files,
+including original images/configuration, complete source-history bundle through
+a9a6d3a, frozen helpers/oracles, raw failures/results and independent reviews.
+Archive SHA256 6f9b6283bc27a767456cfd90abbf475339dea958acb59dc1a861ad1c7cf9ac5a;
+the archive was reopened and every relative manifest hash verified. Dirty,
+unfinished integrated-controller changes were neither built nor programmed.
