@@ -177,8 +177,9 @@ int main(void) {
     for (;;) {
         struct work_snapshot value = read_snapshot();
         int64_t now = k_uptime_get();
-        bool healthy =
-            controller_health_observe(&health, now, value.completed_ms, value.sequence, value.ok);
+        controller_progress_t progress = {
+            .completed_ms = value.completed_ms, .sequence = value.sequence, .ok = value.ok};
+        bool healthy = controller_health_observe(&health, now, progress);
         if (!healthy) {
             continuous_health_ms = -1;
         } else if (continuous_health_ms < 0) {
@@ -226,7 +227,7 @@ int main(void) {
                    worker_result, sizeof(work_stack), K_THREAD_STACK_SIZEOF(work_stack),
                    worker_unused, main_result, k_current_get()->stack_info.size, main_unused);
             if (now >= 2000 && atomic_get(&armed) == 0) {
-                thread_analyzer_run();
+                thread_analyzer_print(0);
             }
             next_report = now + 1000;
         }

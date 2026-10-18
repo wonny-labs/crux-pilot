@@ -1,6 +1,12 @@
 #include <zephyr/dt-bindings/gpio/gpio.h>
 
 / {
+    m3_fault_gpio: fault-gpio {
+        compatible = "vnd,m3-fault-gpio";
+        gpio-controller;
+        #gpio-cells = <2>;
+        status = "disabled";
+    };
     aliases {
         sw0 = &m3_button;
     };

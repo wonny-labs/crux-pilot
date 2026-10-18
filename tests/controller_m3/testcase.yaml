@@ -13,3 +13,6 @@ tests:
   crux.m3.missing_gpio:
     extra_args:
       - EXTRA_DTC_OVERLAY_FILE=boards/missing_button.overlay
+  crux.m3.read_error:
+    extra_args:
+      - EXTRA_DTC_OVERLAY_FILE=boards/fault_gpio.overlay
