@@ -127,6 +127,21 @@ def wait_until(predicate, duration, receiver=None):
     raise ValueError('Declared observation deadline expired')
 
 
+def fresh_network_rows(rows, source):
+    banners = [i for i, (_, line) in enumerate(rows) if line.startswith('*** Booting Zephyr')]
+    require(len(banners) <= 1, 'Duplicate boot during initial network checkpoint')
+    if not banners:
+        return []
+    fresh = rows[banners[0]:]
+    boots = records(fresh, 'M3_NET_BOOT')
+    require(len(boots) <= 1, 'Duplicate network image identity')
+    if not boots:
+        return []
+    require(boots[0]['source'] == source and boots[0]['profile'] == 'network-probe',
+            'Wrong fresh network image identity')
+    return fresh
+
+
 def initial_checkpoint_boundary(rows):
     ready = [r for r in records(rows, 'M3_NET_STATE') if r['monotonic_ms'] >= 1000 and
              r['link'] == r['address'] == 1 and r['service_ready'] == 0]
@@ -241,13 +256,13 @@ def main():
                         wait_until(lambda: f'M3_NET_BOOT source={source} profile=network-probe' in receiver.text(), 10, receiver)
                         wait_until(lambda: any(r['monotonic_ms'] >= 1000 and
                             r['link'] == r['address'] == 1 and r['service_ready'] == 0
-                            for r in records(receiver.rows, 'M3_NET_STATE')), 15, receiver)
-                        checkpoint_start = initial_checkpoint_boundary(receiver.rows)
+                            for r in records(fresh_network_rows(receiver.rows, source), 'M3_NET_STATE')), 15, receiver)
+                        checkpoint_start = initial_checkpoint_boundary(fresh_network_rows(receiver.rows, source))
                         wait_until(lambda: time.monotonic() >= checkpoint_start + 4.5, 5, receiver)
                         require(receiver.text().count('*** Booting Zephyr') == 1 and
                                 'M3_NET_INIT result=0 ' in receiver.text() and
                                 'M3_NET_BASELINE contexts=0' in receiver.text(), 'Wrong/failed fresh network boot')
-                        require(not records(receiver.rows, 'M3_NET_EXCHANGE'), 'Automatic application traffic at boot')
+                        require(not records(fresh_network_rows(receiver.rows, source), 'M3_NET_EXCHANGE'), 'Automatic application traffic at boot')
                     else:
                         from capture_m3 import normal_result
                         wait_until(lambda: len(records(receiver.rows, 'M3_OBSERVER_ALIVE')) >= 5, 15, receiver)
@@ -259,7 +274,9 @@ def main():
                     require(len(banners) == 1, 'Missing/duplicate recovery boot')
                     result = normal_result(receiver.rows[banners[0]:], source)
                 else:
-                    checkpoint(receiver.rows, checkpoint_start, 0)
+                    fresh = fresh_network_rows(receiver.rows, source)
+                    require(fresh, 'Fresh network boot absent')
+                    checkpoint(fresh, checkpoint_start, 0)
                     result = dict(status='PASS', profile='network', no_automatic_traffic=True)
                 (capture / 'result.json').write_text(json.dumps(result, indent=2))
             def acknowledge(label):
@@ -308,7 +325,7 @@ def main():
                             confirmed = acknowledge('unplug-evkb-rj45')
                             wait_until(lambda: not check_link(case, 'link-down') and any(
                                 r['received'] >= confirmed and r['link'] == r['service_ready'] == 0
-                                for r in records(receiver.rows, 'M3_NET_STATE')), 15, receiver)
+                                for r in records(fresh_network_rows(receiver.rows, source), 'M3_NET_STATE')), 15, receiver)
                         start = len(receiver.rows)
                         written = time.monotonic()
                         if time.monotonic() + 160 >= end:

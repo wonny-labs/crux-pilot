@@ -89,6 +89,20 @@ class NetworkCaptureControls(unittest.TestCase):
         self.assertEqual(runner.initial_checkpoint_boundary(rows),12.25)
         with self.assertRaises(ValueError): runner.initial_checkpoint_boundary(rows[:3])
 
+    def test_fresh_boot_excludes_queued_pre_reset_state(self):
+        source='known'
+        old=[(10.,'M3_NET_STATE monotonic_ms=695696 link=1 address=1 service_ready=0')]
+        fresh=[(11.,'*** Booting Zephyr OS build v4.4.0 ***'),
+               (11.1,'M3_NET_BOOT source=known profile=network-probe'),
+               (12.,'M3_NET_STATE monotonic_ms=1561 link=0 address=1 service_ready=0'),
+               (13.,'M3_NET_STATE monotonic_ms=2582 link=0 address=1 service_ready=0'),
+               (14.,'M3_NET_STATE monotonic_ms=3602 link=1 address=1 service_ready=0')]
+        self.assertEqual(runner.fresh_network_rows(old,source),[])
+        self.assertEqual(runner.initial_checkpoint_boundary(runner.fresh_network_rows(old+fresh,source)),14.25)
+        with self.assertRaises(ValueError):runner.initial_checkpoint_boundary(runner.fresh_network_rows(old+fresh[:-1],source))
+        with self.assertRaises(ValueError):runner.fresh_network_rows(old+fresh,'wrong')
+        with self.assertRaises(ValueError):runner.fresh_network_rows(fresh+fresh,source)
+
     def test_existing_image_resumption_never_programs_or_erases(self):
         self.assertEqual(runner.image_commands('/known/image.bin',False),'r\ng\nq\n')
         commands=runner.image_commands('/known/image.bin',True)
