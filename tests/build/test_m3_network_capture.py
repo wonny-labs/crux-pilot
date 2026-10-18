@@ -128,6 +128,27 @@ class NetworkCaptureControls(unittest.TestCase):
         late=list(fresh);late[1]=(11.6,late[1][1])
         with self.assertRaises(ValueError):runner.fresh_network_rows(late,source)
 
+    def test_verified_normal_prefix_is_preserved_but_never_counts_as_new_boot(self):
+        old = [(1., line) for line in (
+            'M3_WORK sequence=8941 monotonic_ms=894050 time=-4 pressed=0 device=0',
+            'M3_OBSERVER_ALIVE monotonic_ms=894489 healthy=1 sequence=8945 readiness=0',
+            'M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=3744 main_status=0 main_usable=2048 main_unused=1352',
+            'Thread analyze:',
+            'm3-critical         : STACK: unused 3744 usage 352 / 4096 (8 %); CPU: 0 %',
+            ': Total CPU cycles used: 3205900825',
+            'ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %')]
+        fresh = [(2., '*** Booting Zephyr OS build v4.4.0 ***'),
+                 (2.1, 'M3_NET_BOOT source=known profile=network-probe')]
+        self.assertEqual(runner.fresh_network_rows(old, 'known', 'normal'), [])
+        self.assertEqual(runner.fresh_network_rows(old + fresh, 'known', 'normal'), fresh)
+        with self.assertRaises(ValueError): runner.fresh_network_rows(old + fresh, 'known')
+        for bad in ('M3_FAULT kind=time', 'M3_WORK broken', 'unexpected text',
+                    'M3_OBSERVER_ALIVE monotonic_ms=1 healthy=0 sequence=1 readiness=0'):
+            with self.assertRaises(ValueError):
+                runner.fresh_network_rows(old + [(1.5, bad)] + fresh, 'known', 'normal')
+        with self.assertRaises(ValueError): runner.fresh_network_rows(old + fresh, 'wrong', 'normal')
+        with self.assertRaises(ValueError): runner.fresh_network_rows(old + fresh + fresh, 'known', 'normal')
+
     def test_explicit_previous_image_is_verified_before_new_programming(self):
         new={'profile':'network','binary':'/new.bin'}
         old={'profile':'network','binary':'/old.bin'}

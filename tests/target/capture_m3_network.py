@@ -131,13 +131,24 @@ def wait_until(predicate, duration, receiver=None):
     raise ValueError('Declared observation deadline expired')
 
 
-def fresh_network_rows(rows, source):
+def fresh_network_rows(rows, source, entry_profile='network'):
     banners = [i for i, (_, line) in enumerate(rows) if line.startswith('*** Booting Zephyr')]
     require(len(banners) <= 1, 'Duplicate boot during initial network checkpoint')
     if not banners:
         return []
     prefix = rows[:banners[0]]
-    require(all(any(line.startswith(name + ' ') for name in
+    require(entry_profile in ('network', 'normal'), 'Unknown pre-reset image role')
+    normal_patterns = (
+        r'M3_WORK sequence=\d+ monotonic_ms=\d+ time=-?\d+ pressed=[01] device=-?\d+',
+        r'M3_OBSERVER_ALIVE monotonic_ms=\d+ healthy=1 sequence=\d+ readiness=0',
+        r'M3_STACK worker_status=0 worker_object=4160 worker_usable=4096 worker_unused=\d+ main_status=0 main_usable=2048 main_unused=\d+',
+        r'Thread analyze:',
+        r'(?:m3-critical|idle|main|ISR0)\s*: STACK: unused \d+ usage \d+ / \d+ \(\d+ %\); CPU: \d+ %',
+        r': Total CPU cycles used: \d+',
+    )
+    require(all(any(re.fullmatch(pattern, line) for pattern in normal_patterns)
+                if entry_profile == 'normal' else
+                any(line.startswith(name + ' ') for name in
                     ('M3_NET_RESOURCE', 'M3_NET_STATE', 'M3_NET_STACK'))
                 for _, line in prefix), 'Unexpected pre-reset activity')
     require(all(r['service_ready'] == 0 for r in records(prefix, 'M3_NET_STATE')),
@@ -278,7 +289,7 @@ def main():
                     raise
                 except Exception as error:
                     raise HardwareStop('Probe identity/evidence unverified; stop target changes') from error
-            def boot(manifest, name, programming):
+            def boot(manifest, name, programming, entry_profile='network'):
                 path = Path(manifest['binary'])
                 require('"' not in str(path) and '\n' not in str(path), 'Unsafe image path')
                 capture = directory / name
@@ -296,13 +307,13 @@ def main():
                         wait_until(lambda: f'M3_NET_BOOT source={source} profile=network-probe' in receiver.text(), 10, receiver)
                         wait_until(lambda: any(r['monotonic_ms'] >= 1000 and
                             r['link'] == r['address'] == 1 and r['service_ready'] == 0
-                            for r in records(fresh_network_rows(receiver.rows, source), 'M3_NET_STATE')), 15, receiver)
-                        checkpoint_start = initial_checkpoint_boundary(fresh_network_rows(receiver.rows, source))
+                            for r in records(fresh_network_rows(receiver.rows, source, entry_profile), 'M3_NET_STATE')), 15, receiver)
+                        checkpoint_start = initial_checkpoint_boundary(fresh_network_rows(receiver.rows, source, entry_profile))
                         wait_until(lambda: time.monotonic() >= checkpoint_start + 4.5, 5, receiver)
                         require(receiver.text().count('*** Booting Zephyr') == 1 and
-                                'M3_NET_INIT result=0 ' in '\n'.join(s for _, s in fresh_network_rows(receiver.rows, source)) and
-                                'M3_NET_BASELINE contexts=0' in '\n'.join(s for _, s in fresh_network_rows(receiver.rows, source)), 'Wrong/failed fresh network boot')
-                        require(not records(fresh_network_rows(receiver.rows, source), 'M3_NET_EXCHANGE'), 'Automatic application traffic at boot')
+                                'M3_NET_INIT result=0 ' in '\n'.join(s for _, s in fresh_network_rows(receiver.rows, source, entry_profile)) and
+                                'M3_NET_BASELINE contexts=0' in '\n'.join(s for _, s in fresh_network_rows(receiver.rows, source, entry_profile)), 'Wrong/failed fresh network boot')
+                        require(not records(fresh_network_rows(receiver.rows, source, entry_profile), 'M3_NET_EXCHANGE'), 'Automatic application traffic at boot')
                     else:
                         from capture_m3 import normal_result
                         wait_until(lambda: len(records(receiver.rows, 'M3_OBSERVER_ALIVE')) >= 5, 15, receiver)
@@ -314,7 +325,7 @@ def main():
                     require(len(banners) == 1, 'Missing/duplicate recovery boot')
                     result = normal_result(receiver.rows[banners[0]:], source)
                 else:
-                    fresh = fresh_network_rows(receiver.rows, source)
+                    fresh = fresh_network_rows(receiver.rows, source, entry_profile)
                     require(fresh, 'Fresh network boot absent')
                     checkpoint(fresh, checkpoint_start, 0)
                     result = dict(status='PASS', profile='network', no_automatic_traffic=True)
@@ -331,7 +342,8 @@ def main():
             known = target(f'verifybin "{existing["binary"]}", 0x60000000\nIsHalted\nq\n', 'entry-known-image')
             if 'Verify successful' not in known:
                 raise HardwareStop('Current firmware differs from explicitly selected known image; stop before changes')
-            boot(image, 'program-network' if programming else 'resume-network-reset', programming)
+            boot(image, 'program-network' if programming else 'resume-network-reset', programming,
+                 existing['profile'])
             try:
                 completed = 0
                 for stage, mode in enumerate(stage_modes(args.diagnostic_echo_only), 1):
