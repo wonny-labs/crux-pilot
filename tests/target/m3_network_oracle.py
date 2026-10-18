@@ -18,25 +18,39 @@ def records(rows, name):
 
 
 def checkpoint(rows, after, ready, link=1):
-    resources = records(rows, 'M3_NET_RESOURCE')
-    idle = [r for r in resources if after <= r['received'] <= after + 5]
-    require(len(idle) >= 3, 'Missing three idle resource reports')
-    idle = idle[:3]
-    require(idle[-1]['monotonic_ms'] - idle[0]['monotonic_ms'] >= 1800,
-            'Resource reports are not consecutive idle observations')
-    for r in idle:
-        require([r[k] for k in ('owned', 'contexts', 'rx_pkt_free', 'tx_pkt_free',
-                               'rx_buf_free', 'tx_buf_free')] == [0, 0, 16, 16, 32, 32],
+    resources = [(i, records([(t, line)], 'M3_NET_RESOURCE')[0])
+                 for i, (t, line) in enumerate(rows) if 'M3_NET_RESOURCE ' in line]
+    idle = [(i, r) for i, r in resources if after <= r['received'] <= after + 5][:3]
+    require(len(idle) == 3, 'Missing three consecutive idle resource reports')
+    require(idle[-1][1]['monotonic_ms'] - idle[0][1]['monotonic_ms'] >= 1800 and
+            all(750 <= b[1]['monotonic_ms'] - a[1]['monotonic_ms'] <= 1250
+                for a, b in zip(idle, idle[1:])), 'Resource reports are not consecutive idle observations')
+    require(not any(t >= after and ('M3_NET_STATE ' in line or 'M3_NET_STACK ' in line)
+                    for t, line in rows[:idle[0][0]]), 'Orphan checkpoint state/stack before its resource report')
+    unused = []
+    for index, resource in idle:
+        require([resource[k] for k in ('owned', 'contexts', 'rx_pkt_free', 'tx_pkt_free',
+                                      'rx_buf_free', 'tx_buf_free')] == [0, 0, 16, 16, 32, 32],
                 'Native resources did not return to immutable full baseline')
-    states = [r for r in records(rows, 'M3_NET_STATE') if after <= r['received'] <= idle[-1]['received']]
-    require(len(states) >= 3 and all(r['link'] == link and r['address'] == 1 and
-                                   r['service_ready'] == ready for r in states),
-            'Idle readiness/address/link mismatch')
-    stacks = [r for r in records(rows, 'M3_NET_STACK') if after <= r['received'] <= idle[-1]['received']]
-    require(len(stacks) >= 3 and all(r['status'] == 0 and r['usable'] == 4096 and
-                                   r['unused'] >= 1024 for r in stacks), 'Stack checkpoint failed')
-    return dict(samples=3, span_ms=idle[-1]['monotonic_ms'] - idle[0]['monotonic_ms'],
-                min_unused=min(r['unused'] for r in stacks))
+        upper = next((i for i, _ in resources if i > index), len(rows))
+        section = rows[index+1:upper]
+        states = records(section, 'M3_NET_STATE')
+        stacks = records(section, 'M3_NET_STACK')
+        require(len(states) == len(stacks) == 1, 'Missing/duplicate paired idle state or stack')
+        state, stack = states[0], stacks[0]
+        state_index = next(i for i, (_, line) in enumerate(section) if 'M3_NET_STATE ' in line)
+        stack_index = next(i for i, (_, line) in enumerate(section) if 'M3_NET_STACK ' in line)
+        require(state_index < stack_index and all(
+            0 <= item['received'] - resource['received'] <= .25 and item['received'] <= after + 5
+            for item in (state, stack)), 'Idle state/stack ordering or observation bound failed')
+        require(0 <= state['monotonic_ms'] - resource['monotonic_ms'] <= 250 and
+                state['link'] == link and state['address'] == 1 and state['service_ready'] == ready,
+                'Paired idle readiness/address/link mismatch')
+        require(stack['status'] == 0 and stack['usable'] == 4096 and 1024 <= stack['unused'] <= 4096,
+                'Paired stack checkpoint failed')
+        unused.append(stack['unused'])
+    return dict(samples=3, span_ms=idle[-1][1]['monotonic_ms']-idle[0][1]['monotonic_ms'],
+                min_unused=min(unused))
 
 
 def validate_stage(rows, peer, trial, mode, link_down=False, *, errno_abi):

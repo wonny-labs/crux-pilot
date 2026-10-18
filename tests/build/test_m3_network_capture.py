@@ -89,5 +89,14 @@ class NetworkCaptureControls(unittest.TestCase):
         self.assertEqual(runner.initial_checkpoint_boundary(rows),12.25)
         with self.assertRaises(ValueError): runner.initial_checkpoint_boundary(rows[:3])
 
+    def test_existing_image_resumption_never_programs_or_erases(self):
+        self.assertEqual(runner.image_commands('/known/image.bin',False),'r\ng\nq\n')
+        commands=runner.image_commands('/known/image.bin',True)
+        self.assertEqual(commands.count('loadfile '),1)
+        self.assertEqual(commands.count('verifybin '),1)
+        self.assertNotIn('erase',commands.lower())
+        for path in ('/bad/"image.bin','/bad/\nimage.bin'):
+            with self.assertRaises(ValueError):runner.image_commands(path,True)
+
 
 if __name__ == '__main__': unittest.main()

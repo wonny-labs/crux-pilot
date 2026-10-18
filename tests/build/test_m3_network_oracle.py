@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'target'))
-from m3_network_oracle import validate_stage as target_validate
+from m3_network_oracle import validate_stage as target_validate, checkpoint
 LINUX = dict(EIO=5, ENETDOWN=100, ENETUNREACH=101, ECONNRESET=104, ENOTCONN=107,
              ETIMEDOUT=110, ECONNREFUSED=111, EHOSTUNREACH=113)
 PICOLIBC = dict(EIO=5, ENETDOWN=115, ENETUNREACH=114, ECONNRESET=104, ENOTCONN=128,
@@ -97,6 +97,22 @@ class NetworkVerdicts(unittest.TestCase):
         peer = [peer[0], dict(event='peer_closed',exchanges=0,monotonic=27.)]
         # Picolibc110 means ESHUTDOWN, not timeout; never accept a union of ABI numbers.
         with self.assertRaises(ValueError): target_validate(rows, peer, 1, 'echo', True, errno_abi=PICOLIBC)
+
+    def test_fragmented_idle_reports_pair_by_order_not_same_receive_chunk(self):
+        rows,_=fixture()
+        rows=[(t+.024 if 'M3_NET_STATE ' in line and t>=24 else t+.045 if 'M3_NET_STACK ' in line else t,line)
+              for t,line in rows]
+        self.assertEqual(checkpoint(rows,23.25,1)['samples'],3)
+        mutations=[]
+        mutations.append([r for r in rows if not ('M3_NET_STATE ' in r[1] and r[0]>26)])
+        duplicate=list(rows);duplicate.insert(-1,rows[-2]);mutations.append(duplicate)
+        mutations.append([(t,line.replace('link=1','link=0')) for t,line in rows])
+        mutations.append([(t+.3 if 'M3_NET_STATE ' in line and t>26 else t,line) for t,line in rows])
+        mutations.append([(t,line.replace('monotonic_ms=26000 link','monotonic_ms=27000 link')) for t,line in rows])
+        orphan=list(rows);orphan.insert(0,(23.5,'M3_NET_STACK status=0 usable=4096 unused=2000'));mutations.append(orphan)
+        mutations.append([r for r in rows if not ('M3_NET_RESOURCE ' in r[1] and r[0]==25)])
+        for changed in mutations:
+            with self.assertRaises(ValueError):checkpoint(changed,23.25,1)
 
 
 if __name__ == '__main__': unittest.main()

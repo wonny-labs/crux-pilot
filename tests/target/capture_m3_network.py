@@ -157,11 +157,19 @@ def release_peer(lease):
         if log is not None: log.close()
 
 
+def image_commands(binary, programming):
+    path = str(binary)
+    require('"' not in path and '\n' not in path, 'Unsafe image command path')
+    return (f'r\nh\nloadfile "{path}", 0x60000000\nverifybin "{path}", 0x60000000\n'
+            if programming else '') + 'r\ng\nq\n'
+
+
 def main():
     global SERIES_DEADLINE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--errno-map', type=Path, required=True)
+    parser.add_argument('--entry-image', choices=('original-normal', 'existing-network'), default='original-normal')
     parser.add_argument('--recovery-manifest', type=Path, required=True)
     parser.add_argument('--guard-session', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
@@ -178,7 +186,7 @@ def main():
     directory = args.evidence
     session = json.loads(args.guard_session.read_text())
     (directory / 'inputs.json').write_text(json.dumps(dict(image=image, recovery=recovery,
-        guard_session=session, clock=time.identity(), errno_abi=errno_abi, errno_map_sha256=sha(args.errno_map), runner_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
+        guard_session=session, clock=time.identity(), errno_abi=errno_abi, errno_map_sha256=sha(args.errno_map), entry_image=args.entry_image, runner_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
         scripts={p.name: sha(p) for p in Path(__file__).parent.glob('*.py')}), indent=2))
     end = time.monotonic() + 1800
     SERIES_DEADLINE = end
@@ -224,8 +232,7 @@ def main():
                 receiver = Receiver(port, capture)
                 receiver.begin()
                 try:
-                    commands = (f'r\nh\nloadfile "{path}", 0x60000000\nverifybin "{path}", 0x60000000\n'
-                                if programming else '') + 'r\ng\nq\n'
+                    commands = image_commands(path, programming)
                     text = target(commands, name)
                     if programming and 'Verify successful' not in text:
                         raise HardwareStop('Complete image verification absent')
@@ -264,10 +271,12 @@ def main():
                 require(ack.get('action') == label and ack.get('confirmed') is True, 'Cable action not confirmed')
                 return time.monotonic()
             target('q\n', 'entry-identity-only')
-            known = target(f'verifybin "{recovery["binary"]}", 0x60000000\nIsHalted\nq\n', 'entry-known-normal')
+            existing = image if args.entry_image == "existing-network" else recovery
+            known = target(f'verifybin "{existing["binary"]}", 0x60000000\nIsHalted\nq\n', 'entry-known-image')
             if 'Verify successful' not in known:
-                raise HardwareStop('Current firmware differs from known restored normal; stop before programming')
-            boot(image, 'program-network', True)
+                raise HardwareStop('Current firmware differs from explicitly selected known image; stop before changes')
+            boot(image, 'resume-network-reset' if args.entry_image == 'existing-network' else 'program-network',
+                 args.entry_image == 'original-normal')
             try:
                 for stage, mode in enumerate(('echo', 'silence', 'echo', 'close', 'echo', 'echo', 'echo'), 1):
                     guard_check(session, directory, f'stage-{stage}')

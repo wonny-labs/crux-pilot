@@ -549,3 +549,22 @@ capture requires this verified sidecar; the oracle uses symbolic classes from
 that one map, with no Linux fallback or union. Wrong ABI/image/source/header/
 macro/command controls reject. A fresh series needs independent renewed review
 of that correction and the preserved failure/restoration before execution.
+
+Attempt 02 then stopped before any application round: a following state/stack
+report arrived 24.077 ms after its resource line, and the former checkpoint cut
+its observation at the resource receive timestamp. Raw bytes show full resources
+and correct link/address/default readiness; the initial checkpoint nevertheless
+remains **FAIL** under that runner. No peer or socket round started and no
+subsequent automatic restoration/reset was attempted. The identified network
+image remained unarmed and idle.
+
+The corrected checkpoint associates each of the first three resource reports
+with exactly one following state and stack report, in row order before the next
+resource report. It retains the 250 ms association and 5 s checkpoint bounds,
+full pool/context/stack criteria and consecutive approximately 1 s cadence.
+Missing, duplicate, wrong, late and orphan records reject. Diagnostic replay of
+old raw captures is explicitly separate from qualification and does not change
+either failed attempt. A separately reviewed resumption may verify the complete
+existing network BIN and issue one fresh reset/start without reflashing it;
+entry mismatch stops all further target changes. The final normal restoration
+and seven-stage physical criteria remain unchanged.
