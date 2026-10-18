@@ -3,11 +3,12 @@
 #include "device_input.h"
 
 #include <crux/time.h>
+#include <zephyr/kernel.h>
+
 #include <errno.h>
 #include <zephyr/debug/thread_analyzer.h>
 #include <zephyr/drivers/hwinfo.h>
 #include <zephyr/drivers/watchdog.h>
-#include <zephyr/kernel.h>
 #include <zephyr/sys/atomic.h>
 #if defined(CONFIG_CRUX_M3_TEST_COMMANDS)
 #include <zephyr/shell/shell.h>
