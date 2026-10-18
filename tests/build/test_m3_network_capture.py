@@ -94,6 +94,12 @@ class NetworkCaptureControls(unittest.TestCase):
             query=runner.subprocess.CompletedProcess([],0,runner.plistlib.dumps(tree).decode(),'')
             with patch.object(runner,'inventory',return_value=query), patch.object(runner,'run_checked',side_effect=['123 guard start','/dev/disk5 on /Volumes/OTHER (x)']):
                 runner.guard_check(session,d,'ok')
+            boot_uuid = 'D83ABC6F-EEB9-48AF-9A24-E503879FAE62\n'
+            session.update(boot_session_uuid=boot_uuid, boot_identity='wall-clock-adjusted legacy value')
+            with patch.object(runner,'inventory',return_value=query), patch.object(runner,'run_checked',
+                    side_effect=[boot_uuid,'123 guard start','/dev/disk5 on /Volumes/OTHER (x)']):
+                runner.guard_check(session,d,'uuid-stable-despite-clock-adjustment')
+            session.pop('boot_session_uuid');session.pop('boot_identity')
             for mounted in ('/dev/disk4 on /Volumes/RENAMED (x)', '/dev/disk4s1 on /Volumes/RENAMED (x)', '/dev/disk4s1s2 on /Volumes/RENAMED (x)'):
                 with patch.object(runner,'inventory',return_value=query), patch.object(runner,'run_checked',side_effect=['123 guard start',mounted]):
                     with self.assertRaises(runner.HardwareStop): runner.guard_check(session,d,'mounted')
@@ -113,6 +119,17 @@ class NetworkCaptureControls(unittest.TestCase):
                 with self.assertRaises(runner.HardwareStop):runner.guard_check(session,Path(temporary),'reboot')
                 query.assert_called_once()
                 self.assertEqual(query.call_args.args[0],['/usr/sbin/sysctl','-n','kern.boottime'])
+                clock.assert_not_called()
+
+    def test_guard_rejects_changed_uuid_before_clock_pid_or_usb_queries(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            session={'clock':runner.time.CLOCK_NAME,'serial':runner.USB_SERIAL,
+                     'disk':'/dev/disk4','boot_session_uuid':'D83ABC6F-EEB9-48AF-9A24-E503879FAE62\n'}
+            with patch.object(runner,'run_checked',return_value='00000000-0000-0000-0000-000000000001\n') as query, \
+                 patch.object(runner.time,'monotonic') as clock:
+                with self.assertRaises(runner.HardwareStop):runner.guard_check(session,Path(temporary),'new-boot')
+                query.assert_called_once()
+                self.assertEqual(query.call_args.args[0],['/usr/sbin/sysctl','-n','kern.bootsessionuuid'])
                 clock.assert_not_called()
 
     def test_wait_is_clamped_by_global_series_deadline(self):
