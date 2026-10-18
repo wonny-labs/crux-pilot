@@ -1,0 +1,16 @@
+common:
+  platform_allow:
+    - native_sim/native/64
+  tags:
+    - logging
+  timeout: 20
+  harness: console
+  harness_config:
+    type: one_line
+    regex:
+      - '^PHASE_COMPLETE cycles=4 unshifted=[01]$'
+tests:
+  crux.native.logger_phase: {}
+  crux.native.logger_phase_unshifted:
+    extra_args:
+      - CRUX_TEST_UNSHIFTED=ON

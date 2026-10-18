@@ -102,16 +102,23 @@ def logger_groups(rows):
     return result
 
 
+def initial_idle_queue_samples(samples):
+    """Select the original first three idle samples; shared by the native API probe."""
+    initial = [sample for sample in samples if sample['monotonic_ms'] >= 1000][:3]
+    require(len(initial) == 3 and initial[-1]['monotonic_ms'] <= 5000 and
+            initial[-1]['monotonic_ms']-initial[0]['monotonic_ms'] >= 1800 and
+            all(750 <= b['monotonic_ms']-a['monotonic_ms'] <= 1250
+                for a,b in zip(initial,initial[1:])), 'Missing consecutive initial logger samples')
+    require(all(sample['queued'] == 0 for sample in initial), 'Initial logger queue not drained')
+    return initial
+
+
 def idle_logger_checkpoint(rows):
     groups = logger_groups(rows)
-    initial = [(i, exact(rows[i][1], 'M3_OBSERVER_ALIVE')) for i in groups
-               if exact(rows[i][1], 'M3_OBSERVER_ALIVE')['monotonic_ms'] >= 1000][:3]
-    require(len(initial) == 3 and initial[-1][1]['monotonic_ms'] <= 5000 and
-            initial[-1][1]['monotonic_ms']-initial[0][1]['monotonic_ms'] >= 1800 and
-            all(750 <= b[1]['monotonic_ms']-a[1]['monotonic_ms'] <= 1250
-                for a,b in zip(initial,initial[1:])), 'Missing consecutive initial logger samples')
-    require(all(groups[i]['queued'] == 0 for i,_ in initial), 'Initial logger queue not drained')
-    return dict(samples=3, min_unused=min(groups[i]['unused'] for i,_ in initial), queue=0)
+    initial = initial_idle_queue_samples([
+        dict(value,monotonic_ms=exact(rows[i][1], 'M3_OBSERVER_ALIVE')['monotonic_ms'])
+        for i,value in groups.items()])
+    return dict(samples=3, min_unused=min(sample['unused'] for sample in initial), queue=0)
 
 
 def retained_prefix(rows, role):
@@ -122,7 +129,7 @@ def retained_prefix(rows, role):
     require(role in ('probe', 'normal'), 'Unknown preceding integrated role')
     for _,line in rows:
         if line == '' or line == 'Thread analyze:' or re.fullmatch(
-                r'[ ]{0,64}[A-Za-z0-9_./ -]{1,64}: STACK: unused \d+ usage \d+ / \d+ \(\d+ %\); CPU: \d+ %', line) or re.fullmatch(
+                r'[ ]{0,64}(?:[A-Za-z0-9_./ -]{1,64}|rx_q\[0\][ ]{0,64}): STACK: unused \d+ usage \d+ / \d+ \(\d+ %\); CPU: \d+ %', line) or re.fullmatch(
                 r'[ ]{0,64}: Total CPU cycles used: \d+', line):
             continue
         name = line.split(' ')[0]

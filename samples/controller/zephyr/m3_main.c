@@ -379,6 +379,9 @@ static int arm_watchdog(const struct device *watchdog) {
     return wdt_setup(watchdog, WDT_OPT_PAUSE_HALTED_BY_DBG);
 }
 
+/* Private initial offset, not a recurring phase lock or latency guarantee. */
+#define CRUX_M3_INITIAL_OBSERVER_PHASE_MS 50
+
 int main(void) {
 #if defined(CONFIG_CRUX_M3_INTEGRATED)
     printk("M3_BOOT source=%s profile=integrated commands=%d fault_default=off\n",
@@ -410,6 +413,12 @@ int main(void) {
     int64_t next_report = 0;
     bool arm_attempted = false;
     bool stale_reported = false;
+#if defined(CONFIG_CRUX_M3_INTEGRATED) && defined(CONFIG_CRUX_M3_NATIVE_OUTPUT)
+    /* Separate initial idle samples from the owners' startup/report burst.
+     * Keep the existing relative loop and never wait for a favourable queue.
+     */
+    (void)k_sleep(K_MSEC(CRUX_M3_INITIAL_OBSERVER_PHASE_MS));
+#endif
     for (;;) {
         struct work_snapshot value = read_snapshot();
 #if defined(CONFIG_CRUX_M3_INTEGRATED)

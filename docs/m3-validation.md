@@ -848,11 +848,70 @@ Functional/stack/fault/boot values are fixture payloads except the actual logger
 query; no real Time, GPIO, network or watchdog action is performed by this fixture.
 These output results do not satisfy the required integrated physical trials.
 
-The draft target compositions cross-build with owned-code warnings treated as
-errors. Probe BIN/RAM are 124192/63616 bytes; normal BIN/RAM are 107860/59712 bytes,
+The a940bb3 target compositions cross-built with owned-code warnings treated as
+errors. Their probe BIN/RAM were 124192/63616 bytes; normal BIN/RAM are 107860/59712 bytes,
 with 13936 DTCM bytes in each. Worker/network/main stack objects are each 4160
 bytes for 4096 usable; logger allocation/usable are 2112/2048 bytes. These are
 configured build allocations, not measured high-water use. Clean committed images,
 compiler ABI and applicable CI must still pass their exact-image gate before
 physical use. The original combined short-run untouched minimum is 1024 bytes
 for each observed worker/network/main/logger stack; no acceptance limit is lowered.
+
+
+## Initial idle logger observation correction
+
+The a940bb3 integrated probe was fully programmed, byte-verified and booted in
+procedure02 using the corrected programming command sequence. It then **failed**
+the unchanged initial idle checkpoint: the first three eligible observations at
+1504/2505/3507 ms each reported queued=1. The later 4508 ms zero was retained,
+never substituted. No functional or watchdog case ran. In the pinned Zephyr
+log core, the buffered count includes a record until backend processing and free
+complete. Worker reports preceded the failing samples by 1–4 ms; these data do
+not establish persistent accumulation. The earlier RAMCode programming failure
+and read-only identification remain retained; later success does not establish
+its universal cause or cure.
+
+One separately reviewed recovery fully verified the fe9 normal image and fresh
+normal behaviour. Its original helper still failed because the preceding native
+thread-analyser output included `rx_q[0]`. The narrowly corrected prefix grammar
+admits that single configured RX thread name, retaining rejection of other
+bracketed names, partial records and escapes. Independent replay of all 77 raw
+rows established a separate limited normal hand-off; it did not change the
+original helper failure or qualify #12. The user then removed the board-power/
+UART USB, and the exact owned guard was retired. The reviewed 117-payload archive
+`crux-m3-integrated-queue-actual-6bca80a-20261018.tar.gz` has SHA256
+`aa315f697c4bf8db78910fd6a994839eda5051dd320b84e333b96f1eb737eb5c`.
+
+The integrated native-output composition now introduces one fixed 50 ms initial
+main-thread offset, after creating the unchanged worker and network owners. It
+retains the relative 100 ms loop, all priorities, logging configuration, native
+client/MDIO settings and health/window/watchdog policy. It never waits for queue
+zero or changes which samples qualify. This offset is not a recurring phase
+lock, continuous-zero promise or platform scheduling guarantee. Main may enqueue
+a watchdog-feed report before an armed sample; zero is required only at the
+original initial idle checkpoint.
+
+The focused [native phase fixture](../tests/native/logger_phase/README.md) tests
+the actual in-flight count mechanism and fixed samples with recurring producer
+and analyser volume under a controlled serial-delay model. Production formats
+and the production phase constant are extracted at build time. The shared
+first-three queue predicate retains the original time/cadence and zero limits;
+full physical grammar, resource margins and functional criteria still apply.
+Native model results, target cross-builds and physical results are separate.
+New clean images, compiler ABI, independent review, applicable successful CI and
+a new physical-plan/runtime gate remain required before target use. Integrated
+physical acceptance and PR readiness remain Pending.
+
+The controlled native experiment observed one in-flight message and zero after
+backend completion. With the fixed phase, the first three eligible stamps were
+1051/2052/3054 ms, all queue zero. The unshifted control at 1001/2002/3004 ms
+observed one each and was rejected by the same predicate. Eight mutations of the
+actual stream were rejected. The recurring pre-report records occupied 234–244
+bytes; the explicit idle-field bound through 90 s is 248 bytes, or 21.528 ms at
+115200/8N1. This serialization budget excludes arbitrary startup/active output and
+CPU/driver delays. Model drift of 0/1/2/4 ms is imposed, not a measured Cortex
+bound. Physical phase and every complete raw observation still require review.
+The first native model used the default 100 Hz tick and failed the oracle: its
+per-message delay rounded to coarse ticks and the fixed samples were displaced.
+That failed capture is retained; the corrected model explicitly uses the frozen
+EVKB's 10000 Hz tick. No production tick or acceptance limit changed.

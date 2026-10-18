@@ -88,6 +88,19 @@ class IntegratedNativeOutputControls(unittest.TestCase):
                           ([(0.,'M3_WORK sequence=1')],'probe'),(fixture(),'unknown')]:
             with self.assertRaises(ValueError):retained_prefix(rows,role)
 
+    def test_identified_native_rx_queue_prefix(self):
+        line=' rx_q[0]             : STACK: unused 1272 usage 264 / 1536 (17 %); CPU: 0 %'
+        for role in ('probe','normal'):
+            retained_prefix([(0.,line)],role)
+        # This profile has one native RX traffic-class thread. Keep other
+        # bracketed names, partial records and terminal escapes unrecognised.
+        for name in ('rx_q[1]','rx_q[00]','rx_q[x]','rx_q[0][0]','rx_q[[0]]'):
+            with self.subTest(name=name),self.assertRaises(ValueError):
+                retained_prefix([(0.,line.replace('rx_q[0]',name))],'probe')
+        for changed in (line+' extra',line[:-1], '\x1b[0m'+line):
+            with self.subTest(changed=changed),self.assertRaises(ValueError):
+                retained_prefix([(0.,changed)],'probe')
+
     def test_mode_specific_configuration(self):
         root=Path(__file__).resolve().parents[2]
         base=(root/'samples/controller/zephyr/m3-native-output.conf').read_text()
