@@ -23,7 +23,31 @@ def fixture():
     return rows
 
 
+_OLD_WORK_PREFIX='M3_WORK sequence=61 monotonic_ms=6503 time=-4 pressed=0 devi'
+
 class IntegratedNativeOutputControls(unittest.TestCase):
+    def test_observed_tail_no_synthesis(self):
+        rows=[(1.,'Thread analyze:'),(2.,_OLD_WORK_PREFIX)];r=retained_prefix(rows,'probe')
+        self.assertEqual(r['right_censored_old_tail']['exact_fragment'],_OLD_WORK_PREFIX);self.assertEqual(rows[-1],(2.,_OLD_WORK_PREFIX))
+    def test_reject_earlier_unknown_order_types_controls_complete(self):
+        bad=['M3_BAD sequence=1 de','M3_WORK monotonic_ms=1 se','M3_WORK sequence=x mo','M3_WORK sequence=1 bogus','M3_WORK sequence=1 monotonic_ms=x','M3_WORK sequence=1\tmo','M3_WORK sequence=1 \x1b[0m','M3_WORK sequence=1 monotonic_ms=2 time=0 pressed=0 device=bad','M3_STALL_REQUESTED requested_ms=1 dead','M3_WORK sequence=',' '*65]
+        for line in bad:
+            with self.subTest(line=line),self.assertRaises(ValueError):retained_prefix([(1.,line)],'probe')
+        with self.assertRaises(ValueError):retained_prefix([(1.,_OLD_WORK_PREFIX),(2.,'Thread analyze:')],'probe')
+    def test_fresh_partial_still_rejected(self):
+        with self.assertRaises(ValueError):logger_groups(fixture()+[(20.,_OLD_WORK_PREFIX)])
+
+    def test_actual_second_boot_controls_post_reset_wait(self):
+        rx=Mock(rows=[(0.,'Thread analyze:'),(3.,'*** Booting Zephyr initial ***'),(25.,'*** Booting Zephyr watchdog ***')]);rx.text.return_value=''
+        series=Mock();now=[28.];waits=[]
+        data={'M3_WDT_ARMED':[dict(received=0.)],'M3_WDT_FEED':[dict(monotonic_ms=0),dict(monotonic_ms=12000)],'M3_NET_WORK':[dict(received=1.),dict(received=2.)],'M3_FAULT_STALL':[dict(received=23.)]}
+        def wait(predicate,duration,receiver):
+            if not predicate():waits.append(duration);now[0]=29.5;self.assertTrue(predicate())
+        series.wait.side_effect=wait
+        with patch.object(capture,'records',side_effect=lambda rows,name:data[name]),patch.object(capture.time,'monotonic',side_effect=lambda:now[0]):
+            self.assertEqual(capture.Series.watchdog_body(series,'time')(Path('/unused'),rx),dict(status='CAPTURED',owner='time'))
+        self.assertEqual(waits,[5.]);self.assertEqual(now[0],29.5)
+
     def test_loss_capture_waits_for_post_ack_observation(self):
         # Loss and idle settling finished before a delayed human receipt.
         receiver=Mock(rows=[])

@@ -149,7 +149,7 @@ def idle_logger_checkpoint(rows):
     return dict(samples=3, min_unused=min(sample['unused'] for sample in initial), queue=0)
 
 
-def retained_prefix(rows, role):
+def _retained_prefix(rows, role):
     """Identify the prior role at a planned reset; never use its rows as new evidence."""
     if role == 'original':
         from capture_m3_network import validate_normal_prefix
@@ -169,3 +169,40 @@ def retained_prefix(rows, role):
         else:
             raise ValueError('Unexpected pre-reset integrated output')
     return None
+
+
+_PERIODIC={'M3_WORK','M3_OBSERVER_ALIVE','M3_STACK','M3_LOGGER','M3_NET_WORK'}
+
+def _periodic_prefix(line):
+    """Recognise a proper lexical prefix; never fabricate missing field values."""
+    if not 1<=len(line)<=4096 or not re.fullmatch(r'[A-Za-z0-9_= -]+',line):return None
+    tokens=line.split(' ');name=tokens[0]
+    if name not in _PERIODIC or len(tokens)<3:return None
+    fields=FIELDS[name].split();complete=tokens[1:-1];tail=tokens[-1]
+    if not tail or len(complete)>=len(fields):return None
+    for field,token in zip(fields,complete):
+        if not re.fullmatch(re.escape(field)+r'=-?[0-9]+',token):return None
+    field=fields[len(complete)]
+    if '=' not in tail:
+        return name if field.startswith(tail) else None
+    key,value=tail.split('=',1)
+    if key!=field or not re.fullmatch(r'-?[0-9]*',value):return None
+    if value in ('','-') or len(complete)+1<len(fields):return name
+    return None
+
+def retained_prefix(rows,role):
+    """Validate old output, retaining an explicitly excluded final reset fragment."""
+    original=_retained_prefix
+    if role not in ('probe','normal'):return original(rows,role)
+    blank=[dict(received=t,spaces=len(s)) for t,s in rows if re.fullmatch(r'[ ]{1,64}',s)]
+    retained=[(t,s) for t,s in rows if not re.fullmatch(r'[ ]{1,64}',s)]
+    tail=None
+    try:result=original(retained,role)
+    except ValueError:
+        if not retained or retained[-1]!=rows[-1]:raise
+        schema=_periodic_prefix(retained[-1][1])
+        if schema is None:raise
+        result=original(retained[:-1],role)
+        tail=dict(received=rows[-1][0],exact_fragment=rows[-1][1],index=len(rows)-1,
+                  schema=schema,reason='right-censored final old row at planned reset; excluded, no synthesis')
+    return dict(excluded_old_blank_rows=blank,right_censored_old_tail=tail,prior_result=result) if blank or tail else result

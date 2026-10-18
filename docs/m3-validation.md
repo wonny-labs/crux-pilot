@@ -15,8 +15,9 @@ closure. AGENTS.md and public contracts remain unchanged.
 
 The [current SW5 physical result](#uart-remediation-and-sw5-physical-handoff) and
 [qualified Ethernet hand-off](#qualified-ethernet-handoff) establish the identified
-#10 and #11 component paths. Combined-controller #12 physical acceptance remains
-Pending. Earlier Ethernet/stimulus holds were released by the recorded task
+#10 and #11 component paths. The [final integrated handoff](#final-integrated-physical-handoff)
+independently supports the scoped #12 physical criteria; final software CI and
+PR review still govern readiness. Earlier Ethernet/stimulus holds were released by the recorded task
 resumption; fresh operator availability is still required for each physical series.
 The earlier failed SW8/SW5, carrier, diagnostic and timestamp attempts remain
 preserved and are not retrospectively passed. A component result does not establish
@@ -309,14 +310,14 @@ partial evidence, not replacement acceptance criteria or checked completion.
 | #10 / 4 | Portable Host/native GPIO checks and qualified physical source retained; current-head CI is recorded in the PR. |
 | #10 / 5 | Qualified fe9 source/configuration/fixture/build entry points retained; no other I/O path inferred. |
 | #11 / 1–6 | Identified d2 seven-stage TCP/UDP/link-loss/restart series, resource return and final normal recovery independently PASS; see qualified hand-off below. |
-| #12 / 1 | Three-owner composition and reviewed native-output preparation defined; combined physical validation remains Pending. |
-| #12 / 2 | Stable UART/source/readiness/error/reset facts and native logger checks implemented; integrated physical evidence Pending. |
-| #12 / 3 | Qualified SW5 and TCP/UDP hand-offs available; simultaneous controller physical runs Pending. |
+| #12 / 1 | Three-owner native composition and full scoped combined physical coverage independently PASS; see final handoff. |
+| #12 / 2 | Exact UART/source/readiness/error/reset facts and native logger evidence independently replayed across the identified integrated cases. |
+| #12 / 3 | Actual five-group SW5 input with 39 completed network pairs PASS; real link loss and explicit communication recovery PASS. |
 | #12 / 4 | Time remains worker-owned; applicable Host/native logic and output controls retained. Exact final source/configuration/CI is recorded in the PR. |
-| #12 / 5 | Joint workload-conditioned feeding and bounded per-owner faults implemented; physical workload coupling Pending. |
-| #12 / 6 | Original integrated healthy/Time-stall/network-stall watchdog trials Pending; standalone health trials cannot substitute. |
-| #12 / 7 | Component reproduction and exact firmware/raw evidence retained; changed integrated resources and physical observations still require their own gate. |
-| #12 / 8 | This coverage record identifies qualified components and missing combined outcomes. Full M3 remains incomplete. |
+| #12 / 5 | Joint healthy feeding and separately bounded Time/network-owner faults independently verified on the EVKB. |
+| #12 / 6 | Three Time-owner and three network-owner trials independently PASS with watchdog cause 0x10 and required fresh unarmed post-reset observations. |
+| #12 / 7 | Frozen images, ABI/configuration, exact adapters, raw UART/peer events, resource observations and independent replay are retained with failed attempts. |
+| #12 / 8 | Scoped physical coverage and final normal handoff independently PASS. Final software CI/PR acceptance remain separate; Issues and M3 stay Open. |
 
 The Draft PR and issue comments identify current-head CI, independent verdicts,
 physical results, archive identities and resume state. Keep all issues/M3 open for
@@ -899,8 +900,8 @@ first-three queue predicate retains the original time/cadence and zero limits;
 full physical grammar, resource margins and functional criteria still apply.
 Native model results, target cross-builds and physical results are separate.
 New clean images, compiler ABI, independent review, applicable successful CI and
-a new physical-plan/runtime gate remain required before target use. Integrated
-physical acceptance and PR readiness remain Pending.
+a new physical-plan/runtime gate remain required before target use. At that software-only checkpoint, integrated physical acceptance and PR readiness
+were Pending; the later final handoff below supersedes the physical disposition.
 
 The controlled native experiment observed one in-flight message and zero after
 backend completion. With the fixed phase, the first three eligible stamps were
@@ -934,3 +935,46 @@ records its exclusion, and preserves every raw byte. Unknown fragments and later
 joined epochs remain rejected. Original failures remain failures; these capture
 corrections do not qualify F2/F3, the six watchdog trials or final integrated
 acceptance. The board was powered off and its temporary mount guard retired.
+
+
+## Final integrated physical handoff
+
+Independent replay supports the aggregate of separately gated cases on the frozen
+`ec94fbe` firmware: series06 F1 (39 completed network pairs and five actual SW5
+groups), series08 F2/F3 (actual RJ45 loss and explicit restart/recovery), series09
+Time watchdog trials 1/2, and continuation10 Time trial 3 plus network trials
+1–3. Each watchdog case used a fresh planned boot, the original healthy checkpoint,
+one bounded owner fault and a real watchdog reboot with cause `0x10`. Last-feed
+to boot observations span 2.499694–2.523135 seconds; all required post-reset
+unarmed/default-off observations passed. These observations are bounded test
+results, not worst-case reset or scheduling guarantees.
+
+The original series08 and series09 helper failures remain failures. Independent
+replay separately qualified complete fresh epochs; no missing observations or
+field values were invented. The capture now selects the second observed boot
+for the post-watchdog interval. Only a final old periodic record with complete
+ordered numeric fields and a proper partial next field/value may be excluded at
+a planned reset; prior complete rows and every fresh epoch retain strict parsing.
+Raw bytes and the exact excluded fragment/time/index/schema remain recorded.
+Future captures also persist body metadata, including the actual host link-down
+observation time. Series08 did not persist that exact time: its host observation
+is conservatively bounded between the actual acknowledgement and the next
+recorded reconnect request, less than 0.476 seconds apart. The independent replay
+records that interval limitation rather than fabricating a timestamp.
+
+The final normal image was fully verified (107,872 bytes, SHA256
+`ad729684749181f0c26853828550187a2c3e60dbb28cf3ee2194a7984141e02f`),
+started and independently replayed with commands/faults/automatic traffic off,
+unarmed status, idle resource return and the original first-three queue-zero
+checkpoint. Observed unused worker/main/network stack was 3688/3232/3624 bytes;
+logger unused was 1568 bytes. Probe minima were 3680/3232/2952 and logger 1560.
+The user then disconnected DAPLink/UART USB, powering off the board; the exact
+owned guard11 process was retired and process/USB absence verified. No further
+hardware operation is required for the scoped acceptance evidence.
+
+The capture corrections are host tooling only and do not change the frozen
+firmware, native dependencies, original windows, watchdog criteria or resource
+limits. Final canonical-tooling CI, portable archive identities and publication
+review are recorded against PR #13 before Ready. PR merging and Issue/M3 closure
+remain reserved for the user. Other I/O devices, long-run/load/M5, physical POSIX
+and worst-case stack/jitter behaviour remain outside this bounded qualification.

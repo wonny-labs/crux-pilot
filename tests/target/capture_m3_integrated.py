@@ -260,6 +260,8 @@ class Series:
             default_state(baseline,self.source,int(role=='probe'))
             (case/'baseline-result.json').write_text(json.dumps(dict(status='PASS'),indent=2))
             result=body(case,receiver) if body else None
+            if body is not None:
+                (case/'capture-metadata.json').write_text(json.dumps(result,indent=2)+'\n')
         finally:
             try:net.finish_receiver(receiver)
             finally:
@@ -338,7 +340,7 @@ class Series:
             self.wait(lambda:bool(records(receiver.rows,marker)) or 'REJECTED' in receiver.text(),16,receiver)
             functional_require('REJECTED' not in receiver.text(),'Owner rejected bounded fault; no retry')
             self.wait(lambda:len([s for _,s in receiver.rows if s.startswith('*** Booting Zephyr')])==2,23,receiver)
-            reset=next(t for t,s in receiver.rows if s.startswith('*** Booting Zephyr') and t>receiver.rows[0][0]+1)
+            reset=[t for t,s in receiver.rows if s.startswith('*** Booting Zephyr')][1]
             self.wait(lambda:time.monotonic()>=reset+4.5,5,receiver)
             return dict(status='CAPTURED',owner=owner)
         return run
