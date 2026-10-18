@@ -17,7 +17,11 @@ def records(rows, name):
     return result
 
 
-def checkpoint(rows, after, ready, link=1):
+def checkpoint(rows, after, ready, link=1, *, native_output=False):
+    if native_output:
+        from m3_network_output import validate_native_records, logger_checkpoint
+        validate_native_records(rows)
+        logger_checkpoint(rows, after)
     resources = [(i, records([(t, line)], 'M3_NET_RESOURCE')[0])
                  for i, (t, line) in enumerate(rows) if 'M3_NET_RESOURCE ' in line]
     idle = [(i, r) for i, r in resources if after <= r['received'] <= after + 5][:3]
@@ -53,7 +57,12 @@ def checkpoint(rows, after, ready, link=1):
                 min_unused=min(unused))
 
 
-def validate_stage(rows, peer, trial, mode, link_down=False, *, errno_abi):
+def validate_stage(rows, peer, trial, mode, link_down=False, *, errno_abi, native_output=False, native_capture=None):
+    if native_output:
+        from m3_network_output import validate_native_records, logger_pairs
+        capture = rows if native_capture is None else native_capture
+        validate_native_records(capture)
+        logger_pairs(capture, allow_prefix=True)
     require(mode in ('echo', 'silence', 'close'), 'Unknown stage mode')
     timeout = -errno_abi['ETIMEDOUT']
     reset = -errno_abi['ECONNRESET']
@@ -139,6 +148,9 @@ def validate_stage(rows, peer, trial, mode, link_down=False, *, errno_abi):
                 'Unbounded link-loss ownership/fence')
         resource_result = dict(status='IN_PLACE_CLEANUP_FAILED', explicit_restart_required=True)
     else:
-        resource_result = checkpoint(rows, summary['received'] + .25, ready, 0 if link_down else 1)
+        resource_result = checkpoint(rows, summary['received'] + .25, ready, 0 if link_down else 1, native_output=native_output)
+    if native_output and link_down and fenced:
+        from m3_network_output import logger_checkpoint
+        logger_checkpoint(rows, summary['received'] + .25)
     return dict(status='PASS', trial=trial, mode=mode, exchanges=len(exchanges),
                 link_down=link_down, resources=resource_result)

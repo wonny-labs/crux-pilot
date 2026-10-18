@@ -51,3 +51,14 @@ config CRUX_M3_DEFERRED_OUTPUT
 	help
 	  Private diagnostic evaluation only, with bounded native logging resources.
 	  This is not an adopted network or integrated-controller output profile.
+
+config CRUX_M3_NATIVE_OUTPUT
+	bool "Use bounded native deferred UART output in the reference network probe"
+	depends on CRUX_M3_NETWORK_PROBE && !CRUX_M3_PHY_DIAGNOSTIC
+	depends on CRUX_M3_MDIO_COMPLETION_FIX && !CRUX_M3_DEFERRED_OUTPUT
+	depends on LOG_PRINTK && LOG_MODE_DEFERRED && LOG_PROCESS_THREAD
+	depends on THREAD_MONITOR && THREAD_NAME
+	default n
+	help
+	  Sample-only composition with explicit logger resources and loss checks.
+	  Physical Ethernet qualification remains a separate requirement.

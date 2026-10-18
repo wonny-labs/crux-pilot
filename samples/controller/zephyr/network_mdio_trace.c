@@ -4,7 +4,7 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/kernel.h>
 #ifdef CONFIG_CRUX_M3_DEFERRED_OUTPUT
-#include <string.h>
+#include "native_logger.h"
 #include <zephyr/logging/log_ctrl.h>
 #endif
 
@@ -32,20 +32,6 @@ void crux_m3_mdio_trace_observe(void) {
 }
 
 #ifdef CONFIG_CRUX_M3_DEFERRED_OUTPUT
-struct logger_lookup {
-    struct k_thread *thread;
-    unsigned int count;
-};
-
-static void find_logger(const struct k_thread *thread, void *context) {
-    struct logger_lookup *lookup = context;
-    const char *name = k_thread_name_get((k_tid_t)thread);
-    if (name != NULL && strcmp(name, "logging") == 0) {
-        lookup->thread = (struct k_thread *)thread;
-        lookup->count++;
-    }
-}
-
 static bool output_started;
 static bool output_final_reported;
 static int64_t output_started_ms;
@@ -60,18 +46,7 @@ void crux_m3_deferred_start(void) {
 }
 
 static void report_logger(bool final) {
-    struct logger_lookup lookup = {0};
-    /* Only identify the native static logger during traversal; scan outside its lock. */
-    k_thread_foreach(find_logger, &lookup);
-    size_t unused = 0;
-    int result = -1;
-    size_t usable = 0;
-    int priority = -1;
-    if (lookup.count == 1) {
-        result = k_thread_stack_space_get(lookup.thread, &unused);
-        usable = lookup.thread->stack_info.size;
-        priority = k_thread_priority_get(lookup.thread);
-    }
+    struct m3_logger_resources logger = m3_logger_resources_get();
     struct crux_m3_mdio_failure record;
     const struct device *mdio = DEVICE_DT_GET(DT_PARENT(DT_NODELABEL(phy)));
     int64_t before = k_uptime_get();
@@ -82,9 +57,9 @@ static void report_logger(bool final) {
            "failure_valid=%u logger_found=%u status=%d configured=%u usable=%zu "
            "unused=%zu priority=%d queued=%u\n",
            final ? "M3_OUTPUT_FINAL" : "M3_OUTPUT", (long long)before, (long long)after,
-           (long long)(before - output_started_ms), (unsigned int)valid, lookup.count, result,
-           (unsigned int)CONFIG_LOG_PROCESS_THREAD_STACK_SIZE, usable, unused, priority,
-           (unsigned int)log_buffered_cnt());
+           (long long)(before - output_started_ms), (unsigned int)valid, logger.found,
+           logger.status, (unsigned int)CONFIG_LOG_PROCESS_THREAD_STACK_SIZE, logger.usable,
+           logger.unused, logger.priority, (unsigned int)log_buffered_cnt());
 }
 
 void crux_m3_deferred_report(void) {

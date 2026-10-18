@@ -290,6 +290,7 @@ def main():
     from m3_image import check_record_output
     check_record_output(image['config'])
     phy_diagnostic = phy_diagnostic_mode(image['config'], args.diagnostic_echo_only)
+    native_output = 'CONFIG_CRUX_M3_NATIVE_OUTPUT=y' in Path(image['config']).read_text().splitlines()
     errno_abi = verify_errno_map(args.errno_map, image)
     repo = Path(__file__).resolve().parents[2]
     require(not subprocess.check_output(['git', 'status', '--porcelain'], cwd=repo, text=True).strip(),
@@ -336,6 +337,13 @@ def main():
                     raise
                 except Exception as error:
                     raise HardwareStop('Probe identity/evidence unverified; stop target changes') from error
+            def replay_native(receiver, capture):
+                if native_output:
+                    from m3_uart import exact_event_rows
+                    try:
+                        receiver.rows = exact_event_rows(capture)
+                    except Exception as error:
+                        raise HardwareStop('Exact UART replay uncertain; no target changes') from error
             def boot(manifest, name, programming, entry_profile='network'):
                 path = Path(manifest['binary'])
                 require('"' not in str(path) and '\n' not in str(path), 'Unsafe image path')
@@ -366,6 +374,8 @@ def main():
                         wait_until(lambda: len(records(receiver.rows, 'M3_OBSERVER_ALIVE')) >= 5, 15, receiver)
                 finally:
                     finish_receiver(receiver)
+                    if manifest['profile'] == 'network':
+                        replay_native(receiver, capture)
                     (capture / 'lines.json').write_text(json.dumps(receiver.rows, indent=2))
                 if manifest['profile'] == 'normal':
                     banners = [i for i, (_, s) in enumerate(receiver.rows) if s.startswith('*** Booting Zephyr')]
@@ -374,7 +384,7 @@ def main():
                 else:
                     fresh = fresh_network_rows(receiver.rows, source, entry_profile)
                     require(fresh, 'Fresh network boot absent')
-                    checkpoint(fresh, checkpoint_start, 0)
+                    checkpoint(fresh, checkpoint_start, 0, native_output=native_output)
                     result = dict(status='PASS', profile='network', no_automatic_traffic=True)
                 (capture / 'result.json').write_text(json.dumps(result, indent=2))
             def acknowledge(label):
@@ -448,13 +458,18 @@ def main():
                         finish_receiver(receiver)
                         (case / 'lines.json').write_text(json.dumps(receiver.rows, indent=2))
                         release_peer(lease)
+                    replay_native(receiver, case)
+                    (case / 'lines.json').write_text(json.dumps(receiver.rows, indent=2))
                     frames = [json.loads(s) for s in peer_output.read_text().splitlines()]
-                    acknowledgements = [i for i, (_, line) in enumerate(receiver.rows[start:], start)
-                                        if 'M3_NET_REQUESTED' in line]
+                    acknowledgements = [i for i, (received, line) in enumerate(receiver.rows)
+                                        if received >= written and 'M3_NET_REQUESTED' in line]
                     require(len(acknowledgements) == 1, 'Missing/duplicate explicit round acknowledgement')
                     qualified_rows = receiver.rows[acknowledgements[0]:]
+                    if native_output:
+                        from m3_network_output import acknowledged_rows
+                        qualified_rows = acknowledged_rows(receiver.rows, written)
                     try:
-                        result = validate_stage(qualified_rows, frames, 1 if stage == 7 else stage, mode, stage == 6, errno_abi=errno_abi)
+                        result = validate_stage(qualified_rows, frames, 1 if stage == 7 else stage, mode, stage == 6, errno_abi=errno_abi, native_output=native_output, native_capture=receiver.rows if native_output else None)
                     except ValueError as error:
                         raise QualificationFailure(str(error)) from error
                     (case / 'result.json').write_text(json.dumps(result, indent=2))

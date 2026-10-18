@@ -54,7 +54,7 @@ class GeneratedDriverTests(unittest.TestCase):
             sample = ROOT / "samples/controller/zephyr"
             subprocess.run([os.environ.get("CC", "cc"), "-std=c17", "-Wall", "-Wextra", "-Werror",
                             "-DCONFIG_CRUX_M3_DEFERRED_OUTPUT=1", "-DCONFIG_LOG_PROCESS_THREAD_STACK_SIZE=2048",
-                            "-I", str(work), "-I", str(sample), str(sample / "network_mdio_trace.c"),
+                            "-I", str(work), "-I", str(sample), str(sample / "network_mdio_trace.c"), str(sample / "native_logger.c"),
                             str(Path(__file__).with_name("deferred_observer_model.c")),
                             "-o", str(work / "observer")], check=True)
             for scenario in ([], ["failure"], ["late"], ["duplicate"]):

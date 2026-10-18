@@ -58,6 +58,14 @@ class OutputTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'startup-only runner'):
                     phy_diagnostic_mode(path, diagnostic)
 
+    def test_native_network_profile_and_diagnostic_exclusion(self):
+        text=(ROOT/'samples/controller/zephyr/m3-native-output.conf').read_text()
+        text+='\nCONFIG_CRUX_M3_NETWORK_PROBE=y\nCONFIG_CRUX_M3_MDIO_COMPLETION_FIX=y\n'
+        self.check(text)
+        for extra in ('CONFIG_CRUX_M3_PHY_DIAGNOSTIC=y','CONFIG_CRUX_M3_MDIO_FAILURE_TRACE=y',
+                      'CONFIG_CRUX_M3_DEFERRED_OUTPUT=y','CONFIG_CRUX_CONTROLLER_M3=y'):
+            with self.assertRaises(ValueError):self.check(text+'\n'+extra)
+
     def test_native_loss_marker_rejected(self):
         check_record_loss([(1,'M3_NET_STATE link=0')])
         with self.assertRaises(ValueError):check_record_loss([(1,'--- 37 messages dropped ---')])

@@ -702,3 +702,33 @@ CPU copy; a valid-zero observation is limited to that snapshot. It does not mean
 that every MDIO request succeeded or that no later failure can occur. Missing,
 late, duplicate or lossy window records are not evidence of absence. Native
 completion controls include a failure that appears after the final getter.
+
+### Native output candidate for full Ethernet qualification
+
+The separate `m3-native-output.conf` composes native deferred `LOG_PRINTK` and the
+polling UART backend with the network probe and maintained MDIO correction. It
+excludes PHY/startup diagnostic observers. It is a sample-owned, unqualified
+composition; the diagnostic flag remains rejected by the seven-stage runner.
+Logger resources are fixed at priority 14, 2048 usable stack bytes (2112 allocated
+including guard) and a 4096-byte drop-new/nonblocking buffer. The minimum observed
+unused logger stack is 1024 bytes, a functional limit rather than a worst-case claim.
+
+Authoritative verdicts replay raw UART event bytes without stripping ANSI or spaces;
+only CR/LF is normalised. Any native dropped-message marker invalidates evidence.
+Periodic native resource groups are ordered resource/state/main-stack/logger and
+paired within 250 ms. Queue count is sampled before that group's records are enqueued.
+The first three consecutive idle resource reports inside the existing five-second
+checkpoint must have queue 0, with existing 750..1250 ms cadence and span >=1800 ms.
+Later favourable samples cannot replace an initial nonempty queue. Traffic-time
+queue counts remain bounded observations. ACK must be published before work and
+received within 1 second of the command; raw replay checks both ordering and time.
+All original seven-stage network, peer, full-baseline, real-link-loss and recovery
+criteria remain required. No physical qualification of this composition is claimed.
+
+All present logger/main-stack values are checked across the authoritative full
+stage capture, including before ACK. Native periodic main-stack records must each
+have exactly one paired logger record. Only an exact ACK may interleave that group.
+An initial partial group may be a single suffix ending in LOGGER before the first
+RESOURCE; its present values are still checked. This capture-boundary exception
+cannot apply after the first RESOURCE. Functional round slicing remains at ACK;
+it does not discard the separate full-capture resource validation.

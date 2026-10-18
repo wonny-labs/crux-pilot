@@ -112,6 +112,13 @@ jobs:
             crux-pilot/build/zephyr/m3-deferred-output-evkb/zephyr/zephyr.bin
             crux-pilot/build/zephyr/m3-deferred-output-evkb/crux-mdio/
             crux-pilot/build/zephyr/m3-deferred-output-evkb/compile_commands.json
+            crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/.config
+            crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/m3-native-output-evkb/crux-mdio/
+            crux-pilot/build/zephyr/m3-native-output-evkb/compile_commands.json
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/.config
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.map

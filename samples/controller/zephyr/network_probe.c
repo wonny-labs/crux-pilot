@@ -3,6 +3,11 @@
 #include "network_mdio_trace.h"
 #endif
 
+#ifdef CONFIG_CRUX_M3_NATIVE_OUTPUT
+#include "native_logger.h"
+#include <zephyr/logging/log_ctrl.h>
+#endif
+
 #include <zephyr/kernel.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/sys/atomic.h>
@@ -38,6 +43,18 @@ static void report_stack(void) {
            k_current_get()->stack_info.size, unused);
 }
 
+#ifdef CONFIG_CRUX_M3_NATIVE_OUTPUT
+static void report_logger(int64_t queued_at, unsigned int queued) {
+    struct m3_logger_resources logger = m3_logger_resources_get();
+    printk("M3_NET_LOGGER monotonic_ms=%lld queue_snapshot_ms=%lld found=%u status=%d "
+           "configured=%u usable=%zu "
+           "unused=%zu priority=%d queued=%u\n",
+           (long long)k_uptime_get(), (long long)queued_at, logger.found, logger.status,
+           (unsigned int)CONFIG_LOG_PROCESS_THREAD_STACK_SIZE, logger.usable, logger.unused,
+           logger.priority, queued);
+}
+#endif
+
 int main(void) {
     printk("M3_NET_BOOT source=%s profile=network-probe exposure=isolated-only\n", CRUX_M3_SOURCE);
 #ifdef CONFIG_CRUX_M3_DEFERRED_OUTPUT
@@ -63,7 +80,9 @@ int main(void) {
 #ifdef CONFIG_CRUX_M3_PHY_DIAGNOSTIC
             network_phy_diagnostic_after_round();
 #endif
+#ifndef CONFIG_CRUX_M3_NATIVE_OUTPUT
             report_stack();
+#endif
             round++;
             atomic_set(&requested, 0);
         }
@@ -77,8 +96,16 @@ int main(void) {
 #ifdef CONFIG_CRUX_M3_DEFERRED_OUTPUT
             crux_m3_deferred_report();
 #endif
+#ifdef CONFIG_CRUX_M3_NATIVE_OUTPUT
+            /* Sample the idle queue before enqueuing this resource report group. */
+            int64_t queued_at = k_uptime_get();
+            unsigned int queued = log_buffered_cnt();
+#endif
             controller_network_report();
             report_stack();
+#ifdef CONFIG_CRUX_M3_NATIVE_OUTPUT
+            report_logger(queued_at, queued);
+#endif
             next_report = k_uptime_get() + 1000;
         }
         k_sleep(K_MSEC(100));

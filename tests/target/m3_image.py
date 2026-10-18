@@ -83,7 +83,7 @@ def check_image(binary_path, elf_path, config_path, profile):
     if integrated:
         require(symbols.get('network_stack', {}).get('bytes') == 4160, 'Unexpected network stack object')
     config = Path(config_path).read_text().splitlines()
-    if 'CONFIG_CRUX_M3_DEFERRED_OUTPUT=y' in config:
+    if {'CONFIG_CRUX_M3_DEFERRED_OUTPUT=y', 'CONFIG_CRUX_M3_NATIVE_OUTPUT=y'}.intersection(config):
         require(profile == 'network' and symbols.get('logging_stack', {}).get('bytes') == 2112,
                 'Unexpected diagnostic logger stack object (2048 usable plus 64 guard)')
     required = ['CONFIG_BOARD_REVISION="B"', 'CONFIG_BOARD_TARGET="mimxrt1060_evk@B/mimxrt1062/qspi"',
@@ -130,10 +130,18 @@ def check_image(binary_path, elf_path, config_path, profile):
 def check_record_output(config_path):
     """Require the reviewed output path for new network/combined physical candidates."""
     config = Path(config_path).read_text().splitlines()
-    if 'CONFIG_CRUX_M3_DEFERRED_OUTPUT=y' in config:
+    if {'CONFIG_CRUX_M3_DEFERRED_OUTPUT=y', 'CONFIG_CRUX_M3_NATIVE_OUTPUT=y'}.intersection(config):
+        diagnostic = 'CONFIG_CRUX_M3_DEFERRED_OUTPUT=y' in config
+        native = 'CONFIG_CRUX_M3_NATIVE_OUTPUT=y' in config
+        require(diagnostic != native, 'Select exactly one native output composition')
+        if diagnostic:
+            require({'CONFIG_CRUX_M3_PHY_DIAGNOSTIC=y', 'CONFIG_CRUX_M3_MDIO_FAILURE_TRACE=y'}.issubset(config),
+                    'Incomplete startup-only diagnostic output composition')
+        else:
+            require(not {'CONFIG_CRUX_M3_PHY_DIAGNOSTIC=y', 'CONFIG_CRUX_M3_MDIO_FAILURE_TRACE=y'}.intersection(config),
+                    'Diagnostic observers cannot qualify the native network profile')
         required = {
-            'CONFIG_CRUX_M3_NETWORK_PROBE=y', 'CONFIG_CRUX_M3_PHY_DIAGNOSTIC=y',
-            'CONFIG_CRUX_M3_MDIO_COMPLETION_FIX=y', 'CONFIG_CRUX_M3_MDIO_FAILURE_TRACE=y',
+            'CONFIG_CRUX_M3_NETWORK_PROBE=y', 'CONFIG_CRUX_M3_MDIO_COMPLETION_FIX=y',
             'CONFIG_LOG=y', 'CONFIG_LOG_PRINTK=y', 'CONFIG_LOG_MODE_DEFERRED=y',
             'CONFIG_LOG_PROCESS_THREAD=y', 'CONFIG_LOG_PROCESS_THREAD_STACK_SIZE=2048',
             'CONFIG_LOG_PROCESS_THREAD_CUSTOM_PRIORITY=y', 'CONFIG_LOG_PROCESS_THREAD_PRIORITY=14',
