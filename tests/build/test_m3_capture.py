@@ -11,6 +11,38 @@ import capture_m3 as runner
 
 
 class RunnerControls(unittest.TestCase):
+    def test_uncertain_uart_inventory_never_reaches_probe_inventory(self):
+        for result in (runner.subprocess.CompletedProcess([], 1, '', 'inventory warning'),
+                       runner.subprocess.CompletedProcess([], 0, 'existing owner', ''),
+                       runner.subprocess.CompletedProcess([], 2, '', '')):
+            with self.subTest(result=result), tempfile.TemporaryDirectory() as d, \
+                 patch.object(runner.subprocess, 'run', return_value=result), \
+                 patch.object(runner.subprocess, 'check_output') as probe:
+                with self.assertRaises(ValueError):
+                    runner.check_owners('/dev/cu.usbmodem11102', Path(d) / 'owners.txt')
+                probe.assert_not_called()
+        with tempfile.TemporaryDirectory() as d, \
+             patch.object(runner.subprocess, 'run', side_effect=runner.subprocess.TimeoutExpired('lsof', 10)):
+            with self.assertRaises(runner.subprocess.TimeoutExpired):
+                runner.check_owners('/dev/cu.usbmodem11102', Path(d) / 'owners.txt')
+
+    def test_probe_process_paths_and_python_entry_points_are_rejected(self):
+        for process in ('123 /usr/local/bin/JLinkExe', '123 JLinkGDBServerCLExe',
+                        '123 /usr/bin/python3 -m pyocd', ''):
+            with self.subTest(process=process), tempfile.TemporaryDirectory() as d, \
+                 patch.object(runner.subprocess, 'run', return_value=runner.subprocess.CompletedProcess([], 1, '', '')), \
+                 patch.object(runner.subprocess, 'check_output', return_value=process):
+                with self.assertRaises(ValueError):
+                    runner.check_owners('/dev/cu.usbmodem11102', Path(d) / 'owners.txt')
+
+    def test_owner_inventory_is_bounded_and_accepts_no_owner(self):
+        with tempfile.TemporaryDirectory() as d, \
+             patch.object(runner.subprocess, 'run', return_value=runner.subprocess.CompletedProcess([], 1, '', '')) as uart, \
+             patch.object(runner.subprocess, 'check_output', return_value='123 python3 capture_m3.py') as probe:
+            runner.check_owners('/dev/cu.usbmodem11102', Path(d) / 'owners.txt')
+            self.assertEqual(uart.call_args.kwargs['timeout'], 10)
+            self.assertEqual(probe.call_args.kwargs['timeout'], 10)
+
     def test_expected_exit_on_error_configuration_banner_is_informational(self):
         with tempfile.TemporaryDirectory() as d:
             def fake_run(*args, **kwargs):

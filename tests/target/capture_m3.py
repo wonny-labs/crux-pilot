@@ -292,6 +292,17 @@ def run_series(program, observe):
             observe('final-normal', False)
 
 
+def check_owners(uart, output):
+    owners = subprocess.run(['lsof', uart], capture_output=True, text=True, timeout=10)
+    output.write_text(owners.stdout + owners.stderr)
+    require(owners.returncode == 1 and not owners.stdout and not owners.stderr,
+            'UART already owned or ownership inventory uncertain')
+    processes = subprocess.check_output(['ps', '-axo', 'pid=,comm=,args='], text=True, timeout=10)
+    require(processes.strip(), 'Probe ownership inventory empty')
+    require(not re.search(r'(?im)(?:/|\s)(?:JLink\S*|openocd|pyocd(?:\.\S+)?)(?:\s|$)', processes),
+            'Probe already owned')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--probe-manifest', type=Path, required=True)
@@ -324,12 +335,7 @@ def main():
     lock_path = args.evidence.parent / 'evkb-602003106.lock'
     with lock_path.open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        owners = subprocess.run(['lsof', uart], capture_output=True, text=True)
-        (args.evidence / 'uart-owners.txt').write_text(owners.stdout + owners.stderr)
-        require(owners.returncode == 1 and not owners.stdout, 'UART already owned or inventory failed')
-        processes = subprocess.check_output(['ps', '-axo', 'pid=,comm='], text=True)
-        require(not any(re.search(r'/(JLinkExe|JLinkGDBServer[^/]*|openocd|pyocd)$', s)
-                        for s in processes.splitlines()), 'Probe already owned')
+        check_owners(uart, args.evidence / 'uart-owners.txt')
         import serial
         import serial.tools.list_ports
         ports = [vars(p) for p in serial.tools.list_ports.comports() if p.device == uart]
