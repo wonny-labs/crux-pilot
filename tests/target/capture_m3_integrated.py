@@ -30,6 +30,36 @@ def functional_require(condition,message):
     if not condition:raise FunctionalFailure(message)
 
 
+def initial_rows(rows, source, commands):
+    banners=[i for i,(_,line) in enumerate(rows) if line.startswith('*** Booting Zephyr')]
+    require(len(banners)<=1,'Duplicate native boot in initial composition phase')
+    if not banners:return []
+    fresh=rows[banners[0]:]
+    boots=records(fresh,'M3_BOOT')
+    require(len(boots)<=1,'Duplicate initial composition identity')
+    if not boots:return []
+    require(0<=boots[0]['received']-fresh[0][0]<=.5 and
+            boots[0]['source']==source and boots[0]['profile']=='integrated' and
+            boots[0]['commands']==commands and boots[0]['fault_default']=='off',
+            'Wrong/late initial composition identity')
+    return fresh
+
+
+def initial_checkpoint_rows(rows, source, commands):
+    fresh=initial_rows(rows,source,commands)
+    observers=[i for i,(_,line) in enumerate(fresh) if 'M3_OBSERVER_ALIVE ' in line]
+    if len(observers)<5:return []
+    fifth=observers[4]
+    stacks(fresh[:fifth])
+    upper=observers[5] if len(observers)>5 else len(fresh)
+    paired=[i for i in range(fifth+1,upper) if 'M3_STACK ' in fresh[i][1]]
+    if not paired and len(observers)==5:return []
+    require(len(paired)==1,'Missing/duplicate fifth initial stack')
+    checkpoint=fresh[:paired[0]+1]
+    stacks(checkpoint)
+    return checkpoint
+
+
 def verify_network_handoff(path, probe):
     handoff=json.loads(path.read_text())
     require(handoff['status']=='PASS' and handoff['physical_stages']==7 and
@@ -156,10 +186,16 @@ class Series:
                 if 'Verify successful' not in text:raise HardwareStop('Full BIN verify absent')
             else:self.target('r\ng\nq\n',name)
             self.wait(lambda:f'M3_BOOT source={self.source} profile=integrated commands={int(role=="probe")} fault_default=off' in receiver.text(),10,receiver)
-            self.wait(lambda:len(records(receiver.rows,'M3_OBSERVER_ALIVE'))>=5,10,receiver)
+            baseline_box=[]
+            def initial_ready():
+                candidate=initial_checkpoint_rows(receiver.rows,self.source,int(role=='probe'))
+                if not candidate:return False
+                baseline_box.append(candidate)
+                return True
+            self.wait(initial_ready,10,receiver)
             banners=[i for i,(_,s) in enumerate(receiver.rows) if s.startswith('*** Booting Zephyr')]
             require(len(banners)==1,'Initial fresh boot absent/duplicated')
-            baseline=receiver.rows[banners[0]:]
+            baseline=baseline_box[0]
             default_state(baseline,self.source,int(role=='probe'))
             (case/'baseline-result.json').write_text(json.dumps(dict(status='PASS'),indent=2))
             result=body(case,receiver) if body else None
