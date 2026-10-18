@@ -332,7 +332,7 @@ def main():
                             confirmed = acknowledge('unplug-evkb-rj45')
                             wait_until(lambda: not check_link(case, 'link-down') and any(
                                 r['received'] >= confirmed and r['link'] == r['service_ready'] == 0
-                                for r in records(fresh_network_rows(receiver.rows, source), 'M3_NET_STATE')), 15, receiver)
+                                for r in records(receiver.rows, 'M3_NET_STATE')), 15, receiver)
                         start = len(receiver.rows)
                         written = time.monotonic()
                         if time.monotonic() + 160 >= end:
