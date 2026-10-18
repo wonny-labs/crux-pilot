@@ -23,8 +23,8 @@ watchdog evidence cannot substitute for that combined controller result.
 
 The expected target is the previously confirmed EVKB PCB B, i.MX RT1062, standard
 8 MiB QSPI and J-Link PLUS 602003106. Existing setup evidence is reused within its
-scope; software cannot detect an unreported wiring/jumper change. No physical
-operation has been performed for M3. The Mac management connection is excluded.
+scope; software cannot detect an unreported wiring/jumper change. At plan authoring no physical
+operation had been performed for M3; current outcomes remain in the issue/PR records. The Mac management connection is excluded.
 
 ## Execution order and proposed composition
 
@@ -131,12 +131,47 @@ assumption about application `wdt_disable`. Stop hardware changes if recovery fa
 Final hand-off restores an identified known-good normal image/state, fault off,
 UART/probe released. No network resource is touched while Ethernet is held.
 
+The capture tool preserves all raw bytes and receive chunks, polls, transmitted
+commands, reset/programming output and rejected attempts. A reader runs during
+reset/start. Known unarmed output before the first fresh reset banner is retained
+as a pre-boot prefix and excluded from qualifying rows; an unexplained boot, arm
+or feed in that prefix rejects the capture. The source/profile/default-off banner
+must follow the native banner within 500 ms. Reader gaps above 250 ms reject the
+trial. Receive/target interval disagreement above 150 ms for feeds or 250 ms for
+work reports also rejects it. These are capture-validity limits, not timing
+guarantees. Every observer report needs its stack report, and unhealthy recovery
+reports cannot be filtered away. Revalidate the final received rows after stopping
+the reader, including the last complete line.
+
+Before arming any watchdog, the normal image must demonstrate at least 3 s of
+advancing required work, healthy observation, supported watchdog reset reporting,
+successful cause clearing/readback and declared stack margins. It has no Shell or
+fault commands. The probe waits 2.5 s after boot before requesting arm and 12.5 s
+after the actual arm report before requesting a stall; the oracle independently
+requires at least 1 s pre-arm healthy evidence and at least 12 s target-clock
+health before the actual stall. There are exactly three trials and no retry.
+Runtime rejection stops injections and restores/verifies the normal image once;
+probe/programming diagnostics stop further hardware changes, preserving the error
+and current target state for review. A recovery failure is never retried silently.
+
+Software-only preparation uses `tests/target/prepare_m3_image.py --build <build>
+--inputs <m3-inputs.json> --profile probe|normal --output <manifest.json>`.
+It independently checks ARM ELF load bytes against BIN, standalone QSPI headers,
+generated configuration, stack objects, pinned inputs and file hashes. Keep the
+probe/normal manifests and their files immutable for qualification. After exact
+physical-plan PASS and ownership preflight, the explicit hardware entry point is
+`tests/target/capture_m3.py --probe-manifest <probe.json> --normal-manifest
+<normal.json> --recovery-bin <known-good-M2.bin> --evidence <new-directory>
+--program`. It requires the existing Mac/probe/UART mapping, clean committed runner
+source and the retained M2 recovery hash. This command must not be invoked merely
+because software controls pass.
+
 ## Evidence and resume state
 
 The initial unpublished temporary checkout disappeared on interruption. Its plan
-review is historical, not proof that restored bytes match. This restored concrete
-plan requires independent review before implementation resumes. No M3 target
-operation occurred. Persistent source and evidence paths are used from this point.
+review is historical, not proof that restored bytes match. The restored concrete plan received independent PASS at `6b46eba`;
+subsequent source/result reviews and physical gates retain their separate scopes.
+No M3 target operation occurred during restoration. Persistent source and evidence paths are used from this point.
 
 Separate source, runner and documentation identities; retain generated config/DTS,
 maps, ELF/BIN, raw program/reset/UART logs, checksums, failures and actual review
@@ -153,3 +188,73 @@ independent health probe. M4 persistence and M5 qualification remain outside sco
 [#12]: https://github.com/wonny-labs/crux-pilot/issues/12
 [current task authorisation]: https://github.com/wonny-labs/crux-pilot/issues/12#issuecomment-6243536217
 [user steering]: https://github.com/wonny-labs/crux-pilot/issues/12#issuecomment-6243570872
+
+
+## Interface assessment and reusable software hand-off
+
+This reuses the [M1 assessment](platform-m1-readiness.md); it does not repeat
+board bring-up or convert source support into physical support.
+
+| Interface | Intended operation and native path | Access and coexistence constraints | Current evidence and next disposition |
+| --- | --- | --- | --- |
+| GPIO | Read onboard SW8 (`sw0`, GPIO5.0, active-low/pull-up) through native MCUX GPIO. The sample-owned adapter configures input only and preserves output on read failure. | Existing board input; no external drive or wiring. It avoids GPIO1.9 shared by LED/PHY reset. The user cannot currently provide button stimulus. | Controlled `native_sim` transitions, missing-device and actual driver-error tests pass. Real stimulus/response remains unverified; confirm button action/observation before physical #10 qualification. |
+| I2C | Native LPI2C1/`arduino_i2c`, SDA AD_B1_01 and SCL AD_B1_00; candidate peripheral reads. | No confirmed external device/address, pull-ups or 3.3 V wiring; optional onboard sensor population is not established. | Unverified/unavailable fixture. Retain upstream driver; confirm actual device/routing/address before selecting a trial. No scan or pin drive was performed. |
+| General SPI | Native LPSPI1/`arduino_spi`: SD_B0_01 PCS0, SD_B0_00 SCK, SD_B0_03 SDI, SD_B0_02 SDO. | USDHC sharing and R278–R281 routing/population are unresolved; no safe fixture is confirmed. LPSPI3 shares LCD pins. | Unverified. Resolve routing and ownership before use; QSPI/XIP evidence is not SPI-transaction evidence. No rework or loopback is assumed. |
+| EEPROM | Existing AT24 I2C/AT25 SPI driver is a candidate. | No confirmed populated device, geometry, write-protect connection or disposable write range. | Unavailable fixture/unverified support. Do not write EEPROM or claim persistence; confirm all prerequisites before selecting it. M4 storage remains outside scope. |
+
+The GPIO adapter lives in `samples/controller/zephyr/device_input.[ch]`. Portable
+health/readiness code is sample-owned under `core`/`include`; it has no native
+headers. No new public device API or production driver is added. The read-error
+fixture is test-only because the pinned GPIO emulator lacks a read-error hook.
+It exercises the real adapter through the native GPIO API rather than replacing
+the adapter's return value.
+
+The independent M3 composition consumes the existing portable controller helpers
+and `crux::time`. `m3.conf` selects the development probe; `m3-normal.conf` removes
+Shell/test commands. General memory-write, kernel-control, date and device-init
+Shell modules are disabled in the probe. The remaining one-shot commands request
+atomic flags and do not access Time. They are local UART development controls,
+not a remotely exposed service or a production security qualification.
+
+Use `scripts/test-m3.sh` and the controller README for software reproduction.
+The first native run failed because the fault overlay omitted its base overlay;
+that run is retained, and the remaining unfinished configurations were invalidated.
+The correction explicitly selects each base overlay and asserts the requested
+fixture at compile time. At `d07ac4c`, all three configurations and 13 executed
+cases passed; a separate non-author reviewer verified their JSON/XML/raw logs.
+The first EVKB compilation then exposed ARM header ordering, corrected separately.
+No failed cross-build is physical evidence. Host Debug and sanitizer each passed
+40/40 at `80f7205`, with unchanged portable production logic in later corrections.
+The corrected format command, configured analysis, dependency checks and 18 existing
+build-safeguard controls passed. The original missing-format-tool failure and the
+unexplained Calendar process-exit timeout are retained; later passes do not cure it.
+
+## Acceptance coverage and held work
+
+The table references AC order in the linked authoritative issues. It records
+partial evidence, not replacement acceptance criteria or checked completion.
+
+| Issue / AC | Evidence or current disposition |
+| --- | --- |
+| #10 / 1 | Interface assessment above; selected real-input stimulus/access remains unresolved. |
+| #10 / 2 | Bounded software adapter/normal/error cases implemented; physical stimulus scenario remains Pending. |
+| #10 / 3 | Pending real non-UART repeatable stimulus/response. Emulation cannot satisfy it. |
+| #10 / 4 | Portable Host checks and native GPIO cases pass; current-head target/CI results remain in PR evidence. |
+| #10 / 5 | Source/configuration/build entry points retained; physical firmware/fixture hand-off is not yet qualified. |
+| #11 / 1–6 | Held by the user. No M3 Ethernet implementation, peer preparation or network manipulation. |
+| #12 / 1 | Independent health composition defined; combined #10/#11 composition still depends on qualified hand-offs. |
+| #12 / 2 | Stable source/progress/readiness/reset/error diagnostics implemented; physical results require the separate gate and records. |
+| #12 / 3 | Pending qualified real-I/O, TCP/UDP and combined controller runs. |
+| #12 / 4 | Time remains worker-owned; portable Host and native logic pass. Exact current-head CI/configuration identity is recorded in the PR. |
+| #12 / 5 | Progress-conditioned helper and bounded arm/stall design implemented/reviewed; physical workload coupling still requires actual trials. |
+| #12 / 6 | Independent watchdog trials require exact-image/runner/recovery PASS and preflight. They cannot substitute for combined M3 qualification. |
+| #12 / 7 | Reproduction, frozen inputs and raw evidence are retained; exact physical footprint/stack/timeout results must come from identified trials. |
+| #12 / 8 | This coverage record keeps missing physical/network/integration outcomes explicit. Full M3 remains incomplete. |
+
+The Draft PR and issue comments record current-head CI, review verdicts, later
+physical outcomes (if executed), archive identity and precise resume state.
+No issue/milestone closure, merge or Ready transition is authorised while these
+required outcomes are missing. Resume real I/O only when stimulus is available;
+resume Ethernet only after the user releases its hold and an isolated peer/link
+control path is confirmed. Preserve the failed attempts and re-review affected
+observers/configurations before retrying an invalid physical result.
