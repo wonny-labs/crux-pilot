@@ -1,50 +1,70 @@
 # Crux Pilot
 
-Crux is a reusable embedded software platform. This repository currently provides a portable C17 Time capability with Linux host and Zephyr RTC backends, samples and automated tests. C++17 tests exercise the public C API.
+**Crux** is an independent, reusable embedded software platform intended to support products built on **Zephyr** and **Embedded Linux**. Its direction is to combine shared platform capabilities, selective portability and repeatable engineering and validation practices.
 
-## Workspace and container
+This repository is Crux's **initial development and architecture-validation workspace**. It contains platform code, reference applications, development tools and tests used to establish and validate the platform. The separate [Crux Platform repository](https://github.com/wonny-labs/crux-platform) maintains the vision, architecture and development plan.
 
-Open `crux-pilot/` in VS Code and use **Dev Containers: Reopen in Container**. The Linux Dev Container mounts the parent west workspace at `/workspaces/crux` and opens `/workspaces/crux/crux-pilot`. The Git root is the Crux repository. Upstream Zephyr, west dependencies and SDKs remain outside this Git tree.
+## Current implementation
 
-Run container commands as `vscode`, including manual Docker commands. The Dev Container configures Git trust for the workspace repositories for this user. For example, in an initialised container:
+The `main` branch currently includes:
 
-```sh
-docker exec --user vscode --workdir /workspaces/crux/crux-pilot <container> \
-  bash -c 'export PATH=/opt/crux-cache/venv/bin:$PATH; scripts/test-zephyr-time.sh "mimxrt1060_evk@B//qspi"'
-```
-
-### VS Code C/C++ support
-
-The Dev Container uses clangd for code navigation and diagnostics, Microsoft C/C++ for GDB debugging, and CMake Tools for host builds. After changing the container configuration, use **Dev Containers: Rebuild and Reopen in Container**.
-
-Build scripts select the active `compile_commands.json` in `build/clangd/`. The most recent build determines clangd's configuration. For a custom build directory, run `scripts/select-clangd-database.sh <build-directory>`.
-
-### Flash and debug
-
-Start `scripts/macos/start-jlink-gdbserver.command` on the Mac before debugging. It runs J-Link GDB Server for `MIMXRT1062xxx6A` over SWD at 400 kHz. The container connects through `host.docker.internal:2331`. Keep the server terminal open while debugging and press Ctrl-C when finished.
-
-**Starting the server may halt the target. It listens beyond localhost, so run it only on a trusted network. Before programming, confirm the MIMXRT1060-EVKB revision B and its standard QSPI configuration, with no HyperFlash rework.**
-
-In VS Code **Run and Debug**, select the profile for the intended operation:
-
-| Profile | Behaviour |
+| Area | Available implementation |
 | --- | --- |
-| **EVKB QSPI: Flash** | F5 performs an incremental build, resets and programs the board, and stops at the startup entry. Set a breakpoint in `samples/time/src/main.c` and continue to step through the sample. |
-| **EVKB QSPI: Attach** | Connects without building, resetting or programming. Supply the ELF matching the image already on the board. |
+| Reusable components | Portable C17 `base` and `time` components, with Linux host and Zephyr Time implementations |
+| Reference application | A periodic controller with shared portable logic and separate Linux host and Zephyr compositions |
+| Zephyr integration | Out-of-tree module, RTC integration, Shell example, `native_sim` tests and EVKB builds |
+| Engineering foundation | CMake and west builds, Dev Container, automated tests, static checks, GitHub Actions and build-provenance evidence |
 
-For a full source rebuild, use **Tasks: Run Clean Task → Clean firmware** before F5. After changing board configuration, use the pristine `scripts/build-target.sh 'mimxrt1060_evk@B//qspi'` path. CMake Tools' **CMake: Clean** applies to the host preset.
+The initial hardware target is the **MIMXRT1060-EVKB revision B** using `mimxrt1060_evk@B//qspi`. Verified hardware behaviour and limitations are specific to the tested configurations.
 
-Detailed setup and troubleshooting records are in the [debugging evidence](docs/baseline.md#m4-vs-code-download-failure-and-fix-2026-10-17).
+The native Linux host runs portable code without Zephyr, while Zephyr `native_sim` exercises Zephyr integration on a host. An **Embedded Linux production variant** is part of Crux's longer-term direction, not a currently implemented target. See [milestones](https://github.com/wonny-labs/crux-pilot/milestones) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) for ongoing work.
 
-## Linux development
+## Architecture
 
-Run build and software-test commands from the repository root in the Dev Container. For initial host dependency setup, build and tests:
+Crux separates portable application behaviour, reusable platform capabilities and environment-specific integration. Shared contracts are introduced when they provide stable, useful semantics. Zephyr and Embedded Linux retain their native operating-system and device infrastructure rather than being hidden behind a universal HAL or OSAL.
+
+Portable components and application logic avoid Zephyr, board and vendor dependencies. Host and Zephyr compositions explicitly select their implementations. Host, `native_sim` and physical-target tests provide complementary evidence rather than interchangeable guarantees.
+
+For the broader design, see the [Architecture Concept](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-architecture-concept.md) and [Architecture Design](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-architecture-design.md). The implemented [Time contract](docs/time-contract.md) provides a concrete component example.
+
+## Repository structure
+
+| Path | Purpose |
+| --- | --- |
+| `components/` | Reusable platform components and public interfaces |
+| `samples/` | Capability examples and reference applications |
+| `zephyr/` | Out-of-tree Zephyr module integration |
+| `tests/` | Host, Zephyr and physical-target test assets |
+| `scripts/` | Setup, build, analysis and validation commands |
+| `.devcontainer/` | Linux development environment configuration |
+| `.github/workflows/` | CI build, test and quality checks |
+| `docs/` | Contracts, decisions and verification evidence |
+
+## Getting started
+
+### Development environment
+
+Install Docker and VS Code with the **Dev Containers** extension. Place `crux-pilot/` in a dedicated parent directory for the west workspace, open the repository in VS Code and select **Dev Containers: Reopen in Container**.
+
+The Dev Container uses Linux amd64 and mounts the parent workspace at `/workspaces/crux`. Zephyr, its modules and SDK dependencies are managed outside the `crux-pilot` Git tree. Run the commands below from the repository root **inside the container**, unless noted otherwise.
+
+### Build and run on the Linux host
+
+Set up the host build, compile the available targets and run their tests:
 
 ```sh
 scripts/bootstrap-host.sh
 ```
 
-For subsequent checks using the cached dependencies:
+Run the reference application without hardware:
+
+```sh
+build/linux/debug/samples/controller/host/crux-controller-host
+```
+
+The executable runs a finite periodic controller scenario and reports its progress and Time status. See the [reference controller](samples/controller/README.md) for the scenario and its limitations.
+
+For subsequent builds, tests and quality checks:
 
 ```sh
 scripts/check-host.sh
@@ -53,78 +73,46 @@ scripts/check-dependencies.sh
 scripts/analyze-host.sh
 ```
 
-Run the optional ASan/UBSan configuration with:
+Optional AddressSanitizer and UndefinedBehaviorSanitizer checks:
 
 ```sh
 CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh
 ```
 
-For initial Zephyr workspace and SDK setup, ensure sufficient disk space, then run:
+### Build and test Zephyr
+
+When Zephyr development is needed, initialise the west workspace and install the pinned SDK. Ensure sufficient disk space first.
 
 ```sh
 scripts/bootstrap-zephyr.sh --install-sdk
 ```
 
-Run the Time integration tests and target build with:
+Run the current reference-controller `native_sim` scenarios and EVKB cross-build:
 
 ```sh
-scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
+scripts/test-controller.sh
 ```
 
-This command runs `native_sim` Ztests, builds the native simulation sample and cross-builds the EVKB QSPI image. It does not flash or reset hardware. See [tests/README.md](tests/README.md) for test coverage and the separate macOS physical UART workflow, which does reset the board.
+This does **not** program or reset the physical board. Additional component tests, including Time integration tests, are described in the [test guide](tests/README.md). Host and simulated execution do not replace physical-target verification.
 
-### Time sample
+### Flash and debug
 
-The host sample uses a controlled clock rather than host wall time:
+Hardware flashing and debugging require a verified target configuration and a firmware image for the intended application. The existing VS Code **EVKB QSPI: Flash** profile is currently configured for the **Time sample**, not for arbitrary applications. The **EVKB QSPI: Attach** profile connects to an existing image using a matching ELF without downloading firmware. See the [debug configurations](.vscode/launch.json) and [associated build script](scripts/build-debug-target.sh) for the current behaviour.
 
-```text
-build/linux/debug/samples/time/host/crux-time-host
-time set 2026-10-16T14:30:00
-time get
-```
+For the existing macOS/J-Link setup, start `scripts/macos/start-jlink-gdbserver.command` on the Mac before connecting from VS Code. Confirm the board, Flash configuration and image before any programming or reset. Starting the server may halt the target, and its network listener is not limited to localhost, so use it only on a trusted network. See the [physical test instructions](tests/README.md#physical-uart-target) for the currently documented UART verification procedure.
 
-### Run GitHub Actions
+## Documentation and project status
 
-Pushes and pull requests trigger [host-foundation](.github/workflows/host.yml) for host builds, tests and quality checks, and [zephyr-software](.github/workflows/zephyr.yml) for `native_sim` tests and the EVKB build. Either workflow can also be started from **Actions → Run workflow**. Test reports, firmware and build evidence are uploaded as configured in the workflows, with 14-day retention. These jobs do not operate physical hardware.
+| Topic | Reference |
+| --- | --- |
+| Platform direction | [Vision](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-vision-and-direction.md) and [Development Plan](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-development-plan.md) |
+| Architecture | [Architecture Concept](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-architecture-concept.md) and [Architecture Design](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-architecture-design.md) |
+| Components and examples | [Time contract](docs/time-contract.md) and [reference controller](samples/controller/README.md) |
+| Testing and evidence | [Test guide](tests/README.md), [execution profile](docs/execution-profile.md) and [verification records](docs/baseline.md) |
+| Ongoing development | [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), [issues](https://github.com/wonny-labs/crux-pilot/issues) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) |
 
-### Build and test provenance
+The [original Time Pilot plan](docs/plans/initial-implementation-plan.md) and [implementation-status record](docs/implementation-status.md) retain historical results and earlier roadmap notes. Their M0–M5 identifiers differ from the current platform roadmap. Use the GitHub records above for current delivery status.
 
-The full Time verification command writes `build/zephyr/mimxrt1060_evk_B_qspi/provenance.json`, linking source and dependency revisions, toolchain, configuration, successful tests and firmware checksums. Keep inputs unchanged during verification and use a clean committed source tree for an accepted baseline. A dirty-tree fingerprint identifies inputs but is not a recoverable source archive.
+## Contributing
 
-`scripts/build-target.sh <board>` provides a standalone pristine build without attaching earlier test reports. F5 produces development firmware without a verification manifest. Use the full verification path for an accepted build and check recorded hashes before relying on its evidence. See [build evidence](docs/baseline.md) for provenance details and recorded results.
-
-### Configure only the host libraries
-
-To build libraries without samples, GoogleTest or C++ configuration:
-
-```sh
-cmake -S . -B build/linux/library-only -G Ninja \
-  -DBUILD_TESTING=OFF -DCRUX_BUILD_HOST_SAMPLE=OFF
-cmake --build build/linux/library-only --target crux_time_common crux_time_host
-```
-
-Host and Zephyr applications use the same public target:
-
-```cmake
-target_link_libraries(my_app PRIVATE crux::time)
-```
-
-For host integration, add this repository with `add_subdirectory()` after disabling `BUILD_TESTING` and `CRUX_BUILD_HOST_SAMPLE` when those targets are not needed. For Zephyr, discover the repository as a module and enable `CONFIG_CRUX_TIME=y`. The public target supplies headers and the selected backend. Consumers should not add private include paths or link implementation targets directly.
-
-See the [early reference controller](samples/controller/README.md) for the M2 periodic
-Time consumer, software checks and explicitly Pending physical validation.
-
-## Architecture and status
-
-`components/base` owns common status codes. `components/time` owns the public Time API, shared implementation and private host/Zephyr backends. `samples/time` owns command handling and presentation. `zephyr/` provides Crux's native module integration.
-
-See the [Time contract](docs/time-contract.md) for behaviour and ownership, [upstream reuse notes](docs/upstream-reuse.md) for source assessments, and [CONTRIBUTING.md](CONTRIBUTING.md) for contribution, public-header and review rules. The [initial implementation plan](docs/plans/initial-implementation-plan.md) records the historical Time Pilot milestones M0–M5.
-
-For physical setup and test procedures, see [physical test instructions](tests/README.md#physical-uart-target)
-and the retained evidence in the baseline. These checks establish bounded behaviour, not drift or
-backup-power retention.
-Those M0–M5 identifiers belong to the historical Time Pilot. The current platform
-roadmap M1 assessment and later implementation constraints are recorded in
-[platform M1 readiness](docs/platform-m1-readiness.md).
-See `docs/implementation-status.md` for current acceptance status. The private GitHub repository uses push and pull-request workflows; recorded hosted-run
-results are tracked in `docs/implementation-status.md`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution, interface and review practices. AI agents must also follow [AGENTS.md](AGENTS.md).
