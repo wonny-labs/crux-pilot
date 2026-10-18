@@ -74,7 +74,7 @@ class GPIOControls(unittest.TestCase):
                 receiver.text.return_value='raw'
                 clock=[0]
                 def now():
-                    clock[0]+=.1
+                    clock[0]+=.005
                     return clock[0]
                 def message(value, **unused):
                     if value=='DIAGNOSTIC_HOLD':
