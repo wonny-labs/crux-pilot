@@ -81,6 +81,10 @@ def _guard_check(session, directory, name, remaining=90):
     """Bind a current root-created guard record; fail before owner queries on mounted media."""
     require(session.get('clock') == time.CLOCK_NAME, 'Guard/runner clocks differ')
     require(session['serial'] == USB_SERIAL and session['disk'].startswith('/dev/disk'), 'Wrong mount guard identity')
+    if 'boot_identity' in session:
+        current_boot = run_checked(['/usr/sbin/sysctl', '-n', 'kern.boottime'],
+                                   directory / (name + '-boot.txt'))
+        require(current_boot == session['boot_identity'], 'Guard belongs to a different host boot')
     require(sha(session['executable']) == session['sha256'] and
             time.monotonic() + remaining < session['deadline'], 'Guard changed/expired or insufficient budget')
     status = run_checked(['ps', '-p', str(session['pid']), '-o', 'pid=,comm=,lstart='],

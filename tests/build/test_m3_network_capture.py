@@ -64,6 +64,17 @@ class NetworkCaptureControls(unittest.TestCase):
             session['deadline']=runner.time.monotonic()+10
             with self.assertRaises(runner.HardwareStop): runner.guard_check(session,d,'expiry',90)
 
+    def test_guard_rejects_changed_boot_before_clock_pid_or_usb_queries(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            session={'clock':runner.time.CLOCK_NAME,'serial':runner.USB_SERIAL,
+                     'disk':'/dev/disk4','boot_identity':'original boot'}
+            with patch.object(runner,'run_checked',return_value='new boot') as query, \
+                 patch.object(runner.time,'monotonic') as clock:
+                with self.assertRaises(runner.HardwareStop):runner.guard_check(session,Path(temporary),'reboot')
+                query.assert_called_once()
+                self.assertEqual(query.call_args.args[0],['/usr/sbin/sysctl','-n','kern.boottime'])
+                clock.assert_not_called()
+
     def test_wait_is_clamped_by_global_series_deadline(self):
         with patch.object(runner,'SERIES_DEADLINE',1.), patch.object(runner.time,'monotonic',return_value=2.):
             predicate=Mock(return_value=True)
