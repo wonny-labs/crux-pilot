@@ -246,10 +246,10 @@ static int perform_exchange(unsigned int protocol, unsigned int trial, unsigned 
     }
     int64_t start = k_uptime_get();
     int result = exchange(protocol, trial, sequence, deadline);
+    int64_t ended = k_uptime_get();
     printk("M3_NET_EXCHANGE trial=%u protocol=%u sequence=%u result=%d "
            "monotonic_ms=%lld elapsed_ms=%lld\n",
-           trial, protocol, sequence, result, (long long)k_uptime_get(),
-           (long long)(k_uptime_get() - start));
+           trial, protocol, sequence, result, (long long)ended, (long long)(ended - start));
     controller_network_report();
     if (owned_sockets != 0) {
         return -EBUSY;

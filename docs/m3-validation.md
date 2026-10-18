@@ -743,3 +743,16 @@ payload. The native ring API reserves one 32-bit word: usable capacities are 4,0
 16 KiB choice adds 12,288 static RAM bytes and leaves the startup diagnostic at
 4 KiB. It adds no producer wait or changed exchange/round deadline. These are volume
 observations, not target service-rate, WCET or physical qualification evidence.
+
+The first full-series native-output attempt at `e6b4f03` passed echo and silence
+stages, then failed the unchanged timeline oracle during stage 3 recovery. UDP
+sequence 1 ended at 82903 ms; sequence 2 reported end 82904 ms and elapsed 2 ms,
+which reconstructed a start before the previous end. The production report read
+uptime separately for completion and duration in arguments whose C evaluation
+order is unspecified. Both values now use one completion snapshot; no timing
+allowance or acceptance criterion changes. An advancing-clock test extracts the
+actual production function, rejects the original two-read expression, and checks
+consistent TCP/UDP reports above the 32-bit uptime range. The failed physical
+series remains FAIL, and its full-verified `fe9f54f` normal restoration passed
+(commands off, fault injection off, worker/main unused 3776/1352 bytes). Stages
+4–7 were not attempted; complete Ethernet and integrated acceptance remain Pending.
