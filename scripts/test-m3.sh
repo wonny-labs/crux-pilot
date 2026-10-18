@@ -12,7 +12,8 @@ pending="$repo/build/evidence/m3-inputs.pending.json"
 after="$repo/build/evidence/m3-inputs.after.json"
 rm -f "$inputs" "$pending" "$after"
 python3 "$repo/scripts/record-build-provenance.py" --workspace "$workspace" --capture-inputs "$pending"
-(cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/controller_m3" -T "$repo/tests/controller_network" \
+(cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/controller_m3" \
+    -T "$repo/tests/controller_network" -T "$repo/tests/controller_network_stack" \
     -O "$repo/build/zephyr/twister-m3" --inline-logs)
 for profile in probe normal; do
     configuration="$repo/samples/controller/zephyr/m3.conf"

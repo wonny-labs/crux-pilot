@@ -15,6 +15,18 @@ static unsigned int peer_frames[2];
 /* Upstream loopback test control: both endpoints are real local addresses. */
 extern void loopback_enable_address_swap(bool swap_addresses);
 
+static void assert_idle_pools(void) {
+    struct k_mem_slab *rx;
+    struct k_mem_slab *tx;
+    struct net_buf_pool *rx_data;
+    struct net_buf_pool *tx_data;
+    net_pkt_get_info(&rx, &tx, &rx_data, &tx_data);
+    zassert_equal(k_mem_slab_num_free_get(rx), CONFIG_NET_PKT_RX_COUNT);
+    zassert_equal(k_mem_slab_num_free_get(tx), CONFIG_NET_PKT_TX_COUNT);
+    zassert_equal(net_buf_get_available(rx_data), CONFIG_NET_BUF_RX_COUNT);
+    zassert_equal(net_buf_get_available(tx_data), CONFIG_NET_BUF_TX_COUNT);
+}
+
 static bool valid_frame(const uint8_t *frame, unsigned int protocol, unsigned int sequence) {
     return memcmp(frame, "CM3N", 4) == 0 && sys_get_be32(frame + 4) == protocol &&
            sys_get_be32(frame + 8) == 1 && sys_get_be32(frame + 12) == sequence &&
@@ -93,6 +105,7 @@ static void echo_peer(void *kind, void *unused1, void *unused2) {
 
 static void run_fixture(int mode) {
     zassert_equal(native_contexts(), 0, "No old context may be hidden by a new baseline");
+    assert_idle_pools();
     zassert_equal(k_sem_count_get(&peer_ready), 0);
     zassert_equal(k_sem_count_get(&round_done), 0);
     peer_mode = mode;
@@ -125,6 +138,7 @@ static void run_fixture(int mode) {
     }
     zassert_equal(owned_sockets, 0);
     zassert_equal(native_contexts(), 0);
+    assert_idle_pools();
     zassert_equal(peer_error, 0);
     zassert_equal(peer_frames[0], 10);
     zassert_equal(peer_frames[1], 10);
