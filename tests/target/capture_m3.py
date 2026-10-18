@@ -29,15 +29,31 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def verify_jlink_tools(manifest=None):
+    manifest = Path(manifest) if manifest else Path(__file__).with_name('jlink-tools.json')
+    records = json.loads(manifest.read_text())
+    require(set(records) == {'executable', 'dll'}, 'Incomplete J-Link identity manifest')
+    for record in records.values():
+        path = Path(record['path'])
+        require(path.is_absolute() and path.resolve() == path and
+                sha(path) == record['sha256'], 'J-Link tool identity changed; no probe access')
+    return records['executable']['path']
+
+
 def _commander(probe, commands, output):
+    executable = verify_jlink_tools()
+    require(probe == '602003106', 'Unexpected probe selection')
     script = output.with_suffix('.jlink')
-    script.write_text(commands)
+    script.write_text('exec DisableAutoUpdateFW\nusb ' + probe + '\nconnect\n' + commands)
+    environment = {key: value for key, value in os.environ.items() if not key.startswith('DYLD_')}
     with output.open('wb') as log:
-        subprocess.run(['/usr/local/bin/JLinkExe', '-USB', probe, '-Device',
+        subprocess.run([executable, '-Device',
                         'MIMXRT1062xxx6A', '-If', 'SWD', '-Speed', '400', '-NoGui', '1',
-                        '-ExitOnError', '1', '-AutoConnect', '1', '-CommandFile', str(script)],
-                       stdout=log, stderr=subprocess.STDOUT, check=True, timeout=30)
+                        '-ExitOnError', '1', '-AutoConnect', '0', '-CommandFile', str(script)],
+                       stdout=log, stderr=subprocess.STDOUT, check=True, timeout=30, env=environment)
     text = output.read_text(errors='replace')
+    if re.search(r'Updating firmware:|Replacing firmware:|Waiting for new firmware', text):
+        raise HardwareStop('Unexpected probe firmware maintenance; stop all target operations')
     diagnostics = '\n'.join(line for line in text.splitlines()
                             if line.strip() != 'J-Link Commander will now exit on Error')
     if re.search(r'(?i)\b(error|failed|failure|could not|cannot|warning|unable|unknown command|timed out)\b', diagnostics):
@@ -370,7 +386,7 @@ def main():
     runner_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip()
     args.evidence.mkdir(parents=True, exist_ok=False)
     records = {name: sha(Path(__file__).with_name(name)) for name in
-               (Path(__file__).name, 'm3_health_oracle.py', 'm3_image.py')}
+               (Path(__file__).name, 'm3_health_oracle.py', 'm3_image.py', 'jlink-tools.json')}
     metadata = dict(executed_at_utc=datetime.now(timezone.utc).isoformat(), runner_commit=runner_commit,
                     runner_sha256=records, probe_manifest_sha256=sha(args.probe_manifest),
                     normal_manifest_sha256=sha(args.normal_manifest), recovery_bin_sha256=sha(args.recovery_bin),

@@ -290,3 +290,40 @@ required outcomes are missing. Resume real I/O only when stimulus is available;
 resume Ethernet only after the user releases its hold and an isolated peer/link
 control path is confirmed. Preserve the failed attempts and re-review affected
 observers/configurations before retrying an invalid physical result.
+
+## Resumption and renewed preflight stop
+
+The user released the Ethernet hold, confirmed direct isolated EVKB-to-Mac USB
+Ethernet cabling and offered SW8 button actions. AX88179 en5 is configured as
+192.168.77.1/24 without a router; en12 remains DHCP and the management route is
+en0. No network settings were changed by this work. Carrier was still absent.
+The earlier held-state and partial results above remain historical evidence.
+
+The current DAPLink path changed to cu.usbmodem11302. The runner now requires an
+explicit expected USB serial and rejects missing, duplicate, wrong-path or wrong
+VID/PID matches. This is a current mapping, not proof of historical serial equality.
+Fresh ownership initially passed and the affected correction received independent
+PASS. The subsequent standalone attempt reached UART open and J-Link preflight,
+but never reached EVKB programming or a reset/runtime capture/watchdog trial.
+Installed Commander V9.86a attempted an automatic probe firmware update and then
+failed to reconnect. The lead stopped the parent runner before target writes;
+the child exited independently. The user subsequently reconnected the probe and
+reported normal indicators. Probe operational identity is still unverified.
+
+A separately reviewed suppression-only invocation accepted DisableAutoUpdateFW
+without opening a probe. The runner now pins exact Commander and DLL hashes in
+`tests/target/jlink-tools.json`, disables automatic target connection, and executes
+firmware-update suppression before explicit USB selection and target connection.
+It removes DYLD overrides and rejects firmware-maintenance diagnostics. The
+manifest is specific to this Mac qualification setup, not a toolchain upgrade or
+permission to update probe firmware. A changed tool requires affected review.
+See the official [command string](https://kb.segger.com/J-Link_Command_Strings#DisableAutoUpdateFW)
+and [Commander](https://kb.segger.com/J-Link_Commander) documentation.
+
+The next identity-only check stopped before J-Link invocation: the bounded UART
+ownership inventory again timed out, leaving lsof PID1778 uninterruptible and
+unreaped. Hardware access remains stopped; do not bypass ownership, silently retry,
+or treat probe indicators as successful preflight. Preserve both failed attempts
+and verify resolution of the outstanding process before any fresh physical gate.
+Ethernet software preparation can continue independently. No M3 physical result
+has yet passed; target runtime remains unobserved and peer listeners were not run.

@@ -1,0 +1,10 @@
+{
+  "executable": {
+    "path": "/Applications/SEGGER/JLink_V986a/JLinkExe",
+    "sha256": "e4b344d7e6b9641d463f13cfe1b603ce14791ae2aaf902f47d1ab35d361c989a"
+  },
+  "dll": {
+    "path": "/Applications/SEGGER/JLink_V986a/libjlinkarm.9.86.1.dylib",
+    "sha256": "719086115a08e89bca3cf3e951b03378dcd1537311fbcb35e3736be9a70bf088"
+  }
+}

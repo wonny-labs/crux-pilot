@@ -78,7 +78,8 @@ class RunnerControls(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             def fake_run(*args, **kwargs):
                 kwargs['stdout'].write(b'J-Link Commander will now exit on Error\nScript processing completed.\n')
-            with patch.object(runner.subprocess, 'run', side_effect=fake_run):
+            with patch.object(runner, 'verify_jlink_tools', return_value='/pinned/JLinkExe'), \
+                 patch.object(runner.subprocess, 'run', side_effect=fake_run):
                 text = runner.commander('602003106', 'connect\nq\n', Path(d) / 'probe.log')
             self.assertIn('Script processing completed.', text)
 
@@ -88,8 +89,43 @@ class RunnerControls(unittest.TestCase):
             with self.subTest(diagnostic=diagnostic), tempfile.TemporaryDirectory() as d:
                 def fake_run(*args, **kwargs):
                     kwargs['stdout'].write(diagnostic.encode())
-                with patch.object(runner.subprocess, 'run', side_effect=fake_run), self.assertRaises(runner.HardwareStop):
+                with patch.object(runner, 'verify_jlink_tools', return_value='/pinned/JLinkExe'), \
+                     patch.object(runner.subprocess, 'run', side_effect=fake_run), self.assertRaises(runner.HardwareStop):
                     runner.commander('602003106', 'connect\nq\n', Path(d) / 'probe.log')
+
+    def test_tool_drift_stops_before_probe_launch(self):
+        with tempfile.TemporaryDirectory() as d:
+            exe, dll = Path(d).resolve() / 'exe', Path(d).resolve() / 'dll'
+            exe.write_bytes(b'fixed-exe')
+            dll.write_bytes(b'fixed-dll')
+            manifest = Path(d) / 'tools.json'
+            manifest.write_text(json.dumps({name: dict(path=str(path), sha256=runner.sha(path))
+                                             for name, path in [('executable', exe), ('dll', dll)]}))
+            self.assertEqual(runner.verify_jlink_tools(manifest), str(exe))
+            dll.write_bytes(b'changed')
+            with self.assertRaises(ValueError):
+                runner.verify_jlink_tools(manifest)
+        with patch.object(runner, 'verify_jlink_tools', side_effect=ValueError('drift')), \
+             patch.object(runner.subprocess, 'run') as launch, tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(runner.HardwareStop):
+                runner.commander('602003106', 'q\n', Path(d) / 'out.log')
+            launch.assert_not_called()
+
+    def test_suppression_precedes_probe_open_and_unexpected_update_stops(self):
+        with tempfile.TemporaryDirectory() as d:
+            output = Path(d) / 'out.log'
+            def fake_run(command, **kwargs):
+                self.assertEqual(command[0], '/pinned/JLinkExe')
+                self.assertEqual(command[command.index('-AutoConnect') + 1], '0')
+                self.assertNotIn('-USB', command)
+                script = Path(command[command.index('-CommandFile') + 1]).read_text()
+                self.assertTrue(script.startswith('exec DisableAutoUpdateFW\nusb 602003106\nconnect\n'))
+                self.assertFalse(any(k.startswith('DYLD_') for k in kwargs['env']))
+                kwargs['stdout'].write(b'Updating firmware: unexpected\n')
+            with patch.object(runner, 'verify_jlink_tools', return_value='/pinned/JLinkExe'), \
+                 patch.object(runner.subprocess, 'run', side_effect=fake_run):
+                with self.assertRaises(runner.HardwareStop):
+                    runner.commander('602003106', 'q\n', output)
 
     def test_cleanup_failure_cannot_mask_probe_stop(self):
         with tempfile.TemporaryDirectory() as d:
