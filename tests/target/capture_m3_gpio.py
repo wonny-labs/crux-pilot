@@ -212,12 +212,15 @@ def capture_diagnostic(port, directory):
     started = time.monotonic()
     events = []
     states = {}
+    result = None
     try:
         def observe(duration):
             begin = time.monotonic()
             while time.monotonic()-begin < duration:
                 require(receiver.failure is None, 'Diagnostic reader failed')
                 require(time.monotonic()-started <= 90, 'Diagnostic total bound exceeded')
+                require(not any(re.search(r'M3_BOOT|Booting Zephyr|M3_WDT_|M3_FAULT_|FAILED|FATAL', s)
+                                for _, s in receiver.rows), 'Unexpected diagnostic boot/fault')
                 time.sleep(.02)
             return begin
 
@@ -231,8 +234,11 @@ def capture_diagnostic(port, directory):
             print('DIAGNOSTIC_HOLD' if phase == 'held' else 'DIAGNOSTIC_RELEASE', flush=True)
             acknowledgement = directory/f'operator-{phase}.json'
             while not acknowledgement.exists():
-                require(time.monotonic()-requested <= 30, 'Operator acknowledgement timeout; release button')
+                require(time.monotonic()-requested <= (12 if phase == 'held' else 30),
+                        'Operator acknowledgement timeout; release button')
                 observe(.02)
+            require(time.monotonic()-requested <= (12 if phase == 'held' else 30),
+                    'Late operator acknowledgement; release button')
             ack = json.loads(acknowledgement.read_text())
             require(ack.get('state') == phase, 'Wrong operator acknowledgement')
             events[-1].update(ack_received=time.monotonic(), operator=ack)
@@ -241,11 +247,11 @@ def capture_diagnostic(port, directory):
             observe(1)
             begin = observe(5)
             states[phase] = diagnostic_state(list(receiver.rows), begin, expected)
+            if phase == 'held':
+                require(time.monotonic()-requested <= 20, 'Held phase exceeded20s; release button')
         result = dict(scope='static SW5 investigation only; no five-group qualification',
                       states=states, status='OBSERVED' if all(v['matches'] for v in states.values()) else 'MISMATCH',
                       identity='full BIN verified; existing normal run; no reset or fresh boot claim')
-        (directory/'diagnostic-result.json').write_text(json.dumps(result, indent=2))
-        return result
     except Exception:
         (directory/'failure.txt').write_text(traceback.format_exc())
         raise
@@ -256,6 +262,10 @@ def capture_diagnostic(port, directory):
         finally:
             (directory/'lines.json').write_text(json.dumps(receiver.rows, indent=2))
             (directory/'uart.txt').write_text(receiver.text()+'\n')
+    # Validate the entire frozen capture, including acknowledgement gaps/final tail.
+    diagnostic_state(list(receiver.rows), started, 0)
+    (directory/'diagnostic-result.json').write_text(json.dumps(result, indent=2))
+    return result
 
 
 def main():
@@ -280,8 +290,10 @@ def main():
                 binary_sha256=sha(image['binary']), runner_commit=subprocess.check_output(
                     ['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
                 runner_sha256=sha(Path(__file__)), uart=args.uart, uart_serial=args.uart_serial,
-                stimulus='five spoken press4s/release4s pairs within unchanged45s window; final released',
-                limits='baseline>=3s;45s action;5 presses;>=2 samples/press+gap;final released>=3s',
+                stimulus=('one operator-confirmed static hold/release; holdmax20s; no qualification'
+                          if args.diagnostic else 'five spoken press4s/release4s pairs within unchanged45s window; final released'),
+                limits=('90s total;5s baseline;heldack<=12s+6s observation;releaseack<=30s+6s observation;continuous whole capture'
+                        if args.diagnostic else 'baseline>=3s;45s action;5 presses;>=2 samples/press+gap;final released>=3s'),
                 operations=('verify current BIN; static diagnostic without reset; no qualification'
                             if args.diagnostic else 'verify current BIN; reset/start normal; capture only; no programming/network/watchdog'))
     (args.evidence/'inputs.json').write_text(json.dumps(inputs,indent=2))

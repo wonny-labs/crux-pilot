@@ -45,7 +45,7 @@ class GPIOControls(unittest.TestCase):
 
     def test_static_diagnostic_missing_ack_stops_and_requests_release(self):
         receiver=MagicMock()
-        receiver.rows=[r for r in fixture() if r[0]<6]
+        receiver.rows=[r for r in fixture() if 1<=r[0]<6]
         receiver.failure=None
         receiver.text.return_value='retained'
         clock=[0]
@@ -65,6 +65,38 @@ class GPIOControls(unittest.TestCase):
             self.assertTrue((path/'failure.txt').is_file())
             self.assertTrue((path/'lines.json').is_file())
             self.assertTrue(any('DIAGNOSTIC_STOP' in str(c) for c in message.call_args_list))
+
+    def test_static_diagnostic_checks_ack_gap_and_final_tail(self):
+        for mode in ('ack-gap', 'final-tail'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                path=Path(directory)
+                receiver=MagicMock(); receiver.rows=[]; receiver.failure=None
+                receiver.text.return_value='raw'
+                clock=[0]
+                def now():
+                    clock[0]+=.1
+                    return clock[0]
+                def message(value, **unused):
+                    if value=='DIAGNOSTIC_HOLD':
+                        if mode=='ack-gap':receiver.rows.append((clock[0],'M3_BOOT unexpected'))
+                        else:(path/'operator-held.json').write_text('{"state":"held"}')
+                    if value=='DIAGNOSTIC_RELEASE':
+                        (path/'operator-released.json').write_text('{"state":"released"}')
+                calls=[0]
+                def state(rows, since, expected):
+                    calls[0]+=1
+                    if calls[0]==4:
+                        receiver.finish.assert_called_once()
+                        raise ValueError('final tail fault')
+                    return {'matches':True}
+                with patch.object(gpio,'Receiver',return_value=receiver), patch.object(gpio,'drain'), \
+                     patch.object(gpio.time,'monotonic',side_effect=now), patch.object(gpio.time,'sleep'), \
+                     patch.object(gpio,'diagnostic_state',side_effect=state), \
+                     patch('builtins.print',side_effect=message):
+                    with self.assertRaisesRegex(ValueError,'boot/fault' if mode=='ack-gap' else 'final tail'):
+                        gpio.capture_diagnostic(None,path)
+                    self.assertFalse((path/'diagnostic-result.json').exists())
+                    receiver.finish.assert_called_once()
 
     def test_spoken_cue_schedule_and_failure_evidence(self):
         for index in range(10):
