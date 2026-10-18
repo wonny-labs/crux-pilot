@@ -2,6 +2,8 @@
 import argparse
 import fcntl
 import json
+import os
+import signal
 from pathlib import Path
 import platform
 import re
@@ -15,18 +17,37 @@ from capture_m3 import (Receiver, check_owners, commander, drain, normal_result,
                         require, select_uart, sha, verify_jlink_tools, verify_manifest)
 
 
+def speak(arguments, bound, log):
+    with log.open('wb') as output:
+        process = subprocess.Popen(['/usr/bin/say', '-v', 'Yuna', *arguments],
+                                   stdout=output, stderr=output, start_new_session=True)
+        try:
+            code = process.wait(timeout=bound)
+        except subprocess.TimeoutExpired as error:
+            cleanup = 'reaped after timeout'
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            try:
+                process.wait(timeout=.5)
+            except subprocess.TimeoutExpired:
+                cleanup = 'not reaped within grace; stop without retry'
+            log.with_suffix('.json').write_text(json.dumps(dict(pid=process.pid, cleanup=cleanup)))
+            raise
+        require(code == 0, f'Speech process failed: {code}')
+
+
 def spoken_cue(index, ready, directory):
     scheduled = ready + index * 4
     launched = time.monotonic()
-    require(0 <= launched - scheduled <= .25, 'Late GPIO spoken cue')
     phrase = '누르세요' if index % 2 == 0 else '놓으세요'
     event = dict(index=index, action='press' if index % 2 == 0 else 'release',
                  scheduled=scheduled, launched=launched)
     try:
-        # run() kills and reaps its own child on timeout; never queue overlapping speech.
-        result = subprocess.run(['/usr/bin/say', '-v', 'Yuna', phrase],
-                                capture_output=True, timeout=2, check=True)
-        event.update(completed=time.monotonic(), returncode=result.returncode)
+        require(0 <= launched - scheduled <= .25, 'Late GPIO spoken cue')
+        speak([phrase], 2, directory/f'cue-{index}.log')
+        event.update(completed=time.monotonic(), returncode=0)
     except Exception as error:
         event.update(completed=time.monotonic(), error=repr(error))
         raise
@@ -187,9 +208,8 @@ def main():
                 operations='verify current BIN; reset/start normal; capture only; no programming/network/watchdog')
     (args.evidence/'inputs.json').write_text(json.dumps(inputs,indent=2))
     # Validate synthesis before any UART ownership check, target attach or reset.
-    subprocess.run(['/usr/bin/say', '-v', 'Yuna', '-o',
-                    str(args.evidence/'cue-preflight.aiff'), '누르세요 놓으세요'],
-                   capture_output=True, timeout=5, check=True)
+    speak(['-o', str(args.evidence/'cue-preflight.aiff'), '누르세요 놓으세요'],
+          5, args.evidence/'cue-preflight.log')
     import serial
     import serial.tools.list_ports
     selected=select_uart([vars(p) for p in serial.tools.list_ports.comports()],args.uart,args.uart_serial)

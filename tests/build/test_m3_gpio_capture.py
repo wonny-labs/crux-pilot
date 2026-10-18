@@ -27,23 +27,37 @@ class GPIOControls(unittest.TestCase):
         for index in range(10):
             with tempfile.TemporaryDirectory() as directory, \
                  patch.object(gpio.time,'monotonic',side_effect=[100+4*index+.02,100+4*index+.8]), \
-                 patch.object(gpio.subprocess,'run') as speak:
-                speak.return_value.returncode=0
+                 patch.object(gpio,'speak') as speak:
+                speak.return_value=None
                 gpio.spoken_cue(index,100,Path(directory))
-                self.assertEqual(speak.call_args.args[0][-1], '누르세요' if index%2==0 else '놓으세요')
+                self.assertEqual(speak.call_args.args[0][0], '누르세요' if index%2==0 else '놓으세요')
                 event=json.loads((Path(directory)/'spoken-cues.jsonl').read_text())
                 self.assertEqual(event['index'],index)
         with tempfile.TemporaryDirectory() as directory, \
              patch.object(gpio.time,'monotonic',return_value=101), \
-             patch.object(gpio.subprocess,'run') as speak:
+             patch.object(gpio,'speak') as speak:
             with self.assertRaises(ValueError):gpio.spoken_cue(0,100,Path(directory))
             speak.assert_not_called()
         with tempfile.TemporaryDirectory() as directory, \
              patch.object(gpio.time,'monotonic',side_effect=[100.02,102.02]), \
-             patch.object(gpio.subprocess,'run',side_effect=subprocess.TimeoutExpired('say',2)):
+             patch.object(gpio,'speak',side_effect=subprocess.TimeoutExpired('say',2)):
             with self.assertRaises(subprocess.TimeoutExpired):gpio.spoken_cue(0,100,Path(directory))
             event=json.loads((Path(directory)/'spoken-cues.jsonl').read_text())
             self.assertIn('TimeoutExpired',event['error'])
+
+    def test_speech_unreaped_child_is_bounded_and_stops(self):
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(gpio.subprocess,'Popen') as create, \
+             patch.object(gpio.os,'killpg') as kill:
+            child=create.return_value
+            child.pid=12345
+            child.wait.side_effect=subprocess.TimeoutExpired('say',2)
+            with self.assertRaises(subprocess.TimeoutExpired):
+                gpio.speak(['test'],2,Path(directory)/'speech.log')
+            self.assertEqual(child.wait.call_count,2)
+            self.assertEqual(child.wait.call_args.kwargs['timeout'],.5)
+            kill.assert_called_once_with(12345,gpio.signal.SIGKILL)
+            create.assert_called_once()
 
     def test_exact_five_groups_with_valid_normal_source(self):
         self.assertEqual(validate_gpio(fixture(),'0123456789ab',6,51)['presses'],5)
