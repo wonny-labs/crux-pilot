@@ -9,13 +9,15 @@
 static atomic_t requested;
 
 static int request_round(const struct shell *shell, size_t argc, char **argv) {
+    ARG_UNUSED(shell);
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
-    if (!atomic_cas(&requested, 0, 1)) {
-        shell_error(shell, "M3_NET_REJECTED busy");
+    if (!atomic_cas(&requested, 0, -1)) {
+        printk("M3_NET_REJECTED busy\n");
         return -EBUSY;
     }
-    shell_print(shell, "M3_NET_REQUESTED");
+    printk("M3_NET_REQUESTED\n");
+    atomic_set(&requested, 1);
     return 0;
 }
 

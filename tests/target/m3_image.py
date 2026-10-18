@@ -121,3 +121,14 @@ def check_image(binary_path, elf_path, config_path, profile):
     return dict(elf_sections_match_bin=True, gap_fill=255, bin_address=0x60000000, bin_bytes=len(binary),
                 elf_load_segments=loads, worker_stack=symbols.get('work_stack'),
                 network_stack=symbols.get('network_stack'), main_stack=symbols.get('z_main_stack'))
+
+
+def check_record_output(config_path):
+    """Require the reviewed output path for new network/combined physical candidates."""
+    config = Path(config_path).read_text().splitlines()
+    require('CONFIG_PRINTK_SYNC=y' in config and 'CONFIG_LOG=y' not in config,
+            'Required records are not synchronous direct printk')
+    if 'CONFIG_SHELL=y' in config:
+        require('# CONFIG_SHELL_ECHO_STATUS is not set' in config and
+                'CONFIG_SHELL_PROMPT_UART=""' in config,
+                'Shell echo/prompt could interleave required records')

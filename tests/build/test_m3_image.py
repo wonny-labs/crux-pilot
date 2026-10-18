@@ -140,3 +140,22 @@ class ImageChecks(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class RecordOutputControls(unittest.TestCase):
+    def test_new_candidate_requires_serial_records(self):
+        from m3_image import check_record_output
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'.config'
+            good='CONFIG_PRINTK_SYNC=y\nCONFIG_SHELL=y\n# CONFIG_SHELL_ECHO_STATUS is not set\nCONFIG_SHELL_PROMPT_UART=""\n'
+            path.write_text(good);check_record_output(path)
+            path.write_text('CONFIG_PRINTK_SYNC=y\n# CONFIG_SHELL is not set\n');check_record_output(path)
+            for old,new in [('CONFIG_PRINTK_SYNC=y','# CONFIG_PRINTK_SYNC is not set'),
+                            ('# CONFIG_SHELL_ECHO_STATUS is not set','CONFIG_SHELL_ECHO_STATUS=y'),
+                            ('CONFIG_SHELL_PROMPT_UART=""','CONFIG_SHELL_PROMPT_UART="uart:~$ "')]:
+                path.write_text(good.replace(old,new))
+                with self.assertRaises(ValueError):check_record_output(path)
+            path.write_text(good+'CONFIG_LOG=y\n')
+            with self.assertRaises(ValueError):check_record_output(path)
+
+if __name__ == '__main__': unittest.main()

@@ -568,3 +568,48 @@ either failed attempt. A separately reviewed resumption may verify the complete
 existing network BIN and issue one fresh reset/start without reflashing it;
 entry mismatch stops all further target changes. The final normal restoration
 and seven-stage physical criteria remain unchanged.
+
+## Ethernet carrier failure and revised reference candidate
+
+The later controlled `physical-network-1fda8d2-04` attempt independently passed
+stages 1–5: healthy TCP/UDP, withheld responses, healthy recovery, TCP close with
+UDP echo, and another healthy recovery. Each stage retained twenty correlated
+exchanges and the declared full native idle baseline; the minimum unused main
+stack was 2992 bytes. These are bounded component results, not full #11 acceptance.
+
+After the operator removed only the EVKB RJ45 cable, Mac en5 became inactive,
+but every target report retained carrier/service-ready throughout the subsequent
+15-second observation. The series stopped before requesting stage 6 traffic:
+zero stage-6 socket rounds/peer frames, sockets/contexts zero and full pools.
+The complete attempt remains **FAIL**. No automatic restoration or retry followed;
+the identified network image stayed unarmed/idle, and the operator reconnected
+the cable. Earlier attempts 02 and 03 also remain failed initial checkpoints;
+03 exposed queued pre-reset idle output being mistaken for a fresh-boot boundary.
+The corrected runner restricts initial verdicts to exactly one identified new
+boot, while retaining and checking the pre-reset prefix separately.
+
+The pinned KSZ8081 driver uses the optional devicetree interrupt route instead of
+periodic monitoring once initial work completes. The observed stale carrier
+justifies selecting its existing 500 ms polling path in this reference overlay:
+remove only `int-gpios`, retain PHY reset GPIO1.9, SW5 GPIO5.0 and fixed MAC/IP.
+The interrupt-polarity/path hypothesis is not a confirmed hardware root cause.
+Neither upstream code, Crux interfaces nor the original 15-second criterion changes.
+A new identified image and a fresh reviewed seven-stage physical series are required.
+
+Required probe/controller records use one synchronous `printk` call per record.
+The validation profiles disable Shell input echo and use an empty prompt; the
+runner sends only exact nonempty supported commands. This does not serialise
+arbitrary help/error Shell output or establish a real-time guarantee. A network
+request is reserved before its acknowledgement and becomes runnable only after
+that record completes; a controlled native preemption test covers the boundary.
+New candidate manifests and capture entry checks enforce the output configuration.
+
+The combined physical runner/oracle covers the original window, operator receipt
+versus physical-edge uncertainty, contiguous health, per-owner watchdog faults,
+both-end frames, paired stack/resource observations and final frozen-capture
+validation. It requires an independently reviewed complete #11 physical hand-off.
+Its software controls and compiled images are not #12 physical acceptance.
+Unknown transport/probe/peer/evidence state prohibits automatic programming;
+a defined functional failure allows only the preselected single normal restoration.
+Physical #11/#12 qualification, publication review and final support coverage remain
+Pending; no PR merge or issue/milestone closure is authorised by this work.

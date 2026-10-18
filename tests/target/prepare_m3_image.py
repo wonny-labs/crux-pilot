@@ -3,13 +3,15 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from m3_image import check_image, require
+from m3_image import check_image, check_record_output, require
 
 
 def prepare(build, inputs, profile, output):
     folder = build / 'zephyr'
     paths = {'binary': folder / 'zephyr.bin', 'elf': folder / 'zephyr.elf', 'config': folder / '.config'}
     checked = check_image(paths['binary'], paths['elf'], paths['config'], profile)
+    if profile == 'network' or profile.startswith('integrated-'):
+        check_record_output(paths['config'])
     data = json.loads(inputs.read_text())
     require(not data['source']['dirty'] and data['source']['recoverable_from_git'], 'Unfrozen build inputs')
     expected = {'zephyr': '684c9e8f32e4373a21098559f748f06915f950c9',

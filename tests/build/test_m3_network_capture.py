@@ -107,6 +107,16 @@ class NetworkCaptureControls(unittest.TestCase):
         late=list(fresh);late[1]=(11.6,late[1][1])
         with self.assertRaises(ValueError):runner.fresh_network_rows(late,source)
 
+    def test_explicit_previous_image_is_verified_before_new_programming(self):
+        new={'profile':'network','binary':'/new.bin'}
+        old={'profile':'network','binary':'/old.bin'}
+        normal={'profile':'normal','binary':'/normal.bin'}
+        self.assertEqual(runner.select_entry_image('previous-network',new,normal,old),(old,True))
+        self.assertEqual(runner.select_entry_image('existing-network',new,normal),(new,False))
+        self.assertEqual(runner.select_entry_image('original-normal',new,normal),(normal,True))
+        for mode,prior in (('previous-network',None),('previous-network',normal),('existing-network',old),('original-normal',old),('unknown',None)):
+            with self.assertRaises(ValueError):runner.select_entry_image(mode,new,normal,prior)
+
     def test_existing_image_resumption_never_programs_or_erases(self):
         self.assertEqual(runner.image_commands('/known/image.bin',False),'r\ng\nq\n')
         commands=runner.image_commands('/known/image.bin',True)

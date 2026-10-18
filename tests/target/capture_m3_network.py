@@ -186,12 +186,22 @@ def image_commands(binary, programming):
             if programming else '') + 'r\ng\nq\n'
 
 
+def select_entry_image(choice, image, recovery, previous=None):
+    require(choice in ('original-normal', 'existing-network', 'previous-network'), 'Unknown entry image')
+    if choice == 'previous-network':
+        require(previous is not None and previous['profile'] == 'network', 'Explicit previous network manifest required')
+        return previous, True
+    require(previous is None, 'Unexpected previous image manifest')
+    return (image, False) if choice == 'existing-network' else (recovery, True)
+
+
 def main():
     global SERIES_DEADLINE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--errno-map', type=Path, required=True)
-    parser.add_argument('--entry-image', choices=('original-normal', 'existing-network'), default='original-normal')
+    parser.add_argument('--entry-image', choices=('original-normal', 'existing-network', 'previous-network'), default='original-normal')
+    parser.add_argument('--entry-manifest', type=Path)
     parser.add_argument('--recovery-manifest', type=Path, required=True)
     parser.add_argument('--guard-session', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
@@ -199,7 +209,11 @@ def main():
     args = parser.parse_args()
     image, recovery = verify_manifest(args.manifest), verify_manifest(args.recovery_manifest)
     require(image['profile'] == 'network' and recovery['profile'] == 'normal', 'Wrong image roles')
+    previous = verify_manifest(args.entry_manifest) if args.entry_manifest else None
+    existing, programming = select_entry_image(args.entry_image, image, recovery, previous)
     require(sha(recovery['binary']) == '238b352fd66bbfea984c4210510dd398cfe808fcb93c5f11a142fa4ba5bd24c0', 'Original recovery identity changed')
+    from m3_image import check_record_output
+    check_record_output(image['config'])
     errno_abi = verify_errno_map(args.errno_map, image)
     repo = Path(__file__).resolve().parents[2]
     require(not subprocess.check_output(['git', 'status', '--porcelain'], cwd=repo, text=True).strip(),
@@ -207,7 +221,7 @@ def main():
     args.evidence.mkdir(parents=True, exist_ok=False)
     directory = args.evidence
     session = json.loads(args.guard_session.read_text())
-    (directory / 'inputs.json').write_text(json.dumps(dict(image=image, recovery=recovery,
+    (directory / 'inputs.json').write_text(json.dumps(dict(image=image, recovery=recovery, entry_manifest=existing,
         guard_session=session, clock=time.identity(), errno_abi=errno_abi, errno_map_sha256=sha(args.errno_map), entry_image=args.entry_image, runner_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
         scripts={p.name: sha(p) for p in Path(__file__).parent.glob('*.py')}), indent=2))
     end = time.monotonic() + 1800
@@ -295,12 +309,10 @@ def main():
                 require(ack.get('action') == label and ack.get('confirmed') is True, 'Cable action not confirmed')
                 return time.monotonic()
             target('q\n', 'entry-identity-only')
-            existing = image if args.entry_image == "existing-network" else recovery
             known = target(f'verifybin "{existing["binary"]}", 0x60000000\nIsHalted\nq\n', 'entry-known-image')
             if 'Verify successful' not in known:
                 raise HardwareStop('Current firmware differs from explicitly selected known image; stop before changes')
-            boot(image, 'resume-network-reset' if args.entry_image == 'existing-network' else 'program-network',
-                 args.entry_image == 'original-normal')
+            boot(image, 'program-network' if programming else 'resume-network-reset', programming)
             try:
                 for stage, mode in enumerate(('echo', 'silence', 'echo', 'close', 'echo', 'echo', 'echo'), 1):
                     guard_check(session, directory, f'stage-{stage}')
