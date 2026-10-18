@@ -1,4 +1,4 @@
-"""One bounded, manually stimulated SW8 qualification on an identified normal image."""
+"""One bounded, manually stimulated EVKB SW5 qualification on an identified normal image."""
 import argparse
 import fcntl
 import json
@@ -75,7 +75,7 @@ def validate_gpio(rows, source, ready, finished):
     require(groups[-1][0][3] == 0 and len(groups[-1]) >= 4 and
             groups[-1][-1][2] - groups[-1][0][2] >= 3000, 'Final released state missing')
     require(len(releases) >= 5, 'Missing release after each press')
-    result.update(scope='SW8 GPIO5.0 input only; networking/integrated M3 still Pending',
+    result.update(scope='EVKB SW5 GPIO5.0 input only; networking/integrated M3 still Pending',
                   presses=5, action_window_s=finished-ready, status='PASS')
     return result
 
@@ -100,7 +100,7 @@ def _capture_gpio(port, directory, source):
                     released_baseline(fresh_rows(list(receiver.rows)), source, time.monotonic())
                     ready = time.monotonic()
                     (directory/'action-window.json').write_text(json.dumps(dict(ready=ready, duration=45)))
-                    print('GPIO_READY: five SW8 press3s/release3s pairs now; finish released', flush=True)
+                    print('GPIO_READY: five EVKB SW5 press3s/release3s pairs now; finish released', flush=True)
                     break
             time.sleep(.02)
         require(ready is not None, 'No valid released baseline')

@@ -35,7 +35,8 @@ operation had been performed for M3; current outcomes remain in the issue/PR rec
 1. Obtain independent plan PASS before implementation. Preserve C17, base/Time,
    public usage targets and pinned dependencies/toolchain.
 2. Assess GPIO/I2C/SPI/EEPROM using M1 findings. Implement sample-owned native
-   input access for the `sw0` candidate: onboard SW8, GPIO5.0, active-low/pull-up.
+   input access for the `sw0` candidate: GPIO5.0, active-low/pull-up. The physical
+   EVKB user button is SW5; the pinned common DTS calls this input SW8.
    This avoids the common DTS GPIO1.9 LED/PHY-reset ownership concern. Do not
    drive external pins, assume external devices, change wiring or write EEPROM.
    Actual real-I/O qualification still needs confirmed stimulus and observation.
@@ -202,7 +203,7 @@ board bring-up or convert source support into physical support.
 
 | Interface | Intended operation and native path | Access and coexistence constraints | Current evidence and next disposition |
 | --- | --- | --- | --- |
-| GPIO | Read onboard SW8 (`sw0`, GPIO5.0, active-low/pull-up) through native MCUX GPIO. The sample-owned adapter configures input only and preserves output on read failure. | Existing board input; no external drive or wiring. It avoids GPIO1.9 shared by LED/PHY reset. The user cannot currently provide button stimulus. | Controlled `native_sim` transitions, missing-device and actual driver-error tests pass. Real stimulus/response remains unverified; confirm button action/observation before physical #10 qualification. |
+| GPIO | Read onboard EVKB SW5 (`sw0`, GPIO5.0, active-low/pull-up; common DTS label SW8) through native MCUX GPIO. The sample-owned adapter configures input only and preserves output on read failure. | Existing board input; no external drive or wiring. It avoids GPIO1.9 shared by LED/PHY reset. The user has now confirmed EVKB/SW5 and can provide stimulus. | Controlled `native_sim` transitions, missing-device and actual driver-error tests pass. Real stimulus/response remains unverified; confirm button action/observation before physical #10 qualification. |
 | I2C | Native LPI2C1/`arduino_i2c`, SDA AD_B1_01 and SCL AD_B1_00; candidate peripheral reads. | No confirmed external device/address, pull-ups or 3.3 V wiring; optional onboard sensor population is not established. | Unverified/unavailable fixture. Retain upstream driver; confirm actual device/routing/address before selecting a trial. No scan or pin drive was performed. |
 | General SPI | Native LPSPI1/`arduino_spi`: SD_B0_01 PCS0, SD_B0_00 SCK, SD_B0_03 SDI, SD_B0_02 SDO. | USDHC sharing and R278–R281 routing/population are unresolved; no safe fixture is confirmed. LPSPI3 shares LCD pins. | Unverified. Resolve routing and ownership before use; QSPI/XIP evidence is not SPI-transaction evidence. No rework or loopback is assumed. |
 | EEPROM | Existing AT24 I2C/AT25 SPI driver is a candidate. | No confirmed populated device, geometry, write-protect connection or disposable write range. | Unavailable fixture/unverified support. Do not write EEPROM or claim persistence; confirm all prerequisites before selecting it. M4 storage remains outside scope. |
@@ -325,5 +326,40 @@ ownership inventory again timed out, leaving lsof PID1778 uninterruptible and
 unreaped. Hardware access remains stopped; do not bypass ownership, silently retry,
 or treat probe indicators as successful preflight. Preserve both failed attempts
 and verify resolution of the outstanding process before any fresh physical gate.
-Ethernet software preparation can continue independently. No M3 physical result
-has yet passed; target runtime remains unobserved and peer listeners were not run.
+Ethernet software preparation can continue independently. At that stop no M3 physical result had passed. The subsequently resumed
+standalone health result below supersedes that runtime status; peer listeners
+have not been run.
+
+### Standalone health result and corrected button fixture
+
+The [resumed standalone result](https://github.com/wonny-labs/crux-pilot/issues/12#issuecomment-6247354666)
+passed three physical watchdog trials, full BIN verification and final normal
+observation. Independent review reconstructed UART rows from receive chunks and
+reran the actual validators. Last-feed-to-boot receive intervals were
+2.014542/2.017607/2.009744 s; maximum reader gap was0.07335 s. Probe minimum untouched
+worker/main stacks were3744/1352 bytes; normal3776/1352. Original limits were retained.
+These are standalone native health results, not combined M3 qualification.
+The final normal image is original fe9, BIN SHA256
+238b352fd66bbfea984c4210510dd398cfe808fcb93c5f11a142fa4ba5bd24c0,
+without Shell/fault commands. UART/probe were released.
+
+The first manual GPIO trial failed: all51 source reports remained pressed=0,
+although the operator followed the requested five SW8 actions. Raw capture and
+failed oracle remain preserved; none counts as a passed stimulus trial. The lead
+had applied the common DTS label to the physical EVKB without checking its actual
+button designation. [NXP's EVKB manual, table5](https://community.nxp.com/pwmxy87654/attachments/pwmxy87654/mcuxpresso-ide/9718/1/MIMXRT1060EVKBUM%20%282%29.pdf)
+identifies SW5 as GPIO5-00 User and SW8 as ON/OFF. The user subsequently confirmed
+the actual MIMXRT1060-EVKB model and presence of SW5. Do not repeat SW8 instructions.
+
+The corrective proposal changes only the physical button designation to EVKB SW5;
+firmware GPIO5.0 input, full BIN identity and acceptance limits stay unchanged.
+After affected independent PASS and fresh preflight, one trial verifies the current
+normal BIN, resets/starts it and captures a fresh released baseline for5 s. Only
+then may GPIO_READY cue five press3s/release3s pairs within a45 s action window.
+Acceptance requires exactly five observed press groups, at least two1s reports
+for each press/intermediate release, at least3s final released observation, fresh
+source/normal health/stack checks and continuous receive/target timing. Total
+capture is bounded60s. No flash, watchdog arm, network or external pin drive is
+included. Failure stops, preserves raw records and leaves the identified unarmed
+normal image; no automatic retry or loosened limits. `capture_m3_gpio.py` retains
+the final rows, failed attempts and action-window timestamps.
