@@ -1,0 +1,13 @@
+/ {
+    aliases {
+        /delete-property/ led0;
+    };
+};
+
+/* GPIO1.9 belongs exclusively to PHY reset in this composition. */
+/delete-node/ &green_led;
+
+&enet_mac {
+    /delete-property/ zephyr,random-mac-address;
+    local-mac-address = [02 43 52 55 58 03];
+};

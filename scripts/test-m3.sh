@@ -12,7 +12,7 @@ pending="$repo/build/evidence/m3-inputs.pending.json"
 after="$repo/build/evidence/m3-inputs.after.json"
 rm -f "$inputs" "$pending" "$after"
 python3 "$repo/scripts/record-build-provenance.py" --workspace "$workspace" --capture-inputs "$pending"
-(cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/controller_m3" \
+(cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/controller_m3" -T "$repo/tests/controller_network" \
     -O "$repo/build/zephyr/twister-m3" --inline-logs)
 for profile in probe normal; do
     configuration="$repo/samples/controller/zephyr/m3.conf"
@@ -24,6 +24,12 @@ for profile in probe normal; do
         -DZEPHYR_EXTRA_MODULES="$repo" -DEXTRA_CONF_FILE="$configuration" \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 done
+(cd "$workspace" && west build -p always -b 'mimxrt1060_evk@B//qspi' \
+    -d "$repo/build/zephyr/m3-network-evkb" "$repo/samples/controller/zephyr" -- \
+    -DZEPHYR_EXTRA_MODULES="$repo" \
+    -DEXTRA_CONF_FILE="$repo/samples/controller/zephyr/m3-network.conf" \
+    -DDTC_OVERLAY_FILE="$repo/samples/controller/zephyr/m3-network.overlay" \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 python3 "$repo/scripts/record-build-provenance.py" --workspace "$workspace" --capture-inputs "$after"
 cmp "$pending" "$after"
 mv "$pending" "$inputs"

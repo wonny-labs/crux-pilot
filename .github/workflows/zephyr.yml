@@ -85,6 +85,12 @@ jobs:
             crux-pilot/build/zephyr/m3-probe-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/m3-probe-evkb/zephyr/zephyr.bin
             crux-pilot/build/zephyr/m3-probe-evkb/compile_commands.json
+            crux-pilot/build/zephyr/m3-network-evkb/zephyr/.config
+            crux-pilot/build/zephyr/m3-network-evkb/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/m3-network-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/m3-network-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/m3-network-evkb/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/m3-network-evkb/compile_commands.json
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/.config
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.map
