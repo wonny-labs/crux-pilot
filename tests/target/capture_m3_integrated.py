@@ -238,7 +238,7 @@ class Series:
             image=self.images[role]
             if operation=='program':
                 binary=image['binary']
-                text=self.target(f'r\nh\nloadfile "{binary}", 0x60000000\nverifybin "{binary}", 0x60000000\nr\ng\nq\n',name)
+                text=self.target(net.image_commands(binary,True),name)
                 if 'Verify successful' not in text:raise HardwareStop('Full BIN verify absent')
             else:self.target('r\ng\nq\n',name)
             self.wait(lambda:f'M3_BOOT source={self.source} profile=integrated commands={int(role=="probe")} fault_default=off' in receiver.text(),10,receiver)

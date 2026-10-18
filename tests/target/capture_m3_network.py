@@ -224,7 +224,8 @@ def release_peer(lease):
 def image_commands(binary, programming):
     path = str(binary)
     require('"' not in path and '\n' not in path, 'Unsafe image command path')
-    return (f'r\nh\nloadfile "{path}", 0x60000000\nverifybin "{path}", 0x60000000\n'
+    # loadfile performs its own reset/halt. Do not reset separately before it.
+    return (f'loadfile "{path}", 0x60000000\nverifybin "{path}", 0x60000000\n'
             if programming else '') + 'r\ng\nq\n'
 
 

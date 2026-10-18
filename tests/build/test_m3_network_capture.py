@@ -245,6 +245,13 @@ class NetworkCaptureControls(unittest.TestCase):
         self.assertEqual(commands.count('loadfile '),1)
         self.assertEqual(commands.count('verifybin '),1)
         self.assertNotIn('erase',commands.lower())
+        # Let loadfile initialise the programming context once. Execution must
+        # remain after full verification, with no early reset/run or retry.
+        lines=commands.splitlines()
+        self.assertEqual([line.split()[0] for line in lines],
+                         ['loadfile','verifybin','r','g','q'])
+        self.assertEqual(lines[0].split(', ')[1],'0x60000000')
+        self.assertEqual(lines[1].split(', ')[1],'0x60000000')
         for path in ('/bad/"image.bin','/bad/\nimage.bin'):
             with self.assertRaises(ValueError):runner.image_commands(path,True)
 

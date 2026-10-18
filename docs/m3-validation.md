@@ -27,6 +27,43 @@ and J-Link PLUS 602003106. Software cannot detect an unreported wiring/jumper
 change. DAPLink/UART USB also supplies board power; its removal is a power-off.
 The Mac management connection is excluded from the dedicated Ethernet tests.
 
+## First integrated programming entry — stopped before qualification
+
+The first identified `a940bb308165d55822748ef5c8bdcde7febb182f` integrated
+entry passed all four applicable CI workflows, fresh USB protection, ownership,
+probe/CPU/voltage checks and full comparison of the existing normal image. The
+candidate programming operation then failed with a J-Link RAMCode Prepare timeout
+and flash-information error. Candidate verification and its post-download start
+were not reached. No integrated boot, SW5 cue, application peer, network window
+or watchdog trial occurred. This attempt is a programming failure; all required
+#12 functional and watchdog outcomes remain Pending.
+
+The full raw UART capture contains an existing `fe9f54f683ee` normal boot during
+the commanded resets. Its subsequent rejection by the integrated-profile grammar
+is secondary evidence of the wrong profile and does not replace the primary
+programming error. A separately reviewed read-only identification later matched
+all 41,232 bytes of that original normal image (SHA256
+`238b352fd66bbfea984c4210510dd398cfe808fcb93c5f11a142fa4ba5bd24c0`).
+The CPU was halted at the query. This comparison does not establish extended
+Flash integrity, continuous execution or the programming failure's cause. No
+automatic programming or reset followed. The user disconnected DAPLink/UART USB,
+which powers off this board, and the identified temporary guard was retired with
+strict process-absence evidence. UART, probe and peers were released.
+
+The next software procedure candidate removes the separate `r`/`h` before
+`loadfile`, which already performs an implicit reset/halt in the actual log.
+Integrated programming reuses the existing shared image-command generator; one
+load, full verification and the subsequent reset/start remain ordered, with the
+same address, pinned tools and failure stops. [SEGGER's RT1060 guidance] warns
+that reset during initialisation can cause standalone programming problems.
+That guidance supports this bounded procedure change, but does not prove the
+observed timeout's cause or that the candidate resolves it. It is not a firmware,
+FlexRAM, MPU, loader-selection, reset-strategy or tool-version change. A new
+independently reviewed physical entry is required before another programming
+attempt; the original failed series must remain preserved.
+
+[SEGGER's RT1060 guidance]: https://kb.segger.com/i.MXRT1060
+
 ## Execution order and proposed composition
 
 1. Obtain independent plan PASS before implementation. Preserve C17, base/Time,
