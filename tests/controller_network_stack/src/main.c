@@ -10,8 +10,16 @@ K_THREAD_STACK_DEFINE(udp_stack, 4096);
 K_SEM_DEFINE(peer_ready, 0, 2);
 K_SEM_DEFINE(round_done, 0, 2);
 static int peer_error;
+static enum { PEER_ECHO, PEER_CLOSE, PEER_SILENCE } peer_mode;
+static unsigned int peer_frames[2];
 /* Upstream loopback test control: both endpoints are real local addresses. */
 extern void loopback_enable_address_swap(bool swap_addresses);
+
+static bool valid_frame(const uint8_t *frame, unsigned int protocol, unsigned int sequence) {
+    return memcmp(frame, "CM3N", 4) == 0 && sys_get_be32(frame + 4) == protocol &&
+           sys_get_be32(frame + 8) == 1 && sys_get_be32(frame + 12) == sequence &&
+           memcmp(frame + 16, "crux-m3-payload!", 16) == 0;
+}
 
 static void echo_peer(void *kind, void *unused1, void *unused2) {
     ARG_UNUSED(unused1);
@@ -48,7 +56,17 @@ static void echo_peer(void *kind, void *unused1, void *unused2) {
             int64_t deadline = k_uptime_get() + 2000;
             int result = stream_transfer(client, frame, sizeof(frame), false, deadline);
             if (result == 0) {
-                result = stream_transfer(client, frame, sizeof(frame), true, deadline);
+                if (!valid_frame(frame, protocol, i + 1)) {
+                    peer_error = EBADMSG;
+                    result = -EBADMSG;
+                } else {
+                    peer_frames[0]++;
+                    if (peer_mode == PEER_ECHO) {
+                        result = stream_transfer(client, frame, sizeof(frame), true, deadline);
+                    } else if (peer_mode == PEER_SILENCE) {
+                        k_sleep(K_MSEC(2250));
+                    }
+                }
             }
             printk("STACK_PEER protocol=1 sequence=%u result=%d\n", i + 1, result);
             zsock_close(client);
@@ -57,9 +75,14 @@ static void echo_peer(void *kind, void *unused1, void *unused2) {
             net_socklen_t size = sizeof(sender);
             ssize_t length = zsock_recvfrom(listener, frame, sizeof(frame), 0,
                                             (struct net_sockaddr *)&sender, &size);
-            if (length == sizeof(frame)) {
-                zsock_sendto(listener, frame, sizeof(frame), 0, (struct net_sockaddr *)&sender,
-                             size);
+            if (length == sizeof(frame) && valid_frame(frame, protocol, i + 1)) {
+                peer_frames[1]++;
+                if (peer_mode != PEER_SILENCE) {
+                    zsock_sendto(listener, frame, sizeof(frame), 0, (struct net_sockaddr *)&sender,
+                                 size);
+                }
+            } else {
+                peer_error = EBADMSG;
             }
             printk("STACK_PEER protocol=2 sequence=%u length=%zd\n", i + 1, length);
         }
@@ -68,7 +91,13 @@ static void echo_peer(void *kind, void *unused1, void *unused2) {
     zsock_close(listener);
 }
 
-ZTEST(network_stack, test_native_round_and_cleanup) {
+static void run_fixture(int mode) {
+    zassert_equal(native_contexts(), 0, "No old context may be hidden by a new baseline");
+    zassert_equal(k_sem_count_get(&peer_ready), 0);
+    zassert_equal(k_sem_count_get(&round_done), 0);
+    peer_mode = mode;
+    peer_error = 0;
+    peer_frames[0] = peer_frames[1] = 0;
     loopback_enable_address_swap(false);
     struct net_if *loopback = net_if_get_default();
     struct net_in_addr address;
@@ -95,7 +124,22 @@ ZTEST(network_stack, test_native_round_and_cleanup) {
         k_sleep(K_MSEC(500));
     }
     zassert_equal(owned_sockets, 0);
-    zassert_equal(result, 0, "Native round failed; preserve resource observations");
+    zassert_equal(native_contexts(), 0);
+    zassert_equal(peer_error, 0);
+    zassert_equal(peer_frames[0], 10);
+    zassert_equal(peer_frames[1], 10);
+    zassert_equal(result, mode == PEER_ECHO ? 0 : -EIO,
+                  "Unexpected native round outcome; preserve resource observations");
+}
+
+ZTEST(network_stack, test_native_round_and_cleanup) {
+    run_fixture(PEER_ECHO);
+}
+ZTEST(network_stack, test_native_peer_closure_and_cleanup) {
+    run_fixture(PEER_CLOSE);
+}
+ZTEST(network_stack, test_native_no_response_and_cleanup) {
+    run_fixture(PEER_SILENCE);
 }
 
 ZTEST_SUITE(network_stack, NULL, NULL, NULL, NULL, NULL);
