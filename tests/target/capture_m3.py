@@ -26,7 +26,7 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def commander(probe, commands, output):
+def _commander(probe, commands, output):
     script = output.with_suffix('.jlink')
     script.write_text(commands)
     with output.open('wb') as log:
@@ -40,6 +40,15 @@ def commander(probe, commands, output):
     if re.search(r'(?i)\b(error|failed|failure|could not|cannot|warning|unable|unknown command|timed out)\b', diagnostics):
         raise HardwareStop('Probe diagnostic; stop hardware changes')
     return text
+
+
+def commander(probe, commands, output):
+    try:
+        return _commander(probe, commands, output)
+    except HardwareStop:
+        raise
+    except Exception as error:
+        raise HardwareStop('Probe command or its evidence failed; stop hardware changes') from error
 
 
 class Receiver:
@@ -209,15 +218,20 @@ def _capture(port, probe, directory, source, watchdog):
         primary = sys.exc_info()[1]
         try:
             try:
-                receiver.finish()
-            except Exception as finish_error:
-                (directory / 'reader-stop-error.txt').write_text(repr(finish_error) + '\n')
-                if primary is None:
-                    raise
-        finally:
-            (directory / 'transmit.json').write_text(json.dumps(transmissions, indent=2) + '\n')
-            (directory / 'lines.json').write_text(json.dumps(receiver.rows, indent=2) + '\n')
-            (directory / 'uart.txt').write_text(receiver.text() + '\n')
+                try:
+                    receiver.finish()
+                except Exception as finish_error:
+                    (directory / 'reader-stop-error.txt').write_text(repr(finish_error) + '\n')
+                    if primary is None:
+                        raise
+            finally:
+                (directory / 'transmit.json').write_text(json.dumps(transmissions, indent=2) + '\n')
+                (directory / 'lines.json').write_text(json.dumps(receiver.rows, indent=2) + '\n')
+                (directory / 'uart.txt').write_text(receiver.text() + '\n')
+        except Exception as cleanup_error:
+            if primary is None:
+                raise
+            primary.evidence_failure = repr(cleanup_error)
     banners = [i for i, (_, s) in enumerate(receiver.rows) if s.startswith('*** Booting Zephyr')]
     require(banners, 'No fresh native boot')
     final_rows = list(receiver.rows[banners[0]:])
@@ -231,10 +245,13 @@ def capture(port, probe, directory, source, watchdog):
     try:
         return _capture(port, probe, directory, source, watchdog)
     except Exception as error:
-        if directory.is_dir():
-            (directory / 'failure.txt').write_text(traceback.format_exc())
-            (directory / 'result.json').write_text(json.dumps(
-                {'status': 'FAIL', 'error_type': type(error).__name__, 'error': str(error)}, indent=2) + '\n')
+        try:
+            if directory.is_dir():
+                (directory / 'failure.txt').write_text(traceback.format_exc())
+                (directory / 'result.json').write_text(json.dumps(
+                    {'status': 'FAIL', 'error_type': type(error).__name__, 'error': str(error)}, indent=2) + '\n')
+        except Exception as write_error:
+            error.evidence_failure = repr(write_error)
         raise
 
 
@@ -360,7 +377,10 @@ def main():
                 run_series(program, observe)
             except Exception as error:
                 state.update(status='FAIL', error_type=type(error).__name__, error=str(error))
-                record_state()
+                try:
+                    record_state()
+                except Exception as write_error:
+                    error.evidence_failure = repr(write_error)
                 raise
             state['status'] = 'COMPONENT_PASS'
             record_state()

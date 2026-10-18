@@ -41,6 +41,33 @@ class RunnerControls(unittest.TestCase):
             self.assertEqual(json.loads((directory / 'result.json').read_text())['error_type'], 'HardwareStop')
             self.assertTrue((directory / 'reader-stop-error.txt').exists())
 
+    def test_evidence_write_failure_cannot_trigger_programming_after_probe_stop(self):
+        for name in ('reader-stop-error.txt', 'transmit.json', 'lines.json', 'uart.txt', 'failure.txt', 'result.json'):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as d:
+                directory = Path(d) / 'trial'
+                events = []
+                original_write = Path.write_text
+
+                def write(path, *args, **kwargs):
+                    if path.name == name:
+                        raise OSError('controlled evidence write failure')
+                    return original_write(path, *args, **kwargs)
+
+                def observe(stage, fault):
+                    events.append(stage)
+                    if fault:
+                        runner.capture(None, '602003106', directory, '0123456789ab', True)
+
+                with patch.object(runner, 'Receiver') as receiver, patch.object(runner, 'drain'), \
+                     patch.object(runner, 'commander', side_effect=runner.HardwareStop('probe stopped')), \
+                     patch.object(Path, 'write_text', write):
+                    receiver.return_value.finish.side_effect = ValueError('incomplete line')
+                    receiver.return_value.rows = []
+                    receiver.return_value.text.return_value = ''
+                    with self.assertRaises(runner.HardwareStop):
+                        runner.run_series(lambda role, stage: events.append(stage), observe)
+                self.assertEqual(events, ['program-normal-preflight', 'normal-preflight', 'program-probe', 'trial-01'])
+
     def test_successful_series_has_three_trials_and_final_normal(self):
         events = []
         runner.run_series(lambda role, name: events.append((role, name)),
