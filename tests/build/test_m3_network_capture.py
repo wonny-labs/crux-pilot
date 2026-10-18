@@ -83,5 +83,11 @@ class NetworkCaptureControls(unittest.TestCase):
             log.close.assert_called_once()
             self.assertEqual(lease,dict(process=None,log=None))
 
+    def test_boot_checkpoint_excludes_duplicate_initial_reports(self):
+        rows=[(t,f'M3_NET_STATE monotonic_ms={ms} link={link} address=1 service_ready=0')
+              for t,ms,link in ((10.,0,0),(10.,0,0),(11.,1000,0),(12.,2000,1),(13.,3000,1))]
+        self.assertEqual(runner.initial_checkpoint_boundary(rows),12.25)
+        with self.assertRaises(ValueError): runner.initial_checkpoint_boundary(rows[:3])
+
 
 if __name__ == '__main__': unittest.main()

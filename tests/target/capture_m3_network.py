@@ -126,6 +126,13 @@ def wait_until(predicate, duration, receiver=None):
     raise ValueError('Declared observation deadline expired')
 
 
+def initial_checkpoint_boundary(rows):
+    ready = [r for r in records(rows, 'M3_NET_STATE') if r['monotonic_ms'] >= 1000 and
+             r['link'] == r['address'] == 1 and r['service_ready'] == 0]
+    require(ready, 'No fresh ready-link idle checkpoint boundary')
+    return ready[0]['received'] + .25
+
+
 def stop_peer(process):
     if process.poll() is not None:
         raise HardwareStop('Peer expired/exited before explicit stage teardown')
@@ -222,7 +229,11 @@ def main():
                     source = manifest['source']['git_commit'][:12]
                     if manifest['profile'] == 'network':
                         wait_until(lambda: f'M3_NET_BOOT source={source} profile=network-probe' in receiver.text(), 10, receiver)
-                        wait_until(lambda: len(records(receiver.rows, 'M3_NET_RESOURCE')) >= 5, 15, receiver)
+                        wait_until(lambda: any(r['monotonic_ms'] >= 1000 and
+                            r['link'] == r['address'] == 1 and r['service_ready'] == 0
+                            for r in records(receiver.rows, 'M3_NET_STATE')), 15, receiver)
+                        checkpoint_start = initial_checkpoint_boundary(receiver.rows)
+                        wait_until(lambda: time.monotonic() >= checkpoint_start + 4.5, 5, receiver)
                         require(receiver.text().count('*** Booting Zephyr') == 1 and
                                 'M3_NET_INIT result=0 ' in receiver.text() and
                                 'M3_NET_BASELINE contexts=0' in receiver.text(), 'Wrong/failed fresh network boot')
@@ -238,8 +249,7 @@ def main():
                     require(len(banners) == 1, 'Missing/duplicate recovery boot')
                     result = normal_result(receiver.rows[banners[0]:], source)
                 else:
-                    states = records(receiver.rows, 'M3_NET_STATE')
-                    checkpoint(receiver.rows, states[-4]['received'] - .001, 0)
+                    checkpoint(receiver.rows, checkpoint_start, 0)
                     result = dict(status='PASS', profile='network', no_automatic_traffic=True)
                 (capture / 'result.json').write_text(json.dumps(result, indent=2))
             def acknowledge(label):
