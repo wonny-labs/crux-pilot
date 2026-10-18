@@ -10,8 +10,9 @@ Its tree matches the reviewed M2 head. The planning reference remains read-only 
 
 The [current task authorisation] permits implementation, relevant tests, commits,
 pushes, PR delivery and scoped physical verification after independent review and
-successful preflight. It does not permit merging, auto-merge or issue/milestone
-closure. AGENTS.md and public contracts remain unchanged.
+successful preflight. That execution-stage authority did not permit merging, auto-merge or issue/milestone
+closure. The subsequent explicit user acceptance below authorises reviewed squash
+merge and Issue/M3 closure. AGENTS.md and public contracts remain unchanged.
 
 The [current SW5 physical result](#uart-remediation-and-sw5-physical-handoff) and
 [qualified Ethernet hand-off](#qualified-ethernet-handoff) establish the identified
@@ -238,7 +239,7 @@ board bring-up or convert source support into physical support.
 
 | Interface | Intended operation and native path | Access and coexistence constraints | Current evidence and next disposition |
 | --- | --- | --- | --- |
-| GPIO | Read onboard EVKB SW5 (`sw0`, GPIO5.0, active-low/pull-up; common DTS label SW8) through native MCUX GPIO. The sample-owned adapter configures input only and preserves output on read failure. | Existing board input; no external drive or wiring. It avoids GPIO1.9 shared by LED/PHY reset. The user has now confirmed EVKB/SW5 and can provide stimulus. | Controlled `native_sim` transitions, missing-device and actual driver-error tests pass. Physical SW5 input qualification passed in the [identified normal composition](#uart-remediation-and-sw5-physical-handoff). Other pins and joint Ethernet operation remain unverified. |
+| GPIO | Read onboard EVKB SW5 (`sw0`, GPIO5.0, active-low/pull-up; common DTS label SW8) through native MCUX GPIO. The sample-owned adapter configures input only and preserves output on read failure. | Existing board input; no external drive or wiring. It avoids GPIO1.9 shared by LED/PHY reset. The user has now confirmed EVKB/SW5 and can provide stimulus. | Controlled `native_sim` transitions, missing-device and actual driver-error tests pass. Physical SW5 input qualification passed in the [identified normal composition](#uart-remediation-and-sw5-physical-handoff). Other pins remain unverified. Joint GPIO/Time/Ethernet/watchdog operation is qualified only within the [final integrated handoff](#final-integrated-physical-handoff). |
 | I2C | Native LPI2C1/`arduino_i2c`, SDA AD_B1_01 and SCL AD_B1_00; candidate peripheral reads. | No confirmed external device/address, pull-ups or 3.3 V wiring; optional onboard sensor population is not established. | Unverified/unavailable fixture. Retain upstream driver; confirm actual device/routing/address before selecting a trial. No scan or pin drive was performed. |
 | General SPI | Native LPSPI1/`arduino_spi`: SD_B0_01 PCS0, SD_B0_00 SCK, SD_B0_03 SDI, SD_B0_02 SDO. | USDHC sharing and R278–R281 routing/population are unresolved; no safe fixture is confirmed. LPSPI3 shares LCD pins. | Unverified. Resolve routing and ownership before use; QSPI/XIP evidence is not SPI-transaction evidence. No rework or loopback is assumed. |
 | EEPROM | Existing AT24 I2C/AT25 SPI driver is a candidate. | No confirmed populated device, geometry, write-protect connection or disposable write range. | Unavailable fixture/unverified support. Do not write EEPROM or claim persistence; confirm all prerequisites before selecting it. M4 storage remains outside scope. |
@@ -975,6 +976,29 @@ hardware operation is required for the scoped acceptance evidence.
 The capture corrections are host tooling only and do not change the frozen
 firmware, native dependencies, original windows, watchdog criteria or resource
 limits. Final canonical-tooling CI, portable archive identities and publication
-review are recorded against PR #13 before Ready. PR merging and Issue/M3 closure
-remain reserved for the user. Other I/O devices, long-run/load/M5, physical POSIX
+review are recorded against PR #13 before Ready. The user subsequently accepted the scoped result and authorised independently
+reviewed squash merge and Issue/M3 closure, as recorded below. Other I/O devices, long-run/load/M5, physical POSIX
 and worst-case stack/jitter behaviour remain outside this bounded qualification.
+
+## User acceptance and closeout
+
+The user accepted the final scoped M3 result and authorised record corrections,
+independent review, squash merge of PR #13 and closure of #10, #11, #12 and M3.
+Those actions follow review and successful latest-head CI; this pre-merge record
+does not assert that integration has already occurred. M4 implementation remains
+unstarted and outside this authorisation. Earlier Pending/Draft and execution
+authority statements in the chronological evidence describe their historical
+stage; original failed attempts remain failures.
+
+All five #10, six #11 and eight #12 acceptance criteria have supporting evidence.
+The final aggregate above provides the combined physical outcomes. I2C, general
+SPI, EEPROM and other GPIO pins remain unverified or unavailable; at least one
+representative non-UART path, not every bus, is required by the approved scope.
+
+Physical firmware remains attributed to `ec94fbe`, with reviewed canonical host
+tooling at `00aaba3`. These closeout changes are documentation only; they do not
+claim a newly built latest-head image was physically tested or byte-identical.
+The final review rehashed the 545-payload physical archive and 16-payload
+publication archive successfully. No hardware or build/test rerun was performed
+for that read-only review. Documentation accuracy, consistency and latest-head CI
+are checked for this closeout; prior physical evidence is retained unchanged.
