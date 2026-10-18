@@ -7,6 +7,11 @@
 #include <zephyr/drivers/gpio/gpio_emul.h>
 #include <zephyr/ztest.h>
 
+BUILD_ASSERT(DT_NODE_HAS_STATUS(DT_ALIAS(sw0), okay) == !M3_EXPECT_MISSING,
+             "GPIO fixture does not match the requested scenario");
+BUILD_ASSERT(DT_NODE_HAS_STATUS(DT_NODELABEL(m3_fault_gpio), okay) == M3_EXPECT_READ_ERROR,
+             "Read-error fixture does not match the requested scenario");
+
 ZTEST(controller_m3, test_device_contract) {
     int value = 42;
     zassert_equal(controller_device_read(NULL), -EINVAL);

@@ -65,5 +65,40 @@ Flash/RAM allocation are distinct from measured worker use or system worst-case 
 The evidence retains the first rejected capture, observer correction and programmer
 post-disconnect diagnostic. The earlier sanitizer exit-timeout cause is still unresolved.
 Physical POSIX, long-duration/concurrent-load behaviour and worst-case timing/resource
-qualification are not established. PR #9 remains Draft and M2/issues #6/#7 open for human
-review and integration; passing this bounded physical plan does not authorise merging.
+qualification are not established. M2 was accepted and integrated through PR #9, squash commit `540ea7f`; issues #6/#7
+and M2 are closed. Its bounded evidence does not establish M3 acceptance.
+
+## Independent M3 GPIO and health probe
+
+M3 is in progress. This separate composition uses native GPIO for the onboard
+`sw0` input and observes actual critical-worker completion before allowing a
+watchdog feed. It adds no Crux public interface. The existing M2 composition and
+its finite UTC-step scenario remain available.
+
+From the documented Linux workspace, run `scripts/test-m3.sh` for the three
+`native_sim` GPIO/health scenarios and EVKB probe/normal cross-builds. Outputs are
+under `build/zephyr/twister-m3`, `m3-probe-evkb` and `m3-normal-evkb`; frozen inputs
+are retained at `build/evidence/m3-inputs.json`. This command performs no hardware
+operation. Host checks also exercise the portable readiness/freshness helper.
+
+For a manual build in that environment:
+
+```sh
+west build -p always -b 'mimxrt1060_evk@B//qspi' \
+  -d build/zephyr/m3-probe-evkb samples/controller/zephyr -- \
+  -DZEPHYR_EXTRA_MODULES="$PWD" \
+  -DEXTRA_CONF_FILE="$PWD/samples/controller/zephyr/m3.conf"
+```
+
+The development probe exposes `m3 status`, `m3 arm` and `m3 stall`. Arm is an
+explicit physical watchdog operation and stall deliberately stops critical work;
+use them only under the independently reviewed physical/recovery plan. Ordinary
+boot does neither. Add `m3-normal.conf` after `m3.conf` (semicolon-separated in
+`EXTRA_CONF_FILE`) for a normal image without Shell/test commands.
+
+`M3_WORK` reports input read status and an unset/valid Time status. `M3_PENDING`
+remains not ready: actual I/O stimulus is unqualified and Ethernet is held by the
+user. Emulated GPIO transitions and the independent health probe cannot establish
+#10 real-I/O, #11 networking or #12 combined-integration acceptance. Refer to
+[the M3 execution record](../../docs/m3-validation.md) and the linked issue records
+for actual results, support limits and physical gates.
