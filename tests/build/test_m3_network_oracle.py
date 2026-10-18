@@ -3,7 +3,15 @@ import sys
 from pathlib import Path
 import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'target'))
-from m3_network_oracle import validate_stage
+from m3_network_oracle import validate_stage as target_validate
+LINUX = dict(EIO=5, ENETDOWN=100, ENETUNREACH=101, ECONNRESET=104, ENOTCONN=107,
+             ETIMEDOUT=110, ECONNREFUSED=111, EHOSTUNREACH=113)
+PICOLIBC = dict(EIO=5, ENETDOWN=115, ENETUNREACH=114, ECONNRESET=104, ENOTCONN=128,
+                ETIMEDOUT=116, ECONNREFUSED=111, EHOSTUNREACH=118)
+
+
+def validate_stage(*args):
+    return target_validate(*args, errno_abi=LINUX)
 
 
 def fixture(mode='echo'):
@@ -79,6 +87,16 @@ class NetworkVerdicts(unittest.TestCase):
             rows,peer=fixture()
             with self.subTest(old=old), self.assertRaises(ValueError):
                 validate_stage([(t,s.replace(old,new)) for t,s in rows],peer,1,'echo')
+
+    def test_target_abi_is_explicit_and_linux_union_is_not_accepted(self):
+        rows, peer = fixture('silence')
+        target = [(t, s.replace('result=-110', 'result=-116')) for t, s in rows]
+        self.assertEqual(target_validate(target, peer, 1, 'silence', errno_abi=PICOLIBC)['status'], 'PASS')
+        with self.assertRaises(ValueError): target_validate(target, peer, 1, 'silence', errno_abi=LINUX)
+        rows = [(t,s.replace('link=1','link=0')) for t,s in rows]
+        peer = [peer[0], dict(event='peer_closed',exchanges=0,monotonic=27.)]
+        # Picolibc110 means ESHUTDOWN, not timeout; never accept a union of ABI numbers.
+        with self.assertRaises(ValueError): target_validate(rows, peer, 1, 'echo', True, errno_abi=PICOLIBC)
 
 
 if __name__ == '__main__': unittest.main()

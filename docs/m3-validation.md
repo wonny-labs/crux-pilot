@@ -522,3 +522,30 @@ scope. The fresh guard's original invalid-origin record is retained; its remaini
 lifetime was conservatively bounded using the same process/start identity and
 reported elapsed age, with the complete bounded query duration plus floor/launch
 margin subtracted. No guard lifetime was extended and no second mount was tried.
+
+The first physical network attempt used source `1fda8d291e89`, BIN 110476 bytes,
+SHA256 da76d36e86a1b28c8a502ff1142fc16becb4edd463da0de1237933cc8aedcaef.
+Its first healthy stage passed all twenty both-end exchanges and the declared
+full idle/stack checkpoint. The silence stage completed twenty withheld requests
+and target timeouts at 2000/2001 ms; all twenty results were -116, while the former
+oracle incorrectly expected Linux -110. It therefore remains **FAIL** under its
+original criteria; stages 3–7 were not executed. Twenty-one cleanup observations
+returned contexts to zero, with maximum 1748 ms, and final packet/data pools were
+full. These facts diagnose the failed oracle assumption; they do not retroactively
+qualify the rejected stage or complete #11.
+
+Exactly one allowed normal restoration followed: complete original 41232-byte
+fe9 BIN verification, reset/start and fresh normal observation independently
+passed (untouched worker/main 3776/1352 bytes, commands off, watchdog unarmed).
+The failed attempt, all raw bytes and restoration are retained. No live criteria
+were changed and no uncontrolled retry followed.
+
+The actual pinned Picolibc compiler, with the saved network compile flags, defines
+EIO 5, ENETDOWN 115, ENETUNREACH 114, ECONNRESET 104, ENOTCONN 128, ETIMEDOUT 116,
+ECONNREFUSED 111 and EHOSTUNREACH 118. Linux numbers are not interchangeable:
+Picolibc 110 is ESHUTDOWN. `prepare_m3_errno.py` freezes actual preprocessor output,
+selected headers, compiler/command identity and exact source/BIN binding. The
+capture requires this verified sidecar; the oracle uses symbolic classes from
+that one map, with no Linux fallback or union. Wrong ABI/image/source/header/
+macro/command controls reject. A fresh series needs independent renewed review
+of that correction and the preserved failure/restoration before execution.

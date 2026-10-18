@@ -16,6 +16,7 @@ import traceback
 from capture_m3 import (HardwareStop, Receiver, check_owners, commander, drain, inventory,
                         select_uart, sha, verify_manifest)
 from m3_health_oracle import require
+from m3_errno import verify_errno_map
 from m3_network_oracle import checkpoint, records, validate_stage
 
 SERIES_DEADLINE = float('inf')
@@ -160,6 +161,7 @@ def main():
     global SERIES_DEADLINE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, required=True)
+    parser.add_argument('--errno-map', type=Path, required=True)
     parser.add_argument('--recovery-manifest', type=Path, required=True)
     parser.add_argument('--guard-session', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
@@ -168,6 +170,7 @@ def main():
     image, recovery = verify_manifest(args.manifest), verify_manifest(args.recovery_manifest)
     require(image['profile'] == 'network' and recovery['profile'] == 'normal', 'Wrong image roles')
     require(sha(recovery['binary']) == '238b352fd66bbfea984c4210510dd398cfe808fcb93c5f11a142fa4ba5bd24c0', 'Original recovery identity changed')
+    errno_abi = verify_errno_map(args.errno_map, image)
     repo = Path(__file__).resolve().parents[2]
     require(not subprocess.check_output(['git', 'status', '--porcelain'], cwd=repo, text=True).strip(),
             'Physical runner source must be committed and clean')
@@ -175,7 +178,7 @@ def main():
     directory = args.evidence
     session = json.loads(args.guard_session.read_text())
     (directory / 'inputs.json').write_text(json.dumps(dict(image=image, recovery=recovery,
-        guard_session=session, clock=time.identity(), runner_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
+        guard_session=session, clock=time.identity(), errno_abi=errno_abi, errno_map_sha256=sha(args.errno_map), runner_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
         scripts={p.name: sha(p) for p in Path(__file__).parent.glob('*.py')}), indent=2))
     end = time.monotonic() + 1800
     SERIES_DEADLINE = end
@@ -319,7 +322,7 @@ def main():
                     require(len(acknowledgements) == 1, 'Missing/duplicate explicit round acknowledgement')
                     qualified_rows = receiver.rows[acknowledgements[0]:]
                     try:
-                        result = validate_stage(qualified_rows, frames, 1 if stage == 7 else stage, mode, stage == 6)
+                        result = validate_stage(qualified_rows, frames, 1 if stage == 7 else stage, mode, stage == 6, errno_abi=errno_abi)
                     except ValueError as error:
                         raise QualificationFailure(str(error)) from error
                     (case / 'result.json').write_text(json.dumps(result, indent=2))

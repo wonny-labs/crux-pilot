@@ -39,8 +39,13 @@ def checkpoint(rows, after, ready, link=1):
                 min_unused=min(r['unused'] for r in stacks))
 
 
-def validate_stage(rows, peer, trial, mode, link_down=False):
+def validate_stage(rows, peer, trial, mode, link_down=False, *, errno_abi):
     require(mode in ('echo', 'silence', 'close'), 'Unknown stage mode')
+    timeout = -errno_abi['ETIMEDOUT']
+    reset = -errno_abi['ECONNRESET']
+    io_error = -errno_abi['EIO']
+    link_errors = {-errno_abi[name] for name in ('ENETDOWN', 'ENETUNREACH', 'ECONNRESET',
+                   'ENOTCONN', 'ETIMEDOUT', 'ECONNREFUSED', 'EHOSTUNREACH')}
     require(not any(re.search(r'FATAL ERROR|ASSERTION FAIL|M3_NET_REJECTED|M3_NET_STOP', s)
                     for _, s in rows), 'Unexpected target diagnostic/reset lifecycle')
     require(not any(s.startswith('*** Booting Zephyr') for _, s in rows), 'Unexpected reset within stage')
@@ -55,7 +60,7 @@ def validate_stage(rows, peer, trial, mode, link_down=False):
     exchanges = records(rows, 'M3_NET_EXCHANGE')
     cleanup = records(rows, 'M3_NET_CLEANUP')
     require(cleanup and all(0 <= c['elapsed_ms'] <= 5250 for c in cleanup), 'Cleanup budget missing/exceeded')
-    require(all((c['result'], c['restart_required']) in ((0, 0), (-110, 1)) for c in cleanup),
+    require(all((c['result'], c['restart_required']) in ((0, 0), (timeout, 1)) for c in cleanup),
             'Unexpected cleanup result/fence')
     require(all(c['expected_contexts'] == 0 and
                 (c['observed_contexts'] == 0 if c['result'] == 0 else c['observed_contexts'] <= 1)
@@ -80,11 +85,11 @@ def validate_stage(rows, peer, trial, mode, link_down=False):
                 'Exchange timeline is backwards or outside round deadline')
         previous_end = r['monotonic_ms']
         expected_result = (0 if mode == 'echo' or (mode == 'close' and r['protocol'] == 2)
-                           else -110 if mode == 'silence' else -104)
-        require(r['result'] in (-100, -101, -104, -107, -110, -111, -113) if link_down
+                           else timeout if mode == 'silence' else reset)
+        require(r['result'] in link_errors if link_down
                 else r['result'] == expected_result, 'Unexpected exchange result')
     ready = int(mode == 'echo' and not link_down)
-    require(summary['result'] == (-110 if fenced else 0 if ready else -5),
+    require(summary['result'] == (timeout if fenced else 0 if ready else io_error),
             'Unexpected aggregate result')
     require(link_down or not fenced, 'Unexpected cleanup fence')
     require(len([r for r in peer if r['event'] == 'peer_ready']) == 1 and
