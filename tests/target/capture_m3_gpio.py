@@ -15,6 +15,26 @@ from capture_m3 import (Receiver, check_owners, commander, drain, normal_result,
                         require, select_uart, sha, verify_jlink_tools, verify_manifest)
 
 
+def spoken_cue(index, ready, directory):
+    scheduled = ready + index * 4
+    launched = time.monotonic()
+    require(0 <= launched - scheduled <= .25, 'Late GPIO spoken cue')
+    phrase = '누르세요' if index % 2 == 0 else '놓으세요'
+    event = dict(index=index, action='press' if index % 2 == 0 else 'release',
+                 scheduled=scheduled, launched=launched)
+    try:
+        # run() kills and reaps its own child on timeout; never queue overlapping speech.
+        result = subprocess.run(['/usr/bin/say', '-v', 'Yuna', phrase],
+                                capture_output=True, timeout=2, check=True)
+        event.update(completed=time.monotonic(), returncode=result.returncode)
+    except Exception as error:
+        event.update(completed=time.monotonic(), error=repr(error))
+        raise
+    finally:
+        with (directory/'spoken-cues.jsonl').open('a') as output:
+            output.write(json.dumps(event)+'\n')
+
+
 def fresh_rows(rows):
     banners = [i for i, (_, line) in enumerate(rows) if line.startswith('*** Booting Zephyr')]
     require(len(banners) == 1, 'Missing or repeated fresh boot')
@@ -100,14 +120,19 @@ def _capture_gpio(port, directory, source):
                     released_baseline(fresh_rows(list(receiver.rows)), source, time.monotonic())
                     ready = time.monotonic()
                     (directory/'action-window.json').write_text(json.dumps(dict(ready=ready, duration=45)))
-                    print('GPIO_READY: five EVKB SW5 press3s/release3s pairs now; finish released', flush=True)
+                    print('GPIO_READY: follow spoken EVKB SW5 press/release cues; finish released', flush=True)
                     break
             time.sleep(.02)
         require(ready is not None, 'No valid released baseline')
+        next_cue = 0
         while time.monotonic() - ready < 45:
             require(receiver.failure is None, 'GPIO reader failed')
             require(time.monotonic() - started < 60, 'GPIO capture bound exceeded')
+            if next_cue < 10 and time.monotonic() >= ready + next_cue * 4:
+                spoken_cue(next_cue, ready, directory)
+                next_cue += 1
             time.sleep(.02)
+        require(next_cue == 10, 'Incomplete spoken GPIO cues')
         finished = time.monotonic()
     finally:
         primary = sys.exc_info()[1]
@@ -157,10 +182,14 @@ def main():
                 binary_sha256=sha(image['binary']), runner_commit=subprocess.check_output(
                     ['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
                 runner_sha256=sha(Path(__file__)), uart=args.uart, uart_serial=args.uart_serial,
-                stimulus='five manual press3s/release3s pairs; hold released before/after',
+                stimulus='five spoken press4s/release4s pairs within unchanged45s window; final released',
                 limits='baseline>=3s;45s action;5 presses;>=2 samples/press+gap;final released>=3s',
                 operations='verify current BIN; reset/start normal; capture only; no programming/network/watchdog')
     (args.evidence/'inputs.json').write_text(json.dumps(inputs,indent=2))
+    # Validate synthesis before any UART ownership check, target attach or reset.
+    subprocess.run(['/usr/bin/say', '-v', 'Yuna', '-o',
+                    str(args.evidence/'cue-preflight.aiff'), '누르세요 놓으세요'],
+                   capture_output=True, timeout=5, check=True)
     import serial
     import serial.tools.list_ports
     selected=select_uart([vars(p) for p in serial.tools.list_ports.comports()],args.uart,args.uart_serial)

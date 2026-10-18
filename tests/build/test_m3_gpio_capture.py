@@ -6,6 +6,8 @@ from capture_m3_gpio import validate_gpio, fresh_rows
 import capture_m3_gpio as gpio
 from unittest.mock import patch, MagicMock
 import tempfile
+import json
+import subprocess
 
 
 def fixture():
@@ -21,6 +23,28 @@ def fixture():
 
 
 class GPIOControls(unittest.TestCase):
+    def test_spoken_cue_schedule_and_failure_evidence(self):
+        for index in range(10):
+            with tempfile.TemporaryDirectory() as directory, \
+                 patch.object(gpio.time,'monotonic',side_effect=[100+4*index+.02,100+4*index+.8]), \
+                 patch.object(gpio.subprocess,'run') as speak:
+                speak.return_value.returncode=0
+                gpio.spoken_cue(index,100,Path(directory))
+                self.assertEqual(speak.call_args.args[0][-1], '누르세요' if index%2==0 else '놓으세요')
+                event=json.loads((Path(directory)/'spoken-cues.jsonl').read_text())
+                self.assertEqual(event['index'],index)
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(gpio.time,'monotonic',return_value=101), \
+             patch.object(gpio.subprocess,'run') as speak:
+            with self.assertRaises(ValueError):gpio.spoken_cue(0,100,Path(directory))
+            speak.assert_not_called()
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(gpio.time,'monotonic',side_effect=[100.02,102.02]), \
+             patch.object(gpio.subprocess,'run',side_effect=subprocess.TimeoutExpired('say',2)):
+            with self.assertRaises(subprocess.TimeoutExpired):gpio.spoken_cue(0,100,Path(directory))
+            event=json.loads((Path(directory)/'spoken-cues.jsonl').read_text())
+            self.assertIn('TimeoutExpired',event['error'])
+
     def test_exact_five_groups_with_valid_normal_source(self):
         self.assertEqual(validate_gpio(fixture(),'0123456789ab',6,51)['presses'],5)
 
