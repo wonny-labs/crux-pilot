@@ -259,23 +259,25 @@ static void report_reset_cause(void) {
 
 #if defined(CONFIG_CRUX_M3_TEST_COMMANDS)
 static int request_arm(const struct shell *shell, size_t argc, char **argv) {
+    ARG_UNUSED(shell);
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
     if (atomic_get(&armed) != 0) {
-        shell_error(shell, "M3_ARM_REJECTED already_armed");
+        printk("M3_ARM_REJECTED already_armed\n");
         return -EALREADY;
     }
     atomic_set(&arm_request, 1);
-    shell_print(shell, "M3_ARM_REQUESTED");
+    printk("M3_ARM_REQUESTED\n");
     return 0;
 }
 
 static int request_stall(const struct shell *shell, size_t argc, char **argv) {
+    ARG_UNUSED(shell);
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
 #if defined(CONFIG_CRUX_M3_INTEGRATED)
     if (atomic_get(&armed) == 0 || !atomic_cas(&stall_request, 0, -1)) {
-        shell_error(shell, "M3_STALL_REJECTED not_armed_or_repeated");
+        printk("M3_STALL_REJECTED not_armed_or_repeated\n");
         return -EINVAL;
     }
     k_spinlock_key_t key = k_spin_lock(&network_lock);
@@ -286,36 +288,38 @@ static int request_stall(const struct shell *shell, size_t argc, char **argv) {
     atomic_set(&stall_request, 1);
 #else
     if (atomic_get(&armed) == 0 || !atomic_cas(&stall_request, 0, 1)) {
-        shell_error(shell, "M3_STALL_REJECTED not_armed_or_repeated");
+        printk("M3_STALL_REJECTED not_armed_or_repeated\n");
         return -EINVAL;
     }
 #endif
 #if defined(CONFIG_CRUX_M3_INTEGRATED)
-    shell_print(shell, "M3_STALL_REQUESTED requested_ms=%lld deadline_ms=%lld",
-                (long long)requested, (long long)(requested + 15000));
+    printk("M3_STALL_REQUESTED requested_ms=%lld deadline_ms=%lld\n", (long long)requested,
+           (long long)(requested + 15000));
 #else
-    shell_print(shell, "M3_STALL_REQUESTED");
+    printk("M3_STALL_REQUESTED\n");
 #endif
     return 0;
 }
 
 #if defined(CONFIG_CRUX_M3_INTEGRATED)
 static int request_network(const struct shell *shell, size_t argc, char **argv) {
+    ARG_UNUSED(shell);
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
     if (!atomic_cas(&network_window_request, 0, 1)) {
-        shell_error(shell, "M3_NET_WINDOW_REJECTED repeated");
+        printk("M3_NET_WINDOW_REJECTED repeated\n");
         return -EALREADY;
     }
-    shell_print(shell, "M3_NET_WINDOW_REQUESTED duration_ms=60000");
+    printk("M3_NET_WINDOW_REQUESTED duration_ms=60000\n");
     return 0;
 }
 
 static int request_network_stall(const struct shell *shell, size_t argc, char **argv) {
+    ARG_UNUSED(shell);
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
     if (atomic_get(&armed) == 0 || !atomic_cas(&network_stall_request, 0, -1)) {
-        shell_error(shell, "M3_NET_STALL_REJECTED not_armed_or_repeated");
+        printk("M3_NET_STALL_REJECTED not_armed_or_repeated\n");
         return -EINVAL;
     }
     k_spinlock_key_t key = k_spin_lock(&network_lock);
@@ -324,21 +328,22 @@ static int request_network_stall(const struct shell *shell, size_t argc, char **
     network_stall_deadline = requested + 15000;
     k_spin_unlock(&network_lock, key);
     atomic_set(&network_stall_request, 1);
-    shell_print(shell, "M3_NET_STALL_REQUESTED requested_ms=%lld deadline_ms=%lld",
-                (long long)requested, (long long)(requested + 15000));
+    printk("M3_NET_STALL_REQUESTED requested_ms=%lld deadline_ms=%lld\n", (long long)requested,
+           (long long)(requested + 15000));
     return 0;
 }
 #endif
 
 static int report_status(const struct shell *shell, size_t argc, char **argv) {
+    ARG_UNUSED(shell);
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
 #if defined(CONFIG_CRUX_M3_INTEGRATED)
-    shell_print(shell, "M3_SCOPE non_uart=SW5 network=required armed=%ld",
+    printk("M3_SCOPE non_uart=SW5 network=required armed=%ld\n",
 #else
-    shell_print(shell, "M3_PENDING non_uart=unqualified network=held armed=%ld",
+    printk("M3_PENDING non_uart=unqualified network=held armed=%ld\n",
 #endif
-                (long)atomic_get(&armed));
+           (long)atomic_get(&armed));
     return 0;
 }
 

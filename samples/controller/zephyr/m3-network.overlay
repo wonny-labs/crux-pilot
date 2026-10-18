@@ -11,3 +11,8 @@
     /delete-property/ zephyr,random-mac-address;
     local-mac-address = [02 43 52 55 58 03];
 };
+
+/* Use the native 500 ms PHY monitor; the board IRQ path is not qualified here. */
+&phy {
+    /delete-property/ int-gpios;
+};
