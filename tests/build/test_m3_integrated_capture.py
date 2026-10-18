@@ -1,10 +1,9 @@
 import sys,tempfile,unittest
 from pathlib import Path
-from unittest.mock import Mock,patch
+from unittest.mock import Mock,patch,MagicMock
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'target'))
 import capture_m3_integrated as run
-import serial
-import serial.tools.list_ports
+import types
 
 class IntegratedCaptureControls(unittest.TestCase):
     def series(self,d):
@@ -18,7 +17,13 @@ class IntegratedCaptureControls(unittest.TestCase):
         s.loss_body=Mock();s.qualify=Mock();s.operator=Mock();s.wait=Mock()
         return s
     def execute(self,s):
-        with patch.object(run,'speak'),patch.object(run.net,'guard_check'),patch.object(run.subprocess,'check_output',return_value=''),patch.object(run.fcntl,'flock'),patch.object(run.fcntl,'ioctl'),patch.object(run,'check_owners'),patch.object(run,'select_uart'),patch.object(serial.tools.list_ports,'comports',return_value=[]),patch.object(serial,'Serial'),patch.object(run.net,'check_route',return_value=True),patch.object(run.time,'sleep'),patch.object(run.net,'release_peer'):
+        serial=types.ModuleType('serial')
+        serial.Serial=MagicMock()
+        serial.tools=types.ModuleType('serial.tools')
+        serial.tools.list_ports=types.ModuleType('serial.tools.list_ports')
+        serial.tools.list_ports.comports=Mock(return_value=[])
+        modules={'serial':serial,'serial.tools':serial.tools,'serial.tools.list_ports':serial.tools.list_ports}
+        with patch.dict(sys.modules,modules),patch.object(run,'speak'),patch.object(run.net,'guard_check'),patch.object(run.subprocess,'check_output',return_value=''),patch.object(run.fcntl,'flock'),patch.object(run.fcntl,'ioctl'),patch.object(run,'check_owners'),patch.object(run,'select_uart'),patch.object(serial.tools.list_ports,'comports',return_value=[]),patch.object(serial,'Serial'),patch.object(run.net,'check_route',return_value=True),patch.object(run.time,'sleep'),patch.object(run.net,'release_peer'):
             s.execute()
     def test_only_functional_failure_restores_once(self):
         for error,restores in ((run.FunctionalFailure('oracle'),1),(run.HardwareStop('UART/probe/guard/log'),0),(ValueError('unknown'),0)):
