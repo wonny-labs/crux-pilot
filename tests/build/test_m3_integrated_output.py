@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'target'))
-from m3_integrated_output import logger_groups, idle_logger_checkpoint, retained_prefix
+from m3_integrated_output import logger_groups, idle_logger_checkpoint, retained_prefix, planned_reset_rows
 from m3_image import check_record_output
 import capture_m3_integrated as capture
 
@@ -24,6 +24,49 @@ def fixture():
 
 
 class IntegratedNativeOutputControls(unittest.TestCase):
+    def test_loss_capture_waits_for_post_ack_observation(self):
+        # Loss and idle settling finished before a delayed human receipt.
+        receiver=Mock(rows=[])
+        state={'M3_OBSERVER_ALIVE':[
+            dict(monotonic_ms=12000,received=99.,readiness=0,healthy=0)],
+            'M3_NET_STATE':[dict(link=0,service_ready=0,received=95.)],
+            'M3_NET_WINDOW_STOP':[dict(received=95.)]}
+        series=Mock()
+        series.start_window.return_value=dict(end_ms=60000)
+        series.operator.return_value=dict(acknowledged=100.,requested=90.)
+        seen=[]
+        def wait(predicate,duration,rx):
+            if not predicate():
+                seen.append(duration)
+                state['M3_OBSERVER_ALIVE'].append(dict(monotonic_ms=23000,
+                    received=110.,readiness=0,healthy=0))
+                self.assertTrue(predicate())
+        series.wait.side_effect=wait
+        with patch.object(capture,'records',side_effect=lambda rows,name:state[name]),\
+             patch.object(capture.time,'monotonic',return_value=110.),\
+             patch.object(capture.net,'check_link',return_value=False):
+            capture.Series.loss_body(series,Path('/unused'),receiver)
+        self.assertEqual(seen,[5.])
+
+    def test_planned_reset_preserves_exact_new_epoch_and_old_fragment(self):
+        banner='*** Booting Zephyr OS build v4.4.0 ***'
+        rows=[(1.,'Thread analyze:'),(2.,' shell_uart          : STACK: '+banner),
+              (2.1,'M3_BOOT source=ec94fbec22cd profile=integrated commands=0 fault_default=off')]
+        result,excluded=planned_reset_rows(rows)
+        self.assertEqual(result[1:],[(2.,banner),rows[2]])
+        self.assertEqual(excluded,[dict(received=2.,fragment=' shell_uart          : STACK: ')])
+        self.assertTrue(rows[1][1].startswith(' shell_uart'))
+
+    def test_planned_reset_rejects_unrecognised_or_later_fragments(self):
+        banner='*** Booting Zephyr OS build v4.4.0 ***'
+        for prefix in ('garbage','M3_WORK ',' shell_uart          : STACK: unused 1 '):
+            with self.subTest(prefix=prefix),self.assertRaises(ValueError):
+                planned_reset_rows([(1.,'Thread analyze:'),(2.,prefix+banner)])
+        for rows in ([(1.,' shell_uart          : STACK: '+banner)],
+                     [(1.,banner),(2.,' shell_uart          : STACK: '+banner)],
+                     [(1.,'Thread analyze:'),(2.,' shell_uart          : STACK: '+banner+'bad')]):
+            with self.assertRaises(ValueError):planned_reset_rows(rows)
+
     def test_full_groups_and_first_three_idle_samples(self):
         rows=fixture()
         self.assertEqual(len(logger_groups(rows)),5)

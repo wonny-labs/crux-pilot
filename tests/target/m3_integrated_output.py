@@ -5,6 +5,34 @@ from m3_image import check_record_loss
 from m3_integrated_oracle import stacks
 from m3_network_output import exact_record
 
+
+def planned_reset_rows(rows):
+    """Separate one observed old Shell fragment from a literal planned boot.
+
+    This is an epoch boundary, not repair of fresh output. Keep raw bytes and
+    return the excluded fragment for the capture manifest. Later reset epochs
+    and every other joined/malformed banner remain subject to strict parsing.
+    """
+    banner = '*** Booting Zephyr OS build v4.4.0 ***'
+    result = []
+    excluded = []
+    seen_boot = False
+    for stamp, line in rows:
+        if banner in line and line != banner:
+            require(not seen_boot and not excluded and result and
+                    line.count(banner) == 1 and line.endswith(banner),
+                    'Ambiguous planned reset boundary')
+            fragment = line[:-len(banner)]
+            require(fragment in (' shell_uart          : STACK: ',
+                                 'shell_uart          : STACK: '),
+                    'Unrecognised truncated pre-reset fragment')
+            excluded.append(dict(received=stamp, fragment=fragment))
+            line = banner
+        if line.startswith('*** Booting Zephyr'):
+            seen_boot = True
+        result.append((stamp, line))
+    return result, excluded
+
 FIELDS = {
     'M3_OBSERVER_ALIVE': 'monotonic_ms healthy sequence readiness network_sequence network_completed_ms network_active network_status window_end_ms',
     'M3_STACK': 'worker_status worker_object worker_usable worker_unused main_status main_usable main_unused network_status network_object network_usable network_unused',

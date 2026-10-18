@@ -915,3 +915,22 @@ The first native model used the default 100 Hz tick and failed the oracle: its
 per-message delay rounded to coarse ticks and the fixed samples were displaced.
 That failed capture is retained; the corrected model explicitly uses the frozen
 EVKB's 10000 Hz tick. No production tick or acceptance limit changed.
+
+The subsequent ec94fbe physical series 06 passed the five actual SW5 groups with
+39 completed network pairs. Its F2 operator receipt arrived after the observation
+deadline, so that series remains stopped. The separately reviewed F2-forward
+series 07 received the real cable acknowledgement within the original window,
+but closed its capture before a fresh post-receipt observer row. The unchanged
+oracle correctly rejected the incomplete evidence. The capture now waits within
+the existing receipt-plus-15-second bound for that observation; it does not
+substitute an earlier row or extend the network window.
+
+Series 07's planned normal restoration fully verified the normal BIN, but its
+helper failed because the reset interrupted an old Shell analyser line and the
+literal new boot banner followed that fragment on the same UART line. Independent
+offline replay established normal behaviour from the preserved new epoch. The
+capture recognises only that exact observed fragment at the first planned boot,
+records its exclusion, and preserves every raw byte. Unknown fragments and later
+joined epochs remain rejected. Original failures remain failures; these capture
+corrections do not qualify F2/F3, the six watchdog trials or final integrated
+acceptance. The board was powered off and its temporary mount guard retired.

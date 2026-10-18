@@ -21,7 +21,7 @@ from capture_m3_gpio import speak, spoken_cue
 from m3_network_oracle import records
 from m3_integrated_oracle import (default_state, pairs, stacks, validate_watchdog,
                                   validate_functional, validate_link_loss, idle_resources)
-from m3_integrated_output import logger_groups, idle_logger_checkpoint, retained_prefix
+from m3_integrated_output import logger_groups, idle_logger_checkpoint, retained_prefix, planned_reset_rows
 
 
 class FunctionalFailure(ValueError): pass
@@ -245,13 +245,16 @@ class Series:
             self.current_role=role
             baseline_box=[]
             def initial_ready():
-                candidate=initial_checkpoint_rows(receiver.rows,self.source,int(role=='probe'),
+                candidate_rows=list(receiver.rows)
+                if getattr(self,'native_output',{}).get(role,False):
+                    candidate_rows,_ = planned_reset_rows(candidate_rows)
+                candidate=initial_checkpoint_rows(candidate_rows,self.source,int(role=='probe'),
                                                   getattr(self,'native_output',{}).get(role,False))
                 if not candidate:return False
                 baseline_box.append(candidate)
                 return True
             self.wait(initial_ready,10,receiver)
-            banners=[i for i,(_,s) in enumerate(receiver.rows) if s.startswith('*** Booting Zephyr')]
+            banners=[i for i,(_,s) in enumerate(baseline_box[0]) if s.startswith('*** Booting Zephyr')]
             require(len(banners)==1,'Initial fresh boot absent/duplicated')
             baseline=baseline_box[0]
             default_state(baseline,self.source,int(role=='probe'))
@@ -264,7 +267,9 @@ class Series:
                     if getattr(self,'native_output',{}).get(role,False):
                         from m3_uart import exact_event_rows
                         try:
-                            receiver.rows=exact_event_rows(case)
+                            receiver.rows,excluded=planned_reset_rows(exact_event_rows(case))
+                            (case/'planned-reset-boundary.json').write_text(json.dumps(dict(
+                                excluded_old_fragment=excluded,raw_unchanged=True),indent=2)+'\n')
                             banners=[i for i,(_,s) in enumerate(receiver.rows)
                                      if s.startswith('*** Booting Zephyr')]
                             require(banners,'Missing exact fresh boot')
@@ -375,6 +380,13 @@ class Series:
         self.wait(lambda:bool(records(receiver.rows,'M3_NET_WINDOW_STOP')),15,receiver)
         stopped=records(receiver.rows,'M3_NET_WINDOW_STOP')[0]
         self.wait(lambda:time.monotonic()>=stopped['received']+3.25,4,receiver)
+        # Loss may already have completed while the operator confirms it.
+        # Still collect a fresh post-receipt observation for the unchanged oracle.
+        self.wait(lambda:any(r['readiness']==r['healthy']==0 and
+                            acknowledged<=r['received']<=acknowledged+15 and
+                            r['monotonic_ms']<window['end_ms']
+                            for r in records(receiver.rows,'M3_OBSERVER_ALIVE')),
+                  max(0,acknowledged+15-time.monotonic()),receiver)
         return dict(status='CAPTURED',requested=requested,acknowledged=acknowledged,host_down_at=host_down[0])
 
     def qualify(self,case,receiver,metadata,kind,owner=None):
