@@ -43,6 +43,29 @@ class GPIOControls(unittest.TestCase):
             reader.assert_not_called()
             command.assert_not_called()
 
+    def test_static_diagnostic_missing_ack_stops_and_requests_release(self):
+        receiver=MagicMock()
+        receiver.rows=[r for r in fixture() if r[0]<6]
+        receiver.failure=None
+        receiver.text.return_value='retained'
+        clock=[0]
+        def now():
+            clock[0]+=.1
+            return clock[0]
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(gpio,'Receiver',return_value=receiver), \
+             patch.object(gpio,'drain'), patch.object(gpio,'commander') as command, \
+             patch.object(gpio.time,'monotonic',side_effect=now), \
+             patch.object(gpio.time,'sleep'), patch('builtins.print') as message:
+            path=Path(directory)
+            with self.assertRaisesRegex(ValueError,'acknowledgement timeout'):
+                gpio.capture_diagnostic(None,path)
+            command.assert_not_called()
+            receiver.finish.assert_called_once()
+            self.assertTrue((path/'failure.txt').is_file())
+            self.assertTrue((path/'lines.json').is_file())
+            self.assertTrue(any('DIAGNOSTIC_STOP' in str(c) for c in message.call_args_list))
+
     def test_spoken_cue_schedule_and_failure_evidence(self):
         for index in range(10):
             with tempfile.TemporaryDirectory() as directory, \
