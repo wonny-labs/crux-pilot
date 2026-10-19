@@ -1,13 +1,22 @@
-# Test organization
+# Test organisation
 
-## Host: `time/`
+Use GoogleTest/CTest for portable Host tests, Twister with Ztest or console
+harnesses for Zephyr test applications, and Python runners for scenario
+validation. The existing macOS physical Time/UART suite uses standalone pytest.
+M3 physical GPIO, network and integrated-controller qualification uses separate
+bounded Python CLI runners, not pytest or Twister's pytest harness. The latter
+is not currently configured in this repository.
+
+## Host: `time/` and `controller/`
 
 GoogleTest/CTest exercises the C17 Time implementation, calendar conversion, and portable command
 handler against the controlled host backend. The C++ tests include the public C headers and call
 the C17 implementation, providing the C++ consumer coverage needed for this API. The test build
 does not recompile production `.c` sources as C++ and does not maintain per-header fixtures or a
 separate link-only executable.
-CTest applies a 30-second limit to each discovered host test.
+The controller Host tests also cover portable scheduling, readiness, freshness,
+recovery and joint owner-health logic. CTest applies a 30-second limit to each
+discovered Time host test.
 
 The root CMake option `BUILD_TESTING=OFF` skips GoogleTest and C++ configuration. Set
 `CRUX_BUILD_HOST_SAMPLE=OFF` as well to configure and build only the portable and host library
@@ -93,6 +102,18 @@ phase logic. The maintained boundary-negative and host-runner failure checks are
 `tests/build`. Host CTest includes the finite controller scenario, including sanitizer exit
 status; `scripts/test-controller.sh` validates normal/missing-RTC native_sim compositions
 and cross-builds EVKB without hardware access. See the [controller conditions and limits](../samples/controller/README.md).
+
+Run `scripts/test-m3.sh` in the configured Linux/west environment for M3
+Zephyr scenarios and EVKB cross-builds. Twister runs Ztest and console harnesses
+for device readiness, networking, integrated behaviour and logging. Additional
+Python validators inspect the captured native simulation output. Neither this
+script nor CI programs or resets the physical EVKB.
+
+M3 hardware evidence is gathered separately by reviewed `tests/target/capture_m3*.py`
+command-line runners on the identified Mac/EVKB setup. These are not pytest
+test functions and are not automatically executed by GitHub Actions. Consult the
+[M3 validation record](../docs/m3-validation.md) for authorised fixtures,
+commands, exact firmware identities, final results and limits.
 
 
 The native deferred-output evaluation is under `tests/native/deferred_output`.
