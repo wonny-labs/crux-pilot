@@ -2,7 +2,7 @@
 
 **Crux** is an independent, reusable embedded software platform intended to support products built on **Zephyr** and **Embedded Linux**. Its direction is to combine shared platform capabilities, selective portability and repeatable engineering and validation practices.
 
-This repository is Crux's **initial development and architecture-validation workspace**. It contains platform code, reference applications, development tools and tests used to establish and validate the platform. The separate [Crux Platform repository](https://github.com/wonny-labs/crux-platform) maintains the vision, architecture and development plan.
+This repository is Crux's **initial development and architecture-validation workspace**. It contains platform code, reference applications, development tools and tests used to establish and validate the platform. Broader platform vision, architecture and development planning are maintained separately.
 
 ## Current implementation
 
@@ -26,7 +26,7 @@ Crux separates portable application behaviour, reusable platform capabilities an
 
 Portable components and application logic avoid Zephyr, board and vendor dependencies. Host and Zephyr compositions explicitly select their implementations. Host, `native_sim` and physical-target tests provide complementary evidence rather than interchangeable guarantees.
 
-For the broader design, see the [Architecture Concept](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-architecture-concept.md) and [Architecture Design](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-architecture-design.md). The implemented [Time contract](docs/time-contract.md) provides a concrete component example.
+The implemented [Time contract](docs/time-contract.md) provides a concrete component example.
 
 ## Repository structure
 
@@ -106,8 +106,6 @@ For the existing macOS/J-Link setup, start `scripts/macos/start-jlink-gdbserver.
 
 | Topic | Reference |
 | --- | --- |
-| Platform direction | [Vision](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-vision-and-direction.md) and [Development Plan](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-development-plan.md) |
-| Architecture | [Architecture Concept](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-architecture-concept.md) and [Architecture Design](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-architecture-design.md) |
 | Components and examples | [Time contract](docs/time-contract.md) and [reference controller](samples/controller/README.md) |
 | Testing and evidence | [Test guide](tests/README.md), [Controller validation and support limits](docs/m3-validation.md), [execution profile](docs/execution-profile.md) and [verification records](docs/baseline.md) |
 | Ongoing development | [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), [issues](https://github.com/wonny-labs/crux-pilot/issues) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) |
