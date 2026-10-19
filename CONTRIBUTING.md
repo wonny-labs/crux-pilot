@@ -4,7 +4,9 @@
 
 This guide defines the contribution and review practices for Crux Pilot. It applies to source code, samples, tests, documentation, build configuration and CI workflows in this repository.
 
-Contributors must follow the technical decisions and validation procedures adopted for this repository that apply to their changes. The [initial implementation plan](docs/plans/initial-implementation-plan.md) records scope and acceptance criteria; the [Time API contract](docs/time-contract.md) records the implemented Time API contract; [upstream reuse notes](docs/upstream-reuse.md) record source assessments and reuse decisions; and [implementation status](docs/implementation-status.md) and [build evidence](docs/baseline.md) record actual results. A design proposal or working document is not binding merely because it exists; it becomes a requirement for this repository only when a repository decision adopts it. The [README](README.md) provides development setup and build/test commands. [AGENTS.md](AGENTS.md) provides workflow instructions and execution constraints for AI agents.
+Contributors must follow the technical decisions and validation procedures adopted for the current work. The separate [Crux Platform repository](https://github.com/wonny-labs/crux-platform) maintains the vision, architecture and development plan. Approved GitHub issues and recorded decisions define the applicable scope and acceptance criteria. Implemented component contracts, such as the [Time API contract](docs/time-contract.md), and applicable verification evidence define supported behaviour. Consult the [upstream reuse notes](docs/upstream-reuse.md) for source assessments and reuse decisions.
+
+The [initial Time Pilot plan](docs/plans/initial-implementation-plan.md) and [implementation-status record](docs/implementation-status.md) preserve historical work rather than defining the current roadmap. Working proposals become requirements only when adopted. The [README](README.md) provides developer commands, the [test guide](tests/README.md) covers validation, and [AGENTS.md](AGENTS.md) defines AI execution boundaries.
 
 ## Making changes
 
@@ -159,7 +161,7 @@ Choose tests according to the change and the claims being made. The table guides
 | Samples or reference applications | Build and run applicable scenarios, including failure cases where useful |
 | Documentation-only change | Review technical accuracy, links and consistency |
 
-Use repository scripts for local validation. The [`host.yml`](.github/workflows/host.yml) and [`zephyr.yml`](.github/workflows/zephyr.yml) files define the automated CI checks currently configured. Consult the [README](README.md), [implementation status](docs/implementation-status.md), and [build evidence](docs/baseline.md) for commands and recorded results. Do not assume a proposed test tool, command or CI gate is implemented until it is present and working. Record failures and tests not run transparently. Security-sensitive changes require verification proportionate to their risk.
+Use repository scripts for local validation. The [`host.yml`](.github/workflows/host.yml) and [`zephyr.yml`](.github/workflows/zephyr.yml) files define the automated CI checks currently configured. Consult the [README](README.md) and [test guide](tests/README.md) for commands, and the applicable approved issues and linked validation records for evidence. Do not assume a proposed test tool, command or CI gate is implemented until it is present and working. Record failures and tests not run transparently. Security-sensitive changes require verification proportionate to their risk.
 
 ## Documentation
 

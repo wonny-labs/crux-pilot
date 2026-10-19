@@ -1,5 +1,9 @@
 # M3 execution and validation
 
+The accepted result and merged implementation are recorded under
+[User acceptance and closeout](#user-acceptance-and-closeout). Earlier interim
+status and failed attempts are retained as historical evidence.
+
 The current [#10], [#11] and [#12] acceptance criteria remain authoritative.
 This records execution decisions, gates and evidence; it does not replace them.
 The merged starting revision is `540ea7f934987989e429ae3767352b153fb2e747`.
@@ -984,8 +988,8 @@ and worst-case stack/jitter behaviour remain outside this bounded qualification.
 
 The user accepted the final scoped M3 result and authorised record corrections,
 independent review, squash merge of PR #13 and closure of #10, #11, #12 and M3.
-Those actions follow review and successful latest-head CI; this pre-merge record
-does not assert that integration has already occurred. M4 implementation remains
+At the time of this acceptance record, merge and issue closure remained pending.
+The completed integration is recorded below. M4 implementation remains
 unstarted and outside this authorisation. Earlier Pending/Draft and execution
 authority statements in the chronological evidence describe their historical
 stage; original failed attempts remain failures.
@@ -1002,3 +1006,15 @@ The final review rehashed the 545-payload physical archive and 16-payload
 publication archive successfully. No hardware or build/test rerun was performed
 for that read-only review. Documentation accuracy, consistency and latest-head CI
 are checked for this closeout; prior physical evidence is retained unchanged.
+
+**Integration status:** PR [#13](https://github.com/wonny-labs/crux-pilot/pull/13)
+was squash-merged into `main` as
+[`ce0b40f`](https://github.com/wonny-labs/crux-pilot/commit/ce0b40f8f9bca0076a28d0dd37bbfa4e0fa57962)
+on 18 October 2026. Issues [#10](https://github.com/wonny-labs/crux-pilot/issues/10),
+[#11](https://github.com/wonny-labs/crux-pilot/issues/11) and
+[#12](https://github.com/wonny-labs/crux-pilot/issues/12) were closed and M3 was
+accepted. The original physical firmware and capture identities remain as recorded
+above; the physically tested integrated firmware remains identified by `ec94fbe`.
+This documentation update does not change its source identity, previous failures
+or qualification limits. Earlier Pending statements document their respective
+historical stages.

@@ -1,13 +1,31 @@
-# Test organization
+# Test organisation
 
-## Host: `time/`
+Use GoogleTest/CTest for portable Host tests, Twister with Ztest or console
+harnesses for Zephyr test applications, and Python runners for scenario
+validation. The existing macOS physical Time/UART suite uses standalone pytest.
+Physical GPIO, network and integrated-controller qualification uses separate
+bounded Python CLI runners, not pytest or Twister's pytest harness. The latter
+is not currently configured in this repository.
+
+| Test purpose | Runner or harness | Environment |
+| --- | --- | --- |
+| Portable Time and controller logic | GoogleTest with CTest | Linux host |
+| Zephyr components and integration | Twister with Ztest, console or the default harness | Zephyr `native_sim` |
+| Basic periodic controller scenarios | Python runner through `scripts/test-controller.sh` | Zephyr `native_sim` |
+| Build tools and validation oracles | Python `unittest` | Linux host |
+| Physical Time/RTC functional tests | Standalone pytest through `scripts/test-target.sh` | macOS, EVKB and J-Link |
+| Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and controlled Mac/peer setup |
+
+## Host: `time/` and `controller/`
 
 GoogleTest/CTest exercises the C17 Time implementation, calendar conversion, and portable command
 handler against the controlled host backend. The C++ tests include the public C headers and call
 the C17 implementation, providing the C++ consumer coverage needed for this API. The test build
 does not recompile production `.c` sources as C++ and does not maintain per-header fixtures or a
 separate link-only executable.
-CTest applies a 30-second limit to each discovered host test.
+The controller Host tests also cover portable scheduling, readiness, freshness,
+recovery and joint owner-health logic. CTest applies a 30-second limit to each
+discovered Time host test.
 
 The root CMake option `BUILD_TESTING=OFF` skips GoogleTest and C++ configuration. Set
 `CRUX_BUILD_HOST_SAMPLE=OFF` as well to configure and build only the portable and host library
@@ -15,11 +33,10 @@ targets.
 
 ## Zephyr: `zephyr_time/`
 
-Twister builds and runs the C17 Ztest application on two `native_sim/native/64` configurations: one
-with an RTC alias and one without it. The RTC case also runs on the EVKB using the explicitly
-selected board configuration documented in the baseline. Tests cover Zephyr error mapping, RTC backend behavior, the
-shared command handler, and the actual registered Zephyr Shell adapter using Zephyr's dummy Shell
-backend. The trailing-argument case verifies that Shell passes syntax errors to the shared Crux
+Twister builds and runs the C17 Ztest application on two `native_sim/native/64`
+configurations, one with an RTC alias and one without it. Tests cover Zephyr error
+mapping, RTC backend behaviour, the shared command handler and the registered
+Zephyr Shell adapter using the dummy Shell backend. The trailing-argument case verifies that Shell passes syntax errors to the shared Crux
 handler for the documented `ERR INVALID_ARGUMENT` result.
 
 Host tests own portable behavior. Ztest covers native integration and the Shell boundary. The two
@@ -32,8 +49,10 @@ after setting up the west workspace and SDK:
 scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
 ```
 
-This runs `native_sim` Ztests, builds the native simulation sample and cross-builds the
-EVKB image. It does not program or reset the physical board.
+This runs the `native_sim` Ztests, builds the Time Shell sample for simulation and
+cross-builds its EVKB firmware image. It does not run Ztests on the EVKB, program
+or reset the physical board. Physical RTC behaviour is verified separately by
+the macOS pytest suite below.
 
 ## Build tools: `build/`
 
@@ -94,6 +113,19 @@ phase logic. The maintained boundary-negative and host-runner failure checks are
 status; `scripts/test-controller.sh` validates normal/missing-RTC native_sim compositions
 and cross-builds EVKB without hardware access. See the [controller conditions and limits](../samples/controller/README.md).
 
+Run `scripts/test-m3.sh` in the configured Linux/west environment for device,
+networking and integrated-controller Zephyr scenarios and EVKB cross-builds. Twister executes Ztest, console-harness and other `native_sim` application scenarios.
+Additional Python validators inspect the captured simulation output. Neither this
+script nor CI programs or resets the physical EVKB.
+
+Physical device, network and integrated-controller evidence is gathered by the
+reviewed `tests/target/capture_m3*.py` command-line runners on the identified Mac/EVKB setup. These are not pytest
+test functions and are not automatically executed by GitHub Actions. Consult the
+[controller validation record](../docs/m3-validation.md) for authorised fixtures,
+commands, exact firmware identities, final results and limits.
+
+
+## Native output fixtures
 
 The native deferred-output evaluation is under `tests/native/deferred_output`.
 It runs the pinned Zephyr raw printk queue and UART backend on native_sim, including
