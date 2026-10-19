@@ -3,7 +3,7 @@
 Use GoogleTest/CTest for portable Host tests, Twister with Ztest or console
 harnesses for Zephyr test applications, and Python runners for scenario
 validation. The existing macOS physical Time/UART suite uses standalone pytest.
-M3 physical GPIO, network and integrated-controller qualification uses separate
+Physical GPIO, network and integrated-controller qualification uses separate
 bounded Python CLI runners, not pytest or Twister's pytest harness. The latter
 is not currently configured in this repository.
 
@@ -103,16 +103,16 @@ phase logic. The maintained boundary-negative and host-runner failure checks are
 status; `scripts/test-controller.sh` validates normal/missing-RTC native_sim compositions
 and cross-builds EVKB without hardware access. See the [controller conditions and limits](../samples/controller/README.md).
 
-Run `scripts/test-m3.sh` in the configured Linux/west environment for M3
-Zephyr scenarios and EVKB cross-builds. Twister runs Ztest and console harnesses
+Run `scripts/test-m3.sh` in the configured Linux/west environment for device,
+networking and integrated-controller Zephyr scenarios and EVKB cross-builds. Twister runs Ztest and console harnesses
 for device readiness, networking, integrated behaviour and logging. Additional
 Python validators inspect the captured native simulation output. Neither this
 script nor CI programs or resets the physical EVKB.
 
-M3 hardware evidence is gathered separately by reviewed `tests/target/capture_m3*.py`
-command-line runners on the identified Mac/EVKB setup. These are not pytest
+Physical device, network and integrated-controller evidence is gathered by the
+reviewed `tests/target/capture_m3*.py` command-line runners on the identified Mac/EVKB setup. These are not pytest
 test functions and are not automatically executed by GitHub Actions. Consult the
-[M3 validation record](../docs/m3-validation.md) for authorised fixtures,
+[controller validation record](../docs/m3-validation.md) for authorised fixtures,
 commands, exact firmware identities, final results and limits.
 
 
