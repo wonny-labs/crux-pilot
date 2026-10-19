@@ -1003,4 +1003,12 @@ publication archive successfully. No hardware or build/test rerun was performed
 for that read-only review. Documentation accuracy, consistency and latest-head CI
 are checked for this closeout; prior physical evidence is retained unchanged.
 
-PR [#13](https://github.com/wonny-labs/crux-pilot/pull/13) was subsequently squash-merged into `main` on 18 October 2026 as [`ce0b40f`](https://github.com/wonny-labs/crux-pilot/commit/ce0b40f8f9bca0076a28d0dd37bbfa4e0fa57962). Issues [#10](https://github.com/wonny-labs/crux-pilot/issues/10), [#11](https://github.com/wonny-labs/crux-pilot/issues/11) and [#12](https://github.com/wonny-labs/crux-pilot/issues/12) were closed, completing the accepted M3 scope. The physically tested firmware remains identified by `ec94fbe`. This documentation-only closeout does not change its source identity, previous failures or qualification limits.
+PR [#13](https://github.com/wonny-labs/crux-pilot/pull/13) was subsequently squash-merged
+into `main` on 18 October 2026 as
+[`ce0b40f`](https://github.com/wonny-labs/crux-pilot/commit/ce0b40f8f9bca0076a28d0dd37bbfa4e0fa57962)
+. Issues [#10](https://github.com/wonny-labs/crux-pilot/issues/10) ,
+[#11](https://github.com/wonny-labs/crux-pilot/issues/11) and
+[#12](https://github.com/wonny-labs/crux-pilot/issues/12) were closed, completing the
+accepted M3 scope. The physically tested firmware remains identified by `ec94fbe` . This
+documentation-only closeout does not change its source identity, previous failures or
+qualification limits.

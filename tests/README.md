@@ -1,6 +1,7 @@
 # Test organisation
 
-Crux uses different test tools for different validation goals. A simulated build or a passing CI check does not replace physical-target evidence.
+Crux uses different test tools for different validation goals. A simulated build or a
+passing CI check does not replace physical-target evidence.
 
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
@@ -11,7 +12,8 @@ Crux uses different test tools for different validation goals. A simulated build
 | Time/RTC physical functional tests | Standalone pytest through `scripts/test-target.sh` | macOS, EVKB and J-Link |
 | M3 I/O, network and integrated watchdog tests | Dedicated Python CLI capture runners | Physical EVKB and controlled Mac/peer setup |
 
-No current Twister test uses its pytest harness. Standalone pytest and the M3 physical CLI runners are not Twister-managed hardware tests.
+No current Twister test uses its pytest harness. Standalone pytest and the M3 physical CLI
+runners are not Twister-managed hardware tests.
 
 ## Host: `time/`
 
@@ -108,9 +110,15 @@ and cross-builds EVKB without hardware access. See the [controller conditions an
 
 ## M3 integration and physical verification
 
-`scripts/test-m3.sh` runs the M3 `native_sim` suites through Twister, checks native output and network behaviour, and cross-builds selected EVKB configurations. It does not flash or reset the board. GPIO, Ethernet and combined health/watchdog target validation is recorded in [M3 validation](../docs/m3-validation.md).
+`scripts/test-m3.sh` runs the M3 `native_sim` suites through Twister, checks native output
+and network behaviour, and cross-builds selected EVKB configurations. It does not flash or
+reset the board. GPIO, Ethernet and combined health/watchdog target validation is recorded
+in [M3 validation](../docs/m3-validation.md) .
 
-The physical M3 procedures use separately authorised, interactive Python CLI capture runners under `tests/target/capture_m3*.py`. They are not pytest tests and are not run by GitHub Actions. Use the recorded hardware setup, source and image identities, operator gates and recovery procedures before any physical operation.
+The physical M3 procedures use separately authorised, interactive Python CLI capture
+runners under `tests/target/capture_m3*.py` . They are not pytest tests and are not run by
+GitHub Actions. Use the recorded hardware setup, source and image identities, operator
+gates and recovery procedures before any physical operation.
 
 ## Native output fixtures
 

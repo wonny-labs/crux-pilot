@@ -73,15 +73,33 @@ and M2 issues [#6](https://github.com/wonny-labs/crux-pilot/issues/6) and
 
 ## Integrated M3 reference controller
 
-The accepted M3 Zephyr composition extends the reference controller with the onboard SW5 GPIO input, UART diagnostics, bounded IPv4 TCP/UDP exchanges, required-service readiness and native watchdog/reset observations. Watchdog servicing depends on progress from the Time/GPIO and network owners. These are reference-application integrations using Zephyr-native services, not new public Crux platform interfaces. The Linux host executable above retains the finite M2 scenario.
+The accepted M3 Zephyr composition extends the reference controller with the onboard SW5
+GPIO input, UART diagnostics, bounded IPv4 TCP/UDP exchanges, required-service readiness
+and native watchdog/reset observations. Watchdog servicing depends on progress from the
+Time/GPIO and network owners. These are reference-application integrations using
+Zephyr-native services, not new public Crux platform interfaces. The Linux host executable
+above retains the finite M2 scenario.
 
-In the Linux Dev Container, `scripts/test-m3.sh` runs the M3 `native_sim` suites and cross-builds the identified EVKB probe and normal variants, including `m3-integrated-probe-evkb` and `m3-integrated-normal-evkb`. It does not program or reset the board. The probe variant has development-only test commands. The normal image starts with those commands, automatic network traffic and watchdog arming disabled.
+In the Linux Dev Container, `scripts/test-m3.sh` runs the M3 `native_sim` suites and
+cross-builds the identified EVKB probe and normal variants, including
+`m3-integrated-probe-evkb` and `m3-integrated-normal-evkb` . It does not program or reset
+the board. The probe variant has development-only test commands. The normal image starts
+with those commands, automatic network traffic and watchdog arming disabled.
 
-Physical evidence on the identified EVKB covers real SW5 and UART operation, TCP/UDP traffic with an isolated Mac peer, link loss/recovery, and 3 Time-owner plus 3 network-owner watchdog fault trials. See [M3 validation](../../docs/m3-validation.md) for exact configurations, test identities, retained failures and support limits. I2C, general SPI, EEPROM and other GPIO paths are not physically qualified. The [opt-in native MDIO correction](../../patches/zephyr/README.md) is restricted to the verified RT1062 composition.
+Physical evidence on the identified EVKB covers real SW5 and UART operation, TCP/UDP
+traffic with an isolated Mac peer, link loss/recovery, and 3 Time-owner plus 3
+network-owner watchdog fault trials. See [M3 validation](../../docs/m3-validation.md) for
+exact configurations, test identities, retained failures and support limits. I2C, general
+SPI, EEPROM and other GPIO paths are not physically qualified. The
+[opt-in native MDIO correction](../../patches/zephyr/README.md) is restricted to the
+verified RT1062 composition.
 
 ## Independent M3 GPIO and health configuration
 
-This standalone M3 composition uses native GPIO for the onboard `sw0` input and observes actual critical-worker completion before allowing a watchdog feed. It does not include the integrated network configuration or introduce a Crux public interface. The existing M2 composition and its finite UTC-step scenario remain available.
+This standalone M3 composition uses native GPIO for the onboard `sw0` input and observes
+actual critical-worker completion before allowing a watchdog feed. It does not include the
+integrated network configuration or introduce a Crux public interface. The existing M2
+composition and its finite UTC-step scenario remain available.
 
 From the documented Linux workspace, run `scripts/test-m3.sh` for the three
 `native_sim` GPIO/health scenarios, native-client socket controls and EVKB
@@ -106,7 +124,11 @@ use them only under the independently reviewed physical/recovery plan. Ordinary
 boot does neither. Add `m3-normal.conf` after `m3.conf` (semicolon-separated in
 `EXTRA_CONF_FILE`) for a normal image without Shell/test commands.
 
-`M3_WORK` reports input-read and unset/valid Time status. In this standalone configuration, `M3_PENDING` denotes that required network integration is not enabled. It is not the completion status of M3. Emulated GPIO transitions and a standalone health probe cannot substitute for the separately qualified physical I/O, networking and integrated-controller evidence in [M3 validation](../../docs/m3-validation.md).
+`M3_WORK` reports input-read and unset/valid Time status. In this standalone
+configuration, `M3_PENDING` denotes that required network integration is not enabled. It
+is not the completion status of M3. Emulated GPIO transitions and a standalone health
+probe cannot substitute for the separately qualified physical I/O, networking and
+integrated-controller evidence in [M3 validation](../../docs/m3-validation.md) .
 
 ## Isolated M3 network configuration
 
@@ -116,7 +138,9 @@ LED ownership of GPIO1.9 so PHY reset retains that pin, and selects local test M
 02:43:52:55:58:03. It uses EVKB 192.168.77.2/24 and Mac 192.168.77.1/24, with no
 DHCP, gateway or DNS. This configuration is for a direct isolated cable only.
 Confirm actual interface, MAC, cabling and current physical gate before execution.
-Cross-builds and simulated tests alone do not qualify physical Ethernet behaviour. The separate component and integrated target evidence is recorded in [M3 validation](../../docs/m3-validation.md).
+Cross-builds and simulated tests alone do not qualify physical Ethernet behaviour. The
+separate component and integrated target evidence is recorded in
+[M3 validation](../../docs/m3-validation.md) .
 
 The Shell command `m3net` requests one round: ten framed TCP exchanges to port 42420,
 then ten UDP datagrams to port 42421. Each exchange has one monotonic 2 s deadline.
@@ -145,4 +169,6 @@ Restored carrier alone cannot restore service readiness: a complete successful
 explicit round is required. `M3_NET_RESOURCE` reports application ownership and
 native context/pkt/buffer availability. These are observations, not a leak-free
 claim; physical cleanup acceptance still needs predeclared idle return bounds and
-both-end repeated failure/recovery evidence. The standalone network probe is distinct from the integrated controller. Its results alone do not establish the combined health/watchdog evidence recorded in [M3 validation](../../docs/m3-validation.md).
+both-end repeated failure/recovery evidence. The standalone network probe is distinct from
+the integrated controller. Its results alone do not establish the combined health/watchdog
+evidence recorded in [M3 validation](../../docs/m3-validation.md) .
