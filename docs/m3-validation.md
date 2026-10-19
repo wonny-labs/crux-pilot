@@ -1002,3 +1002,12 @@ The final review rehashed the 545-payload physical archive and 16-payload
 publication archive successfully. No hardware or build/test rerun was performed
 for that read-only review. Documentation accuracy, consistency and latest-head CI
 are checked for this closeout; prior physical evidence is retained unchanged.
+
+**Integration status:** PR [#13](https://github.com/wonny-labs/crux-pilot/pull/13)
+was squash-merged into `main` as
+[`ce0b40f`](https://github.com/wonny-labs/crux-pilot/commit/ce0b40f8f9bca0076a28d0dd37bbfa4e0fa57962)
+on 18 October 2026. Issues [#10](https://github.com/wonny-labs/crux-pilot/issues/10),
+[#11](https://github.com/wonny-labs/crux-pilot/issues/11) and
+[#12](https://github.com/wonny-labs/crux-pilot/issues/12) were closed and M3 was
+accepted. The original physical firmware and capture identities remain as recorded
+above. Earlier Pending statements document their respective historical stages.
