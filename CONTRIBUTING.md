@@ -4,7 +4,7 @@
 
 This guide defines the contribution and review practices for Crux Pilot. It applies to source code, samples, tests, documentation, build configuration and CI workflows in this repository.
 
-Contributors must follow the technical decisions and validation procedures adopted for the current work. The separate [Crux Platform repository](https://github.com/wonny-labs/crux-platform) maintains the vision, architecture and development plan. Approved GitHub issues and recorded decisions define the applicable scope and acceptance criteria. Implemented component contracts, such as the [Time API contract](docs/time-contract.md), and applicable verification evidence define supported behaviour. Consult the [upstream reuse notes](docs/upstream-reuse.md) for source assessments and reuse decisions.
+Contributors must follow the technical decisions and validation procedures adopted for the current work. Approved GitHub issues and recorded repository decisions define the applicable scope and acceptance criteria. Implemented component contracts, such as the [Time API contract](docs/time-contract.md), and applicable verification evidence define supported behaviour. Consult the [upstream reuse notes](docs/upstream-reuse.md) for source assessments and reuse decisions.
 
 The [initial Time Pilot plan](docs/plans/initial-implementation-plan.md) and [implementation-status record](docs/implementation-status.md) preserve historical work rather than defining the current roadmap. Working proposals become requirements only when adopted. The [README](README.md) provides developer commands, the [test guide](tests/README.md) covers validation, and [AGENTS.md](AGENTS.md) defines AI execution boundaries.
 
