@@ -42,18 +42,23 @@ Within user-authorised work, AI may propose, create and maintain GitHub Issues, 
 
 Record satisfied acceptance criteria, remaining gaps, blockers and support limits against the active work. Distinguish investigation findings, recommended decisions, approved decisions and implemented behaviour. Select representative probes and tests that resolve material uncertainties; do not interpret a broad investigation as a requirement to verify every API combination. Completion claims must match the approved acceptance criteria and available evidence.
 
-## Historical approvals
+## Independent review and historical decisions
 
-M2 issues [#6](https://github.com/wonny-labs/crux-pilot/issues/6) and
-[#7](https://github.com/wonny-labs/crux-pilot/issues/7) were accepted and merged
-through [PR #9](https://github.com/wonny-labs/crux-pilot/pull/9). M3 issues
-[#10](https://github.com/wonny-labs/crux-pilot/issues/10),
-[#11](https://github.com/wonny-labs/crux-pilot/issues/11) and
-[#12](https://github.com/wonny-labs/crux-pilot/issues/12) were accepted and
-merged through [PR #13](https://github.com/wonny-labs/crux-pilot/pull/13).
-Their bounded decisions, independent reviews and target authorisations are
-historical records, not standing permission for later work or hardware access.
-Use the current task's authorisation and acceptance criteria.
+Where the approved workflow requires independent review, use a reviewer who did
+not author the change or its implementation. The reviewer independently checks
+the applicable requirements, actual source and configuration, tests and retained
+evidence rather than relying on the author's summary or verdict. Record a
+reasoned `PASS`, `REVISE` or `ESCALATE` decision, including material limitations
+and unresolved findings. `REVISE` requires correction and independent re-review.
+`ESCALATE` or a material disagreement requires a human decision. A review `PASS`
+satisfies only its defined review gate and does not grant new scope, hardware,
+merge or issue-closure authority.
+
+Completed work-specific delegations, decisions and acceptance evidence remain in
+the associated issues, pull requests and validation records. Their permissions
+are not standing authorisation for future work. Continue to follow adopted
+technical decisions where applicable, while resolving current task scope and
+approval independently.
 
 ## Validation and evidence
 
