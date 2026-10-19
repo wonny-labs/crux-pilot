@@ -11,7 +11,7 @@ Read the following before planning or changing code:
 - The current **Crux Platform Vision, Architecture Concept, Architecture Design and Development Plan** in the separate private `wonny-labs/crux-platform` repository, preferably from a read-only sibling checkout. Locate and read them rather than assuming an outdated local copy is current.
 - Applicable component contracts, tests and implementation evidence in this repository.
 
-The earlier Time Pilot plan in `docs/plans/initial-implementation-plan.md` and its **M0–M5** acceptance identifiers are historical **Pilot milestones**, separate from the current platform roadmap. Consult the applicable approved issues, `docs/implementation-status.md` and `docs/baseline.md` for progress and actual verification evidence. Historical results do not authorise unrelated work or prove a current roadmap milestone complete. Do not merge the two milestone systems or re-run completed work without a specific reason.
+The earlier Time Pilot plan in `docs/plans/initial-implementation-plan.md` and its **M0–M5** acceptance identifiers are historical **Pilot milestones**, separate from the current platform roadmap. Consult approved GitHub issues, PRs and applicable validation records for current delivery status. `docs/implementation-status.md` and `docs/baseline.md` retain historical Time Pilot evidence. Historical results do not authorise unrelated work or prove a current milestone complete. Do not merge the two milestone systems or re-run completed work without a specific reason.
 
 Current implemented contracts and verified source behaviour are the factual baseline. Working architecture proposals guide development but become implementation requirements only when adopted for the current work. Report material conflicts between the platform documents and existing implementation instead of silently rewriting either. If the private planning repository is inaccessible, report that limitation and avoid decisions that depend on its unread contents.
 
@@ -42,13 +42,11 @@ Within user-authorised work, AI may propose, create and maintain GitHub Issues, 
 
 Record satisfied acceptance criteria, remaining gaps, blockers and support limits against the active work. Distinguish investigation findings, recommended decisions, approved decisions and implemented behaviour. Select representative probes and tests that resolve material uncertainties; do not interpret a broad investigation as a requirement to verify every API combination. Completion claims must match the approved acceptance criteria and available evidence.
 
-## Bounded delegation for M2 issues #6 and #7
+## Independent review and historical approvals
 
-For the user-authorised #6 → #7 execution, AI may select a provisional reference-controller execution profile and begin #7 without further intermediate human approval only after a separate reviewer subagent independently checks the governing requirements, actual source/configuration and test evidence and returns PASS. The reviewer must not author the implementation or rely solely on the author's conclusions. REVISE requires correction and another independent review; ESCALATE or a material unresolved disagreement requires a human decision.
+When the active work requires independent review, use a reviewer that did not author the proposal or implementation. The reviewer must inspect governing requirements, applicable source/configuration and actual test evidence rather than relying only on the author's summary. Record a scoped PASS, REVISE or ESCALATE result and resolve material findings before passing the corresponding review gate. An independent PASS does not itself authorise hardware operations, architectural commitments, merges or milestone closure.
 
-This delegation covers composition-local use of existing native Zephyr APIs or an evidenced POSIX subset within the pinned baseline and existing contracts. It does not approve a platform-wide standard, new Crux public interface, compatibility change, major dependency/toolchain change, architectural commitment, security-sensitive decision or new real-time guarantee. A universal OSAL and speculative services remain outside scope. Escalate when the required outcome exceeds these limits rather than broadening the delegation.
-
-Host and applicable `native_sim` evidence may support provisional implementation while physical timing/resource validation remains Pending. Record the independent verdict, selection rationale, evidence limits and remaining physical cases before proceeding. Do not claim target qualification, close #7 or declare M2 complete while required physical evidence is missing. The initial software execution prohibited hardware operations. The user's subsequent explicit authorisation permits scoped Flash, Reset and UART verification for PR #9 under its recorded physical test plan; it does not authorise PR merging or automatic issue/milestone closure. Prepare reviewed evidence for final human review. These task-specific limits do not weaken the general approval rules above.
+The bounded M2 #6/#7 delegation and PR #9 hardware/merge authorisations are historical, retained in their issues and PR. They grant no authority for subsequent tasks. Follow the active work's recorded approvals and decision gates.
 
 ## Validation and evidence
 
@@ -56,7 +54,9 @@ Use the existing repository checks as applicable:
 
 - `scripts/check-host.sh` and `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` for host behaviour and sanitizers.
 - `scripts/check-format.sh`, `scripts/analyze-host.sh` and `scripts/check-dependencies.sh` for formatting, static analysis and architecture boundaries.
-- `scripts/check-zephyr-smoke.sh` and `scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'` for Zephyr builds, `native_sim` and tests.
+- `scripts/check-zephyr-smoke.sh`, `scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'`, `scripts/test-controller.sh` and `scripts/test-execution.sh` for applicable Zephyr builds, `native_sim` and execution tests.
+- `scripts/test-m3.sh` for M3 software integration and EVKB cross-builds. It does not operate or qualify the physical board.
+- [tests/README.md](tests/README.md) and the active issue/PR for additional suites and their actual validation status.
 
 Use the Linux Dev Container and documented west workspace configuration for supported commands. Choose tests appropriate to the change; do not rerun costly unrelated checks without a reason. Distinguish passing local tests, passing GitHub Actions, successful EVKB compilation and **physical-board test evidence**. None implies the others. Record the tested revision, commands, configurations, failures, skipped checks and relevant artefacts in the issue/PR or applicable evidence document. Do not report unexecuted or blocked tests as passing.
 

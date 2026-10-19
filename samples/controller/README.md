@@ -1,6 +1,6 @@
-# Early reference controller
+# Reference controller
 
-This product-neutral M2 consumer reports Time availability/UTC and cycle progress. Its
+The initial M2 reference scenario reports Time availability/UTC and cycle progress. Its
 portable core contains no OS headers. The host and Zephyr compositions own scheduling,
 initialisation and all Time access; neither enables a concurrent Time command writer.
 The sample-owned `controller.h` and helpers are not new Crux platform interfaces.
@@ -8,7 +8,7 @@ The core's private Time header path lets tests select the existing instrumented 
 composition; final applications consume `crux::time`. Base/Time production code and
 public contracts are unchanged.
 
-## Scenario and verification conditions
+## M2 scenario and verification conditions
 
 Conditions defined before the first controller run: 20 observations on a 100 ms monotonic
 phase grid, normal unloaded composition, one execution owner. Cycles 0–1 observe unset
@@ -33,7 +33,7 @@ initialisation and no cycles. The simulation runner terminates the idle kernel a
 final success/failure marker; it does not claim a Zephyr kernel shutdown API. The finite
 host process must exit successfully, allowing sanitizer shutdown diagnostics to fail it.
 
-## Build and run without hardware
+## M2 build and run without hardware
 
 In the documented Linux environment, `scripts/check-host.sh` builds/tests the controller
 alongside existing tests. Run `build/linux/debug/samples/controller/host/crux-controller-host`
@@ -47,7 +47,7 @@ are under `build/zephyr/controller-{normal,missing-rtc}/scenario.log`; the EVKB 
 under `build/zephyr/controller-evkb/`. Existing host/Zephyr workflows run these paths and
 retain reports/configuration/artefacts for 14 days.
 
-## Physical verification — bounded evidence
+## M2 physical verification — bounded evidence
 
 [Authorised physical verification](../../docs/m2-physical-verification.md) ran the identified
 controller three times on EVKB B/QSPI: 20 cycles each, expected unset/valid Time and backward
@@ -71,12 +71,17 @@ qualification are not established. The scoped M2 result was accepted and merged 
 and M2 issues [#6](https://github.com/wonny-labs/crux-pilot/issues/6) and
 [#7](https://github.com/wonny-labs/crux-pilot/issues/7) are closed. Its bounded evidence does not establish M3 acceptance.
 
-## Independent M3 GPIO and health probe
+## Integrated M3 reference controller
 
-M3 is in progress. This separate composition uses native GPIO for the onboard
-`sw0` input and observes actual critical-worker completion before allowing a
-watchdog feed. It adds no Crux public interface. The existing M2 composition and
-its finite UTC-step scenario remain available.
+The accepted M3 Zephyr composition extends the reference controller with the onboard SW5 GPIO input, UART diagnostics, bounded IPv4 TCP/UDP exchanges, required-service readiness and native watchdog/reset observations. Watchdog servicing depends on progress from the Time/GPIO and network owners. These are reference-application integrations using Zephyr-native services, not new public Crux platform interfaces. The Linux host executable above retains the finite M2 scenario.
+
+In the Linux Dev Container, `scripts/test-m3.sh` runs the M3 `native_sim` suites and cross-builds the identified EVKB probe and normal variants, including `m3-integrated-probe-evkb` and `m3-integrated-normal-evkb`. It does not program or reset the board. The probe variant has development-only test commands. The normal image starts with those commands, automatic network traffic and watchdog arming disabled.
+
+Physical evidence on the identified EVKB covers real SW5 and UART operation, TCP/UDP traffic with an isolated Mac peer, link loss/recovery, and 3 Time-owner plus 3 network-owner watchdog fault trials. See [M3 validation](../../docs/m3-validation.md) for exact configurations, test identities, retained failures and support limits. I2C, general SPI, EEPROM and other GPIO paths are not physically qualified. The [opt-in native MDIO correction](../../patches/zephyr/README.md) is restricted to the verified RT1062 composition.
+
+## Independent M3 GPIO and health configuration
+
+This standalone M3 composition uses native GPIO for the onboard `sw0` input and observes actual critical-worker completion before allowing a watchdog feed. It does not include the integrated network configuration or introduce a Crux public interface. The existing M2 composition and its finite UTC-step scenario remain available.
 
 From the documented Linux workspace, run `scripts/test-m3.sh` for the three
 `native_sim` GPIO/health scenarios, native-client socket controls and EVKB
@@ -101,15 +106,9 @@ use them only under the independently reviewed physical/recovery plan. Ordinary
 boot does neither. Add `m3-normal.conf` after `m3.conf` (semicolon-separated in
 `EXTRA_CONF_FILE`) for a normal image without Shell/test commands.
 
-`M3_WORK` reports input read status and an unset/valid Time status. `M3_PENDING`
-remains not ready: actual I/O stimulus and combined Ethernet integration are
-unqualified. The earlier Ethernet hold has been released; the standalone health
-image still contains the historical held-state diagnostic. Emulated GPIO transitions and the independent health probe cannot establish
-#10 real-I/O, #11 networking or #12 combined-integration acceptance. Refer to
-[the M3 execution record](../../docs/m3-validation.md) and the linked issue records
-for actual results, support limits and physical gates.
+`M3_WORK` reports input-read and unset/valid Time status. In this standalone configuration, `M3_PENDING` denotes that required network integration is not enabled. It is not the completion status of M3. Emulated GPIO transitions and a standalone health probe cannot substitute for the separately qualified physical I/O, networking and integrated-controller evidence in [M3 validation](../../docs/m3-validation.md).
 
-## Isolated M3 network probe — software preparation
+## Isolated M3 network configuration
 
 `m3-network.conf` and `m3-network.overlay` select a separate native IPv4 client.
 Do not combine them with the independent health configuration. The overlay removes
@@ -117,7 +116,7 @@ LED ownership of GPIO1.9 so PHY reset retains that pin, and selects local test M
 02:43:52:55:58:03. It uses EVKB 192.168.77.2/24 and Mac 192.168.77.1/24, with no
 DHCP, gateway or DNS. This configuration is for a direct isolated cable only.
 Confirm actual interface, MAC, cabling and current physical gate before execution.
-Successful cross-builds and instrumented native tests do not qualify real Ethernet.
+Cross-builds and simulated tests alone do not qualify physical Ethernet behaviour. The separate component and integrated target evidence is recorded in [M3 validation](../../docs/m3-validation.md).
 
 The Shell command `m3net` requests one round: ten framed TCP exchanges to port 42420,
 then ten UDP datagrams to port 42421. Each exchange has one monotonic 2 s deadline.
@@ -146,5 +145,4 @@ Restored carrier alone cannot restore service readiness: a complete successful
 explicit round is required. `M3_NET_RESOURCE` reports application ownership and
 native context/pkt/buffer availability. These are observations, not a leak-free
 claim; physical cleanup acceptance still needs predeclared idle return bounds and
-both-end repeated failure/recovery evidence. The standalone network probe does
-not establish combined controller health/watchdog acceptance.
+both-end repeated failure/recovery evidence. The standalone network probe is distinct from the integrated controller. Its results alone do not establish the combined health/watchdog evidence recorded in [M3 validation](../../docs/m3-validation.md).

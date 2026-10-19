@@ -4,7 +4,9 @@
 
 This guide defines the contribution and review practices for Crux Pilot. It applies to source code, samples, tests, documentation, build configuration and CI workflows in this repository.
 
-Contributors must follow the technical decisions and validation procedures adopted for this repository that apply to their changes. The [initial implementation plan](docs/plans/initial-implementation-plan.md) records scope and acceptance criteria; the [Time API contract](docs/time-contract.md) records the implemented Time API contract; [upstream reuse notes](docs/upstream-reuse.md) record source assessments and reuse decisions; and [implementation status](docs/implementation-status.md) and [build evidence](docs/baseline.md) record actual results. A design proposal or working document is not binding merely because it exists; it becomes a requirement for this repository only when a repository decision adopts it. The [README](README.md) provides development setup and build/test commands. [AGENTS.md](AGENTS.md) provides workflow instructions and execution constraints for AI agents.
+Contributors must follow decisions and validation requirements adopted for the active work. The separate [Crux Platform repository](https://github.com/wonny-labs/crux-platform) maintains the vision, architecture and development plan. Approved GitHub issues and milestone records identify the applicable implementation outcomes and acceptance criteria. Working design proposals become requirements only when adopted for the relevant work.
+
+Implemented component contracts, including the [Time API contract](docs/time-contract.md), and actual [verification evidence](docs/baseline.md) define supported behaviour. The [upstream reuse notes](docs/upstream-reuse.md) record source assessments and reuse decisions. The [initial Time Pilot plan](docs/plans/initial-implementation-plan.md) and [implementation-status record](docs/implementation-status.md) retain historical evidence with milestone identifiers distinct from the current platform roadmap. See the [README](README.md) for setup and development commands and [AGENTS.md](AGENTS.md) for AI-agent execution constraints.
 
 ## Making changes
 

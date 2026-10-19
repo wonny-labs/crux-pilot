@@ -984,8 +984,8 @@ and worst-case stack/jitter behaviour remain outside this bounded qualification.
 
 The user accepted the final scoped M3 result and authorised record corrections,
 independent review, squash merge of PR #13 and closure of #10, #11, #12 and M3.
-Those actions follow review and successful latest-head CI; this pre-merge record
-does not assert that integration has already occurred. M4 implementation remains
+At the time of this acceptance record, merge and issue closure remained pending.
+The completed integration is recorded below. M4 implementation remains
 unstarted and outside this authorisation. Earlier Pending/Draft and execution
 authority statements in the chronological evidence describe their historical
 stage; original failed attempts remain failures.
@@ -1002,3 +1002,5 @@ The final review rehashed the 545-payload physical archive and 16-payload
 publication archive successfully. No hardware or build/test rerun was performed
 for that read-only review. Documentation accuracy, consistency and latest-head CI
 are checked for this closeout; prior physical evidence is retained unchanged.
+
+PR [#13](https://github.com/wonny-labs/crux-pilot/pull/13) was subsequently squash-merged into `main` on 18 October 2026 as [`ce0b40f`](https://github.com/wonny-labs/crux-pilot/commit/ce0b40f8f9bca0076a28d0dd37bbfa4e0fa57962). Issues [#10](https://github.com/wonny-labs/crux-pilot/issues/10), [#11](https://github.com/wonny-labs/crux-pilot/issues/11) and [#12](https://github.com/wonny-labs/crux-pilot/issues/12) were closed, completing the accepted M3 scope. The physically tested firmware remains identified by `ec94fbe`. This documentation-only closeout does not change its source identity, previous failures or qualification limits.

@@ -1,4 +1,17 @@
-# Test organization
+# Test organisation
+
+Crux uses different test tools for different validation goals. A simulated build or a passing CI check does not replace physical-target evidence.
+
+| Test purpose | Runner or harness | Environment |
+| --- | --- | --- |
+| Portable Time and controller logic | GoogleTest with CTest | Linux host |
+| Zephyr components and integration | Twister with Ztest, console or the default harness | Zephyr `native_sim` |
+| Reference-controller functional scenarios | Python runner through `scripts/test-controller.sh` | Zephyr `native_sim` |
+| Build tools and validation oracles | Python `unittest` | Linux host |
+| Time/RTC physical functional tests | Standalone pytest through `scripts/test-target.sh` | macOS, EVKB and J-Link |
+| M3 I/O, network and integrated watchdog tests | Dedicated Python CLI capture runners | Physical EVKB and controlled Mac/peer setup |
+
+No current Twister test uses its pytest harness. Standalone pytest and the M3 physical CLI runners are not Twister-managed hardware tests.
 
 ## Host: `time/`
 
@@ -16,8 +29,7 @@ targets.
 ## Zephyr: `zephyr_time/`
 
 Twister builds and runs the C17 Ztest application on two `native_sim/native/64` configurations: one
-with an RTC alias and one without it. The RTC case also runs on the EVKB using the explicitly
-selected board configuration documented in the baseline. Tests cover Zephyr error mapping, RTC backend behavior, the
+with an RTC alias and one without it. The Time sample is separately cross-built for EVKB, and actual RTC/UART behaviour is checked by the macOS physical suite. Tests cover Zephyr error mapping, RTC backend behaviour, the
 shared command handler, and the actual registered Zephyr Shell adapter using Zephyr's dummy Shell
 backend. The trailing-argument case verifies that Shell passes syntax errors to the shared Crux
 handler for the documented `ERR INVALID_ARGUMENT` result.
@@ -94,6 +106,13 @@ phase logic. The maintained boundary-negative and host-runner failure checks are
 status; `scripts/test-controller.sh` validates normal/missing-RTC native_sim compositions
 and cross-builds EVKB without hardware access. See the [controller conditions and limits](../samples/controller/README.md).
 
+## M3 integration and physical verification
+
+`scripts/test-m3.sh` runs the M3 `native_sim` suites through Twister, checks native output and network behaviour, and cross-builds selected EVKB configurations. It does not flash or reset the board. GPIO, Ethernet and combined health/watchdog target validation is recorded in [M3 validation](../docs/m3-validation.md).
+
+The physical M3 procedures use separately authorised, interactive Python CLI capture runners under `tests/target/capture_m3*.py`. They are not pytest tests and are not run by GitHub Actions. Use the recorded hardware setup, source and image identities, operator gates and recovery procedures before any physical operation.
+
+## Native output fixtures
 
 The native deferred-output evaluation is under `tests/native/deferred_output`.
 It runs the pinned Zephyr raw printk queue and UART backend on native_sim, including

@@ -11,11 +11,13 @@ The `main` branch currently includes:
 | Area | Available implementation |
 | --- | --- |
 | Reusable components | Portable C17 `base` and `time` components, with Linux host and Zephyr Time implementations |
-| Reference application | A periodic controller with shared portable logic and separate Linux host and Zephyr compositions |
+| Reference application | A reference controller with shared portable logic and separate Linux host and Zephyr compositions |
+| Native device and networking | Zephyr-based SW5 GPIO input, UART diagnostics and bounded IPv4 TCP/UDP exchanges on the EVKB |
+| Diagnostics and health | Observable service readiness and fault states, plus workload-conditioned native watchdog supervision in the M3 reference composition |
 | Zephyr integration | Out-of-tree module, RTC integration, Shell example, `native_sim` tests and EVKB builds |
 | Engineering foundation | CMake and west builds, Dev Container, automated tests, static checks, GitHub Actions and build-provenance evidence |
 
-The initial hardware target is the **MIMXRT1060-EVKB revision B** using `mimxrt1060_evk@B//qspi`. Verified hardware behaviour and limitations are specific to the tested configurations.
+The initial hardware target is the **MIMXRT1060-EVKB revision B** using `mimxrt1060_evk@B//qspi`. M3 physical validation covers SW5, UART, isolated Ethernet link-loss/recovery and bounded watchdog/reset scenarios on this board. Other I/O buses, production networking and long-run performance are not qualified. See [M3 validation](docs/m3-validation.md) for the evidence and limits.
 
 The native Linux host runs portable code without Zephyr, while Zephyr `native_sim` exercises Zephyr integration on a host. An **Embedded Linux production variant** is part of Crux's longer-term direction, not a currently implemented target. See [milestones](https://github.com/wonny-labs/crux-pilot/milestones) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) for ongoing work.
 
@@ -62,7 +64,7 @@ Run the reference application without hardware:
 build/linux/debug/samples/controller/host/crux-controller-host
 ```
 
-The executable runs a finite periodic controller scenario and reports its progress and Time status. See the [reference controller](samples/controller/README.md) for the scenario and its limitations.
+The Linux host executable runs the original finite periodic Time scenario. M3 hardware I/O, networking and watchdog integration use separate Zephyr configurations. See the [reference controller](samples/controller/README.md) for the scenarios and their limitations.
 
 For subsequent builds, tests and quality checks:
 
@@ -87,13 +89,14 @@ When Zephyr development is needed, initialise the west workspace and install the
 scripts/bootstrap-zephyr.sh --install-sdk
 ```
 
-Run the current reference-controller `native_sim` scenarios and EVKB cross-build:
+Run the original reference-controller scenarios and M3 integration checks, including `native_sim` tests and EVKB cross-builds:
 
 ```sh
 scripts/test-controller.sh
+scripts/test-m3.sh
 ```
 
-This does **not** program or reset the physical board. Additional component tests, including Time integration tests, are described in the [test guide](tests/README.md). Host and simulated execution do not replace physical-target verification.
+Neither script programs or resets the physical board. Additional component and physical-target tests are described in the [test guide](tests/README.md). Host and simulated execution do not replace physical-target verification.
 
 ### Flash and debug
 
@@ -108,7 +111,7 @@ For the existing macOS/J-Link setup, start `scripts/macos/start-jlink-gdbserver.
 | Platform direction | [Vision](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-vision-and-direction.md) and [Development Plan](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-development-plan.md) |
 | Architecture | [Architecture Concept](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-architecture-concept.md) and [Architecture Design](https://github.com/wonny-labs/crux-platform/blob/main/docs/platform-architecture-design.md) |
 | Components and examples | [Time contract](docs/time-contract.md) and [reference controller](samples/controller/README.md) |
-| Testing and evidence | [Test guide](tests/README.md), [execution profile](docs/execution-profile.md) and [verification records](docs/baseline.md) |
+| Testing and evidence | [Test guide](tests/README.md), [execution profile](docs/execution-profile.md), [M3 validation](docs/m3-validation.md) and [verification records](docs/baseline.md) |
 | Ongoing development | [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), [issues](https://github.com/wonny-labs/crux-pilot/issues) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) |
 
 The [original Time Pilot plan](docs/plans/initial-implementation-plan.md) and [implementation-status record](docs/implementation-status.md) retain historical results and earlier roadmap notes. Their M0–M5 identifiers differ from the current platform roadmap. Use the GitHub records above for current delivery status.
