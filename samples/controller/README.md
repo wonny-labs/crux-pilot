@@ -1,7 +1,9 @@
 # Reference controller
 
-The original product-neutral M2 consumer reports Time availability/UTC and cycle progress. M3 adds separate native Zephyr configurations for device I/O, networking, diagnostics and workload-conditioned watchdog supervision. Its
-portable core contains no OS headers. The host and Zephyr compositions own scheduling,
+The original product-neutral M2 consumer reports Time availability/UTC and cycle
+progress. Its portable core contains no OS headers. M3 adds separate native
+Zephyr compositions for device I/O, networking, diagnostics and
+workload-conditioned watchdog supervision. The host and Zephyr compositions own scheduling,
 initialisation and all Time access; neither enables a concurrent Time command writer.
 The sample-owned `controller.h` and helpers are not new Crux platform interfaces.
 The core's private Time header path lets tests select the existing instrumented Time
@@ -73,7 +75,8 @@ and M2 issues [#6](https://github.com/wonny-labs/crux-pilot/issues/6) and
 
 ## Independent M3 GPIO and health probe
 
-The M3 milestone is accepted and merged in [PR #13](https://github.com/wonny-labs/crux-pilot/pull/13). This separate diagnostic composition uses native GPIO for the onboard
+The M3 milestone is accepted, and its implementation was merged through
+[PR #13](https://github.com/wonny-labs/crux-pilot/pull/13). This separate diagnostic composition uses native GPIO for the onboard
 `sw0` input and observes actual critical-worker completion before allowing a
 watchdog feed. It adds no Crux public interface. The existing M2 composition and
 its finite UTC-step scenario remain available.
