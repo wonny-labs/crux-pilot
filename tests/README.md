@@ -113,10 +113,10 @@ and cross-builds EVKB without hardware access. See the [controller conditions an
 `scripts/test-m3.sh` runs the M3 `native_sim` suites through Twister, checks native output
 and network behaviour, and cross-builds selected EVKB configurations. It does not flash or
 reset the board. GPIO, Ethernet and combined health/watchdog target validation is recorded
-in [M3 validation](../docs/m3-validation.md) .
+in [M3 validation](../docs/m3-validation.md).
 
 The physical M3 procedures use separately authorised, interactive Python CLI capture
-runners under `tests/target/capture_m3*.py` . They are not pytest tests and are not run by
+runners under `tests/target/capture_m3*.py`. They are not pytest tests and are not run by
 GitHub Actions. Use the recorded hardware setup, source and image identities, operator
 gates and recovery procedures before any physical operation.
 

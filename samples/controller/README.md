@@ -82,7 +82,7 @@ above retains the finite M2 scenario.
 
 In the Linux Dev Container, `scripts/test-m3.sh` runs the M3 `native_sim` suites and
 cross-builds the identified EVKB probe and normal variants, including
-`m3-integrated-probe-evkb` and `m3-integrated-normal-evkb` . It does not program or reset
+`m3-integrated-probe-evkb` and `m3-integrated-normal-evkb`. It does not program or reset
 the board. The probe variant has development-only test commands. The normal image starts
 with those commands, automatic network traffic and watchdog arming disabled.
 
@@ -128,7 +128,7 @@ boot does neither. Add `m3-normal.conf` after `m3.conf` (semicolon-separated in
 configuration, `M3_PENDING` denotes that required network integration is not enabled. It
 is not the completion status of M3. Emulated GPIO transitions and a standalone health
 probe cannot substitute for the separately qualified physical I/O, networking and
-integrated-controller evidence in [M3 validation](../../docs/m3-validation.md) .
+integrated-controller evidence in [M3 validation](../../docs/m3-validation.md).
 
 ## Isolated M3 network configuration
 
@@ -140,7 +140,7 @@ DHCP, gateway or DNS. This configuration is for a direct isolated cable only.
 Confirm actual interface, MAC, cabling and current physical gate before execution.
 Cross-builds and simulated tests alone do not qualify physical Ethernet behaviour. The
 separate component and integrated target evidence is recorded in
-[M3 validation](../../docs/m3-validation.md) .
+[M3 validation](../../docs/m3-validation.md).
 
 The Shell command `m3net` requests one round: ten framed TCP exchanges to port 42420,
 then ten UDP datagrams to port 42421. Each exchange has one monotonic 2 s deadline.
@@ -171,4 +171,4 @@ native context/pkt/buffer availability. These are observations, not a leak-free
 claim; physical cleanup acceptance still needs predeclared idle return bounds and
 both-end repeated failure/recovery evidence. The standalone network probe is distinct from
 the integrated controller. Its results alone do not establish the combined health/watchdog
-evidence recorded in [M3 validation](../../docs/m3-validation.md) .
+evidence recorded in [M3 validation](../../docs/m3-validation.md).
