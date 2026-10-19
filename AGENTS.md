@@ -11,7 +11,9 @@ Read the following before planning or changing code:
 - The current **Crux Platform Vision, Architecture Concept, Architecture Design and Development Plan** in the separate private `wonny-labs/crux-platform` repository, preferably from a read-only sibling checkout. Locate and read them rather than assuming an outdated local copy is current.
 - Applicable component contracts, tests and implementation evidence in this repository.
 
-The earlier Time Pilot plan in `docs/plans/initial-implementation-plan.md` and its **M0–M5** acceptance identifiers are historical **Pilot milestones**, separate from the current platform roadmap. Consult the applicable approved issues, `docs/implementation-status.md` and `docs/baseline.md` for progress and actual verification evidence. Historical results do not authorise unrelated work or prove a current roadmap milestone complete. Do not merge the two milestone systems or re-run completed work without a specific reason.
+The earlier Time Pilot plan in `docs/plans/initial-implementation-plan.md` and its **M0–M5** acceptance identifiers are historical **Pilot milestones**, separate from the current platform roadmap. Use current GitHub issues, pull requests and milestone records for delivery status.
+Consult `docs/implementation-status.md` and `docs/baseline.md` for their recorded
+historical verification evidence. Historical results do not authorise unrelated work or prove a current roadmap milestone complete. Do not merge the two milestone systems or re-run completed work without a specific reason.
 
 Current implemented contracts and verified source behaviour are the factual baseline. Working architecture proposals guide development but become implementation requirements only when adopted for the current work. Report material conflicts between the platform documents and existing implementation instead of silently rewriting either. If the private planning repository is inaccessible, report that limitation and avoid decisions that depend on its unread contents.
 
