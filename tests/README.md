@@ -24,11 +24,10 @@ targets.
 
 ## Zephyr: `zephyr_time/`
 
-Twister builds and runs the C17 Ztest application on two `native_sim/native/64` configurations: one
-with an RTC alias and one without it. The RTC case also runs on the EVKB using the explicitly
-selected board configuration documented in the baseline. Tests cover Zephyr error mapping, RTC backend behavior, the
-shared command handler, and the actual registered Zephyr Shell adapter using Zephyr's dummy Shell
-backend. The trailing-argument case verifies that Shell passes syntax errors to the shared Crux
+Twister builds and runs the C17 Ztest application on two `native_sim/native/64`
+configurations, one with an RTC alias and one without it. Tests cover Zephyr error
+mapping, RTC backend behaviour, the shared command handler and the registered
+Zephyr Shell adapter using the dummy Shell backend. The trailing-argument case verifies that Shell passes syntax errors to the shared Crux
 handler for the documented `ERR INVALID_ARGUMENT` result.
 
 Host tests own portable behavior. Ztest covers native integration and the Shell boundary. The two
@@ -41,8 +40,10 @@ after setting up the west workspace and SDK:
 scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
 ```
 
-This runs `native_sim` Ztests, builds the native simulation sample and cross-builds the
-EVKB image. It does not program or reset the physical board.
+This runs the `native_sim` Ztests, builds the Time Shell sample for simulation and
+cross-builds its EVKB firmware image. It does not run Ztests on the EVKB, program
+or reset the physical board. Physical RTC behaviour is verified separately by
+the macOS pytest suite below.
 
 ## Build tools: `build/`
 
