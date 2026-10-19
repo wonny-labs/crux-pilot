@@ -84,7 +84,9 @@ qualification are not established. The scoped M2 result was accepted and merged 
 [PR #9](https://github.com/wonny-labs/crux-pilot/pull/9) as commit
 [`540ea7f`](https://github.com/wonny-labs/crux-pilot/commit/540ea7f934987989e429ae3767352b153fb2e747),
 and M2 issues [#6](https://github.com/wonny-labs/crux-pilot/issues/6) and
-[#7](https://github.com/wonny-labs/crux-pilot/issues/7) are closed. Its bounded evidence does not establish M3 acceptance.
+[#7](https://github.com/wonny-labs/crux-pilot/issues/7) are closed. These results apply
+only to the basic periodic scenario. Integrated device, network and watchdog
+verification is documented separately in the [controller validation record](../../docs/m3-validation.md).
 
 ## Device and health probe
 
