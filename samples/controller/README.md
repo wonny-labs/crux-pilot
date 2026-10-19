@@ -1,6 +1,6 @@
-# Early reference controller
+# Reference controller
 
-This product-neutral M2 consumer reports Time availability/UTC and cycle progress. Its
+The original product-neutral M2 consumer reports Time availability/UTC and cycle progress. M3 adds separate native Zephyr configurations for device I/O, networking, diagnostics and workload-conditioned watchdog supervision. Its
 portable core contains no OS headers. The host and Zephyr compositions own scheduling,
 initialisation and all Time access; neither enables a concurrent Time command writer.
 The sample-owned `controller.h` and helpers are not new Crux platform interfaces.
@@ -73,7 +73,7 @@ and M2 issues [#6](https://github.com/wonny-labs/crux-pilot/issues/6) and
 
 ## Independent M3 GPIO and health probe
 
-M3 is in progress. This separate composition uses native GPIO for the onboard
+The M3 milestone is accepted and merged in [PR #13](https://github.com/wonny-labs/crux-pilot/pull/13). This separate diagnostic composition uses native GPIO for the onboard
 `sw0` input and observes actual critical-worker completion before allowing a
 watchdog feed. It adds no Crux public interface. The existing M2 composition and
 its finite UTC-step scenario remain available.
@@ -101,15 +101,13 @@ use them only under the independently reviewed physical/recovery plan. Ordinary
 boot does neither. Add `m3-normal.conf` after `m3.conf` (semicolon-separated in
 `EXTRA_CONF_FILE`) for a normal image without Shell/test commands.
 
-`M3_WORK` reports input read status and an unset/valid Time status. `M3_PENDING`
-remains not ready: actual I/O stimulus and combined Ethernet integration are
-unqualified. The earlier Ethernet hold has been released; the standalone health
-image still contains the historical held-state diagnostic. Emulated GPIO transitions and the independent health probe cannot establish
-#10 real-I/O, #11 networking or #12 combined-integration acceptance. Refer to
-[the M3 execution record](../../docs/m3-validation.md) and the linked issue records
-for actual results, support limits and physical gates.
+`M3_WORK` reports input read status and an unset/valid Time status. The standalone
+health probe retains its `M3_PENDING` diagnostic and is not the qualified integrated
+composition. M3 physical acceptance is based on separate actual SW5, Ethernet and
+combined-controller evidence. See [the M3 validation record](../../docs/m3-validation.md)
+for identified firmware, tests, previous failures and support limits.
 
-## Isolated M3 network probe — software preparation
+## Isolated M3 network probe
 
 `m3-network.conf` and `m3-network.overlay` select a separate native IPv4 client.
 Do not combine them with the independent health configuration. The overlay removes
@@ -145,6 +143,28 @@ entry point. This is a test boundary, not production protocol/security approval.
 Restored carrier alone cannot restore service readiness: a complete successful
 explicit round is required. `M3_NET_RESOURCE` reports application ownership and
 native context/pkt/buffer availability. These are observations, not a leak-free
-claim; physical cleanup acceptance still needs predeclared idle return bounds and
-both-end repeated failure/recovery evidence. The standalone network probe does
-not establish combined controller health/watchdog acceptance.
+claim; physical cleanup claims beyond the tested bounds. Qualified network and integrated
+controller results are recorded separately in [M3 validation](../../docs/m3-validation.md).
+
+## M3 integrated reference composition
+
+The supported M3 reference scenario combines actual SW5 GPIO observations, serialised
+Time access, bounded IPv4 TCP/UDP exchanges, UART diagnostics, service-readiness
+observations and health supervision of the critical Time/GPIO and network owners.
+The network window, fault injection and watchdog arming are deliberate development
+test operations, not automatic startup behaviour. The normal configuration disables
+test Shell commands and leaves watchdog arming and network traffic off at boot.
+
+`scripts/test-m3.sh` runs the applicable Twister/native simulation and build-only
+checks, including the integrated EVKB probe and normal profiles. This script does
+not flash, reset or communicate with hardware. It produces images under
+`build/zephyr/m3-integrated-{probe,normal}-evkb/`. Physical operation requires a
+separately authorised procedure, verified firmware/configuration and the isolated
+network fixture. See [M3 validation and final acceptance](../../docs/m3-validation.md)
+for the tested composition, required settings, results and restrictions.
+
+The M3 target evidence covers the identified RT1062 EVKB revision B/QSPI, its SW5
+path and isolated Ethernet peer. It does not qualify other GPIO/I2C/SPI/EEPROM
+paths, production networking, worst-case resource/timing behaviour or the M5
+concurrent-load scenarios. The Linux host continues to exercise the portable
+scenario and shared health logic, not the EVKB-specific device/network composition.
