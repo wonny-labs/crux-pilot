@@ -1,5 +1,9 @@
 # M3 execution and validation
 
+The accepted result and merged implementation are recorded under
+[User acceptance and closeout](#user-acceptance-and-closeout). Earlier interim
+status and failed attempts are retained as historical evidence.
+
 The current [#10], [#11] and [#12] acceptance criteria remain authoritative.
 This records execution decisions, gates and evidence; it does not replace them.
 The merged starting revision is `540ea7f934987989e429ae3767352b153fb2e747`.
