@@ -1,10 +1,10 @@
 # Reference controller
 
-The original product-neutral M2 consumer reports Time availability/UTC and cycle
-progress. Its portable core contains no OS headers. M3 adds separate native
-Zephyr compositions for device I/O, networking, diagnostics and
-workload-conditioned watchdog supervision. The host and Zephyr compositions own scheduling,
-initialisation and all Time access; neither enables a concurrent Time command writer.
+The basic product-neutral reference scenario reports Time availability, UTC and
+cycle progress. Its portable core contains no OS headers. Separate native Zephyr
+compositions exercise device I/O, networking, diagnostics and workload-conditioned
+watchdog supervision. The host and Zephyr compositions own their scheduling,
+initialisation and Time access. No concurrent Time command writer is enabled.
 The sample-owned `controller.h` and helpers are not new Crux platform interfaces.
 The core's private Time header path lets tests select the existing instrumented Time
 composition; final applications consume `crux::time`. Base/Time production code and
@@ -117,8 +117,8 @@ boot does neither. Add `m3-normal.conf` after `m3.conf` (semicolon-separated in
 
 `M3_WORK` reports input read status and an unset/valid Time status. The standalone
 health probe retains its `M3_PENDING` diagnostic and is not the qualified integrated
-composition. M3 physical acceptance is based on separate actual SW5, Ethernet and
-combined-controller evidence. See [the M3 validation record](../../docs/m3-validation.md)
+composition. The accepted physical results combine actual SW5, Ethernet and integrated-
+controller evidence. See [the validation record](../../docs/m3-validation.md)
 for identified firmware, tests, previous failures and support limits.
 
 ## Network probe
