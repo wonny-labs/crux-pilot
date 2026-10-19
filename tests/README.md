@@ -104,9 +104,8 @@ status; `scripts/test-controller.sh` validates normal/missing-RTC native_sim com
 and cross-builds EVKB without hardware access. See the [controller conditions and limits](../samples/controller/README.md).
 
 Run `scripts/test-m3.sh` in the configured Linux/west environment for device,
-networking and integrated-controller Zephyr scenarios and EVKB cross-builds. Twister runs Ztest and console harnesses
-for device readiness, networking, integrated behaviour and logging. Additional
-Python validators inspect the captured native simulation output. Neither this
+networking and integrated-controller Zephyr scenarios and EVKB cross-builds. Twister executes Ztest, console-harness and other `native_sim` application scenarios.
+Additional Python validators inspect the captured simulation output. Neither this
 script nor CI programs or resets the physical EVKB.
 
 Physical device, network and integrated-controller evidence is gathered by the
