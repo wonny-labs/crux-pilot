@@ -68,7 +68,9 @@ Use the existing repository checks as applicable:
 
 - `scripts/check-host.sh` and `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh` for host behaviour and sanitizers.
 - `scripts/check-format.sh`, `scripts/analyze-host.sh` and `scripts/check-dependencies.sh` for formatting, static analysis and architecture boundaries.
-- `scripts/check-zephyr-smoke.sh`, `scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'`, `scripts/test-controller.sh` and `scripts/test-m3.sh` for applicable Zephyr builds, Twister/`native_sim` and reference-controller checks.
+- `scripts/check-zephyr-smoke.sh`, `scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'`, `scripts/test-execution.sh` and `scripts/test-controller.sh` for applicable Zephyr builds, Twister/`native_sim` and execution/reference-controller checks.
+- `scripts/test-m3.sh` for device, networking and integrated-controller software checks and EVKB cross-builds. It does not operate or qualify the physical board.
+- [Test guide](tests/README.md) and the active issue/PR for additional suites and their actual validation status.
 
 Use the Linux Dev Container and documented west workspace configuration for supported commands. Choose tests appropriate to the change; do not rerun costly unrelated checks without a reason. Distinguish passing local tests, passing GitHub Actions, successful EVKB compilation and **physical-board test evidence**. None implies the others. Record the tested revision, commands, configurations, failures, skipped checks and relevant artefacts in the issue/PR or applicable evidence document. Do not report unexecuted or blocked tests as passing.
 

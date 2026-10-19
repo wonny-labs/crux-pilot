@@ -184,3 +184,8 @@ path and isolated Ethernet peer. It does not qualify other GPIO/I2C/SPI/EEPROM
 paths, production networking, worst-case resource/timing behaviour or
 long-duration concurrent-load scenarios. The Linux host continues to exercise the portable
 scenario and shared health logic, not the EVKB-specific device/network composition.
+
+The qualified integrated build explicitly selects the
+[opt-in native MDIO correction](../../patches/zephyr/README.md). Its pinned-source
+and RT1062 composition limits remain applicable; the ordinary uncorrected network
+probe build is not qualified by the corrected profile's physical results.

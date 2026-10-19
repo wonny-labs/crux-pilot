@@ -7,6 +7,15 @@ Physical GPIO, network and integrated-controller qualification uses separate
 bounded Python CLI runners, not pytest or Twister's pytest harness. The latter
 is not currently configured in this repository.
 
+| Test purpose | Runner or harness | Environment |
+| --- | --- | --- |
+| Portable Time and controller logic | GoogleTest with CTest | Linux host |
+| Zephyr components and integration | Twister with Ztest, console or the default harness | Zephyr `native_sim` |
+| Basic periodic controller scenarios | Python runner through `scripts/test-controller.sh` | Zephyr `native_sim` |
+| Build tools and validation oracles | Python `unittest` | Linux host |
+| Physical Time/RTC functional tests | Standalone pytest through `scripts/test-target.sh` | macOS, EVKB and J-Link |
+| Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and controlled Mac/peer setup |
+
 ## Host: `time/` and `controller/`
 
 GoogleTest/CTest exercises the C17 Time implementation, calendar conversion, and portable command
@@ -115,6 +124,8 @@ test functions and are not automatically executed by GitHub Actions. Consult the
 [controller validation record](../docs/m3-validation.md) for authorised fixtures,
 commands, exact firmware identities, final results and limits.
 
+
+## Native output fixtures
 
 The native deferred-output evaluation is under `tests/native/deferred_output`.
 It runs the pinned Zephyr raw printk queue and UART backend on native_sim, including
