@@ -1,0 +1,394 @@
+{
+  "scope": "Issue14 investigation only; no hardware, no backend or partition adoption",
+  "baseline": "fd9e341ed4c49654a8498198627a84092aad912c",
+  "zephyr": "684c9e8f32e4373a21098559f748f06915f950c9",
+  "hal_nxp": "2c2f28ac333e995d7279777409817c4b4f92c1ec",
+  "source_sha256": {
+    "boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts": "ab7a30e2ae9910e91b94e272e9f51e97840bd2fc131c35994ad322b4700d4589",
+    "boards/nxp/mimxrt1060_evk/xip/evkbmimxrt1060_flexspi_nor_config.c": "0ea7cf9246bac6643cad06396ff3f518ebf34b7793666646847e736eacb8c5f3",
+    "soc/nxp/imxrt/boot_header.ld": "c42366c4dfd5b104937362b337cf96727cf352a7ef6ccdb15ac9d5e55c0489b8",
+    "include/zephyr/arch/arm/cortex_m/scripts/linker.ld": "2e549611c2033b5e93a8092f21340270aa974887ae6d6bfcd450a05070e4a74c",
+    "drivers/flash/flash_mcux_flexspi_nor.c": "397019890b4ce7afae88c7da1913ab0b8ac57c3ee1a2c1975c7ba6c4c08a3ea4",
+    "drivers/memc/memc_mcux_flexspi.c": "0b9cfcd4fef488d542977b628dbc0c0c3c9243fff1d50cc8dc7315b49e74ce20",
+    "soc/nxp/common/Kconfig.flexspi_xip": "5d523c82234f01bd642944f7cf2843c3a040c1cbf9f317fc03d1029ea08992b4",
+    "modules/hal_nxp/mcux/mcux-sdk-ng/drivers/drivers.cmake": "7a4a831882f65ceae5656b49bfa20bcd33f6ca6728f1f9c155bc9b171f57774c",
+    "subsys/settings/Kconfig": "e4fe92cc419e2ddf1b4d99658e8aa6287f40a46bf7fc21c3f14335152ede2700",
+    "subsys/settings/src/settings_nvs.c": "ab6aa643eae9f5c5ca8099ddac89cc63aaa2fd43f775a8de5efcb11aad3c0244",
+    "subsys/settings/src/settings_zms.c": "821af491dbab21f8575d6032f62dcb4941cabb10af542c8f0b925d983350f162",
+    "subsys/settings/src/settings_file.c": "00552b579f97b32f99ad7a9c34237aa7bdb2630965e7c2f64d88b5ea7bcabaeb",
+    "subsys/fs/littlefs_fs.c": "4eea4c32851dc363c1937da374c08ce4290c42d568e3e2d7dff0c2c3d4f7b836",
+    "subsys/kvss/nvs/nvs.c": "21ad6c753b5bc8370502799568426ec69648ea41a8b0b263df0f3eb840f6767b",
+    "subsys/kvss/zms/zms.c": "c724ccbe51ee412d72f098cdf6a44f97f9224df0454c36a7d9c94919cadd9c0d",
+    "hal_nxp:mcux/mcux-sdk-ng/drivers/flexspi/fsl_flexspi.c": "d57aec16e69a553c79c14bfb67bb1d729f50680db92b155f8b6016734e564b4a"
+  },
+  "layout_arithmetic": {
+    "status": "PASS",
+    "method": "assert contiguous, exclusive, device-bounded ranges and 4KiB/64KiB alignment; no DTS/layout adoption",
+    "regions": [
+      {
+        "owner": "firmware",
+        "start": "0x0",
+        "end_exclusive": "0x620000",
+        "raw_bytes": 6422528,
+        "sectors_4KiB": 1568
+      },
+      {
+        "owner": "files",
+        "start": "0x620000",
+        "end_exclusive": "0x7f0000",
+        "raw_bytes": 1900544,
+        "sectors_4KiB": 464
+      },
+      {
+        "owner": "settings",
+        "start": "0x7f0000",
+        "end_exclusive": "0x800000",
+        "raw_bytes": 65536,
+        "sectors_4KiB": 16
+      }
+    ]
+  },
+  "littlefs": {
+    "manifest_allowlisted": false,
+    "installed": false,
+    "pinned_upstream_revision": "8f5ca347843363882619d8f96c00d8dbd88a8e79"
+  },
+  "hardware": "NOT OPERATED; fitted-part/contents/ID/SFDP/timings unknown",
+  "builds": {
+    "reference-normal": {
+      "config": {
+        "CONFIG_BOARD": "\"mimxrt1060_evk\"",
+        "CONFIG_BOARD_REVISION": "\"B\"",
+        "CONFIG_SOC": "\"mimxrt1062\"",
+        "CONFIG_XIP": "y",
+        "CONFIG_FLASH_BASE_ADDRESS": "0x60000000",
+        "CONFIG_FLASH_SIZE": "8192",
+        "CONFIG_FLASH_LOAD_OFFSET": "0",
+        "CONFIG_FLASH_LOAD_SIZE": "0",
+        "CONFIG_USE_DT_CODE_PARTITION": "n",
+        "CONFIG_BOOTLOADER_MCUBOOT": "n",
+        "CONFIG_NXP_IMXRT_BOOT_HEADER": "y",
+        "CONFIG_FLASH": "n",
+        "CONFIG_FLASH_MAP": "not emitted",
+        "CONFIG_FLASH_PAGE_LAYOUT": "not emitted",
+        "CONFIG_FLASH_MCUX_FLEXSPI_NOR": "not emitted",
+        "CONFIG_FLASH_MCUX_FLEXSPI_XIP": "y",
+        "CONFIG_FLASH_MCUX_FLEXSPI_NOR_WRITE_BUFFER": "not emitted",
+        "CONFIG_FLASH_MCUX_FLEXSPI_XIP_MEM": "\"ITCM\"",
+        "CONFIG_CODE_DATA_RELOCATION": "n",
+        "CONFIG_CODE_DATA_RELOCATION_SRAM": "n",
+        "CONFIG_FLASH_LOG_LEVEL": "not emitted",
+        "CONFIG_MEMC_LOG_LEVEL": "not emitted",
+        "CONFIG_FILE_SYSTEM": "n",
+        "CONFIG_NVS": "not emitted",
+        "CONFIG_ZMS": "n",
+        "CONFIG_SETTINGS": "n",
+        "CONFIG_NXP_FW_DUMP": "not emitted"
+      },
+      "artifact_sha256": {
+        ".config": "c505bab731ee102c53017493c1ea33f78464f78bc9e18ade177b87753593337f",
+        "zephyr.dts": "4d3260d7d764808eed26ea779a1127c3be8e2e217b80379d648368cda45afabb",
+        "linker.cmd": "c72fac477ac13cfcf90dd596769dbbd8f234c5fa7ace3990c7eefaf2ab352a76",
+        "zephyr.map": "31729d6aadafb6a586b4fc8b939731b03d91f6e2e7dbc0b9b51bc4e22f266e1e",
+        "zephyr.elf": "45aa7d6040adb1ffff250ea496c22c89874af9d8c61f080179ce681120d18fb6",
+        "zephyr.bin": "7df2f18482fa9737a1dbaa476fdfd49b8fe6201ba05fdac13971026e8870eef4"
+      },
+      "bin_bytes": 107872,
+      "flash_linker_region": "FLASH (rx) : ORIGIN = (0x60000000 + 0x0), LENGTH = (8192 * 1024 - 0x0 - 0x0)",
+      "load_segments": [
+        {
+          "p_vaddr": "0x20000000",
+          "p_paddr": "0x20000000",
+          "p_filesz": "0x0",
+          "p_memsz": "0x3670"
+        },
+        {
+          "p_vaddr": "0x60000000",
+          "p_paddr": "0x60000000",
+          "p_filesz": "0x1a1b0",
+          "p_memsz": "0x1a1b0"
+        },
+        {
+          "p_vaddr": "0x80000000",
+          "p_paddr": "0x6001a1b0",
+          "p_filesz": "0x3ac",
+          "p_memsz": "0x3ac"
+        },
+        {
+          "p_vaddr": "0x6001a55c",
+          "p_paddr": "0x6001a55c",
+          "p_filesz": "0x4",
+          "p_memsz": "0x4"
+        },
+        {
+          "p_vaddr": "0x800003b0",
+          "p_paddr": "0x800003b0",
+          "p_filesz": "0x0",
+          "p_memsz": "0xe590"
+        }
+      ],
+      "selected_symbols": {
+        "memcpy": "0x60016f01",
+        "boot_data": "0x60001020",
+        "DCACHE_InvalidateByRange": "0x6000cec5",
+        "dcd_data": "0x60001030",
+        "qspi_flash_config": "0x60000000",
+        "image_vector_table": "0x60001000"
+      },
+      "boot_sections": [
+        {
+          "name": "rom_start",
+          "address": "0x60000000",
+          "size": 8896
+        }
+      ],
+      "compile_status": "PASS; not executed on hardware"
+    },
+    "flash-driver": {
+      "config": {
+        "CONFIG_BOARD": "\"mimxrt1060_evk\"",
+        "CONFIG_BOARD_REVISION": "\"B\"",
+        "CONFIG_SOC": "\"mimxrt1062\"",
+        "CONFIG_XIP": "y",
+        "CONFIG_FLASH_BASE_ADDRESS": "0x60000000",
+        "CONFIG_FLASH_SIZE": "8192",
+        "CONFIG_FLASH_LOAD_OFFSET": "0",
+        "CONFIG_FLASH_LOAD_SIZE": "0",
+        "CONFIG_USE_DT_CODE_PARTITION": "n",
+        "CONFIG_BOOTLOADER_MCUBOOT": "n",
+        "CONFIG_NXP_IMXRT_BOOT_HEADER": "y",
+        "CONFIG_FLASH": "y",
+        "CONFIG_FLASH_MAP": "y",
+        "CONFIG_FLASH_PAGE_LAYOUT": "y",
+        "CONFIG_FLASH_MCUX_FLEXSPI_NOR": "y",
+        "CONFIG_FLASH_MCUX_FLEXSPI_XIP": "y",
+        "CONFIG_FLASH_MCUX_FLEXSPI_NOR_WRITE_BUFFER": "y",
+        "CONFIG_FLASH_MCUX_FLEXSPI_XIP_MEM": "\"ITCM\"",
+        "CONFIG_CODE_DATA_RELOCATION": "y",
+        "CONFIG_CODE_DATA_RELOCATION_SRAM": "n",
+        "CONFIG_FLASH_LOG_LEVEL": "0",
+        "CONFIG_MEMC_LOG_LEVEL": "0",
+        "CONFIG_FILE_SYSTEM": "n",
+        "CONFIG_NVS": "n",
+        "CONFIG_ZMS": "n",
+        "CONFIG_SETTINGS": "n",
+        "CONFIG_NXP_FW_DUMP": "not emitted"
+      },
+      "artifact_sha256": {
+        ".config": "7388778a5815457f53d8e5c13e0970e84c3abae118c194c3ff11cfc9805e149b",
+        "zephyr.dts": "4d3260d7d764808eed26ea779a1127c3be8e2e217b80379d648368cda45afabb",
+        "linker.cmd": "fbf589b2fa10ca8217a2fa3f886401cb748db1090afa7832e643c181244eedc8",
+        "zephyr.map": "78ceca034d50c81dc509583b0db4d482d1183fc31194291b04b75bd2d88db4a0",
+        "zephyr.elf": "5e21cac3aa1d025434e58bbd3f2137ac968af4ed85e2bb5d8be6dc3997979669",
+        "zephyr.bin": "d4ea8fa9dec507b9896343f5bbb44e5d224ae843bcd9764b9120a43d168984a9"
+      },
+      "bin_bytes": 117292,
+      "flash_linker_region": "FLASH (rx) : ORIGIN = (0x60000000 + 0x0), LENGTH = (8192 * 1024 - 0x0 - 0x0)",
+      "load_segments": [
+        {
+          "p_vaddr": "0x20000000",
+          "p_paddr": "0x20000000",
+          "p_filesz": "0x0",
+          "p_memsz": "0x3670"
+        },
+        {
+          "p_vaddr": "0x60000000",
+          "p_paddr": "0x60000000",
+          "p_filesz": "0x22c0",
+          "p_memsz": "0x22c0"
+        },
+        {
+          "p_vaddr": "0x0",
+          "p_paddr": "0x600022c0",
+          "p_filesz": "0x2160",
+          "p_memsz": "0x2160"
+        },
+        {
+          "p_vaddr": "0x60004420",
+          "p_paddr": "0x60004420",
+          "p_filesz": "0x18184",
+          "p_memsz": "0x18184"
+        },
+        {
+          "p_vaddr": "0x80000000",
+          "p_paddr": "0x6001c5a4",
+          "p_filesz": "0x484",
+          "p_memsz": "0x484"
+        },
+        {
+          "p_vaddr": "0x6001ca28",
+          "p_paddr": "0x6001ca28",
+          "p_filesz": "0x4",
+          "p_memsz": "0x4"
+        },
+        {
+          "p_vaddr": "0x80000488",
+          "p_paddr": "0x80000488",
+          "p_filesz": "0x0",
+          "p_memsz": "0xe778"
+        }
+      ],
+      "selected_symbols": {
+        "flash_flexspi_nor_wait_bus_busy": "0xdd9",
+        "flexspi_probe_lut": "0x8000553c",
+        "flash_flexspi_nor_write": "0xe25",
+        "nor_write_buf": "0x80005715",
+        "flash_flexspi_nor_erase": "0x1",
+        "flexspi_clock_set_freq": "0xf4d",
+        "memcpy": "0x6001907d",
+        "memc_flexspi_transfer": "0x1fe3",
+        "memc_flexspi_wait_bus_idle": "0x2109",
+        "boot_data": "0x60001020",
+        "DCACHE_InvalidateByRange": "0x6000f02d",
+        "memc_flexspi_update_clock": "0x204f",
+        "dcd_data": "0x60001030",
+        "FLEXSPI_WriteBlocking": "0x19cd",
+        "qspi_flash_config": "0x60000000",
+        "FLEXSPI_TransferBlocking": "0x1459",
+        "image_vector_table": "0x60001000",
+        "FLEXSPI_ReadBlocking": "0x125d"
+      },
+      "boot_sections": [
+        {
+          "name": "rom_start",
+          "address": "0x60000000",
+          "size": 8896
+        }
+      ],
+      "selected_direct_calls": {
+        "flash_flexspi_nor_write": [
+          [
+            "1d68",
+            "memc_flexspi_get_ahb_address"
+          ],
+          [
+            "1e88",
+            "memc_flexspi_is_running_xip"
+          ],
+          [
+            "1e8e",
+            "memc_flexspi_reset"
+          ],
+          [
+            "1fe2",
+            "memc_flexspi_transfer"
+          ],
+          [
+            "2108",
+            "memc_flexspi_wait_bus_idle"
+          ],
+          [
+            "2130",
+            "__DCACHE_InvalidateByRange_veneer"
+          ],
+          [
+            "2158",
+            "__memcpy_veneer"
+          ],
+          [
+            "dd8",
+            "flash_flexspi_nor_wait_bus_busy"
+          ],
+          [
+            "f20",
+            "flash_flexspi_nor_write_enable"
+          ]
+        ],
+        "flash_flexspi_nor_erase": [
+          [
+            "176",
+            "flash_flexspi_nor_erase_sector.isra.0"
+          ],
+          [
+            "1d68",
+            "memc_flexspi_get_ahb_address"
+          ],
+          [
+            "1e88",
+            "memc_flexspi_is_running_xip"
+          ],
+          [
+            "1e8e",
+            "memc_flexspi_reset"
+          ],
+          [
+            "1fe2",
+            "memc_flexspi_transfer"
+          ],
+          [
+            "2108",
+            "memc_flexspi_wait_bus_idle"
+          ],
+          [
+            "2130",
+            "__DCACHE_InvalidateByRange_veneer"
+          ],
+          [
+            "dd8",
+            "flash_flexspi_nor_wait_bus_busy"
+          ],
+          [
+            "f20",
+            "flash_flexspi_nor_write_enable"
+          ]
+        ],
+        "memc_flexspi_transfer": [
+          [
+            "1458",
+            "FLEXSPI_TransferBlocking"
+          ]
+        ]
+      },
+      "compile_status": "PASS; not executed on hardware"
+    }
+  },
+  "environment": {
+    "container_image": "vsc-crux-pilot-db7dc46d57359f54ecafaf66e70a8eabad7e15a31b94b7aceec26ed291382db2:latest",
+    "platform": "linux/amd64",
+    "sdk": "1.0.1",
+    "arm_gcc": "14.3.0",
+    "cmake": "3.28.4",
+    "west": "1.4.0",
+    "network": "none",
+    "board_devices_exposed": false,
+    "build_source_revision": "fd9e341ed4c49654a8498198627a84092aad912c",
+    "source_scope": "only assessment/evidence added; application, partitions and backend selections unchanged in tracked source"
+  },
+  "source_cleanliness": {
+    "zephyr": [],
+    "hal_nxp": []
+  },
+  "excluded_preliminary_build": {
+    "directory": "build/storage-assessment/baseline",
+    "result": "compiled successfully but omitted qualified m3-network.overlay; not used as reference or qualification evidence",
+    "raw_log_retained_locally": "baseline-build.log"
+  },
+  "raw_build_log_sha256": {
+    "baseline-build.log": "92145230dbe38ba4c47c441a05e2f25eded1d2b716b8ab60bccfed99c9f6a167",
+    "feasibility-builds.log": "d39b327d4950b59177325c76fd7c6f84334fbfa56faaf6aa83b4d81be07a9eba"
+  },
+  "interpretation": {
+    "selected_flash_driver_and_hal_text": "ITCM; selected veneers lead to Flash memcpy/cache helpers; phase-specific closure still requires review",
+    "write_buffer_and_lut": "SDRAM, distinct from QSPI",
+    "image_growth_guard": "ABSENT: generated linker still exposes entire8MiB",
+    "fs_settings_runtime_tests": "NOT RUN; no LittleFS/NVS/ZMS integration or module installation",
+    "physical_tests": "NOT RUN; prohibited",
+    "persistence_qualification": "NOT ESTABLISHED",
+    "driver_error_and_wait_findings": "source-confirmed discarded helper returns and unbounded loops; not fault-injected"
+  },
+  "critical_source_locations": {
+    "flash_driver_wait_busy": "drivers/flash/flash_mcux_flexspi_nor.c:312-336",
+    "flash_driver_write": "drivers/flash/flash_mcux_flexspi_nor.c:406-481",
+    "flash_driver_erase": "drivers/flash/flash_mcux_flexspi_nor.c:484-574",
+    "xip_init_failure_spin": "drivers/flash/flash_mcux_flexspi_nor.c:1736-1744",
+    "settings_nvs_geometry": "subsys/settings/src/settings_nvs.c:386-424",
+    "settings_partition_fallback": "subsys/settings/src/settings_nvs.c and settings_zms.c top-level macros",
+    "littlefs_autoformat": "subsys/fs/littlefs_fs.c:951-990"
+  },
+  "raw_build_evidence": {
+    "file": "build-output.txt",
+    "bytes": 55892,
+    "sha256": "d39b327d4950b59177325c76fd7c6f84334fbfa56faaf6aa83b4d81be07a9eba",
+    "result": "two successful compile-only builds; no target execution"
+  }
+}
