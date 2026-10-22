@@ -1,0 +1,79 @@
+....
+----------------------------------------------------------------------
+Ran 4 tests in 1.755s
+
+OK
+-- west build: generating a build system
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: /poc/samples/flash_safety_poc
+-- CMake version: 3.28.4
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.0 (/workspaces/crux/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: mimxrt1060_evk, Revision: B, qualifiers: mimxrt1062/qspi
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found BOARD.dts: /workspaces/crux/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts
+-- Found devicetree overlay: /workspaces/crux/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_B.overlay
+-- Generated zephyr.dts: /evidence/zephyr-poc2/zephyr/zephyr.dts
+-- Generated pickled edt: /evidence/zephyr-poc2/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /evidence/zephyr-poc2/zephyr/include/generated/zephyr/devicetree_generated.h
+/evidence/zephyr-poc2/zephyr/zephyr.dts:4237.36-4246.5: Warning (unique_unit_address_if_enabled): /soc/usbd@402e0000: duplicate unit-address (also used in node /soc/usbh@402e0000)
+Parsing /workspaces/crux/zephyr/Kconfig
+Loaded configuration '/evidence/zephyr-poc2/zephyr/.config'
+No change to configuration in '/evidence/zephyr-poc2/zephyr/.config'
+No change to Kconfig header in '/evidence/zephyr-poc2/zephyr/include/generated/zephyr/autoconf.h'
+-- Crux Zephyr integration module discovered
+-- Looking for device MIMXRT1062 in /workspaces/crux/modules/hal/nxp/mcux/mcux-sdk-ng/devices/
+-- Found device folder: /workspaces/crux/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062
+-- Found gen_kobject_list: /workspaces/crux/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (11.6s)
+-- Generating done (0.5s)
+-- Build files have been written to: /evidence/zephyr-poc2
+-- west build: building application
+[1/138] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[2/18] Building C object CMakeFiles/app.dir/main.c.obj
+[3/18] Linking C static library app/libapp.a
+[4/18] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/__/__/flash-poc/fsl_flexspi.c.obj
+[5/18] Building C object zephyr/drivers/memc/CMakeFiles/drivers__memc.dir/__/__/__/flash-poc/memc_mcux_flexspi.c.obj
+[6/18] Linking C static library modules/hal_nxp/libmodules__hal_nxp.a
+[7/18] Building C object zephyr/drivers/flash/CMakeFiles/drivers__flash.dir/__/__/__/flash-poc/flash_mcux_flexspi_nor.c.obj
+[8/18] Linking C static library zephyr/drivers/memc/libdrivers__memc.a
+[9/18] Linking C static library zephyr/drivers/flash/libdrivers__flash.a
+[10/18] Generating code_relocation.c, include/generated/linker_relocate.ld
+[11/18] Building C object zephyr/CMakeFiles/code_relocation_source_lib.dir/code_relocation.c.obj
+[12/18] Linking C static library zephyr/libcode_relocation_source_lib.a
+[13/18] Generating linker_zephyr_pre0.cmd
+[14/18] Linking C executable zephyr/zephyr_pre0.elf
+[15/18] Generating linker.cmd
+[16/18] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[17/18] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[18/18] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:       42016 B         8 MB      0.50%
+             RAM:        5056 B        32 MB      0.02%
+            ITCM:        8896 B       128 KB      6.79%
+            DTCM:           0 B       128 KB      0.00%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from /evidence/zephyr-poc2/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi
+{
+  "elf_sha256": "eb313d4c8df82e9c45b32be4bfadb02f16e4437742928f612621e2aec575fc0c",
+  "selected_placements": {
+    "crux_flash_poc_terminal": "0x227d",
+    "flash_flexspi_nor_write": "0xe7d",
+    "flash_flexspi_nor_erase": "0x1",
+    "memc_flexspi_transfer": "0x212f",
+    "FLEXSPI_TransferBlocking": "0x151d",
+    "FLEXSPI_SoftwareReset": "0x14d5",
+    "memc_flexspi_config_0": "0x800000ec"
+  },
+  "limitation": "selected symbols only; no NMI/vector/data/call-graph or hardware safety claim"
+}
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.009s
+
+OK
+Compile-only PoC; this script never programs or operates hardware.

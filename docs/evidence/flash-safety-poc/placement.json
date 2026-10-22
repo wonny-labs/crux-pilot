@@ -1,0 +1,13 @@
+{
+  "elf_sha256": "eb313d4c8df82e9c45b32be4bfadb02f16e4437742928f612621e2aec575fc0c",
+  "selected_placements": {
+    "crux_flash_poc_terminal": "0x227d",
+    "flash_flexspi_nor_write": "0xe7d",
+    "flash_flexspi_nor_erase": "0x1",
+    "memc_flexspi_transfer": "0x212f",
+    "FLEXSPI_TransferBlocking": "0x151d",
+    "FLEXSPI_SoftwareReset": "0x14d5",
+    "memc_flexspi_config_0": "0x800000ec"
+  },
+  "limitation": "selected symbols only; no NMI/vector/data/call-graph or hardware safety claim"
+}
