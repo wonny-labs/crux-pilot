@@ -82,5 +82,8 @@ docs, dependency fixtures and durable evidence under `docs/evidence/`.
   Host/Zephyr checks and source/input identity capture.
 - [x] Independent reviewer inspects full diff, source, reports and unresolved
   target/#24 dependencies; resolve REVISE findings with affected re-tests.
-- [ ] Commit/push dedicated branch, open and attach a PR with actual results,
+- [x] Commit/push dedicated branch, open and attach a PR with actual results,
   limits and unresolved physical evidence; do not merge or close Issue #25.
+
+Publication: [PR #36](https://github.com/wonny-labs/crux-pilot/pull/36) is open for human review.
+Physical target acceptance and Issue #24 remain unresolved integration gates.
