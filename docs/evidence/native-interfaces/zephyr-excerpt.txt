@@ -1,0 +1,17 @@
+Selected configuration/build/scenario lines; full original retained locally.
+-- Zephyr version: 4.4.0 (/workspaces/crux/zephyr)
+-- Board: native_sim, qualifiers: native/64
+-- Crux Zephyr integration module discovered
+-- Zephyr version: 4.4.0 (/workspaces/crux/zephyr), build: v4.4.0
+Generating files from /evidence/controller-native/zephyr/zephyr.elf for board: native_sim/native/64
+Controller 20-cycle scenario, unset/valid UTC and backward UTC step: passed
+-- Zephyr version: 4.4.0 (/workspaces/crux/zephyr)
+-- Board: mimxrt1060_evk, Revision: B, qualifiers: mimxrt1062/qspi
+-- Crux Zephyr integration module discovered
+-- Zephyr version: 4.4.0 (/workspaces/crux/zephyr), build: v4.4.0
+Memory region         Used Size  Region Size  %age Used
+           FLASH:       37536 B         8 MB      0.45%
+             RAM:        8704 B        32 MB      0.03%
+            ITCM:           0 B       128 KB      0.00%
+           OCRAM:           0 B       256 KB      0.00%
+Generating files from /evidence/controller-evkb/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi

@@ -13,7 +13,7 @@ if(CONFIG_CRUX_TIME)
     target_include_directories(crux_time_api INTERFACE
         "${CMAKE_CURRENT_LIST_DIR}/../components/time/include"
     )
-    target_link_libraries(crux_time_api INTERFACE crux_base zephyr_interface)
+    target_link_libraries(crux_time_api INTERFACE crux_base)
 
     include("${CMAKE_CURRENT_LIST_DIR}/../components/time/sources.cmake")
     zephyr_library_named(crux_time_common)
@@ -42,7 +42,17 @@ if(CONFIG_CRUX_TIME)
 
     add_library(crux_time INTERFACE)
     add_library(crux::time ALIAS crux_time)
-    target_link_libraries(crux_time INTERFACE
-        crux_time_api crux_time_common crux_time_zephyr
-    )
+    # Zephyr registers both implementations in the final image independently.
+    # Consumers need only portable declarations, not native implementation usage.
+    target_link_libraries(crux_time INTERFACE crux_time_api)
+    set_property(TARGET crux_time PROPERTY INTERFACE_CRUX_TIME_BACKEND zephyr_rtc)
+    set_property(TARGET crux_time APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_TIME_BACKEND)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxConsumerBoundary.cmake")
+if(CONFIG_CRUX_PILOT_MODULE)
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::base)
+endif()
+if(CONFIG_CRUX_TIME)
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::time)
 endif()

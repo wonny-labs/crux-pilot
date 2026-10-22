@@ -1,0 +1,71 @@
+test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) ... test_documentation_and_string_literals_are_not_native_dependencies (test_native_interfaces.NativeInterfaceTest) ... FAIL
+test_invalid_root_reports_an_error_instead_of_success (test_native_interfaces.NativeInterfaceTest) ... FAIL
+test_iso_c_and_crux_interfaces_remain_portable (test_native_interfaces.NativeInterfaceTest) ... FAIL
+test_line_splicing_cannot_hide_native_include_or_token (test_native_interfaces.NativeInterfaceTest) ... test_native_providers_and_compositions_remain_native (test_native_interfaces.NativeInterfaceTest) ... test_rejects_native_header_families_and_include_spacing (test_native_interfaces.NativeInterfaceTest) ... test_rejects_native_types_api_calls_and_configuration_tokens (test_native_interfaces.NativeInterfaceTest) ...
+======================================================================
+FAIL: test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) (path='components/new/include/crux/new.h')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 52, in test_applies_to_all_designated_portable_roots
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 2 != 1 : /Library/Developer/CommandLineTools/usr/bin/python3: can't open file '<repo>/scripts/check-native-interfaces.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) (path='components/new/src/shared.c')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 52, in test_applies_to_all_designated_portable_roots
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 2 != 1 : /Library/Developer/CommandLineTools/usr/bin/python3: can't open file '<repo>/scripts/check-native-interfaces.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) (path='components/runtime/src/thread.c')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 52, in test_applies_to_all_designated_portable_roots
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 2 != 1 : /Library/Developer/CommandLineTools/usr/bin/python3: can't open file '<repo>/scripts/check-native-interfaces.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) (path='components/runtime/portable/thread.c')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 52, in test_applies_to_all_designated_portable_roots
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 2 != 1 : /Library/Developer/CommandLineTools/usr/bin/python3: can't open file '<repo>/scripts/check-native-interfaces.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) (path='components/new/runtime_porting/lock.h')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 52, in test_applies_to_all_designated_portable_roots
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 2 != 1 : /Library/Developer/CommandLineTools/usr/bin/python3: can't open file '<repo>/scripts/check-native-interfaces.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) (path='runtime_porting/include/lock.h')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 52, in test_applies_to_all_designated_portable_roots
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 2 != 1 : /Library/Developer/CommandLineTools/usr/bin/python3: can't open file '<repo>/scripts/check-native-interfaces.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) (path='applications/new/src/main.c')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 52, in test_applies_to_all_designated_portable_roots
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 2 != 1 : /Library/Developer/CommandLineTools/usr/bin/python3: can't open file '<repo>/scripts/check-native-interfaces.py': [Errno 2] No such file or directory
+[... excerpt; full original retained locally ...]
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.570s
+
+FAILED (failures=51)

@@ -15,29 +15,9 @@ if rg -n 'components/time|crux_time|Zephyr|zephyr_interface|find_package' "${bas
     exit 1
 fi
 
-native_include_pattern='#\s*include\s*[<"](zephyr/|errno\.h|unistd\.h|time\.h|sys/|windows\.h)'
-portable_paths=(
-    "$repo/components/time/src"
-    "$repo/components/time/include"
-    "$repo/samples/time/src/time_command.c"
-    "$repo/samples/controller/core"
-    "$repo/samples/controller/include"
-)
-if rg -n "$native_include_pattern" "${portable_paths[@]}"; then
-    printf 'Portable Time and command code must not include native operating-system headers.\n' >&2
-    exit 1
-fi
-
-controller_native_pattern='#\s*include\s*[<"](zephyr/|board\.h|fsl_[^">]*|cmsis[^">]*|stm32[^">]*)'
-if rg -n "$controller_native_pattern" "$repo/samples/controller/core" "$repo/samples/controller/include"; then
-    printf 'Portable controller code must not include native board or vendor headers.\n' >&2
-    exit 1
-fi
-if rg -n '^\s*#\s*(if|ifdef|ifndef).*(__ZEPHYR__|CONFIG_|__linux__|_WIN32|BOARD_)' \
-    "$repo/samples/controller/core" "$repo/samples/controller/include"; then
-    printf 'Environment selection belongs in controller composition, not portable code.\n' >&2
-    exit 1
-fi
+# The shared policy covers headers, native tokens and environment selection in
+# all designated portable roots; ISO C headers (including time/errno) are valid.
+python3 "$repo/scripts/check-native-interfaces.py" --root "$repo"
 
 if rg -n 'CRUX_TIME_TESTING|crux_time_(host_)?test_' \
     "$repo/components/base/include" "$repo/components/time/include"; then
@@ -62,4 +42,4 @@ if rg -n 'samples/time|time_command\.c|crux_time_commands' "$repo/zephyr/CMakeLi
     exit 1
 fi
 
-printf 'Base is independent; public/common Time and portable commands avoid native headers; backend selection is checked by CMake; shared source ownership is explicit.\n'
+printf 'Base is independent; designated portable sources pass the native interface policy; backend selection is checked by CMake; shared source ownership is explicit.\n'
