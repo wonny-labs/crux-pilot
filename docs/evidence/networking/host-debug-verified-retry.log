@@ -6,11 +6,11 @@ Preset CMake variables:
 
 -- Configuring done (1.2s)
 -- Generating done (0.1s)
--- Build files have been written to: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/debug
+-- Build files have been written to: $REPO/build/linux/debug
 [1/2] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/stack_host.c.o
 [2/2] Linking C executable tests/networking/crux_networking_stack_tests
-clangd compilation database selected: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/debug
-Test project /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/debug
+clangd compilation database selected: $REPO/build/linux/debug
+Test project $REPO/build/linux/debug
       Start  1: Execution.PosixProbes
  1/71 Test  #1: Execution.PosixProbes .......................................................   Passed    0.19 sec
       Start  2: Controller.HostScenario

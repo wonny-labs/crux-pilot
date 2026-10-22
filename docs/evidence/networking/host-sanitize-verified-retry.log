@@ -9,12 +9,12 @@ Preset CMake variables:
 
 -- Configuring done (0.9s)
 -- Generating done (0.1s)
--- Build files have been written to: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize
+-- Build files have been written to: $REPO/build/linux/sanitize
 [1/3] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/stack_host.c.o
 [2/3] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/stack_scenario.c.o
 [3/3] Linking C executable tests/networking/crux_networking_stack_tests
-clangd compilation database selected: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize
-Test project /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize
+clangd compilation database selected: $REPO/build/linux/sanitize
+Test project $REPO/build/linux/sanitize
       Start  1: Execution.PosixProbes
  1/71 Test  #1: Execution.PosixProbes .......................................................   Passed    0.24 sec
       Start  2: Controller.HostScenario

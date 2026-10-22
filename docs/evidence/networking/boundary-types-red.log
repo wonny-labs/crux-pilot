@@ -3,7 +3,7 @@
 FAIL: test_native_symbols_and_conditionals_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='struct net_if *iface;')
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 27, in test_native_symbols_and_conditionals_are_rejected
+  File "$REPO/tests/build/test_networking_dependencies.py", line 27, in test_native_symbols_and_conditionals_are_rejected
     with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
 AssertionError: [] is not true
 
@@ -11,7 +11,7 @@ AssertionError: [] is not true
 FAIL: test_native_symbols_and_conditionals_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='net_socklen_t length;')
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 27, in test_native_symbols_and_conditionals_are_rejected
+  File "$REPO/tests/build/test_networking_dependencies.py", line 27, in test_native_symbols_and_conditionals_are_rejected
     with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
 AssertionError: [] is not true
 
@@ -19,7 +19,7 @@ AssertionError: [] is not true
 FAIL: test_native_symbols_and_conditionals_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='ENET_Type *enet;')
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 27, in test_native_symbols_and_conditionals_are_rejected
+  File "$REPO/tests/build/test_networking_dependencies.py", line 27, in test_native_symbols_and_conditionals_are_rejected
     with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
 AssertionError: [] is not true
 

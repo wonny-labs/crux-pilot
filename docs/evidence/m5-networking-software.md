@@ -16,22 +16,28 @@ read-only public contract. Runtime address management remains deferred.
 ## Source and reproducibility
 
 Qualified implementation/test source: `3cbf9a6473be8fd94e26e7321fb4c7a136a731d4`
-on `feat/m5-portable-networking`, based on main `94b11e4`. Before delivery,
-main advanced to `32405ad` with an independent isolated Flash PoC. A merge-tree
-check succeeds without conflicts; its additional CI step is separate from the
-networking changes. Local claims below remain tied to the recorded source,
-not an untested merged revision. Subsequent evidence
-edits do not change executable inputs. The adjacent
-[machine-readable manifest](m5-networking-manifest.json) records SHA-256 hashes
-of tracked source at that revision, retained raw logs and generated artifacts.
-Final raw logs and review-regression RED/GREEN logs are also checked in under
-[networking/](networking/) (same names, with `native-scenario.log` for the native
-scenario output). Full raw evidence is retained locally in `build/investigation` and the portable
-`build/evidence/m5-networking-software.tar.gz` bundle; hashes identify the exact
-files, rather than an assumed successful command. Generated binary build outputs and the full exploratory log history are not
-checked into Git; the curated raw review logs are. CI publishes networking configuration, map,
-image and scenario outputs with the existing Zephyr artifacts; CI results are
-separate from the local results below.
+on `feat/m5-portable-networking`, originally based on main `94b11e4`.
+Following the independent publication review, main `933e974` (including the
+isolated Flash PoC and software acceptance changes) was merged into this branch
+without conflicts. Socket/netif code, consumer code and networking tests remain
+identical to the qualified source. Local results below describe that original
+qualification; the final integrated HEAD's hosted CI and focused re-review are
+recorded separately in [PR #38](https://github.com/wonny-labs/crux-pilot/pull/38).
+
+The adjacent [machine-readable manifest](m5-networking-manifest.json) separates
+historical source hashes, private original-evidence hashes and current public
+log hashes. The 22 curated logs in [networking/](networking/) are **normalized
+publication copies**, not byte-identical raw logs. Exact path-prefix replacement
+uses `$REPO`, `$WORKSPACE` and `$HOME`, including embedded Twister directory
+names. Test outcomes, failures, numeric observations and source identities are
+unchanged. See [publication notes](networking/publication.md) for verification.
+
+Original raw outputs remain private under `build/investigation` and the local
+`build/evidence/m5-networking-software.tar.gz` archive. That original archive
+contains local paths and is not a sanitized publication artifact. Generated
+binary outputs and full exploratory logs are not checked into Git. CI publishes
+its own networking configuration, map, image and scenario outputs with the
+existing Zephyr artifacts; those results are separate from local qualification.
 
 Zephyr is unchanged at `684c9e8f32e4373a21098559f748f06915f950c9` (4.4.0).
 Native Picolibc is `01254932e8e81085817ed61fd858648584ffe37c`, from that same
@@ -81,7 +87,9 @@ a repetition or extension of accepted physical M3 results.
 
 ## Completed checks and direct evidence
 
-Paths below are relative to the worktree/bundle root.
+Paths below identify original local evidence. The public normalized copies
+use the same log names under `docs/evidence/networking/`; native scenario output
+is published there as `native-scenario.log`.
 
 | Check | Observed result | Raw evidence |
 | --- | --- | --- |
@@ -198,7 +206,8 @@ of scope.
 - Intermediate build failures from concurrent edits to test targets and a missing
   Host idle-resource callback were corrected before the final full runs.
 
-Raw RED/failed and superseding GREEN logs remain in the evidence bundle. Earlier
+Raw RED/failed and superseding GREEN logs remain in the private original
+evidence archive; selected normalized RED/GREEN copies remain public. Earlier
 partial pass counts and RT1060 sizes are superseded by the final table.
 
 ## Independent review
@@ -208,7 +217,8 @@ contracts, tests and raw logs. Initial deadline/poll findings were reproduced
 with failing tests and corrected; re-review accepted the implementation and
 resource-fixture corrections. Final independent verdict: **PASS at source 3cbf9a6, no unresolved material
 findings**. The Reviewer verified 244 source hashes against Git and working
-files, all 141 retained evidence hashes, archive contents and archive SHA-256.
+files, all 141 original retained evidence hashes, original archive contents and its
+SHA-256. That historical verdict precedes publication normalization.
 This review accepted the software gate only; it did not judge physical traffic,
 PHY behavior, target runtime capacity/timing, production security, comprehensive
 runtime compatibility or sustained concurrency. Human review and Draft PR

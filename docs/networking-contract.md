@@ -154,7 +154,12 @@ declaration-only header for standard `close(int)`, with C++ linkage protection.
 It publishes no native include directory and implements no wrapper. Remove this
 workaround once the supported upstream header exposes close for POSIX_DEVICE_IO;
 the native link map must still resolve it to Zephyr device_io.c, not a libc stub.
-Profile tests check actual Zephyr context allocation and return.
+Profile tests check actual Zephyr context allocation and return. Treat the
+forced declaration as a pinned compatibility exception when reviewing native
+dependency enforcement in Issue #24; it does not permit other private consumer
+dependencies. Recheck the declaration, native symbol provider and C++ consumer
+when upgrading Zephyr, and remove the injection when the narrow upstream header
+configuration supplies it.
 
 Native qualification uses six contexts/connections, 16 RX/TX packets and 64 RX/TX
 buffers, with the configured 1500 ms TCP TIME_WAIT. Each sequential scenario

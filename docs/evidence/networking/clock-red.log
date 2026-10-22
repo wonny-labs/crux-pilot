@@ -4,7 +4,7 @@ Note: Google Test filter = Client.FailedClockCannotLookLikeSuccessEvenWithoutErr
 [----------] Global test environment set-up.
 [----------] 1 test from Client
 [ RUN      ] Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
-/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/networking/client_test.cpp:253: Failure
+$REPO/tests/networking/client_test.cpp:253: Failure
 Expected equality of these values:
   networking_exchange("127.0.0.1", 1, false, 100)
     Which is: -24

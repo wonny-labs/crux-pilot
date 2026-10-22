@@ -2,8 +2,8 @@ Start testing: Oct 22 21:17 UTC
 ----------------------------------------------------------
 1/71 Testing: Execution.PosixProbes
 1/71 Test: Execution.PosixProbes
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/crux_posix_probes"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize
+Command: "$REPO/build/linux/sanitize/crux_posix_probes"
+Directory: $REPO/build/linux/sanitize
 "Execution.PosixProbes" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -29,8 +29,8 @@ Test Passed.
 
 2/71 Testing: Controller.HostScenario
 2/71 Test: Controller.HostScenario
-Command: "/opt/crux-cache/venv/bin/python3.12" "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/scripts/check-controller.py" "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/samples/controller/host/crux-controller-host" "--log" "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/samples/controller/host/controller.log"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/samples/controller/host
+Command: "/opt/crux-cache/venv/bin/python3.12" "$REPO/scripts/check-controller.py" "$REPO/build/linux/sanitize/samples/controller/host/crux-controller-host" "--log" "$REPO/build/linux/sanitize/samples/controller/host/controller.log"
+Directory: $REPO/build/linux/sanitize/samples/controller/host
 "Controller.HostScenario" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -45,8 +45,8 @@ Test Passed.
 
 3/71 Testing: TimeApiTest.InitStartsReadyButUnset
 3/71 Test: TimeApiTest.InitStartsReadyButUnset
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.InitStartsReadyButUnset" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.InitStartsReadyButUnset" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeApiTest.InitStartsReadyButUnset" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -72,8 +72,8 @@ Test Passed.
 
 4/71 Testing: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
 4/71 Test: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -99,8 +99,8 @@ Test Passed.
 
 5/71 Testing: TimeApiTest.FailedInitialisationCanBeRetried
 5/71 Test: TimeApiTest.FailedInitialisationCanBeRetried
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.FailedInitialisationCanBeRetried" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.FailedInitialisationCanBeRetried" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeApiTest.FailedInitialisationCanBeRetried" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -126,8 +126,8 @@ Test Passed.
 
 6/71 Testing: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
 6/71 Test: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -153,8 +153,8 @@ Test Passed.
 
 7/71 Testing: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
 7/71 Test: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -180,8 +180,8 @@ Test Passed.
 
 8/71 Testing: TimeApiTest.FailedBackendWriteInvalidatesSessionTime
 8/71 Test: TimeApiTest.FailedBackendWriteInvalidatesSessionTime
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.FailedBackendWriteInvalidatesSessionTime" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.FailedBackendWriteInvalidatesSessionTime" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeApiTest.FailedBackendWriteInvalidatesSessionTime" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -207,8 +207,8 @@ Test Passed.
 
 9/71 Testing: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
 9/71 Test: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -234,8 +234,8 @@ Test Passed.
 
 10/71 Testing: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
 10/71 Test: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.SuccessfulInjectedReadReturnsStoredValue" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.SuccessfulInjectedReadReturnsStoredValue" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeApiTest.SuccessfulInjectedReadReturnsStoredValue" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -261,8 +261,8 @@ Test Passed.
 
 11/71 Testing: TimeApiTest.BackendNoDataClearsCommonValidity
 11/71 Test: TimeApiTest.BackendNoDataClearsCommonValidity
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.BackendNoDataClearsCommonValidity" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.BackendNoDataClearsCommonValidity" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeApiTest.BackendNoDataClearsCommonValidity" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -288,8 +288,8 @@ Test Passed.
 
 12/71 Testing: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
 12/71 Test: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -315,8 +315,8 @@ Test Passed.
 
 13/71 Testing: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
 13/71 Test: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -342,8 +342,8 @@ Test Passed.
 
 14/71 Testing: TimeCalendar.ConvertsIndependentUnixEpochAnchor
 14/71 Test: TimeCalendar.ConvertsIndependentUnixEpochAnchor
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.ConvertsIndependentUnixEpochAnchor" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.ConvertsIndependentUnixEpochAnchor" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCalendar.ConvertsIndependentUnixEpochAnchor" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -369,8 +369,8 @@ Test Passed.
 
 15/71 Testing: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
 15/71 Test: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -396,8 +396,8 @@ Test Passed.
 
 16/71 Testing: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
 16/71 Test: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -423,8 +423,8 @@ Test Passed.
 
 17/71 Testing: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
 17/71 Test: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -450,8 +450,8 @@ Test Passed.
 
 18/71 Testing: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
 18/71 Test: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.RejectsInvalidFieldsAndPreservesOutput" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.RejectsInvalidFieldsAndPreservesOutput" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCalendar.RejectsInvalidFieldsAndPreservesOutput" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -477,8 +477,8 @@ Test Passed.
 
 19/71 Testing: TimeCalendar.NullArgumentsAreInvalid
 19/71 Test: TimeCalendar.NullArgumentsAreInvalid
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.NullArgumentsAreInvalid" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.NullArgumentsAreInvalid" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCalendar.NullArgumentsAreInvalid" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -504,8 +504,8 @@ Test Passed.
 
 20/71 Testing: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
 20/71 Test: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.RoundTripsMonthBoundariesAndLeapDay" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.RoundTripsMonthBoundariesAndLeapDay" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCalendar.RoundTripsMonthBoundariesAndLeapDay" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -531,8 +531,8 @@ Test Passed.
 
 21/71 Testing: TimeCommandTest.HelpIdentifiesUtcInput
 21/71 Test: TimeCommandTest.HelpIdentifiesUtcInput
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.HelpIdentifiesUtcInput" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.HelpIdentifiesUtcInput" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCommandTest.HelpIdentifiesUtcInput" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -558,8 +558,8 @@ Test Passed.
 
 22/71 Testing: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
 22/71 Test: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.NoDataApiStatusMapsToDistinctCliText" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.NoDataApiStatusMapsToDistinctCliText" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCommandTest.NoDataApiStatusMapsToDistinctCliText" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -585,8 +585,8 @@ Test Passed.
 
 23/71 Testing: TimeCommandTest.SetAndGetUseTheSamePortableHandler
 23/71 Test: TimeCommandTest.SetAndGetUseTheSamePortableHandler
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.SetAndGetUseTheSamePortableHandler" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.SetAndGetUseTheSamePortableHandler" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCommandTest.SetAndGetUseTheSamePortableHandler" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -612,8 +612,8 @@ Test Passed.
 
 24/71 Testing: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
 24/71 Test: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -639,8 +639,8 @@ Test Passed.
 
 25/71 Testing: TimeCommandTest.HelpIsAnAdapterOutcome
 25/71 Test: TimeCommandTest.HelpIsAnAdapterOutcome
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.HelpIsAnAdapterOutcome" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.HelpIsAnAdapterOutcome" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCommandTest.HelpIsAnAdapterOutcome" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -666,8 +666,8 @@ Test Passed.
 
 26/71 Testing: TimeCommandTest.RejectsMalformedSyntaxAndDates
 26/71 Test: TimeCommandTest.RejectsMalformedSyntaxAndDates
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.RejectsMalformedSyntaxAndDates" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.RejectsMalformedSyntaxAndDates" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCommandTest.RejectsMalformedSyntaxAndDates" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -693,8 +693,8 @@ Test Passed.
 
 27/71 Testing: TimeCommandTest.MapsOutOfRangeAndIoErrors
 27/71 Test: TimeCommandTest.MapsOutOfRangeAndIoErrors
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.MapsOutOfRangeAndIoErrors" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.MapsOutOfRangeAndIoErrors" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCommandTest.MapsOutOfRangeAndIoErrors" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -720,8 +720,8 @@ Test Passed.
 
 28/71 Testing: TimeCommandTest.RejectedWriteNeverCallsBackend
 28/71 Test: TimeCommandTest.RejectedWriteNeverCallsBackend
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.RejectedWriteNeverCallsBackend" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.RejectedWriteNeverCallsBackend" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCommandTest.RejectedWriteNeverCallsBackend" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -747,8 +747,8 @@ Test Passed.
 
 29/71 Testing: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
 29/71 Test: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/time
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
 "TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -774,8 +774,8 @@ Test Passed.
 
 30/71 Testing: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
 30/71 Test: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -801,8 +801,8 @@ Test Passed.
 
 31/71 Testing: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
 31/71 Test: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -828,8 +828,8 @@ Test Passed.
 
 32/71 Testing: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
 32/71 Test: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerTest.UtcStepDoesNotChangeMonotonicSchedule" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerTest.UtcStepDoesNotChangeMonotonicSchedule" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerTest.UtcStepDoesNotChangeMonotonicSchedule" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -855,8 +855,8 @@ Test Passed.
 
 33/71 Testing: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
 33/71 Test: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -882,8 +882,8 @@ Test Passed.
 
 34/71 Testing: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
 34/71 Test: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -909,8 +909,8 @@ Test Passed.
 
 35/71 Testing: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
 35/71 Test: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -936,8 +936,8 @@ Test Passed.
 
 36/71 Testing: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
 36/71 Test: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -963,8 +963,8 @@ Test Passed.
 
 37/71 Testing: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
 37/71 Test: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -990,8 +990,8 @@ Test Passed.
 
 38/71 Testing: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
 38/71 Test: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1017,8 +1017,8 @@ Test Passed.
 
 39/71 Testing: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
 39/71 Test: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1044,8 +1044,8 @@ Test Passed.
 
 40/71 Testing: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
 40/71 Test: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1071,8 +1071,8 @@ Test Passed.
 
 41/71 Testing: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
 41/71 Test: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1098,8 +1098,8 @@ Test Passed.
 
 42/71 Testing: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
 42/71 Test: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/controller
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
 "ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1125,8 +1125,8 @@ Test Passed.
 
 43/71 Testing: Netif.RejectsNull
 43/71 Test: Netif.RejectsNull
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.RejectsNull" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.RejectsNull" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Netif.RejectsNull" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1152,8 +1152,8 @@ Test Passed.
 
 44/71 Testing: Netif.PreservesOutputWhenObservationFails
 44/71 Test: Netif.PreservesOutputWhenObservationFails
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.PreservesOutputWhenObservationFails" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.PreservesOutputWhenObservationFails" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Netif.PreservesOutputWhenObservationFails" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1179,8 +1179,8 @@ Test Passed.
 
 45/71 Testing: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
 45/71 Test: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.AddressRemainsConfiguredWhenLinkAndAdminDown" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.AddressRemainsConfiguredWhenLinkAndAdminDown" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Netif.AddressRemainsConfiguredWhenLinkAndAdminDown" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1206,8 +1206,8 @@ Test Passed.
 
 46/71 Testing: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
 46/71 Test: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1233,8 +1233,8 @@ Test Passed.
 
 47/71 Testing: Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
 47/71 Test: Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1260,8 +1260,8 @@ Test Passed.
 
 48/71 Testing: NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
 48/71 Test: NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_netif_host_tests" "--gtest_filter=NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_netif_host_tests" "--gtest_filter=NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1287,8 +1287,8 @@ Test Passed.
 
 49/71 Testing: Client.TcpHandlesShortTransfersWithinOneDeadline
 49/71 Test: Client.TcpHandlesShortTransfersWithinOneDeadline
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.TcpHandlesShortTransfersWithinOneDeadline" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.TcpHandlesShortTransfersWithinOneDeadline" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.TcpHandlesShortTransfersWithinOneDeadline" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1314,8 +1314,8 @@ Test Passed.
 
 50/71 Testing: Client.RetriesInterruptedPollAndWouldBlock
 50/71 Test: Client.RetriesInterruptedPollAndWouldBlock
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RetriesInterruptedPollAndWouldBlock" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RetriesInterruptedPollAndWouldBlock" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.RetriesInterruptedPollAndWouldBlock" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1341,8 +1341,8 @@ Test Passed.
 
 51/71 Testing: Client.RepeatedInterruptionsCannotExtendDeadline
 51/71 Test: Client.RepeatedInterruptionsCannotExtendDeadline
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RepeatedInterruptionsCannotExtendDeadline" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RepeatedInterruptionsCannotExtendDeadline" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.RepeatedInterruptionsCannotExtendDeadline" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1368,8 +1368,8 @@ Test Passed.
 
 52/71 Testing: Client.SilenceExpires
 52/71 Test: Client.SilenceExpires
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.SilenceExpires" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.SilenceExpires" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.SilenceExpires" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1395,8 +1395,8 @@ Test Passed.
 
 53/71 Testing: Client.ConnectPollReadinessStillRequiresSocketError
 53/71 Test: Client.ConnectPollReadinessStillRequiresSocketError
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.ConnectPollReadinessStillRequiresSocketError" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.ConnectPollReadinessStillRequiresSocketError" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.ConnectPollReadinessStillRequiresSocketError" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1422,8 +1422,8 @@ Test Passed.
 
 54/71 Testing: Client.HangupIsReadAsEof
 54/71 Test: Client.HangupIsReadAsEof
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.HangupIsReadAsEof" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.HangupIsReadAsEof" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.HangupIsReadAsEof" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1449,8 +1449,8 @@ Test Passed.
 
 55/71 Testing: Client.FailedCloseIsNeverRetried
 55/71 Test: Client.FailedCloseIsNeverRetried
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.FailedCloseIsNeverRetried" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.FailedCloseIsNeverRetried" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.FailedCloseIsNeverRetried" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1477,8 +1477,8 @@ Test Passed.
 
 56/71 Testing: Client.FailedCreationOwnsNoDescriptor
 56/71 Test: Client.FailedCreationOwnsNoDescriptor
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.FailedCreationOwnsNoDescriptor" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.FailedCreationOwnsNoDescriptor" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.FailedCreationOwnsNoDescriptor" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1504,8 +1504,8 @@ Test Passed.
 
 57/71 Testing: Client.SetupFailureClosesDescriptor
 57/71 Test: Client.SetupFailureClosesDescriptor
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.SetupFailureClosesDescriptor" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.SetupFailureClosesDescriptor" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.SetupFailureClosesDescriptor" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1531,8 +1531,8 @@ Test Passed.
 
 58/71 Testing: Client.SendFailureClosesDescriptor
 58/71 Test: Client.SendFailureClosesDescriptor
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.SendFailureClosesDescriptor" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.SendFailureClosesDescriptor" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.SendFailureClosesDescriptor" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1558,8 +1558,8 @@ Test Passed.
 
 59/71 Testing: Client.RejectsInvalidInputBeforeSocketCreation
 59/71 Test: Client.RejectsInvalidInputBeforeSocketCreation
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RejectsInvalidInputBeforeSocketCreation" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RejectsInvalidInputBeforeSocketCreation" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.RejectsInvalidInputBeforeSocketCreation" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1585,8 +1585,8 @@ Test Passed.
 
 60/71 Testing: Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
 60/71 Test: Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1612,8 +1612,8 @@ Test Passed.
 
 61/71 Testing: Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
 61/71 Test: Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1639,8 +1639,8 @@ Test Passed.
 
 62/71 Testing: Client.RejectsCorruptEcho
 62/71 Test: Client.RejectsCorruptEcho
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RejectsCorruptEcho" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RejectsCorruptEcho" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.RejectsCorruptEcho" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1666,8 +1666,8 @@ Test Passed.
 
 63/71 Testing: Client.ClockFailureOwnsNoSocket
 63/71 Test: Client.ClockFailureOwnsNoSocket
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.ClockFailureOwnsNoSocket" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.ClockFailureOwnsNoSocket" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.ClockFailureOwnsNoSocket" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1693,8 +1693,8 @@ Test Passed.
 
 64/71 Testing: Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
 64/71 Test: Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1720,8 +1720,8 @@ Test Passed.
 
 65/71 Testing: Client.WouldBlockCannotRenewOverallDeadline
 65/71 Test: Client.WouldBlockCannotRenewOverallDeadline
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.WouldBlockCannotRenewOverallDeadline" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.WouldBlockCannotRenewOverallDeadline" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.WouldBlockCannotRenewOverallDeadline" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1747,8 +1747,8 @@ Test Passed.
 
 66/71 Testing: Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
 66/71 Test: Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1774,8 +1774,8 @@ Test Passed.
 
 67/71 Testing: Client.RuntimeRetriesInterruptedPoll
 67/71 Test: Client.RuntimeRetriesInterruptedPoll
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RuntimeRetriesInterruptedPoll" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RuntimeRetriesInterruptedPoll" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.RuntimeRetriesInterruptedPoll" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1801,8 +1801,8 @@ Test Passed.
 
 68/71 Testing: Client.RuntimeInterruptionsCannotRenewDeadline
 68/71 Test: Client.RuntimeInterruptionsCannotRenewDeadline
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RuntimeInterruptionsCannotRenewDeadline" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RuntimeInterruptionsCannotRenewDeadline" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.RuntimeInterruptionsCannotRenewDeadline" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1828,8 +1828,8 @@ Test Passed.
 
 69/71 Testing: Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
 69/71 Test: Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RuntimeReadinessAfterExpiryDoesNotPermitSend" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RuntimeReadinessAfterExpiryDoesNotPermitSend" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.RuntimeReadinessAfterExpiryDoesNotPermitSend" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1855,8 +1855,8 @@ Test Passed.
 
 70/71 Testing: Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
 70/71 Test: Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno" "--gtest_also_run_disabled_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------
@@ -1882,8 +1882,8 @@ Test Passed.
 
 71/71 Testing: Networking.RealHostStack
 71/71 Test: Networking.RealHostStack
-Command: "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking/crux_networking_stack_tests"
-Directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/build/linux/sanitize/tests/networking
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_stack_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
 "Networking.RealHostStack" start time: Oct 22 21:17 UTC
 Output:
 ----------------------------------------------------------

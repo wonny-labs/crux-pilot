@@ -4,7 +4,7 @@ Note: Google Test filter = Client.Runtime*
 [----------] Global test environment set-up.
 [----------] 3 tests from Client
 [ RUN      ] Client.RuntimeRetriesInterruptedPoll
-/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/networking/client_test.cpp:231: Failure
+$REPO/tests/networking/client_test.cpp:231: Failure
 Expected equality of these values:
   runtime_port_exchange("127.0.0.1", 1)
     Which is: -4
@@ -12,7 +12,7 @@ Expected equality of these values:
 
 [  FAILED  ] Client.RuntimeRetriesInterruptedPoll (3 ms)
 [ RUN      ] Client.RuntimeInterruptionsCannotRenewDeadline
-/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/networking/client_test.cpp:236: Failure
+$REPO/tests/networking/client_test.cpp:236: Failure
 Expected equality of these values:
   runtime_port_exchange("127.0.0.1", 1)
     Which is: -4
@@ -20,7 +20,7 @@ Expected equality of these values:
 
 [  FAILED  ] Client.RuntimeInterruptionsCannotRenewDeadline (1 ms)
 [ RUN      ] Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
-/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/networking/client_test.cpp:244: Failure
+$REPO/tests/networking/client_test.cpp:244: Failure
 Expected equality of these values:
   s.sends
     Which is: 1

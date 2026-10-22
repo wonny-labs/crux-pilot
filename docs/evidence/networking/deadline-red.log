@@ -4,7 +4,7 @@ Note: Google Test filter = Client.ReadinessAfterExpiryDoesNotPermitAnotherTransf
 [----------] Global test environment set-up.
 [----------] 1 test from Client
 [ RUN      ] Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
-/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/networking/client_test.cpp:223: Failure
+$REPO/tests/networking/client_test.cpp:223: Failure
 Expected equality of these values:
   s.sends
     Which is: 1
