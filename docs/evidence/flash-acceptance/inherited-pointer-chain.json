@@ -1,0 +1,9 @@
+{
+  "elf_sha256": "5e21cac3aa1d025434e58bbd3f2137ac968af4ed85e2bb5d8be6dc3997979669",
+  "nor_config_address": "0x60019fd0",
+  "controller_pointer": "0x60019378",
+  "controller_config_pointer": "0x6001b4b0",
+  "register_base": "0x402a8000",
+  "ahb_base": "0x60000000",
+  "scope": "inherited ELF pointer data confirms disassembly/source ROM-configuration dependency; not runtime observation"
+}

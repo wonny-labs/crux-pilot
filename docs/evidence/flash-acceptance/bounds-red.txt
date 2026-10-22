@@ -1,0 +1,465 @@
+test_cli_reads_files_and_returns_failure_for_invalid_image (test_flash_bounds.CommandLine) ... FAIL
+test_bin_span_must_match_all_loads (test_flash_bounds.ImageBounds) ... test_boot_header_fields_independently_rejected (test_flash_bounds.ImageBounds) ... test_exact_firmware_ceiling (test_flash_bounds.ImageBounds) ... ok
+test_file_size_larger_than_memory_rejected (test_flash_bounds.ImageBounds) ... FAIL
+test_layout_overlap_and_alignment (test_flash_bounds.ImageBounds) ... test_load_in_storage_rejected (test_flash_bounds.ImageBounds) ... test_malformed_elf_headers (test_flash_bounds.ImageBounds) ... test_non_file_backed_ram_load_is_ignored (test_flash_bounds.ImageBounds) ... ok
+test_overlapping_loads_rejected (test_flash_bounds.ImageBounds) ... FAIL
+test_oversized_bin_independently_of_valid_loads (test_flash_bounds.ImageBounds) ... FAIL
+test_ram_vma_load_crosses_ceiling_independently_of_small_bin (test_flash_bounds.ImageBounds) ... FAIL
+test_truncated_boot_data (test_flash_bounds.ImageBounds) ... FAIL
+test_truncated_elf_header_table_and_load (test_flash_bounds.ImageBounds) ... test_valid_ram_vma_flash_lma (test_flash_bounds.ImageBounds) ... ok
+test_adjacent_requests_allowed (test_flash_bounds.Requests) ... ok
+test_erase_alignment_and_invalid_lengths (test_flash_bounds.Requests) ... test_firmware_and_boot_headers_protected (test_flash_bounds.Requests) ... test_overlapping_request_batch_rejected (test_flash_bounds.Requests) ... FAIL
+test_owner_crossing_and_device_bounds_rejected (test_flash_bounds.Requests) ... test_valid_owner_edges_and_byte_write_granule (test_flash_bounds.Requests) ... ok
+
+======================================================================
+FAIL: test_cli_reads_files_and_returns_failure_for_invalid_image (test_flash_bounds.CommandLine)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 183, in test_cli_reads_files_and_returns_failure_for_invalid_image
+    self.assertIn('candidate', valid.stdout)
+AssertionError: 'candidate' not found in ''
+
+======================================================================
+FAIL: test_bin_span_must_match_all_loads (test_flash_bounds.ImageBounds) (adjustment=-1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 72, in test_bin_span_must_match_all_loads
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_bin_span_must_match_all_loads (test_flash_bounds.ImageBounds) (adjustment=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 72, in test_bin_span_must_match_all_loads
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_boot_header_fields_independently_rejected (test_flash_bounds.ImageBounds) (offset='0x0')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 115, in test_boot_header_fields_independently_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_boot_header_fields_independently_rejected (test_flash_bounds.ImageBounds) (offset='0x1000')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 115, in test_boot_header_fields_independently_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_boot_header_fields_independently_rejected (test_flash_bounds.ImageBounds) (offset='0x1004')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 115, in test_boot_header_fields_independently_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_boot_header_fields_independently_rejected (test_flash_bounds.ImageBounds) (offset='0x1010')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 115, in test_boot_header_fields_independently_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_boot_header_fields_independently_rejected (test_flash_bounds.ImageBounds) (offset='0x1014')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 115, in test_boot_header_fields_independently_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_boot_header_fields_independently_rejected (test_flash_bounds.ImageBounds) (offset='0x1020')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 115, in test_boot_header_fields_independently_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_boot_header_fields_independently_rejected (test_flash_bounds.ImageBounds) (offset='0x1024')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 115, in test_boot_header_fields_independently_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_boot_header_fields_independently_rejected (test_flash_bounds.ImageBounds) (offset='0x1028')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 115, in test_boot_header_fields_independently_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_file_size_larger_than_memory_rejected (test_flash_bounds.ImageBounds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 93, in test_file_size_larger_than_memory_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_layout_overlap_and_alignment (test_flash_bounds.ImageBounds) (layout={'firmware': (1610612736, 1617039360), 'littlefs': (1617035264, 1618935808), 'nvs': (1618935808, 1619001344)})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 132, in test_layout_overlap_and_alignment
+    check_layout(layout)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_layout_overlap_and_alignment (test_flash_bounds.ImageBounds) (layout={'firmware': (1610612736, 1617035264), 'littlefs': (1617035265, 1618935808), 'nvs': (1618935808, 1619001344)})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 132, in test_layout_overlap_and_alignment
+    check_layout(layout)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_load_in_storage_rejected (test_flash_bounds.ImageBounds) (address='0x60620000')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 59, in test_load_in_storage_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_load_in_storage_rejected (test_flash_bounds.ImageBounds) (address='0x607f0000')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 59, in test_load_in_storage_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_load_in_storage_rejected (test_flash_bounds.ImageBounds) (address='0x60800000')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 59, in test_load_in_storage_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_load_in_storage_rejected (test_flash_bounds.ImageBounds) (address='0x5fffffff')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 59, in test_load_in_storage_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_load_in_storage_rejected (test_flash_bounds.ImageBounds) (address='0xfffffff8')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 59, in test_load_in_storage_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_malformed_elf_headers (test_flash_bounds.ImageBounds) (offset=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 81, in test_malformed_elf_headers
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_malformed_elf_headers (test_flash_bounds.ImageBounds) (offset=4)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 81, in test_malformed_elf_headers
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_malformed_elf_headers (test_flash_bounds.ImageBounds) (offset=5)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 81, in test_malformed_elf_headers
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_malformed_elf_headers (test_flash_bounds.ImageBounds) (offset=18)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 81, in test_malformed_elf_headers
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_malformed_elf_headers (test_flash_bounds.ImageBounds) (offset=40)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 81, in test_malformed_elf_headers
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_malformed_elf_headers (test_flash_bounds.ImageBounds) (offset=42)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 81, in test_malformed_elf_headers
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_malformed_elf_headers (test_flash_bounds.ImageBounds) (offset=28)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 81, in test_malformed_elf_headers
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_malformed_elf_headers (test_flash_bounds.ImageBounds) (offset=44)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 81, in test_malformed_elf_headers
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_overlapping_loads_rejected (test_flash_bounds.ImageBounds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 99, in test_overlapping_loads_rejected
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_oversized_bin_independently_of_valid_loads (test_flash_bounds.ImageBounds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 65, in test_oversized_bin_independently_of_valid_loads
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_ram_vma_load_crosses_ceiling_independently_of_small_bin (test_flash_bounds.ImageBounds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 51, in test_ram_vma_load_crosses_ceiling_independently_of_small_bin
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_truncated_boot_data (test_flash_bounds.ImageBounds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 124, in test_truncated_boot_data
+    check_image(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_truncated_elf_header_table_and_load (test_flash_bounds.ImageBounds) (length=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 87, in test_truncated_elf_header_table_and_load
+    check_image(elf[:length], binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_truncated_elf_header_table_and_load (test_flash_bounds.ImageBounds) (length=51)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 87, in test_truncated_elf_header_table_and_load
+    check_image(elf[:length], binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_truncated_elf_header_table_and_load (test_flash_bounds.ImageBounds) (length=115)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 87, in test_truncated_elf_header_table_and_load
+    check_image(elf[:length], binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_truncated_elf_header_table_and_load (test_flash_bounds.ImageBounds) (length=8511)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 87, in test_truncated_elf_header_table_and_load
+    check_image(elf[:length], binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_erase_alignment_and_invalid_lengths (test_flash_bounds.Requests) (operation='erase', address=1617035265, size=4096)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 161, in test_erase_alignment_and_invalid_lengths
+    check_requests([(operation, 'littlefs', address, size)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_erase_alignment_and_invalid_lengths (test_flash_bounds.Requests) (operation='erase', address=1617035264, size=4095)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 161, in test_erase_alignment_and_invalid_lengths
+    check_requests([(operation, 'littlefs', address, size)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_erase_alignment_and_invalid_lengths (test_flash_bounds.Requests) (operation='write', address=1617035264, size=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 161, in test_erase_alignment_and_invalid_lengths
+    check_requests([(operation, 'littlefs', address, size)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_erase_alignment_and_invalid_lengths (test_flash_bounds.Requests) (operation='write', address=1617035264, size=-1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 161, in test_erase_alignment_and_invalid_lengths
+    check_requests([(operation, 'littlefs', address, size)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_erase_alignment_and_invalid_lengths (test_flash_bounds.Requests) (operation='read', address=1617035264, size=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 161, in test_erase_alignment_and_invalid_lengths
+    check_requests([(operation, 'littlefs', address, size)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_firmware_and_boot_headers_protected (test_flash_bounds.Requests) (operation='write', address=1610612736)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 146, in test_firmware_and_boot_headers_protected
+    check_requests([(operation, 'littlefs', address, 4096)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_firmware_and_boot_headers_protected (test_flash_bounds.Requests) (operation='write', address=1610616832)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 146, in test_firmware_and_boot_headers_protected
+    check_requests([(operation, 'littlefs', address, 4096)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_firmware_and_boot_headers_protected (test_flash_bounds.Requests) (operation='write', address=1610620928)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 146, in test_firmware_and_boot_headers_protected
+    check_requests([(operation, 'littlefs', address, 4096)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_firmware_and_boot_headers_protected (test_flash_bounds.Requests) (operation='write', address=1617031168)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 146, in test_firmware_and_boot_headers_protected
+    check_requests([(operation, 'littlefs', address, 4096)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_firmware_and_boot_headers_protected (test_flash_bounds.Requests) (operation='erase', address=1610612736)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 146, in test_firmware_and_boot_headers_protected
+    check_requests([(operation, 'littlefs', address, 4096)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_firmware_and_boot_headers_protected (test_flash_bounds.Requests) (operation='erase', address=1610616832)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 146, in test_firmware_and_boot_headers_protected
+    check_requests([(operation, 'littlefs', address, 4096)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_firmware_and_boot_headers_protected (test_flash_bounds.Requests) (operation='erase', address=1610620928)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 146, in test_firmware_and_boot_headers_protected
+    check_requests([(operation, 'littlefs', address, 4096)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_firmware_and_boot_headers_protected (test_flash_bounds.Requests) (operation='erase', address=1617031168)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 146, in test_firmware_and_boot_headers_protected
+    check_requests([(operation, 'littlefs', address, 4096)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_overlapping_request_batch_rejected (test_flash_bounds.Requests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 165, in test_overlapping_request_batch_rejected
+    check_requests([('erase', 'littlefs', CEILING, 4096),
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_owner_crossing_and_device_bounds_rejected (test_flash_bounds.Requests) (owner='littlefs', address=1618935807)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 154, in test_owner_crossing_and_device_bounds_rejected
+    check_requests([('write', owner, address, size)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_owner_crossing_and_device_bounds_rejected (test_flash_bounds.Requests) (owner='nvs', address=1618935807)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 154, in test_owner_crossing_and_device_bounds_rejected
+    check_requests([('write', owner, address, size)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_owner_crossing_and_device_bounds_rejected (test_flash_bounds.Requests) (owner='nvs', address=1619001344)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 154, in test_owner_crossing_and_device_bounds_rejected
+    check_requests([('write', owner, address, size)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_owner_crossing_and_device_bounds_rejected (test_flash_bounds.Requests) (owner='littlefs', address=-1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 154, in test_owner_crossing_and_device_bounds_rejected
+    check_requests([('write', owner, address, size)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_owner_crossing_and_device_bounds_rejected (test_flash_bounds.Requests) (owner='nvs', address=4294967295)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 154, in test_owner_crossing_and_device_bounds_rejected
+    check_requests([('write', owner, address, size)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_owner_crossing_and_device_bounds_rejected (test_flash_bounds.Requests) (owner='firmware', address=1610612736)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 154, in test_owner_crossing_and_device_bounds_rejected
+    check_requests([('write', owner, address, size)])
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_owner_crossing_and_device_bounds_rejected (test_flash_bounds.Requests) (owner='unknown', address=1617035264)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_flash_bounds.py", line 154, in test_owner_crossing_and_device_bounds_rejected
+    check_requests([('write', owner, address, size)])
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 21 tests in 0.036s
+
+FAILED (failures=56)
