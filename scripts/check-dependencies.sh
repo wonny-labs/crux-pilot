@@ -63,3 +63,5 @@ if rg -n 'samples/time|time_command\.c|crux_time_commands' "$repo/zephyr/CMakeLi
 fi
 
 printf 'Base is independent; public/common Time and portable commands avoid native headers; backend selection is checked by CMake; shared source ownership is explicit.\n'
+
+python3 "$repo/scripts/check-networking-dependencies.py"

@@ -1,7 +1,8 @@
 # M5 portable networking proposal
 
-Status: proposed for human contract approval; no public contract adopted or
-production implementation begun. Scope: [Issue #28](https://github.com/wonny-labs/crux-pilot/issues/28).
+Status: architecture approved by the user on 22 October 2026 for software-only
+implementation and qualification. Approval does not establish untested behaviour
+or physical acceptance. Scope: [Issue #28](https://github.com/wonny-labs/crux-pilot/issues/28).
 
 ## Decision requested
 
@@ -204,6 +205,12 @@ successfully at its explicit 1-second simulation stop. The probe checks socket
 creation, numeric IPv4 conversion, nonblocking fcntl, zero-time poll, monotonic
 clock_gettime, SO_ERROR and close. It does not connect, send or receive data,
 exercise netif status, or qualify deadlines/failures/resources.
+
+Subsequent implementation investigation showed that the early native_sim build
+used CONFIG_NATIVE_LIBC: Zephyr's lib/CMakeLists.txt excludes its POSIX library in
+that mode, so standard calls resolved to Host libc. The early probe therefore
+provides no Zephyr socket-provider qualification. The full integration fixture
+explicitly selects embedded Picolibc and checks actual native context allocation.
 
 Native configuration has POSIX_SYSTEM_INTERFACES, POSIX_NETWORKING,
 POSIX_DEVICE_IO, POSIX_FD_MGMT, POSIX_TIMERS, POSIX_MONOTONIC_CLOCK,

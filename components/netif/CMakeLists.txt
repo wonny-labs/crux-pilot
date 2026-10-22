@@ -1,0 +1,7 @@
+set(CRUX_NETIF_HOST_INTERFACE "lo" CACHE STRING "Composition-selected primary Host interface")
+add_library(crux_netif STATIC src/netif.c host/netif_host.c)
+add_library(crux::netif ALIAS crux_netif)
+target_include_directories(crux_netif PUBLIC include PRIVATE src)
+target_link_libraries(crux_netif PUBLIC crux::base)
+target_compile_definitions(crux_netif PRIVATE _DEFAULT_SOURCE CRUX_NETIF_HOST_INTERFACE="${CRUX_NETIF_HOST_INTERFACE}")
+target_compile_options(crux_netif PRIVATE -Wall -Wextra -Wpedantic -Werror)

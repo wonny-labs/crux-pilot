@@ -115,3 +115,11 @@ The [original Time Pilot plan](docs/plans/initial-implementation-plan.md) and [i
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution, interface and review practices. AI agents must also follow [AGENTS.md](AGENTS.md).
+
+### Portable networking client slice
+
+The [qualified socket/netif contract](docs/networking-contract.md) supplies
+IPv4 TCP-client/connected-UDP communication and read-only primary-interface
+status. See the [networking software tests](tests/README.md#portable-networking-software-slice)
+for supported configurations and commands. Physical Issue #28 acceptance is
+pending; this slice does not complete the M5 milestone.
