@@ -64,3 +64,5 @@ fi
 
 printf 'Base is independent; public/common Time and portable commands avoid native headers; backend selection is checked by CMake; shared source ownership is explicit.\n'
 python3 "$repo/scripts/check-execution-boundaries.py"
+
+python3 "$repo/scripts/check-networking-dependencies.py"

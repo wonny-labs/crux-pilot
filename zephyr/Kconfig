@@ -53,3 +53,14 @@ config CRUX_EXECUTION_STACK_BYTES
 endif # CRUX_EXECUTION
 
 endif # CRUX_PILOT_MODULE
+
+config CRUX_SOCKETS
+    bool "Crux qualified IPv4 client socket profile"
+    depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4 && NET_TCP && NET_UDP
+    depends on POSIX_SYSTEM_INTERFACES && POSIX_NETWORKING && POSIX_DEVICE_IO
+    depends on POSIX_FD_MGMT && POSIX_TIMERS && POSIX_MONOTONIC_CLOCK
+
+
+config CRUX_NETIF
+    bool "Crux primary interface status"
+    depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4

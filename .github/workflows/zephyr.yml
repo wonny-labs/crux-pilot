@@ -67,6 +67,12 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-m3.sh
 
+      - name: Qualify portable networking without hardware
+        working-directory: crux-pilot
+        run: |
+          scripts/bootstrap-networking-tests.sh
+          scripts/test-networking.sh
+
       - name: Run native_sim RTC tests and build EVKB firmware
         working-directory: crux-pilot
         run: scripts/test-zephyr-time.sh "$CRUX_BOARD_TARGET"
@@ -158,6 +164,15 @@ jobs:
             crux-pilot/build/zephyr/execution_runtime-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/execution_runtime-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/execution_runtime-evkb/compile_commands.json
+            crux-pilot/build/zephyr/networking-native-pico/scenario.log
+            crux-pilot/build/zephyr/networking-native-pico/zephyr/.config
+            crux-pilot/build/zephyr/networking-native-pico/zephyr/zephyr.map
+            crux-pilot/build/zephyr/networking-evkb/zephyr/.config
+            crux-pilot/build/zephyr/networking-evkb/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/networking-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/networking-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/networking-evkb/zephyr/zephyr.bin
+            crux-pilot/build/networking-consumer/public-requirements.txt
             crux-pilot/build/zephyr/controller-normal/scenario.log
             crux-pilot/build/zephyr/controller-missing-rtc/scenario.log
             crux-pilot/build/zephyr/controller-evkb/zephyr/.config

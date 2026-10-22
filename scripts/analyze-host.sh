@@ -52,3 +52,10 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/samples/controller/host/main.c" \
     "$repo/tests/controller/controller_test.cpp" \
     "$repo/tests/controller/health_test.cpp"
+
+"$tidy" -p "$build_dir" \
+    "$repo/components/netif/src/netif.c" \
+    "$repo/components/netif/host/netif_host.c" \
+    "$repo/samples/networking/client.c" \
+    "$repo/samples/networking/host/main.c" \
+    "$repo/tests/networking/runtime_port.c"

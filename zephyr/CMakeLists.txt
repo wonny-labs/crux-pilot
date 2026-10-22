@@ -80,3 +80,21 @@ if(CONFIG_CRUX_TIME)
         crux_time_api crux_time_common crux_time_zephyr
     )
 endif()
+
+if(CONFIG_CRUX_SOCKETS)
+    add_library(crux_sockets INTERFACE)
+    add_library(crux::sockets ALIAS crux_sockets)
+    target_compile_definitions(crux_sockets INTERFACE _POSIX_C_SOURCE=200809L)
+    target_compile_options(crux_sockets INTERFACE
+        "SHELL:-include ${CMAKE_CURRENT_LIST_DIR}/../components/sockets/zephyr/close_declaration.h")
+endif()
+if(CONFIG_CRUX_NETIF)
+    add_library(crux_netif STATIC ../components/netif/src/netif.c
+        ../components/netif/zephyr/netif_zephyr.c)
+    target_include_directories(crux_netif PUBLIC ../components/netif/include
+        PRIVATE ../components/netif/src)
+    target_link_libraries(crux_netif PUBLIC crux::base PRIVATE zephyr_interface)
+    add_dependencies(crux_netif zephyr_generated_headers)
+    target_compile_options(crux_netif PRIVATE -Wall -Wextra -Werror)
+    add_library(crux::netif ALIAS crux_netif)
+endif()

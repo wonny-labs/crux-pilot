@@ -150,3 +150,15 @@ cross-builds. Common conformance and Host failure/poll regressions run in the st
 Host debug/sanitizer checks. Private admission tests prove lifecycle races without
 adding production test hooks. See [the validation record](../docs/execution-validation.md)
 for supported semantics, source identities, results and remaining #24/physical gates.
+
+## Portable networking software slice
+
+The [networking contract](../docs/networking-contract.md) defines the approved
+IPv4 client-only profile. `scripts/check-host.sh` includes deterministic and real
+Linux loopback tests. Run `scripts/bootstrap-networking-tests.sh` once to fetch
+Zephyr's pinned Picolibc test module into the external cache, then
+`scripts/test-networking.sh` for independent C/C++ consumers, real Zephyr loopback
+qualification and an RT1060 cross-build. These commands never operate hardware.
+The native fixture requires embedded libc to avoid silently testing Linux sockets.
+Fixture servers use standard APIs outside the public client profile; they are
+not consumer examples. Physical acceptance remains pending.

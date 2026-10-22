@@ -1,0 +1,17 @@
+{
+  "baseline": "32405ad79f08492f2bbd11d98ccf0d70af5c338e",
+  "source_sha256": {
+    "tests/native/flash_safety/image_bounds.py": "22b05c7437c2be849f9964552ed677938253d9442500cba2071aa9ed152be8a6",
+    "tests/build/test_flash_bounds.py": "7715cc012fb2459e71f1bf510d1c12d133cdbbf4bc175173cf851997501e370f"
+  },
+  "retained_poc_elf_sha256": "eb313d4c8df82e9c45b32be4bfadb02f16e4437742928f612621e2aec575fc0c",
+  "results": {
+    "bounds_methods": 21,
+    "linux_build_test_methods": 176,
+    "linux_ctest": 42,
+    "poc_fault_methods": 4,
+    "retained_elf_methods": 3
+  },
+  "limits": "candidate checking only; no production enforcement, target rebuild or hardware execution",
+  "log_normalization": "bounds-red.txt substitutes <repo> for the absolute workspace path; original retained locally"
+}

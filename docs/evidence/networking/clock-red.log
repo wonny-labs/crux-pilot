@@ -1,0 +1,22 @@
+Running main() from /opt/crux-cache/networking-host-debug/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+$REPO/tests/networking/client_test.cpp:253: Failure
+Expected equality of these values:
+  networking_exchange("127.0.0.1", 1, false, 100)
+    Which is: -24
+  -5
+
+[  FAILED  ] Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno (22 ms)
+[----------] 1 test from Client (35 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (75 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+
+ 1 FAILED TEST
