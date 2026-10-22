@@ -140,3 +140,15 @@ returns through the deferred logger before the fallback character hook. Actual
 configuration and exact output counts must confirm that UART is the sole logging
 backend. Required record comparisons remove CR/LF endings only, retaining ANSI,
 whitespace, duplication and partial-line errors as failures.
+
+## Portable networking software slice
+
+The [networking contract](../docs/networking-contract.md) defines the approved
+IPv4 client-only profile. `scripts/check-host.sh` includes deterministic and real
+Linux loopback tests. Run `scripts/bootstrap-networking-tests.sh` once to fetch
+Zephyr's pinned Picolibc test module into the external cache, then
+`scripts/test-networking.sh` for independent C/C++ consumers, real Zephyr loopback
+qualification and an RT1060 cross-build. These commands never operate hardware.
+The native fixture requires embedded libc to avoid silently testing Linux sockets.
+Fixture servers use standard APIs outside the public client profile; they are
+not consumer examples. Physical acceptance remains pending.

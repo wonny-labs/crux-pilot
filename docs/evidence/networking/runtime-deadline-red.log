@@ -1,0 +1,40 @@
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.Runtime*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from Client
+[ RUN      ] Client.RuntimeRetriesInterruptedPoll
+$REPO/tests/networking/client_test.cpp:231: Failure
+Expected equality of these values:
+  runtime_port_exchange("127.0.0.1", 1)
+    Which is: -4
+  0
+
+[  FAILED  ] Client.RuntimeRetriesInterruptedPoll (3 ms)
+[ RUN      ] Client.RuntimeInterruptionsCannotRenewDeadline
+$REPO/tests/networking/client_test.cpp:236: Failure
+Expected equality of these values:
+  runtime_port_exchange("127.0.0.1", 1)
+    Which is: -4
+  -110
+
+[  FAILED  ] Client.RuntimeInterruptionsCannotRenewDeadline (1 ms)
+[ RUN      ] Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+$REPO/tests/networking/client_test.cpp:244: Failure
+Expected equality of these values:
+  s.sends
+    Which is: 1
+  0
+
+[  FAILED  ] Client.RuntimeReadinessAfterExpiryDoesNotPermitSend (0 ms)
+[----------] 3 tests from Client (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (12 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] Client.RuntimeRetriesInterruptedPoll
+[  FAILED  ] Client.RuntimeInterruptionsCannotRenewDeadline
+[  FAILED  ] Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+
+ 3 FAILED TESTS

@@ -1,0 +1,170 @@
+WARNING: Using a test - not safe - entropy source
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE networking
+===================================================================
+START - test_primary_interface_observation
+ PASS - test_primary_interface_observation in 0.000 seconds
+===================================================================
+START - test_real_stack_failures_and_cleanup
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=20
+STACK_LINK_LOSS result=-116 peer_error=2 native_error=115 received=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1360
+STACK_CASE udp=0 mode=1 runtime=0 result=-116 expected=-116
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=1 runtime=0 result=-116 expected=-116
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=2 runtime=0 result=-104 expected=-104
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=3 runtime=0 result=-122 expected=-122
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=4 runtime=0 result=-122 expected=-122
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=1 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1360
+STACK_CASE udp=0 mode=1 runtime=0 result=-116 expected=-116
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=1 runtime=0 result=-116 expected=-116
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=2 runtime=0 result=-104 expected=-104
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=3 runtime=0 result=-122 expected=-122
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=4 runtime=0 result=-122 expected=-122
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=1 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1360
+STACK_CASE udp=0 mode=1 runtime=0 result=-116 expected=-116
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=1 runtime=0 result=-116 expected=-116
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=2 runtime=0 result=-104 expected=-104
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=3 runtime=0 result=-122 expected=-122
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=4 runtime=0 result=-122 expected=-122
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=1 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_ZERO_DATAGRAM pass=1
+STACK_POST_CLOSE errno=128 attempts=1
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+ PASS - test_real_stack_failures_and_cleanup in 28.220 seconds
+===================================================================
+START - test_resource_exhaustion_and_return
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_EXHAUSTION held=6 errno=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+ PASS - test_resource_exhaustion_and_return in 0.000 seconds
+===================================================================
+TESTSUITE networking succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [networking]: pass = 3, fail = 0, skip = 0, total = 3 duration = 28.220 seconds
+ - PASS - [networking.test_primary_interface_observation] duration = 0.000 seconds
+ - PASS - [networking.test_real_stack_failures_and_cleanup] duration = 28.220 seconds
+ - PASS - [networking.test_resource_exhaustion_and_return] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
