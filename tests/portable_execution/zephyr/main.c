@@ -13,6 +13,7 @@ int execution_sync_capacity(void);
 int execution_join_timeout_retains(void);
 int execution_concurrent_give(void);
 int execution_admission_cases(void);
+int execution_metadata_admission_case(void);
 int crux_firmware_run(void);
 
 uint64_t execution_test_now_ns(void) {
@@ -47,6 +48,9 @@ ZTEST(portable_execution, test_concurrent_give) {
 }
 ZTEST(portable_execution, test_admission_lifetimes) {
     zassert_equal(execution_admission_cases(), 0);
+}
+ZTEST(portable_execution, test_metadata_admission_deadlines) {
+    zassert_equal(execution_metadata_admission_case(), 0);
 }
 ZTEST(portable_execution, test_firmware_consumer) {
     zassert_equal(crux_firmware_run(), 0);

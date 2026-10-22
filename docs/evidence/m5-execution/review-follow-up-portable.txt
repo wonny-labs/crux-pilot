@@ -1,0 +1,66 @@
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/execution-firmware-host
+ninja: no work to do.
+Internal ctest changing into directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/execution-firmware-host
+Test project /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/execution-firmware-host
+    Start 1: Execution.FirmwareConsumer
+1/1 Test #1: Execution.FirmwareConsumer .......   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.04 sec
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/execution-runtime-host
+ninja: no work to do.
+Internal ctest changing into directory: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/execution-runtime-host
+Test project /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/execution-runtime-host
+    Start 1: Execution.RuntimeConsumer
+1/1 Test #1: Execution.RuntimeConsumer ........   Passed    0.11 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.13 sec
+Execution public/consumer boundary passed; native providers remain permitted.
+Renaming previous output directory to /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/zephyr/twister-portable-execution.9
+INFO    - Using Ninja..
+INFO    - Zephyr version: v4.4.0
+INFO    - Using 'zephyr/gnu' toolchain variant.
+INFO    - Building initial testsuite list...
+INFO    - Built testsuite list in 0.00 seconds
+INFO    - Writing JSON report /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/zephyr/twister-portable-execution/testplan.json
+INFO    - JOBS: 2
+INFO    - Adding tasks to the queue...
+INFO    - Added initial list of jobs to queue
+INFO    - Total complete:    1/   2  50%  built (not run):    0, filtered:    0, failed:    0, error:    0INFO    - Total complete:    2/   2  100%  built (not run):    0, filtered:    0, failed:    0, error:    0
+INFO    - 2 test scenarios (2 configurations) selected, 0 configurations filtered (0 by static filter, 0 at runtime).
+INFO    - 2 of 2 executed test configurations passed (100.00%), 0 built (not run), 0 failed, 0 errored, with no warnings in 60.79 seconds.
+INFO    - 15 of 15 executed test cases passed (100.00%) on 1 out of total 1473 platforms (0.07%).
+INFO    - 2 test configurations executed on platforms, 0 test configurations were only built.
+INFO    - Saving reports...
+INFO    - Writing JSON report /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/zephyr/twister-portable-execution/twister.json
+INFO    - Writing xunit report /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/zephyr/twister-portable-execution/twister.xml...
+INFO    - Writing xunit report /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/zephyr/twister-portable-execution/twister_report.xml...
+INFO    - Run completed
+ninja: no work to do.
+Execution public/consumer boundary passed; native providers remain permitted.
+[1/9] Building C object modules/m5-execution/CMakeFiles/crux_execution_zephyr.dir/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/execution/src/execution_threads.c.obj
+[2/9] Building C object modules/m5-execution/CMakeFiles/crux_execution_zephyr.dir/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/execution/src/execution_sync.c.obj
+[3/9] Building C object modules/m5-execution/CMakeFiles/crux_execution_zephyr.dir/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/execution/zephyr/execution_native.c.obj
+[4/9] Linking C static library modules/m5-execution/libcrux_execution_zephyr.a
+[5/9] Linking C executable zephyr/zephyr_pre0.elf
+[6/9] Generating linker.cmd
+[7/9] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[8/9] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[9/9] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:       53740 B         8 MB      0.64%
+             RAM:       31040 B        32 MB      0.09%
+            ITCM:           0 B       128 KB      0.00%
+            DTCM:           0 B       128 KB      0.00%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/zephyr/execution_runtime-evkb/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi
+Execution public/consumer boundary passed; native providers remain permitted.

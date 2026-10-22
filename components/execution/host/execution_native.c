@@ -15,6 +15,19 @@ void exec_native_metadata_lock(void) {
     (void)pthread_mutex_lock(&metadata);
 }
 
+crux_status_t exec_native_metadata_lock_until(const exec_native_deadline_t *deadline) {
+    int result = deadline->poll
+                     ? pthread_mutex_trylock(&metadata)
+                     : pthread_mutex_clocklock(&metadata, CLOCK_MONOTONIC, &deadline->absolute);
+    if (result == 0) {
+        return CRUX_OK;
+    }
+    if (result == ETIMEDOUT) {
+        return CRUX_ERR_TIMEOUT;
+    }
+    return result == EBUSY ? CRUX_ERR_BUSY : CRUX_ERR_IO;
+}
+
 void exec_native_metadata_unlock(void) {
     (void)pthread_mutex_unlock(&metadata);
 }

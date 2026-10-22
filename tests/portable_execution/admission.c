@@ -121,6 +121,7 @@ int execution_admission_cases(void) {
     REQUIRE(crux_thread_join(&target.thread, 2000) == CRUX_OK);
     REQUIRE(target.result == CRUX_OK);
     REQUIRE(crux_mutex_destroy(&target.mutex) == CRUX_OK);
+
     REQUIRE(hook_failure == 0);
     REQUIRE(crux_semaphore_destroy(&admitted) == CRUX_OK);
     REQUIRE(crux_semaphore_destroy(&resume_operation) == CRUX_OK);

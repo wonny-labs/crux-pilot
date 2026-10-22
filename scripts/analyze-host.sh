@@ -44,6 +44,8 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/portable_execution/host_main.c" \
     "$repo/tests/portable_execution/host_failures.c" \
     "$repo/tests/portable_execution/host_poll.c" \
+    "$repo/tests/portable_execution/host_admission.c" \
+    "$repo/tests/portable_execution/host_poll_finalize.c" \
     "$repo/tests/portable_execution/admission.c" \
     "$repo/samples/controller/core/controller.c" \
     "$repo/samples/controller/core/health.c" \

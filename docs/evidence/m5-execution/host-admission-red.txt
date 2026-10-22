@@ -1,0 +1,10 @@
+Historical regression output from the review follow-up before deadline-aware metadata
+admission was implemented. The test held the real shared metadata lock and expected
+zero polls to return BUSY and finite mutex/semaphore/join waits to return TIMEOUT while
+the lock remained held. Results after the lock was released showed the waits had
+returned late instead:
+
+metadata wait case 0 returned=0 while-held=0 expected=-6
+metadata wait case 1 returned=0 while-held=0 expected=-7
+metadata wait case 2 returned=-7 while-held=0 expected=-7
+metadata wait case 3 returned=-7 while-held=0 expected=-7

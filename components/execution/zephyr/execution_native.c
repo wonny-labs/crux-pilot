@@ -12,6 +12,16 @@ bool exec_native_context_allowed(void) {
 void exec_native_metadata_lock(void) {
     (void)k_mutex_lock(&metadata, K_FOREVER);
 }
+crux_status_t exec_native_metadata_lock_until(const exec_native_deadline_t *deadline) {
+    int result = k_mutex_lock(&metadata, deadline->timeout);
+    if (result == 0)
+        return CRUX_OK;
+    if (result == -EAGAIN)
+        return CRUX_ERR_TIMEOUT;
+    if (result == -EBUSY)
+        return CRUX_ERR_BUSY;
+    return CRUX_ERR_IO;
+}
 void exec_native_metadata_unlock(void) {
     (void)k_mutex_unlock(&metadata);
 }
@@ -19,6 +29,7 @@ void exec_native_metadata_unlock(void) {
 crux_status_t exec_native_deadline(uint32_t timeout_ms, exec_native_deadline_t *out) {
     if (timeout_ms > INT32_MAX)
         return CRUX_ERR_OUT_OF_RANGE;
+    out->poll = timeout_ms == 0;
     if (timeout_ms == 0) {
         out->timeout = K_NO_WAIT;
         return CRUX_OK;

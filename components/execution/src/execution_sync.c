@@ -69,7 +69,9 @@ crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms) {
     crux_status_t result = exec_native_deadline(timeout_ms, &deadline);
     if (result != CRUX_OK)
         return result;
-    exec_native_metadata_lock();
+    result = exec_native_metadata_lock_until(&deadline);
+    if (result != CRUX_OK)
+        return result;
     mutex_slot_t *slot = find_mutex(mutex);
     if (slot == NULL) {
         exec_native_metadata_unlock();
@@ -84,6 +86,16 @@ crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms) {
         return CRUX_ERR_NO_RESOURCES;
     }
     ++slot->life.users;
+    if (deadline.poll) {
+        result = exec_native_mutex_lock(&slot->native, &deadline);
+        if (result == CRUX_OK) {
+            slot->held = true;
+            slot->owner = exec_native_current();
+        }
+        --slot->life.users;
+        exec_native_metadata_unlock();
+        return result;
+    }
     exec_native_metadata_unlock();
     result = exec_native_mutex_lock(&slot->native, &deadline);
     exec_native_metadata_lock();
@@ -172,7 +184,9 @@ crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_m
     crux_status_t result = exec_native_deadline(timeout_ms, &deadline);
     if (result != CRUX_OK)
         return result;
-    exec_native_metadata_lock();
+    result = exec_native_metadata_lock_until(&deadline);
+    if (result != CRUX_OK)
+        return result;
     semaphore_slot_t *slot = find_semaphore(semaphore);
     if (slot == NULL) {
         exec_native_metadata_unlock();
@@ -183,6 +197,12 @@ crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_m
         return CRUX_ERR_NO_RESOURCES;
     }
     ++slot->life.users;
+    if (deadline.poll) {
+        result = exec_native_semaphore_take(&slot->native, &deadline);
+        --slot->life.users;
+        exec_native_metadata_unlock();
+        return result;
+    }
     exec_native_metadata_unlock();
     result = exec_native_semaphore_take(&slot->native, &deadline);
     exec_native_metadata_lock();

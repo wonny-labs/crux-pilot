@@ -225,11 +225,19 @@ not transfer join ownership or extend resource lifetime.
 - Relative waits use monotonic elapsed time, independent of RTC/UTC. Convert upward
   to native resolution, check arithmetic overflow and retry interruptions/spurious
   wakeups against one original deadline. No early expiry caused by truncation.
-- Unavailable poll returns busy; unavailable finite wait returns timeout. Availability
-  racing expiry may produce success or timeout, without duplicated/lost ownership or
-  tokens. Error/output rules must be uniform across providers.
-- Timeouts limit the requested blocking interval; scheduler/preemption can delay
-  return. No maximum observed latency or realtime guarantee follows from this API.
+- A zero-time poll never waits for provider metadata or native object locks. It returns
+  busy if either lock cannot be acquired immediately, even when the resource might be
+  available; no handle lifetime or token state changes in that case. Otherwise an
+  unavailable resource returns busy. Once admitted, polls complete their native try
+  and private bookkeeping before releasing provider metadata, so they never block on
+  a second metadata acquisition after changing resource state. A finite wait uses one
+  original monotonic deadline for metadata admission and the native resource wait.
+  Availability racing expiry may produce success or timeout, without duplicated/lost
+  ownership or tokens. Error/output rules must be uniform across providers.
+- The timeout bounds metadata admission and the requested resource wait. Scheduler
+  delays and the private bookkeeping needed to finish an admitted operation may delay
+  function return; no maximum observed latency or realtime guarantee follows from this
+  API.
 - Thread context only, including give and poll. ISR, signal-handler and native
   callback contexts that forbid blocking are unsupported. Zephyr rejects ISR entry
   before calling blocking native primitives. Host asynchronous-signal use is a
@@ -280,3 +288,9 @@ The user explicitly approved this proposed Crux contract in this chat on 22 Octo
 implementation of the contract above, not hardware operations, integration, Issue
 closure or untested guarantees. Subsequent implementation evidence belongs in the
 contract and validation record; this proposal retains the decision rationale.
+
+For the PR #36 review follow-up, the user confirmed on 22 October 2026 that a poll
+returns `CRUX_ERR_BUSY` immediately when private metadata admission is contended, even
+if the resource may be available. This keeps zero-time polls nonblocking and preserves
+the resource state. It clarifies the approved poll semantics; no public function or
+status value was added.

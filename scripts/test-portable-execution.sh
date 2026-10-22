@@ -35,12 +35,13 @@ dependencies+=("$repo")
 export ZEPHYR_MODULES
 ZEPHYR_MODULES="$(IFS=';'; printf '%s' "${dependencies[*]}")"
 unset ZEPHYR_EXTRA_MODULES EXTRA_ZEPHYR_MODULES
-west twister -j 2 -p native_sim/native/64 \
+(cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
     -T "$repo/tests/portable_execution/zephyr" -T "$repo/tests/execution_runtime/zephyr" \
-    -O "$repo/build/zephyr/twister-portable-execution" --inline-logs
+    -O "$repo/build/zephyr/twister-portable-execution" --inline-logs)
 for consumer in portable_execution execution_runtime; do
     out="$repo/build/zephyr/$consumer-evkb"
-    west build -b 'mimxrt1060_evk@B//qspi' -d "$out" "$repo/tests/$consumer/zephyr"
+    (cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' -d "$out" \
+        "$repo/tests/$consumer/zephyr")
     python3 "$repo/scripts/check-execution-boundaries.py" --compile-commands "$out/compile_commands.json"
 done
 # Cross-build only: no programming, reset, debugger, serial or hardware operations.

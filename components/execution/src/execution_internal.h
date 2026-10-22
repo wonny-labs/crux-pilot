@@ -21,6 +21,7 @@
 
 bool exec_native_context_allowed(void);
 void exec_native_metadata_lock(void);
+crux_status_t exec_native_metadata_lock_until(const exec_native_deadline_t *deadline);
 void exec_native_metadata_unlock(void);
 crux_status_t exec_native_deadline(uint32_t timeout_ms, exec_native_deadline_t *out);
 crux_status_t exec_native_thread_create(exec_native_thread_t *thread, crux_thread_entry_t entry,

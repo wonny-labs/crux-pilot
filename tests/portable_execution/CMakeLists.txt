@@ -32,3 +32,25 @@ target_link_options(crux_execution_host_poll PRIVATE -Wl,--wrap=pthread_mutex_in
     -Wl,--wrap=pthread_mutex_lock -Wl,--wrap=pthread_mutex_trylock)
 add_test(NAME Execution.HostPoll COMMAND crux_execution_host_poll)
 set_tests_properties(Execution.HostPoll PROPERTIES TIMEOUT 20)
+
+add_executable(crux_execution_host_admission host_admission.c)
+target_include_directories(crux_execution_host_admission PRIVATE
+    ../../components/execution/src ../../components/execution/host)
+target_link_libraries(crux_execution_host_admission PRIVATE crux::execution Threads::Threads)
+target_compile_definitions(crux_execution_host_admission PRIVATE _POSIX_C_SOURCE=200809L)
+target_compile_options(crux_execution_host_admission PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_link_options(crux_execution_host_admission PRIVATE -Wl,--wrap=exec_native_metadata_lock)
+add_test(NAME Execution.HostAdmission COMMAND crux_execution_host_admission)
+set_tests_properties(Execution.HostAdmission PROPERTIES TIMEOUT 20)
+
+add_executable(crux_execution_host_poll_finalize host_poll_finalize.c)
+target_include_directories(crux_execution_host_poll_finalize PRIVATE
+    ../../components/execution/src ../../components/execution/host)
+target_link_libraries(crux_execution_host_poll_finalize PRIVATE crux::execution Threads::Threads)
+target_compile_definitions(crux_execution_host_poll_finalize PRIVATE _POSIX_C_SOURCE=200809L)
+target_compile_options(crux_execution_host_poll_finalize PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_link_options(crux_execution_host_poll_finalize PRIVATE
+    -Wl,--wrap=exec_native_metadata_lock -Wl,--wrap=exec_native_mutex_lock
+    -Wl,--wrap=exec_native_semaphore_take -Wl,--wrap=exec_native_thread_join)
+add_test(NAME Execution.HostPollFinalize COMMAND crux_execution_host_poll_finalize)
+set_tests_properties(Execution.HostPollFinalize PROPERTIES TIMEOUT 20)

@@ -71,7 +71,10 @@ crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms) {
     if (result != CRUX_OK) {
         return result;
     }
-    exec_native_metadata_lock();
+    result = exec_native_metadata_lock_until(&deadline);
+    if (result != CRUX_OK) {
+        return result;
+    }
     thread_slot_t *slot = find_thread(*thread);
     if (slot == NULL) {
         exec_native_metadata_unlock();
@@ -86,6 +89,16 @@ crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms) {
         return CRUX_ERR_BUSY;
     }
     slot->joining = true;
+    if (deadline.poll) {
+        result = exec_native_thread_join(&slot->native, &deadline);
+        slot->joining = false;
+        if (result == CRUX_OK) {
+            slot->used = false;
+            *thread = (crux_thread_t){0};
+        }
+        exec_native_metadata_unlock();
+        return result;
+    }
     exec_native_metadata_unlock();
     result = exec_native_thread_join(&slot->native, &deadline);
     exec_native_metadata_lock();

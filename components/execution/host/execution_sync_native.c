@@ -76,9 +76,7 @@ crux_status_t exec_native_semaphore_create(exec_native_semaphore_t *semaphore, u
 }
 crux_status_t exec_native_semaphore_take(exec_native_semaphore_t *semaphore,
                                          const exec_native_deadline_t *deadline) {
-    /* Polls may serialize bookkeeping, as admission already does. Only an
-     * empty token count may produce BUSY; internal contention is not emptiness. */
-    int result = deadline->poll ? pthread_mutex_lock(&semaphore->lock)
+    int result = deadline->poll ? pthread_mutex_trylock(&semaphore->lock)
                                 : pthread_mutex_clocklock(&semaphore->lock, CLOCK_MONOTONIC,
                                                           &deadline->absolute);
     if (result != 0)

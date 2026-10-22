@@ -42,3 +42,25 @@ The proposal also received independent REVISE/PASS before human contract approva
 its rationale and approval record remain in the approved contract document. The
 runtime fixture was authored independently against that contract without inspecting
 provider implementation source.
+
+## PR #36 poll/deadline review follow-up
+
+The PR review found that a zero-time poll could pass its initial bounded metadata
+admission, complete the native operation, and then block while reacquiring metadata
+to finalize token, mutex-owner or join bookkeeping. The implementation now retains
+metadata across the native try and bookkeeping for zero-time semaphore take, mutex
+lock and thread join. `Execution.HostPollFinalize` traps any post-operation blocking
+metadata-lock call across all three operations.
+
+An independent read-only re-review found no actionable race, deadlock, lifetime or
+contract issue. It confirmed the Host and Zephyr poll native calls are immediate try
+operations, and that metadata-dependent paths cannot hold the native object lock while
+waiting for metadata. Host Debug and ASan/UBSan pass 47/47 CTest cases each. The full
+portable rerun passes both consumers (1/1 each), native_sim (15/15 cases across 2/2
+configurations), and both EVKB cross-build/boundary checks. Formatting, dependency
+checks, configured analysis and 160 build safeguard tests also pass. Fresh outputs are
+in the `review-follow-up-*.txt` files alongside this record.
+
+The portable script now runs west commands from the selected pinned workspace. This
+keeps its module resolution stable when the Crux repository is nested under a separate
+managed worktree.

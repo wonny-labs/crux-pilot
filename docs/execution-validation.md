@@ -52,7 +52,9 @@ Zephyr `native_sim/native/64` conformance/runtime cases and cross-builds those
 compositions for `mimxrt1060_evk@B//qspi`. Host and Zephyr workflows invoke these paths.
 A west workspace with several Crux checkouts must explicitly select this module;
 the script uses `ZEPHYR_MODULES` with pinned CMSIS/NXP dependencies to avoid duplicate
-module discovery. Cross-builds never program, reset or communicate with hardware.
+module discovery. When using a nested managed worktree, set `CRUX_WORKSPACE` to the
+pinned west manifest root. Cross-builds never program, reset or communicate with
+hardware.
 
 A shared GoogleTest source cache may be reused, but each build needs writable build
 artifacts. This run used per-profile `CRUX_CACHE_DIR` directories and an explicit
@@ -62,26 +64,28 @@ is an environment permission failure, not a passing check.
 
 ## Evidence and coverage
 
-The final tested implementation is `b9df57dfefba53c938a3cddbb7f8b139b7986ab8`,
+The original qualification baseline is `b9df57dfefba53c938a3cddbb7f8b139b7986ab8`,
 rebased onto `32405ad` after PR #35 was merged independently. Its Flash PoC files
 and CI step are preserved. The before/after source and pinned-workspace captures
-match exactly; the tested source was clean and recoverable from Git. Subsequent
-changes add documentation/evidence only.
+match exactly. The PR #36 review follow-up extends that implementation with bounded
+metadata admission for polls and finite waits and adds Host/Zephyr contention tests;
+the results below distinguish the original baseline from the follow-up verification.
 
 | Check | Final result |
 | --- | --- |
-| Host debug and sample scenario | 45/45 CTest cases; scenario passed |
-| Host ASan/UBSan and sample scenario | 45/45; scenario passed |
+| Host debug and sample scenario | 47/47 CTest cases; scenario passed |
+| Host ASan/UBSan and sample scenario | 47/47; scenario passed |
 | Separately configured Host firmware C/C++ and runtime consumers | 1/1 each |
-| Zephyr `native_sim/native/64` | 14/14 cases, 2/2 configurations; no warnings |
+| Zephyr `native_sim/native/64` | 15/15 cases, 2/2 configurations; no warnings |
 | EVKB B/QSPI conformance/firmware and independent runtime | Both cross-builds and compile-boundary checks passed |
 | Build safeguard/negative fixtures | 160/160 Python unit tests |
 | Formatting, dependency checks, configured Host analysis | Passed |
-| Independent implementation re-review | PASS for software PR preparation |
+| Independent implementation re-review | PASS for software PR preparation, including the poll-finalization follow-up |
 
 The [retained evidence](evidence/m5-execution/README.md) includes normalized raw
 outputs, negative results, configurations, compressed maps, selected compiler commands
-and source/artifact hashes. Original local logs are under
+and source/artifact hashes. Fresh review follow-up logs are under
+`docs/evidence/m5-execution/review-follow-up-*.txt`. Original local logs are under
 `build/evidence/m5-investigation/`. The reproduction environment used Ubuntu 24.04
 Linux amd64 under Docker on an arm64 host, Clang 18.1.3, CMake 3.28.4, west 1.4.0,
 Zephyr v4.4.0 and Zephyr SDK 1.0.1 / Arm GCC 14.3.0. Host results are functional
@@ -89,8 +93,8 @@ emulated-Linux evidence; no native production Linux or physical target claim fol
 
 | EVKB composition | Linker FLASH | Linker RAM |
 | --- | ---: | ---: |
-| Conformance and firmware fixture | 66,376 B | 31,168 B |
-| Independent runtime fixture | 53,576 B | 31,040 B |
+| Conformance and firmware fixture | 67,076 B | 31,168 B |
+| Independent runtime fixture | 53,740 B | 31,040 B |
 
 Each image allocates 16,640 bytes for four worker stacks (4,160 bytes per slot,
 including native overhead for 4,096 usable bytes). Thread records occupy 704 bytes,
@@ -117,9 +121,17 @@ by completion and cleanup of the original lifetime. These wrappers are linked on
 into tests and introduce no production hooks or public native access.
 
 Host tests inject native creation failures and deadline overflow, check rollback
-and repeat full-capacity allocation. A deterministic poll regression holds the real
-semaphore bookkeeping lock while two tokens remain available. It failed with BUSY
-before the correction; polling now serializes bookkeeping and consumes a token.
+and repeat full-capacity allocation. `Execution.HostPoll` holds the real semaphore
+bookkeeping lock while two tokens remain available. The poll returns `BUSY` before
+that lock is released and leaves both tokens intact; after release, both tokens can
+be taken. `Execution.HostAdmission` holds the shared provider metadata lock and checks
+that zero-time semaphore poll returns `BUSY`, while finite mutex, semaphore and join
+waits return `TIMEOUT` before metadata is released. Zephyr `native_sim` repeats the
+poll and finite semaphore-admission cases against its real metadata mutex. A further
+Host regression traps any blocking metadata reacquisition after a native poll attempt
+for semaphore take, mutex lock and thread join; the polls complete and preserve the
+expected token, ownership and join state. These are bounded-wait tests, not
+scheduler-latency guarantees.
 `native_sim` also checks every public operation rejects ISR entry and observes each
 priority class plus native usable/unused worker stack. Observations are test-specific
 headroom, not worst-case stack or physical timing measurements.
