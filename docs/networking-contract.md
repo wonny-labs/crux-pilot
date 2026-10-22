@@ -153,7 +153,19 @@ behind broad POSIX_API. The Zephyr usage target automatically injects a private,
 declaration-only header for standard `close(int)`, with C++ linkage protection.
 It publishes no native include directory and implements no wrapper. Remove this
 workaround once the supported upstream header exposes close for POSIX_DEVICE_IO;
-the native link map must still resolve it to Zephyr device_io.c, not a libc stub. Profile tests check actual Zephyr context allocation and return.
+the native link map must still resolve it to Zephyr device_io.c, not a libc stub.
+Profile tests check actual Zephyr context allocation and return.
+
+Native qualification uses six contexts/connections, 16 RX/TX packets and 64 RX/TX
+buffers, with the configured 1500 ms TCP TIME_WAIT. Each sequential scenario
+waits for zero contexts and fully restored pools (up to 500 ten-millisecond test
+waits); the observed maximum settling time was 1520 ms. An initial unpaced run
+exhausted contexts. Immediate reclamation, burst reconnect capacity and sustained
+throughput are therefore unqualified. Holding six UDP sockets makes the next
+native allocation fail with ENOENT; closing them permits fresh allocation. This
+is a pinned-provider result, not a portable exhaustion errno guarantee. The
+RT1060 build uses four contexts/connections, 16 RX/TX packets and 32 RX/TX buffers;
+its runtime capacity and cleanup are not established by compilation.
 
 Excluded: TCP servers, unconnected UDP, multicast/broadcast, DNS, IPv6, TLS,
 raw sockets, arbitrary flags/options, multi-interface management, runtime address

@@ -32,12 +32,12 @@ host/netif_host.c,zephyr/netif_zephyr.c,CMakeLists.txt}; tests/networking/netif_
 Interface: crux_netif_get_status(crux_netif_status_t *out), existing crux_status_t;
 private observation seam and shared IPv4 eligibility predicate.
 
-- [ ] Write snapshot/error/eligibility tests; run them RED with a minimal stub.
-- [ ] Implement caller-owned output and eligibility filtering, then GREEN.
-- [ ] Add real Linux interface and Zephyr selected-interface providers. Bind Host
+- [x] Write snapshot/error/eligibility tests; run them RED with a minimal stub.
+- [x] Implement caller-owned output and eligibility filtering, then GREEN.
+- [x] Add real Linux interface and Zephyr selected-interface providers. Bind Host
   name using composition build setting, Zephyr default interface at observation.
-- [ ] Test native provider behaviour with controlled fixtures and real loopback.
-- [ ] Commit contract/provider work with actual test evidence.
+- [x] Test native provider behaviour with controlled fixtures and real loopback.
+- [x] Commit contract/provider work with actual test evidence.
 
 ## Task 2: portable client/profile and independent runtime fixture
 
@@ -48,14 +48,14 @@ Interfaces: crux::sockets standard usage target; sample-owned bounded exchange,
 private test-only syscall/clock replacement; runtime fixture independently uses
 standard profile and netif public contract.
 
-- [ ] Write scripted real-client tests for partial I/O, retry/timeout/error/EOF,
+- [x] Write scripted real-client tests for partial I/O, retry/timeout/error/EOF,
   UDP length and close uncertainty; run RED before client implementation.
-- [ ] Implement only sample framing/deadline policy; run GREEN.
-- [ ] Add real Host loopback fixtures for TCP/UDP, silence, refusal, closure and
+- [x] Implement only sample framing/deadline policy; run GREEN.
+- [x] Add real Host loopback fixtures for TCP/UDP, silence, refusal, closure and
   fresh reconnect with descriptor counts before/after repeated attempts.
-- [ ] Add runtime-shaped independent source and C/C++ consumer compile fixtures.
-- [ ] Host composition installs SIGPIPE policy explicitly and tests post-close send.
-- [ ] Commit passing client/profile tests.
+- [x] Add runtime-shaped independent source and C/C++ consumer compile fixtures.
+- [x] Host composition installs SIGPIPE policy explicitly and tests post-close send.
+- [x] Commit passing client/profile tests.
 
 ## Task 3: Zephyr integration, boundaries and reproducible commands
 
@@ -65,28 +65,29 @@ tests/build/test_networking_dependencies.py; root/module CMake/Kconfig and CI.
 Interfaces: same public targets and portable source on both compositions; native
 loopback peer/control and pool observation remain private to integration fixtures.
 
-- [ ] Write negative dependency cases RED, implement narrowly scoped checker GREEN.
-- [ ] Run unchanged legacy dependency checks plus new source and CMake checks;
+- [x] Write negative dependency cases RED, implement narrowly scoped checker GREEN.
+- [x] Run unchanged legacy dependency checks plus new source and CMake checks;
   verify actual independent consumer include/link requirements.
-- [ ] Run real Zephyr loopback success/silence/close/refusal/reconnect/cleanup;
+- [x] Run real Zephyr loopback success/silence/close/refusal/reconnect/cleanup;
   observe carrier down/up through private controls and snapshot assertions.
-- [ ] Cross-build RT1060 portable controller communication composition; no hardware.
-- [ ] Integrate reproducible software-only command and hosted checks.
-- [ ] Run Host debug/sanitizers, build tests, format/analysis/boundaries, applicable
+- [x] Cross-build RT1060 portable controller communication composition; no hardware.
+- [x] Integrate reproducible software-only command and hosted checks.
+- [x] Run Host debug/sanitizers, build tests, format/analysis/boundaries, applicable
   M3 network/integrated and Time/controller regression; retain complete logs.
-- [ ] Commit implementation/tests and record exact source/config/resource limits.
+- [x] Commit implementation/tests and record exact source/config/resource limits.
 
 ## Task 4: independent review and delivery
 
 Files: docs/networking-contract.md, docs/evidence/m5-networking-software.md,
 tests/README.md and relevant README links.
 
-- [ ] Audit every approved requirement against actual source/results; document
+- [x] Audit every approved requirement against actual source/results; document
   unsupported features, routing assumptions, resources and pending physical AC.
-- [ ] Independent Reviewer reads full diff, contracts, tests and raw evidence;
+- [x] Independent Reviewer reads full diff, contracts, tests and raw evidence;
   correct material findings with RED/GREEN tests and obtain re-review.
-- [ ] Commit reviewed evidence, push the dedicated branch, create/attach Draft PR.
-  Do not merge, close issues or claim M5/physical completion.
+Delivery: commit reviewed evidence, push the dedicated branch and create/attach
+a Draft PR. Track its live state in GitHub; do not merge, close issues or claim
+M5/physical completion.
 
 ## Execution ledger
 
@@ -113,3 +114,28 @@ upgrade. Preserve the failed SIGPIPE run and correct the early probe's claim.
 Ruling: CRUX_SOCKETS requires explicit native POSIX options instead of selecting
 them recursively; Kconfig diagnosed a cycle through NET_IP/IPv6/POSIX. No broad
 POSIX_API selection or global portable-check relaxation is introduced.
+
+
+Final software qualification (source 3cbf9a6): Host debug 71/71 and ASan/UBSan
+71/71 plus existing sample scenarios; build-tool tests 161/161; native embedded
+libc networking 3/3; applicable Zephyr regressions 43/43 across eight executed
+configurations; independent C/C++ public-target consumers and native C++ probe;
+RT1060 cross-build FLASH 91656 B, RAM 31708 B, DTCM 13936 B. Physical acceptance
+remains pending. See the evidence ledger for exact logs, failures and limits.
+
+Review corrections: sample and independent runtime deadline tests reproduced
+late readiness after expiry; runtime poll EINTR now retains the original budget.
+Clock failure with errno zero returns EIO. Pinned native close declaration is
+injected privately without broad POSIX_API or a wrapper. Native resource return
+is checked after each sequential scenario; TCP TIME_WAIT requires settling.
+Do not infer unpaced burst/reconnect capacity from these tests. Six-context
+exhaustion returns the pinned native ENOENT and fresh allocation succeeds after
+release. Carrier loss observes zero application bytes and either timeout or a
+native network-down/unreachable accept error; carrier restoration precedes fresh
+TCP/UDP success. No capacities or cleanup test limits were raised.
+
+
+Final independent review: PASS on 3cbf9a6 with no unresolved material findings;
+244 source and 141 retained evidence hashes and archive integrity verified.
+Software gate only; physical acceptance, merge, Issue closure and M5 completion
+remain outside this delivery. Draft PR preparation is the authorised next step.

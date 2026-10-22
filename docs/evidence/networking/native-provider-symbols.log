@@ -1,0 +1,17 @@
+0000000000406160 t close
+0000000000406169 t poll
+0000000000406247 t recv
+000000000040625f t send
+0000000000406277 t socket
+
+.text.close     0x0000000000000000        0x9
+ .text.close    0x0000000000000000        0x9 zephyr/lib/posix/options/liblib__posix__options.a(device_io.c.obj)
+                0x0000000000000000                close
+
+--
+
+.text.close_tcp_conn
+                0x0000000000000000      0x161
+ .text.close_tcp_conn
+                0x0000000000000000      0x161 zephyr/subsys/net/ip/libsubsys__net__ip.a(tcp.c.obj)
+

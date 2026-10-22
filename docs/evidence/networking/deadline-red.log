@@ -1,0 +1,22 @@
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/networking/client_test.cpp:223: Failure
+Expected equality of these values:
+  s.sends
+    Which is: 1
+  0
+
+[  FAILED  ] Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer (57 ms)
+[----------] 1 test from Client (61 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (67 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+
+ 1 FAILED TEST

@@ -1,0 +1,173 @@
+F.
+======================================================================
+FAIL: test_comments_do_not_trigger_or_hide_direct_native_use (test_networking_dependencies.NetworkingBoundary)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 43, in test_comments_do_not_trigger_or_hide_direct_native_use
+    self.assertTrue(self.checker.source_errors('/* okay */ zsock_socket(0,0,0);'))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_native_header_cannot_be_used_through_macro (test_networking_dependencies.NetworkingBoundary) (code='#include <zephyr/net/socket.h>')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 20, in test_native_header_cannot_be_used_through_macro
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_native_header_cannot_be_used_through_macro (test_networking_dependencies.NetworkingBoundary) (code='#include <fsl_enet.h>')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 20, in test_native_header_cannot_be_used_through_macro
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_native_header_cannot_be_used_through_macro (test_networking_dependencies.NetworkingBoundary) (code='#define HEADER <zephyr/kernel.h>\n#include HEADER')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 20, in test_native_header_cannot_be_used_through_macro
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_native_header_cannot_be_used_through_macro (test_networking_dependencies.NetworkingBoundary) (code='#include "../../components/netif/src/netif_port.h"')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 20, in test_native_header_cannot_be_used_through_macro
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_native_symbols_and_conditionals_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='zsock_socket(0,0,0);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 26, in test_native_symbols_and_conditionals_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_native_symbols_and_conditionals_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='net_if_up(iface);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 26, in test_native_symbols_and_conditionals_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_native_symbols_and_conditionals_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='#ifdef __ZEPHYR__\n#endif')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 26, in test_native_symbols_and_conditionals_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_native_symbols_and_conditionals_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='#if defined(__linux__)\n#endif')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 26, in test_native_symbols_and_conditionals_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_native_symbols_and_conditionals_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='crux_netif_observe(&s);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 26, in test_native_symbols_and_conditionals_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_native_symbols_and_conditionals_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='k_sleep(1);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 26, in test_native_symbols_and_conditionals_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_native_symbols_and_conditionals_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='fsl_enet_init();')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 26, in test_native_symbols_and_conditionals_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_out_of_profile_operations_and_flags_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='bind(fd, 0, 0);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 32, in test_out_of_profile_operations_and_flags_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_out_of_profile_operations_and_flags_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='listen(fd,1);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 32, in test_out_of_profile_operations_and_flags_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_out_of_profile_operations_and_flags_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='accept(fd,0,0);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 32, in test_out_of_profile_operations_and_flags_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_out_of_profile_operations_and_flags_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='sendto(fd,0,0,0,0,0);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 32, in test_out_of_profile_operations_and_flags_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_out_of_profile_operations_and_flags_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='recvfrom(fd,0,0,0,0,0);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 32, in test_out_of_profile_operations_and_flags_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_out_of_profile_operations_and_flags_are_rejected (test_networking_dependencies.NetworkingBoundary) (code='send(fd,b,1,MSG_NOSIGNAL);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 32, in test_out_of_profile_operations_and_flags_are_rejected
+    with self.subTest(code=code): self.assertTrue(self.checker.source_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_private_link_or_include_cannot_be_consumer_requirement (test_networking_dependencies.NetworkingBoundary) (code='target_link_libraries(consumer PRIVATE zephyr_interface)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 39, in test_private_link_or_include_cannot_be_consumer_requirement
+    with self.subTest(code=code): self.assertTrue(self.checker.cmake_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_private_link_or_include_cannot_be_consumer_requirement (test_networking_dependencies.NetworkingBoundary) (code='target_link_libraries(consumer PRIVATE crux_netif)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 39, in test_private_link_or_include_cannot_be_consumer_requirement
+    with self.subTest(code=code): self.assertTrue(self.checker.cmake_errors(code))
+AssertionError: [] is not true
+
+======================================================================
+FAIL: test_private_link_or_include_cannot_be_consumer_requirement (test_networking_dependencies.NetworkingBoundary) (code='target_include_directories(consumer PRIVATE ../../components/netif/src)')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-portable-networking/tests/build/test_networking_dependencies.py", line 39, in test_private_link_or_include_cannot_be_consumer_requirement
+    with self.subTest(code=code): self.assertTrue(self.checker.cmake_errors(code))
+AssertionError: [] is not true
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.002s
+
+FAILED (failures=21)
