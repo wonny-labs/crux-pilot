@@ -1,0 +1,14 @@
+{
+  "flash_mcux_flexspi_nor.c": {
+    "source_sha256": "397019890b4ce7afae88c7da1913ab0b8ac57c3ee1a2c1975c7ba6c4c08a3ea4",
+    "candidate_sha256": "a98d03b4f875dd6c5d88275d0be103783a19ad9ce01381a6c079fff64c35716e"
+  },
+  "memc_mcux_flexspi.c": {
+    "source_sha256": "0b9cfcd4fef488d542977b628dbc0c0c3c9243fff1d50cc8dc7315b49e74ce20",
+    "candidate_sha256": "d81c980b24aa4a82737be04b73b6d2a36f3b9e80184f6c045af34f93cac0190c"
+  },
+  "fsl_flexspi.c": {
+    "source_sha256": "d57aec16e69a553c79c14bfb67bb1d729f50680db92b155f8b6016734e564b4a",
+    "candidate_sha256": "6c6a6b5cb9872c14eaf05169d4549f5f6a7538feefdae5b98fd89177240bc328"
+  }
+}

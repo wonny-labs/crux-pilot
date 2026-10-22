@@ -1,0 +1,63 @@
+crux_flash_poc_terminal
+0000227c <crux_flash_poc_terminal>:
+    227c:	bf00      	nop
+    227e:	e7fd      	b.n	227c <crux_flash_poc_terminal>
+
+
+memc_flexspi_transfer
+0000212e <memc_flexspi_transfer>:
+    212e:	b5f0      	push	{r4, r5, r6, r7, lr}
+    2130:	6843      	ldr	r3, [r0, #4]
+    2132:	b085      	sub	sp, #20
+    2134:	790d      	ldrb	r5, [r1, #4]
+    2136:	681e      	ldr	r6, [r3, #0]
+    2138:	f105 0210 	add.w	r2, r5, #16
+    213c:	6903      	ldr	r3, [r0, #16]
+    213e:	2000      	movs	r0, #0
+    2140:	f813 2012 	ldrb.w	r2, [r3, r2, lsl #1]
+    2144:	330c      	adds	r3, #12
+    2146:	4604      	mov	r4, r0
+    2148:	0892      	lsrs	r2, r2, #2
+    214a:	4285      	cmp	r5, r0
+    214c:	dc20      	bgt.n	2190 <memc_flexspi_transfer+0x62>
+    214e:	b902      	cbnz	r2, 2152 <memc_flexspi_transfer+0x24>
+    2150:	b1ac      	cbz	r4, 217e <memc_flexspi_transfer+0x50>
+    2152:	460b      	mov	r3, r1
+    2154:	466f      	mov	r7, sp
+    2156:	f101 0c10 	add.w	ip, r1, #16
+    215a:	6818      	ldr	r0, [r3, #0]
+    215c:	3308      	adds	r3, #8
+    215e:	f853 1c04 	ldr.w	r1, [r3, #-4]
+    2162:	463d      	mov	r5, r7
+    2164:	4563      	cmp	r3, ip
+    2166:	c503      	stmia	r5!, {r0, r1}
+    2168:	462f      	mov	r7, r5
+    216a:	d1f6      	bne.n	215a <memc_flexspi_transfer+0x2c>
+    216c:	f89d 3006 	ldrb.w	r3, [sp, #6]
+    2170:	4669      	mov	r1, sp
+    2172:	441a      	add	r2, r3
+    2174:	9b00      	ldr	r3, [sp, #0]
+    2176:	4423      	add	r3, r4
+    2178:	f88d 2006 	strb.w	r2, [sp, #6]
+    217c:	9300      	str	r3, [sp, #0]
+    217e:	4630      	mov	r0, r6
+    2180:	f7ff f9cc 	bl	151c <FLEXSPI_TransferBlocking>
+    2184:	2800      	cmp	r0, #0
+    2186:	bf18      	it	ne
+    2188:	f06f 0004 	mvnne.w	r0, #4
+    218c:	b005      	add	sp, #20
+    218e:	bdf0      	pop	{r4, r5, r6, r7, pc}
+    2190:	f853 7f04 	ldr.w	r7, [r3, #4]!
+    2194:	3001      	adds	r0, #1
+    2196:	443c      	add	r4, r7
+    2198:	e7d7      	b.n	214a <memc_flexspi_transfer+0x1c>
+
+
+memc_flexspi_reset
+00001fda <memc_flexspi_reset>:
+    1fda:	b508      	push	{r3, lr}
+    1fdc:	6843      	ldr	r3, [r0, #4]
+    1fde:	6818      	ldr	r0, [r3, #0]
+    1fe0:	f7ff fa78 	bl	14d4 <FLEXSPI_SoftwareReset>
+    1fe4:	2000      	movs	r0, #0
+    1fe6:	bd08      	pop	{r3, pc}

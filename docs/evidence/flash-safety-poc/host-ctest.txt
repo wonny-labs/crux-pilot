@@ -1,0 +1,90 @@
+Internal ctest changing into directory: /poc/build/flash-safety-poc/host
+Test project /poc/build/flash-safety-poc/host
+      Start  1: Execution.PosixProbes
+ 1/42 Test  #1: Execution.PosixProbes .......................................................   Passed    0.23 sec
+      Start  2: Controller.HostScenario
+ 2/42 Test  #2: Controller.HostScenario .....................................................   Passed    2.07 sec
+      Start  3: TimeApiTest.InitStartsReadyButUnset
+ 3/42 Test  #3: TimeApiTest.InitStartsReadyButUnset .........................................   Passed    0.03 sec
+      Start  4: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+ 4/42 Test  #4: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness ..........................   Passed    0.02 sec
+      Start  5: TimeApiTest.FailedInitialisationCanBeRetried
+ 5/42 Test  #5: TimeApiTest.FailedInitialisationCanBeRetried ................................   Passed    0.02 sec
+      Start  6: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+ 6/42 Test  #6: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend ...................   Passed    0.02 sec
+      Start  7: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+ 7/42 Test  #7: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime ................   Passed    0.02 sec
+      Start  8: TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+ 8/42 Test  #8: TimeApiTest.FailedBackendWriteInvalidatesSessionTime ........................   Passed    0.02 sec
+      Start  9: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+ 9/42 Test  #9: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged .....................   Passed    0.02 sec
+      Start 10: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+10/42 Test #10: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue ........................   Passed    0.02 sec
+      Start 11: TimeApiTest.BackendNoDataClearsCommonValidity
+11/42 Test #11: TimeApiTest.BackendNoDataClearsCommonValidity ...............................   Passed    0.02 sec
+      Start 12: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+12/42 Test #12: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput ........................   Passed    0.02 sec
+      Start 13: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+13/42 Test #13: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds ..........................   Passed    0.02 sec
+      Start 14: TimeCalendar.ConvertsIndependentUnixEpochAnchor
+14/42 Test #14: TimeCalendar.ConvertsIndependentUnixEpochAnchor .............................   Passed    0.02 sec
+      Start 15: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+15/42 Test #15: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors ................   Passed    0.02 sec
+      Start 16: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+16/42 Test #16: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd ..........................   Passed    0.02 sec
+      Start 17: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+17/42 Test #17: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes ..................   Passed    0.02 sec
+      Start 18: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+18/42 Test #18: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput .........................   Passed    0.02 sec
+      Start 19: TimeCalendar.NullArgumentsAreInvalid
+19/42 Test #19: TimeCalendar.NullArgumentsAreInvalid ........................................   Passed    0.02 sec
+      Start 20: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+20/42 Test #20: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay ............................   Passed    0.02 sec
+      Start 21: TimeCommandTest.HelpIdentifiesUtcInput
+21/42 Test #21: TimeCommandTest.HelpIdentifiesUtcInput ......................................   Passed    0.02 sec
+      Start 22: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+22/42 Test #22: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText ........................   Passed    0.02 sec
+      Start 23: TimeCommandTest.SetAndGetUseTheSamePortableHandler
+23/42 Test #23: TimeCommandTest.SetAndGetUseTheSamePortableHandler ..........................   Passed    0.02 sec
+      Start 24: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+24/42 Test #24: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf ........................   Passed    0.02 sec
+      Start 25: TimeCommandTest.HelpIsAnAdapterOutcome
+25/42 Test #25: TimeCommandTest.HelpIsAnAdapterOutcome ......................................   Passed    0.02 sec
+      Start 26: TimeCommandTest.RejectsMalformedSyntaxAndDates
+26/42 Test #26: TimeCommandTest.RejectsMalformedSyntaxAndDates ..............................   Passed    0.02 sec
+      Start 27: TimeCommandTest.MapsOutOfRangeAndIoErrors
+27/42 Test #27: TimeCommandTest.MapsOutOfRangeAndIoErrors ...................................   Passed    0.02 sec
+      Start 28: TimeCommandTest.RejectedWriteNeverCallsBackend
+28/42 Test #28: TimeCommandTest.RejectedWriteNeverCallsBackend ..............................   Passed    0.02 sec
+      Start 29: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+29/42 Test #29: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime ................   Passed    0.02 sec
+      Start 30: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+30/42 Test #30: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover ..........   Passed    0.02 sec
+      Start 31: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+31/42 Test #31: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity ............   Passed    0.02 sec
+      Start 32: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+32/42 Test #32: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule ........................   Passed    0.02 sec
+      Start 33: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+33/42 Test #33: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst .............   Passed    0.02 sec
+      Start 34: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+34/42 Test #34: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline ............   Passed    0.02 sec
+      Start 35: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+35/42 Test #35: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime ......   Passed    0.02 sec
+      Start 36: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+36/42 Test #36: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress ..........   Passed    0.02 sec
+      Start 37: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+37/42 Test #37: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress .............   Passed    0.02 sec
+      Start 38: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+38/42 Test #38: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError ............   Passed    0.02 sec
+      Start 39: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+39/42 Test #39: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering .............   Passed    0.02 sec
+      Start 40: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+40/42 Test #40: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation ...   Passed    0.02 sec
+      Start 41: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+41/42 Test #41: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork ............   Passed    0.02 sec
+      Start 42: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+42/42 Test #42: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom .......   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 42
+
+Total Test time (real) =   3.29 sec
