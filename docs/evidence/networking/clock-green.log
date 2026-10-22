@@ -1,0 +1,54 @@
+Running main() from /opt/crux-cache/networking-host-debug/cmake/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 22 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 22 tests from Client
+[ RUN      ] Client.TcpHandlesShortTransfersWithinOneDeadline
+[       OK ] Client.TcpHandlesShortTransfersWithinOneDeadline (0 ms)
+[ RUN      ] Client.RetriesInterruptedPollAndWouldBlock
+[       OK ] Client.RetriesInterruptedPollAndWouldBlock (0 ms)
+[ RUN      ] Client.RepeatedInterruptionsCannotExtendDeadline
+[       OK ] Client.RepeatedInterruptionsCannotExtendDeadline (0 ms)
+[ RUN      ] Client.SilenceExpires
+[       OK ] Client.SilenceExpires (0 ms)
+[ RUN      ] Client.ConnectPollReadinessStillRequiresSocketError
+[       OK ] Client.ConnectPollReadinessStillRequiresSocketError (0 ms)
+[ RUN      ] Client.HangupIsReadAsEof
+[       OK ] Client.HangupIsReadAsEof (0 ms)
+[ RUN      ] Client.FailedCloseIsNeverRetried
+NETWORK_CLOSE cleanup_uncertain=1 error=5 retry_descriptor=0
+[       OK ] Client.FailedCloseIsNeverRetried (1 ms)
+[ RUN      ] Client.FailedCreationOwnsNoDescriptor
+[       OK ] Client.FailedCreationOwnsNoDescriptor (0 ms)
+[ RUN      ] Client.SetupFailureClosesDescriptor
+[       OK ] Client.SetupFailureClosesDescriptor (0 ms)
+[ RUN      ] Client.SendFailureClosesDescriptor
+[       OK ] Client.SendFailureClosesDescriptor (0 ms)
+[ RUN      ] Client.RejectsInvalidInputBeforeSocketCreation
+[       OK ] Client.RejectsInvalidInputBeforeSocketCreation (0 ms)
+[ RUN      ] Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
+[       OK ] Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize (0 ms)
+[ RUN      ] Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
+[       OK ] Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics (0 ms)
+[ RUN      ] Client.RejectsCorruptEcho
+[       OK ] Client.RejectsCorruptEcho (0 ms)
+[ RUN      ] Client.ClockFailureOwnsNoSocket
+[       OK ] Client.ClockFailureOwnsNoSocket (0 ms)
+[ RUN      ] Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
+[       OK ] Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce (0 ms)
+[ RUN      ] Client.WouldBlockCannotRenewOverallDeadline
+[       OK ] Client.WouldBlockCannotRenewOverallDeadline (0 ms)
+[ RUN      ] Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+[       OK ] Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer (0 ms)
+[ RUN      ] Client.RuntimeRetriesInterruptedPoll
+[       OK ] Client.RuntimeRetriesInterruptedPoll (0 ms)
+[ RUN      ] Client.RuntimeInterruptionsCannotRenewDeadline
+[       OK ] Client.RuntimeInterruptionsCannotRenewDeadline (0 ms)
+[ RUN      ] Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+[       OK ] Client.RuntimeReadinessAfterExpiryDoesNotPermitSend (0 ms)
+[ RUN      ] Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+[       OK ] Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno (0 ms)
+[----------] 22 tests from Client (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 22 tests from 1 test suite ran. (12 ms total)
+[  PASSED  ] 22 tests.

@@ -74,6 +74,25 @@ class NativeInterfaceTest(unittest.TestCase):
                 result = self.check_source("k_timeout_t timeout;", path)
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 
+    def test_networking_profile_is_scoped_to_registered_consumers(self):
+        source = "#include <sys/socket.h>\n#include <poll.h>\nclock_gettime(CLOCK_MONOTONIC, &now);\n"
+        for path in ("samples/networking/client.c", "tests/networking/runtime_port.c",
+                     "tests/networking_consumer/cpp_probe.cpp"):
+            with self.subTest(path=path):
+                result = self.check_source(source, path)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        result = self.check_source(source, "applications/new/client.c")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+
+    def test_networking_profile_does_not_allow_native_or_general_posix(self):
+        for source in ("#include <pthread.h>\npthread_t thread;", "#include <sys/stat.h>",
+                       "#include <zephyr/kernel.h>", "k_sleep(1);", "nanosleep(&now, 0);",
+                       "pthread_join(t, 0);", "clock_gettime(CLOCK_REALTIME, &now);",
+                       "clock_gettime(clock, &now);", "#include <sys/socket.h>\nbind(fd, a, n);"):
+            with self.subTest(source=source):
+                result = self.check_source(source, "samples/networking/client.c")
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+
     def test_native_providers_and_compositions_remain_native(self):
         for path in ("components/time/zephyr/backend.c", "components/time/host/backend.c",
                      "components/runtime/zephyr/thread.c", "samples/controller/zephyr/main.c",
@@ -127,7 +146,13 @@ const char *escaped = "\\\" k_sem_take";
             for relative in ("CMakeLists.txt", "zephyr/module.yml", "zephyr/CMakeLists.txt",
                              "components/time/CMakeLists.txt", "components/base/CMakeLists.txt",
                              "tests/time/CMakeLists.txt", "scripts/check-dependencies.sh",
-                             "scripts/check-native-interfaces.py"):
+                             "scripts/check-native-interfaces.py", "scripts/check-networking-dependencies.py",
+                             "samples/networking/client.c", "samples/networking/client.h",
+                             "tests/networking/runtime_port.c", "tests/networking/runtime_port.h",
+                             "tests/networking_consumer/consumer.h",
+                             "tests/networking_consumer/cpp_probe.cpp",
+                             "components/netif/include/crux/netif.h",
+                             "tests/networking_consumer/CMakeLists.txt"):
                 destination = root / relative
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(REPO / relative, destination)

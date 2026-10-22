@@ -1,6 +1,7 @@
 # Native-free interface enforcement verification
 
-Issue #24; implementation baseline main `933e974` (merged PR #37). Policy and
+Issue #24; initial implementation baseline main `933e974` (merged PR #37).
+The latest integration section below supersedes historical #28 integration gaps. Policy and
 migration map: [native-free consumer boundary](../../native-interface-policy.md).
 This records software checks, not hardware behavior or adoption of future APIs.
 
@@ -92,7 +93,7 @@ All five ACs are supported by the proposed implementation and reviewed policy/ma
 subject to human acceptance of the PR. Issue #24 remains open. No hardware, merge,
 Issue closure or dependent capability implementation is authorised by this PASS.
 
-## Final independent review follow-up
+## Historical independent review follow-up — `4d9adf0`
 
 The subsequent [published technical review](https://github.com/wonny-labs/crux-pilot/pull/39#pullrequestreview-5621370662)
 returned **REVISE before merge**, identifying a threading-link detection gap,
@@ -139,3 +140,68 @@ reading the actual GitHub findings, final code and policy, independently executi
 all 12 focused methods and inspecting the RED/regression evidence. This focused
 re-review grants no merge or Issue-closure authority. Final-head hosted checks and
 actual #25/#28 combined integration retain their distinct gates.
+
+
+## Networking integration with accepted main
+
+Integration baseline: main `df52a62c0475fe87e67bde1fa50c49090a146936`
+(merged PR #38), combined with the reviewed `4d9adf0` boundary changes.
+The dependency-runner conflict is resolved by retaining both the common and
+Networking checks. This section supersedes the historical #28 integration gap;
+original evidence above remains attributed to its original source.
+
+The common source inventory now attaches the approved networking profile only to
+its six named consumer files and retains the existing stricter Networking gate.
+Positive/negative controls cover approved headers/monotonic deadlines, the same
+requirements outside the profile, pthread/native calls within it, unsupported
+headers/server operations, and modified or misplaced close-declaration options.
+Zephyr Netif's public facade is separated from native provider registration;
+STATIC LINK_ONLY traversal remains strict. Direct guards cover Host portable
+objects and independently configured C/C++ consumers. Native Zephyr application
+startup and fixture servers remain native composition, not direct-link portability
+proof. No approved Networking API or runtime behavior is changed.
+
+Reproduction: `python3 -m unittest discover -s tests/build -v`,
+`scripts/check-dependencies.sh`, `scripts/check-format.sh`, the Host CMake/CTest
+commands above, and `scripts/test-networking.sh` with the existing pinned test
+Picolibc module (`01254932e8e81085817ed61fd858648584ffe37c`). The normal
+networking bootstrap is unnecessary when that clean external cache already exists.
+The current combined source was copied into a disposable Git snapshot for the
+full suite; real networking builds used read-only source/upstream/cache mounts
+with a writable build directory. Neither container had device/network/home/socket
+access. A first networking invocation could not resolve the host-absolute linked
+worktree Git path; mounting the same workspace read-only at that path fixed
+source discovery without changing source or upstream checkouts.
+
+Final results on the combined source, identified by
+[integration source/artifact hashes](integration-verification.json):
+
+- [Full Linux build-tool suite](integration-build-tests.txt): **210/210 PASS**,
+  including 13 common-source methods and 15 consumer/CMake methods; dependency
+  and formatting gates passed. [Source RED](integration-source-red.txt) and
+  [CMake RED](integration-cmake-red.txt) retain the pre-fix profile/forced-header
+  failures; final controls also reject tampered declaration content.
+- [Actual regression evidence](integration-regression.txt): independent Host
+  C17/C++17 consumers built, linked and ran; **Host CTest 71/71 PASS**; actual
+  Zephyr embedded-libc network suite **3/3 PASS**; native C++ declaration probe
+  compiled; **EVKB B/QSPI cross-build PASS**. No physical target was operated.
+- The final native `zephyr.exe` symbol/disassembly/source checks resolve `close`
+  to Zephyr `device_io.c` and `zvfs_close`, and Netif functions to the intended
+  common/native provider. This complements the intermediate Zephyr link map;
+  the map alone contains relocatable addresses, not final runner addresses.
+
+Separate-context independent Reviewer `/root/network_integration_review` returned
+**PASS**, finding no actionable correctness/boundary defects. The Reviewer
+inspected actual source, tests, contract/policy and pinned upstream registration;
+independently checked final executable symbols/disassembly/source locations and
+read the full-suite, Host, native and cross-build results. These suites were
+executed by the author rather than independently rerun in full. The native C++
+probe is compile-only; independent Host C/C++ performs actual linking/execution.
+Hosted CI on the pushed final revision remains a separate publication check.
+This is an author-maintained independent-review record, not GitHub Approve.
+
+The #28 common-boundary software integration gap is addressed. Remaining limits
+include representative lexical/graph enforcement, explicit registration for new
+consumers, native mixed fixture composition, and #25's future execution-graph
+integration gate. No installed SDK, complete semantic portability, physical
+Networking/Flash safety, PR merge or Issue closure is established.

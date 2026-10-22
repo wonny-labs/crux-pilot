@@ -200,6 +200,48 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                 '  message(FATAL_ERROR "missing native image registration")\nendif()\n')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_real_zephyr_networking_facades_are_portable(self):
+        result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
+                                'set(CONFIG_CRUX_SOCKETS ON)\nset(CONFIG_CRUX_NETIF ON)\n'
+                                'add_custom_target(zephyr_generated_headers)\n'
+                                f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'
+                                'crux_assert_portable_usage(crux::sockets crux::netif)\n'
+                                'get_property(libraries GLOBAL PROPERTY ZEPHYR_LIBS)\n'
+                                'if(NOT "crux_netif_provider" IN_LIST libraries)\n'
+                                'message(FATAL_ERROR "missing native netif registration")\nendif()\n')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_close_declaration_exception_does_not_allow_other_private_requirements(self):
+        header = REPO / "components/sockets/zephyr/close_declaration.h"
+        for target, option in (("other", f"SHELL:-include {header}"),
+                               ("crux_sockets", f"SHELL:-include {header} -pthread"),
+                               ("crux_sockets", f"SHELL:-include {header.parent}/other.h")):
+            with self.subTest(target=target, option=option):
+                result = self.configure(f'add_library({target} INTERFACE)\n'
+                                        f'target_compile_options({target} INTERFACE "{option}")\n'
+                                        f'crux_assert_portable_usage({target})\n')
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn("native consumer requirement", result.stdout + result.stderr)
+
+    def test_close_declaration_exception_rejects_modified_header(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "cmake").mkdir()
+            shutil.copy2(REPO / "cmake/CruxConsumerBoundary.cmake", root / "cmake")
+            header = root / "components/sockets/zephyr/close_declaration.h"
+            header.parent.mkdir(parents=True)
+            header.write_text('int close(int descriptor);\n#include <zephyr/kernel.h>\n')
+            (root / "CMakeLists.txt").write_text(
+                'cmake_minimum_required(VERSION 3.28)\nproject(modified_declaration LANGUAGES C)\n'
+                f'include("{root}/cmake/CruxConsumerBoundary.cmake")\n'
+                'add_library(crux_sockets INTERFACE)\n'
+                f'target_compile_options(crux_sockets INTERFACE "SHELL:-include {header}")\n'
+                'crux_assert_portable_usage(crux_sockets)\n')
+            result = subprocess.run([CMAKE, "-S", str(root), "-B", str(root / "build")],
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("unreviewed socket close declaration", result.stdout + result.stderr)
+
     def test_zephyr_facade_preserves_backend_conflict(self):
         result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
                                 f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'

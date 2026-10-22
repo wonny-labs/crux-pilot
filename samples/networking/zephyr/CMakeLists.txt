@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_portable_networking LANGUAGES C)
+# Reuse the M3-qualified opt-in correction without altering upstream sources.
+if(CONFIG_SOC_MIMXRT1062)
+    include(../../controller/zephyr/mdio_completion.cmake)
+endif()
+target_sources(app PRIVATE main.c ../client.c)
+target_include_directories(app PRIVATE ..)
+target_link_libraries(app PRIVATE crux::sockets crux::netif)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)

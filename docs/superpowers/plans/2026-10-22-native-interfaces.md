@@ -26,3 +26,14 @@ map instead of being rewritten ahead of their approved capability contracts.
   native_sim/EVKB compositions. Retain identities, commands, failures and limits.
 - [x] Independent reviewer inspects source, policy, migration map and real evidence;
   correct material findings, prepare a focused Draft PR and leave #24 open.
+
+## Approved networking integration
+
+Merge current main without changing the accepted networking contract. Register
+its exact portable consumer inventory with the common gate; allow only the
+qualified socket headers and monotonic deadline API there. Preserve the stricter
+networking profile checker. Add RED/GREEN controls for scope isolation, forbidden
+threading/native operations, and CMake facade/close-declaration integrity. Separate
+netif public usage from native provider registration where STATIC LINK_ONLY leaks.
+Run focused checks before full regression and independent review. No hardware,
+PR merge, Issue closure, or new capability contract is authorised.
