@@ -1,0 +1,19 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE execution_runtime
+===================================================================
+START - test_bounded_runtime_sessions
+runtime fixture: PASS (12 sessions, 4 bounded reservation cycles)
+ PASS - test_bounded_runtime_sessions in 0.720 seconds
+===================================================================
+TESTSUITE execution_runtime succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [execution_runtime]: pass = 1, fail = 0, skip = 0, total = 1 duration = 0.720 seconds
+ - PASS - [execution_runtime.test_bounded_runtime_sessions] duration = 0.720 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: 9fbce0a460780e39adabc15cf5a8d514
+PROJECT EXECUTION SUCCESSFUL

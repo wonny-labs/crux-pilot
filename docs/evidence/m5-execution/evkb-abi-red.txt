@@ -1,0 +1,22 @@
+[1/20] Preparing syscall dependency handling
+
+[2/20] Generating include/generated/zephyr/version.h
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr), build: v4.4.0
+[3/20] Generating misc/generated/syscalls_subdirs.trigger
+[4/20] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[5/20] Generating include/generated/zephyr/driver-validation.h
+[6/20] Generating include/generated/zephyr/syscall_dispatch.c, include/generated/zephyr/syscall_exports_llext.c, syscall_weakdefs_llext.c, include/generated/zephyr/syscall_list.h
+[7/20] Generating include/generated/device-api-sections.ld, include/generated/device-api-sections.cmake
+[8/20] Generating include/generated/zephyr/kobj-types-enum.h, include/generated/zephyr/otype-to-str.h, include/generated/zephyr/otype-to-size.h
+[9/20] Building C object zephyr/lib/heap/CMakeFiles/heap_constants.dir/heap_constants.c.obj
+[10/20] Generating ../../include/generated/zephyr/heap_constants.h
+[11/20] Building C object zephyr/CMakeFiles/offsets.dir/arch/arm/core/offsets/offsets.c.obj
+[12/20] Generating include/generated/zephyr/offsets.h
+[13/20] Building C object CMakeFiles/crux_execution_cases.dir$REPO/tests/portable_execution/public_probe.c.obj
+FAILED: CMakeFiles/crux_execution_cases.dir$REPO/tests/portable_execution/public_probe.c.obj 
+ccache $CACHE/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc  -I$REPO/zephyr/../components/execution/include -I$REPO/zephyr/../components/base/include -std=c17 -Wall -Wextra -Werror -MD -MT CMakeFiles/crux_execution_cases.dir$REPO/tests/portable_execution/public_probe.c.obj -MF CMakeFiles/crux_execution_cases.dir$REPO/tests/portable_execution/public_probe.c.obj.d -o CMakeFiles/crux_execution_cases.dir$REPO/tests/portable_execution/public_probe.c.obj -c $REPO/tests/portable_execution/public_probe.c
+$REPO/tests/portable_execution/public_probe.c:4:2: error: #error "The supported EVKB consumer must use the Cortex-M7 Thumb instruction set"
+    4 | #error "The supported EVKB consumer must use the Cortex-M7 Thumb instruction set"
+      |  ^~~~~
+[14/20] Building C object CMakeFiles/crux_execution_cases.dir$REPO/tests/portable_execution/conformance.c.obj
+ninja: build stopped: subcommand failed.

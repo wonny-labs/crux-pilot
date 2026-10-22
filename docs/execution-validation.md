@@ -62,9 +62,51 @@ is an environment permission failure, not a passing check.
 
 ## Evidence and coverage
 
-Final command results and target resource figures are pending the final validation
-run. Raw local evidence is under `build/evidence/m5-investigation/`; the PR must cite
-retained results rather than infer success from this list.
+The final tested implementation is `b9df57dfefba53c938a3cddbb7f8b139b7986ab8`,
+rebased onto `32405ad` after PR #35 was merged independently. Its Flash PoC files
+and CI step are preserved. The before/after source and pinned-workspace captures
+match exactly; the tested source was clean and recoverable from Git. Subsequent
+changes add documentation/evidence only.
+
+| Check | Final result |
+| --- | --- |
+| Host debug and sample scenario | 45/45 CTest cases; scenario passed |
+| Host ASan/UBSan and sample scenario | 45/45; scenario passed |
+| Separately configured Host firmware C/C++ and runtime consumers | 1/1 each |
+| Zephyr `native_sim/native/64` | 14/14 cases, 2/2 configurations; no warnings |
+| EVKB B/QSPI conformance/firmware and independent runtime | Both cross-builds and compile-boundary checks passed |
+| Build safeguard/negative fixtures | 160/160 Python unit tests |
+| Formatting, dependency checks, configured Host analysis | Passed |
+| Independent implementation re-review | PASS for software PR preparation |
+
+The [retained evidence](evidence/m5-execution/README.md) includes normalized raw
+outputs, negative results, configurations, compressed maps, selected compiler commands
+and source/artifact hashes. Original local logs are under
+`build/evidence/m5-investigation/`. The reproduction environment used Ubuntu 24.04
+Linux amd64 under Docker on an arm64 host, Clang 18.1.3, CMake 3.28.4, west 1.4.0,
+Zephyr v4.4.0 and Zephyr SDK 1.0.1 / Arm GCC 14.3.0. Host results are functional
+emulated-Linux evidence; no native production Linux or physical target claim follows.
+
+| EVKB composition | Linker FLASH | Linker RAM |
+| --- | ---: | ---: |
+| Conformance and firmware fixture | 66,376 B | 31,168 B |
+| Independent runtime fixture | 53,576 B | 31,040 B |
+
+Each image allocates 16,640 bytes for four worker stacks (4,160 bytes per slot,
+including native overhead for 4,096 usable bytes). Thread records occupy 704 bytes,
+mutex records 320 bytes, semaphore records 256 bytes and metadata mutex 20 bytes
+in these ELFs. Whole-image figures include different test runners and do not
+measure wrapper overhead. Simulated trivial-worker observations report 4,096 usable
+and 4,056 unused bytes at priorities 6/5/4; they do not establish firmware/runtime
+worst-case headroom or physical scheduling behavior.
+
+One integrated Debug run reported a 30-second process-exit timeout for the unchanged
+`TimeCommandTest.NoDataApiStatusMapsToDistinctCliText`. Its assertions and GoogleTest
+teardown reported success before exit stalled. That executable does not link the
+execution provider. Twenty direct repetitions and subsequent sequential complete
+Debug/sanitizer runs passed. The failed run and its details remain retained: the
+cause is unresolved, and no Time source was changed or timeout increased. Hosted
+CI is separate evidence and is not inferred from these local results.
 
 Common conformance exercises lifecycle/visibility, invalid input, pool exhaustion,
 reuse/stale aliases, finite expiry without early return, timeout retention, self-join,

@@ -1,0 +1,20 @@
+[1/9] Processing file $REPO/components/execution/src/execution_threads.c.
+896 warnings generated.
+[2/9] Processing file $REPO/components/execution/src/execution_sync.c.
+1792 warnings generated.
+[3/9] Processing file $REPO/components/execution/host/execution_native.c.
+2692 warnings generated.
+[4/9] Processing file $REPO/components/execution/host/execution_sync_native.c.
+3526 warnings generated.
+[5/9] Processing file $REPO/tests/portable_execution/conformance.c.
+4098 warnings generated.
+[6/9] Processing file $REPO/tests/portable_execution/host_main.c.
+4684 warnings generated.
+[7/9] Processing file $REPO/tests/portable_execution/host_failures.c.
+5637 warnings generated.
+[8/9] Processing file $REPO/tests/portable_execution/host_poll.c.
+6622 warnings generated.
+[9/9] Processing file $REPO/tests/portable_execution/admission.c.
+7396 warnings generated.
+Suppressed 7419 warnings (7396 in non-user code, 23 NOLINT).
+Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.

@@ -38,23 +38,23 @@ Files: `components/execution/include/crux/execution.h`, `components/execution/sr
 `components/execution/host/`, `components/execution/CMakeLists.txt`, root CMake,
 `components/base/include/crux/status.h`, `tests/portable_execution/`.
 
-- [ ] Write conformance tests for create/normal return/join visibility, invalid input,
+- [x] Write conformance tests for create/normal return/join visibility, invalid input,
   poll/expiry retaining resources, successful reuse, stale handles, exhaustion,
   stack/priority errors, self/concurrent join.
-- [ ] Observe missing API/build failure, then minimal stub assertion failure; retain RED logs.
-- [ ] Add declarations and bounded provider lifecycle with checked generations.
-- [ ] Pass Host thread cases before adding synchronisation implementation.
+- [x] Observe missing API/build failure, then minimal stub assertion failure; retain RED logs.
+- [x] Add declarations and bounded provider lifecycle with checked generations.
+- [x] Pass Host thread cases before adding synchronisation implementation.
 
 ## Task 2: Mutex/semaphore ownership and waits
 
 Files: same capability, common conformance and Host tests.
 
-- [ ] Add failing tests for exclusion, wrong owner/self-lock, busy destruction,
+- [x] Add failing tests for exclusion, wrong owner/self-lock, busy destruction,
   active waiters, monotonic expiry, wakeup, empty/full semaphores, simultaneous
   givers, pool exhaustion, generation aliases, repeated quiescent cleanup.
-- [ ] Implement the minimum operations; validate/admit under metadata protection,
+- [x] Implement the minimum operations; validate/admit under metadata protection,
   never across blocking native waits. Preserve one original monotonic deadline.
-- [ ] Pass conformance, full Host regression and ASan/UBSan.
+- [x] Pass conformance, full Host regression and ASan/UBSan.
 
 ## Task 3: Native Zephyr provider and independent consumers
 
@@ -62,13 +62,13 @@ Files: `components/execution/zephyr/`, `zephyr/CMakeLists.txt`, `zephyr/Kconfig`
 `tests/portable_execution/{CMakeLists.txt,prj.conf,testcase.yaml}`, independent
 `tests/execution_runtime/`, firmware consumer/build fixture, `scripts/test-portable-execution.sh`.
 
-- [ ] Run existing conformance against unimplemented Zephyr provider to establish RED.
-- [ ] Implement native static-stack/thread, mutex and semaphore behavior against
+- [x] Run existing conformance against unimplemented Zephyr provider to establish RED.
+- [x] Implement native static-stack/thread, mutex and semaphore behavior against
   the same cases; include ISR rejection and actual stack/priority observations.
-- [ ] Have a separate author write the runtime-shaped fixture using the approved
+- [x] Have a separate author write the runtime-shaped fixture using the approved
   public contract only. Build firmware/C++ consumers as separate projects without
   provider-private source or native headers in their portable source.
-- [ ] Pass native_sim and cross-build EVKB; retain maps/configuration/resource hashes.
+- [x] Pass native_sim and cross-build EVKB; retain maps/configuration/resource hashes.
   No physical execution claim.
 
 ## Task 4: Boundaries, evidence and independent review
@@ -76,11 +76,11 @@ Files: `components/execution/zephyr/`, `zephyr/CMakeLists.txt`, `zephyr/Kconfig`
 Files: existing quality scripts/workflows as needed; execution contract/validation
 docs, dependency fixtures and durable evidence under `docs/evidence/`.
 
-- [ ] Add negative native-header/type/link and private-include leakage cases scoped
+- [x] Add negative native-header/type/link and private-include leakage cases scoped
   to this capability; preserve legitimate native providers. State #24 limits.
-- [ ] Run formatting, selected static analysis, dependencies, relevant existing
+- [x] Run formatting, selected static analysis, dependencies, relevant existing
   Host/Zephyr checks and source/input identity capture.
-- [ ] Independent reviewer inspects full diff, source, reports and unresolved
+- [x] Independent reviewer inspects full diff, source, reports and unresolved
   target/#24 dependencies; resolve REVISE findings with affected re-tests.
 - [ ] Commit/push dedicated branch, open and attach a PR with actual results,
   limits and unresolved physical evidence; do not merge or close Issue #25.

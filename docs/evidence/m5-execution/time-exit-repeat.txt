@@ -1,0 +1,240 @@
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (1 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (1 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (13 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (6 ms total)
+[  PASSED  ] 1 test.

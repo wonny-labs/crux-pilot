@@ -1,0 +1,60 @@
+INFO    - Using Ninja..
+INFO    - Zephyr version: v4.4.0
+INFO    - Using 'zephyr/gnu' toolchain variant.
+INFO    - Building initial testsuite list...
+INFO    - Built testsuite list in 0.00 seconds
+INFO    - Writing JSON report $REPO/build/zephyr/twister-posix-extra-fixed/testplan.json
+INFO    - JOBS: 1
+INFO    - Adding tasks to the queue...
+INFO    - Added initial list of jobs to queue
+ERROR   - native_sim/native/64      crux.investigation.posix_extra                     FAILED: rc=1
+INFO    - $REPO/build/zephyr/twister-posix-extra-fixed/native_sim_native_64/host_gnu$REPO/build/evidence/m5-investigation/posix-extra/crux.investigation.posix_extra/handler.log
+ERROR   - *** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE posix_extra
+===================================================================
+START - test_monotonic_condition
+
+    Assertion failed at CMAKE_SOURCE_DIR/probe.c:61: monotonic_condition: (pthread_mutex_unlock(&lock) == 0 is false)
+pthread_mutex_unlock(&lock) == 0
+ FAIL - test_monotonic_condition in 0.030 seconds
+===================================================================
+START - test_semaphore_capacity
+EXTRA semaphore maximum=32767 post_result=0 errno=0 count=32767
+ PASS - test_semaphore_capacity in 0.000 seconds
+===================================================================
+TESTSUITE posix_extra failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -  50.00% [posix_extra]: pass = 1, fail = 1, skip = 0, total = 2 duration = 0.030 seconds
+ - FAIL - [posix_extra.test_monotonic_condition] duration = 0.030 seconds
+ - PASS - [posix_extra.test_semaphore_capacity] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: 023b1699be6fb92ef3e67dca8df98bd0
+PROJECT EXECUTION FAILED
+
+INFO    - $REPO/build/zephyr/twister-posix-extra-fixed/native_sim_native_64/host_gnu$REPO/build/evidence/m5-investigation/posix-extra/crux.investigation.posix_extra/handler.log
+INFO    - Total complete:    1/   1  100%  built (not run):    0, filtered:    0, failed:    1, error:    0
+INFO    - 1 test scenarios (1 configurations) selected, 0 configurations filtered (0 by static filter, 0 at runtime).
+INFO    - 0 of 1 executed test configurations passed (0.00%), 0 built (not run), 1 failed, 0 errored, with no warnings in 127.70 seconds.
+INFO    - 1 of 2 executed test cases passed (50.00%), 1 failed on 1 out of total 1473 platforms (0.07%).
+INFO    - 1 test configurations executed on platforms, 0 test configurations were only built.
+INFO    - Saving reports...
+INFO    - Writing JSON report $REPO/build/zephyr/twister-posix-extra-fixed/twister.json
+INFO    - Writing xunit report $REPO/build/zephyr/twister-posix-extra-fixed/twister.xml...
+INFO    - Writing xunit report $REPO/build/zephyr/twister-posix-extra-fixed/twister_report.xml...
+INFO    - -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+INFO    - The following issues were found (showing the top 10 items):
+INFO    - 1) crux.investigation.posix_extra on native_sim/native/64 failed (rc=1)
+INFO    - 
+INFO    - To rerun the tests, call twister using the following commandline:
+INFO    - west twister -p <PLATFORM> -s <TEST ID>, for example:
+INFO    - 
+INFO    - west twister -p native_sim/native/64 -s crux.investigation.posix_extra
+INFO    - or with west:
+INFO    - west build -p -b native_sim/native/64 build/evidence/m5-investigation/posix-extra -T crux.investigation.posix_extra
+INFO    - -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+INFO    - Run completed
