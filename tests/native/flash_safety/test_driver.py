@@ -103,7 +103,11 @@ static _Noreturn void crux_flash_poc_terminal(int error) {reason=error;longjmp(t
   code+=definition(memc,'memc_flexspi_wait_bus_idle')+definition(hal,'FLEXSPI_SoftwareReset')
   code+="""
 int main(int argc,char **argv) {
- if(argc!=2)return 2;mode=atoi(argv[1]);struct device dev={0};
+ if (argc != 2) {
+  return 2;
+ }
+ mode = atoi(argv[1]);
+ struct device dev = {0};
  if(!setjmp(terminal)) {if(mode==0)memc_flexspi_wait_bus_idle(&dev);else FLEXSPI_SoftwareReset(&regs);return 3;}
  return reason==-ETIMEDOUT && observations<=1025 ? 0:4;
 }

@@ -56,3 +56,14 @@ reran the focused harness, checked CI workspace/bootstrap paths and confirmed th
 PoC implementation/sample/test/verifier/input-hash files remain unchanged from
 `10b32a7`. Verdict: **PASS for this follow-up**, conditional on checking final-head
 workflow outcomes before merge. This review adds no production or hardware authority.
+
+CI subsequently exposed GCC `-Werror=misleading-indentation` in the lower-test
+C main function. The author reproduced it with GCC and changed only braces and
+line layout, preserving assertions and production code. GCC and Clang verification
+are reported separately from the original retained Clang fault-test evidence.
+The independent reviewer also checked the exact GCC formatting fix and retained
+PASS: C behavior, assertions, warning policy and PoC implementation are unchanged.
+Successful [GCC full-gate output](gcc-script-output.txt) and
+[Clang follow-up](clang-followup.txt) are preserved separately. Final-head hosted
+CI results are recorded on the PR to avoid changing the tested head merely to
+record its subsequent workflow outcome.

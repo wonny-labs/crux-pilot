@@ -160,7 +160,10 @@ the generator, sample, test harness, verifier or pinned native inputs:
 
 For this PR, the retained local implementation evidence is from `10b32a7` (final
 ELF hash in the placement record). The follow-up adds CI wiring and review/gate
-records without changing the generator, native input hashes, PoC sample, harness
-or verifier. [Review provenance and resolved findings](evidence/flash-safety-poc/review-record.md)
+records without changing the generator, native input hashes, PoC sample or verifier.
+A GCC CI failure also required expanding a compact `if` statement in generated
+host-test C into braces and separate lines. This changes no test assertions,
+PoC driver behavior or warning policy. The complete manual gate was rerun with
+GCC and the fault harness with Clang; the target ELF remains unchanged. [Review provenance and resolved findings](evidence/flash-safety-poc/review-record.md)
 separate the local subagent review from the later GitHub technical review. Neither
 is a production-safety approval or authorisation to merge.
