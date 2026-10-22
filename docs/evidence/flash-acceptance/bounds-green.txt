@@ -1,0 +1,26 @@
+test_cli_reads_files_and_returns_failure_for_invalid_image (test_flash_bounds.CommandLine) ... ok
+test_bin_span_must_match_all_loads (test_flash_bounds.ImageBounds) ... ok
+test_boot_header_fields_independently_rejected (test_flash_bounds.ImageBounds) ... ok
+test_exact_firmware_ceiling (test_flash_bounds.ImageBounds) ... ok
+test_file_size_larger_than_memory_rejected (test_flash_bounds.ImageBounds) ... ok
+test_layout_overlap_and_alignment (test_flash_bounds.ImageBounds) ... ok
+test_load_in_storage_rejected (test_flash_bounds.ImageBounds) ... ok
+test_malformed_elf_headers (test_flash_bounds.ImageBounds) ... ok
+test_non_file_backed_ram_load_is_ignored (test_flash_bounds.ImageBounds) ... ok
+test_overlapping_loads_rejected (test_flash_bounds.ImageBounds) ... ok
+test_oversized_bin_independently_of_valid_loads (test_flash_bounds.ImageBounds) ... ok
+test_ram_vma_load_crosses_ceiling_independently_of_small_bin (test_flash_bounds.ImageBounds) ... ok
+test_truncated_boot_data (test_flash_bounds.ImageBounds) ... ok
+test_truncated_elf_header_table_and_load (test_flash_bounds.ImageBounds) ... ok
+test_valid_ram_vma_flash_lma (test_flash_bounds.ImageBounds) ... ok
+test_adjacent_requests_allowed (test_flash_bounds.Requests) ... ok
+test_erase_alignment_and_invalid_lengths (test_flash_bounds.Requests) ... ok
+test_firmware_and_boot_headers_protected (test_flash_bounds.Requests) ... ok
+test_overlapping_request_batch_rejected (test_flash_bounds.Requests) ... ok
+test_owner_crossing_and_device_bounds_rejected (test_flash_bounds.Requests) ... ok
+test_valid_owner_edges_and_byte_write_granule (test_flash_bounds.Requests) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 0.065s
+
+OK
