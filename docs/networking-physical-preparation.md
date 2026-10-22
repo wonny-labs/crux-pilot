@@ -118,3 +118,7 @@ PYTHONPATH=tests/target python3 -c 'from m5_capture_adapter import record_operat
 ```
 
 Use `cable_connect_receipt` only after the separately approved reconnect. The helper records shared-clock acknowledgement, performs no hardware action and cannot replace native host/target witnesses. Passive UART before the approved fresh reset is retained with exact byte range and SHA-256; a reset cut and one fresh source banner delimit qualifying evidence. Unknown prefix activity or extra boots fail. A shared host-boot identity binds the nonrenewable series clock across all three captures.
+
+Expected functional outcomes are fixed: echo returns 0; silent peers return symbolic `ETIMEDOUT`; TCP early close returns `ECONNRESET` while its UDP partner returns 0. Link-loss calls may return `ETIMEDOUT`, `ENETDOWN`, `ENETUNREACH` or `ECONNRESET`. Other outcomes fail this proposal and require investigation rather than automatic criterion expansion. The actual compiler-derived errno map supplies numeric values.
+
+The frozen input model retains west's clean manifest-checkout record as workspace bootstrap context, separately from the built worktree commit/snapshot. The target compiles explicit worktree/module paths and exactly four pinned dependency revisions; the manifest checkout's source is not substituted for the worktree. A mismatched input model was found during the first freeze attempt and corrected with actual five-record input tests before the final candidate was rebuilt.

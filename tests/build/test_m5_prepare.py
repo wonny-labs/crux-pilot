@@ -59,6 +59,35 @@ class Preparation(unittest.TestCase):
     def verify(self):
         return subject.verify(self.output, subject.sha(self.output))
 
+    def test_preserves_clean_workspace_manifest_context_separately_from_built_source(self):
+        context = dict(name='manifest', path='crux-pilot', revision='HEAD',
+                       git_commit='1d6ac4f6cd5b4e4013f2ce0c59375beb3cdad9f2', dirty=False)
+        for path in (self.inputs, self.build / 'provenance.json'):
+            data = json.loads(path.read_text())
+            data['west_projects'].insert(0, context)
+            path.write_text(json.dumps(data))
+        record = self.prepare()
+        self.assertEqual(record['west_projects'][0], context)
+        self.assertEqual(self.verify()['west_projects'][0], context)
+        self.assertEqual(record['source'], self.source)
+        self.assertNotEqual(record['source']['git_commit'], context['git_commit'])
+
+    def test_rejects_noncanonical_workspace_context_and_unknown_or_duplicate_projects(self):
+        baseline = json.loads(self.inputs.read_text())
+        context = dict(name='manifest', path='crux-pilot', revision='HEAD',
+                       git_commit='1d6ac4f6cd5b4e4013f2ce0c59375beb3cdad9f2', dirty=False)
+        mutations = [dict(context, dirty=True), dict(context, path='../crux-pilot'),
+                     dict(context, path='other-checkout'), dict(context, revision='main'),
+                     dict(context, git_commit='not-a-commit'), dict(context, name='unknown')]
+        for changed in mutations:
+            data = dict(baseline, west_projects=[changed] + baseline['west_projects'])
+            with self.subTest(context=changed), self.assertRaises(ValueError):
+                subject.frozen_inputs(data)
+        for extra in ([context, context], [baseline['west_projects'][0]]):
+            data = dict(baseline, west_projects=extra + baseline['west_projects'])
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                subject.frozen_inputs(data)
+
     def test_freezes_all_artifacts_and_compiler_and_verifies_read_only(self):
         record = self.prepare()
         names = {Path(a['path']).name for a in record['artifacts']}

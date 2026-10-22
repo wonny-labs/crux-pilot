@@ -40,9 +40,20 @@ def frozen_inputs(data):
             re.fullmatch(r'[0-9a-f]{64}', source['snapshot_sha256']) is not None,
             'Incomplete source identity')
     projects = data['west_projects']
-    require(len(projects) == len(PINNED) and {p['name'] for p in projects} == set(PINNED),
-            'Unexpected/missing/duplicate dependencies')
-    for project in projects:
+    # Linked worktrees may record west's distinct manifest checkout. It is workspace
+    # bootstrap context, not the built source: source above identifies that worktree.
+    contexts = [p for p in projects if p['name'] == 'manifest']
+    dependencies = [p for p in projects if p['name'] != 'manifest']
+    require(len(contexts) <= 1 and len(dependencies) == len(PINNED) and
+            {p['name'] for p in dependencies} == set(PINNED),
+            'Unexpected/missing/duplicate dependencies or manifest context')
+    for context in contexts:
+        require(set(context) == {'name', 'path', 'revision', 'git_commit', 'dirty'} and
+                context['path'] == 'crux-pilot' and context['revision'] == 'HEAD' and
+                context['dirty'] is False and
+                re.fullmatch(r'[0-9a-f]{40}', context['git_commit']) is not None,
+                'Unfrozen/noncanonical workspace manifest context')
+    for project in dependencies:
         require(project['revision'] == project['git_commit'] == PINNED[project['name']] and
                 not project['dirty'], 'Dependency changed')
 
