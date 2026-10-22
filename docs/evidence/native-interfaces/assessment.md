@@ -67,7 +67,7 @@ New consumer targets must register their role and checks; a directory rename is
 not evidence of portability. No universal HAL, POSIX profile, new capability API,
 physical guarantee or closed Issue is implied by these tests.
 
-## Final results and independent review
+## Initial results and local review — `f761910`
 
 - [Linux build-tool suite](build-tests.txt): **196/196 passed**, including 11 source
   policy methods and 9 consumer/build-interface methods; no skips. The independent
@@ -91,3 +91,51 @@ This author-maintained summary is not a GitHub Approve event or new authority.
 All five ACs are supported by the proposed implementation and reviewed policy/map,
 subject to human acceptance of the PR. Issue #24 remains open. No hardware, merge,
 Issue closure or dependent capability implementation is authorised by this PASS.
+
+## Final independent review follow-up
+
+The subsequent [published technical review](https://github.com/wonny-labs/crux-pilot/pull/39#pullrequestreview-5621370662)
+returned **REVISE before merge**, identifying a threading-link detection gap,
+missing STATIC-provider composition coverage and the #28 integration gate.
+The initial local PASS above is historical and does not supersede that review.
+
+- Threading RED controls reproduced 14 consumer/public requirements configuring
+  successfully before the fix. Two narrow CMake regex checks now reject
+  `Threads::Threads`, `pthread`, `-pthread`, `-lpthread` and representative library/
+  compile/link-option forms. Existing `LINK_ONLY` traversal is unchanged.
+- Real STATIC-provider tests distinguish two graphs: public export of PRIVATE
+  native dependencies through `LINK_ONLY` remains rejected; native composition
+  independently links a provider and a portable consumer using only the public API.
+  The latter compiles and executes a pthread-backed result of 42, verifying that
+  native include paths, definitions and flags are present for the provider and
+  absent from consumer compilation. Public headers have their own include root.
+  This tests link/compile ownership, not native Zephyr scheduling semantics.
+- The [policy](../../native-interface-policy.md#required-28-integration-gate) now
+  acknowledges #28's approved in-flight IPv4 profile rather than describing its
+  selection as undecided. The combined revision must register exact consumer paths,
+  approved header/call scope and negative controls, reconcile native provider/close
+  declaration requirements, and run both suites. No global POSIX exception or
+  networking implementation is added here. #25 must preserve the same composition
+  ownership on its actual execution-provider graph.
+
+Follow-up evidence identifies the source revisions separately from the initial
+target artifacts above. Existing source code, provider implementation and target
+configuration inputs are unchanged; only the boundary checker, tests and policy
+handoff are revised. No physical operation, merge or Issue closure is performed.
+
+The final frozen source passed [199/199 Linux build-tool tests](review-build-tests.txt),
+including 12 consumer/build methods with 18 threading requirement controls,
+plus dependency/formatting checks. Host CTest **42/42**, the **20-cycle native_sim
+scenario** and EVKB B/QSPI guard reconfigure/build passed again; the original four
+ELF/configuration hashes remained identical. See the [regression excerpt](review-regression-excerpt.txt)
+and [follow-up source identities](review-verification.json). The [14 threading REDs](review-threading-red.txt)
+and [static graph RED/control](review-static-red.txt) retain the pre-fix outcomes.
+One intermediate full-suite snapshot was explicitly stopped when it was found to
+predate the last flag variants; it is retained locally and is not counted as a pass.
+The final suite records both exact checker/test hashes before running.
+
+Fresh independent Reviewer `/root/native_followup_review` returned **PASS** after
+reading the actual GitHub findings, final code and policy, independently executing
+all 12 focused methods and inspecting the RED/regression evidence. This focused
+re-review grants no merge or Issue-closure authority. Final-head hosted checks and
+actual #25/#28 combined integration retain their distinct gates.

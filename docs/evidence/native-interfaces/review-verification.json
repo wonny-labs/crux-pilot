@@ -1,0 +1,18 @@
+{
+  "base_reviewed_head": "f7619108a2a41382d1dc1d76d9fdbcafd8fa2d00",
+  "source_sha256": {
+    "cmake/CruxConsumerBoundary.cmake": "d070d97496163245f33877cb62a898a8d23963d07125b1c731f52beb829b46e9",
+    "tests/build/test_consumer_boundary.py": "34b3d6f8e42e803f245ddf577363949fa63a260d4c1a9235152cdfd3e3490d1e",
+    "docs/native-interface-policy.md": "31668ab4b205e9ab3cbdf021c49d0f37df9d7bdde5cdfdad4fd7aaa889266608"
+  },
+  "results": {
+    "linux_build_methods": 199,
+    "consumer_methods": 12,
+    "consumer_threading_cases": 18,
+    "host_ctest": 42,
+    "native_sim": "20-cycle scenario passed",
+    "evkb": "successful guard reconfigure/build; original ELF/config hashes unchanged"
+  },
+  "review": "fresh independent reviewer PASS; independently executed final focused12, inspected REDs and regression logs; final full199 run author executed",
+  "evidence_limits": "Initial verification.json/source artifacts remain identified as f761910 evidence. No networking integration, native provider framework, hardware or production Flash changes."
+}

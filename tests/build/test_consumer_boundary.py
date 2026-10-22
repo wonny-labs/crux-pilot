@@ -1,4 +1,5 @@
 """Build consumers independently and reject native public usage requirements."""
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -95,6 +96,100 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                         + requirement + '\ncrux_assert_portable_consumer(consumer)\n')
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("native consumer requirement", result.stdout + result.stderr)
+
+    def test_native_threading_requirements_are_rejected(self):
+        requirements = [('target_link_libraries', value) for value in
+                        ('Threads::Threads', 'pthread', '-pthread', '-lpthread',
+                         '/usr/lib/libpthread.so')]
+        requirements += [('target_compile_options', '-pthread'),
+                         ('target_link_options', '-pthread'),
+                         ('target_link_options', 'LINKER:-lpthread'),
+                         ('target_compile_options', 'SHELL:-pthread')]
+        for command, value in requirements:
+            for public in (False, True):
+                with self.subTest(command=command, value=value, public=public):
+                    body = ('find_package(Threads REQUIRED)\n'
+                            'file(WRITE "${CMAKE_BINARY_DIR}/main.c" "int main(void) { return 0; }")\n')
+                    if public:
+                        body += ('add_library(wrapper INTERFACE)\n'
+                                 'add_library(facade INTERFACE)\n'
+                                 'target_link_libraries(facade INTERFACE wrapper)\n'
+                                 f'{command}(wrapper INTERFACE "{value}")\n'
+                                 'crux_assert_portable_usage(facade)\n')
+                    else:
+                        body += ('add_executable(consumer "${CMAKE_BINARY_DIR}/main.c")\n'
+                                 f'{command}(consumer PRIVATE "{value}")\n'
+                                 'crux_assert_portable_consumer(consumer)\n')
+                    result = self.configure(body)
+                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn("native consumer requirement", result.stdout + result.stderr)
+
+    def test_static_provider_native_link_only_is_rejected(self):
+        for native in ('zephyr_interface', 'Threads::Threads'):
+            with self.subTest(native=native):
+                result = self.configure('find_package(Threads REQUIRED)\n'
+                                        'file(WRITE "${CMAKE_BINARY_DIR}/provider.c" "int provider(void) { return 0; }")\n'
+                                        'add_library(zephyr_interface INTERFACE)\n'
+                                        'add_library(provider STATIC "${CMAKE_BINARY_DIR}/provider.c")\n'
+                                        f'target_link_libraries(provider PRIVATE {native})\n'
+                                        'add_library(facade INTERFACE)\n'
+                                        'target_link_libraries(facade INTERFACE provider)\n'
+                                        'crux_assert_portable_usage(facade)\n')
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn("native consumer requirement", result.stdout + result.stderr)
+
+    def test_static_provider_private_native_composition_builds_and_runs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            native_include = root / "native" / "zephyr"
+            native_include.mkdir(parents=True)
+            (native_include / "detail.h").write_text('#define NATIVE_RESULT 42\n')
+            public_include = root / "public"
+            public_include.mkdir()
+            (public_include / "api.h").write_text('int provider(void);\nint portable_consumer(void);\n')
+            (root / "provider.c").write_text(
+                '#include "api.h"\n#include <zephyr/detail.h>\n#include <pthread.h>\n'
+                '#ifndef CRUX_PROVIDER_NATIVE\n#error missing provider flag\n#endif\n'
+                'static void *run(void *value) { return value; }\n'
+                'int provider(void) { pthread_t thread; void *out; int value = NATIVE_RESULT;\n'
+                'if (pthread_create(&thread, 0, run, &value) || pthread_join(thread, &out)) return 0;\n'
+                'return *(int *)out; }\n')
+            (root / "consumer.c").write_text(
+                '#include "api.h"\n#ifdef CRUX_PROVIDER_NATIVE\n#error leaked provider flag\n#endif\n'
+                'int portable_consumer(void) { return provider(); }\n')
+            (root / "main.c").write_text(
+                '#include "api.h"\nint main(void) { return portable_consumer() == 42 ? 0 : 1; }\n')
+            (root / "CMakeLists.txt").write_text(
+                'cmake_minimum_required(VERSION 3.28)\nproject(static_composition LANGUAGES C)\n'
+                f'include("{REPO}/cmake/CruxConsumerBoundary.cmake")\n'
+                'set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\nfind_package(Threads REQUIRED)\n'
+                'add_library(api INTERFACE)\n'
+                'target_include_directories(api INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/public")\n'
+                'add_library(zephyr_interface INTERFACE)\n'
+                'target_include_directories(zephyr_interface INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/native")\n'
+                'target_compile_definitions(zephyr_interface INTERFACE CRUX_PROVIDER_NATIVE)\n'
+                'add_library(provider STATIC provider.c)\n'
+                'target_link_libraries(provider PRIVATE api zephyr_interface Threads::Threads)\n'
+                'target_compile_options(provider PRIVATE -pthread)\n'
+                'add_library(consumer STATIC consumer.c)\n'
+                'target_link_libraries(consumer PRIVATE api)\n'
+                'crux_assert_portable_usage(api)\ncrux_assert_portable_consumer(consumer)\n'
+                '# The native composition independently selects the implementation.\n'
+                'add_executable(composition main.c)\n'
+                'target_link_libraries(composition PRIVATE api consumer provider)\n')
+            build = root / "build"
+            for command in ([CMAKE, "-S", str(root), "-B", str(build)],
+                            [CMAKE, "--build", str(build)], [str(build / "composition")]):
+                result = subprocess.run(command, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            commands = json.loads((build / "compile_commands.json").read_text())
+            consumer = next(item['command'] for item in commands
+                            if Path(item['file']).name == 'consumer.c')
+            provider = next(item['command'] for item in commands
+                            if Path(item['file']).name == 'provider.c')
+            for private in ('/native', 'CRUX_PROVIDER_NATIVE', '-pthread'):
+                self.assertNotIn(private, consumer)
+                self.assertIn(private, provider)
 
     def test_real_zephyr_facade_has_no_native_transitives(self):
         result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'

@@ -1,0 +1,17 @@
+Selected lines from successful guard reconfigure/build + CTest and native_sim scenario; full original retained locally.
+[0/1] Re-running CMake...
+-- Build files have been written to: /evidence/host
+42/42 Test #42: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom .......   Passed    0.03 sec
+100% tests passed, 0 tests failed out of 42
+[0/1] Re-running CMake...
+-- Zephyr version: 4.4.0 (/workspaces/crux/zephyr)
+-- Build files have been written to: /evidence/controller-native
+Generating files from /evidence/controller-native/zephyr/zephyr.elf for board: native_sim/native/64
+Controller 20-cycle scenario, unset/valid UTC and backward UTC step: passed
+[0/1] Re-running CMake...
+-- Zephyr version: 4.4.0 (/workspaces/crux/zephyr)
+-- Build files have been written to: /evidence/controller-evkb
+           FLASH:       37536 B         8 MB      0.45%
+             RAM:        8704 B        32 MB      0.03%
+           OCRAM:           0 B       256 KB      0.00%
+Generating files from /evidence/controller-evkb/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi

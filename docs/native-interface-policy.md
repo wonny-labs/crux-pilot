@@ -36,14 +36,39 @@ the guarantees they use. Standard error names are not aliases for Crux status
 values. C++ consumption preserves the existing C linkage declarations; it does not
 add a C++ platform API or a stable compiler-independent ABI.
 
-There is currently **no generally qualified consumer POSIX subset**. Existing
-Linux host adapters and execution probes may use POSIX internally; that does not
-qualify pthreads, sockets, `clock_gettime`, `unistd.h` or `sys/*` for portable
-consumers. A future capability may explicitly qualify a standard subset with its
-operations, versions/configurations, ownership, timeout/error guarantees and
-unsupported semantics. In particular #28 decides the Socket versus qualified
-standard boundary; this work does not preselect it. Do not rename native APIs to
-Crux names without establishing useful consumer semantics.
+There is **no generally qualified consumer POSIX subset**. Linux host adapters
+and execution probes may use POSIX internally without qualifying it for consumers.
+Issue #28 has an approved, in-flight bounded BSD/POSIX IPv4 client profile in
+[PR #38](https://github.com/wonny-labs/crux-pilot/pull/38); its
+[contract at the inspected revision](https://github.com/wonny-labs/crux-pilot/blob/8b0ea48d08b7b3b41a6a93b08f8af19513c17e41/docs/networking-contract.md)
+qualifies selected socket headers/functions and `clock_gettime(CLOCK_MONOTONIC)`
+for networking deadlines. It does not qualify pthreads, general POSIX use or a
+general clock service. That architecture approval is distinct from PR integration
+and physical qualification. Do not require an additional socket wrapper or rename
+native APIs to Crux names without useful consumer semantics.
+
+### Required #28 integration gate
+
+The current common checker defaults still reject POSIX in its registered roots;
+`samples/networking/client.c` and `tests/networking/runtime_port.c` from PR #38 are
+not yet in this branch's inventory. Their absence is an integration gap, not a
+native-free PASS for those consumers. The follow-on integration change (whichever
+PR is integrated second) must:
+
+- Register those precise consumer paths and their public `crux::sockets`/
+  `crux::netif` targets with a named, reviewed networking-profile allowance tied to
+  the approved contract, instead of globally whitelisting POSIX or exempting them.
+- Limit allowed headers/functions and semantics to that profile, including the
+  networking-only monotonic deadline and executable-owned SIGPIPE policy. Keep
+  Zephyr/NXP/private types, threading APIs and unsupported POSIX uses forbidden.
+- Add positive controls for the approved client/runtime consumers and negative
+  controls proving the same headers/calls remain rejected in unqualified consumers
+  and unsupported operations remain rejected within the networking profile.
+- Run both boundary and networking suites plus independent consumer checks on the
+  combined revision; reconcile provider composition/public usage before claiming
+  the common gate covers #28. In particular, review #28's pinned declaration-only
+  native `close` integration exception explicitly rather than globally allowing
+  provider-private headers. This PR implements no networking allowance or service.
 
 The current supported owned interfaces are `<crux/status.h>`, `<crux/time.h>` and
 `<crux/time_calendar.h>`, consumed through `crux::base`/`crux::time`. Component
@@ -61,7 +86,7 @@ Historical controller source/output/evidence records remain intact.
 | `zephyr/main.c`, `m3_main.c`: `k_thread_*`, stack declarations, priorities, `k_sleep`, spinlocks/atomics | Execution/synchronisation contracts under #25; native thread/stack ownership stays in provider/composition | Lifecycle, waits, resource/priority guarantees need contract review; do not mechanically expose `k_*` types. |
 | `m3_main.c`: `k_uptime_get`, absolute releases; host `clock_gettime`/sleep | Monotonic/timing/event services under #26, while schedule/health policy stays portable | Preserve monotonic versus UTC distinction, overrun policy and accepted freshness limits. |
 | `device_input.c`: DT GPIO binding, `gpio_*`, native device readiness | GPIO contract #31; logical resource binding #32 | Board pin/active-level and startup ownership stay native; no GPIO public API created here. |
-| `network_client.c`, `network_probe.c`: `zsock_*`, `net_if_*`/link state | Socket and Network Interface responsibilities under #28; resource/address binding #32 | Qualify standard subset or owned contract, short I/O/deadlines/recovery; preserve current IPv4 limits. |
+| `network_client.c`, `network_probe.c`: `zsock_*`, `net_if_*`/link state | Approved in-flight #28 Socket profile and separate Network Interface contract; resource/address binding #32 | Integrate the scoped common-checker profile above, then migrate with short-I/O/deadline/recovery evidence; preserve current IPv4 limits. |
 | `m3_main.c`: `wdt_*`, `hwinfo_*`, reset-cause and readiness | System health/reset/watchdog #30 | Preserve application-owned feed policy and timing/reset risks; no implied permission to change watchdog policy. |
 | `native_logger.c`, `printk`, logging controls and diagnostic shell hooks | Logging #29; UART logical serial path #27 when needed | Keep bounded-output/loss semantics and test-only fault hooks separate from reusable consumer API. |
 | `network_mdio_trace.c`, PHY diagnostics, MDIO completion source selection | Native driver diagnostics and controlled project composition | Remain native; do not migrate device registers into consumer code or count diagnostics as portable contracts. |
@@ -97,6 +122,17 @@ conditional branches conservatively, and rejects opaque forms. Install-tree
 requirements and arbitrary compiler/linker flag encodings are outside this bounded
 gate; no installed SDK/package is claimed. Source review remains necessary for
 transitive helper includes, aliases and third-party library semantics.
+
+Static providers retain PRIVATE native requirements at the composition boundary.
+Unqualified consumer/public requirements such as `Threads::Threads`, `pthread`
+and `-pthread` are rejected; a controlled Host provider can still use them privately.
+Because CMake can export their private link dependencies through `LINK_ONLY`, they
+must not be inserted into a portable public facade if that would expose native
+requirements. As in the Time Zephyr module, select/register the native implementation
+independently in the native image composition. A designated portable consumer links
+the public API; the final composition supplies the implementation. There is no
+blanket provider exemption or stripping of `LINK_ONLY`. #25 integration must preserve
+this separation and run the static-provider controls on its actual execution graph.
 
 Reproduce inside the existing Linux development environment:
 

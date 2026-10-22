@@ -27,5 +27,7 @@
     "controller-native/.config": "c36adee21b4f0cf1fac27cc981e8915e024012c5d30b424e652740e50d98ffc5",
     "controller-evkb/zephyr.elf": "a069bc61b09944c1afa79f2f1bf50125b88190884957f63117e40ec7e9ace18f",
     "controller-evkb/.config": "0f2d08f6714e82cb778ad4f1414bbb459af06839ee42e9274945ea5b0bec8f89"
-  }
+  },
+  "reviewed_head": "f7619108a2a41382d1dc1d76d9fdbcafd8fa2d00",
+  "scope": "Original implementation evidence at reviewed_head before final-review follow-up; source hashes are historical, not final follow-up hashes."
 }

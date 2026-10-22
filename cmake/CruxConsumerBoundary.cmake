@@ -57,6 +57,8 @@ function(_crux_check_consumer_target target visited)
             string(REPLACE "\\" "/" lower "${lower}")
             if(lower MATCHES "(^|[/;:=<>_-])(zephyr|boards?|soc|vendor|nxp|cmsis|nrfx|mcux|fsl)([/;:=<>_-]|$)"
                OR lower MATCHES "(^|/)(lib|-l)(zephyr|nxp|cmsis|nrfx|mcux|fsl)([_.-]|$)"
+               OR lower MATCHES "(^|[/;,:=<>_ -])(threads::threads|pthread)([/;,:=<>_. -]|$)"
+               OR lower MATCHES "(^|[/;,:=<>_ -])(lib|-l)pthread([_.-]|$)"
                OR lower MATCHES "(^|/)modules/hal(/|$)"
                OR lower MATCHES "(^|/)components/[^/]+/(src|host|zephyr|tests?)(/|$)"
                OR lower MATCHES "(^|/)(test_support|test-support)(/|$)"
