@@ -19,13 +19,17 @@
         }                                                                                          \
     } while (0)
 static struct {
-    int listener, mode, error;
+    int listener, mode, error, native_error, poll_result;
+    size_t received;
     bool datagram;
 } peer;
 /* Modes: echo, silence, close, oversized datagram, zero-length datagram. */
 static int ready(int fd, short event) {
     struct pollfd item = {.fd = fd, .events = event};
-    return poll(&item, 1, 2000) > 0;
+    peer.poll_result = poll(&item, 1, 2000);
+    if (peer.poll_result < 0)
+        peer.native_error = errno;
+    return peer.poll_result > 0;
 }
 static void serve(void *unused) {
     (void)unused;
@@ -41,6 +45,7 @@ static void serve(void *unused) {
         fd = accept(fd, NULL, NULL);
         if (fd < 0) {
             peer.error = 2;
+            peer.native_error = errno;
             return;
         }
     }
@@ -59,6 +64,7 @@ static void serve(void *unused) {
             break;
         }
         count += (size_t)n;
+        peer.received += (size_t)n;
         if (peer.datagram)
             break;
     }
@@ -93,6 +99,8 @@ static int scenario(bool udp, int mode, bool runtime) {
     peer.datagram = udp;
     peer.mode = mode;
     peer.error = 0;
+    peer.native_error = 0;
+    peer.received = 0;
     peer.listener = socket(AF_INET, udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     CHECK(peer.listener >= 0);
     struct sockaddr_in address = {.sin_family = AF_INET, .sin_port = 0};
@@ -109,10 +117,15 @@ static int scenario(bool udp, int mode, bool runtime) {
                          : networking_exchange("127.0.0.1", ntohs(address.sin_port), udp, 250);
     CHECK(networking_peer_join() == 0);
     CHECK(close(peer.listener) == 0);
+    CHECK(networking_resources_idle() == 0);
     if (mode == 5) {
         networking_fixture_link(true);
-        printf("STACK_LINK_LOSS result=%d peer_error=%d\n", result, peer.error);
-        CHECK(peer.error == 1);
+        printf("STACK_LINK_LOSS result=%d peer_error=%d native_error=%d received=%zu\n", result,
+               peer.error, peer.native_error, peer.received);
+        CHECK(peer.received == 0);
+        CHECK((peer.error == 1 && peer.poll_result == 0) ||
+              (peer.error == 2 &&
+               (peer.native_error == ENETDOWN || peer.native_error == ENETUNREACH)));
         CHECK(result == -ENETDOWN || result == -ENETUNREACH || result == -ETIMEDOUT);
         return 0;
     }

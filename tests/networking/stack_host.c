@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 static pthread_t worker;
+static unsigned int idle_descriptors;
 static void (*peer_entry)(void *);
 static void *peer_context;
 static void *run_peer(void *unused) {
@@ -39,6 +40,9 @@ static unsigned int descriptors(void) {
     closedir(directory);
     return count;
 }
+int networking_resources_idle(void) {
+    return descriptors() == idle_descriptors ? 0 : -1;
+}
 int main(void) {
     struct sigaction policy = {0};
     policy.sa_handler = SIG_IGN;
@@ -50,6 +54,7 @@ int main(void) {
         status.ipv4_address[0] != 127 || status.link != CRUX_NETIF_LINK_UP)
         return 2;
     unsigned int before = descriptors();
+    idle_descriptors = before;
     int result = networking_stack_scenarios();
     unsigned int after = descriptors();
     printf("STACK_RESOURCES descriptors_before=%u after=%u\n", before, after);

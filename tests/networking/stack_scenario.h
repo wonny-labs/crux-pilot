@@ -3,6 +3,7 @@
 #include <stdbool.h>
 void networking_peer_start(void (*entry)(void *), void *context);
 void networking_resources_active(void);
+int networking_resources_idle(void);
 int networking_peer_join(void);
 void networking_fixture_link(bool up);
 int networking_stack_link_loss(void);

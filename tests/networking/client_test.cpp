@@ -104,7 +104,10 @@ extern "C" int networking_test_close(int) {
     return 0;
 }
 extern "C" int networking_test_clock_gettime(clockid_t, timespec *now) {
-    if (s.clock_failure_without_errno) { errno = 0; return -1; }
+    if (s.clock_failure_without_errno) {
+        errno = 0;
+        return -1;
+    }
     if (s.clock_error) {
         errno = s.clock_error;
         return -1;
