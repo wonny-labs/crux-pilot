@@ -2,15 +2,15 @@ Preset CMake variables:
 
   CMAKE_BUILD_TYPE="Debug"
   CMAKE_EXPORT_COMPILE_COMMANDS="ON"
-  FETCHCONTENT_BASE_DIR="/Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/cache-debug/cmake"
+  FETCHCONTENT_BASE_DIR="$REPO/build/cache-debug/cmake"
 
 -- Configuring done (1.3s)
 -- Generating done (0.1s)
--- Build files have been written to: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/linux/debug
+-- Build files have been written to: $REPO/build/linux/debug
 [1/2] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_poll_finalize.dir/host_poll_finalize.c.o
 [2/2] Linking C executable tests/portable_execution/crux_execution_host_poll_finalize
-clangd compilation database selected: /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/linux/debug
-Test project /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/build/linux/debug
+clangd compilation database selected: $REPO/build/linux/debug
+Test project $REPO/build/linux/debug
       Start  1: Execution.PosixProbes
  1/47 Test  #1: Execution.PosixProbes .......................................................   Passed    0.20 sec
       Start  2: Controller.HostScenario

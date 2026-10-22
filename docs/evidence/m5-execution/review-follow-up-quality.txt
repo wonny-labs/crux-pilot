@@ -1,60 +1,60 @@
 Base is independent; public/common Time and portable commands avoid native headers; backend selection is checked by CMake; shared source ownership is explicit.
 Execution public/consumer boundary passed; native providers remain permitted.
-[1/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/time/src/time.c.
+[1/25] Processing file $REPO/components/time/src/time.c.
 272 warnings generated.
-[2/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/time/src/time.c.
+[2/25] Processing file $REPO/components/time/src/time.c.
 544 warnings generated.
-[3/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/time/src/time_calendar.c.
+[3/25] Processing file $REPO/components/time/src/time_calendar.c.
 816 warnings generated.
-[4/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/time/src/time_calendar.c.
+[4/25] Processing file $REPO/components/time/src/time_calendar.c.
 1088 warnings generated.
-[5/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/time/host/time_port_host.c.
+[5/25] Processing file $REPO/components/time/host/time_port_host.c.
 1360 warnings generated.
-[6/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/time/host/time_port_host.c.
+[6/25] Processing file $REPO/components/time/host/time_port_host.c.
 1631 warnings generated.
-[7/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/samples/time/src/time_command.c.
+[7/25] Processing file $REPO/samples/time/src/time_command.c.
 2155 warnings generated.
-[8/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/samples/time/host/main.c.
+[8/25] Processing file $REPO/samples/time/host/main.c.
 2665 warnings generated.
-[9/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/time/src/time_test.cpp.
+[9/25] Processing file $REPO/tests/time/src/time_test.cpp.
 29465 warnings generated.
-[10/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/time/src/calendar_test.cpp.
+[10/25] Processing file $REPO/tests/time/src/calendar_test.cpp.
 56265 warnings generated.
-[11/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/time/src/command_test.cpp.
+[11/25] Processing file $REPO/tests/time/src/command_test.cpp.
 83066 warnings generated.
-[12/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/execution/src/posix.c.
+[12/25] Processing file $REPO/tests/execution/src/posix.c.
 84157 warnings generated.
-[13/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/execution/src/execution_threads.c.
+[13/25] Processing file $REPO/components/execution/src/execution_threads.c.
 85053 warnings generated.
-[14/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/execution/src/execution_sync.c.
+[14/25] Processing file $REPO/components/execution/src/execution_sync.c.
 85949 warnings generated.
-[15/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/execution/host/execution_native.c.
+[15/25] Processing file $REPO/components/execution/host/execution_native.c.
 86849 warnings generated.
-[16/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/components/execution/host/execution_sync_native.c.
+[16/25] Processing file $REPO/components/execution/host/execution_sync_native.c.
 87683 warnings generated.
-[17/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/portable_execution/conformance.c.
+[17/25] Processing file $REPO/tests/portable_execution/conformance.c.
 88255 warnings generated.
-[18/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/portable_execution/host_main.c.
+[18/25] Processing file $REPO/tests/portable_execution/host_main.c.
 88841 warnings generated.
-[19/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/portable_execution/host_failures.c.
+[19/25] Processing file $REPO/tests/portable_execution/host_failures.c.
 89794 warnings generated.
-[20/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/portable_execution/host_poll.c.
+[20/25] Processing file $REPO/tests/portable_execution/host_poll.c.
 90779 warnings generated.
-[21/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/portable_execution/host_admission.c.
+[21/25] Processing file $REPO/tests/portable_execution/host_admission.c.
 91769 warnings generated.
-[22/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/portable_execution/host_poll_finalize.c.
+[22/25] Processing file $REPO/tests/portable_execution/host_poll_finalize.c.
 92759 warnings generated.
-[23/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/portable_execution/admission.c.
+[23/25] Processing file $REPO/tests/portable_execution/admission.c.
 93533 warnings generated.
-[24/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/samples/controller/core/controller.c.
+[24/25] Processing file $REPO/samples/controller/core/controller.c.
 93810 warnings generated.
-[25/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/samples/controller/core/health.c.
+[25/25] Processing file $REPO/samples/controller/core/health.c.
 94082 warnings generated.
-[26/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/samples/controller/host/main.c.
+[26/25] Processing file $REPO/samples/controller/host/main.c.
 94673 warnings generated.
-[27/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/controller/controller_test.cpp.
+[27/25] Processing file $REPO/tests/controller/controller_test.cpp.
 121473 warnings generated.
-[28/25] Processing file /Users/jiwonkim/Projects/crux-workspace/.worktrees/m5-execution/tests/controller/health_test.cpp.
+[28/25] Processing file $REPO/tests/controller/health_test.cpp.
 148275 warnings generated.
 Suppressed 148358 warnings (148275 in non-user code, 83 NOLINT).
 Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.
