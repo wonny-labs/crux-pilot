@@ -59,6 +59,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-controller.sh
 
+      - name: Validate portable execution without hardware
+        working-directory: crux-pilot
+        run: scripts/test-portable-execution.sh
+
       - name: Verify M3 device, network and controller paths without hardware
         working-directory: crux-pilot
         run: scripts/test-m3.sh
@@ -145,6 +149,15 @@ jobs:
             crux-pilot/build/zephyr/m3-integrated-normal-evkb/compile_commands.json
             crux-pilot/build/evidence/zephyr-test-inputs.json
             crux-pilot/build/zephyr/twister-execution/
+            crux-pilot/build/zephyr/twister-portable-execution/
+            crux-pilot/build/zephyr/portable_execution-evkb/zephyr/.config
+            crux-pilot/build/zephyr/portable_execution-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/portable_execution-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/portable_execution-evkb/compile_commands.json
+            crux-pilot/build/zephyr/execution_runtime-evkb/zephyr/.config
+            crux-pilot/build/zephyr/execution_runtime-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/execution_runtime-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/execution_runtime-evkb/compile_commands.json
             crux-pilot/build/zephyr/controller-normal/scenario.log
             crux-pilot/build/zephyr/controller-missing-rtc/scenario.log
             crux-pilot/build/zephyr/controller-evkb/zephyr/.config

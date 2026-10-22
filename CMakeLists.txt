@@ -11,6 +11,7 @@ option(CRUX_BUILD_REFERENCE_CONTROLLER "Build the early reference controller" ${
 
 add_subdirectory(components/base)
 add_subdirectory(components/time)
+add_subdirectory(components/execution)
 
 if(CRUX_BUILD_HOST_SAMPLE OR BUILD_TESTING)
     add_library(crux_time_commands STATIC samples/time/src/time_command.c)
@@ -56,6 +57,7 @@ if(BUILD_TESTING)
 
     add_subdirectory(tests/time)
     add_subdirectory(tests/controller)
+    add_subdirectory(tests/portable_execution)
     find_package(Threads REQUIRED)
     add_executable(crux_posix_probes tests/execution/src/posix.c)
     target_link_libraries(crux_posix_probes PRIVATE Threads::Threads rt)
