@@ -44,6 +44,13 @@ jobs:
         working-directory: crux-pilot
         run: scripts/bootstrap-zephyr.sh --install-sdk
 
+      # Uses the already-fetched pinned sources and host C compiler; no extra job/SDK build.
+      - name: Check isolated Flash PoC fault paths
+        working-directory: crux-pilot
+        env:
+          ZEPHYR_BASE: ${{ github.workspace }}/zephyr
+        run: python3 tests/native/flash_safety/test_driver.py
+
       - name: Compare controller execution candidates without hardware
         working-directory: crux-pilot
         run: scripts/test-execution.sh

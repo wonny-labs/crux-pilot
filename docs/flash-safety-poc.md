@@ -124,3 +124,43 @@ run exceeded its 0.3-second process-launch/scheduling limit and passed immediate
 on rerun; external containment was increased to two seconds without changing
 the iteration-budget checks or candidate driver budgets. This review
 is not production, physical-safety or Issue-closure approval.
+
+## Retention and verification gate
+
+Retain this opt-in experiment on `main` as a reproducible source-level regression
+and review fixture for the accepted storage investigation. Its value is retaining
+failure-path and placement checks against the pinned baseline, not supplying a
+supported storage driver. Default compositions remain unchanged. Reassess or retire
+it when an approved native remediation supersedes it; do not grow it into a second
+production Flash stack.
+
+The existing Zephyr workflow now runs the focused Host fault harness after fetching
+the pinned sources. It reuses the existing C compiler, checkout and job: no extra
+runner, dependency checkout or target build is introduced. Standard Host CI does
+not have the Zephyr/HAL inputs and does not run this harness.
+
+The full PoC target build and ELF tests remain a **documented manual merge gate**,
+not an automated GitHub required check or branch-protection rule. For a PR changing
+the generator, sample, test harness, verifier or pinned native inputs:
+
+1. Run `scripts/test-flash-poc.sh` in the documented Linux environment, with the
+   pinned workspace and SDK configured. Retain the full command output, input
+   hashes, generated configuration/linker/map, ELF/BIN identity and selected
+   disassembly. It must pass the fault harness, target build and three ELF tests.
+2. Run applicable existing regressions and formatting/dependency checks; report
+   skipped checks and failures explicitly. Software-only results qualify no board.
+3. Independently review material source changes and verify that retained evidence
+   matches the final implementation. If only documentation or CI wiring changes,
+   confirm the PoC source/input hashes are unchanged instead of rebuilding an
+   identical image. Identify the original tested source revision and latest head
+   separately; do not re-label old evidence as a new run.
+4. Before human merge acceptance, recheck **both push and PR workflow results on
+   the latest head**. A green standard CI result alone does not satisfy the full
+   manual PoC gate.
+
+For this PR, the retained local implementation evidence is from `10b32a7` (final
+ELF hash in the placement record). The follow-up adds CI wiring and review/gate
+records without changing the generator, native input hashes, PoC sample, harness
+or verifier. [Review provenance and resolved findings](evidence/flash-safety-poc/review-record.md)
+separate the local subagent review from the later GitHub technical review. Neither
+is a production-safety approval or authorisation to merge.
