@@ -16,6 +16,7 @@ foreach(language c cpp)
     add_executable(consumer_${language} main.${language})
     target_link_libraries(consumer_${language} PRIVATE crux::sockets crux::netif)
     target_compile_options(consumer_${language} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    crux_assert_portable_consumer(consumer_${language})
 endforeach()
 # These are the public usage requirements, not the native composition environment.
 get_target_property(netif_includes crux_netif INTERFACE_INCLUDE_DIRECTORIES)

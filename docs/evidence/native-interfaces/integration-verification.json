@@ -1,0 +1,36 @@
+{
+  "integration_main": "df52a62c0475fe87e67bde1fa50c49090a146936",
+  "previous_pr_head": "4d9adf0e9ed54d7c6a97ae2ebd0b1b871fe8ca6f",
+  "source_sha256": {
+    "scripts/check-native-interfaces.py": "c3392789ccb13230c6d0ac0006cfdd297fe782149258a7eb40446c75a9e756dd",
+    "scripts/check-dependencies.sh": "53d7dc23b3ca7a9c368db27abb82b89973920001c3f9ca3eaf8cd7e03bc674a9",
+    "scripts/check-networking-dependencies.py": "3ba32bb5eaba43a3037ac15b75be3827d646bd7bc6bf68eab8e29d4aff5b4f3f",
+    "cmake/CruxConsumerBoundary.cmake": "c9c7cba38e1cd4403254fe9e81ed787ec5b179010482d2c05d8dd4466442c168",
+    "tests/build/test_native_interfaces.py": "42c72f31bea18b9ab2e361b85c7a7dd94b22a9a56c8d446b291e5ad7516fb822",
+    "tests/build/test_consumer_boundary.py": "55a28a25398f07cbf973675fdc5146b3ee8e0d2ce7ab3e73c86439da82d10cdd",
+    "tests/networking_consumer/CMakeLists.txt": "236ab6090eaef9e2f30fbc9e2c43b88c677e73513bd750055be4187715745382",
+    "CMakeLists.txt": "9d2737451448d2dc4f31f486c4cd68e8f2e48572702b280861a8ba14d6e0952b",
+    "zephyr/CMakeLists.txt": "cb93408eec17fbf3ab8fbf924885cd3d8aaf30165ef21e202be7e1302a2d12ab",
+    "components/sockets/zephyr/close_declaration.h": "76270b9095f80932309fe77b82aa9f6ffaaf4ab2b087f9dea1822b8ccdef1868",
+    "docs/native-interface-policy.md": "486537fad701db0ea3f245fcb529484b0c2b50fcd1e55040d9165c5f691b7eed"
+  },
+  "artifact_sha256": {
+    "zephyr/networking-native-pico/zephyr/zephyr.exe": "a8b1d93996f37b5a125b19255ffee3d6d849b3a5b4fb46b6fe65c8f30862ffde",
+    "zephyr/networking-native-pico/zephyr/.config": "1104b79f8c77b3a8ce4ca051545c6e667cb821e3c8323b32e4ddce5ed15dd821",
+    "zephyr/networking-native-pico/cpp-probe.o": "424f85955027c40ce2879ef8926c412afe65225a9d06341ac517a452d50c9c02",
+    "zephyr/networking-evkb/zephyr/zephyr.elf": "4f4008edf90c8c31da8f17dd729f232d3d028f38e2fd4d33760b7296fb1c604c",
+    "zephyr/networking-evkb/zephyr/zephyr.bin": "fce3e7219d313749962a1c622042bba268e502e87ca7e6ca100989c62e682041",
+    "zephyr/networking-evkb/zephyr/.config": "416c507493bc4c4efe7ae3ad3d21e509feabefaa45462e99edc1bfc931a24d8c"
+  },
+  "results": {
+    "linux_build_methods": 210,
+    "source_methods": 13,
+    "consumer_boundary_methods": 15,
+    "host_ctest": 71,
+    "independent_host_c_cpp": "build/link/execute PASS",
+    "native_cpp_probe": "compile-only PASS",
+    "native_networking": "3/3 PASS; Picolibc selected; native close/provider verified",
+    "evkb": "B/QSPI cross-build PASS; no hardware"
+  },
+  "limitations": "Bounded lexical/source-tree checks, not exhaustive API/semantic or installed SDK validation. Mixed native Zephyr app is not a direct portable consumer. Physical networking/Flash not qualified."
+}
