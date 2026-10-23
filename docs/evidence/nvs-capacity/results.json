@@ -1,0 +1,252 @@
+{
+  "crux_baseline": "ca7655b9ebce6debe444456eb0c4197a0f76f838",
+  "zephyr_revision": "684c9e8f32e4373a21098559f748f06915f950c9",
+  "upstream_source_sha256": {
+    "subsys/kvss/nvs/nvs.c": "21ad6c753b5bc8370502799568426ec69648ea41a8b0b263df0f3eb840f6767b",
+    "subsys/kvss/nvs/nvs_priv.h": "90b95803737e10812085933e6cccef8919008840edeb5005f2397411b7e4022c",
+    "subsys/settings/src/settings.c": "033f2f4f6d031c00f676b71a104148b589b865fc5ac04c818827591f49074c68",
+    "subsys/settings/src/settings_store.c": "14ce61fa29aaca20ec3e69c6f401434f7f6d5a242d2911d0e931ccaf1f58f0e6",
+    "subsys/settings/src/settings_init.c": "783d185f2b0f0f6ff84831fc433ade1589b7f6f40e7458b0bf059f9cbfa4c3ea",
+    "subsys/settings/src/settings_nvs.c": "ab6aa643eae9f5c5ca8099ddac89cc63aaa2fd43f775a8de5efcb11aad3c0244",
+    "subsys/settings/include/settings/settings_nvs.h": "fabc913fb783f2a866b21f507727a40dc39932e4cd2b91b38331c2018c6f1bde",
+    "drivers/flash/flash_simulator.c": "f4eec781b8fc8118911d20a23646b990f8c5c0638583c04327da2d23f46646c4",
+    "boards/native/native_sim/native_sim.dts": "558ea41ea8d5d25d63dd12d50259182941e5aca218eeea2cefd0a259133f725e"
+  },
+  "fixture_input_sha256": {
+    "tests/native/nvs_capacity/CMakeLists.txt": "a95f0ae212a58cff9597921929a0548781fb1d78d6f99a7150f5f99c0026808e",
+    "tests/native/nvs_capacity/app.overlay": "5aed0c79359bc542f6bb5bd5852f8fa7959b27df4b9003d2dbfe68d3c8a4110b",
+    "tests/native/nvs_capacity/main.c": "7798b26e39003f3a29da7e86f50c0f23ca34a5883d598f687ea4bf8e92419ad5",
+    "tests/native/nvs_capacity/prj.conf": "21af1c375a35030f6f492c493f8a43caccba823ed257269a247762ec071c64d1",
+    "tests/native/nvs_capacity/records.c": "73ea1e03ade951b5cb7e142dfb976a739b647c1a1b7f7c799d93c929c5ddc56e",
+    "tests/native/nvs_capacity/records.h": "b71ad93fd7c5cb7aa4b2e9124498f642ad5711d5a633fd3fd12be31938f4760c",
+    "tests/native/nvs_capacity/test_records.c": "c2aaf2bd6165bd868eddeacb625d9d11c3cf8212759166948fc0cf6d98c77fee",
+    "tests/native/nvs_capacity/testcase.yaml": "2b2665796df859549bd6f4268101f4581ea855f1eba9a7f034bd9103c370f575"
+  },
+  "environment": {
+    "host": "Linux amd64 Docker on macOS, emulated; network none; source mounts read-only; no devices",
+    "gcc": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "cmake": "3.28.4",
+    "python": "3.12",
+    "west": "1.4.0",
+    "target": "native_sim/native (32 bit)",
+    "hardware_operations": "none",
+    "scope": "unmodified actual Settings/NVS, simulated Flash only"
+  },
+  "golden_vectors": {
+    "cases": 4,
+    "strict_c17": "passed",
+    "red": "missing probe_record link failure before implementation"
+  },
+  "profiles": [
+    {
+      "name": "crux.nvs_capacity.crc_off",
+      "platform": "native_sim/native",
+      "status": "passed",
+      "cases": [
+        {
+          "identifier": "crux.nvs_capacity.crc_off.nvs_capacity.crc_full_partial_and_remount",
+          "status": "passed"
+        },
+        {
+          "identifier": "crux.nvs_capacity.crc_off.nvs_capacity.capacity_reclamation",
+          "status": "passed"
+        },
+        {
+          "identifier": "crux.nvs_capacity.crc_off.nvs_capacity.mixed_roundtrip",
+          "status": "passed"
+        }
+      ],
+      "config": {
+        "CONFIG_FLASH_SIMULATOR": "y",
+        "CONFIG_FLASH_SIMULATOR_STATS": "n",
+        "CONFIG_NVS_LOOKUP_CACHE": "y",
+        "CONFIG_NVS_LOOKUP_CACHE_SIZE": "256",
+        "CONFIG_NVS_DATA_CRC": "n",
+        "CONFIG_NVS_INIT_BAD_MEMORY_REGION": "n",
+        "CONFIG_SETTINGS_NVS_NAME_CACHE": "n",
+        "CONFIG_SETTINGS_NVS_SECTOR_SIZE_MULT": "1",
+        "CONFIG_SETTINGS_NVS_SECTOR_COUNT": "16"
+      },
+      "observations": [
+        {
+          "kind": "NVS_GEOMETRY",
+          "offset": 1048576,
+          "bytes": 65536,
+          "sectors": 16,
+          "sector_size": 4096,
+          "crc": 0
+        },
+        {
+          "kind": "NVS_CAPACITY",
+          "crc": 0,
+          "raw": 65536,
+          "acknowledged": 1939,
+          "payload_bytes": 12602,
+          "failed_index": 1939,
+          "rc": -28
+        },
+        {
+          "kind": "NVS_RECLAIM",
+          "crc": 0,
+          "removed": 969,
+          "new_acknowledged": 16,
+          "retained": 970,
+          "remount_verified": 986
+        },
+        {
+          "kind": "NVS_CRC",
+          "crc": 0,
+          "remounted": 0,
+          "full_rc": 8,
+          "partial_rc": 8,
+          "callback_rc": 8,
+          "outer_rc": 0
+        },
+        {
+          "kind": "NVS_CRC",
+          "crc": 0,
+          "remounted": 1,
+          "full_rc": 8,
+          "partial_rc": 8,
+          "callback_rc": 8,
+          "outer_rc": 0
+        },
+        {
+          "kind": "NVS_ROUNDTRIP",
+          "crc": 0,
+          "keys": 64,
+          "update_rounds": 3,
+          "remounts": 4,
+          "verified": 64
+        }
+      ],
+      "handler_log": "crux.nvs_capacity.crc_off.log",
+      "handler_sha256": "5d82e6de5edcc1a7980e79595f17fe353441b5f3cbd47c33914acb6e7afc4275",
+      "config_sha256": "144bbbb9aba0ec6e08b4fbabd9e5abdca59c1e334af94f940d9db47e943d469f",
+      "devicetree_sha256": "22e307d4681e2c87fa9e47e43c5472ab0683611fff8cf6af508c03d49a10f840",
+      "elf_sha256": "c55f758e003dde949a7e8cbcb3e1ef9bd54424035b096ef10ae0d37822a865aa",
+      "executable_sha256": "1c99cbce0f1d7ccf982ee72ecf9bb57b77445844c871f0388ca82474eca27884",
+      "original_native_compile_commands": [
+        "build zephyr/CMakeFiles/zephyr.dir/subsys/kvss/nvs/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/kvss/nvs/nvs.c || cmake_object_order_depends_target_zephyr",
+        "build zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/settings/src/settings.c || cmake_object_order_depends_target_zephyr",
+        "build zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings_store.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/settings/src/settings_store.c || cmake_object_order_depends_target_zephyr",
+        "build zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings_init.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/settings/src/settings_init.c || cmake_object_order_depends_target_zephyr",
+        "build zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings_nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/settings/src/settings_nvs.c || cmake_object_order_depends_target_zephyr",
+        "build zephyr/drivers/flash/CMakeFiles/drivers__flash.dir/flash_simulator.c.obj: C_COMPILER__drivers__flash_unscanned_ /ws/zephyr/drivers/flash/flash_simulator.c || cmake_object_order_depends_target_drivers__flash"
+      ],
+      "final_simulator_image": {
+        "phase": "after final mixed roundtrip case, not each capacity/corruption phase",
+        "whole_flash_bytes": 2097152,
+        "whole_flash_sha256": "515cd3bf8c07cf63516662b13557ed7cc140470a60e2e633433febbd7546e822",
+        "candidate_bytes": 65536,
+        "candidate_sha256": "c05ca5318474ef28f1151fe92f825ceebadf61d5c280238d639863f0e49c9223",
+        "local_archive_file": "crux.nvs_capacity.crc_off-final-region.bin"
+      }
+    },
+    {
+      "name": "crux.nvs_capacity.crc_on",
+      "platform": "native_sim/native",
+      "status": "passed",
+      "cases": [
+        {
+          "identifier": "crux.nvs_capacity.crc_on.nvs_capacity.crc_full_partial_and_remount",
+          "status": "passed"
+        },
+        {
+          "identifier": "crux.nvs_capacity.crc_on.nvs_capacity.capacity_reclamation",
+          "status": "passed"
+        },
+        {
+          "identifier": "crux.nvs_capacity.crc_on.nvs_capacity.mixed_roundtrip",
+          "status": "passed"
+        }
+      ],
+      "config": {
+        "CONFIG_FLASH_SIMULATOR": "y",
+        "CONFIG_FLASH_SIMULATOR_STATS": "n",
+        "CONFIG_NVS_LOOKUP_CACHE": "y",
+        "CONFIG_NVS_LOOKUP_CACHE_SIZE": "256",
+        "CONFIG_NVS_DATA_CRC": "y",
+        "CONFIG_NVS_INIT_BAD_MEMORY_REGION": "n",
+        "CONFIG_SETTINGS_NVS_NAME_CACHE": "n",
+        "CONFIG_SETTINGS_NVS_SECTOR_SIZE_MULT": "1",
+        "CONFIG_SETTINGS_NVS_SECTOR_COUNT": "16"
+      },
+      "observations": [
+        {
+          "kind": "NVS_GEOMETRY",
+          "offset": 1048576,
+          "bytes": 65536,
+          "sectors": 16,
+          "sector_size": 4096,
+          "crc": 1
+        },
+        {
+          "kind": "NVS_CAPACITY",
+          "crc": 1,
+          "raw": 65536,
+          "acknowledged": 1545,
+          "payload_bytes": 10041,
+          "failed_index": 1545,
+          "rc": -28
+        },
+        {
+          "kind": "NVS_RECLAIM",
+          "crc": 1,
+          "removed": 772,
+          "new_acknowledged": 16,
+          "retained": 773,
+          "remount_verified": 789
+        },
+        {
+          "kind": "NVS_CRC",
+          "crc": 1,
+          "remounted": 0,
+          "full_rc": -5,
+          "partial_rc": 8,
+          "callback_rc": -5,
+          "outer_rc": 0
+        },
+        {
+          "kind": "NVS_CRC",
+          "crc": 1,
+          "remounted": 1,
+          "full_rc": -5,
+          "partial_rc": 8,
+          "callback_rc": -5,
+          "outer_rc": 0
+        },
+        {
+          "kind": "NVS_ROUNDTRIP",
+          "crc": 1,
+          "keys": 64,
+          "update_rounds": 3,
+          "remounts": 4,
+          "verified": 64
+        }
+      ],
+      "handler_log": "crux.nvs_capacity.crc_on.log",
+      "handler_sha256": "89a9b6047347e407666fa488bd4c44810be24786abc0631c594bc580162ca63a",
+      "config_sha256": "36b5ee663a6d14ad58fb6e22cd528f7bc10283f3cfae662faa36cffc0ef9119c",
+      "devicetree_sha256": "22e307d4681e2c87fa9e47e43c5472ab0683611fff8cf6af508c03d49a10f840",
+      "elf_sha256": "f9484c087c97ab521ef4dd3e8fe6c3bf3868e4c80f21923a823acec025419afd",
+      "executable_sha256": "a04e1c81769b4b0eb4fc47316a39b00367ce6efd9796b52aaed8892d38e003a7",
+      "original_native_compile_commands": [
+        "build zephyr/CMakeFiles/zephyr.dir/subsys/kvss/nvs/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/kvss/nvs/nvs.c || cmake_object_order_depends_target_zephyr",
+        "build zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/settings/src/settings.c || cmake_object_order_depends_target_zephyr",
+        "build zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings_store.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/settings/src/settings_store.c || cmake_object_order_depends_target_zephyr",
+        "build zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings_init.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/settings/src/settings_init.c || cmake_object_order_depends_target_zephyr",
+        "build zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings_nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/settings/src/settings_nvs.c || cmake_object_order_depends_target_zephyr",
+        "build zephyr/drivers/flash/CMakeFiles/drivers__flash.dir/flash_simulator.c.obj: C_COMPILER__drivers__flash_unscanned_ /ws/zephyr/drivers/flash/flash_simulator.c || cmake_object_order_depends_target_drivers__flash"
+      ],
+      "final_simulator_image": {
+        "phase": "after final mixed roundtrip case, not each capacity/corruption phase",
+        "whole_flash_bytes": 2097152,
+        "whole_flash_sha256": "1fcae229a2673e62ec5cc949536f9e2852e613d741f884e4d1c226d70b80e821",
+        "candidate_bytes": 65536,
+        "candidate_sha256": "ce7f584a956c9443fcb27e766cba9a9b30a3ccf4e14e544a1844510fa0dfd959",
+        "local_archive_file": "crux.nvs_capacity.crc_on-final-region.bin"
+      }
+    }
+  ]
+}

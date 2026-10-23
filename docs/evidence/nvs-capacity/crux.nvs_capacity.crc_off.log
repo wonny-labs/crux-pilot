@@ -1,0 +1,39 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE nvs_capacity
+===================================================================
+NVS_GEOMETRY offset=1048576 bytes=65536 sectors=16 sector_size=4096 crc=0
+START - test_capacity_reclamation
+NVS_FILL crc=0 acknowledged=256
+NVS_FILL crc=0 acknowledged=512
+NVS_FILL crc=0 acknowledged=768
+NVS_FILL crc=0 acknowledged=1024
+NVS_FILL crc=0 acknowledged=1280
+NVS_FILL crc=0 acknowledged=1536
+NVS_FILL crc=0 acknowledged=1792
+NVS_CAPACITY crc=0 raw=65536 acknowledged=1939 payload_bytes=12602 failed_index=1939 rc=-28
+NVS_RECLAIM crc=0 removed=969 new_acknowledged=16 retained=970 remount_verified=986
+ PASS - test_capacity_reclamation in 0.000 seconds
+===================================================================
+START - test_crc_full_partial_and_remount
+NVS_CRC crc=0 remounted=0 full_rc=8 partial_rc=8 callback_rc=8 outer_rc=0
+NVS_CRC crc=0 remounted=1 full_rc=8 partial_rc=8 callback_rc=8 outer_rc=0
+ PASS - test_crc_full_partial_and_remount in 0.000 seconds
+===================================================================
+START - test_mixed_roundtrip
+NVS_ROUNDTRIP crc=0 keys=64 update_rounds=3 remounts=4 verified=64
+ PASS - test_mixed_roundtrip in 0.000 seconds
+===================================================================
+TESTSUITE nvs_capacity succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [nvs_capacity]: pass = 3, fail = 0, skip = 0, total = 3 duration = 0.000 seconds
+ - PASS - [nvs_capacity.test_capacity_reclamation] duration = 0.000 seconds
+ - PASS - [nvs_capacity.test_crc_full_partial_and_remount] duration = 0.000 seconds
+ - PASS - [nvs_capacity.test_mixed_roundtrip] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: 711291e09f236247cf40ef294d6d7dc3
+PROJECT EXECUTION SUCCESSFUL

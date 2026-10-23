@@ -44,7 +44,7 @@
 **Files:** `docs/nvs-capacity-investigation.md`, `docs/evidence/nvs-capacity/`.
 **Interfaces:** Consume Task1 actual Twister reports, simulator geometry/config, source/build hashes and handler logs.
 
-- [ ] Retain measured capacity, failed operation/result, payload bytes, reclaim/remount counts, CRC full/partial/callback results and exact commands/configuration. Do not aggregate profiles into universal capacity.
-- [ ] Identify limitations and #14/#15/#16 production/physical gates; a passing investigation does not qualify native integration.
-- [ ] Obtain fresh independent Reviewer and Challenger; resolve material findings and re-review under repository requirements.
-- [ ] Prepare focused Draft PR if the repository changes are retained; no merge/closure. Standard CI remains distinct from this manual simulator gate.
+- [x] Retain measured capacity, failed operation/result, payload bytes, reclaim/remount counts, CRC full/partial/callback results and exact commands/configuration. Do not aggregate profiles into universal capacity.
+- [x] Identify limitations and #14/#15/#16 production/physical gates; a passing investigation does not qualify native integration.
+- [x] Obtain fresh independent Reviewer and Challenger; resolve material findings and re-review under repository requirements.
+- [x] Prepare focused Draft PR if the repository changes are retained; no merge/closure. Standard CI remains distinct from this manual simulator gate.
