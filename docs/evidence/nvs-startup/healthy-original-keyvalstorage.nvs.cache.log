@@ -1,0 +1,179 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE nvs
+===================================================================
+START - test_delete
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+ PASS - test_delete in 0.000 seconds
+===================================================================
+START - test_nvs_cache_collission
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+ PASS - test_nvs_cache_collission in 0.000 seconds
+===================================================================
+START - test_nvs_cache_gc
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+ PASS - test_nvs_cache_gc in 0.000 seconds
+===================================================================
+START - test_nvs_cache_hash_quality
+[00:00:00.000,000] <inf> fs_nvs: 5 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+Cache occupancy: 41
+[00:00:00.000,000] <inf> fs_nvs: 5 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+Cache occupancy: 39
+ PASS - test_nvs_cache_hash_quality in 0.000 seconds
+===================================================================
+START - test_nvs_cache_init
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e0
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 1
+ PASS - test_nvs_cache_init in 0.000 seconds
+===================================================================
+START - test_nvs_corrupted_sector_close_operation
+[00:00:00.000,000] <inf> fs_nvs: 5 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+[00:00:00.000,000] <inf> fs_nvs: 5 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 1, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 1, 0
+ PASS - test_nvs_corrupted_sector_close_operation in 0.000 seconds
+===================================================================
+START - test_nvs_corrupted_write
+[00:00:00.000,000] <inf> fs_nvs: 5 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+[00:00:00.000,000] <inf> fs_nvs: 5 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 1, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 1, 0
+ PASS - test_nvs_corrupted_write in 0.000 seconds
+===================================================================
+START - test_nvs_full_sector
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 1, c0
+[00:00:00.000,000] <inf> fs_nvs: data wra: 1, c8
+ PASS - test_nvs_full_sector in 0.000 seconds
+===================================================================
+START - test_nvs_gc
+[00:00:00.000,000] <inf> fs_nvs: 2 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+[00:00:00.000,000] <inf> fs_nvs: 2 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 1, 398
+[00:00:00.000,000] <inf> fs_nvs: data wra: 1, 140
+ PASS - test_nvs_gc in 0.000 seconds
+===================================================================
+START - test_nvs_gc_3sectors
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 2, 3e0
+[00:00:00.000,000] <inf> fs_nvs: data wra: 2, 20
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e0
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 20
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 1, 3e0
+[00:00:00.000,000] <inf> fs_nvs: data wra: 1, 20
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 2, 3e0
+[00:00:00.000,000] <inf> fs_nvs: data wra: 2, 20
+ PASS - test_nvs_gc_3sectors in 0.000 seconds
+===================================================================
+START - test_nvs_gc_corrupt_ate
+[00:00:00.000,000] <inf> fs_nvs: No GC Done marker found: restarting gc
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 2, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 2, 0
+ PASS - test_nvs_gc_corrupt_ate in 0.000 seconds
+===================================================================
+START - test_nvs_gc_corrupt_close_ate
+[00:00:00.000,000] <inf> fs_nvs: No GC Done marker found: restarting gc
+[00:00:00.000,000] <inf> fs_nvs: 3 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 2, 3e0
+[00:00:00.000,000] <inf> fs_nvs: data wra: 2, 4
+ PASS - test_nvs_gc_corrupt_close_ate in 0.000 seconds
+===================================================================
+START - test_nvs_gc_pack_per_entry
+[00:00:00.000,000] <inf> fs_nvs: 2 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+ PASS - test_nvs_gc_pack_per_entry in 0.000 seconds
+===================================================================
+START - test_nvs_init_bad_memory_region
+[00:00:00.000,000] <inf> fs_nvs: 5 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+[00:00:00.000,000] <wrn> fs_nvs: All sectors closed, erasing all sectors...
+[00:00:00.000,000] <inf> fs_nvs: 5 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+ PASS - test_nvs_init_bad_memory_region in 0.000 seconds
+===================================================================
+START - test_nvs_mount
+[00:00:00.000,000] <err> fs_nvs: Sector size 131072 too large, maximum is 65536
+[00:00:00.000,000] <inf> fs_nvs: 5 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+ PASS - test_nvs_mount in 0.000 seconds
+===================================================================
+START - test_nvs_startup_full_sector_after_ate_power_loss
+[00:00:00.000,000] <inf> fs_nvs: 2 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3d8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 3d8
+ PASS - test_nvs_startup_full_sector_after_ate_power_loss in 0.000 seconds
+===================================================================
+START - test_nvs_write
+[00:00:00.000,000] <inf> fs_nvs: 5 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+ PASS - test_nvs_write in 0.000 seconds
+===================================================================
+START - test_nvs_write_stream
+[00:00:00.000,000] <inf> fs_nvs: 5 Sectors of 1024 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, 3e8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+ PASS - test_nvs_write_stream in 0.000 seconds
+===================================================================
+TESTSUITE nvs succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [nvs]: pass = 18, fail = 0, skip = 0, total = 18 duration = 0.000 seconds
+ - PASS - [nvs.test_delete] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_cache_collission] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_cache_gc] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_cache_hash_quality] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_cache_init] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_corrupted_sector_close_operation] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_corrupted_write] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_full_sector] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_gc] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_gc_3sectors] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_gc_corrupt_ate] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_gc_corrupt_close_ate] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_gc_pack_per_entry] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_init_bad_memory_region] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_mount] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_startup_full_sector_after_ate_power_loss] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_write] duration = 0.000 seconds
+ - PASS - [nvs.test_nvs_write_stream] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: 4ff04e3989cc20f60b5673efd0313f2c
+PROJECT EXECUTION SUCCESSFUL

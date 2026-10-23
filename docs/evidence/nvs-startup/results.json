@@ -1,0 +1,672 @@
+{
+  "crux_baseline": "753dee7cba8ae89638686a37036b79de474cbd54",
+  "zephyr_revision": "684c9e8f32e4373a21098559f748f06915f950c9",
+  "nvs_source_sha256": "21ad6c753b5bc8370502799568426ec69648ea41a8b0b263df0f3eb840f6767b",
+  "environment": {
+    "host": "Linux amd64 container on macOS (emulated)",
+    "toolchain": "host GCC 13.3.0, multilib; CMake 3.28.4; Python 3.12; west 1.4.0",
+    "hardware": "none; native_sim Flash simulator only"
+  },
+  "runs": {
+    "original": [
+      {
+        "name": "crux.nvs_startup.no_reinitialization",
+        "platform": "native_sim/native",
+        "status": "failed",
+        "cases": [
+          {
+            "identifier": "crux.nvs_startup.no_reinitialization.nvs_startup.second_scan_read_failure",
+            "status": "failed"
+          },
+          {
+            "identifier": "crux.nvs_startup.no_reinitialization.nvs_startup.first_scan_read_failure",
+            "status": "failed"
+          },
+          {
+            "identifier": "crux.nvs_startup.no_reinitialization.nvs_startup.persistent_read_failure",
+            "status": "failed"
+          },
+          {
+            "identifier": "crux.nvs_startup.no_reinitialization.nvs_startup.mount_initializes_empty_region",
+            "status": "passed"
+          }
+        ],
+        "config": {
+          "CONFIG_FLASH_SIMULATOR": "y",
+          "CONFIG_NVS_LOOKUP_CACHE": "n",
+          "CONFIG_NVS_DATA_CRC": "n",
+          "CONFIG_NVS_INIT_BAD_MEMORY_REGION": "n"
+        },
+        "handler_log": "original-crux.nvs_startup.no_reinitialization.log",
+        "handler_sha256": "2c299aa39405b5b7fd742bcb1f71adec35ca73da49399f0b9dc102558e6f0323",
+        "nvs_compile_commands": [
+          "build zephyr/CMakeFiles/zephyr.dir/subsys/kvss/nvs/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/kvss/nvs/nvs.c || cmake_object_order_depends_target_zephyr"
+        ],
+        "candidate_sha256": null,
+        "elf_sha256": "c39cd0f932fdb87a076f4375a85a547b4181b1335a9030e66c99a562b62b3550",
+        "executable_sha256": "3af24531c1ebeabf52cdd274075f71044c4748141b3fcdd6dde9b9cb7842f541"
+      },
+      {
+        "name": "crux.nvs_startup.reinitialization",
+        "platform": "native_sim/native",
+        "status": "failed",
+        "cases": [
+          {
+            "identifier": "crux.nvs_startup.reinitialization.nvs_startup.second_scan_read_failure",
+            "status": "failed"
+          },
+          {
+            "identifier": "crux.nvs_startup.reinitialization.nvs_startup.first_scan_read_failure",
+            "status": "failed"
+          },
+          {
+            "identifier": "crux.nvs_startup.reinitialization.nvs_startup.persistent_read_failure",
+            "status": "failed"
+          },
+          {
+            "identifier": "crux.nvs_startup.reinitialization.nvs_startup.mount_initializes_empty_region",
+            "status": "passed"
+          }
+        ],
+        "config": {
+          "CONFIG_FLASH_SIMULATOR": "y",
+          "CONFIG_NVS_LOOKUP_CACHE": "n",
+          "CONFIG_NVS_DATA_CRC": "n",
+          "CONFIG_NVS_INIT_BAD_MEMORY_REGION": "y"
+        },
+        "handler_log": "original-crux.nvs_startup.reinitialization.log",
+        "handler_sha256": "2fd5ab6066097618932ad56922307a25f5ef50a496e478a6fd215b9fdad792c3",
+        "nvs_compile_commands": [
+          "build zephyr/CMakeFiles/zephyr.dir/subsys/kvss/nvs/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/kvss/nvs/nvs.c || cmake_object_order_depends_target_zephyr"
+        ],
+        "candidate_sha256": null,
+        "elf_sha256": "e4780622aa754bf0e5e1d42fbf2cf964b0bd89f6795e71c4eeefd7a9f90cdc92",
+        "executable_sha256": "c5af39929cb7d44b683a84cf05639ff2526f53557e6c9caca26bb59a57e35576"
+      }
+    ],
+    "candidate": [
+      {
+        "name": "crux.nvs_startup.no_reinitialization",
+        "platform": "native_sim/native",
+        "status": "passed",
+        "cases": [
+          {
+            "identifier": "crux.nvs_startup.no_reinitialization.nvs_startup.second_scan_read_failure",
+            "status": "passed"
+          },
+          {
+            "identifier": "crux.nvs_startup.no_reinitialization.nvs_startup.first_scan_read_failure",
+            "status": "passed"
+          },
+          {
+            "identifier": "crux.nvs_startup.no_reinitialization.nvs_startup.persistent_read_failure",
+            "status": "passed"
+          },
+          {
+            "identifier": "crux.nvs_startup.no_reinitialization.nvs_startup.mount_initializes_empty_region",
+            "status": "passed"
+          }
+        ],
+        "config": {
+          "CONFIG_FLASH_SIMULATOR": "y",
+          "CONFIG_NVS_LOOKUP_CACHE": "n",
+          "CONFIG_NVS_DATA_CRC": "n",
+          "CONFIG_NVS_INIT_BAD_MEMORY_REGION": "n"
+        },
+        "handler_log": "candidate-crux.nvs_startup.no_reinitialization.log",
+        "handler_sha256": "452eb287e59c215a1927edffcf58bfc72571f124ef8cede9378433f16972e86b",
+        "nvs_compile_commands": [
+          "build zephyr/CMakeFiles/zephyr.dir/__/crux-nvs-startup-copy/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /tmp/nvs-startup-candidate-verified/native_sim_native/host_gnu/.worktrees/flash-safety-poc/tests/native/nvs_startup/crux.nvs_startup.no_reinitialization/crux-nvs-startup-copy/nvs.c || cmake_object_order_depends_target_zephyr"
+        ],
+        "candidate_sha256": "c045494fdd5846fc33bd6e02e1ff84ad6f42a06d58286a7cc1b438c5737a4f06",
+        "elf_sha256": "107f0cd5f078f35fab56e7401e6b4bc44e0efc8f2ce392e31d183248abc2cf38",
+        "executable_sha256": "a3cdd3fc493d0630f131b9d56ab3663241f1bf8618d1728531884388331296a2"
+      },
+      {
+        "name": "crux.nvs_startup.reinitialization",
+        "platform": "native_sim/native",
+        "status": "passed",
+        "cases": [
+          {
+            "identifier": "crux.nvs_startup.reinitialization.nvs_startup.second_scan_read_failure",
+            "status": "passed"
+          },
+          {
+            "identifier": "crux.nvs_startup.reinitialization.nvs_startup.first_scan_read_failure",
+            "status": "passed"
+          },
+          {
+            "identifier": "crux.nvs_startup.reinitialization.nvs_startup.persistent_read_failure",
+            "status": "passed"
+          },
+          {
+            "identifier": "crux.nvs_startup.reinitialization.nvs_startup.mount_initializes_empty_region",
+            "status": "passed"
+          }
+        ],
+        "config": {
+          "CONFIG_FLASH_SIMULATOR": "y",
+          "CONFIG_NVS_LOOKUP_CACHE": "n",
+          "CONFIG_NVS_DATA_CRC": "n",
+          "CONFIG_NVS_INIT_BAD_MEMORY_REGION": "y"
+        },
+        "handler_log": "candidate-crux.nvs_startup.reinitialization.log",
+        "handler_sha256": "96d5da41e456c89a648241c22551b51ba38f565985fdc443eb02be2ee4393564",
+        "nvs_compile_commands": [
+          "build zephyr/CMakeFiles/zephyr.dir/__/crux-nvs-startup-copy/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /tmp/nvs-startup-candidate-verified/native_sim_native/host_gnu/.worktrees/flash-safety-poc/tests/native/nvs_startup/crux.nvs_startup.reinitialization/crux-nvs-startup-copy/nvs.c || cmake_object_order_depends_target_zephyr"
+        ],
+        "candidate_sha256": "c045494fdd5846fc33bd6e02e1ff84ad6f42a06d58286a7cc1b438c5737a4f06",
+        "elf_sha256": "518c8dc237c2f525130e1ffbc71d97adcf429a8c94a8828ed43831013d1191ae",
+        "executable_sha256": "c9e7bddaf9c2731d95fe08b410361479e3d96dffcdec6a2afb46bf733ce99f2d"
+      }
+    ],
+    "healthy-candidate": [
+      {
+        "name": "keyvalstorage.nvs.cache",
+        "platform": "native_sim/native",
+        "status": "passed",
+        "cases": [
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_write_stream",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_gc_pack_per_entry",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_init_bad_memory_region",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_cache_hash_quality",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_cache_gc",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_cache_collission",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_cache_init",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_startup_full_sector_after_ate_power_loss",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_gc_corrupt_ate",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_gc_corrupt_close_ate",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.delete",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_full_sector",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_corrupted_sector_close_operation",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_gc_3sectors",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_gc",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_corrupted_write",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_write",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_mount",
+            "status": "passed"
+          }
+        ],
+        "config": {
+          "CONFIG_FLASH_SIMULATOR": "y",
+          "CONFIG_NVS_LOOKUP_CACHE": "y",
+          "CONFIG_NVS_LOOKUP_CACHE_SIZE": "64",
+          "CONFIG_NVS_DATA_CRC": "n",
+          "CONFIG_NVS_INIT_BAD_MEMORY_REGION": "y"
+        },
+        "handler_log": "healthy-candidate-keyvalstorage.nvs.cache.log",
+        "handler_sha256": "02490381b1947d8542b60e27afbbec1349fb7f7a9b18010386b7f1c23932654d",
+        "nvs_compile_commands": [
+          "build zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj: C_COMPILER__zephyr_unscanned_ /tmp/nvs-startup-healthy-candidate/native_sim_native/host_gnu/tests/subsys/kvss/nvs/keyvalstorage.nvs.cache/zephyr/misc/generated/configs.c || cmake_object_order_depends_target_zephyr",
+          "build zephyr/CMakeFiles/zephyr.dir/__/crux-nvs-startup-copy/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /tmp/nvs-startup-healthy-candidate/native_sim_native/host_gnu/tests/subsys/kvss/nvs/keyvalstorage.nvs.cache/crux-nvs-startup-copy/nvs.c || cmake_object_order_depends_target_zephyr"
+        ],
+        "candidate_sha256": "c045494fdd5846fc33bd6e02e1ff84ad6f42a06d58286a7cc1b438c5737a4f06",
+        "elf_sha256": "557da4eee0e372ea01cd1304167fd1f9cd38f4dc06d7580d4068965455012f48",
+        "executable_sha256": "8efb2d0d28d76860f3b1122cc2d402ca1e5673688f983a412e74985a94166f6c"
+      },
+      {
+        "name": "keyvalstorage.nvs.data_crc_cache",
+        "platform": "native_sim/native",
+        "status": "passed",
+        "cases": [
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_write_stream",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_gc_pack_per_entry",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_init_bad_memory_region",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_cache_hash_quality",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_cache_gc",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_cache_collission",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_cache_init",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_startup_full_sector_after_ate_power_loss",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_gc_corrupt_ate",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_gc_corrupt_close_ate",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.delete",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_full_sector",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_corrupted_sector_close_operation",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_gc_3sectors",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_gc",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_corrupted_write",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_write",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_mount",
+            "status": "passed"
+          }
+        ],
+        "config": {
+          "CONFIG_FLASH_SIMULATOR": "y",
+          "CONFIG_NVS_LOOKUP_CACHE": "y",
+          "CONFIG_NVS_LOOKUP_CACHE_SIZE": "64",
+          "CONFIG_NVS_DATA_CRC": "y",
+          "CONFIG_NVS_INIT_BAD_MEMORY_REGION": "y"
+        },
+        "handler_log": "healthy-candidate-keyvalstorage.nvs.data_crc_cache.log",
+        "handler_sha256": "88d57e5cda5668d76be870ed9eadcb586ff80141c85a13430b05f0d70758f6f7",
+        "nvs_compile_commands": [
+          "build zephyr/CMakeFiles/zephyr.dir/__/crux-nvs-startup-copy/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /tmp/nvs-startup-healthy-candidate/native_sim_native/host_gnu/tests/subsys/kvss/nvs/keyvalstorage.nvs.data_crc_cache/crux-nvs-startup-copy/nvs.c || cmake_object_order_depends_target_zephyr"
+        ],
+        "candidate_sha256": "c045494fdd5846fc33bd6e02e1ff84ad6f42a06d58286a7cc1b438c5737a4f06",
+        "elf_sha256": "60263df5024e34f4755c7d2f0a7fadc8a3c3018cd03fed1b699a618949719860",
+        "executable_sha256": "58b98abc24f3bf8acab702de5dd650f651125e9aefe9723b372a0f66322c6d38"
+      }
+    ],
+    "healthy-original": [
+      {
+        "name": "keyvalstorage.nvs.cache",
+        "platform": "native_sim/native",
+        "status": "passed",
+        "cases": [
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_write_stream",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_gc_pack_per_entry",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_init_bad_memory_region",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_cache_hash_quality",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_cache_gc",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_cache_collission",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_cache_init",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_startup_full_sector_after_ate_power_loss",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_gc_corrupt_ate",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_gc_corrupt_close_ate",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.delete",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_full_sector",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_corrupted_sector_close_operation",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_gc_3sectors",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_gc",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_corrupted_write",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_write",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.cache.nvs.nvs_mount",
+            "status": "passed"
+          }
+        ],
+        "config": {
+          "CONFIG_FLASH_SIMULATOR": "y",
+          "CONFIG_NVS_LOOKUP_CACHE": "y",
+          "CONFIG_NVS_LOOKUP_CACHE_SIZE": "64",
+          "CONFIG_NVS_DATA_CRC": "n",
+          "CONFIG_NVS_INIT_BAD_MEMORY_REGION": "y"
+        },
+        "handler_log": "healthy-original-keyvalstorage.nvs.cache.log",
+        "handler_sha256": "e8a20f882cc1b25a24440474053f630f7030df630f46f3cdd16f672d6b5f92e7",
+        "nvs_compile_commands": [
+          "build zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj: C_COMPILER__zephyr_unscanned_ /tmp/nvs-engine-baseline-final/native_sim_native/host_gnu/tests/subsys/kvss/nvs/keyvalstorage.nvs.cache/zephyr/misc/generated/configs.c || cmake_object_order_depends_target_zephyr",
+          "build zephyr/CMakeFiles/zephyr.dir/subsys/kvss/nvs/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/kvss/nvs/nvs.c || cmake_object_order_depends_target_zephyr"
+        ],
+        "candidate_sha256": null,
+        "elf_sha256": "7864ad68bb4c2dae0eb8f208a4d0ad338c60c8495f48acf561dd80991009ba89",
+        "executable_sha256": "43c4a4fed0a1eea9e2b09cc86297829d531c9aeba50f0c0317b8f1fd7118fc6c"
+      },
+      {
+        "name": "keyvalstorage.nvs.data_crc_cache",
+        "platform": "native_sim/native",
+        "status": "passed",
+        "cases": [
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_write_stream",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_gc_pack_per_entry",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_init_bad_memory_region",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_cache_hash_quality",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_cache_gc",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_cache_collission",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_cache_init",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_startup_full_sector_after_ate_power_loss",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_gc_corrupt_ate",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_gc_corrupt_close_ate",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.delete",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_full_sector",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_corrupted_sector_close_operation",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_gc_3sectors",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_gc",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_corrupted_write",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_write",
+            "status": "passed"
+          },
+          {
+            "identifier": "keyvalstorage.nvs.data_crc_cache.nvs.nvs_mount",
+            "status": "passed"
+          }
+        ],
+        "config": {
+          "CONFIG_FLASH_SIMULATOR": "y",
+          "CONFIG_NVS_LOOKUP_CACHE": "y",
+          "CONFIG_NVS_LOOKUP_CACHE_SIZE": "64",
+          "CONFIG_NVS_DATA_CRC": "y",
+          "CONFIG_NVS_INIT_BAD_MEMORY_REGION": "y"
+        },
+        "handler_log": "healthy-original-keyvalstorage.nvs.data_crc_cache.log",
+        "handler_sha256": "86455e51b64946cd7942f60a2f129848d755540dc66b06e029acb870a9fcbb22",
+        "nvs_compile_commands": [
+          "build zephyr/CMakeFiles/zephyr.dir/subsys/kvss/nvs/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/kvss/nvs/nvs.c || cmake_object_order_depends_target_zephyr"
+        ],
+        "candidate_sha256": null,
+        "elf_sha256": "80d99047a63a84f5b8c8f6704fb38abab7b3e363513d8d82f4e064e2f1bf4989",
+        "executable_sha256": "e466933639800b98dc11d22f273b26d3451304da67e2b52215807f958ed4293c"
+      }
+    ],
+    "settings-original": [
+      {
+        "name": "settings.functional.nvs",
+        "platform": "native_sim/native/64",
+        "status": "passed",
+        "cases": [
+          {
+            "identifier": "settings.functional.nvs.settings_functional.setting_storage_get",
+            "status": "passed"
+          },
+          {
+            "identifier": "settings.functional.nvs.settings_functional.single_save",
+            "status": "passed"
+          },
+          {
+            "identifier": "settings.functional.nvs.settings_functional.direct_loading_filter",
+            "status": "passed"
+          },
+          {
+            "identifier": "settings.functional.nvs.settings_functional.direct_loading",
+            "status": "passed"
+          },
+          {
+            "identifier": "settings.functional.nvs.settings_functional.register_and_loading",
+            "status": "passed"
+          },
+          {
+            "identifier": "settings.functional.nvs.settings_functional.support_rtn",
+            "status": "passed"
+          },
+          {
+            "identifier": "settings.functional.nvs.settings_functional.clear_settings",
+            "status": "passed"
+          }
+        ],
+        "config": {
+          "CONFIG_FLASH_SIMULATOR": "y",
+          "CONFIG_NVS_LOOKUP_CACHE": "n",
+          "CONFIG_NVS_DATA_CRC": "n",
+          "CONFIG_NVS_INIT_BAD_MEMORY_REGION": "n",
+          "CONFIG_SETTINGS_NVS_NAME_CACHE": "n"
+        },
+        "handler_log": "settings-original-settings.functional.nvs.log",
+        "handler_sha256": "e59a230c0ee418330e0c9d33b6e7fd74b11a177f54cb29e98ad953ac0926285c",
+        "nvs_compile_commands": [
+          "build CMakeFiles/app.dir/settings_test_nvs.c.obj: C_COMPILER__app_unscanned_ /ws/zephyr/tests/subsys/settings/functional/nvs/settings_test_nvs.c || cmake_object_order_depends_target_app",
+          "build zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj: C_COMPILER__zephyr_unscanned_ /tmp/nvs-baseline-run/native_sim_native_64/host_gnu/tests/subsys/settings/functional/nvs/settings.functional.nvs.chosen/zephyr/misc/generated/configs.c || cmake_object_order_depends_target_zephyr",
+          "build zephyr/CMakeFiles/zephyr.dir/subsys/kvss/nvs/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/kvss/nvs/nvs.c || cmake_object_order_depends_target_zephyr",
+          "build zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings_nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/settings/src/settings_nvs.c || cmake_object_order_depends_target_zephyr"
+        ],
+        "candidate_sha256": null,
+        "elf_sha256": "79a83ff657e7248f8d31e6d6e8a52ba195a73787644b7a2884d8543e475ff474",
+        "executable_sha256": "bea1a40245848757537ec16742b6c7fb0deefe8b3c8c285b080050b6aa90b9b2"
+      },
+      {
+        "name": "settings.functional.nvs.chosen",
+        "platform": "native_sim/native/64",
+        "status": "passed",
+        "cases": [
+          {
+            "identifier": "settings.functional.nvs.chosen.settings_functional.setting_storage_get",
+            "status": "passed"
+          },
+          {
+            "identifier": "settings.functional.nvs.chosen.settings_functional.single_save",
+            "status": "passed"
+          },
+          {
+            "identifier": "settings.functional.nvs.chosen.settings_functional.direct_loading_filter",
+            "status": "passed"
+          },
+          {
+            "identifier": "settings.functional.nvs.chosen.settings_functional.direct_loading",
+            "status": "passed"
+          },
+          {
+            "identifier": "settings.functional.nvs.chosen.settings_functional.register_and_loading",
+            "status": "passed"
+          },
+          {
+            "identifier": "settings.functional.nvs.chosen.settings_functional.support_rtn",
+            "status": "passed"
+          },
+          {
+            "identifier": "settings.functional.nvs.chosen.settings_functional.clear_settings",
+            "status": "passed"
+          }
+        ],
+        "config": {
+          "CONFIG_FLASH_SIMULATOR": "y",
+          "CONFIG_NVS_LOOKUP_CACHE": "n",
+          "CONFIG_NVS_DATA_CRC": "n",
+          "CONFIG_NVS_INIT_BAD_MEMORY_REGION": "n",
+          "CONFIG_SETTINGS_NVS_NAME_CACHE": "n"
+        },
+        "handler_log": "settings-original-settings.functional.nvs.chosen.log",
+        "handler_sha256": "e59a230c0ee418330e0c9d33b6e7fd74b11a177f54cb29e98ad953ac0926285c",
+        "nvs_compile_commands": [
+          "build CMakeFiles/app.dir/settings_test_nvs.c.obj: C_COMPILER__app_unscanned_ /ws/zephyr/tests/subsys/settings/functional/nvs/settings_test_nvs.c || cmake_object_order_depends_target_app",
+          "build zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj: C_COMPILER__zephyr_unscanned_ /tmp/nvs-baseline-run/native_sim_native_64/host_gnu/tests/subsys/settings/functional/nvs/settings.functional.nvs.chosen/zephyr/misc/generated/configs.c || cmake_object_order_depends_target_zephyr",
+          "build zephyr/CMakeFiles/zephyr.dir/subsys/kvss/nvs/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/kvss/nvs/nvs.c || cmake_object_order_depends_target_zephyr",
+          "build zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings_nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/settings/src/settings_nvs.c || cmake_object_order_depends_target_zephyr"
+        ],
+        "candidate_sha256": null,
+        "elf_sha256": "79a83ff657e7248f8d31e6d6e8a52ba195a73787644b7a2884d8543e475ff474",
+        "executable_sha256": "bea1a40245848757537ec16742b6c7fb0deefe8b3c8c285b080050b6aa90b9b2"
+      }
+    ]
+  },
+  "final_experiment_input_sha256": {
+    "tests/native/nvs_startup/CMakeLists.txt": "871b0cc4501fc8e54662cc6c46f185163bc7cf5fad3e7c86cdadc2af224c9429",
+    "tests/native/nvs_startup/candidate.cmake": "69baed074cf048d4318d994e38883a223c22185d2721af1477d27387aeec8ed5",
+    "tests/native/nvs_startup/main.c": "eb20c62d3cf1e5015c5e3d840855a13a17a85ca7c51c03bb97b3aab82ddec482",
+    "tests/native/nvs_startup/prepare.py": "4750c9d13fe246fbefcd50b472251febafc45936c53e3be3449280c6f51f193a",
+    "tests/native/nvs_startup/prj.conf": "4b2282424b6aa11e44e48e4c955e8e9ae258e8bf4e8049303cd288654d86a8f2",
+    "tests/native/nvs_startup/startup-read.patch": "2f9fbed269a16f7a05a60175d108a9e0687dd90efd25690851ef7f206d67193a",
+    "tests/native/nvs_startup/test_prepare.py": "4cc1a184a525d8483ccb93dc24604bcd11e8dd21cc1587a75357b115fb8cf0ba",
+    "tests/native/nvs_startup/testcase.yaml": "34cd8cc042ad0e0de010b82fe65201a04fa4ba1940cf9bac5a1ee525a7518a71"
+  },
+  "tooling_safety_tests": {
+    "cases": 4,
+    "status": "passed on macOS and Linux",
+    "red_before_destination_guard": "2 expected assertion failures",
+    "red_before_atomic_replacement": "2 existing-candidate link failures; 2 destination tests passed",
+    "isolation": "fake upstream trees, mocked git/patch only; no real source modified",
+    "final_copy_sha256": "c045494fdd5846fc33bd6e02e1ff84ad6f42a06d58286a7cc1b438c5737a4f06"
+  }
+}

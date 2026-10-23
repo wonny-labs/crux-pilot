@@ -1,0 +1,52 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE nvs_startup
+===================================================================
+START - test_first_scan_read_failure
+[00:00:00.000,000] <inf> fs_nvs: No GC Done marker found: restarting gc
+[00:00:00.000,000] <inf> fs_nvs: 2 Sectors of 4096 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 1, fe8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 1, 0
+NVS_STARTUP scenario=first bad_init=0 rc=0 reads=771 writes=1 erases=2 marker=ff
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/nvs_startup/main.c:88: expect_read_failure: (rc not equal to -EIO)
+original Flash read error must remain observable
+ FAIL - test_first_scan_read_failure in 0.000 seconds
+===================================================================
+START - test_mount_initializes_empty_region
+[00:00:00.000,000] <inf> fs_nvs: 2 Sectors of 4096 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, fe8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+ PASS - test_mount_initializes_empty_region in 0.000 seconds
+===================================================================
+START - test_persistent_read_failure
+NVS_STARTUP scenario=persistent bad_init=0 rc=-35 reads=4 writes=0 erases=0 marker=a5
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/nvs_startup/main.c:88: expect_read_failure: (rc not equal to -EIO)
+original Flash read error must remain observable
+ FAIL - test_persistent_read_failure in 0.000 seconds
+===================================================================
+START - test_second_scan_read_failure
+[00:00:00.000,000] <inf> fs_nvs: 2 Sectors of 4096 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, fe8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+NVS_STARTUP scenario=second bad_init=0 rc=0 reads=900 writes=1 erases=1 marker=ff
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/nvs_startup/main.c:88: expect_read_failure: (rc not equal to -EIO)
+original Flash read error must remain observable
+ FAIL - test_second_scan_read_failure in 0.000 seconds
+===================================================================
+TESTSUITE nvs_startup failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -  25.00% [nvs_startup]: pass = 1, fail = 3, skip = 0, total = 4 duration = 0.000 seconds
+ - FAIL - [nvs_startup.test_first_scan_read_failure] duration = 0.000 seconds
+ - PASS - [nvs_startup.test_mount_initializes_empty_region] duration = 0.000 seconds
+ - FAIL - [nvs_startup.test_persistent_read_failure] duration = 0.000 seconds
+ - FAIL - [nvs_startup.test_second_scan_read_failure] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: 4d7e5584bd24b8f71e33176b6072d2d0
+PROJECT EXECUTION FAILED
