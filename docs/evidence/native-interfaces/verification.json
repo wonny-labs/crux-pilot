@@ -1,0 +1,33 @@
+{
+  "baseline": "933e974a588be7c88049a165f03d9a4c3356c421",
+  "source_sha256": {
+    "CMakeLists.txt": "e0b9cfbf968c55dad431d86fd7299298467a070625ff047f13e8e7bfc64fddb5",
+    "zephyr/CMakeLists.txt": "c37dad6a4e1e7f4f20a87d535e7e5c70be93a19716b0a03b4394fba64160c3ed",
+    "scripts/check-dependencies.sh": "bfb21478ef7a0033626468f592efc48ad9c1c9a1a6ddf1e69e4123b130586e09",
+    "scripts/check-native-interfaces.py": "ee384a2336b78667cd1e9752bc166d63d4c6ad3cb27d44983c219b134e3a41fa",
+    "cmake/CruxConsumerBoundary.cmake": "d06576b59819dbc97395610d0ffbccbbff922422e85088e0a975c734260fe907",
+    "tests/build/test_consumer_boundary.py": "467884f1d6a25e8e09421ae3c6b9ea0ee5ba645b52b204cc0c003e7cee5a6ecf",
+    "tests/build/test_native_interfaces.py": "f385b343359cc3545c4feb14d356c63fb390284decafefb942b220cc9603a8bd",
+    "tests/consumer_boundary/CMakeLists.txt": "c38cdaeababd8fecd1a5078878a35c9c5648ca12b28ffe884c9ef0127bb7a89a",
+    "tests/consumer_boundary/mock_zephyr.cmake": "c25cb50b188deb75b910efd6e77f4085fbcb66586145b59599a207622b35b8fc",
+    "tests/consumer_boundary/consumer.c": "f92c121c6b644f20846a6358f798f991568e966d91540ca6b96e7fdb224f7ee4",
+    "tests/consumer_boundary/consumer.cpp": "8aecfd87523f88d96e27a6a7df1e053ad76a7f8333ff13a75e117ffa48c0553d"
+  },
+  "results": {
+    "source_methods": 11,
+    "consumer_methods": 9,
+    "linux_build_methods": 196,
+    "host_ctest": 42,
+    "zephyr": "native_sim 20-cycle scenario PASS; EVKB B/QSPI cross-build PASS; no hardware"
+  },
+  "log_normalisation": "absolute workspace paths replaced with <repo>; trailing whitespace trimmed; RED source excerpt explicitly selected; full originals remain local",
+  "limits": "representative lexical/source-tree usage checks, not full semantic or installed SDK validation; no hardware",
+  "zephyr_artifact_sha256": {
+    "controller-native/zephyr.elf": "0366509e420a622d70343d3aa5b89d0b6974f00535948d7c03adf649f48b3580",
+    "controller-native/.config": "c36adee21b4f0cf1fac27cc981e8915e024012c5d30b424e652740e50d98ffc5",
+    "controller-evkb/zephyr.elf": "a069bc61b09944c1afa79f2f1bf50125b88190884957f63117e40ec7e9ace18f",
+    "controller-evkb/.config": "0f2d08f6714e82cb778ad4f1414bbb459af06839ee42e9274945ea5b0bec8f89"
+  },
+  "reviewed_head": "f7619108a2a41382d1dc1d76d9fdbcafd8fa2d00",
+  "scope": "Original implementation evidence at reviewed_head before final-review follow-up; source hashes are historical, not final follow-up hashes."
+}

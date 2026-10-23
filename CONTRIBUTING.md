@@ -47,6 +47,9 @@ Do not create a second central copy of a public header.
 Header placement supports ownership; dependency declarations and review enforce the boundaries.
 It does not establish binary ABI stability or require separate repositories/packages per module.
 See the [Time contract](docs/time-contract.md#header-and-build-ownership) for the current mapping.
+The [native-free consumer policy](docs/native-interface-policy.md) defines the
+application/runtime/provider roles, standard-API limits and required source/build
+checks when introducing portable consumers or public usage targets.
 
 ## Git workflow
 

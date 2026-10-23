@@ -47,7 +47,7 @@ if(CONFIG_CRUX_TIME)
     target_include_directories(crux_time_api INTERFACE
         "${CMAKE_CURRENT_LIST_DIR}/../components/time/include"
     )
-    target_link_libraries(crux_time_api INTERFACE crux_base zephyr_interface)
+    target_link_libraries(crux_time_api INTERFACE crux_base)
 
     include("${CMAKE_CURRENT_LIST_DIR}/../components/time/sources.cmake")
     zephyr_library_named(crux_time_common)
@@ -76,9 +76,19 @@ if(CONFIG_CRUX_TIME)
 
     add_library(crux_time INTERFACE)
     add_library(crux::time ALIAS crux_time)
-    target_link_libraries(crux_time INTERFACE
-        crux_time_api crux_time_common crux_time_zephyr
-    )
+    # Zephyr registers both implementations in the final image independently.
+    # Consumers need only portable declarations, not native implementation usage.
+    target_link_libraries(crux_time INTERFACE crux_time_api)
+    set_property(TARGET crux_time PROPERTY INTERFACE_CRUX_TIME_BACKEND zephyr_rtc)
+    set_property(TARGET crux_time APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_TIME_BACKEND)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxConsumerBoundary.cmake")
+if(CONFIG_CRUX_PILOT_MODULE)
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::base)
+endif()
+if(CONFIG_CRUX_TIME)
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::time)
 endif()
 
 if(CONFIG_CRUX_SOCKETS)
@@ -89,12 +99,21 @@ if(CONFIG_CRUX_SOCKETS)
         "SHELL:-include ${CMAKE_CURRENT_LIST_DIR}/../components/sockets/zephyr/close_declaration.h")
 endif()
 if(CONFIG_CRUX_NETIF)
-    add_library(crux_netif STATIC ../components/netif/src/netif.c
-        ../components/netif/zephyr/netif_zephyr.c)
-    target_include_directories(crux_netif PUBLIC ../components/netif/include
-        PRIVATE ../components/netif/src)
-    target_link_libraries(crux_netif PUBLIC crux::base PRIVATE zephyr_interface)
-    add_dependencies(crux_netif zephyr_generated_headers)
-    target_compile_options(crux_netif PRIVATE -Wall -Wextra -Werror)
+    add_library(crux_netif INTERFACE)
+    target_include_directories(crux_netif INTERFACE ../components/netif/include)
+    target_link_libraries(crux_netif INTERFACE crux::base)
     add_library(crux::netif ALIAS crux_netif)
+    # Native final-image registration owns provider linkage, independently of
+    # the portable usage facade (STATIC PRIVATE would export LINK_ONLY).
+    zephyr_library_named(crux_netif_provider)
+    zephyr_library_sources(../components/netif/src/netif.c
+        ../components/netif/zephyr/netif_zephyr.c)
+    zephyr_library_include_directories(../components/netif/include ../components/netif/src)
+    zephyr_library_link_libraries(crux::base)
+    add_dependencies(crux_netif_provider zephyr_generated_headers)
+    target_compile_options(crux_netif_provider PRIVATE -Wall -Wextra -Werror)
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::netif)
+endif()
+if(CONFIG_CRUX_SOCKETS)
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::sockets)
 endif()

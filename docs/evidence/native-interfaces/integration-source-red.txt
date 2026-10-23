@@ -1,0 +1,107 @@
+test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) ... ok
+test_dependency_entry_point_checks_tokens_and_allows_iso_c (test_native_interfaces.NativeInterfaceTest) ... test_documentation_and_string_literals_are_not_native_dependencies (test_native_interfaces.NativeInterfaceTest) ... ok
+test_invalid_root_reports_an_error_instead_of_success (test_native_interfaces.NativeInterfaceTest) ... ok
+test_iso_c_and_crux_interfaces_remain_portable (test_native_interfaces.NativeInterfaceTest) ... ok
+test_line_splicing_cannot_hide_native_include_or_token (test_native_interfaces.NativeInterfaceTest) ... ok
+test_native_providers_and_compositions_remain_native (test_native_interfaces.NativeInterfaceTest) ... ok
+test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest) ... test_networking_profile_is_scoped_to_registered_consumers (test_native_interfaces.NativeInterfaceTest) ... ok
+test_public_headers_cannot_include_shared_implementation_headers (test_native_interfaces.NativeInterfaceTest) ... ok
+test_rejects_direct_paths_into_providers_and_test_controls (test_native_interfaces.NativeInterfaceTest) ... ok
+test_rejects_native_header_families_and_include_spacing (test_native_interfaces.NativeInterfaceTest) ... ok
+test_rejects_native_types_api_calls_and_configuration_tokens (test_native_interfaces.NativeInterfaceTest) ... ok
+
+======================================================================
+FAIL: test_dependency_entry_point_checks_tokens_and_allows_iso_c (test_native_interfaces.NativeInterfaceTest) (source='#include <time.h>\n#include <errno.h>\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 165, in test_dependency_entry_point_checks_tokens_and_allows_iso_c
+    self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+AssertionError: 2 != 0 : Native interface policy passed (1 portable source files).
+/var/folders/3c/97krjpns4v13hjhxltsxvvp00000gp/T/tmpusbg4b1_/scripts/check-dependencies.sh: line 45: syntax error near unexpected token `<<<'
+
+
+======================================================================
+FAIL: test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest) (source='#include <pthread.h>\npthread_t thread;')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 94, in test_networking_profile_does_not_allow_native_or_general_posix
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
+
+
+======================================================================
+FAIL: test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest) (source='#include <sys/stat.h>')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 94, in test_networking_profile_does_not_allow_native_or_general_posix
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
+
+
+======================================================================
+FAIL: test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest) (source='#include <zephyr/kernel.h>')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 94, in test_networking_profile_does_not_allow_native_or_general_posix
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
+
+
+======================================================================
+FAIL: test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest) (source='k_sleep(1);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 94, in test_networking_profile_does_not_allow_native_or_general_posix
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
+
+
+======================================================================
+FAIL: test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest) (source='nanosleep(&now, 0);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 94, in test_networking_profile_does_not_allow_native_or_general_posix
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
+
+
+======================================================================
+FAIL: test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest) (source='pthread_join(t, 0);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 94, in test_networking_profile_does_not_allow_native_or_general_posix
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
+
+
+======================================================================
+FAIL: test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest) (source='clock_gettime(CLOCK_REALTIME, &now);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 94, in test_networking_profile_does_not_allow_native_or_general_posix
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
+
+
+======================================================================
+FAIL: test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest) (source='clock_gettime(clock, &now);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 94, in test_networking_profile_does_not_allow_native_or_general_posix
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
+
+
+======================================================================
+FAIL: test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest) (source='#include <sys/socket.h>\nbind(fd, a, n);')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<repo>/tests/build/test_native_interfaces.py", line 94, in test_networking_profile_does_not_allow_native_or_general_posix
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
+
+
+----------------------------------------------------------------------
+Ran 13 tests in 2.401s
+
+FAILED (failures=10)

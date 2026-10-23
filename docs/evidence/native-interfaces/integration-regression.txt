@@ -1,0 +1,86 @@
+Selected actual networking/Host output; compilation progress omitted.
+Native standard/public C++ header and C-linkage probe compiled.
+ PASS - test_primary_interface_observation in 0.000 seconds
+ PASS - test_real_stack_failures_and_cleanup in 28.220 seconds
+ PASS - test_resource_exhaustion_and_return in 0.000 seconds
+SUITE PASS - 100.00% [networking]: pass = 3, fail = 0, skip = 0, total = 3 duration = 28.220 seconds
+ - PASS - [networking.test_primary_interface_observation] duration = 0.000 seconds
+ - PASS - [networking.test_real_stack_failures_and_cleanup] duration = 28.220 seconds
+ - PASS - [networking.test_resource_exhaustion_and_return] duration = 0.000 seconds
+PROJECT EXECUTION SUCCESSFUL
+[215/215] Linking C executable zephyr/zephyr.elf
+           FLASH:       91656 B         8 MB      1.09%
+             RAM:       31708 B        32 MB      0.09%
+           OCRAM:           0 B       256 KB      0.00%
+100% tests passed, 0 tests failed out of 71
+Total Test time (real) =   7.32 sec
+
+Independent Host public requirements:
+/poc/components/netif/include
+crux::base
+
+Native map and final executable symbol/disassembly/source checks:
+Native intermediate Zephyr map excerpts (final runner has relocated symbols).
+.text.close     0x0000000000000000        0x9
+ .text.close    0x0000000000000000        0x9 zephyr/lib/posix/options/liblib__posix__options.a(device_io.c.obj)
+                0x0000000000000000                close
+
+ .text.close    0x0000000000000000        0x9 zephyr/lib/posix/options/liblib__posix__options.a(device_io.c.obj)
+                0x0000000000000000                close
+
+.text.poll      0x0000000000000000        0x9
+.text.crux_netif_get_status
+                0x0000000000000000       0x42
+ .text.crux_netif_get_status
+                0x0000000000000000       0x42 modules/poc/libcrux_netif_provider.a(netif.c.obj)
+ .text.crux_netif_get_status
+                0x0000000000000000       0x42 modules/poc/libcrux_netif_provider.a(netif.c.obj)
+                0x0000000000000000                crux_netif_get_status
+
+.text.crux_netif_ipv4_eligible
+                0x0000000000000000       0x4a
+ .text.crux_netif_ipv4_eligible
+                0x0000000000000000       0x4a modules/poc/libcrux_netif_provider.a(netif.c.obj)
+ .text.crux_netif_ipv4_eligible
+                0x0000000000000000       0x4a modules/poc/libcrux_netif_provider.a(netif.c.obj)
+                0x0000000000000000                crux_netif_ipv4_eligible
+
+.text.crux_netif_observe
+                0x0000000000000000       0xd9
+ .text.crux_netif_observe
+                0x0000000000000000       0xd9 modules/poc/libcrux_netif_provider.a(netif_zephyr.c.obj)
+ .text.crux_netif_observe
+                0x0000000000000000       0xd9 modules/poc/libcrux_netif_provider.a(netif_zephyr.c.obj)
+                0x0000000000000000                crux_netif_observe
+
+0000000000406160 t close
+00000000004164d1 t crux_netif_get_status
+000000000041655d t crux_netif_observe
+0000000000407151 t zvfs_close
+
+/poc/build/zephyr/networking-native-pico/zephyr/zephyr.exe:     file format elf64-x86-64
+
+
+Disassembly of section .init:
+
+Disassembly of section .plt:
+
+Disassembly of section .plt.sec:
+
+Disassembly of section .text:
+
+0000000000406160 <close>:
+  406160:	f3 0f 1e fa          	endbr64
+  406164:	e9 e8 0f 00 00       	jmp    407151 <zvfs_close>
+
+Disassembly of section .native_sim_if:
+
+Disassembly of section .fini:
+close
+/workspaces/crux/zephyr/lib/posix/options/device_io.c:48
+zvfs_close
+/workspaces/crux/zephyr/lib/os/zvfs/zvfs_fdtable.c:404
+crux_netif_get_status
+/poc/components/netif/src/netif.c:4
+crux_netif_observe
+/poc/components/netif/zephyr/netif_zephyr.c:5
