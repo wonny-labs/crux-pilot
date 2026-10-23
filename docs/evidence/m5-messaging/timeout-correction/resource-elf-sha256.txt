@@ -1,0 +1,2 @@
+cf44613f11a9acb5b272b0fe2c67461f51fcbb70d4573946bd0f9957152564d3  <REPO>/build/zephyr/messaging-resources-baseline/zephyr/zephyr.elf
+d2c85127ad2e097c2e7f78b34e707c8f9e6edc1dd48078c16445d32f5f42228b  <REPO>/build/zephyr/messaging-resources-enabled/zephyr/zephyr.elf

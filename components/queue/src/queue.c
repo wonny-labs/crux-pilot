@@ -86,9 +86,10 @@ static crux_status_t transfer(crux_queue_t handle, uint32_t timeout_ms, const vo
         if (result != CRUX_OK)
             break;
     }
-    /* A timeout racing availability may commit, just as Execution predicates do. */
+    /* A reported timeout is terminal, including during metadata reacquisition.
+     * Retain the admitted reference for cleanup, without a late commit. */
     bool available = sending ? slot->count < slot->capacity : slot->count != 0;
-    if (available && (result == CRUX_OK || result == CRUX_ERR_TIMEOUT)) {
+    if (available && result == CRUX_OK) {
         if (sending) {
             size_t tail = (slot->head + slot->count) % slot->capacity;
             memcpy(slot->data[tail], source, size);

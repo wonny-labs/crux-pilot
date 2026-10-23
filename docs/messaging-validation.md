@@ -1,7 +1,8 @@
 # Issue #26 software qualification
 
-Status: local software qualification passed and independently reviewed; final-HEAD
-hosted CI is recorded in the Draft PR. Approved baseline
+Status: initial 8ef39d8 qualification is retained below; the timeout correction
+and its superseding results are recorded at the end. Current final-HEAD hosted
+CI is recorded in the Draft PR. Approved baseline
 main 225cd21b5fff37c31c5dff52570e9f26179682a1.
 The contract is docs/messaging-contract.md. No hardware operation is authorised
 or performed. No PR merge or issue closure is authorised by this record.
@@ -30,7 +31,7 @@ or accesses a board.
 - `scripts/check-dependencies.sh`, `scripts/check-format.sh`, `scripts/analyze-host.sh`
 - `python3 -m unittest discover -s tests/build -v`
 
-Exact local source identity is retained in `evidence/m5-messaging/source-sha256.txt`;
+Initial 8ef39d8 source identity is retained in `evidence/m5-messaging/source-sha256.txt`;
 all 64 implementation/test/integration inputs were independently hash-checked.
 Logs were captured before the source snapshot was committed. Local results are
 not final-HEAD CI; the Draft PR records hosted results separately.
@@ -140,7 +141,7 @@ compound options and include/link property misuse. The original native-header
 and arbitrary native dependency rules remain in force. This is a correction
 within the existing CPU/ABI/sysroot contract, not new native API permission.
 
-## Final local verification and environment
+## Initial 8ef39d8 local verification and environment
 
 Linux x86_64 Dev Container executed under Rosetta on an Apple host; Zephyr
 684c9e8f32e4373a21098559f748f06915f950c9 (4.4.0), SDK 1.0.1, ARM GCC 14.3.0,
@@ -175,7 +176,7 @@ CMake 3.28.4 and west 1.4.0. EVKB target: `mimxrt1060_evk@B//qspi`.
   evidence reviews PASS. Final-HEAD hosted CI and its run links are maintained
   in the Draft PR; this local document does not claim an unobserved CI pass.
 
-## Static resource comparison
+## Initial 8ef39d8 static resource comparison
 
 `scripts/measure-messaging.sh` builds the same no-op main with Queue/Monotonic
 both disabled or enabled. Both profiles retain timeout64, 128 Hz ticks and a
@@ -215,3 +216,35 @@ delay. Cooperative stop is checked between every operation even under continuous
 traffic; a stop/admission race may still allow an operation to commit. Initial
 4/16/64 limits remain qualification configuration, not permanent platform maxima.
 No new contract or feature was required by the independent design feedback.
+
+## Independent-review timeout correction (supersedes initial behaviour)
+
+The external REVISE identified that initial `8ef39d8` accepted late availability
+when native wait had already returned TIMEOUT. The old native cleanup test also
+expected that incorrect success. This was broader than the expiry-race contract.
+
+The common commit now requires CRUX_OK. A native TIMEOUT remains terminal while
+the admitted reference is retained through locked cleanup. No provider/lifecycle
+or public API redesign. Successful native wake/expiry races retain their existing
+allowance. The contract now explicitly distinguishes these cases.
+
+Both receive and send have separate deterministic Host and actual Zephyr RED
+failures before the correction, then GREEN after it. Tests delay metadata
+reacquisition, preserve BUSY destroy/handles, verify unchanged receive output,
+no ghost send or late consumption, FIFO continuity and safe reuse. Host's
+fixture-only post-wait unlock/relock is distinguished from Zephyr's actual
+pre-provider-reacquisition pause in the evidence README.
+
+Final local checks: Host Debug88/88 plus sample; standard ASan/UBSan88/88 plus
+sample; messaging independent Host2/2; native3configurations12/12;
+combined EVKB cross-build; format/dependencies and affected source/test analysis
+all passed. Static remeasurement gives Flash+2,888 bytes (enabled34,976),
+allocated RAM+4,288 (enabled11,648). Combined consumer Flash39,488/RAM29,696.
+These values supersede the earlier source snapshot's Flash figures.
+
+Logs, commands, toolchain/config/source identities and RED/GREEN outcomes are in
+`evidence/m5-messaging/timeout-correction/`. Initial wrapper identifier analysis
+findings were corrected without suppressions and full Host suites rerun.
+Independent Reviewer/Challenger assessments and final-head hosted workflow links
+are recorded in the PR. Earlier intermittent local process-exit delays remain
+unresolved; successful later runs do not infer root cause or resolution.

@@ -1,6 +1,6 @@
 # M5 Issue #26 evidence
 
-Base: main `225cd21b5fff37c31c5dff52570e9f26179682a1`. The PR commit contains
+Base: main `225cd21b5fff37c31c5dff52570e9f26179682a1`. The initial commit 8ef39d8 contains
 this source snapshot; `source-sha256.txt` identifies all 64 implementation,
 consumer, test and integration inputs. Logs were captured from that uncommitted
 snapshot before its final commit; they are not falsely labelled as commit runs.
@@ -41,3 +41,11 @@ exit0; independent full configured analysis exit0. A previously started batch
 would repeat that same analysis after its passing295-test run; its duplicate
 analysis was intentionally terminated (batch exit143). The retained independent
 `static-analysis.txt` is the complete successful analysis result.
+
+## Timeout follow-up
+
+The external independent review found that the initial commit allowed a reported
+native timeout to become success if availability appeared during cleanup. That
+behaviour and the old cleanup-success expectation are superseded by the correction
+in `timeout-correction/`. Initial logs/manifests remain historical evidence,
+not proof for the corrected source. See its separate source manifest and results.

@@ -1,0 +1,9 @@
+Test project $REPO/build/linux/debug
+    Start 50: Queue.ExpiredReceive
+1/2 Test #50: Queue.ExpiredReceive .............   Passed    0.02 sec
+    Start 51: Queue.ExpiredSend
+2/2 Test #51: Queue.ExpiredSend ................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.07 sec

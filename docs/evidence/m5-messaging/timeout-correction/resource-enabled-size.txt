@@ -1,0 +1,2 @@
+   text	   data	    bss	    dec	    hex	filename
+  34896	     80	  11547	  46523	   b5bb	<REPO>/build/zephyr/messaging-resources-enabled/zephyr/zephyr.elf

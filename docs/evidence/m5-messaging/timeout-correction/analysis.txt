@@ -1,0 +1,6 @@
+[1/2] Processing file $REPO/components/queue/src/queue.c.
+657 warnings generated.
+[2/2] Processing file $REPO/tests/queue/timeout.c.
+1551 warnings generated.
+Suppressed 1551 warnings (1551 in non-user code).
+Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.
