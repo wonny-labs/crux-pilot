@@ -1,0 +1,22 @@
+[1/10] Building C object CMakeFiles/monotonic_common.dir$REPO/components/monotonic/src/monotonic.c.o
+[2/10] Building C object CMakeFiles/monotonic_common.dir/common_test.c.o
+[3/10] Linking C executable monotonic_common
+[4/10] Building C object CMakeFiles/monotonic_native.dir/native_test.c.o
+[5/10] Building CXX object CMakeFiles/monotonic_real.dir/real_test.cpp.o
+[6/10] Building C object monotonic/CMakeFiles/crux_monotonic_host.dir/src/monotonic.c.o
+[7/10] Building C object monotonic/CMakeFiles/crux_monotonic_host.dir/host/monotonic_host.c.o
+[8/10] Linking C static library monotonic/libcrux_monotonic_host.a
+[9/10] Linking C executable monotonic_native
+[10/10] Linking CXX executable monotonic_real
+Internal ctest changing into directory: $REPO/build/monotonic-agent/host
+Test project $REPO/build/monotonic-agent/host
+    Start 1: Monotonic.Common
+1/3 Test #1: Monotonic.Common .................   Passed    0.04 sec
+    Start 2: Monotonic.NativeBoundaries
+2/3 Test #2: Monotonic.NativeBoundaries .......   Passed    0.03 sec
+    Start 3: Monotonic.RealHost
+3/3 Test #3: Monotonic.RealHost ...............   Passed    0.04 sec
+
+100% tests passed, 0 tests failed out of 3
+
+Total Test time (real) =   0.19 sec

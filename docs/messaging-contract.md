@@ -1,0 +1,97 @@
+# Portable event, queue and monotonic timing — proposed contract
+
+Status: approved for Issue #26 implementation by the human implementation goal.
+The default cooperative-stop profile is approved; optional terminal abort remains excluded.
+This document retains the reviewed design rationale; implementation and qualification results are recorded separately.
+The human implementation goal approves the default scope, concrete declaration shape, initial validation limits and cooperative-cancellation interpretation. Historical approval questions below preserve alternatives; they are not unresolved authorisation for the default implementation.
+Baseline: crux-pilot main 225cd21, including Execution #36, Networking #38 and native-free #39. Read against Issue #26 and the architecture design's confirmed native-free boundaries; physical layout remains a hypothesis. Existing Time and Execution contracts remain authoritative.
+
+## Consumer evidence and minimum scope
+
+The reference controller uses nonnegative signed 64-bit monotonic milliseconds and absolute release deadlines, a 100 ms phase grid, skip-overrun policy and freshness windows. Preserve schedule advancement and missed-release decisions in consumer code. UTC RTC Time remains seconds/calendar and independently initialised; changing UTC must never change deadlines.
+
+Existing runtime-shaped Execution consumers already use counting semaphores for ready/gate/progress. Reuse those for notification, including maximum-one coalesced notification when the consumer accepts BUSY on a repeated give. No event-bits/ANY/ALL/multiwait semantics are demonstrated. A semaphore is consuming notification, not persistent broadcast state. Existing controller flags/latest snapshots are not evidence that a queue or event-bit API is required there.
+
+Issue #26 explicitly asks queue capacity/full and cancellation qualification. Propose a NEW synthetic runtime mailbox scenario: two bounded producers submit fixed command records to a worker; records are copied; full and expired submission leave ownership with the sender; supervisor requests cooperative session stop on failure; producers/consumer observe the protected stop predicate after finite waits, return, and are joined before resources are released. This qualifies cancellation of application work, not cancellation of an admitted queue call. Atomic mailbox-wide abort is an optional alternative below. This scenario is representative porting evidence, not compatibility with any production runtime. M2's one-slot native queue probe provides prior behavioural investigation, not consumer approval.
+
+Periodic and one-shot time-based behaviour use application deadlines and absolute wait. No callback timer objects, timer daemon, callback stack/context, timer cancellation races or public scheduler policy in MVP. Evaluate an actual runtime callback requirement separately before adding those.
+
+## Alternatives and recommendation
+
+1. Qualify POSIX clock_gettime(CLOCK_MONOTONIC)/clock_nanosleep(TIMER_ABSTIME) and POSIX mqueue. Familiar standard vocabulary, but pinned Zephyr mq_open allocates object/name/buffer/descriptors dynamically, timed send/receive convert CLOCK_REALTIME, and priority behaviour is constrained. This does not meet the proposed fixed-resource monotonic mailbox profile. Clock qualification remains credible independently: it must deliberately broaden #28's networking-only qualification, constrain timespec validation and reconcile pinned error behaviour. Rejecting mqueue is not grounds for claiming standard clocks are unsuitable.
+2. Narrow Crux monotonic now/absolute wait and bounded copy FIFO, reusing Execution semaphore notifications. Recommended for one millisecond vocabulary and checked resource lifecycle alongside Execution; cost is owned conversion/wait/lifetime code and its conformance tests. This recommendation remains a human decision, not an inherited architecture mandate.
+3. Composition-bound mailboxes plus cooperative stop/sentinel. Smaller lifecycle/cancellation machinery; finite waits let workers observe stop eventually. Valid if prompt cancellation of pending sends/receives is unnecessary. A sentinel cannot enter a full queue immediately and does not cancel pending senders. The cooperative-stop policy is selected for the default recommendation; composition-bound lifetime instead of public create/destroy remains a smaller alternative if fixed resources suffice.
+
+Do not add event bits, priority messages, variable-size payloads, zero-copy ownership, named queues, select/poll-any, ISR operations or general callback timers.
+
+## Proposed public boundary (names provisional)
+
+Capability-owned C17 headers with C++ linkage, public usage targets crux::monotonic and crux::queue. Both depend publicly only on crux::base and ISO C headers. Separate production providers at composition; no public provider vtable or native structs. Notification continues through crux::execution. No general OSAL target. New roots, targets and independent consumers must join #39 enforcement.
+
+Monotonic shape: status crux_monotonic_now(int64_t *out_ms); status crux_monotonic_sleep_until(int64_t deadline_ms). Nonnegative boot/session-local epoch, not UTC and not comparable between boots/providers. Readings are nondecreasing in sampling/linearization order; overlapping calls may return in a different order; repeated values permitted, resolution provider-dependent, no precision/jitter/worst-case latency claim. No public initialisation or clock-setting. At signed 64-bit representational exhaustion report OUT_OF_RANGE, never wrap; failed reads preserve output. Units ms; sub-ms source values round down for observation. Wait returns OK only after observing now >= deadline; past/current deadlines return immediately. A future deadline more than INT32_MAX ms away is OUT_OF_RANGE; caller validates additions before constructing deadlines. Negative input INVALID_ARGUMENT. Provider failures IO. Thread context only; unsupported ISR calls NOT_SUPPORTED. Sleep is not cancellable; callers select finite release intervals and retain worker lifetime until successful existing join. No promise about suspend/resume/power-state time until provider qualification records it.
+
+Queue shape: opaque checked value crux_queue_t consistent with Execution slot/generation concept; create(capacity, message_size, out), send(queue, const void *record, size, timeout_ms), receive(queue, void *record, size, timeout_ms), destroy(handle*). An optional abort(queue) belongs only to the separately selected extension below. Explicit exact size must match configured size (mismatch is INVALID_ARGUMENT); pointers nonnull. The sender must keep the source record readable and unchanged until send returns; a blocked send may copy only when capacity becomes available. The receiver must keep its destination writable and exclusively owned until receive returns. Providers retain neither caller buffer after return. C cannot discover the actual allocation size behind a pointer: the API checks the declared size against the configured record size before accessing memory, while the caller must truthfully supply a readable/writable object of that size. This is not a memory-safety guarantee for invalid pointers or false size declarations. No borrowed payload pointers, destructors or implicit heap allocation. Create invalidates failed output; output storage must not contain a live handle. Destroy zeroes successful handle; stale aliases INVALID_ARGUMENT. Handle-variable writes remain caller-serialised. Any failed destroy preserves the supplied handle and all queue resources. Admission and destroy use one atomic lifecycle protocol: an admitted operation retains a lifetime reference through final bookkeeping; destruction cannot reclaim its storage. The owner must prevent new admissions before attempting destroy; a handle check alone does not establish quiescence. Generation exhaustion must retire a slot rather than wrap and validate an old alias.
+
+Proposed initial provider qualification limits: 4 queues, capacity 1..16, record size 1..64 bytes. Storage reservation is bounded to at most 4096 payload bytes across provider pools, plus measured metadata, locks and wait records. These are initial validation-configuration limits, not immutable platform-wide maxima. Capacity limits are provisional engineering choices, not demonstrated production sizing; implementation approval includes confirming these limits with independent consumer scenarios. Creation exhaustion NO_RESOURCES; well-formed unsupported size/capacity OUT_OF_RANGE. No caller backing-store alignment or lifetime obligations in MVP.
+
+MPMC fixed-copy FIFO: send success commits one complete record; receive success consumes oldest committed record. Concurrent call ordering follows linearisation, not invocation time or waiter fairness. No priority or starvation guarantee. Memory visibility covers copied record bytes; pointers embedded in a record retain consumer-owned pointee lifetime and synchronisation. On failure receive preserves output and neither operation commits/consumes a record. No overwrite/drop-on-full mode.
+
+Wait vocabulary matches Execution: 0 polls, 1..INT32_MAX relative monotonic ms; larger timeout OUT_OF_RANGE; no forever. Compute one initial deadline covering metadata admission and resource wait, do not renew after wakeups. Poll returns BUSY if metadata or capacity/data cannot be obtained immediately, including an available resource under admission contention. Poll must not reacquire a blocking metadata lock after native try. Expired unavailable finite operation TIMEOUT. Availability racing expiry may complete successfully or TIMEOUT according to the atomic predicate/commit decision, without loss or duplication; no fairness or exact race winner is promised. Scheduler delays/final bookkeeping may delay observed return; no hard latency bound. Invalid pointers/size/timeout/handle precede state checks; for the optional abort extension only, after admission ABORTED precedes unavailable/timeout; successful commit before concurrent abort remains successful. Native/provider errors IO; thread context only.
+
+## Cancellation, lifetime and errors
+
+Recommended MVP has no queue reset, abort or individual wait cancellation. Consumer-owned stop state is protected by an existing Execution mutex; finite queue waits return normally, then workers inspect stop and cease retries. Notification uses existing semaphores. Stop is checked before starting another operation. Stop can race between that check and queue admission: an operation whose preceding check observed running may still start or succeed after stop is requested. Cancellation therefore does not promise no later commit. The stop predicate is checked between every operation, including consecutive successful operations under continuous traffic; do not check it only after a timeout. No sentinel is required; queued records may remain until quiescent destruction. Stop latency includes the current finite wait, scheduling, bookkeeping and time to acquire the consumer lock; it has no hard upper bound. A successful join is still required, and join timeout retains all resources. This explicitly interprets Issue #26 cancellation qualification as cooperative cancellation of work; human approval must confirm this interpretation. A requirement for immediate waiter cancellation changes the scope to the extension below.
+
+Optional terminal-abort extension (not recommended by default): abort is per queue, not thread cancellation: atomically mark ABORTED, discard pending copied records, wake pending sends/receives; they and later operations return existing INVALID_STATE. Idempotent abort returns OK, has no timeout guarantee, and is thread-context only. Operations committed before abort may return success; no post-abort commit. Aborted queue cannot reopen/reset; create a new generation after safe destruction. No new common status is needed; INVALID_STATE specifically means queue aborted for this component.
+
+Supervisor first requests stop and prevents new admissions, optionally aborts only if that extension was selected, joins workers, then destroys. Destroy returns BUSY while active/waiting calls remain; it never silently cancels or frees live storage. A valid open or, in the extension, aborted quiescent queue can be destroyed. Invalid/stale handles passed to any operation including optional abort return INVALID_ARGUMENT. Open but quiescent destroy discards remaining copied records; the caller already owns any referenced pointees. Abort is not permission to release handles, arguments or external payload objects while calls/workers remain active. No forced thread termination or modification of Execution no-cancellation semantics.
+
+Default recommendation: finite-wait FIFO with cooperative stop. Abort is a material optional scope choice: Issue #26 requires cancellation-path evidence but does not prescribe this contract. Approval may select cooperative stop instead. Native k_msgq_purge is not terminal abort: future puts remain allowed. A provider must not map purge directly and claim this contract.
+
+## Providers and feasibility
+
+Host: private pthread mutex/monotonic condition variables, fixed slot/ring storage and checked lifecycle. Predicate loops handle spurious wakeups; timed metadata admission shares the original deadline. Do not expose pthread links through the public facade. Native provider registration follows #39 facade/provider separation.
+
+Zephyr: fixed slot/ring storage and native private synchronisation. Evaluate k_msgq for simple FIFO but do not commit to it before proving atomic lifecycle admission, the original wait deadline and both sender/receiver wakeups; atomic abort proof is required only for the optional extension. For the default FIFO, prefer native k_msgq plus checked lifecycle admission if tests prove the failure-atomicity and single-deadline contract; this is the simplest provider candidate. If terminal abort is selected, a private ring plus native condition variables/wait predicates under one state lock is the leading implementation option for consistent terminal abort. No per-operation heap, timer thread or polling timeout slices. A semaphore-only implementation needs rigorous wake/admission accounting; reuse does not automatically simplify it. Avoid duplicating public Execution handles internally just to implement a native provider.
+
+Pinned source evidence at Zephyr 684c9e8: lib/posix/options/mqueue.c uses CLOCK_REALTIME in mq_timedsend/mq_timedreceive and k_malloc in mq_open; kernel/msg_q.c purge wakes pending operations with ENOMSG but is not closed-state admission. clock_selection.c delegates clock_nanosleep and maps failures to -1/errno; lib/os/clock.c monotonic absolute wait uses timepoint completion. Standard clocks remain an alternative requiring a bounded qualified profile. These observations concern pinned source, not universal POSIX or future Zephyr support.
+
+## Implementation and TDD verification proposal
+
+After explicit design approval, create an isolated latest-main implementation branch. No production/public scaffolding before approval. Keep changes in capability-sized commits: monotonic, queue state/ownership, native providers, independent consumers and enforcement/evidence.
+
+Use red-green tests for observable requirements. Private fake clock and deterministic admission barriers belong to tests, never public API. Deterministic Host tests cover time conversion/overflow/read failure/unchanged output, past/future absolute wait without deadline renewal, FIFO/copy/exact size, empty/full poll and timeout, unchanged output, spurious wakeups, resource exhaustion/reuse/stale aliases, MPMC records, cooperative stop with full/empty queue, continuous incoming traffic and admitted-operation completion, destroy BUSY and safe teardown. If the abort extension is approved, add blocked sender/receiver abort, abort/commit races and idempotent abort tests. Avoid wall-clock sleeps as proof of race ordering. Real Host provider tests separately check functional clock progression and finite waits with broad scheduling tolerance; fake time alone cannot prove native waits.
+
+Zephyr native_sim uses explicit barriers to exercise both waiter classes, wake/order, pool reuse, clock deadlines and ISR rejection. Exact-boundary tick tests verify upward wait rounding and no early success. Keep priority/fairness unsupported. Independently authored C/C++ firmware and runtime consumers receive only approved contract/scenario and public targets; test copied commands, full backpressure, deadline, cancellation and repeated quiescent sessions. Migrate a separate portable controller scenario for now/sleep phase behaviour while preserving historical native evidence and RTC tests. Event qualification reuses semaphore semantics rather than inventing broadcast promises.
+
+Run applicable Host debug/sanitizer, native_sim, independent consumers, public C/C++ compile/link graph, native-interface source inventory, Execution/Networking dependency gates and build safeguards. Retain exact source/configuration identities and sanitised logs. Cross-build EVKB, compare same-content baseline versus enabled capability RAM/flash, static pool accounting, thread-stack and high-water measurement plan. Host/native_sim/cross-build evidence is not physical latency/stack qualification. Physical EVKB execution, resource/timing measurements require later explicit hardware approval; document unresolved target limits rather than claim them.
+
+## Proposed declaration sketch
+
+This sketch makes the earlier shape concrete for review; it is not an adopted header or a stable ABI promise. Queue dimensions and buffer sizes use size_t; timeout remains uint32_t like Execution. The two headers respectively expose monotonic declarations and queue declarations with the appropriate ISO headers and C linkage.
+
+```c
+/* crux/monotonic.h */
+crux_status_t crux_monotonic_now(int64_t *out_ms);
+crux_status_t crux_monotonic_sleep_until(int64_t deadline_ms);
+
+/* crux/queue.h — reserved representation; consumers do not inspect fields */
+typedef struct {
+    uint32_t slot;
+    uint32_t generation;
+} crux_queue_t;
+crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue_t *out);
+crux_status_t crux_queue_send(crux_queue_t queue, const void *record,
+                              size_t size, uint32_t timeout_ms);
+crux_status_t crux_queue_receive(crux_queue_t queue, void *record,
+                                 size_t size, uint32_t timeout_ms);
+crux_status_t crux_queue_destroy(crux_queue_t *queue);
+```
+
+There is no abort declaration in the recommended public surface.
+
+## Human decisions and residual risk
+
+Approve or revise: owned monotonic pair versus qualified standard clocks; FIFO capacity/record/pool limits; terminal abort versus cooperative stop; reuse notifications and deadline-based timers with event bits/callback timers deferred. Approval is for this bounded scope, not a framework.
+
+Residual risks: queue lifecycle correctness (and new abort protocol if selected), provider wake semantics and tick rounding; resource limits are proposed, not product-derived; synthetic runtime evidence does not prove third-party ABI compatibility; no fairness, hard return latency, suspend continuity or hardware timing guarantee. Reviewer and Challenger final assessments are recorded separately; final recommendation revisions require their recheck before presentation.

@@ -39,7 +39,8 @@ if(CONFIG_CRUX_EXECUTION)
     set_property(TARGET crux_execution_zephyr APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_EXECUTION_PROVIDER)
     add_library(crux_execution INTERFACE)
     add_library(crux::execution ALIAS crux_execution)
-    target_link_libraries(crux_execution INTERFACE crux_execution_api crux_execution_zephyr)
+    # Native provider is already registered independently above.
+    target_link_libraries(crux_execution INTERFACE crux_execution_api)
 endif()
 
 if(CONFIG_CRUX_TIME)
@@ -116,4 +117,26 @@ if(CONFIG_CRUX_NETIF)
 endif()
 if(CONFIG_CRUX_SOCKETS)
     cmake_language(DEFER CALL crux_assert_portable_usage crux::sockets)
+endif()
+
+if(CONFIG_CRUX_QUEUE)
+    add_library(crux_queue INTERFACE)
+    add_library(crux::queue ALIAS crux_queue)
+    target_include_directories(crux_queue INTERFACE
+        "${CMAKE_CURRENT_LIST_DIR}/../components/queue/include")
+    target_link_libraries(crux_queue INTERFACE crux::base)
+    target_compile_options(crux_queue INTERFACE ${TOOLCHAIN_C_FLAGS})
+    add_library(crux_queue_zephyr STATIC
+        "${CMAKE_CURRENT_LIST_DIR}/../components/queue/src/queue.c"
+        "${CMAKE_CURRENT_LIST_DIR}/../components/queue/zephyr/queue_port.c")
+    target_include_directories(crux_queue_zephyr PRIVATE
+        "${CMAKE_CURRENT_LIST_DIR}/../components/queue/zephyr")
+    target_link_libraries(crux_queue_zephyr PRIVATE crux::queue zephyr_interface)
+    zephyr_append_cmake_library(crux_queue_zephyr)
+    add_dependencies(crux_queue_zephyr zephyr_generated_headers)
+    target_compile_options(crux_queue_zephyr PRIVATE -Wall -Wextra -Werror)
+endif()
+if(CONFIG_CRUX_MONOTONIC)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/monotonic/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/monotonic")
 endif()

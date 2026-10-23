@@ -20,6 +20,15 @@ class NativeInterfaceTest(unittest.TestCase):
             return subprocess.run([sys.executable, str(CHECKER), "--root", str(root)],
                                   capture_output=True, text=True)
 
+    def test_messaging_consumers_reject_native_leakage(self):
+        for path in ("tests/messaging_consumer/runtime.c", "tests/messaging_consumer/main.cpp",
+                     "samples/messaging/controller.c"):
+            with self.subTest(path=path):
+                bad = self.check_source("#include <zephyr/kernel.h>\n", path)
+                self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
+                good = self.check_source("#include <crux/queue.h>\n#include <crux/monotonic.h>\n", path)
+                self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
+
     def test_rejects_native_header_families_and_include_spacing(self):
         for header in ("zephyr/kernel.h", "board.h", "fsl_gpio.h", "fsl_device_registers.h",
                        "MIMXRT1062.h", "cmsis_os2.h", "stm32f4xx.h", "nxp/foo.h",

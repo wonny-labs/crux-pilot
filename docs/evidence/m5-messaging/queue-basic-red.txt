@@ -1,0 +1,1 @@
+queue-red: tests/queue/basic.c:7: main: Assertion `crux_queue_create(2, sizeof(uint32_t), &q) == CRUX_OK' failed.

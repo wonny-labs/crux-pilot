@@ -1,0 +1,10 @@
+<SDK>/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-size <REPO>/build/zephyr/messaging-resources-baseline/zephyr/zephyr.elf
+<SDK>/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-size -A <REPO>/build/zephyr/messaging-resources-baseline/zephyr/zephyr.elf
+<SDK>/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-nm -S --size-sort --radix=d <REPO>/build/zephyr/messaging-resources-baseline/zephyr/zephyr.elf
+<SDK>/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump -d --disassemble=main <REPO>/build/zephyr/messaging-resources-baseline/zephyr/zephyr.elf
+cmake --build <REPO>/build/zephyr/messaging-resources-baseline --target rom_report ram_report
+<SDK>/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-size <REPO>/build/zephyr/messaging-resources-enabled/zephyr/zephyr.elf
+<SDK>/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-size -A <REPO>/build/zephyr/messaging-resources-enabled/zephyr/zephyr.elf
+<SDK>/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-nm -S --size-sort --radix=d <REPO>/build/zephyr/messaging-resources-enabled/zephyr/zephyr.elf
+<SDK>/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump -d --disassemble=main <REPO>/build/zephyr/messaging-resources-enabled/zephyr/zephyr.elf
+cmake --build <REPO>/build/zephyr/messaging-resources-enabled --target rom_report ram_report

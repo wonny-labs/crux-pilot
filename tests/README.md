@@ -174,3 +174,20 @@ for fixed criteria, M5-only wire identity, bounded injected-adapter runner,
 raw-evidence replay and separate physical operation gates. The concrete adapter is tested with fake devices. Its physical capture/reset
 path requires separate exact-operation approval and current M3 safety gates;
 software preparation does not establish physical acceptance or authorisation.
+
+## Portable queue and monotonic timing
+
+`Queue.*` and `Monotonic.*` run with Host Debug/sanitizer checks. Queue native
+contract models deliberately reproduce pinned Zephyr timeout semantics; actual
+`native_sim` ztests additionally check ownership, admitted cleanup, wakeup,
+MPMC integrity, tick rounding and ISR rejection. Model results do not substitute
+for native-kernel execution.
+
+Run `scripts/test-messaging.sh --host-only` for independently authored C17/C++17
+runtime and portable controller scenarios with public-usage graph guards. The
+full script adds three native_sim configurations and an EVKB cross-build.
+`scripts/measure-messaging.sh` compares same-source no-op images with the full
+callable capability surface deliberately retained in the enabled profile. These
+commands never access hardware. See [the contract](../docs/messaging-contract.md)
+and [validation](../docs/messaging-validation.md) for ownership, cooperative-stop
+semantics, resource profile and qualification limits.

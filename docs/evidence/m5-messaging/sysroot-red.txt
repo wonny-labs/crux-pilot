@@ -1,0 +1,80 @@
+test_real_messaging_facades_preserve_selected_toolchain_flags (test_consumer_boundary.ConsumerBoundaryTest.test_real_messaging_facades_preserve_selected_toolchain_flags) ... FAIL
+test_selected_sysroot_is_only_a_standard_compile_option (test_consumer_boundary.ConsumerBoundaryTest.test_selected_sysroot_is_only_a_standard_compile_option) ...
+  test_selected_sysroot_is_only_a_standard_compile_option (test_consumer_boundary.ConsumerBoundaryTest.test_selected_sysroot_is_only_a_standard_compile_option) (root='/sdk/zephyr/standard', prop='INTERFACE_COMPILE_OPTIONS', value='--sysroot=/sdk/zephyr/standard') ... FAIL
+  test_selected_sysroot_is_only_a_standard_compile_option (test_consumer_boundary.ConsumerBoundaryTest.test_selected_sysroot_is_only_a_standard_compile_option) (root='/sdk/zephyr/standard', prop='INTERFACE_COMPILE_OPTIONS', value='--sysroot=/sdk/zephyr/./standard') ... FAIL
+
+======================================================================
+FAIL: test_real_messaging_facades_preserve_selected_toolchain_flags (test_consumer_boundary.ConsumerBoundaryTest.test_real_messaging_facades_preserve_selected_toolchain_flags)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REPO/tests/build/test_consumer_boundary.py", line 242, in test_real_messaging_facades_preserve_selected_toolchain_flags
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+AssertionError: 1 != 0 : -- The C compiler identification is Clang 18.1.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang-18 - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Crux Zephyr integration module discovered
+-- Configuring incomplete, errors occurred!
+CMake Error at $REPO/cmake/CruxConsumerBoundary.cmake:97 (message):
+  native consumer requirement: crux_execution_api INTERFACE_COMPILE_OPTIONS:
+  --sysroot=/sdk/zephyr/standard
+Call Stack (most recent call first):
+  $REPO/cmake/CruxConsumerBoundary.cmake:100 (_crux_check_consumer_target)
+  $REPO/cmake/CruxConsumerBoundary.cmake:114 (_crux_check_consumer_target)
+  CMakeLists.txt:16 (crux_assert_portable_usage)
+
+
+
+
+======================================================================
+FAIL: test_selected_sysroot_is_only_a_standard_compile_option (test_consumer_boundary.ConsumerBoundaryTest.test_selected_sysroot_is_only_a_standard_compile_option) (root='/sdk/zephyr/standard', prop='INTERFACE_COMPILE_OPTIONS', value='--sysroot=/sdk/zephyr/standard')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REPO/tests/build/test_consumer_boundary.py", line 223, in test_selected_sysroot_is_only_a_standard_compile_option
+    self.assertEqual(result.returncode == 0, valid, result.stdout + result.stderr)
+AssertionError: False != True : -- The C compiler identification is Clang 18.1.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang-18 - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring incomplete, errors occurred!
+CMake Error at $REPO/cmake/CruxConsumerBoundary.cmake:97 (message):
+  native consumer requirement: portable INTERFACE_COMPILE_OPTIONS:
+  --sysroot=/sdk/zephyr/standard
+Call Stack (most recent call first):
+  $REPO/cmake/CruxConsumerBoundary.cmake:114 (_crux_check_consumer_target)
+  CMakeLists.txt:7 (crux_assert_portable_usage)
+
+
+
+
+======================================================================
+FAIL: test_selected_sysroot_is_only_a_standard_compile_option (test_consumer_boundary.ConsumerBoundaryTest.test_selected_sysroot_is_only_a_standard_compile_option) (root='/sdk/zephyr/standard', prop='INTERFACE_COMPILE_OPTIONS', value='--sysroot=/sdk/zephyr/./standard')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REPO/tests/build/test_consumer_boundary.py", line 223, in test_selected_sysroot_is_only_a_standard_compile_option
+    self.assertEqual(result.returncode == 0, valid, result.stdout + result.stderr)
+AssertionError: False != True : -- The C compiler identification is Clang 18.1.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang-18 - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring incomplete, errors occurred!
+CMake Error at $REPO/cmake/CruxConsumerBoundary.cmake:97 (message):
+  native consumer requirement: portable INTERFACE_COMPILE_OPTIONS:
+  --sysroot=/sdk/zephyr/./standard
+Call Stack (most recent call first):
+  $REPO/cmake/CruxConsumerBoundary.cmake:114 (_crux_check_consumer_target)
+  CMakeLists.txt:7 (crux_assert_portable_usage)
+
+
+
+
+----------------------------------------------------------------------
+Ran 2 tests in 19.484s
+
+FAILED (failures=3)
