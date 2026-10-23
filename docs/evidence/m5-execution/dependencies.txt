@@ -1,0 +1,2 @@
+Base is independent; public/common Time and portable commands avoid native headers; backend selection is checked by CMake; shared source ownership is explicit.
+Execution public/consumer boundary passed; native providers remain permitted.

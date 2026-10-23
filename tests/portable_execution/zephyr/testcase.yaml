@@ -1,0 +1,6 @@
+tests:
+  crux.portable_execution:
+    harness: ztest
+    timeout: 30
+    platform_allow: [native_sim/native/64]
+    tags: [crux, execution, conformance]

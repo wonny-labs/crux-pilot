@@ -1,0 +1,177 @@
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: $REPO/build/execution-firmware-host
+[1/10] Building C object CMakeFiles/crux_firmware_portable.dir$REPO/tests/portable_execution/public_probe.c.o
+[2/10] Building C object CMakeFiles/crux_firmware_portable.dir/src/consumer.c.o
+[3/10] Building CXX object CMakeFiles/crux_firmware_consumer.dir/src/main.cpp.o
+[4/10] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/src/execution_threads.c.o
+[5/10] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/src/execution_sync.c.o
+[6/10] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/host/execution_native.c.o
+[7/10] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/host/execution_sync_native.c.o
+[8/10] Linking C static library crux/components/execution/libcrux_execution_host.a
+[9/10] Linking C static library libcrux_firmware_portable.a
+[10/10] Linking CXX executable crux_firmware_consumer
+Internal ctest changing into directory: $REPO/build/execution-firmware-host
+Test project $REPO/build/execution-firmware-host
+    Start 1: Execution.FirmwareConsumer
+1/1 Test #1: Execution.FirmwareConsumer .......   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.03 sec
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: $REPO/build/execution-runtime-host
+[1/7] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/src/execution_threads.c.o
+[2/7] Building C object CMakeFiles/crux_runtime_consumer.dir/src/runtime_fixture.c.o
+[3/7] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/src/execution_sync.c.o
+[4/7] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/host/execution_native.c.o
+[5/7] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/host/execution_sync_native.c.o
+[6/7] Linking C static library crux/components/execution/libcrux_execution_host.a
+[7/7] Linking C executable crux_runtime_consumer
+Internal ctest changing into directory: $REPO/build/execution-runtime-host
+Test project $REPO/build/execution-runtime-host
+    Start 1: Execution.RuntimeConsumer
+1/1 Test #1: Execution.RuntimeConsumer ........   Passed    0.11 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.13 sec
+Execution public/consumer boundary passed; native providers remain permitted.
+Renaming previous output directory to $REPO/build/zephyr/twister-portable-execution.1
+INFO    - Using Ninja..
+INFO    - Zephyr version: v4.4.0
+INFO    - Using 'zephyr/gnu' toolchain variant.
+INFO    - Building initial testsuite list...
+INFO    - Built testsuite list in 0.01 seconds
+INFO    - Writing JSON report $REPO/build/zephyr/twister-portable-execution/testplan.json
+INFO    - JOBS: 2
+INFO    - Adding tasks to the queue...
+INFO    - Added initial list of jobs to queue
+INFO    - Total complete:    1/   2  50%  built (not run):    0, filtered:    0, failed:    0, error:    0
+ERROR   - native_sim/native/64      crux.portable_execution                            FAILED: rc=1
+INFO    - $REPO/build/zephyr/twister-portable-execution/native_sim_native_64/host_gnu$REPO/tests/portable_execution/zephyr/crux.portable_execution/handler.log
+ERROR   - *** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE portable_execution
+===================================================================
+START - test_admission_lifetimes
+admission failure line=93
+
+    Assertion failed at CMAKE_SOURCE_DIR/main.c:49: portable_execution_test_admission_lifetimes: execution_admission_cases() not equal to 0
+
+ FAIL - test_admission_lifetimes in 1.010 seconds
+===================================================================
+START - test_concurrent_give
+ PASS - test_concurrent_give in 0.000 seconds
+===================================================================
+START - test_firmware_consumer
+ PASS - test_firmware_consumer in 0.000 seconds
+===================================================================
+START - test_isr_rejected
+ PASS - test_isr_rejected in 0.000 seconds
+===================================================================
+START - test_join_timeout_retains
+FAIL execution_join_timeout_retains:239: crux_thread_create(&options, publish, &values[i], &others[i]) == CRUX_OK
+
+    Assertion failed at CMAKE_SOURCE_DIR/main.c:43: portable_execution_test_join_timeout_retains: execution_join_timeout_retains() not equal to 0
+
+ FAIL - test_join_timeout_retains in 0.020 seconds
+===================================================================
+START - test_mutex_ownership
+FAIL execution_mutex_ownership:119: crux_thread_create(&options, wrong_owner, &context, &worker) == CRUX_OK
+
+    Assertion failed at CMAKE_SOURCE_DIR/main.c:31: portable_execution_test_mutex_ownership: execution_mutex_ownership() not equal to 0
+
+ FAIL - test_mutex_ownership in 0.000 seconds
+===================================================================
+START - test_mutex_wakeup
+FAIL execution_mutex_wakeup:140: crux_thread_create(&options, acquire_after_release, &context, &worker) == CRUX_OK
+
+    Assertion failed at CMAKE_SOURCE_DIR/main.c:34: portable_execution_test_mutex_wakeup: execution_mutex_wakeup() not equal to 0
+
+ FAIL - test_mutex_wakeup in 0.000 seconds
+===================================================================
+START - test_semaphore_tokens
+ PASS - test_semaphore_tokens in 0.020 seconds
+===================================================================
+START - test_stack_priority_profile
+
+    Assertion failed at CMAKE_SOURCE_DIR/main.c:103: portable_execution_test_stack_priority_profile: crux_thread_create(&excessive, noop, NULL, &rejected) not equal to CRUX_ERR_OUT_OF_RANGE
+
+ FAIL - test_stack_priority_profile in 0.000 seconds
+===================================================================
+START - test_sync_capacity
+FAIL execution_sync_capacity:181: crux_semaphore_create(0, 1, &semaphores[i]) == CRUX_OK
+
+    Assertion failed at CMAKE_SOURCE_DIR/main.c:40: portable_execution_test_sync_capacity: execution_sync_capacity() not equal to 0
+
+ FAIL - test_sync_capacity in 0.000 seconds
+===================================================================
+START - test_thread_capacity
+FAIL execution_thread_capacity:71: crux_thread_create(&options, publish, &values[i], &threads[i]) == CRUX_OK
+
+    Assertion failed at CMAKE_SOURCE_DIR/main.c:28: portable_execution_test_thread_capacity: execution_thread_capacity() not equal to 0
+
+ FAIL - test_thread_capacity in 0.000 seconds
+===================================================================
+START - test_thread_inputs
+FAIL execution_thread_inputs:60: crux_thread_create(&invalid, publish, &value, &thread) == CRUX_ERR_OUT_OF_RANGE
+
+    Assertion failed at CMAKE_SOURCE_DIR/main.c:25: portable_execution_test_thread_inputs: execution_thread_inputs() not equal to 0
+
+ FAIL - test_thread_inputs in 0.000 seconds
+===================================================================
+START - test_thread_lifetime
+FAIL execution_thread_lifetime:28: crux_thread_create(&options, publish, &value, &thread) == CRUX_OK
+
+    Assertion failed at CMAKE_SOURCE_DIR/main.c:22: portable_execution_test_thread_lifetime: execution_thread_lifetime() not equal to 0
+
+ FAIL - test_thread_lifetime in 0.000 seconds
+===================================================================
+TESTSUITE portable_execution failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -  30.77% [portable_execution]: pass = 4, fail = 9, skip = 0, total = 13 duration = 1.050 seconds
+ - FAIL - [portable_execution.test_admission_lifetimes] duration = 1.010 seconds
+ - PASS - [portable_execution.test_concurrent_give] duration = 0.000 seconds
+ - PASS - [portable_execution.test_firmware_consumer] duration = 0.000 seconds
+ - PASS - [portable_execution.test_isr_rejected] duration = 0.000 seconds
+ - FAIL - [portable_execution.test_join_timeout_retains] duration = 0.020 seconds
+ - FAIL - [portable_execution.test_mutex_ownership] duration = 0.000 seconds
+ - FAIL - [portable_execution.test_mutex_wakeup] duration = 0.000 seconds
+ - PASS - [portable_execution.test_semaphore_tokens] duration = 0.020 seconds
+ - FAIL - [portable_execution.test_stack_priority_profile] duration = 0.000 seconds
+ - FAIL - [portable_execution.test_sync_capacity] duration = 0.000 seconds
+ - FAIL - [portable_execution.test_thread_capacity] duration = 0.000 seconds
+ - FAIL - [portable_execution.test_thread_inputs] duration = 0.000 seconds
+ - FAIL - [portable_execution.test_thread_lifetime] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: f78c6bc87215c6799f65518beb9c29fd
+PROJECT EXECUTION FAILED
+
+INFO    - $REPO/build/zephyr/twister-portable-execution/native_sim_native_64/host_gnu$REPO/tests/portable_execution/zephyr/crux.portable_execution/handler.log
+INFO    - Total complete:    2/   2  100%  built (not run):    0, filtered:    0, failed:    1, error:    0
+INFO    - 2 test scenarios (2 configurations) selected, 0 configurations filtered (0 by static filter, 0 at runtime).
+INFO    - 1 of 2 executed test configurations passed (50.00%), 0 built (not run), 1 failed, 0 errored, with no warnings in 89.78 seconds.
+INFO    - 5 of 14 executed test cases passed (35.71%), 9 failed on 1 out of total 1473 platforms (0.07%).
+INFO    - 2 test configurations executed on platforms, 0 test configurations were only built.
+INFO    - Saving reports...
+INFO    - Writing JSON report $REPO/build/zephyr/twister-portable-execution/twister.json
+INFO    - Writing xunit report $REPO/build/zephyr/twister-portable-execution/twister.xml...
+INFO    - Writing xunit report $REPO/build/zephyr/twister-portable-execution/twister_report.xml...
+INFO    - -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+INFO    - The following issues were found (showing the top 10 items):
+INFO    - 1) crux.portable_execution on native_sim/native/64 failed (rc=1)
+INFO    - 
+INFO    - To rerun the tests, call twister using the following commandline:
+INFO    - west twister -p <PLATFORM> -s <TEST ID>, for example:
+INFO    - 
+INFO    - west twister -p native_sim/native/64 -s crux.portable_execution
+INFO    - or with west:
+INFO    - west build -p -b native_sim/native/64 tests/portable_execution/zephyr -T crux.portable_execution
+INFO    - -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+INFO    - Run completed
