@@ -63,6 +63,12 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-portable-execution.sh
 
+      - name: Validate portable messaging without hardware
+        working-directory: crux-pilot
+        run: |
+          scripts/test-messaging.sh
+          scripts/measure-messaging.sh
+
       - name: Verify M3 device, network and controller paths without hardware
         working-directory: crux-pilot
         run: scripts/test-m3.sh
@@ -87,6 +93,13 @@ jobs:
         with:
           name: zephyr-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            crux-pilot/build/messaging-resource-evidence/
+            crux-pilot/build/zephyr/messaging-resources-*/zephyr/zephyr.map
+            crux-pilot/build/zephyr/messaging-resources-*/zephyr/.config
+            crux-pilot/build/zephyr/twister-messaging/
+            crux-pilot/build/zephyr/messaging-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/messaging-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/messaging-evkb/zephyr/.config
             crux-pilot/build/zephyr/twister-time/twister.json
             crux-pilot/build/zephyr/twister-time/twister.xml
             crux-pilot/build/zephyr/twister-time/twister_report.xml

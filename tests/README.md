@@ -183,3 +183,38 @@ the independent C17/C++17 consumer build without private consumer dependencies.
 See [Configuration qualification](../docs/configuration-validation.md) for the
 focused manual `native_sim` and pinned Settings source-wrapper probe commands.
 These checks do not operate Flash or qualify an adopted persistence backend.
+
+## Portable File software slice
+
+The [File contract](../docs/file-contract.md) and
+[qualification/handoff record](../docs/file-validation.md) cover the Linux Host
+provider and private deterministic failure tests. Normal Host CTest includes
+`File.file_fault` and `File.file_host`; the latter uses an isolated temporary
+root and no hardware. Separate public-only C17/C++17 consumers are built with:
+
+```sh
+cmake -S tests/file_consumer -B build/file-consumers -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/file-consumers
+ctest --test-dir build/file-consumers --output-on-failure
+```
+
+The portable consumer objects link `crux::file`; root selection belongs to a
+separate trusted native fixture. No Zephyr File runtime or production storage
+backend is enabled by these checks.
+
+## Portable queue and monotonic timing
+
+`Queue.*` and `Monotonic.*` run with Host Debug/sanitizer checks. Queue native
+contract models deliberately reproduce pinned Zephyr timeout semantics; actual
+`native_sim` ztests additionally check ownership, admitted cleanup, wakeup,
+MPMC integrity, tick rounding and ISR rejection. Model results do not substitute
+for native-kernel execution.
+
+Run `scripts/test-messaging.sh --host-only` for independently authored C17/C++17
+runtime and portable controller scenarios with public-usage graph guards. The
+full script adds three native_sim configurations and an EVKB cross-build.
+`scripts/measure-messaging.sh` compares same-source no-op images with the full
+callable capability surface deliberately retained in the enabled profile. These
+commands never access hardware. See [the contract](../docs/messaging-contract.md)
+and [validation](../docs/messaging-validation.md) for ownership, cooperative-stop
+semantics, resource profile and qualification limits.

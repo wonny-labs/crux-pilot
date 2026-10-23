@@ -1,0 +1,77 @@
+[0/1] Re-running CMake...
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: $REPO/tests/queue/zephyr
+-- CMake version: 3.28.4
+-- Cache files will be written to: $CONTAINER_HOME/.cache/zephyr
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native/64
+-- Found host-tools: zephyr 1.0.1 ($CACHE/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: host (gcc/ld)
+-- Found BOARD.dts: $WORKSPACE/zephyr/boards/native/native_sim/native_sim_64.dts
+-- Generated zephyr.dts: $REPO/build/queue-twister-extended/native_sim_native_64/host_gnu$REPO/tests/queue/zephyr/crux.queue/zephyr/zephyr.dts
+-- Generated pickled edt: $REPO/build/queue-twister-extended/native_sim_native_64/host_gnu$REPO/tests/queue/zephyr/crux.queue/zephyr/edt.pickle
+-- Generated devicetree_generated.h: $REPO/build/queue-twister-extended/native_sim_native_64/host_gnu$REPO/tests/queue/zephyr/crux.queue/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing $WORKSPACE/zephyr/Kconfig
+Loaded configuration '$REPO/build/queue-twister-extended/native_sim_native_64/host_gnu$REPO/tests/queue/zephyr/crux.queue/zephyr/.config'
+No change to configuration in '$REPO/build/queue-twister-extended/native_sim_native_64/host_gnu$REPO/tests/queue/zephyr/crux.queue/zephyr/.config'
+No change to Kconfig header in '$REPO/build/queue-twister-extended/native_sim_native_64/host_gnu$REPO/tests/queue/zephyr/crux.queue/zephyr/include/generated/zephyr/autoconf.h'
+-- Crux Zephyr integration module discovered
+-- Found gen_kobject_list: $WORKSPACE/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (114.2s)
+-- Generating done (0.2s)
+-- Build files have been written to: $REPO/build/queue-twister-extended/native_sim_native_64/host_gnu$REPO/tests/queue/zephyr/crux.queue
+[1/94] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[2/11] Building C object CMakeFiles/app.dir/src/main.c.obj
+[3/11] Building C object CMakeFiles/app.dir/src/concurrency.c.obj
+[4/11] Generating linker_zephyr_pre0.cmd
+[5/11] Linking C static library app/libapp.a
+[6/11] Building C object modules/m5-execution/CMakeFiles/crux_queue_zephyr.dir$REPO/components/queue/src/queue.c.obj
+[7/11] Building C object modules/m5-execution/CMakeFiles/crux_queue_zephyr.dir$REPO/components/queue/zephyr/queue_port.c.obj
+[8/11] Linking C static library modules/m5-execution/libcrux_queue_zephyr.a
+[9/11] Linking C executable zephyr/zephyr.elf
+Generating files from $REPO/build/queue-twister-extended/native_sim_native_64/host_gnu$REPO/tests/queue/zephyr/crux.queue/zephyr/zephyr.elf for board: native_sim/native/64
+[10/11] Building native simulator runner, and linking final executable
+[11/11] Running utility command for native_runner_executable
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE queue
+===================================================================
+START - test_copy_fifo_and_poll
+ PASS - test_copy_fifo_and_poll in 0.016 seconds
+===================================================================
+START - test_isr_rejection
+ PASS - test_isr_rejection in 0.000 seconds
+===================================================================
+START - test_native_mpmc_integrity
+ PASS - test_native_mpmc_integrity in 0.000 seconds
+===================================================================
+START - test_native_timeout_retains_metadata_ownership
+ PASS - test_native_timeout_retains_metadata_ownership in 0.016 seconds
+===================================================================
+START - test_tick_timeout_no_early_expiry
+ PASS - test_tick_timeout_no_early_expiry in 0.032 seconds
+===================================================================
+START - test_timeout_cleanup_retains_admission
+ PASS - test_timeout_cleanup_retains_admission in 0.016 seconds
+===================================================================
+START - test_waiter_lifecycle_and_wake
+ PASS - test_waiter_lifecycle_and_wake in 0.000 seconds
+===================================================================
+TESTSUITE queue succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [queue]: pass = 7, fail = 0, skip = 0, total = 7 duration = 0.080 seconds
+ - PASS - [queue.test_copy_fifo_and_poll] duration = 0.016 seconds
+ - PASS - [queue.test_isr_rejection] duration = 0.000 seconds
+ - PASS - [queue.test_native_mpmc_integrity] duration = 0.000 seconds
+ - PASS - [queue.test_native_timeout_retains_metadata_ownership] duration = 0.016 seconds
+ - PASS - [queue.test_tick_timeout_no_early_expiry] duration = 0.032 seconds
+ - PASS - [queue.test_timeout_cleanup_retains_admission] duration = 0.016 seconds
+ - PASS - [queue.test_waiter_lifecycle_and_wake] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: e95fdad7d538b6fd5915ba87bb55680b
+PROJECT EXECUTION SUCCESSFUL

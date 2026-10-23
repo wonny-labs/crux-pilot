@@ -1,0 +1,63 @@
+{
+  "baseline": "225cd21b5fff37c31c5dff52570e9f26179682a1",
+  "image": "vsc-crux-pilot-db7dc46d57359f54ecafaf66e70a8eabad7e15a31b94b7aceec26ed291382db2:latest",
+  "image_id": "sha256:16f67fc22a7900e393c0cb2787d79c83f43c8aa505e911540d4c8e7c94c9eed5",
+  "toolchain": {
+    "compiler": "Ubuntu clang 18.1.3",
+    "cmake": "3.28.4",
+    "ninja": "1.11.1.git.kitware.jobserver-1",
+    "clang-format": "18.1.8"
+  },
+  "environment": "Linux amd64; isolated /tmp/crux-file snapshot in own Docker container; no physical/home/socket mounts",
+  "commands": [
+    {
+      "command": "CRUX_CACHE_DIR=/tmp/file-cache scripts/check-host.sh",
+      "result": "exit 0; 78/78 + Host sample"
+    },
+    {
+      "command": "CRUX_CACHE_DIR=/tmp/file-cache CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh",
+      "result": "exit 0; 78/78 + Host sample"
+    },
+    {
+      "command": "cmake -S tests/file_consumer -B build/file-consumers -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON; cmake --build build/file-consumers; ctest --test-dir build/file-consumers --output-on-failure",
+      "result": "all exit 0; 2/2"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/build -v",
+      "result": "exit 0;292 passed"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/build -p test_native_interfaces.py -v",
+      "result": "exit 0;13 passed"
+    },
+    {
+      "command": "CLANG_FORMAT=clang-format scripts/check-format.sh; scripts/check-dependencies.sh; scripts/analyze-host.sh",
+      "result": "all exit 0"
+    }
+  ],
+  "configuration": "Debug and sanitizer presets initially configured with -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=/cache/cmake/googletest-src and CRUX_CACHE_DIR=/tmp/file-cache; PATH=/cache/venv/bin:$PATH; /opt/crux-cache symlink to /cache inside own container for existing venv shebangs. Final builds use local FetchContent output, shared cached source only.",
+  "source_sha256": {
+    ".github/workflows/host.yml": "8c579f1cd8fcd1ef009958df51503cdeab25acee1ce5cef17e30fcf4acc0a68b",
+    "CMakeLists.txt": "ad5fdb4c6981f212068b2743da04a25a1f0c02becc3cfa5d42bc07592ab6714e",
+    "components/file/CMakeLists.txt": "9d40cc17ecda17abab7f7de77077eeeaef43a17ab0634c816b5b146dc36988bc",
+    "components/file/host/file_host.c": "ac932cc34781740970fe8af72da9d9e62ad048cbd1b2b532b57ae384de99e8e9",
+    "components/file/host/file_host.h": "d35770bd790046a39067c4bfc7d1facb4bbf02887d1b8b5972337fe9b496507b",
+    "components/file/include/crux/file.h": "6c69568350da8888799253356c8a379069c435c939d687b2322d50d489d3c761",
+    "components/file/src/file.c": "f5ba79560f13b4afc77c2b18efac51bc667cd5a860296fca2f0dd0df44149f5a",
+    "components/file/src/file_port.h": "1ce779c21a891d85d89bb8d48d50bcfb01b30eae31aafd982bc57e6ad34982d5",
+    "docs/file-contract.md": "cbfa23e569da5bb66165aec99be5fdd6eedce94d2c7025de7297467f771b2805",
+    "docs/file-validation.md": "a299bfd3a680235ebc93d4b21dfda6a27d6ff930ddf553e083721da4cd7d998b",
+    "scripts/analyze-host.sh": "a7fc17d7c70cb06c0247543fd4b6b52c5e8812b1513365df47a48b1edbb492cd",
+    "scripts/check-native-interfaces.py": "f95216a1a73b1b90b7b1cde46e9d41903c8d092075aca3cd47d08b6631b62d2b",
+    "tests/build/test_native_interfaces.py": "c774acb4cd8237af320d4bcc872c5f90012a2c49f88d825c5cada0af66f1e95f",
+    "tests/file/CMakeLists.txt": "a924ed91de3a14a9a1bd25b6095da1c2762a693f65d5c8d845418f607e8e322a",
+    "tests/file/fault_test.c": "6cf4582a15190d6dbb0fc5da82d33299e62ceb4cd3315148b2858ac673413828",
+    "tests/file/host_test.c": "3041ff1a05b43011a21c2b7b07052e541ef89ec358f40358946afc953b7d6372",
+    "tests/file_consumer/CMakeLists.txt": "5ee353cd0f4ffbbc9292012bc3a158419261e5e00c2a128966cb5878817bcd52",
+    "tests/file_consumer/consumer.c": "ef465d310b613713151faf2b252206e00b294b322a7dc6433521dc787f3f73a5",
+    "tests/file_consumer/consumer.cpp": "ef465d310b613713151faf2b252206e00b294b322a7dc6433521dc787f3f73a5",
+    "tests/file_consumer/consumer.h": "6a2583ff96a220d9e667a88771278504eb92e840b515ad02150afd3d72e19448",
+    "tests/file_consumer/fixture.c": "be0c672bcbcce87aab1e5a1115bfef289e15ce4edcb47dfb6acbcf8c3baf9468"
+  },
+  "reviewed_implementation_commit": "3a52636a1aa159b9df2aa90fc195c850b3186b2a"
+}

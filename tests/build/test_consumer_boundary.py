@@ -200,6 +200,47 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                 '  message(FATAL_ERROR "missing native image registration")\nendif()\n')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_selected_sysroot_is_only_a_standard_compile_option(self):
+        cases = (
+            ("/sdk/zephyr/standard", "INTERFACE_COMPILE_OPTIONS", "--sysroot=/sdk/zephyr/standard", True),
+            ("/sdk/zephyr/standard", "INTERFACE_COMPILE_OPTIONS", "--sysroot=/sdk/zephyr/./standard", True),
+            ("/sdk/zephyr/standard", "INTERFACE_COMPILE_OPTIONS", "--sysroot=/sdk/zephyr/other", False),
+            ("/sdk/zephyr/standard", "INTERFACE_COMPILE_OPTIONS", "--sysroot=/sdk/zephyr/standard/child", False),
+            ("/sdk/zephyr/standard", "INTERFACE_COMPILE_OPTIONS", "--sysroot=/sdk/zephyr/standard -include board.h", False),
+            ("/sdk/zephyr/standard", "INTERFACE_COMPILE_OPTIONS", "SHELL:--sysroot=/sdk/zephyr/standard", False),
+            ("/sdk/zephyr/standard", "INTERFACE_INCLUDE_DIRECTORIES", "/sdk/zephyr/standard", False),
+            ("/sdk/zephyr/standard", "INTERFACE_LINK_OPTIONS", "--sysroot=/sdk/zephyr/standard", False),
+            (None, "INTERFACE_COMPILE_OPTIONS", "--sysroot=/sdk/zephyr/standard", False),
+            ("relative", "INTERFACE_COMPILE_OPTIONS", "--sysroot=/sdk/zephyr/standard", False),
+        )
+        for root, prop, value, valid in cases:
+            with self.subTest(root=root, prop=prop, value=value):
+                body = f'set(SYSROOT_DIR "{root}")\n' if root else ''
+                body += ('add_library(portable INTERFACE)\n'
+                         f'set_property(TARGET portable PROPERTY {prop} "{value}")\n'
+                         'crux_assert_portable_usage(portable)\n')
+                result = self.configure(body)
+                self.assertEqual(result.returncode == 0, valid, result.stdout + result.stderr)
+                if not valid:
+                    self.assertIn("native consumer requirement", result.stdout + result.stderr)
+
+    def test_real_messaging_facades_preserve_selected_toolchain_flags(self):
+        result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
+                                'set(CONFIG_CRUX_TIME OFF)\nset(CONFIG_CRUX_EXECUTION ON)\n'
+                                'set(CONFIG_CRUX_QUEUE ON)\nset(CONFIG_CRUX_MONOTONIC ON)\n'
+                                'add_custom_target(zephyr_generated_headers)\n'
+                                'function(zephyr_append_cmake_library name)\n'
+                                'set_property(GLOBAL APPEND PROPERTY ZEPHYR_LIBS "${name}")\n'
+                                'endfunction()\n'
+                                'set(SYSROOT_DIR "/sdk/zephyr/standard")\n'
+                                'set(TOOLCHAIN_C_FLAGS "--sysroot=/sdk/zephyr/standard;-mcpu=cortex-m7")\n'
+                                f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'
+                                'crux_assert_portable_usage(crux::execution crux::queue crux::monotonic)\n'
+                                'get_target_property(flags crux_queue INTERFACE_COMPILE_OPTIONS)\n'
+                                'if(NOT "--sysroot=/sdk/zephyr/standard" IN_LIST flags OR NOT "-mcpu=cortex-m7" IN_LIST flags)\n'
+                                'message(FATAL_ERROR "toolchain flags lost")\nendif()\n')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_real_zephyr_networking_facades_are_portable(self):
         result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
                                 'set(CONFIG_CRUX_SOCKETS ON)\nset(CONFIG_CRUX_NETIF ON)\n'

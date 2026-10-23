@@ -1,0 +1,58 @@
+-- The C compiler identification is Clang 18.1.3
+-- The CXX compiler identification is Clang 18.1.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang-18 - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++-18 - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done (4.7s)
+-- Generating done (0.0s)
+-- Build files have been written to: $REPO/build/monotonic-agent/host
+[1/3] Building C object CMakeFiles/monotonic_common.dir$REPO/components/monotonic/src/monotonic.c.o
+[2/3] Building C object CMakeFiles/monotonic_common.dir/common_test.c.o
+[3/3] Linking C executable monotonic_common
+Internal ctest changing into directory: $REPO/build/monotonic-agent/host
+Test project $REPO/build/monotonic-agent/host
+    Start 1: Monotonic.Common
+1/1 Test #1: Monotonic.Common .................***Failed    0.01 sec
+line 27: crux_monotonic_now(NULL) == CRUX_ERR_INVALID_ARGUMENT
+line 28: crux_monotonic_now(&out) == CRUX_OK && out == 100
+line 30: crux_monotonic_now(&out) == CRUX_ERR_IO && out == 73
+line 32: crux_monotonic_now(&out) == CRUX_ERR_OUT_OF_RANGE && out == 73
+line 34: crux_monotonic_now(&out) == CRUX_ERR_OUT_OF_RANGE && out == 73
+line 36: crux_monotonic_sleep_until(-1) == CRUX_ERR_INVALID_ARGUMENT
+line 37: crux_monotonic_sleep_until(0) == CRUX_OK && waits == 0
+line 38: crux_monotonic_sleep_until(100) == CRUX_OK && waits == 0
+line 39: crux_monotonic_sleep_until(103) == CRUX_OK && now_value == 103 && waits == 3
+line 40: wait_deadlines[0] == 103 && wait_deadlines[1] == 103 && wait_deadlines[2] == 103
+line 42: crux_monotonic_sleep_until(103 + (int64_t)INT32_MAX + 1) == CRUX_ERR_OUT_OF_RANGE
+line 45: crux_monotonic_sleep_until(103 + (int64_t)INT32_MAX) == CRUX_ERR_IO
+line 46: waits == old_waits + 1
+line 48: crux_monotonic_sleep_until(104) == CRUX_ERR_IO
+line 49: waits == old_waits + 1
+line 54: reads == old_reads && waits == old_waits + 1
+line 57: crux_monotonic_ticks_to_ms(127, 128, &out) == CRUX_OK && out == 992
+line 58: crux_monotonic_ticks_to_ms(128, 128, &out) == CRUX_OK && out == 1000
+line 59: crux_monotonic_ticks_to_ms(INT64_MAX, 1000, &out) == CRUX_OK && out == INT64_MAX
+line 61: crux_monotonic_ticks_to_ms(INT64_MAX, 1, &out) == CRUX_ERR_OUT_OF_RANGE && out == 73
+line 62: crux_monotonic_ticks_to_ms(-1, 1000, &out) == CRUX_ERR_OUT_OF_RANGE && out == 73
+line 63: crux_monotonic_ms_to_ticks_ceil(1, 128, &out) == CRUX_OK && out == 1
+line 64: crux_monotonic_ms_to_ticks_ceil(125, 128, &out) == CRUX_OK && out == 16
+line 65: crux_monotonic_ms_to_ticks_ceil(126, 128, &out) == CRUX_OK && out == 17
+line 66: crux_monotonic_ms_to_ticks_ceil(INT64_MAX, 1000, &out) == CRUX_OK && out == INT64_MAX
+line 68: crux_monotonic_ms_to_ticks_ceil(INT64_MAX, 1001, &out) == CRUX_ERR_OUT_OF_RANGE && out == 73
+monotonic common: 26 failures
+
+
+0% tests passed, 1 tests failed out of 1
+
+Total Test time (real) =   0.04 sec
+
+The following tests FAILED:
+	  1 - Monotonic.Common (Failed)
+Errors while running CTest

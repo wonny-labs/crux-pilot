@@ -1,0 +1,145 @@
+[0/1] Re-running CMake...
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: $REPO/tests/monotonic/zephyr
+-- CMake version: 3.28.4
+-- Cache files will be written to: $CONTAINER_HOME/.cache/zephyr
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native/64
+-- Found host-tools: zephyr 1.0.1 ($CACHE/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: host (gcc/ld)
+-- Found BOARD.dts: $WORKSPACE/zephyr/boards/native/native_sim/native_sim_64.dts
+-- Generated zephyr.dts: $REPO/build/monotonic-agent/zephyr/zephyr/zephyr.dts
+-- Generated pickled edt: $REPO/build/monotonic-agent/zephyr/zephyr/edt.pickle
+-- Generated devicetree_generated.h: $REPO/build/monotonic-agent/zephyr/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing $WORKSPACE/zephyr/Kconfig
+Loaded configuration '$REPO/build/monotonic-agent/zephyr/zephyr/.config'
+No change to configuration in '$REPO/build/monotonic-agent/zephyr/zephyr/.config'
+No change to Kconfig header in '$REPO/build/monotonic-agent/zephyr/zephyr/include/generated/zephyr/autoconf.h'
+-- Crux Zephyr integration module discovered
+-- Found gen_kobject_list: $WORKSPACE/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (45.9s)
+-- Generating done (0.7s)
+-- Build files have been written to: $REPO/build/monotonic-agent/zephyr
+[1/92] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[2/87] Building C object zephyr/CMakeFiles/offsets.dir/arch/posix/core/offsets/offsets.c.obj
+[3/87] Generating include/generated/zephyr/offsets.h
+[4/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/libc/validate_libc.c.obj
+[5/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/heap/heap.c.obj
+[6/87] Building C object CMakeFiles/app.dir/src/main.c.obj
+[7/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_packaged.c.obj
+[8/87] Linking C static library app/libapp.a
+[9/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/clock.c.obj
+[10/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/printk.c.obj
+[11/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/sem.c.obj
+[12/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/thread_entry.c.obj
+[13/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_complete.c.obj
+[14/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf.c.obj
+[15/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/assert.c.obj
+[16/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/rb.c.obj
+[17/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/bitarray.c.obj
+[18/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt.c.obj
+[19/87] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt_common.c.obj
+[20/87] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_core.c.obj
+[21/87] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_mgmt.c.obj
+[22/87] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_msg.c.obj
+[23/87] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_output.c.obj
+[24/87] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/backends/log_backend_native_posix.c.obj
+[25/87] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/tracing/tracing_none.c.obj
+[26/87] Generating linker_zephyr_pre0.cmd
+[27/87] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/init.c.obj
+[28/87] Linking C static library zephyr/libzephyr.a
+[29/87] Linking C static library zephyr/arch/common/libarch__common.a
+[30/87] Building C object zephyr/arch/arch/posix/core/CMakeFiles/arch__posix__core.dir/cpuhalt.c.obj
+[31/87] Building C object zephyr/arch/arch/posix/core/CMakeFiles/arch__posix__core.dir/fatal.c.obj
+[32/87] Building C object zephyr/arch/arch/posix/core/CMakeFiles/arch__posix__core.dir/irq.c.obj
+[33/87] Building C object zephyr/arch/arch/posix/core/CMakeFiles/arch__posix__core.dir/swap.c.obj
+[34/87] Building C object zephyr/arch/arch/posix/core/CMakeFiles/arch__posix__core.dir/thread.c.obj
+[35/87] Building C object zephyr/soc/soc/native/CMakeFiles/soc__native__inf_clock.dir/soc.c.obj
+[36/87] Linking C static library zephyr/arch/arch/posix/core/libarch__posix__core.a
+[37/87] Linking C static library zephyr/soc/soc/native/libsoc__native__inf_clock.a
+[38/87] Building C object zephyr/boards/native/native_sim/CMakeFiles/boards__native__native_sim.dir/cpu_wait.c.obj
+[39/87] Building C object zephyr/boards/native/native_sim/CMakeFiles/boards__native__native_sim.dir/nsi_if.c.obj
+[40/87] Building C object zephyr/boards/native/native_sim/CMakeFiles/boards__native__native_sim.dir/irq_handler.c.obj
+[41/87] Building C object zephyr/subsys/testsuite/ztest/CMakeFiles/subsys__testsuite__ztest.dir/src/ztest.c.obj
+[42/87] Linking C static library zephyr/boards/native/native_sim/libboards__native__native_sim.a
+[43/87] Building C object zephyr/subsys/testsuite/ztest/CMakeFiles/subsys__testsuite__ztest.dir/src/ztest_error_hook.c.obj
+[44/87] Building C object zephyr/subsys/testsuite/ztest/CMakeFiles/subsys__testsuite__ztest.dir/src/ztest_rules.c.obj
+[45/87] Building C object zephyr/drivers/console/CMakeFiles/drivers__console.dir/posix_arch_console.c.obj
+[46/87] Building C object zephyr/subsys/testsuite/ztest/CMakeFiles/subsys__testsuite__ztest.dir/src/ztest_posix.c.obj
+[47/87] Linking C static library zephyr/drivers/console/libdrivers__console.a
+[48/87] Linking C static library zephyr/subsys/testsuite/ztest/libsubsys__testsuite__ztest.a
+[49/87] Building C object zephyr/drivers/timer/CMakeFiles/drivers__timer.dir/sys_clock_init.c.obj
+[50/87] Building C object zephyr/drivers/timer/CMakeFiles/drivers__timer.dir/native_sim_timer.c.obj
+[51/87] Linking C static library zephyr/drivers/timer/libdrivers__timer.a
+[52/87] Building C object modules/m5-execution/monotonic/CMakeFiles/crux_monotonic_zephyr.dir/monotonic_zephyr.c.obj
+[53/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/main_weak.c.obj
+[54/87] Linking C static library modules/m5-execution/monotonic/libcrux_monotonic_zephyr.a
+[55/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/banner.c.obj
+[56/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/busy_wait.c.obj
+[57/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/device.c.obj
+[58/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/errno.c.obj
+[59/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/fatal.c.obj
+[60/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/init.c.obj
+[61/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/kheap.c.obj
+[62/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mem_slab.c.obj
+[63/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/float.c.obj
+[64/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/idle.c.obj
+[65/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mailbox.c.obj
+[66/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/msg_q.c.obj
+[67/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mutex.c.obj
+[68/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/queue.c.obj
+[69/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sem.c.obj
+[70/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/stack.c.obj
+[71/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/system_work_q.c.obj
+[72/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/work.c.obj
+[73/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/condvar.c.obj
+[74/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/thread.c.obj
+[75/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sched.c.obj
+[76/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/pipe.c.obj
+[77/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeslicing.c.obj
+[78/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/spinlock_validate.c.obj
+[79/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/irq_offload.c.obj
+[80/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeout.c.obj
+[81/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timer.c.obj
+[82/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mempool.c.obj
+[83/87] Building C object zephyr/kernel/CMakeFiles/kernel.dir/dynamic_disabled.c.obj
+[84/87] Linking C static library zephyr/kernel/libkernel.a
+[85/87] Linking C executable zephyr/zephyr.elf
+Generating files from $REPO/build/monotonic-agent/zephyr/zephyr/zephyr.elf for board: native_sim/native/64
+[86/87] Building native simulator runner, and linking final executable
+[87/87] Running utility command for native_runner_executable
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE monotonic
+===================================================================
+START - test_exact_and_fractional_tick_deadlines
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:22: monotonic_test_exact_and_fractional_tick_deadlines: crux_monotonic_now(&now) not equal to CRUX_OK
+
+ FAIL - test_exact_and_fractional_tick_deadlines in 0.000 seconds
+===================================================================
+START - test_isr_rejection
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:45: monotonic_test_isr_rejection: isr_now_status not equal to CRUX_ERR_NOT_SUPPORTED
+
+ FAIL - test_isr_rejection in 0.000 seconds
+===================================================================
+START - test_observations_and_validation
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/main.c:9: monotonic_test_observations_and_validation: crux_monotonic_now(&now) not equal to CRUX_OK
+
+ FAIL - test_observations_and_validation in 0.000 seconds
+===================================================================
+TESTSUITE monotonic failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -   0.00% [monotonic]: pass = 0, fail = 3, skip = 0, total = 3 duration = 0.000 seconds
+ - FAIL - [monotonic.test_exact_and_fractional_tick_deadlines] duration = 0.000 seconds
+ - FAIL - [monotonic.test_isr_rejection] duration = 0.000 seconds
+ - FAIL - [monotonic.test_observations_and_validation] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED

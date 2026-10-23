@@ -1,0 +1,9 @@
+tests:
+  crux.messaging.runtime_consumer:
+    platform_allow: [native_sim/native/64]
+    timeout: 20
+    harness: console
+    harness_config:
+      type: one_line
+      regex: ["MESSAGING_NATIVE_CONSUMER passed"]
+    tags: [crux, messaging]

@@ -1,0 +1,12 @@
+--- <REPO>/build/messaging-resource-evidence/baseline.config	2026-10-23 17:56:38.582961051 +0000
++++ <REPO>/build/messaging-resource-evidence/enabled.config	2026-10-23 17:56:41.255381167 +0000
+@@ -213,8 +213,8 @@
+ #
+ CONFIG_CRUX_PILOT_MODULE=y
+ # CONFIG_CRUX_EXECUTION is not set
+-# CONFIG_CRUX_QUEUE is not set
+-# CONFIG_CRUX_MONOTONIC is not set
++CONFIG_CRUX_QUEUE=y
++CONFIG_CRUX_MONOTONIC=y
+ CONFIG_ZEPHYR_M5_EXECUTION_MODULE=y
+ # end of m5-execution (<REPO>)

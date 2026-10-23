@@ -46,6 +46,16 @@ It does not qualify pthreads, general POSIX use or a general clock service.
 Architecture approval, software integration and physical qualification remain
 separate. No additional socket wrapper is required by this boundary policy.
 
+### Selected standard-library toolchain sysroot
+
+Portable objects still require the selected CPU/ABI and standard C library.
+The usage guard recognises a complete `--sysroot=<path>` compile option only
+when its normalised absolute path exactly equals the selected toolchain's
+`SYSROOT_DIR`. This is not an SDK-prefix or native-header exception. Different
+roots, child paths, compound flag strings, include paths and link options remain
+subject to the existing native checks. New Queue/Monotonic/Execution combined
+consumer probes cover this distinction on Host, native_sim and EVKB builds.
+
 ### Scoped #28 integration
 
 The common checker registers exactly `samples/networking/client.{c,h}`,

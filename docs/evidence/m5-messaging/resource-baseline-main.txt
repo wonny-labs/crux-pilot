@@ -1,0 +1,11 @@
+
+<REPO>/build/zephyr/messaging-resources-baseline/zephyr/zephyr.elf:     file format elf32-littlearm
+
+
+Disassembly of section rom_start:
+
+Disassembly of section text:
+
+60004e06 <main>:
+60004e06:	2000      	movs	r0, #0
+60004e08:	4770      	bx	lr

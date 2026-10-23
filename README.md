@@ -133,3 +133,9 @@ The portable [Configuration contract](docs/configuration-contract.md) provides
 application-owned BOOL/U32 validation, explicit save/load and canonical encoding.
 Its [software qualification](docs/configuration-validation.md) uses a deterministic
 private provider; native Settings integration and physical persistence remain gated.
+
+The software-qualified [portable File contract](docs/file-contract.md) exposes
+bounded synchronous file operations through `crux::file`, with a Linux Host
+provider and deterministic failure tests. Its [validation and Zephyr handoff
+plan](docs/file-validation.md) document the separate native composition work;
+no production Flash layout or writable QSPI backend is enabled.
