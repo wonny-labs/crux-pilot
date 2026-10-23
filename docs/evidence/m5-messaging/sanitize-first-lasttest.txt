@@ -1,0 +1,2120 @@
+Start testing: Oct 23 16:26 UTC
+----------------------------------------------------------
+1/83 Testing: Execution.PosixProbes
+1/83 Test: Execution.PosixProbes
+Command: "$REPO/build/linux/sanitize/crux_posix_probes"
+Directory: $REPO/build/linux/sanitize
+"Execution.PosixProbes" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+PROBE posix default_stack=8388608 policy=0 priority=0
+PROBE posix worker_policy=0 priority=0
+PROBE posix worker_policy=0 priority=0
+PROBE posix worker_policy=0 priority=0
+PROBE posix cycle=0 lateness_ms=1
+PROBE posix cycle=1 lateness_ms=2
+PROBE posix cycle=2 lateness_ms=0
+PROBE posix cycle=3 lateness_ms=0
+PROBE posix cycle=4 lateness_ms=0
+PROBE posix cycle=5 lateness_ms=0
+PROBE posix periodic elapsed_ms=80 skipped=2
+POSIX probes: 5 passed
+<end of output>
+Test time =   0.34 sec
+----------------------------------------------------------
+Test Passed.
+"Execution.PosixProbes" end time: Oct 23 16:26 UTC
+"Execution.PosixProbes" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/83 Testing: Controller.HostScenario
+2/83 Test: Controller.HostScenario
+Command: "$CACHE/venv/bin/python3.12" "$REPO/scripts/check-controller.py" "$REPO/build/linux/sanitize/samples/controller/host/crux-controller-host" "--log" "$REPO/build/linux/sanitize/samples/controller/host/controller.log"
+Directory: $REPO/build/linux/sanitize/samples/controller/host
+"Controller.HostScenario" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Controller 20-cycle scenario, unset/valid UTC and backward UTC step: passed
+<end of output>
+Test time =   2.72 sec
+----------------------------------------------------------
+Test Passed.
+"Controller.HostScenario" end time: Oct 23 16:26 UTC
+"Controller.HostScenario" time elapsed: 00:00:02
+----------------------------------------------------------
+
+3/83 Testing: TimeApiTest.InitStartsReadyButUnset
+3/83 Test: TimeApiTest.InitStartsReadyButUnset
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.InitStartsReadyButUnset" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeApiTest.InitStartsReadyButUnset" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.InitStartsReadyButUnset
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.InitStartsReadyButUnset
+[       OK ] TimeApiTest.InitStartsReadyButUnset (1 ms)
+[----------] 1 test from TimeApiTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.31 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.InitStartsReadyButUnset" end time: Oct 23 16:26 UTC
+"TimeApiTest.InitStartsReadyButUnset" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/83 Testing: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+4/83 Test: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+[       OK ] TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness (54 ms)
+[----------] 1 test from TimeApiTest (55 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (63 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.33 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness" end time: Oct 23 16:26 UTC
+"TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/83 Testing: TimeApiTest.FailedInitialisationCanBeRetried
+5/83 Test: TimeApiTest.FailedInitialisationCanBeRetried
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.FailedInitialisationCanBeRetried" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeApiTest.FailedInitialisationCanBeRetried" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.FailedInitialisationCanBeRetried
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.FailedInitialisationCanBeRetried
+[       OK ] TimeApiTest.FailedInitialisationCanBeRetried (2 ms)
+[----------] 1 test from TimeApiTest (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (12 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.50 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.FailedInitialisationCanBeRetried" end time: Oct 23 16:26 UTC
+"TimeApiTest.FailedInitialisationCanBeRetried" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/83 Testing: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+6/83 Test: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+[       OK ] TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend (3 ms)
+[----------] 1 test from TimeApiTest (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (20 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   1.09 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend" end time: Oct 23 16:26 UTC
+"TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend" time elapsed: 00:00:01
+----------------------------------------------------------
+
+7/83 Testing: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+7/83 Test: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+[       OK ] TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime (1 ms)
+[----------] 1 test from TimeApiTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.29 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime" end time: Oct 23 16:26 UTC
+"TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/83 Testing: TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+8/83 Test: TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.FailedBackendWriteInvalidatesSessionTime" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeApiTest.FailedBackendWriteInvalidatesSessionTime" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+[       OK ] TimeApiTest.FailedBackendWriteInvalidatesSessionTime (1 ms)
+[----------] 1 test from TimeApiTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.29 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.FailedBackendWriteInvalidatesSessionTime" end time: Oct 23 16:26 UTC
+"TimeApiTest.FailedBackendWriteInvalidatesSessionTime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/83 Testing: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+9/83 Test: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+[       OK ] TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged (1 ms)
+[----------] 1 test from TimeApiTest (32 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (38 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.18 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged" end time: Oct 23 16:26 UTC
+"TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/83 Testing: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+10/83 Test: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.SuccessfulInjectedReadReturnsStoredValue" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeApiTest.SuccessfulInjectedReadReturnsStoredValue" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+[       OK ] TimeApiTest.SuccessfulInjectedReadReturnsStoredValue (1 ms)
+[----------] 1 test from TimeApiTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.13 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.SuccessfulInjectedReadReturnsStoredValue" end time: Oct 23 16:26 UTC
+"TimeApiTest.SuccessfulInjectedReadReturnsStoredValue" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/83 Testing: TimeApiTest.BackendNoDataClearsCommonValidity
+11/83 Test: TimeApiTest.BackendNoDataClearsCommonValidity
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.BackendNoDataClearsCommonValidity" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeApiTest.BackendNoDataClearsCommonValidity" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.BackendNoDataClearsCommonValidity
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.BackendNoDataClearsCommonValidity
+[       OK ] TimeApiTest.BackendNoDataClearsCommonValidity (1 ms)
+[----------] 1 test from TimeApiTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (56 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.17 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.BackendNoDataClearsCommonValidity" end time: Oct 23 16:26 UTC
+"TimeApiTest.BackendNoDataClearsCommonValidity" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/83 Testing: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+12/83 Test: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+[       OK ] TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput (2 ms)
+[----------] 1 test from TimeApiTest (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (68 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.31 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput" end time: Oct 23 16:26 UTC
+"TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput" time elapsed: 00:00:00
+----------------------------------------------------------
+
+13/83 Testing: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+13/83 Test: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+[       OK ] TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds (1 ms)
+[----------] 1 test from TimeApiTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (65 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.31 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds" end time: Oct 23 16:26 UTC
+"TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds" time elapsed: 00:00:00
+----------------------------------------------------------
+
+14/83 Testing: TimeCalendar.ConvertsIndependentUnixEpochAnchor
+14/83 Test: TimeCalendar.ConvertsIndependentUnixEpochAnchor
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.ConvertsIndependentUnixEpochAnchor" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCalendar.ConvertsIndependentUnixEpochAnchor" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.ConvertsIndependentUnixEpochAnchor
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.ConvertsIndependentUnixEpochAnchor
+[       OK ] TimeCalendar.ConvertsIndependentUnixEpochAnchor (2 ms)
+[----------] 1 test from TimeCalendar (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.ConvertsIndependentUnixEpochAnchor" end time: Oct 23 16:26 UTC
+"TimeCalendar.ConvertsIndependentUnixEpochAnchor" time elapsed: 00:00:00
+----------------------------------------------------------
+
+15/83 Testing: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+15/83 Test: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+[       OK ] TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors (5 ms)
+[----------] 1 test from TimeCalendar (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (18 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.32 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors" end time: Oct 23 16:26 UTC
+"TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors" time elapsed: 00:00:00
+----------------------------------------------------------
+
+16/83 Testing: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+16/83 Test: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+[       OK ] TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd (2 ms)
+[----------] 1 test from TimeCalendar (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (12 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.30 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd" end time: Oct 23 16:26 UTC
+"TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd" time elapsed: 00:00:00
+----------------------------------------------------------
+
+17/83 Testing: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+17/83 Test: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+[       OK ] TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes (2 ms)
+[----------] 1 test from TimeCalendar (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (16 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.24 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes" end time: Oct 23 16:26 UTC
+"TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes" time elapsed: 00:00:00
+----------------------------------------------------------
+
+18/83 Testing: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+18/83 Test: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.RejectsInvalidFieldsAndPreservesOutput" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCalendar.RejectsInvalidFieldsAndPreservesOutput" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+[       OK ] TimeCalendar.RejectsInvalidFieldsAndPreservesOutput (1 ms)
+[----------] 1 test from TimeCalendar (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (10 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.45 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.RejectsInvalidFieldsAndPreservesOutput" end time: Oct 23 16:26 UTC
+"TimeCalendar.RejectsInvalidFieldsAndPreservesOutput" time elapsed: 00:00:00
+----------------------------------------------------------
+
+19/83 Testing: TimeCalendar.NullArgumentsAreInvalid
+19/83 Test: TimeCalendar.NullArgumentsAreInvalid
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.NullArgumentsAreInvalid" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCalendar.NullArgumentsAreInvalid" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.NullArgumentsAreInvalid
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.NullArgumentsAreInvalid
+[       OK ] TimeCalendar.NullArgumentsAreInvalid (1 ms)
+[----------] 1 test from TimeCalendar (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.32 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.NullArgumentsAreInvalid" end time: Oct 23 16:26 UTC
+"TimeCalendar.NullArgumentsAreInvalid" time elapsed: 00:00:00
+----------------------------------------------------------
+
+20/83 Testing: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+20/83 Test: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.RoundTripsMonthBoundariesAndLeapDay" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCalendar.RoundTripsMonthBoundariesAndLeapDay" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+[       OK ] TimeCalendar.RoundTripsMonthBoundariesAndLeapDay (2 ms)
+[----------] 1 test from TimeCalendar (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (70 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.28 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.RoundTripsMonthBoundariesAndLeapDay" end time: Oct 23 16:26 UTC
+"TimeCalendar.RoundTripsMonthBoundariesAndLeapDay" time elapsed: 00:00:00
+----------------------------------------------------------
+
+21/83 Testing: TimeCommandTest.HelpIdentifiesUtcInput
+21/83 Test: TimeCommandTest.HelpIdentifiesUtcInput
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.HelpIdentifiesUtcInput" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCommandTest.HelpIdentifiesUtcInput" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.HelpIdentifiesUtcInput
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.HelpIdentifiesUtcInput
+[       OK ] TimeCommandTest.HelpIdentifiesUtcInput (1 ms)
+[----------] 1 test from TimeCommandTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.HelpIdentifiesUtcInput" end time: Oct 23 16:26 UTC
+"TimeCommandTest.HelpIdentifiesUtcInput" time elapsed: 00:00:00
+----------------------------------------------------------
+
+22/83 Testing: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+22/83 Test: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.NoDataApiStatusMapsToDistinctCliText" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCommandTest.NoDataApiStatusMapsToDistinctCliText" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (1 ms)
+[----------] 1 test from TimeCommandTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (51 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.27 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.NoDataApiStatusMapsToDistinctCliText" end time: Oct 23 16:26 UTC
+"TimeCommandTest.NoDataApiStatusMapsToDistinctCliText" time elapsed: 00:00:00
+----------------------------------------------------------
+
+23/83 Testing: TimeCommandTest.SetAndGetUseTheSamePortableHandler
+23/83 Test: TimeCommandTest.SetAndGetUseTheSamePortableHandler
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.SetAndGetUseTheSamePortableHandler" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCommandTest.SetAndGetUseTheSamePortableHandler" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.SetAndGetUseTheSamePortableHandler
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.SetAndGetUseTheSamePortableHandler
+[       OK ] TimeCommandTest.SetAndGetUseTheSamePortableHandler (2 ms)
+[----------] 1 test from TimeCommandTest (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.19 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.SetAndGetUseTheSamePortableHandler" end time: Oct 23 16:26 UTC
+"TimeCommandTest.SetAndGetUseTheSamePortableHandler" time elapsed: 00:00:00
+----------------------------------------------------------
+
+24/83 Testing: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+24/83 Test: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+[       OK ] TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf (2 ms)
+[----------] 1 test from TimeCommandTest (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (54 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf" end time: Oct 23 16:26 UTC
+"TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf" time elapsed: 00:00:00
+----------------------------------------------------------
+
+25/83 Testing: TimeCommandTest.HelpIsAnAdapterOutcome
+25/83 Test: TimeCommandTest.HelpIsAnAdapterOutcome
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.HelpIsAnAdapterOutcome" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCommandTest.HelpIsAnAdapterOutcome" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.HelpIsAnAdapterOutcome
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.HelpIsAnAdapterOutcome
+[       OK ] TimeCommandTest.HelpIsAnAdapterOutcome (1 ms)
+[----------] 1 test from TimeCommandTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.22 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.HelpIsAnAdapterOutcome" end time: Oct 23 16:26 UTC
+"TimeCommandTest.HelpIsAnAdapterOutcome" time elapsed: 00:00:00
+----------------------------------------------------------
+
+26/83 Testing: TimeCommandTest.RejectsMalformedSyntaxAndDates
+26/83 Test: TimeCommandTest.RejectsMalformedSyntaxAndDates
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.RejectsMalformedSyntaxAndDates" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCommandTest.RejectsMalformedSyntaxAndDates" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.RejectsMalformedSyntaxAndDates
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.RejectsMalformedSyntaxAndDates
+[       OK ] TimeCommandTest.RejectsMalformedSyntaxAndDates (2 ms)
+[----------] 1 test from TimeCommandTest (67 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (74 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.38 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.RejectsMalformedSyntaxAndDates" end time: Oct 23 16:26 UTC
+"TimeCommandTest.RejectsMalformedSyntaxAndDates" time elapsed: 00:00:00
+----------------------------------------------------------
+
+27/83 Testing: TimeCommandTest.MapsOutOfRangeAndIoErrors
+27/83 Test: TimeCommandTest.MapsOutOfRangeAndIoErrors
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.MapsOutOfRangeAndIoErrors" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCommandTest.MapsOutOfRangeAndIoErrors" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.MapsOutOfRangeAndIoErrors
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.MapsOutOfRangeAndIoErrors
+[       OK ] TimeCommandTest.MapsOutOfRangeAndIoErrors (2 ms)
+[----------] 1 test from TimeCommandTest (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.38 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.MapsOutOfRangeAndIoErrors" end time: Oct 23 16:26 UTC
+"TimeCommandTest.MapsOutOfRangeAndIoErrors" time elapsed: 00:00:00
+----------------------------------------------------------
+
+28/83 Testing: TimeCommandTest.RejectedWriteNeverCallsBackend
+28/83 Test: TimeCommandTest.RejectedWriteNeverCallsBackend
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.RejectedWriteNeverCallsBackend" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCommandTest.RejectedWriteNeverCallsBackend" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.RejectedWriteNeverCallsBackend
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.RejectedWriteNeverCallsBackend
+[       OK ] TimeCommandTest.RejectedWriteNeverCallsBackend (2 ms)
+[----------] 1 test from TimeCommandTest (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (10 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.RejectedWriteNeverCallsBackend" end time: Oct 23 16:26 UTC
+"TimeCommandTest.RejectedWriteNeverCallsBackend" time elapsed: 00:00:00
+----------------------------------------------------------
+
+29/83 Testing: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+29/83 Test: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+Command: "$REPO/build/linux/sanitize/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/time
+"TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+[       OK ] TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime (3 ms)
+[----------] 1 test from TimeCommandTest (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.22 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime" end time: Oct 23 16:26 UTC
+"TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+30/83 Testing: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+30/83 Test: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerTest
+[ RUN      ] ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+[       OK ] ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover (2 ms)
+[----------] 1 test from ControllerTest (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.29 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover" end time: Oct 23 16:26 UTC
+"ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover" time elapsed: 00:00:00
+----------------------------------------------------------
+
+31/83 Testing: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+31/83 Test: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerTest
+[ RUN      ] ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+[       OK ] ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity (2 ms)
+[----------] 1 test from ControllerTest (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity" end time: Oct 23 16:26 UTC
+"ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity" time elapsed: 00:00:00
+----------------------------------------------------------
+
+32/83 Testing: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+32/83 Test: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerTest.UtcStepDoesNotChangeMonotonicSchedule" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerTest.UtcStepDoesNotChangeMonotonicSchedule" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerTest
+[ RUN      ] ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+[       OK ] ControllerTest.UtcStepDoesNotChangeMonotonicSchedule (2 ms)
+[----------] 1 test from ControllerTest (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerTest.UtcStepDoesNotChangeMonotonicSchedule" end time: Oct 23 16:26 UTC
+"ControllerTest.UtcStepDoesNotChangeMonotonicSchedule" time elapsed: 00:00:00
+----------------------------------------------------------
+
+33/83 Testing: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+33/83 Test: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerSchedule
+[ RUN      ] ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+[       OK ] ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst (1 ms)
+[----------] 1 test from ControllerSchedule (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst" end time: Oct 23 16:26 UTC
+"ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst" time elapsed: 00:00:00
+----------------------------------------------------------
+
+34/83 Testing: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+34/83 Test: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerSchedule
+[ RUN      ] ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+[       OK ] ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline (1 ms)
+[----------] 1 test from ControllerSchedule (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.42 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline" end time: Oct 23 16:26 UTC
+"ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline" time elapsed: 00:00:00
+----------------------------------------------------------
+
+35/83 Testing: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+35/83 Test: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime" start time: Oct 23 16:26 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerHealth
+[ RUN      ] ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+[       OK ] ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime (2 ms)
+[----------] 1 test from ControllerHealth (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =  10.01 sec
+----------------------------------------------------------
+Test Failed.
+"ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime" end time: Oct 23 16:27 UTC
+"ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime" time elapsed: 00:00:10
+----------------------------------------------------------
+
+36/83 Testing: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+36/83 Test: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerHealth
+[ RUN      ] ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+[       OK ] ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress (2 ms)
+[----------] 1 test from ControllerHealth (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (10 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.30 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress" end time: Oct 23 16:27 UTC
+"ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress" time elapsed: 00:00:00
+----------------------------------------------------------
+
+37/83 Testing: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+37/83 Test: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerHealth
+[ RUN      ] ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+[       OK ] ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress (3 ms)
+[----------] 1 test from ControllerHealth (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (12 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.37 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress" end time: Oct 23 16:27 UTC
+"ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress" time elapsed: 00:00:00
+----------------------------------------------------------
+
+38/83 Testing: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+38/83 Test: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerHealth
+[ RUN      ] ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+[       OK ] ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError (2 ms)
+[----------] 1 test from ControllerHealth (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (14 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.51 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError" end time: Oct 23 16:27 UTC
+"ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError" time elapsed: 00:00:00
+----------------------------------------------------------
+
+39/83 Testing: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+39/83 Test: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerHealth
+[ RUN      ] ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+[       OK ] ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering (1 ms)
+[----------] 1 test from ControllerHealth (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.29 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering" end time: Oct 23 16:27 UTC
+"ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering" time elapsed: 00:00:00
+----------------------------------------------------------
+
+40/83 Testing: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+40/83 Test: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerReadiness
+[ RUN      ] ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+[       OK ] ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation (1 ms)
+[----------] 1 test from ControllerReadiness (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.22 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation" end time: Oct 23 16:27 UTC
+"ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+41/83 Testing: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+41/83 Test: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerJointHealth
+[ RUN      ] ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+[       OK ] ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork (2 ms)
+[----------] 1 test from ControllerJointHealth (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.20 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork" end time: Oct 23 16:27 UTC
+"ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork" time elapsed: 00:00:00
+----------------------------------------------------------
+
+42/83 Testing: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+42/83 Test: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+Command: "$REPO/build/linux/sanitize/tests/controller/crux_controller_tests" "--gtest_filter=ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/controller
+"ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerM3Budget
+[ RUN      ] ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+[       OK ] ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom (2 ms)
+[----------] 1 test from ControllerM3Budget (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.19 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom" end time: Oct 23 16:27 UTC
+"ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom" time elapsed: 00:00:00
+----------------------------------------------------------
+
+43/83 Testing: Execution.Conformance
+43/83 Test: Execution.Conformance
+Command: "$REPO/build/linux/sanitize/tests/portable_execution/crux_execution_conformance"
+Directory: $REPO/build/linux/sanitize/tests/portable_execution
+"Execution.Conformance" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+EXECUTION_CONFORMANCE passed=10
+<end of output>
+Test time =   0.17 sec
+----------------------------------------------------------
+Test Passed.
+"Execution.Conformance" end time: Oct 23 16:27 UTC
+"Execution.Conformance" time elapsed: 00:00:00
+----------------------------------------------------------
+
+44/83 Testing: Execution.HostFailures
+44/83 Test: Execution.HostFailures
+Command: "$REPO/build/linux/sanitize/tests/portable_execution/crux_execution_host_failures"
+Directory: $REPO/build/linux/sanitize/tests/portable_execution
+"Execution.HostFailures" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+EXECUTION_FAILURES rollback and deadline overflow passed
+<end of output>
+Test time =   0.19 sec
+----------------------------------------------------------
+Test Passed.
+"Execution.HostFailures" end time: Oct 23 16:27 UTC
+"Execution.HostFailures" time elapsed: 00:00:00
+----------------------------------------------------------
+
+45/83 Testing: Execution.HostPoll
+45/83 Test: Execution.HostPoll
+Command: "$REPO/build/linux/sanitize/tests/portable_execution/crux_execution_host_poll"
+Directory: $REPO/build/linux/sanitize/tests/portable_execution
+"Execution.HostPoll" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.19 sec
+----------------------------------------------------------
+Test Passed.
+"Execution.HostPoll" end time: Oct 23 16:27 UTC
+"Execution.HostPoll" time elapsed: 00:00:00
+----------------------------------------------------------
+
+46/83 Testing: Execution.HostAdmission
+46/83 Test: Execution.HostAdmission
+Command: "$REPO/build/linux/sanitize/tests/portable_execution/crux_execution_host_admission"
+Directory: $REPO/build/linux/sanitize/tests/portable_execution
+"Execution.HostAdmission" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.40 sec
+----------------------------------------------------------
+Test Passed.
+"Execution.HostAdmission" end time: Oct 23 16:27 UTC
+"Execution.HostAdmission" time elapsed: 00:00:00
+----------------------------------------------------------
+
+47/83 Testing: Execution.HostPollFinalize
+47/83 Test: Execution.HostPollFinalize
+Command: "$REPO/build/linux/sanitize/tests/portable_execution/crux_execution_host_poll_finalize"
+Directory: $REPO/build/linux/sanitize/tests/portable_execution
+"Execution.HostPollFinalize" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.40 sec
+----------------------------------------------------------
+Test Passed.
+"Execution.HostPollFinalize" end time: Oct 23 16:27 UTC
+"Execution.HostPollFinalize" time elapsed: 00:00:00
+----------------------------------------------------------
+
+48/83 Testing: Queue.Basic
+48/83 Test: Queue.Basic
+Command: "$REPO/build/linux/sanitize/tests/queue/crux_queue_basic"
+Directory: $REPO/build/linux/sanitize/tests/queue
+"Queue.Basic" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+queue copy/FIFO/capacity passed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Passed.
+"Queue.Basic" end time: Oct 23 16:27 UTC
+"Queue.Basic" time elapsed: 00:00:00
+----------------------------------------------------------
+
+49/83 Testing: Queue.Concurrency
+49/83 Test: Queue.Concurrency
+Command: "$REPO/build/linux/sanitize/tests/queue/crux_queue_concurrency"
+Directory: $REPO/build/linux/sanitize/tests/queue
+"Queue.Concurrency" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+queue controlled wait/admission/lifetime passed
+<end of output>
+Test time =   0.27 sec
+----------------------------------------------------------
+Test Passed.
+"Queue.Concurrency" end time: Oct 23 16:27 UTC
+"Queue.Concurrency" time elapsed: 00:00:00
+----------------------------------------------------------
+
+50/83 Testing: Queue.limits
+50/83 Test: Queue.limits
+Command: "$REPO/build/linux/sanitize/tests/queue/crux_queue_limits"
+Directory: $REPO/build/linux/sanitize/tests/queue
+"Queue.limits" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+queue limits/failure atomicity/stale handles passed
+<end of output>
+Test time =   0.22 sec
+----------------------------------------------------------
+Test Passed.
+"Queue.limits" end time: Oct 23 16:27 UTC
+"Queue.limits" time elapsed: 00:00:00
+----------------------------------------------------------
+
+51/83 Testing: Queue.mpmc
+51/83 Test: Queue.mpmc
+Command: "$REPO/build/linux/sanitize/tests/queue/crux_queue_mpmc"
+Directory: $REPO/build/linux/sanitize/tests/queue
+"Queue.mpmc" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+queue MPMC copied integrity passed
+<end of output>
+Test time =   0.27 sec
+----------------------------------------------------------
+Test Passed.
+"Queue.mpmc" end time: Oct 23 16:27 UTC
+"Queue.mpmc" time elapsed: 00:00:00
+----------------------------------------------------------
+
+52/83 Testing: Monotonic.Common
+52/83 Test: Monotonic.Common
+Command: "$REPO/build/linux/sanitize/tests/monotonic/host/monotonic_common"
+Directory: $REPO/build/linux/sanitize/tests/monotonic/host
+"Monotonic.Common" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+monotonic common: 0 failures
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Passed.
+"Monotonic.Common" end time: Oct 23 16:27 UTC
+"Monotonic.Common" time elapsed: 00:00:00
+----------------------------------------------------------
+
+53/83 Testing: Monotonic.NativeBoundaries
+53/83 Test: Monotonic.NativeBoundaries
+Command: "$REPO/build/linux/sanitize/tests/monotonic/host/monotonic_native"
+Directory: $REPO/build/linux/sanitize/tests/monotonic/host
+"Monotonic.NativeBoundaries" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+monotonic native boundaries: 0 failures
+<end of output>
+Test time =   0.23 sec
+----------------------------------------------------------
+Test Passed.
+"Monotonic.NativeBoundaries" end time: Oct 23 16:27 UTC
+"Monotonic.NativeBoundaries" time elapsed: 00:00:00
+----------------------------------------------------------
+
+54/83 Testing: Monotonic.RealHost
+54/83 Test: Monotonic.RealHost
+Command: "$REPO/build/linux/sanitize/tests/monotonic/host/monotonic_real"
+Directory: $REPO/build/linux/sanitize/tests/monotonic/host
+"Monotonic.RealHost" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+real Host absolute wait: 21 ms
+<end of output>
+Test time =   0.31 sec
+----------------------------------------------------------
+Test Passed.
+"Monotonic.RealHost" end time: Oct 23 16:27 UTC
+"Monotonic.RealHost" time elapsed: 00:00:00
+----------------------------------------------------------
+
+55/83 Testing: Netif.RejectsNull
+55/83 Test: Netif.RejectsNull
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.RejectsNull" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Netif.RejectsNull" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Netif.RejectsNull
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Netif
+[ RUN      ] Netif.RejectsNull
+[       OK ] Netif.RejectsNull (2 ms)
+[----------] 1 test from Netif (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (15 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.41 sec
+----------------------------------------------------------
+Test Passed.
+"Netif.RejectsNull" end time: Oct 23 16:27 UTC
+"Netif.RejectsNull" time elapsed: 00:00:00
+----------------------------------------------------------
+
+56/83 Testing: Netif.PreservesOutputWhenObservationFails
+56/83 Test: Netif.PreservesOutputWhenObservationFails
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.PreservesOutputWhenObservationFails" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Netif.PreservesOutputWhenObservationFails" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Netif.PreservesOutputWhenObservationFails
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Netif
+[ RUN      ] Netif.PreservesOutputWhenObservationFails
+[       OK ] Netif.PreservesOutputWhenObservationFails (1 ms)
+[----------] 1 test from Netif (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.31 sec
+----------------------------------------------------------
+Test Passed.
+"Netif.PreservesOutputWhenObservationFails" end time: Oct 23 16:27 UTC
+"Netif.PreservesOutputWhenObservationFails" time elapsed: 00:00:00
+----------------------------------------------------------
+
+57/83 Testing: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
+57/83 Test: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.AddressRemainsConfiguredWhenLinkAndAdminDown" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Netif.AddressRemainsConfiguredWhenLinkAndAdminDown" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Netif
+[ RUN      ] Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
+[       OK ] Netif.AddressRemainsConfiguredWhenLinkAndAdminDown (1 ms)
+[----------] 1 test from Netif (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.20 sec
+----------------------------------------------------------
+Test Passed.
+"Netif.AddressRemainsConfiguredWhenLinkAndAdminDown" end time: Oct 23 16:27 UTC
+"Netif.AddressRemainsConfiguredWhenLinkAndAdminDown" time elapsed: 00:00:00
+----------------------------------------------------------
+
+58/83 Testing: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
+58/83 Test: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Netif
+[ RUN      ] Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
+[       OK ] Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier (3 ms)
+[----------] 1 test from Netif (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (17 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.36 sec
+----------------------------------------------------------
+Test Passed.
+"Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier" end time: Oct 23 16:27 UTC
+"Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier" time elapsed: 00:00:00
+----------------------------------------------------------
+
+59/83 Testing: Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
+59/83 Test: Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_netif_tests" "--gtest_filter=Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Netif
+[ RUN      ] Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
+[       OK ] Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal (1 ms)
+[----------] 1 test from Netif (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.22 sec
+----------------------------------------------------------
+Test Passed.
+"Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal" end time: Oct 23 16:27 UTC
+"Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal" time elapsed: 00:00:00
+----------------------------------------------------------
+
+60/83 Testing: NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
+60/83 Test: NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_netif_host_tests" "--gtest_filter=NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from NetifHost
+[ RUN      ] NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
+[       OK ] NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin (6 ms)
+[----------] 1 test from NetifHost (7 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (18 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.87 sec
+----------------------------------------------------------
+Test Passed.
+"NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin" end time: Oct 23 16:27 UTC
+"NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin" time elapsed: 00:00:00
+----------------------------------------------------------
+
+61/83 Testing: Client.TcpHandlesShortTransfersWithinOneDeadline
+61/83 Test: Client.TcpHandlesShortTransfersWithinOneDeadline
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.TcpHandlesShortTransfersWithinOneDeadline" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.TcpHandlesShortTransfersWithinOneDeadline" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.TcpHandlesShortTransfersWithinOneDeadline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.TcpHandlesShortTransfersWithinOneDeadline
+[       OK ] Client.TcpHandlesShortTransfersWithinOneDeadline (4 ms)
+[----------] 1 test from Client (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (68 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.50 sec
+----------------------------------------------------------
+Test Passed.
+"Client.TcpHandlesShortTransfersWithinOneDeadline" end time: Oct 23 16:27 UTC
+"Client.TcpHandlesShortTransfersWithinOneDeadline" time elapsed: 00:00:00
+----------------------------------------------------------
+
+62/83 Testing: Client.RetriesInterruptedPollAndWouldBlock
+62/83 Test: Client.RetriesInterruptedPollAndWouldBlock
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RetriesInterruptedPollAndWouldBlock" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.RetriesInterruptedPollAndWouldBlock" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RetriesInterruptedPollAndWouldBlock
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RetriesInterruptedPollAndWouldBlock
+[       OK ] Client.RetriesInterruptedPollAndWouldBlock (9 ms)
+[----------] 1 test from Client (12 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (21 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.40 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RetriesInterruptedPollAndWouldBlock" end time: Oct 23 16:27 UTC
+"Client.RetriesInterruptedPollAndWouldBlock" time elapsed: 00:00:00
+----------------------------------------------------------
+
+63/83 Testing: Client.RepeatedInterruptionsCannotExtendDeadline
+63/83 Test: Client.RepeatedInterruptionsCannotExtendDeadline
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RepeatedInterruptionsCannotExtendDeadline" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.RepeatedInterruptionsCannotExtendDeadline" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RepeatedInterruptionsCannotExtendDeadline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RepeatedInterruptionsCannotExtendDeadline
+[       OK ] Client.RepeatedInterruptionsCannotExtendDeadline (2 ms)
+[----------] 1 test from Client (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.35 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RepeatedInterruptionsCannotExtendDeadline" end time: Oct 23 16:27 UTC
+"Client.RepeatedInterruptionsCannotExtendDeadline" time elapsed: 00:00:00
+----------------------------------------------------------
+
+64/83 Testing: Client.SilenceExpires
+64/83 Test: Client.SilenceExpires
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.SilenceExpires" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.SilenceExpires" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.SilenceExpires
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.SilenceExpires
+[       OK ] Client.SilenceExpires (2 ms)
+[----------] 1 test from Client (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.23 sec
+----------------------------------------------------------
+Test Passed.
+"Client.SilenceExpires" end time: Oct 23 16:27 UTC
+"Client.SilenceExpires" time elapsed: 00:00:00
+----------------------------------------------------------
+
+65/83 Testing: Client.ConnectPollReadinessStillRequiresSocketError
+65/83 Test: Client.ConnectPollReadinessStillRequiresSocketError
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.ConnectPollReadinessStillRequiresSocketError" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.ConnectPollReadinessStillRequiresSocketError" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.ConnectPollReadinessStillRequiresSocketError
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.ConnectPollReadinessStillRequiresSocketError
+[       OK ] Client.ConnectPollReadinessStillRequiresSocketError (2 ms)
+[----------] 1 test from Client (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.30 sec
+----------------------------------------------------------
+Test Passed.
+"Client.ConnectPollReadinessStillRequiresSocketError" end time: Oct 23 16:27 UTC
+"Client.ConnectPollReadinessStillRequiresSocketError" time elapsed: 00:00:00
+----------------------------------------------------------
+
+66/83 Testing: Client.HangupIsReadAsEof
+66/83 Test: Client.HangupIsReadAsEof
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.HangupIsReadAsEof" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.HangupIsReadAsEof" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.HangupIsReadAsEof
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.HangupIsReadAsEof
+[       OK ] Client.HangupIsReadAsEof (2 ms)
+[----------] 1 test from Client (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.22 sec
+----------------------------------------------------------
+Test Passed.
+"Client.HangupIsReadAsEof" end time: Oct 23 16:27 UTC
+"Client.HangupIsReadAsEof" time elapsed: 00:00:00
+----------------------------------------------------------
+
+67/83 Testing: Client.FailedCloseIsNeverRetried
+67/83 Test: Client.FailedCloseIsNeverRetried
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.FailedCloseIsNeverRetried" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.FailedCloseIsNeverRetried" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.FailedCloseIsNeverRetried
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.FailedCloseIsNeverRetried
+NETWORK_CLOSE cleanup_uncertain=1 error=5 retry_descriptor=0
+[       OK ] Client.FailedCloseIsNeverRetried (12 ms)
+[----------] 1 test from Client (13 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (75 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.60 sec
+----------------------------------------------------------
+Test Passed.
+"Client.FailedCloseIsNeverRetried" end time: Oct 23 16:27 UTC
+"Client.FailedCloseIsNeverRetried" time elapsed: 00:00:00
+----------------------------------------------------------
+
+68/83 Testing: Client.FailedCreationOwnsNoDescriptor
+68/83 Test: Client.FailedCreationOwnsNoDescriptor
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.FailedCreationOwnsNoDescriptor" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.FailedCreationOwnsNoDescriptor" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.FailedCreationOwnsNoDescriptor
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.FailedCreationOwnsNoDescriptor
+[       OK ] Client.FailedCreationOwnsNoDescriptor (2 ms)
+[----------] 1 test from Client (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (20 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.31 sec
+----------------------------------------------------------
+Test Passed.
+"Client.FailedCreationOwnsNoDescriptor" end time: Oct 23 16:27 UTC
+"Client.FailedCreationOwnsNoDescriptor" time elapsed: 00:00:00
+----------------------------------------------------------
+
+69/83 Testing: Client.SetupFailureClosesDescriptor
+69/83 Test: Client.SetupFailureClosesDescriptor
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.SetupFailureClosesDescriptor" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.SetupFailureClosesDescriptor" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.SetupFailureClosesDescriptor
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.SetupFailureClosesDescriptor
+[       OK ] Client.SetupFailureClosesDescriptor (2 ms)
+[----------] 1 test from Client (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (65 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.27 sec
+----------------------------------------------------------
+Test Passed.
+"Client.SetupFailureClosesDescriptor" end time: Oct 23 16:27 UTC
+"Client.SetupFailureClosesDescriptor" time elapsed: 00:00:00
+----------------------------------------------------------
+
+70/83 Testing: Client.SendFailureClosesDescriptor
+70/83 Test: Client.SendFailureClosesDescriptor
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.SendFailureClosesDescriptor" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.SendFailureClosesDescriptor" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.SendFailureClosesDescriptor
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.SendFailureClosesDescriptor
+[       OK ] Client.SendFailureClosesDescriptor (2 ms)
+[----------] 1 test from Client (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (10 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.27 sec
+----------------------------------------------------------
+Test Passed.
+"Client.SendFailureClosesDescriptor" end time: Oct 23 16:27 UTC
+"Client.SendFailureClosesDescriptor" time elapsed: 00:00:00
+----------------------------------------------------------
+
+71/83 Testing: Client.RejectsInvalidInputBeforeSocketCreation
+71/83 Test: Client.RejectsInvalidInputBeforeSocketCreation
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RejectsInvalidInputBeforeSocketCreation" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.RejectsInvalidInputBeforeSocketCreation" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RejectsInvalidInputBeforeSocketCreation
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RejectsInvalidInputBeforeSocketCreation
+[       OK ] Client.RejectsInvalidInputBeforeSocketCreation (1 ms)
+[----------] 1 test from Client (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.23 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RejectsInvalidInputBeforeSocketCreation" end time: Oct 23 16:27 UTC
+"Client.RejectsInvalidInputBeforeSocketCreation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+72/83 Testing: Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
+72/83 Test: Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
+[       OK ] Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize (3 ms)
+[----------] 1 test from Client (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (10 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.28 sec
+----------------------------------------------------------
+Test Passed.
+"Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize" end time: Oct 23 16:27 UTC
+"Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize" time elapsed: 00:00:00
+----------------------------------------------------------
+
+73/83 Testing: Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
+73/83 Test: Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
+[       OK ] Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics (2 ms)
+[----------] 1 test from Client (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (63 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.20 sec
+----------------------------------------------------------
+Test Passed.
+"Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics" end time: Oct 23 16:27 UTC
+"Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics" time elapsed: 00:00:00
+----------------------------------------------------------
+
+74/83 Testing: Client.RejectsCorruptEcho
+74/83 Test: Client.RejectsCorruptEcho
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RejectsCorruptEcho" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.RejectsCorruptEcho" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RejectsCorruptEcho
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RejectsCorruptEcho
+[       OK ] Client.RejectsCorruptEcho (2 ms)
+[----------] 1 test from Client (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (10 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.14 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RejectsCorruptEcho" end time: Oct 23 16:27 UTC
+"Client.RejectsCorruptEcho" time elapsed: 00:00:00
+----------------------------------------------------------
+
+75/83 Testing: Client.ClockFailureOwnsNoSocket
+75/83 Test: Client.ClockFailureOwnsNoSocket
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.ClockFailureOwnsNoSocket" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.ClockFailureOwnsNoSocket" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.ClockFailureOwnsNoSocket
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.ClockFailureOwnsNoSocket
+[       OK ] Client.ClockFailureOwnsNoSocket (2 ms)
+[----------] 1 test from Client (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.20 sec
+----------------------------------------------------------
+Test Passed.
+"Client.ClockFailureOwnsNoSocket" end time: Oct 23 16:27 UTC
+"Client.ClockFailureOwnsNoSocket" time elapsed: 00:00:00
+----------------------------------------------------------
+
+76/83 Testing: Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
+76/83 Test: Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
+[       OK ] Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce (2 ms)
+[----------] 1 test from Client (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.20 sec
+----------------------------------------------------------
+Test Passed.
+"Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce" end time: Oct 23 16:27 UTC
+"Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce" time elapsed: 00:00:00
+----------------------------------------------------------
+
+77/83 Testing: Client.WouldBlockCannotRenewOverallDeadline
+77/83 Test: Client.WouldBlockCannotRenewOverallDeadline
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.WouldBlockCannotRenewOverallDeadline" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.WouldBlockCannotRenewOverallDeadline" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.WouldBlockCannotRenewOverallDeadline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.WouldBlockCannotRenewOverallDeadline
+[       OK ] Client.WouldBlockCannotRenewOverallDeadline (3 ms)
+[----------] 1 test from Client (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (11 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.24 sec
+----------------------------------------------------------
+Test Passed.
+"Client.WouldBlockCannotRenewOverallDeadline" end time: Oct 23 16:27 UTC
+"Client.WouldBlockCannotRenewOverallDeadline" time elapsed: 00:00:00
+----------------------------------------------------------
+
+78/83 Testing: Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+78/83 Test: Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+[       OK ] Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer (44 ms)
+[----------] 1 test from Client (45 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (50 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.31 sec
+----------------------------------------------------------
+Test Passed.
+"Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer" end time: Oct 23 16:27 UTC
+"Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer" time elapsed: 00:00:00
+----------------------------------------------------------
+
+79/83 Testing: Client.RuntimeRetriesInterruptedPoll
+79/83 Test: Client.RuntimeRetriesInterruptedPoll
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RuntimeRetriesInterruptedPoll" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.RuntimeRetriesInterruptedPoll" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RuntimeRetriesInterruptedPoll
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RuntimeRetriesInterruptedPoll
+[       OK ] Client.RuntimeRetriesInterruptedPoll (2 ms)
+[----------] 1 test from Client (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (60 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RuntimeRetriesInterruptedPoll" end time: Oct 23 16:27 UTC
+"Client.RuntimeRetriesInterruptedPoll" time elapsed: 00:00:00
+----------------------------------------------------------
+
+80/83 Testing: Client.RuntimeInterruptionsCannotRenewDeadline
+80/83 Test: Client.RuntimeInterruptionsCannotRenewDeadline
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RuntimeInterruptionsCannotRenewDeadline" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.RuntimeInterruptionsCannotRenewDeadline" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RuntimeInterruptionsCannotRenewDeadline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RuntimeInterruptionsCannotRenewDeadline
+[       OK ] Client.RuntimeInterruptionsCannotRenewDeadline (3 ms)
+[----------] 1 test from Client (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (11 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.32 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RuntimeInterruptionsCannotRenewDeadline" end time: Oct 23 16:27 UTC
+"Client.RuntimeInterruptionsCannotRenewDeadline" time elapsed: 00:00:00
+----------------------------------------------------------
+
+81/83 Testing: Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+81/83 Test: Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RuntimeReadinessAfterExpiryDoesNotPermitSend" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.RuntimeReadinessAfterExpiryDoesNotPermitSend" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+[       OK ] Client.RuntimeReadinessAfterExpiryDoesNotPermitSend (4 ms)
+[----------] 1 test from Client (6 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (68 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.42 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RuntimeReadinessAfterExpiryDoesNotPermitSend" end time: Oct 23 16:27 UTC
+"Client.RuntimeReadinessAfterExpiryDoesNotPermitSend" time elapsed: 00:00:00
+----------------------------------------------------------
+
+82/83 Testing: Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+82/83 Test: Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno" "--gtest_also_run_disabled_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+[       OK ] Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno (2 ms)
+[----------] 1 test from Client (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.27 sec
+----------------------------------------------------------
+Test Passed.
+"Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno" end time: Oct 23 16:27 UTC
+"Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno" time elapsed: 00:00:00
+----------------------------------------------------------
+
+83/83 Testing: Networking.RealHostStack
+83/83 Test: Networking.RealHostStack
+Command: "$REPO/build/linux/sanitize/tests/networking/crux_networking_stack_tests"
+Directory: $REPO/build/linux/sanitize/tests/networking
+"Networking.RealHostStack" start time: Oct 23 16:27 UTC
+Output:
+----------------------------------------------------------
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=0 mode=1 runtime=0 result=-110 expected=-110
+STACK_CASE udp=1 mode=1 runtime=0 result=-110 expected=-110
+STACK_CASE udp=0 mode=2 runtime=0 result=-104 expected=-104
+STACK_CASE udp=1 mode=3 runtime=0 result=-90 expected=-90
+STACK_CASE udp=1 mode=4 runtime=0 result=-90 expected=-90
+STACK_CASE udp=0 mode=0 runtime=1 result=0 expected=0
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=0 mode=1 runtime=0 result=-110 expected=-110
+STACK_CASE udp=1 mode=1 runtime=0 result=-110 expected=-110
+STACK_CASE udp=0 mode=2 runtime=0 result=-104 expected=-104
+STACK_CASE udp=1 mode=3 runtime=0 result=-90 expected=-90
+STACK_CASE udp=1 mode=4 runtime=0 result=-90 expected=-90
+STACK_CASE udp=0 mode=0 runtime=1 result=0 expected=0
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=0 mode=1 runtime=0 result=-110 expected=-110
+STACK_CASE udp=1 mode=1 runtime=0 result=-110 expected=-110
+STACK_CASE udp=0 mode=2 runtime=0 result=-104 expected=-104
+STACK_CASE udp=1 mode=3 runtime=0 result=-90 expected=-90
+STACK_CASE udp=1 mode=4 runtime=0 result=-90 expected=-90
+STACK_CASE udp=0 mode=0 runtime=1 result=0 expected=0
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_ZERO_DATAGRAM pass=1
+STACK_POST_CLOSE errno=32 attempts=2
+STACK_RESOURCES descriptors_before=25 after=25
+<end of output>
+Test time =   2.71 sec
+----------------------------------------------------------
+Test Passed.
+"Networking.RealHostStack" end time: Oct 23 16:27 UTC
+"Networking.RealHostStack" time elapsed: 00:00:02
+----------------------------------------------------------
+
+End testing: Oct 23 16:27 UTC

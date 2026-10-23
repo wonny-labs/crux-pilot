@@ -1,0 +1,18 @@
+Test project $REPO/build/linux/debug
+    Start 50: Queue.ExpiredReceive
+1/2 Test #50: Queue.ExpiredReceive .............Subprocess aborted***Exception:   0.02 sec
+crux_queue_timeout: $REPO/tests/queue/timeout.c:73: int main(int, char **): Assertion `observed == CRUX_ERR_TIMEOUT' failed.
+
+    Start 51: Queue.ExpiredSend
+2/2 Test #51: Queue.ExpiredSend ................Subprocess aborted***Exception:   0.02 sec
+crux_queue_timeout: $REPO/tests/queue/timeout.c:73: int main(int, char **): Assertion `observed == CRUX_ERR_TIMEOUT' failed.
+
+
+0% tests passed, 2 tests failed out of 2
+
+Total Test time (real) =   0.08 sec
+
+The following tests FAILED:
+	 50 - Queue.ExpiredReceive (Subprocess aborted)
+	 51 - Queue.ExpiredSend (Subprocess aborted)
+Errors while running CTest

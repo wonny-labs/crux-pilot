@@ -1,0 +1,7 @@
+test_real_messaging_facades_preserve_selected_toolchain_flags (test_consumer_boundary.ConsumerBoundaryTest.test_real_messaging_facades_preserve_selected_toolchain_flags) ... ok
+test_selected_sysroot_is_only_a_standard_compile_option (test_consumer_boundary.ConsumerBoundaryTest.test_selected_sysroot_is_only_a_standard_compile_option) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 19.551s
+
+OK

@@ -1,0 +1,86 @@
+INFO    - Using Ninja..
+INFO    - Zephyr version: v4.4.0
+INFO    - Using 'zephyr/gnu' toolchain variant.
+INFO    - Building initial testsuite list...
+INFO    - Built testsuite list in 0.00 seconds
+INFO    - Writing JSON report $REPO/build/zephyr/timeout-red/testplan.json
+INFO    - JOBS: 2
+INFO    - Adding tasks to the queue...
+INFO    - Added initial list of jobs to queue
+ERROR   - native_sim/native/64      crux.queue                                         FAILED: rc=1
+INFO    - $REPO/build/zephyr/timeout-red/native_sim_native_64/host_gnu$REPO/tests/queue/zephyr/crux.queue/handler.log
+ERROR   - *** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE queue
+===================================================================
+START - test_copy_fifo_and_poll
+ PASS - test_copy_fifo_and_poll in 0.016 seconds
+===================================================================
+START - test_expired_receive_preserves_late_fifo
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/concurrency.c:164: expired_cleanup: observed not equal to CRUX_ERR_TIMEOUT
+
+ FAIL - test_expired_receive_preserves_late_fifo in 0.016 seconds
+===================================================================
+START - test_expired_send_preserves_late_fifo
+
+    Assertion failed at CMAKE_SOURCE_DIR/src/concurrency.c:164: expired_cleanup: observed not equal to CRUX_ERR_TIMEOUT
+
+ FAIL - test_expired_send_preserves_late_fifo in 0.016 seconds
+===================================================================
+START - test_isr_rejection
+ PASS - test_isr_rejection in 0.000 seconds
+===================================================================
+START - test_native_mpmc_integrity
+ PASS - test_native_mpmc_integrity in 0.000 seconds
+===================================================================
+START - test_native_timeout_retains_metadata_ownership
+ PASS - test_native_timeout_retains_metadata_ownership in 0.016 seconds
+===================================================================
+START - test_tick_timeout_no_early_expiry
+ PASS - test_tick_timeout_no_early_expiry in 0.032 seconds
+===================================================================
+START - test_waiter_lifecycle_and_wake
+ PASS - test_waiter_lifecycle_and_wake in 0.000 seconds
+===================================================================
+TESTSUITE queue failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -  75.00% [queue]: pass = 6, fail = 2, skip = 0, total = 8 duration = 0.096 seconds
+ - PASS - [queue.test_copy_fifo_and_poll] duration = 0.016 seconds
+ - FAIL - [queue.test_expired_receive_preserves_late_fifo] duration = 0.016 seconds
+ - FAIL - [queue.test_expired_send_preserves_late_fifo] duration = 0.016 seconds
+ - PASS - [queue.test_isr_rejection] duration = 0.000 seconds
+ - PASS - [queue.test_native_mpmc_integrity] duration = 0.000 seconds
+ - PASS - [queue.test_native_timeout_retains_metadata_ownership] duration = 0.016 seconds
+ - PASS - [queue.test_tick_timeout_no_early_expiry] duration = 0.032 seconds
+ - PASS - [queue.test_waiter_lifecycle_and_wake] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: 08059b6bdb51419739ada61bbe81095e
+PROJECT EXECUTION FAILED
+
+INFO    - $REPO/build/zephyr/timeout-red/native_sim_native_64/host_gnu$REPO/tests/queue/zephyr/crux.queue/handler.log
+INFO    - Total complete:    1/   1  100%  built (not run):    0, filtered:    0, failed:    1, error:    0
+INFO    - 1 test scenarios (1 configurations) selected, 0 configurations filtered (0 by static filter, 0 at runtime).
+INFO    - 0 of 1 executed test configurations passed (0.00%), 0 built (not run), 1 failed, 0 errored, with no warnings in 67.20 seconds.
+INFO    - 6 of 8 executed test cases passed (75.00%), 2 failed on 1 out of total 1473 platforms (0.07%).
+INFO    - 1 test configurations executed on platforms, 0 test configurations were only built.
+INFO    - Saving reports...
+INFO    - Writing JSON report $REPO/build/zephyr/timeout-red/twister.json
+INFO    - Writing xunit report $REPO/build/zephyr/timeout-red/twister.xml...
+INFO    - Writing xunit report $REPO/build/zephyr/timeout-red/twister_report.xml...
+INFO    - -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+INFO    - The following issues were found (showing the top 10 items):
+INFO    - 1) crux.queue on native_sim/native/64 failed (rc=1)
+INFO    -
+INFO    - To rerun the tests, call twister using the following commandline:
+INFO    - west twister -p <PLATFORM> -s <TEST ID>, for example:
+INFO    -
+INFO    - west twister -p native_sim/native/64 -s crux.queue
+INFO    - or with west:
+INFO    - west build -p -b native_sim/native/64 ../..$REPO/tests/queue/zephyr -T crux.queue
+INFO    - -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+INFO    - Run completed

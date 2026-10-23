@@ -1,0 +1,8 @@
+{
+  "parent": 72146,
+  "child": 72407,
+  "child_state": "Z",
+  "exit_code_field": "0",
+  "child_status": "Name:\tcrux_networking\nState:\tZ (zombie)\nTgid:\t72407\nNgid:\t0\nPid:\t72407\nPPid:\t72146\nTracerPid:\t0\nUid:\t1000\t1000\t1000\t1000\nGid:\t1000\t1000\t1000\t1000\nFDSize:\t0\nGroups:\t1000 \nNStgid:\t72407\nNSpid:\t72407\nNSpgid:\t71801\nNSsid:\t71801\nKthread:\t0\nThreads:\t1\nSigQ:\t1/15808\nSigPnd:\t0000000000000000\nShdPnd:\t0000000000000000\nSigBlk:\t0000000000000000\nSigIgn:\t0000000180000000\nSigCgt:\t00000000000004d0\nCapInh:\t0000000000000000\nCapPrm:\t0000000000000000\nCapEff:\t0000000000000000\nCapBnd:\t00000000a80425fb\nCapAmb:\t0000000000000000\nNoNewPrivs:\t0\nSeccomp:\t2\nSeccomp_filters:\t1\nSpeculation_Store_Bypass:\tvulnerable\nSpeculationIndirectBranch:\tunknown\nCpus_allowed:\tff\nCpus_allowed_list:\t0-7\nMems_allowed:\t1\nMems_allowed_list:\t0\nvoluntary_ctxt_switches:\t53\nnonvoluntary_ctxt_switches:\t309\n",
+  "parent_wchan": "do_epoll_wait"
+}

@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.28)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_queue_tests C)
+target_sources(app PRIVATE src/main.c)
+target_link_libraries(app PRIVATE crux::queue)
+target_sources(app PRIVATE src/concurrency.c)
+target_include_directories(app PRIVATE ../../../components/queue/zephyr)
+target_link_options(app PUBLIC -Wl,--wrap=queue_port_wait -Wl,--wrap=z_impl_k_condvar_wait)

@@ -1,0 +1,10 @@
+[1/2] Building C object CMakeFiles/monotonic_common.dir$REPO/components/monotonic/src/monotonic.c.o
+[2/2] Linking C executable monotonic_common
+Internal ctest changing into directory: $REPO/build/monotonic-agent/host
+Test project $REPO/build/monotonic-agent/host
+    Start 1: Monotonic.Common
+1/1 Test #1: Monotonic.Common .................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.03 sec
