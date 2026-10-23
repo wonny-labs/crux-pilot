@@ -1,0 +1,21 @@
+[1/2] Processing file $REPO/components/queue/src/queue.c.
+657 warnings generated.
+[2/2] Processing file $REPO/tests/queue/timeout.c.
+1553 warnings generated.
+$REPO/tests/queue/timeout.c:16:5: error: declaration uses identifier '__real_pthread_cond_timedwait', which is a reserved identifier [bugprone-reserved-identifier,-warnings-as-errors]
+   16 | int __real_pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |     real_pthread_cond_timedwait
+   17 |                                   const struct timespec *deadline);
+   18 | int __wrap_pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
+   19 |                                   const struct timespec *deadline) {
+   20 |     int result = __real_pthread_cond_timedwait(cond, mutex, deadline);
+      |                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                  real_pthread_cond_timedwait
+$REPO/tests/queue/timeout.c:18:5: error: declaration uses identifier '__wrap_pthread_cond_timedwait', which is a reserved identifier [bugprone-reserved-identifier,-warnings-as-errors]
+   18 | int __wrap_pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |     wrap_pthread_cond_timedwait
+Suppressed 1551 warnings (1551 in non-user code).
+Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.
+2 warnings treated as errors

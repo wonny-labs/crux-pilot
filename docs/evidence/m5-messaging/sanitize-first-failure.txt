@@ -1,0 +1,222 @@
+Preset CMake variables:
+
+  CMAKE_BUILD_TYPE="Debug"
+  CMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+  CMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+  CMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+  CMAKE_EXPORT_COMPILE_COMMANDS="ON"
+  FETCHCONTENT_BASE_DIR="$REPO/build/cache-sanitize/cmake"
+
+-- Configuring done (2.4s)
+-- Generating done (0.9s)
+-- Build files have been written to: $REPO/build/linux/sanitize
+[1/21] Building C object components/queue/CMakeFiles/crux_queue_host.dir/host/queue_port.c.o
+[2/21] Building C object components/queue/CMakeFiles/crux_queue_host.dir/src/queue.c.o
+[3/21] Linking C static library components/queue/libcrux_queue_host.a
+[4/21] Building C object components/monotonic/CMakeFiles/crux_monotonic_host.dir/src/monotonic.c.o
+[5/21] Building C object components/monotonic/CMakeFiles/crux_monotonic_host.dir/host/monotonic_host.c.o
+[6/21] Building C object tests/queue/CMakeFiles/crux_queue_basic.dir/basic.c.o
+[7/21] Linking C static library components/monotonic/libcrux_monotonic_host.a
+[8/21] Building C object tests/queue/CMakeFiles/crux_queue_concurrency.dir/concurrency.c.o
+[9/21] Linking C executable tests/queue/crux_queue_basic
+[10/21] Linking C executable tests/queue/crux_queue_concurrency
+[11/21] Building C object tests/queue/CMakeFiles/crux_queue_limits.dir/limits.c.o
+[12/21] Building C object tests/queue/CMakeFiles/crux_queue_mpmc.dir/mpmc.c.o
+[13/21] Linking C executable tests/queue/crux_queue_limits
+[14/21] Linking C executable tests/queue/crux_queue_mpmc
+[15/21] Building C object tests/monotonic/host/CMakeFiles/monotonic_common.dir/common_test.c.o
+[16/21] Building C object tests/monotonic/host/CMakeFiles/monotonic_common.dir/__/__/__/components/monotonic/src/monotonic.c.o
+[17/21] Building C object tests/monotonic/host/CMakeFiles/monotonic_native.dir/native_test.c.o
+[18/21] Linking C executable tests/monotonic/host/monotonic_common
+[19/21] Linking C executable tests/monotonic/host/monotonic_native
+[20/21] Building CXX object tests/monotonic/host/CMakeFiles/monotonic_real.dir/real_test.cpp.o
+[21/21] Linking CXX executable tests/monotonic/host/monotonic_real
+clangd compilation database selected: $REPO/build/linux/sanitize
+Test project $REPO/build/linux/sanitize
+      Start  1: Execution.PosixProbes
+ 1/83 Test  #1: Execution.PosixProbes .......................................................   Passed    0.34 sec
+      Start  2: Controller.HostScenario
+ 2/83 Test  #2: Controller.HostScenario .....................................................   Passed    2.72 sec
+      Start  3: TimeApiTest.InitStartsReadyButUnset
+ 3/83 Test  #3: TimeApiTest.InitStartsReadyButUnset .........................................   Passed    0.31 sec
+      Start  4: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+ 4/83 Test  #4: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness ..........................   Passed    0.33 sec
+      Start  5: TimeApiTest.FailedInitialisationCanBeRetried
+ 5/83 Test  #5: TimeApiTest.FailedInitialisationCanBeRetried ................................   Passed    0.50 sec
+      Start  6: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+ 6/83 Test  #6: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend ...................   Passed    1.09 sec
+      Start  7: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+ 7/83 Test  #7: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime ................   Passed    0.29 sec
+      Start  8: TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+ 8/83 Test  #8: TimeApiTest.FailedBackendWriteInvalidatesSessionTime ........................   Passed    0.29 sec
+      Start  9: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+ 9/83 Test  #9: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged .....................   Passed    0.18 sec
+      Start 10: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+10/83 Test #10: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue ........................   Passed    0.13 sec
+      Start 11: TimeApiTest.BackendNoDataClearsCommonValidity
+11/83 Test #11: TimeApiTest.BackendNoDataClearsCommonValidity ...............................   Passed    0.17 sec
+      Start 12: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+12/83 Test #12: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput ........................   Passed    0.31 sec
+      Start 13: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+13/83 Test #13: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds ..........................   Passed    0.31 sec
+      Start 14: TimeCalendar.ConvertsIndependentUnixEpochAnchor
+14/83 Test #14: TimeCalendar.ConvertsIndependentUnixEpochAnchor .............................   Passed    0.21 sec
+      Start 15: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+15/83 Test #15: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors ................   Passed    0.32 sec
+      Start 16: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+16/83 Test #16: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd ..........................   Passed    0.30 sec
+      Start 17: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+17/83 Test #17: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes ..................   Passed    0.24 sec
+      Start 18: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+18/83 Test #18: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput .........................   Passed    0.45 sec
+      Start 19: TimeCalendar.NullArgumentsAreInvalid
+19/83 Test #19: TimeCalendar.NullArgumentsAreInvalid ........................................   Passed    0.32 sec
+      Start 20: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+20/83 Test #20: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay ............................   Passed    0.28 sec
+      Start 21: TimeCommandTest.HelpIdentifiesUtcInput
+21/83 Test #21: TimeCommandTest.HelpIdentifiesUtcInput ......................................   Passed    0.21 sec
+      Start 22: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+22/83 Test #22: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText ........................   Passed    0.27 sec
+      Start 23: TimeCommandTest.SetAndGetUseTheSamePortableHandler
+23/83 Test #23: TimeCommandTest.SetAndGetUseTheSamePortableHandler ..........................   Passed    0.19 sec
+      Start 24: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+24/83 Test #24: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf ........................   Passed    0.21 sec
+      Start 25: TimeCommandTest.HelpIsAnAdapterOutcome
+25/83 Test #25: TimeCommandTest.HelpIsAnAdapterOutcome ......................................   Passed    0.22 sec
+      Start 26: TimeCommandTest.RejectsMalformedSyntaxAndDates
+26/83 Test #26: TimeCommandTest.RejectsMalformedSyntaxAndDates ..............................   Passed    0.38 sec
+      Start 27: TimeCommandTest.MapsOutOfRangeAndIoErrors
+27/83 Test #27: TimeCommandTest.MapsOutOfRangeAndIoErrors ...................................   Passed    0.38 sec
+      Start 28: TimeCommandTest.RejectedWriteNeverCallsBackend
+28/83 Test #28: TimeCommandTest.RejectedWriteNeverCallsBackend ..............................   Passed    0.21 sec
+      Start 29: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+29/83 Test #29: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime ................   Passed    0.22 sec
+      Start 30: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+30/83 Test #30: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover ..........   Passed    0.29 sec
+      Start 31: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+31/83 Test #31: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity ............   Passed    0.21 sec
+      Start 32: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+32/83 Test #32: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule ........................   Passed    0.21 sec
+      Start 33: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+33/83 Test #33: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst .............   Passed    0.21 sec
+      Start 34: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+34/83 Test #34: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline ............   Passed    0.42 sec
+      Start 35: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+35/83 Test #35: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime ......***Timeout  10.01 sec
+Running main() from $CACHE/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerHealth
+[ RUN      ] ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+[       OK ] ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime (2 ms)
+[----------] 1 test from ControllerHealth (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+
+      Start 36: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+36/83 Test #36: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress ..........   Passed    0.30 sec
+      Start 37: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+37/83 Test #37: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress .............   Passed    0.37 sec
+      Start 38: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+38/83 Test #38: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError ............   Passed    0.51 sec
+      Start 39: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+39/83 Test #39: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering .............   Passed    0.29 sec
+      Start 40: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+40/83 Test #40: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation ...   Passed    0.22 sec
+      Start 41: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+41/83 Test #41: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork ............   Passed    0.20 sec
+      Start 42: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+42/83 Test #42: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom .......   Passed    0.19 sec
+      Start 43: Execution.Conformance
+43/83 Test #43: Execution.Conformance .......................................................   Passed    0.17 sec
+      Start 44: Execution.HostFailures
+44/83 Test #44: Execution.HostFailures ......................................................   Passed    0.19 sec
+      Start 45: Execution.HostPoll
+45/83 Test #45: Execution.HostPoll ..........................................................   Passed    0.19 sec
+      Start 46: Execution.HostAdmission
+46/83 Test #46: Execution.HostAdmission .....................................................   Passed    0.40 sec
+      Start 47: Execution.HostPollFinalize
+47/83 Test #47: Execution.HostPollFinalize ..................................................   Passed    0.40 sec
+      Start 48: Queue.Basic
+48/83 Test #48: Queue.Basic .................................................................   Passed    0.12 sec
+      Start 49: Queue.Concurrency
+49/83 Test #49: Queue.Concurrency ...........................................................   Passed    0.27 sec
+      Start 50: Queue.limits
+50/83 Test #50: Queue.limits ................................................................   Passed    0.22 sec
+      Start 51: Queue.mpmc
+51/83 Test #51: Queue.mpmc ..................................................................   Passed    0.27 sec
+      Start 52: Monotonic.Common
+52/83 Test #52: Monotonic.Common ............................................................   Passed    0.10 sec
+      Start 53: Monotonic.NativeBoundaries
+53/83 Test #53: Monotonic.NativeBoundaries ..................................................   Passed    0.23 sec
+      Start 54: Monotonic.RealHost
+54/83 Test #54: Monotonic.RealHost ..........................................................   Passed    0.31 sec
+      Start 55: Netif.RejectsNull
+55/83 Test #55: Netif.RejectsNull ...........................................................   Passed    0.41 sec
+      Start 56: Netif.PreservesOutputWhenObservationFails
+56/83 Test #56: Netif.PreservesOutputWhenObservationFails ...................................   Passed    0.31 sec
+      Start 57: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
+57/83 Test #57: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown ..........................   Passed    0.20 sec
+      Start 58: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
+58/83 Test #58: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier ....................   Passed    0.36 sec
+      Start 59: Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
+59/83 Test #59: Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal ......................   Passed    0.22 sec
+      Start 60: NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
+60/83 Test #60: NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin ..................   Passed    0.87 sec
+      Start 61: Client.TcpHandlesShortTransfersWithinOneDeadline
+61/83 Test #61: Client.TcpHandlesShortTransfersWithinOneDeadline ............................   Passed    0.50 sec
+      Start 62: Client.RetriesInterruptedPollAndWouldBlock
+62/83 Test #62: Client.RetriesInterruptedPollAndWouldBlock ..................................   Passed    0.40 sec
+      Start 63: Client.RepeatedInterruptionsCannotExtendDeadline
+63/83 Test #63: Client.RepeatedInterruptionsCannotExtendDeadline ............................   Passed    0.35 sec
+      Start 64: Client.SilenceExpires
+64/83 Test #64: Client.SilenceExpires .......................................................   Passed    0.23 sec
+      Start 65: Client.ConnectPollReadinessStillRequiresSocketError
+65/83 Test #65: Client.ConnectPollReadinessStillRequiresSocketError .........................   Passed    0.30 sec
+      Start 66: Client.HangupIsReadAsEof
+66/83 Test #66: Client.HangupIsReadAsEof ....................................................   Passed    0.22 sec
+      Start 67: Client.FailedCloseIsNeverRetried
+67/83 Test #67: Client.FailedCloseIsNeverRetried ............................................   Passed    0.60 sec
+      Start 68: Client.FailedCreationOwnsNoDescriptor
+68/83 Test #68: Client.FailedCreationOwnsNoDescriptor .......................................   Passed    0.31 sec
+      Start 69: Client.SetupFailureClosesDescriptor
+69/83 Test #69: Client.SetupFailureClosesDescriptor .........................................   Passed    0.27 sec
+      Start 70: Client.SendFailureClosesDescriptor
+70/83 Test #70: Client.SendFailureClosesDescriptor ..........................................   Passed    0.27 sec
+      Start 71: Client.RejectsInvalidInputBeforeSocketCreation
+71/83 Test #71: Client.RejectsInvalidInputBeforeSocketCreation ..............................   Passed    0.23 sec
+      Start 72: Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
+72/83 Test #72: Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize ....................   Passed    0.28 sec
+      Start 73: Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
+73/83 Test #73: Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics ........................   Passed    0.20 sec
+      Start 74: Client.RejectsCorruptEcho
+74/83 Test #74: Client.RejectsCorruptEcho ...................................................   Passed    0.14 sec
+      Start 75: Client.ClockFailureOwnsNoSocket
+75/83 Test #75: Client.ClockFailureOwnsNoSocket .............................................   Passed    0.20 sec
+      Start 76: Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
+76/83 Test #76: Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce .......................   Passed    0.20 sec
+      Start 77: Client.WouldBlockCannotRenewOverallDeadline
+77/83 Test #77: Client.WouldBlockCannotRenewOverallDeadline .................................   Passed    0.24 sec
+      Start 78: Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+78/83 Test #78: Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer .....................   Passed    0.31 sec
+      Start 79: Client.RuntimeRetriesInterruptedPoll
+79/83 Test #79: Client.RuntimeRetriesInterruptedPoll ........................................   Passed    0.21 sec
+      Start 80: Client.RuntimeInterruptionsCannotRenewDeadline
+80/83 Test #80: Client.RuntimeInterruptionsCannotRenewDeadline ..............................   Passed    0.32 sec
+      Start 81: Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+81/83 Test #81: Client.RuntimeReadinessAfterExpiryDoesNotPermitSend .........................   Passed    0.42 sec
+      Start 82: Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+82/83 Test #82: Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno .....................   Passed    0.27 sec
+      Start 83: Networking.RealHostStack
+83/83 Test #83: Networking.RealHostStack ....................................................   Passed    2.71 sec
+
+99% tests passed, 1 tests failed out of 83
+
+Total Test time (real) =  40.80 sec
+
+The following tests FAILED:
+	 35 - ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime (Timeout)
+Errors while running CTest

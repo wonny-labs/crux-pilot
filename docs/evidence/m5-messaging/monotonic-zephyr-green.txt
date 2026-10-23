@@ -1,0 +1,31 @@
+[1/5] Building C object modules/m5-execution/monotonic/CMakeFiles/crux_monotonic_zephyr.dir/monotonic_zephyr.c.obj
+[2/5] Linking C static library modules/m5-execution/monotonic/libcrux_monotonic_zephyr.a
+[3/5] Linking C executable zephyr/zephyr.elf
+Generating files from $REPO/build/monotonic-agent/zephyr/zephyr/zephyr.elf for board: native_sim/native/64
+[4/5] Building native simulator runner, and linking final executable
+[5/5] Running utility command for native_runner_executable
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE monotonic
+===================================================================
+START - test_exact_and_fractional_tick_deadlines
+ PASS - test_exact_and_fractional_tick_deadlines in 0.133 seconds
+===================================================================
+START - test_isr_rejection
+ PASS - test_isr_rejection in 0.000 seconds
+===================================================================
+START - test_observations_and_validation
+ PASS - test_observations_and_validation in 0.000 seconds
+===================================================================
+TESTSUITE monotonic succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [monotonic]: pass = 3, fail = 0, skip = 0, total = 3 duration = 0.133 seconds
+ - PASS - [monotonic.test_exact_and_fractional_tick_deadlines] duration = 0.133 seconds
+ - PASS - [monotonic.test_isr_rejection] duration = 0.000 seconds
+ - PASS - [monotonic.test_observations_and_validation] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
