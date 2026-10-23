@@ -209,9 +209,73 @@ actual approvals, guard/ownership, programming/entry verification, per-boot
 preflight/reset records and normal restoration/full verification/behavior.
 Automating that broader acceptance audit is outside this slice.
 
-Latest main `eaed2a0` was integrated; both Execution and M5 CI/test/artifact
-configuration are retained. The current candidate will be regenerated from the
-integrated source with corrected tooling, rather than reusing the old `2f7e648`
-image. Historical artifacts remain unchanged. All timing/resource thresholds,
+Latest main `5206909` was integrated, including `eaed2a0` Execution and native-free
+consumer boundaries; both Execution and M5 CI/test/artifact configuration are
+retained. The current candidate was regenerated from the integrated source with
+corrected tooling, rather than reusing the old `2f7e648` image. Historical artifacts remain unchanged. All timing/resource thresholds,
 client-only scope and physical operation gates remain as proposed; a late manual
 disconnect remains INCONCLUSIVE rather than extending the functional deadline.
+
+
+## Integrated candidate — current approval proposal
+
+Candidate source is `22c2815154837322129f16124d5dc7bad8d2f682`, including main
+`5206909e0d8d54df2d690226b06b3eb44c5c71e9`. Subsequent publication changes only
+documentation/evidence. CI rebuilds may embed the publication HEAD; they do not
+replace these frozen approval artifacts. The old `2f7e648` candidate is superseded for this proposal;
+its artifacts and public evidence remain historical records.
+
+| Artifact | Bytes | SHA-256 |
+|---|---:|---|
+| BIN | 97,376 | `c8848b910e06a65333439b35a93bb1bfd3d59838305dde83d9adb09e383bf890` |
+| ELF | 2,211,748 | `197b268bef5d18f8b0fd86d4c1019a8999b8e3a421520853fc46121ff84864db` |
+| Configuration | 43,265 | `603b9c0936c711d2e431a3103c6ee86baeceab4c9a64fb828cd653872dbfc9e8` |
+
+Private manifest SHA-256 is
+`9bf5f014e76d89499e12ae93ecb1ea4769ddf2fd84368986121a9cab4069d47a`,
+under `build/evidence/m5-preparation/frozen-22c281515483/image-manifest.json`.
+The clean 496-file snapshot SHA-256 is
+`b86233d663ef5b6a384a2fa9b43b1c1b935e8c49eeda83e2a3c06bd464eecd29`.
+The [integrated public evidence index](evidence/m5-physical-integration.json)
+identifies public bytes, retained private originals, full image roles and dependencies.
+
+Linker use remains FLASH 97,376, RAM 34,332 and DTCM 13,936 bytes. Main and
+observer usable stacks remain 4,096 and 2,048 bytes. The configuration differs
+from the historical candidate only by explicit `CONFIG_CRUX_EXECUTION` disabled;
+no production Flash layout or writable-storage setting changed. Existing public
+components and networking consumers match integrated main unchanged.
+
+Independent integration review caught a test-only omission: the native-interface
+checker's temporary repository lacked the three physical consumer files. The
+fixture now includes them; dependency enforcement is retained. The failure and
+corrected result are preserved with the route, approval and replay TDD evidence.
+
+Executed integrated-source checks: Linux Host debug 76/76 and ASan/UBSan 76/76;
+Python tooling 292/292 without skips, including M5 76/76; qualified embedded-libc
+Zephyr networking 3/3 and dedicated native fixture 1/1; RT1060 reference and
+candidate cross-builds; portable Execution Host consumers 2/2, Zephyr two
+configurations/15 cases and both RT1060 consumer builds. Format, scoped dependency
+checks and configured Host analysis pass. The analysis log retains suppressed
+non-user warnings; it is not a claim of warning-free third-party code.
+
+Reviewer and separate Challenger both issue **PASS** for software preparation and
+the proposed procedure at the exact frozen source. Each independently ran the
+manifest verifier and checked all 51 artifacts/28 tools. They inspected actual
+image bytes, provenance, stack allocations, disabled storage and tool identities;
+M5 76/76 was independently repeated. The integration Reviewer also repeated all
+13 native-interface tests after the fixture fix. They did not independently
+repeat every Linux build or operate hardware. The full canonical plan binding,
+fresh validated direct route and explicit sequence-only Replay result resolve
+the external review findings. Native idle stack observations remain 4056/2008
+bytes, not RT1060 measurements. All physical timing/resource criteria above are
+unchanged proposals requiring separate approval.
+
+Physical acceptance remains pending. Before execution, separately approve the
+full canonical plan hash and exact manifest/ELF/BIN/configuration/tool identities,
+resolve accepted entry and normal recovery artifacts, and grant each enumerated
+inventory/probe, programming (including implicit reset/start), three per-boot
+preflight/reset, cable disconnect/reconnect and final restoration operation.
+Safety gates must remain valid at each operation. Reset-based recovery requires
+new approval and cannot satisfy phase-8 recovery without reset. Replay PASS alone
+cannot establish physical acceptance. Issue #28 remains Open; this preparation
+performs no hardware operation, merge or Issue closure.

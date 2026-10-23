@@ -1,0 +1,349 @@
+{
+  "artifacts": {
+    "binary": {
+      "path": "build/zephyr/m5-physical-evkb-22c281515483/zephyr/zephyr.bin",
+      "sha256": "c8848b910e06a65333439b35a93bb1bfd3d59838305dde83d9adb09e383bf890",
+      "size_bytes": 97376
+    },
+    "compilation": {
+      "path": "build/zephyr/m5-physical-evkb-22c281515483/compile_commands.json",
+      "sha256": "001d3681af10c5598dbeb87a91594bd6d8711a4f05a6567d5859aac5736dd8c5",
+      "size_bytes": 686195
+    },
+    "config": {
+      "path": "build/zephyr/m5-physical-evkb-22c281515483/zephyr/.config",
+      "sha256": "603b9c0936c711d2e431a3103c6ee86baeceab4c9a64fb828cd653872dbfc9e8",
+      "size_bytes": 43265
+    },
+    "dts": {
+      "path": "build/zephyr/m5-physical-evkb-22c281515483/zephyr/zephyr.dts",
+      "sha256": "6f6f17ef2550ae8d810622329089a17f8ee75ba7ec699fb56b79cd63a01b2136",
+      "size_bytes": 370390
+    },
+    "elf": {
+      "path": "build/zephyr/m5-physical-evkb-22c281515483/zephyr/zephyr.elf",
+      "sha256": "197b268bef5d18f8b0fd86d4c1019a8999b8e3a421520853fc46121ff84864db",
+      "size_bytes": 2211748
+    },
+    "errno": {
+      "path": "build/evidence/m5-preparation/frozen-22c281515483/image-manifest-errno/errno-map.json",
+      "sha256": "7b02dbc4323b3b915bdca59da98b886384a3c66a490fb08b7f980cbbb89cd849",
+      "size_bytes": 13370
+    },
+    "inputs": {
+      "path": "build/evidence/m5-preparation/frozen-22c281515483/inputs.json",
+      "sha256": "017d831553b5e982744cec1796dc5142a0802de73cb539df3d57ec9af2369cfe",
+      "size_bytes": 1777
+    },
+    "map": {
+      "path": "build/zephyr/m5-physical-evkb-22c281515483/zephyr/zephyr.map",
+      "sha256": "a5668b9fe231fcdeb03ba70d411ceccacb4a733f47862af22d91a245adda4841",
+      "size_bytes": 584672
+    },
+    "provenance": {
+      "path": "build/zephyr/m5-physical-evkb-22c281515483/provenance.json",
+      "sha256": "985378642fe50578ac095970c0a64e4b9ed1db8b5b34fa9c84a6de9eb0bf0472",
+      "size_bytes": 5494
+    }
+  },
+  "baseline": "5206909e0d8d54df2d690226b06b3eb44c5c71e9",
+  "checks": {
+    "analysis": "PASS; configured clang-tidy non-user warnings suppressed",
+    "build_tooling": "292/292",
+    "dependency_boundary": "PASS",
+    "format": "PASS",
+    "host_debug": "76/76",
+    "host_sanitizers": "76/76",
+    "m5_subset": "76/76",
+    "portable_execution": "Host consumers 2/2; Zephyr 2 configurations and 15/15 cases; both RT1060 consumers cross-built",
+    "rt1060": "cross-build + ELF/BIN/config/ABI/provenance checks",
+    "zephyr_private_fixture": "1/1",
+    "zephyr_qualified_networking": "3/3"
+  },
+  "dependencies": [
+    {
+      "dirty": false,
+      "git_commit": "684c9e8f32e4373a21098559f748f06915f950c9",
+      "name": "zephyr",
+      "path": "zephyr",
+      "revision": "684c9e8f32e4373a21098559f748f06915f950c9"
+    },
+    {
+      "dirty": false,
+      "git_commit": "512cc7e895e8491696b61f7ba8066b4a182569b8",
+      "name": "cmsis",
+      "path": "modules/hal/cmsis",
+      "revision": "512cc7e895e8491696b61f7ba8066b4a182569b8"
+    },
+    {
+      "dirty": false,
+      "git_commit": "30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74",
+      "name": "cmsis_6",
+      "path": "modules/hal/cmsis_6",
+      "revision": "30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74"
+    },
+    {
+      "dirty": false,
+      "git_commit": "2c2f28ac333e995d7279777409817c4b4f92c1ec",
+      "name": "hal_nxp",
+      "path": "modules/hal/nxp",
+      "revision": "2c2f28ac333e995d7279777409817c4b4f92c1ec"
+    }
+  ],
+  "errno_values": {
+    "ECONNREFUSED": 111,
+    "ECONNRESET": 104,
+    "EHOSTUNREACH": 118,
+    "EIO": 5,
+    "ENETDOWN": 115,
+    "ENETUNREACH": 114,
+    "ENOTCONN": 128,
+    "ETIMEDOUT": 116
+  },
+  "image": {
+    "bin_address": 1610612736,
+    "bin_bytes": 97376,
+    "elf_sections_match_bin": true,
+    "gap_fill": 255,
+    "main_stack": {
+      "address": 2147497088,
+      "bytes": 4160
+    },
+    "observer_stack": {
+      "address": 2147488128,
+      "bytes": 2112
+    }
+  },
+  "image_source": "22c2815154837322129f16124d5dc7bad8d2f682",
+  "native_test_picolibc": "01254932e8e81085817ed61fd858648584ffe37c",
+  "normalization": "Only fixed local path prefixes replaced in public logs. The freeze summary selects recorded source line ranges; its full original remains private. Original hashes refer to retained private bytes; public hashes describe published bytes. Raw manifest/compiler evidence remain private because they contain absolute paths.",
+  "physical": {
+    "authorized": false,
+    "issue28": "OPEN",
+    "pending": [
+      "exact accepted entry and normal recovery artifacts/manifests",
+      "fresh per-operation approval and M3 safety checks",
+      "physical 3-boot execution and raw evidence",
+      "normal restoration/full verification/accepted normal behavior"
+    ],
+    "performed": false
+  },
+  "private_image_manifest": {
+    "path": "build/evidence/m5-preparation/frozen-22c281515483/image-manifest.json",
+    "sha256": "9bf5f014e76d89499e12ae93ecb1ea4769ddf2fd84368986121a9cab4069d47a",
+    "size_bytes": 21788
+  },
+  "public_logs": [
+    {
+      "path": "networking-physical-integration/host-integrated.log",
+      "private_original_name": "review-a0e0e11/host-integrated.log",
+      "private_original_sha256": "30705f31c9ee1c5525205f3c3a14a8b0eeb04cc5e79c2a0b01015537a6111dfd",
+      "private_original_size_bytes": 15944,
+      "sha256": "aca1d6408584f1a2122d3c11ed2ac48a7481ae7ad7797518770bf00142ef0517",
+      "size_bytes": 15758,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/host-sanitize-integrated.log",
+      "private_original_name": "review-a0e0e11/host-sanitize-integrated.log",
+      "private_original_sha256": "b189a53c3d06c429f35aacd2354ebd5fea45e1c0ed3c38044e473f365d6e4181",
+      "private_original_size_bytes": 16640,
+      "sha256": "fa799b44aa771c55a1b797eeadff4c04065cd449bd1acd17acc81ca69f3d2673",
+      "size_bytes": 16454,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/build-tests-final.log",
+      "private_original_name": "review-a0e0e11/build-tests-final.log",
+      "private_original_sha256": "6cb0a4715b6021e31dca17dcf5fe91c5246daa12402ea953a41e4b68ea3ab9bc",
+      "private_original_size_bytes": 394,
+      "sha256": "6cb0a4715b6021e31dca17dcf5fe91c5246daa12402ea953a41e4b68ea3ab9bc",
+      "size_bytes": 394,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/native-scenario.log",
+      "private_original_name": "native-scenario.log",
+      "private_original_sha256": "89286cc11f2f4d4b5dcc5349dd73d7ccd7bb22a33cf2ed74eec8ba59e3df6139",
+      "private_original_size_bytes": 3477,
+      "sha256": "89286cc11f2f4d4b5dcc5349dd73d7ccd7bb22a33cf2ed74eec8ba59e3df6139",
+      "size_bytes": 3477,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/qualified-networking-regression.log",
+      "private_original_name": "review-a0e0e11/qualified-networking-regression.log",
+      "private_original_sha256": "7c064566e1edc8cc41f9bb85cbf5a1539511dc30b7fccf0cb48108e62f123ed6",
+      "private_original_size_bytes": 17818,
+      "sha256": "a8b2c78846237c4d791732451894a9a97a4e41721377754ad5516b7553a8aee2",
+      "size_bytes": 16268,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/portable-execution.log",
+      "private_original_name": "review-a0e0e11/portable-execution.log",
+      "private_original_sha256": "159430217177e058d6df71eb59a5464d3d664c18c7a37735bd699225b1c30464",
+      "private_original_size_bytes": 49405,
+      "sha256": "76a2d860aa3a132e5646ebe603f58ec0a3980233ebe777bd11ea78efccb9056f",
+      "size_bytes": 46801,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/freeze-summary.log",
+      "private_original_name": "review-a0e0e11/freeze-final.log",
+      "private_original_sha256": "b23de2146c861f122fcdcb627a05ccadc2d8db0200ac4b0b2a55112e11620ec5",
+      "private_original_size_bytes": 234085,
+      "sha256": "1e639b283bb7ce62a225505af8a441089680090e49a6dc623c1aaa6018c3877f",
+      "size_bytes": 829,
+      "source_line_ranges": [
+        [
+          4,
+          4
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          83,
+          83
+        ],
+        [
+          89,
+          89
+        ],
+        [
+          350,
+          358
+        ],
+        [
+          1848,
+          1848
+        ]
+      ]
+    },
+    {
+      "path": "networking-physical-integration/format-integrated.log",
+      "private_original_name": "review-a0e0e11/format-integrated.log",
+      "private_original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "private_original_size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/dependencies-integrated.log",
+      "private_original_name": "review-a0e0e11/dependencies-integrated.log",
+      "private_original_sha256": "c3fff2678ffa4955d4702ecdedddfdd0f229f5cb24355b916e2461dfcab17e3f",
+      "private_original_size_bytes": 361,
+      "sha256": "c3fff2678ffa4955d4702ecdedddfdd0f229f5cb24355b916e2461dfcab17e3f",
+      "size_bytes": 361,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/analysis-host.log",
+      "private_original_name": "review-a0e0e11/analysis-host.log",
+      "private_original_sha256": "eb2342b79b74348e0ea50d15d38ed1c6e7449eff86c1a789dc9fb61f3e39022d",
+      "private_original_size_bytes": 6564,
+      "sha256": "d33cba77e8fad8cb6734f1adb027be9fa86a917b3b674ceb6009b0ae6a4e687c",
+      "size_bytes": 4146,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/route-red.log",
+      "private_original_name": "review-a0e0e11/route-red.log",
+      "private_original_sha256": "a4188f7fe76ca5fe3e0dbe91b9ea0a435111f25b2ff936d4e82b8aef40242827",
+      "private_original_size_bytes": 8201,
+      "sha256": "1d7e30643469e34492439549ab72fd99b678e79d846064e43c62e0c41acda0d5",
+      "size_bytes": 7519,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/approval-red.log",
+      "private_original_name": "review-a0e0e11/approval-red.log",
+      "private_original_sha256": "cf185e117c583a9255d8ad56fbcbce74b80740ac44b89fb3cf911aa10db8c8eb",
+      "private_original_size_bytes": 3178,
+      "sha256": "c25dc5b2e59dae6c3b4668e14c55eead67e8a3b3dee14d447baf57d3743ca6e8",
+      "size_bytes": 2992,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/replay-scope-red.log",
+      "private_original_name": "review-a0e0e11/replay-scope-red.log",
+      "private_original_sha256": "9cd00fe1b73114e257dd2e358724f7a6e79a15fca0cb60008c39b159a7742299",
+      "private_original_size_bytes": 834,
+      "sha256": "79736e0a25a853ba6126cfe7100f0af34f1025f01be6e76f3d47f31b72e2de9b",
+      "size_bytes": 772,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/m5-green.log",
+      "private_original_name": "review-a0e0e11/m5-green.log",
+      "private_original_sha256": "8af44ed9ee65ce7f220ace52fdc8384ec05765b27a45dfc3b38f19e2d8c08613",
+      "private_original_size_bytes": 175,
+      "sha256": "8af44ed9ee65ce7f220ace52fdc8384ec05765b27a45dfc3b38f19e2d8c08613",
+      "size_bytes": 175,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/integration-fixture-red.log",
+      "private_original_name": "review-a0e0e11/integration-fixture-red.log",
+      "private_original_sha256": "fe4479e28031408e07e401723e5e189094a40d648f26185907d47fef8b635dad",
+      "private_original_size_bytes": 2277,
+      "sha256": "50d906580f13f6ec4fed4227d8b65d3e66d815b723896d199e008f3c63c95b35",
+      "size_bytes": 2215,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/integration-fixture-green.log",
+      "private_original_name": "review-a0e0e11/integration-fixture-green.log",
+      "private_original_sha256": "74c20559e7b8bb11ba55b26d118b127748e87b16694f3906b44a9f7540c91251",
+      "private_original_size_bytes": 112,
+      "sha256": "74c20559e7b8bb11ba55b26d118b127748e87b16694f3906b44a9f7540c91251",
+      "size_bytes": 112,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical-integration/image-verify.log",
+      "private_original_name": "review-a0e0e11/image-verify.log",
+      "private_original_sha256": "d9842f3369a0e80d63c33e0eb0f605d0af352fcedc8e125a16f5f887baefae00",
+      "private_original_size_bytes": 174,
+      "sha256": "d9842f3369a0e80d63c33e0eb0f605d0af352fcedc8e125a16f5f887baefae00",
+      "size_bytes": 174,
+      "source_line_ranges": null
+    }
+  ],
+  "review": {
+    "authority": "Software preparation only; no hardware, merge or Issue closure authority",
+    "challenger": "PASS proposed procedure/approvals and all51 frozen artifacts/28tools; independent76 M5 tests",
+    "reviewer": "PASS source/integration and all51 frozen artifacts/28tools; independent76 M5 and13 native-interface tests"
+  },
+  "schema": 1,
+  "source_snapshot": {
+    "dirty": false,
+    "git_branch": "feat/m5-networking-physical-fixture",
+    "git_commit": "22c2815154837322129f16124d5dc7bad8d2f682",
+    "git_status_counts": {
+      "deleted": 0,
+      "modified_or_staged": 0,
+      "renamed_or_copied": 0,
+      "untracked": 0
+    },
+    "recoverable_from_git": true,
+    "snapshot_algorithm": "sha256-path-mode-content-v1",
+    "snapshot_file_count": 496,
+    "snapshot_sha256": "b86233d663ef5b6a384a2fa9b43b1c1b935e8c49eeda83e2a3c06bd464eecd29",
+    "west_manifest_sha256": "f64f4213af5cc2009a521c1081a7ab1b874717c2d8cc218639594519ae43a588"
+  },
+  "status": "SOFTWARE_PREPARED_PHYSICAL_ACCEPTANCE_PENDING",
+  "supersedes": "m5-physical-preparation.json",
+  "workspace_manifest_context": [
+    {
+      "dirty": false,
+      "git_commit": "1d6ac4f6cd5b4e4013f2ce0c59375beb3cdad9f2",
+      "name": "manifest",
+      "path": "crux-pilot",
+      "revision": "HEAD"
+    }
+  ]
+}

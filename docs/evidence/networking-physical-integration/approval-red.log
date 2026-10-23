@@ -1,0 +1,29 @@
+.......F........
+======================================================================
+FAIL: test_approval_binds_complete_safety_procedure_and_evidence (test_m5_runner.Runner) (field='procedure')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_runner.py", line 44, in test_approval_binds_complete_safety_procedure_and_evidence
+    runner.validate_approval(approval,changed)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_approval_binds_complete_safety_procedure_and_evidence (test_m5_runner.Runner) (field='evidence')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_runner.py", line 44, in test_approval_binds_complete_safety_procedure_and_evidence
+    runner.validate_approval(approval,changed)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_approval_contains_hash_of_whole_plan (test_m5_runner.Runner)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_runner.py", line 49, in test_approval_contains_hash_of_whole_plan
+    self.assertIn('plan_sha256',approval)
+AssertionError: 'plan_sha256' not found in {'schema': 1, 'authorization': 'NOT_AUTHORIZED', 'manifest_sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'entry_manifest_sha256': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'recovery_manifest_sha256': 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', 'runner_sha256': 'e7f0bec35c76e58a35cbf8c8686643a3f5da14c8543c2c2e1486f3255689a8bd', 'adapter_sha256': 'aadfd22174a886f0514d9c421df5ab60f11fdd10518949ab395bd7d9dee68bc8', 'probe_serial': '602003106', 'uart_usb_serial': '02290000325182c300000000000000000000000097969905', 'nic': {'interface': 'en5', 'model': 'AX88179', 'mac': '00:0a:cd:41:89:cc', 'host': '192.168.77.1', 'target': '192.168.77.2', 'prefix': 24}, 'nonces': [31, 32, 33], 'operations': {'establish_usb_mount_guard': False, 'acquire_exclusive_probe_uart_and_nic': False, 'verify_entry_image': False, 'program_and_start': False, 'qualification_preflight_1': False, 'qualification_preflight_2': False, 'qualification_preflight_3': False, 'qualification_reset_1': False, 'qualification_reset_2': False, 'qualification_reset_3': False, 'boot_1_cable_disconnect': False, 'boot_1_cable_reconnect': False, 'boot_2_cable_disconnect': False, 'boot_2_cable_reconnect': False, 'boot_3_cable_disconnect': False, 'boot_3_cable_reconnect': False, 'restore_identified_normal_image': False, 'verify_normal_image': False, 'normal_acceptance_capture': False}}
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.121s
+
+FAILED (failures=3)

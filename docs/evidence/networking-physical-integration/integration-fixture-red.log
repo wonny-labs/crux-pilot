@@ -1,0 +1,28 @@
+............
+======================================================================
+FAIL: test_dependency_entry_point_checks_tokens_and_allows_iso_c (test_native_interfaces.NativeInterfaceTest) (source='#include <time.h>\n#include <errno.h>\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_native_interfaces.py", line 177, in test_dependency_entry_point_checks_tokens_and_allows_iso_c
+    self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+AssertionError: 1 != 0 : Native interface policy passed (9 portable source files).
+Base is independent; designated portable sources pass the native interface policy; backend selection is checked by CMake; shared source ownership is explicit.
+Execution public/consumer boundary passed; native providers remain permitted.
+Traceback (most recent call last):
+  File "/private/var/folders/3c/97krjpns4v13hjhxltsxvvp00000gp/T/tmp0mwf641o/scripts/check-networking-dependencies.py", line 61, in <module>
+    if __name__ == '__main__': sys.exit(main())
+  File "/private/var/folders/3c/97krjpns4v13hjhxltsxvvp00000gp/T/tmp0mwf641o/scripts/check-networking-dependencies.py", line 54, in main
+    source_errors((args.root / name).read_text(), owned={'frame.h'})]
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py", line 1256, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py", line 1242, in open
+    return io.open(self, mode, buffering, encoding, errors, newline,
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py", line 1110, in _opener
+    return self._accessor.open(self, flags, mode)
+FileNotFoundError: [Errno 2] No such file or directory: '/private/var/folders/3c/97krjpns4v13hjhxltsxvvp00000gp/T/tmp0mwf641o/tests/networking_physical/transaction.c'
+
+
+----------------------------------------------------------------------
+Ran 13 tests in 3.914s
+
+FAILED (failures=1)
