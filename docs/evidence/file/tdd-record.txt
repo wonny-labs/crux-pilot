@@ -1,0 +1,41 @@
+Observed TDD record (transcribed from tool output, not a retained runner log)
+
+Task 1 RED: public declarations + inert shared implementation returning
+CRUX_FILE_ERR_NOT_SUPPORTED, deterministic private fault provider and assertions.
+Command (macOS host compiler):
+cc -std=c17 -Wall -Wextra -Wpedantic -Werror -Icomponents/file/include -Icomponents/file/src components/file/src/file.c tests/file/fault_test.c -o /tmp/crux-file-red && /tmp/crux-file-red
+Observed twice (minimal first assertion, then expanded harness): exit 134,
+Assertion failed: (crux_file_open("record",CRUX_FILE_CREATE_REPLACE,&f)==CRUX_FILE_OK), function main, file fault_test.c, line 17 / line 18.
+The assertions stop at the first failure; this does not claim every later case
+was independently observed failing.
+
+Task 1 GREEN: implemented shared validation, pool/lifetime, I/O and cleanup.
+Same compile invocation with output /tmp/crux-file-green; exit 0:
+File deterministic contract checks passed
+
+Task 2 initial attempt: compiling Linux fixture on macOS reported undeclared
+mkdtemp with its Linux POSIX feature profile. Moved this qualification to Linux;
+that compiler error is not treated as behavioral RED.
+
+Task 2 RED: Linux runtime fixture plus inert Host binding and deterministic port.
+cc -std=c17 -Icomponents/file/include -Icomponents/file/src -Icomponents/file/host -Dmain=fault_main -c tests/file/fault_test.c -o /tmp/fault.o
+cc -std=c17 -Icomponents/file/include -Icomponents/file/src -Icomponents/file/host components/file/src/file.c components/file/host/file_host.c tests/file/host_test.c /tmp/fault.o -o /tmp/host-red && /tmp/host-red
+Observed exit 134:
+host-red: tests/file/host_test.c:11: main: Assertion `crux_file_open("record",CRUX_FILE_READ,&f)==CRUX_FILE_ERR_NOT_READY' failed.
+Aborted
+
+Task 2 GREEN: replace inert binding/deterministic port with real Linux provider.
+cc -std=c17 -Wall -Wextra -Wpedantic -Werror -Icomponents/file/include -Icomponents/file/src -Icomponents/file/host components/file/src/file.c components/file/host/file_host.c tests/file/host_test.c -o /tmp/host-green && /tmp/host-green
+Observed exit 0 (no stdout).
+
+Subsequent assertions extend existing guarantees: native slot retirement, primary
+truncate error with both successful/failing close, later independent slot opens,
+and real Host descriptor counts before/after failures and normal operations.
+They are supplementary coverage, not claimed as separate feature RED cycles.
+
+Static analysis first run: exit nonzero, four new diagnostics:
+_POSIX_C_SOURCE reserved identifier in provider and fixture source; insecureAPI
+strcpy; easily-swappable parameters in the fault seek definition. Corrected
+feature macros to PRIVATE CMake definitions, validated name copy to explicit
+memcpy length, and meaningful representability assertion at fault seek dispatch.
+No new suppression was added. Final analysis result is in analysis.txt.

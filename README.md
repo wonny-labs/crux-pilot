@@ -128,3 +128,9 @@ IPv4 TCP-client/connected-UDP communication and read-only primary-interface
 status. See the [networking software tests](tests/README.md#portable-networking-software-slice)
 for supported configurations and commands. Physical Issue #28 acceptance is
 pending; this slice does not complete the M5 milestone.
+
+The software-qualified [portable File contract](docs/file-contract.md) exposes
+bounded synchronous file operations through `crux::file`, with a Linux Host
+provider and deterministic failure tests. Its [validation and Zephyr handoff
+plan](docs/file-validation.md) document the separate native composition work;
+no production Flash layout or writable QSPI backend is enabled.

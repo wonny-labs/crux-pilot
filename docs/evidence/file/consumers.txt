@@ -1,0 +1,20 @@
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /tmp/crux-file/build/file-consumers
+[1/7] Building C object CMakeFiles/file_consumer_cpp_fixture.dir/fixture.c.o
+[2/7] Building C object CMakeFiles/file_consumer_c_fixture.dir/fixture.c.o
+[3/7] Building C object crux/components/file/CMakeFiles/crux_file_host.dir/host/file_host.c.o
+[4/7] Building C object crux/components/file/CMakeFiles/crux_file_host.dir/src/file.c.o
+[5/7] Linking C static library crux/components/file/libcrux_file_host.a
+[6/7] Linking C executable file_consumer_c_fixture
+[7/7] Linking CXX executable file_consumer_cpp_fixture
+Internal ctest changing into directory: /tmp/crux-file/build/file-consumers
+Test project /tmp/crux-file/build/file-consumers
+    Start 1: File.ConsumerC
+1/2 Test #1: File.ConsumerC ...................   Passed    0.02 sec
+    Start 2: File.ConsumerCpp
+2/2 Test #2: File.ConsumerCpp .................   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.06 sec

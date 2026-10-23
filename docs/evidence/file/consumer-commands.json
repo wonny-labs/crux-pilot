@@ -1,0 +1,14 @@
+[
+  {
+    "directory": "/tmp/crux-file/build/file-consumers",
+    "command": "/usr/bin/clang-18 -I/tmp/crux-file/components/file/include -g -std=c17 -Wall -Wextra -Wpedantic -Werror -o CMakeFiles/file_consumer_c.dir/consumer.c.o -c /tmp/crux-file/tests/file_consumer/consumer.c",
+    "file": "/tmp/crux-file/tests/file_consumer/consumer.c",
+    "output": "CMakeFiles/file_consumer_c.dir/consumer.c.o"
+  },
+  {
+    "directory": "/tmp/crux-file/build/file-consumers",
+    "command": "/usr/bin/clang++-18 -I/tmp/crux-file/components/file/include -g -std=c++17 -Wall -Wextra -Wpedantic -Werror -o CMakeFiles/file_consumer_cpp.dir/consumer.cpp.o -c /tmp/crux-file/tests/file_consumer/consumer.cpp",
+    "file": "/tmp/crux-file/tests/file_consumer/consumer.cpp",
+    "output": "CMakeFiles/file_consumer_cpp.dir/consumer.cpp.o"
+  }
+]
