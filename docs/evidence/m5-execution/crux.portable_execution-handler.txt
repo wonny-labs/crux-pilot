@@ -1,0 +1,69 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE portable_execution
+===================================================================
+START - test_admission_lifetimes
+ PASS - test_admission_lifetimes in 0.000 seconds
+===================================================================
+START - test_concurrent_give
+ PASS - test_concurrent_give in 0.000 seconds
+===================================================================
+START - test_firmware_consumer
+ PASS - test_firmware_consumer in 0.000 seconds
+===================================================================
+START - test_isr_rejected
+ PASS - test_isr_rejected in 0.000 seconds
+===================================================================
+START - test_join_timeout_retains
+ PASS - test_join_timeout_retains in 0.020 seconds
+===================================================================
+START - test_mutex_ownership
+ PASS - test_mutex_ownership in 0.030 seconds
+===================================================================
+START - test_mutex_wakeup
+ PASS - test_mutex_wakeup in 0.000 seconds
+===================================================================
+START - test_semaphore_tokens
+ PASS - test_semaphore_tokens in 0.020 seconds
+===================================================================
+START - test_stack_priority_profile
+EXECUTION_PROFILE class=0 native_priority=6 usable=4096 unused=4056
+EXECUTION_PROFILE class=1 native_priority=5 usable=4096 unused=4056
+EXECUTION_PROFILE class=2 native_priority=4 usable=4096 unused=4056
+ PASS - test_stack_priority_profile in 0.000 seconds
+===================================================================
+START - test_sync_capacity
+ PASS - test_sync_capacity in 0.000 seconds
+===================================================================
+START - test_thread_capacity
+ PASS - test_thread_capacity in 0.000 seconds
+===================================================================
+START - test_thread_inputs
+ PASS - test_thread_inputs in 0.000 seconds
+===================================================================
+START - test_thread_lifetime
+ PASS - test_thread_lifetime in 0.000 seconds
+===================================================================
+TESTSUITE portable_execution succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [portable_execution]: pass = 13, fail = 0, skip = 0, total = 13 duration = 0.070 seconds
+ - PASS - [portable_execution.test_admission_lifetimes] duration = 0.000 seconds
+ - PASS - [portable_execution.test_concurrent_give] duration = 0.000 seconds
+ - PASS - [portable_execution.test_firmware_consumer] duration = 0.000 seconds
+ - PASS - [portable_execution.test_isr_rejected] duration = 0.000 seconds
+ - PASS - [portable_execution.test_join_timeout_retains] duration = 0.020 seconds
+ - PASS - [portable_execution.test_mutex_ownership] duration = 0.030 seconds
+ - PASS - [portable_execution.test_mutex_wakeup] duration = 0.000 seconds
+ - PASS - [portable_execution.test_semaphore_tokens] duration = 0.020 seconds
+ - PASS - [portable_execution.test_stack_priority_profile] duration = 0.000 seconds
+ - PASS - [portable_execution.test_sync_capacity] duration = 0.000 seconds
+ - PASS - [portable_execution.test_thread_capacity] duration = 0.000 seconds
+ - PASS - [portable_execution.test_thread_inputs] duration = 0.000 seconds
+ - PASS - [portable_execution.test_thread_lifetime] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: c8f39e5f4b04d5f89218db5ba44f704c
+PROJECT EXECUTION SUCCESSFUL

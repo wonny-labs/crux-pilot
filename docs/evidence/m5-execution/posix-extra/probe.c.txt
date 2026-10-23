@@ -1,0 +1,111 @@
+#include <errno.h>
+#include <limits.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <time.h>
+
+#ifdef __ZEPHYR__
+#include <zephyr/ztest.h>
+#define CHECK(value) zassert_true(value, "%s", #value)
+#else
+#include <assert.h>
+#define CHECK(value) assert(value)
+#endif
+
+static pthread_mutex_t lock;
+static pthread_cond_t changed;
+static int ready;
+
+static int64_t monotonic_ms(void) {
+    struct timespec value;
+    CHECK(clock_gettime(CLOCK_MONOTONIC, &value) == 0);
+    return (int64_t)value.tv_sec * 1000 + value.tv_nsec / 1000000;
+}
+
+static struct timespec deadline_after_ms(long ms) {
+    struct timespec value;
+    CHECK(clock_gettime(CLOCK_MONOTONIC, &value) == 0);
+    value.tv_nsec += ms * 1000000L;
+    value.tv_sec += value.tv_nsec / 1000000000L;
+    value.tv_nsec %= 1000000000L;
+    return value;
+}
+
+static void *notify(void *context) {
+    CHECK(pthread_mutex_lock(&lock) == 0);
+    ready = 1;
+    CHECK(pthread_cond_signal(&changed) == 0);
+    CHECK(pthread_mutex_unlock(&lock) == 0);
+    return context;
+}
+
+static void monotonic_condition(void) {
+    pthread_condattr_t attributes;
+    clockid_t clock;
+    CHECK(pthread_condattr_init(&attributes) == 0);
+    CHECK(pthread_condattr_setclock(&attributes, CLOCK_MONOTONIC) == 0);
+    CHECK(pthread_condattr_getclock(&attributes, &clock) == 0);
+    CHECK(clock == CLOCK_MONOTONIC);
+    CHECK(pthread_cond_init(&changed, &attributes) == 0);
+    CHECK(pthread_condattr_destroy(&attributes) == 0);
+    CHECK(pthread_mutex_init(&lock, NULL) == 0);
+    CHECK(pthread_mutex_lock(&lock) == 0);
+    struct timespec deadline = deadline_after_ms(20);
+    int64_t started = monotonic_ms();
+    int result = pthread_cond_timedwait(&changed, &lock, &deadline);
+    int64_t elapsed = monotonic_ms() - started;
+    CHECK(result == ETIMEDOUT);
+    CHECK(elapsed >= 19);
+    CHECK(pthread_mutex_unlock(&lock) == 0);
+    printf("EXTRA monotonic_condition timeout=%d elapsed_ms=%lld\n", result, (long long)elapsed);
+
+    for (int i = 0; i < 3; ++i) {
+        pthread_t worker;
+        CHECK(pthread_mutex_lock(&lock) == 0);
+        ready = 0;
+        CHECK(pthread_create(&worker, NULL, notify, NULL) == 0);
+        deadline = deadline_after_ms(1000);
+        while (!ready) {
+            CHECK(pthread_cond_timedwait(&changed, &lock, &deadline) == 0);
+        }
+        CHECK(pthread_mutex_unlock(&lock) == 0);
+        CHECK(pthread_join(worker, NULL) == 0);
+    }
+    CHECK(pthread_cond_destroy(&changed) == 0);
+    CHECK(pthread_mutex_destroy(&lock) == 0);
+    puts("EXTRA monotonic_condition wake_join_reuse=3");
+}
+
+static void semaphore_capacity(void) {
+    sem_t semaphore;
+    CHECK(sem_init(&semaphore, 0, SEM_VALUE_MAX) == 0);
+    errno = 0;
+    int result = sem_post(&semaphore);
+    int error = errno;
+    int value;
+    CHECK(sem_getvalue(&semaphore, &value) == 0);
+    printf("EXTRA semaphore maximum=%ld post_result=%d errno=%d count=%d\n", (long)SEM_VALUE_MAX,
+           result, error, value);
+    CHECK(value == SEM_VALUE_MAX);
+    CHECK(sem_trywait(&semaphore) == 0);
+    CHECK(sem_destroy(&semaphore) == 0);
+}
+
+#ifdef __ZEPHYR__
+ZTEST(posix_extra, test_monotonic_condition) {
+    monotonic_condition();
+}
+ZTEST(posix_extra, test_semaphore_capacity) {
+    semaphore_capacity();
+}
+ZTEST_SUITE(posix_extra, NULL, NULL, NULL, NULL, NULL);
+#else
+int main(void) {
+    monotonic_condition();
+    semaphore_capacity();
+    puts("EXTRA COMPLETE");
+    return 0;
+}
+#endif

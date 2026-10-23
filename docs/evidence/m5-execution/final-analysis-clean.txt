@@ -1,0 +1,54 @@
+[1/23] Processing file $REPO/components/time/src/time.c.
+272 warnings generated.
+[2/23] Processing file $REPO/components/time/src/time.c.
+544 warnings generated.
+[3/23] Processing file $REPO/components/time/src/time_calendar.c.
+816 warnings generated.
+[4/23] Processing file $REPO/components/time/src/time_calendar.c.
+1088 warnings generated.
+[5/23] Processing file $REPO/components/time/host/time_port_host.c.
+1360 warnings generated.
+[6/23] Processing file $REPO/components/time/host/time_port_host.c.
+1631 warnings generated.
+[7/23] Processing file $REPO/samples/time/src/time_command.c.
+2155 warnings generated.
+[8/23] Processing file $REPO/samples/time/host/main.c.
+2665 warnings generated.
+[9/23] Processing file $REPO/tests/time/src/time_test.cpp.
+29465 warnings generated.
+[10/23] Processing file $REPO/tests/time/src/calendar_test.cpp.
+56265 warnings generated.
+[11/23] Processing file $REPO/tests/time/src/command_test.cpp.
+83066 warnings generated.
+[12/23] Processing file $REPO/tests/execution/src/posix.c.
+84157 warnings generated.
+[13/23] Processing file $REPO/components/execution/src/execution_threads.c.
+85053 warnings generated.
+[14/23] Processing file $REPO/components/execution/src/execution_sync.c.
+85949 warnings generated.
+[15/23] Processing file $REPO/components/execution/host/execution_native.c.
+86849 warnings generated.
+[16/23] Processing file $REPO/components/execution/host/execution_sync_native.c.
+87683 warnings generated.
+[17/23] Processing file $REPO/tests/portable_execution/conformance.c.
+88255 warnings generated.
+[18/23] Processing file $REPO/tests/portable_execution/host_main.c.
+88841 warnings generated.
+[19/23] Processing file $REPO/tests/portable_execution/host_failures.c.
+89794 warnings generated.
+[20/23] Processing file $REPO/tests/portable_execution/host_poll.c.
+90779 warnings generated.
+[21/23] Processing file $REPO/tests/portable_execution/admission.c.
+91553 warnings generated.
+[22/23] Processing file $REPO/samples/controller/core/controller.c.
+91830 warnings generated.
+[23/23] Processing file $REPO/samples/controller/core/health.c.
+92102 warnings generated.
+[24/23] Processing file $REPO/samples/controller/host/main.c.
+92693 warnings generated.
+[25/23] Processing file $REPO/tests/controller/controller_test.cpp.
+119493 warnings generated.
+[26/23] Processing file $REPO/tests/controller/health_test.cpp.
+146295 warnings generated.
+Suppressed 146368 warnings (146295 in non-user code, 73 NOLINT).
+Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.
