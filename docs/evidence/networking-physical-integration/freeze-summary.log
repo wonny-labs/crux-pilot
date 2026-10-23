@@ -1,0 +1,14 @@
+Ran 76 tests in 4.660s
+OK
+SUITE PASS - 100.00% [m5_fixture]: pass = 1, fail = 0, skip = 0, total = 1 duration = 16.990 seconds
+PROJECT EXECUTION SUCCESSFUL
+Memory region         Used Size  Region Size  %age Used
+           FLASH:       97376 B         8 MB      1.16%
+             RAM:       34332 B        32 MB      0.10%
+            ITCM:           0 B       128 KB      0.00%
+            DTCM:       13936 B       128 KB     10.63%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from <CRUX_REPO>/build/zephyr/m5-physical-evkb-22c281515483/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi
+{"manifest_sha256": "9bf5f014e76d89499e12ae93ecb1ea4769ddf2fd84368986121a9cab4069d47a"}

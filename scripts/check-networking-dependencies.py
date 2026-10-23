@@ -13,12 +13,12 @@ OWNED = {'client.h', 'runtime_port.h', 'consumer.h'}
 def uncomment(text):
     return re.sub(r'/\*.*?\*/|//[^\n]*', ' ', text, flags=re.S)
 
-def source_errors(text):
+def source_errors(text, *, owned=OWNED):
     text = uncomment(text)
     errors = []
     for directive in re.findall(r'^\s*#\s*include\s+([^\n]+)', text, re.M):
         match = re.fullmatch(r'[<"]([^">]+)[">]\s*', directive)
-        if not match or match[1] not in STANDARD | OWNED:
+        if not match or match[1] not in STANDARD | owned:
             errors.append('unapproved or computed include: ' + directive)
     forbidden = r'\b(?:zsock_\w*|net_(?:if|sockaddr|in_addr|socklen_t|context|pkt)\w*|ENET_Type|GPIO_Type|I2C_Type|LPUART_Type|SPI_Type|_GNU_SOURCE|k_\w*|NET_\w*|ZSOCK_\w*|CONFIG_\w*|fsl_\w*|board_\w*|crux_netif_observe|crux_netif_ipv4_eligible|MSG_\w*)\b'
     errors += ['native/private/out-of-profile token: ' + m for m in re.findall(forbidden, text)]
@@ -47,6 +47,11 @@ def main():
     for name in sources:
         path = args.root / name
         failures += [name + ': ' + error for error in source_errors(path.read_text())]
+    # Private correlated test consumer receives only its own frame header.
+    for name in ('tests/networking_physical/transaction.c', 'tests/networking_physical/frame.c',
+                 'tests/networking_physical/frame.h'):
+        failures += [name + ': ' + error for error in
+                     source_errors((args.root / name).read_text(), owned={'frame.h'})]
     name = 'tests/networking_consumer/CMakeLists.txt'
     failures += [name + ': ' + error for error in cmake_errors((args.root / name).read_text())]
     for failure in failures: print(failure, file=sys.stderr)

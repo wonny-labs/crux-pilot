@@ -1,0 +1,20 @@
+test_only_armed_sequenced_bounded_commands_can_execute (test_m5_control.FixtureControl) ... FAIL
+
+======================================================================
+FAIL: test_only_armed_sequenced_bounded_commands_can_execute (test_m5_control.FixtureControl)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_control.py", line 32, in test_only_armed_sequenced_bounded_commands_can_execute
+    self.assertEqual(r.stdout.splitlines(),[
+AssertionError: Lists differ: ['-1 [16 chars]0', '-1 0 0 0', '-1 0 0 0', '-1 0 0 0', '-1 0 [156 chars]0 0'] != ['-1 [16 chars]0', '0 7 1 0 A 0 0', '-1 7 1 0', '-1 7 1 0', '[210 chars] 50']
+
+First differing element 2:
+'-1 0 0 0'
+'0 7 1 0 A 0 0'
+
+Diff is 761 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 1 test in 0.798s
+
+FAILED (failures=1)

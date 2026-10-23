@@ -1,0 +1,13 @@
+F.
+======================================================================
+FAIL: test_failed_functional_timestamp_cannot_be_replaced_with_success (test_m5_transaction.ObservationFailure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_transaction.py", line 95, in test_failed_functional_timestamp_cannot_be_replaced_with_success
+    self.assertEqual(values[0],-errno.EIO)
+AssertionError: 0 != -5
+
+----------------------------------------------------------------------
+Ran 2 tests in 1.637s
+
+FAILED (failures=1)

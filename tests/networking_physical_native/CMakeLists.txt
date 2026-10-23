@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(m5_fixture_native LANGUAGES C)
+target_sources(app PRIVATE src/main.c ../networking_physical/fixture.c ../networking_physical/frame.c ../networking_physical/transaction.c)
+target_include_directories(app PRIVATE ../networking_physical)
+target_link_libraries(app PRIVATE crux::sockets crux::netif)
+target_compile_definitions(app PRIVATE M5_PEER="127.0.0.1")
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)

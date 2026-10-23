@@ -1,0 +1,21 @@
+.E....
+======================================================================
+ERROR: test_preserves_clean_workspace_manifest_context_separately_from_built_source (test_m5_prepare.Preparation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_prepare.py", line 69, in test_preserves_clean_workspace_manifest_context_separately_from_built_source
+    record = self.prepare()
+  File "<CRUX_REPO>/tests/build/test_m5_prepare.py", line 56, in prepare
+    return subject.prepare(self.build, self.inputs, self.output, self.root,
+  File "<CRUX_REPO>/tests/target/prepare_m5_network.py", line 63, in prepare
+    frozen_inputs(data)
+  File "<CRUX_REPO>/tests/target/prepare_m5_network.py", line 43, in frozen_inputs
+    require(len(projects) == len(PINNED) and {p['name'] for p in projects} == set(PINNED),
+  File "<CRUX_REPO>/tests/target/m3_image.py", line 8, in require
+    raise ValueError(message)
+ValueError: Unexpected/missing/duplicate dependencies
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.030s
+
+FAILED (errors=1)

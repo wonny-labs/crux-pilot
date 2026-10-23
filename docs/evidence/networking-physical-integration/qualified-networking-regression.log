@@ -1,0 +1,287 @@
+Networking consumers use the qualified standard/public boundary.
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Configuring done (1.5s)
+-- Generating done (0.0s)
+-- Build files have been written to: <CRUX_REPO>/build/networking-consumer
+[1/17] Building C object CMakeFiles/consumer_c.dir/main.c.o
+[2/17] Building CXX object CMakeFiles/consumer_cpp.dir/main.cpp.o
+[3/17] Building C object sdk/components/time/CMakeFiles/crux_time_common.dir/src/time.c.o
+[4/17] Building C object sdk/components/time/CMakeFiles/crux_time_common.dir/src/time_calendar.c.o
+[5/17] Linking C static library sdk/components/time/libcrux_time_common.a
+[6/17] Building C object sdk/components/time/CMakeFiles/crux_time_host.dir/host/time_port_host.c.o
+[7/17] Linking C static library sdk/components/time/libcrux_time_host.a
+[8/17] Building C object sdk/components/execution/CMakeFiles/crux_execution_host.dir/src/execution_threads.c.o
+[9/17] Building C object sdk/components/execution/CMakeFiles/crux_execution_host.dir/src/execution_sync.c.o
+[10/17] Building C object sdk/components/execution/CMakeFiles/crux_execution_host.dir/host/execution_native.c.o
+[11/17] Building C object sdk/components/execution/CMakeFiles/crux_execution_host.dir/host/execution_sync_native.c.o
+[12/17] Building C object sdk/components/netif/CMakeFiles/crux_netif.dir/src/netif.c.o
+[13/17] Linking C static library sdk/components/execution/libcrux_execution_host.a
+[14/17] Building C object sdk/components/netif/CMakeFiles/crux_netif.dir/host/netif_host.c.o
+[15/17] Linking C static library sdk/components/netif/libcrux_netif.a
+[16/17] Linking C executable consumer_c
+[17/17] Linking CXX executable consumer_cpp
+-- west build: generating a build system
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: <CRUX_REPO>/tests/networking_zephyr
+-- CMake version: 3.28.4
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.0 (/workspaces/crux/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native/64
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: host (gcc/ld)
+-- Found BOARD.dts: /workspaces/crux/zephyr/boards/native/native_sim/native_sim_64.dts
+-- Generated zephyr.dts: <CRUX_REPO>/build/zephyr/networking-native-pico/zephyr/zephyr.dts
+-- Generated pickled edt: <CRUX_REPO>/build/zephyr/networking-native-pico/zephyr/edt.pickle
+-- Generated devicetree_generated.h: <CRUX_REPO>/build/zephyr/networking-native-pico/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing /workspaces/crux/zephyr/Kconfig
+Loaded configuration '/workspaces/crux/zephyr/boards/native/native_sim/native_sim_64_defconfig'
+Merged configuration '<CRUX_REPO>/tests/networking_zephyr/prj.conf'
+Configuration saved to '<CRUX_REPO>/build/zephyr/networking-native-pico/zephyr/.config'
+No change to Kconfig header in '<CRUX_REPO>/build/zephyr/networking-native-pico/zephyr/include/generated/zephyr/autoconf.h'
+-- Crux Zephyr integration module discovered
+-- Using ccache: /usr/bin/ccache
+-- Found gen_kobject_list: /workspaces/crux/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (83.8s)
+-- Generating done (6.6s)
+-- Build files have been written to: <CRUX_REPO>/build/zephyr/networking-native-pico
+-- west build: building application
+[1/156] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[2/10] Generating linker_zephyr_pre0.cmd
+[3/10] Building C object modules/m5-portable-networking/CMakeFiles/crux_netif.dir<CRUX_REPO>/components/netif/src/netif.c.obj
+[4/10] Building C object modules/m5-portable-networking/CMakeFiles/crux_netif.dir<CRUX_REPO>/components/netif/zephyr/netif_zephyr.c.obj
+[5/10] Building C object CMakeFiles/app.dir/src/main.c.obj
+[6/10] Linking C static library modules/m5-portable-networking/libcrux_netif.a
+[7/10] Linking C static library app/libapp.a
+[8/10] Linking C executable zephyr/zephyr.elf
+Generating files from <CRUX_REPO>/build/zephyr/networking-native-pico/zephyr/zephyr.elf for board: native_sim/native/64
+[9/10] Building native simulator runner, and linking final executable
+[10/10] Running utility command for native_runner_executable
+Native standard/public C++ header and C-linkage probe compiled.
+WARNING: Using a test - not safe - entropy source
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE networking
+===================================================================
+START - test_primary_interface_observation
+ PASS - test_primary_interface_observation in 0.000 seconds
+===================================================================
+START - test_real_stack_failures_and_cleanup
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=20
+STACK_LINK_LOSS result=-116 peer_error=2 native_error=115 received=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1360
+STACK_CASE udp=0 mode=1 runtime=0 result=-116 expected=-116
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=1 runtime=0 result=-116 expected=-116
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=2 runtime=0 result=-104 expected=-104
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=3 runtime=0 result=-122 expected=-122
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=4 runtime=0 result=-122 expected=-122
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=1 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1360
+STACK_CASE udp=0 mode=1 runtime=0 result=-116 expected=-116
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=1 runtime=0 result=-116 expected=-116
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=2 runtime=0 result=-104 expected=-104
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=3 runtime=0 result=-122 expected=-122
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=4 runtime=0 result=-122 expected=-122
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=1 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1360
+STACK_CASE udp=0 mode=1 runtime=0 result=-116 expected=-116
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=1 runtime=0 result=-116 expected=-116
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=2 runtime=0 result=-104 expected=-104
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=3 runtime=0 result=-122 expected=-122
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=4 runtime=0 result=-122 expected=-122
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=1 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=3
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_NATIVE_ACTIVE contexts=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_ZERO_DATAGRAM pass=1
+STACK_POST_CLOSE errno=128 attempts=1
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=1520
+ PASS - test_real_stack_failures_and_cleanup in 28.220 seconds
+===================================================================
+START - test_resource_exhaustion_and_return
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_EXHAUSTION held=6 errno=2
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+STACK_RESOURCES contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=64 tx_buf=64
+STACK_SETTLE elapsed_ms=0
+ PASS - test_resource_exhaustion_and_return in 0.000 seconds
+===================================================================
+TESTSUITE networking succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [networking]: pass = 3, fail = 0, skip = 0, total = 3 duration = 28.220 seconds
+ - PASS - [networking.test_primary_interface_observation] duration = 0.000 seconds
+ - PASS - [networking.test_real_stack_failures_and_cleanup] duration = 28.220 seconds
+ - PASS - [networking.test_resource_exhaustion_and_return] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
+-- west build: generating a build system
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: <CRUX_REPO>/samples/networking/zephyr
+-- CMake version: 3.28.4
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.0 (/workspaces/crux/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: mimxrt1060_evk, Revision: B, qualifiers: mimxrt1062/qspi
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found BOARD.dts: /workspaces/crux/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts
+-- Found devicetree overlay: /workspaces/crux/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_B.overlay
+-- Found devicetree overlay: <CRUX_REPO>/samples/controller/zephyr/m3-network.overlay
+-- Generated zephyr.dts: <CRUX_REPO>/build/zephyr/networking-evkb/zephyr/zephyr.dts
+-- Generated pickled edt: <CRUX_REPO>/build/zephyr/networking-evkb/zephyr/edt.pickle
+-- Generated devicetree_generated.h: <CRUX_REPO>/build/zephyr/networking-evkb/zephyr/include/generated/zephyr/devicetree_generated.h
+<CRUX_REPO>/build/zephyr/networking-evkb/zephyr/zephyr.dts:4235.36-4244.5: Warning (unique_unit_address_if_enabled): /soc/usbd@402e0000: duplicate unit-address (also used in node /soc/usbh@402e0000)
+Parsing /workspaces/crux/zephyr/Kconfig
+Loaded configuration '/workspaces/crux/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_defconfig'
+Merged configuration '<CRUX_REPO>/samples/networking/zephyr/prj.conf'
+Configuration saved to '<CRUX_REPO>/build/zephyr/networking-evkb/zephyr/.config'
+No change to Kconfig header in '<CRUX_REPO>/build/zephyr/networking-evkb/zephyr/include/generated/zephyr/autoconf.h'
+-- Crux Zephyr integration module discovered
+-- Looking for device MIMXRT1062 in /workspaces/crux/modules/hal/nxp/mcux/mcux-sdk-ng/devices/
+-- Found device folder: /workspaces/crux/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062
+-- Found gen_kobject_list: /workspaces/crux/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (34.2s)
+-- Generating done (1.6s)
+-- Build files have been written to: <CRUX_REPO>/build/zephyr/networking-evkb
+-- west build: building application
+[1/179] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[2/16] Generating linker_zephyr_pre0.cmd
+[3/16] Building C object modules/m5-portable-networking/CMakeFiles/crux_netif_provider.dir<CRUX_REPO>/components/netif/src/netif.c.obj
+[4/16] Building C object zephyr/CMakeFiles/zephyr_pre0.dir/misc/empty_file.c.obj
+[5/16] Building C object zephyr/drivers/ethernet/CMakeFiles/drivers__ethernet.dir/__/__/__/crux-mdio/mdio_nxp_enet.c.obj
+[6/16] Building C object CMakeFiles/app.dir/main.c.obj
+[7/16] Linking C static library zephyr/drivers/ethernet/libdrivers__ethernet.a
+[8/16] Building C object modules/m5-portable-networking/CMakeFiles/crux_netif_provider.dir<CRUX_REPO>/components/netif/zephyr/netif_zephyr.c.obj
+[9/16] Linking C static library app/libapp.a
+[10/16] Linking C static library modules/m5-portable-networking/libcrux_netif_provider.a
+[11/16] Linking C executable zephyr/zephyr_pre0.elf
+[12/16] Generating linker.cmd
+[13/16] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[14/16] Building C object zephyr/CMakeFiles/zephyr_final.dir/misc/empty_file.c.obj
+[15/16] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[16/16] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:       91656 B         8 MB      1.09%
+             RAM:       31708 B        32 MB      0.09%
+            ITCM:           0 B       128 KB      0.00%
+            DTCM:       13936 B       128 KB     10.63%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from <CRUX_REPO>/build/zephyr/networking-evkb/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi

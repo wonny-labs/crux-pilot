@@ -39,6 +39,13 @@ class NetworkingBoundary(unittest.TestCase):
                      'target_include_directories(consumer PRIVATE ../../components/netif/src)']:
             with self.subTest(code=code): self.assertTrue(self.checker.cmake_errors(code))
 
+    def test_physical_frame_allowance_is_local(self):
+        code = '#include "frame.h"\n#include <poll.h>'
+        self.assertTrue(self.checker.source_errors(code))
+        self.assertEqual(self.checker.source_errors(code, owned={'frame.h'}), [])
+        for forbidden in ('#include <zephyr/kernel.h>', 'net_if_up(0);', '#ifdef CONFIG_BOARD'):
+            self.assertTrue(self.checker.source_errors(forbidden, owned={'frame.h'}))
+
     def test_comments_do_not_trigger_or_hide_direct_native_use(self):
         self.assertEqual(self.checker.source_errors('/* zsock_socket example */\n#include <poll.h>'), [])
         self.assertTrue(self.checker.source_errors('/* okay */ zsock_socket(0,0,0);'))

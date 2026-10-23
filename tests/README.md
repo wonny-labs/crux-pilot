@@ -162,3 +162,15 @@ qualification and an RT1060 cross-build. These commands never operate hardware.
 The native fixture requires embedded libc to avoid silently testing Linux sockets.
 Fixture servers use standard APIs outside the public client profile; they are
 not consumer examples. Physical acceptance remains pending.
+
+## M5 physical qualification preparation
+
+`scripts/test-networking-physical.sh` runs private M5 runner/oracle tests,
+embedded-libc Zephyr native instrumentation tests and a dedicated RT1060
+cross-build. `--freeze` requires clean committed inputs and creates
+commit-specific image/provenance/ABI manifests. Neither mode accesses hardware.
+See [the preparation and approval procedure](../docs/networking-physical-preparation.md)
+for fixed criteria, M5-only wire identity, bounded injected-adapter runner,
+raw-evidence replay and separate physical operation gates. The concrete adapter is tested with fake devices. Its physical capture/reset
+path requires separate exact-operation approval and current M3 safety gates;
+software preparation does not establish physical acceptance or authorisation.

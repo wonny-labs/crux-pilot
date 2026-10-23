@@ -1,0 +1,13 @@
+........F.
+======================================================================
+FAIL: test_pass_is_explicitly_not_physical_acceptance (test_m5_series.Series)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_series.py", line 61, in test_pass_is_explicitly_not_physical_acceptance
+    self.assertIn('physical_acceptance',result)
+AssertionError: 'physical_acceptance' not found in {'status': 'PASS', 'boots': 3, 'pairs': 48, 'calls': 96, 'max_call_ms': 2000, 'loss_scope': 'TCP in-flight disconnect; UDP attempt while DOWN', 'recovery': 'same boot, no reset'}
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.090s
+
+FAILED (failures=1)

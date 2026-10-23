@@ -1,0 +1,93 @@
+...................
+======================================================================
+FAIL: test_gateway_and_incomplete_or_unexpected_routes_are_rejected (test_m5_adapter.DirectRoute) (text='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,DONE,CLONING,STATIC,IFSCOPE>\n    gateway: 192.168.77.254\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 181, in test_gateway_and_incomplete_or_unexpected_routes_are_rejected
+    with self.subTest(text=text),self.assertRaises(ValueError):self.probe(text)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_gateway_and_incomplete_or_unexpected_routes_are_rejected (test_m5_adapter.DirectRoute) (text='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,GATEWAY,DONE,CLONING,STATIC,IFSCOPE>\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 181, in test_gateway_and_incomplete_or_unexpected_routes_are_rejected
+    with self.subTest(text=text),self.assertRaises(ValueError):self.probe(text)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_gateway_and_incomplete_or_unexpected_routes_are_rejected (test_m5_adapter.DirectRoute) (text='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,REJECT,DONE,CLONING,STATIC,IFSCOPE>\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 181, in test_gateway_and_incomplete_or_unexpected_routes_are_rejected
+    with self.subTest(text=text),self.assertRaises(ValueError):self.probe(text)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_gateway_and_incomplete_or_unexpected_routes_are_rejected (test_m5_adapter.DirectRoute) (text='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,BLACKHOLE,DONE,CLONING,STATIC,IFSCOPE>\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 181, in test_gateway_and_incomplete_or_unexpected_routes_are_rejected
+    with self.subTest(text=text),self.assertRaises(ValueError):self.probe(text)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_gateway_and_incomplete_or_unexpected_routes_are_rejected (test_m5_adapter.DirectRoute) (text='   route to: 192.168.77.2\ndestination: 0.0.0.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,DONE,CLONING,STATIC,IFSCOPE>\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 181, in test_gateway_and_incomplete_or_unexpected_routes_are_rejected
+    with self.subTest(text=text),self.assertRaises(ValueError):self.probe(text)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_gateway_and_incomplete_or_unexpected_routes_are_rejected (test_m5_adapter.DirectRoute) (text='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.0.0\n  interface: en5\n      flags: <UP,DONE,CLONING,STATIC,IFSCOPE>\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 181, in test_gateway_and_incomplete_or_unexpected_routes_are_rejected
+    with self.subTest(text=text),self.assertRaises(ValueError):self.probe(text)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_gateway_and_incomplete_or_unexpected_routes_are_rejected (test_m5_adapter.DirectRoute) (text='   route to: 192.168.77.3\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,DONE,CLONING,STATIC,IFSCOPE>\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 181, in test_gateway_and_incomplete_or_unexpected_routes_are_rejected
+    with self.subTest(text=text),self.assertRaises(ValueError):self.probe(text)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_gateway_and_incomplete_or_unexpected_routes_are_rejected (test_m5_adapter.DirectRoute) (text='interface: en5\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 181, in test_gateway_and_incomplete_or_unexpected_routes_are_rejected
+    with self.subTest(text=text),self.assertRaises(ValueError):self.probe(text)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_gateway_and_incomplete_or_unexpected_routes_are_rejected (test_m5_adapter.DirectRoute) (text='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,DONE,CLONING,STATIC,IFSCOPE>\ninterface: en5\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 181, in test_gateway_and_incomplete_or_unexpected_routes_are_rejected
+    with self.subTest(text=text),self.assertRaises(ValueError):self.probe(text)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_gateway_and_incomplete_or_unexpected_routes_are_rejected (test_m5_adapter.DirectRoute) (text='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <DONE,CLONING,STATIC,IFSCOPE>\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 181, in test_gateway_and_incomplete_or_unexpected_routes_are_rejected
+    with self.subTest(text=text),self.assertRaises(ValueError):self.probe(text)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_gateway_and_incomplete_or_unexpected_routes_are_rejected (test_m5_adapter.DirectRoute) (text='   route to: 192.168.77.2\ndestination: 192.168.77.3\n  interface: en5\n      flags: <UP,HOST,DONE,LLINFO,WASCLONED,IFSCOPE,IFREF>\n')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 181, in test_gateway_and_incomplete_or_unexpected_routes_are_rejected
+    with self.subTest(text=text),self.assertRaises(ValueError):self.probe(text)
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.071s
+
+FAILED (failures=11)

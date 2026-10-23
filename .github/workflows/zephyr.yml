@@ -73,6 +73,10 @@ jobs:
           scripts/bootstrap-networking-tests.sh
           scripts/test-networking.sh
 
+      - name: Prepare networking physical fixture without hardware
+        working-directory: crux-pilot
+        run: scripts/test-networking-physical.sh
+
       - name: Run native_sim RTC tests and build EVKB firmware
         working-directory: crux-pilot
         run: scripts/test-zephyr-time.sh "$CRUX_BOARD_TARGET"
@@ -155,6 +159,17 @@ jobs:
             crux-pilot/build/zephyr/m3-integrated-normal-evkb/compile_commands.json
             crux-pilot/build/evidence/zephyr-test-inputs.json
             crux-pilot/build/zephyr/twister-execution/
+            crux-pilot/build/zephyr/m5-physical-native/zephyr/.config
+            crux-pilot/build/zephyr/m5-physical-native/zephyr/zephyr.map
+            crux-pilot/build/zephyr/m5-physical-native/compile_commands.json
+            crux-pilot/build/zephyr/m5-physical-evkb/zephyr/.config
+            crux-pilot/build/zephyr/m5-physical-evkb/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/m5-physical-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/m5-physical-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/m5-physical-evkb/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/m5-physical-evkb/compile_commands.json
+            crux-pilot/build/zephyr/m5-physical-evkb/crux-mdio/
+            crux-pilot/build/evidence/m5-preparation/native-scenario.log
             crux-pilot/build/zephyr/twister-portable-execution/
             crux-pilot/build/zephyr/portable_execution-evkb/zephyr/.config
             crux-pilot/build/zephyr/portable_execution-evkb/zephyr/zephyr.map

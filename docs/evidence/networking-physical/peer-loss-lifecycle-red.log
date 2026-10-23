@@ -1,0 +1,13 @@
+.F.
+======================================================================
+FAIL: test_loss_peer_does_not_wait_for_impossible_udp_request (test_m5_peer.Peer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_peer.py", line 23, in test_loss_peer_does_not_wait_for_impossible_udp_request
+    self.assertFalse(worker.is_alive(), 'Loss peer must not retain ports waiting for UDP while DOWN')
+AssertionError: True is not false : Loss peer must not retain ports waiting for UDP while DOWN
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.528s
+
+FAILED (failures=1)

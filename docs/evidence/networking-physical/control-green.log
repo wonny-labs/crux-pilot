@@ -1,0 +1,6 @@
+test_only_armed_sequenced_bounded_commands_can_execute (test_m5_control.FixtureControl) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.484s
+
+OK

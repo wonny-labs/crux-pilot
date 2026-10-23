@@ -11,7 +11,7 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def verify_errno_map(path, image):
+def verify_errno_map(path, image, *, source_suffix='/network_client.c'):
     path = Path(path)
     record = json.loads(path.read_text())
     require(record['schema'] == 1 and record['source_commit'] == image['source']['git_commit'] and
@@ -49,6 +49,6 @@ def verify_errno_map(path, image):
     compile_paths = [Path(a['path']) for a in image['artifacts'] if Path(a['path']).name == 'compile_commands.json']
     require(len(compile_paths) == 1, 'No unique image compilation database')
     commands = json.loads(compile_paths[0].read_text())
-    require([e for e in commands if e['file'].endswith('/network_client.c')] == [entry],
+    require([e for e in commands if e['file'].endswith(source_suffix)] == [entry],
             'Errno probe command is not the image network compilation')
     return record['values']

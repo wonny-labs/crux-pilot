@@ -1,0 +1,37 @@
+...............
+======================================================================
+ERROR: test_identity_voltage_and_current_image_verified_before_any_reset (test_m5_adapter.Preflight) (responses=['CPUID register: 0x411FC271\nDPIDR: 0x0BD11477\nS/N: 602003106\nCortex-M7\nVTref = 1.000 V\n'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 236, in test_identity_voltage_and_current_image_verified_before_any_reset
+    lease=adapter.M3UARTLease({},root,image_binary=binary,image_sha256=runner.sha(binary));lease.verify=lambda *_:None
+TypeError: __init__() got an unexpected keyword argument 'image_binary'
+
+======================================================================
+ERROR: test_identity_voltage_and_current_image_verified_before_any_reset (test_m5_adapter.Preflight) (responses=['CPUID register: 0x411FC271\nDPIDR: 0x0BD11477\nS/N: 000000000\nCortex-M7\nVTref = 3.300 V\n'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 236, in test_identity_voltage_and_current_image_verified_before_any_reset
+    lease=adapter.M3UARTLease({},root,image_binary=binary,image_sha256=runner.sha(binary));lease.verify=lambda *_:None
+TypeError: __init__() got an unexpected keyword argument 'image_binary'
+
+======================================================================
+ERROR: test_identity_voltage_and_current_image_verified_before_any_reset (test_m5_adapter.Preflight) (responses=['CPUID register: 0x411FC271\nDPIDR: 0x0BD11477\nS/N: 602003106\nCortex-M7\nVTref = 3.300 V\n', 'CPUID register: 0x411FC271\nDPIDR: 0x0BD11477\nS/N: 602003106\nCortex-M7\nVTref = 3.300 V\nVerify failed'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 236, in test_identity_voltage_and_current_image_verified_before_any_reset
+    lease=adapter.M3UARTLease({},root,image_binary=binary,image_sha256=runner.sha(binary));lease.verify=lambda *_:None
+TypeError: __init__() got an unexpected keyword argument 'image_binary'
+
+======================================================================
+ERROR: test_identity_voltage_and_current_image_verified_before_any_reset (test_m5_adapter.Preflight) (responses=['CPUID register: 0x411FC271\nDPIDR: 0x0BD11477\nS/N: 602003106\nCortex-M7\nVTref = 3.300 V\n', 'CPUID register: 0x411FC271\nDPIDR: 0x0BD11477\nS/N: 602003106\nCortex-M7\nVTref = 3.300 V\nVerify successful', 'CPUID register: 0x411FC271\nDPIDR: 0x0BD11477\nS/N: 602003106\nCortex-M7\nVTref = 3.300 V\n'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<CRUX_REPO>/tests/build/test_m5_adapter.py", line 236, in test_identity_voltage_and_current_image_verified_before_any_reset
+    lease=adapter.M3UARTLease({},root,image_binary=binary,image_sha256=runner.sha(binary));lease.verify=lambda *_:None
+TypeError: __init__() got an unexpected keyword argument 'image_binary'
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.042s
+
+FAILED (errors=4)

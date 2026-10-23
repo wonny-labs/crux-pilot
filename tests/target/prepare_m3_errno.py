@@ -30,13 +30,13 @@ def preprocess_command(entry):
     return command + ['-E', '-dM', '-H', '-x', 'c', '-']
 
 
-def prepare(build, inputs, output):
+def prepare(build, inputs, output, *, source_suffix='/network_client.c'):
     output.mkdir(parents=True, exist_ok=False)
     source = json.loads(inputs.read_text())['source']
     if source['dirty'] or not source['recoverable_from_git']:
         raise ValueError('Unfrozen target inputs')
     entries = json.loads((build / 'compile_commands.json').read_text())
-    selected = [e for e in entries if e['file'].endswith('/network_client.c')]
+    selected = [e for e in entries if e['file'].endswith(source_suffix)]
     if len(selected) != 1:
         raise ValueError('Missing/ambiguous actual network compilation')
     entry = selected[0]

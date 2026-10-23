@@ -8,7 +8,7 @@ def require(condition, message):
         raise ValueError(message)
 
 
-def check_image(binary_path, elf_path, config_path, profile):
+def check_image_bytes(binary_path, elf_path):
     binary = Path(binary_path).read_bytes()
     elf = Path(elf_path).read_bytes()
     require(len(binary) > 0x2020 and binary[:4] == b'FCFB', 'Missing standard QSPI FlexSPI header')
@@ -68,6 +68,13 @@ def check_image(binary_path, elf_path, config_path, profile):
         for o in range(s[4], s[4] + s[5], 16):
             name, value, size, info, other, index = struct.unpack_from('<IIIBBH', elf, o)
             symbols[strings[name:].split(b'\0', 1)[0].decode(errors='replace')] = dict(address=value, bytes=size)
+    return dict(symbols=symbols, loads=loads, binary_bytes=len(binary))
+
+
+def check_image(binary_path, elf_path, config_path, profile):
+    geometry = check_image_bytes(binary_path, elf_path)
+    symbols, loads = geometry['symbols'], geometry['loads']
+    binary = Path(binary_path).read_bytes()
     require(profile in ('probe', 'normal', 'network', 'integrated-probe', 'integrated-normal'),
             'Wrong profile')
     integrated = profile.startswith('integrated-')
