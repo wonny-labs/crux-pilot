@@ -1,0 +1,180 @@
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: $REPO/build/execution-firmware-host
+[1/15] Building C object CMakeFiles/crux_firmware_portable.dir$REPO/tests/portable_execution/public_probe.c.o
+[2/15] Building C object CMakeFiles/crux_firmware_portable.dir/src/consumer.c.o
+[3/15] Building CXX object CMakeFiles/crux_firmware_consumer.dir/src/main.cpp.o
+[4/15] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/time.c.o
+[5/15] Building C object crux/components/time/CMakeFiles/crux_time_host.dir/host/time_port_host.c.o
+[6/15] Linking C static library crux/components/time/libcrux_time_host.a
+[7/15] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/time_calendar.c.o
+[8/15] Linking C static library crux/components/time/libcrux_time_common.a
+[9/15] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/src/execution_threads.c.o
+[10/15] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/src/execution_sync.c.o
+[11/15] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/host/execution_native.c.o
+[12/15] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/host/execution_sync_native.c.o
+[13/15] Linking C static library crux/components/execution/libcrux_execution_host.a
+[14/15] Linking C static library libcrux_firmware_portable.a
+[15/15] Linking CXX executable crux_firmware_consumer
+Internal ctest changing into directory: $REPO/build/execution-firmware-host
+Test project $REPO/build/execution-firmware-host
+    Start 1: Execution.FirmwareConsumer
+1/1 Test #1: Execution.FirmwareConsumer .......   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.04 sec
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: $REPO/build/execution-runtime-host
+[1/13] Building C object CMakeFiles/crux_runtime_consumer.dir/src/main.c.o
+[2/13] Building C object CMakeFiles/crux_runtime_consumer.dir/src/runtime_fixture.c.o
+[3/13] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/time.c.o
+[4/13] Building C object crux/components/time/CMakeFiles/crux_time_host.dir/host/time_port_host.c.o
+[5/13] Linking C static library crux/components/time/libcrux_time_host.a
+[6/13] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/time_calendar.c.o
+[7/13] Linking C static library crux/components/time/libcrux_time_common.a
+[8/13] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/src/execution_threads.c.o
+[9/13] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/src/execution_sync.c.o
+[10/13] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/host/execution_native.c.o
+[11/13] Building C object crux/components/execution/CMakeFiles/crux_execution_host.dir/host/execution_sync_native.c.o
+[12/13] Linking C static library crux/components/execution/libcrux_execution_host.a
+[13/13] Linking C executable crux_runtime_consumer
+Internal ctest changing into directory: $REPO/build/execution-runtime-host
+Test project $REPO/build/execution-runtime-host
+    Start 1: Execution.RuntimeConsumer
+1/1 Test #1: Execution.RuntimeConsumer ........   Passed    0.11 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.13 sec
+Execution public/consumer boundary passed; native providers remain permitted.
+Renaming previous output directory to $REPO/build/zephyr/twister-portable-execution.2
+INFO    - Using Ninja..
+INFO    - Zephyr version: v4.4.0
+INFO    - Using 'zephyr/gnu' toolchain variant.
+INFO    - Building initial testsuite list...
+INFO    - Built testsuite list in 0.00 seconds
+INFO    - Writing JSON report $REPO/build/zephyr/twister-portable-execution/testplan.json
+INFO    - JOBS: 2
+INFO    - Adding tasks to the queue...
+INFO    - Added initial list of jobs to queue
+INFO    - Total complete:    1/   2  50%  built (not run):    0, filtered:    0, failed:    0, error:    0
+INFO    - Total complete:    2/   2  100%  built (not run):    0, filtered:    0, failed:    0, error:    0
+INFO    - 2 test scenarios (2 configurations) selected, 0 configurations filtered (0 by static filter, 0 at runtime).
+INFO    - 2 of 2 executed test configurations passed (100.00%), 0 built (not run), 0 failed, 0 errored, with no warnings in 56.95 seconds.
+INFO    - 14 of 14 executed test cases passed (100.00%) on 1 out of total 1473 platforms (0.07%).
+INFO    - 2 test configurations executed on platforms, 0 test configurations were only built.
+INFO    - Saving reports...
+INFO    - Writing JSON report $REPO/build/zephyr/twister-portable-execution/twister.json
+INFO    - Writing xunit report $REPO/build/zephyr/twister-portable-execution/twister.xml...
+INFO    - Writing xunit report $REPO/build/zephyr/twister-portable-execution/twister_report.xml...
+INFO    - Run completed
+[0/1] Re-running CMake...
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: $REPO/tests/portable_execution/zephyr
+-- CMake version: 3.28.4
+-- Cache files will be written to: /home/vscode/.cache/zephyr
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: mimxrt1060_evk, Revision: B, qualifiers: mimxrt1062/qspi
+-- Found host-tools: zephyr 1.0.1 ($CACHE/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: zephyr 1.0.1 ($CACHE/sdk/zephyr-sdk-1.0.1)
+-- Found BOARD.dts: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts
+-- Found devicetree overlay: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_B.overlay
+-- Generated zephyr.dts: $REPO/build/zephyr/portable_execution-evkb/zephyr/zephyr.dts
+-- Generated pickled edt: $REPO/build/zephyr/portable_execution-evkb/zephyr/edt.pickle
+-- Generated devicetree_generated.h: $REPO/build/zephyr/portable_execution-evkb/zephyr/include/generated/zephyr/devicetree_generated.h
+$REPO/build/zephyr/portable_execution-evkb/zephyr/zephyr.dts:4237.36-4246.5: Warning (unique_unit_address_if_enabled): /soc/usbd@402e0000: duplicate unit-address (also used in node /soc/usbh@402e0000)
+Parsing $WORKSPACE/zephyr/Kconfig
+Loaded configuration '$WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_defconfig'
+Merged configuration '$REPO/tests/portable_execution/zephyr/prj.conf'
+No change to configuration in '$REPO/build/zephyr/portable_execution-evkb/zephyr/.config'
+No change to Kconfig header in '$REPO/build/zephyr/portable_execution-evkb/zephyr/include/generated/zephyr/autoconf.h'
+-- Looking for device MIMXRT1062 in $WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/devices/
+-- Found device folder: $WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062
+-- Crux Zephyr integration module discovered
+-- Found gen_kobject_list: $WORKSPACE/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (13.6s)
+-- Generating done (0.6s)
+-- Build files have been written to: $REPO/build/zephyr/portable_execution-evkb
+[1/140] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[2/18] Building C object CMakeFiles/app.dir$REPO/tests/portable_execution/admission.c.obj
+[3/18] Building C object CMakeFiles/app.dir/main.c.obj
+[4/18] Building C object CMakeFiles/crux_execution_cases.dir$REPO/tests/portable_execution/public_probe.c.obj
+[5/18] Building C object CMakeFiles/crux_execution_cases.dir$REPO/tests/portable_execution/conformance.c.obj
+[6/18] Generating linker_zephyr_pre0.cmd
+[7/18] Building C object CMakeFiles/crux_execution_cases.dir$REPO/tests/execution_firmware/src/consumer.c.obj
+[8/18] Building C object modules/m5-execution/CMakeFiles/crux_execution_zephyr.dir$REPO/components/execution/src/execution_threads.c.obj
+[9/18] Building C object modules/m5-execution/CMakeFiles/crux_execution_zephyr.dir$REPO/components/execution/src/execution_sync.c.obj
+[10/18] Building C object modules/m5-execution/CMakeFiles/crux_execution_zephyr.dir$REPO/components/execution/zephyr/execution_native.c.obj
+[11/18] Linking C static library modules/m5-execution/libcrux_execution_zephyr.a
+[12/18] Linking C static library libcrux_execution_cases.a
+[13/18] Linking C static library app/libapp.a
+[14/18] Linking C executable zephyr/zephyr_pre0.elf
+[15/18] Generating linker.cmd
+[16/18] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[17/18] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[18/18] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:       66376 B         8 MB      0.79%
+             RAM:       31168 B        32 MB      0.09%
+            ITCM:           0 B       128 KB      0.00%
+            DTCM:           0 B       128 KB      0.00%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from $REPO/build/zephyr/portable_execution-evkb/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi
+Execution public/consumer boundary passed; native providers remain permitted.
+[0/1] Re-running CMake...
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: $REPO/tests/execution_runtime/zephyr
+-- CMake version: 3.28.4
+-- Cache files will be written to: /home/vscode/.cache/zephyr
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: mimxrt1060_evk, Revision: B, qualifiers: mimxrt1062/qspi
+-- Found host-tools: zephyr 1.0.1 ($CACHE/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: zephyr 1.0.1 ($CACHE/sdk/zephyr-sdk-1.0.1)
+-- Found BOARD.dts: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts
+-- Found devicetree overlay: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_B.overlay
+-- Generated zephyr.dts: $REPO/build/zephyr/execution_runtime-evkb/zephyr/zephyr.dts
+-- Generated pickled edt: $REPO/build/zephyr/execution_runtime-evkb/zephyr/edt.pickle
+-- Generated devicetree_generated.h: $REPO/build/zephyr/execution_runtime-evkb/zephyr/include/generated/zephyr/devicetree_generated.h
+$REPO/build/zephyr/execution_runtime-evkb/zephyr/zephyr.dts:4237.36-4246.5: Warning (unique_unit_address_if_enabled): /soc/usbd@402e0000: duplicate unit-address (also used in node /soc/usbh@402e0000)
+Parsing $WORKSPACE/zephyr/Kconfig
+Loaded configuration '$REPO/build/zephyr/execution_runtime-evkb/zephyr/.config'
+No change to configuration in '$REPO/build/zephyr/execution_runtime-evkb/zephyr/.config'
+No change to Kconfig header in '$REPO/build/zephyr/execution_runtime-evkb/zephyr/include/generated/zephyr/autoconf.h'
+-- Looking for device MIMXRT1062 in $WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/devices/
+-- Found device folder: $WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062
+-- Crux Zephyr integration module discovered
+-- Found gen_kobject_list: $WORKSPACE/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (13.0s)
+-- Generating done (0.5s)
+-- Build files have been written to: $REPO/build/zephyr/execution_runtime-evkb
+[1/135] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[2/15] Building C object CMakeFiles/crux_runtime_fixture.dir$REPO/tests/execution_runtime/src/runtime_fixture.c.obj
+[3/15] Generating linker_zephyr_pre0.cmd
+[4/15] Building C object CMakeFiles/app.dir/main.c.obj
+[5/15] Building C object modules/m5-execution/CMakeFiles/crux_execution_zephyr.dir$REPO/components/execution/src/execution_threads.c.obj
+[6/15] Building C object modules/m5-execution/CMakeFiles/crux_execution_zephyr.dir$REPO/components/execution/src/execution_sync.c.obj
+[7/15] Building C object modules/m5-execution/CMakeFiles/crux_execution_zephyr.dir$REPO/components/execution/zephyr/execution_native.c.obj
+[8/15] Linking C static library modules/m5-execution/libcrux_execution_zephyr.a
+[9/15] Linking C static library libcrux_runtime_fixture.a
+[10/15] Linking C static library app/libapp.a
+[11/15] Linking C executable zephyr/zephyr_pre0.elf
+[12/15] Generating linker.cmd
+[13/15] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[14/15] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[15/15] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:       53576 B         8 MB      0.64%
+             RAM:       31040 B        32 MB      0.09%
+            ITCM:           0 B       128 KB      0.00%
+            DTCM:           0 B       128 KB      0.00%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from $REPO/build/zephyr/execution_runtime-evkb/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi
+Execution public/consumer boundary passed; native providers remain permitted.

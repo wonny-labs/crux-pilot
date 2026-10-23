@@ -26,6 +26,11 @@ Crux separates portable application behaviour, reusable platform capabilities an
 
 Portable components and application logic avoid Zephyr, board and vendor dependencies. Host and Zephyr compositions explicitly select their implementations. Host, `native_sim` and physical-target tests provide complementary evidence rather than interchangeable guarantees.
 
+The bounded [portable execution contract](docs/execution-contract-proposal.md)
+provides joinable workers, nonrecursive mutexes and counting semaphores through
+`crux::execution`. See [validation and limits](docs/execution-validation.md) for
+Host/Zephyr profiles, independent consumers and unresolved target evidence.
+
 The implemented [Time contract](docs/time-contract.md) provides a concrete component example.
 
 ## Repository structure

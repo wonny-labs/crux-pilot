@@ -141,6 +141,16 @@ configuration and exact output counts must confirm that UART is the sole logging
 backend. Required record comparisons remove CR/LF endings only, retaining ANSI,
 whitespace, duplication and partial-line errors as failures.
 
+## Portable execution capability
+
+Run `scripts/test-portable-execution.sh --host-only` for separately configured C/C++
+firmware and independent runtime-shaped consumers and their execution boundary checks.
+The full `scripts/test-portable-execution.sh` also runs Zephyr `native_sim` and EVKB
+cross-builds. Common conformance and Host failure/poll regressions run in the standard
+Host debug/sanitizer checks. Private admission tests prove lifecycle races without
+adding production test hooks. See [the validation record](../docs/execution-validation.md)
+for supported semantics, source identities, results and remaining #24/physical gates.
+
 ## Portable networking software slice
 
 The [networking contract](../docs/networking-contract.md) defines the approved

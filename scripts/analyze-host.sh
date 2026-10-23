@@ -36,6 +36,17 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/time/src/calendar_test.cpp" \
     "$repo/tests/time/src/command_test.cpp" \
     "$repo/tests/execution/src/posix.c" \
+    "$repo/components/execution/src/execution_threads.c" \
+    "$repo/components/execution/src/execution_sync.c" \
+    "$repo/components/execution/host/execution_native.c" \
+    "$repo/components/execution/host/execution_sync_native.c" \
+    "$repo/tests/portable_execution/conformance.c" \
+    "$repo/tests/portable_execution/host_main.c" \
+    "$repo/tests/portable_execution/host_failures.c" \
+    "$repo/tests/portable_execution/host_poll.c" \
+    "$repo/tests/portable_execution/host_admission.c" \
+    "$repo/tests/portable_execution/host_poll_finalize.c" \
+    "$repo/tests/portable_execution/admission.c" \
     "$repo/samples/controller/core/controller.c" \
     "$repo/samples/controller/core/health.c" \
     "$repo/samples/controller/host/main.c" \

@@ -1,0 +1,56 @@
+{
+  "source": {
+    "dirty": false,
+    "git_branch": "feat/m5-execution",
+    "git_commit": "b9df57dfefba53c938a3cddbb7f8b139b7986ab8",
+    "git_status_counts": {
+      "deleted": 0,
+      "modified_or_staged": 0,
+      "renamed_or_copied": 0,
+      "untracked": 0
+    },
+    "recoverable_from_git": true,
+    "snapshot_algorithm": "sha256-path-mode-content-v1",
+    "snapshot_file_count": 292,
+    "snapshot_sha256": "545e231b122a6a8428d493dbe2b1c77ac3e58a89a0f5f5d5fb4e06c776ef46c0",
+    "west_manifest_sha256": "f64f4213af5cc2009a521c1081a7ab1b874717c2d8cc218639594519ae43a588"
+  },
+  "west_projects": [
+    {
+      "dirty": false,
+      "git_commit": "1d6ac4f6cd5b4e4013f2ce0c59375beb3cdad9f2",
+      "name": "manifest",
+      "path": "crux-pilot",
+      "revision": "HEAD"
+    },
+    {
+      "dirty": false,
+      "git_commit": "684c9e8f32e4373a21098559f748f06915f950c9",
+      "name": "zephyr",
+      "path": "zephyr",
+      "revision": "684c9e8f32e4373a21098559f748f06915f950c9"
+    },
+    {
+      "dirty": false,
+      "git_commit": "512cc7e895e8491696b61f7ba8066b4a182569b8",
+      "name": "cmsis",
+      "path": "modules/hal/cmsis",
+      "revision": "512cc7e895e8491696b61f7ba8066b4a182569b8"
+    },
+    {
+      "dirty": false,
+      "git_commit": "30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74",
+      "name": "cmsis_6",
+      "path": "modules/hal/cmsis_6",
+      "revision": "30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74"
+    },
+    {
+      "dirty": false,
+      "git_commit": "2c2f28ac333e995d7279777409817c4b4f92c1ec",
+      "name": "hal_nxp",
+      "path": "modules/hal/nxp",
+      "revision": "2c2f28ac333e995d7279777409817c4b4f92c1ec"
+    }
+  ],
+  "west_workspace_config_sha256": "cd847359bf49ce83b31074c4513929e42ddf6878bed97843a1a3723246515cc3"
+}

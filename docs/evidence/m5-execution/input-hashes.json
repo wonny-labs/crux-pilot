@@ -1,0 +1,984 @@
+{
+  "source_files": [
+    {
+      "path": ".github/workflows/host.yml",
+      "sha256": "86f1c42b6b5c8ae2e30cefd3e1ee80f86cb0cf0f5e800c277ee9ed43cf779b67"
+    },
+    {
+      "path": ".github/workflows/zephyr.yml",
+      "sha256": "c0de5e8a2907fe7ff0ce793282fa46d6a1c2cca975414081ea3a2cf4e14d13d0"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "sha256": "1813b67a8496b502e18e8d8e6e48974f65fb4b2afad7b99e1031080a6e79063d"
+    },
+    {
+      "path": "components/base/CMakeLists.txt",
+      "sha256": "353ae1feef655d028773ccede9f7ddaa35fb8c004ee18b7dbc5f42d4ebba13c6"
+    },
+    {
+      "path": "components/base/include/crux/status.h",
+      "sha256": "335608a3a00f5eab08d3283577d9f7cd69a62e121624a08f50487ea8c8bd197b"
+    },
+    {
+      "path": "components/execution/CMakeLists.txt",
+      "sha256": "61701c4ca4f98694eec32158b4f530cf2e917dc524e48f9365d59b1dd0696a7f"
+    },
+    {
+      "path": "components/execution/host/execution_native.c",
+      "sha256": "979367321083c292ea74b59ea0cfb8327c89735f11db37af69628b1d99291b30"
+    },
+    {
+      "path": "components/execution/host/execution_native_types.h",
+      "sha256": "94a26d961cdc384c9c2cee841bbf6f1d558538865072057c73fb0e9dd349e537"
+    },
+    {
+      "path": "components/execution/host/execution_sync_native.c",
+      "sha256": "0bdb2a617e45ff03433aad7f3485a8c019ca748f460efe5f5a182bb26f54680e"
+    },
+    {
+      "path": "components/execution/include/crux/execution.h",
+      "sha256": "749033fa54c37b500fc322050799a7bd60607ac2b56f105f508df48b29c3019a"
+    },
+    {
+      "path": "components/execution/src/execution_internal.h",
+      "sha256": "3f2b1376c4c5e5fa41cf720febd44d989e49f945e0f3ab4835823899d5844236"
+    },
+    {
+      "path": "components/execution/src/execution_sync.c",
+      "sha256": "8c878fdcd9d8c08ca0fe7b3d9f3befb4dcab0c88f47e14c9df05f8479f4dbe4d"
+    },
+    {
+      "path": "components/execution/src/execution_threads.c",
+      "sha256": "dfe71714611048098b295d53be89107b80def2969bec4e9ab3ad90af91dd0432"
+    },
+    {
+      "path": "components/execution/zephyr/execution_native.c",
+      "sha256": "c8e0cb6b8a9572b3b40482f48c671ba6433bc0415e9e4e4df5ee7c8486376be0"
+    },
+    {
+      "path": "components/execution/zephyr/execution_native_types.h",
+      "sha256": "00f5b609d6f7cc8a2b7d007c5ec31be77df4d8da6d80b8157fbd61693d96a058"
+    },
+    {
+      "path": "components/time/CMakeLists.txt",
+      "sha256": "e374b788b8738bc7d81bf7800fca5289202208ca0a2af902075fbbd6ddd5ce9e"
+    },
+    {
+      "path": "components/time/host/time_port_host.c",
+      "sha256": "0dbd2af8e6c2d4629f6b7ef735b08fb9e69f322b1d22b16239965bc76e7e7488"
+    },
+    {
+      "path": "components/time/include/crux/time.h",
+      "sha256": "ddec458ff44bbc58a9b7036b247278b0d805e78967ca9a8f8abd8dce89e7f4ed"
+    },
+    {
+      "path": "components/time/include/crux/time_calendar.h",
+      "sha256": "58fb0c13f631793979d5a4a348fdb4db150e5f784cfb29e707b865092587c86f"
+    },
+    {
+      "path": "components/time/sources.cmake",
+      "sha256": "1ad5e1afbc2c3a04625775b9c7d36516ab9400570d842f9204cbe35a0a2b9455"
+    },
+    {
+      "path": "components/time/src/time.c",
+      "sha256": "dbe0f87dd6b5ca01d490dfc43ba4b1356c3571b6d657c2e3ef86efb4f2213426"
+    },
+    {
+      "path": "components/time/src/time_calendar.c",
+      "sha256": "7436a0dc382df55aa46ff3dc42459dc652de36663b95e85421c32fee3cbc648a"
+    },
+    {
+      "path": "components/time/src/time_port.h",
+      "sha256": "881457b85e5f21c8bc09ffe5c3688a4398ff97571bb31e16d3925bb2848e108a"
+    },
+    {
+      "path": "components/time/zephyr/time_port_internal.h",
+      "sha256": "801399c195fbe5088c0d0e4d44ecb5df1a60250e624cde8924acb43e60dcb988"
+    },
+    {
+      "path": "components/time/zephyr/time_port_zephyr.c",
+      "sha256": "fff08c0898930d08b611cc1fcd914754f9e127531be2fee6af401423a13a239b"
+    },
+    {
+      "path": "samples/controller/core/controller.c",
+      "sha256": "8c4455a4cdd5690282913b58b70345f22c8546f0d5b5401fec9b7b9744ce6206"
+    },
+    {
+      "path": "samples/controller/core/health.c",
+      "sha256": "acbe94731cf34429287e6c69aee37547cfaa10dbcb1d778901c874ce02f5659b"
+    },
+    {
+      "path": "samples/controller/host/CMakeLists.txt",
+      "sha256": "c2109b9c28851a87d14e1f10788860f443b5630fba25f5a5a3fed42cbe972219"
+    },
+    {
+      "path": "samples/controller/host/main.c",
+      "sha256": "b7df093fb40d223f1ecf71dc206b0725aae695315a2d56e1a4094ffd42a19318"
+    },
+    {
+      "path": "samples/controller/include/controller.h",
+      "sha256": "5296673881a18356ffbd8f73ddbad33aeeb028a34bcc504ed201bb707d1c1831"
+    },
+    {
+      "path": "samples/controller/include/controller_health.h",
+      "sha256": "754b5073535ead122d44e7a4504c632578aa1ff14ba9a689d34e918d2fe0e84f"
+    },
+    {
+      "path": "samples/controller/zephyr/CMakeLists.txt",
+      "sha256": "124a74ad85a26f61ac1bf4bebb5e828d105a3926925fe8952d7c76d98dae589b"
+    },
+    {
+      "path": "samples/controller/zephyr/Kconfig",
+      "sha256": "214bbb1ddd861bcef830c2a8eefe596abcdd194e6e63c7f851274aeded1fd2ab"
+    },
+    {
+      "path": "samples/controller/zephyr/boards/mimxrt1060_evk_mimxrt1062_qspi.conf",
+      "sha256": "aad8584f9953711b4448f37af1aca14b29609782db8efb5926a5c3292bc81e90"
+    },
+    {
+      "path": "samples/controller/zephyr/boards/native_sim.conf",
+      "sha256": "73b6545a057d20b9975338f590e60c988bf4c732fd2fc13363cde78a8d1e16dd"
+    },
+    {
+      "path": "samples/controller/zephyr/device_input.c",
+      "sha256": "d0007952e226deeda57fbc73538ce14a59c4bab16bd8ff03f25abff04a330254"
+    },
+    {
+      "path": "samples/controller/zephyr/device_input.h",
+      "sha256": "42386aa6f23a191b1168cac7048f247e4caa337d6b475cb33f281f590d37188d"
+    },
+    {
+      "path": "samples/controller/zephyr/m3-deferred-output.conf",
+      "sha256": "34193b0dd4320d8a88ae3b7ad500420ba5aaf5d9a470128da69d33645191c101"
+    },
+    {
+      "path": "samples/controller/zephyr/m3-integrated.conf",
+      "sha256": "39791fc83b6866061f2e0b39a76391e8964dfb49b1965d82eecba1dc64f15fed"
+    },
+    {
+      "path": "samples/controller/zephyr/m3-mdio-completion.conf",
+      "sha256": "94e0247626508974c14d3345b9c26c45961087435e1676f0cac4fa612ced5106"
+    },
+    {
+      "path": "samples/controller/zephyr/m3-mdio-trace.conf",
+      "sha256": "8c7db73a05ce9a3e5d2327b2ed3385b6db9e796b49e5075357ee5a4128dc56e0"
+    },
+    {
+      "path": "samples/controller/zephyr/m3-native-output.conf",
+      "sha256": "3fad691d248aeace2ec694a86f364a92a13512facaffeff2b0593ff7955e0008"
+    },
+    {
+      "path": "samples/controller/zephyr/m3-network.conf",
+      "sha256": "9876b318ec60507ac568004e76c023a124d0f077ba2f221347aa42bcf38690c3"
+    },
+    {
+      "path": "samples/controller/zephyr/m3-normal.conf",
+      "sha256": "cb0746a4d214cd8d4b7e13333ca389cbc17cb57577084d98fa902a035a186bfb"
+    },
+    {
+      "path": "samples/controller/zephyr/m3-phy-diagnostic.conf",
+      "sha256": "3670be9ff9bb635b09950c296bee6293c126885228a96fc2bc9db2db0659362b"
+    },
+    {
+      "path": "samples/controller/zephyr/m3.conf",
+      "sha256": "a07454f96d01ce4fc35bfea54ed452a7fcf0b9f56180e60b34ff1dd5e4fabda3"
+    },
+    {
+      "path": "samples/controller/zephyr/m3_main.c",
+      "sha256": "68c25a777bc185a3ac8309954a03f8d7d3fe625d2b636b9154d040f2d5d5d264"
+    },
+    {
+      "path": "samples/controller/zephyr/main.c",
+      "sha256": "1e04238291938d7dfe045204d99c8e925bd554c53ac5ed47df4d7ab9821b1bf8"
+    },
+    {
+      "path": "samples/controller/zephyr/mdio_completion.cmake",
+      "sha256": "fea9387c305f596614e5ff2a4d4142d5c5f80366325464a72046de54ff5e753b"
+    },
+    {
+      "path": "samples/controller/zephyr/native_logger.c",
+      "sha256": "0c5da83058871e11980993a6e81a119a98026ea378d1f4a8efd32213b65a51c1"
+    },
+    {
+      "path": "samples/controller/zephyr/native_logger.h",
+      "sha256": "49cb26d4241ed80d2315ea07c5e895cbc68aa52efe8ea0ca37408984caccb535"
+    },
+    {
+      "path": "samples/controller/zephyr/network_client.c",
+      "sha256": "9722f70c2af544f83011683f5b82430ec9595442294d8ba49baf5f06c7d586d5"
+    },
+    {
+      "path": "samples/controller/zephyr/network_client.h",
+      "sha256": "aba39c4d1b14dcef0933b5459448131901a982d016f89e21659cc8a070c39b6b"
+    },
+    {
+      "path": "samples/controller/zephyr/network_mdio_trace.c",
+      "sha256": "1aefb08a76c6f9408ff9a84de2056402b5f23c8be4282c39719aa0063faa2b56"
+    },
+    {
+      "path": "samples/controller/zephyr/network_mdio_trace.h",
+      "sha256": "c382eb4e3e80ca98617d99ba6f387ec68ce855323f3067a3cd36d2314024c501"
+    },
+    {
+      "path": "samples/controller/zephyr/network_phy_diagnostic.c",
+      "sha256": "f70811ecdaacf7fdf50fc8db1c9d77e14e6dcf4b5feb4177618ba86e43947dde"
+    },
+    {
+      "path": "samples/controller/zephyr/network_probe.c",
+      "sha256": "8d9b226ab0b67bcbc48342393a4a6fec1dd3f139a39d9938e8a7a2dbca0dde04"
+    },
+    {
+      "path": "samples/controller/zephyr/prj.conf",
+      "sha256": "0768008b44e3ea201a96d271cea1a555f593822d5f3de8027c4439e322fa1ae1"
+    },
+    {
+      "path": "samples/flash_safety_poc/CMakeLists.txt",
+      "sha256": "ac4985b250e78e38f771dc9a49ce1781295c0f3eb34faa983eb93bcc55c38b19"
+    },
+    {
+      "path": "samples/flash_safety_poc/flash_poc.h",
+      "sha256": "acf33ee1d497ad47623f2d19938514d66c42b840cf4ea931d761d847e20d92b2"
+    },
+    {
+      "path": "samples/flash_safety_poc/main.c",
+      "sha256": "6def682f3a4ccef1cc4182ea5e182a38a944937a4a5f162a3db2cc239f482a78"
+    },
+    {
+      "path": "samples/flash_safety_poc/prj.conf",
+      "sha256": "be6658e5cfe8121f48de5a740aa1f2339101082c9447c181029438acc0aae649"
+    },
+    {
+      "path": "samples/flash_safety_poc/terminal.c",
+      "sha256": "1140a736299825d817a1a02d2b47e317651e52e6e6da3658df67c81db978efcd"
+    },
+    {
+      "path": "samples/time/CMakeLists.txt",
+      "sha256": "92a57df092d41a36f5165635ea4e9b14bd613a59029edf6bb628d5de729638f6"
+    },
+    {
+      "path": "samples/time/boards/mimxrt1060_evk_mimxrt1062_qspi.conf",
+      "sha256": "0a78e5391148992da54667bcd8aa7e2a6815022a37d1cf379a1eeba9703b9464"
+    },
+    {
+      "path": "samples/time/boards/native_sim.conf",
+      "sha256": "73b6545a057d20b9975338f590e60c988bf4c732fd2fc13363cde78a8d1e16dd"
+    },
+    {
+      "path": "samples/time/host/CMakeLists.txt",
+      "sha256": "be0a2bce35ffc6257a82e231ce54180a47ec357479bfd56091ca606636e5517f"
+    },
+    {
+      "path": "samples/time/host/main.c",
+      "sha256": "60856240eb8f89ad36143034a0631254b9c02e993d852e2a4bd14d2324184a22"
+    },
+    {
+      "path": "samples/time/include/crux_time_command.h",
+      "sha256": "27848e8a37fa0590d108457c18c60b491bd75289d0187a69695b8c1dcb35edf6"
+    },
+    {
+      "path": "samples/time/prj.conf",
+      "sha256": "54b135bee442667bfa4caa3ed9c8726aee10658d493c8800c1c258c0ff812b3e"
+    },
+    {
+      "path": "samples/time/src/main.c",
+      "sha256": "560a4d6c04586be0a057dd89c97b3c9f43f20674104efa4c890772b43093f470"
+    },
+    {
+      "path": "samples/time/src/time_command.c",
+      "sha256": "e26ce6f6d66ce894c99c4dde079c32cf33d83eb062edab8418a50b60d03cb108"
+    },
+    {
+      "path": "samples/time/src/time_shell.c",
+      "sha256": "cd223b73444edb960ac868e818fe1193cb193e56adf58b098f39ffd7243d88d8"
+    },
+    {
+      "path": "scripts/analyze-host.sh",
+      "sha256": "1497e6f83cfc58caddeb3fdbec06cad17f4b87eb6eff82545892f0f7d8c7543d"
+    },
+    {
+      "path": "scripts/bootstrap-host.sh",
+      "sha256": "981c37fa2eb6f49fd8fcf3c0bfc1a380b7b1202b98c7158be22e18dab3df863d"
+    },
+    {
+      "path": "scripts/bootstrap-zephyr.sh",
+      "sha256": "4bcd9ea036f3a8dc5e01932f523bba6d1194a47fd4cb3f0d21525748c125bfca"
+    },
+    {
+      "path": "scripts/build-debug-target.sh",
+      "sha256": "fb34151450787a88e3deecc22ecef8dc37c2bef006cfa3bae8d6f2d7ff82e3c7"
+    },
+    {
+      "path": "scripts/build-target.sh",
+      "sha256": "9a9bbcd80e5da770310923d05295f684b53c804987662ef712452692b80e31b0"
+    },
+    {
+      "path": "scripts/check-controller.py",
+      "sha256": "01f0ea3d879cba681fbd3ebaf299edd097aa5376efc31e2132399a731b43b261"
+    },
+    {
+      "path": "scripts/check-dependencies.sh",
+      "sha256": "0c493e13e790c481f74b3a370d7b3e5a5276661f7b01c072ca9b55cdf1f25d07"
+    },
+    {
+      "path": "scripts/check-execution-boundaries.py",
+      "sha256": "9e82e9a2ba251cedddb85ec0c7a07ead5d625022a1630f17c07b726cbd302e9f"
+    },
+    {
+      "path": "scripts/check-format.sh",
+      "sha256": "29f54d2889ec3cbf03de89256e4bc07d61f369a47fa695a8076fb7fa3a6db0d7"
+    },
+    {
+      "path": "scripts/check-host-sample.sh",
+      "sha256": "5886ab948d9c4e03a78894128f7c269031ea8448552495c4b49fec2d81a98030"
+    },
+    {
+      "path": "scripts/check-host.sh",
+      "sha256": "5ce7edb92812add915047c8af4298156f81051d264f3c533900be9709d3688eb"
+    },
+    {
+      "path": "scripts/check-zephyr-smoke.sh",
+      "sha256": "ba21a2a3252e04e9458cb85fff7b2578259cdb53136a028a3bf64dfa4a4785af"
+    },
+    {
+      "path": "scripts/prepare-flash-poc.py",
+      "sha256": "d83b8f680d1d8c19ac98eca4dbbcc8c3f3f04db3f4d9b900664ce0c75fc30bf5"
+    },
+    {
+      "path": "scripts/prepare-nxp-mdio.py",
+      "sha256": "976f1668c2d4eb248827315abe2a419b5c761749e45d5038079cd72adc7c9210"
+    },
+    {
+      "path": "scripts/record-build-provenance.py",
+      "sha256": "ba5f24c6e6a475c9388848119a7f9676107b2475c6042535616e0d6a5dfbf196"
+    },
+    {
+      "path": "scripts/select-clangd-database.sh",
+      "sha256": "fe16d5d12ded3192bf3fbaac54c8b9453b613ad83e2029c5dc37115fccb98dcc"
+    },
+    {
+      "path": "scripts/test-controller.sh",
+      "sha256": "f2cacb2442eca208530fe4fc7cd3d9e844f1775008190f0d4d660f58f0d216e1"
+    },
+    {
+      "path": "scripts/test-execution.sh",
+      "sha256": "0a729630b81c5f610259ccd2d55f3c8acb366d8b3891f21b0edd168bf966bd5e"
+    },
+    {
+      "path": "scripts/test-flash-poc.sh",
+      "sha256": "2c9901112d365a0e0f04361500791131e23c271de25e731d1d2a481c175d8556"
+    },
+    {
+      "path": "scripts/test-m3.sh",
+      "sha256": "a1cfb908583bd419ac4aea02d96068dea99c5f73191fe550a3e410e1dd4ebf4b"
+    },
+    {
+      "path": "scripts/test-portable-execution.sh",
+      "sha256": "412e5f55de2cea845e7c0626ec52e7bd563613d7fbbdc30a832fce482dee5162"
+    },
+    {
+      "path": "scripts/test-target.sh",
+      "sha256": "0836cc11418514d23c887b4c7e3f96feaf5999df69a0d0dd4fb95877563d5f89"
+    },
+    {
+      "path": "scripts/test-zephyr-time.sh",
+      "sha256": "f5d7c09c0ef2651472390d1764165c92f1a93a0b65acf21a96b28da07b0e2fb6"
+    },
+    {
+      "path": "scripts/verify-flash-poc.py",
+      "sha256": "118282300242a7a12c976a708eb4147b0e79558b7a0640c0b8ea282e518dc352"
+    },
+    {
+      "path": "tests/build/test_controller_runner.py",
+      "sha256": "20c1d45f6978799abc71fcb3c5968a40960e5af460493e94845d74f4cf51967b"
+    },
+    {
+      "path": "tests/build/test_dependencies.py",
+      "sha256": "6c4df70a8dd9e77fbdcc65687adee957fefd4c0b5556997c5ab42eb4308e375b"
+    },
+    {
+      "path": "tests/build/test_execution_boundaries.py",
+      "sha256": "96b3eefe3eb07007bb57cf4906183279f07097a594c6f878e9bac3101bfe7603"
+    },
+    {
+      "path": "tests/build/test_execution_capture.py",
+      "sha256": "17789858eeec8d702b200d91f9fd25ec88a2f46947b8f97a9e31f2a80cef36d6"
+    },
+    {
+      "path": "tests/build/test_m3_capture.py",
+      "sha256": "128fff515c42e09d37db6be3e056e3186e70014a28008b77be00c848cc53d15d"
+    },
+    {
+      "path": "tests/build/test_m3_errno.py",
+      "sha256": "8198484aeca7162a04c5730dcf08328b0265ffb0678fd18e9b081e51de05b424"
+    },
+    {
+      "path": "tests/build/test_m3_gpio_capture.py",
+      "sha256": "56c7a8cacdc017c5520bbb907106eeedd02dc9857d22b830a3b0aa9430eb39a6"
+    },
+    {
+      "path": "tests/build/test_m3_health_oracle.py",
+      "sha256": "f0a609a60c0e55a6d7cde1b882833d5fa9d839b8498413e9ca7aff0be34de114"
+    },
+    {
+      "path": "tests/build/test_m3_image.py",
+      "sha256": "211205ab22d8aa9f1497fd9d6ada56f778ba74c513da8c7754cab11641a68429"
+    },
+    {
+      "path": "tests/build/test_m3_image_gap.py",
+      "sha256": "218638602557039888958b996b46012db8909632838eb880bbfcf1799dd160ab"
+    },
+    {
+      "path": "tests/build/test_m3_integrated_capture.py",
+      "sha256": "4349c50494bef49ec501dbe8ca9ad7790c80e043e951ea82694ccd8916c40287"
+    },
+    {
+      "path": "tests/build/test_m3_integrated_oracle.py",
+      "sha256": "3ad7b9fef96d22efde00fd1ebfa4f4b936d6a1a7dadf6a59b37620032c6c09fd"
+    },
+    {
+      "path": "tests/build/test_m3_integrated_output.py",
+      "sha256": "b85812c142773ba72ca780253c5bd48d47b02e2bbfead3e9feb427e16a647ea3"
+    },
+    {
+      "path": "tests/build/test_m3_network_capture.py",
+      "sha256": "af34ab5e42f9737449545b94005cfdcdbf470ab3bb6c07b38362411a068ba4f4"
+    },
+    {
+      "path": "tests/build/test_m3_network_oracle.py",
+      "sha256": "efe7ddf90fb12578c0e75e1d735db69fb5450df7a4c17ce6c632a954fa150d67"
+    },
+    {
+      "path": "tests/build/test_m3_network_output.py",
+      "sha256": "abcb85812e5ad82068db0496224042f7eb3c189ff043b540c3b91b20461eed86"
+    },
+    {
+      "path": "tests/build/test_m3_network_peer.py",
+      "sha256": "1068b854f505982f825d8d2ca8b0b2306a88b1d7db9ac8624ba861dd6449e7b7"
+    },
+    {
+      "path": "tests/build/test_m3_network_timestamp.py",
+      "sha256": "1140757bbb0f373fe44be3dbd46e483e28a1ed7cacae35fcd9dd389d3f072483"
+    },
+    {
+      "path": "tests/build/test_m3_output.py",
+      "sha256": "b0fc24aaf435113150e0f93ac5d16d19dff27a918ac6fd66638e7a7ff2790089"
+    },
+    {
+      "path": "tests/build/test_m3_shared_clock.py",
+      "sha256": "30b836bfbd28eb17ff0a3c5fde7a973ae6dc82a0462979f4305c46843d09f101"
+    },
+    {
+      "path": "tests/build/test_provenance.py",
+      "sha256": "c3929801b8dfbe9dee9a7c5b733f374ad595aff0c3d7359bb686ed5fdf777e6c"
+    },
+    {
+      "path": "tests/controller/CMakeLists.txt",
+      "sha256": "3cf5ebb656cedae3f566a1348cf1a176d3f435785cf880be4a1e881d66835d9a"
+    },
+    {
+      "path": "tests/controller/controller_test.cpp",
+      "sha256": "28f83ebe82cfbba96f3a0944f401c6e14a8c3d9cc7b156d2318074084abb8a87"
+    },
+    {
+      "path": "tests/controller/health_test.cpp",
+      "sha256": "f9aa7aad92784ffae2e6cb9668384b630e1d4710c6d2c013a01ad3695c6152d2"
+    },
+    {
+      "path": "tests/controller_integrated/CMakeLists.txt",
+      "sha256": "c52eab7930a5f2716611a335fb87a754c8407147fd889753fbb1d9748f372052"
+    },
+    {
+      "path": "tests/controller_integrated/prj.conf",
+      "sha256": "fa63c44402198e136b7dc10987ca919bbdc3bd2c99c1f813a1e6832fa487dd3f"
+    },
+    {
+      "path": "tests/controller_integrated/src/main.c",
+      "sha256": "61592010773647613e1611828aa1209346c4d6ec23c3984ede4903721a573d39"
+    },
+    {
+      "path": "tests/controller_integrated/src/network_request.c",
+      "sha256": "939786e3b87ef1943b1c3600abee30e828082323b94a362a1f9388d16f33e879"
+    },
+    {
+      "path": "tests/controller_integrated/testcase.yaml",
+      "sha256": "95a57d9abf63e68cb68cb89b35449fba2e9244974e900e33467a7295e4cd4bd3"
+    },
+    {
+      "path": "tests/controller_m3/CMakeLists.txt",
+      "sha256": "a446670b6bfbc0d9ec7d11b213ce9b9fd550e2f34fa171af3caf89a45f622e2a"
+    },
+    {
+      "path": "tests/controller_m3/dts/bindings/gpio/vnd,m3-fault-gpio.yaml",
+      "sha256": "0bf60da6e0e6a6b44a94bc2f208bf6b9ac3d5c2d865ed9f61921c9d8083f7a64"
+    },
+    {
+      "path": "tests/controller_m3/fault_gpio.h",
+      "sha256": "ece93d75f200e902b3bd49872974611f1954f7573acfe8c6cbc151dc8db274a7"
+    },
+    {
+      "path": "tests/controller_m3/prj.conf",
+      "sha256": "78c59b692a82fcc088686a013a9a7fa0d7d0775abb9993f002c8d6bbdfa72d40"
+    },
+    {
+      "path": "tests/controller_m3/src/fault_gpio.c",
+      "sha256": "077c9e9f33573335478e430e061c23bcc1ffba182395f3c50bb2a0aef857ebfa"
+    },
+    {
+      "path": "tests/controller_m3/src/main.c",
+      "sha256": "befc7ee57513c224a8e5a6ef62b22044abf4e8e6bc408b61a5ef1cccc1f3e95f"
+    },
+    {
+      "path": "tests/controller_m3/testcase.yaml",
+      "sha256": "d228363f2b286823bc9e45166fdcabc708966ba35f38a9cfc360a82dd2911964"
+    },
+    {
+      "path": "tests/controller_network/CMakeLists.txt",
+      "sha256": "1d502917fa2f667ed9455184598815ce02bfa507eb5b996cfbea23c402910f99"
+    },
+    {
+      "path": "tests/controller_network/prj.conf",
+      "sha256": "f4c0ce992dd91807cf935f0dad4fb45e0d743f5f77c92c58d9385636c6014d8f"
+    },
+    {
+      "path": "tests/controller_network/src/main.c",
+      "sha256": "82422b23f81f7cef781bab4ca44fae73fdf943cfac34a2b1471587842076df62"
+    },
+    {
+      "path": "tests/controller_network/testcase.yaml",
+      "sha256": "6349b8718094d5e169f46f101ffaaa2275445807f36d2ced42b435c33f1f0d55"
+    },
+    {
+      "path": "tests/controller_network_stack/CMakeLists.txt",
+      "sha256": "0b60ca1258f4e282c64f2742048cb891b814284a057404b522a4b875cde58fa8"
+    },
+    {
+      "path": "tests/controller_network_stack/prj.conf",
+      "sha256": "cc9456ee11ecce7db9b6b70492ebcd148796e5a292e918879418f122ab856004"
+    },
+    {
+      "path": "tests/controller_network_stack/src/main.c",
+      "sha256": "35ea953e52b68f8ce8c9f7cef55da857dd861f657703c631eb682dfe9171e32b"
+    },
+    {
+      "path": "tests/controller_network_stack/testcase.yaml",
+      "sha256": "ffa914be72cd5cade8eb4bd43b3247b617bde3609fd3c4d8570767ca7e562f4a"
+    },
+    {
+      "path": "tests/execution/CMakeLists.txt",
+      "sha256": "741ae655ac8f2f6dde869c587b0c5467e3c695f3084609d3683dbe1f4c0e96ec"
+    },
+    {
+      "path": "tests/execution/posix.conf",
+      "sha256": "0f03eb343b6917a3ee55171ebb8071021b641b8ef9a69a294e3609e5345bcc08"
+    },
+    {
+      "path": "tests/execution/prj.conf",
+      "sha256": "82b7ecd45b946a2f3e8283fd68a6c919f07591e4262058de369b62b4e4930469"
+    },
+    {
+      "path": "tests/execution/src/native.c",
+      "sha256": "c5c20e08f043e46a7a2cee6bdd9506824728d186e07188a82de8cff0fbf0bad0"
+    },
+    {
+      "path": "tests/execution/src/posix.c",
+      "sha256": "78acafa8397c758817c45e1236eeb8e9680d865f3009dfb5b225e2611ebe494a"
+    },
+    {
+      "path": "tests/execution/testcase.yaml",
+      "sha256": "6fee179d2c28bcf905f5381fb8f952c7630ba4dda16fd6c5213a22e7bdb02ffd"
+    },
+    {
+      "path": "tests/execution_firmware/CMakeLists.txt",
+      "sha256": "2aa91d60e1dfd45fd9c713b9e9c2c95ae24a06d7fc5e6f23da4580daaefa3478"
+    },
+    {
+      "path": "tests/execution_firmware/src/consumer.c",
+      "sha256": "56a56d640de32ad26d96215c701c4f03383a9afff288129af4b0292f85cd9385"
+    },
+    {
+      "path": "tests/execution_firmware/src/main.cpp",
+      "sha256": "93d6d3001fa170533641555d6f890a6bda895620658c95c4b7711b0ca93d477b"
+    },
+    {
+      "path": "tests/execution_runtime/CMakeLists.txt",
+      "sha256": "eb58d297d83833191b243651795e93af77729218d7e77967842beaa974a3c63c"
+    },
+    {
+      "path": "tests/execution_runtime/include/runtime_fixture.h",
+      "sha256": "916443d9fd75e9fd09125a8a79cf5d6da0caec7564c9a006867e6e64b0b674f1"
+    },
+    {
+      "path": "tests/execution_runtime/src/main.c",
+      "sha256": "d9c7ce31872fa1152699f0fbb563bbc162edfa635db70bb9927b2f907a7e4636"
+    },
+    {
+      "path": "tests/execution_runtime/src/runtime_fixture.c",
+      "sha256": "8aa7192837cc3d3af8e856f698d651c410fb30557cc835648eed2487d54e9267"
+    },
+    {
+      "path": "tests/execution_runtime/zephyr/CMakeLists.txt",
+      "sha256": "ab9582b6ed4a3ea57fc94a1f1682fc57c58b4766f79aaff7d2cd3d900d6e0e98"
+    },
+    {
+      "path": "tests/execution_runtime/zephyr/main.c",
+      "sha256": "3acde18f446baa515634bc6af6acf6e1b42cdf0a8b3ff52226ca25a2a8801022"
+    },
+    {
+      "path": "tests/execution_runtime/zephyr/prj.conf",
+      "sha256": "040ad116fbcb1b263117d5efa839d5cbcaa919d2f1a336b6153a29b2bf216a9b"
+    },
+    {
+      "path": "tests/execution_runtime/zephyr/testcase.yaml",
+      "sha256": "cef15d69ca1b5ad65616ad86585b30762585ac3799c1b6a5daeef79caa318562"
+    },
+    {
+      "path": "tests/native/deferred_output/CMakeLists.txt",
+      "sha256": "0dfd2716a959d398814c6bba6a3714d68dfb21ddd17c13d0edab75d7ef74d0f5"
+    },
+    {
+      "path": "tests/native/deferred_output/prj.conf",
+      "sha256": "604b4a7dfbe33a652a35bd7ea303170f43f8293f6da1e56da7558582818cff32"
+    },
+    {
+      "path": "tests/native/deferred_output/src/main.c",
+      "sha256": "48d9a6d6ef06f8798b72f346e91e41e6ffc777ddf6df1b878fe86f53fe350b0b"
+    },
+    {
+      "path": "tests/native/deferred_output/testcase.yaml",
+      "sha256": "579810792d5ee44f150fb3d2bd926e978ecc958ee329f2ef3c859effb38dbef3"
+    },
+    {
+      "path": "tests/native/deferred_output/verify_output.py",
+      "sha256": "b69d2457efa70e9bcd0d3bba7cecb45592813860e338e0f3ff102efd9af598a9"
+    },
+    {
+      "path": "tests/native/flash_safety/native_stubs.h",
+      "sha256": "f9ab3f30e08365e43c1b1dad48a78d4d51abeecbbe4d2194e2b8dc9c19a379c5"
+    },
+    {
+      "path": "tests/native/flash_safety/test_driver.py",
+      "sha256": "44f501d3ccd8168977f81130f2cab9a6704db04d0f8cb83640ff771332086d91"
+    },
+    {
+      "path": "tests/native/flash_safety/test_elf.py",
+      "sha256": "c5aa008732d4b1ce6323a6ec5026818c8907a17421b527088644e6f9380c147e"
+    },
+    {
+      "path": "tests/native/integrated_output/CMakeLists.txt",
+      "sha256": "b6a667d613bd88ec4fcb08bb783defcb5e480ebbcddfa0bd4f27120ad9860616"
+    },
+    {
+      "path": "tests/native/integrated_output/extract_formats.py",
+      "sha256": "7e87b944f9e51a944e78b87f33078dfcc5cd4a39f709164a9b9b06a95da39f81"
+    },
+    {
+      "path": "tests/native/integrated_output/prj.conf",
+      "sha256": "527d24c11340b97312e2aae5377665a5b9a1efafb2ef3935179084552833f600"
+    },
+    {
+      "path": "tests/native/integrated_output/src/main.c",
+      "sha256": "75f987c590d0854a1aec8641efb00f615b88509835f8dc8712b1579c4635fa16"
+    },
+    {
+      "path": "tests/native/integrated_output/testcase.yaml",
+      "sha256": "9ba378b2acf67b0a396962d0950a34eacde89a974d8f2cfbb7a85790334a9e91"
+    },
+    {
+      "path": "tests/native/integrated_output/verify_output.py",
+      "sha256": "3f1447a021bac9bb168f6e6a3f17d6cdcc09b8526c72c264363deecc57611971"
+    },
+    {
+      "path": "tests/native/logger_phase/CMakeLists.txt",
+      "sha256": "0d31f3bb4fe556cebc3da1e67adb92306a6eb9db86710a1c10e3529d9b679434"
+    },
+    {
+      "path": "tests/native/logger_phase/prj.conf",
+      "sha256": "907ed332efbf813ea8bc82942efdf958f9d5acab3079286800dc19b46b0e5e03"
+    },
+    {
+      "path": "tests/native/logger_phase/src/main.c",
+      "sha256": "68420724dfdd6de98c9e36c4bb9c5d37cceb0dff068e858c5b41dbb86fa4dcdf"
+    },
+    {
+      "path": "tests/native/logger_phase/testcase.yaml",
+      "sha256": "8c095639f05e47a475db3b5ef9127c91cbc67ebef106b5ee1423cabc434e391d"
+    },
+    {
+      "path": "tests/native/logger_phase/verify_output.py",
+      "sha256": "bf5fcd63aaee89410905fc31b0bffa42fc6cac1a955752aeabd6544fc860ff46"
+    },
+    {
+      "path": "tests/native/mdio_completion/deferred_observer_model.c",
+      "sha256": "bb9075b053cc118e85195a569ab5cf5f318d972ce428b5f75724d3fcc29a9472"
+    },
+    {
+      "path": "tests/native/mdio_completion/model.c",
+      "sha256": "d2b5be100d7f37acd71f0440ee7f5762f58973ea070c35e737d5e120bab08777"
+    },
+    {
+      "path": "tests/native/mdio_completion/observer_model.c",
+      "sha256": "fb3d6bcafc48b9d14c93a419845552a3162ddd5a06a269a27fa8be3e87d71f12"
+    },
+    {
+      "path": "tests/native/mdio_completion/test_driver.py",
+      "sha256": "0d5067b12dcc92dc1b6a2c00e50290a023e4cdc8beac20cb421b643e7ffed8bc"
+    },
+    {
+      "path": "tests/native/mdio_completion/trace_model.c",
+      "sha256": "e1c2b244e54f8748ff1dbbf03ba49851b9e53fed89bcc850f202f66d72ea46a6"
+    },
+    {
+      "path": "tests/native/network_output_burst/CMakeLists.txt",
+      "sha256": "95049f2dae2e7b47398d9990c41b99020af69ea359162d9941a81f8bd211cdfc"
+    },
+    {
+      "path": "tests/native/network_output_burst/extract_formats.py",
+      "sha256": "7f632ec7f94263dbbc16732f89cbd27eeedf3528ea3c4b5222c92069886904c7"
+    },
+    {
+      "path": "tests/native/network_output_burst/prj.conf",
+      "sha256": "604b4a7dfbe33a652a35bd7ea303170f43f8293f6da1e56da7558582818cff32"
+    },
+    {
+      "path": "tests/native/network_output_burst/src/main.c",
+      "sha256": "7704760b96cee5255f44de08efa351156b4914bc18f1856af20b749e3b8f5d90"
+    },
+    {
+      "path": "tests/native/network_output_burst/testcase.yaml",
+      "sha256": "367a6533eac9ce7ab69cc846330deb4487c78de4c01f2fc44c45c76d1a73fd68"
+    },
+    {
+      "path": "tests/native/network_output_burst/verify_output.py",
+      "sha256": "14e3644c18241d676406b2447b58e5c4ec7ff83c51355e95e948d876807a410d"
+    },
+    {
+      "path": "tests/portable_execution/CMakeLists.txt",
+      "sha256": "2869a4644f6c17423e660ba775db305d335281861afd6a21e792c89905e55b35"
+    },
+    {
+      "path": "tests/portable_execution/admission.c",
+      "sha256": "229d42a1afac4c570c5f7db6aafd64cae72b02a12ed3e30ec41d07821205afd2"
+    },
+    {
+      "path": "tests/portable_execution/conformance.c",
+      "sha256": "57610972817388022961af5d4aaa1519d1b24a24bf7d1979b9e5d6d0b8eb0722"
+    },
+    {
+      "path": "tests/portable_execution/host_failures.c",
+      "sha256": "656aaadb16c9e9abebbfad522ac1adc81336750a46b900c389e42f980bf994bd"
+    },
+    {
+      "path": "tests/portable_execution/host_main.c",
+      "sha256": "3b8f2c886b6f82842a5cf167061ceb4da557e2ba599459d8f463de30c7c1067c"
+    },
+    {
+      "path": "tests/portable_execution/host_poll.c",
+      "sha256": "33b6411307eefdd30256a12beb54dd288832fa189c9e55f49aaef4fe4982588d"
+    },
+    {
+      "path": "tests/portable_execution/public_probe.c",
+      "sha256": "fc50a15705d5e8b65cacff9fd40193e6e5f01000e0b0adaa74b048d897df669f"
+    },
+    {
+      "path": "tests/portable_execution/zephyr/CMakeLists.txt",
+      "sha256": "2a4691ca6df3e7a71e436f7b1b227d9932c110349db7ad3a7f3e276c47d374fe"
+    },
+    {
+      "path": "tests/portable_execution/zephyr/main.c",
+      "sha256": "205fb0e0ca3fd782a232b796d42badf458c0ea00cf613ec567f649d96235b228"
+    },
+    {
+      "path": "tests/portable_execution/zephyr/prj.conf",
+      "sha256": "569363b89c489904fb1f20a73cbca06728fb6a4bd2316b4e2256f361beab7096"
+    },
+    {
+      "path": "tests/portable_execution/zephyr/testcase.yaml",
+      "sha256": "2dcc67a111899eda07ff8f42cb3f73b158df511eba251ac5ef959dcff0dd7181"
+    },
+    {
+      "path": "tests/target/capture_execution.py",
+      "sha256": "dcba93d246e0aa2c30184c5853ede8edded6adf86a60e011732d5404807fc428"
+    },
+    {
+      "path": "tests/target/capture_m3.py",
+      "sha256": "e77750872a04caadce8dd82019a6700e7fea6112f2e1ad5035c53812b3980a73"
+    },
+    {
+      "path": "tests/target/capture_m3_gpio.py",
+      "sha256": "c3987c9b5d0e95f7de4c36f92f6958242e55cee883fa28455440bf541c1c9bf8"
+    },
+    {
+      "path": "tests/target/capture_m3_integrated.py",
+      "sha256": "c08ffec1aba02dade28da1cceca0769a70585b7ad2baca4903a216b66bce1606"
+    },
+    {
+      "path": "tests/target/capture_m3_network.py",
+      "sha256": "99f4f623906c34d2375aa3478543bfd15ab599f8eaf948ff18b156d0f22da5d3"
+    },
+    {
+      "path": "tests/target/conftest.py",
+      "sha256": "4483ed9728332e2d22aed4907f36e8f6797290f1340db5a27c1e6bef7bbfa3d2"
+    },
+    {
+      "path": "tests/target/m3_clock.py",
+      "sha256": "4c1c3cb19673c69255bb36ec375db6fb3e6329b60e60b2a28791b5cae5a78eb9"
+    },
+    {
+      "path": "tests/target/m3_errno.py",
+      "sha256": "faf2696063f487720419b3120756aba50d4c33ac39c3723e8dab17eca234d554"
+    },
+    {
+      "path": "tests/target/m3_health_oracle.py",
+      "sha256": "3c9c4bbca097fbeaec18c01b6436645f32fbf65ac042841f9944d758a679cdfb"
+    },
+    {
+      "path": "tests/target/m3_image.py",
+      "sha256": "ba29a664318ec94817b5c43228f77d69470a2201adf969e6bd1d8a1bd58aba1e"
+    },
+    {
+      "path": "tests/target/m3_integrated_oracle.py",
+      "sha256": "41c6601b9e865c66f85a40b15f54cb9db9fa157a230617a2b7c32f2f35d45745"
+    },
+    {
+      "path": "tests/target/m3_integrated_output.py",
+      "sha256": "ae7a85ae4778d617a91413db9858de1616a2fc31f86e014c6e6c2413d5dd2f17"
+    },
+    {
+      "path": "tests/target/m3_network_oracle.py",
+      "sha256": "0f3ee28acece26841eb7fa7d47b7a754e5d54c05f537b857f602953b1a5e68e7"
+    },
+    {
+      "path": "tests/target/m3_network_output.py",
+      "sha256": "d4b1fdbd95b038a7017dc6088670907a639f3133256aeed61bb7ae4ee7115f79"
+    },
+    {
+      "path": "tests/target/m3_network_peer.py",
+      "sha256": "e1db2e54edf42dddf0d1ae46e18b9280e59121198ca3c031ce99a2707008779d"
+    },
+    {
+      "path": "tests/target/m3_uart.py",
+      "sha256": "f06f8214b44dced9350eb03fd1a64079f5729f4263a16d9708198167ea4dba23"
+    },
+    {
+      "path": "tests/target/prepare_m3_errno.py",
+      "sha256": "aa066de8764ef79a0565302de9af7ce2fe5f0d41ca798a1dfd0f3f97c00a6184"
+    },
+    {
+      "path": "tests/target/prepare_m3_image.py",
+      "sha256": "88f4cbc84e5136df70e512ca4d8c4edf700ee35dd7b6c329f5f4faddbac39604"
+    },
+    {
+      "path": "tests/target/test_time.py",
+      "sha256": "01481a9a00ab11bd6a46daef251846ccda7410dc2feade3e0e1213296abca8a9"
+    },
+    {
+      "path": "tests/time/CMakeLists.txt",
+      "sha256": "46923dfcd67b312c157b7f3aae8f92ab54c7d3309da22094f9ce899f9d2eb8fa"
+    },
+    {
+      "path": "tests/time/private/crux_time_host_test.h",
+      "sha256": "7c2277d1b07725f6101d0204b25d1aa9f030b62d2fcb40e30b77d4dbdce31638"
+    },
+    {
+      "path": "tests/time/private/crux_time_test.h",
+      "sha256": "443e1eec767ac3a3eece68580ca4273534e94e59de4b5d3b8188930f5b9bec56"
+    },
+    {
+      "path": "tests/time/src/calendar_test.cpp",
+      "sha256": "5a87147bf08f5df6a0194faeffe05c9e34f9b3f2e591269e28c843e9c1e9c0f1"
+    },
+    {
+      "path": "tests/time/src/command_test.cpp",
+      "sha256": "fc374c72400849162e8ad1b890e7fb2750bf2dc9f8fd7d97399559d05773e7b6"
+    },
+    {
+      "path": "tests/time/src/time_test.cpp",
+      "sha256": "365b8475ea396f6888146999dfc626ef20e6f3e85b420b32967e318e9a5c6d46"
+    },
+    {
+      "path": "tests/zephyr_time/CMakeLists.txt",
+      "sha256": "85e88a24675d06cfa48c8c24dbb18f3ac9a977fff9d185ab17d4656a2c17205e"
+    },
+    {
+      "path": "tests/zephyr_time/prj.conf",
+      "sha256": "28634de4730a7f4954fb1886be26b60e4965509d2b30052dc1c076d328b0c994"
+    },
+    {
+      "path": "tests/zephyr_time/src/main.c",
+      "sha256": "fe96dde8fc7fdd9e4bd9bbccf522d61ddc2b9eb46e0879336ab4639cf320105f"
+    },
+    {
+      "path": "tests/zephyr_time/testcase.yaml",
+      "sha256": "a1d6a0fc157bbf22b70c67fa8e187581516733a11e5c9c028eef56db048ed128"
+    },
+    {
+      "path": "west.yml",
+      "sha256": "f64f4213af5cc2009a521c1081a7ab1b874717c2d8cc218639594519ae43a588"
+    },
+    {
+      "path": "zephyr/CMakeLists.txt",
+      "sha256": "a6983a20776e684c37c21fdc696da08dad67c81aff53583cf9199eddc945f6cb"
+    },
+    {
+      "path": "zephyr/Kconfig",
+      "sha256": "f074ce2ff8fcf39d59bb7913e2dbbb7d7c50d7fae28cbb010490ded94816450e"
+    },
+    {
+      "path": "zephyr/module.yml",
+      "sha256": "7f2e50d235607af1cb1a1a6b6f9696fb9a01beaa37fb8cc2dbc4c85d2db4bb73"
+    }
+  ],
+  "target_artifacts": [
+    {
+      "path": "build/zephyr/portable_execution-evkb/zephyr/.config",
+      "sha256": "6e7003957d38fb5aa8433436e254a366e94ffcc8bef9b76a4f197522e1d7145b",
+      "bytes": 37358
+    },
+    {
+      "path": "build/zephyr/portable_execution-evkb/zephyr/zephyr.elf",
+      "sha256": "f75879ae2c5e7a3ba7f3b02bc66d5a251d6f4a2cc26c8ce12eade1ae7eebcbd5",
+      "bytes": 1050796
+    },
+    {
+      "path": "build/zephyr/portable_execution-evkb/zephyr/zephyr.map",
+      "sha256": "c3c219f8e1ca4e7c696b5a1197168e03d13f32fb429a8827d3327f5b967c91fa",
+      "bytes": 377531
+    },
+    {
+      "path": "build/zephyr/portable_execution-evkb/zephyr/zephyr.dts",
+      "sha256": "943aeb7bf4714372c4a8683300253c728f39361a74db4d0deb9e88a9dfb58747",
+      "bytes": 370770
+    },
+    {
+      "path": "build/zephyr/portable_execution-evkb/compile_commands.json",
+      "sha256": "c02f87850b8f274a5ef049bdf6791bf30f1292c22188793e0ea2f08fbe0f95ad",
+      "bytes": 490265
+    },
+    {
+      "path": "build/zephyr/execution_runtime-evkb/zephyr/.config",
+      "sha256": "8736f153819d651b425b9321d6a8e12a1c6719e3e1a2fe646cf5158dacb2741a",
+      "bytes": 37341
+    },
+    {
+      "path": "build/zephyr/execution_runtime-evkb/zephyr/zephyr.elf",
+      "sha256": "f29ba054c3b96468761c5f814ab941c7c2cde24a835b2cd1adef172b28081a3e",
+      "bytes": 996276
+    },
+    {
+      "path": "build/zephyr/execution_runtime-evkb/zephyr/zephyr.map",
+      "sha256": "148d45f24c017caa742e09b5530ef50f51837a51d39dd7e80fc037bffc1b3a39",
+      "bytes": 360120
+    },
+    {
+      "path": "build/zephyr/execution_runtime-evkb/zephyr/zephyr.dts",
+      "sha256": "943aeb7bf4714372c4a8683300253c728f39361a74db4d0deb9e88a9dfb58747",
+      "bytes": 370770
+    },
+    {
+      "path": "build/zephyr/execution_runtime-evkb/compile_commands.json",
+      "sha256": "1ec80cb53efa2a33f412701d7c866f200a974c3cb262efeafccdbc4aeb6b1891",
+      "bytes": 475716
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+tests:
+  crux.execution.runtime_independent:
+    tags:
+      - execution
+      - runtime
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+    harness: ztest
+    timeout: 60
