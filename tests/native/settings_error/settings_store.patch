@@ -1,0 +1,100 @@
+--- a/subsys/settings/src/settings_store.c
++++ b/subsys/settings/src/settings_store.c
+@@ -54,7 +54,11 @@
+ 	 */
+ 	settings_lock_take();
+ 	SYS_SLIST_FOR_EACH_CONTAINER(&settings_load_srcs, cs, cs_next) {
+-		cs->cs_itf->csi_load(cs, &arg);
++		rc = cs->cs_itf->csi_load(cs, &arg);
++		if (rc < 0) {
++			settings_lock_release();
++			return rc;
++		}
+ 	}
+ 	rc = settings_commit_subtree(subtree);
+ 	settings_lock_release();
+@@ -67,6 +71,7 @@
+ 	void                   *param)
+ {
+ 	struct settings_store *cs;
++	int rc = 0;
+ 
+ 	const struct settings_load_arg arg = {
+ 		.subtree = subtree,
+@@ -81,10 +86,13 @@
+ 	 */
+ 	settings_lock_take();
+ 	SYS_SLIST_FOR_EACH_CONTAINER(&settings_load_srcs, cs, cs_next) {
+-		cs->cs_itf->csi_load(cs, &arg);
+-	}
+-	settings_lock_release();
+-	return 0;
++		rc = cs->cs_itf->csi_load(cs, &arg);
++		if (rc != 0) {
++			break;
++		}
++	}
++	settings_lock_release();
++	return rc;
+ }
+ 
+ struct default_param {
+@@ -104,7 +112,15 @@
+ 
+ 	name_len = settings_name_next(name, &next);
+ 	if (name_len == 0) {
+-		rc = read_cb(cb_arg, dest->buf, MIN(dest->buf_len, len));
++		size_t requested = MIN(dest->buf_len, len);
++
++		rc = read_cb(cb_arg, dest->buf, requested);
++		if (rc < 0) {
++			return rc;
++		}
++		if ((size_t)rc != requested) {
++			return -EIO;
++		}
+ 		*dest->val_len = len;
+ 	}
+ 
+@@ -136,7 +152,7 @@
+ ssize_t settings_get_val_len(const char *name)
+ {
+ 	struct settings_store *cs;
+-	int rc = 0;
++	ssize_t rc = 0;
+ 	size_t val_len = 0;
+ 
+ 	/*
+@@ -146,7 +162,11 @@
+ 	settings_lock_take();
+ 	SYS_SLIST_FOR_EACH_CONTAINER(&settings_load_srcs, cs, cs_next) {
+ 		if (cs->cs_itf->csi_get_val_len) {
+-			val_len = cs->cs_itf->csi_get_val_len(cs, name);
++			rc = cs->cs_itf->csi_get_val_len(cs, name);
++			if (rc < 0) {
++				break;
++			}
++			val_len = (size_t)rc;
+ 		} else {
+ 			const struct settings_load_arg arg = {
+ 				.subtree = name,
+@@ -154,6 +174,9 @@
+ 				.param = &val_len
+ 			};
+ 			rc = cs->cs_itf->csi_load(cs, &arg);
++		}
++		if (rc < 0) {
++			break;
+ 		}
+ 	}
+ 	settings_lock_release();
+@@ -194,6 +217,9 @@
+ 			};
+ 			rc = cs->cs_itf->csi_load(cs, &arg);
+ 		}
++		if (rc < 0) {
++			break;
++		}
+ 	}
+ 	settings_lock_release();
+ 

@@ -1,0 +1,880 @@
+{
+  "variant": "candidate",
+  "suite": "all",
+  "source_sha256": {
+    "subsys/settings/src/settings_store.c": "14ce61fa29aaca20ec3e69c6f401434f7f6d5a242d2911d0e931ccaf1f58f0e6",
+    "subsys/settings/src/settings_nvs.c": "ab6aa643eae9f5c5ca8099ddac89cc63aaa2fd43f775a8de5efcb11aad3c0244",
+    "subsys/settings/include/settings/settings_nvs.h": "fabc913fb783f2a866b21f507727a40dc39932e4cd2b91b38331c2018c6f1bde",
+    "include/zephyr/settings/settings.h": "4135bf0fe67f0002aeebabb2fb45e8d7a3d6daa5f65b9a9daefc98eadf8743cc"
+  },
+  "pinned_inputs_unchanged": true,
+  "compiler": "Apple clang version 17.0.0 (clang-1700.0.13.5)",
+  "flags": [
+    "-std=c17",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-Werror",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "-g"
+  ],
+  "harness_sha256": {
+    "support.py": "c24d7a1e887a46122812c339dfc30f13e3b5ed2e34903f9f826531832da2dda9",
+    "test_experiment.py": "281fae084ecff0651e2b5fc25b37b4ee39cfaff33640b03324495422a714cc6b",
+    "store.c": "fcfc66992a5560d1c4815f41a63350a4b17e03ce3364e6a1bd58bb7b42b5bab3",
+    "nvs.c": "130cb6d2ffac3189ea654496db10aa70e6615866560106959c1b29e3c2f2c4f1"
+  },
+  "patch_sha256": {
+    "settings_store.patch": "37beba8c288eb30427fe17db46b2e6f7bbb87b995bf4fbc8c42fcde77ed5a118",
+    "settings_nvs.patch": "285f7557d1f1b1b95364a2ee9634ffb6772fdc6289b92f9391a2437250767a57"
+  },
+  "cases": [
+    {
+      "binary": "nvs0",
+      "case": "both_missing",
+      "expected": "0 2 0 1 0 32768 -1 0 0",
+      "actual": "0 2 0 1 0 32768 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "boundary_name",
+      "expected": "-94 1 0 0 0 32769 -1 0 0",
+      "actual": "-94 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "count_error",
+      "expected": "-5 2 0 1 0 32769 -1 0 0",
+      "actual": "-5 2 0 1 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "delete_first",
+      "expected": "-5 2 1 0 0 32769 -1 0 0",
+      "actual": "-5 2 1 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "delete_second",
+      "expected": "-5 2 2 0 0 32769 -1 0 0",
+      "actual": "-5 2 2 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "embedded_name",
+      "expected": "-94 1 0 0 0 32769 -1 0 0",
+      "actual": "-94 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "empty_name",
+      "expected": "-94 1 0 0 0 32769 -1 0 0",
+      "actual": "-94 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "hard_name",
+      "expected": "-5 1 0 0 0 32769 -1 0 0",
+      "actual": "-5 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "hard_value",
+      "expected": "-5 2 0 0 0 32769 -1 0 0",
+      "actual": "-5 2 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "init_high",
+      "expected": "-94 1 0 0 0 32769 -1 0 0",
+      "actual": "-94 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "init_long",
+      "expected": "-94 1 0 0 0 32769 -1 0 0",
+      "actual": "-94 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "init_low",
+      "expected": "-94 1 0 0 0 32769 -1 0 0",
+      "actual": "-94 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "init_missing",
+      "expected": "0 1 0 0 0 32768 -1 0 0",
+      "actual": "0 1 0 0 0 32768 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "init_mount_error",
+      "expected": "-5 0 0 0 0 32769 -1 0 0",
+      "actual": "-5 0 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "init_no_device",
+      "expected": "-19 0 0 0 0 32769 -1 0 0",
+      "actual": "-19 0 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "init_read_error",
+      "expected": "-5 1 0 0 0 32769 -1 0 0",
+      "actual": "-5 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "init_short",
+      "expected": "-94 1 0 0 0 32769 -1 0 0",
+      "actual": "-94 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "init_valid",
+      "expected": "0 1 0 0 0 32769 -1 0 0",
+      "actual": "0 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "integrated_count_error",
+      "expected": "-5 2 0 1 0 32769 -1 0 0",
+      "actual": "-5 2 0 1 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "integrated_hard_name",
+      "expected": "-5 1 0 0 0 32769 -1 0 0",
+      "actual": "-5 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "integrated_short",
+      "expected": "-5 3 0 0 1 32769 -1 2 0",
+      "actual": "-5 3 0 0 1 32769 -1 2 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "integrated_small",
+      "expected": "8 3 0 0 1 32769 -1 2 0",
+      "actual": "8 3 0 0 1 32769 -1 2 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "integrated_valid",
+      "expected": "8 3 0 0 1 32769 -1 8 0",
+      "actual": "8 3 0 0 1 32769 -1 8 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "long_name",
+      "expected": "-94 1 0 0 0 32769 -1 0 0",
+      "actual": "-94 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "maximum_name",
+      "expected": "0 3 0 0 1 32769 -1 8 0",
+      "actual": "0 3 0 0 1 32769 -1 8 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "orphan_name",
+      "expected": "0 2 2 1 0 32768 -1 0 0",
+      "actual": "0 2 2 1 0 32768 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "repair_zero",
+      "expected": "0 2 0 1 0 32768 -1 0 0",
+      "actual": "0 2 0 1 0 32768 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "save_embedded",
+      "expected": "-94 1 0 0 0 32769 -1 0 0",
+      "actual": "-94 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "save_error",
+      "expected": "-5 1 0 0 0 32769 -1 0 0",
+      "actual": "-5 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "save_long_name",
+      "expected": "-94 1 0 0 0 32769 -1 0 0",
+      "actual": "-94 1 0 0 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "save_valid",
+      "expected": "0 1 0 1 0 32769 -1 0 0",
+      "actual": "0 1 0 1 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "save_value_error",
+      "expected": "-5 1 0 1 0 32769 -1 0 0",
+      "actual": "-5 1 0 1 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "save_zero",
+      "expected": "0 1 0 1 0 32769 -1 0 0",
+      "actual": "0 1 0 1 0 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "trailing_nul",
+      "expected": "0 3 0 0 1 32769 -1 8 0",
+      "actual": "0 3 0 0 1 32769 -1 8 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "valid_load",
+      "expected": "0 3 0 0 1 32769 -1 8 0",
+      "actual": "0 3 0 0 1 32769 -1 8 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs0",
+      "case": "value_read_error",
+      "expected": "-5 3 0 0 1 32769 -1 0 0",
+      "actual": "-5 3 0 0 1 32769 -1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "both_missing",
+      "expected": "0 2 0 1 0 32768 1 0 0",
+      "actual": "0 2 0 1 0 32768 1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "boundary_name",
+      "expected": "-94 1 0 0 0 32769 0 0 0",
+      "actual": "-94 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "cached_embedded",
+      "expected": "-94 1 0 0 0 32769 0 0 0",
+      "actual": "-94 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "cached_long_name",
+      "expected": "-94 1 0 0 0 32769 0 0 0",
+      "actual": "-94 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "cached_missing",
+      "expected": "0 2 0 2 0 32769 0 0 0",
+      "actual": "0 2 0 2 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "cached_save_error",
+      "expected": "-5 1 0 0 0 32769 0 0 0",
+      "actual": "-5 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "cached_valid",
+      "expected": "0 1 0 1 0 32769 0 0 0",
+      "actual": "0 1 0 1 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "count_error",
+      "expected": "-5 2 0 1 0 32769 0 0 0",
+      "actual": "-5 2 0 1 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "delete_first",
+      "expected": "-5 2 1 0 0 32769 0 0 0",
+      "actual": "-5 2 1 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "delete_second",
+      "expected": "-5 2 2 0 0 32769 0 0 0",
+      "actual": "-5 2 2 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "embedded_name",
+      "expected": "-94 1 0 0 0 32769 0 0 0",
+      "actual": "-94 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "empty_name",
+      "expected": "-94 1 0 0 0 32769 0 0 0",
+      "actual": "-94 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "hard_name",
+      "expected": "-5 1 0 0 0 32769 0 0 0",
+      "actual": "-5 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "hard_value",
+      "expected": "-5 2 0 0 0 32769 0 0 0",
+      "actual": "-5 2 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "init_high",
+      "expected": "-94 1 0 0 0 32769 0 0 0",
+      "actual": "-94 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "init_long",
+      "expected": "-94 1 0 0 0 32769 0 0 0",
+      "actual": "-94 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "init_low",
+      "expected": "-94 1 0 0 0 32769 0 0 0",
+      "actual": "-94 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "init_missing",
+      "expected": "0 1 0 0 0 32768 0 0 0",
+      "actual": "0 1 0 0 0 32768 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "init_mount_error",
+      "expected": "-5 0 0 0 0 32769 0 0 0",
+      "actual": "-5 0 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "init_no_device",
+      "expected": "-19 0 0 0 0 32769 0 0 0",
+      "actual": "-19 0 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "init_read_error",
+      "expected": "-5 1 0 0 0 32769 0 0 0",
+      "actual": "-5 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "init_short",
+      "expected": "-94 1 0 0 0 32769 0 0 0",
+      "actual": "-94 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "init_valid",
+      "expected": "0 1 0 0 0 32769 0 0 0",
+      "actual": "0 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "integrated_count_error",
+      "expected": "-5 2 0 1 0 32769 0 0 0",
+      "actual": "-5 2 0 1 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "integrated_hard_name",
+      "expected": "-5 1 0 0 0 32769 0 0 0",
+      "actual": "-5 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "integrated_short",
+      "expected": "-5 3 0 0 1 32769 0 2 0",
+      "actual": "-5 3 0 0 1 32769 0 2 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "integrated_small",
+      "expected": "8 3 0 0 1 32769 0 2 0",
+      "actual": "8 3 0 0 1 32769 0 2 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "integrated_valid",
+      "expected": "8 3 0 0 1 32769 0 8 0",
+      "actual": "8 3 0 0 1 32769 0 8 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "long_name",
+      "expected": "-94 1 0 0 0 32769 0 0 0",
+      "actual": "-94 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "maximum_name",
+      "expected": "0 3 0 0 1 32769 1 8 0",
+      "actual": "0 3 0 0 1 32769 1 8 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "orphan_name",
+      "expected": "0 2 2 1 0 32768 1 0 0",
+      "actual": "0 2 2 1 0 32768 1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "repair_zero",
+      "expected": "0 2 0 1 0 32768 1 0 0",
+      "actual": "0 2 0 1 0 32768 1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "save_cache_complete",
+      "expected": "0 0 0 3 0 32770 1 0 0",
+      "actual": "0 0 0 3 0 32770 1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "save_cache_overflow",
+      "expected": "0 1 0 1 0 32769 1 0 0",
+      "actual": "0 1 0 1 0 32769 1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "save_embedded",
+      "expected": "-94 1 0 0 0 32769 0 0 0",
+      "actual": "-94 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "save_error",
+      "expected": "-5 1 0 0 0 32769 0 0 0",
+      "actual": "-5 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "save_long_name",
+      "expected": "-94 1 0 0 0 32769 0 0 0",
+      "actual": "-94 1 0 0 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "save_valid",
+      "expected": "0 1 0 1 0 32769 0 0 0",
+      "actual": "0 1 0 1 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "save_value_error",
+      "expected": "-5 1 0 1 0 32769 0 0 0",
+      "actual": "-5 1 0 1 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "save_zero",
+      "expected": "0 1 0 1 0 32769 0 0 0",
+      "actual": "0 1 0 1 0 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "trailing_nul",
+      "expected": "0 3 0 0 1 32769 1 8 0",
+      "actual": "0 3 0 0 1 32769 1 8 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "valid_load",
+      "expected": "0 3 0 0 1 32769 1 8 0",
+      "actual": "0 3 0 0 1 32769 1 8 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "nvs1",
+      "case": "value_read_error",
+      "expected": "-5 3 0 0 1 32769 0 0 0",
+      "actual": "-5 3 0 0 1 32769 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "commit_error",
+      "expected": "-35 1 1 0 0",
+      "actual": "-35 1 1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "direct_scan_error",
+      "expected": "-5 1 0 0 0",
+      "actual": "-5 1 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "earlier_error_two",
+      "expected": "-5 1 0 0 0",
+      "actual": "-5 1 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "getter_error",
+      "expected": "-5 1 0 0 0",
+      "actual": "-5 1 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "later_error",
+      "expected": "-5 2 0 8 0",
+      "actual": "-5 2 0 8 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "negative_stop",
+      "expected": "-28 1 0 0 0",
+      "actual": "-28 1 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "positive_stop",
+      "expected": "7 1 0 0 0",
+      "actual": "7 1 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "read_error",
+      "expected": "-5 1 0 0 0",
+      "actual": "-5 1 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "short_read",
+      "expected": "-5 1 0 2 0",
+      "actual": "-5 1 0 2 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "small_buffer",
+      "expected": "8 1 0 2 0",
+      "actual": "8 1 0 2 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "subtree_scan_error",
+      "expected": "-5 1 0 0 0",
+      "actual": "-5 1 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "valid",
+      "expected": "8 1 0 8 0",
+      "actual": "8 1 0 8 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "valid_subtree",
+      "expected": "0 1 1 0 0",
+      "actual": "0 1 1 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "valid_two",
+      "expected": "5 2 0 13 0",
+      "actual": "5 2 0 13 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    },
+    {
+      "binary": "store",
+      "case": "zero_buffer",
+      "expected": "8 1 0 0 0",
+      "actual": "8 1 0 0 0",
+      "returncode": 0,
+      "sanitizer_error": false,
+      "passed": true
+    }
+  ]
+}

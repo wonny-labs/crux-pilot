@@ -1,0 +1,273 @@
+Native interface policy passed (25 portable source files).
+Base is independent; designated portable sources pass the native interface policy; backend selection is checked by CMake; shared source ownership is explicit.
+Execution public/consumer boundary passed; native providers remain permitted.
+Networking consumers use the qualified standard/public boundary.
+Preset CMake variables:
+
+  CMAKE_BUILD_TYPE="Debug"
+  CMAKE_EXPORT_COMPILE_COMMANDS="ON"
+  FETCHCONTENT_BASE_DIR="/tmp/crux-settings-cache/cmake"
+
+-- The C compiler identification is Clang 18.1.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang-18 - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found Python3: /opt/crux-cache/venv/bin/python3.12 (found version "3.12.3") found components: Interpreter 
+-- The CXX compiler identification is Clang 18.1.3
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++-18 - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done (5.8s)
+-- Generating done (0.1s)
+-- Build files have been written to: /work/repo/build/linux/debug
+Preset CMake variables:
+
+  CMAKE_BUILD_TYPE="Debug"
+  CMAKE_EXPORT_COMPILE_COMMANDS="ON"
+  FETCHCONTENT_BASE_DIR="/tmp/crux-settings-cache/cmake"
+
+-- Configuring done (0.8s)
+-- Generating done (0.1s)
+-- Build files have been written to: /work/repo/build/linux/debug
+[1/76] Building C object CMakeFiles/crux_controller_core.dir/samples/controller/core/health.c.o
+[2/76] Building C object CMakeFiles/crux_controller_core.dir/samples/controller/core/controller.c.o
+[3/76] Building C object components/time/CMakeFiles/crux_time_common.dir/src/time.c.o
+[4/76] Building C object CMakeFiles/crux_time_commands.dir/samples/time/src/time_command.c.o
+[5/76] Building C object components/execution/CMakeFiles/crux_execution_host.dir/src/execution_sync.c.o
+[6/76] Building C object components/execution/CMakeFiles/crux_execution_host.dir/src/execution_threads.c.o
+[7/76] Building C object CMakeFiles/crux_posix_probes.dir/tests/execution/src/posix.c.o
+[8/76] Building C object components/time/CMakeFiles/crux_time_host.dir/host/time_port_host.c.o
+[9/76] Linking C static library libcrux_controller_core.a
+[10/76] Building C object components/execution/CMakeFiles/crux_execution_host.dir/host/execution_native.c.o
+[11/76] Building C object components/time/CMakeFiles/crux_time_common.dir/src/time_calendar.c.o
+[12/76] Linking C static library libcrux_time_commands.a
+[13/76] Linking C executable crux_posix_probes
+[14/76] Building C object components/netif/CMakeFiles/crux_netif.dir/src/netif.c.o
+[15/76] Building C object components/execution/CMakeFiles/crux_execution_host.dir/host/execution_sync_native.c.o
+[16/76] Building C object components/netif/CMakeFiles/crux_netif.dir/host/netif_host.c.o
+[17/76] Linking C static library components/time/libcrux_time_host.a
+[18/76] Linking C static library components/time/libcrux_time_common.a
+[19/76] Building C object samples/time/host/CMakeFiles/crux-time-host.dir/main.c.o
+[20/76] Building C object samples/networking/host/CMakeFiles/crux-networking-host.dir/main.c.o
+[21/76] Building C object samples/controller/host/CMakeFiles/crux-controller-host.dir/main.c.o
+[22/76] Linking C static library components/execution/libcrux_execution_host.a
+[23/76] Linking C executable samples/time/host/crux-time-host
+[24/76] Building C object samples/networking/host/CMakeFiles/crux-networking-host.dir/__/client.c.o
+[25/76] Linking C static library components/netif/libcrux_netif.a
+[26/76] Linking C executable samples/controller/host/crux-controller-host
+[27/76] Building C object tests/time/CMakeFiles/crux_time_common_test.dir/__/__/components/time/src/time.c.o
+[28/76] Building C object tests/time/CMakeFiles/crux_time_common_test.dir/__/__/components/time/src/time_calendar.c.o
+[29/76] Building C object tests/time/CMakeFiles/crux_time_host_test.dir/__/__/components/time/host/time_port_host.c.o
+[30/76] Linking C executable samples/networking/host/crux-networking-host
+[31/76] Linking C static library tests/time/libcrux_time_common_test.a
+[32/76] Linking C static library tests/time/libcrux_time_host_test.a
+[33/76] Building CXX object /tmp/crux-settings-cache/cmake/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[34/76] Building CXX object /tmp/crux-settings-cache/cmake/googletest-build/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o
+[35/76] Building CXX object tests/time/CMakeFiles/crux_time_tests.dir/src/time_test.cpp.o
+[36/76] Building CXX object tests/time/CMakeFiles/crux_time_tests.dir/src/calendar_test.cpp.o
+[37/76] Building C object tests/portable_execution/CMakeFiles/crux_execution_admission.dir/admission.c.o
+[38/76] Building CXX object tests/time/CMakeFiles/crux_time_tests.dir/src/command_test.cpp.o
+[39/76] Building C object tests/portable_execution/CMakeFiles/crux_execution_conformance.dir/conformance.c.o
+[40/76] Building C object tests/portable_execution/CMakeFiles/crux_execution_conformance.dir/host_main.c.o
+[41/76] Building CXX object /tmp/crux-settings-cache/cmake/googletest-build/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o
+[42/76] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_failures.dir/host_failures.c.o
+[43/76] Building C object tests/portable_execution/CMakeFiles/crux_execution_conformance.dir/public_probe.c.o
+[44/76] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_admission.dir/host_admission.c.o
+[45/76] Building CXX object tests/controller/CMakeFiles/crux_controller_tests.dir/controller_test.cpp.o
+[46/76] Building C object tests/networking/CMakeFiles/crux_netif_tests.dir/__/__/components/netif/src/netif.c.o
+[47/76] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_poll.dir/host_poll.c.o
+[48/76] Linking C executable tests/portable_execution/crux_execution_conformance
+[49/76] Linking C executable tests/portable_execution/crux_execution_host_failures
+[50/76] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_poll_finalize.dir/host_poll_finalize.c.o
+[51/76] Linking C executable tests/portable_execution/crux_execution_host_admission
+[52/76] Building CXX object tests/controller/CMakeFiles/crux_controller_tests.dir/health_test.cpp.o
+[53/76] Linking C executable tests/portable_execution/crux_execution_host_poll
+[54/76] Linking C executable tests/portable_execution/crux_execution_host_poll_finalize
+[55/76] Building C object tests/networking/CMakeFiles/crux_netif_host_tests.dir/__/__/components/netif/host/netif_host.c.o
+[56/76] Building C object tests/networking/CMakeFiles/networking_client_fake.dir/__/__/samples/networking/client.c.o
+[57/76] Building C object tests/networking/CMakeFiles/crux_netif_host_tests.dir/__/__/components/netif/src/netif.c.o
+[58/76] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/stack_scenario.c.o
+[59/76] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/runtime_port.c.o
+[60/76] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/stack_host.c.o
+[61/76] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/__/__/samples/networking/client.c.o
+[62/76] Building C object tests/networking/CMakeFiles/networking_runtime_fake.dir/runtime_port.c.o
+[63/76] Linking C executable tests/networking/crux_networking_stack_tests
+[64/76] Building CXX object /tmp/crux-settings-cache/cmake/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+[65/76] Linking CXX static library lib/libgtest.a
+[66/76] Building CXX object tests/networking/CMakeFiles/crux_netif_tests.dir/netif_test.cpp.o
+[67/76] Linking CXX static library lib/libgtest_main.a
+[68/76] Linking CXX static library lib/libgmock.a
+[69/76] Linking CXX static library lib/libgmock_main.a
+[70/76] Building CXX object tests/networking/CMakeFiles/crux_netif_host_tests.dir/netif_host_test.cpp.o
+[71/76] Linking CXX executable tests/time/crux_time_tests
+[72/76] Linking CXX executable tests/networking/crux_netif_tests
+[73/76] Linking CXX executable tests/controller/crux_controller_tests
+[74/76] Building CXX object tests/networking/CMakeFiles/crux_networking_client_tests.dir/client_test.cpp.o
+[75/76] Linking CXX executable tests/networking/crux_netif_host_tests
+[76/76] Linking CXX executable tests/networking/crux_networking_client_tests
+clangd compilation database selected: /work/repo/build/linux/debug
+Test project /work/repo/build/linux/debug
+      Start  1: Execution.PosixProbes
+ 1/76 Test  #1: Execution.PosixProbes .......................................................   Passed    0.20 sec
+      Start  2: Controller.HostScenario
+ 2/76 Test  #2: Controller.HostScenario .....................................................   Passed    2.05 sec
+      Start  3: TimeApiTest.InitStartsReadyButUnset
+ 3/76 Test  #3: TimeApiTest.InitStartsReadyButUnset .........................................   Passed    0.03 sec
+      Start  4: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+ 4/76 Test  #4: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness ..........................   Passed    0.03 sec
+      Start  5: TimeApiTest.FailedInitialisationCanBeRetried
+ 5/76 Test  #5: TimeApiTest.FailedInitialisationCanBeRetried ................................   Passed    0.03 sec
+      Start  6: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+ 6/76 Test  #6: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend ...................   Passed    0.02 sec
+      Start  7: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+ 7/76 Test  #7: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime ................   Passed    0.03 sec
+      Start  8: TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+ 8/76 Test  #8: TimeApiTest.FailedBackendWriteInvalidatesSessionTime ........................   Passed    0.03 sec
+      Start  9: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+ 9/76 Test  #9: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged .....................   Passed    0.03 sec
+      Start 10: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+10/76 Test #10: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue ........................   Passed    0.03 sec
+      Start 11: TimeApiTest.BackendNoDataClearsCommonValidity
+11/76 Test #11: TimeApiTest.BackendNoDataClearsCommonValidity ...............................   Passed    0.03 sec
+      Start 12: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+12/76 Test #12: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput ........................   Passed    0.03 sec
+      Start 13: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+13/76 Test #13: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds ..........................   Passed    0.03 sec
+      Start 14: TimeCalendar.ConvertsIndependentUnixEpochAnchor
+14/76 Test #14: TimeCalendar.ConvertsIndependentUnixEpochAnchor .............................   Passed    0.03 sec
+      Start 15: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+15/76 Test #15: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors ................   Passed    0.02 sec
+      Start 16: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+16/76 Test #16: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd ..........................   Passed    0.03 sec
+      Start 17: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+17/76 Test #17: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes ..................   Passed    0.03 sec
+      Start 18: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+18/76 Test #18: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput .........................   Passed    0.02 sec
+      Start 19: TimeCalendar.NullArgumentsAreInvalid
+19/76 Test #19: TimeCalendar.NullArgumentsAreInvalid ........................................   Passed    0.03 sec
+      Start 20: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+20/76 Test #20: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay ............................   Passed    0.03 sec
+      Start 21: TimeCommandTest.HelpIdentifiesUtcInput
+21/76 Test #21: TimeCommandTest.HelpIdentifiesUtcInput ......................................   Passed    0.03 sec
+      Start 22: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+22/76 Test #22: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText ........................   Passed    0.03 sec
+      Start 23: TimeCommandTest.SetAndGetUseTheSamePortableHandler
+23/76 Test #23: TimeCommandTest.SetAndGetUseTheSamePortableHandler ..........................   Passed    0.03 sec
+      Start 24: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+24/76 Test #24: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf ........................   Passed    0.02 sec
+      Start 25: TimeCommandTest.HelpIsAnAdapterOutcome
+25/76 Test #25: TimeCommandTest.HelpIsAnAdapterOutcome ......................................   Passed    0.02 sec
+      Start 26: TimeCommandTest.RejectsMalformedSyntaxAndDates
+26/76 Test #26: TimeCommandTest.RejectsMalformedSyntaxAndDates ..............................   Passed    0.02 sec
+      Start 27: TimeCommandTest.MapsOutOfRangeAndIoErrors
+27/76 Test #27: TimeCommandTest.MapsOutOfRangeAndIoErrors ...................................   Passed    0.02 sec
+      Start 28: TimeCommandTest.RejectedWriteNeverCallsBackend
+28/76 Test #28: TimeCommandTest.RejectedWriteNeverCallsBackend ..............................   Passed    0.02 sec
+      Start 29: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+29/76 Test #29: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime ................   Passed    0.02 sec
+      Start 30: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+30/76 Test #30: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover ..........   Passed    0.02 sec
+      Start 31: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+31/76 Test #31: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity ............   Passed    0.02 sec
+      Start 32: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+32/76 Test #32: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule ........................   Passed    0.02 sec
+      Start 33: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+33/76 Test #33: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst .............   Passed    0.02 sec
+      Start 34: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+34/76 Test #34: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline ............   Passed    0.02 sec
+      Start 35: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+35/76 Test #35: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime ......   Passed    0.02 sec
+      Start 36: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+36/76 Test #36: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress ..........   Passed    0.03 sec
+      Start 37: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+37/76 Test #37: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress .............   Passed    0.02 sec
+      Start 38: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+38/76 Test #38: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError ............   Passed    0.02 sec
+      Start 39: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+39/76 Test #39: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering .............   Passed    0.02 sec
+      Start 40: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+40/76 Test #40: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation ...   Passed    0.02 sec
+      Start 41: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+41/76 Test #41: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork ............   Passed    0.02 sec
+      Start 42: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+42/76 Test #42: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom .......   Passed    0.02 sec
+      Start 43: Execution.Conformance
+43/76 Test #43: Execution.Conformance .......................................................   Passed    0.06 sec
+      Start 44: Execution.HostFailures
+44/76 Test #44: Execution.HostFailures ......................................................   Passed    0.01 sec
+      Start 45: Execution.HostPoll
+45/76 Test #45: Execution.HostPoll ..........................................................   Passed    0.01 sec
+      Start 46: Execution.HostAdmission
+46/76 Test #46: Execution.HostAdmission .....................................................   Passed    0.33 sec
+      Start 47: Execution.HostPollFinalize
+47/76 Test #47: Execution.HostPollFinalize ..................................................   Passed    0.37 sec
+      Start 48: Netif.RejectsNull
+48/76 Test #48: Netif.RejectsNull ...........................................................   Passed    0.03 sec
+      Start 49: Netif.PreservesOutputWhenObservationFails
+49/76 Test #49: Netif.PreservesOutputWhenObservationFails ...................................   Passed    0.02 sec
+      Start 50: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
+50/76 Test #50: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown ..........................   Passed    0.02 sec
+      Start 51: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
+51/76 Test #51: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier ....................   Passed    0.02 sec
+      Start 52: Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
+52/76 Test #52: Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal ......................   Passed    0.02 sec
+      Start 53: NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
+53/76 Test #53: NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin ..................   Passed    0.02 sec
+      Start 54: Client.TcpHandlesShortTransfersWithinOneDeadline
+54/76 Test #54: Client.TcpHandlesShortTransfersWithinOneDeadline ............................   Passed    0.02 sec
+      Start 55: Client.RetriesInterruptedPollAndWouldBlock
+55/76 Test #55: Client.RetriesInterruptedPollAndWouldBlock ..................................   Passed    0.02 sec
+      Start 56: Client.RepeatedInterruptionsCannotExtendDeadline
+56/76 Test #56: Client.RepeatedInterruptionsCannotExtendDeadline ............................   Passed    0.02 sec
+      Start 57: Client.SilenceExpires
+57/76 Test #57: Client.SilenceExpires .......................................................   Passed    0.02 sec
+      Start 58: Client.ConnectPollReadinessStillRequiresSocketError
+58/76 Test #58: Client.ConnectPollReadinessStillRequiresSocketError .........................   Passed    0.02 sec
+      Start 59: Client.HangupIsReadAsEof
+59/76 Test #59: Client.HangupIsReadAsEof ....................................................   Passed    0.02 sec
+      Start 60: Client.FailedCloseIsNeverRetried
+60/76 Test #60: Client.FailedCloseIsNeverRetried ............................................   Passed    0.02 sec
+      Start 61: Client.FailedCreationOwnsNoDescriptor
+61/76 Test #61: Client.FailedCreationOwnsNoDescriptor .......................................   Passed    0.02 sec
+      Start 62: Client.SetupFailureClosesDescriptor
+62/76 Test #62: Client.SetupFailureClosesDescriptor .........................................   Passed    0.02 sec
+      Start 63: Client.SendFailureClosesDescriptor
+63/76 Test #63: Client.SendFailureClosesDescriptor ..........................................   Passed    0.02 sec
+      Start 64: Client.RejectsInvalidInputBeforeSocketCreation
+64/76 Test #64: Client.RejectsInvalidInputBeforeSocketCreation ..............................   Passed    0.02 sec
+      Start 65: Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
+65/76 Test #65: Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize ....................   Passed    0.02 sec
+      Start 66: Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
+66/76 Test #66: Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics ........................   Passed    0.02 sec
+      Start 67: Client.RejectsCorruptEcho
+67/76 Test #67: Client.RejectsCorruptEcho ...................................................   Passed    0.02 sec
+      Start 68: Client.ClockFailureOwnsNoSocket
+68/76 Test #68: Client.ClockFailureOwnsNoSocket .............................................   Passed    0.02 sec
+      Start 69: Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
+69/76 Test #69: Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce .......................   Passed    0.02 sec
+      Start 70: Client.WouldBlockCannotRenewOverallDeadline
+70/76 Test #70: Client.WouldBlockCannotRenewOverallDeadline .................................   Passed    0.02 sec
+      Start 71: Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+71/76 Test #71: Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer .....................   Passed    0.02 sec
+      Start 72: Client.RuntimeRetriesInterruptedPoll
+72/76 Test #72: Client.RuntimeRetriesInterruptedPoll ........................................   Passed    0.02 sec
+      Start 73: Client.RuntimeInterruptionsCannotRenewDeadline
+73/76 Test #73: Client.RuntimeInterruptionsCannotRenewDeadline ..............................   Passed    0.02 sec
+      Start 74: Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+74/76 Test #74: Client.RuntimeReadinessAfterExpiryDoesNotPermitSend .........................   Passed    0.02 sec
+      Start 75: Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+75/76 Test #75: Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno .....................   Passed    0.02 sec
+      Start 76: Networking.RealHostStack
+76/76 Test #76: Networking.RealHostStack ....................................................   Passed    2.50 sec
+
+100% tests passed, 0 tests failed out of 76
+
+Total Test time (real) =   7.18 sec
+Host sample stdin/stdout scenario passed (host-debug).
