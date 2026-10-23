@@ -145,6 +145,56 @@ class Carrier(unittest.TestCase):
                     else:
                         with self.assertRaises(ValueError):probe.poll()
 
+class DirectRoute(unittest.TestCase):
+    # Synthetic examples of Apple route.c print_getmsg output; never query a NIC.
+    NETWORK='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,DONE,CLONING,STATIC,IFSCOPE>\n'
+    HOST='   route to: 192.168.77.2\ndestination: 192.168.77.2\n  interface: en5\n      flags: <UP,HOST,DONE,LLINFO,WASCLONED,IFSCOPE,IFREF>\n'
+    def probe(self,text,source='192.168.77.1'):
+        from unittest.mock import patch
+        outputs=[f'ether 00:0a:cd:41:89:cc\ninet {source} netmask 0xffffff00\nstatus: active\n',text]
+        class Process:
+            def poll(self):return 0
+            def wait(self,timeout):return 0
+        def start(*args,**kwargs):
+            kwargs['stdout'].write(outputs.pop(0).encode());kwargs['stdout'].flush();return Process()
+        with tempfile.TemporaryDirectory() as directory,patch.object(adapter.subprocess,'Popen',start):
+            probe=adapter.NICProbe(Path(directory),Clock());probe.start();probe.poll()
+            probe.start(route=True);return probe.poll()
+    def test_network_and_cloned_host_are_direct_routes(self):
+        for text in (self.NETWORK,self.HOST):
+            with self.subTest(text=text):
+                row=self.probe(text)
+                self.assertEqual((row['source'],row['destination']),('192.168.77.1','192.168.77.2'))
+    def test_missing_inactive_and_stale_source_observations_are_rejected(self):
+        from unittest.mock import patch
+        for observed in (None,dict(source='192.168.77.1',active=False,at=1.),
+                         dict(source='192.168.77.1',active=True,at=-2.)):
+            with self.subTest(observed=observed),tempfile.TemporaryDirectory() as directory:
+                class Process:
+                    def poll(self):return 0
+                    def wait(self,timeout):return 0
+                def start(*args,**kwargs):
+                    kwargs['stdout'].write(self.NETWORK.encode());kwargs['stdout'].flush();return Process()
+                with patch.object(adapter.subprocess,'Popen',start):
+                    probe=adapter.NICProbe(Path(directory),Clock());probe.interface_observation=observed
+                    probe.start(route=True)
+                    with self.assertRaises(ValueError):probe.poll()
+    def test_gateway_and_incomplete_or_unexpected_routes_are_rejected(self):
+        cases=[self.NETWORK+'    gateway: 192.168.77.254\n',
+               self.NETWORK.replace('<UP,','<UP,GATEWAY,'),
+               self.NETWORK.replace('<UP,','<UP,REJECT,'),
+               self.NETWORK.replace('<UP,','<UP,BLACKHOLE,'),
+               self.NETWORK.replace('192.168.77.0','0.0.0.0'),
+               self.NETWORK.replace('255.255.255.0','255.255.0.0'),
+               self.NETWORK.replace('route to: 192.168.77.2','route to: 192.168.77.3'),
+               self.NETWORK.replace('interface: en5','interface: en0'),
+               'interface: en5\n',self.NETWORK+'interface: en5\n',
+               self.NETWORK.replace('<UP,','<'),
+               self.HOST.replace('192.168.77.2\n  interface','192.168.77.3\n  interface')]
+        for text in cases:
+            with self.subTest(text=text),self.assertRaises(ValueError):self.probe(text)
+        with self.assertRaises(ValueError):self.probe(self.NETWORK,source='192.168.77.9')
+
 class EntryGates(unittest.TestCase):
     def test_capture_without_execute_flag_is_inert(self):
         from types import SimpleNamespace

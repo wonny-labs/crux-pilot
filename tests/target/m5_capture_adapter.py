@@ -54,10 +54,50 @@ class ProcessBackend:
         return code
 
 
+def parse_interface(text):
+    """Observed dedicated IPv4 address/carrier; ambiguous inventory is unknown."""
+    addresses=re.findall(r'(?m)^[ \t]*inet ([0-9.]+) netmask (0x[0-9a-f]+)\b',text)
+    runner.oracle.require(addresses==[('192.168.77.1','0xffffff00')] and
+        re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$',text)==['00:0a:cd:41:89:cc'],
+        'NIC identity/static address mismatch')
+    statuses=re.findall(r'(?m)^[ \t]*status:[ \t]*(\S+)[ \t]*$',text)
+    runner.oracle.require(statuses in (['active'],['inactive']),'NIC carrier status missing/unknown/ambiguous')
+    return dict(source=addresses[0][0],active=statuses==['active'])
+
+
+def parse_direct_route(text,source):
+    """Narrow Apple route(8) get format, not a route-selection/binding API.
+
+    print_getmsg prints gateway only for RTF_GATEWAY. A connected /24 or
+    cloned /32 is accepted; next-hop, reject, blackhole and unknown forms stop.
+    """
+    def field(name,optional=False):
+        values=re.findall(r'(?m)^[ \t]*'+re.escape(name)+r':[ \t]*([^\n]*?)[ \t]*$',text)
+        runner.oracle.require(len(values)==1 or (optional and not values),'Missing/duplicate route field: '+name)
+        return values[0] if values else None
+    lookup=field('route to');destination=field('destination');mask=field('mask',True)
+    interface=field('interface');flags_text=field('flags')
+    runner.oracle.require(field('gateway',True) is None,'Gateway route is outside isolated topology')
+    match=re.fullmatch(r'<([A-Z0-9_,]+)>',flags_text)
+    runner.oracle.require(match is not None,'Unknown route flag format')
+    flags=match[1].split(',')
+    allowed={'UP','DONE','HOST','STATIC','CLONING','PRCLONING','LLINFO','WASCLONED','IFSCOPE','IFREF','PINNED'}
+    runner.oracle.require(len(flags)==len(set(flags)) and set(flags)<=allowed and 'UP' in flags,
+                         'Gateway/reject/blackhole/unknown or inactive route')
+    runner.oracle.require(source=='192.168.77.1' and lookup=='192.168.77.2' and interface=='en5','Isolated route source/destination/interface mismatch')
+    if 'HOST' in flags:
+        runner.oracle.require(destination==lookup and mask in (None,'255.255.255.255'),'Unexpected direct host route')
+    else:
+        runner.oracle.require(destination=='192.168.77.0' and mask=='255.255.255.0','Unexpected direct network route')
+    return dict(event='route',interface=interface,source=source,destination=lookup,
+                route_destination=destination,route_mask=mask,route_flags=flags,gateway=None,
+                source_basis='validated ifconfig IPv4 address')
+
+
 class NICProbe:
     """Nonblocking dedicated-NIC inventory; process lifetime limited to one second."""
     def __init__(self,directory,clock=shared_clock.monotonic):
-        self.directory=directory;self.clock=clock;self.process=None;self.serial=0;self.route=False
+        self.directory=directory;self.clock=clock;self.process=None;self.serial=0;self.route=False;self.interface_observation=None
     def start(self,route=False):
         runner.oracle.require(self.process is None,'NIC inventory already running')
         self.serial+=1;self.route=route
@@ -76,12 +116,12 @@ class NICProbe:
         self.process.wait(timeout=.1);self.stream.close();self.process=None
         text=self.path.read_text();runner.oracle.require(code==0,'NIC inventory failed')
         if self.route:
-            runner.oracle.require(re.search(r'interface:\s+en5\b',text) is not None,'Isolated route mismatch')
-            return dict(event='route',interface='en5',source='192.168.77.1',destination='192.168.77.2')
-        runner.oracle.require('ether 00:0a:cd:41:89:cc' in text and re.search(r'inet 192\.168\.77\.1 netmask 0xffffff00\b',text),'NIC identity/static address mismatch')
-        statuses=re.findall(r'(?m)^\s*status:\s*(\S+)\s*$',text)
-        runner.oracle.require(statuses in (['active'],['inactive']),'NIC carrier status missing/unknown/ambiguous')
-        return dict(event='host_up' if statuses==['active'] else 'host_down',interface='en5')
+            observed=self.interface_observation
+            runner.oracle.require(observed is not None and observed['active'] and self.clock()-observed['at']<=2,
+                                  'Fresh validated dedicated source observation required')
+            return parse_direct_route(text,observed['source'])
+        observed=parse_interface(text);self.interface_observation=dict(observed,at=self.clock())
+        return dict(event='host_up' if observed['active'] else 'host_down',interface='en5')
     def close(self):
         if self.process is not None:
             self.process.kill()
@@ -108,7 +148,9 @@ class M3UARTLease:
             capture_m3.check_owners(self.uart,self.directory/(label+'-owners.txt'))
             runner.oracle.require(m3.check_route(self.directory,label),'Initial isolated NIC not active')
             interface=m3.run_checked(['ifconfig','en5'],self.directory/(label+'-carrier.txt'))
-            runner.oracle.require(re.findall(r'(?m)^\s*status:\s*(\S+)\s*$',interface)==['active'],'Initial carrier unknown/ambiguous')
+            observed=parse_interface(interface)
+            runner.oracle.require(observed['active'],'Initial carrier unknown/inactive')
+            parse_direct_route((self.directory/(label+'-route.txt')).read_text(),observed['source'])
             service=m3.run_checked(['networksetup','-getinfo','AX88179'],self.directory/(label+'-service.txt'))
             runner.oracle.require('IP address: 192.168.77.1' in service and 'Subnet mask: 255.255.255.0' in service and 'Router: (null)' in service and 'Ethernet Address: 00:0a:cd:41:89:cc' in service,'Isolated service changed')
         else:

@@ -123,9 +123,9 @@ Expected functional outcomes are fixed: echo returns 0; silent peers return symb
 
 The frozen input model retains west's clean manifest-checkout record as workspace bootstrap context, separately from the built worktree commit/snapshot. The target compiles explicit worktree/module paths and exactly four pinned dependency revisions; the manifest checkout's source is not substituted for the worktree. A mismatched input model was found during the first freeze attempt and corrected with actual five-record input tests before the final candidate was rebuilt.
 
-## Frozen candidate and independent review
+## Historical candidate and independent review (superseded)
 
-Candidate source is `2f7e6486a1c3bf67a341b9e97bf0c0575bbd2076`.
+The following is retained historical software evidence, superseded by the integrated candidate identified below. Historical candidate source is `2f7e6486a1c3bf67a341b9e97bf0c0575bbd2076`.
 The subsequent PR documentation/evidence commit does not change executable inputs.
 This identifies a cross-built candidate for later approval, not a physically qualified image.
 
@@ -177,3 +177,41 @@ concurrent/sustained-load capacity, active native-pool peaks and worst-case timi
 Issue #28 remains open. Actual entry/recovery manifests and artifacts, fresh
 per-operation approvals, physical three-boot results and accepted normal
 restoration/full verification/behavior are still required before physical acceptance.
+
+## Independent review follow-up and integrated candidate policy
+
+The external review of PR HEAD `a0e0e11` identified two confirmed tooling gaps.
+The adapter now verifies actual direct-route output at initial acquisition and
+reconnection: exact numeric lookup, interface, destination/mask, UP flags and
+absence of a next-hop gateway, rejecting reject/blackhole/unknown forms. It
+accepts the isolated connected `/24` or an on-link host route. Source address is
+extracted from a fresh, validated dedicated-interface observation; it is not
+presented as a source address obtained from `route get`. Route fields and their
+source basis are retained with the original inventory output. This is an
+observation at a named checkpoint, not socket binding or a route lock.
+
+The narrow output model follows Apple's [route implementation](https://github.com/apple-oss-distributions/network_cmds/blob/main/route.tproj/route.c)
+and [route manual](https://github.com/apple-oss-distributions/network_cmds/blob/main/route.tproj/route.8):
+`print_getmsg` labels destination, mask, interface and flags, and prints a gateway
+for a gateway route. Tests use synthetic network/host-route output and injected
+processes; no actual interface/route command was run during preparation. Unknown
+output fails closed and requires investigation under a separately approved trial.
+
+The full canonical plan, including `procedure` and `evidence`, must match current
+tooling. Approval additionally binds `plan_sha256`, the SHA-256 of the complete
+plan serialized as sorted-key compact JSON. Operating notes belong in a separate
+file and cannot override the approved plan. Old generated plans/approval
+proposals must be regenerated; no physical approval has been granted here.
+
+Replay PASS is explicitly labelled `communication_sequence_only`, with
+`physical_acceptance=false`. Final physical acceptance separately requires the
+actual approvals, guard/ownership, programming/entry verification, per-boot
+preflight/reset records and normal restoration/full verification/behavior.
+Automating that broader acceptance audit is outside this slice.
+
+Latest main `eaed2a0` was integrated; both Execution and M5 CI/test/artifact
+configuration are retained. The current candidate will be regenerated from the
+integrated source with corrected tooling, rather than reusing the old `2f7e648`
+image. Historical artifacts remain unchanged. All timing/resource thresholds,
+client-only scope and physical operation gates remain as proposed; a late manual
+disconnect remains INCONCLUSIVE rather than extending the functional deadline.

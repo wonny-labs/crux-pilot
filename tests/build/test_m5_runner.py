@@ -30,6 +30,25 @@ class Runner(unittest.TestCase):
         for mutate in [lambda a:a.update(manifest_sha256='b'*64),lambda a:a['operations'].update(program_and_start=False),lambda a:a['operations'].update(unapproved_retry=True),lambda a:a.update(nonces=[31,32,34]),lambda a:a.update(probe_serial='other')]:
             data=json.loads(json.dumps(approval));mutate(data)
             with self.assertRaises(ValueError):runner.validate_approval(data,plan)
+    def test_approval_binds_complete_safety_procedure_and_evidence(self):
+        import copy
+        plan=runner.plan('a'*64,[31,32,33],'b'*64,'c'*64)
+        approval=runner.approval_template(plan)
+        approval['authorization']='APPROVED_FOR_PHYSICAL_EXECUTION'
+        approval['operations']={key:True for key in approval['operations']}
+        for field in ('procedure','evidence'):
+            changed=copy.deepcopy(plan)
+            if field=='procedure':changed[field][0]='Skip the root guard'
+            else:changed[field]['raw']='Discard original bytes'
+            with self.subTest(field=field),self.assertRaises(ValueError):
+                runner.validate_approval(approval,changed)
+
+    def test_approval_contains_hash_of_whole_plan(self):
+        plan=runner.plan('a'*64,[31,32,33],'b'*64,'c'*64)
+        approval=runner.approval_template(plan)
+        self.assertIn('plan_sha256',approval)
+        self.assertEqual(approval['plan_sha256'],hashlib.sha256(json.dumps(plan,sort_keys=True,separators=(',',':')).encode()).hexdigest())
+
     def test_no_execute_path_and_no_device_imports(self):
         path=Path(runner.__file__)
         output=subprocess.run([sys.executable,str(path),'--execute-hardware'],capture_output=True,text=True)

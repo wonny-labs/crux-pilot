@@ -56,6 +56,12 @@ def complete():
     return dict(schema=1,source=SOURCE,clock='clock_gettime(CLOCK_MONOTONIC)',boots=boots)
 
 class Series(unittest.TestCase):
+    def test_pass_is_explicitly_not_physical_acceptance(self):
+        result=m5_series.validate_series(complete(),SOURCE,ABI)
+        self.assertIn('physical_acceptance',result)
+        self.assertIs(result['physical_acceptance'],False)
+        self.assertEqual(result['scope'],'communication_sequence_only')
+
     def test_complete_three_boot_series(self):
         result=m5_series.validate_series(complete(),SOURCE,ABI)
         self.assertEqual((result['status'],result['boots'],result['calls']),('PASS',3,96))

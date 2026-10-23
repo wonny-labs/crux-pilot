@@ -72,20 +72,20 @@ def plan(manifest_sha256,nonces,entry_manifest_sha256=None,recovery_manifest_sha
 
 def approval_template(prepared):
     names=('manifest_sha256','entry_manifest_sha256','recovery_manifest_sha256','runner_sha256','adapter_sha256','probe_serial','uart_usb_serial','nic','nonces')
-    return dict(schema=1,authorization='NOT_AUTHORIZED',**{name:copy.deepcopy(prepared[name]) for name in names},operations={name:False for name in prepared['operations']})
+    return dict(schema=1,authorization='NOT_AUTHORIZED',plan_sha256=hashlib.sha256(json.dumps(prepared,sort_keys=True,separators=(',',':')).encode()).hexdigest(),**{name:copy.deepcopy(prepared[name]) for name in names},operations={name:False for name in prepared['operations']})
 
 
 def validate_approval(approval,prepared):
     if set(prepared)=={'plan','approval_template'}:prepared=prepared['plan']
     try:canonical=plan(prepared['manifest_sha256'],prepared['nonces'],prepared['entry_manifest_sha256'],prepared['recovery_manifest_sha256'])
     except (KeyError,TypeError) as error:raise ValueError('Malformed preparation plan') from error
-    oracle.require(set(prepared)==set(canonical) and all(prepared[key]==value for key,value in canonical.items() if key not in ('procedure','evidence')),'Preparation differs from complete canonical safety plan')
+    oracle.require(prepared==canonical,'Preparation differs from complete canonical safety plan')
     expected=approval_template(canonical)
     oracle.require(set(approval)==set(expected),'Missing/extra approval fields')
     oracle.require(approval['authorization']=='APPROVED_FOR_PHYSICAL_EXECUTION','Physical execution not authorized')
     for key,value in expected.items():
         if key not in ('authorization','operations'):oracle.require(approval[key]==value,'Approval binding mismatch: '+key)
-    for key in ('manifest_sha256','entry_manifest_sha256','recovery_manifest_sha256','runner_sha256','adapter_sha256'):digest(approval[key])
+    for key in ('manifest_sha256','entry_manifest_sha256','recovery_manifest_sha256','runner_sha256','adapter_sha256','plan_sha256'):digest(approval[key])
     oracle.require(set(approval['operations'])==set(expected['operations']) and all(value is True for value in approval['operations'].values()),'Every physical operation requires separate explicit approval')
     return dict(status='APPROVAL_DOCUMENT_COMPLETE_NO_OPERATIONS_EXECUTED',fresh_safety_and_owner_checks='REQUIRED_BEFORE_EACH_OPERATION')
 

@@ -131,4 +131,4 @@ def validate_series(series,source,abi):
         loss_correlation(boot['controls'],all_events,boot['peers'])
         previous_finish=stamps[-1]
     oracle.require(previous_finish-boots[0]['reset']['monotonic']<=1800,'Whole series exceeds 1800 seconds')
-    return dict(status='REVIEW_REQUIRED' if maximum>2500 else 'PASS',boots=3,pairs=48,calls=96,max_call_ms=maximum,loss_scope='TCP in-flight disconnect; UDP attempt while DOWN',recovery='same boot, no reset')
+    return dict(scope='communication_sequence_only',physical_acceptance=False,separate_operation_safety_and_restoration_review='REQUIRED',status='REVIEW_REQUIRED' if maximum>2500 else 'PASS',boots=3,pairs=48,calls=96,max_call_ms=maximum,loss_scope='TCP in-flight disconnect; UDP attempt while DOWN',recovery='same boot, no reset')
