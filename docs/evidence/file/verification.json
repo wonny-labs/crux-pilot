@@ -46,7 +46,7 @@
     "components/file/src/file.c": "f5ba79560f13b4afc77c2b18efac51bc667cd5a860296fca2f0dd0df44149f5a",
     "components/file/src/file_port.h": "1ce779c21a891d85d89bb8d48d50bcfb01b30eae31aafd982bc57e6ad34982d5",
     "docs/file-contract.md": "cbfa23e569da5bb66165aec99be5fdd6eedce94d2c7025de7297467f771b2805",
-    "docs/file-validation.md": "04be38a9242517944e83b55bff4a16aebd65000de9adad28c2a3018328a1e5b1",
+    "docs/file-validation.md": "a299bfd3a680235ebc93d4b21dfda6a27d6ff930ddf553e083721da4cd7d998b",
     "scripts/analyze-host.sh": "a7fc17d7c70cb06c0247543fd4b6b52c5e8812b1513365df47a48b1edbb492cd",
     "scripts/check-native-interfaces.py": "f95216a1a73b1b90b7b1cde46e9d41903c8d092075aca3cd47d08b6631b62d2b",
     "tests/build/test_native_interfaces.py": "c774acb4cd8237af320d4bcc872c5f90012a2c49f88d825c5cada0af66f1e95f",
@@ -58,5 +58,6 @@
     "tests/file_consumer/consumer.cpp": "ef465d310b613713151faf2b252206e00b294b322a7dc6433521dc787f3f73a5",
     "tests/file_consumer/consumer.h": "6a2583ff96a220d9e667a88771278504eb92e840b515ad02150afd3d72e19448",
     "tests/file_consumer/fixture.c": "be0c672bcbcce87aab1e5a1115bfef289e15ce4edcb47dfb6acbcf8c3baf9468"
-  }
+  },
+  "reviewed_implementation_commit": "3a52636a1aa159b9df2aa90fc195c850b3186b2a"
 }

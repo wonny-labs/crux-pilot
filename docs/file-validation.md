@@ -102,7 +102,7 @@ native slot ownership and rejects double-close; it is deliberately private.
 
 | #23 acceptance criterion | Source and verification |
 | --- | --- |
-| 1. Reviewed contract covers operations/lifecycle/ownership/blocking/concurrency/errors/durability without native types | `file-contract.md`; `components/file/include/crux/file.h`; human software approval recorded in contract; final independent review remains a root coordination gate |
+| 1. Reviewed contract covers operations/lifecycle/ownership/blocking/concurrency/errors/durability without native types | `file-contract.md`; `components/file/include/crux/file.h`; human software approval recorded in contract; independent Reviewer and Challenger PASS for this software scope (see retained review) |
 | 2. Public header/target consumed independently in Host C/C++ without private consumer includes or Zephyr dependencies | `tests/file_consumer/CMakeLists.txt`, `consumer.c`, `consumer.cpp`; native root binding is a separate `fixture.c`; source inventory and CMake direct/public guards |
 | 3. Deterministic success/invalid/short/full/storage-error/sync/close tests | `tests/file/fault_test.c`; `tests/file/host_test.c`; File CTests; close/truncate tests preserve primary errors, count close once, retire native state and permit later independent opens |
 | 4. Exact Zephyr integration plan separates mount/media/format composition | VFS mapping above and approved native findings; no VFS runtime qualification claimed |
@@ -117,3 +117,15 @@ For separate consumers: configure `tests/file_consumer` into a fresh build folde
 build it and run CTest there. The Host CI includes this separate consumer build.
 The deterministic contract executables explicitly keep assertions enabled even
 when a composition selects a release build.
+
+## Independent review
+
+The separate [Reviewer report](evidence/file/independent-review.md) found no material
+issues and independently reran fault, actual Linux provider, and C17/C++17 consumer
+checks with strict warnings and ASan/UBSan. The separate Challenger also accepted
+the File mechanism for this Host qualification scope, with an explicit target
+integration condition: a spinlock held across blocking I/O can starve/deadlock a
+priority-scheduled target. Review synchronization before adopting a target provider;
+this Host implementation is not evidence that target concurrency is safe.
+Root separately reran the complete debug and sanitizer suites: 78/78 each.
+Human review, native provider adoption and physical safety gates remain intact.
