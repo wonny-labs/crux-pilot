@@ -22,7 +22,11 @@ PORTABLE_ROOTS = (
     "components/*/include", "components/*/src", "components/*/portable",
     "components/*/runtime_porting", "applications", "runtime", "runtime_porting",
     "samples/controller/core", "samples/controller/include", "samples/time/include",
-    "samples/time/src/time_command.c", "samples/messaging",
+    "samples/time/src/time_command.c",
+    "tests/file_consumer/consumer.c", "tests/file_consumer/consumer.cpp",
+    "tests/file_consumer/consumer.h",
+
+    "samples/messaging",
     "tests/messaging_consumer/runtime.c", "tests/messaging_consumer/main.cpp",
 )
 # Issue #28's approved standard profile is attached to named consumer files,

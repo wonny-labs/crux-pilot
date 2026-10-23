@@ -61,6 +61,10 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/networking/runtime_port.c"
 
 "$tidy" -p "$build_dir" \
+    "$repo/components/file/src/file.c" \
+    "$repo/components/file/host/file_host.c" \
+    "$repo/tests/file/fault_test.c" \
+    "$repo/tests/file/host_test.c" \
     "$repo/components/queue/src/queue.c" \
     "$repo/components/queue/host/queue_port.c" \
     "$repo/components/monotonic/src/monotonic.c" \

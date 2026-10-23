@@ -33,6 +33,12 @@ jobs:
         run: CRUX_HOST_PRESET=host-sanitize ./scripts/check-host.sh
       - name: Validate independent execution consumers and public boundaries
         run: ./scripts/test-portable-execution.sh --host-only
+      - name: Validate independent File consumers
+        run: |
+          cmake -S tests/file_consumer -B build/file-consumers -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake --build build/file-consumers
+          ctest --test-dir build/file-consumers --output-on-failure
+
       - name: Validate independent messaging consumers
         run: ./scripts/test-messaging.sh --host-only
       - name: Check build provenance safeguards

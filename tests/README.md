@@ -175,6 +175,24 @@ raw-evidence replay and separate physical operation gates. The concrete adapter 
 path requires separate exact-operation approval and current M3 safety gates;
 software preparation does not establish physical acceptance or authorisation.
 
+## Portable File software slice
+
+The [File contract](../docs/file-contract.md) and
+[qualification/handoff record](../docs/file-validation.md) cover the Linux Host
+provider and private deterministic failure tests. Normal Host CTest includes
+`File.file_fault` and `File.file_host`; the latter uses an isolated temporary
+root and no hardware. Separate public-only C17/C++17 consumers are built with:
+
+```sh
+cmake -S tests/file_consumer -B build/file-consumers -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/file-consumers
+ctest --test-dir build/file-consumers --output-on-failure
+```
+
+The portable consumer objects link `crux::file`; root selection belongs to a
+separate trusted native fixture. No Zephyr File runtime or production storage
+backend is enabled by these checks.
+
 ## Portable queue and monotonic timing
 
 `Queue.*` and `Monotonic.*` run with Host Debug/sanitizer checks. Queue native

@@ -1,0 +1,4 @@
+Native interface policy passed (31 portable source files).
+Base is independent; designated portable sources pass the native interface policy; backend selection is checked by CMake; shared source ownership is explicit.
+Execution public/consumer boundary passed; native providers remain permitted.
+Networking consumers use the qualified standard/public boundary.
