@@ -1,2 +1,5 @@
 # Unified-diff context markers are data; applied source uses strict whitespace checks.
 patches/zephyr/*.patch -whitespace
+# Isolated upstream diffs and retained tool output preserve their original bytes.
+tests/native/settings_error/*.patch -whitespace
+docs/evidence/settings-error-experiment/*.log -whitespace
