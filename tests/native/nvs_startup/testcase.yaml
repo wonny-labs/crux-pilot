@@ -1,0 +1,8 @@
+common:
+  tags: [nvs, experimental]
+  platform_allow: [native_sim]
+tests:
+  crux.nvs_startup.no_reinitialization:
+    extra_args: CONFIG_NVS_INIT_BAD_MEMORY_REGION=n
+  crux.nvs_startup.reinitialization:
+    extra_args: CONFIG_NVS_INIT_BAD_MEMORY_REGION=y

@@ -1,0 +1,36 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE nvs_startup
+===================================================================
+START - test_first_scan_read_failure
+NVS_STARTUP scenario=first bad_init=0 rc=-5 reads=1 writes=0 erases=0 marker=a5
+ PASS - test_first_scan_read_failure in 0.000 seconds
+===================================================================
+START - test_mount_initializes_empty_region
+[00:00:00.000,000] <inf> fs_nvs: 2 Sectors of 4096 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, fe8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+ PASS - test_mount_initializes_empty_region in 0.000 seconds
+===================================================================
+START - test_persistent_read_failure
+NVS_STARTUP scenario=persistent bad_init=0 rc=-5 reads=1 writes=0 erases=0 marker=a5
+ PASS - test_persistent_read_failure in 0.000 seconds
+===================================================================
+START - test_second_scan_read_failure
+NVS_STARTUP scenario=second bad_init=0 rc=-5 reads=2 writes=0 erases=0 marker=a5
+ PASS - test_second_scan_read_failure in 0.000 seconds
+===================================================================
+TESTSUITE nvs_startup succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [nvs_startup]: pass = 4, fail = 0, skip = 0, total = 4 duration = 0.000 seconds
+ - PASS - [nvs_startup.test_first_scan_read_failure] duration = 0.000 seconds
+ - PASS - [nvs_startup.test_mount_initializes_empty_region] duration = 0.000 seconds
+ - PASS - [nvs_startup.test_persistent_read_failure] duration = 0.000 seconds
+ - PASS - [nvs_startup.test_second_scan_read_failure] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: 1e6d7b1d4db2fa08c81616242e506972
+PROJECT EXECUTION SUCCESSFUL

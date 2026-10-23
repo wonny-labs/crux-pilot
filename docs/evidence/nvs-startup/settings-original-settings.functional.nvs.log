@@ -1,0 +1,53 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE settings_functional
+===================================================================
+START - test_clear_settings
+ PASS - test_clear_settings in 0.000 seconds
+===================================================================
+START - test_direct_loading
+[00:00:00.000,000] <inf> fs_nvs: 4 Sectors of 4096 bytes
+[00:00:00.000,000] <inf> fs_nvs: alloc wra: 0, fe8
+[00:00:00.000,000] <inf> fs_nvs: data wra: 0, 0
+ PASS - test_direct_loading in 0.000 seconds
+===================================================================
+START - test_direct_loading_filter
+-- Called: val/4
+-- Called: val/3
+-- Called: val/2
+-- Called: val/1
+-- Called: val/4
+-- Called: val/3
+-- Called: val/2
+-- Called: val/1
+ PASS - test_direct_loading_filter in 0.000 seconds
+===================================================================
+START - test_register_and_loading
+ PASS - test_register_and_loading in 0.000 seconds
+===================================================================
+START - test_setting_storage_get
+ PASS - test_setting_storage_get in 0.000 seconds
+===================================================================
+START - test_single_save
+ PASS - test_single_save in 0.000 seconds
+===================================================================
+START - test_support_rtn
+ PASS - test_support_rtn in 0.000 seconds
+===================================================================
+TESTSUITE settings_functional succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [settings_functional]: pass = 7, fail = 0, skip = 0, total = 7 duration = 0.000 seconds
+ - PASS - [settings_functional.test_clear_settings] duration = 0.000 seconds
+ - PASS - [settings_functional.test_direct_loading] duration = 0.000 seconds
+ - PASS - [settings_functional.test_direct_loading_filter] duration = 0.000 seconds
+ - PASS - [settings_functional.test_register_and_loading] duration = 0.000 seconds
+ - PASS - [settings_functional.test_setting_storage_get] duration = 0.000 seconds
+ - PASS - [settings_functional.test_single_save] duration = 0.000 seconds
+ - PASS - [settings_functional.test_support_rtn] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: 9c1caab5364575e6260c32f78f0db31e
+PROJECT EXECUTION SUCCESSFUL
