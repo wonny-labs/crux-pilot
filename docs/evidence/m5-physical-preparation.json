@@ -1,0 +1,344 @@
+{
+  "artifacts": {
+    "binary": {
+      "path": "build/zephyr/m5-physical-evkb-2f7e6486a1c3/zephyr/zephyr.bin",
+      "sha256": "e27f65e37107d40d0018135c13a6fbc8c2ccb7518ca6b1f68e1229bf3d5b0913",
+      "size_bytes": 97376
+    },
+    "compilation": {
+      "path": "build/zephyr/m5-physical-evkb-2f7e6486a1c3/compile_commands.json",
+      "sha256": "f6a50e3863e07da3947fbd1e2b367b9f830778d4f14dc426b58c20aa887faa8a",
+      "size_bytes": 685829
+    },
+    "config": {
+      "path": "build/zephyr/m5-physical-evkb-2f7e6486a1c3/zephyr/.config",
+      "sha256": "f2c969e39807202febc936b3eb8c41fd4a4928e85aaf8c7ecbf0e44b7afda3e1",
+      "size_bytes": 43230
+    },
+    "dts": {
+      "path": "build/zephyr/m5-physical-evkb-2f7e6486a1c3/zephyr/zephyr.dts",
+      "sha256": "6f6f17ef2550ae8d810622329089a17f8ee75ba7ec699fb56b79cd63a01b2136",
+      "size_bytes": 370390
+    },
+    "elf": {
+      "path": "build/zephyr/m5-physical-evkb-2f7e6486a1c3/zephyr/zephyr.elf",
+      "sha256": "97a4cc502d1e3f8aa00f3424d79b00b7b804124d9d7058df1043c96187ee8ba8",
+      "size_bytes": 2211560
+    },
+    "errno": {
+      "path": "build/evidence/m5-preparation/frozen-2f7e6486a1c3/image-manifest-errno/errno-map.json",
+      "sha256": "c75587836c4b0f05803d0879b1436477b93b6b242cbd2e9c80b76ede0f2dd250",
+      "size_bytes": 13370
+    },
+    "inputs": {
+      "path": "build/evidence/m5-preparation/frozen-2f7e6486a1c3/inputs.json",
+      "sha256": "de3355e9ea26c7234488150fcb287c29c3016794b3bce48f6a333f565816662b",
+      "size_bytes": 1777
+    },
+    "map": {
+      "path": "build/zephyr/m5-physical-evkb-2f7e6486a1c3/zephyr/zephyr.map",
+      "sha256": "9d913c2afc5c5a8d26b4674de5a6d34aff88a89e4fe8f12640351589caaddd24",
+      "size_bytes": 584472
+    },
+    "provenance": {
+      "path": "build/zephyr/m5-physical-evkb-2f7e6486a1c3/provenance.json",
+      "sha256": "6826aeb8e512207f903dfc990078bff8d2135e19342a4366748002617e3bad80",
+      "size_bytes": 5494
+    }
+  },
+  "baseline": "df52a62c0475fe87e67bde1fa50c49090a146936",
+  "checks": {
+    "analysis": "PASS; configured clang-tidy non-user warnings suppressed; private C clang analyzer no diagnostics",
+    "build_tooling": "253/253",
+    "dependency_boundary": "PASS",
+    "format": "PASS",
+    "host_debug": "71/71",
+    "host_sanitizers": "71/71",
+    "m5_subset": "70/70",
+    "rt1060": "cross-build + ELF/BIN/config/ABI/provenance checks",
+    "zephyr_private_fixture": "1/1",
+    "zephyr_qualified_networking": "3/3"
+  },
+  "dependencies": [
+    {
+      "dirty": false,
+      "git_commit": "684c9e8f32e4373a21098559f748f06915f950c9",
+      "name": "zephyr",
+      "path": "zephyr",
+      "revision": "684c9e8f32e4373a21098559f748f06915f950c9"
+    },
+    {
+      "dirty": false,
+      "git_commit": "512cc7e895e8491696b61f7ba8066b4a182569b8",
+      "name": "cmsis",
+      "path": "modules/hal/cmsis",
+      "revision": "512cc7e895e8491696b61f7ba8066b4a182569b8"
+    },
+    {
+      "dirty": false,
+      "git_commit": "30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74",
+      "name": "cmsis_6",
+      "path": "modules/hal/cmsis_6",
+      "revision": "30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74"
+    },
+    {
+      "dirty": false,
+      "git_commit": "2c2f28ac333e995d7279777409817c4b4f92c1ec",
+      "name": "hal_nxp",
+      "path": "modules/hal/nxp",
+      "revision": "2c2f28ac333e995d7279777409817c4b4f92c1ec"
+    }
+  ],
+  "errno_values": {
+    "ECONNREFUSED": 111,
+    "ECONNRESET": 104,
+    "EHOSTUNREACH": 118,
+    "EIO": 5,
+    "ENETDOWN": 115,
+    "ENETUNREACH": 114,
+    "ENOTCONN": 128,
+    "ETIMEDOUT": 116
+  },
+  "frozen_artifact_count": 51,
+  "frozen_tool_count": 28,
+  "image": {
+    "bin_address": 1610612736,
+    "bin_bytes": 97376,
+    "elf_sections_match_bin": true,
+    "gap_fill": 255,
+    "main_stack": {
+      "address": 2147497088,
+      "bytes": 4160
+    },
+    "observer_stack": {
+      "address": 2147488128,
+      "bytes": 2112
+    }
+  },
+  "image_source": "2f7e6486a1c3bf67a341b9e97bf0c0575bbd2076",
+  "native_test_picolibc": "01254932e8e81085817ed61fd858648584ffe37c",
+  "normalization": "Only fixed local path prefixes replaced in public logs. The freeze summary selects recorded source line ranges; its full original remains private. Original hashes refer to retained private bytes; public hashes describe published bytes. Raw manifest/compiler evidence remain private because they contain absolute paths.",
+  "physical": {
+    "authorized": false,
+    "issue28": "OPEN",
+    "pending": [
+      "exact accepted entry and normal recovery artifacts/manifests",
+      "fresh per-operation approval and M3 safety checks",
+      "physical 3-boot execution and raw evidence",
+      "normal restoration/full verification/accepted normal behavior"
+    ],
+    "performed": false
+  },
+  "private_image_manifest": {
+    "path": "build/evidence/m5-preparation/frozen-2f7e6486a1c3/image-manifest.json",
+    "sha256": "a32a955550658ee1acfe612466b81b5c2e6db4aaeb10c580fe6321de7c1764d7",
+    "size_bytes": 21788
+  },
+  "public_logs": [
+    {
+      "path": "networking-physical/host-debug.log",
+      "private_original_name": "host-debug.log",
+      "private_original_sha256": "9085d2439fb733f11b720d2555b5f872645c780481435c41938d62f78ff5a008",
+      "private_original_size_bytes": 13539,
+      "sha256": "0fd11fd4d3e8fcabcfb1149f4554073ce0df561a6c19a931ac06d75a5c349024",
+      "size_bytes": 13353,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/host-sanitize.log",
+      "private_original_name": "host-sanitize.log",
+      "private_original_sha256": "9e92ce2cca8a9e991146f8c47c499f4172ae034509f534553b2505ff5b45ffa1",
+      "private_original_size_bytes": 13754,
+      "sha256": "eba7b65a34996778089bc11f18ceb0b20f88c3715517dbd9cab9c25948533126",
+      "size_bytes": 13568,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/build-tests-final.log",
+      "private_original_name": "build-tests-final.log",
+      "private_original_sha256": "a10c076cd3cdbc180962a50cf3ce2ec3e3a7228845368cee75b55f56a3a2d80c",
+      "private_original_size_bytes": 354,
+      "sha256": "a10c076cd3cdbc180962a50cf3ce2ec3e3a7228845368cee75b55f56a3a2d80c",
+      "size_bytes": 354,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/native-scenario.log",
+      "private_original_name": "native-scenario.log",
+      "private_original_sha256": "89286cc11f2f4d4b5dcc5349dd73d7ccd7bb22a33cf2ed74eec8ba59e3df6139",
+      "private_original_size_bytes": 3477,
+      "sha256": "89286cc11f2f4d4b5dcc5349dd73d7ccd7bb22a33cf2ed74eec8ba59e3df6139",
+      "size_bytes": 3477,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/qualified-networking-regression.log",
+      "private_original_name": "qualified-networking-regression.log",
+      "private_original_sha256": "62fd9efce4fca4ab87ddcd13cd55dcf06a1e3de660a2c3052875d8a0574c1f16",
+      "private_original_size_bytes": 14781,
+      "sha256": "1bb3ff8f6c717bd7f355aab2000a18a2759d4ac1d27b18eb723348749b2cd231",
+      "size_bytes": 13479,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/freeze-summary.log",
+      "private_original_name": "freeze-2f7e648.log",
+      "private_original_sha256": "0554c08a92b9831192e80b209c342cc0b347b5bbae145b456b8bda3674e52bb5",
+      "private_original_size_bytes": 233557,
+      "sha256": "36209eb2fc759ede450eedf71c3ccbb3febba86e665f824789c325eac4be420a",
+      "size_bytes": 829,
+      "source_line_ranges": [
+        [
+          4,
+          4
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          76,
+          76
+        ],
+        [
+          82,
+          82
+        ],
+        [
+          343,
+          351
+        ],
+        [
+          1844,
+          1844
+        ]
+      ]
+    },
+    {
+      "path": "networking-physical/format.log",
+      "private_original_name": "format.log",
+      "private_original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "private_original_size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/dependencies.log",
+      "private_original_name": "dependencies.log",
+      "private_original_sha256": "be40bf499f12887f11fa642240f877b086857bac0b51474691a1e231c9a5f733",
+      "private_original_size_bytes": 225,
+      "sha256": "be40bf499f12887f11fa642240f877b086857bac0b51474691a1e231c9a5f733",
+      "size_bytes": 225,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/analysis-host.log",
+      "private_original_name": "analysis-host.log",
+      "private_original_sha256": "b2ae2dafd36d1c5c8f9320c68a30206afd12ce7a1142bbc702951ddfd2ca515a",
+      "private_original_size_bytes": 4728,
+      "sha256": "20ca27e807336e049efcc708842c9869f2887900b4ab3075ed6054d4f5d7f40b",
+      "size_bytes": 2992,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/control-red.log",
+      "private_original_name": "control-red.log",
+      "private_original_sha256": "bc31bca722d2f769935bc3b4c0cc0f8a107efd012d89304b60ccd8a80baf3dc9",
+      "private_original_size_bytes": 1020,
+      "sha256": "abba3840c025d57807e88a79aad51eac4c65e7713f4968e298f12e8c154e34fa",
+      "size_bytes": 958,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/control-green.log",
+      "private_original_name": "control-green.log",
+      "private_original_sha256": "a3f3af8ecca8858ac6897a33658a429da857e93421bae3897744ba1d5fb54e88",
+      "private_original_size_bytes": 192,
+      "sha256": "a3f3af8ecca8858ac6897a33658a429da857e93421bae3897744ba1d5fb54e88",
+      "size_bytes": 192,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/observation-clock-red.log",
+      "private_original_name": "observation-clock-red.log",
+      "private_original_sha256": "c063c12b3549693c5465bd7fe92476748f24e1114b6c7e60d8be28d9a8aadbda",
+      "private_original_size_bytes": 670,
+      "sha256": "55bd37a0f71d177d4e880f3ca71c445886e29cae75f95fa5300c525e8aecd295",
+      "size_bytes": 608,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/observation-clock-linux-green.log",
+      "private_original_name": "observation-clock-linux-green.log",
+      "private_original_sha256": "74c40887ef37913869f5620573673f91c57f1d98849210304a3a1a2734d56194",
+      "private_original_size_bytes": 100,
+      "sha256": "74c40887ef37913869f5620573673f91c57f1d98849210304a3a1a2734d56194",
+      "size_bytes": 100,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/peer-loss-lifecycle-red.log",
+      "private_original_name": "peer-loss-lifecycle-red.log",
+      "private_original_sha256": "37255d4d56c4d889224ecf55083cbb17974fd1e8ec386732ec975dadbc6749f9",
+      "private_original_size_bytes": 755,
+      "sha256": "96a8fffd9cefef7f94f4f5b63117ca7c4a14fff8f4a0511c0221bee15d7621d2",
+      "size_bytes": 693,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/peer-loss-lifecycle-green.log",
+      "private_original_name": "peer-loss-lifecycle-green.log",
+      "private_original_sha256": "f3fd74346cea500e44550ebda35f4a3a4d4a9a4be96f3348a5a370c5569752bd",
+      "private_original_size_bytes": 101,
+      "sha256": "f3fd74346cea500e44550ebda35f4a3a4d4a9a4be96f3348a5a370c5569752bd",
+      "size_bytes": 101,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/preflight-red.log",
+      "private_original_name": "preflight-red.log",
+      "private_original_sha256": "719ee8b94b6b285c5212101a7082ad918990f6c9e8be995812bb983e1132f0e0",
+      "private_original_size_bytes": 3532,
+      "sha256": "fee51e5571c2940575694f174c61cc80e5bf7a00382e32ad9159895092ec8b80",
+      "size_bytes": 3284,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/prepare-workspace-context-red.log",
+      "private_original_name": "prepare-workspace-context-red.log",
+      "private_original_sha256": "2f583f1a8201cec3dd257a55ed6c4e0d3573690f36568e5ee633d34f9a37f70c",
+      "private_original_size_bytes": 1465,
+      "sha256": "d4c4c7b6f7f297df566ed9a6eee148a68fff48238c3a7338592a80a1b6e47cc1",
+      "size_bytes": 1155,
+      "source_line_ranges": null
+    },
+    {
+      "path": "networking-physical/prepare-workspace-context-linux-green.log",
+      "private_original_name": "prepare-workspace-context-linux-green.log",
+      "private_original_sha256": "869a9c102d66165e7a031e8a235972433171a416be80960c17c6e68371358d74",
+      "private_original_size_bytes": 104,
+      "sha256": "869a9c102d66165e7a031e8a235972433171a416be80960c17c6e68371358d74",
+      "size_bytes": 104,
+      "source_line_ranges": null
+    }
+  ],
+  "review": {
+    "authority": "Software preparation only; no hardware, merge or Issue closure authority",
+    "challenger": "PASS procedure, approvals and frozen artifacts",
+    "reviewer": "PASS source and frozen artifacts"
+  },
+  "schema": 1,
+  "source_file_count": 367,
+  "source_snapshot_sha256": "fd2cb1204e59c80722fd547550dc41fbacbc58d4d8bee2258919210340b9ba69",
+  "status": "SOFTWARE_PREPARED_PHYSICAL_ACCEPTANCE_PENDING",
+  "workspace_manifest_context": [
+    {
+      "dirty": false,
+      "git_commit": "1d6ac4f6cd5b4e4013f2ce0c59375beb3cdad9f2",
+      "name": "manifest",
+      "path": "crux-pilot",
+      "revision": "HEAD"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+WARNING: Using a test - not safe - entropy source
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE m5_fixture
+===================================================================
+START - test_actual_native_consumer_and_accounting
+M5 LINK token=7 seq=1 at=0 link=2 admin=1 address=1 ipv4=2130706433
+M5 IDLE token=7 seq=1 checkpoint=0 at=0 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 IDLE token=7 seq=1 checkpoint=0 at=1000 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 IDLE token=7 seq=1 checkpoint=0 at=2000 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 DONE token=7 seq=1 at=2000
+M5 IDLE token=7 seq=1 checkpoint=0 at=3520 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 IDLE token=7 seq=1 checkpoint=0 at=4520 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 IDLE token=7 seq=1 checkpoint=0 at=5520 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 DONE token=7 seq=1 at=5520
+M5 IDLE token=7 seq=1 checkpoint=0 at=5520 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 IDLE token=7 seq=1 checkpoint=0 at=6520 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 IDLE token=7 seq=1 checkpoint=0 at=7520 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 DONE token=7 seq=1 at=7520
+M5 IDLE token=7 seq=1 checkpoint=0 at=9250 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 IDLE token=7 seq=1 checkpoint=0 at=10250 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 IDLE token=7 seq=1 checkpoint=0 at=11250 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 DONE token=7 seq=1 at=11250
+M5 IDLE token=7 seq=1 checkpoint=0 at=12770 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 IDLE token=7 seq=1 checkpoint=0 at=13770 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 IDLE token=7 seq=1 checkpoint=0 at=14770 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 DONE token=7 seq=1 at=14770
+M5 LINK token=7 seq=1 at=14820 link=1 admin=1 address=1 ipv4=2130706433
+M5 LINK token=7 seq=1 at=14880 link=2 admin=1 address=1 ipv4=2130706433
+M5 IDLE token=7 seq=1 checkpoint=0 at=14990 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 IDLE token=7 seq=1 checkpoint=0 at=15990 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 IDLE token=7 seq=1 checkpoint=0 at=16990 contexts=0 rx_pkt=16 tx_pkt=16 rx_buf=32 tx_buf=32 main_free=4056 observer_free=2008
+M5 DONE token=7 seq=1 at=16990
+ PASS - test_actual_native_consumer_and_accounting in 16.990 seconds
+===================================================================
+TESTSUITE m5_fixture succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [m5_fixture]: pass = 1, fail = 0, skip = 0, total = 1 duration = 16.990 seconds
+ - PASS - [m5_fixture.test_actual_native_consumer_and_accounting] duration = 16.990 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL

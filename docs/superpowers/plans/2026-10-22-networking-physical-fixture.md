@@ -39,7 +39,7 @@ Interfaces: fixture_control(line,session,command) accepts one ARM nonce then inc
 Files: tests/networking_physical/{CMakeLists.txt,prj.conf,main.c}; scripts/test-networking-physical.sh; related native tests.
 Interfaces: private M5N1 framed consumer using only the approved standard profile; existing networking_exchange unchanged. Records begin/end,netif,resources,stack under one private record lock. Console waits for bounded explicit commands; no boot traffic.
 - [x] RED core execution tests,then private native integration; never edit common consumer.
-- [ ] Build native fixture checks and RT1060 with existing PHY overlay/MDIO correction. Run format,boundaries,relevant Host/build regressions.
+- [x] Build native fixture checks and RT1060 with existing PHY overlay/MDIO correction. Run format,boundaries,relevant Host/build regressions.
 
 ### Task3: peer,capture and immutable image preparation
 
@@ -51,9 +51,9 @@ Interfaces: fixed32-byte peer protocol; replayable raw capture; exact-image mani
 ### Task4: evidence and independent review
 
 Files: docs/networking-physical-preparation.md and a compact public evidence index.
-- [ ] Commit software inputs; build clean-source exact images and record ELF/BIN/config/ABI/tool hashes.
-- [ ] Independent fresh reviewer inspects actual source,tests,raw software results,images and hardware gate; resolve material findings and repeat affected checks.
-- [ ] Present final numeric criteria,exact image hashes,unsupported behavior and separate hardware-approval checklist. No hardware execution,merge,Issue closure or physical PASS.
+- [x] Commit software inputs; build clean-source exact images and record ELF/BIN/config/ABI/tool hashes.
+- [x] Independent fresh reviewer inspects actual source,tests,raw software results,images and hardware gate; resolve material findings and repeat affected checks.
+- [x] Present final numeric criteria,exact image hashes,unsupported behavior and separate hardware-approval checklist. No hardware execution,merge,Issue closure or physical PASS.
 
 ## Ledger
 

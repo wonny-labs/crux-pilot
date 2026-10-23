@@ -122,3 +122,58 @@ Use `cable_connect_receipt` only after the separately approved reconnect. The he
 Expected functional outcomes are fixed: echo returns 0; silent peers return symbolic `ETIMEDOUT`; TCP early close returns `ECONNRESET` while its UDP partner returns 0. Link-loss calls may return `ETIMEDOUT`, `ENETDOWN`, `ENETUNREACH` or `ECONNRESET`. Other outcomes fail this proposal and require investigation rather than automatic criterion expansion. The actual compiler-derived errno map supplies numeric values.
 
 The frozen input model retains west's clean manifest-checkout record as workspace bootstrap context, separately from the built worktree commit/snapshot. The target compiles explicit worktree/module paths and exactly four pinned dependency revisions; the manifest checkout's source is not substituted for the worktree. A mismatched input model was found during the first freeze attempt and corrected with actual five-record input tests before the final candidate was rebuilt.
+
+## Frozen candidate and independent review
+
+Candidate source is `2f7e6486a1c3bf67a341b9e97bf0c0575bbd2076`.
+The subsequent PR documentation/evidence commit does not change executable inputs.
+This identifies a cross-built candidate for later approval, not a physically qualified image.
+
+| Artifact | Bytes | SHA-256 |
+|---|---:|---|
+| BIN | 97,376 | `e27f65e37107d40d0018135c13a6fbc8c2ccb7518ca6b1f68e1229bf3d5b0913` |
+| ELF | 2,211,560 | `97a4cc502d1e3f8aa00f3424d79b00b7b804124d9d7058df1043c96187ee8ba8` |
+| Configuration | 43,230 | `f2c969e39807202febc936b3eb8c41fd4a4928e85aaf8c7ecbf0e44b7afda3e1` |
+
+Private image manifest SHA-256 is `a32a955550658ee1acfe612466b81b5c2e6db4aaeb10c580fe6321de7c1764d7`,
+under `build/evidence/m5-preparation/frozen-2f7e6486a1c3/image-manifest.json`.
+The [public evidence index](evidence/m5-physical-preparation.json) records every image/configuration/provenance role,
+public log hash, retained private original hash, and normalization/excerpt rule.
+Private originals contain absolute paths and are retained locally; they are not published.
+The 367-file clean source snapshot has SHA-256
+`fd2cb1204e59c80722fd547550dc41fbacbc58d4d8bee2258919210340b9ba69`.
+
+Executed Linux checks: Host debug 71/71 and ASan/UBSan 71/71; build tooling 253/253
+(including M5 70/70); existing embedded-libc Zephyr networking 3/3; private native
+fixture 1/1; RT1060 reference and dedicated candidate cross-builds; format,
+scoped dependency checks and configured Host analysis. The private C analyzer
+reported no diagnostics. Configured clang-tidy suppressed non-user warnings.
+The private native ztest was invoked directly; no Twister report is claimed.
+Native idle snapshots returned contexts 0, packets 16/16 and buffers 32/32;
+its test-thread/observer unused observations were 4056/2008 bytes. These are
+native software observations, not physical target stack results.
+
+Candidate linker use is FLASH 97,376, RAM 34,332 and DTCM 13,936 bytes. The ELF
+contains 4160/2112-byte guarded main/observer allocations for usable 4096/2048-byte
+stacks. All 51 frozen artifacts and 28 tools, complete eight-artifact build
+provenance, exact ELF/BIN agreement, disabled writable storage and compiler/header
+bound errno values were independently verified. Pinned errno values include
+ETIMEDOUT 116, ENETDOWN 115, ENETUNREACH 114 and ECONNRESET 104.
+
+An independent Reviewer and a separate Challenger both issued **PASS** at the
+candidate source after inspecting actual source, contracts/boundaries, tests,
+procedure and frozen evidence. Both independently ran manifest verification and
+70 M5 tests. Findings corrected before PASS included record bool/phase/receipt
+ordering, in-flight loss and UDP-down proof, peer reap, complete capture adapter,
+unknown NIC rejection, failure cleanup, post-guard deadlines, canonical approval
+permissions, pre-reset identity/current-image verification, passive raw prefix
+separation, host-boot clock origin and workspace/source provenance distinction.
+Neither review executed hardware or independently repeated all cross-builds.
+Their PASS is confined to software preparation and the proposed procedure.
+
+Excluded acceptance remains TCP servers, unconnected UDP, IPv6/DNS, multiple
+interface management, runtime address changes, UDP in-flight physical loss,
+concurrent/sustained-load capacity, active native-pool peaks and worst-case timing.
+Issue #28 remains open. Actual entry/recovery manifests and artifacts, fresh
+per-operation approvals, physical three-boot results and accepted normal
+restoration/full verification/behavior are still required before physical acceptance.
