@@ -1,0 +1,148 @@
+Preset CMake variables:
+
+  CMAKE_BUILD_TYPE="Debug"
+  CMAKE_EXPORT_COMPILE_COMMANDS="ON"
+  FETCHCONTENT_BASE_DIR="/tmp/config-cache/cmake"
+
+-- Configuring done (0.9s)
+-- Generating done (0.1s)
+-- Build files have been written to: /tmp/crux/build/linux/debug
+[1/23] Building C object tests/configuration/CMakeFiles/crux_configuration_tests.dir/main.c.o
+[2/23] Building C object tests/configuration/CMakeFiles/crux_configuration_tests.dir/fault_provider.c.o
+[3/23] Building C object tests/configuration/CMakeFiles/configuration_controller_portable.dir/__/__/samples/controller/configuration/scenario.c.o
+[4/23] Building C object tests/configuration/CMakeFiles/crux_configuration_tests.dir/conformance.c.o
+[5/23] Building C object tests/configuration/CMakeFiles/crux_configuration_controller.dir/controller_main.c.o
+[6/23] Building C object components/configuration/CMakeFiles/crux_configuration.dir/src/configuration.c.o
+[7/23] Building C object tests/configuration/CMakeFiles/crux_configuration_controller.dir/fault_provider.c.o
+[8/23] Linking C static library components/configuration/libcrux_configuration.a
+[9/23] Linking C executable tests/configuration/crux_configuration_tests
+[10/23] Linking C executable tests/configuration/crux_configuration_controller
+[11/23] Building CXX object /tmp/config-cache/cmake/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[12/23] Building CXX object /tmp/config-cache/cmake/googletest-build/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o
+[13/23] Building CXX object /tmp/config-cache/cmake/googletest-build/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o
+[14/23] Building CXX object /tmp/config-cache/cmake/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+[15/23] Linking CXX static library lib/libgtest.a
+[16/23] Linking CXX static library lib/libgmock.a
+[17/23] Linking CXX static library lib/libgtest_main.a
+[18/23] Linking CXX static library lib/libgmock_main.a
+[19/23] Linking CXX executable tests/networking/crux_netif_host_tests
+[20/23] Linking CXX executable tests/networking/crux_networking_client_tests
+[21/23] Linking CXX executable tests/networking/crux_netif_tests
+[22/23] Linking CXX executable tests/controller/crux_controller_tests
+[23/23] Linking CXX executable tests/time/crux_time_tests
+clangd compilation database selected: /tmp/crux/build/linux/debug
+Test project /tmp/crux/build/linux/debug
+      Start  1: Execution.PosixProbes
+ 1/78 Test  #1: Execution.PosixProbes .......................................................   Passed    0.20 sec
+      Start  2: Controller.HostScenario
+ 2/78 Test  #2: Controller.HostScenario .....................................................   Passed    2.12 sec
+      Start  3: TimeApiTest.InitStartsReadyButUnset
+ 3/78 Test  #3: TimeApiTest.InitStartsReadyButUnset .........................................   Passed    0.06 sec
+      Start  4: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+ 4/78 Test  #4: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness ..........................   Passed    0.04 sec
+      Start  5: TimeApiTest.FailedInitialisationCanBeRetried
+ 5/78 Test  #5: TimeApiTest.FailedInitialisationCanBeRetried ................................   Passed    0.05 sec
+      Start  6: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+ 6/78 Test  #6: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend ...................   Passed    0.03 sec
+      Start  7: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+ 7/78 Test  #7: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime ................   Passed    0.03 sec
+      Start  8: TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+ 8/78 Test  #8: TimeApiTest.FailedBackendWriteInvalidatesSessionTime ........................   Passed    0.03 sec
+      Start  9: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+ 9/78 Test  #9: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged .....................   Passed    0.03 sec
+      Start 10: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+10/78 Test #10: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue ........................   Passed    0.04 sec
+      Start 11: TimeApiTest.BackendNoDataClearsCommonValidity
+11/78 Test #11: TimeApiTest.BackendNoDataClearsCommonValidity ...............................   Passed    0.04 sec
+      Start 12: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+12/78 Test #12: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput ........................   Passed    0.04 sec
+      Start 13: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+13/78 Test #13: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds ..........................   Passed    0.03 sec
+      Start 14: TimeCalendar.ConvertsIndependentUnixEpochAnchor
+14/78 Test #14: TimeCalendar.ConvertsIndependentUnixEpochAnchor .............................   Passed    0.03 sec
+      Start 15: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+15/78 Test #15: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors ................   Passed    0.05 sec
+      Start 16: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+16/78 Test #16: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd ..........................   Passed    0.03 sec
+      Start 17: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+17/78 Test #17: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes ..................   Passed    0.03 sec
+      Start 18: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+18/78 Test #18: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput .........................   Passed    0.03 sec
+      Start 19: TimeCalendar.NullArgumentsAreInvalid
+19/78 Test #19: TimeCalendar.NullArgumentsAreInvalid ........................................   Passed    0.02 sec
+      Start 20: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+20/78 Test #20: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay ............................   Passed    0.02 sec
+      Start 21: TimeCommandTest.HelpIdentifiesUtcInput
+21/78 Test #21: TimeCommandTest.HelpIdentifiesUtcInput ......................................   Passed    0.03 sec
+      Start 22: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+22/78 Test #22: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText ........................   Passed    0.03 sec
+      Start 23: TimeCommandTest.SetAndGetUseTheSamePortableHandler
+23/78 Test #23: TimeCommandTest.SetAndGetUseTheSamePortableHandler ..........................   Passed    0.03 sec
+      Start 24: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+24/78 Test #24: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf ........................   Passed    0.03 sec
+      Start 25: TimeCommandTest.HelpIsAnAdapterOutcome
+25/78 Test #25: TimeCommandTest.HelpIsAnAdapterOutcome ......................................   Passed    0.03 sec
+      Start 26: TimeCommandTest.RejectsMalformedSyntaxAndDates
+26/78 Test #26: TimeCommandTest.RejectsMalformedSyntaxAndDates ..............................   Passed    0.03 sec
+      Start 27: TimeCommandTest.MapsOutOfRangeAndIoErrors
+27/78 Test #27: TimeCommandTest.MapsOutOfRangeAndIoErrors ...................................   Passed    0.03 sec
+      Start 28: TimeCommandTest.RejectedWriteNeverCallsBackend
+28/78 Test #28: TimeCommandTest.RejectedWriteNeverCallsBackend ..............................***Timeout  30.07 sec
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.RejectedWriteNeverCallsBackend
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.RejectedWriteNeverCallsBackend
+[       OK ] TimeCommandTest.RejectedWriteNeverCallsBackend (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+
+      Start 29: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+29/78 Test #29: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime ................   Passed    0.05 sec
+      Start 30: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+30/78 Test #30: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover ..........   Passed    0.06 sec
+      Start 31: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+31/78 Test #31: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity ............   Passed    0.04 sec
+      Start 32: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+32/78 Test #32: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule ........................   Passed    0.04 sec
+      Start 33: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+33/78 Test #33: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst .............   Passed    0.04 sec
+      Start 34: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+34/78 Test #34: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline ............   Passed    0.04 sec
+      Start 35: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+35/78 Test #35: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime ......   Passed    0.04 sec
+      Start 36: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+36/78 Test #36: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress ..........   Passed    0.05 sec
+      Start 37: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+37/78 Test #37: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress .............   Passed    0.04 sec
+      Start 38: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+38/78 Test #38: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError ............   Passed    0.04 sec
+      Start 39: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+39/78 Test #39: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering .............   Passed    0.04 sec
+      Start 40: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+40/78 Test #40: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation ...   Passed    0.04 sec
+      Start 41: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+41/78 Test #41: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork ............   Passed    0.03 sec
+      Start 42: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+42/78 Test #42: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom .......   Passed    0.04 sec
+      Start 43: Execution.Conformance
+43/78 Test #43: Execution.Conformance .......................................................   Passed    0.08 sec
+      Start 44: Execution.HostFailures
+44/78 Test #44: Execution.HostFailures ......................................................   Passed    0.02 sec
+      Start 45: Execution.HostPoll
+45/78 Test #45: Execution.HostPoll ..........................................................   Passed    0.02 sec
+      Start 46: Execution.HostAdmission
+46/78 Test #46: Execution.HostAdmission .....................................................   Passed    0.33 sec
+      Start 47: Execution.HostPollFinalize
+47/78 Test #47: Execution.HostPollFinalize ..................................................   Passed    0.35 sec
+      Start 48: Netif.RejectsNull
+48/78 Test #48: Netif.RejectsNull ...........................................................   Passed    0.06 sec
+      Start 49: Netif.PreservesOutputWhenObservationFails
+49/78 Test #49: Netif.PreservesOutputWhenObservationFails ...................................   Passed    0.05 sec
+      Start 50: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
+50/78 Test #50: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown ..........................   Passed    0.03 sec
+      Start 51: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier

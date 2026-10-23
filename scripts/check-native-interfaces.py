@@ -23,6 +23,8 @@ PORTABLE_ROOTS = (
     "components/*/runtime_porting", "applications", "runtime", "runtime_porting",
     "samples/controller/core", "samples/controller/include", "samples/time/include",
     "samples/time/src/time_command.c",
+    "samples/controller/configuration",
+    "tests/configuration_consumer/consumer.c", "tests/configuration_consumer/consumer.cpp",
 )
 # Issue #28's approved standard profile is attached to named consumer files,
 # never an entire component/tree. Its stricter operation/include policy is reused.

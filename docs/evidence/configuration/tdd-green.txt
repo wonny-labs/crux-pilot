@@ -1,0 +1,2 @@
+C17 shared implementation and private fault provider; local ASan/UBSan.
+CONFIGURATION_PASS checks=138 failures=0

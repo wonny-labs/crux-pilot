@@ -1,0 +1,125 @@
+C17 conformance against inert NOT_SUPPORTED stubs before shared implementation.
+FAIL line 39: crux_config_init(NULL, &spec) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 40: crux_config_init(&parameter, NULL) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 41: crux_config_read(&parameter, &out) == CRUX_CONFIG_ERR_INVALID_STATE
+FAIL line 42: crux_config_load(&parameter) == CRUX_CONFIG_ERR_INVALID_STATE
+FAIL line 43: crux_config_save(&parameter) == CRUX_CONFIG_ERR_INVALID_STATE
+FAIL line 44: crux_config_update(&parameter, &candidate) == CRUX_CONFIG_ERR_INVALID_STATE
+FAIL line 45: crux_config_init(&parameter, &spec) == CRUX_CONFIG_OK
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 46: current(&parameter) == 5
+FAIL line 47: crux_config_init(&parameter, &spec) == CRUX_CONFIG_ERR_INVALID_STATE
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 48: current(&parameter) == 5
+FAIL line 49: crux_config_read(NULL, &out) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 50: crux_config_read(&parameter, NULL) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 51: crux_config_update(NULL, &candidate) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 52: crux_config_update(&parameter, NULL) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 53: crux_config_load(NULL) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 54: crux_config_save(NULL) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 55: crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 56: current(&parameter) == 1
+FAIL line 58: crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK
+FAIL line 60: crux_config_update(&parameter, &candidate) == CRUX_CONFIG_ERR_REJECTED
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 61: current(&parameter) == 100
+FAIL line 63: crux_config_update(&parameter, &candidate) == CRUX_CONFIG_ERR_REJECTED
+FAIL line 66: crux_config_update(&parameter, &candidate) == CRUX_CONFIG_ERR_REJECTED
+FAIL line 74: crux_config_init(&fresh, &invalid) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 74: crux_config_init(&fresh, &invalid) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 74: crux_config_init(&fresh, &invalid) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 74: crux_config_init(&fresh, &invalid) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 74: crux_config_init(&fresh, &invalid) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 74: crux_config_init(&fresh, &invalid) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 74: crux_config_init(&fresh, &invalid) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 80: crux_config_init(&fresh, &invalid) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 82: crux_config_init(&fresh, &invalid) == CRUX_CONFIG_OK
+FAIL line 86: crux_config_init(&fresh, &invalid) == CRUX_CONFIG_ERR_INVALID_ARGUMENT
+FAIL line 90: crux_config_init(&fresh, &invalid) == CRUX_CONFIG_ERR_REJECTED
+FAIL line 101: crux_config_init(&parameter, &spec) == CRUX_CONFIG_OK
+FAIL line 102: crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK
+FAIL line 103: crux_config_load(&parameter) == CRUX_CONFIG_DEFAULT_MISSING
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 104: current(&parameter) == 5 && config_fault_writes() == 0
+FAIL line 105: crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK
+FAIL line 106: crux_config_save(&parameter) == CRUX_CONFIG_OK
+FAIL line 109: config_fault_bytes(spec.key, bytes, sizeof(bytes)) == sizeof(expected)
+FAIL line 110: memcmp(bytes, expected, sizeof(expected)) == 0
+FAIL line 112: crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK
+FAIL line 113: crux_config_load(&parameter) == CRUX_CONFIG_OK
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 114: current(&parameter) == 42
+FAIL line 118: crux_config_init(&wide, &unconstrained) == CRUX_CONFIG_OK
+FAIL line 120: crux_config_load(&wide) == CRUX_CONFIG_OK && current(&wide) == UINT32_MAX
+FAIL line 121: crux_config_save(&wide) == CRUX_CONFIG_OK
+FAIL line 130: crux_config_load(&parameter) == CRUX_CONFIG_DEFAULT_REJECTED
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 131: current(&parameter) == 5
+FAIL line 130: crux_config_load(&parameter) == CRUX_CONFIG_DEFAULT_REJECTED
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 131: current(&parameter) == 5
+FAIL line 130: crux_config_load(&parameter) == CRUX_CONFIG_DEFAULT_REJECTED
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 131: current(&parameter) == 5
+FAIL line 130: crux_config_load(&parameter) == CRUX_CONFIG_DEFAULT_REJECTED
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 131: current(&parameter) == 5
+FAIL line 130: crux_config_load(&parameter) == CRUX_CONFIG_DEFAULT_REJECTED
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 131: current(&parameter) == 5
+FAIL line 136: crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK
+FAIL line 137: crux_config_load(&parameter) == CRUX_CONFIG_ERR_IO
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 138: current(&parameter) == 77
+FAIL line 140: crux_config_load(&parameter) == CRUX_CONFIG_ERR_IO
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 141: current(&parameter) == 77
+FAIL line 143: crux_config_load(&parameter) == CRUX_CONFIG_ERR_NOT_READY
+FAIL line 145: crux_config_load(&parameter) == CRUX_CONFIG_ERR_IO
+FAIL line 149: crux_config_save(&parameter) == CRUX_CONFIG_ERR_NO_SPACE
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 150: current(&parameter) == 77
+FAIL line 151: crux_config_load(&parameter) == CRUX_CONFIG_OK && current(&parameter) == 42
+FAIL line 153: crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK
+FAIL line 155: crux_config_save(&parameter) == CRUX_CONFIG_ERR_IO
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 156: current(&parameter) == 66
+FAIL line 158: crux_config_init(&restarted, &spec) == CRUX_CONFIG_OK
+FAIL line 159: crux_config_load(&restarted) == CRUX_CONFIG_OK && current(&restarted) == 66
+FAIL line 161: crux_config_save(&parameter) == CRUX_CONFIG_ERR_IO
+FAIL line 163: crux_config_save(&parameter) == CRUX_CONFIG_OK
+FAIL line 167: crux_config_save(&parameter) == CRUX_CONFIG_ERR_REJECTED
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 168: config_fault_writes() == writes && current(&parameter) == 66
+FAIL line 170: crux_config_load(&parameter) == CRUX_CONFIG_ERR_REJECTED
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 171: current(&parameter) == 66
+FAIL line 173: crux_config_load(&parameter) == CRUX_CONFIG_DEFAULT_MISSING
+FAIL line 29: crux_config_read(parameter, &value) == CRUX_CONFIG_OK
+FAIL line 174: current(&parameter) == 5
+FAIL line 185: crux_config_init(&parameter, &spec) == CRUX_CONFIG_OK
+FAIL line 186: crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK
+FAIL line 187: crux_config_save(&parameter) == CRUX_CONFIG_OK
+FAIL line 189: config_fault_bytes(spec.key, bytes, sizeof(bytes)) == sizeof(valid)
+FAIL line 190: memcmp(bytes, valid, sizeof(valid)) == 0
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 195: result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED)
+FAIL line 199: crux_config_load(&parameter) == CRUX_CONFIG_DEFAULT_REJECTED
+FAIL line 200: crux_config_read(&parameter, &out) == CRUX_CONFIG_OK && !out.data.boolean
+CONFIGURATION_FAIL checks=135 failures=123

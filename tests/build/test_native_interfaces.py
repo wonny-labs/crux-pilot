@@ -69,7 +69,10 @@ class NativeInterfaceTest(unittest.TestCase):
                      "components/new/runtime_porting/lock.h", "runtime_porting/include/lock.h",
                      "applications/new/src/main.c", "runtime/src/thread.c",
                      "samples/controller/core/task.c", "samples/controller/include/task.h",
-                     "samples/time/include/time_command.h", "samples/time/src/time_command.c"):
+                     "samples/time/include/time_command.h", "samples/time/src/time_command.c",
+                     "samples/controller/configuration/scenario.c",
+                     "tests/configuration_consumer/consumer.c",
+                     "tests/configuration_consumer/consumer.cpp"):
             with self.subTest(path=path):
                 result = self.check_source("k_timeout_t timeout;", path)
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)

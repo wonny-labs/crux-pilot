@@ -1,0 +1,6 @@
+tests:
+  crux.configuration.software:
+    tags: configuration
+    platform_allow: native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64

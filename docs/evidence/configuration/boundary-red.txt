@@ -1,0 +1,35 @@
+test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) ... test_dependency_entry_point_checks_tokens_and_allows_iso_c (test_native_interfaces.NativeInterfaceTest) ... ok
+test_documentation_and_string_literals_are_not_native_dependencies (test_native_interfaces.NativeInterfaceTest) ... ok
+test_invalid_root_reports_an_error_instead_of_success (test_native_interfaces.NativeInterfaceTest) ... ok
+test_iso_c_and_crux_interfaces_remain_portable (test_native_interfaces.NativeInterfaceTest) ... ok
+test_line_splicing_cannot_hide_native_include_or_token (test_native_interfaces.NativeInterfaceTest) ... ok
+test_native_providers_and_compositions_remain_native (test_native_interfaces.NativeInterfaceTest) ... ok
+test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest) ... ok
+test_networking_profile_is_scoped_to_registered_consumers (test_native_interfaces.NativeInterfaceTest) ... ok
+test_public_headers_cannot_include_shared_implementation_headers (test_native_interfaces.NativeInterfaceTest) ... ok
+test_rejects_direct_paths_into_providers_and_test_controls (test_native_interfaces.NativeInterfaceTest) ... ok
+test_rejects_native_header_families_and_include_spacing (test_native_interfaces.NativeInterfaceTest) ... ok
+test_rejects_native_types_api_calls_and_configuration_tokens (test_native_interfaces.NativeInterfaceTest) ... ok
+
+======================================================================
+FAIL: test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) (path='tests/configuration_consumer/consumer.c')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/flash-safety-acceptance/tests/build/test_native_interfaces.py", line 77, in test_applies_to_all_designated_portable_roots
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
+
+
+======================================================================
+FAIL: test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest) (path='tests/configuration_consumer/consumer.cpp')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/flash-safety-acceptance/tests/build/test_native_interfaces.py", line 77, in test_applies_to_all_designated_portable_roots
+    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+AssertionError: 0 != 1 : Native interface policy passed (0 portable source files).
+
+
+----------------------------------------------------------------------
+Ran 13 tests in 2.900s
+
+FAILED (failures=2)

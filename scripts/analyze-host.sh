@@ -59,3 +59,9 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/samples/networking/client.c" \
     "$repo/samples/networking/host/main.c" \
     "$repo/tests/networking/runtime_port.c"
+
+"$tidy" -p "$build_dir" \
+    "$repo/components/configuration/src/configuration.c" \
+    "$repo/tests/configuration/conformance.c" \
+    "$repo/tests/configuration/fault_provider.c" \
+    "$repo/samples/controller/configuration/scenario.c"
