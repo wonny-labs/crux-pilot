@@ -154,6 +154,8 @@ const char *escaped = "\\\" k_sem_take";
                              "tests/execution_firmware/src/main.cpp",
                              "components/execution/include/crux/execution.h",
                              "samples/networking/client.c", "samples/networking/client.h",
+                             "tests/networking_physical/transaction.c",
+                             "tests/networking_physical/frame.c", "tests/networking_physical/frame.h",
                              "tests/networking/runtime_port.c", "tests/networking/runtime_port.h",
                              "tests/networking_consumer/consumer.h",
                              "tests/networking_consumer/cpp_probe.cpp",
