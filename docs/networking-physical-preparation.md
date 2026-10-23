@@ -212,7 +212,10 @@ Automating that broader acceptance audit is outside this slice.
 Latest main `5206909` was integrated, including `eaed2a0` Execution and native-free
 consumer boundaries; both Execution and M5 CI/test/artifact configuration are
 retained. The current candidate was regenerated from the integrated source with
-corrected tooling, rather than reusing the old `2f7e648` image. Historical artifacts remain unchanged. All timing/resource thresholds,
+corrected tooling, rather than reusing the old `2f7e648` image. Historical image
+outputs and public logs remain unchanged. Historical tool bytes are recoverable
+from their recorded Git source; the current checkout contains the revised tools,
+so it is not an unchanged tool bundle for re-verifying the old manifest. All timing/resource thresholds,
 client-only scope and physical operation gates remain as proposed; a late manual
 disconnect remains INCONCLUSIVE rather than extending the functional deadline.
 
