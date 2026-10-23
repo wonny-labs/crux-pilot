@@ -1,0 +1,65 @@
+Internal ctest changing into directory: /tmp/crux/build/linux/debug
+Test project /tmp/crux/build/linux/debug
+    Start 77: Configuration.Conformance
+1/2 Test #77: Configuration.Conformance ..........   Passed    0.02 sec
+    Start 78: Configuration.ControllerScenario
+2/2 Test #78: Configuration.ControllerScenario ...   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.06 sec
+[1/23] Building C object tests/configuration/CMakeFiles/crux_configuration_tests.dir/main.c.o
+[2/23] Building C object components/configuration/CMakeFiles/crux_configuration.dir/src/configuration.c.o
+[3/23] Building C object tests/configuration/CMakeFiles/crux_configuration_controller.dir/controller_main.c.o
+[4/23] Building C object tests/configuration/CMakeFiles/crux_configuration_tests.dir/fault_provider.c.o
+[5/23] Building C object tests/configuration/CMakeFiles/configuration_controller_portable.dir/__/__/samples/controller/configuration/scenario.c.o
+[6/23] Building C object tests/configuration/CMakeFiles/crux_configuration_tests.dir/conformance.c.o
+[7/23] Linking C static library components/configuration/libcrux_configuration.a
+[8/23] Building C object tests/configuration/CMakeFiles/crux_configuration_controller.dir/fault_provider.c.o
+[9/23] Linking C executable tests/configuration/crux_configuration_tests
+[10/23] Linking C executable tests/configuration/crux_configuration_controller
+[11/23] Building CXX object /tmp/config-cache/cmake/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[12/23] Building CXX object /tmp/config-cache/cmake/googletest-build/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o
+[13/23] Building CXX object /tmp/config-cache/cmake/googletest-build/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o
+[14/23] Building CXX object /tmp/config-cache/cmake/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+[15/23] Linking CXX static library lib/libgtest.a
+[16/23] Linking CXX static library lib/libgtest_main.a
+[17/23] Linking CXX static library lib/libgmock.a
+[18/23] Linking CXX static library lib/libgmock_main.a
+[19/23] Linking CXX executable tests/networking/crux_netif_tests
+[20/23] Linking CXX executable tests/networking/crux_netif_host_tests
+[21/23] Linking CXX executable tests/networking/crux_networking_client_tests
+[22/23] Linking CXX executable tests/time/crux_time_tests
+[23/23] Linking CXX executable tests/controller/crux_controller_tests
+Internal ctest changing into directory: /tmp/crux/build/linux/sanitize
+Test project /tmp/crux/build/linux/sanitize
+    Start 77: Configuration.Conformance
+1/2 Test #77: Configuration.Conformance ..........   Passed    0.04 sec
+    Start 78: Configuration.ControllerScenario
+2/2 Test #78: Configuration.ControllerScenario ...   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.09 sec
+test_independent_c_and_cpp (test_configuration_consumers.ConfigurationConsumers.test_independent_c_and_cpp) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 17.957s
+
+OK
+Native interface policy passed (31 portable source files).
+Base is independent; designated portable sources pass the native interface policy; backend selection is checked by CMake; shared source ownership is explicit.
+Execution public/consumer boundary passed; native providers remain permitted.
+Networking consumers use the qualified standard/public boundary.
+[1/4] Processing file /tmp/crux/components/configuration/src/configuration.c.
+272 warnings generated.
+[2/4] Processing file /tmp/crux/tests/configuration/conformance.c.
+796 warnings generated.
+[3/4] Processing file /tmp/crux/tests/configuration/fault_provider.c.
+1133 warnings generated.
+[4/4] Processing file /tmp/crux/tests/configuration/fault_provider.c.
+1470 warnings generated.
+[5/4] Processing file /tmp/crux/samples/controller/configuration/scenario.c.
+1742 warnings generated.
+Suppressed 1742 warnings (1742 in non-user code).
+Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.

@@ -1,0 +1,29 @@
+{
+  "scope": "isolated Host source-wrapper probe; not Zephyr/NVS/Flash qualification",
+  "zephyr_revision": "684c9e8f32e4373a21098559f748f06915f950c9",
+  "source_sha256": "14ce61fa29aaca20ec3e69c6f401434f7f6d5a242d2911d0e931ccaf1f58f0e6",
+  "settings_header_sha256": "4135bf0fe67f0002aeebabb2fb45e8d7a3d6daa5f65b9a9daefc98eadf8743cc",
+  "harness_sha256": "538f148fea1515d442c1ed03c69e3ae0dc3e651186484212fa45f993f682a52e",
+  "observations": [
+    "subtree_discards_traversal_error observed=0 expected=0",
+    "direct_discards_traversal_error observed=0 expected=0",
+    "load_one_propagates_final_traversal_error observed=-5 expected=-5",
+    "load_one_reports_advertised_length_after_short_read observed=8 expected=8",
+    "actual_short_read_bytes observed=2 expected=2",
+    "load_one_propagates_callback_read_error observed=-5 expected=-5",
+    "later_source_masks_earlier_error observed=8 expected=8",
+    "save_one_propagates_no_space observed=-28 expected=-28",
+    "save_one_propagates_error_after_change observed=-5 expected=-5",
+    "failed_save_may_have_changed_bytes observed=1 expected=1",
+    "save_subtree_discards_lifecycle_errors observed=0 expected=0",
+    "both_lifecycle_hooks_ran observed=2 expected=2"
+  ],
+  "oracle_mutation_rejected": true,
+  "sanitizers": "AddressSanitizer and UndefinedBehaviorSanitizer",
+  "compiler": "Apple clang version 17.0.0 (clang-1700.0.13.5)",
+  "limits": [
+    "list/lock/handler enumeration are Host shims",
+    "no actual NVS or Zephyr runtime",
+    "no backend correctness, persistence or physical safety claim"
+  ]
+}

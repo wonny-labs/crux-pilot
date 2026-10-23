@@ -79,6 +79,9 @@ class NativeInterfaceTest(unittest.TestCase):
                      "applications/new/src/main.c", "runtime/src/thread.c",
                      "samples/controller/core/task.c", "samples/controller/include/task.h",
                      "samples/time/include/time_command.h", "samples/time/src/time_command.c",
+                     "samples/controller/configuration/scenario.c",
+                     "tests/configuration_consumer/consumer.c",
+                     "tests/configuration_consumer/consumer.cpp",
                      "tests/file_consumer/consumer.c", "tests/file_consumer/consumer.cpp",
                      "tests/file_consumer/consumer.h"):
             with self.subTest(path=path):

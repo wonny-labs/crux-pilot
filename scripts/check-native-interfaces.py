@@ -23,6 +23,9 @@ PORTABLE_ROOTS = (
     "components/*/runtime_porting", "applications", "runtime", "runtime_porting",
     "samples/controller/core", "samples/controller/include", "samples/time/include",
     "samples/time/src/time_command.c",
+    "samples/controller/configuration",
+    "tests/configuration_consumer/consumer.c", "tests/configuration_consumer/consumer.cpp",
+
     "tests/file_consumer/consumer.c", "tests/file_consumer/consumer.cpp",
     "tests/file_consumer/consumer.h",
 

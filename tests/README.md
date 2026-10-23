@@ -175,6 +175,15 @@ raw-evidence replay and separate physical operation gates. The concrete adapter 
 path requires separate exact-operation approval and current M3 safety gates;
 software preparation does not establish physical acceptance or authorisation.
 
+## Portable Configuration software checks
+
+The standard Host debug/sanitizer CTests include `Configuration.Conformance` and
+`Configuration.ControllerScenario`. Existing build-tool unittest discovery runs
+the independent C17/C++17 consumer build without private consumer dependencies.
+See [Configuration qualification](../docs/configuration-validation.md) for the
+focused manual `native_sim` and pinned Settings source-wrapper probe commands.
+These checks do not operate Flash or qualify an adopted persistence backend.
+
 ## Portable File software slice
 
 The [File contract](../docs/file-contract.md) and

@@ -129,6 +129,11 @@ status. See the [networking software tests](tests/README.md#portable-networking-
 for supported configurations and commands. Physical Issue #28 acceptance is
 pending; this slice does not complete the M5 milestone.
 
+The portable [Configuration contract](docs/configuration-contract.md) provides
+application-owned BOOL/U32 validation, explicit save/load and canonical encoding.
+Its [software qualification](docs/configuration-validation.md) uses a deterministic
+private provider; native Settings integration and physical persistence remain gated.
+
 The software-qualified [portable File contract](docs/file-contract.md) exposes
 bounded synchronous file operations through `crux::file`, with a Linux Host
 provider and deterministic failure tests. Its [validation and Zephyr handoff

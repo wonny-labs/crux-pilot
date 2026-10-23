@@ -1,0 +1,14 @@
+Internal ctest changing into directory: /tmp/crux/build/linux/debug
+Test project /tmp/crux/build/linux/debug
+    Start 78: Configuration.ControllerScenario
+1/1 Test #78: Configuration.ControllerScenario ...***Failed    0.01 sec
+CONFIGURATION_CONTROLLER_FAIL result=1
+
+
+0% tests passed, 1 tests failed out of 1
+
+Total Test time (real) =   0.04 sec
+
+The following tests FAILED:
+	 78 - Configuration.ControllerScenario (Failed)
+Errors while running CTest
