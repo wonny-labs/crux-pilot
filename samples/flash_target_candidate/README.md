@@ -19,11 +19,20 @@ CRC, no name cache and no bad-region initialization. LittleFS mounts with
 `FS_MOUNT_FLAG_NO_FORMAT`. Mount/unmount writes remain inside maintenance; a
 storage fault closes the media fence even during consuming File close.
 
-The fixed trial performs scratch erase/write/readback, File write/sync/close/read,
+The fixed storage trial leaves scratch untouched and performs File write/sync/close/read,
 two BOOL/U32 keys with four saves, healthy File remount/readback and one-way exit.
 It returns success only after unmount, retired handles and both maintenance/native
 finish gates. Later persistence is refused; RAM Configuration operations remain
 available. Controller startup wiring is deliberately absent while `main` is inert.
+
+`crux_candidate_scratch_trial()` is a separate, explicitly selected destructive
+sample-private episode. It initializes only the scratch proxy and performs one
+4 KiB erase, one 4-byte program and readback. It never provisions, mounts or saves
+File/Settings. Success means scratch readback completed, not storage readiness.
+Both success and error consume the native and maintenance lifetimes; neither
+normal storage nor scratch can run again. Normal startup/recovery never calls it.
+This software workload is distinct from the proposed 16-byte physical first-write
+envelope and grants no physical-operation approval.
 
 `tests/native/rt1060_storage_integration` runs the same composition with Zephyr's
 Flash simulator as its controlled command leaf. The actual staged RAM dispatcher

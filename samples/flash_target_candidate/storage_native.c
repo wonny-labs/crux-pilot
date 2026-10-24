@@ -134,10 +134,9 @@ int crux_candidate_fixed_trial(bool provision) {
     bool mounted = false;
     maintenance_newboot();
     gate_reset();
-    for (size_t i = 0; !rc && i < ARRAY_SIZE(areas); ++i)
-        rc = device_init(areas[i].fa_dev);
+    rc = device_init(DEVICE_DT_GET(DT_NODELABEL(candidate_file_backend)));
     if (!rc)
-        rc = scratch_trial();
+        rc = device_init(DEVICE_DT_GET(DT_NODELABEL(candidate_nvs_backend)));
     if (!rc && provision)
         rc = provision_media();
     if (!rc && crux_config_zephyr_init() != CRUX_CONFIG_OK)
@@ -169,4 +168,22 @@ int crux_candidate_fixed_trial(bool provision) {
     bool finished = maintenance_finish();
     bool native_finished = crux_candidate_storage_finish();
     return rc ? rc : (finished && native_finished ? 0 : -EIO);
+}
+
+/* Separate destructive test entrypoint; normal storage never selects it. */
+int crux_candidate_scratch_trial(void) {
+    int rc = crux_candidate_storage_begin();
+    if (rc)
+        return rc;
+    maintenance_newboot();
+    gate_reset();
+    rc = device_init(DEVICE_DT_GET(DT_NODELABEL(candidate_scratch_backend)));
+    if (!rc)
+        rc = scratch_trial();
+    /* Consume maintenance even though File/Settings were never made ready.
+     * Its false readiness result is expected; zero here certifies only the
+     * bounded scratch readback, never storage/controller readiness. */
+    (void)maintenance_finish();
+    bool native_finished = crux_candidate_storage_finish();
+    return rc ? rc : (native_finished ? 0 : -EIO);
 }

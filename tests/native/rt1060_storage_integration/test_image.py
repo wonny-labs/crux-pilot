@@ -32,7 +32,7 @@ class Image(unittest.TestCase):
     def test_main_inert_deferred_devices_and_private_trial_retained(self):
         main=self.bodies['main']
         self.assertNotRegex(main,r'\b(?:bl|blx|str)\b')
-        for name in ['crux_candidate_fixed_trial','crux_candidate_read','crux_candidate_write',
+        for name in ['crux_candidate_fixed_trial','crux_candidate_scratch_trial','crux_candidate_read','crux_candidate_write',
                      'crux_candidate_erase','crux_candidate_command_prerequisites']:
             self.assertIn(name,self.symbols)
         gate=self.bodies['crux_candidate_command_prerequisites']

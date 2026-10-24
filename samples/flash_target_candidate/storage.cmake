@@ -26,7 +26,7 @@ target_compile_definitions(app PRIVATE CRUX_RT1060_STORAGE_SAMPLE=1
 # This backend is selected after Zephyr's library collection; wire it explicitly
 # in the private final composition without exposing native usage to consumers.
 target_link_libraries(app PRIVATE crux::file crux_file_zephyr)
-zephyr_link_libraries(-Wl,-u,crux_candidate_fixed_trial -Wl,-u,crux_rom_command_read_result
+zephyr_link_libraries(-Wl,-u,crux_candidate_fixed_trial -Wl,-u,crux_candidate_scratch_trial -Wl,-u,crux_rom_command_read_result
   -Wl,--wrap=flash_area_open -Wl,--wrap=crux_config_zephyr_init
   -Wl,--wrap=crux_config_port_read -Wl,--wrap=crux_config_port_write
   -Wl,--wrap=crux_file_port_open -Wl,--wrap=crux_file_port_truncate
