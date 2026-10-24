@@ -120,7 +120,8 @@ class NativeInterfaceTest(unittest.TestCase):
                      "tests/file_consumer/consumer.c", "tests/file_consumer/consumer.cpp",
                      "tests/file_consumer/consumer.h",
                      "tests/thread_sync_consumer/consumer.c",
-                     "tests/thread_sync_consumer/consumer.cpp"):
+                     "tests/thread_sync_consumer/consumer.cpp",
+                     "tests/external_application/consumer.c", "tests/external_application/consumer.cpp"):
             with self.subTest(path=path):
                 result = self.check_source("k_timeout_t timeout;", path)
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)

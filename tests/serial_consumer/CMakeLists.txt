@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.28)
 project(crux_serial_consumer LANGUAGES C CXX)
-get_filename_component(CRUX_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
-set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
-set(CRUX_BUILD_HOST_SAMPLE OFF CACHE BOOL "" FORCE)
-set(CRUX_BUILD_REFERENCE_CONTROLLER OFF CACHE BOOL "" FORCE)
+if(NOT CRUX_SOURCE_DIR)
+    get_filename_component(CRUX_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+endif()
+set(CRUX_BUILD_SERIAL ON CACHE BOOL "Required external capability")
+set(CRUX_BUILD_MONOTONIC ON CACHE BOOL "Required external capability")
 add_subdirectory("${CRUX_SOURCE_DIR}" crux)
 include("${CRUX_SOURCE_DIR}/cmake/CruxConsumerBoundary.cmake")
 crux_assert_portable_usage(crux::serial crux::monotonic)
@@ -23,7 +24,7 @@ foreach(kind IN ITEMS c cpp controller controller_stale)
     target_include_directories(serial_consumer_${kind} PRIVATE src "${CRUX_SOURCE_DIR}/samples/serial"
         "${CRUX_SOURCE_DIR}/components/serial/ports/linux")
     target_link_libraries(serial_consumer_${kind} PRIVATE serial_runtime serial_controller_portable
-        crux::serial crux::monotonic crux_monotonic_host)
+        crux::serial crux::monotonic crux::monotonic_linux)
     target_compile_options(serial_consumer_${kind} PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME SerialConsumer.${kind} COMMAND serial_consumer_${kind})
     set_tests_properties(SerialConsumer.${kind} PROPERTIES TIMEOUT 5)
@@ -34,7 +35,8 @@ target_compile_definitions(serial_consumer_controller_stale PRIVATE CONTROLLER S
 # Public-symbol doubles verify the independently authored transaction policy.
 add_executable(serial_consumer_policy src/contract_test.c src/runtime.c)
 target_link_libraries(serial_consumer_policy PRIVATE crux::base)
-target_include_directories(serial_consumer_policy PRIVATE ../../components/serial/include ../../components/monotonic/include)
+target_include_directories(serial_consumer_policy PRIVATE "${CRUX_SOURCE_DIR}/components/serial/include"
+    "${CRUX_SOURCE_DIR}/components/monotonic/include")
 target_compile_options(serial_consumer_policy PRIVATE -Wall -Wextra -Wpedantic -Werror)
 set_target_properties(serial_consumer_policy PROPERTIES C_STANDARD 17 C_EXTENSIONS OFF)
 add_test(NAME SerialConsumer.Policy COMMAND serial_consumer_policy)

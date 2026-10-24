@@ -64,6 +64,12 @@ Public paths in the shared `crux/` include namespace must remain unique across c
 
 Use actual OS names such as `linux` and `zephyr` for native ports. The term **Host** describes a development or test composition, not an operating system. An OS-independent memory implementation is not automatically a Linux port. Empty port directories, central backend registries, duplicated public headers and uniform test subdirectories are not required for consistency.
 
+New platform-specific composition targets use `crux::<capability>_<os>` (for example,
+`crux::queue_linux`); their implementation targets use `crux_<capability>_<os>`.
+Reserve `host` for the development/test role. An API-family name such as `posix`
+requires a separately verified support contract; POSIX calls alone do not establish
+cross-OS support. These names do not imply production qualification.
+
 For a concrete example, [Time](time-contract.md) owns a controlled memory implementation separately from its native Zephyr RTC port. The final composition must select an appropriate implementation rather than silently falling back to a test provider.
 
 Thread and Sync are separate component-owned capabilities. `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.
@@ -86,18 +92,20 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Sockets | Qualified IPv4 client standard-API profile | Linux libc and selected Zephyr POSIX facilities; no Crux wrapper or separate stack | [Qualified profile](networking-contract.md#socket-profile) |
 | Configuration | Scalar validation, explicit save/load and encoding | Portable core with deterministic test persistence provider; no adopted Zephyr Settings/production persistence integration | [Software qualification and native gate](configuration-validation.md) |
 | File | Bounded synchronous file operations | Linux Host provider and deterministic failure tests; Zephyr provider is a plan, not implemented support | [Contract](file-contract.md), [Zephyr handoff plan](file-validation.md#zephyr-provider-handoff-plan-only) |
+| Serial | Bounded synchronous UART/TTY byte transfer | Linux PTY/TTY and selected Zephyr UART emulator/EVKB compositions; explicit binding and exclusive UART ownership; no physical qualification | [Contract](serial-contract.md), [validation](serial-validation.md) |
+| Logging | Validated bounded text records and filtering | Linux stderr and selected Zephyr deferred UART logger compositions; explicit UART ownership/configuration checks; no physical qualification | [Contract](logging-contract.md), [validation](logging-validation.md) |
 
 ## Build and native composition
 
 The root `CMakeLists.txt` supports the Linux Host development build. The `zephyr/` directory provides out-of-tree module integration, with Zephyr Kconfig and application/project configuration selecting supported native facilities. The `west.yml` manifest pins the relevant Zephyr dependency baseline.
 
-Public targets such as `crux::time`, `crux::thread` and `crux::sync` are consumer-facing usage contracts. Internal native targets, their private include paths, and link dependencies belong to the selected composition. **A public target is not necessarily a standalone installed SDK package, nor does every component currently use an identical provider-linkage pattern.** Follow the current component build files and its verified consumer contract. Do not manually add private provider paths to an application to bypass a missing integration capability.
+Public targets such as `crux::time`, `crux::thread` and `crux::sync` are consumer-facing usage contracts. Internal native targets, their private include paths, and link dependencies belong to the selected composition. **A public target is not an installed SDK package, nor does every component use an identical provider-linkage pattern.** Follow the [supported source-tree consumer contract](../README.md#external-application-build-linux-host). Do not manually add private provider paths to an application to bypass a missing integration capability.
 
 Host and Zephyr may compose providers differently. For example, a Host Time composition uses a controlled memory provider, while the Zephyr image registers its selected RTC implementation independently. This difference must not change the portable Time API.
 
 Thread and Sync are independently selectable in Host and Zephyr builds. The [contract's build selection and provider limits](thread-sync.md#build-selection-and-provider-limits) document their component-owned switches and resource settings. Consumer code should depend only on the capabilities it uses.
 
-The README documents established development commands. Detailed, independently verified instructions for creating a new out-of-tree application should be added only when its supported source-tree consumer integration contract is settled and tested. Do not assume `find_package(Crux)`, an installable package, or an arbitrary OS/board combination is supported.
+The README documents the verified Linux Host `add_subdirectory()` entry point, component selection and final native composition. Dependency builds default to Base only, with Crux tests/samples disabled independently of parent testing. Queue/Monotonic expose documented composition-only Linux targets; portable source targets retain their public usage facades. Host Time memory selection is explicit for external applications and remains development/test only. Zephyr composition stays under module/Kconfig ownership. An installable package, `find_package(Crux)` and arbitrary OS/board/toolchain combinations remain unsupported; a comprehensive Build Guide is separate work.
 
 ## Engineering and validation boundaries
 
