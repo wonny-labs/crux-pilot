@@ -10,4 +10,10 @@ The reviewer independently matched all 99 owned sources to the exact commit, 20 
 
 Actual controller-start wiring is absent and explicitly deferred. The trial's success boundary is unmount, retired handles and both exit gates. The review accepts this limited software handoff, not tested controller startup or writable target execution.
 
-This is an internal independent engineering review, not a GitHub Review Approval. It grants no production adoption, actual admission, hardware, merge, Issue closure or M4 completion authority. Final whole-change Challenger review is recorded separately once complete.
+This is an internal independent engineering review, not a GitHub Review Approval. It grants no production adoption, actual admission, hardware, merge, Issue closure or M4 completion authority.
+
+## Independent whole-change Challenger
+
+**PASS for restricted software-only Draft publication; no material findings.** A separate Challenger reviewed the complete source and public evidence at `aecea4a`, independently of the author and Task Reviewer. The published manifest matches the retained index; selected archived image/disassembly/DTS/ABI hashes and outcomes were checked directly. The review confirmed restrictive selection, deferred initialization, constant target refusal, transfer/error truth, explicit provisioning and handoff limitations. The manual gate was assessed as reproducible without a material missing step; recorded suites were not rerun.
+
+This PASS excludes actual admission/controller startup, production adoption, physical qualification, current-main integration, merge, closure and M4 completion. Stacked parent PRs remain Draft; applicable main-integration checks are still required before acceptance.
