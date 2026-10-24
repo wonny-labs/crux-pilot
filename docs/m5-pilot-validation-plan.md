@@ -36,18 +36,41 @@ During development, run the affected tests and relevant dependency/format checks
 | --- | --- |
 | #25 Thread / Sync | One worker lifecycle and join, one mutex/semaphore handoff, finite timeout, and observed worker stack/resource use |
 | #26 Queue / Monotonic | Copied FIFO send/receive, full/empty timeout, absolute monotonic deadline and cooperative stop/join. Record basic stack/timing observations |
-| #28 Networking | Actual portable-profile TCP and UDP success, one silent-peer timeout, one early-close/error case, one controlled link-down/up with successful fresh-socket recovery, and start/end resource status |
+| #28 Networking | Actual portable-profile TCP and connected UDP success, one silent-peer timeout, one early-close/error case, one controlled **in-flight TCP** disconnection with independently confirmed link DOWN, and fresh-socket recovery after confirmed UP in the same boot. Capture initial, post-failure and final quiescent resource status |
 | #27 Serial | Actual project-bound UART configuration, bounded send/receive, a representative timeout/error, and evidence of unambiguous port ownership |
 | #29 Logging | One approved backend emits records, level/filter behaviour is observable, and output/drop policy and resource limits are recorded |
 | #30 Health / Reset | Watchdog ownership/feed and reset-reason behaviour with one controlled, explicitly approved reset/watchdog scenario where supported |
 
 These are **minimum scenario types**, not mandated repetitions or a promise that one single image can exercise them all. Preserve relevant actual failures and record limits. Capture a measured time and available stack/memory when useful, not unsupported real-time guarantees. If a scenario cannot be performed safely, retain an explicit blocker rather than silently treating software evidence as physical PASS.
 
+## Pilot verdicts and measurable conditions
+
+Before any physical run, approve a short scenario sheet identifying the actual image/composition, expected operation results, numeric limits where relevant, measurement points and safety/recovery operations. Do not weaken an established API timeout or redefine a failed operation as successful to obtain a Pilot PASS.
+
+| Verdict | Required interpretation |
+| --- | --- |
+| **PASS** | All selected required scenarios have the expected functional/status outcomes. Relevant operations return or release resources as declared, approved recovery succeeds, and measured resource limits meet the predeclared Pilot criteria |
+| **FAIL** | A required result is incorrect, resource cleanup exceeds the accepted limit, an unexpected fault/reset occurs, or the observed values violate the accepted criteria |
+| **INCONCLUSIVE / BLOCKED** | Required observations are missing or ambiguous, the setup/source identity is uncertain, a safety gate fails, or an authorised test could not be completed. Do not infer PASS from earlier software or M3 physical results |
+
+For #25/#26/#27/#29/#30, state expected errors and relevant resource ownership in the scenario sheet. Record configured worker stacks and actual unused/high-water observations where available; agree any numerical margin before execution rather than inventing a product-wide threshold after observing results. A Pilot result does not establish worst-case scheduling latency or stack requirements.
+
+For the **existing #28 fixture and resource configuration**, reuse the already proposed 2,000 ms functional deadline, the >2,500 ms complete-call review/stop condition, and the 5,000 ms resource-settling window. The quiescent state is zero owned socket contexts and restored configured packet/data-buffer pools. Keep the proposed main/observer unused-stack checks of at least 1,024/512 bytes when those stacks and instrumentation are retained. Observe resources initially, after the representative loss/error cleanup, and after recovery/final cleanup, instead of recording multiple settling snapshots after each ordinary success. Confirm the selected concrete thresholds and the actual compiled capacity/configuration before approval. These are finite-run acceptance observations, not Production/WCET guarantees.
+
 ## Networking reduction and existing evidence
 
-`docs/networking-physical-preparation.md` proposes three boots and 48 TCP/UDP pairs (96 calls), detailed per-operation resource settling and numerous timing/transport checks. That plan and its software runner/evidence remain valuable **extended qualification material**, but its full repetition count should not be required for this Pilot. Before using the EVKB, derive and independently review one bounded pilot session covering the #28 table above, reusing the existing image identity, routing/lease, raw-result and recovery safeguards rather than bypassing them. A single accepted qualification boot is the initial target; add another only for a specific reset/verification need.
+[The existing extended plan](networking-physical-preparation.md) uses **three fresh boots, nine fixed phases per boot, 48 TCP/UDP pairs (96 calls)** and detailed per-operation observations. Its `tests/target/m5_series.py` validator requires three distinct boots and the fixed phase sequence. `capture_m5_network.py` and the target fixture are built around that protocol. **They cannot currently execute or accept the proposed single-boot Pilot unchanged.** The existing runner, independent safety gates and extended evidence must be preserved.
 
-The M3 native-controller physical results cannot substitute for an M5 portable-consumer test. Do not infer successful link-loss recovery from a disconnected NIC without target/peer evidence. Do not require packet-pool snapshots after every ordinary success if start/end counts and explicit error cleanup establish the Pilot claim.
+Before physical approval, compare the **total work and risk** of the following approaches and select the lower-cost credible option:
+
+1. **Focused Pilot profile (preferred if economical):** Reuse the existing target/peer, acquisition, approval and replay mechanisms. Make only the necessary profile-specific changes to the target scenario, plan, capture and replay/oracle for one fresh boot and the representative #28 operations above. Prove the new profile offline with positive and negative tests, including missing, duplicated, stale and misordered records, incorrect peer/link witnesses, resource failures and unexpected reset. Independently review the resulting plan and safety boundaries. Keep the original extended profile functional.
+2. **Existing extended profile:** If adapting the tooling is more costly or introduces greater risk than performing its approved bounded test, retain the current three-boot execution. Label the resulting evidence as extended qualification rather than claiming a single-boot run. Do not relax safety checks or use partial three-boot output to claim a Pilot PASS.
+
+For a focused Pilot, the selected link-loss claim is **one in-flight TCP disconnection**: confirm the target call began and the peer received the request before the approved disconnect, independently observe the dedicated host carrier and target primary interface DOWN, then verify successful fresh-socket communication after host route/target link restoration **without reset**. The existing UDP attempt while DOWN may be retained if it is cheaper to reuse the fixture. **UDP in-flight loss is not qualified** unless separately tested. A simpler pre-disconnected-network test does not count as in-flight loss. Preserve the established timestamp-domain separation and exact source/peer correlation.
+
+Prepared physical Networking firmware and manifests are pinned to a source baseline **before the merged Thread/Sync refactor**. Rebuild the selected physical composition from current integrated source, audit active `crux::thread`/`crux::sync` selections and dependency boundaries as applicable, and rerun affected software/Zephyr checks and source/image-manifest verification. A historical prepared image is not current-source physical qualification. An earlier approved image may serve as a recovery image only when its exact role and restoration procedure are separately verified and authorised.
+
+M3 native-controller physical evidence does not substitute for an M5 portable-consumer test. Verify target and peer witnesses for link loss and recovery. Observe native resources at the accepted Pilot checkpoints, not after every ordinary success. A revised Pilot runner/plan must pass review and obtain exact-operation human hardware approval **before** any board action.
 
 ## Physical safety and evidence gate
 
