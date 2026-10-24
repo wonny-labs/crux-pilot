@@ -1,6 +1,6 @@
 {
   "components/configuration/ports/zephyr/configuration_settings.h": "a1cbf1bd1ad320367f098f895198f2bbaedaf3062154b1fe68927977b40015f7",
-  "components/configuration/ports/zephyr/configuration_settings.c": "5f1d8ab5824258361e05f80c821a1ac38100b82b82b53bec7f5a90460ff23a4a",
+  "components/configuration/ports/zephyr/configuration_settings.c": "1b07cf19521ceaff406e6333734615a45f91b726ab3a3a8a27ccc45431e553e4",
   "tests/native/configuration_settings/CMakeLists.txt": "0a32df35dcea7c548dbd912802659e24ce608937f86f131b6b03036917ecf0e0",
   "tests/native/configuration_settings/late-mount-read.patch": "a6a294191b25ea5f16d4bc198cd5cb9433027316424fd674b5e65e9c57e38914",
   "tests/native/configuration_settings/testcase.yaml": "ee44c267c44a43261661244861c06f7d4be29c902c38e6504e50cf015a22c21a",

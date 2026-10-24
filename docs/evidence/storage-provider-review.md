@@ -33,3 +33,9 @@ sanitizer timeout history and Twister-versus-fresh-manual distinction.
 
 All verdicts are bounded to software candidates. They do not grant production
 patch/layout adoption, hardware, PR merge, Issue closure or M4 completion.
+
+Parent integration additionally corrected Configuration's main-header include
+order after the whole-repository formatter exposed earlier subtask formatting
+failures. The Reviewer confirmed this was exactly a two-line include reorder,
+verified the refreshed source manifest and fresh10/10 run, and retained PASS.
+The earlier error logs remain preserved and are not represented as passing.

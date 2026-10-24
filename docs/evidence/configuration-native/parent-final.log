@@ -1,0 +1,63 @@
+[1/5] Building C object CMakeFiles/app.dir/ws/.worktrees/flash-safety-poc/components/configuration/ports/zephyr/configuration_settings.c.obj
+[2/5] Linking C static library app/libapp.a
+[3/5] Linking C executable zephyr/zephyr.elf
+Generating files from /tmp/m4-config-provider/zephyr/zephyr.elf for board: native_sim/native/64
+[4/5] Building native simulator runner, and linking final executable
+[5/5] Running utility command for native_runner_executable
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE configuration_settings
+===================================================================
+START - test_callback_short_count_preserves_active
+ PASS - test_callback_short_count_preserves_active in 0.000 seconds
+===================================================================
+START - test_each_load_read_fault_preserves_active
+CONFIGURATION_READ_FAULTS positions=13 active_preserved=99
+ PASS - test_each_load_read_fault_preserves_active in 0.000 seconds
+===================================================================
+START - test_full_record_crc_failure_preserves_active
+[00:00:00.000,000] [1;31m<err> fs_nvs: Invalid data CRC: read_data_crc=0xEC9DB13C, computed_data_crc=0x5421D659[0m
+[00:00:00.000,000] [1;31m<err> fs_nvs: Invalid data CRC: read_data_crc=0xEC9DB13C, computed_data_crc=0x5421D659[0m
+ PASS - test_full_record_crc_failure_preserves_active in 0.000 seconds
+===================================================================
+START - test_malformed_records
+ PASS - test_malformed_records in 0.000 seconds
+===================================================================
+START - test_mount_all_open_sector_comparison_read_error
+CONFIGURATION_MOUNT_FAULT rc=-5 reads=17 writes=0 erases=0 offset=1114096
+ PASS - test_mount_all_open_sector_comparison_read_error in 0.000 seconds
+===================================================================
+START - test_roundtrip_and_missing
+ PASS - test_roundtrip_and_missing in 0.000 seconds
+===================================================================
+START - test_save_failure_and_interrupted_reinit
+ PASS - test_save_failure_and_interrupted_reinit in 0.000 seconds
+===================================================================
+START - test_save_no_space_mapping
+ PASS - test_save_no_space_mapping in 0.000 seconds
+===================================================================
+START - test_staging_limit_boundary
+ PASS - test_staging_limit_boundary in 0.000 seconds
+===================================================================
+START - test_traversal_error_is_not_missing
+ PASS - test_traversal_error_is_not_missing in 0.000 seconds
+===================================================================
+TESTSUITE configuration_settings succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [configuration_settings]: pass = 10, fail = 0, skip = 0, total = 10 duration = 0.000 seconds
+ - PASS - [configuration_settings.test_callback_short_count_preserves_active] duration = 0.000 seconds
+ - PASS - [configuration_settings.test_each_load_read_fault_preserves_active] duration = 0.000 seconds
+ - PASS - [configuration_settings.test_full_record_crc_failure_preserves_active] duration = 0.000 seconds
+ - PASS - [configuration_settings.test_malformed_records] duration = 0.000 seconds
+ - PASS - [configuration_settings.test_mount_all_open_sector_comparison_read_error] duration = 0.000 seconds
+ - PASS - [configuration_settings.test_roundtrip_and_missing] duration = 0.000 seconds
+ - PASS - [configuration_settings.test_save_failure_and_interrupted_reinit] duration = 0.000 seconds
+ - PASS - [configuration_settings.test_save_no_space_mapping] duration = 0.000 seconds
+ - PASS - [configuration_settings.test_staging_limit_boundary] duration = 0.000 seconds
+ - PASS - [configuration_settings.test_traversal_error_is_not_missing] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL

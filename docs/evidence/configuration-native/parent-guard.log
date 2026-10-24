@@ -1,0 +1,3 @@
+[01m[K/ws/.worktrees/flash-safety-poc/components/configuration/ports/zephyr/configuration_settings.c:12:2:[m[K [01;31m[Kerror: [m[K#error "Configuration Settings candidate requires explicit simulator-only composition"
+   12 | #[01;31m[Kerror[m[K "Configuration Settings candidate requires explicit simulator-only composition"
+      |  [01;31m[K^~~~~[m[K

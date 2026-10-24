@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-#include "configuration_port.h"
 #include "configuration_settings.h"
+#include "configuration_port.h"
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>

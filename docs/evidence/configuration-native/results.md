@@ -30,7 +30,7 @@ west build -d /tmp/m4-config-provider
   preserves active99, including traversal after matching callback.
 - Intentional CRC corruption produces two expected NVS CRC error messages in
   `native.log`; these are the asserted faults, not unexplained build warnings.
-- Owned C/header files passed cached clang-format dry-run with Werror.
+- Initial owned-source formatting attempts reported a main-header include-order error; the parent integration correction below supersedes those failed checks.
 - Recompiled the real provider command with its explicit simulator opt-in define
   removed: compilation rejected with the intended guard diagnostic (`guard.log`).
 - `git diff --check` passed at this stage.
@@ -88,11 +88,23 @@ west build -d /tmp/m4-config-provider
 python3 -m unittest discover -s tests/native/configuration_settings -p test_prepare.py
 ```
 
-Latest owned-source formatting, omitted-opt-in compilation guard and
-`git diff --check` also passed. No new compiler suppressions were introduced.
+The omitted-opt-in compilation guard passed; the earlier per-subtask formatting
+PASS narrative was incorrect (the retained logs show an include-order violation).
+The parent corrected and verified it as recorded below. No compiler suppressions
+were introduced.
 
 Settings still repairs confirmed missing records with deletes/count updates.
 NVS can still repair/write/erase during other mount recovery paths despite
 bad-region reinitialization being disabled. These corrections do not establish
 universally read-only or safe startup. Uncertain/destructive recovery remains a
 D4 adoption blocker; see the explicit limits in the validation document.
+
+## Parent final formatting correction
+
+The full repository check detected `configuration_settings.h` must precede the
+private port header. Only these two include lines were reordered with the pinned
+formatter. The full tracked-source formatting and dependency checks then exited0.
+The actual Configuration candidate was rebuilt and all10cases re-executed PASS
+(`parent-final.log`); `source-manifest.json` identifies the corrected source.
+Earlier `format.log` and `review-format.log` failures are retained and are not
+counted as passing checks. No Configuration behavior or patch changed.
