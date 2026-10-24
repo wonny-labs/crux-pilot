@@ -1,0 +1,229 @@
+{
+  "status": "software_only_not_ready_for_physical_operations",
+  "task_5": {
+    "source_revision": "c1d788d",
+    "baseline": "6882a84",
+    "input_hashes": {
+      "samples/flash_target_candidate/CMakeLists.txt": {
+        "sha256": "bf1e7573ed4db0a65381dec431cbbd16784887b6140c395df2d0ba5a2fc61e9b",
+        "bytes": 6731
+      },
+      "samples/flash_target_candidate/island.c": {
+        "sha256": "e769330e3afe466e50a36f79e327b9e5c30978694b4cf49aa8c742a552b72683",
+        "bytes": 1508
+      },
+      "samples/flash_target_candidate/rom_profile.c": {
+        "sha256": "9ef50f5808cc456165877cda4fde746e9591b6d8fbeaca5da6961821d482ed1c",
+        "bytes": 2005
+      },
+      "samples/flash_target_candidate/rom_profile.h": {
+        "sha256": "b535ab4e13a71e7ef62cc342b3782709f2931915e54f9f64d88b5741dd25fd6a",
+        "bytes": 2720
+      },
+      "tests/native/flash_target_candidate/stage_fcb.py": {
+        "sha256": "e82ad5349252c1951fa925c4e05f82c5ecfecc779586cd965d08d7f8a70091ee",
+        "bytes": 2513
+      },
+      "tests/native/rom_storage_candidate/profile_cases.c": {
+        "sha256": "10d184c3f72a76fe78e1b622c29e70ed6ec34bf13d4d4fddc92e61cf52b4f71a",
+        "bytes": 2714
+      },
+      "tests/native/rom_storage_candidate/adapter_cases.c": {
+        "sha256": "6db38649749125f2be3bb3df798da8c456d8e7793c476726a9621efe9018c39f",
+        "bytes": 1297
+      },
+      "tests/native/rom_storage_candidate/register_stubs.h": {
+        "sha256": "a487da7be95cbbf10f2d0a47286a9d064cbd91238e1c9a3cc695be3ba3eebe8a",
+        "bytes": 775
+      },
+      "tests/native/rom_storage_candidate/test_profile.py": {
+        "sha256": "68872066a51f827afa82ffcd177620c0d4ab82672ce7270832984e646b2fd8d9",
+        "bytes": 4551
+      },
+      "tests/native/rom_storage_candidate/test_image.py": {
+        "sha256": "172e139a470ad61d54366ccc408ae10b888636500771001dbd26eddfb86731f4",
+        "bytes": 4985
+      },
+      "tests/native/rom_storage_candidate/prepare_reference.py": {
+        "sha256": "6b44ddd3ef2fe0538797c92372382433eea865bb25562a29f58c90a1f19e8482",
+        "bytes": 2029
+      },
+      "tests/native/maintenance_island/test_island.py": {
+        "sha256": "5f1e7c73cf73843a02a269d1611f9740bb43ed8182cfd43bb811c82206527d86",
+        "bytes": 7273
+      }
+    },
+    "elf_sha256": "31f974bb10507cbdde072b905f4f415582b54e0de533917c82cee7ec1174d67d",
+    "bin_sha256": "fcb35914e3954d2fe068e176b05470861cae3b82ec3f474695e4f670ac89768f",
+    "bin_bytes": 42104,
+    "fcb_comparison": {
+      "bytes": 512,
+      "changed_offset": "0x46",
+      "old": 7,
+      "new": 6,
+      "remaining_bytes_equal": 511
+    },
+    "tests": {
+      "rom_profile_and_exact_artifact": 7,
+      "island": 6,
+      "snapshot": 3,
+      "copied_driver_regression": 15,
+      "skips": 0
+    },
+    "independent_review": {
+      "spec": "PASS",
+      "quality": "PASS",
+      "scope": "FCB and consumed read-only preflight only"
+    }
+  },
+  "upstream": {
+    "zephyr": "684c9e8f32e4373a21098559f748f06915f950c9",
+    "hal_nxp": "2c2f28ac333e995d7279777409817c4b4f92c1ec"
+  },
+  "unqualified": [
+    "hardware execution and physical persistence",
+    "actual elapsed deadline source",
+    "fitted NOR identity and protection state",
+    "initial watchdog/external supervisor and other masters",
+    "full mutating-path and target provider binding"
+  ],
+  "task_6": {
+    "baseline": "c1d788d82b4f69a775f60a31a04df4f21243b5f0",
+    "input_hashes": {
+      "scripts/prepare-flash-poc.py": "d83b8f680d1d8c19ac98eca4dbbcc8c3f3f04db3f4d9b900664ce0c75fc30bf5",
+      "tests/native/flash_target_candidate/prepare.py": "243e221927d4b359763e03bf2f9caafd0a0db49fd8fa82fe054bc25cd38d47a7",
+      "tests/native/flash_target_candidate/stage_commands.py": "d4f860c4eed045280ee442b13efa0fd10a4e8d353e7cb8606128ce0c403ee114",
+      "tests/native/maintenance_island/test_island.py": "f2b4cd4585d098f7c441d07a84df39b5303fbadb4bdf15c5c00ebdd0c36ec542",
+      "samples/flash_target_candidate/CMakeLists.txt": "f0f823861b269365636a3841f31ed51843eb0018de2184da0dd98f9511f5b041",
+      "samples/flash_target_candidate/prj.conf": "e6b2098b58346c412cb617cd874afb22bbc69953508f6f10d511d678e63f2120",
+      "samples/flash_target_candidate/rom_command.h": "0baad2111ab97df30fbe91782cbf333287dcf98c138c0a86f95e9d75c9d0152d",
+      "samples/flash_target_candidate/rom_command_gate.c": "bec8d6fc7ee2cca6db60076dbde60214c302223e73e82207eb14bf1bec55f287",
+      "samples/flash_target_candidate/rom_command_nor.inc": "3f2137bf5a07b0b20f035aeb8a6a64f45964e76bcf8d55691b8a1e698df80324",
+      "samples/flash_target_candidate/rom_command_memc.inc": "a7f579baed03c0496f27863c95b4591f502f8422967d1f21e7ed569088f018ea",
+      "samples/flash_target_candidate/island_context.S": "0ab10b12603976eb576b857b0f758553e2987e2d6efc580a8c6130959c64d74e",
+      "samples/flash_target_candidate/island.ld": "974e87a19c34d26174f6719c74811f2383f44fd808887173d5001cb59537f4a7",
+      "samples/flash_target_candidate/island.c": "e769330e3afe466e50a36f79e327b9e5c30978694b4cf49aa8c742a552b72683",
+      "samples/flash_target_candidate/terminal.c": "1140a736299825d817a1a02d2b47e317651e52e6e6da3658df67c81db978efcd",
+      "samples/flash_target_candidate/rom_profile.c": "9ef50f5808cc456165877cda4fde746e9591b6d8fbeaca5da6961821d482ed1c",
+      "samples/flash_target_candidate/rom_profile.h": "b535ab4e13a71e7ef62cc342b3782709f2931915e54f9f64d88b5741dd25fd6a",
+      "tests/native/rom_command_candidate/test_image.py": "b1088a42ab67d9dd39d74358e85fc074df75b5d9daf92050c4c005bc24663d37",
+      "tests/native/rom_command_candidate/test_metadata.py": "10227a157737e91e8ab973e7c1a5ba751888d45d9d1114799ac8fbc56e7c4294",
+      "tests/native/rom_command_candidate/cases.c": "39bcbf1f97f1a371dd3576358b25b8f1d6ea6ba42a0ed6872701f7cde723ebb0",
+      "tests/native/rom_command_candidate/effects.h": "41c4e33ee01bd09aa18e742eda8f9b0e86fee4cb5f403d86a97feb4973d3783a",
+      "tests/native/rom_command_candidate/test_commands.py": "53ee9315917f76978f77cce3c4512cd2026a314848a31842f81f3ed4ed61a695"
+    },
+    "artifact_sha256": {
+      "build/zephyr/zephyr.elf": "fc6527623541621f6615d445a3c82a4843b9b7bd780c68ddbc3a6d6a51fdfe03",
+      "build/zephyr/zephyr.bin": "41b7b7ce6ed878c841978aefedb7a1ba5ae644d88c1cfb79bf772682d6a91bdf",
+      "build/zephyr/.config": "5788a8ba479cb21181ed466e1c48f04d3c000e2719861605ff8ee7bdab7dec52",
+      "build/zephyr/zephyr.map": "917668870d8c132ef3b6193b690691d2e70ed16123ffbf02d7435a66a7c1e4a7",
+      "build/zephyr/zephyr.dts": "a35a1fc6722f70e7514a511cd88c93649c2ea2254c07f14423d6eec638c4a991",
+      "build/compile_commands.json": "058697c778875587fe74b0feda576e0b2fb58f8384b0d0f5d3aed0de6b496d35",
+      "original-fcb.bin": "7dfbd0296742c2883b398eeca8a6eaabb40692ad4bcec689d7a94907c0e88c5d",
+      "build/flash-target-candidate/source-hashes.json": "d8ea8629dbd26f5d722c7efaede633da85dbc7c19ea3119b706b303c9e348948",
+      "build/flash-target-candidate/command-source-hashes.json": "e4ea75bd8b3d9e67b7e9243471ec2d97ba73f0b2b93f69eb98b3d1205e0a113f",
+      "build/flash-target-candidate/fcb-source-hashes.json": "3f2af8f467d3436b52d93e6dde23f3e3c9b88e94007c7b4285ddcc6987353d3b",
+      "build/flash-target-candidate/fsl_flexspi.c": "6c6a6b5cb9872c14eaf05169d4549f5f6a7538feefdae5b98fd89177240bc328",
+      "build/flash-target-candidate/flash_mcux_flexspi_nor.c": "f3bd63880d0b0ac474296cf2c41d2aa7e8dedda339159511219f73e0f1952084",
+      "build/flash-target-candidate/memc_mcux_flexspi.c": "1faf93b9670c0ac2cece1d609b2d1077e3551050a24c04d96cd3aa78aedcd15b",
+      "build/flash-target-candidate/evkbmimxrt1060_flexspi_nor_config.c": "f1ec2ac1684cbedba2ec6d944e05264862877489c00e7089229fc54f9255be35"
+    },
+    "bin_bytes": 42880,
+    "tests": {
+      "command_native_and_metadata": 11,
+      "command_exact_arm": 4,
+      "rom_profile_and_artifact": 7,
+      "island": 6,
+      "snapshot": 3,
+      "copied_driver": 15,
+      "total": 46,
+      "skips": 0
+    },
+    "selected_static_closure": {
+      "functions": {
+        "FLEXSPI_CheckAndClearError": {
+          "address": 5241,
+          "frame_upper_bytes": 8
+        },
+        "FLEXSPI_GetBusIdleStatus": {
+          "address": 5333,
+          "frame_upper_bytes": 0
+        },
+        "FLEXSPI_ReadBlocking": {
+          "address": 5873,
+          "frame_upper_bytes": 32
+        },
+        "FLEXSPI_SoftwareReset": {
+          "address": 6385,
+          "frame_upper_bytes": 8
+        },
+        "FLEXSPI_TransferBlocking": {
+          "address": 6457,
+          "frame_upper_bytes": 8
+        },
+        "FLEXSPI_WriteBlocking": {
+          "address": 7971,
+          "frame_upper_bytes": 32
+        },
+        "crux_flash_poc_terminal": {
+          "address": 9995,
+          "frame_upper_bytes": 0
+        },
+        "crux_pilot_flash_owner_request_valid": {
+          "address": 1,
+          "frame_upper_bytes": 12
+        },
+        "crux_rom_check_deadline": {
+          "address": 169,
+          "frame_upper_bytes": 8
+        },
+        "crux_rom_check_result": {
+          "address": 187,
+          "frame_upper_bytes": 8
+        },
+        "crux_rom_command_dispatch": {
+          "address": 197,
+          "frame_upper_bytes": 48
+        },
+        "crux_rom_elapsed_expired": {
+          "address": 9991,
+          "frame_upper_bytes": 0
+        },
+        "crux_rom_native_erase_sector": {
+          "address": 1247,
+          "frame_upper_bytes": 24
+        },
+        "crux_rom_native_write_enable": {
+          "address": 5045,
+          "frame_upper_bytes": 24
+        },
+        "crux_rom_ready_idle": {
+          "address": 709,
+          "frame_upper_bytes": 40
+        },
+        "memc_flexspi_reset": {
+          "address": 9311,
+          "frame_upper_bytes": 8
+        },
+        "memc_flexspi_transfer": {
+          "address": 9651,
+          "frame_upper_bytes": 40
+        },
+        "memc_flexspi_wait_bus_idle": {
+          "address": 9945,
+          "frame_upper_bytes": 8
+        }
+      },
+      "all_frames_conservative_sum": 308,
+      "operation_stack_bytes": 1024,
+      "scope": "static software call/literal/stack closure; no hardware execution"
+    },
+    "target_admission": "always refused; elapsed source intentionally unavailable",
+    "source_revision": "7ef53d9",
+    "independent_review": {
+      "spec": "PASS",
+      "quality": "PASS",
+      "scope": "bounded software candidate with exact-image manual branch/prologue audit"
+    }
+  }
+}

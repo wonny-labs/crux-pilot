@@ -232,3 +232,13 @@ callable capability surface deliberately retained in the enabled profile. These
 commands never access hardware. See [the contract](../docs/messaging-contract.md)
 and [validation](../docs/messaging-validation.md) for ownership, cooperative-stop
 semantics, resource profile and qualification limits.
+
+## ROM-preserving Flash software candidate
+
+The [candidate profile](../docs/rom-storage-candidate.md) and
+[manual verification record](../docs/evidence/rom-storage-candidate/verification.md)
+cover the approved 100 MHz FCB copy, consumed ROM read-confirmation and bounded
+RAM command investigation. These gates inspect staged pinned sources and ARM
+artifacts or run controlled software effects; they never operate hardware.
+Focused gates are separate from standard hosted CI. No successful build or
+software test permits programming or booting the candidate image.

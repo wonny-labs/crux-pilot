@@ -16,6 +16,14 @@ Before copying/entering the temporary RAM context, the actual preflight consumes
 
 Pinned source inputs are Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` and hal_nxp `2c2f28ac333e995d7279777409817c4b4f92c1ec`. Source fingerprint checks refuse drift. Upstream checkouts and the earlier accepted PoC generator remain unchanged.
 
+## Private command experiment
+
+The isolated NOR translation unit reuses the pinned status, WREN, sector-erase and page-program helper bodies, with explicit mappings to ROM slots 1, 3, 5 and 9. Private IP reads use ROM slot 0. The generic native driver remains refused; its other compiled helpers are not an allowed dispatcher surface. A sector request must be exactly 4 KiB and aligned; a page request is at most 256 bytes and cannot cross a page or declared data owner. Firmware/header/out-of-owner requests are refused.
+
+Before the busy context, preparation copies program data into private aligned RAM storage and binds only the MEMC fields actually consumed by port A1 transfers. It does not invoke normal probe, device configuration, reclocking or LUT installation. The typed dispatcher runs only after the temporary RAM stacks/vectors and interrupt guard are established. Initial NOR-ready/controller-idle confirmation precedes mutation or data read; post-command ready is a separate check. Errors or uncertain waits enter the internal terminal before restoration. Controller buffer refresh is restricted to positively ready/idle completion of a mutation.
+
+The elapsed-time leaf deliberately fails closed on the target, and submission always refuses. Controlled tests substitute deterministic elapsed observations to exercise the otherwise inadmissible lower implementation. This is not a timer implementation, target-enabling flag or adopted driver. JEDEC 9Fh has no inherited ROM slot and is not installed; identity/protection remains unqualified. Result bytes stay in private RAM; this experiment is not the File/Configuration target binding.
+
 ## Remaining approval and safety gates
 
 No target elapsed-time source is selected: GPT2 and DWT are not adopted. Observation budgets are not elapsed deadlines. Identity, NOR status/protection, initial watchdog and external supervisor state, other masters, bus/cache/exception execution and exact target image/region/backup/recovery evidence must be established before physical admission. A controlled software fixture is not hardware qualification.

@@ -65,3 +65,9 @@ User approved the100MHz software candidate in this chat after Reviewer/Challenge
 ### Task 6: Real command path inside selected RAM context (after Task5)
 
 Continue the approved100MHz design through native helper/sequence adaptation, software MEMC bookkeeping without set_device_config/reclock, sector-onlyerase, explicit identity/status read-confirm, typed one-context command execution, success-ready buffer refresh versus RAM uncertainty disposition and actual lower error/deadline test paths. Reuse existing helpers/SDK rather than create a general Flash driver. GPT2 and any production elapsed-time source remain unselected; target must refuse commands when required time/identity/safety qualification is absent. Do not relabel source-only/controlled-time tests as target qualification. This is still unfinished, not satisfied by read-only preflight.
+
+### Task 6 bounded outcome
+
+The private selected native command/helper slice is implemented and independently reviewed at `7ef53d9`: controlled effects, exact image and 46 focused checks pass. Target submission and ordinary native init/media operations remain refused. This completes that bounded software experiment, not full Task 3 execution safety or target File/Configuration binding. A real elapsed-time source and lower-wait design, identity/protection/slot policy, runtime verification of added relocation regions and hardware prerequisites remain unresolved.
+
+Disposable integration of the PR #62 checkpoint with accepted main `bf048c1` preserved the two additive module selections and passed 66 designated source checks, 115 Host tests and nine native maintenance cases, with independent review. It did not merge parent PRs or test this later command image as an integrated operational target. Preserve that distinction before main acceptance.
