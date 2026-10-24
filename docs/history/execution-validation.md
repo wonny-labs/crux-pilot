@@ -1,6 +1,13 @@
 # Portable execution validation
 
-Current Thread/Sync usage is documented in the [README](../README.md#architecture).
+> **Historical record — not current usage guidance.** Use the
+> [Thread/Sync contract](../thread-sync.md) for current APIs, ownership and limits.
+> This archived body retains the original decisions/results and source identities;
+> historical paths, commands, issue status and permissions apply only to that work.
+> Archive maintenance changes relative links, not recorded results or measurements.
+> [Original pre-cleanup document](https://github.com/wonny-labs/crux-pilot/blob/ab3a7f545d62b619a09801fccde8d6d22792c396/docs/execution-validation.md).
+
+Current Thread/Sync usage is documented in the [README](../../README.md#architecture).
 The separation preserves the contract and C identifiers but replaces the historical
 Execution header/target and provider ownership described in this retained record.
 The results and source identities below remain evidence for their recorded revisions.
@@ -28,9 +35,9 @@ levels. Host uses normal pthread scheduling for all classes. Its current request
 stack limit is 65536 bytes and each pthread receives 65536 bytes. These are supported
 qualification configurations, not product resource budgets or scheduling equivalence.
 
-The [firmware fixture](../tests/execution_firmware/) builds separately as a C/C++
+The [firmware fixture](../../tests/execution_firmware) builds separately as a C/C++
 consumer and performs a worker update, mutex transfer, notification, join and cleanup.
-The [independent runtime fixture](../tests/execution_runtime/README.md) translates
+The [independent runtime fixture](../../tests/execution_runtime/README.md) translates
 runtime-shaped stack/priority/status values, runs twelve sessions and four bounded
 reservation cycles, handles timeouts and reclaims quiescent resources. Its author
 used the approved contract without provider implementation source. Portable sources
@@ -87,7 +94,7 @@ the results below distinguish the original baseline from the follow-up verificat
 | Formatting, dependency checks, configured Host analysis | Passed |
 | Independent implementation re-review | PASS for software PR preparation, including the poll-finalization follow-up |
 
-The [retained evidence](evidence/m5-execution/README.md) includes normalized raw
+The [retained evidence](../evidence/m5-execution/README.md) includes normalized raw
 outputs, negative results, configurations, compressed maps, selected compiler commands
 and source/artifact hashes. Fresh review follow-up logs are under
 `docs/evidence/m5-execution/review-follow-up-*.txt`. Original local logs are under

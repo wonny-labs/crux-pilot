@@ -1,5 +1,12 @@
 # Portable execution and synchronisation proposal
 
+> **Historical record — not current usage guidance.** Use the
+> [Thread/Sync contract](../thread-sync.md) for current APIs, ownership and limits.
+> This archived body retains the original decisions/results and source identities;
+> historical paths, commands, issue status and permissions apply only to that work.
+> Archive maintenance changes relative links, not recorded results or measurements.
+> [Original pre-cleanup document](https://github.com/wonny-labs/crux-pilot/blob/ab3a7f545d62b619a09801fccde8d6d22792c396/docs/execution-contract-proposal.md).
+
 **Status: contract approved and implemented; qualification results and limits are
 recorded in [execution validation](execution-validation.md).**
 Scope: [Issue #25](https://github.com/wonny-labs/crux-pilot/issues/25).
@@ -21,8 +28,8 @@ claims about an existing proprietary runtime or all future products.
 
 ## Basis and continuity
 
-The [M2 investigation](execution-profile.md), its source probes in
-`tests/execution`, and [physical evidence](m2-physical-verification.md) established
+The [M2 investigation](../execution-profile.md), its source probes in
+`tests/execution`, and [physical evidence](../m2-physical-verification.md) established
 a composition-local native Zephyr profile. The portable controller core did not
 need execution APIs, so M2 deliberately introduced none. That rationale remains
 valid for the existing controller. Issue #25 adds a different qualification need:
@@ -120,7 +127,7 @@ These inform the comparison; they are not compliance obligations for Crux.
   other's resource state. Providers own their native objects, stacks, build
   configuration and private headers. This authorized ownership migration removes
   the old Execution header/target while retaining all C identifiers, handle layouts
-  and behavioral clauses below. See [current build usage](../README.md#architecture).
+  and behavioral clauses below. See [current build usage](../../README.md#architecture).
 - Handles are distinct portable value types per resource kind, backed by a slot
   and generation. Zero is invalid. Validate null output pointers and invalid/stale
   handles; generation wrap must retire a slot rather than make an old handle valid.
