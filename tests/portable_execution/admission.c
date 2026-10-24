@@ -1,4 +1,5 @@
-#include "execution_internal.h"
+#include "sync_internal.h"
+#include "thread_internal.h"
 #include <stdatomic.h>
 #include <stdio.h>
 
@@ -8,13 +9,13 @@ static atomic_int pause_kind;
 static crux_semaphore_t admitted;
 static crux_semaphore_t resume_operation;
 static int hook_failure;
-static exec_native_identity_t test_owner;
+static sync_native_identity_t test_owner;
 
 static void pause_admitted(int kind) {
     if (atomic_load(&pause_kind) == 0) {
         return;
     }
-    if (exec_native_identity_equal(test_owner, exec_native_current())) {
+    if (sync_native_identity_equal(test_owner, sync_native_current())) {
         return;
     }
     int expected = kind;
@@ -27,25 +28,25 @@ static void pause_admitted(int kind) {
 }
 /* GNU ld --wrap requires these reserved linker symbol names. */
 // NOLINTBEGIN(bugprone-reserved-identifier)
-crux_status_t __real_exec_native_thread_join(exec_native_thread_t *,
-                                             const exec_native_deadline_t *);
-crux_status_t __real_exec_native_mutex_lock(exec_native_mutex_t *, const exec_native_deadline_t *);
-crux_status_t __real_exec_native_semaphore_take(exec_native_semaphore_t *,
-                                                const exec_native_deadline_t *);
-crux_status_t __wrap_exec_native_thread_join(exec_native_thread_t *object,
-                                             const exec_native_deadline_t *deadline) {
+crux_status_t __real_thread_native_thread_join(thread_native_thread_t *,
+                                               const thread_native_deadline_t *);
+crux_status_t __real_sync_native_mutex_lock(sync_native_mutex_t *, const sync_native_deadline_t *);
+crux_status_t __real_sync_native_semaphore_take(sync_native_semaphore_t *,
+                                                const sync_native_deadline_t *);
+crux_status_t __wrap_thread_native_thread_join(thread_native_thread_t *object,
+                                               const thread_native_deadline_t *deadline) {
     pause_admitted(1);
-    return __real_exec_native_thread_join(object, deadline);
+    return __real_thread_native_thread_join(object, deadline);
 }
-crux_status_t __wrap_exec_native_mutex_lock(exec_native_mutex_t *object,
-                                            const exec_native_deadline_t *deadline) {
+crux_status_t __wrap_sync_native_mutex_lock(sync_native_mutex_t *object,
+                                            const sync_native_deadline_t *deadline) {
     pause_admitted(2);
-    return __real_exec_native_mutex_lock(object, deadline);
+    return __real_sync_native_mutex_lock(object, deadline);
 }
-crux_status_t __wrap_exec_native_semaphore_take(exec_native_semaphore_t *object,
-                                                const exec_native_deadline_t *deadline) {
+crux_status_t __wrap_sync_native_semaphore_take(sync_native_semaphore_t *object,
+                                                const sync_native_deadline_t *deadline) {
     pause_admitted(3);
-    return __real_exec_native_semaphore_take(object, deadline);
+    return __real_sync_native_semaphore_take(object, deadline);
 }
 
 // NOLINTEND(bugprone-reserved-identifier)
@@ -80,7 +81,7 @@ static void lock_worker(void *argument) {
     }
 }
 int execution_admission_cases(void) {
-    test_owner = exec_native_current();
+    test_owner = sync_native_current();
     REQUIRE(crux_semaphore_create(0, 1, &admitted) == CRUX_OK);
     REQUIRE(crux_semaphore_create(0, 1, &resume_operation) == CRUX_OK);
     context_t target = {0};

@@ -31,7 +31,7 @@ rm -f "$test_inputs" "$pending_inputs"
 "${CRUX_PYTHON:-python3}" "$repo/scripts/record-build-provenance.py" \
     --workspace "$workspace" --capture-inputs "$pending_inputs"
 printf 'Running Crux Time Ztest scenarios on native_sim/native/64.\n'
-(cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/zephyr_time" \
+(cd "$workspace" && west twister -j 2 -p native_sim/native/64 -T "$repo/tests/time/zephyr" \
     -O "$test_output" --inline-logs)
 mv "$pending_inputs" "$test_inputs"
 

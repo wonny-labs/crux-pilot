@@ -11,7 +11,7 @@ for configuration in normal missing-rtc; do
     build="$repo/build/zephyr/controller-$configuration"
     extra=()
     if [[ "$configuration" == missing-rtc ]]; then
-        extra+=("-DDTC_OVERLAY_FILE=$repo/tests/zephyr_time/boards/native_sim_no_rtc.overlay")
+        extra+=("-DDTC_OVERLAY_FILE=$repo/tests/time/zephyr/boards/native_sim_no_rtc.overlay")
     fi
     (cd "$workspace" && west build -p always -b native_sim/native/64 -d "$build" \
         "$repo/samples/controller/zephyr" -- -DZEPHYR_EXTRA_MODULES="$repo" "${extra[@]}")

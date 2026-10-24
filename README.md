@@ -26,10 +26,30 @@ Crux separates portable application behaviour, reusable platform capabilities an
 
 Portable components and application logic avoid Zephyr, board and vendor dependencies. Host and Zephyr compositions explicitly select their implementations. Host, `native_sim` and physical-target tests provide complementary evidence rather than interchangeable guarantees.
 
-The bounded [portable execution contract](docs/execution-contract-proposal.md)
-provides joinable workers, nonrecursive mutexes and counting semaphores through
-`crux::execution`. See [validation and limits](docs/execution-validation.md) for
-Host/Zephyr profiles, independent consumers and unresolved target evidence.
+The bounded [Thread and Sync contract](docs/execution-contract-proposal.md)
+provides independent component-owned capabilities:
+
+| Capability | Public header | Usage target |
+| --- | --- | --- |
+| Joinable threads | `<crux/thread.h>` | `crux::thread` |
+| Nonrecursive mutexes and counting semaphores | `<crux/sync.h>` | `crux::sync` |
+
+Each owns its common source and private `ports/linux/` and `ports/zephyr/`
+implementations under `components/thread/` or `components/sync/`. Sync uses native
+OS identity for mutex ownership and does not require Crux Thread. Each component
+owns its metadata protection and monotonic deadlines; no shared Execution provider
+or global state remains. Existing C function/type names and handle representations
+are unchanged. Consumers must replace `<crux/execution.h>` and `crux::execution`
+with the header(s) and target(s) they use; the obsolete interfaces are removed.
+
+Host builds select `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC` (both default ON).
+Zephyr selects `CONFIG_CRUX_THREAD` and `CONFIG_CRUX_SYNC` independently. Thread owns
+`CONFIG_CRUX_THREAD_COUNT` and `CONFIG_CRUX_THREAD_STACK_BYTES`; Sync owns
+`CONFIG_CRUX_SYNC_MUTEX_COUNT` and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT`. Defaults remain
+4 workers, 4096 usable bytes per Zephyr stack, 8 mutexes and 8 semaphores. Migrate
+old `CONFIG_CRUX_EXECUTION*` selections to these component-owned settings.
+See [validation and limits](docs/execution-validation.md) for the retained
+Host/Zephyr profiles and historical qualification evidence.
 
 The implemented [Time contract](docs/time-contract.md) provides a concrete component example.
 

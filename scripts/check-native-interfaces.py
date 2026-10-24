@@ -31,6 +31,7 @@ PORTABLE_ROOTS = (
 
     "samples/messaging",
     "tests/messaging_consumer/runtime.c", "tests/messaging_consumer/main.cpp",
+    "tests/thread_sync_consumer/consumer.c", "tests/thread_sync_consumer/consumer.cpp",
 )
 # Issue #28's approved standard profile is attached to named consumer files,
 # never an entire component/tree. Its stricter operation/include policy is reused.
@@ -44,7 +45,7 @@ NETWORKING_HEADERS = {"sys/socket.h", "netinet/in.h", "arpa/inet.h", "poll.h",
 SOURCE_SUFFIXES = {".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".hh", ".hxx", ".inc"}
 # Direct references into implementation/provider/test trees cannot become public
 # contracts even if their basename looks portable. This does not follow includes.
-PRIVATE_INCLUDE_SEGMENTS = {"host", "zephyr", "board", "boards", "nxp", "vendor",
+PRIVATE_INCLUDE_SEGMENTS = {"ports", "host", "zephyr", "board", "boards", "nxp", "vendor",
                             "test", "tests", "private"}
 NATIVE_HEADER = re.compile(
     r"^(?:zephyr/|boards?/|board\.h$|nxp/|vendor/|fsl_|MIMXRT|cmsis|stm32|"

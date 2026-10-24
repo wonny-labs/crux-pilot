@@ -104,9 +104,9 @@ jobs:
             crux-pilot/build/zephyr/twister-time/twister.xml
             crux-pilot/build/zephyr/twister-time/twister_report.xml
             crux-pilot/build/zephyr/twister-time/twister_suite_report.xml
-            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/zephyr_time/*/build.log
-            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/zephyr_time/*/handler.log
-            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/zephyr_time/*/compile_commands.json
+            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/time/zephyr/*/build.log
+            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/time/zephyr/*/handler.log
+            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/time/zephyr/*/compile_commands.json
             crux-pilot/build/zephyr/native_sim_time/compile_commands.json
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/compile_commands.json
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/provenance.json
@@ -183,6 +183,14 @@ jobs:
             crux-pilot/build/zephyr/m5-physical-evkb/compile_commands.json
             crux-pilot/build/zephyr/m5-physical-evkb/crux-mdio/
             crux-pilot/build/evidence/m5-preparation/native-scenario.log
+            crux-pilot/build/zephyr/thread-only-evkb/compile_commands.json
+            crux-pilot/build/zephyr/thread-only-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/thread-only-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/thread-only-evkb/zephyr/.config
+            crux-pilot/build/zephyr/sync-only-evkb/compile_commands.json
+            crux-pilot/build/zephyr/sync-only-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/sync-only-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/sync-only-evkb/zephyr/.config
             crux-pilot/build/zephyr/twister-portable-execution/
             crux-pilot/build/zephyr/portable_execution-evkb/zephyr/.config
             crux-pilot/build/zephyr/portable_execution-evkb/zephyr/zephyr.map

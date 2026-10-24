@@ -10,6 +10,15 @@ if [[ "$mode" != all && "$mode" != --host-only ]]; then
     printf 'Usage: %s [--host-only]\n' "$0" >&2
     exit 2
 fi
+# Configure each capability without creating the opposite component's targets.
+for component in thread sync; do
+    out="$repo/build/$component-only"
+    cmake -S "$repo/tests/thread_sync_consumer" -B "$out" -G Ninja \
+        -DCRUX_COMPONENT="$component" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    cmake --build "$out" --parallel 2
+    ctest --test-dir "$out" --output-on-failure --output-junit "$out/ctest-junit.xml"
+    python3 "$repo/tests/thread_sync_consumer/check_selection.py" "$component" "$out" "$out/component_consumer"
+done
 for consumer in firmware runtime; do
     out="$repo/build/execution-$consumer-host"
     cmake -S "$repo/tests/execution_$consumer" -B "$out" -G Ninja \
@@ -37,11 +46,18 @@ ZEPHYR_MODULES="$(IFS=';'; printf '%s' "${dependencies[*]}")"
 unset ZEPHYR_EXTRA_MODULES EXTRA_ZEPHYR_MODULES
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
     -T "$repo/tests/portable_execution/zephyr" -T "$repo/tests/execution_runtime/zephyr" \
+    -T "$repo/tests/thread_sync_consumer/zephyr" \
     -O "$repo/build/zephyr/twister-portable-execution" --inline-logs)
 for consumer in portable_execution execution_runtime; do
     out="$repo/build/zephyr/$consumer-evkb"
     (cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' -d "$out" \
         "$repo/tests/$consumer/zephyr")
     python3 "$repo/scripts/check-execution-boundaries.py" --compile-commands "$out/compile_commands.json"
+done
+for component in thread sync; do
+    out="$repo/build/zephyr/$component-only-evkb"
+    (cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' -d "$out" \
+        "$repo/tests/thread_sync_consumer/zephyr" -- -DEXTRA_CONF_FILE="$component.conf")
+    python3 "$repo/tests/thread_sync_consumer/check_selection.py" "$component" "$out" "$out/zephyr/zephyr.elf"
 done
 # Cross-build only: no programming, reset, debugger, serial or hardware operations.

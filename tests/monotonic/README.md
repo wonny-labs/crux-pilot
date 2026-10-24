@@ -2,7 +2,9 @@
 
 The standalone Host project builds C17 and C++17 consumers through the public
 `crux::monotonic` facade. Final native composition selects `crux_monotonic_host`
-separately. Its CMake checks the actual public usage graph and C++ consumer graph.
+separately from `components/monotonic/ports/linux/`. The Zephyr provider and
+its native build definition live in `components/monotonic/ports/zephyr/`.
+Its CMake checks the actual public usage graph and C++ consumer graph.
 
 ```sh
 cmake -S tests/monotonic/host -B build/monotonic-host -G Ninja

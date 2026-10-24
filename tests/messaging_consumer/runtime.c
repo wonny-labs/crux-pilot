@@ -1,5 +1,6 @@
-#include <crux/execution.h>
 #include <crux/queue.h>
+#include <crux/sync.h>
+#include <crux/thread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>

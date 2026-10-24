@@ -32,7 +32,7 @@ def cmake_errors(text):
     text = re.sub(r'#[^\n]*', '', text)
     requirements = ' '.join(re.findall(r'target_(?:link_libraries|include_directories)\s*\(([^)]*)\)', text, re.S))
     return ['native/private consumer requirement'] if re.search(
-        r'\b(?:zephyr_interface|crux_(?:netif|sockets)(?:_\w+)?|crux_time_zephyr)\b|components/[^)\s]*/(?:src|host|zephyr)', requirements) else []
+        r'\b(?:zephyr_interface|crux_(?:netif|sockets)(?:_\w+)?|crux_time_zephyr)\b|components/[^)\s]*/(?:src|host|zephyr|ports)', requirements) else []
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

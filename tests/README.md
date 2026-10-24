@@ -31,7 +31,7 @@ The root CMake option `BUILD_TESTING=OFF` skips GoogleTest and C++ configuration
 `CRUX_BUILD_HOST_SAMPLE=OFF` as well to configure and build only the portable and host library
 targets.
 
-## Zephyr: `zephyr_time/`
+## Zephyr: `time/zephyr/`
 
 Twister builds and runs the C17 Ztest application on two `native_sim/native/64`
 configurations, one with an RTC alias and one without it. Tests cover Zephyr error
@@ -144,9 +144,13 @@ whitespace, duplication and partial-line errors as failures.
 ## Portable execution capability
 
 Run `scripts/test-portable-execution.sh --host-only` for separately configured C/C++
-firmware and independent runtime-shaped consumers and their execution boundary checks.
+Thread-only and Sync-only consumers, firmware and independent runtime-shaped consumers,
+and their execution boundary checks. Standalone configurations build only the selected
+component; portable C/C++ translation units cannot see the opposite public header or
+private headers. Final ELF symbol and compile-command checks reject the unselected
+provider. Sync-only ownership is exercised from a native OS-created worker.
 The full `scripts/test-portable-execution.sh` also runs Zephyr `native_sim` and EVKB
-cross-builds. Common conformance and Host failure/poll regressions run in the standard
+cross-builds for the combined and two standalone component configurations. Common conformance and Host failure/poll regressions run in the standard
 Host debug/sanitizer checks. Private admission tests prove lifecycle races without
 adding production test hooks. See [the validation record](../docs/execution-validation.md)
 for supported semantics, source identities, results and remaining #24/physical gates.
@@ -203,6 +207,15 @@ separate trusted native fixture. No Zephyr File runtime or production storage
 backend is enabled by these checks.
 
 ## Portable queue and monotonic timing
+
+Queue and Monotonic native implementations live in their component-owned
+`components/{queue,monotonic}/ports/linux/` and `ports/zephyr/` directories.
+Their public usage targets remain `crux::queue` and `crux::monotonic`; native
+composition retains the internal `crux_queue_host` and `crux_monotonic_host`
+target names. Zephyr component build definitions live beside their ports and
+are selected by the top-level module's existing `CONFIG_CRUX_*` conditions.
+Tests remain under `tests/queue/`, `tests/monotonic/` and
+`tests/messaging_consumer/`; private port includes belong only to native tests.
 
 `Queue.*` and `Monotonic.*` run with Host Debug/sanitizer checks. Queue native
 contract models deliberately reproduce pinned Zephyr timeout semantics; actual
