@@ -1,0 +1,11 @@
+tests:
+  crux.storage.maintenance:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - file
+      - configuration
+      - settings
+      - nvs
+    integration_platforms:
+      - native_sim/native/64

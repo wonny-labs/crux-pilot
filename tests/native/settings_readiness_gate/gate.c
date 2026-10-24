@@ -13,7 +13,7 @@
 BUILD_ASSERT(IS_ENABLED(CONFIG_BOARD_NATIVE_SIM));
 BUILD_ASSERT(IS_ENABLED(CONFIG_FLASH_SIMULATOR));
 BUILD_ASSERT(!IS_ENABLED(CONFIG_USERSPACE));
-enum gate_state { CLOSED, SCANNING, READY, FAULTED };
+enum gate_state { CLOSED, SCANNING, READY, FAULTED, ENDED };
 static enum gate_state state;
 static const struct device *real;
 static struct device proxy;
@@ -69,6 +69,14 @@ static int erase_flash(const struct device *dev, off_t offset, size_t length) {
     if (rc != 0)
         state = FAULTED;
     return rc;
+}
+bool gate_is_ready(void) {
+    return state == READY;
+}
+bool gate_end_maintenance(void) {
+    bool ready = state == READY;
+    state = ENDED;
+    return ready;
 }
 void gate_reset(void) {
     state = CLOSED;
@@ -130,7 +138,7 @@ static int scan(void) {
 }
 extern crux_config_result_t __real_crux_config_zephyr_init(void);
 crux_config_result_t __wrap_crux_config_zephyr_init(void) {
-    if (state == FAULTED)
+    if (state == FAULTED || state == ENDED)
         return CRUX_CONFIG_ERR_NOT_READY;
     if (state == READY)
         return CRUX_CONFIG_OK;

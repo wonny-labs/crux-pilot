@@ -1,0 +1,18 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/ {
+    chosen { zephyr,settings-partition = &candidate_nvs; };
+};
+&flash0 {
+    erase-block-size = <4096>;
+    write-block-size = <1>;
+    partitions {
+        file_test_partition: partition@100000 {
+            label = "maintenance-file-simulator-only";
+            reg = <0x100000 0x10000>;
+        };
+        candidate_nvs: partition@110000 {
+            label = "maintenance-nvs-simulator-only";
+            reg = <0x110000 0x10000>;
+        };
+    };
+};
