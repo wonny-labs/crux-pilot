@@ -105,7 +105,7 @@ Host and Zephyr may compose providers differently. For example, a Host Time comp
 
 Thread and Sync are independently selectable in Host and Zephyr builds. The [contract's build selection and provider limits](thread-sync.md#build-selection-and-provider-limits) document their component-owned switches and resource settings. Consumer code should depend only on the capabilities it uses.
 
-The README documents the verified Linux Host `add_subdirectory()` entry point, component selection and final native composition. Dependency builds default to Base only, with Crux tests/samples disabled independently of parent testing. Queue/Monotonic expose documented composition-only Linux targets; portable source targets retain their public usage facades. Host Time memory selection is explicit for external applications and remains development/test only. Zephyr composition stays under module/Kconfig ownership. An installable package, `find_package(Crux)` and arbitrary OS/board/toolchain combinations remain unsupported; a comprehensive Build Guide is separate work.
+The [Build and Integration Guide](build.md) documents the supported Linux Host, Zephyr and external source-tree build paths, including component selection, native composition and common configuration failures. The [README example](../README.md#external-application-build-linux-host) provides a tested external application entry point. These instructions do not establish an installed SDK, `find_package(Crux)`, a production Embedded Linux variant or support for arbitrary OS, board or toolchain combinations.
 
 ## Engineering and validation boundaries
 
