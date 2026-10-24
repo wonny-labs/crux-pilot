@@ -16,8 +16,10 @@ contracts. No automatic LittleFS format or unqualified destructive recovery is
 permitted. The Settings candidate is documented separately; generic upstream
 corrections and Crux-specific policy must remain distinguishable.
 
-Candidate NOR offsets remain firmware `[0,0x620000)`, LittleFS
-`[0x620000,0x7f0000)`, NVS `[0x7f0000,0x800000)`, from the existing assessment.
+The conditionally approved [maintenance software candidate](storage-maintenance-profile.md)
+now separates firmware `[0,0x620000)`, LittleFS `[0x620000,0x7ef000)`,
+dedicated scratch `[0x7ef000,0x7f0000)`, and NVS `[0x7f0000,0x800000)`.
+This supersedes the earlier three-owner candidate for new software checks only.
 These are proposals only. Fitted device geometry, current contents, image growth,
 representative workload/headroom and ownership still require approval.
 
@@ -29,7 +31,7 @@ correspondence, including Flash load images for RAM execution. These protections
 are experimental sample enforcement; they do not fence an external programmer,
 prevent status-register writes during probe, or establish execution closure.
 The driver fence separates address extents, not caller identities: a direct
-native caller can still address either proposed data owner. Final composition
+native caller can still address any proposed data owner. Final composition
 must bind File and Settings to their own regions and exclude other Flash clients.
 
 ## Proposed first-write envelope — not an executable instruction
@@ -43,8 +45,9 @@ Only after every mandatory safety prerequisite and separate physical approval:
   bootable recovery image and backups, including the sacrificial sector and
   adjacent sentinels. Unknown contents are not permission to erase.
 - Candidate scratch sector: relative `[0x7ef000,0x7f0000)` / CPU
-  `[0x607ef000,0x607f0000)`, within the proposed LittleFS owner. It is not the NVS
-  region. Confirm it contains no retained filesystem/user data before approval.
+  `[0x607ef000,0x607f0000)`, outside the reduced LittleFS owner and separate
+  from NVS. The sample overlay and fences reserve it independently; production
+  layout adoption remains gated. Confirm it contains no retained data before approval.
 - Proposed operation budget: one explicit 4096-byte scratch erase, one aligned
   16-byte page-contained program, then full programmed-byte/remaining-erased-byte
   readback and adjacent-sector sentinel comparison. No chip erase, blind retry,
@@ -92,17 +95,18 @@ records before enabling writes or saving. This is a proposed composition path,
 not an adopted target provider or a whole-media/recovery qualification. It leaves
 the exact provisioning, remaining metadata-integrity and physical gates intact.
 
-The [Flash candidate](flash-target-proposal.md) is an exact compile-only image,
-not the final operational persistence image. Its current ELF SHA-256 is
+The [historical PR #59 Flash candidate](flash-target-proposal.md) is an exact compile-only image,
+not the final operational persistence image. Its historical PR #59 ELF SHA-256 is
 `c830176753fa28515d358365c3c9dba9c9d5b8c6055029d4a356f1629bfdb99c` and BIN SHA-256
 is `3870a8ff65ba0d8b61b1539c6763088d538106de8f29845a97f2c10b3ae5a640` (39,552
 bytes). It remains **NOT READY**: copied RAM vectors still point to Flash fault
 handlers; startup/transitive code/data/stack/cache closure, watchdog/master state
 and qualified busy deadlines are incomplete. Do not program or boot it.
 
-Recommended next decision: accept the bounded evidence, then explicitly select
-the Pilot execution-safety design and recovery/provisioning limits before
-adopting any target patch/provider/layout. A small fully reviewed hazardous RAM
+The user accepted bounded evidence and conditionally approved the limited
+maintenance-only software design; see the linked profile for the updated
+execution, watchdog, provisioning and recovery constraints. This does not adopt
+a target patch/provider/layout or authorise hardware. A small fully reviewed hazardous RAM
 island with contained exception paths preserves the existing XIP architecture;
 whole-application RAM execution would be a separate architecture/memory/boot
 choice. Neither is silently selected here. Watchdog policy must not permit an
@@ -112,4 +116,4 @@ upstream corrections preferred over a permanent fork.
 
 Only after the chosen design closes the mandatory gates can a new exact,
 write-armed image and bounded procedure be presented for physical approval.
-The current dormant candidate/hash is not permission to bypass those gates.
+The historical hash and current read-only candidate are not permission to bypass those gates.

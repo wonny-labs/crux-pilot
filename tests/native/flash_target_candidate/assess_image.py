@@ -53,9 +53,9 @@ def assess(data, config):
                 'z_main_stack', 'z_interrupt_stacks', 'flash_flexspi_nor_api', 'memcpy']
     missing = [name for name in required if name not in table]
     blockers = [
-        'Full startup/copy/clock/probe code and pointer closure is unproved; probe can program NOR status/configuration before main.',
+        'Native init and direct NOR read/write/erase are refused; enabling the retained probe/clock/status path remains unfinished software work.',
         'Complete hazardous transitive code/data/indirect/veneer paths, stack and cache restoration are unproved.',
-        'RAM vector copying does not relocate NMI/fault handlers and their callees, data or stacks.',
+        'The separate read-only context has internal terminal vectors/stacks; ordinary Zephyr exceptions remain in Flash and the mutating path is not closed.',
         'Disabled driver selections do not establish peripheral/bus-master quiescence or bootloader ownership.',
         'Observation budgets are not elapsed-time deadlines; MMIO transactions can stall and part-specific limits are unknown.',
         'Watchdog hardware state, reset while NOR busy, power-loss and uncertain-state recovery policy remain unqualified.',
@@ -73,6 +73,13 @@ def assess(data, config):
         'elf_sha256': hashlib.sha256(data).hexdigest(),
         'scope': 'Named final-image measurements plus explicit unresolved phase obligations; no complete closure PASS.',
         'selected_addresses': {name: hex(table[name]) for name in required if name in table},
+        'conditional_read_only_harness': {
+            'scope': 'Copy/compare and internal-stack/vector controller observation only; idle is not NOR ready and native operations stay refused.',
+            'addresses': {name: hex(table[name]) for name in [
+                'crux_island_enter', 'crux_island_exception_terminal',
+                '__island_text_start', '__island_text_end', '__island_vectors_start',
+                '__island_vectors_end', '__island_operation_top', '__island_exception_top'] if name in table},
+            'execution': 'Cortex-M instructions not executed; exact structural tests are separate evidence, not a qualification gate.'},
         'flash_exception_handlers': flash_handlers,
         'vector_source_words': vector_words(data, table['_vector_start']),
         'configuration': relevant_config,

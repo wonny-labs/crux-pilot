@@ -25,7 +25,9 @@ class InheritedLowerChecks(unittest.TestCase):
     test_wrong_source_rejected = ACCEPTED.NativeErrors.test_wrong_source_rejected
 ZEPHYR = Path(os.environ['ZEPHYR_BASE'])
 
-# Each exact extracted composition compiles once; cases execute fresh processes.
+# Each extracted composition compiles once; cases execute fresh processes.
+# Controlled zero-return island stubs expose retained lower paths for fault tests only.
+# The actual linked candidate guard always refuses; there is no build-time bypass.
 BUILDS = {}
 
 def execute(code, args):
@@ -75,6 +77,7 @@ class InitErrors(unittest.TestCase):
         code = (HERE / 'startup_stubs.h').read_text()
         code += """
 #define DT_ANY_INST_HAS_PROP_STATUS_OKAY(x) 0
+static int crux_flash_island_inspect_and_refuse(void) {return stage==11?-EACCES:0;}
 #define LOG_ERR(...) ((void)0)
 struct flash_flexspi_nor_config {const struct device *controller;};
 static bool device_is_ready(const struct device *d) {(void)d;return true;}
@@ -95,6 +98,7 @@ int main(int argc,char **argv) {
         self.assertEqual(execute(code, [1]), f'{-errno.EIO} 0 777')
         self.assertEqual(execute(code, [10]), f'{-errno.EIO} 0 777')
         self.assertEqual(execute(code, [0]), '0 1 0')
+        self.assertEqual(execute(code, [11]), f'0 0 {-errno.EACCES}')
 
 class LowerWaits(unittest.TestCase):
     def test_actual_fifo_and_command_wait_dispositions(self):
@@ -133,6 +137,7 @@ class RuntimeFences(unittest.TestCase):
         code = code.replace('static unsigned irq_lock(void) {', 'static unsigned irq_lock(void) { calls[5]++;')
         code = code.replace('(void)d;\n    (void)p;\n    (void)o;\n    return (void *)1;', '(void)d; (void)p; (void)o; calls[4]++; return (void *)1;')
         code += '\n#include <string.h>\n#include "request_fence.h"\n'
+        code += 'static int crux_flash_island_refuse(void) {return fail_stage==99?-EACCES:0;}\n'
         code += '#define CONFIG_FLASH_MCUX_FLEXSPI_NOR_WRITE_BUFFER 1\n'
         code += 'static unsigned char nor_write_buf[256];\n'
         code += '\n'.join(ACCEPTED.definition(text, name) for name in
@@ -151,6 +156,12 @@ int main(int argc,char **argv) {
  return 0;
 }
 """
+
+    def test_island_refusal_precedes_native_effects(self):
+        code = self.runtime_code()
+        for op, size in [(0,256),(1,4096)]:
+            self.assertEqual(execute(code,[op,0x620000,size,99,1]),
+                             f'{-errno.EACCES} 0 0 0 0 0 0 0 0')
 
     def test_native_rejection_precedes_effects(self):
         code = self.runtime_code()

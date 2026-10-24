@@ -7,7 +7,16 @@ endif()
 get_filename_component(poc_repo "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 get_filename_component(poc_workspace "${ZEPHYR_BASE}/.." ABSOLUTE)
 set(poc_generated "${CMAKE_CURRENT_BINARY_DIR}/flash-target-candidate")
+# The conservative pre-clock gate depends on this exact source/mux table.
+file(SHA256 "${ZEPHYR_BASE}/soc/nxp/imxrt/imxrt10xx/soc.c" poc_soc_hash)
+file(SHA256 "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/drivers/fsl_clock.h" poc_clock_hash)
+if(NOT poc_soc_hash STREQUAL "e4f89386bc54c4d709e8fc85257421b2e36ada6adf93add19f9de5c52922d1dc" OR
+   NOT poc_clock_hash STREQUAL "a1cd1e43ae5134dec53b86ef3ad9f80bd79fd02d2be536e8a3dde6c3115f33a7")
+    message(FATAL_ERROR "candidate pre-clock source audit does not match pinned input")
+endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${ZEPHYR_BASE}/soc/nxp/imxrt/imxrt10xx/soc.c"
+    "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/drivers/fsl_clock.h"
     "${poc_repo}/scripts/prepare-flash-poc.py"
     "${poc_repo}/tests/native/flash_target_candidate/prepare.py"
     "${ZEPHYR_BASE}/drivers/flash/flash_mcux_flexspi_nor.c"
@@ -42,12 +51,12 @@ endfunction()
 poc_replace(drivers__flash "${ZEPHYR_BASE}/drivers/flash/flash_mcux_flexspi_nor.c")
 poc_replace(drivers__memc "${ZEPHYR_BASE}/drivers/memc/memc_mcux_flexspi.c")
 poc_replace(modules__hal_nxp "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/flexspi/fsl_flexspi.c")
-target_sources(app PRIVATE main.c early_snapshot.S snapshot_layout.c)
+target_sources(app PRIVATE main.c early_snapshot.S snapshot_layout.c island.c island_context.S early_clock.S)
 # Only this compile-only candidate changes SystemInit's disable policy.
 set_property(SOURCE "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/system_MIMXRT1062.c"
     TARGET_DIRECTORY modules__hal_nxp APPEND PROPERTY COMPILE_DEFINITIONS DISABLE_WDOG=0)
-zephyr_link_libraries(-Wl,--wrap=soc_reset_hook)
-zephyr_linker_sources(SECTIONS snapshot.ld)
+zephyr_link_libraries(-Wl,--wrap=soc_reset_hook -Wl,--wrap=soc_early_init_hook)
+zephyr_linker_sources(SECTIONS snapshot.ld island.ld)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 # Relocation scans Zephyr library objects, not the application archive outside it.
 target_sources(drivers__memc PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/terminal.c")
