@@ -50,6 +50,9 @@ not make mount read-only or prevent every recovery erase; PR #45 remains unadopt
   byte through the simulator's explicit memory API. Compare full and one-byte
   native reads and an actual Settings full-read callback, before/after remount.
   This models payload corruption, not a failed Flash programming operation.
+  The CRC-on case explicitly asserts outer Settings `0` alongside callback
+  `-EIO`, before and after remount. This characterizes a known limitation of the
+  pinned baseline, not accepted Configuration provider behavior.
 
 Each case starts by erasing only the owned simulator area. Remount discards the
 NVS/count state and reconstructs it from retained simulated bytes, keeping the
@@ -79,10 +82,10 @@ copy/patch hook or board programming/erase tool is selected. Native mutation is
 limited to simulator memory. Retain generated `.config`, Devicetree, build source
 commands, Twister report, handler logs and their hashes. Existing Host/Zephyr CI
 is regression evidence only: it does not execute this manual investigation gate.
-Formatting and dependency guards passed. The completed native workload was not
-replayed solely for bookkeeping or review; unchanged fixture/source hashes connect
-the retained run to the final files. Rerun the fixture and independent review after
-changing its source, pin or profile.
+Formatting and dependency guards passed. The manual gate and affected independent
+review are repeated after the outer-result assertion change; retained source hashes
+connect each run to its tested inputs. Rerun the fixture and independent review
+after changing its source, pin or profile.
 
 ## Measured results
 
@@ -109,7 +112,8 @@ For deliberate U32 corruption, results were unchanged before/after remount:
 | CRC off | 8, corrupted payload copied | 8 advertised | 8, corrupted payload copied | 0 |
 | CRC on | `-EIO` | 8 advertised | `-EIO` | 0 |
 
-The CRC-off profile is a diagnostic counterexample, not a recommended setting.
+CRC-enabled NVS remains the preferred design candidate. The CRC-off profile is a
+diagnostic counterexample, not a recommended setting.
 Expected native CRC-error log lines in the CRC-on case are part of the test.
 Ztest's `0.000 seconds` durations use the simulated clock and provide no latency
 or throughput evidence. Final 2 MiB simulator images and extracted 64 KiB regions

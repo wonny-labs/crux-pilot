@@ -218,6 +218,14 @@ ZTEST(nvs_capacity, test_crc_full_partial_and_remount) {
         zassert_equal(read.calls, 1);
         zassert_equal(read.advertised, 8);
         zassert_equal(read.actual, full_rc);
+        if (IS_ENABLED(CONFIG_NVS_DATA_CRC)) {
+            /* Pinned-baseline limitation: Settings hides the callback's -EIO.
+             * This is not accepted provider behavior or permission to publish read.wire.
+             */
+            zassert_equal(api_rc, 0, "known baseline limitation: outer Settings hides CRC failure");
+        } else {
+            zassert_ok(api_rc);
+        }
         printk(
             "NVS_CRC crc=%d remounted=%u full_rc=%zd partial_rc=%zd callback_rc=%zd outer_rc=%d\n",
             IS_ENABLED(CONFIG_NVS_DATA_CRC), phase, full_rc, partial_rc, read.actual, api_rc);

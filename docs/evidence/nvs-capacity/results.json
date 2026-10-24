@@ -15,7 +15,7 @@
   "fixture_input_sha256": {
     "tests/native/nvs_capacity/CMakeLists.txt": "a95f0ae212a58cff9597921929a0548781fb1d78d6f99a7150f5f99c0026808e",
     "tests/native/nvs_capacity/app.overlay": "5aed0c79359bc542f6bb5bd5852f8fa7959b27df4b9003d2dbfe68d3c8a4110b",
-    "tests/native/nvs_capacity/main.c": "7798b26e39003f3a29da7e86f50c0f23ca34a5883d598f687ea4bf8e92419ad5",
+    "tests/native/nvs_capacity/main.c": "836533934229588a6e9655e633d61672dd627fdbe4d80e5eb701c4caa9680481",
     "tests/native/nvs_capacity/prj.conf": "21af1c375a35030f6f492c493f8a43caccba823ed257269a247762ec071c64d1",
     "tests/native/nvs_capacity/records.c": "73ea1e03ade951b5cb7e142dfb976a739b647c1a1b7f7c799d93c929c5ddc56e",
     "tests/native/nvs_capacity/records.h": "b71ad93fd7c5cb7aa4b2e9124498f642ad5711d5a633fd3fd12be31938f4760c",
@@ -121,11 +121,11 @@
         }
       ],
       "handler_log": "crux.nvs_capacity.crc_off.log",
-      "handler_sha256": "5d82e6de5edcc1a7980e79595f17fe353441b5f3cbd47c33914acb6e7afc4275",
+      "handler_sha256": "fbe239c07b249e71ae55299da0321afa8603159a180de7b54a2de68f382bcbaa",
       "config_sha256": "144bbbb9aba0ec6e08b4fbabd9e5abdca59c1e334af94f940d9db47e943d469f",
       "devicetree_sha256": "22e307d4681e2c87fa9e47e43c5472ab0683611fff8cf6af508c03d49a10f840",
-      "elf_sha256": "c55f758e003dde949a7e8cbcb3e1ef9bd54424035b096ef10ae0d37822a865aa",
-      "executable_sha256": "1c99cbce0f1d7ccf982ee72ecf9bb57b77445844c871f0388ca82474eca27884",
+      "elf_sha256": "05526af1f8a04dc7014a5b97b277c1d1b0a737688944829124b1c2800998ba70",
+      "executable_sha256": "935199957fd979dcf1f24c7f5e61f915864316010da4cfade112b592a6147855",
       "original_native_compile_commands": [
         "build zephyr/CMakeFiles/zephyr.dir/subsys/kvss/nvs/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/kvss/nvs/nvs.c || cmake_object_order_depends_target_zephyr",
         "build zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/settings/src/settings.c || cmake_object_order_depends_target_zephyr",
@@ -226,11 +226,11 @@
         }
       ],
       "handler_log": "crux.nvs_capacity.crc_on.log",
-      "handler_sha256": "89a9b6047347e407666fa488bd4c44810be24786abc0631c594bc580162ca63a",
+      "handler_sha256": "07e7badecfbede65ff1d5c9f0ee7d4ea8251bfdc076e5cdb291e073d4e41ecf5",
       "config_sha256": "36b5ee663a6d14ad58fb6e22cd528f7bc10283f3cfae662faa36cffc0ef9119c",
       "devicetree_sha256": "22e307d4681e2c87fa9e47e43c5472ab0683611fff8cf6af508c03d49a10f840",
-      "elf_sha256": "f9484c087c97ab521ef4dd3e8fe6c3bf3868e4c80f21923a823acec025419afd",
-      "executable_sha256": "a04e1c81769b4b0eb4fc47316a39b00367ce6efd9796b52aaed8892d38e003a7",
+      "elf_sha256": "92722dd218c2c0bb4ed14684fde6933213b165e210e17b92950c97b443195baa",
+      "executable_sha256": "5008777dabcba140b3651b6069a2497493bbb0f3c6eaa2c9b127af6787acdec8",
       "original_native_compile_commands": [
         "build zephyr/CMakeFiles/zephyr.dir/subsys/kvss/nvs/nvs.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/kvss/nvs/nvs.c || cmake_object_order_depends_target_zephyr",
         "build zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings.c.obj: C_COMPILER__zephyr_unscanned_ /ws/zephyr/subsys/settings/src/settings.c || cmake_object_order_depends_target_zephyr",
@@ -248,5 +248,13 @@
         "local_archive_file": "crux.nvs_capacity.crc_on-final-region.bin"
       }
     }
-  ]
+  ],
+  "follow_up": {
+    "reason": "Explicit outer Settings zero assertion for known pinned-baseline CRC failure suppression; not accepted provider behavior",
+    "command": "ZEPHYR_TOOLCHAIN_VARIANT=host python3 \"$ZEPHYR_BASE/scripts/twister\" -T tests/native/nvs_capacity -p native_sim -O /tmp/nvs-capacity-followup -j2 --inline-logs",
+    "configurations_passed": 2,
+    "cases_passed": 6,
+    "twister_json_sha256": "161fef0191e0a9cd23a32fad6e86281c36585689cbcc32234a48bcb38c5aa3a8",
+    "characterization_only": true
+  }
 }
