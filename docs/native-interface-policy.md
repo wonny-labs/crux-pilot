@@ -171,7 +171,7 @@ Flash change, private planning edit or change to historical acceptance follows.
 The [supported Linux Host entry point](../README.md#external-application-build-linux-host)
 selects capabilities without modifying parent test policy. Portable source targets
 remain subject to `crux_assert_portable_consumer`. Final native executables declare
-the used public capabilities and may link the documented `crux::queue_host` and
-`crux::monotonic_host` composition targets. These aliases are not portable usage
+the used public capabilities and may link the documented `crux::queue_linux` and
+`crux::monotonic_linux` composition targets. These aliases are not portable usage
 facades or exceptions to recursive `LINK_ONLY` checks. Zephyr selection and the
 Sockets declaration/selected-sysroot exceptions remain unchanged.

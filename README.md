@@ -91,8 +91,12 @@ samples. Top-level development retains the existing components, samples and
 The final native executable declares its used public capabilities, as above, so
 provider compatibility is checked at composition. Queue/Monotonic portable targets
 link `crux::queue`/`crux::monotonic`; the final Host executable additionally links
-`crux::queue_host`/`crux::monotonic_host`. These two native composition targets must
-not be linked into portable source targets. Host Thread/Sync/File implementations
+`crux::queue_linux`/`crux::monotonic_linux`. These names identify the implementation
+platform, not a production qualification.
+The Queue port uses GNU pthread facilities; the Monotonic port uses POSIX monotonic
+clock/sleep facilities in the supported Linux environment. These two native
+composition targets must not be linked into portable source targets. Host
+Thread/Sync/File implementations
 remain linked through their public targets. Sockets remains a qualified standard
 API profile. Host Time requires explicit `CRUX_TIME_PROVIDER=memory` in an external
 project: this is a controlled development/test implementation, not a production RTC

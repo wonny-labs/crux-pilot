@@ -60,7 +60,7 @@ foreach(capability IN LISTS capabilities)
 endforeach()
 if(PROFILE STREQUAL "messaging" AND NOT OMIT_PROVIDER)
     # Native composition only: portable translation units never receive these providers.
-    target_link_libraries(external_app PRIVATE crux::queue_host crux::monotonic_host)
+    target_link_libraries(external_app PRIVATE crux::queue_linux crux::monotonic_linux)
 endif()
 if(CONFLICT_PROVIDER)
     add_library(conflicting_time INTERFACE)

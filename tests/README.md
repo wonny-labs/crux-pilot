@@ -234,9 +234,10 @@ backend is enabled by these checks.
 
 Queue and Monotonic native implementations live in their component-owned
 `components/{queue,monotonic}/ports/linux/` and `ports/zephyr/` directories.
-Their public usage targets remain `crux::queue` and `crux::monotonic`; native
-composition retains the internal `crux_queue_host` and `crux_monotonic_host`
-target names. Zephyr component build definitions live beside their ports and
+Their public usage targets remain `crux::queue` and `crux::monotonic`. Native
+Linux composition uses `crux::queue_linux` and `crux::monotonic_linux`; the
+corresponding implementation targets are `crux_queue_linux` and `crux_monotonic_linux`.
+Zephyr component build definitions live beside their ports and
 are selected by the top-level module's existing `CONFIG_CRUX_*` conditions.
 Tests remain under `tests/queue/`, `tests/monotonic/` and
 `tests/messaging_consumer/`; private port includes belong only to native tests.

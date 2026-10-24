@@ -20,9 +20,9 @@ target_link_libraries(messaging_controller_portable PRIVATE crux::monotonic)
 # the independently compiled C17/C++17 portable source targets above.
 add_executable(messaging_consumer $<TARGET_OBJECTS:messaging_cpp>)
 target_link_libraries(messaging_consumer PRIVATE messaging_runtime crux::queue crux::monotonic
-    crux::thread crux::sync crux::queue_host crux::monotonic_host)
+    crux::thread crux::sync crux::queue_linux crux::monotonic_linux)
 add_executable(messaging_controller $<TARGET_OBJECTS:messaging_controller_portable>)
-target_link_libraries(messaging_controller PRIVATE crux::monotonic crux::monotonic_host)
+target_link_libraries(messaging_controller PRIVATE crux::monotonic crux::monotonic_linux)
 foreach(consumer IN ITEMS messaging_runtime messaging_cpp messaging_controller_portable)
     target_compile_options(${consumer} PRIVATE -Wall -Wextra -Wpedantic -Werror)
     set_target_properties(${consumer} PROPERTIES C_STANDARD 17 C_STANDARD_REQUIRED YES

@@ -64,6 +64,12 @@ Public paths in the shared `crux/` include namespace must remain unique across c
 
 Use actual OS names such as `linux` and `zephyr` for native ports. The term **Host** describes a development or test composition, not an operating system. An OS-independent memory implementation is not automatically a Linux port. Empty port directories, central backend registries, duplicated public headers and uniform test subdirectories are not required for consistency.
 
+New platform-specific composition targets use `crux::<capability>_<os>` (for example,
+`crux::queue_linux`); their implementation targets use `crux_<capability>_<os>`.
+Reserve `host` for the development/test role. An API-family name such as `posix`
+requires a separately verified support contract; POSIX calls alone do not establish
+cross-OS support. These names do not imply production qualification.
+
 For a concrete example, [Time](time-contract.md) owns a controlled memory implementation separately from its native Zephyr RTC port. The final composition must select an appropriate implementation rather than silently falling back to a test provider.
 
 Thread and Sync are separate component-owned capabilities. `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.

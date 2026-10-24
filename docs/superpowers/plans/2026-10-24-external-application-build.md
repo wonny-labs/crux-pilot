@@ -30,7 +30,7 @@ Both configurations otherwise configure successfully using the existing cached G
    Internal full-suite/sample dependencies produce clear configuration errors if disabled.
 3. Preserve established per-component implementations. Expose only Queue and Monotonic's
    existing Linux Host providers via documented composition-only aliases
-   crux::queue_host and crux::monotonic_host. Portable targets continue linking
+   crux::queue_linux and crux::monotonic_linux. Portable targets continue linking
    crux::queue/crux::monotonic; native executable composition links the provider aliases.
    Thread/Sync/File public Host linkage stays unchanged. No generic composition helper.
 4. CRUX_TIME_PROVIDER=memory must be explicit for external Time use, with a clear development
