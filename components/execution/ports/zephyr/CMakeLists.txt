@@ -1,6 +1,8 @@
+get_filename_component(CRUX_EXECUTION_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+
 add_library(crux_execution_api INTERFACE)
 target_include_directories(crux_execution_api INTERFACE
-    "${CMAKE_CURRENT_LIST_DIR}/../../include")
+    "${CRUX_EXECUTION_COMPONENT_DIR}/include")
 target_link_libraries(crux_execution_api INTERFACE crux::base)
 # Portable translation units still need the selected CPU, instruction set,
 # floating-point ABI and sysroot. These toolchain flags carry no kernel
