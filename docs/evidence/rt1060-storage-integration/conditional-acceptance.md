@@ -33,7 +33,16 @@ The full-storage fixture delegates modeled command submissions directly to Zephy
 
 ## Reproduce and retain
 
-Use the pinned workspace/SDK and build commands in [verification.md](verification.md), selecting a fresh writable output namespace. Run every mode in a separate native process to preserve one-way lifetime isolation:
+Use the pinned workspace/SDK and build commands in [verification.md](verification.md), selecting a fresh writable output namespace. With its `PILOT_ELF`, `PILOT_BIN`, `PILOT_ORIGINAL_FCB`, `ARM_OBJDUMP` and `COMMAND_CLOSURE_JSON` environment set for that exact ARM output, run all six suites from the source root:
+
+```sh
+for suite in rt1060_storage_integration rom_command_candidate rom_storage_candidate \
+             maintenance_island maintenance_boot flash_target_candidate; do
+  python3 -m unittest discover -s "tests/native/$suite" -v || exit 1
+done
+```
+
+Expected: 12 + 33 + 7 + 26 + 3 + 15 = 96 methods, with no failures or skips, for each exact ARM snapshot. Run every native mode in a separate process to preserve one-way lifetime isolation:
 
 ```sh
 ./zephyr/zephyr.exe -flash_in_ram -flash@0_in_ram
