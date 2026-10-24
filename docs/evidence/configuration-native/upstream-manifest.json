@@ -1,0 +1,10 @@
+{
+  "subsys/settings/src/settings_store.c": "14ce61fa29aaca20ec3e69c6f401434f7f6d5a242d2911d0e931ccaf1f58f0e6",
+  "subsys/settings/src/settings_nvs.c": "ab6aa643eae9f5c5ca8099ddac89cc63aaa2fd43f775a8de5efcb11aad3c0244",
+  "settings_store.c": "9dc0525cced0448121064a248b9e81fd81953a71d095f7b3a7434f5f358e7a6b",
+  "settings_nvs.c": "edc94968213658a9fb853c778a5d6c26d3af7d9c1146ae58b67e84e634644cc4",
+  "pin": "684c9e8f32e4373a21098559f748f06915f950c9",
+  "subsys/kvss/nvs/nvs.c": "21ad6c753b5bc8370502799568426ec69648ea41a8b0b263df0f3eb840f6767b",
+  "late-mount-read.patch": "a6a294191b25ea5f16d4bc198cd5cb9433027316424fd674b5e65e9c57e38914",
+  "nvs.c": "002f8e7f0c7193f7362904a899985e09bded277fe8629ffa38e47805a98b3999"
+}

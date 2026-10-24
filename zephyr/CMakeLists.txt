@@ -52,3 +52,9 @@ if(CONFIG_CRUX_MONOTONIC)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/monotonic/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/monotonic")
 endif()
+
+if(CONFIG_CRUX_FILE_SIMULATOR)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/file/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/file")
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::file)
+endif()

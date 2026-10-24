@@ -1,5 +1,7 @@
 # Portable Configuration software qualification
 
+See [the subsequent isolated Settings/NVS candidate](configuration-native-validation.md) for separately authorised native simulator integration. Its copied-source patches remain unadopted; the historical evidence and physical gates below are preserved.
+
 Issue [#16](https://github.com/wonny-labs/crux-pilot/issues/16) now has the
 [approved scalar contract](configuration-contract.md), shared C17 implementation,
 a private deterministic persistence port and independent C17/C++17 consumers.

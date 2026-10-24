@@ -1,5 +1,7 @@
 # File software qualification
 
+See [the subsequent simulator candidate](file-native-validation.md) for the separately authorised sleepable-lock change and actual VFS/LittleFS software tests. The retained results below describe the original Host qualification.
+
 Issue [#23](https://github.com/wonny-labs/crux-pilot/issues/23) implements the
 [approved contract](file-contract.md) as a bounded portable C17 component with a
 Linux Host provider. Production media, layout and backend adoption remain open.

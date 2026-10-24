@@ -1,0 +1,404 @@
+-- The C compiler identification is Clang 18.1.3
+-- The CXX compiler identification is Clang 18.1.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang-18 - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++-18 - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Configuring done (7.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /tmp/m4-file-consumers
+[1/32] Building C object CMakeFiles/file_consumer_c.dir/consumer.c.o
+[2/32] Building CXX object CMakeFiles/file_consumer_cpp.dir/consumer.cpp.o
+[3/32] Building C object CMakeFiles/file_consumer_cpp_fixture.dir/fixture.c.o
+[4/32] Building C object CMakeFiles/file_consumer_c_fixture.dir/fixture.c.o
+[5/32] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/time.c.o
+[6/32] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/time_calendar.c.o
+[7/32] Linking C static library crux/components/time/libcrux_time_common.a
+[8/32] Building C object crux/components/time/CMakeFiles/crux_time_memory.dir/src/time_port_memory.c.o
+[9/32] Linking C static library crux/components/time/libcrux_time_memory.a
+[10/32] Building C object crux/components/thread/CMakeFiles/crux_thread_host.dir/src/thread.c.o
+[11/32] Building C object crux/components/thread/CMakeFiles/crux_thread_host.dir/ports/linux/thread_native.c.o
+[12/32] Building C object crux/components/sync/CMakeFiles/crux_sync_host.dir/src/sync.c.o
+[13/32] Linking C static library crux/components/thread/libcrux_thread_host.a
+[14/32] Building C object crux/components/sync/CMakeFiles/crux_sync_host.dir/ports/linux/sync_native.c.o
+[15/32] Building C object crux/components/queue/CMakeFiles/crux_queue_host.dir/src/queue.c.o
+[16/32] Linking C static library crux/components/sync/libcrux_sync_host.a
+[17/32] Building C object crux/components/queue/CMakeFiles/crux_queue_host.dir/ports/linux/queue_port.c.o
+[18/32] Building C object crux/components/monotonic/CMakeFiles/crux_monotonic_host.dir/src/monotonic.c.o
+[19/32] Linking C static library crux/components/queue/libcrux_queue_host.a
+[20/32] Building C object crux/components/monotonic/CMakeFiles/crux_monotonic_host.dir/ports/linux/monotonic_host.c.o
+[21/32] Building C object crux/components/netif/CMakeFiles/crux_netif.dir/src/netif.c.o
+[22/32] Linking C static library crux/components/monotonic/libcrux_monotonic_host.a
+[23/32] Building C object crux/components/netif/CMakeFiles/crux_netif.dir/ports/linux/netif_host.c.o
+[24/32] Building C object crux/components/configuration/CMakeFiles/crux_configuration.dir/src/configuration.c.o
+[25/32] Linking C static library crux/components/netif/libcrux_netif.a
+[26/32] Linking C static library crux/components/configuration/libcrux_configuration.a
+[27/32] Building C object crux/components/file/CMakeFiles/crux_file_host.dir/src/file.c.o
+[28/32] Building C object crux/components/file/CMakeFiles/crux_file_host.dir/ports/linux/file_host.c.o
+[29/32] Building C object crux/components/file/CMakeFiles/crux_file_host.dir/ports/linux/file_lock.c.o
+[30/32] Linking C static library crux/components/file/libcrux_file_host.a
+[31/32] Linking C executable file_consumer_c_fixture
+[32/32] Linking CXX executable file_consumer_cpp_fixture
+Internal ctest changing into directory: /tmp/m4-file-consumers
+Test project /tmp/m4-file-consumers
+    Start 1: File.ConsumerC
+1/2 Test #1: File.ConsumerC ...................   Passed    0.02 sec
+    Start 2: File.ConsumerCpp
+2/2 Test #2: File.ConsumerCpp .................   Passed    0.02 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.06 sec
+-- The C compiler identification is Clang 18.1.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang-18 - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found Python3: /opt/crux-cache/venv/bin/python3.12 (found version "3.12.3") found components: Interpreter 
+-- The CXX compiler identification is Clang 18.1.3
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++-18 - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done (8.6s)
+-- Generating done (0.1s)
+-- Build files have been written to: /tmp/m4-native-sanitize
+[1/127] Building C object CMakeFiles/crux_controller_core.dir/samples/controller/core/controller.c.o
+[2/127] Building C object CMakeFiles/crux_time_commands.dir/samples/time/src/time_command.c.o
+[3/127] Linking C static library libcrux_time_commands.a
+[4/127] Building C object CMakeFiles/crux_controller_core.dir/samples/controller/core/health.c.o
+[5/127] Linking C static library libcrux_controller_core.a
+[6/127] Building C object CMakeFiles/crux_posix_probes.dir/tests/execution/src/posix.c.o
+[7/127] Linking C executable crux_posix_probes
+[8/127] Building C object components/time/CMakeFiles/crux_time_common.dir/src/time.c.o
+[9/127] Building C object components/time/CMakeFiles/crux_time_memory.dir/src/time_port_memory.c.o
+[10/127] Building C object components/time/CMakeFiles/crux_time_common.dir/src/time_calendar.c.o
+[11/127] Linking C static library components/time/libcrux_time_common.a
+[12/127] Linking C static library components/time/libcrux_time_memory.a
+[13/127] Building C object components/thread/CMakeFiles/crux_thread_host.dir/ports/linux/thread_native.c.o
+[14/127] Building C object components/thread/CMakeFiles/crux_thread_host.dir/src/thread.c.o
+[15/127] Linking C static library components/thread/libcrux_thread_host.a
+[16/127] Building C object components/sync/CMakeFiles/crux_sync_host.dir/src/sync.c.o
+[17/127] Building C object components/sync/CMakeFiles/crux_sync_host.dir/ports/linux/sync_native.c.o
+[18/127] Linking C static library components/sync/libcrux_sync_host.a
+[19/127] Building C object components/queue/CMakeFiles/crux_queue_host.dir/src/queue.c.o
+[20/127] Building C object components/queue/CMakeFiles/crux_queue_host.dir/ports/linux/queue_port.c.o
+[21/127] Building C object components/monotonic/CMakeFiles/crux_monotonic_host.dir/src/monotonic.c.o
+[22/127] Linking C static library components/queue/libcrux_queue_host.a
+[23/127] Building C object components/monotonic/CMakeFiles/crux_monotonic_host.dir/ports/linux/monotonic_host.c.o
+[24/127] Building C object components/netif/CMakeFiles/crux_netif.dir/src/netif.c.o
+[25/127] Linking C static library components/monotonic/libcrux_monotonic_host.a
+[26/127] Building C object components/netif/CMakeFiles/crux_netif.dir/ports/linux/netif_host.c.o
+[27/127] Building C object components/configuration/CMakeFiles/crux_configuration.dir/src/configuration.c.o
+[28/127] Linking C static library components/netif/libcrux_netif.a
+[29/127] Linking C static library components/configuration/libcrux_configuration.a
+[30/127] Building C object components/file/CMakeFiles/crux_file_host.dir/src/file.c.o
+[31/127] Building C object components/file/CMakeFiles/crux_file_host.dir/ports/linux/file_host.c.o
+[32/127] Building C object components/file/CMakeFiles/crux_file_host.dir/ports/linux/file_lock.c.o
+[33/127] Building C object samples/time/host/CMakeFiles/crux-time-host.dir/main.c.o
+[34/127] Linking C static library components/file/libcrux_file_host.a
+[35/127] Linking C executable samples/time/host/crux-time-host
+[36/127] Building C object samples/networking/host/CMakeFiles/crux-networking-host.dir/main.c.o
+[37/127] Building C object samples/networking/host/CMakeFiles/crux-networking-host.dir/__/client.c.o
+[38/127] Building C object samples/controller/host/CMakeFiles/crux-controller-host.dir/main.c.o
+[39/127] Linking C executable samples/networking/host/crux-networking-host
+[40/127] Linking C executable samples/controller/host/crux-controller-host
+[41/127] Building CXX object _deps/googletest-build/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o
+[42/127] Building CXX object _deps/googletest-build/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o
+[43/127] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[44/127] Building C object tests/time/CMakeFiles/crux_time_common_test.dir/__/__/components/time/src/time.c.o
+[45/127] Building C object tests/time/CMakeFiles/crux_time_common_test.dir/__/__/components/time/src/time_calendar.c.o
+[46/127] Linking C static library tests/time/libcrux_time_common_test.a
+[47/127] Building C object tests/time/CMakeFiles/crux_time_memory_test.dir/__/__/components/time/src/time_port_memory.c.o
+[48/127] Linking C static library tests/time/libcrux_time_memory_test.a
+[49/127] Building CXX object _deps/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+[50/127] Linking CXX static library lib/libgtest.a
+[51/127] Linking CXX static library lib/libgmock.a
+[52/127] Linking CXX static library lib/libgmock_main.a
+[53/127] Linking CXX static library lib/libgtest_main.a
+[54/127] Building CXX object tests/time/CMakeFiles/crux_time_tests.dir/time_test.cpp.o
+[55/127] Building CXX object tests/time/CMakeFiles/crux_time_tests.dir/calendar_test.cpp.o
+[56/127] Building CXX object tests/time/CMakeFiles/crux_time_tests.dir/command_test.cpp.o
+[57/127] Linking CXX executable tests/time/crux_time_tests
+[58/127] Building CXX object tests/controller/CMakeFiles/crux_controller_tests.dir/controller_test.cpp.o
+[59/127] Building C object tests/portable_execution/CMakeFiles/crux_execution_admission.dir/admission.c.o
+[60/127] Building C object tests/portable_execution/CMakeFiles/crux_execution_conformance.dir/conformance.c.o
+[61/127] Building CXX object tests/controller/CMakeFiles/crux_controller_tests.dir/health_test.cpp.o
+[62/127] Building C object tests/portable_execution/CMakeFiles/crux_execution_conformance.dir/host_main.c.o
+[63/127] Linking CXX executable tests/controller/crux_controller_tests
+[64/127] Building C object tests/portable_execution/CMakeFiles/crux_execution_conformance.dir/public_probe.c.o
+[65/127] Linking C executable tests/portable_execution/crux_execution_conformance
+[66/127] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_failures.dir/host_failures.c.o
+[67/127] Linking C executable tests/portable_execution/crux_execution_host_failures
+[68/127] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_poll.dir/host_poll.c.o
+[69/127] Linking C executable tests/portable_execution/crux_execution_host_poll
+[70/127] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_admission.dir/host_admission.c.o
+[71/127] Linking C executable tests/portable_execution/crux_execution_host_admission
+[72/127] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_poll_finalize.dir/host_poll_finalize.c.o
+[73/127] Linking C executable tests/portable_execution/crux_execution_host_poll_finalize
+[74/127] Building C object tests/queue/CMakeFiles/crux_queue_basic.dir/basic.c.o
+[75/127] Linking C executable tests/queue/crux_queue_basic
+[76/127] Building C object tests/queue/CMakeFiles/crux_queue_concurrency.dir/concurrency.c.o
+[77/127] Linking C executable tests/queue/crux_queue_concurrency
+[78/127] Building C object tests/queue/CMakeFiles/crux_queue_timeout.dir/timeout.c.o
+[79/127] Building C object tests/queue/CMakeFiles/crux_queue_limits.dir/limits.c.o
+[80/127] Linking C executable tests/queue/crux_queue_timeout
+[81/127] Linking C executable tests/queue/crux_queue_limits
+[82/127] Building C object tests/queue/CMakeFiles/crux_queue_mpmc.dir/mpmc.c.o
+[83/127] Building C object tests/queue/CMakeFiles/crux_queue_faults.dir/faults.c.o
+[84/127] Linking C executable tests/queue/crux_queue_mpmc
+[85/127] Linking C executable tests/queue/crux_queue_faults
+[86/127] Building C object tests/queue/CMakeFiles/crux_queue_native_contract.dir/native_contract.c.o
+[87/127] Building C object tests/queue/CMakeFiles/crux_queue_native_contract.dir/__/__/components/queue/ports/zephyr/queue_port.c.o
+[88/127] Linking C executable tests/queue/crux_queue_native_contract
+[89/127] Building C object tests/monotonic/host/CMakeFiles/monotonic_common.dir/common_test.c.o
+[90/127] Building C object tests/monotonic/host/CMakeFiles/monotonic_common.dir/__/__/__/components/monotonic/src/monotonic.c.o
+[91/127] Building C object tests/monotonic/host/CMakeFiles/monotonic_native.dir/native_test.c.o
+[92/127] Linking C executable tests/monotonic/host/monotonic_common
+[93/127] Linking C executable tests/monotonic/host/monotonic_native
+[94/127] Building CXX object tests/monotonic/host/CMakeFiles/monotonic_real.dir/real_test.cpp.o
+[95/127] Linking CXX executable tests/monotonic/host/monotonic_real
+[96/127] Building C object tests/networking/CMakeFiles/crux_netif_tests.dir/__/__/components/netif/src/netif.c.o
+[97/127] Building CXX object tests/networking/CMakeFiles/crux_netif_tests.dir/netif_test.cpp.o
+[98/127] Linking CXX executable tests/networking/crux_netif_tests
+[99/127] Building CXX object tests/networking/CMakeFiles/crux_netif_host_tests.dir/netif_host_test.cpp.o
+[100/127] Building C object tests/networking/CMakeFiles/crux_netif_host_tests.dir/__/__/components/netif/src/netif.c.o
+[101/127] Building C object tests/networking/CMakeFiles/crux_netif_host_tests.dir/__/__/components/netif/ports/linux/netif_host.c.o
+[102/127] Building C object tests/networking/CMakeFiles/networking_client_fake.dir/__/__/samples/networking/client.c.o
+[103/127] Linking CXX executable tests/networking/crux_netif_host_tests
+[104/127] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/stack_host.c.o
+[105/127] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/stack_scenario.c.o
+[106/127] Building CXX object tests/networking/CMakeFiles/crux_networking_client_tests.dir/client_test.cpp.o
+[107/127] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/runtime_port.c.o
+[108/127] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/__/__/samples/networking/client.c.o
+[109/127] Building C object tests/networking/CMakeFiles/networking_runtime_fake.dir/runtime_port.c.o
+[110/127] Linking C executable tests/networking/crux_networking_stack_tests
+[111/127] Building C object tests/configuration/CMakeFiles/crux_configuration_tests.dir/main.c.o
+[112/127] Linking CXX executable tests/networking/crux_networking_client_tests
+[113/127] Building C object tests/configuration/CMakeFiles/crux_configuration_tests.dir/conformance.c.o
+[114/127] Building C object tests/configuration/CMakeFiles/crux_configuration_tests.dir/fault_provider.c.o
+[115/127] Linking C executable tests/configuration/crux_configuration_tests
+[116/127] Building C object tests/configuration/CMakeFiles/configuration_controller_portable.dir/__/__/samples/controller/configuration/scenario.c.o
+[117/127] Building C object tests/configuration/CMakeFiles/crux_configuration_controller.dir/controller_main.c.o
+[118/127] Building C object tests/configuration/CMakeFiles/crux_configuration_controller.dir/fault_provider.c.o
+[119/127] Building C object tests/file/CMakeFiles/file_fault.dir/fault_test.c.o
+[120/127] Linking C executable tests/configuration/crux_configuration_controller
+[121/127] Building C object tests/file/CMakeFiles/file_fault.dir/__/__/components/file/src/file.c.o
+[122/127] Building C object tests/file/CMakeFiles/file_host.dir/host_test.c.o
+[123/127] Linking C executable tests/file/file_fault
+[124/127] Linking C executable tests/file/file_host
+[125/127] Building C object tests/file/CMakeFiles/file_lock.dir/lock_test.c.o
+[126/127] Building C object tests/file/CMakeFiles/file_lock.dir/__/__/components/file/ports/linux/file_lock.c.o
+[127/127] Linking C executable tests/file/file_lock
+Internal ctest changing into directory: /tmp/m4-native-sanitize
+Test project /tmp/m4-native-sanitize
+      Start  1: Execution.PosixProbes
+ 1/93 Test  #1: Execution.PosixProbes .......................................................   Passed    0.22 sec
+      Start  2: Controller.HostScenario
+ 2/93 Test  #2: Controller.HostScenario .....................................................   Passed    2.11 sec
+      Start  3: TimeApiTest.InitStartsReadyButUnset
+ 3/93 Test  #3: TimeApiTest.InitStartsReadyButUnset .........................................   Passed    0.08 sec
+      Start  4: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+ 4/93 Test  #4: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness ..........................   Passed    0.08 sec
+      Start  5: TimeApiTest.FailedInitialisationCanBeRetried
+ 5/93 Test  #5: TimeApiTest.FailedInitialisationCanBeRetried ................................   Passed    0.08 sec
+      Start  6: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+ 6/93 Test  #6: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend ...................   Passed    0.07 sec
+      Start  7: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+ 7/93 Test  #7: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime ................   Passed    0.07 sec
+      Start  8: TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+ 8/93 Test  #8: TimeApiTest.FailedBackendWriteInvalidatesSessionTime ........................   Passed    0.07 sec
+      Start  9: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+ 9/93 Test  #9: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged .....................   Passed    0.07 sec
+      Start 10: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+10/93 Test #10: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue ........................   Passed    0.07 sec
+      Start 11: TimeApiTest.BackendNoDataClearsCommonValidity
+11/93 Test #11: TimeApiTest.BackendNoDataClearsCommonValidity ...............................   Passed    0.07 sec
+      Start 12: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+12/93 Test #12: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput ........................   Passed    0.07 sec
+      Start 13: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+13/93 Test #13: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds ..........................   Passed    0.06 sec
+      Start 14: TimeCalendar.ConvertsIndependentUnixEpochAnchor
+14/93 Test #14: TimeCalendar.ConvertsIndependentUnixEpochAnchor .............................   Passed    0.06 sec
+      Start 15: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+15/93 Test #15: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors ................   Passed    0.06 sec
+      Start 16: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+16/93 Test #16: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd ..........................   Passed    0.06 sec
+      Start 17: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+17/93 Test #17: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes ..................   Passed    0.06 sec
+      Start 18: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+18/93 Test #18: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput .........................   Passed    0.06 sec
+      Start 19: TimeCalendar.NullArgumentsAreInvalid
+19/93 Test #19: TimeCalendar.NullArgumentsAreInvalid ........................................   Passed    0.06 sec
+      Start 20: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+20/93 Test #20: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay ............................   Passed    0.06 sec
+      Start 21: TimeCommandTest.HelpIdentifiesUtcInput
+21/93 Test #21: TimeCommandTest.HelpIdentifiesUtcInput ......................................   Passed    0.06 sec
+      Start 22: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+22/93 Test #22: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText ........................   Passed    0.06 sec
+      Start 23: TimeCommandTest.SetAndGetUseTheSamePortableHandler
+23/93 Test #23: TimeCommandTest.SetAndGetUseTheSamePortableHandler ..........................   Passed    0.06 sec
+      Start 24: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+24/93 Test #24: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf ........................   Passed    0.06 sec
+      Start 25: TimeCommandTest.HelpIsAnAdapterOutcome
+25/93 Test #25: TimeCommandTest.HelpIsAnAdapterOutcome ......................................   Passed    0.06 sec
+      Start 26: TimeCommandTest.RejectsMalformedSyntaxAndDates
+26/93 Test #26: TimeCommandTest.RejectsMalformedSyntaxAndDates ..............................   Passed    0.06 sec
+      Start 27: TimeCommandTest.MapsOutOfRangeAndIoErrors
+27/93 Test #27: TimeCommandTest.MapsOutOfRangeAndIoErrors ...................................   Passed    0.06 sec
+      Start 28: TimeCommandTest.RejectedWriteNeverCallsBackend
+28/93 Test #28: TimeCommandTest.RejectedWriteNeverCallsBackend ..............................   Passed    0.06 sec
+      Start 29: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+29/93 Test #29: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime ................   Passed    0.06 sec
+      Start 30: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+30/93 Test #30: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover ..........   Passed    0.08 sec
+      Start 31: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+31/93 Test #31: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity ............   Passed    0.07 sec
+      Start 32: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+32/93 Test #32: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule ........................   Passed    0.09 sec
+      Start 33: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+33/93 Test #33: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst .............   Passed    0.07 sec
+      Start 34: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+34/93 Test #34: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline ............   Passed    0.06 sec
+      Start 35: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+35/93 Test #35: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime ......   Passed    0.08 sec
+      Start 36: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+36/93 Test #36: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress ..........   Passed    0.08 sec
+      Start 37: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+37/93 Test #37: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress .............   Passed    0.08 sec
+      Start 38: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+38/93 Test #38: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError ............   Passed    0.07 sec
+      Start 39: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+39/93 Test #39: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering .............   Passed    0.07 sec
+      Start 40: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+40/93 Test #40: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation ...   Passed    0.08 sec
+      Start 41: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+41/93 Test #41: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork ............   Passed    0.10 sec
+      Start 42: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+42/93 Test #42: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom .......   Passed    1.17 sec
+      Start 43: Execution.Conformance
+43/93 Test #43: Execution.Conformance .......................................................   Passed    0.12 sec
+      Start 44: Execution.HostFailures
+44/93 Test #44: Execution.HostFailures ......................................................***Timeout  20.05 sec
+EXECUTION_FAILURES rollback and deadline overflow passed
+
+      Start 45: Execution.HostPoll
+45/93 Test #45: Execution.HostPoll ..........................................................   Passed    0.07 sec
+      Start 46: Execution.HostAdmission
+46/93 Test #46: Execution.HostAdmission .....................................................   Passed    0.37 sec
+      Start 47: Execution.HostPollFinalize
+47/93 Test #47: Execution.HostPollFinalize ..................................................   Passed    0.40 sec
+      Start 48: Queue.Basic
+48/93 Test #48: Queue.Basic .................................................................   Passed    0.04 sec
+      Start 49: Queue.Concurrency
+49/93 Test #49: Queue.Concurrency ...........................................................   Passed    0.05 sec
+      Start 50: Queue.ExpiredReceive
+50/93 Test #50: Queue.ExpiredReceive ........................................................   Passed    0.03 sec
+      Start 51: Queue.ExpiredSend
+51/93 Test #51: Queue.ExpiredSend ...........................................................   Passed    0.03 sec
+      Start 52: Queue.limits
+52/93 Test #52: Queue.limits ................................................................   Passed    0.03 sec
+      Start 53: Queue.mpmc
+53/93 Test #53: Queue.mpmc ..................................................................   Passed    0.04 sec
+      Start 54: Queue.Faults
+54/93 Test #54: Queue.Faults ................................................................   Passed    0.03 sec
+      Start 55: Queue.NativeTimeoutOwnership
+55/93 Test #55: Queue.NativeTimeoutOwnership ................................................   Passed    0.02 sec
+      Start 56: Queue.NativeDeadlineExhaustion
+56/93 Test #56: Queue.NativeDeadlineExhaustion ..............................................   Passed    0.02 sec
+      Start 57: Monotonic.Common
+57/93 Test #57: Monotonic.Common ............................................................   Passed    0.03 sec
+      Start 58: Monotonic.NativeBoundaries
+58/93 Test #58: Monotonic.NativeBoundaries ..................................................   Passed    0.03 sec
+      Start 59: Monotonic.RealHost
+59/93 Test #59: Monotonic.RealHost ..........................................................   Passed    0.05 sec
+      Start 60: Netif.RejectsNull
+60/93 Test #60: Netif.RejectsNull ...........................................................   Passed    0.06 sec
+      Start 61: Netif.PreservesOutputWhenObservationFails
+61/93 Test #61: Netif.PreservesOutputWhenObservationFails ...................................   Passed    0.06 sec
+      Start 62: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
+62/93 Test #62: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown ..........................   Passed    0.06 sec
+      Start 63: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
+63/93 Test #63: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier ....................   Passed    0.07 sec
+      Start 64: Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
+64/93 Test #64: Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal ......................   Passed    0.11 sec
+      Start 65: NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
+65/93 Test #65: NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin ..................   Passed    0.07 sec
+      Start 66: Client.TcpHandlesShortTransfersWithinOneDeadline
+66/93 Test #66: Client.TcpHandlesShortTransfersWithinOneDeadline ............................   Passed    0.10 sec
+      Start 67: Client.RetriesInterruptedPollAndWouldBlock
+67/93 Test #67: Client.RetriesInterruptedPollAndWouldBlock ..................................   Passed    0.06 sec
+      Start 68: Client.RepeatedInterruptionsCannotExtendDeadline
+68/93 Test #68: Client.RepeatedInterruptionsCannotExtendDeadline ............................   Passed    0.06 sec
+      Start 69: Client.SilenceExpires
+69/93 Test #69: Client.SilenceExpires .......................................................   Passed    0.06 sec
+      Start 70: Client.ConnectPollReadinessStillRequiresSocketError
+70/93 Test #70: Client.ConnectPollReadinessStillRequiresSocketError .........................   Passed    0.06 sec
+      Start 71: Client.HangupIsReadAsEof
+71/93 Test #71: Client.HangupIsReadAsEof ....................................................   Passed    0.06 sec
+      Start 72: Client.FailedCloseIsNeverRetried
+72/93 Test #72: Client.FailedCloseIsNeverRetried ............................................   Passed    0.07 sec
+      Start 73: Client.FailedCreationOwnsNoDescriptor
+73/93 Test #73: Client.FailedCreationOwnsNoDescriptor .......................................   Passed    0.07 sec
+      Start 74: Client.SetupFailureClosesDescriptor
+74/93 Test #74: Client.SetupFailureClosesDescriptor .........................................   Passed    0.07 sec
+      Start 75: Client.SendFailureClosesDescriptor
+75/93 Test #75: Client.SendFailureClosesDescriptor ..........................................   Passed    0.06 sec
+      Start 76: Client.RejectsInvalidInputBeforeSocketCreation
+76/93 Test #76: Client.RejectsInvalidInputBeforeSocketCreation ..............................   Passed    0.06 sec
+      Start 77: Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
+77/93 Test #77: Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize ....................   Passed    0.09 sec
+      Start 78: Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
+78/93 Test #78: Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics ........................   Passed    0.08 sec
+      Start 79: Client.RejectsCorruptEcho
+79/93 Test #79: Client.RejectsCorruptEcho ...................................................   Passed    0.06 sec
+      Start 80: Client.ClockFailureOwnsNoSocket
+80/93 Test #80: Client.ClockFailureOwnsNoSocket .............................................   Passed    0.07 sec
+      Start 81: Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
+81/93 Test #81: Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce .......................   Passed    0.07 sec
+      Start 82: Client.WouldBlockCannotRenewOverallDeadline
+82/93 Test #82: Client.WouldBlockCannotRenewOverallDeadline .................................   Passed    0.07 sec
+      Start 83: Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+83/93 Test #83: Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer .....................   Passed    0.07 sec
+      Start 84: Client.RuntimeRetriesInterruptedPoll
+84/93 Test #84: Client.RuntimeRetriesInterruptedPoll ........................................   Passed    0.08 sec
+      Start 85: Client.RuntimeInterruptionsCannotRenewDeadline
+85/93 Test #85: Client.RuntimeInterruptionsCannotRenewDeadline ..............................   Passed    0.07 sec
+      Start 86: Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+86/93 Test #86: Client.RuntimeReadinessAfterExpiryDoesNotPermitSend .........................   Passed    0.06 sec
+      Start 87: Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+87/93 Test #87: Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno .....................   Passed    0.06 sec
+      Start 88: Networking.RealHostStack
+88/93 Test #88: Networking.RealHostStack ....................................................   Passed    2.52 sec
+      Start 89: Configuration.Conformance
+89/93 Test #89: Configuration.Conformance ...................................................   Passed    0.05 sec
+      Start 90: Configuration.ControllerScenario
+90/93 Test #90: Configuration.ControllerScenario ............................................   Passed    0.04 sec
+      Start 91: File.file_fault
+91/93 Test #91: File.file_fault .............................................................   Passed    0.04 sec
+      Start 92: File.file_host
+92/93 Test #92: File.file_host ..............................................................   Passed    0.05 sec
+      Start 93: File.SleepableLock
+93/93 Test #93: File.SleepableLock ..........................................................   Passed    0.05 sec
+
+99% tests passed, 1 tests failed out of 93
+
+Total Test time (real) =  32.37 sec
+
+The following tests FAILED:
+	 44 - Execution.HostFailures (Timeout)
+Errors while running CTest
