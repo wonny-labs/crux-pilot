@@ -20,37 +20,47 @@ config CRUX_TIME_TESTING
 	help
 	  Include private state-reset hooks for Crux Zephyr tests.
 
-config CRUX_EXECUTION
-	bool "Crux portable execution capability"
+config CRUX_THREAD
+	bool "Crux bounded joinable threads"
 	depends on MULTITHREADING
 	select TIMEOUT_64BIT
 	help
-	  Bounded joinable threads, nonrecursive mutexes and counting semaphores.
-	  Providers use native kernel objects; consumers use only the portable contract.
+	  Component-owned bounded joinable threads using native kernel objects.
 
-if CRUX_EXECUTION
+if CRUX_THREAD
 
-config CRUX_EXECUTION_THREAD_COUNT
-	int "Execution worker slots"
+config CRUX_THREAD_COUNT
+	int "Thread worker slots"
 	default 4
 	range 1 64
 
-config CRUX_EXECUTION_MUTEX_COUNT
-	int "Execution mutex slots"
-	default 8
-	range 1 64
-
-config CRUX_EXECUTION_SEMAPHORE_COUNT
-	int "Execution semaphore slots"
-	default 8
-	range 1 64
-
-config CRUX_EXECUTION_STACK_BYTES
+config CRUX_THREAD_STACK_BYTES
 	int "Minimum usable bytes per worker stack"
 	default 4096
 	range 1024 65536
 
-endif # CRUX_EXECUTION
+endif # CRUX_THREAD
+
+config CRUX_SYNC
+	bool "Crux mutexes and counting semaphores"
+	depends on MULTITHREADING
+	select TIMEOUT_64BIT
+	help
+	  Component-owned mutexes and counting semaphores using native kernel objects.
+
+if CRUX_SYNC
+
+config CRUX_SYNC_MUTEX_COUNT
+	int "Sync mutex slots"
+	default 8
+	range 1 64
+
+config CRUX_SYNC_SEMAPHORE_COUNT
+	int "Sync semaphore slots"
+	default 8
+	range 1 64
+
+endif # CRUX_SYNC
 
 endif # CRUX_PILOT_MODULE
 

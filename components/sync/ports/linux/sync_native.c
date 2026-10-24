@@ -1,5 +1,54 @@
-#include "execution_internal.h"
+#include "sync_internal.h"
+
 #include <errno.h>
+#include <limits.h>
+
+static pthread_mutex_t sync_metadata = PTHREAD_MUTEX_INITIALIZER;
+
+_Static_assert(sizeof(time_t) == sizeof(int64_t), "Host provider requires 64-bit time_t");
+
+bool sync_native_context_allowed(void) {
+    return true;
+}
+
+void sync_native_metadata_lock(void) {
+    (void)pthread_mutex_lock(&sync_metadata);
+}
+
+crux_status_t sync_native_metadata_lock_until(const sync_native_deadline_t *deadline) {
+    int result = deadline->poll ? pthread_mutex_trylock(&sync_metadata)
+                                : pthread_mutex_clocklock(&sync_metadata, CLOCK_MONOTONIC,
+                                                          &deadline->absolute);
+    if (result == 0) {
+        return CRUX_OK;
+    }
+    if (result == ETIMEDOUT) {
+        return CRUX_ERR_TIMEOUT;
+    }
+    return result == EBUSY ? CRUX_ERR_BUSY : CRUX_ERR_IO;
+}
+
+void sync_native_metadata_unlock(void) {
+    (void)pthread_mutex_unlock(&sync_metadata);
+}
+
+crux_status_t sync_native_deadline(uint32_t timeout_ms, sync_native_deadline_t *out) {
+    if (timeout_ms > INT32_MAX) {
+        return CRUX_ERR_OUT_OF_RANGE;
+    }
+    out->poll = timeout_ms == 0;
+    if (clock_gettime(CLOCK_MONOTONIC, &out->absolute) != 0) {
+        return CRUX_ERR_IO;
+    }
+    long nanoseconds = out->absolute.tv_nsec + (long)(timeout_ms % 1000) * 1000000L;
+    int64_t seconds = timeout_ms / 1000 + nanoseconds / 1000000000L;
+    if (out->absolute.tv_sec < 0 || out->absolute.tv_sec > INT64_MAX - seconds) {
+        return CRUX_ERR_OUT_OF_RANGE;
+    }
+    out->absolute.tv_sec += seconds;
+    out->absolute.tv_nsec = nanoseconds % 1000000000L;
+    return CRUX_OK;
+}
 
 static crux_status_t native_result(int result) {
     switch (result) {
@@ -16,13 +65,13 @@ static crux_status_t native_result(int result) {
         return CRUX_ERR_IO;
     }
 }
-exec_native_identity_t exec_native_current(void) {
+sync_native_identity_t sync_native_current(void) {
     return pthread_self();
 }
-bool exec_native_identity_equal(exec_native_identity_t first, exec_native_identity_t second) {
+bool sync_native_identity_equal(sync_native_identity_t first, sync_native_identity_t second) {
     return pthread_equal(first, second) != 0;
 }
-crux_status_t exec_native_mutex_create(exec_native_mutex_t *mutex) {
+crux_status_t sync_native_mutex_create(sync_native_mutex_t *mutex) {
     pthread_mutexattr_t attributes;
     int result = pthread_mutexattr_init(&attributes);
     if (result != 0)
@@ -33,8 +82,8 @@ crux_status_t exec_native_mutex_create(exec_native_mutex_t *mutex) {
     (void)pthread_mutexattr_destroy(&attributes);
     return native_result(result);
 }
-crux_status_t exec_native_mutex_lock(exec_native_mutex_t *mutex,
-                                     const exec_native_deadline_t *deadline) {
+crux_status_t sync_native_mutex_lock(sync_native_mutex_t *mutex,
+                                     const sync_native_deadline_t *deadline) {
     int result;
     do {
         result = deadline->poll
@@ -43,15 +92,15 @@ crux_status_t exec_native_mutex_lock(exec_native_mutex_t *mutex,
     } while (result == EINTR);
     return native_result(result);
 }
-crux_status_t exec_native_mutex_unlock(exec_native_mutex_t *mutex) {
+crux_status_t sync_native_mutex_unlock(sync_native_mutex_t *mutex) {
     return native_result(pthread_mutex_unlock(mutex));
 }
-crux_status_t exec_native_mutex_destroy(exec_native_mutex_t *mutex) {
+crux_status_t sync_native_mutex_destroy(sync_native_mutex_t *mutex) {
     return native_result(pthread_mutex_destroy(mutex));
 }
 /* Keep the public initial/maximum order at the native boundary. */
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-crux_status_t exec_native_semaphore_create(exec_native_semaphore_t *semaphore, uint32_t initial,
+crux_status_t sync_native_semaphore_create(sync_native_semaphore_t *semaphore, uint32_t initial,
                                            uint32_t maximum) {
     int result = pthread_mutex_init(&semaphore->lock, NULL);
     if (result != 0)
@@ -74,8 +123,8 @@ crux_status_t exec_native_semaphore_create(exec_native_semaphore_t *semaphore, u
     semaphore->maximum = maximum;
     return CRUX_OK;
 }
-crux_status_t exec_native_semaphore_take(exec_native_semaphore_t *semaphore,
-                                         const exec_native_deadline_t *deadline) {
+crux_status_t sync_native_semaphore_take(sync_native_semaphore_t *semaphore,
+                                         const sync_native_deadline_t *deadline) {
     int result = deadline->poll ? pthread_mutex_trylock(&semaphore->lock)
                                 : pthread_mutex_clocklock(&semaphore->lock, CLOCK_MONOTONIC,
                                                           &deadline->absolute);
@@ -97,7 +146,7 @@ crux_status_t exec_native_semaphore_take(exec_native_semaphore_t *semaphore,
     (void)pthread_mutex_unlock(&semaphore->lock);
     return native_result(result);
 }
-crux_status_t exec_native_semaphore_give(exec_native_semaphore_t *semaphore) {
+crux_status_t sync_native_semaphore_give(sync_native_semaphore_t *semaphore) {
     int result = pthread_mutex_lock(&semaphore->lock);
     if (result != 0)
         return native_result(result);
@@ -110,7 +159,7 @@ crux_status_t exec_native_semaphore_give(exec_native_semaphore_t *semaphore) {
     (void)pthread_mutex_unlock(&semaphore->lock);
     return native_result(result);
 }
-crux_status_t exec_native_semaphore_destroy(exec_native_semaphore_t *semaphore) {
+crux_status_t sync_native_semaphore_destroy(sync_native_semaphore_t *semaphore) {
     int result = pthread_cond_destroy(&semaphore->changed);
     if (result == 0)
         result = pthread_mutex_destroy(&semaphore->lock);

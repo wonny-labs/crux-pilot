@@ -61,8 +61,10 @@ class NativeInterfaceTest(unittest.TestCase):
         for header in ("../zephyr/private.h", "../host/private.h", "../../tests/control.h",
                        "../ports/linux/detail.h", "../ports/zephyr/detail.h",
                        "../../vendor/chip.h", "../../boards/board.h", "../private/state.h",
-                       "../../ports/linux/execution_native_types.h",
-                       "../../ports/zephyr/execution_native_types.h",
+                       "../../ports/linux/thread_native_types.h",
+                       "../../ports/zephyr/thread_native_types.h",
+                       "../../ports/linux/sync_native_types.h",
+                       "../../ports/zephyr/sync_native_types.h",
                        "../ports/linux/private.h", "../ports/zephyr/private.h"):
             with self.subTest(header=header):
                 result = self.check_source(f'#include "{header}"\n')
@@ -98,7 +100,9 @@ class NativeInterfaceTest(unittest.TestCase):
                      "tests/configuration_consumer/consumer.c",
                      "tests/configuration_consumer/consumer.cpp",
                      "tests/file_consumer/consumer.c", "tests/file_consumer/consumer.cpp",
-                     "tests/file_consumer/consumer.h"):
+                     "tests/file_consumer/consumer.h",
+                     "tests/thread_sync_consumer/consumer.c",
+                     "tests/thread_sync_consumer/consumer.cpp"):
             with self.subTest(path=path):
                 result = self.check_source("k_timeout_t timeout;", path)
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
@@ -126,8 +130,12 @@ class NativeInterfaceTest(unittest.TestCase):
         for path in ("components/time/ports/zephyr/backend.c", "components/time/ports/linux/backend.c",
                      "components/time/zephyr/backend.c", "components/time/host/backend.c",
                      "components/runtime/zephyr/thread.c",
-                     "components/execution/ports/linux/execution_native.c",
-                     "components/execution/ports/zephyr/execution_native.c",
+                     "components/thread/ports/linux/thread_native.c",
+                     "components/thread/ports/zephyr/thread_native.c",
+                     "components/sync/ports/linux/sync_native.c",
+                     "components/sync/ports/zephyr/sync_native.c",
+                     "tests/thread_sync_consumer/native_worker.c",
+                     "tests/thread_sync_consumer/zephyr/native_worker.c",
                      "components/queue/ports/linux/queue_port.c",
                      "components/queue/ports/zephyr/queue_port.c",
                      "components/monotonic/ports/linux/monotonic_host.c",
@@ -193,7 +201,10 @@ const char *escaped = "\\\" k_sem_take";
                              "tests/execution_runtime/src/runtime_fixture.c",
                              "tests/execution_firmware/src/consumer.c",
                              "tests/execution_firmware/src/main.cpp",
-                             "components/execution/include/crux/execution.h",
+                             "components/thread/include/crux/thread.h",
+                             "components/sync/include/crux/sync.h",
+                             "tests/thread_sync_consumer/consumer.c",
+                             "tests/thread_sync_consumer/consumer.cpp",
                              "samples/networking/client.c", "samples/networking/client.h",
                              "tests/networking_physical/transaction.c",
                              "tests/networking_physical/frame.c", "tests/networking_physical/frame.h",

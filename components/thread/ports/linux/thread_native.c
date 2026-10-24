@@ -1,24 +1,24 @@
-#include "execution_internal.h"
+#include "thread_internal.h"
 
 #include <errno.h>
 #include <limits.h>
 
-static pthread_mutex_t metadata = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t thread_metadata = PTHREAD_MUTEX_INITIALIZER;
 
 _Static_assert(sizeof(time_t) == sizeof(int64_t), "Host provider requires 64-bit time_t");
 
-bool exec_native_context_allowed(void) {
+bool thread_native_context_allowed(void) {
     return true;
 }
 
-void exec_native_metadata_lock(void) {
-    (void)pthread_mutex_lock(&metadata);
+void thread_native_metadata_lock(void) {
+    (void)pthread_mutex_lock(&thread_metadata);
 }
 
-crux_status_t exec_native_metadata_lock_until(const exec_native_deadline_t *deadline) {
-    int result = deadline->poll
-                     ? pthread_mutex_trylock(&metadata)
-                     : pthread_mutex_clocklock(&metadata, CLOCK_MONOTONIC, &deadline->absolute);
+crux_status_t thread_native_metadata_lock_until(const thread_native_deadline_t *deadline) {
+    int result = deadline->poll ? pthread_mutex_trylock(&thread_metadata)
+                                : pthread_mutex_clocklock(&thread_metadata, CLOCK_MONOTONIC,
+                                                          &deadline->absolute);
     if (result == 0) {
         return CRUX_OK;
     }
@@ -28,11 +28,11 @@ crux_status_t exec_native_metadata_lock_until(const exec_native_deadline_t *dead
     return result == EBUSY ? CRUX_ERR_BUSY : CRUX_ERR_IO;
 }
 
-void exec_native_metadata_unlock(void) {
-    (void)pthread_mutex_unlock(&metadata);
+void thread_native_metadata_unlock(void) {
+    (void)pthread_mutex_unlock(&thread_metadata);
 }
 
-crux_status_t exec_native_deadline(uint32_t timeout_ms, exec_native_deadline_t *out) {
+crux_status_t thread_native_deadline(uint32_t timeout_ms, thread_native_deadline_t *out) {
     if (timeout_ms > INT32_MAX) {
         return CRUX_ERR_OUT_OF_RANGE;
     }
@@ -51,14 +51,14 @@ crux_status_t exec_native_deadline(uint32_t timeout_ms, exec_native_deadline_t *
 }
 
 static void *run_thread(void *argument) {
-    exec_native_thread_t *thread = argument;
+    thread_native_thread_t *thread = argument;
     thread->entry(thread->argument);
     return NULL;
 }
 
-crux_status_t exec_native_thread_create(exec_native_thread_t *thread, crux_thread_entry_t entry,
-                                        void *argument, uint32_t slot,
-                                        const crux_thread_options_t *options) {
+crux_status_t thread_native_thread_create(thread_native_thread_t *thread, crux_thread_entry_t entry,
+                                          void *argument, uint32_t slot,
+                                          const crux_thread_options_t *options) {
     (void)slot;
     /* Functional Host provider uses unprivileged normal scheduling. */
     if (options->stack_size_bytes > 65536) {
@@ -82,12 +82,12 @@ crux_status_t exec_native_thread_create(exec_native_thread_t *thread, crux_threa
     return result == EAGAIN || result == ENOMEM ? CRUX_ERR_NO_RESOURCES : CRUX_ERR_IO;
 }
 
-bool exec_native_thread_is_current(const exec_native_thread_t *thread) {
+bool thread_native_thread_is_current(const thread_native_thread_t *thread) {
     return pthread_equal(thread->id, pthread_self()) != 0;
 }
 
-crux_status_t exec_native_thread_join(exec_native_thread_t *thread,
-                                      const exec_native_deadline_t *deadline) {
+crux_status_t thread_native_thread_join(thread_native_thread_t *thread,
+                                        const thread_native_deadline_t *deadline) {
     int result;
     do {
         result = deadline->poll

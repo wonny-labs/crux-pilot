@@ -111,10 +111,16 @@ These inform the comparison; they are not compliance obligations for Crux.
 
 ### Ownership, resources and errors
 
-- Public ownership: `components/execution/include/crux/execution.h`, with C/C++
-  compatible C17 declarations and no native headers/types. Consumers link
-  `crux::execution`; final composition selects exactly one Host or Zephyr provider.
-  Providers own their native objects, stacks, build configuration and private headers.
+- Current public ownership: `components/thread/include/crux/thread.h` and
+  `components/sync/include/crux/sync.h`, with C/C++ compatible C17 declarations and
+  no native headers/types. Consumers link `crux::thread` and/or `crux::sync` for the
+  capabilities they use. Final composition selects each native provider independently.
+  Sync uses native OS identity without depending on Crux Thread. Each component owns
+  its resource metadata lock and absolute-deadline helpers; neither accesses the
+  other's resource state. Providers own their native objects, stacks, build
+  configuration and private headers. This authorized ownership migration removes
+  the old Execution header/target while retaining all C identifiers, handle layouts
+  and behavioral clauses below. See [current build usage](../README.md#architecture).
 - Handles are distinct portable value types per resource kind, backed by a slot
   and generation. Zero is invalid. Validate null output pointers and invalid/stale
   handles; generation wrap must retire a slot rather than make an old handle valid.
@@ -140,7 +146,7 @@ These inform the comparison; they are not compliance obligations for Crux.
   Concurrent join admission returns busy. This is not automatic cancellation or
   permission for callers to race fresh admissions against destruction.
 
-The declaration shape below is implemented in the capability-owned public header.
+The declaration shape below is implemented in the component-owned public headers.
 The handle types are distinct portable structs containing reserved 32-bit slot and
 generation fields; consumers treat them as opaque values. The thread-options type
 contains `size_t stack_size_bytes` and the priority-class enum. Both are mandatory

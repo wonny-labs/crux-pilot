@@ -59,10 +59,6 @@ class ConsumerBoundaryTest(unittest.TestCase):
                      f'{REPO}/components/time/src',
                      f'{REPO}/components/time/ports/linux',
                      f'{REPO}/components/time/ports/zephyr',
-                     f'{REPO}/components/execution/host',
-                     f'{REPO}/components/execution/zephyr',
-                     f'{REPO}/components/execution/ports/linux',
-                     f'{REPO}/components/execution/ports/zephyr',
                      f'{REPO}/components/netif/host',
                      f'{REPO}/components/netif/zephyr',
                      f'{REPO}/components/netif/ports/linux',
@@ -79,8 +75,8 @@ class ConsumerBoundaryTest(unittest.TestCase):
                 self.assertIn("native consumer requirement", result.stdout + result.stderr)
 
     def test_component_private_port_includes_are_rejected(self):
-        for component in ('queue', 'monotonic'):
-            for port in ('host', 'zephyr', 'ports/linux', 'ports/zephyr'):
+        for component in ('thread', 'sync', 'queue', 'monotonic'):
+            for port in ('src', 'host', 'zephyr', 'ports/linux', 'ports/zephyr'):
                 for public in (False, True):
                     with self.subTest(component=component, port=port, public=public):
                         path = f'{REPO}/components/{component}/{port}'
@@ -121,8 +117,6 @@ class ConsumerBoundaryTest(unittest.TestCase):
         for requirement in ('target_link_libraries(consumer PRIVATE zephyr_interface)',
                             'target_link_libraries(consumer PRIVATE nxp_sdk)',
                             'target_include_directories(consumer PRIVATE /sdk/zephyr/include)',
-                            f'target_include_directories(consumer PRIVATE {REPO}/components/execution/ports/linux)',
-                            f'target_include_directories(consumer PRIVATE {REPO}/components/execution/ports/zephyr)',
                             f'target_include_directories(consumer PRIVATE {REPO}/components/netif/ports/linux)',
                             f'target_include_directories(consumer PRIVATE {REPO}/components/netif/ports/zephyr)'):
             with self.subTest(requirement=requirement):
@@ -263,7 +257,7 @@ class ConsumerBoundaryTest(unittest.TestCase):
 
     def test_real_messaging_facades_preserve_selected_toolchain_flags(self):
         result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
-                                'set(CONFIG_CRUX_TIME OFF)\nset(CONFIG_CRUX_EXECUTION ON)\n'
+                                'set(CONFIG_CRUX_TIME OFF)\nset(CONFIG_CRUX_THREAD ON)\nset(CONFIG_CRUX_SYNC ON)\n'
                                 'set(CONFIG_CRUX_QUEUE ON)\nset(CONFIG_CRUX_MONOTONIC ON)\n'
                                 'add_custom_target(zephyr_generated_headers)\n'
                                 'function(zephyr_append_cmake_library name)\n'
@@ -272,16 +266,21 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                 'set(SYSROOT_DIR "/sdk/zephyr/standard")\n'
                                 'set(TOOLCHAIN_C_FLAGS "--sysroot=/sdk/zephyr/standard;-mcpu=cortex-m7")\n'
                                 f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'
-                                'crux_assert_portable_usage(crux::execution crux::queue crux::monotonic)\n'
+                                'crux_assert_portable_usage(crux::thread crux::sync crux::queue crux::monotonic)\n'
                                 'get_property(libraries GLOBAL PROPERTY ZEPHYR_LIBS)\n'
-                                'if(NOT "crux_execution_zephyr" IN_LIST libraries)\n'
-                                'message(FATAL_ERROR "missing native execution registration")\nendif()\n'
-                                'get_target_property(execution_includes crux_execution_api INTERFACE_INCLUDE_DIRECTORIES)\n'
-                                f'if(NOT execution_includes STREQUAL "{REPO}/components/execution/include")\n'
-                                'message(FATAL_ERROR "execution public include path is not canonical")\nendif()\n'
-                                'get_target_property(execution_flags crux_execution_api INTERFACE_COMPILE_OPTIONS)\n'
-                                'if(NOT "--sysroot=/sdk/zephyr/standard" IN_LIST execution_flags OR NOT "-mcpu=cortex-m7" IN_LIST execution_flags)\n'
-                                'message(FATAL_ERROR "execution toolchain flags lost")\nendif()\n'
+                                'foreach(component IN ITEMS thread sync)\n'
+                                'if(NOT "crux_${component}_zephyr" IN_LIST libraries)\n'
+                                'message(FATAL_ERROR "missing native ${component} registration")\nendif()\n'
+                                'get_target_property(includes crux_${component}_api INTERFACE_INCLUDE_DIRECTORIES)\n'
+                                f'if(NOT includes STREQUAL "{REPO}/components/${{component}}/include")\n'
+                                'message(FATAL_ERROR "${component} public include path is not canonical")\nendif()\n'
+                                'get_target_property(flags crux_${component}_api INTERFACE_COMPILE_OPTIONS)\n'
+                                'if(NOT "--sysroot=/sdk/zephyr/standard" IN_LIST flags OR NOT "-mcpu=cortex-m7" IN_LIST flags)\n'
+                                'message(FATAL_ERROR "${component} toolchain flags lost")\nendif()\n'
+                                'get_target_property(sources crux_${component}_zephyr SOURCES)\n'
+                                'if(NOT "${sources}" MATCHES "src/${component}[.]c" OR NOT "${sources}" MATCHES "ports/zephyr/${component}_native[.]c")\n'
+                                'message(FATAL_ERROR "missing native ${component} implementation")\nendif()\n'
+                                'endforeach()\n'
                                 'get_target_property(flags crux_queue INTERFACE_COMPILE_OPTIONS)\n'
                                 'if(NOT "--sysroot=/sdk/zephyr/standard" IN_LIST flags OR NOT "-mcpu=cortex-m7" IN_LIST flags)\n'
                                 'message(FATAL_ERROR "toolchain flags lost")\nendif()\n')
