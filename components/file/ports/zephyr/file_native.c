@@ -6,9 +6,13 @@
 #include <string.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/kernel.h>
-/* Target writable storage is intentionally not enabled by this provider PoC. */
-#if !defined(CONFIG_BOARD_NATIVE_SIM) || !defined(CONFIG_FLASH_SIMULATOR)
-#error "File provider is qualified for simulated Flash only"
+/* Only the exact experimental sample CMake may grant this private exception. */
+#if defined(CRUX_RT1060_STORAGE_SAMPLE)
+#if !defined(CONFIG_SOC_MIMXRT1062) || !defined(CONFIG_FILE_SYSTEM_LITTLEFS)
+#error "File target exception requires the private RT1060 LittleFS sample"
+#endif
+#elif !defined(CONFIG_BOARD_NATIVE_SIM) || !defined(CONFIG_FLASH_SIMULATOR)
+#error "File provider requires explicit simulated Flash composition"
 #endif
 K_MUTEX_DEFINE(file_lock);
 static struct fs_file_t handles[CRUX_FILE_POOL_SIZE];

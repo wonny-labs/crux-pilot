@@ -8,6 +8,9 @@
 #include <errno.h>
 #include <string.h>
 #include <zephyr/storage/flash_map.h>
+#ifndef CRUX_MAINTENANCE_FILE_PARTITION
+#define CRUX_MAINTENANCE_FILE_PARTITION file_test_partition
+#endif
 static bool handles[CRUX_FILE_POOL_SIZE];
 static bool ended, uncertain, provisioning;
 unsigned maintenance_file_dispatches;
@@ -122,7 +125,7 @@ void maintenance_provisioning(bool enabled) {
     provisioning = enabled;
 }
 static bool permit_file_media(const struct flash_area *fa) {
-    if (fa->fa_id != PARTITION_ID(file_test_partition) || provisioning || allowed())
+    if (fa->fa_id != PARTITION_ID(CRUX_MAINTENANCE_FILE_PARTITION) || provisioning || allowed())
         return true;
     ++maintenance_media_denied;
     return false;
@@ -131,10 +134,10 @@ extern int __real_flash_area_write(const struct flash_area *, off_t, const void 
 int __wrap_flash_area_write(const struct flash_area *fa, off_t off, const void *bytes, size_t len) {
     if (!permit_file_media(fa))
         return -EACCES;
-    if (fa->fa_id == PARTITION_ID(file_test_partition))
+    if (fa->fa_id == PARTITION_ID(CRUX_MAINTENANCE_FILE_PARTITION))
         ++maintenance_media_writes;
     int rc = __real_flash_area_write(fa, off, bytes, len);
-    if (rc && fa->fa_id == PARTITION_ID(file_test_partition))
+    if (rc && fa->fa_id == PARTITION_ID(CRUX_MAINTENANCE_FILE_PARTITION))
         storage_uncertain();
     return rc;
 }
@@ -142,10 +145,10 @@ extern int __real_flash_area_erase(const struct flash_area *, off_t, size_t);
 int __wrap_flash_area_erase(const struct flash_area *fa, off_t off, size_t len) {
     if (!permit_file_media(fa))
         return -EACCES;
-    if (fa->fa_id == PARTITION_ID(file_test_partition))
+    if (fa->fa_id == PARTITION_ID(CRUX_MAINTENANCE_FILE_PARTITION))
         ++maintenance_media_erases;
     int rc = __real_flash_area_erase(fa, off, len);
-    if (rc && fa->fa_id == PARTITION_ID(file_test_partition))
+    if (rc && fa->fa_id == PARTITION_ID(CRUX_MAINTENANCE_FILE_PARTITION))
         storage_uncertain();
     return rc;
 }
@@ -153,10 +156,10 @@ extern int __real_flash_area_flatten(const struct flash_area *, off_t, size_t);
 int __wrap_flash_area_flatten(const struct flash_area *fa, off_t off, size_t len) {
     if (!permit_file_media(fa))
         return -EACCES;
-    if (fa->fa_id == PARTITION_ID(file_test_partition))
+    if (fa->fa_id == PARTITION_ID(CRUX_MAINTENANCE_FILE_PARTITION))
         ++maintenance_media_erases;
     int rc = __real_flash_area_flatten(fa, off, len);
-    if (rc && fa->fa_id == PARTITION_ID(file_test_partition))
+    if (rc && fa->fa_id == PARTITION_ID(CRUX_MAINTENANCE_FILE_PARTITION))
         storage_uncertain();
     return rc;
 }

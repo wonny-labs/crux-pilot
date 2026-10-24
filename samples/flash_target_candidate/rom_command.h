@@ -22,6 +22,8 @@ struct crux_rom_request {
 /* Preparation copies input before busy context; output remains in private RAM. */
 int crux_rom_command_prepare(const struct crux_rom_request *request);
 int crux_rom_command_dispatch(void);
+/* Copy only a completed READ result, exact length, once, after known-ready return. */
+int crux_rom_command_read_result(void *bytes, size_t length);
 int crux_rom_command_submit(const struct crux_rom_request *request);
 int crux_rom_memc_bind(struct device *copy);
 bool crux_rom_slot_installed(void);

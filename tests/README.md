@@ -242,3 +242,10 @@ RAM command investigation. These gates inspect staged pinned sources and ARM
 artifacts or run controlled software effects; they never operate hardware.
 Focused gates are separate from standard hosted CI. No successful build or
 software test permits programming or booting the candidate image.
+
+The [isolated RT1060 File/Configuration connection](../docs/rt1060-storage-integration.md)
+adds a sample-private owner/adapter and actual-engine simulator composition. Its
+[manual gate](../docs/evidence/rt1060-storage-integration/verification.md) includes
+restrictive selection, read-result/partial-error checks, deferred initialization,
+ARM public-consumer ABI and one-way maintenance handoff. Target admission stays
+refused and main is inert; no hardware execution is authorised.

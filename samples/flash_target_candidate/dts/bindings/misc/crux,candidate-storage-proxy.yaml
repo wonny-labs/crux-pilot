@@ -1,0 +1,3 @@
+description: Private compile-only maintenance owner for the RT1060 storage experiment
+compatible: "crux,candidate-storage-proxy"
+include: base.yaml

@@ -1,0 +1,259 @@
+{
+  "implementation": "32632f2e76aecbc6ebeb41387e0a9579141d35d9",
+  "implementation_tree": "85c443558ddc6d0e1cb257b14ea9c653032872b1",
+  "test_only_startup_repair": "5cb6a17ab58135a30b06832ad1ef363a2ec49db7",
+  "unreviewed_delta_from": "d124f13d6d38c0956554bdd482316521736f015e",
+  "main": "69e26c7b029016fe48c016953a865c9c763b5b94",
+  "dependency_order": [
+    {
+      "pr": "51",
+      "head": "5c28872d6f3bb56e9cc33056dabc34a8a6fc9473"
+    },
+    {
+      "pr": "56",
+      "head": "b31f4f05c053c8141543db9ac1e9c3d2620b16eb"
+    },
+    {
+      "pr": "59",
+      "head": "d073500cb8e4f75de2a7b5e0a211cc661832c864"
+    },
+    {
+      "pr": "62",
+      "head": "6882a84d953348f7ece98c1c2b6d8c2e7de2546d"
+    },
+    {
+      "pr": "63",
+      "head": "a9928a53eb1bb85b5d37adaefbefced438f15687"
+    },
+    {
+      "pr": "66",
+      "head": "32632f2e76aecbc6ebeb41387e0a9579141d35d9"
+    }
+  ],
+  "disposable_union_tree": "0ae599875d7f3ad49479c077b28f853f72dcf0f9",
+  "main_components_identical": [
+    "components/time",
+    "components/thread",
+    "components/sync",
+    "components/queue",
+    "components/monotonic",
+    "components/serial",
+    "components/logging",
+    "components/sockets",
+    "components/netif"
+  ],
+  "plan_51_exact_blob": true,
+  "plan_lines": 58,
+  "arm_python_per_snapshot": {
+    "rt1060_storage_integration": {
+      "count": 12,
+      "seconds": 36.045,
+      "status": "PASS",
+      "skipped": 0
+    },
+    "rom_command_candidate": {
+      "count": 33,
+      "seconds": 29.409,
+      "status": "PASS",
+      "skipped": 0
+    },
+    "rom_storage_candidate": {
+      "count": 7,
+      "seconds": 2.725,
+      "status": "PASS",
+      "skipped": 0
+    },
+    "maintenance_island": {
+      "count": 26,
+      "seconds": 30.235,
+      "status": "PASS",
+      "skipped": 0
+    },
+    "maintenance_boot": {
+      "count": 3,
+      "seconds": 0.416,
+      "status": "PASS",
+      "skipped": 0
+    },
+    "flash_target_candidate": {
+      "count": 15,
+      "seconds": 8.459,
+      "status": "PASS",
+      "skipped": 0
+    }
+  },
+  "branch_storage_modes": {
+    "normal": {
+      "status": "PASS",
+      "trace": [
+        "FIXED_TRIAL commands=1816 settings_reads=928 writes=24 erases=0 one_way=1"
+      ]
+    },
+    "refused": {
+      "status": "PASS",
+      "trace": [
+        "REFUSED_PREREQUISITES commands=0 devices_ready=0"
+      ]
+    },
+    "unprovisioned": {
+      "status": "PASS",
+      "trace": [
+        "UNPROVISIONED refused=1 file_mutations=0 nvs_mutations=0 one_way=1"
+      ]
+    },
+    "scratch": {
+      "status": "PASS",
+      "trace": [
+        "SCRATCH_ONLY failed=0 commands=3 mutations=2 one_way=1"
+      ]
+    },
+    "scratch-fail": {
+      "status": "PASS",
+      "trace": [
+        "SCRATCH_ONLY failed=1 commands=2 mutations=2 one_way=1"
+      ]
+    }
+  },
+  "union": {
+    "arm_python": {
+      "rt1060_storage_integration": {
+        "count": 12,
+        "seconds": 30.122,
+        "status": "PASS",
+        "skipped": 0
+      },
+      "rom_command_candidate": {
+        "count": 33,
+        "seconds": 29.514,
+        "status": "PASS",
+        "skipped": 0
+      },
+      "rom_storage_candidate": {
+        "count": 7,
+        "seconds": 2.11,
+        "status": "PASS",
+        "skipped": 0
+      },
+      "maintenance_island": {
+        "count": 26,
+        "seconds": 28.447,
+        "status": "PASS",
+        "skipped": 0
+      },
+      "maintenance_boot": {
+        "count": 3,
+        "seconds": 0.398,
+        "status": "PASS",
+        "skipped": 0
+      },
+      "flash_target_candidate": {
+        "count": 15,
+        "seconds": 9.839,
+        "status": "PASS",
+        "skipped": 0
+      }
+    },
+    "storage_scenarios": {
+      "normal": {
+        "status": "PASS",
+        "trace": [
+          "FIXED_TRIAL commands=1816 settings_reads=928 writes=24 erases=0 one_way=1"
+        ]
+      },
+      "refused": {
+        "status": "PASS",
+        "trace": [
+          "REFUSED_PREREQUISITES commands=0 devices_ready=0"
+        ]
+      },
+      "unprovisioned": {
+        "status": "PASS",
+        "trace": [
+          "UNPROVISIONED refused=1 file_mutations=0 nvs_mutations=0 one_way=1"
+        ]
+      },
+      "scratch": {
+        "status": "PASS",
+        "trace": [
+          "SCRATCH_ONLY failed=0 commands=3 mutations=2 one_way=1"
+        ]
+      },
+      "scratch-fail": {
+        "status": "PASS",
+        "trace": [
+          "SCRATCH_ONLY failed=1 commands=2 mutations=2 one_way=1"
+        ]
+      }
+    },
+    "maintenance_storage": {
+      "pass": 10,
+      "fail": 0,
+      "skip": 0,
+      "total": 10
+    },
+    "file_littlefs": {
+      "pass": 7,
+      "fail": 0,
+      "skip": 0,
+      "total": 7
+    },
+    "settings_readiness_gate": {
+      "pass": 18,
+      "fail": 0,
+      "skip": 0,
+      "total": 18
+    },
+    "boundary": {
+      "suite_counts": [
+        9,
+        26,
+        1,
+        1,
+        17,
+        6,
+        7,
+        1,
+        1
+      ],
+      "reported_total": 69,
+      "active_pass": 67,
+      "skipped": 2,
+      "skip_reason": "Serial and Logging opt-in rejection matrices unset; exact-main subtrees and existing evidence retained",
+      "status": "67 PASS; 2 opt-in skips",
+      "dependency_check": "PASS"
+    },
+    "host": {
+      "ctest": 115,
+      "sample": "PASS"
+    },
+    "format": "PASS clang-format18.1.8",
+    "geometry_owner_fences": 8
+  },
+  "image_bytes": 80120,
+  "bin_sha256": "691b043eedee25040a132cbb96f8c9f8e7ec74c8f16e0acb0e905145a0717c9c",
+  "branch_elf_sha256": "dd09ad1cc107997002eedaba46ae90e54e999a715ee21118e39fe9c089801b03",
+  "union_elf_sha256": "ac9b723dc33915f19e4ca1cf26f9761bea58e656ed47936a24bf7601e8f501a2",
+  "ram_proof_scope": {
+    "selected_symbol_identities": 44,
+    "busy_functions": 28,
+    "conservative_static_stack_bytes": 484,
+    "operation_stack_bytes": 1024,
+    "whole_relocated_section_identity": false,
+    "changed_unselected_itcm_bytes": 52,
+    "changed_native_metadata_bytes": 2,
+    "native_metadata_pointer_shift": 56
+  },
+  "archive": {
+    "files": 184,
+    "archive_bytes": 7509327,
+    "archive_sha256": "ad2b2e5e7e8e9826cc23770ef3b8eb37c24ae64502a72f61e2c150dcd9d1d0ad"
+  },
+  "manifest_sha256": "cd65431c252f6f53a7323575675829e61406cd0307d1496b267dcc6d4b7e280a",
+  "retained_namespace": "outputs/m4-conditional66 (local project artifacts); container /tmp/m4-conditional66",
+  "startup_repair_inputs": {
+    "tests/native/maintenance_island/test_island.py": "008264ac2a65270a6eab7163b7fd0e4b3e3aa6873124c6b02d9ab35366620e5b",
+    "tests/native/maintenance_island/startup_check.py": "a2b2eca6ca70bb229d61a6eb0239c410fc21a561c09f785432c61273ca104c0f",
+    "tests/native/maintenance_island/test_startup.py": "1168c99a992d2bb337018bea2359cb818b2f6f39da685ade63e7856c49170de4"
+  },
+  "limits": "Software-only; independent review and final hosted CI handled separately. No target admission/execution, hardware, production adoption, controller startup, M4 completion, merge or issue closure. M5 physical/concurrency limits remain."
+}

@@ -10,8 +10,12 @@
 #include <zephyr/settings/settings.h>
 #include <zephyr/storage/flash_map.h>
 
+#if defined(CRUX_RT1060_STORAGE_SAMPLE)
+BUILD_ASSERT(IS_ENABLED(CONFIG_SOC_MIMXRT1062));
+#else
 BUILD_ASSERT(IS_ENABLED(CONFIG_BOARD_NATIVE_SIM));
 BUILD_ASSERT(IS_ENABLED(CONFIG_FLASH_SIMULATOR));
+#endif
 BUILD_ASSERT(!IS_ENABLED(CONFIG_USERSPACE));
 enum gate_state { CLOSED, SCANNING, READY, FAULTED, ENDED };
 static enum gate_state state;
@@ -83,9 +87,12 @@ void gate_reset(void) {
     gate_reads = gate_writes = gate_erases = gate_denied = gate_fail_read = 0;
     gate_write_error = 0;
 }
-extern int __real_flash_area_open(uint8_t id, const struct flash_area **fa);
+#ifndef CRUX_GATE_FLASH_AREA_OPEN
+#define CRUX_GATE_FLASH_AREA_OPEN __real_flash_area_open
+#endif
+extern int CRUX_GATE_FLASH_AREA_OPEN(uint8_t id, const struct flash_area **fa);
 int __wrap_flash_area_open(uint8_t id, const struct flash_area **fa) {
-    int rc = __real_flash_area_open(id, fa);
+    int rc = CRUX_GATE_FLASH_AREA_OPEN(id, fa);
     if (rc)
         return rc;
     /* Only this chosen Settings partition is supported by the private fixture. */

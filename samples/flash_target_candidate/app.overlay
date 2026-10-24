@@ -1,6 +1,10 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Experimental owners only. No production layout or physical write approval. */
+/ { chosen { zephyr,settings-partition = &candidate_nvs; }; };
+&flexspi { zephyr,deferred-init; };
+&ext_flash_ctrl { zephyr,deferred-init; };
 &is25wp064 {
+    zephyr,deferred-init;
     partitions {
         /* Remove the broad native storage area, including its fallback label. */
         /delete-node/ partition@620000;
@@ -19,5 +23,20 @@
             label = "candidate-nvs";
             reg = <0x7f0000 0x10000>;
         };
+    };
+};
+
+/ {
+    candidate_file_backend: candidate-file-backend {
+        compatible = "crux,candidate-storage-proxy";
+        zephyr,deferred-init;
+    };
+    candidate_scratch_backend: candidate-scratch-backend {
+        compatible = "crux,candidate-storage-proxy";
+        zephyr,deferred-init;
+    };
+    candidate_nvs_backend: candidate-nvs-backend {
+        compatible = "crux,candidate-storage-proxy";
+        zephyr,deferred-init;
     };
 };

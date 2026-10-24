@@ -352,4 +352,19 @@ ZTEST(maintenance_storage, test_write_io_closes_persistence_but_allows_consuming
     zassert_false(maintenance_finish());
     zassert_equal(crux_file_open("write-fault", CRUX_FILE_READ, &file), CRUX_FILE_ERR_NOT_READY);
 }
+/* The same fixed public-API trial is retained in the target candidate. */
+extern int crux_candidate_values_trial(void);
+extern int crux_candidate_values_readback(void);
+ZTEST(maintenance_storage, test_rt1060_fixed_trial_and_healthy_remount) {
+    zassert_ok(crux_candidate_values_trial());
+    zassert_ok(fs_unmount(&mount));
+    zassert_ok(fs_mount(&mount));
+    config_newboot();
+    zassert_ok(crux_config_load(&cycles));
+    zassert_ok(crux_config_load(&diagnostics));
+    read_values(7, true);
+    zassert_ok(crux_candidate_values_readback());
+    zassert_true(maintenance_finish());
+    config_closed();
+}
 ZTEST_SUITE(maintenance_storage, NULL, NULL, before, after, NULL);

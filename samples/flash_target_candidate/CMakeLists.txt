@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(flash_target_candidate LANGUAGES C)
+project(flash_target_candidate LANGUAGES C CXX)
 if(NOT CONFIG_BOARD_TARGET STREQUAL "mimxrt1060_evk@B/mimxrt1062/qspi")
     message(FATAL_ERROR "PoC is restricted to the pinned EVKB B QSPI configuration")
 endif()
@@ -129,3 +129,5 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpt/fsl_gpt.h"
     "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_GPT.h"
     "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_XTALOSC24M.h")
+
+include(storage.cmake)
