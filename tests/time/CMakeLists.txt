@@ -11,24 +11,24 @@ target_include_directories(crux_time_common_test
 target_link_libraries(crux_time_common_test PUBLIC crux::base)
 target_compile_options(crux_time_common_test PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
-add_library(crux_time_host_test STATIC ${PROJECT_SOURCE_DIR}/components/time/host/time_port_host.c)
-target_compile_definitions(crux_time_host_test PRIVATE CRUX_TIME_TESTING=1)
-target_include_directories(crux_time_host_test PRIVATE
+add_library(crux_time_memory_test STATIC ${PROJECT_SOURCE_DIR}/components/time/src/time_port_memory.c)
+target_compile_definitions(crux_time_memory_test PRIVATE CRUX_TIME_TESTING=1)
+target_include_directories(crux_time_memory_test PRIVATE
     ${PROJECT_SOURCE_DIR}/components/time/include
     ${PROJECT_SOURCE_DIR}/components/time/src
 )
-target_link_libraries(crux_time_host_test PRIVATE crux::base)
-target_compile_options(crux_time_host_test PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_link_libraries(crux_time_memory_test PRIVATE crux::base)
+target_compile_options(crux_time_memory_test PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 add_library(crux_time_test INTERFACE)
-target_link_libraries(crux_time_test INTERFACE crux_time_common_test crux_time_host_test)
+target_link_libraries(crux_time_test INTERFACE crux_time_common_test crux_time_memory_test)
 
 add_executable(crux_time_tests
-    src/time_test.cpp
-    src/calendar_test.cpp
-    src/command_test.cpp
+    time_test.cpp
+    calendar_test.cpp
+    command_test.cpp
 )
-target_include_directories(crux_time_tests PRIVATE private)
+target_include_directories(crux_time_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(crux_time_tests
     PRIVATE crux_time_test crux_time_commands GTest::gtest_main
 )

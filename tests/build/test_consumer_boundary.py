@@ -56,7 +56,9 @@ class ConsumerBoundaryTest(unittest.TestCase):
 
     def test_transitive_private_or_native_include_is_rejected(self):
         for path in ('/sdk/zephyr/include', '/sdk/modules/hal/nxp/include',
-                     f'{REPO}/components/time/src'):
+                     f'{REPO}/components/time/src',
+                     f'{REPO}/components/time/ports/linux',
+                     f'{REPO}/components/time/ports/zephyr'):
             with self.subTest(path=path):
                 result = self.configure('add_library(provider INTERFACE)\n'
                                         f'target_include_directories(provider INTERFACE "{path}")\n'
@@ -282,6 +284,24 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                     capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("unreviewed socket close declaration", result.stdout + result.stderr)
+
+    def test_zephyr_time_excludes_memory_and_test_controls(self):
+        result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
+                                f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'
+                                'get_property(libraries GLOBAL PROPERTY ZEPHYR_LIBS)\n'
+                                'foreach(library IN LISTS libraries)\n'
+                                '  get_target_property(sources ${library} SOURCES)\n'
+                                '  get_target_property(definitions ${library} COMPILE_DEFINITIONS)\n'
+                                '  if("${sources}" MATCHES "time_port_memory" OR\n'
+                                '     "${definitions}" MATCHES "CRUX_TIME_TESTING")\n'
+                                '    message(FATAL_ERROR "development Time implementation in production")\n'
+                                '  endif()\n'
+                                'endforeach()\n'
+                                'get_target_property(provider crux_time_zephyr SOURCES)\n'
+                                'if(NOT "${provider}" MATCHES "ports/zephyr/time_port_zephyr.c")\n'
+                                '  message(FATAL_ERROR "missing native Time implementation")\n'
+                                'endif()\n')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_zephyr_facade_preserves_backend_conflict(self):
         result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'

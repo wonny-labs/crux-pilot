@@ -49,11 +49,23 @@ Interfaces: public C declarations and `crux::time` unchanged. Host composition s
 - [ ] Extend lexical and CMake boundary negative cases for `ports/linux`, `ports/zephyr`, and memory source coverage; observe relevant new failures before updating validation logic.
 - [ ] Perform moves and update CMake, analysis/script paths, current contract/test documentation, controller overlay and CI artifact paths. Preserve test semantics and historical documents.
 - [ ] Re-run applicable baseline checks, independent consumers, Time Twister, native and EVKB sample builds. Confirm public headers and provider source contents unchanged except required internal naming.
+- [ ] Inspect production compile/source inventories: Zephyr excludes memory, host production excludes `CRUX_TIME_TESTING`; verify missing/conflicting selection rejection.
 - [ ] Inspect full diff, obtain independent Reviewer and Challenger PASS, fix material findings and repeat affected review. Commit and create Draft PR with actual evidence.
 
-### Task 3: Remaining applicable ports PR
+### Task 3: Remaining applicable ports PRs
 
 Start from the same main baseline after Time structure validation. Keep this independent of the Time PR, sharing no required branch changes.
+
+Plan challenger: REVISE resolved before expansion. Require each Zephyr component's native build definitions in its owning `ports/zephyr/CMakeLists.txt`; top-level module delegates. Preserve registration and target dependency visibility. Use three independently based PR groups: Execution; Queue/Monotonic; native I/O (Netif/Sockets/File). Configuration has no native implementation and remains portable-only. Shared guard/script/module hunks may require straightforward merge conflict resolution; no PR depends on another's source moves.
+
+| Group | Source → destination | Native dependencies |
+| --- | --- | --- |
+| Execution | `components/execution/host/*` → `ports/linux/*`; `zephyr/*` → `ports/zephyr/*` | GNU pthread extensions / Zephyr kernel |
+| Messaging | `components/queue/host/*` → `ports/linux/*`; `zephyr/*` → `ports/zephyr/*`; analogous Monotonic moves including Zephyr CMake | pthread deadlines / native kernel; POSIX monotonic clock |
+| Native I/O | Netif host/Zephyr → ports/linux/ports/zephyr; Sockets Zephyr shim → ports/zephyr; File host → ports/linux | Linux interface observation, Zephyr net_if, declaration-only socket shim, descriptor-relative Linux file operations |
+| Configuration | No move | Portable core and test-owned controlled providers only |
+
+Retain `_host` internal native target names/provider properties: physical OS-port naming does not require changing composition interfaces. Update private native includes in execution/queue/file tests and exact socket allowlist path without changing its content hash.
 
 - [ ] Classify remaining providers by actual dependencies; identify exact moves and retained component/test structures. No native Configuration implementation should be invented, nor socket wrapper code added.
 - [ ] Move genuine native Netif, Sockets, File, Queue, Monotonic and applicable Execution files to component-local OS ports. Retain existing target names and explicit composition. Do not split Execution.
