@@ -225,5 +225,12 @@
       "quality": "PASS",
       "scope": "bounded software candidate with exact-image manual branch/prologue audit"
     }
-  }
+  },
+  "whole_change_challenger": {
+    "verdict": "PASS for bounded Draft publication",
+    "reviewed_head": "cc02aab79c14daad3e2ab4200c8cf770f10e1bd4",
+    "material_findings": 0,
+    "physical_status": "NOT_READY"
+  },
+  "dependency_policy": "PASS;50 designated portable source files, existing public/provider checks"
 }
