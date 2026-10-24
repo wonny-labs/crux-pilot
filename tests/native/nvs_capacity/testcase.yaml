@@ -1,0 +1,9 @@
+common:
+  tags: [settings, nvs, experimental]
+  platform_allow: [native_sim]
+  timeout: 600
+tests:
+  crux.nvs_capacity.crc_off:
+    extra_args: CONFIG_NVS_DATA_CRC=n
+  crux.nvs_capacity.crc_on:
+    extra_args: CONFIG_NVS_DATA_CRC=y
