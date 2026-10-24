@@ -210,8 +210,8 @@ crux_status_t serial_port_close(uint32_t index) {
     (void)pthread_mutex_unlock(&ownership);
     return unsafe ? CRUX_ERR_IO : CRUX_OK;
 }
-static crux_status_t native_transfer(uint32_t index, void *destination, const void *source,
-                                     size_t length, const serial_deadline_t *deadline,
+static crux_status_t native_transfer(uint32_t index, void *destination, size_t length,
+                                     const void *source, const serial_deadline_t *deadline,
                                      size_t *count, bool writing) {
     host_port_t *port = &ports[index];
     unsigned char staging[256];
@@ -258,9 +258,9 @@ static crux_status_t native_transfer(uint32_t index, void *destination, const vo
 }
 crux_status_t serial_port_read(uint32_t port, void *buffer, size_t size,
                                const serial_deadline_t *deadline, size_t *count) {
-    return native_transfer(port, buffer, NULL, size, deadline, count, false);
+    return native_transfer(port, buffer, size, NULL, deadline, count, false);
 }
 crux_status_t serial_port_write(uint32_t port, const void *buffer, size_t size,
                                 const serial_deadline_t *deadline, size_t *count) {
-    return native_transfer(port, NULL, buffer, size, deadline, count, true);
+    return native_transfer(port, NULL, size, buffer, deadline, count, true);
 }

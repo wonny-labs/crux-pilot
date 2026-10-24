@@ -1,0 +1,2 @@
+/* Negative cross-build only: the shared AD_B1_06/07 pins must be rejected. */
+&csi { status = "okay"; };

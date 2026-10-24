@@ -1,0 +1,33 @@
+[1/9] Building C object CMakeFiles/serial_controller_portable.dir$REPO/samples/serial/controller.c.obj
+[2/9] Linking C static library libserial_controller_portable.a
+[3/9] Building C object CMakeFiles/app.dir/main.c.obj
+[4/9] Linking CXX static library app/libapp.a
+[5/9] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_zephyr.c.obj
+[6/9] Linking C static library modules/m5-serial/serial/libcrux_serial_zephyr.a
+[7/9] Linking CXX executable zephyr/zephyr.elf
+Generating files from /tmp/crux-serial-consumer-zephyr/zephyr/zephyr.elf for board: native_sim/native/64
+[8/9] Building native simulator runner, and linking final executable
+[9/9] Running utility command for native_runner_executable
+uart connected to pseudotty: /dev/pts/0
+[00:00:00.000,000] <inf> emul: Registering 0 emulator(s) for serial-test
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE serial_consumer
+===================================================================
+START - test_c17_and_cpp17
+ PASS - test_c17_and_cpp17 in 0.000 seconds
+===================================================================
+START - test_controller
+ PASS - test_controller in 0.000 seconds
+===================================================================
+TESTSUITE serial_consumer succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [serial_consumer]: pass = 2, fail = 0, skip = 0, total = 2 duration = 0.000 seconds
+ - PASS - [serial_consumer.test_c17_and_cpp17] duration = 0.000 seconds
+ - PASS - [serial_consumer.test_controller] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL

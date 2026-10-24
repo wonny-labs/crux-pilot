@@ -1,4 +1,4 @@
-#define _XOPEN_SOURCE 700
+#define _XOPEN_SOURCE 700 // NOLINT(bugprone-reserved-identifier): POSIX feature selector
 #include "serial_host.h"
 #include "serial_port.h"
 #include <assert.h>
@@ -25,6 +25,8 @@ static void pause_ms(unsigned ms) {
     while (nanosleep(&t, &t) < 0 && errno == EINTR) {
     }
 }
+// GNU ld requires the __real_/__wrap_ names for these native fault probes.
+// NOLINTBEGIN(bugprone-reserved-identifier)
 int __real_open(const char *name, int flags, ...);
 int __wrap_open(const char *name, int flags, ...) {
     int fd = __real_open(name, flags);
@@ -82,6 +84,7 @@ static void cleanup(void) {
     assert(crux_serial_close(&serial) == CRUX_OK && serial.slot == 0);
     assert(close(master) == 0);
 }
+// NOLINTEND(bugprone-reserved-identifier)
 static void basic(void) {
     setup();
     const unsigned char input[] = {0, 255, 10, 13, 127};

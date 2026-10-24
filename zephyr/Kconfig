@@ -86,3 +86,11 @@ config CRUX_MONOTONIC
     bool "Crux monotonic milliseconds and absolute wait"
     depends on CRUX_PILOT_MODULE && MULTITHREADING
     select TIMEOUT_64BIT
+
+config CRUX_SERIAL
+    bool "Crux bounded UART Serial"
+    depends on CRUX_PILOT_MODULE && MULTITHREADING && SERIAL
+    depends on UART_INTERRUPT_DRIVEN && UART_USE_RUNTIME_CONFIGURE
+    select TIMEOUT_64BIT
+    help
+      One explicitly dedicated UART, 256-byte RX and TX buffers. Task context only.

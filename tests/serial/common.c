@@ -84,6 +84,8 @@ static void validation(void) {
     bad.stop_bits = 0;
     assert(crux_serial_open(0, &bad, &out) == CRUX_ERR_INVALID_ARGUMENT);
     bad = config;
+    // Deliberately invalid enum representation tests public argument validation.
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     bad.parity = (crux_serial_parity_t)99;
     assert(crux_serial_open(0, &bad, &out) == CRUX_ERR_INVALID_ARGUMENT);
     assert(crux_serial_open(UINT32_MAX, &config, &out) == CRUX_ERR_INVALID_ARGUMENT);

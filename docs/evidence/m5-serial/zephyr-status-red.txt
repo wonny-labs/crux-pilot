@@ -1,0 +1,49 @@
+[1/8] Building C object CMakeFiles/app.dir/src/main.c.obj
+[2/8] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_zephyr.c.obj
+[3/8] Linking C static library app/libapp.a
+[4/8] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_binding.c.obj
+[5/8] Linking C static library modules/m5-serial/serial/libcrux_serial_zephyr.a
+[6/8] Linking C executable zephyr/zephyr.elf
+Generating files from /tmp/crux-serial-zephyr-v2/zephyr/zephyr.elf for board: native_sim/native/64
+[7/8] Building native simulator runner, and linking final executable
+[8/8] Running utility command for native_runner_executable
+uart connected to pseudotty: /dev/pts/0
+[00:00:00.000,000] <inf> emul: Registering 0 emulator(s) for serial-test
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE serial
+===================================================================
+START - test_binary_configuration
+ PASS - test_binary_configuration in 0.004 seconds
+===================================================================
+START - test_mapping_and_late_callback
+
+    Assertion failed at WEST_TOPDIR/.worktrees/m5-serial/tests/serial/zephyr/src/main.c:114: serial_test_mapping_and_late_callback: crux_serial_open(0, &config, &handle) not equal to CRUX_ERR_NOT_READY
+
+ FAIL - test_mapping_and_late_callback in 0.000 seconds
+===================================================================
+START - test_observed_error_and_overflow
+
+    Assertion failed at WEST_TOPDIR/.worktrees/m5-serial/tests/serial/zephyr/src/main.c:33: open_port: crux_serial_open(0, &config, &handle) is non-zero
+
+ FAIL - test_observed_error_and_overflow in 0.000 seconds
+===================================================================
+START - test_poll_timeout_backpressure
+
+    Assertion failed at WEST_TOPDIR/.worktrees/m5-serial/tests/serial/zephyr/src/main.c:33: open_port: crux_serial_open(0, &config, &handle) is non-zero
+
+ FAIL - test_poll_timeout_backpressure in 0.000 seconds
+===================================================================
+TESTSUITE serial failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -  25.00% [serial]: pass = 1, fail = 3, skip = 0, total = 4 duration = 0.004 seconds
+ - PASS - [serial.test_binary_configuration] duration = 0.004 seconds
+ - FAIL - [serial.test_mapping_and_late_callback] duration = 0.000 seconds
+ - FAIL - [serial.test_observed_error_and_overflow] duration = 0.000 seconds
+ - FAIL - [serial.test_poll_timeout_backpressure] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED

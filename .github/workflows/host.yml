@@ -45,6 +45,9 @@ jobs:
         run: python3 -m unittest discover -s tests/build -v
       - name: Check format
         run: ./scripts/check-format.sh
+      - name: Validate public Serial consumers
+        run: ./scripts/test-serial.sh --host-only
+
       - name: Analyze host sources
         run: ./scripts/analyze-host.sh
       - name: Check build boundaries

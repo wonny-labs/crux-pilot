@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.28)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_serial_ownership C)
+target_sources(app PRIVATE src/main.c)
+target_link_libraries(app PRIVATE crux::serial)

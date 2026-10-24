@@ -1,0 +1,26 @@
+[1/10] Building C object CMakeFiles/serial_controller_portable.dir$REPO/samples/serial/controller.c.o
+[2/10] Building C object CMakeFiles/serial_consumer_c.dir/host/main.c.o
+[3/10] Linking C static library libserial_controller_portable.a
+[4/10] Linking CXX executable serial_consumer_c
+[5/10] Building C object CMakeFiles/serial_consumer_cpp.dir/host/main.c.o
+[6/10] Linking CXX executable serial_consumer_cpp
+[7/10] Building C object CMakeFiles/serial_consumer_controller.dir/host/main.c.o
+[8/10] Linking CXX executable serial_consumer_controller
+[9/10] Building C object CMakeFiles/serial_consumer_controller_stale.dir/host/main.c.o
+[10/10] Linking CXX executable serial_consumer_controller_stale
+Internal ctest changing into directory: /tmp/crux-serial-consumer
+Test project /tmp/crux-serial-consumer
+    Start 1: SerialConsumer.c
+1/5 Test #1: SerialConsumer.c ..................   Passed    0.12 sec
+    Start 2: SerialConsumer.cpp
+2/5 Test #2: SerialConsumer.cpp ................   Passed    0.07 sec
+    Start 3: SerialConsumer.controller
+3/5 Test #3: SerialConsumer.controller .........   Passed    0.06 sec
+    Start 4: SerialConsumer.controller_stale
+4/5 Test #4: SerialConsumer.controller_stale ...   Passed    0.10 sec
+    Start 5: SerialConsumer.Policy
+5/5 Test #5: SerialConsumer.Policy .............   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.46 sec

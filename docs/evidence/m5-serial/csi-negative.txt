@@ -1,0 +1,60 @@
+Expected negative compile with boards/csi-conflict.overlay
+-- west build: generating a build system
+Loading Zephyr default modules (Zephyr base).
+-- Application: $REPO/tests/serial_consumer/zephyr
+-- CMake version: 3.28.4
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter 
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: mimxrt1060_evk, Revision: B, qualifiers: mimxrt1062/qspi
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6") 
+-- Found BOARD.dts: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts
+-- Found devicetree overlay: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_B.overlay
+-- Found devicetree overlay: $REPO/tests/serial_consumer/zephyr/boards/mimxrt1060_evk_mimxrt1062_qspi.overlay
+-- Found devicetree overlay: $REPO/tests/serial_consumer/zephyr/boards/csi-conflict.overlay
+-- Generated zephyr.dts: /tmp/crux-serial-csi-negative/zephyr/zephyr.dts
+-- Generated pickled edt: /tmp/crux-serial-csi-negative/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /tmp/crux-serial-csi-negative/zephyr/include/generated/zephyr/devicetree_generated.h
+/tmp/crux-serial-csi-negative/zephyr/zephyr.dts:4239.36-4248.5: Warning (unique_unit_address_if_enabled): /soc/usbd@402e0000: duplicate unit-address (also used in node /soc/usbh@402e0000)
+Parsing $WORKSPACE/zephyr/Kconfig
+Loaded configuration '$WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_defconfig'
+Merged configuration '$REPO/tests/serial_consumer/zephyr/prj.conf'
+Configuration saved to '/tmp/crux-serial-csi-negative/zephyr/.config'
+Kconfig header saved to '/tmp/crux-serial-csi-negative/zephyr/include/generated/zephyr/autoconf.h'
+-- Found GnuLd: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/arm-zephyr-eabi/bin/ld.bfd (found version "2.43.1") 
+-- The C compiler identification is GNU 14.3.0
+-- The CXX compiler identification is GNU 14.3.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc
+-- Looking for device MIMXRT1062 in $WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/devices/
+-- Found device folder: $WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062
+-- Crux Zephyr integration module discovered
+-- Found gen_kobject_list: $WORKSPACE/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (24.3s)
+-- Generating done (1.0s)
+-- Build files have been written to: /tmp/crux-serial-csi-negative
+[1/16] Preparing syscall dependency handling
+
+[2/16] Generating misc/generated/syscalls_subdirs.trigger
+[3/16] Generating include/generated/zephyr/version.h
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr), build: v4.4.0
+[4/16] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[5/16] Generating include/generated/zephyr/driver-validation.h
+[6/16] Generating include/generated/zephyr/syscall_dispatch.c, include/generated/zephyr/syscall_exports_llext.c, syscall_weakdefs_llext.c, include/generated/zephyr/syscall_list.h
+[7/16] Generating include/generated/device-api-sections.ld, include/generated/device-api-sections.cmake
+[8/16] Generating include/generated/zephyr/kobj-types-enum.h, include/generated/zephyr/otype-to-str.h, include/generated/zephyr/otype-to-size.h
+[9/16] Building C object zephyr/lib/heap/CMakeFiles/heap_constants.dir/heap_constants.c.obj
+[10/16] Generating ../../include/generated/zephyr/heap_constants.h
+[11/16] Building C object zephyr/CMakeFiles/offsets.dir/arch/arm/core/offsets/offsets.c.obj
+[12/16] Generating include/generated/zephyr/offsets.h
+[13/16] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir$REPO/components/serial/src/serial.c.obj
+[14/16] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_binding.c.obj
+FAILED: modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_binding.c.obj 
+$REPO/components/serial/ports/zephyr/serial_binding.c:9:2: error: #error "LPUART3 Serial pins conflict with enabled EVKB CSI"
+    9 | #error "LPUART3 Serial pins conflict with enabled EVKB CSI"
+      |  ^~~~~
+[15/16] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_zephyr.c.obj
+ninja: build stopped: subcommand failed.

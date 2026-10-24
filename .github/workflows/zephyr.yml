@@ -69,6 +69,10 @@ jobs:
           scripts/test-messaging.sh
           scripts/measure-messaging.sh
 
+      - name: Validate portable Serial without hardware
+        working-directory: crux-pilot
+        run: scripts/test-serial.sh
+
       - name: Verify M3 device, network and controller paths without hardware
         working-directory: crux-pilot
         run: scripts/test-m3.sh
@@ -93,6 +97,10 @@ jobs:
         with:
           name: zephyr-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            crux-pilot/build/serial-consumer/ctest-junit.xml
+            crux-pilot/build/zephyr/twister-serial/
+            crux-pilot/build/zephyr/serial-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/serial-evkb/zephyr/.config
             crux-pilot/build/messaging-resource-evidence/
             crux-pilot/build/zephyr/messaging-resources-*/zephyr/zephyr.map
             crux-pilot/build/zephyr/messaging-resources-*/zephyr/.config
