@@ -86,6 +86,12 @@ before that count check. Choose a bounded provisioning/inspection/recovery polic
 and the required full-record integrity preflight before adopting writable storage.
 Do not treat a valid-looking count or a partial read as full-store integrity.
 
+The [bounded readiness-gate candidate](settings-readiness-gate.md) now provides
+software evidence for denying mount-time mutations and fully reading claimed
+records before enabling writes or saving. This is a proposed composition path,
+not an adopted target provider or a whole-media/recovery qualification. It leaves
+the exact provisioning, remaining metadata-integrity and physical gates intact.
+
 The [Flash candidate](flash-target-proposal.md) is an exact compile-only image,
 not the final operational persistence image. Its current ELF SHA-256 is
 `c830176753fa28515d358365c3c9dba9c9d5b8c6055029d4a356f1629bfdb99c` and BIN SHA-256

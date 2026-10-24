@@ -1,0 +1,18 @@
+Baseline: f6f539dc7d64f4a11a669dc84648aaaba276c8d3
+Final red: 4 pass / 14 fail / 0 skip (readiness gate disabled; PR59 candidate sources retained).
+Final green: 18 pass / 0 fail / 0 skip.
+Focused intermediate mapping regression: 17 pass / 1 fail (NO_SPACE mapped to IO); corrected before final green.
+Commands, run inside crux-m4-config-zephyr from /ws:
+PATH=/opt/crux-cache/venv/bin:$PATH ZEPHYR_TOOLCHAIN_VARIANT=host west build --cmake -b native_sim/native/64 /ws/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate -d /tmp/settings-readiness-gate/green
+PATH=/opt/crux-cache/venv/bin:$PATH ZEPHYR_TOOLCHAIN_VARIANT=host west build --cmake -b native_sim/native/64 /ws/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate -d /tmp/settings-readiness-gate/red -- -DCRUX_READINESS_GATE=OFF
+For each build: cd /tmp/settings-readiness-gate/<red|green> && ./zephyr/zephyr.exe
+Ztest verdict and suite counts checked in log; simulator process exit status alone does not distinguish failed tests.
+Formatting: scripts/check-format.sh passed using clang-format 18.1.8 through a temporary host-to-container path adapter; the container's source worktree .git pointer refers to a host path, so Git enumeration ran on host. format.log is empty on success.
+No compiler warnings/errors in the final build logs.
+Full build logs, generated source copies, ELF and executable remain under /tmp/settings-readiness-gate in the container.
+Initial setup failures were corrected before test evidence: west invoked outside /ws; missing host-toolchain selection; wrong fixture root depth; read-only Flashsim backing-file cwd; deprecated FIXED_PARTITION_ID macro. None were counted as test-red evidence.
+No hardware operations, network access, new dependencies, process resets, production source changes, commits or pushes.
+Tool/source identity (upstream status output empty after commit):
+clang-format version 18.1.8
+gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+684c9e8f32e4373a21098559f748f06915f950c9

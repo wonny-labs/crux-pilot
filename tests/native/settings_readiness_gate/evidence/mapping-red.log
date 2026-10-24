@@ -1,0 +1,133 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE readiness_gate
+===================================================================
+START - test_corrupt_current_key_cannot_be_overwritten
+[00:00:00.000,000] <err> fs_nvs: Invalid data CRC: read_data_crc=0x0A81A68B, computed_data_crc=0xB23DC1EE
+SAVE current result=-5
+GATE reads=8 dispatched_write=0 dispatched_erase=0 denied=0
+GATE reads=8 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_corrupt_current_key_cannot_be_overwritten in 0.000 seconds
+===================================================================
+START - test_corrupt_other_key_cannot_be_overwritten
+[00:00:00.000,000] <err> fs_nvs: Invalid data CRC: read_data_crc=0x0A81A68B, computed_data_crc=0xB23DC1EE
+SAVE other result=-5
+GATE reads=8 dispatched_write=0 dispatched_erase=0 denied=0
+GATE reads=8 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_corrupt_other_key_cannot_be_overwritten in 0.000 seconds
+===================================================================
+START - test_corrupt_record_blocks_startup_publication
+[00:00:00.000,000] <err> fs_nvs: Invalid data CRC: read_data_crc=0x0A81A68B, computed_data_crc=0xB23DC1EE
+INIT result=-5
+GATE reads=797 dispatched_write=0 dispatched_erase=0 denied=0
+GATE reads=797 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_corrupt_record_blocks_startup_publication in 0.000 seconds
+===================================================================
+START - test_crc_valid_malformed_wire_uses_configuration_policy
+GATE reads=797 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_crc_valid_malformed_wire_uses_configuration_policy in 0.000 seconds
+===================================================================
+START - test_fresh_mount_mutation_denied_before_dispatch
+INIT result=-5
+GATE reads=786 dispatched_write=0 dispatched_erase=0 denied=1
+GATE reads=786 dispatched_write=0 dispatched_erase=0 denied=1
+ PASS - test_fresh_mount_mutation_denied_before_dispatch in 0.000 seconds
+===================================================================
+START - test_hard_read_is_sticky_not_missing
+GATE reads=1 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_hard_read_is_sticky_not_missing in 0.000 seconds
+===================================================================
+START - test_hard_startup_read_fault_requires_explicit_reinit
+GATE reads=1 dispatched_write=0 dispatched_erase=0 denied=0
+GATE reads=791 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_hard_startup_read_fault_requires_explicit_reinit in 0.000 seconds
+===================================================================
+START - test_healthy_bool_u32_missing_and_writes
+ PASS - test_healthy_bool_u32_missing_and_writes in 0.000 seconds
+===================================================================
+START - test_malformed_count_blocks_ready
+INIT result=-5
+GATE reads=791 dispatched_write=0 dispatched_erase=0 denied=0
+GATE reads=791 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_malformed_count_blocks_ready in 0.000 seconds
+===================================================================
+START - test_masked_backend_init_denial_cannot_enable_writes
+MASKED actual_settings_init=-13 denied=1
+INIT result=-5
+GATE reads=786 dispatched_write=0 dispatched_erase=0 denied=1
+GATE reads=786 dispatched_write=0 dispatched_erase=0 denied=1
+ PASS - test_masked_backend_init_denial_cannot_enable_writes in 0.000 seconds
+===================================================================
+START - test_masked_load_read_error_cannot_publish_default
+MASKED actual_settings_load=-5
+GATE reads=1 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_masked_load_read_error_cannot_publish_default in 0.000 seconds
+===================================================================
+START - test_masked_write_error_cannot_acknowledge_save
+MASKED actual_settings_save=-5
+GATE reads=2 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_masked_write_error_cannot_acknowledge_save in 0.000 seconds
+===================================================================
+START - test_missing_count_is_not_fresh_default
+INIT result=-5
+GATE reads=790 dispatched_write=0 dispatched_erase=0 denied=0
+GATE reads=790 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_missing_count_is_not_fresh_default in 0.000 seconds
+===================================================================
+START - test_mount_repair_denied_and_latched
+INIT result=-5
+GATE reads=532 dispatched_write=0 dispatched_erase=0 denied=1
+GATE reads=532 dispatched_write=0 dispatched_erase=0 denied=1
+ PASS - test_mount_repair_denied_and_latched in 0.000 seconds
+===================================================================
+START - test_no_space_mapping_is_preserved_when_gate_closes
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:262: readiness_gate_test_no_space_mapping_is_preserved_when_gate_closes: crux_config_save(&speed) not equal to CRUX_CONFIG_ERR_NO_SPACE
+
+ FAIL - test_no_space_mapping_is_preserved_when_gate_closes in 0.000 seconds
+===================================================================
+START - test_orphan_is_not_missing
+INIT result=-5
+GATE reads=793 dispatched_write=0 dispatched_erase=0 denied=0
+GATE reads=793 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_orphan_is_not_missing in 0.000 seconds
+===================================================================
+START - test_oversize_blocks_ready
+INIT result=-5
+GATE reads=755 dispatched_write=0 dispatched_erase=0 denied=0
+GATE reads=755 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_oversize_blocks_ready in 0.000 seconds
+===================================================================
+START - test_unexpected_namespace_blocks_ready
+INIT result=-5
+GATE reads=794 dispatched_write=0 dispatched_erase=0 denied=0
+GATE reads=794 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_unexpected_namespace_blocks_ready in 0.000 seconds
+===================================================================
+TESTSUITE readiness_gate failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -  94.44% [readiness_gate]: pass = 17, fail = 1, skip = 0, total = 18 duration = 0.000 seconds
+ - PASS - [readiness_gate.test_corrupt_current_key_cannot_be_overwritten] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_corrupt_other_key_cannot_be_overwritten] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_corrupt_record_blocks_startup_publication] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_crc_valid_malformed_wire_uses_configuration_policy] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_fresh_mount_mutation_denied_before_dispatch] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_hard_read_is_sticky_not_missing] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_hard_startup_read_fault_requires_explicit_reinit] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_healthy_bool_u32_missing_and_writes] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_malformed_count_blocks_ready] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_masked_backend_init_denial_cannot_enable_writes] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_masked_load_read_error_cannot_publish_default] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_masked_write_error_cannot_acknowledge_save] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_missing_count_is_not_fresh_default] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_mount_repair_denied_and_latched] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_no_space_mapping_is_preserved_when_gate_closes] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_orphan_is_not_missing] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_oversize_blocks_ready] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_unexpected_namespace_blocks_ready] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED

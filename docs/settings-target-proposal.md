@@ -206,3 +206,9 @@ Recommendation: retain this bounded software evidence and review the exact
 patches. Keep target writes disabled until those blockers and the responsible
 human's adoption/provisioning decisions are resolved. M4 and the relevant Issues
 remain incomplete.
+
+The subsequent [readiness-gate experiment](settings-readiness-gate.md) demonstrates
+a private read-only mount and full claimed-record CRC preflight, including before
+save. It addresses the selected mount-mutation and corrupt-value overwrite paths
+without another upstream patch. It does not establish whole-media integrity or
+adopt a production composition; the remaining target gates above still apply.

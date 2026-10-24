@@ -1,0 +1,154 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE readiness_gate
+===================================================================
+START - test_corrupt_current_key_cannot_be_overwritten
+SAVE current result=0
+GATE reads=10 dispatched_write=3 dispatched_erase=0 denied=0
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:83: no_dispatch: gate_writes not equal to 0
+
+ FAIL - test_corrupt_current_key_cannot_be_overwritten in 0.000 seconds
+===================================================================
+START - test_corrupt_other_key_cannot_be_overwritten
+SAVE other result=0
+GATE reads=10 dispatched_write=9 dispatched_erase=0 denied=0
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:83: no_dispatch: gate_writes not equal to 0
+
+ FAIL - test_corrupt_other_key_cannot_be_overwritten in 0.000 seconds
+===================================================================
+START - test_corrupt_record_blocks_startup_publication
+INIT result=0
+GATE reads=789 dispatched_write=0 dispatched_erase=0 denied=0
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:98: reinit_fails: rc equal to CRUX_CONFIG_OK
+
+ FAIL - test_corrupt_record_blocks_startup_publication in 0.000 seconds
+===================================================================
+START - test_crc_valid_malformed_wire_uses_configuration_policy
+GATE reads=789 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_crc_valid_malformed_wire_uses_configuration_policy in 0.000 seconds
+===================================================================
+START - test_fresh_mount_mutation_denied_before_dispatch
+INIT result=-5 sector_bytes_unchanged=0
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:110: reinit_unchanged: snapshot not equal to observed
+
+ FAIL - test_fresh_mount_mutation_denied_before_dispatch in 0.000 seconds
+===================================================================
+START - test_hard_read_is_sticky_not_missing
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:87: faulted: crux_config_save(&speed) not equal to CRUX_CONFIG_ERR_NOT_READY
+
+ FAIL - test_hard_read_is_sticky_not_missing in 0.000 seconds
+===================================================================
+START - test_hard_startup_read_fault_requires_explicit_reinit
+GATE reads=1 dispatched_write=0 dispatched_erase=0 denied=0
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:225: readiness_gate_test_hard_startup_read_fault_requires_explicit_reinit: crux_config_zephyr_init() not equal to CRUX_CONFIG_ERR_NOT_READY
+
+ FAIL - test_hard_startup_read_fault_requires_explicit_reinit in 0.000 seconds
+===================================================================
+START - test_healthy_bool_u32_missing_and_writes
+ PASS - test_healthy_bool_u32_missing_and_writes in 0.000 seconds
+===================================================================
+START - test_malformed_count_blocks_ready
+INIT result=-5
+GATE reads=791 dispatched_write=0 dispatched_erase=0 denied=0
+GATE reads=791 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_malformed_count_blocks_ready in 0.000 seconds
+===================================================================
+START - test_masked_backend_init_denial_cannot_enable_writes
+MASKED actual_settings_init=-74 denied=0
+INIT result=0
+GATE reads=786 dispatched_write=1 dispatched_erase=0 denied=0
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:83: no_dispatch: gate_writes not equal to 0
+
+ FAIL - test_masked_backend_init_denial_cannot_enable_writes in 0.000 seconds
+===================================================================
+START - test_masked_load_read_error_cannot_publish_default
+MASKED actual_settings_load=-5
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:269: readiness_gate_test_masked_load_read_error_cannot_publish_default: crux_config_load(&speed) not equal to CRUX_CONFIG_ERR_IO
+
+ FAIL - test_masked_load_read_error_cannot_publish_default in 0.000 seconds
+===================================================================
+START - test_masked_write_error_cannot_acknowledge_save
+MASKED actual_settings_save=-5
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:259: readiness_gate_test_masked_write_error_cannot_acknowledge_save: crux_config_save(&speed) not equal to CRUX_CONFIG_ERR_IO
+
+ FAIL - test_masked_write_error_cannot_acknowledge_save in 0.000 seconds
+===================================================================
+START - test_missing_count_is_not_fresh_default
+INIT result=-5
+GATE reads=790 dispatched_write=0 dispatched_erase=0 denied=0
+GATE reads=790 dispatched_write=0 dispatched_erase=0 denied=0
+ PASS - test_missing_count_is_not_fresh_default in 0.000 seconds
+===================================================================
+START - test_mount_repair_denied_and_latched
+INIT result=0 sector_bytes_unchanged=0
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:110: reinit_unchanged: snapshot not equal to observed
+
+ FAIL - test_mount_repair_denied_and_latched in 0.000 seconds
+===================================================================
+START - test_no_space_mapping_is_preserved_when_gate_closes
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:87: faulted: crux_config_save(&speed) not equal to CRUX_CONFIG_ERR_NOT_READY
+
+ FAIL - test_no_space_mapping_is_preserved_when_gate_closes in 0.000 seconds
+===================================================================
+START - test_orphan_is_not_missing
+INIT result=0
+GATE reads=789 dispatched_write=0 dispatched_erase=0 denied=0
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:98: reinit_fails: rc equal to CRUX_CONFIG_OK
+
+ FAIL - test_orphan_is_not_missing in 0.000 seconds
+===================================================================
+START - test_oversize_blocks_ready
+INIT result=0
+GATE reads=750 dispatched_write=0 dispatched_erase=0 denied=0
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:98: reinit_fails: rc equal to CRUX_CONFIG_OK
+
+ FAIL - test_oversize_blocks_ready in 0.000 seconds
+===================================================================
+START - test_unexpected_namespace_blocks_ready
+INIT result=0
+GATE reads=789 dispatched_write=0 dispatched_erase=0 denied=0
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_readiness_gate/main.c:98: reinit_fails: rc equal to CRUX_CONFIG_OK
+
+ FAIL - test_unexpected_namespace_blocks_ready in 0.000 seconds
+===================================================================
+TESTSUITE readiness_gate failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -  22.22% [readiness_gate]: pass = 4, fail = 14, skip = 0, total = 18 duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_corrupt_current_key_cannot_be_overwritten] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_corrupt_other_key_cannot_be_overwritten] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_corrupt_record_blocks_startup_publication] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_crc_valid_malformed_wire_uses_configuration_policy] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_fresh_mount_mutation_denied_before_dispatch] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_hard_read_is_sticky_not_missing] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_hard_startup_read_fault_requires_explicit_reinit] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_healthy_bool_u32_missing_and_writes] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_malformed_count_blocks_ready] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_masked_backend_init_denial_cannot_enable_writes] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_masked_load_read_error_cannot_publish_default] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_masked_write_error_cannot_acknowledge_save] duration = 0.000 seconds
+ - PASS - [readiness_gate.test_missing_count_is_not_fresh_default] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_mount_repair_denied_and_latched] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_no_space_mapping_is_preserved_when_gate_closes] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_orphan_is_not_missing] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_oversize_blocks_ready] duration = 0.000 seconds
+ - FAIL - [readiness_gate.test_unexpected_namespace_blocks_ready] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED
