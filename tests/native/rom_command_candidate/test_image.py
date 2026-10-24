@@ -16,7 +16,7 @@ class CommandImage(unittest.TestCase):
         cls.disassembly=subprocess.check_output([os.environ['ARM_OBJDUMP'],'-d',os.environ['PILOT_ELF']],text=True)
         cls.bodies={m[1]:m[2] for m in re.finditer(r'^[0-9a-f]+ <([^>]+)>:\n(.*?)(?=^[0-9a-f]+ <|\Z)',cls.disassembly,re.M|re.S)}
     def test_command_state_and_consumed_metadata_are_internal_ram(self):
-        for name in ['crux_rom_command','crux_rom_nor','crux_rom_memc_data','crux_rom_memc_config']:
+        for name in ['crux_rom_command','crux_rom_nor','crux_rom_memc_data','crux_rom_memc_config','crux_rom_deadline']:
             self.assertIn(name,self.symbols)
             self.assertGreaterEqual(self.symbols[name],0x20000000)
             self.assertLess(self.symbols[name],0x20020000)
@@ -33,9 +33,9 @@ class CommandImage(unittest.TestCase):
             self.assertFalse(any(token in name for token in forbidden),name)
             body=self.bodies[name]
             self.assertNotRegex(body,r'\bv(?:push|pop|ldr|str|mov|add|sub|mul|div)')
-            self.assertNotRegex(body,r'\bblx\s+r\d+|\bbx\s+r(?:[0-9]|1[0-2])\b|\b(?:ldr|mov)\s+pc,')
+            self.assertNotRegex(body,r'\bblx\s+(?:r\d+|ip|sb|sl|fp)|\bbx\s+(?:r(?:[0-9]|1[0-2])|ip|sb|sl|fp)\b|\b(?:ldr|mov)\s+pc,')
             addresses=[int(x,16) for x in re.findall(r'^\s*([0-9a-f]+):',body,re.M)]
-            for address,target in re.findall(r'\b(?:bl|b(?:\.[nw])?)\s+([0-9a-f]+)\s+<([^>]+)>',body):
+            for address,target in re.findall(r'\b(?:bl|b(?:eq|ne|cs|cc|mi|pl|vs|vc|hi|ls|ge|lt|gt|le)?(?:\.[nw])?|cbz|cbnz)\s+(?:r\d+,\s*)?([0-9a-f]+)\s+<([^>]+)>',body):
                 address=int(address,16)
                 if min(addresses)<=address<=max(addresses):
                     continue  # objdump may label internal offsets with absolute CONFIG symbols.
@@ -70,6 +70,8 @@ class CommandImage(unittest.TestCase):
         self.assertIn('FLEXSPI_SoftwareReset',seen)
         self.assertIn('crux_flash_poc_terminal',seen)
         self.assertIn('crux_rom_elapsed_expired',seen)
+        self.assertIn('crux_rom_candidate_wait_check',seen)
+        self.assertIn('crux_rom_candidate_deadline_expired',seen)
     def test_context_calls_dispatch_after_ram_setup_and_terminals_on_error(self):
         body=self.bodies['crux_island_enter']
         calls=re.findall(r'\bbl\s+[^<]*<([^>]+)>',body)
@@ -85,3 +87,20 @@ class CommandImage(unittest.TestCase):
         elapsed=self.bodies['crux_rom_elapsed_expired']
         self.assertNotRegex(elapsed,r'\b(?:bl|blx|str|ldr)\b')
         self.assertRegex(elapsed,r'movs\s+r0, #1')
+
+    def test_timer_candidate_has_no_startup_or_dispatch_configuration_caller(self):
+        for name in ['crux_rom_gpt2_candidate_init','crux_rom_candidate_deadline_begin','crux_rom_candidate_deadline_finish']:
+            self.assertIn(name,self.bodies)
+            self.assertLess(self.symbols[name]&~1,0x20000,name)
+            for caller, body in self.bodies.items():
+                self.assertNotRegex(body, r'\b(?:bl|b(?:\.[nw])?)\s+[^<]*<' + name + r'>',caller)
+        for name in ['memc_flexspi_wait_bus_idle','FLEXSPI_SoftwareReset',
+                     'FLEXSPI_WriteBlocking','FLEXSPI_ReadBlocking','FLEXSPI_TransferBlocking']:
+            self.assertIn('crux_rom_candidate_wait_check',self.bodies[name],name)
+        import json
+        commands=json.loads((Path(os.environ['PILOT_ELF']).parents[1]/'compile_commands.json').read_text())
+        self.assertFalse(any(Path(item['file']).name=='fsl_gpt.c' for item in commands))
+        config=(Path(os.environ['PILOT_ELF']).parent/'.config').read_text()
+        self.assertIn('# CONFIG_COUNTER is not set',config)
+        self.assertIn('# CONFIG_CORTEX_M_DWT is not set',config)
+        self.assertIn('CONFIG_CORTEX_M_SYSTICK=y',config)

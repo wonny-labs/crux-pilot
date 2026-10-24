@@ -92,6 +92,6 @@ int main(void) {
             original=json.loads((output/'source-hashes.json').read_text())
             stage.prepare(workspace,output)
             final=json.loads((output/'source-hashes.json').read_text())
-            for name in ['flash_mcux_flexspi_nor.c','memc_mcux_flexspi.c']:
+            for name in ['flash_mcux_flexspi_nor.c','memc_mcux_flexspi.c','fsl_flexspi.c']:
                 self.assertEqual(final[name]['candidate_sha256'],hashlib.sha256((output/name).read_bytes()).hexdigest())
                 self.assertEqual(final[name]['base_candidate_sha256'],original[name]['candidate_sha256'])

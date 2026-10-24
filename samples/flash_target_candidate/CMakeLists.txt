@@ -26,6 +26,15 @@ if(NOT poc_clock_c_hash STREQUAL "91200830fe9b4d290e25c169b3612f3256339852851da5
    NOT poc_flexspi_regs_hash STREQUAL "b48c5134a32e42f45180321b556b0cf227495efac145d80bd42c1a37dc9003ab")
     message(FATAL_ERROR "candidate read-confirm getter/register audit does not match pinned input")
 endif()
+# Software deadline audit uses the exact pinned SDK inline/register definitions.
+file(SHA256 "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpt/fsl_gpt.h" poc_gpt_hash)
+file(SHA256 "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_GPT.h" poc_gpt_regs_hash)
+file(SHA256 "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_XTALOSC24M.h" poc_xtal_regs_hash)
+if(NOT poc_gpt_hash STREQUAL "72a6b57bb5bd8f7854103222c3398624af45d798f4c59fde8cf0127f50d10c5d" OR
+   NOT poc_gpt_regs_hash STREQUAL "b04b2d123122cfa879cc241075098800734c796f2a9d6282265e41a769936174" OR
+   NOT poc_xtal_regs_hash STREQUAL "77909fc57ef79d4916b7dfb0db7a73aac0e8bd563a643c9f697dc907a38ddbd5")
+    message(FATAL_ERROR "candidate GPT2 source/register audit does not match pinned input")
+endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${ZEPHYR_BASE}/soc/nxp/imxrt/imxrt10xx/soc.c"
     "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/drivers/fsl_clock.h"
@@ -106,3 +115,16 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${poc_repo}/tests/native/flash_target_candidate/stage_commands.py"
     "${CMAKE_CURRENT_SOURCE_DIR}/rom_command_nor.inc"
     "${CMAKE_CURRENT_SOURCE_DIR}/rom_command_memc.inc")
+
+target_include_directories(drivers__memc PRIVATE
+    "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpt")
+# Private software timer candidate: retained for inspection, never startup-wired.
+target_sources(drivers__memc PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/rom_deadline.c")
+zephyr_code_relocate(FILES "${CMAKE_CURRENT_SOURCE_DIR}/rom_deadline.c" LOCATION ITCM_TEXT)
+zephyr_code_relocate(FILES "${CMAKE_CURRENT_SOURCE_DIR}/rom_deadline.c" LOCATION DTCM_DATA_BSS_RODATA)
+zephyr_link_libraries(-Wl,-u,crux_rom_gpt2_candidate_init -Wl,-u,crux_rom_candidate_deadline_begin -Wl,-u,crux_rom_candidate_deadline_finish)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/rom_deadline.h"
+    "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpt/fsl_gpt.h"
+    "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_GPT.h"
+    "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_XTALOSC24M.h")
