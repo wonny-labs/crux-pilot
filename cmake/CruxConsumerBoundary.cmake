@@ -45,7 +45,7 @@ function(_crux_socket_close_declaration output target property value)
     endif()
     set(header "${CMAKE_MATCH_1}")
     cmake_path(NORMAL_PATH header)
-    set(expected "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../components/sockets/zephyr/close_declaration.h")
+    set(expected "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../components/sockets/ports/zephyr/close_declaration.h")
     cmake_path(NORMAL_PATH expected)
     if(NOT header STREQUAL expected)
         return()
@@ -119,7 +119,7 @@ function(_crux_check_consumer_target target visited)
                OR lower MATCHES "(^|[/;,:=<>_ -])(threads::threads|pthread)([/;,:=<>_. -]|$)"
                OR lower MATCHES "(^|[/;,:=<>_ -])(lib|-l)pthread([_.-]|$)"
                OR lower MATCHES "(^|/)modules/hal(/|$)"
-               OR lower MATCHES "(^|/)components/[^/]+/(src|host|zephyr|tests?)(/|$)"
+               OR lower MATCHES "(^|/)components/[^/]+/(src|host|zephyr|ports|tests?)(/|$)"
                OR lower MATCHES "(^|/)(test_support|test-support)(/|$)"
                OR lower MATCHES "__zephyr__")
                 message(FATAL_ERROR "native consumer requirement: ${target} ${property}: ${value}")

@@ -56,7 +56,13 @@ class ConsumerBoundaryTest(unittest.TestCase):
 
     def test_transitive_private_or_native_include_is_rejected(self):
         for path in ('/sdk/zephyr/include', '/sdk/modules/hal/nxp/include',
-                     f'{REPO}/components/time/src'):
+                     f'{REPO}/components/time/src',
+                     f'{REPO}/components/netif/host',
+                     f'{REPO}/components/netif/zephyr',
+                     f'{REPO}/components/netif/ports/linux',
+                     f'{REPO}/components/netif/ports/zephyr',
+                     f'{REPO}/components/file/ports/linux',
+                     f'{REPO}/components/sockets/ports/zephyr'):
             with self.subTest(path=path):
                 result = self.configure('add_library(provider INTERFACE)\n'
                                         f'target_include_directories(provider INTERFACE "{path}")\n'
@@ -87,7 +93,9 @@ class ConsumerBoundaryTest(unittest.TestCase):
     def test_consumer_private_native_requirements_are_rejected(self):
         for requirement in ('target_link_libraries(consumer PRIVATE zephyr_interface)',
                             'target_link_libraries(consumer PRIVATE nxp_sdk)',
-                            'target_include_directories(consumer PRIVATE /sdk/zephyr/include)'):
+                            'target_include_directories(consumer PRIVATE /sdk/zephyr/include)',
+                            f'target_include_directories(consumer PRIVATE {REPO}/components/netif/ports/linux)',
+                            f'target_include_directories(consumer PRIVATE {REPO}/components/netif/ports/zephyr)'):
             with self.subTest(requirement=requirement):
                 result = self.configure('file(WRITE "${CMAKE_BINARY_DIR}/main.c" "int main(void) { return 0; }")\n'
                                         'add_library(zephyr_interface INTERFACE)\n'
@@ -253,7 +261,7 @@ class ConsumerBoundaryTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_close_declaration_exception_does_not_allow_other_private_requirements(self):
-        header = REPO / "components/sockets/zephyr/close_declaration.h"
+        header = REPO / "components/sockets/ports/zephyr/close_declaration.h"
         for target, option in (("other", f"SHELL:-include {header}"),
                                ("crux_sockets", f"SHELL:-include {header} -pthread"),
                                ("crux_sockets", f"SHELL:-include {header.parent}/other.h")):
@@ -269,7 +277,7 @@ class ConsumerBoundaryTest(unittest.TestCase):
             root = Path(temporary)
             (root / "cmake").mkdir()
             shutil.copy2(REPO / "cmake/CruxConsumerBoundary.cmake", root / "cmake")
-            header = root / "components/sockets/zephyr/close_declaration.h"
+            header = root / "components/sockets/ports/zephyr/close_declaration.h"
             header.parent.mkdir(parents=True)
             header.write_text('int close(int descriptor);\n#include <zephyr/kernel.h>\n')
             (root / "CMakeLists.txt").write_text(

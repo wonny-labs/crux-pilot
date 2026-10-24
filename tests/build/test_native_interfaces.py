@@ -59,7 +59,8 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_rejects_direct_paths_into_providers_and_test_controls(self):
         for header in ("../zephyr/private.h", "../host/private.h", "../../tests/control.h",
-                       "../../vendor/chip.h", "../../boards/board.h", "../private/state.h"):
+                       "../../vendor/chip.h", "../../boards/board.h", "../private/state.h",
+                       "../ports/linux/private.h", "../ports/zephyr/private.h"):
             with self.subTest(header=header):
                 result = self.check_source(f'#include "{header}"\n')
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
@@ -109,6 +110,9 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_native_providers_and_compositions_remain_native(self):
         for path in ("components/time/zephyr/backend.c", "components/time/host/backend.c",
+                     "components/netif/ports/linux/backend.c",
+                     "components/netif/ports/zephyr/backend.c",
+                     "components/file/ports/linux/backend.c",
                      "components/runtime/zephyr/thread.c", "samples/controller/zephyr/main.c",
                      "samples/controller/host/main.c", "samples/time/src/main.c"):
             with self.subTest(path=path):

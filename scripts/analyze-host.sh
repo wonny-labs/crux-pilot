@@ -55,7 +55,7 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
 
 "$tidy" -p "$build_dir" \
     "$repo/components/netif/src/netif.c" \
-    "$repo/components/netif/host/netif_host.c" \
+    "$repo/components/netif/ports/linux/netif_host.c" \
     "$repo/samples/networking/client.c" \
     "$repo/samples/networking/host/main.c" \
     "$repo/tests/networking/runtime_port.c"
@@ -66,7 +66,7 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/configuration/fault_provider.c" \
     "$repo/samples/controller/configuration/scenario.c" \
     "$repo/components/file/src/file.c" \
-    "$repo/components/file/host/file_host.c" \
+    "$repo/components/file/ports/linux/file_host.c" \
     "$repo/tests/file/fault_test.c" \
     "$repo/tests/file/host_test.c" \
     "$repo/components/queue/src/queue.c" \

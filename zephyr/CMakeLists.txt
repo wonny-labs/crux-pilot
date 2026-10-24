@@ -93,30 +93,14 @@ if(CONFIG_CRUX_TIME)
 endif()
 
 if(CONFIG_CRUX_SOCKETS)
-    add_library(crux_sockets INTERFACE)
-    add_library(crux::sockets ALIAS crux_sockets)
-    target_compile_definitions(crux_sockets INTERFACE _POSIX_C_SOURCE=200809L)
-    target_compile_options(crux_sockets INTERFACE
-        "SHELL:-include ${CMAKE_CURRENT_LIST_DIR}/../components/sockets/zephyr/close_declaration.h")
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/sockets/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/sockets")
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::sockets)
 endif()
 if(CONFIG_CRUX_NETIF)
-    add_library(crux_netif INTERFACE)
-    target_include_directories(crux_netif INTERFACE ../components/netif/include)
-    target_link_libraries(crux_netif INTERFACE crux::base)
-    add_library(crux::netif ALIAS crux_netif)
-    # Native final-image registration owns provider linkage, independently of
-    # the portable usage facade (STATIC PRIVATE would export LINK_ONLY).
-    zephyr_library_named(crux_netif_provider)
-    zephyr_library_sources(../components/netif/src/netif.c
-        ../components/netif/zephyr/netif_zephyr.c)
-    zephyr_library_include_directories(../components/netif/include ../components/netif/src)
-    zephyr_library_link_libraries(crux::base)
-    add_dependencies(crux_netif_provider zephyr_generated_headers)
-    target_compile_options(crux_netif_provider PRIVATE -Wall -Wextra -Werror)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/netif/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/netif")
     cmake_language(DEFER CALL crux_assert_portable_usage crux::netif)
-endif()
-if(CONFIG_CRUX_SOCKETS)
-    cmake_language(DEFER CALL crux_assert_portable_usage crux::sockets)
 endif()
 
 if(CONFIG_CRUX_QUEUE)

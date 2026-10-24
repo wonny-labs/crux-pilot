@@ -44,7 +44,7 @@ NETWORKING_HEADERS = {"sys/socket.h", "netinet/in.h", "arpa/inet.h", "poll.h",
 SOURCE_SUFFIXES = {".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".hh", ".hxx", ".inc"}
 # Direct references into implementation/provider/test trees cannot become public
 # contracts even if their basename looks portable. This does not follow includes.
-PRIVATE_INCLUDE_SEGMENTS = {"host", "zephyr", "board", "boards", "nxp", "vendor",
+PRIVATE_INCLUDE_SEGMENTS = {"host", "zephyr", "ports", "board", "boards", "nxp", "vendor",
                             "test", "tests", "private"}
 NATIVE_HEADER = re.compile(
     r"^(?:zephyr/|boards?/|board\.h$|nxp/|vendor/|fsl_|MIMXRT|cmsis|stm32|"
