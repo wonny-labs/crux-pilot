@@ -8,10 +8,17 @@ if(CONFIG_CRUX_PILOT_MODULE)
     add_library(crux::base ALIAS crux_base)
 endif()
 
-if(CONFIG_CRUX_EXECUTION)
-    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/execution/ports/zephyr"
-        "${CMAKE_CURRENT_BINARY_DIR}/execution")
+if(CONFIG_CRUX_THREAD)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/thread/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/thread")
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::thread)
 endif()
+if(CONFIG_CRUX_SYNC)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/sync/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/sync")
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::sync)
+endif()
+
 
 if(CONFIG_CRUX_TIME)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/time/ports/zephyr"

@@ -1,5 +1,5 @@
-#ifndef CRUX_EXECUTION_H
-#define CRUX_EXECUTION_H
+#ifndef CRUX_THREAD_H
+#define CRUX_THREAD_H
 
 #include <crux/status.h>
 #include <stddef.h>
@@ -14,15 +14,6 @@ typedef struct {
     uint32_t slot;
     uint32_t generation;
 } crux_thread_t;
-typedef struct {
-    uint32_t slot;
-    uint32_t generation;
-} crux_mutex_t;
-typedef struct {
-    uint32_t slot;
-    uint32_t generation;
-} crux_semaphore_t;
-
 typedef enum {
     CRUX_THREAD_PRIORITY_LOW = 0,
     CRUX_THREAD_PRIORITY_NORMAL = 1,
@@ -47,16 +38,6 @@ typedef void (*crux_thread_entry_t)(void *argument);
 crux_status_t crux_thread_create(const crux_thread_options_t *options, crux_thread_entry_t entry,
                                  void *argument, crux_thread_t *out);
 crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms);
-
-crux_status_t crux_mutex_create(crux_mutex_t *out);
-crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms);
-crux_status_t crux_mutex_unlock(crux_mutex_t mutex);
-crux_status_t crux_mutex_destroy(crux_mutex_t *mutex);
-
-crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_semaphore_t *out);
-crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_ms);
-crux_status_t crux_semaphore_give(crux_semaphore_t semaphore);
-crux_status_t crux_semaphore_destroy(crux_semaphore_t *semaphore);
 
 #ifdef __cplusplus
 }

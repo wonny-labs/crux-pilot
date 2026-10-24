@@ -1,7 +1,8 @@
 /* Original synthetic runtime consumer; no production-runtime source or ABI. */
 #include "runtime_fixture.h"
 
-#include <crux/execution.h>
+#include <crux/sync.h>
+#include <crux/thread.h>
 
 #include <stddef.h>
 #include <stdint.h>

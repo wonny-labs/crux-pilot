@@ -7,7 +7,7 @@ and public build integration instructions; provider source, private headers and
 portable conformance tests were not consulted.
 
 `crux_runtime_fixture_run()` is callable from a standalone runner or firmware app.
-Only ISO C and `<crux/execution.h>` appear in the portable source. The fixture uses
+Only ISO C, `<crux/thread.h>` and `<crux/sync.h>` appear in the portable source. The fixture uses
 its own task priorities and stack-word requests, translates these to public Crux
 options, and adapts a runtime argument to the portable task entry. Host functional
 priority acceptance is tested, not native scheduling equivalence.
@@ -44,7 +44,7 @@ The outer test deadline is only a liveness guard.
 
 Configure the consumer itself, supplying the Crux root explicitly. The consumer
 turns off Crux internal testing and samples and obtains capability headers and
-provider linkage solely from `crux::execution`:
+provider linkage solely from `crux::thread` and `crux::sync`:
 
 ```sh
 cmake -S tests/execution_runtime -B build/runtime-consumer \
@@ -59,7 +59,7 @@ supplied to this independently configured build, without changing its source.
 
 ## Independent Zephyr composition
 
-The `zephyr/` application owns its own `prj.conf`, enables `CONFIG_CRUX_EXECUTION`
+The `zephyr/` application owns its own `prj.conf`, enables `CONFIG_CRUX_THREAD` and `CONFIG_CRUX_SYNC`
 and `CONFIG_ZTEST`, and disables unrelated Time capability initialization. Its
 Zephyr-only runner calls the fixture from one ztest. The portable fixture is built
 as a separate strict C17 static library linking only the public usage target. Use

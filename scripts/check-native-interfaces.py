@@ -31,6 +31,7 @@ PORTABLE_ROOTS = (
 
     "samples/messaging",
     "tests/messaging_consumer/runtime.c", "tests/messaging_consumer/main.cpp",
+    "tests/thread_sync_consumer/consumer.c", "tests/thread_sync_consumer/consumer.cpp",
 )
 # Issue #28's approved standard profile is attached to named consumer files,
 # never an entire component/tree. Its stricter operation/include policy is reused.

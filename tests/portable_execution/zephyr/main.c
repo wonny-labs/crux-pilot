@@ -1,4 +1,5 @@
-#include <crux/execution.h>
+#include <crux/sync.h>
+#include <crux/thread.h>
 #include <zephyr/irq_offload.h>
 #include <zephyr/kernel.h>
 #include <zephyr/ztest.h>

@@ -1,4 +1,5 @@
-#include <crux/execution.h>
+#include <crux/sync.h>
+#include <crux/thread.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>

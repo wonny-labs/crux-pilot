@@ -23,13 +23,14 @@ class ExecutionBoundaryTest(unittest.TestCase):
             with self.subTest(source=source): self.check_source(source, 1)
 
     def test_permits_iso_c_and_public_contract(self):
-        self.check_source('#include <errno.h>\n#include <time.h>\n#include <crux/execution.h>\n', 0)
+        self.check_source('#include <errno.h>\n#include <time.h>\n#include <crux/thread.h>\n#include <crux/sync.h>\n', 0)
 
     def test_rejects_native_and_private_compile_requirements(self):
-        for flag in ['-I/tmp/zephyr/include', '-I/tmp/components/execution/src',
-                     '-I/tmp/components/execution/host', '-I/tmp/components/execution/zephyr',
-                     '-I/tmp/components/execution/ports/linux',
-                     '-I/tmp/components/execution/ports/zephyr', '-D__ZEPHYR__=1']:
+        flags = ['-I/tmp/zephyr/include', '-D__ZEPHYR__=1']
+        flags += [f'-I/tmp/components/{component}/{private}'
+                  for component in ('thread', 'sync')
+                  for private in ('src', 'host', 'zephyr', 'ports/linux', 'ports/zephyr')]
+        for flag in flags:
             with self.subTest(flag=flag), tempfile.TemporaryDirectory() as temp:
                 record = Path(temp) / 'commands.json'
                 record.write_text(json.dumps([{'file': str(REPO / 'tests/portable_execution/conformance.c'),
@@ -37,9 +38,27 @@ class ExecutionBoundaryTest(unittest.TestCase):
                 result = subprocess.run(['python3', str(CHECK), '--compile-commands', str(record)], capture_output=True, text=True)
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 
+    def test_standalone_consumer_compile_commands_are_checked(self):
+        for source in ('consumer.c', 'consumer.cpp'):
+            with self.subTest(source=source), tempfile.TemporaryDirectory() as temp:
+                record = Path(temp) / 'commands.json'
+                record.write_text(json.dumps([{
+                    'file': str(REPO / 'tests/thread_sync_consumer' / source),
+                    'directory': temp,
+                    'arguments': ['cc', '-I/tmp/components/sync/ports/linux', '-c', source],
+                }]))
+                result = subprocess.run(['python3', str(CHECK), '--compile-commands', str(record)],
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn('native/private compile requirement', result.stderr)
+
     def test_rejects_direct_provider_or_native_link(self):
-        for links, expected in [('crux::execution', 0), ('crux::execution;zephyr_interface', 1),
-                                ('crux_execution_host', 1), ('crux::execution;pthread', 1)]:
+        for links, expected in [('crux::thread;crux::sync', 0),
+                                ('crux::thread;crux::sync;zephyr_interface', 1),
+                                ('crux_thread_host;crux_sync_host', 1),
+                                ('crux::thread;crux::sync;pthread', 1),
+                                ('crux::thread crux::sync', 1),
+                                ('crux::thread', 1), ('crux::sync', 1)]:
             with self.subTest(links=links), tempfile.TemporaryDirectory() as temp:
                 record = Path(temp) / 'boundary.json'
                 record.write_text(json.dumps({'links': links}))

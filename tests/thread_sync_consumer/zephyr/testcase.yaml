@@ -1,0 +1,19 @@
+tests:
+  crux.component.thread_only:
+    harness: console
+    harness_config:
+      type: one_line
+      regex: ['COMPONENT_CONSUMER_PASS']
+    extra_args: EXTRA_CONF_FILE=thread.conf
+    platform_allow: [native_sim/native/64]
+    timeout: 15
+    tags: [crux, thread]
+  crux.component.sync_only:
+    harness: console
+    harness_config:
+      type: one_line
+      regex: ['COMPONENT_CONSUMER_PASS']
+    extra_args: EXTRA_CONF_FILE=sync.conf
+    platform_allow: [native_sim/native/64]
+    timeout: 15
+    tags: [crux, sync]

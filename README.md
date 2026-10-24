@@ -10,7 +10,7 @@ The `main` branch currently includes:
 
 | Area | Available implementation |
 | --- | --- |
-| Reusable components | Portable C17 `base` and `time` components, with Linux host and Zephyr Time implementations |
+| Reusable components | `base`, `time`, `thread`, `sync`, `queue`, `monotonic`, `netif`, `sockets`, `configuration` and `file`, with support and qualification varying by capability |
 | Reference application | A reference controller with shared portable Time and scheduling logic, a Linux host scenario and Zephyr device/network/health compositions |
 | Device, networking and health integration | EVKB SW5 GPIO input, UART diagnostics, bounded IPv4 TCP/UDP exchanges, service readiness and workload-conditioned watchdog supervision |
 | Zephyr integration | Out-of-tree module, RTC and native device/network services, Shell examples, `native_sim` tests and EVKB builds |
@@ -24,17 +24,34 @@ The native Linux host runs portable code without Zephyr, while Zephyr `native_si
 
 Crux separates portable application behaviour, reusable platform capabilities and environment-specific integration. Shared contracts are introduced when they provide stable, useful semantics. Zephyr and Embedded Linux retain their native operating-system and device infrastructure rather than being hidden behind a universal HAL or OSAL.
 
-For the implemented component model, native-port ownership, build composition and dependency boundaries, see the [architecture overview](docs/architecture.md).
-
 Portable components and application logic avoid Zephyr, board and vendor dependencies. Host and Zephyr compositions explicitly select their implementations. Host, `native_sim` and physical-target tests provide complementary evidence rather than interchangeable guarantees.
 
-The bounded [portable execution contract](docs/execution-contract-proposal.md)
-provides joinable workers, nonrecursive mutexes and counting semaphores through
-`crux::execution`. The private native providers live in
-`components/execution/ports/linux/` and `components/execution/ports/zephyr/`; the
-Zephyr port owns its native build definitions, selected by the top-level module.
-See [validation and limits](docs/execution-validation.md) for
-Host/Zephyr profiles, independent consumers and unresolved target evidence.
+For the component model, native-port ownership, build composition and dependency boundaries, see the [architecture overview](docs/architecture.md).
+
+The bounded [Thread and Sync contract](docs/execution-contract-proposal.md)
+provides independent component-owned capabilities:
+
+| Capability | Public header | Usage target |
+| --- | --- | --- |
+| Joinable threads | `<crux/thread.h>` | `crux::thread` |
+| Nonrecursive mutexes and counting semaphores | `<crux/sync.h>` | `crux::sync` |
+
+Each owns its common source and private `ports/linux/` and `ports/zephyr/`
+implementations under `components/thread/` or `components/sync/`. Sync uses native
+OS identity for mutex ownership and does not require Crux Thread. Each component
+owns its metadata protection and monotonic deadlines; no shared Execution provider
+or global state remains. Existing C function/type names and handle representations
+are unchanged. Consumers must replace `<crux/execution.h>` and `crux::execution`
+with the header(s) and target(s) they use; the obsolete interfaces are removed.
+
+Host builds select `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC` (both default ON).
+Zephyr selects `CONFIG_CRUX_THREAD` and `CONFIG_CRUX_SYNC` independently. Thread owns
+`CONFIG_CRUX_THREAD_COUNT` and `CONFIG_CRUX_THREAD_STACK_BYTES`; Sync owns
+`CONFIG_CRUX_SYNC_MUTEX_COUNT` and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT`. Defaults remain
+4 workers, 4096 usable bytes per Zephyr stack, 8 mutexes and 8 semaphores. Migrate
+old `CONFIG_CRUX_EXECUTION*` selections to these component-owned settings.
+See [validation and limits](docs/execution-validation.md) for the retained
+Host/Zephyr profiles and historical qualification evidence.
 
 The implemented [Time contract](docs/time-contract.md) provides a concrete component example.
 
