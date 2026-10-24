@@ -24,6 +24,8 @@ Before the busy context, preparation copies program data into private aligned RA
 
 The elapsed-time leaf deliberately fails closed on the target, and submission always refuses. Controlled tests substitute deterministic elapsed observations to exercise the otherwise inadmissible lower implementation. This is not a timer implementation, target-enabling flag or adopted driver. JEDEC 9Fh has no inherited ROM slot and is not installed; identity/protection remains unqualified. Result bytes stay in private RAM; this experiment is not the File/Configuration target binding.
 
+The actual preflight now verifies every relocated ITCM text and DTCM read-only byte against its load image. A PRE_KERNEL_1 startup check verifies initialized DATA and zero BSS once, after Zephyr relocation and before the guarded POST_KERNEL drivers. Later legitimate command/buffer mutations are preserved, not overwritten to pass a check. Invalid extents, mismatches and unsupported sequencing latch refusal. This is implemented software verification with simulated and ELF evidence; physical execution of the verifier is untested. It does not authenticate NOR contents or detect arbitrary later mutable-memory corruption.
+
 ## Remaining approval and safety gates
 
 No target elapsed-time source is selected: GPT2 and DWT are not adopted. Observation budgets are not elapsed deadlines. Identity, NOR status/protection, initial watchdog and external supervisor state, other masters, bus/cache/exception execution and exact target image/region/backup/recovery evidence must be established before physical admission. A controlled software fixture is not hardware qualification.

@@ -232,5 +232,309 @@
     "material_findings": 0,
     "physical_status": "NOT_READY"
   },
-  "dependency_policy": "PASS;50 designated portable source files, existing public/provider checks"
+  "dependency_policy": "PASS;50 designated portable source files, existing public/provider checks",
+  "task_7": {
+    "baseline": "51a3c82afbd142e6ae840b0f1db131035b682500",
+    "owned_source_sha256": {
+      "samples/flash_target_candidate/island.c": "4151357ff008eef5badd4d36d1acd4df37118006e36a624f1fba339602e19216",
+      "samples/flash_target_candidate/island_checks.h": "7703055a909e524d383499c6cef638a53b9e4d0969a132d7e483c5a0ca00b568",
+      "tests/native/maintenance_island/test_relocation.py": "d9baa756345f4810f34008da83a63a0ef95f9194e14eb021e51dc9eed3b25a95",
+      "tests/native/maintenance_island/test_island.py": "816aadb169ada2cdcee55c6e4be09dce539e32f81b89367f9d9f08a79f4c6594",
+      "tests/native/rom_storage_candidate/test_image.py": "b6ac00aafc4ea47455e2ddcf0276c4d0df08bd539010e18a2d6185d3d02ed99b"
+    },
+    "retained_source_sha256": {
+      "samples/flash_target_candidate/CMakeLists.txt": "f0f823861b269365636a3841f31ed51843eb0018de2184da0dd98f9511f5b041",
+      "samples/flash_target_candidate/island_context.S": "0ab10b12603976eb576b857b0f758553e2987e2d6efc580a8c6130959c64d74e",
+      "samples/flash_target_candidate/island.ld": "974e87a19c34d26174f6719c74811f2383f44fd808887173d5001cb59537f4a7",
+      "samples/flash_target_candidate/prj.conf": "e6b2098b58346c412cb617cd874afb22bbc69953508f6f10d511d678e63f2120",
+      "samples/flash_target_candidate/rom_command.h": "0baad2111ab97df30fbe91782cbf333287dcf98c138c0a86f95e9d75c9d0152d",
+      "samples/flash_target_candidate/rom_command_gate.c": "bec8d6fc7ee2cca6db60076dbde60214c302223e73e82207eb14bf1bec55f287",
+      "samples/flash_target_candidate/rom_command_nor.inc": "3f2137bf5a07b0b20f035aeb8a6a64f45964e76bcf8d55691b8a1e698df80324",
+      "samples/flash_target_candidate/rom_command_memc.inc": "a7f579baed03c0496f27863c95b4591f502f8422967d1f21e7ed569088f018ea",
+      "samples/flash_target_candidate/rom_profile.c": "9ef50f5808cc456165877cda4fde746e9591b6d8fbeaca5da6961821d482ed1c",
+      "samples/flash_target_candidate/rom_profile.h": "b535ab4e13a71e7ef62cc342b3782709f2931915e54f9f64d88b5741dd25fd6a",
+      "tests/native/flash_target_candidate/stage_commands.py": "d4f860c4eed045280ee442b13efa0fd10a4e8d353e7cb8606128ce0c403ee114",
+      "tests/native/flash_target_candidate/prepare.py": "243e221927d4b359763e03bf2f9caafd0a0db49fd8fa82fe054bc25cd38d47a7",
+      "tests/native/flash_target_candidate/stage_fcb.py": "e82ad5349252c1951fa925c4e05f82c5ecfecc779586cd965d08d7f8a70091ee"
+    },
+    "startup_source_sha256": {
+      "zephyr/arch/arm/core/cortex_m/prep_c.c": "12a858aacff355befa7ea40fdebbc36129406bc24b8b41d465642213b26295e6",
+      "zephyr/arch/common/init.c": "6fb2603e7dda134debf05d0d46fc160c77ebd9a5000b2af6ef9c7a223840f4ae",
+      "zephyr/arch/common/xip.c": "687868ecec68464bff7ef44044cbfb94dfeff31b92ee852e6d62c8b1d159b1b0",
+      "zephyr/kernel/init.c": "3bac71d1819fd8479848964cc7950edc59dd025135d8f445bbf2fd4fd19ca439",
+      "zephyr/include/zephyr/init.h": "a6b38ccaed46ccc2e77eee37d9f58589b3b72330e75d4c66327f807cc96c26b6",
+      "zephyr/drivers/flash/flash_mcux_flexspi_nor.c": "397019890b4ce7afae88c7da1913ab0b8ac57c3ee1a2c1975c7ba6c4c08a3ea4",
+      "zephyr/drivers/memc/memc_mcux_flexspi.c": "0b9cfcd4fef488d542977b628dbc0c0c3c9243fff1d50cc8dc7315b49e74ce20"
+    },
+    "artifact_sha256": {
+      "build/zephyr/zephyr.elf": "e37efab94e11dbe20b045f432f0b6858cfe78e496cb33597a2b1d64f41c1e3b3",
+      "build/zephyr/zephyr.bin": "062c9c8aab11dd8967d52335ab3787e244570f0cd2a41295e60bfede4f08c636",
+      "build/zephyr/zephyr.map": "1fb729c2ed9e4ce422502bb9b00eaec709dd592ba7c5cdd73ce8291a486cca67",
+      "build/zephyr/.config": "5788a8ba479cb21181ed466e1c48f04d3c000e2719861605ff8ee7bdab7dec52",
+      "build/zephyr/zephyr.dts": "a35a1fc6722f70e7514a511cd88c93649c2ea2254c07f14423d6eec638c4a991",
+      "build/zephyr/code_relocation.c": "e2242321968b70d0ba4f3a5ee967990fd769e5b54f06a11000ab40b34cfd3c18",
+      "build/zephyr/include/generated/linker_relocate.ld": "3ce4075d7af85b210c3026e3900b99dd579d1f7e17c5a0aae5ba9f6075169cce",
+      "build/compile_commands.json": "a848bbe47b2b8a62f49560ab8389e303b5793433bdfc33efc10ed86761312c84",
+      "original-fcb.bin": "7dfbd0296742c2883b398eeca8a6eaabb40692ad4bcec689d7a94907c0e88c5d",
+      "task-7-closure.json": "1e8e52c33c69f9477c30612f5b5f03cc3db29c4d5da383b3846cf59d14d306fa",
+      "task-7-byte-identity-final.json": "f82ca6899d2dc0f7e23bccc48c95b5a1fb6fbc26fc8ab46274250257c628adb4",
+      "task-7-capture.py": "e7fbbf29abdd45b1c7abc962cb147be351acb414ba5143c2b4b08489c9f43104",
+      "build/flash-target-candidate/command-source-hashes.json": "e4ea75bd8b3d9e67b7e9243471ec2d97ba73f0b2b93f69eb98b3d1205e0a113f",
+      "build/flash-target-candidate/evkbmimxrt1060_flexspi_nor_config.c": "f1ec2ac1684cbedba2ec6d944e05264862877489c00e7089229fc54f9255be35",
+      "build/flash-target-candidate/fcb-source-hashes.json": "3f2af8f467d3436b52d93e6dde23f3e3c9b88e94007c7b4285ddcc6987353d3b",
+      "build/flash-target-candidate/flash_mcux_flexspi_nor.c": "f3bd63880d0b0ac474296cf2c41d2aa7e8dedda339159511219f73e0f1952084",
+      "build/flash-target-candidate/fsl_flexspi.c": "6c6a6b5cb9872c14eaf05169d4549f5f6a7538feefdae5b98fd89177240bc328",
+      "build/flash-target-candidate/memc_mcux_flexspi.c": "1faf93b9670c0ac2cece1d609b2d1077e3551050a24c04d96cd3aa78aedcd15b",
+      "build/flash-target-candidate/source-hashes.json": "d8ea8629dbd26f5d722c7efaede633da85dbc7c19ea3119b706b303c9e348948",
+      "task-7-verified-flash_target_candidate.log": "1c7d7fc3253c170fae73c39d599c7ddc9b07899e5edb31f77ec11b7ec303ff1a",
+      "task-7-verified-maintenance_boot.log": "f3d9113de912e64b952a5d732c9e9966897be673cbe84a96d1addf2e8af17c95",
+      "task-7-verified-maintenance_island.log": "5d0d3e4ccb41e4df115f98fdd7f3ddbf41e275e6237c6e28f45ba0c6b5969cec",
+      "task-7-verified-rom_command_candidate.log": "321eef63efa815d1bea8a34c77e8c7f43045e8299ca7a4cd9c3fdc887416078a",
+      "task-7-verified-rom_storage_candidate.log": "e611603a03645def8e69b9eba00612e6c41a736fe23e036142b302bd0a5a59a8"
+    },
+    "bin_bytes": 43528,
+    "tests": {
+      "rom_command": 15,
+      "rom_profile": 7,
+      "island_including_new_relocation": 15,
+      "snapshot": 3,
+      "copied_driver": 15,
+      "total": 55,
+      "skips": 0
+    },
+    "busy_graph_identity": {
+      "baseline_elf_sha256": "fc6527623541621f6615d445a3c82a4843b9b7bd780c68ddbc3a6d6a51fdfe03",
+      "new_elf_sha256": "e37efab94e11dbe20b045f432f0b6858cfe78e496cb33597a2b1d64f41c1e3b3",
+      "functions": {
+        "FLEXSPI_CheckAndClearError": {
+          "vma": 5241,
+          "size": 54,
+          "info": 18,
+          "sha256": "f710297a0778fbc740d68da7947d9208f50652c03a26e72766d4be7a481ce781",
+          "identical_to_task_6": true
+        },
+        "FLEXSPI_GetBusIdleStatus": {
+          "vma": 5333,
+          "size": 24,
+          "info": 2,
+          "sha256": "18854de3707f8b7215e4861fcc98d3e715576b39677a36f6e70a992bfd74abdb",
+          "identical_to_task_6": true
+        },
+        "FLEXSPI_ReadBlocking": {
+          "vma": 5873,
+          "size": 218,
+          "info": 18,
+          "sha256": "775a40e6b67f0e95f6010cf68bebcb8e224b1f0a4d3ca9608cf9e53ca838a5de",
+          "identical_to_task_6": true
+        },
+        "FLEXSPI_SoftwareReset": {
+          "vma": 6385,
+          "size": 54,
+          "info": 18,
+          "sha256": "e0d98bd4f2da7d51ece27fea190ccb4058d545e5c7354f8ad02aa274f0609817",
+          "identical_to_task_6": true
+        },
+        "FLEXSPI_TransferBlocking": {
+          "vma": 6457,
+          "size": 228,
+          "info": 18,
+          "sha256": "faeadf18ae741a5055a1ec96632fab73d29fb91f431eae18ed01ba06000f2a55",
+          "identical_to_task_6": true
+        },
+        "FLEXSPI_WriteBlocking": {
+          "vma": 7971,
+          "size": 168,
+          "info": 18,
+          "sha256": "a4a9856c3f09ae8d0b136edac5a4fb9dbcbde07f4538818e6a38821a3056bb27",
+          "identical_to_task_6": true
+        },
+        "crux_flash_poc_terminal": {
+          "vma": 9995,
+          "size": 4,
+          "info": 18,
+          "sha256": "8ad1cea8a5f52c12622873a0781ff88477b840ef3815583b9843f6592293c855",
+          "identical_to_task_6": true
+        },
+        "crux_pilot_flash_owner_request_valid": {
+          "vma": 1,
+          "size": 100,
+          "info": 2,
+          "sha256": "55c7c67a7b278217d70ab140e08603b2c5428ad05e0e363df352dccc1d6cc146",
+          "identical_to_task_6": true
+        },
+        "crux_rom_check_deadline": {
+          "vma": 169,
+          "size": 18,
+          "info": 2,
+          "sha256": "462dce77513820712c12f8a52c207eb015b14ed55e523e92ab7aaa8dc73e3098",
+          "identical_to_task_6": true
+        },
+        "crux_rom_check_result": {
+          "vma": 187,
+          "size": 10,
+          "info": 2,
+          "sha256": "3084795e01692ca6c8e4ce4e33c4e157dd3279619a8e2701bce5800aee26f5ab",
+          "identical_to_task_6": true
+        },
+        "crux_rom_command_dispatch": {
+          "vma": 197,
+          "size": 296,
+          "info": 18,
+          "sha256": "c6c8b7ed291442e991873f461898a27ad41ed9478ea27842a1bba8e08c3c7e48",
+          "identical_to_task_6": true
+        },
+        "crux_rom_elapsed_expired": {
+          "vma": 9991,
+          "size": 4,
+          "info": 18,
+          "sha256": "64d23481cb6a254816fb9c4c9b22031f78ed0a6ece5a6b0f6849a3ee7f77a2bb",
+          "identical_to_task_6": true
+        },
+        "crux_rom_native_erase_sector": {
+          "vma": 1247,
+          "size": 42,
+          "info": 2,
+          "sha256": "36616d0333ff17d1d4e5fe75884bc743e1d421634ff969cd83584165e2581bdc",
+          "identical_to_task_6": true
+        },
+        "crux_rom_native_write_enable": {
+          "vma": 5045,
+          "size": 42,
+          "info": 2,
+          "sha256": "da16f9fdd202167d601922fb1e7626616f22d0534ae866970151b1740f777d03",
+          "identical_to_task_6": true
+        },
+        "crux_rom_ready_idle": {
+          "vma": 709,
+          "size": 88,
+          "info": 2,
+          "sha256": "17248571c9c5520d1159a091f6603300b9c8b469c01f33f1654e68ebab1491b1",
+          "identical_to_task_6": true
+        },
+        "memc_flexspi_reset": {
+          "vma": 9311,
+          "size": 14,
+          "info": 18,
+          "sha256": "183ce07f2df71b275f773e465aea5341a93871a4f3e6ee9405e4b2b8ef0efece",
+          "identical_to_task_6": true
+        },
+        "memc_flexspi_transfer": {
+          "vma": 9651,
+          "size": 108,
+          "info": 18,
+          "sha256": "4fa58c9841043fde294e1fc6896b9892cca82dbd89e93b8991d062550110003e",
+          "identical_to_task_6": true
+        },
+        "memc_flexspi_wait_bus_idle": {
+          "vma": 9945,
+          "size": 40,
+          "info": 18,
+          "sha256": "a22f97b9834f9ef2a77e456ac507661d78286b7a4a7323f4dc55b82406e38563",
+          "identical_to_task_6": true
+        }
+      },
+      "consumed_data": {
+        "crux_rom_command": {
+          "vma": 536872104,
+          "size": 280,
+          "info": 1,
+          "layout_identical_to_task_6": true
+        },
+        "crux_rom_nor": {
+          "vma": 536872384,
+          "size": 96,
+          "info": 1,
+          "layout_identical_to_task_6": true
+        },
+        "crux_rom_memc_data": {
+          "vma": 536872964,
+          "size": 56,
+          "info": 1,
+          "layout_identical_to_task_6": true
+        },
+        "crux_rom_memc_config": {
+          "vma": 536872032,
+          "size": 8,
+          "info": 1,
+          "layout_identical_to_task_6": true,
+          "initial_bytes_identical_to_task_6": true,
+          "sha256": "6c31f644780ed07caf163bcf41d38d0dfdde664dfba58b5a037b18ea9718955f"
+        },
+        "CSWTCH.84": {
+          "vma": 536870916,
+          "size": 12,
+          "info": 1,
+          "layout_identical_to_task_6": true,
+          "initial_bytes_identical_to_task_6": true,
+          "sha256": "c1f9c65279a30f492809ecb7232efd2b1aacc1931eab0a5de426a4a8ee6d47ad"
+        },
+        "CSWTCH.85": {
+          "vma": 536870928,
+          "size": 12,
+          "info": 1,
+          "layout_identical_to_task_6": true,
+          "initial_bytes_identical_to_task_6": true,
+          "sha256": "62d038a0e807337953bd71b1c2ca119def49bc11ba6462e1d34faa91137c97c3"
+        }
+      },
+      "verified_regions": {
+        "itcm_text": {
+          "reloc_start": 0,
+          "reloc_size": 10080,
+          "rom_start": 1610622824
+        },
+        "dtcm_rodata": {
+          "reloc_start": 536870912,
+          "reloc_size": 1024,
+          "rom_start": 1610621632
+        },
+        "dtcm_data": {
+          "reloc_start": 536871936,
+          "reloc_size": 168,
+          "rom_start": 1610622656
+        },
+        "dtcm_bss": {
+          "reloc_start": 536872104,
+          "reloc_size": 916
+        }
+      },
+      "scope": "Exact selected busy function byte/literal identity and consumed data layout/initial-byte identity; mutable runtime values and physical execution unqualified."
+    },
+    "physical_status": "NOT_READY; target still refuses commands",
+    "source_revision": "133ba3b",
+    "independent_review": {
+      "spec": "PASS",
+      "quality": "PASS",
+      "scope": "consumed initial DATA/BSS and every-entry immutable relocation verification; physical execution untested"
+    }
+  },
+  "historical_ci_51a3c82": {
+    "head": "51a3c82afbd142e6ae840b0f1db131035b682500",
+    "checks": [
+      {
+        "run": 40128310901,
+        "job": 120974382774,
+        "name": "zephyr",
+        "conclusion": "success"
+      },
+      {
+        "run": 40128310786,
+        "job": 120974382174,
+        "name": "host",
+        "conclusion": "success"
+      },
+      {
+        "run": 40128295020,
+        "job": 120974336055,
+        "name": "host",
+        "conclusion": "success"
+      },
+      {
+        "run": 40128294901,
+        "job": 120974335704,
+        "name": "zephyr",
+        "conclusion": "success"
+      }
+    ]
+  }
 }

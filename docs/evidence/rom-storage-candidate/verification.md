@@ -34,9 +34,9 @@ done
 
 Use `c1d788d` to reproduce the historical boot/profile artifact; later revisions may intentionally extend the command-context checks and change image hashes. Missing artifact environment inputs can skip exact ARM checks, which does not satisfy the manual gate. Standard hosted CI does not run this focused gate. Rerun affected checks when staged source, command logic, linker/configuration or tests change.
 
-## Command slice and final image
+## Command slice at `7ef53d9`
 
-The final command slice builds a 42,880-byte EVKB-B BIN and passes 46 focused test methods, zero skips:
+That command slice builds a 42,880-byte EVKB-B BIN and passes 46 focused test methods, zero skips:
 
 | Gate | PASS |
 | --- | ---: |
@@ -55,9 +55,21 @@ Final selected static analysis covers 18 transitive functions in ITCM, private c
 
 The automated disassembly walk recognises direct B/BL edges; it is not an exhaustive ARM instruction parser. Conditional/CBZ/CBNZ branches and branch aliases/suffixes require supplemental inspection of the exact image. Independent review inspected those omitted instruction classes in this image and found their destinations internal to their own functions, without an escaping call or table/indirect dispatch. This manual step is part of the gate after relevant code, configuration, compiler or image changes; the automated pass alone does not establish closure of another image. Static-frame output likewise requires checking actual prologue forms and absence of recursion/dynamic stack use.
 
-The source still uses Zephyr's relocation initialization for the added driver regions; runtime comparison of all those regions is **not implemented**. JEDEC 9Fh, actual elapsed timing and File/Configuration target binding are also unfinished. Ordinary target submission and init/media guards refuse; even unsupported direct lower preparation reaches the target's deliberately expired leaf before any command. No successful fixture result enables target submission.
+At `7ef53d9`, the source used Zephyr relocation without consumed validation of the added driver regions. The follow-up below closes that software gap. JEDEC 9Fh, actual elapsed timing and File/Configuration target binding are also unfinished. Ordinary target submission and init/media guards refuse; even unsupported direct lower preparation reaches the target's deliberately expired leaf before any command. No successful fixture result enables target submission.
 
 The reproduction recipe above applies to the final command image when run at the final source revision. Add `rom_command_candidate` to the suite loop; optionally set `COMMAND_CLOSURE_JSON=/tmp/rom-profile/closure.json` to retain the function/frame audit. Use commit `c1d788d` only for the earlier boot/profile artifact. Final source/staged/artifact identities are in [verification.json](verification.json); source-path/debug differences can change rebuilt ELF hashes, so compare the stated tested inputs and semantic checks rather than promising path-independent binary reproducibility. No unrelated full Host suite was rerun for sample-private changes.
+
+## Consumed relocation verification follow-up
+
+The next software slice adds an actual PRE_KERNEL_1 verifier after Zephyr copies/zeros relocated storage and before guarded POST_KERNEL drivers. At that initial phase it compares TEXT, RODATA and DATA against their NOR loads and verifies zero BSS. Each later preflight compares immutable TEXT/RODATA again, validates all region extents before access, and preserves legitimate mutable command/native/bounce changes. It does not recopy mutable storage. Invalid extents, unsupported early/repeated initialization and comparison failures latch refusal, including the retained assembly/vector copy checks.
+
+All six RAM sections and the separate stacks are checked for overflow-safe bounds, alignment and overlap before verifier access; file-backed loads must stay in the firmware envelope. Exact ELF/BIN checks verify actual file-backed LMAs, selected function/literal/state coverage and startup/init-array order. ITCM address zero is valid and is tested as such; the Linux controlled harness uses a permitted nonzero stand-in mapping, while ELF evidence establishes the actual zero VMA.
+
+Final affected gates pass **55 methods, no skips**: command 15, ROM/FCB 7, island 15 (6 retained, 7 controlled relocation, 2 linked-image additions), snapshot 3 and copied driver 15. RED/GREEN covers corruption at region ends, invalid/unmapped/overflow/overlap cases, phase-correct re-entry, and sticky refusal after original assembly/vector copy failures. EVKB-B build passes; BIN **43,528 bytes**. ELF SHA256 `e37efab94e11dbe20b045f432f0b6858cfe78e496cb33597a2b1d64f41c1e3b3`; BIN `062c9c8aab11dd8967d52335ab3787e244570f0cd2a41295e60bfede4f08c636`. The configuration and 512-byte FCB properties remain unchanged.
+
+All 18 selected busy functions retain the exact VMAs, sizes and instruction/literal bytes of the independently reviewed command image. Six consumed-data symbols retain layout; initialized config and owner bounds retain bytes. That identity, the rerun closure gate and the reviewed consumed data policy permit reuse of the prior manual edge/prologue inventory; the new verifier itself executes before the busy window. See [identities](verification.json). This is implemented verification with controlled-function and final-image evidence, not physical execution or authentication of NOR contents. The initial mutable check does not promise detection of arbitrary later corruption or concurrent native writes; the selected composition still needs an exclusive prepare-to-dispatch policy before admission.
+
+The manual commands above discover the added tests through the existing island suite. Published source `51a3c82` separately passed all four hosted Host/Zephyr Push/PR checks; that historical result does not cover this follow-up until its own new-head CI completes.
 
 ## Scope limits
 
