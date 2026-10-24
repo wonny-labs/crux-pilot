@@ -6,7 +6,7 @@ For setup and initial builds, start with the [README](../README.md). For contrib
 
 ## Scope and support boundaries
 
-Crux is a reusable embedded software platform built from small, capability-owned C17 components. It aims to let portable firmware and runtime-adapter code reuse the same selected interfaces across supported environments while native operating systems retain responsibility for their kernels, drivers, and board support.
+Crux is a reusable embedded software platform organised around small, component-owned capabilities, primarily using C17. A capability may instead qualify a standard API where that is the more appropriate boundary. It aims to let portable firmware and runtime-adapter code reuse the same selected interfaces across supported environments while native operating systems retain responsibility for their kernels, drivers, and board support.
 
 The current development environments are a Linux Host build and Zephyr, including `native_sim` and the documented RT1060-EVKB Rev B QSPI configuration. Linux Host is a development and test environment, **not** a qualified Embedded Linux product variant. An EVKB cross-build is not proof of physical operation. A component is supported on a given environment only to the extent stated by its contract and validation record. Do not infer that every component has a Zephyr provider or has passed physical qualification.
 
@@ -41,7 +41,7 @@ Portable C or C++ consumers include public headers under `<crux/...>` and use su
 
 ## Component ownership and source layout
 
-Each component owns its public contract, common sources, private helpers, build declarations and any necessary OS-specific implementation:
+Each component owns its applicable public contract, common code, private helpers, build definitions and optional OS-specific implementations:
 
 ```text
 components/<capability>/
