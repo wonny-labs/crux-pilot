@@ -6,6 +6,14 @@ static crux_file_result_t io = CRUX_FILE_OK, sync_result = CRUX_FILE_OK, cleanup
 static size_t count = 3, closes, opens, calls;
 static int live[CRUX_FILE_POOL_SIZE];
 static int changed;
+static unsigned locks, unlocks;
+void crux_file_port_lock(void) {
+    locks++;
+}
+void crux_file_port_unlock(void) {
+    assert(locks > unlocks);
+    unlocks++;
+}
 crux_file_result_t crux_file_port_open(size_t s, const char *n, crux_file_mode_t m) {
     (void)s;
     (void)n;
@@ -145,6 +153,7 @@ int main(void) {
     assert(crux_file_remove("x") == CRUX_FILE_OK);
     io = CRUX_FILE_ERR_IO;
     assert(crux_file_remove("x") == CRUX_FILE_ERR_IO);
+    assert(locks == unlocks && locks > 0);
     puts("File deterministic contract checks passed");
     return 0;
 }

@@ -13,5 +13,6 @@ manifest:
           - cmsis
           - cmsis_6
           - hal_nxp
+          - littlefs
   self:
     path: crux-pilot
