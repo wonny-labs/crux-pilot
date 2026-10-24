@@ -73,30 +73,65 @@ crux_status_t crux_watchdog_start(uint32_t timeout_ms, crux_watchdog_t *out);
 crux_status_t crux_watchdog_feed(crux_watchdog_t watchdog);
 ```
 
-Reset-cause bits are Crux-owned POR, PIN, SOFTWARE, WATCHDOG, DEBUG, CPU_LOCKUP,
-HARDWARE, SECURITY, USER and TEMPERATURE (bits 0..9 respectively); OTHER is bit 10
-for native supported/reported reasons outside that mapping. Native constants and
-register values never escape. Multiple bits may coexist; zero means no recognised
-reported flag, not proof that no reset happened. A cause may contain multiple
-possible reasons, not a disambiguated diagnosis or ordered history.
+Reset-cause flag names and values are component-owned, not native constants:
+
+```c
+enum {
+    CRUX_RESET_CAUSE_POR         = 1u << 0,
+    CRUX_RESET_CAUSE_PIN         = 1u << 1,
+    CRUX_RESET_CAUSE_SOFTWARE    = 1u << 2,
+    CRUX_RESET_CAUSE_WATCHDOG    = 1u << 3,
+    CRUX_RESET_CAUSE_DEBUG       = 1u << 4,
+    CRUX_RESET_CAUSE_CPU_LOCKUP  = 1u << 5,
+    CRUX_RESET_CAUSE_HARDWARE    = 1u << 6,
+    CRUX_RESET_CAUSE_SECURITY    = 1u << 7,
+    CRUX_RESET_CAUSE_USER        = 1u << 8,
+    CRUX_RESET_CAUSE_TEMPERATURE = 1u << 9,
+    CRUX_RESET_CAUSE_OTHER       = 1u << 10
+};
+```
+
+A provider need not support every flag; `supported` reports its current normalized
+native supported-mask. OTHER means one or more native reasons outside the ten
+named categories, including supported native categories not exposed individually.
+Native constants/register values never escape. Multiple bits may coexist; zero
+means no currently reported flag, not proof that no reset happened. Flags are
+neither an ordered history nor a disambiguated initiating-event diagnosis.
 
 ## Status and readiness
 
-`status_get` supplies a consistent component snapshot, not a product health vote.
-Its OK means the report is valid, not that all services are ready. Each service
-field is OK when available, NOT_SUPPORTED when absent/unimplemented, NOT_READY
-for a known unavailable device, or IO for an observed provider failure. A native
-failure must never be represented as a healthy/confirmed-missing result.
+`status_get` reports this component's fixed services: watchdog lifecycle/provider
+availability, reset-request availability and reset-cause query availability. It
+is not application readiness, fault assessment, recovery eligibility or a vote
+on whether all required work is healthy. It does not inspect Time/network/Serial/
+Logging progress or replace the existing controller health/readiness helpers.
 
-The watchdog tuple reports state, emulation identity and the active requested
-nominal timeout. FAULTED accompanies IO; Host EXPIRED accompanies TIMEOUT. A
-successful native readiness check is not physical watchdog/reset qualification.
-`reset_status=OK` says the reset mechanism is available, not that a future call
-is guaranteed to reset successfully. `reset_cause_status` reflects the current
-supported-query/read probe; a later call may still fail. Reports on failure are
-unchanged. Null output is INVALID_ARGUMENT. There is no global READY/HEALTHY
-setter, registry of subsystems or implication that network/storage/application
-work is healthy. Consumers combine these mechanics with their own required work.
+Return semantics are distinct from the contents of the report:
+
+- Function OK means a complete report was produced. An unavailable/failing service
+  is represented in its own field; it does not turn that field into OK. Null
+  output is INVALID_ARGUMENT, unsupported context NOT_SUPPORTED and an inability
+  to produce a coherent report IO. On a non-OK function return, output is unchanged.
+- The report serializes component metadata and individual provider probes; it is
+  not an atomic measurement of every peripheral at one instant. Later calls may
+  observe different availability. No query starts/feeds a watchdog, clears causes,
+  requests reset or authorizes cause-clear. Query may latch an observed watchdog
+  fault or advance the Host simulation's observed expiry state.
+
+| Field | Exact meaning |
+| --- | --- |
+| `watchdog_status` | OK for an available IDLE/ACTIVE service; NOT_SUPPORTED for absent service, NOT_READY for a known unready device, IO with FAULTED, TIMEOUT with Host EXPIRED |
+| `watchdog_state` | Crux lifecycle/observed state, not proof that the application is making useful progress or a whole-system safety verdict |
+| `watchdog_emulated` | Selected watchdog provider is a development/test simulation; not an autonomous hardware protection guarantee |
+| `watchdog_timeout_ms` | Requested nominal timeout of the last successfully started watchdog; zero before success. A retained value in FAULTED does not prove current hardware timing/state |
+| `reset_status` | OK if the selected reset-request mechanism is available; NOT_SUPPORTED if absent (including normal Linux Host). It does not promise successful completion or a reset duration |
+| `reset_cause_status` | Result of supported-mask/read probing, without clearing: OK on available, valid observation; NOT_SUPPORTED when unimplemented, NOT_READY if known unready, IO on provider/validation failure. It does not establish that a diagnostic consumer received the initial cause |
+
+`controller_health_observe`, `controller_health_joint_observe` and
+`controller_readiness` remain sample-owned. The application decides which
+services/progress are required, when to report READY/DEGRADED, whether to arm/feed
+or withhold feed, and what recovery action is justified. There is no platform
+READY/HEALTHY setter, monitoring registry, automatic recovery or policy daemon.
 
 ## Watchdog lifecycle and ownership
 
@@ -106,11 +141,16 @@ create another watchdog, stop it, extend its lifetime or establish a security
 boundary. The application owns one supervision policy and controls token sharing.
 No dependency on Crux Thread and no fragile native thread-ID lifetime binding.
 
-- Inputs must be validated before native effects. Null output is INVALID_ARGUMENT.
-  Initial qualified timeout range: 500..64000 ms, exact multiples of 500; outside
-  range is OUT_OF_RANGE, unsupported resolution is NOT_SUPPORTED. No silent
-  rounding. The initial scenario uses 2000 ms. These nominal configuration bounds
-  are not expiry/WCET promises or production sizing derived from a real product.
+- Inputs must be validated before native effects. Null output is INVALID_ARGUMENT;
+  zero timeout is OUT_OF_RANGE (it never means disabled or immediate expiry).
+  Positive timeout bounds/resolution are provider-profile requirements, not
+  universal platform limits. The initial RT1060 provider profile accepts nominal
+  500..64000 ms in exact 500 ms steps: outside range is OUT_OF_RANGE; unsupported
+  resolution is NOT_SUPPORTED. Linux's initial emulated profile mirrors this for
+  conformance. Other/future providers need their own documented profile; portable
+  callers cannot assume that every provider accepts this range or step. No silent
+  rounding/overflow or invented expiry/WCET guarantee. The initial scenario uses
+  2000 ms; this is not product-derived production timing/sizing.
 - Output is zero on failed creation; it must not already contain a live token.
   Invalid inputs/unready device do not consume activation. Starting after a
   successful activation or a quarantined native activation attempt returns
@@ -142,30 +182,84 @@ application must arrange timely, progress-conditioned feeds with sufficient
 margin for native calls, locks, logging and other work. No automatic feed on
 query/error, no worker and no extension of freshness to obtain a passing test.
 
-## Reset causes and reset request
+## Reset causes: flags, initial observation and clear ownership
 
-Cause query reads currently latched native reasons and supported mask without
-clearing them or creating a journal. Get/clear belong to the same composition
-owner. Data can accumulate until explicitly cleared and is not necessarily only
-the last boot; persistence across reset/power cycles is native-specific. Do not
-invent POR or SOFTWARE when the provider cannot report it. Unsupported query is
-NOT_SUPPORTED, known device unready NOT_READY and observed read failure IO;
-failed query preserves the caller's report.
+Cause query reads currently latched native reasons and the supported mask;
+normalizes them to the Crux flags listed above; and returns both only after all
+required reads/validation succeed. It never clears hardware. Supported means
+what this provider can report, not a promise that one flag uniquely identifies
+an initiating event. Known reasons preserve their distinct bits; unrepresented
+native reasons map to OTHER rather than disappearing. Do not intersect causes
+with the supported mask to silently discard evidence. If a native read reports cause bits outside its own advertised native supported
+mask, return IO without publishing the report; do not erase that inconsistency by
+masking or broadening `supported`. Unknown but natively advertised reasons may
+still normalize to OTHER. A failed supported-mask query also returns its failure,
+not a fabricated healthy/confirmed-missing value.
 
-Clear is explicit and destructive. It clears the native reported-cause latch
-and verifies reported flags are zero before returning OK; native clear/read
-failure or remaining flags yields IO. This verifies reported flags only, not
-undocumented hardware latches, backup storage or durable log deletion. Consumers
-capture/log the returned cause before choosing to clear. No startup auto-clear.
+Multiple flags may accumulate across resets. Zero after a successful read means
+no currently reported flags, not no prior reset. Persistence/clearability across
+reset or power loss is native-specific. RT1060's combined SOFTWARE/CPU_LOCKUP
+flags remain combined; the API does not disambiguate them or infer SOFTWARE/POR
+when a provider cannot report it. No persistent boot journal or component-owned
+copy of initial boot evidence is introduced.
 
-`system_reset` is a synchronous reset request: successful target execution never
-returns; error paths return NOT_SUPPORTED/NOT_READY/IO as applicable. It never
-returns OK as a pretend acknowledgement. Linux returns NOT_SUPPORTED and never
-reboots the machine. Native Zephyr uses `sys_reboot`; the Cortex-M path calls
-NVIC_SystemReset and ignores warm/cold distinctions. Promise neither power-cycle
-nor a particular preserved RAM/peripheral state. It does not flush Logging,
-persist Configuration, make busy QSPI safe or join threads. The application must
-prepare its safe state; hardware reset/testing always needs separate approval.
+| Outcome | Query/clear behaviour |
+| --- | --- |
+| Native mechanism unimplemented | NOT_SUPPORTED; no invented cause or successful no-op clear |
+| Known device unready | NOT_READY |
+| Failed native read/clear, invalid native report, failed verification or flags remaining after clear | IO |
+| Failed query | Caller output unchanged; never opens clear permission |
+| Clear before a successful explicit public query | INVALID_STATE; no native clear call |
+| Successful query with zero flags | OK with `causes=0`; caller may retain that observation |
+
+**Initial boot diagnostic owner:** final application composition must designate
+one boot/reset-diagnostic owner. In the new reference scenario it is the bootstrap/
+supervisor, which calls `reset_cause_get`, retains its returned report, and hands
+copies to the intended diagnostic/runtime consumers before it elects to clear.
+Required recipients and retention/delivery policy belong to that application.
+Logging OK alone is not a delivery acknowledgement and cannot justify discarding
+the only copy. Startup, status probing, watchdog start/feed and other components
+must not auto-clear. Other consumers may make nondestructive reads; only the
+composition's designated diagnostic owner may request clear. This is a declared
+ownership contract, not an authentication system or a consumer registry.
+
+A small internal ordering guard prevents accidental clear-before-observation:
+only a successful explicit `reset_cause_get` allows a subsequent clear attempt.
+`status_get` probes, failed reads and native probes do not count as consumption.
+An admitted clear attempt consumes this permission even if the native operation
+fails; another explicit successful query is needed before another attempt. The
+application owner must still ensure that the intended consumers actually received
+or retained their copy; the component cannot infer that from another thread's
+read or from a Logging submission. No new public API/token is added for this guard.
+
+Clear is explicit and destructive. It calls the native clear and verifies the
+currently reported flags are zero before OK. It does not erase caller-owned
+copies, verify undocumented latches or guarantee persistent-history deletion.
+On partial/failed clear, the owner retains the previously captured diagnostic
+report and may query remaining flags; there is no automatic clear retry. Calls
+are serialized, but unregistered direct native readers/clearers violate this
+composition contract and cannot be made safe by a Crux watchdog token.
+
+## Reset request: return and execution semantics
+
+The public function returns `crux_status_t` because rejection/error paths return;
+it must not be declared unconditionally noreturn. **It never returns CRUX_OK.**
+
+| Provider/path | Execution and observable return |
+| --- | --- |
+| Zephyr rejection before dispatch | Detectable ISR/pre-kernel use returns NOT_SUPPORTED; absent mechanism NOT_SUPPORTED; known unready/pre-dispatch failure returns NOT_READY/IO where observable. No reset has been dispatched |
+| Qualified Zephyr target dispatch | Release component metadata and enter native `sys_reboot(SYS_REBOOT_COLD)`. Normal success resets the processor and never returns to the caller; other tasks and in-flight operations may be terminated |
+| Native target fails to reset after dispatch | Zephyr's noreturn implementation can idle forever after a failed architecture reset. The API cannot turn this into a returned IO or a bounded completion. Nonreturn alone is not evidence that a reset actually occurred |
+| Normal Linux Host provider | Return NOT_SUPPORTED without rebooting the machine, exiting/restarting the application, inventing a boot epoch or changing reset-cause evidence. Host emulates watchdog state/expiry, not successful machine reset |
+| Controlled software test hook | A correctly nonreturning hook may record dispatch and terminate only a disposable test thread/process. This proves mapping/nonreturn forwarding, not a Host/board reset or a new production simulation success contract |
+
+The Cortex-M native path calls NVIC_SystemReset and ignores warm/cold distinctions;
+SYS_REBOOT_COLD is the private initial mapping, not a public power-cycle guarantee.
+Promise neither preserved RAM/peripheral state nor persistent reset provenance.
+The request does not join threads, drain Logging, save Configuration, make busy
+QSPI safe or implement recovery policy. The application prepares its safe state.
+A real reset and its fresh-boot evidence need a separately approved physical
+scenario; software dispatch/absence of return cannot substitute for that evidence.
 
 ## Pinned native findings and qualified composition
 
@@ -187,18 +281,29 @@ for `CONFIG_WDT_MCUX_IMX_WDOG`.
   returned combinations and OTHER rather than claiming one exact initiating cause.
 - Initial target: `mimxrt1060_evk@B//qspi`, explicit `crux-watchdog0` alias to enabled
   wdog0/WDOG1 at 0x400b8000, supported SRC, native HWINFO/REBOOT/WATCHDOG facilities.
-  Reject missing/wrong resources and conflicting M3 watchdog owner, WDT Shell or
-  Task-WDT hardware fallback. Unregistered direct native clients violate ownership.
+  Reject missing/wrong resources. Exclusive ownership must be enforced before
+  any token is issued: `CRUX_SYSTEM` together with `CONFIG_CRUX_CONTROLLER_M3`
+  (including its integrated variant) fails configuration, even if M3 test commands
+  are off. That old main owns native arm/feed and unconditionally reads/clears
+  reset cause at boot; the token cannot arbitrate or protect against those calls.
+  Also reject WDT Shell, HWINFO Shell clear access and Task-WDT hardware fallback
+  in this initial composition. Existing M3 images remain unchanged and separate.
+  A HAL pre-armed observation is an extra runtime check, not a substitute for
+  rejecting two statically selected owners. Unknown direct native clients remain
+  outside this exclusive ownership contract; no generic reservation system added.
 - Start uses minimum 0, requested nominal maximum, RESET_SOC, no callback; retain
   the reviewed pause-when-debug-halted option and no sleep-pause promise. Debug,
   low-power modes, oscillator/tick behaviour and exact reset consequences remain
   target-specific/physically unverified. No power-management policy added.
 - Linux is an explicitly emulated development provider, using monotonic time and
   lazy deterministic expiry observation on get/feed; it never resets the host and
-  does not claim an autonomous hardware guard. Reset-cause get/clear are normally
-  NOT_SUPPORTED. Private test controls inject time/faults, outside public headers.
+  does not claim an autonomous hardware guard. Reset request and reset-cause
+  get/clear are NOT_SUPPORTED in its normal profile. Private test controls inject
+  time/faults outside public headers, without pretending a machine reset occurred.
 - native_sim uses the real Zephyr kernel/device watchdog dispatch with a controlled
-  fixture device and reset/hwinfo hooks where no real peripheral is available.
+  fixture device and controlled reset/fault hooks where needed. Reuse the pinned
+  native_sim HWINFO get/clear implementation for its positive synthetic POR/
+  SOFTWARE path; those flags are simulator evidence, not physical reset evidence.
   Never call an actual machine reset. Nonreturn reset mapping can be checked in a
   disposable test thread with a correctly nonreturning native hook; do not wrap a
   noreturn function with an ordinary returning fake (undefined compiler behaviour).
@@ -208,8 +313,12 @@ for `CONFIG_WDT_MCUX_IMX_WDOG`.
 A fresh independent embedded-platform builder read this proposal and relevant
 constraints and returned **nothing important left** before planning. This checks
 design completeness only: it is not implementation verification or human approval.
-The architecture, API/clear semantics, timeout subset and emulated Host semantics
-remain proposals for the human review below.
+The original completeness check predates the human request to clarify status,
+reset execution, initial cause ownership and provider-specific timeouts. Those
+clarifications are now part of this revised proposal. A fresh follow-up builder
+check of these exact requested clarifications again returned **nothing important
+left**. This remains a completeness check, not technical implementation PASS or
+human approval. The revised contract is unapproved until the human decision.
 
 ## Concurrency, context and errors
 
@@ -229,11 +338,13 @@ reports; no silent adoption or cleanup of uncertain irreversible hardware state.
 1. Host RED/GREEN: unavailable services, status validity, invalid inputs/token,
    start/feed/nominal timeout, single ownership, monotonic deterministic expiry,
    wrong-state/second activation, partial install/setup and feed failure/quarantine,
-   cause query/explicit clear/verification failure through controlled native ports.
+   cause query/explicit clear/verification failure through controlled native ports
+   (including clear-before-observation refusal in those existing lifecycle cases).
    Keep the simulation free of a background worker and actual system operations.
 2. Focused Zephyr tests: native device mappings and passed timeout/flags/channel,
    unavailable/prearmed/failing native states, cause-bit combinations/clear error,
-   ISR rejection and correctly nonreturning reset forwarding. Do not duplicate the
+   M3 owner-conflict configuration rejection, ISR rejection and correctly
+   nonreturning reset forwarding. Do not duplicate the
    entire Host table or pretend controlled driver mapping is physical expiry.
 3. Small Controller example reuses existing sample health policy and public APIs;
    independently authored C17/C++17 runtime consumer, native-free usage/source
@@ -259,6 +370,7 @@ watchdog endurance, persistent reset provenance or worst-case scheduling proof.
 Approve or revise the six operations, one boot-local watchdog feed token and no
 stop/reconfigure, fixed service-availability status rather than application-health
 policy, explicit nondestructive cause query plus verified clear, synchronous
-nonreturning target reset, conservative nominal timeout subset and the concise
+nonreturning target reset and pre-dispatch error semantics, initial RT1060-specific
+nominal timeout profile (not a platform-wide guarantee), and the existing concise
 TDD allocation above. The selected one-shot direction alone does not approve this
 full contract. Implementation starts only after approval of this document.
