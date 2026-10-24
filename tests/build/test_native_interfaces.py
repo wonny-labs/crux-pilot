@@ -60,7 +60,9 @@ class NativeInterfaceTest(unittest.TestCase):
     def test_rejects_direct_paths_into_providers_and_test_controls(self):
         for header in ("../zephyr/private.h", "../host/private.h", "../../tests/control.h",
                        "../ports/linux/detail.h", "../ports/zephyr/detail.h",
-                       "../../vendor/chip.h", "../../boards/board.h", "../private/state.h"):
+                       "../../vendor/chip.h", "../../boards/board.h", "../private/state.h",
+                       "../../ports/linux/execution_native_types.h",
+                       "../../ports/zephyr/execution_native_types.h"):
             with self.subTest(header=header):
                 result = self.check_source(f'#include "{header}"\n')
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
@@ -111,7 +113,11 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_native_providers_and_compositions_remain_native(self):
         for path in ("components/time/ports/zephyr/backend.c", "components/time/ports/linux/backend.c",
-                     "components/runtime/zephyr/thread.c", "samples/controller/zephyr/main.c",
+                     "components/time/zephyr/backend.c", "components/time/host/backend.c",
+                     "components/runtime/zephyr/thread.c",
+                     "components/execution/ports/linux/execution_native.c",
+                     "components/execution/ports/zephyr/execution_native.c",
+                     "samples/controller/zephyr/main.c",
                      "samples/controller/host/main.c", "samples/time/src/main.c"):
             with self.subTest(path=path):
                 result = self.check_source("#include <zephyr/kernel.h>\nk_timeout_t timeout;", path)

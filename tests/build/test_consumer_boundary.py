@@ -58,7 +58,11 @@ class ConsumerBoundaryTest(unittest.TestCase):
         for path in ('/sdk/zephyr/include', '/sdk/modules/hal/nxp/include',
                      f'{REPO}/components/time/src',
                      f'{REPO}/components/time/ports/linux',
-                     f'{REPO}/components/time/ports/zephyr'):
+                     f'{REPO}/components/time/ports/zephyr',
+                     f'{REPO}/components/execution/host',
+                     f'{REPO}/components/execution/zephyr',
+                     f'{REPO}/components/execution/ports/linux',
+                     f'{REPO}/components/execution/ports/zephyr'):
             with self.subTest(path=path):
                 result = self.configure('add_library(provider INTERFACE)\n'
                                         f'target_include_directories(provider INTERFACE "{path}")\n'
@@ -89,7 +93,9 @@ class ConsumerBoundaryTest(unittest.TestCase):
     def test_consumer_private_native_requirements_are_rejected(self):
         for requirement in ('target_link_libraries(consumer PRIVATE zephyr_interface)',
                             'target_link_libraries(consumer PRIVATE nxp_sdk)',
-                            'target_include_directories(consumer PRIVATE /sdk/zephyr/include)'):
+                            'target_include_directories(consumer PRIVATE /sdk/zephyr/include)',
+                            f'target_include_directories(consumer PRIVATE {REPO}/components/execution/ports/linux)',
+                            f'target_include_directories(consumer PRIVATE {REPO}/components/execution/ports/zephyr)'):
             with self.subTest(requirement=requirement):
                 result = self.configure('file(WRITE "${CMAKE_BINARY_DIR}/main.c" "int main(void) { return 0; }")\n'
                                         'add_library(zephyr_interface INTERFACE)\n'
@@ -238,6 +244,15 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                 'set(TOOLCHAIN_C_FLAGS "--sysroot=/sdk/zephyr/standard;-mcpu=cortex-m7")\n'
                                 f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'
                                 'crux_assert_portable_usage(crux::execution crux::queue crux::monotonic)\n'
+                                'get_property(libraries GLOBAL PROPERTY ZEPHYR_LIBS)\n'
+                                'if(NOT "crux_execution_zephyr" IN_LIST libraries)\n'
+                                'message(FATAL_ERROR "missing native execution registration")\nendif()\n'
+                                'get_target_property(execution_includes crux_execution_api INTERFACE_INCLUDE_DIRECTORIES)\n'
+                                f'if(NOT execution_includes STREQUAL "{REPO}/components/execution/include")\n'
+                                'message(FATAL_ERROR "execution public include path is not canonical")\nendif()\n'
+                                'get_target_property(execution_flags crux_execution_api INTERFACE_COMPILE_OPTIONS)\n'
+                                'if(NOT "--sysroot=/sdk/zephyr/standard" IN_LIST execution_flags OR NOT "-mcpu=cortex-m7" IN_LIST execution_flags)\n'
+                                'message(FATAL_ERROR "execution toolchain flags lost")\nendif()\n'
                                 'get_target_property(flags crux_queue INTERFACE_COMPILE_OPTIONS)\n'
                                 'if(NOT "--sysroot=/sdk/zephyr/standard" IN_LIST flags OR NOT "-mcpu=cortex-m7" IN_LIST flags)\n'
                                 'message(FATAL_ERROR "toolchain flags lost")\nendif()\n')

@@ -8,7 +8,7 @@ target_link_libraries(crux_execution_cases PRIVATE crux::execution)
 target_compile_options(crux_execution_cases PRIVATE -Wall -Wextra -Werror)
 target_sources(app PRIVATE main.c ../admission.c admission_zephyr.c)
 target_include_directories(app PRIVATE ../../../components/execution/src
-    ../../../components/execution/zephyr)
+    ../../../components/execution/ports/zephyr)
 # app is a static library; propagate test-only wrappers to the final image link.
 target_link_options(app PUBLIC -Wl,--wrap=exec_native_thread_join
     -Wl,--wrap=exec_native_mutex_lock -Wl,--wrap=exec_native_semaphore_take)
