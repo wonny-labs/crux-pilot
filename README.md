@@ -28,7 +28,10 @@ Portable components and application logic avoid Zephyr, board and vendor depende
 
 The bounded [portable execution contract](docs/execution-contract-proposal.md)
 provides joinable workers, nonrecursive mutexes and counting semaphores through
-`crux::execution`. See [validation and limits](docs/execution-validation.md) for
+`crux::execution`. The private native providers live in
+`components/execution/ports/linux/` and `components/execution/ports/zephyr/`; the
+Zephyr port owns its native build definitions, selected by the top-level module.
+See [validation and limits](docs/execution-validation.md) for
 Host/Zephyr profiles, independent consumers and unresolved target evidence.
 
 The implemented [Time contract](docs/time-contract.md) provides a concrete component example.

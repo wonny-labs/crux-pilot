@@ -31,7 +31,7 @@ The root CMake option `BUILD_TESTING=OFF` skips GoogleTest and C++ configuration
 `CRUX_BUILD_HOST_SAMPLE=OFF` as well to configure and build only the portable and host library
 targets.
 
-## Zephyr: `zephyr_time/`
+## Zephyr: `time/zephyr/`
 
 Twister builds and runs the C17 Ztest application on two `native_sim/native/64`
 configurations, one with an RTC alias and one without it. Tests cover Zephyr error
@@ -203,6 +203,15 @@ separate trusted native fixture. No Zephyr File runtime or production storage
 backend is enabled by these checks.
 
 ## Portable queue and monotonic timing
+
+Queue and Monotonic native implementations live in their component-owned
+`components/{queue,monotonic}/ports/linux/` and `ports/zephyr/` directories.
+Their public usage targets remain `crux::queue` and `crux::monotonic`; native
+composition retains the internal `crux_queue_host` and `crux_monotonic_host`
+target names. Zephyr component build definitions live beside their ports and
+are selected by the top-level module's existing `CONFIG_CRUX_*` conditions.
+Tests remain under `tests/queue/`, `tests/monotonic/` and
+`tests/messaging_consumer/`; private port includes belong only to native tests.
 
 `Queue.*` and `Monotonic.*` run with Host Debug/sanitizer checks. Queue native
 contract models deliberately reproduce pinned Zephyr timeout semantics; actual

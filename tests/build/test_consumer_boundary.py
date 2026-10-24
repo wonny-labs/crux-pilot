@@ -57,6 +57,12 @@ class ConsumerBoundaryTest(unittest.TestCase):
     def test_transitive_private_or_native_include_is_rejected(self):
         for path in ('/sdk/zephyr/include', '/sdk/modules/hal/nxp/include',
                      f'{REPO}/components/time/src',
+                     f'{REPO}/components/time/ports/linux',
+                     f'{REPO}/components/time/ports/zephyr',
+                     f'{REPO}/components/execution/host',
+                     f'{REPO}/components/execution/zephyr',
+                     f'{REPO}/components/execution/ports/linux',
+                     f'{REPO}/components/execution/ports/zephyr',
                      f'{REPO}/components/netif/host',
                      f'{REPO}/components/netif/zephyr',
                      f'{REPO}/components/netif/ports/linux',
@@ -71,6 +77,27 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                         'crux_assert_portable_usage(wrapper)\n')
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("native consumer requirement", result.stdout + result.stderr)
+
+    def test_component_private_port_includes_are_rejected(self):
+        for component in ('queue', 'monotonic'):
+            for port in ('host', 'zephyr', 'ports/linux', 'ports/zephyr'):
+                for public in (False, True):
+                    with self.subTest(component=component, port=port, public=public):
+                        path = f'{REPO}/components/{component}/{port}'
+                        if public:
+                            body = ('add_library(provider INTERFACE)\n'
+                                    f'target_include_directories(provider INTERFACE "{path}")\n'
+                                    'add_library(wrapper INTERFACE)\n'
+                                    'target_link_libraries(wrapper INTERFACE provider)\n'
+                                    'crux_assert_portable_usage(wrapper)\n')
+                        else:
+                            body = ('file(WRITE "${CMAKE_BINARY_DIR}/main.c" "int main(void) { return 0; }")\n'
+                                    'add_executable(consumer "${CMAKE_BINARY_DIR}/main.c")\n'
+                                    f'target_include_directories(consumer PRIVATE "{path}")\n'
+                                    'crux_assert_portable_consumer(consumer)\n')
+                        result = self.configure(body)
+                        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                        self.assertIn("native consumer requirement", result.stdout + result.stderr)
 
     def test_opaque_generator_expression_is_rejected(self):
         result = self.configure('add_library(wrapper INTERFACE)\n'
@@ -94,6 +121,8 @@ class ConsumerBoundaryTest(unittest.TestCase):
         for requirement in ('target_link_libraries(consumer PRIVATE zephyr_interface)',
                             'target_link_libraries(consumer PRIVATE nxp_sdk)',
                             'target_include_directories(consumer PRIVATE /sdk/zephyr/include)',
+                            f'target_include_directories(consumer PRIVATE {REPO}/components/execution/ports/linux)',
+                            f'target_include_directories(consumer PRIVATE {REPO}/components/execution/ports/zephyr)',
                             f'target_include_directories(consumer PRIVATE {REPO}/components/netif/ports/linux)',
                             f'target_include_directories(consumer PRIVATE {REPO}/components/netif/ports/zephyr)'):
             with self.subTest(requirement=requirement):
@@ -244,6 +273,15 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                 'set(TOOLCHAIN_C_FLAGS "--sysroot=/sdk/zephyr/standard;-mcpu=cortex-m7")\n'
                                 f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'
                                 'crux_assert_portable_usage(crux::execution crux::queue crux::monotonic)\n'
+                                'get_property(libraries GLOBAL PROPERTY ZEPHYR_LIBS)\n'
+                                'if(NOT "crux_execution_zephyr" IN_LIST libraries)\n'
+                                'message(FATAL_ERROR "missing native execution registration")\nendif()\n'
+                                'get_target_property(execution_includes crux_execution_api INTERFACE_INCLUDE_DIRECTORIES)\n'
+                                f'if(NOT execution_includes STREQUAL "{REPO}/components/execution/include")\n'
+                                'message(FATAL_ERROR "execution public include path is not canonical")\nendif()\n'
+                                'get_target_property(execution_flags crux_execution_api INTERFACE_COMPILE_OPTIONS)\n'
+                                'if(NOT "--sysroot=/sdk/zephyr/standard" IN_LIST execution_flags OR NOT "-mcpu=cortex-m7" IN_LIST execution_flags)\n'
+                                'message(FATAL_ERROR "execution toolchain flags lost")\nendif()\n'
                                 'get_target_property(flags crux_queue INTERFACE_COMPILE_OPTIONS)\n'
                                 'if(NOT "--sysroot=/sdk/zephyr/standard" IN_LIST flags OR NOT "-mcpu=cortex-m7" IN_LIST flags)\n'
                                 'message(FATAL_ERROR "toolchain flags lost")\nendif()\n')
@@ -290,6 +328,57 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                     capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("unreviewed socket close declaration", result.stdout + result.stderr)
+
+    def test_host_time_rejects_conflicting_provider(self):
+        result = self.configure('set(BUILD_TESTING OFF CACHE BOOL "" FORCE)\n'
+                                'set(CRUX_BUILD_HOST_SAMPLE OFF CACHE BOOL "" FORCE)\n'
+                                'set(CRUX_BUILD_REFERENCE_CONTROLLER OFF CACHE BOOL "" FORCE)\n'
+                                f'add_subdirectory("{REPO}" crux)\n'
+                                'add_library(other_backend INTERFACE)\n'
+                                'set_property(TARGET other_backend PROPERTY INTERFACE_CRUX_TIME_BACKEND zephyr_rtc)\n'
+                                'file(WRITE "${CMAKE_BINARY_DIR}/main.c" "int main(void) { return 0; }")\n'
+                                'add_executable(consumer "${CMAKE_BINARY_DIR}/main.c")\n'
+                                'target_link_libraries(consumer PRIVATE crux::time other_backend)\n')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("INTERFACE_CRUX_TIME_BACKEND", result.stdout + result.stderr)
+
+    def test_time_common_cannot_link_without_selected_provider(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "main.c").write_text('#include <crux/time.h>\n'
+                                          'int main(void) { return crux_time_init(); }\n')
+            (root / "CMakeLists.txt").write_text(
+                'cmake_minimum_required(VERSION 3.28)\nproject(missing_time_provider LANGUAGES C)\n'
+                'set(BUILD_TESTING OFF CACHE BOOL "" FORCE)\n'
+                'set(CRUX_BUILD_HOST_SAMPLE OFF CACHE BOOL "" FORCE)\n'
+                'set(CRUX_BUILD_REFERENCE_CONTROLLER OFF CACHE BOOL "" FORCE)\n'
+                f'add_subdirectory("{REPO}" crux)\n'
+                'add_executable(consumer main.c)\n'
+                'target_link_libraries(consumer PRIVATE crux_time_common)\n')
+            subprocess.run([CMAKE, "-S", str(root), "-B", str(root / "build")],
+                           check=True, capture_output=True)
+            result = subprocess.run([CMAKE, "--build", str(root / "build"), "--target", "consumer"],
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("crux_time_port_", result.stdout + result.stderr)
+
+    def test_zephyr_time_excludes_memory_and_test_controls(self):
+        result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
+                                f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'
+                                'get_property(libraries GLOBAL PROPERTY ZEPHYR_LIBS)\n'
+                                'foreach(library IN LISTS libraries)\n'
+                                '  get_target_property(sources ${library} SOURCES)\n'
+                                '  get_target_property(definitions ${library} COMPILE_DEFINITIONS)\n'
+                                '  if("${sources}" MATCHES "time_port_memory" OR\n'
+                                '     "${definitions}" MATCHES "CRUX_TIME_TESTING")\n'
+                                '    message(FATAL_ERROR "development Time implementation in production")\n'
+                                '  endif()\n'
+                                'endforeach()\n'
+                                'get_target_property(provider crux_time_zephyr SOURCES)\n'
+                                'if(NOT "${provider}" MATCHES "ports/zephyr/time_port_zephyr.c")\n'
+                                '  message(FATAL_ERROR "missing native Time implementation")\n'
+                                'endif()\n')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_zephyr_facade_preserves_backend_conflict(self):
         result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
