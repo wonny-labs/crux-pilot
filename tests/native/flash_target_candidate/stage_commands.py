@@ -20,13 +20,15 @@ def selected_helpers(source):
         body,count=re.subn(r'(\.seqIndex\s*=\s*)\w+',lambda m:m[1]+str(index),body)
         if count!=1: raise ValueError('selected helper sequence anchor changed')
         result.append(body)
+    start,end=BASE.function_span(source,'flash_flexspi_nor_read_id_helper')
+    result.append(source[start:end].replace('flash_flexspi_nor_read_id_helper','crux_rom_native_read_id_helper',1).replace('.seqIndex = READ_ID,','.seqIndex = 15,'))
     return '\n'.join(result)+'\n'
 
 def deadline_waits(source, memc):
     """Only selected busy graph; accepted/base generators remain unchanged."""
     names = ['memc_flexspi_wait_bus_idle'] if memc else [
         'FLEXSPI_SoftwareReset', 'FLEXSPI_WriteBlocking',
-        'FLEXSPI_ReadBlocking', 'FLEXSPI_TransferBlocking']
+        'FLEXSPI_ReadBlocking', 'FLEXSPI_TransferBlocking', 'FLEXSPI_UpdateLUT']
     for name in names:
         match = re.search(r'^\w[^\n;]*\b' + name + r'\([^;]*?\)\s*\{', source, re.M)
         if not match:
@@ -42,7 +44,7 @@ def deadline_waits(source, memc):
             r'for (unsigned int poc_budget = 1024U; (crux_rom_candidate_wait_check(), \1); )', body)
         expected = {'memc_flexspi_wait_bus_idle': 1, 'FLEXSPI_SoftwareReset': 2,
                     'FLEXSPI_WriteBlocking': 1, 'FLEXSPI_ReadBlocking': 2,
-                    'FLEXSPI_TransferBlocking': 3}[name]
+                    'FLEXSPI_TransferBlocking': 3, 'FLEXSPI_UpdateLUT': 1}[name]
         if count != expected:
             raise ValueError('selected deadline observation count changed: ' + name)
         body = body[:1] + '\n    crux_rom_candidate_wait_check();' + body[1:]
@@ -64,7 +66,7 @@ def prepare(workspace,output):
     generated={
       'flash_mcux_flexspi_nor.c':base_nor+'\n'+selected_helpers(nor)+
             '\n#include "rom_command_nor.inc"\n',
-      'memc_mcux_flexspi.c':deadline_waits(base_memc,True)+'\n#include "rom_command_memc.inc"\n',
+      'memc_mcux_flexspi.c':deadline_waits(base_memc,True)+'\n#include "rom_command_memc.inc"\n#include "rom_identity_memc.inc"\n',
       'fsl_flexspi.c':deadline_waits(base_hal,False),
     }
     metadata={}

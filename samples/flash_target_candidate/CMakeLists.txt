@@ -114,7 +114,8 @@ zephyr_code_relocate(FILES "${CMAKE_CURRENT_SOURCE_DIR}/rom_command_gate.c" LOCA
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${poc_repo}/tests/native/flash_target_candidate/stage_commands.py"
     "${CMAKE_CURRENT_SOURCE_DIR}/rom_command_nor.inc"
-    "${CMAKE_CURRENT_SOURCE_DIR}/rom_command_memc.inc")
+    "${CMAKE_CURRENT_SOURCE_DIR}/rom_command_memc.inc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/rom_identity_memc.inc")
 
 target_include_directories(drivers__memc PRIVATE
     "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpt")

@@ -19,6 +19,10 @@ _Static_assert(offsetof(flexspi_nor_config_t, mem_config.serial_clk_freq) == 0x4
                "FCB serial clock byte offset changed");
 _Static_assert(FLEXSPI_SERIAL_CLK_100MHZ == 6, "FCB 100 MHz encoding changed");
 _Static_assert(sizeof(flexspi_nor_config_t) == 512, "FCB size changed");
+_Static_assert(offsetof(flexspi_nor_config_t, mem_config.lookup_table) == 0x80,
+               "FCB LUT offset changed");
+_Static_assert(sizeof(((flexspi_nor_config_t *)0)->mem_config.lookup_table) == 64 * 4,
+               "FCB LUT size changed");
 '''
 
 

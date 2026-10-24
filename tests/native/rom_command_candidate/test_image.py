@@ -16,14 +16,14 @@ class CommandImage(unittest.TestCase):
         cls.disassembly=subprocess.check_output([os.environ['ARM_OBJDUMP'],'-d',os.environ['PILOT_ELF']],text=True)
         cls.bodies={m[1]:m[2] for m in re.finditer(r'^[0-9a-f]+ <([^>]+)>:\n(.*?)(?=^[0-9a-f]+ <|\Z)',cls.disassembly,re.M|re.S)}
     def test_command_state_and_consumed_metadata_are_internal_ram(self):
-        for name in ['crux_rom_command','crux_rom_nor','crux_rom_memc_data','crux_rom_memc_config','crux_rom_deadline']:
+        for name in ['crux_rom_command','crux_rom_nor','crux_rom_memc_data','crux_rom_memc_config','crux_rom_deadline','crux_rom_identity','crux_rom_slot','crux_rom_expected_lut','crux_rom_id_lut']:
             self.assertIn(name,self.symbols)
             self.assertGreaterEqual(self.symbols[name],0x20000000)
             self.assertLess(self.symbols[name],0x20020000)
         self.assertLess(self.symbols['crux_rom_command_prepare'],0x20000)
     def test_dispatch_call_and_literal_closure(self):
         pending=['crux_rom_command_dispatch'];seen=set()
-        forbidden=['set_device_config','update_clock','probe','sfdp','UpdateLUT','SetFlashConfig','SystemReset']
+        forbidden=['set_device_config','update_clock','probe','sfdp','SetFlashConfig','SystemReset']
         while pending:
             name=pending.pop()
             if name in seen:continue
@@ -65,6 +65,9 @@ class CommandImage(unittest.TestCase):
                 'all_frames_conservative_sum':sum(frames.values()),
                 'operation_stack_bytes':1024,
                 'scope':'static software call/literal/stack closure; no hardware execution'},indent=2)+'\n')
+        self.assertIn('FLEXSPI_UpdateLUT',seen)
+        self.assertIn('crux_rom_identity_check',seen)
+        self.assertIn('crux_rom_identity_restore',seen)
         self.assertIn('memc_flexspi_transfer',seen)
         self.assertIn('FLEXSPI_TransferBlocking',seen)
         self.assertIn('FLEXSPI_SoftwareReset',seen)
@@ -95,7 +98,7 @@ class CommandImage(unittest.TestCase):
             for caller, body in self.bodies.items():
                 self.assertNotRegex(body, r'\b(?:bl|b(?:\.[nw])?)\s+[^<]*<' + name + r'>',caller)
         for name in ['memc_flexspi_wait_bus_idle','FLEXSPI_SoftwareReset',
-                     'FLEXSPI_WriteBlocking','FLEXSPI_ReadBlocking','FLEXSPI_TransferBlocking']:
+                     'FLEXSPI_WriteBlocking','FLEXSPI_ReadBlocking','FLEXSPI_TransferBlocking','FLEXSPI_UpdateLUT']:
             self.assertIn('crux_rom_candidate_wait_check',self.bodies[name],name)
         import json
         commands=json.loads((Path(os.environ['PILOT_ELF']).parents[1]/'compile_commands.json').read_text())
@@ -104,3 +107,17 @@ class CommandImage(unittest.TestCase):
         self.assertIn('# CONFIG_COUNTER is not set',config)
         self.assertIn('# CONFIG_CORTEX_M_DWT is not set',config)
         self.assertIn('CONFIG_CORTEX_M_SYSTICK=y',config)
+
+    def test_full_inherited_table_matches_exact_pinned_fcb(self):
+        import struct
+        original=Path(os.environ['PILOT_ORIGINAL_FCB']).read_bytes()
+        symbol=self.symbols['crux_rom_expected_lut']
+        expected=struct.pack('<64I',*[0x0a1804eb if i==0 else 0x26043206 if i==1 else 0x24040405 if i==4 else 0x406 if i==12 else 0x08180420 if i==20 else 0x081804d8 if i==32 else 0x08180402 if i==36 else 0x2004 if i==37 else 0x460 if i==44 else 0 for i in range(64)])
+        self.assertEqual(original[0x80:0x180],expected)
+        header=struct.unpack_from('<16sHHIIIIIHHHHHH',self.elf)
+        for i in range(header[10]):
+            kind,offset,vma,_,length,_,_,_=struct.unpack_from('<8I',self.elf,header[5]+i*header[9])
+            if kind==1 and vma<=symbol and symbol+256<=vma+length:
+                self.assertEqual(self.elf[offset+symbol-vma:offset+symbol-vma+256],expected)
+                return
+        self.fail('expected table must be backed by final ELF DTCM relocation bytes')

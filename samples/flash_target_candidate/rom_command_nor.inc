@@ -1,7 +1,10 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Included only in the pinned isolated native NOR translation unit. */
 #include "rom_command.h"
+_Static_assert(JESD216_READ_ID_LEN == 3, "identity helper length changed");
+_Static_assert(SPI_NOR_WIP_BIT == 1U && SPI_NOR_WEL_BIT == 2U, "status definitions changed");
 static struct flash_flexspi_nor_data crux_rom_nor;
+static uint8_t crux_rom_identity[3];
 static struct {
     enum crux_rom_operation operation;
     enum crux_pilot_flash_owner owner;
@@ -57,6 +60,7 @@ static void crux_rom_ready_idle(void) {
     uint32_t status;
     do {
         crux_rom_check_deadline();
+        crux_rom_identity_check(&crux_rom_nor.controller, crux_rom_slot_installed());
         status = 0;
         crux_rom_check_result(crux_rom_native_read_status(&crux_rom_nor, &status));
     } while (status & 1U);
@@ -82,12 +86,35 @@ int __attribute__((noinline)) crux_rom_command_dispatch(void) {
         crux_flash_poc_terminal(-EACCES);
     }
     crux_rom_check_deadline();
+    /* Full inherited table/port/idle proof precedes even a status probe. */
+    crux_rom_identity_check(&crux_rom_nor.controller, false);
     if (operation != CRUX_ROM_STATUS) {
         crux_rom_ready_idle();
     }
     if (operation == CRUX_ROM_PROGRAM || operation == CRUX_ROM_SECTOR) {
+        crux_rom_identity_install(&crux_rom_nor.controller);
+        crux_rom_check_result(crux_rom_native_read_id_helper(&crux_rom_nor, crux_rom_identity));
+        crux_rom_check_deadline();
+        crux_rom_identity_check(&crux_rom_nor.controller, true);
+        /* Restore only after a successful positive status and controller idle. */
+        crux_rom_ready_idle();
+        crux_rom_identity_restore(&crux_rom_nor.controller);
+        if (crux_rom_identity[0] != 0x9d || crux_rom_identity[1] != 0x70 ||
+            crux_rom_identity[2] != 0x17) {
+            crux_flash_poc_terminal(-ENODEV);
+        }
+    }
+    if (operation == CRUX_ROM_PROGRAM || operation == CRUX_ROM_SECTOR) {
         crux_rom_check_result(crux_rom_native_write_enable(&crux_rom_nor));
         crux_rom_check_deadline();
+        crux_rom_identity_check(&crux_rom_nor.controller, false);
+        uint32_t status = 0;
+        crux_rom_check_result(crux_rom_native_read_status(&crux_rom_nor, &status));
+        crux_rom_check_deadline();
+        if ((status & (SPI_NOR_WIP_BIT | SPI_NOR_WEL_BIT)) != SPI_NOR_WEL_BIT) {
+            crux_flash_poc_terminal(-EACCES);
+        }
+        crux_rom_identity_check(&crux_rom_nor.controller, false);
         if (operation == CRUX_ROM_PROGRAM) {
             crux_rom_check_result(
                 crux_rom_native_page_program(&crux_rom_nor, crux_rom_command.offset,

@@ -41,9 +41,9 @@ class Commands(unittest.TestCase):
             self.assertNotIn('0,',value[2])
 
     def test_program_uses_rom_indices_and_copied_payload(self):
-        self.assertEqual(self.run_case(1,0,0), '0 0 1,1,I,3,9,1,I,R,I, 90')
+        self.assertEqual(self.run_case(1,0,0), '0 0 1,1,I,?,1,I,3,1,9,1,I,R,I, 90')
     def test_sector_and_read_status_mapping(self):
-        self.assertEqual(self.run_case(2,0,0), '0 0 1,1,I,3,5,1,I,R,I, 0')
+        self.assertEqual(self.run_case(2,0,0), '0 0 1,1,I,?,1,I,3,1,5,1,I,R,I, 0')
         self.assertEqual(self.run_case(3,0,0), '0 0 1,1,I,0,1,I, 0')
         self.assertEqual(self.run_case(4,0,0), '0 0 1,1,I, 0')
     def test_invalid_requests_emit_no_commands(self):
@@ -51,22 +51,26 @@ class Commands(unittest.TestCase):
             with self.subTest(case=case):
                 self.assertEqual(self.run_case(1,case,0), '-13 0  0')
     def test_transfer_errors_are_terminal_without_refresh(self):
-        for fail, trace in [(10,'1,'),(11,'1,1,'),(12,'1,1,I,3,'),
-                            (13,'1,1,I,3,9,'),(14,'1,1,I,3,9,1,')]:
-            self.assertEqual(self.run_case(1,0,fail), f'777 -5 {trace} {90 if fail >= 13 else 0}')
+        for fail, trace, programmed in [(10,'1,',0),(11,'1,1,',0),
+                            (12,'1,1,I,?,',0),(13,'1,1,I,?,1,',0),
+                            (14,'1,1,I,?,1,I,3,',0),
+                            (30,'1,1,I,?,1,I,3,1,',0),
+                            (31,'1,1,I,?,1,I,3,1,9,',90),
+                            (32,'1,1,I,?,1,I,3,1,9,1,',90)]:
+            self.assertEqual(self.run_case(1,0,fail), f'777 -5 {trace} {programmed}')
     def test_stuck_wip_and_deadline_never_refresh_or_return(self):
         value=self.run_case(1,0,5).split()
         self.assertEqual(value[:2],['777','-110']); self.assertNotIn('R',value[2])
         self.assertNotIn('I',value[2])
         self.assertEqual(self.run_case(1,0,6), '777 -110  0')
         value=self.run_case(1,0,15).split()
-        self.assertEqual(value[:2],['777','-110']); self.assertIn('3,9,',value[2])
+        self.assertEqual(value[:2],['777','-110']); self.assertIn('3,1,9,',value[2])
         self.assertNotIn('R',value[2])
-        self.assertEqual(self.run_case(1,0,16), '777 -110 1,1,I,3, 0')
+        self.assertEqual(self.run_case(1,0,16), '777 -110 1,1,I,?,1,I,3, 0')
     def test_idle_and_refresh_uncertainty_never_return(self):
         self.assertEqual(self.run_case(1,0,7), '777 -110 1,1,I, 0')
-        self.assertEqual(self.run_case(1,0,8), '777 -5 1,1,I,3,9,1,I,R, 90')
-        self.assertEqual(self.run_case(1,0,9), '777 -110 1,1,I,3,9,1,I, 90')
-        self.assertEqual(self.run_case(1,0,24), '777 -110 1,1,I,3,9,1,I,R,I, 90')
+        self.assertEqual(self.run_case(1,0,8), '777 -5 1,1,I,?,1,I,3,1,9,1,I,R, 90')
+        self.assertEqual(self.run_case(1,0,9), '777 -110 1,1,I,?,1,I,3,1,9,1,I, 90')
+        self.assertEqual(self.run_case(1,0,24), '777 -110 1,1,I,?,1,I,3,1,9,1,I,R,I, 90')
 
 if __name__=='__main__': unittest.main()

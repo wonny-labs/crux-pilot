@@ -24,5 +24,9 @@ int crux_rom_command_prepare(const struct crux_rom_request *request);
 int crux_rom_command_dispatch(void);
 int crux_rom_command_submit(const struct crux_rom_request *request);
 int crux_rom_memc_bind(struct device *copy);
+bool crux_rom_slot_installed(void);
+void crux_rom_identity_check(const struct device *controller, bool installed);
+void crux_rom_identity_install(const struct device *controller);
+void crux_rom_identity_restore(const struct device *controller);
 bool crux_rom_elapsed_expired(void);
 #endif
