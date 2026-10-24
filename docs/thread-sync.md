@@ -154,7 +154,7 @@ not transfer join ownership or extend resource lifetime.
 
 | Integration | Selection | Resource and native limits |
 | --- | --- | --- |
-| Linux Host | `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`, independently selectable and default ON | Default 4 workers, 8 mutexes and 8 semaphores; current thread provider requests 65536 stack bytes for every worker and rejects requests above 65536 |
+| Linux Host | `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`, independently selectable; top-level defaults ON, dependency defaults OFF | Default 4 workers, 8 mutexes and 8 semaphores; current thread provider requests 65536 stack bytes for every worker and rejects requests above 65536 |
 | Zephyr Thread | `CONFIG_CRUX_THREAD` | `CONFIG_CRUX_THREAD_COUNT` (default 4, range 1..64), `CONFIG_CRUX_THREAD_STACK_BYTES` (default 4096, range 1024..65536 usable bytes) |
 | Zephyr Sync | `CONFIG_CRUX_SYNC` | `CONFIG_CRUX_SYNC_MUTEX_COUNT` and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT` (each default 8, range 1..64) |
 
@@ -165,8 +165,8 @@ identity and synchronization. Native include paths and private implementation
 configuration are not consumer interfaces. Use the [component build definitions](../components/thread/CMakeLists.txt),
 [Sync build definition](../components/sync/CMakeLists.txt), [Zephyr Kconfig](../zephyr/Kconfig)
 and [module integration](../zephyr/CMakeLists.txt) for the current composition.
-These source-tree usage targets do not imply an installable SDK or arbitrary
-out-of-tree consumer support.
+The [source-tree integration contract](../README.md#external-application-build-linux-host)
+covers selected Linux Host consumers, not an installable SDK or arbitrary toolchains.
 
 The timeout contract above applies to `join`, `mutex_lock` and `semaphore_take`.
 Create, unlock, give and destroy take no timeout; they can acquire internal

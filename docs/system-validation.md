@@ -6,6 +6,10 @@ software qualification, not physical watchdog/reset acceptance or production
 safety qualification. The Issue stays open; hardware, merge and closure require
 separate human approval.
 
+The later integration with the accepted optional/external build model is tracked
+[separately](evidence/m5-system-integration/README.md). The original results below
+retain their original source identity; new final-HEAD CI is reported on PR #64.
+
 ## Scope and reproducibility
 
 Six public C17 operations in `<crux/system.h>` / `crux::system`, usable from

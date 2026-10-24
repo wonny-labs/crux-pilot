@@ -93,6 +93,8 @@ class LoggingCompositionTest(unittest.TestCase):
                     self.assertIn(diagnostic, result.stdout)
                 else:
                     self.assertEqual(result.returncode, 0, result.stdout)
+                print(f'{name}: {"rejected at build/configuration" if diagnostic else "build PASS"}',
+                      flush=True)
 
 
 if __name__ == '__main__':

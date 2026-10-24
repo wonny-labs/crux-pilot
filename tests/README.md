@@ -141,6 +141,32 @@ configuration and exact output counts must confirm that UART is the sole logging
 backend. Required record comparisons remove CR/LF endings only, retaining ANSI,
 whitespace, duplication and partial-line errors as failures.
 
+## External application build boundary
+
+Run inside the Linux development environment:
+
+```sh
+python3 -m unittest discover -s tests/build -p test_external_application.py -v
+```
+
+The test copies `tests/external_application/` into fresh temporary directories
+outside the Crux source tree, then configures, builds and runs independent C17/C++17
+Base/Time, Thread-only, Sync-only, Serial-only, Logging-only, Queue/Monotonic and Base-only parent projects.
+Parent C99/C++20 targets and CTest tests before/after inclusion remain functional;
+a separate C-only parent retains its enabled-language and testing policy ON/OFF.
+Actual compile commands and final ELF symbols check component selection and private
+requirements. Focused negatives cover missing/unsupported/multiple Time selection,
+incompatible Time/Serial/Logging providers and missing Queue/Monotonic native composition. Existing
+source/build guards retain the detailed native-dependency negatives. A separately
+copied Serial consumer runs all five PTY/policy scenarios beneath a parent project
+with its own tests enabled, preserving both parent tests. The independent Logging
+fixture similarly runs its actual-provider and policy cases under a testing-ON parent.
+
+See the [supported integration example](../README.md#external-application-build-linux-host).
+The fixture uses public capabilities in portable targets and declares native
+composition separately. It does not establish an installed SDK, production Linux,
+physical qualification or support for additional toolchains.
+
 ## Portable execution capability
 
 Run `scripts/test-portable-execution.sh --host-only` for separately configured C/C++
@@ -211,9 +237,10 @@ backend is enabled by these checks.
 
 Queue and Monotonic native implementations live in their component-owned
 `components/{queue,monotonic}/ports/linux/` and `ports/zephyr/` directories.
-Their public usage targets remain `crux::queue` and `crux::monotonic`; native
-composition retains the internal `crux_queue_host` and `crux_monotonic_host`
-target names. Zephyr component build definitions live beside their ports and
+Their public usage targets remain `crux::queue` and `crux::monotonic`. Native
+Linux composition uses `crux::queue_linux` and `crux::monotonic_linux`; the
+corresponding implementation targets are `crux_queue_linux` and `crux_monotonic_linux`.
+Zephyr component build definitions live beside their ports and
 are selected by the top-level module's existing `CONFIG_CRUX_*` conditions.
 Tests remain under `tests/queue/`, `tests/monotonic/` and
 `tests/messaging_consumer/`; private port includes belong only to native tests.
@@ -241,6 +268,10 @@ runs focused UART-emulator/native ownership suites and cross-builds the EVKB
 fixture. It does not access hardware. See [Serial qualification](../docs/serial-validation.md)
 for the contract, actual evidence, unresolved observations and separate physical
 proposal. Root Host/ASan checks include the common and native PTY Serial cases.
+The independent Host consumer selects `CRUX_BUILD_SERIAL` and `CRUX_BUILD_MONOTONIC`
+through the root entry point, keeps parent `BUILD_TESTING` intact and composes
+`crux::monotonic_linux` only in the native fixture. Static Zephyr composition and
+UART ownership checks remain part of the full Serial script.
 
 ## Portable Logging
 
@@ -250,10 +281,24 @@ compositions, actual UART-emulator output and the revision-B EVKB cross-build.
 Root Host tests include `Logging.*`; the normal sanitizer preset covers them.
 See [Logging validation](../docs/logging-validation.md) for evidence and limits.
 
+The independent Host Logging fixture selects only `CRUX_BUILD_LOGGING` through
+the root entry point, preserving parent testing and language settings. Logging-only
+external profiles verify public C17/C++17 usage, native-boundary checks and exclusion
+of unrelated components. Provider validation and native UART ownership stay unchanged.
+
+## Portable System Health and Reset
+
 System Health and Reset (Issue #30): the root Host suite includes focused common
-lifecycle and real Linux monotonic-provider tests. `scripts/test-system.sh
---host-only` runs independent C17/C++17 consumers and Controller policy checks.
+lifecycle and real Linux monotonic-provider tests.
+`scripts/test-system.sh --host-only` runs independent C17/C++17 consumers and
+Controller policy checks.
 `scripts/test-system.sh` additionally checks native ownership/configuration,
 Zephyr `native_sim` mappings and the revision-B EVKB cross-build. None operates
 hardware; normal Host reset/reset-cause services are explicitly unsupported.
 See [System validation](../docs/system-validation.md) for evidence and limits.
+
+The independent Host System fixture selects only `CRUX_BUILD_SYSTEM` through the
+root entry point. External System profiles preserve parent testing/languages,
+exercise C17/C++17 public usage, reject conflicting providers and exclude
+unrelated components. The existing System contract and native ownership checks
+remain unchanged.

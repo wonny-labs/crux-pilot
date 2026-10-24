@@ -1,4 +1,8 @@
-get_filename_component(system_root "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+if(CRUX_SOURCE_DIR)
+    set(system_root "${CRUX_SOURCE_DIR}")
+else()
+    get_filename_component(system_root "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+endif()
 add_library(system_runtime STATIC "${CMAKE_CURRENT_LIST_DIR}/src/runtime.c" "${CMAKE_CURRENT_LIST_DIR}/src/consumer.cpp")
 add_library(system_controller STATIC "${system_root}/samples/controller/system/controller_system.c"
     "${system_root}/samples/controller/core/health.c")

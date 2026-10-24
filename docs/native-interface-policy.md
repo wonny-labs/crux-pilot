@@ -166,6 +166,21 @@ discovers the source/graph/fixture tests without a new workflow or runner.
 No hardware operation,
 Flash change, private planning edit or change to historical acceptance follows.
 
+### External source-tree application composition
+
+The [supported Linux Host entry point](../README.md#external-application-build-linux-host)
+selects capabilities without modifying parent test policy. Portable source targets
+remain subject to `crux_assert_portable_consumer`. Final native executables declare
+the used public capabilities and may link the documented `crux::queue_linux` and
+`crux::monotonic_linux` composition targets. These aliases are not portable usage
+facades or exceptions to recursive `LINK_ONLY` checks. The guard rejects both
+composition targets and their backing implementations, including application aliases
+and transitive wrappers. This does not inspect all provider-private requirements
+or restrict the supported public capability facades. Zephyr selection and the
+Sockets declaration/selected-sysroot exceptions remain unchanged.
+
+### System consumer boundary
+
 System's public usage target is `crux::system`, with `<crux/system.h>` owned by
 `components/system/include`. Common state is ISO C; pthread/monotonic, native
 watchdog/HWINFO/reboot and target running-bit observation belong only to private
@@ -173,3 +188,9 @@ providers. The System runtime-shaped consumer and Controller System helper are
 in the maintained source inventory and use the public target without native
 headers. Configuration rejects known competing native watchdog/reset-cause
 owners; the value token does not arbitrate arbitrary native callers.
+
+External Host consumers select `CRUX_BUILD_SYSTEM` explicitly through the root
+entry point and link `crux::system`; this does not enable Crux internal tests or
+modify parent testing/languages. System uses the existing Host facade/provider
+linkage pattern, with native requirements private and the same source/usage
+boundary checks applied to its independently configured consumers.

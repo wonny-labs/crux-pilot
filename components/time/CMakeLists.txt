@@ -1,3 +1,15 @@
+# The Host memory implementation is for controlled development/tests, not production Linux RTC.
+set(_crux_time_default "")
+if(PROJECT_IS_TOP_LEVEL)
+    set(_crux_time_default memory)
+endif()
+set(CRUX_TIME_PROVIDER "${_crux_time_default}" CACHE STRING "Host Time provider (memory: development/test only)")
+set_property(CACHE CRUX_TIME_PROVIDER PROPERTY STRINGS memory)
+if(NOT CRUX_TIME_PROVIDER STREQUAL "memory")
+    message(FATAL_ERROR "Select CRUX_TIME_PROVIDER=memory explicitly for Host development/test Time; other providers are unsupported")
+endif()
+message(STATUS "Crux Host Time uses the explicitly selected development/test memory provider")
+
 include(sources.cmake)
 
 add_library(crux_time_common STATIC ${CRUX_TIME_COMMON_SOURCES})
