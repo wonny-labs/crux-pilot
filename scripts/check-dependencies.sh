@@ -25,10 +25,10 @@ if rg -n 'CRUX_TIME_TESTING|crux_time_(host_)?test_' \
     exit 1
 fi
 
-rg -n 'INTERFACE_CRUX_TIME_BACKEND host' "$repo/components/time/CMakeLists.txt" >/dev/null
+rg -n 'INTERFACE_CRUX_TIME_BACKEND memory' "$repo/components/time/CMakeLists.txt" >/dev/null
 rg -n 'COMPATIBLE_INTERFACE_STRING CRUX_TIME_BACKEND' "$repo/components/time/CMakeLists.txt" >/dev/null
-rg -n 'INTERFACE_CRUX_TIME_BACKEND zephyr_rtc' "$repo/zephyr/CMakeLists.txt" >/dev/null
-rg -n 'COMPATIBLE_INTERFACE_STRING CRUX_TIME_BACKEND' "$repo/zephyr/CMakeLists.txt" >/dev/null
+rg -n 'INTERFACE_CRUX_TIME_BACKEND zephyr_rtc' "$repo/components/time/ports/zephyr/CMakeLists.txt" >/dev/null
+rg -n 'COMPATIBLE_INTERFACE_STRING CRUX_TIME_BACKEND' "$repo/components/time/ports/zephyr/CMakeLists.txt" >/dev/null
 if rg -U -n 'target_link_libraries\(crux_base[^)]*zephyr_interface' "$repo/zephyr/CMakeLists.txt"; then
     printf 'The base usage target must not acquire Zephyr requirements.\n' >&2
     exit 1
@@ -36,8 +36,8 @@ fi
 
 rg -n 'sources\.cmake' "$repo/components/time/CMakeLists.txt" >/dev/null
 rg -n 'sources\.cmake' "$repo/tests/time/CMakeLists.txt" >/dev/null
-rg -n 'sources\.cmake' "$repo/zephyr/CMakeLists.txt" >/dev/null
-if rg -n 'samples/time|time_command\.c|crux_time_commands' "$repo/zephyr/CMakeLists.txt"; then
+rg -n 'sources\.cmake' "$repo/components/time/ports/zephyr/CMakeLists.txt" >/dev/null
+if rg -n 'samples/time|time_command\.c|crux_time_commands' "$repo/zephyr/CMakeLists.txt" "$repo/components/time/ports/zephyr/CMakeLists.txt"; then
     printf 'The Zephyr module must not own sample command sources.\n' >&2
     exit 1
 fi

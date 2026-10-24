@@ -31,7 +31,7 @@ The root CMake option `BUILD_TESTING=OFF` skips GoogleTest and C++ configuration
 `CRUX_BUILD_HOST_SAMPLE=OFF` as well to configure and build only the portable and host library
 targets.
 
-## Zephyr: `zephyr_time/`
+## Zephyr: `time/zephyr/`
 
 Twister builds and runs the C17 Ztest application on two `native_sim/native/64`
 configurations, one with an RTC alias and one without it. Tests cover Zephyr error
