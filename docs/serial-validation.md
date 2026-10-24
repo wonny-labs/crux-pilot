@@ -1,7 +1,15 @@
 # Serial software qualification — Issue #27
 
-Status: software implementation and independent source reviews PASS; final hosted CI pending. No physical UART test
-has been performed. Final fixed-HEAD hosted CI is required before completion.
+Status: software implementation and independent source reviews PASS. Hosted CI
+for implementation revision `ae10819f6f48893ca7e4fe7b98b2d66258875653` completed
+with all four runs successful:
+[Host PR](https://github.com/wonny-labs/crux-pilot/actions/runs/40107827224),
+[Host Push](https://github.com/wonny-labs/crux-pilot/actions/runs/40107783812),
+[Zephyr PR](https://github.com/wonny-labs/crux-pilot/actions/runs/40107827245), and
+[Zephyr Push](https://github.com/wonny-labs/crux-pilot/actions/runs/40107783798).
+Subsequent revision status is tracked by the checks on [PR #58](https://github.com/wonny-labs/crux-pilot/pull/58).
+No physical UART test has been performed; Issue #27 remains open for its remaining
+acceptance conditions.
 
 ## Acceptance map
 
@@ -85,7 +93,8 @@ resolved; no automatic closing keyword is used for the Draft PR.
 The supported build-safeguard run could not write its deliberate native-leak
 probe into the read-only checkout. A disposable writable source copy reran that
 method and the affected native-source policy suite successfully. This is not a
-claim that the initial full run passed; the final hosted gate remains required.
+claim that the initial full run passed. The hosted build-safeguard gate subsequently
+passed all 303 tests in the implementation revision recorded above.
 
 The measured Serial-owned EVKB static objects total 632B: 512B payload rings
 within 572B permanent native context, 8B common slots, 20B metadata mutex, and
