@@ -24,6 +24,8 @@ The native Linux host runs portable code without Zephyr, while Zephyr `native_si
 
 Crux separates portable application behaviour, reusable platform capabilities and environment-specific integration. Shared contracts are introduced when they provide stable, useful semantics. Zephyr and Embedded Linux retain their native operating-system and device infrastructure rather than being hidden behind a universal HAL or OSAL.
 
+For the implemented component model, native-port ownership, build composition and dependency boundaries, see the [architecture overview](docs/architecture.md).
+
 Portable components and application logic avoid Zephyr, board and vendor dependencies. Host and Zephyr compositions explicitly select their implementations. Host, `native_sim` and physical-target tests provide complementary evidence rather than interchangeable guarantees.
 
 The bounded [portable execution contract](docs/execution-contract-proposal.md)
