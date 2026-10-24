@@ -1,9 +1,8 @@
-# Portable Logging — proposed contract and TDD outline
+# Portable Logging — approved contract and TDD outline
 
-Status: **proposal, not an adopted public contract**. Human approval is required
-before implementation. On 24 October 2026 the user selected completed-text
-submission rather than a printf-style Logging API. Other choices below are the
-author's recommendations for review.
+Status: **approved for implementation** by the user on 24 October 2026, at
+proposal commit `ed6f3bd`. Approval includes the completed-text contract and
+TDD outline; hardware, merge and issue closure remain excluded.
 
 ## Intent, baseline and scope
 
@@ -36,7 +35,7 @@ The native logging worker and buffer remain owned by Zephyr. No dependency on
 2. Small Crux completed-text interface with native providers: common validation
    and level filtering, native Host output and actual Zephyr logging backend.
    Narrow format/lifetime semantics and no second formatting engine. **Selected
-   approach by the user; the detailed contract below still needs approval.**
+   and approved by the user.**
 3. Crux printf-style submission: convenient, but introduces format/variadic and
    truncation/error portability into this first capability. Deferred; applications
    can use suitable ISO C formatting and check their own formatting results.
@@ -117,7 +116,7 @@ check content, level and record boundaries on each selected provider.
 logging attempt. It does not confirm queue acceptance, output completion or
 peer receipt.** Zephyr's standard `LOG_*` macros return no per-record admission
 result; native capacity loss may therefore follow a CRUX_OK submission. This
-weaker diagnostic success meaning is intentional and needs human approval.
+weaker diagnostic success meaning is intentional and was approved by the user.
 
 Selected Zephyr policy: deferred native logging, no capacity wait, drop the new
 record when full (`LOG_BLOCK_IN_THREAD=n`, `LOG_MODE_OVERFLOW=n`). The native UART
@@ -235,8 +234,7 @@ printk routing distinction above to preserve test-harness observability.
 
 ## Human review and remaining boundaries
 
-Approval is requested for the two-function completed-text contract, global filter,
+The user approved the two-function completed-text contract, global filter,
 best-effort success/loss semantics, task-only/context/blocking limits and the
-initial dedicated native-UART profile plus TDD outline. Full implementation and
-software qualification follow only after that approval. No architecture adoption,
-hardware operation, PR merge or Issue #29 closure is authorised by this document.
+initial dedicated native-UART profile plus TDD outline. Implementation and software
+qualification may proceed within that scope. Hardware operation, PR merge and Issue #29 closure remain unauthorised.
