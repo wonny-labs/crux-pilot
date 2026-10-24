@@ -1,0 +1,67 @@
+{
+  "status": "NOT_READY_FOR_PHYSICAL_WRITE",
+  "elf_sha256": "c830176753fa28515d358365c3c9dba9c9d5b8c6055029d4a356f1629bfdb99c",
+  "scope": "Named final-image measurements plus explicit unresolved phase obligations; no complete closure PASS.",
+  "selected_addresses": {
+    "crux_flash_poc_terminal": "0x232d",
+    "flash_flexspi_nor_write": "0xee5",
+    "flash_flexspi_nor_erase": "0x1",
+    "flash_flexspi_nor_init": "0x1f1",
+    "memc_flexspi_transfer": "0x21df",
+    "FLEXSPI_TransferBlocking": "0x15cd",
+    "FLEXSPI_SoftwareReset": "0x1585",
+    "memc_flexspi_config_0": "0x20000460",
+    "_vector_start": "0x60002000",
+    "_sram_vector_start": "0x80000000",
+    "z_arm_nmi": "0x6000719b",
+    "z_arm_fault": "0x60005041",
+    "flash_flexspi_nor_base_lut": "0x20000004",
+    "flexspi_probe_lut": "0x200004a0",
+    "nor_write_buf": "0x20000570",
+    "flash_flexspi_nor_data_0": "0x20000400",
+    "memc_flexspi_data_0": "0x20000468",
+    "z_main_stack": "0x800010c0",
+    "z_interrupt_stacks": "0x80000700",
+    "flash_flexspi_nor_api": "0x600082a0",
+    "memcpy": "0x60007b59"
+  },
+  "flash_exception_handlers": {
+    "z_arm_nmi": "0x6000719b",
+    "z_arm_fault": "0x60005041"
+  },
+  "vector_source_words": {
+    "initial_sp": "0x800014c0",
+    "reset": "0x6000519d",
+    "nmi": "0x6000719b",
+    "hard_fault": "0x60005189"
+  },
+  "configuration": [
+    "CONFIG_MAIN_STACK_SIZE=1024",
+    "# CONFIG_FPU is not set",
+    "CONFIG_XIP=y",
+    "CONFIG_SRAM_VECTOR_TABLE=y",
+    "CONFIG_FLASH=y",
+    "# CONFIG_WATCHDOG is not set",
+    "# CONFIG_DMA is not set",
+    "# CONFIG_NETWORKING is not set",
+    "# CONFIG_USB_DEVICE_STACK is not set"
+  ],
+  "phase_assessment": {
+    "startup_probe": "BLOCKED",
+    "normal_idle_read": "UNQUALIFIED",
+    "entry_preparation": "BLOCKED",
+    "program_erase_busy": "BLOCKED",
+    "successful_completion": "BLOCKED",
+    "failure_terminal": "BLOCKED",
+    "interrupts_exceptions": "BLOCKED",
+    "bus_masters_watchdog": "BLOCKED"
+  },
+  "blockers": [
+    "Full startup/copy/clock/probe code and pointer closure is unproved; probe can program NOR status/configuration before main.",
+    "Complete hazardous transitive code/data/indirect/veneer paths, stack and cache restoration are unproved.",
+    "RAM vector copying does not relocate NMI/fault handlers and their callees, data or stacks.",
+    "Disabled driver selections do not establish peripheral/bus-master quiescence or bootloader ownership.",
+    "Observation budgets are not elapsed-time deadlines; MMIO transactions can stall and part-specific limits are unknown.",
+    "Watchdog hardware state, reset while NOR busy, power-loss and uncertain-state recovery policy remain unqualified."
+  ]
+}

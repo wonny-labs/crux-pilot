@@ -1,0 +1,16 @@
+F
+======================================================================
+FAIL: test_postprobe_clock_error_cannot_return (__main__.InitErrors)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 83, in test_postprobe_clock_error_cannot_return
+    self.assertEqual(execute(code, [1]), f'{-errno.EIO} 0 777')
+AssertionError: '0 0 -45' != '-5 0 777'
+- 0 0 -45
++ -5 0 777
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.237s
+
+FAILED (failures=1)

@@ -1,0 +1,72 @@
+-- west build: generating a build system
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: /ws/.worktrees/flash-safety-poc/tests/native/settings_target_candidate/provider
+-- CMake version: 3.28.4
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.0 (/ws/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native
+-- Found toolchain: host (gcc/ld)
+-- Found BOARD.dts: /ws/zephyr/boards/native/native_sim/native_sim.dts
+-- Found devicetree overlay: /ws/.worktrees/flash-safety-poc/tests/native/settings_target_candidate/provider/app.overlay
+-- Generated zephyr.dts: /tmp/settings-target-candidate/provider-candidate/zephyr/zephyr.dts
+-- Generated pickled edt: /tmp/settings-target-candidate/provider-candidate/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /tmp/settings-target-candidate/provider-candidate/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing /ws/zephyr/Kconfig
+Loaded configuration '/tmp/settings-target-candidate/provider-candidate/zephyr/.config'
+No change to configuration in '/tmp/settings-target-candidate/provider-candidate/zephyr/.config'
+No change to Kconfig header in '/tmp/settings-target-candidate/provider-candidate/zephyr/include/generated/zephyr/autoconf.h'
+-- Crux Zephyr integration module discovered
+-- Found gen_kobject_list: /ws/zephyr/scripts/build/gen_kobject_list.py
+patching file nvs.c
+patching file subsys/settings/src/settings_store.c
+patching file subsys/settings/src/settings_nvs.c
+-- Configuring done (16.9s)
+-- Generating done (0.1s)
+-- Build files have been written to: /tmp/settings-target-candidate/provider-candidate
+-- west build: building application
+[1/109] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[2/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/libc/validate_libc.c.obj
+[3/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_complete.c.obj
+[4/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf.c.obj
+[5/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/assert.c.obj
+[6/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/printk.c.obj
+[7/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_packaged.c.obj
+[8/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/heap/heap.c.obj
+[9/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/thread_entry.c.obj
+[10/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/sem.c.obj
+[11/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/clock.c.obj
+[12/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/set.c.obj
+[13/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/dec.c.obj
+[14/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/hex.c.obj
+[15/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/bitmask.c.obj
+[16/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/timeutil.c.obj
+[17/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/ring_buffer.c.obj
+[18/44] Building C object zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj
+[19/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_cache.c.obj
+[20/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/bitarray.c.obj
+[21/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/rb.c.obj
+[22/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt.c.obj
+[23/44] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt_common.c.obj
+[24/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_core.c.obj
+[25/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_mgmt.c.obj
+[26/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_output.c.obj
+[27/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/backends/log_backend_native_posix.c.obj
+[28/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/storage/flash_map/flash_map.c.obj
+[29/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_msg.c.obj
+[30/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/storage/flash_map/flash_map_default.c.obj
+[31/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/storage/flash_map/flash_map_layout.c.obj
+[32/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings.c.obj
+[33/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/tracing/tracing_none.c.obj
+[34/44] Building C object zephyr/CMakeFiles/zephyr.dir/__/configuration-candidate/settings_nvs.c.obj
+[35/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings_init.c.obj
+[36/44] Building C object zephyr/CMakeFiles/zephyr.dir/__/configuration-candidate/settings_store.c.obj
+[37/44] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/settings/src/settings_line.c.obj
+[38/44] Building C object zephyr/CMakeFiles/zephyr.dir/drivers/flash/flash_util.c.obj
+[39/44] Building C object zephyr/CMakeFiles/zephyr.dir/__/configuration-candidate/nvs/nvs.c.obj
+[40/44] Generating linker_zephyr_pre0.cmd
+[41/44] Linking C static library zephyr/libzephyr.a
+[42/44] Linking C executable zephyr/zephyr.elf
+Generating files from /tmp/settings-target-candidate/provider-candidate/zephyr/zephyr.elf for board: native_sim/native
+[43/44] Building native simulator runner, and linking final executable
+[44/44] Running utility command for native_runner_executable

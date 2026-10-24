@@ -1,0 +1,81 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE nvs_startup
+===================================================================
+START - test_all_closed_does_not_format
+ PASS - test_all_closed_does_not_format in 0.000 seconds
+===================================================================
+START - test_first_scan_read_failure
+[00:00:00.000,000] [0m<inf> fs_nvs: No GC Done marker found: restarting gc[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: 2 Sectors of 4096 bytes[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: alloc wra: 1, fe8[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: data wra: 1, 0[0m
+NVS_STARTUP scenario=first bad_init=0 rc=0 reads=771 writes=1 erases=2 marker=ff
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_target_candidate/startup/main.c:92: expect_read_failure: (rc not equal to -EIO)
+original Flash read error must remain observable
+ FAIL - test_first_scan_read_failure in 0.000 seconds
+===================================================================
+START - test_gc_marker_write_failure
+ PASS - test_gc_marker_write_failure in 0.000 seconds
+===================================================================
+START - test_mount_initializes_empty_region
+[00:00:00.000,000] [0m<inf> fs_nvs: 2 Sectors of 4096 bytes[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: alloc wra: 0, fe8[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: data wra: 0, 0[0m
+ PASS - test_mount_initializes_empty_region in 0.000 seconds
+===================================================================
+START - test_persistent_read_failure
+NVS_STARTUP scenario=persistent bad_init=0 rc=-35 reads=4 writes=0 erases=0 marker=a5
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_target_candidate/startup/main.c:92: expect_read_failure: (rc not equal to -EIO)
+original Flash read error must remain observable
+ FAIL - test_persistent_read_failure in 0.000 seconds
+===================================================================
+START - test_second_scan_read_failure
+[00:00:00.000,000] [0m<inf> fs_nvs: 2 Sectors of 4096 bytes[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: alloc wra: 0, fe8[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: data wra: 0, 0[0m
+NVS_STARTUP scenario=second bad_init=0 rc=0 reads=900 writes=1 erases=1 marker=ff
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_target_candidate/startup/main.c:92: expect_read_failure: (rc not equal to -EIO)
+original Flash read error must remain observable
+ FAIL - test_second_scan_read_failure in 0.000 seconds
+===================================================================
+START - test_third_scan_read_failure
+[00:00:00.000,000] [0m<inf> fs_nvs: No GC Done marker found: restarting gc[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: 2 Sectors of 4096 bytes[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: alloc wra: 1, fe8[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: data wra: 1, 0[0m
+NVS_STARTUP scenario=third bad_init=0 rc=0 reads=772 writes=1 erases=2 marker=ff
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/settings_target_candidate/startup/main.c:92: expect_read_failure: (rc not equal to -EIO)
+original Flash read error must remain observable
+ FAIL - test_third_scan_read_failure in 0.000 seconds
+===================================================================
+START - test_valid_write_remount
+[00:00:00.000,000] [0m<inf> fs_nvs: 2 Sectors of 4096 bytes[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: alloc wra: 0, fe8[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: data wra: 0, 0[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: 2 Sectors of 4096 bytes[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: alloc wra: 0, fe0[0m
+[00:00:00.000,000] [0m<inf> fs_nvs: data wra: 0, 8[0m
+ PASS - test_valid_write_remount in 0.000 seconds
+===================================================================
+TESTSUITE nvs_startup failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -  50.00% [nvs_startup]: pass = 4, fail = 4, skip = 0, total = 8 duration = 0.000 seconds
+ - PASS - [nvs_startup.test_all_closed_does_not_format] duration = 0.000 seconds
+ - FAIL - [nvs_startup.test_first_scan_read_failure] duration = 0.000 seconds
+ - PASS - [nvs_startup.test_gc_marker_write_failure] duration = 0.000 seconds
+ - PASS - [nvs_startup.test_mount_initializes_empty_region] duration = 0.000 seconds
+ - FAIL - [nvs_startup.test_persistent_read_failure] duration = 0.000 seconds
+ - FAIL - [nvs_startup.test_second_scan_read_failure] duration = 0.000 seconds
+ - FAIL - [nvs_startup.test_third_scan_read_failure] duration = 0.000 seconds
+ - PASS - [nvs_startup.test_valid_write_remount] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED

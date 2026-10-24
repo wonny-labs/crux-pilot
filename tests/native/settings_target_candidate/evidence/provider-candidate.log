@@ -1,0 +1,46 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE settings_target_provider
+===================================================================
+START - test_full_record_crc_failure_preserves_active
+[00:00:00.000,000] [1;31m<err> fs_nvs: Invalid data CRC: read_data_crc=0x0A81A68B, computed_data_crc=0xB23DC1EE[0m
+ PASS - test_full_record_crc_failure_preserves_active in 0.000 seconds
+===================================================================
+START - test_hard_read_is_not_missing
+ PASS - test_hard_read_is_not_missing in 0.000 seconds
+===================================================================
+START - test_malformed_count_refused
+ PASS - test_malformed_count_refused in 0.000 seconds
+===================================================================
+START - test_missing_count_refused
+ PASS - test_missing_count_refused in 0.000 seconds
+===================================================================
+START - test_orphan_name_refused_without_repair
+ PASS - test_orphan_name_refused_without_repair in 0.000 seconds
+===================================================================
+START - test_orphan_value_refused_without_repair
+ PASS - test_orphan_value_refused_without_repair in 0.000 seconds
+===================================================================
+START - test_roundtrip_bool_u32
+ PASS - test_roundtrip_bool_u32 in 0.000 seconds
+===================================================================
+START - test_unprovisioned_erased_refused
+ PASS - test_unprovisioned_erased_refused in 0.000 seconds
+===================================================================
+TESTSUITE settings_target_provider succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [settings_target_provider]: pass = 8, fail = 0, skip = 0, total = 8 duration = 0.000 seconds
+ - PASS - [settings_target_provider.test_full_record_crc_failure_preserves_active] duration = 0.000 seconds
+ - PASS - [settings_target_provider.test_hard_read_is_not_missing] duration = 0.000 seconds
+ - PASS - [settings_target_provider.test_malformed_count_refused] duration = 0.000 seconds
+ - PASS - [settings_target_provider.test_missing_count_refused] duration = 0.000 seconds
+ - PASS - [settings_target_provider.test_orphan_name_refused_without_repair] duration = 0.000 seconds
+ - PASS - [settings_target_provider.test_orphan_value_refused_without_repair] duration = 0.000 seconds
+ - PASS - [settings_target_provider.test_roundtrip_bool_u32] duration = 0.000 seconds
+ - PASS - [settings_target_provider.test_unprovisioned_erased_refused] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL

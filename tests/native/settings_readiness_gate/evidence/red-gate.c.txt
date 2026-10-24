@@ -1,0 +1,70 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Red baseline: trace actual dispatch, with no readiness interposition yet. */
+#include "configuration_port.h"
+#include "configuration_settings.h"
+#include "gate.h"
+#include <crux/configuration.h>
+#include <errno.h>
+#include <zephyr/drivers/flash.h>
+#include <zephyr/storage/flash_map.h>
+static const struct device *real;
+static struct device proxy;
+static struct flash_driver_api api;
+static const struct flash_driver_api *original;
+static struct flash_area area;
+unsigned gate_reads, gate_writes, gate_erases, gate_denied, gate_fail_read;
+int gate_write_error;
+static int read_flash(const struct device *d, off_t o, void *b, size_t n) {
+    ARG_UNUSED(d);
+    if (++gate_reads == gate_fail_read)
+        return -EIO;
+    return original->read(real, o, b, n);
+}
+static int write_flash(const struct device *d, off_t o, const void *b, size_t n) {
+    ARG_UNUSED(d);
+    if (gate_write_error)
+        return gate_write_error;
+    ++gate_writes;
+    return original->write(real, o, b, n);
+}
+static int erase_flash(const struct device *d, off_t o, size_t n) {
+    ARG_UNUSED(d);
+    ++gate_erases;
+    return original->erase(real, o, n);
+}
+void gate_reset(void) {
+    gate_reads = gate_writes = gate_erases = gate_denied = gate_fail_read = 0;
+    gate_write_error = 0;
+}
+extern int __real_flash_area_open(uint8_t id, const struct flash_area **fa);
+int __wrap_flash_area_open(uint8_t id, const struct flash_area **fa) {
+    int rc = __real_flash_area_open(id, fa);
+    if (rc)
+        return rc;
+    area = **fa;
+    real = area.fa_dev;
+    original = real->api;
+    proxy = *real;
+    api = *original;
+    api.read = read_flash;
+    api.write = write_flash;
+    api.erase = erase_flash;
+    proxy.api = &api;
+    area.fa_dev = &proxy;
+    *fa = &area;
+    return 0;
+}
+extern crux_config_result_t __real_crux_config_zephyr_init(void);
+crux_config_result_t __wrap_crux_config_zephyr_init(void) {
+    return __real_crux_config_zephyr_init();
+}
+extern crux_config_result_t __real_crux_config_port_read(const char *, uint8_t *, size_t,
+                                                         crux_config_record_info_t *);
+crux_config_result_t __wrap_crux_config_port_read(const char *k, uint8_t *b, size_t n,
+                                                  crux_config_record_info_t *r) {
+    return __real_crux_config_port_read(k, b, n, r);
+}
+extern crux_config_result_t __real_crux_config_port_write(const char *, const uint8_t *, size_t);
+crux_config_result_t __wrap_crux_config_port_write(const char *k, const uint8_t *b, size_t n) {
+    return __real_crux_config_port_write(k, b, n);
+}

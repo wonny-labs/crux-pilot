@@ -1,0 +1,10 @@
+tests:
+  crux.configuration.settings_readiness_gate:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - configuration
+      - settings
+      - nvs
+    integration_platforms:
+      - native_sim/native/64

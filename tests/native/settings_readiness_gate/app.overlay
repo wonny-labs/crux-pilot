@@ -1,0 +1,14 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/ {
+    chosen {
+        zephyr,settings-partition = &candidate_nvs;
+    };
+};
+&flash0 {
+    partitions {
+        candidate_nvs: partition@100000 {
+            label = "candidate-nvs-software-only";
+            reg = <0x100000 0x10000>;
+        };
+    };
+};

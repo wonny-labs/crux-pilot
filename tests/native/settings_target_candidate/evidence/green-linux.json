@@ -1,0 +1,415 @@
+{
+  "variant": "candidate",
+  "source_sha256": {
+    "subsys/settings/src/settings_store.c": "14ce61fa29aaca20ec3e69c6f401434f7f6d5a242d2911d0e931ccaf1f58f0e6",
+    "subsys/settings/src/settings_nvs.c": "ab6aa643eae9f5c5ca8099ddac89cc63aaa2fd43f775a8de5efcb11aad3c0244",
+    "subsys/settings/include/settings/settings_nvs.h": "fabc913fb783f2a866b21f507727a40dc39932e4cd2b91b38331c2018c6f1bde",
+    "include/zephyr/settings/settings.h": "4135bf0fe67f0002aeebabb2fb45e8d7a3d6daa5f65b9a9daefc98eadf8743cc"
+  },
+  "pinned_inputs_unchanged": true,
+  "compiler": "Ubuntu clang version 18.1.3 (1ubuntu1)",
+  "flags": [
+    "-std=c17",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-Werror",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "-g",
+    "-DCONFIG_SETTINGS_NVS_NAME_CACHE=0",
+    "-DCONFIG_NVS_DATA_CRC=1",
+    "-I",
+    "/tmp/crux-target-copy-i3uk6woc",
+    "-I",
+    "/tmp/crux-target-copy-i3uk6woc/subsys/settings/include"
+  ],
+  "fixture_sha256": {
+    "support.py": "2208f7164de0ca83bab996bec2b708799e39df6637b292bcbcce93eb090d9283",
+    "settings_store.patch": "88f2e33fc0f64f7174e7d0475907f49d115f5f4430b5cab096898cb3e19ecd7b",
+    "direct.c": "dade3a0ed3f6b97d123fea17291a0ce301b7bf5a6442ebcf113975f16d2bdf1a",
+    "test_candidate.py": "e703128d2cacf23d9777fad4b95ba00e97161ebd695c5fc2437a845b3c5318ac",
+    "settings_nvs.patch": "cd4201f1036ed37c5ea2b5514bbfc7ae34e45acdaa7dc45a8e4b16e5e9b96185",
+    "backend.c": "89cd81873711610b334cf87aea994ae9f763fffcf6b8733c717246e39917ef22"
+  },
+  "cases": [
+    {
+      "binary": "backend",
+      "case": "read_valid",
+      "expected": "0 0 0 32769 0",
+      "actual": "0 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "read_hard_name",
+      "expected": "-5 0 0 32769 0",
+      "actual": "-5 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "read_hard_value",
+      "expected": "-5 0 0 32769 0",
+      "actual": "-5 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "read_orphan_name",
+      "expected": "-74 0 0 32769 0",
+      "actual": "-74 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "read_orphan_value",
+      "expected": "-74 0 0 32769 0",
+      "actual": "-74 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "read_hole",
+      "expected": "0 0 0 32769 0",
+      "actual": "0 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "read_bad_name",
+      "expected": "-74 0 0 32769 0",
+      "actual": "-74 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "read_long_name",
+      "expected": "-74 0 0 32769 0",
+      "actual": "-74 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "read_trailing_nul",
+      "expected": "0 0 0 32769 0",
+      "actual": "0 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "read_corrupt_value",
+      "expected": "-5 0 0 32769 0",
+      "actual": "-5 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "read_short_value",
+      "expected": "-5 0 0 32769 0",
+      "actual": "-5 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_valid",
+      "expected": "0 0 1 32769 0",
+      "actual": "0 0 1 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_zero",
+      "expected": "0 0 1 32769 0",
+      "actual": "0 0 1 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_later_hard_name",
+      "expected": "-5 0 0 32770 0",
+      "actual": "-5 0 0 32770 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_hard_name",
+      "expected": "-5 0 0 32769 0",
+      "actual": "-5 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_hard_value",
+      "expected": "-5 0 0 32769 0",
+      "actual": "-5 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_orphan_name",
+      "expected": "-74 0 0 32769 0",
+      "actual": "-74 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_orphan_value",
+      "expected": "-74 0 0 32769 0",
+      "actual": "-74 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_bad_name",
+      "expected": "-74 0 0 32769 0",
+      "actual": "-74 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_long_name",
+      "expected": "-74 0 0 32769 0",
+      "actual": "-74 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_hole",
+      "expected": "0 0 2 32769 0",
+      "actual": "0 0 2 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_new",
+      "expected": "0 0 3 32769 0",
+      "actual": "0 0 3 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_new_write_error",
+      "expected": "-5 0 1 32768 0",
+      "actual": "-5 0 1 32768 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_new_value_write_error",
+      "expected": "-5 0 2 32769 0",
+      "actual": "-5 0 2 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_new_name_write_error",
+      "expected": "-5 0 3 32769 0",
+      "actual": "-5 0 3 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "delete_valid",
+      "expected": "0 2 1 32768 0",
+      "actual": "0 2 1 32768 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "delete_hole",
+      "expected": "0 0 0 32769 0",
+      "actual": "0 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "delete_error",
+      "expected": "-5 1 0 32769 0",
+      "actual": "-5 1 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "delete_second_error",
+      "expected": "-5 2 0 32769 0",
+      "actual": "-5 2 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "delete_count_error",
+      "expected": "-5 2 1 32769 0",
+      "actual": "-5 2 1 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "init_valid",
+      "expected": "0 0 0 32769 0",
+      "actual": "0 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "init_count_missing",
+      "expected": "-74 0 0 32769 0",
+      "actual": "-74 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "init_count_error",
+      "expected": "-5 0 0 32769 0",
+      "actual": "-5 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "init_count_short",
+      "expected": "-74 0 0 32769 0",
+      "actual": "-74 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "init_count_range",
+      "expected": "-74 0 0 32769 0",
+      "actual": "-74 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "init_mount_error",
+      "expected": "-5 0 0 32769 0",
+      "actual": "-5 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "direct",
+      "case": "direct_scan_error",
+      "expected": "-5 1 0 0 0",
+      "actual": "-5 1 0 0 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "direct",
+      "case": "earlier_error_two",
+      "expected": "-5 1 0 0 0",
+      "actual": "-5 1 0 0 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "direct",
+      "case": "later_error",
+      "expected": "-5 2 0 0 0",
+      "actual": "-5 2 0 0 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "direct",
+      "case": "positive_stop",
+      "expected": "7 1 0 0 0",
+      "actual": "7 1 0 0 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "direct",
+      "case": "negative_stop",
+      "expected": "-28 1 0 0 0",
+      "actual": "-28 1 0 0 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "direct",
+      "case": "valid_two",
+      "expected": "0 2 0 0 0",
+      "actual": "0 2 0 0 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    }
+  ]
+}

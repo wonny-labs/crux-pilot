@@ -1,0 +1,16 @@
+
+======================================================================
+FAIL: test_jedec_octal_error_and_unsupported_semantics (__main__.ActualStartupHelpers) (mode=7)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 291, in test_jedec_octal_error_and_unsupported_semantics
+    self.assertEqual(execute(code, [mode]), expected)
+AssertionError: '0 1' != '-5 1'
+- 0 1
++ -5 1
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.999s
+
+FAILED (failures=1)

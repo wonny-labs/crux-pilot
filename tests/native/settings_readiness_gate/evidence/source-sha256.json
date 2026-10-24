@@ -1,0 +1,18 @@
+{
+  "tests/native/settings_readiness_gate/gate.c": "fa8f962f044cd22e66b36842113ee1a7240b12f3460a9f7d77fc122c3e566cad",
+  "tests/native/settings_readiness_gate/main.c": "0ca6bbe8f52dec3bd1da315820fcac1e541952ba6a72ff9afc0e470b569af5be",
+  "tests/native/settings_readiness_gate/gate.h": "5945a39e06a7067a8bbc0fe02aa3a1d8cd438ddcdc399c4ef394837b49724179",
+  "tests/native/settings_readiness_gate/CMakeLists.txt": "799e80499360de1d581c640821a01c2af24ee5a8aa69b9831d31a5b9d09edc4b",
+  "tests/native/settings_readiness_gate/prj.conf": "ac3dfb536c79bd2813e19cebb3a9d97421da5504768ae274bf5315f07bd07090",
+  "tests/native/settings_readiness_gate/app.overlay": "5aed0c79359bc542f6bb5bd5852f8fa7959b27df4b9003d2dbfe68d3c8a4110b",
+  "tests/native/settings_readiness_gate/testcase.yaml": "3a861b1b61b667f634e1d6ad0a2f9556c82b3fd16ac8a38d03cca44206b6f58b",
+  "tests/native/settings_readiness_gate/evidence/red-gate.c.txt": "e5c95b5959b4bc17ac1a7c23fbd85d326edaff3a9f6d8f82a75d53df5ac094c6",
+  "components/configuration/src/configuration.c": "e116e2f0ef2484c3fab966060192f8459aba7b144ca53daf3ea4de6f8920f19e",
+  "components/configuration/ports/zephyr/configuration_settings.c": "1b07cf19521ceaff406e6333734615a45f91b726ab3a3a8a27ccc45431e553e4",
+  "tests/native/settings_target_candidate/settings_store.patch": "88f2e33fc0f64f7174e7d0475907f49d115f5f4430b5cab096898cb3e19ecd7b",
+  "tests/native/settings_target_candidate/settings_nvs.patch": "cd4201f1036ed37c5ea2b5514bbfc7ae34e45acdaa7dc45a8e4b16e5e9b96185",
+  "tests/native/settings_target_candidate/startup/startup-read.patch": "325d66c2596f2ce9c289607ca7007d421e000d3f577c1d23b90a94f32ad2902f",
+  "tests/native/settings_target_candidate/startup/prepare.py": "4750c9d13fe246fbefcd50b472251febafc45936c53e3be3449280c6f51f193a",
+  "tests/native/settings_target_candidate/provider/prepare.py": "b847032f352b93e11c47301c244a57d6984dccf16734ff7d40a83aeff115d03b",
+  "tests/native/settings_target_candidate/provider/candidate.cmake": "91ed216edabb8ea957233808a8eda35fb2b74f27d1c2c0a3339f6de30d766e1a"
+}
