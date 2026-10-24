@@ -232,7 +232,7 @@
     "material_findings": 0,
     "physical_status": "NOT_READY"
   },
-  "dependency_policy": "PASS;50 designated portable source files, existing public/provider checks",
+  "dependency_policy": "PASS after Tasks8/9;50designatedportable sources andexisting public/providerchecks",
   "task_7": {
     "baseline": "51a3c82afbd142e6ae840b0f1db131035b682500",
     "owned_source_sha256": {
@@ -989,7 +989,12 @@
       "total": 73,
       "skips": 0
     },
-    "review": "Independent spec and quality PASS; no physical qualification"
+    "review": "Independent spec and quality PASS; no physical qualification",
+    "combined_challenger": {
+      "verdict": "PASS for software Draft publication",
+      "reviewed_head": "dd6232af81d1d0e90074733fec37c6e3ede1f9d8",
+      "material_findings": 0
+    }
   },
   "historical_ci_e367676": {
     "head": "e3676769078c9f120e2fccb9569f26fe2ba3746b",
