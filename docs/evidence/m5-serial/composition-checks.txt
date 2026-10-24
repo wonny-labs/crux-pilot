@@ -1,0 +1,319 @@
+m5-host-green.log (last 100 lines)
+      Start  97: Serial.Host.basic
+ 5/13 Test  #97: Serial.Host.basic ................   Passed    0.03 sec
+      Start  98: Serial.Host.waiting
+ 6/13 Test  #98: Serial.Host.waiting ..............   Passed    0.05 sec
+      Start  99: Serial.Host.concurrent
+ 7/13 Test  #99: Serial.Host.concurrent ...........   Passed    0.02 sec
+      Start 100: Serial.Host.hangup
+ 8/13 Test #100: Serial.Host.hangup ...............   Passed    0.01 sec
+      Start 101: Serial.Host.cleanup_failure
+ 9/13 Test #101: Serial.Host.cleanup_failure ......   Passed    0.02 sec
+      Start 102: Serial.Host.unavailable
+10/13 Test #102: Serial.Host.unavailable ..........   Passed    0.01 sec
+      Start 103: Serial.Host.admission
+11/13 Test #103: Serial.Host.admission ............   Passed    0.02 sec
+      Start 104: Serial.Host.committed_prefix
+12/13 Test #104: Serial.Host.committed_prefix .....   Passed    0.01 sec
+      Start 105: Serial.Host.configuration
+13/13 Test #105: Serial.Host.configuration ........   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 13
+
+Total Test time (real) =   0.28 sec
+-- The C compiler identification is Clang 18.1.3
+-- The CXX compiler identification is Clang 18.1.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang-18 - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++-18 - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (9.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: $REPO/build/serial-consumer
+[1/44] Building CXX object CMakeFiles/serial_cpp.dir/src/consumer.cpp.o
+[2/44] Building C object CMakeFiles/serial_runtime.dir/src/runtime.c.o
+[3/44] Building C object CMakeFiles/serial_controller_portable.dir$REPO/samples/serial/controller.c.o
+[4/44] Building C object CMakeFiles/serial_consumer_c.dir/host/main.c.o
+[5/44] Building C object CMakeFiles/serial_consumer_cpp.dir/host/main.c.o
+[6/44] Building C object CMakeFiles/serial_consumer_controller.dir/host/main.c.o
+[7/44] Building C object CMakeFiles/serial_consumer_controller_stale.dir/host/main.c.o
+[8/44] Building C object CMakeFiles/serial_consumer_policy.dir/src/contract_test.c.o
+[9/44] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/time.c.o
+[10/44] Building C object CMakeFiles/serial_consumer_policy.dir/src/runtime.c.o
+[11/44] Linking C executable serial_consumer_policy
+[12/44] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/time_calendar.c.o
+[13/44] Building C object crux/components/time/CMakeFiles/crux_time_memory.dir/src/time_port_memory.c.o
+[14/44] Linking C static library crux/components/time/libcrux_time_common.a
+[15/44] Linking C static library crux/components/time/libcrux_time_memory.a
+[16/44] Building C object crux/components/thread/CMakeFiles/crux_thread_host.dir/src/thread.c.o
+[17/44] Building C object crux/components/thread/CMakeFiles/crux_thread_host.dir/ports/linux/thread_native.c.o
+[18/44] Linking C static library crux/components/thread/libcrux_thread_host.a
+[19/44] Building C object crux/components/sync/CMakeFiles/crux_sync_host.dir/src/sync.c.o
+[20/44] Building C object crux/components/queue/CMakeFiles/crux_queue_host.dir/src/queue.c.o
+[21/44] Building C object crux/components/sync/CMakeFiles/crux_sync_host.dir/ports/linux/sync_native.c.o
+[22/44] Linking C static library crux/components/sync/libcrux_sync_host.a
+[23/44] Building C object crux/components/queue/CMakeFiles/crux_queue_host.dir/ports/linux/queue_port.c.o
+[24/44] Building C object crux/components/monotonic/CMakeFiles/crux_monotonic_host.dir/src/monotonic.c.o
+[25/44] Linking C static library crux/components/queue/libcrux_queue_host.a
+[26/44] Building C object crux/components/monotonic/CMakeFiles/crux_monotonic_host.dir/ports/linux/monotonic_host.c.o
+[27/44] Building C object crux/components/netif/CMakeFiles/crux_netif.dir/src/netif.c.o
+[28/44] Linking C static library crux/components/monotonic/libcrux_monotonic_host.a
+[29/44] Building C object crux/components/netif/CMakeFiles/crux_netif.dir/ports/linux/netif_host.c.o
+[30/44] Building C object crux/components/configuration/CMakeFiles/crux_configuration.dir/src/configuration.c.o
+[31/44] Linking C static library crux/components/netif/libcrux_netif.a
+[32/44] Linking C static library crux/components/configuration/libcrux_configuration.a
+[33/44] Building C object crux/components/file/CMakeFiles/crux_file_host.dir/src/file.c.o
+[34/44] Building C object crux/components/file/CMakeFiles/crux_file_host.dir/ports/linux/file_host.c.o
+[35/44] Linking C static library crux/components/file/libcrux_file_host.a
+[36/44] Building C object crux/components/serial/CMakeFiles/crux_serial_host.dir/src/serial.c.o
+[37/44] Building C object crux/components/serial/CMakeFiles/crux_serial_host.dir/ports/linux/serial_host.c.o
+[38/44] Linking C static library crux/components/serial/libcrux_serial_host.a
+[39/44] Linking C static library libserial_controller_portable.a
+[40/44] Linking C static library libserial_runtime.a
+[41/44] Linking CXX executable serial_consumer_cpp
+[42/44] Linking CXX executable serial_consumer_c
+[43/44] Linking CXX executable serial_consumer_controller
+[44/44] Linking CXX executable serial_consumer_controller_stale
+Internal ctest changing into directory: $REPO/build/serial-consumer
+Test project $REPO/build/serial-consumer
+    Start 1: SerialConsumer.c
+1/5 Test #1: SerialConsumer.c ..................   Passed    0.12 sec
+    Start 2: SerialConsumer.cpp
+2/5 Test #2: SerialConsumer.cpp ................   Passed    0.07 sec
+    Start 3: SerialConsumer.controller
+3/5 Test #3: SerialConsumer.controller .........   Passed    0.09 sec
+    Start 4: SerialConsumer.controller_stale
+4/5 Test #4: SerialConsumer.controller_stale ...   Passed    0.06 sec
+    Start 5: SerialConsumer.Policy
+5/5 Test #5: SerialConsumer.Policy .............   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.39 sec
+
+m5-sanitize.log (last 100 lines)
+Preset CMake variables:
+
+  CMAKE_BUILD_TYPE="Debug"
+  CMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+  CMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+  CMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+  CMAKE_EXPORT_COMPILE_COMMANDS="ON"
+  FETCHCONTENT_BASE_DIR="/opt/crux-cache/cmake"
+
+-- The C compiler identification is Clang 18.1.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang-18 - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Found Python3: /opt/crux-cache/venv/bin/python3.12 (found version "3.12.3") found components: Interpreter
+-- The CXX compiler identification is Clang 18.1.3
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++-18 - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done (23.8s)
+-- Generating done (0.2s)
+-- Build files have been written to: $REPO/build/linux/sanitize
+[1/8] Building C object components/serial/CMakeFiles/crux_serial_host.dir/src/serial.c.o
+[2/8] Building C object components/serial/CMakeFiles/crux_serial_host.dir/ports/linux/serial_host.c.o
+[3/8] Linking C static library components/serial/libcrux_serial_host.a
+[4/8] Building C object tests/serial/CMakeFiles/crux_serial_common.dir/common.c.o
+[5/8] Building C object tests/serial/CMakeFiles/crux_serial_common.dir/__/__/components/serial/src/serial.c.o
+[6/8] Linking C executable tests/serial/crux_serial_common
+[7/8] Building C object tests/serial/CMakeFiles/crux_serial_host_test.dir/host.c.o
+[8/8] Linking C executable tests/serial/crux_serial_host_test
+Internal ctest changing into directory: $REPO/build/linux/sanitize
+Test project $REPO/build/linux/sanitize
+      Start 30: Serial.Common.validation
+ 1/13 Test #30: Serial.Common.validation .........   Passed    0.03 sec
+      Start 31: Serial.Common.lifetime
+ 2/13 Test #31: Serial.Common.lifetime ...........   Passed    0.07 sec
+      Start 32: Serial.Common.transfers
+ 3/13 Test #32: Serial.Common.transfers ..........   Passed    0.09 sec
+      Start 33: Serial.Common.timeout
+ 4/13 Test #33: Serial.Common.timeout ............   Passed    0.03 sec
+      Start 34: Serial.Host.basic
+ 5/13 Test #34: Serial.Host.basic ................   Passed    0.08 sec
+      Start 35: Serial.Host.waiting
+ 6/13 Test #35: Serial.Host.waiting ..............   Passed    0.09 sec
+      Start 36: Serial.Host.concurrent
+ 7/13 Test #36: Serial.Host.concurrent ...........   Passed    0.11 sec
+      Start 37: Serial.Host.hangup
+ 8/13 Test #37: Serial.Host.hangup ...............   Passed    0.09 sec
+      Start 38: Serial.Host.cleanup_failure
+ 9/13 Test #38: Serial.Host.cleanup_failure ......   Passed    0.03 sec
+      Start 39: Serial.Host.unavailable
+10/13 Test #39: Serial.Host.unavailable ..........   Passed    0.09 sec
+      Start 40: Serial.Host.admission
+11/13 Test #40: Serial.Host.admission ............   Passed    0.11 sec
+      Start 41: Serial.Host.committed_prefix
+12/13 Test #41: Serial.Host.committed_prefix .....   Passed    0.08 sec
+      Start 42: Serial.Host.configuration
+13/13 Test #42: Serial.Host.configuration ........   Passed    0.10 sec
+
+100% tests passed, 0 tests failed out of 13
+
+Total Test time (real) =   1.07 sec
+
+m5-native.log (last 100 lines)
+INFO    - Using Ninja..
+INFO    - Zephyr version: v4.4.0
+INFO    - Using 'zephyr/gnu' toolchain variant.
+INFO    - Building initial testsuite list...
+INFO    - Built testsuite list in 0.01 seconds
+INFO    - Writing JSON report $REPO/build/zephyr/twister-serial/testplan.json
+INFO    - JOBS: 2
+INFO    - Adding tasks to the queue...
+INFO    - Added initial list of jobs to queue
+INFO    - Total complete:    1/   3  33%  built (not run):    0, filtered:    0, failed:    0, error:    0
+INFO    - Total complete:    2/   3  66%  built (not run):    0, filtered:    0, failed:    0, error:    0
+INFO    - Total complete:    3/   3  100%  built (not run):    0, filtered:    0, failed:    0, error:    0
+INFO    - 3 test scenarios (3 configurations) selected, 0 configurations filtered (0 by static filter, 0 at runtime).
+INFO    - 3 of 3 executed test configurations passed (100.00%), 0 built (not run), 0 failed, 0 errored, with no warnings in 476.37 seconds.
+INFO    - 7 of 7 executed test cases passed (100.00%) on 1 out of total 1473 platforms (0.07%).
+INFO    - 3 test configurations executed on platforms, 0 test configurations were only built.
+INFO    - Saving reports...
+INFO    - Writing JSON report $REPO/build/zephyr/twister-serial/twister.json
+INFO    - Writing xunit report $REPO/build/zephyr/twister-serial/twister.xml...
+INFO    - Writing xunit report $REPO/build/zephyr/twister-serial/twister_report.xml...
+INFO    - Run completed
+
+m5-boundary.log (last 100 lines)
+test_close_declaration_exception_does_not_allow_other_private_requirements (test_consumer_boundary.ConsumerBoundaryTest.test_close_declaration_exception_does_not_allow_other_private_requirements) ... ok
+test_close_declaration_exception_rejects_modified_header (test_consumer_boundary.ConsumerBoundaryTest.test_close_declaration_exception_rejects_modified_header) ... ok
+test_component_private_port_includes_are_rejected (test_consumer_boundary.ConsumerBoundaryTest.test_component_private_port_includes_are_rejected) ... ok
+test_consumer_private_native_requirements_are_rejected (test_consumer_boundary.ConsumerBoundaryTest.test_consumer_private_native_requirements_are_rejected) ... ok
+test_direct_link_injection_is_rejected (test_consumer_boundary.ConsumerBoundaryTest.test_direct_link_injection_is_rejected) ... ok
+test_host_time_rejects_conflicting_provider (test_consumer_boundary.ConsumerBoundaryTest.test_host_time_rejects_conflicting_provider) ... ok
+test_independent_c_and_cpp_consumers (test_consumer_boundary.ConsumerBoundaryTest.test_independent_c_and_cpp_consumers) ... ok
+test_native_threading_requirements_are_rejected (test_consumer_boundary.ConsumerBoundaryTest.test_native_threading_requirements_are_rejected) ... ok
+test_opaque_generator_expression_is_rejected (test_consumer_boundary.ConsumerBoundaryTest.test_opaque_generator_expression_is_rejected) ... ok
+test_private_native_requirements_on_provider_are_allowed (test_consumer_boundary.ConsumerBoundaryTest.test_private_native_requirements_on_provider_are_allowed) ... ok
+test_real_messaging_facades_preserve_selected_toolchain_flags (test_consumer_boundary.ConsumerBoundaryTest.test_real_messaging_facades_preserve_selected_toolchain_flags) ... ok
+test_real_zephyr_facade_has_no_native_transitives (test_consumer_boundary.ConsumerBoundaryTest.test_real_zephyr_facade_has_no_native_transitives) ... ok
+test_real_zephyr_networking_facades_are_portable (test_consumer_boundary.ConsumerBoundaryTest.test_real_zephyr_networking_facades_are_portable) ... ok
+test_selected_sysroot_is_only_a_standard_compile_option (test_consumer_boundary.ConsumerBoundaryTest.test_selected_sysroot_is_only_a_standard_compile_option) ... ok
+test_serial_provider_selection (test_consumer_boundary.ConsumerBoundaryTest.test_serial_provider_selection) ... ok
+test_static_provider_native_link_only_is_rejected (test_consumer_boundary.ConsumerBoundaryTest.test_static_provider_native_link_only_is_rejected) ... ok
+test_static_provider_private_native_composition_builds_and_runs (test_consumer_boundary.ConsumerBoundaryTest.test_static_provider_private_native_composition_builds_and_runs) ... ok
+test_time_common_cannot_link_without_selected_provider (test_consumer_boundary.ConsumerBoundaryTest.test_time_common_cannot_link_without_selected_provider) ... ok
+test_transitive_native_requirements_are_rejected (test_consumer_boundary.ConsumerBoundaryTest.test_transitive_native_requirements_are_rejected) ... ok
+test_transitive_private_or_native_include_is_rejected (test_consumer_boundary.ConsumerBoundaryTest.test_transitive_private_or_native_include_is_rejected) ... ok
+test_zephyr_facade_preserves_backend_conflict (test_consumer_boundary.ConsumerBoundaryTest.test_zephyr_facade_preserves_backend_conflict) ... ok
+test_zephyr_time_excludes_memory_and_test_controls (test_consumer_boundary.ConsumerBoundaryTest.test_zephyr_time_excludes_memory_and_test_controls) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 573.922s
+
+OK
+test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest.test_applies_to_all_designated_portable_roots) ... ok
+test_dependency_entry_point_checks_tokens_and_allows_iso_c (test_native_interfaces.NativeInterfaceTest.test_dependency_entry_point_checks_tokens_and_allows_iso_c) ... ok
+test_documentation_and_string_literals_are_not_native_dependencies (test_native_interfaces.NativeInterfaceTest.test_documentation_and_string_literals_are_not_native_dependencies) ... ok
+test_invalid_root_reports_an_error_instead_of_success (test_native_interfaces.NativeInterfaceTest.test_invalid_root_reports_an_error_instead_of_success) ... ok
+test_iso_c_and_crux_interfaces_remain_portable (test_native_interfaces.NativeInterfaceTest.test_iso_c_and_crux_interfaces_remain_portable) ... ok
+test_line_splicing_cannot_hide_native_include_or_token (test_native_interfaces.NativeInterfaceTest.test_line_splicing_cannot_hide_native_include_or_token) ... ok
+test_messaging_consumers_reject_native_leakage (test_native_interfaces.NativeInterfaceTest.test_messaging_consumers_reject_native_leakage) ... ok
+test_native_providers_and_compositions_remain_native (test_native_interfaces.NativeInterfaceTest.test_native_providers_and_compositions_remain_native) ... ok
+test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest.test_networking_profile_does_not_allow_native_or_general_posix) ... ok
+test_networking_profile_is_scoped_to_registered_consumers (test_native_interfaces.NativeInterfaceTest.test_networking_profile_is_scoped_to_registered_consumers) ... ok
+test_public_headers_cannot_include_shared_implementation_headers (test_native_interfaces.NativeInterfaceTest.test_public_headers_cannot_include_shared_implementation_headers) ... ok
+test_rejects_direct_paths_into_component_ports (test_native_interfaces.NativeInterfaceTest.test_rejects_direct_paths_into_component_ports) ... ok
+test_rejects_direct_paths_into_providers_and_test_controls (test_native_interfaces.NativeInterfaceTest.test_rejects_direct_paths_into_providers_and_test_controls) ... ok
+test_rejects_native_header_families_and_include_spacing (test_native_interfaces.NativeInterfaceTest.test_rejects_native_header_families_and_include_spacing) ... ok
+test_rejects_native_types_api_calls_and_configuration_tokens (test_native_interfaces.NativeInterfaceTest.test_rejects_native_types_api_calls_and_configuration_tokens) ... ok
+test_serial_consumers_reject_native_leakage (test_native_interfaces.NativeInterfaceTest.test_serial_consumers_reject_native_leakage) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 41.654s
+
+OK
+Native interface policy passed (58 portable source files).
+Base is independent; designated portable sources pass the native interface policy; backend selection is checked by CMake; shared source ownership is explicit.
+Execution public/consumer boundary passed; native providers remain permitted.
+Networking consumers use the qualified standard/public boundary.
+
+m5-format-green.log (last 100 lines)
+
+
+m5-composition-green2.log
+test_static_bindings (__main__.SerialCompositionTest.test_static_bindings) ... missing: rejected at build/configuration
+disabled: rejected at build/configuration
+unsupported_resource: rejected at build/configuration
+electrical_mode: rejected at build/configuration
+console: rejected at build/configuration
+shell_polling: rejected at build/configuration
+logging_fallback: rejected at build/configuration
+logging_list: rejected at build/configuration
+child_owner: rejected at build/configuration
+mcumgr_raw: rejected at build/configuration
+csi: rejected at build/configuration
+unsupported_lpuart: rejected at build/configuration
+single_wire: rejected at build/configuration
+rs485: rejected at build/configuration
+unsupported_provider: rejected at build/configuration
+disabled_owners: build PASS
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 735.660s
+
+OK
+
+
+m5-evkb.log
+[159/174] Building C object zephyr/kernel/CMakeFiles/kernel.dir/work.c.obj
+[160/174] Building C object zephyr/kernel/CMakeFiles/kernel.dir/thread.c.obj
+[161/174] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sched.c.obj
+[162/174] Building C object zephyr/kernel/CMakeFiles/kernel.dir/pipe.c.obj
+[163/174] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeslicing.c.obj
+[164/174] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeout.c.obj
+[165/174] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timer.c.obj
+[166/174] Building C object zephyr/kernel/CMakeFiles/kernel.dir/dynamic_disabled.c.obj
+[167/174] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mempool.c.obj
+[168/174] Linking C static library zephyr/kernel/libkernel.a
+[169/174] Linking CXX executable zephyr/zephyr_pre0.elf
+[170/174] Generating linker.cmd
+[171/174] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[172/174] Building C object zephyr/CMakeFiles/zephyr_final.dir/misc/empty_file.c.obj
+[173/174] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[174/174] Linking CXX executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:       42932 B         8 MB      0.51%
+             RAM:        8064 B        32 MB      0.02%
+            ITCM:           0 B       128 KB      0.00%
+            DTCM:           0 B       128 KB      0.00%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from $REPO/build/zephyr/serial-evkb/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi
+
+Final refined runner: targeted provider/control + pinned formatting
+test_static_bindings (__main__.SerialCompositionTest.test_static_bindings) ... unsupported_provider: rejected at build/configuration
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 10.910s
+
+OK
+test_static_bindings (__main__.SerialCompositionTest.test_static_bindings) ... disabled_owners: build PASS
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 18.921s
+
+OK

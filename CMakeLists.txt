@@ -18,7 +18,7 @@ option(CRUX_BUILD_REFERENCE_CONTROLLER "Build the early reference controller" ${
 # Base has no provider and is the foundation for selected capabilities.
 add_subdirectory(components/base)
 set(_crux_public_targets crux::base)
-foreach(component IN ITEMS time thread sync queue monotonic netif sockets configuration file)
+foreach(component IN ITEMS time thread sync queue monotonic netif sockets configuration file serial)
     string(TOUPPER "${component}" component_upper)
     option(CRUX_BUILD_${component_upper} "Build the ${component} capability" ${PROJECT_IS_TOP_LEVEL})
     if(CRUX_BUILD_${component_upper})
@@ -97,6 +97,9 @@ if(CRUX_BUILD_TESTS)
     add_subdirectory(tests/configuration)
 
     add_subdirectory(tests/file)
+    if(CRUX_BUILD_SERIAL)
+        add_subdirectory(tests/serial)
+    endif()
     add_executable(crux_posix_probes tests/execution/src/posix.c)
     target_link_libraries(crux_posix_probes PRIVATE Threads::Threads rt)
     target_compile_definitions(crux_posix_probes PRIVATE _POSIX_C_SOURCE=200809L)

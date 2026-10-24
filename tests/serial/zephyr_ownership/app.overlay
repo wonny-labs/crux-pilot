@@ -1,0 +1,19 @@
+/ {
+    serial_dedicated: serial-dedicated {
+        compatible = "zephyr,uart-emul";
+        current-speed = <115200>;
+        status = "okay";
+    };
+    aliases { crux-serial0 = &serial_dedicated; };
+    serial_test: serial-test {
+        compatible = "zephyr,uart-emul";
+        current-speed = <115200>;
+        rx-fifo-size = <1024>;
+        tx-fifo-size = <8>;
+        status = "okay";
+    };
+};
+/ {
+    chosen { zephyr,log-uart = &log_uarts; };
+    log_uarts: log-uarts { compatible = "zephyr,log-uart"; uarts = <&serial_test>; };
+};

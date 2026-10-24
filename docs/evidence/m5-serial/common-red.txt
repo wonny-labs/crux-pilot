@@ -1,0 +1,4 @@
+tests/serial/common.c:2:10: fatal error: 'crux/serial.h' file not found
+    2 | #include <crux/serial.h>
+      |          ^~~~~~~~~~~~~~~
+1 error generated.

@@ -151,13 +151,15 @@ python3 -m unittest discover -s tests/build -p test_external_application.py -v
 
 The test copies `tests/external_application/` into fresh temporary directories
 outside the Crux source tree, then configures, builds and runs independent C17/C++17
-Base/Time, Thread-only, Sync-only, Queue/Monotonic and Base-only parent projects.
+Base/Time, Thread-only, Sync-only, Serial-only, Queue/Monotonic and Base-only parent projects.
 Parent C99/C++20 targets and CTest tests before/after inclusion remain functional;
 a separate C-only parent retains its enabled-language and testing policy ON/OFF.
 Actual compile commands and final ELF symbols check component selection and private
 requirements. Focused negatives cover missing/unsupported/multiple Time selection,
-incompatible Time providers and missing Queue/Monotonic native composition. Existing
-source/build guards retain the detailed native-dependency negatives.
+incompatible Time/Serial providers and missing Queue/Monotonic native composition. Existing
+source/build guards retain the detailed native-dependency negatives. A separately
+copied Serial consumer runs all five PTY/policy scenarios beneath a parent project
+with its own tests enabled, preserving both parent tests.
 
 See the [supported integration example](../README.md#external-application-build-linux-host).
 The fixture uses public capabilities in portable targets and declares native
@@ -256,3 +258,16 @@ callable capability surface deliberately retained in the enabled profile. These
 commands never access hardware. See [the contract](../docs/messaging-contract.md)
 and [validation](../docs/messaging-validation.md) for ownership, cooperative-stop
 semantics, resource profile and qualification limits.
+
+### Portable Serial (Issue #27)
+
+`scripts/test-serial.sh --host-only` runs independently authored public C17/C++17
+consumers and the controller against disposable PTYs. The default command also
+runs focused UART-emulator/native ownership suites and cross-builds the EVKB
+fixture. It does not access hardware. See [Serial qualification](../docs/serial-validation.md)
+for the contract, actual evidence, unresolved observations and separate physical
+proposal. Root Host/ASan checks include the common and native PTY Serial cases.
+The independent Host consumer selects `CRUX_BUILD_SERIAL` and `CRUX_BUILD_MONOTONIC`
+through the root entry point, keeps parent `BUILD_TESTING` intact and composes
+`crux::monotonic_linux` only in the native fixture. Static Zephyr composition and
+UART ownership checks remain part of the full Serial script.

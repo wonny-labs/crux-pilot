@@ -1,0 +1,198 @@
+[1/131] Building C object CMakeFiles/crux_controller_core.dir/samples/controller/core/controller.c.o
+[2/131] Building C object CMakeFiles/crux_time_commands.dir/samples/time/src/time_command.c.o
+[3/131] Linking C static library libcrux_time_commands.a
+[4/131] Building C object CMakeFiles/crux_controller_core.dir/samples/controller/core/health.c.o
+[5/131] Linking C static library libcrux_controller_core.a
+[6/131] Building C object CMakeFiles/crux_posix_probes.dir/tests/execution/src/posix.c.o
+[7/131] Linking C executable crux_posix_probes
+[8/131] Building C object components/time/CMakeFiles/crux_time_common.dir/src/time.c.o
+[9/131] Building C object components/time/CMakeFiles/crux_time_memory.dir/src/time_port_memory.c.o
+[10/131] Building C object components/time/CMakeFiles/crux_time_common.dir/src/time_calendar.c.o
+[11/131] Linking C static library components/time/libcrux_time_memory.a
+[12/131] Linking C static library components/time/libcrux_time_common.a
+[13/131] Building C object components/thread/CMakeFiles/crux_thread_host.dir/src/thread.c.o
+[14/131] Building C object components/thread/CMakeFiles/crux_thread_host.dir/ports/linux/thread_native.c.o
+[15/131] Linking C static library components/thread/libcrux_thread_host.a
+[16/131] Building C object components/sync/CMakeFiles/crux_sync_host.dir/src/sync.c.o
+[17/131] Building C object components/sync/CMakeFiles/crux_sync_host.dir/ports/linux/sync_native.c.o
+[18/131] Linking C static library components/sync/libcrux_sync_host.a
+[19/131] Building C object components/queue/CMakeFiles/crux_queue_host.dir/src/queue.c.o
+[20/131] Building C object components/queue/CMakeFiles/crux_queue_host.dir/ports/linux/queue_port.c.o
+[21/131] Building C object components/monotonic/CMakeFiles/crux_monotonic_host.dir/src/monotonic.c.o
+[22/131] Linking C static library components/queue/libcrux_queue_host.a
+[23/131] Building C object components/monotonic/CMakeFiles/crux_monotonic_host.dir/ports/linux/monotonic_host.c.o
+[24/131] Linking C static library components/monotonic/libcrux_monotonic_host.a
+[25/131] Building C object components/netif/CMakeFiles/crux_netif.dir/src/netif.c.o
+[26/131] Building C object components/netif/CMakeFiles/crux_netif.dir/ports/linux/netif_host.c.o
+[27/131] Building C object components/configuration/CMakeFiles/crux_configuration.dir/src/configuration.c.o
+[28/131] Linking C static library components/netif/libcrux_netif.a
+[29/131] Linking C static library components/configuration/libcrux_configuration.a
+[30/131] Building C object components/file/CMakeFiles/crux_file_host.dir/src/file.c.o
+[31/131] Building C object components/file/CMakeFiles/crux_file_host.dir/ports/linux/file_host.c.o
+[32/131] Linking C static library components/file/libcrux_file_host.a
+[33/131] Building C object components/serial/CMakeFiles/crux_serial_host.dir/src/serial.c.o
+[34/131] Building C object components/serial/CMakeFiles/crux_serial_host.dir/ports/linux/serial_host.c.o
+[35/131] Building C object samples/time/host/CMakeFiles/crux-time-host.dir/main.c.o
+[36/131] Linking C static library components/serial/libcrux_serial_host.a
+[37/131] Linking C executable samples/time/host/crux-time-host
+[38/131] Building C object samples/networking/host/CMakeFiles/crux-networking-host.dir/main.c.o
+[39/131] Building C object samples/networking/host/CMakeFiles/crux-networking-host.dir/__/client.c.o
+[40/131] Building C object samples/controller/host/CMakeFiles/crux-controller-host.dir/main.c.o
+[41/131] Linking C executable samples/networking/host/crux-networking-host
+[42/131] Linking C executable samples/controller/host/crux-controller-host
+[43/131] Building CXX object /opt/crux-cache/cmake/googletest-build/googlemock/CMakeFiles/gmock_main.dir/src/gmock_main.cc.o
+[44/131] Building CXX object /opt/crux-cache/cmake/googletest-build/googlemock/CMakeFiles/gmock.dir/src/gmock-all.cc.o
+[45/131] Building CXX object /opt/crux-cache/cmake/googletest-build/googletest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o
+[46/131] Building C object tests/time/CMakeFiles/crux_time_common_test.dir/__/__/components/time/src/time.c.o
+[47/131] Building C object tests/time/CMakeFiles/crux_time_common_test.dir/__/__/components/time/src/time_calendar.c.o
+[48/131] Linking C static library tests/time/libcrux_time_common_test.a
+[49/131] Building C object tests/time/CMakeFiles/crux_time_memory_test.dir/__/__/components/time/src/time_port_memory.c.o
+[50/131] Linking C static library tests/time/libcrux_time_memory_test.a
+[51/131] Building CXX object /opt/crux-cache/cmake/googletest-build/googletest/CMakeFiles/gtest.dir/src/gtest-all.cc.o
+[52/131] Linking CXX static library lib/libgtest.a
+[53/131] Linking CXX static library lib/libgmock.a
+[54/131] Linking CXX static library lib/libgmock_main.a
+[55/131] Linking CXX static library lib/libgtest_main.a
+[56/131] Building CXX object tests/time/CMakeFiles/crux_time_tests.dir/time_test.cpp.o
+[57/131] Building CXX object tests/time/CMakeFiles/crux_time_tests.dir/calendar_test.cpp.o
+[58/131] Building CXX object tests/time/CMakeFiles/crux_time_tests.dir/command_test.cpp.o
+[59/131] Linking CXX executable tests/time/crux_time_tests
+[60/131] Building CXX object tests/controller/CMakeFiles/crux_controller_tests.dir/controller_test.cpp.o
+[61/131] Building C object tests/portable_execution/CMakeFiles/crux_execution_admission.dir/admission.c.o
+[62/131] Building CXX object tests/controller/CMakeFiles/crux_controller_tests.dir/health_test.cpp.o
+[63/131] Building C object tests/portable_execution/CMakeFiles/crux_execution_conformance.dir/conformance.c.o
+[64/131] Linking CXX executable tests/controller/crux_controller_tests
+[65/131] Building C object tests/portable_execution/CMakeFiles/crux_execution_conformance.dir/host_main.c.o
+[66/131] Building C object tests/portable_execution/CMakeFiles/crux_execution_conformance.dir/public_probe.c.o
+[67/131] Linking C executable tests/portable_execution/crux_execution_conformance
+[68/131] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_failures.dir/host_failures.c.o
+[69/131] Linking C executable tests/portable_execution/crux_execution_host_failures
+[70/131] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_poll.dir/host_poll.c.o
+[71/131] Linking C executable tests/portable_execution/crux_execution_host_poll
+[72/131] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_admission.dir/host_admission.c.o
+[73/131] Linking C executable tests/portable_execution/crux_execution_host_admission
+[74/131] Building C object tests/portable_execution/CMakeFiles/crux_execution_host_poll_finalize.dir/host_poll_finalize.c.o
+[75/131] Linking C executable tests/portable_execution/crux_execution_host_poll_finalize
+[76/131] Building C object tests/queue/CMakeFiles/crux_queue_basic.dir/basic.c.o
+[77/131] Linking C executable tests/queue/crux_queue_basic
+[78/131] Building C object tests/queue/CMakeFiles/crux_queue_concurrency.dir/concurrency.c.o
+[79/131] Linking C executable tests/queue/crux_queue_concurrency
+[80/131] Building C object tests/queue/CMakeFiles/crux_queue_timeout.dir/timeout.c.o
+[81/131] Linking C executable tests/queue/crux_queue_timeout
+[82/131] Building C object tests/queue/CMakeFiles/crux_queue_limits.dir/limits.c.o
+[83/131] Linking C executable tests/queue/crux_queue_limits
+[84/131] Building C object tests/queue/CMakeFiles/crux_queue_mpmc.dir/mpmc.c.o
+[85/131] Linking C executable tests/queue/crux_queue_mpmc
+[86/131] Building C object tests/queue/CMakeFiles/crux_queue_faults.dir/faults.c.o
+[87/131] Linking C executable tests/queue/crux_queue_faults
+[88/131] Building C object tests/queue/CMakeFiles/crux_queue_native_contract.dir/native_contract.c.o
+[89/131] Building C object tests/queue/CMakeFiles/crux_queue_native_contract.dir/__/__/components/queue/ports/zephyr/queue_port.c.o
+[90/131] Building C object tests/monotonic/host/CMakeFiles/monotonic_common.dir/common_test.c.o
+[91/131] Linking C executable tests/queue/crux_queue_native_contract
+[92/131] Building C object tests/monotonic/host/CMakeFiles/monotonic_common.dir/__/__/__/components/monotonic/src/monotonic.c.o
+[93/131] Linking C executable tests/monotonic/host/monotonic_common
+[94/131] Building C object tests/monotonic/host/CMakeFiles/monotonic_native.dir/native_test.c.o
+[95/131] Linking C executable tests/monotonic/host/monotonic_native
+[96/131] Building CXX object tests/monotonic/host/CMakeFiles/monotonic_real.dir/real_test.cpp.o
+[97/131] Linking CXX executable tests/monotonic/host/monotonic_real
+[98/131] Building C object tests/networking/CMakeFiles/crux_netif_tests.dir/__/__/components/netif/src/netif.c.o
+[99/131] Building CXX object tests/networking/CMakeFiles/crux_netif_tests.dir/netif_test.cpp.o
+[100/131] Linking CXX executable tests/networking/crux_netif_tests
+[101/131] Building C object tests/networking/CMakeFiles/crux_netif_host_tests.dir/__/__/components/netif/src/netif.c.o
+[102/131] Building CXX object tests/networking/CMakeFiles/crux_netif_host_tests.dir/netif_host_test.cpp.o
+[103/131] Building C object tests/networking/CMakeFiles/crux_netif_host_tests.dir/__/__/components/netif/ports/linux/netif_host.c.o
+[104/131] Building C object tests/networking/CMakeFiles/networking_client_fake.dir/__/__/samples/networking/client.c.o
+[105/131] Linking CXX executable tests/networking/crux_netif_host_tests
+[106/131] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/stack_host.c.o
+[107/131] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/stack_scenario.c.o
+[108/131] Building CXX object tests/networking/CMakeFiles/crux_networking_client_tests.dir/client_test.cpp.o
+[109/131] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/runtime_port.c.o
+[110/131] Building C object tests/networking/CMakeFiles/crux_networking_stack_tests.dir/__/__/samples/networking/client.c.o
+[111/131] Building C object tests/networking/CMakeFiles/networking_runtime_fake.dir/runtime_port.c.o
+[112/131] Linking C executable tests/networking/crux_networking_stack_tests
+[113/131] Building C object tests/configuration/CMakeFiles/crux_configuration_tests.dir/main.c.o
+[114/131] Linking CXX executable tests/networking/crux_networking_client_tests
+[115/131] Building C object tests/configuration/CMakeFiles/crux_configuration_tests.dir/conformance.c.o
+[116/131] Building C object tests/configuration/CMakeFiles/crux_configuration_tests.dir/fault_provider.c.o
+[117/131] Linking C executable tests/configuration/crux_configuration_tests
+[118/131] Building C object tests/configuration/CMakeFiles/configuration_controller_portable.dir/__/__/samples/controller/configuration/scenario.c.o
+[119/131] Building C object tests/configuration/CMakeFiles/crux_configuration_controller.dir/controller_main.c.o
+[120/131] Building C object tests/configuration/CMakeFiles/crux_configuration_controller.dir/fault_provider.c.o
+[121/131] Linking C executable tests/configuration/crux_configuration_controller
+[122/131] Building C object tests/file/CMakeFiles/file_fault.dir/fault_test.c.o
+[123/131] Building C object tests/file/CMakeFiles/file_host.dir/host_test.c.o
+[124/131] Building C object tests/file/CMakeFiles/file_fault.dir/__/__/components/file/src/file.c.o
+[125/131] Linking C executable tests/file/file_host
+[126/131] Linking C executable tests/file/file_fault
+[127/131] Building C object tests/serial/CMakeFiles/crux_serial_common.dir/__/__/components/serial/src/serial.c.o
+[128/131] Building C object tests/serial/CMakeFiles/crux_serial_common.dir/common.c.o
+[129/131] Linking C executable tests/serial/crux_serial_common
+[130/131] Building C object tests/serial/CMakeFiles/crux_serial_host_test.dir/host.c.o
+[131/131] Linking C executable tests/serial/crux_serial_host_test
+Internal ctest changing into directory: /tmp/crux-serial-sanitize
+Test project /tmp/crux-serial-sanitize
+      Start  93: Serial.Common.validation
+ 1/13 Test  #93: Serial.Common.validation .........   Passed    0.03 sec
+      Start  94: Serial.Common.lifetime
+ 2/13 Test  #94: Serial.Common.lifetime ...........   Passed    0.03 sec
+      Start  95: Serial.Common.transfers
+ 3/13 Test  #95: Serial.Common.transfers ..........   Passed    0.03 sec
+      Start  96: Serial.Common.timeout
+ 4/13 Test  #96: Serial.Common.timeout ............   Passed    0.03 sec
+      Start  97: Serial.Host.basic
+ 5/13 Test  #97: Serial.Host.basic ................   Passed    0.03 sec
+      Start  98: Serial.Host.waiting
+ 6/13 Test  #98: Serial.Host.waiting ..............   Passed    0.07 sec
+      Start  99: Serial.Host.concurrent
+ 7/13 Test  #99: Serial.Host.concurrent ...........   Passed    0.03 sec
+      Start 100: Serial.Host.hangup
+ 8/13 Test #100: Serial.Host.hangup ...............   Passed    0.03 sec
+      Start 101: Serial.Host.cleanup_failure
+ 9/13 Test #101: Serial.Host.cleanup_failure ......   Passed    0.03 sec
+      Start 102: Serial.Host.unavailable
+10/13 Test #102: Serial.Host.unavailable ..........   Passed    0.03 sec
+      Start 103: Serial.Host.admission
+11/13 Test #103: Serial.Host.admission ............   Passed    0.03 sec
+      Start 104: Serial.Host.committed_prefix
+12/13 Test #104: Serial.Host.committed_prefix .....   Passed    0.03 sec
+      Start 105: Serial.Host.configuration
+13/13 Test #105: Serial.Host.configuration ........   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 13
+
+Total Test time (real) =   0.45 sec
+[1/19] Building CXX object CMakeFiles/serial_cpp.dir/src/consumer.cpp.o
+[2/19] Building C object CMakeFiles/serial_runtime.dir/src/runtime.c.o
+[3/19] Building C object CMakeFiles/serial_controller_portable.dir$REPO/samples/serial/controller.c.o
+[4/19] Building C object CMakeFiles/serial_consumer_c.dir/host/main.c.o
+[5/19] Building C object CMakeFiles/serial_consumer_cpp.dir/host/main.c.o
+[6/19] Building C object CMakeFiles/serial_consumer_controller.dir/host/main.c.o
+[7/19] Building C object CMakeFiles/serial_consumer_controller_stale.dir/host/main.c.o
+[8/19] Building C object CMakeFiles/serial_consumer_policy.dir/src/contract_test.c.o
+[9/19] Building C object CMakeFiles/serial_consumer_policy.dir/src/runtime.c.o
+[10/19] Building C object crux/components/serial/CMakeFiles/crux_serial_host.dir/src/serial.c.o
+[11/19] Linking C executable serial_consumer_policy
+[12/19] Building C object crux/components/serial/CMakeFiles/crux_serial_host.dir/ports/linux/serial_host.c.o
+[13/19] Linking C static library crux/components/serial/libcrux_serial_host.a
+[14/19] Linking C static library libserial_runtime.a
+[15/19] Linking C static library libserial_controller_portable.a
+[16/19] Linking CXX executable serial_consumer_cpp
+[17/19] Linking CXX executable serial_consumer_c
+[18/19] Linking CXX executable serial_consumer_controller
+[19/19] Linking CXX executable serial_consumer_controller_stale
+Internal ctest changing into directory: /tmp/crux-serial-consumer-sanitize
+Test project /tmp/crux-serial-consumer-sanitize
+    Start 1: SerialConsumer.c
+1/5 Test #1: SerialConsumer.c ..................   Passed    0.09 sec
+    Start 2: SerialConsumer.cpp
+2/5 Test #2: SerialConsumer.cpp ................   Passed    0.09 sec
+    Start 3: SerialConsumer.controller
+3/5 Test #3: SerialConsumer.controller .........   Passed    0.08 sec
+    Start 4: SerialConsumer.controller_stale
+4/5 Test #4: SerialConsumer.controller_stale ...   Passed    0.08 sec
+    Start 5: SerialConsumer.Policy
+5/5 Test #5: SerialConsumer.Policy .............   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.39 sec

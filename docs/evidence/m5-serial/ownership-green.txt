@@ -1,0 +1,25 @@
+[1/5] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_binding.c.obj
+[2/5] Linking C static library modules/m5-serial/serial/libcrux_serial_zephyr.a
+[3/5] Linking C executable zephyr/zephyr.elf
+Generating files from /tmp/crux-serial-ownership/zephyr/zephyr.elf for board: native_sim/native/64
+[4/5] Building native simulator runner, and linking final executable
+[5/5] Running utility command for native_runner_executable
+uart connected to pseudotty: /dev/pts/0
+[00:00:00.000,000] <inf> emul: Registering 0 emulator(s) for serial-test
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE serial_ownership
+===================================================================
+START - test_separate_logging_uart_reserved
+ PASS - test_separate_logging_uart_reserved in 0.000 seconds
+===================================================================
+TESTSUITE serial_ownership succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [serial_ownership]: pass = 1, fail = 0, skip = 0, total = 1 duration = 0.000 seconds
+ - PASS - [serial_ownership.test_separate_logging_uart_reserved] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL

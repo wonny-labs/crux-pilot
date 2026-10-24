@@ -92,6 +92,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Sockets | Qualified IPv4 client standard-API profile | Linux libc and selected Zephyr POSIX facilities; no Crux wrapper or separate stack | [Qualified profile](networking-contract.md#socket-profile) |
 | Configuration | Scalar validation, explicit save/load and encoding | Portable core with deterministic test persistence provider; no adopted Zephyr Settings/production persistence integration | [Software qualification and native gate](configuration-validation.md) |
 | File | Bounded synchronous file operations | Linux Host provider and deterministic failure tests; Zephyr provider is a plan, not implemented support | [Contract](file-contract.md), [Zephyr handoff plan](file-validation.md#zephyr-provider-handoff-plan-only) |
+| Serial | Bounded synchronous UART/TTY byte transfer | Linux PTY/TTY and selected Zephyr UART emulator/EVKB compositions; explicit binding and exclusive UART ownership; no physical qualification | [Contract](serial-contract.md), [validation](serial-validation.md) |
 
 ## Build and native composition
 
@@ -103,7 +104,7 @@ Host and Zephyr may compose providers differently. For example, a Host Time comp
 
 Thread and Sync are independently selectable in Host and Zephyr builds. The [contract's build selection and provider limits](thread-sync.md#build-selection-and-provider-limits) document their component-owned switches and resource settings. Consumer code should depend only on the capabilities it uses.
 
-The README documents the verified Linux Host `add_subdirectory()` entry point, component selection and final native composition. Dependency builds default to Base only, with Crux tests/samples disabled independently of parent testing. Queue/Monotonic expose documented composition-only Host targets; portable source targets retain their public usage facades. Host Time memory selection is explicit for external applications and remains development/test only. Zephyr composition stays under module/Kconfig ownership. An installable package, `find_package(Crux)` and arbitrary OS/board/toolchain combinations remain unsupported; a comprehensive Build Guide is separate work.
+The README documents the verified Linux Host `add_subdirectory()` entry point, component selection and final native composition. Dependency builds default to Base only, with Crux tests/samples disabled independently of parent testing. Queue/Monotonic expose documented composition-only Linux targets; portable source targets retain their public usage facades. Host Time memory selection is explicit for external applications and remains development/test only. Zephyr composition stays under module/Kconfig ownership. An installable package, `find_package(Crux)` and arbitrary OS/board/toolchain combinations remain unsupported; a comprehensive Build Guide is separate work.
 
 ## Engineering and validation boundaries
 

@@ -21,6 +21,16 @@ class ConsumerBoundaryTest(unittest.TestCase):
             return subprocess.run([CMAKE, "-S", str(root), "-B", str(root / "build")],
                                   capture_output=True, text=True)
 
+    def test_serial_provider_selection(self):
+        for provider in ('', 'unsupported', 'host;zephyr'):
+            with self.subTest(provider=provider):
+                result = self.configure(
+                    'set(CRUX_BUILD_SERIAL ON CACHE BOOL "Required capability")\n'
+                    f'set(CRUX_SERIAL_PROVIDER "{provider}" CACHE STRING "")\n'
+                    f'add_subdirectory("{REPO}" crux)\n')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("Crux Serial unsupported provider", result.stdout + result.stderr)
+
     def test_independent_c_and_cpp_consumers(self):
         with tempfile.TemporaryDirectory() as temporary:
             subprocess.run([CMAKE, "-S", str(REPO / "tests/consumer_boundary"),

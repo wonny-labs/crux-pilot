@@ -1,0 +1,37 @@
+-- Configuring done (1.6s)
+-- Generating done (0.1s)
+-- Build files have been written to: /tmp/crux-serial-sanitize
+[1/2] Building C object tests/serial/CMakeFiles/crux_serial_host_test.dir/host.c.o
+[2/2] Linking C executable tests/serial/crux_serial_host_test
+Internal ctest changing into directory: /tmp/crux-serial-sanitize
+Test project /tmp/crux-serial-sanitize
+      Start 30: Serial.Common.validation
+ 1/13 Test #30: Serial.Common.validation .........   Passed    0.06 sec
+      Start 31: Serial.Common.lifetime
+ 2/13 Test #31: Serial.Common.lifetime ...........   Passed    0.06 sec
+      Start 32: Serial.Common.transfers
+ 3/13 Test #32: Serial.Common.transfers ..........   Passed    0.08 sec
+      Start 33: Serial.Common.timeout
+ 4/13 Test #33: Serial.Common.timeout ............   Passed    0.04 sec
+      Start 34: Serial.Host.basic
+ 5/13 Test #34: Serial.Host.basic ................   Passed    0.06 sec
+      Start 35: Serial.Host.waiting
+ 6/13 Test #35: Serial.Host.waiting ..............   Passed    0.07 sec
+      Start 36: Serial.Host.concurrent
+ 7/13 Test #36: Serial.Host.concurrent ...........   Passed    0.05 sec
+      Start 37: Serial.Host.hangup
+ 8/13 Test #37: Serial.Host.hangup ...............   Passed    0.03 sec
+      Start 38: Serial.Host.cleanup_failure
+ 9/13 Test #38: Serial.Host.cleanup_failure ......   Passed    0.03 sec
+      Start 39: Serial.Host.unavailable
+10/13 Test #39: Serial.Host.unavailable ..........   Passed    0.04 sec
+      Start 40: Serial.Host.admission
+11/13 Test #40: Serial.Host.admission ............   Passed    0.04 sec
+      Start 41: Serial.Host.committed_prefix
+12/13 Test #41: Serial.Host.committed_prefix .....   Passed    0.04 sec
+      Start 42: Serial.Host.configuration
+13/13 Test #42: Serial.Host.configuration ........   Passed    0.04 sec
+
+100% tests passed, 0 tests failed out of 13
+
+Total Test time (real) =   0.71 sec

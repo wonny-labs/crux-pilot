@@ -8,6 +8,8 @@ static void worker(void *argument) {
 }
 #elif PROFILE_SYNC
 #include <crux/sync.h>
+#elif PROFILE_SERIAL
+#include <crux/serial.h>
 #elif PROFILE_MESSAGING
 #include <crux/monotonic.h>
 #include <crux/queue.h>
@@ -32,6 +34,10 @@ int external_consumer(void) {
            crux_semaphore_take(semaphore, 0) != CRUX_OK ||
            crux_semaphore_take(semaphore, 0) != CRUX_ERR_BUSY ||
            crux_semaphore_destroy(&semaphore) != CRUX_OK;
+#elif PROFILE_SERIAL
+    crux_serial_t handle = {1, 1};
+    return crux_serial_open(0, NULL, &handle) != CRUX_ERR_INVALID_ARGUMENT || handle.slot != 0 ||
+           handle.generation != 0;
 #elif PROFILE_MESSAGING
     crux_queue_t queue;
     int sent = 42;

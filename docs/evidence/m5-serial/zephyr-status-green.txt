@@ -1,0 +1,37 @@
+[1/5] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_zephyr.c.obj
+[2/5] Linking C static library modules/m5-serial/serial/libcrux_serial_zephyr.a
+[3/5] Linking C executable zephyr/zephyr.elf
+Generating files from /tmp/crux-serial-zephyr-v2/zephyr/zephyr.elf for board: native_sim/native/64
+[4/5] Building native simulator runner, and linking final executable
+[5/5] Running utility command for native_runner_executable
+uart connected to pseudotty: /dev/pts/0
+[00:00:00.000,000] <inf> emul: Registering 0 emulator(s) for serial-test
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE serial
+===================================================================
+START - test_binary_configuration
+ PASS - test_binary_configuration in 0.004 seconds
+===================================================================
+START - test_mapping_and_late_callback
+ PASS - test_mapping_and_late_callback in 0.000 seconds
+===================================================================
+START - test_observed_error_and_overflow
+ PASS - test_observed_error_and_overflow in 0.011 seconds
+===================================================================
+START - test_poll_timeout_backpressure
+ PASS - test_poll_timeout_backpressure in 0.026 seconds
+===================================================================
+TESTSUITE serial succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [serial]: pass = 4, fail = 0, skip = 0, total = 4 duration = 0.041 seconds
+ - PASS - [serial.test_binary_configuration] duration = 0.004 seconds
+ - PASS - [serial.test_mapping_and_late_callback] duration = 0.000 seconds
+ - PASS - [serial.test_observed_error_and_overflow] duration = 0.011 seconds
+ - PASS - [serial.test_poll_timeout_backpressure] duration = 0.026 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL

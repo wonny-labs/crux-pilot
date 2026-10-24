@@ -1,0 +1,42 @@
+CONFIG_UART_INTERRUPT_DRIVEN=y
+CONFIG_UART_USE_RUNTIME_CONFIGURE=y
+CONFIG_CRUX_MONOTONIC=y
+CONFIG_CRUX_SERIAL=y
+CONFIG_UART_CONSOLE=y
+# CONFIG_UART_CONSOLE_DEBUG_SERVER_HOOKS is not set
+# CONFIG_UART_CONSOLE_MCUMGR is not set
+# CONFIG_SHELL is not set
+
+serial.c.obj:
+00000000 00000008 b slots
+00000000 00000026 T crux_serial_read
+00000000 00000028 T crux_serial_write
+00000000 0000009c T crux_serial_close
+00000000 000000ec T crux_serial_open
+00000000 0000012c t transfer
+
+serial_zephyr.c.obj:
+00000000 0000000a t z_impl_uart_irq_tx_disable
+00000000 0000000c T serial_port_metadata_unlock
+00000000 0000000e T serial_port_context_allowed
+00000000 0000000e t uart_configure
+00000000 00000010 D rx_event
+00000000 00000010 D tx_event
+00000000 00000014 D metadata
+00000000 00000014 T serial_port_read
+00000000 00000014 T serial_port_write
+00000000 00000018 T serial_port_now
+00000000 00000022 t disable
+00000000 00000028 t observed_error
+00000000 0000002c t fault
+00000000 0000002c t remaining
+00000000 0000006c T serial_port_metadata_lock
+00000000 00000088 T serial_port_close
+00000000 000000f8 t transfer
+00000000 00000124 t callback
+00000000 00000210 T serial_port_open
+00000000 0000023c b native
+
+serial_binding.c.obj:
+00000000 00000010 T serial_zephyr_device
+00000000 00000010 T serial_zephyr_reserved

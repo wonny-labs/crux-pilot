@@ -1,0 +1,4 @@
+/* Dedicated candidate. LPUART1 console/Shell/logging stays unchanged.
+ * LPUART3 shares AD_B1_06/07 with CSI; binding rejects an enabled CSI node. */
+/ { aliases { crux-serial0 = &lpuart3; }; };
+&lpuart3 { status = "okay"; current-speed = <115200>; };
