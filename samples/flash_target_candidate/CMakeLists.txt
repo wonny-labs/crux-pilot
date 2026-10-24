@@ -42,7 +42,12 @@ endfunction()
 poc_replace(drivers__flash "${ZEPHYR_BASE}/drivers/flash/flash_mcux_flexspi_nor.c")
 poc_replace(drivers__memc "${ZEPHYR_BASE}/drivers/memc/memc_mcux_flexspi.c")
 poc_replace(modules__hal_nxp "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/flexspi/fsl_flexspi.c")
-target_sources(app PRIVATE main.c)
+target_sources(app PRIVATE main.c early_snapshot.S snapshot_layout.c)
+# Only this compile-only candidate changes SystemInit's disable policy.
+set_property(SOURCE "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/system_MIMXRT1062.c"
+    TARGET_DIRECTORY modules__hal_nxp APPEND PROPERTY COMPILE_DEFINITIONS DISABLE_WDOG=0)
+zephyr_link_libraries(-Wl,--wrap=soc_reset_hook)
+zephyr_linker_sources(SECTIONS snapshot.ld)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 # Relocation scans Zephyr library objects, not the application archive outside it.
 target_sources(drivers__memc PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/terminal.c")
