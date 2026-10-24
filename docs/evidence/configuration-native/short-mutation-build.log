@@ -1,0 +1,7 @@
+[1/6] Building C object CMakeFiles/app.dir/ws/.worktrees/flash-safety-poc/components/configuration/ports/zephyr/configuration_settings.c.obj
+[2/6] Building C object CMakeFiles/app.dir/main.c.obj
+[3/6] Linking C static library app/libapp.a
+[4/6] Linking C executable zephyr/zephyr.elf
+Generating files from /tmp/m4-config-provider/zephyr/zephyr.elf for board: native_sim/native/64
+[5/6] Building native simulator runner, and linking final executable
+[6/6] Running utility command for native_runner_executable
