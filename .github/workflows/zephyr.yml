@@ -104,9 +104,9 @@ jobs:
             crux-pilot/build/zephyr/twister-time/twister.xml
             crux-pilot/build/zephyr/twister-time/twister_report.xml
             crux-pilot/build/zephyr/twister-time/twister_suite_report.xml
-            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/zephyr_time/*/build.log
-            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/zephyr_time/*/handler.log
-            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/zephyr_time/*/compile_commands.json
+            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/time/zephyr/*/build.log
+            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/time/zephyr/*/handler.log
+            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/time/zephyr/*/compile_commands.json
             crux-pilot/build/zephyr/native_sim_time/compile_commands.json
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/compile_commands.json
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/provenance.json
