@@ -67,6 +67,16 @@ class NativeInterfaceTest(unittest.TestCase):
                 result = self.check_source(f'#include "{header}"\n')
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 
+    def test_rejects_direct_paths_into_component_ports(self):
+        for header in ("../ports/linux/queue_port.h", "../ports/zephyr/queue_port.h"):
+            for path in ("components/example/include/crux/example.h",
+                         "components/example/src/example.c",
+                         "tests/messaging_consumer/runtime.c"):
+                with self.subTest(header=header, path=path):
+                    result = self.check_source(f'#include "{header}"\n', path)
+                    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                    self.assertIn("native/private header", result.stdout)
+
     def test_public_headers_cannot_include_shared_implementation_headers(self):
         source = '#include "../src/time_port.h"\n'
         result = self.check_source(source)
@@ -117,6 +127,10 @@ class NativeInterfaceTest(unittest.TestCase):
                      "components/runtime/zephyr/thread.c",
                      "components/execution/ports/linux/execution_native.c",
                      "components/execution/ports/zephyr/execution_native.c",
+                     "components/queue/ports/linux/queue_port.c",
+                     "components/queue/ports/zephyr/queue_port.c",
+                     "components/monotonic/ports/linux/monotonic_host.c",
+                     "components/monotonic/ports/zephyr/monotonic_zephyr.c",
                      "samples/controller/zephyr/main.c",
                      "samples/controller/host/main.c", "samples/time/src/main.c"):
             with self.subTest(path=path):

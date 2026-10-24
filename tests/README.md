@@ -204,6 +204,15 @@ backend is enabled by these checks.
 
 ## Portable queue and monotonic timing
 
+Queue and Monotonic native implementations live in their component-owned
+`components/{queue,monotonic}/ports/linux/` and `ports/zephyr/` directories.
+Their public usage targets remain `crux::queue` and `crux::monotonic`; native
+composition retains the internal `crux_queue_host` and `crux_monotonic_host`
+target names. Zephyr component build definitions live beside their ports and
+are selected by the top-level module's existing `CONFIG_CRUX_*` conditions.
+Tests remain under `tests/queue/`, `tests/monotonic/` and
+`tests/messaging_consumer/`; private port includes belong only to native tests.
+
 `Queue.*` and `Monotonic.*` run with Host Debug/sanitizer checks. Queue native
 contract models deliberately reproduce pinned Zephyr timeout semantics; actual
 `native_sim` ztests additionally check ownership, admitted cleanup, wakeup,
