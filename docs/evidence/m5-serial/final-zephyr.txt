@@ -1,0 +1,104 @@
+[1/9] Building C object CMakeFiles/app.dir/src/main.c.obj
+[2/9] Linking C static library app/libapp.a
+[3/9] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_zephyr.c.obj
+[4/9] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir$REPO/components/serial/src/serial.c.obj
+[5/9] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_binding.c.obj
+[6/9] Linking C static library modules/m5-serial/serial/libcrux_serial_zephyr.a
+[7/9] Linking C executable zephyr/zephyr.elf
+Generating files from /tmp/crux-serial-zephyr-v2/zephyr/zephyr.elf for board: native_sim/native/64
+[8/9] Building native simulator runner, and linking final executable
+[9/9] Running utility command for native_runner_executable
+uart connected to pseudotty: /dev/pts/0
+[00:00:00.000,000] <inf> emul: Registering 0 emulator(s) for serial-test
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE serial
+===================================================================
+START - test_binary_configuration
+ PASS - test_binary_configuration in 0.004 seconds
+===================================================================
+START - test_mapping_and_late_callback
+ PASS - test_mapping_and_late_callback in 0.000 seconds
+===================================================================
+START - test_observed_error_and_overflow
+ PASS - test_observed_error_and_overflow in 0.011 seconds
+===================================================================
+START - test_poll_timeout_backpressure
+ PASS - test_poll_timeout_backpressure in 0.026 seconds
+===================================================================
+TESTSUITE serial succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [serial]: pass = 4, fail = 0, skip = 0, total = 4 duration = 0.041 seconds
+ - PASS - [serial.test_binary_configuration] duration = 0.004 seconds
+ - PASS - [serial.test_mapping_and_late_callback] duration = 0.000 seconds
+ - PASS - [serial.test_observed_error_and_overflow] duration = 0.011 seconds
+ - PASS - [serial.test_poll_timeout_backpressure] duration = 0.026 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
+[1/14] Building C object CMakeFiles/serial_runtime.dir$REPO/tests/serial_consumer/src/runtime.c.obj
+[2/14] Building C object CMakeFiles/app.dir/main.c.obj
+[3/14] Building CXX object CMakeFiles/serial_cpp.dir$REPO/tests/serial_consumer/src/consumer.cpp.obj
+[4/14] Linking C static library libserial_runtime.a
+[5/14] Building C object CMakeFiles/serial_controller_portable.dir$REPO/samples/serial/controller.c.obj
+[6/14] Linking C static library libserial_controller_portable.a
+[7/14] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir$REPO/components/serial/src/serial.c.obj
+[8/14] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_zephyr.c.obj
+[9/14] Linking CXX static library app/libapp.a
+[10/14] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_binding.c.obj
+[11/14] Linking C static library modules/m5-serial/serial/libcrux_serial_zephyr.a
+[12/14] Linking CXX executable zephyr/zephyr.elf
+Generating files from /tmp/crux-serial-consumer-zephyr/zephyr/zephyr.elf for board: native_sim/native/64
+[13/14] Building native simulator runner, and linking final executable
+[14/14] Running utility command for native_runner_executable
+uart connected to pseudotty: /dev/pts/0
+[00:00:00.000,000] <inf> emul: Registering 0 emulator(s) for serial-test
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE serial_consumer
+===================================================================
+START - test_c17_and_cpp17
+ PASS - test_c17_and_cpp17 in 0.000 seconds
+===================================================================
+START - test_controller
+ PASS - test_controller in 0.000 seconds
+===================================================================
+TESTSUITE serial_consumer succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [serial_consumer]: pass = 2, fail = 0, skip = 0, total = 2 duration = 0.000 seconds
+ - PASS - [serial_consumer.test_c17_and_cpp17] duration = 0.000 seconds
+ - PASS - [serial_consumer.test_controller] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
+[1/16] Building C object CMakeFiles/serial_runtime.dir$REPO/tests/serial_consumer/src/runtime.c.obj
+[2/16] Linking C static library libserial_runtime.a
+[3/16] Building CXX object CMakeFiles/serial_cpp.dir$REPO/tests/serial_consumer/src/consumer.cpp.obj
+[4/16] Building C object CMakeFiles/serial_controller_portable.dir$REPO/samples/serial/controller.c.obj
+[5/16] Linking C static library libserial_controller_portable.a
+[6/16] Building C object CMakeFiles/app.dir/main.c.obj
+[7/16] Linking CXX static library app/libapp.a
+[8/16] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir$REPO/components/serial/src/serial.c.obj
+[9/16] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_binding.c.obj
+[10/16] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_zephyr.c.obj
+[11/16] Linking C static library modules/m5-serial/serial/libcrux_serial_zephyr.a
+[12/16] Linking CXX executable zephyr/zephyr_pre0.elf
+[13/16] Generating linker.cmd
+[14/16] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[15/16] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[16/16] Linking CXX executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:       42964 B         8 MB      0.51%
+             RAM:        8064 B        32 MB      0.02%
+            ITCM:           0 B       128 KB      0.00%
+            DTCM:           0 B       128 KB      0.00%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from /tmp/crux-serial-evkb/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi

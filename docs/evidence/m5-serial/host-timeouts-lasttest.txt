@@ -1,0 +1,2443 @@
+Start testing: Oct 24 15:06 UTC
+----------------------------------------------------------
+1/104 Testing: Execution.PosixProbes
+1/104 Test: Execution.PosixProbes
+Command: "/tmp/crux-serial-host/crux_posix_probes"
+Directory: /tmp/crux-serial-host
+"Execution.PosixProbes" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+PROBE posix default_stack=8388608 policy=0 priority=0
+PROBE posix worker_policy=0 priority=0
+PROBE posix worker_policy=0 priority=0
+PROBE posix worker_policy=0 priority=0
+PROBE posix cycle=0 lateness_ms=0
+PROBE posix cycle=1 lateness_ms=0
+PROBE posix cycle=2 lateness_ms=0
+PROBE posix cycle=3 lateness_ms=0
+PROBE posix cycle=4 lateness_ms=0
+PROBE posix cycle=5 lateness_ms=0
+PROBE posix periodic elapsed_ms=80 skipped=2
+POSIX probes: 5 passed
+<end of output>
+Test time =   0.20 sec
+----------------------------------------------------------
+Test Passed.
+"Execution.PosixProbes" end time: Oct 24 15:06 UTC
+"Execution.PosixProbes" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/104 Testing: Controller.HostScenario
+2/104 Test: Controller.HostScenario
+Command: "/opt/crux-cache/venv/bin/python3.12" "$REPO/scripts/check-controller.py" "/tmp/crux-serial-host/samples/controller/host/crux-controller-host" "--log" "/tmp/crux-serial-host/samples/controller/host/controller.log"
+Directory: /tmp/crux-serial-host/samples/controller/host
+"Controller.HostScenario" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Controller 20-cycle scenario, unset/valid UTC and backward UTC step: passed
+<end of output>
+Test time =   2.32 sec
+----------------------------------------------------------
+Test Passed.
+"Controller.HostScenario" end time: Oct 24 15:06 UTC
+"Controller.HostScenario" time elapsed: 00:00:02
+----------------------------------------------------------
+
+3/104 Testing: TimeApiTest.InitStartsReadyButUnset
+3/104 Test: TimeApiTest.InitStartsReadyButUnset
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.InitStartsReadyButUnset" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeApiTest.InitStartsReadyButUnset" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.InitStartsReadyButUnset
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.InitStartsReadyButUnset
+[       OK ] TimeApiTest.InitStartsReadyButUnset (1 ms)
+[----------] 1 test from TimeApiTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (80 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.68 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.InitStartsReadyButUnset" end time: Oct 24 15:06 UTC
+"TimeApiTest.InitStartsReadyButUnset" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/104 Testing: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+4/104 Test: TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness
+[       OK ] TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness (1 ms)
+[----------] 1 test from TimeApiTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.06 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness" end time: Oct 24 15:06 UTC
+"TimeApiTest.ArgumentAndRangeErrorsPrecedeReadiness" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/104 Testing: TimeApiTest.FailedInitialisationCanBeRetried
+5/104 Test: TimeApiTest.FailedInitialisationCanBeRetried
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.FailedInitialisationCanBeRetried" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeApiTest.FailedInitialisationCanBeRetried" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.FailedInitialisationCanBeRetried
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.FailedInitialisationCanBeRetried
+[       OK ] TimeApiTest.FailedInitialisationCanBeRetried (1 ms)
+[----------] 1 test from TimeApiTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.FailedInitialisationCanBeRetried" end time: Oct 24 15:06 UTC
+"TimeApiTest.FailedInitialisationCanBeRetried" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/104 Testing: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+6/104 Test: TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend
+[       OK ] TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend (0 ms)
+[----------] 1 test from TimeApiTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend" end time: Oct 24 15:06 UTC
+"TimeApiTest.RepeatedInitPreservesValidTimeAndSkipsBackend" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/104 Testing: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+7/104 Test: TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime
+[       OK ] TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime (0 ms)
+[----------] 1 test from TimeApiTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime" end time: Oct 24 15:06 UTC
+"TimeApiTest.RejectedWriteDoesNotReachBackendOrInvalidateTime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/104 Testing: TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+8/104 Test: TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.FailedBackendWriteInvalidatesSessionTime" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeApiTest.FailedBackendWriteInvalidatesSessionTime" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.FailedBackendWriteInvalidatesSessionTime
+[       OK ] TimeApiTest.FailedBackendWriteInvalidatesSessionTime (10 ms)
+[----------] 1 test from TimeApiTest (20 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (116 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.37 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.FailedBackendWriteInvalidatesSessionTime" end time: Oct 24 15:06 UTC
+"TimeApiTest.FailedBackendWriteInvalidatesSessionTime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/104 Testing: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+9/104 Test: TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged
+[       OK ] TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged (2 ms)
+[----------] 1 test from TimeApiTest (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged" end time: Oct 24 15:06 UTC
+"TimeApiTest.ReadFailureLeavesOutputAndValidityUnchanged" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/104 Testing: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+10/104 Test: TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.SuccessfulInjectedReadReturnsStoredValue" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeApiTest.SuccessfulInjectedReadReturnsStoredValue" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.SuccessfulInjectedReadReturnsStoredValue
+[       OK ] TimeApiTest.SuccessfulInjectedReadReturnsStoredValue (0 ms)
+[----------] 1 test from TimeApiTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.SuccessfulInjectedReadReturnsStoredValue" end time: Oct 24 15:06 UTC
+"TimeApiTest.SuccessfulInjectedReadReturnsStoredValue" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/104 Testing: TimeApiTest.BackendNoDataClearsCommonValidity
+11/104 Test: TimeApiTest.BackendNoDataClearsCommonValidity
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.BackendNoDataClearsCommonValidity" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeApiTest.BackendNoDataClearsCommonValidity" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.BackendNoDataClearsCommonValidity
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.BackendNoDataClearsCommonValidity
+[       OK ] TimeApiTest.BackendNoDataClearsCommonValidity (0 ms)
+[----------] 1 test from TimeApiTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.BackendNoDataClearsCommonValidity" end time: Oct 24 15:06 UTC
+"TimeApiTest.BackendNoDataClearsCommonValidity" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/104 Testing: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+12/104 Test: TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput
+[       OK ] TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput (1 ms)
+[----------] 1 test from TimeApiTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput" end time: Oct 24 15:06 UTC
+"TimeApiTest.OutOfRangeBackendReadDoesNotChangeOutput" time elapsed: 00:00:00
+----------------------------------------------------------
+
+13/104 Testing: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+13/104 Test: TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeApiTest
+[ RUN      ] TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds
+[       OK ] TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds (0 ms)
+[----------] 1 test from TimeApiTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds" end time: Oct 24 15:06 UTC
+"TimeApiTest.TestClockAdvanceAddsExactlyFiveSeconds" time elapsed: 00:00:00
+----------------------------------------------------------
+
+14/104 Testing: TimeCalendar.ConvertsIndependentUnixEpochAnchor
+14/104 Test: TimeCalendar.ConvertsIndependentUnixEpochAnchor
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.ConvertsIndependentUnixEpochAnchor" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCalendar.ConvertsIndependentUnixEpochAnchor" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.ConvertsIndependentUnixEpochAnchor
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.ConvertsIndependentUnixEpochAnchor
+[       OK ] TimeCalendar.ConvertsIndependentUnixEpochAnchor (0 ms)
+[----------] 1 test from TimeCalendar (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.ConvertsIndependentUnixEpochAnchor" end time: Oct 24 15:06 UTC
+"TimeCalendar.ConvertsIndependentUnixEpochAnchor" time elapsed: 00:00:00
+----------------------------------------------------------
+
+15/104 Testing: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+15/104 Test: TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors
+[       OK ] TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors (0 ms)
+[----------] 1 test from TimeCalendar (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors" end time: Oct 24 15:06 UTC
+"TimeCalendar.ConvertsIndependentPost2038AndUpperRangeAnchors" time elapsed: 00:00:00
+----------------------------------------------------------
+
+16/104 Testing: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+16/104 Test: TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd
+[       OK ] TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd (2 ms)
+[----------] 1 test from TimeCalendar (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd" end time: Oct 24 15:06 UTC
+"TimeCalendar.EnforcesInclusiveStartAndExclusiveEnd" time elapsed: 00:00:00
+----------------------------------------------------------
+
+17/104 Testing: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+17/104 Test: TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes
+[       OK ] TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes (0 ms)
+[----------] 1 test from TimeCalendar (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes" end time: Oct 24 15:06 UTC
+"TimeCalendar.AcceptsGregorianLeapDaysAndRejectsInvalidOnes" time elapsed: 00:00:00
+----------------------------------------------------------
+
+18/104 Testing: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+18/104 Test: TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.RejectsInvalidFieldsAndPreservesOutput" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCalendar.RejectsInvalidFieldsAndPreservesOutput" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.RejectsInvalidFieldsAndPreservesOutput
+[       OK ] TimeCalendar.RejectsInvalidFieldsAndPreservesOutput (0 ms)
+[----------] 1 test from TimeCalendar (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.RejectsInvalidFieldsAndPreservesOutput" end time: Oct 24 15:06 UTC
+"TimeCalendar.RejectsInvalidFieldsAndPreservesOutput" time elapsed: 00:00:00
+----------------------------------------------------------
+
+19/104 Testing: TimeCalendar.NullArgumentsAreInvalid
+19/104 Test: TimeCalendar.NullArgumentsAreInvalid
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.NullArgumentsAreInvalid" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCalendar.NullArgumentsAreInvalid" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.NullArgumentsAreInvalid
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.NullArgumentsAreInvalid
+[       OK ] TimeCalendar.NullArgumentsAreInvalid (0 ms)
+[----------] 1 test from TimeCalendar (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.NullArgumentsAreInvalid" end time: Oct 24 15:06 UTC
+"TimeCalendar.NullArgumentsAreInvalid" time elapsed: 00:00:00
+----------------------------------------------------------
+
+20/104 Testing: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+20/104 Test: TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCalendar.RoundTripsMonthBoundariesAndLeapDay" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCalendar.RoundTripsMonthBoundariesAndLeapDay" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCalendar
+[ RUN      ] TimeCalendar.RoundTripsMonthBoundariesAndLeapDay
+[       OK ] TimeCalendar.RoundTripsMonthBoundariesAndLeapDay (1 ms)
+[----------] 1 test from TimeCalendar (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCalendar.RoundTripsMonthBoundariesAndLeapDay" end time: Oct 24 15:06 UTC
+"TimeCalendar.RoundTripsMonthBoundariesAndLeapDay" time elapsed: 00:00:00
+----------------------------------------------------------
+
+21/104 Testing: TimeCommandTest.HelpIdentifiesUtcInput
+21/104 Test: TimeCommandTest.HelpIdentifiesUtcInput
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.HelpIdentifiesUtcInput" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCommandTest.HelpIdentifiesUtcInput" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.HelpIdentifiesUtcInput
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.HelpIdentifiesUtcInput
+[       OK ] TimeCommandTest.HelpIdentifiesUtcInput (0 ms)
+[----------] 1 test from TimeCommandTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.HelpIdentifiesUtcInput" end time: Oct 24 15:06 UTC
+"TimeCommandTest.HelpIdentifiesUtcInput" time elapsed: 00:00:00
+----------------------------------------------------------
+
+22/104 Testing: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+22/104 Test: TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.NoDataApiStatusMapsToDistinctCliText" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCommandTest.NoDataApiStatusMapsToDistinctCliText" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText
+[       OK ] TimeCommandTest.NoDataApiStatusMapsToDistinctCliText (0 ms)
+[----------] 1 test from TimeCommandTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.NoDataApiStatusMapsToDistinctCliText" end time: Oct 24 15:06 UTC
+"TimeCommandTest.NoDataApiStatusMapsToDistinctCliText" time elapsed: 00:00:00
+----------------------------------------------------------
+
+23/104 Testing: TimeCommandTest.SetAndGetUseTheSamePortableHandler
+23/104 Test: TimeCommandTest.SetAndGetUseTheSamePortableHandler
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.SetAndGetUseTheSamePortableHandler" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCommandTest.SetAndGetUseTheSamePortableHandler" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.SetAndGetUseTheSamePortableHandler
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.SetAndGetUseTheSamePortableHandler
+[       OK ] TimeCommandTest.SetAndGetUseTheSamePortableHandler (1 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.SetAndGetUseTheSamePortableHandler" end time: Oct 24 15:06 UTC
+"TimeCommandTest.SetAndGetUseTheSamePortableHandler" time elapsed: 00:00:00
+----------------------------------------------------------
+
+24/104 Testing: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+24/104 Test: TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf
+[       OK ] TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf (2 ms)
+[----------] 1 test from TimeCommandTest (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (14 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf" end time: Oct 24 15:06 UTC
+"TimeCommandTest.AllowsWhitespaceBetweenTokensAndCrLf" time elapsed: 00:00:00
+----------------------------------------------------------
+
+25/104 Testing: TimeCommandTest.HelpIsAnAdapterOutcome
+25/104 Test: TimeCommandTest.HelpIsAnAdapterOutcome
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.HelpIsAnAdapterOutcome" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCommandTest.HelpIsAnAdapterOutcome" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.HelpIsAnAdapterOutcome
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.HelpIsAnAdapterOutcome
+[       OK ] TimeCommandTest.HelpIsAnAdapterOutcome (1 ms)
+[----------] 1 test from TimeCommandTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.HelpIsAnAdapterOutcome" end time: Oct 24 15:06 UTC
+"TimeCommandTest.HelpIsAnAdapterOutcome" time elapsed: 00:00:00
+----------------------------------------------------------
+
+26/104 Testing: TimeCommandTest.RejectsMalformedSyntaxAndDates
+26/104 Test: TimeCommandTest.RejectsMalformedSyntaxAndDates
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.RejectsMalformedSyntaxAndDates" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCommandTest.RejectsMalformedSyntaxAndDates" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.RejectsMalformedSyntaxAndDates
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.RejectsMalformedSyntaxAndDates
+[       OK ] TimeCommandTest.RejectsMalformedSyntaxAndDates (0 ms)
+[----------] 1 test from TimeCommandTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.RejectsMalformedSyntaxAndDates" end time: Oct 24 15:06 UTC
+"TimeCommandTest.RejectsMalformedSyntaxAndDates" time elapsed: 00:00:00
+----------------------------------------------------------
+
+27/104 Testing: TimeCommandTest.MapsOutOfRangeAndIoErrors
+27/104 Test: TimeCommandTest.MapsOutOfRangeAndIoErrors
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.MapsOutOfRangeAndIoErrors" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCommandTest.MapsOutOfRangeAndIoErrors" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.MapsOutOfRangeAndIoErrors
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.MapsOutOfRangeAndIoErrors
+[       OK ] TimeCommandTest.MapsOutOfRangeAndIoErrors (0 ms)
+[----------] 1 test from TimeCommandTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.MapsOutOfRangeAndIoErrors" end time: Oct 24 15:06 UTC
+"TimeCommandTest.MapsOutOfRangeAndIoErrors" time elapsed: 00:00:00
+----------------------------------------------------------
+
+28/104 Testing: TimeCommandTest.RejectedWriteNeverCallsBackend
+28/104 Test: TimeCommandTest.RejectedWriteNeverCallsBackend
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.RejectedWriteNeverCallsBackend" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCommandTest.RejectedWriteNeverCallsBackend" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.RejectedWriteNeverCallsBackend
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.RejectedWriteNeverCallsBackend
+[       OK ] TimeCommandTest.RejectedWriteNeverCallsBackend (0 ms)
+[----------] 1 test from TimeCommandTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.RejectedWriteNeverCallsBackend" end time: Oct 24 15:06 UTC
+"TimeCommandTest.RejectedWriteNeverCallsBackend" time elapsed: 00:00:00
+----------------------------------------------------------
+
+29/104 Testing: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+29/104 Test: TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+Command: "/tmp/crux-serial-host/tests/time/crux_time_tests" "--gtest_filter=TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/time
+"TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TimeCommandTest
+[ RUN      ] TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime
+[       OK ] TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime (1 ms)
+[----------] 1 test from TimeCommandTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime" end time: Oct 24 15:06 UTC
+"TimeCommandTest.InvalidCommandDoesNotChangePreviouslySetTime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+30/104 Testing: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+30/104 Test: ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerTest
+[ RUN      ] ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover
+[       OK ] ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover (0 ms)
+[----------] 1 test from ControllerTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover" end time: Oct 24 15:06 UTC
+"ControllerTest.InitialisationFailureIsObservableAndRetryCanRecover" time elapsed: 00:00:00
+----------------------------------------------------------
+
+31/104 Testing: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+31/104 Test: ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerTest
+[ RUN      ] ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity
+[       OK ] ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity (0 ms)
+[----------] 1 test from ControllerTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (6 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity" end time: Oct 24 15:06 UTC
+"ControllerTest.UnsetValidReadFailureAndRecoveryKeepCycleIdentity" time elapsed: 00:00:00
+----------------------------------------------------------
+
+32/104 Testing: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+32/104 Test: ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerTest.UtcStepDoesNotChangeMonotonicSchedule" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerTest.UtcStepDoesNotChangeMonotonicSchedule" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerTest
+[ RUN      ] ControllerTest.UtcStepDoesNotChangeMonotonicSchedule
+[       OK ] ControllerTest.UtcStepDoesNotChangeMonotonicSchedule (0 ms)
+[----------] 1 test from ControllerTest (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerTest.UtcStepDoesNotChangeMonotonicSchedule" end time: Oct 24 15:06 UTC
+"ControllerTest.UtcStepDoesNotChangeMonotonicSchedule" time elapsed: 00:00:00
+----------------------------------------------------------
+
+33/104 Testing: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+33/104 Test: ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerSchedule
+[ RUN      ] ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst
+[       OK ] ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst (0 ms)
+[----------] 1 test from ControllerSchedule (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst" end time: Oct 24 15:06 UTC
+"ControllerSchedule.OverrunSkipsElapsedPhasesWithoutCatchUpBurst" time elapsed: 00:00:00
+----------------------------------------------------------
+
+34/104 Testing: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+34/104 Test: ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerSchedule
+[ RUN      ] ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline
+[       OK ] ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline (0 ms)
+[----------] 1 test from ControllerSchedule (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline" end time: Oct 24 15:06 UTC
+"ControllerSchedule.InvalidAndOverflowInputsDoNotProduceADeadline" time elapsed: 00:00:00
+----------------------------------------------------------
+
+35/104 Testing: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+35/104 Test: ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerHealth
+[ RUN      ] ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime
+[       OK ] ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime (0 ms)
+[----------] 1 test from ControllerHealth (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime" end time: Oct 24 15:06 UTC
+"ControllerHealth.RequiresCompletedWorkAndExpiresOnActualCompletionTime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+36/104 Testing: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+36/104 Test: ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerHealth
+[ RUN      ] ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress
+[       OK ] ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress (0 ms)
+[----------] 1 test from ControllerHealth (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress" end time: Oct 24 15:06 UTC
+"ControllerHealth.ErrorAndFutureCompletionNeedNewSuccessfulProgress" time elapsed: 00:00:00
+----------------------------------------------------------
+
+37/104 Testing: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+37/104 Test: ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerHealth
+[ RUN      ] ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress
+[       OK ] ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress (0 ms)
+[----------] 1 test from ControllerHealth (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress" end time: Oct 24 15:06 UTC
+"ControllerHealth.InvalidOrBackwardTimeCannotFeedOrRenewProgress" time elapsed: 00:00:00
+----------------------------------------------------------
+
+38/104 Testing: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+38/104 Test: ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerHealth
+[ RUN      ] ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError
+[       OK ] ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError (0 ms)
+[----------] 1 test from ControllerHealth (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError" end time: Oct 24 15:06 UTC
+"ControllerHealth.RecoveryCannotReplayWorkCompletedBeforeTheError" time elapsed: 00:00:00
+----------------------------------------------------------
+
+39/104 Testing: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+39/104 Test: ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerHealth
+[ RUN      ] ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering
+[       OK ] ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering (0 ms)
+[----------] 1 test from ControllerHealth (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering" end time: Oct 24 15:06 UTC
+"ControllerHealth.CounterWrapUsesChangeRatherThanNumericOrdering" time elapsed: 00:00:00
+----------------------------------------------------------
+
+40/104 Testing: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+40/104 Test: ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerReadiness
+[ RUN      ] ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation
+[       OK ] ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation (0 ms)
+[----------] 1 test from ControllerReadiness (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation" end time: Oct 24 15:06 UTC
+"ControllerReadiness.RequiredFailureCannotBecomeReadyOrOptionalDegradation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+41/104 Testing: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+41/104 Test: ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerJointHealth
+[ RUN      ] ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork
+[       OK ] ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork (1 ms)
+[----------] 1 test from ControllerJointHealth (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork" end time: Oct 24 15:06 UTC
+"ControllerJointHealth.EitherOwnerMustAdvanceAndErrorsNeedNewWork" time elapsed: 00:00:00
+----------------------------------------------------------
+
+42/104 Testing: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+42/104 Test: ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+Command: "/tmp/crux-serial-host/tests/controller/crux_controller_tests" "--gtest_filter=ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/controller
+"ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ControllerM3Budget
+[ RUN      ] ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom
+[       OK ] ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom (0 ms)
+[----------] 1 test from ControllerM3Budget (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom" end time: Oct 24 15:06 UTC
+"ControllerM3Budget.ArmsOnlyAfterJointPreparationWithFaultAndResetRoom" time elapsed: 00:00:00
+----------------------------------------------------------
+
+43/104 Testing: Execution.Conformance
+43/104 Test: Execution.Conformance
+Command: "/tmp/crux-serial-host/tests/portable_execution/crux_execution_conformance"
+Directory: /tmp/crux-serial-host/tests/portable_execution
+"Execution.Conformance" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+EXECUTION_CONFORMANCE passed=10
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"Execution.Conformance" end time: Oct 24 15:06 UTC
+"Execution.Conformance" time elapsed: 00:00:00
+----------------------------------------------------------
+
+44/104 Testing: Execution.HostFailures
+44/104 Test: Execution.HostFailures
+Command: "/tmp/crux-serial-host/tests/portable_execution/crux_execution_host_failures"
+Directory: /tmp/crux-serial-host/tests/portable_execution
+"Execution.HostFailures" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+EXECUTION_FAILURES rollback and deadline overflow passed
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"Execution.HostFailures" end time: Oct 24 15:06 UTC
+"Execution.HostFailures" time elapsed: 00:00:00
+----------------------------------------------------------
+
+45/104 Testing: Execution.HostPoll
+45/104 Test: Execution.HostPoll
+Command: "/tmp/crux-serial-host/tests/portable_execution/crux_execution_host_poll"
+Directory: /tmp/crux-serial-host/tests/portable_execution
+"Execution.HostPoll" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Execution.HostPoll" end time: Oct 24 15:06 UTC
+"Execution.HostPoll" time elapsed: 00:00:00
+----------------------------------------------------------
+
+46/104 Testing: Execution.HostAdmission
+46/104 Test: Execution.HostAdmission
+Command: "/tmp/crux-serial-host/tests/portable_execution/crux_execution_host_admission"
+Directory: /tmp/crux-serial-host/tests/portable_execution
+"Execution.HostAdmission" start time: Oct 24 15:06 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.34 sec
+----------------------------------------------------------
+Test Passed.
+"Execution.HostAdmission" end time: Oct 24 15:07 UTC
+"Execution.HostAdmission" time elapsed: 00:00:00
+----------------------------------------------------------
+
+47/104 Testing: Execution.HostPollFinalize
+47/104 Test: Execution.HostPollFinalize
+Command: "/tmp/crux-serial-host/tests/portable_execution/crux_execution_host_poll_finalize"
+Directory: /tmp/crux-serial-host/tests/portable_execution
+"Execution.HostPollFinalize" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.34 sec
+----------------------------------------------------------
+Test Passed.
+"Execution.HostPollFinalize" end time: Oct 24 15:07 UTC
+"Execution.HostPollFinalize" time elapsed: 00:00:00
+----------------------------------------------------------
+
+48/104 Testing: Queue.Basic
+48/104 Test: Queue.Basic
+Command: "/tmp/crux-serial-host/tests/queue/crux_queue_basic"
+Directory: /tmp/crux-serial-host/tests/queue
+"Queue.Basic" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+queue copy/FIFO/capacity passed
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"Queue.Basic" end time: Oct 24 15:07 UTC
+"Queue.Basic" time elapsed: 00:00:00
+----------------------------------------------------------
+
+49/104 Testing: Queue.Concurrency
+49/104 Test: Queue.Concurrency
+Command: "/tmp/crux-serial-host/tests/queue/crux_queue_concurrency"
+Directory: /tmp/crux-serial-host/tests/queue
+"Queue.Concurrency" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+queue controlled wait/admission/lifetime passed
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"Queue.Concurrency" end time: Oct 24 15:07 UTC
+"Queue.Concurrency" time elapsed: 00:00:00
+----------------------------------------------------------
+
+50/104 Testing: Queue.ExpiredReceive
+50/104 Test: Queue.ExpiredReceive
+Command: "/tmp/crux-serial-host/tests/queue/crux_queue_timeout" "receive"
+Directory: /tmp/crux-serial-host/tests/queue
+"Queue.ExpiredReceive" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+expired receiver cannot consume; FIFO/lifetime/reuse passed
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Queue.ExpiredReceive" end time: Oct 24 15:07 UTC
+"Queue.ExpiredReceive" time elapsed: 00:00:00
+----------------------------------------------------------
+
+51/104 Testing: Queue.ExpiredSend
+51/104 Test: Queue.ExpiredSend
+Command: "/tmp/crux-serial-host/tests/queue/crux_queue_timeout" "send"
+Directory: /tmp/crux-serial-host/tests/queue
+"Queue.ExpiredSend" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+expired sender cannot commit; FIFO/lifetime/reuse passed
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Queue.ExpiredSend" end time: Oct 24 15:07 UTC
+"Queue.ExpiredSend" time elapsed: 00:00:00
+----------------------------------------------------------
+
+52/104 Testing: Queue.limits
+52/104 Test: Queue.limits
+Command: "/tmp/crux-serial-host/tests/queue/crux_queue_limits"
+Directory: /tmp/crux-serial-host/tests/queue
+"Queue.limits" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+queue limits/failure atomicity/stale handles passed
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Queue.limits" end time: Oct 24 15:07 UTC
+"Queue.limits" time elapsed: 00:00:00
+----------------------------------------------------------
+
+53/104 Testing: Queue.mpmc
+53/104 Test: Queue.mpmc
+Command: "/tmp/crux-serial-host/tests/queue/crux_queue_mpmc"
+Directory: /tmp/crux-serial-host/tests/queue
+"Queue.mpmc" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+queue MPMC copied integrity passed
+<end of output>
+Test time =  20.03 sec
+----------------------------------------------------------
+Test Failed.
+"Queue.mpmc" end time: Oct 24 15:07 UTC
+"Queue.mpmc" time elapsed: 00:00:20
+----------------------------------------------------------
+
+54/104 Testing: Queue.Faults
+54/104 Test: Queue.Faults
+Command: "/tmp/crux-serial-host/tests/queue/crux_queue_faults"
+Directory: /tmp/crux-serial-host/tests/queue
+"Queue.Faults" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+queue failure injection/deadline/retirement passed
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"Queue.Faults" end time: Oct 24 15:07 UTC
+"Queue.Faults" time elapsed: 00:00:00
+----------------------------------------------------------
+
+55/104 Testing: Queue.NativeTimeoutOwnership
+55/104 Test: Queue.NativeTimeoutOwnership
+Command: "/tmp/crux-serial-host/tests/queue/crux_queue_native_contract"
+Directory: /tmp/crux-serial-host/tests/queue
+"Queue.NativeTimeoutOwnership" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+queue pinned native timeout contract passed
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Queue.NativeTimeoutOwnership" end time: Oct 24 15:07 UTC
+"Queue.NativeTimeoutOwnership" time elapsed: 00:00:00
+----------------------------------------------------------
+
+56/104 Testing: Queue.NativeDeadlineExhaustion
+56/104 Test: Queue.NativeDeadlineExhaustion
+Command: "/tmp/crux-serial-host/tests/queue/crux_queue_native_contract" "boundary"
+Directory: /tmp/crux-serial-host/tests/queue
+"Queue.NativeDeadlineExhaustion" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+queue pinned native timeout contract passed
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Queue.NativeDeadlineExhaustion" end time: Oct 24 15:07 UTC
+"Queue.NativeDeadlineExhaustion" time elapsed: 00:00:00
+----------------------------------------------------------
+
+57/104 Testing: Monotonic.Common
+57/104 Test: Monotonic.Common
+Command: "/tmp/crux-serial-host/tests/monotonic/host/monotonic_common"
+Directory: /tmp/crux-serial-host/tests/monotonic/host
+"Monotonic.Common" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+monotonic common: 0 failures
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Monotonic.Common" end time: Oct 24 15:07 UTC
+"Monotonic.Common" time elapsed: 00:00:00
+----------------------------------------------------------
+
+58/104 Testing: Monotonic.NativeBoundaries
+58/104 Test: Monotonic.NativeBoundaries
+Command: "/tmp/crux-serial-host/tests/monotonic/host/monotonic_native"
+Directory: /tmp/crux-serial-host/tests/monotonic/host
+"Monotonic.NativeBoundaries" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+monotonic native boundaries: 0 failures
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Monotonic.NativeBoundaries" end time: Oct 24 15:07 UTC
+"Monotonic.NativeBoundaries" time elapsed: 00:00:00
+----------------------------------------------------------
+
+59/104 Testing: Monotonic.RealHost
+59/104 Test: Monotonic.RealHost
+Command: "/tmp/crux-serial-host/tests/monotonic/host/monotonic_real"
+Directory: /tmp/crux-serial-host/tests/monotonic/host
+"Monotonic.RealHost" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+real Host absolute wait: 20 ms
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"Monotonic.RealHost" end time: Oct 24 15:07 UTC
+"Monotonic.RealHost" time elapsed: 00:00:00
+----------------------------------------------------------
+
+60/104 Testing: Netif.RejectsNull
+60/104 Test: Netif.RejectsNull
+Command: "/tmp/crux-serial-host/tests/networking/crux_netif_tests" "--gtest_filter=Netif.RejectsNull" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Netif.RejectsNull" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Netif.RejectsNull
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Netif
+[ RUN      ] Netif.RejectsNull
+[       OK ] Netif.RejectsNull (0 ms)
+[----------] 1 test from Netif (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"Netif.RejectsNull" end time: Oct 24 15:07 UTC
+"Netif.RejectsNull" time elapsed: 00:00:00
+----------------------------------------------------------
+
+61/104 Testing: Netif.PreservesOutputWhenObservationFails
+61/104 Test: Netif.PreservesOutputWhenObservationFails
+Command: "/tmp/crux-serial-host/tests/networking/crux_netif_tests" "--gtest_filter=Netif.PreservesOutputWhenObservationFails" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Netif.PreservesOutputWhenObservationFails" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Netif.PreservesOutputWhenObservationFails
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Netif
+[ RUN      ] Netif.PreservesOutputWhenObservationFails
+[       OK ] Netif.PreservesOutputWhenObservationFails (0 ms)
+[----------] 1 test from Netif (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"Netif.PreservesOutputWhenObservationFails" end time: Oct 24 15:07 UTC
+"Netif.PreservesOutputWhenObservationFails" time elapsed: 00:00:00
+----------------------------------------------------------
+
+62/104 Testing: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
+62/104 Test: Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
+Command: "/tmp/crux-serial-host/tests/networking/crux_netif_tests" "--gtest_filter=Netif.AddressRemainsConfiguredWhenLinkAndAdminDown" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Netif.AddressRemainsConfiguredWhenLinkAndAdminDown" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Netif
+[ RUN      ] Netif.AddressRemainsConfiguredWhenLinkAndAdminDown
+[       OK ] Netif.AddressRemainsConfiguredWhenLinkAndAdminDown (1 ms)
+[----------] 1 test from Netif (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"Netif.AddressRemainsConfiguredWhenLinkAndAdminDown" end time: Oct 24 15:07 UTC
+"Netif.AddressRemainsConfiguredWhenLinkAndAdminDown" time elapsed: 00:00:00
+----------------------------------------------------------
+
+63/104 Testing: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
+63/104 Test: Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
+Command: "/tmp/crux-serial-host/tests/networking/crux_netif_tests" "--gtest_filter=Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Netif
+[ RUN      ] Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier
+[       OK ] Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier (0 ms)
+[----------] 1 test from Netif (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Passed.
+"Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier" end time: Oct 24 15:07 UTC
+"Netif.ClearsBytesOfAbsentAddressAndReportsUnknownCarrier" time elapsed: 00:00:00
+----------------------------------------------------------
+
+64/104 Testing: Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
+64/104 Test: Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
+Command: "/tmp/crux-serial-host/tests/networking/crux_netif_tests" "--gtest_filter=Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Netif
+[ RUN      ] Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal
+[       OK ] Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal (1 ms)
+[----------] 1 test from Netif (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (43 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.86 sec
+----------------------------------------------------------
+Test Passed.
+"Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal" end time: Oct 24 15:07 UTC
+"Netif.FiltersUnspecifiedMulticastBroadcastAndLinkLocal" time elapsed: 00:00:00
+----------------------------------------------------------
+
+65/104 Testing: NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
+65/104 Test: NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
+Command: "/tmp/crux-serial-host/tests/networking/crux_netif_host_tests" "--gtest_filter=NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from NetifHost
+[ RUN      ] NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin
+[       OK ] NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin (0 ms)
+[----------] 1 test from NetifHost (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Passed.
+"NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin" end time: Oct 24 15:07 UTC
+"NetifHost.SelectedInterfaceAndAddressAreIndependentOfAdmin" time elapsed: 00:00:00
+----------------------------------------------------------
+
+66/104 Testing: Client.TcpHandlesShortTransfersWithinOneDeadline
+66/104 Test: Client.TcpHandlesShortTransfersWithinOneDeadline
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.TcpHandlesShortTransfersWithinOneDeadline" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.TcpHandlesShortTransfersWithinOneDeadline" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.TcpHandlesShortTransfersWithinOneDeadline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.TcpHandlesShortTransfersWithinOneDeadline
+[       OK ] Client.TcpHandlesShortTransfersWithinOneDeadline (1 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.06 sec
+----------------------------------------------------------
+Test Passed.
+"Client.TcpHandlesShortTransfersWithinOneDeadline" end time: Oct 24 15:07 UTC
+"Client.TcpHandlesShortTransfersWithinOneDeadline" time elapsed: 00:00:00
+----------------------------------------------------------
+
+67/104 Testing: Client.RetriesInterruptedPollAndWouldBlock
+67/104 Test: Client.RetriesInterruptedPollAndWouldBlock
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RetriesInterruptedPollAndWouldBlock" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.RetriesInterruptedPollAndWouldBlock" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RetriesInterruptedPollAndWouldBlock
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RetriesInterruptedPollAndWouldBlock
+[       OK ] Client.RetriesInterruptedPollAndWouldBlock (2 ms)
+[----------] 1 test from Client (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (12 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.44 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RetriesInterruptedPollAndWouldBlock" end time: Oct 24 15:07 UTC
+"Client.RetriesInterruptedPollAndWouldBlock" time elapsed: 00:00:00
+----------------------------------------------------------
+
+68/104 Testing: Client.RepeatedInterruptionsCannotExtendDeadline
+68/104 Test: Client.RepeatedInterruptionsCannotExtendDeadline
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RepeatedInterruptionsCannotExtendDeadline" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.RepeatedInterruptionsCannotExtendDeadline" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RepeatedInterruptionsCannotExtendDeadline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RepeatedInterruptionsCannotExtendDeadline
+[       OK ] Client.RepeatedInterruptionsCannotExtendDeadline (1 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RepeatedInterruptionsCannotExtendDeadline" end time: Oct 24 15:07 UTC
+"Client.RepeatedInterruptionsCannotExtendDeadline" time elapsed: 00:00:00
+----------------------------------------------------------
+
+69/104 Testing: Client.SilenceExpires
+69/104 Test: Client.SilenceExpires
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.SilenceExpires" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.SilenceExpires" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.SilenceExpires
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.SilenceExpires
+[       OK ] Client.SilenceExpires (1 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"Client.SilenceExpires" end time: Oct 24 15:07 UTC
+"Client.SilenceExpires" time elapsed: 00:00:00
+----------------------------------------------------------
+
+70/104 Testing: Client.ConnectPollReadinessStillRequiresSocketError
+70/104 Test: Client.ConnectPollReadinessStillRequiresSocketError
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.ConnectPollReadinessStillRequiresSocketError" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.ConnectPollReadinessStillRequiresSocketError" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.ConnectPollReadinessStillRequiresSocketError
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.ConnectPollReadinessStillRequiresSocketError
+[       OK ] Client.ConnectPollReadinessStillRequiresSocketError (1 ms)
+[----------] 1 test from Client (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (6 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"Client.ConnectPollReadinessStillRequiresSocketError" end time: Oct 24 15:07 UTC
+"Client.ConnectPollReadinessStillRequiresSocketError" time elapsed: 00:00:00
+----------------------------------------------------------
+
+71/104 Testing: Client.HangupIsReadAsEof
+71/104 Test: Client.HangupIsReadAsEof
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.HangupIsReadAsEof" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.HangupIsReadAsEof" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.HangupIsReadAsEof
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.HangupIsReadAsEof
+[       OK ] Client.HangupIsReadAsEof (1 ms)
+[----------] 1 test from Client (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"Client.HangupIsReadAsEof" end time: Oct 24 15:07 UTC
+"Client.HangupIsReadAsEof" time elapsed: 00:00:00
+----------------------------------------------------------
+
+72/104 Testing: Client.FailedCloseIsNeverRetried
+72/104 Test: Client.FailedCloseIsNeverRetried
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.FailedCloseIsNeverRetried" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.FailedCloseIsNeverRetried" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.FailedCloseIsNeverRetried
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.FailedCloseIsNeverRetried
+NETWORK_CLOSE cleanup_uncertain=1 error=5 retry_descriptor=0
+[       OK ] Client.FailedCloseIsNeverRetried (1 ms)
+[----------] 1 test from Client (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.06 sec
+----------------------------------------------------------
+Test Passed.
+"Client.FailedCloseIsNeverRetried" end time: Oct 24 15:07 UTC
+"Client.FailedCloseIsNeverRetried" time elapsed: 00:00:00
+----------------------------------------------------------
+
+73/104 Testing: Client.FailedCreationOwnsNoDescriptor
+73/104 Test: Client.FailedCreationOwnsNoDescriptor
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.FailedCreationOwnsNoDescriptor" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.FailedCreationOwnsNoDescriptor" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.FailedCreationOwnsNoDescriptor
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.FailedCreationOwnsNoDescriptor
+[       OK ] Client.FailedCreationOwnsNoDescriptor (0 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"Client.FailedCreationOwnsNoDescriptor" end time: Oct 24 15:07 UTC
+"Client.FailedCreationOwnsNoDescriptor" time elapsed: 00:00:00
+----------------------------------------------------------
+
+74/104 Testing: Client.SetupFailureClosesDescriptor
+74/104 Test: Client.SetupFailureClosesDescriptor
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.SetupFailureClosesDescriptor" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.SetupFailureClosesDescriptor" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.SetupFailureClosesDescriptor
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.SetupFailureClosesDescriptor
+[       OK ] Client.SetupFailureClosesDescriptor (1 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"Client.SetupFailureClosesDescriptor" end time: Oct 24 15:07 UTC
+"Client.SetupFailureClosesDescriptor" time elapsed: 00:00:00
+----------------------------------------------------------
+
+75/104 Testing: Client.SendFailureClosesDescriptor
+75/104 Test: Client.SendFailureClosesDescriptor
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.SendFailureClosesDescriptor" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.SendFailureClosesDescriptor" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.SendFailureClosesDescriptor
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.SendFailureClosesDescriptor
+[       OK ] Client.SendFailureClosesDescriptor (2 ms)
+[----------] 1 test from Client (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (6 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"Client.SendFailureClosesDescriptor" end time: Oct 24 15:07 UTC
+"Client.SendFailureClosesDescriptor" time elapsed: 00:00:00
+----------------------------------------------------------
+
+76/104 Testing: Client.RejectsInvalidInputBeforeSocketCreation
+76/104 Test: Client.RejectsInvalidInputBeforeSocketCreation
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RejectsInvalidInputBeforeSocketCreation" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.RejectsInvalidInputBeforeSocketCreation" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RejectsInvalidInputBeforeSocketCreation
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RejectsInvalidInputBeforeSocketCreation
+[       OK ] Client.RejectsInvalidInputBeforeSocketCreation (0 ms)
+[----------] 1 test from Client (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RejectsInvalidInputBeforeSocketCreation" end time: Oct 24 15:07 UTC
+"Client.RejectsInvalidInputBeforeSocketCreation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+77/104 Testing: Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
+77/104 Test: Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize
+[       OK ] Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize (0 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize" end time: Oct 24 15:07 UTC
+"Client.UdpIsOneAtomicDatagramAndGuardByteDetectsOversize" time elapsed: 00:00:00
+----------------------------------------------------------
+
+78/104 Testing: Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
+78/104 Test: Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics
+[       OK ] Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics (2 ms)
+[----------] 1 test from Client (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (6 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.06 sec
+----------------------------------------------------------
+Test Passed.
+"Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics" end time: Oct 24 15:07 UTC
+"Client.UdpShortSendAndZeroDatagramAreNotTcpSemantics" time elapsed: 00:00:00
+----------------------------------------------------------
+
+79/104 Testing: Client.RejectsCorruptEcho
+79/104 Test: Client.RejectsCorruptEcho
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RejectsCorruptEcho" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.RejectsCorruptEcho" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RejectsCorruptEcho
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RejectsCorruptEcho
+[       OK ] Client.RejectsCorruptEcho (1 ms)
+[----------] 1 test from Client (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (6 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RejectsCorruptEcho" end time: Oct 24 15:07 UTC
+"Client.RejectsCorruptEcho" time elapsed: 00:00:00
+----------------------------------------------------------
+
+80/104 Testing: Client.ClockFailureOwnsNoSocket
+80/104 Test: Client.ClockFailureOwnsNoSocket
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.ClockFailureOwnsNoSocket" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.ClockFailureOwnsNoSocket" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.ClockFailureOwnsNoSocket
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.ClockFailureOwnsNoSocket
+[       OK ] Client.ClockFailureOwnsNoSocket (1 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (6 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"Client.ClockFailureOwnsNoSocket" end time: Oct 24 15:07 UTC
+"Client.ClockFailureOwnsNoSocket" time elapsed: 00:00:00
+----------------------------------------------------------
+
+81/104 Testing: Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
+81/104 Test: Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce
+[       OK ] Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce (1 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce" end time: Oct 24 15:07 UTC
+"Client.InvalidPollDescriptorAndReceiveErrorsCloseOnce" time elapsed: 00:00:00
+----------------------------------------------------------
+
+82/104 Testing: Client.WouldBlockCannotRenewOverallDeadline
+82/104 Test: Client.WouldBlockCannotRenewOverallDeadline
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.WouldBlockCannotRenewOverallDeadline" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.WouldBlockCannotRenewOverallDeadline" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.WouldBlockCannotRenewOverallDeadline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.WouldBlockCannotRenewOverallDeadline
+[       OK ] Client.WouldBlockCannotRenewOverallDeadline (1 ms)
+[----------] 1 test from Client (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"Client.WouldBlockCannotRenewOverallDeadline" end time: Oct 24 15:07 UTC
+"Client.WouldBlockCannotRenewOverallDeadline" time elapsed: 00:00:00
+----------------------------------------------------------
+
+83/104 Testing: Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+83/104 Test: Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer
+[       OK ] Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer (0 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer" end time: Oct 24 15:07 UTC
+"Client.ReadinessAfterExpiryDoesNotPermitAnotherTransfer" time elapsed: 00:00:00
+----------------------------------------------------------
+
+84/104 Testing: Client.RuntimeRetriesInterruptedPoll
+84/104 Test: Client.RuntimeRetriesInterruptedPoll
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RuntimeRetriesInterruptedPoll" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.RuntimeRetriesInterruptedPoll" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RuntimeRetriesInterruptedPoll
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RuntimeRetriesInterruptedPoll
+[       OK ] Client.RuntimeRetriesInterruptedPoll (1 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RuntimeRetriesInterruptedPoll" end time: Oct 24 15:07 UTC
+"Client.RuntimeRetriesInterruptedPoll" time elapsed: 00:00:00
+----------------------------------------------------------
+
+85/104 Testing: Client.RuntimeInterruptionsCannotRenewDeadline
+85/104 Test: Client.RuntimeInterruptionsCannotRenewDeadline
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RuntimeInterruptionsCannotRenewDeadline" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.RuntimeInterruptionsCannotRenewDeadline" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RuntimeInterruptionsCannotRenewDeadline
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RuntimeInterruptionsCannotRenewDeadline
+[       OK ] Client.RuntimeInterruptionsCannotRenewDeadline (1 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RuntimeInterruptionsCannotRenewDeadline" end time: Oct 24 15:07 UTC
+"Client.RuntimeInterruptionsCannotRenewDeadline" time elapsed: 00:00:00
+----------------------------------------------------------
+
+86/104 Testing: Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+86/104 Test: Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.RuntimeReadinessAfterExpiryDoesNotPermitSend" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.RuntimeReadinessAfterExpiryDoesNotPermitSend" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.RuntimeReadinessAfterExpiryDoesNotPermitSend
+[       OK ] Client.RuntimeReadinessAfterExpiryDoesNotPermitSend (1 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"Client.RuntimeReadinessAfterExpiryDoesNotPermitSend" end time: Oct 24 15:07 UTC
+"Client.RuntimeReadinessAfterExpiryDoesNotPermitSend" time elapsed: 00:00:00
+----------------------------------------------------------
+
+87/104 Testing: Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+87/104 Test: Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_client_tests" "--gtest_filter=Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno" "--gtest_also_run_disabled_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+Running main() from /opt/crux-cache/cmake/googletest-src/googletest/src/gtest_main.cc
+Note: Google Test filter = Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from Client
+[ RUN      ] Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno
+[       OK ] Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno (1 ms)
+[----------] 1 test from Client (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+<end of output>
+Test time =  31.29 sec
+----------------------------------------------------------
+Test Failed.
+"Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno" end time: Oct 24 15:07 UTC
+"Client.FailedClockCannotLookLikeSuccessEvenWithoutErrno" time elapsed: 00:00:31
+----------------------------------------------------------
+
+88/104 Testing: Networking.RealHostStack
+88/104 Test: Networking.RealHostStack
+Command: "/tmp/crux-serial-host/tests/networking/crux_networking_stack_tests"
+Directory: /tmp/crux-serial-host/tests/networking
+"Networking.RealHostStack" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=0 mode=1 runtime=0 result=-110 expected=-110
+STACK_CASE udp=1 mode=1 runtime=0 result=-110 expected=-110
+STACK_CASE udp=0 mode=2 runtime=0 result=-104 expected=-104
+STACK_CASE udp=1 mode=3 runtime=0 result=-90 expected=-90
+STACK_CASE udp=1 mode=4 runtime=0 result=-90 expected=-90
+STACK_CASE udp=0 mode=0 runtime=1 result=0 expected=0
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=0 mode=1 runtime=0 result=-110 expected=-110
+STACK_CASE udp=1 mode=1 runtime=0 result=-110 expected=-110
+STACK_CASE udp=0 mode=2 runtime=0 result=-104 expected=-104
+STACK_CASE udp=1 mode=3 runtime=0 result=-90 expected=-90
+STACK_CASE udp=1 mode=4 runtime=0 result=-90 expected=-90
+STACK_CASE udp=0 mode=0 runtime=1 result=0 expected=0
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=0 mode=1 runtime=0 result=-110 expected=-110
+STACK_CASE udp=1 mode=1 runtime=0 result=-110 expected=-110
+STACK_CASE udp=0 mode=2 runtime=0 result=-104 expected=-104
+STACK_CASE udp=1 mode=3 runtime=0 result=-90 expected=-90
+STACK_CASE udp=1 mode=4 runtime=0 result=-90 expected=-90
+STACK_CASE udp=0 mode=0 runtime=1 result=0 expected=0
+STACK_CASE udp=0 mode=0 runtime=0 result=0 expected=0
+STACK_CASE udp=1 mode=0 runtime=0 result=0 expected=0
+STACK_ZERO_DATAGRAM pass=1
+STACK_POST_CLOSE errno=32 attempts=2
+STACK_RESOURCES descriptors_before=19 after=19
+<end of output>
+Test time =   2.54 sec
+----------------------------------------------------------
+Test Passed.
+"Networking.RealHostStack" end time: Oct 24 15:07 UTC
+"Networking.RealHostStack" time elapsed: 00:00:02
+----------------------------------------------------------
+
+89/104 Testing: Configuration.Conformance
+89/104 Test: Configuration.Conformance
+Command: "/tmp/crux-serial-host/tests/configuration/crux_configuration_tests"
+Directory: /tmp/crux-serial-host/tests/configuration
+"Configuration.Conformance" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+CONFIGURATION_PASS checks=163 failures=0
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Configuration.Conformance" end time: Oct 24 15:07 UTC
+"Configuration.Conformance" time elapsed: 00:00:00
+----------------------------------------------------------
+
+90/104 Testing: Configuration.ControllerScenario
+90/104 Test: Configuration.ControllerScenario
+Command: "/tmp/crux-serial-host/tests/configuration/crux_configuration_controller"
+Directory: /tmp/crux-serial-host/tests/configuration
+"Configuration.ControllerScenario" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+CONFIGURATION_CONTROLLER_PASS result=0
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Configuration.ControllerScenario" end time: Oct 24 15:07 UTC
+"Configuration.ControllerScenario" time elapsed: 00:00:00
+----------------------------------------------------------
+
+91/104 Testing: File.file_fault
+91/104 Test: File.file_fault
+Command: "/tmp/crux-serial-host/tests/file/file_fault"
+Directory: /tmp/crux-serial-host/tests/file
+"File.file_fault" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+File deterministic contract checks passed
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"File.file_fault" end time: Oct 24 15:07 UTC
+"File.file_fault" time elapsed: 00:00:00
+----------------------------------------------------------
+
+92/104 Testing: File.file_host
+92/104 Test: File.file_host
+Command: "/tmp/crux-serial-host/tests/file/file_host"
+Directory: /tmp/crux-serial-host/tests/file
+"File.file_host" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"File.file_host" end time: Oct 24 15:07 UTC
+"File.file_host" time elapsed: 00:00:00
+----------------------------------------------------------
+
+93/104 Testing: Serial.Common.validation
+93/104 Test: Serial.Common.validation
+Command: "/tmp/crux-serial-host/tests/serial/crux_serial_common" "validation"
+Directory: /tmp/crux-serial-host/tests/serial
+"Serial.Common.validation" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"Serial.Common.validation" end time: Oct 24 15:07 UTC
+"Serial.Common.validation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+94/104 Testing: Serial.Common.lifetime
+94/104 Test: Serial.Common.lifetime
+Command: "/tmp/crux-serial-host/tests/serial/crux_serial_common" "lifetime"
+Directory: /tmp/crux-serial-host/tests/serial
+"Serial.Common.lifetime" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"Serial.Common.lifetime" end time: Oct 24 15:07 UTC
+"Serial.Common.lifetime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+95/104 Testing: Serial.Common.transfers
+95/104 Test: Serial.Common.transfers
+Command: "/tmp/crux-serial-host/tests/serial/crux_serial_common" "transfers"
+Directory: /tmp/crux-serial-host/tests/serial
+"Serial.Common.transfers" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Serial.Common.transfers" end time: Oct 24 15:07 UTC
+"Serial.Common.transfers" time elapsed: 00:00:00
+----------------------------------------------------------
+
+96/104 Testing: Serial.Common.timeout
+96/104 Test: Serial.Common.timeout
+Command: "/tmp/crux-serial-host/tests/serial/crux_serial_common" "timeout"
+Directory: /tmp/crux-serial-host/tests/serial
+"Serial.Common.timeout" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Serial.Common.timeout" end time: Oct 24 15:07 UTC
+"Serial.Common.timeout" time elapsed: 00:00:00
+----------------------------------------------------------
+
+97/104 Testing: Serial.Host.basic
+97/104 Test: Serial.Host.basic
+Command: "/tmp/crux-serial-host/tests/serial/crux_serial_host_test" "basic"
+Directory: /tmp/crux-serial-host/tests/serial
+"Serial.Host.basic" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Serial.Host.basic" end time: Oct 24 15:07 UTC
+"Serial.Host.basic" time elapsed: 00:00:00
+----------------------------------------------------------
+
+98/104 Testing: Serial.Host.waiting
+98/104 Test: Serial.Host.waiting
+Command: "/tmp/crux-serial-host/tests/serial/crux_serial_host_test" "waiting"
+Directory: /tmp/crux-serial-host/tests/serial
+"Serial.Host.waiting" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"Serial.Host.waiting" end time: Oct 24 15:07 UTC
+"Serial.Host.waiting" time elapsed: 00:00:00
+----------------------------------------------------------
+
+99/104 Testing: Serial.Host.concurrent
+99/104 Test: Serial.Host.concurrent
+Command: "/tmp/crux-serial-host/tests/serial/crux_serial_host_test" "concurrent"
+Directory: /tmp/crux-serial-host/tests/serial
+"Serial.Host.concurrent" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Serial.Host.concurrent" end time: Oct 24 15:07 UTC
+"Serial.Host.concurrent" time elapsed: 00:00:00
+----------------------------------------------------------
+
+100/104 Testing: Serial.Host.hangup
+100/104 Test: Serial.Host.hangup
+Command: "/tmp/crux-serial-host/tests/serial/crux_serial_host_test" "hangup"
+Directory: /tmp/crux-serial-host/tests/serial
+"Serial.Host.hangup" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"Serial.Host.hangup" end time: Oct 24 15:07 UTC
+"Serial.Host.hangup" time elapsed: 00:00:00
+----------------------------------------------------------
+
+101/104 Testing: Serial.Host.cleanup_failure
+101/104 Test: Serial.Host.cleanup_failure
+Command: "/tmp/crux-serial-host/tests/serial/crux_serial_host_test" "cleanup_failure"
+Directory: /tmp/crux-serial-host/tests/serial
+"Serial.Host.cleanup_failure" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"Serial.Host.cleanup_failure" end time: Oct 24 15:07 UTC
+"Serial.Host.cleanup_failure" time elapsed: 00:00:00
+----------------------------------------------------------
+
+102/104 Testing: Serial.Host.unavailable
+102/104 Test: Serial.Host.unavailable
+Command: "/tmp/crux-serial-host/tests/serial/crux_serial_host_test" "unavailable"
+Directory: /tmp/crux-serial-host/tests/serial
+"Serial.Host.unavailable" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"Serial.Host.unavailable" end time: Oct 24 15:07 UTC
+"Serial.Host.unavailable" time elapsed: 00:00:00
+----------------------------------------------------------
+
+103/104 Testing: Serial.Host.admission
+103/104 Test: Serial.Host.admission
+Command: "/tmp/crux-serial-host/tests/serial/crux_serial_host_test" "admission"
+Directory: /tmp/crux-serial-host/tests/serial
+"Serial.Host.admission" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"Serial.Host.admission" end time: Oct 24 15:07 UTC
+"Serial.Host.admission" time elapsed: 00:00:00
+----------------------------------------------------------
+
+104/104 Testing: Serial.Host.committed_prefix
+104/104 Test: Serial.Host.committed_prefix
+Command: "/tmp/crux-serial-host/tests/serial/crux_serial_host_test" "committed_prefix"
+Directory: /tmp/crux-serial-host/tests/serial
+"Serial.Host.committed_prefix" start time: Oct 24 15:07 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"Serial.Host.committed_prefix" end time: Oct 24 15:07 UTC
+"Serial.Host.committed_prefix" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 24 15:07 UTC

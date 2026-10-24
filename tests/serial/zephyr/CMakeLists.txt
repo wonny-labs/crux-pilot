@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.28)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_serial_tests C)
+target_sources(app PRIVATE src/main.c)
+target_link_libraries(app PRIVATE crux::serial)
+target_include_directories(app PRIVATE ../../../components/serial/ports/zephyr)
+target_link_options(app PUBLIC -Wl,--wrap=serial_zephyr_device)

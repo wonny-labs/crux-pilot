@@ -1,0 +1,34 @@
+[0/1] Re-running CMake...
+-- Configuring done (0.3s)
+-- Generating done (0.1s)
+-- Build files have been written to: /tmp/crux-serial-consumer
+[1/16] Building CXX object CMakeFiles/serial_cpp.dir/src/consumer.cpp.o
+[2/16] Building C object CMakeFiles/serial_runtime.dir/src/runtime.c.o
+[3/16] Linking C static library libserial_runtime.a
+[4/16] Building C object CMakeFiles/serial_controller_portable.dir$REPO/samples/serial/controller.c.o
+[5/16] Linking C static library libserial_controller_portable.a
+[6/16] Building C object CMakeFiles/serial_consumer_c.dir/host/main.c.o
+[7/16] Linking CXX executable serial_consumer_c
+[8/16] Building C object CMakeFiles/serial_consumer_cpp.dir/host/main.c.o
+[9/16] Linking CXX executable serial_consumer_cpp
+[10/16] Building C object CMakeFiles/serial_consumer_controller.dir/host/main.c.o
+[11/16] Linking CXX executable serial_consumer_controller
+[12/16] Building C object CMakeFiles/serial_consumer_controller_stale.dir/host/main.c.o
+[13/16] Linking CXX executable serial_consumer_controller_stale
+[14/16] Building C object CMakeFiles/serial_consumer_policy.dir/src/contract_test.c.o
+[15/16] Building C object CMakeFiles/serial_consumer_policy.dir/src/runtime.c.o
+[16/16] Linking C executable serial_consumer_policy
+Internal ctest changing into directory: /tmp/crux-serial-consumer
+Test project /tmp/crux-serial-consumer
+    Start 4: SerialConsumer.controller_stale
+1/1 Test #4: SerialConsumer.controller_stale ...Subprocess aborted***Exception:   0.06 sec
+serial_consumer_controller_stale: $REPO/tests/serial_consumer/host/main.c:53: int main(void): Assertion `serial_controller_run(0) == CRUX_ERR_IO' failed.
+
+
+0% tests passed, 1 tests failed out of 1
+
+Total Test time (real) =   0.08 sec
+
+The following tests FAILED:
+	  4 - SerialConsumer.controller_stale (Subprocess aborted)
+Errors while running CTest

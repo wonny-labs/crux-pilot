@@ -232,3 +232,12 @@ callable capability surface deliberately retained in the enabled profile. These
 commands never access hardware. See [the contract](../docs/messaging-contract.md)
 and [validation](../docs/messaging-validation.md) for ownership, cooperative-stop
 semantics, resource profile and qualification limits.
+
+### Portable Serial (Issue #27)
+
+`scripts/test-serial.sh --host-only` runs independently authored public C17/C++17
+consumers and the controller against disposable PTYs. The default command also
+runs focused UART-emulator/native ownership suites and cross-builds the EVKB
+fixture. It does not access hardware. See [Serial qualification](../docs/serial-validation.md)
+for the contract, actual evidence, unresolved observations and separate physical
+proposal. Root Host/ASan checks include the common and native PTY Serial cases.
