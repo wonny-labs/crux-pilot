@@ -1,0 +1,71 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Transparent RED composition: counts dispatch but does not impose lifecycle. */
+#include "maintenance.h"
+#include "file_port.h"
+#include <zephyr/storage/flash_map.h>
+unsigned maintenance_file_dispatches;
+void maintenance_newboot(void) {
+    maintenance_file_dispatches = 0;
+}
+bool maintenance_finish(void) {
+    return true;
+}
+extern crux_file_result_t __real_crux_file_port_open(size_t, const char *, crux_file_mode_t);
+crux_file_result_t __wrap_crux_file_port_open(size_t s, const char *n, crux_file_mode_t m) {
+    ++maintenance_file_dispatches;
+    return __real_crux_file_port_open(s, n, m);
+}
+#define SLOT_WRAPPER(name)                                                                         \
+    extern crux_file_result_t __real_crux_file_port_##name(size_t);                                \
+    crux_file_result_t __wrap_crux_file_port_##name(size_t s) {                                    \
+        ++maintenance_file_dispatches;                                                             \
+        return __real_crux_file_port_##name(s);                                                    \
+    }
+SLOT_WRAPPER(truncate)
+SLOT_WRAPPER(sync)
+SLOT_WRAPPER(close)
+#define TRANSFER_WRAPPER(name, qualifier)                                                          \
+    extern crux_file_result_t __real_crux_file_port_##name(size_t, qualifier void *, size_t,       \
+                                                           size_t *);                              \
+    crux_file_result_t __wrap_crux_file_port_##name(size_t s, qualifier void *b, size_t l,         \
+                                                    size_t *n) {                                   \
+        ++maintenance_file_dispatches;                                                             \
+        return __real_crux_file_port_##name(s, b, l, n);                                           \
+    }
+TRANSFER_WRAPPER(read, )
+TRANSFER_WRAPPER(write, const)
+extern crux_file_result_t __real_crux_file_port_seek(size_t, uint64_t);
+crux_file_result_t __wrap_crux_file_port_seek(size_t s, uint64_t o) {
+    ++maintenance_file_dispatches;
+    return __real_crux_file_port_seek(s, o);
+}
+extern crux_file_result_t __real_crux_file_port_remove(const char *);
+crux_file_result_t __wrap_crux_file_port_remove(const char *n) {
+    ++maintenance_file_dispatches;
+    return __real_crux_file_port_remove(n);
+}
+
+/* RED instrumentation: actual area calls remain transparent until the fence is
+ * implemented. LittleFS erase uses flatten, not flash_area_erase. */
+unsigned maintenance_media_writes, maintenance_media_erases, maintenance_media_denied;
+void maintenance_provisioning(bool enabled) {
+    (void)enabled;
+}
+extern int __real_flash_area_write(const struct flash_area *, off_t, const void *, size_t);
+int __wrap_flash_area_write(const struct flash_area *fa, off_t off, const void *bytes, size_t len) {
+    if (fa->fa_id == PARTITION_ID(file_test_partition))
+        ++maintenance_media_writes;
+    return __real_flash_area_write(fa, off, bytes, len);
+}
+extern int __real_flash_area_erase(const struct flash_area *, off_t, size_t);
+int __wrap_flash_area_erase(const struct flash_area *fa, off_t off, size_t len) {
+    if (fa->fa_id == PARTITION_ID(file_test_partition))
+        ++maintenance_media_erases;
+    return __real_flash_area_erase(fa, off, len);
+}
+extern int __real_flash_area_flatten(const struct flash_area *, off_t, size_t);
+int __wrap_flash_area_flatten(const struct flash_area *fa, off_t off, size_t len) {
+    if (fa->fa_id == PARTITION_ID(file_test_partition))
+        ++maintenance_media_erases;
+    return __real_flash_area_flatten(fa, off, len);
+}

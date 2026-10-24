@@ -7,7 +7,6 @@ SPEC = importlib.util.spec_from_file_location('accepted_flash_poc', ROOT / 'scri
 BASE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(BASE)
 transform_nor = BASE.transform_nor
-transform_memc = BASE.transform_memc
 transform_hal = BASE.transform_hal
 
 
@@ -104,7 +103,26 @@ def transform_nor(source):
                ', ' + erase + ')) { return -EACCES; }\n') + body[brace:]
         source = source[:start] + body + source[end:]
     source = '#include "request_fence.h"\n' + source
+    source = add_entry_refusal(source, 'flash_flexspi_nor_init',
+                               'crux_flash_island_inspect_and_refuse')
+    for name in ['flash_flexspi_nor_write','flash_flexspi_nor_erase','flash_flexspi_nor_read']:
+        source = add_entry_refusal(source, name, 'crux_flash_island_refuse')
     return source
+
+
+def add_entry_refusal(source, name, call):
+    start, end = function_span(source, name)
+    body = source[start:end]
+    brace = body.index('{') + 1
+    body = body[:brace] + ('\n\tint island_refusal = ' + call + '();\n'
+                         '\tif (island_refusal) { return island_refusal; }\n') + body[brace:]
+    return source[:start] + body + source[end:]
+
+
+def transform_memc(source):
+    source = BASE.transform_memc(source)
+    return add_entry_refusal(source, 'memc_flexspi_init',
+                             'crux_flash_island_inspect_and_refuse')
 
 
 def publish(output, name, text):

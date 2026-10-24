@@ -1,5 +1,7 @@
 # Controlled Flash target candidate proposal
 
+**Historical PR #59 candidate:** the later [maintenance profile](storage-maintenance-profile.md) adds a read-only context harness and native entry refusal. The measurements below retain their original image identity.
+
 **NOT READY FOR PHYSICAL WRITE. Do not program or boot this image.** This is an
 isolated software proposal beyond accepted PRs #35/#37. It adopts no production
 driver, layout, watchdog/recovery policy or exception architecture. No hardware
