@@ -1,0 +1,67 @@
+[0/1] Re-running CMake...
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: $REPO/tests/logging/zephyr
+-- CMake version: 3.28.4
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native/64
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: host (gcc/ld)
+-- Found BOARD.dts: $WORKSPACE/zephyr/boards/native/native_sim/native_sim_64.dts
+-- Found devicetree overlay: $REPO/tests/logging/zephyr/app.overlay
+-- Generated zephyr.dts: /tmp/crux-logging-native/zephyr/zephyr.dts
+-- Generated pickled edt: /tmp/crux-logging-native/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /tmp/crux-logging-native/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing $WORKSPACE/zephyr/Kconfig
+Loaded configuration '$WORKSPACE/zephyr/boards/native/native_sim/native_sim_64_defconfig'
+Merged configuration '$REPO/tests/logging/zephyr/prj.conf'
+No change to configuration in '/tmp/crux-logging-native/zephyr/.config'
+No change to Kconfig header in '/tmp/crux-logging-native/zephyr/include/generated/zephyr/autoconf.h'
+-- Crux Zephyr integration module discovered
+-- Found gen_kobject_list: $WORKSPACE/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (9.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: /tmp/crux-logging-native
+[1/101] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[2/7] Generating linker_zephyr_pre0.cmd
+[3/7] Building C object CMakeFiles/app.dir/src/main.c.obj
+[4/7] Linking CXX static library app/libapp.a
+[5/7] Linking CXX executable zephyr/zephyr.elf
+Generating files from /tmp/crux-logging-native/zephyr/zephyr.elf for board: native_sim/native/64
+[6/7] Building native simulator runner, and linking final executable
+[7/7] Running utility command for native_runner_executable
+uart connected to pseudotty: /dev/pts/1
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE logging
+===================================================================
+START - test_concurrent_native_records
+ PASS - test_concurrent_native_records in 0.020 seconds
+===================================================================
+START - test_isr_rejected
+ PASS - test_isr_rejected in 0.000 seconds
+===================================================================
+START - test_maximum_text_not_truncated
+ PASS - test_maximum_text_not_truncated in 1.020 seconds
+===================================================================
+START - test_native_copy_filter_and_loss
+ PASS - test_native_copy_filter_and_loss in 0.020 seconds
+===================================================================
+START - test_portable_consumers
+ PASS - test_portable_consumers in 1.020 seconds
+===================================================================
+TESTSUITE logging succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [logging]: pass = 5, fail = 0, skip = 0, total = 5 duration = 2.080 seconds
+ - PASS - [logging.test_concurrent_native_records] duration = 0.020 seconds
+ - PASS - [logging.test_isr_rejected] duration = 0.000 seconds
+ - PASS - [logging.test_maximum_text_not_truncated] duration = 1.020 seconds
+ - PASS - [logging.test_native_copy_filter_and_loss] duration = 0.020 seconds
+ - PASS - [logging.test_portable_consumers] duration = 1.020 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL

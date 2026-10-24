@@ -79,3 +79,16 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/components/serial/ports/linux/serial_host.c" \
     "$repo/tests/serial/common.c" \
     "$repo/tests/serial/host.c"
+
+"$tidy" -p "$build_dir" \
+    "$repo/components/logging/src/logging.c" \
+    "$repo/components/logging/ports/linux/logging_host.c" \
+    "$repo/tests/logging/common.c" \
+    "$repo/tests/logging/host.c"
+
+"$tidy" -p "$repo/build/logging-consumer" \
+    "$repo/tests/logging_consumer/src/runtime.c" \
+    "$repo/tests/logging_consumer/src/consumer.cpp" \
+    "$repo/tests/logging_consumer/src/contract_test.c" \
+    "$repo/tests/logging_consumer/host/main.c" \
+    "$repo/samples/logging/controller.c"
