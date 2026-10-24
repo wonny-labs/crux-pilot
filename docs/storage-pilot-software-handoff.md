@@ -65,3 +65,8 @@ representative timing/health. No physical busy power cuts or endurance are plann
 #23 software closeout remains supported by its accepted evidence. #14/#15/#16
 and M4 remain incomplete; simulation cannot replace mandatory physical reboot
 acceptance. No Issues or milestone are closed by these software candidates.
+
+Integration baseline: refreshed against main `98f0510` after the simulator tests.
+The delta from the tested `be0b252` baseline is Thread/Sync documentation and
+header comments; all recorded provider/test input hashes remain unchanged.
+Final formatting, native-free guards and whitespace checks passed after refresh.
