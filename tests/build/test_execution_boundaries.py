@@ -26,7 +26,10 @@ class ExecutionBoundaryTest(unittest.TestCase):
         self.check_source('#include <errno.h>\n#include <time.h>\n#include <crux/execution.h>\n', 0)
 
     def test_rejects_native_and_private_compile_requirements(self):
-        for flag in ['-I/tmp/zephyr/include', '-I/tmp/components/execution/src', '-D__ZEPHYR__=1']:
+        for flag in ['-I/tmp/zephyr/include', '-I/tmp/components/execution/src',
+                     '-I/tmp/components/execution/host', '-I/tmp/components/execution/zephyr',
+                     '-I/tmp/components/execution/ports/linux',
+                     '-I/tmp/components/execution/ports/zephyr', '-D__ZEPHYR__=1']:
             with self.subTest(flag=flag), tempfile.TemporaryDirectory() as temp:
                 record = Path(temp) / 'commands.json'
                 record.write_text(json.dumps([{'file': str(REPO / 'tests/portable_execution/conformance.c'),
