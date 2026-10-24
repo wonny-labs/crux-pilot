@@ -161,6 +161,7 @@ const char *escaped = "\\\" k_sem_take";
             root = Path(directory)
             for relative in ("CMakeLists.txt", "zephyr/module.yml", "zephyr/CMakeLists.txt",
                              "components/time/CMakeLists.txt", "components/base/CMakeLists.txt",
+                             "components/time/ports/zephyr/CMakeLists.txt",
                              "tests/time/CMakeLists.txt", "scripts/check-dependencies.sh",
                              "scripts/check-native-interfaces.py", "scripts/check-execution-boundaries.py",
                              "scripts/check-networking-dependencies.py",
