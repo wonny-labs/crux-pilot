@@ -82,3 +82,12 @@ resolution is implied. Previously recorded process-exit delays remain unresolved
 
 The environment mistake above is unrelated to previously unresolved process-exit
 observations; it does not establish their root cause or resolution.
+
+## Independent review
+
+[Reviewer](reviewer.md) and [Challenger](challenger.md) returned PASS for the actual
+normal merge commit `76485af44491d663067efd5eb6dbc678f38f366c`, its ordered parents
+and completed focused evidence. No material findings remain. The two editorial
+findings are corrected. This later review-record commit changes documentation
+only; complete final-HEAD hosted CI remains a separate acceptance gate recorded
+on PR #64. The PR remains Draft and Issue #30 remains Open.
