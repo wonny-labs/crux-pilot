@@ -56,6 +56,51 @@ class ConsumerBoundaryTest(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("native consumer requirement", result.stdout + result.stderr)
 
+    def test_linux_composition_targets_are_rejected_in_portable_consumers(self):
+        for target in ('crux::queue_linux', 'crux_queue_linux',
+                       'crux::monotonic_linux', 'crux_monotonic_linux'):
+            for route in ('direct', 'interface', 'static_private', 'alias'):
+                with self.subTest(target=target, route=route):
+                    body = ('set(CRUX_BUILD_QUEUE ON CACHE BOOL "")\n'
+                            'set(CRUX_BUILD_MONOTONIC ON CACHE BOOL "")\n'
+                            f'add_subdirectory("{REPO}" crux)\n'
+                            'file(WRITE "${CMAKE_BINARY_DIR}/probe.c" "int probe(void) { return 0; }")\n'
+                            'add_library(consumer STATIC "${CMAKE_BINARY_DIR}/probe.c")\n')
+                    if route == 'interface':
+                        body += ('add_library(wrapper INTERFACE)\n'
+                                 f'target_link_libraries(wrapper INTERFACE {target})\n')
+                        edge = 'wrapper'
+                    elif route == 'static_private':
+                        body += ('add_library(wrapper STATIC "${CMAKE_BINARY_DIR}/probe.c")\n'
+                                 f'target_link_libraries(wrapper PRIVATE {target})\n')
+                        edge = 'wrapper'
+                    elif route == 'alias':
+                        implementation = ('crux_queue_linux' if 'queue' in target
+                                          else 'crux_monotonic_linux')
+                        body += f'add_library(application_alias ALIAS {implementation})\n'
+                        edge = 'application_alias'
+                    else:
+                        edge = target
+                    body += (f'target_link_libraries(consumer PRIVATE {edge})\n'
+                             'crux_assert_portable_consumer(consumer)\n')
+                    result = self.configure(body)
+                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn('native consumer requirement', result.stdout + result.stderr)
+
+    def test_linux_composition_builds_and_runs_with_portable_facades(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(REPO / 'tests/external_application', root / 'application')
+            build = root / 'build'
+            for command in (
+                    [CMAKE, '-S', str(root / 'application'), '-B', str(build), '-G', 'Ninja',
+                     f'-DCRUX_SOURCE_DIR={REPO}', '-DPROFILE=messaging',
+                     '-DFETCHCONTENT_FULLY_DISCONNECTED=ON'],
+                    [CMAKE, '--build', str(build), '--parallel', '2'],
+                    [str(build / 'external_app')]):
+                result = subprocess.run(command, text=True, capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_direct_link_injection_is_rejected(self):
         result = self.configure('add_library(zephyr_interface INTERFACE)\n'
                                 'add_library(wrapper INTERFACE)\n'

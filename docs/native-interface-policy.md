@@ -173,5 +173,8 @@ selects capabilities without modifying parent test policy. Portable source targe
 remain subject to `crux_assert_portable_consumer`. Final native executables declare
 the used public capabilities and may link the documented `crux::queue_linux` and
 `crux::monotonic_linux` composition targets. These aliases are not portable usage
-facades or exceptions to recursive `LINK_ONLY` checks. Zephyr selection and the
+facades or exceptions to recursive `LINK_ONLY` checks. The guard rejects both
+composition targets and their backing implementations, including application aliases
+and transitive wrappers. This does not inspect all provider-private requirements
+or restrict the supported public capability facades. Zephyr selection and the
 Sockets declaration/selected-sysroot exceptions remain unchanged.
