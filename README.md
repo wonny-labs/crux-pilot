@@ -47,30 +47,11 @@ Portable components, application logic and common runtime consumers avoid unqual
 
 For the component model, native-port ownership, build composition and dependency boundaries, see the [architecture overview](docs/architecture.md).
 
-The bounded [Thread and Sync contract](docs/execution-contract-proposal.md)
-provides independent component-owned capabilities:
-
-| Capability | Public header | Usage target |
-| --- | --- | --- |
-| Joinable threads | `<crux/thread.h>` | `crux::thread` |
-| Nonrecursive mutexes and counting semaphores | `<crux/sync.h>` | `crux::sync` |
-
-Each owns its common source and private `ports/linux/` and `ports/zephyr/`
-implementations under `components/thread/` or `components/sync/`. Sync uses native
-OS identity for mutex ownership and does not require Crux Thread. Each component
-owns its metadata protection and monotonic deadlines; no shared Execution provider
-or global state remains. Existing C function/type names and handle representations
-are unchanged. Consumers must replace `<crux/execution.h>` and `crux::execution`
-with the header(s) and target(s) they use; the obsolete interfaces are removed.
-
-Host builds select `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC` (both default ON).
-Zephyr selects `CONFIG_CRUX_THREAD` and `CONFIG_CRUX_SYNC` independently. Thread owns
-`CONFIG_CRUX_THREAD_COUNT` and `CONFIG_CRUX_THREAD_STACK_BYTES`; Sync owns
-`CONFIG_CRUX_SYNC_MUTEX_COUNT` and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT`. Defaults remain
-4 workers, 4096 usable bytes per Zephyr stack, 8 mutexes and 8 semaphores. Migrate
-old `CONFIG_CRUX_EXECUTION*` selections to these component-owned settings.
-See [historical validation evidence and limits](docs/execution-validation.md) for the retained
-Host/Zephyr profiles and historical qualification evidence.
+The [Thread and Sync contract](docs/thread-sync.md) defines independent joinable
+workers (`<crux/thread.h>`, `crux::thread`) and nonrecursive mutexes/counting
+semaphores (`<crux/sync.h>`, `crux::sync`). Each owns its Linux and Zephyr native
+ports; Sync works independently of Crux Thread. See the contract for Timeout,
+Ownership, Lifetime, provider selection, resource limits and historical evidence.
 
 The implemented [Time contract](docs/time-contract.md) provides a concrete component example.
 

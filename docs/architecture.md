@@ -66,7 +66,7 @@ Use actual OS names such as `linux` and `zephyr` for native ports. The term **Ho
 
 For a concrete example, [Time](time-contract.md) owns a controlled memory implementation separately from its native Zephyr RTC port. The final composition must select an appropriate implementation rather than silently falling back to a test provider.
 
-Thread and Sync are now separate component-owned capabilities. `<crux/thread.h>` and `crux::thread` provide bounded joinable worker lifecycle operations. `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS execution identity to check mutex ownership, without depending on Crux Thread. Each component owns its private metadata protection and deadline handling in its Linux and Zephyr ports. For current usage, use these headers/targets and the selection switches below. The [contract and historical design rationale](execution-contract-proposal.md) retain the adopted behavioral clauses. The [historical validation evidence](execution-validation.md) retains results for its recorded revisions. Old Execution header/target names in that evidence are not current usage instructions.
+Thread and Sync are separate component-owned capabilities. `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.
 
 Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples and reference applications remain under `samples/`. A sample-owned helper is not automatically part of the Crux public API.
 
@@ -78,8 +78,8 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | --- | --- | --- | --- |
 | Base | Common status declarations | Header-only usage in Host and Zephyr; no OS provider | [Public header](../components/base/include/crux/status.h) |
 | Time | Calendar/RTC time | Controlled memory implementation in Host; native Zephyr RTC port; no implicit production fallback | [Contract](time-contract.md) |
-| Thread | Bounded joinable workers | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-native-composition), [contract](execution-contract-proposal.md) |
-| Sync | Nonrecursive mutexes and bounded semaphores | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-native-composition), [contract](execution-contract-proposal.md) |
+| Thread | Bounded joinable workers | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-native-composition), [contract](thread-sync.md) |
+| Sync | Nonrecursive mutexes and bounded semaphores | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-native-composition), [contract](thread-sync.md) |
 | Queue | Bounded copy messaging | Linux and Zephyr ports with composition-selected native providers | [Messaging contract](messaging-contract.md) |
 | Monotonic | Elapsed time and absolute waits | Linux and Zephyr providers selected by composition | [Messaging contract](messaging-contract.md) |
 | Netif | Read-only primary-interface status | Linux selected-interface and Zephyr native network integration | [Networking contract](networking-contract.md) |
@@ -95,7 +95,7 @@ Public targets such as `crux::time`, `crux::thread` and `crux::sync` are consume
 
 Host and Zephyr may compose providers differently. For example, a Host Time composition uses a controlled memory provider, while the Zephyr image registers its selected RTC implementation independently. This difference must not change the portable Time API.
 
-Thread and Sync can be selected independently with `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC` in Host builds, or `CONFIG_CRUX_THREAD` and `CONFIG_CRUX_SYNC` in Zephyr builds. The old `crux::execution` usage target and `CONFIG_CRUX_EXECUTION*` selections have been removed. Consumer code should depend only on the capabilities it uses.
+Thread and Sync are independently selectable in Host and Zephyr builds. The [contract's build selection and provider limits](thread-sync.md#build-selection-and-provider-limits) document their component-owned switches and resource settings. Consumer code should depend only on the capabilities it uses.
 
 The README documents established development commands. Detailed, independently verified instructions for creating a new out-of-tree application should be added only when its supported source-tree consumer integration contract is settled and tested. Do not assume `find_package(Crux)`, an installable package, or an arbitrary OS/board combination is supported.
 
@@ -131,8 +131,7 @@ Use [CONTRIBUTING](../CONTRIBUTING.md) for code, PR and review requirements and 
 
 - [Time capability contract](time-contract.md)
 - [Current Thread/Sync usage and selection](#build-and-native-composition)
-- [Thread/Sync contract and historical design rationale](execution-contract-proposal.md)
-- [Historical Execution validation evidence](execution-validation.md)
+- [Current Thread/Sync contract, design decisions and evidence](thread-sync.md)
 - [Messaging and monotonic timing contract](messaging-contract.md)
 - [Qualified networking profile](networking-contract.md)
 - [File capability contract](file-contract.md)

@@ -2,7 +2,7 @@
 
 Original qualification source: `b9df57dfefba53c938a3cddbb7f8b139b7986ab8`, based on
 main `32405ad`. The PR review follow-up changes Host and Zephyr admission behavior and
-adds deterministic contention tests. See [the validation report](../../execution-validation.md)
+adds deterministic contention tests. See [the validation report](../../history/execution-validation.md)
 for the baseline and follow-up results, supported behavior and unresolved physical/#24
 dependencies.
 
