@@ -1,0 +1,51 @@
+m5-composition-red.log
+test_static_bindings (__main__.SerialCompositionTest.test_static_bindings) ...
+  test_static_bindings (__main__.SerialCompositionTest.test_static_bindings) (case='logging_list') ... FAIL
+
+======================================================================
+FAIL: test_static_bindings (__main__.SerialCompositionTest.test_static_bindings) (case='logging_list')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REPO/tests/build/test_serial_composition.py", line 75, in test_static_bindings
+    self.assertNotEqual(result.returncode, 0, f'{name}: build unexpectedly succeeded')
+AssertionError: 0 == 0 : logging_list: build unexpectedly succeeded
+
+----------------------------------------------------------------------
+Ran 1 test in 172.976s
+
+FAILED (failures=1)
+
+m5-provider-red.log
+test_serial_provider_selection (test_consumer_boundary.ConsumerBoundaryTest.test_serial_provider_selection) ...
+  test_serial_provider_selection (test_consumer_boundary.ConsumerBoundaryTest.test_serial_provider_selection) (provider='') ... FAIL
+  test_serial_provider_selection (test_consumer_boundary.ConsumerBoundaryTest.test_serial_provider_selection) (provider='unsupported') ... FAIL
+  test_serial_provider_selection (test_consumer_boundary.ConsumerBoundaryTest.test_serial_provider_selection) (provider='host;zephyr') ... FAIL
+
+======================================================================
+FAIL: test_serial_provider_selection (test_consumer_boundary.ConsumerBoundaryTest.test_serial_provider_selection) (provider='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REPO/tests/build/test_consumer_boundary.py", line 31, in test_serial_provider_selection
+    self.assertNotEqual(result.returncode, 0)
+AssertionError: 0 == 0
+
+======================================================================
+FAIL: test_serial_provider_selection (test_consumer_boundary.ConsumerBoundaryTest.test_serial_provider_selection) (provider='unsupported')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REPO/tests/build/test_consumer_boundary.py", line 31, in test_serial_provider_selection
+    self.assertNotEqual(result.returncode, 0)
+AssertionError: 0 == 0
+
+======================================================================
+FAIL: test_serial_provider_selection (test_consumer_boundary.ConsumerBoundaryTest.test_serial_provider_selection) (provider='host;zephyr')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REPO/tests/build/test_consumer_boundary.py", line 31, in test_serial_provider_selection
+    self.assertNotEqual(result.returncode, 0)
+AssertionError: 0 == 0
+
+----------------------------------------------------------------------
+Ran 1 test in 66.791s
+
+FAILED (failures=3)

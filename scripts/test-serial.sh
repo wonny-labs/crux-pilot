@@ -13,6 +13,7 @@ ctest --test-dir "$repo/build/serial-consumer" --output-on-failure \
 if [[ "$mode" == --host-only ]]; then exit 0; fi
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
+CRUX_WORKSPACE="$workspace" CRUX_SERIAL_COMPOSITION_TESTS=1 python3 "$repo/tests/build/test_serial_composition.py"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
     -T "$repo/tests/serial/zephyr" -T "$repo/tests/serial/zephyr_ownership" -T "$repo/tests/serial_consumer/zephyr" \
     -O "$repo/build/zephyr/twister-serial" --inline-logs \

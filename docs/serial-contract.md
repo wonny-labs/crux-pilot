@@ -26,8 +26,13 @@ never wrap into stale-handle validity.
 
 Logical port 0 must be explicitly bound by native composition. Linux binds once
 before concurrent use and checks native TTY identity/exclusivity; Zephyr binds
-`crux-serial0` and rejects known console, Shell, logging, management and Bluetooth
-UART owners. Direct unregistered native clients violate this composition rule.
+`crux-serial0` and rejects missing/unsupported static resources and known Console,
+Shell, UART Logging, management and Bluetooth owners at build time. Only native_sim
+UART emulators and the RT1060-EVKB LPUART3 candidate are admitted. UART sharing is
+unsupported and is not required for M5. `CRUX_SERIAL_PROVIDER` defaults to `host`
+or `zephyr` in the respective native composition; other or empty selections fail
+configuration. Host dynamic TTY binding remains a runtime bootstrap responsibility.
+Direct unregistered native clients violate this composition rule.
 The EVKB candidate uses LPUART3, retaining LPUART1 diagnostics, and rejects an
 enabled CSI conflict. Electrical pin/connector suitability remains unverified.
 

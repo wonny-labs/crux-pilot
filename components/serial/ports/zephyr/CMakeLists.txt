@@ -1,3 +1,7 @@
+set(CRUX_SERIAL_PROVIDER zephyr CACHE STRING "Serial provider for this composition")
+if(NOT CRUX_SERIAL_PROVIDER STREQUAL "zephyr")
+    message(FATAL_ERROR "Crux Serial unsupported provider: ${CRUX_SERIAL_PROVIDER}; expected zephyr")
+endif()
 get_filename_component(CRUX_SERIAL_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 add_library(crux_serial_api INTERFACE)
 target_include_directories(crux_serial_api INTERFACE "${CRUX_SERIAL_COMPONENT_DIR}/include")

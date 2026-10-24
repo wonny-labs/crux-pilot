@@ -121,8 +121,6 @@ crux_status_t serial_port_open(uint32_t port, const crux_serial_config_t *config
         return CRUX_ERR_INVALID_ARGUMENT;
     if (!device_is_ready(dev))
         return CRUX_ERR_NOT_READY;
-    if (serial_zephyr_reserved(dev))
-        return CRUX_ERR_BUSY;
     if (native.quarantine)
         return CRUX_ERR_IO;
     const struct uart_driver_api *api = dev->api;

@@ -115,10 +115,7 @@ ZTEST(serial, test_mapping_and_late_callback) {
     state.initialized = true;
     api.irq_callback_set = NULL;
     zassert_equal(crux_serial_open(0, &config, &handle), CRUX_ERR_NOT_SUPPORTED);
-    /* Known console ownership is rejected before native state is changed. */
-    override_device = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
-    zassert_equal(crux_serial_open(0, &config, &handle), CRUX_ERR_BUSY);
-    override_device = &proxy;
+    /* Native owner collisions are rejected by static composition tests. */
     api.irq_callback_set = capture_callback;
     zassert_ok(crux_serial_open(0, &config, &handle));
     zassert_not_null(cached);

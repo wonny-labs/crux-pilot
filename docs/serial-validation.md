@@ -41,6 +41,13 @@ Affected evidence and independent review results are recorded under
 `docs/evidence/m5-serial/`. A cross-build is compilation/resource evidence only,
 not physical functionality, scheduling or electrical qualification.
 
+## Updated early M5 composition criteria
+
+See the [static composition validation and Logging handoff](evidence/m5-serial/composition-validation.md)
+for the new build-time requirements, affected checks and environment-specific
+support limits. Earlier runtime BUSY ownership evidence alone does not satisfy
+the updated static acceptance criterion.
+
 ## Known unresolved observations
 
 An intermediate full Host run timed out at process exit in Queue.mpmc and

@@ -1,3 +1,7 @@
+set(CRUX_SERIAL_PROVIDER host CACHE STRING "Serial provider for this composition")
+if(NOT CRUX_SERIAL_PROVIDER STREQUAL "host")
+    message(FATAL_ERROR "Crux Serial unsupported provider: ${CRUX_SERIAL_PROVIDER}; expected host")
+endif()
 find_package(Threads REQUIRED)
 add_library(crux_serial_api INTERFACE)
 target_include_directories(crux_serial_api INTERFACE include)
