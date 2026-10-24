@@ -55,19 +55,23 @@ class ExactRomProfile(unittest.TestCase):
     def test_consumed_preflight_runs_before_copy_and_internal_context(self):
         body = self.body('crux_flash_island_inspect_and_refuse')
         calls = re.findall(r'\bbl(?:x)?\s+[^<]*<([^>]+)>', body)
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), 3)
         self.assert_call_target(calls[0], 'crux_rom_read_confirm_supported')
-        self.assert_call_target(calls[1], 'crux_island_enter')
-        self.assertLess(body.index('<crux_rom_read_confirm_supported>'), body.index('strb'))
+        self.assert_call_target(calls[1], 'crux_island_relocations_valid')
+        self.assert_call_target(calls[2], 'crux_island_enter')
         # Compiler places copy-loop bodies after the call in address order.
         # Their back edges target the earlier copy tests, before DSB and entry.
         instructions = re.findall(r'^\s*([0-9a-f]+):\s+(?:[0-9a-f]{4}\s+)+\s*([a-z][a-z0-9.]*)\s+([^\n]+)', body, re.M)
         barrier = next(int(address, 16) for address, op, args in instructions if op == 'dsb')
         preflight = next(int(address, 16) for address, op, args in instructions
-                         if op in ['bl', 'blx'] and '<crux_rom_read_confirm_supported>' in args)
-        stores = [i for i, (_, op, _) in enumerate(instructions) if op.startswith('strb')]
+                         if op in ['bl', 'blx'] and '<crux_island_relocations_valid>' in args)
+        # The refusal latch can use a byte store too. Copy stores use a register
+        # index; the phase latch uses a fixed global offset.
+        stores = [i for i, (_, op, args) in enumerate(instructions)
+                  if op.startswith('strb') and re.search(r'\[[^],]+, r\d+\]', args)]
         self.assertEqual(len(stores), 2)
         for index in stores:
+            self.assertLess(preflight, int(instructions[index][0], 16))
             back = next(args for _, op, args in instructions[index + 1:] if op in ['b', 'b.n', 'b.w'])
             self.assertTrue(preflight < int(back.split()[0], 16) < barrier)
         self.assertRegex(body, r'mvn\.w\s+r0, #12')
