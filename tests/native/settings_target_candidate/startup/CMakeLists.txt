@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_nvs_startup_probe C)
+if(NOT CONFIG_BOARD_NATIVE_SIM)
+  message(FATAL_ERROR "This isolated probe is restricted to native_sim")
+endif()
+target_sources(app PRIVATE main.c)
+target_include_directories(app PRIVATE ${ZEPHYR_BASE}/subsys/kvss/nvs)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)
+option(CRUX_NVS_STARTUP_CANDIDATE "Use isolated startup-read correction in this test only" ON)
+include(${CMAKE_CURRENT_LIST_DIR}/candidate.cmake)

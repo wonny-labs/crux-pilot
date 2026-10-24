@@ -1,0 +1,45 @@
+test_changed_code_in_bin_rejected (test_image.ImageGate) ... FAIL
+test_changed_ram_initial_load_in_elf_rejected (test_image.ImageGate) ... FAIL
+test_cli_rejects_mismatch_and_reads_only (test_image.ImageGate) ... FAIL
+test_matching_ram_load_image (test_image.ImageGate) ... ok
+test_native_width_owner_limits_and_erase_granules (test_requests.RequestFence) ... Assertion failed: (!crux_pilot_flash_request_valid(0, 4096, true)), function main, file fence.c, line 10.
+ERROR
+
+======================================================================
+ERROR: test_native_width_owner_limits_and_erase_granules (test_requests.RequestFence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/repo/tests/native/storage_target_guard/test_requests.py", line 42, in test_native_width_owner_limits_and_erase_granules
+    subprocess.run([str(exe)], check=True, timeout=2)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 528, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/var/folders/3c/97krjpns4v13hjhxltsxvvp00000gp/T/tmpxwm0f2wl/fence']' died with <Signals.SIGABRT: 6>.
+
+======================================================================
+FAIL: test_changed_code_in_bin_rejected (test_image.ImageGate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/repo/tests/native/storage_target_guard/test_image.py", line 22, in test_changed_code_in_bin_rejected
+    verify(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_changed_ram_initial_load_in_elf_rejected (test_image.ImageGate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/repo/tests/native/storage_target_guard/test_image.py", line 28, in test_changed_ram_initial_load_in_elf_rejected
+    verify(elf, binary)
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_cli_rejects_mismatch_and_reads_only (test_image.ImageGate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/repo/tests/native/storage_target_guard/test_image.py", line 39, in test_cli_rejects_mismatch_and_reads_only
+    self.assertEqual(run.returncode, 1)
+AssertionError: 0 != 1
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.352s
+
+FAILED (failures=3, errors=1)

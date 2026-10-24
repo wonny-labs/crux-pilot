@@ -1,0 +1,31 @@
+--- a/nvs.c
++++ b/nvs.c
+@@ -984,12 +984,18 @@
+ 		       (uint16_t)(fs->sector_size - ate_size);
+ 		rc = nvs_flash_cmp_const(fs, addr, erase_value,
+ 					 sizeof(struct nvs_ate));
++		if (rc < 0) {
++			goto end;
++		}
+ 		if (rc) {
+ 			/* closed sector */
+ 			closed_sectors++;
+ 			nvs_sector_advance(fs, &addr);
+ 			rc = nvs_flash_cmp_const(fs, addr, erase_value,
+ 						 sizeof(struct nvs_ate));
++			if (rc < 0) {
++				goto end;
++			}
+ 			if (!rc) {
+ 				/* open sector */
+ 				break;
+@@ -1023,6 +1029,9 @@
+ 		 */
+ 		rc = nvs_flash_cmp_const(fs, addr - ate_size, erase_value,
+ 				sizeof(struct nvs_ate));
++		if (rc < 0) {
++			goto end;
++		}
+ 		if (!rc) {
+ 			/* empty ate */
+ 			nvs_sector_advance(fs, &addr);

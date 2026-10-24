@@ -1,0 +1,415 @@
+{
+  "variant": "original",
+  "source_sha256": {
+    "subsys/settings/src/settings_store.c": "14ce61fa29aaca20ec3e69c6f401434f7f6d5a242d2911d0e931ccaf1f58f0e6",
+    "subsys/settings/src/settings_nvs.c": "ab6aa643eae9f5c5ca8099ddac89cc63aaa2fd43f775a8de5efcb11aad3c0244",
+    "subsys/settings/include/settings/settings_nvs.h": "fabc913fb783f2a866b21f507727a40dc39932e4cd2b91b38331c2018c6f1bde",
+    "include/zephyr/settings/settings.h": "4135bf0fe67f0002aeebabb2fb45e8d7a3d6daa5f65b9a9daefc98eadf8743cc"
+  },
+  "pinned_inputs_unchanged": true,
+  "compiler": "Ubuntu clang version 18.1.3 (1ubuntu1)",
+  "flags": [
+    "-std=c17",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-Werror",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "-g",
+    "-DCONFIG_SETTINGS_NVS_NAME_CACHE=0",
+    "-DCONFIG_NVS_DATA_CRC=1",
+    "-I",
+    "/tmp/crux-target-copy-ai_ttdde",
+    "-I",
+    "/tmp/crux-target-copy-ai_ttdde/subsys/settings/include"
+  ],
+  "fixture_sha256": {
+    "support.py": "2208f7164de0ca83bab996bec2b708799e39df6637b292bcbcce93eb090d9283",
+    "settings_store.patch": "88f2e33fc0f64f7174e7d0475907f49d115f5f4430b5cab096898cb3e19ecd7b",
+    "direct.c": "dade3a0ed3f6b97d123fea17291a0ce301b7bf5a6442ebcf113975f16d2bdf1a",
+    "test_candidate.py": "e703128d2cacf23d9777fad4b95ba00e97161ebd695c5fc2437a845b3c5318ac",
+    "settings_nvs.patch": "cd4201f1036ed37c5ea2b5514bbfc7ae34e45acdaa7dc45a8e4b16e5e9b96185",
+    "backend.c": "89cd81873711610b334cf87aea994ae9f763fffcf6b8733c717246e39917ef22"
+  },
+  "cases": [
+    {
+      "binary": "backend",
+      "case": "read_valid",
+      "expected": "0 0 0 32769 0",
+      "actual": "0 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "read_hard_name",
+      "expected": "-5 0 0 32769 0",
+      "actual": "0 2 1 32768 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "read_hard_value",
+      "expected": "-5 0 0 32769 0",
+      "actual": "0 2 1 32768 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "read_orphan_name",
+      "expected": "-74 0 0 32769 0",
+      "actual": "0 2 1 32768 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "read_orphan_value",
+      "expected": "-74 0 0 32769 0",
+      "actual": "0 2 1 32768 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "read_hole",
+      "expected": "0 0 0 32769 0",
+      "actual": "0 0 1 32768 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "read_bad_name",
+      "expected": "-74 0 0 32769 0",
+      "actual": "0 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "read_long_name",
+      "expected": "-74 0 0 32769 0",
+      "actual": "",
+      "returncode": 1,
+      "stderr": "/tmp/crux-target-copy-ai_ttdde/subsys/settings/src/settings_nvs.c:195:3: runtime error: index 75 out of bounds for type 'char[74]'\nSUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /tmp/crux-target-copy-ai_ttdde/subsys/settings/src/settings_nvs.c:195:3 \n=================================================================\n==5777==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x7ffffd80008b at pc 0x5555556649e5 bp 0x7ffffffc5650 sp 0x7ffffffc5648\nWRITE of size 1 at 0x7ffffd80008b thread T0\n==5777==WARNING: invalid path to external symbolizer!\n==5777==WARNING: Failed to use and restart external symbolizer!\n    #0 0x5555556649e4  (/tmp/crux-target-copy-ai_ttdde/backend+0x1109e4) (BuildId: 913f6b06fdbcc0f49bbf9c165a5d8ac700c5d458)\n    #1 0x55555565f72a  (/tmp/crux-target-copy-ai_ttdde/backend+0x10b72a) (BuildId: 913f6b06fdbcc0f49bbf9c165a5d8ac700c5d458)\n    #2 0x555555663bd0  (/tmp/crux-target-copy-ai_ttdde/backend+0x10fbd0) (BuildId: 913f6b06fdbcc0f49bbf9c165a5d8ac700c5d458)\n    #3 0x7fffff4a91c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)\n    #4 0x7fffff4a928a  (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)\n    #5 0x555555584354  (/tmp/crux-target-copy-ai_ttdde/backend+0x30354) (BuildId: 913f6b06fdbcc0f49bbf9c165a5d8ac700c5d458)\n\nAddress 0x7ffffd80008b is located in stack of thread T0 at offset 139 in frame\n    #0 0x555555663f77  (/tmp/crux-target-copy-ai_ttdde/backend+0x10ff77) (BuildId: 913f6b06fdbcc0f49bbf9c165a5d8ac700c5d458)\n\n  This frame has 3 object(s):\n    [32, 48) 'read_fn_arg' (line 128)\n    [64, 138) 'name' (line 129) <== Memory access at offset 139 overflows this variable\n    [176, 177) 'buf' (line 130)\nHINT: this may be a false positive if your program uses some custom stack unwind mechanism, swapcontext or vfork\n      (longjmp and C++ exceptions *are* supported)\nSUMMARY: AddressSanitizer: stack-buffer-overflow (/tmp/crux-target-copy-ai_ttdde/backend+0x1109e4) (BuildId: 913f6b06fdbcc0f49bbf9c165a5d8ac700c5d458) \nShadow bytes around the buggy address:\n  0x7ffffd7ffe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd7ffe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd7fff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd7fff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd800000: f1 f1 f1 f1 00 00 f2 f2 00 00 00 00 00 00 00 00\n=>0x7ffffd800080: 00[02]f2 f2 f2 f2 01 f3 00 00 00 00 00 00 00 00\n  0x7ffffd800100: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd800180: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd800200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd800280: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd800300: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\nShadow byte legend (one shadow byte represents 8 application bytes):\n  Addressable:           00\n  Partially addressable: 01 02 03 04 05 06 07 \n  Heap left redzone:       fa\n  Freed heap region:       fd\n  Stack left redzone:      f1\n  Stack mid redzone:       f2\n  Stack right redzone:     f3\n  Stack after return:      f5\n  Stack use after scope:   f8\n  Global redzone:          f9\n  Global init order:       f6\n  Poisoned by user:        f7\n  Container overflow:      fc\n  Array cookie:            ac\n  Intra object redzone:    bb\n  ASan internal:           fe\n  Left alloca redzone:     ca\n  Right alloca redzone:    cb\n==5777==ABORTING\n",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "read_trailing_nul",
+      "expected": "0 0 0 32769 0",
+      "actual": "0 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "read_corrupt_value",
+      "expected": "-5 0 0 32769 0",
+      "actual": "0 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "read_short_value",
+      "expected": "-5 0 0 32769 0",
+      "actual": "0 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "save_valid",
+      "expected": "0 0 1 32769 0",
+      "actual": "0 0 1 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_zero",
+      "expected": "0 0 1 32769 0",
+      "actual": "0 0 1 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_later_hard_name",
+      "expected": "-5 0 0 32770 0",
+      "actual": "0 0 1 32770 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "save_hard_name",
+      "expected": "-5 0 0 32769 0",
+      "actual": "0 0 3 32770 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "save_hard_value",
+      "expected": "-5 0 0 32769 0",
+      "actual": "0 0 1 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "save_orphan_name",
+      "expected": "-74 0 0 32769 0",
+      "actual": "0 0 1 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "save_orphan_value",
+      "expected": "-74 0 0 32769 0",
+      "actual": "0 0 2 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "save_bad_name",
+      "expected": "-74 0 0 32769 0",
+      "actual": "0 0 3 32770 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "save_long_name",
+      "expected": "-74 0 0 32769 0",
+      "actual": "",
+      "returncode": 1,
+      "stderr": "/tmp/crux-target-copy-ai_ttdde/subsys/settings/src/settings_nvs.c:270:3: runtime error: index 75 out of bounds for type 'char[74]'\nSUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /tmp/crux-target-copy-ai_ttdde/subsys/settings/src/settings_nvs.c:270:3 \n=================================================================\n==5826==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x7ffffd80006b at pc 0x5555556651be bp 0x7ffffffc5510 sp 0x7ffffffc5508\nWRITE of size 1 at 0x7ffffd80006b thread T0\n==5826==WARNING: invalid path to external symbolizer!\n==5826==WARNING: Failed to use and restart external symbolizer!\n    #0 0x5555556651bd  (/tmp/crux-target-copy-ai_ttdde/backend+0x1111bd) (BuildId: 913f6b06fdbcc0f49bbf9c165a5d8ac700c5d458)\n    #1 0x5555556610c4  (/tmp/crux-target-copy-ai_ttdde/backend+0x10d0c4) (BuildId: 913f6b06fdbcc0f49bbf9c165a5d8ac700c5d458)\n    #2 0x555555663bae  (/tmp/crux-target-copy-ai_ttdde/backend+0x10fbae) (BuildId: 913f6b06fdbcc0f49bbf9c165a5d8ac700c5d458)\n    #3 0x7fffff4a91c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)\n    #4 0x7fffff4a928a  (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)\n    #5 0x555555584354  (/tmp/crux-target-copy-ai_ttdde/backend+0x30354) (BuildId: 913f6b06fdbcc0f49bbf9c165a5d8ac700c5d458)\n\nAddress 0x7ffffd80006b is located in stack of thread T0 at offset 107 in frame\n    #0 0x555555664bd7  (/tmp/crux-target-copy-ai_ttdde/backend+0x110bd7) (BuildId: 913f6b06fdbcc0f49bbf9c165a5d8ac700c5d458)\n\n  This frame has 1 object(s):\n    [32, 106) 'rdname' (line 219) <== Memory access at offset 107 overflows this variable\nHINT: this may be a false positive if your program uses some custom stack unwind mechanism, swapcontext or vfork\n      (longjmp and C++ exceptions *are* supported)\nSUMMARY: AddressSanitizer: stack-buffer-overflow (/tmp/crux-target-copy-ai_ttdde/backend+0x1111bd) (BuildId: 913f6b06fdbcc0f49bbf9c165a5d8ac700c5d458) \nShadow bytes around the buggy address:\n  0x7ffffd7ffd80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd7ffe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd7ffe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd7fff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd7fff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n=>0x7ffffd800000: f1 f1 f1 f1 00 00 00 00 00 00 00 00 00[02]f3 f3\n  0x7ffffd800080: f3 f3 f3 f3 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd800100: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd800180: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd800200: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x7ffffd800280: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\nShadow byte legend (one shadow byte represents 8 application bytes):\n  Addressable:           00\n  Partially addressable: 01 02 03 04 05 06 07 \n  Heap left redzone:       fa\n  Freed heap region:       fd\n  Stack left redzone:      f1\n  Stack mid redzone:       f2\n  Stack right redzone:     f3\n  Stack after return:      f5\n  Stack use after scope:   f8\n  Global redzone:          f9\n  Global init order:       f6\n  Poisoned by user:        f7\n  Container overflow:      fc\n  Array cookie:            ac\n  Intra object redzone:    bb\n  ASan internal:           fe\n  Left alloca redzone:     ca\n  Right alloca redzone:    cb\n==5826==ABORTING\n",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "save_hole",
+      "expected": "0 0 2 32769 0",
+      "actual": "0 0 2 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_new",
+      "expected": "0 0 3 32769 0",
+      "actual": "0 0 3 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_new_write_error",
+      "expected": "-5 0 1 32768 0",
+      "actual": "-5 0 1 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "save_new_value_write_error",
+      "expected": "-5 0 2 32769 0",
+      "actual": "-5 0 2 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "save_new_name_write_error",
+      "expected": "-5 0 3 32769 0",
+      "actual": "-5 0 3 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "delete_valid",
+      "expected": "0 2 1 32768 0",
+      "actual": "0 2 1 32768 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "delete_hole",
+      "expected": "0 0 0 32769 0",
+      "actual": "0 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "delete_error",
+      "expected": "-5 1 0 32769 0",
+      "actual": "-5 1 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "delete_second_error",
+      "expected": "-5 2 0 32769 0",
+      "actual": "-5 2 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "delete_count_error",
+      "expected": "-5 2 1 32769 0",
+      "actual": "-5 2 1 32768 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "init_valid",
+      "expected": "0 0 0 32769 0",
+      "actual": "0 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "backend",
+      "case": "init_count_missing",
+      "expected": "-74 0 0 32769 0",
+      "actual": "0 0 0 32768 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "init_count_error",
+      "expected": "-5 0 0 32769 0",
+      "actual": "0 0 0 32768 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "init_count_short",
+      "expected": "-74 0 0 32769 0",
+      "actual": "0 0 0 1 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "init_count_range",
+      "expected": "-74 0 0 32769 0",
+      "actual": "0 0 0 49152 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "backend",
+      "case": "init_mount_error",
+      "expected": "-5 0 0 32769 0",
+      "actual": "-5 0 0 32769 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    },
+    {
+      "binary": "direct",
+      "case": "direct_scan_error",
+      "expected": "-5 1 0 0 0",
+      "actual": "0 1 0 0 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "direct",
+      "case": "earlier_error_two",
+      "expected": "-5 1 0 0 0",
+      "actual": "0 2 0 0 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "direct",
+      "case": "later_error",
+      "expected": "-5 2 0 0 0",
+      "actual": "0 2 0 0 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "direct",
+      "case": "positive_stop",
+      "expected": "7 1 0 0 0",
+      "actual": "0 2 0 0 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "direct",
+      "case": "negative_stop",
+      "expected": "-28 1 0 0 0",
+      "actual": "0 2 0 0 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": false
+    },
+    {
+      "binary": "direct",
+      "case": "valid_two",
+      "expected": "0 2 0 0 0",
+      "actual": "0 2 0 0 0",
+      "returncode": 0,
+      "stderr": "",
+      "passed": true
+    }
+  ]
+}

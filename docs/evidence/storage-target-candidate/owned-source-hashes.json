@@ -1,0 +1,16 @@
+{
+  "samples/flash_target_candidate/flash_poc.h": "acf33ee1d497ad47623f2d19938514d66c42b840cf4ea931d761d847e20d92b2",
+  "samples/flash_target_candidate/CMakeLists.txt": "0987eeb3a446b765a0dbd9a16f358bc4cc83ea7b684702ac666b7574697d3e76",
+  "samples/flash_target_candidate/terminal.c": "1140a736299825d817a1a02d2b47e317651e52e6e6da3658df67c81db978efcd",
+  "samples/flash_target_candidate/prj.conf": "8642d198011e04205997eff77f65bf80c0d33662b928504fdf64beb43ff5461f",
+  "samples/flash_target_candidate/main.c": "552266832146b033be60778a69e2720e7414e11964f2db355c17daf7579ed4dc",
+  "samples/flash_target_candidate/firmware_limit.ld": "c203e32f5498fe762454db8553b9779cf0d6ec3b608b6dae73b9330da948209f",
+  "tests/native/flash_target_candidate/assess_image.py": "dff9410676a0daa86e4128a877c82ebfc444242347b643d0bb89fc30065673cf",
+  "tests/native/flash_target_candidate/test_candidate.py": "317009154752c9d522dee360fcf65f183463c1b3118378d8e12ca455cea621f9",
+  "tests/native/flash_target_candidate/prepare.py": "e131380d194477a92f7a373516eb5752f1325d5a79632899ce42605984a61dcc",
+  "tests/native/flash_target_candidate/hal_stubs.h": "dbd7605b372a8c9b51a68fc3abeed0195d366261e8f4d820e5d46b5c95a6670d",
+  "tests/native/flash_target_candidate/startup_stubs.h": "c8d7e0aeb58d259c753c783dec7d464bf8e3340b3f880a5884cf239284c61a6a",
+  "tests/native/flash_target_candidate/helper_stubs.h": "6e11a43f1b0c0fa283bed8a19eb218a65ec4f3b6b93dd9256d343fb245f2d7e4",
+  "tests/native/storage_target_guard/request_fence.h": "f15309026e56bd799270afda1b83e6a9181d1b4790945cc9fa4b926aa158c09d",
+  "tests/native/storage_target_guard/verify_image.py": "5861e9173412854ff4780a81bdf8d2d82ba7f7858a36ca2fb9797d3d857e85c7"
+}

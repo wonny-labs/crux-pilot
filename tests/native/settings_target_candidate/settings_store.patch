@@ -1,0 +1,28 @@
+--- a/subsys/settings/src/settings_store.c
++++ b/subsys/settings/src/settings_store.c
+@@ -67,6 +67,7 @@
+ 	void                   *param)
+ {
+ 	struct settings_store *cs;
++	int rc = 0;
+ 
+ 	const struct settings_load_arg arg = {
+ 		.subtree = subtree,
+@@ -81,10 +82,13 @@
+ 	 */
+ 	settings_lock_take();
+ 	SYS_SLIST_FOR_EACH_CONTAINER(&settings_load_srcs, cs, cs_next) {
+-		cs->cs_itf->csi_load(cs, &arg);
+-	}
+-	settings_lock_release();
+-	return 0;
++		rc = cs->cs_itf->csi_load(cs, &arg);
++		if (rc != 0) {
++			break;
++		}
++	}
++	settings_lock_release();
++	return rc;
+ }
+ 
+ struct default_param {

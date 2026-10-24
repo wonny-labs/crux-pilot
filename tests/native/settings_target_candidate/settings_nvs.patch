@@ -1,0 +1,234 @@
+--- a/subsys/settings/src/settings_nvs.c
++++ b/subsys/settings/src/settings_nvs.c
+@@ -73,6 +73,67 @@
+ 	return 0;
+ }
+ 
++/* Candidate scope: cache-disabled direct traversal and save_one. */
++static int settings_nvs_name_validate(char *name, ssize_t length, size_t capacity)
++{
++	if (length <= 0 || (size_t)length >= capacity || name[0] == '\0' ||
++	    memchr(name, '\0', (size_t)length - 1) != NULL) {
++		return -EBADMSG;
++	}
++	name[length] = '\0';
++	return 0;
++}
++
++/* A completely absent pair is a valid deletion hole. Never repair on read. */
++static int settings_nvs_pair_validate(struct settings_nvs *cf, uint16_t id,
++				      char *name, size_t capacity)
++{
++	char value;
++	ssize_t nr = nvs_read(&cf->cf_nvs, id, name, capacity);
++	ssize_t vr;
++	int rc;
++
++	if (nr < 0 && nr != -ENOENT) {
++		return nr;
++	}
++	if (nr != -ENOENT) {
++		rc = settings_nvs_name_validate(name, nr, capacity);
++		if (rc) {
++			return rc;
++		}
++	}
++	vr = nvs_read(&cf->cf_nvs, id + NVS_NAME_ID_OFFSET, &value, sizeof(value));
++	if (vr < 0 && vr != -ENOENT) {
++		return vr;
++	}
++	if (nr == -ENOENT && vr == -ENOENT) {
++		return 0;
++	}
++	if (nr == -ENOENT || vr <= 0) {
++		return -EBADMSG;
++	}
++	return (int)vr;
++}
++
++/* Validate ownership over the claimed ID range before save has side effects.
++ * One-byte value probes establish presence, not full-value CRC integrity.
++ */
++static int settings_nvs_save_preflight(struct settings_nvs *cf)
++{
++	char name[SETTINGS_MAX_NAME_LEN + SETTINGS_EXTRA_LEN + 1];
++	uint16_t id = cf->last_name_id;
++
++	while (id > NVS_NAMECNT_ID) {
++		int rc = settings_nvs_pair_validate(cf, id, name, sizeof(name));
++
++		if (rc < 0) {
++			return rc;
++		}
++		id--;
++	}
++	return 0;
++}
++
+ #if CONFIG_SETTINGS_NVS_NAME_CACHE
+ #define SETTINGS_NVS_CACHE_OVFL(cf) ((cf)->cache_total > ARRAY_SIZE((cf)->cache))
+ 
+@@ -127,8 +188,7 @@
+ 	struct settings_nvs *cf = CONTAINER_OF(cs, struct settings_nvs, cf_store);
+ 	struct settings_nvs_read_fn_arg read_fn_arg;
+ 	char name[SETTINGS_MAX_NAME_LEN + SETTINGS_EXTRA_LEN + 1];
+-	char buf;
+-	ssize_t rc1, rc2;
++	ssize_t rc2;
+ 	uint16_t name_id = NVS_NAMECNT_ID;
+ 
+ #if CONFIG_SETTINGS_NVS_NAME_CACHE
+@@ -154,45 +214,14 @@
+ 		 * entries one for the setting's name and one with the
+ 		 * setting's value.
+ 		 */
+-		rc1 = nvs_read(&cf->cf_nvs, name_id, &name, sizeof(name));
+-		rc2 = nvs_read(&cf->cf_nvs, name_id + NVS_NAME_ID_OFFSET,
+-			       &buf, sizeof(buf));
+-
+-		if ((rc1 <= 0) && (rc2 <= 0)) {
+-			/* Settings largest ID in use is invalid due to
+-			 * reset, power failure or partition overflow.
+-			 * Decrement it and check the next ID in subsequent
+-			 * iteration.
+-			 */
+-			if (name_id == cf->last_name_id) {
+-				cf->last_name_id--;
+-				nvs_write(&cf->cf_nvs, NVS_NAMECNT_ID,
+-					  &cf->last_name_id, sizeof(uint16_t));
+-			}
+-
+-			continue;
+-		}
+-
+-		if ((rc1 <= 0) || (rc2 <= 0)) {
+-			/* Settings item is not stored correctly in the NVS.
+-			 * NVS entry for its name or value is either missing
+-			 * or deleted. Clean dirty entries to make space for
+-			 * future settings item.
+-			 */
+-			nvs_delete(&cf->cf_nvs, name_id);
+-			nvs_delete(&cf->cf_nvs, name_id + NVS_NAME_ID_OFFSET);
+-
+-			if (name_id == cf->last_name_id) {
+-				cf->last_name_id--;
+-				nvs_write(&cf->cf_nvs, NVS_NAMECNT_ID,
+-					  &cf->last_name_id, sizeof(uint16_t));
+-			}
+-
+-			continue;
+-		}
+-
+-		/* Found a name, this might not include a trailing \0 */
+-		name[rc1] = '\0';
++		ret = settings_nvs_pair_validate(cf, name_id, name, sizeof(name));
++		if (ret < 0) {
++			return ret;
++		}
++		if (ret == 0) {
++			continue;
++		}
++		rc2 = ret;
+ 		read_fn_arg.fs = &cf->cf_nvs;
+ 		read_fn_arg.id = name_id + NVS_NAME_ID_OFFSET;
+ 
+@@ -225,6 +254,11 @@
+ 		return -EINVAL;
+ 	}
+ 
++	rc = settings_nvs_save_preflight(cf);
++	if (rc) {
++		return rc;
++	}
++
+ 	/* Find out if we are doing a delete */
+ 	delete = ((value == NULL) || (val_len == 0));
+ 
+@@ -259,15 +293,17 @@
+ 
+ 		rc = nvs_read(&cf->cf_nvs, name_id, &rdname, sizeof(rdname));
+ 
+-		if (rc < 0) {
+-			/* Error or entry not found */
+-			if (rc == -ENOENT) {
+-				write_name_id = name_id;
+-			}
+-			continue;
+-		}
+-
+-		rdname[rc] = '\0';
++		if (rc == -ENOENT) {
++			write_name_id = name_id;
++			continue;
++		}
++		if (rc < 0) {
++			return rc;
++		}
++		rc = settings_nvs_name_validate(rdname, rc, sizeof(rdname));
++		if (rc) {
++			return rc;
++		}
+ 
+ 		if (strcmp(name, rdname)) {
+ 			continue;
+@@ -298,15 +334,17 @@
+ 		}
+ 
+ 		if (name_id == cf->last_name_id) {
+-			cf->last_name_id--;
++			uint16_t last_name_id = cf->last_name_id - 1;
++
+ 			rc = nvs_write(&cf->cf_nvs, NVS_NAMECNT_ID,
+-				       &cf->last_name_id, sizeof(uint16_t));
++				       &last_name_id, sizeof(last_name_id));
+ 			if (rc < 0) {
+ 				/* Error: can't to store
+ 				 * the largest name ID in use.
+ 				 */
+ 				return rc;
+ 			}
++			cf->last_name_id = last_name_id;
+ 		}
+ 
+ 		return 0;
+@@ -319,12 +357,12 @@
+ 
+ 	/* update the last_name_id and write to flash if required*/
+ 	if (write_name_id > cf->last_name_id) {
++		rc = nvs_write(&cf->cf_nvs, NVS_NAMECNT_ID, &write_name_id,
++			       sizeof(write_name_id));
++		if (rc < 0) {
++			return rc;
++		}
+ 		cf->last_name_id = write_name_id;
+-		rc = nvs_write(&cf->cf_nvs, NVS_NAMECNT_ID, &cf->last_name_id,
+-			       sizeof(uint16_t));
+-		if (rc < 0) {
+-			return rc;
+-		}
+ 	}
+ 
+ 	/* write the value */
+@@ -372,11 +410,18 @@
+ 
+ 	rc = nvs_read(&cf->cf_nvs, NVS_NAMECNT_ID, &last_name_id,
+ 		      sizeof(last_name_id));
++	if (rc == -ENOENT) {
++		/* Missing count is ambiguous, including unprovisioned erased media. */
++		return -EBADMSG;
++	}
+ 	if (rc < 0) {
+-		cf->last_name_id = NVS_NAMECNT_ID;
+-	} else {
+-		cf->last_name_id = last_name_id;
+-	}
++		return rc;
++	}
++	if (rc != sizeof(last_name_id) || last_name_id < NVS_NAMECNT_ID ||
++	    last_name_id >= NVS_NAMECNT_ID + NVS_NAME_ID_OFFSET) {
++		return -EBADMSG;
++	}
++	cf->last_name_id = last_name_id;
+ 
+ 	LOG_DBG("Initialized");
+ 	return 0;

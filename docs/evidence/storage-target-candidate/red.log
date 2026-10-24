@@ -1,0 +1,69 @@
+....
+======================================================================
+FAIL: test_probe_failure_cannot_reset_unlock_or_continue (__main__.StartupErrors) (stage=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 52, in test_probe_failure_cannot_reset_unlock_or_continue
+    self.assertEqual(reason, -105 if stage == 5 else -5)
+AssertionError: 0 != -5
+
+======================================================================
+FAIL: test_probe_failure_cannot_reset_unlock_or_continue (__main__.StartupErrors) (stage=2)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 52, in test_probe_failure_cannot_reset_unlock_or_continue
+    self.assertEqual(reason, -105 if stage == 5 else -5)
+AssertionError: 0 != -5
+
+======================================================================
+FAIL: test_probe_failure_cannot_reset_unlock_or_continue (__main__.StartupErrors) (stage=3)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 52, in test_probe_failure_cannot_reset_unlock_or_continue
+    self.assertEqual(reason, -105 if stage == 5 else -5)
+AssertionError: 0 != -5
+
+======================================================================
+FAIL: test_probe_failure_cannot_reset_unlock_or_continue (__main__.StartupErrors) (stage=4)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 52, in test_probe_failure_cannot_reset_unlock_or_continue
+    self.assertEqual(reason, -105 if stage == 5 else -5)
+AssertionError: 0 != -5
+
+======================================================================
+FAIL: test_probe_failure_cannot_reset_unlock_or_continue (__main__.StartupErrors) (stage=5)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 52, in test_probe_failure_cannot_reset_unlock_or_continue
+    self.assertEqual(reason, -105 if stage == 5 else -5)
+AssertionError: 0 != -105
+
+======================================================================
+FAIL: test_probe_failure_cannot_reset_unlock_or_continue (__main__.StartupErrors) (stage=6)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 52, in test_probe_failure_cannot_reset_unlock_or_continue
+    self.assertEqual(reason, -105 if stage == 5 else -5)
+AssertionError: 0 != -5
+
+======================================================================
+FAIL: test_probe_failure_cannot_reset_unlock_or_continue (__main__.StartupErrors) (stage=7)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 52, in test_probe_failure_cannot_reset_unlock_or_continue
+    self.assertEqual(reason, -105 if stage == 5 else -5)
+AssertionError: 0 != -5
+
+======================================================================
+FAIL: test_probe_failure_cannot_reset_unlock_or_continue (__main__.StartupErrors) (stage=8)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 52, in test_probe_failure_cannot_reset_unlock_or_continue
+    self.assertEqual(reason, -105 if stage == 5 else -5)
+AssertionError: 0 != -5
+
+----------------------------------------------------------------------
+Ran 5 tests in 2.347s
+
+FAILED (failures=8)

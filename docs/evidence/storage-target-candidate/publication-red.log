@@ -1,0 +1,33 @@
+
+======================================================================
+FAIL: test_generated_sources_and_manifest_do_not_follow_existing_links (__main__.GeneratorPublication) (link='symlink')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 224, in test_generated_sources_and_manifest_do_not_follow_existing_links
+    self.assertEqual([victim.read_bytes() for victim in victims], before)
+AssertionError: Lists differ: [b'pinned fixture candidate', b'pinned fixture candidate',[681 chars]}\n'] != [b'pinned fixture', b'pinned fixture', b'pinned fixture', [23 chars]tim']
+
+First differing element 0:
+b'pinned fixture candidate'
+b'pinned fixture'
+
+Diff is 1003 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_generated_sources_and_manifest_do_not_follow_existing_links (__main__.GeneratorPublication) (link='hardlink')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 224, in test_generated_sources_and_manifest_do_not_follow_existing_links
+    self.assertEqual([victim.read_bytes() for victim in victims], before)
+AssertionError: Lists differ: [b'pinned fixture candidate', b'pinned fixture candidate',[681 chars]}\n'] != [b'pinned fixture', b'pinned fixture', b'pinned fixture', [23 chars]tim']
+
+First differing element 0:
+b'pinned fixture candidate'
+b'pinned fixture'
+
+Diff is 1003 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 1 test in 0.017s
+
+FAILED (failures=2)

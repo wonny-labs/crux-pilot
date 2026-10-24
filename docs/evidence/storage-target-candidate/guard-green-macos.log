@@ -1,0 +1,10 @@
+test_changed_code_in_bin_rejected (test_image.ImageGate) ... ok
+test_changed_ram_initial_load_in_elf_rejected (test_image.ImageGate) ... ok
+test_cli_rejects_mismatch_and_reads_only (test_image.ImageGate) ... ok
+test_matching_ram_load_image (test_image.ImageGate) ... ok
+test_native_width_owner_limits_and_erase_granules (test_requests.RequestFence) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.303s
+
+OK

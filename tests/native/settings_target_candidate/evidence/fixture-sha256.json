@@ -1,0 +1,22 @@
+{
+  "support.py": "2208f7164de0ca83bab996bec2b708799e39df6637b292bcbcce93eb090d9283",
+  "settings_store.patch": "88f2e33fc0f64f7174e7d0475907f49d115f5f4430b5cab096898cb3e19ecd7b",
+  "direct.c": "dade3a0ed3f6b97d123fea17291a0ce301b7bf5a6442ebcf113975f16d2bdf1a",
+  "test_candidate.py": "e703128d2cacf23d9777fad4b95ba00e97161ebd695c5fc2437a845b3c5318ac",
+  "settings_nvs.patch": "cd4201f1036ed37c5ea2b5514bbfc7ae34e45acdaa7dc45a8e4b16e5e9b96185",
+  "backend.c": "89cd81873711610b334cf87aea994ae9f763fffcf6b8733c717246e39917ef22",
+  "provider/testcase.yaml": "0b82649183f27c856f2f5cb473b7184df5549d517aeaf48725b6e025e3242347",
+  "provider/prj.conf": "ac3dfb536c79bd2813e19cebb3a9d97421da5504768ae274bf5315f07bd07090",
+  "provider/app.overlay": "5aed0c79359bc542f6bb5bd5852f8fa7959b27df4b9003d2dbfe68d3c8a4110b",
+  "provider/candidate.cmake": "91ed216edabb8ea957233808a8eda35fb2b74f27d1c2c0a3339f6de30d766e1a",
+  "provider/main.c": "86d56444c40ee2238bfc37b51aaf5e0bff4945e2217980eeee32c142ffa39551",
+  "provider/prepare.py": "b847032f352b93e11c47301c244a57d6984dccf16734ff7d40a83aeff115d03b",
+  "startup/testcase.yaml": "64b79c6356287ffe6081620220748ea8f41301b6a61ced8ab61ee092f23694d8",
+  "startup/startup-read.patch": "325d66c2596f2ce9c289607ca7007d421e000d3f577c1d23b90a94f32ad2902f",
+  "startup/prj.conf": "2004278f929e1953805a47e148956dbd2df2ee3f1448b48f33bfe3c441dcc123",
+  "startup/candidate.cmake": "69baed074cf048d4318d994e38883a223c22185d2721af1477d27387aeec8ed5",
+  "startup/main.c": "2ad7b904b1e38dad464e050ee4c014bc0de16e8929ace1a28217d79074b49bd6",
+  "startup/prepare.py": "4750c9d13fe246fbefcd50b472251febafc45936c53e3be3449280c6f51f193a",
+  "provider/CMakeLists.txt": "f7e11174a781129e050766744e85fafa94b9293e8d5986c9ec20d8ee105cd87d",
+  "startup/CMakeLists.txt": "871b0cc4501fc8e54662cc6c46f185163bc7cf5fad3e7c86cdadc2af224c9429"
+}

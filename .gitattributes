@@ -7,3 +7,8 @@ docs/evidence/settings-error-experiment/*.log -whitespace
 docs/evidence/file-native/*.log -whitespace
 docs/evidence/configuration-native/*.log -whitespace
 tests/native/configuration_settings/late-mount-read.patch whitespace=-space-before-tab
+# Pinned-source patch context and retained negative-control diagnostics are data.
+tests/native/settings_target_candidate/*.patch -whitespace
+tests/native/settings_target_candidate/startup/*.patch -whitespace
+tests/native/settings_target_candidate/evidence/*.log -whitespace
+docs/evidence/storage-target-candidate/*.log -whitespace

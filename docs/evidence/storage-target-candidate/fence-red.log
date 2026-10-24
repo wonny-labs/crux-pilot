@@ -1,0 +1,125 @@
+
+======================================================================
+FAIL: test_native_rejection_precedes_effects (__main__.RuntimeFences) (request=(0, 0, 1))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 152, in test_native_rejection_precedes_effects
+    self.assertEqual(result, f'{-errno.EACCES} 0 0 0 0 0 0')
+AssertionError: '0 0 1 1 1 1 1' != '-13 0 0 0 0 0 0'
+- 0 0 1 1 1 1 1
++ -13 0 0 0 0 0 0
+
+
+======================================================================
+FAIL: test_native_rejection_precedes_effects (__main__.RuntimeFences) (request=(0, -1, 1))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 152, in test_native_rejection_precedes_effects
+    self.assertEqual(result, f'{-errno.EACCES} 0 0 0 0 0 0')
+AssertionError: '-22 0 0 0 0 0 0' != '-13 0 0 0 0 0 0'
+- -22 0 0 0 0 0 0
+?  ^^
++ -13 0 0 0 0 0 0
+?  ^^
+
+
+======================================================================
+FAIL: test_native_rejection_precedes_effects (__main__.RuntimeFences) (request=(0, 6422527, 2))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 152, in test_native_rejection_precedes_effects
+    self.assertEqual(result, f'{-errno.EACCES} 0 0 0 0 0 0')
+AssertionError: '0 0 1 2 2 2 2' != '-13 0 0 0 0 0 0'
+- 0 0 1 2 2 2 2
++ -13 0 0 0 0 0 0
+
+
+======================================================================
+FAIL: test_native_rejection_precedes_effects (__main__.RuntimeFences) (request=(0, 8323071, 2))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 152, in test_native_rejection_precedes_effects
+    self.assertEqual(result, f'{-errno.EACCES} 0 0 0 0 0 0')
+AssertionError: '0 0 1 2 2 2 2' != '-13 0 0 0 0 0 0'
+- 0 0 1 2 2 2 2
++ -13 0 0 0 0 0 0
+
+
+======================================================================
+FAIL: test_native_rejection_precedes_effects (__main__.RuntimeFences) (request=(0, 8388608, 1))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 152, in test_native_rejection_precedes_effects
+    self.assertEqual(result, f'{-errno.EACCES} 0 0 0 0 0 0')
+AssertionError: '-22 0 0 0 0 0 0' != '-13 0 0 0 0 0 0'
+- -22 0 0 0 0 0 0
+?  ^^
++ -13 0 0 0 0 0 0
+?  ^^
+
+
+======================================================================
+FAIL: test_native_rejection_precedes_effects (__main__.RuntimeFences) (request=(0, 6422528, 0))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 152, in test_native_rejection_precedes_effects
+    self.assertEqual(result, f'{-errno.EACCES} 0 0 0 0 0 0')
+AssertionError: '0 0 1 0 0 0 0' != '-13 0 0 0 0 0 0'
+- 0 0 1 0 0 0 0
+?     --
++ -13 0 0 0 0 0 0
+? ++++
+
+
+======================================================================
+FAIL: test_native_rejection_precedes_effects (__main__.RuntimeFences) (request=(1, 0, 8388608))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 152, in test_native_rejection_precedes_effects
+    self.assertEqual(result, f'{-errno.EACCES} 0 0 0 0 0 0')
+AssertionError: '0 0 1 1 1 1 1' != '-13 0 0 0 0 0 0'
+- 0 0 1 1 1 1 1
++ -13 0 0 0 0 0 0
+
+
+======================================================================
+FAIL: test_native_rejection_precedes_effects (__main__.RuntimeFences) (request=(1, 6422529, 4096))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 152, in test_native_rejection_precedes_effects
+    self.assertEqual(result, f'{-errno.EACCES} 0 0 0 0 0 0')
+AssertionError: '-22 0 0 0 0 0 0' != '-13 0 0 0 0 0 0'
+- -22 0 0 0 0 0 0
+?  ^^
++ -13 0 0 0 0 0 0
+?  ^^
+
+
+======================================================================
+FAIL: test_native_rejection_precedes_effects (__main__.RuntimeFences) (request=(1, 8318976, 8192))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 152, in test_native_rejection_precedes_effects
+    self.assertEqual(result, f'{-errno.EACCES} 0 0 0 0 0 0')
+AssertionError: '0 0 1 2 2 2 2' != '-13 0 0 0 0 0 0'
+- 0 0 1 2 2 2 2
++ -13 0 0 0 0 0 0
+
+
+======================================================================
+FAIL: test_native_rejection_precedes_effects (__main__.RuntimeFences) (request=(1, 6422528, 4095))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$CRUX_REPO/tests/native/flash_target_candidate/test_candidate.py", line 152, in test_native_rejection_precedes_effects
+    self.assertEqual(result, f'{-errno.EACCES} 0 0 0 0 0 0')
+AssertionError: '-22 0 0 0 0 0 0' != '-13 0 0 0 0 0 0'
+- -22 0 0 0 0 0 0
+?  ^^
++ -13 0 0 0 0 0 0
+?  ^^
+
+
+----------------------------------------------------------------------
+Ran 1 test in 1.809s
+
+FAILED (failures=10)

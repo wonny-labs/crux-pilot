@@ -1,0 +1,5 @@
+common:
+  tags: [configuration, settings, nvs, experimental]
+  platform_allow: [native_sim]
+tests:
+  crux.settings_target.provider: {}

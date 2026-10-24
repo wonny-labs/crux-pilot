@@ -1,0 +1,6 @@
+[1/5] Building C object CMakeFiles/app.dir/main.c.obj
+[2/5] Linking C static library app/libapp.a
+[3/5] Linking C executable zephyr/zephyr.elf
+Generating files from /tmp/settings-target-candidate/startup-original/zephyr/zephyr.elf for board: native_sim/native
+[4/5] Building native simulator runner, and linking final executable
+[5/5] Running utility command for native_runner_executable
