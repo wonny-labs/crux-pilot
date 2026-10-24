@@ -37,8 +37,7 @@ int crux_rom_command_submit(const struct crux_rom_request *r) {
         if (r->owner == CRUX_PILOT_FLASH_NVS)
             ++nvs_mutations;
     }
-    if (scratch_fail && r->owner == CRUX_PILOT_FLASH_SCRATCH &&
-        r->operation == CRUX_ROM_PROGRAM)
+    if (scratch_fail && r->owner == CRUX_PILOT_FLASH_SCRATCH && r->operation == CRUX_ROM_PROGRAM)
         return -EIO;
     if (r->operation == CRUX_ROM_READ) {
         read_length = r->length;
@@ -94,7 +93,8 @@ ZTEST(rt1060_storage_integration, test_fixed_trial_with_deferred_owners_and_one_
         zassert_false(device_is_ready(DEVICE_DT_GET(DT_NODELABEL(candidate_file_backend))));
         zassert_false(device_is_ready(DEVICE_DT_GET(DT_NODELABEL(candidate_nvs_backend))));
         zassert_false(crux_candidate_storage_ready());
-        zassert_ok(flash_read(sim, PARTITION_OFFSET(candidate_scratch), observed, sizeof(observed)));
+        zassert_ok(
+            flash_read(sim, PARTITION_OFFSET(candidate_scratch), observed, sizeof(observed)));
         memset(seed, 0xff, sizeof(seed));
         if (!scratch_fail) {
             uint8_t expected[] = {0x31, 0x42, 0x53, 0x64};
@@ -108,22 +108,24 @@ ZTEST(rt1060_storage_integration, test_fixed_trial_with_deferred_owners_and_one_
         zassert_equal(crux_file_open("candidate", CRUX_FILE_READ, &file), CRUX_FILE_ERR_NOT_READY);
         zassert_equal(crux_config_zephyr_init(), CRUX_CONFIG_ERR_NOT_READY);
         static const crux_config_spec_t scratch_spec = {
-            .key = "report_every_cycles", .schema_version = 1,
+            .key = "report_every_cycles",
+            .schema_version = 1,
             .default_value = {.type = CRUX_CONFIG_U32, .data.u32 = 1}};
         crux_config_param_t config = {0};
         zassert_ok(crux_config_init(&config, &scratch_spec));
         zassert_equal(crux_config_load(&config), CRUX_CONFIG_ERR_NOT_READY);
         zassert_equal(crux_config_save(&config), CRUX_CONFIG_ERR_NOT_READY);
         zassert_equal(commands, before);
-        printk("SCRATCH_ONLY failed=%u commands=%u mutations=%u one_way=1\n",
-               scratch_fail, commands, scratch_mutations);
+        printk("SCRATCH_ONLY failed=%u commands=%u mutations=%u one_way=1\n", scratch_fail,
+               commands, scratch_mutations);
         return;
     }
     if (unprovisioned) {
         zassert_not_equal(crux_candidate_fixed_trial(false), 0);
         zassert_equal(scratch_commands, 0);
         zassert_equal(scratch_mutations, 0);
-        zassert_ok(flash_read(sim, PARTITION_OFFSET(candidate_scratch), observed, sizeof(observed)));
+        zassert_ok(
+            flash_read(sim, PARTITION_OFFSET(candidate_scratch), observed, sizeof(observed)));
         zassert_mem_equal(seed, observed, sizeof(seed));
         zassert_equal(file_mutations, 0);
         zassert_equal(nvs_mutations, 0);
