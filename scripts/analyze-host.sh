@@ -29,12 +29,12 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
 "$tidy" -p "$build_dir" \
     "$repo/components/time/src/time.c" \
     "$repo/components/time/src/time_calendar.c" \
-    "$repo/components/time/host/time_port_host.c" \
+    "$repo/components/time/src/time_port_memory.c" \
     "$repo/samples/time/src/time_command.c" \
     "$repo/samples/time/host/main.c" \
-    "$repo/tests/time/src/time_test.cpp" \
-    "$repo/tests/time/src/calendar_test.cpp" \
-    "$repo/tests/time/src/command_test.cpp" \
+    "$repo/tests/time/time_test.cpp" \
+    "$repo/tests/time/calendar_test.cpp" \
+    "$repo/tests/time/command_test.cpp" \
     "$repo/tests/execution/src/posix.c" \
     "$repo/components/execution/src/execution_threads.c" \
     "$repo/components/execution/src/execution_sync.c" \

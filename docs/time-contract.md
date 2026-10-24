@@ -54,8 +54,8 @@ This component follows the [repository header/dependency rules](../CONTRIBUTING.
 | `components/base/include/crux/status.h` | Independent platform public header, provided by `crux::base` |
 | `components/time/include/crux/time.h`, `time_calendar.h` | Time public API, provided to applications through `crux::time` |
 | `components/time/src/time_port.h` | Private link-selected backend contract; no application include requirement |
-| `components/time/zephyr/time_port_internal.h` | Private native adapter helper; available explicitly to relevant integration tests |
-| `tests/time/private/*.h` | Test controls, excluded from public include roots and normal consumer requirements |
+| `components/time/ports/zephyr/time_port_internal.h` | Private native adapter helper; available explicitly to relevant integration tests |
+| `tests/time/*.h` | Test controls, excluded from public include roots and normal consumer requirements |
 | `samples/time/include/crux_time_command.h` | Sample-owned helper contract, not an exported Crux platform API |
 
 Host and Zephyr applications link `crux::time`; the base dependency follows the public Time
@@ -101,9 +101,15 @@ marks its RTC provider the same way. CMake rejects a consumer that combines targ
 provider identities. The Zephyr module does not include the host backend, and the host root does not
 load Zephyr. There is no runtime backend registry, weak-symbol discovery or public function table.
 
-The host backend is a controlled deterministic store: it starts with no time, never reads host wall
+The host composition explicitly selects the separate `crux_time_memory` target from
+`components/time/src/time_port_memory.c`. It is OS independent and is excluded from
+the common source inventory. The private `crux_time_host` name remains an alias.
+The Zephyr module delegates Time build ownership to `components/time/ports/zephyr/`
+and registers only the RTC implementation; it has no memory fallback.
+
+The memory backend is a controlled deterministic store: it starts with no time, never reads host wall
 time and advances only through private test-only controls. Those controls live outside the exported
-headers and are compiled into the test backend only. The host sample uses the production host
+headers and are compiled into the test backend only. The host sample uses the non-instrumented memory
 backend and exposes no advance/failure controls.
 
 ## Host command composition
