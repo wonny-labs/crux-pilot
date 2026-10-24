@@ -10,7 +10,7 @@ The `main` branch currently includes:
 
 | Area | Available implementation |
 | --- | --- |
-| Reusable components | Portable C17 `base` and `time` components, with Linux host and Zephyr Time implementations |
+| Reusable components | `base`, `time`, `thread`, `sync`, `queue`, `monotonic`, `netif`, `sockets`, `configuration` and `file`, with [integration limits by capability](docs/architecture.md#current-capability-integration) |
 | Reference application | A reference controller with shared portable Time and scheduling logic, a Linux host scenario and Zephyr device/network/health compositions |
 | Device, networking and health integration | EVKB SW5 GPIO input, UART diagnostics, bounded IPv4 TCP/UDP exchanges, service readiness and workload-conditioned watchdog supervision |
 | Zephyr integration | Out-of-tree module, RTC and native device/network services, Shell examples, `native_sim` tests and EVKB builds |
@@ -20,11 +20,32 @@ The initial hardware target is the **MIMXRT1060-EVKB revision B** using `mimxrt1
 
 The native Linux host runs portable code without Zephyr, while Zephyr `native_sim` exercises Zephyr integration on a host. The EVKB GPIO, networking and watchdog results apply to the documented Zephyr composition, not to the Linux host or other boards. They do not establish production readiness, long-duration reliability or concurrent-load performance. An **Embedded Linux production variant** is part of Crux's longer-term direction, not a currently implemented target. See [milestones](https://github.com/wonny-labs/crux-pilot/milestones) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) for ongoing work.
 
+### Capability status
+
+The [qualified socket/netif contract](docs/networking-contract.md) supplies
+IPv4 TCP-client/connected-UDP communication and read-only primary-interface
+status. See the [networking software tests](tests/README.md#portable-networking-software-slice)
+for supported configurations and commands. Physical Issue #28 acceptance is
+pending; this slice does not complete the M5 milestone.
+
+The portable [Configuration contract](docs/configuration-contract.md) provides
+application-owned BOOL/U32 validation, explicit save/load and canonical encoding.
+Its [software qualification](docs/configuration-validation.md) uses a deterministic
+private provider; native Settings integration and physical persistence remain gated.
+
+The software-qualified [portable File contract](docs/file-contract.md) exposes
+bounded synchronous file operations through `crux::file`, with a Linux Host
+provider and deterministic failure tests. Its [validation and Zephyr handoff
+plan](docs/file-validation.md) document the separate native composition work;
+no production Flash layout or writable QSPI backend is enabled.
+
 ## Architecture
 
 Crux separates portable application behaviour, reusable platform capabilities and environment-specific integration. Shared contracts are introduced when they provide stable, useful semantics. Zephyr and Embedded Linux retain their native operating-system and device infrastructure rather than being hidden behind a universal HAL or OSAL.
 
-Portable components and application logic avoid Zephyr, board and vendor dependencies. Host and Zephyr compositions explicitly select their implementations. Host, `native_sim` and physical-target tests provide complementary evidence rather than interchangeable guarantees.
+Portable components, application logic and common runtime consumers avoid unqualified native dependencies. Product applications may also contain native platform-composition code for board configuration, initialization and provider selection. Host and Zephyr compositions explicitly select their implementations. Host, `native_sim` and physical-target tests provide complementary evidence rather than interchangeable guarantees.
+
+For the component model, native-port ownership, build composition and dependency boundaries, see the [architecture overview](docs/architecture.md).
 
 The bounded [Thread and Sync contract](docs/execution-contract-proposal.md)
 provides independent component-owned capabilities:
@@ -48,7 +69,7 @@ Zephyr selects `CONFIG_CRUX_THREAD` and `CONFIG_CRUX_SYNC` independently. Thread
 `CONFIG_CRUX_SYNC_MUTEX_COUNT` and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT`. Defaults remain
 4 workers, 4096 usable bytes per Zephyr stack, 8 mutexes and 8 semaphores. Migrate
 old `CONFIG_CRUX_EXECUTION*` selections to these component-owned settings.
-See [validation and limits](docs/execution-validation.md) for the retained
+See [historical validation evidence and limits](docs/execution-validation.md) for the retained
 Host/Zephyr profiles and historical qualification evidence.
 
 The implemented [Time contract](docs/time-contract.md) provides a concrete component example.
@@ -140,22 +161,3 @@ The [original Time Pilot plan](docs/plans/initial-implementation-plan.md) and [i
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution, interface and review practices. AI agents must also follow [AGENTS.md](AGENTS.md).
-
-### Portable networking client slice
-
-The [qualified socket/netif contract](docs/networking-contract.md) supplies
-IPv4 TCP-client/connected-UDP communication and read-only primary-interface
-status. See the [networking software tests](tests/README.md#portable-networking-software-slice)
-for supported configurations and commands. Physical Issue #28 acceptance is
-pending; this slice does not complete the M5 milestone.
-
-The portable [Configuration contract](docs/configuration-contract.md) provides
-application-owned BOOL/U32 validation, explicit save/load and canonical encoding.
-Its [software qualification](docs/configuration-validation.md) uses a deterministic
-private provider; native Settings integration and physical persistence remain gated.
-
-The software-qualified [portable File contract](docs/file-contract.md) exposes
-bounded synchronous file operations through `crux::file`, with a Linux Host
-provider and deterministic failure tests. Its [validation and Zephyr handoff
-plan](docs/file-validation.md) document the separate native composition work;
-no production Flash layout or writable QSPI backend is enabled.
