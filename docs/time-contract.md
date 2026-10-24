@@ -109,7 +109,7 @@ and registers only the RTC implementation; it has no memory fallback.
 
 The memory backend is a controlled deterministic store: it starts with no time, never reads host wall
 time and advances only through private test-only controls. Those controls live outside the exported
-headers and are compiled into the test backend only. The host sample uses the production host
+headers and are compiled into the test backend only. The host sample uses the non-instrumented memory
 backend and exposes no advance/failure controls.
 
 ## Host command composition
