@@ -19,6 +19,16 @@ The [initial Time Pilot plan](docs/plans/initial-implementation-plan.md) and [im
 - Treat third-party and generated code according to its applicable upstream rules. Record the source, licence and any maintained local patches. Follow upstream contribution requirements when submitting changes to upstream projects.
 - Keep Crux independent of employer-owned software and confidential materials. Do not import employer-owned or other unauthorised proprietary code, restricted information, secrets or credentials.
 
+## Port and test names
+
+Use the owning `ports/<os>/` directory for platform implementations. When a
+filename distinguishes an OS implementation, use its OS name (for example,
+`file_linux.c`); keep shared `*_port_*` interfaces platform-neutral. Retain
+`native` for internal native-operation contracts and `host` for development/test
+roles. Name tests by their purpose, such as port fault handling or OS integration.
+Existing public targets, provider values and configuration names require a
+separate compatibility decision before renaming.
+
 ## Public headers and module dependencies
 
 Keep platform public headers in the owning component at

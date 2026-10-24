@@ -9,6 +9,10 @@ or performed. No PR merge or issue closure is authorised by this record.
 
 ## Acceptance traceability
 
+Current standalone Linux tests are named `Monotonic.LinuxPort` and
+`Monotonic.LinuxIntegration`; see the [test guide](../tests/monotonic/README.md).
+The earlier names below are retained as part of the original qualification record.
+
 | Issue #26 criterion | Implementation | Verification/evidence |
 | --- | --- | --- |
 | Monotonic vs UTC, units/range/ownership/timeouts | monotonic public/common/provider code; queue public/common code | Monotonic.Common/NativeBoundaries/RealHost; Queue.Basic/limits/Faults; tests/monotonic/zephyr |

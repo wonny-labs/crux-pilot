@@ -157,7 +157,7 @@ class NativeInterfaceTest(unittest.TestCase):
                      "tests/thread_sync_consumer/zephyr/native_worker.c",
                      "components/queue/ports/linux/queue_port.c",
                      "components/queue/ports/zephyr/queue_port.c",
-                     "components/monotonic/ports/linux/monotonic_host.c",
+                     "components/monotonic/ports/linux/monotonic_linux.c",
                      "components/monotonic/ports/zephyr/monotonic_zephyr.c",
                      "samples/controller/zephyr/main.c",
                      "components/netif/ports/linux/backend.c",

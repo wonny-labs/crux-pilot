@@ -1,7 +1,7 @@
 #define _XOPEN_SOURCE 600
 #include "controller.h"
 #include "runtime.h"
-#include "serial_host.h"
+#include "serial_linux.h"
 #include <assert.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -37,7 +37,7 @@ static void peer(int master, size_t size) {
 int main(void) {
     int master = posix_openpt(O_RDWR | O_NOCTTY);
     assert(master >= 0 && grantpt(master) == 0 && unlockpt(master) == 0);
-    assert(crux_serial_host_bind(0, ptsname(master)) == CRUX_OK);
+    assert(crux_serial_linux_bind(0, ptsname(master)) == CRUX_OK);
     pid_t child = fork();
     assert(child >= 0);
     if (child == 0) {

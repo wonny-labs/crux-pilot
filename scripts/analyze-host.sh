@@ -55,7 +55,7 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
 
 "$tidy" -p "$build_dir" \
     "$repo/components/netif/src/netif.c" \
-    "$repo/components/netif/ports/linux/netif_host.c" \
+    "$repo/components/netif/ports/linux/netif_linux.c" \
     "$repo/samples/networking/client.c" \
     "$repo/samples/networking/host/main.c" \
     "$repo/tests/networking/runtime_port.c"
@@ -66,23 +66,23 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/configuration/fault_provider.c" \
     "$repo/samples/controller/configuration/scenario.c" \
     "$repo/components/file/src/file.c" \
-    "$repo/components/file/ports/linux/file_host.c" \
+    "$repo/components/file/ports/linux/file_linux.c" \
     "$repo/tests/file/fault_test.c" \
     "$repo/tests/file/host_test.c" \
     "$repo/components/queue/src/queue.c" \
     "$repo/components/queue/ports/linux/queue_port.c" \
     "$repo/components/monotonic/src/monotonic.c" \
-    "$repo/components/monotonic/ports/linux/monotonic_host.c"
+    "$repo/components/monotonic/ports/linux/monotonic_linux.c"
 
 "$tidy" -p "$build_dir" \
     "$repo/components/serial/src/serial.c" \
-    "$repo/components/serial/ports/linux/serial_host.c" \
+    "$repo/components/serial/ports/linux/serial_linux.c" \
     "$repo/tests/serial/common.c" \
     "$repo/tests/serial/host.c"
 
 "$tidy" -p "$build_dir" \
     "$repo/components/logging/src/logging.c" \
-    "$repo/components/logging/ports/linux/logging_host.c" \
+    "$repo/components/logging/ports/linux/logging_linux.c" \
     "$repo/tests/logging/common.c" \
     "$repo/tests/logging/host.c"
 
