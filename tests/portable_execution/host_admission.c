@@ -1,4 +1,5 @@
-#include "execution_internal.h"
+#include "sync_internal.h"
+#include "thread_internal.h"
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdatomic.h>
@@ -6,6 +7,7 @@
 #include <time.h>
 
 static atomic_bool capture_holder;
+static bool hold_thread_metadata;
 static sem_t metadata_locked;
 static sem_t release_metadata;
 static sem_t started;
@@ -18,22 +20,35 @@ static crux_semaphore_t empty;
 
 /* GNU ld --wrap requires these reserved linker symbol names. */
 // NOLINTBEGIN(bugprone-reserved-identifier)
-void __real_exec_native_metadata_lock(void);
-void exec_native_metadata_unlock(void);
-void __wrap_exec_native_metadata_lock(void) {
-    __real_exec_native_metadata_lock();
+void __real_sync_native_metadata_lock(void);
+void __real_thread_native_metadata_lock(void);
+void sync_native_metadata_unlock(void);
+static void capture_metadata(void) {
     if (atomic_exchange(&capture_holder, false)) {
         (void)sem_post(&metadata_locked);
         (void)sem_wait(&release_metadata);
     }
+}
+void __wrap_sync_native_metadata_lock(void) {
+    __real_sync_native_metadata_lock();
+    capture_metadata();
+}
+void __wrap_thread_native_metadata_lock(void) {
+    __real_thread_native_metadata_lock();
+    capture_metadata();
 }
 // NOLINTEND(bugprone-reserved-identifier)
 
 static void *hold_metadata(void *unused) {
     (void)unused;
     atomic_store(&capture_holder, true);
-    __wrap_exec_native_metadata_lock();
-    exec_native_metadata_unlock();
+    if (hold_thread_metadata) {
+        __wrap_thread_native_metadata_lock();
+        thread_native_metadata_unlock();
+    } else {
+        __wrap_sync_native_metadata_lock();
+        sync_native_metadata_unlock();
+    }
     return NULL;
 }
 
@@ -108,33 +123,25 @@ int main(void) {
         return 3;
     }
 
-    pthread_t holder;
-    if (pthread_create(&holder, NULL, hold_metadata, NULL) != 0 ||
-        sem_wait(&metadata_locked) != 0) {
-        return 4;
-    }
     call_t calls[] = {
         {.kind = CALL_POLL}, {.kind = CALL_MUTEX}, {.kind = CALL_SEMAPHORE}, {.kind = CALL_JOIN}};
     const crux_status_t expected[] = {CRUX_ERR_BUSY, CRUX_ERR_TIMEOUT, CRUX_ERR_TIMEOUT,
                                       CRUX_ERR_TIMEOUT};
-    pthread_t callers[sizeof(calls) / sizeof(calls[0])];
     int returned_while_held[sizeof(calls) / sizeof(calls[0])] = {0};
     int setup_error = 0;
-    size_t created = 0;
     for (size_t i = 0; i < sizeof(calls) / sizeof(calls[0]); ++i) {
-        if (run_wait(&calls[i], &callers[i], &returned_while_held[i]) != 0) {
-            setup_error = 1;
-            break;
+        pthread_t holder;
+        pthread_t caller;
+        hold_thread_metadata = calls[i].kind == CALL_JOIN;
+        if (pthread_create(&holder, NULL, hold_metadata, NULL) != 0 ||
+            sem_wait(&metadata_locked) != 0) {
+            return 4;
         }
-        ++created;
-    }
-
-    (void)sem_post(&release_metadata);
-    if (pthread_join(holder, NULL) != 0) {
-        return 5;
-    }
-    for (size_t i = 0; i < created; ++i) {
-        if (pthread_join(callers[i], NULL) != 0) {
+        if (run_wait(&calls[i], &caller, &returned_while_held[i]) != 0) {
+            return 5;
+        }
+        (void)sem_post(&release_metadata);
+        if (pthread_join(holder, NULL) != 0 || pthread_join(caller, NULL) != 0) {
             setup_error = 1;
         }
     }

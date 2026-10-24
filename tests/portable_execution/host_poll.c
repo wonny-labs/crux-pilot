@@ -1,4 +1,4 @@
-#include <crux/execution.h>
+#include <crux/sync.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>

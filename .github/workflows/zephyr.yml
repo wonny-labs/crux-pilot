@@ -183,6 +183,14 @@ jobs:
             crux-pilot/build/zephyr/m5-physical-evkb/compile_commands.json
             crux-pilot/build/zephyr/m5-physical-evkb/crux-mdio/
             crux-pilot/build/evidence/m5-preparation/native-scenario.log
+            crux-pilot/build/zephyr/thread-only-evkb/compile_commands.json
+            crux-pilot/build/zephyr/thread-only-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/thread-only-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/thread-only-evkb/zephyr/.config
+            crux-pilot/build/zephyr/sync-only-evkb/compile_commands.json
+            crux-pilot/build/zephyr/sync-only-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/sync-only-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/sync-only-evkb/zephyr/.config
             crux-pilot/build/zephyr/twister-portable-execution/
             crux-pilot/build/zephyr/portable_execution-evkb/zephyr/.config
             crux-pilot/build/zephyr/portable_execution-evkb/zephyr/zephyr.map

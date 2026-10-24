@@ -4,7 +4,7 @@ project(crux_execution_runtime_firmware LANGUAGES C)
 
 add_library(crux_runtime_fixture STATIC ../src/runtime_fixture.c)
 target_include_directories(crux_runtime_fixture PUBLIC ../include)
-target_link_libraries(crux_runtime_fixture PRIVATE crux::execution)
+target_link_libraries(crux_runtime_fixture PRIVATE crux::thread crux::sync)
 target_compile_features(crux_runtime_fixture PRIVATE c_std_17)
 set_target_properties(crux_runtime_fixture PROPERTIES C_STANDARD 17 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
 target_compile_options(crux_runtime_fixture PRIVATE -Wall -Wextra -Werror)

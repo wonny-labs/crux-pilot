@@ -60,6 +60,12 @@ jobs:
             build/linux/debug/samples/controller/host/controller.log
             build/linux/debug/ctest-junit.xml
             build/linux/debug/Testing/Temporary/LastTest.log
+            build/thread-only/ctest-junit.xml
+            build/thread-only/compile_commands.json
+            build/thread-only/consumer.map
+            build/sync-only/ctest-junit.xml
+            build/sync-only/compile_commands.json
+            build/sync-only/consumer.map
             build/execution-firmware-host/ctest-junit.xml
             build/execution-firmware-host/consumer-boundary.json
             build/execution-firmware-host/compile_commands.json

@@ -1,4 +1,4 @@
-#include <crux/execution.h>
+#include <crux/sync.h>
 #include <cstdio>
 extern "C" int crux_firmware_run(void);
 int main() {

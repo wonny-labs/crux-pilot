@@ -144,9 +144,13 @@ whitespace, duplication and partial-line errors as failures.
 ## Portable execution capability
 
 Run `scripts/test-portable-execution.sh --host-only` for separately configured C/C++
-firmware and independent runtime-shaped consumers and their execution boundary checks.
+Thread-only and Sync-only consumers, firmware and independent runtime-shaped consumers,
+and their execution boundary checks. Standalone configurations build only the selected
+component; portable C/C++ translation units cannot see the opposite public header or
+private headers. Final ELF symbol and compile-command checks reject the unselected
+provider. Sync-only ownership is exercised from a native OS-created worker.
 The full `scripts/test-portable-execution.sh` also runs Zephyr `native_sim` and EVKB
-cross-builds. Common conformance and Host failure/poll regressions run in the standard
+cross-builds for the combined and two standalone component configurations. Common conformance and Host failure/poll regressions run in the standard
 Host debug/sanitizer checks. Private admission tests prove lifecycle races without
 adding production test hooks. See [the validation record](../docs/execution-validation.md)
 for supported semantics, source identities, results and remaining #24/physical gates.

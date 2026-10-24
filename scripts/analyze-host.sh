@@ -36,10 +36,10 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/time/calendar_test.cpp" \
     "$repo/tests/time/command_test.cpp" \
     "$repo/tests/execution/src/posix.c" \
-    "$repo/components/execution/src/execution_threads.c" \
-    "$repo/components/execution/src/execution_sync.c" \
-    "$repo/components/execution/ports/linux/execution_native.c" \
-    "$repo/components/execution/ports/linux/execution_sync_native.c" \
+    "$repo/components/thread/src/thread.c" \
+    "$repo/components/sync/src/sync.c" \
+    "$repo/components/thread/ports/linux/thread_native.c" \
+    "$repo/components/sync/ports/linux/sync_native.c" \
     "$repo/tests/portable_execution/conformance.c" \
     "$repo/tests/portable_execution/host_main.c" \
     "$repo/tests/portable_execution/host_failures.c" \

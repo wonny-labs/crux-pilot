@@ -1,5 +1,10 @@
 # Portable execution validation
 
+Current Thread/Sync usage is documented in the [README](../README.md#architecture).
+The separation preserves the contract and C identifiers but replaces the historical
+Execution header/target and provider ownership described in this retained record.
+The results and source identities below remain evidence for their recorded revisions.
+
 Scope: [Issue #25](https://github.com/wonny-labs/crux-pilot/issues/25), on the
 isolated `feat/m5-execution` branch based on `94b11e4`. The
 [approved contract](execution-contract-proposal.md) records the POSIX comparison,
