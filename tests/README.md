@@ -241,3 +241,11 @@ runs focused UART-emulator/native ownership suites and cross-builds the EVKB
 fixture. It does not access hardware. See [Serial qualification](../docs/serial-validation.md)
 for the contract, actual evidence, unresolved observations and separate physical
 proposal. Root Host/ASan checks include the common and native PTY Serial cases.
+
+## Portable Logging
+
+`scripts/test-logging.sh --host-only` runs the independent C17/C++17 consumer and
+Controller checks. Full `scripts/test-logging.sh` also checks rejected native
+compositions, actual UART-emulator output and the revision-B EVKB cross-build.
+Root Host tests include `Logging.*`; the normal sanitizer preset covers them.
+See [Logging validation](../docs/logging-validation.md) for evidence and limits.

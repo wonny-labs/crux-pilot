@@ -1,0 +1,32 @@
+[1/8] Building C object components/logging/CMakeFiles/crux_logging_host.dir/ports/linux/logging_host.c.o
+[2/8] Building C object components/logging/CMakeFiles/crux_logging_host.dir/src/logging.c.o
+[3/8] Linking C static library components/logging/libcrux_logging_host.a
+[4/8] Building C object tests/logging/CMakeFiles/crux_logging_common.dir/common.c.o
+[5/8] Building C object tests/logging/CMakeFiles/crux_logging_common.dir/__/__/components/logging/src/logging.c.o
+[6/8] Linking C executable tests/logging/crux_logging_common
+[7/8] Building C object tests/logging/CMakeFiles/crux_logging_host_test.dir/host.c.o
+[8/8] Linking C executable tests/logging/crux_logging_host_test
+Internal ctest changing into directory: /tmp/crux-logging-sanitize
+Test project /tmp/crux-logging-sanitize
+    Start 43: Logging.Common.validation
+1/9 Test #43: Logging.Common.validation ........   Passed    0.08 sec
+    Start 44: Logging.Common.filtering
+2/9 Test #44: Logging.Common.filtering .........   Passed    0.09 sec
+    Start 45: Logging.Common.lifetime
+3/9 Test #45: Logging.Common.lifetime ..........   Passed    0.11 sec
+    Start 46: Logging.Common.failures
+4/9 Test #46: Logging.Common.failures ..........   Passed    0.19 sec
+    Start 47: Logging.Host.output
+5/9 Test #47: Logging.Host.output ..............   Passed    0.10 sec
+    Start 48: Logging.Host.concurrent
+6/9 Test #48: Logging.Host.concurrent ..........   Passed    0.13 sec
+    Start 49: Logging.Host.full
+7/9 Test #49: Logging.Host.full ................   Passed    0.10 sec
+    Start 50: Logging.Host.broken
+8/9 Test #50: Logging.Host.broken ..............   Passed    0.09 sec
+    Start 51: Logging.Host.pending
+9/9 Test #51: Logging.Host.pending .............   Passed    0.12 sec
+
+100% tests passed, 0 tests failed out of 9
+
+Total Test time (real) =   1.03 sec

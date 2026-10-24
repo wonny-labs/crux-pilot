@@ -1,0 +1,13 @@
+/* Console support is a native backend prerequisite. Only Logging emits on
+ * LPUART1; the profile rejects direct Console input/output and Shell. */
+/ {
+    chosen { zephyr,log-uart = &logging_uarts; };
+    logging_uarts: logging-uarts {
+        compatible = "zephyr,log-uart";
+        uarts = <&lpuart1>;
+    };
+};
+&lpuart1 { status = "okay"; current-speed = <115200>; parity = "none"; };
+
+/ { aliases { crux-serial0 = &lpuart3; }; };
+&lpuart3 { status = "okay"; current-speed = <115200>; };

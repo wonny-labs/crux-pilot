@@ -48,6 +48,9 @@ jobs:
       - name: Validate public Serial consumers
         run: ./scripts/test-serial.sh --host-only
 
+      - name: Validate public Logging consumers
+        run: ./scripts/test-logging.sh --host-only
+
       - name: Analyze host sources
         run: ./scripts/analyze-host.sh
       - name: Check build boundaries
@@ -75,5 +78,6 @@ jobs:
             build/execution-runtime-host/ctest-junit.xml
             build/execution-runtime-host/compile_commands.json
             build/messaging-consumer/ctest-junit.xml
+            build/logging-consumer/ctest-junit.xml
           retention-days: 14
           if-no-files-found: warn

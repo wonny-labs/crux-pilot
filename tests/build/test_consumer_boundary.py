@@ -21,6 +21,16 @@ class ConsumerBoundaryTest(unittest.TestCase):
             return subprocess.run([CMAKE, "-S", str(root), "-B", str(root / "build")],
                                   capture_output=True, text=True)
 
+    def test_logging_provider_selection(self):
+        for provider in ('', 'unsupported', 'host;zephyr'):
+            with self.subTest(provider=provider):
+                result = self.configure(
+                    f'add_subdirectory("{REPO}/components/base" base)\n'
+                    f'set(CRUX_LOGGING_PROVIDER "{provider}" CACHE STRING "")\n'
+                    f'add_subdirectory("{REPO}/components/logging" logging)\n')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("Crux Logging unsupported provider", result.stdout + result.stderr)
+
     def test_serial_provider_selection(self):
         for provider in ('', 'unsupported', 'host;zephyr'):
             with self.subTest(provider=provider):

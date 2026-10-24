@@ -91,6 +91,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-zephyr-time.sh "$CRUX_BOARD_TARGET"
 
+      - name: Validate portable Logging, ownership and EVKB composition
+        working-directory: crux-pilot
+        run: ./scripts/test-logging.sh
+
       - name: Upload Zephyr reports and raw logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -241,6 +245,13 @@ jobs:
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.bin
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/rom.json
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/ram.json
+            crux-pilot/build/zephyr/twister-logging/**/handler.log
+            crux-pilot/build/zephyr/twister-logging/twister.json
+            crux-pilot/build/zephyr/logging-evkb/zephyr/.config
+            crux-pilot/build/zephyr/logging-evkb/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/logging-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/logging-evkb/zephyr/zephyr.elf
+            crux-pilot/build/logging-composition/*/build.log
             crux-pilot/build/serial-composition/*/build.log
             crux-pilot/build/serial-composition/*/.config
             crux-pilot/build/serial-composition/*/zephyr.dts

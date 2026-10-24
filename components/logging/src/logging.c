@@ -3,7 +3,7 @@
 #include <stddef.h>
 static atomic_int threshold = CRUX_LOG_INFO;
 static bool valid_level(crux_log_level_t level) {
-    return level >= CRUX_LOG_OFF && level <= CRUX_LOG_DEBUG;
+    return (unsigned)level <= (unsigned)CRUX_LOG_DEBUG;
 }
 static crux_status_t validate(const char *tag, const char *text) {
     if (tag == NULL || text == NULL || tag[0] == '\0')

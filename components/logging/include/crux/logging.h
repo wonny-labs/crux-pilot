@@ -18,7 +18,7 @@ enum { CRUX_LOG_TAG_MAX = 24, CRUX_LOG_TEXT_MAX = 256 };
 crux_status_t crux_log_set_level(crux_log_level_t maximum_level);
 /* Completed text, never a format string. Nonnull NUL-terminated tag (1..24
  * ASCII letters/digits/_.-) and text (0..256 bytes, no CR/LF), excluding NUL.
- * Borrow readable, unchanged strings until return; no caller storage retained.
+ * Borrow readable, unchanged strings until return; caller may then modify/free.
  * OK means valid filtered call or native attempt, NOT queue/output/delivery
  * acknowledgement. Zephyr may drop-new after OK and reports aggregate native
  * loss. Host synchronous output may block; IO may follow a partial record.

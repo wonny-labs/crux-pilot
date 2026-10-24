@@ -177,8 +177,14 @@ new registry or runtime API. Initial Zephyr profile:
   Logging sharing, no new project-wide resource model; arbitrary direct native
   users remain subject to the declared composition rule and review.
 
-The new M5 composition disables the Console UART owner and Shell on LPUART1;
-printk, if enabled on EVKB, is routed through native logging (`LOG_PRINTK=y`).
+On 24 October 2026 the user approved a narrow EVKB composition amendment:
+the pinned native UART backend requires `UART_CONSOLE=y`, so Console support is
+compiled as its prerequisite. On shared LPUART1, direct Console stdout/input,
+Console subsystem helpers, early Console and Shell are disabled; printk is
+routed through native logging (`LOG_PRINTK=y`). Build checks enforce this
+exception only for the qualified revision-B EVKB LPUART1 profile. Native_sim keeps separate
+UARTs and does not gain a shared Console exception. No upstream patch or extra
+UART owner is introduced.
 This does not rewrite or requalify existing M3 Console/Shell images. Native_sim
 keeps its test harness Console on a different UART with `LOG_PRINTK=n`, so native
 logging capture cannot swallow Twister/ztest control output. The actual native configuration must be inspected,
