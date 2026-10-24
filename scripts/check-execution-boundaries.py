@@ -18,7 +18,7 @@ PUBLIC = ROOT / 'components/execution/include'
 HEADER = re.compile(r'#\s*include\s*[<"](?:zephyr/|fsl_|board\.h|cmsis|pthread\.h|semaphore\.h|sched\.h|sys/|unistd\.h)')
 NATIVE = re.compile(r'\b(?:k_[a-zA-Z_]\w*|pthread_\w+|sem_t|sem_(?:init|post|wait|timedwait|trywait)|clock_gettime|clock_nanosleep|nanosleep|fsl_\w+)\b')
 ENVIRONMENT = re.compile(r'^\s*#\s*(?:if|ifdef|ifndef).*\b(?:__ZEPHYR__|CONFIG_\w+|__linux__|_WIN32|BOARD_\w+)\b', re.MULTILINE)
-PRIVATE_PATH = re.compile(r'/components/execution/(?:src|host|zephyr)(?:/|$)')
+PRIVATE_PATH = re.compile(r'/components/execution/(?:src|host|zephyr|ports)(?:/|$)')
 NATIVE_PATH = re.compile(r'/(?:zephyr/(?:include|arch|soc|boards|subsys|scripts)|modules/hal)(?:/|$)')
 
 def source_errors(path):

@@ -59,7 +59,10 @@ class NativeInterfaceTest(unittest.TestCase):
 
     def test_rejects_direct_paths_into_providers_and_test_controls(self):
         for header in ("../zephyr/private.h", "../host/private.h", "../../tests/control.h",
-                       "../../vendor/chip.h", "../../boards/board.h", "../private/state.h"):
+                       "../ports/linux/detail.h", "../ports/zephyr/detail.h",
+                       "../../vendor/chip.h", "../../boards/board.h", "../private/state.h",
+                       "../../ports/linux/execution_native_types.h",
+                       "../../ports/zephyr/execution_native_types.h"):
             with self.subTest(header=header):
                 result = self.check_source(f'#include "{header}"\n')
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
@@ -84,6 +87,7 @@ class NativeInterfaceTest(unittest.TestCase):
     def test_applies_to_all_designated_portable_roots(self):
         for path in ("components/new/include/crux/new.h", "components/new/src/shared.c",
                      "components/new/src/shared.cxx", "components/new/include/crux/new.hxx",
+                     "components/time/src/time_port_memory.c",
                      "components/runtime/src/thread.c", "components/runtime/portable/thread.c",
                      "components/new/runtime_porting/lock.h", "runtime_porting/include/lock.h",
                      "applications/new/src/main.c", "runtime/src/thread.c",
@@ -118,8 +122,11 @@ class NativeInterfaceTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 
     def test_native_providers_and_compositions_remain_native(self):
-        for path in ("components/time/zephyr/backend.c", "components/time/host/backend.c",
+        for path in ("components/time/ports/zephyr/backend.c", "components/time/ports/linux/backend.c",
+                     "components/time/zephyr/backend.c", "components/time/host/backend.c",
                      "components/runtime/zephyr/thread.c",
+                     "components/execution/ports/linux/execution_native.c",
+                     "components/execution/ports/zephyr/execution_native.c",
                      "components/queue/ports/linux/queue_port.c",
                      "components/queue/ports/zephyr/queue_port.c",
                      "components/monotonic/ports/linux/monotonic_host.c",
@@ -174,6 +181,7 @@ const char *escaped = "\\\" k_sem_take";
             root = Path(directory)
             for relative in ("CMakeLists.txt", "zephyr/module.yml", "zephyr/CMakeLists.txt",
                              "components/time/CMakeLists.txt", "components/base/CMakeLists.txt",
+                             "components/time/ports/zephyr/CMakeLists.txt",
                              "tests/time/CMakeLists.txt", "scripts/check-dependencies.sh",
                              "scripts/check-native-interfaces.py", "scripts/check-execution-boundaries.py",
                              "scripts/check-networking-dependencies.py",
