@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-/* Read-only context demonstrator. No NOR command, timeout or reset path. */
+/* Private RAM context; target command admission remains refused. */
 .syntax unified
 .thumb
 .section .candidate_island_text,"ax",%progbits
@@ -54,7 +54,14 @@ crux_island_enter:
     and r0, r0, #3
     cmp r0, #3
     bne crux_island_exception_terminal
-    /* Nothing changed NOR/controller/cache. Restore while still IRQ masked. */
+    /* Only this typed private dispatcher runs after vectors/stacks/IRQ guard.
+     * NONE preserves the original unchanged read-only observation. */
+    bl crux_rom_command_dispatch
+    cmp r0, #0
+    bne crux_island_exception_terminal
+    /* Preserve result across complete caller-context restoration. */
+    mov r10, r0
+    /* Return is reachable only from dispatcher positively completed/unchanged. */
     dsb
     ldr r0, =0xe000ed08
     str r8, [r0]
@@ -67,10 +74,11 @@ crux_island_enter:
     msr PSP, r6
     mov sp, r4
     mov r0, r9
+    mov r12, r10
     pop {r4-r11, lr}
     /* Original register/stack context is complete before interrupts resume. */
     msr PRIMASK, r0
-    movs r0, #0
+    mov r0, r12
     bx lr
 .Lrefuse:
     movs r0, #13

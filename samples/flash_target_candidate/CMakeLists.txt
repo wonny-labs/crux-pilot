@@ -43,6 +43,8 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/flexspi/fsl_flexspi.c")
 execute_process(COMMAND ${PYTHON_EXECUTABLE} "${poc_repo}/tests/native/flash_target_candidate/prepare.py"
     "${poc_workspace}" "${poc_generated}" COMMAND_ERROR_IS_FATAL ANY)
+execute_process(COMMAND ${PYTHON_EXECUTABLE} "${poc_repo}/tests/native/flash_target_candidate/stage_commands.py"
+    "${poc_workspace}" "${poc_generated}" COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND ${PYTHON_EXECUTABLE} "${poc_repo}/tests/native/flash_target_candidate/stage_fcb.py"
     "${poc_workspace}" "${poc_generated}" COMMAND_ERROR_IS_FATAL ANY)
 function(poc_replace target original)
@@ -95,3 +97,12 @@ add_custom_target(candidate_image_guard ALL
         --bin "${PROJECT_BINARY_DIR}/zephyr/zephyr.bin"
     DEPENDS zephyr_final
     VERBATIM)
+
+# Preserve executable lower software candidate despite refused target admission.
+zephyr_link_libraries(-Wl,-u,crux_rom_command_prepare -Wl,-u,crux_rom_command_submit)
+target_sources(drivers__memc PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/rom_command_gate.c")
+zephyr_code_relocate(FILES "${CMAKE_CURRENT_SOURCE_DIR}/rom_command_gate.c" LOCATION ITCM_TEXT)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${poc_repo}/tests/native/flash_target_candidate/stage_commands.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/rom_command_nor.inc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/rom_command_memc.inc")

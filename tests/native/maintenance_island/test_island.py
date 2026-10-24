@@ -106,14 +106,17 @@ class ExactIsland(unittest.TestCase):
         self.assertLess(prepare.index('<crux_rom_read_confirm_supported>'),prepare.index('strb'))
         self.assertIn('ldrb',prepare);self.assertIn('strb',prepare)
         self.assertNotIn('memcpy',prepare)
-    def test_entry_has_no_transitive_calls_and_uses_both_stacks(self):
+    def test_entry_only_calls_selected_dispatch_after_ram_setup_and_uses_both_stacks(self):
         body=self.body('crux_island_enter')
-        self.assertNotRegex(body,r'\b(bl|blx|vpush|vpop|vldr|vstr)\b')
+        self.assertNotRegex(body,r'\b(blx|vpush|vpop|vldr|vstr)\b')
+        self.assertEqual(re.findall(r'\bbl\s+[^<]*<([^>]+)>',body), ['crux_rom_command_dispatch'])
+        self.assertLess(body.lower().index('msr\tpsp'),body.index('<crux_rom_command_dispatch>'))
+        self.assertRegex(body,r'<crux_rom_command_dispatch>[\s\S]*cmp\s+r0, #0[\s\S]*bne[^\n]*<crux_island_exception_terminal>')
         for token in ['MSP','PSP','CONTROL','PRIMASK','IPSR','dsb','isb']:
             self.assertIn(token.lower(),body.lower())
         self.assertIn('402a8000',body)
         self.assertIn('e000ed08',body)
-        # Linked literals close this stackless read-only root's data dependencies.
+        # Context literals close setup data; selected command transitive closure is checked separately.
         words=[int(x,16) for x in re.findall(r'\.word\s+0x([0-9a-f]+)',body)]
         self.assertEqual(set(words),{0xe000ed88,0xe000ef34,0xe000ed08,0x402a8000,
             self.symbols['__island_exception_top'],self.symbols['__island_operation_top'],
