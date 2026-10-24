@@ -16,11 +16,11 @@ ctest --test-dir build/monotonic-host --output-on-failure
   port. It checks preserved outputs after failed/invalid reads, range limits,
   immediate past deadlines, repeated early wakes without renewing the deadline,
   failure propagation, ISR rejection and checked tick conversion boundaries.
-- `Monotonic.NativeBoundaries` binds the real Host provider and uses linker-only
+- `Monotonic.LinuxPort` binds the Linux port and uses linker-only
   native call wrappers. It checks malformed and overflowing `timespec` values,
   floor conversion, read failure, interrupted absolute waits, original deadlines
   and native sleep failure. Wrappers affect this executable only.
-- `Monotonic.RealHost` uses the production native clock and sleep functions through
+- `Monotonic.LinuxIntegration` uses the actual Linux clock and sleep functions through
   a public C++17 consumer, checks nondecreasing observations and reaches a finite
   absolute deadline. Its five-second test timeout is a broad test-harness limit,
   not a return-latency guarantee.

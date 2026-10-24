@@ -10,6 +10,10 @@ The later integration with the accepted optional/external build model is tracked
 [separately](evidence/m5-system-integration/README.md). The original results below
 retain their original source identity; new final-HEAD CI is reported on PR #64.
 
+The final PR #65 Linux naming integration is recorded
+[here](evidence/m5-system-linux-integration/README.md), including the byte-identical
+System source rename and current build/analysis references.
+
 ## Scope and reproducibility
 
 Six public C17 operations in `<crux/system.h>` / `crux::system`, usable from

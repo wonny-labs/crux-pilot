@@ -4,7 +4,7 @@ target_include_directories(crux_monotonic INTERFACE include)
 target_link_libraries(crux_monotonic INTERFACE crux::base)
 
 # Native provider belongs to final composition, never the public usage graph.
-add_library(crux_monotonic_linux STATIC src/monotonic.c ports/linux/monotonic_host.c)
+add_library(crux_monotonic_linux STATIC src/monotonic.c ports/linux/monotonic_linux.c)
 target_include_directories(crux_monotonic_linux PRIVATE src)
 target_link_libraries(crux_monotonic_linux PRIVATE crux::monotonic)
 target_compile_definitions(crux_monotonic_linux PRIVATE _POSIX_C_SOURCE=200809L)
