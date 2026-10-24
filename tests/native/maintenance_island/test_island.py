@@ -100,8 +100,10 @@ class ExactIsland(unittest.TestCase):
         self.assertNotRegex(refusal,r'\b(bl|blx|ldr|str)\b')
         prepare=self.body('crux_flash_island_inspect_and_refuse')
         calls=re.findall(r'\bbl(?:x)?\s+[^<]*<([^>]+)>',prepare)
-        self.assertEqual(len(calls),1)
-        self.assertIn('crux_island_enter',calls[0])
+        self.assertEqual(len(calls),2)
+        self.assertEqual(calls[0],'crux_rom_read_confirm_supported')
+        self.assertIn('crux_island_enter',calls[1])
+        self.assertLess(prepare.index('<crux_rom_read_confirm_supported>'),prepare.index('strb'))
         self.assertIn('ldrb',prepare);self.assertIn('strb',prepare)
         self.assertNotIn('memcpy',prepare)
     def test_entry_has_no_transitive_calls_and_uses_both_stacks(self):

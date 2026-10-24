@@ -47,3 +47,21 @@
 ## Checkpoint outcome
 
 Tasks 1 and 2 are complete for this software candidate. Task 3 has the reviewed pre-C snapshot and conditional read-only RAM context; actual mutating Flash paths, deadlines and operational target binding remain unfinished software. The target always refuses native Flash operations. Reviewer and whole-change Challenger PASS apply only to that declared slice. A focused stacked Draft PR is the current handoff; it does not finish the M4 Goal or approve physical activity. Latest-main integration has two additive component-selection conflicts, retained as an eventual integration prerequisite.
+
+
+### Task 5: Approved 100 MHz FCB and consumed read-confirm preflight
+
+User approved the100MHz software candidate in this chat after Reviewer/Challenger escalation. This does not adopt a production boot profile, select GPT2/another deadline source, operate hardware, merge or close anything.
+
+**Files:** stage the pinned EVKB-B boot-FCB through `tests/native/flash_target_candidate/prepare.py` or a small sibling; modify only experimental sample CMake/private profile code. Add focused tests under `tests/native/rom_storage_candidate/`. Preserve accepted base PoC and pinned upstream unchanged.
+
+- [x] First failing tests: stage FCB copy at100MHz and retain all other fields/LUT bytes; reject wrong source/unsafe publication. Compile-time witness serial_clk_freq offset and enum, exact finalELF/BIN field check.
+- [x] Consume a small private pure-C profile predicate from actual sample preflight (not an unused abstraction). Read-confirm raw controller geometry/read-LUT/selected command slots and derived clock under declared104MHz runtime ceiling. Actual register-derived frequency is not a physical frequency measurement. Unknown/mismatching/disabled/unsafe state refuses. Do not trust the FCB constant as actual register state.
+- [x] Reuse FCB READ0/status1/WREN3/sector5/page9; **no commands or LUT/clock/mode writes in this task**. Identity9Fh, actualWIP and timer remain pendingTask6. Do not seed a JEDEC slot without verified ROM slot/ownership reasoning.
+- [x] Use existing pinned NXP facilities for read-only clock derivation if possible, outside the RAM busy window; no Zephyr kernel/timer abstraction or GPT2/DWT adoption. Validate precise API/divider semantics before use. Restrict source/config as currentcandidate does.
+- [x] Test wrong selector/geometry/LUT/clock/disabled inputs and positive declared profile; then implement minimal code. Crossbuild exactEVKBBcandidate and inspectFCB100, copiedsource identity andpreflight placement/order. Existing targetinit/media calls remain refused at this checkpoint; no claim of mutating-path completion.
+- [x] Scoped independent review before nexttask. Retain RED/GREEN, artifact/input hashes and exact reproducible manualgate. No unrelated whole-suite rebuild.
+
+### Task 6: Real command path inside selected RAM context (after Task5)
+
+Continue the approved100MHz design through native helper/sequence adaptation, software MEMC bookkeeping without set_device_config/reclock, sector-onlyerase, explicit identity/status read-confirm, typed one-context command execution, success-ready buffer refresh versus RAM uncertainty disposition and actual lower error/deadline test paths. Reuse existing helpers/SDK rather than create a general Flash driver. GPT2 and any production elapsed-time source remain unselected; target must refuse commands when required time/identity/safety qualification is absent. Do not relabel source-only/controlled-time tests as target qualification. This is still unfinished, not satisfied by read-only preflight.

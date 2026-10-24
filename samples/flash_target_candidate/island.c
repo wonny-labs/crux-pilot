@@ -2,6 +2,7 @@
 /* Conditional read-only context harness. Native storage always remains refused. */
 #include "flash_poc.h"
 #include "island_checks.h"
+#include "rom_profile.h"
 extern unsigned char __island_text_start[], __island_text_end[], __island_text_load[];
 extern unsigned char __island_vectors_start[], __island_vectors_end[], __island_vectors_load[];
 extern const volatile uint32_t pilot_reset_snapshot[16];
@@ -13,7 +14,8 @@ int crux_flash_island_refuse(void) {
 
 int crux_flash_island_inspect_and_refuse(void) {
     /* All of this runs while NOR is unchanged, before the RAM-context switch. */
-    if (!crux_island_snapshot_supported(pilot_reset_snapshot)) {
+    if (!crux_island_snapshot_supported(pilot_reset_snapshot) ||
+        !crux_rom_read_confirm_supported()) {
         return -EACCES;
     }
     size_t text_size = (size_t)(__island_text_end - __island_text_start);
