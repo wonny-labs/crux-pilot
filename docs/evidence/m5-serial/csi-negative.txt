@@ -3,14 +3,14 @@ Expected negative compile with boards/csi-conflict.overlay
 Loading Zephyr default modules (Zephyr base).
 -- Application: $REPO/tests/serial_consumer/zephyr
 -- CMake version: 3.28.4
--- Found Python3: /opt/crux-cache/venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter 
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter
 -- Cache files will be written to: /root/.cache/zephyr
 -- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
 -- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
 -- Board: mimxrt1060_evk, Revision: B, qualifiers: mimxrt1062/qspi
 -- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
 -- Found toolchain: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
--- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6") 
+-- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6")
 -- Found BOARD.dts: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts
 -- Found devicetree overlay: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_B.overlay
 -- Found devicetree overlay: $REPO/tests/serial_consumer/zephyr/boards/mimxrt1060_evk_mimxrt1062_qspi.overlay
@@ -24,7 +24,7 @@ Loaded configuration '$WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk
 Merged configuration '$REPO/tests/serial_consumer/zephyr/prj.conf'
 Configuration saved to '/tmp/crux-serial-csi-negative/zephyr/.config'
 Kconfig header saved to '/tmp/crux-serial-csi-negative/zephyr/include/generated/zephyr/autoconf.h'
--- Found GnuLd: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/arm-zephyr-eabi/bin/ld.bfd (found version "2.43.1") 
+-- Found GnuLd: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/arm-zephyr-eabi/bin/ld.bfd (found version "2.43.1")
 -- The C compiler identification is GNU 14.3.0
 -- The CXX compiler identification is GNU 14.3.0
 -- The ASM compiler identification is GNU
@@ -52,7 +52,7 @@ Kconfig header saved to '/tmp/crux-serial-csi-negative/zephyr/include/generated/
 [12/16] Generating include/generated/zephyr/offsets.h
 [13/16] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir$REPO/components/serial/src/serial.c.obj
 [14/16] Building C object modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_binding.c.obj
-FAILED: modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_binding.c.obj 
+FAILED: modules/m5-serial/serial/CMakeFiles/crux_serial_zephyr.dir/serial_binding.c.obj
 $REPO/components/serial/ports/zephyr/serial_binding.c:9:2: error: #error "LPUART3 Serial pins conflict with enabled EVKB CSI"
     9 | #error "LPUART3 Serial pins conflict with enabled EVKB CSI"
       |  ^~~~~
