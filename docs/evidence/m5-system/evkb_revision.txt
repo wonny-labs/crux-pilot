@@ -2,14 +2,14 @@
 Loading Zephyr default modules (Zephyr base).
 -- Application: $REPO/tests/system_consumer/zephyr
 -- CMake version: 3.28.4
--- Found Python3: /opt/crux-cache/venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter 
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter
 -- Cache files will be written to: $CACHE/zephyr
 -- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
 -- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
 -- Board: mimxrt1060_evk, Revision: C, qualifiers: mimxrt1062/qspi
 -- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
 -- Found toolchain: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
--- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6") 
+-- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6")
 -- Found BOARD.dts: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts
 -- Found devicetree overlay: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_C.overlay
 -- Found devicetree overlay: $REPO/tests/system_consumer/zephyr/boards/mimxrt1060_evk_mimxrt1062_qspi.overlay
@@ -24,7 +24,7 @@ Merged configuration '$REPO/tests/system_consumer/zephyr/prj.conf'
 Merged configuration '$REPO/build/system-composition/evkb_revision/case.conf'
 Configuration saved to '$REPO/build/system-composition/revision-build/zephyr/.config'
 Kconfig header saved to '$REPO/build/system-composition/revision-build/zephyr/include/generated/zephyr/autoconf.h'
--- Found GnuLd: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/arm-zephyr-eabi/bin/ld.bfd (found version "2.43.1") 
+-- Found GnuLd: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/arm-zephyr-eabi/bin/ld.bfd (found version "2.43.1")
 -- The C compiler identification is GNU 14.3.0
 -- The CXX compiler identification is GNU 14.3.0
 -- The ASM compiler identification is GNU

@@ -12,7 +12,7 @@
 -- Detecting CXX compile features - done
 -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
 -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
--- Found Threads: TRUE  
+-- Found Threads: TRUE
 -- Configuring done (51.2s)
 -- Generating done (0.6s)
 -- Build files have been written to: /tmp/crux-system-consumer-sanitize

@@ -68,7 +68,10 @@
 
 **Files:** approved design (canonical contract), docs/system-validation.md, docs/evidence/m5-system/, tests guide; final PR description.
 
-- [ ] Reviewer and Challenger inspect actual code/contracts/tests/evidence; resolve material findings under affected RED/GREEN and independent re-review.
-- [ ] Map every #30 acceptance criterion to actual software proof or explicit physical limitation. Include ownership/feed scheduling/reset consequences, static resources, unsupported modes, prior failures and a separately gated minimal physical scenario.
-- [ ] Run all applicable Host/Zephyr hosted CI against final stable HEAD. Inspect exact head/run results and actual relevant logs. Do not create repeated CI cycles solely to record outcomes; final PR/ledger records those results.
-- [ ] Create/attach Draft PR referencing #30 without closing keywords; report head/results/reviews/remaining physical gates. No merge/Issue closure.
+- [x] Reviewer and Challenger inspect actual code/contracts/tests/evidence; resolve material findings under affected RED/GREEN and independent re-review.
+- [x] Map every #30 acceptance criterion to actual software proof or explicit physical limitation. Include ownership/feed scheduling/reset consequences, static resources, unsupported modes, prior failures and a separately gated minimal physical scenario.
+- Run all applicable Host/Zephyr hosted CI against final stable HEAD. Inspect exact head/run results and actual relevant logs. Do not create repeated CI cycles solely to record outcomes; final PR/ledger records those results.
+- Create/attach Draft PR referencing #30 without closing keywords; report head/results/reviews/remaining physical gates. No merge/Issue closure.
+
+Task 5 publication and exact-HEAD CI outcomes are recorded on the PR and execution
+ledger; the plan is not a live CI-status document.

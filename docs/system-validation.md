@@ -38,7 +38,7 @@ scripts/test-system.sh
 During implementation only affected System targets/CTest cases, consumer probes
 and native gates were run. Final full Host/Zephyr validation is delegated to the
 existing PR/push workflows on one stable final HEAD. No unrelated baseline
-investigation or physical operations are part of these commands. Public logs use
+investigation or physical operations are part of these commands. Public logs normalize trailing whitespace and use
 `$REPO` / `$WORKSPACE` placeholders for checkout locations.
 
 ## Evidence and acceptance coverage
@@ -53,7 +53,7 @@ investigation or physical operations are part of these commands. Public logs use
 | Native-free boundary | System source rejection, invalid provider and actual facade private-include leakage tests 3/3; dependency policy passes | Bounded lexical/build rules, not proof of arbitrary third-party portability |
 | Format/static analysis | Affected sources pass; no broad suppressions | Native ABI wrapping uses narrow comments where necessary |
 | EVKB composition/resources | Six-operation image linked; Flash 40,848 B / RAM 7,616 B | Compile/link and configured/static resources only |
-| Final hosted CI | Results recorded on the PR against its final HEAD | Host PR/push and Zephyr PR/push, all four required before acceptance |
+| Final hosted CI | External gate: require four SUCCESS results on final published HEAD; inspect PR checks for current status | Host PR/push and Zephyr PR/push, all four required before acceptance |
 
 The independent runtime consumer was written separately from the platform
 implementation and its expectations. C and C++ helpers retain service/cause
@@ -107,6 +107,15 @@ The negative gate caught that ordering issue; the binding now checks alias/enabl
 state before including the selected HAL header. A consumer configure/compiler-setup failure
 from overlapping same-output CMake invocations is retained as a development
 failure, not counted as feature RED evidence.
+
+## Independent review
+
+[Reviewer and Challenger](evidence/m5-system/reviews.md) independently returned
+PASS for source `042086b` and the inspected local software evidence. Their
+material freshness, boundary-test and reset-lock evidence findings are resolved.
+Subsequent review-record changes affect documentation/log whitespace only; the
+implementation and tested source hashes are unchanged. Hosted CI remains a
+separate final-HEAD acceptance criterion, with current results on the PR.
 
 ## Supported behaviour and native limits
 
