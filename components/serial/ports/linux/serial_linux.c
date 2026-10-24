@@ -1,4 +1,4 @@
-#include "serial_host.h"
+#include "serial_linux.h"
 #include "serial_port.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -59,7 +59,7 @@ crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline) {
 void serial_port_metadata_unlock(void) {
     (void)pthread_mutex_unlock(&metadata);
 }
-crux_status_t crux_serial_host_bind(crux_serial_port_t port, const char *path) {
+crux_status_t crux_serial_linux_bind(crux_serial_port_t port, const char *path) {
     if (port >= CRUX_SERIAL_PORT_COUNT || path == NULL || path[0] == '\0')
         return CRUX_ERR_INVALID_ARGUMENT;
     size_t size = strnlen(path, sizeof(ports[port].path));

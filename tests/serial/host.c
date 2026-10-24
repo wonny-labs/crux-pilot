@@ -1,5 +1,5 @@
 #define _XOPEN_SOURCE 700 // NOLINT(bugprone-reserved-identifier): POSIX feature selector
-#include "serial_host.h"
+#include "serial_linux.h"
 #include "serial_port.h"
 #include <assert.h>
 #include <crux/serial.h>
@@ -77,7 +77,7 @@ static void setup(void) {
     assert(master >= 0 && grantpt(master) == 0 && unlockpt(master) == 0);
     path = ptsname(master);
     assert(path != NULL);
-    assert(crux_serial_host_bind(0, path) == CRUX_OK);
+    assert(crux_serial_linux_bind(0, path) == CRUX_OK);
     assert(crux_serial_open(0, &config, &serial) == CRUX_OK);
 }
 static void cleanup(void) {
@@ -177,7 +177,7 @@ static void cleanup_failure(void) {
     assert(close(master) == 0);
 }
 static void unavailable(void) {
-    assert(crux_serial_host_bind(0, "/dev/crux-no-such-serial-test") == CRUX_OK);
+    assert(crux_serial_linux_bind(0, "/dev/crux-no-such-serial-test") == CRUX_OK);
     assert(crux_serial_open(0, &config, &serial) == CRUX_ERR_NOT_READY && serial.slot == 0);
 }
 static void admission(void) {
