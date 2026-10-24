@@ -47,3 +47,39 @@
 ## Checkpoint outcome
 
 Tasks 1 and 2 are complete for this software candidate. Task 3 has the reviewed pre-C snapshot and conditional read-only RAM context; actual mutating Flash paths, deadlines and operational target binding remain unfinished software. The target always refuses native Flash operations. Reviewer and whole-change Challenger PASS apply only to that declared slice. A focused stacked Draft PR is the current handoff; it does not finish the M4 Goal or approve physical activity. Latest-main integration has two additive component-selection conflicts, retained as an eventual integration prerequisite.
+
+
+### Task 5: Approved 100 MHz FCB and consumed read-confirm preflight
+
+User approved the100MHz software candidate in this chat after Reviewer/Challenger escalation. This does not adopt a production boot profile, select GPT2/another deadline source, operate hardware, merge or close anything.
+
+**Files:** stage the pinned EVKB-B boot-FCB through `tests/native/flash_target_candidate/prepare.py` or a small sibling; modify only experimental sample CMake/private profile code. Add focused tests under `tests/native/rom_storage_candidate/`. Preserve accepted base PoC and pinned upstream unchanged.
+
+- [x] First failing tests: stage FCB copy at100MHz and retain all other fields/LUT bytes; reject wrong source/unsafe publication. Compile-time witness serial_clk_freq offset and enum, exact finalELF/BIN field check.
+- [x] Consume a small private pure-C profile predicate from actual sample preflight (not an unused abstraction). Read-confirm raw controller geometry/read-LUT/selected command slots and derived clock under declared104MHz runtime ceiling. Actual register-derived frequency is not a physical frequency measurement. Unknown/mismatching/disabled/unsafe state refuses. Do not trust the FCB constant as actual register state.
+- [x] Reuse FCB READ0/status1/WREN3/sector5/page9; **no commands or LUT/clock/mode writes in this task**. Identity9Fh, actualWIP and timer remain pendingTask6. Do not seed a JEDEC slot without verified ROM slot/ownership reasoning.
+- [x] Use existing pinned NXP facilities for read-only clock derivation if possible, outside the RAM busy window; no Zephyr kernel/timer abstraction or GPT2/DWT adoption. Validate precise API/divider semantics before use. Restrict source/config as currentcandidate does.
+- [x] Test wrong selector/geometry/LUT/clock/disabled inputs and positive declared profile; then implement minimal code. Crossbuild exactEVKBBcandidate and inspectFCB100, copiedsource identity andpreflight placement/order. Existing targetinit/media calls remain refused at this checkpoint; no claim of mutating-path completion.
+- [x] Scoped independent review before nexttask. Retain RED/GREEN, artifact/input hashes and exact reproducible manualgate. No unrelated whole-suite rebuild.
+
+### Task 6: Real command path inside selected RAM context (after Task5)
+
+Continue the approved100MHz design through native helper/sequence adaptation, software MEMC bookkeeping without set_device_config/reclock, sector-onlyerase, explicit identity/status read-confirm, typed one-context command execution, success-ready buffer refresh versus RAM uncertainty disposition and actual lower error/deadline test paths. Reuse existing helpers/SDK rather than create a general Flash driver. GPT2 and any production elapsed-time source remain unselected; target must refuse commands when required time/identity/safety qualification is absent. Do not relabel source-only/controlled-time tests as target qualification. This is still unfinished, not satisfied by read-only preflight.
+
+### Task 6 bounded outcome
+
+The private selected native command/helper slice is implemented and independently reviewed at `7ef53d9`: controlled effects, exact image and 46 focused checks pass. Target submission and ordinary native init/media operations remain refused. This completes that bounded software experiment, not full Task 3 execution safety or target File/Configuration binding. A real elapsed-time source and lower-wait design, identity/protection/slot policy, runtime verification of added relocation regions and hardware prerequisites remain unresolved.
+
+Disposable integration of the PR #62 checkpoint with accepted main `bf048c1` preserved the two additive module selections and passed 66 designated source checks, 115 Host tests and nine native maintenance cases, with independent review. It did not merge parent PRs or test this later command image as an integrated operational target. Preserve that distinction before main acceptance.
+
+### Task 7: Verify actual relocated command regions before entry
+
+The existing approved RAM safety design requires code/data verification. Add consumed comparisons using actual relocation symbols before context entry: immutable text/rodata each entry; initialized and mutable data only at a justified lifecycle phase, without overwriting live state. Reject malformed extents and mismatches. TDD actual consumed verification plus linked-region/order evidence. Preserve target refusal, 100 MHz FCB and all unselected timer/identity gates. No new loader, cryptographic framework or hardware operations. Independent review of the delta and final image is required.
+
+### Tasks 8–9: Approved GPT2 and temporary identity-slot software candidates
+
+User explicitly approved both independently reviewed next-safety proposals in this chat. This selects software experiments only: target admission remains refused; production adoption, hardware/register operations, merges and closure remain unapproved.
+
+Task 8 implements an isolated GPT2 oscillator-backed candidate using native facilities, explicit source/free-running/prescaler/progress/wrap/expiry semantics and selected lower-wait hooks. Do not trust nominal DTS25MHz or adopt fitted-part deadlines from incomplete sources. The real target admission/elapsed qualification leaf remains fail-closed. TDD actual candidate/helper effects, affected native regressions and new ARM graph/data audit; scoped independent review.
+
+Task 9 follows Task8 review: prove full inherited LUT/port/AHB-read-write/IP/exclusive use before selecting an experimental9F slot; save/verify/restore slot and applicable lockstate only with knownNORready/controlleridle. Uncertainty staysRAM; BootFCBunchanged. TDD actualnativehelper/stagedSDK effects, failure/restore checks and finalARMproof; independentReviewer/Challenger. No production layout/backend/public API. Final focused Draftupdate after both tasks, reusing prior evidence and running affected gates only.

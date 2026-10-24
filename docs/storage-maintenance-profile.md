@@ -1,5 +1,7 @@
 # Maintenance storage profile — software candidate
 
+This record preserves the PR #62 checkpoint. The later [ROM-preserving candidate](rom-storage-candidate.md) extends its software timer, identity and relocation evidence without retroactively qualifying this checkpoint.
+
 Status: software implementation baseline conditionally approved in the user review of 24 October 2026. This is a **limited M4 validation configuration**, not a permanent Crux storage architecture. M7 concurrent controller/network/storage qualification remains pending. No production patch/layout adoption, physical execution, programming, reset, erase/write, merge or Issue closure is authorised. Do not program or boot the PR #59 candidate.
 
 ## Observable lifecycle

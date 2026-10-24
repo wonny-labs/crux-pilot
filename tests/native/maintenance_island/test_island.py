@@ -79,6 +79,74 @@ class ExactIsland(unittest.TestCase):
         self.assertEqual(words[1:],(self.symbols['crux_island_exception_terminal']|1,)*255)
         self.assertEqual(self.symbols['__island_operation_top']-self.symbols['__island_operation_bottom'],1024)
         self.assertEqual(self.symbols['__island_exception_top']-self.symbols['__island_exception_bottom'],1024)
+
+    def test_consumed_relocation_ranges_and_physical_load_images(self):
+        # Every selected busy function, including its literal pool, must be
+        # inside the range the actual adapter compares before context entry.
+        start=self.symbols['__itcm_text_reloc_start']
+        end=start+self.symbols['__itcm_text_reloc_size']
+        for name in ['crux_rom_command_dispatch','crux_pilot_flash_owner_request_valid',
+                     'crux_rom_check_deadline','crux_rom_check_result','crux_rom_ready_idle',
+                     'crux_rom_native_write_enable','crux_rom_native_erase_sector',
+                     'memc_flexspi_transfer','memc_flexspi_wait_bus_idle','memc_flexspi_reset',
+                     'FLEXSPI_CheckAndClearError','FLEXSPI_GetBusIdleStatus',
+                     'FLEXSPI_ReadBlocking','FLEXSPI_WriteBlocking','FLEXSPI_TransferBlocking',
+                     'FLEXSPI_SoftwareReset','crux_rom_elapsed_expired','crux_flash_poc_terminal']:
+            body=self.body(name).split('<'+name+'>:',1)[1]
+            addresses=[int(a,16) for a in re.findall(r'^\s*([0-9a-f]+):',body,re.M)]
+            self.assertGreaterEqual(min(addresses),start,name)
+            self.assertLess(max(addresses),end,name)
+            for word in re.findall(r'\.word\s+0x([0-9a-f]+)',body):
+                value=int(word,16)
+                if 0x20000000<=value<0x20020000:
+                    self.assertTrue(any(self.symbols[f'__dtcm_{kind}_reloc_start']<=value<
+                        self.symbols[f'__dtcm_{kind}_reloc_start']+self.symbols[f'__dtcm_{kind}_reloc_size']
+                        for kind in ['rodata','data','bss']),(name,word))
+        for name,kind in [('crux_rom_memc_config','data'),('crux_rom_memc_data','bss'),
+                          ('crux_rom_nor','bss'),('crux_rom_command','bss')]:
+            low=self.symbols[f'__dtcm_{kind}_reloc_start']
+            self.assertGreaterEqual(self.symbols[name],low)
+            self.assertLess(self.symbols[name],low+self.symbols[f'__dtcm_{kind}_reloc_size'])
+        header=struct.unpack_from('<16sHHIIIIIHHHHHH',self.elf)
+        binary=Path(os.environ['PILOT_BIN']).read_bytes()
+        for prefix in ['itcm_text','dtcm_rodata','dtcm_data']:
+            vma=self.symbols[f'__{prefix}_reloc_start']
+            size=self.symbols[f'__{prefix}_reloc_size']
+            lma=self.symbols[f'__{prefix}_rom_start']
+            self.assertGreater(size,0)
+            self.assertEqual(size%4,0)
+            matches=[]
+            for i in range(header[10]):
+                p=struct.unpack_from('<8I',self.elf,header[5]+i*header[9])
+                if p[0]==1 and p[2]<=vma and vma+size<=p[2]+p[4]:
+                    matches.append(p[3]+vma-p[2])
+            self.assertEqual(matches,[lma],prefix)
+            self.assertGreaterEqual(lma,0x60000000)
+            self.assertLessEqual(lma+size,0x60620000)
+            self.assertEqual(self.bytes_at(vma,size),binary[lma-0x60000000:lma-0x60000000+size])
+
+    def test_actual_startup_verifies_before_native_post_kernel_entry(self):
+        self.assertIn('crux_island_relocation_init',self.symbols,'missing registered early verifier')
+        entry=self.symbols['__init_crux_island_relocation_init']
+        self.assertGreaterEqual(entry,self.symbols['__init_PRE_KERNEL_1_start'])
+        self.assertLess(entry,self.symbols['__init_PRE_KERNEL_2_start'])
+        self.assertEqual(struct.unpack('<2I',self.bytes_at(entry,8)),
+                         (self.symbols['crux_island_relocation_init'],0))
+        for name in ['__init___device_dts_ord_546','__init___device_dts_ord_547']:
+            self.assertGreaterEqual(self.symbols[name],self.symbols['__init_POST_KERNEL_start'])
+            self.assertLess(self.symbols[name],self.symbols['__init_APPLICATION_start'])
+            self.assertGreater(self.symbols[name],entry)
+        prep=self.body('z_prep_c')
+        self.assertLess(prep.index('<arch_bss_zero>'),prep.index('<arch_data_copy>'))
+        self.assertLess(prep.index('<arch_data_copy>'),prep.index('<z_cstart>'))
+        self.assertIn('<bss_zeroing_relocation>',self.body('arch_bss_zero'))
+        self.assertIn('<data_copy_xip_relocation>',self.body('arch_data_copy'))
+        hook=self.body('crux_island_relocation_init')
+        preflight=self.body('crux_flash_island_inspect_and_refuse')
+        self.assertIn('<crux_island_relocations_valid>',hook)
+        self.assertIn('<crux_island_relocations_valid>',preflight)
+        self.assertLess(preflight.index('<crux_island_relocations_valid>'),
+                        preflight.index('crux_island_enter'))
     def test_preclock_gate_precedes_real_hook(self):
         body=self.body('__wrap_soc_early_init_hook')
         self.assertNotRegex(body,r'\b(push|pop|bl|blx|str)\b|\bsp\b')
@@ -100,18 +168,28 @@ class ExactIsland(unittest.TestCase):
         self.assertNotRegex(refusal,r'\b(bl|blx|ldr|str)\b')
         prepare=self.body('crux_flash_island_inspect_and_refuse')
         calls=re.findall(r'\bbl(?:x)?\s+[^<]*<([^>]+)>',prepare)
-        self.assertEqual(len(calls),1)
-        self.assertIn('crux_island_enter',calls[0])
+        self.assertEqual(len(calls),3)
+        self.assertEqual(calls[0],'crux_rom_read_confirm_supported')
+        self.assertEqual(calls[1],'crux_island_relocations_valid')
+        self.assertIn('crux_island_enter',calls[2])
+        stores=list(re.finditer(r'\bstrb(?:\.w)?\s+[^\n]*\[[^],]+, r\d+\]',prepare))
+        self.assertEqual(len(stores),2)
+        for store in stores:
+            self.assertLess(prepare.index('<crux_island_relocations_valid>'),store.start())
+            self.assertLess(prepare.index('<crux_rom_read_confirm_supported>'),store.start())
         self.assertIn('ldrb',prepare);self.assertIn('strb',prepare)
         self.assertNotIn('memcpy',prepare)
-    def test_entry_has_no_transitive_calls_and_uses_both_stacks(self):
+    def test_entry_only_calls_selected_dispatch_after_ram_setup_and_uses_both_stacks(self):
         body=self.body('crux_island_enter')
-        self.assertNotRegex(body,r'\b(bl|blx|vpush|vpop|vldr|vstr)\b')
+        self.assertNotRegex(body,r'\b(blx|vpush|vpop|vldr|vstr)\b')
+        self.assertEqual(re.findall(r'\bbl\s+[^<]*<([^>]+)>',body), ['crux_rom_command_dispatch'])
+        self.assertLess(body.lower().index('msr\tpsp'),body.index('<crux_rom_command_dispatch>'))
+        self.assertRegex(body,r'<crux_rom_command_dispatch>[\s\S]*cmp\s+r0, #0[\s\S]*bne[^\n]*<crux_island_exception_terminal>')
         for token in ['MSP','PSP','CONTROL','PRIMASK','IPSR','dsb','isb']:
             self.assertIn(token.lower(),body.lower())
         self.assertIn('402a8000',body)
         self.assertIn('e000ed08',body)
-        # Linked literals close this stackless read-only root's data dependencies.
+        # Context literals close setup data; selected command transitive closure is checked separately.
         words=[int(x,16) for x in re.findall(r'\.word\s+0x([0-9a-f]+)',body)]
         self.assertEqual(set(words),{0xe000ed88,0xe000ef34,0xe000ed08,0x402a8000,
             self.symbols['__island_exception_top'],self.symbols['__island_operation_top'],
