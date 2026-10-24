@@ -2,6 +2,8 @@
 
 This software-only gate is separate from standard hosted CI. Use implementation `1818298`, the pinned Zephyr `684c9e8` and NXP `2c2f28a`, the existing Linux workspace/SDK and a writable output directory. Do not run programming, reset or hardware tools. The actual retained commands/logs and source identities are indexed in [verification.json](verification.json).
 
+For the current scratch-separated successor, use the [conditional software evidence](conditional-acceptance.md), including all five isolated native modes and the repaired semantic startup check. The results below describe the original baseline.
+
 ## Reproduce
 
 From the source root, adapt the workspace/SDK paths to the documented setup. These commands build the sample; they do not run its ARM image.

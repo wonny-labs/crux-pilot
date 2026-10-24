@@ -14,7 +14,7 @@ The fixed trial uses existing portable APIs, controlled Settings/NVS corrections
 
 ## Verified evidence
 
-Tested implementation: `18182984c99c7ccadc660ecb8ba0f237e9c0732e`, stacked on PR #63 at `a9928a5`.
+Historical baseline implementation: `18182984c99c7ccadc660ecb8ba0f237e9c0732e`, stacked on PR #63 at `a9928a5`.
 
 | Gate | Result |
 | --- | --- |
@@ -28,9 +28,11 @@ Tested implementation: `18182984c99c7ccadc660ecb8ba0f237e9c0732e`, stacked on PR
 
 No final skips. These totals include positive and negative cases. The positive composition uses simulated Flash as its controlled command leaf; separate tests exercise the actual staged RAM dispatcher/read result. Unprovisioned storage refuses without File/NVS mutation or implicit format, and now preserves the entire seeded scratch sector without scratch commands. A separate explicit scratch-only entrypoint owns its own one-way episode and never initializes File/NVS. Healthy reboot/Settings readback and normal NVS GC are simulator evidence, not physical reboot qualification.
 
-Final BIN is **80,064 bytes**, SHA-256 `85438fc2abb5e96407795dc3a0ec4dea1afb418f7d3f64e2ae30dffbc5aaf4c0`; ELF SHA-256 `7193cd2c74bec66e76c20b2c07699730039685e86a2e3bbc44534956abbf1346`. The renewed selected busy graph has 28 ITCM functions and conservative all-frame sum 484 bytes against the 1024-byte operation stack. The new bounded read-result copy is in ITCM with no callee, after known-ready return. This combines limited automated inspection with manual conditional/alias/stack/data review; it is not a general XIP proof or measured stack use.
+The historical baseline BIN is **80,064 bytes**, SHA-256 `85438fc2abb5e96407795dc3a0ec4dea1afb418f7d3f64e2ae30dffbc5aaf4c0`; ELF SHA-256 `7193cd2c74bec66e76c20b2c07699730039685e86a2e3bbc44534956abbf1346`. The renewed selected busy graph has 28 ITCM functions and conservative all-frame sum 484 bytes against the 1024-byte operation stack. The new bounded read-result copy is in ITCM with no callee, after known-ready return. This combines limited automated inspection with manual conditional/alias/stack/data review; it is not a general XIP proof or measured stack use.
 
 The [manual gate](evidence/rt1060-storage-integration/verification.md), [source/artifact identities](evidence/rt1060-storage-integration/verification.json) and independent review record retain scope and reproducibility. Previous [ROM candidate evidence](evidence/rom-storage-candidate/verification.md) stays historical; its smaller image hashes are not this image.
+
+The [scratch-separated successor verification](evidence/rt1060-storage-integration/conditional-acceptance.md) records the current normal/scratch separation, semantic startup repair, exact-main disposable union and fresh image identities; the baseline totals and hashes above remain historical.
 
 ## Remaining approval and safety gates
 
