@@ -2,7 +2,7 @@
 
 These are actual local development results, committed alongside the implementation.
 `$REPO` and `$WORKSPACE` replace local checkout/workspace paths; they are not
-literal paths required by a tool. The baseline is `main` `6a58145`, design approval
+literal paths required by a tool. Trailing whitespace in displayed logs is trimmed. The baseline is `main` `6a58145`, design approval
 `ed6f3bd`, followed by common/Linux commit `1b266d8` and the native/consumer changes
 in this PR. The final PR records the exact final HEAD and hosted check results.
 
