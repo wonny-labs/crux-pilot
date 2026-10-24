@@ -1,7 +1,7 @@
 add_library(crux_execution_admission OBJECT admission.c)
 target_link_libraries(crux_execution_admission PRIVATE crux::execution)
 target_include_directories(crux_execution_admission PRIVATE
-    ../../components/execution/src ../../components/execution/host)
+    ../../components/execution/src ../../components/execution/ports/linux)
 target_compile_options(crux_execution_admission PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_executable(crux_execution_conformance conformance.c host_main.c public_probe.c
     $<TARGET_OBJECTS:crux_execution_admission>)
@@ -35,7 +35,7 @@ set_tests_properties(Execution.HostPoll PROPERTIES TIMEOUT 20)
 
 add_executable(crux_execution_host_admission host_admission.c)
 target_include_directories(crux_execution_host_admission PRIVATE
-    ../../components/execution/src ../../components/execution/host)
+    ../../components/execution/src ../../components/execution/ports/linux)
 target_link_libraries(crux_execution_host_admission PRIVATE crux::execution Threads::Threads)
 target_compile_definitions(crux_execution_host_admission PRIVATE _POSIX_C_SOURCE=200809L)
 target_compile_options(crux_execution_host_admission PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -45,7 +45,7 @@ set_tests_properties(Execution.HostAdmission PROPERTIES TIMEOUT 20)
 
 add_executable(crux_execution_host_poll_finalize host_poll_finalize.c)
 target_include_directories(crux_execution_host_poll_finalize PRIVATE
-    ../../components/execution/src ../../components/execution/host)
+    ../../components/execution/src ../../components/execution/ports/linux)
 target_link_libraries(crux_execution_host_poll_finalize PRIVATE crux::execution Threads::Threads)
 target_compile_definitions(crux_execution_host_poll_finalize PRIVATE _POSIX_C_SOURCE=200809L)
 target_compile_options(crux_execution_host_poll_finalize PRIVATE -Wall -Wextra -Wpedantic -Werror)
