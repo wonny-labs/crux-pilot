@@ -101,6 +101,15 @@ class ConsumerBoundaryTest(unittest.TestCase):
                 result = subprocess.run(command, text=True, capture_output=True)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_monotonic_native_test_composition_builds_and_runs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            for command in (
+                    [CMAKE, '-S', str(REPO / 'tests/monotonic/host'), '-B', temporary, '-G', 'Ninja'],
+                    [CMAKE, '--build', temporary, '--parallel', '2'],
+                    ['ctest', '--test-dir', temporary, '--output-on-failure']):
+                result = subprocess.run(command, text=True, capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_direct_link_injection_is_rejected(self):
         result = self.configure('add_library(zephyr_interface INTERFACE)\n'
                                 'add_library(wrapper INTERFACE)\n'
