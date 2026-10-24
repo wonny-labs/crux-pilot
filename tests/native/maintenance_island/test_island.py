@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from startup_check import native_startup_entries, verify_deferred_skip
 
 ROOT = Path(__file__).resolve().parents[3]
 SAMPLE = ROOT / 'samples/flash_target_candidate'
@@ -132,10 +133,15 @@ class ExactIsland(unittest.TestCase):
         self.assertLess(entry,self.symbols['__init_PRE_KERNEL_2_start'])
         self.assertEqual(struct.unpack('<2I',self.bytes_at(entry,8)),
                          (self.symbols['crux_island_relocation_init'],0))
-        for name in ['__init___device_dts_ord_546','__init___device_dts_ord_547']:
-            self.assertGreaterEqual(self.symbols[name],self.symbols['__init_POST_KERNEL_start'])
-            self.assertLess(self.symbols[name],self.symbols['__init_APPLICATION_start'])
-            self.assertGreater(self.symbols[name],entry)
+        zephyr = Path(os.environ['PILOT_ELF']).parent
+        devices = native_startup_entries(
+            (zephyr/'include/generated/zephyr/devicetree_generated.h').read_text(),
+            (zephyr/'.config').read_text(), self.symbols, self.bytes_at)
+        self.assertEqual(set(devices), {'flexspi', 'ext_flash_ctrl'})
+        # Deferred records remain registered; the actual kernel must skip them.
+        # Historical automatic records are accepted only in the known earlier
+        # non-storage profile, after the same early verifier.
+        verify_deferred_skip(self.body('z_sys_init_run_level'))
         prep=self.body('z_prep_c')
         self.assertLess(prep.index('<arch_bss_zero>'),prep.index('<arch_data_copy>'))
         self.assertLess(prep.index('<arch_data_copy>'),prep.index('<z_cstart>'))
