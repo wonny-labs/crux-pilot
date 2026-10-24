@@ -20,8 +20,8 @@ typedef struct {
 } crux_semaphore_t;
 
 /* Thread context only. Waits: 0 polls; 1..INT32_MAX are monotonic relative ms.
- * No cancellation/ISR/forever support. See docs/execution-contract-proposal.md
- * and docs/execution-validation.md for the contract and provider limits.
+ * No cancellation/ISR/forever support. See docs/thread-sync.md
+ * for the current contract, provider limits and historical evidence.
  * Output storage must not hold a live resource. Failure invalidates create outputs.
  * Callers serialise handle-variable writes and prohibit new admissions during destroy.
  */

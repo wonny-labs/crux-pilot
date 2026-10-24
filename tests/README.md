@@ -152,8 +152,9 @@ provider. Sync-only ownership is exercised from a native OS-created worker.
 The full `scripts/test-portable-execution.sh` also runs Zephyr `native_sim` and EVKB
 cross-builds for the combined and two standalone component configurations. Common conformance and Host failure/poll regressions run in the standard
 Host debug/sanitizer checks. Private admission tests prove lifecycle races without
-adding production test hooks. See [the validation record](../docs/execution-validation.md)
-for supported semantics, source identities, results and remaining #24/physical gates.
+adding production test hooks. See the [current Thread/Sync contract](../docs/thread-sync.md) for semantics and
+provider limits, and the [historical validation record](../docs/history/execution-validation.md)
+for its recorded source identities, results and unresolved gates at those revisions.
 
 ## Portable networking software slice
 

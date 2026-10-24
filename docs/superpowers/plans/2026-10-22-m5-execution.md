@@ -12,7 +12,7 @@ native build requirements private. No public generic provider abstraction or OSA
 **Tech Stack:** Existing C17/C++17, CMake, GoogleTest/plain C conformance, Zephyr ztest,
 Linux amd64 container, pinned Zephyr/SDK; no upgrades.
 
-**Spec:** [Approved contract and decision](../../execution-contract-proposal.md).
+**Spec:** [Historical approved contract and decision](../../history/execution-contract-proposal.md).
 
 ## Global constraints
 
