@@ -329,9 +329,8 @@ class ConsumerBoundaryTest(unittest.TestCase):
             self.assertIn("unreviewed socket close declaration", result.stdout + result.stderr)
 
     def test_host_time_rejects_conflicting_provider(self):
-        result = self.configure('set(BUILD_TESTING OFF CACHE BOOL "" FORCE)\n'
-                                'set(CRUX_BUILD_HOST_SAMPLE OFF CACHE BOOL "" FORCE)\n'
-                                'set(CRUX_BUILD_REFERENCE_CONTROLLER OFF CACHE BOOL "" FORCE)\n'
+        result = self.configure('set(CRUX_BUILD_TIME ON CACHE BOOL "")\n'
+                                'set(CRUX_TIME_PROVIDER memory CACHE STRING "")\n'
                                 f'add_subdirectory("{REPO}" crux)\n'
                                 'add_library(other_backend INTERFACE)\n'
                                 'set_property(TARGET other_backend PROPERTY INTERFACE_CRUX_TIME_BACKEND zephyr_rtc)\n'
@@ -348,9 +347,8 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                           'int main(void) { return crux_time_init(); }\n')
             (root / "CMakeLists.txt").write_text(
                 'cmake_minimum_required(VERSION 3.28)\nproject(missing_time_provider LANGUAGES C)\n'
-                'set(BUILD_TESTING OFF CACHE BOOL "" FORCE)\n'
-                'set(CRUX_BUILD_HOST_SAMPLE OFF CACHE BOOL "" FORCE)\n'
-                'set(CRUX_BUILD_REFERENCE_CONTROLLER OFF CACHE BOOL "" FORCE)\n'
+                'set(CRUX_BUILD_TIME ON CACHE BOOL "")\n'
+                'set(CRUX_TIME_PROVIDER memory CACHE STRING "")\n'
                 f'add_subdirectory("{REPO}" crux)\n'
                 'add_executable(consumer main.c)\n'
                 'target_link_libraries(consumer PRIVATE crux_time_common)\n')

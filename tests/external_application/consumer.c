@@ -1,0 +1,48 @@
+#include <crux/status.h>
+#if PROFILE_TIME
+#include <crux/time.h>
+#elif PROFILE_THREAD
+#include <crux/thread.h>
+static void worker(void *argument) {
+    *(int *)argument = 42;
+}
+#elif PROFILE_SYNC
+#include <crux/sync.h>
+#elif PROFILE_MESSAGING
+#include <crux/monotonic.h>
+#include <crux/queue.h>
+#endif
+int external_consumer(void) {
+#if PROFILE_TIME
+    crux_time_instant_t now = 0;
+    return crux_time_init() != CRUX_OK || crux_time_set(CRUX_TIME_MIN_UNIX_SECONDS) != CRUX_OK ||
+           crux_time_get(&now) != CRUX_OK || now != CRUX_TIME_MIN_UNIX_SECONDS;
+#elif PROFILE_THREAD
+    const crux_thread_options_t options = {.priority = CRUX_THREAD_PRIORITY_NORMAL};
+    crux_thread_t thread;
+    int observed = 0;
+    return crux_thread_create(&options, worker, &observed, &thread) != CRUX_OK ||
+           crux_thread_join(&thread, 1000) != CRUX_OK || observed != 42;
+#elif PROFILE_SYNC
+    crux_mutex_t mutex;
+    crux_semaphore_t semaphore;
+    return crux_mutex_create(&mutex) != CRUX_OK || crux_mutex_lock(mutex, 0) != CRUX_OK ||
+           crux_mutex_unlock(mutex) != CRUX_OK || crux_mutex_destroy(&mutex) != CRUX_OK ||
+           crux_semaphore_create(1, 1, &semaphore) != CRUX_OK ||
+           crux_semaphore_take(semaphore, 0) != CRUX_OK ||
+           crux_semaphore_take(semaphore, 0) != CRUX_ERR_BUSY ||
+           crux_semaphore_destroy(&semaphore) != CRUX_OK;
+#elif PROFILE_MESSAGING
+    crux_queue_t queue;
+    int sent = 42;
+    int received = 0;
+    int64_t now = -1;
+    return crux_queue_create(1, sizeof(sent), &queue) != CRUX_OK ||
+           crux_queue_send(queue, &sent, sizeof(sent), 0) != CRUX_OK ||
+           crux_queue_receive(queue, &received, sizeof(received), 0) != CRUX_OK ||
+           received != sent || crux_queue_destroy(&queue) != CRUX_OK ||
+           crux_monotonic_now(&now) != CRUX_OK || crux_monotonic_sleep_until(now) != CRUX_OK;
+#else
+    return CRUX_OK != 0;
+#endif
+}

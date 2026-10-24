@@ -55,6 +55,57 @@ Ownership, Lifetime, provider selection, resource limits and historical evidence
 
 The implemented [Time contract](docs/time-contract.md) provides a concrete component example.
 
+### External application build (Linux Host)
+
+Crux supports source-tree consumption through `add_subdirectory()` in the documented
+Linux development environment. For example, with the application owning `logic.c`
+and `main.c`:
+
+```cmake
+cmake_minimum_required(VERSION 3.28)
+project(my_application LANGUAGES C)
+set(CRUX_BUILD_TIME ON CACHE BOOL "Required capability")
+set(CRUX_TIME_PROVIDER memory CACHE STRING "Development/test provider")
+add_subdirectory("${CRUX_SOURCE_DIR}" crux)
+add_library(application_logic STATIC logic.c)
+target_link_libraries(application_logic PRIVATE crux::time)
+crux_assert_portable_consumer(application_logic)
+add_executable(my_application main.c)
+target_link_libraries(my_application PRIVATE application_logic crux::time)
+```
+
+Configure with `-DCRUX_SOURCE_DIR=/absolute/path/to/crux-pilot`. Application source
+includes public headers such as `<crux/time.h>`; no manual Crux include paths are
+needed. Set the application's own C17/C++17 requirements on its portable targets.
+
+As a dependency, Crux enables only Base by default. Select capabilities with
+`CRUX_BUILD_TIME`, `CRUX_BUILD_THREAD`, `CRUX_BUILD_SYNC`, `CRUX_BUILD_QUEUE`,
+`CRUX_BUILD_MONOTONIC`, `CRUX_BUILD_NETIF`, `CRUX_BUILD_SOCKETS`,
+`CRUX_BUILD_CONFIGURATION` and `CRUX_BUILD_FILE`. Crux tests and samples default OFF,
+without changing parent `BUILD_TESTING`. `CRUX_BUILD_TESTS` opts into Crux's internal
+suite; it requires the suite's component dependencies and may enable C++/GoogleTest.
+`CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_REFERENCE_CONTROLLER` select development
+samples. Top-level development retains the existing components, samples and
+`BUILD_TESTING`-based initial test default.
+
+The final native executable declares its used public capabilities, as above, so
+provider compatibility is checked at composition. Queue/Monotonic portable targets
+link `crux::queue`/`crux::monotonic`; the final Host executable additionally links
+`crux::queue_host`/`crux::monotonic_host`. These two native composition targets must
+not be linked into portable source targets. Host Thread/Sync/File implementations
+remain linked through their public targets. Sockets remains a qualified standard
+API profile. Host Time requires explicit `CRUX_TIME_PROVIDER=memory` in an external
+project: this is a controlled development/test implementation, not a production RTC
+fallback. Missing Queue/Monotonic providers fail at link; missing/unsupported Time
+selection and conflicting Time providers fail during CMake configuration/generation.
+
+The [external-consumer checks](tests/README.md#external-application-build-boundary)
+exercise C17/C++17 Base/Time, Thread-only, Sync-only, Queue/Monotonic and parent-test
+isolation from temporary projects outside Crux. Existing Linux Host and Zephyr
+qualification limits remain unchanged. Zephyr still uses its module/Kconfig entry
+point. Installation, `find_package(Crux)`, binary SDKs and arbitrary toolchains are
+not supported by this source-tree contract.
+
 ## Repository structure
 
 | Path | Purpose |

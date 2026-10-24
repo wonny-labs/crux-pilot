@@ -91,13 +91,13 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 
 The root `CMakeLists.txt` supports the Linux Host development build. The `zephyr/` directory provides out-of-tree module integration, with Zephyr Kconfig and application/project configuration selecting supported native facilities. The `west.yml` manifest pins the relevant Zephyr dependency baseline.
 
-Public targets such as `crux::time`, `crux::thread` and `crux::sync` are consumer-facing usage contracts. Internal native targets, their private include paths, and link dependencies belong to the selected composition. **A public target is not necessarily a standalone installed SDK package, nor does every component currently use an identical provider-linkage pattern.** Follow the current component build files and its verified consumer contract. Do not manually add private provider paths to an application to bypass a missing integration capability.
+Public targets such as `crux::time`, `crux::thread` and `crux::sync` are consumer-facing usage contracts. Internal native targets, their private include paths, and link dependencies belong to the selected composition. **A public target is not an installed SDK package, nor does every component use an identical provider-linkage pattern.** Follow the [supported source-tree consumer contract](../README.md#external-application-build-linux-host). Do not manually add private provider paths to an application to bypass a missing integration capability.
 
 Host and Zephyr may compose providers differently. For example, a Host Time composition uses a controlled memory provider, while the Zephyr image registers its selected RTC implementation independently. This difference must not change the portable Time API.
 
 Thread and Sync are independently selectable in Host and Zephyr builds. The [contract's build selection and provider limits](thread-sync.md#build-selection-and-provider-limits) document their component-owned switches and resource settings. Consumer code should depend only on the capabilities it uses.
 
-The README documents established development commands. Detailed, independently verified instructions for creating a new out-of-tree application should be added only when its supported source-tree consumer integration contract is settled and tested. Do not assume `find_package(Crux)`, an installable package, or an arbitrary OS/board combination is supported.
+The README documents the verified Linux Host `add_subdirectory()` entry point, component selection and final native composition. Dependency builds default to Base only, with Crux tests/samples disabled independently of parent testing. Queue/Monotonic expose documented composition-only Host targets; portable source targets retain their public usage facades. Host Time memory selection is explicit for external applications and remains development/test only. Zephyr composition stays under module/Kconfig ownership. An installable package, `find_package(Crux)` and arbitrary OS/board/toolchain combinations remain unsupported; a comprehensive Build Guide is separate work.
 
 ## Engineering and validation boundaries
 

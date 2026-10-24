@@ -8,3 +8,6 @@ target_link_libraries(crux_queue_host PRIVATE crux::queue Threads::Threads)
 target_include_directories(crux_queue_host PRIVATE ports/linux)
 target_compile_definitions(crux_queue_host PRIVATE _GNU_SOURCE)
 target_compile_options(crux_queue_host PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
+# Supported native final-composition target; never link it into portable source targets.
+add_library(crux::queue_host ALIAS crux_queue_host)

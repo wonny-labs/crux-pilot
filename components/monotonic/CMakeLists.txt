@@ -11,3 +11,6 @@ target_compile_definitions(crux_monotonic_host PRIVATE _POSIX_C_SOURCE=200809L)
 target_compile_options(crux_monotonic_host PRIVATE -Wall -Wextra -Wpedantic -Werror)
 set_property(TARGET crux_monotonic_host PROPERTY INTERFACE_CRUX_MONOTONIC_PROVIDER host)
 set_property(TARGET crux_monotonic_host APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_MONOTONIC_PROVIDER)
+
+# Supported native final-composition target; never link it into portable source targets.
+add_library(crux::monotonic_host ALIAS crux_monotonic_host)

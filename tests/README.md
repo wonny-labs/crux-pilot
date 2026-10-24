@@ -141,6 +141,29 @@ configuration and exact output counts must confirm that UART is the sole logging
 backend. Required record comparisons remove CR/LF endings only, retaining ANSI,
 whitespace, duplication and partial-line errors as failures.
 
+## External application build boundary
+
+Run inside the Linux development environment:
+
+```sh
+python3 -m unittest discover -s tests/build -p test_external_application.py -v
+```
+
+The test copies `tests/external_application/` into fresh temporary directories
+outside the Crux source tree, then configures, builds and runs independent C17/C++17
+Base/Time, Thread-only, Sync-only, Queue/Monotonic and Base-only parent projects.
+Parent C99/C++20 targets and CTest tests before/after inclusion remain functional;
+a separate C-only parent retains its enabled-language and testing policy ON/OFF.
+Actual compile commands and final ELF symbols check component selection and private
+requirements. Focused negatives cover missing/unsupported/multiple Time selection,
+incompatible Time providers and missing Queue/Monotonic native composition. Existing
+source/build guards retain the detailed native-dependency negatives.
+
+See the [supported integration example](../README.md#external-application-build-linux-host).
+The fixture uses public capabilities in portable targets and declares native
+composition separately. It does not establish an installed SDK, production Linux,
+physical qualification or support for additional toolchains.
+
 ## Portable execution capability
 
 Run `scripts/test-portable-execution.sh --host-only` for separately configured C/C++
