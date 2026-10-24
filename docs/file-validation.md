@@ -12,7 +12,7 @@ QSPI/LittleFS/NVS are candidates, not selected production providers.
 ## Implementation and configuration
 
 Consumers include `<crux/file.h>` and link `crux::file`. Only the private trusted
-Host composition includes `components/file/host/file_host.h` to bind an existing
+Host composition includes `components/file/ports/linux/file_host.h` to bind an existing
 root directory once, before concurrent access. No root is implicit: open/remove
 return NOT_READY until binding succeeds. The root descriptor stays open for the
 process lifetime; process exit releases it. Rebinding/unmounting is unsupported.

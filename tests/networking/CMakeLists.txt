@@ -6,7 +6,7 @@ target_compile_options(crux_netif_tests PRIVATE -Wall -Wextra -Wpedantic -Werror
 include(GoogleTest)
 gtest_discover_tests(crux_netif_tests)
 add_executable(crux_netif_host_tests netif_host_test.cpp
-    ../../components/netif/src/netif.c ../../components/netif/host/netif_host.c)
+    ../../components/netif/src/netif.c ../../components/netif/ports/linux/netif_host.c)
 target_include_directories(crux_netif_host_tests PRIVATE ../../components/netif/src
     ../../components/netif/include)
 target_compile_definitions(crux_netif_host_tests PRIVATE
