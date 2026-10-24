@@ -16,6 +16,13 @@ native providers and the required POSIX options. Firmware and runtime consumer
 source uses the same standard headers/public contracts on both environments:
 no Zephyr/NXP names, platform conditionals or provider calls.
 
+Netif owns its native implementations in `components/netif/ports/linux/` and
+`components/netif/ports/zephyr/`. The Zephyr module delegates native build
+definitions to the component's `ports/zephyr/CMakeLists.txt`; the provider remains
+registered in the final image independently of the portable usage target.
+Sockets owns only its declaration shim and native build definition in
+`components/sockets/ports/zephyr/`; the Linux usage target needs no wrapper.
+
 The reference firmware consumer is `samples/networking/client.c`. A separately
 written runtime-shaped adapter lives in `tests/networking/runtime_port.c`.
 Neither establishes complete compatibility with a third-party runtime. Test peer

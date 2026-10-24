@@ -62,7 +62,8 @@ class NativeInterfaceTest(unittest.TestCase):
                        "../ports/linux/detail.h", "../ports/zephyr/detail.h",
                        "../../vendor/chip.h", "../../boards/board.h", "../private/state.h",
                        "../../ports/linux/execution_native_types.h",
-                       "../../ports/zephyr/execution_native_types.h"):
+                       "../../ports/zephyr/execution_native_types.h",
+                       "../ports/linux/private.h", "../ports/zephyr/private.h"):
             with self.subTest(header=header):
                 result = self.check_source(f'#include "{header}"\n')
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
@@ -132,6 +133,9 @@ class NativeInterfaceTest(unittest.TestCase):
                      "components/monotonic/ports/linux/monotonic_host.c",
                      "components/monotonic/ports/zephyr/monotonic_zephyr.c",
                      "samples/controller/zephyr/main.c",
+                     "components/netif/ports/linux/backend.c",
+                     "components/netif/ports/zephyr/backend.c",
+                     "components/file/ports/linux/backend.c",
                      "samples/controller/host/main.c", "samples/time/src/main.c"):
             with self.subTest(path=path):
                 result = self.check_source("#include <zephyr/kernel.h>\nk_timeout_t timeout;", path)

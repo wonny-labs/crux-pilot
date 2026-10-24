@@ -36,7 +36,11 @@ class NetworkingBoundary(unittest.TestCase):
         self.assertEqual(self.checker.cmake_errors('target_link_libraries(consumer PRIVATE crux::sockets crux::netif)'), [])
         for code in ['target_link_libraries(consumer PRIVATE zephyr_interface)',
                      'target_link_libraries(consumer PRIVATE crux_netif)',
-                     'target_include_directories(consumer PRIVATE ../../components/netif/src)']:
+                     'target_include_directories(consumer PRIVATE ../../components/netif/src)',
+                     'target_include_directories(consumer PRIVATE ../../components/netif/host)',
+                     'target_include_directories(consumer PRIVATE ../../components/netif/zephyr)',
+                     'target_include_directories(consumer PRIVATE ../../components/netif/ports/linux)',
+                     'target_include_directories(consumer PRIVATE ../../components/netif/ports/zephyr)']:
             with self.subTest(code=code): self.assertTrue(self.checker.cmake_errors(code))
 
     def test_physical_frame_allowance_is_local(self):
