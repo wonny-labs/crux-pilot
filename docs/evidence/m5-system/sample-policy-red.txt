@@ -1,0 +1,1 @@
+system_consumer: $REPO/tests/system_consumer/host/main.c:15: int main(void): Assertion `controller.time_health.freshness_ms == 500 && controller.network_health.freshness_ms == 16000' failed.

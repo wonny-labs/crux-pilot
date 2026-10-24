@@ -1,0 +1,2 @@
+crux-system-common: tests/system/common.c:152: unsupported_cause: Assertion `crux_system_reset_cause_clear() == CRUX_ERR_NOT_SUPPORTED && clears == 0' failed.
+Aborted

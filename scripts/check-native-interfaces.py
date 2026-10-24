@@ -33,7 +33,9 @@ PORTABLE_ROOTS = (
     "tests/serial_consumer/src/runtime.h", "tests/serial_consumer/src/consumer.cpp",
     "samples/logging", "tests/logging_consumer/src/runtime.c",
     "tests/logging_consumer/src/runtime.h", "tests/logging_consumer/src/consumer.cpp",
-    "samples/messaging",
+    "samples/messaging", "samples/controller/system",
+    "tests/system_consumer/src/runtime.c", "tests/system_consumer/src/runtime.h",
+    "tests/system_consumer/src/consumer.cpp",
     "tests/messaging_consumer/runtime.c", "tests/messaging_consumer/main.cpp",
     "tests/thread_sync_consumer/consumer.c", "tests/thread_sync_consumer/consumer.cpp",
 )

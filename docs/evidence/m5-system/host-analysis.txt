@@ -1,0 +1,12 @@
+[1/4] Processing file $REPO/components/system/src/system.c.
+282 warnings generated.
+[2/4] Processing file $REPO/components/system/src/system.c.
+554 warnings generated.
+[3/4] Processing file $REPO/components/system/ports/linux/system_host.c.
+1317 warnings generated.
+[4/4] Processing file $REPO/tests/system/common.c.
+1844 warnings generated.
+[5/4] Processing file $REPO/tests/system/host.c.
+2819 warnings generated.
+Suppressed 2821 warnings (2819 in non-user code, 2 NOLINT).
+Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.

@@ -142,3 +142,12 @@ The [original Time Pilot plan](docs/plans/initial-implementation-plan.md) and [i
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution, interface and review practices. AI agents must also follow [AGENTS.md](AGENTS.md).
+
+The Pilot System Health and Reset capability provides service observations,
+explicit reset-cause read/clear, reset requests and a boot-local single-owner
+watchdog start/feed contract via `<crux/system.h>` and `crux::system`. Application
+health/readiness remains Controller policy. Host watchdog behaviour is emulated;
+normal Host reset and reset-cause operations are unsupported. See the
+[approved System contract](docs/superpowers/specs/2026-10-24-system-health-design.md)
+and [software validation](docs/system-validation.md). No physical reset or
+watchdog qualification is implied by software tests or EVKB cross-builds.

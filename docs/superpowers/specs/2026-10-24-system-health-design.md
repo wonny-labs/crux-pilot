@@ -1,10 +1,8 @@
 # Portable System Health and Reset — proposal and TDD outline
 
-Status: proposed public contract, not yet approved for implementation. The user
-selected start/feed/status without stop or reconfiguration on 24 October 2026.
-The detailed declarations, limits and choices below are the author's proposal.
-No product implementation, hardware operation, merge or Issue closure is approved
-by this document.
+Status: **approved for implementation** by the user on 24 October 2026 at
+proposal commit `72e5295`. Approval includes the revised six-function contract
+and TDD outline. Hardware operation, merge and Issue closure remain excluded.
 
 ## Intent and baseline
 
@@ -39,7 +37,7 @@ permission. The existing M3 native image and its approval/evidence remain intact
 mechanisms. Private Linux/Zephyr ports keep native declarations out of consumers.
 This does not turn System into a container for unrelated future services.
 
-## Proposed public surface
+## Approved public surface
 
 All calls return existing `crux_status_t`, with C17 declarations and C++17 linkage.
 Reports and value tokens contain only ISO C/Crux values. The six operations are:
@@ -209,7 +207,7 @@ copy of initial boot evidence is introduced.
 | Known device unready | NOT_READY |
 | Failed native read/clear, invalid native report, failed verification or flags remaining after clear | IO |
 | Failed query | Caller output unchanged; never opens clear permission |
-| Clear before a successful explicit public query | INVALID_STATE; no native clear call |
+| Clear before a successful explicit public query (provided service) | INVALID_STATE; no native clear call |
 | Successful query with zero flags | OK with `causes=0`; caller may retain that observation |
 
 **Initial boot diagnostic owner:** final application composition must designate
@@ -318,7 +316,7 @@ reset execution, initial cause ownership and provider-specific timeouts. Those
 clarifications are now part of this revised proposal. A fresh follow-up builder
 check of these exact requested clarifications again returned **nothing important
 left**. This remains a completeness check, not technical implementation PASS or
-human approval. The revised contract is unapproved until the human decision.
+human approval. The user subsequently approved the revised contract at `72e5295`.
 
 ## Concurrency, context and errors
 
@@ -365,12 +363,10 @@ Earlier process-exit delays remain unresolved; passing tests do not establish a
 cause or fix. This is Pilot software qualification, not production safety,
 watchdog endurance, persistent reset provenance or worst-case scheduling proof.
 
-## Human approval requested
+## Human approval and remaining boundaries
 
-Approve or revise the six operations, one boot-local watchdog feed token and no
-stop/reconfigure, fixed service-availability status rather than application-health
-policy, explicit nondestructive cause query plus verified clear, synchronous
-nonreturning target reset and pre-dispatch error semantics, initial RT1060-specific
-nominal timeout profile (not a platform-wide guarantee), and the existing concise
-TDD allocation above. The selected one-shot direction alone does not approve this
-full contract. Implementation starts only after approval of this document.
+The user approved this revised six-operation contract and TDD outline at
+`72e5295`, including service-report boundaries, explicit initial cause ownership,
+read/clear ordering, native reset semantics, single watchdog owner and the initial
+RT1060-specific nominal profile. Implementation and software qualification may
+proceed. No hardware operation, PR merge or Issue #30 closure is authorized.

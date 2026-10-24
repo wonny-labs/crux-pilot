@@ -165,3 +165,11 @@ targets, and checks actual C/C++ compile, link and runtime results. Existing Hos
 discovers the source/graph/fixture tests without a new workflow or runner.
 No hardware operation,
 Flash change, private planning edit or change to historical acceptance follows.
+
+System's public usage target is `crux::system`, with `<crux/system.h>` owned by
+`components/system/include`. Common state is ISO C; pthread/monotonic, native
+watchdog/HWINFO/reboot and target running-bit observation belong only to private
+providers. The System runtime-shaped consumer and Controller System helper are
+in the maintained source inventory and use the public target without native
+headers. Configuration rejects known competing native watchdog/reset-cause
+owners; the value token does not arbitrate arbitrary native callers.

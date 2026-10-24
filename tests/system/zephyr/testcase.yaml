@@ -1,0 +1,8 @@
+tests:
+  crux.system:
+    timeout: 20
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - system
+      - portable

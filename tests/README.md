@@ -249,3 +249,11 @@ Controller checks. Full `scripts/test-logging.sh` also checks rejected native
 compositions, actual UART-emulator output and the revision-B EVKB cross-build.
 Root Host tests include `Logging.*`; the normal sanitizer preset covers them.
 See [Logging validation](../docs/logging-validation.md) for evidence and limits.
+
+System Health and Reset (Issue #30): the root Host suite includes focused common
+lifecycle and real Linux monotonic-provider tests. `scripts/test-system.sh
+--host-only` runs independent C17/C++17 consumers and Controller policy checks.
+`scripts/test-system.sh` additionally checks native ownership/configuration,
+Zephyr `native_sim` mappings and the revision-B EVKB cross-build. None operates
+hardware; normal Host reset/reset-cause services are explicitly unsupported.
+See [System validation](../docs/system-validation.md) for evidence and limits.
