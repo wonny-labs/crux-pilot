@@ -14,7 +14,7 @@ else()
   configure_file(evidence/transparent-maintenance.c.txt ${CMAKE_BINARY_DIR}/transparent-maintenance.c COPYONLY)
   set(_maintenance ${CMAKE_BINARY_DIR}/transparent-maintenance.c)
 endif()
-target_sources(app PRIVATE main.c ${_maintenance} ../settings_readiness_gate/gate.c
+target_sources(app PRIVATE ${CRUX_ROOT}/samples/flash_target_candidate/storage_trial.c main.c ${_maintenance} ../settings_readiness_gate/gate.c
   ${CRUX_ROOT}/components/configuration/src/configuration.c
   ${CRUX_ROOT}/components/configuration/ports/zephyr/configuration_settings.c)
 target_link_libraries(app PRIVATE crux::file)

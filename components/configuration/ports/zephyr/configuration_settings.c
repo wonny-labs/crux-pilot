@@ -7,9 +7,14 @@
 #include <zephyr/settings/settings.h>
 #include <zephyr/sys/util.h>
 
-#if !defined(CRUX_CONFIGURATION_SETTINGS_SIMULATOR) || !CONFIG_BOARD_NATIVE_SIM ||                 \
+#if defined(CRUX_RT1060_STORAGE_SAMPLE)
+#if !defined(CONFIG_SOC_MIMXRT1062) || !defined(CONFIG_SETTINGS_NVS) ||                            \
+    !defined(CONFIG_NVS_DATA_CRC)
+#error "Configuration target exception requires private RT1060 Settings/NVS/CRC sample"
+#endif
+#elif !defined(CRUX_CONFIGURATION_SETTINGS_SIMULATOR) || !CONFIG_BOARD_NATIVE_SIM ||               \
     !CONFIG_FLASH_SIMULATOR || !CONFIG_SETTINGS_NVS || !CONFIG_NVS_DATA_CRC
-#error "Configuration Settings candidate requires explicit simulator-only composition"
+#error "Configuration Settings requires explicit simulator composition"
 #endif
 BUILD_ASSERT(!IS_ENABLED(CONFIG_SETTINGS_NVS_NAME_CACHE));
 BUILD_ASSERT(!IS_ENABLED(CONFIG_NVS_INIT_BAD_MEMORY_REGION));

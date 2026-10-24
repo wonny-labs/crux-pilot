@@ -1,0 +1,33 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/ { chosen { zephyr,settings-partition = &candidate_nvs; }; };
+&flash0 {
+    reg = <0x0 0x800000>;
+    erase-block-size = <4096>;
+    write-block-size = <1>;
+    partitions {
+        candidate_file: partition@620000 {
+            reg = <0x620000 0x1cf000>;
+        };
+        candidate_scratch: partition@7ef000 {
+            reg = <0x7ef000 0x1000>;
+        };
+        candidate_nvs: partition@7f0000 {
+            reg = <0x7f0000 0x10000>;
+        };
+    };
+};
+
+/ {
+    candidate_file_backend: candidate-file-backend {
+        compatible = "crux,candidate-storage-proxy";
+        zephyr,deferred-init;
+    };
+    candidate_scratch_backend: candidate-scratch-backend {
+        compatible = "crux,candidate-storage-proxy";
+        zephyr,deferred-init;
+    };
+    candidate_nvs_backend: candidate-nvs-backend {
+        compatible = "crux,candidate-storage-proxy";
+        zephyr,deferred-init;
+    };
+};

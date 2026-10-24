@@ -10,11 +10,13 @@ static struct {
     enum crux_pilot_flash_owner owner;
     int64_t offset;
     size_t length;
+    bool read_complete;
     uint32_t bounce[64];
 } crux_rom_command;
 
 int __attribute__((noinline)) crux_rom_command_prepare(const struct crux_rom_request *r) {
     crux_rom_command.operation = CRUX_ROM_NONE;
+    crux_rom_command.read_complete = false;
     if (!r || r->operation < CRUX_ROM_PROGRAM || r->operation > CRUX_ROM_STATUS ||
         !crux_pilot_flash_owner_request_valid(r->owner, r->offset, r->length,
                                               r->operation == CRUX_ROM_SECTOR)) {
@@ -145,6 +147,21 @@ int __attribute__((noinline)) crux_rom_command_dispatch(void) {
         memc_flexspi_wait_bus_idle(&crux_rom_nor.controller);
         crux_rom_check_deadline();
     }
+    crux_rom_command.read_complete = operation == CRUX_ROM_READ;
     crux_rom_command.operation = CRUX_ROM_NONE;
+    return 0;
+}
+
+int crux_rom_command_read_result(void *bytes, size_t length) {
+    if (!crux_rom_command.read_complete)
+        return -EACCES;
+    if (!bytes || length != crux_rom_command.length)
+        return -EINVAL;
+    /* Runs after known-ready return. Bound is the completed <=256-byte READ. */
+    volatile const uint8_t *src = (volatile const uint8_t *)crux_rom_command.bounce;
+    uint8_t *dst = bytes;
+    for (size_t i = 0; i < length; ++i)
+        dst[i] = src[i];
+    crux_rom_command.read_complete = false;
     return 0;
 }
