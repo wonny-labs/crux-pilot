@@ -120,23 +120,10 @@ if(CONFIG_CRUX_SOCKETS)
 endif()
 
 if(CONFIG_CRUX_QUEUE)
-    add_library(crux_queue INTERFACE)
-    add_library(crux::queue ALIAS crux_queue)
-    target_include_directories(crux_queue INTERFACE
-        "${CMAKE_CURRENT_LIST_DIR}/../components/queue/include")
-    target_link_libraries(crux_queue INTERFACE crux::base)
-    target_compile_options(crux_queue INTERFACE ${TOOLCHAIN_C_FLAGS})
-    add_library(crux_queue_zephyr STATIC
-        "${CMAKE_CURRENT_LIST_DIR}/../components/queue/src/queue.c"
-        "${CMAKE_CURRENT_LIST_DIR}/../components/queue/zephyr/queue_port.c")
-    target_include_directories(crux_queue_zephyr PRIVATE
-        "${CMAKE_CURRENT_LIST_DIR}/../components/queue/zephyr")
-    target_link_libraries(crux_queue_zephyr PRIVATE crux::queue zephyr_interface)
-    zephyr_append_cmake_library(crux_queue_zephyr)
-    add_dependencies(crux_queue_zephyr zephyr_generated_headers)
-    target_compile_options(crux_queue_zephyr PRIVATE -Wall -Wextra -Werror)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/queue/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/queue")
 endif()
 if(CONFIG_CRUX_MONOTONIC)
-    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/monotonic/zephyr"
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/monotonic/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/monotonic")
 endif()

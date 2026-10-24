@@ -66,6 +66,27 @@ class ConsumerBoundaryTest(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("native consumer requirement", result.stdout + result.stderr)
 
+    def test_component_private_port_includes_are_rejected(self):
+        for component in ('queue', 'monotonic'):
+            for port in ('host', 'zephyr', 'ports/linux', 'ports/zephyr'):
+                for public in (False, True):
+                    with self.subTest(component=component, port=port, public=public):
+                        path = f'{REPO}/components/{component}/{port}'
+                        if public:
+                            body = ('add_library(provider INTERFACE)\n'
+                                    f'target_include_directories(provider INTERFACE "{path}")\n'
+                                    'add_library(wrapper INTERFACE)\n'
+                                    'target_link_libraries(wrapper INTERFACE provider)\n'
+                                    'crux_assert_portable_usage(wrapper)\n')
+                        else:
+                            body = ('file(WRITE "${CMAKE_BINARY_DIR}/main.c" "int main(void) { return 0; }")\n'
+                                    'add_executable(consumer "${CMAKE_BINARY_DIR}/main.c")\n'
+                                    f'target_include_directories(consumer PRIVATE "{path}")\n'
+                                    'crux_assert_portable_consumer(consumer)\n')
+                        result = self.configure(body)
+                        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                        self.assertIn("native consumer requirement", result.stdout + result.stderr)
+
     def test_opaque_generator_expression_is_rejected(self):
         result = self.configure('add_library(wrapper INTERFACE)\n'
                                 'target_link_libraries(wrapper INTERFACE "$<TARGET_PROPERTY:other,LINK_LIBRARIES>")\n'

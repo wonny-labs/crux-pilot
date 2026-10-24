@@ -119,7 +119,7 @@ function(_crux_check_consumer_target target visited)
                OR lower MATCHES "(^|[/;,:=<>_ -])(threads::threads|pthread)([/;,:=<>_. -]|$)"
                OR lower MATCHES "(^|[/;,:=<>_ -])(lib|-l)pthread([_.-]|$)"
                OR lower MATCHES "(^|/)modules/hal(/|$)"
-               OR lower MATCHES "(^|/)components/[^/]+/(src|host|zephyr|tests?)(/|$)"
+               OR lower MATCHES "(^|/)components/[^/]+/(src|host|zephyr|ports|tests?)(/|$)"
                OR lower MATCHES "(^|/)(test_support|test-support)(/|$)"
                OR lower MATCHES "__zephyr__")
                 message(FATAL_ERROR "native consumer requirement: ${target} ${property}: ${value}")
