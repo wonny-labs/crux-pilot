@@ -81,11 +81,11 @@
     "hal_nxp": "2c2f28ac333e995d7279777409817c4b4f92c1ec"
   },
   "unqualified": [
-    "hardware execution and physical persistence",
-    "actual elapsed deadline source",
-    "fitted NOR identity and protection state",
-    "initial watchdog/external supervisor and other masters",
-    "full mutating-path and target provider binding"
+    "physical execution and persistence",
+    "hardware-qualified elapsed deadlines and applicable fitted-part maxima",
+    "fitted NOR revision/grade/protection/status/write acceptance",
+    "initial watchdog/supervisor, other masters, ownership, caches and hardware readback semantics",
+    "normal target File/Configuration binding and admission remain unimplemented/disabled"
   ],
   "task_6": {
     "baseline": "c1d788d82b4f69a775f60a31a04df4f21243b5f0",
@@ -542,5 +542,482 @@
       }
     ]
   },
-  "current_software_slice": "task_7"
+  "current_software_slice": "task_9",
+  "task_8": {
+    "source_revision": "b2d21c1",
+    "source_hashes": {
+      "samples/flash_target_candidate/CMakeLists.txt": "cad2e44330b922c97bf36a52ada39baa5146be635fb2ab72f9d737f41073711c",
+      "samples/flash_target_candidate/app.overlay": "e2a45612cef56997f52889847c0412dee37bd95611453b847736434dcb3e9bc5",
+      "samples/flash_target_candidate/early_clock.S": "e0e4c8fcc0881a232aade9ed9384465ee7e0ed6c9b910bdb7106e335f7dcdf74",
+      "samples/flash_target_candidate/early_snapshot.S": "6a8c44ce4d86ef8303e222db68b378643203ecdecca0c4dc3d8f3896bb23a540",
+      "samples/flash_target_candidate/firmware_limit.ld": "c203e32f5498fe762454db8553b9779cf0d6ec3b608b6dae73b9330da948209f",
+      "samples/flash_target_candidate/flash_poc.h": "6327cdd63e0d461a6fb47114ed0ca8bca81f88a04fccdb2d24c27c288088fcc0",
+      "samples/flash_target_candidate/island.c": "4151357ff008eef5badd4d36d1acd4df37118006e36a624f1fba339602e19216",
+      "samples/flash_target_candidate/island.ld": "974e87a19c34d26174f6719c74811f2383f44fd808887173d5001cb59537f4a7",
+      "samples/flash_target_candidate/island_checks.h": "7703055a909e524d383499c6cef638a53b9e4d0969a132d7e483c5a0ca00b568",
+      "samples/flash_target_candidate/island_context.S": "0ab10b12603976eb576b857b0f758553e2987e2d6efc580a8c6130959c64d74e",
+      "samples/flash_target_candidate/main.c": "bab141b71ac17a44036985227600a2fd813c1ef092724fde1f78441425a695a6",
+      "samples/flash_target_candidate/prj.conf": "e6b2098b58346c412cb617cd874afb22bbc69953508f6f10d511d678e63f2120",
+      "samples/flash_target_candidate/rom_command.h": "0baad2111ab97df30fbe91782cbf333287dcf98c138c0a86f95e9d75c9d0152d",
+      "samples/flash_target_candidate/rom_command_gate.c": "bec8d6fc7ee2cca6db60076dbde60214c302223e73e82207eb14bf1bec55f287",
+      "samples/flash_target_candidate/rom_command_memc.inc": "a7f579baed03c0496f27863c95b4591f502f8422967d1f21e7ed569088f018ea",
+      "samples/flash_target_candidate/rom_command_nor.inc": "3f2137bf5a07b0b20f035aeb8a6a64f45964e76bcf8d55691b8a1e698df80324",
+      "samples/flash_target_candidate/rom_deadline.c": "af0ee304fb3c4d335ef4ee64f54cb24c35950b2ff15cb2abe500b51bc7f2aa0a",
+      "samples/flash_target_candidate/rom_deadline.h": "4b2781606ae393c12581c454b6613ae562368823ae5fc16d5c45bb345726bc3a",
+      "samples/flash_target_candidate/rom_profile.c": "9ef50f5808cc456165877cda4fde746e9591b6d8fbeaca5da6961821d482ed1c",
+      "samples/flash_target_candidate/rom_profile.h": "b535ab4e13a71e7ef62cc342b3782709f2931915e54f9f64d88b5741dd25fd6a",
+      "samples/flash_target_candidate/snapshot.ld": "76bf2199ae4c70cc9ff9acf2f4d2bdcc095814c497003bb7426de00a05c25254",
+      "samples/flash_target_candidate/snapshot_layout.c": "a29aefbf575d957a727885244a76ca35c95442155f940e30eb0df0d3d2c87090",
+      "samples/flash_target_candidate/terminal.c": "1140a736299825d817a1a02d2b47e317651e52e6e6da3658df67c81db978efcd",
+      "scripts/prepare-flash-poc.py": "d83b8f680d1d8c19ac98eca4dbbcc8c3f3f04db3f4d9b900664ce0c75fc30bf5",
+      "tests/native/flash_target_candidate/assess_image.py": "8eab829035e2f94650c803c9f063de8cc6a76bda4594c69a6b355b6c28d6ae39",
+      "tests/native/flash_target_candidate/prepare.py": "243e221927d4b359763e03bf2f9caafd0a0db49fd8fa82fe054bc25cd38d47a7",
+      "tests/native/flash_target_candidate/stage_commands.py": "5e107376fc7b08bbb6517827e9d9f2d6c0e676b8ce0146dc51d5af60a5446049",
+      "tests/native/flash_target_candidate/stage_fcb.py": "e82ad5349252c1951fa925c4e05f82c5ecfecc779586cd965d08d7f8a70091ee",
+      "tests/native/flash_target_candidate/test_candidate.py": "48a5018d3f96ce9710c5cc53ef6badd5e673984491b0d70b8c9492cf55639a42",
+      "tests/native/maintenance_island/test_island.py": "816aadb169ada2cdcee55c6e4be09dce539e32f81b89367f9d9f08a79f4c6594",
+      "tests/native/maintenance_island/test_relocation.py": "d9baa756345f4810f34008da83a63a0ef95f9194e14eb021e51dc9eed3b25a95",
+      "tests/native/rom_command_candidate/cases.c": "39bcbf1f97f1a371dd3576358b25b8f1d6ea6ba42a0ed6872701f7cde723ebb0",
+      "tests/native/rom_command_candidate/deadline_cases.c": "26eccd1fc27713385e5bdd24ff94d05e824f89bf1a8f66e64dc6cce469313414",
+      "tests/native/rom_command_candidate/deadline_effects.h": "6b5da7a068eb076e7cb60a460247946771fae8dbaaefc46ed1a971e89423ba1c",
+      "tests/native/rom_command_candidate/effects.h": "41c4e33ee01bd09aa18e742eda8f9b0e86fee4cb5f403d86a97feb4973d3783a",
+      "tests/native/rom_command_candidate/test_commands.py": "53ee9315917f76978f77cce3c4512cd2026a314848a31842f81f3ed4ed61a695",
+      "tests/native/rom_command_candidate/test_deadline.py": "e27658e6df9d1fed15bc1f97fabdaced98ec5020f52d403dfbcb70a10637c760",
+      "tests/native/rom_command_candidate/test_deadline_lower.py": "ea99d982a030ebaaa266d049b14834335f3919971578c882ebc8b76e754153ff",
+      "tests/native/rom_command_candidate/test_image.py": "ff15238972ce3263c1522a84b25c45d5fca5f225830ffc03564d23a280900467",
+      "tests/native/rom_command_candidate/test_metadata.py": "9c90beef6fa169ff630ce5611b22f06f10cf5c012e7045d1cfc3dbace7aa8469"
+    },
+    "upstream_audit_hashes": {
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpt/fsl_gpt.h": "72a6b57bb5bd8f7854103222c3398624af45d798f4c59fde8cf0127f50d10c5d",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpt/fsl_gpt.c": "d21f714934f9d60f1217e411554efeff143744e5334eb235dc0a8f2249c12aaa",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_GPT.h": "b04b2d123122cfa879cc241075098800734c796f2a9d6282265e41a769936174",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_CCM.h": "9929cf0e6194ce4191978985fdfed382907f5250a60a7fa38a60a83864703c96",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_XTALOSC24M.h": "77909fc57ef79d4916b7dfb0db7a73aac0e8bd563a643c9f697dc907a38ddbd5",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/drivers/fsl_clock.h": "a1cd1e43ae5134dec53b86ef3ad9f80bd79fd02d2be536e8a3dde6c3115f33a7",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/drivers/fsl_clock.c": "91200830fe9b4d290e25c169b3612f3256339852851da56dbfc01d34ec0521ed"
+    },
+    "staged_source_provenance": {
+      "flash_mcux_flexspi_nor.c": {
+        "source_sha256": "397019890b4ce7afae88c7da1913ab0b8ac57c3ee1a2c1975c7ba6c4c08a3ea4",
+        "candidate_sha256": "f3bd63880d0b0ac474296cf2c41d2aa7e8dedda339159511219f73e0f1952084",
+        "base_candidate_sha256": "c6646c86fc6d6e68937a68a506e7fdac0ac729388027e69aff68490319cf86a9"
+      },
+      "memc_mcux_flexspi.c": {
+        "source_sha256": "0b9cfcd4fef488d542977b628dbc0c0c3c9243fff1d50cc8dc7315b49e74ce20",
+        "candidate_sha256": "8a9d5a408d921f8c8196d21a7ca86f51041f15cc371d0532dcbd717da65f80ac",
+        "base_candidate_sha256": "5c2bb12d83ba078957e854e8d86f0b2bfb254428eedfcb48b506657c03e67ffb"
+      },
+      "fsl_flexspi.c": {
+        "source_sha256": "d57aec16e69a553c79c14bfb67bb1d729f50680db92b155f8b6016734e564b4a",
+        "candidate_sha256": "251564579a77ba7a146a4283eb5dfc2617a330e7d0bc92c046de39ad3a381744",
+        "base_candidate_sha256": "6c6a6b5cb9872c14eaf05169d4549f5f6a7538feefdae5b98fd89177240bc328"
+      }
+    },
+    "build_artifacts": {
+      "build/flash-target-candidate/source-hashes.json": "f471aa41fd51ccc199b1ea5412f812356df2c589c0cd991571d929957d25413b",
+      "build/flash-target-candidate/command-source-hashes.json": "8b638b3f7e0c82e7eaffc8309cecef279e02838006583958586b5ea43c5d43fe",
+      "build/flash-target-candidate/memc_mcux_flexspi.c": "8a9d5a408d921f8c8196d21a7ca86f51041f15cc371d0532dcbd717da65f80ac",
+      "build/flash-target-candidate/fcb-source-hashes.json": "3f2af8f467d3436b52d93e6dde23f3e3c9b88e94007c7b4285ddcc6987353d3b",
+      "build/flash-target-candidate/evkbmimxrt1060_flexspi_nor_config.c": "f1ec2ac1684cbedba2ec6d944e05264862877489c00e7089229fc54f9255be35",
+      "build/flash-target-candidate/fsl_flexspi.c": "251564579a77ba7a146a4283eb5dfc2617a330e7d0bc92c046de39ad3a381744",
+      "build/flash-target-candidate/flash_mcux_flexspi_nor.c": "f3bd63880d0b0ac474296cf2c41d2aa7e8dedda339159511219f73e0f1952084",
+      "build/zephyr/zephyr.elf": "56aaf427af548e0244dbaab036740a5c527a06b7bdaccd4b3fb4474df24010cd",
+      "build/zephyr/zephyr.bin": "0cfec6128b1d07d626ab8a59ad4f55fee1ac969a899fac6325283329b0a885fd",
+      "build/zephyr/.config": "5788a8ba479cb21181ed466e1c48f04d3c000e2719861605ff8ee7bdab7dec52",
+      "build/zephyr/zephyr.map": "ed6f76e55ad797a498f3bdaf38b2bd40e2f63bfcc40682b7e8965e1f465b9af5",
+      "build/zephyr/zephyr.dts": "a35a1fc6722f70e7514a511cd88c93649c2ea2254c07f14423d6eec638c4a991",
+      "build/zephyr/linker.cmd": "a212bd71a599f43de4cbec1f4d762b245ddc0f76baf565cdd18e58287721aa76",
+      "build/zephyr/code_relocation.c": "e2242321968b70d0ba4f3a5ee967990fd769e5b54f06a11000ab40b34cfd3c18",
+      "build/zephyr/relocation_dict.txt": "6eab7a20f85da712a5fe499f47ad257c6a13d1a4374afca42d2d77018d9f8ae4",
+      "build/zephyr/include/generated/linker_relocate.ld": "15983ea8e8f761eb958af4dc8f6347de41625cc6be7a372f73e0e63b936baac9",
+      "build/zephyr/include/generated/linker_sram_data_relocate.ld": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "build/zephyr/include/generated/linker_sram_bss_relocate.ld": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "build/compile_commands.json": "f02c92b88f9c7f7d4c3e09da5928e00ed368665e1e6ca9c03512167f5c510e15"
+    },
+    "bin_bytes": 44256,
+    "fcb_differences": [
+      {
+        "offset": 70,
+        "original": 7,
+        "candidate": 6
+      }
+    ],
+    "closure": {
+      "functions": {
+        "FLEXSPI_CheckAndClearError": {
+          "address": 5241,
+          "frame_upper_bytes": 8
+        },
+        "FLEXSPI_GetBusIdleStatus": {
+          "address": 5333,
+          "frame_upper_bytes": 0
+        },
+        "FLEXSPI_ReadBlocking": {
+          "address": 5873,
+          "frame_upper_bytes": 40
+        },
+        "FLEXSPI_SoftwareReset": {
+          "address": 6405,
+          "frame_upper_bytes": 16
+        },
+        "FLEXSPI_TransferBlocking": {
+          "address": 6495,
+          "frame_upper_bytes": 16
+        },
+        "FLEXSPI_WriteBlocking": {
+          "address": 8031,
+          "frame_upper_bytes": 32
+        },
+        "crux_flash_poc_terminal": {
+          "address": 10721,
+          "frame_upper_bytes": 0
+        },
+        "crux_pilot_flash_owner_request_valid": {
+          "address": 1,
+          "frame_upper_bytes": 12
+        },
+        "crux_rom_candidate_deadline_expired": {
+          "address": 10189,
+          "frame_upper_bytes": 16
+        },
+        "crux_rom_candidate_wait_check": {
+          "address": 10289,
+          "frame_upper_bytes": 16
+        },
+        "crux_rom_check_deadline": {
+          "address": 169,
+          "frame_upper_bytes": 8
+        },
+        "crux_rom_check_result": {
+          "address": 187,
+          "frame_upper_bytes": 8
+        },
+        "crux_rom_command_dispatch": {
+          "address": 197,
+          "frame_upper_bytes": 48
+        },
+        "crux_rom_elapsed_expired": {
+          "address": 10087,
+          "frame_upper_bytes": 0
+        },
+        "crux_rom_gpt2_running": {
+          "address": 10609,
+          "frame_upper_bytes": 8
+        },
+        "crux_rom_gpt2_source_matches": {
+          "address": 10653,
+          "frame_upper_bytes": 0
+        },
+        "crux_rom_native_erase_sector": {
+          "address": 1247,
+          "frame_upper_bytes": 24
+        },
+        "crux_rom_native_write_enable": {
+          "address": 5045,
+          "frame_upper_bytes": 24
+        },
+        "crux_rom_ready_idle": {
+          "address": 709,
+          "frame_upper_bytes": 40
+        },
+        "memc_flexspi_reset": {
+          "address": 9391,
+          "frame_upper_bytes": 8
+        },
+        "memc_flexspi_transfer": {
+          "address": 9731,
+          "frame_upper_bytes": 40
+        },
+        "memc_flexspi_wait_bus_idle": {
+          "address": 10025,
+          "frame_upper_bytes": 16
+        }
+      },
+      "all_frames_conservative_sum": 380,
+      "operation_stack_bytes": 1024,
+      "scope": "static software call/literal/stack closure; no hardware execution"
+    },
+    "tests": {
+      "command": 24,
+      "rom_profile": 7,
+      "island": 15,
+      "snapshot": 3,
+      "copied_driver": 15,
+      "total": 64,
+      "skips": 0
+    },
+    "review": "Independent spec and quality PASS; physical qualification absent"
+  },
+  "task_9": {
+    "source_revision": "96a70ac",
+    "source_hashes": {
+      "samples/flash_target_candidate/CMakeLists.txt": "fdd7930bc39b57cf126a36b86034a35892ac193cfd9ac755b8e85192f3a3af18",
+      "samples/flash_target_candidate/app.overlay": "e2a45612cef56997f52889847c0412dee37bd95611453b847736434dcb3e9bc5",
+      "samples/flash_target_candidate/early_clock.S": "e0e4c8fcc0881a232aade9ed9384465ee7e0ed6c9b910bdb7106e335f7dcdf74",
+      "samples/flash_target_candidate/early_snapshot.S": "6a8c44ce4d86ef8303e222db68b378643203ecdecca0c4dc3d8f3896bb23a540",
+      "samples/flash_target_candidate/firmware_limit.ld": "c203e32f5498fe762454db8553b9779cf0d6ec3b608b6dae73b9330da948209f",
+      "samples/flash_target_candidate/flash_poc.h": "6327cdd63e0d461a6fb47114ed0ca8bca81f88a04fccdb2d24c27c288088fcc0",
+      "samples/flash_target_candidate/island.c": "4151357ff008eef5badd4d36d1acd4df37118006e36a624f1fba339602e19216",
+      "samples/flash_target_candidate/island.ld": "974e87a19c34d26174f6719c74811f2383f44fd808887173d5001cb59537f4a7",
+      "samples/flash_target_candidate/island_checks.h": "7703055a909e524d383499c6cef638a53b9e4d0969a132d7e483c5a0ca00b568",
+      "samples/flash_target_candidate/island_context.S": "0ab10b12603976eb576b857b0f758553e2987e2d6efc580a8c6130959c64d74e",
+      "samples/flash_target_candidate/main.c": "bab141b71ac17a44036985227600a2fd813c1ef092724fde1f78441425a695a6",
+      "samples/flash_target_candidate/prj.conf": "e6b2098b58346c412cb617cd874afb22bbc69953508f6f10d511d678e63f2120",
+      "samples/flash_target_candidate/rom_command.h": "b715cf62077857596f29a57b5fb21d55fa44bcf7bf9508b260eaad91f878cca7",
+      "samples/flash_target_candidate/rom_command_gate.c": "bec8d6fc7ee2cca6db60076dbde60214c302223e73e82207eb14bf1bec55f287",
+      "samples/flash_target_candidate/rom_command_memc.inc": "a7f579baed03c0496f27863c95b4591f502f8422967d1f21e7ed569088f018ea",
+      "samples/flash_target_candidate/rom_command_nor.inc": "e96b2aa3eaa621b58a48dd418ee6e1be91ea16cfe9c9c243f62b203368fdd93b",
+      "samples/flash_target_candidate/rom_deadline.c": "af0ee304fb3c4d335ef4ee64f54cb24c35950b2ff15cb2abe500b51bc7f2aa0a",
+      "samples/flash_target_candidate/rom_deadline.h": "4b2781606ae393c12581c454b6613ae562368823ae5fc16d5c45bb345726bc3a",
+      "samples/flash_target_candidate/rom_identity_memc.inc": "ab657406ca8fea05554bc60ee3301816f11cb25ce6e0089ceb2ea006c3cd0959",
+      "samples/flash_target_candidate/rom_profile.c": "9ef50f5808cc456165877cda4fde746e9591b6d8fbeaca5da6961821d482ed1c",
+      "samples/flash_target_candidate/rom_profile.h": "b535ab4e13a71e7ef62cc342b3782709f2931915e54f9f64d88b5741dd25fd6a",
+      "samples/flash_target_candidate/snapshot.ld": "76bf2199ae4c70cc9ff9acf2f4d2bdcc095814c497003bb7426de00a05c25254",
+      "samples/flash_target_candidate/snapshot_layout.c": "a29aefbf575d957a727885244a76ca35c95442155f940e30eb0df0d3d2c87090",
+      "samples/flash_target_candidate/terminal.c": "1140a736299825d817a1a02d2b47e317651e52e6e6da3658df67c81db978efcd",
+      "scripts/prepare-flash-poc.py": "d83b8f680d1d8c19ac98eca4dbbcc8c3f3f04db3f4d9b900664ce0c75fc30bf5",
+      "tests/native/flash_target_candidate/assess_image.py": "8eab829035e2f94650c803c9f063de8cc6a76bda4594c69a6b355b6c28d6ae39",
+      "tests/native/flash_target_candidate/prepare.py": "243e221927d4b359763e03bf2f9caafd0a0db49fd8fa82fe054bc25cd38d47a7",
+      "tests/native/flash_target_candidate/stage_commands.py": "8ad42be9b30fea311335d145dfdf31fa49fe548ee1c6cef4f63ba9ad2daabeea",
+      "tests/native/flash_target_candidate/stage_fcb.py": "51cae9e18331442ef28d7dd826eb622209d32969f3dcca0ad44a95de7f3c6935",
+      "tests/native/flash_target_candidate/test_candidate.py": "48a5018d3f96ce9710c5cc53ef6badd5e673984491b0d70b8c9492cf55639a42",
+      "tests/native/maintenance_island/test_island.py": "816aadb169ada2cdcee55c6e4be09dce539e32f81b89367f9d9f08a79f4c6594",
+      "tests/native/maintenance_island/test_relocation.py": "d9baa756345f4810f34008da83a63a0ef95f9194e14eb021e51dc9eed3b25a95",
+      "tests/native/rom_command_candidate/cases.c": "39bcbf1f97f1a371dd3576358b25b8f1d6ea6ba42a0ed6872701f7cde723ebb0",
+      "tests/native/rom_command_candidate/deadline_cases.c": "26eccd1fc27713385e5bdd24ff94d05e824f89bf1a8f66e64dc6cce469313414",
+      "tests/native/rom_command_candidate/deadline_effects.h": "6b5da7a068eb076e7cb60a460247946771fae8dbaaefc46ed1a971e89423ba1c",
+      "tests/native/rom_command_candidate/effects.h": "19e54f093527637cb6b598f9caf2be9375960b514b50e060bb72e6c7f1985c35",
+      "tests/native/rom_command_candidate/identity_cases.c": "c40ec5c1e8645ec982b109ab2da78e9899cfa655353ca3f30b359db8456a840c",
+      "tests/native/rom_command_candidate/identity_effects.h": "dcfeffac9eb3260c18889d11385065d94bfe204d9da6de7771099c3d6b88fe08",
+      "tests/native/rom_command_candidate/test_commands.py": "4285ffb01a1f4f891af18fbe721f976c9671188b5b33ae24c485fc48ee1485d3",
+      "tests/native/rom_command_candidate/test_deadline.py": "e27658e6df9d1fed15bc1f97fabdaced98ec5020f52d403dfbcb70a10637c760",
+      "tests/native/rom_command_candidate/test_deadline_lower.py": "ea99d982a030ebaaa266d049b14834335f3919971578c882ebc8b76e754153ff",
+      "tests/native/rom_command_candidate/test_identity.py": "33ac3b20f9392221286554577017fba285a71971c7d26b451a7d1292cb90e3aa",
+      "tests/native/rom_command_candidate/test_identity_deadline.py": "7f9f25c44d9ce2cca2c81b6d35854d66303eda67723b5255de0010f68497e4bb",
+      "tests/native/rom_command_candidate/test_image.py": "064275c98c31bbddfeafb3200024d88ace3d7359b7691d763d186cbe55cdc0ab",
+      "tests/native/rom_command_candidate/test_metadata.py": "9c90beef6fa169ff630ce5611b22f06f10cf5c012e7045d1cfc3dbace7aa8469"
+    },
+    "upstream_audit_hashes": {
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/flexspi/fsl_flexspi.c": "d57aec16e69a553c79c14bfb67bb1d729f50680db92b155f8b6016734e564b4a",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/flexspi/fsl_flexspi.h": "5d23776676458f9356778c3d2d527afd2455d561074fb213271f7c6b3f0dd9b7",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_FLEXSPI.h": "b48c5134a32e42f45180321b556b0cf227495efac145d80bd42c1a37dc9003ab",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpt/fsl_gpt.h": "72a6b57bb5bd8f7854103222c3398624af45d798f4c59fde8cf0127f50d10c5d",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpt/fsl_gpt.c": "d21f714934f9d60f1217e411554efeff143744e5334eb235dc0a8f2249c12aaa",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_GPT.h": "b04b2d123122cfa879cc241075098800734c796f2a9d6282265e41a769936174",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_CCM.h": "9929cf0e6194ce4191978985fdfed382907f5250a60a7fa38a60a83864703c96",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_XTALOSC24M.h": "77909fc57ef79d4916b7dfb0db7a73aac0e8bd563a643c9f697dc907a38ddbd5",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/drivers/fsl_clock.h": "a1cd1e43ae5134dec53b86ef3ad9f80bd79fd02d2be536e8a3dde6c3115f33a7",
+      "/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/drivers/fsl_clock.c": "91200830fe9b4d290e25c169b3612f3256339852851da56dbfc01d34ec0521ed",
+      "/ws/zephyr/drivers/flash/spi_nor.h": "94f9316ed23a83aae9eafdc0e711022bb0ed3354e05aaa620b1e4d96733587e4",
+      "/ws/zephyr/drivers/flash/jesd216.h": "41fc4c020ce0b3a1c302fc547efcf06d41fb5efdc72021d5f7a92cc48297440f",
+      "/ws/zephyr/drivers/flash/flash_mcux_flexspi_nor.c": "397019890b4ce7afae88c7da1913ab0b8ac57c3ee1a2c1975c7ba6c4c08a3ea4",
+      "/ws/zephyr/drivers/memc/memc_mcux_flexspi.c": "0b9cfcd4fef488d542977b628dbc0c0c3c9243fff1d50cc8dc7315b49e74ce20",
+      "/ws/zephyr/boards/nxp/mimxrt1060_evk/xip/evkbmimxrt1060_flexspi_nor_config.c": "0ea7cf9246bac6643cad06396ff3f518ebf34b7793666646847e736eacb8c5f3",
+      "/ws/zephyr/boards/nxp/mimxrt1060_evk/xip/evkbmimxrt1060_flexspi_nor_config.h": "fc670f88c1b3e2ceb0d05b1cba944694e9e9265a320277e9981436f7e2dfe05c"
+    },
+    "staged_source_provenance": {
+      "flash_mcux_flexspi_nor.c": {
+        "source_sha256": "397019890b4ce7afae88c7da1913ab0b8ac57c3ee1a2c1975c7ba6c4c08a3ea4",
+        "candidate_sha256": "789abceffa72662c67631d6498015fec09792422b750b0b37e30e3790d6d7256",
+        "base_candidate_sha256": "c6646c86fc6d6e68937a68a506e7fdac0ac729388027e69aff68490319cf86a9"
+      },
+      "memc_mcux_flexspi.c": {
+        "source_sha256": "0b9cfcd4fef488d542977b628dbc0c0c3c9243fff1d50cc8dc7315b49e74ce20",
+        "candidate_sha256": "8405ed1cdad496234299681c9bcf4c46c2a73ab864556166e1c25e417a2ac23a",
+        "base_candidate_sha256": "5c2bb12d83ba078957e854e8d86f0b2bfb254428eedfcb48b506657c03e67ffb"
+      },
+      "fsl_flexspi.c": {
+        "source_sha256": "d57aec16e69a553c79c14bfb67bb1d729f50680db92b155f8b6016734e564b4a",
+        "candidate_sha256": "36cfb56c2d292d65eb2a3dc1e326e276d69e8823a226ac335691d200b4c883f9",
+        "base_candidate_sha256": "6c6a6b5cb9872c14eaf05169d4549f5f6a7538feefdae5b98fd89177240bc328"
+      }
+    },
+    "build_artifacts": {
+      "build/flash-target-candidate/fcb-source-hashes.json": "7210427070a52b9f10648c6ec4889fa1f382e7512c277ae27aba9d5c4f42bac8",
+      "build/flash-target-candidate/source-hashes.json": "3cec28a381989abe46fab95981e6b84648facb31c7231b91d70d481e7ccb8a47",
+      "build/flash-target-candidate/command-source-hashes.json": "cccc7e0be660d341ade45c15f47617a4cc48cd0e719d91db6805a5af544364bd",
+      "build/flash-target-candidate/fsl_flexspi.c": "36cfb56c2d292d65eb2a3dc1e326e276d69e8823a226ac335691d200b4c883f9",
+      "build/flash-target-candidate/evkbmimxrt1060_flexspi_nor_config.c": "e8d92d7ff808bbd69bbbfad1cee878e59ffc8a073054693ca49d9d4a94f1cdd2",
+      "build/flash-target-candidate/memc_mcux_flexspi.c": "8405ed1cdad496234299681c9bcf4c46c2a73ab864556166e1c25e417a2ac23a",
+      "build/flash-target-candidate/flash_mcux_flexspi_nor.c": "789abceffa72662c67631d6498015fec09792422b750b0b37e30e3790d6d7256",
+      "build/zephyr/zephyr.elf": "85f4c7f74f94044d8ea054e41f0f9729141778f89a821d7512e2230eef480e2c",
+      "build/zephyr/zephyr.bin": "23d9b073b6a02af26bc557c8b6b36144fd878d7f519dff5e3ad0f865dd9f2ba2",
+      "build/zephyr/.config": "5788a8ba479cb21181ed466e1c48f04d3c000e2719861605ff8ee7bdab7dec52",
+      "build/zephyr/zephyr.map": "bb59d2d7f110c7f3f3f0e1ed402dc601e1744d699684c2a54594f2e124a62f65",
+      "build/zephyr/zephyr.dts": "a35a1fc6722f70e7514a511cd88c93649c2ea2254c07f14423d6eec638c4a991",
+      "build/zephyr/linker.cmd": "b610d46f5079a4b4f4885f578b3e2a0d2cce4b72bc45778d2b0d99d277458097",
+      "build/zephyr/code_relocation.c": "e2242321968b70d0ba4f3a5ee967990fd769e5b54f06a11000ab40b34cfd3c18",
+      "build/zephyr/relocation_dict.txt": "b2adfb82355fad0a10c4fcfd3e23ed0208634bbef70240116631d035749a5ec7",
+      "build/zephyr/include/generated/linker_relocate.ld": "4263021efdf0503aefb37b5609bff30eb1f8edbcaa07761c3308074c3d07bec9",
+      "build/zephyr/include/generated/linker_sram_data_relocate.ld": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "build/zephyr/include/generated/linker_sram_bss_relocate.ld": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "build/compile_commands.json": "eba91c34c5fb2c386ddbc7fc535c2ccabacde7f6d1974fc0a3a92ed3f5fd5786"
+    },
+    "bin_bytes": 44936,
+    "fcb_differences": [
+      {
+        "offset": 70,
+        "original": 7,
+        "candidate": 6
+      }
+    ],
+    "closure": {
+      "functions": {
+        "FLEXSPI_CheckAndClearError": {
+          "address": 5449,
+          "frame_upper_bytes": 8
+        },
+        "FLEXSPI_GetBusIdleStatus": {
+          "address": 5541,
+          "frame_upper_bytes": 0
+        },
+        "FLEXSPI_ReadBlocking": {
+          "address": 6081,
+          "frame_upper_bytes": 40
+        },
+        "FLEXSPI_SoftwareReset": {
+          "address": 6613,
+          "frame_upper_bytes": 16
+        },
+        "FLEXSPI_TransferBlocking": {
+          "address": 6703,
+          "frame_upper_bytes": 16
+        },
+        "FLEXSPI_UpdateLUT": {
+          "address": 8117,
+          "frame_upper_bytes": 24
+        },
+        "FLEXSPI_WriteBlocking": {
+          "address": 8259,
+          "frame_upper_bytes": 32
+        },
+        "crux_flash_poc_terminal": {
+          "address": 11405,
+          "frame_upper_bytes": 0
+        },
+        "crux_pilot_flash_owner_request_valid": {
+          "address": 1,
+          "frame_upper_bytes": 12
+        },
+        "crux_rom_candidate_deadline_expired": {
+          "address": 10873,
+          "frame_upper_bytes": 16
+        },
+        "crux_rom_candidate_wait_check": {
+          "address": 10973,
+          "frame_upper_bytes": 16
+        },
+        "crux_rom_check_deadline": {
+          "address": 169,
+          "frame_upper_bytes": 8
+        },
+        "crux_rom_check_result": {
+          "address": 187,
+          "frame_upper_bytes": 8
+        },
+        "crux_rom_command_dispatch": {
+          "address": 197,
+          "frame_upper_bytes": 56
+        },
+        "crux_rom_elapsed_expired": {
+          "address": 10771,
+          "frame_upper_bytes": 0
+        },
+        "crux_rom_gpt2_running": {
+          "address": 11293,
+          "frame_upper_bytes": 8
+        },
+        "crux_rom_gpt2_source_matches": {
+          "address": 11337,
+          "frame_upper_bytes": 0
+        },
+        "crux_rom_identity_check": {
+          "address": 9221,
+          "frame_upper_bytes": 24
+        },
+        "crux_rom_identity_install": {
+          "address": 9489,
+          "frame_upper_bytes": 24
+        },
+        "crux_rom_identity_restore": {
+          "address": 9589,
+          "frame_upper_bytes": 24
+        },
+        "crux_rom_native_erase_sector": {
+          "address": 1455,
+          "frame_upper_bytes": 24
+        },
+        "crux_rom_native_read_status.constprop.0": {
+          "address": 889,
+          "frame_upper_bytes": 24
+        },
+        "crux_rom_native_write_enable": {
+          "address": 5253,
+          "frame_upper_bytes": 24
+        },
+        "crux_rom_ready_idle": {
+          "address": 945,
+          "frame_upper_bytes": 16
+        },
+        "crux_rom_slot_installed": {
+          "address": 9761,
+          "frame_upper_bytes": 0
+        },
+        "memc_flexspi_reset": {
+          "address": 10075,
+          "frame_upper_bytes": 8
+        },
+        "memc_flexspi_transfer": {
+          "address": 10415,
+          "frame_upper_bytes": 40
+        },
+        "memc_flexspi_wait_bus_idle": {
+          "address": 10709,
+          "frame_upper_bytes": 16
+        }
+      },
+      "all_frames_conservative_sum": 484,
+      "operation_stack_bytes": 1024,
+      "scope": "static software call/literal/stack closure; no hardware execution"
+    },
+    "tests": {
+      "command": 33,
+      "rom_profile": 7,
+      "island": 15,
+      "snapshot": 3,
+      "copied_driver": 15,
+      "total": 73,
+      "skips": 0
+    },
+    "review": "Independent spec and quality PASS; no physical qualification"
+  },
+  "historical_ci_e367676": {
+    "head": "e3676769078c9f120e2fccb9569f26fe2ba3746b",
+    "checks": [
+      {
+        "run": 40132836803,
+        "job": 120988040302,
+        "name": "zephyr",
+        "conclusion": "success"
+      },
+      {
+        "run": 40132836761,
+        "job": 120988040227,
+        "name": "host",
+        "conclusion": "success"
+      },
+      {
+        "run": 40132834108,
+        "job": 120988031493,
+        "name": "zephyr",
+        "conclusion": "success"
+      },
+      {
+        "run": 40132834104,
+        "job": 120988031436,
+        "name": "host",
+        "conclusion": "success"
+      }
+    ]
+  }
 }

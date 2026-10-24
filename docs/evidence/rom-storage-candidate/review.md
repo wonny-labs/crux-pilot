@@ -22,3 +22,9 @@ Independent spec and quality review of source `133ba3b`: **PASS**. The Reviewer 
 This closes the identified software verification gap without recopying mutable state. It does not establish continuous mutable integrity, actual hardware execution, cache/master/watchdog/clock state, target admission, production adoption or physical persistence. Target submission remains refused.
 
 The separate follow-up Challenger returned **PASS for Task 7 Draft publication**, no new material findings. It matched the five owned, thirteen retained and seven startup inputs, exact final ELF/BIN, and actual init/preflight/generated-relocation behavior. Existing busy-code byte identity allows the prior manual audit to be reused. Neither review grants timer/LUT adoption, target admission or hardware authority.
+
+## GPT2 and identity follow-up
+
+Independent spec/quality review: **PASS** for `b2d21c1` (GPT2/lower waits) and **PASS** for `96a70ac` (identity/restore/WEL). No material implementation finding remained. The Reviewer matched95 and107 respective manifest entries, the final64/73-method evidence, actual lifecycle/error paths and renewed22/28-body machine-code audits. Actual stack instructions support380/484-byte conservative sums within1024bytes. Target submission and outer elapsed qualification remain constant refusals; no timer initialization or identity startup caller was added.
+
+The full-table reservation is a software composition proof, not actual hardware ownership. LOCKED=1/readback semantics, fitted part/revision/grade, status/protection/write acceptance, real deadlines and external state remain unqualified. The independent review identifies the existing simulator-only provider guards, native_sim ABI flags, missing public read-result path and intentionally failed device initialization as remaining target integration work requiring its separate scope decision. These reviews grant no production, hardware, merge or closure authority.

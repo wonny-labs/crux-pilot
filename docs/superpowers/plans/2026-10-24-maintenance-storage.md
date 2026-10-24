@@ -75,3 +75,11 @@ Disposable integration of the PR #62 checkpoint with accepted main `bf048c1` pre
 ### Task 7: Verify actual relocated command regions before entry
 
 The existing approved RAM safety design requires code/data verification. Add consumed comparisons using actual relocation symbols before context entry: immutable text/rodata each entry; initialized and mutable data only at a justified lifecycle phase, without overwriting live state. Reject malformed extents and mismatches. TDD actual consumed verification plus linked-region/order evidence. Preserve target refusal, 100 MHz FCB and all unselected timer/identity gates. No new loader, cryptographic framework or hardware operations. Independent review of the delta and final image is required.
+
+### Tasks 8–9: Approved GPT2 and temporary identity-slot software candidates
+
+User explicitly approved both independently reviewed next-safety proposals in this chat. This selects software experiments only: target admission remains refused; production adoption, hardware/register operations, merges and closure remain unapproved.
+
+Task 8 implements an isolated GPT2 oscillator-backed candidate using native facilities, explicit source/free-running/prescaler/progress/wrap/expiry semantics and selected lower-wait hooks. Do not trust nominal DTS25MHz or adopt fitted-part deadlines from incomplete sources. The real target admission/elapsed qualification leaf remains fail-closed. TDD actual candidate/helper effects, affected native regressions and new ARM graph/data audit; scoped independent review.
+
+Task 9 follows Task8 review: prove full inherited LUT/port/AHB-read-write/IP/exclusive use before selecting an experimental9F slot; save/verify/restore slot and applicable lockstate only with knownNORready/controlleridle. Uncertainty staysRAM; BootFCBunchanged. TDD actualnativehelper/stagedSDK effects, failure/restore checks and finalARMproof; independentReviewer/Challenger. No production layout/backend/public API. Final focused Draftupdate after both tasks, reusing prior evidence and running affected gates only.
