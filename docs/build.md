@@ -83,7 +83,20 @@ For the Time capability's Twister tests, `native_sim` sample build and EVKB cros
 scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
 ~~~
 
-Both commands use the module from this checkout. The current EVKB target is `mimxrt1060_evk@B//qspi`, limited to its documented configuration. For another Zephyr application, include this Crux checkout as a Zephyr module, for example through the application's configured `ZEPHYR_EXTRA_MODULES` or `ZEPHYR_MODULES` setting. Select the required `CONFIG_CRUX_*` Kconfig capabilities and supply board/project Devicetree and native-resource bindings where the component requires them. Follow the applicable capability contract and an existing tested Zephyr fixture instead of copying Linux provider settings.
+Both commands use the module from this checkout. The current EVKB target is `mimxrt1060_evk@B//qspi`, limited to its documented configuration.
+
+For another Zephyr application in the west workspace, prefer `EXTRA_ZEPHYR_MODULES` to add Crux while retaining the modules discovered through west. Existing Crux scripts also use the supported older spelling `ZEPHYR_EXTRA_MODULES`. By contrast, `ZEPHYR_MODULES` replaces automatic discovery and must list **all** required modules, not just Crux. For example, the following command builds the existing controller application on `native_sim` without hardware operations:
+
+~~~sh
+repo="$PWD"
+workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
+export ZEPHYR_BASE="$workspace/zephyr"
+(cd "$workspace" && west build -p always -b native_sim/native/64 \
+    -d "$repo/build/zephyr/controller-example" \
+    "$repo/samples/controller/zephyr" -- -DEXTRA_ZEPHYR_MODULES="$repo")
+~~~
+
+Select the required `CONFIG_CRUX_*` Kconfig capabilities and supply board/project Devicetree and native-resource bindings where the component requires them. Follow the applicable capability contract and an existing tested Zephyr fixture instead of copying Linux provider settings.
 
 Do not infer that every Linux Host capability has an equivalent Zephyr provider. Serial and Logging require explicitly supported UART resources and ownership settings, while Time's Zephyr RTC implementation is independent of the Linux development-memory backend. The full [Zephyr test commands](../tests/README.md) and [architecture overview](architecture.md#build-and-native-composition) describe the supported profiles and their limits. None of the build scripts above flashes, resets or operates the physical EVKB.
 
