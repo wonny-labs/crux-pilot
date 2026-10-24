@@ -1,7 +1,8 @@
 # Portable Serial — proposed public contract and design
 
-**Status: PROPOSED, awaiting human contract approval. No implementation authorised
-by this document.** Issue #27; baseline `98f05104ad2bc915e4da93ab9e8732e850c140c5`.
+**Status: approved for software implementation by the user on 24 October 2026**
+through the explicit reply “설계·계획 승인 — 제안대로 구현”, covering design/plan
+commit `d9e39ab`. Issue #27; baseline `98f05104ad2bc915e4da93ab9e8732e850c140c5`.
 The [M5 Pilot plan](../../m5-pilot-validation-plan.md), existing component contracts,
 AGENTS.md and CONTRIBUTING.md govern scope. No hardware, merge or closure authority.
 
@@ -18,7 +19,7 @@ consumer, not evidence of a completed third-party port.
 | Approach | Assessment |
 | --- | --- |
 | Qualified POSIX `open/read/write`, `termios`, `poll` | Good Linux native implementation. The pinned Zephyr composition has no qualified matching UART termios/device-file interface. Adopting it publicly would require an additional TTY/VFS integration and new standard exceptions in the consumer policy. Do not equate native `tty_read/write` with POSIX support. |
-| Four-function Crux Serial contract | **Recommended, not yet selected.** Express logical binding, partial progress, finite waits and exclusive lifetime without public native types; use native TTY/UART facilities privately. |
+| Four-function Crux Serial contract | **Selected with human approval.** Express logical binding, partial progress, finite waits and exclusive lifetime without public native types; use native TTY/UART facilities privately. |
 
 The pinned Zephyr `subsys/console/tty.c` was also examined. It resets relative
 waits during multi-chunk operations and writes a `~` marker when RX overflows;
@@ -234,10 +235,11 @@ No Production stress, indefinite soak, exhaustive electrical matrix or WCET clai
 - [Linux termios documentation](https://man7.org/linux/man-pages/man3/termios.3type.html)
   explains noncanonical/timeout differences. No full POSIX Serial conformance claim.
 
-Human decision required: approve or revise the Crux-owned four-function surface,
-buffered short-transfer/abortive-close semantics, finite-timeout rules, selected
-configuration subset and dedicated-UART binding/initial limits. This draft and
-the associated implementation plan are not adoption or implementation approval.
+The human approval covers the Crux-owned four-function surface, buffered
+short-transfer/abortive-close semantics, finite-timeout rules, selected
+configuration subset and dedicated-UART binding/initial limits. Material contract
+changes require a new decision; implementation approval does not authorise
+hardware, merging or Issue closure.
 
 Planning builder check found three material ambiguities: positive progress versus
 a later fault, cached callback invocation after retirement, and permitted settings
