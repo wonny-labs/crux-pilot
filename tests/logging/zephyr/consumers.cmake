@@ -1,0 +1,12 @@
+include("${CMAKE_CURRENT_LIST_DIR}/../../../cmake/CruxConsumerBoundary.cmake")
+add_library(logging_runtime STATIC ../../logging_consumer/src/runtime.c ../../logging_consumer/src/consumer.cpp)
+add_library(logging_controller STATIC ../../../samples/logging/controller.c)
+foreach(consumer IN ITEMS logging_runtime logging_controller)
+    target_link_libraries(${consumer} PRIVATE crux::logging)
+    target_compile_options(${consumer} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    set_target_properties(${consumer} PROPERTIES C_STANDARD 17 C_STANDARD_REQUIRED YES C_EXTENSIONS OFF
+        CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS OFF)
+    crux_assert_portable_consumer(${consumer})
+endforeach()
+target_include_directories(app PRIVATE ../../logging_consumer/src ../../../samples/logging)
+target_link_libraries(app PRIVATE logging_runtime logging_controller)

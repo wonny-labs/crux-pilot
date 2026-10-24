@@ -94,3 +94,9 @@ config CRUX_SERIAL
     select TIMEOUT_64BIT
     help
       One explicitly dedicated UART, 256-byte RX and TX buffers. Task context only.
+
+config CRUX_LOGGING
+    bool "Crux completed-text logging"
+    depends on CRUX_PILOT_MODULE
+    help
+      Qualified native deferred UART backend; configuration is checked explicitly.

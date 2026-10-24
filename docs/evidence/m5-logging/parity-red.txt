@@ -1,0 +1,65 @@
+F
+======================================================================
+FAIL: test_rejected_compositions (__main__.LoggingCompositionTest.test_rejected_compositions) (case='parity')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REPO/tests/build/test_logging_composition.py", line 68, in test_rejected_compositions
+    self.assertNotEqual(result.returncode, 0, result.stdout)
+AssertionError: 0 == 0 : -- west build: generating a build system
+Loading Zephyr default modules (Zephyr base).
+-- Application: $REPO/tests/logging/zephyr
+-- CMake version: 3.28.4
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native/64
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: host (gcc/ld)
+-- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6")
+-- Found BOARD.dts: $WORKSPACE/zephyr/boards/native/native_sim/native_sim_64.dts
+-- Found devicetree overlay: $REPO/tests/logging/zephyr/app.overlay
+-- Found devicetree overlay: /tmp/crux-logging-parity-red/parity/case.overlay
+-- Generated zephyr.dts: /tmp/crux-logging-parity-red/native-build/zephyr/zephyr.dts
+-- Generated pickled edt: /tmp/crux-logging-parity-red/native-build/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /tmp/crux-logging-parity-red/native-build/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing $WORKSPACE/zephyr/Kconfig
+Loaded configuration '$WORKSPACE/zephyr/boards/native/native_sim/native_sim_64_defconfig'
+Merged configuration '$REPO/tests/logging/zephyr/prj.conf'
+Merged configuration '/tmp/crux-logging-parity-red/parity/case.conf'
+Configuration saved to '/tmp/crux-logging-parity-red/native-build/zephyr/.config'
+Kconfig header saved to '/tmp/crux-logging-parity-red/native-build/zephyr/include/generated/zephyr/autoconf.h'
+-- Found GnuLd: /usr/bin/ld.bfd (found version "2.42")
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /usr/bin/gcc
+-- Crux Zephyr integration module discovered
+-- Found gen_kobject_list: $WORKSPACE/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (36.3s)
+-- Generating done (0.9s)
+-- Build files have been written to: /tmp/crux-logging-parity-red/native-build
+[1/16] Preparing syscall dependency handling
+
+[2/16] Generating include/generated/zephyr/version.h
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr), build: v4.4.0
+[3/16] Generating misc/generated/syscalls_subdirs.trigger
+[4/16] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[5/16] Generating include/generated/zephyr/driver-validation.h
+[6/16] Generating include/generated/zephyr/syscall_dispatch.c, include/generated/zephyr/syscall_exports_llext.c, syscall_weakdefs_llext.c, include/generated/zephyr/syscall_list.h
+[7/16] Generating include/generated/device-api-sections.ld, include/generated/device-api-sections.cmake
+[8/16] Generating include/generated/zephyr/kobj-types-enum.h, include/generated/zephyr/otype-to-str.h, include/generated/zephyr/otype-to-size.h
+[9/16] Building C object zephyr/lib/heap/CMakeFiles/heap_constants.dir/heap_constants.c.obj
+[10/16] Generating ../../include/generated/zephyr/heap_constants.h
+[11/16] Building C object zephyr/CMakeFiles/offsets.dir/arch/posix/core/offsets/offsets.c.obj
+[12/16] Generating include/generated/zephyr/offsets.h
+[13/16] Building C object modules/m5-logging/logging/CMakeFiles/crux_logging_zephyr.dir$REPO/components/logging/src/logging.c.obj
+[14/16] Building C object modules/m5-logging/logging/CMakeFiles/crux_logging_zephyr.dir/logging_binding.c.obj
+[15/16] Building C object modules/m5-logging/logging/CMakeFiles/crux_logging_zephyr.dir/logging_zephyr.c.obj
+[16/16] Linking C static library modules/m5-logging/logging/libcrux_logging_zephyr.a
+
+
+----------------------------------------------------------------------
+Ran 1 test in 112.282s
+
+FAILED (failures=1)

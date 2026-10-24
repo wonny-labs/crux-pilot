@@ -151,15 +151,16 @@ python3 -m unittest discover -s tests/build -p test_external_application.py -v
 
 The test copies `tests/external_application/` into fresh temporary directories
 outside the Crux source tree, then configures, builds and runs independent C17/C++17
-Base/Time, Thread-only, Sync-only, Serial-only, Queue/Monotonic and Base-only parent projects.
+Base/Time, Thread-only, Sync-only, Serial-only, Logging-only, Queue/Monotonic and Base-only parent projects.
 Parent C99/C++20 targets and CTest tests before/after inclusion remain functional;
 a separate C-only parent retains its enabled-language and testing policy ON/OFF.
 Actual compile commands and final ELF symbols check component selection and private
 requirements. Focused negatives cover missing/unsupported/multiple Time selection,
-incompatible Time/Serial providers and missing Queue/Monotonic native composition. Existing
+incompatible Time/Serial/Logging providers and missing Queue/Monotonic native composition. Existing
 source/build guards retain the detailed native-dependency negatives. A separately
 copied Serial consumer runs all five PTY/policy scenarios beneath a parent project
-with its own tests enabled, preserving both parent tests.
+with its own tests enabled, preserving both parent tests. The independent Logging
+fixture similarly runs its actual-provider and policy cases under a testing-ON parent.
 
 See the [supported integration example](../README.md#external-application-build-linux-host).
 The fixture uses public capabilities in portable targets and declares native
@@ -271,3 +272,16 @@ The independent Host consumer selects `CRUX_BUILD_SERIAL` and `CRUX_BUILD_MONOTO
 through the root entry point, keeps parent `BUILD_TESTING` intact and composes
 `crux::monotonic_linux` only in the native fixture. Static Zephyr composition and
 UART ownership checks remain part of the full Serial script.
+
+## Portable Logging
+
+`scripts/test-logging.sh --host-only` runs the independent C17/C++17 consumer and
+Controller checks. Full `scripts/test-logging.sh` also checks rejected native
+compositions, actual UART-emulator output and the revision-B EVKB cross-build.
+Root Host tests include `Logging.*`; the normal sanitizer preset covers them.
+See [Logging validation](../docs/logging-validation.md) for evidence and limits.
+
+The independent Host Logging fixture selects only `CRUX_BUILD_LOGGING` through
+the root entry point, preserving parent testing and language settings. Logging-only
+external profiles verify public C17/C++17 usage, native-boundary checks and exclusion
+of unrelated components. Provider validation and native UART ownership stay unchanged.

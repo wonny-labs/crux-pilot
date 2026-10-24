@@ -1,0 +1,15 @@
+[1/2] Building C object CMakeFiles/logging_consumer.dir/host/main.c.o
+[2/2] Linking CXX executable logging_consumer
+Internal ctest changing into directory: /tmp/crux-logging-consumer
+Test project /tmp/crux-logging-consumer
+    Start 1: LoggingConsumer.ActualHost
+1/2 Test #1: LoggingConsumer.ActualHost .......   Passed    0.07 sec
+    Start 2: LoggingConsumer.Policy
+2/2 Test #2: LoggingConsumer.Policy ...........   Passed    0.04 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.13 sec
+1475 warnings generated.
+Suppressed 1476 warnings (1475 in non-user code, 1 NOLINT).
+Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.

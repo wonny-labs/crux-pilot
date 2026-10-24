@@ -35,6 +35,7 @@ class ExternalApplicationTest(unittest.TestCase):
                 ('thread', {'thread'}, 'crux_thread_create'),
                 ('sync', {'sync'}, 'crux_mutex_create'),
                 ('serial', {'serial'}, 'crux_serial_open'),
+                ('logging', {'logging'}, 'crux_log_write'),
                 ('messaging', {'queue', 'monotonic'}, 'crux_queue_create'),
                 ('parent', set(), None)):
             with self.subTest(profile=profile), tempfile.TemporaryDirectory() as temporary:
@@ -62,6 +63,8 @@ class ExternalApplicationTest(unittest.TestCase):
                     self.assertNotRegex(symbols, r'\b(?:crux_mutex_|crux_semaphore_|sync_native_)')
                 if 'serial' not in selected:
                     self.assertNotRegex(symbols, r'\b(?:crux_serial_|serial_port_)')
+                if 'logging' not in selected:
+                    self.assertNotRegex(symbols, r'\b(?:crux_log_|logging_port_)')
                 tests = json.loads(self.run_command(['ctest', '--test-dir', str(build),
                                                     '--show-only=json-v1']))
                 self.assertEqual([t['name'] for t in tests['tests']],
@@ -89,6 +92,30 @@ class ExternalApplicationTest(unittest.TestCase):
             for name in ('Parent.Before', 'Parent.After', 'SerialConsumer.c', 'SerialConsumer.cpp',
                          'SerialConsumer.controller', 'SerialConsumer.controller_stale',
                          'SerialConsumer.Policy'):
+                self.assertIn(name, output)
+
+    def test_independent_logging_consumer_preserves_parent_testing(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(REPO / 'tests/logging_consumer', root / 'logging')
+            (root / 'CMakeLists.txt').write_text(
+                'cmake_minimum_required(VERSION 3.28)\nproject(logging_parent LANGUAGES C CXX)\n'
+                'set(CMAKE_C_STANDARD 99)\nset(CMAKE_CXX_STANDARD 20)\ninclude(CTest)\n'
+                'add_test(NAME Parent.Before COMMAND "${CMAKE_COMMAND}" -E true)\n'
+                f'set(CRUX_SOURCE_DIR "{REPO}" CACHE PATH "External dependency")\n'
+                'add_subdirectory(logging)\n'
+                'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::serial OR TARGET crux::time '
+                'OR TARGET crux::thread OR TARGET crux::monotonic '
+                'OR NOT CMAKE_C_STANDARD EQUAL 99 OR NOT CMAKE_CXX_STANDARD EQUAL 20)\n'
+                'message(FATAL_ERROR "Logging changed parent policy or component selection")\nendif()\n'
+                'add_test(NAME Parent.After COMMAND "${CMAKE_COMMAND}" -E true)\n')
+            build = root / 'out'
+            self.run_command([CMAKE, '-S', str(root), '-B', str(build), '-G', 'Ninja',
+                              '-DFETCHCONTENT_FULLY_DISCONNECTED=ON'])
+            self.run_command([CMAKE, '--build', str(build), '--parallel', '2'])
+            output = self.run_command(['ctest', '--test-dir', str(build), '--output-on-failure'])
+            for name in ('Parent.Before', 'Parent.After', 'LoggingConsumer.ActualHost',
+                         'LoggingConsumer.Policy'):
                 self.assertIn(name, output)
 
     def test_c_only_parent_keeps_testing_policy_and_languages(self):
@@ -132,6 +159,12 @@ class ExternalApplicationTest(unittest.TestCase):
             result, _ = self.configure(Path(temporary), 'serial', '-DCONFLICT_PROVIDER=ON')
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('CRUX_SERIAL_PROVIDER', result.stdout + result.stderr)
+
+    def test_conflicting_logging_providers(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result, _ = self.configure(Path(temporary), 'logging', '-DCONFLICT_PROVIDER=ON')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('CRUX_LOGGING_PROVIDER', result.stdout + result.stderr)
 
     def test_missing_native_composition_fails_at_link(self):
         with tempfile.TemporaryDirectory() as temporary:

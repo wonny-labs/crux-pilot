@@ -7,6 +7,8 @@
 #include <crux/sync.h>
 #elif PROFILE_SERIAL
 #include <crux/serial.h>
+#elif PROFILE_LOGGING
+#include <crux/logging.h>
 #elif PROFILE_MESSAGING
 #include <crux/monotonic.h>
 #include <crux/queue.h>
@@ -21,6 +23,8 @@ extern "C" int external_cpp_consumer(void) {
     return crux_mutex_destroy(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
 #elif PROFILE_SERIAL
     return crux_serial_close(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
+#elif PROFILE_LOGGING
+    return crux_log_write(CRUX_LOG_INFO, nullptr, "probe") != CRUX_ERR_INVALID_ARGUMENT;
 #elif PROFILE_MESSAGING
     return crux_queue_create(1, sizeof(int), nullptr) != CRUX_ERR_INVALID_ARGUMENT ||
            crux_monotonic_now(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
