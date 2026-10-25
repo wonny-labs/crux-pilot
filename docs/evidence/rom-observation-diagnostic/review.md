@@ -26,3 +26,11 @@ Physical-use blockers remain: fitted-part facts, loader footprint, preservation,
 backup/recovery, debugger/boot/readout/reset effects, watchdog and exclusive
 controller/GPT2 ownership. This review grants no hardware, adoption, merge,
 closure or M4 completion authority.
+
+Final independent Challenger: **PASS at `f83ff69`** after C1 correction.
+The whole-change review identified one documentary omission: the SDK clears
+`FLSHCR2[A1].CLRINSTRPTR` before each accepted read. The scoped re-review checked
+its explicit disclosure in the sample, public assessment and retained hardware
+packet, refreshed documentary identities and preservation of all 63 earlier
+execution artifacts. No implementation/configuration/test change or rebuild was
+needed. No material finding remains within the approved software scope.
