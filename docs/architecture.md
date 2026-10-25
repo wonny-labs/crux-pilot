@@ -100,13 +100,13 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 
 The root `CMakeLists.txt` supports the Linux Host development build. The `zephyr/` directory provides out-of-tree module integration, with Zephyr Kconfig and application/project configuration selecting supported native facilities. The `west.yml` manifest pins the relevant Zephyr dependency baseline.
 
-Public targets such as `crux::time`, `crux::thread` and `crux::sync` are consumer-facing usage contracts. Internal native targets, their private include paths, and link dependencies belong to the selected composition. **A public target is not an installed SDK package, nor does every component use an identical provider-linkage pattern.** Follow the [supported source-tree consumer contract](../README.md#external-application-build-linux-host). Do not manually add private provider paths to an application to bypass a missing integration capability.
+Public targets such as `crux::time`, `crux::thread` and `crux::sync` are consumer-facing usage contracts. Internal native targets, their private include paths, and link dependencies belong to the selected composition. **A public target is not an installed SDK package, nor does every component use an identical provider-linkage pattern.** Follow the [supported source-tree consumer contract](build.md#external-linux-application-using-crux-source). Do not manually add private provider paths to an application to bypass a missing integration capability.
 
 Host and Zephyr may compose providers differently. For example, a Host Time composition uses a controlled memory provider, while the Zephyr image registers its selected RTC implementation independently. This difference must not change the portable Time API.
 
 Thread and Sync are independently selectable in Host and Zephyr builds. The [contract's build selection and provider limits](thread-sync.md#build-selection-and-provider-limits) document their component-owned switches and resource settings. Consumer code should depend only on the capabilities it uses.
 
-The [Build and Integration Guide](build.md) documents the supported Linux Host, Zephyr and external source-tree build paths, including component selection, native composition and common configuration failures. The [README example](../README.md#external-application-build-linux-host) provides a tested external application entry point. These instructions do not establish an installed SDK, `find_package(Crux)`, a production Embedded Linux variant or support for arbitrary OS, board or toolchain combinations.
+The [Build and Integration Guide](build.md) documents the supported Linux Host, Zephyr and external source-tree build paths, including component selection, native composition and common configuration failures. The [external application example](build.md#external-linux-application-using-crux-source) demonstrates the documented integration path. These instructions do not establish an installed SDK, `find_package(Crux)`, a production Embedded Linux variant or support for arbitrary OS, board or toolchain combinations.
 
 ## Engineering and validation boundaries
 
@@ -143,6 +143,9 @@ Use [CONTRIBUTING](../CONTRIBUTING.md) for code, PR and review requirements and 
 - [Current Thread/Sync contract, design decisions and evidence](thread-sync.md)
 - [Messaging and monotonic timing contract](messaging-contract.md)
 - [Qualified networking profile](networking-contract.md)
+- [Serial capability contract](serial-contract.md)
+- [Logging capability contract](logging-contract.md)
+- [System Health and Reset validation](system-validation.md)
 - [File capability contract](file-contract.md)
 - [Configuration capability contract](configuration-contract.md)
 - [Native-free consumer policy](native-interface-policy.md)
