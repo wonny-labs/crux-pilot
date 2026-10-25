@@ -116,14 +116,23 @@ jobs:
             crux-pilot/build/zephyr/twister-*/*.xml
             crux-pilot/build/zephyr/twister-*/**/production_*.h
             # Include early configure/build failures as well as runtime failures.
-            crux-pilot/build/zephyr/**/*.log
-            crux-pilot/build/zephyr/**/*.err
-            crux-pilot/build/zephyr/**/CMakeConfigureLog.yaml
-            crux-pilot/build/zephyr/**/CMakeCache.txt
-            crux-pilot/build/zephyr/**/compile_commands.json
-            crux-pilot/build/zephyr/**/zephyr/.config
+            crux-pilot/build/zephyr/twister-*/**/*.log
+            crux-pilot/build/zephyr/twister-*/**/*.err
+            crux-pilot/build/zephyr/twister-*/**/CMakeConfigureLog.yaml
+            crux-pilot/build/zephyr/twister-*/**/CMakeCache.txt
+            crux-pilot/build/zephyr/twister-*/**/compile_commands.json
+            crux-pilot/build/zephyr/twister-*/**/zephyr/.config
             crux-pilot/build/zephyr/twister-*/**/zephyr/zephyr.map
-            crux-pilot/build/zephyr/**/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/twister-*/**/zephyr/zephyr.dts
+            # Direct cross-build outputs: do not scan every EVKB generated header tree.
+            crux-pilot/build/zephyr/*/*.log
+            crux-pilot/build/zephyr/*/*.err
+            crux-pilot/build/zephyr/*/CMakeFiles/**/*.log
+            crux-pilot/build/zephyr/*/CMakeFiles/CMakeConfigureLog.yaml
+            crux-pilot/build/zephyr/*/CMakeCache.txt
+            crux-pilot/build/zephyr/*/compile_commands.json
+            crux-pilot/build/zephyr/*/zephyr/.config
+            crux-pilot/build/zephyr/*/zephyr/zephyr.dts
             crux-pilot/build/evidence/*inputs*.json
             crux-pilot/build/system-resource-evidence/
             crux-pilot/build/system-consumer/ctest-junit.xml

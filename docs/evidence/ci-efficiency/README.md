@@ -117,3 +117,38 @@ The [Reviewer](reviewer.md) and [Challenger](challenger.md) independently return
 PASS for configuration/evidence rationale with hosted checks and actual final
 artifact inspection explicitly outstanding. These are source-review verdicts,
 not claims that a future CI run or physical acceptance has passed.
+
+### First hosted measurement and discovery correction
+
+First measured HEAD `dfcdcb20e83c2b9b0d310765af215cd2e20540b5` passed both workflows.
+[Zephyr run 40186306953](https://github.com/wonny-labs/crux-pilot/actions/runs/40186306953)
+uploaded artifact `12597207785`: **701 files / 19,606,298 bytes**, SHA-256
+`6fe8e2c8fff5bad0fa6306d1eee4353660107bbb3b4ad2f3c461a4dd92b871de`.
+Direct archive inspection verified all 560 previously selected baseline paths,
+34 images, 10 production headers, 19 Time provenance artifact hashes, 5 MDIO
+source hashes and 8 passing Twister report sets. No intermediate objects/archives.
+
+| Observed run | Upload step | Complete job |
+| --- | ---: | ---: |
+| Earlier PR baseline `40141278550` | 465 s | 2,239 s |
+| Starting main `40185122449` (`b32b858`) | 373 s | 1,797 s |
+| First narrowed-artifact PR `40186306953` | 376 s | 2,209 s |
+
+Starting main also uploaded 230,339 files / 619,860,817 bytes (artifact
+`12595554973`). Its logs and API metadata confirm the large-artifact baseline on
+merged main. The directly downloaded older PR ZIP supplies detailed content
+analysis; identical workflow/scripts and equal file counts support that comparison.
+
+Size reduction alone did not improve upload time against recent main. In the first
+narrowed run, discovery occupied 373 seconds, while compression/upload/finalization
+took about 3 seconds. Recursive patterns over all `build/zephyr` also traversed
+cross-build generated-header trees. The correction keeps arbitrary-depth Twister
+diagnostics recursive, while direct west-build evidence uses the existing
+`build/zephyr/<target>` layout and its `CMakeFiles` log subtree. It introduces no
+collector script or new dependency. Previously uploaded evidence must remain.
+
+This layout is a maintenance assumption: nested/sysbuild output directories or
+new non-root native runtime error locations require an allowlist review. Current
+direct native scenarios put stderr in root `scenario.log`. No bounded source-test
+folder depth is imposed on Twister. Final corrected discovery/upload timings still
+need hosted measurement; do not infer a speedup from fewer files alone.
