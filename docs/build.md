@@ -182,7 +182,7 @@ by this example, and it does not access a physical device.
 
 Portable source targets use public headers (for example, `<crux/queue.h>`), link the public `crux::` capability targets and can call `crux_assert_portable_consumer()` to reject native/private requirements. They must not include Crux's `src/` or `ports/` directories or link Linux native composition targets. The final executable explicitly links its used public capabilities and selects native implementations required by that composition. The consumer boundary checker validates the documented build graph, not arbitrary application architecture.
 
-The [README Time example](../README.md#external-application-build-linux-host) demonstrates a smaller tested C17 application with explicit development-memory selection. The external tests also cover C++17, independently selected Thread/Sync, Serial/Logging-only consumers, parent testing isolation and invalid compositions.
+The external application tests also cover C++17, independently selected Thread/Sync, Serial/Logging/System consumers, parent-test isolation and invalid compositions. For a concise entry point to all build paths, see the [README](../README.md#getting-started).
 
 ## Capability and provider selection
 
