@@ -24,7 +24,7 @@ jobs:
       ZEPHYR_SDK_INSTALL_DIR: ${{ github.workspace }}/../crux-cache/sdk/zephyr-sdk-1.0.1
       CRUX_BOARD_TARGET: mimxrt1060_evk@B//qspi
       # Per-job cache only. No cross-run restore/save or externally stored objects.
-      CCACHE_DIR: ${{ runner.temp }}/crux-ccache
+      CCACHE_DIR: ${{ github.workspace }}/../crux-cache/ccache
       CCACHE_MAXSIZE: 1G
     steps:
       - uses: actions/checkout@v4
