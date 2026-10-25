@@ -56,6 +56,12 @@ class SelectionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             docs.select_paths(["README.md"], {"exclude": [rule("README.md", "Excluded")]})
 
+    def test_ambiguous_manifest_paths_fail_closed(self):
+        for name in ("#ignored.md", "docs/new\\nline.md", "docs/new\\rline.md"):
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError):
+                    docs.run_lychee(REPO, Path("/uninstalled/lychee"), [name])
+
     def test_git_selected_docs_are_path_relative(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
