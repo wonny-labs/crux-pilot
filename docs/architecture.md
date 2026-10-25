@@ -21,7 +21,7 @@ flowchart TB
         X["Platform composition: board, Kconfig, providers, resource setup"]
     end
     A["Crux-owned public APIs"]
-    C["Component implementations: portable code and OS-specific ports"]
+    C["Component implementations: portable code and optional OS-specific ports"]
     S["Qualified standard APIs: Sockets profile"]
     N["Selected OS and device services"]
     P -->|"Crux public headers and usage targets"| A
@@ -33,7 +33,7 @@ flowchart TB
     X -.->|"Configures and initializes"| N
 ```
 
-**Platform composition** is the board/project-specific configuration, initialisation and linkage that select OS-specific implementations and bind device resources. An application may contain both portable logic and platform composition code. These are responsibilities, not mandatory directories or additional abstraction layers. Here, **native** means OS- or board-specific APIs, resources and implementations, not a separate Crux layer. The **native-free boundary** applies to portable application logic and common runtime consumers, not to platform composition.
+**Platform composition** is the board/project-specific configuration, initialisation and linkage that select OS-specific implementations and bind device resources. An application may contain both portable logic and platform composition code. These are responsibilities, not mandatory directories or additional abstraction layers. Here, **native** refers to OS-, SoC-, board- or vendor-specific APIs, resources and implementations, not a separate Crux architecture layer. The **native-free boundary** applies to portable application logic and common runtime consumers, not to platform composition.
 
 The diagram distinguishes two supported consumer paths. Crux-owned APIs use component implementations, some of which need no OS-specific port. A qualified standard API instead calls the selected OS facilities directly: Sockets uses its bounded POSIX profile and `crux::sockets` usage target, without an intervening Crux socket implementation. Neither path authorizes arbitrary native APIs in portable logic.
 
@@ -41,7 +41,7 @@ The diagram distinguishes two supported consumer paths. Crux-owned APIs use comp
 | --- | --- | --- |
 | Product application | Application policy and assembly of portable logic with platform composition | Declare which code is portable and which belongs to platform composition |
 | Portable application logic / common runtime consumer | Policy, state, workflows and calls to supported public contracts | No Crux private headers, provider selection, board identifiers or unqualified native OS APIs |
-| Public capability | Crux-owned declarations or an approved standard API profile, usage target, semantics and errors | No Zephyr/NXP declarations in Crux-owned public headers; standard API use stays within its qualified profile |
+| Public capability | Crux-owned declarations or an approved standard API profile, usage target, semantics and errors | No OS-, SoC-, board- or vendor-specific declarations in Crux-owned public headers. Approved standard API use stays within its qualified profile |
 | Component implementation | Shared mechanisms, private resource state and optional OS-specific ports | No application-specific policy or generic OSAL |
 | Platform composition | Board/project configuration, provider selection, OS and device initialisation, toolchain requirements and linkage | Keep unqualified native requirements and private implementation paths out of portable consumer usage |
 | OS and board support | Kernel services, drivers and hardware resource bindings | Does not define portable application policy |
