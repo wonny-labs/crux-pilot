@@ -96,3 +96,24 @@ same `@actions/glob` matching semantics as upload-artifact, including hidden fil
 
 References: [upload-artifact v4](https://github.com/actions/upload-artifact/tree/v4)
 and [workflow events/concurrency](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+
+### Local retention and review checks
+
+The actual upload matcher (`@actions/glob` 0.5.0 in temporary verification tooling,
+not a repository dependency) selected **560** existing baseline files containing
+**95,079,510** raw bytes. Recompressing their actual contents with ZIP deflate level
+6 produced **18,332,880 bytes**. This is a controlled same-input comparison, not the
+future hosted upload result. All **34** previously explicit ELF/BIN files, all
+**10** M3 generated replay headers, resource/MDIO evidence and **19** additional
+failure-path fixtures matched. No `.o`, `.obj` or `.a` file matched.
+
+Using only the retained baseline files, all four existing output verifiers passed:
+`tests/native/{deferred_output,network_output_burst,integrated_output,logger_phase}/verify_output.py`.
+Their existing negative replay controls also passed. Workflow YAML validation
+confirmed identical job identities, environments, permissions and all execution
+steps before upload. Event filters match the policy above.
+
+The [Reviewer](reviewer.md) and [Challenger](challenger.md) independently returned
+PASS for configuration/evidence rationale with hosted checks and actual final
+artifact inspection explicitly outstanding. These are source-review verdicts,
+not claims that a future CI run or physical acceptance has passed.
