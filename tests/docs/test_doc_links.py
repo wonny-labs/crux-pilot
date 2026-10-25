@@ -1,10 +1,13 @@
 """Regression tests for maintained-document selection and the real lychee CLI."""
 
+import io
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "scripts"))
@@ -57,10 +60,25 @@ class SelectionTests(unittest.TestCase):
             docs.select_paths(["README.md"], {"exclude": [rule("README.md", "Excluded")]})
 
     def test_ambiguous_manifest_paths_fail_closed(self):
-        for name in ("#ignored.md", "docs/new\nline.md", "docs/new\rline.md"):
+        for name in (
+            "#ignored.md",
+            " #notes.md",
+            " \t#notes.md",
+            " docs/active.md",
+            "docs/active.md ",
+            "docs/new\nline.md",
+            "docs/new\rline.md",
+        ):
             with self.subTest(name=name):
                 with self.assertRaises(ValueError):
                     docs.run_lychee(REPO, Path("/uninstalled/lychee"), [name])
+
+    def test_hash_within_directory_is_not_a_comment(self):
+        with mock.patch.object(
+            docs.subprocess, "run", return_value=mock.Mock(returncode=0)
+        ) as runner:
+            self.assertEqual(docs.run_lychee(REPO, Path("/lychee"), ["docs/#notes.md"]), 0)
+            self.assertEqual(runner.call_args.kwargs["input"], "docs/#notes.md\n")
 
     def test_git_selected_docs_are_path_relative(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -75,6 +93,28 @@ class SelectionTests(unittest.TestCase):
             self.assertEqual(
                 docs.tracked_markdown(root), ["README.md", "docs/active.md"]
             )
+
+
+class InstallationTests(unittest.TestCase):
+    def test_checksum_mismatch_rejects_install_without_extraction(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            cache = root / "cache"
+            policy = {"tool": dict(docs.load_policy()["tool"])}
+            policy["tool"]["linux_x86_64_sha256"] = "0" * 64
+            policy["tool"]["macos_arm64_sha256"] = "0" * 64
+            with mock.patch.dict(os.environ, {"CRUX_CACHE_DIR": str(cache)}):
+                binary, _, _, url = docs.tool_info(policy, root=root)
+                with mock.patch.object(
+                    docs.urllib.request, "urlopen", return_value=io.BytesIO(b"invalid archive")
+                ) as download:
+                    with mock.patch.object(
+                        docs.tarfile, "open", side_effect=AssertionError("must not extract")
+                    ):
+                        with self.assertRaisesRegex(ValueError, "SHA-256 mismatch"):
+                            docs.install_tool(policy, root=root)
+                download.assert_called_once_with(url, timeout=120)
+                self.assertFalse(binary.exists())
 
 
 class LycheeIntegrationTests(unittest.TestCase):
