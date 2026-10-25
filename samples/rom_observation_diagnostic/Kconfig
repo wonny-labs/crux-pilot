@@ -1,0 +1,6 @@
+mainmenu "Private ROM observation diagnostic"
+source "Kconfig.zephyr"
+config CRUX_PRIVATE_ROM_OBSERVATION
+    bool
+    default y
+    select MEMC_MCUX_FLEXSPI

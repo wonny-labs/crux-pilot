@@ -1,0 +1,314 @@
+{
+  "status": "SOFTWARE_PREPARED_NOT_READY_FOR_PHYSICAL_USE",
+  "source_commit": "aebc737053352eb7b6bf8c49f54c75b89f30accd",
+  "base_commit": "822f6c6750e14dce7f049c7698eea079bf1fec7a",
+  "board": "mimxrt1060_evk@B//qspi",
+  "owned_source_sha256": {
+    ".clang-format": "ffede4ada54d2598a876268f7114c5133ed534f886b05f98a7ed06f902324d8d",
+    "samples/flash_target_candidate/CMakeLists.txt": "fa5f90e27150861f956576622cdf7704ebfccc0d80e301c4fd3752dc4c18ee0a",
+    "samples/flash_target_candidate/early_clock.S": "e0e4c8fcc0881a232aade9ed9384465ee7e0ed6c9b910bdb7106e335f7dcdf74",
+    "samples/flash_target_candidate/early_snapshot.S": "6a8c44ce4d86ef8303e222db68b378643203ecdecca0c4dc3d8f3896bb23a540",
+    "samples/flash_target_candidate/firmware_limit.ld": "c203e32f5498fe762454db8553b9779cf0d6ec3b608b6dae73b9330da948209f",
+    "samples/flash_target_candidate/flash_poc.h": "6327cdd63e0d461a6fb47114ed0ca8bca81f88a04fccdb2d24c27c288088fcc0",
+    "samples/flash_target_candidate/island.c": "4151357ff008eef5badd4d36d1acd4df37118006e36a624f1fba339602e19216",
+    "samples/flash_target_candidate/island.ld": "974e87a19c34d26174f6719c74811f2383f44fd808887173d5001cb59537f4a7",
+    "samples/flash_target_candidate/island_checks.h": "7703055a909e524d383499c6cef638a53b9e4d0969a132d7e483c5a0ca00b568",
+    "samples/flash_target_candidate/island_context.S": "0ab10b12603976eb576b857b0f758553e2987e2d6efc580a8c6130959c64d74e",
+    "samples/flash_target_candidate/ram_build.cmake": "4c0e224c1b366e26a39c48288b8becbdf087d1c80d84bff269c5c84be94ed13d",
+    "samples/flash_target_candidate/rom_command.h": "e915e1b2a0dc05ab864e345cb775d4ea1a343ae3b8f4fd583917ed4731c7f531",
+    "samples/flash_target_candidate/rom_command_memc.inc": "a7f579baed03c0496f27863c95b4591f502f8422967d1f21e7ed569088f018ea",
+    "samples/flash_target_candidate/rom_deadline.c": "af0ee304fb3c4d335ef4ee64f54cb24c35950b2ff15cb2abe500b51bc7f2aa0a",
+    "samples/flash_target_candidate/rom_deadline.h": "4b2781606ae393c12581c454b6613ae562368823ae5fc16d5c45bb345726bc3a",
+    "samples/flash_target_candidate/rom_identity_memc.inc": "ab657406ca8fea05554bc60ee3301816f11cb25ce6e0089ceb2ea006c3cd0959",
+    "samples/flash_target_candidate/rom_profile.c": "9ef50f5808cc456165877cda4fde746e9591b6d8fbeaca5da6961821d482ed1c",
+    "samples/flash_target_candidate/rom_profile.h": "b535ab4e13a71e7ef62cc342b3782709f2931915e54f9f64d88b5741dd25fd6a",
+    "samples/flash_target_candidate/snapshot.ld": "76bf2199ae4c70cc9ff9acf2f4d2bdcc095814c497003bb7426de00a05c25254",
+    "samples/flash_target_candidate/snapshot_layout.c": "a29aefbf575d957a727885244a76ca35c95442155f940e30eb0df0d3d2c87090",
+    "samples/rom_observation_diagnostic/CMakeLists.txt": "855f64bf4abef5a19c3f0a91358340925d9161a661bb06ca855f98d1018b6f91",
+    "samples/rom_observation_diagnostic/Kconfig": "a1120b55a2e2d778ac5740ec8ee6d57a3d3e015613387b438ce9abec7553dac7",
+    "samples/rom_observation_diagnostic/README.md": "1e1430395e5443237bfc07013e3cf2a1f0bba52110dfdf2265e3a877780d9fd1",
+    "samples/rom_observation_diagnostic/app.overlay": "bd4324507066515d40365c22267018958c2907db1d3c862b609c6bbc128bbd26",
+    "samples/rom_observation_diagnostic/main.c": "564824c9636512ead9fe2f551cb9ebfcd1fbeccfa1be712ca1de2de8d2852d29",
+    "samples/rom_observation_diagnostic/observation.c": "4b911160eab16c8e531385bb7317944fcf060ac1e150ad9e18f329891c1b1351",
+    "samples/rom_observation_diagnostic/observation.h": "8425f37b462896780150ff8fd65205aa3fca0fd4cfaa2de4d8ba210295dbeef6",
+    "samples/rom_observation_diagnostic/observation_nor.inc": "2a9d665833fc98b71492e05f3e339c154295501f44c24642ea59d6d52fa98eb2",
+    "samples/rom_observation_diagnostic/prj.conf": "714ccffff31db9187a110650b12e9fa377d24b8eb6f90d64f4e5acf6ba3883d2",
+    "samples/rom_observation_diagnostic/runtime.c": "e644e1ca25e0a89a9dae6cbb547139b500a72a8d3e56ec5ca8865873ab0a616f",
+    "samples/rom_observation_diagnostic/terminal.c": "0dafd51f64cd89e2c8b38252a81343c8dc74a193bdee322de7248c1974a8ff3c",
+    "scripts/prepare-flash-poc.py": "d83b8f680d1d8c19ac98eca4dbbcc8c3f3f04db3f4d9b900664ce0c75fc30bf5",
+    "tests/native/flash_target_candidate/prepare.py": "243e221927d4b359763e03bf2f9caafd0a0db49fd8fa82fe054bc25cd38d47a7",
+    "tests/native/flash_target_candidate/stage_commands.py": "8ad42be9b30fea311335d145dfdf31fa49fe548ee1c6cef4f63ba9ad2daabeea",
+    "tests/native/flash_target_candidate/stage_fcb.py": "51cae9e18331442ef28d7dd826eb622209d32969f3dcca0ad44a95de7f3c6935",
+    "tests/native/rom_observation_diagnostic/dispatch_cases.c": "8d3ef364f5bb9ecefdb9096ed74af1c150d1c9f0a3ae0ed9fa550b960add423c",
+    "tests/native/rom_observation_diagnostic/effects.h": "f29ed9ddbb72d7429c7cac13822c211c4c7bba4000e412a67b1e388a1156c571",
+    "tests/native/rom_observation_diagnostic/hal_cases.c": "3c5cbdcf8acad37899b1ebad12802e957de84a43bb3504a3d47a7b8bf37495a8",
+    "tests/native/rom_observation_diagnostic/hal_effects.h": "985903401fcba092325f74bf0b18e0833cfa5a89ce2a07b40042e0f9dd01c42c",
+    "tests/native/rom_observation_diagnostic/policy_cases.c": "babda9af1c1961b85967fd6565f19cf8c7af027e85e5d779e1a9647913bcf80a",
+    "tests/native/rom_observation_diagnostic/runtime_cases.c": "637e82f74aeceab4bd4f7f7615b64850a118980915fca5e6edc096a58aeee03c",
+    "tests/native/rom_observation_diagnostic/runtime_effects.h": "b6b2ed02bff959445358a4f3badcc7c423c63c5f0737db3af95b010ae1b9abb0",
+    "tests/native/rom_observation_diagnostic/stage.py": "03ffca337739acd960dc434641ae5ddd713142813b37ce0713f017f9b3eac393",
+    "tests/native/rom_observation_diagnostic/test_image.py": "ebe9b11ac2b62dbe183e301b736cb568ea6ba19495efb46639d43057abac04b3",
+    "tests/native/rom_observation_diagnostic/test_observation.py": "9e8680857215707d1448106b8827affaa7e196bee7ae7044e5fb9cba785df2e7",
+    "tests/native/rom_observation_diagnostic/test_runtime.py": "4ac08e5a1c7d61d384e993d85da547588d10936a5a53a58caea7f5bb03638edf",
+    "tests/native/rom_observation_diagnostic/test_stage.py": "c9c2be042e97c97dce947148feb5956371aad0d2d931ccc886caa3bd4f603295",
+    "tests/native/rom_observation_diagnostic/test_terminal.py": "06350f00211e0826a2e312e96e2b79f1e4da5d781c4b792119525cda8706d393",
+    "tests/native/rom_observation_diagnostic/test_timer.py": "1dc48553130144820a63eb8093e0d38fa8c8a9c48a485af5faf58a540f2426c2",
+    "tests/native/storage_target_guard/request_fence.h": "b80ca3bced580347f3ecafeb0435cffedaaffdba2f213e9bd75c658f04f7038e",
+    "tests/native/storage_target_guard/verify_image.py": "5861e9173412854ff4780a81bdf8d2d82ba7f7858a36ca2fb9797d3d857e85c7",
+    "west.yml": "60bb76654de785cf27f134b958e3fee7b305ad1cb9406b14056a1664f1477fb8",
+    "zephyr/CMakeLists.txt": "34e87debb91378534d0bda5e5cad8a3460c522a48a909c3ad97fb71f4c11a25d",
+    "zephyr/Kconfig": "11a4e26290fe2b083f2340b7ace0629f1443f16799e3d7c1281bde21fd18434b",
+    "zephyr/module.yml": "7f2e50d235607af1cb1a1a6b6f9696fb9a01beaa37fb8cc2dbc4c85d2db4bb73"
+  },
+  "selected_pin_sha256": {
+    "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/drivers/fsl_clock.c": "91200830fe9b4d290e25c169b3612f3256339852851da56dbfc01d34ec0521ed",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/drivers/fsl_clock.h": "a1cd1e43ae5134dec53b86ef3ad9f80bd79fd02d2be536e8a3dde6c3115f33a7",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/system_MIMXRT1062.c": "cceb1c569ea2120613b5f8ad0a41561e69ef19a6bff7dd337dbc25ac0744b411",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_CCM.h": "9929cf0e6194ce4191978985fdfed382907f5250a60a7fa38a60a83864703c96",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_CCM_ANALOG.h": "61e4bf73b4997c900a522e7a0d5f6b6a1320ed199100f8c54d96e21e9e78df86",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_FLEXSPI.h": "b48c5134a32e42f45180321b556b0cf227495efac145d80bd42c1a37dc9003ab",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_GPT.h": "b04b2d123122cfa879cc241075098800734c796f2a9d6282265e41a769936174",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_IOMUXC_GPR.h": "78cabee5aeeb8006afdf3cef23231b37af1171da714fceec4a57e57d69673499",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_RTWDOG.h": "8667345958f4eee27f91ccdf4411e5f74fc0478ec4b793d8a54f27d92ae9d57c",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_SRC.h": "7cf82f3864a6bfc4144aaccf491d670f232245ae2f28e26e5beb9f17f2d5cd16",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_WDOG.h": "a39b023575035a04e5aa78170014dd807b36d0b9480e01562065e26d744e940f",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph/PERI_XTALOSC24M.h": "77909fc57ef79d4916b7dfb0db7a73aac0e8bd563a643c9f697dc907a38ddbd5",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/drivers/flexspi/fsl_flexspi.c": "d57aec16e69a553c79c14bfb67bb1d729f50680db92b155f8b6016734e564b4a",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/drivers/flexspi/fsl_flexspi.h": "5d23776676458f9356778c3d2d527afd2455d561074fb213271f7c6b3f0dd9b7",
+    "modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpt/fsl_gpt.h": "72a6b57bb5bd8f7854103222c3398624af45d798f4c59fde8cf0127f50d10c5d",
+    "zephyr/VERSION": "fd6ba7636a003973a983412c2906173dc45ce3ba62386e407b212f9a5736ce01",
+    "zephyr/arch/arm/core/cortex_m/prep_c.c": "12a858aacff355befa7ea40fdebbc36129406bc24b8b41d465642213b26295e6",
+    "zephyr/arch/arm/core/cortex_m/reset.S": "47938e87db6c4bb3e1d32b2361bbd34794ed44a8cfc113c687353599fc23faac",
+    "zephyr/boards/nxp/mimxrt1060_evk/xip/evkbmimxrt1060_flexspi_nor_config.c": "0ea7cf9246bac6643cad06396ff3f518ebf34b7793666646847e736eacb8c5f3",
+    "zephyr/boards/nxp/mimxrt1060_evk/xip/evkbmimxrt1060_flexspi_nor_config.h": "fc670f88c1b3e2ceb0d05b1cba944694e9e9265a320277e9981436f7e2dfe05c",
+    "zephyr/drivers/flash/flash_mcux_flexspi_nor.c": "397019890b4ce7afae88c7da1913ab0b8ac57c3ee1a2c1975c7ba6c4c08a3ea4",
+    "zephyr/drivers/flash/jesd216.h": "41fc4c020ce0b3a1c302fc547efcf06d41fb5efdc72021d5f7a92cc48297440f",
+    "zephyr/drivers/flash/spi_nor.h": "94f9316ed23a83aae9eafdc0e711022bb0ed3354e05aaa620b1e4d96733587e4",
+    "zephyr/drivers/memc/memc_mcux_flexspi.c": "0b9cfcd4fef488d542977b628dbc0c0c3c9243fff1d50cc8dc7315b49e74ce20",
+    "zephyr/drivers/memc/memc_mcux_flexspi.h": "c4a80cc3a6eb4d3278da6aef0734600bd402bf5342450d96e22dace81a378245",
+    "zephyr/soc/nxp/imxrt/imxrt10xx/flexspi.c": "e79fba725e3eb84faab99614908e1d5ead53ba90df437d52323fbac67ab629c7",
+    "zephyr/soc/nxp/imxrt/imxrt10xx/soc.c": "e4f89386bc54c4d709e8fc85257421b2e36ada6adf93add19f9de5c52922d1dc"
+  },
+  "versions": {
+    "gcc_arm": "arm-zephyr-eabi-gcc (Zephyr SDK 1.0.1) 14.3.0",
+    "gcc_host": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+    "python": "Python 3.12.3",
+    "clang_format": "clang-format version 18.1.8"
+  },
+  "image": {
+    "elf_sha256": "5da0f556eab770ed146b6f004b766325f752acfc62379fc86208ec2f5116d5f9",
+    "bin_sha256": "f27a1856446fca6ad049045215b9d564c2b1bafbcb3474782484f801d8ed6ce4",
+    "bytes": 26076,
+    "load_interval": [
+      "0x60000000",
+      "0x600065dc"
+    ],
+    "fcb_only_changed_bytes": [
+      [
+        70,
+        7,
+        6
+      ]
+    ],
+    "fcb_device_mode_cfg_enable": 0,
+    "fcb_config_cmd_enable": 0,
+    "default_bin_sha256": "691b043eedee25040a132cbb96f8c9f8e7ec74c8f16e0acb0e905145a0717c9c",
+    "default_bin_matches_retained_PR66": true
+  },
+  "closure": {
+    "functions": {
+      "FLEXSPI_CheckAndClearError": {
+        "address": 7,
+        "frame_upper_bytes": 8
+      },
+      "FLEXSPI_GetBusIdleStatus": {
+        "address": 61,
+        "frame_upper_bytes": 0
+      },
+      "FLEXSPI_ReadBlocking": {
+        "address": 121,
+        "frame_upper_bytes": 40
+      },
+      "FLEXSPI_TransferBlocking": {
+        "address": 361,
+        "frame_upper_bytes": 48
+      },
+      "FLEXSPI_UpdateLUT": {
+        "address": 641,
+        "frame_upper_bytes": 24
+      },
+      "crux_flash_poc_terminal": {
+        "address": 2817,
+        "frame_upper_bytes": 0
+      },
+      "crux_rom_candidate_deadline_expired": {
+        "address": 2285,
+        "frame_upper_bytes": 16
+      },
+      "crux_rom_candidate_deadline_finish": {
+        "address": 2365,
+        "frame_upper_bytes": 8
+      },
+      "crux_rom_candidate_wait_check": {
+        "address": 2385,
+        "frame_upper_bytes": 16
+      },
+      "crux_rom_command_dispatch": {
+        "address": 1797,
+        "frame_upper_bytes": 48
+      },
+      "crux_rom_gpt2_running": {
+        "address": 2705,
+        "frame_upper_bytes": 8
+      },
+      "crux_rom_gpt2_source_matches": {
+        "address": 2749,
+        "frame_upper_bytes": 0
+      },
+      "crux_rom_identity_check": {
+        "address": 737,
+        "frame_upper_bytes": 24
+      },
+      "crux_rom_identity_install": {
+        "address": 1005,
+        "frame_upper_bytes": 24
+      },
+      "crux_rom_identity_restore": {
+        "address": 1105,
+        "frame_upper_bytes": 24
+      },
+      "crux_rom_native_read_status.constprop.0": {
+        "address": 2133,
+        "frame_upper_bytes": 24
+      },
+      "memc_flexspi_transfer": {
+        "address": 1289,
+        "frame_upper_bytes": 40
+      },
+      "memc_flexspi_wait_bus_idle": {
+        "address": 1397,
+        "frame_upper_bytes": 16
+      }
+    },
+    "all_frames_conservative_sum": 368,
+    "operation_stack_bytes": 1024,
+    "scope": "exact selected software graph/literals/stack; MMIO can stall; no hardware execution"
+  },
+  "warning_policy": {
+    "owned_ram": [
+      "observation.c",
+      "terminal.c",
+      "rom_deadline.c"
+    ],
+    "required_flags": [
+      "-Wall",
+      "-Wextra",
+      "-Werror"
+    ],
+    "scope": "per-source in drivers__memc; staged upstream unchanged",
+    "verification": "task-12-r1-red.log / task-12-r1-build.log / task-12-r1-green.log"
+  },
+  "tests": {
+    "diagnostic_exact": 16,
+    "diagnostic_snapshot": 3,
+    "default_affected": 84,
+    "final_skips": 0,
+    "final_failures": 0
+  },
+  "limits": [
+    "No hardware/probe/programmer operation or permission",
+    "No fitted-part records",
+    "No generic read/backup/NOR write/reset/persistence path",
+    "GPT2/LUT/IP peripheral effects are intentional and unqualified on hardware",
+    "Budget is synthetic nominal ticks, not NOR timing qualification",
+    "Early refusal can leave absent/stale RAM; no freshness guarantee",
+    "External loader footprint/probe/readout/backup/recovery/exclusivity remain unresolved"
+  ],
+  "retained_package": {
+    "manifest.json": "03f86cdd76eb8918aa2b1af1fbe32a1eb0c8e2090985a67e7c3a9542aca04a7b",
+    "diagnostic-artifacts.tar.gz": "946de0819992398ed1c9791bf52bfc45041158734d4900ff618f0bf710480422",
+    "hardware-decision-packet.md": "2f9fbe8e7e96b6ec2d5a7f5bd5981ad174b9a12269215c3b90254ada83b50a5f",
+    "tool-effects-note.md": "3d19f39de6c17af95ce77198a1fc1526aa81992a750b9431c5dbb631e366b5e4",
+    "current-main-final-r1.tar.gz": "dd26b0c8463568ace4f4ec4da9efeb4039e7390c9748f0de24892d1465768ee1",
+    "preparation.json": "d6d7b48f002175daa4609a4483f1d212f8c88be9c6032d74aa8f5b8b15aa7f0d"
+  },
+  "retention": "Project output m4-observation-diagnostic; local evidence, not a public download or hardware procedure",
+  "current_main": {
+    "main": "b32b858f911b22df10894c8ea922fd3ef6366b2e",
+    "source": "aebc737053352eb7b6bf8c49f54c75b89f30accd",
+    "union_tree": "2ef2241aca218a4069af72796baa95b6b1a87b78",
+    "dependency_order": [
+      "51",
+      "56",
+      "59",
+      "62",
+      "63",
+      "66",
+      "diagnostic"
+    ],
+    "conflicts": {
+      "56": [
+        "components/file/CMakeLists.txt",
+        "zephyr/CMakeLists.txt",
+        "zephyr/Kconfig"
+      ],
+      "63": [
+        "tests/README.md"
+      ]
+    },
+    "main_subtrees_identical": {
+      "components/time": true,
+      "components/thread": true,
+      "components/sync": true,
+      "components/queue": true,
+      "components/monotonic": true,
+      "components/serial": true,
+      "components/logging": true,
+      "components/sockets": true,
+      "components/netif": true,
+      "components/system": true
+    },
+    "plan_exact_blob": true,
+    "artifacts": {
+      "zephyr.elf": "c45e7f147027fd29c631b9bbbaed2f39073f8eeee798f48ca15e599ddfa441cf",
+      "zephyr.bin": "f27a1856446fca6ad049045215b9d564c2b1bafbcb3474782484f801d8ed6ce4",
+      ".config": "aac75e0ac77b024ea9c9a57a0dcfbfba11be9debbe00052b2fdb5a71d96e1dd0",
+      "compile_commands.json": "35465481d4ea45c8fffdd872e6f6887427e4f731020b4be5480c1926df8eef1e",
+      "build-r1.log": "7efba70249cb8d3d1fb1164bf40cf5bb698f6909418b9ee830f56db81eef114a",
+      "tests-r1.log": "c465c424e820c390725f13c346872d2c403c5546e2d761ab165426a7b8cd5a6a",
+      "snapshot-r1.log": "dc73d41c2eab18dc6e0f7fda3fd95c0daede699c0f4fc2465d42539a84ed5e8c",
+      "tests-r1-missing-env.log": "239f37c108a6ef371229e6a0ea69c28bd5d27ffafba73ad4745e4075be31147c",
+      "closure-r1.json": "6b20558bdfdbc16a5e151f999d380a4d16a09bc45fe6d0953bfde0972a260e18"
+    },
+    "tests": {
+      "diagnostic": 16,
+      "snapshot": 3,
+      "failures": 0,
+      "skips": 0
+    },
+    "system_provider_selected": false,
+    "initial_invocation": "Missing ZEPHYR_BASE caused five setup errors; retained separately; corrected run passed"
+  },
+  "compiled_source_commit": "aebc737053352eb7b6bf8c49f54c75b89f30accd",
+  "source_commit_scope": "Compiled code/config/test provenance; documentation_update identifies C1 document hashes separately",
+  "documentation_update": {
+    "id": "C1",
+    "base_documentation_commit": "c6cb0d98322a45c77e7de128dcb40d64aad44791",
+    "scope": "Documentation-only effects disclosure; code/config/tests/compiled inputs unchanged",
+    "compiled_source_commit": "aebc737053352eb7b6bf8c49f54c75b89f30accd",
+    "rebuild_performed": false,
+    "tests_replayed": false,
+    "documents_sha256": {
+      "samples/rom_observation_diagnostic/README.md": "1e1430395e5443237bfc07013e3cf2a1f0bba52110dfdf2265e3a877780d9fd1",
+      "docs/rom-observation-diagnostic.md": "1e7bded4b508db6ce1d1bf60edd79ac4d4e7562cda4c279de72ece14da6eeb58",
+      "hardware-decision-packet.md": "2f9fbe8e7e96b6ec2d5a7f5bd5981ad174b9a12269215c3b90254ada83b50a5f"
+    },
+    "pre_c1_package": {
+      "directory": "pre-c1-c6cb0d9",
+      "manifest_sha256": "9403f7c4062d868ed3025ba66d6a6c5a4b663c7d2b86d1f10a899f078e282bc3",
+      "archive_sha256": "950901597028d509b635f504e3ee661e1a536cfee7f2d254064926d3e5f15db9"
+    },
+    "capture_replay_scope": "capture.py is the retained aebc737 compiled-package capture; C1 repack changes documentation only",
+    "documentation_commit_locator": "Final documentation Git commit is recorded separately in external hashes.json; no circular self-hash"
+  }
+}
