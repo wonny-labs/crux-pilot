@@ -18,7 +18,7 @@ Current implemented contracts and verified source behaviour are the factual base
 
 ## Engineering approach
 
-- Preserve the existing C17 `components/base` and `components/time`, shared host/Zephyr sources, public `crux::time` usage target, and applicable test evidence unless changes are justified.
+- Preserve existing Crux components, public contracts and usage targets, and their relevant Host, Zephyr and physical test evidence unless an approved change justifies modifying them.
 - Keep portable components independent of Zephyr, board and vendor headers. Select environment-specific implementations explicitly and use Zephyr-native drivers, networking, storage and kernel facilities when suitable.
 - Evaluate a documented POSIX subset or a narrow capability-specific interface where actual portable consumers need one. Do not pre-emptively create a universal HAL/OSAL, generic service registry, or pass-through wrappers for native APIs.
 - Preserve public interface naming, header ownership, dependency visibility and contribution rules defined in `CONTRIBUTING.md`. Do not promote Time-specific range, session or thread-safety constraints into platform-wide rules.
