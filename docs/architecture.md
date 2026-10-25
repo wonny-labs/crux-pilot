@@ -6,7 +6,7 @@ For setup and initial builds, start with the [README](../README.md). For contrib
 
 ## Scope and support boundaries
 
-Crux is a reusable embedded software platform organised around small, component-owned capabilities, primarily using C17. A capability may instead qualify a standard API where that is the more appropriate boundary. It aims to let portable firmware and runtime-adapter code reuse the same selected interfaces across supported environments while native operating systems retain responsibility for their kernels, drivers, and board support.
+Crux is a reusable embedded software platform organised around small, component-owned capabilities, primarily using C17. A capability may instead qualify a standard API where that is the more appropriate boundary. It aims to let portable firmware and runtime-adapter code reuse the same selected interfaces across supported environments while the underlying operating systems retain responsibility for kernels, drivers and board support.
 
 The current development environments are a Linux Host build and Zephyr, including `native_sim` and the documented RT1060-EVKB Rev B QSPI configuration. Linux Host is a development and test environment, **not** a qualified Embedded Linux product variant. An EVKB cross-build is not proof of physical operation. A component is supported on a given environment only to the extent stated by its contract and validation record. Do not infer that every component has a Zephyr provider or has passed physical qualification.
 
@@ -18,35 +18,35 @@ The repository is an evolving pilot. Consult its [GitHub milestones](https://git
 flowchart TB
     subgraph Product["Product application"]
         P["Portable application logic / common runtime consumer"]
-        X["Platform composition: board, Kconfig, providers, native initialization"]
+        X["Platform composition: board, Kconfig, providers, resource setup"]
     end
     A["Crux-owned public APIs"]
-    C["Component implementations: portable code and optional native ports"]
+    C["Component implementations: portable code and OS-specific ports"]
     S["Qualified standard APIs: Sockets profile"]
-    N["Selected OS / native services"]
+    N["Selected OS and device services"]
     P -->|"Crux public headers and usage targets"| A
     A --> C
-    C -->|"When native services are needed"| N
+    C -->|"When OS services are needed"| N
     P -->|"Approved standard headers and crux::sockets"| S
     S -->|"Direct standard API calls; no Crux socket wrapper"| N
     X -.->|"Selects implementations"| C
     X -.->|"Configures and initializes"| N
 ```
 
-**Platform composition** is the board/project-specific configuration, initialisation and linkage that select native implementations and bind device resources. An application may contain both portable logic and this native composition. These are responsibilities, not mandatory directories or additional abstraction layers. The native-free boundary applies to **portable application logic and common runtime consumers**, not to platform composition.
+**Platform composition** is the board/project-specific configuration, initialisation and linkage that select OS-specific implementations and bind device resources. An application may contain both portable logic and platform composition code. These are responsibilities, not mandatory directories or additional abstraction layers. Here, **native** means OS- or board-specific APIs, resources and implementations, not a separate Crux layer. The **native-free boundary** applies to portable application logic and common runtime consumers, not to platform composition.
 
-The diagram distinguishes two supported consumer paths. Crux-owned APIs use component implementations, some of which need no native port. A qualified standard API instead calls the selected OS facilities directly: Sockets uses its bounded POSIX profile and `crux::sockets` usage target, without an intervening Crux socket implementation. Neither path authorizes arbitrary native APIs in portable logic.
+The diagram distinguishes two supported consumer paths. Crux-owned APIs use component implementations, some of which need no OS-specific port. A qualified standard API instead calls the selected OS facilities directly: Sockets uses its bounded POSIX profile and `crux::sockets` usage target, without an intervening Crux socket implementation. Neither path authorizes arbitrary native APIs in portable logic.
 
 | Role | Owns | Boundary |
 | --- | --- | --- |
-| Product application | Application policy and assembly of portable logic with platform composition | Declare which code is portable and which is native composition |
+| Product application | Application policy and assembly of portable logic with platform composition | Declare which code is portable and which belongs to platform composition |
 | Portable application logic / common runtime consumer | Policy, state, workflows and calls to supported public contracts | No Crux private headers, provider selection, board identifiers or unqualified native OS APIs |
-| Public capability | Crux-owned declarations or an approved standard API profile, usage target, semantics and errors | No native Zephyr/NXP declarations in Crux-owned public headers; standard API use stays within its qualified profile |
-| Component implementation | Shared mechanisms, private resource state and optional native ports | No application-specific policy or generic OSAL |
-| Platform composition | Board/project configuration, provider selection, native initialization, OS/toolchain requirements and linkage | Keep unqualified native requirements and private implementation paths out of portable consumer usage |
-| Native OS and board support | Kernel services, drivers and hardware resource bindings | Does not define portable application policy |
+| Public capability | Crux-owned declarations or an approved standard API profile, usage target, semantics and errors | No Zephyr/NXP declarations in Crux-owned public headers; standard API use stays within its qualified profile |
+| Component implementation | Shared mechanisms, private resource state and optional OS-specific ports | No application-specific policy or generic OSAL |
+| Platform composition | Board/project configuration, provider selection, OS and device initialisation, toolchain requirements and linkage | Keep unqualified native requirements and private implementation paths out of portable consumer usage |
+| OS and board support | Kernel services, drivers and hardware resource bindings | Does not define portable application policy |
 
-Consumers of Crux-owned APIs include `<crux/...>` headers and use their public CMake targets. Sockets consumers instead include the [qualified standard headers](networking-contract.md#socket-profile) and link `crux::sockets`. The [native-free consumer policy](native-interface-policy.md) defines the permitted standard APIs, native restrictions and enforcement limits. Native sample, fixture or product-composition code can use OS APIs where its declared role requires them; that permission does not extend to reusable portable logic.
+Consumers of Crux-owned APIs include `<crux/...>` headers and use their public CMake targets. Sockets consumers instead include the [qualified standard headers](networking-contract.md#socket-profile) and link `crux::sockets`. The [native-free consumer policy](native-interface-policy.md) defines the permitted standard APIs, native restrictions and enforcement limits. Platform-specific samples, test fixtures and product composition code may use OS APIs where their roles require them; that permission does not extend to reusable portable logic.
 
 ## Component ownership and source layout
 
@@ -62,7 +62,7 @@ components/<capability>/
 
 Public paths in the shared `crux/` include namespace must remain unique across components. Implementation headers and native requirements remain private, except for the narrowly approved usage-profile/toolchain requirements described by the native-free consumer policy.
 
-Use actual OS names such as `linux` and `zephyr` for native ports. The term **Host** describes a development or test composition, not an operating system. An OS-independent memory implementation is not automatically a Linux port. Empty port directories, central backend registries, duplicated public headers and uniform test subdirectories are not required for consistency.
+Use actual OS names such as `linux` and `zephyr` for OS-specific ports. The term **Host** describes a development or test composition, not an operating system. An OS-independent memory implementation is not automatically a Linux port. Empty port directories, central backend registries, duplicated public headers and uniform test subdirectories are not required for consistency.
 
 New platform-specific composition targets use `crux::<capability>_<os>` (for example,
 `crux::queue_linux`); their implementation targets use `crux_<capability>_<os>`.
@@ -70,7 +70,7 @@ Reserve `host` for the development/test role. An API-family name such as `posix`
 requires a separately verified support contract; POSIX calls alone do not establish
 cross-OS support. These names do not imply production qualification.
 
-For a concrete example, [Time](time-contract.md) owns a controlled memory implementation separately from its native Zephyr RTC port. The final composition must select an appropriate implementation rather than silently falling back to a test provider.
+For a concrete example, [Time](time-contract.md) owns a controlled memory implementation separately from its Zephyr RTC port. The final composition must select an appropriate implementation rather than silently falling back to a test provider.
 
 Thread and Sync are separate component-owned capabilities. `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.
 
@@ -83,12 +83,12 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Capability | Purpose | Current integration and limits | Reference |
 | --- | --- | --- | --- |
 | Base | Common status declarations | Header-only usage in Host and Zephyr; no OS provider | [Public header](../components/base/include/crux/status.h) |
-| Time | Calendar/RTC time | Controlled memory implementation in Host; native Zephyr RTC port; no implicit production fallback | [Contract](time-contract.md) |
-| Thread | Bounded joinable workers | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-native-composition), [contract](thread-sync.md) |
-| Sync | Nonrecursive mutexes and bounded semaphores | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-native-composition), [contract](thread-sync.md) |
-| Queue | Bounded copy messaging | Linux and Zephyr ports with composition-selected native providers | [Messaging contract](messaging-contract.md) |
+| Time | Calendar/RTC time | Controlled memory implementation in Host; Zephyr RTC port; no implicit production fallback | [Contract](time-contract.md) |
+| Thread | Bounded joinable workers | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
+| Sync | Nonrecursive mutexes and bounded semaphores | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-platform-composition), [contract](thread-sync.md) |
+| Queue | Bounded copy messaging | Linux and Zephyr ports selected by platform composition | [Messaging contract](messaging-contract.md) |
 | Monotonic | Elapsed time and absolute waits | Linux and Zephyr providers selected by composition | [Messaging contract](messaging-contract.md) |
-| Netif | Read-only primary-interface status | Linux selected-interface and Zephyr native network integration | [Networking contract](networking-contract.md) |
+| Netif | Read-only primary-interface status | Linux selected-interface and Zephyr network integration | [Networking contract](networking-contract.md) |
 | Sockets | Qualified IPv4 client standard-API profile | Linux libc and selected Zephyr POSIX facilities; no Crux wrapper or separate stack | [Qualified profile](networking-contract.md#socket-profile) |
 | Configuration | Scalar validation, explicit save/load and encoding | Portable core with deterministic test persistence provider; no adopted Zephyr Settings/production persistence integration | [Software qualification and native gate](configuration-validation.md) |
 | File | Bounded synchronous file operations | Linux Host provider and deterministic failure tests; Zephyr provider is a plan, not implemented support | [Contract](file-contract.md), [Zephyr handoff plan](file-validation.md#zephyr-provider-handoff-plan-only) |
@@ -96,11 +96,11 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Logging | Validated bounded text records and filtering | Linux stderr and selected Zephyr deferred UART logger compositions; explicit UART ownership/configuration checks; no physical qualification | [Contract](logging-contract.md), [validation](logging-validation.md) |
 | System | Service observations, reset diagnostics and single-owner watchdog | Linux watchdog simulation and selected Zephyr HWINFO/watchdog/reset composition; normal Host reset/cause unsupported; physical acceptance pending | [Approved contract](superpowers/specs/2026-10-24-system-health-design.md), [validation](system-validation.md) |
 
-## Build and native composition
+## Build and platform composition
 
-The root `CMakeLists.txt` supports the Linux Host development build. The `zephyr/` directory provides out-of-tree module integration, with Zephyr Kconfig and application/project configuration selecting supported native facilities. The `west.yml` manifest pins the relevant Zephyr dependency baseline.
+The root `CMakeLists.txt` supports the Linux Host development build. The `zephyr/` directory provides out-of-tree module integration, with Zephyr Kconfig and application/project configuration selecting supported OS facilities. The `west.yml` manifest pins the relevant Zephyr dependency baseline.
 
-Public targets such as `crux::time`, `crux::thread` and `crux::sync` are consumer-facing usage contracts. Internal native targets, their private include paths, and link dependencies belong to the selected composition. **A public target is not an installed SDK package, nor does every component use an identical provider-linkage pattern.** Follow the [supported source-tree consumer contract](build.md#external-linux-application-using-crux-source). Do not manually add private provider paths to an application to bypass a missing integration capability.
+Public targets such as `crux::time`, `crux::thread` and `crux::sync` are consumer-facing usage contracts. OS-specific implementation targets, their private include paths and link dependencies belong to the selected composition. **A public target is not an installed SDK package, nor does every component use an identical provider-linkage pattern.** Follow the [supported source-tree consumer contract](build.md#external-linux-application-using-crux-source). Do not manually add private provider paths to an application to bypass a missing integration capability.
 
 Host and Zephyr may compose providers differently. For example, a Host Time composition uses a controlled memory provider, while the Zephyr image registers its selected RTC implementation independently. This difference must not change the portable Time API.
 
@@ -116,7 +116,7 @@ Crux uses complementary forms of evidence:
 | --- | --- | --- |
 | Linux Host builds, tests and sanitizers | Portable behaviour and selected Host implementation paths | Zephyr or physical board behaviour |
 | Independent C/C++ consumer builds and negative dependency checks | Selected public usage, source and build boundaries | Every possible API/ABI combination or product integration |
-| Zephyr `native_sim` and Twister | Relevant native integration under simulated conditions | Target peripheral timing or physical persistence |
+| Zephyr `native_sim` and Twister | Selected Zephyr integration under simulated conditions | Target peripheral timing or physical persistence |
 | EVKB firmware cross-builds | A selected target configuration compiles and links | Boot, Flash safety or real peripheral behaviour |
 | Identified physical board tests | Only the documented hardware scenario and limits | Broad production readiness, other boards or endurance |
 
@@ -131,7 +131,7 @@ Before adding or significantly changing a capability:
 1. Identify the real consumer requirement and check whether an existing capability or qualified standard API is sufficient.
 2. Define the minimum public contract and clarify ownership, errors, lifetime, concurrency and execution-context limits.
 3. Keep consumer-facing declarations native-free. Add common implementation logic and optional OS ports only as justified by the contract.
-4. Define the public usage target, explicit native composition, and supported environment selection without leaking private dependencies.
+4. Define the public usage target, explicit platform composition, and supported environment selection without leaking private dependencies.
 5. Add focused Host/Zephyr and independent consumer evidence for the actual claim. Record unsupported configurations rather than masking missing providers.
 
 Use [CONTRIBUTING](../CONTRIBUTING.md) for code, PR and review requirements and [AGENTS.md](../AGENTS.md) for AI execution boundaries. Material API and architecture decisions require the applicable review or approval. This overview does not authorise a new capability or a hardware operation.

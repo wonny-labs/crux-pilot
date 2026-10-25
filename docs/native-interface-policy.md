@@ -8,7 +8,7 @@ they introduce no general HAL, runtime service registry or new capability contra
 
 | Role | Permitted dependencies | Boundary |
 | --- | --- | --- |
-| Firmware application and common runtime-porting modules | Public Crux usage targets and explicitly qualified standard facilities | No Zephyr/NXP/board/vendor headers, types, symbols, resource identifiers or native link requirements. Native selection belongs to composition. |
+| Firmware application and common runtime-porting modules | Public Crux usage targets and explicitly qualified standard facilities | No Zephyr/NXP/board/vendor headers, types, symbols, resource identifiers or native link requirements. OS and provider selection belong to platform composition. |
 | Portable Crux contracts and shared mechanisms | ISO C17, existing C++17 consumption, other approved public Crux contracts | Public headers have component ownership; private provider/test headers cannot become consumer requirements. |
 | Crux-controlled native providers, BSP/drivers and project composition | Required Zephyr/NXP/board services and private implementation headers | Keep native requirements private to those targets; publish only the capability contract. Native provider code is expected, not forbidden. |
 | Native qualification samples/diagnostics | Their explicitly selected native test composition | Not reusable firmware/runtime consumer examples; migration obligations remain visible below. |
@@ -144,7 +144,7 @@ and `-pthread` are rejected; a controlled Host provider can still use them priva
 Because CMake can export their private link dependencies through `LINK_ONLY`, they
 must not be inserted into a portable public facade if that would expose native
 requirements. As in the Time Zephyr module, select/register the native implementation
-independently in the native image composition. A designated portable consumer links
+independently in the selected platform composition. A designated portable consumer links
 the public API; the final composition supplies the implementation. There is no
 blanket provider exemption or stripping of `LINK_ONLY`. #25 integration must preserve
 this separation and run the static-provider controls on its actual execution graph.
@@ -170,7 +170,7 @@ Flash change, private planning edit or change to historical acceptance follows.
 
 The [supported Linux Host entry point](build.md#external-linux-application-using-crux-source)
 selects capabilities without modifying parent test policy. Portable source targets
-remain subject to `crux_assert_portable_consumer`. Final native executables declare
+remain subject to `crux_assert_portable_consumer`. Final application executables declare
 the used public capabilities and may link the documented `crux::queue_linux` and
 `crux::monotonic_linux` composition targets. These aliases are not portable usage
 facades or exceptions to recursive `LINK_ONLY` checks. The guard rejects both
