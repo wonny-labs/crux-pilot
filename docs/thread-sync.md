@@ -2,12 +2,12 @@
 
 **Status: implemented contract.** This is the current consumer contract for the
 independent Thread and Sync components. It consolidates the adopted behavioral
-rules from PR #36 and the ownership split merged in PR #52; it introduces no API
-or behavior change. Public declarations remain authoritative for their exact C
+rules from PR #36 and the ownership split merged in PR #52, with typed monotonic
+sleep owned by Thread. Public declarations remain authoritative for their exact C
 types and signatures: [thread.h](../components/thread/include/crux/thread.h) and
 [sync.h](../components/sync/include/crux/sync.h).
 
-Thread provides bounded joinable workers. Sync provides nonrecursive mutexes and
+Thread provides bounded joinable workers and current-thread sleep. Sync provides nonrecursive mutexes and
 bounded counting semaphores, including use from native OS-created threads. The
 contract covers functional lifecycle, ownership, visibility and relative waits;
 it does not promise production runtime compatibility or realtime scheduling.
@@ -22,6 +22,8 @@ For application/composition responsibilities, see the [architecture](architectur
   native OS identity and does not depend on Crux Thread. Each component owns its
   resource metadata, lock and deadline helpers; neither accesses the other's state.
   Providers own native objects, stacks, configuration and private headers.
+  Thread additionally depends on Time for typed monotonic observation/deadlines;
+  Time does not depend on Thread or Sync, and monotonic use requires no RTC/init.
 - Handles are distinct portable value types per resource kind, backed by a slot
   and generation. Zero is invalid. Validate null output pointers and invalid/stale
   handles; generation wrap must retire a slot rather than make an old handle valid.
@@ -63,6 +65,8 @@ crux_status_t crux_thread_create(const crux_thread_options_t *options,
                                  crux_thread_entry_t entry, void *argument,
                                  crux_thread_t *out);
 crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms);
+crux_status_t crux_thread_sleep_for(crux_duration_t duration);
+crux_status_t crux_thread_sleep_until(crux_monotonic_time_t deadline);
 
 crux_status_t crux_mutex_create(crux_mutex_t *out);
 crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms);
@@ -103,6 +107,19 @@ not transfer join ownership or extend resource lifetime.
   deadlock detection, or forced reclamation. A new create after join is a new lifetime.
 - A join timeout is a failed wait, not a stopped worker. The application chooses
   retry or its own cooperative stop protocol; this API cannot reclaim a stuck task.
+
+## Current-thread sleep
+
+`sleep_for()` uses a Time deadline with positive-duration clock quantisation
+compensation; zero succeeds immediately without yielding. Negative duration or
+deadline is invalid-argument. `sleep_until()` returns immediately for an observed
+past/current deadline, and rechecks the same original deadline after early wake
+or retryable interrupt. Success means a final monotonic observation reached the
+deadline. Sleep supports the typed timestamp/native absolute timeout range,
+without the old Monotonic INT32_MAX-millisecond limit. Overflow is rejected rather
+than clamped or converted to FOREVER. ISR is unsupported; no cancellation or
+maximum scheduling latency is promised. Join's existing millisecond timeout and
+lifetime rules remain separate.
 
 ## Synchronisation
 
@@ -154,11 +171,12 @@ not transfer join ownership or extend resource lifetime.
 
 | Integration | Selection | Resource and native limits |
 | --- | --- | --- |
-| Linux Host | `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`, independently selectable; top-level defaults ON, dependency defaults OFF | Default 4 workers, 8 mutexes and 8 semaphores; current thread provider requests 65536 stack bytes for every worker and rejects requests above 65536 |
+| Linux Host | `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`, independently selectable; Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for controlled Host realtime); top-level defaults ON, dependency defaults OFF | Default 4 workers, 8 mutexes and 8 semaphores; current thread provider requests 65536 stack bytes for every worker and rejects requests above 65536 |
 | Zephyr Thread | `CONFIG_CRUX_THREAD` | `CONFIG_CRUX_THREAD_COUNT` (default 4, range 1..64), `CONFIG_CRUX_THREAD_STACK_BYTES` (default 4096, range 1024..65536 usable bytes) |
 | Zephyr Sync | `CONFIG_CRUX_SYNC` | `CONFIG_CRUX_SYNC_MUTEX_COUNT` and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT` (each default 8, range 1..64) |
 
 Zephyr Thread and Sync each require multithreading and select 64-bit timeouts.
+Thread selects Time for monotonic sleep without requiring RTC.
 Thread requires more than six preemptive priority levels for its 4/5/6 mapping.
 The native Thread port owns static worker stacks; the Sync port owns native
 identity and synchronization. Native include paths and private implementation

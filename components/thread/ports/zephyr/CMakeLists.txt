@@ -3,7 +3,7 @@ get_filename_component(CRUX_THREAD_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.
 add_library(crux_thread_api INTERFACE)
 target_include_directories(crux_thread_api INTERFACE
     "${CRUX_THREAD_COMPONENT_DIR}/include")
-target_link_libraries(crux_thread_api INTERFACE crux::base)
+target_link_libraries(crux_thread_api INTERFACE crux::base crux::time)
 # Portable translation units still need the selected CPU, instruction set,
 # floating-point ABI and sysroot. These toolchain flags carry no kernel
 # headers, generated configuration or native API declarations.
@@ -11,6 +11,7 @@ target_compile_options(crux_thread_api INTERFACE ${TOOLCHAIN_C_FLAGS})
 
 add_library(crux_thread_zephyr STATIC
     "${CMAKE_CURRENT_LIST_DIR}/../../src/thread.c"
+    "${CMAKE_CURRENT_LIST_DIR}/../../src/thread_sleep.c"
     "${CMAKE_CURRENT_LIST_DIR}/thread_native.c")
 target_include_directories(crux_thread_zephyr PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/../../src"

@@ -8,10 +8,10 @@ if CRUX_PILOT_MODULE
 
 config CRUX_TIME
 	bool "Crux Time capability"
-	depends on RTC
-	default y
+	default y if RTC
 	help
-	  Build the Crux Time common implementation and selected Zephyr RTC provider.
+	  Build typed monotonic clock access without requiring RTC hardware.
+	  The legacy RTC realtime path remains available when RTC is selected.
 
 config CRUX_TIME_TESTING
 	bool "Include Crux Time test controls"
@@ -24,6 +24,7 @@ config CRUX_THREAD
 	bool "Crux bounded joinable threads"
 	depends on MULTITHREADING
 	select TIMEOUT_64BIT
+	select CRUX_TIME
 	help
 	  Component-owned bounded joinable threads using native kernel objects.
 

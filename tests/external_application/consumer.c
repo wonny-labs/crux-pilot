@@ -28,7 +28,8 @@ int external_consumer(void) {
     crux_thread_t thread;
     int observed = 0;
     return crux_thread_create(&options, worker, &observed, &thread) != CRUX_OK ||
-           crux_thread_join(&thread, 1000) != CRUX_OK || observed != 42;
+           crux_thread_join(&thread, 1000) != CRUX_OK || observed != 42 ||
+           crux_thread_sleep_for(crux_duration_from_ms(1)) != CRUX_OK;
 #elif PROFILE_SYNC
     crux_mutex_t mutex;
     crux_semaphore_t semaphore;

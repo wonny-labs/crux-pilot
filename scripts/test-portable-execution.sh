@@ -47,6 +47,7 @@ unset ZEPHYR_EXTRA_MODULES EXTRA_ZEPHYR_MODULES
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
     -T "$repo/tests/portable_execution/zephyr" -T "$repo/tests/execution_runtime/zephyr" \
     -T "$repo/tests/thread_sync_consumer/zephyr" \
+    -T "$repo/tests/thread/zephyr" \
     -O "$repo/build/zephyr/twister-portable-execution" --inline-logs)
 for consumer in portable_execution execution_runtime; do
     out="$repo/build/zephyr/$consumer-evkb"
@@ -54,6 +55,11 @@ for consumer in portable_execution execution_runtime; do
         "$repo/tests/$consumer/zephyr")
     python3 "$repo/scripts/check-execution-boundaries.py" --compile-commands "$out/compile_commands.json"
 done
+# This Ztest is a native integration probe, with no designated portable consumer
+# translation unit for check-execution-boundaries.py. The independent consumers
+# above and below retain their existing boundary checks.
+(cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' \
+    -d "$repo/build/zephyr/thread-evkb" "$repo/tests/thread/zephyr")
 for component in thread sync; do
     out="$repo/build/zephyr/$component-only-evkb"
     (cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' -d "$out" \

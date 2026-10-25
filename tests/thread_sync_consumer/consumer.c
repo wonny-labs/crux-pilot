@@ -29,7 +29,7 @@ int component_consumer_run(void) {
         crux_thread_join(&thread, 1000) != CRUX_OK || observed != 42 || thread.slot != 0) {
         return 1;
     }
-    return 0;
+    return crux_thread_sleep_for(crux_duration_from_ms(1)) != CRUX_OK;
 }
 #else
 int component_native_sync_worker(crux_mutex_t mutex);

@@ -210,7 +210,7 @@ The external application tests also cover C++17, independently selected Thread/S
 | --- | --- |
 | Base | `crux::base` always exists |
 | Time | Set `CRUX_BUILD_TIME=ON` and explicitly select `CRUX_TIME_PROVIDER=memory` for development/testing. Memory is **not** a production RTC fallback |
-| Thread, Sync | Select independently through `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`. Their public targets connect the current Linux implementation |
+| Thread, Sync | Select independently through `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`. Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for the current controlled Host composition). Their public targets connect the current Linux implementation |
 | Queue, Monotonic | Portable targets use `crux::queue` / `crux::monotonic`. The final Linux executable additionally links `crux::queue_linux` / `crux::monotonic_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and native TTY binding belongs to trusted composition |
 | Logging | Select `CRUX_BUILD_LOGGING=ON`. The existing Linux provider value is `CRUX_LOGGING_PROVIDER=host` |

@@ -1,0 +1,10 @@
+tests:
+  crux.time.typed_clock_sleep:
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+    tags:
+      - time
+      - thread
+    harness: ztest

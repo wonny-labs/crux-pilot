@@ -20,6 +20,7 @@ zephyr_library_compile_definitions_ifdef(CONFIG_CRUX_TIME_TESTING CRUX_TIME_TEST
 zephyr_library_named(crux_time_zephyr)
 zephyr_library_sources(
     "${CRUX_TIME_COMPONENT_DIR}/ports/zephyr/time_port_zephyr.c"
+    "${CRUX_TIME_COMPONENT_DIR}/ports/zephyr/time_clock_zephyr.c"
 )
 zephyr_library_include_directories(
     "${CRUX_TIME_COMPONENT_DIR}/../base/include"
