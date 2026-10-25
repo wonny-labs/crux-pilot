@@ -92,9 +92,13 @@ Busy wait uses CPU, not scheduler sleep. Zero succeeds, negative is invalid,
 and provider-limit excess is rejected before waiting. Limit-query failure
 preserves output. Zephyr rounds up native units and checks the actual native
 counter/conversion limit, not merely UINT32_MAX microseconds. It supports thread
-and ISR without Crux-added locks/allocation/scheduler blocking. The user explicitly
+and validated ISR contexts without Crux-owned locks, dynamic memory allocation or
+scheduler-based blocking. The user explicitly
 approved the pinned Zephyr native counter driver's short IRQ critical section on
-the verified single-core EVKB; this is not a general lock-free/SMP guarantee.
+the selected single-core EVKB configuration. Interrupts must not remain disabled
+for the requested delay. ISR support is subject to validation of the selected
+provider and target configuration. No general lock-free guarantee or maximum
+execution latency is claimed.
 Unsupported timer configurations return
 NOT_SUPPORTED. Early boot and stopped timer/power states are not qualified.
 
