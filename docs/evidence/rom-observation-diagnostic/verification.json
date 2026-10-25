@@ -26,7 +26,7 @@
     "samples/flash_target_candidate/snapshot_layout.c": "a29aefbf575d957a727885244a76ca35c95442155f940e30eb0df0d3d2c87090",
     "samples/rom_observation_diagnostic/CMakeLists.txt": "855f64bf4abef5a19c3f0a91358340925d9161a661bb06ca855f98d1018b6f91",
     "samples/rom_observation_diagnostic/Kconfig": "a1120b55a2e2d778ac5740ec8ee6d57a3d3e015613387b438ce9abec7553dac7",
-    "samples/rom_observation_diagnostic/README.md": "0bfa2be2ba205894d992fa6b83ee71cb81e3aafd9d45262871d07f4163ff20b8",
+    "samples/rom_observation_diagnostic/README.md": "1e1430395e5443237bfc07013e3cf2a1f0bba52110dfdf2265e3a877780d9fd1",
     "samples/rom_observation_diagnostic/app.overlay": "bd4324507066515d40365c22267018958c2907db1d3c862b609c6bbc128bbd26",
     "samples/rom_observation_diagnostic/main.c": "564824c9636512ead9fe2f551cb9ebfcd1fbeccfa1be712ca1de2de8d2852d29",
     "samples/rom_observation_diagnostic/observation.c": "4b911160eab16c8e531385bb7317944fcf060ac1e150ad9e18f329891c1b1351",
@@ -225,9 +225,9 @@
     "External loader footprint/probe/readout/backup/recovery/exclusivity remain unresolved"
   ],
   "retained_package": {
-    "manifest.json": "9403f7c4062d868ed3025ba66d6a6c5a4b663c7d2b86d1f10a899f078e282bc3",
-    "diagnostic-artifacts.tar.gz": "950901597028d509b635f504e3ee661e1a536cfee7f2d254064926d3e5f15db9",
-    "hardware-decision-packet.md": "cb45fa9b3bf96acd5862ad82dea0f627393e11969a002994cd861a1666573b9f",
+    "manifest.json": "03f86cdd76eb8918aa2b1af1fbe32a1eb0c8e2090985a67e7c3a9542aca04a7b",
+    "diagnostic-artifacts.tar.gz": "946de0819992398ed1c9791bf52bfc45041158734d4900ff618f0bf710480422",
+    "hardware-decision-packet.md": "2f9fbe8e7e96b6ec2d5a7f5bd5981ad174b9a12269215c3b90254ada83b50a5f",
     "tool-effects-note.md": "3d19f39de6c17af95ce77198a1fc1526aa81992a750b9431c5dbb631e366b5e4",
     "current-main-final-r1.tar.gz": "dd26b0c8463568ace4f4ec4da9efeb4039e7390c9748f0de24892d1465768ee1",
     "preparation.json": "d6d7b48f002175daa4609a4483f1d212f8c88be9c6032d74aa8f5b8b15aa7f0d"
@@ -288,5 +288,27 @@
     },
     "system_provider_selected": false,
     "initial_invocation": "Missing ZEPHYR_BASE caused five setup errors; retained separately; corrected run passed"
+  },
+  "compiled_source_commit": "aebc737053352eb7b6bf8c49f54c75b89f30accd",
+  "source_commit_scope": "Compiled code/config/test provenance; documentation_update identifies C1 document hashes separately",
+  "documentation_update": {
+    "id": "C1",
+    "base_documentation_commit": "c6cb0d98322a45c77e7de128dcb40d64aad44791",
+    "scope": "Documentation-only effects disclosure; code/config/tests/compiled inputs unchanged",
+    "compiled_source_commit": "aebc737053352eb7b6bf8c49f54c75b89f30accd",
+    "rebuild_performed": false,
+    "tests_replayed": false,
+    "documents_sha256": {
+      "samples/rom_observation_diagnostic/README.md": "1e1430395e5443237bfc07013e3cf2a1f0bba52110dfdf2265e3a877780d9fd1",
+      "docs/rom-observation-diagnostic.md": "1e7bded4b508db6ce1d1bf60edd79ac4d4e7562cda4c279de72ece14da6eeb58",
+      "hardware-decision-packet.md": "2f9fbe8e7e96b6ec2d5a7f5bd5981ad174b9a12269215c3b90254ada83b50a5f"
+    },
+    "pre_c1_package": {
+      "directory": "pre-c1-c6cb0d9",
+      "manifest_sha256": "9403f7c4062d868ed3025ba66d6a6c5a4b663c7d2b86d1f10a899f078e282bc3",
+      "archive_sha256": "950901597028d509b635f504e3ee661e1a536cfee7f2d254064926d3e5f15db9"
+    },
+    "capture_replay_scope": "capture.py is the retained aebc737 compiled-package capture; C1 repack changes documentation only",
+    "documentation_commit_locator": "Final documentation Git commit is recorded separately in external hashes.json; no circular self-hash"
   }
 }

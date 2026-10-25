@@ -47,7 +47,10 @@ success/refusal following setup; no prior stopped state is claimed restored.
 The intentional effects are GPT2 reset/configuration/start and private metadata;
 FlexSPI IP read-command/FIFO/interrupt-acknowledgement effects from the pinned SDK;
 and key/unlock/write-four-words/lock for temporary slot 15 followed by exact
-restoration after known-ready evidence. No NOR/system/controller reset, NOR WREN,
+restoration after known-ready evidence. Before each accepted status/ID read, the
+SDK writes `FLSHCR2[A1].CLRINSTRPTR` (bit 31) to clear the instruction-sequence
+pointer internally saved by `JMP_ON_CS`. This peripheral pointer clear is distinct
+from a controller, NOR or system reset. No NOR/system/controller reset, NOR WREN,
 program, erase, status/configuration write, clock change, watchdog feed/disable,
 File/Settings mount, format, provision or scratch trial is emitted. The ROM FCB
 still contains its original unused command LUT words as witness data; its mode

@@ -24,7 +24,10 @@ informational and cannot establish revision, grade, voltage or write timing.
 
 This is not a side-effect-free register reader. Deliberate peripheral effects
 are GPT2 setup/start, FlexSPI IP read/FIFO/acknowledgements and temporary LUT
-slot-15 installation/restoration. GPT2 remains running after setup. The
+slot-15 installation/restoration. Before each accepted read, the SDK writes
+`FLSHCR2[A1].CLRINSTRPTR` (bit 31), clearing the instruction-sequence pointer
+internally saved by `JMP_ON_CS`. This peripheral pointer clear is distinct from a
+controller, NOR or system reset. GPT2 remains running after setup. The
 2,400,000-tick budget is synthetic (nominal 100 ms at the declared 24 MHz), not
 measured elapsed time or a NOR deadline. MMIO stalls, watchdog/power resets,
 physical ownership and actual source availability remain unqualified. See the
@@ -33,7 +36,9 @@ for exact software preconditions, effects and reproducible commands.
 
 ## Verified software evidence
 
-Implementation `22534b7`, warning-policy correction `aebc737`; base `822f6c6`.
+Compiled inputs: implementation `22534b7`, warning-policy correction `aebc737`;
+base `822f6c6`. C1 is a documentation-only effects-disclosure correction: code,
+configuration, tests and retained image bytes are unchanged; no rebuild was needed.
 Pinned Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` and hal_nxp
 `2c2f28ac333e995d7279777409817c4b4f92c1ec` were not edited.
 
