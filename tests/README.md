@@ -249,3 +249,9 @@ adds a sample-private owner/adapter and actual-engine simulator composition. Its
 restrictive selection, read-result/partial-error checks, deferred initialization,
 ARM public-consumer ABI and one-way maintenance handoff. Target admission stays
 refused and main is inert; no hardware execution is authorised.
+
+The separate [status/identity diagnostic](../docs/rom-observation-diagnostic.md)
+has one fixed observation sequence and a volatile RAM record. Its
+[software gate](../samples/rom_observation_diagnostic/README.md) checks controlled
+faults and the exact ARM graph; it excludes storage/write/reset providers.
+Physical installation, execution and readout remain unapproved.
