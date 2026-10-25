@@ -32,9 +32,10 @@ At the repository root, `BUILD_TESTING` sets the initial default for `CRUX_BUILD
 
 ## Zephyr: `time/zephyr/`
 
-Twister builds and runs the C17 Ztest application on two `native_sim/native/64`
-configurations, one with an RTC alias and one without it. Tests cover Zephyr error
-mapping, RTC backend behaviour, the shared command handler and the registered
+Twister builds and runs the C17 Ztest application on three `native_sim/native/64`
+configurations: RTC emulator, absent RTC and a controlled fake RTC driver. Tests
+cover system realtime/authority/snapshot consistency and ISR rejection, explicit
+RTC storage and failure isolation, the shared command handler and the registered
 Zephyr Shell adapter using the dummy Shell backend. The trailing-argument case verifies that Shell passes syntax errors to the shared Crux
 handler for the documented `ERR INVALID_ARGUMENT` result.
 
@@ -50,8 +51,8 @@ scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
 
 This runs the `native_sim` Ztests, builds the Time Shell sample for simulation and
 cross-builds its EVKB firmware image. It does not run Ztests on the EVKB, program
-or reset the physical board. Physical RTC behaviour is verified separately by
-the macOS pytest suite below.
+or reset the physical board. The macOS physical suite below records the earlier RTC-backed contract; it has
+not qualified the redesigned system realtime/optional-RTC implementation.
 
 ## Build tools: `build/`
 
@@ -109,7 +110,7 @@ setup; other boards need their reset/transport procedure reviewed explicitly.
 on Linux. `tests/controller` verifies sample-owned Time observations/recovery and monotonic
 phase logic. The maintained boundary-negative and host-runner failure checks are under
 `tests/build`. Host CTest includes the finite controller scenario, including sanitizer exit
-status; `scripts/test-controller.sh` validates normal/missing-RTC native_sim compositions
+status; `scripts/test-controller.sh` validates normal/RTC-absent native_sim system-realtime compositions
 and cross-builds EVKB without hardware access. See the [controller conditions and limits](../samples/controller/README.md).
 
 Run `scripts/test-m3.sh` in the configured Linux/west environment for device,

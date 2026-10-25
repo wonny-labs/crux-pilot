@@ -22,10 +22,10 @@ TEST_F(TimeCommandTest, HelpIdentifiesUtcInput) {
 }
 
 TEST_F(TimeCommandTest, NoDataApiStatusMapsToDistinctCliText) {
-    crux_time_instant_t instant = 0;
+    crux_realtime_t instant = {0, 0};
     const crux_time_command_result_t result = crux_time_command_execute("time get");
 
-    EXPECT_EQ(crux_time_get(&instant), CRUX_ERR_NO_DATA);
+    EXPECT_EQ(crux_time_get_realtime(&instant), CRUX_ERR_NO_DATA);
     EXPECT_EQ(result.status, CRUX_ERR_NO_DATA);
     EXPECT_STREQ(crux_time_command_cli_error_text(result.status), "ERR NOT_SET");
     EXPECT_STRNE(crux_time_command_cli_error_text(result.status), "ERR NO_DATA");

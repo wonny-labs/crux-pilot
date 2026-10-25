@@ -31,6 +31,8 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/components/time/src/time_types.c" \
     "$repo/components/time/src/time_clock.c" \
     "$repo/components/time/ports/linux/time_clock_linux.c" \
+    "$repo/components/time/ports/linux/time_lock_linux.c" \
+    "$repo/components/time/ports/linux/time_realtime_linux.c" \
     "$repo/components/time/src/time_calendar.c" \
     "$repo/components/time/src/time_port_memory.c" \
     "$repo/samples/time/src/time_command.c" \

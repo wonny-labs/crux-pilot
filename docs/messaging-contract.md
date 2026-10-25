@@ -8,7 +8,7 @@ Baseline: crux-pilot main 225cd21, including Execution #36, Networking #38 and n
 
 ## Consumer evidence and minimum scope
 
-The reference controller uses nonnegative signed 64-bit monotonic milliseconds and absolute release deadlines, a 100 ms phase grid, skip-overrun policy and freshness windows. Preserve schedule advancement and missed-release decisions in consumer code. UTC RTC Time remains seconds/calendar and independently initialised; changing UTC must never change deadlines.
+The reference controller uses nonnegative signed 64-bit monotonic milliseconds and absolute release deadlines, a 100 ms phase grid, skip-overrun policy and freshness windows. Preserve schedule advancement and missed-release decisions in consumer code. The [current Time contract](time-contract.md) uses typed realtime seconds/nanoseconds and explicit authority independently of monotonic timing; RTC source/storage is optional. Changing realtime must never change deadlines. The Monotonic proposal below records its earlier implementation boundary pending the typed API migration.
 
 Existing runtime-shaped Execution consumers already use counting semaphores for ready/gate/progress. Reuse those for notification, including maximum-one coalesced notification when the consumer accepts BUSY on a repeated give. No event-bits/ANY/ALL/multiwait semantics are demonstrated. A semaphore is consuming notification, not persistent broadcast state. Existing controller flags/latest snapshots are not evidence that a queue or event-bit API is required there.
 

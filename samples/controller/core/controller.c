@@ -6,10 +6,10 @@
 
 controller_reading_t controller_observe(uint32_t cycle) {
     controller_reading_t reading = {.cycle = cycle, .utc_seconds = 0};
-    crux_time_instant_t value;
-    reading.status = crux_time_get(&value);
+    crux_realtime_t value;
+    reading.status = crux_time_get_realtime(&value);
     if (reading.status == CRUX_OK) {
-        reading.utc_seconds = value;
+        reading.utc_seconds = value.seconds;
     }
     return reading;
 }

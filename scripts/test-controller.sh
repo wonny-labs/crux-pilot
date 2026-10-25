@@ -15,12 +15,9 @@ for configuration in normal missing-rtc; do
     fi
     (cd "$workspace" && west build -p always -b native_sim/native/64 -d "$build" \
         "$repo/samples/controller/zephyr" -- -DZEPHYR_EXTRA_MODULES="$repo" "${extra[@]}")
-    check=()
-    if [[ "$configuration" == missing-rtc ]]; then
-        check+=(--expect-init-failure)
-    fi
+    # Missing RTC is now a positive system-realtime composition, not init failure.
     python3 "$repo/scripts/check-controller.py" "$build/zephyr/zephyr.exe" \
-        --native-sim --log "$build/scenario.log" "${check[@]}"
+        --native-sim --log "$build/scenario.log"
 done
 # Build only: no debugger, serial transport, programming or reset.
 (cd "$workspace" && west build -p always -b 'mimxrt1060_evk@B//qspi' \

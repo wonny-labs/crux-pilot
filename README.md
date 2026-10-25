@@ -10,7 +10,7 @@ Applications select the components they need. Portable application and runtime-p
 
 | Area | Components | Purpose |
 | --- | --- | --- |
-| Foundation and timing | `base`, `time`, `monotonic` | Shared status and error codes, calendar/RTC time, elapsed time and deadlines |
+| Foundation and timing | `base`, `time`, `monotonic` | Shared status and error codes, typed realtime/authority/calendar, elapsed time and deadlines |
 | Execution and synchronisation | `thread`, `sync`, `queue` | Threads, mutexes, semaphores and message queues |
 | Communication and networking | `serial`, `sockets`, `netif` | Serial byte streams, IPv4 TCP clients/connected UDP and network-interface status |
 | Storage and configuration | `file`, `configuration` | File access and application-supplied parameter validation and save/load |
@@ -64,7 +64,7 @@ scripts/bootstrap-zephyr.sh --install-sdk
 scripts/test-controller.sh
 ```
 
-The script checks normal and missing-RTC `native_sim` scenarios and builds a target firmware image. It does not program or reset the physical board. See the [test guide](tests/README.md) for other components and test procedures.
+The script checks normal and RTC-absent system realtime `native_sim` scenarios and builds a target firmware image. It does not program or reset the physical board. See the [test guide](tests/README.md) for other components and test procedures.
 
 ### Use Crux from another application
 

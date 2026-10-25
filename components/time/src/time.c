@@ -1,83 +1,196 @@
-#include <crux/time.h>
-
 #include "time_port.h"
-
-#include <stdbool.h>
+#include <crux/time_authority.h>
 #include <stddef.h>
 
+/* All state and native realtime accesses share the provider's native lock. */
 static bool g_initialised;
 static bool g_valid;
+static bool g_synchronized;
+static crux_time_source_t g_last_source;
 
-crux_status_t crux_time_init(void) {
-    crux_status_t status;
-
-    if (g_initialised) {
-        return CRUX_OK;
-    }
-
-    status = crux_time_port_init();
-    if (status != CRUX_OK) {
-        return status;
-    }
-
-    g_initialised = true;
-    g_valid = false;
-    return CRUX_OK;
-}
-
-crux_status_t crux_time_get(crux_time_instant_t *out) {
-    crux_time_instant_t value;
-    crux_status_t status;
-
-    if (out == NULL) {
+static crux_status_t validate_value(const crux_realtime_t *value) {
+    if (value == NULL || value->nanoseconds >= UINT32_C(1000000000)) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    if (!g_initialised) {
-        return CRUX_ERR_NOT_READY;
-    }
-    if (!g_valid) {
-        return CRUX_ERR_NO_DATA;
-    }
-
-    status = crux_time_port_read(&value);
-    if (status == CRUX_ERR_NO_DATA) {
-        g_valid = false;
-        return status;
-    }
-    if (status != CRUX_OK) {
-        return status;
-    }
-    if (value < CRUX_TIME_MIN_UNIX_SECONDS || value >= CRUX_TIME_MAX_UNIX_SECONDS_EXCLUSIVE) {
+    if (value->seconds < CRUX_TIME_MIN_UNIX_SECONDS ||
+        value->seconds >= CRUX_TIME_MAX_UNIX_SECONDS_EXCLUSIVE) {
         return CRUX_ERR_OUT_OF_RANGE;
     }
-
-    *out = value;
     return CRUX_OK;
 }
 
-crux_status_t crux_time_set(crux_time_instant_t value) {
-    crux_status_t status;
-
-    if (value < CRUX_TIME_MIN_UNIX_SECONDS || value >= CRUX_TIME_MAX_UNIX_SECONDS_EXCLUSIVE) {
-        return CRUX_ERR_OUT_OF_RANGE;
+static crux_status_t lock_time(void) {
+    if (!crux_time_port_is_thread()) {
+        return CRUX_ERR_NOT_SUPPORTED;
     }
-    if (!g_initialised) {
-        return CRUX_ERR_NOT_READY;
-    }
+    return crux_time_port_lock();
+}
 
-    status = crux_time_port_write(value);
-    if (status != CRUX_OK) {
-        g_valid = false;
+static void invalidate(void) {
+    g_valid = false;
+    g_synchronized = false;
+}
+
+/* Caller holds the lock. Dirty provider outputs never reach public storage. */
+static crux_status_t read_native(crux_realtime_t *out) {
+    crux_realtime_t value;
+    crux_status_t status = crux_time_port_read(&value);
+    if (status == CRUX_OK) {
+        status = validate_value(&value);
+        if (status == CRUX_ERR_INVALID_ARGUMENT) {
+            status = CRUX_ERR_IO; /* Malformed native representation. */
+        }
+    }
+    if (status == CRUX_ERR_NO_DATA || status == CRUX_ERR_OUT_OF_RANGE) {
+        invalidate();
+    }
+    if (status == CRUX_OK) {
+        *out = value;
+    }
+    return status;
+}
+
+crux_status_t crux_time_init(void) {
+    crux_status_t status = lock_time();
+    if (status != CRUX_OK)
         return status;
+    if (!g_initialised) {
+        status = crux_time_port_init();
+        if (status == CRUX_OK) {
+            g_initialised = true;
+            invalidate();
+            g_last_source = CRUX_TIME_SOURCE_NONE;
+        }
     }
+    crux_time_port_unlock();
+    return status;
+}
 
-    g_valid = true;
-    return CRUX_OK;
+crux_status_t crux_time_get_realtime(crux_realtime_t *out) {
+    if (out == NULL)
+        return CRUX_ERR_INVALID_ARGUMENT;
+    crux_status_t status = lock_time();
+    if (status != CRUX_OK)
+        return status;
+    if (!g_initialised)
+        status = CRUX_ERR_NOT_READY;
+    else if (!g_valid)
+        status = CRUX_ERR_NO_DATA;
+    else
+        status = read_native(out);
+    crux_time_port_unlock();
+    return status;
+}
+
+crux_status_t crux_time_get_realtime_snapshot(crux_realtime_snapshot_t *out) {
+    if (out == NULL)
+        return CRUX_ERR_INVALID_ARGUMENT;
+    crux_status_t status = lock_time();
+    if (status != CRUX_OK)
+        return status;
+    if (!g_initialised) {
+        status = CRUX_ERR_NOT_READY;
+    } else {
+        crux_realtime_snapshot_t value = {0};
+        if (g_valid) {
+            status = read_native(&value.timestamp);
+            if (status == CRUX_ERR_NO_DATA)
+                status = CRUX_OK;
+        }
+        if (status == CRUX_OK) {
+            value.last_source = g_last_source;
+            value.is_time_valid = g_valid;
+            value.is_actively_synchronized = g_synchronized;
+            *out = value;
+        }
+    }
+    crux_time_port_unlock();
+    return status;
+}
+
+crux_status_t crux_time_adopt_realtime(void) {
+    crux_status_t status = lock_time();
+    if (status != CRUX_OK)
+        return status;
+    if (!g_initialised) {
+        status = CRUX_ERR_NOT_READY;
+    } else {
+        crux_realtime_t value;
+        status = read_native(&value);
+        if (status == CRUX_OK) {
+            g_valid = true;
+            g_synchronized = false;
+            g_last_source = CRUX_TIME_SOURCE_UNKNOWN;
+        }
+    }
+    crux_time_port_unlock();
+    return status;
+}
+
+crux_status_t crux_time_set_realtime(const crux_realtime_t *value, crux_time_source_t source,
+                                     bool actively_synchronized) {
+    crux_status_t status = validate_value(value);
+    if (status != CRUX_OK)
+        return status;
+    if ((source != CRUX_TIME_SOURCE_RTC && source != CRUX_TIME_SOURCE_MANUAL &&
+         source != CRUX_TIME_SOURCE_EXTERNAL) ||
+        (actively_synchronized && source != CRUX_TIME_SOURCE_EXTERNAL)) {
+        return CRUX_ERR_INVALID_ARGUMENT;
+    }
+    status = lock_time();
+    if (status != CRUX_OK)
+        return status;
+    if (!g_initialised) {
+        status = CRUX_ERR_NOT_READY;
+    } else {
+        status = crux_time_port_write(value);
+        if (status == CRUX_OK) {
+            g_valid = true;
+            g_synchronized = actively_synchronized;
+            g_last_source = source;
+        } else {
+            invalidate();
+        }
+    }
+    crux_time_port_unlock();
+    return status;
+}
+
+crux_status_t crux_time_notify_sync_state(bool actively_synchronized) {
+    crux_status_t status = lock_time();
+    if (status != CRUX_OK)
+        return status;
+    if (!g_initialised)
+        status = CRUX_ERR_NOT_READY;
+    else if (!g_valid)
+        status = CRUX_ERR_NO_DATA;
+    else if (actively_synchronized && g_last_source != CRUX_TIME_SOURCE_EXTERNAL) {
+        status = CRUX_ERR_INVALID_STATE;
+    } else
+        g_synchronized = actively_synchronized;
+    crux_time_port_unlock();
+    return status;
+}
+
+crux_status_t crux_time_invalidate_realtime(void) {
+    crux_status_t status = lock_time();
+    if (status != CRUX_OK)
+        return status;
+    if (!g_initialised)
+        status = CRUX_ERR_NOT_READY;
+    else
+        invalidate();
+    crux_time_port_unlock();
+    return status;
 }
 
 #ifdef CRUX_TIME_TESTING
 void crux_time_test_reset(void) {
-    g_initialised = false;
-    g_valid = false;
+    if (lock_time() == CRUX_OK) {
+        g_initialised = false;
+        invalidate();
+        g_last_source = CRUX_TIME_SOURCE_NONE;
+        crux_time_port_unlock();
+    }
 }
 #endif

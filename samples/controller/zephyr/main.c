@@ -1,6 +1,6 @@
 #include "controller.h"
 
-#include <crux/time.h>
+#include <crux/time_authority.h>
 #include <zephyr/kernel.h>
 
 K_THREAD_STACK_DEFINE(controller_stack, 4096);
@@ -25,7 +25,9 @@ static void run_controller(void *a, void *b, void *c) {
             return;
         }
         if (cycle == 2 || cycle == 6) {
-            status = crux_time_set(cycle == 2 ? INT64_C(1792238400) : INT64_C(1792234800));
+            const crux_realtime_t value = {cycle == 2 ? INT64_C(1792238400) : INT64_C(1792234800),
+                                           0};
+            status = crux_time_set_realtime(&value, CRUX_TIME_SOURCE_MANUAL, false);
             if (status != CRUX_OK) {
                 printk("controller set_error=%d\n", status);
                 return;

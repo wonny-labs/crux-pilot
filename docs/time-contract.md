@@ -1,155 +1,167 @@
 # Crux Time API contract
 
-This document records the M2 contract implemented by the host reference composition. It follows
-Sections 4–5 of the [initial implementation plan](plans/initial-implementation-plan.md). This is a
-bounded Time API contract, not a general clock framework.
+Time provides typed clocks, authority state and Gregorian UTC conversion. The
+[accepted redesign](superpowers/specs/2026-10-25-time-redesign.md) replaces the
+original Pilot's whole-second RTC-backed get/set contract. The initial plan and
+[baseline](baseline.md) retain historical evidence; those physical results do
+not qualify this redesigned API or its native system realtime implementation.
 
 ## Common status ownership
 
-`<crux/status.h>` is owned by the independent `crux::base` CMake INTERFACE target. It has no Time,
-Zephyr, operating-system, allocation or service-runtime dependency. The shared status values are:
-
-| Status | Value | Meaning |
-| --- | ---: | --- |
-| `CRUX_OK` | 0 | Operation succeeded |
-| `CRUX_ERR_INVALID_ARGUMENT` | -1 | Invalid pointer, malformed calendar or invalid field combination |
-| `CRUX_ERR_OUT_OF_RANGE` | -2 | Public input or observed time outside the supported interval, or a provider-reported range limit |
-| `CRUX_ERR_NOT_READY` | -3 | Time backend has not been successfully initialised |
-| `CRUX_ERR_NO_DATA` | -4 | No valid time has been established for this session |
-| `CRUX_ERR_IO` | -5 | Backend operation failed |
-
-Time does not define a duplicate Time-specific status enum. Modules retain ownership of their
-private state, data and recovery-relevant results; common codes are used only when their meaning
-fits. No other service is introduced to demonstrate this rule.
+`<crux/status.h>` belongs to independent `crux::base`. Time uses its existing
+status codes, including INVALID_ARGUMENT, OUT_OF_RANGE, NOT_READY, NO_DATA, IO,
+NOT_SUPPORTED and INVALID_STATE. No duplicate Time status enum is introduced.
 
 ## Public Time API
 
-`<crux/time.h>` defines `crux_time_instant_t` as signed 64-bit UTC Unix seconds and declares
-explicit initialise, get and set operations. `<crux/time_calendar.h>` defines a six-field UTC
-calendar and conversion functions. These headers document the range, state, output, and call-context
-contract at the declarations. The public API is C17 and its function declarations support C++ consumers;
-C++ callers include these headers and link to the C17 implementation through the exported
-`crux::time` usage target in both Host and Zephyr builds. Application consumers do not link
-internal common/backend targets or add Time public include paths themselves. The Host entry point
-selects the controlled host backend; the Zephyr module selects its RTC backend when
-`CONFIG_CRUX_TIME=y`. This is a CMake usage target, not a runtime dispatch layer or an installed
-package/ABI stability promise. Host GoogleTests exercise C++ calls against the C17 test composition;
-they do not independently verify a C++ consumer link to the production usage target.
+The C17 API supports C++17 consumers through `extern "C"`. Link `crux::time`;
+do not include private implementation directories or name backend targets.
 
-The supported interval is `[2000-01-01T00:00:00 UTC, 2100-01-01T00:00:00 UTC)`. It uses UTC, second
-precision, Gregorian calendar rules and no leap seconds. It does not promise binary ABI stability
-across compilers, concurrent access, ISR use, persistence across reset or a progressing host clock.
+| Header | Contract |
+| --- | --- |
+| `<crux/time_types.h>` | Distinct duration, monotonic timestamp and realtime value types; checked arithmetic |
+| `<crux/time.h>` | Monotonic observation/deadlines, realtime init/observation and consistent snapshot |
+| `<crux/time_authority.h>` | Explicit realtime set, adopt, synchronization and invalidation |
+| `<crux/time_calendar.h>` | Pure Gregorian UTC/realtime conversion, including nanoseconds |
 
-Calendar validation checks null pointers, field ranges and actual month length before checking the
-supported year interval. Malformed combinations return `CRUX_ERR_INVALID_ARGUMENT`; valid dates
-outside the interval return `CRUX_ERR_OUT_OF_RANGE`. Instant conversion similarly rejects values
-outside the interval. Output arguments are assigned only on success.
+`crux_duration_t` is signed nanoseconds. `crux_monotonic_time_t` is nonnegative
+provider/session-local nanoseconds, not an epoch or interchangeable clock domain.
+`crux_realtime_t` contains signed POSIX epoch `seconds` and normalized uint32
+`nanoseconds` in 0..999999999. Representation does not promise resolution or
+accuracy. No leap seconds, implicit normalization, saturation or FOREVER encoding.
+Checked failures preserve outputs; constructors and arithmetic retain the typed
+foundation's overflow and signed rounding rules.
+
+Realtime/calendar support `[2000-01-01T00:00:00, 2100-01-01T00:00:00)` UTC.
+The seven-field `crux_time_utc_t` adds nanoseconds to year/month/day/hour/minute/
+second. Both conversion directions preserve fractions. Validate NULL, field
+ranges and actual month length before the year range; malformed values are
+INVALID_ARGUMENT and valid dates outside 2000..2099 are OUT_OF_RANGE. Conversion
+is pure and reentrant with distinct output storage, without init/native locks.
+
+The superseded `crux_time_instant_t`, `crux_time_get()` and `crux_time_set()`
+are removed. Migrate to typed realtime and explicitly supply authority source.
+No compatibility wrapper silently assigns authority or persists RTC storage.
 
 ## Typed monotonic observation and deadlines
 
-`crux_time_get_monotonic()` and `crux_time_make_deadline_after()` use the
-distinct values in `<crux/time_types.h>`. They need neither realtime init nor
-RTC validity. Host uses CLOCK_MONOTONIC while retaining the controlled memory
-realtime store; Zephyr uses uptime ticks and configures without RTC. Concurrent
-thread callers use distinct output storage; ISR is not-supported. Negative
-duration is invalid-argument, zero deadline duration returns the unadjusted
-sample, and positive duration compensates the clock quantum from the internal
-sample. Overflow/failure preserves output. The pure monotonic arithmetic helper
-does not add this compensation. [Thread sleep](thread-sync.md#current-thread-sleep)
-owns waiting and the original absolute deadline predicate. Existing realtime
-get/set declarations below remain during the staged migration documented in the
-[accepted redesign](superpowers/specs/2026-10-25-time-redesign.md).
+`crux_time_get_monotonic()` and `crux_time_make_deadline_after()` need neither
+realtime init nor RTC. Linux uses CLOCK_MONOTONIC; Zephyr uses uptime ticks.
+Concurrent thread callers use distinct output storage; ISR is NOT_SUPPORTED.
+Negative duration is INVALID_ARGUMENT. Zero returns the unadjusted observation.
+Positive duration compensates clock quantisation from one internal sample, not
+from function return. Zephyr uses the upper bound of the next tick boundary.
+Overflow/failure preserves output. Pure `crux_monotonic_add_duration()` adds no
+padding. [Thread sleep](thread-sync.md#current-thread-sleep) owns native wait
+encoding limits and rechecks one original absolute deadline after early wakes.
+A valid Time comparison deadline can exceed Thread's native finite timeout range.
 
 ## Header and build ownership
 
-This component follows the [repository header/dependency rules](../CONTRIBUTING.md#public-headers-and-module-dependencies).
+Follow the [repository dependency rules](../CONTRIBUTING.md#public-headers-and-module-dependencies).
 
-| Files / target | Ownership and visibility |
+| Implementation | Selection and visibility |
 | --- | --- |
-| `components/base/include/crux/status.h` | Independent platform public header, provided by `crux::base` |
-| `components/time/include/crux/time.h`, `time_calendar.h` | Time public API, provided to applications through `crux::time` |
-| `components/time/src/time_port.h` | Private link-selected backend contract; no application include requirement |
-| `components/time/ports/zephyr/time_port_internal.h` | Private native adapter helper; available explicitly to relevant integration tests |
-| `tests/time/*.h` | Test controls, excluded from public include roots and normal consumer requirements |
-| `samples/time/include/crux_time_command.h` | Sample-owned helper contract, not an exported Crux platform API |
+| `components/time/src/` | Common state, types/calendar/clock logic and separately selected OS-independent memory store |
+| `components/time/src/time_port.h` | Private realtime init/read/write/context/lock contract |
+| `components/time/ports/linux/` | Native monotonic clock, pthread lock and optional CLOCK_REALTIME provider |
+| `components/time/ports/zephyr/` | Native uptime/system realtime/lock and optional RTC adapter |
+| `tests/time/*.h` | Private test controls, excluded from public usage roots |
+| `samples/time/include/` | Sample-owned command interface |
 
-Host and Zephyr applications link `crux::time`; the base dependency follows the public Time
-headers. Internal host/Zephyr build definitions assemble the common implementation and selected
-backend. Their private port paths do not propagate to applications.
+External Linux applications select `CRUX_BUILD_TIME=ON` and explicitly choose
+`CRUX_TIME_PROVIDER=memory` or `linux`. Top-level development builds default to
+memory. Exactly one realtime provider is composed; Linux cannot silently fall
+back to memory. Native lock/clock requirements stay private, and the established
+consumer boundary checker remains enforced. Current supported glibc resolves
+pthread operations in libc, as for Thread/Sync; other toolchains retain their
+actual link requirements. This is not an installed package/ABI promise or
+production Linux qualification.
 
-The Host `crux_time_commands` helper currently receives Time's public header path privately and
-links `crux::base` for its exposed status type. It intentionally does not bind the production Time
-backend: the host sample supplies `crux::time`, whereas host tests supply the instrumented Time
-test composition. This is internal sample composition wiring, not a recipe for ordinary consumers.
-Zephyr integration tests explicitly access private headers to exercise adapter mapping and test
-controls; production applications do not acquire those paths.
+Memory realtime is a controlled, non-progressing development/test store. It never
+reads/writes the OS wall clock. Only private test controls advance it or inject
+failures; these require serialized test use. Controlled Host shell/controller
+samples require memory, so choosing the Linux system provider cannot silently
+turn their demonstration writes into operating-system clock changes.
+
+Zephyr `CONFIG_CRUX_TIME=y` provides native system realtime (`SYS_CLOCK_REALTIME`)
+and monotonic uptime without RTC. Thread selects Time for sleep. Time does not
+depend on Thread or public Sync. Optional `CONFIG_CRUX_TIME_RTC=y` additionally
+requires RTC and compiles a trusted native adapter for the `rtc` devicetree alias;
+it is not selected automatically. There is no runtime provider registry.
 
 ## State and error precedence
 
-The common implementation owns three session states:
+The first successful `crux_time_init()` enters ready-but-unset. It never writes a
+default, adopts native time or loads RTC. Failed init is retryable; repeated
+successful init preserves authority state. Public realtime operations require
+thread context and share a private native mutex across clock access and metadata.
+They support concurrent callers with distinct outputs. ISR is NOT_SUPPORTED;
+validated argument errors precede context/readiness/native access. Do not re-enter
+Time from provider operations while the lock is held.
 
-1. **Not ready:** no successful backend initialisation has completed.
-2. **Ready but unset:** the backend is ready, but this session has not established a time.
-3. **Ready and valid:** a set operation succeeded and the backend has a session-valid value.
+`crux_time_get_realtime()` returns NO_DATA without a native read when invalid.
+`crux_time_get_realtime_snapshot()` instead returns OK with a zero timestamp,
+retained `last_source`, validity false and synchronization false. Before init,
+both return NOT_READY and preserve output.
 
-The first successful `crux_time_init()` checks the selected backend and enters ready-but-unset. It
-never writes a default time. A failed initialisation leaves the API not ready and can be retried.
-Repeated initialisation after success is a no-op that preserves validity.
+| Native observation | Result and state |
+| --- | --- |
+| OK, normalized and in range | Commit timestamp and metadata from one locked transaction |
+| NO_DATA | Invalidate time/sync; getter returns NO_DATA, snapshot returns OK/invalid/zero |
+| OUT_OF_RANGE or observed seconds outside supported range | Invalidate time/sync, retain source, return OUT_OF_RANGE and preserve output |
+| Other read error, including malformed native nanoseconds mapped to IO | Preserve output and authority state |
 
-Pointer and value validation precede readiness checks and backend calls. A valid get/set before
-successful init returns `CRUX_ERR_NOT_READY`; an out-of-range set returns
-`CRUX_ERR_OUT_OF_RANGE` even before init. A ready but unset get returns `CRUX_ERR_NO_DATA` without
-reading the backend. A backend `CRUX_ERR_NO_DATA` clears common validity; other read failures leave
-the caller output unchanged and do not fabricate a value. An out-of-range value read from the
-backend returns `CRUX_ERR_OUT_OF_RANGE` and leaves output unchanged. The selected provider may also
-return this status for a native range limitation before supplying a time, or after receiving an
-in-range set request. A rejected input never calls the backend and preserves an existing valid
-value. A failed backend write, including a provider-reported range error, invalidates session
-validity because native storage may have changed despite the reported failure.
+The lock guarantees consistency among Crux operations. It cannot serialize native
+clock setters outside Crux. Application authority policy owns source selection
+and stale synchronization callbacks; separating the authority header is not a
+runtime permission or authentication mechanism.
 
-Applications serialise calls. No mutex or re-entrancy framework is provided.
+## Time Authority
+
+`last_source` is NONE (0), UNKNOWN (1), RTC (2), MANUAL (3) or EXTERNAL (4).
+It records the last successful establishment; it is not an accuracy estimate.
+Valid time has a non-NONE source. Active synchronization implies valid time and
+EXTERNAL source.
+
+| Operation | Effect |
+| --- | --- |
+| `crux_time_adopt_realtime()` | Read/validate native clock without writing; success sets UNKNOWN, valid, unsynchronized |
+| `crux_time_set_realtime(&value, source, sync)` | Set system clock and metadata as one transaction; accepts RTC/MANUAL/EXTERNAL and sync=true only with EXTERNAL |
+| `crux_time_notify_sync_state(sync)` | Metadata only, no clock write; invalid time gives NO_DATA; true with non-EXTERNAL valid source gives INVALID_STATE |
+| `crux_time_invalidate_realtime()` | Clear validity/sync, retain previous source, no native read/write |
+
+Reject malformed values/sources before native access and preserve state. An
+actual native write failure invalidates time/sync because the clock might have
+changed, while retaining the **previous** source. Lock/context/readiness failures
+do not attempt a native write. Set success says nothing about RTC persistence.
 
 ## Private port and link selection
 
-The private Time port provides only `init`, `read` and `write`, using Crux-owned statuses and
-instant types. Common code contains no host or Zephyr headers. Each build composition selects one
-backend. Host CMake marks the host provider with a compatible-interface property; the Zephyr module
-marks its RTC provider the same way. CMake rejects a consumer that combines targets with conflicting
-provider identities. The Zephyr module does not include the host backend, and the host root does not
-load Zephyr. There is no runtime backend registry, weak-symbol discovery or public function table.
+Common realtime state and selected native clock access share a provider-owned
+lock initialized independently of Time readiness. Linux uses a statically
+initialized pthread mutex. Zephyr uses a static kernel mutex; with multithreading
+disabled the sole non-ISR context cannot interleave. No allocation or new public
+synchronization service is required. Monotonic reads remain independent of this
+realtime lock and initialization.
 
-The host composition explicitly selects the separate `crux_time_memory` target from
-`components/time/src/time_port_memory.c`. It is OS independent and is excluded from
-the common source inventory. The private `crux_time_host` name remains an alias.
-The Zephyr module delegates Time build ownership to `components/time/ports/zephyr/`
-and registers only the RTC implementation; it has no memory fallback.
-
-The memory backend is a controlled deterministic store: it starts with no time, never reads host wall
-time and advances only through private test-only controls. Those controls live outside the exported
-headers and are compiled into the test backend only. The host sample uses the non-instrumented memory
-backend and exposes no advance/failure controls.
+The optional native-only `time_rtc_zephyr.h` adapter offers explicit RTC read/store.
+It reuses existing error mapping and calendar conversion, preserves read outputs
+on failure and never accesses common authority state. Application composition
+chooses when to read, establish system time with source RTC, or separately store
+it. A failed store does not invalidate a successful system realtime update.
+Current RTC storage accepts whole seconds only; normalized nonzero fractions
+return NOT_SUPPORTED before any write rather than being silently truncated.
+Missing/unready RTC returns NOT_READY. No generic public RTC framework is added.
 
 ## Host command composition
 
-The portable C17 command handler consumes `time set YYYY-MM-DDTHH:MM:SS`, `time get` and `help`.
-It belongs to the sample layer, not the Zephyr module. The host process and Zephyr application each
-compile the same command source; the Zephyr Shell adapter translates parsed arguments back to the
-portable line grammar. It deliberately lets Shell pass argument counts through so malformed input
-within the `time` group receives the Crux `ERR INVALID_ARGUMENT` response. Both compositions
-initialize Time explicitly and do not set an implicit date. The host sample prints a
-`CRUX_TIME_READY` marker and identifies itself as a controlled simulation; it does not follow wall
-time. API no-data remains `CRUX_ERR_NO_DATA`; the command presentation maps it to `ERR NOT_SET`.
-The readiness marker says `composition=host-simulation` or `composition=zephyr`; it is not a build
-identity. A source/configuration ID and checksum manifest remain required for physical artefact
-acceptance. Physical pytest associates readiness with the manifest-identified ELF through the
-explicit download and section-comparison log before accepting UART cases.
-
-The Zephyr composition selects the standard `rtc` devicetree alias and calls `rtc_get_time()` and
-`rtc_set_time()` through a private backend. It converts `struct rtc_time` at that boundary and does
-not expose Zephyr types in the public API or portable command handler. `crux_time_init()` checks
-device readiness, and the application prints readiness only after initialization succeeds. The
-upstream RTC Shell is disabled so it cannot bypass the shared command path. Native simulation
-verifies API mapping and command behavior. EVKB download/debugging and retained physical M4 checks passed: UART pytest 5/5 and target
-Ztest 2/2 cover progression, bounded set/read, representative upper-range/rejection cases,
-repeated init and reset-session behaviour. Actual measurements, firmware identity and raw logs
-are recorded in the baseline. These checks do not establish clock drift or persistent validity.
+The portable sample still accepts `time set YYYY-MM-DDTHH:MM:SS`, `time get` and
+`help`. Set supplies zero fractional seconds and MANUAL/unsynchronized authority.
+Get renders whole seconds; the underlying typed API/calendar retain fractions.
+No-data remains NO_DATA in the API and `ERR NOT_SET` in the command presentation.
+Host and Zephyr Shell adapters share this parser and initialize Time explicitly.
+The upstream RTC Shell stays disabled. Zephyr commands now use native system
+realtime and do not implicitly persist RTC. Native simulation, wrapped Linux
+writes and software cross-builds provide software evidence only; historical
+physical RTC measurements are not evidence for the new implementation.

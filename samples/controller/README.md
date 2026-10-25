@@ -7,8 +7,9 @@ watchdog supervision. The host and Zephyr compositions own their scheduling,
 initialisation and Time access. No concurrent Time command writer is enabled.
 The sample-owned `controller.h` and helpers are not new Crux platform interfaces.
 The core's private Time header path lets tests select the existing instrumented Time
-composition; final applications consume `crux::time`. Base/Time production code and
-public contracts are unchanged.
+composition; final applications consume `crux::time`. The current
+[Time contract](../../docs/time-contract.md) defines typed system realtime and
+explicit authority separately from optional RTC storage.
 
 ## Configurations
 
@@ -30,7 +31,8 @@ phase grid, normal unloaded composition, one execution owner. Cycles 0–1 obser
 Time. Cycle 2 explicitly sets `1792238400` UTC seconds and cycle 6 explicitly steps UTC
 back to `1792234800`. These are deterministic scenario inputs, not an implicit date or
 synchronisation to the host. Unavailable/error results never display a numeric UTC.
-The host Time store remains deterministic; the target RTC may progress between cycles.
+The Host Time store remains deterministic; Zephyr system realtime progresses with
+uptime after explicit setting. RTC is not required or written by this scenario.
 
 The composition selects the first future phase after work, skipping elapsed releases
 rather than generating catch-up bursts. The portable schedule tests include deliberate
@@ -43,8 +45,8 @@ records the independent decision and native/POSIX limitations.
 Zephyr uses one pre-emptive priority 5 worker with a static 4096-byte stack and no configured
 kernel heap. Linux invokes the same portable behaviour in its main thread with
 `CLOCK_MONOTONIC` absolute sleeps. Clock/sleep errors stop the host scenario; Time init/set
-failure stops either composition. `native_sim` missing-RTC validation must report failed
-initialisation and no cycles. The simulation runner terminates the idle kernel after the
+failure stops either composition. Both normal and RTC-absent `native_sim`
+configurations must complete all 20 cycles with system realtime. The simulation runner terminates the idle kernel after the
 final success/failure marker; it does not claim a Zephyr kernel shutdown API. The finite
 host process must exit successfully, allowing sanitizer shutdown diagnostics to fail it.
 
@@ -63,6 +65,9 @@ under `build/zephyr/controller-evkb/`. Existing host/Zephyr workflows run these 
 retain reports/configuration/artefacts for 14 days.
 
 ### Physical verification — bounded evidence
+
+These measurements refer to the recorded earlier RTC-backed implementation.
+They do not qualify the redesigned system realtime or optional RTC adapter.
 
 [Authorised physical verification](../../docs/m2-physical-verification.md) ran the identified
 controller three times on EVKB B/QSPI: 20 cycles each, expected unset/valid Time and backward

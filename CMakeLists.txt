@@ -40,6 +40,10 @@ endif()
 if(CRUX_BUILD_REFERENCE_CONTROLLER AND NOT CRUX_BUILD_TIME)
     message(FATAL_ERROR "CRUX_BUILD_REFERENCE_CONTROLLER requires Time")
 endif()
+if((CRUX_BUILD_HOST_SAMPLE OR CRUX_BUILD_REFERENCE_CONTROLLER) AND
+   NOT CRUX_TIME_PROVIDER STREQUAL "memory")
+    message(FATAL_ERROR "controlled Time samples require CRUX_TIME_PROVIDER=memory")
+endif()
 
 if(CRUX_BUILD_HOST_SAMPLE OR CRUX_BUILD_TESTS)
     add_library(crux_time_commands STATIC samples/time/src/time_command.c)

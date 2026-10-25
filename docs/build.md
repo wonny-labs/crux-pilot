@@ -98,7 +98,7 @@ export ZEPHYR_BASE="$workspace/zephyr"
 
 Select the required `CONFIG_CRUX_*` Kconfig capabilities and supply board/project Devicetree and native-resource bindings where the component requires them. Follow the applicable capability contract and an existing tested Zephyr fixture instead of copying Linux provider settings.
 
-Do not infer that every Linux Host capability has an equivalent Zephyr provider. Serial and Logging require explicitly supported UART resources and ownership settings, while Time's Zephyr RTC implementation is independent of the Linux development-memory backend. The full [Zephyr test commands](../tests/README.md) and [architecture overview](architecture.md#build-and-native-composition) describe the supported profiles and their limits. None of the build scripts above flashes, resets or operates the physical EVKB.
+Do not infer that every Linux Host capability has an equivalent Zephyr provider. Serial and Logging require explicitly supported UART resources and ownership settings, while Time's Zephyr system clock needs no RTC; optional RTC storage is separate from Linux system or development-memory realtime. The full [Zephyr test commands](../tests/README.md) and [architecture overview](architecture.md#build-and-native-composition) describe the supported profiles and their limits. None of the build scripts above flashes, resets or operates the physical EVKB.
 
 
 ## RT1060-EVKB debugging
@@ -209,7 +209,7 @@ The external application tests also cover C++17, independently selected Thread/S
 | Capability or group | Linux source-tree composition rule |
 | --- | --- |
 | Base | `crux::base` always exists |
-| Time | Set `CRUX_BUILD_TIME=ON` and explicitly select `CRUX_TIME_PROVIDER=memory` for development/testing. Memory is **not** a production RTC fallback |
+| Time | Set `CRUX_BUILD_TIME=ON` and explicitly select `CRUX_TIME_PROVIDER=memory` (controlled development) or `linux` (system realtime). Controlled Host samples require memory; Linux native writes need explicit application authority. Neither implies production qualification |
 | Thread, Sync | Select independently through `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`. Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for the current controlled Host composition). Their public targets connect the current Linux implementation |
 | Queue, Monotonic | Portable targets use `crux::queue` / `crux::monotonic`. The final Linux executable additionally links `crux::queue_linux` / `crux::monotonic_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and native TTY binding belongs to trusted composition |
@@ -236,7 +236,7 @@ For all existing Python build checks, use `python3 -m unittest discover -s tests
 | --- | --- |
 | Unknown `crux::...` CMake target | Enable the matching `CRUX_BUILD_*` option **before** `add_subdirectory()`. For Zephyr, use the correct Kconfig/module path |
 | Unwanted GoogleTest, C++ or sample targets in an external project | Check cached `CRUX_BUILD_TESTS`, `CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_REFERENCE_CONTROLLER` settings. Use an isolated build directory |
-| Missing or unsupported Time provider | An external Linux Time build requires explicit `CRUX_TIME_PROVIDER=memory`. Zephyr RTC uses its own Kconfig/native selection |
+| Missing or unsupported Time provider | An external Linux Time build requires explicit `CRUX_TIME_PROVIDER=memory` or `linux`. Zephyr system realtime uses Kconfig; optional RTC storage is separate |
 | Serial/Logging provider conflict or unsupported selection | Review the existing `host`/`zephyr` provider contract and the selected build entry point. Do not mix Host and Zephyr providers |
 | Undefined Queue/Monotonic symbols at final link | Add the required `crux::queue_linux` and/or `crux::monotonic_linux` to the **native final executable**, not to portable libraries |
 | `native consumer requirement` from CMake | Remove private/native targets, headers or flags from the portable consumer. Keep platform composition separate |
