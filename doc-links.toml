@@ -28,3 +28,15 @@ reason = "Execution plans and historical development records."
 [[selection.exclude]]
 path = "docs/evidence/"
 reason = "Frozen validation and review records, not maintained guidance."
+
+[[selection.exclude]]
+path = "docs/baseline.md"
+reason = "Frozen original Time Pilot build and physical evidence."
+
+[[selection.exclude]]
+path = "docs/implementation-status.md"
+reason = "Historical Time Pilot acceptance and execution status."
+
+[[selection.exclude]]
+path = "docs/m3-validation.md"
+reason = "Closed M3 execution and hardware-validation record."
