@@ -1,0 +1,4 @@
+/* No native controller/Flash initialization, storage proxies or partition use. */
+&flexspi { zephyr,deferred-init; };
+&ext_flash_ctrl { zephyr,deferred-init; };
+&is25wp064 { zephyr,deferred-init; };
