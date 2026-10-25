@@ -108,7 +108,8 @@ class LycheeIntegrationTests(unittest.TestCase):
 
     def test_missing_source_file_is_reported(self):
         self.current.unlink()
-        self.assertEqual(self.check(), 2)
+        # Deleted files are no longer scan inputs. Their inbound links still fail.
+        self.assertEqual(docs.run_lychee(self.root, self.binary, ["README.md"]), 2)
 
     def test_removed_historical_anchor_is_reported(self):
         self.historical.write_text("# Other heading\n")
