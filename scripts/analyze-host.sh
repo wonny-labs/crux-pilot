@@ -92,3 +92,16 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/logging_consumer/src/contract_test.c" \
     "$repo/tests/logging_consumer/host/main.c" \
     "$repo/samples/logging/controller.c"
+
+"$tidy" -p "$build_dir" \
+    "$repo/components/system/src/system.c" \
+    "$repo/components/system/ports/linux/system_linux.c" \
+    "$repo/tests/system/common.c" \
+    "$repo/tests/system/host.c"
+
+"$tidy" -p "$repo/build/system-consumer" \
+    "$repo/tests/system_consumer/src/runtime.c" \
+    "$repo/tests/system_consumer/src/consumer.cpp" \
+    "$repo/tests/system_consumer/src/contract_test.c" \
+    "$repo/tests/system_consumer/host/main.c" \
+    "$repo/samples/controller/system/controller_system.c"

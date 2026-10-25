@@ -1,0 +1,16 @@
+[1/6] Building C object CMakeFiles/system_controller.dir$REPO/samples/controller/system/controller_system.c.o
+[2/6] Building C object CMakeFiles/system_consumer.dir/host/main.c.o
+[3/6] Linking C static library libsystem_controller.a
+[4/6] Building C object CMakeFiles/system_consumer_policy.dir/src/contract_test.c.o
+[5/6] Linking CXX executable system_consumer
+[6/6] Linking CXX executable system_consumer_policy
+Internal ctest changing into directory: /tmp/crux-system-consumer
+Test project /tmp/crux-system-consumer
+    Start 1: SystemConsumer.ActualHost
+1/2 Test #1: SystemConsumer.ActualHost ........   Passed    0.05 sec
+    Start 2: SystemConsumer.Policy
+2/2 Test #2: SystemConsumer.Policy ............   Passed    0.04 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.21 sec

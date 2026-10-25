@@ -94,6 +94,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | File | Bounded synchronous file operations | Linux Host provider and deterministic failure tests; Zephyr provider is a plan, not implemented support | [Contract](file-contract.md), [Zephyr handoff plan](file-validation.md#zephyr-provider-handoff-plan-only) |
 | Serial | Bounded synchronous UART/TTY byte transfer | Linux PTY/TTY and selected Zephyr UART emulator/EVKB compositions; explicit binding and exclusive UART ownership; no physical qualification | [Contract](serial-contract.md), [validation](serial-validation.md) |
 | Logging | Validated bounded text records and filtering | Linux stderr and selected Zephyr deferred UART logger compositions; explicit UART ownership/configuration checks; no physical qualification | [Contract](logging-contract.md), [validation](logging-validation.md) |
+| System | Service observations, reset diagnostics and single-owner watchdog | Linux watchdog simulation and selected Zephyr HWINFO/watchdog/reset composition; normal Host reset/cause unsupported; physical acceptance pending | [Approved contract](superpowers/specs/2026-10-24-system-health-design.md), [validation](system-validation.md) |
 
 ## Build and native composition
 

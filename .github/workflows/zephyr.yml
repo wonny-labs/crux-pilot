@@ -95,12 +95,24 @@ jobs:
         working-directory: crux-pilot
         run: ./scripts/test-logging.sh
 
+      - name: Validate portable System and EVKB composition without hardware
+        working-directory: crux-pilot
+        run: ./scripts/test-system.sh
+
       - name: Upload Zephyr reports and raw logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: zephyr-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            crux-pilot/build/system-resource-evidence/
+            crux-pilot/build/system-consumer/ctest-junit.xml
+            crux-pilot/build/zephyr/twister-system/twister.json
+            crux-pilot/build/zephyr/twister-system/**/handler.log
+            crux-pilot/build/zephyr/system-evkb/zephyr/.config
+            crux-pilot/build/zephyr/system-evkb/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/system-evkb/zephyr/zephyr.map
+            crux-pilot/build/system-composition/*/build.log
             crux-pilot/build/serial-consumer/ctest-junit.xml
             crux-pilot/build/zephyr/twister-serial/
             crux-pilot/build/zephyr/serial-evkb/zephyr/zephyr.map

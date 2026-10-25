@@ -1,0 +1,38 @@
+-- west build: generating a build system
+Loading Zephyr default modules (Zephyr base).
+-- Application: $REPO/tests/system_consumer/zephyr
+-- CMake version: 3.28.4
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter
+-- Cache files will be written to: $CACHE/zephyr
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: mimxrt1060_evk, Revision: C, qualifiers: mimxrt1062/qspi
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6")
+-- Found BOARD.dts: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts
+-- Found devicetree overlay: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_C.overlay
+-- Found devicetree overlay: $REPO/tests/system_consumer/zephyr/boards/mimxrt1060_evk_mimxrt1062_qspi.overlay
+-- Found devicetree overlay: $REPO/build/system-composition/evkb_revision/case.overlay
+-- Generated zephyr.dts: $REPO/build/system-composition/revision-build/zephyr/zephyr.dts
+-- Generated pickled edt: $REPO/build/system-composition/revision-build/zephyr/edt.pickle
+-- Generated devicetree_generated.h: $REPO/build/system-composition/revision-build/zephyr/include/generated/zephyr/devicetree_generated.h
+$REPO/build/system-composition/revision-build/zephyr/zephyr.dts:4248.36-4257.5: Warning (unique_unit_address_if_enabled): /soc/usbd@402e0000: duplicate unit-address (also used in node /soc/usbh@402e0000)
+Parsing $REPO/samples/controller/zephyr/Kconfig
+Loaded configuration '$WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_defconfig'
+Merged configuration '$REPO/tests/system_consumer/zephyr/prj.conf'
+Merged configuration '$REPO/build/system-composition/evkb_revision/case.conf'
+Configuration saved to '$REPO/build/system-composition/revision-build/zephyr/.config'
+Kconfig header saved to '$REPO/build/system-composition/revision-build/zephyr/include/generated/zephyr/autoconf.h'
+-- Found GnuLd: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/arm-zephyr-eabi/bin/ld.bfd (found version "2.43.1")
+-- The C compiler identification is GNU 14.3.0
+-- The CXX compiler identification is GNU 14.3.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc
+-- Crux Zephyr integration module discovered
+CMake Error at $REPO/components/system/ports/zephyr/CMakeLists.txt:2 (message):
+  Crux System unsupported EVKB board revision: C; expected B
+
+
+-- Configuring incomplete, errors occurred!
+FATAL ERROR: command exited with status 1: /opt/crux-cache/venv/bin/cmake -DWEST_PYTHON=/opt/crux-cache/venv/bin/python3 -B$REPO/build/system-composition/revision-build -GNinja -DBOARD=mimxrt1060_evk@C//qspi '-DZEPHYR_MODULES=$REPO;$WORKSPACE/modules/hal/cmsis;$WORKSPACE/modules/hal/cmsis_6;$WORKSPACE/modules/hal/nxp' -DKCONFIG_ROOT=$REPO/samples/controller/zephyr/Kconfig -DEXTRA_DTC_OVERLAY_FILE=$REPO/build/system-composition/evkb_revision/case.overlay -DEXTRA_CONF_FILE=$REPO/build/system-composition/evkb_revision/case.conf -S$REPO/tests/system_consumer/zephyr

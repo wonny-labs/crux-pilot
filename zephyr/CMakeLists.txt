@@ -62,3 +62,8 @@ if(CONFIG_CRUX_LOGGING)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/logging/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/logging")
 endif()
+
+if(CONFIG_CRUX_SYSTEM)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/system/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/system")
+endif()

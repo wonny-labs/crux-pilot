@@ -1,0 +1,48 @@
+F
+======================================================================
+FAIL: test_independent_system_consumer_preserves_parent_testing (tests.build.test_external_application.ExternalApplicationTest.test_independent_system_consumer_preserves_parent_testing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REPO/tests/build/test_external_application.py", line 140, in test_independent_system_consumer_preserves_parent_testing
+    self.run_command([CMAKE, '-S', str(root), '-B', str(build), '-G', 'Ninja',
+  File "$REPO/tests/build/test_external_application.py", line 29, in run_command
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+AssertionError: 1 != 0 : -- The C compiler identification is Clang 18.1.3
+-- The CXX compiler identification is Clang 18.1.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang-18 - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++-18 - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring incomplete, errors occurred!
+CMake Error at system/CMakeLists.txt:8 (add_subdirectory):
+  The source directory
+
+    /tmp
+
+  does not contain a CMakeLists.txt file.
+
+
+CMake Error at system/CMakeLists.txt:9 (include):
+  include could not find requested file:
+
+    /tmp/cmake/CruxConsumerBoundary.cmake
+
+
+CMake Error at system/consumers.cmake:11 (crux_assert_portable_consumer):
+  Unknown CMake command "crux_assert_portable_consumer".
+Call Stack (most recent call first):
+  system/CMakeLists.txt:10 (include)
+
+
+
+
+----------------------------------------------------------------------
+Ran 1 test in 4.641s
+
+FAILED (failures=1)

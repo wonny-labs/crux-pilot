@@ -1,0 +1,56 @@
+Internal ctest changing into directory: /tmp/crux-system-sanitize
+Test project /tmp/crux-system-sanitize
+      Start 52: System.Common.status
+ 1/25 Test #52: System.Common.status ..............   Passed    0.21 sec
+      Start 53: System.Common.validation
+ 2/25 Test #53: System.Common.validation ..........   Passed    0.22 sec
+      Start 54: System.Common.lifecycle
+ 3/25 Test #54: System.Common.lifecycle ...........   Passed    0.28 sec
+      Start 55: System.Common.unready
+ 4/25 Test #55: System.Common.unready .............   Passed    0.29 sec
+      Start 56: System.Common.prearmed
+ 5/25 Test #56: System.Common.prearmed ............   Passed    0.11 sec
+      Start 57: System.Common.start_failure
+ 6/25 Test #57: System.Common.start_failure .......   Passed    0.18 sec
+      Start 58: System.Common.post_failure
+ 7/25 Test #58: System.Common.post_failure ........   Passed    0.10 sec
+      Start 59: System.Common.feed_failure
+ 8/25 Test #59: System.Common.feed_failure ........   Passed    0.10 sec
+      Start 60: System.Common.lost
+ 9/25 Test #60: System.Common.lost ................   Passed    0.10 sec
+      Start 61: System.Common.expiry
+10/25 Test #61: System.Common.expiry ..............   Passed    0.10 sec
+      Start 62: System.Common.causes
+11/25 Test #62: System.Common.causes ..............   Passed    0.09 sec
+      Start 63: System.Common.cause_failure
+12/25 Test #63: System.Common.cause_failure .......   Passed    0.11 sec
+      Start 64: System.Common.unsupported_cause
+13/25 Test #64: System.Common.unsupported_cause ...   Passed    0.11 sec
+      Start 65: System.Common.clear_failure
+14/25 Test #65: System.Common.clear_failure .......   Passed    0.17 sec
+      Start 66: System.Common.reset
+15/25 Test #66: System.Common.reset ...............   Passed    0.11 sec
+      Start 67: System.Common.context
+16/25 Test #67: System.Common.context .............   Passed    0.11 sec
+      Start 68: System.Host.low
+17/25 Test #68: System.Host.low ...................   Passed    0.10 sec
+      Start 69: System.Host.mid
+18/25 Test #69: System.Host.mid ...................   Passed    0.09 sec
+      Start 70: System.Host.high
+19/25 Test #70: System.Host.high ..................   Passed    0.09 sec
+      Start 71: System.Host.expiry
+20/25 Test #71: System.Host.expiry ................   Passed    0.10 sec
+      Start 72: System.Host.late
+21/25 Test #72: System.Host.late ..................   Passed    0.10 sec
+      Start 73: System.Host.clock_failure
+22/25 Test #73: System.Host.clock_failure .........   Passed    0.08 sec
+      Start 74: System.Host.backwards
+23/25 Test #74: System.Host.backwards .............   Passed    0.09 sec
+      Start 75: System.Host.unsupported
+24/25 Test #75: System.Host.unsupported ...........   Passed    0.03 sec
+      Start 76: System.Host.concurrent
+25/25 Test #76: System.Host.concurrent ............   Passed    0.15 sec
+
+100% tests passed, 0 tests failed out of 25
+
+Total Test time (real) =   3.69 sec

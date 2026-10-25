@@ -1,0 +1,2 @@
+   text	   data	    bss	    dec	    hex	filename
+  40764	     84	   7483	  48331	   bccb	$REPO/build/zephyr/system-evkb/zephyr/zephyr.elf

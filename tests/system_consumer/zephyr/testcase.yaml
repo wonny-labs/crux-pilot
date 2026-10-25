@@ -1,0 +1,12 @@
+tests:
+  crux.system.consumer:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - system
+      - portable
+    harness: console
+    harness_config:
+      type: one_line
+      regex:
+        - "System C17/C\\+\\+17 native observations retained; no lifecycle effects"
