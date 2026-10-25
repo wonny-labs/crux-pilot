@@ -13,7 +13,7 @@ Zephyr, operating-system, allocation or service-runtime dependency. The shared s
 | --- | ---: | --- |
 | `CRUX_OK` | 0 | Operation succeeded |
 | `CRUX_ERR_INVALID_ARGUMENT` | -1 | Invalid pointer, malformed calendar or invalid field combination |
-| `CRUX_ERR_OUT_OF_RANGE` | -2 | Well-formed instant/calendar outside the supported interval |
+| `CRUX_ERR_OUT_OF_RANGE` | -2 | Public input or observed time outside the supported interval, or a provider-reported range limit |
 | `CRUX_ERR_NOT_READY` | -3 | Time backend has not been successfully initialised |
 | `CRUX_ERR_NO_DATA` | -4 | No valid time has been established for this session |
 | `CRUX_ERR_IO` | -5 | Backend operation failed |
@@ -86,9 +86,11 @@ successful init returns `CRUX_ERR_NOT_READY`; an out-of-range set returns
 `CRUX_ERR_OUT_OF_RANGE` even before init. A ready but unset get returns `CRUX_ERR_NO_DATA` without
 reading the backend. A backend `CRUX_ERR_NO_DATA` clears common validity; other read failures leave
 the caller output unchanged and do not fabricate a value. An out-of-range value read from the
-backend returns `CRUX_ERR_OUT_OF_RANGE` and leaves output unchanged. A rejected set never calls the
-backend and preserves an existing valid value. A failed backend write invalidates session validity
-because native storage may have changed despite the reported failure.
+backend returns `CRUX_ERR_OUT_OF_RANGE` and leaves output unchanged. The selected provider may also
+return this status for a native range limitation before supplying a time, or after receiving an
+in-range set request. A rejected input never calls the backend and preserves an existing valid
+value. A failed backend write, including a provider-reported range error, invalidates session
+validity because native storage may have changed despite the reported failure.
 
 Applications serialise calls. No mutex or re-entrancy framework is provided.
 
