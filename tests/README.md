@@ -4,7 +4,7 @@ Crux uses GoogleTest/CTest for selected Linux Host component and controller test
 
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
-| Portable components and controller logic | GoogleTest with CTest | Linux Host |
+| Portable components and controller logic | CTest with GoogleTest suites and standalone C/C++ tests | Linux Host |
 | Zephyr components and integration | Twister with Ztest, console or the default harness | Zephyr `native_sim` |
 | Basic periodic controller scenarios | Python runner through `scripts/test-controller.sh` | Zephyr `native_sim` |
 | Build tools and validation oracles | Python `unittest` | Linux host |
