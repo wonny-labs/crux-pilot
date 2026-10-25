@@ -2,8 +2,14 @@ name: zephyr-software
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
+
+# Supersede only older runs for this PR and workflow. Main/manual runs are unique.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -105,38 +111,49 @@ jobs:
         with:
           name: zephyr-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            # Twister results and raw diagnostics, without complete build trees.
+            crux-pilot/build/zephyr/twister-*/*.json
+            crux-pilot/build/zephyr/twister-*/*.xml
+            crux-pilot/build/zephyr/twister-*/**/production_*.h
+            # Include early configure/build failures as well as runtime failures.
+            crux-pilot/build/zephyr/twister-*/**/*.log
+            crux-pilot/build/zephyr/twister-*/**/*.err
+            crux-pilot/build/zephyr/twister-*/**/CMakeConfigureLog.yaml
+            crux-pilot/build/zephyr/twister-*/**/CMakeCache.txt
+            crux-pilot/build/zephyr/twister-*/**/compile_commands.json
+            crux-pilot/build/zephyr/twister-*/**/zephyr/.config
+            crux-pilot/build/zephyr/twister-*/**/zephyr/zephyr.map
+            crux-pilot/build/zephyr/twister-*/**/zephyr/zephyr.dts
+            # Direct cross-build outputs: do not scan every EVKB generated header tree.
+            crux-pilot/build/zephyr/*/*.log
+            crux-pilot/build/zephyr/*/*.err
+            crux-pilot/build/zephyr/*/CMakeFiles/**/*.log
+            crux-pilot/build/zephyr/*/CMakeFiles/CMakeConfigureLog.yaml
+            crux-pilot/build/zephyr/*/CMakeCache.txt
+            crux-pilot/build/zephyr/*/compile_commands.json
+            crux-pilot/build/zephyr/*/zephyr/.config
+            crux-pilot/build/zephyr/*/zephyr/zephyr.dts
+            crux-pilot/build/evidence/*inputs*.json
             crux-pilot/build/system-resource-evidence/
             crux-pilot/build/system-consumer/ctest-junit.xml
-            crux-pilot/build/zephyr/twister-system/twister.json
-            crux-pilot/build/zephyr/twister-system/**/handler.log
             crux-pilot/build/zephyr/system-evkb/zephyr/.config
             crux-pilot/build/zephyr/system-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/system-evkb/zephyr/zephyr.map
             crux-pilot/build/system-composition/*/build.log
             crux-pilot/build/serial-consumer/ctest-junit.xml
-            crux-pilot/build/zephyr/twister-serial/
             crux-pilot/build/zephyr/serial-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/serial-evkb/zephyr/.config
             crux-pilot/build/messaging-resource-evidence/
             crux-pilot/build/zephyr/messaging-resources-*/zephyr/zephyr.map
             crux-pilot/build/zephyr/messaging-resources-*/zephyr/.config
-            crux-pilot/build/zephyr/twister-messaging/
             crux-pilot/build/zephyr/messaging-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/messaging-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/messaging-evkb/zephyr/.config
-            crux-pilot/build/zephyr/twister-time/twister.json
-            crux-pilot/build/zephyr/twister-time/twister.xml
-            crux-pilot/build/zephyr/twister-time/twister_report.xml
-            crux-pilot/build/zephyr/twister-time/twister_suite_report.xml
-            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/time/zephyr/*/build.log
-            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/time/zephyr/*/handler.log
-            crux-pilot/build/zephyr/twister-time/native_sim_native_64/host_gnu/crux-pilot/tests/time/zephyr/*/compile_commands.json
             crux-pilot/build/zephyr/native_sim_time/compile_commands.json
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/compile_commands.json
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/provenance.json
             crux-pilot/build/evidence/target-inputs.json
             crux-pilot/build/evidence/m3-inputs.json
-            crux-pilot/build/zephyr/twister-m3/
             crux-pilot/build/zephyr/m3-probe-evkb/zephyr/.config
             crux-pilot/build/zephyr/m3-probe-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/m3-probe-evkb/zephyr/zephyr.map
@@ -154,28 +171,32 @@ jobs:
             crux-pilot/build/zephyr/m3-mdio-candidate-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/m3-mdio-candidate-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/m3-mdio-candidate-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-mdio-candidate-evkb/crux-mdio/
+            crux-pilot/build/zephyr/m3-mdio-candidate-evkb/crux-mdio/mdio_nxp_enet.c
+            crux-pilot/build/zephyr/m3-mdio-candidate-evkb/crux-mdio/mdio_nxp_enet.json
             crux-pilot/build/zephyr/m3-mdio-candidate-evkb/compile_commands.json
             crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/.config
             crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/m3-mdio-trace-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-mdio-trace-evkb/crux-mdio/
+            crux-pilot/build/zephyr/m3-mdio-trace-evkb/crux-mdio/mdio_nxp_enet.c
+            crux-pilot/build/zephyr/m3-mdio-trace-evkb/crux-mdio/mdio_nxp_enet.json
             crux-pilot/build/zephyr/m3-mdio-trace-evkb/compile_commands.json
             crux-pilot/build/zephyr/m3-deferred-output-evkb/zephyr/.config
             crux-pilot/build/zephyr/m3-deferred-output-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/m3-deferred-output-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/m3-deferred-output-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/m3-deferred-output-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-deferred-output-evkb/crux-mdio/
+            crux-pilot/build/zephyr/m3-deferred-output-evkb/crux-mdio/mdio_nxp_enet.c
+            crux-pilot/build/zephyr/m3-deferred-output-evkb/crux-mdio/mdio_nxp_enet.json
             crux-pilot/build/zephyr/m3-deferred-output-evkb/compile_commands.json
             crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/.config
             crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/m3-native-output-evkb/zephyr/zephyr.bin
-            crux-pilot/build/zephyr/m3-native-output-evkb/crux-mdio/
+            crux-pilot/build/zephyr/m3-native-output-evkb/crux-mdio/mdio_nxp_enet.c
+            crux-pilot/build/zephyr/m3-native-output-evkb/crux-mdio/mdio_nxp_enet.json
             crux-pilot/build/zephyr/m3-native-output-evkb/compile_commands.json
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/.config
             crux-pilot/build/zephyr/m3-normal-evkb/zephyr/zephyr.dts
@@ -195,7 +216,6 @@ jobs:
             crux-pilot/build/zephyr/m3-integrated-normal-evkb/zephyr/zephyr.bin
             crux-pilot/build/zephyr/m3-integrated-normal-evkb/compile_commands.json
             crux-pilot/build/evidence/zephyr-test-inputs.json
-            crux-pilot/build/zephyr/twister-execution/
             crux-pilot/build/zephyr/m5-physical-native/zephyr/.config
             crux-pilot/build/zephyr/m5-physical-native/zephyr/zephyr.map
             crux-pilot/build/zephyr/m5-physical-native/compile_commands.json
@@ -205,7 +225,8 @@ jobs:
             crux-pilot/build/zephyr/m5-physical-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/m5-physical-evkb/zephyr/zephyr.bin
             crux-pilot/build/zephyr/m5-physical-evkb/compile_commands.json
-            crux-pilot/build/zephyr/m5-physical-evkb/crux-mdio/
+            crux-pilot/build/zephyr/m5-physical-evkb/crux-mdio/mdio_nxp_enet.c
+            crux-pilot/build/zephyr/m5-physical-evkb/crux-mdio/mdio_nxp_enet.json
             crux-pilot/build/evidence/m5-preparation/native-scenario.log
             crux-pilot/build/zephyr/thread-only-evkb/compile_commands.json
             crux-pilot/build/zephyr/thread-only-evkb/zephyr/zephyr.map
@@ -215,7 +236,6 @@ jobs:
             crux-pilot/build/zephyr/sync-only-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/sync-only-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/sync-only-evkb/zephyr/.config
-            crux-pilot/build/zephyr/twister-portable-execution/
             crux-pilot/build/zephyr/portable_execution-evkb/zephyr/.config
             crux-pilot/build/zephyr/portable_execution-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/portable_execution-evkb/zephyr/zephyr.elf
@@ -257,8 +277,6 @@ jobs:
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/zephyr/zephyr.bin
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/rom.json
             crux-pilot/build/zephyr/mimxrt1060_evk_B_qspi/ram.json
-            crux-pilot/build/zephyr/twister-logging/**/handler.log
-            crux-pilot/build/zephyr/twister-logging/twister.json
             crux-pilot/build/zephyr/logging-evkb/zephyr/.config
             crux-pilot/build/zephyr/logging-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/logging-evkb/zephyr/zephyr.map

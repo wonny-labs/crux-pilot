@@ -1,0 +1,15 @@
+# Independent Challenger review: scoped discovery
+
+Decision: PASS for the pending zephyr.yml scope refinement. No material retention regression found. Hosted performance and final-head artifact validation remain pending.
+
+I independently inspected the actual pending diff against dfcdcb20e83c2b9b0d310765af215cd2e20540b5, the first hosted archive inventory, current referenced build scripts and failure-path fixtures. Only positive diagnostic/configuration glob paths change; test commands, explicit firmware/provenance/resource paths, retention and hidden-file handling remain unchanged.
+
+Independent matching verification: created a separate temporary fixture containing all 701 actual first-hosted archive paths, the 19 existing synthetic failure paths, and four additional direct-target failure paths (root build.log, root run.err, nested versioned CMakeFiles/CMakeError.log and CMakeFiles/CMakeOutput.log). Ran actual installed @actions/glob against the pending workflow path block, preserving its comment lines and enabling hidden files. All 701 real paths and all 23 synthetic failure paths matched; zero missing. This independently confirms actual retained file preservation, including previously checked images, production headers, manifests and diagnostic files.
+
+Current scripts consistently use build/zephyr/<single-target-directory> for direct native/EVKB builds. Their CMake caches/compilation databases are at that root, configuration/DTS under zephyr, and CMake diagnostics under CMakeFiles. Current direct native scenarios retain output at root scenario.log or the explicit evidence path. Twister scenarios remain recursive and preserve real runtime failure diagnostics and generated replay inputs. No current direct nested runtime error file requiring the earlier unrestricted recursion was identified.
+
+The change is proportionate to the measured discovery bottleneck: narrowing directory traversal is justified when compression/upload already takes approximately three seconds. The first hosted archive proves the size target is feasible, while its discovery time does not prove the earlier full-recursion implementation accelerated collection. The revised performance claim needs a new run.
+
+Maintenance boundary: the direct-build patterns intentionally rely on the existing single-target-directory layout. A future nested/sysbuild directory, nested compilation database or new non-root runtime diagnostic must update the allowlist. This is a normal local workflow maintenance responsibility, not a reason to retain unrestricted scans or introduce a collector. The evidence rationale should state this layout assumption when describing future support.
+
+Remaining validation: run the final workflow HEAD on GitHub, inspect/download the resulting artifact, confirm all retained evidence and <=100 MB size, and compare actual discovery/upload timings while keeping total-runtime claims observational. My independent matcher check used real file paths plus synthetic failure paths, not a fresh configure failure or a hosted run of the pending refinement.

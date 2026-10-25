@@ -1,0 +1,75 @@
+{
+  "zip_bytes": 19606298,
+  "files": 701,
+  "uncompressed_bytes": 112544541,
+  "sha256": "6fe8e2c8fff5bad0fa6306d1eee4353660107bbb3b4ad2f3c461a4dd92b871de",
+  "all_560_baseline_retained_paths_present": 560,
+  "images_retained": 34,
+  "m3_generated_headers_retained": 10,
+  "verified_time_provenance_artifacts": 19,
+  "verified_mdio_records": 5,
+  "twister_reports": [
+    {
+      "path": "zephyr/twister-execution/twister.json",
+      "configurations": 2,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "path": "zephyr/twister-logging/twister.json",
+      "configurations": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "path": "zephyr/twister-m3/twister.json",
+      "configurations": 16,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "path": "zephyr/twister-messaging/twister.json",
+      "configurations": 3,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "path": "zephyr/twister-portable-execution/twister.json",
+      "configurations": 4,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "path": "zephyr/twister-serial/twister.json",
+      "configurations": 3,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "path": "zephyr/twister-system/twister.json",
+      "configurations": 2,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "path": "zephyr/twister-time/twister.json",
+      "configurations": 2,
+      "statuses": [
+        "passed"
+      ]
+    }
+  ],
+  "no_intermediate_objects_or_archives": true,
+  "head": "dfcdcb20e83c2b9b0d310765af215cd2e20540b5",
+  "run_id": 40186306953,
+  "artifact_id": 12597207785,
+  "upload_step_seconds": 376,
+  "job_seconds": 2209
+}
