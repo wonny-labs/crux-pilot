@@ -470,6 +470,23 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                 'endif()\n')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_zephyr_rtc_adapter_requires_explicit_selection(self):
+        for enabled in ('ON', 'OFF'):
+            with self.subTest(enabled=enabled):
+                result = self.configure(
+                    f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
+                    f'set(CONFIG_CRUX_TIME_RTC {enabled})\n'
+                    f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'
+                    'get_target_property(sources crux_time_zephyr SOURCES)\n'
+                    'if(CONFIG_CRUX_TIME_RTC)\n'
+                    '  if(NOT "${sources}" MATCHES "time_rtc_zephyr.c")\n'
+                    '    message(FATAL_ERROR "explicit RTC adapter missing")\n'
+                    '  endif()\n'
+                    'elseif("${sources}" MATCHES "time_rtc_zephyr.c")\n'
+                    '  message(FATAL_ERROR "RTC adapter selected implicitly")\n'
+                    'endif()\n')
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_zephyr_facade_preserves_backend_conflict(self):
         result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
                                 f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'
