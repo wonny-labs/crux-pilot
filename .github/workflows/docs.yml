@@ -1,0 +1,26 @@
+name: docs-links
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned lychee
+        run: python3 scripts/check_docs.py --install
+      - name: Verify document-selection rules and real lychee behaviour
+        run: python3 -m unittest discover -s tests/docs -v
+      - name: Check maintained Markdown links and anchors
+        run: python3 scripts/check_docs.py
