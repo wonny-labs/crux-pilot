@@ -23,6 +23,9 @@ jobs:
       CRUX_PYTHON: ${{ github.workspace }}/../crux-tools/bin/python
       ZEPHYR_SDK_INSTALL_DIR: ${{ github.workspace }}/../crux-cache/sdk/zephyr-sdk-1.0.1
       CRUX_BOARD_TARGET: mimxrt1060_evk@B//qspi
+      # Per-job cache only. No cross-run restore/save or externally stored objects.
+      CCACHE_DIR: ${{ runner.temp }}/crux-ccache
+      CCACHE_MAXSIZE: 1G
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,7 +39,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential ca-certificates device-tree-compiler file gperf git \
+            build-essential ca-certificates ccache device-tree-compiler file gperf git \
             libmagic1 libsdl2-dev pkg-config python3-dev python3-tk wget xz-utils
 
       - name: Install pinned Python tools
@@ -81,7 +84,14 @@ jobs:
 
       - name: Verify M3 device, network and controller paths without hardware
         working-directory: crux-pilot
-        run: scripts/test-m3.sh
+        run: |
+          # Reset counters only; retain objects compiled by earlier Zephyr steps.
+          ccache --zero-stats
+          scripts/test-m3.sh
+
+      - name: Report M3 compiler cache statistics
+        if: always()
+        run: ccache --show-stats
 
       - name: Qualify portable networking without hardware
         working-directory: crux-pilot
