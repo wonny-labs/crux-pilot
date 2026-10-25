@@ -162,7 +162,7 @@ copied Serial consumer runs all five PTY/policy scenarios beneath a parent proje
 with its own tests enabled, preserving both parent tests. The independent Logging
 fixture similarly runs its actual-provider and policy cases under a testing-ON parent.
 
-See the [supported integration example](../README.md#external-application-build-linux-host).
+See the [external application example](../docs/build.md#external-linux-application-using-crux-source).
 The fixture uses public capabilities in portable targets and declares native
 composition separately. It does not establish an installed SDK, production Linux,
 physical qualification or support for additional toolchains.
