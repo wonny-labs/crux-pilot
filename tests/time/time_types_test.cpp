@@ -51,28 +51,19 @@ TEST(TimeTypes, CheckedConstructorsAllowNegativeAndPreserveOutput) {
 }
 
 TEST(TimeTypes, SignedFloorAndCeilAtEdges) {
-    struct Example {
-        int64_t nanoseconds;
-        int64_t floor_us;
-        int64_t ceil_us;
-        int64_t floor_ms;
-        int64_t ceil_ms;
+    auto check = [](int64_t ns, int64_t uf, int64_t uc, int64_t mf, int64_t mc) {
+        const crux_duration_t value = crux_duration_from_ns(ns);
+        EXPECT_EQ(crux_duration_to_ns(value), ns);
+        EXPECT_EQ(crux_duration_to_us_floor(value), uf);
+        EXPECT_EQ(crux_duration_to_us_ceil(value), uc);
+        EXPECT_EQ(crux_duration_to_ms_floor(value), mf);
+        EXPECT_EQ(crux_duration_to_ms_ceil(value), mc);
     };
-    constexpr Example cases[] = {
-        {0, 0, 0, 0, 0},
-        {1, 0, 1, 0, 1},
-        {-1, -1, 0, -1, 0},
-        {1500, 1, 2, 0, 1},
-        {-1500, -2, -1, -1, 0},
-    };
-    for (const auto &entry : cases) {
-        crux_duration_t value = crux_duration_from_ns(entry.nanoseconds);
-        EXPECT_EQ(crux_duration_to_ns(value), entry.nanoseconds);
-        EXPECT_EQ(crux_duration_to_us_floor(value), entry.floor_us);
-        EXPECT_EQ(crux_duration_to_us_ceil(value), entry.ceil_us);
-        EXPECT_EQ(crux_duration_to_ms_floor(value), entry.floor_ms);
-        EXPECT_EQ(crux_duration_to_ms_ceil(value), entry.ceil_ms);
-    }
+    check(0, 0, 0, 0, 0);
+    check(1, 0, 1, 0, 1);
+    check(-1, -1, 0, -1, 0);
+    check(1500, 1, 2, 0, 1);
+    check(-1500, -2, -1, -1, 0);
 }
 
 TEST(TimeTypes, SignedFloorAndCeilHandleInt64Extremes) {
