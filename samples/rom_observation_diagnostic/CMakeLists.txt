@@ -31,6 +31,13 @@ set(diagnostic_ram
     "${CMAKE_CURRENT_SOURCE_DIR}/terminal.c"
     "${candidate_private}/rom_deadline.c")
 target_sources(drivers__memc PRIVATE ${diagnostic_ram})
+# These owned files compile in the native library for relocation. Scope their
+# warning policy to the sources, preserving the staged upstream policy.
+set_property(SOURCE
+    "${CMAKE_CURRENT_SOURCE_DIR}/observation.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/terminal.c"
+    "${candidate_private}/rom_deadline.c"
+    TARGET_DIRECTORY drivers__memc APPEND PROPERTY COMPILE_OPTIONS -Wall -Wextra -Werror)
 target_include_directories(drivers__memc PRIVATE "${candidate_private}"
     "${poc_workspace}/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpt"
     "${ZEPHYR_BASE}/drivers/flash" "${ZEPHYR_BASE}/drivers/memc")

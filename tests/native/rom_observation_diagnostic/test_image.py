@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import struct
 import subprocess
 import unittest
@@ -49,6 +50,26 @@ class Image(unittest.TestCase):
         commands = json.loads((self.directory.parent / 'compile_commands.json').read_text())
         for entry in commands:
             self.assertNotRegex(entry['file'], r'(?:fsl_gpt\.c|storage_native\.c|storage_adapter\.c|storage_trial\.c|flash_mcux_flexspi_nor\.c)$')
+
+    def test_owned_ram_sources_have_scoped_compiler_warning_policy(self):
+        commands = json.loads((self.directory.parent / 'compile_commands.json').read_text())
+        owned = ['samples/rom_observation_diagnostic/observation.c',
+                 'samples/rom_observation_diagnostic/terminal.c',
+                 'samples/flash_target_candidate/rom_deadline.c',
+                 'samples/rom_observation_diagnostic/main.c',
+                 'samples/rom_observation_diagnostic/runtime.c']
+        for relative in owned:
+            matches = [entry for entry in commands if entry['file'].endswith('/' + relative)]
+            self.assertEqual(len(matches), 1, relative)
+            flags = shlex.split(matches[0]['command'])
+            for flag in ['-Wall', '-Wextra', '-Werror']:
+                self.assertIn(flag, flags, relative + ' must enforce ' + flag)
+            self.assertNotIn('-Wno-error', flags, relative)
+        # Do not impose the owned-code policy on pinned/staged native SDK code.
+        for name in ['observation_native.c', 'memc_mcux_flexspi.c', 'fsl_flexspi.c']:
+            matches = [entry for entry in commands if Path(entry['file']).name == name]
+            self.assertEqual(len(matches), 1, name)
+            self.assertNotIn('-Werror', shlex.split(matches[0]['command']), name)
 
     def test_selected_code_literals_and_conservative_stack_close_in_ram(self):
         pending = ['crux_rom_command_dispatch']
