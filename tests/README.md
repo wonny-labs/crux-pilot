@@ -1,15 +1,10 @@
 # Test organisation
 
-Use GoogleTest/CTest for portable Host tests, Twister with Ztest or console
-harnesses for Zephyr test applications, and Python runners for scenario
-validation. The existing macOS physical Time/UART suite uses standalone pytest.
-Physical GPIO, network and integrated-controller qualification uses separate
-bounded Python CLI runners, not pytest or Twister's pytest harness. The latter
-is not currently configured in this repository.
+Crux uses GoogleTest/CTest for selected Linux Host component and controller tests, Twister with Ztest or console harnesses for Zephyr tests, and Python runners for build and scenario validation. The existing physical Time/RTC tests use standalone pytest on macOS; other physical device, network and controller tests use dedicated Python command-line runners. Twister's pytest harness is not currently configured.
 
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
-| Portable Time and controller logic | GoogleTest with CTest | Linux host |
+| Portable components and controller logic | CTest with GoogleTest suites and standalone C/C++ tests | Linux Host |
 | Zephyr components and integration | Twister with Ztest, console or the default harness | Zephyr `native_sim` |
 | Basic periodic controller scenarios | Python runner through `scripts/test-controller.sh` | Zephyr `native_sim` |
 | Build tools and validation oracles | Python `unittest` | Linux host |
@@ -27,9 +22,7 @@ The controller Host tests also cover portable scheduling, readiness, freshness,
 recovery and joint owner-health logic. CTest applies a 30-second limit to each
 discovered Time host test.
 
-The root CMake option `BUILD_TESTING=OFF` skips GoogleTest and C++ configuration. Set
-`CRUX_BUILD_HOST_SAMPLE=OFF` as well to configure and build only the portable and host library
-targets.
+At the repository root, `BUILD_TESTING` sets the initial default for `CRUX_BUILD_TESTS`. The `CRUX_BUILD_TESTS` option controls Crux's internal tests and GoogleTest/C++ setup. In an existing build directory, set `CRUX_BUILD_TESTS=OFF` explicitly to disable them. For a library-only build, also set `CRUX_BUILD_HOST_SAMPLE=OFF` and `CRUX_BUILD_REFERENCE_CONTROLLER=OFF`. See the [build guide](../docs/build.md#linux-host-build) for the supported configurations.
 
 ## Zephyr: `time/zephyr/`
 
@@ -162,7 +155,7 @@ copied Serial consumer runs all five PTY/policy scenarios beneath a parent proje
 with its own tests enabled, preserving both parent tests. The independent Logging
 fixture similarly runs its actual-provider and policy cases under a testing-ON parent.
 
-See the [supported integration example](../README.md#external-application-build-linux-host).
+See the [external application example](../docs/build.md#external-linux-application-using-crux-source).
 The fixture uses public capabilities in portable targets and declares native
 composition separately. It does not establish an installed SDK, production Linux,
 physical qualification or support for additional toolchains.
@@ -260,7 +253,7 @@ commands never access hardware. See [the contract](../docs/messaging-contract.md
 and [validation](../docs/messaging-validation.md) for ownership, cooperative-stop
 semantics, resource profile and qualification limits.
 
-### Portable Serial (Issue #27)
+## Portable Serial
 
 `scripts/test-serial.sh --host-only` runs independently authored public C17/C++17
 consumers and the controller against disposable PTYs. The default command also

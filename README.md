@@ -1,215 +1,101 @@
 # Crux Pilot
 
-**Crux** is an independent, reusable embedded software platform intended to support products built on **Zephyr** and **Embedded Linux**. Its direction is to combine shared platform capabilities, selective portability and repeatable engineering and validation practices.
+**Crux** is a reusable embedded software platform for controller and firmware applications. It provides portable C17 components and selected standard APIs, supported by OS-specific integration, build tools and tests. Portable application code remains separate from operating-system and board details.
 
-This repository is Crux's **initial development and architecture-validation workspace**. It contains platform code, reference applications, development tools and tests used to establish and validate the platform. Broader platform vision, architecture and development planning are maintained separately.
+This repository is Crux's development and architecture-validation Pilot. It currently provides Zephyr integration and a Linux development/test environment. Production Embedded Linux support is a longer-term goal. Crux is not yet a production-qualified or installable SDK.
 
-## Current implementation
+## Capabilities
 
-The `main` branch currently includes:
+Applications select the components they need. Portable application and runtime-porting code use public interfaces, while board/project configuration selects the OS implementations and hardware resources.
 
-| Area | Available implementation |
-| --- | --- |
-| Reusable components | `base`, `time`, `thread`, `sync`, `queue`, `monotonic`, `netif`, `sockets`, `configuration`, `file`, `serial`, `logging` and `system`, with [integration limits by capability](docs/architecture.md#current-capability-integration) |
-| Reference application | A reference controller with shared portable Time and scheduling logic, a Linux host scenario and Zephyr device/network/health compositions |
-| Device, networking and health integration | EVKB SW5 GPIO input, UART diagnostics, bounded IPv4 TCP/UDP exchanges, service readiness and workload-conditioned watchdog supervision |
-| Zephyr integration | Out-of-tree module, RTC and native device/network services, Shell examples, `native_sim` tests and EVKB builds |
-| Engineering foundation | CMake and west builds, Dev Container, automated tests, static checks, GitHub Actions and build-provenance evidence |
+| Area | Components | Purpose |
+| --- | --- | --- |
+| Foundation and timing | `base`, `time`, `monotonic` | Shared status and error codes, calendar/RTC time, elapsed time and deadlines |
+| Execution and synchronisation | `thread`, `sync`, `queue` | Threads, mutexes, semaphores and message queues |
+| Communication and networking | `serial`, `sockets`, `netif` | Serial byte streams, IPv4 TCP clients/connected UDP and network-interface status |
+| Storage and configuration | `file`, `configuration` | File access and application-supplied parameter validation and save/load |
+| Diagnostics and system | `logging`, `system` | Diagnostic logging, service status, reset diagnostics and watchdog operations |
 
-The initial hardware target is the **MIMXRT1060-EVKB revision B** using `mimxrt1060_evk@B//qspi`. Verified hardware behaviour and limitations are specific to the tested configurations.
-
-The native Linux host runs portable code without Zephyr, while Zephyr `native_sim` exercises Zephyr integration on a host. The EVKB GPIO, networking and watchdog results apply to the documented Zephyr composition, not to the Linux host or other boards. They do not establish production readiness, long-duration reliability or concurrent-load performance. An **Embedded Linux production variant** is part of Crux's longer-term direction, not a currently implemented target. See [milestones](https://github.com/wonny-labs/crux-pilot/milestones) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) for ongoing work.
-
-### Capability status
-
-The [qualified socket/netif contract](docs/networking-contract.md) supplies
-IPv4 TCP-client/connected-UDP communication and read-only primary-interface
-status. See the [networking software tests](tests/README.md#portable-networking-software-slice)
-for supported configurations and commands. Physical Issue #28 acceptance is
-pending; this slice does not complete the M5 milestone.
-
-The portable [Configuration contract](docs/configuration-contract.md) provides
-application-owned BOOL/U32 validation, explicit save/load and canonical encoding.
-Its [software qualification](docs/configuration-validation.md) uses a deterministic
-private provider; native Settings integration and physical persistence remain gated.
-
-The software-qualified [portable File contract](docs/file-contract.md) exposes
-bounded synchronous file operations through `crux::file`, with a Linux Host
-provider and deterministic failure tests. Its [validation and Zephyr handoff
-plan](docs/file-validation.md) document the separate native composition work;
-no production Flash layout or writable QSPI backend is enabled.
+All listed components have merged source, but available OS implementations and validation levels differ. The Sockets capability uses a documented, tested POSIX socket API subset rather than a Crux socket wrapper. For each component's contract, available implementations and limitations, see the [capability inventory](docs/architecture.md#current-capability-integration).
 
 ## Architecture
 
-Crux separates portable application behaviour, reusable platform capabilities and environment-specific integration. Shared contracts are introduced when they provide stable, useful semantics. Zephyr and Embedded Linux retain their native operating-system and device infrastructure rather than being hidden behind a universal HAL or OSAL.
+Crux separates reusable platform components and portable application code from **platform composition**: the board/project-specific configuration and initialisation that select OS implementations and bind hardware resources. Applications use Crux public APIs or documented standard API subsets. Native operating-system and device services remain within the selected platform integration.
 
-Portable components, application logic and common runtime consumers avoid unqualified native dependencies. Product applications may also contain native platform-composition code for board configuration, initialization and provider selection. Host and Zephyr compositions explicitly select their implementations. Host, `native_sim` and physical-target tests provide complementary evidence rather than interchangeable guarantees.
+See the [architecture overview](docs/architecture.md) for component ownership, portable/native boundaries and build dependencies.
 
-For the component model, native-port ownership, build composition and dependency boundaries, see the [architecture overview](docs/architecture.md).
+### Development and target environments
 
-The [Thread and Sync contract](docs/thread-sync.md) defines independent joinable
-workers (`<crux/thread.h>`, `crux::thread`) and nonrecursive mutexes/counting
-semaphores (`<crux/sync.h>`, `crux::sync`). Each owns its Linux and Zephyr native
-ports; Sync works independently of Crux Thread. See the contract for Timeout,
-Ownership, Lifetime, provider selection, resource limits and historical evidence.
+| Environment | Current scope |
+| --- | --- |
+| Linux Host | Linux amd64 development, testing and selected Linux implementations, not production Embedded Linux support |
+| Zephyr `native_sim` | Selected Zephyr component and reference-controller tests without physical hardware |
+| MIMXRT1060-EVKB Rev B (`mimxrt1060_evk@B//qspi`) | Initial physical target, with results limited to documented firmware and configurations |
+| RT1170-EVK Rev A1 Cortex-M7 | Planned second physical target under M6, not yet qualified |
+| Production Embedded Linux | Future platform variant, not currently implemented or qualified |
 
-The implemented [Time contract](docs/time-contract.md) provides a concrete component example.
+Host tests, `native_sim` runs and target cross-builds do not prove physical operation. Writable File/Configuration persistence on the RT1060's QSPI Flash is not yet enabled or physically qualified.
 
-### External application build (Linux Host)
+## Getting started
 
-Crux supports source-tree consumption through `add_subdirectory()` in the documented
-Linux development environment. For example, with the application owning `logic.c`
-and `main.c`:
+Use Docker and VS Code Dev Containers with the documented Linux amd64 environment. Run the commands below from the Crux repository root **inside the Dev Container**. See the [Build and Integration Guide](docs/build.md) for workspace setup, prerequisites and configuration options.
 
-```cmake
-cmake_minimum_required(VERSION 3.28)
-project(my_application LANGUAGES C)
-set(CRUX_BUILD_TIME ON CACHE BOOL "Required capability")
-set(CRUX_TIME_PROVIDER memory CACHE STRING "Development/test provider")
-add_subdirectory("${CRUX_SOURCE_DIR}" crux)
-add_library(application_logic STATIC logic.c)
-target_link_libraries(application_logic PRIVATE crux::time)
-crux_assert_portable_consumer(application_logic)
-add_executable(my_application main.c)
-target_link_libraries(my_application PRIVATE application_logic crux::time)
+### Linux Host
+
+Build Crux and run its Host tests, then run the existing finite reference-controller scenario:
+
+```sh
+scripts/bootstrap-host.sh
+build/linux/debug/samples/controller/host/crux-controller-host
 ```
 
-Configure with `-DCRUX_SOURCE_DIR=/absolute/path/to/crux-pilot`. Application source
-includes public headers such as `<crux/time.h>`; no manual Crux include paths are
-needed. Set the application's own C17/C++17 requirements on its portable targets.
+The bootstrap configures, builds and runs CTest. The reference controller reports cycle progress and Time status. For subsequent builds and tests using the prepared environment:
 
-As a dependency, Crux enables only Base by default. Select capabilities with
-`CRUX_BUILD_TIME`, `CRUX_BUILD_THREAD`, `CRUX_BUILD_SYNC`, `CRUX_BUILD_QUEUE`,
-`CRUX_BUILD_MONOTONIC`, `CRUX_BUILD_NETIF`, `CRUX_BUILD_SOCKETS`,
-`CRUX_BUILD_CONFIGURATION`, `CRUX_BUILD_FILE`, `CRUX_BUILD_SERIAL`, `CRUX_BUILD_LOGGING` and `CRUX_BUILD_SYSTEM`. Crux tests and samples default OFF,
-without changing parent `BUILD_TESTING`. `CRUX_BUILD_TESTS` opts into Crux's internal
-suite; it requires the suite's component dependencies and may enable C++/GoogleTest.
-`CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_REFERENCE_CONTROLLER` select development
-samples. Top-level development retains the existing components, samples and
-`BUILD_TESTING`-based initial test default.
+```sh
+scripts/check-host.sh
+```
 
-The final native executable declares its used public capabilities, as above, so
-provider compatibility is checked at composition. Queue/Monotonic portable targets
-link `crux::queue`/`crux::monotonic`; the final Host executable additionally links
-`crux::queue_linux`/`crux::monotonic_linux`. These names identify the implementation
-platform, not a production qualification.
-The Queue port uses GNU pthread facilities; the Monotonic port uses POSIX monotonic
-clock/sleep facilities in the supported Linux environment. These two native
-composition targets must not be linked into portable source targets. Host
-Thread/Sync/File/Serial/Logging/System implementations remain linked through their public targets. Sockets remains a qualified standard
-API profile. Host Time requires explicit `CRUX_TIME_PROVIDER=memory` in an external
-project: this is a controlled development/test implementation, not a production RTC
-fallback. Missing Queue/Monotonic providers fail at link; missing/unsupported Time
-selection and conflicting Time providers fail during CMake configuration/generation.
-Serial retains `CRUX_SERIAL_PROVIDER=host` for the existing Linux composition and
-rejects empty, unsupported or conflicting selections. Native TTY binding remains
-a trusted composition responsibility; see the [Serial contract](docs/serial-contract.md).
-Logging retains `CRUX_LOGGING_PROVIDER=host` and rejects unsupported selections;
-its independent consumers need only `CRUX_BUILD_LOGGING`. Native UART selection
-and ownership remain under Zephyr composition; see the [Logging contract](docs/logging-contract.md).
+### Zephyr
 
-The [external-consumer checks](tests/README.md#external-application-build-boundary)
-exercise C17/C++17 Base/Time, Thread-only, Sync-only, Serial-only, Logging-only, Queue/Monotonic and parent-test
-isolation from temporary projects outside Crux. Existing Linux Host and Zephyr
-qualification limits remain unchanged. Zephyr still uses its module/Kconfig entry
-point. Installation, `find_package(Crux)`, binary SDKs and arbitrary toolchains are
-not supported by this source-tree contract.
+Prepare the pinned west workspace and SDK, then run the controller simulations and RT1060-EVKB cross-build:
+
+```sh
+scripts/bootstrap-zephyr.sh --install-sdk
+scripts/test-controller.sh
+```
+
+The script checks normal and missing-RTC `native_sim` scenarios and builds a target firmware image. It does not program or reset the physical board. See the [test guide](tests/README.md) for other components and test procedures.
+
+### Use Crux from another application
+
+A separate Linux CMake project can consume Crux from source with `add_subdirectory()`. Enable only the required `CRUX_BUILD_<COMPONENT>` options and link the documented public `crux::` targets. See the [complete external application example](docs/build.md#external-linux-application-using-crux-source). Installed packages, `find_package(Crux)` and binary SDKs are not supported.
+
+**Physical hardware:** Debugging, resets and firmware programming require a separately approved procedure. The current VS Code Flash profile builds and downloads the **Time sample**, not arbitrary firmware. The Attach profile does not download an image but the debugger connection may halt the target. See the [RT1060 debugging instructions](docs/build.md#rt1060-evkb-debugging) before using either profile.
 
 ## Repository structure
 
 | Path | Purpose |
 | --- | --- |
-| `components/` | Reusable platform components and public interfaces |
-| `samples/` | Capability examples and reference applications |
+| `components/` | Public capability interfaces, shared implementations and native ports |
+| `samples/` | Capability examples and reference controller applications |
 | `zephyr/` | Out-of-tree Zephyr module integration |
-| `tests/` | Host, Zephyr and physical-target test assets |
-| `scripts/` | Setup, build, analysis and validation commands |
-| `.devcontainer/` | Linux development environment configuration |
-| `.github/workflows/` | CI build, test and quality checks |
-| `docs/` | Contracts, decisions and verification evidence |
+| `tests/` | Host, Zephyr, build-policy and target validation |
+| `scripts/` | Setup, build, analysis and test commands |
+| `.devcontainer/` | Linux development environment |
+| `.github/workflows/` | CI workflows |
+| `docs/` | Architecture, API contracts, decisions and evidence |
 
-## Getting started
-
-For supported build paths, external application integration and native composition, see the [Build and Integration Guide](docs/build.md).
-
-### Development environment
-
-Install Docker and VS Code with the **Dev Containers** extension. Place `crux-pilot/` in a dedicated parent directory for the west workspace, open the repository in VS Code and select **Dev Containers: Reopen in Container**.
-
-The Dev Container uses Linux amd64 and mounts the parent workspace at `/workspaces/crux`. Zephyr, its modules and SDK dependencies are managed outside the `crux-pilot` Git tree. Run the commands below from the repository root **inside the container**, unless noted otherwise.
-
-### Build and run on the Linux host
-
-Set up the host build, compile the available targets and run their tests:
-
-```sh
-scripts/bootstrap-host.sh
-```
-
-Run the reference application without hardware:
-
-```sh
-build/linux/debug/samples/controller/host/crux-controller-host
-```
-
-The host executable runs a finite periodic scenario and reports its progress and Time status. See the [reference controller](samples/controller/README.md) for the scenario and its limitations.
-
-For subsequent builds, tests and quality checks:
-
-```sh
-scripts/check-host.sh
-scripts/check-format.sh
-scripts/check-dependencies.sh
-scripts/analyze-host.sh
-```
-
-Optional AddressSanitizer and UndefinedBehaviorSanitizer checks:
-
-```sh
-CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh
-```
-
-### Build and test Zephyr
-
-When Zephyr development is needed, initialise the west workspace and install the pinned SDK. Ensure sufficient disk space first.
-
-```sh
-scripts/bootstrap-zephyr.sh --install-sdk
-```
-
-Run the current reference-controller `native_sim` scenarios and EVKB cross-build:
-
-```sh
-scripts/test-controller.sh
-```
-
-For device, networking, health and integrated-controller software checks, run `scripts/test-m3.sh`. These scripts **do not** program or reset the physical board. Additional component and target test instructions are in the [test guide](tests/README.md). Host and simulated execution do not replace physical-target verification.
-
-### Flash and debug
-
-Hardware flashing and debugging require a verified target configuration and a firmware image for the intended application. The existing VS Code **EVKB QSPI: Flash** profile is currently configured for the **Time sample**, not for arbitrary applications. The **EVKB QSPI: Attach** profile connects to an existing image using a matching ELF without downloading firmware. See the [debug configurations](.vscode/launch.json) and [associated build script](scripts/build-debug-target.sh) for the current behaviour.
-
-For the existing macOS/J-Link setup, start `scripts/macos/start-jlink-gdbserver.command` on the Mac before connecting from VS Code. Confirm the board, Flash configuration and image before any programming or reset. Starting the server may halt the target, and its network listener is not limited to localhost, so use it only on a trusted network. See the [physical test instructions](tests/README.md#physical-uart-target) for the currently documented UART verification procedure.
-
-## Documentation and project status
+## Documentation
 
 | Topic | Reference |
 | --- | --- |
-| Components and examples | [Time contract](docs/time-contract.md) and [reference controller](samples/controller/README.md) |
-| Testing and evidence | [Test guide](tests/README.md), [Controller validation and support limits](docs/m3-validation.md), [execution profile](docs/execution-profile.md) and [verification records](docs/baseline.md) |
-| Ongoing development | [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), [issues](https://github.com/wonny-labs/crux-pilot/issues) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) |
+| Architecture, components and API contracts | [Architecture overview and capability inventory](docs/architecture.md) |
+| Setup, builds, external applications and debugging | [Build and Integration Guide](docs/build.md) |
+| Test commands and qualification procedures | [Test guide](tests/README.md) |
+| Reference scenarios and recorded hardware validation | [Reference controller](samples/controller/README.md) and [M3 validation](docs/m3-validation.md) |
 
-The [original Time Pilot plan](docs/plans/initial-implementation-plan.md) and [implementation-status record](docs/implementation-status.md) retain historical results and earlier roadmap notes. Their M0–M5 identifiers differ from the current platform roadmap. Use the GitHub records above for current delivery status.
+## Project status and contributing
 
-## Contributing
+Follow [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), [issues](https://github.com/wonny-labs/crux-pilot/issues) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) for current delivery work. The [original Time Pilot plan](docs/plans/initial-implementation-plan.md) and [implementation-status record](docs/implementation-status.md) preserve historical results with milestone identifiers separate from the current roadmap.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution, interface and review practices. AI agents must also follow [AGENTS.md](AGENTS.md).
-
-The Pilot System Health and Reset capability provides service observations,
-explicit reset-cause read/clear, reset requests and a boot-local single-owner
-watchdog start/feed contract via `<crux/system.h>` and `crux::system`. Application
-health/readiness remains Controller policy. Host watchdog behaviour is emulated;
-normal Host reset and reset-cause operations are unsupported. See the
-[approved System contract](docs/superpowers/specs/2026-10-24-system-health-design.md)
-and [software validation](docs/system-validation.md). No physical reset or
-watchdog qualification is implied by software tests or EVKB cross-builds.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and review rules and [AGENTS.md](AGENTS.md) for AI execution boundaries.

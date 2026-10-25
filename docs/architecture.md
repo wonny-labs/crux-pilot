@@ -33,7 +33,7 @@ flowchart TB
     X -.->|"Configures and initializes"| N
 ```
 
-A product application can contain both portable logic and platform composition. These are responsibilities, not mandatory directories or an extra abstraction layer. The native-free boundary applies to **portable application logic and common runtime consumers**, not to all application code. Composition may use native OS and board APIs for initialization, configuration and provider selection.
+**Platform composition** is the board/project-specific configuration, initialisation and linkage that select native implementations and bind device resources. An application may contain both portable logic and this native composition. These are responsibilities, not mandatory directories or additional abstraction layers. The native-free boundary applies to **portable application logic and common runtime consumers**, not to platform composition.
 
 The diagram distinguishes two supported consumer paths. Crux-owned APIs use component implementations, some of which need no native port. A qualified standard API instead calls the selected OS facilities directly: Sockets uses its bounded POSIX profile and `crux::sockets` usage target, without an intervening Crux socket implementation. Neither path authorizes arbitrary native APIs in portable logic.
 
@@ -100,13 +100,13 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 
 The root `CMakeLists.txt` supports the Linux Host development build. The `zephyr/` directory provides out-of-tree module integration, with Zephyr Kconfig and application/project configuration selecting supported native facilities. The `west.yml` manifest pins the relevant Zephyr dependency baseline.
 
-Public targets such as `crux::time`, `crux::thread` and `crux::sync` are consumer-facing usage contracts. Internal native targets, their private include paths, and link dependencies belong to the selected composition. **A public target is not an installed SDK package, nor does every component use an identical provider-linkage pattern.** Follow the [supported source-tree consumer contract](../README.md#external-application-build-linux-host). Do not manually add private provider paths to an application to bypass a missing integration capability.
+Public targets such as `crux::time`, `crux::thread` and `crux::sync` are consumer-facing usage contracts. Internal native targets, their private include paths, and link dependencies belong to the selected composition. **A public target is not an installed SDK package, nor does every component use an identical provider-linkage pattern.** Follow the [supported source-tree consumer contract](build.md#external-linux-application-using-crux-source). Do not manually add private provider paths to an application to bypass a missing integration capability.
 
 Host and Zephyr may compose providers differently. For example, a Host Time composition uses a controlled memory provider, while the Zephyr image registers its selected RTC implementation independently. This difference must not change the portable Time API.
 
 Thread and Sync are independently selectable in Host and Zephyr builds. The [contract's build selection and provider limits](thread-sync.md#build-selection-and-provider-limits) document their component-owned switches and resource settings. Consumer code should depend only on the capabilities it uses.
 
-The [Build and Integration Guide](build.md) documents the supported Linux Host, Zephyr and external source-tree build paths, including component selection, native composition and common configuration failures. The [README example](../README.md#external-application-build-linux-host) provides a tested external application entry point. These instructions do not establish an installed SDK, `find_package(Crux)`, a production Embedded Linux variant or support for arbitrary OS, board or toolchain combinations.
+See the [Build and Integration Guide](build.md) for supported Linux Host and Zephyr build paths, external application examples, provider selection and troubleshooting. These workflows do not establish an installed SDK or general OS, board or toolchain compatibility.
 
 ## Engineering and validation boundaries
 
@@ -138,15 +138,9 @@ Use [CONTRIBUTING](../CONTRIBUTING.md) for code, PR and review requirements and 
 
 ## Further reading
 
-- [Time capability contract](time-contract.md)
-- [Current Thread/Sync usage and selection](#build-and-native-composition)
-- [Current Thread/Sync contract, design decisions and evidence](thread-sync.md)
-- [Messaging and monotonic timing contract](messaging-contract.md)
-- [Qualified networking profile](networking-contract.md)
-- [File capability contract](file-contract.md)
-- [Configuration capability contract](configuration-contract.md)
+The [capability inventory](#current-capability-integration) links to component-specific API contracts and validation records. For cross-cutting information, use:
+
+- [Build and Integration Guide](build.md)
 - [Native-free consumer policy](native-interface-policy.md)
 - [Test organisation and commands](../tests/README.md)
 - [Reference controller and supported scenarios](../samples/controller/README.md)
-
-Capability-specific implementation and validation documents provide details beyond this overview. Treat any proposal or past validation record as historical where a later merged contract has superseded it.

@@ -165,7 +165,7 @@ identity and synchronization. Native include paths and private implementation
 configuration are not consumer interfaces. Use the [component build definitions](../components/thread/CMakeLists.txt),
 [Sync build definition](../components/sync/CMakeLists.txt), [Zephyr Kconfig](../zephyr/Kconfig)
 and [module integration](../zephyr/CMakeLists.txt) for the current composition.
-The [source-tree integration contract](../README.md#external-application-build-linux-host)
+The [source-tree integration contract](build.md#external-linux-application-using-crux-source)
 covers selected Linux Host consumers, not an installable SDK or arbitrary toolchains.
 
 The timeout contract above applies to `join`, `mutex_lock` and `semaphore_take`.

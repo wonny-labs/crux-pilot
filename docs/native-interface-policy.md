@@ -168,7 +168,7 @@ Flash change, private planning edit or change to historical acceptance follows.
 
 ### External source-tree application composition
 
-The [supported Linux Host entry point](../README.md#external-application-build-linux-host)
+The [supported Linux Host entry point](build.md#external-linux-application-using-crux-source)
 selects capabilities without modifying parent test policy. Portable source targets
 remain subject to `crux_assert_portable_consumer`. Final native executables declare
 the used public capabilities and may link the documented `crux::queue_linux` and
