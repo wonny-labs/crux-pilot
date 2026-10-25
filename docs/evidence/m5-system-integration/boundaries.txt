@@ -1,0 +1,17 @@
+.............................F................
+======================================================================
+FAIL: test_dependency_entry_point_checks_tokens_and_allows_iso_c (tests.build.test_native_interfaces.NativeInterfaceTest.test_dependency_entry_point_checks_tokens_and_allows_iso_c) (source='k_timeout_t timeout;')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "$REPO/tests/build/test_native_interfaces.py", line 259, in test_dependency_entry_point_checks_tokens_and_allows_iso_c
+    self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+AssertionError: 0 != 1 : Native interface policy passed (76 portable source files).
+Base is independent; designated portable sources pass the native interface policy; backend selection is checked by CMake; shared source ownership is explicit.
+Execution public/consumer boundary passed; native providers remain permitted.
+Networking consumers use the qualified standard/public boundary.
+
+
+----------------------------------------------------------------------
+Ran 46 tests in 365.558s
+
+FAILED (failures=1)

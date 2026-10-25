@@ -1,0 +1,61 @@
+-- west build: generating a build system
+Loading Zephyr default modules (Zephyr base).
+-- Application: $REPO/tests/system_consumer/zephyr
+-- CMake version: 3.28.4
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter
+-- Cache files will be written to: $CACHE/zephyr
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: mimxrt1060_evk, Revision: B, qualifiers: mimxrt1062/qspi
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6")
+-- Found BOARD.dts: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts
+-- Found devicetree overlay: $WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_B.overlay
+-- Found devicetree overlay: $REPO/tests/system_consumer/zephyr/boards/mimxrt1060_evk_mimxrt1062_qspi.overlay
+-- Found devicetree overlay: $REPO/build/system-composition/evkb_missing/case.overlay
+-- Generated zephyr.dts: $REPO/build/system-composition/evkb-build/zephyr/zephyr.dts
+-- Generated pickled edt: $REPO/build/system-composition/evkb-build/zephyr/edt.pickle
+-- Generated devicetree_generated.h: $REPO/build/system-composition/evkb-build/zephyr/include/generated/zephyr/devicetree_generated.h
+$REPO/build/system-composition/evkb-build/zephyr/zephyr.dts:4237.36-4246.5: Warning (unique_unit_address_if_enabled): /soc/usbd@402e0000: duplicate unit-address (also used in node /soc/usbh@402e0000)
+Parsing $REPO/samples/controller/zephyr/Kconfig
+Loaded configuration '$WORKSPACE/zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi_defconfig'
+Merged configuration '$REPO/tests/system_consumer/zephyr/prj.conf'
+Merged configuration '$REPO/build/system-composition/evkb_missing/case.conf'
+Configuration saved to '$REPO/build/system-composition/evkb-build/zephyr/.config'
+Kconfig header saved to '$REPO/build/system-composition/evkb-build/zephyr/include/generated/zephyr/autoconf.h'
+-- Found GnuLd: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/arm-zephyr-eabi/bin/ld.bfd (found version "2.43.1")
+-- The C compiler identification is GNU 14.3.0
+-- The CXX compiler identification is GNU 14.3.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc
+-- Crux Zephyr integration module discovered
+-- Looking for device MIMXRT1062 in $WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/devices/
+-- Found device folder: $WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062
+-- Found gen_kobject_list: $WORKSPACE/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (67.1s)
+-- Generating done (3.3s)
+-- Build files have been written to: $REPO/build/system-composition/evkb-build
+[1/16] Preparing syscall dependency handling
+
+[2/16] Generating include/generated/zephyr/version.h
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr), build: v4.4.0
+[3/16] Generating misc/generated/syscalls_subdirs.trigger
+[4/16] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[5/16] Generating include/generated/zephyr/driver-validation.h
+[6/16] Generating include/generated/zephyr/syscall_dispatch.c, include/generated/zephyr/syscall_exports_llext.c, syscall_weakdefs_llext.c, include/generated/zephyr/syscall_list.h
+[7/16] Generating include/generated/zephyr/kobj-types-enum.h, include/generated/zephyr/otype-to-str.h, include/generated/zephyr/otype-to-size.h
+[8/16] Generating include/generated/device-api-sections.ld, include/generated/device-api-sections.cmake
+[9/16] Building C object zephyr/lib/heap/CMakeFiles/heap_constants.dir/heap_constants.c.obj
+[10/16] Generating ../../include/generated/zephyr/heap_constants.h
+[11/16] Building C object zephyr/CMakeFiles/offsets.dir/arch/arm/core/offsets/offsets.c.obj
+[12/16] Generating include/generated/zephyr/offsets.h
+[13/16] Building C object modules/m5-system-health/system/CMakeFiles/crux_system_zephyr.dir$REPO/components/system/src/system.c.obj
+[14/16] Building C object modules/m5-system-health/system/CMakeFiles/crux_system_zephyr.dir/system_zephyr.c.obj
+[15/16] Building C object modules/m5-system-health/system/CMakeFiles/crux_system_zephyr.dir/system_binding.c.obj
+FAILED: modules/m5-system-health/system/CMakeFiles/crux_system_zephyr.dir/system_binding.c.obj
+ccache /opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc -DCPU_MIMXRT1062DVL6A -DKERNEL -DK_HEAP_MEM_POOL_SIZE=0 -DNDEBUG -DPICOLIBC_LONG_LONG_PRINTF_SCANF -DXIP_EXTERNAL_FLASH -D_POSIX_THREAD_SAFE_FUNCTIONS=200809L -D__LINUX_ERRNO_EXTENSIONS__ -D__PROGRAM_START -D__ZEPHYR__=1 -I$REPO/components/system/ports/zephyr/../../src -I$REPO/components/system/ports/zephyr/. -I$REPO/components/system/include -I$REPO/zephyr/../components/base/include -I$REPO/build/system-composition/evkb-build/zephyr/include/generated/zephyr -I$WORKSPACE/zephyr/include -I$REPO/build/system-composition/evkb-build/zephyr/include/generated -I$WORKSPACE/zephyr/soc/nxp/imxrt -I$WORKSPACE/zephyr/lib/libc/picolibc/include -I$WORKSPACE/zephyr/lib/posix/c_lib_ext/getopt -I$WORKSPACE/zephyr/soc/nxp/imxrt/imxrt10xx/. -I$WORKSPACE/zephyr/soc/nxp/imxrt/. -I$WORKSPACE/zephyr/soc/nxp/imxrt/../common -I$WORKSPACE/zephyr/soc/nxp/imxrt/imxrt10xx -I$WORKSPACE/modules/hal/cmsis_6/CMSIS/Core/Include -I$WORKSPACE/zephyr/modules/cmsis_6/. -I$WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/common -I$WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpc_1 -I$WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/igpio -I$WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/lpuart -I$WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/ocotp -I$WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/src -I$WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/wdog01 -I$WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/cache/armv7-m7 -I$WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062 -I$WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/periph -I$WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1050/MIMXRT1052/xip -I$WORKSPACE/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/drivers -isystem $WORKSPACE/zephyr/lib/libc/common/include -isystem $WORKSPACE/zephyr/lib/cpp/minimal/include -Wall -Wextra -Werror -mcpu=cortex-m7 -mthumb -mabi=aapcs -mfp16-format=ieee -mtp=soft --sysroot=/opt/crux-cache/sdk/zephyr-sdk-1.0.1/gnu/arm-zephyr-eabi/arm-zephyr-eabi -fno-strict-aliasing -Os -imacros $REPO/build/system-composition/evkb-build/zephyr/include/generated/zephyr/autoconf.h -fno-printf-return-value -fno-common -g -gdwarf-4 -fdiagnostics-color=always -imacros $WORKSPACE/zephyr/include/zephyr/toolchain/zephyr_stdint.h -Wformat -Wformat-security -Wno-format-zero-length -Wdouble-promotion -Wno-pointer-sign -Wpointer-arith -Wexpansion-to-defined -Wno-unused-but-set-variable -Werror=implicit-int -fno-pic -fno-pie -fno-asynchronous-unwind-tables -ftls-model=local-exec -fno-reorder-functions --param=min-pagesize=0 -fno-defer-pop -fmacro-prefix-map=$REPO/tests/system_consumer/zephyr=CMAKE_SOURCE_DIR -fmacro-prefix-map=$WORKSPACE/zephyr=ZEPHYR_BASE -fmacro-prefix-map=$WORKSPACE=WEST_TOPDIR -ffunction-sections -fdata-sections -specs=picolibc.specs -std=c17 -MD -MT modules/m5-system-health/system/CMakeFiles/crux_system_zephyr.dir/system_binding.c.obj -MF modules/m5-system-health/system/CMakeFiles/crux_system_zephyr.dir/system_binding.c.obj.d -o modules/m5-system-health/system/CMakeFiles/crux_system_zephyr.dir/system_binding.c.obj -c $REPO/components/system/ports/zephyr/system_binding.c
+$REPO/components/system/ports/zephyr/system_binding.c:16:2: error: #error "Crux System requires explicit crux-watchdog0 selection"
+   16 | #error "Crux System requires explicit crux-watchdog0 selection"
+      |  ^~~~~
+ninja: build stopped: subcommand failed.

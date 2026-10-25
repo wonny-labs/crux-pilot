@@ -12,6 +12,8 @@ static void worker(void *argument) {
 #include <crux/serial.h>
 #elif PROFILE_LOGGING
 #include <crux/logging.h>
+#elif PROFILE_SYSTEM
+#include <crux/system.h>
 #elif PROFILE_MESSAGING
 #include <crux/monotonic.h>
 #include <crux/queue.h>
@@ -43,6 +45,10 @@ int external_consumer(void) {
 #elif PROFILE_LOGGING
     return crux_log_set_level(CRUX_LOG_INFO) != CRUX_OK ||
            crux_log_write(CRUX_LOG_INFO, "external", "logging") != CRUX_OK;
+#elif PROFILE_SYSTEM
+    crux_system_status_t report;
+    return crux_system_status_get(&report) != CRUX_OK || !report.watchdog_emulated ||
+           report.reset_status != CRUX_ERR_NOT_SUPPORTED;
 #elif PROFILE_MESSAGING
     crux_queue_t queue;
     int sent = 42;

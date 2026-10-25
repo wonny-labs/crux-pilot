@@ -20,6 +20,15 @@ class NativeInterfaceTest(unittest.TestCase):
             return subprocess.run([sys.executable, str(CHECKER), "--root", str(root)],
                                   capture_output=True, text=True)
 
+    def test_system_consumers_reject_native_leakage(self):
+        for path in ("tests/system_consumer/src/runtime.c", "tests/system_consumer/src/consumer.cpp",
+                     "tests/system_consumer/src/runtime.h", "samples/controller/system/controller_system.c"):
+            with self.subTest(path=path):
+                bad = self.check_source("#include <zephyr/kernel.h>\n", path)
+                self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
+                good = self.check_source("#include <crux/system.h>\n#include <stdio.h>\n", path)
+                self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
+
     def test_logging_consumers_reject_native_leakage(self):
         for path in ("tests/logging_consumer/src/runtime.c", "tests/logging_consumer/src/consumer.cpp",
                      "tests/logging_consumer/src/runtime.h", "samples/logging/controller.c"):

@@ -21,6 +21,25 @@ class ConsumerBoundaryTest(unittest.TestCase):
             return subprocess.run([CMAKE, "-S", str(root), "-B", str(root / "build")],
                                   capture_output=True, text=True)
 
+    def test_system_provider_selection(self):
+        for provider in ('', 'unsupported', 'host;zephyr'):
+            with self.subTest(provider=provider):
+                result = self.configure(
+                    f'add_subdirectory("{REPO}/components/base" base)\n'
+                    f'set(CRUX_SYSTEM_PROVIDER "{provider}" CACHE STRING "")\n'
+                    f'add_subdirectory("{REPO}/components/system" system)\n')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("Crux System unsupported provider", result.stdout + result.stderr)
+
+    def test_system_usage_rejects_private_leakage(self):
+        result = self.configure(
+            f'add_subdirectory("{REPO}/components/base" base)\n'
+            f'add_subdirectory("{REPO}/components/system" system)\n'
+            f'target_include_directories(crux_system_api INTERFACE "{REPO}/components/system/ports/zephyr")\n'
+            'crux_assert_portable_usage(crux::system)\n')
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("native consumer requirement", result.stdout + result.stderr)
+
     def test_logging_provider_selection(self):
         for provider in ('', 'unsupported', 'host;zephyr'):
             with self.subTest(provider=provider):

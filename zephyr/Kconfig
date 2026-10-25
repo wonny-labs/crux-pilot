@@ -100,3 +100,10 @@ config CRUX_LOGGING
     depends on CRUX_PILOT_MODULE
     help
       Qualified native deferred UART backend; configuration is checked explicitly.
+
+config CRUX_SYSTEM
+    bool "Crux System observation, reset and single-owner watchdog"
+    depends on CRUX_PILOT_MODULE && MULTITHREADING
+    help
+      Explicit native WATCHDOG/HWINFO/REBOOT composition required. No auto-arm,
+      auto-clear, application health assessment, stop or reconfiguration.

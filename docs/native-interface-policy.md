@@ -178,3 +178,19 @@ composition targets and their backing implementations, including application ali
 and transitive wrappers. This does not inspect all provider-private requirements
 or restrict the supported public capability facades. Zephyr selection and the
 Sockets declaration/selected-sysroot exceptions remain unchanged.
+
+### System consumer boundary
+
+System's public usage target is `crux::system`, with `<crux/system.h>` owned by
+`components/system/include`. Common state is ISO C; pthread/monotonic, native
+watchdog/HWINFO/reboot and target running-bit observation belong only to private
+providers. The System runtime-shaped consumer and Controller System helper are
+in the maintained source inventory and use the public target without native
+headers. Configuration rejects known competing native watchdog/reset-cause
+owners; the value token does not arbitrate arbitrary native callers.
+
+External Host consumers select `CRUX_BUILD_SYSTEM` explicitly through the root
+entry point and link `crux::system`; this does not enable Crux internal tests or
+modify parent testing/languages. System uses the existing Host facade/provider
+linkage pattern, with native requirements private and the same source/usage
+boundary checks applied to its independently configured consumers.

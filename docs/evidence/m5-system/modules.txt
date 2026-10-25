@@ -1,0 +1,4 @@
+zephyr 684c9e8f32e4373a21098559f748f06915f950c9 zephyr
+cmsis 512cc7e895e8491696b61f7ba8066b4a182569b8 modules/hal/cmsis
+cmsis_6 30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74 modules/hal/cmsis_6
+hal_nxp 2c2f28ac333e995d7279777409817c4b4f92c1ec modules/hal/nxp

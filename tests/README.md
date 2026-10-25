@@ -285,3 +285,20 @@ The independent Host Logging fixture selects only `CRUX_BUILD_LOGGING` through
 the root entry point, preserving parent testing and language settings. Logging-only
 external profiles verify public C17/C++17 usage, native-boundary checks and exclusion
 of unrelated components. Provider validation and native UART ownership stay unchanged.
+
+## Portable System Health and Reset
+
+System Health and Reset (Issue #30): the root Host suite includes focused common
+lifecycle and real Linux monotonic-provider tests.
+`scripts/test-system.sh --host-only` runs independent C17/C++17 consumers and
+Controller policy checks.
+`scripts/test-system.sh` additionally checks native ownership/configuration,
+Zephyr `native_sim` mappings and the revision-B EVKB cross-build. None operates
+hardware; normal Host reset/reset-cause services are explicitly unsupported.
+See [System validation](../docs/system-validation.md) for evidence and limits.
+
+The independent Host System fixture selects only `CRUX_BUILD_SYSTEM` through the
+root entry point. External System profiles preserve parent testing/languages,
+exercise C17/C++17 public usage, reject conflicting providers and exclude
+unrelated components. The existing System contract and native ownership checks
+remain unchanged.

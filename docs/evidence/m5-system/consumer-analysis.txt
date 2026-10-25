@@ -1,0 +1,16 @@
+[1/5] Processing file $REPO/tests/system_consumer/src/runtime.c.
+272 warnings generated.
+[2/5] Processing file $REPO/tests/system_consumer/src/runtime.c.
+544 warnings generated.
+[3/5] Processing file $REPO/tests/system_consumer/src/consumer.cpp.
+850 warnings generated.
+[4/5] Processing file $REPO/tests/system_consumer/src/consumer.cpp.
+1156 warnings generated.
+[5/5] Processing file $REPO/tests/system_consumer/src/contract_test.c.
+1695 warnings generated.
+[6/5] Processing file $REPO/tests/system_consumer/host/main.c.
+1968 warnings generated.
+[7/5] Processing file $REPO/samples/controller/system/controller_system.c.
+2240 warnings generated.
+Suppressed 2240 warnings (2240 in non-user code).
+Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.

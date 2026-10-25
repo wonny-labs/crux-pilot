@@ -1,0 +1,20 @@
+INFO    - Using Ninja..
+INFO    - Zephyr version: v4.4.0
+INFO    - Using 'zephyr/gnu' toolchain variant.
+INFO    - Building initial testsuite list...
+INFO    - Built testsuite list in 0.01 seconds
+INFO    - Writing JSON report /tmp/crux-system-twister/testplan.json
+INFO    - JOBS: 2
+INFO    - Adding tasks to the queue...
+INFO    - Added initial list of jobs to queue
+INFO    - Total complete:    1/   2  50%  built (not run):    0, filtered:    0, failed:    0, error:    0
+INFO    - Total complete:    2/   2  100%  built (not run):    0, filtered:    0, failed:    0, error:    0
+INFO    - 2 test scenarios (2 configurations) selected, 0 configurations filtered (0 by static filter, 0 at runtime).
+INFO    - 2 of 2 executed test configurations passed (100.00%), 0 built (not run), 0 failed, 0 errored, with no warnings in 360.72 seconds.
+INFO    - 3 of 3 executed test cases passed (100.00%) on 1 out of total 1473 platforms (0.07%).
+INFO    - 2 test configurations executed on platforms, 0 test configurations were only built.
+INFO    - Saving reports...
+INFO    - Writing JSON report /tmp/crux-system-twister/twister.json
+INFO    - Writing xunit report /tmp/crux-system-twister/twister.xml...
+INFO    - Writing xunit report /tmp/crux-system-twister/twister_report.xml...
+INFO    - Run completed

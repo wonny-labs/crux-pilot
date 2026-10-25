@@ -1,0 +1,35 @@
+-- west build: generating a build system
+Loading Zephyr default modules (Zephyr base).
+-- Application: $REPO/tests/system/zephyr
+-- CMake version: 3.28.4
+-- Found Python3: /opt/crux-cache/venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter
+-- Cache files will be written to: $CACHE/zephyr
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native/64
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: host (gcc/ld)
+-- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6")
+-- Found BOARD.dts: $WORKSPACE/zephyr/boards/native/native_sim/native_sim_64.dts
+-- Found devicetree overlay: $REPO/build/system-composition/no_reboot/case.overlay
+-- Generated zephyr.dts: $REPO/build/system-composition/native-build/zephyr/zephyr.dts
+-- Generated pickled edt: $REPO/build/system-composition/native-build/zephyr/edt.pickle
+-- Generated devicetree_generated.h: $REPO/build/system-composition/native-build/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing $REPO/samples/controller/zephyr/Kconfig
+Loaded configuration '$WORKSPACE/zephyr/boards/native/native_sim/native_sim_64_defconfig'
+Merged configuration '$REPO/tests/system/zephyr/prj.conf'
+Merged configuration '$REPO/build/system-composition/no_reboot/case.conf'
+Configuration saved to '$REPO/build/system-composition/native-build/zephyr/.config'
+Kconfig header saved to '$REPO/build/system-composition/native-build/zephyr/include/generated/zephyr/autoconf.h'
+-- Found GnuLd: /usr/bin/ld.bfd (found version "2.42")
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /usr/bin/gcc
+-- Crux Zephyr integration module discovered
+CMake Error at $REPO/components/system/ports/zephyr/CMakeLists.txt:10 (message):
+  Crux System requires CONFIG_REBOOT=y
+
+
+-- Configuring incomplete, errors occurred!
+FATAL ERROR: command exited with status 1: /opt/crux-cache/venv/bin/cmake -DWEST_PYTHON=/opt/crux-cache/venv/bin/python3 -B$REPO/build/system-composition/native-build -GNinja -DBOARD=native_sim/native/64 -DZEPHYR_MODULES=$REPO -DKCONFIG_ROOT=$REPO/samples/controller/zephyr/Kconfig -DEXTRA_DTC_OVERLAY_FILE=$REPO/build/system-composition/no_reboot/case.overlay -DEXTRA_CONF_FILE=$REPO/build/system-composition/no_reboot/case.conf -S$REPO/tests/system/zephyr

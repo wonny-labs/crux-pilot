@@ -10,7 +10,7 @@ The `main` branch currently includes:
 
 | Area | Available implementation |
 | --- | --- |
-| Reusable components | `base`, `time`, `thread`, `sync`, `queue`, `monotonic`, `netif`, `sockets`, `configuration`, `file`, `serial` and `logging`, with [integration limits by capability](docs/architecture.md#current-capability-integration) |
+| Reusable components | `base`, `time`, `thread`, `sync`, `queue`, `monotonic`, `netif`, `sockets`, `configuration`, `file`, `serial`, `logging` and `system`, with [integration limits by capability](docs/architecture.md#current-capability-integration) |
 | Reference application | A reference controller with shared portable Time and scheduling logic, a Linux host scenario and Zephyr device/network/health compositions |
 | Device, networking and health integration | EVKB SW5 GPIO input, UART diagnostics, bounded IPv4 TCP/UDP exchanges, service readiness and workload-conditioned watchdog supervision |
 | Zephyr integration | Out-of-tree module, RTC and native device/network services, Shell examples, `native_sim` tests and EVKB builds |
@@ -81,7 +81,7 @@ needed. Set the application's own C17/C++17 requirements on its portable targets
 As a dependency, Crux enables only Base by default. Select capabilities with
 `CRUX_BUILD_TIME`, `CRUX_BUILD_THREAD`, `CRUX_BUILD_SYNC`, `CRUX_BUILD_QUEUE`,
 `CRUX_BUILD_MONOTONIC`, `CRUX_BUILD_NETIF`, `CRUX_BUILD_SOCKETS`,
-`CRUX_BUILD_CONFIGURATION`, `CRUX_BUILD_FILE`, `CRUX_BUILD_SERIAL` and `CRUX_BUILD_LOGGING`. Crux tests and samples default OFF,
+`CRUX_BUILD_CONFIGURATION`, `CRUX_BUILD_FILE`, `CRUX_BUILD_SERIAL`, `CRUX_BUILD_LOGGING` and `CRUX_BUILD_SYSTEM`. Crux tests and samples default OFF,
 without changing parent `BUILD_TESTING`. `CRUX_BUILD_TESTS` opts into Crux's internal
 suite; it requires the suite's component dependencies and may enable C++/GoogleTest.
 `CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_REFERENCE_CONTROLLER` select development
@@ -96,7 +96,7 @@ platform, not a production qualification.
 The Queue port uses GNU pthread facilities; the Monotonic port uses POSIX monotonic
 clock/sleep facilities in the supported Linux environment. These two native
 composition targets must not be linked into portable source targets. Host
-Thread/Sync/File/Serial/Logging implementations remain linked through their public targets. Sockets remains a qualified standard
+Thread/Sync/File/Serial/Logging/System implementations remain linked through their public targets. Sockets remains a qualified standard
 API profile. Host Time requires explicit `CRUX_TIME_PROVIDER=memory` in an external
 project: this is a controlled development/test implementation, not a production RTC
 fallback. Missing Queue/Monotonic providers fail at link; missing/unsupported Time
@@ -204,3 +204,12 @@ The [original Time Pilot plan](docs/plans/initial-implementation-plan.md) and [i
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution, interface and review practices. AI agents must also follow [AGENTS.md](AGENTS.md).
+
+The Pilot System Health and Reset capability provides service observations,
+explicit reset-cause read/clear, reset requests and a boot-local single-owner
+watchdog start/feed contract via `<crux/system.h>` and `crux::system`. Application
+health/readiness remains Controller policy. Host watchdog behaviour is emulated;
+normal Host reset and reset-cause operations are unsupported. See the
+[approved System contract](docs/superpowers/specs/2026-10-24-system-health-design.md)
+and [software validation](docs/system-validation.md). No physical reset or
+watchdog qualification is implied by software tests or EVKB cross-builds.

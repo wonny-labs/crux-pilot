@@ -1,0 +1,28 @@
+-- west build: generating a build system
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: $REPO/tests/system/zephyr
+-- CMake version: 3.28.4
+-- Cache files will be written to: $CACHE/zephyr
+-- Zephyr version: 4.4.0 ($WORKSPACE/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native/64
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: host (gcc/ld)
+-- Found BOARD.dts: $WORKSPACE/zephyr/boards/native/native_sim/native_sim_64.dts
+-- Found devicetree overlay: $REPO/build/system-composition/no_watchdog/case.overlay
+-- Generated zephyr.dts: $REPO/build/system-composition/native-build/zephyr/zephyr.dts
+-- Generated pickled edt: $REPO/build/system-composition/native-build/zephyr/edt.pickle
+-- Generated devicetree_generated.h: $REPO/build/system-composition/native-build/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing $REPO/samples/controller/zephyr/Kconfig
+Loaded configuration '$WORKSPACE/zephyr/boards/native/native_sim/native_sim_64_defconfig'
+Merged configuration '$REPO/tests/system/zephyr/prj.conf'
+Merged configuration '$REPO/build/system-composition/no_watchdog/case.conf'
+Configuration saved to '$REPO/build/system-composition/native-build/zephyr/.config'
+Kconfig header saved to '$REPO/build/system-composition/native-build/zephyr/include/generated/zephyr/autoconf.h'
+-- Crux Zephyr integration module discovered
+CMake Error at $REPO/components/system/ports/zephyr/CMakeLists.txt:10 (message):
+  Crux System requires CONFIG_WATCHDOG=y
+
+
+-- Configuring incomplete, errors occurred!
+FATAL ERROR: command exited with status 1: /opt/crux-cache/venv/bin/cmake -DWEST_PYTHON=/opt/crux-cache/venv/bin/python3 -B$REPO/build/system-composition/native-build -GNinja -DZEPHYR_MODULES=$REPO -DKCONFIG_ROOT=$REPO/samples/controller/zephyr/Kconfig -DEXTRA_DTC_OVERLAY_FILE=$REPO/build/system-composition/no_watchdog/case.overlay -DEXTRA_CONF_FILE=$REPO/build/system-composition/no_watchdog/case.conf -S$REPO/tests/system/zephyr
