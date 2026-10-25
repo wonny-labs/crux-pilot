@@ -44,10 +44,12 @@ crux_status_t crux_time_init(void);
  * @param[out] out Receives whole UTC seconds on success. Unchanged on failure.
  *
  * @retval CRUX_OK A valid timestamp was returned.
- * @retval CRUX_ERR_INVALID_ARGUMENT The output pointer is NULL.
- * @retval CRUX_ERR_NOT_READY The Time provider is not initialised.
+ * @retval CRUX_ERR_INVALID_ARGUMENT The output is NULL or the provider reports
+ *                                   an invalid argument.
+ * @retval CRUX_ERR_NOT_READY The provider is not initialised or is unavailable.
  * @retval CRUX_ERR_NO_DATA Time has not been established or is no longer available.
- * @retval CRUX_ERR_OUT_OF_RANGE The provider returned a timestamp outside the supported range.
+ * @retval CRUX_ERR_OUT_OF_RANGE The observed time is outside the supported range
+ *                              or the provider reports a range error.
  * @retval CRUX_ERR_IO The provider read failed.
  * @return Other error status reported by the selected provider, if applicable.
  */
@@ -58,14 +60,16 @@ crux_status_t crux_time_get(crux_time_instant_t *out);
  *
  * Valid timestamps lie in [CRUX_TIME_MIN_UNIX_SECONDS,
  * CRUX_TIME_MAX_UNIX_SECONDS_EXCLUSIVE). An invalid value is rejected before
- * provider access and preserves current validity. A failed provider write
- * invalidates session time because the underlying clock may have changed.
+ * provider access and preserves current validity. A provider-side failure,
+ * including a provider-reported range error, invalidates session validity
+ * because the underlying clock may have changed.
  *
  * @param value UTC Unix seconds in the supported interval.
  *
  * @retval CRUX_OK Time was set successfully.
- * @retval CRUX_ERR_OUT_OF_RANGE The timestamp is outside the supported interval.
- * @retval CRUX_ERR_NOT_READY The Time provider is not initialised.
+ * @retval CRUX_ERR_OUT_OF_RANGE The input is outside the supported interval,
+ *                              or the provider reports a range error.
+ * @retval CRUX_ERR_NOT_READY The provider is not initialised or is unavailable.
  * @return Other error status reported by the selected provider on write failure.
  */
 crux_status_t crux_time_set(crux_time_instant_t value);
