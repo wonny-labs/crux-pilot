@@ -106,7 +106,45 @@ The verified external-consumer contract uses the **root** `add_subdirectory()` e
 
 Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `THREAD`, `SYNC`, `QUEUE`, `MONOTONIC`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `SERIAL` and `LOGGING`. Base is always available.
 
-The following CMake example assumes the external project owns `logic.c` and `main.c` and consumes Queue and Monotonic. It follows the [tested external fixture](../tests/external_application/CMakeLists.txt):
+### Complete Queue and Monotonic example
+
+Create an application directory outside the Crux source tree. Add the following
+three files; the example follows the [tested external fixture](../tests/external_application/CMakeLists.txt)
+and uses only Queue and Monotonic. The portable logic sends and receives one
+value, reads the monotonic clock and waits for an already reached deadline.
+
+`logic.c`:
+
+~~~c
+#include <crux/monotonic.h>
+#include <crux/queue.h>
+
+int controller_run(void) {
+    crux_queue_t queue;
+    if (crux_queue_create(1, sizeof(int), &queue) != CRUX_OK)
+        return 1;
+    int sent = 42;
+    int received = 0;
+    int64_t now = -1;
+    int failed = crux_queue_send(queue, &sent, sizeof(sent), 0) != CRUX_OK ||
+                 crux_queue_receive(queue, &received, sizeof(received), 0) != CRUX_OK ||
+                 received != sent || crux_monotonic_now(&now) != CRUX_OK ||
+                 crux_monotonic_sleep_until(now) != CRUX_OK;
+    crux_status_t cleanup = crux_queue_destroy(&queue);
+    return failed || cleanup != CRUX_OK;
+}
+~~~
+
+`main.c`:
+
+~~~c
+int controller_run(void);
+int main(void) {
+    return controller_run();
+}
+~~~
+
+`CMakeLists.txt`:
 
 ~~~cmake
 cmake_minimum_required(VERSION 3.28)
@@ -134,7 +172,13 @@ From the **external application's directory**, configure and build with an absol
 ~~~sh
 cmake -S . -B build -G Ninja -DCRUX_SOURCE_DIR=/absolute/path/to/crux-pilot
 cmake --build build
+./build/my_controller
 ~~~
+
+The executable exits with status zero on success. Its portable logic is compiled
+against the public facades; only the final executable links the Linux native
+composition targets. No tests, samples or unrelated Crux capabilities are selected
+by this example, and it does not access a physical device.
 
 Portable source targets use public headers (for example, `<crux/queue.h>`), link the public `crux::` capability targets and can call `crux_assert_portable_consumer()` to reject native/private requirements. They must not include Crux's `src/` or `ports/` directories or link Linux native composition targets. The final executable explicitly links its used public capabilities and selects native implementations required by that composition. The consumer boundary checker validates the documented build graph, not arbitrary application architecture.
 
