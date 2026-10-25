@@ -130,6 +130,8 @@ not supported by this source-tree contract.
 
 ## Getting started
 
+For supported build paths, external application integration and native composition, see the [Build and Integration Guide](docs/build.md).
+
 ### Development environment
 
 Install Docker and VS Code with the **Dev Containers** extension. Place `crux-pilot/` in a dedicated parent directory for the west workspace, open the repository in VS Code and select **Dev Containers: Reopen in Container**.
