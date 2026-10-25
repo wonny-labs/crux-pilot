@@ -170,6 +170,9 @@ def install_tool(policy, root=ROOT):
 
 
 def run_lychee(root, binary, selected):
+    # --files-from uses one path per line; '#' starts a comment.
+    if any("\n" in path or "\r" in path or path.startswith("#") for path in selected):
+        raise ValueError("Markdown filename cannot be represented in lychee input list")
     # Keep original paths so relative links resolve relative to each source file.
     inputs = "\n".join(selected) + "\n"
     result = subprocess.run(
