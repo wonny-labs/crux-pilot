@@ -37,10 +37,10 @@ typedef struct {
 /* Only for integer constant expressions with representable results.
  * Casts do not diagnose floating-point, unsigned-wrap or out-of-range inputs.
  */
-#define CRUX_DURATION_NS_INIT(ns)   { (int64_t)(ns) }
-#define CRUX_DURATION_US_INIT(us)   { (int64_t)(us) * INT64_C(1000) }
-#define CRUX_DURATION_MS_INIT(ms)   { (int64_t)(ms) * INT64_C(1000000) }
-#define CRUX_DURATION_SEC_INIT(sec) { (int64_t)(sec) * INT64_C(1000000000) }
+#define CRUX_DURATION_NS_INIT(ns) {(int64_t)(ns)}
+#define CRUX_DURATION_US_INIT(us) {(int64_t)(us) * INT64_C(1000)}
+#define CRUX_DURATION_MS_INIT(ms) {(int64_t)(ms) * INT64_C(1000000)}
+#define CRUX_DURATION_SEC_INIT(sec) {(int64_t)(sec) * INT64_C(1000000000)}
 
 /* These signed 32-bit input ranges are safe to multiply into int64_t ns. */
 static inline crux_duration_t crux_duration_from_ns(int64_t ns) {
@@ -103,8 +103,7 @@ static inline int64_t crux_duration_to_ms_ceil(crux_duration_t duration) {
 /* Operands must be monotonic samples from one provider and execution session.
  * Invalid manually constructed negative timestamps violate the API contract.
  */
-static inline bool crux_monotonic_is_before(crux_monotonic_time_t a,
-                                            crux_monotonic_time_t b) {
+static inline bool crux_monotonic_is_before(crux_monotonic_time_t a, crux_monotonic_time_t b) {
     return a.private_ns < b.private_ns;
 }
 
@@ -117,13 +116,11 @@ static inline bool crux_monotonic_is_at_or_before(crux_monotonic_time_t a,
  * A negative base is INVALID_ARGUMENT. An unrepresentable or negative result
  * is OUT_OF_RANGE. On failure the output remains untouched.
  */
-crux_status_t crux_monotonic_add_duration(crux_monotonic_time_t base,
-                                          crux_duration_t delta,
+crux_status_t crux_monotonic_add_duration(crux_monotonic_time_t base, crux_duration_t delta,
                                           crux_monotonic_time_t *out_time);
 
 /* Signed a - b; valid nonnegative int64_t timestamps never overflow here. */
-crux_duration_t crux_monotonic_diff(crux_monotonic_time_t a,
-                                    crux_monotonic_time_t b);
+crux_duration_t crux_monotonic_diff(crux_monotonic_time_t a, crux_monotonic_time_t b);
 
 #ifdef __cplusplus
 }

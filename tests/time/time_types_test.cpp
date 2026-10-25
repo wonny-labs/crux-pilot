@@ -41,15 +41,11 @@ TEST(TimeTypes, CheckedConstructorsAllowNegativeAndPreserveOutput) {
         EXPECT_EQ(entry.create(-2, &result), CRUX_OK);
         EXPECT_EQ(result.private_ns, -2 * entry.factor);
         EXPECT_EQ(entry.create(INT64_MAX / entry.factor, &result), CRUX_OK);
-        EXPECT_EQ(entry.create(INT64_MAX / entry.factor + 1, &result),
-                  CRUX_ERR_OUT_OF_RANGE);
-        EXPECT_EQ(result.private_ns,
-                  (INT64_MAX / entry.factor) * entry.factor);
+        EXPECT_EQ(entry.create(INT64_MAX / entry.factor + 1, &result), CRUX_ERR_OUT_OF_RANGE);
+        EXPECT_EQ(result.private_ns, (INT64_MAX / entry.factor) * entry.factor);
         EXPECT_EQ(entry.create(INT64_MIN / entry.factor, &result), CRUX_OK);
-        EXPECT_EQ(entry.create(INT64_MIN / entry.factor - 1, &result),
-                  CRUX_ERR_OUT_OF_RANGE);
-        EXPECT_EQ(result.private_ns,
-                  (INT64_MIN / entry.factor) * entry.factor);
+        EXPECT_EQ(entry.create(INT64_MIN / entry.factor - 1, &result), CRUX_ERR_OUT_OF_RANGE);
+        EXPECT_EQ(result.private_ns, (INT64_MIN / entry.factor) * entry.factor);
         EXPECT_EQ(entry.create(0, nullptr), CRUX_ERR_INVALID_ARGUMENT);
     }
 }
@@ -68,10 +64,6 @@ TEST(TimeTypes, SignedFloorAndCeilAtEdges) {
         {-1, -1, 0, -1, 0},
         {1500, 1, 2, 0, 1},
         {-1500, -2, -1, -1, 0},
-        {INT64_MAX, INT64_MAX / 1000, INT64_MAX / 1000 + 1,
-         INT64_MAX / 1000000, INT64_MAX / 1000000 + 1},
-        {INT64_MIN, INT64_MIN / 1000 - 1, INT64_MIN / 1000,
-         INT64_MIN / 1000000 - 1, INT64_MIN / 1000000},
     };
     for (const auto &entry : cases) {
         crux_duration_t value = crux_duration_from_ns(entry.nanoseconds);
@@ -83,11 +75,23 @@ TEST(TimeTypes, SignedFloorAndCeilAtEdges) {
     }
 }
 
+TEST(TimeTypes, SignedFloorAndCeilHandleInt64Extremes) {
+    const crux_duration_t max_value = crux_duration_from_ns(INT64_MAX);
+    const crux_duration_t min_value = crux_duration_from_ns(INT64_MIN);
+    EXPECT_EQ(crux_duration_to_us_floor(max_value), INT64_MAX / 1000);
+    EXPECT_EQ(crux_duration_to_us_ceil(max_value), INT64_MAX / 1000 + 1);
+    EXPECT_EQ(crux_duration_to_ms_floor(max_value), INT64_MAX / 1000000);
+    EXPECT_EQ(crux_duration_to_ms_ceil(max_value), INT64_MAX / 1000000 + 1);
+    EXPECT_EQ(crux_duration_to_us_floor(min_value), INT64_MIN / 1000 - 1);
+    EXPECT_EQ(crux_duration_to_us_ceil(min_value), INT64_MIN / 1000);
+    EXPECT_EQ(crux_duration_to_ms_floor(min_value), INT64_MIN / 1000000 - 1);
+    EXPECT_EQ(crux_duration_to_ms_ceil(min_value), INT64_MIN / 1000000);
+}
+
 TEST(TimeTypes, MonotonicArithmeticHasCheckedNonnegativeDomain) {
     crux_monotonic_time_t out{88};
     crux_monotonic_time_t base{100};
-    EXPECT_EQ(crux_monotonic_add_duration(base, crux_duration_from_ns(-100), &out),
-              CRUX_OK);
+    EXPECT_EQ(crux_monotonic_add_duration(base, crux_duration_from_ns(-100), &out), CRUX_OK);
     EXPECT_EQ(out.private_ns, 0);
     EXPECT_EQ(crux_monotonic_add_duration(base, crux_duration_from_ns(-101), &out),
               CRUX_ERR_OUT_OF_RANGE);
@@ -100,8 +104,8 @@ TEST(TimeTypes, MonotonicArithmeticHasCheckedNonnegativeDomain) {
               CRUX_ERR_INVALID_ARGUMENT);
     EXPECT_EQ(crux_monotonic_add_duration(base, crux_duration_from_ns(0), nullptr),
               CRUX_ERR_INVALID_ARGUMENT);
-    EXPECT_EQ(crux_monotonic_add_duration({INT64_MAX}, crux_duration_from_ns(-1), &out),
-              CRUX_OK);
+    crux_duration_t negative_one = crux_duration_from_ns(-1);
+    EXPECT_EQ(crux_monotonic_add_duration({INT64_MAX}, negative_one, &out), CRUX_OK);
     EXPECT_EQ(out.private_ns, INT64_MAX - 1);
 }
 
