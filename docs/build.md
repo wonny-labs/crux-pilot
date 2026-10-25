@@ -104,9 +104,47 @@ Do not infer that every Linux Host capability has an equivalent Zephyr provider.
 
 The verified external-consumer contract uses the **root** `add_subdirectory()` entry point. When included as a dependency, Crux selects **Base only** by default. The parent project's `BUILD_TESTING`, enabled languages and language-standard settings remain its own. Crux's tests and samples default OFF in this mode.
 
-Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `THREAD`, `SYNC`, `QUEUE`, `MONOTONIC`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `SERIAL` and `LOGGING`. Base is always available.
+Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `THREAD`, `SYNC`, `QUEUE`, `MONOTONIC`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `SERIAL`, `LOGGING` and `SYSTEM`. Base is always available.
 
-The following CMake example assumes the external project owns `logic.c` and `main.c` and consumes Queue and Monotonic. It follows the [tested external fixture](../tests/external_application/CMakeLists.txt):
+### Complete Queue and Monotonic example
+
+Create an application directory outside the Crux source tree. Add the following
+three files; the example follows the [tested external fixture](../tests/external_application/CMakeLists.txt)
+and uses only Queue and Monotonic. The portable logic sends and receives one
+value, reads the monotonic clock and waits for an already reached deadline.
+
+`logic.c`:
+
+~~~c
+#include <crux/monotonic.h>
+#include <crux/queue.h>
+
+int controller_run(void) {
+    crux_queue_t queue;
+    if (crux_queue_create(1, sizeof(int), &queue) != CRUX_OK)
+        return 1;
+    int sent = 42;
+    int received = 0;
+    int64_t now = -1;
+    int failed = crux_queue_send(queue, &sent, sizeof(sent), 0) != CRUX_OK ||
+                 crux_queue_receive(queue, &received, sizeof(received), 0) != CRUX_OK ||
+                 received != sent || crux_monotonic_now(&now) != CRUX_OK ||
+                 crux_monotonic_sleep_until(now) != CRUX_OK;
+    crux_status_t cleanup = crux_queue_destroy(&queue);
+    return failed || cleanup != CRUX_OK;
+}
+~~~
+
+`main.c`:
+
+~~~c
+int controller_run(void);
+int main(void) {
+    return controller_run();
+}
+~~~
+
+`CMakeLists.txt`:
 
 ~~~cmake
 cmake_minimum_required(VERSION 3.28)
@@ -134,7 +172,13 @@ From the **external application's directory**, configure and build with an absol
 ~~~sh
 cmake -S . -B build -G Ninja -DCRUX_SOURCE_DIR=/absolute/path/to/crux-pilot
 cmake --build build
+./build/my_controller
 ~~~
+
+The executable exits with status zero on success. Its portable logic is compiled
+against the public facades; only the final executable links the Linux native
+composition targets. No tests, samples or unrelated Crux capabilities are selected
+by this example, and it does not access a physical device.
 
 Portable source targets use public headers (for example, `<crux/queue.h>`), link the public `crux::` capability targets and can call `crux_assert_portable_consumer()` to reject native/private requirements. They must not include Crux's `src/` or `ports/` directories or link Linux native composition targets. The final executable explicitly links its used public capabilities and selects native implementations required by that composition. The consumer boundary checker validates the documented build graph, not arbitrary application architecture.
 
@@ -150,6 +194,7 @@ The [README Time example](../README.md#external-application-build-linux-host) de
 | Queue, Monotonic | Portable targets use `crux::queue` / `crux::monotonic`. The final Linux executable additionally links `crux::queue_linux` / `crux::monotonic_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and native TTY binding belongs to trusted composition |
 | Logging | Select `CRUX_BUILD_LOGGING=ON`. The existing Linux provider value is `CRUX_LOGGING_PROVIDER=host` |
+| System | Select `CRUX_BUILD_SYSTEM=ON` and use `crux::system`; the Linux provider value is `CRUX_SYSTEM_PROVIDER=host`. Host watchdog observation is emulated; normal Host reset/reset-cause operations are unsupported. See the [System validation and limits](system-validation.md) |
 | Netif, File, Configuration | Select the required `CRUX_BUILD_*` option and use the public capability target. Linux Netif's primary interface uses `CRUX_NETIF_HOST_INTERFACE` (default `lo`) |
 | Sockets | Select `CRUX_BUILD_SOCKETS=ON` and link `crux::sockets` for the specifically qualified standard IPv4 socket profile. It is not a Crux socket-wrapper implementation |
 
@@ -182,4 +227,4 @@ For all existing Python build checks, use `python3 -m unittest discover -s tests
 
 A successful Linux Host test proves behaviour only for the tested Host setup. Zephyr `native_sim` validates selected simulated integration. EVKB cross-builds do not prove Flash layout safety, UART electrical operation, timing, peripheral access or physical persistence. Firmware download, reset, Flash write/erase and physical validation require separate task-specific approval and verified hardware/provenance.
 
-The currently open storage and System integration work is **not** included in this merged-source build contract. Treat unmerged branches, experimental storage targets and candidate writable images as separate gated work. Consult the relevant [capability contracts](architecture.md#current-capability-integration) and [validation records](../tests/README.md) before claiming support or running a physical operation.
+Treat unmerged branches, experimental storage targets and candidate writable images as separate gated work. Selecting System does not automatically arm a watchdog; Zephyr System requires its explicit native resource composition. Consult the relevant [capability contracts](architecture.md#current-capability-integration) and [validation records](../tests/README.md) before claiming support or running a physical operation.
