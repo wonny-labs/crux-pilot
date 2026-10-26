@@ -83,9 +83,9 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-serial.sh
 
-      - name: Verify M3 device, network and controller paths without hardware
+      - name: Validate controller integration (software-only)
         working-directory: crux-pilot
-        run: scripts/test-m3.sh
+        run: scripts/test-controller-integration.sh
 
       - name: Qualify portable networking without hardware
         working-directory: crux-pilot

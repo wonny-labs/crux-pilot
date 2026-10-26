@@ -99,7 +99,8 @@ This separate diagnostic composition uses native GPIO for the onboard
 `sw0` input and observes actual critical-worker completion before allowing a
 watchdog feed. It adds no Crux public interface. The basic periodic scenario and its finite UTC-step behaviour remain available.
 
-From the documented Linux workspace, run `scripts/test-m3.sh` for the three
+From the documented Linux workspace, run
+`scripts/test-controller-integration.sh` for the three
 `native_sim` GPIO/health scenarios, native-client socket controls and EVKB
 health probe/normal/network cross-builds. Outputs are
 under `build/zephyr/twister-m3`, `m3-probe-evkb`, `m3-normal-evkb` and
@@ -176,7 +177,8 @@ The network window, fault injection and watchdog arming are deliberate developme
 test operations, not automatic startup behaviour. The normal configuration disables
 test Shell commands and leaves watchdog arming and network traffic off at boot.
 
-`scripts/test-m3.sh` runs the applicable Twister/native simulation and build-only
+`scripts/test-controller-integration.sh` runs the applicable Twister/native
+simulation and build-only
 checks, including the integrated EVKB probe and normal profiles. This script does
 not flash, reset or communicate with hardware. It produces images under
 `build/zephyr/m3-integrated-{probe,normal}-evkb/`. Physical operation requires a
