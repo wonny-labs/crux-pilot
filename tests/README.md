@@ -106,8 +106,8 @@ phase logic. The maintained boundary-negative and host-runner failure checks are
 status; `scripts/test-controller.sh` validates normal/missing-RTC native_sim compositions
 and cross-builds EVKB without hardware access. See the [controller conditions and limits](../samples/controller/README.md).
 
-Run `scripts/test-m3.sh` in the configured Linux/west environment for device,
-networking and integrated-controller Zephyr scenarios and EVKB cross-builds. Twister executes Ztest, console-harness and other `native_sim` application scenarios.
+Run `scripts/test-controller-integration.sh` in the configured Linux/west environment for device,
+networking and integrated-controller Zephyr scenarios and EVKB cross-builds. Twister executes Ztest, console-harness and other `native_sim` application scenarios. The existing `scripts/test-m3.sh` remains a compatibility entry point for historical M3 instructions.
 Additional Python validators inspect the captured simulation output. Neither this
 script nor CI programs or resets the physical EVKB.
 
