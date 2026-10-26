@@ -4,7 +4,7 @@
 
 This guide defines the contribution and review practices for Crux Pilot. It applies to source code, samples, tests, documentation, build configuration and CI workflows in this repository.
 
-Follow the decisions and validation requirements adopted for the work at hand. Approved GitHub issues and recorded decisions establish the applicable scope and acceptance criteria. The [architecture overview](docs/architecture.md) explains platform-wide ownership and integration boundaries; relevant [capability contracts](docs/architecture.md#current-capability-integration) and verification evidence define supported behaviour. Historical plans and status records provide traceability, not current roadmap or implementation instructions. Working proposals become requirements only when adopted.
+Follow the decisions and validation requirements adopted for the work at hand. Approved GitHub issues and recorded decisions establish the applicable scope and acceptance criteria. The [architecture overview](docs/architecture.md) explains platform-wide ownership and integration boundaries. Relevant [capability contracts](docs/architecture.md#current-capability-integration) and verification evidence define supported behaviour. Historical plans and status records provide traceability, not current roadmap or implementation instructions. Working proposals become requirements only when adopted.
 
 The [README](README.md) provides getting-started commands, the [Build and Integration Guide](docs/build.md) covers supported integration paths, the [test guide](tests/README.md) covers validation, and [AGENTS.md](AGENTS.md) defines AI execution boundaries.
 
