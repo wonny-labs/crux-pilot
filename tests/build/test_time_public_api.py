@@ -20,7 +20,7 @@ class TypedTimeHeaders(unittest.TestCase):
             source.write_text(body)
             command = [compiler, '-std=c++17' if language == 'c++' else '-std=c17',
                        '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-fsyntax-only']
-            for component in ('base', 'time', 'thread', 'delay'):
+            for component in ('base', 'time', 'thread', 'delay', 'monotonic'):
                 command.extend(['-I', str(REPO / 'components' / component / 'include')])
             return subprocess.run([*command, str(source)], text=True, capture_output=True)
 
@@ -63,6 +63,13 @@ class TypedTimeHeaders(unittest.TestCase):
                         'crux_time_utc_t calendar = {0, 0, 0, 0, 0, 0, 0}; (void)calendar;\n'
                         f'return {operation}; }}\n')
                     self.assertNotEqual(result.returncode, 0, 'wrong realtime clock domain accepted')
+
+    def test_superseded_monotonic_header_is_unavailable(self):
+        for language in ('c', 'c++'):
+            result = self.compile(language, '#include <crux/monotonic.h>\n')
+            self.assertNotEqual(result.returncode, 0, 'superseded header remains available')
+        self.assertFalse((REPO / 'components/monotonic').exists())
+
 
     def test_delay_requires_duration_values_and_outputs(self):
         for language in ('c', 'c++'):

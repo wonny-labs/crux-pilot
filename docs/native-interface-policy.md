@@ -53,7 +53,7 @@ The usage guard recognises a complete `--sysroot=<path>` compile option only
 when its normalised absolute path exactly equals the selected toolchain's
 `SYSROOT_DIR`. This is not an SDK-prefix or native-header exception. Different
 roots, child paths, compound flag strings, include paths and link options remain
-subject to the existing native checks. New Queue/Monotonic/Execution combined
+subject to the existing native checks. New Queue/Time/Thread/Sync combined
 consumer probes cover this distinction on Host, native_sim and EVKB builds.
 
 ### Scoped #28 integration
@@ -171,10 +171,9 @@ Flash change, private planning edit or change to historical acceptance follows.
 The [supported Linux Host entry point](build.md#external-linux-application-using-crux-source)
 selects capabilities without modifying parent test policy. Portable source targets
 remain subject to `crux_assert_portable_consumer`. Final native executables declare
-the used public capabilities and may link the documented `crux::queue_linux` and
-`crux::monotonic_linux` composition targets. These aliases are not portable usage
-facades or exceptions to recursive `LINK_ONLY` checks. The guard rejects both
-composition targets and their backing implementations, including application aliases
+the used public capabilities and may link the documented `crux::queue_linux` composition target. This alias is not a portable usage
+facade or an exception to recursive `LINK_ONLY` checks. The guard rejects the
+composition target and its backing implementation, including application aliases
 and transitive wrappers. This does not inspect all provider-private requirements
 or restrict the supported public capability facades. Zephyr selection and the
 Sockets declaration/selected-sysroot exceptions remain unchanged.

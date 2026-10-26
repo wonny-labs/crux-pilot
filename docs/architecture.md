@@ -88,7 +88,6 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Thread | Bounded joinable workers | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-native-composition), [contract](thread-sync.md) |
 | Sync | Nonrecursive mutexes and bounded semaphores | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-native-composition), [contract](thread-sync.md) |
 | Queue | Bounded copy messaging | Linux and Zephyr ports with composition-selected native providers | [Messaging contract](messaging-contract.md) |
-| Monotonic | Elapsed time and absolute waits | Linux and Zephyr providers selected by composition | [Messaging contract](messaging-contract.md) |
 | Netif | Read-only primary-interface status | Linux selected-interface and Zephyr native network integration | [Networking contract](networking-contract.md) |
 | Sockets | Qualified IPv4 client standard-API profile | Linux libc and selected Zephyr POSIX facilities; no Crux wrapper or separate stack | [Qualified profile](networking-contract.md#socket-profile) |
 | Configuration | Scalar validation, explicit save/load and encoding | Portable core with deterministic test persistence provider; no adopted Zephyr Settings/production persistence integration | [Software qualification and native gate](configuration-validation.md) |

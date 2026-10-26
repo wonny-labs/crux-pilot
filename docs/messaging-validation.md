@@ -1,6 +1,10 @@
 # Issue #26 software qualification
 
-Status: initial 8ef39d8 qualification is retained below; the timeout correction
+Status: historical evidence for the pre-redesign Monotonic/Queue implementation.
+Removed API/target/test-path references below describe that revision, not current usage.
+Current timing contracts are [Time](time-contract.md) and [Thread/Sync](thread-sync.md).
+
+The initial 8ef39d8 qualification is retained below; the timeout correction
 and its superseding results are recorded at the end. Current final-HEAD hosted
 CI is recorded in the Draft PR. Approved baseline
 main 225cd21b5fff37c31c5dff52570e9f26179682a1.
@@ -9,8 +13,8 @@ or performed. No PR merge or issue closure is authorised by this record.
 
 ## Acceptance traceability
 
-Current standalone Linux tests are named `Monotonic.LinuxPort` and
-`Monotonic.LinuxIntegration`; see the [test guide](../tests/monotonic/README.md).
+Historical standalone tests were `Monotonic.LinuxPort` and
+`Monotonic.LinuxIntegration`; their [original test guide](https://github.com/wonny-labs/crux-pilot/blob/de3676f182659b37d357a65a31e3b33f57a3d7b8/tests/monotonic/README.md) is preserved in Git. Current typed Time/Thread coverage is in the [test guide](../tests/README.md#portable-queue-and-monotonic-timing).
 The earlier names below are retained as part of the original qualification record.
 
 | Issue #26 criterion | Implementation | Verification/evidence |

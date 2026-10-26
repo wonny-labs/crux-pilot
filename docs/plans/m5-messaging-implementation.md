@@ -1,5 +1,9 @@
 # Issue #26 implementation plan
 
+Historical implementation plan for Issue #26. Its signed-ms Monotonic surface
+is superseded by the [typed Time contract](../time-contract.md) and
+[Thread sleep contract](../thread-sync.md); original design steps remain below.
+
 Authorisation: user attached implementation goal approves final messaging proposal,
 initial qualification configuration and cooperative stop. Baseline main 225cd21.
 The approved contract is retained in docs/messaging-contract.md; optional abort
