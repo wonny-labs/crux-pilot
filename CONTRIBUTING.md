@@ -4,9 +4,9 @@
 
 This guide defines the contribution and review practices for Crux Pilot. It applies to source code, samples, tests, documentation, build configuration and CI workflows in this repository.
 
-Contributors must follow the technical decisions and validation procedures adopted for the current work. Approved GitHub issues and recorded repository decisions define the applicable scope and acceptance criteria. Implemented component contracts, such as the [Time API contract](docs/time-contract.md), and applicable verification evidence define supported behaviour. Consult the [upstream reuse notes](docs/upstream-reuse.md) for source assessments and reuse decisions.
+Follow the decisions and validation requirements adopted for the work at hand. Approved GitHub issues and recorded decisions establish the applicable scope and acceptance criteria. The [architecture overview](docs/architecture.md) explains platform-wide ownership and integration boundaries; relevant [capability contracts](docs/architecture.md#current-capability-integration) and verification evidence define supported behaviour. Historical plans and status records provide traceability, not current roadmap or implementation instructions. Working proposals become requirements only when adopted.
 
-The [initial Time Pilot plan](docs/plans/initial-implementation-plan.md) and [implementation-status record](docs/implementation-status.md) preserve historical work rather than defining the current roadmap. Working proposals become requirements only when adopted. The [README](README.md) provides developer commands, the [test guide](tests/README.md) covers validation, and [AGENTS.md](AGENTS.md) defines AI execution boundaries.
+The [README](README.md) provides getting-started commands, the [Build and Integration Guide](docs/build.md) covers supported integration paths, the [test guide](tests/README.md) covers validation, and [AGENTS.md](AGENTS.md) defines AI execution boundaries.
 
 ## Making changes
 
@@ -42,8 +42,9 @@ Do not create a second central copy of a public header.
   Backends implementing an existing API do not each need a new public header tree.
 - Keep test controls outside public headers and expose their directories only to the affected
   test targets. Sample-owned headers belong to samples, not the platform API.
-- Applications consume public CMake usage targets, such as `crux::time`, instead of naming
-  implementation/backend targets or adding another component's include directory themselves.
+- Applications consume public CMake usage targets, such as `crux::queue` or `crux::thread`,
+  instead of naming implementation/backend targets or adding another component's include directory
+  themselves.
   The target propagates its public headers and required dependencies.
 - Use target-scoped CMake requirements. Use PUBLIC/INTERFACE for requirements consumers need,
   and PRIVATE for implementation-only requirements. Avoid directory/global include paths that
@@ -56,8 +57,8 @@ Do not create a second central copy of a public header.
 
 Header placement supports ownership; dependency declarations and review enforce the boundaries.
 It does not establish binary ABI stability or require separate repositories/packages per module.
-See the [Time contract](docs/time-contract.md#header-and-build-ownership) for the current mapping.
-The [native-free consumer policy](docs/native-interface-policy.md) defines the
+See [component ownership and source layout](docs/architecture.md#component-ownership-and-source-layout)
+for the platform-wide structure. The [native-free consumer policy](docs/native-interface-policy.md) defines the
 application/runtime/provider roles, standard-API limits and required source/build
 checks when introducing portable consumers or public usage targets.
 
@@ -67,9 +68,9 @@ Use a short-lived branch based on the current default branch for substantive cod
 
 Keep branch names descriptive. No mandatory prefix list is defined. Before requesting review, inspect the complete diff, remove temporary changes and confirm the reported validation results.
 
-**Proposed merge default:** Squash-merge a reviewed PR when it represents one coherent change. The final squash commit must follow the commit message convention below. If its subject comes from the PR title, format the PR title accordingly.
+**Preferred merge method:** Squash-merge a reviewed PR when it represents one coherent change. The final squash commit must follow the commit message convention below. If its subject comes from the PR title, format the PR title accordingly.
 
-Retain individual commits when they represent independently meaningful changes whose history matters. Keep retained commits buildable and testable where practical. These are proposed practices, not claims that GitHub merge rules or branch protection have been configured.
+Retain individual commits when they represent independently meaningful changes whose history matters. Keep retained commits buildable and testable where practical. These are repository practices, not claims that GitHub merge rules or branch protection have been configured.
 
 Requirements in this guide apply even when GitHub settings do not enforce them. Automated gates are limited to checks configured in the repository workflows; recommendations and proposals are not claims about configured enforcement.
 
@@ -102,7 +103,7 @@ Use one of the following types.
 
 Begin the summary with a concise, lowercase imperative verb. Preserve the usual capitalisation of proper names and acronyms, and omit the final full stop. Aim for fewer than 72 characters, including the type. Describe the change rather than the work undertaken.
 
-**Scope policy.** Omit scopes for now. Crux does not yet have a maintained mapping between scope names and components, so do not invent free-form values. If scopes are introduced, define an explicit list based on component ownership, including how cross-cutting changes are handled, before enforcing it. A scope should not be a filename, work-item number or arbitrary technical term.
+**Scope policy.** Scopes are optional. Use an existing owning component name when it makes the subject clearer, such as `fix(serial)` or `test(thread)`. Omit scopes for cross-component or repository-wide changes and when they add no value. Do not invent scopes from filenames, issue numbers or incidental implementation details. Introducing new non-component scope conventions or enforcing scopes requires a separate decision.
 
 For substantial changes, use the commit body to explain **why** the change is needed, including significant behaviour changes or trade-offs. Put detailed test results in the PR rather than duplicating them. When reverting a change, identify the original commit and explain why.
 
@@ -111,31 +112,31 @@ For intentional incompatible changes, include a `BREAKING CHANGE:` footer. An op
 Examples:
 
 ```text
-feat: add a portable time capability contract
-fix: reject invalid RTC timestamps
-refactor: simplify provider binding in time service
-test: cover time capability failure paths
+feat: add a portable queue interface
+fix(serial): reject unsupported UART configurations
+refactor: simplify native provider selection
+test(thread): cover early wake-up handling
 build: pin Zephyr module revisions
-ci: run native host tests on pull requests
-docs: clarify capability ownership
+ci: validate portable consumers on Host and Zephyr
+docs: clarify component ownership
 revert: undo unsupported storage configuration
 ```
 
 Example with context:
 
 ```text
-fix: reject invalid RTC timestamps
+fix(file): reject impossible transfer counts
 
-Reject out-of-range values before updating the clock to avoid
-silently accepting an unusable system time.
+Reject a native provider count greater than the requested length
+before exposing it as a successful transfer.
 ```
 
 Example of an intentional incompatible change:
 
 ```text
-feat!: change the time capability contract
+feat!: change the queue creation contract
 
-BREAKING CHANGE: Consumers must use the new time representation.
+BREAKING CHANGE: Consumers must use the revised queue options.
 ```
 
 ## Pull requests and review
@@ -158,8 +159,8 @@ component libraries and sample/test application targets use private
 the Host pedantic policy is not applied to that composition. These options do
 not propagate to upstream Zephyr, vendor or generated targets. The pinned native
 warning selection is retained, including its disabled format-zero-length,
-pointer-sign and unused-but-set-variable categories; these are explicit initial
-baseline limits for the Zephyr composition, not claims of exhaustive analysis.
+pointer-sign and unused-but-set-variable categories; these are known configured
+limits for the Zephyr composition, not claims of exhaustive analysis.
 No additional suppression is introduced for Crux code. Any future suppression must
 be scoped and justified in review; a successful build with upstream warnings
 is not permission to ignore owned-code warnings.
