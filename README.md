@@ -96,6 +96,6 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 
 ## Project status and contributing
 
-Follow [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), [issues](https://github.com/wonny-labs/crux-pilot/issues) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) for current delivery work. The [original Time Pilot plan](docs/plans/initial-implementation-plan.md) and [implementation-status record](docs/implementation-status.md) preserve historical results with milestone identifiers separate from the current roadmap.
+Follow [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), [issues](https://github.com/wonny-labs/crux-pilot/issues) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) for current delivery work.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and review rules and [AGENTS.md](AGENTS.md) for AI execution boundaries.
