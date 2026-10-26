@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_typed_fractional_sleep_tests LANGUAGES C)
+target_sources(app PRIVATE src/main.c)
+target_link_libraries(app PRIVATE crux::time crux::thread)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)
+include(../../../cmake/CruxConsumerBoundary.cmake)
+crux_assert_portable_usage(crux::time crux::thread)

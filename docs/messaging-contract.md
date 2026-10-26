@@ -1,6 +1,6 @@
-# Portable event, queue and monotonic timing — proposed contract
+# Portable event and queue contract
 
-Status: approved for Issue #26 implementation by the human implementation goal.
+Status: Queue/event policy remains approved from Issue #26. The typed Time redesign supersedes the original Monotonic API; current timing rules are in [Time](time-contract.md) and [Thread/Sync](thread-sync.md). Historical provider evaluations and alternatives below are rationale, not current timing configuration instructions.
 The default cooperative-stop profile is approved; optional terminal abort remains excluded.
 This document retains the reviewed design rationale; implementation and qualification results are recorded separately.
 The human implementation goal approves the default scope, concrete declaration shape, initial validation limits and cooperative-cancellation interpretation. Historical approval questions below preserve alternatives; they are not unresolved authorisation for the default implementation.
@@ -8,7 +8,7 @@ Baseline: crux-pilot main 225cd21, including Execution #36, Networking #38 and n
 
 ## Consumer evidence and minimum scope
 
-The reference controller uses nonnegative signed 64-bit monotonic milliseconds and absolute release deadlines, a 100 ms phase grid, skip-overrun policy and freshness windows. Preserve schedule advancement and missed-release decisions in consumer code. UTC RTC Time remains seconds/calendar and independently initialised; changing UTC must never change deadlines.
+The reference controller uses nonnegative signed 64-bit monotonic milliseconds and absolute release deadlines, a 100 ms phase grid, skip-overrun policy and freshness windows. Preserve schedule advancement and missed-release decisions in consumer code. The [current Time contract](time-contract.md) uses typed realtime seconds/nanoseconds and explicit authority independently of monotonic timing; RTC source/storage is optional. Changing realtime must never change deadlines. The Monotonic proposal below records its earlier implementation boundary pending the typed API migration.
 
 Existing runtime-shaped Execution consumers already use counting semaphores for ready/gate/progress. Reuse those for notification, including maximum-one coalesced notification when the consumer accepts BUSY on a repeated give. No event-bits/ANY/ALL/multiwait semantics are demonstrated. A semaphore is consuming notification, not persistent broadcast state. Existing controller flags/latest snapshots are not evidence that a queue or event-bit API is required there.
 
@@ -26,9 +26,22 @@ Do not add event bits, priority messages, variable-size payloads, zero-copy owne
 
 ## Proposed public boundary (names provisional)
 
-Capability-owned C17 headers with C++ linkage, public usage targets crux::monotonic and crux::queue. Both depend publicly only on crux::base and ISO C headers. Separate production providers at composition; no public provider vtable or native structs. Notification uses crux::sync; consumers creating workers also use crux::thread. No general OSAL target. New roots, targets and independent consumers must join #39 enforcement.
+Capability-owned C17 headers have C++ linkage. Queue's portable usage target is
+`crux::queue`, with `crux::queue_linux` selected only by final Linux composition.
+Time observation/deadlines use `crux::time` and `crux/time.h`; waits use
+`crux::thread` and `crux/thread.h`. Thread depends on Time; Time has no dependency
+on Thread or Sync. Host compositions select Time and its provider explicitly.
+There is no public provider vtable, native struct, general OSAL, or legacy
+Monotonic facade. Notification uses `crux::sync`.
 
-Monotonic shape: status crux_monotonic_now(int64_t *out_ms); status crux_monotonic_sleep_until(int64_t deadline_ms). Nonnegative boot/session-local epoch, not UTC and not comparable between boots/providers. Readings are nondecreasing in sampling/linearization order; overlapping calls may return in a different order; repeated values permitted, resolution provider-dependent, no precision/jitter/worst-case latency claim. No public initialisation or clock-setting. At signed 64-bit representational exhaustion report OUT_OF_RANGE, never wrap; failed reads preserve output. Units ms; sub-ms source values round down for observation. Wait returns OK only after observing now >= deadline; past/current deadlines return immediately. A future deadline more than INT32_MAX ms away is OUT_OF_RANGE; caller validates additions before constructing deadlines. Negative input INVALID_ARGUMENT. Provider failures IO. Thread context only; unsupported ISR calls NOT_SUPPORTED. Sleep is not cancellable; callers select finite release intervals and retain worker lifetime until successful existing join. No promise about suspend/resume/power-state time until provider qualification records it.
+Monotonic timestamps are typed nonnegative nanosecond representations, local to
+one provider/execution session, not UTC. Use `crux_time_get_monotonic()` for
+observation and `crux_time_make_deadline_after()` for quantization-safe deadlines;
+`crux_thread_sleep_until()` preserves an absolute deadline through early wakes.
+The former signed-millisecond pair and INT32_MAX-ms sleep limit are removed.
+Queue/Sync/join timeout contracts remain millisecond based and unchanged.
+See the owning contracts for overflow, context and provider-limit details.
+
 
 Queue shape: opaque checked value crux_queue_t consistent with Execution slot/generation concept; create(capacity, message_size, out), send(queue, const void *record, size, timeout_ms), receive(queue, void *record, size, timeout_ms), destroy(handle*). An optional abort(queue) belongs only to the separately selected extension below. Explicit exact size must match configured size (mismatch is INVALID_ARGUMENT); pointers nonnull. The sender must keep the source record readable and unchanged until send returns; a blocked send may copy only when capacity becomes available. The receiver must keep its destination writable and exclusively owned until receive returns. Providers retain neither caller buffer after return. C cannot discover the actual allocation size behind a pointer: the API checks the declared size against the configured record size before accessing memory, while the caller must truthfully supply a readable/writable object of that size. This is not a memory-safety guarantee for invalid pointers or false size declarations. No borrowed payload pointers, destructors or implicit heap allocation. Create invalidates failed output; output storage must not contain a live handle. Destroy zeroes successful handle; stale aliases INVALID_ARGUMENT. Handle-variable writes remain caller-serialised. Any failed destroy preserves the supplied handle and all queue resources. Admission and destroy use one atomic lifecycle protocol: an admitted operation retains a lifetime reference through final bookkeeping; destruction cannot reclaim its storage. The owner must prevent new admissions before attempting destroy; a handle check alone does not establish quiescence. Generation exhaustion must retire a slot rather than wrap and validate an old alias.
 
@@ -68,13 +81,9 @@ Run applicable Host debug/sanitizer, native_sim, independent consumers, public C
 
 ## Proposed declaration sketch
 
-This sketch makes the earlier shape concrete for review; it is not an adopted header or a stable ABI promise. Queue dimensions and buffer sizes use size_t; timeout remains uint32_t like Execution. The two headers respectively expose monotonic declarations and queue declarations with the appropriate ISO headers and C linkage.
+This sketch makes the earlier shape concrete for review; it is not an adopted header or a stable ABI promise. Queue dimensions and buffer sizes use size_t; timeout remains uint32_t like Execution. Timing declarations are defined by their owning contracts; the Queue shape below remains current.
 
 ```c
-/* crux/monotonic.h */
-crux_status_t crux_monotonic_now(int64_t *out_ms);
-crux_status_t crux_monotonic_sleep_until(int64_t deadline_ms);
-
 /* crux/queue.h — reserved representation; consumers do not inspect fields */
 typedef struct {
     uint32_t slot;

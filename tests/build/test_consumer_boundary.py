@@ -85,13 +85,22 @@ class ConsumerBoundaryTest(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("native consumer requirement", result.stdout + result.stderr)
 
+    def test_superseded_monotonic_composition_is_unavailable(self):
+        result = self.configure('set(CRUX_BUILD_TIME ON CACHE BOOL "")\n'
+                                'set(CRUX_TIME_PROVIDER memory CACHE STRING "")\n'
+                                f'add_subdirectory("{REPO}" crux)\n'
+                                'if(TARGET crux::monotonic OR TARGET crux_monotonic '
+                                'OR TARGET crux::monotonic_linux OR TARGET crux_monotonic_linux)\n'
+                                'message(FATAL_ERROR "superseded Monotonic composition remains")\n'
+                                'endif()\n')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse((REPO / 'components/monotonic/CMakeLists.txt').exists())
+
     def test_linux_composition_targets_are_rejected_in_portable_consumers(self):
-        for target in ('crux::queue_linux', 'crux_queue_linux',
-                       'crux::monotonic_linux', 'crux_monotonic_linux'):
+        for target in ('crux::queue_linux', 'crux_queue_linux'):
             for route in ('direct', 'interface', 'static_private', 'alias'):
                 with self.subTest(target=target, route=route):
                     body = ('set(CRUX_BUILD_QUEUE ON CACHE BOOL "")\n'
-                            'set(CRUX_BUILD_MONOTONIC ON CACHE BOOL "")\n'
                             f'add_subdirectory("{REPO}" crux)\n'
                             'file(WRITE "${CMAKE_BINARY_DIR}/probe.c" "int probe(void) { return 0; }")\n'
                             'add_library(consumer STATIC "${CMAKE_BINARY_DIR}/probe.c")\n')
@@ -104,8 +113,7 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                  f'target_link_libraries(wrapper PRIVATE {target})\n')
                         edge = 'wrapper'
                     elif route == 'alias':
-                        implementation = ('crux_queue_linux' if 'queue' in target
-                                          else 'crux_monotonic_linux')
+                        implementation = 'crux_queue_linux'
                         body += f'add_library(application_alias ALIAS {implementation})\n'
                         edge = 'application_alias'
                     else:
@@ -130,10 +138,11 @@ class ConsumerBoundaryTest(unittest.TestCase):
                 result = subprocess.run(command, text=True, capture_output=True)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_monotonic_native_test_composition_builds_and_runs(self):
+    def test_typed_time_native_composition_builds_and_runs(self):
         with tempfile.TemporaryDirectory() as temporary:
             for command in (
-                    [CMAKE, '-S', str(REPO / 'tests/monotonic/host'), '-B', temporary, '-G', 'Ninja'],
+                    [CMAKE, '-S', str(REPO / 'tests/external_application'), '-B', temporary, '-G', 'Ninja',
+                     f'-DCRUX_SOURCE_DIR={REPO}', '-DPROFILE=time'],
                     [CMAKE, '--build', temporary, '--parallel', '2'],
                     ['ctest', '--test-dir', temporary, '--output-on-failure']):
                 result = subprocess.run(command, text=True, capture_output=True)
@@ -168,7 +177,7 @@ class ConsumerBoundaryTest(unittest.TestCase):
                 self.assertIn("native consumer requirement", result.stdout + result.stderr)
 
     def test_component_private_port_includes_are_rejected(self):
-        for component in ('thread', 'sync', 'queue', 'monotonic'):
+        for component in ('thread', 'sync', 'queue', 'time', 'delay'):
             for port in ('src', 'host', 'zephyr', 'ports/linux', 'ports/zephyr'):
                 for public in (False, True):
                     with self.subTest(component=component, port=port, public=public):
@@ -350,8 +359,8 @@ class ConsumerBoundaryTest(unittest.TestCase):
 
     def test_real_messaging_facades_preserve_selected_toolchain_flags(self):
         result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
-                                'set(CONFIG_CRUX_TIME OFF)\nset(CONFIG_CRUX_THREAD ON)\nset(CONFIG_CRUX_SYNC ON)\n'
-                                'set(CONFIG_CRUX_QUEUE ON)\nset(CONFIG_CRUX_MONOTONIC ON)\n'
+                                'set(CONFIG_CRUX_TIME ON)\nset(CONFIG_CRUX_THREAD ON)\nset(CONFIG_CRUX_SYNC ON)\n'
+                                'set(CONFIG_CRUX_QUEUE ON)\n'
                                 'add_custom_target(zephyr_generated_headers)\n'
                                 'function(zephyr_append_cmake_library name)\n'
                                 'set_property(GLOBAL APPEND PROPERTY ZEPHYR_LIBS "${name}")\n'
@@ -359,7 +368,7 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                 'set(SYSROOT_DIR "/sdk/zephyr/standard")\n'
                                 'set(TOOLCHAIN_C_FLAGS "--sysroot=/sdk/zephyr/standard;-mcpu=cortex-m7")\n'
                                 f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'
-                                'crux_assert_portable_usage(crux::thread crux::sync crux::queue crux::monotonic)\n'
+                                'crux_assert_portable_usage(crux::thread crux::sync crux::queue crux::time)\n'
                                 'get_property(libraries GLOBAL PROPERTY ZEPHYR_LIBS)\n'
                                 'foreach(component IN ITEMS thread sync)\n'
                                 'if(NOT "crux_${component}_zephyr" IN_LIST libraries)\n'
@@ -469,6 +478,23 @@ class ConsumerBoundaryTest(unittest.TestCase):
                                 '  message(FATAL_ERROR "missing native Time implementation")\n'
                                 'endif()\n')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_zephyr_rtc_adapter_requires_explicit_selection(self):
+        for enabled in ('ON', 'OFF'):
+            with self.subTest(enabled=enabled):
+                result = self.configure(
+                    f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
+                    f'set(CONFIG_CRUX_TIME_RTC {enabled})\n'
+                    f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n'
+                    'get_target_property(sources crux_time_zephyr SOURCES)\n'
+                    'if(CONFIG_CRUX_TIME_RTC)\n'
+                    '  if(NOT "${sources}" MATCHES "time_rtc_zephyr.c")\n'
+                    '    message(FATAL_ERROR "explicit RTC adapter missing")\n'
+                    '  endif()\n'
+                    'elseif("${sources}" MATCHES "time_rtc_zephyr.c")\n'
+                    '  message(FATAL_ERROR "RTC adapter selected implicitly")\n'
+                    'endif()\n')
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_zephyr_facade_preserves_backend_conflict(self):
         result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'

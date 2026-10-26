@@ -14,7 +14,7 @@ if [[ "$mode" == --host-only ]]; then exit 0; fi
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
-    -T "$repo/tests/queue/zephyr" -T "$repo/tests/monotonic/zephyr" \
+    -T "$repo/tests/queue/zephyr" -T "$repo/tests/thread/zephyr_fractional" \
     -T "$repo/tests/messaging_consumer/zephyr" \
     -O "$repo/build/zephyr/twister-messaging" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$repo")

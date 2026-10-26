@@ -44,7 +44,7 @@ class NativeInterfaceTest(unittest.TestCase):
             with self.subTest(path=path):
                 bad = self.check_source("#include <zephyr/kernel.h>\n", path)
                 self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
-                good = self.check_source("#include <crux/serial.h>\n#include <crux/monotonic.h>\n", path)
+                good = self.check_source("#include <crux/serial.h>\n#include <crux/time.h>\n", path)
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
     def test_messaging_consumers_reject_native_leakage(self):
@@ -53,7 +53,7 @@ class NativeInterfaceTest(unittest.TestCase):
             with self.subTest(path=path):
                 bad = self.check_source("#include <zephyr/kernel.h>\n", path)
                 self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
-                good = self.check_source("#include <crux/queue.h>\n#include <crux/monotonic.h>\n", path)
+                good = self.check_source("#include <crux/queue.h>\n#include <crux/time.h>\n", path)
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
     def test_rejects_native_header_families_and_include_spacing(self):
@@ -166,8 +166,8 @@ class NativeInterfaceTest(unittest.TestCase):
                      "tests/thread_sync_consumer/zephyr/native_worker.c",
                      "components/queue/ports/linux/queue_port.c",
                      "components/queue/ports/zephyr/queue_port.c",
-                     "components/monotonic/ports/linux/monotonic_linux.c",
-                     "components/monotonic/ports/zephyr/monotonic_zephyr.c",
+                     "components/time/ports/linux/time_clock_linux.c",
+                     "components/time/ports/zephyr/time_clock_zephyr.c",
                      "samples/controller/zephyr/main.c",
                      "components/netif/ports/linux/backend.c",
                      "components/netif/ports/zephyr/backend.c",

@@ -8,10 +8,26 @@ if CRUX_PILOT_MODULE
 
 config CRUX_TIME
 	bool "Crux Time capability"
-	depends on RTC
-	default y
+	default y if RTC
 	help
-	  Build the Crux Time common implementation and selected Zephyr RTC provider.
+	  Build typed monotonic clock access without requiring RTC hardware.
+	  Realtime uses the native system clock and explicit authority adoption.
+
+config CRUX_TIME_RTC
+	bool "Crux optional native RTC source/storage adapter"
+	depends on CRUX_TIME && RTC
+	default n
+	help
+	  Explicit RTC read/store for trusted composition using the rtc alias.
+	  Time init and system realtime never implicitly load or write RTC.
+
+config CRUX_DELAY
+	bool "Crux bounded CPU busy-wait"
+	select CRUX_TIME
+	help
+	  Typed bounded delay using a native timer, without Crux locks, allocation
+	  or scheduler sleep. ISR support requires provider/target validation.
+	  Stable single-core timer profiles only; query the supported input limit.
 
 config CRUX_TIME_TESTING
 	bool "Include Crux Time test controls"
@@ -24,6 +40,7 @@ config CRUX_THREAD
 	bool "Crux bounded joinable threads"
 	depends on MULTITHREADING
 	select TIMEOUT_64BIT
+	select CRUX_TIME
 	help
 	  Component-owned bounded joinable threads using native kernel objects.
 
@@ -81,11 +98,6 @@ config CRUX_QUEUE
     select TIMEOUT_64BIT
     help
       Initial qualification profile: four queues, sixteen records, sixty-four bytes.
-
-config CRUX_MONOTONIC
-    bool "Crux monotonic milliseconds and absolute wait"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING
-    select TIMEOUT_64BIT
 
 config CRUX_SERIAL
     bool "Crux bounded UART Serial"

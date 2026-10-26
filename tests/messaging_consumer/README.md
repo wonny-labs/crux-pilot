@@ -2,7 +2,8 @@
 
 These synthetic C17/C++17 consumers were written from the approved messaging
 contract and public Execution declarations without inspecting Queue/Monotonic
-provider implementation. They establish representative source-level porting
+provider implementation. They now use typed Time observation and Thread sleep;
+original design and verification history below describes its stated revisions. They establish representative source-level porting
 evidence, not compatibility with a production runtime.
 
 Configure independently on the supported Linux environment:
@@ -58,7 +59,7 @@ these consumer checks were retained and then passed. No provider implementation
 source was inspected to author or adapt the consumer expectations.
 
 A separate Zephyr runtime fixture resides in `zephyr/`; its composition selects
-the three capabilities and compiles the same portable runtime source. Use an
+the selected Queue, Time, Thread and Sync capabilities and compiles the same portable runtime source. Use an
 explicit `ZEPHYR_MODULES` path when testing the isolated worktree, to avoid
 also discovering the workspace's primary Crux checkout. Its execution status
 must be read from the current test report; merely providing this fixture does

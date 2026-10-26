@@ -1,4 +1,17 @@
 tests:
+  crux.time.zephyr_fake_rtc:
+    harness: ztest
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+    extra_args:
+      - CRUX_TIME_FAKE_RTC=ON
+      - EXTRA_CONF_FILE=fake_rtc.conf
+    tags:
+      - crux
+      - time
+      - rtc
   crux.time.zephyr:
     harness: ztest
     platform_allow:

@@ -1,0 +1,6 @@
+tests:
+  crux.thread.typed_fractional:
+    harness: ztest
+    timeout: 20
+    platform_allow: [native_sim/native/64]
+    tags: [crux, time, thread]

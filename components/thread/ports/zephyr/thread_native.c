@@ -9,6 +9,19 @@ K_THREAD_STACK_ARRAY_DEFINE(worker_stacks, CRUX_THREAD_COUNT, CRUX_THREAD_STACK_
 bool thread_native_context_allowed(void) {
     return !k_is_in_isr();
 }
+
+crux_status_t thread_native_sleep_until(int64_t deadline_ns) {
+    int64_t ticks;
+    crux_status_t status =
+        thread_sleep_ns_to_ticks_ceil(deadline_ns, CONFIG_SYS_CLOCK_TICKS_PER_SEC, &ticks);
+    if (status != CRUX_OK) {
+        return status;
+    }
+    /* Conversion rejects the native macro's reserved/clamped INT64_MAX value.
+     * Common code handles early wake against the same deadline. */
+    (void)k_sleep(K_TIMEOUT_ABS_TICKS(ticks));
+    return CRUX_OK;
+}
 void thread_native_metadata_lock(void) {
     (void)k_mutex_lock(&thread_metadata, K_FOREVER);
 }

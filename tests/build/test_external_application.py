@@ -31,13 +31,14 @@ class ExternalApplicationTest(unittest.TestCase):
 
     def test_external_configurations_and_parent_isolation(self):
         for profile, selected, symbol in (
-                ('time', {'time'}, 'crux_time_get'),
-                ('thread', {'thread'}, 'crux_thread_create'),
+                ('time', {'time'}, 'crux_time_get_realtime'),
+                ('delay', {'delay', 'time'}, 'crux_delay_busy_wait'),
+                ('thread', {'thread', 'time'}, 'crux_thread_create'),
                 ('sync', {'sync'}, 'crux_mutex_create'),
                 ('serial', {'serial'}, 'crux_serial_open'),
                 ('logging', {'logging'}, 'crux_log_write'),
                 ('system', {'system'}, 'crux_system_status_get'),
-                ('messaging', {'queue', 'monotonic'}, 'crux_queue_create'),
+                ('messaging', {'queue', 'time', 'thread'}, 'crux_queue_create'),
                 ('parent', set(), None)):
             with self.subTest(profile=profile), tempfile.TemporaryDirectory() as temporary:
                 result, build = self.configure(Path(temporary), profile)
@@ -84,7 +85,8 @@ class ExternalApplicationTest(unittest.TestCase):
                 'add_test(NAME Parent.Before COMMAND "${CMAKE_COMMAND}" -E true)\n'
                 f'set(CRUX_SOURCE_DIR "{REPO}" CACHE PATH "External dependency")\n'
                 'add_subdirectory(serial)\n'
-                'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::thread OR TARGET crux::time)\n'
+                'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::thread OR TARGET crux::sync '
+                'OR NOT TARGET crux::time OR NOT TARGET crux::serial)\n'
                 'message(FATAL_ERROR "Serial inclusion changed parent policy or component selection")\nendif()\n'
                 'add_test(NAME Parent.After COMMAND "${CMAKE_COMMAND}" -E true)\n')
             build = root / 'out'
@@ -108,7 +110,7 @@ class ExternalApplicationTest(unittest.TestCase):
                 f'set(CRUX_SOURCE_DIR "{REPO}" CACHE PATH "External dependency")\n'
                 'add_subdirectory(logging)\n'
                 'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::serial OR TARGET crux::time '
-                'OR TARGET crux::thread OR TARGET crux::monotonic '
+                'OR TARGET crux::thread OR TARGET crux::queue OR TARGET crux::delay OR TARGET crux::sync '
                 'OR NOT CMAKE_C_STANDARD EQUAL 99 OR NOT CMAKE_CXX_STANDARD EQUAL 20)\n'
                 'message(FATAL_ERROR "Logging changed parent policy or component selection")\nendif()\n'
                 'add_test(NAME Parent.After COMMAND "${CMAKE_COMMAND}" -E true)\n')
@@ -132,7 +134,7 @@ class ExternalApplicationTest(unittest.TestCase):
                 f'set(CRUX_SOURCE_DIR "{REPO}" CACHE PATH "External dependency")\n'
                 'add_subdirectory(system)\n'
                 'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::serial OR TARGET crux::time '
-                'OR TARGET crux::thread OR TARGET crux::monotonic '
+                'OR TARGET crux::thread OR TARGET crux::queue OR TARGET crux::delay OR TARGET crux::sync '
                 'OR NOT CMAKE_C_STANDARD EQUAL 99 OR NOT CMAKE_CXX_STANDARD EQUAL 20)\n'
                 'message(FATAL_ERROR "System changed parent policy or component selection")\nendif()\n'
                 'add_test(NAME Parent.After COMMAND "${CMAKE_COMMAND}" -E true)\n')
@@ -174,6 +176,50 @@ class ExternalApplicationTest(unittest.TestCase):
                 result, _ = self.configure(Path(temporary), 'time', f'-DCRUX_TIME_PROVIDER={provider}')
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn('CRUX_TIME_PROVIDER', result.stdout + result.stderr)
+
+    def test_linux_time_read_only_external_consumer(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result, build = self.configure(Path(temporary), 'time', '-DCRUX_TIME_PROVIDER=linux')
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.run_command([CMAKE, '--build', str(build), '--parallel', '2'])
+            self.run_command(['ctest', '--test-dir', str(build), '--output-on-failure'])
+            commands = (build / 'compile_commands.json').read_text()
+            self.assertIn('time_realtime_linux.c', commands)
+            self.assertNotIn('time_port_memory.c', commands)
+
+    def test_controlled_samples_reject_system_clock_provider(self):
+        for sample, controller in (('ON', 'OFF'), ('OFF', 'ON')):
+            with self.subTest(sample=sample), tempfile.TemporaryDirectory() as temporary:
+                result = subprocess.run(
+                    [CMAKE, '-S', str(REPO), '-B', temporary, '-G', 'Ninja',
+                     '-DCRUX_TIME_PROVIDER=linux', '-DCRUX_BUILD_TESTS=OFF',
+                     f'-DCRUX_BUILD_HOST_SAMPLE={sample}',
+                     f'-DCRUX_BUILD_REFERENCE_CONTROLLER={controller}'],
+                    text=True, capture_output=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('controlled Time samples require CRUX_TIME_PROVIDER=memory',
+                              result.stdout + result.stderr)
+
+    def test_thread_requires_explicit_time_selection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result, _ = self.configure(Path(temporary), 'thread', '-DCRUX_BUILD_TIME=OFF')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('CRUX_BUILD_TIME', result.stdout + result.stderr)
+
+    def test_delay_requires_time_selection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result, _ = self.configure(Path(temporary), 'delay', '-DCRUX_BUILD_TIME=OFF')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('CRUX_BUILD_TIME', result.stdout + result.stderr)
+
+    def test_delay_external_c_and_cpp_without_unrelated_capabilities(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result, build = self.configure(Path(temporary), 'delay')
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.run_command([CMAKE, '--build', str(build), '--parallel', '2'])
+            self.run_command(['ctest', '--test-dir', str(build), '--output-on-failure'])
+            symbols = self.run_command(['readelf', '--symbols', '--wide', str(build / 'external_app')])
+            self.assertNotRegex(symbols, r'\b(?:crux_time_port_|crux_thread_|crux_mutex_|crux_semaphore_)')
 
     def test_conflicting_time_providers(self):
         with tempfile.TemporaryDirectory() as temporary:
