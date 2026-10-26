@@ -1,6 +1,8 @@
 #include <crux/status.h>
 #if PROFILE_TIME
 #include <crux/time_authority.h>
+#elif PROFILE_DELAY
+#include <crux/delay.h>
 #elif PROFILE_THREAD
 #include <crux/thread.h>
 static void worker(void *argument) {
@@ -30,6 +32,13 @@ int external_consumer(void) {
            crux_time_set_realtime(&start, CRUX_TIME_SOURCE_MANUAL, false) != CRUX_OK ||
            crux_time_get_realtime(&now) != CRUX_OK || now.seconds != CRUX_TIME_MIN_UNIX_SECONDS;
 #endif
+#elif PROFILE_DELAY
+    crux_duration_t maximum, duration;
+    return crux_duration_try_from_us(1, &duration) != CRUX_OK ||
+           crux_delay_get_max_duration(&maximum) != CRUX_OK ||
+           crux_duration_to_ns(maximum) < crux_duration_to_ns(duration) ||
+           crux_delay_busy_wait(duration) != CRUX_OK ||
+           crux_delay_busy_wait(crux_duration_from_ns(0)) != CRUX_OK;
 #elif PROFILE_THREAD
     const crux_thread_options_t options = {.priority = CRUX_THREAD_PRIORITY_NORMAL};
     crux_thread_t thread;

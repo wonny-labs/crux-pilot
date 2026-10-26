@@ -84,6 +84,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | --- | --- | --- | --- |
 | Base | Common status declarations | Header-only usage in Host and Zephyr; no OS provider | [Public header](../components/base/include/crux/status.h) |
 | Time | Typed monotonic/realtime, authority and calendar | Explicit Memory or Linux system realtime; Zephyr system realtime without RTC, optional native RTC storage; no implicit fallback | [Contract](time-contract.md) |
+| Delay | Bounded CPU busy-wait | Linux polling and selected stable single-core Zephyr timer profiles; normal ISR/IRQ-delivery simulation, EVKB compilation only | [Contract](delay.md) |
 | Thread | Bounded joinable workers | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-native-composition), [contract](thread-sync.md) |
 | Sync | Nonrecursive mutexes and bounded semaphores | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-native-composition), [contract](thread-sync.md) |
 | Queue | Bounded copy messaging | Linux and Zephyr ports with composition-selected native providers | [Messaging contract](messaging-contract.md) |

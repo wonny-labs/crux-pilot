@@ -18,7 +18,7 @@ option(CRUX_BUILD_REFERENCE_CONTROLLER "Build the early reference controller" ${
 # Base has no provider and is the foundation for selected capabilities.
 add_subdirectory(components/base)
 set(_crux_public_targets crux::base)
-foreach(component IN ITEMS time thread sync queue monotonic netif sockets configuration file serial logging system)
+foreach(component IN ITEMS time delay thread sync queue monotonic netif sockets configuration file serial logging system)
     string(TOUPPER "${component}" component_upper)
     option(CRUX_BUILD_${component_upper} "Build the ${component} capability" ${PROJECT_IS_TOP_LEVEL})
     if(CRUX_BUILD_${component_upper})
@@ -90,6 +90,9 @@ if(CRUX_BUILD_TESTS)
     FetchContent_MakeAvailable(googletest)
 
     add_subdirectory(tests/time)
+    if(CRUX_BUILD_DELAY)
+        add_subdirectory(tests/delay)
+    endif()
     if(CRUX_BUILD_THREAD)
         add_subdirectory(tests/thread)
     endif()
