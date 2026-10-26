@@ -9,7 +9,8 @@ typedef struct {
     crux_status_t result;
 } firmware_t;
 
-static void update(void *argument) {
+static void update(void *argument)
+{
     firmware_t *firmware = argument;
     firmware->result = crux_mutex_lock(firmware->mutex, 1000);
     if (firmware->result != CRUX_OK)
@@ -20,7 +21,8 @@ static void update(void *argument) {
         firmware->result = crux_semaphore_give(firmware->ready);
 }
 
-int crux_firmware_run(void) {
+int crux_firmware_run(void)
+{
     static firmware_t firmware;
     crux_thread_options_t options = {.stack_size_bytes = 4096,
                                      .priority = CRUX_THREAD_PRIORITY_NORMAL};

@@ -2,7 +2,8 @@
 
 #include <gtest/gtest.h>
 
-TEST(TimeCalendar, ConvertsIndependentUnixEpochAnchor) {
+TEST(TimeCalendar, ConvertsIndependentUnixEpochAnchor)
+{
     const crux_time_utc_t epoch{2000, 1, 1, 0, 0, 0, 0};
     crux_realtime_t instant = {-1, 0};
     crux_time_utc_t calendar{};
@@ -18,7 +19,8 @@ TEST(TimeCalendar, ConvertsIndependentUnixEpochAnchor) {
     EXPECT_EQ(calendar.second, 0);
 }
 
-TEST(TimeCalendar, ConvertsIndependentPost2038AndUpperRangeAnchors) {
+TEST(TimeCalendar, ConvertsIndependentPost2038AndUpperRangeAnchors)
+{
     struct anchor {
         crux_time_utc_t calendar;
         int64_t unix_seconds;
@@ -43,7 +45,8 @@ TEST(TimeCalendar, ConvertsIndependentPost2038AndUpperRangeAnchors) {
     }
 }
 
-TEST(TimeCalendar, EnforcesInclusiveStartAndExclusiveEnd) {
+TEST(TimeCalendar, EnforcesInclusiveStartAndExclusiveEnd)
+{
     crux_time_utc_t calendar{1999, 12, 31, 23, 59, 59, 0};
     crux_realtime_t instant = {0, 0};
     crux_time_utc_t out{1, 2, 3, 4, 5, 6, 0};
@@ -66,7 +69,8 @@ TEST(TimeCalendar, EnforcesInclusiveStartAndExclusiveEnd) {
     EXPECT_EQ(out.year, 2099);
 }
 
-TEST(TimeCalendar, AcceptsGregorianLeapDaysAndRejectsInvalidOnes) {
+TEST(TimeCalendar, AcceptsGregorianLeapDaysAndRejectsInvalidOnes)
+{
     crux_time_utc_t calendar{2000, 2, 29, 12, 0, 0, 0};
     crux_realtime_t instant = {0, 0};
 
@@ -79,7 +83,8 @@ TEST(TimeCalendar, AcceptsGregorianLeapDaysAndRejectsInvalidOnes) {
     EXPECT_EQ(crux_time_from_utc(&calendar, &instant), CRUX_ERR_INVALID_ARGUMENT);
 }
 
-TEST(TimeCalendar, RejectsInvalidFieldsAndPreservesOutput) {
+TEST(TimeCalendar, RejectsInvalidFieldsAndPreservesOutput)
+{
     const crux_time_utc_t invalid[] = {
         {2000, 0, 1, 0, 0, 0, 0},  {2000, 13, 1, 0, 0, 0, 0}, {2000, 1, 0, 0, 0, 0, 0},
         {2000, 1, 32, 0, 0, 0, 0}, {2001, 2, 29, 0, 0, 0, 0}, {2000, 2, 30, 0, 0, 0, 0},
@@ -94,7 +99,8 @@ TEST(TimeCalendar, RejectsInvalidFieldsAndPreservesOutput) {
     }
 }
 
-TEST(TimeCalendar, NullArgumentsAreInvalid) {
+TEST(TimeCalendar, NullArgumentsAreInvalid)
+{
     const crux_time_utc_t calendar{2000, 1, 1, 0, 0, 0, 0};
     crux_realtime_t instant = {9, 0};
     crux_time_utc_t out{1, 2, 3, 4, 5, 6, 0};
@@ -108,7 +114,8 @@ TEST(TimeCalendar, NullArgumentsAreInvalid) {
               CRUX_ERR_OUT_OF_RANGE);
 }
 
-TEST(TimeCalendar, RoundTripsMonthBoundariesAndLeapDay) {
+TEST(TimeCalendar, RoundTripsMonthBoundariesAndLeapDay)
+{
     const crux_time_utc_t cases[] = {
         {2000, 2, 29, 23, 59, 59, 0}, {2000, 3, 1, 0, 0, 0, 0},      {2038, 1, 19, 3, 14, 7, 0},
         {2099, 1, 1, 0, 0, 0, 0},     {2099, 12, 31, 23, 59, 59, 0},

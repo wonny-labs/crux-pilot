@@ -3,7 +3,8 @@
 #include <crux/time.h>
 #include <stddef.h>
 
-crux_status_t thread_sleep_ns_to_ticks_ceil(int64_t ns, uint32_t rate, int64_t *out_ticks) {
+crux_status_t thread_sleep_ns_to_ticks_ceil(int64_t ns, uint32_t rate, int64_t *out_ticks)
+{
     if (out_ticks == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
@@ -22,7 +23,8 @@ crux_status_t thread_sleep_ns_to_ticks_ceil(int64_t ns, uint32_t rate, int64_t *
     return CRUX_OK;
 }
 
-crux_status_t crux_thread_sleep_until(crux_monotonic_time_t deadline) {
+crux_status_t crux_thread_sleep_until(crux_monotonic_time_t deadline)
+{
     if (deadline.private_ns < 0) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
@@ -45,7 +47,8 @@ crux_status_t crux_thread_sleep_until(crux_monotonic_time_t deadline) {
     }
 }
 
-crux_status_t crux_thread_sleep_for(crux_duration_t duration) {
+crux_status_t crux_thread_sleep_for(crux_duration_t duration)
+{
     if (duration.private_ns < 0) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }

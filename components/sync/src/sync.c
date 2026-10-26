@@ -20,22 +20,26 @@ typedef struct {
 static mutex_slot_t mutexes[CRUX_SYNC_MUTEX_COUNT];
 static semaphore_slot_t semaphores[CRUX_SYNC_SEMAPHORE_COUNT];
 
-static bool matches(const lifetime_t *life, uint32_t generation) {
+static bool matches(const lifetime_t *life, uint32_t generation)
+{
     return life->used && life->generation == generation;
 }
-static mutex_slot_t *find_mutex(crux_mutex_t handle) {
+static mutex_slot_t *find_mutex(crux_mutex_t handle)
+{
     if (handle.slot == 0 || handle.slot > CRUX_SYNC_MUTEX_COUNT)
         return NULL;
     mutex_slot_t *slot = &mutexes[handle.slot - 1];
     return matches(&slot->life, handle.generation) ? slot : NULL;
 }
-static semaphore_slot_t *find_semaphore(crux_semaphore_t handle) {
+static semaphore_slot_t *find_semaphore(crux_semaphore_t handle)
+{
     if (handle.slot == 0 || handle.slot > CRUX_SYNC_SEMAPHORE_COUNT)
         return NULL;
     semaphore_slot_t *slot = &semaphores[handle.slot - 1];
     return matches(&slot->life, handle.generation) ? slot : NULL;
 }
-crux_status_t crux_mutex_create(crux_mutex_t *out) {
+crux_status_t crux_mutex_create(crux_mutex_t *out)
+{
     if (out != NULL) {
         *out = (crux_mutex_t){0};
     }
@@ -62,7 +66,8 @@ crux_status_t crux_mutex_create(crux_mutex_t *out) {
     sync_native_metadata_unlock();
     return result;
 }
-crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms) {
+crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
+{
     if (!sync_native_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     sync_native_deadline_t deadline;
@@ -107,7 +112,8 @@ crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms) {
     sync_native_metadata_unlock();
     return result;
 }
-crux_status_t crux_mutex_unlock(crux_mutex_t mutex) {
+crux_status_t crux_mutex_unlock(crux_mutex_t mutex)
+{
     if (!sync_native_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     sync_native_metadata_lock();
@@ -126,7 +132,8 @@ crux_status_t crux_mutex_unlock(crux_mutex_t mutex) {
     sync_native_metadata_unlock();
     return result;
 }
-crux_status_t crux_mutex_destroy(crux_mutex_t *mutex) {
+crux_status_t crux_mutex_destroy(crux_mutex_t *mutex)
+{
     if (!sync_native_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (mutex == NULL)
@@ -149,7 +156,8 @@ crux_status_t crux_mutex_destroy(crux_mutex_t *mutex) {
     sync_native_metadata_unlock();
     return result;
 }
-crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_semaphore_t *out) {
+crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_semaphore_t *out)
+{
     if (out != NULL) {
         *out = (crux_semaphore_t){0};
     }
@@ -177,7 +185,8 @@ crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_sem
     sync_native_metadata_unlock();
     return result;
 }
-crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_ms) {
+crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_ms)
+{
     if (!sync_native_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     sync_native_deadline_t deadline;
@@ -210,7 +219,8 @@ crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_m
     sync_native_metadata_unlock();
     return result;
 }
-crux_status_t crux_semaphore_give(crux_semaphore_t semaphore) {
+crux_status_t crux_semaphore_give(crux_semaphore_t semaphore)
+{
     if (!sync_native_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     sync_native_metadata_lock();
@@ -223,7 +233,8 @@ crux_status_t crux_semaphore_give(crux_semaphore_t semaphore) {
     sync_native_metadata_unlock();
     return result;
 }
-crux_status_t crux_semaphore_destroy(crux_semaphore_t *semaphore) {
+crux_status_t crux_semaphore_destroy(crux_semaphore_t *semaphore)
+{
     if (!sync_native_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (semaphore == NULL)

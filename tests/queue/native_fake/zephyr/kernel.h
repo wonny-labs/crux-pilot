@@ -18,7 +18,8 @@ struct k_condvar {
 #define K_TIMEOUT_ABS_TICKS(t) ((k_timeout_t){(t) > INT64_MAX - 1 ? INT64_MAX - 1 : (t)})
 bool k_is_in_isr(void);
 int64_t k_uptime_ticks(void);
-static inline int64_t k_ms_to_ticks_ceil64(uint32_t ms) {
+static inline int64_t k_ms_to_ticks_ceil64(uint32_t ms)
+{
     return ((int64_t)ms * 128 + 999) / 1000;
 }
 int k_mutex_lock(struct k_mutex *mutex, k_timeout_t timeout);

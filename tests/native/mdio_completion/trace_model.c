@@ -35,12 +35,14 @@ static bool locked, complete;
 static unsigned starts;
 static uint32_t cycles;
 
-static unsigned irq_lock(void) {
+static unsigned irq_lock(void)
+{
     assert(!locked);
     locked = true;
     return 0;
 }
-static void irq_unlock(unsigned key) {
+static void irq_unlock(unsigned key)
+{
     (void)key;
     assert(locked);
     if (data.first_failure.valid) {
@@ -51,42 +53,51 @@ static void irq_unlock(unsigned key) {
     }
     locked = false;
 }
-static uint32_t k_cycle_get_32(void) {
+static uint32_t k_cycle_get_32(void)
+{
     uint32_t result = cycles;
     cycles += 0x30;
     return result;
 }
-static int64_t k_uptime_get(void) {
+static int64_t k_uptime_get(void)
+{
     return 500;
 }
-static uint32_t sys_clock_hw_cycles_per_sec(void) {
+static uint32_t sys_clock_hw_cycles_per_sec(void)
+{
     return 1000000;
 }
-static unsigned k_sem_count_get(struct k_sem *sem) {
+static unsigned k_sem_count_get(struct k_sem *sem)
+{
     assert(locked);
     return sem->count;
 }
-static bool k_is_in_isr(void) {
+static bool k_is_in_isr(void)
+{
     return false;
 }
-static int k_mutex_lock(struct k_mutex *mutex, int timeout) {
+static int k_mutex_lock(struct k_mutex *mutex, int timeout)
+{
     (void)timeout;
     assert(!mutex->held);
     mutex->held = 1;
     return 0;
 }
-static int k_mutex_unlock(struct k_mutex *mutex) {
+static int k_mutex_unlock(struct k_mutex *mutex)
+{
     assert(mutex->held);
     mutex->held = 0;
     return 0;
 }
-static void k_sem_reset(struct k_sem *sem) {
+static void k_sem_reset(struct k_sem *sem)
+{
     assert(locked && registers.EIR == ENET_EIR_MII_MASK);
     registers.EIR = 0; /* Model the preceding W1C write explicitly. */
     sem->count = 0;
     starts++;
 }
-static int k_sem_take(struct k_sem *sem, int timeout) {
+static int k_sem_take(struct k_sem *sem, int timeout)
+{
     assert(!locked && timeout == 250);
     if (complete) {
         registers.MMFR = (registers.MMFR & ~ENET_MMFR_DATA_MASK) | 0x22;
@@ -98,7 +109,8 @@ static int k_sem_take(struct k_sem *sem, int timeout) {
     }
     return -EAGAIN;
 }
-static void k_busy_wait(int us) {
+static void k_busy_wait(int us)
+{
     assert(us == 1);
     if (complete) {
         registers.MMFR = (registers.MMFR & ~ENET_MMFR_DATA_MASK) | 0x22;
@@ -116,17 +128,20 @@ static void k_busy_wait(int us) {
     })
 #include "driver_functions.inc"
 
-static void reset(bool interrupt) {
+static void reset(bool interrupt)
+{
     registers = (ENET_Type){.EIMR = 17, .ECR = 33, .MSCR = 49};
     data = (struct nxp_enet_mdio_data){.base = &registers, .interrupt_up = interrupt};
     cycles = 0xfffffff0;
     starts = 0;
     locked = complete = false;
 }
-static int read_value(uint16_t *value) {
+static int read_value(uint16_t *value)
+{
     return mdio_transfer(&device, 0, 2, MDIO_OP_C22_READ, false, 0, value);
 }
-static void timeout_case(bool interrupt) {
+static void timeout_case(bool interrupt)
+{
     reset(interrupt);
     struct crux_m3_mdio_failure record = {.valid = 0xabcd};
     assert(!crux_m3_mdio_failure_get(&device, &record) && record.valid == 0xabcd);
@@ -147,7 +162,8 @@ static void timeout_case(bool interrupt) {
     assert(record.wait_interrupt == (uint32_t)interrupt && record.started_cycles == 0xfffffff0);
     assert(!locked && !data.mdio_mutex.held);
 }
-int main(void) {
+int main(void)
+{
     timeout_case(false);
     timeout_case(true);
     for (unsigned interrupt = 0; interrupt < 2; interrupt++) {

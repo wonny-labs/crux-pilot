@@ -2,7 +2,8 @@
 #include <crux/time.h>
 #include <stdio.h>
 
-int main(void) {
+int main(void)
+{
     crux_monotonic_time_t before, after;
     crux_duration_t maximum;
     const crux_duration_t duration = crux_duration_from_ms(1);

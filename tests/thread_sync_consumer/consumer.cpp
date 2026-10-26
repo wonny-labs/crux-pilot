@@ -14,7 +14,8 @@ static_assert(sizeof(crux_semaphore_t) == 2 * sizeof(uint32_t));
 #endif
 
 extern "C" int component_consumer_run(void);
-extern "C" int component_cpp_consumer_run(void) {
+extern "C" int component_cpp_consumer_run(void)
+{
 #if CRUX_TEST_THREAD
     if (crux_thread_join(nullptr, 0) != CRUX_ERR_INVALID_ARGUMENT) {
         return 2;

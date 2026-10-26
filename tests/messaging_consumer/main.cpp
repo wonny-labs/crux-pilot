@@ -3,7 +3,8 @@
 #include <crux/time.h>
 #include <cstdio>
 extern "C" int messaging_runtime_run(void);
-int main() {
+int main()
+{
     crux_monotonic_time_t now = {0};
     crux_queue_t queue{};
     if (crux_time_get_monotonic(&now) != CRUX_OK || crux_thread_sleep_until(now) != CRUX_OK ||

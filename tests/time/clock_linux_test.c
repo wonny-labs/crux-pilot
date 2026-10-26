@@ -13,20 +13,23 @@ static int failures;
     } while (0)
 static struct timespec reading = {4, 999999999}, resolution = {0, 10};
 static int read_error, resolution_error, resolution_calls, wrong_clock;
-int __wrap_clock_gettime(clockid_t id, struct timespec *out) {
+int __wrap_clock_gettime(clockid_t id, struct timespec *out)
+{
     if (id != CLOCK_MONOTONIC)
         ++wrong_clock;
     *out = reading;
     return read_error;
 }
-int __wrap_clock_getres(clockid_t id, struct timespec *out) {
+int __wrap_clock_getres(clockid_t id, struct timespec *out)
+{
     if (id != CLOCK_MONOTONIC)
         ++wrong_clock;
     ++resolution_calls;
     *out = resolution;
     return resolution_error;
 }
-int main(void) {
+int main(void)
+{
     crux_monotonic_time_t out = {73};
     CHECK(crux_time_get_monotonic(&out) == CRUX_OK && out.private_ns == INT64_C(4999999999));
     CHECK(crux_time_make_deadline_after(crux_duration_from_ns(0), &out) == CRUX_OK);

@@ -3,7 +3,8 @@
 
 #include <zephyr/sys/printk.h>
 
-int main(void) {
+int main(void)
+{
     const crux_status_t status = crux_time_init();
 
     if (status != CRUX_OK) {

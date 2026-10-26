@@ -2,7 +2,8 @@
 #include <stddef.h>
 #include <zephyr/kernel.h>
 
-static crux_status_t max_microseconds(uint32_t *out) {
+static crux_status_t max_microseconds(uint32_t *out)
+{
 #if !defined(CONFIG_SYS_CLOCK_EXISTS) || defined(CONFIG_TIMER_READS_ITS_FREQUENCY_AT_RUNTIME) ||   \
     defined(CONFIG_SYSTEM_CLOCK_HW_CYCLES_PER_SEC_RUNTIME_UPDATE) || defined(CONFIG_SMP) ||        \
     (defined(CONFIG_ARCH_HAS_CUSTOM_BUSY_WAIT) && !defined(CONFIG_BOARD_NATIVE_SIM))
@@ -25,7 +26,8 @@ static crux_status_t max_microseconds(uint32_t *out) {
 #endif
 }
 
-crux_status_t crux_delay_port_get_max_ns(int64_t *out) {
+crux_status_t crux_delay_port_get_max_ns(int64_t *out)
+{
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     uint32_t us;
@@ -35,7 +37,8 @@ crux_status_t crux_delay_port_get_max_ns(int64_t *out) {
     return status;
 }
 
-crux_status_t crux_delay_port_wait_ns(int64_t duration_ns) {
+crux_status_t crux_delay_port_wait_ns(int64_t duration_ns)
+{
     if (duration_ns < 0)
         return CRUX_ERR_INVALID_ARGUMENT;
     if (duration_ns == 0)

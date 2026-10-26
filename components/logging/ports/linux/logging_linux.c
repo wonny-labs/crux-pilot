@@ -4,10 +4,12 @@
 #include <signal.h>
 #include <stdio.h>
 #include <time.h>
-bool logging_port_context_allowed(void) {
+bool logging_port_context_allowed(void)
+{
     return true;
 }
-crux_status_t logging_port_write(crux_log_level_t level, const char *tag, const char *text) {
+crux_status_t logging_port_write(crux_log_level_t level, const char *tag, const char *text)
+{
     static const char *const names[] = {"OFF", "ERROR", "WARN", "INFO", "DEBUG"};
     /* stderr is often a pipe in a host composition. Keep its broken-reader
      * failure local to this call, without changing a process-wide handler or

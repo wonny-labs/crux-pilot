@@ -8,17 +8,20 @@ static bool allowed = true;
 static crux_status_t native_status = CRUX_OK;
 static crux_log_level_t observed;
 static char saved_tag[25], saved_text[257];
-bool logging_port_context_allowed(void) {
+bool logging_port_context_allowed(void)
+{
     return allowed;
 }
-crux_status_t logging_port_write(crux_log_level_t level, const char *tag, const char *text) {
+crux_status_t logging_port_write(crux_log_level_t level, const char *tag, const char *text)
+{
     ++emitted;
     observed = level;
     memcpy(saved_tag, tag, strlen(tag) + 1);
     memcpy(saved_text, text, strlen(text) + 1);
     return native_status;
 }
-static void validation(void) {
+static void validation(void)
+{
     assert(crux_log_write(CRUX_LOG_OFF, "app", "x") == CRUX_ERR_INVALID_ARGUMENT);
     // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange): invalid-input probe
     assert(crux_log_write((crux_log_level_t)99, "app", "x") == CRUX_ERR_INVALID_ARGUMENT);
@@ -42,7 +45,8 @@ static void validation(void) {
     assert(strlen(saved_tag) == 24 && strlen(saved_text) == 256);
     assert(crux_log_write(CRUX_LOG_INFO, "a-Z_9.x", "") == CRUX_OK);
 }
-static void filtering(void) {
+static void filtering(void)
+{
     assert(crux_log_write(CRUX_LOG_DEBUG, "app", "hidden") == CRUX_OK);
     assert(emitted == 0);
     assert(crux_log_write(CRUX_LOG_INFO, "app", "visible") == CRUX_OK);
@@ -61,7 +65,8 @@ static void filtering(void) {
     assert(crux_log_set_level(CRUX_LOG_DEBUG) == CRUX_OK);
     assert(crux_log_write(CRUX_LOG_DEBUG, "app", "debug") == CRUX_OK && emitted == 4);
 }
-static void lifetime(void) {
+static void lifetime(void)
+{
     char tag[] = "runtime.gc", text[] = "value=42 100% %s";
     assert(crux_log_write(CRUX_LOG_WARN, tag, text) == CRUX_OK);
     memset(tag, '?', sizeof(tag) - 1);
@@ -69,7 +74,8 @@ static void lifetime(void) {
     assert(strcmp(saved_tag, "runtime.gc") == 0);
     assert(strcmp(saved_text, "value=42 100% %s") == 0);
 }
-static void failures(void) {
+static void failures(void)
+{
     native_status = CRUX_ERR_IO;
     assert(crux_log_write(CRUX_LOG_ERROR, "app", "failed") == CRUX_ERR_IO);
     native_status = CRUX_ERR_NOT_READY;
@@ -80,7 +86,8 @@ static void failures(void) {
     assert(crux_log_set_level(CRUX_LOG_DEBUG) == CRUX_ERR_NOT_SUPPORTED);
     assert(emitted == 2);
 }
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     assert(argc == 2);
     if (!strcmp(argv[1], "validation"))
         validation();

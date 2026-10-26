@@ -19,7 +19,8 @@ static sem_t wake_signal;
 static pthread_mutex_t mutex;
 static int worker_result;
 
-static struct timespec realtime_after_ms(long ms) {
+static struct timespec realtime_after_ms(long ms)
+{
     struct timespec deadline;
     CHECK(clock_gettime(CLOCK_REALTIME, &deadline) == 0);
     deadline.tv_nsec += ms * 1000000L;
@@ -28,13 +29,15 @@ static struct timespec realtime_after_ms(long ms) {
     return deadline;
 }
 
-static int64_t monotonic_ms(void) {
+static int64_t monotonic_ms(void)
+{
     struct timespec now;
     CHECK(clock_gettime(CLOCK_MONOTONIC, &now) == 0);
     return (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
 }
 
-static void *notify_worker(void *arg) {
+static void *notify_worker(void *arg)
+{
     int policy;
     struct sched_param parameters;
     CHECK(pthread_getschedparam(pthread_self(), &policy, &parameters) == 0);
@@ -51,7 +54,8 @@ static void *notify_worker(void *arg) {
     return arg;
 }
 
-static void *mutex_worker(void *arg) {
+static void *mutex_worker(void *arg)
+{
     (void)arg;
     struct timespec deadline = realtime_after_ms(20);
     worker_result = pthread_mutex_timedlock(&mutex, &deadline);
@@ -61,7 +65,8 @@ static void *mutex_worker(void *arg) {
     return NULL;
 }
 
-static void test_lifecycle_and_attributes(void) {
+static void test_lifecycle_and_attributes(void)
+{
     pthread_attr_t attr;
     CHECK(pthread_attr_init(&attr) == 0);
     size_t stack = 0;
@@ -111,7 +116,8 @@ static void test_lifecycle_and_attributes(void) {
 #endif
 }
 
-static void test_mutex_contention(void) {
+static void test_mutex_contention(void)
+{
     pthread_mutexattr_t attr;
     CHECK(pthread_mutexattr_init(&attr) == 0);
 #ifdef __ZEPHYR__
@@ -134,7 +140,8 @@ static void test_mutex_contention(void) {
     CHECK(pthread_mutex_destroy(&mutex) == 0);
 }
 
-static void test_semaphore_timeout(void) {
+static void test_semaphore_timeout(void)
+{
     CHECK(sem_init(&wake_signal, 0, 0) == 0);
     errno = 0;
     CHECK(sem_trywait(&wake_signal) == -1 && errno == EAGAIN);
@@ -152,7 +159,8 @@ static void test_semaphore_timeout(void) {
     CHECK(sem_destroy(&wake_signal) == 0);
 }
 
-static void test_messages(void) {
+static void test_messages(void)
+{
     const char *name = "/crux_m2_probe";
     struct mq_attr attr = {.mq_maxmsg = 1, .mq_msgsize = sizeof(uint32_t)};
     mqd_t queue = mq_open(name, O_CREAT | O_EXCL | O_RDWR | O_NONBLOCK, 0600, &attr);
@@ -168,7 +176,8 @@ static void test_messages(void) {
     CHECK(mq_unlink(name) == 0);
 }
 
-static void test_periodic_monotonic(void) {
+static void test_periodic_monotonic(void)
+{
     int64_t start = monotonic_ms();
     int64_t next = start + 10;
     unsigned int skipped = 0;
@@ -195,24 +204,30 @@ static void test_periodic_monotonic(void) {
 }
 
 #ifdef __ZEPHYR__
-ZTEST(execution_posix, test_lifecycle) {
+ZTEST(execution_posix, test_lifecycle)
+{
     test_lifecycle_and_attributes();
 }
-ZTEST(execution_posix, test_mutex) {
+ZTEST(execution_posix, test_mutex)
+{
     test_mutex_contention();
 }
-ZTEST(execution_posix, test_semaphore) {
+ZTEST(execution_posix, test_semaphore)
+{
     test_semaphore_timeout();
 }
-ZTEST(execution_posix, test_message_exchange) {
+ZTEST(execution_posix, test_message_exchange)
+{
     test_messages();
 }
-ZTEST(execution_posix, test_periodic) {
+ZTEST(execution_posix, test_periodic)
+{
     test_periodic_monotonic();
 }
 ZTEST_SUITE(execution_posix, NULL, NULL, NULL, NULL, NULL);
 #else
-int main(void) {
+int main(void)
+{
     test_lifecycle_and_attributes();
     test_mutex_contention();
     test_semaphore_timeout();

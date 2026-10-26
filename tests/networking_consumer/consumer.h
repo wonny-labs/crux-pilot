@@ -5,7 +5,8 @@
 #include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
-static int run_consumer(void) {
+static int run_consumer(void)
+{
     crux_netif_status_t status;
     if (crux_netif_get_status(&status) != CRUX_OK)
         return 1;

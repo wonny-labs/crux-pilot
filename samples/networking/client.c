@@ -12,7 +12,8 @@
 #include <time.h>
 #include <unistd.h>
 
-static int monotonic_ns(int64_t *out) {
+static int monotonic_ns(int64_t *out)
+{
     struct timespec now;
     if (clock_gettime(CLOCK_MONOTONIC, &now) != 0)
         return errno != 0 ? -errno : -EIO;
@@ -22,7 +23,8 @@ static int monotonic_ns(int64_t *out) {
     return 0;
 }
 
-static int wait_ready(int fd, const int64_t *deadline, short events) {
+static int wait_ready(int fd, const int64_t *deadline, short events)
+{
     for (;;) {
         int64_t now;
         int result = monotonic_ns(&now);
@@ -53,7 +55,8 @@ static int wait_ready(int fd, const int64_t *deadline, short events) {
 }
 
 static int transfer(int fd, uint8_t *buffer, size_t size, bool send_data, bool datagram,
-                    int64_t deadline) {
+                    int64_t deadline)
+{
     size_t offset = 0;
     do {
         int result = wait_ready(fd, &deadline, send_data ? POLLOUT : POLLIN);
@@ -74,7 +77,8 @@ static int transfer(int fd, uint8_t *buffer, size_t size, bool send_data, bool d
     return 0;
 }
 
-int networking_exchange(const char *ipv4, uint16_t port, bool datagram, int timeout_ms) {
+int networking_exchange(const char *ipv4, uint16_t port, bool datagram, int timeout_ms)
+{
     if (ipv4 == NULL || timeout_ms <= 0 || port == 0)
         return -EINVAL;
     struct sockaddr_in peer = {.sin_family = AF_INET, .sin_port = htons(port)};

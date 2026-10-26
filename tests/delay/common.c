@@ -12,17 +12,20 @@ static crux_status_t query_status, wait_status;
             ++failures;                                                                            \
         }                                                                                          \
     } while (0)
-crux_status_t crux_delay_port_get_max_ns(int64_t *out) {
+crux_status_t crux_delay_port_get_max_ns(int64_t *out)
+{
     ++queries;
     *out = limit; /* Dirty native output even on error. */
     return query_status;
 }
-crux_status_t crux_delay_port_wait_ns(int64_t duration_ns) {
+crux_status_t crux_delay_port_wait_ns(int64_t duration_ns)
+{
     ++waits;
     waited = duration_ns;
     return wait_status;
 }
-int main(void) {
+int main(void)
+{
     crux_duration_t out = crux_duration_from_ns(73);
     CHECK(crux_delay_get_max_duration(NULL) == CRUX_ERR_INVALID_ARGUMENT && queries == 0);
     CHECK(crux_delay_busy_wait(crux_duration_from_ns(0)) == CRUX_OK && queries == 0 && waits == 0);

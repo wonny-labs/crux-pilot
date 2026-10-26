@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "records.h"
 
-size_t probe_record(unsigned index, unsigned revision, uint8_t wire[8]) {
+size_t probe_record(unsigned index, unsigned revision, uint8_t wire[8])
+{
     wire[0] = 1;
     wire[1] = (index % 2) ? 2 : 1;
     wire[2] = 1;

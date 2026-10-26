@@ -18,10 +18,12 @@
 #endif
 
 #if CRUX_TEST_THREAD
-static void worker(void *argument) {
+static void worker(void *argument)
+{
     *(int *)argument = 42;
 }
-int component_consumer_run(void) {
+int component_consumer_run(void)
+{
     int observed = 0;
     crux_thread_t thread;
     const crux_thread_options_t options = {.priority = CRUX_THREAD_PRIORITY_NORMAL};
@@ -33,7 +35,8 @@ int component_consumer_run(void) {
 }
 #else
 int component_native_sync_worker(crux_mutex_t mutex);
-int component_consumer_run(void) {
+int component_consumer_run(void)
+{
     crux_mutex_t mutex;
     crux_semaphore_t semaphore;
     if (crux_mutex_create(&mutex) != CRUX_OK || component_native_sync_worker(mutex) != 0 ||

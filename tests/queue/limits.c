@@ -2,7 +2,8 @@
 #include <crux/queue.h>
 #include <limits.h>
 #include <stdio.h>
-int main(void) {
+int main(void)
+{
     crux_queue_t q = {0}, slots[4];
     assert(crux_queue_create(0, 1, &q) == CRUX_ERR_INVALID_ARGUMENT && q.slot == 0);
     assert(crux_queue_create(1, 0, &q) == CRUX_ERR_INVALID_ARGUMENT);

@@ -18,24 +18,29 @@ static const unsigned char value_bytes[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 static uint16_t counter = NVS_NAMECNT_ID + 1;
 static const struct device dummy_device = {0};
 
-void settings_lock_take(void) {
+void settings_lock_take(void)
+{
     ++depth;
 }
-void settings_lock_release(void) {
+void settings_lock_release(void)
+{
     assert(depth == 1);
     --depth;
 }
-int settings_commit_subtree(const char *name) {
+int settings_commit_subtree(const char *name)
+{
     (void)name;
     return 0;
 }
-int settings_name_next(const char *name, const char **next) {
+int settings_name_next(const char *name, const char **next)
+{
     const char *slash = strchr(name, '/');
     if (next)
         *next = slash ? slash + 1 : NULL;
     return slash ? (int)(slash - name) : (int)strlen(name);
 }
-int settings_name_steq(const char *name, const char *key, const char **next) {
+int settings_name_steq(const char *name, const char *key, const char **next)
+{
     size_t n = strlen(key);
     int match = !strncmp(name, key, n) && (name[n] == '\0' || name[n] == '/');
     if (next)
@@ -43,7 +48,8 @@ int settings_name_steq(const char *name, const char *key, const char **next) {
     return match;
 }
 int settings_call_set_handler(const char *name, size_t length, settings_read_cb read, void *context,
-                              const struct settings_load_arg *arg) {
+                              const struct settings_load_arg *arg)
+{
     ++handlers;
     const char *key = name;
     if (arg->subtree && !settings_name_steq(name, arg->subtree, &key))
@@ -51,7 +57,8 @@ int settings_call_set_handler(const char *name, size_t length, settings_read_cb 
     return arg->cb ? arg->cb(key, length, read, context, arg->param) : 0;
 }
 static int value_callback(const char *name, size_t length, settings_read_cb read, void *context,
-                          void *parameter) {
+                          void *parameter)
+{
     (void)name;
     (void)parameter;
     unsigned char buffer[8] = {0};
@@ -65,7 +72,8 @@ static int value_callback(const char *name, size_t length, settings_read_cb read
         return -EIO;
     return 0;
 }
-ssize_t nvs_read(struct nvs_fs *fs, uint16_t id, void *buffer, size_t length) {
+ssize_t nvs_read(struct nvs_fs *fs, uint16_t id, void *buffer, size_t length)
+{
     (void)fs;
     ++reads;
     const void *bytes;
@@ -96,7 +104,8 @@ ssize_t nvs_read(struct nvs_fs *fs, uint16_t id, void *buffer, size_t length) {
         received = n;
     return result; /* NVS advertises full stored length even with a smaller destination. */
 }
-ssize_t nvs_write(struct nvs_fs *fs, uint16_t id, const void *bytes, size_t length) {
+ssize_t nvs_write(struct nvs_fs *fs, uint16_t id, const void *bytes, size_t length)
+{
     (void)fs;
     (void)id;
     (void)bytes;
@@ -105,29 +114,34 @@ ssize_t nvs_write(struct nvs_fs *fs, uint16_t id, const void *bytes, size_t leng
         return write_failure;
     return zero_write ? 0 : (ssize_t)length;
 }
-int nvs_delete(struct nvs_fs *fs, uint16_t id) {
+int nvs_delete(struct nvs_fs *fs, uint16_t id)
+{
     (void)fs;
     (void)id;
     ++deletes;
     return deletes == delete_failure ? -EIO : 0;
 }
-int nvs_mount(struct nvs_fs *fs) {
+int nvs_mount(struct nvs_fs *fs)
+{
     (void)fs;
     return mount_failure;
 }
-int flash_area_open(int id, const struct flash_area **area) {
+int flash_area_open(int id, const struct flash_area **area)
+{
     (void)id;
     (void)area;
     return -ENOTSUP;
 }
-int flash_area_get_sectors(int id, uint32_t *count, struct flash_sector *sector) {
+int flash_area_get_sectors(int id, uint32_t *count, struct flash_sector *sector)
+{
     (void)id;
     (void)count;
     (void)sector;
     return -ENOTSUP;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     if (argc != 2)
         return 2;
     const char *test = argv[1];

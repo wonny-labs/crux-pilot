@@ -8,20 +8,24 @@
 
 #include <cstring>
 
-class TimeCommandTest : public ::testing::Test {
+class TimeCommandTest : public ::testing::Test
+{
   protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         crux_time_test_reset();
         crux_time_host_test_reset();
         ASSERT_EQ(crux_time_init(), CRUX_OK);
     }
 };
 
-TEST_F(TimeCommandTest, HelpIdentifiesUtcInput) {
+TEST_F(TimeCommandTest, HelpIdentifiesUtcInput)
+{
     EXPECT_NE(std::strstr(crux_time_command_help_text(), "Input is UTC"), nullptr);
 }
 
-TEST_F(TimeCommandTest, NoDataApiStatusMapsToDistinctCliText) {
+TEST_F(TimeCommandTest, NoDataApiStatusMapsToDistinctCliText)
+{
     crux_realtime_t instant = {0, 0};
     const crux_time_command_result_t result = crux_time_command_execute("time get");
 
@@ -31,7 +35,8 @@ TEST_F(TimeCommandTest, NoDataApiStatusMapsToDistinctCliText) {
     EXPECT_STRNE(crux_time_command_cli_error_text(result.status), "ERR NO_DATA");
 }
 
-TEST_F(TimeCommandTest, SetAndGetUseTheSamePortableHandler) {
+TEST_F(TimeCommandTest, SetAndGetUseTheSamePortableHandler)
+{
     auto set_result = crux_time_command_execute("time set 2026-10-16T14:30:00");
     auto get_result = crux_time_command_execute("time get");
 
@@ -41,7 +46,8 @@ TEST_F(TimeCommandTest, SetAndGetUseTheSamePortableHandler) {
     EXPECT_STREQ(get_result.text, "2026-10-16T14:30:00 UTC");
 }
 
-TEST_F(TimeCommandTest, AllowsWhitespaceBetweenTokensAndCrLf) {
+TEST_F(TimeCommandTest, AllowsWhitespaceBetweenTokensAndCrLf)
+{
     auto set_result = crux_time_command_execute(" \ttime   set\t2026-10-16T14:30:00\r\n");
     auto get_result = crux_time_command_execute(" time\tget ");
 
@@ -50,7 +56,8 @@ TEST_F(TimeCommandTest, AllowsWhitespaceBetweenTokensAndCrLf) {
     EXPECT_STREQ(get_result.text, "2026-10-16T14:30:00 UTC");
 }
 
-TEST_F(TimeCommandTest, HelpIsAnAdapterOutcome) {
+TEST_F(TimeCommandTest, HelpIsAnAdapterOutcome)
+{
     auto root_help = crux_time_command_execute("help");
     auto group_help = crux_time_command_execute("time help");
 
@@ -60,7 +67,8 @@ TEST_F(TimeCommandTest, HelpIsAnAdapterOutcome) {
     EXPECT_EQ(group_help.kind, CRUX_TIME_COMMAND_HELP);
 }
 
-TEST_F(TimeCommandTest, RejectsMalformedSyntaxAndDates) {
+TEST_F(TimeCommandTest, RejectsMalformedSyntaxAndDates)
+{
     const char *invalid[] = {
         "",
         "time",
@@ -84,7 +92,8 @@ TEST_F(TimeCommandTest, RejectsMalformedSyntaxAndDates) {
     EXPECT_EQ(crux_time_command_execute(nullptr).status, CRUX_ERR_INVALID_ARGUMENT);
 }
 
-TEST_F(TimeCommandTest, MapsOutOfRangeAndIoErrors) {
+TEST_F(TimeCommandTest, MapsOutOfRangeAndIoErrors)
+{
     auto range_result = crux_time_command_execute("time set 1999-12-31T23:59:59");
     EXPECT_EQ(range_result.status, CRUX_ERR_OUT_OF_RANGE);
     EXPECT_STREQ(crux_time_command_cli_error_text(range_result.status), "ERR OUT_OF_RANGE");
@@ -95,7 +104,8 @@ TEST_F(TimeCommandTest, MapsOutOfRangeAndIoErrors) {
     EXPECT_STREQ(crux_time_command_cli_error_text(io_result.status), "ERR IO_ERROR");
 }
 
-TEST_F(TimeCommandTest, RejectedWriteNeverCallsBackend) {
+TEST_F(TimeCommandTest, RejectedWriteNeverCallsBackend)
+{
     auto invalid_result = crux_time_command_execute("time set 2026-02-30T14:30:00");
     auto extra_result = crux_time_command_execute("time set 2026-10-16T14:30:00 Z");
     auto overflow_result = crux_time_command_execute("time set 2026-10-16T14:30:00 extra extra");
@@ -106,7 +116,8 @@ TEST_F(TimeCommandTest, RejectedWriteNeverCallsBackend) {
     EXPECT_EQ(crux_time_host_test_write_calls(), 0U);
 }
 
-TEST_F(TimeCommandTest, InvalidCommandDoesNotChangePreviouslySetTime) {
+TEST_F(TimeCommandTest, InvalidCommandDoesNotChangePreviouslySetTime)
+{
     ASSERT_EQ(crux_time_command_execute("time set 2026-10-16T14:30:00").status, CRUX_OK);
     EXPECT_EQ(crux_time_command_execute("time set 2026-02-30T14:30:00").status,
               CRUX_ERR_INVALID_ARGUMENT);

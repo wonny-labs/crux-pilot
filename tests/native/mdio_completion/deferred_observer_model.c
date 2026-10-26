@@ -13,21 +13,26 @@ static int64_t now;
 static unsigned int getters, count;
 static char lines[8][1024];
 
-const struct device *observer_device_get(int node) {
+const struct device *observer_device_get(int node)
+{
     assert(node == 1 || node == 2);
     return &devices[node - 1];
 }
-bool device_is_ready(const struct device *dev) {
+bool device_is_ready(const struct device *dev)
+{
     assert(!copying && !traversing && dev != NULL);
     return true;
 }
-int64_t k_uptime_get(void) {
+int64_t k_uptime_get(void)
+{
     return now;
 }
-const char *k_thread_name_get(k_tid_t thread) {
+const char *k_thread_name_get(k_tid_t thread)
+{
     return thread->name;
 }
-void k_thread_foreach(void (*callback)(const struct k_thread *, void *), void *context) {
+void k_thread_foreach(void (*callback)(const struct k_thread *, void *), void *context)
+{
     traversing = true;
     callback(&logger, context);
     if (duplicate) {
@@ -35,20 +40,24 @@ void k_thread_foreach(void (*callback)(const struct k_thread *, void *), void *c
     }
     traversing = false;
 }
-int k_thread_stack_space_get(const struct k_thread *thread, size_t *unused) {
+int k_thread_stack_space_get(const struct k_thread *thread, size_t *unused)
+{
     assert(!traversing && thread == &logger);
     *unused = 1536;
     return 0;
 }
-int k_thread_priority_get(k_tid_t thread) {
+int k_thread_priority_get(k_tid_t thread)
+{
     assert(!traversing && thread == &logger);
     return 14;
 }
-uint32_t log_buffered_cnt(void) {
+uint32_t log_buffered_cnt(void)
+{
     assert(!traversing && !copying);
     return 0;
 }
-bool crux_m3_mdio_failure_get(const struct device *dev, struct crux_m3_mdio_failure *out) {
+bool crux_m3_mdio_failure_get(const struct device *dev, struct crux_m3_mdio_failure *out)
+{
     assert(dev == &devices[1] && !traversing);
     copying = true;
     bool snapshot = retained;
@@ -65,7 +74,8 @@ bool crux_m3_mdio_failure_get(const struct device *dev, struct crux_m3_mdio_fail
     copying = false;
     return snapshot;
 }
-int printk(const char *format, ...) {
+int printk(const char *format, ...)
+{
     assert(!copying && !traversing && count < 8);
     va_list arguments;
     va_start(arguments, format);
@@ -76,7 +86,8 @@ int printk(const char *format, ...) {
     count++;
     return length;
 }
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     retained = argc > 1 && strcmp(argv[1], "failure") == 0;
     late = argc > 1 && strcmp(argv[1], "late") == 0;
     duplicate = argc > 1 && strcmp(argv[1], "duplicate") == 0;

@@ -21,7 +21,8 @@ void network_phy_diagnostic_mac(unsigned int phase);
 void network_phy_diagnostic_after_round(void);
 #endif
 
-static int request_round(const struct shell *shell, size_t argc, char **argv) {
+static int request_round(const struct shell *shell, size_t argc, char **argv)
+{
     ARG_UNUSED(shell);
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
@@ -36,7 +37,8 @@ static int request_round(const struct shell *shell, size_t argc, char **argv) {
 
 SHELL_CMD_REGISTER(m3net, NULL, "Request one bounded isolated network round", request_round);
 
-static void report_stack(void) {
+static void report_stack(void)
+{
     size_t unused = 0;
     int result = k_thread_stack_space_get(k_current_get(), &unused);
     printk("M3_NET_STACK status=%d usable=%zu unused=%zu\n", result,
@@ -44,7 +46,8 @@ static void report_stack(void) {
 }
 
 #ifdef CONFIG_CRUX_M3_NATIVE_OUTPUT
-static void report_logger(int64_t queued_at, unsigned int queued) {
+static void report_logger(int64_t queued_at, unsigned int queued)
+{
     struct m3_logger_resources logger = m3_logger_resources_get();
     printk("M3_NET_LOGGER monotonic_ms=%lld queue_snapshot_ms=%lld found=%u status=%d "
            "configured=%u usable=%zu "
@@ -55,7 +58,8 @@ static void report_logger(int64_t queued_at, unsigned int queued) {
 }
 #endif
 
-int main(void) {
+int main(void)
+{
     printk("M3_NET_BOOT source=%s profile=network-probe exposure=isolated-only\n", CRUX_M3_SOURCE);
 #ifdef CONFIG_CRUX_M3_DEFERRED_OUTPUT
     crux_m3_deferred_start();

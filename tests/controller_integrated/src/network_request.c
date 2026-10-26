@@ -8,14 +8,17 @@
 
 static unsigned int acknowledgements, rejections;
 static void command_record(const char *format, ...);
-static int unused_init(void) {
+static int unused_init(void)
+{
     return 0;
 }
-static int unused_round(unsigned int trial) {
+static int unused_round(unsigned int trial)
+{
     ARG_UNUSED(trial);
     return 0;
 }
-static void unused_report(void) {
+static void unused_report(void)
+{
 }
 
 #define main controlled_network_probe_main
@@ -27,7 +30,8 @@ static void unused_report(void) {
 #include "../../../samples/controller/zephyr/network_probe.c"
 #undef main
 
-static void command_record(const char *format, ...) {
+static void command_record(const char *format, ...)
+{
     if (strstr(format, "M3_NET_REQUESTED") != NULL) {
         acknowledgements++;
         zassert_equal(atomic_get(&requested), -1);
@@ -39,7 +43,8 @@ static void command_record(const char *format, ...) {
     }
 }
 
-ZTEST(network_request, test_ack_precedes_exactly_one_publication) {
+ZTEST(network_request, test_ack_precedes_exactly_one_publication)
+{
     atomic_set(&requested, 0);
     acknowledgements = rejections = 0;
     zassert_ok(request_round(NULL, 0, NULL));

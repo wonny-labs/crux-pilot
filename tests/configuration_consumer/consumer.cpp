@@ -1,6 +1,7 @@
 #include <crux/configuration.h>
 
-extern "C" int configuration_consumer(void) {
+extern "C" int configuration_consumer(void)
+{
     const crux_config_spec_t spec{"cpp_schema", 3, {CRUX_CONFIG_BOOL, {false}}, nullptr, nullptr};
     crux_config_param_t parameter{};
     crux_config_value_t out{CRUX_CONFIG_BOOL, {false}};

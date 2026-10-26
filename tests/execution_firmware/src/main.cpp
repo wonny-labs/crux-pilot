@@ -1,7 +1,8 @@
 #include <crux/sync.h>
 #include <cstdio>
 extern "C" int crux_firmware_run(void);
-int main() {
+int main()
+{
     crux_mutex_t mutex{};
     if (crux_mutex_create(&mutex) != CRUX_OK || crux_mutex_lock(mutex, 0) != CRUX_OK ||
         crux_mutex_unlock(mutex) != CRUX_OK || crux_mutex_destroy(&mutex) != CRUX_OK)

@@ -20,7 +20,8 @@ static const char *path;
 static bool expire_wait, fail_close, hangup_after_write;
 static atomic_bool read_admitted;
 static crux_serial_t serial;
-static void pause_ms(unsigned ms) {
+static void pause_ms(unsigned ms)
+{
     struct timespec t = {(time_t)(ms / 1000), (long)(ms % 1000) * 1000000L};
     while (nanosleep(&t, &t) < 0 && errno == EINTR) {
     }
@@ -28,14 +29,16 @@ static void pause_ms(unsigned ms) {
 // GNU ld requires the __real_/__wrap_ names for these native fault probes.
 // NOLINTBEGIN(bugprone-reserved-identifier)
 int __real_open(const char *name, int flags, ...);
-int __wrap_open(const char *name, int flags, ...) {
+int __wrap_open(const char *name, int flags, ...)
+{
     int fd = __real_open(name, flags);
     if (path != NULL && strcmp(path, name) == 0 && fd >= 0)
         serial_fd = fd;
     return fd;
 }
 int __real_close(int fd);
-int __wrap_close(int fd) {
+int __wrap_close(int fd)
+{
     int result = __real_close(fd);
     if (fail_close && fd == serial_fd) {
         errno = EIO;
@@ -44,7 +47,8 @@ int __wrap_close(int fd) {
     return result;
 }
 ssize_t __real_write(int fd, const void *data, size_t size);
-ssize_t __wrap_write(int fd, const void *data, size_t size) {
+ssize_t __wrap_write(int fd, const void *data, size_t size)
+{
     ssize_t count = __real_write(fd, data, size);
     if (hangup_after_write && fd == serial_fd && count > 0) {
         hangup_after_write = false;
@@ -53,7 +57,8 @@ ssize_t __wrap_write(int fd, const void *data, size_t size) {
     return count;
 }
 int __real_poll(struct pollfd *fds, nfds_t count, int timeout);
-int __wrap_poll(struct pollfd *fds, nfds_t count, int timeout) {
+int __wrap_poll(struct pollfd *fds, nfds_t count, int timeout)
+{
     if (expire_wait && timeout > 0) {
         expire_wait = false;
         pause_ms(25);
@@ -68,11 +73,13 @@ int __wrap_poll(struct pollfd *fds, nfds_t count, int timeout) {
 crux_status_t __real_serial_port_read(uint32_t port, void *buffer, size_t size,
                                       const serial_deadline_t *deadline, size_t *count);
 crux_status_t __wrap_serial_port_read(uint32_t port, void *buffer, size_t size,
-                                      const serial_deadline_t *deadline, size_t *count) {
+                                      const serial_deadline_t *deadline, size_t *count)
+{
     atomic_store(&read_admitted, true);
     return __real_serial_port_read(port, buffer, size, deadline, count);
 }
-static void setup(void) {
+static void setup(void)
+{
     master = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK);
     assert(master >= 0 && grantpt(master) == 0 && unlockpt(master) == 0);
     path = ptsname(master);
@@ -80,12 +87,14 @@ static void setup(void) {
     assert(crux_serial_linux_bind(0, path) == CRUX_OK);
     assert(crux_serial_open(0, &config, &serial) == CRUX_OK);
 }
-static void cleanup(void) {
+static void cleanup(void)
+{
     assert(crux_serial_close(&serial) == CRUX_OK && serial.slot == 0);
     assert(close(master) == 0);
 }
 // NOLINTEND(bugprone-reserved-identifier)
-static void basic(void) {
+static void basic(void)
+{
     setup();
     const unsigned char input[] = {0, 255, 10, 13, 127};
     assert(write(master, input, sizeof(input)) == (ssize_t)sizeof(input));
@@ -120,7 +129,8 @@ static void basic(void) {
     assert(crux_serial_read(stale, output, 1, 0, &n) == CRUX_ERR_INVALID_STATE && n == 0);
     cleanup();
 }
-static void waiting(void) {
+static void waiting(void)
+{
     setup();
     unsigned char byte = 17;
     size_t n = 99;
@@ -131,14 +141,16 @@ static void waiting(void) {
     assert(crux_serial_read(serial, &byte, 1, 200, &n) == CRUX_OK && n == 1 && byte == 'Z');
     cleanup();
 }
-static void *reader(void *arg) {
+static void *reader(void *arg)
+{
     (void)arg;
     unsigned char byte = 0;
     size_t n = 0;
     assert(crux_serial_read(serial, &byte, 1, 1000, &n) == CRUX_OK && n == 1 && byte == 'R');
     return NULL;
 }
-static void concurrent(void) {
+static void concurrent(void)
+{
     setup();
     pthread_t thread;
     assert(pthread_create(&thread, NULL, reader, NULL) == 0);
@@ -158,7 +170,8 @@ static void concurrent(void) {
     assert(pthread_join(thread, NULL) == 0);
     cleanup();
 }
-static void hangup(void) {
+static void hangup(void)
+{
     setup();
     assert(close(master) == 0);
     unsigned char byte = 19;
@@ -169,18 +182,21 @@ static void hangup(void) {
     crux_status_t result = crux_serial_close(&serial);
     assert((result == CRUX_OK || result == CRUX_ERR_IO) && serial.slot == 0);
 }
-static void cleanup_failure(void) {
+static void cleanup_failure(void)
+{
     setup();
     fail_close = true;
     assert(crux_serial_close(&serial) == CRUX_ERR_IO && serial.slot == 0);
     assert(crux_serial_open(0, &config, &serial) == CRUX_ERR_NOT_READY && serial.slot == 0);
     assert(close(master) == 0);
 }
-static void unavailable(void) {
+static void unavailable(void)
+{
     assert(crux_serial_linux_bind(0, "/dev/crux-no-such-serial-test") == CRUX_OK);
     assert(crux_serial_open(0, &config, &serial) == CRUX_ERR_NOT_READY && serial.slot == 0);
 }
-static void admission(void) {
+static void admission(void)
+{
     setup();
     assert(write(master, "A", 1) == 1);
     assert(serial_port_metadata_lock(NULL) == CRUX_OK);
@@ -193,7 +209,8 @@ static void admission(void) {
     assert(crux_serial_read(serial, &byte, 1, 200, &count) == CRUX_OK && count == 1 && byte == 'A');
     cleanup();
 }
-static void committed_prefix(void) {
+static void committed_prefix(void)
+{
     setup();
     hangup_after_write = true;
     size_t count = 0;
@@ -204,7 +221,8 @@ static void committed_prefix(void) {
     crux_status_t result = crux_serial_close(&serial);
     assert((result == CRUX_OK || result == CRUX_ERR_IO) && serial.slot == 0);
 }
-static void configuration(void) {
+static void configuration(void)
+{
     setup();
     assert(crux_serial_close(&serial) == CRUX_OK);
     crux_serial_config_t alternative = {9600, 8, 2, CRUX_SERIAL_PARITY_NONE};
@@ -216,7 +234,8 @@ static void configuration(void) {
     assert((actual.c_lflag & (ICANON | ECHO)) == 0 && (actual.c_oflag & OPOST) == 0);
     cleanup();
 }
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     assert(argc == 2);
     if (!strcmp(argv[1], "basic"))
         basic();

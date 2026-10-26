@@ -43,22 +43,26 @@ typedef struct {
 #define CRUX_DURATION_SEC_INIT(sec) {(int64_t)(sec) * INT64_C(1000000000)}
 
 /* These signed 32-bit input ranges are safe to multiply into int64_t ns. */
-static inline crux_duration_t crux_duration_from_ns(int64_t ns) {
+static inline crux_duration_t crux_duration_from_ns(int64_t ns)
+{
     crux_duration_t result = {ns};
     return result;
 }
 
-static inline crux_duration_t crux_duration_from_us(int32_t us) {
+static inline crux_duration_t crux_duration_from_us(int32_t us)
+{
     crux_duration_t result = {(int64_t)us * INT64_C(1000)};
     return result;
 }
 
-static inline crux_duration_t crux_duration_from_ms(int32_t ms) {
+static inline crux_duration_t crux_duration_from_ms(int32_t ms)
+{
     crux_duration_t result = {(int64_t)ms * INT64_C(1000000)};
     return result;
 }
 
-static inline crux_duration_t crux_duration_from_sec(int32_t seconds) {
+static inline crux_duration_t crux_duration_from_sec(int32_t seconds)
+{
     crux_duration_t result = {(int64_t)seconds * INT64_C(1000000000)};
     return result;
 }
@@ -71,30 +75,35 @@ crux_status_t crux_duration_try_from_us(int64_t us, crux_duration_t *out);
 crux_status_t crux_duration_try_from_ms(int64_t ms, crux_duration_t *out);
 crux_status_t crux_duration_try_from_sec(int64_t sec, crux_duration_t *out);
 
-static inline int64_t crux_duration_to_ns(crux_duration_t duration) {
+static inline int64_t crux_duration_to_ns(crux_duration_t duration)
+{
     return duration.private_ns;
 }
 
 /* Signed mathematical floor and ceil; valid over the full int64_t ns range. */
-static inline int64_t crux_duration_to_us_floor(crux_duration_t duration) {
+static inline int64_t crux_duration_to_us_floor(crux_duration_t duration)
+{
     int64_t q = duration.private_ns / INT64_C(1000);
     int64_t r = duration.private_ns % INT64_C(1000);
     return q - (r < 0 ? 1 : 0);
 }
 
-static inline int64_t crux_duration_to_us_ceil(crux_duration_t duration) {
+static inline int64_t crux_duration_to_us_ceil(crux_duration_t duration)
+{
     int64_t q = duration.private_ns / INT64_C(1000);
     int64_t r = duration.private_ns % INT64_C(1000);
     return q + (r > 0 ? 1 : 0);
 }
 
-static inline int64_t crux_duration_to_ms_floor(crux_duration_t duration) {
+static inline int64_t crux_duration_to_ms_floor(crux_duration_t duration)
+{
     int64_t q = duration.private_ns / INT64_C(1000000);
     int64_t r = duration.private_ns % INT64_C(1000000);
     return q - (r < 0 ? 1 : 0);
 }
 
-static inline int64_t crux_duration_to_ms_ceil(crux_duration_t duration) {
+static inline int64_t crux_duration_to_ms_ceil(crux_duration_t duration)
+{
     int64_t q = duration.private_ns / INT64_C(1000000);
     int64_t r = duration.private_ns % INT64_C(1000000);
     return q + (r > 0 ? 1 : 0);
@@ -103,12 +112,13 @@ static inline int64_t crux_duration_to_ms_ceil(crux_duration_t duration) {
 /* Operands must be monotonic samples from one provider and execution session.
  * Invalid manually constructed negative timestamps violate the API contract.
  */
-static inline bool crux_monotonic_is_before(crux_monotonic_time_t a, crux_monotonic_time_t b) {
+static inline bool crux_monotonic_is_before(crux_monotonic_time_t a, crux_monotonic_time_t b)
+{
     return a.private_ns < b.private_ns;
 }
 
-static inline bool crux_monotonic_is_at_or_before(crux_monotonic_time_t a,
-                                                  crux_monotonic_time_t b) {
+static inline bool crux_monotonic_is_at_or_before(crux_monotonic_time_t a, crux_monotonic_time_t b)
+{
     return a.private_ns <= b.private_ns;
 }
 

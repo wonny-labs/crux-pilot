@@ -8,13 +8,15 @@
 
 extern "C" int crux_time_types_c_smoke(void);
 
-TEST(TimeTypes, CAndCppConsumersCompileAndLink) {
+TEST(TimeTypes, CAndCppConsumersCompileAndLink)
+{
     EXPECT_EQ(crux_time_types_c_smoke(), 1);
     EXPECT_FALSE((std::is_same<crux_duration_t, crux_monotonic_time_t>::value));
     EXPECT_FALSE((std::is_same<crux_duration_t, crux_realtime_t>::value));
 }
 
-TEST(TimeTypes, SignedSafeConstructorsAndStaticInitialisers) {
+TEST(TimeTypes, SignedSafeConstructorsAndStaticInitialisers)
+{
     static const crux_duration_t negative_static = CRUX_DURATION_SEC_INIT(-2);
     EXPECT_EQ(negative_static.private_ns, -INT64_C(2000000000));
     EXPECT_EQ(crux_duration_from_ns(-1).private_ns, -1);
@@ -27,7 +29,8 @@ TEST(TimeTypes, SignedSafeConstructorsAndStaticInitialisers) {
               (int64_t)INT32_MIN * INT64_C(1000000000));
 }
 
-TEST(TimeTypes, CheckedConstructorsAllowNegativeAndPreserveOutput) {
+TEST(TimeTypes, CheckedConstructorsAllowNegativeAndPreserveOutput)
+{
     const struct {
         int64_t factor;
         crux_status_t (*create)(int64_t, crux_duration_t *);
@@ -50,7 +53,8 @@ TEST(TimeTypes, CheckedConstructorsAllowNegativeAndPreserveOutput) {
     }
 }
 
-TEST(TimeTypes, SignedFloorAndCeilAtEdges) {
+TEST(TimeTypes, SignedFloorAndCeilAtEdges)
+{
     auto check = [](int64_t ns, int64_t uf, int64_t uc, int64_t mf, int64_t mc) {
         const crux_duration_t value = crux_duration_from_ns(ns);
         EXPECT_EQ(crux_duration_to_ns(value), ns);
@@ -66,7 +70,8 @@ TEST(TimeTypes, SignedFloorAndCeilAtEdges) {
     check(-1500, -2, -1, -1, 0);
 }
 
-TEST(TimeTypes, SignedFloorAndCeilHandleInt64Extremes) {
+TEST(TimeTypes, SignedFloorAndCeilHandleInt64Extremes)
+{
     const crux_duration_t max_value = crux_duration_from_ns(INT64_MAX);
     const crux_duration_t min_value = crux_duration_from_ns(INT64_MIN);
     EXPECT_EQ(crux_duration_to_us_floor(max_value), INT64_MAX / 1000);
@@ -79,7 +84,8 @@ TEST(TimeTypes, SignedFloorAndCeilHandleInt64Extremes) {
     EXPECT_EQ(crux_duration_to_ms_ceil(min_value), INT64_MIN / 1000000);
 }
 
-TEST(TimeTypes, MonotonicArithmeticHasCheckedNonnegativeDomain) {
+TEST(TimeTypes, MonotonicArithmeticHasCheckedNonnegativeDomain)
+{
     crux_monotonic_time_t out{88};
     crux_monotonic_time_t base{100};
     EXPECT_EQ(crux_monotonic_add_duration(base, crux_duration_from_ns(-100), &out), CRUX_OK);
@@ -100,7 +106,8 @@ TEST(TimeTypes, MonotonicArithmeticHasCheckedNonnegativeDomain) {
     EXPECT_EQ(out.private_ns, INT64_MAX - 1);
 }
 
-TEST(TimeTypes, MonotonicComparisonsAndSignedDifference) {
+TEST(TimeTypes, MonotonicComparisonsAndSignedDifference)
+{
     const crux_monotonic_time_t early{0};
     const crux_monotonic_time_t late{INT64_MAX};
     EXPECT_TRUE(crux_monotonic_is_before(early, late));

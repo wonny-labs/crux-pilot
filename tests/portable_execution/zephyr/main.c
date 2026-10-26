@@ -17,50 +17,65 @@ int execution_admission_cases(void);
 int execution_metadata_admission_case(void);
 int crux_firmware_run(void);
 
-uint64_t execution_test_now_ns(void) {
+uint64_t execution_test_now_ns(void)
+{
     return k_ticks_to_ns_floor64(k_uptime_ticks());
 }
-ZTEST(portable_execution, test_thread_lifetime) {
+ZTEST(portable_execution, test_thread_lifetime)
+{
     zassert_equal(execution_thread_lifetime(), 0);
 }
-ZTEST(portable_execution, test_thread_inputs) {
+ZTEST(portable_execution, test_thread_inputs)
+{
     zassert_equal(execution_thread_inputs(), 0);
 }
-ZTEST(portable_execution, test_thread_capacity) {
+ZTEST(portable_execution, test_thread_capacity)
+{
     zassert_equal(execution_thread_capacity(), 0);
 }
-ZTEST(portable_execution, test_mutex_ownership) {
+ZTEST(portable_execution, test_mutex_ownership)
+{
     zassert_equal(execution_mutex_ownership(), 0);
 }
-ZTEST(portable_execution, test_mutex_wakeup) {
+ZTEST(portable_execution, test_mutex_wakeup)
+{
     zassert_equal(execution_mutex_wakeup(), 0);
 }
-ZTEST(portable_execution, test_semaphore_tokens) {
+ZTEST(portable_execution, test_semaphore_tokens)
+{
     zassert_equal(execution_semaphore_tokens(), 0);
 }
-ZTEST(portable_execution, test_sync_capacity) {
+ZTEST(portable_execution, test_sync_capacity)
+{
     zassert_equal(execution_sync_capacity(), 0);
 }
-ZTEST(portable_execution, test_join_timeout_retains) {
+ZTEST(portable_execution, test_join_timeout_retains)
+{
     zassert_equal(execution_join_timeout_retains(), 0);
 }
-ZTEST(portable_execution, test_concurrent_give) {
+ZTEST(portable_execution, test_concurrent_give)
+{
     zassert_equal(execution_concurrent_give(), 0);
 }
-ZTEST(portable_execution, test_admission_lifetimes) {
+ZTEST(portable_execution, test_admission_lifetimes)
+{
     zassert_equal(execution_admission_cases(), 0);
 }
-ZTEST(portable_execution, test_metadata_admission_deadlines) {
+ZTEST(portable_execution, test_metadata_admission_deadlines)
+{
     zassert_equal(execution_metadata_admission_case(), 0);
 }
-ZTEST(portable_execution, test_firmware_consumer) {
+ZTEST(portable_execution, test_firmware_consumer)
+{
     zassert_equal(crux_firmware_run(), 0);
 }
 
-static void noop(void *argument) {
+static void noop(void *argument)
+{
     (void)argument;
 }
-static void reject_isr(const void *argument) {
+static void reject_isr(const void *argument)
+{
     (void)argument;
     crux_thread_t thread = {.slot = UINT32_MAX, .generation = UINT32_MAX};
     crux_mutex_t mutex = {.slot = UINT32_MAX, .generation = UINT32_MAX};
@@ -83,7 +98,8 @@ static void reject_isr(const void *argument) {
     zassert_equal(crux_semaphore_give(semaphore), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_semaphore_destroy(&semaphore), CRUX_ERR_NOT_SUPPORTED);
 }
-ZTEST(portable_execution, test_isr_rejected) {
+ZTEST(portable_execution, test_isr_rejected)
+{
     irq_offload(reject_isr, NULL);
 }
 
@@ -94,14 +110,16 @@ typedef struct {
     int result;
 } worker_observation_t;
 
-static void observe_native_worker(void *argument) {
+static void observe_native_worker(void *argument)
+{
     worker_observation_t *observation = argument;
     observation->priority = k_thread_priority_get(k_current_get());
     observation->result = k_thread_stack_space_get(k_current_get(), &observation->unused);
     observation->usable = k_current_get()->stack_info.size;
 }
 
-ZTEST(portable_execution, test_stack_priority_profile) {
+ZTEST(portable_execution, test_stack_priority_profile)
+{
     crux_thread_options_t excessive = {.stack_size_bytes = 4097,
                                        .priority = CRUX_THREAD_PRIORITY_NORMAL};
     crux_thread_t rejected;

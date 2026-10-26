@@ -5,7 +5,8 @@
  * reset automatically. Any future physical commands need separate approval. */
 static controller_system_t boot_diagnostics;
 static system_runtime_observation_t c_observation, cpp_observation;
-int main(void) {
+int main(void)
+{
     if (controller_system_boot(&boot_diagnostics) != CRUX_OK ||
         system_runtime_observe(&c_observation) != CRUX_OK ||
         system_cpp_observe(&cpp_observation) != CRUX_OK)

@@ -1,7 +1,8 @@
 #include <crux/serial.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/ztest.h>
-ZTEST(serial_ownership, test_dedicated_uart_preserves_logging_owner) {
+ZTEST(serial_ownership, test_dedicated_uart_preserves_logging_owner)
+{
     const struct device *dev = DEVICE_DT_GET(DT_NODELABEL(serial_test));
     struct uart_config before, after;
     zassert_ok(uart_config_get(dev, &before));

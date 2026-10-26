@@ -19,7 +19,8 @@
 #include <crux/time.h>
 #endif
 static_assert(__cplusplus >= 201703L, "C++17 consumer");
-extern "C" int external_cpp_consumer(void) {
+extern "C" int external_cpp_consumer(void)
+{
 #if PROFILE_TIME
     return crux_time_get_realtime(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
 #elif PROFILE_DELAY

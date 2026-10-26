@@ -14,30 +14,36 @@ static bool context = true;
 static int64_t now_ns = 100, upper_ns = 110, original_deadline;
 static int reads, upper_reads, waits, bad_deadlines;
 static crux_status_t read_status = CRUX_OK, wait_status = CRUX_OK;
-bool thread_native_context_allowed(void) {
+bool thread_native_context_allowed(void)
+{
     return context;
 }
-bool crux_time_clock_is_thread(void) {
+bool crux_time_clock_is_thread(void)
+{
     return context;
 }
-crux_status_t crux_time_clock_read(int64_t *out) {
+crux_status_t crux_time_clock_read(int64_t *out)
+{
     ++reads;
     *out = now_ns;
     return read_status;
 }
-crux_status_t crux_time_clock_read_upper_bound(int64_t *out) {
+crux_status_t crux_time_clock_read_upper_bound(int64_t *out)
+{
     ++upper_reads;
     *out = upper_ns;
     return read_status;
 }
-crux_status_t thread_native_sleep_until(int64_t deadline) {
+crux_status_t thread_native_sleep_until(int64_t deadline)
+{
     if (deadline != original_deadline)
         ++bad_deadlines;
     ++waits;
     now_ns += 1;
     return wait_status;
 }
-int main(void) {
+int main(void)
+{
     CHECK(crux_thread_sleep_for(crux_duration_from_ns(0)) == CRUX_OK);
     CHECK(reads == 0 && upper_reads == 0 && waits == 0);
     CHECK(crux_thread_sleep_for(crux_duration_from_ns(-1)) == CRUX_ERR_INVALID_ARGUMENT);

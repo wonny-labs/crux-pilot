@@ -2,7 +2,8 @@
 #include <crux/queue.h>
 #include <stdint.h>
 #include <stdio.h>
-int main(void) {
+int main(void)
+{
     crux_queue_t q = {0};
     assert(crux_queue_create(2, sizeof(uint32_t), &q) == CRUX_OK);
     uint32_t a = 42, b = 0;

@@ -9,7 +9,8 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
-static void peer(int master, size_t size) {
+static void peer(int master, size_t size)
+{
     unsigned char frame[16];
     size_t offset = 0;
     while (offset < size) {
@@ -34,7 +35,8 @@ static void peer(int master, size_t size) {
     }
     usleep(30000); /* Keep the peer alive through acknowledgement and cleanup. */
 }
-int main(void) {
+int main(void)
+{
     int master = posix_openpt(O_RDWR | O_NOCTTY);
     assert(master >= 0 && grantpt(master) == 0 && unlockpt(master) == 0);
     assert(crux_serial_linux_bind(0, ptsname(master)) == CRUX_OK);

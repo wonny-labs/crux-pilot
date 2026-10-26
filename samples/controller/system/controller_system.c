@@ -1,6 +1,7 @@
 #include "controller_system.h"
 #include <stddef.h>
-crux_status_t controller_system_boot(controller_system_t *out) {
+crux_status_t controller_system_boot(controller_system_t *out)
+{
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     controller_system_t value = {0};
@@ -15,7 +16,8 @@ crux_status_t controller_system_boot(controller_system_t *out) {
 }
 crux_status_t controller_system_feed(controller_system_t *state, crux_watchdog_t watchdog,
                                      int64_t now_ms, controller_progress_t time,
-                                     controller_progress_t network) {
+                                     controller_progress_t network)
+{
     if (state == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     if (!controller_health_joint_observe(&state->time_health, &state->network_health, now_ms, time,

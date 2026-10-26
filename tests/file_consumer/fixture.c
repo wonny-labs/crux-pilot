@@ -2,7 +2,8 @@
 #include "file_linux.h"
 #include <stdlib.h>
 #include <unistd.h>
-int main(void) {
+int main(void)
+{
     char root[] = "/tmp/crux-file-consumer-XXXXXX";
     if (!mkdtemp(root))
         return 100;

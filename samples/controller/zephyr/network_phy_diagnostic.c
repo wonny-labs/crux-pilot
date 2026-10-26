@@ -9,7 +9,8 @@
 /* Private RT1062 observations; never write a MAC or PHY register here. */
 BUILD_ASSERT(DT_REG_ADDR(DT_GPARENT(DT_NODELABEL(phy))) == 0x402d8000);
 
-void network_phy_diagnostic_mac(unsigned int phase) {
+void network_phy_diagnostic_mac(unsigned int phase)
+{
     const volatile ENET_Type *mac =
         (const volatile ENET_Type *)DT_REG_ADDR(DT_GPARENT(DT_NODELABEL(phy)));
     uint32_t eir = mac->EIR;
@@ -26,7 +27,8 @@ void network_phy_diagnostic_mac(unsigned int phase) {
            phase, (long long)k_uptime_get(), eir, eimr, ecr, rcr, tcr, rdar, tdar, mscr, mmfr);
 }
 
-void network_phy_diagnostic_after_round(void) {
+void network_phy_diagnostic_after_round(void)
+{
     network_phy_diagnostic_mac(2);
     struct net_if *iface = net_if_get_default();
     const struct device *phy = DEVICE_DT_GET(DT_NODELABEL(phy));

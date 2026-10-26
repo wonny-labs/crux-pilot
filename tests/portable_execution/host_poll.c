@@ -20,7 +20,8 @@ int __real_pthread_mutex_init(pthread_mutex_t *, const pthread_mutexattr_t *);
 int __real_pthread_mutex_lock(pthread_mutex_t *);
 int __real_pthread_mutex_trylock(pthread_mutex_t *);
 
-int __wrap_pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr) {
+int __wrap_pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
+{
     int result = __real_pthread_mutex_init(mutex, attr);
     if (capture && result == 0) {
         bookkeeping = mutex;
@@ -28,13 +29,15 @@ int __wrap_pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t 
     }
     return result;
 }
-int __wrap_pthread_mutex_lock(pthread_mutex_t *mutex) {
+int __wrap_pthread_mutex_lock(pthread_mutex_t *mutex)
+{
     if (mutex == bookkeeping) {
         (void)sem_post(&attempted);
     }
     return __real_pthread_mutex_lock(mutex);
 }
-int __wrap_pthread_mutex_trylock(pthread_mutex_t *mutex) {
+int __wrap_pthread_mutex_trylock(pthread_mutex_t *mutex)
+{
     int result = __real_pthread_mutex_trylock(mutex);
     if (mutex == bookkeeping) {
         (void)sem_post(&attempted);
@@ -43,7 +46,8 @@ int __wrap_pthread_mutex_trylock(pthread_mutex_t *mutex) {
 }
 // NOLINTEND(bugprone-reserved-identifier)
 
-static void *hold_bookkeeping(void *unused) {
+static void *hold_bookkeeping(void *unused)
+{
     (void)unused;
     (void)__real_pthread_mutex_lock(bookkeeping);
     (void)sem_post(&ready);
@@ -52,14 +56,16 @@ static void *hold_bookkeeping(void *unused) {
     return NULL;
 }
 
-static void *poll_available_token(void *unused) {
+static void *poll_available_token(void *unused)
+{
     (void)unused;
     poll_result = crux_semaphore_take(tokens, 0);
     (void)sem_post(&completed);
     return NULL;
 }
 
-static int wait_for(sem_t *semaphore, long milliseconds) {
+static int wait_for(sem_t *semaphore, long milliseconds)
+{
     struct timespec deadline;
     if (clock_gettime(CLOCK_REALTIME, &deadline) != 0) {
         return -1;
@@ -70,7 +76,8 @@ static int wait_for(sem_t *semaphore, long milliseconds) {
     return sem_timedwait(semaphore, &deadline);
 }
 
-int main(void) {
+int main(void)
+{
     if (sem_init(&ready, 0, 0) != 0 || sem_init(&attempted, 0, 0) != 0 ||
         sem_init(&release, 0, 0) != 0 || sem_init(&completed, 0, 0) != 0) {
         return 1;

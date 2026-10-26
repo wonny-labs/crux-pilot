@@ -5,7 +5,8 @@
 #include <stdio.h>
 #include <time.h>
 
-static int64_t monotonic_ms(void) {
+static int64_t monotonic_ms(void)
+{
     struct timespec now;
     if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
         return -1;
@@ -13,7 +14,8 @@ static int64_t monotonic_ms(void) {
     return (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
 }
 
-int main(void) {
+int main(void)
+{
     crux_status_t status = crux_time_init();
     printf("controller composition=host-controlled init=%d\n", status);
     if (status != CRUX_OK) {

@@ -22,7 +22,8 @@
 #endif
 #endif
 
-static void assert_shell_result(const char *command, const char *expected) {
+static void assert_shell_result(const char *command, const char *expected)
+{
     const struct shell *shell = shell_backend_dummy_get_ptr();
     size_t output_size = 0;
     shell_backend_dummy_clear_output(shell);
@@ -31,13 +32,15 @@ static void assert_shell_result(const char *command, const char *expected) {
     zassert_true(output_size > 0);
     zassert_not_null(strstr(output, expected));
 }
-static void *setup(void) {
+static void *setup(void)
+{
     k_usleep(10);
     return NULL;
 }
 ZTEST_SUITE(crux_time_zephyr, NULL, setup, NULL, NULL, NULL);
 
-ZTEST(crux_time_zephyr, test_native_rtc_error_status_mapping) {
+ZTEST(crux_time_zephyr, test_native_rtc_error_status_mapping)
+{
     zassert_equal(crux_time_zephyr_status_from_rtc_error(0), CRUX_OK);
     zassert_equal(crux_time_zephyr_status_from_rtc_error(-ENODATA), CRUX_ERR_NO_DATA);
     zassert_equal(crux_time_zephyr_status_from_rtc_error(-EINVAL), CRUX_ERR_INVALID_ARGUMENT);
@@ -47,7 +50,8 @@ ZTEST(crux_time_zephyr, test_native_rtc_error_status_mapping) {
     zassert_equal(crux_time_zephyr_status_from_rtc_error(-EIO), CRUX_ERR_IO);
 }
 
-ZTEST(crux_time_zephyr, test_system_realtime_and_shared_command_without_rtc_dependency) {
+ZTEST(crux_time_zephyr, test_system_realtime_and_shared_command_without_rtc_dependency)
+{
     crux_time_test_reset();
     zassert_equal(crux_time_init(), CRUX_OK);
     crux_realtime_t instant = {123456789, 73};
@@ -75,7 +79,8 @@ ZTEST(crux_time_zephyr, test_system_realtime_and_shared_command_without_rtc_depe
     zassert_true(snapshot.timestamp.seconds >= INT64_C(2147483648));
 }
 
-ZTEST(crux_time_zephyr, test_fractional_system_clock_authority_and_explicit_adoption) {
+ZTEST(crux_time_zephyr, test_fractional_system_clock_authority_and_explicit_adoption)
+{
     crux_time_test_reset();
     zassert_equal(crux_time_init(), CRUX_OK);
     const crux_realtime_t value = {INT64_C(1792238400), 123456789};
@@ -99,7 +104,8 @@ ZTEST(crux_time_zephyr, test_fractional_system_clock_authority_and_explicit_adop
     zassert_equal(crux_time_notify_sync_state(true), CRUX_ERR_INVALID_STATE);
 }
 
-static void authority_in_isr(const void *unused) {
+static void authority_in_isr(const void *unused)
+{
     ARG_UNUSED(unused);
     crux_realtime_t out = {42, 73};
     const crux_realtime_t value = {INT64_C(1792238400), 0};
@@ -119,13 +125,15 @@ static void authority_in_isr(const void *unused) {
     zassert_equal(snapshot.timestamp.seconds, 42);
     zassert_equal(crux_time_get_realtime(NULL), CRUX_ERR_INVALID_ARGUMENT);
 }
-ZTEST(crux_time_zephyr, test_authority_rejects_isr_without_mutation) {
+ZTEST(crux_time_zephyr, test_authority_rejects_isr_without_mutation)
+{
     irq_offload(authority_in_isr, NULL);
 }
 
 K_THREAD_STACK_DEFINE(writer_stack, 2048);
 static struct k_thread writer_thread;
-static void concurrent_writer(void *a, void *b, void *c) {
+static void concurrent_writer(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
@@ -139,7 +147,8 @@ static void concurrent_writer(void *a, void *b, void *c) {
         k_yield();
     }
 }
-ZTEST(crux_time_zephyr, test_concurrent_native_snapshots_match_authority) {
+ZTEST(crux_time_zephyr, test_concurrent_native_snapshots_match_authority)
+{
     crux_time_test_reset();
     zassert_equal(crux_time_init(), CRUX_OK);
     const crux_realtime_t initial = {INT64_C(1700000000), 0};
@@ -161,7 +170,8 @@ ZTEST(crux_time_zephyr, test_concurrent_native_snapshots_match_authority) {
     zassert_equal(k_thread_join(worker, K_SECONDS(5)), 0);
 }
 
-ZTEST(crux_time_zephyr, test_explicit_rtc_storage_never_controls_system_clock_validity) {
+ZTEST(crux_time_zephyr, test_explicit_rtc_storage_never_controls_system_clock_validity)
+{
     crux_time_test_reset();
     zassert_equal(crux_time_init(), CRUX_OK);
     const crux_realtime_t rtc_value = {INT64_C(1700000000), 0};
@@ -195,7 +205,8 @@ ZTEST(crux_time_zephyr, test_explicit_rtc_storage_never_controls_system_clock_va
 }
 
 #if defined(CRUX_TIME_FAKE_RTC)
-ZTEST(crux_time_zephyr, test_rtc_native_faults_preserve_outputs_and_system_validity) {
+ZTEST(crux_time_zephyr, test_rtc_native_faults_preserve_outputs_and_system_validity)
+{
     crux_time_test_reset();
     zassert_equal(crux_time_init(), CRUX_OK);
     const crux_realtime_t value = {INT64_C(1792238400), 0};
