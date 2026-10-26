@@ -113,6 +113,10 @@ jobs:
         working-directory: crux-pilot
         run: ./scripts/test-system.sh
 
+      - name: Validate integrated M5 software smoke without hardware
+        working-directory: crux-pilot
+        run: ./scripts/test-m5-integrated-smoke.sh
+
       # Avoid repeated glob traversals through large Twister build trees.
       - name: Collect Twister evidence paths
         if: always()
@@ -161,6 +165,16 @@ jobs:
             crux-pilot/build/zephyr/system-evkb/zephyr/.config
             crux-pilot/build/zephyr/system-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/system-evkb/zephyr/zephyr.map
+            crux-pilot/build/evidence/m5-integrated-smoke/
+            crux-pilot/build/zephyr/m5-integrated-evkb/compile_commands.json
+            crux-pilot/build/zephyr/m5-integrated-evkb/provenance.json
+            crux-pilot/build/zephyr/m5-integrated-evkb/rom.json
+            crux-pilot/build/zephyr/m5-integrated-evkb/ram.json
+            crux-pilot/build/zephyr/m5-integrated-evkb/zephyr/.config
+            crux-pilot/build/zephyr/m5-integrated-evkb/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/m5-integrated-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/m5-integrated-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/m5-integrated-evkb/zephyr/zephyr.bin
             crux-pilot/build/system-composition/*/build.log
             crux-pilot/build/serial-consumer/ctest-junit.xml
             crux-pilot/build/zephyr/serial-evkb/zephyr/zephyr.map
