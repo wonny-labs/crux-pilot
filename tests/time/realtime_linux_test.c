@@ -14,7 +14,8 @@ static struct timespec native_time = {1700000000, 123456789};
         }                                                                                          \
     } while (0)
 /* All native writes are intercepted. There is no __real_clock_settime path. */
-int __wrap_clock_gettime(clockid_t clock, struct timespec *out) {
+int __wrap_clock_gettime(clockid_t clock, struct timespec *out)
+{
     CHECK(clock == CLOCK_REALTIME);
     ++get_calls;
     *out = native_time;
@@ -24,7 +25,8 @@ int __wrap_clock_gettime(clockid_t clock, struct timespec *out) {
     }
     return 0;
 }
-int __wrap_clock_settime(clockid_t clock, const struct timespec *value) {
+int __wrap_clock_settime(clockid_t clock, const struct timespec *value)
+{
     CHECK(clock == CLOCK_REALTIME);
     ++set_calls;
     native_time = *value;
@@ -34,7 +36,8 @@ int __wrap_clock_settime(clockid_t clock, const struct timespec *value) {
     }
     return 0;
 }
-int main(void) {
+int main(void)
+{
     CHECK(crux_time_init() == CRUX_OK && get_calls == 0 && set_calls == 0);
     crux_realtime_t out = {42, 73};
     CHECK(crux_time_get_realtime(&out) == CRUX_ERR_NO_DATA && get_calls == 0);

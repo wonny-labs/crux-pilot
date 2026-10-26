@@ -5,11 +5,13 @@
 
 #define NS_PER_SECOND INT64_C(1000000000)
 
-static crux_status_t native_error(void) {
+static crux_status_t native_error(void)
+{
     return errno == ENOSYS || errno == ENOTSUP ? CRUX_ERR_NOT_SUPPORTED : CRUX_ERR_IO;
 }
 
-static crux_status_t timespec_ns(const struct timespec *value, int64_t *out) {
+static crux_status_t timespec_ns(const struct timespec *value, int64_t *out)
+{
     if (value->tv_nsec < 0 || value->tv_nsec >= NS_PER_SECOND)
         return CRUX_ERR_IO;
     if (value->tv_sec < 0 || value->tv_sec > INT64_MAX / NS_PER_SECOND)
@@ -21,7 +23,8 @@ static crux_status_t timespec_ns(const struct timespec *value, int64_t *out) {
     return CRUX_OK;
 }
 
-static crux_status_t read_now(int64_t *out) {
+static crux_status_t read_now(int64_t *out)
+{
     /* This Linux profile uses the native signed64/ns monotonic counter range. */
     if (sizeof(time_t) != sizeof(int64_t) || (time_t)-1 > 0)
         return CRUX_ERR_NOT_SUPPORTED;
@@ -31,7 +34,8 @@ static crux_status_t read_now(int64_t *out) {
     return timespec_ns(&value, out);
 }
 
-static crux_status_t read_upper_bound(int64_t *out) {
+static crux_status_t read_upper_bound(int64_t *out)
+{
     int64_t now;
     crux_status_t status = read_now(&now);
     if (status != CRUX_OK)
@@ -51,7 +55,8 @@ static crux_status_t read_upper_bound(int64_t *out) {
     return CRUX_OK;
 }
 
-crux_status_t crux_delay_port_get_max_ns(int64_t *out) {
+crux_status_t crux_delay_port_get_max_ns(int64_t *out)
+{
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     int64_t upper;
@@ -61,7 +66,8 @@ crux_status_t crux_delay_port_get_max_ns(int64_t *out) {
     return status;
 }
 
-crux_status_t crux_delay_port_wait_ns(int64_t duration_ns) {
+crux_status_t crux_delay_port_wait_ns(int64_t duration_ns)
+{
     if (duration_ns < 0)
         return CRUX_ERR_INVALID_ARGUMENT;
     if (duration_ns == 0)

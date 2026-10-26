@@ -12,7 +12,8 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DT_ALIAS(sw0), okay) == !M3_EXPECT_MISSING,
 BUILD_ASSERT(DT_NODE_HAS_STATUS(DT_NODELABEL(m3_fault_gpio), okay) == M3_EXPECT_READ_ERROR,
              "Read-error fixture does not match the requested scenario");
 
-ZTEST(controller_m3, test_device_contract) {
+ZTEST(controller_m3, test_device_contract)
+{
     int value = 42;
     zassert_equal(controller_device_read(NULL), -EINVAL);
 #if DT_NODE_HAS_STATUS(DT_ALIAS(sw0), okay)
@@ -29,7 +30,8 @@ ZTEST(controller_m3, test_device_contract) {
 #endif
 }
 
-ZTEST(controller_m3, test_active_low_transitions_or_unavailable) {
+ZTEST(controller_m3, test_active_low_transitions_or_unavailable)
+{
     int value = 42;
 #if DT_NODE_HAS_STATUS(DT_ALIAS(sw0), okay)
 #if DT_NODE_HAS_STATUS(DT_NODELABEL(m3_fault_gpio), okay)
@@ -56,7 +58,8 @@ ZTEST(controller_m3, test_active_low_transitions_or_unavailable) {
 }
 
 #if DT_NODE_HAS_STATUS(DT_NODELABEL(m3_fault_gpio), okay)
-ZTEST(controller_m3, test_native_read_error_preserves_output_then_recovers) {
+ZTEST(controller_m3, test_native_read_error_preserves_output_then_recovers)
+{
     int value = 42;
     zassert_equal(controller_device_init(), 0);
     m3_test_gpio_fail_read(true);
@@ -69,7 +72,8 @@ ZTEST(controller_m3, test_native_read_error_preserves_output_then_recovers) {
 }
 #endif
 
-ZTEST(controller_m3, test_progress_stall_delayed_observer_and_recovery) {
+ZTEST(controller_m3, test_progress_stall_delayed_observer_and_recovery)
+{
     controller_health_t health;
     zassert_true(controller_health_init(&health, 500));
     zassert_false(controller_health_observe(&health, 0, (controller_progress_t){-1, 0, false}));
@@ -82,7 +86,8 @@ ZTEST(controller_m3, test_progress_stall_delayed_observer_and_recovery) {
     zassert_true(controller_health_observe(&health, 2300, (controller_progress_t){2300, 4, true}));
 }
 
-ZTEST(controller_m3, test_required_service_failure_is_not_ready) {
+ZTEST(controller_m3, test_required_service_failure_is_not_ready)
+{
     zassert_equal(controller_readiness(true, false, true, true), CONTROLLER_NOT_READY);
     zassert_equal(controller_readiness(true, true, false, true), CONTROLLER_NOT_READY);
     zassert_equal(controller_readiness(true, true, true, false), CONTROLLER_DEGRADED);

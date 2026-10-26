@@ -6,7 +6,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-int main(void) {
+int main(void)
+{
     crux_realtime_t now = {0, 0};
     const crux_realtime_t start = {CRUX_TIME_MIN_UNIX_SECONDS, 0};
     crux_time_utc_t utc;

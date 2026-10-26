@@ -8,7 +8,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-static size_t descriptor_count(void) {
+static size_t descriptor_count(void)
+{
     DIR *directory = opendir("/proc/self/fd");
     assert(directory);
     size_t count = 0;
@@ -17,7 +18,8 @@ static size_t descriptor_count(void) {
     assert(closedir(directory) == 0);
     return count;
 }
-int main(void) {
+int main(void)
+{
     crux_file_t *f = NULL;
     size_t n;
     char b[8] = {0};

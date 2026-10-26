@@ -26,11 +26,13 @@ static bool pair_active, carrier = true;
 static char output[65536];
 static size_t output_size;
 static struct k_thread fake_thread;
-static int64_t fake_now(void) {
+static int64_t fake_now(void)
+{
     return clock_ms;
 }
 static int fake_sleep(k_timeout_t timeout);
-static void fake_print(const char *format, ...) {
+static void fake_print(const char *format, ...)
+{
     va_list args;
     va_start(args, format);
     int size = vsnprintf(output + output_size, sizeof(output) - output_size, format, args);
@@ -38,7 +40,8 @@ static void fake_print(const char *format, ...) {
     zassert_true(size >= 0 && (size_t)size < sizeof(output) - output_size, "fixture log overflow");
     output_size += (size_t)size;
 }
-static int fake_pair(unsigned int trial, unsigned int sequence, int64_t deadline) {
+static int fake_pair(unsigned int trial, unsigned int sequence, int64_t deadline)
+{
     zassert_equal(trial, 1);
     zassert_equal(sequence, (unsigned int)pair_count + 1);
     zassert_equal(deadline, clock_ms + 14000);
@@ -47,19 +50,23 @@ static int fake_pair(unsigned int trial, unsigned int sequence, int64_t deadline
     clock_ms += 100;
     return pair_result;
 }
-static void fake_report(void) {
+static void fake_report(void)
+{
 }
-static int fake_init(void) {
+static int fake_init(void)
+{
     return 0;
 }
-static int fake_stack(const struct k_thread *thread, size_t *unused) {
+static int fake_stack(const struct k_thread *thread, size_t *unused)
+{
     ARG_UNUSED(thread);
     *unused = 2048;
     return 0;
 }
 static k_tid_t fake_create(struct k_thread *thread, k_thread_stack_t *stack, size_t size,
                            k_thread_entry_t entry, void *a, void *b, void *c, int priority,
-                           uint32_t options, k_timeout_t delay) {
+                           uint32_t options, k_timeout_t delay)
+{
     ARG_UNUSED(stack);
     ARG_UNUSED(size);
     ARG_UNUSED(entry);
@@ -71,63 +78,78 @@ static k_tid_t fake_create(struct k_thread *thread, k_thread_stack_t *stack, siz
     ARG_UNUSED(delay);
     return thread;
 }
-static int fake_name(k_tid_t thread, const char *name) {
+static int fake_name(k_tid_t thread, const char *name)
+{
     ARG_UNUSED(thread);
     ARG_UNUSED(name);
     return 0;
 }
-static void fake_analyzer(unsigned int cpu) {
+static void fake_analyzer(unsigned int cpu)
+{
     ARG_UNUSED(cpu);
 }
-static struct k_thread *fake_current(void) {
+static struct k_thread *fake_current(void)
+{
     return &fake_thread;
 }
-static struct net_if *fake_interface(void) {
+static struct net_if *fake_interface(void)
+{
     return (struct net_if *)&fake_thread;
 }
-static bool fake_carrier(struct net_if *iface) {
+static bool fake_carrier(struct net_if *iface)
+{
     ARG_UNUSED(iface);
     return carrier;
 }
-static bool fake_ready(const struct device *device) {
+static bool fake_ready(const struct device *device)
+{
     ARG_UNUSED(device);
     return true;
 }
-static int fake_install(const struct device *d, const struct wdt_timeout_cfg *cfg) {
+static int fake_install(const struct device *d, const struct wdt_timeout_cfg *cfg)
+{
     ARG_UNUSED(d);
     zassert_equal(cfg->window.max, 2000);
     return 0;
 }
-static int fake_setup(const struct device *d, uint8_t options) {
+static int fake_setup(const struct device *d, uint8_t options)
+{
     ARG_UNUSED(d);
     ARG_UNUSED(options);
     setups++;
     return 0;
 }
-static int fake_feed(const struct device *d, int channel) {
+static int fake_feed(const struct device *d, int channel)
+{
     ARG_UNUSED(d);
     ARG_UNUSED(channel);
     feeds++;
     return 0;
 }
-static int fake_cause(uint32_t *value) {
+static int fake_cause(uint32_t *value)
+{
     *value = 0x10;
     return 0;
 }
-static int fake_clear(void) {
+static int fake_clear(void)
+{
     return 0;
 }
-static int fake_device(int *pressed) {
+static int fake_device(int *pressed)
+{
     *pressed = 0;
     return 0;
 }
-static crux_status_t fake_time(void) {
+static crux_status_t fake_time(void)
+{
     return CRUX_OK;
 }
-static controller_reading_t fake_observe(uint32_t cycle) {
+static controller_reading_t fake_observe(uint32_t cycle)
+{
     return (controller_reading_t){.cycle = cycle, .status = CRUX_ERR_NO_DATA};
 }
-static crux_status_t fake_advance(controller_schedule_t *schedule, int64_t now) {
+static crux_status_t fake_advance(controller_schedule_t *schedule, int64_t now)
+{
     schedule->deadline_ms = now + 100;
     return CRUX_OK;
 }
@@ -170,7 +192,8 @@ static crux_status_t fake_advance(controller_schedule_t *schedule, int64_t now) 
 #include "../../../samples/controller/zephyr/m3_main.c"
 #undef main
 
-static int fake_sleep(k_timeout_t timeout) {
+static int fake_sleep(k_timeout_t timeout)
+{
     if (K_TIMEOUT_EQ(timeout, K_FOREVER)) {
         forever_count++;
         longjmp(exit_loop, 1);
@@ -209,7 +232,8 @@ static int fake_sleep(k_timeout_t timeout) {
         longjmp(exit_loop, 1);
     return 0;
 }
-static void reset_fixture(void) {
+static void reset_fixture(void)
+{
     clock_ms = 0;
     stop_ms = 65000;
     pair_result = 0;
@@ -227,7 +251,8 @@ static void reset_fixture(void) {
     atomic_set(&network_window_request, 0);
     atomic_set(&network_stall_request, 0);
 }
-ZTEST(composition, test_no_automatic_window_and_single_request) {
+ZTEST(composition, test_no_automatic_window_and_single_request)
+{
     stop_ms = 1000;
     if (setjmp(exit_loop) == 0)
         run_network(NULL, NULL, NULL);
@@ -236,7 +261,8 @@ ZTEST(composition, test_no_automatic_window_and_single_request) {
     zassert_equal(request_network(NULL, 0, NULL), 0);
     zassert_equal(request_network(NULL, 0, NULL), -EALREADY);
 }
-ZTEST(composition, test_window_expires_without_new_pair_or_false_success) {
+ZTEST(composition, test_window_expires_without_new_pair_or_false_success)
+{
     atomic_set(&network_window_request, 1);
     if (setjmp(exit_loop) == 0)
         run_network(NULL, NULL, NULL);
@@ -246,7 +272,8 @@ ZTEST(composition, test_window_expires_without_new_pair_or_false_success) {
     zassert_equal(atomic_get(&network_window_request), 3);
     zassert_not_null(strstr(output, "M3_NET_WINDOW_STOP monotonic_ms=60000 result=0"));
 }
-ZTEST(composition, test_pair_failure_publishes_inactive_and_stops) {
+ZTEST(composition, test_pair_failure_publishes_inactive_and_stops)
+{
     pair_result = -EIO;
     atomic_set(&network_window_request, 1);
     if (setjmp(exit_loop) == 0)
@@ -256,7 +283,8 @@ ZTEST(composition, test_pair_failure_publishes_inactive_and_stops) {
     zassert_false(read_network().ok);
     zassert_false(read_network().active);
 }
-ZTEST(composition, test_network_owner_consumes_fault_at_boundary) {
+ZTEST(composition, test_network_owner_consumes_fault_at_boundary)
+{
     scenario = 3;
     atomic_set(&network_window_request, 1);
     if (setjmp(exit_loop) == 0)
@@ -265,7 +293,8 @@ ZTEST(composition, test_network_owner_consumes_fault_at_boundary) {
     zassert_equal(forever_count, 1);
     zassert_not_null(strstr(output, "M3_NET_FAULT_STALL"));
 }
-ZTEST(composition, test_expired_and_late_faults_are_rejected) {
+ZTEST(composition, test_expired_and_late_faults_are_rejected)
+{
     atomic_set(&network_window_request, 1);
     network_stall_requested = -15001;
     network_stall_deadline = -1;
@@ -286,7 +315,8 @@ ZTEST(composition, test_expired_and_late_faults_are_rejected) {
     zassert_equal(forever_count, 0);
     zassert_not_null(strstr(output, "reason=inactive_or_window_budget"));
 }
-ZTEST(composition, test_joint_arm_and_owner_failure_stop_feeding) {
+ZTEST(composition, test_joint_arm_and_owner_failure_stop_feeding)
+{
     scenario = 1;
     stop_ms = 4000;
     if (setjmp(exit_loop) == 0)
@@ -303,7 +333,8 @@ ZTEST(composition, test_joint_arm_and_owner_failure_stop_feeding) {
     zassert_not_null(strstr(output, "M3_HEALTH_STALE monotonic_ms=2500"));
 }
 
-ZTEST(composition, test_actual_work_owner_accepts_valid_fault) {
+ZTEST(composition, test_actual_work_owner_accepts_valid_fault)
+{
     network_snapshot.active = true;
     network_snapshot.window_end_ms = 60000;
     work_stall_requested = 0;
@@ -314,7 +345,8 @@ ZTEST(composition, test_actual_work_owner_accepts_valid_fault) {
     zassert_equal(forever_count, 1);
     zassert_not_null(strstr(output, "M3_FAULT_STALL"));
 }
-ZTEST(composition, test_network_owner_rejects_late_fault_before_stall) {
+ZTEST(composition, test_network_owner_rejects_late_fault_before_stall)
+{
     scenario = 6;
     atomic_set(&network_window_request, 1);
     if (setjmp(exit_loop) == 0)
@@ -323,7 +355,8 @@ ZTEST(composition, test_network_owner_rejects_late_fault_before_stall) {
     zassert_not_null(strstr(output, "reason=window_budget"));
     zassert_is_null(strstr(output, "M3_NET_FAULT_STALL"));
 }
-ZTEST(composition, test_actual_arm_rejects_short_health_and_insufficient_window) {
+ZTEST(composition, test_actual_arm_rejects_short_health_and_insufficient_window)
+{
     scenario = 4;
     stop_ms = 4000;
     if (setjmp(exit_loop) == 0)
@@ -340,7 +373,8 @@ ZTEST(composition, test_actual_arm_rejects_short_health_and_insufficient_window)
     zassert_equal(feeds, 0);
     zassert_not_null(strstr(output, "M3_ARM_REJECTED not_healthy"));
 }
-static void before(void *fixture) {
+static void before(void *fixture)
+{
     ARG_UNUSED(fixture);
     reset_fixture();
 }

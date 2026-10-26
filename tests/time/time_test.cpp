@@ -6,19 +6,23 @@
 #include <gtest/gtest.h>
 #include <thread>
 
-static crux_status_t set_manual(crux_realtime_t value) {
+static crux_status_t set_manual(crux_realtime_t value)
+{
     return crux_time_set_realtime(&value, CRUX_TIME_SOURCE_MANUAL, false);
 }
 
-class TimeApiTest : public ::testing::Test {
+class TimeApiTest : public ::testing::Test
+{
   protected:
-    void SetUp() override {
+    void SetUp() override
+    {
         crux_time_test_reset();
         crux_time_host_test_reset();
     }
 };
 
-TEST_F(TimeApiTest, InitStartsReadyButUnset) {
+TEST_F(TimeApiTest, InitStartsReadyButUnset)
+{
     crux_realtime_t out = {123, 0};
 
     EXPECT_EQ(crux_time_init(), CRUX_OK);
@@ -26,7 +30,8 @@ TEST_F(TimeApiTest, InitStartsReadyButUnset) {
     EXPECT_EQ(out.seconds, 123);
 }
 
-TEST_F(TimeApiTest, ArgumentAndRangeErrorsPrecedeReadiness) {
+TEST_F(TimeApiTest, ArgumentAndRangeErrorsPrecedeReadiness)
+{
     crux_realtime_t out = {456, 0};
 
     EXPECT_EQ(crux_time_get_realtime(nullptr), CRUX_ERR_INVALID_ARGUMENT);
@@ -38,7 +43,8 @@ TEST_F(TimeApiTest, ArgumentAndRangeErrorsPrecedeReadiness) {
     EXPECT_EQ(crux_time_host_test_write_calls(), 0U);
 }
 
-TEST_F(TimeApiTest, FailedInitialisationCanBeRetried) {
+TEST_F(TimeApiTest, FailedInitialisationCanBeRetried)
+{
     crux_realtime_t out = {789, 0};
 
     crux_time_host_test_fail_next_init();
@@ -51,7 +57,8 @@ TEST_F(TimeApiTest, FailedInitialisationCanBeRetried) {
     EXPECT_EQ(crux_time_get_realtime(&out), CRUX_ERR_NO_DATA);
 }
 
-TEST_F(TimeApiTest, RepeatedInitPreservesValidTimeAndSkipsBackend) {
+TEST_F(TimeApiTest, RepeatedInitPreservesValidTimeAndSkipsBackend)
+{
     constexpr int64_t expected = 1'700'000'000;
     crux_realtime_t out = {0, 0};
 
@@ -63,7 +70,8 @@ TEST_F(TimeApiTest, RepeatedInitPreservesValidTimeAndSkipsBackend) {
     EXPECT_EQ(out.seconds, expected);
 }
 
-TEST_F(TimeApiTest, RejectedWriteDoesNotReachBackendOrInvalidateTime) {
+TEST_F(TimeApiTest, RejectedWriteDoesNotReachBackendOrInvalidateTime)
+{
     constexpr int64_t expected = 1'700'000'000;
     crux_realtime_t out = {0, 0};
 
@@ -76,7 +84,8 @@ TEST_F(TimeApiTest, RejectedWriteDoesNotReachBackendOrInvalidateTime) {
     EXPECT_EQ(out.seconds, expected);
 }
 
-TEST_F(TimeApiTest, FailedBackendWriteInvalidatesSessionTime) {
+TEST_F(TimeApiTest, FailedBackendWriteInvalidatesSessionTime)
+{
     constexpr int64_t first = 1'700'000'000;
     crux_realtime_t out = {987, 0};
 
@@ -91,7 +100,8 @@ TEST_F(TimeApiTest, FailedBackendWriteInvalidatesSessionTime) {
     EXPECT_EQ(out.seconds, first + 2);
 }
 
-TEST_F(TimeApiTest, ReadFailureLeavesOutputAndValidityUnchanged) {
+TEST_F(TimeApiTest, ReadFailureLeavesOutputAndValidityUnchanged)
+{
     constexpr int64_t expected = 1'700'000'000;
     crux_realtime_t out = {321, 0};
 
@@ -104,7 +114,8 @@ TEST_F(TimeApiTest, ReadFailureLeavesOutputAndValidityUnchanged) {
     EXPECT_EQ(out.seconds, expected);
 }
 
-TEST_F(TimeApiTest, SuccessfulInjectedReadReturnsStoredValue) {
+TEST_F(TimeApiTest, SuccessfulInjectedReadReturnsStoredValue)
+{
     constexpr int64_t expected = 1'700'000'000;
     crux_realtime_t out = {321, 0};
 
@@ -115,7 +126,8 @@ TEST_F(TimeApiTest, SuccessfulInjectedReadReturnsStoredValue) {
     EXPECT_EQ(out.seconds, expected);
 }
 
-TEST_F(TimeApiTest, BackendNoDataClearsCommonValidity) {
+TEST_F(TimeApiTest, BackendNoDataClearsCommonValidity)
+{
     constexpr int64_t expected = 1'700'000'000;
     crux_realtime_t out = {654, 0};
 
@@ -129,7 +141,8 @@ TEST_F(TimeApiTest, BackendNoDataClearsCommonValidity) {
     EXPECT_EQ(crux_time_host_test_read_calls(), reads_after_backend_no_data);
 }
 
-TEST_F(TimeApiTest, OutOfRangeBackendReadDoesNotChangeOutput) {
+TEST_F(TimeApiTest, OutOfRangeBackendReadDoesNotChangeOutput)
+{
     crux_realtime_t out = {777, 0};
 
     ASSERT_EQ(crux_time_init(), CRUX_OK);
@@ -139,7 +152,8 @@ TEST_F(TimeApiTest, OutOfRangeBackendReadDoesNotChangeOutput) {
     EXPECT_EQ(out.seconds, 777);
 }
 
-TEST_F(TimeApiTest, TestClockAdvanceAddsExactlyFiveSeconds) {
+TEST_F(TimeApiTest, TestClockAdvanceAddsExactlyFiveSeconds)
+{
     constexpr int64_t start = 1'700'000'000;
     crux_realtime_t out = {0, 0};
 
@@ -152,7 +166,8 @@ TEST_F(TimeApiTest, TestClockAdvanceAddsExactlyFiveSeconds) {
     EXPECT_EQ(out.seconds, start + 5);
 }
 
-TEST_F(TimeApiTest, FractionalMemoryTimeDoesNotProgressAndAdvancePreservesFraction) {
+TEST_F(TimeApiTest, FractionalMemoryTimeDoesNotProgressAndAdvancePreservesFraction)
+{
     const crux_realtime_t value = {INT64_C(1700000000), 123456789};
     ASSERT_EQ(crux_time_init(), CRUX_OK);
     ASSERT_EQ(crux_time_set_realtime(&value, CRUX_TIME_SOURCE_MANUAL, false), CRUX_OK);
@@ -169,7 +184,8 @@ TEST_F(TimeApiTest, FractionalMemoryTimeDoesNotProgressAndAdvancePreservesFracti
     EXPECT_EQ(out.nanoseconds, value.nanoseconds);
 }
 
-TEST_F(TimeApiTest, NativeLinuxLockKeepsMemorySnapshotsConsistentAcrossWriters) {
+TEST_F(TimeApiTest, NativeLinuxLockKeepsMemorySnapshotsConsistentAcrossWriters)
+{
     const crux_realtime_t manual = {INT64_C(1700000000), 123};
     const crux_realtime_t external = {INT64_C(1792238400), 987};
     ASSERT_EQ(crux_time_init(), CRUX_OK);

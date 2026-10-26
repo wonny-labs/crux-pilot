@@ -14,13 +14,15 @@ typedef struct {
     unsigned char data[QUEUE_CAPACITY][QUEUE_RECORD];
 } queue_slot_t;
 static queue_slot_t slots[QUEUE_COUNT];
-static queue_slot_t *lookup(crux_queue_t handle) {
+static queue_slot_t *lookup(crux_queue_t handle)
+{
     if (handle.slot == 0 || handle.slot > QUEUE_COUNT || handle.generation == 0)
         return NULL;
     queue_slot_t *slot = &slots[handle.slot - 1];
     return slot->live && slot->generation == handle.generation ? slot : NULL;
 }
-crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue_t *out) {
+crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue_t *out)
+{
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     *out = (crux_queue_t){0};
@@ -56,7 +58,8 @@ crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue
     return result;
 }
 static crux_status_t transfer(crux_queue_t handle, uint32_t timeout_ms, const void *source,
-                              void *destination, size_t size, bool sending) {
+                              void *destination, size_t size, bool sending)
+{
     if ((sending ? source == NULL : destination == NULL) || size == 0 || handle.slot == 0 ||
         handle.slot > QUEUE_COUNT || handle.generation == 0)
         return CRUX_ERR_INVALID_ARGUMENT;
@@ -107,14 +110,16 @@ static crux_status_t transfer(crux_queue_t handle, uint32_t timeout_ms, const vo
     return result;
 }
 crux_status_t crux_queue_send(crux_queue_t queue, const void *record, size_t size,
-                              uint32_t timeout_ms) {
+                              uint32_t timeout_ms)
+{
     return transfer(queue, timeout_ms, record, NULL, size, true);
 }
-crux_status_t crux_queue_receive(crux_queue_t queue, void *record, size_t size,
-                                 uint32_t timeout_ms) {
+crux_status_t crux_queue_receive(crux_queue_t queue, void *record, size_t size, uint32_t timeout_ms)
+{
     return transfer(queue, timeout_ms, NULL, record, size, false);
 }
-crux_status_t crux_queue_destroy(crux_queue_t *queue) {
+crux_status_t crux_queue_destroy(crux_queue_t *queue)
+{
     if (queue == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     if (!queue_port_context())

@@ -9,7 +9,8 @@
 #include <time.h>
 #include <unistd.h>
 
-static int wait_until(int fd, short events, const struct timespec *start) {
+static int wait_until(int fd, short events, const struct timespec *start)
+{
     for (;;) {
         struct timespec now;
         if (clock_gettime(CLOCK_MONOTONIC, &now) != 0)
@@ -47,7 +48,8 @@ static int wait_until(int fd, short events, const struct timespec *start) {
         return -1;
     }
 }
-int runtime_port_exchange(const char *address, unsigned short port) {
+int runtime_port_exchange(const char *address, unsigned short port)
+{
     struct sockaddr_in endpoint = {.sin_family = AF_INET, .sin_port = htons(port)};
     if (inet_pton(AF_INET, address, &endpoint.sin_addr) != 1)
         return -EINVAL;

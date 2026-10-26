@@ -2,7 +2,8 @@
 #include <string.h>
 #include <zephyr/net/net_if.h>
 
-crux_status_t crux_netif_observe(crux_netif_status_t *out) {
+crux_status_t crux_netif_observe(crux_netif_status_t *out)
+{
     struct net_if *primary = net_if_get_default();
     if (primary == NULL)
         return CRUX_ERR_NOT_READY;

@@ -14,21 +14,24 @@ static int failures;
     } while (0)
 static struct timespec reading = {1, 0}, deadline_seen;
 static int sleep_calls, read_calls, interrupt_once = 1, sleep_error, bad_call;
-int __wrap_clock_gettime(clockid_t id, struct timespec *out) {
+int __wrap_clock_gettime(clockid_t id, struct timespec *out)
+{
     if (id != CLOCK_MONOTONIC)
         ++bad_call;
     ++read_calls;
     *out = reading;
     return 0;
 }
-int __wrap_clock_getres(clockid_t id, struct timespec *out) {
+int __wrap_clock_getres(clockid_t id, struct timespec *out)
+{
     if (id != CLOCK_MONOTONIC)
         ++bad_call;
     *out = (struct timespec){0, 1};
     return 0;
 }
 int __wrap_clock_nanosleep(clockid_t id, int flags, const struct timespec *deadline,
-                           struct timespec *remaining) {
+                           struct timespec *remaining)
+{
     if (id != CLOCK_MONOTONIC || flags != TIMER_ABSTIME || remaining != NULL)
         ++bad_call;
     if (sleep_calls == 0)
@@ -45,7 +48,8 @@ int __wrap_clock_nanosleep(clockid_t id, int flags, const struct timespec *deadl
     reading = *deadline;
     return sleep_error;
 }
-int main(void) {
+int main(void)
+{
     CHECK(crux_thread_sleep_for(crux_duration_from_ns(0)) == CRUX_OK);
     CHECK(read_calls == 0 && sleep_calls == 0);
     CHECK(crux_thread_sleep_for(crux_duration_from_ns(8)) == CRUX_OK);

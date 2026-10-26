@@ -8,7 +8,8 @@ typedef struct {
 } record_t;
 static crux_queue_t queue;
 static atomic_uint seen[2][200];
-static void *produce(void *argument) {
+static void *produce(void *argument)
+{
     unsigned producer = *(unsigned *)argument;
     for (unsigned seq = 0; seq < 200; ++seq) {
         record_t record = {producer, seq, producer * 1000U + seq};
@@ -16,7 +17,8 @@ static void *produce(void *argument) {
     }
     return NULL;
 }
-static void *consume(void *unused) {
+static void *consume(void *unused)
+{
     (void)unused;
     for (unsigned n = 0; n < 200; ++n) {
         record_t record;
@@ -27,7 +29,8 @@ static void *consume(void *unused) {
     }
     return NULL;
 }
-int main(void) {
+int main(void)
+{
     assert(crux_queue_create(8, sizeof(record_t), &queue) == CRUX_OK);
     pthread_t threads[4];
     unsigned ids[2] = {0, 1};

@@ -7,7 +7,8 @@ K_THREAD_STACK_DEFINE(controller_stack, 4096);
 static struct k_thread controller_thread;
 static int scenario_result;
 
-static void run_controller(void *a, void *b, void *c) {
+static void run_controller(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
@@ -51,7 +52,8 @@ static void run_controller(void *a, void *b, void *c) {
     scenario_result = 0;
 }
 
-int main(void) {
+int main(void)
+{
     k_tid_t worker = k_thread_create(&controller_thread, controller_stack,
                                      K_THREAD_STACK_SIZEOF(controller_stack), run_controller, NULL,
                                      NULL, NULL, 5, 0, K_NO_WAIT);

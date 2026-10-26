@@ -18,6 +18,7 @@
 #endif
 
 /* This translation unit deliberately consumes only the published target. */
-int execution_public_probe(crux_mutex_t mutex) {
+int execution_public_probe(crux_mutex_t mutex)
+{
     return crux_mutex_lock(mutex, 0) == CRUX_OK ? crux_mutex_unlock(mutex) : 1;
 }

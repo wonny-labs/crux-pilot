@@ -15,13 +15,15 @@ static crux_log_level_t last_level;
 static char last_tag[25];
 static char last_text[257];
 
-crux_status_t crux_log_set_level(crux_log_level_t maximum_level) {
+crux_status_t crux_log_set_level(crux_log_level_t maximum_level)
+{
     (void)maximum_level;
     ++setters;
     return CRUX_OK;
 }
 
-crux_status_t crux_log_write(crux_log_level_t level, const char *tag, const char *text) {
+crux_status_t crux_log_write(crux_log_level_t level, const char *tag, const char *text)
+{
     assert(tag != NULL && text != NULL);
     assert(strlen(tag) > 0 && strlen(tag) < sizeof(last_tag));
     assert(strlen(text) < sizeof(last_text));
@@ -35,7 +37,8 @@ crux_status_t crux_log_write(crux_log_level_t level, const char *tag, const char
 
 typedef crux_status_t (*record_fn)(uint32_t sequence, int code);
 
-static void check_consumer(record_fn record, const char *tag) {
+static void check_consumer(record_fn record, const char *tag)
+{
     writes = 0;
     setters = 0;
     write_result = CRUX_OK;
@@ -77,7 +80,8 @@ static void check_consumer(record_fn record, const char *tag) {
     }
 }
 
-int main(void) {
+int main(void)
+{
     check_consumer(logging_runtime_record, "runtime.c");
     check_consumer(logging_cpp_record, "runtime.cpp");
     return 0;

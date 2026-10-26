@@ -5,11 +5,13 @@
 
 #define SECONDS_PER_DAY INT64_C(86400)
 
-static bool is_leap_year(int32_t year) {
+static bool is_leap_year(int32_t year)
+{
     return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
 }
 
-static int32_t days_in_month(int32_t year, int32_t month) {
+static int32_t days_in_month(int32_t year, int32_t month)
+{
     static const int32_t days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
     if (month == 2 && is_leap_year(year)) {
@@ -18,11 +20,13 @@ static int32_t days_in_month(int32_t year, int32_t month) {
     return days[month - 1];
 }
 
-static int32_t days_in_year(int32_t year) {
+static int32_t days_in_year(int32_t year)
+{
     return is_leap_year(year) ? 366 : 365;
 }
 
-crux_status_t crux_time_from_utc(const crux_time_utc_t *in, crux_realtime_t *out) {
+crux_status_t crux_time_from_utc(const crux_time_utc_t *in, crux_realtime_t *out)
+{
     int64_t days = 0;
     int64_t seconds;
     int32_t year;
@@ -60,7 +64,8 @@ crux_status_t crux_time_from_utc(const crux_time_utc_t *in, crux_realtime_t *out
     return CRUX_OK;
 }
 
-crux_status_t crux_time_to_utc(crux_realtime_t in, crux_time_utc_t *out) {
+crux_status_t crux_time_to_utc(crux_realtime_t in, crux_time_utc_t *out)
+{
     crux_time_utc_t result;
     int64_t days;
     int64_t seconds_of_day;

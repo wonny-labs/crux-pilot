@@ -3,7 +3,8 @@
 #include <cinttypes>
 #include <cstdio>
 
-extern "C" crux_status_t logging_cpp_record(uint32_t sequence, int code) {
+extern "C" crux_status_t logging_cpp_record(uint32_t sequence, int code)
+{
     char text[64];
     int count = std::snprintf(text, sizeof(text), "sequence=%" PRIu32 " code=%d", sequence, code);
     if (count < 0)

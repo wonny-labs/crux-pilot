@@ -8,7 +8,8 @@
 #include <zephyr/net/net_if.h>
 #include <zephyr/random/random.h>
 #include <zephyr/sys/printk.h>
-static bool step(const struct fixture_command *command) {
+static bool step(const struct fixture_command *command)
+{
     static const char actions[] = "AIPPPPPLPI";
     if (command->action == 'A')
         return true;
@@ -18,7 +19,8 @@ static bool step(const struct fixture_command *command) {
                               : actions[seq] == 'I' ? 0U
                                                     : 1U);
 }
-int main(void) {
+int main(void)
+{
     struct net_if *iface = net_if_get_default();
     struct net_in_addr address, mask;
     if (iface == NULL || net_addr_pton(NET_AF_INET, "192.168.77.2", &address) != 0 ||

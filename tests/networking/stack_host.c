@@ -10,27 +10,33 @@ static pthread_t worker;
 static unsigned int idle_descriptors;
 static void (*peer_entry)(void *);
 static void *peer_context;
-static void *run_peer(void *unused) {
+static void *run_peer(void *unused)
+{
     (void)unused;
     peer_entry(peer_context);
     return NULL;
 }
-void networking_peer_start(void (*entry)(void *), void *context) {
+void networking_peer_start(void (*entry)(void *), void *context)
+{
     peer_entry = entry;
     peer_context = context;
     if (pthread_create(&worker, NULL, run_peer, NULL) != 0)
         abort();
 }
-void networking_fixture_link(bool up) {
+void networking_fixture_link(bool up)
+{
     (void)up;
     abort();
 }
-void networking_resources_active(void) {
+void networking_resources_active(void)
+{
 }
-int networking_peer_join(void) {
+int networking_peer_join(void)
+{
     return pthread_join(worker, NULL);
 }
-static unsigned int descriptors(void) {
+static unsigned int descriptors(void)
+{
     DIR *directory = opendir("/proc/self/fd");
     if (directory == NULL)
         abort();
@@ -40,10 +46,12 @@ static unsigned int descriptors(void) {
     closedir(directory);
     return count;
 }
-int networking_resources_idle(void) {
+int networking_resources_idle(void)
+{
     return descriptors() == idle_descriptors ? 0 : -1;
 }
-int main(void) {
+int main(void)
+{
     struct sigaction policy = {0};
     policy.sa_handler = SIG_IGN;
     sigemptyset(&policy.sa_mask);

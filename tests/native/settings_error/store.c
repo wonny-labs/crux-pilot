@@ -16,32 +16,38 @@ struct store {
     size_t advertised, read_limit;
     ssize_t size;
 };
-void settings_lock_take(void) {
+void settings_lock_take(void)
+{
     ++depth;
 }
-void settings_lock_release(void) {
+void settings_lock_release(void)
+{
     assert(depth == 1);
     --depth;
 }
-int settings_commit_subtree(const char *name) {
+int settings_commit_subtree(const char *name)
+{
     (void)name;
     ++commits;
     return commit_result;
 }
-int settings_name_next(const char *name, const char **next) {
+int settings_name_next(const char *name, const char **next)
+{
     const char *slash = strchr(name, '/');
     if (next)
         *next = slash ? slash + 1 : NULL;
     return slash ? (int)(slash - name) : (int)strlen(name);
 }
-int settings_name_steq(const char *name, const char *key, const char **next) {
+int settings_name_steq(const char *name, const char *key, const char **next)
+{
     size_t n = strlen(key);
     int equal = strncmp(name, key, n) == 0 && (name[n] == '\0' || name[n] == '/');
     if (next)
         *next = equal ? name + n : NULL;
     return equal;
 }
-static ssize_t read_value(void *context, void *buffer, size_t length) {
+static ssize_t read_value(void *context, void *buffer, size_t length)
+{
     struct store *s = context;
     if (s->read_error)
         return s->read_error;
@@ -53,7 +59,8 @@ static ssize_t read_value(void *context, void *buffer, size_t length) {
     copied += n;
     return (ssize_t)n;
 }
-static int load(struct settings_store *base, const struct settings_load_arg *arg) {
+static int load(struct settings_store *base, const struct settings_load_arg *arg)
+{
     ++calls;
     struct store *s = (void *)base;
     if (s->scan)
@@ -62,13 +69,15 @@ static int load(struct settings_store *base, const struct settings_load_arg *arg
         return 0;
     return arg->cb("", s->advertised, read_value, s, arg->param);
 }
-static ssize_t get_length(struct settings_store *base, const char *name) {
+static ssize_t get_length(struct settings_store *base, const char *name)
+{
     (void)name;
     ++calls;
     return ((struct store *)base)->size;
 }
 static int callback(const char *name, size_t length, settings_read_cb read, void *context,
-                    void *parameter) {
+                    void *parameter)
+{
     (void)name;
     (void)length;
     (void)read;
@@ -79,7 +88,8 @@ static int callback(const char *name, size_t length, settings_read_cb read, void
 static const struct settings_store_itf methods = {.csi_load = load};
 static const struct settings_store_itf length_methods = {.csi_get_val_len = get_length};
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     if (argc != 2)
         return 2;
     const char *test = argv[1];

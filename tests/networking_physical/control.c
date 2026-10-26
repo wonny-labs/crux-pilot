@@ -4,7 +4,8 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-static int number(const char **cursor, unsigned long *value) {
+static int number(const char **cursor, unsigned long *value)
+{
     const char *start = *cursor;
     if (*start < '0' || *start > '9')
         return -1;
@@ -17,8 +18,8 @@ static int number(const char **cursor, unsigned long *value) {
     *value = parsed;
     return 0;
 }
-int fixture_control(const char *line, struct fixture_session *session,
-                    struct fixture_command *out) {
+int fixture_control(const char *line, struct fixture_session *session, struct fixture_command *out)
+{
     if (line == NULL || session == NULL || out == NULL || strlen(line) < 3 || line[1] != ' ')
         return -1;
     char action = line[0];

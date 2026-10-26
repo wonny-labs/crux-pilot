@@ -5,7 +5,8 @@
 #include <crux/delay.h>
 #elif PROFILE_THREAD
 #include <crux/thread.h>
-static void worker(void *argument) {
+static void worker(void *argument)
+{
     *(int *)argument = 42;
 }
 #elif PROFILE_SYNC
@@ -21,7 +22,8 @@ static void worker(void *argument) {
 #include <crux/thread.h>
 #include <crux/time.h>
 #endif
-int external_consumer(void) {
+int external_consumer(void)
+{
 #if PROFILE_TIME
     crux_realtime_t now = {0, 0};
 #if PROFILE_TIME_LINUX

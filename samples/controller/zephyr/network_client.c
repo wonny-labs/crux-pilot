@@ -20,7 +20,8 @@ static bool baseline_valid;
 static unsigned int idle_contexts;
 static bool cleanup_uncertain;
 
-static int wait_socket(int fd, short events, int64_t deadline) {
+static int wait_socket(int fd, short events, int64_t deadline)
+{
     for (;;) {
         int64_t remaining = deadline - k_uptime_get();
         if (remaining <= 0) {
@@ -45,7 +46,8 @@ static int wait_socket(int fd, short events, int64_t deadline) {
     }
 }
 
-static int stream_transfer(int fd, uint8_t *data, size_t length, bool transmit, int64_t deadline) {
+static int stream_transfer(int fd, uint8_t *data, size_t length, bool transmit, int64_t deadline)
+{
     size_t offset = 0;
     while (offset < length) {
         int result = wait_socket(fd, transmit ? ZSOCK_POLLOUT : ZSOCK_POLLIN, deadline);
@@ -69,7 +71,8 @@ static int stream_transfer(int fd, uint8_t *data, size_t length, bool transmit, 
 }
 
 static int exchange(unsigned int protocol, unsigned int trial, unsigned int sequence,
-                    int64_t round_deadline) {
+                    int64_t round_deadline)
+{
     uint8_t request[32] = {'C', 'M', '3', 'N'};
     uint8_t response[33];
     sys_put_be32(protocol, request + 4);
@@ -148,19 +151,22 @@ close:
     return result;
 }
 
-static void count_context(struct net_context *context, void *value) {
+static void count_context(struct net_context *context, void *value)
+{
     if (net_context_is_used(context)) {
         (*(unsigned int *)value)++;
     }
 }
 
-static unsigned int native_contexts(void) {
+static unsigned int native_contexts(void)
+{
     unsigned int count = 0;
     net_context_foreach(count_context, &count);
     return count;
 }
 
-static int settle_contexts(int64_t round_deadline) {
+static int settle_contexts(int64_t round_deadline)
+{
     int64_t start = k_uptime_get();
     int64_t deadline = MIN(start + 5000, round_deadline);
     for (;;) {
@@ -183,7 +189,8 @@ static int settle_contexts(int64_t round_deadline) {
     return 0;
 }
 
-void controller_network_report(void) {
+void controller_network_report(void)
+{
     struct k_mem_slab *rx;
     struct k_mem_slab *tx;
     struct net_buf_pool *rx_data;
@@ -202,7 +209,8 @@ void controller_network_report(void) {
            (long long)k_uptime_get(), link, address_ready, service_ready);
 }
 
-int controller_network_init(void) {
+int controller_network_init(void)
+{
     address_ready = false;
     service_ready = false;
     if (owned_sockets != 0 || cleanup_uncertain) {
@@ -239,7 +247,8 @@ int controller_network_init(void) {
 }
 
 static int perform_exchange(unsigned int protocol, unsigned int trial, unsigned int sequence,
-                            int64_t deadline) {
+                            int64_t deadline)
+{
     if (k_uptime_get() >= deadline) {
         cleanup_uncertain = true;
         return -ETIMEDOUT;
@@ -262,7 +271,8 @@ static int perform_exchange(unsigned int protocol, unsigned int trial, unsigned 
     return result;
 }
 
-int controller_network_pair(unsigned int trial, unsigned int sequence, int64_t deadline) {
+int controller_network_pair(unsigned int trial, unsigned int sequence, int64_t deadline)
+{
     if (interface == NULL || !address_ready || trial == 0 || sequence == 0) {
         return -EINVAL;
     }
@@ -284,7 +294,8 @@ int controller_network_pair(unsigned int trial, unsigned int sequence, int64_t d
     return result;
 }
 
-int controller_network_round(unsigned int trial) {
+int controller_network_round(unsigned int trial)
+{
     if (interface == NULL || !address_ready || trial == 0) {
         return -EINVAL;
     }

@@ -1,4 +1,5 @@
 #include "consumer.h"
-int main(void) {
+int main(void)
+{
     return run_consumer();
 }

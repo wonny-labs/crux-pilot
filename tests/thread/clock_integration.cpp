@@ -3,7 +3,8 @@
 #include <cstdint>
 #include <cstdio>
 
-int main() {
+int main()
+{
     crux_monotonic_time_t before = {0};
     if (crux_time_get_monotonic(&before) != CRUX_OK || before.private_ns < 0)
         return 1;

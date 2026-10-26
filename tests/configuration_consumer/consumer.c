@@ -1,6 +1,7 @@
 #include <crux/configuration.h>
 
-int configuration_consumer(void) {
+int configuration_consumer(void)
+{
     const crux_config_spec_t spec = {
         "second_schema", 9, {.type = CRUX_CONFIG_BOOL, .data.boolean = true}, 0, 0};
     crux_config_param_t parameter = {0};

@@ -14,13 +14,15 @@ typedef struct {
     bool diagnostics;
 } runtime_snapshot_t;
 
-static bool report_range(const crux_config_value_t *value, void *context) {
+static bool report_range(const crux_config_value_t *value, void *context)
+{
     (void)context;
     return value->type == CRUX_CONFIG_U32 && value->data.u32 >= 1 && value->data.u32 <= 100;
 }
 static crux_config_result_t snapshot(const crux_config_param_t *report,
                                      const crux_config_param_t *diagnostics,
-                                     runtime_snapshot_t *out) {
+                                     runtime_snapshot_t *out)
+{
     crux_config_value_t r = {.type = CRUX_CONFIG_U32}, d = {.type = CRUX_CONFIG_BOOL};
     crux_config_result_t result = crux_config_read(report, &r);
     if (result != CRUX_CONFIG_OK)
@@ -32,7 +34,8 @@ static crux_config_result_t snapshot(const crux_config_param_t *report,
     return CRUX_CONFIG_OK;
 }
 
-int controller_configuration_scenario(void) {
+int controller_configuration_scenario(void)
+{
     const crux_config_spec_t report_spec = {
         "report_every_cycles", 1, {.type = CRUX_CONFIG_U32, .data.u32 = 5}, report_range, NULL};
     const crux_config_spec_t diagnostics_spec = {

@@ -2,7 +2,8 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log_ctrl.h>
 
-static bool drain(void) {
+static bool drain(void)
+{
     int64_t deadline = k_uptime_get() + 1000;
     while (log_buffered_cnt() != 0 && k_uptime_get() < deadline) {
         k_sleep(K_MSEC(10));
@@ -12,7 +13,8 @@ static bool drain(void) {
     return log_buffered_cnt() == 0;
 }
 
-int main(void) {
+int main(void)
+{
 #ifdef CRUX_TEST_OVERFLOW
     /* The actual native process thread is delayed; a finite burst fills its buffer. */
     for (unsigned int i = 0; i < 100; ++i) {

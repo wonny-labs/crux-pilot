@@ -33,19 +33,22 @@ static uint8_t saved[32];
 static unsigned int context_count;
 static bool release_context;
 
-static void test_contexts(net_context_cb_t callback, void *data) {
+static void test_contexts(net_context_cb_t callback, void *data)
+{
     struct net_context context = {0};
     for (unsigned int i = 0; i < context_count; ++i) {
         callback(&context, data);
     }
 }
 
-static bool test_used(struct net_context *context) {
+static bool test_used(struct net_context *context)
+{
     ARG_UNUSED(context);
     return true;
 }
 
-static int32_t test_sleep(k_timeout_t duration) {
+static int32_t test_sleep(k_timeout_t duration)
+{
     elapsed += k_ticks_to_ms_floor64(duration.ticks);
     if (release_context && elapsed >= 100) {
         context_count = 0;
@@ -55,14 +58,17 @@ static int32_t test_sleep(k_timeout_t duration) {
 
 static enum { INIT_OK, NO_INTERFACE, ADDRESS_FAIL, MASK_FAIL, UP_FAIL } init_scenario;
 static bool reported_link;
-static struct net_if *actual_default(void) {
+static struct net_if *actual_default(void)
+{
     return net_if_get_default();
 }
-static struct net_if *test_default(void) {
+static struct net_if *test_default(void)
+{
     return init_scenario == NO_INTERFACE ? NULL : actual_default();
 }
 static struct net_if_addr *test_add_address(struct net_if *iface, const struct net_in_addr *addr,
-                                            enum net_addr_type type, uint32_t lifetime) {
+                                            enum net_addr_type type, uint32_t lifetime)
+{
     ARG_UNUSED(iface);
     ARG_UNUSED(addr);
     ARG_UNUSED(type);
@@ -71,25 +77,30 @@ static struct net_if_addr *test_add_address(struct net_if *iface, const struct n
     return init_scenario == ADDRESS_FAIL ? NULL : &result;
 }
 static bool test_mask(struct net_if *iface, const struct net_in_addr *addr,
-                      const struct net_in_addr *mask) {
+                      const struct net_in_addr *mask)
+{
     ARG_UNUSED(iface);
     ARG_UNUSED(addr);
     ARG_UNUSED(mask);
     return init_scenario != MASK_FAIL;
 }
-static int test_up(struct net_if *iface) {
+static int test_up(struct net_if *iface)
+{
     ARG_UNUSED(iface);
     return init_scenario == UP_FAIL ? -EIO : -EALREADY;
 }
-static bool test_carrier(struct net_if *iface) {
+static bool test_carrier(struct net_if *iface)
+{
     ARG_UNUSED(iface);
     return reported_link;
 }
 
-static int64_t test_now(void) {
+static int64_t test_now(void)
+{
     return elapsed;
 }
-static int test_socket(int family, int type, int protocol) {
+static int test_socket(int family, int type, int protocol)
+{
     ARG_UNUSED(family);
     ARG_UNUSED(type);
     ARG_UNUSED(protocol);
@@ -97,13 +108,15 @@ static int test_socket(int family, int type, int protocol) {
     transmitted = received = sends = 0;
     return 7;
 }
-static int test_flags(int fd, int command, int flags) {
+static int test_flags(int fd, int command, int flags)
+{
     zassert_equal(fd, 7);
     zassert_equal(command, F_SETFL);
     zassert_equal(flags, O_NONBLOCK);
     return 0;
 }
-static int test_connect(int fd, const struct sockaddr *address, socklen_t length) {
+static int test_connect(int fd, const struct sockaddr *address, socklen_t length)
+{
     ARG_UNUSED(fd);
     ARG_UNUSED(address);
     ARG_UNUSED(length);
@@ -117,7 +130,8 @@ static int test_connect(int fd, const struct sockaddr *address, socklen_t length
     }
     return 0;
 }
-static int test_option(int fd, int level, int option, void *value, socklen_t *length) {
+static int test_option(int fd, int level, int option, void *value, socklen_t *length)
+{
     ARG_UNUSED(fd);
     ARG_UNUSED(level);
     ARG_UNUSED(option);
@@ -125,7 +139,8 @@ static int test_option(int fd, int level, int option, void *value, socklen_t *le
     *(int *)value = ECONNREFUSED;
     return 0;
 }
-static int test_poll(struct zsock_pollfd *items, int count, int timeout) {
+static int test_poll(struct zsock_pollfd *items, int count, int timeout)
+{
     zassert_equal(count, 1);
     zassert_true(timeout > 0 && timeout <= 2000);
     elapsed += MIN(100, timeout);
@@ -136,7 +151,8 @@ static int test_poll(struct zsock_pollfd *items, int count, int timeout) {
     items->revents = items->events;
     return 1;
 }
-static ssize_t test_send(int fd, const void *data, size_t length, int flags) {
+static ssize_t test_send(int fd, const void *data, size_t length, int flags)
+{
     ARG_UNUSED(fd);
     ARG_UNUSED(flags);
     sends++;
@@ -153,7 +169,8 @@ static ssize_t test_send(int fd, const void *data, size_t length, int flags) {
     transmitted += part;
     return (ssize_t)part;
 }
-static ssize_t test_receive(int fd, void *data, size_t length, int flags) {
+static ssize_t test_receive(int fd, void *data, size_t length, int flags)
+{
     ARG_UNUSED(fd);
     ARG_UNUSED(flags);
     if (scenario == EOF_REPLY) {
@@ -174,7 +191,8 @@ static ssize_t test_receive(int fd, void *data, size_t length, int flags) {
     received += part;
     return (ssize_t)part;
 }
-static int test_close(int fd) {
+static int test_close(int fd)
+{
     ARG_UNUSED(fd);
     closes++;
     if (scenario == CLOSE_FAIL) {
@@ -205,7 +223,8 @@ static int test_close(int fd) {
 #define net_if_is_carrier_ok test_carrier
 #include "../../../samples/controller/zephyr/network_client.c"
 
-static void before(void *fixture) {
+static void before(void *fixture)
+{
     ARG_UNUSED(fixture);
     scenario = ECHO;
     elapsed = 0;
@@ -223,7 +242,8 @@ static void before(void *fixture) {
     interface = actual_default();
 }
 
-ZTEST(network, test_cleanup_waits_and_uncertain_state_fences_restart) {
+ZTEST(network, test_cleanup_waits_and_uncertain_state_fences_restart)
+{
     context_count = 1;
     release_context = true;
     zassert_ok(settle_contexts(150000));
@@ -239,7 +259,8 @@ ZTEST(network, test_cleanup_waits_and_uncertain_state_fences_restart) {
     zassert_equal(creates, 0);
 }
 
-ZTEST(network, test_cleanup_never_rebases_or_extends_round_deadline) {
+ZTEST(network, test_cleanup_never_rebases_or_extends_round_deadline)
+{
     context_count = 1;
     zassert_equal(controller_network_init(), -EBUSY);
     zassert_equal(idle_contexts, 0);
@@ -249,7 +270,8 @@ ZTEST(network, test_cleanup_never_rebases_or_extends_round_deadline) {
     zassert_true(cleanup_uncertain);
 }
 
-ZTEST(network, test_expired_and_near_end_round_budget) {
+ZTEST(network, test_expired_and_near_end_round_budget)
+{
     zassert_equal(exchange(1, 1, 1, 0), -ETIMEDOUT);
     zassert_equal(creates, 0);
     elapsed = 149999;
@@ -262,7 +284,8 @@ ZTEST(network, test_expired_and_near_end_round_budget) {
     zassert_true(cleanup_uncertain);
 }
 
-ZTEST(network, test_partial_tcp_and_datagram_echo) {
+ZTEST(network, test_partial_tcp_and_datagram_echo)
+{
     zassert_ok(exchange(1, 1, 1, elapsed + 2000));
     zassert_equal(transmitted, 32);
     zassert_equal(received, 32);
@@ -274,7 +297,8 @@ ZTEST(network, test_partial_tcp_and_datagram_echo) {
     zassert_equal(received, 32);
 }
 
-ZTEST(network, test_connect_and_stream_failures_close_once) {
+ZTEST(network, test_connect_and_stream_failures_close_once)
+{
     scenario = CONNECT_FAIL;
     zassert_equal(exchange(1, 1, 1, elapsed + 2000), -ECONNREFUSED);
     zassert_equal(closes, 1);
@@ -287,7 +311,8 @@ ZTEST(network, test_connect_and_stream_failures_close_once) {
     zassert_equal(owned_sockets, 0);
 }
 
-ZTEST(network, test_udp_oversize_and_wrong_payload_rejected) {
+ZTEST(network, test_udp_oversize_and_wrong_payload_rejected)
+{
     scenario = OVERSIZE_REPLY;
     zassert_equal(exchange(2, 1, 1, elapsed + 2000), -EMSGSIZE);
     transmitted = received = 0;
@@ -296,7 +321,8 @@ ZTEST(network, test_udp_oversize_and_wrong_payload_rejected) {
     zassert_equal(owned_sockets, 0);
 }
 
-ZTEST(network, test_repeated_interrupts_cannot_extend_deadline) {
+ZTEST(network, test_repeated_interrupts_cannot_extend_deadline)
+{
     scenario = POLL_INTERRUPT;
     zassert_equal(exchange(1, 1, 1, elapsed + 2000), -ETIMEDOUT);
     zassert_equal(elapsed, 2000);
@@ -304,7 +330,8 @@ ZTEST(network, test_repeated_interrupts_cannot_extend_deadline) {
     zassert_equal(closes, 1);
 }
 
-ZTEST(network, test_interrupted_and_would_block_stream_send_recovers) {
+ZTEST(network, test_interrupted_and_would_block_stream_send_recovers)
+{
     scenario = SEND_INTERRUPT;
     zassert_ok(exchange(1, 1, 1, elapsed + 2000));
     transmitted = received = sends = 0;
@@ -314,7 +341,8 @@ ZTEST(network, test_interrupted_and_would_block_stream_send_recovers) {
     zassert_equal(owned_sockets, 0);
 }
 
-ZTEST(network, test_failed_close_prevents_further_round_creation) {
+ZTEST(network, test_failed_close_prevents_further_round_creation)
+{
     scenario = CLOSE_FAIL;
     zassert_equal(exchange(2, 1, 1, elapsed + 2000), -EIO);
     zassert_equal(owned_sockets, 1);
@@ -322,7 +350,8 @@ ZTEST(network, test_failed_close_prevents_further_round_creation) {
     zassert_equal(creates, 1);
 }
 
-ZTEST(network, test_init_failure_never_claims_address_or_service_ready) {
+ZTEST(network, test_init_failure_never_claims_address_or_service_ready)
+{
     for (int failure = NO_INTERFACE; failure <= UP_FAIL; ++failure) {
         init_scenario = failure;
         zassert_true(controller_network_init() < 0);
@@ -337,7 +366,8 @@ ZTEST(network, test_init_failure_never_claims_address_or_service_ready) {
     zassert_false(service_ready);
 }
 
-ZTEST(network, test_readiness_failure_link_loss_and_explicit_recovery) {
+ZTEST(network, test_readiness_failure_link_loss_and_explicit_recovery)
+{
     zassert_ok(controller_network_round(1));
     zassert_true(service_ready);
     reported_link = false;
@@ -357,7 +387,8 @@ ZTEST(network, test_readiness_failure_link_loss_and_explicit_recovery) {
     zassert_equal(owned_sockets, 0);
 }
 
-ZTEST(network, test_full_pair_reuses_cleanup_and_failed_tcp_never_claims_pair_progress) {
+ZTEST(network, test_full_pair_reuses_cleanup_and_failed_tcp_never_claims_pair_progress)
+{
     zassert_ok(controller_network_pair(1, 1, 14000));
     zassert_equal(creates, 2);
     zassert_equal(closes, 2);
@@ -378,7 +409,8 @@ ZTEST(network, test_full_pair_reuses_cleanup_and_failed_tcp_never_claims_pair_pr
     zassert_equal(creates, before_creates);
 }
 
-ZTEST(network, test_pair_deadline_and_invalid_inputs_cannot_create_socket) {
+ZTEST(network, test_pair_deadline_and_invalid_inputs_cannot_create_socket)
+{
     zassert_equal(controller_network_pair(0, 1, 14000), -EINVAL);
     zassert_equal(controller_network_pair(1, 0, 14000), -EINVAL);
     zassert_equal(controller_network_pair(1, 1, 0), -ETIMEDOUT);

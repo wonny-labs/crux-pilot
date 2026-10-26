@@ -3,7 +3,8 @@
 #include <stddef.h>
 
 /* Division bounds work for both signed signs without intermediate overflow. */
-static crux_status_t duration_try_scale(int64_t value, int64_t factor, crux_duration_t *out) {
+static crux_status_t duration_try_scale(int64_t value, int64_t factor, crux_duration_t *out)
+{
     if (out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
@@ -14,20 +15,24 @@ static crux_status_t duration_try_scale(int64_t value, int64_t factor, crux_dura
     return CRUX_OK;
 }
 
-crux_status_t crux_duration_try_from_us(int64_t us, crux_duration_t *out) {
+crux_status_t crux_duration_try_from_us(int64_t us, crux_duration_t *out)
+{
     return duration_try_scale(us, INT64_C(1000), out);
 }
 
-crux_status_t crux_duration_try_from_ms(int64_t ms, crux_duration_t *out) {
+crux_status_t crux_duration_try_from_ms(int64_t ms, crux_duration_t *out)
+{
     return duration_try_scale(ms, INT64_C(1000000), out);
 }
 
-crux_status_t crux_duration_try_from_sec(int64_t sec, crux_duration_t *out) {
+crux_status_t crux_duration_try_from_sec(int64_t sec, crux_duration_t *out)
+{
     return duration_try_scale(sec, INT64_C(1000000000), out);
 }
 
 crux_status_t crux_monotonic_add_duration(crux_monotonic_time_t base, crux_duration_t delta,
-                                          crux_monotonic_time_t *out_time) {
+                                          crux_monotonic_time_t *out_time)
+{
     if (out_time == NULL || base.private_ns < 0) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
@@ -39,7 +44,8 @@ crux_status_t crux_monotonic_add_duration(crux_monotonic_time_t base, crux_durat
     return CRUX_OK;
 }
 
-crux_duration_t crux_monotonic_diff(crux_monotonic_time_t a, crux_monotonic_time_t b) {
+crux_duration_t crux_monotonic_diff(crux_monotonic_time_t a, crux_monotonic_time_t b)
+{
     crux_duration_t result = {a.private_ns - b.private_ns};
     return result;
 }

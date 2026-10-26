@@ -10,21 +10,25 @@ static crux_status_t observed;
 static int value;
 static uint32_t wait_ms;
 crux_status_t __real_queue_port_wait(size_t index, const queue_deadline_t *deadline);
-crux_status_t __wrap_queue_port_wait(size_t index, const queue_deadline_t *deadline) {
+crux_status_t __wrap_queue_port_wait(size_t index, const queue_deadline_t *deadline)
+{
     assert(sem_post(&admitted) == 0);
     return __real_queue_port_wait(index, deadline);
 }
-static void *reader(void *unused) {
+static void *reader(void *unused)
+{
     (void)unused;
     observed = crux_queue_receive(queue, &value, sizeof(value), wait_ms);
     return NULL;
 }
-static void *writer(void *unused) {
+static void *writer(void *unused)
+{
     (void)unused;
     observed = crux_queue_send(queue, &value, sizeof(value), wait_ms);
     return NULL;
 }
-int main(void) {
+int main(void)
+{
     assert(sem_init(&admitted, 0, 0) == 0);
     assert(crux_queue_create(1, sizeof(int), &queue) == CRUX_OK);
     pthread_t worker;

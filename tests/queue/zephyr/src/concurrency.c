@@ -14,7 +14,8 @@ static bool pause_timeout;
 K_SEM_DEFINE(timeout_seen, 0, 1);
 K_SEM_DEFINE(resume_timeout, 0, 1);
 crux_status_t __real_queue_port_wait(size_t index, const queue_deadline_t *deadline);
-crux_status_t __wrap_queue_port_wait(size_t index, const queue_deadline_t *deadline) {
+crux_status_t __wrap_queue_port_wait(size_t index, const queue_deadline_t *deadline)
+{
     if (trace_wait)
         k_sem_give(&waiting);
     return __real_queue_port_wait(index, deadline);
@@ -24,7 +25,8 @@ K_SEM_DEFINE(completed, 0, 1);
 int __real_z_impl_k_condvar_wait(struct k_condvar *condvar, struct k_mutex *mutex,
                                  k_timeout_t timeout);
 int __wrap_z_impl_k_condvar_wait(struct k_condvar *condvar, struct k_mutex *mutex,
-                                 k_timeout_t timeout) {
+                                 k_timeout_t timeout)
+{
     int result = __real_z_impl_k_condvar_wait(condvar, mutex, timeout);
     if (pause_timeout && result == -EAGAIN) {
         /* Actual pinned kernel timeout returns without the mutex. Pause before
@@ -35,21 +37,24 @@ int __wrap_z_impl_k_condvar_wait(struct k_condvar *condvar, struct k_mutex *mute
     }
     return result;
 }
-static void receive_worker(void *a, void *b, void *c) {
+static void receive_worker(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
     observed = crux_queue_receive(q, &record, sizeof(record), wait_ms);
     k_sem_give(&completed);
 }
-static void send_worker(void *a, void *b, void *c) {
+static void send_worker(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
     observed = crux_queue_send(q, &record, sizeof(record), wait_ms);
     k_sem_give(&completed);
 }
-ZTEST(queue, test_waiter_lifecycle_and_wake) {
+ZTEST(queue, test_waiter_lifecycle_and_wake)
+{
     trace_wait = true;
     wait_ms = 2000;
     k_sem_reset(&waiting);
@@ -81,7 +86,8 @@ ZTEST(queue, test_waiter_lifecycle_and_wake) {
     zassert_equal(crux_queue_destroy(&q), CRUX_OK);
     trace_wait = false;
 }
-ZTEST(queue, test_tick_timeout_no_early_expiry) {
+ZTEST(queue, test_tick_timeout_no_early_expiry)
+{
     crux_queue_t queue;
     zassert_equal(crux_queue_create(1, sizeof(int), &queue), CRUX_OK);
     int value = 123;
@@ -93,7 +99,8 @@ ZTEST(queue, test_tick_timeout_no_early_expiry) {
 }
 
 extern struct k_mutex crux_queue_metadata;
-ZTEST(queue, test_native_timeout_retains_metadata_ownership) {
+ZTEST(queue, test_native_timeout_retains_metadata_ownership)
+{
     queue_deadline_t deadline;
     zassert_equal(queue_port_deadline(2, &deadline), CRUX_OK);
     zassert_equal(queue_port_lock(NULL), CRUX_OK);
@@ -107,7 +114,8 @@ ZTEST(queue, test_native_timeout_retains_metadata_ownership) {
     zassert_true(owned, "timeout bookkeeping must retain the metadata mutex");
 }
 
-static void expired_cleanup(bool sending) {
+static void expired_cleanup(bool sending)
+{
     k_sem_reset(&timeout_seen);
     k_sem_reset(&resume_timeout);
     k_sem_reset(&reacquiring);
@@ -170,10 +178,12 @@ static void expired_cleanup(bool sending) {
     zassert_equal(drained[1], sending ? 44 : 66);
     zassert_equal(empty_result, CRUX_ERR_BUSY);
 }
-ZTEST(queue, test_expired_receive_preserves_late_fifo) {
+ZTEST(queue, test_expired_receive_preserves_late_fifo)
+{
     expired_cleanup(false);
 }
-ZTEST(queue, test_expired_send_preserves_late_fifo) {
+ZTEST(queue, test_expired_send_preserves_late_fifo)
+{
     expired_cleanup(true);
 }
 
@@ -186,7 +196,8 @@ static atomic_t seen[2][32];
 static atomic_t failures;
 static crux_queue_t mpmc_queue;
 K_SEM_DEFINE(mpmc_start, 0, 4);
-static void mpmc_producer(void *id, void *unused1, void *unused2) {
+static void mpmc_producer(void *id, void *unused1, void *unused2)
+{
     ARG_UNUSED(unused1);
     ARG_UNUSED(unused2);
     unsigned producer = (unsigned)(uintptr_t)id;
@@ -199,7 +210,8 @@ static void mpmc_producer(void *id, void *unused1, void *unused2) {
         }
     }
 }
-static void mpmc_consumer(void *unused0, void *unused1, void *unused2) {
+static void mpmc_consumer(void *unused0, void *unused1, void *unused2)
+{
     ARG_UNUSED(unused0);
     ARG_UNUSED(unused1);
     ARG_UNUSED(unused2);
@@ -218,7 +230,8 @@ static void mpmc_consumer(void *unused0, void *unused1, void *unused2) {
             atomic_inc(&failures);
     }
 }
-ZTEST(queue, test_native_mpmc_integrity) {
+ZTEST(queue, test_native_mpmc_integrity)
+{
     zassert_equal(crux_queue_create(8, sizeof(native_record_t), &mpmc_queue), CRUX_OK);
     for (unsigned i = 0; i < 4; ++i) {
         k_thread_create(&mpmc_threads[i], mpmc_stacks[i], K_THREAD_STACK_SIZEOF(mpmc_stacks[i]),

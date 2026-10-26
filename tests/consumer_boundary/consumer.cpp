@@ -9,7 +9,8 @@
 static_assert(std::is_same<decltype(crux_realtime_t::seconds), std::int64_t>::value,
               "Time representation");
 
-int main() {
+int main()
+{
     crux_realtime_t now = {0, 0};
     const crux_realtime_t start = {CRUX_TIME_MIN_UNIX_SECONDS, 0};
     crux_time_utc_t utc;

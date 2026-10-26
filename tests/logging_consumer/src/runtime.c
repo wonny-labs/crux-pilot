@@ -3,7 +3,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-crux_status_t logging_runtime_record(uint32_t sequence, int code) {
+crux_status_t logging_runtime_record(uint32_t sequence, int code)
+{
     char text[64];
     int count = snprintf(text, sizeof(text), "sequence=%" PRIu32 " code=%d", sequence, code);
     if (count < 0)

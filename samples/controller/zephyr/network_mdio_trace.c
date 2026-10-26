@@ -9,7 +9,8 @@
 #endif
 
 /* This observer adds no MDIO command, register write or background execution. */
-void crux_m3_mdio_trace_observe(void) {
+void crux_m3_mdio_trace_observe(void)
+{
     static bool reported;
     const struct device *mdio = DEVICE_DT_GET(DT_PARENT(DT_NODELABEL(phy)));
     const struct device *phy = DEVICE_DT_GET(DT_NODELABEL(phy));
@@ -36,7 +37,8 @@ static bool output_started;
 static bool output_final_reported;
 static int64_t output_started_ms;
 
-void crux_m3_deferred_start(void) {
+void crux_m3_deferred_start(void)
+{
     if (output_started) {
         return;
     }
@@ -45,7 +47,8 @@ void crux_m3_deferred_start(void) {
     printk("M3_OUTPUT_START monotonic_ms=%lld window_ms=15000\n", (long long)output_started_ms);
 }
 
-static void report_logger(bool final) {
+static void report_logger(bool final)
+{
     struct m3_logger_resources logger = m3_logger_resources_get();
     struct crux_m3_mdio_failure record;
     const struct device *mdio = DEVICE_DT_GET(DT_PARENT(DT_NODELABEL(phy)));
@@ -62,11 +65,13 @@ static void report_logger(bool final) {
            logger.unused, logger.priority, (unsigned int)log_buffered_cnt());
 }
 
-void crux_m3_deferred_report(void) {
+void crux_m3_deferred_report(void)
+{
     report_logger(false);
 }
 
-void crux_m3_deferred_poll(void) {
+void crux_m3_deferred_poll(void)
+{
     if (output_started && !output_final_reported && k_uptime_get() - output_started_ms >= 15000) {
         output_final_reported = true;
         crux_m3_mdio_trace_observe();

@@ -2,11 +2,13 @@
 
 #include <time.h>
 
-bool crux_time_clock_is_thread(void) {
+bool crux_time_clock_is_thread(void)
+{
     return true;
 }
 
-static crux_status_t timespec_to_ns(const struct timespec *value, int64_t *out_ns) {
+static crux_status_t timespec_to_ns(const struct timespec *value, int64_t *out_ns)
+{
     const int64_t billion = INT64_C(1000000000);
     if (value->tv_nsec < 0 || value->tv_nsec >= billion) {
         return CRUX_ERR_IO;
@@ -20,7 +22,8 @@ static crux_status_t timespec_to_ns(const struct timespec *value, int64_t *out_n
     return CRUX_OK;
 }
 
-crux_status_t crux_time_clock_read(int64_t *out_ns) {
+crux_status_t crux_time_clock_read(int64_t *out_ns)
+{
     struct timespec sample;
     if (clock_gettime(CLOCK_MONOTONIC, &sample) != 0) {
         return CRUX_ERR_IO;
@@ -28,7 +31,8 @@ crux_status_t crux_time_clock_read(int64_t *out_ns) {
     return timespec_to_ns(&sample, out_ns);
 }
 
-crux_status_t crux_time_clock_read_upper_bound(int64_t *out_ns) {
+crux_status_t crux_time_clock_read_upper_bound(int64_t *out_ns)
+{
     struct timespec resolution;
     if (clock_getres(CLOCK_MONOTONIC, &resolution) != 0 || resolution.tv_sec < 0) {
         return CRUX_ERR_IO;

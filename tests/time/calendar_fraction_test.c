@@ -10,7 +10,8 @@ static int failures;
             ++failures;                                                                            \
         }                                                                                          \
     } while (0)
-int main(void) {
+int main(void)
+{
     const crux_time_utc_t values[] = {{2000, 1, 1, 0, 0, 0, 1},
                                       {2000, 2, 29, 23, 59, 59, 123456789},
                                       {2038, 1, 19, 3, 14, 8, 987654321},

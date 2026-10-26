@@ -8,7 +8,8 @@ struct logger_lookup {
     unsigned int count;
 };
 
-static void find_logger(const struct k_thread *thread, void *context) {
+static void find_logger(const struct k_thread *thread, void *context)
+{
     struct logger_lookup *lookup = context;
     const char *name = k_thread_name_get((k_tid_t)thread);
     if (name != NULL && strcmp(name, "logging") == 0) {
@@ -17,7 +18,8 @@ static void find_logger(const struct k_thread *thread, void *context) {
     }
 }
 
-struct m3_logger_resources m3_logger_resources_get(void) {
+struct m3_logger_resources m3_logger_resources_get(void)
+{
     struct logger_lookup lookup = {0};
     /* Identify during traversal; stack scanning and output remain outside its lock. */
     k_thread_foreach(find_logger, &lookup);

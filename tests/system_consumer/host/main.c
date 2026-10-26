@@ -1,7 +1,8 @@
 #include "controller_system.h"
 #include "runtime.h"
 #include <assert.h>
-int main(void) {
+int main(void)
+{
     system_runtime_observation_t c, cpp;
     assert(system_runtime_observe(&c) == CRUX_OK);
     assert(system_cpp_observe(&cpp) == CRUX_OK);

@@ -14,20 +14,24 @@ static bool thread_context = true;
 static int reads, upper_reads;
 static int64_t now_ns = 100, upper_ns = 110;
 static crux_status_t read_status = CRUX_OK;
-bool crux_time_clock_is_thread(void) {
+bool crux_time_clock_is_thread(void)
+{
     return thread_context;
 }
-crux_status_t crux_time_clock_read(int64_t *out) {
+crux_status_t crux_time_clock_read(int64_t *out)
+{
     ++reads;
     *out = now_ns; /* Dirty even on error, to exercise public output preservation. */
     return read_status;
 }
-crux_status_t crux_time_clock_read_upper_bound(int64_t *out) {
+crux_status_t crux_time_clock_read_upper_bound(int64_t *out)
+{
     ++upper_reads;
     *out = upper_ns;
     return read_status;
 }
-int main(void) {
+int main(void)
+{
     crux_monotonic_time_t out = {73};
     CHECK(crux_time_get_monotonic(NULL) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(crux_time_get_monotonic(&out) == CRUX_OK && out.private_ns == 100);
