@@ -34,7 +34,7 @@ Use an imperative one-sentence `@brief` or a clear first sentence. Document para
 
 Explain public types, enum values, members and macros when their meaning, values or ownership are non-obvious. Use brief `/** ... */` comments or `/**< ... */` trailing comments. Avoid repeating the identifier or C type in prose. Keep internal design rationale and implementation details out of public API descriptions.
 
-The [Time public header](../components/time/include/crux/time.h) provides a worked example. Its [Time contract](time-contract.md) records detailed semantics and provider decisions. Public headers should be quick references for correct use, not copies of complete design or validation reports.
+Use the owning component's current public headers and adopted contract as examples of appropriate detail. Public headers should be quick references for correct use, not copies of complete design or validation reports.
 
 ## Review and validation
 
