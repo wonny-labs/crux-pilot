@@ -32,6 +32,7 @@ class ExternalApplicationTest(unittest.TestCase):
     def test_external_configurations_and_parent_isolation(self):
         for profile, selected, symbol in (
                 ('time', {'time'}, 'crux_time_get_realtime'),
+                ('delay', {'delay', 'time'}, 'crux_delay_busy_wait'),
                 ('thread', {'thread', 'time'}, 'crux_thread_create'),
                 ('sync', {'sync'}, 'crux_mutex_create'),
                 ('serial', {'serial'}, 'crux_serial_open'),
@@ -203,6 +204,21 @@ class ExternalApplicationTest(unittest.TestCase):
             result, _ = self.configure(Path(temporary), 'thread', '-DCRUX_BUILD_TIME=OFF')
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('CRUX_BUILD_TIME', result.stdout + result.stderr)
+
+    def test_delay_requires_time_selection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result, _ = self.configure(Path(temporary), 'delay', '-DCRUX_BUILD_TIME=OFF')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('CRUX_BUILD_TIME', result.stdout + result.stderr)
+
+    def test_delay_external_c_and_cpp_without_unrelated_capabilities(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result, build = self.configure(Path(temporary), 'delay')
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.run_command([CMAKE, '--build', str(build), '--parallel', '2'])
+            self.run_command(['ctest', '--test-dir', str(build), '--output-on-failure'])
+            symbols = self.run_command(['readelf', '--symbols', '--wide', str(build / 'external_app')])
+            self.assertNotRegex(symbols, r'\b(?:crux_time_port_|crux_thread_|crux_mutex_|crux_semaphore_)')
 
     def test_conflicting_time_providers(self):
         with tempfile.TemporaryDirectory() as temporary:

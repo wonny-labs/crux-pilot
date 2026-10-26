@@ -124,7 +124,7 @@ See the [Time sample build task](../scripts/build-debug-target.sh) and [physical
 
 The verified external-consumer contract uses the **root** `add_subdirectory()` entry point. When included as a dependency, Crux selects **Base only** by default. The parent project's `BUILD_TESTING`, enabled languages and language-standard settings remain its own. Crux's tests and samples default OFF in this mode.
 
-Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `THREAD`, `SYNC`, `QUEUE`, `MONOTONIC`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `SERIAL`, `LOGGING` and `SYSTEM`. Base is always available.
+Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `DELAY`, `THREAD`, `SYNC`, `QUEUE`, `MONOTONIC`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `SERIAL`, `LOGGING` and `SYSTEM`. Base is always available.
 
 ### Complete Queue and Monotonic example
 
@@ -210,6 +210,7 @@ The external application tests also cover C++17, independently selected Thread/S
 | --- | --- |
 | Base | `crux::base` always exists |
 | Time | Set `CRUX_BUILD_TIME=ON` and explicitly select `CRUX_TIME_PROVIDER=memory` (controlled development) or `linux` (system realtime). Controlled Host samples require memory; Linux native writes need explicit application authority. Neither implies production qualification |
+| Delay | Select `CRUX_BUILD_DELAY=ON` and Time with an explicit provider; link `crux::delay`. Zephyr `CONFIG_CRUX_DELAY=y` selects Time without RTC. See [limits and verified scope](delay.md) |
 | Thread, Sync | Select independently through `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`. Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for the current controlled Host composition). Their public targets connect the current Linux implementation |
 | Queue, Monotonic | Portable targets use `crux::queue` / `crux::monotonic`. The final Linux executable additionally links `crux::queue_linux` / `crux::monotonic_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and native TTY binding belongs to trusted composition |

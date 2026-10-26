@@ -25,6 +25,12 @@ if(CONFIG_CRUX_TIME)
         "${CMAKE_CURRENT_BINARY_DIR}/time")
 endif()
 
+if(CONFIG_CRUX_DELAY)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/delay/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/delay")
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::delay)
+endif()
+
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxConsumerBoundary.cmake")
 if(CONFIG_CRUX_PILOT_MODULE)
     cmake_language(DEFER CALL crux_assert_portable_usage crux::base)

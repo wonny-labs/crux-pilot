@@ -69,6 +69,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-portable-execution.sh
 
+      - name: Validate bounded CPU Delay without hardware
+        working-directory: crux-pilot
+        run: scripts/test-delay.sh
+
       - name: Validate portable messaging without hardware
         working-directory: crux-pilot
         run: |
@@ -259,6 +263,8 @@ jobs:
             crux-pilot/build/zephyr/controller-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/controller-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/controller-evkb/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/delay-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/delay-evkb/zephyr/zephyr.bin
             crux-pilot/build/zephyr/execution-native-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/execution-native-evkb/zephyr/.config
             crux-pilot/build/zephyr/execution-native-evkb/zephyr/zephyr.elf

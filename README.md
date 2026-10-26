@@ -10,13 +10,13 @@ Applications select the components they need. Portable application and runtime-p
 
 | Area | Components | Purpose |
 | --- | --- | --- |
-| Foundation and timing | `base`, `time`, `monotonic` | Shared status and error codes, typed realtime/authority/calendar, elapsed time and deadlines |
+| Foundation and timing | `base`, `time`, `monotonic`, `delay` | Shared status, typed clocks/authority/calendar, deadlines and bounded CPU busy-wait |
 | Execution and synchronisation | `thread`, `sync`, `queue` | Threads, mutexes, semaphores and message queues |
 | Communication and networking | `serial`, `sockets`, `netif` | Serial byte streams, IPv4 TCP clients/connected UDP and network-interface status |
 | Storage and configuration | `file`, `configuration` | File access and application-supplied parameter validation and save/load |
 | Diagnostics and system | `logging`, `system` | Diagnostic logging, service status, reset diagnostics and watchdog operations |
 
-All listed components have merged source, but available OS implementations and validation levels differ. The Sockets capability uses a documented, tested POSIX socket API subset rather than a Crux socket wrapper. For each component's contract, available implementations and limitations, see the [capability inventory](docs/architecture.md#current-capability-integration).
+All listed components have implemented source, but available OS implementations and validation levels differ. The Sockets capability uses a documented, tested POSIX socket API subset rather than a Crux socket wrapper. For each component's contract, available implementations and limitations, see the [capability inventory](docs/architecture.md#current-capability-integration).
 
 ## Architecture
 
