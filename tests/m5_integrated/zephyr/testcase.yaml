@@ -1,0 +1,10 @@
+tests:
+  crux.m5.integrated_smoke:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - m5
+      - integration
+      - portable
+    harness: ztest
+    timeout: 30
