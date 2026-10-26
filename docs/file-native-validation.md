@@ -44,6 +44,16 @@ observable; no rollback of native effects after an I/O error is promised.
 
 ## Focused verification gate
 
+The standard [Zephyr software CI workflow](../.github/workflows/zephyr.yml) runs
+[`scripts/test-storage-simulators.sh`](../scripts/test-storage-simulators.sh).
+This automated gate executes seven File cases on each of the 32-bit and 64-bit
+`native_sim` platforms, ten Configuration Settings/NVS cases on 64-bit `native_sim`,
+and two Configuration source-staging regressions. All provider cases must execute
+and pass; skipped, filtered or build-only results do not satisfy the gate. The
+script also checks that source staging leaves the pinned Settings/NVS sources
+unchanged. These are software-only simulator checks; the target gates below
+remain in force.
+
 The existing pinned Zephyr source remains unchanged. `west.yml` adds the pinned
 Zephyr manifest's LittleFS module to its allowlist without upgrading Zephyr.
 Use `west update littlefs` in the normal development workspace. The author used
@@ -51,7 +61,14 @@ that exact module revision's source archive when the GitHub clone/API transport
 was unavailable; archive identity is recorded in the evidence. It is an external
 dependency, not vendored source in this repository.
 
-From a configured Linux west workspace with the pinned LittleFS dependency:
+To reproduce the complete automated gate manually, run from the repository root
+in a configured Linux west workspace with the pinned LittleFS dependency:
+
+```sh
+CRUX_WORKSPACE=/path/to/west-workspace scripts/test-storage-simulators.sh
+```
+
+For File-only manual reproduction:
 
 ```sh
 export ZEPHYR_BASE=/path/to/zephyr
@@ -62,9 +79,11 @@ python3 "$ZEPHYR_BASE/scripts/twister" -T tests/native/file_littlefs \
 
 The fixture automatically adds the current Crux module. If using explicit module
 selection, include the LittleFS directory using `--extra-args=ZEPHYR_MODULES=/path/to/modules/fs/littlefs`.
-This manual gate is not part of the standard CI workflows. Re-execute it and
-obtain affected review after changing the provider, fixture, pin or profile;
-standard CI success alone does not prove this gate ran.
+The File-only command reproduces the File portion of the gate; use the script
+above for the combined File/Configuration checks and required-result validation.
+Re-execute the affected gate and obtain review after changing the provider,
+fixture, pin or profile. CI evidence should identify the tested revision and the
+storage-provider step's result.
 
 The 64 KiB area at simulator offset `0x100000` is test-only. Tests explicitly
 format fresh owned simulator storage. Production code never autoformats;
