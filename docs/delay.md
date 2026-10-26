@@ -36,6 +36,11 @@ after that resolution adjustment; this can shrink between query and wait.
 Counter conversion, padding and addition are checked before polling. The Linux
 implementation calls no scheduler sleep/yield, allocator or mutex.
 
+The provider's representational limit is not a recommended busy-wait duration
+for a product. Long CPU busy-waits can reduce responsiveness even when the input
+is supported. Product requirements should govern where busy-wait is appropriate
+and set practical usage limits. The API adds no arbitrary global maximum.
+
 Zephyr uses native `k_busy_wait()` with a conservative finite half-counter
 profile. For fixed frequency `h` in Hz:
 

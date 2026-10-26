@@ -17,8 +17,9 @@ static void worker(void *argument) {
 #elif PROFILE_SYSTEM
 #include <crux/system.h>
 #elif PROFILE_MESSAGING
-#include <crux/monotonic.h>
 #include <crux/queue.h>
+#include <crux/thread.h>
+#include <crux/time.h>
 #endif
 int external_consumer(void) {
 #if PROFILE_TIME
@@ -70,12 +71,12 @@ int external_consumer(void) {
     crux_queue_t queue;
     int sent = 42;
     int received = 0;
-    int64_t now = -1;
+    crux_monotonic_time_t now = {0};
     return crux_queue_create(1, sizeof(sent), &queue) != CRUX_OK ||
            crux_queue_send(queue, &sent, sizeof(sent), 0) != CRUX_OK ||
            crux_queue_receive(queue, &received, sizeof(received), 0) != CRUX_OK ||
            received != sent || crux_queue_destroy(&queue) != CRUX_OK ||
-           crux_monotonic_now(&now) != CRUX_OK || crux_monotonic_sleep_until(now) != CRUX_OK;
+           crux_time_get_monotonic(&now) != CRUX_OK || crux_thread_sleep_until(now) != CRUX_OK;
 #else
     return CRUX_OK != 0;
 #endif

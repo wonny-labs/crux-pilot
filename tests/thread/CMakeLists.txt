@@ -15,3 +15,12 @@ target_link_options(crux_thread_linux_sleep_tests PRIVATE
     -Wl,--wrap=clock_gettime -Wl,--wrap=clock_getres -Wl,--wrap=clock_nanosleep)
 add_test(NAME Thread.TypedLinuxSleep COMMAND crux_thread_linux_sleep_tests)
 set_tests_properties(Thread.TypedLinuxSleep PROPERTIES TIMEOUT 5)
+
+add_library(crux_thread_clock_integration_portable OBJECT clock_integration.cpp)
+target_link_libraries(crux_thread_clock_integration_portable PRIVATE crux::thread crux::time)
+include(../../cmake/CruxConsumerBoundary.cmake)
+crux_assert_portable_consumer(crux_thread_clock_integration_portable)
+add_executable(crux_thread_clock_integration $<TARGET_OBJECTS:crux_thread_clock_integration_portable>)
+target_link_libraries(crux_thread_clock_integration PRIVATE crux::thread crux::time)
+add_test(NAME Thread.TypedLinuxIntegration COMMAND crux_thread_clock_integration)
+set_tests_properties(Thread.TypedLinuxIntegration PROPERTIES TIMEOUT 5)
