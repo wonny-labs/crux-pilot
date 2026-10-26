@@ -26,6 +26,8 @@ target_link_libraries(crux_time_test INTERFACE crux_time_common_test crux_time_m
 add_executable(crux_time_tests
     time_test.cpp
     calendar_test.cpp
+    time_types_test.cpp
+    time_types_c_smoke.c
     command_test.cpp
 )
 target_include_directories(crux_time_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
