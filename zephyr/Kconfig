@@ -99,11 +99,6 @@ config CRUX_QUEUE
     help
       Initial qualification profile: four queues, sixteen records, sixty-four bytes.
 
-config CRUX_MONOTONIC
-    bool "Crux monotonic milliseconds and absolute wait"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING
-    select TIMEOUT_64BIT
-
 config CRUX_SERIAL
     bool "Crux bounded UART Serial"
     depends on CRUX_PILOT_MODULE && MULTITHREADING && SERIAL

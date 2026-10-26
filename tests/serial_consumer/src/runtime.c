@@ -1,20 +1,19 @@
 #include "runtime.h"
 
-#include <crux/monotonic.h>
+#include <crux/time.h>
 #include <limits.h>
 #include <stddef.h>
 #include <string.h>
 
-static crux_status_t remaining(int64_t deadline, uint32_t *out_ms) {
-    int64_t now = 0;
-    crux_status_t status = crux_monotonic_now(&now);
+static crux_status_t remaining(crux_monotonic_time_t deadline, uint32_t *out_ms) {
+    crux_monotonic_time_t now;
+    crux_status_t status = crux_time_get_monotonic(&now);
     if (status != CRUX_OK)
         return status;
-    if (now < 0)
-        return CRUX_ERR_IO;
-    if (now >= deadline)
+    if (crux_monotonic_is_at_or_before(deadline, now))
         return CRUX_ERR_TIMEOUT;
-    *out_ms = (uint32_t)(deadline - now);
+    int64_t milliseconds = crux_duration_to_ms_ceil(crux_monotonic_diff(deadline, now));
+    *out_ms = (uint32_t)(milliseconds > INT32_MAX ? INT32_MAX : milliseconds);
     return CRUX_OK;
 }
 
@@ -23,8 +22,7 @@ crux_status_t serial_runtime_transaction(crux_serial_port_t port,
                                          uint32_t budget_ms, serial_runtime_result_t *result) {
     uint8_t request[16] = {0xc3, 0, 0xff, 0x51, 0, 0, 0, 0, 0, 0, 0, 0, 0x39, 0, 0xff, 0x5a};
     uint8_t reply[sizeof(request)] = {0};
-    int64_t start = 0;
-    int64_t deadline;
+    crux_monotonic_time_t deadline;
     uint32_t timeout = 0;
     crux_status_t status;
     size_t offset;
@@ -38,18 +36,9 @@ crux_status_t serial_runtime_transaction(crux_serial_port_t port,
         result->transaction_status = CRUX_ERR_OUT_OF_RANGE;
         return result->transaction_status;
     }
-    status = crux_monotonic_now(&start);
+    status = crux_time_make_deadline_after(crux_duration_from_ms((int32_t)budget_ms), &deadline);
     if (status != CRUX_OK)
         goto unopened;
-    if (start < 0) {
-        status = CRUX_ERR_IO;
-        goto unopened;
-    }
-    if (start > INT64_MAX - (int64_t)budget_ms) {
-        status = CRUX_ERR_OUT_OF_RANGE;
-        goto unopened;
-    }
-    deadline = start + (int64_t)budget_ms;
     status = crux_serial_open(port, config, &result->retained_handle);
     if (status != CRUX_OK)
         goto unopened;

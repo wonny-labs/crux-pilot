@@ -78,9 +78,7 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/file/fault_test.c" \
     "$repo/tests/file/host_test.c" \
     "$repo/components/queue/src/queue.c" \
-    "$repo/components/queue/ports/linux/queue_port.c" \
-    "$repo/components/monotonic/src/monotonic.c" \
-    "$repo/components/monotonic/ports/linux/monotonic_linux.c"
+    "$repo/components/queue/ports/linux/queue_port.c"
 
 "$tidy" -p "$build_dir" \
     "$repo/components/serial/src/serial.c" \

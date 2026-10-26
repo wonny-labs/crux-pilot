@@ -38,7 +38,7 @@ class ExternalApplicationTest(unittest.TestCase):
                 ('serial', {'serial'}, 'crux_serial_open'),
                 ('logging', {'logging'}, 'crux_log_write'),
                 ('system', {'system'}, 'crux_system_status_get'),
-                ('messaging', {'queue', 'monotonic'}, 'crux_queue_create'),
+                ('messaging', {'queue', 'time', 'thread'}, 'crux_queue_create'),
                 ('parent', set(), None)):
             with self.subTest(profile=profile), tempfile.TemporaryDirectory() as temporary:
                 result, build = self.configure(Path(temporary), profile)
@@ -85,7 +85,8 @@ class ExternalApplicationTest(unittest.TestCase):
                 'add_test(NAME Parent.Before COMMAND "${CMAKE_COMMAND}" -E true)\n'
                 f'set(CRUX_SOURCE_DIR "{REPO}" CACHE PATH "External dependency")\n'
                 'add_subdirectory(serial)\n'
-                'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::thread OR TARGET crux::time)\n'
+                'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::thread OR TARGET crux::sync '
+                'OR NOT TARGET crux::time OR NOT TARGET crux::serial)\n'
                 'message(FATAL_ERROR "Serial inclusion changed parent policy or component selection")\nendif()\n'
                 'add_test(NAME Parent.After COMMAND "${CMAKE_COMMAND}" -E true)\n')
             build = root / 'out'
@@ -109,7 +110,7 @@ class ExternalApplicationTest(unittest.TestCase):
                 f'set(CRUX_SOURCE_DIR "{REPO}" CACHE PATH "External dependency")\n'
                 'add_subdirectory(logging)\n'
                 'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::serial OR TARGET crux::time '
-                'OR TARGET crux::thread OR TARGET crux::monotonic '
+                'OR TARGET crux::thread OR TARGET crux::queue OR TARGET crux::delay OR TARGET crux::sync '
                 'OR NOT CMAKE_C_STANDARD EQUAL 99 OR NOT CMAKE_CXX_STANDARD EQUAL 20)\n'
                 'message(FATAL_ERROR "Logging changed parent policy or component selection")\nendif()\n'
                 'add_test(NAME Parent.After COMMAND "${CMAKE_COMMAND}" -E true)\n')
@@ -133,7 +134,7 @@ class ExternalApplicationTest(unittest.TestCase):
                 f'set(CRUX_SOURCE_DIR "{REPO}" CACHE PATH "External dependency")\n'
                 'add_subdirectory(system)\n'
                 'if(NOT BUILD_TESTING OR CRUX_BUILD_TESTS OR TARGET crux::serial OR TARGET crux::time '
-                'OR TARGET crux::thread OR TARGET crux::monotonic '
+                'OR TARGET crux::thread OR TARGET crux::queue OR TARGET crux::delay OR TARGET crux::sync '
                 'OR NOT CMAKE_C_STANDARD EQUAL 99 OR NOT CMAKE_CXX_STANDARD EQUAL 20)\n'
                 'message(FATAL_ERROR "System changed parent policy or component selection")\nendif()\n'
                 'add_test(NAME Parent.After COMMAND "${CMAKE_COMMAND}" -E true)\n')

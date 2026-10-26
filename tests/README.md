@@ -160,12 +160,12 @@ python3 -m unittest discover -s tests/build -p test_external_application.py -v
 
 The test copies `tests/external_application/` into fresh temporary directories
 outside the Crux source tree, then configures, builds and runs independent C17/C++17
-Base/Time, Thread-only, Sync-only, Serial-only, Logging-only, Queue/Monotonic and Base-only parent projects.
+Base/Time, Thread-only, Sync-only, Serial-only, Logging-only, Queue/Time/Thread and Base-only parent projects.
 Parent C99/C++20 targets and CTest tests before/after inclusion remain functional;
 a separate C-only parent retains its enabled-language and testing policy ON/OFF.
 Actual compile commands and final ELF symbols check component selection and private
 requirements. Focused negatives cover missing/unsupported/multiple Time selection,
-incompatible Time/Serial/Logging providers and missing Queue/Monotonic native composition. Existing
+incompatible Time/Serial/Logging providers and missing Queue native composition. Existing
 source/build guards retain the detailed native-dependency negatives. A separately
 copied Serial consumer runs all five PTY/policy scenarios beneath a parent project
 with its own tests enabled, preserving both parent tests. The independent Logging
@@ -250,30 +250,20 @@ backend is enabled by these checks.
 
 ## Portable queue and monotonic timing
 
-Queue and Monotonic native implementations live in their component-owned
-`components/{queue,monotonic}/ports/linux/` and `ports/zephyr/` directories.
-Their public usage targets remain `crux::queue` and `crux::monotonic`. Native
-Linux composition uses `crux::queue_linux` and `crux::monotonic_linux`; the
-corresponding implementation targets are `crux_queue_linux` and `crux_monotonic_linux`.
-Zephyr component build definitions live beside their ports and
-are selected by the top-level module's existing `CONFIG_CRUX_*` conditions.
-Tests remain under `tests/queue/`, `tests/monotonic/` and
-`tests/messaging_consumer/`; private port includes belong only to native tests.
+Queue owns its native ports under `components/queue/ports/<os>/`. Portable
+consumers use `crux::queue`; the final Linux executable adds `crux::queue_linux`
+(`crux_queue_linux` implementation). Direct and transitive native links are
+rejected for portable consumers. The old Monotonic capability/targets/header
+were removed by the typed Time redesign; absence is checked explicitly.
 
-`Queue.*` and `Monotonic.*` run with Host Debug/sanitizer checks. Queue native
-contract models deliberately reproduce pinned Zephyr timeout semantics; actual
-`native_sim` ztests additionally check ownership, admitted cleanup, wakeup,
-MPMC integrity, tick rounding and ISR rejection. Model results do not substitute
-for native-kernel execution.
-
-Run `scripts/test-messaging.sh --host-only` for independently authored C17/C++17
-runtime and portable controller scenarios with public-usage graph guards. The
-full script adds three native_sim configurations and an EVKB cross-build.
-`scripts/measure-messaging.sh` compares same-source no-op images with the full
-callable capability surface deliberately retained in the enabled profile. These
-commands never access hardware. See [the contract](../docs/messaging-contract.md)
-and [validation](../docs/messaging-validation.md) for ownership, cooperative-stop
-semantics, resource profile and qualification limits.
+Time owns typed monotonic observation/deadlines and Thread owns sleep. Their
+common/Linux error, rounding, overflow and early-wake tests run with Host checks.
+The former real Linux C++ wait scenario is now `Thread.TypedLinuxIntegration`.
+Native 128-Hz exact/fractional deadline and ISR checks are retained in
+`tests/thread/zephyr_fractional`; `scripts/test-messaging.sh` runs these with Queue
+and independent messaging consumers. RTC-disabled Time/Thread tests also remain
+in `tests/thread/zephyr`. Historical measurements and old test names are retained
+in [the original evidence](../docs/messaging-validation.md), not new qualification.
 
 ## Portable Serial
 
@@ -283,9 +273,9 @@ runs focused UART-emulator/native ownership suites and cross-builds the EVKB
 fixture. It does not access hardware. See [Serial qualification](../docs/serial-validation.md)
 for the contract, actual evidence, unresolved observations and separate physical
 proposal. Root Host/ASan checks include the common and native PTY Serial cases.
-The independent Host consumer selects `CRUX_BUILD_SERIAL` and `CRUX_BUILD_MONOTONIC`
+The independent Host consumer selects `CRUX_BUILD_SERIAL` and `CRUX_BUILD_TIME` with an explicit Time provider
 through the root entry point, keeps parent `BUILD_TESTING` intact and composes
-`crux::monotonic_linux` only in the native fixture. Static Zephyr composition and
+the public `crux::time` clock contract. Static Zephyr composition and
 UART ownership checks remain part of the full Serial script.
 
 ## Portable Logging

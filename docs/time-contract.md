@@ -113,9 +113,18 @@ both return NOT_READY and preserve output.
 | Other read error, including malformed native nanoseconds mapped to IO | Preserve output and authority state |
 
 The lock guarantees consistency among Crux operations. It cannot serialize native
-clock setters outside Crux. Application authority policy owns source selection
-and stale synchronization callbacks; separating the authority header is not a
-runtime permission or authentication mechanism.
+clock setters outside Crux or guarantee snapshot consistency for those changes.
+The designated product Time Authority must coordinate native clock changes with
+any external NTP/PTP time manager and owns source selection and stale
+synchronization callbacks. Separating the authority header is not a runtime
+permission or authentication mechanism.
+
+On Linux, setting CLOCK_REALTIME requires appropriate system permissions,
+normally [CAP_SYS_TIME](https://man7.org/linux/man-pages/man7/capabilities.7.html).
+Selecting the Linux provider or calling the Time Authority API does not grant
+those permissions. Automated tests must not modify the real Host system clock.
+Linux realtime-write tests use the controlled Memory provider or wrapped native
+setters.
 
 ## Time Authority
 

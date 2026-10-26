@@ -54,10 +54,7 @@ if(CONFIG_CRUX_QUEUE)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/queue/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/queue")
 endif()
-if(CONFIG_CRUX_MONOTONIC)
-    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/monotonic/ports/zephyr"
-        "${CMAKE_CURRENT_BINARY_DIR}/monotonic")
-endif()
+
 
 if(CONFIG_CRUX_SERIAL)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/serial/ports/zephyr"
