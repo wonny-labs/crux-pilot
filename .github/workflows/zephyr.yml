@@ -83,9 +83,9 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-serial.sh
 
-      - name: Verify M3 device, network and controller paths without hardware
+      - name: Validate controller integration (software-only)
         working-directory: crux-pilot
-        run: scripts/test-m3.sh
+        run: scripts/test-controller-integration.sh
 
       - name: Qualify portable networking without hardware
         working-directory: crux-pilot
@@ -109,25 +109,39 @@ jobs:
         working-directory: crux-pilot
         run: ./scripts/test-system.sh
 
+      # Avoid repeated glob traversals through large Twister build trees.
+      - name: Collect Twister evidence paths
+        if: always()
+        id: twister_evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo 'paths<<TWISTER_EVIDENCE'
+            for directory in crux-pilot/build/zephyr/twister-*; do
+              [ -d "$directory" ] || continue
+              find "$directory" -type f \( \
+                -name 'production_*.h' -o \
+                -name '*.log' -o -name '*.err' -o \
+                -name 'CMakeConfigureLog.yaml' -o \
+                -name 'CMakeCache.txt' -o -name 'compile_commands.json' -o \
+                -path '*/zephyr/.config' -o \
+                -path '*/zephyr/zephyr.map' -o \
+                -path '*/zephyr/zephyr.dts' \
+              \) -print
+              find "$directory" -maxdepth 1 -type f \( -name '*.json' -o -name '*.xml' \) -print
+            done | LC_ALL=C sort -u
+            echo 'TWISTER_EVIDENCE'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Upload Zephyr reports and raw logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: zephyr-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            # Twister results and raw diagnostics, without complete build trees.
-            crux-pilot/build/zephyr/twister-*/*.json
-            crux-pilot/build/zephyr/twister-*/*.xml
-            crux-pilot/build/zephyr/twister-*/**/production_*.h
-            # Include early configure/build failures as well as runtime failures.
-            crux-pilot/build/zephyr/twister-*/**/*.log
-            crux-pilot/build/zephyr/twister-*/**/*.err
-            crux-pilot/build/zephyr/twister-*/**/CMakeConfigureLog.yaml
-            crux-pilot/build/zephyr/twister-*/**/CMakeCache.txt
-            crux-pilot/build/zephyr/twister-*/**/compile_commands.json
-            crux-pilot/build/zephyr/twister-*/**/zephyr/.config
-            crux-pilot/build/zephyr/twister-*/**/zephyr/zephyr.map
-            crux-pilot/build/zephyr/twister-*/**/zephyr/zephyr.dts
+            # The collected paths retain the original build/zephyr/twister-* layout.
+            ${{ steps.twister_evidence.outputs.paths }}
             # Direct cross-build outputs: do not scan every EVKB generated header tree.
             crux-pilot/build/zephyr/*/*.log
             crux-pilot/build/zephyr/*/*.err
