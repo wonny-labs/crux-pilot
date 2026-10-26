@@ -5,6 +5,8 @@ if(NOT DEFINED CRUX_SOURCE_DIR)
     message(FATAL_ERROR "Supply -DCRUX_SOURCE_DIR=/absolute/path/to/crux")
 endif()
 set(CRUX_BUILD_THREAD ON CACHE BOOL "Required external capability")
+set(CRUX_BUILD_TIME ON CACHE BOOL "Thread's clock dependency")
+set(CRUX_TIME_PROVIDER memory CACHE STRING "Controlled development realtime")
 set(CRUX_BUILD_SYNC ON CACHE BOOL "Required external capability")
 add_subdirectory("${CRUX_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/crux")
 

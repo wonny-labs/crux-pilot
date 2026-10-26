@@ -29,7 +29,7 @@ crux_status_t crux_time_zephyr_status_from_rtc_error(int error) {
     }
 }
 
-#if DT_HAS_ALIAS(rtc)
+#if defined(CONFIG_RTC) && DT_HAS_ALIAS(rtc)
 #if DT_NODE_HAS_STATUS(DT_ALIAS(rtc), okay)
 #define CRUX_TIME_RTC_AVAILABLE 1
 static const struct device *const crux_time_rtc = DEVICE_DT_GET(DT_ALIAS(rtc));

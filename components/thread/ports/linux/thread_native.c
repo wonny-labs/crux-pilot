@@ -11,6 +11,16 @@ bool thread_native_context_allowed(void) {
     return true;
 }
 
+crux_status_t thread_native_sleep_until(int64_t deadline_ns) {
+    const struct timespec deadline = {
+        .tv_sec = (time_t)(deadline_ns / INT64_C(1000000000)),
+        .tv_nsec = (long)(deadline_ns % INT64_C(1000000000)),
+    };
+    int result = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, NULL);
+    /* EINTR is an early wake. Common code resamples and retains this deadline. */
+    return result == 0 || result == EINTR ? CRUX_OK : CRUX_ERR_IO;
+}
+
 void thread_native_metadata_lock(void) {
     (void)pthread_mutex_lock(&thread_metadata);
 }

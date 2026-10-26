@@ -32,7 +32,7 @@ class ExternalApplicationTest(unittest.TestCase):
     def test_external_configurations_and_parent_isolation(self):
         for profile, selected, symbol in (
                 ('time', {'time'}, 'crux_time_get'),
-                ('thread', {'thread'}, 'crux_thread_create'),
+                ('thread', {'thread', 'time'}, 'crux_thread_create'),
                 ('sync', {'sync'}, 'crux_mutex_create'),
                 ('serial', {'serial'}, 'crux_serial_open'),
                 ('logging', {'logging'}, 'crux_log_write'),
@@ -174,6 +174,12 @@ class ExternalApplicationTest(unittest.TestCase):
                 result, _ = self.configure(Path(temporary), 'time', f'-DCRUX_TIME_PROVIDER={provider}')
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn('CRUX_TIME_PROVIDER', result.stdout + result.stderr)
+
+    def test_thread_requires_explicit_time_selection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result, _ = self.configure(Path(temporary), 'thread', '-DCRUX_BUILD_TIME=OFF')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('CRUX_BUILD_TIME', result.stdout + result.stderr)
 
     def test_conflicting_time_providers(self):
         with tempfile.TemporaryDirectory() as temporary:

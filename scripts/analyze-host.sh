@@ -28,6 +28,9 @@ fi
 tidy="${CLANG_TIDY:-clang-tidy-18}"
 "$tidy" -p "$build_dir" \
     "$repo/components/time/src/time.c" \
+    "$repo/components/time/src/time_types.c" \
+    "$repo/components/time/src/time_clock.c" \
+    "$repo/components/time/ports/linux/time_clock_linux.c" \
     "$repo/components/time/src/time_calendar.c" \
     "$repo/components/time/src/time_port_memory.c" \
     "$repo/samples/time/src/time_command.c" \
@@ -37,6 +40,7 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/time/command_test.cpp" \
     "$repo/tests/execution/src/posix.c" \
     "$repo/components/thread/src/thread.c" \
+    "$repo/components/thread/src/thread_sleep.c" \
     "$repo/components/sync/src/sync.c" \
     "$repo/components/thread/ports/linux/thread_native.c" \
     "$repo/components/sync/ports/linux/sync_native.c" \

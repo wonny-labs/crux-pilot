@@ -45,6 +45,21 @@ supported year interval. Malformed combinations return `CRUX_ERR_INVALID_ARGUMEN
 outside the interval return `CRUX_ERR_OUT_OF_RANGE`. Instant conversion similarly rejects values
 outside the interval. Output arguments are assigned only on success.
 
+## Typed monotonic observation and deadlines
+
+`crux_time_get_monotonic()` and `crux_time_make_deadline_after()` use the
+distinct values in `<crux/time_types.h>`. They need neither realtime init nor
+RTC validity. Host uses CLOCK_MONOTONIC while retaining the controlled memory
+realtime store; Zephyr uses uptime ticks and configures without RTC. Concurrent
+thread callers use distinct output storage; ISR is not-supported. Negative
+duration is invalid-argument, zero deadline duration returns the unadjusted
+sample, and positive duration compensates the clock quantum from the internal
+sample. Overflow/failure preserves output. The pure monotonic arithmetic helper
+does not add this compensation. [Thread sleep](thread-sync.md#current-thread-sleep)
+owns waiting and the original absolute deadline predicate. Existing realtime
+get/set declarations below remain during the staged migration documented in the
+[accepted redesign](superpowers/specs/2026-10-25-time-redesign.md).
+
 ## Header and build ownership
 
 This component follows the [repository header/dependency rules](../CONTRIBUTING.md#public-headers-and-module-dependencies).

@@ -350,7 +350,7 @@ class ConsumerBoundaryTest(unittest.TestCase):
 
     def test_real_messaging_facades_preserve_selected_toolchain_flags(self):
         result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'
-                                'set(CONFIG_CRUX_TIME OFF)\nset(CONFIG_CRUX_THREAD ON)\nset(CONFIG_CRUX_SYNC ON)\n'
+                                'set(CONFIG_CRUX_TIME ON)\nset(CONFIG_CRUX_THREAD ON)\nset(CONFIG_CRUX_SYNC ON)\n'
                                 'set(CONFIG_CRUX_QUEUE ON)\nset(CONFIG_CRUX_MONOTONIC ON)\n'
                                 'add_custom_target(zephyr_generated_headers)\n'
                                 'function(zephyr_append_cmake_library name)\n'

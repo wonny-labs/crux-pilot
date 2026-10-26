@@ -2,6 +2,12 @@
 
 Crux uses GoogleTest/CTest for selected Linux Host component and controller tests, Twister with Ztest or console harnesses for Zephyr tests, and Python runners for build and scenario validation. The existing physical Time/RTC tests use standalone pytest on macOS; other physical device, network and controller tests use dedicated Python command-line runners. Twister's pytest harness is not currently configured.
 
+Typed monotonic and Thread sleep checks include controlled common/native failure
+cases, C17/C++17 header/type checks, and RTC-disabled Zephyr Ztests in
+`tests/thread/zephyr`. `scripts/test-portable-execution.sh` includes those Ztests
+and their EVKB cross-build. Thread-only means without Sync; its explicit Time
+clock dependency is included. These checks do not operate physical hardware.
+
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
 | Portable components and controller logic | CTest with GoogleTest suites and standalone C/C++ tests | Linux Host |

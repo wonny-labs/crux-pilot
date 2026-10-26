@@ -19,6 +19,9 @@ extern "C" int component_cpp_consumer_run(void) {
     if (crux_thread_join(nullptr, 0) != CRUX_ERR_INVALID_ARGUMENT) {
         return 2;
     }
+    if (crux_thread_sleep_for(crux_duration_from_ns(-1)) != CRUX_ERR_INVALID_ARGUMENT) {
+        return 3;
+    }
 #else
     if (crux_mutex_destroy(nullptr) != CRUX_ERR_INVALID_ARGUMENT) {
         return 2;

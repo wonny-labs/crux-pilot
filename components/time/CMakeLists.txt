@@ -30,6 +30,12 @@ set_property(TARGET crux_time_memory APPEND PROPERTY COMPATIBLE_INTERFACE_STRING
 # Internal compatibility name; the host composition explicitly selects memory.
 add_library(crux_time_host ALIAS crux_time_memory)
 
+add_library(crux_time_clock_linux STATIC ports/linux/time_clock_linux.c)
+target_include_directories(crux_time_clock_linux PRIVATE include src)
+target_link_libraries(crux_time_clock_linux PRIVATE crux::base)
+target_compile_definitions(crux_time_clock_linux PRIVATE _POSIX_C_SOURCE=200809L)
+target_compile_options(crux_time_clock_linux PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
 add_library(crux_time INTERFACE)
 add_library(crux::time ALIAS crux_time)
-target_link_libraries(crux_time INTERFACE crux_time_common crux_time_memory)
+target_link_libraries(crux_time INTERFACE crux_time_common crux_time_memory crux_time_clock_linux)
