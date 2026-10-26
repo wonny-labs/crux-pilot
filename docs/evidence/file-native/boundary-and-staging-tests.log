@@ -1,0 +1,27 @@
+test_applies_to_all_designated_portable_roots (test_native_interfaces.NativeInterfaceTest.test_applies_to_all_designated_portable_roots) ... ok
+test_dependency_entry_point_checks_tokens_and_allows_iso_c (test_native_interfaces.NativeInterfaceTest.test_dependency_entry_point_checks_tokens_and_allows_iso_c) ... ok
+test_documentation_and_string_literals_are_not_native_dependencies (test_native_interfaces.NativeInterfaceTest.test_documentation_and_string_literals_are_not_native_dependencies) ... ok
+test_invalid_root_reports_an_error_instead_of_success (test_native_interfaces.NativeInterfaceTest.test_invalid_root_reports_an_error_instead_of_success) ... ok
+test_iso_c_and_crux_interfaces_remain_portable (test_native_interfaces.NativeInterfaceTest.test_iso_c_and_crux_interfaces_remain_portable) ... ok
+test_line_splicing_cannot_hide_native_include_or_token (test_native_interfaces.NativeInterfaceTest.test_line_splicing_cannot_hide_native_include_or_token) ... ok
+test_messaging_consumers_reject_native_leakage (test_native_interfaces.NativeInterfaceTest.test_messaging_consumers_reject_native_leakage) ... ok
+test_native_providers_and_compositions_remain_native (test_native_interfaces.NativeInterfaceTest.test_native_providers_and_compositions_remain_native) ... ok
+test_networking_profile_does_not_allow_native_or_general_posix (test_native_interfaces.NativeInterfaceTest.test_networking_profile_does_not_allow_native_or_general_posix) ... ok
+test_networking_profile_is_scoped_to_registered_consumers (test_native_interfaces.NativeInterfaceTest.test_networking_profile_is_scoped_to_registered_consumers) ... ok
+test_public_headers_cannot_include_shared_implementation_headers (test_native_interfaces.NativeInterfaceTest.test_public_headers_cannot_include_shared_implementation_headers) ... ok
+test_rejects_direct_paths_into_component_ports (test_native_interfaces.NativeInterfaceTest.test_rejects_direct_paths_into_component_ports) ... ok
+test_rejects_direct_paths_into_providers_and_test_controls (test_native_interfaces.NativeInterfaceTest.test_rejects_direct_paths_into_providers_and_test_controls) ... ok
+test_rejects_native_header_families_and_include_spacing (test_native_interfaces.NativeInterfaceTest.test_rejects_native_header_families_and_include_spacing) ... ok
+test_rejects_native_types_api_calls_and_configuration_tokens (test_native_interfaces.NativeInterfaceTest.test_rejects_native_types_api_calls_and_configuration_tokens) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 43.362s
+
+OK
+test_manifest_hardlink_preserves_external_file (test_prepare.ManifestSafety.test_manifest_hardlink_preserves_external_file) ... ok
+test_manifest_symlink_preserves_external_file (test_prepare.ManifestSafety.test_manifest_symlink_preserves_external_file) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.023s
+
+OK

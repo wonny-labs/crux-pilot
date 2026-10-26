@@ -1,0 +1,550 @@
+[
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Icomponents/file/include",
+      "-Icomponents/file/src",
+      "-Icomponents/file/ports/linux",
+      "tests/file/fault_test.c",
+      "components/file/src/file.c",
+      "-o",
+      "/workspace/crux-results/main/debug/fault"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/workspace/crux-results/main/debug/fault"
+    ],
+    "returncode": 0,
+    "output": "File deterministic contract checks passed\n"
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Icomponents/file/include",
+      "-Icomponents/file/src",
+      "-Icomponents/file/ports/linux",
+      "tests/file/host_test.c",
+      "components/file/src/file.c",
+      "components/file/ports/linux/file_linux.c",
+      "-o",
+      "/workspace/crux-results/main/debug/host"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/workspace/crux-results/main/debug/host"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Icomponents/file/include",
+      "-Icomponents/file/src",
+      "-Icomponents/file/ports/linux",
+      "-c",
+      "components/file/src/file.c",
+      "-o",
+      "/workspace/crux-results/main/debug/file.o"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Icomponents/file/include",
+      "-Icomponents/file/src",
+      "-Icomponents/file/ports/linux",
+      "-c",
+      "components/file/ports/linux/file_linux.c",
+      "-o",
+      "/workspace/crux-results/main/debug/file_linux.o"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Icomponents/file/include",
+      "-Icomponents/file/src",
+      "-Icomponents/file/ports/linux",
+      "-c",
+      "tests/file_consumer/fixture.c",
+      "-o",
+      "/workspace/crux-results/main/debug/fixture.o"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-Icomponents/file/include",
+      "-c",
+      "tests/file_consumer/consumer.c",
+      "-o",
+      "/workspace/crux-results/main/debug/consumer-c.o"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "/workspace/crux-results/main/debug/fixture.o",
+      "/workspace/crux-results/main/debug/consumer-c.o",
+      "/workspace/crux-results/main/debug/file.o",
+      "/workspace/crux-results/main/debug/file_linux.o",
+      "-o",
+      "/workspace/crux-results/main/debug/consumer-c"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/workspace/crux-results/main/debug/consumer-c"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/g++",
+      "-std=c++17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-Icomponents/file/include",
+      "-c",
+      "tests/file_consumer/consumer.cpp",
+      "-o",
+      "/workspace/crux-results/main/debug/consumer-cpp.o"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "/workspace/crux-results/main/debug/fixture.o",
+      "/workspace/crux-results/main/debug/consumer-cpp.o",
+      "/workspace/crux-results/main/debug/file.o",
+      "/workspace/crux-results/main/debug/file_linux.o",
+      "-o",
+      "/workspace/crux-results/main/debug/consumer-cpp"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/workspace/crux-results/main/debug/consumer-cpp"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "-fno-pie",
+      "-no-pie",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Icomponents/file/include",
+      "-Icomponents/file/src",
+      "-Icomponents/file/ports/linux",
+      "tests/file/fault_test.c",
+      "components/file/src/file.c",
+      "-o",
+      "/workspace/crux-results/main/sanitize/fault"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/workspace/crux-results/main/sanitize/fault"
+    ],
+    "returncode": 0,
+    "output": "File deterministic contract checks passed\n"
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "-fno-pie",
+      "-no-pie",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Icomponents/file/include",
+      "-Icomponents/file/src",
+      "-Icomponents/file/ports/linux",
+      "tests/file/host_test.c",
+      "components/file/src/file.c",
+      "components/file/ports/linux/file_linux.c",
+      "-o",
+      "/workspace/crux-results/main/sanitize/host"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/workspace/crux-results/main/sanitize/host"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "-fno-pie",
+      "-no-pie",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Icomponents/file/include",
+      "-Icomponents/file/src",
+      "-Icomponents/file/ports/linux",
+      "-c",
+      "components/file/src/file.c",
+      "-o",
+      "/workspace/crux-results/main/sanitize/file.o"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "-fno-pie",
+      "-no-pie",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Icomponents/file/include",
+      "-Icomponents/file/src",
+      "-Icomponents/file/ports/linux",
+      "-c",
+      "components/file/ports/linux/file_linux.c",
+      "-o",
+      "/workspace/crux-results/main/sanitize/file_linux.o"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "-fno-pie",
+      "-no-pie",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Icomponents/file/include",
+      "-Icomponents/file/src",
+      "-Icomponents/file/ports/linux",
+      "-c",
+      "tests/file_consumer/fixture.c",
+      "-o",
+      "/workspace/crux-results/main/sanitize/fixture.o"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "-fno-pie",
+      "-no-pie",
+      "-Icomponents/file/include",
+      "-c",
+      "tests/file_consumer/consumer.c",
+      "-o",
+      "/workspace/crux-results/main/sanitize/consumer-c.o"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "-fno-pie",
+      "-no-pie",
+      "/workspace/crux-results/main/sanitize/fixture.o",
+      "/workspace/crux-results/main/sanitize/consumer-c.o",
+      "/workspace/crux-results/main/sanitize/file.o",
+      "/workspace/crux-results/main/sanitize/file_linux.o",
+      "-o",
+      "/workspace/crux-results/main/sanitize/consumer-c"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/workspace/crux-results/main/sanitize/consumer-c"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/g++",
+      "-std=c++17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "-fno-pie",
+      "-no-pie",
+      "-Icomponents/file/include",
+      "-c",
+      "tests/file_consumer/consumer.cpp",
+      "-o",
+      "/workspace/crux-results/main/sanitize/consumer-cpp.o"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "-fno-pie",
+      "-no-pie",
+      "/workspace/crux-results/main/sanitize/fixture.o",
+      "/workspace/crux-results/main/sanitize/consumer-cpp.o",
+      "/workspace/crux-results/main/sanitize/file.o",
+      "/workspace/crux-results/main/sanitize/file_linux.o",
+      "-o",
+      "/workspace/crux-results/main/sanitize/consumer-cpp"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-pilot",
+    "command": [
+      "/workspace/crux-results/main/sanitize/consumer-cpp"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-candidate56",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Icomponents/file/include",
+      "-Icomponents/file/src",
+      "-Icomponents/file/ports/linux",
+      "tests/file/fault_test.c",
+      "components/file/src/file.c",
+      "-o",
+      "/workspace/crux-results/candidate56/debug/fault"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  {
+    "cwd": "/workspace/crux-candidate56",
+    "command": [
+      "/workspace/crux-results/candidate56/debug/fault"
+    ],
+    "returncode": 0,
+    "output": "File deterministic contract checks passed\n"
+  },
+  {
+    "cwd": "/workspace/crux-candidate56",
+    "command": [
+      "/usr/bin/gcc",
+      "-std=c17",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-UNDEBUG",
+      "-g",
+      "-D_POSIX_C_SOURCE=200809L",
+      "-Icomponents/file/include",
+      "-Icomponents/file/src",
+      "-Icomponents/file/ports/linux",
+      "tests/file/host_test.c",
+      "components/file/src/file.c",
+      "components/file/ports/linux/file_linux.c",
+      "components/file/ports/linux/file_lock.c",
+      "-o",
+      "/workspace/crux-results/candidate56/debug/host"
+    ],
+    "returncode": 1,
+    "output": "cc1: fatal error: components/file/ports/linux/file_linux.c: No such file or directory\ncompilation terminated.\n"
+  }
+]

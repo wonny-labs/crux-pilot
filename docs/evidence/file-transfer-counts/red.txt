@@ -1,0 +1,1 @@
+file-fault-red: tests/file/fault_test.c:74: main: Assertion `crux_file_read(f, b, sizeof(b), &n) == CRUX_FILE_ERR_IO && n == 0' failed.

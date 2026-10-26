@@ -1,0 +1,10 @@
+&flash0 {
+  erase-block-size = <4096>;
+  write-block-size = <1>;
+  partitions {
+    file_test_partition: partition@100000 {
+      label = "file-test-only";
+      reg = <0x100000 0x10000>;
+    };
+  };
+};

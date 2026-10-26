@@ -226,6 +226,12 @@ These checks do not operate Flash or qualify an adopted persistence backend.
 
 ## Portable File software slice
 
+`scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS File suite on
+32/64-bit `native_sim`, the Settings/NVS Configuration suite on 64-bit `native_sim`,
+and the Configuration source-staging regressions. It requires the pinned west
+workspace with LittleFS and a Host compiler with 32-bit development libraries.
+The Zephyr CI workflow runs this software-only gate; no physical storage is used.
+
 The [File contract](../docs/file-contract.md) and
 [qualification/handoff record](../docs/file-validation.md) cover the Linux Host
 provider and private deterministic failure tests. Normal Host CTest includes

@@ -124,3 +124,10 @@ config CRUX_SYSTEM
     help
       Explicit native WATCHDOG/HWINFO/REBOOT composition required. No auto-arm,
       auto-clear, application health assessment, stop or reconfiguration.
+
+config CRUX_FILE_SIMULATOR
+    bool "Crux File VFS simulator candidate"
+    depends on CRUX_PILOT_MODULE && BOARD_NATIVE_SIM && FLASH_SIMULATOR && FILE_SYSTEM
+    help
+      Experimental File provider for software-only storage validation.
+      Does not select a target Flash layout, mount or format a volume.

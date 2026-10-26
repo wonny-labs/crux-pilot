@@ -1,0 +1,48 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE configuration_settings
+===================================================================
+START - test_full_record_crc_failure_preserves_active
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/configuration_settings/main.c:136: configuration_settings_test_full_record_crc_failure_preserves_active: crux_config_save(&p) is non-zero
+
+ FAIL - test_full_record_crc_failure_preserves_active in 0.000 seconds
+===================================================================
+START - test_malformed_records
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/configuration_settings/main.c:130: configuration_settings_test_malformed_records: crux_config_load(&p) not equal to CRUX_CONFIG_DEFAULT_REJECTED
+
+ FAIL - test_malformed_records in 0.000 seconds
+===================================================================
+START - test_roundtrip_and_missing
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/configuration_settings/main.c:76: configuration_settings_test_roundtrip_and_missing: crux_config_load(&p) not equal to CRUX_CONFIG_DEFAULT_MISSING
+
+ FAIL - test_roundtrip_and_missing in 0.000 seconds
+===================================================================
+START - test_save_failure_and_interrupted_reinit
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/configuration_settings/main.c:107: configuration_settings_test_save_failure_and_interrupted_reinit: crux_config_save(&p) is non-zero
+
+ FAIL - test_save_failure_and_interrupted_reinit in 0.000 seconds
+===================================================================
+START - test_traversal_error_is_not_missing
+
+    Assertion failed at WEST_TOPDIR/.worktrees/flash-safety-poc/tests/native/configuration_settings/main.c:100: configuration_settings_test_traversal_error_is_not_missing: crux_config_save(&p) is non-zero
+
+ FAIL - test_traversal_error_is_not_missing in 0.000 seconds
+===================================================================
+TESTSUITE configuration_settings failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -   0.00% [configuration_settings]: pass = 0, fail = 5, skip = 0, total = 5 duration = 0.000 seconds
+ - FAIL - [configuration_settings.test_full_record_crc_failure_preserves_active] duration = 0.000 seconds
+ - FAIL - [configuration_settings.test_malformed_records] duration = 0.000 seconds
+ - FAIL - [configuration_settings.test_roundtrip_and_missing] duration = 0.000 seconds
+ - FAIL - [configuration_settings.test_save_failure_and_interrupted_reinit] duration = 0.000 seconds
+ - FAIL - [configuration_settings.test_traversal_error_is_not_missing] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION FAILED
