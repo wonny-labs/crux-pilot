@@ -26,7 +26,7 @@ class TypedTimeHeaders(unittest.TestCase):
 
     def test_each_header_is_self_contained_in_c17_and_cpp17(self):
         for language in ('c', 'c++'):
-            for header in ('time_types.h', 'time.h', 'thread.h'):
+            for header in ('time_types.h', 'time.h', 'time_authority.h', 'time_calendar.h', 'thread.h'):
                 with self.subTest(language=language, header=header):
                     result = self.compile(language, f'#include <crux/{header}>\n')
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -45,6 +45,24 @@ class TypedTimeHeaders(unittest.TestCase):
                         'crux_status_t probe(void) { crux_duration_t d = crux_duration_from_ns(1);\n'
                         f'return {operation}; }}\n')
                     self.assertNotEqual(result.returncode, 0, 'invalid clock-domain call accepted')
+
+    def test_realtime_domains_are_not_interchangeable(self):
+        for language in ('c', 'c++'):
+            valid = self.compile(language,
+                '#include <crux/time_authority.h>\n#include <crux/time_calendar.h>\n'
+                'crux_status_t probe(void) { crux_realtime_t r = {946684800, 0};\n'
+                'crux_time_utc_t calendar; return crux_time_to_utc(r, &calendar); }\n')
+            self.assertEqual(valid.returncode, 0, valid.stdout + valid.stderr)
+            for operation in ('crux_time_get_realtime(&m)',
+                              'crux_time_set_realtime(&m, CRUX_TIME_SOURCE_MANUAL, false)',
+                              'crux_time_to_utc(m, &calendar)'):
+                with self.subTest(language=language, operation=operation):
+                    result = self.compile(language,
+                        '#include <crux/time_authority.h>\n#include <crux/time_calendar.h>\n'
+                        'crux_status_t probe(void) { crux_monotonic_time_t m = {0};\n'
+                        'crux_time_utc_t calendar = {0, 0, 0, 0, 0, 0, 0}; (void)calendar;\n'
+                        f'return {operation}; }}\n')
+                    self.assertNotEqual(result.returncode, 0, 'wrong realtime clock domain accepted')
 
 
 if __name__ == '__main__':

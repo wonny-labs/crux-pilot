@@ -31,7 +31,7 @@ class ExternalApplicationTest(unittest.TestCase):
 
     def test_external_configurations_and_parent_isolation(self):
         for profile, selected, symbol in (
-                ('time', {'time'}, 'crux_time_get'),
+                ('time', {'time'}, 'crux_time_get_realtime'),
                 ('thread', {'thread', 'time'}, 'crux_thread_create'),
                 ('sync', {'sync'}, 'crux_mutex_create'),
                 ('serial', {'serial'}, 'crux_serial_open'),
@@ -174,6 +174,29 @@ class ExternalApplicationTest(unittest.TestCase):
                 result, _ = self.configure(Path(temporary), 'time', f'-DCRUX_TIME_PROVIDER={provider}')
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn('CRUX_TIME_PROVIDER', result.stdout + result.stderr)
+
+    def test_linux_time_read_only_external_consumer(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            result, build = self.configure(Path(temporary), 'time', '-DCRUX_TIME_PROVIDER=linux')
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.run_command([CMAKE, '--build', str(build), '--parallel', '2'])
+            self.run_command(['ctest', '--test-dir', str(build), '--output-on-failure'])
+            commands = (build / 'compile_commands.json').read_text()
+            self.assertIn('time_realtime_linux.c', commands)
+            self.assertNotIn('time_port_memory.c', commands)
+
+    def test_controlled_samples_reject_system_clock_provider(self):
+        for sample, controller in (('ON', 'OFF'), ('OFF', 'ON')):
+            with self.subTest(sample=sample), tempfile.TemporaryDirectory() as temporary:
+                result = subprocess.run(
+                    [CMAKE, '-S', str(REPO), '-B', temporary, '-G', 'Ninja',
+                     '-DCRUX_TIME_PROVIDER=linux', '-DCRUX_BUILD_TESTS=OFF',
+                     f'-DCRUX_BUILD_HOST_SAMPLE={sample}',
+                     f'-DCRUX_BUILD_REFERENCE_CONTROLLER={controller}'],
+                    text=True, capture_output=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('controlled Time samples require CRUX_TIME_PROVIDER=memory',
+                              result.stdout + result.stderr)
 
     def test_thread_requires_explicit_time_selection(self):
         with tempfile.TemporaryDirectory() as temporary:

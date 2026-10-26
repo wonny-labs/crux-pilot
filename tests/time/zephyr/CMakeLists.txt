@@ -19,3 +19,7 @@ target_include_directories(app PRIVATE
 )
 target_link_libraries(app PRIVATE crux::time)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
+if(CRUX_TIME_FAKE_RTC)
+    target_sources(app PRIVATE fake_rtc.c)
+    target_compile_definitions(app PRIVATE CRUX_TIME_FAKE_RTC=1)
+endif()

@@ -1,5 +1,6 @@
 #include <crux/thread.h>
 #include <crux/time.h>
+#include <crux/time_authority.h>
 #include <zephyr/irq_offload.h>
 #include <zephyr/kernel.h>
 #include <zephyr/ztest.h>
@@ -10,6 +11,21 @@ ZTEST(typed_time_sleep, test_monotonic_without_rtc_or_init) {
     zassert_equal(crux_time_get_monotonic(&before), CRUX_OK);
     zassert_equal(crux_time_get_monotonic(&after), CRUX_OK);
     zassert_true(crux_monotonic_is_at_or_before(before, after));
+}
+
+ZTEST(typed_time_sleep, test_realtime_without_rtc_driver) {
+    BUILD_ASSERT(!IS_ENABLED(CONFIG_RTC));
+    zassert_equal(crux_time_init(), CRUX_OK);
+    crux_realtime_snapshot_t snapshot;
+    zassert_equal(crux_time_get_realtime_snapshot(&snapshot), CRUX_OK);
+    zassert_false(snapshot.is_time_valid);
+    const crux_realtime_t value = {INT64_C(1792238400), 123456789};
+    zassert_equal(crux_time_set_realtime(&value, CRUX_TIME_SOURCE_MANUAL, false), CRUX_OK);
+    zassert_equal(crux_time_get_realtime_snapshot(&snapshot), CRUX_OK);
+    zassert_true(snapshot.is_time_valid);
+    zassert_equal(snapshot.last_source, CRUX_TIME_SOURCE_MANUAL);
+    zassert_equal(snapshot.timestamp.seconds, value.seconds);
+    zassert_true(snapshot.timestamp.nanoseconds >= value.nanoseconds);
 }
 
 ZTEST(typed_time_sleep, test_deadline_uses_next_tick_upper_bound) {

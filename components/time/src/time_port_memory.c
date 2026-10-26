@@ -5,7 +5,7 @@
 
 static bool g_backend_initialised;
 static bool g_has_time;
-static crux_time_instant_t g_time;
+static crux_realtime_t g_time;
 
 #ifdef CRUX_TIME_TESTING
 static bool g_fail_next_init;
@@ -29,7 +29,7 @@ crux_status_t crux_time_port_init(void) {
     return CRUX_OK;
 }
 
-crux_status_t crux_time_port_read(crux_time_instant_t *out) {
+crux_status_t crux_time_port_read(crux_realtime_t *out) {
     if (out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
@@ -57,7 +57,7 @@ crux_status_t crux_time_port_read(crux_time_instant_t *out) {
     return CRUX_OK;
 }
 
-crux_status_t crux_time_port_write(crux_time_instant_t value) {
+crux_status_t crux_time_port_write(const crux_realtime_t *value) {
     if (!g_backend_initialised) {
         return CRUX_ERR_NOT_READY;
     }
@@ -68,7 +68,7 @@ crux_status_t crux_time_port_write(crux_time_instant_t value) {
         return CRUX_ERR_IO;
     }
 #endif
-    g_time = value;
+    g_time = *value;
     g_has_time = true;
     return CRUX_OK;
 }
@@ -77,7 +77,7 @@ crux_status_t crux_time_port_write(crux_time_instant_t value) {
 void crux_time_host_test_reset(void) {
     g_backend_initialised = false;
     g_has_time = false;
-    g_time = CRUX_TIME_MIN_UNIX_SECONDS;
+    g_time = (crux_realtime_t){CRUX_TIME_MIN_UNIX_SECONDS, 0};
     g_fail_next_init = false;
     g_next_read_pending = false;
     g_next_read_status = CRUX_OK;
@@ -101,7 +101,7 @@ void crux_time_host_test_fail_next_write(void) {
 }
 
 crux_status_t crux_time_host_test_advance(int64_t seconds) {
-    crux_time_instant_t advanced;
+    int64_t advanced;
 
     if (!g_backend_initialised) {
         return CRUX_ERR_NOT_READY;
@@ -109,20 +109,20 @@ crux_status_t crux_time_host_test_advance(int64_t seconds) {
     if (!g_has_time) {
         return CRUX_ERR_NO_DATA;
     }
-    if ((seconds > 0 && g_time > INT64_MAX - seconds) ||
-        (seconds < 0 && g_time < INT64_MIN - seconds)) {
+    if ((seconds > 0 && g_time.seconds > INT64_MAX - seconds) ||
+        (seconds < 0 && g_time.seconds < INT64_MIN - seconds)) {
         return CRUX_ERR_OUT_OF_RANGE;
     }
-    advanced = g_time + seconds;
+    advanced = g_time.seconds + seconds;
     if (advanced < CRUX_TIME_MIN_UNIX_SECONDS || advanced >= CRUX_TIME_MAX_UNIX_SECONDS_EXCLUSIVE) {
         return CRUX_ERR_OUT_OF_RANGE;
     }
-    g_time = advanced;
+    g_time.seconds = advanced;
     return CRUX_OK;
 }
 
-void crux_time_host_test_override_time(crux_time_instant_t value) {
-    g_time = value;
+void crux_time_host_test_override_time(int64_t value) {
+    g_time = (crux_realtime_t){value, 0};
     g_has_time = true;
 }
 

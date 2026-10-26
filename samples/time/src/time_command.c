@@ -1,6 +1,6 @@
 #include "crux_time_command.h"
 
-#include <crux/time.h>
+#include <crux/time_authority.h>
 #include <crux/time_calendar.h>
 
 #include <stdbool.h>
@@ -119,9 +119,9 @@ crux_time_command_result_t crux_time_command_execute(const char *input) {
     }
 
     if (count == 2 && token_equals(tokens[1], "get")) {
-        crux_time_instant_t instant;
+        crux_realtime_t instant;
         crux_time_utc_t calendar;
-        crux_status_t status = crux_time_get(&instant);
+        crux_status_t status = crux_time_get_realtime(&instant);
         if (status != CRUX_OK) {
             return make_result(status, CRUX_TIME_COMMAND_LINE, NULL);
         }
@@ -153,7 +153,7 @@ crux_time_command_result_t crux_time_command_execute(const char *input) {
 
     if (count == 3 && token_equals(tokens[1], "set")) {
         crux_time_utc_t calendar = {0};
-        crux_time_instant_t instant;
+        crux_realtime_t instant;
         if (!parse_timestamp(tokens[2], &calendar)) {
             return make_result(CRUX_ERR_INVALID_ARGUMENT, CRUX_TIME_COMMAND_LINE, NULL);
         }
@@ -161,7 +161,7 @@ crux_time_command_result_t crux_time_command_execute(const char *input) {
         if (status != CRUX_OK) {
             return make_result(status, CRUX_TIME_COMMAND_LINE, NULL);
         }
-        status = crux_time_set(instant);
+        status = crux_time_set_realtime(&instant, CRUX_TIME_SOURCE_MANUAL, false);
         return status == CRUX_OK ? make_result(CRUX_OK, CRUX_TIME_COMMAND_LINE, "OK")
                                  : make_result(status, CRUX_TIME_COMMAND_LINE, NULL);
     }

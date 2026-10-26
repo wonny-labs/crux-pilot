@@ -1,6 +1,6 @@
 #include <crux/status.h>
 #if PROFILE_TIME
-#include <crux/time.h>
+#include <crux/time_authority.h>
 #elif PROFILE_THREAD
 #include <crux/thread.h>
 #elif PROFILE_SYNC
@@ -18,7 +18,7 @@
 static_assert(__cplusplus >= 201703L, "C++17 consumer");
 extern "C" int external_cpp_consumer(void) {
 #if PROFILE_TIME
-    return crux_time_get(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
+    return crux_time_get_realtime(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
 #elif PROFILE_THREAD
     return crux_thread_join(nullptr, 0) != CRUX_ERR_INVALID_ARGUMENT;
 #elif PROFILE_SYNC
