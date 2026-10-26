@@ -36,7 +36,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential ca-certificates device-tree-compiler file gperf git \
+            build-essential gcc-multilib ca-certificates device-tree-compiler file gperf git \
             libmagic1 libsdl2-dev pkg-config python3-dev python3-tk wget xz-utils
 
       - name: Install pinned Python tools
@@ -49,6 +49,10 @@ jobs:
       - name: Fetch pinned Zephyr workspace and install SDK
         working-directory: crux-pilot
         run: scripts/bootstrap-zephyr.sh --install-sdk
+
+      - name: Validate actual storage providers on simulated Flash
+        working-directory: crux-pilot
+        run: scripts/test-storage-simulators.sh
 
       # Uses the already-fetched pinned sources and host C compiler; no extra job/SDK build.
       - name: Check isolated Flash PoC fault paths

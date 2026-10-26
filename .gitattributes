@@ -3,3 +3,7 @@ patches/zephyr/*.patch -whitespace
 # Isolated upstream diffs and retained tool output preserve their original bytes.
 tests/native/settings_error/*.patch -whitespace
 docs/evidence/settings-error-experiment/*.log -whitespace
+# Preserve raw simulator evidence and unified-diff context verbatim.
+docs/evidence/file-native/*.log -whitespace
+docs/evidence/configuration-native/*.log -whitespace
+tests/native/configuration_settings/late-mount-read.patch whitespace=-space-before-tab

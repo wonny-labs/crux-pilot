@@ -7,7 +7,12 @@
 #ifndef CRUX_FILE_NAME_MAX
 #define CRUX_FILE_NAME_MAX 63
 #endif
-/* Private provider contract. Accepted counts survive errors. Native handles stay
+/* Sleepable, task-context serialization. An internal lock/ownership failure is
+ * fatal: never return with inconsistent pool/native-handle ownership. */
+void crux_file_port_lock(void);
+void crux_file_port_unlock(void);
+/* Private provider contract. Counts must not exceed the requested length;
+ * valid accepted counts survive errors. Native handles stay
  * in provider slots; close retires exactly once, even on error. */
 crux_file_result_t crux_file_port_open(size_t slot, const char *name, crux_file_mode_t mode);
 crux_file_result_t crux_file_port_truncate(size_t slot);

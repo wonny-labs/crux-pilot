@@ -75,6 +75,10 @@ results. Error mapping must be explicit and unknown native errors map to IO.
   length, including zero progress, without inventing a cause;
   an explicit no-space error maps to NO_SPACE. No successful full-write claim
   follows from a short result. Accepted partial bytes are not rolled back.
+  A provider count exceeding the requested length is inconsistent: the common
+  layer returns IO and reports zero transferred bytes. This is not rollback or
+  proof that the buffer or storage was unchanged. Valid accepted counts still
+  survive provider errors.
 - Seek is absolute and checked against representable backend offsets and EOF;
   beyond-EOF/sparse extension is unsupported. It does not imply durable changes.
   Unrepresentable offsets/request lengths return OUT_OF_RANGE before dispatch.

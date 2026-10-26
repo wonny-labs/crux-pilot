@@ -70,3 +70,9 @@ if(CONFIG_CRUX_SYSTEM)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/system/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/system")
 endif()
+
+if(CONFIG_CRUX_FILE_SIMULATOR)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/file/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/file")
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::file)
+endif()

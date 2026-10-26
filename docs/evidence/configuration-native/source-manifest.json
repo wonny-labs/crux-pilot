@@ -1,0 +1,13 @@
+{
+  "components/configuration/ports/zephyr/configuration_settings.h": "a1cbf1bd1ad320367f098f895198f2bbaedaf3062154b1fe68927977b40015f7",
+  "components/configuration/ports/zephyr/configuration_settings.c": "1b07cf19521ceaff406e6333734615a45f91b726ab3a3a8a27ccc45431e553e4",
+  "tests/native/configuration_settings/CMakeLists.txt": "0a32df35dcea7c548dbd912802659e24ce608937f86f131b6b03036917ecf0e0",
+  "tests/native/configuration_settings/late-mount-read.patch": "a6a294191b25ea5f16d4bc198cd5cb9433027316424fd674b5e65e9c57e38914",
+  "tests/native/configuration_settings/testcase.yaml": "ee44c267c44a43261661244861c06f7d4be29c902c38e6504e50cf015a22c21a",
+  "tests/native/configuration_settings/prj.conf": "ac3dfb536c79bd2813e19cebb3a9d97421da5504768ae274bf5315f07bd07090",
+  "tests/native/configuration_settings/app.overlay": "5aed0c79359bc542f6bb5bd5852f8fa7959b27df4b9003d2dbfe68d3c8a4110b",
+  "tests/native/configuration_settings/candidate.cmake": "91ed216edabb8ea957233808a8eda35fb2b74f27d1c2c0a3339f6de30d766e1a",
+  "tests/native/configuration_settings/main.c": "53418a1646730b1f28cca8eb7573508928ff03d397c65ff72bcd95165b1ba0f6",
+  "tests/native/configuration_settings/test_prepare.py": "c07324dcfdaebcf238d9fc20fc234d49b8bb88b9dafe6ff9aaa04662a6d9609c",
+  "tests/native/configuration_settings/prepare.py": "2eb56848868aab5eb64121685fc07597d6be0488e888351fb06c47b58b9b8da8"
+}

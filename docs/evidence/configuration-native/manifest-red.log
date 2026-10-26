@@ -1,0 +1,25 @@
+FF
+======================================================================
+FAIL: test_manifest_hardlink_preserves_external_file (test_prepare.ManifestSafety)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/flash-safety-poc/tests/native/configuration_settings/test_prepare.py", line 18, in test_manifest_hardlink_preserves_external_file
+    self.check_link(True)
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/flash-safety-poc/tests/native/configuration_settings/test_prepare.py", line 49, in check_link
+    self.assertEqual(victim.read_bytes(), b'preserve fake upstream\n')
+AssertionError: b'{\n  "subsys/settings/src/settings_store.[605 chars]n}\n' != b'preserve fake upstream\n'
+
+======================================================================
+FAIL: test_manifest_symlink_preserves_external_file (test_prepare.ManifestSafety)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/flash-safety-poc/tests/native/configuration_settings/test_prepare.py", line 15, in test_manifest_symlink_preserves_external_file
+    self.check_link(False)
+  File "/Users/jiwonkim/Projects/crux-workspace/.worktrees/flash-safety-poc/tests/native/configuration_settings/test_prepare.py", line 49, in check_link
+    self.assertEqual(victim.read_bytes(), b'preserve fake upstream\n')
+AssertionError: b'{\n  "subsys/settings/src/settings_store.[605 chars]n}\n' != b'preserve fake upstream\n'
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.009s
+
+FAILED (failures=2)

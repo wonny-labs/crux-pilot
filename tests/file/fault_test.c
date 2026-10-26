@@ -6,6 +6,16 @@ static crux_file_result_t io = CRUX_FILE_OK, sync_result = CRUX_FILE_OK, cleanup
 static size_t count = 3, closes, opens, calls;
 static int live[CRUX_FILE_POOL_SIZE];
 static int changed;
+static unsigned locks, unlocks;
+void crux_file_port_lock(void)
+{
+    locks++;
+}
+void crux_file_port_unlock(void)
+{
+    assert(locks > unlocks);
+    unlocks++;
+}
 crux_file_result_t crux_file_port_open(size_t s, const char *n, crux_file_mode_t m)
 {
     (void)s;
@@ -34,8 +44,9 @@ crux_file_result_t crux_file_port_read(size_t s, void *b, size_t l, size_t *c)
 {
     assert(live[s]);
     (void)b;
+    (void)l;
     calls++;
-    *c = count < l ? count : l;
+    *c = count;
     return io;
 }
 crux_file_result_t crux_file_port_write(size_t s, const void *b, size_t l, size_t *c)
@@ -71,6 +82,21 @@ int main(void)
     assert(crux_file_open("record", CRUX_FILE_CREATE_REPLACE, &f) == CRUX_FILE_OK);
     assert(f != NULL);
     assert(crux_file_open("x", CRUX_FILE_READ, &f) == CRUX_FILE_ERR_INVALID_ARGUMENT);
+    /* A faulty provider must not publish an impossible accepted-byte count,
+     * even when it also returns an error or PARTIAL. No buffer access is made. */
+    const crux_file_result_t outcomes[] = {CRUX_FILE_OK, CRUX_FILE_PARTIAL, CRUX_FILE_ERR_NO_SPACE,
+                                           CRUX_FILE_ERR_IO};
+    const size_t overcounts[] = {sizeof(b) + 1, SIZE_MAX};
+    for (size_t i = 0; i < sizeof(outcomes) / sizeof(outcomes[0]); ++i) {
+        io = outcomes[i];
+        for (size_t j = 0; j < sizeof(overcounts) / sizeof(overcounts[0]); ++j) {
+            count = overcounts[j];
+            assert(crux_file_read(f, b, sizeof(b), &n) == CRUX_FILE_ERR_IO && n == 0);
+            assert(crux_file_write(f, b, sizeof(b), &n) == CRUX_FILE_ERR_IO && n == 0);
+        }
+    }
+    io = CRUX_FILE_OK;
+    count = 3;
     assert(crux_file_read(f, b, 8, &n) == CRUX_FILE_OK && n == 3);
     assert(crux_file_write(f, b, 8, &n) == CRUX_FILE_PARTIAL && n == 3);
     count = 0;
@@ -155,6 +181,7 @@ int main(void)
     assert(crux_file_remove("x") == CRUX_FILE_OK);
     io = CRUX_FILE_ERR_IO;
     assert(crux_file_remove("x") == CRUX_FILE_ERR_IO);
+    assert(locks == unlocks && locks > 0);
     puts("File deterministic contract checks passed");
     return 0;
 }

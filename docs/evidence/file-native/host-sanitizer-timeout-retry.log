@@ -1,0 +1,8 @@
+Internal ctest changing into directory: /tmp/m4-native-sanitize
+Test project /tmp/m4-native-sanitize
+    Start 44: Execution.HostFailures
+1/1 Test #44: Execution.HostFailures ...........   Passed    0.05 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.08 sec

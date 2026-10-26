@@ -1,0 +1,12 @@
+--- a/nvs.c
++++ b/nvs.c
+@@ -1023,6 +1023,9 @@
+ 		 */
+ 		rc = nvs_flash_cmp_const(fs, addr - ate_size, erase_value,
+ 				sizeof(struct nvs_ate));
++		if (rc < 0) {
++			goto end;
++		}
+ 		if (!rc) {
+ 			/* empty ate */
+ 			nvs_sector_advance(fs, &addr);

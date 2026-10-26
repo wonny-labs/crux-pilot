@@ -1,0 +1,85 @@
+[0/1] Re-running CMake...
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: /ws/.worktrees/flash-safety-poc/tests/native/file_littlefs
+-- CMake version: 3.28.4
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.0 (/ws/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native
+-- Found toolchain: host (gcc/ld)
+-- Found BOARD.dts: /ws/zephyr/boards/native/native_sim/native_sim.dts
+-- Found devicetree overlay: /ws/.worktrees/flash-safety-poc/tests/native/file_littlefs/app.overlay
+-- Generated zephyr.dts: /tmp/m4-file-final/native_sim_native/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/zephyr.dts
+-- Generated pickled edt: /tmp/m4-file-final/native_sim_native/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /tmp/m4-file-final/native_sim_native/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing /ws/zephyr/Kconfig
+Loaded configuration '/tmp/m4-file-final/native_sim_native/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/.config'
+No change to configuration in '/tmp/m4-file-final/native_sim_native/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/.config'
+No change to Kconfig header in '/tmp/m4-file-final/native_sim_native/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/include/generated/zephyr/autoconf.h'
+-- Crux Zephyr integration module discovered
+-- Found gen_kobject_list: /ws/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (17.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: /tmp/m4-file-final/native_sim_native/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs
+[1/104] Building C object CMakeFiles/file_portable_consumer.dir/consumer.c.obj
+[2/104] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[3/10] Generating linker_zephyr_pre0.cmd
+[4/10] Linking C static library app/libapp.a
+[5/10] Building C object modules/flash-safety-poc/file/CMakeFiles/crux_file_zephyr.dir/ws/.worktrees/flash-safety-poc/components/file/src/file.c.obj
+[6/10] Building C object modules/flash-safety-poc/file/CMakeFiles/crux_file_zephyr.dir/file_native.c.obj
+[7/10] Linking C static library modules/flash-safety-poc/file/libcrux_file_zephyr.a
+[8/10] Linking C executable zephyr/zephyr.elf
+Generating files from /tmp/m4-file-final/native_sim_native/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/zephyr.elf for board: native_sim/native
+[9/10] Building native simulator runner, and linking final executable
+[10/10] Running utility command for native_runner_executable
+[0/1] Re-running CMake...
+Loading Zephyr default modules (Zephyr base (cached)).
+-- Application: /ws/.worktrees/flash-safety-poc/tests/native/file_littlefs
+-- CMake version: 3.28.4
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.0 (/ws/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native/64
+-- Found toolchain: host (gcc/ld)
+-- Found BOARD.dts: /ws/zephyr/boards/native/native_sim/native_sim_64.dts
+-- Found devicetree overlay: /ws/.worktrees/flash-safety-poc/tests/native/file_littlefs/app.overlay
+-- Generated zephyr.dts: /tmp/m4-file-final/native_sim_native_64/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/zephyr.dts
+-- Generated pickled edt: /tmp/m4-file-final/native_sim_native_64/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /tmp/m4-file-final/native_sim_native_64/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing /ws/zephyr/Kconfig
+Loaded configuration '/tmp/m4-file-final/native_sim_native_64/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/.config'
+No change to configuration in '/tmp/m4-file-final/native_sim_native_64/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/.config'
+No change to Kconfig header in '/tmp/m4-file-final/native_sim_native_64/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/include/generated/zephyr/autoconf.h'
+-- Crux Zephyr integration module discovered
+-- Found gen_kobject_list: /ws/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (17.6s)
+-- Generating done (0.4s)
+-- Build files have been written to: /tmp/m4-file-final/native_sim_native_64/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs
+[1/104] Building C object CMakeFiles/file_portable_consumer.dir/consumer.c.obj
+[2/104] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[3/10] Generating linker_zephyr_pre0.cmd
+[4/10] Linking C static library app/libapp.a
+[5/10] Building C object modules/flash-safety-poc/file/CMakeFiles/crux_file_zephyr.dir/ws/.worktrees/flash-safety-poc/components/file/src/file.c.obj
+[6/10] Building C object modules/flash-safety-poc/file/CMakeFiles/crux_file_zephyr.dir/file_native.c.obj
+[7/10] Linking C static library modules/flash-safety-poc/file/libcrux_file_zephyr.a
+[8/10] Linking C executable zephyr/zephyr.elf
+Generating files from /tmp/m4-file-final/native_sim_native_64/host_gnu/.worktrees/flash-safety-poc/tests/native/file_littlefs/crux.file.littlefs/zephyr/zephyr.elf for board: native_sim/native/64
+[9/10] Building native simulator runner, and linking final executable
+[10/10] Running utility command for native_runner_executable
+Keeping artifacts untouched
+INFO    - Using Ninja..
+INFO    - Zephyr version: v4.4.0
+INFO    - Using 'host/gnu' toolchain variant.
+INFO    - JOBS: 2
+INFO    - Adding tasks to the queue...
+INFO    - Added initial list of jobs to queue
+INFO    - Total complete:    1/   2  50%  built (not run):    0, filtered:    0, failed:    0, error:    0
+INFO    - 1 test scenarios (2 configurations) selected, 0 configurations filtered (0 by static filter, 0 at runtime).
+INFO    - 1 of 2 executed test configurations passed (50.00%), 0 built (not run), 0 failed, 0 errored, with no warnings in 6.55 seconds.
+INFO    - 7 of 7 executed test cases passed (100.00%) on 2 out of total 1473 platforms (0.14%).
+INFO    - 2 test configurations executed on platforms, 0 test configurations were only built.
+INFO    - Saving reports...
+INFO    - Writing JSON report /tmp/m4-file-final/twister.json
+INFO    - Writing xunit report /tmp/m4-file-final/twister.xml...
+INFO    - Writing xunit report /tmp/m4-file-final/twister_report.xml...
+INFO    - Run completed
