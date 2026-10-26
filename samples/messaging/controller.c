@@ -6,7 +6,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
-static crux_status_t advance(int64_t *deadline, int64_t now, uint64_t *skipped) {
+static crux_status_t advance(int64_t *deadline, int64_t now, uint64_t *skipped)
+{
     const int64_t period_ms = 100;
     if (deadline == NULL || skipped == NULL || *deadline < 0 || now < *deadline)
         return CRUX_ERR_INVALID_ARGUMENT;
@@ -18,7 +19,8 @@ static crux_status_t advance(int64_t *deadline, int64_t now, uint64_t *skipped) 
     return CRUX_OK;
 }
 
-int main(void) {
+int main(void)
+{
     int64_t deadline = 1100;
     uint64_t skipped = 0;
     /* On the 100 ms grid, 1350 skips 1200 and 1300 after servicing 1100. */

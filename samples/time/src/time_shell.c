@@ -8,7 +8,8 @@
 
 #define COMMAND_CAPACITY 64
 
-static int time_command(const struct shell *shell, size_t argc, char **argv) {
+static int time_command(const struct shell *shell, size_t argc, char **argv)
+{
     char command[COMMAND_CAPACITY] = "time";
     size_t used = sizeof("time") - 1;
 

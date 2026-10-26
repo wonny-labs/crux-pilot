@@ -38,7 +38,8 @@ typedef struct {
     unsigned increment;
 } runtime_task_argument_t;
 
-static runtime_result_t runtime_result(crux_status_t status) {
+static runtime_result_t runtime_result(crux_status_t status)
+{
     switch (status) {
     case CRUX_OK:
         return RUNTIME_OK;
@@ -53,7 +54,8 @@ static runtime_result_t runtime_result(crux_status_t status) {
     }
 }
 
-static crux_thread_options_t runtime_options(size_t stack_words, runtime_priority_t priority) {
+static crux_thread_options_t runtime_options(size_t stack_words, runtime_priority_t priority)
+{
     crux_thread_options_t options = {0};
     options.stack_size_bytes = stack_words * sizeof(uint32_t);
     switch (priority) {
@@ -71,7 +73,8 @@ static crux_thread_options_t runtime_options(size_t stack_words, runtime_priorit
 }
 
 static int report_failure(int line, const char *operation, crux_status_t got,
-                          crux_status_t expected) {
+                          crux_status_t expected)
+{
     fprintf(stderr, "runtime fixture line %d: %s: status %d, expected %d\n", line, operation,
             (int)got, (int)expected);
     return line;
@@ -88,7 +91,8 @@ static int report_failure(int line, const char *operation, crux_status_t got,
     } while (0)
 
 /* Adapts the runtime task argument to Crux's void (*)(void *) entry shape. */
-static void runtime_task_entry(void *opaque) {
+static void runtime_task_entry(void *opaque)
+{
     runtime_task_argument_t *argument = opaque;
     runtime_session_t *session = argument->session;
     WORKER_EXPECT(crux_semaphore_give(session->ready), CRUX_OK);
@@ -104,7 +108,8 @@ static void runtime_task_entry(void *opaque) {
     WORKER_EXPECT(crux_semaphore_give(session->progress), CRUX_OK);
 }
 
-static int run_session(runtime_priority_t priority, unsigned increment) {
+static int run_session(runtime_priority_t priority, unsigned increment)
+{
     /* Static storage remains valid even if a broken provider cannot join. */
     static runtime_session_t session;
     static runtime_task_argument_t argument;
@@ -213,12 +218,14 @@ typedef struct {
 } reservation_argument_t;
 
 /* Workers all retain their slots until the owner permits normal return. */
-static void reservation_entry(void *opaque) {
+static void reservation_entry(void *opaque)
+{
     reservation_argument_t *argument = opaque;
     argument->wait_status = crux_semaphore_take(argument->release, WAIT_MS);
 }
 
-static int run_reservations(void) {
+static int run_reservations(void)
+{
     static crux_semaphore_t release;
     crux_thread_t tasks[TASK_LIMIT] = {0};
     static reservation_argument_t arguments[TASK_LIMIT];
@@ -263,7 +270,8 @@ static int run_reservations(void) {
     return failure;
 }
 
-int crux_runtime_fixture_run(void) {
+int crux_runtime_fixture_run(void)
+{
     for (unsigned repetition = 0; repetition < 4U; ++repetition) {
         int failure = run_reservations();
         if (failure != 0)

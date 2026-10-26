@@ -13,26 +13,31 @@ static struct k_thread peer_thread;
 K_THREAD_STACK_DEFINE(peer_stack, 4096);
 static void (*peer_entry)(void *);
 static void *peer_context;
-static void run_peer(void *a, void *b, void *c) {
+static void run_peer(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
     peer_entry(peer_context);
 }
-void networking_peer_start(void (*entry)(void *), void *context) {
+void networking_peer_start(void (*entry)(void *), void *context)
+{
     peer_entry = entry;
     peer_context = context;
     k_thread_create(&peer_thread, peer_stack, K_THREAD_STACK_SIZEOF(peer_stack), run_peer, NULL,
                     NULL, NULL, 5, 0, K_NO_WAIT);
 }
-int networking_peer_join(void) {
+int networking_peer_join(void)
+{
     return k_thread_join(&peer_thread, K_SECONDS(3));
 }
-static void used(struct net_context *context, void *count) {
+static void used(struct net_context *context, void *count)
+{
     if (net_context_is_used(context))
         ++*(unsigned int *)count;
 }
-void networking_fixture_link(bool up) {
+void networking_fixture_link(bool up)
+{
     struct net_if *iface = net_if_get_default();
     if (up)
         net_if_carrier_on(iface);
@@ -43,13 +48,15 @@ void networking_fixture_link(bool up) {
     zassert_equal(crux_netif_get_status(&status), CRUX_OK);
     zassert_equal(status.link, up ? CRUX_NETIF_LINK_UP : CRUX_NETIF_LINK_DOWN);
 }
-void networking_resources_active(void) {
+void networking_resources_active(void)
+{
     unsigned int count = 0;
     net_context_foreach(used, &count);
     printk("STACK_NATIVE_ACTIVE contexts=%u\n", count);
     zassert_true(count >= 2, "Standard calls must allocate actual Zephyr contexts");
 }
-ZTEST(networking, test_primary_interface_observation) {
+ZTEST(networking, test_primary_interface_observation)
+{
     struct net_if *iface = net_if_get_default();
     zassert_not_null(iface);
     crux_netif_status_t status;
@@ -66,7 +73,8 @@ ZTEST(networking, test_primary_interface_observation) {
     zassert_equal(crux_netif_get_status(&status), CRUX_OK);
     zassert_equal(status.link, CRUX_NETIF_LINK_UP);
 }
-int networking_resources_idle(void) {
+int networking_resources_idle(void)
+{
     int64_t started = k_uptime_get();
     struct k_mem_slab *rx, *tx;
     struct net_buf_pool *rx_data, *tx_data;
@@ -93,13 +101,15 @@ int networking_resources_idle(void) {
                ? 0
                : -ETIMEDOUT;
 }
-ZTEST(networking, test_real_stack_failures_and_cleanup) {
+ZTEST(networking, test_real_stack_failures_and_cleanup)
+{
     zassert_equal(networking_resources_idle(), 0);
     zassert_equal(networking_stack_link_loss(), 0);
     zassert_equal(networking_stack_scenarios(), 0);
     zassert_equal(networking_resources_idle(), 0);
 }
-ZTEST(networking, test_resource_exhaustion_and_return) {
+ZTEST(networking, test_resource_exhaustion_and_return)
+{
     int descriptors[CONFIG_NET_MAX_CONTEXTS];
     zassert_equal(networking_resources_idle(), 0);
     for (unsigned int i = 0; i < ARRAY_SIZE(descriptors); ++i) {

@@ -17,12 +17,14 @@ static atomic_t emitted;
     } while (0)
 
 /* Synthetic values exercise the real native stream, not controller functionality. */
-static void resources(long long stamp) {
+static void resources(long long stamp)
+{
     EMIT(M3_FMT_NET_RESOURCE, stamp, 0U, 0U, 16U, 16U, (size_t)32, (size_t)32);
     EMIT(M3_FMT_NET_STATE, stamp, 1, 1, 1);
 }
 
-static void run_work(void *a, void *b, void *c) {
+static void run_work(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
@@ -33,7 +35,8 @@ static void run_work(void *a, void *b, void *c) {
     }
 }
 
-static void run_network(void *a, void *b, void *c) {
+static void run_network(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
@@ -52,12 +55,14 @@ static void run_network(void *a, void *b, void *c) {
     }
 }
 
-static void feed(unsigned int n) {
+static void feed(unsigned int n)
+{
     long long stamp = 10000 + n * 100;
     EMIT(M3_FMT_WDT_FEED, stamp, 100U + n, stamp, n / 10 + 1, stamp - n % 10 * 100);
 }
 
-static bool finish(void) {
+static bool finish(void)
+{
     int64_t deadline = k_uptime_get() + 2000;
     while (log_buffered_cnt() != 0 && k_uptime_get() < deadline) {
         k_sleep(K_MSEC(10));
@@ -73,7 +78,8 @@ static bool finish(void) {
     return log_buffered_cnt() == 0;
 }
 
-int main(void) {
+int main(void)
+{
     EMIT(M3_FMT_BOOT, "0123456789ab", 1);
     EMIT(M3_FMT_WDT_ARMED);
 #ifdef CRUX_TEST_LOSS

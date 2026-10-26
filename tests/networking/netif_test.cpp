@@ -6,15 +6,18 @@ extern "C" {
 
 static crux_status_t observed_result;
 static crux_netif_status_t observed;
-extern "C" crux_status_t crux_netif_observe(crux_netif_status_t *out) {
+extern "C" crux_status_t crux_netif_observe(crux_netif_status_t *out)
+{
     *out = observed;
     return observed_result;
 }
 
-TEST(Netif, RejectsNull) {
+TEST(Netif, RejectsNull)
+{
     EXPECT_EQ(crux_netif_get_status(nullptr), CRUX_ERR_INVALID_ARGUMENT);
 }
-TEST(Netif, PreservesOutputWhenObservationFails) {
+TEST(Netif, PreservesOutputWhenObservationFails)
+{
     for (auto error : {CRUX_ERR_NOT_READY, CRUX_ERR_IO}) {
         crux_netif_status_t output{};
         output.link = CRUX_NETIF_LINK_UP;
@@ -25,7 +28,8 @@ TEST(Netif, PreservesOutputWhenObservationFails) {
         EXPECT_EQ(std::memcmp(&saved, &output, sizeof output), 0);
     }
 }
-TEST(Netif, AddressRemainsConfiguredWhenLinkAndAdminDown) {
+TEST(Netif, AddressRemainsConfiguredWhenLinkAndAdminDown)
+{
     observed_result = CRUX_OK;
     observed = {false, CRUX_NETIF_LINK_DOWN, true, {192, 168, 77, 2}};
     crux_netif_status_t output{};
@@ -35,7 +39,8 @@ TEST(Netif, AddressRemainsConfiguredWhenLinkAndAdminDown) {
     EXPECT_TRUE(output.ipv4_available);
     EXPECT_EQ(output.ipv4_address[3], 2);
 }
-TEST(Netif, ClearsBytesOfAbsentAddressAndReportsUnknownCarrier) {
+TEST(Netif, ClearsBytesOfAbsentAddressAndReportsUnknownCarrier)
+{
     observed_result = CRUX_OK;
     observed = {true, CRUX_NETIF_LINK_UNKNOWN, false, {1, 2, 3, 4}};
     crux_netif_status_t output{};
@@ -44,7 +49,8 @@ TEST(Netif, ClearsBytesOfAbsentAddressAndReportsUnknownCarrier) {
     for (auto octet : output.ipv4_address)
         EXPECT_EQ(octet, 0);
 }
-TEST(Netif, FiltersUnspecifiedMulticastBroadcastAndLinkLocal) {
+TEST(Netif, FiltersUnspecifiedMulticastBroadcastAndLinkLocal)
+{
     const uint32_t mask = 0xffffff00u;
     for (auto address : {std::array<uint8_t, 4>{0, 0, 0, 0},
                          {224, 1, 2, 3},

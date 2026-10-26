@@ -4,7 +4,8 @@
 #include <netinet/in.h>
 #include <string.h>
 
-crux_status_t crux_netif_observe(crux_netif_status_t *out) {
+crux_status_t crux_netif_observe(crux_netif_status_t *out)
+{
     struct ifaddrs *list;
     if (getifaddrs(&list) != 0)
         return CRUX_ERR_IO;

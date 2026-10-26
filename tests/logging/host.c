@@ -10,14 +10,16 @@
 #include <string.h>
 #include <unistd.h>
 static int saved, channel[2];
-static void capture(void) {
+static void capture(void)
+{
     assert(pipe(channel) == 0);
     saved = dup(STDERR_FILENO);
     assert(saved >= 0);
     assert(dup2(channel[1], STDERR_FILENO) == STDERR_FILENO);
     close(channel[1]);
 }
-static void finish(char *out, size_t size) {
+static void finish(char *out, size_t size)
+{
     assert(dup2(saved, STDERR_FILENO) == STDERR_FILENO);
     close(saved);
     size_t n = 0;
@@ -28,7 +30,8 @@ static void finish(char *out, size_t size) {
     out[n] = 0;
     close(channel[0]);
 }
-static void output(void) {
+static void output(void)
+{
     char actual[1024];
     capture();
     assert(crux_log_write(CRUX_LOG_DEBUG, "app", "hidden") == CRUX_OK);
@@ -41,7 +44,8 @@ static void output(void) {
     assert(!strcmp(actual, "INFO controller: healthy 100% %s\nWARN runtime.gc: pressure\nERROR "
                            "app: failed\nDEBUG app: visible\n"));
 }
-static void *writer(void *context) {
+static void *writer(void *context)
+{
     unsigned id = *(unsigned *)context;
     for (unsigned i = 0; i < 8; i++) {
         char text[64];
@@ -50,7 +54,8 @@ static void *writer(void *context) {
     }
     return NULL;
 }
-static void concurrent(void) {
+static void concurrent(void)
+{
     char actual[4096];
     capture();
     pthread_t threads[4];
@@ -72,7 +77,8 @@ static void concurrent(void) {
     }
     assert(lines == 32);
 }
-static void full(void) {
+static void full(void)
+{
     FILE *device = fopen("/dev/full", "w");
     assert(device);
     saved = dup(STDERR_FILENO);
@@ -83,7 +89,8 @@ static void full(void) {
     close(saved);
     fclose(device);
 }
-static void broken(bool pending) {
+static void broken(bool pending)
+{
     sigset_t block, old, check;
     sigemptyset(&block);
     sigaddset(&block, SIGPIPE);
@@ -103,7 +110,8 @@ static void broken(bool pending) {
         assert(pthread_sigmask(SIG_SETMASK, &old, NULL) == 0);
     }
 }
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     assert(argc == 2);
     if (!strcmp(argv[1], "output"))
         output();

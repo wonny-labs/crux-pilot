@@ -13,31 +13,38 @@ static bool metadata_busy, nested, nested_done;
 static size_t progress = 3;
 static crux_serial_t live;
 static const crux_serial_config_t config = {115200, 8, 1, CRUX_SERIAL_PARITY_NONE};
-bool serial_port_context_allowed(void) {
+bool serial_port_context_allowed(void)
+{
     return true;
 }
-crux_status_t serial_port_now(uint64_t *now) {
+crux_status_t serial_port_now(uint64_t *now)
+{
     *now = 100;
     return CRUX_OK;
 }
-crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline) {
+crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
+{
     if (metadata_busy && deadline != NULL)
         return deadline->poll ? CRUX_ERR_BUSY : CRUX_ERR_TIMEOUT;
     return CRUX_OK;
 }
-void serial_port_metadata_unlock(void) {
+void serial_port_metadata_unlock(void)
+{
 }
-crux_status_t serial_port_open(uint32_t port, const crux_serial_config_t *cfg) {
+crux_status_t serial_port_open(uint32_t port, const crux_serial_config_t *cfg)
+{
     (void)port;
     (void)cfg;
     return open_result;
 }
-crux_status_t serial_port_close(uint32_t port) {
+crux_status_t serial_port_close(uint32_t port)
+{
     (void)port;
     return close_result;
 }
 crux_status_t serial_port_read(uint32_t port, void *data, size_t size,
-                               const serial_deadline_t *deadline, size_t *count) {
+                               const serial_deadline_t *deadline, size_t *count)
+{
     (void)port;
     (void)deadline;
     if (nested && !nested_done) {
@@ -57,7 +64,8 @@ crux_status_t serial_port_read(uint32_t port, void *data, size_t size,
     return CRUX_OK;
 }
 crux_status_t serial_port_write(uint32_t port, const void *data, size_t size,
-                                const serial_deadline_t *deadline, size_t *count) {
+                                const serial_deadline_t *deadline, size_t *count)
+{
     (void)port;
     (void)data;
     (void)deadline;
@@ -67,7 +75,8 @@ crux_status_t serial_port_write(uint32_t port, const void *data, size_t size,
     return CRUX_OK;
 }
 
-static void validation(void) {
+static void validation(void)
+{
     crux_serial_t out = {0};
     assert(crux_serial_open(0, NULL, &out) == CRUX_ERR_INVALID_ARGUMENT);
     assert(out.slot == 0 && out.generation == 0);
@@ -95,7 +104,8 @@ static void validation(void) {
     assert(crux_serial_close(NULL) == CRUX_ERR_INVALID_ARGUMENT);
     assert(crux_serial_close(&out) == CRUX_ERR_INVALID_STATE);
 }
-static void lifetime(void) {
+static void lifetime(void)
+{
     assert(crux_serial_open(0, &config, &live) == CRUX_OK);
     crux_serial_t second = {0};
     assert(crux_serial_open(0, &config, &second) == CRUX_ERR_BUSY && second.slot == 0);
@@ -112,7 +122,8 @@ static void lifetime(void) {
     assert(crux_serial_close(&live) == CRUX_ERR_IO && live.slot == 0);
     assert(crux_serial_close(&stale) == CRUX_ERR_INVALID_STATE);
 }
-static void transfers(void) {
+static void transfers(void)
+{
     assert(crux_serial_open(0, &config, &live) == CRUX_OK);
     uint8_t bytes[5] = {9, 9, 9, 9, 9};
     size_t n = 99;
@@ -130,7 +141,8 @@ static void transfers(void) {
     assert(crux_serial_write(live, bytes, 1, 0, NULL) == CRUX_ERR_INVALID_ARGUMENT);
     assert(crux_serial_close(&live) == CRUX_OK);
 }
-static void timeout(void) {
+static void timeout(void)
+{
     assert(crux_serial_open(0, &config, &live) == CRUX_OK);
     uint8_t byte = 7;
     size_t n = 99;
@@ -144,7 +156,8 @@ static void timeout(void) {
     assert(crux_serial_read(live, &byte, 1, 1, &n) == CRUX_ERR_TIMEOUT && n == 0 && byte == 7);
     assert(crux_serial_close(&live) == CRUX_OK);
 }
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     assert(argc == 2);
     if (!strcmp(argv[1], "validation"))
         validation();

@@ -21,7 +21,8 @@ static bool active;
         }                                                                                          \
     } while (0)
 
-int __wrap_clock_gettime(clockid_t clock, struct timespec *out) {
+int __wrap_clock_gettime(clockid_t clock, struct timespec *out)
+{
     CHECK(clock == CLOCK_MONOTONIC);
     ++reads;
     if (get_error || reads == error_at_read || reads > 32) {
@@ -38,7 +39,8 @@ int __wrap_clock_gettime(clockid_t clock, struct timespec *out) {
         out->tv_sec = -1;
     return 0;
 }
-int __wrap_clock_getres(clockid_t clock, struct timespec *out) {
+int __wrap_clock_getres(clockid_t clock, struct timespec *out)
+{
     CHECK(clock == CLOCK_MONOTONIC);
     ++res_reads;
     *out =
@@ -51,7 +53,8 @@ int __wrap_clock_getres(clockid_t clock, struct timespec *out) {
 }
 /* Only calls made while executing the Delay API are prohibited. */
 void *__real_malloc(size_t size);
-void *__wrap_malloc(size_t size) {
+void *__wrap_malloc(size_t size)
+{
     if (active) {
         ++forbidden_calls;
         return NULL;
@@ -59,14 +62,16 @@ void *__wrap_malloc(size_t size) {
     return __real_malloc(size);
 }
 int __real_pthread_mutex_lock(pthread_mutex_t *mutex);
-int __wrap_pthread_mutex_lock(pthread_mutex_t *mutex) {
+int __wrap_pthread_mutex_lock(pthread_mutex_t *mutex)
+{
     if (active) {
         ++forbidden_calls;
         return EINVAL;
     }
     return __real_pthread_mutex_lock(mutex);
 }
-int __wrap_nanosleep(const struct timespec *request, struct timespec *remaining) {
+int __wrap_nanosleep(const struct timespec *request, struct timespec *remaining)
+{
     (void)request;
     (void)remaining;
     ++forbidden_calls;
@@ -74,7 +79,8 @@ int __wrap_nanosleep(const struct timespec *request, struct timespec *remaining)
     return -1;
 }
 int __wrap_clock_nanosleep(clockid_t clock, int flags, const struct timespec *request,
-                           struct timespec *remaining) {
+                           struct timespec *remaining)
+{
     (void)clock;
     (void)flags;
     (void)request;
@@ -82,31 +88,36 @@ int __wrap_clock_nanosleep(clockid_t clock, int flags, const struct timespec *re
     ++forbidden_calls;
     return EINTR;
 }
-int __wrap_sched_yield(void) {
+int __wrap_sched_yield(void)
+{
     ++forbidden_calls;
     return 0;
 }
-static crux_status_t wait_ns(int64_t ns) {
+static crux_status_t wait_ns(int64_t ns)
+{
     active = true;
     crux_status_t status = crux_delay_busy_wait(crux_duration_from_ns(ns));
     active = false;
     CHECK(forbidden_calls == 0);
     return status;
 }
-static crux_status_t limit(crux_duration_t *out) {
+static crux_status_t limit(crux_duration_t *out)
+{
     active = true;
     crux_status_t status = crux_delay_get_max_duration(out);
     active = false;
     CHECK(forbidden_calls == 0);
     return status;
 }
-static void reset(void) {
+static void reset(void)
+{
     reads = res_reads = get_error = res_error = error_at_read = malformed = 0;
     now_ns = 100;
     resolution_ns = 10;
     script_count = script_index = 0;
 }
-int main(void) {
+int main(void)
+{
     crux_duration_t out = crux_duration_from_ns(73);
     CHECK(limit(NULL) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(wait_ns(0) == CRUX_OK && reads == 0 && res_reads == 0);

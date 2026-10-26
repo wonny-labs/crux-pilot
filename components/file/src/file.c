@@ -9,7 +9,8 @@ struct crux_file {
     char name[CRUX_FILE_NAME_MAX + 1];
 };
 static struct crux_file files[CRUX_FILE_POOL_SIZE];
-static bool name_valid(const char *name) {
+static bool name_valid(const char *name)
+{
     if (!name || !*name || strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
         return false;
     for (size_t i = 0;; i++) {
@@ -22,13 +23,15 @@ static bool name_valid(const char *name) {
             return false;
     }
 }
-static size_t slot_of(const crux_file_t *f) {
+static size_t slot_of(const crux_file_t *f)
+{
     for (size_t i = 0; i < CRUX_FILE_POOL_SIZE; i++)
         if (f == &files[i] && files[i].live)
             return i;
     return CRUX_FILE_POOL_SIZE;
 }
-crux_file_result_t crux_file_open(const char *n, crux_file_mode_t m, crux_file_t **out) {
+crux_file_result_t crux_file_open(const char *n, crux_file_mode_t m, crux_file_t **out)
+{
     if (!out || *out || !name_valid(n) ||
         (m != CRUX_FILE_READ && m != CRUX_FILE_READ_WRITE && m != CRUX_FILE_CREATE_REPLACE))
         return CRUX_FILE_ERR_INVALID_ARGUMENT;
@@ -58,7 +61,8 @@ crux_file_result_t crux_file_open(const char *n, crux_file_mode_t m, crux_file_t
     crux_file_port_unlock();
     return result;
 }
-static crux_file_result_t transfer(crux_file_t *f, void *b, size_t l, size_t *c, bool write) {
+static crux_file_result_t transfer(crux_file_t *f, void *b, size_t l, size_t *c, bool write)
+{
     if (!c)
         return CRUX_FILE_ERR_INVALID_ARGUMENT;
     *c = 0;
@@ -91,13 +95,16 @@ static crux_file_result_t transfer(crux_file_t *f, void *b, size_t l, size_t *c,
     crux_file_port_unlock();
     return result;
 }
-crux_file_result_t crux_file_read(crux_file_t *f, void *b, size_t l, size_t *c) {
+crux_file_result_t crux_file_read(crux_file_t *f, void *b, size_t l, size_t *c)
+{
     return transfer(f, b, l, c, false);
 }
-crux_file_result_t crux_file_write(crux_file_t *f, const void *b, size_t l, size_t *c) {
+crux_file_result_t crux_file_write(crux_file_t *f, const void *b, size_t l, size_t *c)
+{
     return transfer(f, (void *)b, l, c, true);
 }
-crux_file_result_t crux_file_seek(crux_file_t *f, uint64_t o) {
+crux_file_result_t crux_file_seek(crux_file_t *f, uint64_t o)
+{
     crux_file_port_lock();
     size_t s = slot_of(f);
     crux_file_result_t result = s == CRUX_FILE_POOL_SIZE ? CRUX_FILE_ERR_INVALID_STATE
@@ -106,7 +113,8 @@ crux_file_result_t crux_file_seek(crux_file_t *f, uint64_t o) {
     crux_file_port_unlock();
     return result;
 }
-crux_file_result_t crux_file_sync(crux_file_t *f) {
+crux_file_result_t crux_file_sync(crux_file_t *f)
+{
     crux_file_port_lock();
     size_t s = slot_of(f);
     crux_file_result_t result =
@@ -114,7 +122,8 @@ crux_file_result_t crux_file_sync(crux_file_t *f) {
     crux_file_port_unlock();
     return result;
 }
-crux_file_result_t crux_file_close(crux_file_t **f) {
+crux_file_result_t crux_file_close(crux_file_t **f)
+{
     if (!f)
         return CRUX_FILE_ERR_INVALID_ARGUMENT;
     crux_file_port_lock();
@@ -129,7 +138,8 @@ crux_file_result_t crux_file_close(crux_file_t **f) {
     crux_file_port_unlock();
     return result;
 }
-crux_file_result_t crux_file_remove(const char *n) {
+crux_file_result_t crux_file_remove(const char *n)
+{
     if (!name_valid(n))
         return CRUX_FILE_ERR_INVALID_ARGUMENT;
     crux_file_port_lock();

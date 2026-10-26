@@ -18,12 +18,14 @@ static const crux_thread_options_t options = {.stack_size_bytes = 4096,
 
 uint64_t execution_test_now_ns(void);
 
-static void publish(void *argument) {
+static void publish(void *argument)
+{
     int *value = argument;
     *value = 42;
 }
 
-int execution_thread_lifetime(void) {
+int execution_thread_lifetime(void)
+{
     crux_thread_t thread = {0};
     int value = 0;
     CHECK(crux_thread_create(&options, publish, &value, &thread) == CRUX_OK);
@@ -40,7 +42,8 @@ int execution_thread_lifetime(void) {
     return 0;
 }
 
-int execution_thread_inputs(void) {
+int execution_thread_inputs(void)
+{
     crux_thread_t thread = {0};
     int value = 0;
     CHECK(crux_thread_create(NULL, publish, &value, &thread) == CRUX_ERR_INVALID_ARGUMENT);
@@ -65,7 +68,8 @@ int execution_thread_inputs(void) {
     return 0;
 }
 
-int execution_thread_capacity(void) {
+int execution_thread_capacity(void)
+{
     crux_thread_t threads[4];
     int values[4] = {0};
     for (size_t i = 0; i < 4; ++i) {
@@ -89,13 +93,15 @@ typedef struct {
     crux_status_t unlock_result;
 } mutex_context_t;
 
-static void wrong_owner(void *argument) {
+static void wrong_owner(void *argument)
+{
     mutex_context_t *context = argument;
     context->unlock_result = crux_mutex_unlock(context->mutex);
     context->lock_result = crux_mutex_lock(context->mutex, 20);
 }
 
-static void acquire_after_release(void *argument) {
+static void acquire_after_release(void *argument)
+{
     mutex_context_t *context = argument;
     context->lock_result = crux_semaphore_give(context->gate);
     if (context->lock_result == CRUX_OK) {
@@ -106,7 +112,8 @@ static void acquire_after_release(void *argument) {
     }
 }
 
-int execution_mutex_ownership(void) {
+int execution_mutex_ownership(void)
+{
     crux_mutex_t mutex = {0};
     CHECK(crux_mutex_create(&mutex) == CRUX_OK);
     CHECK(crux_mutex_unlock(mutex) == CRUX_ERR_INVALID_STATE);
@@ -132,7 +139,8 @@ int execution_mutex_ownership(void) {
     return 0;
 }
 
-int execution_mutex_wakeup(void) {
+int execution_mutex_wakeup(void)
+{
     mutex_context_t context = {0};
     CHECK(crux_mutex_create(&context.mutex) == CRUX_OK);
     CHECK(crux_semaphore_create(0, 1, &context.gate) == CRUX_OK);
@@ -148,7 +156,8 @@ int execution_mutex_wakeup(void) {
     return 0;
 }
 
-int execution_semaphore_tokens(void) {
+int execution_semaphore_tokens(void)
+{
     crux_semaphore_t semaphore = {0};
     CHECK(crux_semaphore_create(0, 0, &semaphore) == CRUX_ERR_OUT_OF_RANGE);
     CHECK(crux_semaphore_create(2, 1, &semaphore) == CRUX_ERR_OUT_OF_RANGE);
@@ -174,7 +183,8 @@ int execution_semaphore_tokens(void) {
     return 0;
 }
 
-int execution_sync_capacity(void) {
+int execution_sync_capacity(void)
+{
     crux_mutex_t mutexes[8];
     crux_semaphore_t semaphores[8];
     for (size_t i = 0; i < 8; ++i) {
@@ -209,7 +219,8 @@ typedef struct {
     int published;
 } gate_context_t;
 
-static void gated_worker(void *argument) {
+static void gated_worker(void *argument)
+{
     gate_context_t *context = argument;
     context->result = crux_semaphore_take(context->gate, 2000);
     if (context->result == CRUX_OK) {
@@ -217,7 +228,8 @@ static void gated_worker(void *argument) {
     }
 }
 
-static void self_join_worker(void *argument) {
+static void self_join_worker(void *argument)
+{
     gate_context_t *context = argument;
     context->result = crux_semaphore_take(context->gate, 2000);
     if (context->result == CRUX_OK) {
@@ -225,7 +237,8 @@ static void self_join_worker(void *argument) {
     }
 }
 
-int execution_join_timeout_retains(void) {
+int execution_join_timeout_retains(void)
+{
     gate_context_t context = {0};
     CHECK(crux_semaphore_create(0, 1, &context.gate) == CRUX_OK);
     crux_thread_t worker;
@@ -264,7 +277,8 @@ typedef struct {
     crux_status_t result;
 } giver_context_t;
 
-static void give_once(void *argument) {
+static void give_once(void *argument)
+{
     giver_context_t *context = argument;
     context->result = crux_semaphore_take(context->gate, 1000);
     if (context->result == CRUX_OK) {
@@ -272,7 +286,8 @@ static void give_once(void *argument) {
     }
 }
 
-int execution_concurrent_give(void) {
+int execution_concurrent_give(void)
+{
     giver_context_t contexts[2] = {0};
     CHECK(crux_semaphore_create(0, 2, &contexts[0].gate) == CRUX_OK);
     CHECK(crux_semaphore_create(0, 1, &contexts[0].tokens) == CRUX_OK);

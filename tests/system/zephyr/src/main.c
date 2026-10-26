@@ -15,21 +15,25 @@ static int install_result, setup_result, feed_result;
 static unsigned installs, setups, feeds, disables, clears;
 static struct wdt_timeout_cfg installed;
 static uint8_t setup_options;
-static int fixture_init(const struct device *dev) {
+static int fixture_init(const struct device *dev)
+{
     ARG_UNUSED(dev);
     return 0;
 }
-static int unready_init(const struct device *dev) {
+static int unready_init(const struct device *dev)
+{
     ARG_UNUSED(dev);
     return -ENODEV;
 }
-static int install(const struct device *dev, const struct wdt_timeout_cfg *cfg) {
+static int install(const struct device *dev, const struct wdt_timeout_cfg *cfg)
+{
     ARG_UNUSED(dev);
     ++installs;
     installed = *cfg;
     return install_result;
 }
-static int setup(const struct device *dev, uint8_t options) {
+static int setup(const struct device *dev, uint8_t options)
+{
     ARG_UNUSED(dev);
     ++setups;
     setup_options = options;
@@ -37,13 +41,15 @@ static int setup(const struct device *dev, uint8_t options) {
         running = true;
     return setup_result;
 }
-static int feed(const struct device *dev, int channel) {
+static int feed(const struct device *dev, int channel)
+{
     ARG_UNUSED(dev);
     zassert_equal(channel, 0);
     ++feeds;
     return feed_result;
 }
-static int disable(const struct device *dev) {
+static int disable(const struct device *dev)
+{
     ARG_UNUSED(dev);
     ++disables;
     return 0;
@@ -53,10 +59,12 @@ static DEVICE_API(wdt, fixture_api) = {
 DEVICE_DEFINE(test_wdt, "test_wdt", fixture_init, NULL, NULL, NULL, POST_KERNEL, 50, &fixture_api);
 DEVICE_DEFINE(unready_wdt, "unready_wdt", unready_init, NULL, NULL, NULL, POST_KERNEL, 50,
               &fixture_api);
-const struct device *__wrap_system_zephyr_watchdog_device(void) {
+const struct device *__wrap_system_zephyr_watchdog_device(void)
+{
     return ready ? DEVICE_GET(test_wdt) : DEVICE_GET(unready_wdt);
 }
-bool __wrap_system_zephyr_watchdog_running(void) {
+bool __wrap_system_zephyr_watchdog_running(void)
+{
     return running;
 }
 static bool override_cause;
@@ -65,7 +73,8 @@ static int cause_error, support_error, clear_error;
 int __real_z_impl_hwinfo_get_reset_cause(uint32_t *out);
 int __real_z_impl_hwinfo_get_supported_reset_cause(uint32_t *out);
 int __real_z_impl_hwinfo_clear_reset_cause(void);
-int __wrap_z_impl_hwinfo_get_reset_cause(uint32_t *out) {
+int __wrap_z_impl_hwinfo_get_reset_cause(uint32_t *out)
+{
     if (cause_error)
         return cause_error;
     if (!override_cause)
@@ -73,7 +82,8 @@ int __wrap_z_impl_hwinfo_get_reset_cause(uint32_t *out) {
     *out = cause;
     return 0;
 }
-int __wrap_z_impl_hwinfo_get_supported_reset_cause(uint32_t *out) {
+int __wrap_z_impl_hwinfo_get_supported_reset_cause(uint32_t *out)
+{
     if (support_error)
         return support_error;
     if (!override_cause)
@@ -81,7 +91,8 @@ int __wrap_z_impl_hwinfo_get_supported_reset_cause(uint32_t *out) {
     *out = supported;
     return 0;
 }
-int __wrap_z_impl_hwinfo_clear_reset_cause(void) {
+int __wrap_z_impl_hwinfo_clear_reset_cause(void)
+{
     ++clears;
     if (clear_error)
         return clear_error;
@@ -90,7 +101,8 @@ int __wrap_z_impl_hwinfo_clear_reset_cause(void) {
 K_SEM_DEFINE(reset_seen, 0, 1);
 K_SEM_DEFINE(reset_release, 0, 1);
 static int reboot_type;
-FUNC_NORETURN void __wrap_sys_reboot(int type) {
+FUNC_NORETURN void __wrap_sys_reboot(int type)
+{
     reboot_type = type;
     k_sem_give(&reset_seen);
     (void)k_sem_take(&reset_release, K_FOREVER);
@@ -100,14 +112,16 @@ FUNC_NORETURN void __wrap_sys_reboot(int type) {
 }
 K_THREAD_STACK_DEFINE(reset_stack, 2048);
 static struct k_thread reset_thread;
-static void reset_entry(void *a, void *b, void *c) {
+static void reset_entry(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
     (void)crux_system_reset();
     zassert_unreachable("native reset unexpectedly returned");
 }
-static void irq_check(const void *unused) {
+static void irq_check(const void *unused)
+{
     ARG_UNUSED(unused);
     crux_system_status_t status;
     crux_reset_cause_t report;
@@ -119,7 +133,8 @@ static void irq_check(const void *unused) {
     zassert_equal(crux_watchdog_start(2000, &token), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_watchdog_feed(token), CRUX_ERR_NOT_SUPPORTED);
 }
-ZTEST(system, test_private_native_mappings) {
+ZTEST(system, test_private_native_mappings)
+{
     installs = setups = feeds = 0;
     ready = true;
     running = false;
@@ -155,7 +170,8 @@ ZTEST(system, test_private_native_mappings) {
     zassert_equal(disables, 0);
     running = false;
 }
-ZTEST(system, test_public_boot_episode) {
+ZTEST(system, test_public_boot_episode)
+{
     installs = setups = feeds = 0;
     install_result = setup_result = feed_result = 0;
     ready = false;

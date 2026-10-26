@@ -9,7 +9,8 @@ typedef struct {
 } serial_slot_t;
 static serial_slot_t slots[CRUX_SERIAL_PORT_COUNT];
 
-static crux_status_t deadline_start(uint32_t timeout, serial_deadline_t *deadline) {
+static crux_status_t deadline_start(uint32_t timeout, serial_deadline_t *deadline)
+{
     if (timeout > INT32_MAX)
         return CRUX_ERR_OUT_OF_RANGE;
     uint64_t now;
@@ -21,13 +22,15 @@ static crux_status_t deadline_start(uint32_t timeout, serial_deadline_t *deadlin
     *deadline = (serial_deadline_t){.end_ms = now + timeout, .poll = timeout == 0};
     return CRUX_OK;
 }
-static serial_slot_t *find(crux_serial_t handle) {
+static serial_slot_t *find(crux_serial_t handle)
+{
     if (handle.slot == 0 || handle.slot > CRUX_SERIAL_PORT_COUNT)
         return NULL;
     serial_slot_t *slot = &slots[handle.slot - 1];
     return slot->state == SLOT_OPEN && slot->generation == handle.generation ? slot : NULL;
 }
-static crux_status_t config_check(const crux_serial_config_t *config) {
+static crux_status_t config_check(const crux_serial_config_t *config)
+{
     if (config == NULL || config->baud_rate == 0 ||
         (config->data_bits != 7 && config->data_bits != 8) ||
         (config->stop_bits != 1 && config->stop_bits != 2) ||
@@ -46,7 +49,8 @@ static crux_status_t config_check(const crux_serial_config_t *config) {
     }
 }
 crux_status_t crux_serial_open(crux_serial_port_t port, const crux_serial_config_t *config,
-                               crux_serial_t *out) {
+                               crux_serial_t *out)
+{
     if (out != NULL)
         *out = (crux_serial_t){0};
     if (out == NULL || port >= CRUX_SERIAL_PORT_COUNT)
@@ -81,7 +85,8 @@ crux_status_t crux_serial_open(crux_serial_port_t port, const crux_serial_config
     return result;
 }
 static crux_status_t transfer(crux_serial_t handle, void *read_buffer, const void *write_buffer,
-                              size_t size, size_t *count, uint32_t timeout, bool writing) {
+                              size_t size, size_t *count, uint32_t timeout, bool writing)
+{
     if (count != NULL)
         *count = 0;
     if (count == NULL || (size != 0 && (writing ? write_buffer == NULL : read_buffer == NULL)))
@@ -120,14 +125,17 @@ static crux_status_t transfer(crux_serial_t handle, void *read_buffer, const voi
     return result;
 }
 crux_status_t crux_serial_read(crux_serial_t serial, void *buffer, size_t capacity,
-                               uint32_t timeout_ms, size_t *transferred) {
+                               uint32_t timeout_ms, size_t *transferred)
+{
     return transfer(serial, buffer, NULL, capacity, transferred, timeout_ms, false);
 }
 crux_status_t crux_serial_write(crux_serial_t serial, const void *buffer, size_t size,
-                                uint32_t timeout_ms, size_t *transferred) {
+                                uint32_t timeout_ms, size_t *transferred)
+{
     return transfer(serial, NULL, buffer, size, transferred, timeout_ms, true);
 }
-crux_status_t crux_serial_close(crux_serial_t *handle) {
+crux_status_t crux_serial_close(crux_serial_t *handle)
+{
     if (handle == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     if (!serial_port_context_allowed())

@@ -24,14 +24,16 @@ static struct {
     bool datagram;
 } peer;
 /* Modes: echo, silence, close, oversized datagram, zero-length datagram. */
-static int ready(int fd, short event) {
+static int ready(int fd, short event)
+{
     struct pollfd item = {.fd = fd, .events = event};
     peer.poll_result = poll(&item, 1, 2000);
     if (peer.poll_result < 0)
         peer.native_error = errno;
     return peer.poll_result > 0;
 }
-static void serve(void *unused) {
+static void serve(void *unused)
+{
     (void)unused;
     int fd = peer.listener;
     uint8_t bytes[64] = {0};
@@ -95,7 +97,8 @@ static void serve(void *unused) {
     if (!peer.datagram && close(fd) != 0)
         peer.error = 8;
 }
-static int scenario(bool udp, int mode, bool runtime) {
+static int scenario(bool udp, int mode, bool runtime)
+{
     peer.datagram = udp;
     peer.mode = mode;
     peer.error = 0;
@@ -139,13 +142,15 @@ static int scenario(bool udp, int mode, bool runtime) {
     CHECK(result == expected);
     return 0;
 }
-int networking_stack_link_loss(void) {
+int networking_stack_link_loss(void)
+{
     CHECK(scenario(false, 5, false) == 0);
     CHECK(scenario(false, 0, false) == 0);
     CHECK(scenario(true, 0, false) == 0);
     return 0;
 }
-static int zero_datagram(void) {
+static int zero_datagram(void)
+{
     int server = socket(AF_INET, SOCK_DGRAM, 0);
     int client = socket(AF_INET, SOCK_DGRAM, 0);
     CHECK(server >= 0 && client >= 0);
@@ -166,7 +171,8 @@ static int zero_datagram(void) {
     puts("STACK_ZERO_DATAGRAM pass=1");
     return 0;
 }
-static int send_after_peer_close(void) {
+static int send_after_peer_close(void)
+{
     int listener = socket(AF_INET, SOCK_STREAM, 0);
     CHECK(listener >= 0);
     struct sockaddr_in address = {.sin_family = AF_INET};
@@ -202,7 +208,8 @@ static int send_after_peer_close(void) {
     CHECK(failed);
     return 0;
 }
-int networking_stack_scenarios(void) {
+int networking_stack_scenarios(void)
+{
     for (int repeat = 0; repeat < 3; ++repeat) {
         CHECK(scenario(false, 0, false) == 0);
         CHECK(scenario(true, 0, false) == 0);

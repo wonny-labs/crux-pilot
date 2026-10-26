@@ -10,7 +10,8 @@ static struct k_thread peer;
 K_THREAD_STACK_DEFINE(peer_stack, 2048);
 K_SEM_DEFINE(ready, 0, 1);
 static int kind, behavior;
-static void serve(void *a, void *b, void *c) {
+static void serve(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
@@ -53,7 +54,8 @@ static void serve(void *a, void *b, void *c) {
         zassert_equal(close(stream), 0);
     zassert_equal(close(fd), 0);
 }
-ZTEST(m5_fixture, test_actual_native_consumer_and_accounting) {
+ZTEST(m5_fixture, test_actual_native_consumer_and_accounting)
+{
     zassert_equal(m5_fixture_init(), 0);
     struct fixture_session session = {.token = 7};
     struct fixture_command idle = {.action = 'I', .sequence = 1};

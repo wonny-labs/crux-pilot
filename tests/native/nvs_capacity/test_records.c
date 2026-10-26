@@ -2,7 +2,8 @@
 #include "records.h"
 #include <assert.h>
 #include <string.h>
-int main(void) {
+int main(void)
+{
     const uint8_t bool_zero[] = {1, 1, 1, 0, 0};
     const uint8_t bool_one[] = {1, 1, 1, 0, 1};
     const uint8_t u32_first[] = {1, 2, 1, 0, 0x79, 0x56, 0x34, 0x12};

@@ -12,7 +12,8 @@
 #include <zephyr/drivers/rtc.h>
 #include <zephyr/sys/util.h>
 
-crux_status_t crux_time_zephyr_status_from_rtc_error(int error) {
+crux_status_t crux_time_zephyr_status_from_rtc_error(int error)
+{
     switch (error) {
     case 0:
         return CRUX_OK;
@@ -37,7 +38,8 @@ static const struct device *const crux_time_rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
 #endif
 #endif
 
-crux_status_t crux_time_zephyr_rtc_read(crux_realtime_t *out) {
+crux_status_t crux_time_zephyr_rtc_read(crux_realtime_t *out)
+{
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     if (k_is_in_isr())
@@ -85,7 +87,8 @@ crux_status_t crux_time_zephyr_rtc_read(crux_realtime_t *out) {
 #endif
 }
 
-crux_status_t crux_time_zephyr_rtc_store(const crux_realtime_t *value) {
+crux_status_t crux_time_zephyr_rtc_store(const crux_realtime_t *value)
+{
     crux_time_utc_t utc_time;
     if (value == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;

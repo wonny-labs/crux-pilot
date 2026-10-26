@@ -1,6 +1,7 @@
 #include "controller.h"
 #include "runtime.h"
-int main(void) {
+int main(void)
+{
     if (logging_runtime_record(1, 0) != CRUX_OK)
         return 1;
     if (logging_cpp_record(2, -7) != CRUX_OK)

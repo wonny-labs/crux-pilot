@@ -25,10 +25,12 @@ static crux_realtime_t native_time;
 static const crux_realtime_t first = {CRUX_TIME_MIN_UNIX_SECONDS, 123};
 static const crux_realtime_t second = {CRUX_TIME_MAX_UNIX_SECONDS_EXCLUSIVE - 1, 999999999};
 
-bool crux_time_port_is_thread(void) {
+bool crux_time_port_is_thread(void)
+{
     return thread_context;
 }
-crux_status_t crux_time_port_lock(void) {
+crux_status_t crux_time_port_lock(void)
+{
     if (lock_status != CRUX_OK)
         return lock_status;
     if (pthread_mutex_lock(&mutex) != 0)
@@ -36,38 +38,45 @@ crux_status_t crux_time_port_lock(void) {
     locked = true;
     return CRUX_OK;
 }
-void crux_time_port_unlock(void) {
+void crux_time_port_unlock(void)
+{
     locked = false;
     (void)pthread_mutex_unlock(&mutex);
 }
-crux_status_t crux_time_port_init(void) {
+crux_status_t crux_time_port_init(void)
+{
     CHECK(locked);
     ++init_calls;
     return init_status;
 }
-crux_status_t crux_time_port_read(crux_realtime_t *out) {
+crux_status_t crux_time_port_read(crux_realtime_t *out)
+{
     CHECK(locked);
     ++read_calls;
     *out = native_time;
     return read_status;
 }
-crux_status_t crux_time_port_write(const crux_realtime_t *value) {
+crux_status_t crux_time_port_write(const crux_realtime_t *value)
+{
     CHECK(locked);
     ++write_calls;
     native_time = *value;
     sched_yield();
     return write_status;
 }
-static bool equal(crux_realtime_t a, crux_realtime_t b) {
+static bool equal(crux_realtime_t a, crux_realtime_t b)
+{
     return a.seconds == b.seconds && a.nanoseconds == b.nanoseconds;
 }
-static crux_realtime_snapshot_t snapshot(void) {
+static crux_realtime_snapshot_t snapshot(void)
+{
     crux_realtime_snapshot_t s;
     memset(&s, 0x55, sizeof(s));
     CHECK(crux_time_get_realtime_snapshot(&s) == CRUX_OK);
     return s;
 }
-static void expect_invalid(crux_time_source_t source) {
+static void expect_invalid(crux_time_source_t source)
+{
     unsigned before = read_calls;
     crux_realtime_snapshot_t s = snapshot();
     CHECK(!s.is_time_valid && !s.is_actively_synchronized && s.last_source == source);
@@ -76,7 +85,8 @@ static void expect_invalid(crux_time_source_t source) {
     CHECK(crux_time_get_realtime(&out) == CRUX_ERR_NO_DATA && equal(out, first));
     CHECK(read_calls == before);
 }
-static void *writer(void *arg) {
+static void *writer(void *arg)
+{
     bool external = arg != NULL;
     for (unsigned i = 0; i < 10000; ++i) {
         CHECK(crux_time_set_realtime(external ? &second : &first,
@@ -85,7 +95,8 @@ static void *writer(void *arg) {
     }
     return NULL;
 }
-static void *reader(void *arg) {
+static void *reader(void *arg)
+{
     (void)arg;
     for (unsigned i = 0; i < 10000; ++i) {
         crux_realtime_snapshot_t s = snapshot();
@@ -97,7 +108,8 @@ static void *reader(void *arg) {
     }
     return NULL;
 }
-int main(void) {
+int main(void)
+{
     crux_realtime_t out = first;
     crux_realtime_snapshot_t s, sentinel;
     memset(&s, 0x55, sizeof(s));

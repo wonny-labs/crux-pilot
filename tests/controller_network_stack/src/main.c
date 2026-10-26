@@ -15,7 +15,8 @@ static unsigned int peer_frames[2];
 /* Upstream loopback test control: both endpoints are real local addresses. */
 extern void loopback_enable_address_swap(bool swap_addresses);
 
-static void assert_idle_pools(void) {
+static void assert_idle_pools(void)
+{
     struct k_mem_slab *rx;
     struct k_mem_slab *tx;
     struct net_buf_pool *rx_data;
@@ -27,13 +28,15 @@ static void assert_idle_pools(void) {
     zassert_equal(net_buf_get_available(tx_data), CONFIG_NET_BUF_TX_COUNT);
 }
 
-static bool valid_frame(const uint8_t *frame, unsigned int protocol, unsigned int sequence) {
+static bool valid_frame(const uint8_t *frame, unsigned int protocol, unsigned int sequence)
+{
     return memcmp(frame, "CM3N", 4) == 0 && sys_get_be32(frame + 4) == protocol &&
            sys_get_be32(frame + 8) == 1 && sys_get_be32(frame + 12) == sequence &&
            memcmp(frame + 16, "crux-m3-payload!", 16) == 0;
 }
 
-static void echo_peer(void *kind, void *unused1, void *unused2) {
+static void echo_peer(void *kind, void *unused1, void *unused2)
+{
     ARG_UNUSED(unused1);
     ARG_UNUSED(unused2);
     unsigned int protocol = (uintptr_t)kind;
@@ -103,7 +106,8 @@ static void echo_peer(void *kind, void *unused1, void *unused2) {
     zsock_close(listener);
 }
 
-static void run_fixture(int mode) {
+static void run_fixture(int mode)
+{
     zassert_equal(native_contexts(), 0, "No old context may be hidden by a new baseline");
     assert_idle_pools();
     zassert_equal(k_sem_count_get(&peer_ready), 0);
@@ -146,13 +150,16 @@ static void run_fixture(int mode) {
                   "Unexpected native round outcome; preserve resource observations");
 }
 
-ZTEST(network_stack, test_native_round_and_cleanup) {
+ZTEST(network_stack, test_native_round_and_cleanup)
+{
     run_fixture(PEER_ECHO);
 }
-ZTEST(network_stack, test_native_peer_closure_and_cleanup) {
+ZTEST(network_stack, test_native_peer_closure_and_cleanup)
+{
     run_fixture(PEER_CLOSE);
 }
-ZTEST(network_stack, test_native_no_response_and_cleanup) {
+ZTEST(network_stack, test_native_no_response_and_cleanup)
+{
     run_fixture(PEER_SILENCE);
 }
 

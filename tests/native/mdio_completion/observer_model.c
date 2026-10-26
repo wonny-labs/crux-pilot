@@ -8,15 +8,18 @@
 static struct device devices[2];
 static bool retained, copying;
 static unsigned int prints, reads;
-const struct device *observer_device_get(int node) {
+const struct device *observer_device_get(int node)
+{
     assert(node == 1 || node == 2);
     return &devices[node - 1];
 }
-bool device_is_ready(const struct device *dev) {
+bool device_is_ready(const struct device *dev)
+{
     assert(retained && !copying && dev != NULL);
     return true;
 }
-bool crux_m3_mdio_failure_get(const struct device *dev, struct crux_m3_mdio_failure *out) {
+bool crux_m3_mdio_failure_get(const struct device *dev, struct crux_m3_mdio_failure *out)
+{
     assert(dev == &devices[1]);
     reads++;
     copying = true;
@@ -28,7 +31,8 @@ bool crux_m3_mdio_failure_get(const struct device *dev, struct crux_m3_mdio_fail
     copying = false;
     return retained;
 }
-int printk(const char *format, ...) {
+int printk(const char *format, ...)
+{
     assert(retained && !copying);
     char line[1024];
     va_list arguments;
@@ -42,7 +46,8 @@ int printk(const char *format, ...) {
     prints++;
     return length;
 }
-int main(void) {
+int main(void)
+{
     crux_m3_mdio_trace_observe();
     crux_m3_mdio_trace_observe();
     assert(prints == 0 && reads == 2);

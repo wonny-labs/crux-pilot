@@ -7,14 +7,17 @@ static size_t count = 3, closes, opens, calls;
 static int live[CRUX_FILE_POOL_SIZE];
 static int changed;
 static unsigned locks, unlocks;
-void crux_file_port_lock(void) {
+void crux_file_port_lock(void)
+{
     locks++;
 }
-void crux_file_port_unlock(void) {
+void crux_file_port_unlock(void)
+{
     assert(locks > unlocks);
     unlocks++;
 }
-crux_file_result_t crux_file_port_open(size_t s, const char *n, crux_file_mode_t m) {
+crux_file_result_t crux_file_port_open(size_t s, const char *n, crux_file_mode_t m)
+{
     (void)s;
     (void)n;
     (void)m;
@@ -24,18 +27,21 @@ crux_file_result_t crux_file_port_open(size_t s, const char *n, crux_file_mode_t
         live[s] = 1;
     return opened;
 }
-crux_file_result_t crux_file_port_truncate(size_t s) {
+crux_file_result_t crux_file_port_truncate(size_t s)
+{
     assert(live[s]);
     changed = 1;
     return truncated;
 }
-crux_file_result_t crux_file_port_close(size_t s) {
+crux_file_result_t crux_file_port_close(size_t s)
+{
     assert(live[s]);
     live[s] = 0;
     closes++;
     return closed;
 }
-crux_file_result_t crux_file_port_read(size_t s, void *b, size_t l, size_t *c) {
+crux_file_result_t crux_file_port_read(size_t s, void *b, size_t l, size_t *c)
+{
     assert(live[s]);
     (void)b;
     (void)l;
@@ -43,27 +49,33 @@ crux_file_result_t crux_file_port_read(size_t s, void *b, size_t l, size_t *c) {
     *c = count;
     return io;
 }
-crux_file_result_t crux_file_port_write(size_t s, const void *b, size_t l, size_t *c) {
+crux_file_result_t crux_file_port_write(size_t s, const void *b, size_t l, size_t *c)
+{
     return crux_file_port_read(s, (void *)b, l, c);
 }
-crux_file_result_t crux_file_port_seek(size_t s, uint64_t o) {
+crux_file_result_t crux_file_port_seek(size_t s, uint64_t o)
+{
     assert(live[s] && o <= INT64_MAX);
     calls++;
     return o > 3 ? CRUX_FILE_ERR_OUT_OF_RANGE : CRUX_FILE_OK;
 }
-crux_file_result_t crux_file_port_sync(size_t s) {
+crux_file_result_t crux_file_port_sync(size_t s)
+{
     assert(live[s]);
     return sync_result;
 }
-crux_file_result_t crux_file_port_remove(const char *n) {
+crux_file_result_t crux_file_port_remove(const char *n)
+{
     (void)n;
     calls++;
     return io;
 }
-void crux_file_port_cleanup_error(crux_file_result_t e) {
+void crux_file_port_cleanup_error(crux_file_result_t e)
+{
     cleanup = e;
 }
-int main(void) {
+int main(void)
+{
     crux_file_t *f = NULL;
     size_t n = 99;
     char b[8] = {0};

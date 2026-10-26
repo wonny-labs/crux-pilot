@@ -11,10 +11,12 @@
 static bool fail_lock;
 static unsigned value;
 int __real_pthread_mutex_lock(pthread_mutex_t *lock);
-int __wrap_pthread_mutex_lock(pthread_mutex_t *lock) {
+int __wrap_pthread_mutex_lock(pthread_mutex_t *lock)
+{
     return fail_lock ? EINVAL : __real_pthread_mutex_lock(lock);
 }
-static void *increment(void *unused) {
+static void *increment(void *unused)
+{
     (void)unused;
     for (unsigned i = 0; i < 10000; i++) {
         crux_file_port_lock();
@@ -23,7 +25,8 @@ static void *increment(void *unused) {
     }
     return NULL;
 }
-int main(void) {
+int main(void)
+{
     pthread_t a, b;
     assert(pthread_create(&a, NULL, increment, NULL) == 0);
     assert(pthread_create(&b, NULL, increment, NULL) == 0);

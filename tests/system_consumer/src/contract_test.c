@@ -16,14 +16,16 @@ static unsigned cause_reads;
 static unsigned feeds;
 static unsigned lifecycle_effects;
 
-crux_status_t crux_system_status_get(crux_system_status_t *out) {
+crux_status_t crux_system_status_get(crux_system_status_t *out)
+{
     ++observations;
     if (report_status == CRUX_OK)
         *out = service_report;
     return report_status;
 }
 
-crux_status_t crux_system_reset_cause_get(crux_reset_cause_t *out) {
+crux_status_t crux_system_reset_cause_get(crux_reset_cause_t *out)
+{
     ++cause_reads;
     if (cause_status == CRUX_OK)
         *out = (crux_reset_cause_t){CRUX_RESET_CAUSE_WATCHDOG | CRUX_RESET_CAUSE_OTHER,
@@ -31,24 +33,28 @@ crux_status_t crux_system_reset_cause_get(crux_reset_cause_t *out) {
     return cause_status;
 }
 
-crux_status_t crux_watchdog_feed(crux_watchdog_t watchdog) {
+crux_status_t crux_watchdog_feed(crux_watchdog_t watchdog)
+{
     ++feeds;
     assert(watchdog.reserved == 42);
     return feed_status;
 }
 
 /* These deliberately visible side effects catch accidental lifecycle policy. */
-crux_status_t crux_watchdog_start(uint32_t timeout_ms, crux_watchdog_t *out) {
+crux_status_t crux_watchdog_start(uint32_t timeout_ms, crux_watchdog_t *out)
+{
     (void)timeout_ms;
     (void)out;
     ++lifecycle_effects;
     return CRUX_ERR_IO;
 }
-crux_status_t crux_system_reset_cause_clear(void) {
+crux_status_t crux_system_reset_cause_clear(void)
+{
     ++lifecycle_effects;
     return CRUX_ERR_IO;
 }
-crux_status_t crux_system_reset(void) {
+crux_status_t crux_system_reset(void)
+{
     ++lifecycle_effects;
     return CRUX_ERR_NOT_SUPPORTED;
 }
@@ -56,7 +62,8 @@ crux_status_t crux_system_reset(void) {
 typedef crux_status_t (*observe_fn)(system_runtime_observation_t *out);
 typedef crux_status_t (*feed_fn)(crux_watchdog_t watchdog, crux_status_t work_status);
 
-static void check_consumer(observe_fn observe, feed_fn feed) {
+static void check_consumer(observe_fn observe, feed_fn feed)
+{
     system_runtime_observation_t result;
     unsigned char saved[sizeof(result)];
     const crux_watchdog_t token = {42};
@@ -118,7 +125,8 @@ static void check_consumer(observe_fn observe, feed_fn feed) {
     assert(feeds == 2 && lifecycle_effects == 0);
 }
 
-int main(void) {
+int main(void)
+{
     check_consumer(system_runtime_observe, system_runtime_feed_after_work);
     check_consumer(system_cpp_observe, system_cpp_feed_after_work);
     puts("System C17/C++17 consumer policy checks passed");

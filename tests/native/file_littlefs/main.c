@@ -23,22 +23,26 @@ static ssize_t write_result = -1;
 int __real_fs_truncate(struct fs_file_t *f, off_t size);
 int __real_fs_close(struct fs_file_t *f);
 ssize_t __real_fs_write(struct fs_file_t *f, const void *b, size_t n);
-int __wrap_fs_truncate(struct fs_file_t *f, off_t size) {
+int __wrap_fs_truncate(struct fs_file_t *f, off_t size)
+{
     return truncate_error ? truncate_error : __real_fs_truncate(f, size);
 }
-int __wrap_fs_close(struct fs_file_t *f) {
+int __wrap_fs_close(struct fs_file_t *f)
+{
     close_calls++;
     int rc = __real_fs_close(f);
     return close_error ? close_error : rc;
 }
-ssize_t __wrap_fs_write(struct fs_file_t *f, const void *b, size_t n) {
+ssize_t __wrap_fs_write(struct fs_file_t *f, const void *b, size_t n)
+{
     if (write_result == -1)
         return __real_fs_write(f, b, n);
     if (write_result <= 0)
         return write_result;
     return __real_fs_write(f, b, MIN(n, (size_t)write_result));
 }
-static void *setup(void) {
+static void *setup(void)
+{
     crux_file_t *f = NULL;
     zassert_equal(crux_file_open("x", CRUX_FILE_READ, &f), CRUX_FILE_ERR_NOT_READY);
     zassert_ok(fs_mkfs(FS_LITTLEFS, (uintptr_t)mount.storage_dev, NULL, 0));
@@ -47,7 +51,8 @@ static void *setup(void) {
     zassert_equal(pilot_file_create(), CRUX_FILE_OK);
     return NULL;
 }
-ZTEST(file_littlefs, test_persisted_crud_and_sync) {
+ZTEST(file_littlefs, test_persisted_crud_and_sync)
+{
     crux_file_t *f = NULL;
     size_t n;
     char bytes[8] = {0};
@@ -70,7 +75,8 @@ ZTEST(file_littlefs, test_persisted_crud_and_sync) {
     zassert_equal(crux_file_remove("record"), CRUX_FILE_OK);
     zassert_equal(crux_file_open("record", CRUX_FILE_READ, &f), CRUX_FILE_ERR_NOT_FOUND);
 }
-static void before(void *fixture) {
+static void before(void *fixture)
+{
     ARG_UNUSED(fixture);
     truncate_error = close_error = 0;
     write_result = -1;
@@ -78,7 +84,8 @@ static void before(void *fixture) {
     zassert_ok(fs_mkfs(FS_LITTLEFS, (uintptr_t)mount.storage_dev, NULL, 0));
     zassert_ok(fs_mount(&mount));
 }
-ZTEST(file_littlefs, test_native_partial_and_released_state) {
+ZTEST(file_littlefs, test_native_partial_and_released_state)
+{
     crux_file_t *f = NULL;
     size_t n;
     truncate_error = -ENOSPC;
@@ -110,7 +117,8 @@ ZTEST(file_littlefs, test_native_partial_and_released_state) {
         close_error = 0;
     }
 }
-ZTEST(file_littlefs, test_full_and_reclaim) {
+ZTEST(file_littlefs, test_full_and_reclaim)
+{
     crux_file_t *f = NULL;
     static uint8_t data[1024];
     memset(data, 0x5a, sizeof(data));
@@ -149,7 +157,8 @@ ZTEST(file_littlefs, test_full_and_reclaim) {
     zassert_equal(crux_file_close(&f), CRUX_FILE_OK);
 }
 static uint8_t checkpoint[0x10000];
-static uint8_t *media(void) {
+static uint8_t *media(void)
+{
     const struct device *dev = PARTITION_DEVICE(file_test_partition);
     size_t size;
     uint8_t *bytes = flash_simulator_get_memory(dev, &size);
@@ -157,14 +166,16 @@ static uint8_t *media(void) {
     return bytes + PARTITION_OFFSET(file_test_partition);
 }
 static int remaining;
-static int interrupted_byte(const struct device *dev, off_t offset, uint8_t value) {
+static int interrupted_byte(const struct device *dev, off_t offset, uint8_t value)
+{
     ARG_UNUSED(dev);
     ARG_UNUSED(offset);
     if (remaining-- > 0)
         return value;
     return -EIO;
 }
-ZTEST(file_littlefs, test_interrupted_sync_checkpoint_reinitialization) {
+ZTEST(file_littlefs, test_interrupted_sync_checkpoint_reinitialization)
+{
     crux_file_t *f = NULL;
     size_t n;
     zassert_equal(crux_file_open("safe", CRUX_FILE_CREATE_REPLACE, &f), CRUX_FILE_OK);
@@ -192,7 +203,8 @@ ZTEST(file_littlefs, test_interrupted_sync_checkpoint_reinitialization) {
     zassert_mem_equal(bytes, "before", 6);
     zassert_equal(crux_file_close(&f), CRUX_FILE_OK);
 }
-ZTEST(file_littlefs, test_mount_failure_never_formats) {
+ZTEST(file_littlefs, test_mount_failure_never_formats)
+{
     zassert_ok(fs_unmount(&mount));
     memcpy(checkpoint, media(), sizeof(checkpoint));
     memset(media(), 0, sizeof(checkpoint));
@@ -204,7 +216,8 @@ ZTEST(file_littlefs, test_mount_failure_never_formats) {
     memcpy(media(), checkpoint, sizeof(checkpoint));
     zassert_ok(fs_mount(&mount));
 }
-ZTEST(file_littlefs, test_seek_unflushed_eof) {
+ZTEST(file_littlefs, test_seek_unflushed_eof)
+{
     crux_file_t *f = NULL;
     size_t n;
     char bytes[3];
@@ -221,7 +234,8 @@ ZTEST(file_littlefs, test_seek_unflushed_eof) {
     zassert_mem_equal(bytes, "cde", 3);
     zassert_equal(crux_file_close(&f), CRUX_FILE_OK);
 }
-ZTEST(file_littlefs, test_backend_transfer_width_before_dispatch) {
+ZTEST(file_littlefs, test_backend_transfer_width_before_dispatch)
+{
     crux_file_t *f = NULL;
     size_t n;
     char byte = 0;

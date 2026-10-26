@@ -11,15 +11,18 @@ static uint32_t rate_hz, waited_us;
             ++failures;                                                                            \
         }                                                                                          \
     } while (0)
-uint32_t delay_test_clock_hz(void) {
+uint32_t delay_test_clock_hz(void)
+{
     ++rate_reads;
     return rate_hz;
 }
-void k_busy_wait(uint32_t usec) {
+void k_busy_wait(uint32_t usec)
+{
     ++waits;
     waited_us = usec;
 }
-int main(void) {
+int main(void)
+{
     crux_duration_t out = crux_duration_from_ns(73);
     CHECK(crux_delay_busy_wait(crux_duration_from_ns(0)) == CRUX_OK);
     CHECK(crux_delay_busy_wait(crux_duration_from_ns(-1)) == CRUX_ERR_INVALID_ARGUMENT);

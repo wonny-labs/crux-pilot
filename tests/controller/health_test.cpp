@@ -3,7 +3,8 @@
 #include <gtest/gtest.h>
 #include <limits>
 
-TEST(ControllerHealth, RequiresCompletedWorkAndExpiresOnActualCompletionTime) {
+TEST(ControllerHealth, RequiresCompletedWorkAndExpiresOnActualCompletionTime)
+{
     controller_health_t health;
     ASSERT_TRUE(controller_health_init(&health, 500));
     EXPECT_FALSE(controller_health_observe(&health, 0, controller_progress_t{-1, 0, false}));
@@ -15,7 +16,8 @@ TEST(ControllerHealth, RequiresCompletedWorkAndExpiresOnActualCompletionTime) {
     EXPECT_TRUE(controller_health_observe(&health, 2100, controller_progress_t{2100, 3, true}));
 }
 
-TEST(ControllerHealth, ErrorAndFutureCompletionNeedNewSuccessfulProgress) {
+TEST(ControllerHealth, ErrorAndFutureCompletionNeedNewSuccessfulProgress)
+{
     controller_health_t health;
     ASSERT_TRUE(controller_health_init(&health, 500));
     ASSERT_TRUE(controller_health_observe(&health, 100, controller_progress_t{100, 1, true}));
@@ -26,7 +28,8 @@ TEST(ControllerHealth, ErrorAndFutureCompletionNeedNewSuccessfulProgress) {
     EXPECT_TRUE(controller_health_observe(&health, 600, controller_progress_t{600, 4, true}));
 }
 
-TEST(ControllerHealth, InvalidOrBackwardTimeCannotFeedOrRenewProgress) {
+TEST(ControllerHealth, InvalidOrBackwardTimeCannotFeedOrRenewProgress)
+{
     controller_health_t health;
     EXPECT_FALSE(controller_health_init(nullptr, 500));
     EXPECT_FALSE(controller_health_init(&health, 0));
@@ -43,7 +46,8 @@ TEST(ControllerHealth, InvalidOrBackwardTimeCannotFeedOrRenewProgress) {
     EXPECT_TRUE(controller_health_observe(&health, 600, controller_progress_t{600, 5, true}));
 }
 
-TEST(ControllerHealth, RecoveryCannotReplayWorkCompletedBeforeTheError) {
+TEST(ControllerHealth, RecoveryCannotReplayWorkCompletedBeforeTheError)
+{
     controller_health_t health;
     ASSERT_TRUE(controller_health_init(&health, 500));
     ASSERT_TRUE(controller_health_observe(&health, 100, controller_progress_t{100, 1, true}));
@@ -52,7 +56,8 @@ TEST(ControllerHealth, RecoveryCannotReplayWorkCompletedBeforeTheError) {
     EXPECT_TRUE(controller_health_observe(&health, 400, controller_progress_t{400, 4, true}));
 }
 
-TEST(ControllerHealth, CounterWrapUsesChangeRatherThanNumericOrdering) {
+TEST(ControllerHealth, CounterWrapUsesChangeRatherThanNumericOrdering)
+{
     controller_health_t health;
     ASSERT_TRUE(controller_health_init(&health, 500));
     ASSERT_TRUE(controller_health_observe(
@@ -61,7 +66,8 @@ TEST(ControllerHealth, CounterWrapUsesChangeRatherThanNumericOrdering) {
     EXPECT_FALSE(controller_health_observe(&health, 701, controller_progress_t{200, 0, true}));
 }
 
-TEST(ControllerReadiness, RequiredFailureCannotBecomeReadyOrOptionalDegradation) {
+TEST(ControllerReadiness, RequiredFailureCannotBecomeReadyOrOptionalDegradation)
+{
     EXPECT_EQ(controller_readiness(false, true, true, true), CONTROLLER_NOT_READY);
     EXPECT_EQ(controller_readiness(true, false, true, true), CONTROLLER_NOT_READY);
     EXPECT_EQ(controller_readiness(true, true, false, true), CONTROLLER_NOT_READY);
@@ -69,7 +75,8 @@ TEST(ControllerReadiness, RequiredFailureCannotBecomeReadyOrOptionalDegradation)
     EXPECT_EQ(controller_readiness(true, true, true, true), CONTROLLER_READY);
 }
 
-TEST(ControllerJointHealth, EitherOwnerMustAdvanceAndErrorsNeedNewWork) {
+TEST(ControllerJointHealth, EitherOwnerMustAdvanceAndErrorsNeedNewWork)
+{
     controller_health_t time_health, network_health;
     ASSERT_TRUE(controller_health_init(&time_health, 500));
     ASSERT_TRUE(controller_health_init(&network_health, 16000));
@@ -92,7 +99,8 @@ TEST(ControllerJointHealth, EitherOwnerMustAdvanceAndErrorsNeedNewWork) {
     EXPECT_TRUE(observe(17300, {17300, 10, true}, {17300, 7, true}));
 }
 
-TEST(ControllerM3Budget, ArmsOnlyAfterJointPreparationWithFaultAndResetRoom) {
+TEST(ControllerM3Budget, ArmsOnlyAfterJointPreparationWithFaultAndResetRoom)
+{
     EXPECT_FALSE(controller_m3_arm_allowed(-1, 0, 60000));
     EXPECT_FALSE(controller_m3_arm_allowed(1000, -1, 60000));
     EXPECT_FALSE(controller_m3_arm_allowed(1000, 1001, 60000));

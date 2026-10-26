@@ -9,7 +9,8 @@ static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios)
 #endif
 static bool initialised;
 
-int controller_device_init(void) {
+int controller_device_init(void)
+{
     initialised = false;
 #if DT_NODE_HAS_STATUS(DT_ALIAS(sw0), okay)
     if (!gpio_is_ready_dt(&button)) {
@@ -23,7 +24,8 @@ int controller_device_init(void) {
 #endif
 }
 
-int controller_device_read(int *pressed) {
+int controller_device_read(int *pressed)
+{
     if (pressed == NULL) {
         return -EINVAL;
     }

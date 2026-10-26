@@ -2,7 +2,8 @@
 
 #include <stddef.h>
 
-bool controller_health_init(controller_health_t *health, int64_t freshness_ms) {
+bool controller_health_init(controller_health_t *health, int64_t freshness_ms)
+{
     if (health == NULL || freshness_ms <= 0) {
         return false;
     }
@@ -13,7 +14,8 @@ bool controller_health_init(controller_health_t *health, int64_t freshness_ms) {
     return true;
 }
 
-static bool reject_observation(controller_health_t *health, uint32_t sequence) {
+static bool reject_observation(controller_health_t *health, uint32_t sequence)
+{
     health->last_sequence = sequence;
     health->progress_seen = false;
     health->recovery_after_ms = health->last_observation_ms;
@@ -21,7 +23,8 @@ static bool reject_observation(controller_health_t *health, uint32_t sequence) {
 }
 
 bool controller_health_observe(controller_health_t *health, int64_t now_ms,
-                               controller_progress_t progress) {
+                               controller_progress_t progress)
+{
     if (health == NULL || health->freshness_ms <= 0) {
         return false;
     }
@@ -48,26 +51,29 @@ bool controller_health_observe(controller_health_t *health, int64_t now_ms,
 bool controller_health_joint_observe(controller_health_t *time_health,
                                      controller_health_t *network_health, int64_t now_ms,
                                      controller_progress_t time_progress,
-                                     controller_progress_t network_progress) {
+                                     controller_progress_t network_progress)
+{
     bool time_ok = controller_health_observe(time_health, now_ms, time_progress);
     bool network_ok = controller_health_observe(network_health, now_ms, network_progress);
     return time_ok && network_ok;
 }
 
-bool controller_m3_arm_allowed(int64_t now_ms, int64_t healthy_since_ms, int64_t window_end_ms) {
+bool controller_m3_arm_allowed(int64_t now_ms, int64_t healthy_since_ms, int64_t window_end_ms)
+{
     return now_ms >= 0 && healthy_since_ms >= 0 && now_ms >= healthy_since_ms &&
            window_end_ms >= now_ms && now_ms - healthy_since_ms >= 1000 &&
            window_end_ms - now_ms >= 40000;
 }
 
-bool controller_m3_fault_allowed(int64_t now_ms, int64_t request_deadline_ms,
-                                 int64_t window_end_ms) {
+bool controller_m3_fault_allowed(int64_t now_ms, int64_t request_deadline_ms, int64_t window_end_ms)
+{
     return now_ms >= 0 && request_deadline_ms > now_ms && window_end_ms >= now_ms &&
            window_end_ms - now_ms >= 25000;
 }
 
 controller_readiness_t controller_readiness(bool time_ready, bool device_ready, bool network_ready,
-                                            bool optional_ready) {
+                                            bool optional_ready)
+{
     if (!time_ready || !device_ready || !network_ready) {
         return CONTROLLER_NOT_READY;
     }

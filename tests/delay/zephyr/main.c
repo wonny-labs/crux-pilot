@@ -4,7 +4,8 @@
 #include <zephyr/sys/atomic.h>
 #include <zephyr/ztest.h>
 
-ZTEST(delay_native, test_limit_and_native_rounding_without_realtime_init) {
+ZTEST(delay_native, test_limit_and_native_rounding_without_realtime_init)
+{
     BUILD_ASSERT(!IS_ENABLED(CONFIG_RTC));
     crux_duration_t maximum;
     zassert_equal(crux_delay_get_max_duration(&maximum), CRUX_OK);
@@ -23,7 +24,8 @@ ZTEST(delay_native, test_limit_and_native_rounding_without_realtime_init) {
     zassert_true(elapsed >= k_us_to_cyc_ceil32(2));
 }
 
-static void normal_isr(const void *unused) {
+static void normal_isr(const void *unused)
+{
     ARG_UNUSED(unused);
     zassert_true(k_is_in_isr());
     crux_duration_t maximum;
@@ -33,21 +35,24 @@ static void normal_isr(const void *unused) {
     zassert_equal(crux_delay_busy_wait(crux_duration_from_ns(crux_duration_to_ns(maximum) + 1)),
                   CRUX_ERR_OUT_OF_RANGE);
 }
-ZTEST(delay_native, test_selected_normal_isr_context) {
+ZTEST(delay_native, test_selected_normal_isr_context)
+{
     irq_offload(normal_isr, NULL);
 }
 
 static atomic_t in_wait, irq_seen;
 static uint32_t irq_cycle;
 static struct k_timer irq_timer;
-static void observe_irq(struct k_timer *timer) {
+static void observe_irq(struct k_timer *timer)
+{
     ARG_UNUSED(timer);
     if (atomic_get(&in_wait)) {
         irq_cycle = k_cycle_get_32();
         atomic_set(&irq_seen, 1);
     }
 }
-ZTEST(delay_native, test_thread_wait_allows_irq_before_its_deadline) {
+ZTEST(delay_native, test_thread_wait_allows_irq_before_its_deadline)
+{
     atomic_clear(&irq_seen);
     k_timer_init(&irq_timer, observe_irq, NULL);
     const uint32_t start = k_cycle_get_32();

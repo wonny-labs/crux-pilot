@@ -27,7 +27,8 @@ static struct nxp_enet_mdio_data data;
 static bool isr, locked, complete_on_wait, late_on_timeout, poll_completion, stale_pending,
     complete_before_unlock;
 static unsigned starts, takes, polls, irqs;
-static void completion(void) {
+static void completion(void)
+{
     registers.MMFR = (registers.MMFR & ~ENET_MMFR_DATA_MASK) | 0x22;
     registers.EIR = ENET_EIR_MII_MASK;
     if (data.interrupt_up) {
@@ -37,15 +38,18 @@ static void completion(void) {
         irqs++;
     }
 }
-static bool k_is_in_isr(void) {
+static bool k_is_in_isr(void)
+{
     return isr;
 }
-static unsigned irq_lock(void) {
+static unsigned irq_lock(void)
+{
     assert(!locked);
     locked = true;
     return 0;
 }
-static void irq_unlock(unsigned key) {
+static void irq_unlock(unsigned key)
+{
     (void)key;
     assert(locked && registers.EIR == 0);
     if (complete_before_unlock) {
@@ -66,12 +70,14 @@ static void irq_unlock(unsigned key) {
         stale_pending = false;
     }
 }
-static void k_sem_reset(struct k_sem *s) {
+static void k_sem_reset(struct k_sem *s)
+{
     assert(locked && registers.EIR == ENET_EIR_MII_MASK);
     registers.EIR = 0; /* Explicit model of the preceding hardware W1C write. */
     s->count = 0;
 }
-static void k_busy_wait(int us) {
+static void k_busy_wait(int us)
+{
     assert(us == 1);
     polls++;
     if (poll_completion && polls == 3)
@@ -86,18 +92,21 @@ static void k_busy_wait(int us) {
         }                                                                                          \
         !!(expr);                                                                                  \
     })
-static int k_mutex_lock(struct k_mutex *m, int timeout) {
+static int k_mutex_lock(struct k_mutex *m, int timeout)
+{
     (void)timeout;
     assert(!m->held && !isr);
     m->held = 1;
     return 0;
 }
-static int k_mutex_unlock(struct k_mutex *m) {
+static int k_mutex_unlock(struct k_mutex *m)
+{
     assert(m->held);
     m->held = 0;
     return 0;
 }
-static int k_sem_take(struct k_sem *s, int timeout) {
+static int k_sem_take(struct k_sem *s, int timeout)
+{
     assert(timeout == 250 && !locked);
     takes++;
     if (complete_on_wait)
@@ -111,18 +120,21 @@ static int k_sem_take(struct k_sem *s, int timeout) {
     return -EAGAIN;
 }
 #include "candidate_fragments.inc"
-static void reset(bool irq) {
+static void reset(bool irq)
+{
     registers = (ENET_Type){0};
     data = (struct nxp_enet_mdio_data){.base = &registers, .interrupt_up = irq};
     isr = locked = complete_on_wait = late_on_timeout = poll_completion = stale_pending =
         complete_before_unlock = false;
     starts = takes = polls = irqs = 0;
 }
-static int read_value(uint16_t *value) {
+static int read_value(uint16_t *value)
+{
     const struct device dev = {.data = &data};
     return mdio_transfer(&dev, 0, 2, MDIO_OP_C22_READ, false, 0, value);
 }
-static void no_more_commands(void) {
+static void no_more_commands(void)
+{
     unsigned before = starts;
     uint32_t mmfr = registers.MMFR;
     uint16_t value = 0xbeef;
@@ -130,7 +142,8 @@ static void no_more_commands(void) {
            value == 0xbeef);
     assert(!data.mdio_mutex.held && !locked);
 }
-int main(void) {
+int main(void)
+{
     uint16_t value;
     reset(true);
     data.mdio_sem.count = 1;

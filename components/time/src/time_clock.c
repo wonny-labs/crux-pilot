@@ -2,7 +2,8 @@
 
 #include <stddef.h>
 
-crux_status_t crux_time_get_monotonic(crux_monotonic_time_t *out) {
+crux_status_t crux_time_get_monotonic(crux_monotonic_time_t *out)
+{
     if (out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
@@ -22,7 +23,8 @@ crux_status_t crux_time_get_monotonic(crux_monotonic_time_t *out) {
 }
 
 crux_status_t crux_time_make_deadline_after(crux_duration_t min_duration,
-                                            crux_monotonic_time_t *out_deadline) {
+                                            crux_monotonic_time_t *out_deadline)
+{
     if (out_deadline == NULL || min_duration.private_ns < 0) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
@@ -44,7 +46,8 @@ crux_status_t crux_time_make_deadline_after(crux_duration_t min_duration,
                                        out_deadline);
 }
 
-crux_status_t crux_time_ticks_to_ns(int64_t ticks, uint32_t rate, bool round_up, int64_t *out_ns) {
+crux_status_t crux_time_ticks_to_ns(int64_t ticks, uint32_t rate, bool round_up, int64_t *out_ns)
+{
     if (out_ns == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }

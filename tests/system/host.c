@@ -11,7 +11,8 @@ static int64_t now_ms;
 static bool fail_clock, late_clock;
 static unsigned late_reads;
 // NOLINTNEXTLINE(bugprone-reserved-identifier): GNU linker wrapping ABI
-int __wrap_clock_gettime(clockid_t clock, struct timespec *value) {
+int __wrap_clock_gettime(clockid_t clock, struct timespec *value)
+{
     assert(clock == CLOCK_MONOTONIC);
     if (fail_clock) {
         errno = EIO;
@@ -22,12 +23,14 @@ int __wrap_clock_gettime(clockid_t clock, struct timespec *value) {
     value->tv_nsec = (long)((now % 1000) * 1000000);
     return 0;
 }
-static crux_watchdog_t start(uint32_t timeout) {
+static crux_watchdog_t start(uint32_t timeout)
+{
     crux_watchdog_t value = {0};
     assert(crux_watchdog_start(timeout, &value) == CRUX_OK && value.reserved != 0);
     return value;
 }
-static void profile(uint32_t timeout) {
+static void profile(uint32_t timeout)
+{
     crux_watchdog_t value = {0};
     assert(crux_watchdog_start(UINT32_MAX, &value) == CRUX_ERR_OUT_OF_RANGE);
     assert(crux_watchdog_start(499, &value) == CRUX_ERR_OUT_OF_RANGE);
@@ -39,7 +42,8 @@ static void profile(uint32_t timeout) {
     assert(report.watchdog_emulated && report.watchdog_timeout_ms == timeout);
     assert(crux_watchdog_feed(value) == CRUX_OK);
 }
-static void expiry(void) {
+static void expiry(void)
+{
     crux_watchdog_t w = start(2000), other = {0};
     now_ms = 1999;
     assert(crux_watchdog_feed(w) == CRUX_OK);
@@ -51,7 +55,8 @@ static void expiry(void) {
     assert(crux_watchdog_feed(w) == CRUX_ERR_TIMEOUT);
     assert(crux_watchdog_start(2000, &other) == CRUX_ERR_INVALID_STATE);
 }
-static void late(void) {
+static void late(void)
+{
     crux_watchdog_t w = start(2000);
     late_clock = true;
     assert(crux_watchdog_feed(w) == CRUX_ERR_TIMEOUT);
@@ -59,14 +64,16 @@ static void late(void) {
     assert(crux_system_status_get(&report) == CRUX_OK);
     assert(report.watchdog_state == CRUX_WATCHDOG_EXPIRED);
 }
-static void clock_failure(void) {
+static void clock_failure(void)
+{
     fail_clock = true;
     crux_watchdog_t w = {0};
     assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 0);
     fail_clock = false;
     assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE);
 }
-static void backwards(void) {
+static void backwards(void)
+{
     now_ms = 1000;
     crux_watchdog_t w = start(2000);
     now_ms = 999;
@@ -74,7 +81,8 @@ static void backwards(void) {
     now_ms = 1001;
     assert(crux_watchdog_feed(w) == CRUX_ERR_IO);
 }
-static void unsupported(void) {
+static void unsupported(void)
+{
     crux_system_status_t report;
     assert(crux_system_status_get(&report) == CRUX_OK);
     assert(report.watchdog_emulated && report.watchdog_state == CRUX_WATCHDOG_IDLE);
@@ -92,14 +100,16 @@ static void unsupported(void) {
 static pthread_barrier_t gate;
 static crux_status_t results[2];
 static crux_watchdog_t owners[2];
-static void *starter(void *argument) {
+static void *starter(void *argument)
+{
     size_t index = *(const size_t *)argument;
     int result = pthread_barrier_wait(&gate);
     assert(result == 0 || result == PTHREAD_BARRIER_SERIAL_THREAD);
     results[index] = crux_watchdog_start(2000, &owners[index]);
     return NULL;
 }
-static void concurrent(void) {
+static void concurrent(void)
+{
     pthread_t threads[2];
     const size_t indices[] = {0, 1};
     assert(pthread_barrier_init(&gate, NULL, 3) == 0);
@@ -116,7 +126,8 @@ static void concurrent(void) {
     assert(crux_watchdog_feed(owners[winner]) == CRUX_OK);
     assert(pthread_barrier_destroy(&gate) == 0);
 }
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     assert(argc == 2);
     if (strcmp(argv[1], "low") == 0)
         profile(500);

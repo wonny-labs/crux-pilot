@@ -8,10 +8,12 @@
 K_MUTEX_DEFINE(realtime_lock);
 #endif
 
-bool crux_time_port_is_thread(void) {
+bool crux_time_port_is_thread(void)
+{
     return !k_is_in_isr();
 }
-crux_status_t crux_time_port_lock(void) {
+crux_status_t crux_time_port_lock(void)
+{
 #if defined(CONFIG_MULTITHREADING)
     return k_mutex_lock(&realtime_lock, K_FOREVER) == 0 ? CRUX_OK : CRUX_ERR_IO;
 #else
@@ -19,15 +21,18 @@ crux_status_t crux_time_port_lock(void) {
     return CRUX_OK;
 #endif
 }
-void crux_time_port_unlock(void) {
+void crux_time_port_unlock(void)
+{
 #if defined(CONFIG_MULTITHREADING)
     (void)k_mutex_unlock(&realtime_lock);
 #endif
 }
-crux_status_t crux_time_port_init(void) {
+crux_status_t crux_time_port_init(void)
+{
     return IS_ENABLED(CONFIG_SYS_CLOCK_EXISTS) ? CRUX_OK : CRUX_ERR_NOT_SUPPORTED;
 }
-crux_status_t crux_time_port_read(crux_realtime_t *out) {
+crux_status_t crux_time_port_read(crux_realtime_t *out)
+{
     struct timespec value;
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
@@ -40,7 +45,8 @@ crux_status_t crux_time_port_read(crux_realtime_t *out) {
     *out = (crux_realtime_t){(int64_t)value.tv_sec, (uint32_t)value.tv_nsec};
     return CRUX_OK;
 }
-crux_status_t crux_time_port_write(const crux_realtime_t *value) {
+crux_status_t crux_time_port_write(const crux_realtime_t *value)
+{
     if (value == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     if (!IS_ENABLED(CONFIG_SYS_CLOCK_EXISTS))

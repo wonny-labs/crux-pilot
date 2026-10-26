@@ -1,6 +1,7 @@
 #include "runtime.h"
 
-extern "C" crux_status_t system_cpp_observe(system_runtime_observation_t *out) {
+extern "C" crux_status_t system_cpp_observe(system_runtime_observation_t *out)
+{
     system_runtime_observation_t observation{};
 
     if (out == nullptr)
@@ -14,7 +15,8 @@ extern "C" crux_status_t system_cpp_observe(system_runtime_observation_t *out) {
 }
 
 extern "C" crux_status_t system_cpp_feed_after_work(crux_watchdog_t watchdog,
-                                                    crux_status_t work_status) {
+                                                    crux_status_t work_status)
+{
     if (work_status != CRUX_OK)
         return work_status;
     return crux_watchdog_feed(watchdog);

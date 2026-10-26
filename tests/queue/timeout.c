@@ -18,8 +18,8 @@ int real_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex,
                    const struct timespec *deadline) __asm__("__real_pthread_cond_timedwait");
 int wrapped_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex,
                       const struct timespec *deadline) __asm__("__wrap_pthread_cond_timedwait");
-int wrapped_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex,
-                      const struct timespec *deadline) {
+int wrapped_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *deadline)
+{
     int result = real_cond_wait(cond, mutex, deadline);
     if (result == ETIMEDOUT) {
         /* libc returns owning the mutex. Release it only in this fixture to
@@ -32,14 +32,16 @@ int wrapped_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex,
     }
     return result;
 }
-static void *transfer_worker(void *unused) {
+static void *transfer_worker(void *unused)
+{
     (void)unused;
     observed = sending ? crux_queue_send(queue, &record, sizeof(record), 2)
                        : crux_queue_receive(queue, &record, sizeof(record), 2);
     assert(sem_post(&completed) == 0);
     return NULL;
 }
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     sending = argc == 2 && strcmp(argv[1], "send") == 0;
     assert(sem_init(&expired, 0, 0) == 0);
     assert(sem_init(&resume_cleanup, 0, 0) == 0);

@@ -5,7 +5,8 @@
 #include <stddef.h>
 #include <string.h>
 
-static crux_status_t remaining(crux_monotonic_time_t deadline, uint32_t *out_ms) {
+static crux_status_t remaining(crux_monotonic_time_t deadline, uint32_t *out_ms)
+{
     crux_monotonic_time_t now;
     crux_status_t status = crux_time_get_monotonic(&now);
     if (status != CRUX_OK)
@@ -19,7 +20,8 @@ static crux_status_t remaining(crux_monotonic_time_t deadline, uint32_t *out_ms)
 
 crux_status_t serial_runtime_transaction(crux_serial_port_t port,
                                          const crux_serial_config_t *config, uint64_t nonce,
-                                         uint32_t budget_ms, serial_runtime_result_t *result) {
+                                         uint32_t budget_ms, serial_runtime_result_t *result)
+{
     uint8_t request[16] = {0xc3, 0, 0xff, 0x51, 0, 0, 0, 0, 0, 0, 0, 0, 0x39, 0, 0xff, 0x5a};
     uint8_t reply[sizeof(request)] = {0};
     crux_monotonic_time_t deadline;

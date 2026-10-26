@@ -27,7 +27,8 @@ static bool alive[STATE_SIZE], seen[STATE_SIZE];
 static unsigned revisions[STATE_SIZE];
 static unsigned expected_count;
 
-static void remount(void) {
+static void remount(void)
+{
     /* No live operations; preserve registered store addresses, discard NVS/count state.
      * Name cache is off. This is a backend remount, not a process/physical reboot. */
     memset(&backend->cf_nvs, 0, sizeof(backend->cf_nvs));
@@ -38,7 +39,8 @@ static void remount(void) {
     zassert_ok(settings_nvs_backend_init(backend));
     zassert_true(backend->cf_nvs.ready);
 }
-static void *setup(void) {
+static void *setup(void)
+{
     void *storage = NULL;
     zassert_ok(settings_subsys_init());
     zassert_ok(settings_storage_get(&storage));
@@ -53,7 +55,8 @@ static void *setup(void) {
            backend->cf_nvs.sector_size, IS_ENABLED(CONFIG_NVS_DATA_CRC));
     return NULL;
 }
-static void before(void *fixture) {
+static void before(void *fixture)
+{
     ARG_UNUSED(fixture);
     zassert_ok(flash_erase(backend->flash_dev, AREA_OFFSET, AREA_SIZE));
     remount();
@@ -61,7 +64,8 @@ static void before(void *fixture) {
     memset(revisions, 0, sizeof(revisions));
     expected_count = 0;
 }
-static int save(unsigned index, unsigned revision) {
+static int save(unsigned index, unsigned revision)
+{
     char name[16];
     uint8_t wire[8];
     snprintk(name, sizeof(name), "cfg/p%04u", index);
@@ -73,7 +77,8 @@ struct load_check {
     int error;
 };
 static int check_value(const char *name, size_t length, settings_read_cb read_cb, void *cb_arg,
-                       void *param) {
+                       void *param)
+{
     struct load_check *check = param;
     unsigned index;
     char tail, expected_name[16];
@@ -97,7 +102,8 @@ static int check_value(const char *name, size_t length, settings_read_cb read_cb
     check->count++;
     return 0;
 }
-static void verify_acknowledged(void) {
+static void verify_acknowledged(void)
+{
     struct load_check check = {0};
     memset(seen, 0, sizeof(seen));
     int rc = settings_load_subtree_direct("cfg", check_value, &check);
@@ -109,7 +115,8 @@ static void verify_acknowledged(void) {
         zassert_equal(seen[i], alive[i], "acknowledged record %u missing", i);
     }
 }
-ZTEST(nvs_capacity, test_mixed_roundtrip) {
+ZTEST(nvs_capacity, test_mixed_roundtrip)
+{
     for (unsigned revision = 0; revision < 4; ++revision) {
         for (unsigned i = 0; i < 64; ++i) {
             zassert_ok(save(i, revision));
@@ -125,7 +132,8 @@ ZTEST(nvs_capacity, test_mixed_roundtrip) {
     printk("NVS_ROUNDTRIP crc=%d keys=64 update_rounds=3 remounts=4 verified=64\n",
            IS_ENABLED(CONFIG_NVS_DATA_CRC));
 }
-ZTEST(nvs_capacity, test_capacity_reclamation) {
+ZTEST(nvs_capacity, test_capacity_reclamation)
+{
     unsigned count;
     size_t payload_bytes = 0;
     int failure = 0;
@@ -174,7 +182,8 @@ struct crc_read {
     uint8_t wire[8];
 };
 static int read_crc_value(const char *name, size_t length, settings_read_cb read_cb, void *cb_arg,
-                          void *param) {
+                          void *param)
+{
     ARG_UNUSED(name);
     struct crc_read *read = param;
     read->calls++;
@@ -182,7 +191,8 @@ static int read_crc_value(const char *name, size_t length, settings_read_cb read
     read->actual = read_cb(cb_arg, read->wire, sizeof(read->wire));
     return read->actual < 0 ? (int)read->actual : 0;
 }
-ZTEST(nvs_capacity, test_crc_full_partial_and_remount) {
+ZTEST(nvs_capacity, test_crc_full_partial_and_remount)
+{
     uint8_t original[8], full[8], first = 0;
     zassert_equal(probe_record(1, 0, original), sizeof(original));
     zassert_ok(settings_save_one("cfg/crc", original, sizeof(original)));

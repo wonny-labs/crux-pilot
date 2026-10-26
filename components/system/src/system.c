@@ -5,7 +5,8 @@ static crux_watchdog_state_t lifecycle = CRUX_WATCHDOG_IDLE;
 static bool attempted, issued, observed_cause;
 static uint32_t successful_timeout;
 
-static crux_status_t service_status(crux_status_t value) {
+static crux_status_t service_status(crux_status_t value)
+{
     switch (value) {
     case CRUX_OK:
     case CRUX_ERR_NOT_SUPPORTED:
@@ -16,10 +17,12 @@ static crux_status_t service_status(crux_status_t value) {
         return CRUX_ERR_IO;
     }
 }
-static crux_status_t enter(void) {
+static crux_status_t enter(void)
+{
     return system_port_lock() == CRUX_OK ? CRUX_OK : CRUX_ERR_IO;
 }
-static crux_status_t cause_read(crux_reset_cause_t *out) {
+static crux_status_t cause_read(crux_reset_cause_t *out)
+{
     if (!system_port_reset_cause_supported())
         return CRUX_ERR_NOT_SUPPORTED;
     crux_reset_cause_t value = {0};
@@ -32,11 +35,13 @@ static crux_status_t cause_read(crux_reset_cause_t *out) {
     *out = value;
     return CRUX_OK;
 }
-static crux_status_t fault(void) {
+static crux_status_t fault(void)
+{
     lifecycle = CRUX_WATCHDOG_FAULTED;
     return CRUX_ERR_IO;
 }
-static crux_status_t refresh(void) {
+static crux_status_t refresh(void)
+{
     if (lifecycle == CRUX_WATCHDOG_FAULTED)
         return CRUX_ERR_IO;
     if (lifecycle == CRUX_WATCHDOG_EXPIRED)
@@ -64,7 +69,8 @@ static crux_status_t refresh(void) {
     }
     return CRUX_OK;
 }
-crux_status_t crux_system_status_get(crux_system_status_t *out) {
+crux_status_t crux_system_status_get(crux_system_status_t *out)
+{
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     if (!system_port_context_allowed())
@@ -83,7 +89,8 @@ crux_status_t crux_system_status_get(crux_system_status_t *out) {
     system_port_unlock();
     return CRUX_OK;
 }
-crux_status_t crux_system_reset_cause_get(crux_reset_cause_t *out) {
+crux_status_t crux_system_reset_cause_get(crux_reset_cause_t *out)
+{
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     if (!system_port_context_allowed())
@@ -99,7 +106,8 @@ crux_status_t crux_system_reset_cause_get(crux_reset_cause_t *out) {
     system_port_unlock();
     return result;
 }
-crux_status_t crux_system_reset_cause_clear(void) {
+crux_status_t crux_system_reset_cause_clear(void)
+{
     if (!system_port_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (enter() != CRUX_OK)
@@ -121,7 +129,8 @@ crux_status_t crux_system_reset_cause_clear(void) {
     system_port_unlock();
     return result;
 }
-crux_status_t crux_system_reset(void) {
+crux_status_t crux_system_reset(void)
+{
     if (!system_port_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (enter() != CRUX_OK)
@@ -133,7 +142,8 @@ crux_status_t crux_system_reset(void) {
     result = service_status(system_port_reset());
     return result == CRUX_OK ? CRUX_ERR_IO : result;
 }
-crux_status_t crux_watchdog_start(uint32_t timeout_ms, crux_watchdog_t *out) {
+crux_status_t crux_watchdog_start(uint32_t timeout_ms, crux_watchdog_t *out)
+{
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     *out = (crux_watchdog_t){0};
@@ -170,7 +180,8 @@ crux_status_t crux_watchdog_start(uint32_t timeout_ms, crux_watchdog_t *out) {
     system_port_unlock();
     return result;
 }
-crux_status_t crux_watchdog_feed(crux_watchdog_t watchdog) {
+crux_status_t crux_watchdog_feed(crux_watchdog_t watchdog)
+{
     if (!system_port_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (watchdog.reserved == 0)
