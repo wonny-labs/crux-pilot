@@ -77,6 +77,7 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/samples/controller/configuration/scenario.c" \
     "$repo/components/file/src/file.c" \
     "$repo/components/file/ports/linux/file_linux.c" \
+    "$repo/components/file/ports/linux/file_lock.c" \
     "$repo/tests/file/fault_test.c" \
     "$repo/tests/file/host_test.c" \
     "$repo/components/queue/src/queue.c" \

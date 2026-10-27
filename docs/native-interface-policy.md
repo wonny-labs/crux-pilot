@@ -1,8 +1,9 @@
 # Native-free consumer boundary
 
-Scope: Issue #24. This policy and its enforcement are proposed for acceptance
-through this PR. They preserve existing Time behavior and native provider ownership;
-they introduce no general HAL, runtime service registry or new capability contract.
+This policy was adopted under [Issue #24](https://github.com/wonny-labs/crux-pilot/issues/24)
+and merged in [PR #39](https://github.com/wonny-labs/crux-pilot/pull/39).
+It defines portable consumer and native provider boundaries without introducing
+a general HAL or runtime service registry.
 
 ## Dependency policy
 
@@ -97,7 +98,7 @@ Historical controller source/output/evidence records remain intact.
 
 | Current location and native dependency | Target consumer boundary / owner | Outstanding decision |
 | --- | --- | --- |
-| `core/controller.c`, `core/health.c`, portable headers; existing `crux_time_*` use | Keep portable policy and UTC contract unchanged | No new UTC abstraction; provider remains native internally. |
+| `core/controller.c`, `core/health.c` and portable headers using current Crux Time APIs | Keep the portable consumer boundary and Time/UTC contracts | Time providers remain native internally where required. Do not duplicate UTC conversion. |
 | `zephyr/main.c`, `m3_main.c`: `k_thread_*`, stack declarations, priorities, `k_sleep`, spinlocks/atomics | Execution/synchronisation contracts under #25; native thread/stack ownership stays in provider/composition | Lifecycle, waits, resource/priority guarantees need contract review; do not mechanically expose `k_*` types. |
 | `m3_main.c`: `k_uptime_get`, absolute releases; host `clock_gettime`/sleep | Monotonic/timing/event services under #26, while schedule/health policy stays portable | Preserve monotonic versus UTC distinction, overrun policy and accepted freshness limits. |
 | `device_input.c`: DT GPIO binding, `gpio_*`, native device readiness | GPIO contract #31; logical resource binding #32 | Board pin/active-level and startup ownership stay native; no GPIO public API created here. |
