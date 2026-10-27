@@ -25,7 +25,9 @@ typedef struct {
     } data;
 } crux_config_value_t;
 
-/** Synchronous validator. Must not re-enter persistence or mutate its parameter. */
+/** Synchronous, non-reentrant validator.
+ * Must not perform persistence or mutate the parameter being validated.
+ */
 typedef bool (*crux_config_validator_t)(const crux_config_value_t *candidate, void *context);
 
 /** Caller-owned descriptor; key and validation context must outlive the parameter. */

@@ -1,5 +1,5 @@
 /** @file
- * @brief Bounded text logging with a process-local severity filter.
+ * @brief Bounded text logging with a process/boot-local severity filter.
  *
  * Thread context after startup only; no ISR or panic-path support.
  */
