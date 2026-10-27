@@ -72,14 +72,17 @@ static crux_status_t native_result(int result)
         return CRUX_ERR_IO;
     }
 }
+
 sync_native_identity_t sync_native_current(void)
 {
     return pthread_self();
 }
+
 bool sync_native_identity_equal(sync_native_identity_t first, sync_native_identity_t second)
 {
     return pthread_equal(first, second) != 0;
 }
+
 crux_status_t sync_native_mutex_create(sync_native_mutex_t *mutex)
 {
     pthread_mutexattr_t attributes;
@@ -92,6 +95,7 @@ crux_status_t sync_native_mutex_create(sync_native_mutex_t *mutex)
     (void)pthread_mutexattr_destroy(&attributes);
     return native_result(result);
 }
+
 crux_status_t sync_native_mutex_lock(sync_native_mutex_t *mutex,
                                      const sync_native_deadline_t *deadline)
 {
@@ -103,14 +107,17 @@ crux_status_t sync_native_mutex_lock(sync_native_mutex_t *mutex,
     } while (result == EINTR);
     return native_result(result);
 }
+
 crux_status_t sync_native_mutex_unlock(sync_native_mutex_t *mutex)
 {
     return native_result(pthread_mutex_unlock(mutex));
 }
+
 crux_status_t sync_native_mutex_destroy(sync_native_mutex_t *mutex)
 {
     return native_result(pthread_mutex_destroy(mutex));
 }
+
 /* Keep the public initial/maximum order at the native boundary. */
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 crux_status_t sync_native_semaphore_create(sync_native_semaphore_t *semaphore, uint32_t initial,
@@ -137,6 +144,7 @@ crux_status_t sync_native_semaphore_create(sync_native_semaphore_t *semaphore, u
     semaphore->maximum = maximum;
     return CRUX_OK;
 }
+
 crux_status_t sync_native_semaphore_take(sync_native_semaphore_t *semaphore,
                                          const sync_native_deadline_t *deadline)
 {
@@ -161,6 +169,7 @@ crux_status_t sync_native_semaphore_take(sync_native_semaphore_t *semaphore,
     (void)pthread_mutex_unlock(&semaphore->lock);
     return native_result(result);
 }
+
 crux_status_t sync_native_semaphore_give(sync_native_semaphore_t *semaphore)
 {
     int result = pthread_mutex_lock(&semaphore->lock);
@@ -175,6 +184,7 @@ crux_status_t sync_native_semaphore_give(sync_native_semaphore_t *semaphore)
     (void)pthread_mutex_unlock(&semaphore->lock);
     return native_result(result);
 }
+
 crux_status_t sync_native_semaphore_destroy(sync_native_semaphore_t *semaphore)
 {
     int result = pthread_cond_destroy(&semaphore->changed);
