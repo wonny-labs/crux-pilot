@@ -1,5 +1,7 @@
 #include <crux/status.h>
 #if PROFILE_TIME
+#include <crux/time_authority.h>
+#elif PROFILE_BUSY_WAIT
 #include <crux/time.h>
 #elif PROFILE_THREAD
 #include <crux/thread.h>
@@ -12,13 +14,17 @@
 #elif PROFILE_SYSTEM
 #include <crux/system.h>
 #elif PROFILE_MESSAGING
-#include <crux/monotonic.h>
 #include <crux/queue.h>
+#include <crux/thread.h>
+#include <crux/time.h>
 #endif
 static_assert(__cplusplus >= 201703L, "C++17 consumer");
-extern "C" int external_cpp_consumer(void) {
+extern "C" int external_cpp_consumer(void)
+{
 #if PROFILE_TIME
-    return crux_time_get(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
+    return crux_realtime_now(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
+#elif PROFILE_BUSY_WAIT
+    return crux_busy_wait(crux_duration_from_ns(-1)) != CRUX_ERR_INVALID_ARGUMENT;
 #elif PROFILE_THREAD
     return crux_thread_join(nullptr, 0) != CRUX_ERR_INVALID_ARGUMENT;
 #elif PROFILE_SYNC

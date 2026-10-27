@@ -1,8 +1,9 @@
 # Native-free consumer boundary
 
-Scope: Issue #24. This policy and its enforcement are proposed for acceptance
-through this PR. They preserve existing Time behavior and native provider ownership;
-they introduce no general HAL, runtime service registry or new capability contract.
+This policy was adopted under [Issue #24](https://github.com/wonny-labs/crux-pilot/issues/24)
+and merged in [PR #39](https://github.com/wonny-labs/crux-pilot/pull/39).
+It defines portable consumer and native provider boundaries without introducing
+a general HAL or runtime service registry.
 
 ## Dependency policy
 
@@ -53,7 +54,7 @@ The usage guard recognises a complete `--sysroot=<path>` compile option only
 when its normalised absolute path exactly equals the selected toolchain's
 `SYSROOT_DIR`. This is not an SDK-prefix or native-header exception. Different
 roots, child paths, compound flag strings, include paths and link options remain
-subject to the existing native checks. New Queue/Monotonic/Execution combined
+subject to the existing native checks. New Queue/Time/Thread/Sync combined
 consumer probes cover this distinction on Host, native_sim and EVKB builds.
 
 ### Scoped #28 integration
@@ -97,7 +98,7 @@ Historical controller source/output/evidence records remain intact.
 
 | Current location and native dependency | Target consumer boundary / owner | Outstanding decision |
 | --- | --- | --- |
-| `core/controller.c`, `core/health.c`, portable headers; existing `crux_time_*` use | Keep portable policy and UTC contract unchanged | No new UTC abstraction; provider remains native internally. |
+| `core/controller.c`, `core/health.c` and portable headers using current Crux Time APIs | Keep the portable consumer boundary and Time/UTC contracts | Time providers remain native internally where required. Do not duplicate UTC conversion. |
 | `zephyr/main.c`, `m3_main.c`: `k_thread_*`, stack declarations, priorities, `k_sleep`, spinlocks/atomics | Execution/synchronisation contracts under #25; native thread/stack ownership stays in provider/composition | Lifecycle, waits, resource/priority guarantees need contract review; do not mechanically expose `k_*` types. |
 | `m3_main.c`: `k_uptime_get`, absolute releases; host `clock_gettime`/sleep | Monotonic/timing/event services under #26, while schedule/health policy stays portable | Preserve monotonic versus UTC distinction, overrun policy and accepted freshness limits. |
 | `device_input.c`: DT GPIO binding, `gpio_*`, native device readiness | GPIO contract #31; logical resource binding #32 | Board pin/active-level and startup ownership stay native; no GPIO public API created here. |
@@ -171,10 +172,9 @@ Flash change, private planning edit or change to historical acceptance follows.
 The [supported Linux Host entry point](build.md#external-linux-application-using-crux-source)
 selects capabilities without modifying parent test policy. Portable source targets
 remain subject to `crux_assert_portable_consumer`. Final application executables declare
-the used public capabilities and may link the documented `crux::queue_linux` and
-`crux::monotonic_linux` composition targets. These aliases are not portable usage
-facades or exceptions to recursive `LINK_ONLY` checks. The guard rejects both
-composition targets and their backing implementations, including application aliases
+the used public capabilities and may link the documented `crux::queue_linux` composition target. This alias is not a portable usage
+facade or an exception to recursive `LINK_ONLY` checks. The guard rejects the
+composition target and its backing implementation, including application aliases
 and transitive wrappers. This does not inspect all provider-private requirements
 or restrict the supported public capability facades. Zephyr selection and the
 Sockets declaration/selected-sysroot exceptions remain unchanged.

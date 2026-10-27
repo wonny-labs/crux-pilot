@@ -44,7 +44,7 @@ class NativeInterfaceTest(unittest.TestCase):
             with self.subTest(path=path):
                 bad = self.check_source("#include <zephyr/kernel.h>\n", path)
                 self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
-                good = self.check_source("#include <crux/serial.h>\n#include <crux/monotonic.h>\n", path)
+                good = self.check_source("#include <crux/serial.h>\n#include <crux/time.h>\n", path)
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
     def test_messaging_consumers_reject_native_leakage(self):
@@ -53,7 +53,7 @@ class NativeInterfaceTest(unittest.TestCase):
             with self.subTest(path=path):
                 bad = self.check_source("#include <zephyr/kernel.h>\n", path)
                 self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
-                good = self.check_source("#include <crux/queue.h>\n#include <crux/monotonic.h>\n", path)
+                good = self.check_source("#include <crux/queue.h>\n#include <crux/time.h>\n", path)
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
     def test_rejects_native_header_families_and_include_spacing(self):
@@ -108,10 +108,10 @@ class NativeInterfaceTest(unittest.TestCase):
                     self.assertIn("native/private header", result.stdout)
 
     def test_public_headers_cannot_include_shared_implementation_headers(self):
-        source = '#include "../src/time_port.h"\n'
+        source = '#include "../src/realtime_port.h"\n'
         result = self.check_source(source)
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        result = self.check_source('#include "time_port.h"\n', "components/time/src/time.c")
+        result = self.check_source('#include "realtime_port.h"\n', "components/time/src/time.c")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_applies_to_all_designated_portable_roots(self):
@@ -166,8 +166,8 @@ class NativeInterfaceTest(unittest.TestCase):
                      "tests/thread_sync_consumer/zephyr/native_worker.c",
                      "components/queue/ports/linux/queue_port.c",
                      "components/queue/ports/zephyr/queue_port.c",
-                     "components/monotonic/ports/linux/monotonic_linux.c",
-                     "components/monotonic/ports/zephyr/monotonic_zephyr.c",
+                     "components/time/ports/linux/time_clock_linux.c",
+                     "components/time/ports/zephyr/time_clock_zephyr.c",
                      "samples/controller/zephyr/main.c",
                      "components/netif/ports/linux/backend.c",
                      "components/netif/ports/zephyr/backend.c",

@@ -28,8 +28,17 @@ fi
 tidy="${CLANG_TIDY:-clang-tidy-18}"
 "$tidy" -p "$build_dir" \
     "$repo/components/time/src/time.c" \
+    "$repo/components/time/src/time_types.c" \
+    "$repo/components/time/src/time_clock.c" \
+    "$repo/components/time/ports/linux/time_clock_linux.c" \
+    "$repo/components/time/ports/linux/time_lock_linux.c" \
+    "$repo/components/time/ports/linux/time_realtime_linux.c" \
     "$repo/components/time/src/time_calendar.c" \
     "$repo/components/time/src/time_port_memory.c" \
+    "$repo/components/interrupt/ports/linux/interrupt_linux.c" \
+    "$repo/components/time/src/busy_wait.c" \
+    "$repo/components/time/src/busy_wait_disabled.c" \
+    "$repo/components/time/ports/linux/busy_wait_linux.c" \
     "$repo/samples/time/src/time_command.c" \
     "$repo/samples/time/host/main.c" \
     "$repo/tests/time/time_test.cpp" \
@@ -37,6 +46,7 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/time/command_test.cpp" \
     "$repo/tests/execution/src/posix.c" \
     "$repo/components/thread/src/thread.c" \
+    "$repo/components/thread/src/thread_sleep.c" \
     "$repo/components/sync/src/sync.c" \
     "$repo/components/thread/ports/linux/thread_native.c" \
     "$repo/components/sync/ports/linux/sync_native.c" \
@@ -67,12 +77,11 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/samples/controller/configuration/scenario.c" \
     "$repo/components/file/src/file.c" \
     "$repo/components/file/ports/linux/file_linux.c" \
+    "$repo/components/file/ports/linux/file_lock.c" \
     "$repo/tests/file/fault_test.c" \
     "$repo/tests/file/host_test.c" \
     "$repo/components/queue/src/queue.c" \
-    "$repo/components/queue/ports/linux/queue_port.c" \
-    "$repo/components/monotonic/src/monotonic.c" \
-    "$repo/components/monotonic/ports/linux/monotonic_linux.c"
+    "$repo/components/queue/ports/linux/queue_port.c"
 
 "$tidy" -p "$build_dir" \
     "$repo/components/serial/src/serial.c" \

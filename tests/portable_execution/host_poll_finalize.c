@@ -26,23 +26,27 @@ crux_status_t __real_sync_native_semaphore_take(sync_native_semaphore_t *native,
 crux_status_t __real_thread_native_thread_join(thread_native_thread_t *native,
                                                const thread_native_deadline_t *deadline);
 
-static void pause_post_lock(void) {
+static void pause_post_lock(void)
+{
     if (atomic_exchange(&native_completed, false)) {
         (void)sem_post(&post_lock_attempted);
         (void)sem_wait(&release_post_lock);
     }
 }
-void __wrap_sync_native_metadata_lock(void) {
+void __wrap_sync_native_metadata_lock(void)
+{
     pause_post_lock();
     __real_sync_native_metadata_lock();
 }
-void __wrap_thread_native_metadata_lock(void) {
+void __wrap_thread_native_metadata_lock(void)
+{
     pause_post_lock();
     __real_thread_native_metadata_lock();
 }
 
 crux_status_t __wrap_sync_native_mutex_lock(sync_native_mutex_t *native,
-                                            const sync_native_deadline_t *deadline) {
+                                            const sync_native_deadline_t *deadline)
+{
     crux_status_t status = __real_sync_native_mutex_lock(native, deadline);
     if (deadline->poll) {
         atomic_store(&native_completed, true);
@@ -51,7 +55,8 @@ crux_status_t __wrap_sync_native_mutex_lock(sync_native_mutex_t *native,
 }
 
 crux_status_t __wrap_sync_native_semaphore_take(sync_native_semaphore_t *native,
-                                                const sync_native_deadline_t *deadline) {
+                                                const sync_native_deadline_t *deadline)
+{
     crux_status_t status = __real_sync_native_semaphore_take(native, deadline);
     if (deadline->poll) {
         atomic_store(&native_completed, true);
@@ -60,7 +65,8 @@ crux_status_t __wrap_sync_native_semaphore_take(sync_native_semaphore_t *native,
 }
 
 crux_status_t __wrap_thread_native_thread_join(thread_native_thread_t *native,
-                                               const thread_native_deadline_t *deadline) {
+                                               const thread_native_deadline_t *deadline)
+{
     crux_status_t status = __real_thread_native_thread_join(native, deadline);
     if (deadline->poll) {
         atomic_store(&native_completed, true);
@@ -69,7 +75,8 @@ crux_status_t __wrap_thread_native_thread_join(thread_native_thread_t *native,
 }
 // NOLINTEND(bugprone-reserved-identifier)
 
-static int wait_for(sem_t *event, long milliseconds) {
+static int wait_for(sem_t *event, long milliseconds)
+{
     struct timespec deadline;
     if (clock_gettime(CLOCK_REALTIME, &deadline) != 0) {
         return -1;
@@ -82,7 +89,8 @@ static int wait_for(sem_t *event, long milliseconds) {
 
 typedef enum { POLL_SEMAPHORE, POLL_MUTEX, POLL_JOIN } poll_kind_t;
 
-static void *poll_operation(void *argument) {
+static void *poll_operation(void *argument)
+{
     poll_kind_t kind = *(poll_kind_t *)argument;
     switch (kind) {
     case POLL_SEMAPHORE:
@@ -104,11 +112,13 @@ static void *poll_operation(void *argument) {
     return NULL;
 }
 
-static void finished_worker(void *unused) {
+static void finished_worker(void *unused)
+{
     (void)unused;
 }
 
-static int run_poll(poll_kind_t kind) {
+static int run_poll(poll_kind_t kind)
+{
     pthread_t caller;
     atomic_store(&native_completed, false);
     if (pthread_create(&caller, NULL, poll_operation, &kind) != 0) {
@@ -128,7 +138,8 @@ static int run_poll(poll_kind_t kind) {
     return 0;
 }
 
-int main(void) {
+int main(void)
+{
     if (sem_init(&post_lock_attempted, 0, 0) != 0 || sem_init(&release_post_lock, 0, 0) != 0 ||
         sem_init(&completed, 0, 0) != 0 || crux_semaphore_create(1, 1, &semaphore) != CRUX_OK ||
         crux_mutex_create(&mutex) != CRUX_OK) {

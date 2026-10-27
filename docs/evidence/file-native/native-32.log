@@ -1,0 +1,123 @@
+*** Booting Zephyr OS build v4.4.0 ***
+Running TESTSUITE file_littlefs
+===================================================================
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+START - test_backend_transfer_width_before_dispatch
+I: /files unmounted
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+ PASS - test_backend_transfer_width_before_dispatch in 0.000 seconds
+===================================================================
+START - test_full_and_reclaim
+I: /files unmounted
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+E: WEST_TOPDIR/modules/fs/littlefs/lfs.c:706: No more free space 0x6
+E: file write error (-28)
+I: /files unmounted
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+ PASS - test_full_and_reclaim in 0.000 seconds
+===================================================================
+START - test_interrupted_sync_checkpoint_reinitialization
+I: /files unmounted
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+E: file sync error (-5)
+I: /files unmounted
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+ PASS - test_interrupted_sync_checkpoint_reinitialization in 0.000 seconds
+===================================================================
+START - test_mount_failure_never_formats
+I: /files unmounted
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+I: /files unmounted
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+E: WEST_TOPDIR/modules/fs/littlefs/lfs.c:1386: Corrupted dir pair at {0x0, 0x1}
+E: fs mount error (-14)
+E: mount point not found!!
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+ PASS - test_mount_failure_never_formats in 0.000 seconds
+===================================================================
+START - test_native_partial_and_released_state
+I: /files unmounted
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+ PASS - test_native_partial_and_released_state in 0.000 seconds
+===================================================================
+START - test_persisted_crud_and_sync
+I: /files unmounted
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+I: /files unmounted
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+E: file open error (-2)
+ PASS - test_persisted_crud_and_sync in 0.000 seconds
+===================================================================
+START - test_seek_unflushed_eof
+I: /files unmounted
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+I: LittleFS version 2.11, disk version 2.1
+I: FS at flash-controller@0:0x100000 is 16 0x1000-byte blocks with 512 cycle
+I: partition sizes: rd 16 ; pr 16 ; ca 64 ; la 32
+ PASS - test_seek_unflushed_eof in 0.000 seconds
+===================================================================
+TESTSUITE file_littlefs succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [file_littlefs]: pass = 7, fail = 0, skip = 0, total = 7 duration = 0.000 seconds
+ - PASS - [file_littlefs.test_backend_transfer_width_before_dispatch] duration = 0.000 seconds
+ - PASS - [file_littlefs.test_full_and_reclaim] duration = 0.000 seconds
+ - PASS - [file_littlefs.test_interrupted_sync_checkpoint_reinitialization] duration = 0.000 seconds
+ - PASS - [file_littlefs.test_mount_failure_never_formats] duration = 0.000 seconds
+ - PASS - [file_littlefs.test_native_partial_and_released_state] duration = 0.000 seconds
+ - PASS - [file_littlefs.test_persisted_crud_and_sync] duration = 0.000 seconds
+ - PASS - [file_littlefs.test_seek_unflushed_eof] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: 9edc9983f2bb5bfa9b285c96600b1c6b
+PROJECT EXECUTION SUCCESSFUL

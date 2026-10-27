@@ -2,6 +2,18 @@
 
 Crux uses GoogleTest/CTest for selected Linux Host component and controller tests, Twister with Ztest or console harnesses for Zephyr tests, and Python runners for build and scenario validation. The existing physical Time/RTC tests use standalone pytest on macOS; other physical device, network and controller tests use dedicated Python command-line runners. Twister's pytest harness is not currently configured.
 
+Typed monotonic and Thread sleep checks include controlled common/native failure
+cases, C17/C++17 header/type checks, and RTC-disabled Zephyr Ztests in
+`tests/thread/zephyr`. `scripts/test-portable-execution.sh` includes those Ztests
+and their EVKB cross-build. Thread-only means without Sync; its explicit Time
+clock dependency is included. These checks do not operate physical hardware.
+
+Time Busy-wait tests include common/native error handling, counter conversion and
+unsupported-profile shims, and actual Linux integration under `tests/time/busy_wait/`.
+`scripts/test-time-busy-wait.sh` runs normal-ISR and IRQ-delivery Ztests on native_sim and
+cross-builds EVKB. Shims and compilation do not qualify a physical ISR or timing.
+See the [Time Busy-wait contract](../docs/time-busy-wait.md).
+
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
 | Portable components and controller logic | CTest with GoogleTest suites and standalone C/C++ tests | Linux Host |
@@ -26,9 +38,10 @@ At the repository root, `BUILD_TESTING` sets the initial default for `CRUX_BUILD
 
 ## Zephyr: `time/zephyr/`
 
-Twister builds and runs the C17 Ztest application on two `native_sim/native/64`
-configurations, one with an RTC alias and one without it. Tests cover Zephyr error
-mapping, RTC backend behaviour, the shared command handler and the registered
+Twister builds and runs the C17 Ztest application on three `native_sim/native/64`
+configurations: RTC emulator, absent RTC and a controlled fake RTC driver. Tests
+cover system realtime/authority/snapshot consistency and ISR rejection, explicit
+RTC storage and failure isolation, the shared command handler and the registered
 Zephyr Shell adapter using the dummy Shell backend. The trailing-argument case verifies that Shell passes syntax errors to the shared Crux
 handler for the documented `ERR INVALID_ARGUMENT` result.
 
@@ -44,8 +57,8 @@ scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
 
 This runs the `native_sim` Ztests, builds the Time Shell sample for simulation and
 cross-builds its EVKB firmware image. It does not run Ztests on the EVKB, program
-or reset the physical board. Physical RTC behaviour is verified separately by
-the macOS pytest suite below.
+or reset the physical board. The macOS physical suite below records the earlier RTC-backed contract; it has
+not qualified the redesigned system realtime/optional-RTC implementation.
 
 ## Build tools: `build/`
 
@@ -103,11 +116,14 @@ setup; other boards need their reset/transport procedure reviewed explicitly.
 on Linux. `tests/controller` verifies sample-owned Time observations/recovery and monotonic
 phase logic. The maintained boundary-negative and host-runner failure checks are under
 `tests/build`. Host CTest includes the finite controller scenario, including sanitizer exit
-status; `scripts/test-controller.sh` validates normal/missing-RTC native_sim compositions
+status; `scripts/test-controller.sh` validates normal/RTC-absent native_sim system-realtime compositions
 and cross-builds EVKB without hardware access. See the [controller conditions and limits](../samples/controller/README.md).
 
-Run `scripts/test-m3.sh` in the configured Linux/west environment for device,
-networking and integrated-controller Zephyr scenarios and EVKB cross-builds. Twister executes Ztest, console-harness and other `native_sim` application scenarios.
+Run `scripts/test-controller-integration.sh` in the configured Linux/west
+environment for device, networking and integrated-controller Zephyr scenarios
+and EVKB cross-builds. Twister executes Ztest, console-harness and other
+`native_sim` application scenarios. The existing `scripts/test-m3.sh`
+remains a compatibility entry point for historical M3 instructions.
 Additional Python validators inspect the captured simulation output. Neither this
 script nor CI programs or resets the physical EVKB.
 
@@ -144,12 +160,12 @@ python3 -m unittest discover -s tests/build -p test_external_application.py -v
 
 The test copies `tests/external_application/` into fresh temporary directories
 outside the Crux source tree, then configures, builds and runs independent C17/C++17
-Base/Time, Thread-only, Sync-only, Serial-only, Logging-only, Queue/Monotonic and Base-only parent projects.
+Base/Time, Thread-only, Sync-only, Serial-only, Logging-only, Queue/Time/Thread and Base-only parent projects.
 Parent C99/C++20 targets and CTest tests before/after inclusion remain functional;
 a separate C-only parent retains its enabled-language and testing policy ON/OFF.
 Actual compile commands and final ELF symbols check component selection and private
 requirements. Focused negatives cover missing/unsupported/multiple Time selection,
-incompatible Time/Serial/Logging providers and missing Queue/Monotonic Linux composition targets. Existing
+incompatible Time/Serial/Logging providers and missing the Queue Linux composition target. Existing
 source/build guards retain the detailed native-dependency negatives. A separately
 copied Serial consumer runs all five PTY/policy scenarios beneath a parent project
 with its own tests enabled, preserving both parent tests. The independent Logging
@@ -210,6 +226,12 @@ These checks do not operate Flash or qualify an adopted persistence backend.
 
 ## Portable File software slice
 
+`scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS File suite on
+32/64-bit `native_sim`, the Settings/NVS Configuration suite on 64-bit `native_sim`,
+and the Configuration source-staging regressions. It requires the pinned west
+workspace with LittleFS and a Host compiler with 32-bit development libraries.
+The Zephyr CI workflow runs this software-only gate; no physical storage is used.
+
 The [File contract](../docs/file-contract.md) and
 [qualification/handoff record](../docs/file-validation.md) cover the Linux Host
 provider and private deterministic failure tests. Normal Host CTest includes
@@ -228,30 +250,20 @@ backend is enabled by these checks.
 
 ## Portable queue and monotonic timing
 
-Queue and Monotonic native implementations live in their component-owned
-`components/{queue,monotonic}/ports/linux/` and `ports/zephyr/` directories.
-Their public usage targets remain `crux::queue` and `crux::monotonic`. Native
-Linux composition uses `crux::queue_linux` and `crux::monotonic_linux`; the
-corresponding implementation targets are `crux_queue_linux` and `crux_monotonic_linux`.
-Zephyr component build definitions live beside their ports and
-are selected by the top-level module's existing `CONFIG_CRUX_*` conditions.
-Tests remain under `tests/queue/`, `tests/monotonic/` and
-`tests/messaging_consumer/`; private port includes belong only to native tests.
+Queue owns its native ports under `components/queue/ports/<os>/`. Portable
+consumers use `crux::queue`; the final Linux executable adds `crux::queue_linux`
+(`crux_queue_linux` implementation). Direct and transitive native links are
+rejected for portable consumers. The old Monotonic capability/targets/header
+were removed by the typed Time redesign; absence is checked explicitly.
 
-`Queue.*` and `Monotonic.*` run with Host Debug/sanitizer checks. Queue native
-contract models deliberately reproduce pinned Zephyr timeout semantics; actual
-`native_sim` ztests additionally check ownership, admitted cleanup, wakeup,
-MPMC integrity, tick rounding and ISR rejection. Model results do not substitute
-for native-kernel execution.
-
-Run `scripts/test-messaging.sh --host-only` for independently authored C17/C++17
-runtime and portable controller scenarios with public-usage graph guards. The
-full script adds three native_sim configurations and an EVKB cross-build.
-`scripts/measure-messaging.sh` compares same-source no-op images with the full
-callable capability surface deliberately retained in the enabled profile. These
-commands never access hardware. See [the contract](../docs/messaging-contract.md)
-and [validation](../docs/messaging-validation.md) for ownership, cooperative-stop
-semantics, resource profile and qualification limits.
+Time owns typed monotonic observation/deadlines and Thread owns sleep. Their
+common/Linux error, rounding, overflow and early-wake tests run with Host checks.
+The former real Linux C++ wait scenario is now `Thread.TypedLinuxIntegration`.
+Native 128-Hz exact/fractional deadline and ISR checks are retained in
+`tests/thread/zephyr_fractional`; `scripts/test-messaging.sh` runs these with Queue
+and independent messaging consumers. RTC-disabled Time/Thread tests also remain
+in `tests/thread/zephyr`. Historical measurements and old test names are retained
+in [the original evidence](../docs/messaging-validation.md), not new qualification.
 
 ## Portable Serial
 
@@ -261,9 +273,9 @@ runs focused UART-emulator/native ownership suites and cross-builds the EVKB
 fixture. It does not access hardware. See [Serial qualification](../docs/serial-validation.md)
 for the contract, actual evidence, unresolved observations and separate physical
 proposal. Root Host/ASan checks include the common and native PTY Serial cases.
-The independent Host consumer selects `CRUX_BUILD_SERIAL` and `CRUX_BUILD_MONOTONIC`
+The independent Host consumer selects `CRUX_BUILD_SERIAL` and `CRUX_BUILD_TIME` with an explicit Time provider
 through the root entry point, keeps parent `BUILD_TESTING` intact and composes
-`crux::monotonic_linux` only in the native fixture. Static Zephyr composition and
+the public `crux::time` clock contract. Static Zephyr composition and
 UART ownership checks remain part of the full Serial script.
 
 ## Portable Logging

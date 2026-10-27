@@ -11,7 +11,8 @@ static crux_semaphore_t resume_operation;
 static int hook_failure;
 static sync_native_identity_t test_owner;
 
-static void pause_admitted(int kind) {
+static void pause_admitted(int kind)
+{
     if (atomic_load(&pause_kind) == 0) {
         return;
     }
@@ -34,17 +35,20 @@ crux_status_t __real_sync_native_mutex_lock(sync_native_mutex_t *, const sync_na
 crux_status_t __real_sync_native_semaphore_take(sync_native_semaphore_t *,
                                                 const sync_native_deadline_t *);
 crux_status_t __wrap_thread_native_thread_join(thread_native_thread_t *object,
-                                               const thread_native_deadline_t *deadline) {
+                                               const thread_native_deadline_t *deadline)
+{
     pause_admitted(1);
     return __real_thread_native_thread_join(object, deadline);
 }
 crux_status_t __wrap_sync_native_mutex_lock(sync_native_mutex_t *object,
-                                            const sync_native_deadline_t *deadline) {
+                                            const sync_native_deadline_t *deadline)
+{
     pause_admitted(2);
     return __real_sync_native_mutex_lock(object, deadline);
 }
 crux_status_t __wrap_sync_native_semaphore_take(sync_native_semaphore_t *object,
-                                                const sync_native_deadline_t *deadline) {
+                                                const sync_native_deadline_t *deadline)
+{
     pause_admitted(3);
     return __real_sync_native_semaphore_take(object, deadline);
 }
@@ -65,22 +69,26 @@ typedef struct {
     crux_semaphore_t semaphore;
     crux_status_t result;
 } context_t;
-static void join_worker(void *argument) {
+static void join_worker(void *argument)
+{
     context_t *context = argument;
     context->result = crux_thread_join(&context->thread, 1500);
 }
-static void take_worker(void *argument) {
+static void take_worker(void *argument)
+{
     context_t *context = argument;
     context->result = crux_semaphore_take(context->semaphore, 1500);
 }
-static void lock_worker(void *argument) {
+static void lock_worker(void *argument)
+{
     context_t *context = argument;
     context->result = crux_mutex_lock(context->mutex, 1500);
     if (context->result == CRUX_OK) {
         context->result = crux_mutex_unlock(context->mutex);
     }
 }
-int execution_admission_cases(void) {
+int execution_admission_cases(void)
+{
     test_owner = sync_native_current();
     REQUIRE(crux_semaphore_create(0, 1, &admitted) == CRUX_OK);
     REQUIRE(crux_semaphore_create(0, 1, &resume_operation) == CRUX_OK);

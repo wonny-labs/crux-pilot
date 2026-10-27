@@ -1,3 +1,4 @@
+#include "interrupt.h"
 #include "thread_internal.h"
 
 #include <limits.h>
@@ -12,7 +13,8 @@ typedef struct {
 
 static thread_slot_t threads[CRUX_THREAD_COUNT];
 
-static thread_slot_t *find_thread(crux_thread_t handle) {
+static thread_slot_t *find_thread(crux_thread_t handle)
+{
     if (handle.slot == 0 || handle.slot > CRUX_THREAD_COUNT) {
         return NULL;
     }
@@ -21,11 +23,12 @@ static thread_slot_t *find_thread(crux_thread_t handle) {
 }
 
 crux_status_t crux_thread_create(const crux_thread_options_t *options, crux_thread_entry_t entry,
-                                 void *argument, crux_thread_t *out) {
+                                 void *argument, crux_thread_t *out)
+{
     if (out != NULL) {
         *out = (crux_thread_t){0};
     }
-    if (!thread_native_context_allowed()) {
+    if (crux_is_in_isr()) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
     if (out == NULL) {
@@ -59,8 +62,9 @@ crux_status_t crux_thread_create(const crux_thread_options_t *options, crux_thre
     return result;
 }
 
-crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms) {
-    if (!thread_native_context_allowed()) {
+crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms)
+{
+    if (crux_is_in_isr()) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
     if (thread == NULL) {

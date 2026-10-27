@@ -5,36 +5,44 @@
 #include <stdio.h>
 extern struct k_mutex crux_queue_metadata;
 static int64_t ticks;
-bool k_is_in_isr(void) {
+bool k_is_in_isr(void)
+{
     return false;
 }
-int64_t k_uptime_ticks(void) {
+int64_t k_uptime_ticks(void)
+{
     return ticks;
 }
-int k_mutex_lock(struct k_mutex *m, k_timeout_t t) {
+int k_mutex_lock(struct k_mutex *m, k_timeout_t t)
+{
     (void)t;
     m->owned = true;
     return 0;
 }
-int k_mutex_unlock(struct k_mutex *m) {
+int k_mutex_unlock(struct k_mutex *m)
+{
     m->owned = false;
     return 0;
 }
-int k_condvar_init(struct k_condvar *c) {
+int k_condvar_init(struct k_condvar *c)
+{
     (void)c;
     return 0;
 }
-int k_condvar_wait(struct k_condvar *c, struct k_mutex *m, k_timeout_t t) {
+int k_condvar_wait(struct k_condvar *c, struct k_mutex *m, k_timeout_t t)
+{
     (void)c;
     (void)t;
     m->owned = false;
     return -EAGAIN;
 }
-int k_condvar_broadcast(struct k_condvar *c) {
+int k_condvar_broadcast(struct k_condvar *c)
+{
     (void)c;
     return 0;
 }
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     (void)argv;
     queue_deadline_t deadline;
     if (argc == 1) {

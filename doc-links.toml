@@ -1,0 +1,42 @@
+# Selection concerns Markdown input files, not the links they may point to.
+# A maintained document can link to an excluded historical record: its target is checked.
+schema = 1
+
+[tool]
+version = "0.24.2"
+# SHA-256 from the official lycheeverse/lychee v0.24.2 release assets.
+linux_x86_64_sha256 = "73657a111819a30c47c08352896796f23d64e4eb2b3ed39b6d32149241566fc5"
+macos_arm64_sha256 = "c9d3740ea2d891854d37116c9fba840f37b6e7c89d330e7db84ac333631c4977"
+
+[selection]
+# Tracked Markdown is included by default. Exceptions use exact paths or directory
+# prefixes ending in '/'. Each exception needs a reason.
+include = []
+
+[[selection.exclude]]
+path = "docs/history/"
+reason = "Superseded proposals and snapshots."
+
+[[selection.exclude]]
+path = "docs/plans/"
+reason = "Completed or historical implementation plans."
+
+[[selection.exclude]]
+path = "docs/superpowers/plans/"
+reason = "Execution plans and historical development records."
+
+[[selection.exclude]]
+path = "docs/evidence/"
+reason = "Frozen validation and review records, not maintained guidance."
+
+[[selection.exclude]]
+path = "docs/baseline.md"
+reason = "Frozen original Time Pilot build and physical evidence."
+
+[[selection.exclude]]
+path = "docs/implementation-status.md"
+reason = "Historical Time Pilot acceptance and execution status."
+
+[[selection.exclude]]
+path = "docs/m3-validation.md"
+reason = "Closed M3 execution and hardware-validation record."

@@ -4,17 +4,19 @@
 #include <limits.h>
 #include <stddef.h>
 
-controller_reading_t controller_observe(uint32_t cycle) {
+controller_reading_t controller_observe(uint32_t cycle)
+{
     controller_reading_t reading = {.cycle = cycle, .utc_seconds = 0};
-    crux_time_instant_t value;
-    reading.status = crux_time_get(&value);
+    crux_realtime_t value;
+    reading.status = crux_realtime_now(&value);
     if (reading.status == CRUX_OK) {
-        reading.utc_seconds = value;
+        reading.utc_seconds = value.seconds;
     }
     return reading;
 }
 
-crux_status_t controller_schedule_advance(controller_schedule_t *schedule, int64_t now_ms) {
+crux_status_t controller_schedule_advance(controller_schedule_t *schedule, int64_t now_ms)
+{
     if (schedule == NULL || schedule->deadline_ms < 0 || now_ms < schedule->deadline_ms ||
         schedule->period_ms <= 0) {
         return CRUX_ERR_INVALID_ARGUMENT;

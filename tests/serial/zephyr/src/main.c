@@ -9,13 +9,15 @@
 static const struct device *dev = DEVICE_DT_GET(DT_ALIAS(crux_serial0));
 static const struct device *override_device;
 const struct device *__real_serial_zephyr_device(unsigned port);
-const struct device *__wrap_serial_zephyr_device(unsigned port) {
+const struct device *__wrap_serial_zephyr_device(unsigned port)
+{
     return override_device ? override_device : __real_serial_zephyr_device(port);
 }
 static uart_irq_callback_user_data_t cached;
 static void *cached_context;
 static void capture_callback(const struct device *device, uart_irq_callback_user_data_t cb,
-                             void *context) {
+                             void *context)
+{
     if (cb) {
         cached = cb;
         cached_context = context;
@@ -23,23 +25,27 @@ static void capture_callback(const struct device *device, uart_irq_callback_user
     const struct uart_driver_api *api = dev->api;
     api->irq_callback_set(device, cb, context);
 }
-static void late_callback(const void *unused) {
+static void late_callback(const void *unused)
+{
     ARG_UNUSED(unused);
     cached(dev, cached_context);
 }
 static const crux_serial_config_t config = {115200, 8, 1, CRUX_SERIAL_PARITY_NONE};
-static crux_serial_t open_port(void) {
+static crux_serial_t open_port(void)
+{
     crux_serial_t handle;
     zassert_ok(crux_serial_open(0, &config, &handle));
     return handle;
 }
-static void before(void *unused) {
+static void before(void *unused)
+{
     ARG_UNUSED(unused);
     uart_emul_flush_rx_data(dev);
     uart_emul_flush_tx_data(dev);
     uart_emul_set_errors(dev, 0);
 }
-ZTEST(serial, test_binary_configuration) {
+ZTEST(serial, test_binary_configuration)
+{
     crux_serial_t handle = open_port();
     struct uart_config actual;
     zassert_ok(uart_config_get(dev, &actual));
@@ -67,7 +73,8 @@ ZTEST(serial, test_binary_configuration) {
     zassert_equal(actual.parity, UART_CFG_PARITY_EVEN);
     zassert_ok(crux_serial_close(&handle));
 }
-ZTEST(serial, test_poll_timeout_backpressure) {
+ZTEST(serial, test_poll_timeout_backpressure)
+{
     crux_serial_t handle = open_port();
     unsigned char data[512] = {0x39};
     size_t count;
@@ -88,7 +95,8 @@ ZTEST(serial, test_poll_timeout_backpressure) {
     zassert_equal(count, 0);
     zassert_ok(crux_serial_close(&handle));
 }
-ZTEST(serial, test_observed_error_and_overflow) {
+ZTEST(serial, test_observed_error_and_overflow)
+{
     crux_serial_t handle = open_port();
     unsigned char data[512] = {0x51};
     size_t count;
@@ -103,7 +111,8 @@ ZTEST(serial, test_observed_error_and_overflow) {
     zassert_equal(count, 0);
     zassert_ok(crux_serial_close(&handle));
 }
-ZTEST(serial, test_mapping_and_late_callback) {
+ZTEST(serial, test_mapping_and_late_callback)
+{
     struct device proxy = *dev;
     struct device_state state = {0};
     struct uart_driver_api api = *(const struct uart_driver_api *)dev->api;

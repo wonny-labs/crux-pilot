@@ -1,11 +1,13 @@
 #include "queue_port.h"
+#include "interrupt.h"
 #include <errno.h>
 #include <limits.h>
 #include <pthread.h>
 static pthread_mutex_t metadata = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t changed[4];
 static bool prepared[4];
-static crux_status_t status(int error) {
+static crux_status_t status(int error)
+{
     if (error == 0)
         return CRUX_OK;
     if (error == EBUSY)
@@ -14,10 +16,12 @@ static crux_status_t status(int error) {
         return CRUX_ERR_TIMEOUT;
     return CRUX_ERR_IO;
 }
-bool queue_port_context(void) {
-    return true;
+bool queue_port_context(void)
+{
+    return !crux_is_in_isr();
 }
-crux_status_t queue_port_deadline(uint32_t ms, queue_deadline_t *out) {
+crux_status_t queue_port_deadline(uint32_t ms, queue_deadline_t *out)
+{
     out->poll = ms == 0;
     if (out->poll)
         return CRUX_OK;
@@ -37,7 +41,8 @@ crux_status_t queue_port_deadline(uint32_t ms, queue_deadline_t *out) {
     }
     return CRUX_OK;
 }
-crux_status_t queue_port_lock(const queue_deadline_t *deadline) {
+crux_status_t queue_port_lock(const queue_deadline_t *deadline)
+{
     int result;
     do {
         if (deadline == NULL)
@@ -49,10 +54,12 @@ crux_status_t queue_port_lock(const queue_deadline_t *deadline) {
     } while (result == EINTR);
     return status(result);
 }
-void queue_port_unlock(void) {
+void queue_port_unlock(void)
+{
     (void)pthread_mutex_unlock(&metadata);
 }
-crux_status_t queue_port_prepare(size_t index) {
+crux_status_t queue_port_prepare(size_t index)
+{
     if (prepared[index])
         return CRUX_OK;
     pthread_condattr_t attr;
@@ -67,13 +74,15 @@ crux_status_t queue_port_prepare(size_t index) {
         prepared[index] = true;
     return status(result);
 }
-crux_status_t queue_port_wait(size_t index, const queue_deadline_t *deadline) {
+crux_status_t queue_port_wait(size_t index, const queue_deadline_t *deadline)
+{
     int result;
     do {
         result = pthread_cond_timedwait(&changed[index], &metadata, &deadline->absolute);
     } while (result == EINTR);
     return status(result);
 }
-void queue_port_notify(size_t index) {
+void queue_port_notify(size_t index)
+{
     (void)pthread_cond_broadcast(&changed[index]);
 }

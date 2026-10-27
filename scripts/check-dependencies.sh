@@ -27,7 +27,7 @@ fi
 
 rg -n 'INTERFACE_CRUX_TIME_BACKEND memory' "$repo/components/time/CMakeLists.txt" >/dev/null
 rg -n 'COMPATIBLE_INTERFACE_STRING CRUX_TIME_BACKEND' "$repo/components/time/CMakeLists.txt" >/dev/null
-rg -n 'INTERFACE_CRUX_TIME_BACKEND zephyr_rtc' "$repo/components/time/ports/zephyr/CMakeLists.txt" >/dev/null
+rg -n 'INTERFACE_CRUX_TIME_BACKEND zephyr_system' "$repo/components/time/ports/zephyr/CMakeLists.txt" >/dev/null
 rg -n 'COMPATIBLE_INTERFACE_STRING CRUX_TIME_BACKEND' "$repo/components/time/ports/zephyr/CMakeLists.txt" >/dev/null
 if rg -U -n 'target_link_libraries\(crux_base[^)]*zephyr_interface' "$repo/zephyr/CMakeLists.txt"; then
     printf 'The base usage target must not acquire Zephyr requirements.\n' >&2

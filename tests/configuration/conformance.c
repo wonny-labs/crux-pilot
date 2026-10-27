@@ -13,20 +13,24 @@ static unsigned checks, failures;
         }                                                                                          \
     } while (0)
 
-static crux_config_value_t u32(uint32_t value) {
+static crux_config_value_t u32(uint32_t value)
+{
     crux_config_value_t result = {.type = CRUX_CONFIG_U32, .data.u32 = value};
     return result;
 }
-static bool range(const crux_config_value_t *value, void *context) {
+static bool range(const crux_config_value_t *value, void *context)
+{
     uint32_t maximum = *(uint32_t *)context;
     return value->type == CRUX_CONFIG_U32 && value->data.u32 >= 1 && value->data.u32 <= maximum;
 }
-static uint32_t current(const crux_config_param_t *parameter) {
+static uint32_t current(const crux_config_param_t *parameter)
+{
     crux_config_value_t value = {.type = CRUX_CONFIG_BOOL};
     CHECK(crux_config_read(parameter, &value) == CRUX_CONFIG_OK);
     return value.data.u32;
 }
-static void scalar_cases(void) {
+static void scalar_cases(void)
+{
     config_fault_reset();
     uint32_t maximum = 100;
     crux_config_spec_t spec = {"report_every_cycles", 0x1234, u32(5), range, &maximum};
@@ -87,7 +91,8 @@ static void scalar_cases(void) {
     CHECK(fresh.spec == NULL);
 }
 
-static void persistence_cases(void) {
+static void persistence_cases(void)
+{
     config_fault_reset();
     uint32_t maximum = 100;
     crux_config_spec_t spec = {"report_every_cycles", 0x1234, u32(5), range, &maximum};
@@ -181,7 +186,8 @@ static void persistence_cases(void) {
     CHECK(current(&parameter) == 5);
 }
 
-static void bool_and_length_cases(void) {
+static void bool_and_length_cases(void)
+{
     config_fault_reset();
     crux_config_spec_t spec = {
         "diagnostics_enabled", 7, {.type = CRUX_CONFIG_BOOL, .data.boolean = false}, NULL, NULL};
@@ -208,7 +214,8 @@ static void bool_and_length_cases(void) {
 }
 
 /* Recovery can observe independently valid records from different save attempts. */
-static void mixed_key_cases(void) {
+static void mixed_key_cases(void)
+{
     config_fault_reset();
     crux_config_spec_t report_spec = {"report", 1, u32(5), NULL, NULL};
     crux_config_spec_t diagnostics_spec = {
@@ -238,7 +245,8 @@ static void mixed_key_cases(void) {
     /* No batch consistency is inferred; application decides whether to activate this pair. */
 }
 
-int crux_configuration_conformance(void) {
+int crux_configuration_conformance(void)
+{
     checks = failures = 0;
     scalar_cases();
     persistence_cases();

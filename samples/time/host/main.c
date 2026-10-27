@@ -7,7 +7,8 @@
 
 #define INPUT_CAPACITY 256
 
-static void report_result(crux_time_command_result_t result) {
+static void report_result(crux_time_command_result_t result)
+{
     if (result.kind == CRUX_TIME_COMMAND_HELP && result.status == CRUX_OK) {
         fputs(crux_time_command_help_text(), stdout);
         fputs("Host simulation uses a controlled clock; it does not follow wall time "
@@ -20,11 +21,12 @@ static void report_result(crux_time_command_result_t result) {
     }
 }
 
-int main(void) {
+int main(void)
+{
     char line[INPUT_CAPACITY];
 
     puts("Crux Time host simulation (controlled clock; no wall-clock progression).");
-    if (crux_time_init() != CRUX_OK) {
+    if (crux_realtime_init() != CRUX_OK) {
         fputs("ERR IO_ERROR\n", stderr);
         return 1;
     }

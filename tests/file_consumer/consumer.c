@@ -1,7 +1,8 @@
 #include "consumer.h"
 #include <crux/file.h>
 #include <string.h>
-int file_consumer(void) {
+int file_consumer(void)
+{
     crux_file_t *f = NULL;
     size_t n = 0;
     char data[4] = {0};

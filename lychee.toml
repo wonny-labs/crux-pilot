@@ -1,0 +1,15 @@
+# Local links and fragments only. External URLs are not verified by this check.
+offline = true
+include_fragments = "anchor-only"
+include_mail = false
+include_verbatim = false
+
+# Check the current checkout, not cached responses.
+cache = false
+skip_missing = false
+hidden = true
+no_ignore = true
+
+no_progress = true
+mode = "plain"
+format = "detailed"

@@ -36,7 +36,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential ca-certificates device-tree-compiler file gperf git \
+            build-essential gcc-multilib ca-certificates device-tree-compiler file gperf git \
             libmagic1 libsdl2-dev pkg-config python3-dev python3-tk wget xz-utils
 
       - name: Install pinned Python tools
@@ -49,6 +49,10 @@ jobs:
       - name: Fetch pinned Zephyr workspace and install SDK
         working-directory: crux-pilot
         run: scripts/bootstrap-zephyr.sh --install-sdk
+
+      - name: Validate actual storage providers on simulated Flash
+        working-directory: crux-pilot
+        run: scripts/test-storage-simulators.sh
 
       # Uses the already-fetched pinned sources and host C compiler; no extra job/SDK build.
       - name: Check isolated Flash PoC fault paths
@@ -69,6 +73,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-portable-execution.sh
 
+      - name: Validate Time CPU Busy-wait without hardware
+        working-directory: crux-pilot
+        run: scripts/test-time-busy-wait.sh
+
       - name: Validate portable messaging without hardware
         working-directory: crux-pilot
         run: |
@@ -79,9 +87,9 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-serial.sh
 
-      - name: Verify M3 device, network and controller paths without hardware
+      - name: Validate controller integration (software-only)
         working-directory: crux-pilot
-        run: scripts/test-m3.sh
+        run: scripts/test-controller-integration.sh
 
       - name: Qualify portable networking without hardware
         working-directory: crux-pilot
@@ -105,25 +113,43 @@ jobs:
         working-directory: crux-pilot
         run: ./scripts/test-system.sh
 
+      - name: Validate integrated M5 software smoke without hardware
+        working-directory: crux-pilot
+        run: ./scripts/test-m5-integrated-smoke.sh
+
+      # Avoid repeated glob traversals through large Twister build trees.
+      - name: Collect Twister evidence paths
+        if: always()
+        id: twister_evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo 'paths<<TWISTER_EVIDENCE'
+            for directory in crux-pilot/build/zephyr/twister-*; do
+              [ -d "$directory" ] || continue
+              find "$directory" -type f \( \
+                -name 'production_*.h' -o \
+                -name '*.log' -o -name '*.err' -o \
+                -name 'CMakeConfigureLog.yaml' -o \
+                -name 'CMakeCache.txt' -o -name 'compile_commands.json' -o \
+                -path '*/zephyr/.config' -o \
+                -path '*/zephyr/zephyr.map' -o \
+                -path '*/zephyr/zephyr.dts' \
+              \) -print
+              find "$directory" -maxdepth 1 -type f \( -name '*.json' -o -name '*.xml' \) -print
+            done | LC_ALL=C sort -u
+            echo 'TWISTER_EVIDENCE'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Upload Zephyr reports and raw logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: zephyr-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            # Twister results and raw diagnostics, without complete build trees.
-            crux-pilot/build/zephyr/twister-*/*.json
-            crux-pilot/build/zephyr/twister-*/*.xml
-            crux-pilot/build/zephyr/twister-*/**/production_*.h
-            # Include early configure/build failures as well as runtime failures.
-            crux-pilot/build/zephyr/twister-*/**/*.log
-            crux-pilot/build/zephyr/twister-*/**/*.err
-            crux-pilot/build/zephyr/twister-*/**/CMakeConfigureLog.yaml
-            crux-pilot/build/zephyr/twister-*/**/CMakeCache.txt
-            crux-pilot/build/zephyr/twister-*/**/compile_commands.json
-            crux-pilot/build/zephyr/twister-*/**/zephyr/.config
-            crux-pilot/build/zephyr/twister-*/**/zephyr/zephyr.map
-            crux-pilot/build/zephyr/twister-*/**/zephyr/zephyr.dts
+            # The collected paths retain the original build/zephyr/twister-* layout.
+            ${{ steps.twister_evidence.outputs.paths }}
             # Direct cross-build outputs: do not scan every EVKB generated header tree.
             crux-pilot/build/zephyr/*/*.log
             crux-pilot/build/zephyr/*/*.err
@@ -139,6 +165,16 @@ jobs:
             crux-pilot/build/zephyr/system-evkb/zephyr/.config
             crux-pilot/build/zephyr/system-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/system-evkb/zephyr/zephyr.map
+            crux-pilot/build/evidence/m5-integrated-smoke/
+            crux-pilot/build/zephyr/m5-integrated-evkb/compile_commands.json
+            crux-pilot/build/zephyr/m5-integrated-evkb/provenance.json
+            crux-pilot/build/zephyr/m5-integrated-evkb/rom.json
+            crux-pilot/build/zephyr/m5-integrated-evkb/ram.json
+            crux-pilot/build/zephyr/m5-integrated-evkb/zephyr/.config
+            crux-pilot/build/zephyr/m5-integrated-evkb/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/m5-integrated-evkb/zephyr/zephyr.map
+            crux-pilot/build/zephyr/m5-integrated-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/m5-integrated-evkb/zephyr/zephyr.bin
             crux-pilot/build/system-composition/*/build.log
             crux-pilot/build/serial-consumer/ctest-junit.xml
             crux-pilot/build/zephyr/serial-evkb/zephyr/zephyr.map
@@ -259,6 +295,8 @@ jobs:
             crux-pilot/build/zephyr/controller-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/controller-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/controller-evkb/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/time-busy-wait-evkb/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/time-busy-wait-evkb/zephyr/zephyr.bin
             crux-pilot/build/zephyr/execution-native-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/execution-native-evkb/zephyr/.config
             crux-pilot/build/zephyr/execution-native-evkb/zephyr/zephyr.elf

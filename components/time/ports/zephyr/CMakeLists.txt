@@ -20,7 +20,9 @@ zephyr_library_compile_definitions_ifdef(CONFIG_CRUX_TIME_TESTING CRUX_TIME_TEST
 zephyr_library_named(crux_time_zephyr)
 zephyr_library_sources(
     "${CRUX_TIME_COMPONENT_DIR}/ports/zephyr/time_port_zephyr.c"
+    "${CRUX_TIME_COMPONENT_DIR}/ports/zephyr/time_clock_zephyr.c"
 )
+zephyr_library_sources_ifdef(CONFIG_CRUX_TIME_RTC time_rtc_zephyr.c)
 zephyr_library_include_directories(
     "${CRUX_TIME_COMPONENT_DIR}/../base/include"
     "${CRUX_TIME_COMPONENT_DIR}/include"
@@ -28,7 +30,7 @@ zephyr_library_include_directories(
 )
 zephyr_library_link_libraries(crux_time_api)
 target_compile_options(crux_time_zephyr PRIVATE -Wall -Wextra -Werror)
-set_property(TARGET crux_time_zephyr PROPERTY INTERFACE_CRUX_TIME_BACKEND zephyr_rtc)
+set_property(TARGET crux_time_zephyr PROPERTY INTERFACE_CRUX_TIME_BACKEND zephyr_system)
 set_property(TARGET crux_time_zephyr APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_TIME_BACKEND)
 
 add_library(crux_time INTERFACE)
@@ -36,5 +38,21 @@ add_library(crux::time ALIAS crux_time)
 # Zephyr registers both implementations in the final image independently.
 # Consumers need only portable declarations, not native implementation usage.
 target_link_libraries(crux_time INTERFACE crux_time_api)
-set_property(TARGET crux_time PROPERTY INTERFACE_CRUX_TIME_BACKEND zephyr_rtc)
+set_property(TARGET crux_time PROPERTY INTERFACE_CRUX_TIME_BACKEND zephyr_system)
 set_property(TARGET crux_time APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_TIME_BACKEND)
+
+target_include_directories(crux_time_common PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../../../interrupt/src")
+target_link_libraries(crux_time_common PRIVATE crux_interrupt)
+target_include_directories(crux_time_zephyr PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../../../interrupt/src")
+target_link_libraries(crux_time_zephyr PRIVATE crux_interrupt)
+
+if(CONFIG_CRUX_TIME_BUSY_WAIT)
+    if(NOT CONFIG_SYS_CLOCK_EXISTS OR CONFIG_TIMER_READS_ITS_FREQUENCY_AT_RUNTIME OR
+       CONFIG_SYSTEM_CLOCK_HW_CYCLES_PER_SEC_RUNTIME_UPDATE OR CONFIG_SMP OR
+       (CONFIG_ARCH_HAS_CUSTOM_BUSY_WAIT AND NOT CONFIG_BOARD_NATIVE_SIM))
+        message(FATAL_ERROR "Enabled CONFIG_CRUX_TIME_BUSY_WAIT requires a validated stable single-core timer profile")
+    endif()
+    target_sources(crux_time_zephyr PRIVATE busy_wait_zephyr.c)
+else()
+    target_sources(crux_time_zephyr PRIVATE "${CRUX_TIME_COMPONENT_DIR}/src/busy_wait_disabled.c")
+endif()

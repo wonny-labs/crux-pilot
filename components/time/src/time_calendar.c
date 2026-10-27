@@ -5,11 +5,13 @@
 
 #define SECONDS_PER_DAY INT64_C(86400)
 
-static bool is_leap_year(int32_t year) {
+static bool is_leap_year(int32_t year)
+{
     return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
 }
 
-static int32_t days_in_month(int32_t year, int32_t month) {
+static int32_t days_in_month(int32_t year, int32_t month)
+{
     static const int32_t days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
     if (month == 2 && is_leap_year(year)) {
@@ -18,49 +20,54 @@ static int32_t days_in_month(int32_t year, int32_t month) {
     return days[month - 1];
 }
 
-static int32_t days_in_year(int32_t year) {
+static int32_t days_in_year(int32_t year)
+{
     return is_leap_year(year) ? 366 : 365;
 }
 
-crux_status_t crux_time_from_utc(const crux_time_utc_t *in, crux_time_instant_t *out) {
+crux_status_t crux_realtime_from_utc(const crux_datetime_t *datetime, crux_realtime_t *out)
+{
     int64_t days = 0;
     int64_t seconds;
     int32_t year;
     int32_t month;
 
-    if (in == NULL || out == NULL) {
+    if (datetime == NULL || out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    if (in->month < 1 || in->month > 12 || in->day < 1 || in->day > 31 || in->hour < 0 ||
-        in->hour > 23 || in->minute < 0 || in->minute > 59 || in->second < 0 || in->second > 59) {
+    if (datetime->month < 1 || datetime->month > 12 || datetime->day < 1 || datetime->day > 31 ||
+        datetime->hour < 0 || datetime->hour > 23 || datetime->minute < 0 ||
+        datetime->minute > 59 || datetime->second < 0 || datetime->second > 59 ||
+        datetime->nanoseconds >= UINT32_C(1000000000)) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    if (in->day > days_in_month(in->year, in->month)) {
+    if (datetime->day > days_in_month(datetime->year, datetime->month)) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    if (in->year < 2000 || in->year > 2099) {
+    if (datetime->year < 2000 || datetime->year > 2099) {
         return CRUX_ERR_OUT_OF_RANGE;
     }
 
-    for (year = 2000; year < in->year; ++year) {
+    for (year = 2000; year < datetime->year; ++year) {
         days += days_in_year(year);
     }
-    for (month = 1; month < in->month; ++month) {
-        days += days_in_month(in->year, month);
+    for (month = 1; month < datetime->month; ++month) {
+        days += days_in_month(datetime->year, month);
     }
-    days += in->day - 1;
+    days += datetime->day - 1;
 
     seconds = CRUX_TIME_MIN_UNIX_SECONDS + (days * SECONDS_PER_DAY);
-    seconds += ((int64_t)in->hour * INT64_C(3600));
-    seconds += ((int64_t)in->minute * INT64_C(60));
-    seconds += in->second;
+    seconds += ((int64_t)datetime->hour * INT64_C(3600));
+    seconds += ((int64_t)datetime->minute * INT64_C(60));
+    seconds += datetime->second;
 
-    *out = seconds;
+    *out = (crux_realtime_t){seconds, datetime->nanoseconds};
     return CRUX_OK;
 }
 
-crux_status_t crux_time_to_utc(crux_time_instant_t in, crux_time_utc_t *out) {
-    crux_time_utc_t result;
+crux_status_t crux_realtime_to_utc(crux_realtime_t time, crux_datetime_t *out)
+{
+    crux_datetime_t result;
     int64_t days;
     int64_t seconds_of_day;
     int32_t year = 2000;
@@ -69,12 +76,16 @@ crux_status_t crux_time_to_utc(crux_time_instant_t in, crux_time_utc_t *out) {
     if (out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    if (in < CRUX_TIME_MIN_UNIX_SECONDS || in >= CRUX_TIME_MAX_UNIX_SECONDS_EXCLUSIVE) {
+    if (time.nanoseconds >= UINT32_C(1000000000)) {
+        return CRUX_ERR_INVALID_ARGUMENT;
+    }
+    if (time.seconds < CRUX_TIME_MIN_UNIX_SECONDS ||
+        time.seconds >= CRUX_TIME_MAX_UNIX_SECONDS_EXCLUSIVE) {
         return CRUX_ERR_OUT_OF_RANGE;
     }
 
-    days = (in - CRUX_TIME_MIN_UNIX_SECONDS) / SECONDS_PER_DAY;
-    seconds_of_day = (in - CRUX_TIME_MIN_UNIX_SECONDS) % SECONDS_PER_DAY;
+    days = (time.seconds - CRUX_TIME_MIN_UNIX_SECONDS) / SECONDS_PER_DAY;
+    seconds_of_day = (time.seconds - CRUX_TIME_MIN_UNIX_SECONDS) % SECONDS_PER_DAY;
 
     while (days >= days_in_year(year)) {
         days -= days_in_year(year);
@@ -93,6 +104,7 @@ crux_status_t crux_time_to_utc(crux_time_instant_t in, crux_time_utc_t *out) {
     result.minute = (int32_t)(seconds_of_day / INT64_C(60));
     result.second = (int32_t)(seconds_of_day % INT64_C(60));
 
+    result.nanoseconds = time.nanoseconds;
     *out = result;
     return CRUX_OK;
 }

@@ -1,0 +1,11 @@
+/ {
+    aliases { crux-watchdog0 = &wdog0; };
+    chosen { zephyr,log-uart = &m5_logging_uarts; };
+    m5_logging_uarts: m5-logging-uarts {
+        compatible = "zephyr,log-uart";
+        uarts = <&lpuart1>;
+    };
+};
+
+&lpuart1 { status = "okay"; current-speed = <115200>; parity = "none"; };
+&wdog0 { status = "okay"; };

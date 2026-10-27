@@ -3,10 +3,12 @@
 
 enum { KEY_LIMIT = 31, WIRE_MAX = 8, BOOL_LENGTH = 5, U32_LENGTH = 8 };
 
-static bool valid_type(crux_config_type_t type) {
+static bool valid_type(crux_config_type_t type)
+{
     return type == CRUX_CONFIG_BOOL || type == CRUX_CONFIG_U32;
 }
-static bool valid_key(const char *key) {
+static bool valid_key(const char *key)
+{
     if (key == NULL) {
         return false;
     }
@@ -24,17 +26,20 @@ static bool valid_key(const char *key) {
     return length > 0 && !(length == 1 && key[0] == '.') &&
            !(length == 2 && key[0] == '.' && key[1] == '.');
 }
-static bool accepted(const crux_config_spec_t *spec, const crux_config_value_t *value) {
+static bool accepted(const crux_config_spec_t *spec, const crux_config_value_t *value)
+{
     return valid_type(value->type) && value->type == spec->default_value.type &&
            (spec->validate == NULL || spec->validate(value, spec->validation_context));
 }
-static crux_config_result_t ready(const crux_config_param_t *parameter) {
+static crux_config_result_t ready(const crux_config_param_t *parameter)
+{
     if (parameter == NULL) {
         return CRUX_CONFIG_ERR_INVALID_ARGUMENT;
     }
     return parameter->spec == NULL ? CRUX_CONFIG_ERR_INVALID_STATE : CRUX_CONFIG_OK;
 }
-static crux_config_result_t port_error(crux_config_result_t result) {
+static crux_config_result_t port_error(crux_config_result_t result)
+{
     switch (result) {
     case CRUX_CONFIG_ERR_NOT_READY:
     case CRUX_CONFIG_ERR_IO:
@@ -45,7 +50,8 @@ static crux_config_result_t port_error(crux_config_result_t result) {
         return CRUX_CONFIG_ERR_IO;
     }
 }
-static crux_config_result_t fallback(crux_config_param_t *parameter, crux_config_result_t outcome) {
+static crux_config_result_t fallback(crux_config_param_t *parameter, crux_config_result_t outcome)
+{
     crux_config_value_t value = parameter->spec->default_value;
     if (!accepted(parameter->spec, &value)) {
         return CRUX_CONFIG_ERR_REJECTED;
@@ -55,7 +61,8 @@ static crux_config_result_t fallback(crux_config_param_t *parameter, crux_config
 }
 
 crux_config_result_t crux_config_init(crux_config_param_t *parameter,
-                                      const crux_config_spec_t *spec) {
+                                      const crux_config_spec_t *spec)
+{
     if (parameter == NULL || spec == NULL) {
         return CRUX_CONFIG_ERR_INVALID_ARGUMENT;
     }
@@ -74,7 +81,8 @@ crux_config_result_t crux_config_init(crux_config_param_t *parameter,
     return CRUX_CONFIG_OK;
 }
 crux_config_result_t crux_config_read(const crux_config_param_t *parameter,
-                                      crux_config_value_t *out) {
+                                      crux_config_value_t *out)
+{
     if (out == NULL) {
         return CRUX_CONFIG_ERR_INVALID_ARGUMENT;
     }
@@ -85,7 +93,8 @@ crux_config_result_t crux_config_read(const crux_config_param_t *parameter,
     return result;
 }
 crux_config_result_t crux_config_update(crux_config_param_t *parameter,
-                                        const crux_config_value_t *candidate) {
+                                        const crux_config_value_t *candidate)
+{
     if (candidate == NULL) {
         return CRUX_CONFIG_ERR_INVALID_ARGUMENT;
     }
@@ -100,7 +109,8 @@ crux_config_result_t crux_config_update(crux_config_param_t *parameter,
     parameter->value = value;
     return CRUX_CONFIG_OK;
 }
-crux_config_result_t crux_config_load(crux_config_param_t *parameter) {
+crux_config_result_t crux_config_load(crux_config_param_t *parameter)
+{
     crux_config_result_t result = ready(parameter);
     if (result != CRUX_CONFIG_OK) {
         return result;
@@ -145,7 +155,8 @@ crux_config_result_t crux_config_load(crux_config_param_t *parameter) {
     parameter->value = value;
     return CRUX_CONFIG_OK;
 }
-crux_config_result_t crux_config_save(const crux_config_param_t *parameter) {
+crux_config_result_t crux_config_save(const crux_config_param_t *parameter)
+{
     crux_config_result_t result = ready(parameter);
     if (result != CRUX_CONFIG_OK) {
         return result;

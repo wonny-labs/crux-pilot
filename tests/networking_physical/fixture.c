@@ -20,13 +20,15 @@ static struct k_thread observer;
 static k_tid_t main_thread;
 K_MUTEX_DEFINE(records);
 static atomic_t token, phase, observer_failed;
-static int64_t stamp(void) {
+static int64_t stamp(void)
+{
     struct timespec value;
     if (clock_gettime(CLOCK_MONOTONIC, &value) != 0)
         return -1;
     return (int64_t)value.tv_sec * 1000 + value.tv_nsec / 1000000;
 }
-void m5_fixture_record(const char *format, ...) {
+void m5_fixture_record(const char *format, ...)
+{
     va_list args;
     va_start(args, format);
     k_mutex_lock(&records, K_FOREVER);
@@ -34,7 +36,8 @@ void m5_fixture_record(const char *format, ...) {
     k_mutex_unlock(&records);
     va_end(args);
 }
-static void observe(void *a, void *b, void *c) {
+static void observe(void *a, void *b, void *c)
+{
     (void)a;
     (void)b;
     (void)c;
@@ -67,7 +70,8 @@ static void observe(void *a, void *b, void *c) {
         k_sleep(K_MSEC(50));
     }
 }
-static void count_context(struct net_context *context, void *count) {
+static void count_context(struct net_context *context, void *count)
+{
     if (net_context_is_used(context))
         ++*(unsigned int *)count;
 }
@@ -76,7 +80,8 @@ struct snapshot {
     unsigned int contexts, rx_pkt, tx_pkt;
     size_t rx_buf, tx_buf, main_free, observer_free;
 };
-static int snapshot(struct snapshot *out) {
+static int snapshot(struct snapshot *out)
+{
     struct k_mem_slab *rx, *tx;
     struct net_buf_pool *rx_data, *tx_data;
     *out = (struct snapshot){.at = stamp()};
@@ -93,12 +98,14 @@ static int snapshot(struct snapshot *out) {
         return -1;
     return 0;
 }
-static bool full(const struct snapshot *s) {
+static bool full(const struct snapshot *s)
+{
     return s->contexts == 0 && s->rx_pkt == 16 && s->tx_pkt == 16 && s->rx_buf == 32 &&
            s->tx_buf == 32 && s->main_free >= 1024 && s->observer_free >= 512;
 }
 static int settle(uint32_t identity, unsigned int sequence, unsigned int checkpoint,
-                  int64_t returned) {
+                  int64_t returned)
+{
     struct snapshot saved[3];
     unsigned int count = 0;
     while (stamp() >= 0 && stamp() - returned <= 5000) {
@@ -125,7 +132,8 @@ static int settle(uint32_t identity, unsigned int sequence, unsigned int checkpo
     }
     return -1;
 }
-int m5_fixture_init(void) {
+int m5_fixture_init(void)
+{
     if (main_thread != NULL)
         return -1;
     main_thread = k_current_get();
@@ -133,8 +141,8 @@ int m5_fixture_init(void) {
                     NULL, 7, 0, K_NO_WAIT);
     return 0;
 }
-int m5_fixture_execute(const struct fixture_session *session,
-                       const struct fixture_command *command) {
+int m5_fixture_execute(const struct fixture_session *session, const struct fixture_command *command)
+{
     uint32_t identity = session->token;
     atomic_set(&token, (atomic_val_t)identity);
     atomic_set(&phase, (atomic_val_t)command->sequence);

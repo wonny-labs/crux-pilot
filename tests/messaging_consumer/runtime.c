@@ -32,7 +32,8 @@ struct session {
     int worker_result;
 };
 
-static bool stopped(session_t *session, int *result) {
+static bool stopped(session_t *session, int *result)
+{
     if (crux_mutex_lock(session->mutex, 500) != CRUX_OK) {
         *result = 1;
         return true;
@@ -45,14 +46,16 @@ static bool stopped(session_t *session, int *result) {
     return stop;
 }
 
-static int request_stop(session_t *session) {
+static int request_stop(session_t *session)
+{
     if (crux_mutex_lock(session->mutex, 500) != CRUX_OK)
         return 1;
     session->stop = true;
     return crux_mutex_unlock(session->mutex) == CRUX_OK ? 0 : 2;
 }
 
-static void producer(void *argument) {
+static void producer(void *argument)
+{
     producer_t *producer = argument;
     session_t *session = producer->session;
     uint32_t sequence = 0;
@@ -75,7 +78,8 @@ static void producer(void *argument) {
     }
 }
 
-static void worker(void *argument) {
+static void worker(void *argument)
+{
     session_t *session = argument;
     uint32_t total = 0;
     while (session->continuous || total < PRODUCERS * RECORDS) {
@@ -112,7 +116,8 @@ static void worker(void *argument) {
     }
 }
 
-static int run_session(bool continuous) {
+static int run_session(bool continuous)
+{
     /* Static storage deliberately survives any failed join, including arguments. */
     static session_t session;
     memset(&session, 0, sizeof(session));
@@ -173,7 +178,8 @@ static int run_session(bool continuous) {
     return result;
 }
 
-static int bounded_backpressure(void) {
+static int bounded_backpressure(void)
+{
     crux_queue_t queue;
     if (crux_queue_create(1, sizeof(uint32_t), &queue) != CRUX_OK)
         return 21;
@@ -200,13 +206,15 @@ typedef struct {
     crux_thread_t thread;
     int result;
 } gated_t;
-static void gated_worker(void *argument) {
+static void gated_worker(void *argument)
+{
     gated_t *gated = argument;
     if (crux_semaphore_give(gated->ready) != CRUX_OK ||
         crux_semaphore_take(gated->gate, 2000) != CRUX_OK)
         gated->result = 1;
 }
-static int join_retains_lifetime(void) {
+static int join_retains_lifetime(void)
+{
     static gated_t gated;
     crux_thread_options_t options = {.stack_size_bytes = 4096,
                                      .priority = CRUX_THREAD_PRIORITY_NORMAL};
@@ -242,7 +250,8 @@ typedef struct {
     int result;
 } cancellation_t;
 
-static void cancellation_worker(void *argument) {
+static void cancellation_worker(void *argument)
+{
     cancellation_t *test = argument;
     bool notified = false;
     while (!stopped(&test->session, &test->result)) {
@@ -266,7 +275,8 @@ static void cancellation_worker(void *argument) {
     }
 }
 
-static int cancel_unavailable(bool full) {
+static int cancel_unavailable(bool full)
+{
     static cancellation_t test;
     memset(&test, 0, sizeof(test));
     test.full = full;
@@ -309,7 +319,8 @@ static int cancel_unavailable(bool full) {
     return result;
 }
 
-int messaging_runtime_run(void) {
+int messaging_runtime_run(void)
+{
     int result = bounded_backpressure();
     if (result == 0)
         result = cancel_unavailable(false);

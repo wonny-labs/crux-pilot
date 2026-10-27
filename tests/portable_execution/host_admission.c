@@ -23,23 +23,27 @@ static crux_semaphore_t empty;
 void __real_sync_native_metadata_lock(void);
 void __real_thread_native_metadata_lock(void);
 void sync_native_metadata_unlock(void);
-static void capture_metadata(void) {
+static void capture_metadata(void)
+{
     if (atomic_exchange(&capture_holder, false)) {
         (void)sem_post(&metadata_locked);
         (void)sem_wait(&release_metadata);
     }
 }
-void __wrap_sync_native_metadata_lock(void) {
+void __wrap_sync_native_metadata_lock(void)
+{
     __real_sync_native_metadata_lock();
     capture_metadata();
 }
-void __wrap_thread_native_metadata_lock(void) {
+void __wrap_thread_native_metadata_lock(void)
+{
     __real_thread_native_metadata_lock();
     capture_metadata();
 }
 // NOLINTEND(bugprone-reserved-identifier)
 
-static void *hold_metadata(void *unused) {
+static void *hold_metadata(void *unused)
+{
     (void)unused;
     atomic_store(&capture_holder, true);
     if (hold_thread_metadata) {
@@ -59,7 +63,8 @@ typedef struct {
     crux_status_t result;
 } call_t;
 
-static void *invoke_wait(void *argument) {
+static void *invoke_wait(void *argument)
+{
     call_t *call = argument;
     (void)sem_post(&started);
     switch (call->kind) {
@@ -83,12 +88,14 @@ static void *invoke_wait(void *argument) {
     return NULL;
 }
 
-static void wait_worker(void *unused) {
+static void wait_worker(void *unused)
+{
     (void)unused;
     (void)sem_wait(&worker_gate);
 }
 
-static int wait_for(sem_t *semaphore, long milliseconds) {
+static int wait_for(sem_t *semaphore, long milliseconds)
+{
     struct timespec deadline;
     if (clock_gettime(CLOCK_REALTIME, &deadline) != 0) {
         return -1;
@@ -99,7 +106,8 @@ static int wait_for(sem_t *semaphore, long milliseconds) {
     return sem_timedwait(semaphore, &deadline);
 }
 
-static int run_wait(call_t *call, pthread_t *thread, int *returned_while_held) {
+static int run_wait(call_t *call, pthread_t *thread, int *returned_while_held)
+{
     if (pthread_create(thread, NULL, invoke_wait, call) != 0 || wait_for(&started, 1000) != 0) {
         return -1;
     }
@@ -107,7 +115,8 @@ static int run_wait(call_t *call, pthread_t *thread, int *returned_while_held) {
     return 0;
 }
 
-int main(void) {
+int main(void)
+{
     if (sem_init(&metadata_locked, 0, 0) != 0 || sem_init(&release_metadata, 0, 0) != 0 ||
         sem_init(&started, 0, 0) != 0 || sem_init(&completed, 0, 0) != 0 ||
         sem_init(&worker_gate, 0, 0) != 0) {

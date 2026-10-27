@@ -1,18 +1,19 @@
 #include "controller.h"
 
-#include <crux/time.h>
+#include <crux/time_authority.h>
 #include <zephyr/kernel.h>
 
 K_THREAD_STACK_DEFINE(controller_stack, 4096);
 static struct k_thread controller_thread;
 static int scenario_result;
 
-static void run_controller(void *a, void *b, void *c) {
+static void run_controller(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
     scenario_result = 1;
-    crux_status_t status = crux_time_init();
+    crux_status_t status = crux_realtime_init();
     printk("controller composition=zephyr init=%d\n", status);
     if (status != CRUX_OK) {
         return;
@@ -25,7 +26,9 @@ static void run_controller(void *a, void *b, void *c) {
             return;
         }
         if (cycle == 2 || cycle == 6) {
-            status = crux_time_set(cycle == 2 ? INT64_C(1792238400) : INT64_C(1792234800));
+            const crux_realtime_t value = {cycle == 2 ? INT64_C(1792238400) : INT64_C(1792234800),
+                                           0};
+            status = crux_realtime_set(&value, CRUX_REALTIME_SOURCE_MANUAL, false);
             if (status != CRUX_OK) {
                 printk("controller set_error=%d\n", status);
                 return;
@@ -49,7 +52,8 @@ static void run_controller(void *a, void *b, void *c) {
     scenario_result = 0;
 }
 
-int main(void) {
+int main(void)
+{
     k_tid_t worker = k_thread_create(&controller_thread, controller_stack,
                                      K_THREAD_STACK_SIZEOF(controller_stack), run_controller, NULL,
                                      NULL, NULL, 5, 0, K_NO_WAIT);

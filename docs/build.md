@@ -98,7 +98,7 @@ export ZEPHYR_BASE="$workspace/zephyr"
 
 Select the required `CONFIG_CRUX_*` Kconfig capabilities and supply board/project Devicetree and hardware-resource bindings where the component requires them. Follow the applicable capability contract and an existing tested Zephyr fixture instead of copying Linux provider settings.
 
-Do not infer that every Linux Host capability has an equivalent Zephyr provider. Serial and Logging require explicitly supported UART resources and ownership settings, while Time's Zephyr RTC implementation is independent of the Linux development-memory backend. The full [Zephyr test commands](../tests/README.md) and [architecture overview](architecture.md#build-and-platform-composition) describe the supported profiles and their limits. None of the build scripts above flashes, resets or operates the physical EVKB.
+Do not infer that every Linux Host capability has an equivalent Zephyr provider. Serial and Logging require explicitly supported UART resources and ownership settings, while Time's Zephyr system clock needs no RTC; optional RTC storage is separate from Linux system or development-memory realtime. The full [Zephyr test commands](../tests/README.md) and [architecture overview](architecture.md#build-and-platform-composition) describe the supported profiles and their limits. None of the build scripts above flashes, resets or operates the physical EVKB.
 
 
 ## RT1060-EVKB debugging
@@ -124,19 +124,20 @@ See the [Time sample build task](../scripts/build-debug-target.sh) and [physical
 
 The verified external-consumer contract uses the **root** `add_subdirectory()` entry point. When included as a dependency, Crux selects **Base only** by default. The parent project's `BUILD_TESTING`, enabled languages and language-standard settings remain its own. Crux's tests and samples default OFF in this mode.
 
-Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `THREAD`, `SYNC`, `QUEUE`, `MONOTONIC`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `SERIAL`, `LOGGING` and `SYSTEM`. Base is always available.
+Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `DELAY`, `THREAD`, `SYNC`, `QUEUE`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `SERIAL`, `LOGGING` and `SYSTEM`. Base is always available.
 
-### Complete Queue and Monotonic example
+### Complete Queue, Time and Thread example
 
 Create an application directory outside the Crux source tree. Add the following
 three files; the example follows the [tested external fixture](../tests/external_application/CMakeLists.txt)
-and uses only Queue and Monotonic. The portable logic sends and receives one
+and selects Queue, Time and Thread. The portable logic sends and receives one
 value, reads the monotonic clock and waits for an already reached deadline.
 
 `logic.c`:
 
 ~~~c
-#include <crux/monotonic.h>
+#include <crux/time.h>
+#include <crux/thread.h>
 #include <crux/queue.h>
 
 int controller_run(void) {
@@ -145,11 +146,11 @@ int controller_run(void) {
         return 1;
     int sent = 42;
     int received = 0;
-    int64_t now = -1;
+    crux_monotonic_time_t now = {0};
     int failed = crux_queue_send(queue, &sent, sizeof(sent), 0) != CRUX_OK ||
                  crux_queue_receive(queue, &received, sizeof(received), 0) != CRUX_OK ||
                  received != sent || crux_monotonic_now(&now) != CRUX_OK ||
-                 crux_monotonic_sleep_until(now) != CRUX_OK;
+                 crux_thread_sleep_until(now) != CRUX_OK;
     crux_status_t cleanup = crux_queue_destroy(&queue);
     return failed || cleanup != CRUX_OK;
 }
@@ -171,20 +172,22 @@ cmake_minimum_required(VERSION 3.28)
 project(my_controller LANGUAGES C)
 
 set(CRUX_BUILD_QUEUE ON CACHE BOOL "Use Crux Queue")
-set(CRUX_BUILD_MONOTONIC ON CACHE BOOL "Use Crux Monotonic")
+set(CRUX_BUILD_TIME ON CACHE BOOL "Use Crux typed clocks")
+set(CRUX_TIME_PROVIDER memory CACHE STRING "Controlled development realtime")
+set(CRUX_BUILD_THREAD ON CACHE BOOL "Use Crux absolute sleep")
 add_subdirectory("${CRUX_SOURCE_DIR}" crux)
 
 add_library(controller_logic STATIC logic.c)
 set_target_properties(controller_logic PROPERTIES
     C_STANDARD 17 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
-target_link_libraries(controller_logic PRIVATE crux::queue crux::monotonic)
+target_link_libraries(controller_logic PRIVATE crux::queue crux::time crux::thread)
 crux_assert_portable_consumer(controller_logic)
 
 add_executable(my_controller main.c)
 target_link_libraries(my_controller PRIVATE
     controller_logic
-    crux::queue crux::monotonic
-    crux::queue_linux crux::monotonic_linux)
+    crux::queue crux::time crux::thread
+    crux::queue_linux)
 ~~~
 
 From the **external application's directory**, configure and build with an absolute Crux source path:
@@ -209,16 +212,17 @@ The external application tests also cover C++17, independently selected Thread/S
 | Capability or group | Linux source-tree composition rule |
 | --- | --- |
 | Base | `crux::base` always exists |
-| Time | Set `CRUX_BUILD_TIME=ON` and explicitly select `CRUX_TIME_PROVIDER=memory` for development/testing. Memory is **not** a production RTC fallback |
-| Thread, Sync | Select independently through `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`. Their public targets connect the current Linux implementation |
-| Queue, Monotonic | Portable targets use `crux::queue` / `crux::monotonic`. The final Linux executable additionally links `crux::queue_linux` / `crux::monotonic_linux` |
+| Time | Set `CRUX_BUILD_TIME=ON` and explicitly select `CRUX_TIME_PROVIDER=memory` (controlled development) or `linux` (system realtime). Controlled Host samples require memory; Linux native writes need explicit application authority. Neither implies production qualification |
+| Time CPU Busy-wait | Select `CRUX_TIME_BUSY_WAIT=ON` and Time with an explicit provider; link `crux::time`. Zephyr requires `CONFIG_CRUX_TIME=y` plus `CONFIG_CRUX_TIME_BUSY_WAIT=y`, without RTC. Disabled Busy-wait remains linkable and returns NOT_SUPPORTED for positive durations. See [limits and verified scope](time-busy-wait.md) |
+| Thread, Sync | Select independently through `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`. Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for the current controlled Host composition). Their public targets connect the current Linux implementation |
+| Queue | Portable targets use `crux::queue`. The final Linux executable additionally links `crux::queue_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and TTY binding belongs to platform composition |
 | Logging | Select `CRUX_BUILD_LOGGING=ON`. The existing Linux provider value is `CRUX_LOGGING_PROVIDER=host` |
 | System | Select `CRUX_BUILD_SYSTEM=ON` and use `crux::system`; the Linux provider value is `CRUX_SYSTEM_PROVIDER=host`. Host watchdog observation is emulated; normal Host reset/reset-cause operations are unsupported. See the [System validation and limits](system-validation.md) |
 | Netif, File, Configuration | Select the required `CRUX_BUILD_*` option and use the public capability target. Linux Netif's primary interface uses `CRUX_NETIF_HOST_INTERFACE` (default `lo`) |
 | Sockets | Select `CRUX_BUILD_SOCKETS=ON` and link `crux::sockets` for the specifically qualified standard IPv4 socket profile. It is not a Crux socket-wrapper implementation |
 
-Only Queue and Monotonic expose the two composition-only Linux aliases listed above. Other providers currently have different internal linkage patterns. Do not link undocumented concrete implementation targets or infer a common provider framework. Names ending in `_linux` identify an implementation environment, not product qualification.
+Queue exposes the composition-only `crux::queue_linux` alias listed above. Other providers currently have different internal linkage patterns. Do not link undocumented concrete implementation targets or infer a common provider framework. Names ending in `_linux` identify an implementation environment, not product qualification.
 
 The final application executable must directly declare the public capabilities it uses for the documented compatible-provider checks. Detection through arbitrary static-library private-only forwarding graphs is **not** part of the current contract. For Zephyr, Kconfig, the module entry point and platform composition select implementations instead of `CRUX_BUILD_*` Host options. See the [native consumer policy](native-interface-policy.md#external-source-tree-application-composition) for the exact supported enforcement boundary.
 
@@ -236,9 +240,9 @@ For all existing Python build checks, use `python3 -m unittest discover -s tests
 | --- | --- |
 | Unknown `crux::...` CMake target | Enable the matching `CRUX_BUILD_*` option **before** `add_subdirectory()`. For Zephyr, use the correct Kconfig/module path |
 | Unwanted GoogleTest, C++ or sample targets in an external project | Check cached `CRUX_BUILD_TESTS`, `CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_REFERENCE_CONTROLLER` settings. Use an isolated build directory |
-| Missing or unsupported Time provider | An external Linux Time build requires explicit `CRUX_TIME_PROVIDER=memory`. Zephyr RTC uses its own Kconfig/native selection |
+| Missing or unsupported Time provider | An external Linux Time build requires explicit `CRUX_TIME_PROVIDER=memory` or `linux`. Zephyr system realtime uses Kconfig; optional RTC storage is separate |
 | Serial/Logging provider conflict or unsupported selection | Review the existing `host`/`zephyr` provider contract and the selected build entry point. Do not mix Host and Zephyr providers |
-| Undefined Queue/Monotonic symbols at final link | Add the required `crux::queue_linux` and/or `crux::monotonic_linux` to the **final application executable**, not to portable libraries |
+| Undefined Queue symbols at final link | Add `crux::queue_linux` to the **final application executable**, not to portable libraries |
 | `native consumer requirement` from CMake | Remove private/native targets, headers or flags from the portable consumer. Keep platform composition separate |
 | Zephyr module or device selection failure | Verify west bootstrap, pinned SDK, selected module checkout, Kconfig prerequisites and board/Devicetree resource ownership |
 | Offline Host check cannot resolve GoogleTest | Run `scripts/bootstrap-host.sh` once to populate the dependency cache before `scripts/check-host.sh` |

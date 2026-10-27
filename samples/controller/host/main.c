@@ -1,11 +1,12 @@
 #include "controller.h"
 
-#include <crux/time.h>
+#include <crux/time_authority.h>
 #include <errno.h>
 #include <stdio.h>
 #include <time.h>
 
-static int64_t monotonic_ms(void) {
+static int64_t monotonic_ms(void)
+{
     struct timespec now;
     if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
         return -1;
@@ -13,8 +14,9 @@ static int64_t monotonic_ms(void) {
     return (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
 }
 
-int main(void) {
-    crux_status_t status = crux_time_init();
+int main(void)
+{
+    crux_status_t status = crux_realtime_init();
     printf("controller composition=host-controlled init=%d\n", status);
     if (status != CRUX_OK) {
         return 1;
@@ -38,7 +40,9 @@ int main(void) {
             return 1;
         }
         if (cycle == 2 || cycle == 6) {
-            status = crux_time_set(cycle == 2 ? INT64_C(1792238400) : INT64_C(1792234800));
+            const crux_realtime_t value = {cycle == 2 ? INT64_C(1792238400) : INT64_C(1792234800),
+                                           0};
+            status = crux_realtime_set(&value, CRUX_REALTIME_SOURCE_MANUAL, false);
             if (status != CRUX_OK) {
                 printf("controller set_error=%d\n", status);
                 return 1;

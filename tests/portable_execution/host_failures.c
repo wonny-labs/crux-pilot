@@ -26,7 +26,8 @@ int __real_pthread_mutex_init(pthread_mutex_t *, const pthread_mutexattr_t *);
 int __real_pthread_cond_init(pthread_cond_t *, const pthread_condattr_t *);
 int __real_clock_gettime(clockid_t, struct timespec *);
 int __wrap_pthread_create(pthread_t *id, const pthread_attr_t *attr, void *(*entry)(void *),
-                          void *arg) {
+                          void *arg)
+{
     if (fail_thread) {
         fail_thread = 0;
         return EAGAIN;
@@ -36,21 +37,24 @@ int __wrap_pthread_create(pthread_t *id, const pthread_attr_t *attr, void *(*ent
     }
     return __real_pthread_create(id, attr, entry, arg);
 }
-int __wrap_pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr) {
+int __wrap_pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
+{
     if (fail_mutex) {
         fail_mutex = 0;
         return ENOMEM;
     }
     return __real_pthread_mutex_init(mutex, attr);
 }
-int __wrap_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) {
+int __wrap_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
+{
     if (fail_condition) {
         fail_condition = 0;
         return ENOMEM;
     }
     return __real_pthread_cond_init(cond, attr);
 }
-int __wrap_clock_gettime(clockid_t clock, struct timespec *value) {
+int __wrap_clock_gettime(clockid_t clock, struct timespec *value)
+{
     if (overflow_clock) {
         value->tv_sec = (time_t)INT64_MAX;
         value->tv_nsec = 999999999L;
@@ -60,10 +64,12 @@ int __wrap_clock_gettime(clockid_t clock, struct timespec *value) {
 }
 // NOLINTEND(bugprone-reserved-identifier)
 
-static void noop(void *argument) {
+static void noop(void *argument)
+{
     (void)argument;
 }
-int main(void) {
+int main(void)
+{
     crux_thread_options_t options = {.priority = CRUX_THREAD_PRIORITY_NORMAL};
     crux_thread_t thread;
     options.stack_size_bytes = 32768;

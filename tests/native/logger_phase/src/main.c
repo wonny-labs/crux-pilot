@@ -18,7 +18,8 @@ static atomic_t hold_next, hold_failed;
 K_SEM_DEFINE(entered, 0, 1);
 K_SEM_DEFINE(release_hold, 0, 1);
 
-static int count_bytes(uint8_t *data, size_t size, void *context) {
+static int count_bytes(uint8_t *data, size_t size, void *context)
+{
     ARG_UNUSED(data);
     ARG_UNUSED(context);
     rendered += size;
@@ -26,7 +27,8 @@ static int count_bytes(uint8_t *data, size_t size, void *context) {
 }
 LOG_OUTPUT_DEFINE(counter, count_bytes, output_buffer, sizeof(output_buffer));
 
-static void process(const struct log_backend *const backend, union log_msg_generic *msg) {
+static void process(const struct log_backend *const backend, union log_msg_generic *msg)
+{
     ARG_UNUSED(backend);
     rendered = 0;
     log_output_msg_process(&counter, &msg->log, log_backend_std_get_flags());
@@ -38,7 +40,8 @@ static void process(const struct log_backend *const backend, union log_msg_gener
     }
     k_sleep(K_USEC(DIV_ROUND_UP(rendered * 10U * 1000000U, 115200U)));
 }
-static void panic_backend(const struct log_backend *const backend) {
+static void panic_backend(const struct log_backend *const backend)
+{
     ARG_UNUSED(backend);
 }
 static const struct log_backend_api api = {.process = process, .panic = panic_backend};
@@ -50,14 +53,16 @@ static struct k_thread worker, network;
 static int64_t epoch;
 static const int drift[] = {0, 1, 2, 4};
 
-static void at(int64_t stamp) {
+static void at(int64_t stamp)
+{
     int64_t remaining = stamp - k_uptime_get();
     if (remaining > 0) {
         k_sleep(K_MSEC(remaining));
     }
 }
 
-static void run_work(void *a, void *b, void *c) {
+static void run_work(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
@@ -67,7 +72,8 @@ static void run_work(void *a, void *b, void *c) {
     }
 }
 
-static void run_network(void *a, void *b, void *c) {
+static void run_network(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
@@ -80,7 +86,8 @@ static void run_network(void *a, void *b, void *c) {
 }
 
 /* Setup/teardown drain only: never used to select a qualifying sample. */
-static bool drain(void) {
+static bool drain(void)
+{
     int64_t end = k_uptime_get() + 2000;
     while (log_buffered_cnt() != 0 && k_uptime_get() < end) {
         k_sleep(K_MSEC(10));
@@ -88,7 +95,8 @@ static bool drain(void) {
     return log_buffered_cnt() == 0;
 }
 
-int main(void) {
+int main(void)
+{
     if (!drain()) {
         return 1;
     }

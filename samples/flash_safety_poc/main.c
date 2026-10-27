@@ -2,7 +2,8 @@
 #include "flash_poc.h"
 #include <zephyr/kernel.h>
 
-int main(void) {
+int main(void)
+{
     printk("Experimental Flash safety image; NOT authorised for programming\n");
     return 0;
 }

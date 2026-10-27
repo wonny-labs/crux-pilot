@@ -1,6 +1,6 @@
 #include "crux_time_command.h"
 
-#include <crux/time.h>
+#include <crux/time_authority.h>
 #include <crux/time_calendar.h>
 
 #include <stdbool.h>
@@ -13,17 +13,20 @@ struct token {
     size_t size;
 };
 
-static bool is_space(char value) {
+static bool is_space(char value)
+{
     return value == ' ' || value == '\t' || value == '\n' || value == '\r' || value == '\v' ||
            value == '\f';
 }
 
-static bool token_equals(struct token value, const char *expected) {
+static bool token_equals(struct token value, const char *expected)
+{
     const size_t expected_size = strlen(expected);
     return value.size == expected_size && memcmp(value.data, expected, expected_size) == 0;
 }
 
-static bool tokenize(const char *input, struct token *tokens, size_t capacity, size_t *count) {
+static bool tokenize(const char *input, struct token *tokens, size_t capacity, size_t *count)
+{
     const char *cursor = input;
     size_t used = 0;
 
@@ -49,7 +52,8 @@ static bool tokenize(const char *input, struct token *tokens, size_t capacity, s
     return true;
 }
 
-static bool parse_digits(const char *input, size_t count, int32_t *out) {
+static bool parse_digits(const char *input, size_t count, int32_t *out)
+{
     int32_t value = 0;
 
     for (size_t index = 0; index < count; ++index) {
@@ -63,7 +67,8 @@ static bool parse_digits(const char *input, size_t count, int32_t *out) {
     return true;
 }
 
-static bool parse_timestamp(struct token value, crux_time_utc_t *out) {
+static bool parse_timestamp(struct token value, crux_datetime_t *out)
+{
     if (value.size != 19 || value.data[4] != '-' || value.data[7] != '-' || value.data[10] != 'T' ||
         value.data[13] != ':' || value.data[16] != ':') {
         return false;
@@ -78,7 +83,8 @@ static bool parse_timestamp(struct token value, crux_time_utc_t *out) {
 }
 
 static crux_time_command_result_t make_result(crux_status_t status, crux_time_command_kind_t kind,
-                                              const char *text) {
+                                              const char *text)
+{
     crux_time_command_result_t value = {0};
     value.status = status;
     value.kind = kind;
@@ -93,12 +99,14 @@ static crux_time_command_result_t make_result(crux_status_t status, crux_time_co
     return value;
 }
 
-static void write_two_digits(char *output, int32_t value) {
+static void write_two_digits(char *output, int32_t value)
+{
     output[0] = (char)('0' + (value / 10));
     output[1] = (char)('0' + (value % 10));
 }
 
-crux_time_command_result_t crux_time_command_execute(const char *input) {
+crux_time_command_result_t crux_time_command_execute(const char *input)
+{
     struct token tokens[4] = {0};
     size_t count = 0;
 
@@ -119,13 +127,13 @@ crux_time_command_result_t crux_time_command_execute(const char *input) {
     }
 
     if (count == 2 && token_equals(tokens[1], "get")) {
-        crux_time_instant_t instant;
-        crux_time_utc_t calendar;
-        crux_status_t status = crux_time_get(&instant);
+        crux_realtime_t instant;
+        crux_datetime_t calendar;
+        crux_status_t status = crux_realtime_now(&instant);
         if (status != CRUX_OK) {
             return make_result(status, CRUX_TIME_COMMAND_LINE, NULL);
         }
-        status = crux_time_to_utc(instant, &calendar);
+        status = crux_realtime_to_utc(instant, &calendar);
         if (status != CRUX_OK) {
             return make_result(status, CRUX_TIME_COMMAND_LINE, NULL);
         }
@@ -152,16 +160,16 @@ crux_time_command_result_t crux_time_command_execute(const char *input) {
     }
 
     if (count == 3 && token_equals(tokens[1], "set")) {
-        crux_time_utc_t calendar = {0};
-        crux_time_instant_t instant;
+        crux_datetime_t calendar = {0};
+        crux_realtime_t instant;
         if (!parse_timestamp(tokens[2], &calendar)) {
             return make_result(CRUX_ERR_INVALID_ARGUMENT, CRUX_TIME_COMMAND_LINE, NULL);
         }
-        crux_status_t status = crux_time_from_utc(&calendar, &instant);
+        crux_status_t status = crux_realtime_from_utc(&calendar, &instant);
         if (status != CRUX_OK) {
             return make_result(status, CRUX_TIME_COMMAND_LINE, NULL);
         }
-        status = crux_time_set(instant);
+        status = crux_realtime_set(&instant, CRUX_REALTIME_SOURCE_MANUAL, false);
         return status == CRUX_OK ? make_result(CRUX_OK, CRUX_TIME_COMMAND_LINE, "OK")
                                  : make_result(status, CRUX_TIME_COMMAND_LINE, NULL);
     }
@@ -169,7 +177,8 @@ crux_time_command_result_t crux_time_command_execute(const char *input) {
     return make_result(CRUX_ERR_INVALID_ARGUMENT, CRUX_TIME_COMMAND_LINE, NULL);
 }
 
-const char *crux_time_command_help_text(void) {
+const char *crux_time_command_help_text(void)
+{
     return "Commands:\n"
            "  time set YYYY-MM-DDTHH:MM:SS\n"
            "  time get\n"
@@ -177,7 +186,8 @@ const char *crux_time_command_help_text(void) {
            "Input is UTC.\n";
 }
 
-const char *crux_time_command_cli_error_text(crux_status_t status) {
+const char *crux_time_command_cli_error_text(crux_status_t status)
+{
     switch (status) {
     case CRUX_OK:
         return "OK";

@@ -19,23 +19,27 @@ static struct {
 K_MUTEX_DEFINE(metadata);
 K_SEM_DEFINE(rx_event, 0, 1);
 K_SEM_DEFINE(tx_event, 0, 1);
-bool serial_port_context_allowed(void) {
+bool serial_port_context_allowed(void)
+{
     return !k_is_in_isr();
 }
-crux_status_t serial_port_now(uint64_t *now) {
+crux_status_t serial_port_now(uint64_t *now)
+{
     int64_t value = k_uptime_get();
     if (value < 0)
         return CRUX_ERR_IO;
     *now = (uint64_t)value;
     return CRUX_OK;
 }
-static int64_t remaining(const serial_deadline_t *deadline) {
+static int64_t remaining(const serial_deadline_t *deadline)
+{
     int64_t now = k_uptime_get();
     return now < 0 || (uint64_t)now >= deadline->end_ms
                ? 0
                : (int64_t)(deadline->end_ms - (uint64_t)now);
 }
-crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline) {
+crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
+{
     if (deadline == NULL)
         return k_mutex_lock(&metadata, K_FOREVER) == 0 ? CRUX_OK : CRUX_ERR_IO;
     if (deadline->poll)
@@ -45,27 +49,32 @@ crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline) {
         return CRUX_ERR_TIMEOUT;
     return k_mutex_lock(&metadata, K_MSEC(left)) == 0 ? CRUX_OK : CRUX_ERR_TIMEOUT;
 }
-void serial_port_metadata_unlock(void) {
+void serial_port_metadata_unlock(void)
+{
     (void)k_mutex_unlock(&metadata);
 }
-static void disable(const struct device *dev) {
+static void disable(const struct device *dev)
+{
     uart_irq_rx_disable(dev);
     uart_irq_tx_disable(dev);
     uart_irq_err_disable(dev);
 }
-static void fault(void) {
+static void fault(void)
+{
     native.failed = true;
     disable(native.dev);
     k_sem_give(&rx_event);
     k_sem_give(&tx_event);
 }
-static bool observed_error(void) {
+static bool observed_error(void)
+{
     int error = uart_err_check(native.dev);
     if (error != 0 && error != -ENOSYS && error != -ENOTSUP)
         fault();
     return native.failed;
 }
-static void callback(const struct device *unused, void *context) {
+static void callback(const struct device *unused, void *context)
+{
     ARG_UNUSED(unused);
     ARG_UNUSED(context);
     k_spinlock_key_t key = k_spin_lock(&native.gate);
@@ -115,7 +124,8 @@ static void callback(const struct device *unused, void *context) {
 done:
     k_spin_unlock(&native.gate, key);
 }
-crux_status_t serial_port_open(uint32_t port, const crux_serial_config_t *config) {
+crux_status_t serial_port_open(uint32_t port, const crux_serial_config_t *config)
+{
     const struct device *dev = serial_zephyr_device(port);
     if (dev == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
@@ -177,7 +187,8 @@ crux_status_t serial_port_open(uint32_t port, const crux_serial_config_t *config
     }
     return CRUX_OK;
 }
-crux_status_t serial_port_close(uint32_t port) {
+crux_status_t serial_port_close(uint32_t port)
+{
     ARG_UNUSED(port);
     k_spinlock_key_t key = k_spin_lock(&native.gate);
     native.active = false;
@@ -202,7 +213,8 @@ crux_status_t serial_port_close(uint32_t port) {
     return result == 0 ? CRUX_OK : CRUX_ERR_IO;
 }
 static crux_status_t transfer(void *buffer, size_t size, const serial_deadline_t *deadline,
-                              size_t *count, bool writing) {
+                              size_t *count, bool writing)
+{
     for (;;) {
         k_spinlock_key_t key;
         if (k_spin_trylock(&native.gate, &key) != 0) {
@@ -237,12 +249,14 @@ static crux_status_t transfer(void *buffer, size_t size, const serial_deadline_t
     }
 }
 crux_status_t serial_port_read(uint32_t port, void *buffer, size_t size,
-                               const serial_deadline_t *deadline, size_t *count) {
+                               const serial_deadline_t *deadline, size_t *count)
+{
     ARG_UNUSED(port);
     return transfer(buffer, size, deadline, count, false);
 }
 crux_status_t serial_port_write(uint32_t port, const void *buffer, size_t size,
-                                const serial_deadline_t *deadline, size_t *count) {
+                                const serial_deadline_t *deadline, size_t *count)
+{
     ARG_UNUSED(port);
     return transfer((void *)buffer, size, deadline, count, true);
 }

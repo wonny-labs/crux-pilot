@@ -63,25 +63,29 @@ struct network_snapshot {
 
 static struct network_snapshot network_snapshot = {.completed_ms = -1, .window_end_ms = -1};
 
-static struct network_snapshot read_network(void) {
+static struct network_snapshot read_network(void)
+{
     k_spinlock_key_t key = k_spin_lock(&network_lock);
     struct network_snapshot value = network_snapshot;
     k_spin_unlock(&network_lock, key);
     return value;
 }
 
-static void publish_network(struct network_snapshot value) {
+static void publish_network(struct network_snapshot value)
+{
     k_spinlock_key_t key = k_spin_lock(&network_lock);
     network_snapshot = value;
     k_spin_unlock(&network_lock, key);
 }
 
-static bool fault_budget(int64_t now, int64_t request_deadline) {
+static bool fault_budget(int64_t now, int64_t request_deadline)
+{
     struct network_snapshot value = read_network();
     return value.active && controller_m3_fault_allowed(now, request_deadline, value.window_end_ms);
 }
 
-static void run_network(void *a, void *b, void *c) {
+static void run_network(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
@@ -161,24 +165,27 @@ static void run_network(void *a, void *b, void *c) {
 }
 #endif
 
-static struct work_snapshot read_snapshot(void) {
+static struct work_snapshot read_snapshot(void)
+{
     k_spinlock_key_t key = k_spin_lock(&snapshot_lock);
     struct work_snapshot value = snapshot;
     k_spin_unlock(&snapshot_lock, key);
     return value;
 }
 
-static void publish_snapshot(struct work_snapshot value) {
+static void publish_snapshot(struct work_snapshot value)
+{
     k_spinlock_key_t key = k_spin_lock(&snapshot_lock);
     snapshot = value;
     k_spin_unlock(&snapshot_lock, key);
 }
 
-static void run_work(void *a, void *b, void *c) {
+static void run_work(void *a, void *b, void *c)
+{
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
-    int time_init = crux_time_init();
+    int time_init = crux_realtime_init();
     int device_init = controller_device_init();
 #if defined(CONFIG_CRUX_M3_INTEGRATED)
     printk("M3_INIT time=%d device=%d stimulus=SW5 network=required\n", time_init, device_init);
@@ -247,7 +254,8 @@ static void run_work(void *a, void *b, void *c) {
     }
 }
 
-static void report_reset_cause(void) {
+static void report_reset_cause(void)
+{
     uint32_t supported = 0;
     uint32_t cause = 0;
     uint32_t remaining = 0;
@@ -262,7 +270,8 @@ static void report_reset_cause(void) {
 }
 
 #if defined(CONFIG_CRUX_M3_TEST_COMMANDS)
-static int request_arm(const struct shell *shell, size_t argc, char **argv) {
+static int request_arm(const struct shell *shell, size_t argc, char **argv)
+{
     ARG_UNUSED(shell);
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
@@ -275,7 +284,8 @@ static int request_arm(const struct shell *shell, size_t argc, char **argv) {
     return 0;
 }
 
-static int request_stall(const struct shell *shell, size_t argc, char **argv) {
+static int request_stall(const struct shell *shell, size_t argc, char **argv)
+{
     ARG_UNUSED(shell);
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
@@ -306,7 +316,8 @@ static int request_stall(const struct shell *shell, size_t argc, char **argv) {
 }
 
 #if defined(CONFIG_CRUX_M3_INTEGRATED)
-static int request_network(const struct shell *shell, size_t argc, char **argv) {
+static int request_network(const struct shell *shell, size_t argc, char **argv)
+{
     ARG_UNUSED(shell);
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
@@ -318,7 +329,8 @@ static int request_network(const struct shell *shell, size_t argc, char **argv) 
     return 0;
 }
 
-static int request_network_stall(const struct shell *shell, size_t argc, char **argv) {
+static int request_network_stall(const struct shell *shell, size_t argc, char **argv)
+{
     ARG_UNUSED(shell);
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
@@ -338,7 +350,8 @@ static int request_network_stall(const struct shell *shell, size_t argc, char **
 }
 #endif
 
-static int report_status(const struct shell *shell, size_t argc, char **argv) {
+static int report_status(const struct shell *shell, size_t argc, char **argv)
+{
     ARG_UNUSED(shell);
     ARG_UNUSED(argc);
     ARG_UNUSED(argv);
@@ -363,7 +376,8 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
 SHELL_CMD_REGISTER(m3, &m3_commands, "Development-only independent M3 probe", NULL);
 #endif
 
-static int arm_watchdog(const struct device *watchdog) {
+static int arm_watchdog(const struct device *watchdog)
+{
     if (watchdog == NULL || !device_is_ready(watchdog)) {
         return -ENODEV;
     }
@@ -382,7 +396,8 @@ static int arm_watchdog(const struct device *watchdog) {
 /* Private initial offset, not a recurring phase lock or latency guarantee. */
 #define CRUX_M3_INITIAL_OBSERVER_PHASE_MS 50
 
-int main(void) {
+int main(void)
+{
 #if defined(CONFIG_CRUX_M3_INTEGRATED)
     printk("M3_BOOT source=%s profile=integrated commands=%d fault_default=off\n",
 #else

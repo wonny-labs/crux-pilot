@@ -1,9 +1,13 @@
+if(NOT TARGET crux::time)
+    message(FATAL_ERROR "Thread requires CRUX_BUILD_TIME=ON and an explicit supported Time provider for monotonic sleep")
+endif()
+
 add_library(crux_thread_api INTERFACE)
 target_include_directories(crux_thread_api INTERFACE include)
-target_link_libraries(crux_thread_api INTERFACE crux::base)
+target_link_libraries(crux_thread_api INTERFACE crux::base crux::time)
 
 find_package(Threads REQUIRED)
-add_library(crux_thread_host STATIC src/thread.c ports/linux/thread_native.c)
+add_library(crux_thread_host STATIC src/thread.c src/thread_sleep.c ports/linux/thread_native.c)
 target_link_libraries(crux_thread_host PRIVATE crux_thread_api)
 # Supported Ubuntu/glibc Host resolves pthread symbols from libc. An empty
 # Threads target must not become a transitive native consumer requirement.
@@ -20,3 +24,6 @@ set_property(TARGET crux_thread_host APPEND PROPERTY COMPATIBLE_INTERFACE_STRING
 add_library(crux_thread INTERFACE)
 add_library(crux::thread ALIAS crux_thread)
 target_link_libraries(crux_thread INTERFACE crux_thread_api crux_thread_host)
+
+target_include_directories(crux_thread_host PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../interrupt/src")
+target_link_libraries(crux_thread_host PRIVATE crux_interrupt)

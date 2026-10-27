@@ -1,0 +1,6 @@
+{
+  "components/file/src/file.c": "334449a31662e40199874f78b59189cb2f8594535eeecc3dd627646f047b87e8",
+  "components/file/src/file_port.h": "c19702c3abfda91a56050ac787dcd69d5d20d0365d9eebd5f5fa4422a95d5d89",
+  "tests/file/fault_test.c": "d0a8638cde3779f1c706c91863a227c09c8d6859cfcd89536c198f4730025e69",
+  "docs/file-contract.md": "041458b2b26e5bc0004930165c0a790adceb1be7a23b9a19780cd58009dfdf28"
+}

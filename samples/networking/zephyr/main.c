@@ -3,7 +3,8 @@
 #include <crux/netif.h>
 #include <zephyr/kernel.h>
 #include <zephyr/net/net_if.h>
-int main(void) {
+int main(void)
+{
     struct net_if *iface = net_if_get_default();
     struct net_in_addr address, mask;
     if (iface == NULL || net_addr_pton(NET_AF_INET, "192.168.77.2", &address) != 0 ||

@@ -1,0 +1,3 @@
+/ws/.worktrees/flash-safety-poc/components/configuration/ports/zephyr/configuration_settings.c:2:1: error: code should be clang-formatted [-Wclang-format-violations]
+#include "configuration_port.h"
+^

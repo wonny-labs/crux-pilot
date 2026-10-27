@@ -7,18 +7,21 @@
 static const long long stamp = INT64_C(9223372036854625807);
 static unsigned int emitted;
 
-static void resources(void) {
+static void resources(void)
+{
     printk(M3_FMT_RESOURCE, stamp, 0U, 0U, 16U, 16U, (size_t)32, (size_t)32);
     printk(M3_FMT_STATE, stamp, 1, 1, 0);
     emitted += 2;
 }
 
-static void cleanup(void) {
+static void cleanup(void)
+{
     printk(M3_FMT_CLEANUP_OK, 0U, 0U, (long long)5000);
     emitted++;
 }
 
-int main(void) {
+int main(void)
+{
     /* A finite conservative production-format volume, not network/WCET proof. */
     printk(M3_FMT_REQUESTED);
     resources();

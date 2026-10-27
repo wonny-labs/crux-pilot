@@ -9,15 +9,18 @@ static ifaddrs entry;
 static sockaddr_in address, mask;
 static int fail_observation;
 static unsigned int frees;
-extern "C" int crux_test_getifaddrs(ifaddrs **out) {
+extern "C" int crux_test_getifaddrs(ifaddrs **out)
+{
     *out = &entry;
     return fail_observation;
 }
-extern "C" void crux_test_freeifaddrs(ifaddrs *) {
+extern "C" void crux_test_freeifaddrs(ifaddrs *)
+{
     ++frees;
 }
 
-TEST(NetifHost, SelectedInterfaceAndAddressAreIndependentOfAdmin) {
+TEST(NetifHost, SelectedInterfaceAndAddressAreIndependentOfAdmin)
+{
     address = {};
     address.sin_family = AF_INET;
     const uint8_t bytes[] = {192, 168, 77, 2};

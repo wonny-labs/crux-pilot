@@ -8,6 +8,11 @@ if(CONFIG_CRUX_PILOT_MODULE)
     add_library(crux::base ALIAS crux_base)
 endif()
 
+if(CONFIG_CRUX_TIME OR CONFIG_CRUX_THREAD OR CONFIG_CRUX_SYNC OR CONFIG_CRUX_QUEUE OR CONFIG_CRUX_SYSTEM)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/interrupt"
+        "${CMAKE_CURRENT_BINARY_DIR}/interrupt")
+endif()
+
 if(CONFIG_CRUX_THREAD)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/thread/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/thread")
@@ -24,6 +29,7 @@ if(CONFIG_CRUX_TIME)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/time/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/time")
 endif()
+
 
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxConsumerBoundary.cmake")
 if(CONFIG_CRUX_PILOT_MODULE)
@@ -48,10 +54,7 @@ if(CONFIG_CRUX_QUEUE)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/queue/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/queue")
 endif()
-if(CONFIG_CRUX_MONOTONIC)
-    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/monotonic/ports/zephyr"
-        "${CMAKE_CURRENT_BINARY_DIR}/monotonic")
-endif()
+
 
 if(CONFIG_CRUX_SERIAL)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/serial/ports/zephyr"
@@ -66,4 +69,10 @@ endif()
 if(CONFIG_CRUX_SYSTEM)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/system/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/system")
+endif()
+
+if(CONFIG_CRUX_FILE_SIMULATOR)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/file/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/file")
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::file)
 endif()

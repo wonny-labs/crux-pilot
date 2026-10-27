@@ -1,9 +1,12 @@
 #include <crux/status.h>
 #if PROFILE_TIME
+#include <crux/time_authority.h>
+#elif PROFILE_BUSY_WAIT
 #include <crux/time.h>
 #elif PROFILE_THREAD
 #include <crux/thread.h>
-static void worker(void *argument) {
+static void worker(void *argument)
+{
     *(int *)argument = 42;
 }
 #elif PROFILE_SYNC
@@ -15,20 +18,35 @@ static void worker(void *argument) {
 #elif PROFILE_SYSTEM
 #include <crux/system.h>
 #elif PROFILE_MESSAGING
-#include <crux/monotonic.h>
 #include <crux/queue.h>
+#include <crux/thread.h>
+#include <crux/time.h>
 #endif
-int external_consumer(void) {
+int external_consumer(void)
+{
 #if PROFILE_TIME
-    crux_time_instant_t now = 0;
-    return crux_time_init() != CRUX_OK || crux_time_set(CRUX_TIME_MIN_UNIX_SECONDS) != CRUX_OK ||
-           crux_time_get(&now) != CRUX_OK || now != CRUX_TIME_MIN_UNIX_SECONDS;
+    crux_realtime_t now = {0, 0};
+#if PROFILE_TIME_LINUX
+    return crux_realtime_init() != CRUX_OK || crux_realtime_adopt() != CRUX_OK ||
+           crux_realtime_now(&now) != CRUX_OK;
+#else
+    const crux_realtime_t start = {CRUX_TIME_MIN_UNIX_SECONDS, 0};
+    return crux_realtime_init() != CRUX_OK ||
+           crux_realtime_set(&start, CRUX_REALTIME_SOURCE_MANUAL, false) != CRUX_OK ||
+           crux_realtime_now(&now) != CRUX_OK || now.seconds != CRUX_TIME_MIN_UNIX_SECONDS;
+#endif
+#elif PROFILE_BUSY_WAIT
+    crux_duration_t duration;
+    return crux_duration_try_from_us(1, &duration) != CRUX_OK ||
+           crux_busy_wait(duration) != CRUX_OK ||
+           crux_busy_wait(crux_duration_from_ns(0)) != CRUX_OK;
 #elif PROFILE_THREAD
     const crux_thread_options_t options = {.priority = CRUX_THREAD_PRIORITY_NORMAL};
     crux_thread_t thread;
     int observed = 0;
     return crux_thread_create(&options, worker, &observed, &thread) != CRUX_OK ||
-           crux_thread_join(&thread, 1000) != CRUX_OK || observed != 42;
+           crux_thread_join(&thread, 1000) != CRUX_OK || observed != 42 ||
+           crux_thread_sleep_for(crux_duration_from_ms(1)) != CRUX_OK;
 #elif PROFILE_SYNC
     crux_mutex_t mutex;
     crux_semaphore_t semaphore;
@@ -53,12 +71,12 @@ int external_consumer(void) {
     crux_queue_t queue;
     int sent = 42;
     int received = 0;
-    int64_t now = -1;
+    crux_monotonic_time_t now = {0};
     return crux_queue_create(1, sizeof(sent), &queue) != CRUX_OK ||
            crux_queue_send(queue, &sent, sizeof(sent), 0) != CRUX_OK ||
            crux_queue_receive(queue, &received, sizeof(received), 0) != CRUX_OK ||
            received != sent || crux_queue_destroy(&queue) != CRUX_OK ||
-           crux_monotonic_now(&now) != CRUX_OK || crux_monotonic_sleep_until(now) != CRUX_OK;
+           crux_monotonic_now(&now) != CRUX_OK || crux_thread_sleep_until(now) != CRUX_OK;
 #else
     return CRUX_OK != 0;
 #endif

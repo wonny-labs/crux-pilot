@@ -8,10 +8,28 @@ if CRUX_PILOT_MODULE
 
 config CRUX_TIME
 	bool "Crux Time capability"
-	depends on RTC
-	default y
+	default y if RTC
 	help
-	  Build the Crux Time common implementation and selected Zephyr RTC provider.
+	  Build typed monotonic clock access without requiring RTC hardware.
+	  Realtime uses the native system clock and explicit authority adoption.
+
+config CRUX_TIME_RTC
+	bool "Crux optional native RTC source/storage adapter"
+	depends on CRUX_TIME && RTC
+	default n
+	help
+	  Explicit RTC read/store for trusted composition using the rtc alias.
+	  Time init and system realtime never implicitly load or write RTC.
+
+config CRUX_TIME_BUSY_WAIT
+    bool "Crux Time native CPU busy-wait"
+    depends on CRUX_TIME
+    default n
+    help
+      Optional native busy-wait with provider range checks and no Crux locks,
+      allocation or scheduler sleep. Disabled positive waits return NOT_SUPPORTED.
+      ISR support requires provider/target validation. Unsupported enabled timer
+      profiles fail configuration; no common numeric maximum is implied.
 
 config CRUX_TIME_TESTING
 	bool "Include Crux Time test controls"
@@ -24,6 +42,7 @@ config CRUX_THREAD
 	bool "Crux bounded joinable threads"
 	depends on MULTITHREADING
 	select TIMEOUT_64BIT
+	select CRUX_TIME
 	help
 	  Component-owned bounded joinable threads using native kernel objects.
 
@@ -82,11 +101,6 @@ config CRUX_QUEUE
     help
       Initial qualification profile: four queues, sixteen records, sixty-four bytes.
 
-config CRUX_MONOTONIC
-    bool "Crux monotonic milliseconds and absolute wait"
-    depends on CRUX_PILOT_MODULE && MULTITHREADING
-    select TIMEOUT_64BIT
-
 config CRUX_SERIAL
     bool "Crux bounded UART Serial"
     depends on CRUX_PILOT_MODULE && MULTITHREADING && SERIAL
@@ -107,3 +121,10 @@ config CRUX_SYSTEM
     help
       Explicit native WATCHDOG/HWINFO/REBOOT composition required. No auto-arm,
       auto-clear, application health assessment, stop or reconfiguration.
+
+config CRUX_FILE_SIMULATOR
+    bool "Crux File VFS simulator candidate"
+    depends on CRUX_PILOT_MODULE && BOARD_NATIVE_SIM && FLASH_SIMULATOR && FILE_SYSTEM
+    help
+      Experimental File provider for software-only storage validation.
+      Does not select a target Flash layout, mount or format a volume.
