@@ -21,14 +21,17 @@ typedef struct {
     struct stat identity;
     struct termios saved;
 } host_port_t;
+
 static host_port_t ports[CRUX_SERIAL_PORT_COUNT];
 static pthread_mutex_t metadata = PTHREAD_MUTEX_INITIALIZER;
 /* Serializes native ownership acquisition/teardown only, never transfer waits. */
 static pthread_mutex_t ownership = PTHREAD_MUTEX_INITIALIZER;
+
 bool serial_port_context_allowed(void)
 {
     return true;
 }
+
 crux_status_t serial_port_now(uint64_t *now)
 {
     struct timespec value;
@@ -37,6 +40,7 @@ crux_status_t serial_port_now(uint64_t *now)
     *now = (uint64_t)value.tv_sec * 1000 + (uint64_t)value.tv_nsec / 1000000;
     return CRUX_OK;
 }
+
 crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
 {
     if (deadline == NULL) {
@@ -59,10 +63,12 @@ crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
         (void)nanosleep(&delay, NULL);
     }
 }
+
 void serial_port_metadata_unlock(void)
 {
     (void)pthread_mutex_unlock(&metadata);
 }
+
 crux_status_t crux_serial_linux_bind(crux_serial_port_t port, const char *path)
 {
     if (port >= CRUX_SERIAL_PORT_COUNT || path == NULL || path[0] == '\0')
@@ -81,6 +87,7 @@ crux_status_t crux_serial_linux_bind(crux_serial_port_t port, const char *path)
     (void)pthread_mutex_unlock(&ownership);
     return result;
 }
+
 static speed_t speed(uint32_t baud)
 {
     switch (baud) {
@@ -96,6 +103,7 @@ static speed_t speed(uint32_t baud)
         return B115200;
     }
 }
+
 crux_status_t serial_port_open(uint32_t index, const crux_serial_config_t *config)
 {
     host_port_t *port = &ports[index];
@@ -200,6 +208,7 @@ done:
     (void)pthread_mutex_unlock(&ownership);
     return result;
 }
+
 crux_status_t serial_port_close(uint32_t index)
 {
     host_port_t *port = &ports[index];
@@ -218,6 +227,7 @@ crux_status_t serial_port_close(uint32_t index)
     (void)pthread_mutex_unlock(&ownership);
     return unsafe ? CRUX_ERR_IO : CRUX_OK;
 }
+
 static crux_status_t native_transfer(uint32_t index, void *destination, size_t length,
                                      const void *source, const serial_deadline_t *deadline,
                                      size_t *count, bool writing)
@@ -265,11 +275,13 @@ static crux_status_t native_transfer(uint32_t index, void *destination, size_t l
             return CRUX_ERR_BUSY;
     }
 }
+
 crux_status_t serial_port_read(uint32_t port, void *buffer, size_t size,
                                const serial_deadline_t *deadline, size_t *count)
 {
     return native_transfer(port, buffer, size, NULL, deadline, count, false);
 }
+
 crux_status_t serial_port_write(uint32_t port, const void *buffer, size_t size,
                                 const serial_deadline_t *deadline, size_t *count)
 {
