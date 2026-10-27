@@ -1,13 +1,19 @@
 #include <crux/logging.h>
+#include <crux/queue.h>
 #include <crux/sync.h>
 #include <crux/system.h>
 #include <crux/thread.h>
+#include <crux/time.h>
 
+#include <errno.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log_ctrl.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/ztest.h>
 
@@ -18,7 +24,14 @@
 
 #define OPERATION_TIMEOUT_MS 5000U
 #define EXPECTED_WORKER_VALUE UINT32_C(0x4d354d35)
-#define LOG_RECORD "worker-complete sync-handoff=ok system-status=ok"
+#define LOG_RECORD "worker-progress queue-copy=queued deadline=observed system-query=ok"
+#if defined(CONFIG_BOARD_NATIVE_SIM)
+#define TARGET_NAME "native_sim"
+#elif defined(CONFIG_BOARD_MIMXRT1060_EVK)
+#define TARGET_NAME "evkb_b"
+#else
+#error "M5 smoke supports only native_sim and EVKB Revision B"
+#endif
 
 typedef enum {
     STAGE_NONE,
@@ -38,8 +51,30 @@ typedef enum {
     STAGE_MAIN_MUTEX_UNLOCK,
     STAGE_WORKER_VALUE,
     STAGE_SEMAPHORE_DESTROY,
-    STAGE_MUTEX_DESTROY
+    STAGE_MUTEX_DESTROY,
+    STAGE_CLOCK_START,
+    STAGE_CLOCK_DEADLINE,
+    STAGE_CLOCK_SLEEP,
+    STAGE_CLOCK_CHECK,
+    STAGE_CLOCK_END,
+    STAGE_QUEUE_CREATE,
+    STAGE_QUEUE_SEND,
+    STAGE_QUEUE_RECEIVE,
+    STAGE_QUEUE_FIFO,
+    STAGE_QUEUE_DESTROY,
+    STAGE_SYSTEM_EXPECTATION,
+    STAGE_STACK_OBSERVATION,
+    STAGE_LOG_BEGIN,
+    STAGE_LOG_CAPTURE,
+    STAGE_LOG_OBSERVATION,
+    STAGE_LOG_RESULT,
+    STAGE_COUNT
 } operation_stage_t;
+
+typedef struct {
+    uint32_t sequence;
+    uint32_t value;
+} queue_record_t;
 
 typedef struct {
     operation_stage_t failure_stage;
@@ -54,15 +89,23 @@ typedef struct {
     crux_status_t log_write_status;
     crux_system_status_t system;
     uint32_t value;
+    crux_monotonic_time_t started;
+    int64_t elapsed_ns;
+    int64_t worker_wait_ns;
+    int stack_status;
+    size_t stack_unused_bytes;
+    size_t stack_size_bytes;
 } integration_observation_t;
 
 typedef struct {
     crux_mutex_t mutex;
     crux_semaphore_t handoff;
     crux_thread_t thread;
+    crux_queue_t queue;
     bool mutex_created;
     bool semaphore_created;
     bool thread_created;
+    bool queue_created;
     uint32_t value;
     integration_observation_t observation;
 } integration_state_t;
@@ -74,7 +117,7 @@ static void fail_once(integration_observation_t *observation, operation_stage_t 
 {
     if (observation->failure_status == CRUX_OK) {
         observation->failure_stage = stage;
-        observation->failure_status = status;
+        observation->failure_status = status == CRUX_OK ? CRUX_ERR_INVALID_STATE : status;
     }
 }
 
@@ -97,6 +140,44 @@ static void worker_entry(void *argument)
         goto signal_completion;
     }
 
+    queue_record_t record = {1, EXPECTED_WORKER_VALUE};
+    for (uint32_t sequence = 1; sequence <= 2; ++sequence) {
+        record.sequence = sequence;
+        record.value = EXPECTED_WORKER_VALUE + sequence;
+        status =
+            crux_queue_send(worker_state->queue, &record, sizeof(record), OPERATION_TIMEOUT_MS);
+        if (status != CRUX_OK) {
+            observation->worker_failure_stage = STAGE_QUEUE_SEND;
+            observation->worker_status = status;
+            goto signal_completion;
+        }
+    }
+    /* The queued values must survive both source-buffer mutation and worker exit. */
+    memset(&record, 0, sizeof(record));
+
+    crux_monotonic_time_t before, deadline, after;
+    status = crux_time_get_monotonic(&before);
+    if (status == CRUX_OK)
+        status = crux_time_make_deadline_after(crux_duration_from_ms(2), &deadline);
+    if (status != CRUX_OK) {
+        observation->worker_failure_stage = STAGE_CLOCK_DEADLINE;
+        observation->worker_status = status;
+        goto signal_completion;
+    }
+    status = crux_thread_sleep_until(deadline);
+    if (status != CRUX_OK) {
+        observation->worker_failure_stage = STAGE_CLOCK_SLEEP;
+        observation->worker_status = status;
+        goto signal_completion;
+    }
+    status = crux_time_get_monotonic(&after);
+    if (status != CRUX_OK || !crux_monotonic_is_at_or_before(deadline, after)) {
+        observation->worker_failure_stage = STAGE_CLOCK_CHECK;
+        observation->worker_status = status == CRUX_OK ? CRUX_ERR_IO : status;
+        goto signal_completion;
+    }
+    observation->worker_wait_ns = crux_duration_to_ns(crux_monotonic_diff(after, before));
+
     observation->system_query_status = crux_system_status_get(&observation->system);
     if (observation->system_query_status != CRUX_OK) {
         observation->worker_failure_stage = STAGE_SYSTEM_STATUS;
@@ -113,6 +194,18 @@ static void worker_entry(void *argument)
     observation->worker_status = CRUX_OK;
 
 signal_completion:
+#if defined(CONFIG_INIT_STACKS) && defined(CONFIG_THREAD_STACK_INFO)
+    /* Sample the current worker before join can release/reuse its stack. */
+    observation->stack_size_bytes = k_current_get()->stack_info.size;
+    observation->stack_status =
+        k_thread_stack_space_get(k_current_get(), &observation->stack_unused_bytes);
+    if (observation->worker_status == CRUX_OK && observation->stack_status == 0 &&
+        (observation->stack_size_bytes == 0 ||
+         observation->stack_unused_bytes > observation->stack_size_bytes)) {
+        observation->worker_failure_stage = STAGE_STACK_OBSERVATION;
+        observation->worker_status = CRUX_ERR_IO;
+    }
+#endif
     observation->handoff_give_status = crux_semaphore_give(worker_state->handoff);
     if (observation->handoff_give_status != CRUX_OK && observation->worker_status == CRUX_OK) {
         observation->worker_failure_stage = STAGE_HANDOFF_GIVE;
@@ -136,10 +229,25 @@ static crux_status_t run_integration(integration_observation_t *out)
     state.observation.handoff_give_status = CRUX_ERR_INVALID_STATE;
     state.observation.system_query_status = CRUX_ERR_INVALID_STATE;
     state.observation.log_write_status = CRUX_ERR_INVALID_STATE;
+    state.observation.stack_status = -ENOTSUP;
+    state.observation.elapsed_ns = -1;
+    state.observation.worker_wait_ns = -1;
+
+    status = crux_time_get_monotonic(&state.observation.started);
+    if (status != CRUX_OK) {
+        fail_once(&state.observation, STAGE_CLOCK_START, status);
+        goto cleanup;
+    }
 
     state.observation.log_level_status = crux_log_set_level(CRUX_LOG_INFO);
     if (state.observation.log_level_status != CRUX_OK) {
         fail_once(&state.observation, STAGE_LOG_LEVEL, state.observation.log_level_status);
+        goto cleanup;
+    }
+    status =
+        crux_log_write(CRUX_LOG_INFO, "m5-integration", "M5_SMOKE_BEGIN_V1 target=" TARGET_NAME);
+    if (status != CRUX_OK) {
+        fail_once(&state.observation, STAGE_LOG_BEGIN, status);
         goto cleanup;
     }
 
@@ -163,6 +271,13 @@ static crux_status_t run_integration(integration_observation_t *out)
         goto cleanup;
     }
 
+    status = crux_queue_create(2, sizeof(queue_record_t), &state.queue);
+    if (status != CRUX_OK) {
+        fail_once(&state.observation, STAGE_QUEUE_CREATE, status);
+        goto cleanup;
+    }
+    state.queue_created = true;
+
     options.priority = CRUX_THREAD_PRIORITY_NORMAL;
     status = crux_thread_create(&options, worker_entry, &state, &state.thread);
     if (status != CRUX_OK) {
@@ -180,7 +295,14 @@ static crux_status_t run_integration(integration_observation_t *out)
     status = crux_thread_join(&state.thread, OPERATION_TIMEOUT_MS);
     if (status != CRUX_OK) {
         fail_once(&state.observation, STAGE_THREAD_JOIN, status);
-        *out = state.observation;
+        /* A failed join retains all resources. Do not race a still-live worker
+         * by copying its observations or reclaiming its argument/stack. */
+        *out = (integration_observation_t){.failure_stage = state.observation.failure_stage,
+                                           .failure_status = state.observation.failure_status,
+                                           .system_query_status = CRUX_ERR_INVALID_STATE,
+                                           .elapsed_ns = -1,
+                                           .worker_wait_ns = -1,
+                                           .stack_status = -ENOTSUP};
         return state.observation.failure_status;
     }
     state.thread_created = false;
@@ -193,6 +315,20 @@ static crux_status_t run_integration(integration_observation_t *out)
         fail_once(&state.observation, STAGE_HANDOFF_GIVE, state.observation.handoff_give_status);
     }
 
+    if (state.observation.failure_status == CRUX_OK) {
+        for (uint32_t sequence = 1; sequence <= 2; ++sequence) {
+            queue_record_t record = {0};
+            status = crux_queue_receive(state.queue, &record, sizeof(record), OPERATION_TIMEOUT_MS);
+            if (status != CRUX_OK) {
+                fail_once(&state.observation, STAGE_QUEUE_RECEIVE, status);
+                break;
+            }
+            if (record.sequence != sequence || record.value != EXPECTED_WORKER_VALUE + sequence) {
+                fail_once(&state.observation, STAGE_QUEUE_FIFO, CRUX_ERR_IO);
+                break;
+            }
+        }
+    }
     if (state.observation.failure_status == CRUX_OK) {
         status = crux_mutex_lock(state.mutex, OPERATION_TIMEOUT_MS);
         if (status != CRUX_OK) {
@@ -208,17 +344,38 @@ static crux_status_t run_integration(integration_observation_t *out)
     }
 
 cleanup:
+    if (!state.thread_created && state.queue_created) {
+        status = crux_queue_destroy(&state.queue);
+        if (status == CRUX_OK)
+            state.queue_created = false;
+        else
+            fail_once(&state.observation, STAGE_QUEUE_DESTROY, status);
+    }
     if (!state.thread_created && state.semaphore_created) {
         status = crux_semaphore_destroy(&state.handoff);
-        state.semaphore_created = false;
-        if (status != CRUX_OK)
+        if (status == CRUX_OK)
+            state.semaphore_created = false;
+        else
             fail_once(&state.observation, STAGE_SEMAPHORE_DESTROY, status);
     }
     if (!state.thread_created && state.mutex_created) {
         status = crux_mutex_destroy(&state.mutex);
-        state.mutex_created = false;
-        if (status != CRUX_OK)
+        if (status == CRUX_OK)
+            state.mutex_created = false;
+        else
             fail_once(&state.observation, STAGE_MUTEX_DESTROY, status);
+    }
+
+    if (state.observation.failure_status == CRUX_OK) {
+        crux_monotonic_time_t finished;
+        status = crux_time_get_monotonic(&finished);
+        if (status == CRUX_OK &&
+            crux_monotonic_is_at_or_before(state.observation.started, finished))
+            state.observation.elapsed_ns =
+                crux_duration_to_ns(crux_monotonic_diff(finished, state.observation.started));
+        else
+            fail_once(&state.observation, STAGE_CLOCK_END,
+                      status == CRUX_OK ? CRUX_ERR_IO : status);
     }
 
     *out = state.observation;
@@ -227,12 +384,103 @@ cleanup:
 
 static const char *stage_name(operation_stage_t stage)
 {
-    static const char *const names[] = {
-        "none",          "log-level",         "mutex-create", "semaphore-create", "empty-poll",
-        "thread-create", "handoff-wait",      "thread-join",  "worker-lock",      "worker-unlock",
-        "system-status", "log-write",         "handoff-give", "main-lock",        "main-unlock",
-        "worker-value",  "semaphore-destroy", "mutex-destroy"};
+    static const char *const names[] = {"none",
+                                        "log-level",
+                                        "mutex-create",
+                                        "semaphore-create",
+                                        "empty-poll",
+                                        "thread-create",
+                                        "handoff-wait",
+                                        "thread-join",
+                                        "worker-lock",
+                                        "worker-unlock",
+                                        "system-status",
+                                        "log-write",
+                                        "handoff-give",
+                                        "main-lock",
+                                        "main-unlock",
+                                        "worker-value",
+                                        "semaphore-destroy",
+                                        "mutex-destroy",
+                                        "clock-start",
+                                        "clock-deadline",
+                                        "clock-sleep",
+                                        "clock-check",
+                                        "clock-end",
+                                        "queue-create",
+                                        "queue-send",
+                                        "queue-receive",
+                                        "queue-fifo",
+                                        "queue-destroy",
+                                        "system-expectation",
+                                        "stack-observation",
+                                        "log-begin",
+                                        "log-capture",
+                                        "log-observation",
+                                        "log-result"};
+    BUILD_ASSERT(ARRAY_SIZE(names) == STAGE_COUNT);
     return (size_t)stage < ARRAY_SIZE(names) ? names[stage] : "unknown";
+}
+
+static bool system_report_is_expected(const crux_system_status_t *report, bool native_sim)
+{
+    return report->watchdog_status == (native_sim ? CRUX_ERR_NOT_SUPPORTED : CRUX_OK) &&
+           report->watchdog_state ==
+               (native_sim ? CRUX_WATCHDOG_UNAVAILABLE : CRUX_WATCHDOG_IDLE) &&
+           !report->watchdog_emulated && report->watchdog_timeout_ms == 0 &&
+           report->reset_status == CRUX_OK && report->reset_cause_status == CRUX_OK;
+}
+
+#if defined(CONFIG_BOARD_NATIVE_SIM)
+static void show_native_capture(void);
+#endif
+
+static crux_status_t emit_result(bool passed, operation_stage_t stage, crux_status_t status,
+                                 const integration_observation_t *observation)
+{
+    char record[CRUX_LOG_TEXT_MAX + 1];
+    int length = snprintf(
+        record, sizeof(record),
+        "M5_SMOKE_RESULT_V1 result=%s target=%s stage=%s status=%d "
+        "system_query=%d wd_status=%d wd_state=%d reset_status=%d cause_status=%d",
+        passed ? "PASS" : "FAIL", TARGET_NAME, passed ? "complete" : stage_name(stage), (int)status,
+        (int)observation->system_query_status, (int)observation->system.watchdog_status,
+        (int)observation->system.watchdog_state, (int)observation->system.reset_status,
+        (int)observation->system.reset_cause_status);
+    if (length < 0 || (size_t)length >= sizeof(record))
+        return CRUX_ERR_OUT_OF_RANGE;
+    return crux_log_write(passed ? CRUX_LOG_INFO : CRUX_LOG_ERROR, "m5-integration", record);
+}
+
+static void require_observation(bool accepted, operation_stage_t stage, crux_status_t status,
+                                const integration_observation_t *observation)
+{
+    if (accepted)
+        return;
+    crux_status_t failure = status == CRUX_OK ? CRUX_ERR_INVALID_STATE : status;
+    if (emit_result(false, stage, failure, observation) == CRUX_OK)
+        log_flush();
+#if defined(CONFIG_BOARD_NATIVE_SIM)
+    show_native_capture();
+#endif
+    zassert_true(accepted, "M5 smoke failed at %s: status=%d", stage_name(stage), (int)failure);
+}
+
+static crux_status_t emit_observations(const integration_observation_t *observation)
+{
+    char record[CRUX_LOG_TEXT_MAX + 1];
+    int length = snprintf(record, sizeof(record),
+                          "M5_SMOKE_OBS_V1 target=%s elapsed_ns=%" PRId64 " wait_ns=%" PRId64
+                          " stack=%s stack_status=%d "
+                          "unused_bytes=%zu usable_bytes=%zu",
+                          TARGET_NAME, observation->elapsed_ns, observation->worker_wait_ns,
+                          observation->stack_status == 0 ? "observed" : "unavailable",
+                          observation->stack_status,
+                          observation->stack_status == 0 ? observation->stack_unused_bytes : 0,
+                          observation->stack_status == 0 ? observation->stack_size_bytes : 0);
+    if (length < 0 || (size_t)length >= sizeof(record))
+        return CRUX_ERR_OUT_OF_RANGE;
+    return crux_log_write(CRUX_LOG_INFO, "m5-integration", record);
 }
 
 #if defined(CONFIG_BOARD_NATIVE_SIM)
@@ -262,11 +510,11 @@ static void collect_log_bytes(const struct device *device, size_t size, void *un
     k_mutex_unlock(&capture_mutex);
 }
 
-static bool has_complete_record(void)
+static bool has_complete_record(const char *text)
 {
     bool complete;
     k_mutex_lock(&capture_mutex, K_FOREVER);
-    const char *record = strstr(log_capture, LOG_RECORD);
+    const char *record = strstr(log_capture, text);
     complete = record != NULL && strchr(record, '\n') != NULL;
     k_mutex_unlock(&capture_mutex);
     return complete;
@@ -278,6 +526,13 @@ static bool capture_overflowed(void)
     bool overflowed = log_capture_overflow;
     k_mutex_unlock(&capture_mutex);
     return overflowed;
+}
+
+static void show_native_capture(void)
+{
+    k_mutex_lock(&capture_mutex, K_FOREVER);
+    TC_PRINT("Captured native Logging UART:\n%s", log_capture);
+    k_mutex_unlock(&capture_mutex);
 }
 
 static void *setup(void)
@@ -293,44 +548,103 @@ ZTEST(m5_integrated, test_thread_sync_logging_and_system_coexist)
 {
     integration_observation_t observation;
     crux_status_t status = run_integration(&observation);
-    zassert_equal(status, CRUX_OK, "integration failed at %s: status=%d",
-                  stage_name(observation.failure_stage), (int)observation.failure_status);
-    zassert_equal(observation.log_level_status, CRUX_OK);
-    zassert_equal(observation.empty_poll_status, CRUX_ERR_BUSY,
-                  "empty semaphore poll must return BUSY immediately");
-    zassert_equal(observation.handoff_wait_status, CRUX_OK, "worker did not signal within %u ms",
-                  OPERATION_TIMEOUT_MS);
-    zassert_equal(observation.handoff_give_status, CRUX_OK);
-    zassert_equal(observation.worker_status, CRUX_OK, "worker failed at %s: status=%d",
-                  stage_name(observation.worker_failure_stage), (int)observation.worker_status);
-    zassert_equal(observation.system_query_status, CRUX_OK,
-                  "non-destructive System status query failed: %d",
-                  (int)observation.system_query_status);
-    zassert_equal(observation.system.watchdog_status, CRUX_ERR_NOT_SUPPORTED,
-                  "native_sim has no watchdog device");
-    zassert_equal(observation.system.watchdog_state, CRUX_WATCHDOG_UNAVAILABLE);
-    zassert_false(observation.system.watchdog_emulated);
-    zassert_equal(observation.system.watchdog_timeout_ms, 0);
-    zassert_equal(observation.system.reset_status, CRUX_OK);
-    zassert_equal(observation.system.reset_cause_status, CRUX_OK);
-    zassert_equal(observation.value, EXPECTED_WORKER_VALUE,
-                  "mutex-protected worker result was not handed back");
-    zassert_equal(observation.log_write_status, CRUX_OK, "portable Logging submission failed: %d",
-                  (int)observation.log_write_status);
+    require_observation(status == CRUX_OK, observation.failure_stage, status, &observation);
+    require_observation(observation.log_level_status == CRUX_OK, STAGE_LOG_LEVEL,
+                        observation.log_level_status, &observation);
+    require_observation(observation.empty_poll_status == CRUX_ERR_BUSY, STAGE_EMPTY_POLL,
+                        observation.empty_poll_status, &observation);
+    require_observation(observation.handoff_wait_status == CRUX_OK, STAGE_HANDOFF_WAIT,
+                        observation.handoff_wait_status, &observation);
+    require_observation(observation.handoff_give_status == CRUX_OK, STAGE_HANDOFF_GIVE,
+                        observation.handoff_give_status, &observation);
+    require_observation(observation.worker_status == CRUX_OK, observation.worker_failure_stage,
+                        observation.worker_status, &observation);
+    require_observation(observation.system_query_status == CRUX_OK, STAGE_SYSTEM_STATUS,
+                        observation.system_query_status, &observation);
+    require_observation(
+        system_report_is_expected(&observation.system, IS_ENABLED(CONFIG_BOARD_NATIVE_SIM)),
+        STAGE_SYSTEM_EXPECTATION, CRUX_ERR_INVALID_STATE, &observation);
+    require_observation(observation.value == EXPECTED_WORKER_VALUE, STAGE_WORKER_VALUE, CRUX_ERR_IO,
+                        &observation);
+    require_observation(observation.log_write_status == CRUX_OK, STAGE_LOG_WRITE,
+                        observation.log_write_status, &observation);
 
 #if defined(CONFIG_BOARD_NATIVE_SIM)
-    bool complete = false;
-    for (unsigned attempt = 0; attempt < 200 && !complete; ++attempt) {
-        complete = has_complete_record();
-        if (!complete)
-            k_sleep(K_MSEC(10));
-    }
-    zassert_false(capture_overflowed(), "native Logging capture overflowed");
-    zassert_true(complete, "missing complete native UART record: %s", LOG_RECORD);
+    log_flush();
+    require_observation(!capture_overflowed() && has_complete_record(LOG_RECORD) &&
+                            has_complete_record("M5_SMOKE_BEGIN_V1 target=" TARGET_NAME),
+                        STAGE_LOG_CAPTURE, CRUX_ERR_IO, &observation);
+#endif
+
+    status = emit_observations(&observation);
+    require_observation(status == CRUX_OK, STAGE_LOG_OBSERVATION, status, &observation);
+    /* Test-only native drain: process deferred records before checking capture
+     * or returning. This has no hard latency bound and is not physical UART
+     * delivery acknowledgement; the later board run still needs raw capture. */
+    log_flush();
+#if defined(CONFIG_BOARD_NATIVE_SIM)
+    require_observation(!capture_overflowed() && has_complete_record("M5_SMOKE_OBS_V1"),
+                        STAGE_LOG_OBSERVATION, CRUX_ERR_IO, &observation);
+#endif
+    /* All functional assertions and resource cleanup precede PASS submission.
+     * CRUX_OK still does not establish UART delivery. Physical validation must
+     * capture the complete BEGIN/OBS/PASS records and reject faults or resets. */
+    status = emit_result(true, STAGE_NONE, CRUX_OK, &observation);
+    require_observation(status == CRUX_OK, STAGE_LOG_RESULT, status, &observation);
+    log_flush();
+#if defined(CONFIG_BOARD_NATIVE_SIM)
+    show_native_capture();
 #endif
 }
 
 #if defined(CONFIG_BOARD_NATIVE_SIM)
+ZTEST(m5_integrated, test_system_profile_rejects_unready_or_active_watchdog)
+{
+    crux_system_status_t simulator = {.watchdog_status = CRUX_ERR_NOT_SUPPORTED,
+                                      .watchdog_state = CRUX_WATCHDOG_UNAVAILABLE,
+                                      .reset_status = CRUX_OK,
+                                      .reset_cause_status = CRUX_OK};
+    crux_system_status_t evkb = {.watchdog_status = CRUX_OK,
+                                 .watchdog_state = CRUX_WATCHDOG_IDLE,
+                                 .reset_status = CRUX_OK,
+                                 .reset_cause_status = CRUX_OK};
+    zassert_true(system_report_is_expected(&simulator, true));
+    zassert_true(system_report_is_expected(&evkb, false), "ready, idle EVKB watchdog rejected");
+    zassert_false(system_report_is_expected(&simulator, false));
+    zassert_false(system_report_is_expected(&evkb, true));
+    evkb.watchdog_status = CRUX_ERR_NOT_READY;
+    zassert_false(system_report_is_expected(&evkb, false));
+    evkb.watchdog_status = CRUX_ERR_IO;
+    evkb.watchdog_state = CRUX_WATCHDOG_FAULTED;
+    zassert_false(system_report_is_expected(&evkb, false));
+    evkb.watchdog_status = CRUX_OK;
+    evkb.watchdog_state = CRUX_WATCHDOG_ACTIVE;
+    zassert_false(system_report_is_expected(&evkb, false));
+    evkb.watchdog_state = CRUX_WATCHDOG_IDLE;
+    evkb.watchdog_emulated = true;
+    zassert_false(system_report_is_expected(&evkb, false));
+    evkb.watchdog_emulated = false;
+    evkb.watchdog_timeout_ms = 2000;
+    zassert_false(system_report_is_expected(&evkb, false));
+    evkb.watchdog_timeout_ms = 0;
+    evkb.reset_cause_status = CRUX_ERR_IO;
+    zassert_false(system_report_is_expected(&evkb, false));
+    evkb.reset_cause_status = CRUX_OK;
+    evkb.reset_status = CRUX_ERR_IO;
+    zassert_false(system_report_is_expected(&evkb, false));
+}
+
+ZTEST(m5_integrated, test_unexpected_success_stays_a_failure)
+{
+    integration_observation_t observation = {0};
+    fail_once(&observation, STAGE_EMPTY_POLL, CRUX_OK);
+    zassert_equal(observation.failure_status, CRUX_ERR_INVALID_STATE);
+    zassert_equal(observation.failure_stage, STAGE_EMPTY_POLL);
+    fail_once(&observation, STAGE_QUEUE_DESTROY, CRUX_ERR_IO);
+    zassert_equal(observation.failure_status, CRUX_ERR_INVALID_STATE);
+    zassert_equal(observation.failure_stage, STAGE_EMPTY_POLL);
+}
+
 ZTEST_SUITE(m5_integrated, NULL, setup, NULL, NULL, NULL);
 #else
 ZTEST_SUITE(m5_integrated, NULL, NULL, NULL, NULL, NULL);
