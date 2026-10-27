@@ -37,11 +37,12 @@ typedef enum {
     CRUX_FILE_ERR_OUT_OF_RANGE = -10
 } crux_file_result_t;
 
-/** Open a flat file name; CREATE_REPLACE may truncate an existing file.
- * @param name ASCII leaf name, not a path; see the File contract for bounds.
+/** Open a file by flat ASCII name; CREATE_REPLACE creates or truncates.
+ * @param name Leaf name, not a path; see the File contract for character/length limits.
  * @param mode Required access mode.
- * @param[out] out Must initially be NULL; remains NULL after an accepted failure.
+ * @param[in,out] out Pointer to a NULL handle; remains NULL after accepted failure.
  * @return CRUX_FILE_OK or a CRUX_FILE_ERR_* result.
+ * A failed CREATE_REPLACE may still modify the file; no rollback is promised.
  */
 crux_file_result_t crux_file_open(const char *name, crux_file_mode_t mode, crux_file_t **out);
 

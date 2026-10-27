@@ -15,8 +15,9 @@
 extern "C" {
 #endif
 
-/** Boot-local feed authority, zero-invalid; copying does not create a new owner.
- * This token is not a security boundary.
+/** Zero-invalid, boot-local watchdog feed token.
+ * Copies delegate feed access; this is not a security boundary.
+ * No stop or rearm operation is provided.
  */
 typedef struct {
     uint32_t reserved;
@@ -35,7 +36,8 @@ typedef struct {
     crux_status_t watchdog_status;
     crux_watchdog_state_t watchdog_state;
     bool watchdog_emulated;
-    uint32_t watchdog_timeout_ms; /**< Last requested timeout; stale if FAULTED. */
+    /** Last successful timeout request (ms); zero before start, stale if faulted. */
+    uint32_t watchdog_timeout_ms;
     crux_status_t reset_status;
     crux_status_t reset_cause_status;
 } crux_system_status_t;
@@ -60,15 +62,16 @@ enum {
     CRUX_RESET_CAUSE_OTHER = 1u << 10
 };
 
-/** Observe supported services without changing their state.
- * @param[out] out Full snapshot on success; unchanged on failure.
- * @return CRUX_OK or a crux_status_t error. Check individual status fields.
+/** Observe supported services and their individual status.
+ * May update observed watchdog state; never arms, feeds, clears or resets.
+ * @param[out] out Snapshot set only on success; includes per-service errors.
+ * @return CRUX_OK for a coherent snapshot, or a crux_status_t error.
  */
 crux_status_t crux_system_status_get(crux_system_status_t *out);
 
 /** Read latched, possibly accumulated reset causes.
- * @param[out] out Flag set on success; unchanged on failure.
- * @return CRUX_OK or a crux_status_t error. Multiple or zero flags are valid.
+ * @param[out] out Supported and observed cause masks on success; unchanged on error.
+ * @return CRUX_OK or a crux_status_t error. Zero or multiple cause bits are valid.
  */
 crux_status_t crux_system_reset_cause_get(crux_reset_cause_t *out);
 
@@ -80,7 +83,7 @@ crux_status_t crux_system_reset_cause_get(crux_reset_cause_t *out);
 crux_status_t crux_system_reset_cause_clear(void);
 
 /** Request a system reset; a successful target dispatch does not return.
- * @return CRUX_ERR_NOT_SUPPORTED on normal Host; other native failures may hang.
+ * @return Never CRUX_OK. Normal Host returns CRUX_ERR_NOT_SUPPORTED; native failure may hang.
  * Does not flush storage, drain logs or perform application safe-state actions.
  */
 crux_status_t crux_system_reset(void);
