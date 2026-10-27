@@ -6,22 +6,21 @@
 int main()
 {
     crux_monotonic_time_t before = {0};
-    if (crux_time_get_monotonic(&before) != CRUX_OK || before.private_ns < 0)
+    if (crux_monotonic_now(&before) != CRUX_OK || before.private_ns < 0)
         return 1;
     for (int i = 0; i < 100; ++i) {
         crux_monotonic_time_t current = {0};
-        if (crux_time_get_monotonic(&current) != CRUX_OK ||
-            crux_monotonic_is_before(current, before))
+        if (crux_monotonic_now(&current) != CRUX_OK || crux_monotonic_is_before(current, before))
             return 2;
         before = current;
     }
     crux_monotonic_time_t deadline;
-    if (crux_time_make_deadline_after(crux_duration_from_ms(20), &deadline) != CRUX_OK)
+    if (crux_monotonic_deadline_after(crux_duration_from_ms(20), &deadline) != CRUX_OK)
         return 3;
     if (crux_thread_sleep_until(deadline) != CRUX_OK)
         return 3;
     crux_monotonic_time_t after = {0};
-    if (crux_time_get_monotonic(&after) != CRUX_OK || crux_monotonic_is_before(after, deadline))
+    if (crux_monotonic_now(&after) != CRUX_OK || crux_monotonic_is_before(after, deadline))
         return 4;
     if (crux_thread_sleep_until(before) != CRUX_OK)
         return 5;

@@ -21,13 +21,15 @@ config CRUX_TIME_RTC
 	  Explicit RTC read/store for trusted composition using the rtc alias.
 	  Time init and system realtime never implicitly load or write RTC.
 
-config CRUX_DELAY
-	bool "Crux bounded CPU busy-wait"
-	select CRUX_TIME
-	help
-	  Typed bounded delay using a native timer, without Crux locks, allocation
-	  or scheduler sleep. ISR support requires provider/target validation.
-	  Stable single-core timer profiles only; query the supported input limit.
+config CRUX_TIME_BUSY_WAIT
+    bool "Crux Time native CPU busy-wait"
+    depends on CRUX_TIME
+    default n
+    help
+      Optional native busy-wait with provider range checks and no Crux locks,
+      allocation or scheduler sleep. Disabled positive waits return NOT_SUPPORTED.
+      ISR support requires provider/target validation. Unsupported enabled timer
+      profiles fail configuration; no common numeric maximum is implied.
 
 config CRUX_TIME_TESTING
 	bool "Include Crux Time test controls"

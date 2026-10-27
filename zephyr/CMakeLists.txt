@@ -8,6 +8,11 @@ if(CONFIG_CRUX_PILOT_MODULE)
     add_library(crux::base ALIAS crux_base)
 endif()
 
+if(CONFIG_CRUX_TIME OR CONFIG_CRUX_THREAD OR CONFIG_CRUX_SYNC OR CONFIG_CRUX_QUEUE OR CONFIG_CRUX_SYSTEM)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/interrupt"
+        "${CMAKE_CURRENT_BINARY_DIR}/interrupt")
+endif()
+
 if(CONFIG_CRUX_THREAD)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/thread/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/thread")
@@ -25,11 +30,6 @@ if(CONFIG_CRUX_TIME)
         "${CMAKE_CURRENT_BINARY_DIR}/time")
 endif()
 
-if(CONFIG_CRUX_DELAY)
-    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/delay/ports/zephyr"
-        "${CMAKE_CURRENT_BINARY_DIR}/delay")
-    cmake_language(DEFER CALL crux_assert_portable_usage crux::delay)
-endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxConsumerBoundary.cmake")
 if(CONFIG_CRUX_PILOT_MODULE)

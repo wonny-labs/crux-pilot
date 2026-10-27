@@ -1,4 +1,5 @@
 #include "time_rtc_zephyr.h"
+#include "interrupt.h"
 #include "time_port_internal.h"
 #include <zephyr/kernel.h>
 
@@ -42,11 +43,11 @@ crux_status_t crux_time_zephyr_rtc_read(crux_realtime_t *out)
 {
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
-    if (k_is_in_isr())
+    if (crux_is_in_isr())
         return CRUX_ERR_NOT_SUPPORTED;
 #if defined(CRUX_TIME_RTC_AVAILABLE)
     struct rtc_time native_time = {0};
-    crux_time_utc_t utc_time = {0};
+    crux_datetime_t utc_time = {0};
     crux_realtime_t instant;
     crux_status_t status;
     int result;
@@ -74,7 +75,7 @@ crux_status_t crux_time_zephyr_rtc_read(crux_realtime_t *out)
     utc_time.minute = native_time.tm_min;
     utc_time.second = native_time.tm_sec;
     utc_time.nanoseconds = (uint32_t)native_time.tm_nsec;
-    status = crux_time_from_utc(&utc_time, &instant);
+    status = crux_realtime_from_utc(&utc_time, &instant);
     if (status != CRUX_OK) {
         return status;
     }
@@ -87,17 +88,17 @@ crux_status_t crux_time_zephyr_rtc_read(crux_realtime_t *out)
 #endif
 }
 
-crux_status_t crux_time_zephyr_rtc_store(const crux_realtime_t *value)
+crux_status_t crux_time_zephyr_rtc_store(const crux_realtime_t *time)
 {
-    crux_time_utc_t utc_time;
-    if (value == NULL)
+    crux_datetime_t utc_time;
+    if (time == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
-    crux_status_t status = crux_time_to_utc(*value, &utc_time);
+    crux_status_t status = crux_realtime_to_utc(*time, &utc_time);
     if (status != CRUX_OK)
         return status;
-    if (value->nanoseconds != 0)
+    if (time->nanoseconds != 0)
         return CRUX_ERR_NOT_SUPPORTED;
-    if (k_is_in_isr())
+    if (crux_is_in_isr())
         return CRUX_ERR_NOT_SUPPORTED;
 #if defined(CRUX_TIME_RTC_AVAILABLE)
     struct rtc_time native_time = {0};
@@ -119,7 +120,7 @@ crux_status_t crux_time_zephyr_rtc_store(const crux_realtime_t *value)
     result = rtc_set_time(crux_time_rtc, &native_time);
     return crux_time_zephyr_status_from_rtc_error(result);
 #else
-    ARG_UNUSED(value);
+    ARG_UNUSED(time);
     return CRUX_ERR_NOT_READY;
 #endif
 }

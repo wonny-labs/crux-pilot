@@ -88,21 +88,19 @@ TEST(TimeTypes, MonotonicArithmeticHasCheckedNonnegativeDomain)
 {
     crux_monotonic_time_t out{88};
     crux_monotonic_time_t base{100};
-    EXPECT_EQ(crux_monotonic_add_duration(base, crux_duration_from_ns(-100), &out), CRUX_OK);
+    EXPECT_EQ(crux_monotonic_add(base, crux_duration_from_ns(-100), &out), CRUX_OK);
     EXPECT_EQ(out.private_ns, 0);
-    EXPECT_EQ(crux_monotonic_add_duration(base, crux_duration_from_ns(-101), &out),
-              CRUX_ERR_OUT_OF_RANGE);
+    EXPECT_EQ(crux_monotonic_add(base, crux_duration_from_ns(-101), &out), CRUX_ERR_OUT_OF_RANGE);
     EXPECT_EQ(out.private_ns, 0);
-    EXPECT_EQ(crux_monotonic_add_duration({INT64_MAX}, crux_duration_from_ns(1), &out),
+    EXPECT_EQ(crux_monotonic_add({INT64_MAX}, crux_duration_from_ns(1), &out),
               CRUX_ERR_OUT_OF_RANGE);
-    EXPECT_EQ(crux_monotonic_add_duration({0}, crux_duration_from_ns(INT64_MIN), &out),
+    EXPECT_EQ(crux_monotonic_add({0}, crux_duration_from_ns(INT64_MIN), &out),
               CRUX_ERR_OUT_OF_RANGE);
-    EXPECT_EQ(crux_monotonic_add_duration({-1}, crux_duration_from_ns(0), &out),
-              CRUX_ERR_INVALID_ARGUMENT);
-    EXPECT_EQ(crux_monotonic_add_duration(base, crux_duration_from_ns(0), nullptr),
+    EXPECT_EQ(crux_monotonic_add({-1}, crux_duration_from_ns(0), &out), CRUX_ERR_INVALID_ARGUMENT);
+    EXPECT_EQ(crux_monotonic_add(base, crux_duration_from_ns(0), nullptr),
               CRUX_ERR_INVALID_ARGUMENT);
     crux_duration_t negative_one = crux_duration_from_ns(-1);
-    EXPECT_EQ(crux_monotonic_add_duration({INT64_MAX}, negative_one, &out), CRUX_OK);
+    EXPECT_EQ(crux_monotonic_add({INT64_MAX}, negative_one, &out), CRUX_OK);
     EXPECT_EQ(out.private_ns, INT64_MAX - 1);
 }
 

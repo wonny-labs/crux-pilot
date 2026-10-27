@@ -70,7 +70,7 @@ Reserve `host` for the development/test role. An API-family name such as `posix`
 requires a separately verified support contract; POSIX calls alone do not establish
 cross-OS support. These names do not imply production qualification.
 
-For a concrete example, [Time](time-contract.md) owns typed clocks and authority state, with a controlled memory realtime implementation separately from Linux/Zephyr system realtime and an optional native RTC adapter. The final composition must select an appropriate implementation rather than silently falling back to a test provider.
+For a concrete example, [Time](time-contract.md) owns typed clocks, optional [CPU Busy-wait](time-busy-wait.md) and authority state, with a controlled memory realtime implementation separately from Linux/Zephyr system realtime and an optional native RTC adapter. The final composition must select an appropriate implementation rather than silently falling back to a test provider.
 
 Thread and Sync are separate component-owned capabilities. `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.
 
@@ -83,8 +83,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Capability | Purpose | Current integration and limits | Reference |
 | --- | --- | --- | --- |
 | Base | Common status declarations | Header-only usage in Host and Zephyr; no OS provider | [Public header](../components/base/include/crux/status.h) |
-| Time | Typed monotonic/realtime, authority and calendar | Explicit Memory or Linux system realtime; Zephyr system realtime without RTC, optional native RTC storage; no implicit fallback | [Contract](time-contract.md) |
-| Delay | Bounded CPU busy-wait | Linux polling and selected stable single-core Zephyr timer profiles; normal ISR/IRQ-delivery simulation, EVKB compilation only | [Contract](delay.md) |
+| Time | Typed monotonic/realtime, authority, calendar and optional CPU Busy-wait | Explicit Memory or Linux system realtime; Zephyr system realtime without RTC, optional native RTC storage; no implicit fallback | [Contract](time-contract.md) |
 | Thread | Bounded joinable workers | Independent Linux pthread and Zephyr providers | [Current headers/targets](#build-and-native-composition), [contract](thread-sync.md) |
 | Sync | Nonrecursive mutexes and bounded semaphores | Independent Linux and Zephyr providers; no Crux Thread dependency | [Current headers/targets](#build-and-native-composition), [contract](thread-sync.md) |
 | Queue | Bounded copy messaging | Linux and Zephyr ports with composition-selected native providers | [Messaging contract](messaging-contract.md) |
@@ -144,3 +143,13 @@ The [capability inventory](#current-capability-integration) links to component-s
 - [Native-free consumer policy](native-interface-policy.md)
 - [Test organisation and commands](../tests/README.md)
 - [Reference controller and supported scenarios](../samples/controller/README.md)
+
+## Private execution context
+
+`components/interrupt/src/interrupt.h` declares the shared private
+`crux_is_in_isr()` query. Linux and Zephyr implementations are selected internally;
+there is no public Interrupt header or `crux::interrupt` usage target. Time,
+Thread, Sync, Queue and System use this mechanism while retaining their own
+eligibility policy (including System's pre-kernel rejection). Non-ISR context
+alone is not a general API eligibility or POSIX signal-safety guarantee. Base
+remains header-only and OS-independent; Time never depends on Thread or Sync.

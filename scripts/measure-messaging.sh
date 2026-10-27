@@ -56,7 +56,7 @@ for profile in baseline enabled; do
     sha256sum "$image" >> "$evidence/elf-sha256.txt"
 done
 for api in crux_queue_create crux_queue_send crux_queue_receive crux_queue_destroy \
-    crux_time_get_monotonic crux_thread_sleep_until; do
+    crux_monotonic_now crux_thread_sleep_until; do
     if ! awk -v symbol="$api" '$3 == "T" && $4 == symbol {found=1} END {exit !found}' \
         "$evidence/enabled-nm.txt"; then
         printf 'Required retained API missing: %s\n' "$api" >&2

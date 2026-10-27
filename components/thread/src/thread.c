@@ -1,3 +1,4 @@
+#include "interrupt.h"
 #include "thread_internal.h"
 
 #include <limits.h>
@@ -27,7 +28,7 @@ crux_status_t crux_thread_create(const crux_thread_options_t *options, crux_thre
     if (out != NULL) {
         *out = (crux_thread_t){0};
     }
-    if (!thread_native_context_allowed()) {
+    if (crux_is_in_isr()) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
     if (out == NULL) {
@@ -63,7 +64,7 @@ crux_status_t crux_thread_create(const crux_thread_options_t *options, crux_thre
 
 crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms)
 {
-    if (!thread_native_context_allowed()) {
+    if (crux_is_in_isr()) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
     if (thread == NULL) {

@@ -108,10 +108,10 @@ class NativeInterfaceTest(unittest.TestCase):
                     self.assertIn("native/private header", result.stdout)
 
     def test_public_headers_cannot_include_shared_implementation_headers(self):
-        source = '#include "../src/time_port.h"\n'
+        source = '#include "../src/realtime_port.h"\n'
         result = self.check_source(source)
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        result = self.check_source('#include "time_port.h"\n', "components/time/src/time.c")
+        result = self.check_source('#include "realtime_port.h"\n', "components/time/src/time.c")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_applies_to_all_designated_portable_roots(self):

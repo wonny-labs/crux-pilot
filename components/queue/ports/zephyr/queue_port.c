@@ -1,4 +1,5 @@
 #include "queue_port.h"
+#include "interrupt.h"
 #include <errno.h>
 #include <limits.h>
 K_MUTEX_DEFINE(crux_queue_metadata);
@@ -14,7 +15,7 @@ static crux_status_t status(int error, bool poll)
 }
 bool queue_port_context(void)
 {
-    return !k_is_in_isr();
+    return !crux_is_in_isr();
 }
 crux_status_t queue_port_deadline(uint32_t ms, queue_deadline_t *out)
 {

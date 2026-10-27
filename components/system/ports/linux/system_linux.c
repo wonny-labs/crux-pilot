@@ -1,3 +1,4 @@
+#include "interrupt.h"
 #include "system_port.h"
 #include <limits.h>
 #include <pthread.h>
@@ -9,7 +10,7 @@ static int64_t last_feed;
 static uint32_t timeout;
 bool system_port_context_allowed(void)
 {
-    return true;
+    return !crux_is_in_isr();
 }
 crux_status_t system_port_lock(void)
 {

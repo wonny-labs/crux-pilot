@@ -11,3 +11,6 @@ target_compile_options(crux_queue_linux PRIVATE -Wall -Wextra -Wpedantic -Werror
 
 # Supported native final-composition target; never link it into portable source targets.
 add_library(crux::queue_linux ALIAS crux_queue_linux)
+
+target_include_directories(crux_queue_linux PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../interrupt/src")
+target_link_libraries(crux_queue_linux PRIVATE crux_interrupt)

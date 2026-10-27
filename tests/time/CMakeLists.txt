@@ -82,3 +82,10 @@ target_link_options(crux_time_clock_linux_tests PRIVATE
 target_compile_options(crux_time_clock_linux_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME Time.TypedLinuxClock COMMAND crux_time_clock_linux_tests)
 set_tests_properties(Time.TypedLinuxClock PROPERTIES TIMEOUT 5)
+
+foreach(target crux_time_realtime_tests crux_time_common_test crux_time_clock_tests crux_time_realtime_linux_tests)
+    target_include_directories(${target} PRIVATE ../../components/interrupt/src)
+endforeach()
+target_link_libraries(crux_time_realtime_linux_tests PRIVATE crux_interrupt)
+target_link_libraries(crux_time_test INTERFACE crux_interrupt crux_time_busy_wait)
+add_subdirectory(busy_wait)

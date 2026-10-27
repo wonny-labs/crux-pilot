@@ -2,7 +2,7 @@ add_executable(crux_thread_sleep_tests common.c
     ../../components/thread/src/thread_sleep.c ../../components/time/src/time_clock.c
     ../../components/time/src/time_types.c)
 target_include_directories(crux_thread_sleep_tests PRIVATE
-    ../../components/thread/src ../../components/time/src)
+    ../../components/thread/src ../../components/time/src ../../components/interrupt/src)
 target_link_libraries(crux_thread_sleep_tests PRIVATE crux::thread)
 target_compile_options(crux_thread_sleep_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME Thread.TypedSleep COMMAND crux_thread_sleep_tests)

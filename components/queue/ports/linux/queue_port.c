@@ -1,4 +1,5 @@
 #include "queue_port.h"
+#include "interrupt.h"
 #include <errno.h>
 #include <limits.h>
 #include <pthread.h>
@@ -17,7 +18,7 @@ static crux_status_t status(int error)
 }
 bool queue_port_context(void)
 {
-    return true;
+    return !crux_is_in_isr();
 }
 crux_status_t queue_port_deadline(uint32_t ms, queue_deadline_t *out)
 {

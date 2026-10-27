@@ -8,8 +8,8 @@ repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
-    -T "$repo/tests/delay/zephyr" -O "$repo/build/zephyr/twister-delay" --inline-logs)
+    -T "$repo/tests/time/busy_wait/zephyr" -O "$repo/build/zephyr/twister-time-busy-wait" --inline-logs)
 (cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' \
-    -d "$repo/build/zephyr/delay-evkb" "$repo/tests/delay/zephyr" -- \
+    -d "$repo/build/zephyr/time-busy-wait-evkb" "$repo/tests/time/busy_wait/zephyr" -- \
     -DEXTRA_ZEPHYR_MODULES="$repo" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 # Compilation only: no programming, reset, debugger, serial or target operation.

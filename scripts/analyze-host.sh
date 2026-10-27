@@ -35,8 +35,10 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/components/time/ports/linux/time_realtime_linux.c" \
     "$repo/components/time/src/time_calendar.c" \
     "$repo/components/time/src/time_port_memory.c" \
-    "$repo/components/delay/src/delay.c" \
-    "$repo/components/delay/ports/linux/delay_linux.c" \
+    "$repo/components/interrupt/ports/linux/interrupt_linux.c" \
+    "$repo/components/time/src/busy_wait.c" \
+    "$repo/components/time/src/busy_wait_disabled.c" \
+    "$repo/components/time/ports/linux/busy_wait_linux.c" \
     "$repo/samples/time/src/time_command.c" \
     "$repo/samples/time/host/main.c" \
     "$repo/tests/time/time_test.cpp" \

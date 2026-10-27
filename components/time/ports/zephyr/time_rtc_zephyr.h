@@ -9,6 +9,6 @@
  * Current qualified adapters store whole seconds only; nonzero fractional
  * storage is NOT_SUPPORTED. Load/adoption policy belongs to the application. */
 crux_status_t crux_time_zephyr_rtc_read(crux_realtime_t *out);
-crux_status_t crux_time_zephyr_rtc_store(const crux_realtime_t *value);
+crux_status_t crux_time_zephyr_rtc_store(const crux_realtime_t *time);
 
 #endif

@@ -180,7 +180,7 @@ static crux_status_t fake_advance(controller_schedule_t *schedule, int64_t now)
 #define controller_network_pair fake_pair
 #define controller_device_init fake_init
 #define controller_device_read fake_device
-#define crux_time_init fake_time
+#define crux_realtime_init fake_time
 #define controller_observe fake_observe
 #define controller_schedule_advance fake_advance
 #undef DEVICE_DT_GET_OR_NULL

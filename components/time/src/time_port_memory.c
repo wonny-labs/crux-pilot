@@ -1,4 +1,4 @@
-#include "time_port.h"
+#include "realtime_port.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -17,7 +17,7 @@ static unsigned int g_read_calls;
 static unsigned int g_write_calls;
 #endif
 
-crux_status_t crux_time_port_init(void)
+crux_status_t crux_realtime_impl_init(void)
 {
 #ifdef CRUX_TIME_TESTING
     ++g_init_calls;
@@ -30,7 +30,7 @@ crux_status_t crux_time_port_init(void)
     return CRUX_OK;
 }
 
-crux_status_t crux_time_port_read(crux_realtime_t *out)
+crux_status_t crux_realtime_impl_read(crux_realtime_t *out)
 {
     if (out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
@@ -59,7 +59,7 @@ crux_status_t crux_time_port_read(crux_realtime_t *out)
     return CRUX_OK;
 }
 
-crux_status_t crux_time_port_write(const crux_realtime_t *value)
+crux_status_t crux_realtime_impl_write(const crux_realtime_t *time)
 {
     if (!g_backend_initialised) {
         return CRUX_ERR_NOT_READY;
@@ -71,7 +71,7 @@ crux_status_t crux_time_port_write(const crux_realtime_t *value)
         return CRUX_ERR_IO;
     }
 #endif
-    g_time = *value;
+    g_time = *time;
     g_has_time = true;
     return CRUX_OK;
 }

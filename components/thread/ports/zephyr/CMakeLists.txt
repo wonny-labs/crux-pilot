@@ -30,3 +30,6 @@ add_library(crux_thread INTERFACE)
 add_library(crux::thread ALIAS crux_thread)
 # Native provider is already registered independently above.
 target_link_libraries(crux_thread INTERFACE crux_thread_api)
+
+target_include_directories(crux_thread_zephyr PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../../../interrupt/src")
+target_link_libraries(crux_thread_zephyr PRIVATE crux_interrupt)

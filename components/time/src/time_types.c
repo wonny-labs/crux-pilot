@@ -25,22 +25,22 @@ crux_status_t crux_duration_try_from_ms(int64_t ms, crux_duration_t *out)
     return duration_try_scale(ms, INT64_C(1000000), out);
 }
 
-crux_status_t crux_duration_try_from_sec(int64_t sec, crux_duration_t *out)
+crux_status_t crux_duration_try_from_sec(int64_t seconds, crux_duration_t *out)
 {
-    return duration_try_scale(sec, INT64_C(1000000000), out);
+    return duration_try_scale(seconds, INT64_C(1000000000), out);
 }
 
-crux_status_t crux_monotonic_add_duration(crux_monotonic_time_t base, crux_duration_t delta,
-                                          crux_monotonic_time_t *out_time)
+crux_status_t crux_monotonic_add(crux_monotonic_time_t base, crux_duration_t delta,
+                                 crux_monotonic_time_t *out)
 {
-    if (out_time == NULL || base.private_ns < 0) {
+    if (out == NULL || base.private_ns < 0) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
     if ((delta.private_ns > 0 && base.private_ns > INT64_MAX - delta.private_ns) ||
         (delta.private_ns < 0 && base.private_ns <= -(delta.private_ns + INT64_C(1)))) {
         return CRUX_ERR_OUT_OF_RANGE;
     }
-    out_time->private_ns = base.private_ns + delta.private_ns;
+    out->private_ns = base.private_ns + delta.private_ns;
     return CRUX_OK;
 }
 

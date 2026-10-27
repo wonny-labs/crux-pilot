@@ -32,3 +32,6 @@ add_library(crux_system INTERFACE)
 add_library(crux::system ALIAS crux_system)
 target_link_libraries(crux_system INTERFACE crux_system_api)
 cmake_language(DEFER CALL crux_assert_portable_usage crux::system)
+
+target_include_directories(crux_system_zephyr PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../../../interrupt/src")
+target_link_libraries(crux_system_zephyr PRIVATE crux_interrupt)

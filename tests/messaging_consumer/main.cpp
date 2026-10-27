@@ -7,7 +7,7 @@ int main()
 {
     crux_monotonic_time_t now = {0};
     crux_queue_t queue{};
-    if (crux_time_get_monotonic(&now) != CRUX_OK || crux_thread_sleep_until(now) != CRUX_OK ||
+    if (crux_monotonic_now(&now) != CRUX_OK || crux_thread_sleep_until(now) != CRUX_OK ||
         crux_queue_create(1, sizeof(now), &queue) != CRUX_OK ||
         crux_queue_send(queue, &now, sizeof(now), 0) != CRUX_OK)
         return 1;
