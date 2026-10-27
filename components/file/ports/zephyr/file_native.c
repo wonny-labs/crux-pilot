@@ -6,6 +6,7 @@
 #include <string.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/kernel.h>
+
 /* Target writable storage is intentionally not enabled by this provider PoC. */
 #if !defined(CONFIG_BOARD_NATIVE_SIM) || !defined(CONFIG_FLASH_SIMULATOR)
 #error "File provider is qualified for simulated Flash only"
@@ -15,6 +16,7 @@ static struct fs_file_t handles[CRUX_FILE_POOL_SIZE];
 static char root[64];
 static char paths[CRUX_FILE_POOL_SIZE][sizeof(root) + CRUX_FILE_NAME_MAX + 1];
 static crux_file_result_t cleanup_error;
+
 static crux_file_result_t result(int rc)
 {
     switch (rc) {
@@ -43,17 +45,20 @@ static crux_file_result_t result(int rc)
         return CRUX_FILE_ERR_IO;
     }
 }
+
 void crux_file_port_lock(void)
 {
     __ASSERT_NO_MSG(!k_is_in_isr());
     if (k_mutex_lock(&file_lock, K_FOREVER) != 0)
         k_panic();
 }
+
 void crux_file_port_unlock(void)
 {
     if (k_mutex_unlock(&file_lock) != 0)
         k_panic();
 }
+
 crux_file_result_t crux_file_zephyr_bind(const char *r)
 {
     if (!r || r[0] != '/')
@@ -72,6 +77,7 @@ crux_file_result_t crux_file_zephyr_bind(const char *r)
     memcpy(root, r, length + 1);
     return CRUX_FILE_OK;
 }
+
 static crux_file_result_t ready(void)
 {
     struct fs_dirent st;
@@ -84,6 +90,7 @@ static crux_file_result_t ready(void)
         return result(rc);
     return st.type == FS_DIR_ENTRY_DIR ? CRUX_FILE_OK : CRUX_FILE_ERR_NOT_READY;
 }
+
 crux_file_result_t crux_file_port_open(size_t s, const char *name, crux_file_mode_t mode)
 {
     crux_file_result_t rc = ready();
@@ -98,10 +105,12 @@ crux_file_result_t crux_file_port_open(size_t s, const char *name, crux_file_mod
     fs_file_t_init(&handles[s]);
     return result(fs_open(&handles[s], paths[s], flags));
 }
+
 crux_file_result_t crux_file_port_truncate(size_t s)
 {
     return result(fs_truncate(&handles[s], 0));
 }
+
 crux_file_result_t crux_file_port_read(size_t s, void *b, size_t l, size_t *n)
 {
     if (l > INT32_MAX)
@@ -112,6 +121,7 @@ crux_file_result_t crux_file_port_read(size_t s, void *b, size_t l, size_t *n)
     *n = (size_t)rc;
     return CRUX_FILE_OK;
 }
+
 crux_file_result_t crux_file_port_write(size_t s, const void *b, size_t l, size_t *n)
 {
     if (l > INT32_MAX)
@@ -122,6 +132,7 @@ crux_file_result_t crux_file_port_write(size_t s, const void *b, size_t l, size_
     *n = (size_t)rc;
     return CRUX_FILE_OK;
 }
+
 crux_file_result_t crux_file_port_seek(size_t s, uint64_t offset)
 {
     _Static_assert(sizeof(off_t) == 4 || sizeof(off_t) == 8, "supported VFS offsets");
@@ -144,16 +155,19 @@ crux_file_result_t crux_file_port_seek(size_t s, uint64_t offset)
         return CRUX_FILE_ERR_OUT_OF_RANGE;
     return result(fs_seek(&handles[s], (off_t)offset, FS_SEEK_SET));
 }
+
 crux_file_result_t crux_file_port_sync(size_t s)
 {
     return result(fs_sync(&handles[s]));
 }
+
 crux_file_result_t crux_file_port_close(size_t s)
 {
     int rc = fs_close(&handles[s]);
     fs_file_t_init(&handles[s]); /* backend may release data even on failure */
     return result(rc);
 }
+
 crux_file_result_t crux_file_port_remove(const char *name)
 {
     crux_file_result_t rc = ready();
@@ -165,10 +179,12 @@ crux_file_result_t crux_file_port_remove(const char *name)
         return CRUX_FILE_ERR_OUT_OF_RANGE;
     return result(fs_unlink(path));
 }
+
 void crux_file_port_cleanup_error(crux_file_result_t error)
 {
     cleanup_error = error;
 }
+
 crux_file_result_t crux_file_zephyr_last_cleanup_error(void)
 {
     return cleanup_error;

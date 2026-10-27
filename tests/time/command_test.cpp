@@ -15,7 +15,7 @@ class TimeCommandTest : public ::testing::Test
     {
         crux_time_test_reset();
         crux_time_host_test_reset();
-        ASSERT_EQ(crux_time_init(), CRUX_OK);
+        ASSERT_EQ(crux_realtime_init(), CRUX_OK);
     }
 };
 
@@ -29,7 +29,7 @@ TEST_F(TimeCommandTest, NoDataApiStatusMapsToDistinctCliText)
     crux_realtime_t instant = {0, 0};
     const crux_time_command_result_t result = crux_time_command_execute("time get");
 
-    EXPECT_EQ(crux_time_get_realtime(&instant), CRUX_ERR_NO_DATA);
+    EXPECT_EQ(crux_realtime_now(&instant), CRUX_ERR_NO_DATA);
     EXPECT_EQ(result.status, CRUX_ERR_NO_DATA);
     EXPECT_STREQ(crux_time_command_cli_error_text(result.status), "ERR NOT_SET");
     EXPECT_STRNE(crux_time_command_cli_error_text(result.status), "ERR NO_DATA");

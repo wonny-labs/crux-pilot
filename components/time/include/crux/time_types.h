@@ -18,6 +18,10 @@
 extern "C" {
 #endif
 
+/* Storage is visible for by-value use, but private_ns is not a public
+ * field-access contract. Application consumers must use the Time APIs.
+ * Trusted Crux implementations and tests may access it where necessary.
+ */
 typedef struct {
     int64_t private_ns;
 } crux_duration_t;
@@ -40,7 +44,7 @@ typedef struct {
 #define CRUX_DURATION_NS_INIT(ns) {(int64_t)(ns)}
 #define CRUX_DURATION_US_INIT(us) {(int64_t)(us) * INT64_C(1000)}
 #define CRUX_DURATION_MS_INIT(ms) {(int64_t)(ms) * INT64_C(1000000)}
-#define CRUX_DURATION_SEC_INIT(sec) {(int64_t)(sec) * INT64_C(1000000000)}
+#define CRUX_DURATION_SEC_INIT(seconds) {(int64_t)(seconds) * INT64_C(1000000000)}
 
 /* These signed 32-bit input ranges are safe to multiply into int64_t ns. */
 static inline crux_duration_t crux_duration_from_ns(int64_t ns)
@@ -67,13 +71,27 @@ static inline crux_duration_t crux_duration_from_sec(int32_t seconds)
     return result;
 }
 
-/* Checked constructors accept signed inputs. Negative durations are valid.
- * On NULL return INVALID_ARGUMENT; on overflow return OUT_OF_RANGE.
- * Every failure preserves a non-NULL output value.
+/**
+ * Construct a signed Duration from checked microseconds.
+ * @param us Signed microseconds; negative durations are valid.
+ * @param[out] out Caller-owned result, preserved on every failure.
+ * @return OK, INVALID_ARGUMENT for NULL, OUT_OF_RANGE on scaling overflow.
  */
 crux_status_t crux_duration_try_from_us(int64_t us, crux_duration_t *out);
+/**
+ * Construct a signed Duration from checked milliseconds.
+ * @param ms Signed milliseconds; negative durations are valid.
+ * @param[out] out Caller-owned result, preserved on every failure.
+ * @return OK, INVALID_ARGUMENT for NULL, OUT_OF_RANGE on scaling overflow.
+ */
 crux_status_t crux_duration_try_from_ms(int64_t ms, crux_duration_t *out);
-crux_status_t crux_duration_try_from_sec(int64_t sec, crux_duration_t *out);
+/**
+ * Construct a signed Duration from checked seconds.
+ * @param seconds Signed seconds; negative durations are valid.
+ * @param[out] out Caller-owned result, preserved on every failure.
+ * @return OK, INVALID_ARGUMENT for NULL, OUT_OF_RANGE on scaling overflow.
+ */
+crux_status_t crux_duration_try_from_sec(int64_t seconds, crux_duration_t *out);
 
 static inline int64_t crux_duration_to_ns(crux_duration_t duration)
 {
@@ -122,12 +140,17 @@ static inline bool crux_monotonic_is_at_or_before(crux_monotonic_time_t a, crux_
     return a.private_ns <= b.private_ns;
 }
 
-/* Checked nonnegative monotonic time arithmetic.
+/**
+ * Add a signed Duration to a nonnegative Monotonic timestamp.
  * A negative base is INVALID_ARGUMENT. An unrepresentable or negative result
  * is OUT_OF_RANGE. On failure the output remains untouched.
+ * @param base Nonnegative sample from the same provider/session as consumers.
+ * @param delta Signed interval; no deadline quantization compensation.
+ * @param[out] out Assigned only on success; NULL is INVALID_ARGUMENT.
+ * @return OK, INVALID_ARGUMENT or OUT_OF_RANGE as specified above.
  */
-crux_status_t crux_monotonic_add_duration(crux_monotonic_time_t base, crux_duration_t delta,
-                                          crux_monotonic_time_t *out_time);
+crux_status_t crux_monotonic_add(crux_monotonic_time_t base, crux_duration_t delta,
+                                 crux_monotonic_time_t *out);
 
 /* Signed a - b; valid nonnegative int64_t timestamps never overflow here. */
 crux_duration_t crux_monotonic_diff(crux_monotonic_time_t a, crux_monotonic_time_t b);

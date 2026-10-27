@@ -1,4 +1,4 @@
-#include "time_port.h"
+#include "realtime_port.h"
 #include <crux/time_authority.h>
 #include <stddef.h>
 
@@ -6,7 +6,7 @@
 static bool g_initialised;
 static bool g_valid;
 static bool g_synchronized;
-static crux_time_source_t g_last_source;
+static crux_realtime_source_t g_last_source;
 
 static crux_status_t validate_value(const crux_realtime_t *value)
 {
@@ -20,14 +20,6 @@ static crux_status_t validate_value(const crux_realtime_t *value)
     return CRUX_OK;
 }
 
-static crux_status_t lock_time(void)
-{
-    if (!crux_time_port_is_thread()) {
-        return CRUX_ERR_NOT_SUPPORTED;
-    }
-    return crux_time_port_lock();
-}
-
 static void invalidate(void)
 {
     g_valid = false;
@@ -38,7 +30,7 @@ static void invalidate(void)
 static crux_status_t read_native(crux_realtime_t *out)
 {
     crux_realtime_t value;
-    crux_status_t status = crux_time_port_read(&value);
+    crux_status_t status = crux_realtime_impl_read(&value);
     if (status == CRUX_OK) {
         status = validate_value(&value);
         if (status == CRUX_ERR_INVALID_ARGUMENT) {
@@ -54,28 +46,28 @@ static crux_status_t read_native(crux_realtime_t *out)
     return status;
 }
 
-crux_status_t crux_time_init(void)
+crux_status_t crux_realtime_init(void)
 {
-    crux_status_t status = lock_time();
+    crux_status_t status = crux_realtime_impl_lock();
     if (status != CRUX_OK)
         return status;
     if (!g_initialised) {
-        status = crux_time_port_init();
+        status = crux_realtime_impl_init();
         if (status == CRUX_OK) {
             g_initialised = true;
             invalidate();
-            g_last_source = CRUX_TIME_SOURCE_NONE;
+            g_last_source = CRUX_REALTIME_SOURCE_NONE;
         }
     }
-    crux_time_port_unlock();
+    crux_realtime_impl_unlock();
     return status;
 }
 
-crux_status_t crux_time_get_realtime(crux_realtime_t *out)
+crux_status_t crux_realtime_now(crux_realtime_t *out)
 {
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
-    crux_status_t status = lock_time();
+    crux_status_t status = crux_realtime_impl_lock();
     if (status != CRUX_OK)
         return status;
     if (!g_initialised)
@@ -84,15 +76,15 @@ crux_status_t crux_time_get_realtime(crux_realtime_t *out)
         status = CRUX_ERR_NO_DATA;
     else
         status = read_native(out);
-    crux_time_port_unlock();
+    crux_realtime_impl_unlock();
     return status;
 }
 
-crux_status_t crux_time_get_realtime_snapshot(crux_realtime_snapshot_t *out)
+crux_status_t crux_realtime_get_snapshot(crux_realtime_snapshot_t *out)
 {
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
-    crux_status_t status = lock_time();
+    crux_status_t status = crux_realtime_impl_lock();
     if (status != CRUX_OK)
         return status;
     if (!g_initialised) {
@@ -106,18 +98,18 @@ crux_status_t crux_time_get_realtime_snapshot(crux_realtime_snapshot_t *out)
         }
         if (status == CRUX_OK) {
             value.last_source = g_last_source;
-            value.is_time_valid = g_valid;
-            value.is_actively_synchronized = g_synchronized;
+            value.is_valid = g_valid;
+            value.is_synchronized = g_synchronized;
             *out = value;
         }
     }
-    crux_time_port_unlock();
+    crux_realtime_impl_unlock();
     return status;
 }
 
-crux_status_t crux_time_adopt_realtime(void)
+crux_status_t crux_realtime_adopt(void)
 {
-    crux_status_t status = lock_time();
+    crux_status_t status = crux_realtime_impl_lock();
     if (status != CRUX_OK)
         return status;
     if (!g_initialised) {
@@ -128,31 +120,31 @@ crux_status_t crux_time_adopt_realtime(void)
         if (status == CRUX_OK) {
             g_valid = true;
             g_synchronized = false;
-            g_last_source = CRUX_TIME_SOURCE_UNKNOWN;
+            g_last_source = CRUX_REALTIME_SOURCE_UNKNOWN;
         }
     }
-    crux_time_port_unlock();
+    crux_realtime_impl_unlock();
     return status;
 }
 
-crux_status_t crux_time_set_realtime(const crux_realtime_t *value, crux_time_source_t source,
-                                     bool actively_synchronized)
+crux_status_t crux_realtime_set(const crux_realtime_t *time, crux_realtime_source_t source,
+                                bool actively_synchronized)
 {
-    crux_status_t status = validate_value(value);
+    crux_status_t status = validate_value(time);
     if (status != CRUX_OK)
         return status;
-    if ((source != CRUX_TIME_SOURCE_RTC && source != CRUX_TIME_SOURCE_MANUAL &&
-         source != CRUX_TIME_SOURCE_EXTERNAL) ||
-        (actively_synchronized && source != CRUX_TIME_SOURCE_EXTERNAL)) {
+    if ((source != CRUX_REALTIME_SOURCE_RTC && source != CRUX_REALTIME_SOURCE_MANUAL &&
+         source != CRUX_REALTIME_SOURCE_EXTERNAL) ||
+        (actively_synchronized && source != CRUX_REALTIME_SOURCE_EXTERNAL)) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    status = lock_time();
+    status = crux_realtime_impl_lock();
     if (status != CRUX_OK)
         return status;
     if (!g_initialised) {
         status = CRUX_ERR_NOT_READY;
     } else {
-        status = crux_time_port_write(value);
+        status = crux_realtime_impl_write(time);
         if (status == CRUX_OK) {
             g_valid = true;
             g_synchronized = actively_synchronized;
@@ -161,48 +153,48 @@ crux_status_t crux_time_set_realtime(const crux_realtime_t *value, crux_time_sou
             invalidate();
         }
     }
-    crux_time_port_unlock();
+    crux_realtime_impl_unlock();
     return status;
 }
 
-crux_status_t crux_time_notify_sync_state(bool actively_synchronized)
+crux_status_t crux_realtime_set_synchronized(bool actively_synchronized)
 {
-    crux_status_t status = lock_time();
+    crux_status_t status = crux_realtime_impl_lock();
     if (status != CRUX_OK)
         return status;
     if (!g_initialised)
         status = CRUX_ERR_NOT_READY;
     else if (!g_valid)
         status = CRUX_ERR_NO_DATA;
-    else if (actively_synchronized && g_last_source != CRUX_TIME_SOURCE_EXTERNAL) {
+    else if (actively_synchronized && g_last_source != CRUX_REALTIME_SOURCE_EXTERNAL) {
         status = CRUX_ERR_INVALID_STATE;
     } else
         g_synchronized = actively_synchronized;
-    crux_time_port_unlock();
+    crux_realtime_impl_unlock();
     return status;
 }
 
-crux_status_t crux_time_invalidate_realtime(void)
+crux_status_t crux_realtime_invalidate(void)
 {
-    crux_status_t status = lock_time();
+    crux_status_t status = crux_realtime_impl_lock();
     if (status != CRUX_OK)
         return status;
     if (!g_initialised)
         status = CRUX_ERR_NOT_READY;
     else
         invalidate();
-    crux_time_port_unlock();
+    crux_realtime_impl_unlock();
     return status;
 }
 
 #ifdef CRUX_TIME_TESTING
 void crux_time_test_reset(void)
 {
-    if (lock_time() == CRUX_OK) {
+    if (crux_realtime_impl_lock() == CRUX_OK) {
         g_initialised = false;
         invalidate();
-        g_last_source = CRUX_TIME_SOURCE_NONE;
-        crux_time_port_unlock();
+        g_last_source = CRUX_REALTIME_SOURCE_NONE;
+        crux_realtime_impl_unlock();
     }
 }
 #endif

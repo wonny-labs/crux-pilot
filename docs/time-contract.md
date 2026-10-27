@@ -33,7 +33,7 @@ Checked failures preserve outputs; constructors and arithmetic retain the typed
 foundation's overflow and signed rounding rules.
 
 Realtime/calendar support `[2000-01-01T00:00:00, 2100-01-01T00:00:00)` UTC.
-The seven-field `crux_time_utc_t` adds nanoseconds to year/month/day/hour/minute/
+The seven-field `crux_datetime_t` adds nanoseconds to year/month/day/hour/minute/
 second. Both conversion directions preserve fractions. Validate NULL, field
 ranges and actual month length before the year range; malformed values are
 INVALID_ARGUMENT and valid dates outside 2000..2099 are OUT_OF_RANGE. Conversion
@@ -45,13 +45,13 @@ No compatibility wrapper silently assigns authority or persists RTC storage.
 
 ## Typed monotonic observation and deadlines
 
-`crux_time_get_monotonic()` and `crux_time_make_deadline_after()` need neither
+`crux_monotonic_now()` and `crux_monotonic_deadline_after()` need neither
 realtime init nor RTC. Linux uses CLOCK_MONOTONIC; Zephyr uses uptime ticks.
 Concurrent thread callers use distinct output storage; ISR is NOT_SUPPORTED.
 Negative duration is INVALID_ARGUMENT. Zero returns the unadjusted observation.
 Positive duration compensates clock quantisation from one internal sample, not
 from function return. Zephyr uses the upper bound of the next tick boundary.
-Overflow/failure preserves output. Pure `crux_monotonic_add_duration()` adds no
+Overflow/failure preserves output. Pure `crux_monotonic_add()` adds no
 padding. [Thread sleep](thread-sync.md#current-thread-sleep) owns native wait
 encoding limits and rechecks one original absolute deadline after early wakes.
 A valid Time comparison deadline can exceed Thread's native finite timeout range.
@@ -63,7 +63,10 @@ Follow the [repository dependency rules](../CONTRIBUTING.md#public-headers-and-m
 | Implementation | Selection and visibility |
 | --- | --- |
 | `components/time/src/` | Common state, types/calendar/clock logic and separately selected OS-independent memory store |
-| `components/time/src/time_port.h` | Private realtime init/read/write/context/lock contract |
+| `components/time/src/realtime_port.h` | Private realtime init/read/write/lock contract; native lock rejects ISR |
+| `components/time/src/monotonic_port.h` | Private raw-nanosecond observation and single-sample conservative upper bound |
+| `components/time/src/busy_wait_port.h` | Private optional native wait or explicitly disabled implementation |
+| `components/interrupt/src/interrupt.h` | Shared private ISR mechanism, no public usage target or native header leakage |
 | `components/time/ports/linux/` | Native monotonic clock, pthread lock and optional CLOCK_REALTIME provider |
 | `components/time/ports/zephyr/` | Native uptime/system realtime/lock and optional RTC adapter |
 | `tests/time/*.h` | Private test controls, excluded from public usage roots |
@@ -92,7 +95,7 @@ it is not selected automatically. There is no runtime provider registry.
 
 ## State and error precedence
 
-The first successful `crux_time_init()` enters ready-but-unset. It never writes a
+The first successful `crux_realtime_init()` enters ready-but-unset. It never writes a
 default, adopts native time or loads RTC. Failed init is retryable; repeated
 successful init preserves authority state. Public realtime operations require
 thread context and share a private native mutex across clock access and metadata.
@@ -100,8 +103,8 @@ They support concurrent callers with distinct outputs. ISR is NOT_SUPPORTED;
 validated argument errors precede context/readiness/native access. Do not re-enter
 Time from provider operations while the lock is held.
 
-`crux_time_get_realtime()` returns NO_DATA without a native read when invalid.
-`crux_time_get_realtime_snapshot()` instead returns OK with a zero timestamp,
+`crux_realtime_now()` returns NO_DATA without a native read when invalid.
+`crux_realtime_get_snapshot()` instead returns OK with a zero timestamp,
 retained `last_source`, validity false and synchronization false. Before init,
 both return NOT_READY and preserve output.
 
@@ -135,10 +138,10 @@ EXTERNAL source.
 
 | Operation | Effect |
 | --- | --- |
-| `crux_time_adopt_realtime()` | Read/validate native clock without writing; success sets UNKNOWN, valid, unsynchronized |
-| `crux_time_set_realtime(&value, source, sync)` | Set system clock and metadata as one transaction; accepts RTC/MANUAL/EXTERNAL and sync=true only with EXTERNAL |
-| `crux_time_notify_sync_state(sync)` | Metadata only, no clock write; invalid time gives NO_DATA; true with non-EXTERNAL valid source gives INVALID_STATE |
-| `crux_time_invalidate_realtime()` | Clear validity/sync, retain previous source, no native read/write |
+| `crux_realtime_adopt()` | Read/validate native clock without writing; success sets UNKNOWN, valid, unsynchronized |
+| `crux_realtime_set(&value, source, sync)` | Set system clock and metadata as one transaction; accepts RTC/MANUAL/EXTERNAL and sync=true only with EXTERNAL |
+| `crux_realtime_set_synchronized(sync)` | Metadata only, no clock write; invalid time gives NO_DATA; true with non-EXTERNAL valid source gives INVALID_STATE |
+| `crux_realtime_invalidate()` | Clear validity/sync, retain previous source, no native read/write |
 
 Reject malformed values/sources before native access and preserve state. An
 actual native write failure invalidates time/sync because the clock might have
@@ -174,3 +177,30 @@ The upstream RTC Shell stays disabled. Zephyr commands now use native system
 realtime and do not implicitly persist RTC. Native simulation, wrapped Linux
 writes and software cross-builds provide software evidence only; historical
 physical RTC measurements are not evidence for the new implementation.
+
+## Unified Time migration (Issue #87)
+
+Time also owns [optional CPU Busy-wait](time-busy-wait.md). `crux_busy_wait()` is
+always declared in `<crux/time.h>` when Time is available, regardless of native
+Busy-wait selection. There is no separate Delay component/header/usage target or
+maximum query. Thread retains sleep; Time does not depend on Thread or Sync.
+
+| Previous API | Current API |
+| --- | --- |
+| `crux_time_get_monotonic`, `crux_time_make_deadline_after` | `crux_monotonic_now`, `crux_monotonic_deadline_after` |
+| `crux_monotonic_add_duration` | `crux_monotonic_add(base, delta, out)` |
+| `crux_time_init`, `crux_time_get_realtime`, `crux_time_get_realtime_snapshot` | `crux_realtime_init`, `crux_realtime_now`, `crux_realtime_get_snapshot` |
+| `crux_time_adopt_realtime`, `crux_time_set_realtime` | `crux_realtime_adopt`, `crux_realtime_set` |
+| `crux_time_notify_sync_state`, `crux_time_invalidate_realtime` | `crux_realtime_set_synchronized`, `crux_realtime_invalidate` |
+| `crux_time_source_t`, `CRUX_TIME_SOURCE_*` | `crux_realtime_source_t`, `CRUX_REALTIME_SOURCE_*` (numeric values retained) |
+| snapshot `is_time_valid`, `is_actively_synchronized` | `is_valid`, `is_synchronized` |
+| `crux_time_utc_t`, `crux_time_from_utc`, `crux_time_to_utc` | `crux_datetime_t`, `crux_realtime_from_utc`, `crux_realtime_to_utc` |
+
+`crux_datetime_t` contains calendar fields without timezone data. The UTC
+conversions interpret those fields as UTC; no timezone or leap-second support is
+added. This is an intentional source migration without permanent wrappers or an
+installed ABI guarantee. Existing signed arithmetic, quantization compensation,
+realtime metadata/error transitions and output-preservation rules are retained.
+Touched private OS boundaries use `_impl_` names with `monotonic_port.h`,
+`realtime_port.h`, `busy_wait_port.h` and `thread_sleep_port.h`. The common private
+ISR query is shared without exposing its header to public consumers.

@@ -1,8 +1,8 @@
 #include <crux/status.h>
 #if PROFILE_TIME
 #include <crux/time_authority.h>
-#elif PROFILE_DELAY
-#include <crux/delay.h>
+#elif PROFILE_BUSY_WAIT
+#include <crux/time.h>
 #elif PROFILE_THREAD
 #include <crux/thread.h>
 #elif PROFILE_SYNC
@@ -22,10 +22,9 @@ static_assert(__cplusplus >= 201703L, "C++17 consumer");
 extern "C" int external_cpp_consumer(void)
 {
 #if PROFILE_TIME
-    return crux_time_get_realtime(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
-#elif PROFILE_DELAY
-    return crux_delay_get_max_duration(nullptr) != CRUX_ERR_INVALID_ARGUMENT ||
-           crux_delay_busy_wait(crux_duration_from_ns(-1)) != CRUX_ERR_INVALID_ARGUMENT;
+    return crux_realtime_now(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
+#elif PROFILE_BUSY_WAIT
+    return crux_busy_wait(crux_duration_from_ns(-1)) != CRUX_ERR_INVALID_ARGUMENT;
 #elif PROFILE_THREAD
     return crux_thread_join(nullptr, 0) != CRUX_ERR_INVALID_ARGUMENT;
 #elif PROFILE_SYNC
@@ -38,7 +37,7 @@ extern "C" int external_cpp_consumer(void)
     return crux_system_status_get(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
 #elif PROFILE_MESSAGING
     return crux_queue_create(1, sizeof(int), nullptr) != CRUX_ERR_INVALID_ARGUMENT ||
-           crux_time_get_monotonic(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
+           crux_monotonic_now(nullptr) != CRUX_ERR_INVALID_ARGUMENT;
 #else
     return CRUX_OK != 0;
 #endif

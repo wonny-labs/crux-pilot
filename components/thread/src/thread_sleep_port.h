@@ -4,9 +4,8 @@
 #include <crux/thread.h>
 #include <stdbool.h>
 
-bool thread_native_context_allowed(void);
 /* May wake early; common code rechecks the original absolute nanosecond deadline. */
-crux_status_t thread_native_sleep_until(int64_t deadline_ns);
+crux_status_t crux_thread_impl_sleep_until_ns(int64_t deadline_ns);
 /* Prepare finite native absolute ticks, 0..INT64_MAX-1. No clamping/FOREVER;
  * checked conversion and reserved-value rejection preserve output on failure.
  */

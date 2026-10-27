@@ -185,7 +185,7 @@ static void run_work(void *a, void *b, void *c)
     ARG_UNUSED(a);
     ARG_UNUSED(b);
     ARG_UNUSED(c);
-    int time_init = crux_time_init();
+    int time_init = crux_realtime_init();
     int device_init = controller_device_init();
 #if defined(CONFIG_CRUX_M3_INTEGRATED)
     printk("M3_INIT time=%d device=%d stimulus=SW5 network=required\n", time_init, device_init);

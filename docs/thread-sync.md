@@ -58,6 +58,16 @@ high=2. All create operations take the output last, set it invalid on failure an
 require that it does not currently hold a live resource. Join/destroy zero the
 supplied handle on success; copied aliases become stale and are rejected.
 
+A zero-initialised `crux_thread_options_t` selects LOW priority, not NORMAL.
+For normal priority with the provider-default stack size, specify both fields:
+
+```c
+crux_thread_options_t options = {
+    .stack_size_bytes = 0,
+    .priority = CRUX_THREAD_PRIORITY_NORMAL,
+};
+```
+
 ```c
 typedef void (*crux_thread_entry_t)(void *argument);
 

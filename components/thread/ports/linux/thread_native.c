@@ -7,12 +7,7 @@ static pthread_mutex_t thread_metadata = PTHREAD_MUTEX_INITIALIZER;
 
 _Static_assert(sizeof(time_t) == sizeof(int64_t), "Host provider requires 64-bit time_t");
 
-bool thread_native_context_allowed(void)
-{
-    return true;
-}
-
-crux_status_t thread_native_sleep_until(int64_t deadline_ns)
+crux_status_t crux_thread_impl_sleep_until_ns(int64_t deadline_ns)
 {
     const struct timespec deadline = {
         .tv_sec = (time_t)(deadline_ns / INT64_C(1000000000)),

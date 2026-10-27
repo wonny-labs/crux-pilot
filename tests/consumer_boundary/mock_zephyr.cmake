@@ -27,3 +27,7 @@ function(zephyr_library_compile_definitions_ifdef condition)
         target_compile_definitions(${ZEPHYR_CURRENT_LIBRARY} PRIVATE ${ARGN})
     endif()
 endfunction()
+
+function(zephyr_append_cmake_library target)
+    set_property(GLOBAL APPEND PROPERTY ZEPHYR_LIBS ${target})
+endfunction()

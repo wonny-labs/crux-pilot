@@ -36,12 +36,12 @@ static void reset(void)
     deadlines = 0;
 }
 
-crux_status_t crux_time_get_monotonic(crux_monotonic_time_t *out)
+crux_status_t crux_monotonic_now(crux_monotonic_time_t *out)
 {
     *out = (crux_monotonic_time_t){now_ms * INT64_C(1000000) + phase_ns};
     return CRUX_OK;
 }
-crux_status_t crux_time_make_deadline_after(crux_duration_t duration, crux_monotonic_time_t *out)
+crux_status_t crux_monotonic_deadline_after(crux_duration_t duration, crux_monotonic_time_t *out)
 {
     ++deadlines;
     int64_t now = now_ms * INT64_C(1000000) + phase_ns;

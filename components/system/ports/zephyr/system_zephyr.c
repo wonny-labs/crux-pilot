@@ -1,4 +1,5 @@
 #include "system_zephyr.h"
+#include "interrupt.h"
 #include "system_port.h"
 #include <errno.h>
 #include <zephyr/drivers/hwinfo.h>
@@ -8,7 +9,7 @@
 K_MUTEX_DEFINE(system_mutex);
 bool system_port_context_allowed(void)
 {
-    return !k_is_in_isr() && !k_is_pre_kernel();
+    return !crux_is_in_isr() && !k_is_pre_kernel();
 }
 crux_status_t system_port_lock(void)
 {

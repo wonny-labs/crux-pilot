@@ -1,3 +1,4 @@
+#include "interrupt.h"
 #include "thread_sleep_port.h"
 
 #include <crux/time.h>
@@ -28,19 +29,19 @@ crux_status_t crux_thread_sleep_until(crux_monotonic_time_t deadline)
     if (deadline.private_ns < 0) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    if (!thread_native_context_allowed()) {
+    if (crux_is_in_isr()) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
     for (;;) {
         crux_monotonic_time_t now;
-        crux_status_t status = crux_time_get_monotonic(&now);
+        crux_status_t status = crux_monotonic_now(&now);
         if (status != CRUX_OK) {
             return status;
         }
         if (crux_monotonic_is_at_or_before(deadline, now)) {
             return CRUX_OK;
         }
-        status = thread_native_sleep_until(deadline.private_ns);
+        status = crux_thread_impl_sleep_until_ns(deadline.private_ns);
         if (status != CRUX_OK) {
             return status;
         }
@@ -52,13 +53,13 @@ crux_status_t crux_thread_sleep_for(crux_duration_t duration)
     if (duration.private_ns < 0) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    if (!thread_native_context_allowed()) {
+    if (crux_is_in_isr()) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
     if (duration.private_ns == 0) {
         return CRUX_OK;
     }
     crux_monotonic_time_t deadline;
-    crux_status_t status = crux_time_make_deadline_after(duration, &deadline);
+    crux_status_t status = crux_monotonic_deadline_after(duration, &deadline);
     return status == CRUX_OK ? crux_thread_sleep_until(deadline) : status;
 }

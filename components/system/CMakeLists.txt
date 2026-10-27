@@ -19,3 +19,6 @@ set_property(TARGET crux_system_linux APPEND PROPERTY COMPATIBLE_INTERFACE_STRIN
 add_library(crux_system INTERFACE)
 add_library(crux::system ALIAS crux_system)
 target_link_libraries(crux_system INTERFACE crux_system_api crux_system_linux)
+
+target_include_directories(crux_system_linux PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../interrupt/src")
+target_link_libraries(crux_system_linux PRIVATE crux_interrupt)

@@ -1,6 +1,7 @@
 #include "file_port.h"
 #include <stdbool.h>
 #include <string.h>
+
 _Static_assert(CRUX_FILE_POOL_SIZE >= 4, "File profile requires at least four handles");
 _Static_assert(CRUX_FILE_NAME_MAX >= 63, "File profile requires at least 63 name bytes");
 struct crux_file {
@@ -8,7 +9,9 @@ struct crux_file {
     crux_file_mode_t mode;
     char name[CRUX_FILE_NAME_MAX + 1];
 };
+
 static struct crux_file files[CRUX_FILE_POOL_SIZE];
+
 static bool name_valid(const char *name)
 {
     if (!name || !*name || strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
@@ -23,6 +26,7 @@ static bool name_valid(const char *name)
             return false;
     }
 }
+
 static size_t slot_of(const crux_file_t *f)
 {
     for (size_t i = 0; i < CRUX_FILE_POOL_SIZE; i++)
@@ -30,6 +34,7 @@ static size_t slot_of(const crux_file_t *f)
             return i;
     return CRUX_FILE_POOL_SIZE;
 }
+
 crux_file_result_t crux_file_open(const char *n, crux_file_mode_t m, crux_file_t **out)
 {
     if (!out || *out || !name_valid(n) ||
@@ -61,6 +66,7 @@ crux_file_result_t crux_file_open(const char *n, crux_file_mode_t m, crux_file_t
     crux_file_port_unlock();
     return result;
 }
+
 static crux_file_result_t transfer(crux_file_t *f, void *b, size_t l, size_t *c, bool write)
 {
     if (!c)
@@ -95,14 +101,17 @@ static crux_file_result_t transfer(crux_file_t *f, void *b, size_t l, size_t *c,
     crux_file_port_unlock();
     return result;
 }
+
 crux_file_result_t crux_file_read(crux_file_t *f, void *b, size_t l, size_t *c)
 {
     return transfer(f, b, l, c, false);
 }
+
 crux_file_result_t crux_file_write(crux_file_t *f, const void *b, size_t l, size_t *c)
 {
     return transfer(f, (void *)b, l, c, true);
 }
+
 crux_file_result_t crux_file_seek(crux_file_t *f, uint64_t o)
 {
     crux_file_port_lock();
@@ -113,6 +122,7 @@ crux_file_result_t crux_file_seek(crux_file_t *f, uint64_t o)
     crux_file_port_unlock();
     return result;
 }
+
 crux_file_result_t crux_file_sync(crux_file_t *f)
 {
     crux_file_port_lock();
@@ -122,6 +132,7 @@ crux_file_result_t crux_file_sync(crux_file_t *f)
     crux_file_port_unlock();
     return result;
 }
+
 crux_file_result_t crux_file_close(crux_file_t **f)
 {
     if (!f)
@@ -138,6 +149,7 @@ crux_file_result_t crux_file_close(crux_file_t **f)
     crux_file_port_unlock();
     return result;
 }
+
 crux_file_result_t crux_file_remove(const char *n)
 {
     if (!name_valid(n))

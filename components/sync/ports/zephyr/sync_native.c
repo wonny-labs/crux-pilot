@@ -1,3 +1,4 @@
+#include "interrupt.h"
 #include "sync_internal.h"
 #include <errno.h>
 #include <limits.h>
@@ -6,7 +7,7 @@ K_MUTEX_DEFINE(sync_metadata);
 
 bool sync_native_context_allowed(void)
 {
-    return !k_is_in_isr();
+    return !crux_is_in_isr();
 }
 void sync_native_metadata_lock(void)
 {

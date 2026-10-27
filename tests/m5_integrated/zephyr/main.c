@@ -156,9 +156,9 @@ static void worker_entry(void *argument)
     memset(&record, 0, sizeof(record));
 
     crux_monotonic_time_t before, deadline, after;
-    status = crux_time_get_monotonic(&before);
+    status = crux_monotonic_now(&before);
     if (status == CRUX_OK)
-        status = crux_time_make_deadline_after(crux_duration_from_ms(2), &deadline);
+        status = crux_monotonic_deadline_after(crux_duration_from_ms(2), &deadline);
     if (status != CRUX_OK) {
         observation->worker_failure_stage = STAGE_CLOCK_DEADLINE;
         observation->worker_status = status;
@@ -170,7 +170,7 @@ static void worker_entry(void *argument)
         observation->worker_status = status;
         goto signal_completion;
     }
-    status = crux_time_get_monotonic(&after);
+    status = crux_monotonic_now(&after);
     if (status != CRUX_OK || !crux_monotonic_is_at_or_before(deadline, after)) {
         observation->worker_failure_stage = STAGE_CLOCK_CHECK;
         observation->worker_status = status == CRUX_OK ? CRUX_ERR_IO : status;
@@ -233,7 +233,7 @@ static crux_status_t run_integration(integration_observation_t *out)
     state.observation.elapsed_ns = -1;
     state.observation.worker_wait_ns = -1;
 
-    status = crux_time_get_monotonic(&state.observation.started);
+    status = crux_monotonic_now(&state.observation.started);
     if (status != CRUX_OK) {
         fail_once(&state.observation, STAGE_CLOCK_START, status);
         goto cleanup;
@@ -368,7 +368,7 @@ cleanup:
 
     if (state.observation.failure_status == CRUX_OK) {
         crux_monotonic_time_t finished;
-        status = crux_time_get_monotonic(&finished);
+        status = crux_monotonic_now(&finished);
         if (status == CRUX_OK &&
             crux_monotonic_is_at_or_before(state.observation.started, finished))
             state.observation.elapsed_ns =

@@ -8,11 +8,11 @@ cases, C17/C++17 header/type checks, and RTC-disabled Zephyr Ztests in
 and their EVKB cross-build. Thread-only means without Sync; its explicit Time
 clock dependency is included. These checks do not operate physical hardware.
 
-Bounded Delay tests include common/native error handling, counter conversion and
-unsupported-profile shims, and actual Linux integration under `tests/delay/`.
-`scripts/test-delay.sh` runs normal-ISR and IRQ-delivery Ztests on native_sim and
+Time Busy-wait tests include common/native error handling, counter conversion and
+unsupported-profile shims, and actual Linux integration under `tests/time/busy_wait/`.
+`scripts/test-time-busy-wait.sh` runs normal-ISR and IRQ-delivery Ztests on native_sim and
 cross-builds EVKB. Shims and compilation do not qualify a physical ISR or timing.
-See the [Delay contract](../docs/delay.md).
+See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
@@ -165,14 +165,14 @@ Parent C99/C++20 targets and CTest tests before/after inclusion remain functiona
 a separate C-only parent retains its enabled-language and testing policy ON/OFF.
 Actual compile commands and final ELF symbols check component selection and private
 requirements. Focused negatives cover missing/unsupported/multiple Time selection,
-incompatible Time/Serial/Logging providers and missing Queue native composition. Existing
+incompatible Time/Serial/Logging providers and missing the Queue Linux composition target. Existing
 source/build guards retain the detailed native-dependency negatives. A separately
 copied Serial consumer runs all five PTY/policy scenarios beneath a parent project
 with its own tests enabled, preserving both parent tests. The independent Logging
 fixture similarly runs its actual-provider and policy cases under a testing-ON parent.
 
 See the [external application example](../docs/build.md#external-linux-application-using-crux-source).
-The fixture uses public capabilities in portable targets and declares native
+The fixture uses public capabilities in portable targets and declares platform
 composition separately. It does not establish an installed SDK, production Linux,
 physical qualification or support for additional toolchains.
 

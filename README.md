@@ -10,7 +10,7 @@ Applications select the components they need. Portable application and runtime-p
 
 | Area | Components | Purpose |
 | --- | --- | --- |
-| Foundation and timing | `base`, `time`, `delay` | Shared status, typed clocks/authority/calendar, deadlines and bounded CPU busy-wait |
+| Foundation and timing | `base`, `time` | Shared status, typed clocks/authority/calendar, deadlines and bounded CPU busy-wait |
 | Execution and synchronisation | `thread`, `sync`, `queue` | Threads, mutexes, semaphores and message queues |
 | Communication and networking | `serial`, `sockets`, `netif` | Serial byte streams, IPv4 TCP clients/connected UDP and network-interface status |
 | Storage and configuration | `file`, `configuration` | File access and application-supplied parameter validation and save/load |
@@ -20,9 +20,9 @@ All listed components have implemented source, but available OS implementations 
 
 ## Architecture
 
-Crux separates reusable platform components and portable application code from **platform composition**: the board/project-specific configuration and initialisation that select OS implementations and bind hardware resources. Applications use Crux public APIs or documented standard API subsets. Native operating-system and device services remain within the selected platform integration.
+Crux separates reusable platform components and portable application code from **platform composition**: the board/project-specific configuration and initialisation that select OS implementations and bind hardware resources. Applications use Crux public APIs or documented standard API subsets. OS and device services remain within the selected platform integration.
 
-See the [architecture overview](docs/architecture.md) for component ownership, portable/native boundaries and build dependencies.
+See the [architecture overview](docs/architecture.md) for component ownership, portability boundaries and build dependencies.
 
 ### Development and target environments
 
@@ -76,7 +76,7 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 
 | Path | Purpose |
 | --- | --- |
-| `components/` | Public capability interfaces, shared implementations and native ports |
+| `components/` | Public capability interfaces, shared implementations and OS-specific ports |
 | `samples/` | Capability examples and reference controller applications |
 | `zephyr/` | Out-of-tree Zephyr module integration |
 | `tests/` | Host, Zephyr, build-policy and target validation |

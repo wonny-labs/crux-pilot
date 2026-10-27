@@ -446,7 +446,7 @@ class ConsumerBoundaryTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "main.c").write_text('#include <crux/time.h>\n'
-                                          'int main(void) { return crux_time_init(); }\n')
+                                          'int main(void) { return crux_realtime_init(); }\n')
             (root / "CMakeLists.txt").write_text(
                 'cmake_minimum_required(VERSION 3.28)\nproject(missing_time_provider LANGUAGES C)\n'
                 'set(CRUX_BUILD_TIME ON CACHE BOOL "")\n'
@@ -459,7 +459,7 @@ class ConsumerBoundaryTest(unittest.TestCase):
             result = subprocess.run([CMAKE, "--build", str(root / "build"), "--target", "consumer"],
                                     capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn("crux_time_port_", result.stdout + result.stderr)
+            self.assertIn("crux_realtime_impl_", result.stdout + result.stderr)
 
     def test_zephyr_time_excludes_memory_and_test_controls(self):
         result = self.configure(f'include("{REPO}/tests/consumer_boundary/mock_zephyr.cmake")\n'

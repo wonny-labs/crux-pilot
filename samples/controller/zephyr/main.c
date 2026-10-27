@@ -13,7 +13,7 @@ static void run_controller(void *a, void *b, void *c)
     ARG_UNUSED(b);
     ARG_UNUSED(c);
     scenario_result = 1;
-    crux_status_t status = crux_time_init();
+    crux_status_t status = crux_realtime_init();
     printk("controller composition=zephyr init=%d\n", status);
     if (status != CRUX_OK) {
         return;
@@ -28,7 +28,7 @@ static void run_controller(void *a, void *b, void *c)
         if (cycle == 2 || cycle == 6) {
             const crux_realtime_t value = {cycle == 2 ? INT64_C(1792238400) : INT64_C(1792234800),
                                            0};
-            status = crux_time_set_realtime(&value, CRUX_TIME_SOURCE_MANUAL, false);
+            status = crux_realtime_set(&value, CRUX_REALTIME_SOURCE_MANUAL, false);
             if (status != CRUX_OK) {
                 printk("controller set_error=%d\n", status);
                 return;

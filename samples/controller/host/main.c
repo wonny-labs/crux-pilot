@@ -16,7 +16,7 @@ static int64_t monotonic_ms(void)
 
 int main(void)
 {
-    crux_status_t status = crux_time_init();
+    crux_status_t status = crux_realtime_init();
     printf("controller composition=host-controlled init=%d\n", status);
     if (status != CRUX_OK) {
         return 1;
@@ -42,7 +42,7 @@ int main(void)
         if (cycle == 2 || cycle == 6) {
             const crux_realtime_t value = {cycle == 2 ? INT64_C(1792238400) : INT64_C(1792234800),
                                            0};
-            status = crux_time_set_realtime(&value, CRUX_TIME_SOURCE_MANUAL, false);
+            status = crux_realtime_set(&value, CRUX_REALTIME_SOURCE_MANUAL, false);
             if (status != CRUX_OK) {
                 printf("controller set_error=%d\n", status);
                 return 1;
