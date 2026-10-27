@@ -18,6 +18,33 @@ Apply these rules incrementally. Do not reformat unrelated code, rename existing
 
 The existing [.clang-tidy](../.clang-tidy) selection, compiler warnings and tests are the configured automated checks. They are not a claim of full MISRA C, CERT C, security or functional-safety compliance. New mandatory checks and toolchain changes require separate justification.
 
+## Public API consistency
+
+Apply shared rules where they help consumers, without flattening capability-specific
+contracts or renaming established APIs for style alone.
+
+- **Names:** Follow the owning component's existing verb/object ordering. Prefer
+  `out` for one unambiguous typed output, descriptive names for multiple outputs,
+  and unit suffixes on raw integer time values. Retain `transferred` for byte counts.
+- **Results:** `crux_status_t` uses zero for success and negative values for errors.
+  File and Configuration have separate domains with meaningful positive outcomes.
+  Compare named results within their domain, never cast between enums or treat all
+  nonzero values as errors. Use the returned transfer count according to each API's
+  documented partial-I/O semantics.
+- **Time:** Existing bounded waits use `timeout_ms` (zero polls, finite positive
+  range, no implicit FOREVER). Typed Duration and Monotonic values serve time
+  arithmetic and absolute deadlines. Do not convert all existing waits for uniformity.
+- **Lifetime:** Choose handle representation for the capability, not a universal
+  pattern. Document failed creation, failed/contended cleanup, ownership transfer,
+  and stale-handle use where callers must respond differently.
+- **Context:** Use **thread context** in portable public contracts rather than
+  OS-specific task terminology. State special ISR, pre-kernel and startup limits.
+  Each component, not the shared context detector, decides call eligibility.
+- **Compatibility:** This Pilot supports documented C17/C++17 source consumers
+  without a stable binary ABI. Review incompatible API or behavioural changes and
+  the necessary consumer migration before adoption. Avoid compatibility wrappers
+  without demonstrated need and do not equate API maturity with target qualification.
+
 ## Public API documentation
 
 For new or materially changed public declarations, use Doxygen-compatible `/** ... */` comments in the owning header. Existing untouched headers can be documented incrementally when relevant. A generated API site, Doxygen groups and a full-header conversion are not required by the current Pilot.
@@ -32,9 +59,7 @@ Document the following when relevant to a caller:
 
 Use an imperative one-sentence `@brief` or a clear first sentence. Document parameters in declaration order with `@param`. Use `@param[out]` and `@param[in,out]` for writable parameters where appropriate. Use `@retval` for discrete, actually possible status values and `@return` for general or provider-dependent results. Do not list unrelated errors or invent guarantees. Reserve `@note` and `@warning` for information that changes correct use.
 
-Explain public types, enum values, members and macros when their meaning, values or ownership are non-obvious. Use brief `/** ... */` comments or `/**< ... */` trailing comments. Avoid repeating the identifier or C type in prose. Keep internal design rationale and implementation details out of public API descriptions.
-
-Use the owning component's current public headers and adopted contract as examples of appropriate detail. Public headers should be quick references for correct use, not copies of complete design or validation reports.
+Explain non-obvious type, enum, member and macro semantics with brief `/** ... */` or `/**< ... */` comments. Prefer meaningful guarantees and pitfalls over boilerplate: do not narrate implementation steps, restate identifiers or types, or add repetitive `@param`/`@return` text. Put shared constraints once at header level and use function comments for caller-specific differences. Keep design rationale and detailed verification in the capability contract.
 
 ## Review and validation
 
@@ -49,4 +74,5 @@ These references inform selected practices. They do not override Crux's establis
 - [Zephyr C Code and General Style Guidelines](https://docs.zephyrproject.org/latest/contribute/style/code.html)
 - [Zephyr Doxygen Style Guidelines](https://docs.zephyrproject.org/latest/contribute/style/doxygen.html)
 - [Zephyr API Design Guidelines](https://docs.zephyrproject.org/latest/develop/api/design_guidelines.html)
+- [Linux kernel coding style: Commenting](https://docs.kernel.org/process/coding-style.html)
 - [Pigweed C++ style](https://pigweed.dev/style/cpp.html)
