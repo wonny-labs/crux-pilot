@@ -1,7 +1,8 @@
 #ifndef CRUX_STATUS_H
 #define CRUX_STATUS_H
 
-/** Shared results: zero is success and negative values indicate failure.
+/**
+ * Shared results: zero is success and negative values indicate failure.
  * NOT_READY means an unavailable service; NO_DATA means no valid observation.
  * BUSY denotes temporary unavailability; TIMEOUT denotes an expired finite wait.
  * INVALID_STATE covers operations disallowed by the current lifecycle.

@@ -1,4 +1,5 @@
-/** @file
+/**
+ * @file
  * @brief Bounded serial byte-stream operations.
  *
  * Thread context only. timeout_ms uses 0 for polling and 1..INT32_MAX for
@@ -37,7 +38,8 @@ typedef struct {
     crux_serial_parity_t parity;
 } crux_serial_config_t;
 
-/** Open an exclusively owned logical serial port.
+/**
+ * Open an exclusively owned logical serial port.
  * @param port Bound logical port identifier.
  * @param config Requested UART settings; unsupported combinations are rejected.
  * @param[out] out Handle set on success, invalid on failure.
@@ -46,7 +48,8 @@ typedef struct {
 crux_status_t crux_serial_open(crux_serial_port_t port, const crux_serial_config_t *config,
                                crux_serial_t *out);
 
-/** Read up to capacity bytes; a short read may return CRUX_OK.
+/**
+ * Read up to capacity bytes; a short read may return CRUX_OK.
  * @param serial Valid handle; one read and one write may overlap.
  * @param[out] buffer Caller-owned destination, preserved on error.
  * @param capacity Available destination bytes.
@@ -58,7 +61,8 @@ crux_status_t crux_serial_open(crux_serial_port_t port, const crux_serial_config
 crux_status_t crux_serial_read(crux_serial_t serial, void *buffer, size_t capacity,
                                uint32_t timeout_ms, size_t *transferred);
 
-/** Queue up to size bytes; a short write may return CRUX_OK.
+/**
+ * Queue up to size bytes; a short write may return CRUX_OK.
  * @param serial Valid handle; overlapping writes return CRUX_ERR_BUSY.
  * @param buffer Caller-owned source, borrowed for the call.
  * @param size Requested byte count.
@@ -70,7 +74,8 @@ crux_status_t crux_serial_read(crux_serial_t serial, void *buffer, size_t capaci
 crux_status_t crux_serial_write(crux_serial_t serial, const void *buffer, size_t size,
                                 uint32_t timeout_ms, size_t *transferred);
 
-/** Abort pending buffered data and close the serial port.
+/**
+ * Abort pending buffered data and close the serial port.
  * @param[in,out] serial Retained on CRUX_ERR_BUSY; accepted close consumes it,
  * including when native cleanup fails.
  * @return CRUX_OK, CRUX_ERR_BUSY or a crux_status_t error.
