@@ -2,11 +2,14 @@
 #include "logging_port.h"
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+
 LOG_MODULE_REGISTER(crux_logging, LOG_LEVEL_DBG);
+
 bool logging_port_context_allowed(void)
 {
     return !k_is_in_isr() && !k_is_pre_kernel();
 }
+
 crux_status_t logging_port_write(crux_log_level_t level, const char *tag, const char *text)
 {
     if (!device_is_ready(logging_zephyr_device()))
