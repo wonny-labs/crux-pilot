@@ -1,4 +1,5 @@
-/** @file
+/**
+ * @file
  * @brief Explicit authority operations for system realtime, not RTC storage.
  *
  * All operations require thread context and share the observation lock. Do not
@@ -14,14 +15,16 @@
 extern "C" {
 #endif
 
-/** Adopt the current native realtime without writing it.
+/**
+ * Adopt the current native realtime without writing it.
  * Success establishes valid, unsynchronized time with source UNKNOWN.
  * @return OK, NOT_READY before init, NOT_SUPPORTED in ISR, or read errors as
  * documented by crux_realtime_now. Failed adoption never establishes validity.
  */
 crux_status_t crux_realtime_adopt(void);
 
-/** Set system realtime and authority metadata atomically for Crux observers.
+/**
+ * Set system realtime and authority metadata atomically for Crux observers.
  * @param time Normalized time in [2000-01-01, 2100-01-01); never retained.
  * @param source RTC, MANUAL or EXTERNAL. NONE/UNKNOWN are invalid arguments.
  * @param actively_synchronized May be true only with source EXTERNAL.
@@ -34,14 +37,16 @@ crux_status_t crux_realtime_adopt(void);
 crux_status_t crux_realtime_set(const crux_realtime_t *time, crux_realtime_source_t source,
                                 bool actively_synchronized);
 
-/** Update synchronization metadata without writing realtime.
+/**
+ * Update synchronization metadata without writing realtime.
  * @param actively_synchronized True requires a valid EXTERNAL source.
  * @return OK, NO_DATA when invalid, INVALID_STATE for true with non-EXTERNAL
  * source, NOT_READY before init, NOT_SUPPORTED in ISR, or lock failure.
  */
 crux_status_t crux_realtime_set_synchronized(bool actively_synchronized);
 
-/** Clear validity and synchronization, retaining last source; no native write.
+/**
+ * Clear validity and synchronization, retaining last source; no native write.
  * @return OK, NOT_READY before init, NOT_SUPPORTED in ISR, or lock failure.
  */
 crux_status_t crux_realtime_invalidate(void);

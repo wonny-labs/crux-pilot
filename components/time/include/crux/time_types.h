@@ -71,19 +71,22 @@ static inline crux_duration_t crux_duration_from_sec(int32_t seconds)
     return result;
 }
 
-/** Construct a signed Duration from checked microseconds.
+/**
+ * Construct a signed Duration from checked microseconds.
  * @param us Signed microseconds; negative durations are valid.
  * @param[out] out Caller-owned result, preserved on every failure.
  * @return OK, INVALID_ARGUMENT for NULL, OUT_OF_RANGE on scaling overflow.
  */
 crux_status_t crux_duration_try_from_us(int64_t us, crux_duration_t *out);
-/** Construct a signed Duration from checked milliseconds.
+/**
+ * Construct a signed Duration from checked milliseconds.
  * @param ms Signed milliseconds; negative durations are valid.
  * @param[out] out Caller-owned result, preserved on every failure.
  * @return OK, INVALID_ARGUMENT for NULL, OUT_OF_RANGE on scaling overflow.
  */
 crux_status_t crux_duration_try_from_ms(int64_t ms, crux_duration_t *out);
-/** Construct a signed Duration from checked seconds.
+/**
+ * Construct a signed Duration from checked seconds.
  * @param seconds Signed seconds; negative durations are valid.
  * @param[out] out Caller-owned result, preserved on every failure.
  * @return OK, INVALID_ARGUMENT for NULL, OUT_OF_RANGE on scaling overflow.
@@ -137,7 +140,8 @@ static inline bool crux_monotonic_is_at_or_before(crux_monotonic_time_t a, crux_
     return a.private_ns <= b.private_ns;
 }
 
-/** Add a signed Duration to a nonnegative Monotonic timestamp.
+/**
+ * Add a signed Duration to a nonnegative Monotonic timestamp.
  * A negative base is INVALID_ARGUMENT. An unrepresentable or negative result
  * is OUT_OF_RANGE. On failure the output remains untouched.
  * @param base Nonnegative sample from the same provider/session as consumers.

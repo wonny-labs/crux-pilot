@@ -42,7 +42,8 @@ typedef struct {
     bool is_synchronized; /**< Currently reported active synchronization, not accuracy. */
 } crux_realtime_snapshot_t;
 
-/** Read established realtime, in thread context, under the authority lock.
+/**
+ * Read established realtime, in thread context, under the authority lock.
  * @param[out] out Assigned only on success. NULL is INVALID_ARGUMENT.
  * @return OK, NOT_READY before init, NO_DATA when invalid, OUT_OF_RANGE for an
  * unsupported native observation, IO for a native failure, or NOT_SUPPORTED in
@@ -51,7 +52,8 @@ typedef struct {
  */
 crux_status_t crux_realtime_now(crux_realtime_t *out);
 
-/** Read time and metadata as one Crux transaction in thread context.
+/**
+ * Read time and metadata as one Crux transaction in thread context.
  * Invalid time produces an OK snapshot with zero timestamp and retained source,
  * without reading the native clock. Native NO_DATA produces that same result.
  * @param[out] out Assigned only on success; NULL is INVALID_ARGUMENT.
@@ -59,7 +61,8 @@ crux_status_t crux_realtime_now(crux_realtime_t *out);
  */
 crux_status_t crux_realtime_get_snapshot(crux_realtime_snapshot_t *out);
 
-/** Read the provider/session-local monotonic clock.
+/**
+ * Read the provider/session-local monotonic clock.
  * Thread context; independent of realtime initialisation, validity and RTC.
  * Nonnegative provider/session-local nanoseconds; repeated values are permitted.
  * Representation does not guarantee resolution, suspend continuity or accuracy.
@@ -71,7 +74,8 @@ crux_status_t crux_realtime_get_snapshot(crux_realtime_snapshot_t *out);
  */
 crux_status_t crux_monotonic_now(crux_monotonic_time_t *out);
 
-/** Create a deadline at least min_duration after the internal clock sample.
+/**
+ * Create a deadline at least min_duration after the internal clock sample.
  * Negative duration is INVALID_ARGUMENT. Zero returns the current observation.
  * Positive duration compensates clock quantisation from the internal sample,
  * not from function return. Overflow is OUT_OF_RANGE; failure preserves output.
@@ -97,7 +101,8 @@ crux_status_t crux_monotonic_deadline_after(crux_duration_t min_duration,
  */
 crux_status_t crux_realtime_init(void);
 
-/** CPU busy-wait without Crux locks, allocation or scheduler blocking.
+/**
+ * CPU busy-wait without Crux locks, allocation or scheduler blocking.
  * @param duration Negative returns INVALID_ARGUMENT; zero succeeds immediately
  * without native clock access or yielding. Positive disabled requests return
  * NOT_SUPPORTED. Enabled providers validate safe input bounds before waiting,
