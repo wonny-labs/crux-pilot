@@ -48,7 +48,7 @@ crux_status_t crux_serial_open(crux_serial_port_t port, const crux_serial_config
 
 /** Read up to capacity bytes; a short read may return CRUX_OK.
  * @param serial Valid handle; one read and one write may overlap.
- * @param[out] buffer Caller-owned destination, borrowed for the call.
+ * @param[out] buffer Caller-owned destination, preserved on error.
  * @param capacity Available destination bytes.
  * @param timeout_ms Zero polls; positive values wait up to the specified interval.
  * @param[out] transferred Mandatory byte count, zero on error.

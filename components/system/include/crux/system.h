@@ -35,7 +35,7 @@ typedef struct {
     crux_status_t watchdog_status;
     crux_watchdog_state_t watchdog_state;
     bool watchdog_emulated;
-    uint32_t watchdog_timeout_ms;
+    uint32_t watchdog_timeout_ms; /**< Last requested timeout; stale if FAULTED. */
     crux_status_t reset_status;
     crux_status_t reset_cause_status;
 } crux_system_status_t;

@@ -16,6 +16,7 @@ extern "C" {
 
 typedef enum { CRUX_CONFIG_BOOL = 1, CRUX_CONFIG_U32 = 2 } crux_config_type_t;
 
+/** Tagged value. Use the union member selected by type. */
 typedef struct {
     crux_config_type_t type;
     union {
