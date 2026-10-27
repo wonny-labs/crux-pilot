@@ -18,6 +18,10 @@
 extern "C" {
 #endif
 
+/* Storage is visible for by-value use, but private_ns is not a public
+ * field-access contract. Application consumers must use the Time APIs.
+ * Trusted Crux implementations and tests may access it where necessary.
+ */
 typedef struct {
     int64_t private_ns;
 } crux_duration_t;
