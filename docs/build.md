@@ -96,9 +96,9 @@ export ZEPHYR_BASE="$workspace/zephyr"
     "$repo/samples/controller/zephyr" -- -DEXTRA_ZEPHYR_MODULES="$repo")
 ~~~
 
-Select the required `CONFIG_CRUX_*` Kconfig capabilities and supply board/project Devicetree and native-resource bindings where the component requires them. Follow the applicable capability contract and an existing tested Zephyr fixture instead of copying Linux provider settings.
+Select the required `CONFIG_CRUX_*` Kconfig capabilities and supply board/project Devicetree and hardware-resource bindings where the component requires them. Follow the applicable capability contract and an existing tested Zephyr fixture instead of copying Linux provider settings.
 
-Do not infer that every Linux Host capability has an equivalent Zephyr provider. Serial and Logging require explicitly supported UART resources and ownership settings, while Time's Zephyr system clock needs no RTC; optional RTC storage is separate from Linux system or development-memory realtime. The full [Zephyr test commands](../tests/README.md) and [architecture overview](architecture.md#build-and-native-composition) describe the supported profiles and their limits. None of the build scripts above flashes, resets or operates the physical EVKB.
+Do not infer that every Linux Host capability has an equivalent Zephyr provider. Serial and Logging require explicitly supported UART resources and ownership settings, while Time's Zephyr system clock needs no RTC; optional RTC storage is separate from Linux system or development-memory realtime. The full [Zephyr test commands](../tests/README.md) and [architecture overview](architecture.md#build-and-platform-composition) describe the supported profiles and their limits. None of the build scripts above flashes, resets or operates the physical EVKB.
 
 
 ## RT1060-EVKB debugging
@@ -199,11 +199,11 @@ cmake --build build
 ~~~
 
 The executable exits with status zero on success. Its portable logic is compiled
-against the public facades; only the final executable links the Linux native
+against the public facades; only the final executable links the Linux-specific
 composition targets. No tests, samples or unrelated Crux capabilities are selected
 by this example, and it does not access a physical device.
 
-Portable source targets use public headers (for example, `<crux/queue.h>`), link the public `crux::` capability targets and can call `crux_assert_portable_consumer()` to reject native/private requirements. They must not include Crux's `src/` or `ports/` directories or link Linux native composition targets. The final executable explicitly links its used public capabilities and selects native implementations required by that composition. The consumer boundary checker validates the documented build graph, not arbitrary application architecture.
+Portable source targets use public headers (for example, `<crux/queue.h>`), link the public `crux::` capability targets and can call `crux_assert_portable_consumer()` to reject native/private requirements. They must not include Crux's `src/` or `ports/` directories or link Linux-specific composition targets. The final executable explicitly links its used public capabilities and selects OS-specific implementations required by that composition. The consumer boundary checker validates the documented build graph, not arbitrary application architecture.
 
 The external application tests also cover C++17, independently selected Thread/Sync, Serial/Logging/System consumers, parent-test isolation and invalid compositions. For a concise entry point to all build paths, see the [README](../README.md#getting-started).
 
@@ -216,7 +216,7 @@ The external application tests also cover C++17, independently selected Thread/S
 | Time CPU Busy-wait | Select `CRUX_TIME_BUSY_WAIT=ON` and Time with an explicit provider; link `crux::time`. Zephyr requires `CONFIG_CRUX_TIME=y` plus `CONFIG_CRUX_TIME_BUSY_WAIT=y`, without RTC. Disabled Busy-wait remains linkable and returns NOT_SUPPORTED for positive durations. See [limits and verified scope](time-busy-wait.md) |
 | Thread, Sync | Select independently through `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`. Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for the current controlled Host composition). Their public targets connect the current Linux implementation |
 | Queue | Portable targets use `crux::queue`. The final Linux executable additionally links `crux::queue_linux` |
-| Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and native TTY binding belongs to trusted composition |
+| Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and TTY binding belongs to platform composition |
 | Logging | Select `CRUX_BUILD_LOGGING=ON`. The existing Linux provider value is `CRUX_LOGGING_PROVIDER=host` |
 | System | Select `CRUX_BUILD_SYSTEM=ON` and use `crux::system`; the Linux provider value is `CRUX_SYSTEM_PROVIDER=host`. Host watchdog observation is emulated; normal Host reset/reset-cause operations are unsupported. See the [System validation and limits](system-validation.md) |
 | Netif, File, Configuration | Select the required `CRUX_BUILD_*` option and use the public capability target. Linux Netif's primary interface uses `CRUX_NETIF_HOST_INTERFACE` (default `lo`) |
@@ -224,7 +224,7 @@ The external application tests also cover C++17, independently selected Thread/S
 
 Queue exposes the composition-only `crux::queue_linux` alias listed above. Other providers currently have different internal linkage patterns. Do not link undocumented concrete implementation targets or infer a common provider framework. Names ending in `_linux` identify an implementation environment, not product qualification.
 
-The final native executable must directly declare the public capabilities it uses for the documented compatible-provider checks. Detection through arbitrary static-library private-only forwarding graphs is **not** part of the current contract. For Zephyr, Kconfig, the module entry point and native project composition select implementations instead of `CRUX_BUILD_*` Host options. See the [native consumer policy](native-interface-policy.md#external-source-tree-application-composition) for the exact supported enforcement boundary.
+The final application executable must directly declare the public capabilities it uses for the documented compatible-provider checks. Detection through arbitrary static-library private-only forwarding graphs is **not** part of the current contract. For Zephyr, Kconfig, the module entry point and platform composition select implementations instead of `CRUX_BUILD_*` Host options. See the [native consumer policy](native-interface-policy.md#external-source-tree-application-composition) for the exact supported enforcement boundary.
 
 ## Validation and troubleshooting
 
@@ -242,7 +242,7 @@ For all existing Python build checks, use `python3 -m unittest discover -s tests
 | Unwanted GoogleTest, C++ or sample targets in an external project | Check cached `CRUX_BUILD_TESTS`, `CRUX_BUILD_HOST_SAMPLE` and `CRUX_BUILD_REFERENCE_CONTROLLER` settings. Use an isolated build directory |
 | Missing or unsupported Time provider | An external Linux Time build requires explicit `CRUX_TIME_PROVIDER=memory` or `linux`. Zephyr system realtime uses Kconfig; optional RTC storage is separate |
 | Serial/Logging provider conflict or unsupported selection | Review the existing `host`/`zephyr` provider contract and the selected build entry point. Do not mix Host and Zephyr providers |
-| Undefined Queue symbols at final link | Add `crux::queue_linux` to the **native final executable**, not to portable libraries |
+| Undefined Queue symbols at final link | Add `crux::queue_linux` to the **final application executable**, not to portable libraries |
 | `native consumer requirement` from CMake | Remove private/native targets, headers or flags from the portable consumer. Keep platform composition separate |
 | Zephyr module or device selection failure | Verify west bootstrap, pinned SDK, selected module checkout, Kconfig prerequisites and board/Devicetree resource ownership |
 | Offline Host check cannot resolve GoogleTest | Run `scripts/bootstrap-host.sh` once to populate the dependency cache before `scripts/check-host.sh` |
@@ -251,4 +251,4 @@ For all existing Python build checks, use `python3 -m unittest discover -s tests
 
 A successful Linux Host test proves behaviour only for the tested Host setup. Zephyr `native_sim` validates selected simulated integration. EVKB cross-builds do not prove Flash layout safety, UART electrical operation, timing, peripheral access or physical persistence. Firmware download, reset, Flash write/erase and physical validation require separate task-specific approval and verified hardware/provenance.
 
-Treat unmerged branches, experimental storage targets and candidate writable images as separate gated work. Selecting System does not automatically arm a watchdog; Zephyr System requires its explicit native resource composition. Consult the relevant [capability contracts](architecture.md#current-capability-integration) and [validation records](../tests/README.md) before claiming support or running a physical operation.
+Treat unmerged branches, experimental storage targets and candidate writable images as separate gated work. Selecting System does not automatically arm a watchdog; Zephyr System requires explicit platform composition for watchdog, reset and hardware-information resources. Consult the relevant [capability contracts](architecture.md#current-capability-integration) and [validation records](../tests/README.md) before claiming support or running a physical operation.

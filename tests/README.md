@@ -165,14 +165,14 @@ Parent C99/C++20 targets and CTest tests before/after inclusion remain functiona
 a separate C-only parent retains its enabled-language and testing policy ON/OFF.
 Actual compile commands and final ELF symbols check component selection and private
 requirements. Focused negatives cover missing/unsupported/multiple Time selection,
-incompatible Time/Serial/Logging providers and missing Queue native composition. Existing
+incompatible Time/Serial/Logging providers and missing the Queue Linux composition target. Existing
 source/build guards retain the detailed native-dependency negatives. A separately
 copied Serial consumer runs all five PTY/policy scenarios beneath a parent project
 with its own tests enabled, preserving both parent tests. The independent Logging
 fixture similarly runs its actual-provider and policy cases under a testing-ON parent.
 
 See the [external application example](../docs/build.md#external-linux-application-using-crux-source).
-The fixture uses public capabilities in portable targets and declares native
+The fixture uses public capabilities in portable targets and declares platform
 composition separately. It does not establish an installed SDK, production Linux,
 physical qualification or support for additional toolchains.
 
