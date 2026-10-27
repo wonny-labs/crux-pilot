@@ -1,4 +1,5 @@
-/** @file
+/**
+ * @file
  * @brief Read-only status of the composition-selected primary network interface.
  */
 #ifndef CRUX_NETIF_H
@@ -26,7 +27,8 @@ typedef struct {
     uint8_t ipv4_address[4];
 } crux_netif_status_t;
 
-/** Observe the primary interface in thread context.
+/**
+ * Observe the primary interface in thread context.
  * @param[out] out Updated only on success.
  * @return CRUX_OK or a crux_status_t error.
  */

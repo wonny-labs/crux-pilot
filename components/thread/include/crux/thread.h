@@ -1,4 +1,5 @@
-/** @file
+/**
+ * @file
  * @brief Portable joinable threads and monotonic sleep.
  *
  * Thread context only. Finite timeout_ms waits use 0 for polling and
@@ -36,7 +37,8 @@ typedef struct {
 
 typedef void (*crux_thread_entry_t)(void *argument);
 
-/** Create a joinable thread, which may start before this function returns.
+/**
+ * Create a joinable thread, which may start before this function returns.
  * @param options Required attributes; set priority explicitly when NORMAL is intended.
  * @param entry Worker function.
  * @param argument Caller-managed data, valid until successful join.
@@ -46,21 +48,24 @@ typedef void (*crux_thread_entry_t)(void *argument);
 crux_status_t crux_thread_create(const crux_thread_options_t *options, crux_thread_entry_t entry,
                                  void *argument, crux_thread_t *out);
 
-/** Join and retire a completed thread.
+/**
+ * Join and retire a completed thread.
  * @param[in,out] thread Invalidated on success; retained on failed or timed-out join.
  * @param timeout_ms Zero polls; positive values wait up to the specified interval.
  * @return CRUX_OK, CRUX_ERR_BUSY, CRUX_ERR_TIMEOUT or another crux_status_t error.
  */
 crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms);
 
-/** Sleep for at least the requested duration.
+/**
+ * Sleep for at least the requested duration.
  * @param duration Nonnegative interval; zero returns immediately without yielding.
  * @return CRUX_OK or an argument, context, range or native wait error.
  * Early wakes retry the original deadline. No bound on scheduling latency is promised.
  */
 crux_status_t crux_thread_sleep_for(crux_duration_t duration);
 
-/** Sleep until an absolute monotonic deadline in this execution session.
+/**
+ * Sleep until an absolute monotonic deadline in this execution session.
  * @param deadline Nonnegative timestamp; past/current deadlines return immediately.
  * @return CRUX_OK or an argument, context, range or native wait error.
  * Early wakes retry the same deadline; no additional tick padding is applied.

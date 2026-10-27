@@ -11,6 +11,7 @@ Apply these rules incrementally. Do not reformat unrelated code, rename existing
 - **Language and portability:** Shared components use ISO C17. Public C declarations remain usable by the documented C++17 consumers through `extern "C"` where applicable. Do not leak OS, SoC, board or provider-private types into portable public headers. Qualified standard APIs are deliberate exceptions to Crux-owned interfaces, not general native access.
 - **Formatting:** [.clang-format](../.clang-format) defines the owned-source style: LLVM-based formatting with Linux brace placement, 4-space indentation and a 100-column limit. The adopted change is limited to brace placement; keep all other settings from the configuration. Check with [`scripts/check-format.sh`](../scripts/check-format.sh) and the pinned formatter. Follow nearby code where a choice is not specified.
 - **Clarity:** Use descriptive names and explicit units. Include braces on new or modified control-flow bodies, even for a single statement. Check range conversions and arithmetic when overflow would matter. Do not reformat unrelated code.
+- **Definition spacing:** Separate top-level function definitions with one blank line and add whitespace between meaningful include, type and state sections. Keep internal spacing purposeful, not uniformly verbose.
 - **Naming:** Use `crux_` for public C functions, types and exported variables, and `CRUX_` for macros, enum constants and header guards, as defined in [CONTRIBUTING.md](../CONTRIBUTING.md#making-changes). Keep component-owned `<crux/...>` headers. Do not rename public targets, native providers or Zephyr identifiers for style alone.
 - **Resources and errors:** Handle allocation, lifetime, cleanup after partial failure and concurrent access explicitly. Preserve adopted component-specific result types and named errors rather than forcing all APIs into one error enum.
 - **Platform boundaries:** Portable consumers depend on public Crux contracts or explicitly qualified standard APIs. OS-specific ports and platform composition own native requirements. Do not introduce a universal HAL/OSAL or service registry without real consumer evidence.
@@ -48,6 +49,10 @@ contracts or renaming established APIs for style alone.
 ## Public API documentation
 
 For new or materially changed public declarations, use Doxygen-compatible `/** ... */` comments in the owning header. Existing untouched headers can be documented incrementally when relevant. A generated API site, Doxygen groups and a full-header conversion are not required by the current Pilot.
+
+For multi-line Doxygen blocks, put `/**` on its own line and start the first text or
+command (`@file`, `@brief`, etc.) on a following ` * ` line. Retain concise
+single-line `/** Description. */` and member `/**< Description. */` forms.
 
 Document the following when relevant to a caller:
 

@@ -19,7 +19,8 @@ typedef struct {
     uint32_t nanoseconds;
 } crux_datetime_t;
 
-/** Convert Gregorian UTC to normalized POSIX realtime, preserving nanoseconds.
+/**
+ * Convert Gregorian UTC to normalized POSIX realtime, preserving nanoseconds.
  * Pure conversion; no init, clock, lock or allocation. Leap seconds unsupported.
  * @param datetime Calendar fields; nanoseconds must be less than 1000000000.
  * @param[out] out Assigned only on success; caller owns both objects.
@@ -28,7 +29,8 @@ typedef struct {
  */
 crux_status_t crux_realtime_from_utc(const crux_datetime_t *datetime, crux_realtime_t *out);
 
-/** Convert normalized POSIX realtime to Gregorian UTC, preserving nanoseconds.
+/**
+ * Convert normalized POSIX realtime to Gregorian UTC, preserving nanoseconds.
  * @param time Time in [2000-01-01, 2100-01-01), with normalized nanoseconds.
  * @param[out] out Assigned only on success; NULL is INVALID_ARGUMENT.
  * @return OK, INVALID_ARGUMENT for malformed nanoseconds/NULL, OUT_OF_RANGE

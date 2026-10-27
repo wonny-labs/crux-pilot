@@ -16,6 +16,7 @@ BUILD_ASSERT(!IS_ENABLED(CONFIG_NVS_INIT_BAD_MEMORY_REGION));
 
 enum { NAME_CAPACITY = 36, RECORD_CAPACITY = 256 };
 static bool initialized;
+
 static crux_config_result_t result(int rc)
 {
     switch (rc) {
@@ -32,18 +33,21 @@ static crux_config_result_t result(int rc)
         return CRUX_CONFIG_ERR_IO;
     }
 }
+
 crux_config_result_t crux_config_zephyr_init(void)
 {
     crux_config_result_t rc = result(settings_subsys_init());
     initialized = rc == CRUX_CONFIG_OK;
     return rc;
 }
+
 struct read_context {
     uint8_t bytes[RECORD_CAPACITY];
     size_t length;
     bool found;
     int error;
 };
+
 static int receive(const char *name, size_t length, settings_read_cb read_cb, void *cb_arg,
                    void *param)
 {
@@ -63,11 +67,13 @@ static int receive(const char *name, size_t length, settings_read_cb read_cb, vo
     }
     return ctx->error;
 }
+
 static bool name_for(const char *key, char name[NAME_CAPACITY])
 {
     int length = snprintf(name, NAME_CAPACITY, "cfg/%s", key);
     return length > 0 && length < NAME_CAPACITY;
 }
+
 crux_config_result_t crux_config_port_read(const char *key, uint8_t *buffer, size_t capacity,
                                            crux_config_record_info_t *record)
 {
@@ -92,6 +98,7 @@ crux_config_result_t crux_config_port_read(const char *key, uint8_t *buffer, siz
     record->transferred = copied;
     return CRUX_CONFIG_OK;
 }
+
 crux_config_result_t crux_config_port_write(const char *key, const uint8_t *buffer, size_t length)
 {
     if (!initialized) {

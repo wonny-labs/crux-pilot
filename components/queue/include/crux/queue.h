@@ -1,4 +1,5 @@
-/** @file
+/**
+ * @file
  * @brief Bounded, fixed-size copy queues.
  *
  * Thread context only. timeout_ms uses 0 for polling and 1..INT32_MAX for
@@ -22,7 +23,8 @@ typedef struct {
     uint32_t generation;
 } crux_queue_t;
 
-/** Create a queue for capacity records of exactly message_size bytes.
+/**
+ * Create a queue for capacity records of exactly message_size bytes.
  * @param capacity Positive maximum number of records.
  * @param message_size Positive size of each copied record.
  * @param[out] out Invalid on failure; must not hold a live queue.
@@ -30,7 +32,8 @@ typedef struct {
  */
 crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue_t *out);
 
-/** Copy one record into the queue.
+/**
+ * Copy one record into the queue.
  * @param queue Valid queue handle.
  * @param record Caller-owned readable buffer, borrowed only for this call.
  * @param size Must equal the configured message size.
@@ -40,7 +43,8 @@ crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue
 crux_status_t crux_queue_send(crux_queue_t queue, const void *record, size_t size,
                               uint32_t timeout_ms);
 
-/** Copy and consume the oldest record.
+/**
+ * Copy and consume the oldest record.
  * @param queue Valid queue handle.
  * @param[out] record Caller-owned writable buffer, unchanged on failure.
  * @param size Must equal the configured message size.
@@ -50,7 +54,8 @@ crux_status_t crux_queue_send(crux_queue_t queue, const void *record, size_t siz
 crux_status_t crux_queue_receive(crux_queue_t queue, void *record, size_t size,
                                  uint32_t timeout_ms);
 
-/** Destroy a queue with no admitted operations, discarding any queued records.
+/**
+ * Destroy a queue with no admitted operations, discarding any queued records.
  * @param[in,out] queue Invalidated on success; retained if busy.
  * @return CRUX_OK, CRUX_ERR_BUSY or another crux_status_t error.
  */

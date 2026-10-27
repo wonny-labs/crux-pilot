@@ -1,4 +1,5 @@
-/** @file
+/**
+ * @file
  * @brief Bounded text logging with a process/boot-local severity filter.
  *
  * Thread context after startup only; no ISR or panic-path support.
@@ -23,13 +24,15 @@ typedef enum {
 
 enum { CRUX_LOG_TAG_MAX = 24, CRUX_LOG_TEXT_MAX = 256 };
 
-/** Set the maximum enabled log level (initially INFO); OFF disables logging.
+/**
+ * Set the maximum enabled log level (initially INFO); OFF disables logging.
  * @param maximum_level Filter threshold; already submitted records are unaffected.
  * @return CRUX_OK or a crux_status_t error.
  */
 crux_status_t crux_log_set_level(crux_log_level_t maximum_level);
 
-/** Submit a completed text record, not a printf-style format string.
+/**
+ * Submit a completed text record, not a printf-style format string.
  * @param level Severity subject to the current filter.
  * @param tag NUL-terminated ASCII [A-Za-z0-9_.-], 1..CRUX_LOG_TAG_MAX bytes.
  * @param text NUL-terminated text, at most CRUX_LOG_TEXT_MAX bytes, without CR/LF.

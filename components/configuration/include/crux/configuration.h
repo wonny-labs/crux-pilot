@@ -1,4 +1,5 @@
-/** @file
+/**
+ * @file
  * @brief Application-owned scalar configuration and explicit persistence.
  *
  * Thread context only. Callers serialise access. Changes to accepted values are
@@ -25,7 +26,8 @@ typedef struct {
     } data;
 } crux_config_value_t;
 
-/** Synchronous, non-reentrant validator.
+/**
+ * Synchronous, non-reentrant validator.
  * Must not perform persistence or mutate the parameter being validated.
  */
 typedef bool (*crux_config_validator_t)(const crux_config_value_t *candidate, void *context);
@@ -45,7 +47,8 @@ typedef struct {
     crux_config_value_t value;
 } crux_config_param_t;
 
-/** Configuration-specific results; never cast to crux_status_t.
+/**
+ * Configuration-specific results; never cast to crux_status_t.
  * Positive DEFAULT_* values mean a validated default was used, not a storage write.
  */
 typedef enum {
@@ -61,7 +64,8 @@ typedef enum {
     CRUX_CONFIG_ERR_NOT_SUPPORTED = -7
 } crux_config_result_t;
 
-/** Initialise with a validated default; no persistent read is performed.
+/**
+ * Initialise with a validated default; no persistent read is performed.
  * @param parameter Caller-zeroed storage, unchanged on failed init.
  * @param spec Immutable descriptor kept alive by the caller.
  * @return CRUX_CONFIG_OK or a CRUX_CONFIG_ERR_* result.
@@ -69,7 +73,8 @@ typedef enum {
 crux_config_result_t crux_config_init(crux_config_param_t *parameter,
                                       const crux_config_spec_t *spec);
 
-/** Read the currently accepted value, without accessing storage.
+/**
+ * Read the currently accepted value, without accessing storage.
  * @param parameter Initialised parameter.
  * @param[out] out Assigned on success; preserved on error.
  * @return CRUX_CONFIG_OK or a CRUX_CONFIG_ERR_* result.
@@ -77,7 +82,8 @@ crux_config_result_t crux_config_init(crux_config_param_t *parameter,
 crux_config_result_t crux_config_read(const crux_config_param_t *parameter,
                                       crux_config_value_t *out);
 
-/** Validate and update the accepted value in memory only.
+/**
+ * Validate and update the accepted value in memory only.
  * @param parameter Initialised parameter.
  * @param candidate New typed value; rejected updates preserve the old value.
  * @return CRUX_CONFIG_OK or a CRUX_CONFIG_ERR_* result.
@@ -85,14 +91,16 @@ crux_config_result_t crux_config_read(const crux_config_param_t *parameter,
 crux_config_result_t crux_config_update(crux_config_param_t *parameter,
                                         const crux_config_value_t *candidate);
 
-/** Load one parameter, falling back only on confirmed missing or invalid records.
+/**
+ * Load one parameter, falling back only on confirmed missing or invalid records.
  * @param parameter Initialised parameter; unresolved IO failure preserves its value.
  * @return CRUX_CONFIG_OK for a valid stored value; DEFAULT_* for a validated
  * fallback; otherwise a CRUX_CONFIG_ERR_* result.
  */
 crux_config_result_t crux_config_load(crux_config_param_t *parameter);
 
-/** Validate and save one parameter; no multi-parameter atomicity is promised.
+/**
+ * Validate and save one parameter; no multi-parameter atomicity is promised.
  * @param parameter Initialised parameter.
  * @return CRUX_CONFIG_OK on provider acknowledgement or a CRUX_CONFIG_ERR_* result.
  * A failed save may already have changed persistent bytes.
