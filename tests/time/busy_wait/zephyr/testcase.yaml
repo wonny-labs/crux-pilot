@@ -1,0 +1,21 @@
+tests:
+  crux.time.busy_wait.native_profile:
+    harness: ztest
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+    tags:
+      - crux
+      - time
+  crux.time.busy_wait.disabled:
+    harness: ztest
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+    extra_configs:
+      - CONFIG_CRUX_TIME_BUSY_WAIT=n
+    tags:
+      - crux
+      - time

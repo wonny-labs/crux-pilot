@@ -8,7 +8,7 @@
 static crux_status_t remaining(crux_monotonic_time_t deadline, uint32_t *out_ms)
 {
     crux_monotonic_time_t now;
-    crux_status_t status = crux_time_get_monotonic(&now);
+    crux_status_t status = crux_monotonic_now(&now);
     if (status != CRUX_OK)
         return status;
     if (crux_monotonic_is_at_or_before(deadline, now))
@@ -38,7 +38,7 @@ crux_status_t serial_runtime_transaction(crux_serial_port_t port,
         result->transaction_status = CRUX_ERR_OUT_OF_RANGE;
         return result->transaction_status;
     }
-    status = crux_time_make_deadline_after(crux_duration_from_ms((int32_t)budget_ms), &deadline);
+    status = crux_monotonic_deadline_after(crux_duration_from_ms((int32_t)budget_ms), &deadline);
     if (status != CRUX_OK)
         goto unopened;
     status = crux_serial_open(port, config, &result->retained_handle);

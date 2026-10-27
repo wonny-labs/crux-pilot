@@ -27,9 +27,9 @@ int main(void)
     if (advance(&deadline, 1350, &skipped) != CRUX_OK || deadline != 1400 || skipped != 2)
         return 1;
     crux_monotonic_time_t release, now;
-    if (crux_time_make_deadline_after(crux_duration_from_ms(100), &release) != CRUX_OK)
+    if (crux_monotonic_deadline_after(crux_duration_from_ms(100), &release) != CRUX_OK)
         return 2;
-    if (crux_thread_sleep_until(release) != CRUX_OK || crux_time_get_monotonic(&now) != CRUX_OK ||
+    if (crux_thread_sleep_until(release) != CRUX_OK || crux_monotonic_now(&now) != CRUX_OK ||
         crux_monotonic_is_before(now, release))
         return 3;
     /* Keep the original typed phase; skip whole periods without rebasing it. */
@@ -38,7 +38,7 @@ int main(void)
     if (elapsed > INT64_MAX - period_ns)
         return 4;
     int64_t steps = elapsed / period_ns + 1;
-    if (crux_monotonic_add_duration(release, crux_duration_from_ns(steps * period_ns), &release) !=
+    if (crux_monotonic_add(release, crux_duration_from_ns(steps * period_ns), &release) !=
             CRUX_OK ||
         !crux_monotonic_is_before(now, release))
         return 4;

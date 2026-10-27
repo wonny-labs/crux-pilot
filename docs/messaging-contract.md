@@ -35,8 +35,8 @@ There is no public provider vtable, native struct, general OSAL, or legacy
 Monotonic facade. Notification uses `crux::sync`.
 
 Monotonic timestamps are typed nonnegative nanosecond representations, local to
-one provider/execution session, not UTC. Use `crux_time_get_monotonic()` for
-observation and `crux_time_make_deadline_after()` for quantization-safe deadlines;
+one provider/execution session, not UTC. Use `crux_monotonic_now()` for
+observation and `crux_monotonic_deadline_after()` for quantization-safe deadlines;
 `crux_thread_sleep_until()` preserves an absolute deadline through early wakes.
 The former signed-millisecond pair and INT32_MAX-ms sleep limit are removed.
 Queue/Sync/join timeout contracts remain millisecond based and unchanged.

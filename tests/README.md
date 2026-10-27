@@ -8,11 +8,11 @@ cases, C17/C++17 header/type checks, and RTC-disabled Zephyr Ztests in
 and their EVKB cross-build. Thread-only means without Sync; its explicit Time
 clock dependency is included. These checks do not operate physical hardware.
 
-Bounded Delay tests include common/native error handling, counter conversion and
-unsupported-profile shims, and actual Linux integration under `tests/delay/`.
-`scripts/test-delay.sh` runs normal-ISR and IRQ-delivery Ztests on native_sim and
+Time Busy-wait tests include common/native error handling, counter conversion and
+unsupported-profile shims, and actual Linux integration under `tests/time/busy_wait/`.
+`scripts/test-time-busy-wait.sh` runs normal-ISR and IRQ-delivery Ztests on native_sim and
 cross-builds EVKB. Shims and compilation do not qualify a physical ISR or timing.
-See the [Delay contract](../docs/delay.md).
+See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |

@@ -6,12 +6,7 @@ BUILD_ASSERT(CONFIG_NUM_PREEMPT_PRIORITIES > 6, "Thread requires preemptive prio
 K_MUTEX_DEFINE(thread_metadata);
 K_THREAD_STACK_ARRAY_DEFINE(worker_stacks, CRUX_THREAD_COUNT, CRUX_THREAD_STACK_BYTES);
 
-bool thread_native_context_allowed(void)
-{
-    return !k_is_in_isr();
-}
-
-crux_status_t thread_native_sleep_until(int64_t deadline_ns)
+crux_status_t crux_thread_impl_sleep_until_ns(int64_t deadline_ns)
 {
     int64_t ticks;
     crux_status_t status =

@@ -26,7 +26,7 @@ int main(void)
     char line[INPUT_CAPACITY];
 
     puts("Crux Time host simulation (controlled clock; no wall-clock progression).");
-    if (crux_time_init() != CRUX_OK) {
+    if (crux_realtime_init() != CRUX_OK) {
         fputs("ERR IO_ERROR\n", stderr);
         return 1;
     }

@@ -1,3 +1,4 @@
+#include "interrupt.h"
 #include "sync_internal.h"
 
 #include <errno.h>
@@ -9,7 +10,7 @@ _Static_assert(sizeof(time_t) == sizeof(int64_t), "Host provider requires 64-bit
 
 bool sync_native_context_allowed(void)
 {
-    return true;
+    return !crux_is_in_isr();
 }
 
 void sync_native_metadata_lock(void)

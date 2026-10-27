@@ -67,7 +67,7 @@ static bool parse_digits(const char *input, size_t count, int32_t *out)
     return true;
 }
 
-static bool parse_timestamp(struct token value, crux_time_utc_t *out)
+static bool parse_timestamp(struct token value, crux_datetime_t *out)
 {
     if (value.size != 19 || value.data[4] != '-' || value.data[7] != '-' || value.data[10] != 'T' ||
         value.data[13] != ':' || value.data[16] != ':') {
@@ -128,12 +128,12 @@ crux_time_command_result_t crux_time_command_execute(const char *input)
 
     if (count == 2 && token_equals(tokens[1], "get")) {
         crux_realtime_t instant;
-        crux_time_utc_t calendar;
-        crux_status_t status = crux_time_get_realtime(&instant);
+        crux_datetime_t calendar;
+        crux_status_t status = crux_realtime_now(&instant);
         if (status != CRUX_OK) {
             return make_result(status, CRUX_TIME_COMMAND_LINE, NULL);
         }
-        status = crux_time_to_utc(instant, &calendar);
+        status = crux_realtime_to_utc(instant, &calendar);
         if (status != CRUX_OK) {
             return make_result(status, CRUX_TIME_COMMAND_LINE, NULL);
         }
@@ -160,16 +160,16 @@ crux_time_command_result_t crux_time_command_execute(const char *input)
     }
 
     if (count == 3 && token_equals(tokens[1], "set")) {
-        crux_time_utc_t calendar = {0};
+        crux_datetime_t calendar = {0};
         crux_realtime_t instant;
         if (!parse_timestamp(tokens[2], &calendar)) {
             return make_result(CRUX_ERR_INVALID_ARGUMENT, CRUX_TIME_COMMAND_LINE, NULL);
         }
-        crux_status_t status = crux_time_from_utc(&calendar, &instant);
+        crux_status_t status = crux_realtime_from_utc(&calendar, &instant);
         if (status != CRUX_OK) {
             return make_result(status, CRUX_TIME_COMMAND_LINE, NULL);
         }
-        status = crux_time_set_realtime(&instant, CRUX_TIME_SOURCE_MANUAL, false);
+        status = crux_realtime_set(&instant, CRUX_REALTIME_SOURCE_MANUAL, false);
         return status == CRUX_OK ? make_result(CRUX_OK, CRUX_TIME_COMMAND_LINE, "OK")
                                  : make_result(status, CRUX_TIME_COMMAND_LINE, NULL);
     }

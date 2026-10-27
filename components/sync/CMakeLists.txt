@@ -20,3 +20,6 @@ set_property(TARGET crux_sync_host APPEND PROPERTY COMPATIBLE_INTERFACE_STRING C
 add_library(crux_sync INTERFACE)
 add_library(crux::sync ALIAS crux_sync)
 target_link_libraries(crux_sync INTERFACE crux_sync_api crux_sync_host)
+
+target_include_directories(crux_sync_host PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../interrupt/src")
+target_link_libraries(crux_sync_host PRIVATE crux_interrupt)

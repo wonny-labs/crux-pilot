@@ -9,6 +9,6 @@ if(CONFIG_CRUX_QUEUE)
         -Wl,--undefined=crux_queue_receive -Wl,--undefined=crux_queue_destroy)
 endif()
 if(CONFIG_CRUX_THREAD)
-    target_link_options(app PUBLIC -Wl,--undefined=crux_time_get_monotonic
+    target_link_options(app PUBLIC -Wl,--undefined=crux_monotonic_now
         -Wl,--undefined=crux_thread_sleep_until)
 endif()

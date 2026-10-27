@@ -17,12 +17,12 @@ extern "C" {
 /** Adopt the current native realtime without writing it.
  * Success establishes valid, unsynchronized time with source UNKNOWN.
  * @return OK, NOT_READY before init, NOT_SUPPORTED in ISR, or read errors as
- * documented by get_realtime. Failed adoption never establishes validity.
+ * documented by crux_realtime_now. Failed adoption never establishes validity.
  */
-crux_status_t crux_time_adopt_realtime(void);
+crux_status_t crux_realtime_adopt(void);
 
 /** Set system realtime and authority metadata atomically for Crux observers.
- * @param value Normalized time in [2000-01-01, 2100-01-01); never retained.
+ * @param time Normalized time in [2000-01-01, 2100-01-01); never retained.
  * @param source RTC, MANUAL or EXTERNAL. NONE/UNKNOWN are invalid arguments.
  * @param actively_synchronized May be true only with source EXTERNAL.
  * Invalid arguments/range are rejected before state/native access. An actual
@@ -31,20 +31,20 @@ crux_status_t crux_time_adopt_realtime(void);
  * @return OK, INVALID_ARGUMENT, OUT_OF_RANGE, NOT_READY, NOT_SUPPORTED in ISR,
  * or the native write error. Provider lock failure leaves state unchanged.
  */
-crux_status_t crux_time_set_realtime(const crux_realtime_t *value, crux_time_source_t source,
-                                     bool actively_synchronized);
+crux_status_t crux_realtime_set(const crux_realtime_t *time, crux_realtime_source_t source,
+                                bool actively_synchronized);
 
 /** Update synchronization metadata without writing realtime.
  * @param actively_synchronized True requires a valid EXTERNAL source.
  * @return OK, NO_DATA when invalid, INVALID_STATE for true with non-EXTERNAL
  * source, NOT_READY before init, NOT_SUPPORTED in ISR, or lock failure.
  */
-crux_status_t crux_time_notify_sync_state(bool actively_synchronized);
+crux_status_t crux_realtime_set_synchronized(bool actively_synchronized);
 
 /** Clear validity and synchronization, retaining last source; no native write.
  * @return OK, NOT_READY before init, NOT_SUPPORTED in ISR, or lock failure.
  */
-crux_status_t crux_time_invalidate_realtime(void);
+crux_status_t crux_realtime_invalidate(void);
 
 #ifdef __cplusplus
 }

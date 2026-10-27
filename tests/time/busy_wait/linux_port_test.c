@@ -1,4 +1,4 @@
-#include <crux/delay.h>
+#include <crux/time.h>
 #include <errno.h>
 #include <pthread.h>
 #include <sched.h>
@@ -96,15 +96,7 @@ int __wrap_sched_yield(void)
 static crux_status_t wait_ns(int64_t ns)
 {
     active = true;
-    crux_status_t status = crux_delay_busy_wait(crux_duration_from_ns(ns));
-    active = false;
-    CHECK(forbidden_calls == 0);
-    return status;
-}
-static crux_status_t limit(crux_duration_t *out)
-{
-    active = true;
-    crux_status_t status = crux_delay_get_max_duration(out);
+    crux_status_t status = crux_busy_wait(crux_duration_from_ns(ns));
     active = false;
     CHECK(forbidden_calls == 0);
     return status;
@@ -118,13 +110,15 @@ static void reset(void)
 }
 int main(void)
 {
-    crux_duration_t out = crux_duration_from_ns(73);
-    CHECK(limit(NULL) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(wait_ns(0) == CRUX_OK && reads == 0 && res_reads == 0);
     CHECK(wait_ns(-1) == CRUX_ERR_INVALID_ARGUMENT && reads == 0 && res_reads == 0);
-    CHECK(limit(&out) == CRUX_OK && crux_duration_to_ns(out) == INT64_MAX - 110);
     reset();
     CHECK(wait_ns(INT64_MAX - 109) == CRUX_ERR_OUT_OF_RANGE && reads == 1);
+    reset();
+    script[0] = script[1] = 100;
+    script[2] = INT64_MAX;
+    script_count = 3;
+    CHECK(wait_ns(INT64_MAX - 110) == CRUX_OK && reads == 3);
     reset();
     const int64_t sequence[] = {100, 100, 110, 119, 120};
     for (size_t i = 0; i < 5; ++i)
@@ -145,31 +139,28 @@ int main(void)
     CHECK(wait_ns(50) == CRUX_ERR_OUT_OF_RANGE && reads == 2);
     reset();
     now_ns = INT64_MAX - 10;
-    CHECK(limit(&out) == CRUX_OK && crux_duration_to_ns(out) == 0);
     CHECK(wait_ns(1) == CRUX_ERR_OUT_OF_RANGE);
     now_ns = INT64_MAX;
-    out = crux_duration_from_ns(73);
-    CHECK(limit(&out) == CRUX_ERR_OUT_OF_RANGE && crux_duration_to_ns(out) == 73);
+    CHECK(wait_ns(1) == CRUX_ERR_OUT_OF_RANGE);
     reset();
     get_error = EIO;
-    CHECK(limit(&out) == CRUX_ERR_IO && crux_duration_to_ns(out) == 73);
+    CHECK(wait_ns(1) == CRUX_ERR_IO);
     reset();
     res_error = EIO;
-    CHECK(limit(&out) == CRUX_ERR_IO && crux_duration_to_ns(out) == 73);
+    CHECK(wait_ns(1) == CRUX_ERR_IO);
     reset();
     get_error = ENOSYS;
-    CHECK(limit(&out) == CRUX_ERR_NOT_SUPPORTED && crux_duration_to_ns(out) == 73);
+    CHECK(wait_ns(1) == CRUX_ERR_NOT_SUPPORTED);
     reset();
     res_error = ENOTSUP;
-    CHECK(limit(&out) == CRUX_ERR_NOT_SUPPORTED && crux_duration_to_ns(out) == 73);
+    CHECK(wait_ns(1) == CRUX_ERR_NOT_SUPPORTED);
     reset();
     resolution_ns = 0;
-    CHECK(limit(&out) == CRUX_ERR_IO && crux_duration_to_ns(out) == 73);
+    CHECK(wait_ns(1) == CRUX_ERR_IO);
     for (malformed = 1; malformed <= 3; ++malformed) {
         now_ns = 100;
         resolution_ns = 10;
-        CHECK(limit(&out) == (malformed == 1 ? CRUX_ERR_IO : CRUX_ERR_OUT_OF_RANGE));
-        CHECK(crux_duration_to_ns(out) == 73);
+        CHECK(wait_ns(1) == (malformed == 1 ? CRUX_ERR_IO : CRUX_ERR_OUT_OF_RANGE));
     }
     reset();
     script[0] = script[1] = 100;

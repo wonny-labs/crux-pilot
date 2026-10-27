@@ -11,7 +11,7 @@ static crux_status_t exchange(crux_serial_t handle, crux_monotonic_time_t deadli
         size_t offset = 0;
         while (offset < sizeof(request)) {
             crux_monotonic_time_t now;
-            crux_status_t status = crux_time_get_monotonic(&now);
+            crux_status_t status = crux_monotonic_now(&now);
             if (status != CRUX_OK)
                 return status;
             if (crux_monotonic_is_at_or_before(deadline, now))
@@ -32,7 +32,7 @@ static crux_status_t exchange(crux_serial_t handle, crux_monotonic_time_t deadli
         }
     }
     crux_monotonic_time_t now;
-    crux_status_t status = crux_time_get_monotonic(&now);
+    crux_status_t status = crux_monotonic_now(&now);
     if (status != CRUX_OK)
         return status;
     if (crux_monotonic_is_at_or_before(deadline, now))
@@ -45,7 +45,7 @@ static crux_status_t exchange(crux_serial_t handle, crux_monotonic_time_t deadli
 crux_status_t serial_controller_run(crux_serial_port_t port, uint32_t nonce)
 {
     crux_monotonic_time_t deadline;
-    crux_status_t status = crux_time_make_deadline_after(crux_duration_from_ms(200), &deadline);
+    crux_status_t status = crux_monotonic_deadline_after(crux_duration_from_ms(200), &deadline);
     if (status != CRUX_OK)
         return status;
     const crux_serial_config_t config = {115200, 8, 1, CRUX_SERIAL_PARITY_NONE};

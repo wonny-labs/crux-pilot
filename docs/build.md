@@ -149,7 +149,7 @@ int controller_run(void) {
     crux_monotonic_time_t now = {0};
     int failed = crux_queue_send(queue, &sent, sizeof(sent), 0) != CRUX_OK ||
                  crux_queue_receive(queue, &received, sizeof(received), 0) != CRUX_OK ||
-                 received != sent || crux_time_get_monotonic(&now) != CRUX_OK ||
+                 received != sent || crux_monotonic_now(&now) != CRUX_OK ||
                  crux_thread_sleep_until(now) != CRUX_OK;
     crux_status_t cleanup = crux_queue_destroy(&queue);
     return failed || cleanup != CRUX_OK;
@@ -213,7 +213,7 @@ The external application tests also cover C++17, independently selected Thread/S
 | --- | --- |
 | Base | `crux::base` always exists |
 | Time | Set `CRUX_BUILD_TIME=ON` and explicitly select `CRUX_TIME_PROVIDER=memory` (controlled development) or `linux` (system realtime). Controlled Host samples require memory; Linux native writes need explicit application authority. Neither implies production qualification |
-| Delay | Select `CRUX_BUILD_DELAY=ON` and Time with an explicit provider; link `crux::delay`. Zephyr `CONFIG_CRUX_DELAY=y` selects Time without RTC. See [limits and verified scope](delay.md) |
+| Time CPU Busy-wait | Select `CRUX_TIME_BUSY_WAIT=ON` and Time with an explicit provider; link `crux::time`. Zephyr requires `CONFIG_CRUX_TIME=y` plus `CONFIG_CRUX_TIME_BUSY_WAIT=y`, without RTC. Disabled Busy-wait remains linkable and returns NOT_SUPPORTED for positive durations. See [limits and verified scope](time-busy-wait.md) |
 | Thread, Sync | Select independently through `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`. Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for the current controlled Host composition). Their public targets connect the current Linux implementation |
 | Queue | Portable targets use `crux::queue`. The final Linux executable additionally links `crux::queue_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and native TTY binding belongs to trusted composition |

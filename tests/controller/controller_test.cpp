@@ -7,7 +7,7 @@
 
 static crux_status_t set_manual(crux_realtime_t value)
 {
-    return crux_time_set_realtime(&value, CRUX_TIME_SOURCE_MANUAL, false);
+    return crux_realtime_set(&value, CRUX_REALTIME_SOURCE_MANUAL, false);
 }
 
 class ControllerTest : public ::testing::Test
@@ -23,17 +23,17 @@ class ControllerTest : public ::testing::Test
 TEST_F(ControllerTest, InitialisationFailureIsObservableAndRetryCanRecover)
 {
     crux_time_host_test_fail_next_init();
-    ASSERT_EQ(crux_time_init(), CRUX_ERR_IO);
+    ASSERT_EQ(crux_realtime_init(), CRUX_ERR_IO);
     auto reading = controller_observe(0);
     EXPECT_EQ(reading.status, CRUX_ERR_NOT_READY);
     EXPECT_EQ(reading.utc_seconds, 0);
-    ASSERT_EQ(crux_time_init(), CRUX_OK);
+    ASSERT_EQ(crux_realtime_init(), CRUX_OK);
     EXPECT_EQ(controller_observe(1).status, CRUX_ERR_NO_DATA);
 }
 
 TEST_F(ControllerTest, UnsetValidReadFailureAndRecoveryKeepCycleIdentity)
 {
-    ASSERT_EQ(crux_time_init(), CRUX_OK);
+    ASSERT_EQ(crux_realtime_init(), CRUX_OK);
     EXPECT_EQ(controller_observe(0).status, CRUX_ERR_NO_DATA);
     ASSERT_EQ(set_manual(crux_realtime_t{INT64_C(1792238400), 0}), CRUX_OK);
     auto reading = controller_observe(1);
@@ -49,7 +49,7 @@ TEST_F(ControllerTest, UnsetValidReadFailureAndRecoveryKeepCycleIdentity)
 
 TEST_F(ControllerTest, UtcStepDoesNotChangeMonotonicSchedule)
 {
-    ASSERT_EQ(crux_time_init(), CRUX_OK);
+    ASSERT_EQ(crux_realtime_init(), CRUX_OK);
     ASSERT_EQ(set_manual(crux_realtime_t{INT64_C(1792238400), 0}), CRUX_OK);
     controller_schedule_t schedule = {100, 100, 99};
     ASSERT_EQ(controller_schedule_advance(&schedule, 125), CRUX_OK);

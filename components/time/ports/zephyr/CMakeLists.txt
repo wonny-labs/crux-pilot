@@ -40,3 +40,19 @@ add_library(crux::time ALIAS crux_time)
 target_link_libraries(crux_time INTERFACE crux_time_api)
 set_property(TARGET crux_time PROPERTY INTERFACE_CRUX_TIME_BACKEND zephyr_system)
 set_property(TARGET crux_time APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_TIME_BACKEND)
+
+target_include_directories(crux_time_common PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../../../interrupt/src")
+target_link_libraries(crux_time_common PRIVATE crux_interrupt)
+target_include_directories(crux_time_zephyr PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../../../interrupt/src")
+target_link_libraries(crux_time_zephyr PRIVATE crux_interrupt)
+
+if(CONFIG_CRUX_TIME_BUSY_WAIT)
+    if(NOT CONFIG_SYS_CLOCK_EXISTS OR CONFIG_TIMER_READS_ITS_FREQUENCY_AT_RUNTIME OR
+       CONFIG_SYSTEM_CLOCK_HW_CYCLES_PER_SEC_RUNTIME_UPDATE OR CONFIG_SMP OR
+       (CONFIG_ARCH_HAS_CUSTOM_BUSY_WAIT AND NOT CONFIG_BOARD_NATIVE_SIM))
+        message(FATAL_ERROR "Enabled CONFIG_CRUX_TIME_BUSY_WAIT requires a validated stable single-core timer profile")
+    endif()
+    target_sources(crux_time_zephyr PRIVATE busy_wait_zephyr.c)
+else()
+    target_sources(crux_time_zephyr PRIVATE "${CRUX_TIME_COMPONENT_DIR}/src/busy_wait_disabled.c")
+endif()

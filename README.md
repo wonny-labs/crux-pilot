@@ -10,7 +10,7 @@ Applications select the components they need. Portable application and runtime-p
 
 | Area | Components | Purpose |
 | --- | --- | --- |
-| Foundation and timing | `base`, `time`, `delay` | Shared status, typed clocks/authority/calendar, deadlines and bounded CPU busy-wait |
+| Foundation and timing | `base`, `time` | Shared status, typed clocks/authority/calendar, deadlines and bounded CPU busy-wait |
 | Execution and synchronisation | `thread`, `sync`, `queue` | Threads, mutexes, semaphores and message queues |
 | Communication and networking | `serial`, `sockets`, `netif` | Serial byte streams, IPv4 TCP clients/connected UDP and network-interface status |
 | Storage and configuration | `file`, `configuration` | File access and application-supplied parameter validation and save/load |

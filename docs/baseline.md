@@ -526,7 +526,7 @@ Clang-Tidy remains a recorded failure after two focused attempts. In the first a
 | --- | --- |
 | First Zephyr application configure failed because public Crux include directories were not propagated to the sample target. | Added a small public-header INTERFACE target in the Zephyr module; native_sim sample then built. |
 | The first Zephyr C++ build could not find `<cstring>` in Zephyr's minimal C++ library. | Replaced standard C++ wrappers with equivalent C headers/functions supported by the configured runtime; native builds passed. |
-| A C++ Ztest could not link `crux_time_port_read()` because the private port header lacked C linkage guards. | Added `extern "C"` guards; both native_sim scenarios and all four Ztest cases passed. |
+| A C++ Ztest could not link `crux_realtime_impl_read()` because the private port header lacked C linkage guards. | Added `extern "C"` guards; both native_sim scenarios and all four Ztest cases passed. |
 | The first EVKB target compile hit the upstream assertion that RTC priority must be greater than SNVS Counter priority 60. | Set `CONFIG_RTC_INIT_PRIORITY=61`; EVKB QSPI application build passed. |
 | Zephyr printed an upstream `unique_unit_address_if_enabled` DTS warning for `usbd@402e0000` and `usbh@402e0000`. | Build completed; no Crux DTS change was made because the conflict is in pinned upstream board description. |
 | Initial C++ formatter check rejected `time_port_zephyr.c`. | Applied the repository's clang-format and reran the full owned-code format check successfully. |

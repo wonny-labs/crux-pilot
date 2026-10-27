@@ -24,3 +24,6 @@ set_property(TARGET crux_thread_host APPEND PROPERTY COMPATIBLE_INTERFACE_STRING
 add_library(crux_thread INTERFACE)
 add_library(crux::thread ALIAS crux_thread)
 target_link_libraries(crux_thread INTERFACE crux_thread_api crux_thread_host)
+
+target_include_directories(crux_thread_host PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../interrupt/src")
+target_link_libraries(crux_thread_host PRIVATE crux_interrupt)

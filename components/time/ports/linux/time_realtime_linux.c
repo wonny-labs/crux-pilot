@@ -1,14 +1,14 @@
-#include "time_port.h"
+#include "realtime_port.h"
 #include <stddef.h>
 #include <time.h>
 
-crux_status_t crux_time_port_init(void)
+crux_status_t crux_realtime_impl_init(void)
 {
     /* Init never reads, adopts or changes the native system clock. */
     return CRUX_OK;
 }
 
-crux_status_t crux_time_port_read(crux_realtime_t *out)
+crux_status_t crux_realtime_impl_read(crux_realtime_t *out)
 {
     struct timespec value;
     if (out == NULL)
@@ -21,12 +21,12 @@ crux_status_t crux_time_port_read(crux_realtime_t *out)
     return CRUX_OK;
 }
 
-crux_status_t crux_time_port_write(const crux_realtime_t *value)
+crux_status_t crux_realtime_impl_write(const crux_realtime_t *time)
 {
-    if (value == NULL)
+    if (time == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
-    const struct timespec native = {(time_t)value->seconds, (long)value->nanoseconds};
-    if ((int64_t)native.tv_sec != value->seconds)
+    const struct timespec native = {(time_t)time->seconds, (long)time->nanoseconds};
+    if ((int64_t)native.tv_sec != time->seconds)
         return CRUX_ERR_OUT_OF_RANGE;
     return clock_settime(CLOCK_REALTIME, &native) == 0 ? CRUX_OK : CRUX_ERR_IO;
 }

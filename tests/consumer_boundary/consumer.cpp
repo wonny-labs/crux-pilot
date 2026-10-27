@@ -13,13 +13,13 @@ int main()
 {
     crux_realtime_t now = {0, 0};
     const crux_realtime_t start = {CRUX_TIME_MIN_UNIX_SECONDS, 0};
-    crux_time_utc_t utc;
-    return crux_time_init() == CRUX_OK &&
-                   crux_time_set_realtime(&start, CRUX_TIME_SOURCE_MANUAL, false) == CRUX_OK &&
-                   crux_time_get_realtime(&now) == CRUX_OK &&
+    crux_datetime_t utc;
+    return crux_realtime_init() == CRUX_OK &&
+                   crux_realtime_set(&start, CRUX_REALTIME_SOURCE_MANUAL, false) == CRUX_OK &&
+                   crux_realtime_now(&now) == CRUX_OK &&
                    now.seconds == CRUX_TIME_MIN_UNIX_SECONDS &&
-                   crux_time_to_utc(now, &utc) == CRUX_OK && utc.year == 2000 &&
-                   crux_time_get_realtime(nullptr) == CRUX_ERR_INVALID_ARGUMENT
+                   crux_realtime_to_utc(now, &utc) == CRUX_OK && utc.year == 2000 &&
+                   crux_realtime_now(nullptr) == CRUX_ERR_INVALID_ARGUMENT
                ? 0
                : 1;
 }
