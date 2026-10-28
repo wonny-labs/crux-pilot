@@ -17,12 +17,12 @@
 void thread_native_metadata_lock(void);
 crux_status_t thread_native_metadata_lock_until(const thread_native_deadline_t *deadline);
 void thread_native_metadata_unlock(void);
-crux_status_t thread_native_deadline(uint32_t timeout_ms, thread_native_deadline_t *out);
-crux_status_t thread_native_thread_create(thread_native_thread_t *thread, crux_thread_entry_t entry,
+crux_status_t crux_thread_make_deadline(uint32_t timeout_ms, thread_native_deadline_t *out);
+crux_status_t crux_thread_impl_create(thread_native_thread_t *thread, crux_thread_entry_t entry,
                                           void *argument, uint32_t slot,
                                           const crux_thread_options_t *options);
-bool thread_native_thread_is_current(const thread_native_thread_t *thread);
-crux_status_t thread_native_thread_join(thread_native_thread_t *thread,
+bool crux_thread_is_current(const thread_native_thread_t *thread);
+crux_status_t crux_thread_impl_join(thread_native_thread_t *thread,
                                         const thread_native_deadline_t *deadline);
 
 #endif
