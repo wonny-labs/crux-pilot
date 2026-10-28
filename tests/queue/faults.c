@@ -6,37 +6,37 @@ static bool context = true;
 static crux_status_t prepare_result = CRUX_OK, lock_result = CRUX_OK, deadline_result = CRUX_OK;
 static unsigned deadline_calls, waits;
 static const queue_deadline_t *original;
-bool queue_port_context(void)
+bool crux_queue_context_allowed(void)
 {
     return context;
 }
-crux_status_t queue_port_deadline(uint32_t ms, queue_deadline_t *out)
+crux_status_t crux_queue_make_deadline(uint32_t ms, queue_deadline_t *out)
 {
     (void)ms;
     ++deadline_calls;
     original = out;
     return deadline_result;
 }
-crux_status_t queue_port_lock(const queue_deadline_t *deadline)
+crux_status_t crux_queue_lock(const queue_deadline_t *deadline)
 {
     assert(deadline == NULL || deadline == original);
     return lock_result;
 }
-void queue_port_unlock(void)
+void crux_queue_unlock(void)
 {
 }
-crux_status_t queue_port_prepare(size_t index)
+crux_status_t crux_queue_prepare_wait(size_t index)
 {
     (void)index;
     return prepare_result;
 }
-crux_status_t queue_port_wait(size_t index, const queue_deadline_t *deadline)
+crux_status_t crux_queue_wait(size_t index, const queue_deadline_t *deadline)
 {
     (void)index;
     assert(deadline == original);
     return ++waits < 3 ? CRUX_OK : CRUX_ERR_TIMEOUT;
 }
-void queue_port_notify(size_t index)
+void crux_queue_notify(size_t index)
 {
     (void)index;
 }
