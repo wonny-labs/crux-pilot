@@ -43,7 +43,7 @@ crux_status_t crux_serial_impl_close(uint32_t port)
     return close_result;
 }
 crux_status_t crux_serial_impl_read(uint32_t port, void *data, size_t size,
-                               const serial_deadline_t *deadline, size_t *count)
+                                    const serial_deadline_t *deadline, size_t *count)
 {
     (void)port;
     (void)deadline;
@@ -64,7 +64,7 @@ crux_status_t crux_serial_impl_read(uint32_t port, void *data, size_t size,
     return CRUX_OK;
 }
 crux_status_t crux_serial_impl_write(uint32_t port, const void *data, size_t size,
-                                const serial_deadline_t *deadline, size_t *count)
+                                     const serial_deadline_t *deadline, size_t *count)
 {
     (void)port;
     (void)data;

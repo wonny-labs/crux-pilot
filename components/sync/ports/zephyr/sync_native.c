@@ -69,7 +69,7 @@ crux_status_t crux_mutex_impl_create(sync_native_mutex_t *mutex)
     return k_mutex_init(mutex) == 0 ? CRUX_OK : CRUX_ERR_IO;
 }
 crux_status_t crux_mutex_impl_lock(sync_native_mutex_t *mutex,
-                                     const sync_native_deadline_t *deadline)
+                                   const sync_native_deadline_t *deadline)
 {
     return native_wait_result(k_mutex_lock(mutex, deadline->timeout));
 }
@@ -85,13 +85,13 @@ crux_status_t crux_mutex_impl_destroy(sync_native_mutex_t *mutex)
 /* Keep the public initial/maximum order at the native boundary. */
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 crux_status_t crux_semaphore_impl_create(sync_native_semaphore_t *semaphore, uint32_t initial,
-                                           uint32_t maximum)
+                                         uint32_t maximum)
 {
     semaphore->maximum = maximum;
     return k_sem_init(&semaphore->object, initial, maximum) == 0 ? CRUX_OK : CRUX_ERR_IO;
 }
 crux_status_t crux_semaphore_impl_take(sync_native_semaphore_t *semaphore,
-                                         const sync_native_deadline_t *deadline)
+                                       const sync_native_deadline_t *deadline)
 {
     return native_wait_result(k_sem_take(&semaphore->object, deadline->timeout));
 }

@@ -20,7 +20,7 @@ crux_status_t crux_serial_impl_close(uint32_t port);
  * an irrevocable commit => OK; errors leave read buffer and count untouched/zero.
  * Open/close run outside the common metadata lock; per-port state is permanent. */
 crux_status_t crux_serial_impl_read(uint32_t port, void *buffer, size_t size,
-                               const serial_deadline_t *deadline, size_t *count);
+                                    const serial_deadline_t *deadline, size_t *count);
 crux_status_t crux_serial_impl_write(uint32_t port, const void *buffer, size_t size,
-                                const serial_deadline_t *deadline, size_t *count);
+                                     const serial_deadline_t *deadline, size_t *count);
 #endif

@@ -266,12 +266,12 @@ static crux_status_t native_transfer(uint32_t index, void *destination, size_t l
     }
 }
 crux_status_t crux_serial_impl_read(uint32_t port, void *buffer, size_t size,
-                               const serial_deadline_t *deadline, size_t *count)
+                                    const serial_deadline_t *deadline, size_t *count)
 {
     return native_transfer(port, buffer, size, NULL, deadline, count, false);
 }
 crux_status_t crux_serial_impl_write(uint32_t port, const void *buffer, size_t size,
-                                const serial_deadline_t *deadline, size_t *count)
+                                     const serial_deadline_t *deadline, size_t *count)
 {
     return native_transfer(port, NULL, size, buffer, deadline, count, true);
 }

@@ -74,7 +74,7 @@ size_t config_fault_bytes(const char *key, uint8_t *out, size_t capacity)
     return records[slot].length;
 }
 crux_config_result_t crux_config_record_read(const char *key, uint8_t *buffer, size_t capacity,
-                                           crux_config_record_info_t *record)
+                                             crux_config_record_info_t *record)
 {
     ++reads;
     if (read_result != CRUX_CONFIG_OK) {

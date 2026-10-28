@@ -69,8 +69,8 @@ static void *run_thread(void *argument)
 }
 
 crux_status_t crux_thread_impl_create(thread_native_thread_t *thread, crux_thread_entry_t entry,
-                                          void *argument, uint32_t slot,
-                                          const crux_thread_options_t *options)
+                                      void *argument, uint32_t slot,
+                                      const crux_thread_options_t *options)
 {
     (void)slot;
     /* Functional Host provider uses unprivileged normal scheduling. */
@@ -101,7 +101,7 @@ bool crux_thread_is_current(const thread_native_thread_t *thread)
 }
 
 crux_status_t crux_thread_impl_join(thread_native_thread_t *thread,
-                                        const thread_native_deadline_t *deadline)
+                                    const thread_native_deadline_t *deadline)
 {
     int result;
     do {

@@ -93,7 +93,7 @@ crux_status_t crux_mutex_impl_create(sync_native_mutex_t *mutex)
     return native_result(result);
 }
 crux_status_t crux_mutex_impl_lock(sync_native_mutex_t *mutex,
-                                     const sync_native_deadline_t *deadline)
+                                   const sync_native_deadline_t *deadline)
 {
     int result;
     do {
@@ -114,7 +114,7 @@ crux_status_t crux_mutex_impl_destroy(sync_native_mutex_t *mutex)
 /* Keep the public initial/maximum order at the native boundary. */
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 crux_status_t crux_semaphore_impl_create(sync_native_semaphore_t *semaphore, uint32_t initial,
-                                           uint32_t maximum)
+                                         uint32_t maximum)
 {
     int result = pthread_mutex_init(&semaphore->lock, NULL);
     if (result != 0)
@@ -138,7 +138,7 @@ crux_status_t crux_semaphore_impl_create(sync_native_semaphore_t *semaphore, uin
     return CRUX_OK;
 }
 crux_status_t crux_semaphore_impl_take(sync_native_semaphore_t *semaphore,
-                                         const sync_native_deadline_t *deadline)
+                                       const sync_native_deadline_t *deadline)
 {
     int result = deadline->poll ? pthread_mutex_trylock(&semaphore->lock)
                                 : pthread_mutex_clocklock(&semaphore->lock, CLOCK_MONOTONIC,

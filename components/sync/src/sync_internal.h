@@ -22,13 +22,13 @@ sync_native_identity_t crux_sync_current_identity(void);
 bool crux_sync_identity_equal(sync_native_identity_t first, sync_native_identity_t second);
 crux_status_t crux_mutex_impl_create(sync_native_mutex_t *mutex);
 crux_status_t crux_mutex_impl_lock(sync_native_mutex_t *mutex,
-                                     const sync_native_deadline_t *deadline);
+                                   const sync_native_deadline_t *deadline);
 crux_status_t crux_mutex_impl_unlock(sync_native_mutex_t *mutex);
 crux_status_t crux_mutex_impl_destroy(sync_native_mutex_t *mutex);
 crux_status_t crux_semaphore_impl_create(sync_native_semaphore_t *semaphore, uint32_t initial,
-                                           uint32_t maximum);
+                                         uint32_t maximum);
 crux_status_t crux_semaphore_impl_take(sync_native_semaphore_t *semaphore,
-                                         const sync_native_deadline_t *deadline);
+                                       const sync_native_deadline_t *deadline);
 crux_status_t crux_semaphore_impl_give(sync_native_semaphore_t *semaphore);
 crux_status_t crux_semaphore_impl_destroy(sync_native_semaphore_t *semaphore);
 

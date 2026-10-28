@@ -75,7 +75,7 @@ static bool name_for(const char *key, char name[NAME_CAPACITY])
 }
 
 crux_config_result_t crux_config_record_read(const char *key, uint8_t *buffer, size_t capacity,
-                                           crux_config_record_info_t *record)
+                                             crux_config_record_info_t *record)
 {
     if (!initialized) {
         return CRUX_CONFIG_ERR_NOT_READY;

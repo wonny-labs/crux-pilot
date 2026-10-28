@@ -20,11 +20,11 @@ static crux_status_t result;
 void __real_sync_native_metadata_lock(void);
 void __real_thread_native_metadata_lock(void);
 crux_status_t __real_crux_mutex_impl_lock(sync_native_mutex_t *native,
-                                            const sync_native_deadline_t *deadline);
+                                          const sync_native_deadline_t *deadline);
 crux_status_t __real_crux_semaphore_impl_take(sync_native_semaphore_t *native,
-                                                const sync_native_deadline_t *deadline);
+                                              const sync_native_deadline_t *deadline);
 crux_status_t __real_crux_thread_impl_join(thread_native_thread_t *native,
-                                               const thread_native_deadline_t *deadline);
+                                           const thread_native_deadline_t *deadline);
 
 static void pause_post_lock(void)
 {
@@ -45,7 +45,7 @@ void __wrap_thread_native_metadata_lock(void)
 }
 
 crux_status_t __wrap_crux_mutex_impl_lock(sync_native_mutex_t *native,
-                                            const sync_native_deadline_t *deadline)
+                                          const sync_native_deadline_t *deadline)
 {
     crux_status_t status = __real_crux_mutex_impl_lock(native, deadline);
     if (deadline->poll) {
@@ -55,7 +55,7 @@ crux_status_t __wrap_crux_mutex_impl_lock(sync_native_mutex_t *native,
 }
 
 crux_status_t __wrap_crux_semaphore_impl_take(sync_native_semaphore_t *native,
-                                                const sync_native_deadline_t *deadline)
+                                              const sync_native_deadline_t *deadline)
 {
     crux_status_t status = __real_crux_semaphore_impl_take(native, deadline);
     if (deadline->poll) {
@@ -65,7 +65,7 @@ crux_status_t __wrap_crux_semaphore_impl_take(sync_native_semaphore_t *native,
 }
 
 crux_status_t __wrap_crux_thread_impl_join(thread_native_thread_t *native,
-                                               const thread_native_deadline_t *deadline)
+                                           const thread_native_deadline_t *deadline)
 {
     crux_status_t status = __real_crux_thread_impl_join(native, deadline);
     if (deadline->poll) {

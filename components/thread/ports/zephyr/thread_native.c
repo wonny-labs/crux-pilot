@@ -74,8 +74,8 @@ static void run_thread(void *argument, void *unused1, void *unused2)
     thread->entry(thread->argument);
 }
 crux_status_t crux_thread_impl_create(thread_native_thread_t *thread, crux_thread_entry_t entry,
-                                          void *argument, uint32_t slot,
-                                          const crux_thread_options_t *options)
+                                      void *argument, uint32_t slot,
+                                      const crux_thread_options_t *options)
 {
     if (options->stack_size_bytes > CRUX_THREAD_STACK_BYTES) {
         return CRUX_ERR_OUT_OF_RANGE;
@@ -93,7 +93,7 @@ bool crux_thread_is_current(const thread_native_thread_t *thread)
     return k_current_get() == &thread->object;
 }
 crux_status_t crux_thread_impl_join(thread_native_thread_t *thread,
-                                        const thread_native_deadline_t *deadline)
+                                    const thread_native_deadline_t *deadline)
 {
     return native_wait_result(k_thread_join(&thread->object, deadline->timeout));
 }
