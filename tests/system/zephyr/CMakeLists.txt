@@ -5,7 +5,7 @@ target_sources(app PRIVATE src/main.c)
 target_include_directories(app PRIVATE ../../../components/system/src ../../../components/system/ports/zephyr)
 target_link_libraries(app PRIVATE crux::system)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
-foreach(symbol system_zephyr_watchdog_device system_zephyr_watchdog_running
+foreach(symbol crux_watchdog_zephyr_device crux_watchdog_zephyr_running
         z_impl_hwinfo_get_reset_cause z_impl_hwinfo_get_supported_reset_cause
         z_impl_hwinfo_clear_reset_cause sys_reboot)
     target_link_options(app PUBLIC -Wl,--wrap=${symbol})

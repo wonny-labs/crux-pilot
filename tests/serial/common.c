@@ -13,11 +13,11 @@ static bool metadata_busy, nested, nested_done;
 static size_t progress = 3;
 static crux_serial_t live;
 static const crux_serial_config_t config = {115200, 8, 1, CRUX_SERIAL_PARITY_NONE};
-bool serial_port_context_allowed(void)
+bool crux_serial_context_allowed(void)
 {
     return true;
 }
-crux_status_t serial_port_now(uint64_t *now)
+crux_status_t crux_serial_monotonic_now_ms(uint64_t *now)
 {
     *now = 100;
     return CRUX_OK;
@@ -31,19 +31,19 @@ crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
 void serial_port_metadata_unlock(void)
 {
 }
-crux_status_t serial_port_open(uint32_t port, const crux_serial_config_t *cfg)
+crux_status_t crux_serial_impl_open(uint32_t port, const crux_serial_config_t *cfg)
 {
     (void)port;
     (void)cfg;
     return open_result;
 }
-crux_status_t serial_port_close(uint32_t port)
+crux_status_t crux_serial_impl_close(uint32_t port)
 {
     (void)port;
     return close_result;
 }
-crux_status_t serial_port_read(uint32_t port, void *data, size_t size,
-                               const serial_deadline_t *deadline, size_t *count)
+crux_status_t crux_serial_impl_read(uint32_t port, void *data, size_t size,
+                                    const serial_deadline_t *deadline, size_t *count)
 {
     (void)port;
     (void)deadline;
@@ -63,8 +63,8 @@ crux_status_t serial_port_read(uint32_t port, void *data, size_t size,
     memcpy(data, "abc", *count);
     return CRUX_OK;
 }
-crux_status_t serial_port_write(uint32_t port, const void *data, size_t size,
-                                const serial_deadline_t *deadline, size_t *count)
+crux_status_t crux_serial_impl_write(uint32_t port, const void *data, size_t size,
+                                     const serial_deadline_t *deadline, size_t *count)
 {
     (void)port;
     (void)data;

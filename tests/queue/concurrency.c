@@ -9,11 +9,11 @@ static crux_queue_t queue;
 static crux_status_t observed;
 static int value;
 static uint32_t wait_ms;
-crux_status_t __real_queue_port_wait(size_t index, const queue_deadline_t *deadline);
-crux_status_t __wrap_queue_port_wait(size_t index, const queue_deadline_t *deadline)
+crux_status_t __real_crux_queue_wait(size_t index, const queue_deadline_t *deadline);
+crux_status_t __wrap_crux_queue_wait(size_t index, const queue_deadline_t *deadline)
 {
     assert(sem_post(&admitted) == 0);
-    return __real_queue_port_wait(index, deadline);
+    return __real_crux_queue_wait(index, deadline);
 }
 static void *reader(void *unused)
 {
@@ -52,14 +52,14 @@ int main(void)
     assert(pthread_join(worker, NULL) == 0 && observed == CRUX_OK);
     assert(crux_queue_receive(queue, &got, sizeof(got), 0) == CRUX_OK && got == 82);
     /* Keep metadata locked until poll/finite admission calls return. */
-    assert(queue_port_lock(NULL) == CRUX_OK);
+    assert(crux_queue_lock(NULL) == CRUX_OK);
     wait_ms = 0;
     assert(pthread_create(&worker, NULL, reader, NULL) == 0);
     assert(pthread_join(worker, NULL) == 0 && observed == CRUX_ERR_BUSY);
     wait_ms = 10;
     assert(pthread_create(&worker, NULL, reader, NULL) == 0);
     assert(pthread_join(worker, NULL) == 0 && observed == CRUX_ERR_TIMEOUT);
-    queue_port_unlock();
+    crux_queue_unlock();
     assert(crux_queue_destroy(&queue) == CRUX_OK);
     assert(crux_queue_create(1, sizeof(int), &queue) == CRUX_OK);
     assert(crux_queue_send(alias, &sent, sizeof(sent), 0) == CRUX_ERR_INVALID_ARGUMENT);

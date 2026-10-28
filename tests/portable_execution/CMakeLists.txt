@@ -6,8 +6,8 @@ target_include_directories(crux_execution_admission PRIVATE
 target_compile_options(crux_execution_admission PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_executable(crux_execution_conformance conformance.c host_main.c public_probe.c
     $<TARGET_OBJECTS:crux_execution_admission>)
-target_link_options(crux_execution_conformance PRIVATE -Wl,--wrap=thread_native_thread_join
-    -Wl,--wrap=sync_native_mutex_lock -Wl,--wrap=sync_native_semaphore_take)
+target_link_options(crux_execution_conformance PRIVATE -Wl,--wrap=crux_thread_impl_join
+    -Wl,--wrap=crux_mutex_impl_lock -Wl,--wrap=crux_semaphore_impl_take)
 target_link_libraries(crux_execution_conformance PRIVATE crux::thread crux::sync)
 target_compile_definitions(crux_execution_conformance PRIVATE _POSIX_C_SOURCE=200809L)
 target_compile_options(crux_execution_conformance PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -53,7 +53,8 @@ target_link_libraries(crux_execution_host_poll_finalize PRIVATE crux::thread cru
 target_compile_definitions(crux_execution_host_poll_finalize PRIVATE _POSIX_C_SOURCE=200809L)
 target_compile_options(crux_execution_host_poll_finalize PRIVATE -Wall -Wextra -Wpedantic -Werror)
 target_link_options(crux_execution_host_poll_finalize PRIVATE
-    -Wl,--wrap=thread_native_metadata_lock -Wl,--wrap=sync_native_metadata_lock -Wl,--wrap=sync_native_mutex_lock
-    -Wl,--wrap=sync_native_semaphore_take -Wl,--wrap=thread_native_thread_join)
+    -Wl,--wrap=thread_native_metadata_lock -Wl,--wrap=sync_native_metadata_lock
+    -Wl,--wrap=crux_mutex_impl_lock
+    -Wl,--wrap=crux_semaphore_impl_take -Wl,--wrap=crux_thread_impl_join)
 add_test(NAME Execution.HostPollFinalize COMMAND crux_execution_host_poll_finalize)
 set_tests_properties(Execution.HostPollFinalize PROPERTIES TIMEOUT 20)

@@ -19,12 +19,12 @@ static crux_status_t result;
 // NOLINTBEGIN(bugprone-reserved-identifier)
 void __real_sync_native_metadata_lock(void);
 void __real_thread_native_metadata_lock(void);
-crux_status_t __real_sync_native_mutex_lock(sync_native_mutex_t *native,
-                                            const sync_native_deadline_t *deadline);
-crux_status_t __real_sync_native_semaphore_take(sync_native_semaphore_t *native,
-                                                const sync_native_deadline_t *deadline);
-crux_status_t __real_thread_native_thread_join(thread_native_thread_t *native,
-                                               const thread_native_deadline_t *deadline);
+crux_status_t __real_crux_mutex_impl_lock(sync_native_mutex_t *native,
+                                          const sync_native_deadline_t *deadline);
+crux_status_t __real_crux_semaphore_impl_take(sync_native_semaphore_t *native,
+                                              const sync_native_deadline_t *deadline);
+crux_status_t __real_crux_thread_impl_join(thread_native_thread_t *native,
+                                           const thread_native_deadline_t *deadline);
 
 static void pause_post_lock(void)
 {
@@ -44,30 +44,30 @@ void __wrap_thread_native_metadata_lock(void)
     __real_thread_native_metadata_lock();
 }
 
-crux_status_t __wrap_sync_native_mutex_lock(sync_native_mutex_t *native,
-                                            const sync_native_deadline_t *deadline)
+crux_status_t __wrap_crux_mutex_impl_lock(sync_native_mutex_t *native,
+                                          const sync_native_deadline_t *deadline)
 {
-    crux_status_t status = __real_sync_native_mutex_lock(native, deadline);
+    crux_status_t status = __real_crux_mutex_impl_lock(native, deadline);
     if (deadline->poll) {
         atomic_store(&native_completed, true);
     }
     return status;
 }
 
-crux_status_t __wrap_sync_native_semaphore_take(sync_native_semaphore_t *native,
-                                                const sync_native_deadline_t *deadline)
+crux_status_t __wrap_crux_semaphore_impl_take(sync_native_semaphore_t *native,
+                                              const sync_native_deadline_t *deadline)
 {
-    crux_status_t status = __real_sync_native_semaphore_take(native, deadline);
+    crux_status_t status = __real_crux_semaphore_impl_take(native, deadline);
     if (deadline->poll) {
         atomic_store(&native_completed, true);
     }
     return status;
 }
 
-crux_status_t __wrap_thread_native_thread_join(thread_native_thread_t *native,
-                                               const thread_native_deadline_t *deadline)
+crux_status_t __wrap_crux_thread_impl_join(thread_native_thread_t *native,
+                                           const thread_native_deadline_t *deadline)
 {
-    crux_status_t status = __real_thread_native_thread_join(native, deadline);
+    crux_status_t status = __real_crux_thread_impl_join(native, deadline);
     if (deadline->poll) {
         atomic_store(&native_completed, true);
     }

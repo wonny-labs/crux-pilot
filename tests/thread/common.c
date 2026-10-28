@@ -44,19 +44,19 @@ int main(void)
     CHECK(reads == 0 && upper_reads == 0 && waits == 0);
     CHECK(crux_thread_sleep_for(crux_duration_from_ns(-1)) == CRUX_ERR_INVALID_ARGUMENT);
     int64_t ticks = 73;
-    CHECK(thread_sleep_ns_to_ticks_ceil(1, 128, &ticks) == CRUX_OK && ticks == 1);
-    CHECK(thread_sleep_ns_to_ticks_ceil(125000000, 128, &ticks) == CRUX_OK && ticks == 16);
-    CHECK(thread_sleep_ns_to_ticks_ceil(125000001, 128, &ticks) == CRUX_OK && ticks == 17);
+    CHECK(crux_thread_ns_to_ticks_ceil(1, 128, &ticks) == CRUX_OK && ticks == 1);
+    CHECK(crux_thread_ns_to_ticks_ceil(125000000, 128, &ticks) == CRUX_OK && ticks == 16);
+    CHECK(crux_thread_ns_to_ticks_ceil(125000001, 128, &ticks) == CRUX_OK && ticks == 17);
     ticks = 73;
-    CHECK(thread_sleep_ns_to_ticks_ceil(INT64_MAX, 1000000000, &ticks) == CRUX_ERR_OUT_OF_RANGE &&
+    CHECK(crux_thread_ns_to_ticks_ceil(INT64_MAX, 1000000000, &ticks) == CRUX_ERR_OUT_OF_RANGE &&
           ticks == 73);
-    CHECK(thread_sleep_ns_to_ticks_ceil(INT64_MAX - 1, 1000000000, &ticks) == CRUX_OK &&
+    CHECK(crux_thread_ns_to_ticks_ceil(INT64_MAX - 1, 1000000000, &ticks) == CRUX_OK &&
           ticks == INT64_MAX - 1);
-    CHECK(thread_sleep_ns_to_ticks_ceil(INT64_MAX, 1000000001, &ticks) == CRUX_ERR_OUT_OF_RANGE &&
+    CHECK(crux_thread_ns_to_ticks_ceil(INT64_MAX, 1000000001, &ticks) == CRUX_ERR_OUT_OF_RANGE &&
           ticks == INT64_MAX - 1);
-    CHECK(thread_sleep_ns_to_ticks_ceil(-1, 128, &ticks) == CRUX_ERR_OUT_OF_RANGE);
-    CHECK(thread_sleep_ns_to_ticks_ceil(1, 0, &ticks) == CRUX_ERR_OUT_OF_RANGE);
-    CHECK(thread_sleep_ns_to_ticks_ceil(0, 128, NULL) == CRUX_ERR_INVALID_ARGUMENT);
+    CHECK(crux_thread_ns_to_ticks_ceil(-1, 128, &ticks) == CRUX_ERR_OUT_OF_RANGE);
+    CHECK(crux_thread_ns_to_ticks_ceil(1, 0, &ticks) == CRUX_ERR_OUT_OF_RANGE);
+    CHECK(crux_thread_ns_to_ticks_ceil(0, 128, NULL) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(crux_thread_sleep_until((crux_monotonic_time_t){-1}) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(crux_thread_sleep_until((crux_monotonic_time_t){99}) == CRUX_OK && waits == 0);
     CHECK(crux_thread_sleep_until((crux_monotonic_time_t){100}) == CRUX_OK && waits == 0);

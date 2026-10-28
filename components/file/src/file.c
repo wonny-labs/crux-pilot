@@ -48,13 +48,13 @@ crux_file_result_t crux_file_open(const char *n, crux_file_mode_t m, crux_file_t
         crux_file_port_unlock();
         return CRUX_FILE_ERR_NO_RESOURCES;
     }
-    crux_file_result_t result = crux_file_port_open(s, n, m);
+    crux_file_result_t result = crux_file_impl_open(s, n, m);
     if (result == CRUX_FILE_OK && m == CRUX_FILE_CREATE_REPLACE) {
-        result = crux_file_port_truncate(s);
+        result = crux_file_impl_truncate(s);
         if (result != CRUX_FILE_OK) {
-            crux_file_result_t cleanup = crux_file_port_close(s);
+            crux_file_result_t cleanup = crux_file_impl_close(s);
             if (cleanup != CRUX_FILE_OK)
-                crux_file_port_cleanup_error(cleanup);
+                crux_file_record_cleanup_error(cleanup);
         }
     }
     if (result == CRUX_FILE_OK) {
@@ -88,7 +88,7 @@ static crux_file_result_t transfer(crux_file_t *f, void *b, size_t l, size_t *c,
     else if (!l)
         result = CRUX_FILE_OK;
     else {
-        result = write ? crux_file_port_write(s, b, l, c) : crux_file_port_read(s, b, l, c);
+        result = write ? crux_file_impl_write(s, b, l, c) : crux_file_impl_read(s, b, l, c);
         if (*c > l) {
             /* A contradictory provider result cannot acknowledge any count.
              * This does not undo possible buffer or storage changes. */
@@ -118,7 +118,7 @@ crux_file_result_t crux_file_seek(crux_file_t *f, uint64_t o)
     size_t s = slot_of(f);
     crux_file_result_t result = s == CRUX_FILE_POOL_SIZE ? CRUX_FILE_ERR_INVALID_STATE
                                 : o > INT64_MAX          ? CRUX_FILE_ERR_OUT_OF_RANGE
-                                                         : crux_file_port_seek(s, o);
+                                                         : crux_file_impl_seek(s, o);
     crux_file_port_unlock();
     return result;
 }
@@ -128,7 +128,7 @@ crux_file_result_t crux_file_sync(crux_file_t *f)
     crux_file_port_lock();
     size_t s = slot_of(f);
     crux_file_result_t result =
-        s == CRUX_FILE_POOL_SIZE ? CRUX_FILE_ERR_INVALID_STATE : crux_file_port_sync(s);
+        s == CRUX_FILE_POOL_SIZE ? CRUX_FILE_ERR_INVALID_STATE : crux_file_impl_sync(s);
     crux_file_port_unlock();
     return result;
 }
@@ -144,7 +144,7 @@ crux_file_result_t crux_file_close(crux_file_t **f)
         return CRUX_FILE_ERR_INVALID_STATE;
     }
     *f = NULL;
-    crux_file_result_t result = crux_file_port_close(s);
+    crux_file_result_t result = crux_file_impl_close(s);
     files[s].live = false;
     crux_file_port_unlock();
     return result;
@@ -160,7 +160,7 @@ crux_file_result_t crux_file_remove(const char *n)
             crux_file_port_unlock();
             return CRUX_FILE_ERR_INVALID_STATE;
         }
-    crux_file_result_t result = crux_file_port_remove(n);
+    crux_file_result_t result = crux_file_impl_remove(n);
     crux_file_port_unlock();
     return result;
 }

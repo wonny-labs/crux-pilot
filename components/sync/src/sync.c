@@ -43,7 +43,7 @@ crux_status_t crux_mutex_create(crux_mutex_t *out)
     if (out != NULL) {
         *out = (crux_mutex_t){0};
     }
-    if (!sync_native_context_allowed())
+    if (!crux_sync_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
@@ -54,7 +54,7 @@ crux_status_t crux_mutex_create(crux_mutex_t *out)
         if (slot->life.used || slot->life.generation == UINT32_MAX)
             continue;
         ++slot->life.generation;
-        result = sync_native_mutex_create(&slot->native);
+        result = crux_mutex_impl_create(&slot->native);
         if (result == CRUX_OK) {
             slot->life.used = true;
             slot->life.users = 0;
@@ -68,10 +68,10 @@ crux_status_t crux_mutex_create(crux_mutex_t *out)
 }
 crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
 {
-    if (!sync_native_context_allowed())
+    if (!crux_sync_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     sync_native_deadline_t deadline;
-    crux_status_t result = sync_native_deadline(timeout_ms, &deadline);
+    crux_status_t result = crux_sync_make_deadline(timeout_ms, &deadline);
     if (result != CRUX_OK)
         return result;
     result = sync_native_metadata_lock_until(&deadline);
@@ -82,7 +82,7 @@ crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
         sync_native_metadata_unlock();
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    if (slot->held && sync_native_identity_equal(slot->owner, sync_native_current())) {
+    if (slot->held && crux_sync_identity_equal(slot->owner, crux_sync_current_identity())) {
         sync_native_metadata_unlock();
         return CRUX_ERR_INVALID_STATE;
     }
@@ -92,21 +92,21 @@ crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
     }
     ++slot->life.users;
     if (deadline.poll) {
-        result = sync_native_mutex_lock(&slot->native, &deadline);
+        result = crux_mutex_impl_lock(&slot->native, &deadline);
         if (result == CRUX_OK) {
             slot->held = true;
-            slot->owner = sync_native_current();
+            slot->owner = crux_sync_current_identity();
         }
         --slot->life.users;
         sync_native_metadata_unlock();
         return result;
     }
     sync_native_metadata_unlock();
-    result = sync_native_mutex_lock(&slot->native, &deadline);
+    result = crux_mutex_impl_lock(&slot->native, &deadline);
     sync_native_metadata_lock();
     if (result == CRUX_OK) {
         slot->held = true;
-        slot->owner = sync_native_current();
+        slot->owner = crux_sync_current_identity();
     }
     --slot->life.users;
     sync_native_metadata_unlock();
@@ -114,7 +114,7 @@ crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
 }
 crux_status_t crux_mutex_unlock(crux_mutex_t mutex)
 {
-    if (!sync_native_context_allowed())
+    if (!crux_sync_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     sync_native_metadata_lock();
     mutex_slot_t *slot = find_mutex(mutex);
@@ -122,11 +122,11 @@ crux_status_t crux_mutex_unlock(crux_mutex_t mutex)
         sync_native_metadata_unlock();
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    if (!slot->held || !sync_native_identity_equal(slot->owner, sync_native_current())) {
+    if (!slot->held || !crux_sync_identity_equal(slot->owner, crux_sync_current_identity())) {
         sync_native_metadata_unlock();
         return CRUX_ERR_INVALID_STATE;
     }
-    crux_status_t result = sync_native_mutex_unlock(&slot->native);
+    crux_status_t result = crux_mutex_impl_unlock(&slot->native);
     if (result == CRUX_OK)
         slot->held = false;
     sync_native_metadata_unlock();
@@ -134,7 +134,7 @@ crux_status_t crux_mutex_unlock(crux_mutex_t mutex)
 }
 crux_status_t crux_mutex_destroy(crux_mutex_t *mutex)
 {
-    if (!sync_native_context_allowed())
+    if (!crux_sync_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (mutex == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
@@ -148,7 +148,7 @@ crux_status_t crux_mutex_destroy(crux_mutex_t *mutex)
         sync_native_metadata_unlock();
         return CRUX_ERR_BUSY;
     }
-    crux_status_t result = sync_native_mutex_destroy(&slot->native);
+    crux_status_t result = crux_mutex_impl_destroy(&slot->native);
     if (result == CRUX_OK) {
         slot->life.used = false;
         *mutex = (crux_mutex_t){0};
@@ -161,7 +161,7 @@ crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_sem
     if (out != NULL) {
         *out = (crux_semaphore_t){0};
     }
-    if (!sync_native_context_allowed())
+    if (!crux_sync_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
@@ -174,7 +174,7 @@ crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_sem
         if (slot->life.used || slot->life.generation == UINT32_MAX)
             continue;
         ++slot->life.generation;
-        result = sync_native_semaphore_create(&slot->native, initial, maximum);
+        result = crux_semaphore_impl_create(&slot->native, initial, maximum);
         if (result == CRUX_OK) {
             slot->life.used = true;
             slot->life.users = 0;
@@ -187,10 +187,10 @@ crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_sem
 }
 crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_ms)
 {
-    if (!sync_native_context_allowed())
+    if (!crux_sync_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     sync_native_deadline_t deadline;
-    crux_status_t result = sync_native_deadline(timeout_ms, &deadline);
+    crux_status_t result = crux_sync_make_deadline(timeout_ms, &deadline);
     if (result != CRUX_OK)
         return result;
     result = sync_native_metadata_lock_until(&deadline);
@@ -207,13 +207,13 @@ crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_m
     }
     ++slot->life.users;
     if (deadline.poll) {
-        result = sync_native_semaphore_take(&slot->native, &deadline);
+        result = crux_semaphore_impl_take(&slot->native, &deadline);
         --slot->life.users;
         sync_native_metadata_unlock();
         return result;
     }
     sync_native_metadata_unlock();
-    result = sync_native_semaphore_take(&slot->native, &deadline);
+    result = crux_semaphore_impl_take(&slot->native, &deadline);
     sync_native_metadata_lock();
     --slot->life.users;
     sync_native_metadata_unlock();
@@ -221,7 +221,7 @@ crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_m
 }
 crux_status_t crux_semaphore_give(crux_semaphore_t semaphore)
 {
-    if (!sync_native_context_allowed())
+    if (!crux_sync_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     sync_native_metadata_lock();
     semaphore_slot_t *slot = find_semaphore(semaphore);
@@ -229,13 +229,13 @@ crux_status_t crux_semaphore_give(crux_semaphore_t semaphore)
         sync_native_metadata_unlock();
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    crux_status_t result = sync_native_semaphore_give(&slot->native);
+    crux_status_t result = crux_semaphore_impl_give(&slot->native);
     sync_native_metadata_unlock();
     return result;
 }
 crux_status_t crux_semaphore_destroy(crux_semaphore_t *semaphore)
 {
-    if (!sync_native_context_allowed())
+    if (!crux_sync_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (semaphore == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
@@ -249,7 +249,7 @@ crux_status_t crux_semaphore_destroy(crux_semaphore_t *semaphore)
         sync_native_metadata_unlock();
         return CRUX_ERR_BUSY;
     }
-    crux_status_t result = sync_native_semaphore_destroy(&slot->native);
+    crux_status_t result = crux_semaphore_impl_destroy(&slot->native);
     if (result == CRUX_OK) {
         slot->life.used = false;
         *semaphore = (crux_semaphore_t){0};

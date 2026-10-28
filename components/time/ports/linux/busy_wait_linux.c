@@ -56,7 +56,7 @@ static crux_status_t read_upper_bound(int64_t *out_ns)
     return CRUX_OK;
 }
 
-crux_status_t crux_busy_wait_impl_ns(int64_t duration_ns)
+crux_status_t crux_busy_wait_ns(int64_t duration_ns)
 {
     if (duration_ns < 0)
         return CRUX_ERR_INVALID_ARGUMENT;

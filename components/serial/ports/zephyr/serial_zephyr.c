@@ -19,11 +19,11 @@ static struct {
 K_MUTEX_DEFINE(metadata);
 K_SEM_DEFINE(rx_event, 0, 1);
 K_SEM_DEFINE(tx_event, 0, 1);
-bool serial_port_context_allowed(void)
+bool crux_serial_context_allowed(void)
 {
     return !k_is_in_isr();
 }
-crux_status_t serial_port_now(uint64_t *now)
+crux_status_t crux_serial_monotonic_now_ms(uint64_t *now)
 {
     int64_t value = k_uptime_get();
     if (value < 0)
@@ -124,9 +124,9 @@ static void callback(const struct device *unused, void *context)
 done:
     k_spin_unlock(&native.gate, key);
 }
-crux_status_t serial_port_open(uint32_t port, const crux_serial_config_t *config)
+crux_status_t crux_serial_impl_open(uint32_t port, const crux_serial_config_t *config)
 {
-    const struct device *dev = serial_zephyr_device(port);
+    const struct device *dev = crux_serial_zephyr_device(port);
     if (dev == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
     if (!device_is_ready(dev))
@@ -187,7 +187,7 @@ crux_status_t serial_port_open(uint32_t port, const crux_serial_config_t *config
     }
     return CRUX_OK;
 }
-crux_status_t serial_port_close(uint32_t port)
+crux_status_t crux_serial_impl_close(uint32_t port)
 {
     ARG_UNUSED(port);
     k_spinlock_key_t key = k_spin_lock(&native.gate);
@@ -248,14 +248,14 @@ static crux_status_t transfer(void *buffer, size_t size, const serial_deadline_t
             return CRUX_ERR_TIMEOUT;
     }
 }
-crux_status_t serial_port_read(uint32_t port, void *buffer, size_t size,
-                               const serial_deadline_t *deadline, size_t *count)
+crux_status_t crux_serial_impl_read(uint32_t port, void *buffer, size_t size,
+                                    const serial_deadline_t *deadline, size_t *count)
 {
     ARG_UNUSED(port);
     return transfer(buffer, size, deadline, count, false);
 }
-crux_status_t serial_port_write(uint32_t port, const void *buffer, size_t size,
-                                const serial_deadline_t *deadline, size_t *count)
+crux_status_t crux_serial_impl_write(uint32_t port, const void *buffer, size_t size,
+                                     const serial_deadline_t *deadline, size_t *count)
 {
     ARG_UNUSED(port);
     return transfer((void *)buffer, size, deadline, count, true);
