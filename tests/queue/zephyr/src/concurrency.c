@@ -13,12 +13,12 @@ static bool trace_wait;
 static bool pause_timeout;
 K_SEM_DEFINE(timeout_seen, 0, 1);
 K_SEM_DEFINE(resume_timeout, 0, 1);
-crux_status_t __real_queue_port_wait(size_t index, const queue_deadline_t *deadline);
-crux_status_t __wrap_queue_port_wait(size_t index, const queue_deadline_t *deadline)
+crux_status_t __real_crux_queue_wait(size_t index, const queue_deadline_t *deadline);
+crux_status_t __wrap_crux_queue_wait(size_t index, const queue_deadline_t *deadline)
 {
     if (trace_wait)
         k_sem_give(&waiting);
-    return __real_queue_port_wait(index, deadline);
+    return __real_crux_queue_wait(index, deadline);
 }
 K_SEM_DEFINE(reacquiring, 0, 1);
 K_SEM_DEFINE(completed, 0, 1);

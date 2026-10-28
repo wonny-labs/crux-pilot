@@ -8,10 +8,10 @@
 #include <zephyr/ztest.h>
 static const struct device *dev = DEVICE_DT_GET(DT_ALIAS(crux_serial0));
 static const struct device *override_device;
-const struct device *__real_serial_zephyr_device(unsigned port);
-const struct device *__wrap_serial_zephyr_device(unsigned port)
+const struct device *__real_crux_serial_zephyr_device(unsigned port);
+const struct device *__wrap_crux_serial_zephyr_device(unsigned port)
 {
-    return override_device ? override_device : __real_serial_zephyr_device(port);
+    return override_device ? override_device : __real_crux_serial_zephyr_device(port);
 }
 static uart_irq_callback_user_data_t cached;
 static void *cached_context;

@@ -59,11 +59,11 @@ static DEVICE_API(wdt, fixture_api) = {
 DEVICE_DEFINE(test_wdt, "test_wdt", fixture_init, NULL, NULL, NULL, POST_KERNEL, 50, &fixture_api);
 DEVICE_DEFINE(unready_wdt, "unready_wdt", unready_init, NULL, NULL, NULL, POST_KERNEL, 50,
               &fixture_api);
-const struct device *__wrap_system_zephyr_watchdog_device(void)
+const struct device *__wrap_crux_watchdog_zephyr_device(void)
 {
     return ready ? DEVICE_GET(test_wdt) : DEVICE_GET(unready_wdt);
 }
-bool __wrap_system_zephyr_watchdog_running(void)
+bool __wrap_crux_watchdog_zephyr_running(void)
 {
     return running;
 }
