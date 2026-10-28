@@ -125,7 +125,7 @@ crux_config_result_t crux_config_load(crux_config_param_t *parameter)
     }
     uint8_t wire[WIRE_MAX] = {0};
     crux_config_record_info_t record = {0};
-    result = crux_config_port_read(parameter->spec->key, wire, sizeof(wire), &record);
+    result = crux_config_record_read(parameter->spec->key, wire, sizeof(wire), &record);
     size_t length = record.length, transferred = record.transferred;
     if (result == CRUX_CONFIG_DEFAULT_MISSING) {
         return fallback(parameter, CRUX_CONFIG_DEFAULT_MISSING);
@@ -185,6 +185,6 @@ crux_config_result_t crux_config_save(const crux_config_param_t *parameter)
             wire[4 + i] = (uint8_t)(value.data.u32 >> (8 * i));
         }
     }
-    result = crux_config_port_write(parameter->spec->key, wire, length);
+    result = crux_config_record_write(parameter->spec->key, wire, length);
     return result == CRUX_CONFIG_OK ? result : port_error(result);
 }

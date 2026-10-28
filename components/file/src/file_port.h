@@ -14,15 +14,15 @@ void crux_file_port_unlock(void);
 /* Private provider contract. Counts must not exceed the requested length;
  * valid accepted counts survive errors. Native handles stay
  * in provider slots; close retires exactly once, even on error. */
-crux_file_result_t crux_file_port_open(size_t slot, const char *name, crux_file_mode_t mode);
-crux_file_result_t crux_file_port_truncate(size_t slot);
-crux_file_result_t crux_file_port_read(size_t slot, void *buffer, size_t length, size_t *count);
-crux_file_result_t crux_file_port_write(size_t slot, const void *buffer, size_t length,
+crux_file_result_t crux_file_impl_open(size_t slot, const char *name, crux_file_mode_t mode);
+crux_file_result_t crux_file_impl_truncate(size_t slot);
+crux_file_result_t crux_file_impl_read(size_t slot, void *buffer, size_t length, size_t *count);
+crux_file_result_t crux_file_impl_write(size_t slot, const void *buffer, size_t length,
                                         size_t *count);
-crux_file_result_t crux_file_port_seek(size_t slot, uint64_t offset);
-crux_file_result_t crux_file_port_sync(size_t slot);
-crux_file_result_t crux_file_port_close(size_t slot);
-crux_file_result_t crux_file_port_remove(const char *name);
+crux_file_result_t crux_file_impl_seek(size_t slot, uint64_t offset);
+crux_file_result_t crux_file_impl_sync(size_t slot);
+crux_file_result_t crux_file_impl_close(size_t slot);
+crux_file_result_t crux_file_impl_remove(const char *name);
 /* Record secondary cleanup failure without replacing primary truncate error. */
-void crux_file_port_cleanup_error(crux_file_result_t error);
+void crux_file_record_cleanup_error(crux_file_result_t error);
 #endif

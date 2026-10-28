@@ -13,8 +13,8 @@ typedef struct {
     size_t length;
     size_t transferred;
 } crux_config_record_info_t;
-crux_config_result_t crux_config_port_read(const char *key, uint8_t *buffer, size_t capacity,
+crux_config_result_t crux_config_record_read(const char *key, uint8_t *buffer, size_t capacity,
                                            crux_config_record_info_t *record);
-crux_config_result_t crux_config_port_write(const char *key, const uint8_t *buffer, size_t length);
+crux_config_result_t crux_config_record_write(const char *key, const uint8_t *buffer, size_t length);
 
 #endif
