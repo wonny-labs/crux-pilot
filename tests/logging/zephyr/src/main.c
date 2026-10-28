@@ -79,7 +79,7 @@ ZTEST(logging, test_native_copy_filter_and_loss)
     wait_for("<inf> crux_logging: mutable: original 100% %s");
     wait_for("<err> crux_logging: levels: error-record");
     wait_for("<wrn> crux_logging: levels: warn-record");
-    wait_for("<dbg> crux_logging: logging_port_write: levels: debug-record");
+    wait_for("<dbg> crux_logging: crux_log_impl_write: levels: debug-record");
     wait_for("messages dropped");
     zassert_false(contains("hidden-record"));
     zassert_false(contains("xxxxxxxx"));

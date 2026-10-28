@@ -14,7 +14,7 @@ static crux_status_t cause_result = CRUX_ERR_NOT_SUPPORTED, clear_result = CRUX_
 static crux_status_t reset_status = CRUX_ERR_NOT_SUPPORTED, reset_result = CRUX_ERR_IO;
 static crux_reset_cause_t cause = {0x7ffu, CRUX_RESET_CAUSE_POR | CRUX_RESET_CAUSE_WATCHDOG};
 static unsigned starts, feeds, clears, resets, probes, locks;
-bool system_port_context_allowed(void)
+bool crux_system_context_allowed(void)
 {
     return allowed;
 }
@@ -32,17 +32,17 @@ void system_port_unlock(void)
     assert(locked);
     locked = false;
 }
-bool system_port_watchdog_emulated(void)
+bool crux_watchdog_is_emulated(void)
 {
     return true;
 }
-crux_status_t system_port_watchdog_validate(uint32_t ms)
+crux_status_t crux_watchdog_validate_timeout(uint32_t ms)
 {
     if (ms < 500 || ms > 64000)
         return CRUX_ERR_OUT_OF_RANGE;
     return ms % 500 == 0 ? CRUX_OK : CRUX_ERR_NOT_SUPPORTED;
 }
-crux_status_t system_port_watchdog_probe(system_watchdog_probe_t *out)
+crux_status_t crux_watchdog_probe(system_watchdog_probe_t *out)
 {
     assert(locked);
     ++probes;
@@ -50,42 +50,42 @@ crux_status_t system_port_watchdog_probe(system_watchdog_probe_t *out)
         *out = (system_watchdog_probe_t){running, expired};
     return probe_result;
 }
-crux_status_t system_port_watchdog_start(uint32_t ms)
+crux_status_t crux_watchdog_impl_start(uint32_t ms)
 {
     assert(locked && ms == 2000);
     ++starts;
     running = start_running;
     return start_result;
 }
-crux_status_t system_port_watchdog_feed(void)
+crux_status_t crux_watchdog_impl_feed(void)
 {
     assert(locked);
     ++feeds;
     return feed_result;
 }
-crux_status_t system_port_reset_status(void)
+crux_status_t crux_system_reset_status(void)
 {
     assert(locked);
     return reset_status;
 }
-crux_status_t system_port_reset(void)
+crux_status_t crux_system_impl_reset(void)
 {
     assert(!locked);
     ++resets;
     return reset_result;
 }
-bool system_port_reset_cause_supported(void)
+bool crux_reset_cause_supported(void)
 {
     return cause_supported;
 }
-crux_status_t system_port_reset_cause_get(crux_reset_cause_t *out)
+crux_status_t crux_reset_cause_get(crux_reset_cause_t *out)
 {
     assert(locked);
     if (cause_result == CRUX_OK)
         *out = cause;
     return cause_result;
 }
-crux_status_t system_port_reset_cause_clear(void)
+crux_status_t crux_reset_cause_clear(void)
 {
     assert(locked);
     ++clears;
