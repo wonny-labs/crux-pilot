@@ -16,11 +16,11 @@ static crux_status_t status(int error)
         return CRUX_ERR_TIMEOUT;
     return CRUX_ERR_IO;
 }
-bool queue_port_context(void)
+bool crux_queue_context_allowed(void)
 {
     return !crux_is_in_isr();
 }
-crux_status_t queue_port_deadline(uint32_t ms, queue_deadline_t *out)
+crux_status_t crux_queue_make_deadline(uint32_t ms, queue_deadline_t *out)
 {
     out->poll = ms == 0;
     if (out->poll)
@@ -41,7 +41,7 @@ crux_status_t queue_port_deadline(uint32_t ms, queue_deadline_t *out)
     }
     return CRUX_OK;
 }
-crux_status_t queue_port_lock(const queue_deadline_t *deadline)
+crux_status_t crux_queue_lock(const queue_deadline_t *deadline)
 {
     int result;
     do {
@@ -54,11 +54,11 @@ crux_status_t queue_port_lock(const queue_deadline_t *deadline)
     } while (result == EINTR);
     return status(result);
 }
-void queue_port_unlock(void)
+void crux_queue_unlock(void)
 {
     (void)pthread_mutex_unlock(&metadata);
 }
-crux_status_t queue_port_prepare(size_t index)
+crux_status_t crux_queue_prepare_wait(size_t index)
 {
     if (prepared[index])
         return CRUX_OK;
@@ -74,7 +74,7 @@ crux_status_t queue_port_prepare(size_t index)
         prepared[index] = true;
     return status(result);
 }
-crux_status_t queue_port_wait(size_t index, const queue_deadline_t *deadline)
+crux_status_t crux_queue_wait(size_t index, const queue_deadline_t *deadline)
 {
     int result;
     do {
@@ -82,7 +82,7 @@ crux_status_t queue_port_wait(size_t index, const queue_deadline_t *deadline)
     } while (result == EINTR);
     return status(result);
 }
-void queue_port_notify(size_t index)
+void crux_queue_notify(size_t index)
 {
     (void)pthread_cond_broadcast(&changed[index]);
 }
