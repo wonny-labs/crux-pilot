@@ -55,7 +55,7 @@ REJECT_OWNER(DT_CHOSEN(zephyr_bt_uart), "Crux Logging conflicts with Bluetooth U
 #if DT_NODE_EXISTS(DT_ALIAS(m2_hci_bt_uart)) && defined(CONFIG_BT_HCI)
 REJECT_OWNER(DT_ALIAS(m2_hci_bt_uart), "Crux Logging conflicts with Bluetooth UART");
 #endif
-const struct device *logging_zephyr_device(void)
+const struct device *crux_log_zephyr_device(void)
 {
     return DEVICE_DT_GET(LOG_UART);
 }

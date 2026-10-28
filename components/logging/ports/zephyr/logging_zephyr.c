@@ -3,13 +3,13 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(crux_logging, LOG_LEVEL_DBG);
-bool logging_port_context_allowed(void)
+bool crux_log_context_allowed(void)
 {
     return !k_is_in_isr() && !k_is_pre_kernel();
 }
-crux_status_t logging_port_write(crux_log_level_t level, const char *tag, const char *text)
+crux_status_t crux_log_impl_write(crux_log_level_t level, const char *tag, const char *text)
 {
-    if (!device_is_ready(logging_zephyr_device()))
+    if (!device_is_ready(crux_log_zephyr_device()))
         return CRUX_ERR_NOT_READY;
     /* Native deferred packaging copies these writable strings before return.
      * Its void submission API provides no per-record capacity acknowledgement. */

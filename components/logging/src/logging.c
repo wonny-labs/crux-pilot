@@ -28,7 +28,7 @@ crux_status_t crux_log_set_level(crux_log_level_t maximum_level)
 {
     if (!valid_level(maximum_level))
         return CRUX_ERR_INVALID_ARGUMENT;
-    if (!logging_port_context_allowed())
+    if (!crux_log_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     atomic_store_explicit(&threshold, maximum_level, memory_order_relaxed);
     return CRUX_OK;
@@ -40,10 +40,10 @@ crux_status_t crux_log_write(crux_log_level_t level, const char *tag, const char
     crux_status_t result = validate(tag, text);
     if (result != CRUX_OK)
         return result;
-    if (!logging_port_context_allowed())
+    if (!crux_log_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     int sampled = atomic_load_explicit(&threshold, memory_order_relaxed);
     if ((int)level > sampled)
         return CRUX_OK;
-    return logging_port_write(level, tag, text);
+    return crux_log_impl_write(level, tag, text);
 }
