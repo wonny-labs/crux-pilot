@@ -45,8 +45,8 @@ int main(void)
         CHECK(waits == before + 1 && waited_us == expected_us);
         CHECK(crux_busy_wait(crux_duration_from_ns(expected_ns + 1)) == CRUX_ERR_OUT_OF_RANGE);
         CHECK(waits == before + 1);
-        CHECK(crux_busy_wait_impl_ns(expected_ns + 1) == CRUX_ERR_OUT_OF_RANGE);
-        CHECK(crux_busy_wait_impl_ns(INT64_MAX) == CRUX_ERR_OUT_OF_RANGE);
+        CHECK(crux_busy_wait_ns(expected_ns + 1) == CRUX_ERR_OUT_OF_RANGE);
+        CHECK(crux_busy_wait_ns(INT64_MAX) == CRUX_ERR_OUT_OF_RANGE);
         CHECK(waits == before + 1);
         CHECK(crux_busy_wait(crux_duration_from_ns(1)) == CRUX_OK && waited_us == 1);
         CHECK(crux_busy_wait(crux_duration_from_ns(1001)) == CRUX_OK && waited_us == 2);
@@ -62,7 +62,7 @@ int main(void)
 #else
     rate_hz = 600000000;
     CHECK(crux_busy_wait(crux_duration_from_ns(1)) == CRUX_ERR_NOT_SUPPORTED && waits == 0);
-    CHECK(crux_busy_wait_impl_ns(1) == CRUX_ERR_NOT_SUPPORTED && waits == 0);
+    CHECK(crux_busy_wait_ns(1) == CRUX_ERR_NOT_SUPPORTED && waits == 0);
     CHECK(rate_reads == 0);
 #endif
     printf("Zephyr Delay conversion/profile: %d failures\n", failures);
