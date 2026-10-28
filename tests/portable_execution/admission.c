@@ -16,7 +16,7 @@ static void pause_admitted(int kind)
     if (atomic_load(&pause_kind) == 0) {
         return;
     }
-    if (sync_native_identity_equal(test_owner, sync_native_current())) {
+    if (crux_sync_identity_equal(test_owner, crux_sync_current_identity())) {
         return;
     }
     int expected = kind;
@@ -89,7 +89,7 @@ static void lock_worker(void *argument)
 }
 int execution_admission_cases(void)
 {
-    test_owner = sync_native_current();
+    test_owner = crux_sync_current_identity();
     REQUIRE(crux_semaphore_create(0, 1, &admitted) == CRUX_OK);
     REQUIRE(crux_semaphore_create(0, 1, &resume_operation) == CRUX_OK);
     context_t target = {0};
