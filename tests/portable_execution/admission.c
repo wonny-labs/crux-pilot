@@ -29,28 +29,28 @@ static void pause_admitted(int kind)
 }
 /* GNU ld --wrap requires these reserved linker symbol names. */
 // NOLINTBEGIN(bugprone-reserved-identifier)
-crux_status_t __real_thread_native_thread_join(thread_native_thread_t *,
+crux_status_t __real_crux_thread_impl_join(thread_native_thread_t *,
                                                const thread_native_deadline_t *);
-crux_status_t __real_sync_native_mutex_lock(sync_native_mutex_t *, const sync_native_deadline_t *);
-crux_status_t __real_sync_native_semaphore_take(sync_native_semaphore_t *,
+crux_status_t __real_crux_mutex_impl_lock(sync_native_mutex_t *, const sync_native_deadline_t *);
+crux_status_t __real_crux_semaphore_impl_take(sync_native_semaphore_t *,
                                                 const sync_native_deadline_t *);
-crux_status_t __wrap_thread_native_thread_join(thread_native_thread_t *object,
+crux_status_t __wrap_crux_thread_impl_join(thread_native_thread_t *object,
                                                const thread_native_deadline_t *deadline)
 {
     pause_admitted(1);
-    return __real_thread_native_thread_join(object, deadline);
+    return __real_crux_thread_impl_join(object, deadline);
 }
-crux_status_t __wrap_sync_native_mutex_lock(sync_native_mutex_t *object,
+crux_status_t __wrap_crux_mutex_impl_lock(sync_native_mutex_t *object,
                                             const sync_native_deadline_t *deadline)
 {
     pause_admitted(2);
-    return __real_sync_native_mutex_lock(object, deadline);
+    return __real_crux_mutex_impl_lock(object, deadline);
 }
-crux_status_t __wrap_sync_native_semaphore_take(sync_native_semaphore_t *object,
+crux_status_t __wrap_crux_semaphore_impl_take(sync_native_semaphore_t *object,
                                                 const sync_native_deadline_t *deadline)
 {
     pause_admitted(3);
-    return __real_sync_native_semaphore_take(object, deadline);
+    return __real_crux_semaphore_impl_take(object, deadline);
 }
 
 // NOLINTEND(bugprone-reserved-identifier)
