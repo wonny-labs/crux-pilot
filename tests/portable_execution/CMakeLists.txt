@@ -53,7 +53,8 @@ target_link_libraries(crux_execution_host_poll_finalize PRIVATE crux::thread cru
 target_compile_definitions(crux_execution_host_poll_finalize PRIVATE _POSIX_C_SOURCE=200809L)
 target_compile_options(crux_execution_host_poll_finalize PRIVATE -Wall -Wextra -Wpedantic -Werror)
 target_link_options(crux_execution_host_poll_finalize PRIVATE
-    -Wl,--wrap=thread_native_metadata_lock -Wl,--wrap=sync_native_metadata_lock -Wl,--wrap=crux_mutex_impl_lock
+    -Wl,--wrap=thread_native_metadata_lock -Wl,--wrap=sync_native_metadata_lock
+    -Wl,--wrap=crux_mutex_impl_lock
     -Wl,--wrap=crux_semaphore_impl_take -Wl,--wrap=crux_thread_impl_join)
 add_test(NAME Execution.HostPollFinalize COMMAND crux_execution_host_poll_finalize)
 set_tests_properties(Execution.HostPollFinalize PROPERTIES TIMEOUT 20)

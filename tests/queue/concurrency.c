@@ -9,11 +9,11 @@ static crux_queue_t queue;
 static crux_status_t observed;
 static int value;
 static uint32_t wait_ms;
-crux_status_t __real_queue_port_wait(size_t index, const queue_deadline_t *deadline);
-crux_status_t __wrap_queue_port_wait(size_t index, const queue_deadline_t *deadline)
+crux_status_t __real_crux_queue_wait(size_t index, const queue_deadline_t *deadline);
+crux_status_t __wrap_crux_queue_wait(size_t index, const queue_deadline_t *deadline)
 {
     assert(sem_post(&admitted) == 0);
-    return __real_queue_port_wait(index, deadline);
+    return __real_crux_queue_wait(index, deadline);
 }
 static void *reader(void *unused)
 {
