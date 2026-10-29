@@ -1,0 +1,8 @@
+tests:
+  crux.spike103.native_uart_fs:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - logging
+      - spike
+    timeout: 90
