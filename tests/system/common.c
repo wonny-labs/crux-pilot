@@ -165,8 +165,8 @@ static void prearmed(void)
     running = true;
     assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 42 && starts == 0);
     running = false;
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE &&
-           w.reserved == 42 && starts == 0);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && w.reserved == 42 &&
+           starts == 0);
 }
 static void start_failure(void)
 {
@@ -175,16 +175,16 @@ static void start_failure(void)
     assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 42);
     assert(running);
     start_result = CRUX_OK;
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE &&
-           w.reserved == 42 && starts == 1);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && w.reserved == 42 &&
+           starts == 1);
 }
 static void post_failure(void)
 {
     crux_watchdog_t w = {42};
     start_running = false;
     assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 42);
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE &&
-           w.reserved == 42 && starts == 1);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && w.reserved == 42 &&
+           starts == 1);
 }
 static void lock_failure(void)
 {

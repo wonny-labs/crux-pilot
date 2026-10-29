@@ -32,7 +32,8 @@ static crux_watchdog_t start(uint32_t timeout)
 static void profile(uint32_t timeout)
 {
     crux_watchdog_t value = {42};
-    assert(crux_watchdog_start(UINT32_MAX, &value) == CRUX_ERR_OUT_OF_RANGE && value.reserved == 42);
+    assert(crux_watchdog_start(UINT32_MAX, &value) == CRUX_ERR_OUT_OF_RANGE &&
+           value.reserved == 42);
     assert(crux_watchdog_start(499, &value) == CRUX_ERR_OUT_OF_RANGE && value.reserved == 42);
     assert(crux_watchdog_start(750, &value) == CRUX_ERR_NOT_SUPPORTED && value.reserved == 42);
     value = start(timeout);
