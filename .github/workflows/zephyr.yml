@@ -50,6 +50,11 @@ jobs:
         working-directory: crux-pilot
         run: scripts/bootstrap-zephyr.sh --install-sdk
 
+      # Issue #103 evaluation only. Reuses this job's pinned Zephyr and SDK.
+      - name: Probe native UART and File logging, and RTT EVKB cross-build
+        working-directory: crux-pilot
+        run: bash scripts/test-spike-logging-103.sh
+
       - name: Validate actual storage providers on simulated Flash
         working-directory: crux-pilot
         run: scripts/test-storage-simulators.sh
