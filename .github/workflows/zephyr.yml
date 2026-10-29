@@ -51,13 +51,13 @@ jobs:
         working-directory: crux-pilot
         run: scripts/bootstrap-zephyr.sh --install-sdk
 
-      - name: Check changed C control-flow braces
+      - name: Check changed C patch style
         working-directory: crux-pilot
         env:
           ZEPHYR_BASE: ${{ github.workspace }}/zephyr
         run: |
-          python3 -m unittest discover -s tests/style -p 'test_braces.py' -v
-          scripts/check-braces.sh HEAD^ HEAD
+          python3 -m unittest discover -s tests/style -p 'test_patch_style.py' -v
+          scripts/check-patch.sh HEAD^ HEAD
 
       - name: Validate actual storage providers on simulated Flash
         working-directory: crux-pilot

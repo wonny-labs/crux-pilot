@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Check only changed Crux C source/header lines using the pinned Zephyr checkpatch.
+# Check approved patch-style rules on changed Crux C source/header lines.
+# Reuse the pinned Zephyr checkpatch.pl; do not duplicate its analysis rules.
 repo="$(git rev-parse --show-toplevel)"
 base="${1:-HEAD^}"
 head="${2:-HEAD}"

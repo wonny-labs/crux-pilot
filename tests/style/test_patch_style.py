@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 
-SCRIPT = Path(__file__).resolve().parents[2] / "scripts/check-braces.sh"
+SCRIPT = Path(__file__).resolve().parents[2] / "scripts/check-patch.sh"
 
 
 class BracesGateTest(unittest.TestCase):
@@ -84,6 +84,14 @@ class BracesGateTest(unittest.TestCase):
         result = self.check()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("No changed C source", result.stdout)
+
+
+    def test_missing_git_history_fails_explicitly(self):
+        self.write("component.c", "int base(void)\n{\n    return 0;\n}\n")
+        self.commit("single commit")
+        result = self.check()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("Missing Git commit", result.stderr)
 
     def test_missing_checker_is_not_silently_skipped(self):
         self.write("component.c", "int base(void)\n{\n    return 0;\n}\n")
