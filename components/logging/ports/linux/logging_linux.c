@@ -19,8 +19,9 @@ crux_status_t crux_log_impl_write(crux_log_level_t level, const char *tag, const
     sigset_t block, old, pending;
     sigemptyset(&block);
     sigaddset(&block, SIGPIPE);
-    if (pthread_sigmask(SIG_BLOCK, &block, &old) != 0)
+    if (pthread_sigmask(SIG_BLOCK, &block, &old) != 0) {
         return CRUX_ERR_IO;
+    }
     if (sigpending(&pending) != 0) {
         (void)pthread_sigmask(SIG_SETMASK, &old, NULL);
         return CRUX_ERR_IO;

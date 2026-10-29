@@ -32,8 +32,9 @@ bool crux_watchdog_is_emulated(void)
 crux_status_t crux_watchdog_validate_timeout(uint32_t ms)
 {
     /* This emulated profile mirrors the initial RT1060 subset only. */
-    if (ms < 500 || ms > 64000)
+    if (ms < 500 || ms > 64000) {
         return CRUX_ERR_OUT_OF_RANGE;
+    }
     return ms % 500 == 0 ? CRUX_OK : CRUX_ERR_NOT_SUPPORTED;
 }
 
@@ -41,22 +42,26 @@ static crux_status_t monotonic_ms(int64_t *out)
 {
     struct timespec value;
     if (clock_gettime(CLOCK_MONOTONIC, &value) != 0 || value.tv_sec < 0 || value.tv_nsec < 0 ||
-        value.tv_nsec >= 1000000000L || (uint64_t)value.tv_sec > (uint64_t)INT64_MAX / 1000u)
+        value.tv_nsec >= 1000000000L || (uint64_t)value.tv_sec > (uint64_t)INT64_MAX / 1000u) {
         return CRUX_ERR_IO;
+    }
     int64_t seconds_ms = (int64_t)value.tv_sec * 1000;
     int64_t fraction = value.tv_nsec / 1000000L;
-    if (seconds_ms > INT64_MAX - fraction)
+    if (seconds_ms > INT64_MAX - fraction) {
         return CRUX_ERR_IO;
+    }
     *out = seconds_ms + fraction;
     return CRUX_OK;
 }
 
 static crux_status_t observe(int64_t *now)
 {
-    if (monotonic_ms(now) != CRUX_OK || *now < last_feed)
+    if (monotonic_ms(now) != CRUX_OK || *now < last_feed) {
         return CRUX_ERR_IO;
-    if (*now - last_feed >= timeout)
+    }
+    if (*now - last_feed >= timeout) {
         expired = true;
+    }
     return CRUX_OK;
 }
 
@@ -64,8 +69,9 @@ crux_status_t crux_watchdog_probe(system_watchdog_probe_t *out)
 {
     if (started) {
         int64_t now;
-        if (observe(&now) != CRUX_OK)
+        if (observe(&now) != CRUX_OK) {
             return CRUX_ERR_IO;
+        }
     }
     *out = (system_watchdog_probe_t){started && !expired, expired};
     return CRUX_OK;
@@ -73,8 +79,9 @@ crux_status_t crux_watchdog_probe(system_watchdog_probe_t *out)
 
 crux_status_t crux_watchdog_impl_start(uint32_t ms)
 {
-    if (started || monotonic_ms(&last_feed) != CRUX_OK)
+    if (started || monotonic_ms(&last_feed) != CRUX_OK) {
         return CRUX_ERR_IO;
+    }
     timeout = ms;
     started = true;
     return CRUX_OK;
@@ -82,13 +89,16 @@ crux_status_t crux_watchdog_impl_start(uint32_t ms)
 
 crux_status_t crux_watchdog_impl_feed(void)
 {
-    if (!started)
+    if (!started) {
         return CRUX_ERR_IO;
+    }
     int64_t now;
-    if (observe(&now) != CRUX_OK)
+    if (observe(&now) != CRUX_OK) {
         return CRUX_ERR_IO;
-    if (expired)
+    }
+    if (expired) {
         return CRUX_ERR_TIMEOUT;
+    }
     last_feed = now;
     return CRUX_OK;
 }
