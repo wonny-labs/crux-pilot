@@ -87,7 +87,8 @@ crux_status_t crux_serial_close(crux_serial_t *serial);
 - One open owner per bound physical device. Duplicate open is BUSY. Aliased IDs
   must not bypass this rule. Handle representation is reserved; zero is invalid,
   retired copies are INVALID_STATE, generation exhaustion retires a slot safely.
-- Open requires a non-live output variable and zeroes it on failure. Failed native
+- Open writes the output only on success and leaves it unchanged on failure. A
+  successful open must not overwrite an unrelated live handle. Failed native
   configuration is not claimed to roll back; keep a device unavailable if cleanup
   cannot establish safe ownership/state.
 - One read and one write may overlap (full duplex). A second operation in the same
