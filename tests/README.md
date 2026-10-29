@@ -1,6 +1,6 @@
 # Test organisation
 
-Crux uses GoogleTest/CTest for selected Linux Host component and controller tests, Twister with Ztest or console harnesses for Zephyr tests, and Python runners for build and scenario validation. The existing physical Time/RTC tests use standalone pytest on macOS; other physical device, network and controller tests use dedicated Python command-line runners. Twister's pytest harness is not currently configured.
+Crux uses GoogleTest/CTest for selected Linux Host component and controller tests, Twister with Ztest or console harnesses for Zephyr tests, and Python runners for build and scenario validation. The existing physical Time/RTC tests use standalone pytest on macOS; other physical device, network and controller tests use dedicated Python command-line runners. Issue #60 adds an opt-in pytest PoC for the existing controller scenario on Linux Host and Zephyr `native_sim`; it is not a required suite or CI gate.
 
 Typed monotonic and Thread sleep checks include controlled common/native failure
 cases, C17/C++17 header/type checks, and RTC-disabled Zephyr Ztests in
@@ -19,9 +19,12 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 | Portable components and controller logic | CTest with GoogleTest suites and standalone C/C++ tests | Linux Host |
 | Zephyr components and integration | Twister with Ztest, console or the default harness | Zephyr `native_sim` |
 | Basic periodic controller scenarios | Python runner through `scripts/test-controller.sh` | Zephyr `native_sim` |
+| Optional controller functional PoC | pytest on Host; Twister `harness: pytest` on `native_sim` | Linux Host and Zephyr `native_sim` |
 | Build tools and validation oracles | Python `unittest` | Linux host |
 | Physical Time/RTC functional tests | Standalone pytest through `scripts/test-target.sh` | macOS, EVKB and J-Link |
 | Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and controlled Mac/peer setup |
+
+The optional pytest PoC reuses the existing 20-cycle reference-controller output and does not add product APIs or hardware operations. It currently duplicates part of `scripts/check-controller.py`; see the [PoC execution record](controller_functional/README.md) for actual runs, limits and the adoption recommendation. Keep the existing CTest/GoogleTest and Ztest/Twister suites as the normal regression paths.
 
 ## Host: `time/` and `controller/`
 
