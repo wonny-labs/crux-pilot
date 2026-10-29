@@ -58,8 +58,8 @@ int external_consumer(void)
            crux_semaphore_destroy(&semaphore) != CRUX_OK;
 #elif PROFILE_SERIAL
     crux_serial_t handle = {1, 1};
-    return crux_serial_open(0, NULL, &handle) != CRUX_ERR_INVALID_ARGUMENT || handle.slot != 0 ||
-           handle.generation != 0;
+    return crux_serial_open(0, NULL, &handle) != CRUX_ERR_INVALID_ARGUMENT || handle.slot != 1 ||
+           handle.generation != 1;
 #elif PROFILE_LOGGING
     return crux_log_set_level(CRUX_LOG_INFO) != CRUX_OK ||
            crux_log_write(CRUX_LOG_INFO, "external", "logging") != CRUX_OK;

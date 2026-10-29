@@ -113,6 +113,9 @@ static void validation(void)
     open_result = CRUX_OK;
     assert(crux_serial_close(NULL) == CRUX_ERR_INVALID_ARGUMENT);
     assert(crux_serial_close(&out) == CRUX_ERR_INVALID_STATE);
+    crux_serial_t fresh;
+    assert(crux_serial_open(0, &config, &fresh) == CRUX_OK);
+    assert(crux_serial_close(&fresh) == CRUX_OK);
 }
 static void lifetime(void)
 {
