@@ -54,8 +54,10 @@ The handle types are distinct portable structs containing reserved 32-bit slot a
 generation fields; consumers treat them as opaque values. The thread-options type
 contains `size_t stack_size_bytes` and the priority-class enum. Both are mandatory
 inputs; a null options pointer is invalid. Priority enum values are low=0, normal=1,
-high=2. All create operations take the output last, set it invalid on failure and
-require that it does not currently hold a live resource. Join/destroy zero the
+high=2. All create operations take the output last, write it only on success and
+leave it unchanged on failure. This replaces the earlier invalid-on-failure contract;
+check the result before using new output storage. Do not overwrite an existing live
+resource on successful creation. Join/destroy zero the
 supplied handle on success; copied aliases become stale and are rejected.
 
 A zero-initialised `crux_thread_options_t` selects LOW priority, not NORMAL.

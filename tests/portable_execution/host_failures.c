@@ -79,27 +79,28 @@ int main(void)
     options.stack_size_bytes = 65537;
     CHECK(crux_thread_create(&options, noop, NULL, &thread) == CRUX_ERR_OUT_OF_RANGE);
     options.stack_size_bytes = 0;
+    thread = (crux_thread_t){71, 42};
     fail_thread = 1;
     CHECK(crux_thread_create(&options, noop, NULL, &thread) == CRUX_ERR_NO_RESOURCES);
-    CHECK(thread.slot == 0 && thread.generation == 0);
+    CHECK(thread.slot == 71 && thread.generation == 42);
     crux_thread_t workers[4];
     for (size_t i = 0; i < 4; ++i)
         CHECK(crux_thread_create(&options, noop, NULL, &workers[i]) == CRUX_OK);
     for (size_t i = 0; i < 4; ++i)
         CHECK(crux_thread_join(&workers[i], 1000) == CRUX_OK);
-    crux_mutex_t mutex;
+    crux_mutex_t mutex = {71, 42};
     fail_mutex = 1;
     CHECK(crux_mutex_create(&mutex) == CRUX_ERR_NO_RESOURCES);
-    CHECK(mutex.slot == 0 && mutex.generation == 0);
+    CHECK(mutex.slot == 71 && mutex.generation == 42);
     crux_mutex_t mutexes[8];
     for (size_t i = 0; i < 8; ++i)
         CHECK(crux_mutex_create(&mutexes[i]) == CRUX_OK);
     for (size_t i = 0; i < 8; ++i)
         CHECK(crux_mutex_destroy(&mutexes[i]) == CRUX_OK);
-    crux_semaphore_t semaphore;
+    crux_semaphore_t semaphore = {71, 42};
     fail_condition = 1;
     CHECK(crux_semaphore_create(0, 1, &semaphore) == CRUX_ERR_NO_RESOURCES);
-    CHECK(semaphore.slot == 0 && semaphore.generation == 0);
+    CHECK(semaphore.slot == 71 && semaphore.generation == 42);
     crux_semaphore_t semaphores[8];
     for (size_t i = 0; i < 8; ++i)
         CHECK(crux_semaphore_create(0, 1, &semaphores[i]) == CRUX_OK);

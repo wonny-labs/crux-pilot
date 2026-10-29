@@ -42,7 +42,9 @@ typedef void (*crux_thread_entry_t)(void *argument);
  * @param options Required attributes; set priority explicitly when NORMAL is intended.
  * @param entry Worker function.
  * @param argument Caller-managed data, valid until successful join.
- * @param[out] out Invalid on failure; must not hold a live thread.
+ * Output is written only on success. Check the status before using new storage;
+ * a successful create must not overwrite an unrelated live thread.
+ * @param[out] out Unchanged on failure.
  * @return CRUX_OK or a crux_status_t error.
  */
 crux_status_t crux_thread_create(const crux_thread_options_t *options, crux_thread_entry_t entry,

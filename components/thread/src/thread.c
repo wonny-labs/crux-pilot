@@ -25,9 +25,6 @@ static thread_slot_t *find_thread(crux_thread_t handle)
 crux_status_t crux_thread_create(const crux_thread_options_t *options, crux_thread_entry_t entry,
                                  void *argument, crux_thread_t *out)
 {
-    if (out != NULL) {
-        *out = (crux_thread_t){0};
-    }
     if (crux_is_in_isr()) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
