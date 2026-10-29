@@ -30,8 +30,9 @@ bool crux_serial_context_allowed(void)
 crux_status_t crux_serial_monotonic_now_ms(uint64_t *now)
 {
     int64_t value = k_uptime_get();
-    if (value < 0)
+    if (value < 0) {
         return CRUX_ERR_IO;
+    }
     *now = (uint64_t)value;
     return CRUX_OK;
 }
@@ -46,13 +47,16 @@ static int64_t remaining(const serial_deadline_t *deadline)
 
 crux_status_t crux_serial_lock(const serial_deadline_t *deadline)
 {
-    if (deadline == NULL)
+    if (deadline == NULL) {
         return k_mutex_lock(&metadata, K_FOREVER) == 0 ? CRUX_OK : CRUX_ERR_IO;
-    if (deadline->poll)
+    }
+    if (deadline->poll) {
         return k_mutex_lock(&metadata, K_NO_WAIT) == 0 ? CRUX_OK : CRUX_ERR_BUSY;
+    }
     int64_t left = remaining(deadline);
-    if (left == 0)
+    if (left == 0) {
         return CRUX_ERR_TIMEOUT;
+    }
     return k_mutex_lock(&metadata, K_MSEC(left)) == 0 ? CRUX_OK : CRUX_ERR_TIMEOUT;
 }
 
@@ -79,8 +83,9 @@ static void fault(void)
 static bool observed_error(void)
 {
     int error = uart_err_check(native.dev);
-    if (error != 0 && error != -ENOSYS && error != -ENOTSUP)
+    if (error != 0 && error != -ENOSYS && error != -ENOTSUP) {
         fault();
+    }
     return native.failed;
 }
 
@@ -89,11 +94,13 @@ static void callback(const struct device *unused, void *context)
     ARG_UNUSED(unused);
     ARG_UNUSED(context);
     k_spinlock_key_t key = k_spin_lock(&native.gate);
-    if (!native.active || native.failed)
+    if (!native.active || native.failed) {
         goto done;
+    }
     const struct device *dev = native.dev;
-    if (observed_error())
+    if (observed_error()) {
         goto done;
+    }
     if (uart_irq_update(dev) < 0) {
         fault();
         goto done;
@@ -107,8 +114,9 @@ static void callback(const struct device *unused, void *context)
             fault();
             break;
         }
-        if (count == 0)
+        if (count == 0) {
             break;
+        }
         if (ring_buf_put(&native.rx, &byte, 1) != 1) {
             fault();
             break;
@@ -125,12 +133,14 @@ static void callback(const struct device *unused, void *context)
                 fault();
             } else {
                 ring_buf_get_finish(&native.tx, (uint32_t)count);
-                if (count > 0)
+                if (count > 0) {
                     k_sem_give(&tx_event);
+                }
             }
         }
-        if (ring_buf_is_empty(&native.tx))
+        if (ring_buf_is_empty(&native.tx)) {
             uart_irq_tx_disable(dev);
+        }
     }
 done:
     k_spin_unlock(&native.gate, key);
@@ -139,19 +149,26 @@ done:
 crux_status_t crux_serial_impl_open(uint32_t port, const crux_serial_config_t *config)
 {
     const struct device *dev = crux_serial_zephyr_device(port);
-    if (dev == NULL)
+    if (dev == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
-    if (!device_is_ready(dev))
+    }
+    if (!device_is_ready(dev)) {
         return CRUX_ERR_NOT_READY;
-    if (native.quarantine)
+    }
+    if (native.quarantine) {
         return CRUX_ERR_IO;
+    }
+
     const struct uart_driver_api *api = dev->api;
     if (!api->configure || !api->config_get || !api->irq_callback_set || !api->fifo_fill ||
         !api->fifo_read || !api->irq_tx_enable || !api->irq_tx_disable || !api->irq_rx_enable ||
-        !api->irq_rx_disable || !api->irq_tx_ready || !api->irq_rx_ready || !api->irq_update)
+        !api->irq_rx_disable || !api->irq_tx_ready || !api->irq_rx_ready || !api->irq_update) {
         return CRUX_ERR_NOT_SUPPORTED;
-    if (uart_config_get(dev, &native.saved) != 0)
+    }
+    if (uart_config_get(dev, &native.saved) != 0) {
         return CRUX_ERR_NOT_SUPPORTED;
+    }
+
     struct uart_config requested = {
         .baudrate = config->baud_rate,
         .data_bits = config->data_bits == 7 ? UART_CFG_DATA_BITS_7 : UART_CFG_DATA_BITS_8,
@@ -163,19 +180,23 @@ crux_status_t crux_serial_impl_open(uint32_t port, const crux_serial_config_t *c
     disable(dev);
     int result = uart_configure(dev, &requested);
     struct uart_config actual;
-    if (result == 0)
+    if (result == 0) {
         result = uart_config_get(dev, &actual);
+    }
     if (result == 0 &&
         (actual.baudrate != requested.baudrate || actual.data_bits != requested.data_bits ||
          actual.stop_bits != requested.stop_bits || actual.parity != requested.parity ||
-         actual.flow_ctrl != requested.flow_ctrl))
+         actual.flow_ctrl != requested.flow_ctrl)) {
         result = -ENOTSUP;
+    }
     if (result != 0) {
-        if (uart_configure(dev, &native.saved) != 0)
+        if (uart_configure(dev, &native.saved) != 0) {
             native.quarantine = true;
+        }
         return result == -ENOTSUP || result == -ENOSYS || result == -EINVAL ? CRUX_ERR_NOT_SUPPORTED
                                                                             : CRUX_ERR_IO;
     }
+
     k_spinlock_key_t key = k_spin_lock(&native.gate);
     native.dev = dev;
     native.failed = false;
@@ -189,12 +210,14 @@ crux_status_t crux_serial_impl_open(uint32_t port, const crux_serial_config_t *c
     if (result == 0) {
         uart_irq_err_enable(dev);
         uart_irq_rx_enable(dev);
-    } else
+    } else {
         native.active = false;
+    }
     k_spin_unlock(&native.gate, key);
     if (result != 0) {
-        if (uart_configure(dev, &native.saved) != 0)
+        if (uart_configure(dev, &native.saved) != 0) {
             native.quarantine = true;
+        }
         return CRUX_ERR_NOT_SUPPORTED;
     }
     return CRUX_OK;
@@ -210,19 +233,24 @@ crux_status_t crux_serial_impl_close(uint32_t port)
     ring_buf_reset(&native.rx);
     ring_buf_reset(&native.tx);
     k_spin_unlock(&native.gate, key);
+
     /* Discard queued native RX with a fixed setup/cleanup bound. A continuously
      * transmitting peer must not make close unbounded; quarantine if not drained.
      * Native hardware TX bytes already accepted cannot be recalled. */
     uint8_t discarded;
     unsigned drained = 0;
-    while (drained < 1024 && uart_poll_in(native.dev, &discarded) == 0)
+    while (drained < 1024 && uart_poll_in(native.dev, &discarded) == 0) {
         ++drained;
-    if (drained == 1024)
+    }
+    if (drained == 1024) {
         result = -EIO;
-    if (uart_configure(native.dev, &native.saved) != 0)
+    }
+    if (uart_configure(native.dev, &native.saved) != 0) {
         result = -EIO;
-    if (result != 0)
+    }
+    if (result != 0) {
         native.quarantine = true;
+    }
     return result == 0 ? CRUX_OK : CRUX_ERR_IO;
 }
 
@@ -232,34 +260,41 @@ static crux_status_t transfer(void *buffer, size_t size, const serial_deadline_t
     for (;;) {
         k_spinlock_key_t key;
         if (k_spin_trylock(&native.gate, &key) != 0) {
-            if (deadline->poll)
+            if (deadline->poll) {
                 return CRUX_ERR_BUSY;
-            if (remaining(deadline) == 0)
+            }
+            if (remaining(deadline) == 0) {
                 return CRUX_ERR_TIMEOUT;
+            }
             k_sleep(K_MSEC(1));
             continue;
         }
         crux_status_t result = CRUX_OK;
-        if (observed_error())
+        if (observed_error()) {
             result = CRUX_ERR_IO;
-        else if (!deadline->poll && remaining(deadline) == 0)
+        } else if (!deadline->poll && remaining(deadline) == 0) {
             result = CRUX_ERR_TIMEOUT;
-        else {
+        } else {
             *count = writing ? ring_buf_put(&native.tx, buffer, MIN(size, CAPACITY))
                              : ring_buf_get(&native.rx, buffer, MIN(size, CAPACITY));
-            if (*count != 0 && writing)
+            if (*count != 0 && writing) {
                 uart_irq_tx_enable(native.dev);
+            }
         }
         k_spin_unlock(&native.gate, key);
-        if (result != CRUX_OK || *count != 0)
+        if (result != CRUX_OK || *count != 0) {
             return result;
-        if (deadline->poll)
+        }
+        if (deadline->poll) {
             return CRUX_ERR_BUSY;
+        }
         int64_t left = remaining(deadline);
-        if (left == 0)
+        if (left == 0) {
             return CRUX_ERR_TIMEOUT;
-        if (k_sem_take(writing ? &tx_event : &rx_event, K_MSEC(left)) != 0)
+        }
+        if (k_sem_take(writing ? &tx_event : &rx_event, K_MSEC(left)) != 0) {
             return CRUX_ERR_TIMEOUT;
+        }
     }
 }
 
