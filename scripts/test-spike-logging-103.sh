@@ -31,6 +31,32 @@ if (suite.get("platform") != "native_sim/native/64" or
 print("SPIKE103: native_sim actual UART+FS backends 1/1 PASS")
 PY
 
+# Second actual native_sim profile: independently enabled UART and UDP Syslog.
+# Zephyr native loopback is the receiver, not a Host socket masquerading as Zephyr.
+net_out="$repo/build/zephyr/twister-spike-103-udp"
+(cd "$workspace" && ZEPHYR_TOOLCHAIN_VARIANT=host west twister \
+    -j 2 -p native_sim/native/64 \
+    -T "$repo/tests/spike_logging_103/udp_sim" \
+    -O "$net_out" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$repo")
+
+python3 - "$net_out/twister.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+suites = json.loads(Path(sys.argv[1]).read_text())["testsuites"]
+if len(suites) != 1:
+    raise SystemExit(f"SPIKE103 UDP: expected one suite, got {len(suites)}")
+suite = suites[0]
+cases = suite.get("testcases", [])
+if (suite.get("platform") != "native_sim/native/64" or
+        suite.get("status") != "passed" or not suite.get("runnable") or
+        len(cases) != 1 or any(case.get("status") != "passed" for case in cases)):
+    raise SystemExit(f"SPIKE103 UDP: backend runtime incomplete/failed: {suite}")
+print("SPIKE103: native_sim UART+UDP Syslog 1/1 PASS")
+PY
+
 # RTT can be cross-built for the supported EVKB, but without a probe or board
 # there is no RTT transfer, completeness or timing qualification.
 mapfile -t modules < <(cd "$workspace" && west list cmsis cmsis_6 hal_nxp segger -f '{abspath}')
