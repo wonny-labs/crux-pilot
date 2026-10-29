@@ -20,40 +20,49 @@ static queue_slot_t slots[QUEUE_COUNT];
 
 static queue_slot_t *lookup(crux_queue_t handle)
 {
-    if (handle.slot == 0 || handle.slot > QUEUE_COUNT || handle.generation == 0)
+    if (handle.slot == 0 || handle.slot > QUEUE_COUNT || handle.generation == 0) {
         return NULL;
+    }
     queue_slot_t *slot = &slots[handle.slot - 1];
     return slot->live && slot->generation == handle.generation ? slot : NULL;
 }
 
 crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue_t *out)
 {
-    if (out == NULL)
+    if (out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
-    if (capacity == 0 || message_size == 0)
+    }
+    if (capacity == 0 || message_size == 0) {
         return CRUX_ERR_INVALID_ARGUMENT;
-    if (capacity > QUEUE_CAPACITY || message_size > QUEUE_RECORD)
+    }
+    if (capacity > QUEUE_CAPACITY || message_size > QUEUE_RECORD) {
         return CRUX_ERR_OUT_OF_RANGE;
-    if (!crux_queue_context_allowed())
+    }
+    if (!crux_queue_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
+    }
     crux_status_t result = crux_queue_lock(NULL);
-    if (result != CRUX_OK)
+    if (result != CRUX_OK) {
         return result;
+    }
     result = CRUX_ERR_NO_RESOURCES;
     for (size_t i = 0; i < QUEUE_COUNT; ++i) {
         queue_slot_t *slot = &slots[i];
-        if (slot->live || slot->retired)
+        if (slot->live || slot->retired) {
             continue;
-        if (slot->generation == 0)
+        }
+        if (slot->generation == 0) {
             slot->generation = 1;
+        }
         slot->capacity = capacity;
         slot->size = message_size;
         slot->head = 0;
         slot->count = 0;
         slot->active = 0;
         result = crux_queue_prepare_wait(i);
-        if (result != CRUX_OK)
+        if (result != CRUX_OK) {
             break;
+        }
         slot->live = true;
         *out = (crux_queue_t){(uint32_t)i + 1U, slot->generation};
         break;
@@ -66,19 +75,24 @@ static crux_status_t transfer(crux_queue_t handle, uint32_t timeout_ms, const vo
                               void *destination, size_t size, bool sending)
 {
     if ((sending ? source == NULL : destination == NULL) || size == 0 || handle.slot == 0 ||
-        handle.slot > QUEUE_COUNT || handle.generation == 0)
+        handle.slot > QUEUE_COUNT || handle.generation == 0) {
         return CRUX_ERR_INVALID_ARGUMENT;
-    if (timeout_ms > INT32_MAX)
+    }
+    if (timeout_ms > INT32_MAX) {
         return CRUX_ERR_OUT_OF_RANGE;
-    if (!crux_queue_context_allowed())
+    }
+    if (!crux_queue_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
+    }
     queue_deadline_t deadline;
     crux_status_t result = crux_queue_make_deadline(timeout_ms, &deadline);
-    if (result != CRUX_OK)
+    if (result != CRUX_OK) {
         return result;
+    }
     result = crux_queue_lock(&deadline);
-    if (result != CRUX_OK)
+    if (result != CRUX_OK) {
         return result;
+    }
     queue_slot_t *slot = lookup(handle);
     if (slot == NULL || size != slot->size) {
         crux_queue_unlock();
@@ -91,8 +105,9 @@ static crux_status_t transfer(crux_queue_t handle, uint32_t timeout_ms, const vo
             break;
         }
         result = crux_queue_wait(handle.slot - 1U, &deadline);
-        if (result != CRUX_OK)
+        if (result != CRUX_OK) {
             break;
+        }
     }
     /* A reported timeout is terminal, including during metadata reacquisition.
      * Retain the admitted reference for cleanup, without a late commit. */
@@ -128,24 +143,28 @@ crux_status_t crux_queue_receive(crux_queue_t queue, void *record, size_t size, 
 
 crux_status_t crux_queue_destroy(crux_queue_t *queue)
 {
-    if (queue == NULL)
+    if (queue == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
-    if (!crux_queue_context_allowed())
+    }
+    if (!crux_queue_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
+    }
     crux_status_t result = crux_queue_lock(NULL);
-    if (result != CRUX_OK)
+    if (result != CRUX_OK) {
         return result;
+    }
     queue_slot_t *slot = lookup(*queue);
-    if (slot == NULL)
+    if (slot == NULL) {
         result = CRUX_ERR_INVALID_ARGUMENT;
-    else if (slot->active != 0)
+    } else if (slot->active != 0) {
         result = CRUX_ERR_BUSY;
-    else {
+    } else {
         slot->live = false;
-        if (slot->generation == UINT32_MAX)
+        if (slot->generation == UINT32_MAX) {
             slot->retired = true;
-        else
+        } else {
             ++slot->generation;
+        }
         *queue = (crux_queue_t){0};
     }
     crux_queue_unlock();

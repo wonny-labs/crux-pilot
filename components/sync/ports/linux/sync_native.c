@@ -87,11 +87,13 @@ crux_status_t crux_mutex_impl_create(sync_native_mutex_t *mutex)
 {
     pthread_mutexattr_t attributes;
     int result = pthread_mutexattr_init(&attributes);
-    if (result != 0)
+    if (result != 0) {
         return native_result(result);
+    }
     result = pthread_mutexattr_settype(&attributes, PTHREAD_MUTEX_ERRORCHECK);
-    if (result == 0)
+    if (result == 0) {
         result = pthread_mutex_init(mutex, &attributes);
+    }
     (void)pthread_mutexattr_destroy(&attributes);
     return native_result(result);
 }
@@ -124,8 +126,9 @@ crux_status_t crux_semaphore_impl_create(sync_native_semaphore_t *semaphore, uin
                                          uint32_t maximum)
 {
     int result = pthread_mutex_init(&semaphore->lock, NULL);
-    if (result != 0)
+    if (result != 0) {
         return native_result(result);
+    }
     pthread_condattr_t attributes;
     result = pthread_condattr_init(&attributes);
     if (result != 0) {
@@ -133,8 +136,9 @@ crux_status_t crux_semaphore_impl_create(sync_native_semaphore_t *semaphore, uin
         return native_result(result);
     }
     result = pthread_condattr_setclock(&attributes, CLOCK_MONOTONIC);
-    if (result == 0)
+    if (result == 0) {
         result = pthread_cond_init(&semaphore->changed, &attributes);
+    }
     (void)pthread_condattr_destroy(&attributes);
     if (result != 0) {
         (void)pthread_mutex_destroy(&semaphore->lock);
@@ -151,16 +155,18 @@ crux_status_t crux_semaphore_impl_take(sync_native_semaphore_t *semaphore,
     int result = deadline->poll ? pthread_mutex_trylock(&semaphore->lock)
                                 : pthread_mutex_clocklock(&semaphore->lock, CLOCK_MONOTONIC,
                                                           &deadline->absolute);
-    if (result != 0)
+    if (result != 0) {
         return native_result(result);
+    }
     while (semaphore->count == 0) {
         if (deadline->poll) {
             result = EBUSY;
             break;
         }
         result = pthread_cond_timedwait(&semaphore->changed, &semaphore->lock, &deadline->absolute);
-        if (result == ETIMEDOUT || (result != 0 && result != EINTR))
+        if (result == ETIMEDOUT || (result != 0 && result != EINTR)) {
             break;
+        }
     }
     if (semaphore->count != 0 && (result == 0 || result == ETIMEDOUT)) {
         --semaphore->count;
@@ -173,8 +179,9 @@ crux_status_t crux_semaphore_impl_take(sync_native_semaphore_t *semaphore,
 crux_status_t crux_semaphore_impl_give(sync_native_semaphore_t *semaphore)
 {
     int result = pthread_mutex_lock(&semaphore->lock);
-    if (result != 0)
+    if (result != 0) {
         return native_result(result);
+    }
     if (semaphore->count == semaphore->maximum) {
         result = EBUSY;
     } else {
@@ -188,7 +195,8 @@ crux_status_t crux_semaphore_impl_give(sync_native_semaphore_t *semaphore)
 crux_status_t crux_semaphore_impl_destroy(sync_native_semaphore_t *semaphore)
 {
     int result = pthread_cond_destroy(&semaphore->changed);
-    if (result == 0)
+    if (result == 0) {
         result = pthread_mutex_destroy(&semaphore->lock);
+    }
     return native_result(result);
 }

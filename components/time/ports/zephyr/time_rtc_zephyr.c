@@ -41,10 +41,12 @@ static const struct device *const crux_time_rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
 
 crux_status_t crux_time_zephyr_rtc_read(crux_realtime_t *out)
 {
-    if (out == NULL)
+    if (out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
-    if (crux_is_in_isr())
+    }
+    if (crux_is_in_isr()) {
         return CRUX_ERR_NOT_SUPPORTED;
+    }
 #if defined(CRUX_TIME_RTC_AVAILABLE)
     struct rtc_time native_time = {0};
     crux_datetime_t utc_time = {0};
@@ -91,15 +93,19 @@ crux_status_t crux_time_zephyr_rtc_read(crux_realtime_t *out)
 crux_status_t crux_time_zephyr_rtc_store(const crux_realtime_t *time)
 {
     crux_datetime_t utc_time;
-    if (time == NULL)
+    if (time == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
+    }
     crux_status_t status = crux_realtime_to_utc(*time, &utc_time);
-    if (status != CRUX_OK)
+    if (status != CRUX_OK) {
         return status;
-    if (time->nanoseconds != 0)
+    }
+    if (time->nanoseconds != 0) {
         return CRUX_ERR_NOT_SUPPORTED;
-    if (crux_is_in_isr())
+    }
+    if (crux_is_in_isr()) {
         return CRUX_ERR_NOT_SUPPORTED;
+    }
 #if defined(CRUX_TIME_RTC_AVAILABLE)
     struct rtc_time native_time = {0};
     int result;

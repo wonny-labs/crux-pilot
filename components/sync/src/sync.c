@@ -30,32 +30,37 @@ static bool matches(const lifetime_t *life, uint32_t generation)
 
 static mutex_slot_t *find_mutex(crux_mutex_t handle)
 {
-    if (handle.slot == 0 || handle.slot > CRUX_SYNC_MUTEX_COUNT)
+    if (handle.slot == 0 || handle.slot > CRUX_SYNC_MUTEX_COUNT) {
         return NULL;
+    }
     mutex_slot_t *slot = &mutexes[handle.slot - 1];
     return matches(&slot->life, handle.generation) ? slot : NULL;
 }
 
 static semaphore_slot_t *find_semaphore(crux_semaphore_t handle)
 {
-    if (handle.slot == 0 || handle.slot > CRUX_SYNC_SEMAPHORE_COUNT)
+    if (handle.slot == 0 || handle.slot > CRUX_SYNC_SEMAPHORE_COUNT) {
         return NULL;
+    }
     semaphore_slot_t *slot = &semaphores[handle.slot - 1];
     return matches(&slot->life, handle.generation) ? slot : NULL;
 }
 
 crux_status_t crux_mutex_create(crux_mutex_t *out)
 {
-    if (!crux_sync_context_allowed())
+    if (!crux_sync_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
-    if (out == NULL)
+    }
+    if (out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
+    }
     sync_native_metadata_lock();
     crux_status_t result = CRUX_ERR_NO_RESOURCES;
     for (uint32_t i = 0; i < CRUX_SYNC_MUTEX_COUNT; ++i) {
         mutex_slot_t *slot = &mutexes[i];
-        if (slot->life.used || slot->life.generation == UINT32_MAX)
+        if (slot->life.used || slot->life.generation == UINT32_MAX) {
             continue;
+        }
         ++slot->life.generation;
         result = crux_mutex_impl_create(&slot->native);
         if (result == CRUX_OK) {
@@ -72,15 +77,18 @@ crux_status_t crux_mutex_create(crux_mutex_t *out)
 
 crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
 {
-    if (!crux_sync_context_allowed())
+    if (!crux_sync_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
+    }
     sync_native_deadline_t deadline;
     crux_status_t result = crux_sync_make_deadline(timeout_ms, &deadline);
-    if (result != CRUX_OK)
+    if (result != CRUX_OK) {
         return result;
+    }
     result = sync_native_metadata_lock_until(&deadline);
-    if (result != CRUX_OK)
+    if (result != CRUX_OK) {
         return result;
+    }
     mutex_slot_t *slot = find_mutex(mutex);
     if (slot == NULL) {
         sync_native_metadata_unlock();
@@ -119,8 +127,9 @@ crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
 
 crux_status_t crux_mutex_unlock(crux_mutex_t mutex)
 {
-    if (!crux_sync_context_allowed())
+    if (!crux_sync_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
+    }
     sync_native_metadata_lock();
     mutex_slot_t *slot = find_mutex(mutex);
     if (slot == NULL) {
@@ -132,18 +141,21 @@ crux_status_t crux_mutex_unlock(crux_mutex_t mutex)
         return CRUX_ERR_INVALID_STATE;
     }
     crux_status_t result = crux_mutex_impl_unlock(&slot->native);
-    if (result == CRUX_OK)
+    if (result == CRUX_OK) {
         slot->held = false;
+    }
     sync_native_metadata_unlock();
     return result;
 }
 
 crux_status_t crux_mutex_destroy(crux_mutex_t *mutex)
 {
-    if (!crux_sync_context_allowed())
+    if (!crux_sync_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
-    if (mutex == NULL)
+    }
+    if (mutex == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
+    }
     sync_native_metadata_lock();
     mutex_slot_t *slot = find_mutex(*mutex);
     if (slot == NULL) {
@@ -165,18 +177,22 @@ crux_status_t crux_mutex_destroy(crux_mutex_t *mutex)
 
 crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_semaphore_t *out)
 {
-    if (!crux_sync_context_allowed())
+    if (!crux_sync_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
-    if (out == NULL)
+    }
+    if (out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
-    if (maximum == 0 || maximum > INT32_MAX || initial > maximum)
+    }
+    if (maximum == 0 || maximum > INT32_MAX || initial > maximum) {
         return CRUX_ERR_OUT_OF_RANGE;
+    }
     sync_native_metadata_lock();
     crux_status_t result = CRUX_ERR_NO_RESOURCES;
     for (uint32_t i = 0; i < CRUX_SYNC_SEMAPHORE_COUNT; ++i) {
         semaphore_slot_t *slot = &semaphores[i];
-        if (slot->life.used || slot->life.generation == UINT32_MAX)
+        if (slot->life.used || slot->life.generation == UINT32_MAX) {
             continue;
+        }
         ++slot->life.generation;
         result = crux_semaphore_impl_create(&slot->native, initial, maximum);
         if (result == CRUX_OK) {
@@ -192,15 +208,18 @@ crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_sem
 
 crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_ms)
 {
-    if (!crux_sync_context_allowed())
+    if (!crux_sync_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
+    }
     sync_native_deadline_t deadline;
     crux_status_t result = crux_sync_make_deadline(timeout_ms, &deadline);
-    if (result != CRUX_OK)
+    if (result != CRUX_OK) {
         return result;
+    }
     result = sync_native_metadata_lock_until(&deadline);
-    if (result != CRUX_OK)
+    if (result != CRUX_OK) {
         return result;
+    }
     semaphore_slot_t *slot = find_semaphore(semaphore);
     if (slot == NULL) {
         sync_native_metadata_unlock();
@@ -227,8 +246,9 @@ crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_m
 
 crux_status_t crux_semaphore_give(crux_semaphore_t semaphore)
 {
-    if (!crux_sync_context_allowed())
+    if (!crux_sync_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
+    }
     sync_native_metadata_lock();
     semaphore_slot_t *slot = find_semaphore(semaphore);
     if (slot == NULL) {
@@ -242,10 +262,12 @@ crux_status_t crux_semaphore_give(crux_semaphore_t semaphore)
 
 crux_status_t crux_semaphore_destroy(crux_semaphore_t *semaphore)
 {
-    if (!crux_sync_context_allowed())
+    if (!crux_sync_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
-    if (semaphore == NULL)
+    }
+    if (semaphore == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
+    }
     sync_native_metadata_lock();
     semaphore_slot_t *slot = find_semaphore(*semaphore);
     if (slot == NULL) {
