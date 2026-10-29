@@ -9,10 +9,12 @@ static bool prepared[4];
 
 static crux_status_t status(int error, bool poll)
 {
-    if (error == 0)
+    if (error == 0) {
         return CRUX_OK;
-    if (error == -EBUSY || error == -EAGAIN)
+    }
+    if (error == -EBUSY || error == -EAGAIN) {
         return poll ? CRUX_ERR_BUSY : CRUX_ERR_TIMEOUT;
+    }
     return CRUX_ERR_IO;
 }
 
@@ -30,16 +32,18 @@ crux_status_t crux_queue_make_deadline(uint32_t ms, queue_deadline_t *out)
     }
     int64_t now = k_uptime_ticks();
     int64_t duration = k_ms_to_ticks_ceil64(ms);
-    if (now < 0 || duration < 0 || now >= INT64_MAX - duration - 1)
+    if (now < 0 || duration < 0 || now >= INT64_MAX - duration - 1) {
         return CRUX_ERR_OUT_OF_RANGE;
+    }
     out->timeout = K_TIMEOUT_ABS_TICKS(now + duration + 1);
     return CRUX_OK;
 }
 
 crux_status_t crux_queue_lock(const queue_deadline_t *deadline)
 {
-    if (deadline == NULL)
+    if (deadline == NULL) {
         return status(k_mutex_lock(&crux_queue_metadata, K_FOREVER), false);
+    }
     return status(k_mutex_lock(&crux_queue_metadata, deadline->timeout), deadline->poll);
 }
 
@@ -52,8 +56,9 @@ crux_status_t crux_queue_prepare_wait(size_t index)
 {
     if (!prepared[index]) {
         int result = k_condvar_init(&changed[index]);
-        if (result != 0)
+        if (result != 0) {
             return CRUX_ERR_IO;
+        }
         prepared[index] = true;
     }
     return CRUX_OK;

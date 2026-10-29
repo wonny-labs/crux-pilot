@@ -49,8 +49,9 @@ static crux_status_t read_native(crux_realtime_t *out)
 crux_status_t crux_realtime_init(void)
 {
     crux_status_t status = crux_realtime_impl_lock();
-    if (status != CRUX_OK)
+    if (status != CRUX_OK) {
         return status;
+    }
     if (!g_initialised) {
         status = crux_realtime_impl_init();
         if (status == CRUX_OK) {
@@ -65,36 +66,42 @@ crux_status_t crux_realtime_init(void)
 
 crux_status_t crux_realtime_now(crux_realtime_t *out)
 {
-    if (out == NULL)
+    if (out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
+    }
     crux_status_t status = crux_realtime_impl_lock();
-    if (status != CRUX_OK)
+    if (status != CRUX_OK) {
         return status;
-    if (!g_initialised)
+    }
+    if (!g_initialised) {
         status = CRUX_ERR_NOT_READY;
-    else if (!g_valid)
+    } else if (!g_valid) {
         status = CRUX_ERR_NO_DATA;
-    else
+    } else {
         status = read_native(out);
+    }
     crux_realtime_impl_unlock();
     return status;
 }
 
 crux_status_t crux_realtime_get_snapshot(crux_realtime_snapshot_t *out)
 {
-    if (out == NULL)
+    if (out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
+    }
     crux_status_t status = crux_realtime_impl_lock();
-    if (status != CRUX_OK)
+    if (status != CRUX_OK) {
         return status;
+    }
     if (!g_initialised) {
         status = CRUX_ERR_NOT_READY;
     } else {
         crux_realtime_snapshot_t value = {0};
         if (g_valid) {
             status = read_native(&value.timestamp);
-            if (status == CRUX_ERR_NO_DATA)
+            if (status == CRUX_ERR_NO_DATA) {
                 status = CRUX_OK;
+            }
         }
         if (status == CRUX_OK) {
             value.last_source = g_last_source;
@@ -110,8 +117,9 @@ crux_status_t crux_realtime_get_snapshot(crux_realtime_snapshot_t *out)
 crux_status_t crux_realtime_adopt(void)
 {
     crux_status_t status = crux_realtime_impl_lock();
-    if (status != CRUX_OK)
+    if (status != CRUX_OK) {
         return status;
+    }
     if (!g_initialised) {
         status = CRUX_ERR_NOT_READY;
     } else {
@@ -131,16 +139,18 @@ crux_status_t crux_realtime_set(const crux_realtime_t *time, crux_realtime_sourc
                                 bool actively_synchronized)
 {
     crux_status_t status = validate_value(time);
-    if (status != CRUX_OK)
+    if (status != CRUX_OK) {
         return status;
+    }
     if ((source != CRUX_REALTIME_SOURCE_RTC && source != CRUX_REALTIME_SOURCE_MANUAL &&
          source != CRUX_REALTIME_SOURCE_EXTERNAL) ||
         (actively_synchronized && source != CRUX_REALTIME_SOURCE_EXTERNAL)) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
     status = crux_realtime_impl_lock();
-    if (status != CRUX_OK)
+    if (status != CRUX_OK) {
         return status;
+    }
     if (!g_initialised) {
         status = CRUX_ERR_NOT_READY;
     } else {
@@ -160,16 +170,18 @@ crux_status_t crux_realtime_set(const crux_realtime_t *time, crux_realtime_sourc
 crux_status_t crux_realtime_set_synchronized(bool actively_synchronized)
 {
     crux_status_t status = crux_realtime_impl_lock();
-    if (status != CRUX_OK)
+    if (status != CRUX_OK) {
         return status;
-    if (!g_initialised)
+    }
+    if (!g_initialised) {
         status = CRUX_ERR_NOT_READY;
-    else if (!g_valid)
+    } else if (!g_valid) {
         status = CRUX_ERR_NO_DATA;
-    else if (actively_synchronized && g_last_source != CRUX_REALTIME_SOURCE_EXTERNAL) {
+    } else if (actively_synchronized && g_last_source != CRUX_REALTIME_SOURCE_EXTERNAL) {
         status = CRUX_ERR_INVALID_STATE;
-    } else
+    } else {
         g_synchronized = actively_synchronized;
+    }
     crux_realtime_impl_unlock();
     return status;
 }
@@ -177,12 +189,14 @@ crux_status_t crux_realtime_set_synchronized(bool actively_synchronized)
 crux_status_t crux_realtime_invalidate(void)
 {
     crux_status_t status = crux_realtime_impl_lock();
-    if (status != CRUX_OK)
+    if (status != CRUX_OK) {
         return status;
-    if (!g_initialised)
+    }
+    if (!g_initialised) {
         status = CRUX_ERR_NOT_READY;
-    else
+    } else {
         invalidate();
+    }
     crux_realtime_impl_unlock();
     return status;
 }

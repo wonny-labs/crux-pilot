@@ -28,12 +28,15 @@ void thread_native_metadata_lock(void)
 crux_status_t thread_native_metadata_lock_until(const thread_native_deadline_t *deadline)
 {
     int result = k_mutex_lock(&thread_metadata, deadline->timeout);
-    if (result == 0)
+    if (result == 0) {
         return CRUX_OK;
-    if (result == -EAGAIN)
+    }
+    if (result == -EAGAIN) {
         return CRUX_ERR_TIMEOUT;
-    if (result == -EBUSY)
+    }
+    if (result == -EBUSY) {
         return CRUX_ERR_BUSY;
+    }
     return CRUX_ERR_IO;
 }
 
@@ -44,8 +47,9 @@ void thread_native_metadata_unlock(void)
 
 crux_status_t crux_thread_make_deadline(uint32_t timeout_ms, thread_native_deadline_t *out)
 {
-    if (timeout_ms > INT32_MAX)
+    if (timeout_ms > INT32_MAX) {
         return CRUX_ERR_OUT_OF_RANGE;
+    }
     out->poll = timeout_ms == 0;
     if (timeout_ms == 0) {
         out->timeout = K_NO_WAIT;
@@ -54,20 +58,24 @@ crux_status_t crux_thread_make_deadline(uint32_t timeout_ms, thread_native_deadl
     int64_t now = k_uptime_ticks();
     int64_t duration = k_ms_to_ticks_ceil64(timeout_ms);
     /* One extra tick covers the unobserved fraction of the current tick. */
-    if (now > INT64_MAX - duration - 1)
+    if (now > INT64_MAX - duration - 1) {
         return CRUX_ERR_OUT_OF_RANGE;
+    }
     out->timeout = K_TIMEOUT_ABS_TICKS(now + duration + 1);
     return CRUX_OK;
 }
 
 static crux_status_t native_wait_result(int result)
 {
-    if (result == 0)
+    if (result == 0) {
         return CRUX_OK;
-    if (result == -EBUSY)
+    }
+    if (result == -EBUSY) {
         return CRUX_ERR_BUSY;
-    if (result == -EAGAIN)
+    }
+    if (result == -EAGAIN) {
         return CRUX_ERR_TIMEOUT;
+    }
     return CRUX_ERR_IO;
 }
 
