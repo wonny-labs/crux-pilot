@@ -3,6 +3,7 @@ target_include_directories(crux_system_common PRIVATE ../../components/system/sr
 target_link_libraries(crux_system_common PRIVATE crux_system_api)
 target_compile_options(crux_system_common PRIVATE -Wall -Wextra -Wpedantic -Werror)
 foreach(case IN ITEMS status validation lifecycle unready prearmed start_failure post_failure
+        lock_failure probe_failure post_probe_failure post_expired
         feed_failure lost expiry causes cause_failure unsupported_cause clear_failure reset context)
     add_test(NAME System.Common.${case} COMMAND crux_system_common ${case})
     set_tests_properties(System.Common.${case} PROPERTIES TIMEOUT 10)

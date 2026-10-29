@@ -125,12 +125,13 @@ static void irq_check(const void *unused)
     ARG_UNUSED(unused);
     crux_system_status_t status;
     crux_reset_cause_t report;
-    crux_watchdog_t token = {0};
+    crux_watchdog_t token = {42};
     zassert_equal(crux_system_status_get(&status), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_system_reset_cause_get(&report), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_system_reset_cause_clear(), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_system_reset(), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_watchdog_start(2000, &token), CRUX_ERR_NOT_SUPPORTED);
+    zassert_equal(token.reserved, 42);
     zassert_equal(crux_watchdog_feed(token), CRUX_ERR_NOT_SUPPORTED);
 }
 ZTEST(system, test_private_native_mappings)
@@ -177,8 +178,9 @@ ZTEST(system, test_public_boot_episode)
     ready = false;
     running = false;
     irq_offload(irq_check, NULL);
-    crux_watchdog_t owner = {0};
+    crux_watchdog_t owner = {42};
     zassert_equal(crux_watchdog_start(2000, &owner), CRUX_ERR_NOT_READY);
+    zassert_equal(owner.reserved, 42);
     zassert_equal(installs, 0);
     ready = true;
     crux_system_status_t status;
@@ -232,7 +234,10 @@ ZTEST(system, test_public_boot_episode)
     zassert_equal(k_thread_join(&reset_thread, K_SECONDS(1)), 0);
     zassert_equal(reboot_type, SYS_REBOOT_COLD);
     zassert_equal(crux_watchdog_start(2000, &owner), CRUX_OK);
-    zassert_not_equal(owner.reserved, 0);
+    zassert_equal(owner.reserved, 1);
+    zassert_equal(crux_watchdog_start(2000, &owner), CRUX_ERR_INVALID_STATE);
+    zassert_equal(owner.reserved, 1);
+    zassert_equal(installs, 1);
     zassert_equal(crux_watchdog_feed(owner), CRUX_OK);
     feed_result = -EIO;
     zassert_equal(crux_watchdog_feed(owner), CRUX_ERR_IO);
@@ -240,8 +245,12 @@ ZTEST(system, test_public_boot_episode)
     zassert_equal(crux_watchdog_feed(owner), CRUX_ERR_IO);
     zassert_equal(crux_system_status_get(&status), CRUX_OK);
     zassert_equal(status.watchdog_state, CRUX_WATCHDOG_FAULTED);
-    crux_watchdog_t other = {0};
+    zassert_equal(crux_watchdog_start(2000, &owner), CRUX_ERR_INVALID_STATE);
+    zassert_equal(owner.reserved, 1);
+    zassert_equal(crux_watchdog_feed(owner), CRUX_ERR_IO);
+    crux_watchdog_t other = {42};
     zassert_equal(crux_watchdog_start(2000, &other), CRUX_ERR_INVALID_STATE);
+    zassert_equal(other.reserved, 42);
     zassert_equal(installs, 1);
     zassert_equal(disables, 0);
 }

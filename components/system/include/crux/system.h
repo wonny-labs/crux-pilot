@@ -97,8 +97,11 @@ crux_status_t crux_system_reset(void);
 /**
  * Start the boot's single watchdog activation.
  * @param timeout_ms Requested interval; the supported range and step are provider-specific.
- * @param[out] out Valid feed token on success; zero on failure.
+ * @param[out] out Caller-owned writable storage; assigned only on success and unchanged
+ * on every returned error. Its previous value is not read; NULL is INVALID_ARGUMENT.
  * @return CRUX_OK or a crux_status_t error. Uncertain native activation cannot be retried.
+ * Check the result before using newly supplied output storage. A preserved token
+ * does not override a faulted/expired lifecycle or prove that feeding is safe.
  */
 crux_status_t crux_watchdog_start(uint32_t timeout_ms, crux_watchdog_t *out);
 
