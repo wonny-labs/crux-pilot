@@ -27,7 +27,9 @@ typedef struct {
  * Create a queue for capacity records of exactly message_size bytes.
  * @param capacity Positive maximum number of records.
  * @param message_size Positive size of each copied record.
- * @param[out] out Invalid on failure; must not hold a live queue.
+ * Output is written only on success. Check the status before using new storage;
+ * a successful create must not overwrite an unrelated live queue.
+ * @param[out] out Unchanged on failure.
  * @return CRUX_OK or a crux_status_t error.
  */
 crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue_t *out);
