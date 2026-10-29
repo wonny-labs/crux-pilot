@@ -8,4 +8,4 @@ endif()
 target_sources(app PRIVATE main.c)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 # Count native FS backend writes/syncs without changing the Zephyr source tree.
-target_link_options(app PRIVATE -Wl,--wrap=fs_write -Wl,--wrap=fs_sync)
+target_link_options(app PUBLIC -Wl,--wrap=fs_write -Wl,--wrap=fs_sync)
