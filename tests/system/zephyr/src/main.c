@@ -59,11 +59,11 @@ static DEVICE_API(wdt, fixture_api) = {
 DEVICE_DEFINE(test_wdt, "test_wdt", fixture_init, NULL, NULL, NULL, POST_KERNEL, 50, &fixture_api);
 DEVICE_DEFINE(unready_wdt, "unready_wdt", unready_init, NULL, NULL, NULL, POST_KERNEL, 50,
               &fixture_api);
-const struct device *__wrap_system_zephyr_watchdog_device(void)
+const struct device *__wrap_crux_watchdog_zephyr_device(void)
 {
     return ready ? DEVICE_GET(test_wdt) : DEVICE_GET(unready_wdt);
 }
-bool __wrap_system_zephyr_watchdog_running(void)
+bool __wrap_crux_watchdog_zephyr_running(void)
 {
     return running;
 }
@@ -125,12 +125,13 @@ static void irq_check(const void *unused)
     ARG_UNUSED(unused);
     crux_system_status_t status;
     crux_reset_cause_t report;
-    crux_watchdog_t token = {0};
+    crux_watchdog_t token = {42};
     zassert_equal(crux_system_status_get(&status), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_system_reset_cause_get(&report), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_system_reset_cause_clear(), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_system_reset(), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_watchdog_start(2000, &token), CRUX_ERR_NOT_SUPPORTED);
+    zassert_equal(token.reserved, 42);
     zassert_equal(crux_watchdog_feed(token), CRUX_ERR_NOT_SUPPORTED);
 }
 ZTEST(system, test_private_native_mappings)
@@ -139,34 +140,34 @@ ZTEST(system, test_private_native_mappings)
     ready = true;
     running = false;
     system_watchdog_probe_t probe;
-    zassert_equal(system_port_watchdog_validate(499), CRUX_ERR_OUT_OF_RANGE);
-    zassert_equal(system_port_watchdog_validate(750), CRUX_ERR_NOT_SUPPORTED);
-    zassert_equal(system_port_watchdog_validate(64000), CRUX_OK);
-    zassert_equal(system_port_watchdog_probe(&probe), CRUX_OK);
+    zassert_equal(crux_watchdog_validate_timeout(499), CRUX_ERR_OUT_OF_RANGE);
+    zassert_equal(crux_watchdog_validate_timeout(750), CRUX_ERR_NOT_SUPPORTED);
+    zassert_equal(crux_watchdog_validate_timeout(64000), CRUX_OK);
+    zassert_equal(crux_watchdog_probe(&probe), CRUX_OK);
     zassert_false(probe.running);
     install_result = -ENOMEM;
-    zassert_equal(system_port_watchdog_start(2000), CRUX_ERR_IO);
+    zassert_equal(crux_watchdog_impl_start(2000), CRUX_ERR_IO);
     zassert_equal(setups, 0);
     install_result = 1;
-    zassert_equal(system_port_watchdog_start(2000), CRUX_ERR_IO);
+    zassert_equal(crux_watchdog_impl_start(2000), CRUX_ERR_IO);
     zassert_equal(setups, 0);
     install_result = 0;
     setup_result = -EIO;
-    zassert_equal(system_port_watchdog_start(2000), CRUX_ERR_IO);
+    zassert_equal(crux_watchdog_impl_start(2000), CRUX_ERR_IO);
     setup_result = 0;
-    zassert_equal(system_port_watchdog_start(2000), CRUX_OK);
+    zassert_equal(crux_watchdog_impl_start(2000), CRUX_OK);
     zassert_equal(installed.window.min, 0);
     zassert_equal(installed.window.max, 2000);
     zassert_is_null(installed.callback);
     zassert_equal(installed.flags, WDT_FLAG_RESET_SOC);
     zassert_equal(setup_options, WDT_OPT_PAUSE_HALTED_BY_DBG);
-    zassert_equal(system_port_watchdog_probe(&probe), CRUX_OK);
+    zassert_equal(crux_watchdog_probe(&probe), CRUX_OK);
     zassert_true(probe.running);
     zassert_false(probe.expired);
     feed_result = -EAGAIN;
-    zassert_equal(system_port_watchdog_feed(), CRUX_ERR_IO);
+    zassert_equal(crux_watchdog_impl_feed(), CRUX_ERR_IO);
     feed_result = 0;
-    zassert_equal(system_port_watchdog_feed(), CRUX_OK);
+    zassert_equal(crux_watchdog_impl_feed(), CRUX_OK);
     zassert_equal(disables, 0);
     running = false;
 }
@@ -177,8 +178,9 @@ ZTEST(system, test_public_boot_episode)
     ready = false;
     running = false;
     irq_offload(irq_check, NULL);
-    crux_watchdog_t owner = {0};
+    crux_watchdog_t owner = {42};
     zassert_equal(crux_watchdog_start(2000, &owner), CRUX_ERR_NOT_READY);
+    zassert_equal(owner.reserved, 42);
     zassert_equal(installs, 0);
     ready = true;
     crux_system_status_t status;
@@ -232,7 +234,10 @@ ZTEST(system, test_public_boot_episode)
     zassert_equal(k_thread_join(&reset_thread, K_SECONDS(1)), 0);
     zassert_equal(reboot_type, SYS_REBOOT_COLD);
     zassert_equal(crux_watchdog_start(2000, &owner), CRUX_OK);
-    zassert_not_equal(owner.reserved, 0);
+    zassert_equal(owner.reserved, 1);
+    zassert_equal(crux_watchdog_start(2000, &owner), CRUX_ERR_INVALID_STATE);
+    zassert_equal(owner.reserved, 1);
+    zassert_equal(installs, 1);
     zassert_equal(crux_watchdog_feed(owner), CRUX_OK);
     feed_result = -EIO;
     zassert_equal(crux_watchdog_feed(owner), CRUX_ERR_IO);
@@ -240,8 +245,12 @@ ZTEST(system, test_public_boot_episode)
     zassert_equal(crux_watchdog_feed(owner), CRUX_ERR_IO);
     zassert_equal(crux_system_status_get(&status), CRUX_OK);
     zassert_equal(status.watchdog_state, CRUX_WATCHDOG_FAULTED);
-    crux_watchdog_t other = {0};
+    zassert_equal(crux_watchdog_start(2000, &owner), CRUX_ERR_INVALID_STATE);
+    zassert_equal(owner.reserved, 1);
+    zassert_equal(crux_watchdog_feed(owner), CRUX_ERR_IO);
+    crux_watchdog_t other = {42};
     zassert_equal(crux_watchdog_start(2000, &other), CRUX_ERR_INVALID_STATE);
+    zassert_equal(other.reserved, 42);
     zassert_equal(installs, 1);
     zassert_equal(disables, 0);
 }

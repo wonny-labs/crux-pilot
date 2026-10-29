@@ -29,7 +29,9 @@ typedef struct {
 
 /**
  * Create a nonrecursive mutex.
- * @param[out] out Invalid on failure; must not hold a live mutex.
+ * Output is written only on success. Check the status before using new storage;
+ * a successful create must not overwrite an unrelated live mutex.
+ * @param[out] out Unchanged on failure.
  * @return CRUX_OK or a crux_status_t error.
  */
 crux_status_t crux_mutex_create(crux_mutex_t *out);
@@ -60,7 +62,9 @@ crux_status_t crux_mutex_destroy(crux_mutex_t *mutex);
  * Create a counting semaphore.
  * @param initial Initial token count, not greater than maximum.
  * @param maximum Positive maximum token count.
- * @param[out] out Invalid on failure; must not hold a live semaphore.
+ * Output is written only on success. Check the status before using new storage;
+ * a successful create must not overwrite an unrelated live semaphore.
+ * @param[out] out Unchanged on failure.
  * @return CRUX_OK or a crux_status_t error.
  */
 crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_semaphore_t *out);

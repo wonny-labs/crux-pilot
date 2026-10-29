@@ -6,12 +6,12 @@
 /* No physical watchdog is claimed by the normal simulator composition. Tests
  * substitute an actual native driver object at this private binding seam. */
 
-const struct device *system_zephyr_watchdog_device(void)
+const struct device *crux_watchdog_zephyr_device(void)
 {
     return NULL;
 }
 
-bool system_zephyr_watchdog_running(void)
+bool crux_watchdog_zephyr_running(void)
 {
     return false;
 }
@@ -30,12 +30,12 @@ BUILD_ASSERT(DT_SAME_NODE(SYSTEM_WDOG, DT_NODELABEL(wdog0)) &&
                  DT_REG_ADDR(SYSTEM_WDOG) == 0x400b8000,
              "Crux System requires the qualified RT1060 WDOG1 resource");
 
-const struct device *system_zephyr_watchdog_device(void)
+const struct device *crux_watchdog_zephyr_device(void)
 {
     return DEVICE_DT_GET(SYSTEM_WDOG);
 }
 
-bool system_zephyr_watchdog_running(void)
+bool crux_watchdog_zephyr_running(void)
 {
     return (WDOG_GetStatusFlags((WDOG_Type *)DT_REG_ADDR(SYSTEM_WDOG)) & kWDOG_RunningFlag) != 0;
 }

@@ -46,18 +46,18 @@ int main(int argc, char **argv)
     (void)argv;
     queue_deadline_t deadline;
     if (argc == 1) {
-        assert(queue_port_deadline(1, &deadline) == CRUX_OK);
-        assert(queue_port_lock(NULL) == CRUX_OK);
-        assert(queue_port_prepare(0) == CRUX_OK);
-        assert(queue_port_wait(0, &deadline) == CRUX_ERR_TIMEOUT);
+        assert(crux_queue_make_deadline(1, &deadline) == CRUX_OK);
+        assert(crux_queue_lock(NULL) == CRUX_OK);
+        assert(crux_queue_prepare_wait(0) == CRUX_OK);
+        assert(crux_queue_wait(0, &deadline) == CRUX_ERR_TIMEOUT);
         assert(crux_queue_metadata.owned);
-        queue_port_unlock();
+        crux_queue_unlock();
     } else {
         /* 1 ms rounds to one tick at 128 Hz, plus the current partial tick. */
         ticks = INT64_MAX - 2;
-        assert(queue_port_deadline(1, &deadline) == CRUX_ERR_OUT_OF_RANGE);
+        assert(crux_queue_make_deadline(1, &deadline) == CRUX_ERR_OUT_OF_RANGE);
         ticks = INT64_MAX - 3;
-        assert(queue_port_deadline(1, &deadline) == CRUX_OK);
+        assert(crux_queue_make_deadline(1, &deadline) == CRUX_OK);
         assert(deadline.timeout.ticks == INT64_MAX - 1);
     }
     puts("queue pinned native timeout contract passed");

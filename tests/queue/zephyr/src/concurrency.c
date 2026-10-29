@@ -13,12 +13,12 @@ static bool trace_wait;
 static bool pause_timeout;
 K_SEM_DEFINE(timeout_seen, 0, 1);
 K_SEM_DEFINE(resume_timeout, 0, 1);
-crux_status_t __real_queue_port_wait(size_t index, const queue_deadline_t *deadline);
-crux_status_t __wrap_queue_port_wait(size_t index, const queue_deadline_t *deadline)
+crux_status_t __real_crux_queue_wait(size_t index, const queue_deadline_t *deadline);
+crux_status_t __wrap_crux_queue_wait(size_t index, const queue_deadline_t *deadline)
 {
     if (trace_wait)
         k_sem_give(&waiting);
-    return __real_queue_port_wait(index, deadline);
+    return __real_crux_queue_wait(index, deadline);
 }
 K_SEM_DEFINE(reacquiring, 0, 1);
 K_SEM_DEFINE(completed, 0, 1);
@@ -102,14 +102,14 @@ extern struct k_mutex crux_queue_metadata;
 ZTEST(queue, test_native_timeout_retains_metadata_ownership)
 {
     queue_deadline_t deadline;
-    zassert_equal(queue_port_deadline(2, &deadline), CRUX_OK);
-    zassert_equal(queue_port_lock(NULL), CRUX_OK);
-    zassert_equal(queue_port_prepare(0), CRUX_OK);
-    crux_status_t result = queue_port_wait(0, &deadline);
+    zassert_equal(crux_queue_make_deadline(2, &deadline), CRUX_OK);
+    zassert_equal(crux_queue_lock(NULL), CRUX_OK);
+    zassert_equal(crux_queue_prepare_wait(0), CRUX_OK);
+    crux_status_t result = crux_queue_wait(0, &deadline);
     bool owned = crux_queue_metadata.owner == k_current_get();
     /* Release only if the native port actually retained ownership. */
     if (owned)
-        queue_port_unlock();
+        crux_queue_unlock();
     zassert_equal(result, CRUX_ERR_TIMEOUT);
     zassert_true(owned, "timeout bookkeeping must retain the metadata mutex");
 }
@@ -146,11 +146,11 @@ static void expired_cleanup(bool sending)
         zassert_equal(crux_queue_send(q, &first, sizeof(first), 0), CRUX_OK);
         zassert_equal(crux_queue_send(q, &second, sizeof(second), 0), CRUX_OK);
     }
-    zassert_equal(queue_port_lock(NULL), CRUX_OK);
+    zassert_equal(crux_queue_lock(NULL), CRUX_OK);
     k_sem_give(&resume_timeout);
     zassert_equal(k_sem_take(&reacquiring, K_SECONDS(3)), 0);
     zassert_equal(k_sem_take(&completed, K_NO_WAIT), -EBUSY);
-    queue_port_unlock();
+    crux_queue_unlock();
     zassert_equal(k_thread_join(&worker, K_SECONDS(3)), 0);
     pause_timeout = false;
     /* Preserve teardown even on RED: capture effects before assertions. */

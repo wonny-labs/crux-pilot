@@ -3,6 +3,6 @@
 #include <stdbool.h>
 #include <zephyr/device.h>
 /* Composition-owned binding, not a public device or watchdog interface. */
-const struct device *system_zephyr_watchdog_device(void);
-bool system_zephyr_watchdog_running(void);
+const struct device *crux_watchdog_zephyr_device(void);
+bool crux_watchdog_zephyr_running(void);
 #endif

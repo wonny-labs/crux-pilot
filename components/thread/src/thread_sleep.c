@@ -4,7 +4,7 @@
 #include <crux/time.h>
 #include <stddef.h>
 
-crux_status_t thread_sleep_ns_to_ticks_ceil(int64_t ns, uint32_t rate, int64_t *out_ticks)
+crux_status_t crux_thread_ns_to_ticks_ceil(int64_t ns, uint32_t rate, int64_t *out_ticks)
 {
     if (out_ticks == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;

@@ -10,5 +10,5 @@ crux_status_t crux_busy_wait(crux_duration_t duration)
     if (duration_ns == 0) {
         return CRUX_OK;
     }
-    return crux_busy_wait_impl_ns(duration_ns);
+    return crux_busy_wait_ns(duration_ns);
 }

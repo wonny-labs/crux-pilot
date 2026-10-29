@@ -69,11 +69,11 @@ int main(int argc, char **argv)
         assert(crux_queue_send(queue, &first, sizeof(first), 0) == CRUX_OK);
         assert(crux_queue_send(queue, &second, sizeof(second), 0) == CRUX_OK);
     }
-    assert(queue_port_lock(NULL) == CRUX_OK);
+    assert(crux_queue_lock(NULL) == CRUX_OK);
     assert(sem_post(&resume_cleanup) == 0);
     assert(sem_wait(&reacquiring) == 0);
     assert(sem_trywait(&completed) == -1 && errno == EAGAIN);
-    queue_port_unlock();
+    crux_queue_unlock();
     assert(pthread_join(worker, NULL) == 0);
     assert(observed == CRUX_ERR_TIMEOUT);
     if (sending) {

@@ -10,7 +10,7 @@ crux_status_t crux_thread_impl_sleep_until_ns(int64_t deadline_ns)
 {
     int64_t ticks;
     crux_status_t status =
-        thread_sleep_ns_to_ticks_ceil(deadline_ns, CONFIG_SYS_CLOCK_TICKS_PER_SEC, &ticks);
+        crux_thread_ns_to_ticks_ceil(deadline_ns, CONFIG_SYS_CLOCK_TICKS_PER_SEC, &ticks);
     if (status != CRUX_OK) {
         return status;
     }
@@ -42,7 +42,7 @@ void thread_native_metadata_unlock(void)
     (void)k_mutex_unlock(&thread_metadata);
 }
 
-crux_status_t thread_native_deadline(uint32_t timeout_ms, thread_native_deadline_t *out)
+crux_status_t crux_thread_make_deadline(uint32_t timeout_ms, thread_native_deadline_t *out)
 {
     if (timeout_ms > INT32_MAX)
         return CRUX_ERR_OUT_OF_RANGE;
@@ -79,9 +79,9 @@ static void run_thread(void *argument, void *unused1, void *unused2)
     thread->entry(thread->argument);
 }
 
-crux_status_t thread_native_thread_create(thread_native_thread_t *thread, crux_thread_entry_t entry,
-                                          void *argument, uint32_t slot,
-                                          const crux_thread_options_t *options)
+crux_status_t crux_thread_impl_create(thread_native_thread_t *thread, crux_thread_entry_t entry,
+                                      void *argument, uint32_t slot,
+                                      const crux_thread_options_t *options)
 {
     if (options->stack_size_bytes > CRUX_THREAD_STACK_BYTES) {
         return CRUX_ERR_OUT_OF_RANGE;
@@ -95,13 +95,13 @@ crux_status_t thread_native_thread_create(thread_native_thread_t *thread, crux_t
     return id != NULL ? CRUX_OK : CRUX_ERR_NO_RESOURCES;
 }
 
-bool thread_native_thread_is_current(const thread_native_thread_t *thread)
+bool crux_thread_is_current(const thread_native_thread_t *thread)
 {
     return k_current_get() == &thread->object;
 }
 
-crux_status_t thread_native_thread_join(thread_native_thread_t *thread,
-                                        const thread_native_deadline_t *deadline)
+crux_status_t crux_thread_impl_join(thread_native_thread_t *thread,
+                                    const thread_native_deadline_t *deadline)
 {
     return native_wait_result(k_thread_join(&thread->object, deadline->timeout));
 }

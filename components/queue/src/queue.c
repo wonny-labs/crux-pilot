@@ -30,14 +30,13 @@ crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue
 {
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
-    *out = (crux_queue_t){0};
     if (capacity == 0 || message_size == 0)
         return CRUX_ERR_INVALID_ARGUMENT;
     if (capacity > QUEUE_CAPACITY || message_size > QUEUE_RECORD)
         return CRUX_ERR_OUT_OF_RANGE;
-    if (!queue_port_context())
+    if (!crux_queue_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
-    crux_status_t result = queue_port_lock(NULL);
+    crux_status_t result = crux_queue_lock(NULL);
     if (result != CRUX_OK)
         return result;
     result = CRUX_ERR_NO_RESOURCES;
@@ -52,14 +51,14 @@ crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue
         slot->head = 0;
         slot->count = 0;
         slot->active = 0;
-        result = queue_port_prepare(i);
+        result = crux_queue_prepare_wait(i);
         if (result != CRUX_OK)
             break;
         slot->live = true;
         *out = (crux_queue_t){(uint32_t)i + 1U, slot->generation};
         break;
     }
-    queue_port_unlock();
+    crux_queue_unlock();
     return result;
 }
 
@@ -71,18 +70,18 @@ static crux_status_t transfer(crux_queue_t handle, uint32_t timeout_ms, const vo
         return CRUX_ERR_INVALID_ARGUMENT;
     if (timeout_ms > INT32_MAX)
         return CRUX_ERR_OUT_OF_RANGE;
-    if (!queue_port_context())
+    if (!crux_queue_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     queue_deadline_t deadline;
-    crux_status_t result = queue_port_deadline(timeout_ms, &deadline);
+    crux_status_t result = crux_queue_make_deadline(timeout_ms, &deadline);
     if (result != CRUX_OK)
         return result;
-    result = queue_port_lock(&deadline);
+    result = crux_queue_lock(&deadline);
     if (result != CRUX_OK)
         return result;
     queue_slot_t *slot = lookup(handle);
     if (slot == NULL || size != slot->size) {
-        queue_port_unlock();
+        crux_queue_unlock();
         return CRUX_ERR_INVALID_ARGUMENT;
     }
     ++slot->active;
@@ -91,7 +90,7 @@ static crux_status_t transfer(crux_queue_t handle, uint32_t timeout_ms, const vo
             result = CRUX_ERR_BUSY;
             break;
         }
-        result = queue_port_wait(handle.slot - 1U, &deadline);
+        result = crux_queue_wait(handle.slot - 1U, &deadline);
         if (result != CRUX_OK)
             break;
     }
@@ -108,11 +107,11 @@ static crux_status_t transfer(crux_queue_t handle, uint32_t timeout_ms, const vo
             slot->head = (slot->head + 1) % slot->capacity;
             --slot->count;
         }
-        queue_port_notify(handle.slot - 1U);
+        crux_queue_notify(handle.slot - 1U);
         result = CRUX_OK;
     }
     --slot->active;
-    queue_port_unlock();
+    crux_queue_unlock();
     return result;
 }
 
@@ -131,9 +130,9 @@ crux_status_t crux_queue_destroy(crux_queue_t *queue)
 {
     if (queue == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
-    if (!queue_port_context())
+    if (!crux_queue_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
-    crux_status_t result = queue_port_lock(NULL);
+    crux_status_t result = crux_queue_lock(NULL);
     if (result != CRUX_OK)
         return result;
     queue_slot_t *slot = lookup(*queue);
@@ -149,6 +148,6 @@ crux_status_t crux_queue_destroy(crux_queue_t *queue)
             ++slot->generation;
         *queue = (crux_queue_t){0};
     }
-    queue_port_unlock();
+    crux_queue_unlock();
     return result;
 }

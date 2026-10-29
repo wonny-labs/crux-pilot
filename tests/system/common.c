@@ -7,14 +7,15 @@
 /* Boundary double only: the real common state machine is linked below.
  * Native calls record effects and return controlled observations; no OS model. */
 static bool allowed = true, locked, running, expired, start_running = true;
-static bool clear_effect = true, cause_supported = true;
+static bool clear_effect = true, cause_supported = true, start_expired;
 static crux_status_t lock_result = CRUX_OK, probe_result = CRUX_OK;
 static crux_status_t start_result = CRUX_OK, feed_result = CRUX_OK;
+static crux_status_t post_start_probe_result = CRUX_OK;
 static crux_status_t cause_result = CRUX_ERR_NOT_SUPPORTED, clear_result = CRUX_OK;
 static crux_status_t reset_status = CRUX_ERR_NOT_SUPPORTED, reset_result = CRUX_ERR_IO;
 static crux_reset_cause_t cause = {0x7ffu, CRUX_RESET_CAUSE_POR | CRUX_RESET_CAUSE_WATCHDOG};
 static unsigned starts, feeds, clears, resets, probes, locks;
-bool system_port_context_allowed(void)
+bool crux_system_context_allowed(void)
 {
     return allowed;
 }
@@ -32,60 +33,63 @@ void system_port_unlock(void)
     assert(locked);
     locked = false;
 }
-bool system_port_watchdog_emulated(void)
+bool crux_watchdog_is_emulated(void)
 {
     return true;
 }
-crux_status_t system_port_watchdog_validate(uint32_t ms)
+crux_status_t crux_watchdog_validate_timeout(uint32_t ms)
 {
     if (ms < 500 || ms > 64000)
         return CRUX_ERR_OUT_OF_RANGE;
     return ms % 500 == 0 ? CRUX_OK : CRUX_ERR_NOT_SUPPORTED;
 }
-crux_status_t system_port_watchdog_probe(system_watchdog_probe_t *out)
+crux_status_t crux_watchdog_probe(system_watchdog_probe_t *out)
 {
     assert(locked);
     ++probes;
+    if (starts != 0 && post_start_probe_result != CRUX_OK)
+        return post_start_probe_result;
     if (probe_result == CRUX_OK)
         *out = (system_watchdog_probe_t){running, expired};
     return probe_result;
 }
-crux_status_t system_port_watchdog_start(uint32_t ms)
+crux_status_t crux_watchdog_impl_start(uint32_t ms)
 {
     assert(locked && ms == 2000);
     ++starts;
     running = start_running;
+    expired = start_expired;
     return start_result;
 }
-crux_status_t system_port_watchdog_feed(void)
+crux_status_t crux_watchdog_impl_feed(void)
 {
     assert(locked);
     ++feeds;
     return feed_result;
 }
-crux_status_t system_port_reset_status(void)
+crux_status_t crux_system_reset_status(void)
 {
     assert(locked);
     return reset_status;
 }
-crux_status_t system_port_reset(void)
+crux_status_t crux_system_impl_reset(void)
 {
     assert(!locked);
     ++resets;
     return reset_result;
 }
-bool system_port_reset_cause_supported(void)
+bool crux_reset_cause_supported(void)
 {
     return cause_supported;
 }
-crux_status_t system_port_reset_cause_get(crux_reset_cause_t *out)
+crux_status_t crux_reset_cause_get(crux_reset_cause_t *out)
 {
     assert(locked);
     if (cause_result == CRUX_OK)
         *out = cause;
     return cause_result;
 }
-crux_status_t system_port_reset_cause_clear(void)
+crux_status_t crux_reset_cause_clear(void)
 {
     assert(locked);
     ++clears;
@@ -95,7 +99,7 @@ crux_status_t system_port_reset_cause_clear(void)
 }
 static crux_watchdog_t start(void)
 {
-    crux_watchdog_t w = {0};
+    crux_watchdog_t w;
     assert(crux_watchdog_start(2000, &w) == CRUX_OK && w.reserved != 0);
     return w;
 }
@@ -121,11 +125,11 @@ static void status_case(void)
 }
 static void validation(void)
 {
-    crux_watchdog_t w = {0};
-    assert(crux_watchdog_start(0, &w) == CRUX_ERR_OUT_OF_RANGE && w.reserved == 0);
-    assert(crux_watchdog_start(499, &w) == CRUX_ERR_OUT_OF_RANGE);
-    assert(crux_watchdog_start(64001, &w) == CRUX_ERR_OUT_OF_RANGE);
-    assert(crux_watchdog_start(750, &w) == CRUX_ERR_NOT_SUPPORTED);
+    crux_watchdog_t w = {42};
+    assert(crux_watchdog_start(0, &w) == CRUX_ERR_OUT_OF_RANGE && w.reserved == 42);
+    assert(crux_watchdog_start(499, &w) == CRUX_ERR_OUT_OF_RANGE && w.reserved == 42);
+    assert(crux_watchdog_start(64001, &w) == CRUX_ERR_OUT_OF_RANGE && w.reserved == 42);
+    assert(crux_watchdog_start(750, &w) == CRUX_ERR_NOT_SUPPORTED && w.reserved == 42);
     assert(crux_watchdog_start(2000, NULL) == CRUX_ERR_INVALID_ARGUMENT);
     assert(crux_watchdog_feed(w) == CRUX_ERR_INVALID_ARGUMENT);
     assert(crux_system_reset_cause_get(NULL) == CRUX_ERR_INVALID_ARGUMENT);
@@ -133,47 +137,95 @@ static void validation(void)
 }
 static void lifecycle(void)
 {
-    crux_watchdog_t w = start(), other = {0};
+    crux_watchdog_t w = start(), other = {42};
     crux_system_status_t s;
     assert(crux_system_status_get(&s) == CRUX_OK && s.watchdog_state == CRUX_WATCHDOG_ACTIVE);
     assert(s.watchdog_status == CRUX_OK && s.watchdog_timeout_ms == 2000);
     assert(crux_watchdog_feed(w) == CRUX_OK && feeds == 1);
-    assert(crux_watchdog_start(2000, &other) == CRUX_ERR_INVALID_STATE && other.reserved == 0);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && w.reserved == 1);
+    assert(crux_watchdog_start(0, &w) == CRUX_ERR_OUT_OF_RANGE && w.reserved == 1);
+    assert(crux_watchdog_start(2000, &other) == CRUX_ERR_INVALID_STATE && other.reserved == 42);
     assert(crux_watchdog_feed((crux_watchdog_t){UINT32_MAX}) == CRUX_ERR_INVALID_ARGUMENT);
     assert(crux_watchdog_feed(w) == CRUX_OK && starts == 1 && feeds == 2);
 }
 static void unready(void)
 {
-    crux_watchdog_t w = {0};
+    crux_watchdog_t w = {42};
+    probe_result = CRUX_ERR_NOT_SUPPORTED;
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_NOT_SUPPORTED && w.reserved == 42);
     probe_result = CRUX_ERR_NOT_READY;
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_NOT_READY && w.reserved == 0 && starts == 0);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_NOT_READY && w.reserved == 42 && starts == 0);
     probe_result = CRUX_OK;
     (void)start();
     assert(starts == 1);
 }
 static void prearmed(void)
 {
-    crux_watchdog_t w = {0};
+    crux_watchdog_t w = {42};
     running = true;
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 0 && starts == 0);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 42 && starts == 0);
     running = false;
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && starts == 0);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && w.reserved == 42 &&
+           starts == 0);
 }
 static void start_failure(void)
 {
-    crux_watchdog_t w = {0};
+    crux_watchdog_t w = {42};
     start_result = CRUX_ERR_IO;
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 0);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 42);
     assert(running);
     start_result = CRUX_OK;
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && starts == 1);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && w.reserved == 42 &&
+           starts == 1);
 }
 static void post_failure(void)
 {
-    crux_watchdog_t w = {0};
+    crux_watchdog_t w = {42};
     start_running = false;
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 0);
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && starts == 1);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 42);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && w.reserved == 42 &&
+           starts == 1);
+}
+static void lock_failure(void)
+{
+    crux_watchdog_t w = {42};
+    lock_result = CRUX_ERR_IO;
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 42);
+    assert(probes == 0 && starts == 0);
+    lock_result = CRUX_OK;
+    assert(crux_watchdog_start(2000, &w) == CRUX_OK && w.reserved == 1 && starts == 1);
+}
+static void probe_failure(void)
+{
+    crux_watchdog_t w = {42};
+    probe_result = CRUX_ERR_IO;
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 42 && starts == 0);
+    probe_result = CRUX_OK;
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && w.reserved == 42);
+    crux_system_status_t s;
+    assert(crux_system_status_get(&s) == CRUX_OK && s.watchdog_state == CRUX_WATCHDOG_FAULTED);
+    assert(crux_watchdog_feed(w) == CRUX_ERR_INVALID_ARGUMENT && feeds == 0 && starts == 0);
+}
+static void post_probe_failure(void)
+{
+    crux_watchdog_t w = {42};
+    post_start_probe_result = CRUX_ERR_NOT_READY;
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 42 && running);
+    post_start_probe_result = CRUX_OK;
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && w.reserved == 42);
+    crux_system_status_t s;
+    assert(crux_system_status_get(&s) == CRUX_OK && s.watchdog_state == CRUX_WATCHDOG_FAULTED);
+    assert(crux_watchdog_feed(w) == CRUX_ERR_INVALID_ARGUMENT && feeds == 0 && starts == 1);
+}
+static void post_expired(void)
+{
+    crux_watchdog_t w = {42};
+    start_expired = true;
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 42);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && w.reserved == 42);
+    crux_system_status_t s;
+    assert(crux_system_status_get(&s) == CRUX_OK && s.watchdog_state == CRUX_WATCHDOG_FAULTED);
+    assert(starts == 1 && feeds == 0);
 }
 static void feed_failure(void)
 {
@@ -185,6 +237,8 @@ static void feed_failure(void)
     crux_system_status_t s;
     assert(crux_system_status_get(&s) == CRUX_OK && s.watchdog_state == CRUX_WATCHDOG_FAULTED);
     assert(s.watchdog_status == CRUX_ERR_IO && s.watchdog_timeout_ms == 2000);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && w.reserved == 1);
+    assert(crux_watchdog_feed(w) == CRUX_ERR_IO && feeds == 1 && starts == 1);
 }
 static void lost(void)
 {
@@ -197,14 +251,14 @@ static void lost(void)
 }
 static void expiry(void)
 {
-    crux_watchdog_t w = start(), other = {0};
+    crux_watchdog_t w = start(), other = {42};
     expired = true;
     running = false;
     crux_system_status_t s;
     assert(crux_system_status_get(&s) == CRUX_OK && s.watchdog_state == CRUX_WATCHDOG_EXPIRED);
     assert(s.watchdog_status == CRUX_ERR_TIMEOUT);
     assert(crux_watchdog_feed(w) == CRUX_ERR_TIMEOUT && feeds == 0);
-    assert(crux_watchdog_start(2000, &other) == CRUX_ERR_INVALID_STATE);
+    assert(crux_watchdog_start(2000, &other) == CRUX_ERR_INVALID_STATE && other.reserved == 42);
 }
 static void causes(void)
 {
@@ -271,12 +325,12 @@ static void context(void)
     allowed = false;
     crux_system_status_t s;
     crux_reset_cause_t r;
-    crux_watchdog_t w = {0};
+    crux_watchdog_t w = {42};
     assert(crux_system_status_get(&s) == CRUX_ERR_NOT_SUPPORTED);
     assert(crux_system_reset_cause_get(&r) == CRUX_ERR_NOT_SUPPORTED);
     assert(crux_system_reset_cause_clear() == CRUX_ERR_NOT_SUPPORTED);
     assert(crux_system_reset() == CRUX_ERR_NOT_SUPPORTED);
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_NOT_SUPPORTED);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_NOT_SUPPORTED && w.reserved == 42);
     assert(crux_watchdog_feed(w) == CRUX_ERR_NOT_SUPPORTED);
     assert(locks == 0 && probes == 0 && starts == 0 && feeds == 0 && clears == 0 && resets == 0);
 }
@@ -293,6 +347,10 @@ int main(int argc, char **argv)
                  {"prearmed", prearmed},
                  {"start_failure", start_failure},
                  {"post_failure", post_failure},
+                 {"lock_failure", lock_failure},
+                 {"probe_failure", probe_failure},
+                 {"post_probe_failure", post_probe_failure},
+                 {"post_expired", post_expired},
                  {"feed_failure", feed_failure},
                  {"lost", lost},
                  {"expiry", expiry},

@@ -9,15 +9,15 @@
 /* Small native-result boundary, not a replacement UART/OS. Tests exercise the
  * real public lifecycle/validation code against explicit native outcomes. */
 static crux_status_t open_result, close_result, transfer_result;
-static bool metadata_busy, nested, nested_done;
+static bool metadata_busy, nested, nested_done, context_blocked;
 static size_t progress = 3;
 static crux_serial_t live;
 static const crux_serial_config_t config = {115200, 8, 1, CRUX_SERIAL_PARITY_NONE};
-bool serial_port_context_allowed(void)
+bool crux_serial_context_allowed(void)
 {
-    return true;
+    return !context_blocked;
 }
-crux_status_t serial_port_now(uint64_t *now)
+crux_status_t crux_serial_monotonic_now_ms(uint64_t *now)
 {
     *now = 100;
     return CRUX_OK;
@@ -31,19 +31,19 @@ crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
 void serial_port_metadata_unlock(void)
 {
 }
-crux_status_t serial_port_open(uint32_t port, const crux_serial_config_t *cfg)
+crux_status_t crux_serial_impl_open(uint32_t port, const crux_serial_config_t *cfg)
 {
     (void)port;
     (void)cfg;
     return open_result;
 }
-crux_status_t serial_port_close(uint32_t port)
+crux_status_t crux_serial_impl_close(uint32_t port)
 {
     (void)port;
     return close_result;
 }
-crux_status_t serial_port_read(uint32_t port, void *data, size_t size,
-                               const serial_deadline_t *deadline, size_t *count)
+crux_status_t crux_serial_impl_read(uint32_t port, void *data, size_t size,
+                                    const serial_deadline_t *deadline, size_t *count)
 {
     (void)port;
     (void)deadline;
@@ -63,8 +63,8 @@ crux_status_t serial_port_read(uint32_t port, void *data, size_t size,
     memcpy(data, "abc", *count);
     return CRUX_OK;
 }
-crux_status_t serial_port_write(uint32_t port, const void *data, size_t size,
-                                const serial_deadline_t *deadline, size_t *count)
+crux_status_t crux_serial_impl_write(uint32_t port, const void *data, size_t size,
+                                     const serial_deadline_t *deadline, size_t *count)
 {
     (void)port;
     (void)data;
@@ -77,9 +77,9 @@ crux_status_t serial_port_write(uint32_t port, const void *data, size_t size,
 
 static void validation(void)
 {
-    crux_serial_t out = {0};
+    crux_serial_t out = {71, 42};
     assert(crux_serial_open(0, NULL, &out) == CRUX_ERR_INVALID_ARGUMENT);
-    assert(out.slot == 0 && out.generation == 0);
+    assert(out.slot == 71 && out.generation == 42);
     assert(crux_serial_open(0, &config, NULL) == CRUX_ERR_INVALID_ARGUMENT);
     crux_serial_config_t bad = config;
     bad.baud_rate = 0;
@@ -98,17 +98,33 @@ static void validation(void)
     bad.parity = (crux_serial_parity_t)99;
     assert(crux_serial_open(0, &bad, &out) == CRUX_ERR_INVALID_ARGUMENT);
     assert(crux_serial_open(UINT32_MAX, &config, &out) == CRUX_ERR_INVALID_ARGUMENT);
+    assert(out.slot == 71 && out.generation == 42);
+    context_blocked = true;
+    assert(crux_serial_open(0, &config, &out) == CRUX_ERR_NOT_SUPPORTED);
+    assert(out.slot == 71 && out.generation == 42);
+    context_blocked = false;
+    metadata_busy = true;
+    assert(crux_serial_open(0, &config, &out) == CRUX_ERR_BUSY);
+    assert(out.slot == 71 && out.generation == 42);
+    metadata_busy = false;
     open_result = CRUX_ERR_NOT_READY;
-    assert(crux_serial_open(0, &config, &out) == CRUX_ERR_NOT_READY && out.slot == 0);
+    assert(crux_serial_open(0, &config, &out) == CRUX_ERR_NOT_READY && out.slot == 71 &&
+           out.generation == 42);
     open_result = CRUX_OK;
     assert(crux_serial_close(NULL) == CRUX_ERR_INVALID_ARGUMENT);
     assert(crux_serial_close(&out) == CRUX_ERR_INVALID_STATE);
+    crux_serial_t fresh;
+    assert(crux_serial_open(0, &config, &fresh) == CRUX_OK);
+    assert(crux_serial_close(&fresh) == CRUX_OK);
 }
 static void lifetime(void)
 {
     assert(crux_serial_open(0, &config, &live) == CRUX_OK);
-    crux_serial_t second = {0};
-    assert(crux_serial_open(0, &config, &second) == CRUX_ERR_BUSY && second.slot == 0);
+    crux_serial_t second = live;
+    assert(crux_serial_open(0, &config, &second) == CRUX_ERR_BUSY && second.slot == live.slot &&
+           second.generation == live.generation);
+    assert(crux_serial_open(0, &config, &live) == CRUX_ERR_BUSY);
+    assert(live.slot == second.slot && live.generation == second.generation);
     nested = true;
     uint8_t bytes[4] = {0};
     size_t n = 0;

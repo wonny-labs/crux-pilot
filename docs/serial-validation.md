@@ -11,6 +11,16 @@ Subsequent revision status is tracked by the checks on [PR #58](https://github.c
 No physical UART test has been performed; Issue #27 remains open for its remaining
 acceptance conditions.
 
+## Current open output contract
+
+`crux_serial_open()` writes its output handle only on success; on failure it
+leaves the supplied storage unchanged. This changes the earlier zero-on-error
+contract: check the returned status before using newly supplied storage, and do
+not overwrite an unrelated live handle on a successful open. Read/write byte
+counts remain zero on error. An accepted close still consumes its handle even if
+native cleanup fails. Historical evidence below describes the contract at the
+time of the original validation.
+
 ## Acceptance map
 
 | Requirement | Implementation / evidence |

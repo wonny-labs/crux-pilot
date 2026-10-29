@@ -55,7 +55,7 @@ crux_file_result_t crux_file_linux_bind(const char *r)
     return CRUX_FILE_OK;
 }
 
-crux_file_result_t crux_file_port_open(size_t s, const char *n, crux_file_mode_t m)
+crux_file_result_t crux_file_impl_open(size_t s, const char *n, crux_file_mode_t m)
 {
     if (root_fd < 0)
         return CRUX_FILE_ERR_NOT_READY;
@@ -79,12 +79,12 @@ crux_file_result_t crux_file_port_open(size_t s, const char *n, crux_file_mode_t
     return CRUX_FILE_OK;
 }
 
-crux_file_result_t crux_file_port_truncate(size_t s)
+crux_file_result_t crux_file_impl_truncate(size_t s)
 {
     return ftruncate(descriptors[s], 0) == 0 ? CRUX_FILE_OK : crux_file_linux_error(errno);
 }
 
-crux_file_result_t crux_file_port_read(size_t s, void *b, size_t l, size_t *c)
+crux_file_result_t crux_file_impl_read(size_t s, void *b, size_t l, size_t *c)
 {
     if (l > (size_t)SSIZE_MAX)
         return CRUX_FILE_ERR_OUT_OF_RANGE;
@@ -95,7 +95,7 @@ crux_file_result_t crux_file_port_read(size_t s, void *b, size_t l, size_t *c)
     return CRUX_FILE_OK;
 }
 
-crux_file_result_t crux_file_port_write(size_t s, const void *b, size_t l, size_t *c)
+crux_file_result_t crux_file_impl_write(size_t s, const void *b, size_t l, size_t *c)
 {
     if (l > (size_t)SSIZE_MAX)
         return CRUX_FILE_ERR_OUT_OF_RANGE;
@@ -106,7 +106,7 @@ crux_file_result_t crux_file_port_write(size_t s, const void *b, size_t l, size_
     return CRUX_FILE_OK;
 }
 
-crux_file_result_t crux_file_port_seek(size_t s, uint64_t o)
+crux_file_result_t crux_file_impl_seek(size_t s, uint64_t o)
 {
     if (o > INT64_MAX)
         return CRUX_FILE_ERR_OUT_OF_RANGE;
@@ -119,26 +119,26 @@ crux_file_result_t crux_file_port_seek(size_t s, uint64_t o)
                                                          : CRUX_FILE_OK;
 }
 
-crux_file_result_t crux_file_port_sync(size_t s)
+crux_file_result_t crux_file_impl_sync(size_t s)
 {
     return fsync(descriptors[s]) == 0 ? CRUX_FILE_OK : crux_file_linux_error(errno);
 }
 
-crux_file_result_t crux_file_port_close(size_t s)
+crux_file_result_t crux_file_impl_close(size_t s)
 {
     int fd = descriptors[s];
     descriptors[s] = -1;
     return close(fd) == 0 ? CRUX_FILE_OK : crux_file_linux_error(errno);
 }
 
-crux_file_result_t crux_file_port_remove(const char *n)
+crux_file_result_t crux_file_impl_remove(const char *n)
 {
     if (root_fd < 0)
         return CRUX_FILE_ERR_NOT_READY;
     return unlinkat(root_fd, n, 0) == 0 ? CRUX_FILE_OK : crux_file_linux_error(errno);
 }
 
-void crux_file_port_cleanup_error(crux_file_result_t e)
+void crux_file_record_cleanup_error(crux_file_result_t e)
 {
     cleanup_error = e;
 }

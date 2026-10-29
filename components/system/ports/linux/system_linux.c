@@ -9,7 +9,7 @@ static bool started, expired;
 static int64_t last_feed;
 static uint32_t timeout;
 
-bool system_port_context_allowed(void)
+bool crux_system_context_allowed(void)
 {
     return !crux_is_in_isr();
 }
@@ -24,12 +24,12 @@ void system_port_unlock(void)
     (void)pthread_mutex_unlock(&metadata);
 }
 
-bool system_port_watchdog_emulated(void)
+bool crux_watchdog_is_emulated(void)
 {
     return true;
 }
 
-crux_status_t system_port_watchdog_validate(uint32_t ms)
+crux_status_t crux_watchdog_validate_timeout(uint32_t ms)
 {
     /* This emulated profile mirrors the initial RT1060 subset only. */
     if (ms < 500 || ms > 64000)
@@ -60,7 +60,7 @@ static crux_status_t observe(int64_t *now)
     return CRUX_OK;
 }
 
-crux_status_t system_port_watchdog_probe(system_watchdog_probe_t *out)
+crux_status_t crux_watchdog_probe(system_watchdog_probe_t *out)
 {
     if (started) {
         int64_t now;
@@ -71,7 +71,7 @@ crux_status_t system_port_watchdog_probe(system_watchdog_probe_t *out)
     return CRUX_OK;
 }
 
-crux_status_t system_port_watchdog_start(uint32_t ms)
+crux_status_t crux_watchdog_impl_start(uint32_t ms)
 {
     if (started || monotonic_ms(&last_feed) != CRUX_OK)
         return CRUX_ERR_IO;
@@ -80,7 +80,7 @@ crux_status_t system_port_watchdog_start(uint32_t ms)
     return CRUX_OK;
 }
 
-crux_status_t system_port_watchdog_feed(void)
+crux_status_t crux_watchdog_impl_feed(void)
 {
     if (!started)
         return CRUX_ERR_IO;
@@ -93,28 +93,28 @@ crux_status_t system_port_watchdog_feed(void)
     return CRUX_OK;
 }
 
-crux_status_t system_port_reset_status(void)
+crux_status_t crux_system_reset_status(void)
 {
     return CRUX_ERR_NOT_SUPPORTED;
 }
 
-crux_status_t system_port_reset(void)
+crux_status_t crux_system_impl_reset(void)
 {
     return CRUX_ERR_NOT_SUPPORTED;
 }
 
-bool system_port_reset_cause_supported(void)
+bool crux_reset_cause_supported(void)
 {
     return false;
 }
 
-crux_status_t system_port_reset_cause_get(crux_reset_cause_t *out)
+crux_status_t crux_reset_cause_get(crux_reset_cause_t *out)
 {
     (void)out;
     return CRUX_ERR_NOT_SUPPORTED;
 }
 
-crux_status_t system_port_reset_cause_clear(void)
+crux_status_t crux_reset_cause_clear(void)
 {
     return CRUX_ERR_NOT_SUPPORTED;
 }

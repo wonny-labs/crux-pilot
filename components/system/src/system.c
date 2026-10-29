@@ -25,10 +25,10 @@ static crux_status_t enter(void)
 
 static crux_status_t cause_read(crux_reset_cause_t *out)
 {
-    if (!system_port_reset_cause_supported())
+    if (!crux_reset_cause_supported())
         return CRUX_ERR_NOT_SUPPORTED;
     crux_reset_cause_t value = {0};
-    crux_status_t result = service_status(system_port_reset_cause_get(&value));
+    crux_status_t result = service_status(crux_reset_cause_get(&value));
     const uint32_t known = (uint32_t)CRUX_RESET_CAUSE_OTHER * 2u - 1u;
     if (result != CRUX_OK)
         return result;
@@ -51,7 +51,7 @@ static crux_status_t refresh(void)
     if (lifecycle == CRUX_WATCHDOG_EXPIRED)
         return CRUX_ERR_TIMEOUT;
     system_watchdog_probe_t value = {0};
-    crux_status_t result = service_status(system_port_watchdog_probe(&value));
+    crux_status_t result = service_status(crux_watchdog_probe(&value));
     if (result != CRUX_OK) {
         if (issued || result == CRUX_ERR_IO)
             return fault();
@@ -59,7 +59,7 @@ static crux_status_t refresh(void)
         return result;
     }
     if (issued) {
-        if (value.expired && system_port_watchdog_emulated()) {
+        if (value.expired && crux_watchdog_is_emulated()) {
             lifecycle = CRUX_WATCHDOG_EXPIRED;
             return CRUX_ERR_TIMEOUT;
         }
@@ -78,16 +78,16 @@ crux_status_t crux_system_status_get(crux_system_status_t *out)
 {
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
-    if (!system_port_context_allowed())
+    if (!crux_system_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (enter() != CRUX_OK)
         return CRUX_ERR_IO;
     crux_system_status_t value = {0};
     value.watchdog_status = refresh();
     value.watchdog_state = lifecycle;
-    value.watchdog_emulated = system_port_watchdog_emulated();
+    value.watchdog_emulated = crux_watchdog_is_emulated();
     value.watchdog_timeout_ms = successful_timeout;
-    value.reset_status = service_status(system_port_reset_status());
+    value.reset_status = service_status(crux_system_reset_status());
     crux_reset_cause_t unused;
     value.reset_cause_status = cause_read(&unused);
     *out = value;
@@ -99,7 +99,7 @@ crux_status_t crux_system_reset_cause_get(crux_reset_cause_t *out)
 {
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
-    if (!system_port_context_allowed())
+    if (!crux_system_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (enter() != CRUX_OK)
         return CRUX_ERR_IO;
@@ -115,18 +115,18 @@ crux_status_t crux_system_reset_cause_get(crux_reset_cause_t *out)
 
 crux_status_t crux_system_reset_cause_clear(void)
 {
-    if (!system_port_context_allowed())
+    if (!crux_system_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (enter() != CRUX_OK)
         return CRUX_ERR_IO;
     crux_status_t result = CRUX_ERR_INVALID_STATE;
-    if (!system_port_reset_cause_supported()) {
+    if (!crux_reset_cause_supported()) {
         system_port_unlock();
         return CRUX_ERR_NOT_SUPPORTED;
     }
     if (observed_cause) {
         observed_cause = false;
-        result = service_status(system_port_reset_cause_clear());
+        result = service_status(crux_reset_cause_clear());
         if (result == CRUX_OK) {
             crux_reset_cause_t remaining;
             if (cause_read(&remaining) != CRUX_OK || remaining.causes != 0)
@@ -139,15 +139,15 @@ crux_status_t crux_system_reset_cause_clear(void)
 
 crux_status_t crux_system_reset(void)
 {
-    if (!system_port_context_allowed())
+    if (!crux_system_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (enter() != CRUX_OK)
         return CRUX_ERR_IO;
-    crux_status_t result = service_status(system_port_reset_status());
+    crux_status_t result = service_status(crux_system_reset_status());
     system_port_unlock();
     if (result != CRUX_OK)
         return result;
-    result = service_status(system_port_reset());
+    result = service_status(crux_system_impl_reset());
     return result == CRUX_OK ? CRUX_ERR_IO : result;
 }
 
@@ -155,12 +155,11 @@ crux_status_t crux_watchdog_start(uint32_t timeout_ms, crux_watchdog_t *out)
 {
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
-    *out = (crux_watchdog_t){0};
     if (timeout_ms == 0)
         return CRUX_ERR_OUT_OF_RANGE;
-    if (!system_port_context_allowed())
+    if (!crux_system_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
-    crux_status_t result = system_port_watchdog_validate(timeout_ms);
+    crux_status_t result = crux_watchdog_validate_timeout(timeout_ms);
     if (result != CRUX_OK)
         return result;
     if (enter() != CRUX_OK)
@@ -172,10 +171,10 @@ crux_status_t crux_watchdog_start(uint32_t timeout_ms, crux_watchdog_t *out)
     result = refresh();
     if (result == CRUX_OK) {
         attempted = true;
-        result = system_port_watchdog_start(timeout_ms);
+        result = crux_watchdog_impl_start(timeout_ms);
         if (result == CRUX_OK) {
             system_watchdog_probe_t value = {0};
-            result = system_port_watchdog_probe(&value);
+            result = crux_watchdog_probe(&value);
             if (result == CRUX_OK && value.running && !value.expired) {
                 lifecycle = CRUX_WATCHDOG_ACTIVE;
                 successful_timeout = timeout_ms;
@@ -192,7 +191,7 @@ crux_status_t crux_watchdog_start(uint32_t timeout_ms, crux_watchdog_t *out)
 
 crux_status_t crux_watchdog_feed(crux_watchdog_t watchdog)
 {
-    if (!system_port_context_allowed())
+    if (!crux_system_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (watchdog.reserved == 0)
         return CRUX_ERR_INVALID_ARGUMENT;
@@ -204,8 +203,8 @@ crux_status_t crux_watchdog_feed(crux_watchdog_t watchdog)
     else {
         result = refresh();
         if (result == CRUX_OK) {
-            result = system_port_watchdog_feed();
-            if (result == CRUX_ERR_TIMEOUT && system_port_watchdog_emulated()) {
+            result = crux_watchdog_impl_feed();
+            if (result == CRUX_ERR_TIMEOUT && crux_watchdog_is_emulated()) {
                 lifecycle = CRUX_WATCHDOG_EXPIRED;
             } else if (result != CRUX_OK)
                 result = fault();

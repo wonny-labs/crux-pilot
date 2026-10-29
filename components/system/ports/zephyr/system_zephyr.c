@@ -9,7 +9,7 @@
 
 K_MUTEX_DEFINE(system_mutex);
 
-bool system_port_context_allowed(void)
+bool crux_system_context_allowed(void)
 {
     return !crux_is_in_isr() && !k_is_pre_kernel();
 }
@@ -24,12 +24,12 @@ void system_port_unlock(void)
     (void)k_mutex_unlock(&system_mutex);
 }
 
-bool system_port_watchdog_emulated(void)
+bool crux_watchdog_is_emulated(void)
 {
     return false;
 }
 
-crux_status_t system_port_watchdog_validate(uint32_t timeout_ms)
+crux_status_t crux_watchdog_validate_timeout(uint32_t timeout_ms)
 {
     if (timeout_ms < 500 || timeout_ms > 64000)
         return CRUX_ERR_OUT_OF_RANGE;
@@ -43,17 +43,17 @@ static crux_status_t watchdog_ready(const struct device *device)
     return device_is_ready(device) ? CRUX_OK : CRUX_ERR_NOT_READY;
 }
 
-crux_status_t system_port_watchdog_probe(system_watchdog_probe_t *out)
+crux_status_t crux_watchdog_probe(system_watchdog_probe_t *out)
 {
-    crux_status_t result = watchdog_ready(system_zephyr_watchdog_device());
+    crux_status_t result = watchdog_ready(crux_watchdog_zephyr_device());
     if (result == CRUX_OK)
-        *out = (system_watchdog_probe_t){system_zephyr_watchdog_running(), false};
+        *out = (system_watchdog_probe_t){crux_watchdog_zephyr_running(), false};
     return result;
 }
 
-crux_status_t system_port_watchdog_start(uint32_t timeout_ms)
+crux_status_t crux_watchdog_impl_start(uint32_t timeout_ms)
 {
-    const struct device *device = system_zephyr_watchdog_device();
+    const struct device *device = crux_watchdog_zephyr_device();
     crux_status_t result = watchdog_ready(device);
     if (result != CRUX_OK)
         return result;
@@ -66,27 +66,27 @@ crux_status_t system_port_watchdog_start(uint32_t timeout_ms)
     return wdt_setup(device, WDT_OPT_PAUSE_HALTED_BY_DBG) == 0 ? CRUX_OK : CRUX_ERR_IO;
 }
 
-crux_status_t system_port_watchdog_feed(void)
+crux_status_t crux_watchdog_impl_feed(void)
 {
-    const struct device *device = system_zephyr_watchdog_device();
+    const struct device *device = crux_watchdog_zephyr_device();
     crux_status_t result = watchdog_ready(device);
     if (result != CRUX_OK)
         return result;
     return wdt_feed(device, 0) == 0 ? CRUX_OK : CRUX_ERR_IO;
 }
 
-crux_status_t system_port_reset_status(void)
+crux_status_t crux_system_reset_status(void)
 {
     return CRUX_OK;
 }
 
-crux_status_t system_port_reset(void)
+crux_status_t crux_system_impl_reset(void)
 {
     sys_reboot(SYS_REBOOT_COLD);
     /* Native declaration is nonreturning: no fabricated success result. */
 }
 
-bool system_port_reset_cause_supported(void)
+bool crux_reset_cause_supported(void)
 {
     return true;
 }
@@ -124,7 +124,7 @@ static uint32_t normalize(uint32_t raw)
     return normalized;
 }
 
-crux_status_t system_port_reset_cause_get(crux_reset_cause_t *out)
+crux_status_t crux_reset_cause_get(crux_reset_cause_t *out)
 {
     uint32_t supported, causes;
     crux_status_t result = hwinfo_result(hwinfo_get_supported_reset_cause(&supported));
@@ -139,7 +139,7 @@ crux_status_t system_port_reset_cause_get(crux_reset_cause_t *out)
     return CRUX_OK;
 }
 
-crux_status_t system_port_reset_cause_clear(void)
+crux_status_t crux_reset_cause_clear(void)
 {
     return hwinfo_result(hwinfo_clear_reset_cause());
 }

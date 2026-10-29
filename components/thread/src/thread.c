@@ -25,9 +25,6 @@ static thread_slot_t *find_thread(crux_thread_t handle)
 crux_status_t crux_thread_create(const crux_thread_options_t *options, crux_thread_entry_t entry,
                                  void *argument, crux_thread_t *out)
 {
-    if (out != NULL) {
-        *out = (crux_thread_t){0};
-    }
     if (crux_is_in_isr()) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
@@ -50,7 +47,7 @@ crux_status_t crux_thread_create(const crux_thread_options_t *options, crux_thre
         ++slot->generation;
         slot->used = true;
         slot->joining = false;
-        result = thread_native_thread_create(&slot->native, entry, argument, i, options);
+        result = crux_thread_impl_create(&slot->native, entry, argument, i, options);
         if (result == CRUX_OK) {
             *out = (crux_thread_t){.slot = i + 1, .generation = slot->generation};
         } else {
@@ -71,7 +68,7 @@ crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms)
         return CRUX_ERR_INVALID_ARGUMENT;
     }
     thread_native_deadline_t deadline;
-    crux_status_t result = thread_native_deadline(timeout_ms, &deadline);
+    crux_status_t result = crux_thread_make_deadline(timeout_ms, &deadline);
     if (result != CRUX_OK) {
         return result;
     }
@@ -84,7 +81,7 @@ crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms)
         thread_native_metadata_unlock();
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    if (thread_native_thread_is_current(&slot->native)) {
+    if (crux_thread_is_current(&slot->native)) {
         thread_native_metadata_unlock();
         return CRUX_ERR_INVALID_STATE;
     }
@@ -94,7 +91,7 @@ crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms)
     }
     slot->joining = true;
     if (deadline.poll) {
-        result = thread_native_thread_join(&slot->native, &deadline);
+        result = crux_thread_impl_join(&slot->native, &deadline);
         slot->joining = false;
         if (result == CRUX_OK) {
             slot->used = false;
@@ -104,7 +101,7 @@ crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms)
         return result;
     }
     thread_native_metadata_unlock();
-    result = thread_native_thread_join(&slot->native, &deadline);
+    result = crux_thread_impl_join(&slot->native, &deadline);
     thread_native_metadata_lock();
     slot->joining = false;
     if (result == CRUX_OK) {

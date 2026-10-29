@@ -82,18 +82,18 @@ static void reject_isr(const void *argument)
     crux_semaphore_t semaphore = {.slot = UINT32_MAX, .generation = UINT32_MAX};
     crux_thread_options_t options = {.priority = CRUX_THREAD_PRIORITY_NORMAL};
     zassert_equal(crux_thread_create(&options, noop, NULL, &thread), CRUX_ERR_NOT_SUPPORTED);
-    zassert_equal(thread.slot, 0);
-    zassert_equal(thread.generation, 0);
+    zassert_equal(thread.slot, UINT32_MAX);
+    zassert_equal(thread.generation, UINT32_MAX);
     zassert_equal(crux_thread_join(&thread, 0), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_mutex_create(&mutex), CRUX_ERR_NOT_SUPPORTED);
-    zassert_equal(mutex.slot, 0);
-    zassert_equal(mutex.generation, 0);
+    zassert_equal(mutex.slot, UINT32_MAX);
+    zassert_equal(mutex.generation, UINT32_MAX);
     zassert_equal(crux_mutex_lock(mutex, 0), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_mutex_unlock(mutex), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_mutex_destroy(&mutex), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_semaphore_create(0, 1, &semaphore), CRUX_ERR_NOT_SUPPORTED);
-    zassert_equal(semaphore.slot, 0);
-    zassert_equal(semaphore.generation, 0);
+    zassert_equal(semaphore.slot, UINT32_MAX);
+    zassert_equal(semaphore.generation, UINT32_MAX);
     zassert_equal(crux_semaphore_take(semaphore, 0), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_semaphore_give(semaphore), CRUX_ERR_NOT_SUPPORTED);
     zassert_equal(crux_semaphore_destroy(&semaphore), CRUX_ERR_NOT_SUPPORTED);
@@ -122,10 +122,10 @@ ZTEST(portable_execution, test_stack_priority_profile)
 {
     crux_thread_options_t excessive = {.stack_size_bytes = 4097,
                                        .priority = CRUX_THREAD_PRIORITY_NORMAL};
-    crux_thread_t rejected;
+    crux_thread_t rejected = {71, 42};
     zassert_equal(crux_thread_create(&excessive, noop, NULL, &rejected), CRUX_ERR_OUT_OF_RANGE);
-    zassert_equal(rejected.slot, 0);
-    zassert_equal(rejected.generation, 0);
+    zassert_equal(rejected.slot, 71);
+    zassert_equal(rejected.generation, 42);
     for (int priority = CRUX_THREAD_PRIORITY_LOW; priority <= CRUX_THREAD_PRIORITY_HIGH;
          ++priority) {
         worker_observation_t observation = {0};

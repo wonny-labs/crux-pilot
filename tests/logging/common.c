@@ -8,11 +8,11 @@ static bool allowed = true;
 static crux_status_t native_status = CRUX_OK;
 static crux_log_level_t observed;
 static char saved_tag[25], saved_text[257];
-bool logging_port_context_allowed(void)
+bool crux_log_context_allowed(void)
 {
     return allowed;
 }
-crux_status_t logging_port_write(crux_log_level_t level, const char *tag, const char *text)
+crux_status_t crux_log_impl_write(crux_log_level_t level, const char *tag, const char *text)
 {
     ++emitted;
     observed = level;

@@ -70,13 +70,13 @@ int __wrap_poll(struct pollfd *fds, nfds_t count, int timeout)
     return __real_poll(fds, count, timeout);
 }
 /* Admission witness belongs to test linking, not the public contract. */
-crux_status_t __real_serial_port_read(uint32_t port, void *buffer, size_t size,
-                                      const serial_deadline_t *deadline, size_t *count);
-crux_status_t __wrap_serial_port_read(uint32_t port, void *buffer, size_t size,
-                                      const serial_deadline_t *deadline, size_t *count)
+crux_status_t __real_crux_serial_impl_read(uint32_t port, void *buffer, size_t size,
+                                           const serial_deadline_t *deadline, size_t *count);
+crux_status_t __wrap_crux_serial_impl_read(uint32_t port, void *buffer, size_t size,
+                                           const serial_deadline_t *deadline, size_t *count)
 {
     atomic_store(&read_admitted, true);
-    return __real_serial_port_read(port, buffer, size, deadline, count);
+    return __real_crux_serial_impl_read(port, buffer, size, deadline, count);
 }
 static void setup(void)
 {
@@ -193,7 +193,9 @@ static void cleanup_failure(void)
 static void unavailable(void)
 {
     assert(crux_serial_linux_bind(0, "/dev/crux-no-such-serial-test") == CRUX_OK);
-    assert(crux_serial_open(0, &config, &serial) == CRUX_ERR_NOT_READY && serial.slot == 0);
+    serial = (crux_serial_t){71, 42};
+    assert(crux_serial_open(0, &config, &serial) == CRUX_ERR_NOT_READY);
+    assert(serial.slot == 71 && serial.generation == 42);
 }
 static void admission(void)
 {

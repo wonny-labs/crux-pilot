@@ -25,21 +25,23 @@ int __wrap_clock_gettime(clockid_t clock, struct timespec *value)
 }
 static crux_watchdog_t start(uint32_t timeout)
 {
-    crux_watchdog_t value = {0};
+    crux_watchdog_t value;
     assert(crux_watchdog_start(timeout, &value) == CRUX_OK && value.reserved != 0);
     return value;
 }
 static void profile(uint32_t timeout)
 {
-    crux_watchdog_t value = {0};
-    assert(crux_watchdog_start(UINT32_MAX, &value) == CRUX_ERR_OUT_OF_RANGE);
-    assert(crux_watchdog_start(499, &value) == CRUX_ERR_OUT_OF_RANGE);
-    assert(crux_watchdog_start(750, &value) == CRUX_ERR_NOT_SUPPORTED);
+    crux_watchdog_t value = {42};
+    assert(crux_watchdog_start(UINT32_MAX, &value) == CRUX_ERR_OUT_OF_RANGE &&
+           value.reserved == 42);
+    assert(crux_watchdog_start(499, &value) == CRUX_ERR_OUT_OF_RANGE && value.reserved == 42);
+    assert(crux_watchdog_start(750, &value) == CRUX_ERR_NOT_SUPPORTED && value.reserved == 42);
     value = start(timeout);
     crux_system_status_t report;
     assert(crux_system_status_get(&report) == CRUX_OK);
     assert(report.watchdog_status == CRUX_OK && report.watchdog_state == CRUX_WATCHDOG_ACTIVE);
     assert(report.watchdog_emulated && report.watchdog_timeout_ms == timeout);
+    assert(crux_watchdog_start(timeout, &value) == CRUX_ERR_INVALID_STATE && value.reserved == 1);
     assert(crux_watchdog_feed(value) == CRUX_OK);
 }
 static void expiry(void)
@@ -67,10 +69,10 @@ static void late(void)
 static void clock_failure(void)
 {
     fail_clock = true;
-    crux_watchdog_t w = {0};
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 0);
+    crux_watchdog_t w = {42};
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_IO && w.reserved == 42);
     fail_clock = false;
-    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE);
+    assert(crux_watchdog_start(2000, &w) == CRUX_ERR_INVALID_STATE && w.reserved == 42);
 }
 static void backwards(void)
 {
@@ -111,6 +113,8 @@ static void *starter(void *argument)
 static void concurrent(void)
 {
     pthread_t threads[2];
+    owners[0] = (crux_watchdog_t){42};
+    owners[1] = (crux_watchdog_t){43};
     const size_t indices[] = {0, 1};
     assert(pthread_barrier_init(&gate, NULL, 3) == 0);
     for (size_t i = 0; i < 2; ++i)
@@ -122,7 +126,8 @@ static void concurrent(void)
     assert((results[0] == CRUX_OK && results[1] == CRUX_ERR_INVALID_STATE) ||
            (results[1] == CRUX_OK && results[0] == CRUX_ERR_INVALID_STATE));
     unsigned winner = results[0] == CRUX_OK ? 0u : 1u;
-    assert(owners[winner].reserved != 0 && owners[1 - winner].reserved == 0);
+    assert(owners[winner].reserved == 1);
+    assert(owners[1 - winner].reserved == (winner == 0 ? 43u : 42u));
     assert(crux_watchdog_feed(owners[winner]) == CRUX_OK);
     assert(pthread_barrier_destroy(&gate) == 0);
 }
