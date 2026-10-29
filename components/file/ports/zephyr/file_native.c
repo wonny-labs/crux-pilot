@@ -46,14 +46,14 @@ static crux_file_result_t result(int rc)
     }
 }
 
-void crux_file_port_lock(void)
+void crux_file_lock(void)
 {
     __ASSERT_NO_MSG(!k_is_in_isr());
     if (k_mutex_lock(&file_lock, K_FOREVER) != 0)
         k_panic();
 }
 
-void crux_file_port_unlock(void)
+void crux_file_unlock(void)
 {
     if (k_mutex_unlock(&file_lock) != 0)
         k_panic();

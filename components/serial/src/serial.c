@@ -63,7 +63,7 @@ crux_status_t crux_serial_open(crux_serial_port_t port, const crux_serial_config
     if (!crux_serial_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     serial_deadline_t poll = {.poll = true};
-    result = serial_port_metadata_lock(&poll);
+    result = crux_serial_lock(&poll);
     if (result != CRUX_OK)
         return result;
     serial_slot_t *slot = &slots[port];
@@ -75,15 +75,15 @@ crux_status_t crux_serial_open(crux_serial_port_t port, const crux_serial_config
         ++slot->generation;
         slot->state = SLOT_OPENING;
     }
-    serial_port_metadata_unlock();
+    crux_serial_unlock();
     if (result != CRUX_OK)
         return result;
     result = crux_serial_impl_open(port, config);
-    (void)serial_port_metadata_lock(NULL);
+    (void)crux_serial_lock(NULL);
     slot->state = result == CRUX_OK ? SLOT_OPEN : SLOT_FREE;
     if (result == CRUX_OK)
         *out = (crux_serial_t){port + 1, slot->generation};
-    serial_port_metadata_unlock();
+    crux_serial_unlock();
     return result;
 }
 
@@ -100,7 +100,7 @@ static crux_status_t transfer(crux_serial_t handle, void *read_buffer, const voi
     crux_status_t result = deadline_start(timeout, &deadline);
     if (result != CRUX_OK)
         return result;
-    result = serial_port_metadata_lock(&deadline);
+    result = crux_serial_lock(&deadline);
     if (result != CRUX_OK)
         return result;
     serial_slot_t *slot = find(handle);
@@ -114,17 +114,17 @@ static crux_status_t transfer(crux_serial_t handle, void *read_buffer, const voi
         slot->writing = true;
     else
         slot->reading = true;
-    serial_port_metadata_unlock();
+    crux_serial_unlock();
     if (result != CRUX_OK || size == 0)
         return result;
     result = writing ? crux_serial_impl_write(handle.slot - 1, write_buffer, size, &deadline, count)
                      : crux_serial_impl_read(handle.slot - 1, read_buffer, size, &deadline, count);
-    (void)serial_port_metadata_lock(NULL);
+    (void)crux_serial_lock(NULL);
     if (writing)
         slot->writing = false;
     else
         slot->reading = false;
-    serial_port_metadata_unlock();
+    crux_serial_unlock();
     return result;
 }
 
@@ -147,7 +147,7 @@ crux_status_t crux_serial_close(crux_serial_t *handle)
     if (!crux_serial_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     serial_deadline_t poll = {.poll = true};
-    crux_status_t result = serial_port_metadata_lock(&poll);
+    crux_status_t result = crux_serial_lock(&poll);
     if (result != CRUX_OK)
         return result;
     serial_slot_t *slot = find(*handle);
@@ -157,13 +157,13 @@ crux_status_t crux_serial_close(crux_serial_t *handle)
         result = CRUX_ERR_BUSY;
     else
         slot->state = SLOT_CLOSING;
-    serial_port_metadata_unlock();
+    crux_serial_unlock();
     if (result != CRUX_OK)
         return result;
     result = crux_serial_impl_close(handle->slot - 1);
-    (void)serial_port_metadata_lock(NULL);
+    (void)crux_serial_lock(NULL);
     slot->state = SLOT_FREE;
     *handle = (crux_serial_t){0};
-    serial_port_metadata_unlock();
+    crux_serial_unlock();
     return result;
 }

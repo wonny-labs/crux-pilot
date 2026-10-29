@@ -9,8 +9,8 @@
 #endif
 /* Sleepable, task-context serialization. An internal lock/ownership failure is
  * fatal: never return with inconsistent pool/native-handle ownership. */
-void crux_file_port_lock(void);
-void crux_file_port_unlock(void);
+void crux_file_lock(void);
+void crux_file_unlock(void);
 /* Private provider contract. Counts must not exceed the requested length;
  * valid accepted counts survive errors. Native handles stay
  * in provider slots; close retires exactly once, even on error. */

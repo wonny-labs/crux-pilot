@@ -40,12 +40,12 @@ crux_file_result_t crux_file_open(const char *n, crux_file_mode_t m, crux_file_t
     if (!out || *out || !name_valid(n) ||
         (m != CRUX_FILE_READ && m != CRUX_FILE_READ_WRITE && m != CRUX_FILE_CREATE_REPLACE))
         return CRUX_FILE_ERR_INVALID_ARGUMENT;
-    crux_file_port_lock();
+    crux_file_lock();
     size_t s = 0;
     while (s < CRUX_FILE_POOL_SIZE && files[s].live)
         s++;
     if (s == CRUX_FILE_POOL_SIZE) {
-        crux_file_port_unlock();
+        crux_file_unlock();
         return CRUX_FILE_ERR_NO_RESOURCES;
     }
     crux_file_result_t result = crux_file_impl_open(s, n, m);
@@ -63,7 +63,7 @@ crux_file_result_t crux_file_open(const char *n, crux_file_mode_t m, crux_file_t
         memcpy(files[s].name, n, strlen(n) + 1);
         *out = &files[s];
     }
-    crux_file_port_unlock();
+    crux_file_unlock();
     return result;
 }
 
@@ -74,7 +74,7 @@ static crux_file_result_t transfer(crux_file_t *f, void *b, size_t l, size_t *c,
     *c = 0;
     if (l && !b)
         return CRUX_FILE_ERR_INVALID_ARGUMENT;
-    crux_file_port_lock();
+    crux_file_lock();
     size_t s = slot_of(f);
     crux_file_result_t result;
     if (s == CRUX_FILE_POOL_SIZE)
@@ -98,7 +98,7 @@ static crux_file_result_t transfer(crux_file_t *f, void *b, size_t l, size_t *c,
             result = CRUX_FILE_PARTIAL;
         }
     }
-    crux_file_port_unlock();
+    crux_file_unlock();
     return result;
 }
 
@@ -114,22 +114,22 @@ crux_file_result_t crux_file_write(crux_file_t *f, const void *b, size_t l, size
 
 crux_file_result_t crux_file_seek(crux_file_t *f, uint64_t o)
 {
-    crux_file_port_lock();
+    crux_file_lock();
     size_t s = slot_of(f);
     crux_file_result_t result = s == CRUX_FILE_POOL_SIZE ? CRUX_FILE_ERR_INVALID_STATE
                                 : o > INT64_MAX          ? CRUX_FILE_ERR_OUT_OF_RANGE
                                                          : crux_file_impl_seek(s, o);
-    crux_file_port_unlock();
+    crux_file_unlock();
     return result;
 }
 
 crux_file_result_t crux_file_sync(crux_file_t *f)
 {
-    crux_file_port_lock();
+    crux_file_lock();
     size_t s = slot_of(f);
     crux_file_result_t result =
         s == CRUX_FILE_POOL_SIZE ? CRUX_FILE_ERR_INVALID_STATE : crux_file_impl_sync(s);
-    crux_file_port_unlock();
+    crux_file_unlock();
     return result;
 }
 
@@ -137,16 +137,16 @@ crux_file_result_t crux_file_close(crux_file_t **f)
 {
     if (!f)
         return CRUX_FILE_ERR_INVALID_ARGUMENT;
-    crux_file_port_lock();
+    crux_file_lock();
     size_t s = slot_of(*f);
     if (s == CRUX_FILE_POOL_SIZE) {
-        crux_file_port_unlock();
+        crux_file_unlock();
         return CRUX_FILE_ERR_INVALID_STATE;
     }
     *f = NULL;
     crux_file_result_t result = crux_file_impl_close(s);
     files[s].live = false;
-    crux_file_port_unlock();
+    crux_file_unlock();
     return result;
 }
 
@@ -154,13 +154,13 @@ crux_file_result_t crux_file_remove(const char *n)
 {
     if (!name_valid(n))
         return CRUX_FILE_ERR_INVALID_ARGUMENT;
-    crux_file_port_lock();
+    crux_file_lock();
     for (size_t i = 0; i < CRUX_FILE_POOL_SIZE; i++)
         if (files[i].live && strcmp(files[i].name, n) == 0) {
-            crux_file_port_unlock();
+            crux_file_unlock();
             return CRUX_FILE_ERR_INVALID_STATE;
         }
     crux_file_result_t result = crux_file_impl_remove(n);
-    crux_file_port_unlock();
+    crux_file_unlock();
     return result;
 }

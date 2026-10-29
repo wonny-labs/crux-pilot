@@ -7,11 +7,11 @@ static size_t count = 3, closes, opens, calls;
 static int live[CRUX_FILE_POOL_SIZE];
 static int changed;
 static unsigned locks, unlocks;
-void crux_file_port_lock(void)
+void crux_file_lock(void)
 {
     locks++;
 }
-void crux_file_port_unlock(void)
+void crux_file_unlock(void)
 {
     assert(locks > unlocks);
     unlocks++;
