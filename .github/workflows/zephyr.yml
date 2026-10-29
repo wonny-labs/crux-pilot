@@ -27,6 +27,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: crux-pilot
+          fetch-depth: 2
 
       - uses: actions/setup-python@v5
         with:
@@ -49,6 +50,14 @@ jobs:
       - name: Fetch pinned Zephyr workspace and install SDK
         working-directory: crux-pilot
         run: scripts/bootstrap-zephyr.sh --install-sdk
+
+      - name: Check changed C control-flow braces
+        working-directory: crux-pilot
+        env:
+          ZEPHYR_BASE: ${{ github.workspace }}/zephyr
+        run: |
+          python3 -m unittest discover -s tests/style -p 'test_braces.py' -v
+          scripts/check-braces.sh HEAD^ HEAD
 
       - name: Validate actual storage providers on simulated Flash
         working-directory: crux-pilot
