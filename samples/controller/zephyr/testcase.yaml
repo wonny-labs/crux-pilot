@@ -1,0 +1,13 @@
+tests:
+  crux.controller.functional_pytest:
+    platform_allow:
+      - native_sim/native/64
+    harness: pytest
+    harness_config:
+      pytest_root:
+        - pytest/test_controller.py
+    tags:
+      - crux
+      - controller
+      - pytest
+    timeout: 30
