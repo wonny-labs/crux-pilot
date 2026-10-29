@@ -35,8 +35,9 @@ bool crux_serial_context_allowed(void)
 crux_status_t crux_serial_monotonic_now_ms(uint64_t *now)
 {
     struct timespec value;
-    if (clock_gettime(CLOCK_MONOTONIC, &value) != 0 || value.tv_sec < 0)
+    if (clock_gettime(CLOCK_MONOTONIC, &value) != 0 || value.tv_sec < 0) {
         return CRUX_ERR_IO;
+    }
     *now = (uint64_t)value.tv_sec * 1000 + (uint64_t)value.tv_nsec / 1000000;
     return CRUX_OK;
 }
@@ -48,17 +49,22 @@ crux_status_t crux_serial_lock(const serial_deadline_t *deadline)
     }
     for (;;) {
         int result = pthread_mutex_trylock(&metadata);
-        if (result == 0)
+        if (result == 0) {
             return CRUX_OK;
-        if (result != EBUSY)
+        }
+        if (result != EBUSY) {
             return CRUX_ERR_IO;
-        if (deadline->poll)
+        }
+        if (deadline->poll) {
             return CRUX_ERR_BUSY;
+        }
         uint64_t now;
-        if (crux_serial_monotonic_now_ms(&now) != CRUX_OK)
+        if (crux_serial_monotonic_now_ms(&now) != CRUX_OK) {
             return CRUX_ERR_IO;
-        if (now >= deadline->end_ms)
+        }
+        if (now >= deadline->end_ms) {
             return CRUX_ERR_TIMEOUT;
+        }
         struct timespec delay = {0, 1000000};
         (void)nanosleep(&delay, NULL);
     }
@@ -71,11 +77,14 @@ void crux_serial_unlock(void)
 
 crux_status_t crux_serial_linux_bind(crux_serial_port_t port, const char *path)
 {
-    if (port >= CRUX_SERIAL_PORT_COUNT || path == NULL || path[0] == '\0')
+    if (port >= CRUX_SERIAL_PORT_COUNT || path == NULL || path[0] == '\0') {
         return CRUX_ERR_INVALID_ARGUMENT;
+    }
     size_t size = strnlen(path, sizeof(ports[port].path));
-    if (size == sizeof(ports[port].path))
+    if (size == sizeof(ports[port].path)) {
         return CRUX_ERR_OUT_OF_RANGE;
+    }
+
     (void)pthread_mutex_lock(&ownership);
     crux_status_t result = CRUX_ERR_INVALID_STATE;
     if (!ports[port].bound) {
@@ -128,6 +137,7 @@ static void prepare_termios(struct termios *value, const crux_serial_config_t *c
 crux_status_t crux_serial_impl_open(uint32_t index, const crux_serial_config_t *config)
 {
     host_port_t *port = &ports[index];
+
     (void)pthread_mutex_lock(&ownership);
     crux_status_t result = CRUX_OK;
     int fd = -1;
@@ -140,6 +150,7 @@ crux_status_t crux_serial_impl_open(uint32_t index, const crux_serial_config_t *
         result = CRUX_ERR_NOT_READY;
         goto done;
     }
+
     fd = open(port->path, O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
     if (fd < 0) {
         result = errno == EBUSY                                           ? CRUX_ERR_BUSY
@@ -195,19 +206,24 @@ crux_status_t crux_serial_impl_open(uint32_t index, const crux_serial_config_t *
         result = CRUX_ERR_NOT_SUPPORTED;
         goto done;
     }
+
     port->fd = fd;
     port->identity = identity;
     atomic_store(&port->failed, false);
     fd = -1;
+
 done:
     if (fd >= 0) {
         bool unsafe = false;
-        if (changed && saved && tcsetattr(fd, TCSANOW, &port->saved) != 0)
+        if (changed && saved && tcsetattr(fd, TCSANOW, &port->saved) != 0) {
             unsafe = true;
-        if (claimed && ioctl(fd, TIOCNXCL) != 0)
+        }
+        if (claimed && ioctl(fd, TIOCNXCL) != 0) {
             unsafe = true;
-        if (close(fd) != 0)
+        }
+        if (close(fd) != 0) {
             unsafe = true;
+        }
         if (unsafe) {
             port->quarantine = true;
             result = CRUX_ERR_IO;
@@ -222,14 +238,18 @@ crux_status_t crux_serial_impl_close(uint32_t index)
     host_port_t *port = &ports[index];
     (void)pthread_mutex_lock(&ownership);
     bool unsafe = false;
-    if (tcflush(port->fd, TCIOFLUSH) != 0)
+    if (tcflush(port->fd, TCIOFLUSH) != 0) {
         unsafe = true;
-    if (tcsetattr(port->fd, TCSANOW, &port->saved) != 0)
+    }
+    if (tcsetattr(port->fd, TCSANOW, &port->saved) != 0) {
         unsafe = true;
-    if (ioctl(port->fd, TIOCNXCL) != 0)
+    }
+    if (ioctl(port->fd, TIOCNXCL) != 0) {
         unsafe = true;
-    if (close(port->fd) != 0)
+    }
+    if (close(port->fd) != 0) {
         unsafe = true;
+    }
     port->fd = -1;
     port->quarantine = unsafe;
     (void)pthread_mutex_unlock(&ownership);
@@ -244,34 +264,43 @@ static crux_status_t native_transfer(uint32_t index, void *destination, size_t l
     unsigned char staging[256];
     size_t size = length < sizeof(staging) ? length : sizeof(staging);
     for (;;) {
-        if (atomic_load(&port->failed))
+        if (atomic_load(&port->failed)) {
             return CRUX_ERR_IO;
+        }
         uint64_t now;
-        if (crux_serial_monotonic_now_ms(&now) != CRUX_OK)
+        if (crux_serial_monotonic_now_ms(&now) != CRUX_OK) {
             return CRUX_ERR_IO;
-        if (!deadline->poll && now >= deadline->end_ms)
+        }
+        if (!deadline->poll && now >= deadline->end_ms) {
             return CRUX_ERR_TIMEOUT;
+        }
         struct pollfd fd = {.fd = port->fd, .events = writing ? POLLOUT : POLLIN};
         int remaining = deadline->poll ? 0 : (int)(deadline->end_ms - now);
         int ready = poll(&fd, 1, remaining);
-        if (ready < 0 && errno == EINTR)
+        if (ready < 0 && errno == EINTR) {
             continue;
+        }
         if (ready < 0 || (fd.revents & (POLLHUP | POLLERR | POLLNVAL))) {
             atomic_store(&port->failed, true);
             return CRUX_ERR_IO;
         }
-        if (ready == 0)
+        if (ready == 0) {
             return deadline->poll ? CRUX_ERR_BUSY : CRUX_ERR_TIMEOUT;
-        if (crux_serial_monotonic_now_ms(&now) != CRUX_OK)
+        }
+        if (crux_serial_monotonic_now_ms(&now) != CRUX_OK) {
             return CRUX_ERR_IO;
-        if (!deadline->poll && now >= deadline->end_ms)
+        }
+        if (!deadline->poll && now >= deadline->end_ms) {
             return CRUX_ERR_TIMEOUT;
-        if (atomic_load(&port->failed))
+        }
+        if (atomic_load(&port->failed)) {
             return CRUX_ERR_IO;
+        }
         ssize_t amount = writing ? write(port->fd, source, size) : read(port->fd, staging, size);
         if (amount > 0) {
-            if (!writing)
+            if (!writing) {
                 memcpy(destination, staging, (size_t)amount);
+            }
             *count = (size_t)amount;
             return CRUX_OK;
         }
@@ -279,8 +308,9 @@ static crux_status_t native_transfer(uint32_t index, void *destination, size_t l
             atomic_store(&port->failed, true);
             return CRUX_ERR_IO;
         }
-        if (deadline->poll)
+        if (deadline->poll) {
             return CRUX_ERR_BUSY;
+        }
     }
 }
 
