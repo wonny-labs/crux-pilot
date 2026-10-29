@@ -104,6 +104,27 @@ static speed_t speed(uint32_t baud)
     }
 }
 
+static void prepare_termios(struct termios *value, const crux_serial_config_t *config)
+{
+    value->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON | IXOFF |
+                        IXANY | INPCK | IGNPAR);
+    value->c_oflag &= ~OPOST;
+    value->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+    value->c_cflag &= ~(CSIZE | PARENB | PARODD | CSTOPB | CRTSCTS);
+    value->c_cflag |= CREAD | CLOCAL | (config->data_bits == 7 ? CS7 : CS8);
+    if (config->parity != CRUX_SERIAL_PARITY_NONE) {
+        value->c_cflag |= PARENB;
+    }
+    if (config->parity == CRUX_SERIAL_PARITY_ODD) {
+        value->c_cflag |= PARODD;
+    }
+    if (config->stop_bits == 2) {
+        value->c_cflag |= CSTOPB;
+    }
+    value->c_cc[VMIN] = 0;
+    value->c_cc[VTIME] = 0;
+}
+
 crux_status_t crux_serial_impl_open(uint32_t index, const crux_serial_config_t *config)
 {
     host_port_t *port = &ports[index];
@@ -155,20 +176,7 @@ crux_status_t crux_serial_impl_open(uint32_t index, const crux_serial_config_t *
     }
     saved = true;
     struct termios value = port->saved;
-    value.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON | IXOFF |
-                       IXANY | INPCK | IGNPAR);
-    value.c_oflag &= ~OPOST;
-    value.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-    value.c_cflag &= ~(CSIZE | PARENB | PARODD | CSTOPB | CRTSCTS);
-    value.c_cflag |= CREAD | CLOCAL | (config->data_bits == 7 ? CS7 : CS8);
-    if (config->parity != CRUX_SERIAL_PARITY_NONE)
-        value.c_cflag |= PARENB;
-    if (config->parity == CRUX_SERIAL_PARITY_ODD)
-        value.c_cflag |= PARODD;
-    if (config->stop_bits == 2)
-        value.c_cflag |= CSTOPB;
-    value.c_cc[VMIN] = 0;
-    value.c_cc[VTIME] = 0;
+    prepare_termios(&value, config);
     if (cfsetispeed(&value, speed(config->baud_rate)) != 0 ||
         cfsetospeed(&value, speed(config->baud_rate)) != 0 || tcsetattr(fd, TCSANOW, &value) != 0) {
         result = errno == EINVAL ? CRUX_ERR_NOT_SUPPORTED : CRUX_ERR_IO;
