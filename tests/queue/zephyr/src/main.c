@@ -2,11 +2,12 @@
 #include <zephyr/irq_offload.h>
 #include <zephyr/ztest.h>
 static crux_status_t irq_status;
+static crux_queue_t irq_output;
 static void irq_call(const void *unused)
 {
     (void)unused;
-    crux_queue_t q = {0};
-    irq_status = crux_queue_create(1, sizeof(int), &q);
+    irq_output = (crux_queue_t){71, 42};
+    irq_status = crux_queue_create(1, sizeof(int), &irq_output);
 }
 ZTEST(queue, test_copy_fifo_and_poll)
 {
@@ -26,5 +27,7 @@ ZTEST(queue, test_isr_rejection)
 {
     irq_offload(irq_call, NULL);
     zassert_equal(irq_status, CRUX_ERR_NOT_SUPPORTED);
+    zassert_equal(irq_output.slot, 71);
+    zassert_equal(irq_output.generation, 42);
 }
 ZTEST_SUITE(queue, NULL, NULL, NULL, NULL, NULL);

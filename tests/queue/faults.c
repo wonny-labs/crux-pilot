@@ -42,9 +42,10 @@ void crux_queue_notify(size_t index)
 }
 int main(void)
 {
-    crux_queue_t q = {0};
+    crux_queue_t q = {71, 42};
     prepare_result = CRUX_ERR_IO;
-    assert(crux_queue_create(1, sizeof(int), &q) == CRUX_ERR_IO && q.slot == 0);
+    assert(crux_queue_create(1, sizeof(int), &q) == CRUX_ERR_IO && q.slot == 71 &&
+           q.generation == 42);
     prepare_result = CRUX_OK;
     assert(crux_queue_create(1, sizeof(int), &q) == CRUX_OK);
     int value = 123;
@@ -56,9 +57,13 @@ int main(void)
     deadline_result = CRUX_OK;
     lock_result = CRUX_ERR_IO;
     crux_queue_t old = q;
+    assert(crux_queue_create(1, sizeof(int), &q) == CRUX_ERR_IO);
+    assert(q.slot == old.slot && q.generation == old.generation);
     assert(crux_queue_destroy(&q) == CRUX_ERR_IO && q.generation == old.generation);
     lock_result = CRUX_OK;
     context = false;
+    assert(crux_queue_create(1, sizeof(int), &q) == CRUX_ERR_NOT_SUPPORTED);
+    assert(q.slot == old.slot && q.generation == old.generation);
     assert(crux_queue_send(q, &value, sizeof(value), 0) == CRUX_ERR_NOT_SUPPORTED);
     assert(crux_queue_receive(q, &value, sizeof(value), 0) == CRUX_ERR_NOT_SUPPORTED);
     assert(crux_queue_destroy(&q) == CRUX_ERR_NOT_SUPPORTED && q.slot == old.slot);
@@ -73,7 +78,9 @@ int main(void)
     for (unsigned i = 0; i < 3; ++i)
         assert(crux_queue_create(1, sizeof(int), &remaining[i]) == CRUX_OK &&
                remaining[i].slot != 1);
+    q = remaining[0];
     assert(crux_queue_create(1, sizeof(int), &q) == CRUX_ERR_NO_RESOURCES);
+    assert(q.slot == remaining[0].slot && q.generation == remaining[0].generation);
     assert(crux_queue_send(old, &value, sizeof(value), 0) == CRUX_ERR_INVALID_ARGUMENT);
     for (unsigned i = 0; i < 3; ++i)
         assert(crux_queue_destroy(&remaining[i]) == CRUX_OK);

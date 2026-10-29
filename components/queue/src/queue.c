@@ -25,7 +25,6 @@ crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue
 {
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
-    *out = (crux_queue_t){0};
     if (capacity == 0 || message_size == 0)
         return CRUX_ERR_INVALID_ARGUMENT;
     if (capacity > QUEUE_CAPACITY || message_size > QUEUE_RECORD)
