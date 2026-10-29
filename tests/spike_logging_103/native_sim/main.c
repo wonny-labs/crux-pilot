@@ -12,13 +12,47 @@
 #include <zephyr/drivers/serial/uart_emul.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/fs/littlefs.h>
+#include <zephyr/arch/posix/posix_trace.h>
+#include <zephyr/init.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/sys/atomic.h>
+#include <zephyr/sys/printk-hooks.h>
 #include <zephyr/ztest.h>
 
 LOG_MODULE_REGISTER(spike103, LOG_LEVEL_INF);
+
+/*
+ * native_sim's UART Console can take the printk hook after the built-in
+ * POSIX Console initialisation. Restore an independent stdout test channel
+ * after native UART setup so Twister can observe Ztest without consuming
+ * the dedicated logging UART emulator output.
+ */
+static int spike_trace_char(int c)
+{
+    static char line[256];
+    static size_t used;
+
+    if (c == '\r') {
+        return c;
+    }
+    line[used++] = (char)c;
+    if (c == '\n' || used == sizeof(line) - 1) {
+        line[used] = '\0';
+        posix_print_trace("%s", line);
+        used = 0;
+    }
+    return c;
+}
+
+static int spike_restore_console(void)
+{
+    __printk_hook_install(spike_trace_char);
+    return 0;
+}
+
+SYS_INIT(spike_restore_console, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
 
 #define MARKER "SPIKE103_NATIVE_UART_FS_RECORD"
 
