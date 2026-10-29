@@ -49,31 +49,38 @@ static crux_file_result_t result(int rc)
 void crux_file_lock(void)
 {
     __ASSERT_NO_MSG(!k_is_in_isr());
-    if (k_mutex_lock(&file_lock, K_FOREVER) != 0)
+    if (k_mutex_lock(&file_lock, K_FOREVER) != 0) {
         k_panic();
+    }
 }
 
 void crux_file_unlock(void)
 {
-    if (k_mutex_unlock(&file_lock) != 0)
+    if (k_mutex_unlock(&file_lock) != 0) {
         k_panic();
+    }
 }
 
 crux_file_result_t crux_file_zephyr_bind(const char *r)
 {
-    if (!r || r[0] != '/')
+    if (!r || r[0] != '/') {
         return CRUX_FILE_ERR_INVALID_ARGUMENT;
+    }
     size_t length = strlen(r);
-    if (length < 2 || length >= sizeof(root) || r[length - 1] == '/')
+    if (length < 2 || length >= sizeof(root) || r[length - 1] == '/') {
         return CRUX_FILE_ERR_INVALID_ARGUMENT;
-    if (root[0])
+    }
+    if (root[0]) {
         return CRUX_FILE_ERR_INVALID_STATE;
+    }
     struct fs_dirent st;
     int rc = fs_stat(r, &st);
-    if (rc < 0)
+    if (rc < 0) {
         return result(rc);
-    if (st.type != FS_DIR_ENTRY_DIR)
+    }
+    if (st.type != FS_DIR_ENTRY_DIR) {
         return CRUX_FILE_ERR_NOT_SUPPORTED;
+    }
     memcpy(root, r, length + 1);
     return CRUX_FILE_OK;
 }
@@ -81,27 +88,33 @@ crux_file_result_t crux_file_zephyr_bind(const char *r)
 static crux_file_result_t ready(void)
 {
     struct fs_dirent st;
-    if (!root[0])
+    if (!root[0]) {
         return CRUX_FILE_ERR_NOT_READY;
+    }
     int rc = fs_stat(root, &st);
-    if (rc == -ENOENT)
+    if (rc == -ENOENT) {
         return CRUX_FILE_ERR_NOT_READY;
-    if (rc < 0)
+    }
+    if (rc < 0) {
         return result(rc);
+    }
     return st.type == FS_DIR_ENTRY_DIR ? CRUX_FILE_OK : CRUX_FILE_ERR_NOT_READY;
 }
 
 crux_file_result_t crux_file_impl_open(size_t s, const char *name, crux_file_mode_t mode)
 {
     crux_file_result_t rc = ready();
-    if (rc != CRUX_FILE_OK)
+    if (rc != CRUX_FILE_OK) {
         return rc;
+    }
     int n = snprintf(paths[s], sizeof(paths[s]), "%s/%s", root, name);
-    if (n < 0 || (size_t)n >= sizeof(paths[s]))
+    if (n < 0 || (size_t)n >= sizeof(paths[s])) {
         return CRUX_FILE_ERR_OUT_OF_RANGE;
+    }
     fs_mode_t flags = mode == CRUX_FILE_READ ? FS_O_READ : FS_O_READ | FS_O_WRITE;
-    if (mode == CRUX_FILE_CREATE_REPLACE)
+    if (mode == CRUX_FILE_CREATE_REPLACE) {
         flags |= FS_O_CREATE;
+    }
     fs_file_t_init(&handles[s]);
     return result(fs_open(&handles[s], paths[s], flags));
 }
@@ -113,22 +126,26 @@ crux_file_result_t crux_file_impl_truncate(size_t s)
 
 crux_file_result_t crux_file_impl_read(size_t s, void *b, size_t l, size_t *n)
 {
-    if (l > INT32_MAX)
+    if (l > INT32_MAX) {
         return CRUX_FILE_ERR_OUT_OF_RANGE;
+    }
     ssize_t rc = fs_read(&handles[s], b, l);
-    if (rc < 0)
+    if (rc < 0) {
         return result((int)rc);
+    }
     *n = (size_t)rc;
     return CRUX_FILE_OK;
 }
 
 crux_file_result_t crux_file_impl_write(size_t s, const void *b, size_t l, size_t *n)
 {
-    if (l > INT32_MAX)
+    if (l > INT32_MAX) {
         return CRUX_FILE_ERR_OUT_OF_RANGE;
+    }
     ssize_t rc = fs_write(&handles[s], b, l);
-    if (rc < 0)
+    if (rc < 0) {
         return result((int)rc);
+    }
     *n = (size_t)rc;
     return CRUX_FILE_OK;
 }
@@ -137,22 +154,28 @@ crux_file_result_t crux_file_impl_seek(size_t s, uint64_t offset)
 {
     _Static_assert(sizeof(off_t) == 4 || sizeof(off_t) == 8, "supported VFS offsets");
     /* LittleFS uses signed 32-bit offsets/counts, even with 64-bit off_t. */
-    if (offset > INT32_MAX)
+    if (offset > INT32_MAX) {
         return CRUX_FILE_ERR_OUT_OF_RANGE;
+    }
     off_t original = fs_tell(&handles[s]);
-    if (original < 0)
+    if (original < 0) {
         return result((int)original);
+    }
     int rc = fs_seek(&handles[s], 0, FS_SEEK_END);
-    if (rc < 0)
+    if (rc < 0) {
         return result(rc);
+    }
     off_t eof = fs_tell(&handles[s]);
     int restored = fs_seek(&handles[s], original, FS_SEEK_SET);
-    if (eof < 0)
+    if (eof < 0) {
         return result((int)eof);
-    if (restored < 0)
+    }
+    if (restored < 0) {
         return result(restored);
-    if (offset > (uint64_t)eof)
+    }
+    if (offset > (uint64_t)eof) {
         return CRUX_FILE_ERR_OUT_OF_RANGE;
+    }
     return result(fs_seek(&handles[s], (off_t)offset, FS_SEEK_SET));
 }
 
@@ -171,12 +194,14 @@ crux_file_result_t crux_file_impl_close(size_t s)
 crux_file_result_t crux_file_impl_remove(const char *name)
 {
     crux_file_result_t rc = ready();
-    if (rc != CRUX_FILE_OK)
+    if (rc != CRUX_FILE_OK) {
         return rc;
+    }
     char path[sizeof(root) + CRUX_FILE_NAME_MAX + 1];
     int n = snprintf(path, sizeof(path), "%s/%s", root, name);
-    if (n < 0 || (size_t)n >= sizeof(path))
+    if (n < 0 || (size_t)n >= sizeof(path)) {
         return CRUX_FILE_ERR_OUT_OF_RANGE;
+    }
     return result(fs_unlink(path));
 }
 
