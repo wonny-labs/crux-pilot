@@ -48,12 +48,7 @@ for option in CONFIG_LOG_BACKEND_RTT CONFIG_USE_SEGGER_RTT \
         exit 1
     }
 done
-grep -Eq '^(# CONFIG_LOG_BACKEND_UART is not set|CONFIG_LOG_BACKEND_UART=n)
-    echo "SPIKE103: RTT build unexpectedly enables UART logging" >&2
-    exit 1
-}
-echo "SPIKE103: EVKB RTT cross-build PASS (no hardware output claimed)"
- "$config" || {
+grep -Eq '^(# CONFIG_LOG_BACKEND_UART is not set|CONFIG_LOG_BACKEND_UART=n)$' "$config" || {
     echo "SPIKE103: RTT build unexpectedly enables UART logging" >&2
     exit 1
 }
