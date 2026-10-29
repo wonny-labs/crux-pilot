@@ -127,8 +127,8 @@ ZTEST(spike103_udp, test_real_udp_syslog_and_uart_with_network_down)
                            : -1;
     bool udp_ok = received > 0 && strstr(udp_bytes, UDP_MARKER) != NULL;
     bool uart_ok = uart_wait(UDP_MARKER);
-    printk("SPIKE103_UDP_RESULT udp=%d uart=%d bytes=%d poll=%d\n", udp_ok, uart_ok,
-           (int)received, polled);
+    printk("SPIKE103_UDP_RESULT udp=%d uart=%d bytes=%d poll=%d\n", udp_ok, uart_ok, (int)received,
+           polled);
     zassert_true(udp_ok, "native network Syslog not received over Zephyr loopback");
     zassert_true(uart_ok, "native UART output missing while network backend active");
 
