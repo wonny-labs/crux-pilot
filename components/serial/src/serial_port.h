@@ -12,8 +12,8 @@ typedef struct {
 bool crux_serial_context_allowed(void);
 crux_status_t crux_serial_monotonic_now_ms(uint64_t *now);
 /* NULL is the untimed final-bookkeeping lock on valid initialized metadata. */
-crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline);
-void serial_port_metadata_unlock(void);
+crux_status_t crux_serial_lock(const serial_deadline_t *deadline);
+void crux_serial_unlock(void);
 crux_status_t crux_serial_impl_open(uint32_t port, const crux_serial_config_t *config);
 crux_status_t crux_serial_impl_close(uint32_t port);
 /* Native port owns the one deadline and latched device fault. Positive count is

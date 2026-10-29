@@ -19,9 +19,9 @@ static void *increment(void *unused)
 {
     (void)unused;
     for (unsigned i = 0; i < 10000; i++) {
-        crux_file_port_lock();
+        crux_file_lock();
         value++;
-        crux_file_port_unlock();
+        crux_file_unlock();
     }
     return NULL;
 }
@@ -39,7 +39,7 @@ int main(void)
         struct rlimit limit = {0, 0};
         assert(setrlimit(RLIMIT_CORE, &limit) == 0);
         fail_lock = true;
-        crux_file_port_lock();
+        crux_file_lock();
         _exit(0);
     }
     int status;

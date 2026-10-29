@@ -44,7 +44,7 @@ static int64_t remaining(const serial_deadline_t *deadline)
                : (int64_t)(deadline->end_ms - (uint64_t)now);
 }
 
-crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
+crux_status_t crux_serial_lock(const serial_deadline_t *deadline)
 {
     if (deadline == NULL)
         return k_mutex_lock(&metadata, K_FOREVER) == 0 ? CRUX_OK : CRUX_ERR_IO;
@@ -56,7 +56,7 @@ crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
     return k_mutex_lock(&metadata, K_MSEC(left)) == 0 ? CRUX_OK : CRUX_ERR_TIMEOUT;
 }
 
-void serial_port_metadata_unlock(void)
+void crux_serial_unlock(void)
 {
     (void)k_mutex_unlock(&metadata);
 }

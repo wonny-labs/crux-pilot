@@ -41,7 +41,7 @@ crux_status_t crux_serial_monotonic_now_ms(uint64_t *now)
     return CRUX_OK;
 }
 
-crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
+crux_status_t crux_serial_lock(const serial_deadline_t *deadline)
 {
     if (deadline == NULL) {
         return pthread_mutex_lock(&metadata) == 0 ? CRUX_OK : CRUX_ERR_IO;
@@ -64,7 +64,7 @@ crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
     }
 }
 
-void serial_port_metadata_unlock(void)
+void crux_serial_unlock(void)
 {
     (void)pthread_mutex_unlock(&metadata);
 }

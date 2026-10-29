@@ -22,13 +22,13 @@ crux_status_t crux_serial_monotonic_now_ms(uint64_t *now)
     *now = 100;
     return CRUX_OK;
 }
-crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
+crux_status_t crux_serial_lock(const serial_deadline_t *deadline)
 {
     if (metadata_busy && deadline != NULL)
         return deadline->poll ? CRUX_ERR_BUSY : CRUX_ERR_TIMEOUT;
     return CRUX_OK;
 }
-void serial_port_metadata_unlock(void)
+void crux_serial_unlock(void)
 {
 }
 crux_status_t crux_serial_impl_open(uint32_t port, const crux_serial_config_t *cfg)

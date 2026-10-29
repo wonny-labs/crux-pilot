@@ -201,13 +201,13 @@ static void admission(void)
 {
     setup();
     assert(write(master, "A", 1) == 1);
-    assert(serial_port_metadata_lock(NULL) == CRUX_OK);
+    assert(crux_serial_lock(NULL) == CRUX_OK);
     unsigned char byte = 17;
     size_t count = 99;
     assert(crux_serial_read(serial, &byte, 1, 0, &count) == CRUX_ERR_BUSY && count == 0);
     assert(crux_serial_read(serial, &byte, 1, 5, &count) == CRUX_ERR_TIMEOUT && count == 0);
     assert(byte == 17);
-    serial_port_metadata_unlock();
+    crux_serial_unlock();
     assert(crux_serial_read(serial, &byte, 1, 200, &count) == CRUX_OK && count == 1 && byte == 'A');
     cleanup();
 }
