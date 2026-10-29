@@ -4,10 +4,12 @@
 #include <signal.h>
 #include <stdio.h>
 #include <time.h>
+
 bool crux_log_context_allowed(void)
 {
     return true;
 }
+
 crux_status_t crux_log_impl_write(crux_log_level_t level, const char *tag, const char *text)
 {
     static const char *const names[] = {"OFF", "ERROR", "WARN", "INFO", "DEBUG"};

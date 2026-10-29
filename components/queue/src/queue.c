@@ -3,9 +3,11 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <string.h>
+
 #define QUEUE_COUNT 4U
 #define QUEUE_CAPACITY 16U
 #define QUEUE_RECORD 64U
+
 typedef struct {
     uint32_t generation;
     bool live;
@@ -13,7 +15,9 @@ typedef struct {
     size_t capacity, size, head, count, active;
     unsigned char data[QUEUE_CAPACITY][QUEUE_RECORD];
 } queue_slot_t;
+
 static queue_slot_t slots[QUEUE_COUNT];
+
 static queue_slot_t *lookup(crux_queue_t handle)
 {
     if (handle.slot == 0 || handle.slot > QUEUE_COUNT || handle.generation == 0)
@@ -21,6 +25,7 @@ static queue_slot_t *lookup(crux_queue_t handle)
     queue_slot_t *slot = &slots[handle.slot - 1];
     return slot->live && slot->generation == handle.generation ? slot : NULL;
 }
+
 crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue_t *out)
 {
     if (out == NULL)
@@ -56,6 +61,7 @@ crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue
     crux_queue_unlock();
     return result;
 }
+
 static crux_status_t transfer(crux_queue_t handle, uint32_t timeout_ms, const void *source,
                               void *destination, size_t size, bool sending)
 {
@@ -108,15 +114,18 @@ static crux_status_t transfer(crux_queue_t handle, uint32_t timeout_ms, const vo
     crux_queue_unlock();
     return result;
 }
+
 crux_status_t crux_queue_send(crux_queue_t queue, const void *record, size_t size,
                               uint32_t timeout_ms)
 {
     return transfer(queue, timeout_ms, record, NULL, size, true);
 }
+
 crux_status_t crux_queue_receive(crux_queue_t queue, void *record, size_t size, uint32_t timeout_ms)
 {
     return transfer(queue, timeout_ms, NULL, record, size, false);
 }
+
 crux_status_t crux_queue_destroy(crux_queue_t *queue)
 {
     if (queue == NULL)

@@ -55,6 +55,7 @@ REJECT_OWNER(DT_ALIAS(m2_hci_bt_uart), "Crux Serial conflicts with Bluetooth UAR
 #error "LPUART3 Serial pins conflict with enabled EVKB CSI"
 #endif
 #endif
+
 const struct device *crux_serial_zephyr_device(unsigned port)
 {
     return port == 0 ? DEVICE_DT_GET(SERIAL_NODE) : NULL;

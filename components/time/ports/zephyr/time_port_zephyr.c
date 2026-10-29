@@ -21,16 +21,19 @@ crux_status_t crux_realtime_impl_lock(void)
     return CRUX_OK;
 #endif
 }
+
 void crux_realtime_impl_unlock(void)
 {
 #if defined(CONFIG_MULTITHREADING)
     (void)k_mutex_unlock(&realtime_lock);
 #endif
 }
+
 crux_status_t crux_realtime_impl_init(void)
 {
     return IS_ENABLED(CONFIG_SYS_CLOCK_EXISTS) ? CRUX_OK : CRUX_ERR_NOT_SUPPORTED;
 }
+
 crux_status_t crux_realtime_impl_read(crux_realtime_t *out)
 {
     struct timespec value;
@@ -45,6 +48,7 @@ crux_status_t crux_realtime_impl_read(crux_realtime_t *out)
     *out = (crux_realtime_t){(int64_t)value.tv_sec, (uint32_t)value.tv_nsec};
     return CRUX_OK;
 }
+
 crux_status_t crux_realtime_impl_write(const crux_realtime_t *time)
 {
     if (time == NULL)

@@ -2,9 +2,11 @@
 #include "interrupt.h"
 #include <errno.h>
 #include <limits.h>
+
 K_MUTEX_DEFINE(crux_queue_metadata);
 static struct k_condvar changed[4];
 static bool prepared[4];
+
 static crux_status_t status(int error, bool poll)
 {
     if (error == 0)
@@ -13,10 +15,12 @@ static crux_status_t status(int error, bool poll)
         return poll ? CRUX_ERR_BUSY : CRUX_ERR_TIMEOUT;
     return CRUX_ERR_IO;
 }
+
 bool crux_queue_context_allowed(void)
 {
     return !crux_is_in_isr();
 }
+
 crux_status_t crux_queue_make_deadline(uint32_t ms, queue_deadline_t *out)
 {
     out->poll = ms == 0;
@@ -31,16 +35,19 @@ crux_status_t crux_queue_make_deadline(uint32_t ms, queue_deadline_t *out)
     out->timeout = K_TIMEOUT_ABS_TICKS(now + duration + 1);
     return CRUX_OK;
 }
+
 crux_status_t crux_queue_lock(const queue_deadline_t *deadline)
 {
     if (deadline == NULL)
         return status(k_mutex_lock(&crux_queue_metadata, K_FOREVER), false);
     return status(k_mutex_lock(&crux_queue_metadata, deadline->timeout), deadline->poll);
 }
+
 void crux_queue_unlock(void)
 {
     (void)k_mutex_unlock(&crux_queue_metadata);
 }
+
 crux_status_t crux_queue_prepare_wait(size_t index)
 {
     if (!prepared[index]) {
@@ -51,6 +58,7 @@ crux_status_t crux_queue_prepare_wait(size_t index)
     }
     return CRUX_OK;
 }
+
 crux_status_t crux_queue_wait(size_t index, const queue_deadline_t *deadline)
 {
     int result = k_condvar_wait(&changed[index], &crux_queue_metadata, deadline->timeout);
@@ -63,6 +71,7 @@ crux_status_t crux_queue_wait(size_t index, const queue_deadline_t *deadline)
     }
     return status(result, false);
 }
+
 void crux_queue_notify(size_t index)
 {
     (void)k_condvar_broadcast(&changed[index]);

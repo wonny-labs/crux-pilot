@@ -5,6 +5,7 @@
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/ring_buffer.h>
+
 #define CAPACITY 256
 /* Permanent context: a driver may retain a cached callback after detach. No
  * callback ever retains caller storage or a handle/session allocation. */
@@ -16,13 +17,16 @@ static struct {
     struct ring_buf rx, tx;
     uint8_t rx_storage[CAPACITY], tx_storage[CAPACITY];
 } native;
+
 K_MUTEX_DEFINE(metadata);
 K_SEM_DEFINE(rx_event, 0, 1);
 K_SEM_DEFINE(tx_event, 0, 1);
+
 bool crux_serial_context_allowed(void)
 {
     return !k_is_in_isr();
 }
+
 crux_status_t crux_serial_monotonic_now_ms(uint64_t *now)
 {
     int64_t value = k_uptime_get();
@@ -31,6 +35,7 @@ crux_status_t crux_serial_monotonic_now_ms(uint64_t *now)
     *now = (uint64_t)value;
     return CRUX_OK;
 }
+
 static int64_t remaining(const serial_deadline_t *deadline)
 {
     int64_t now = k_uptime_get();
@@ -38,6 +43,7 @@ static int64_t remaining(const serial_deadline_t *deadline)
                ? 0
                : (int64_t)(deadline->end_ms - (uint64_t)now);
 }
+
 crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
 {
     if (deadline == NULL)
@@ -49,16 +55,19 @@ crux_status_t serial_port_metadata_lock(const serial_deadline_t *deadline)
         return CRUX_ERR_TIMEOUT;
     return k_mutex_lock(&metadata, K_MSEC(left)) == 0 ? CRUX_OK : CRUX_ERR_TIMEOUT;
 }
+
 void serial_port_metadata_unlock(void)
 {
     (void)k_mutex_unlock(&metadata);
 }
+
 static void disable(const struct device *dev)
 {
     uart_irq_rx_disable(dev);
     uart_irq_tx_disable(dev);
     uart_irq_err_disable(dev);
 }
+
 static void fault(void)
 {
     native.failed = true;
@@ -66,6 +75,7 @@ static void fault(void)
     k_sem_give(&rx_event);
     k_sem_give(&tx_event);
 }
+
 static bool observed_error(void)
 {
     int error = uart_err_check(native.dev);
@@ -73,6 +83,7 @@ static bool observed_error(void)
         fault();
     return native.failed;
 }
+
 static void callback(const struct device *unused, void *context)
 {
     ARG_UNUSED(unused);
@@ -124,6 +135,7 @@ static void callback(const struct device *unused, void *context)
 done:
     k_spin_unlock(&native.gate, key);
 }
+
 crux_status_t crux_serial_impl_open(uint32_t port, const crux_serial_config_t *config)
 {
     const struct device *dev = crux_serial_zephyr_device(port);
@@ -187,6 +199,7 @@ crux_status_t crux_serial_impl_open(uint32_t port, const crux_serial_config_t *c
     }
     return CRUX_OK;
 }
+
 crux_status_t crux_serial_impl_close(uint32_t port)
 {
     ARG_UNUSED(port);
@@ -212,6 +225,7 @@ crux_status_t crux_serial_impl_close(uint32_t port)
         native.quarantine = true;
     return result == 0 ? CRUX_OK : CRUX_ERR_IO;
 }
+
 static crux_status_t transfer(void *buffer, size_t size, const serial_deadline_t *deadline,
                               size_t *count, bool writing)
 {
@@ -248,12 +262,14 @@ static crux_status_t transfer(void *buffer, size_t size, const serial_deadline_t
             return CRUX_ERR_TIMEOUT;
     }
 }
+
 crux_status_t crux_serial_impl_read(uint32_t port, void *buffer, size_t size,
                                     const serial_deadline_t *deadline, size_t *count)
 {
     ARG_UNUSED(port);
     return transfer(buffer, size, deadline, count, false);
 }
+
 crux_status_t crux_serial_impl_write(uint32_t port, const void *buffer, size_t size,
                                      const serial_deadline_t *deadline, size_t *count)
 {

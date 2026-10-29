@@ -1,6 +1,7 @@
 #include "logging_binding.h"
 #include <zephyr/devicetree.h>
 #include <zephyr/sys/util.h>
+
 #if !DT_HAS_CHOSEN(zephyr_log_uart)
 #error "Crux Logging requires explicit zephyr,log-uart selection"
 #else
@@ -55,6 +56,7 @@ REJECT_OWNER(DT_CHOSEN(zephyr_bt_uart), "Crux Logging conflicts with Bluetooth U
 #if DT_NODE_EXISTS(DT_ALIAS(m2_hci_bt_uart)) && defined(CONFIG_BT_HCI)
 REJECT_OWNER(DT_ALIAS(m2_hci_bt_uart), "Crux Logging conflicts with Bluetooth UART");
 #endif
+
 const struct device *crux_log_zephyr_device(void)
 {
     return DEVICE_DT_GET(LOG_UART);

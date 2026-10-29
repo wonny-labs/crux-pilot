@@ -7,16 +7,19 @@ typedef struct {
     unsigned int users;
     bool used;
 } lifetime_t;
+
 typedef struct {
     sync_native_identity_t owner;
     sync_native_mutex_t native;
     lifetime_t life;
     bool held;
 } mutex_slot_t;
+
 typedef struct {
     lifetime_t life;
     sync_native_semaphore_t native;
 } semaphore_slot_t;
+
 static mutex_slot_t mutexes[CRUX_SYNC_MUTEX_COUNT];
 static semaphore_slot_t semaphores[CRUX_SYNC_SEMAPHORE_COUNT];
 
@@ -24,6 +27,7 @@ static bool matches(const lifetime_t *life, uint32_t generation)
 {
     return life->used && life->generation == generation;
 }
+
 static mutex_slot_t *find_mutex(crux_mutex_t handle)
 {
     if (handle.slot == 0 || handle.slot > CRUX_SYNC_MUTEX_COUNT)
@@ -31,6 +35,7 @@ static mutex_slot_t *find_mutex(crux_mutex_t handle)
     mutex_slot_t *slot = &mutexes[handle.slot - 1];
     return matches(&slot->life, handle.generation) ? slot : NULL;
 }
+
 static semaphore_slot_t *find_semaphore(crux_semaphore_t handle)
 {
     if (handle.slot == 0 || handle.slot > CRUX_SYNC_SEMAPHORE_COUNT)
@@ -38,6 +43,7 @@ static semaphore_slot_t *find_semaphore(crux_semaphore_t handle)
     semaphore_slot_t *slot = &semaphores[handle.slot - 1];
     return matches(&slot->life, handle.generation) ? slot : NULL;
 }
+
 crux_status_t crux_mutex_create(crux_mutex_t *out)
 {
     if (!crux_sync_context_allowed())
@@ -63,6 +69,7 @@ crux_status_t crux_mutex_create(crux_mutex_t *out)
     sync_native_metadata_unlock();
     return result;
 }
+
 crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
 {
     if (!crux_sync_context_allowed())
@@ -109,6 +116,7 @@ crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
     sync_native_metadata_unlock();
     return result;
 }
+
 crux_status_t crux_mutex_unlock(crux_mutex_t mutex)
 {
     if (!crux_sync_context_allowed())
@@ -129,6 +137,7 @@ crux_status_t crux_mutex_unlock(crux_mutex_t mutex)
     sync_native_metadata_unlock();
     return result;
 }
+
 crux_status_t crux_mutex_destroy(crux_mutex_t *mutex)
 {
     if (!crux_sync_context_allowed())
@@ -153,6 +162,7 @@ crux_status_t crux_mutex_destroy(crux_mutex_t *mutex)
     sync_native_metadata_unlock();
     return result;
 }
+
 crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_semaphore_t *out)
 {
     if (!crux_sync_context_allowed())
@@ -179,6 +189,7 @@ crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_sem
     sync_native_metadata_unlock();
     return result;
 }
+
 crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_ms)
 {
     if (!crux_sync_context_allowed())
@@ -213,6 +224,7 @@ crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_m
     sync_native_metadata_unlock();
     return result;
 }
+
 crux_status_t crux_semaphore_give(crux_semaphore_t semaphore)
 {
     if (!crux_sync_context_allowed())
@@ -227,6 +239,7 @@ crux_status_t crux_semaphore_give(crux_semaphore_t semaphore)
     sync_native_metadata_unlock();
     return result;
 }
+
 crux_status_t crux_semaphore_destroy(crux_semaphore_t *semaphore)
 {
     if (!crux_sync_context_allowed())
