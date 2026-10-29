@@ -9,10 +9,10 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <zephyr/arch/posix/posix_trace.h>
 #include <zephyr/drivers/serial/uart_emul.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/fs/littlefs.h>
-#include <zephyr/arch/posix/posix_trace.h>
 #include <zephyr/init.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -166,9 +166,8 @@ ZTEST(spike103, test_native_uart_and_fs_receive_the_same_record)
     /* Allow one idle period to observe any FS process-done notification. */
     k_sleep(K_MSEC(50));
 
-    printk("SPIKE103_NATIVE_RESULT uart=%d fs_write=%d fs_marker=%d fs_sync=%d\n",
-           uart_seen, (int)atomic_get(&fs_writes), file_seen,
-           (int)atomic_get(&fs_syncs));
+    printk("SPIKE103_NATIVE_RESULT uart=%d fs_write=%d fs_marker=%d fs_sync=%d\n", uart_seen,
+           (int)atomic_get(&fs_writes), file_seen, (int)atomic_get(&fs_syncs));
     zassert_true(uart_seen, "native UART backend did not transmit marker");
     zassert_true(file_seen, "native FS backend did not write marker");
     /*
