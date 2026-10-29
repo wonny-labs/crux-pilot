@@ -55,9 +55,23 @@ jobs:
         working-directory: crux-pilot
         env:
           ZEPHYR_BASE: ${{ github.workspace }}/zephyr
+          PUSH_BEFORE: ${{ github.event.before }}
         run: |
           python3 -m unittest discover -s tests/style -p 'test_patch_style.py' -v
-          scripts/check-patch.sh HEAD^ HEAD
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            if [[ -z "$PUSH_BEFORE" || "$PUSH_BEFORE" =~ ^0+$ ]]; then
+              echo "Missing previous push SHA for complete patch-style comparison." >&2
+              exit 2
+            fi
+            if ! git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null; then
+              git fetch --no-tags --depth=1 origin "$PUSH_BEFORE"
+            fi
+            scripts/check-patch.sh "$PUSH_BEFORE" HEAD
+          else
+            # Pull requests use the temporary merge commit's first parent.
+            # Manual runs retain an explicitly limited latest-commit check.
+            scripts/check-patch.sh HEAD^ HEAD
+          fi
 
       - name: Validate actual storage providers on simulated Flash
         working-directory: crux-pilot

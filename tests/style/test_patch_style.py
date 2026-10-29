@@ -38,8 +38,8 @@ class BracesGateTest(unittest.TestCase):
         self.git("add", "--all")
         self.git("commit", "-q", "-m", message)
 
-    def check(self, env=None):
-        return subprocess.run(["bash", str(SCRIPT), "HEAD^", "HEAD"],
+    def check(self, env=None, base="HEAD^", head="HEAD"):
+        return subprocess.run(["bash", str(SCRIPT), base, head],
                               cwd=self.root, capture_output=True, text=True,
                               env=env or os.environ.copy())
 
@@ -85,6 +85,36 @@ class BracesGateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("No changed C source", result.stdout)
 
+
+    def test_explicit_range_checks_earlier_commit_in_multi_commit_push(self):
+        self.write("component.c", "int base(void)\n{\n    return 0;\n}\n")
+        self.commit("baseline")
+        self.write("component.c", "int base(void)\n{\n    return 0;\n}\n"
+                   "\nint added(int value)\n{\n    if (value)\n"
+                   "        return 1;\n    return 0;\n}\n")
+        self.commit("first of two pushed commits")
+        self.write("notes.md", "Second pushed commit changes only documentation.\n")
+        self.commit("second of two pushed commits")
+        latest_only = self.check()
+        self.assertEqual(latest_only.returncode, 0,
+                         latest_only.stdout + latest_only.stderr)
+        full_push = self.check(base="HEAD~2")
+        self.assertNotEqual(full_push.returncode, 0,
+                            full_push.stdout + full_push.stderr)
+        self.assertIn("braces {} are required", full_push.stdout + full_push.stderr)
+
+    def test_records_body_only_legacy_braces_limitation(self):
+        # Zephyr's patch checker diagnoses added control statements, not an
+        # unchanged 'if' whose existing unbraced body was modified.
+        source = ("int legacy(int value)\n{\n    if (value)\n"
+                  "        return 1;\n    return 0;\n}\n")
+        self.write("component.c", source)
+        self.commit("pre-existing unbraced condition")
+        self.write("component.c", source.replace("        return 1;\n",
+                                                  "        return 2;\n"))
+        self.commit("edit only the existing body")
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_missing_git_history_fails_explicitly(self):
         self.write("component.c", "int base(void)\n{\n    return 0;\n}\n")
