@@ -14,6 +14,30 @@ The final PR #65 Linux naming integration is recorded
 [here](evidence/m5-system-linux-integration/README.md), including the byte-identical
 System source rename and current build/analysis references.
 
+## Watchdog start output contract
+
+`crux_watchdog_start()` treats its non-null output as write-only storage. It
+publishes a valid feed token only after native start and the subsequent running
+state observation succeed. Every returned error preserves the caller's output,
+including invalid arguments/context, unavailable resources, lock/probe failure,
+rejected repeated start and uncertain native activation. The function does not
+read or clear the previous value. Check the return status before using newly
+supplied output storage; an uninitialised value remains unusable after failure.
+
+This deliberately replaces the earlier zero-on-failure output policy without
+changing the C signature, token representation or watchdog state machine. A
+rejected repeated start using the owner's variable preserves its token. That
+token does not override FAULTED/EXPIRED or make feeding safe after an uncertain
+activation. One activation per boot, no retry after an attempted native start,
+and no disable/rollback remain unchanged. Output preservation does not imply
+that a failed native start had no hardware effects.
+
+The original verification identities and results below are retained as historical
+evidence. The output-preservation change adds Common failure-path regressions
+and strengthens the existing Linux/native_sim lifecycle tests; its final source
+and hosted results are recorded separately in its pull request. Other resource
+creation APIs retain their existing output policies.
+
 ## Scope and reproducibility
 
 Six public C17 operations in `<crux/system.h>` / `crux::system`, usable from

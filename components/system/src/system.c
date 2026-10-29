@@ -146,7 +146,6 @@ crux_status_t crux_watchdog_start(uint32_t timeout_ms, crux_watchdog_t *out)
 {
     if (out == NULL)
         return CRUX_ERR_INVALID_ARGUMENT;
-    *out = (crux_watchdog_t){0};
     if (timeout_ms == 0)
         return CRUX_ERR_OUT_OF_RANGE;
     if (!crux_system_context_allowed())
