@@ -44,10 +44,12 @@ int execution_thread_lifetime(void)
 
 int execution_thread_inputs(void)
 {
-    crux_thread_t thread = {0};
+    crux_thread_t thread = {71, 42};
     int value = 0;
     CHECK(crux_thread_create(NULL, publish, &value, &thread) == CRUX_ERR_INVALID_ARGUMENT);
+    CHECK(thread.slot == 71 && thread.generation == 42);
     CHECK(crux_thread_create(&options, NULL, &value, &thread) == CRUX_ERR_INVALID_ARGUMENT);
+    CHECK(thread.slot == 71 && thread.generation == 42);
     CHECK(crux_thread_create(&options, publish, &value, NULL) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(crux_thread_join(NULL, 0) == CRUX_ERR_INVALID_ARGUMENT);
     crux_thread_options_t invalid = options;
@@ -75,8 +77,9 @@ int execution_thread_capacity(void)
     for (size_t i = 0; i < 4; ++i) {
         CHECK(crux_thread_create(&options, publish, &values[i], &threads[i]) == CRUX_OK);
     }
-    crux_thread_t extra = {0};
+    crux_thread_t extra = threads[0];
     CHECK(crux_thread_create(&options, publish, &values[0], &extra) == CRUX_ERR_NO_RESOURCES);
+    CHECK(extra.slot == threads[0].slot && extra.generation == threads[0].generation);
     for (size_t i = 0; i < 4; ++i) {
         CHECK(crux_thread_join(&threads[i], 1000) == CRUX_OK);
         CHECK(values[i] == 42);
@@ -158,8 +161,9 @@ int execution_mutex_wakeup(void)
 
 int execution_semaphore_tokens(void)
 {
-    crux_semaphore_t semaphore = {0};
+    crux_semaphore_t semaphore = {71, 42};
     CHECK(crux_semaphore_create(0, 0, &semaphore) == CRUX_ERR_OUT_OF_RANGE);
+    CHECK(semaphore.slot == 71 && semaphore.generation == 42);
     CHECK(crux_semaphore_create(2, 1, &semaphore) == CRUX_ERR_OUT_OF_RANGE);
     CHECK(crux_semaphore_create(0, UINT32_MAX, &semaphore) == CRUX_ERR_OUT_OF_RANGE);
     CHECK(crux_semaphore_create(0, 2, &semaphore) == CRUX_OK);
@@ -191,10 +195,13 @@ int execution_sync_capacity(void)
         CHECK(crux_mutex_create(&mutexes[i]) == CRUX_OK);
         CHECK(crux_semaphore_create(0, 1, &semaphores[i]) == CRUX_OK);
     }
-    crux_mutex_t extra_mutex = {0};
-    crux_semaphore_t extra_semaphore = {0};
+    crux_mutex_t extra_mutex = mutexes[0];
+    crux_semaphore_t extra_semaphore = semaphores[0];
     CHECK(crux_mutex_create(&extra_mutex) == CRUX_ERR_NO_RESOURCES);
     CHECK(crux_semaphore_create(0, 1, &extra_semaphore) == CRUX_ERR_NO_RESOURCES);
+    CHECK(extra_mutex.slot == mutexes[0].slot && extra_mutex.generation == mutexes[0].generation);
+    CHECK(extra_semaphore.slot == semaphores[0].slot &&
+          extra_semaphore.generation == semaphores[0].generation);
     for (size_t i = 0; i < 8; ++i) {
         CHECK(crux_mutex_destroy(&mutexes[i]) == CRUX_OK);
         CHECK(crux_semaphore_destroy(&semaphores[i]) == CRUX_OK);

@@ -40,9 +40,6 @@ static semaphore_slot_t *find_semaphore(crux_semaphore_t handle)
 }
 crux_status_t crux_mutex_create(crux_mutex_t *out)
 {
-    if (out != NULL) {
-        *out = (crux_mutex_t){0};
-    }
     if (!crux_sync_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (out == NULL)
@@ -158,9 +155,6 @@ crux_status_t crux_mutex_destroy(crux_mutex_t *mutex)
 }
 crux_status_t crux_semaphore_create(uint32_t initial, uint32_t maximum, crux_semaphore_t *out)
 {
-    if (out != NULL) {
-        *out = (crux_semaphore_t){0};
-    }
     if (!crux_sync_context_allowed())
         return CRUX_ERR_NOT_SUPPORTED;
     if (out == NULL)
