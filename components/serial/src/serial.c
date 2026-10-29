@@ -51,8 +51,6 @@ static crux_status_t config_check(const crux_serial_config_t *config)
 crux_status_t crux_serial_open(crux_serial_port_t port, const crux_serial_config_t *config,
                                crux_serial_t *out)
 {
-    if (out != NULL)
-        *out = (crux_serial_t){0};
     if (out == NULL || port >= CRUX_SERIAL_PORT_COUNT)
         return CRUX_ERR_INVALID_ARGUMENT;
     crux_status_t result = config_check(config);

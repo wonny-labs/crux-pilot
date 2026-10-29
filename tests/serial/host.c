@@ -193,7 +193,9 @@ static void cleanup_failure(void)
 static void unavailable(void)
 {
     assert(crux_serial_linux_bind(0, "/dev/crux-no-such-serial-test") == CRUX_OK);
-    assert(crux_serial_open(0, &config, &serial) == CRUX_ERR_NOT_READY && serial.slot == 0);
+    serial = (crux_serial_t){71, 42};
+    assert(crux_serial_open(0, &config, &serial) == CRUX_ERR_NOT_READY);
+    assert(serial.slot == 71 && serial.generation == 42);
 }
 static void admission(void)
 {

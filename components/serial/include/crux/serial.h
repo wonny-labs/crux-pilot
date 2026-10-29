@@ -42,7 +42,9 @@ typedef struct {
  * Open an exclusively owned logical serial port.
  * @param port Bound logical port identifier.
  * @param config Requested UART settings; unsupported combinations are rejected.
- * @param[out] out Handle set on success, invalid on failure.
+ * Check the return status before using newly supplied output storage. A successful
+ * open overwrites the output; do not overwrite an unrelated live handle.
+ * @param[out] out Handle set on success; unchanged on failure.
  * @return CRUX_OK or a crux_status_t error.
  */
 crux_status_t crux_serial_open(crux_serial_port_t port, const crux_serial_config_t *config,
