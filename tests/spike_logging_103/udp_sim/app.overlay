@@ -1,0 +1,14 @@
+/ {
+    chosen { zephyr,log-uart = &spike103_udp_uarts; };
+    spike103_udp_uarts: spike-udp-uarts {
+        compatible = "zephyr,log-uart";
+        uarts = <&spike103_udp_uart>;
+    };
+    spike103_udp_uart: spike-udp-uart {
+        compatible = "zephyr,uart-emul";
+        current-speed = <115200>;
+        rx-fifo-size = <16>;
+        tx-fifo-size = <1024>;
+        status = "okay";
+    };
+};

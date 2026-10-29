@@ -1,0 +1,24 @@
+/ {
+    chosen { zephyr,log-uart = &spike_log_uart_list; };
+    spike_log_uart_list: spike-log-uart-list {
+        compatible = "zephyr,log-uart";
+        uarts = <&spike_log_uart>;
+    };
+    spike_log_uart: spike-log-uart {
+        compatible = "zephyr,uart-emul";
+        current-speed = <115200>;
+        rx-fifo-size = <16>;
+        tx-fifo-size = <1024>;
+        status = "okay";
+    };
+};
+&flash0 {
+    erase-block-size = <4096>;
+    write-block-size = <1>;
+    partitions {
+        spike_log_partition: partition@100000 {
+            label = "spike-103-simulator-only";
+            reg = <0x100000 0x10000>;
+        };
+    };
+};

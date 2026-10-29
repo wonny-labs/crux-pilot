@@ -14,5 +14,6 @@ manifest:
           - cmsis_6
           - hal_nxp
           - littlefs
+          - segger
   self:
     path: crux-pilot
