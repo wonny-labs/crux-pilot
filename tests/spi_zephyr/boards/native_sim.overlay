@@ -8,7 +8,7 @@
 &spi0 {
 	status = "okay";
 	crux_spi_test_target: peripheral@0 {
-		compatible = "crux,spi-test-emulator";
+		compatible = "vnd,crux-spi-test-emulator";
 		reg = <0>;
 		spi-max-frequency = <500000>;
 		spi-cpol;
