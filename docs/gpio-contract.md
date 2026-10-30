@@ -22,9 +22,9 @@ failure-injection controls. The Zephyr provider uses `gpio_dt_spec` and native
 GPIO drivers. A composition must select the line with the `crux-gpio0`
 Devicetree alias; a missing, disabled or malformed selection fails the provider
 build. Current software configurations are Zephyr `native_sim/native/64` using
-GPIO emulation and the RT1060-EVKB Rev B cross-build using its existing SW0
-button resource. This cross-build does not qualify pin routing, electrical
-behaviour, timing or physical operation. RT1170 support remains unqualified.
+GPIO emulation and the RT1060-EVKB Rev B cross-build using the `user_button`
+resource (Zephyr's `sw0` alias). This cross-build does not qualify pin routing,
+electrical behaviour, timing or physical operation. RT1170 support remains unqualified.
 
 The representative consumer configures and reads one input. The existing controller M3
 `device_input` wrapper remains unchanged in this increment; its native sample
