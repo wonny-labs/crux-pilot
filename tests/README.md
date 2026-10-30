@@ -18,6 +18,10 @@ The I2C contract has a strict C17 Host loopback test and a `native_sim` Ztest us
 emulation controller. These checks cover argument validation, Host transfer behavior, native error
 mapping, and repeated-start message shape; they do not qualify a physical bus.
 
+The SPI contract has a strict C17 Host loopback test and a `native_sim` Ztest using Zephyr's SPI
+emulation controller. It checks full-duplex data exchange, Devicetree-selected transfer settings,
+argument validation, and native error mapping. It does not qualify a physical peripheral.
+
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
 | Portable components and controller logic | CTest with GoogleTest suites and standalone C/C++ tests | Linux Host |
