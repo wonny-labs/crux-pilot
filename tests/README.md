@@ -14,6 +14,10 @@ unsupported-profile shims, and actual Linux integration under `tests/time/busy_w
 cross-builds EVKB. Shims and compilation do not qualify a physical ISR or timing.
 See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 
+The SPI contract has a strict C17 Host loopback test and a `native_sim` Ztest using Zephyr's SPI
+emulation controller. It checks full-duplex data exchange, Devicetree-selected transfer settings,
+argument validation, and native error mapping. It does not qualify a physical peripheral.
+
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
 | Portable components and controller logic | CTest with GoogleTest suites and standalone C/C++ tests | Linux Host |

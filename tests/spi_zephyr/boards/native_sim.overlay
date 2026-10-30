@@ -1,0 +1,19 @@
+/* Software-only SPI target for the Crux provider contract test. */
+/ {
+	aliases {
+		crux-spi0 = &crux_spi_test_target;
+	};
+};
+
+&spi0 {
+	status = "okay";
+	crux_spi_test_target: peripheral@0 {
+		compatible = "crux,spi-test-emulator";
+		reg = <0>;
+		spi-max-frequency = <500000>;
+		spi-cpol;
+		spi-cpha;
+		spi-lsb-first;
+		status = "okay";
+	};
+};

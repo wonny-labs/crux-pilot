@@ -1,0 +1,3 @@
+description: Crux SPI provider software test target
+compatible: "crux,spi-test-emulator"
+include: spi-device.yaml

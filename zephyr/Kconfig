@@ -109,6 +109,12 @@ config CRUX_SERIAL
     help
       One explicitly dedicated UART, 256-byte RX and TX buffers. Task context only.
 
+config CRUX_SPI
+    bool "Crux synchronous SPI transceive"
+    depends on CRUX_PILOT_MODULE && SPI
+    help
+      Synchronous full-duplex byte transceive through the composition-selected crux-spi0 alias.
+
 config CRUX_LOGGING
     bool "Crux completed-text logging"
     depends on CRUX_PILOT_MODULE
