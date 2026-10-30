@@ -1,0 +1,22 @@
+set(CRUX_I2C_PROVIDER zephyr CACHE STRING "I2C provider for this composition")
+if(NOT CRUX_I2C_PROVIDER STREQUAL "zephyr")
+    message(FATAL_ERROR "Crux I2C unsupported provider: ${CRUX_I2C_PROVIDER}; expected zephyr")
+endif()
+
+get_filename_component(CRUX_I2C_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+add_library(crux_i2c_api INTERFACE)
+target_include_directories(crux_i2c_api INTERFACE "${CRUX_I2C_COMPONENT_DIR}/include")
+target_link_libraries(crux_i2c_api INTERFACE crux::base)
+
+add_library(crux_i2c_zephyr STATIC ../../src/i2c.c i2c_port_zephyr.c)
+target_include_directories(crux_i2c_zephyr PRIVATE ../../src .)
+target_link_libraries(crux_i2c_zephyr PRIVATE crux_i2c_api zephyr_interface)
+zephyr_append_cmake_library(crux_i2c_zephyr)
+target_compile_options(crux_i2c_zephyr PRIVATE -Wall -Wextra -Werror)
+set_property(TARGET crux_i2c_zephyr PROPERTY INTERFACE_CRUX_I2C_PROVIDER zephyr)
+set_property(TARGET crux_i2c_zephyr APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_I2C_PROVIDER)
+
+add_library(crux_i2c INTERFACE)
+add_library(crux::i2c ALIAS crux_i2c)
+target_link_libraries(crux_i2c INTERFACE crux_i2c_api)
+cmake_language(DEFER CALL crux_assert_portable_usage crux::i2c)
