@@ -1,4 +1,4 @@
-#define DT_DRV_COMPAT crux_i2c_test_emulator
+#define DT_DRV_COMPAT vnd_crux_i2c_test_emulator
 
 #include <errno.h>
 #include <stdbool.h>
