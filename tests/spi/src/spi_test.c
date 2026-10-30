@@ -1,6 +1,6 @@
 #include <assert.h>
-#include <stdint.h>
 #include <crux/spi.h>
+#include <stdint.h>
 
 int main(void)
 {

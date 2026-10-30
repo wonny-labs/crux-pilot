@@ -1,9 +1,9 @@
 #ifndef CRUX_SPI_H
 #define CRUX_SPI_H
 
+#include <crux/status.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <crux/status.h>
 
 #ifdef __cplusplus
 extern "C" {
