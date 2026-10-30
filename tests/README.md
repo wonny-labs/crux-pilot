@@ -265,6 +265,16 @@ and independent messaging consumers. RTC-disabled Time/Thread tests also remain
 in `tests/thread/zephyr`. Historical measurements and old test names are retained
 in [the original evidence](../docs/messaging-validation.md), not new qualification.
 
+## GPIO
+
+The Host CTest suite includes `GPIO.Host`, which exercises the same native-free
+input consumer against a deterministic in-memory provider, logical active-low
+input behavior, invalid arguments, unavailable state and injected provider
+failure. The native_sim Ztest uses Zephyr GPIO emulation. `scripts/test-gpio.sh` also rejects missing,
+disabled and malformed Devicetree selections and cross-builds the same portable
+consumer for RT1060-EVKB. No hardware operation is performed; the EVKB result is
+compile/link evidence only.
+
 ## Portable Serial
 
 `scripts/test-serial.sh --host-only` runs independently authored public C17/C++17
