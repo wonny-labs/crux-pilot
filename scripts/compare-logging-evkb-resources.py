@@ -111,7 +111,9 @@ def config_values(path: Path) -> dict[str, str | bool]:
 
 def config_enabled(values: dict[str, str | bool], name: str, profile: str) -> bool:
     value = values.get(name)
-    if value is False:
+    # Zephyr omits boolean symbols from .config when their dependencies are
+    # unavailable, as with LOG_BACKEND_NET in the networking-free UART profile.
+    if value is None or value is False or value == "n":
         return False
     if value == "y":
         return True
@@ -191,8 +193,8 @@ def load_profile(repo: Path, profile: str) -> dict[str, Any]:
             raise ValueError(f"{profile}: NET backend buffer must resolve to 480 bytes")
 
     config_hash = sha256_file(config_path)
-    if manifest.get("configuration_sha256", {}).get(".config") != config_hash:
-        raise ValueError(f"{profile}: resolved Kconfig hash differs from provenance")
+    # The required-artifact check above verifies .config against provenance's
+    # artifacts list, which is the repository's actual manifest schema.
     rom_path = build / "rom.json"
     ram_path = build / "ram.json"
     return {

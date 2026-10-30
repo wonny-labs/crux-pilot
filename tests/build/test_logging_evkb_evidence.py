@@ -37,8 +37,11 @@ def write_profile(root: Path, profile: str, rom_size: int, ram_size: int,
         net = profile != "uart"
     config_lines = [
         "CONFIG_LOG_BACKEND_UART=y" if uart else "# CONFIG_LOG_BACKEND_UART is not set",
-        "CONFIG_LOG_BACKEND_NET=y" if net else "# CONFIG_LOG_BACKEND_NET is not set",
     ]
+    if net:
+        config_lines.append("CONFIG_LOG_BACKEND_NET=y")
+    elif profile != "uart":
+        config_lines.append("# CONFIG_LOG_BACKEND_NET is not set")
     if net:
         config_lines.extend([
             "CONFIG_LOG_BACKEND_NET_OUTPUT_TEXT=y",
@@ -80,8 +83,6 @@ def write_profile(root: Path, profile: str, rom_size: int, ram_size: int,
         },
         "west_projects": [{"name": "zephyr", "git_commit": "c" * 40, "dirty": False}],
         "west_workspace_config_sha256": "d" * 64,
-        "configuration_sha256": {".config": artifacts[
-            f"build/zephyr/logging-evkb-{profile}/zephyr/.config"]["sha256"]},
         "tools": {
             "cmake": "cmake version 3.28.4",
             "ninja": "1.11.1",
@@ -126,6 +127,21 @@ class LoggingEvkbEvidenceTest(unittest.TestCase):
         self.assertEqual([row["ram_root_bytes"] for row in rows], [50, 80, 85])
         self.assertEqual([row["flash_delta_vs_uart_bytes"] for row in rows], [0, 100, 120])
         self.assertEqual([row["ram_delta_vs_uart_bytes"] for row in rows], [0, 30, 35])
+
+    def test_dependency_gated_absent_backend_symbol_counts_as_disabled(self):
+        uart_config = self.root / "build/zephyr/logging-evkb-uart/zephyr/.config"
+        self.assertNotIn("CONFIG_LOG_BACKEND_NET", uart_config.read_text())
+        rows = RESOURCES.build_comparison(self.root)
+        self.assertEqual(rows[0]["profile"], "uart")
+
+    def test_config_hash_uses_provenance_artifact_manifest(self):
+        manifest_path = self.root / "build/zephyr/logging-evkb-uart/provenance.json"
+        manifest = json.loads(manifest_path.read_text())
+        self.assertNotIn("configuration_sha256", manifest)
+        self.assertTrue(any(item["path"].endswith("/zephyr/.config")
+                            for item in manifest["artifacts"]))
+        rows = RESOURCES.build_comparison(self.root)
+        self.assertEqual(rows[0]["profile"], "uart")
 
     def test_tsv_retains_build_identity_and_comparable_sizes(self):
         rows = RESOURCES.build_comparison(self.root)
