@@ -107,6 +107,28 @@ Thread and Sync are independently selectable in Host and Zephyr builds. Thread d
 
 See the [Build and Integration Guide](build.md) for supported Linux Host and Zephyr build paths, external application examples, provider selection and troubleshooting. These workflows do not establish an installed SDK or general OS, board or toolchain compatibility.
 
+### Representative static resource bindings
+
+The following bindings describe the current software composition, not universal
+device discovery or physical qualification:
+
+| Logical role | Composition selection | Ownership and limits |
+| --- | --- | --- |
+| Serial port 0 | Zephyr `crux-serial0` Devicetree alias; the current provider admits the `native_sim` UART emulator and RT1060-EVKB LPUART3 profile | One exclusive owner. Missing, unsupported, or known conflicting UART selections fail during configuration/build. See the [Serial contract](serial-contract.md) and [composition validation](evidence/m5-serial/composition-validation.md). |
+| Logging output | One UART selected by Zephyr `zephyr,log-uart` | Native deferred Logging owns output. Unsupported UART modes and known Console, Shell, Serial, management, and Bluetooth conflicts fail during configuration/build, subject to the documented RT1060 Logging-only Console prerequisite. See the [Logging contract](logging-contract.md). |
+| Primary network interface | Zephyr's configured `net_if_get_default()` selection | NetIf observes this interface; Zephyr composition owns interface/device selection and startup. Crux does not select a physical Ethernet device or provide a network service registry. See the [networking contract](networking-contract.md). |
+| Storage | No new M6 target-storage binding | Existing M4 Flash, partition, and persistence decisions remain unchanged. The experimental `native_sim` File provider is not evidence for a target Flash layout or permission to enable target storage. |
+
+The Serial consumer composition uses the same runtime consumer sources with
+separate `native_sim/native/64` and `mimxrt1060_evk@B//qspi` overlays; its runner
+also builds the Host consumer. `scripts/test-serial.sh` runs these software
+checks without programming or resetting hardware. The Logging runner similarly
+builds its Host consumer, tests the native_sim provider, and cross-builds the
+RT1060-EVKB consumer (`scripts/test-logging.sh`). A successful cross-build
+demonstrates configuration and linkage only; it does not establish peripheral
+operation on a board. These are bounded examples of static composition, not a
+claim that every component supports every listed environment.
+
 ## Engineering and validation boundaries
 
 Crux uses complementary forms of evidence:
