@@ -110,6 +110,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-serial.sh
 
+      - name: Validate portable GPIO without hardware
+        working-directory: crux-pilot
+        run: scripts/test-gpio.sh
+
       - name: Validate controller integration (software-only)
         working-directory: crux-pilot
         run: scripts/test-controller-integration.sh
