@@ -68,8 +68,9 @@ static struct k_thread receiver_thread;
 static int create_collector(void)
 {
     int sock = zsock_socket(NET_AF_INET, NET_SOCK_DGRAM, NET_IPPROTO_UDP);
-    if (sock < 0)
+    if (sock < 0) {
         return sock;
+    }
     struct net_sockaddr_in address = {
         .sin_family = NET_AF_INET,
         .sin_port = net_htons(15141),
@@ -86,10 +87,11 @@ static void network_event(struct net_mgmt_event_callback *callback, uint64_t eve
 {
     (void)callback;
     (void)iface;
-    if (event == NET_EVENT_L4_CONNECTED)
+    if (event == NET_EVENT_L4_CONNECTED) {
         k_sem_give(&net_connected);
-    else if (event == NET_EVENT_L4_DISCONNECTED)
+    } else if (event == NET_EVENT_L4_DISCONNECTED) {
         k_sem_give(&net_disconnected);
+    }
 }
 static void drain_event_sem(struct k_sem *sem)
 {
@@ -109,8 +111,9 @@ static void receive_syslog(void *unused1, void *unused2, void *unused3)
         }
         int sock = receiver_socket;
         ssize_t count = zsock_recv(sock, datagram, sizeof(datagram) - 1, 0);
-        if (count <= 0)
+        if (count <= 0) {
             continue;
+        }
         k_mutex_lock(&capture_lock, K_FOREVER);
         if (net_used + (size_t)count + 1 < sizeof(net_capture)) {
             memcpy(net_capture + net_used, datagram, (size_t)count);
@@ -152,8 +155,9 @@ static unsigned uart_records_containing(const char *text)
     const char *end;
     while ((end = strchr(record, '\n')) != NULL) {
         const char *match = strstr(record, text);
-        if (match != NULL && match < end)
+        if (match != NULL && match < end) {
             ++count;
+        }
         record = end + 1;
     }
     k_mutex_unlock(&capture_lock);
@@ -179,8 +183,9 @@ static unsigned net_records_containing(const char *text)
     const char *end;
     while ((end = strchr(record, '\n')) != NULL) {
         const char *match = strstr(record, text);
-        if (match != NULL && match < end)
+        if (match != NULL && match < end) {
             ++count;
+        }
         record = end + 1;
     }
     k_mutex_unlock(&capture_lock);
@@ -208,23 +213,26 @@ static bool net_record_has_priority(const char *text, const char *priority)
 #endif
 static void wait_for(const char *text)
 {
-    for (unsigned i = 0; i < 200 && !contains(text); ++i)
+    for (unsigned i = 0; i < 200 && !contains(text); ++i) {
         k_sleep(K_MSEC(10));
+    }
     zassert_true(contains(text), "missing actual UART output: %s", text);
 }
 #if defined(CONFIG_LOG_BACKEND_UART)
 static void wait_for_uart(const char *text)
 {
-    for (unsigned i = 0; i < 200 && !contains_uart(text); ++i)
+    for (unsigned i = 0; i < 200 && !contains_uart(text); ++i) {
         k_sleep(K_MSEC(10));
+    }
     zassert_true(contains_uart(text), "missing actual UART output: %s", text);
 }
 #endif
 #if defined(CONFIG_LOG_BACKEND_NET)
 static void wait_for_net(const char *text)
 {
-    for (unsigned i = 0; i < 200 && !contains_net(text); ++i)
+    for (unsigned i = 0; i < 200 && !contains_net(text); ++i) {
         k_sleep(K_MSEC(10));
+    }
     zassert_true(contains_net(text), "missing actual UDP Syslog output: %s", text);
 }
 #endif
@@ -244,8 +252,9 @@ static void *setup(void)
                                  NET_EVENT_L4_CONNECTED | NET_EVENT_L4_DISCONNECTED);
     net_mgmt_add_event_callback(&net_event_callback);
     struct net_if *iface = net_if_get_default();
-    if (!net_if_is_up(iface))
+    if (!net_if_is_up(iface)) {
         zassert_equal(net_if_up(iface), 0, "cannot bring up native_sim loopback interface");
+    }
     zassert_equal(crux_log_set_level(CRUX_LOG_INFO), CRUX_OK);
     zassert_equal(crux_log_write(CRUX_LOG_INFO, "network", "before-l4-ready"), CRUX_OK);
     k_sleep(K_MSEC(100));
@@ -391,8 +400,9 @@ ZTEST(logging, test_simulated_udp_send_failure_and_recovery)
         uint32_t start = k_uptime_get_32();
         zassert_equal(crux_log_write(CRUX_LOG_INFO, "network", record), CRUX_OK);
         uint32_t elapsed = k_uptime_get_32() - start;
-        if (elapsed > active_max_call_ms)
+        if (elapsed > active_max_call_ms) {
             active_max_call_ms = elapsed;
+        }
 #if defined(CONFIG_LOG_BACKEND_UART)
         active_last_submit_ms = k_uptime_get_32();
 #endif
@@ -419,8 +429,9 @@ ZTEST(logging, test_simulated_udp_send_failure_and_recovery)
     drain_event_sem(&net_disconnected);
     net_mgmt_event_notify(NET_EVENT_L4_DISCONNECTED, iface);
     zassert_equal(k_sem_take(&net_disconnected, K_SECONDS(1)), 0);
-    for (unsigned i = 0; i < 100 && log_backend_is_active(backend); ++i)
+    for (unsigned i = 0; i < 100 && log_backend_is_active(backend); ++i) {
         k_sleep(K_MSEC(10));
+    }
     zassert_false(log_backend_is_active(backend),
                   "NET backend must deactivate after simulated L4 disconnect");
 
@@ -434,8 +445,9 @@ ZTEST(logging, test_simulated_udp_send_failure_and_recovery)
         uint32_t start = k_uptime_get_32();
         zassert_equal(crux_log_write(CRUX_LOG_INFO, "network", record), CRUX_OK);
         uint32_t elapsed = k_uptime_get_32() - start;
-        if (elapsed > max_call_ms)
+        if (elapsed > max_call_ms) {
             max_call_ms = elapsed;
+        }
 #if defined(CONFIG_LOG_BACKEND_UART)
         last_submit_ms = k_uptime_get_32();
 #endif
@@ -460,8 +472,9 @@ ZTEST(logging, test_simulated_udp_send_failure_and_recovery)
     zassert_equal(net_if_up(iface), 0);
     net_mgmt_event_notify(NET_EVENT_L4_CONNECTED, iface);
     zassert_equal(k_sem_take(&net_connected, K_SECONDS(1)), 0);
-    for (unsigned i = 0; i < 100 && !log_backend_is_active(backend); ++i)
+    for (unsigned i = 0; i < 100 && !log_backend_is_active(backend); ++i) {
         k_sleep(K_MSEC(10));
+    }
     zassert_true(log_backend_is_active(backend), "NET backend unexpectedly deactivated");
     zassert_equal(crux_log_write(CRUX_LOG_INFO, "network", "after-send-failure-recovery"), CRUX_OK);
     wait_for_net("network: after-send-failure-recovery");
@@ -487,8 +500,9 @@ ZTEST(logging, test_simulated_l4_disconnect_and_reactivation)
         uint32_t start = k_uptime_get_32();
         zassert_equal(crux_log_write(CRUX_LOG_INFO, "network", record), CRUX_OK);
         uint32_t elapsed = k_uptime_get_32() - start;
-        if (elapsed > max_call_ms)
+        if (elapsed > max_call_ms) {
             max_call_ms = elapsed;
+        }
 #if defined(CONFIG_LOG_BACKEND_UART)
         last_submit_ms = k_uptime_get_32();
 #endif
@@ -530,8 +544,9 @@ ZTEST(logging, test_no_collector_best_effort_without_ack)
         uint32_t start = k_uptime_get_32();
         zassert_equal(crux_log_write(CRUX_LOG_INFO, "network", record), CRUX_OK);
         uint32_t elapsed = k_uptime_get_32() - start;
-        if (elapsed > max_call_ms)
+        if (elapsed > max_call_ms) {
             max_call_ms = elapsed;
+        }
 #if defined(CONFIG_LOG_BACKEND_UART)
         last_submit_ms = k_uptime_get_32();
 #endif
@@ -625,8 +640,9 @@ ZTEST(logging, test_concurrent_native_records)
 #if defined(CONFIG_LOG_BACKEND_NET)
             complete = complete && net_producer_records(tags[i]) == 3;
 #endif
-            if (complete)
+            if (complete) {
                 break;
+            }
             k_sleep(K_MSEC(10));
         }
 #if defined(CONFIG_LOG_BACKEND_UART)
