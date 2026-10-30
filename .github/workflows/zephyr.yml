@@ -342,6 +342,18 @@ jobs:
             crux-pilot/build/zephyr/logging-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/logging-evkb/zephyr/zephyr.map
             crux-pilot/build/zephyr/logging-evkb/zephyr/zephyr.elf
+            crux-pilot/build/evidence/logging-evkb/
+            crux-pilot/build/zephyr/logging-evkb-*/provenance.json
+            crux-pilot/build/zephyr/logging-evkb-*/rom.json
+            crux-pilot/build/zephyr/logging-evkb-*/ram.json
+            crux-pilot/build/zephyr/logging-evkb-*/CMakeCache.txt
+            crux-pilot/build/zephyr/logging-evkb-*/compile_commands.json
+            crux-pilot/build/zephyr/logging-evkb-*/zephyr/.config
+            crux-pilot/build/zephyr/logging-evkb-*/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/logging-evkb-*/zephyr/zephyr.stat
+            crux-pilot/build/zephyr/logging-evkb-*/zephyr/zephyr.map
+            crux-pilot/build/zephyr/logging-evkb-*/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/logging-evkb-*/zephyr/zephyr.bin
             crux-pilot/build/logging-composition/*/build.log
             crux-pilot/build/serial-composition/*/build.log
             crux-pilot/build/serial-composition/*/.config
