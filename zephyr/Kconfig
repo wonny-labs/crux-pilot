@@ -109,6 +109,12 @@ config CRUX_SERIAL
     help
       One explicitly dedicated UART, 256-byte RX and TX buffers. Task context only.
 
+config CRUX_I2C
+    bool "Crux synchronous I2C transfers"
+    depends on CRUX_PILOT_MODULE && I2C
+    help
+      Synchronous 7-bit I2C transfers through the composition-selected crux-i2c0 alias.
+
 config CRUX_LOGGING
     bool "Crux completed-text logging"
     depends on CRUX_PILOT_MODULE
