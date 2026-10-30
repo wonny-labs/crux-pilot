@@ -1,0 +1,6 @@
+/ {
+	aliases { crux-gpio0 = &crux_gpio0; };
+	crux_gpio0: crux-gpio-0 {
+		gpios = <&gpio0 0 GPIO_ACTIVE_LOW>;
+	};
+};

@@ -115,6 +115,13 @@ config CRUX_LOGGING
     help
       Qualified native deferred UART backend; configuration is checked explicitly.
 
+config CRUX_GPIO
+	bool "Crux synchronous GPIO line"
+	depends on CRUX_PILOT_MODULE && GPIO
+	help
+	  One statically selected input/output line using the native GPIO driver.
+	  The required crux-gpio0 Devicetree alias is checked by the provider.
+
 config CRUX_SYSTEM
     bool "Crux System observation, reset and single-owner watchdog"
     depends on CRUX_PILOT_MODULE && MULTITHREADING
