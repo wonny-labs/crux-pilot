@@ -2,10 +2,12 @@ set(CRUX_SERIAL_PROVIDER host CACHE STRING "Serial provider for this composition
 if(NOT CRUX_SERIAL_PROVIDER STREQUAL "host")
     message(FATAL_ERROR "Crux Serial unsupported provider: ${CRUX_SERIAL_PROVIDER}; expected host")
 endif()
+
 find_package(Threads REQUIRED)
 add_library(crux_serial_api INTERFACE)
 target_include_directories(crux_serial_api INTERFACE include)
 target_link_libraries(crux_serial_api INTERFACE crux::base)
+
 add_library(crux_serial_linux STATIC src/serial.c ports/linux/serial_linux.c)
 target_link_libraries(crux_serial_linux PRIVATE crux_serial_api)
 # Match current Thread/Sync: supported glibc resolves pthread from libc. Preserve
@@ -16,6 +18,7 @@ endif()
 target_include_directories(crux_serial_linux PRIVATE src ports/linux)
 target_compile_definitions(crux_serial_linux PRIVATE _DEFAULT_SOURCE _POSIX_C_SOURCE=200809L)
 target_compile_options(crux_serial_linux PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
 set_property(TARGET crux_serial_linux PROPERTY INTERFACE_CRUX_SERIAL_PROVIDER host)
 set_property(TARGET crux_serial_linux APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_SERIAL_PROVIDER)
 add_library(crux_serial INTERFACE)

@@ -2,6 +2,7 @@ set(CRUX_SERIAL_PROVIDER zephyr CACHE STRING "Serial provider for this compositi
 if(NOT CRUX_SERIAL_PROVIDER STREQUAL "zephyr")
     message(FATAL_ERROR "Crux Serial unsupported provider: ${CRUX_SERIAL_PROVIDER}; expected zephyr")
 endif()
+
 get_filename_component(CRUX_SERIAL_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 add_library(crux_serial_api INTERFACE)
 target_include_directories(crux_serial_api INTERFACE "${CRUX_SERIAL_COMPONENT_DIR}/include")
@@ -12,6 +13,7 @@ target_include_directories(crux_serial_zephyr PRIVATE ../../src .)
 target_link_libraries(crux_serial_zephyr PRIVATE crux_serial_api zephyr_interface)
 zephyr_append_cmake_library(crux_serial_zephyr)
 target_compile_options(crux_serial_zephyr PRIVATE -Wall -Wextra -Werror)
+
 set_property(TARGET crux_serial_zephyr PROPERTY INTERFACE_CRUX_SERIAL_PROVIDER zephyr)
 set_property(TARGET crux_serial_zephyr APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_SERIAL_PROVIDER)
 add_library(crux_serial INTERFACE)

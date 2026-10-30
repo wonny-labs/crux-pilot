@@ -5,17 +5,20 @@ set(CRUX_SYSTEM_PROVIDER zephyr CACHE STRING "System provider for this compositi
 if(NOT CRUX_SYSTEM_PROVIDER STREQUAL "zephyr")
     message(FATAL_ERROR "Crux System unsupported provider: ${CRUX_SYSTEM_PROVIDER}")
 endif()
+
 foreach(required WATCHDOG HWINFO REBOOT)
     if(NOT CONFIG_${required})
         message(FATAL_ERROR "Crux System requires CONFIG_${required}=y")
     endif()
 endforeach()
+
 # M3 owns both native watchdog and initial reset-cause clear, even without test commands.
 foreach(owner CRUX_CONTROLLER_M3 WDT_SHELL HWINFO_SHELL TASK_WDT_HW_FALLBACK)
     if(CONFIG_${owner})
         message(FATAL_ERROR "Crux System conflicts with native owner CONFIG_${owner}")
     endif()
 endforeach()
+
 get_filename_component(CRUX_SYSTEM_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 add_library(crux_system_api INTERFACE)
 target_include_directories(crux_system_api INTERFACE "${CRUX_SYSTEM_COMPONENT_DIR}/include")
@@ -26,6 +29,7 @@ target_include_directories(crux_system_zephyr PRIVATE ../../src .)
 target_link_libraries(crux_system_zephyr PRIVATE crux_system_api zephyr_interface)
 zephyr_append_cmake_library(crux_system_zephyr)
 target_compile_options(crux_system_zephyr PRIVATE -Wall -Wextra -Werror)
+
 set_property(TARGET crux_system_zephyr PROPERTY INTERFACE_CRUX_SYSTEM_PROVIDER zephyr)
 set_property(TARGET crux_system_zephyr APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_SYSTEM_PROVIDER)
 add_library(crux_system INTERFACE)
