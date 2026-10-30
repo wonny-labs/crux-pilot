@@ -119,7 +119,7 @@ config CRUX_GPIO
 	bool "Crux synchronous GPIO line"
 	depends on CRUX_PILOT_MODULE && GPIO
 	help
-	  One statically selected input/output line using the native GPIO driver.
+	  One statically selected input line using the native GPIO driver.
 	  The required crux-gpio0 Devicetree alias is checked by the provider.
 
 config CRUX_SYSTEM
