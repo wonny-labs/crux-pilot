@@ -14,6 +14,10 @@ unsupported-profile shims, and actual Linux integration under `tests/time/busy_w
 cross-builds EVKB. Shims and compilation do not qualify a physical ISR or timing.
 See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 
+The I2C contract has a strict C17 Host loopback test and a `native_sim` Ztest using Zephyr's I2C
+emulation controller. These checks cover argument validation, Host transfer behavior, native error
+mapping, and repeated-start message shape; they do not qualify a physical bus.
+
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
 | Portable components and controller logic | CTest with GoogleTest suites and standalone C/C++ tests | Linux Host |

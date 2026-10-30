@@ -1,0 +1,3 @@
+description: Crux I2C provider software test target
+compatible: "crux,i2c-test-emulator"
+include: i2c-device.yaml

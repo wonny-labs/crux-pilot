@@ -1,0 +1,15 @@
+/* Software-only I2C target for the Crux provider contract test. */
+/ {
+	aliases {
+		crux-i2c0 = &i2c0;
+	};
+};
+
+&i2c0 {
+	status = "okay";
+	crux_i2c_test_target: crux-i2c-test@32 {
+		compatible = "crux,i2c-test-emulator";
+		reg = <0x32>;
+		status = "okay";
+	};
+};
