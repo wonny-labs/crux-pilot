@@ -1,6 +1,6 @@
 #include <assert.h>
-#include <stdint.h>
 #include <crux/i2c.h>
+#include <stdint.h>
 
 int main(void)
 {
@@ -19,8 +19,8 @@ int main(void)
 
     uint8_t longer_than_old_limit[256] = {0};
     uint8_t echoed[sizeof(longer_than_old_limit)] = {0};
-    assert(crux_i2c_transfer(0x20, longer_than_old_limit, sizeof(longer_than_old_limit),
-                             echoed, sizeof(echoed)) == CRUX_OK);
+    assert(crux_i2c_transfer(0x20, longer_than_old_limit, sizeof(longer_than_old_limit), echoed,
+                             sizeof(echoed)) == CRUX_OK);
     for (size_t i = 0; i < sizeof(echoed); ++i) {
         assert(echoed[i] == 0);
     }

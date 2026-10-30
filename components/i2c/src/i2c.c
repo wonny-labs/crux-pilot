@@ -7,8 +7,7 @@ crux_status_t crux_i2c_transfer(uint16_t address, const uint8_t *tx_data, size_t
     if (address > UINT16_C(0x7f)) {
         return CRUX_ERR_OUT_OF_RANGE;
     }
-    if ((tx_length == 0 && rx_length == 0) ||
-        (tx_length != 0 && tx_data == NULL) ||
+    if ((tx_length == 0 && rx_length == 0) || (tx_length != 0 && tx_data == NULL) ||
         (rx_length != 0 && rx_data == NULL)) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }

@@ -17,7 +17,7 @@
 static const struct device *const bus = DEVICE_DT_GET(CRUX_I2C_NODE);
 
 crux_status_t crux_i2c_impl_transfer(uint16_t address, const uint8_t *tx_data, size_t tx_length,
-                                    uint8_t *rx_data, size_t rx_length)
+                                     uint8_t *rx_data, size_t rx_length)
 {
     if (!device_is_ready(bus)) {
         return CRUX_ERR_NOT_READY;
@@ -37,8 +37,7 @@ crux_status_t crux_i2c_impl_transfer(uint16_t address, const uint8_t *tx_data, s
         messages[message_count++] = (struct i2c_msg){
             .buf = rx_data,
             .len = (uint32_t)rx_length,
-            .flags = I2C_MSG_READ | I2C_MSG_STOP |
-                     (tx_length != 0 ? I2C_MSG_RESTART : 0),
+            .flags = I2C_MSG_READ | I2C_MSG_STOP | (tx_length != 0 ? I2C_MSG_RESTART : 0),
         };
     } else if (tx_length != 0) {
         messages[0].flags |= I2C_MSG_STOP;
