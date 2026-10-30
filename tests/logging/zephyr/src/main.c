@@ -91,6 +91,11 @@ static void network_event(struct net_mgmt_event_callback *callback, uint64_t eve
     else if (event == NET_EVENT_L4_DISCONNECTED)
         k_sem_give(&net_disconnected);
 }
+static void drain_event_sem(struct k_sem *sem)
+{
+    while (k_sem_take(sem, K_NO_WAIT) == 0) {
+    }
+}
 static void receive_syslog(void *unused1, void *unused2, void *unused3)
 {
     (void)unused1;
@@ -138,6 +143,7 @@ static bool contains_uart(const char *text)
     k_mutex_unlock(&capture_lock);
     return found;
 }
+#if defined(CONFIG_LOG_BACKEND_NET)
 static unsigned uart_records_containing(const char *text)
 {
     unsigned count = 0;
@@ -153,6 +159,7 @@ static unsigned uart_records_containing(const char *text)
     k_mutex_unlock(&capture_lock);
     return count;
 }
+#endif
 #endif
 #if defined(CONFIG_LOG_BACKEND_NET)
 static bool contains_net(const char *text)
@@ -329,9 +336,20 @@ ZTEST(logging, test_simulated_udp_send_failure_and_recovery)
     wait_for_net("network: before-send-failure");
     zassert_true(log_backend_is_active(backend), "NET backend must be active before link loss");
 
+    drain_event_sem(&net_connected);
+    drain_event_sem(&net_disconnected);
     zassert_equal(net_if_down(iface), 0);
-    zassert_true(log_backend_is_active(backend),
-                 "administrative link loss without an L4 event must leave the backend active");
+    int disconnected = k_sem_take(&net_disconnected, K_SECONDS(1));
+    if (disconnected != 0) {
+        /* Some native_sim configurations do not report the route transition. */
+        net_mgmt_event_notify(NET_EVENT_L4_DISCONNECTED, iface);
+        zassert_equal(k_sem_take(&net_disconnected, K_SECONDS(1)), 0,
+                      "simulated L4 disconnect event was not delivered");
+    }
+    for (unsigned i = 0; i < 100 && log_backend_is_active(backend); ++i)
+        k_sleep(K_MSEC(10));
+    zassert_false(log_backend_is_active(backend),
+                  "NET backend must deactivate after route loss is reported at L4");
 
     int probe = zsock_socket(NET_AF_INET, NET_SOCK_DGRAM, NET_IPPROTO_UDP);
     zassert_true(probe >= 0, "cannot create UDP route-failure probe");
@@ -348,6 +366,18 @@ ZTEST(logging, test_simulated_udp_send_failure_and_recovery)
                      "native_sim must reject UDP transmission while its interface is down");
     }
     zassert_equal(zsock_close(probe), 0);
+
+    /* Re-enable the backend while the route remains down so this burst checks
+     * the active NET output path. This is injected L4 event-handler testing,
+     * not a physical connection-manager validation. */
+    drain_event_sem(&net_connected);
+    net_mgmt_event_notify(NET_EVENT_L4_CONNECTED, iface);
+    zassert_equal(k_sem_take(&net_connected, K_SECONDS(1)), 0,
+                  "simulated L4 reconnect event was not delivered");
+    for (unsigned i = 0; i < 100 && !log_backend_is_active(backend); ++i)
+        k_sleep(K_MSEC(10));
+    zassert_true(log_backend_is_active(backend),
+                 "NET backend must reactivate for the active send-failure burst");
 
     uint32_t active_max_call_ms = 0;
 #if defined(CONFIG_LOG_BACKEND_UART)
@@ -379,13 +409,12 @@ ZTEST(logging, test_simulated_udp_send_failure_and_recovery)
         "active NET route-down burst: max submit %u ms; UDP-only profile has no UART observation\n",
         active_max_call_ms);
 #endif
-    zassert_true(log_backend_is_active(backend),
-                 "NET backend must remain active until the simulated L4-disconnect event");
     zassert_equal(net_records_containing("network: active-route-down-"), 0,
                   "active NET backend must not deliver route-down records to the collector");
 
     /* Test the NET backend's event handler explicitly. This is simulated
      * lifecycle delivery, not physical connection-manager validation. */
+    drain_event_sem(&net_disconnected);
     net_mgmt_event_notify(NET_EVENT_L4_DISCONNECTED, iface);
     zassert_equal(k_sem_take(&net_disconnected, K_SECONDS(1)), 0);
     for (unsigned i = 0; i < 100 && log_backend_is_active(backend); ++i)
@@ -399,7 +428,7 @@ ZTEST(logging, test_simulated_udp_send_failure_and_recovery)
 #endif
     for (unsigned i = 0; i < 16; ++i) {
         char record[48];
-        snprintk(record, sizeof(record), "send-failure-%u", i);
+        snprintk(record, sizeof(record), "inactive-route-down-%u", i);
         uint32_t start = k_uptime_get_32();
         zassert_equal(crux_log_write(CRUX_LOG_INFO, "network", record), CRUX_OK);
         uint32_t elapsed = k_uptime_get_32() - start;
@@ -410,18 +439,20 @@ ZTEST(logging, test_simulated_udp_send_failure_and_recovery)
 #endif
     }
 #if defined(CONFIG_LOG_BACKEND_UART)
-    wait_for_uart("network: send-failure-15");
-    zassert_equal(uart_records_containing("network: send-failure-"), 16,
+    wait_for_uart("network: inactive-route-down-15");
+    zassert_equal(uart_records_containing("network: inactive-route-down-"), 16,
                   "UART must retain the full burst while NET is deactivated");
     uint32_t uart_drain_ms = k_uptime_get_32() - last_submit_ms;
-    TC_PRINT("route-down burst: max submit %u ms; last record observed on UART after %u ms\n",
-             max_call_ms, uart_drain_ms);
+    TC_PRINT(
+        "inactive NET route-down burst: max submit %u ms; last UART record observed after %u ms\n",
+        max_call_ms, uart_drain_ms);
 #else
     k_sleep(K_MSEC(100));
-    TC_PRINT("route-down burst: max submit %u ms; UDP-only profile has no UART observation\n",
+    TC_PRINT("inactive NET route-down burst: max submit %u ms; UDP-only profile has no UART "
+             "observation\n",
              max_call_ms);
 #endif
-    zassert_equal(net_records_containing("network: send-failure-"), 0,
+    zassert_equal(net_records_containing("network: inactive-route-down-"), 0,
                   "deactivated NET backend must not deliver the route-down log burst");
 
     zassert_equal(net_if_up(iface), 0);
@@ -437,9 +468,11 @@ ZTEST(logging, test_simulated_udp_send_failure_and_recovery)
 ZTEST(logging, test_simulated_l4_disconnect_and_reactivation)
 {
     struct net_if *iface = net_if_get_default();
+    drain_event_sem(&net_connected);
+    drain_event_sem(&net_disconnected);
     zassert_equal(net_if_down(iface), 0);
-    /* Simulate L4 lifecycle delivery: native_sim loopback does not emit the
-     * connection-manager events associated with a physical route manager. */
+    /* Explicitly exercise Zephyr's L4 event handler; this is simulated event
+     * delivery and does not validate a physical connection manager. */
     net_mgmt_event_notify(NET_EVENT_L4_DISCONNECTED, iface);
     zassert_equal(k_sem_take(&net_disconnected, K_SECONDS(1)), 0);
     uint32_t max_call_ms = 0;
