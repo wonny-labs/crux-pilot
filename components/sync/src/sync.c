@@ -54,6 +54,7 @@ crux_status_t crux_mutex_create(crux_mutex_t *out)
     if (out == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
+
     sync_native_metadata_lock();
     crux_status_t result = CRUX_ERR_NO_RESOURCES;
     for (uint32_t i = 0; i < CRUX_SYNC_MUTEX_COUNT; ++i) {
@@ -80,15 +81,18 @@ crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
     if (!crux_sync_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
+
     sync_native_deadline_t deadline;
     crux_status_t result = crux_sync_make_deadline(timeout_ms, &deadline);
     if (result != CRUX_OK) {
         return result;
     }
+
     result = sync_native_metadata_lock_until(&deadline);
     if (result != CRUX_OK) {
         return result;
     }
+
     mutex_slot_t *slot = find_mutex(mutex);
     if (slot == NULL) {
         sync_native_metadata_unlock();
@@ -102,6 +106,7 @@ crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
         sync_native_metadata_unlock();
         return CRUX_ERR_NO_RESOURCES;
     }
+
     ++slot->life.users;
     if (deadline.poll) {
         result = crux_mutex_impl_lock(&slot->native, &deadline);
