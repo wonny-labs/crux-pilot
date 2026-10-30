@@ -12,6 +12,6 @@ mapfile -t modules < <(cd "$workspace" && west list cmsis cmsis_6 hal_nxp -f '{a
 modules+=("$repo")
 modules_text="$(IFS=';'; printf '%s' "${modules[*]}")"
 (cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' \
-    -d "$repo/build/zephyr/gpio-evkb" "$repo/tests/gpio/zephyr" -- \
+    -d "$repo/build/zephyr/gpio-evkb" "$repo/tests/gpio/evkb" -- \
     -DZEPHYR_MODULES="$modules_text" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 # EVKB is cross-build evidence only; this script never operates hardware.
