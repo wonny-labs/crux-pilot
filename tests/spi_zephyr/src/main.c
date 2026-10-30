@@ -18,12 +18,13 @@ ZTEST(crux_spi, test_transceive_and_composition_config)
 {
     const uint8_t tx[] = {0x10, 0x20, 0x30};
     uint8_t rx[sizeof(tx)] = {0};
+    int calls_before = emulator_api()->call_count();
 
     zassert_equal(crux_spi_transceive(tx, rx, sizeof(tx)), CRUX_OK);
     for (size_t i = 0; i < sizeof(tx); ++i) {
         zassert_equal(rx[i], tx[i]);
     }
-    zassert_equal(emulator_api()->call_count(), 1);
+    zassert_equal(emulator_api()->call_count(), calls_before + 1);
     zassert_equal(emulator_api()->frequency(), 500000);
     zassert_true(
         (emulator_api()->operation() & (SPI_MODE_CPOL | SPI_MODE_CPHA | SPI_TRANSFER_LSB)) ==
