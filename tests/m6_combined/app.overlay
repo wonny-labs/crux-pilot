@@ -1,0 +1,40 @@
+/ {
+	aliases { crux-gpio0 = &crux_gpio0; };
+	crux_gpio0: crux-gpio-0 {
+		gpios = <&gpio0 0 GPIO_ACTIVE_LOW>;
+	};
+};
+/* Software-only I2C target for the Crux provider contract test. */
+/ {
+	aliases {
+		crux-i2c0 = &i2c0;
+	};
+};
+
+&i2c0 {
+	status = "okay";
+	crux_i2c_test_target: crux-i2c-test@32 {
+		compatible = "vnd,crux-i2c-test-emulator";
+		reg = <0x32>;
+		status = "okay";
+	};
+};
+/* Software-only SPI target for the Crux provider contract test. */
+/ {
+	aliases {
+		crux-spi0 = &crux_spi_test_target;
+	};
+};
+
+&spi0 {
+	status = "okay";
+	crux_spi_test_target: peripheral@0 {
+		compatible = "vnd,crux-spi-test-emulator";
+		reg = <0>;
+		spi-max-frequency = <500000>;
+		spi-cpol;
+		spi-cpha;
+		spi-lsb-first;
+		status = "okay";
+	};
+};
