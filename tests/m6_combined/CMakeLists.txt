@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.20.0)
+set(DTS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../i2c_zephyr ${CMAKE_CURRENT_SOURCE_DIR}/../spi_zephyr)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_m6_combined C)
+target_sources(app PRIVATE main.c ../i2c_zephyr/src/i2c_emulator.c ../spi_zephyr/src/spi_emulator.c)
+target_link_libraries(app PRIVATE crux::gpio crux::i2c crux::spi)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)

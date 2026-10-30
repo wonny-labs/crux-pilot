@@ -14,6 +14,14 @@ unsupported-profile shims, and actual Linux integration under `tests/time/busy_w
 cross-builds EVKB. Shims and compilation do not qualify a physical ISR or timing.
 See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 
+The I2C contract has a strict C17 Host loopback test and a `native_sim` Ztest using Zephyr's I2C
+emulation controller. These checks cover argument validation, Host transfer behavior, native error
+mapping, and repeated-start message shape; they do not qualify a physical bus.
+
+The SPI contract has a strict C17 Host loopback test and a `native_sim` Ztest using Zephyr's SPI
+emulation controller. It checks full-duplex data exchange, Devicetree-selected transfer settings,
+argument validation, and native error mapping. It does not qualify a physical peripheral.
+
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
 | Portable components and controller logic | CTest with GoogleTest suites and standalone C/C++ tests | Linux Host |
@@ -264,6 +272,16 @@ Native 128-Hz exact/fractional deadline and ISR checks are retained in
 and independent messaging consumers. RTC-disabled Time/Thread tests also remain
 in `tests/thread/zephyr`. Historical measurements and old test names are retained
 in [the original evidence](../docs/messaging-validation.md), not new qualification.
+
+## GPIO
+
+The Host CTest suite includes `GPIO.Host`, which exercises the same native-free
+input consumer against a deterministic in-memory provider, logical active-low
+input behavior, invalid arguments, unavailable state and injected provider
+failure. The native_sim Ztest uses Zephyr GPIO emulation. `scripts/test-gpio.sh` also rejects missing,
+disabled and malformed Devicetree selections and cross-builds the same portable
+consumer for RT1060-EVKB. No hardware operation is performed; the EVKB result is
+compile/link evidence only.
 
 ## Portable Serial
 

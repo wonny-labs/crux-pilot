@@ -61,9 +61,24 @@ if(CONFIG_CRUX_SERIAL)
         "${CMAKE_CURRENT_BINARY_DIR}/serial")
 endif()
 
+if(CONFIG_CRUX_I2C)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/i2c/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/i2c")
+endif()
+
+if(CONFIG_CRUX_SPI)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/spi/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/spi")
+endif()
+
 if(CONFIG_CRUX_LOGGING)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/logging/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/logging")
+endif()
+
+if(CONFIG_CRUX_GPIO)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/gpio/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/gpio")
 endif()
 
 if(CONFIG_CRUX_SYSTEM)

@@ -92,6 +92,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Configuration | Scalar validation, explicit save/load and encoding | Portable core with deterministic Host test provider and simulator-only Zephyr Settings/NVS integration; no EVKB persistence qualification | [Host contract and validation](configuration-validation.md), [simulator validation](configuration-native-validation.md) |
 | File | Bounded synchronous file operations | Linux Host provider and simulator-only Zephyr VFS/LittleFS provider; no EVKB writable-storage qualification | [Contract](file-contract.md), [Host validation](file-validation.md), [simulator validation](file-native-validation.md) |
 | Serial | Bounded synchronous UART/TTY byte transfer | Linux PTY/TTY and selected Zephyr UART emulator/EVKB compositions; explicit binding and exclusive UART ownership; no physical qualification | [Contract](serial-contract.md), [validation](serial-validation.md) |
+| GPIO | Synchronous input on one statically composed logical line | Host simulation and Zephyr native GPIO driver; no output or interrupt API, no physical qualification | [Contract](gpio-contract.md) |
 | Logging | Validated bounded text records and filtering | Linux stderr and selected Zephyr deferred UART logger compositions; explicit UART ownership/configuration checks; no physical qualification | [Contract](logging-contract.md), [validation](logging-validation.md) |
 | System | Service observations, reset diagnostics and single-owner watchdog | Linux watchdog simulation and selected Zephyr HWINFO/watchdog/reset composition; normal Host reset/cause unsupported; physical acceptance pending | [Approved contract](superpowers/specs/2026-10-24-system-health-design.md), [validation](system-validation.md) |
 
@@ -106,6 +107,28 @@ Host and Zephyr may compose providers differently. For example, a controlled Hos
 Thread and Sync are independently selectable in Host and Zephyr builds. Thread depends on Time for typed monotonic sleep; Host compositions explicitly select Time and its provider, while Zephyr Thread selects Time without an RTC requirement. The [contract's build selection and provider limits](thread-sync.md#build-selection-and-provider-limits) document their component-owned switches and resource settings. Consumer code should depend only on the capabilities it uses.
 
 See the [Build and Integration Guide](build.md) for supported Linux Host and Zephyr build paths, external application examples, provider selection and troubleshooting. These workflows do not establish an installed SDK or general OS, board or toolchain compatibility.
+
+### Representative static resource bindings
+
+The following bindings describe the current software composition, not universal
+device discovery or physical qualification:
+
+| Logical role | Composition selection | Ownership and limits |
+| --- | --- | --- |
+| Serial port 0 | Zephyr `crux-serial0` Devicetree alias; the current provider admits the `native_sim` UART emulator and RT1060-EVKB LPUART3 profile | One exclusive owner. Missing, unsupported, or known conflicting UART selections fail during configuration/build. See the [Serial contract](serial-contract.md) and [composition validation](evidence/m5-serial/composition-validation.md). |
+| Logging output | One UART selected by Zephyr `zephyr,log-uart` | Native deferred Logging owns output. Unsupported UART modes and known Console, Shell, Serial, management, and Bluetooth conflicts fail during configuration/build, subject to the documented RT1060 Logging-only Console prerequisite. See the [Logging contract](logging-contract.md). |
+| Primary network interface | Zephyr's configured `net_if_get_default()` selection | NetIf observes this interface; Zephyr composition owns interface/device selection and startup. Crux does not select a physical Ethernet device or provide a network service registry. See the [networking contract](networking-contract.md). |
+| Storage | No new M6 target-storage binding | Existing M4 Flash, partition, and persistence decisions remain unchanged. The experimental `native_sim` File provider is not evidence for a target Flash layout or permission to enable target storage. |
+
+The Serial consumer composition uses the same runtime consumer sources with
+separate `native_sim/native/64` and `mimxrt1060_evk@B//qspi` overlays; its runner
+also builds the Host consumer. `scripts/test-serial.sh` runs these software
+checks without programming or resetting hardware. The Logging runner similarly
+builds its Host consumer, tests the native_sim provider, and cross-builds the
+RT1060-EVKB consumer (`scripts/test-logging.sh`). A successful cross-build
+demonstrates configuration and linkage only; it does not establish peripheral
+operation on a board. These are bounded examples of static composition, not a
+claim that every component supports every listed environment.
 
 ## Engineering and validation boundaries
 
@@ -140,6 +163,7 @@ Use [CONTRIBUTING](../CONTRIBUTING.md) for code, PR and review requirements and 
 The [capability inventory](#current-capability-integration) links to component-specific API contracts and validation records. For cross-cutting information, use:
 
 - [Build and Integration Guide](build.md)
+- [GPIO contract](gpio-contract.md)
 - [Native-free consumer policy](native-interface-policy.md)
 - [Test organisation and commands](../tests/README.md)
 - [Reference controller and supported scenarios](../samples/controller/README.md)
