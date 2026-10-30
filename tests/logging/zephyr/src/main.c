@@ -346,8 +346,9 @@ ZTEST(logging, test_simulated_udp_send_failure_and_recovery)
         zassert_equal(k_sem_take(&net_disconnected, K_SECONDS(1)), 0,
                       "simulated L4 disconnect event was not delivered");
     }
-    for (unsigned i = 0; i < 100 && log_backend_is_active(backend); ++i)
+    for (unsigned i = 0; i < 100 && log_backend_is_active(backend); ++i) {
         k_sleep(K_MSEC(10));
+    }
     zassert_false(log_backend_is_active(backend),
                   "NET backend must deactivate after route loss is reported at L4");
 
@@ -374,8 +375,9 @@ ZTEST(logging, test_simulated_udp_send_failure_and_recovery)
     net_mgmt_event_notify(NET_EVENT_L4_CONNECTED, iface);
     zassert_equal(k_sem_take(&net_connected, K_SECONDS(1)), 0,
                   "simulated L4 reconnect event was not delivered");
-    for (unsigned i = 0; i < 100 && !log_backend_is_active(backend); ++i)
+    for (unsigned i = 0; i < 100 && !log_backend_is_active(backend); ++i) {
         k_sleep(K_MSEC(10));
+    }
     zassert_true(log_backend_is_active(backend),
                  "NET backend must reactivate for the active send-failure burst");
 
