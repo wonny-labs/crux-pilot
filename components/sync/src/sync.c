@@ -113,6 +113,7 @@ crux_status_t crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
         sync_native_metadata_unlock();
         return result;
     }
+    /* The user count pins this slot while the finite native wait runs unlocked. */
     sync_native_metadata_unlock();
     result = crux_mutex_impl_lock(&slot->native, &deadline);
     sync_native_metadata_lock();
@@ -236,6 +237,7 @@ crux_status_t crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_m
         sync_native_metadata_unlock();
         return result;
     }
+    /* The user count pins this slot while the finite native wait runs unlocked. */
     sync_native_metadata_unlock();
     result = crux_semaphore_impl_take(&slot->native, &deadline);
     sync_native_metadata_lock();

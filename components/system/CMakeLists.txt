@@ -2,10 +2,12 @@ set(CRUX_SYSTEM_PROVIDER host CACHE STRING "System provider for this composition
 if(NOT CRUX_SYSTEM_PROVIDER STREQUAL "host")
     message(FATAL_ERROR "Crux System unsupported provider: ${CRUX_SYSTEM_PROVIDER}; expected host")
 endif()
+
 find_package(Threads REQUIRED)
 add_library(crux_system_api INTERFACE)
 target_include_directories(crux_system_api INTERFACE include)
 target_link_libraries(crux_system_api INTERFACE crux::base)
+
 add_library(crux_system_linux STATIC src/system.c ports/linux/system_linux.c)
 target_include_directories(crux_system_linux PRIVATE src)
 target_link_libraries(crux_system_linux PRIVATE crux_system_api)
@@ -14,6 +16,7 @@ if(NOT CMAKE_HAVE_LIBC_PTHREAD)
 endif()
 target_compile_definitions(crux_system_linux PRIVATE _POSIX_C_SOURCE=200809L)
 target_compile_options(crux_system_linux PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
 set_property(TARGET crux_system_linux PROPERTY INTERFACE_CRUX_SYSTEM_PROVIDER host)
 set_property(TARGET crux_system_linux APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_SYSTEM_PROVIDER)
 add_library(crux_system INTERFACE)

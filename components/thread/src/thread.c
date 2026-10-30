@@ -100,6 +100,7 @@ crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms)
         thread_native_metadata_unlock();
         return result;
     }
+    /* Keep competing joins out while this finite wait releases metadata protection. */
     thread_native_metadata_unlock();
     result = crux_thread_impl_join(&slot->native, &deadline);
     thread_native_metadata_lock();

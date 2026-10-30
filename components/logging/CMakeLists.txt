@@ -2,10 +2,12 @@ set(CRUX_LOGGING_PROVIDER host CACHE STRING "Logging provider for this compositi
 if(NOT CRUX_LOGGING_PROVIDER STREQUAL "host")
     message(FATAL_ERROR "Crux Logging unsupported provider: ${CRUX_LOGGING_PROVIDER}; expected host")
 endif()
+
 find_package(Threads REQUIRED)
 add_library(crux_logging_api INTERFACE)
 target_include_directories(crux_logging_api INTERFACE include)
 target_link_libraries(crux_logging_api INTERFACE crux::base)
+
 add_library(crux_logging_linux STATIC src/logging.c ports/linux/logging_linux.c)
 target_include_directories(crux_logging_linux PRIVATE src)
 target_link_libraries(crux_logging_linux PRIVATE crux_logging_api)
@@ -14,6 +16,7 @@ if(NOT CMAKE_HAVE_LIBC_PTHREAD)
 endif()
 target_compile_definitions(crux_logging_linux PRIVATE _POSIX_C_SOURCE=200809L)
 target_compile_options(crux_logging_linux PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
 set_property(TARGET crux_logging_linux PROPERTY INTERFACE_CRUX_LOGGING_PROVIDER host)
 set_property(TARGET crux_logging_linux APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_LOGGING_PROVIDER)
 add_library(crux_logging INTERFACE)

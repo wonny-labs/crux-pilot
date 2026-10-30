@@ -2,6 +2,7 @@ get_filename_component(CRUX_FILE_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.."
 if(NOT CONFIG_BOARD_NATIVE_SIM OR NOT CONFIG_FLASH_SIMULATOR)
   message(FATAL_ERROR "Crux File native candidate is simulator-only")
 endif()
+
 add_library(crux_file_api INTERFACE)
 target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
 # Match native_sim's non-PIE CPU image, without kernel headers/definitions.
@@ -12,11 +13,13 @@ if(CONFIG_64BIT)
 else()
   target_compile_options(crux_file_api INTERFACE -m32)
 endif()
+
 add_library(crux_file_zephyr STATIC "${CRUX_FILE_COMPONENT_DIR}/src/file.c" file_native.c)
 target_include_directories(crux_file_zephyr PRIVATE "${CRUX_FILE_COMPONENT_DIR}/src" .)
 zephyr_append_cmake_library(crux_file_zephyr)
 target_link_libraries(crux_file_zephyr PRIVATE crux_file_api zephyr_interface)
 target_compile_options(crux_file_zephyr PRIVATE -Wall -Wextra -Werror)
+
 add_library(crux_file INTERFACE)
 add_library(crux::file ALIAS crux_file)
 target_link_libraries(crux_file INTERFACE crux_file_api)
