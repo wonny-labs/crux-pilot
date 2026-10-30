@@ -41,10 +41,12 @@ crux_status_t crux_queue_create(size_t capacity, size_t message_size, crux_queue
     if (!crux_queue_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
+
     crux_status_t result = crux_queue_lock(NULL);
     if (result != CRUX_OK) {
         return result;
     }
+
     result = CRUX_ERR_NO_RESOURCES;
     for (size_t i = 0; i < QUEUE_COUNT; ++i) {
         queue_slot_t *slot = &slots[i];
@@ -84,21 +86,26 @@ static crux_status_t transfer(crux_queue_t handle, uint32_t timeout_ms, const vo
     if (!crux_queue_context_allowed()) {
         return CRUX_ERR_NOT_SUPPORTED;
     }
+
     queue_deadline_t deadline;
     crux_status_t result = crux_queue_make_deadline(timeout_ms, &deadline);
     if (result != CRUX_OK) {
         return result;
     }
+
     result = crux_queue_lock(&deadline);
     if (result != CRUX_OK) {
         return result;
     }
+
     queue_slot_t *slot = lookup(handle);
     if (slot == NULL || size != slot->size) {
         crux_queue_unlock();
         return CRUX_ERR_INVALID_ARGUMENT;
     }
+
     ++slot->active;
+
     while (sending ? slot->count == slot->capacity : slot->count == 0) {
         if (timeout_ms == 0) {
             result = CRUX_ERR_BUSY;
@@ -109,6 +116,7 @@ static crux_status_t transfer(crux_queue_t handle, uint32_t timeout_ms, const vo
             break;
         }
     }
+
     /* A reported timeout is terminal, including during metadata reacquisition.
      * Retain the admitted reference for cleanup, without a late commit. */
     bool available = sending ? slot->count < slot->capacity : slot->count != 0;

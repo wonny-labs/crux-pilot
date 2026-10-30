@@ -1,6 +1,8 @@
 #ifndef CONFIGURATION_FAULT_PROVIDER_H
 #define CONFIGURATION_FAULT_PROVIDER_H
+
 #include <crux/configuration.h>
+
 #include <stddef.h>
 #include <stdint.h>
 

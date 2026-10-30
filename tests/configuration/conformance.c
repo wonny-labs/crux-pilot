@@ -1,5 +1,7 @@
 #include "fault_provider.h"
+
 #include <crux/configuration.h>
+
 #include <stdio.h>
 #include <string.h>
 
@@ -18,11 +20,13 @@ static crux_config_value_t u32(uint32_t value)
     crux_config_value_t result = {.type = CRUX_CONFIG_U32, .data.u32 = value};
     return result;
 }
+
 static bool range(const crux_config_value_t *value, void *context)
 {
     uint32_t maximum = *(uint32_t *)context;
     return value->type == CRUX_CONFIG_U32 && value->data.u32 >= 1 && value->data.u32 <= maximum;
 }
+
 static uint32_t current(const crux_config_param_t *parameter)
 {
     crux_config_value_t value = {.type = CRUX_CONFIG_BOOL};
@@ -42,6 +46,7 @@ static void scalar_cases(void)
     CHECK(crux_config_load(&parameter) == CRUX_CONFIG_ERR_INVALID_STATE);
     CHECK(crux_config_save(&parameter) == CRUX_CONFIG_ERR_INVALID_STATE);
     CHECK(crux_config_update(&parameter, &candidate) == CRUX_CONFIG_ERR_INVALID_STATE);
+
     CHECK(crux_config_init(&parameter, &spec) == CRUX_CONFIG_OK);
     CHECK(current(&parameter) == 5);
     CHECK(crux_config_init(&parameter, &spec) == CRUX_CONFIG_ERR_INVALID_STATE);
@@ -52,6 +57,7 @@ static void scalar_cases(void)
     CHECK(crux_config_update(&parameter, NULL) == CRUX_CONFIG_ERR_INVALID_ARGUMENT);
     CHECK(crux_config_load(NULL) == CRUX_CONFIG_ERR_INVALID_ARGUMENT);
     CHECK(crux_config_save(NULL) == CRUX_CONFIG_ERR_INVALID_ARGUMENT);
+
     CHECK(crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK);
     CHECK(current(&parameter) == 1);
     candidate = u32(100);
@@ -100,8 +106,10 @@ static void persistence_cases(void)
     crux_config_value_t candidate = u32(42);
     CHECK(crux_config_init(&parameter, &spec) == CRUX_CONFIG_OK);
     CHECK(crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK);
+
     CHECK(crux_config_load(&parameter) == CRUX_CONFIG_DEFAULT_MISSING);
     CHECK(current(&parameter) == 5 && config_fault_writes() == 0);
+
     CHECK(crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK);
     CHECK(crux_config_save(&parameter) == CRUX_CONFIG_OK);
     const uint8_t expected[] = {1, 2, 0x34, 0x12, 42, 0, 0, 0};
@@ -130,6 +138,7 @@ static void persistence_cases(void)
         CHECK(crux_config_load(&parameter) == CRUX_CONFIG_DEFAULT_REJECTED);
         CHECK(current(&parameter) == 5);
     }
+
     config_fault_record(spec.key, expected, sizeof(expected));
     config_fault_read((config_fault_read_options_t){CRUX_CONFIG_OK, 2});
     candidate = u32(77);
@@ -197,6 +206,7 @@ static void bool_and_length_cases(void)
     const uint8_t valid[] = {1, 1, 7, 0, 1};
     CHECK(crux_config_init(&parameter, &spec) == CRUX_CONFIG_OK);
     CHECK(crux_config_update(&parameter, &candidate) == CRUX_CONFIG_OK);
+
     CHECK(crux_config_save(&parameter) == CRUX_CONFIG_OK);
     uint8_t bytes[16] = {0};
     CHECK(config_fault_bytes(spec.key, bytes, sizeof(bytes)) == sizeof(valid));
@@ -207,6 +217,7 @@ static void bool_and_length_cases(void)
         crux_config_result_t result = crux_config_load(&parameter);
         CHECK(result == (length == sizeof(valid) ? CRUX_CONFIG_OK : CRUX_CONFIG_DEFAULT_REJECTED));
     }
+
     const uint8_t invalid[] = {1, 1, 7, 0, 2};
     config_fault_record(spec.key, invalid, sizeof(invalid));
     CHECK(crux_config_load(&parameter) == CRUX_CONFIG_DEFAULT_REJECTED);

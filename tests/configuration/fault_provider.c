@@ -1,5 +1,6 @@
 #include "fault_provider.h"
 #include "configuration_port.h"
+
 #include <string.h>
 
 enum { RECORDS = 4, KEY_BYTES = 32, RECORD_BYTES = 16 };
@@ -22,6 +23,7 @@ static size_t find(const char *key)
     }
     return RECORDS;
 }
+
 void config_fault_reset(void)
 {
     memset(records, 0, sizeof(records));
@@ -30,6 +32,7 @@ void config_fault_reset(void)
     reads = writes = 0;
     change_first = 0;
 }
+
 void config_fault_record(const char *key, const uint8_t *bytes, size_t length)
 {
     size_t slot = find(key);
@@ -45,24 +48,29 @@ void config_fault_record(const char *key, const uint8_t *bytes, size_t length)
     records[slot].length = length;
     records[slot].present = 1;
 }
+
 void config_fault_read(config_fault_read_options_t options)
 {
     read_result = options.result;
     read_limit = options.transferred;
 }
+
 void config_fault_write(config_fault_write_options_t options)
 {
     write_result = options.result;
     change_first = options.change_before_error;
 }
+
 size_t config_fault_reads(void)
 {
     return reads;
 }
+
 size_t config_fault_writes(void)
 {
     return writes;
 }
+
 size_t config_fault_bytes(const char *key, uint8_t *out, size_t capacity)
 {
     size_t slot = find(key);
@@ -73,6 +81,7 @@ size_t config_fault_bytes(const char *key, uint8_t *out, size_t capacity)
     memcpy(out, records[slot].bytes, copied);
     return records[slot].length;
 }
+
 crux_config_result_t crux_config_record_read(const char *key, uint8_t *buffer, size_t capacity,
                                              crux_config_record_info_t *record)
 {
@@ -93,6 +102,7 @@ crux_config_result_t crux_config_record_read(const char *key, uint8_t *buffer, s
     record->transferred = copied;
     return CRUX_CONFIG_OK;
 }
+
 crux_config_result_t crux_config_record_write(const char *key, const uint8_t *buffer, size_t length)
 {
     ++writes;

@@ -37,6 +37,7 @@ crux_status_t crux_thread_create(const crux_thread_options_t *options, crux_thre
          options->priority != CRUX_THREAD_PRIORITY_HIGH)) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
+
     thread_native_metadata_lock();
     crux_status_t result = CRUX_ERR_NO_RESOURCES;
     for (uint32_t i = 0; i < CRUX_THREAD_COUNT; ++i) {
@@ -67,15 +68,18 @@ crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms)
     if (thread == NULL) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
+
     thread_native_deadline_t deadline;
     crux_status_t result = crux_thread_make_deadline(timeout_ms, &deadline);
     if (result != CRUX_OK) {
         return result;
     }
+
     result = thread_native_metadata_lock_until(&deadline);
     if (result != CRUX_OK) {
         return result;
     }
+
     thread_slot_t *slot = find_thread(*thread);
     if (slot == NULL) {
         thread_native_metadata_unlock();
@@ -89,6 +93,7 @@ crux_status_t crux_thread_join(crux_thread_t *thread, uint32_t timeout_ms)
         thread_native_metadata_unlock();
         return CRUX_ERR_BUSY;
     }
+
     slot->joining = true;
     if (deadline.poll) {
         result = crux_thread_impl_join(&slot->native, &deadline);

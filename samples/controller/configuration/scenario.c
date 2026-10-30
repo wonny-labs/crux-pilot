@@ -1,6 +1,8 @@
 /* Application-owned software scenario; existing native controller loops are unchanged. */
 #include "controller.h"
+
 #include <crux/configuration.h>
+
 #include <stddef.h>
 
 #define REQUIRE(expression)                                                                        \
@@ -19,6 +21,7 @@ static bool report_range(const crux_config_value_t *value, void *context)
     (void)context;
     return value->type == CRUX_CONFIG_U32 && value->data.u32 >= 1 && value->data.u32 <= 100;
 }
+
 static crux_config_result_t snapshot(const crux_config_param_t *report,
                                      const crux_config_param_t *diagnostics,
                                      runtime_snapshot_t *out)
@@ -43,8 +46,10 @@ int controller_configuration_scenario(void)
     crux_config_param_t report = {0}, diagnostics = {0};
     REQUIRE(crux_config_init(&report, &report_spec) == CRUX_CONFIG_OK);
     REQUIRE(crux_config_init(&diagnostics, &diagnostics_spec) == CRUX_CONFIG_OK);
+
     REQUIRE(crux_config_load(&report) == CRUX_CONFIG_DEFAULT_MISSING);
     REQUIRE(crux_config_load(&diagnostics) == CRUX_CONFIG_DEFAULT_MISSING);
+
     runtime_snapshot_t active = {0};
     REQUIRE(snapshot(&report, &diagnostics, &active) == CRUX_CONFIG_OK);
     REQUIRE(active.report_every == 5 && !active.diagnostics);

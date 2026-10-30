@@ -1,4 +1,5 @@
 #include "configuration_port.h"
+
 #include <crux/configuration.h>
 
 enum { KEY_LIMIT = 31, WIRE_MAX = 8, BOOL_LENGTH = 5, U32_LENGTH = 8 };
@@ -13,6 +14,7 @@ static bool valid_key(const char *key)
     if (key == NULL) {
         return false;
     }
+
     size_t length = 0;
     for (; length <= KEY_LIMIT; ++length) {
         unsigned char c = (unsigned char)key[length];
@@ -74,6 +76,7 @@ crux_config_result_t crux_config_init(crux_config_param_t *parameter,
     if (parameter->spec != NULL) {
         return CRUX_CONFIG_ERR_INVALID_STATE;
     }
+
     if (!valid_key(spec->key) || !valid_type(spec->default_value.type)) {
         return CRUX_CONFIG_ERR_INVALID_ARGUMENT;
     }
@@ -81,6 +84,7 @@ crux_config_result_t crux_config_init(crux_config_param_t *parameter,
     if (!accepted(spec, &value)) {
         return CRUX_CONFIG_ERR_REJECTED;
     }
+
     parameter->value = value;
     parameter->spec = spec;
     return CRUX_CONFIG_OK;
@@ -109,10 +113,12 @@ crux_config_result_t crux_config_update(crux_config_param_t *parameter,
     if (result != CRUX_CONFIG_OK) {
         return result;
     }
+
     crux_config_value_t value = *candidate;
     if (!accepted(parameter->spec, &value)) {
         return CRUX_CONFIG_ERR_REJECTED;
     }
+
     parameter->value = value;
     return CRUX_CONFIG_OK;
 }
@@ -123,6 +129,7 @@ crux_config_result_t crux_config_load(crux_config_param_t *parameter)
     if (result != CRUX_CONFIG_OK) {
         return result;
     }
+
     uint8_t wire[WIRE_MAX] = {0};
     crux_config_record_info_t record = {0};
     result = crux_config_record_read(parameter->spec->key, wire, sizeof(wire), &record);
@@ -133,6 +140,7 @@ crux_config_result_t crux_config_load(crux_config_param_t *parameter)
     if (result != CRUX_CONFIG_OK) {
         return port_error(result);
     }
+
     if (transferred > sizeof(wire)) {
         return CRUX_CONFIG_ERR_IO;
     }
@@ -142,6 +150,7 @@ crux_config_result_t crux_config_load(crux_config_param_t *parameter)
     if (transferred != length) {
         return CRUX_CONFIG_ERR_IO;
     }
+
     uint16_t schema = (uint16_t)((uint16_t)wire[2] | (uint16_t)((uint16_t)wire[3] << 8));
     crux_config_type_t type = (crux_config_type_t)wire[1];
     if (wire[0] != 1 || schema != parameter->spec->schema_version || !valid_type(type) ||
@@ -150,6 +159,7 @@ crux_config_result_t crux_config_load(crux_config_param_t *parameter)
         (type == CRUX_CONFIG_U32 && length != U32_LENGTH)) {
         return fallback(parameter, CRUX_CONFIG_DEFAULT_REJECTED);
     }
+
     crux_config_value_t value = {.type = type};
     if (type == CRUX_CONFIG_BOOL) {
         value.data.boolean = wire[4] != 0;
@@ -157,9 +167,11 @@ crux_config_result_t crux_config_load(crux_config_param_t *parameter)
         value.data.u32 = (uint32_t)wire[4] | ((uint32_t)wire[5] << 8) | ((uint32_t)wire[6] << 16) |
                          ((uint32_t)wire[7] << 24);
     }
+
     if (!accepted(parameter->spec, &value)) {
         return fallback(parameter, CRUX_CONFIG_DEFAULT_REJECTED);
     }
+
     parameter->value = value;
     return CRUX_CONFIG_OK;
 }
@@ -170,10 +182,12 @@ crux_config_result_t crux_config_save(const crux_config_param_t *parameter)
     if (result != CRUX_CONFIG_OK) {
         return result;
     }
+
     crux_config_value_t value = parameter->value;
     if (!accepted(parameter->spec, &value)) {
         return CRUX_CONFIG_ERR_REJECTED;
     }
+
     uint8_t wire[WIRE_MAX] = {1, (uint8_t)value.type, (uint8_t)parameter->spec->schema_version,
                               (uint8_t)(parameter->spec->schema_version >> 8)};
     size_t length = BOOL_LENGTH;
@@ -185,6 +199,7 @@ crux_config_result_t crux_config_save(const crux_config_param_t *parameter)
             wire[4 + i] = (uint8_t)(value.data.u32 >> (8 * i));
         }
     }
+
     result = crux_config_record_write(parameter->spec->key, wire, length);
     return result == CRUX_CONFIG_OK ? result : port_error(result);
 }
