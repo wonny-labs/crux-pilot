@@ -269,9 +269,8 @@ in [the original evidence](../docs/messaging-validation.md), not new qualificati
 
 The Host CTest suite includes `GPIO.Host`, which exercises the same native-free
 input consumer against a deterministic in-memory provider, logical active-low
-input behavior, output configuration/write, invalid arguments, unsupported
-directions, unavailable state and injected provider failure. The native_sim
-Ztest uses Zephyr GPIO emulation. `scripts/test-gpio.sh` also rejects missing,
+input behavior, invalid arguments, unavailable state and injected provider
+failure. The native_sim Ztest uses Zephyr GPIO emulation. `scripts/test-gpio.sh` also rejects missing,
 disabled and malformed Devicetree selections and cross-builds the same portable
 consumer for RT1060-EVKB. No hardware operation is performed; the EVKB result is
 compile/link evidence only.

@@ -6,7 +6,6 @@
 #include <zephyr/kernel.h>
 
 static bool configured;
-static crux_gpio_direction_t direction;
 
 static crux_status_t native_result(int result)
 {
@@ -35,18 +34,16 @@ static crux_status_t selected_line(crux_gpio_line_t line, const struct gpio_dt_s
     return CRUX_OK;
 }
 
-crux_status_t crux_gpio_port_configure(crux_gpio_line_t line, crux_gpio_direction_t requested)
+crux_status_t crux_gpio_port_configure_input(crux_gpio_line_t line)
 {
     const struct gpio_dt_spec *spec;
     crux_status_t result = selected_line(line, &spec);
     if (result != CRUX_OK) {
         return result;
     }
-    gpio_flags_t flags = requested == CRUX_GPIO_INPUT ? GPIO_INPUT : GPIO_OUTPUT_INACTIVE;
-    int native = gpio_pin_configure_dt(spec, flags);
+    int native = gpio_pin_configure_dt(spec, GPIO_INPUT);
     if (native == 0) {
         configured = true;
-        direction = requested;
     }
     return native_result(native);
 }
@@ -61,29 +58,10 @@ crux_status_t crux_gpio_port_read(crux_gpio_line_t line, bool *active)
     if (!configured) {
         return CRUX_ERR_NOT_READY;
     }
-    if (direction != CRUX_GPIO_INPUT) {
-        return CRUX_ERR_NOT_SUPPORTED;
-    }
     int native = gpio_pin_get_dt(spec);
     if (native < 0) {
         return native_result(native);
     }
     *active = native != 0;
     return CRUX_OK;
-}
-
-crux_status_t crux_gpio_port_write(crux_gpio_line_t line, bool active)
-{
-    const struct gpio_dt_spec *spec;
-    crux_status_t result = selected_line(line, &spec);
-    if (result != CRUX_OK) {
-        return result;
-    }
-    if (!configured) {
-        return CRUX_ERR_NOT_READY;
-    }
-    if (direction != CRUX_GPIO_OUTPUT) {
-        return CRUX_ERR_NOT_SUPPORTED;
-    }
-    return native_result(gpio_pin_set_dt(spec, active ? 1 : 0));
 }

@@ -3,6 +3,6 @@
 
 #include <crux/gpio.h>
 
-crux_status_t gpio_consumer_read_input(bool *active);
+crux_status_t read_logical_input(bool *active);
 
 #endif

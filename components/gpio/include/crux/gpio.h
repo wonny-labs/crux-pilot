@@ -22,22 +22,14 @@ typedef uint32_t crux_gpio_line_t;
 
 enum { CRUX_GPIO_LINE_0 = 0 };
 
-typedef enum {
-    CRUX_GPIO_INPUT = 0,
-    CRUX_GPIO_OUTPUT = 1
-} crux_gpio_direction_t;
-
-/** Configure the statically selected line as input or output. */
-crux_status_t crux_gpio_configure(crux_gpio_line_t line, crux_gpio_direction_t direction);
+/** Configure the statically selected line as an input. */
+crux_status_t crux_gpio_configure_input(crux_gpio_line_t line);
 
 /**
  * Read the logical active state of a configured input. The output is unchanged
- * on error. Returns NOT_READY before configuration and NOT_SUPPORTED for output.
+ * on error. Returns NOT_READY before configuration.
  */
 crux_status_t crux_gpio_read(crux_gpio_line_t line, bool *active);
-
-/** Set the logical active state of a configured output. */
-crux_status_t crux_gpio_write(crux_gpio_line_t line, bool active);
 
 #ifdef __cplusplus
 }

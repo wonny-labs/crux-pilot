@@ -28,6 +28,7 @@ PORTABLE_ROOTS = (
 
     "tests/file_consumer/consumer.c", "tests/file_consumer/consumer.cpp",
     "tests/file_consumer/consumer.h",
+    "tests/gpio/consumer.c", "tests/gpio/consumer.h",
 
     "samples/serial", "tests/serial_consumer/src/runtime.c",
     "tests/serial_consumer/src/runtime.h", "tests/serial_consumer/src/consumer.cpp",
