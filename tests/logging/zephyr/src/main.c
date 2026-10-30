@@ -19,6 +19,7 @@
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/net_mgmt.h>
 #include <zephyr/net/socket.h>
+#include <zephyr/sys/atomic.h>
 #endif
 
 #if defined(CONFIG_LOG_BACKEND_UART)
@@ -62,6 +63,9 @@ static void collect(const struct device *dev, size_t size, void *unused)
 static int receiver_socket;
 K_SEM_DEFINE(net_connected, 0, 1);
 K_SEM_DEFINE(net_disconnected, 0, 1);
+K_SEM_DEFINE(receiver_paused, 0, 1);
+K_SEM_DEFINE(receiver_resume, 0, 1);
+static atomic_t receiver_pause_requested;
 static struct net_mgmt_event_callback net_event_callback;
 K_THREAD_STACK_DEFINE(receiver_stack, 1536);
 static struct k_thread receiver_thread;
@@ -105,12 +109,22 @@ static void receive_syslog(void *unused1, void *unused2, void *unused3)
     (void)unused3;
     char datagram[CONFIG_LOG_BACKEND_NET_MAX_BUF_SIZE + 1];
     for (;;) {
+        if (atomic_get(&receiver_pause_requested)) {
+            k_sem_give(&receiver_paused);
+            k_sem_take(&receiver_resume, K_FOREVER);
+            continue;
+        }
         if (receiver_socket < 0) {
             k_sleep(K_MSEC(10));
             continue;
         }
         int sock = receiver_socket;
-        ssize_t count = zsock_recv(sock, datagram, sizeof(datagram) - 1, 0);
+        struct zsock_pollfd pollfd = {.fd = sock, .events = ZSOCK_POLLIN};
+        int ready = zsock_poll(&pollfd, 1, 10);
+        if (ready <= 0 || !(pollfd.revents & ZSOCK_POLLIN)) {
+            continue;
+        }
+        ssize_t count = zsock_recv(sock, datagram, sizeof(datagram) - 1, ZSOCK_MSG_DONTWAIT);
         if (count <= 0) {
             continue;
         }
@@ -123,6 +137,17 @@ static void receive_syslog(void *unused1, void *unused2, void *unused3)
         }
         k_mutex_unlock(&capture_lock);
     }
+}
+static void pause_receiver(void)
+{
+    atomic_set(&receiver_pause_requested, 1);
+    zassert_equal(k_sem_take(&receiver_paused, K_SECONDS(1)), 0,
+                  "Syslog receiver did not reach the socket replacement barrier");
+}
+static void resume_receiver(void)
+{
+    atomic_clear(&receiver_pause_requested);
+    k_sem_give(&receiver_resume);
 }
 #endif
 static bool contains(const char *text)
@@ -529,9 +554,11 @@ ZTEST(logging, test_simulated_l4_disconnect_and_reactivation)
 
 ZTEST(logging, test_no_collector_best_effort_without_ack)
 {
+    pause_receiver();
     int previous_socket = receiver_socket;
     receiver_socket = -1;
     zassert_equal(zsock_close(previous_socket), 0);
+    resume_receiver();
     k_sleep(K_MSEC(20));
 
     uint32_t max_call_ms = 0;
@@ -560,8 +587,10 @@ ZTEST(logging, test_no_collector_best_effort_without_ack)
              max_call_ms);
 #endif
 
+    pause_receiver();
     receiver_socket = create_collector();
     zassert_true(receiver_socket >= 0, "cannot restore test Syslog collector");
+    resume_receiver();
     zassert_equal(crux_log_write(CRUX_LOG_INFO, "network", "collector-restored"), CRUX_OK);
     wait_for_net("network: collector-restored");
 }
