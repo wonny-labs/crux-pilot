@@ -48,7 +48,7 @@ class GpioCompositionTest(unittest.TestCase):
                 result = subprocess.run(command, cwd=workspace, text=True,
                                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                         timeout=900)
-                if result.returncode == 0 and diagnostic is None:
+                if result.returncode == 0:
                     built = subprocess.run(["cmake", "--build", str(build),
                                             "--target", "crux_gpio_zephyr", "-j", "2"],
                                            text=True, stdout=subprocess.PIPE,
