@@ -1,5 +1,7 @@
 #include "fault_provider.h"
+
 #include <stdio.h>
+
 int controller_configuration_scenario(void);
 int main(void)
 {

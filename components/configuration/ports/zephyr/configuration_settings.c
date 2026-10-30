@@ -1,9 +1,11 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "configuration_settings.h"
 #include "configuration_port.h"
+
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+
 #include <zephyr/settings/settings.h>
 #include <zephyr/sys/util.h>
 
@@ -55,10 +57,12 @@ static int receive(const char *name, size_t length, settings_read_cb read_cb, vo
     if (name != NULL && name[0] != '\0') {
         return 0;
     }
+
     if (ctx->found || length == 0 || length > sizeof(ctx->bytes)) {
         ctx->error = -EIO;
         return ctx->error;
     }
+
     ctx->found = true;
     ctx->length = length;
     ssize_t actual = read_cb(cb_arg, ctx->bytes, length);
@@ -80,10 +84,12 @@ crux_config_result_t crux_config_record_read(const char *key, uint8_t *buffer, s
     if (!initialized) {
         return CRUX_CONFIG_ERR_NOT_READY;
     }
+
     char name[NAME_CAPACITY];
     if (!name_for(key, name)) {
         return CRUX_CONFIG_ERR_IO;
     }
+
     struct read_context ctx = {0};
     int rc = settings_load_subtree_direct(name, receive, &ctx);
     if (ctx.error != 0 || rc != 0) {
@@ -92,6 +98,7 @@ crux_config_result_t crux_config_record_read(const char *key, uint8_t *buffer, s
     if (!ctx.found) {
         return CRUX_CONFIG_DEFAULT_MISSING;
     }
+
     size_t copied = MIN(ctx.length, capacity);
     memcpy(buffer, ctx.bytes, copied);
     record->length = ctx.length;
@@ -104,9 +111,11 @@ crux_config_result_t crux_config_record_write(const char *key, const uint8_t *bu
     if (!initialized) {
         return CRUX_CONFIG_ERR_NOT_READY;
     }
+
     char name[NAME_CAPACITY];
     if (!name_for(key, name)) {
         return CRUX_CONFIG_ERR_IO;
     }
+
     return result(settings_save_one(name, buffer, length));
 }

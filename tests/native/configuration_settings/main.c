@@ -1,9 +1,12 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "configuration_settings.h"
+
 #include <crux/configuration.h>
+
 #include <errno.h>
 #include <settings/settings_nvs.h>
 #include <string.h>
+
 #include <zephyr/drivers/flash.h>
 #include <zephyr/drivers/flash/flash_simulator.h>
 #include <zephyr/settings/settings.h>
@@ -28,6 +31,7 @@ static int fault_read(const struct device *dev, off_t offset, void *data, size_t
     }
     return original->read(real, offset, data, length);
 }
+
 static int fault_write(const struct device *dev, off_t offset, const void *data, size_t length)
 {
     ARG_UNUSED(dev);
@@ -36,12 +40,14 @@ static int fault_write(const struct device *dev, off_t offset, const void *data,
     }
     return original->write(real, offset, data, length);
 }
+
 static int trace_erase(const struct device *dev, off_t offset, size_t length)
 {
     ARG_UNUSED(dev);
     erases++;
     return original->erase(real, offset, length);
 }
+
 static void remount(void)
 {
     memset(&backend->cf_nvs, 0, sizeof(backend->cf_nvs));
@@ -52,6 +58,7 @@ static void remount(void)
     zassert_ok(settings_nvs_backend_init(backend));
     backend->cf_nvs.flash_device = &proxy;
 }
+
 /* A single test source supplies a callback short count, which the NVS API
  * itself cannot produce: NVS returns advertised length or an errno. All other
  * cases still use only the actual Settings/NVS/Flash store. */
@@ -61,11 +68,13 @@ static ssize_t short_read(void *arg, void *data, size_t length)
     memset(data, 0, length);
     return (ssize_t)length - 1;
 }
+
 static int short_load(struct settings_store *store, const struct settings_load_arg *arg)
 {
     ARG_UNUSED(store);
     return short_record ? settings_call_set_handler("cfg/short", 8, short_read, NULL, arg) : 0;
 }
+
 static const struct settings_store_itf short_itf = {.csi_load = short_load};
 static struct settings_store short_store = {.cs_itf = &short_itf};
 static void *setup(void)
@@ -85,6 +94,7 @@ static void *setup(void)
     settings_src_register(&short_store);
     return NULL;
 }
+
 static void before(void *unused)
 {
     ARG_UNUSED(unused);
@@ -95,6 +105,7 @@ static void before(void *unused)
     zassert_ok(flash_erase(real, PARTITION_OFFSET(candidate_nvs), PARTITION_SIZE(candidate_nvs)));
     remount();
 }
+
 static const crux_config_spec_t spec = {.key = "speed",
                                         .schema_version = 7,
                                         .default_value = {.type = CRUX_CONFIG_U32, .data.u32 = 11}};
@@ -104,12 +115,14 @@ static void parameter(crux_config_param_t *p)
     crux_config_value_t v = {.type = CRUX_CONFIG_U32, .data.u32 = 42};
     zassert_ok(crux_config_update(p, &v));
 }
+
 static void expect_value(crux_config_param_t *p, uint32_t expected)
 {
     crux_config_value_t v;
     zassert_ok(crux_config_read(p, &v));
     zassert_equal(v.data.u32, expected);
 }
+
 ZTEST(configuration_settings, test_callback_short_count_preserves_active)
 {
     crux_config_spec_t short_spec = spec;
@@ -123,6 +136,7 @@ ZTEST(configuration_settings, test_callback_short_count_preserves_active)
     expect_value(&p, 99);
     short_record = false;
 }
+
 ZTEST(configuration_settings, test_staging_limit_boundary)
 {
     uint8_t wire[257] = {1, 2, 7, 0, 42};
@@ -137,6 +151,7 @@ ZTEST(configuration_settings, test_staging_limit_boundary)
     zassert_equal(crux_config_load(&p), CRUX_CONFIG_ERR_IO);
     expect_value(&p, 99);
 }
+
 ZTEST(configuration_settings, test_save_no_space_mapping)
 {
     crux_config_param_t p = {0};
@@ -149,6 +164,7 @@ ZTEST(configuration_settings, test_save_no_space_mapping)
     write_error = -EIO;
     fail_write = 0;
 }
+
 ZTEST(configuration_settings, test_mount_all_open_sector_comparison_read_error)
 {
     /* Empty sectors reach the comparison preceding the last closing ATE,
@@ -173,6 +189,7 @@ ZTEST(configuration_settings, test_mount_all_open_sector_comparison_read_error)
     zassert_false(fs.ready);
     fail_read = 0;
 }
+
 ZTEST(configuration_settings, test_roundtrip_and_missing)
 {
     crux_config_param_t p = {0};
@@ -200,6 +217,7 @@ ZTEST(configuration_settings, test_roundtrip_and_missing)
     zassert_ok(crux_config_read(&b, &bv));
     zassert_true(bv.data.boolean);
 }
+
 ZTEST(configuration_settings, test_traversal_error_is_not_missing)
 {
     crux_config_param_t p = {0};
@@ -219,6 +237,7 @@ ZTEST(configuration_settings, test_traversal_error_is_not_missing)
     zassert_equal(crux_config_load(&absent), CRUX_CONFIG_DEFAULT_MISSING);
     expect_value(&absent, 11);
 }
+
 ZTEST(configuration_settings, test_each_load_read_fault_preserves_active)
 {
     crux_config_param_t p = {0};
@@ -244,6 +263,7 @@ ZTEST(configuration_settings, test_each_load_read_fault_preserves_active)
     fail_read = 0;
     printk("CONFIGURATION_READ_FAULTS positions=%u active_preserved=99\n", bound);
 }
+
 ZTEST(configuration_settings, test_save_failure_and_interrupted_reinit)
 {
     crux_config_param_t p = {0};
@@ -266,6 +286,7 @@ ZTEST(configuration_settings, test_save_failure_and_interrupted_reinit)
     zassert_ok(crux_config_load(&p));
     expect_value(&p, 99);
 }
+
 ZTEST(configuration_settings, test_malformed_records)
 {
     uint8_t wire[9] = {1, 2, 7, 0, 44, 0, 0, 0, 0};
@@ -280,6 +301,7 @@ ZTEST(configuration_settings, test_malformed_records)
         expect_value(&p, 11);
     }
 }
+
 ZTEST(configuration_settings, test_full_record_crc_failure_preserves_active)
 {
     crux_config_param_t p = {0};
@@ -305,4 +327,5 @@ ZTEST(configuration_settings, test_full_record_crc_failure_preserves_active)
         expect_value(&p, 42);
     }
 }
+
 ZTEST_SUITE(configuration_settings, NULL, setup, before, NULL, NULL);

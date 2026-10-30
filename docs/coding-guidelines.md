@@ -12,7 +12,18 @@ Apply these rules incrementally. Do not reformat unrelated code, rename existing
 - **Formatting:** [.clang-format](../.clang-format) defines the owned-source style: LLVM-based formatting with Linux brace placement, 4-space indentation and a 100-column limit. The adopted change is limited to brace placement; keep all other settings from the configuration. Check with [`scripts/check-format.sh`](../scripts/check-format.sh) and the pinned formatter. Follow nearby code where a choice is not specified.
 - **Clarity:** Use descriptive names and explicit units. Include braces on new or modified control-flow bodies, even for a single statement. Check range conversions and arithmetic when overflow would matter. Do not reformat unrelated code.
 - **Changed-code patch style gate:** With `ZEPHYR_BASE` pointing to the pinned Zephyr workspace, run `scripts/check-patch.sh BASE HEAD` for the selected Git diff. The Bash wrapper calls pinned Zephyr `checkpatch.pl` with approved diagnostic types, initially `BRACES`. Pull-request CI compares the temporary merge commit to its first parent. Main-branch push CI compares `github.event.before` with the new HEAD, fetching the previous commit when necessary to cover multi-commit pushes. Manual CI dispatch checks the latest commit. The checker primarily rejects newly added unbraced control statements. **Limitation:** modifying only the body of a pre-existing unbraced `if` without changing its condition can pass this diff-based gate; code review must still apply the Clarity rule to such edits. Existing untouched legacy code and C++-only changes are outside the initial gate. No source rewrite, new analyser, Python compliance framework or MISRA compliance claim is introduced.
-- **Definition spacing:** Separate top-level function definitions with one blank line and add whitespace between meaningful include, type and state sections. Keep internal spacing purposeful, not uniformly verbose.
+- **Logical spacing:** Separate top-level function definitions with one blank line. Inside functions,
+  use at most one blank line between distinct stages. Keep same-purpose checks together and avoid
+  padding individual statements or control-flow blocks. Keep rationale comments adjacent to their
+  code; do not put blank lines immediately inside braces.
+- **Includes:** Use angle brackets for public Crux, standard C and external public headers; use
+  quotes for component-private and local headers. Group includes by role with one blank line where
+  it improves navigation. Keep headers self-contained and preserve conditional or order-sensitive
+  includes.
+- **Organisation:** Group helpers, functions and declarations by responsibility, dependency and
+  typical use flow. Keep declarations in dependency order and comments adjacent to their
+  declarations or code. Do not impose a universal public/private layout or reorder code unless
+  navigation clearly improves without changing dependencies or behaviour.
 - **Naming:** Use `crux_` for public C functions, types and exported variables, and `CRUX_` for macros, enum constants and header guards, as defined in [CONTRIBUTING.md](../CONTRIBUTING.md#making-changes). Keep component-owned `<crux/...>` headers. Do not rename public targets, native providers or Zephyr identifiers for style alone.
 - **Resources and errors:** Handle allocation, lifetime, cleanup after partial failure and concurrent access explicitly. Preserve adopted component-specific result types and named errors rather than forcing all APIs into one error enum.
 - **Platform boundaries:** Portable consumers depend on public Crux contracts or explicitly qualified standard APIs. OS-specific ports and platform composition own native requirements. Do not introduce a universal HAL/OSAL or service registry without real consumer evidence.
