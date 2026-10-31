@@ -34,7 +34,7 @@ See the [architecture overview](docs/architecture.md) for component ownership, p
 | RT1170-EVK Rev A1 Cortex-M7 | Planned second physical target under M6, not yet qualified |
 | Production Embedded Linux | Future platform variant, not currently implemented or qualified |
 
-Host tests, `native_sim` runs and target cross-builds do not prove physical operation. Writable File/Configuration persistence on the RT1060's QSPI Flash is not yet enabled or physically qualified.
+Host tests, `native_sim` runs and target cross-builds do not prove physical operation. The M4 Pilot has selected microSD with Zephyr VFS/FatFs for writable File storage instead of QSPI NOR. Settings file-backed persistence remains under evaluation, and RT1060 physical storage persistence and recovery are not yet qualified. See the [current storage decision](https://github.com/wonny-labs/crux-pilot/issues/14).
 
 ## Getting started
 
