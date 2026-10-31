@@ -23,6 +23,7 @@ Current implemented contracts and verified source behaviour are the factual base
 - Evaluate a documented POSIX subset or a narrow capability-specific interface where actual portable consumers need one. Do not pre-emptively create a universal HAL/OSAL, generic service registry, or pass-through wrappers for native APIs.
 - Preserve public interface naming, header ownership, dependency visibility and contribution rules defined in `CONTRIBUTING.md`. Do not promote Time-specific range, session or thread-safety constraints into platform-wide rules.
 - Separate application policy from platform mechanisms. Keep implementation and restructuring proportional to the approved outcome; do not introduce product-specific runtime integration or speculative capabilities without an agreed need.
+- For behaviour changes and bug fixes, prefer test-first development where practical: demonstrate the missing behaviour or failure, implement the smallest suitable change, and run relevant regression checks. If test-first work is impractical, explain why and provide proportionate verification.
 - Reuse existing build and test tools. Keep the west workspace separate from this Git repository; retain upstream Zephyr, vendor modules, SDKs and caches outside this source tree.
 
 ## Scope and authorisation
