@@ -24,7 +24,9 @@ Use one primary implementation orchestrator per task. Do not combine Superpowers
 
 - The main conversation uses its currently selected model. These preferences do not automatically switch the main-session model.
 - When available, prefer **Haiku** for bounded, read-only research or file discovery, **Sonnet** for routine implementation, testing and delegated review, and **Opus** for complex architecture, cross-component reasoning or high-risk investigations and reviews.
-- Choose by complexity, uncertainty and risk, not merely the issue label. Escalate after evidence shows the current approach is insufficient rather than repeatedly retrying without changing the plan.
+- Select the model and available reasoning effort based on task complexity, required quality, risk, uncertainty, model capability and expected end-to-end cost, including retries and rework. Prefer the lowest-cost configuration likely to meet the required quality, not simply the cheapest model or the strongest one.
+- Start with moderate reasoning effort for well-defined tasks. Increase it when deeper analysis is justified, reserving the highest levels for exceptional complexity or risk. Investigate failures before assuming that a stronger model or higher effort is needed.
+- Escalate model capability or reasoning effort when findings and verification show the current approach is insufficient. Refine preferences using observed outcomes, validation results and resource use. Never reduce required verification or human approval to save cost.
 - Use subagents only when independent review, context isolation or safe parallel investigation adds value. For a required independent review, the reviewer must not have authored the implementation. Do not parallelise tasks that may conflict in shared files or state.
 - Specify the model for a delegated task when the installed tool supports it. Otherwise use the available model without claiming a model switch. All subagents remain bound by the same approvals and safety requirements.
 
