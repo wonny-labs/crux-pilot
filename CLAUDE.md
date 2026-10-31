@@ -18,15 +18,17 @@ Respect each installed skill's invocation metadata. Matt Pocock `grill-me`, `to-
 - **Codex/Claude handoff:** Suggest the user-invoked Matt Pocock `handoff` when useful. Preserve authoritative progress, evidence, blockers and next steps in the relevant GitHub issue/PR when authorised.
 - **Small documentation or mechanical changes:** Keep the workflow proportionate. Do not force brainstorming, a new plan or additional subagents without a clear benefit.
 
+Apply Superpowers and other skills within the work package and human gates defined in `AGENTS.md`. Reuse approved requirements, designs and plans instead of restarting discovery or seeking repeated approval for routine in-scope steps. Where a skill asks for confirmation, proceed only if existing authorisation and tool permissions cover that action. Escalate material decisions or required permissions, but continue independent authorised work rather than blocking the whole task.
+
 Use one primary implementation orchestrator per task. Do not combine Superpowers implementation workflows with Matt Pocock `implement` or `implement-spec` for the same work unless explicitly directed. A skill's default branch, PR, issue-closure or clean-up steps never override the repository rules, existing work or task-specific approval gates.
 
 ## Agents and models
 
 - The main conversation uses its currently selected model. These preferences do not automatically switch the main-session model.
 - When available, prefer **Haiku** for bounded, read-only research or file discovery, **Sonnet** for routine implementation, testing and delegated review, and **Opus** for complex architecture, cross-component reasoning or high-risk investigations and reviews.
-- Select the model and available reasoning effort based on task complexity, required quality, risk, uncertainty, model capability and expected end-to-end cost, including retries and rework. Prefer the lowest-cost configuration likely to meet the required quality, not simply the cheapest model or the strongest one.
+- Select models and reasoning effort based on task complexity, uncertainty, risk, model capability and expected end-to-end efficiency, including execution time, retries, rework and cost. Prioritise achieving the required quality and reliability with appropriate verification rather than minimising cost or maximising model capability in isolation.
 - Start with moderate reasoning effort for well-defined tasks. Increase it when deeper analysis is justified, reserving the highest levels for exceptional complexity or risk. Investigate failures before assuming that a stronger model or higher effort is needed.
-- Escalate model capability or reasoning effort when findings and verification show the current approach is insufficient. Refine preferences using observed outcomes, validation results and resource use. Never reduce required verification or human approval to save cost.
+- Use stronger models or higher reasoning effort proactively when justified by complexity, uncertainty or risk. Adapt selections based on verified outcomes and observed resource use, without compromising quality, safety or human approval requirements.
 - Use subagents only when independent review, context isolation or safe parallel investigation adds value. For a required independent review, the reviewer must not have authored the implementation. Do not parallelise tasks that may conflict in shared files or state.
 - Specify the model for a delegated task when the installed tool supports it. Otherwise use the available model without claiming a model switch. All subagents remain bound by the same approvals and safety requirements.
 
