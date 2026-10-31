@@ -8,12 +8,14 @@ This file adds Claude-specific workflow and model-selection guidance. Follow `AG
 
 First inspect the request, issue/PR, existing decisions, current source and installed skills. The skill names below are preferences, not repository dependencies. Use them only when installed and applicable. Do not install plugins or change global settings without authorisation.
 
+Respect each installed skill's invocation metadata. Matt Pocock `grill-me`, `to-tickets` and `handoff` are user-invoked workflows: suggest them when appropriate rather than assuming automatic execution. Model-invocable skills such as `grilling` and `writing-for-agents` may be selected when installed and relevant. After installing Matt Pocock Skills, suggest `/setup-matt-pocock-skills` for project configuration, but review and obtain authorisation for any proposed repository, issue or label changes.
+
 - **Unresolved requirements or significant design decisions:** Suggest the user-invoked Matt Pocock `grill-me` for a focused interview, or use Superpowers `brainstorming` for a new design. Do not run both discovery workflows by default. Preserve previously approved decisions unless new evidence warrants review.
 - **Approved multi-step implementation:** Use Superpowers `writing-plans` if a new implementation plan is needed. After any required plan approval, use `subagent-driven-development` or `executing-plans` as appropriate, with `test-driven-development` for behaviour changes.
 - **Bugs, failed tests and CI failures:** Use `systematic-debugging` to establish the root cause. Add a failing regression test first where practical, then implement and verify the fix.
 - **Review and completion:** Use `requesting-code-review` when independent review is required, and `verification-before-completion` before claiming success. Neither skill replaces the project's human review gates.
 - **Breaking down larger work:** Suggest the user-invoked Matt Pocock `to-tickets` when issue decomposition would help. Create or change GitHub issues only within the active authorisation.
-- **Codex/Claude handoff:** Use the user-invoked Matt Pocock `handoff` when requested or helpful. Preserve authoritative progress, evidence, blockers and next steps in the relevant GitHub issue/PR when authorised.
+- **Codex/Claude handoff:** Suggest the user-invoked Matt Pocock `handoff` when useful. Preserve authoritative progress, evidence, blockers and next steps in the relevant GitHub issue/PR when authorised.
 - **Small documentation or mechanical changes:** Keep the workflow proportionate. Do not force brainstorming, a new plan or additional subagents without a clear benefit.
 
 Use one primary implementation orchestrator per task. Do not combine Superpowers implementation workflows with Matt Pocock `implement` or `implement-spec` for the same work unless explicitly directed. A skill's default branch, PR, issue-closure or clean-up steps never override the repository rules, existing work or task-specific approval gates.
