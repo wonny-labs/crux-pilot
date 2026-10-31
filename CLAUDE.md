@@ -18,6 +18,8 @@ Respect each installed skill's invocation metadata. Matt Pocock `grill-me`, `to-
 - **Codex/Claude handoff:** Suggest the user-invoked Matt Pocock `handoff` when useful. Preserve authoritative progress, evidence, blockers and next steps in the relevant GitHub issue/PR when authorised.
 - **Small documentation or mechanical changes:** Keep the workflow proportionate. Do not force brainstorming, a new plan or additional subagents without a clear benefit.
 
+Apply Superpowers and other skills within the work package and human gates defined in `AGENTS.md`. Reuse approved requirements, designs and plans instead of restarting discovery or seeking repeated approval for routine in-scope steps. Where a skill asks for confirmation, proceed only if existing authorisation and tool permissions cover that action. Escalate material decisions or required permissions, but continue independent authorised work rather than blocking the whole task.
+
 Use one primary implementation orchestrator per task. Do not combine Superpowers implementation workflows with Matt Pocock `implement` or `implement-spec` for the same work unless explicitly directed. A skill's default branch, PR, issue-closure or clean-up steps never override the repository rules, existing work or task-specific approval gates.
 
 ## Agents and models
