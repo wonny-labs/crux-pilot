@@ -43,6 +43,9 @@ static int test_transfer(const struct emul *target, struct i2c_msg *messages, in
         if (messages[0].buf[0] == 0xEE) {
             return -ENOTSUP;
         }
+        if (messages[0].buf[0] == 0xED) {
+            return -ENOSYS;
+        }
         data->selected_register = messages[0].buf[0];
         for (size_t i = 1; i < messages[0].len; ++i) {
             data->registers[data->selected_register++] = messages[0].buf[i];

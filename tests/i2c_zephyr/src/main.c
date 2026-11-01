@@ -56,6 +56,14 @@ ZTEST(crux_i2c, test_unsupported_native_operation_maps_to_not_supported)
     zassert_equal(crux_i2c_transfer(0x32, marker, sizeof(marker), NULL, 0), CRUX_ERR_NOT_SUPPORTED);
 }
 
+ZTEST(crux_i2c, test_unimplemented_native_operation_maps_to_not_supported)
+{
+    /* The emulated target reports -ENOSYS for a write whose first byte is this marker. */
+    const uint8_t marker[] = {0xED};
+
+    zassert_equal(crux_i2c_transfer(0x32, marker, sizeof(marker), NULL, 0), CRUX_ERR_NOT_SUPPORTED);
+}
+
 static K_SEM_DEFINE(isr_done, 0, 1);
 static volatile bool isr_ran_in_interrupt;
 static volatile crux_status_t isr_status;
