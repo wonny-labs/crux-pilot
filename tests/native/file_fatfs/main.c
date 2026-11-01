@@ -322,4 +322,115 @@ ZTEST(file_fatfs, test_corrupted_media_is_not_formatted_and_recovers_when_restor
     zassert_equal(crux_file_remove("survivor"), CRUX_FILE_OK);
 }
 
+static void fill_volume(void)
+{
+    static const uint8_t chunk[512] = {[0 ... 511] = 0xa5};
+    crux_file_t *file = NULL;
+    size_t count = 0;
+    crux_file_result_t rc = CRUX_FILE_OK;
+
+    zassert_equal(crux_file_open("filler", CRUX_FILE_CREATE_REPLACE, &file), CRUX_FILE_OK);
+    for (unsigned i = 0; i < 4096 && rc == CRUX_FILE_OK; i++) {
+        rc = crux_file_write(file, chunk, sizeof(chunk), &count);
+    }
+    zassert_equal(rc, CRUX_FILE_ERR_NO_SPACE, "volume must report that it is full");
+    (void)crux_file_close(&file);
+}
+
+ZTEST(file_fatfs, test_write_that_only_partly_fits_returns_partial_with_progress)
+{
+    static uint8_t big[4096];
+    struct fs_statvfs stat;
+    crux_file_t *file = NULL;
+    size_t count = 0;
+
+    memset(big, 0x33, sizeof(big));
+    write_file("pad", "x"); /* owns exactly one cluster */
+    fill_volume();
+    zassert_equal(crux_file_remove("pad"), CRUX_FILE_OK);
+    zassert_ok(fs_statvfs("/RAM:", &stat));
+    zassert_equal(stat.f_bfree, 1, "removing the pad frees exactly one cluster");
+    zassert_true(stat.f_frsize * 2 <= sizeof(big));
+
+    zassert_equal(crux_file_open("last", CRUX_FILE_CREATE_REPLACE, &file), CRUX_FILE_OK);
+    zassert_equal(crux_file_write(file, big, stat.f_frsize * 2, &count), CRUX_FILE_PARTIAL);
+    zassert_true(count > 0 && count < stat.f_frsize * 2);
+    zassert_equal(crux_file_write(file, big, 1, &count), CRUX_FILE_ERR_NO_SPACE);
+    zassert_equal(count, 0);
+    (void)crux_file_close(&file);
+    zassert_equal(crux_file_remove("last"), CRUX_FILE_OK);
+    zassert_equal(crux_file_remove("filler"), CRUX_FILE_OK);
+}
+
+#define SECTOR 512
+#define MAX_TORN_SECTORS 8
+static uint8_t before_image[2048 * SECTOR];
+
+/*
+ * Interruption model: the media is captured around one sync and every subset of the
+ * sectors that sync changed is replayed onto the earlier image, in any order. This
+ * models a torn flush at sector granularity inside one process. It is not power-loss
+ * evidence: no real media timing, controller cache or partial-sector write is involved.
+ */
+ZTEST(file_fatfs, test_torn_sync_images_mount_and_leave_unrelated_files_intact)
+{
+    static uint8_t after_sector[MAX_TORN_SECTORS][SECTOR];
+    uint32_t changed[MAX_TORN_SECTORS];
+    uint32_t sectors = 0, count_changed = 0;
+    crux_file_t *file = NULL;
+    size_t count = 0;
+    const char *const old_value = "before";
+    const char *const new_value = "after-longer-value";
+
+    zassert_ok(disk_access_ioctl("RAM", DISK_IOCTL_GET_SECTOR_COUNT, &sectors));
+    zassert_true(sectors * SECTOR <= sizeof(before_image));
+    write_file("other", "stable");
+    write_file("victim", old_value);
+    zassert_ok(disk_access_read("RAM", before_image, 0, sectors));
+
+    zassert_equal(crux_file_open("victim", CRUX_FILE_CREATE_REPLACE, &file), CRUX_FILE_OK);
+    zassert_equal(crux_file_write(file, new_value, strlen(new_value), &count), CRUX_FILE_OK);
+    zassert_equal(crux_file_sync(file), CRUX_FILE_OK);
+    for (uint32_t s = 0; s < sectors; s++) {
+        uint8_t now[SECTOR];
+        zassert_ok(disk_access_read("RAM", now, s, 1));
+        if (memcmp(now, &before_image[s * SECTOR], SECTOR) != 0) {
+            zassert_true(count_changed < MAX_TORN_SECTORS, "sync changed too many sectors");
+            changed[count_changed] = s;
+            memcpy(after_sector[count_changed++], now, SECTOR);
+        }
+    }
+    zassert_true(count_changed > 0, "a successful sync must reach the media");
+    TC_PRINT("torn sync: %u changed sectors, %u images replayed\n", count_changed,
+             1u << count_changed);
+    (void)crux_file_close(&file);
+    zassert_ok(fs_unmount(&mount));
+
+    for (uint32_t subset = 0; subset < (1u << count_changed); subset++) {
+        for (uint32_t i = 0; i < count_changed; i++) {
+            const uint8_t *src = (subset & (1u << i)) ? after_sector[i]
+                                                       : &before_image[changed[i] * SECTOR];
+            zassert_ok(disk_access_write("RAM", src, changed[i], 1));
+        }
+        zassert_ok(fs_mount(&mount), "torn image %u must still mount", subset);
+        expect_file("other", "stable");
+        if (subset == 0) {
+            expect_file("victim", old_value);
+        } else if (subset == (1u << count_changed) - 1) {
+            expect_file("victim", new_value);
+        } else {
+            /* Integrity limit: a torn sync may leave the file's own bytes in any mix. */
+            char value[32];
+            zassert_equal(crux_file_open("victim", CRUX_FILE_READ, &file), CRUX_FILE_OK);
+            zassert_equal(crux_file_read(file, value, sizeof(value), &count), CRUX_FILE_OK);
+            zassert_true(count <= strlen(new_value));
+            zassert_equal(crux_file_close(&file), CRUX_FILE_OK);
+        }
+        zassert_ok(fs_unmount(&mount));
+    }
+    zassert_ok(fs_mount(&mount));
+    zassert_equal(crux_file_remove("victim"), CRUX_FILE_OK);
+    zassert_equal(crux_file_remove("other"), CRUX_FILE_OK);
+}
+
 ZTEST_SUITE(file_fatfs, NULL, setup, NULL, NULL, NULL);
