@@ -10,7 +10,8 @@
  * invalid argument, which of the two statuses is returned is unspecified. The
  * Host provider has no interrupt context and does not check, and calls before
  * the kernel is running (pre-kernel or early startup) are not supported but
- * are not detected. No interrupt or callback interface is provided.
+ * are not detected. A call may block as long as the native driver does; no
+ * latency bound is guaranteed. No interrupt or callback interface is provided.
  */
 #ifndef CRUX_GPIO_H
 #define CRUX_GPIO_H
@@ -52,7 +53,7 @@ crux_status_t crux_gpio_configure_input(crux_gpio_line_t line);
  * @retval CRUX_OK @p active was written.
  * @retval CRUX_ERR_INVALID_ARGUMENT @p active is NULL.
  * @retval CRUX_ERR_OUT_OF_RANGE @p line is not a supported line.
- * @retval CRUX_ERR_NOT_READY The line was not configured, or the native GPIO
+ * @retval CRUX_ERR_NOT_READY The line was never successfully configured, or the native GPIO
  *         controller is not ready.
  * @retval CRUX_ERR_NOT_SUPPORTED Called from interrupt context, or the native
  *         driver reports the operation as unsupported.

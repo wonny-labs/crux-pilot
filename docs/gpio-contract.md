@@ -17,7 +17,9 @@ kernel is running (pre-kernel or early startup) are not supported but are not
 detected. Configuration and reads are synchronous. No output, interrupt callback,
 event, debounce, ownership handle, runtime discovery or general pin registry is
 provided. Reads preserve their output argument on error. Reading before
-configuration returns `CRUX_ERR_NOT_READY`. Null output pointers return
+the first successful configuration returns `CRUX_ERR_NOT_READY`; a later failed
+configuration does not undo an earlier success. A call may block as long as the
+native driver does, and no latency bound is guaranteed. Null output pointers return
 `CRUX_ERR_INVALID_ARGUMENT`; unsupported logical line IDs return
 `CRUX_ERR_OUT_OF_RANGE`. Native driver results `-ENOTSUP` and `-ENOSYS` map to
 `CRUX_ERR_NOT_SUPPORTED`; every other native driver failure, including
