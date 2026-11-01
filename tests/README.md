@@ -327,6 +327,17 @@ and an unsupported provider. The emulated controller is always ready, so the not
 not exercised on Zephyr. `scripts/test-i2c.sh` runs these checks without hardware. They do not
 qualify a physical bus or driver.
 
+A first portable consumer, `tests/i2c/consumer/tmp117.c`, reads a TI TMP117 temperature sensor
+(device identification and temperature, each as one combined write-then-read transfer) using only
+the public header. `I2c.Tmp117Consumer` runs it against a test-only provider that models the
+sensor's 16-bit registers: the conversion including negative and truncated values, the
+no-conversion marker (`CRUX_ERR_NO_DATA`), the device-ID check, verbatim transfer statuses and
+rejection of invalid arguments before any transfer. `tests/i2c_consumer_zephyr` runs the same
+source on `native_sim` against a software TMP117 behind Zephyr's I2C emulation controller and
+checks that each operation reaches the driver as a restarted write-read pair. The sensor model
+is written for these tests from the data sheet; no physical TMP117 or board has been used, so
+the temperature scaling and the pointer-register protocol are not confirmed against a part.
+
 ## SPI
 
 The Host CTest suite covers the shipped loopback provider (`Spi.HostContract`), the portable layer
