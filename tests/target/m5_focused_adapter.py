@@ -19,6 +19,8 @@ import capture_m5_network as runner
 from m5_capture_adapter import CaptureAdapter, ProcessBackend, parse_direct_route, parse_interface
 
 BANNER = runner.BANNER_PREFIX
+ASSIGN = ['sudo', '-n', '/sbin/ifconfig', 'en5', 'inet', '192.168.77.1', 'netmask', '255.255.255.0', 'up']
+MAC = '00:0a:cd:41:89:cc'
 CARRIER_TIMEOUT = 15
 SETTLE_TIMEOUT = 5
 
@@ -42,15 +44,43 @@ class HostLink:
     def observe(self):
         return parse_interface(self.command(['ifconfig', 'en5']))
 
+    def identity(self):
+        """The dedicated adapter by MAC; macOS drops the static address while the link is inactive."""
+        text = self.command(['ifconfig', 'en5'])
+        runner.oracle.require(re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$', text) == [MAC], 'en5 is not the dedicated adapter')
+
     def switch(self, up):
-        self.command(['sudo', '-n', '/sbin/ifconfig', 'en5', 'up' if up else 'down'])
+        # macOS also drops the manual address while the link is inactive, so `up` reassigns it.
+        self.command(ASSIGN if up else ['sudo', '-n', '/sbin/ifconfig', 'en5', 'down'])
+
+    def configure(self):
+        """Assign the static address and wait until the carrier is active with that address present."""
+        deadline = self.clock() + CARRIER_TIMEOUT
+        self.command(ASSIGN)
+        while True:
+            try:
+                observed = self.observe()
+            except ValueError:
+                observed = None
+                self.command(ASSIGN)
+            if observed is not None and observed['active']:
+                return observed
+            runner.oracle.require(self.clock() < deadline, 'en5 did not become active with the static address')
+            self.sleep(.1)
+
+    def carrier(self):
+        """Carrier state of the dedicated adapter; needs no address (the host may have dropped it)."""
+        text = self.command(['ifconfig', 'en5'])
+        runner.oracle.require(re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$', text) == [MAC], 'en5 is not the dedicated adapter')
+        statuses = re.findall(r'(?m)^[ \t]*status:[ \t]*(\S+)[ \t]*$', text)
+        runner.oracle.require(statuses in (['active'], ['inactive']), 'NIC carrier status missing/unknown/ambiguous')
+        return statuses == ['active']
 
     def wait_carrier(self, active, limit):
         deadline = self.clock() + limit
         while True:
-            observed = self.observe()
-            if observed['active'] == active:
-                return observed
+            if self.carrier() == active:
+                return
             runner.oracle.require(self.clock() < deadline, 'NIC carrier did not become ' + ('active' if active else 'inactive'))
             self.sleep(.1)
 
@@ -66,7 +96,8 @@ class HostLink:
         self.switch(True)
         self.wait_carrier(True, CARRIER_TIMEOUT)
         connect = dict(event='cable_connect_receipt', monotonic=self.clock())
-        observed = self.wait_carrier(True, SETTLE_TIMEOUT)
+        self.wait_carrier(True, SETTLE_TIMEOUT)
+        observed = self.observe()  # strict: the static address must be back
         up = dict(event='host_up', monotonic=self.clock(), interface='en5')
         route = parse_direct_route(self.command(['route', '-n', 'get', '192.168.77.2']), observed['source'])
         route['monotonic'] = self.clock()

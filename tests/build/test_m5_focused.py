@@ -12,6 +12,8 @@ import m5_focused_adapter as focused
 import capture_m5_focused as focused_cli
 
 NIC_TEXT='en5: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\tether 00:0a:cd:41:89:cc\n\tinet 192.168.77.1 netmask 0xffffff00 broadcast 192.168.77.255\n\tstatus: %s\n'
+NO_ADDRESS_TEXT='en5: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\tether 00:0a:cd:41:89:cc\n\tstatus: %s\n'
+ASSIGN=['sudo','-n','/sbin/ifconfig','en5','inet','192.168.77.1','netmask','255.255.255.0','up']
 ROUTE_TEXT='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,DONE,CLONING,STATIC>\n'
 BANNER=b'*** Booting Zephyr OS build v4.1.0 ***\r\n'
 BOOT=b'M5_BOOT source=123456789abc\r\n'
@@ -25,8 +27,8 @@ class Time:
 
 class Host:
     """Fake host: ifconfig/route/sudo with a small NIC model."""
-    def __init__(self,time,carrier_delay=0.,sudo_rc=0,stuck=False):
-        self.time=time;self.calls=[];self.admin=True;self.carrier_delay=carrier_delay;self.up_at=None;self.sudo_rc=sudo_rc;self.stuck=stuck
+    def __init__(self,time,carrier_delay=0.,sudo_rc=0,stuck=False,address=True,drops_address=False):
+        self.time=time;self.calls=[];self.admin=True;self.carrier_delay=carrier_delay;self.up_at=None;self.sudo_rc=sudo_rc;self.stuck=stuck;self.address=address;self.drops_address=drops_address
     def __call__(self,argv,**kwargs):
         self.calls.append(list(argv))
         class Result:pass
@@ -35,10 +37,12 @@ class Host:
             result.returncode=self.sudo_rc
             if self.sudo_rc==0:
                 self.admin=argv[-1]=='up'
+                if argv[4:5]==['inet']:self.address=True
+                if not self.admin and self.drops_address:self.address=False
                 if self.admin:self.up_at=self.time()+self.carrier_delay
         elif argv[:2]==['ifconfig','en5']:
             active=self.admin and (self.up_at is None or self.time()>=self.up_at) and not self.stuck
-            result.stdout=NIC_TEXT%('active' if active else 'inactive')
+            result.stdout=(NIC_TEXT if self.address else NO_ADDRESS_TEXT)%('active' if active else 'inactive')
         elif argv[:3]==['route','-n','get']:result.stdout=ROUTE_TEXT
         else:raise AssertionError(argv)
         return result
@@ -81,7 +85,31 @@ class HostLink(unittest.TestCase):
         self.assertEqual(stamps,sorted(stamps))
         self.assertGreaterEqual(stamps[0],2.5)
         self.assertEqual((rows[2]['source'],rows[2]['destination'],rows[2]['interface']),('192.168.77.1','192.168.77.2','en5'))
-        self.assertEqual([c for c in host.calls if c[0]=='sudo'],[['sudo','-n','/sbin/ifconfig','en5','up']])
+        self.assertEqual([c for c in host.calls if c[0]=='sudo'],[ASSIGN])
+
+    def test_up_reassigns_the_static_address_the_host_dropped_while_down(self):
+        link,host,time=self.link(drops_address=True)
+        link.down()
+        self.assertFalse(host.address)
+        rows=link.up()
+        self.assertEqual([r['event'] for r in rows],['cable_connect_receipt','host_up','route'])
+        self.assertEqual([c for c in host.calls if c[0]=='sudo'][-1],ASSIGN)
+
+    def test_configure_assigns_the_address_and_waits_for_carrier(self):
+        link,host,time=self.link(address=False,carrier_delay=2.)
+        observed=link.configure()
+        self.assertEqual((observed['source'],observed['active']),('192.168.77.1',True))
+        self.assertEqual([c for c in host.calls if c[0]=='sudo'][0],ASSIGN)
+
+    def test_configure_stops_without_carrier(self):
+        link,host,time=self.link(address=False,stuck=True)
+        with self.assertRaises(ValueError):link.configure()
+
+    def test_identity_needs_the_dedicated_mac_but_not_an_address_or_carrier(self):
+        link,host,time=self.link(address=False)
+        link.identity()
+        other=lambda argv,**k:type('R',(),dict(returncode=0,stdout=NO_ADDRESS_TEXT.replace('00:0a:cd:41:89:cc','aa:bb:cc:dd:ee:ff')%'inactive'))()
+        with self.assertRaises(ValueError):focused.HostLink(run=other,clock=time,sleep=time.sleep).identity()
 
     def test_up_without_carrier_times_out(self):
         link,host,time=self.link(stuck=True)
@@ -360,6 +388,14 @@ class Capture(unittest.TestCase):
         finally:
             for number,handler in saved.items():signal.signal(number,handler)
 
+    def test_missing_address_at_start_does_not_block_arming(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);time=Time();host=Host(time,address=False)
+            link=focused.HostLink(run=host,clock=time,sleep=time.sleep)
+            with self.assertRaises(ValueError):
+                focused_cli.capture(31,'123456789abc',self.ABI,root/'evidence','/dev/null',.05,link=link,port_factory=Port,clock=time,sleep=time.sleep,say=lambda _:None,receiver_factory=Receiver,process_backend=Backend(),software_only=True)
+            self.assertTrue((root/'evidence').exists())
+
     def test_abort_with_the_host_link_down_restores_it_and_keeps_the_evidence_separate(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);time=Time();host=Host(time)
@@ -377,7 +413,8 @@ class Capture(unittest.TestCase):
                     (self.directory/'uart-rx.bin').write_bytes(raw)
             with self.assertRaises(ValueError):
                 focused_cli.capture(31,'123456789abc',self.ABI,root/'evidence','/dev/null',5,link=link,port_factory=factory,clock=time,sleep=time.sleep,say=lambda _:None,receiver_factory=Receiver,process_backend=Backend(),software_only=True,adapter_cls=Armed,run=run)
-            self.assertEqual([c[-1] for c in host.calls if c[0]=='sudo' and c[-1] in ('up','down')],['down','up'])
+            self.assertEqual([c[-1] for c in host.calls if c[0]=='sudo' and c[-1] in ('up','down')],['up','down','up'])
+            self.assertEqual([c for c in host.calls if c[0]=='sudo' and 'inet' in c][:1],[ASSIGN])
             self.assertTrue((root/'evidence'/'abort-restore.jsonl').exists())
             controls=[json.loads(l)['event'] for l in (root/'evidence'/'controls.jsonl').read_text().splitlines()]
             self.assertEqual(controls,['cable_disconnect_cue','host_down','cable_disconnect_receipt'])

@@ -45,7 +45,7 @@ def capture(nonce, source, abi, evidence, uart, wait, *, link=None, port_factory
     link = link or HostLink()
     # Fail closed before any UART access: a non-interactive sudo credential and the NIC identity.
     link.command(['sudo', '-n', 'true'])
-    link.observe()
+    link.identity()
     evidence = Path(evidence)
     runner.oracle.require(not evidence.exists(), 'Never overwrite capture evidence')
     evidence.parent.mkdir(parents=True, exist_ok=True)
@@ -57,6 +57,7 @@ def capture(nonce, source, abi, evidence, uart, wait, *, link=None, port_factory
         runner.oracle.require(first is not None, 'No target boot banner before the operator deadline')
         # The cached sudo credential may have expired while waiting for the power cycle.
         link.command(['sudo', '-n', 'true'])
+        link.configure()
         supervisor = runner.Supervisor(nonce, source, clock(), abi, profile=m5_series.FOCUSED)
         result = run(supervisor, adapter, clock)
         adapter.emit('result.jsonl', result)
