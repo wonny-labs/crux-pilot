@@ -315,7 +315,7 @@ not-ready status is not exercised on Zephyr. `scripts/test-spi.sh` runs these ch
 hardware. They do not
 qualify a physical peripheral. Native-free consumption is checked only by the public header
 compile checks in the script and by the common source checker; SPI has no external-application or
-consumer-boundary profile yet because no consumer exists.
+consumer-boundary profile yet because no application consumer exists.
 
 A first portable consumer, `tests/spi/consumer/spi_flash_id.c`, reads the JEDEC identification of a
 serial NOR flash (command `0x9F`) using only the public header, as one four-byte full-duplex
