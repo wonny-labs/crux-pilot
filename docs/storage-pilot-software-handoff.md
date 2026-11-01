@@ -1,5 +1,7 @@
 # Storage Pilot software handoff
 
+**Historical software handoff — superseded for M4 storage selection.** The QSPI NOR/LittleFS and separate Settings/NVS preference below is no longer the selected Pilot storage direction. See the [30 October 2026 decision in Issue #14](https://github.com/wonny-labs/crux-pilot/issues/14) for the microSD/FatFs File path and conditional Settings file-backed evaluation. Prior simulator results and safety findings remain valid only within their recorded scope.
+
 Human approval on 24 October 2026 covers D1–D4 software implementation,
 verification, independent review and Draft PR preparation. It does not adopt
 production patches/partitions or authorise hardware, PR merge or Issue closure.

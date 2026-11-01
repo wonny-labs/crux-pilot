@@ -1,5 +1,7 @@
 # Storage configuration assessment
 
+**Historical assessment — superseded for M4 storage selection.** The QSPI NOR/LittleFS and separate Settings/NVS preference below was replaced by the [30 October 2026 M4 decision in Issue #14](https://github.com/wonny-labs/crux-pilot/issues/14). The selected Pilot File path is microSD with Zephyr VFS/FatFs, while Settings file-backed persistence remains conditional on qualification. Preserve this assessment as earlier technical and Flash/XIP safety evidence, not as the current storage recommendation.
+
 **Status: recommendation for independent review and human decision; not adopted.**
 Scope: [Issue #14](https://github.com/wonny-labs/crux-pilot/issues/14) under the
 existing [Storage and configuration milestone](https://github.com/wonny-labs/crux-pilot/milestone/3).

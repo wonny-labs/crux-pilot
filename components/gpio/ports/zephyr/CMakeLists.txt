@@ -1,0 +1,23 @@
+set(CRUX_GPIO_PROVIDER zephyr CACHE STRING "GPIO provider for this composition")
+if(NOT CRUX_GPIO_PROVIDER STREQUAL "zephyr")
+    message(FATAL_ERROR "Crux GPIO unsupported provider: ${CRUX_GPIO_PROVIDER}; expected zephyr")
+endif()
+
+get_filename_component(CRUX_GPIO_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+add_library(crux_gpio_api INTERFACE)
+target_include_directories(crux_gpio_api INTERFACE "${CRUX_GPIO_COMPONENT_DIR}/include")
+target_link_libraries(crux_gpio_api INTERFACE crux::base)
+target_compile_options(crux_gpio_api INTERFACE ${TOOLCHAIN_C_FLAGS})
+
+add_library(crux_gpio_zephyr STATIC ../../src/gpio.c gpio_zephyr.c gpio_binding.c gpio_status.c)
+target_include_directories(crux_gpio_zephyr PRIVATE ../../src .)
+target_link_libraries(crux_gpio_zephyr PRIVATE crux_gpio_api zephyr_interface)
+zephyr_append_cmake_library(crux_gpio_zephyr)
+target_compile_options(crux_gpio_zephyr PRIVATE -Wall -Wextra -Werror)
+set_property(TARGET crux_gpio_zephyr PROPERTY INTERFACE_CRUX_GPIO_PROVIDER zephyr)
+set_property(TARGET crux_gpio_zephyr APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_GPIO_PROVIDER)
+
+add_library(crux_gpio INTERFACE)
+add_library(crux::gpio ALIAS crux_gpio)
+target_link_libraries(crux_gpio INTERFACE crux_gpio_api)
+cmake_language(DEFER CALL crux_assert_portable_usage crux::gpio)

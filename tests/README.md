@@ -265,6 +265,23 @@ and independent messaging consumers. RTC-disabled Time/Thread tests also remain
 in `tests/thread/zephyr`. Historical measurements and old test names are retained
 in [the original evidence](../docs/messaging-validation.md), not new qualification.
 
+## GPIO
+
+The Host CTest suite includes `GPIO.Host`, which exercises the same native-free
+input consumer against a deterministic in-memory provider that has no polarity model,
+covering logical values, invalid arguments, unavailable state and injected provider
+failure, and `GPIO.NativeStatus`, which maps native driver results to Crux statuses
+without Zephyr. The native_sim Ztest uses Zephyr GPIO emulation for logical state,
+including the active-low inversion taken from the Devicetree flag, argument errors,
+rejection from interrupt context and reading before configuration.
+`scripts/test-gpio.sh` also rejects missing, disabled and malformed Devicetree
+selections, a disabled GPIO controller and an unsupported provider, and cross-builds
+the same portable consumer for RT1060-EVKB and for RT1170-EVK board revision A
+(Cortex-M7), each with its own alias overlay under `tests/gpio/evkb/boards`. The GPIO
+emulator has no fault injection, so no Zephyr case reaches a native driver failure or
+a controller that is not ready; the mapping is covered on the Host only. No hardware
+operation is performed; the cross-build results are compile/link evidence only.
+
 ## I2C
 
 The Host CTest suite covers the shipped loopback provider (`I2c.HostContract`), the portable layer

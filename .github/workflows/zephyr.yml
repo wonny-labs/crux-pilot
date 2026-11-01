@@ -110,6 +110,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-serial.sh
 
+      - name: Validate portable GPIO without hardware
+        working-directory: crux-pilot
+        run: scripts/test-gpio.sh
+
       - name: Validate portable I2C without hardware
         working-directory: crux-pilot
         run: scripts/test-i2c.sh
@@ -117,6 +121,10 @@ jobs:
       - name: Validate controller integration (software-only)
         working-directory: crux-pilot
         run: scripts/test-controller-integration.sh
+
+      - name: Cross-build RT1170-EVK Rev A CM7 composition (software-only)
+        working-directory: crux-pilot
+        run: scripts/test-m3-rt1170.sh
 
       - name: Qualify portable networking without hardware
         working-directory: crux-pilot
@@ -223,6 +231,12 @@ jobs:
             crux-pilot/build/zephyr/m3-probe-evkb/zephyr/zephyr.elf
             crux-pilot/build/zephyr/m3-probe-evkb/zephyr/zephyr.bin
             crux-pilot/build/zephyr/m3-probe-evkb/compile_commands.json
+            crux-pilot/build/zephyr/rt1170-evk-a1-m3/zephyr/.config
+            crux-pilot/build/zephyr/rt1170-evk-a1-m3/zephyr/zephyr.dts
+            crux-pilot/build/zephyr/rt1170-evk-a1-m3/zephyr/zephyr.map
+            crux-pilot/build/zephyr/rt1170-evk-a1-m3/zephyr/zephyr.elf
+            crux-pilot/build/zephyr/rt1170-evk-a1-m3/zephyr/zephyr.bin
+            crux-pilot/build/zephyr/rt1170-evk-a1-m3/compile_commands.json
             crux-pilot/build/zephyr/m3-network-evkb/zephyr/.config
             crux-pilot/build/zephyr/m3-network-evkb/zephyr/zephyr.dts
             crux-pilot/build/zephyr/m3-network-evkb/zephyr/zephyr.map

@@ -47,6 +47,14 @@ class NativeInterfaceTest(unittest.TestCase):
                 good = self.check_source("#include <crux/serial.h>\n#include <crux/time.h>\n", path)
                 self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
 
+    def test_gpio_consumers_reject_native_leakage(self):
+        for path in ("tests/gpio/consumer.c", "tests/gpio/consumer.h"):
+            with self.subTest(path=path):
+                bad = self.check_source("#include <zephyr/drivers/gpio.h>\n", path)
+                self.assertEqual(bad.returncode, 1, bad.stdout + bad.stderr)
+                good = self.check_source("#include <crux/gpio.h>\n", path)
+                self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
+
     def test_messaging_consumers_reject_native_leakage(self):
         for path in ("tests/messaging_consumer/runtime.c", "tests/messaging_consumer/main.cpp",
                      "samples/messaging/controller.c"):
@@ -128,6 +136,7 @@ class NativeInterfaceTest(unittest.TestCase):
                      "tests/configuration_consumer/consumer.cpp",
                      "tests/file_consumer/consumer.c", "tests/file_consumer/consumer.cpp",
                      "tests/file_consumer/consumer.h",
+                     "tests/gpio/consumer.c", "tests/gpio/consumer.h",
                      "tests/thread_sync_consumer/consumer.c",
                      "tests/thread_sync_consumer/consumer.cpp",
                      "tests/external_application/consumer.c", "tests/external_application/consumer.cpp"):
