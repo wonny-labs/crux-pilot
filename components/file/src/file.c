@@ -48,6 +48,15 @@ crux_file_result_t crux_file_open(const char *n, crux_file_mode_t m, crux_file_t
     }
 
     crux_file_lock();
+    /* A file open for writing excludes every other handle; several readers may share it. A second
+     * handle can hold stale provider state (for example a cached cluster chain) after a write. */
+    for (size_t i = 0; i < CRUX_FILE_POOL_SIZE; i++) {
+        if (files[i].live && strcmp(files[i].name, n) == 0 &&
+            (files[i].mode != CRUX_FILE_READ || m != CRUX_FILE_READ)) {
+            crux_file_unlock();
+            return CRUX_FILE_ERR_INVALID_STATE;
+        }
+    }
     size_t s = 0;
     while (s < CRUX_FILE_POOL_SIZE && files[s].live) {
         s++;
