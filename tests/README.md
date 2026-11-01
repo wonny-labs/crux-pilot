@@ -276,10 +276,11 @@ including the active-low inversion taken from the Devicetree flag, argument erro
 rejection from interrupt context and reading before configuration.
 `scripts/test-gpio.sh` also rejects missing, disabled and malformed Devicetree
 selections, a disabled GPIO controller and an unsupported provider, and cross-builds
-the same portable consumer for RT1060-EVKB. The GPIO emulator has no fault
-injection, so no Zephyr case reaches a native driver failure or a controller that is
-not ready; the mapping is covered on the Host only. No hardware operation is
-performed; the EVKB result is compile/link evidence only.
+the same portable consumer for RT1060-EVKB and for RT1170-EVK board revision A
+(Cortex-M7), each with its own alias overlay under `tests/gpio/evkb/boards`. The GPIO
+emulator has no fault injection, so no Zephyr case reaches a native driver failure or
+a controller that is not ready; the mapping is covered on the Host only. No hardware
+operation is performed; the cross-build results are compile/link evidence only.
 
 ## Portable Serial
 

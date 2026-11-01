@@ -14,4 +14,11 @@ modules_text="$(IFS=';'; printf '%s' "${modules[*]}")"
 (cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' \
     -d "$repo/build/zephyr/gpio-evkb" "$repo/tests/gpio/evkb" -- \
     -DZEPHYR_MODULES="$modules_text" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
-# EVKB is cross-build evidence only; this script never operates hardware.
+# The same consumer for RT1170-EVK board revision A (Cortex-M7). Zephyr's CMake honours these
+# variables, so clear them: the build must use only the board's own configuration plus the
+# alias overlay in tests/gpio/evkb/boards.
+unset DTC_OVERLAY_FILE EXTRA_DTC_OVERLAY_FILE OVERLAY_CONFIG CONF_FILE BOARD_ROOT
+(cd "$workspace" && west build -p always -b 'mimxrt1170_evk@A/mimxrt1176/cm7' \
+    -d "$repo/build/zephyr/gpio-rt1170" "$repo/tests/gpio/evkb" -- \
+    -DZEPHYR_MODULES="$modules_text" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+# The cross-builds are compile and link evidence only; this script never operates hardware.
