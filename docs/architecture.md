@@ -154,9 +154,10 @@ Before adding or significantly changing a capability:
 
 1. Identify the real consumer requirement and check whether an existing capability or qualified standard API is sufficient.
 2. Define the minimum public contract and clarify ownership, errors, lifetime, concurrency and execution-context limits.
-3. Keep consumer-facing declarations native-free. Add common implementation logic and optional OS ports only as justified by the contract.
-4. Define the public usage target, explicit platform composition, and supported environment selection without leaking private dependencies.
-5. Add focused Host/Zephyr and independent consumer evidence for the actual claim. Record unsupported configurations rather than masking missing providers.
+3. Identify the trust boundary. State whether the capability accepts data or control from outside the image, such as network, serial, storage or inter-process input, and whether a security function depends on it. Scale input validation, negative tests and review depth to that boundary and usage. Security decisions reject missing, invalid or ambiguous values rather than silently replacing them. Operational fault response remains application policy. Keep development-only entry points identifiable and removable or disabled in production configurations.
+4. Keep consumer-facing declarations native-free. Add common implementation logic and optional OS ports only as justified by the contract.
+5. Define the public usage target, explicit platform composition, and supported environment selection without leaking private dependencies.
+6. Add focused Host/Zephyr and independent consumer evidence for the actual claim. Record unsupported configurations rather than masking missing providers.
 
 Use [CONTRIBUTING](../CONTRIBUTING.md) for code, PR and review requirements and [AGENTS.md](../AGENTS.md) for AI execution boundaries. Material API and architecture decisions require the applicable review or approval. This overview does not authorise a new capability or a hardware operation.
 
