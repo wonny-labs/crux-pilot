@@ -10,8 +10,14 @@ ABI={'ETIMEDOUT':116,'ECONNRESET':104,'ENETDOWN':115,'ENETUNREACH':114}
 SOURCE='123456789abc'
 
 def complete():
+    return build(3,m5_series.PHASES,7,8,'qualification_reset_')
+
+def focused():
+    return build(1,m5_series.FOCUSED['phases'],3,4,'focused_power_cycle_')
+
+def build(count_boots,phases,loss_seq,recovery_seq,reset_name):
     boots=[]
-    for boot_number in range(3):
+    for boot_number in range(count_boots):
         token=71+boot_number;host=boot_number*500.+1;target=0;uart=[];peers={};controls=[];peer_stops=[];writes=[dict(monotonic=host+.0005,line="A "+str(token)+"\n")]
         def put(row):
             nonlocal host
@@ -21,12 +27,12 @@ def complete():
         put(dict(event='ARM',token=token,at=target))
         put(dict(event='READY',token=token,seq=1,ticket=301,at=target))
         put(dict(event='LINK',token=token,seq=0,at=0,link=2,admin=1,address=1,ipv4=3232255234))
-        for seq,count,mode in m5_series.PHASES:
-            action='I' if not count else 'L' if seq==7 else 'P'
+        for seq,count,mode in phases:
+            action='I' if not count else 'L' if seq==loss_seq else 'P'
             writes.append(dict(monotonic=host+.0005,line=' '.join([action,str(token),str(seq)]+([str(count)] if action=='P' else [])+[str(300+seq)])+'\n'))
-            if seq==8:
+            if seq==recovery_seq:
                 controls.extend([dict(event='cable_connect_receipt',monotonic=host+.001),dict(event='host_up',monotonic=host+.002,interface='en5'),dict(event='route',monotonic=host+.003,interface='en5',source='192.168.77.1',destination='192.168.77.2')]);host+=.004
-                put(dict(event='LINK',token=token,seq=7,at=target,link=2,admin=1,address=1,ipv4=3232255234))
+                put(dict(event='LINK',token=token,seq=loss_seq,at=target,link=2,admin=1,address=1,ipv4=3232255234))
                 writes[-1]['monotonic']=host+.0005
             if count:
                 peer=[dict(event='ready',clock='clock_gettime(CLOCK_MONOTONIC)',monotonic=host+.0001,token=token,phase=seq,mode=mode,address='192.168.77.1',tcp_port=42420,udp_port=42421)]
@@ -52,7 +58,7 @@ def complete():
             put(dict(event='DONE',token=token,seq=seq,at=target))
             put(dict(event='READY',token=token,seq=seq+1,ticket=301+seq,at=target))
             if count:peer_stops.append(dict(phase=seq,reaped=True,monotonic=host+.00001))
-        boots.append(dict(nonce=token,reset=dict(operation='qualification_reset_'+str(boot_number+1),monotonic=boot_number*500.),uart=uart,peers=peers,controls=controls,writes=writes,peer_stops=peer_stops))
+        boots.append(dict(nonce=token,reset=dict(operation=reset_name+str(boot_number+1),monotonic=boot_number*500.),uart=uart,peers=peers,controls=controls,writes=writes,peer_stops=peer_stops))
     return dict(schema=1,source=SOURCE,clock='clock_gettime(CLOCK_MONOTONIC)',boots=boots)
 
 class Series(unittest.TestCase):
@@ -115,6 +121,60 @@ class ActualShape(unittest.TestCase):
         with self.assertRaises(ValueError):m5_series.validate_series(data,SOURCE,ABI)
 
 if __name__=='__main__':unittest.main()
+
+class Focused(unittest.TestCase):
+    """One-boot, five-phase profile: idle, echo, loss, same-boot recovery echo, idle."""
+    def check(self,data):
+        return m5_series.validate_series(data,SOURCE,ABI,profile=m5_series.FOCUSED)
+
+    def test_one_boot_series_passes_and_is_labelled_focused(self):
+        result=self.check(focused())
+        self.assertEqual((result['status'],result['boots'],result['pairs'],result['calls']),('PASS',1,3,6))
+        self.assertEqual(result['profile'],'focused')
+        self.assertIs(result['physical_acceptance'],False)
+        self.assertEqual(result['recovery'],'same boot, no reset')
+
+    def test_full_result_is_unchanged_and_labelled_full(self):
+        result=m5_series.validate_series(complete(),SOURCE,ABI)
+        self.assertEqual((result['profile'],result['pairs'],result['calls']),('full',48,96))
+
+    def test_profiles_are_not_interchangeable(self):
+        with self.assertRaises(ValueError):m5_series.validate_series(focused(),SOURCE,ABI)
+        with self.assertRaises(ValueError):self.check(complete())
+
+    def test_boot_count_is_exact(self):
+        data=focused();data['boots']=[]
+        with self.assertRaises(ValueError):self.check(data)
+        data=focused();extra=copy.deepcopy(data['boots'][0]);extra['nonce']=99;data['boots'].append(extra)
+        with self.assertRaises(ValueError):self.check(data)
+
+    def test_reset_operation_name_belongs_to_the_profile(self):
+        data=focused();data['boots'][0]['reset']['operation']='qualification_reset_1'
+        with self.assertRaises(ValueError):self.check(data)
+
+    def test_missing_witness_or_misplaced_loss_cannot_pass(self):
+        for event in ['cable_disconnect_cue','cable_disconnect_receipt','host_down','cable_connect_receipt','host_up','route']:
+            data=focused();data['boots'][0]['controls']=[r for r in data['boots'][0]['controls'] if r['event']!=event]
+            with self.subTest(event=event),self.assertRaises(ValueError):self.check(data)
+        for offset in [-100,100]:
+            data=focused()
+            for row in data['boots'][0]['controls']:
+                if row['event'].startswith('cable_disconnect') or row['event']=='host_down':row['monotonic']+=offset
+            with self.subTest(offset=offset),self.assertRaises(ValueError):self.check(data)
+
+    def test_incomplete_boot_evidence_cannot_pass(self):
+        mutations=[lambda s:s['boots'][0]['peers'].pop('3'),lambda s:s['boots'][0]['peer_stops'].pop(),lambda s:s['boots'][0]['peer_stops'][0].update(reaped=False),lambda s:s['boots'][0]['writes'].pop(),lambda s:s['boots'][0]['uart'].pop(3),lambda s:s['boots'][0]['uart'][0]['record'].update(source='ffffffffffff')]
+        for mutate in mutations:
+            data=focused();mutate(data)
+            with self.subTest(mutation=mutate),self.assertRaises(ValueError):self.check(data)
+
+    def test_recovery_before_loss_udp_completion_is_rejected(self):
+        data=focused();boot=data['boots'][0]
+        end=next(r for r in boot['uart'] if r['record']['event']=='END' and r['record'].get('seq')==3 and r['record']['udp'])
+        up=next(r for r in boot['uart'] if r['record']['event']=='LINK' and r['record']['link']==2 and r['record']['seq']==3)
+        up['record']['at']=end['record']['functional']-1
+        with self.assertRaises(ValueError):self.check(data)
+
 
 class Primary(unittest.TestCase):
     def test_changed_primary_or_unknown_poststartup_state_is_rejected(self):
