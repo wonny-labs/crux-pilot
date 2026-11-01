@@ -226,10 +226,10 @@ These checks do not operate Flash or qualify an adopted persistence backend.
 
 ## Portable File software slice
 
-`scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS File suite on
+`scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS and FatFs File suites on
 32/64-bit `native_sim`, the Settings/NVS Configuration suite on 64-bit `native_sim`,
 and the Configuration source-staging regressions. It requires the pinned west
-workspace with LittleFS and a Host compiler with 32-bit development libraries.
+workspace with LittleFS and FatFs and a Host compiler with 32-bit development libraries.
 The Zephyr CI workflow runs this software-only gate; no physical storage is used.
 
 The [File contract](../docs/file-contract.md) and
@@ -247,6 +247,34 @@ ctest --test-dir build/file-consumers --output-on-failure
 The portable consumer objects link `crux::file`; root selection belongs to a
 separate trusted native fixture. No Zephyr File runtime or production storage
 backend is enabled by these checks.
+
+### FatFs File on `native_sim`
+
+`tests/native/file_fatfs` runs the File contract on real Zephyr FatFs over a RAM disk,
+including READ_WRITE, EOF and partial writes, storage full and reclamation, corrupted media
+that is never formatted, remount, and a torn-sync model. A remount inside one process is not
+evidence of persistence.
+
+`scripts/test-file-persistence.sh` builds `tests/native/file_fatfs_persist`, where the disk is a
+`zephyr,flash-disk` on the flash simulator backed by a host file, and runs it as separate
+processes: files acknowledged by one process are intact in the next, blank media is never
+mounted or modified, and a process killed between updates (`SIGKILL`, right after the child
+reports that it is resting) leaves every acknowledged file intact. A sample is kept only if the
+runner saw the report within 80 ms and only one such report, and the check then finds the next
+update not yet begun; any other sample is discarded and redrawn (at most 5 times). The same run executes a
+negative control: a deliberate defect that acknowledges an update before it is durable (before
+both sync and close) must be reported as a lost acknowledged file in every iteration
+(`--mutant ack_before_durable` runs only that control). It shows that the check can fail; it does
+not show that `sync` alone works, which the in-process torn-sync test covers. A kill at a random
+point is only recorded: where it lands is not controlled, and on this erase-then-program medium an
+update in flight can destroy neighbouring sectors. That says nothing about SD cards and is not a
+power-loss or physical-media claim.
+
+`tests/zephyr/file_fatfs_compile` compiles the File implementation and the RT1060 FatFs/SDHC
+composition for `mimxrt1060_evk@B//qspi` as an unlinked object. It does not mount, format or run
+anything on a board. `scripts/test-file-rt1060-compile.sh` runs it and fails if the testcase is
+filtered out instead of built. `scripts/test-storage-simulators.sh` and this script are in the
+Zephyr CI workflow; `scripts/test-file-persistence.sh` is not.
 
 ## Portable queue and monotonic timing
 

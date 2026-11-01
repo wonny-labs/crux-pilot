@@ -77,6 +77,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-storage-simulators.sh
 
+      - name: Compile the File RT1060 FatFs/SDHC check without hardware
+        working-directory: crux-pilot
+        run: scripts/test-file-rt1060-compile.sh
+
       # Uses the already-fetched pinned sources and host C compiler; no extra job/SDK build.
       - name: Check isolated Flash PoC fault paths
         working-directory: crux-pilot

@@ -3,6 +3,7 @@
 #include <crux/file.h>
 #include <ff.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>
@@ -27,6 +28,9 @@ static void *setup(void)
     return NULL;
 }
 
+static void write_file(const char *name, const char *text);
+static void expect_file(const char *name, const char *text);
+
 ZTEST(file_fatfs, test_maximum_length_name_roundtrip)
 {
     char name[64];
@@ -45,6 +49,11 @@ ZTEST(file_fatfs, test_maximum_length_name_roundtrip)
     zassert_equal(count, 2);
     zassert_mem_equal(value, "ok", 2);
     zassert_equal(crux_file_close(&file), CRUX_FILE_OK);
+
+    /* A name one character shorter is a different file: truncation or aliasing would merge them. */
+    write_file(name + 1, "zz");
+    expect_file(name, "ok");
+    expect_file(name + 1, "zz");
 }
 
 ZTEST(file_fatfs, test_distinct_portable_names_do_not_alias)
@@ -290,7 +299,12 @@ ZTEST(file_fatfs, test_storage_full_is_observable_and_space_is_reclaimed)
     zassert_true(closed == CRUX_FILE_OK || closed == CRUX_FILE_ERR_NO_SPACE);
     zassert_is_null(file);
 
+    struct fs_statvfs before, after;
+    zassert_ok(fs_statvfs("/RAM:", &before));
     zassert_equal(crux_file_remove("filler"), CRUX_FILE_OK);
+    zassert_ok(fs_statvfs("/RAM:", &after));
+    zassert_true(after.f_bfree > before.f_bfree, "removal must free blocks (%lu then %lu)",
+                 (unsigned long)before.f_bfree, (unsigned long)after.f_bfree);
     write_file("fresh", "new");
     expect_file("sentinel", "kept");
     expect_file("fresh", "new");
@@ -455,4 +469,107 @@ ZTEST(file_fatfs, test_torn_sync_images_mount_and_leave_unrelated_files_intact)
     zassert_equal(crux_file_remove("other"), CRUX_FILE_OK);
 }
 
-ZTEST_SUITE(file_fatfs, NULL, setup, NULL, NULL, NULL);
+ZTEST(file_fatfs, test_creating_empty_files_on_an_exhausted_volume_reports_no_space)
+{
+    crux_file_t *file = NULL;
+    crux_file_result_t last = CRUX_FILE_OK;
+    unsigned created = 0;
+    bool failed = false;
+    char name[48];
+
+    fill_volume();
+    /* Empty files need no data cluster. Long names use many directory entries, so the failure
+     * that ends this loop is the directory needing a new cluster that does not exist. */
+    for (unsigned i = 0; i < 400 && !failed; i++) {
+        snprintf(name, sizeof(name), "%040u", i);
+        crux_file_result_t rc = crux_file_open(name, CRUX_FILE_CREATE_REPLACE, &file);
+        if (rc == CRUX_FILE_OK) {
+            zassert_equal(crux_file_close(&file), CRUX_FILE_OK);
+            created++;
+        } else {
+            failed = true;
+            last = rc;
+        }
+    }
+    zassert_true(failed, "400 empty creations on a full volume never failed");
+    zassert_true(created > 0, "the first creation already failed");
+    zassert_equal(last, CRUX_FILE_ERR_NO_SPACE, "creation failed with %d after %u files", last,
+                  created);
+    for (unsigned i = 0; i < created; i++) {
+        snprintf(name, sizeof(name), "%040u", i);
+        zassert_equal(crux_file_remove(name), CRUX_FILE_OK);
+    }
+    (void)crux_file_remove("filler");
+}
+
+ZTEST(file_fatfs, test_bind_rejects_invalid_roots_and_a_second_bind)
+{
+    char too_long[80];
+
+    memset(too_long, 'a', sizeof(too_long));
+    too_long[0] = '/';
+    too_long[sizeof(too_long) - 1] = '\0';
+    zassert_equal(crux_file_zephyr_bind(NULL), CRUX_FILE_ERR_INVALID_ARGUMENT);
+    zassert_equal(crux_file_zephyr_bind("files"), CRUX_FILE_ERR_INVALID_ARGUMENT);
+    zassert_equal(crux_file_zephyr_bind("/"), CRUX_FILE_ERR_INVALID_ARGUMENT);
+    zassert_equal(crux_file_zephyr_bind("/RAM:/files/"), CRUX_FILE_ERR_INVALID_ARGUMENT);
+    zassert_equal(crux_file_zephyr_bind(too_long), CRUX_FILE_ERR_INVALID_ARGUMENT);
+    zassert_equal(crux_file_zephyr_bind("/RAM:/settings"), CRUX_FILE_ERR_INVALID_STATE,
+                  "the root is bound once");
+}
+
+ZTEST(file_fatfs, test_seek_to_eof_is_allowed_and_a_rejected_seek_keeps_the_position)
+{
+    crux_file_t *file = NULL;
+    size_t count = 99;
+    char value[4] = {0};
+
+    write_file("pos", "abcdef");
+    zassert_equal(crux_file_open("pos", CRUX_FILE_READ, &file), CRUX_FILE_OK);
+    zassert_equal(crux_file_seek(file, 6), CRUX_FILE_OK, "EOF itself is a valid offset");
+    zassert_equal(crux_file_read(file, value, sizeof(value), &count), CRUX_FILE_OK);
+    zassert_equal(count, 0);
+    zassert_equal(crux_file_seek(file, 2), CRUX_FILE_OK);
+    zassert_equal(crux_file_seek(file, 7), CRUX_FILE_ERR_OUT_OF_RANGE);
+    zassert_equal(crux_file_read(file, value, 2, &count), CRUX_FILE_OK);
+    zassert_equal(count, 2);
+    zassert_mem_equal(value, "cd", 2, "a rejected seek must not move the position");
+    /* Above 32-bit offsets the File core still accepts the value; the provider rejects it. */
+    zassert_equal(crux_file_seek(file, (uint64_t)INT32_MAX + 1), CRUX_FILE_ERR_OUT_OF_RANGE);
+    zassert_equal(crux_file_read(file, value, 1, &count), CRUX_FILE_OK);
+    zassert_equal(count, 1);
+    zassert_equal(value[0], 'e');
+    zassert_equal(crux_file_close(&file), CRUX_FILE_OK);
+    zassert_equal(crux_file_remove("pos"), CRUX_FILE_OK);
+}
+
+ZTEST(file_fatfs, test_removing_a_missing_file_reports_not_found)
+{
+    zassert_equal(crux_file_remove("never-created"), CRUX_FILE_ERR_NOT_FOUND);
+}
+
+/* Leave an empty, mounted volume behind, whatever the test did or where it failed. */
+static void cleanup(void *fixture)
+{
+    struct fs_dir_t dir;
+    struct fs_dirent entry;
+    char path[160]; /* "/RAM:/files/" plus a directory entry name of up to 127 bytes */
+
+    ARG_UNUSED(fixture);
+    (void)fs_mount(&mount); /* fails harmlessly when the test left it mounted */
+    for (unsigned guard = 0; guard < 1024; guard++) {
+        fs_dir_t_init(&dir);
+        if (fs_opendir(&dir, "/RAM:/files") != 0) {
+            return;
+        }
+        int rc = fs_readdir(&dir, &entry);
+        (void)fs_closedir(&dir);
+        if (rc != 0 || entry.name[0] == '\0') {
+            return;
+        }
+        snprintf(path, sizeof(path), "/RAM:/files/%s", entry.name);
+        (void)fs_unlink(path);
+    }
+}
+
+ZTEST_SUITE(file_fatfs, NULL, setup, NULL, cleanup, NULL);
