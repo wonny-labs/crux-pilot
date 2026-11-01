@@ -3,8 +3,11 @@
  * @brief Synchronous transfers with one 7-bit target on the composed I2C controller.
  *
  * Calls are synchronous and task-context only. A provider that can detect
- * interrupt context returns CRUX_ERR_NOT_SUPPORTED from a call made there; the
- * Host provider has no interrupt context and does not check. Crux adds no lock
+ * interrupt context returns CRUX_ERR_NOT_SUPPORTED from a call made there. When
+ * such a call also has an invalid argument, which of the two statuses is
+ * returned is unspecified. The Host provider has no interrupt context and does
+ * not check, and calls before the kernel is running (pre-kernel or early
+ * startup) are not supported but are not detected. Crux adds no lock
  * and no deadline: blocking, timeout behavior and serialization of concurrent
  * calls follow the native driver, and separate calls are not an atomic
  * application-level transaction.
@@ -39,7 +42,7 @@ extern "C" {
  * @param address Target address, 0x00-0x7F.
  * @param tx_data Bytes to write; may be NULL only when @p tx_length is 0.
  * @param tx_length Number of bytes to write.
- * @param rx_data Buffer for bytes to read; may be NULL only when @p rx_length is 0.
+ * @param[out] rx_data Buffer for bytes to read; may be NULL only when @p rx_length is 0.
  * @param rx_length Number of bytes to read.
  * @retval CRUX_OK The transfer completed.
  * @retval CRUX_ERR_INVALID_ARGUMENT Both lengths are 0, or a non-zero length has a NULL buffer.
