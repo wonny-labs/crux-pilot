@@ -58,6 +58,15 @@ ZTEST(crux_spi, test_unsupported_native_operation_maps_to_not_supported)
     zassert_equal(crux_spi_transceive(tx, &rx, sizeof(tx)), CRUX_ERR_NOT_SUPPORTED);
 }
 
+ZTEST(crux_spi, test_unimplemented_native_operation_maps_to_not_supported)
+{
+    /* The emulated peripheral reports -ENOSYS for a transfer whose first byte is this marker. */
+    const uint8_t tx[] = {0xED};
+    uint8_t rx = 0;
+
+    zassert_equal(crux_spi_transceive(tx, &rx, sizeof(tx)), CRUX_ERR_NOT_SUPPORTED);
+}
+
 static K_SEM_DEFINE(isr_done, 0, 1);
 static volatile bool isr_ran_in_interrupt;
 static volatile crux_status_t isr_status;
