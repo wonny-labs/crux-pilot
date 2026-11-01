@@ -71,7 +71,8 @@ ZTEST(file_fatfs, test_distinct_portable_names_do_not_alias)
     }
 }
 
-ZTEST(file_fatfs, test_create_replace_truncates_and_sync_survives_remount)
+/* The remount reuses the same in-process RAM disk, so this is not persistence evidence. */
+ZTEST(file_fatfs, test_create_replace_truncates_and_data_is_visible_after_in_process_remount)
 {
     crux_file_t *file = NULL;
     size_t count = 0;
