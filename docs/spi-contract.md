@@ -37,7 +37,9 @@ frequency, mode, bit-order and chip-select values, the provider's fixed 8-bit wo
 error mapping. No physical SPI peripheral
 is selected. Flash/XIP paths, including FlexSPI, are outside this capability and remain untouched.
 
-The current Crux source tree has no SPI consumer. This slice is an enabling full-duplex transfer
-contract and software test, not evidence of an existing application requirement or board support.
-A future consumer should identify a concrete peripheral before selecting a physical controller or
-expanding the API.
+The current Crux source tree has no application consumer of SPI. The only consumer is a test
+fixture, `tests/spi/consumer/spi_flash_id.c`, which reads a serial NOR flash's JEDEC identification
+in one exchange and runs on the Host and on `native_sim`. This slice is an enabling full-duplex
+transfer contract and software test, not evidence of an existing application requirement or board
+support. A future application consumer should identify a concrete peripheral before selecting a
+physical controller or expanding the API.

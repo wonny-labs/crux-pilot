@@ -21,6 +21,15 @@ cc -std=c17 -Wall -Wextra -Wpedantic -Werror \
 "$repo/build/spi/fault-test"
 
 cc -std=c17 -Wall -Wextra -Wpedantic -Werror \
+    -I"$repo/components/spi/include" -I"$repo/components/base/include" \
+    -I"$repo/components/spi/src" -I"$repo/tests/spi/consumer" \
+    "$repo/components/spi/src/spi.c" \
+    "$repo/tests/spi/consumer/spi_flash_id.c" \
+    "$repo/tests/spi/consumer/spi_flash_id_test.c" \
+    -o "$repo/build/spi/flash-id-test"
+"$repo/build/spi/flash-id-test"
+
+cc -std=c17 -Wall -Wextra -Wpedantic -Werror \
     -I"$repo/components/base/include" -I"$repo/components/spi/ports/zephyr" \
     "$repo/components/spi/ports/zephyr/spi_status.c" \
     "$repo/tests/spi/src/spi_status_test.c" \
@@ -40,6 +49,6 @@ export ZEPHYR_BASE="$workspace/zephyr"
 CRUX_WORKSPACE="$workspace" CRUX_SPI_COMPOSITION_TESTS=1 \
     python3 "$repo/tests/build/test_spi_composition.py"
 (cd "$workspace" && west twister -j 2 -p native_sim \
-    -T "$repo/tests/spi_zephyr" \
+    -T "$repo/tests/spi_zephyr" -T "$repo/tests/spi_consumer_zephyr" \
     -O "$repo/build/zephyr/twister-spi" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$repo")
