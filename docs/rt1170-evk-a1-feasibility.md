@@ -124,18 +124,21 @@ step.
 
 Read on 1 November 2026 from the job log and the uploaded artifacts of GitHub
 Actions run 41314067098 (job `zephyr`, 14:01 to 14:36 UTC). CI built the merge
-reference `5df5d09`, which merges PR head `565689ee0d2888a0db8865f89dcea41e9b0871f7`
-into `8fe1a964c12186f2b17d44fb18201ff50c39748c`.
+reference `5df5d09` of PR #124, which merges the PR head
+`565689ee0d2888a0db8865f89dcea41e9b0871f7` into
+`8fe1a964c12186f2b17d44fb18201ff50c39748c`. PR #124 was merged afterwards as
+`cd34fa0`. The merge reference is not a commit on `main`, so the values below
+identify this CI output and not a build of current `main`.
 
 | Item | Value |
 | --- | --- |
 | Target | `mimxrt1170_evk@A/mimxrt1176/cm7`: board `mimxrt1170_evk`, revision `A`, qualifiers `mimxrt1176/cm7` |
 | SoC as configured | `CONFIG_SOC="mimxrt1176"`, series `imxrt11xx`, part number `MIMXRT1176DVMAA`, Cortex-M7 |
-| Zephyr and NXP HAL | Zephyr 4.4.0 (`684c9e8f32e`, the pin in `west.yml`); NXP device files for `MIMXRT1176` from the `hal_nxp` module (`mcux-sdk-ng`) |
+| Zephyr and NXP HAL | Zephyr 4.4.0 (`684c9e8f32e4373a21098559f748f06915f950c9`, the pin in `west.yml`); NXP device files for `MIMXRT1176` from the `hal_nxp` module (`mcux-sdk-ng`) |
 | Toolchain and tools | Zephyr SDK 1.0.1; GCC 14.3.0 (`arm-zephyr-eabi`); GNU ld 2.43.1; dtc 1.7.0; CMake 3.28.4; west 1.4.0; Python 3.12.15 |
 | Configuration inputs | the board defconfig, `samples/controller/zephyr/prj.conf` and `m3.conf`; `CONFIG_CRUX_CONTROLLER_M3=y`; C17; no application overlay |
-| Memory and boot | XIP; Flash base `0x30000000`, 16 MB; SDRAM (`zephyr,sram`) base `0x80000000`, 64 MB; NXP boot header and FlexSPI NOR boot, XMCD and external SDRAM enabled |
-| Linker regions | FLASH `0x30000000` 16 MB; RAM `0x80000000` 64 MB; OCRAM `0x20200000` 256 KB; ITCM `0x00000000` 256 KB; DTCM `0x20000000` 256 KB |
+| Memory and boot | XIP; Flash base `0x30000000`, 16 MiB; SDRAM (`zephyr,sram`) base `0x80000000`, 64 MiB; NXP boot header and FlexSPI NOR boot, XMCD and external SDRAM enabled |
+| Linker regions | FLASH `0x30000000` 16 MiB; RAM `0x80000000` 64 MiB; OCRAM `0x20200000` 256 KiB; ITCM `0x00000000` 256 KiB; DTCM `0x20000000` 256 KiB |
 | Image size | FLASH 65,324 B (0.39 %); RAM 14,016 B (0.02 %); ELF 1,241,236 B; binary 65,324 B |
 | Image identity | ELF SHA-256 `22bdc424506a61056f7475b92dffa08951f0dc468d0fc7a112a8e5cc1de1e6f4`; binary SHA-256 `998a391e452bcf21dd8cd0d23c4bbf6f4bde55697fc5f2243ffb792bfa7070a5`; ARM, entry `0x30005175` |
 
