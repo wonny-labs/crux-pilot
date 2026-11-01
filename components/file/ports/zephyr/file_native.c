@@ -22,8 +22,12 @@
 #if defined(CONFIG_CRUX_FILE_SIMULATOR) && defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
 #error "File simulator compositions must be mutually exclusive"
 #endif
+/* One selector for every FatFs-specific behaviour, so a compile check builds what runs. */
 #if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR) ||                                                   \
     defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
+#define CRUX_FILE_NATIVE_FATFS 1
+#endif
+#if defined(CRUX_FILE_NATIVE_FATFS)
 #if !defined(CONFIG_FS_FATFS_LFN) || !defined(CONFIG_FS_FATFS_REENTRANT) ||                        \
     defined(CONFIG_FS_FATFS_MOUNT_MKFS)
 #error "FatFs File composition requires long names, reentrancy and no auto-format"
@@ -128,7 +132,7 @@ static crux_file_result_t ready(void)
 
 static crux_file_result_t make_path(char *path, size_t capacity, const char *name)
 {
-#if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+#if defined(CRUX_FILE_NATIVE_FATFS)
     /* FatFs ignores case and trailing dots. Encode bytes to preserve File identity. */
     static const char hex[] = "0123456789abcdef";
     int n = snprintf(path, capacity, "%s/f", root);
@@ -198,7 +202,7 @@ crux_file_result_t crux_file_impl_write(size_t s, const void *b, size_t l, size_
     if (rc < 0) {
         return result((int)rc);
     }
-#if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+#if defined(CRUX_FILE_NATIVE_FATFS)
     if (rc == 0) {
         /* FatFs reports a full volume as zero accepted bytes without an error. */
         return CRUX_FILE_ERR_NO_SPACE;
