@@ -1,0 +1,23 @@
+set(CRUX_SPI_PROVIDER zephyr CACHE STRING "SPI provider for this composition")
+if(NOT CRUX_SPI_PROVIDER STREQUAL "zephyr")
+    message(FATAL_ERROR "Crux SPI unsupported provider: ${CRUX_SPI_PROVIDER}; expected zephyr")
+endif()
+
+get_filename_component(CRUX_SPI_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+add_library(crux_spi_api INTERFACE)
+target_include_directories(crux_spi_api INTERFACE "${CRUX_SPI_COMPONENT_DIR}/include")
+target_link_libraries(crux_spi_api INTERFACE crux::base)
+target_compile_options(crux_spi_api INTERFACE ${TOOLCHAIN_C_FLAGS})
+
+add_library(crux_spi_zephyr STATIC ../../src/spi.c spi_port_zephyr.c spi_status.c)
+target_include_directories(crux_spi_zephyr PRIVATE ../../src .)
+target_link_libraries(crux_spi_zephyr PRIVATE crux_spi_api zephyr_interface)
+zephyr_append_cmake_library(crux_spi_zephyr)
+target_compile_options(crux_spi_zephyr PRIVATE -Wall -Wextra -Werror)
+set_property(TARGET crux_spi_zephyr PROPERTY INTERFACE_CRUX_SPI_PROVIDER zephyr)
+set_property(TARGET crux_spi_zephyr APPEND PROPERTY COMPATIBLE_INTERFACE_STRING CRUX_SPI_PROVIDER)
+
+add_library(crux_spi INTERFACE)
+add_library(crux::spi ALIAS crux_spi)
+target_link_libraries(crux_spi INTERFACE crux_spi_api)
+cmake_language(DEFER CALL crux_assert_portable_usage crux::spi)

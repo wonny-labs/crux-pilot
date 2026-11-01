@@ -118,6 +118,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-i2c.sh
 
+      - name: Validate portable SPI without hardware
+        working-directory: crux-pilot
+        run: scripts/test-spi.sh
+
       - name: Validate controller integration (software-only)
         working-directory: crux-pilot
         run: scripts/test-controller-integration.sh

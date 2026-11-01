@@ -115,6 +115,12 @@ config CRUX_I2C
     help
       Synchronous 7-bit I2C transfers through the composition-selected crux-i2c0 alias.
 
+config CRUX_SPI
+    bool "Crux synchronous SPI transceive"
+    depends on CRUX_PILOT_MODULE && SPI
+    help
+      Synchronous full-duplex byte transceive through the composition-selected crux-spi0 alias.
+
 config CRUX_LOGGING
     bool "Crux completed-text logging"
     depends on CRUX_PILOT_MODULE

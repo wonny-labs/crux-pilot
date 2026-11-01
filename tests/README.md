@@ -299,6 +299,24 @@ and an unsupported provider. The emulated controller is always ready, so the not
 not exercised on Zephyr. `scripts/test-i2c.sh` runs these checks without hardware. They do not
 qualify a physical bus or driver.
 
+## SPI
+
+The Host CTest suite covers the shipped loopback provider (`Spi.HostContract`), the portable layer
+against a test-only provider that records each call and injects failures (`Spi.PortableFaults`:
+argument rejection before any provider call, exact argument hand-off and verbatim status
+propagation), and the native-result mapping (`Spi.NativeStatus`). A `native_sim` Ztest uses
+Zephyr's SPI emulation controller for full-duplex data, Devicetree-selected transfer settings,
+native error mapping (an I/O error, `-ENOTSUP` and `-ENOSYS`) and rejection from interrupt context,
+and `tests/build/test_spi_composition.py`
+rejects a missing alias, a disabled selection, a peripheral that holds chip select, selects
+half-duplex or selects TI frame format, and an
+unsupported provider. The emulated controller and its chip select are always ready, so the
+not-ready status is not exercised on Zephyr. `scripts/test-spi.sh` runs these checks without
+hardware. They do not
+qualify a physical peripheral. Native-free consumption is checked only by the public header
+compile checks in the script and by the common source checker; SPI has no external-application or
+consumer-boundary profile yet because no consumer exists.
+
 ## Portable Serial
 
 `scripts/test-serial.sh --host-only` runs independently authored public C17/C++17
