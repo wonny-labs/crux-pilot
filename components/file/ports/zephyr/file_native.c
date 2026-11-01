@@ -7,14 +7,23 @@
 #include <zephyr/fs/fs.h>
 #include <zephyr/kernel.h>
 
-#if !defined(CONFIG_BOARD_NATIVE_SIM) ||                                                           \
+/* RT1060 selection compiles this source as an unlinked object only. */
+#if defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
+#if !defined(CONFIG_BOARD_MIMXRT1060_EVK) || !defined(CONFIG_SOC_MIMXRT1062) ||                    \
+    !defined(CONFIG_FAT_FILESYSTEM_ELM) || !defined(CONFIG_DISK_DRIVER_SDMMC) ||                   \
+    !defined(CONFIG_IMX_USDHC) || !defined(CONFIG_FS_FATFS_LFN) ||                                 \
+    !defined(CONFIG_FS_FATFS_REENTRANT) || defined(CONFIG_FS_FATFS_MOUNT_MKFS)
+#error "RT1060 File compile check requires the guarded FatFs/SDHC composition"
+#endif
+#elif !defined(CONFIG_BOARD_NATIVE_SIM) ||                                                         \
     (!defined(CONFIG_CRUX_FILE_SIMULATOR) && !defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR))
 #error "File provider requires an approved simulator composition"
 #endif
 #if defined(CONFIG_CRUX_FILE_SIMULATOR) && defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
 #error "File simulator compositions must be mutually exclusive"
 #endif
-#if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+#if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR) ||                                                   \
+    defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
 #if !defined(CONFIG_FS_FATFS_LFN) || !defined(CONFIG_FS_FATFS_REENTRANT) ||                        \
     defined(CONFIG_FS_FATFS_MOUNT_MKFS)
 #error "FatFs File composition requires long names, reentrancy and no auto-format"

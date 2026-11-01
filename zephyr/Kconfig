@@ -143,3 +143,15 @@ config CRUX_FILE_FATFS_SIMULATOR
     depends on !FS_FATFS_MOUNT_MKFS
     help
       Experimental native simulator composition; does not mount or format a volume.
+
+config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
+    bool "Compile-only Crux File FatFs RT1060 SDHC check"
+    depends on CRUX_PILOT_MODULE && BOARD_MIMXRT1060_EVK && SOC_MIMXRT1062
+    depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
+    depends on DT_HAS_NXP_IMX_USDHC_ENABLED && DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
+    depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
+    depends on !FS_FATFS_MOUNT_MKFS
+    help
+      Compile the File implementation and RT1060 SDHC/FatFs composition as an
+      object-only check. This does not link or select a target File provider,
+      mount media, format media, or enable runtime File operations.

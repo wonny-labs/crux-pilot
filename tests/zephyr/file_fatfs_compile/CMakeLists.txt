@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.20.0)
+get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_file_fatfs_compile C)
+target_sources(app PRIVATE main.c)
