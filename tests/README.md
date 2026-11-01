@@ -14,10 +14,6 @@ unsupported-profile shims, and actual Linux integration under `tests/time/busy_w
 cross-builds EVKB. Shims and compilation do not qualify a physical ISR or timing.
 See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 
-The SPI contract has a strict C17 Host loopback test and a `native_sim` Ztest using Zephyr's SPI
-emulation controller. It checks full-duplex data exchange, Devicetree-selected transfer settings,
-argument validation, and native error mapping. It does not qualify a physical peripheral.
-
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
 | Portable components and controller logic | CTest with GoogleTest suites and standalone C/C++ tests | Linux Host |
@@ -268,6 +264,18 @@ Native 128-Hz exact/fractional deadline and ISR checks are retained in
 and independent messaging consumers. RTC-disabled Time/Thread tests also remain
 in `tests/thread/zephyr`. Historical measurements and old test names are retained
 in [the original evidence](../docs/messaging-validation.md), not new qualification.
+
+## SPI
+
+The Host CTest suite covers the shipped loopback provider (`Spi.HostContract`), the portable layer
+against a test-only provider that records each call and injects failures (`Spi.PortableFaults`:
+argument rejection before any provider call, exact argument hand-off and verbatim status
+propagation), and the native-result mapping (`Spi.NativeStatus`). A `native_sim` Ztest uses
+Zephyr's SPI emulation controller for full-duplex data, Devicetree-selected transfer settings, native
+error mapping and rejection from interrupt context, and `tests/build/test_spi_composition.py`
+rejects a missing alias, a disabled selection, a peripheral that holds chip select and an
+unsupported provider. `scripts/test-spi.sh` runs these checks without hardware. They do not
+qualify a physical peripheral.
 
 ## Portable Serial
 

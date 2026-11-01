@@ -14,9 +14,13 @@ must therefore release CS according to the native driver's normal end-of-transfe
 does not provide multi-call transaction continuity.
 
 The call returns after the native transfer finishes. Crux provides no deadline, partial-progress
-count, rollback, or concurrency guarantee. A nonzero native result maps to `CRUX_ERR_IO`; the
-controller not being ready maps to `CRUX_ERR_NOT_READY`. Blocking, timeout, CS behavior, and
-serialization depend on the selected driver. Crux adds no lock.
+count, rollback, or concurrency guarantee. Native results `-ENOTSUP` and `-ENOSYS` map to
+`CRUX_ERR_NOT_SUPPORTED`; every other nonzero native result maps to `CRUX_ERR_IO`. The controller
+not being ready maps to `CRUX_ERR_NOT_READY`. A call made from interrupt context returns
+`CRUX_ERR_NOT_SUPPORTED` where the provider can detect it (the Zephyr provider does; the Host
+provider has no interrupt context and does not check). Blocking, timeout, CS behavior, and
+serialization depend on the selected driver. Crux adds no lock. Buffer overlap is a caller
+precondition and is not checked.
 
 The Host provider is a deterministic loopback fixture, not a bus model. The `native_sim` test uses
 Zephyr's SPI emulation controller and a test peripheral to verify data exchange, the composed
