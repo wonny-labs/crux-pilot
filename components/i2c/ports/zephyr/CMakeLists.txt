@@ -8,7 +8,7 @@ add_library(crux_i2c_api INTERFACE)
 target_include_directories(crux_i2c_api INTERFACE "${CRUX_I2C_COMPONENT_DIR}/include")
 target_link_libraries(crux_i2c_api INTERFACE crux::base)
 
-add_library(crux_i2c_zephyr STATIC ../../src/i2c.c i2c_port_zephyr.c)
+add_library(crux_i2c_zephyr STATIC ../../src/i2c.c i2c_port_zephyr.c i2c_status.c)
 target_include_directories(crux_i2c_zephyr PRIVATE ../../src .)
 target_link_libraries(crux_i2c_zephyr PRIVATE crux_i2c_api zephyr_interface)
 zephyr_append_cmake_library(crux_i2c_zephyr)

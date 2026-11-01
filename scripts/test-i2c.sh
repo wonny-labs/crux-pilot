@@ -22,6 +22,8 @@ printf '#include <crux/i2c.h>\nint main() { return 0; }\n' |
 
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
+CRUX_WORKSPACE="$workspace" CRUX_I2C_COMPOSITION_TESTS=1 \
+    python3 "$repo/tests/build/test_i2c_composition.py"
 (cd "$workspace" && west twister -j 2 -p native_sim \
     -T "$repo/tests/i2c_zephyr" \
     -O "$repo/build/zephyr/twister-i2c" --inline-logs \

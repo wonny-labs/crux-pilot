@@ -1,8 +1,10 @@
 #include "../../src/i2c_port.h"
+#include "i2c_status.h"
 
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/i2c.h>
+#include <zephyr/kernel.h>
 
 #if !DT_HAS_ALIAS(crux_i2c0)
 #error "The Zephyr composition must provide the crux-i2c0 alias"
@@ -19,6 +21,9 @@ static const struct device *const bus = DEVICE_DT_GET(CRUX_I2C_NODE);
 crux_status_t crux_i2c_impl_transfer(uint16_t address, const uint8_t *tx_data, size_t tx_length,
                                      uint8_t *rx_data, size_t rx_length)
 {
+    if (k_is_in_isr()) {
+        return CRUX_ERR_NOT_SUPPORTED;
+    }
     if (!device_is_ready(bus)) {
         return CRUX_ERR_NOT_READY;
     }
@@ -43,5 +48,5 @@ crux_status_t crux_i2c_impl_transfer(uint16_t address, const uint8_t *tx_data, s
         messages[0].flags |= I2C_MSG_STOP;
     }
 
-    return i2c_transfer(bus, messages, message_count, address) == 0 ? CRUX_OK : CRUX_ERR_IO;
+    return crux_i2c_zephyr_status(i2c_transfer(bus, messages, message_count, address));
 }
