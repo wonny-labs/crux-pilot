@@ -248,6 +248,26 @@ The portable consumer objects link `crux::file`; root selection belongs to a
 separate trusted native fixture. No Zephyr File runtime or production storage
 backend is enabled by these checks.
 
+### FatFs File on `native_sim`
+
+`tests/native/file_fatfs` runs the File contract on real Zephyr FatFs over a RAM disk,
+including READ_WRITE, EOF and partial writes, storage full and reclamation, corrupted media
+that is never formatted, remount, and a torn-sync model. A remount inside one process is not
+evidence of persistence.
+
+`scripts/test-file-persistence.sh` builds `tests/native/file_fatfs_persist`, where the disk is a
+`zephyr,flash-disk` on the flash simulator backed by a host file, and runs it as separate
+processes: files acknowledged by one process are intact in the next, blank media is never
+mounted or modified, and a process killed between updates (`SIGKILL`) leaves every acknowledged
+file intact. A deliberate acknowledge-before-sync defect must be detected
+(`--mutant ack_before_sync`). A kill at a random point is only recorded: on this
+erase-then-program medium an update in flight can destroy neighbouring sectors, so the result
+characterises the medium model, not FatFs, and is not a power-loss or physical-media claim.
+
+`tests/zephyr/file_fatfs_compile` compiles the File implementation and the RT1060 FatFs/SDHC
+composition for `mimxrt1060_evk@B//qspi` as an unlinked object. It does not mount, format or run
+anything on a board.
+
 ## Portable queue and monotonic timing
 
 Queue owns its native ports under `components/queue/ports/<os>/`. Portable
