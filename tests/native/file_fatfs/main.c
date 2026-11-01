@@ -364,6 +364,25 @@ ZTEST(file_fatfs, test_write_that_only_partly_fits_returns_partial_with_progress
     zassert_equal(crux_file_remove("filler"), CRUX_FILE_OK);
 }
 
+ZTEST(file_fatfs, test_creating_a_file_on_a_full_volume_reports_no_space_not_access)
+{
+    crux_file_t *file = NULL;
+    size_t count = 0;
+
+    fill_volume();
+    crux_file_result_t rc = crux_file_open("late", CRUX_FILE_CREATE_REPLACE, &file);
+    zassert_true(rc == CRUX_FILE_OK || rc == CRUX_FILE_ERR_NO_SPACE, "got %d", rc);
+    if (rc == CRUX_FILE_OK) {
+        zassert_equal(crux_file_write(file, "x", 1, &count), CRUX_FILE_ERR_NO_SPACE);
+        zassert_equal(count, 0);
+        (void)crux_file_close(&file);
+        zassert_equal(crux_file_remove("late"), CRUX_FILE_OK);
+    } else {
+        zassert_is_null(file);
+    }
+    zassert_equal(crux_file_remove("filler"), CRUX_FILE_OK);
+}
+
 #define SECTOR 512
 #define MAX_TORN_SECTORS 8
 static uint8_t before_image[2048 * SECTOR];
