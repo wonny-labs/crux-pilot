@@ -6,6 +6,7 @@ workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
 export ZEPHYR_TOOLCHAIN_VARIANT=host
 littlefs="$(cd "$workspace" && west list littlefs -f '{abspath}')"
+fatfs="$(cd "$workspace" && west list fatfs -f '{abspath}')"
 
 # Actual VFS/LittleFS on both simulator widths; never a target board.
 (cd "$workspace" && west twister -j 2 \
@@ -13,6 +14,13 @@ littlefs="$(cd "$workspace" && west list littlefs -f '{abspath}')"
     -T "$repo/tests/native/file_littlefs" \
     -O "$repo/build/zephyr/twister-storage-file" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$littlefs")
+
+# Actual FatFs on a RAM disk on both simulator widths; never a target board.
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/file_fatfs" \
+    -O "$repo/build/zephyr/twister-storage-fatfs" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
 
 # The Configuration fixture stages its existing three pinned source copies.
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
@@ -31,6 +39,7 @@ import sys
 root = Path(sys.argv[1])
 for directory, expected in [
     ('twister-storage-file', {'native_sim/native': 7, 'native_sim/native/64': 7}),
+    ('twister-storage-fatfs', {'native_sim/native': 15, 'native_sim/native/64': 15}),
     ('twister-storage-configuration', {'native_sim/native/64': 10}),
 ]:
     suites = json.loads((root / directory / 'twister.json').read_text())['testsuites']

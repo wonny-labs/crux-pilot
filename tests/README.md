@@ -226,7 +226,7 @@ These checks do not operate Flash or qualify an adopted persistence backend.
 
 ## Portable File software slice
 
-`scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS File suite on
+`scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS and FatFs File suites on
 32/64-bit `native_sim`, the Settings/NVS Configuration suite on 64-bit `native_sim`,
 and the Configuration source-staging regressions. It requires the pinned west
 workspace with LittleFS and a Host compiler with 32-bit development libraries.
@@ -266,7 +266,9 @@ characterises the medium model, not FatFs, and is not a power-loss or physical-m
 
 `tests/zephyr/file_fatfs_compile` compiles the File implementation and the RT1060 FatFs/SDHC
 composition for `mimxrt1060_evk@B//qspi` as an unlinked object. It does not mount, format or run
-anything on a board.
+anything on a board. `scripts/test-file-rt1060-compile.sh` runs it and fails if the testcase is
+filtered out instead of built. `scripts/test-storage-simulators.sh` and this script are in the
+Zephyr CI workflow; `scripts/test-file-persistence.sh` is not.
 
 ## Portable queue and monotonic timing
 
