@@ -238,14 +238,14 @@ backend on a FatFs RAM disk, with I/O faults injected by link-time wraps of `fs_
 hides I/O faults (a failed write or read can be reported as success or as a missing
 key), so the fixture stages build-local copies of `settings_file.c`, `settings_line.c`
 and `settings_store.c` with the corrections in `settings_file.patch`, `settings_line.patch`
-and `settings_error/settings_store.patch`. It checks the pinned sources by hash, writes
+and `settings_error/settings_store.patch`. It compares the pinned sources byte for byte with the pinned Git blobs, writes
 outside the Zephyr checkout and fails on drift. The fixture's provider copy can read each
 saved record back; that read-back is tested, not yet part of any product provider. A
 negative control builds the same suite against the unpatched backend and requires its
-characterised result (12 pass, 11 fail). These are simulator results. They do not show
+characterised result: the named cases that expose the defects fail and the 12 others pass. These are simulator results. They do not show
 persistence, power-loss behaviour or recovery on a real card, and the format limits
 recorded by the tests (no checksum or resynchronisation, a non-atomic compaction, a torn
-tail that can lose the latest save or leave the file unreadable) remain.
+tail that can lose the latest save or leave the file unreadable) remain. The backend's inner duplicate scans can still resurrect a deleted key after a read fault; they are neither fixed nor tested, and Crux never deletes.
 
 The [File contract](../docs/file-contract.md) and
 [qualification/handoff record](../docs/file-validation.md) cover the Linux Host

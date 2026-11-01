@@ -1,5 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 set(_copy "${CMAKE_BINARY_DIR}/settings-file-candidate")
+# Re-stage whenever an input changes, also in an incremental build.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+  ${CMAKE_CURRENT_LIST_DIR}/prepare.py ${CMAKE_CURRENT_LIST_DIR}/settings_file.patch
+  ${CMAKE_CURRENT_LIST_DIR}/settings_line.patch
+  ${CMAKE_CURRENT_LIST_DIR}/../settings_error/settings_store.patch
+  ${ZEPHYR_BASE}/subsys/settings/src/settings_file.c
+  ${ZEPHYR_BASE}/subsys/settings/src/settings_line.c
+  ${ZEPHYR_BASE}/subsys/settings/src/settings_store.c)
 execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/prepare.py
   --zephyr ${ZEPHYR_BASE} --output ${_copy} RESULT_VARIABLE _rc)
 if(NOT _rc EQUAL 0)

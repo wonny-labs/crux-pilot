@@ -260,13 +260,10 @@ ZTEST(configuration_settings_file, test_compaction_read_error_keeps_other_record
     zassert_false(fail_read_in_compaction, "fault must reach the compaction scan");
     set_value(&other, 99);
     crux_config_result_t loaded = crux_config_load(&other);
-    /* Either the save reports the failure, or the other key must still be intact. */
-    zassert_true(rc != CRUX_CONFIG_OK || loaded == CRUX_CONFIG_OK,
-                 "save reported success but another record was lost (save %d, load %d)", rc,
-                 loaded);
-    if (loaded == CRUX_CONFIG_OK) {
-        expect_value(&other, 7);
-    }
+    /* The aborted compaction keeps the original file, so the other record stays readable. */
+    zassert_equal(loaded, CRUX_CONFIG_OK, "another record was lost (save %d, load %d)", rc, loaded);
+    expect_value(&other, 7);
+    zassert_not_equal(rc, CRUX_CONFIG_OK, "the failed compaction was acknowledged");
 }
 
 ZTEST(configuration_settings_file, test_truncated_tail_keeps_earlier_records)
@@ -528,6 +525,47 @@ ZTEST(configuration_settings_file, test_a_missing_settings_file_reads_as_missing
     crux_config_result_t rc = crux_config_load(&p);
     zassert_equal(rc, CRUX_CONFIG_DEFAULT_MISSING, "a missing settings file gave %d", rc);
     expect_value(&p, 11);
+}
+
+/* A compaction that was interrupted between removing the settings file and renaming the new one
+ * leaves the data only in the .cmp file. That is a lost file, not a first boot. */
+ZTEST(configuration_settings_file, test_missing_file_with_a_compaction_leftover_is_an_error)
+{
+    crux_config_param_t p = {0};
+    struct fs_file_t leftover;
+
+    zassert_ok(fs_unlink("/RAM:/settings/cfg"));
+    fs_file_t_init(&leftover);
+    zassert_ok(fs_open(&leftover, "/RAM:/settings/cfg.cmp", FS_O_CREATE | FS_O_WRITE));
+    zassert_ok(fs_close(&leftover));
+    fresh(&p, &spec, 99);
+    crux_config_result_t rc = crux_config_load(&p);
+    zassert_equal(rc, CRUX_CONFIG_ERR_IO, "a lost file reads as %d", rc);
+    zassert_ok(fs_unlink("/RAM:/settings/cfg.cmp"));
+}
+
+static int failing_callback(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg,
+                            void *param)
+{
+    ARG_UNUSED(name);
+    ARG_UNUSED(len);
+    ARG_UNUSED(read_cb);
+    ARG_UNUSED(cb_arg);
+    (*(unsigned *)param)++;
+    return -EIO;
+}
+
+/* A callback error must reach the caller of the load instead of being dropped by the backend. */
+ZTEST(configuration_settings_file, test_a_callback_error_is_returned_by_the_load)
+{
+    crux_config_param_t p = {0};
+    unsigned calls = 0;
+
+    fresh(&p, &spec, 5);
+    zassert_equal(crux_config_save(&p), CRUX_CONFIG_OK);
+    int rc = settings_load_subtree_direct("cfg", failing_callback, &calls);
+    zassert_true(calls > 0, "the callback never ran");
+    zassert_equal(rc, -EIO, "a callback error was returned as %d", rc);
 }
 
 /* A read fault during a compaction must not drop another record: either the save fails and the

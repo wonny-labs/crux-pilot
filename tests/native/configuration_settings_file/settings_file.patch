@@ -30,7 +30,21 @@
  			break;
  		}
  		name[name_len] = '\0';
-@@ -172,7 +181,7 @@
+@@ -164,7 +173,12 @@
+ 		/*name, val-read_cb-ctx, val-off*/
+ 		/* take into account '=' separator after the name */
+ 		if (pass_entry) {
+-			cb(name, (void *)&entry_ctx, name_len + 1, cb_arg);
++			rc = cb(name, (void *)&entry_ctx, name_len + 1, cb_arg);
++			if (rc) {
++				/* Report the callback's error; the load stops at the first one. */
++				err = rc;
++				break;
++			}
+ 		}
+ 		lines++;
+ 	}
+@@ -172,19 +186,31 @@
  	rc = fs_close(&file);
  	cf->cf_lines = lines;
  
@@ -38,8 +52,11 @@
 +	return err ? err : rc;
  }
  
++static void settings_tmpfile(char *dst, const char *src, char *pfx);
++
  /*
-@@ -181,10 +190,10 @@
+  * Called to load configuration items.
+  */
  static int settings_file_load(struct settings_store *cs,
  			      const struct settings_load_arg *arg)
  {
@@ -49,12 +66,22 @@
 -				       true);
 +	int rc = settings_file_load_priv(cs, settings_line_load_cb, (void *)arg, true);
 +
-+	/* A settings file that was never created is an empty store. */
-+	return rc == -ENOENT ? 0 : rc;
++	if (rc == -ENOENT) {
++		struct settings_file *cf = CONTAINER_OF(cs, struct settings_file, cf_store);
++		char tmp_file[SETTINGS_FILE_NAME_MAX];
++		struct fs_dirent entry;
++
++		/* A settings file that was never created is an empty store. A compaction leftover
++		 * means the file was lost between removing it and renaming the new one.
++		 */
++		settings_tmpfile(tmp_file, cf->cf_name, ".cmp");
++		return fs_stat(tmp_file, &entry) == 0 ? -EIO : 0;
++	}
++	return rc;
  }
  
  static void settings_tmpfile(char *dst, const char *src, char *pfx)
-@@ -270,6 +279,10 @@
+@@ -270,6 +296,10 @@
  	while (1) {
  		rc = settings_next_line_ctx(&loc1);
  
@@ -65,7 +92,7 @@
  		if (rc || loc1.len == 0) {
  			/* try to amend new value to the compressed file */
  			break;
-@@ -277,6 +290,10 @@
+@@ -277,6 +307,10 @@
  
  		rc = settings_line_name_read(name1, sizeof(name1), &val1_off,
  					     &loc1);
@@ -76,7 +103,7 @@
  		if (rc) {
  			/* try to process next line */
  			continue;
-@@ -358,7 +375,7 @@
+@@ -358,7 +392,7 @@
  	 * XXX at settings_file_load(), look for .cmp if actual file does not
  	 * exist.
  	 */
@@ -85,7 +112,7 @@
  end_rolback:
  	(void)fs_close(&wf);
  	if (fs_close(&rf) == 0) {
-@@ -399,11 +416,16 @@
+@@ -399,11 +433,16 @@
  	if (rc == 0) {
  		rc = fs_seek(&file, 0, FS_SEEK_END);
  		if (rc == 0) {
@@ -102,7 +129,7 @@
  			}
  		}
  
-@@ -424,6 +446,7 @@
+@@ -424,6 +463,7 @@
  			      const char *value, size_t val_len)
  {
  	struct settings_line_dup_check_arg cdca;
@@ -110,7 +137,7 @@
  
  	if (val_len > 0 && value == NULL) {
  		return -EINVAL;
-@@ -436,7 +459,10 @@
+@@ -436,7 +476,10 @@
  	cdca.val = (char *)value;
  	cdca.is_dup = 0;
  	cdca.val_len = val_len;
@@ -122,7 +149,7 @@
  	if (cdca.is_dup == 1) {
  		return 0;
  	}
-@@ -496,10 +522,12 @@
+@@ -496,10 +539,12 @@
  	rc = fs_seek(file, 0, FS_SEEK_END);
  
  	if (rc == 0) {

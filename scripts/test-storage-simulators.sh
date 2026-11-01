@@ -39,20 +39,42 @@ python3 -m unittest discover -s "$repo/tests/native/configuration_settings" -p t
 
 python3 -m unittest discover -s "$repo/tests/native/configuration_settings_file" -p test_prepare.py -v
 
-# Negative control: the same suite on the unpatched upstream backend must fail.
+# Negative control: the same suite on the unpatched upstream backend must fail exactly the
+# cases that characterise its defects and pass the rest.
 control="$repo/build/zephyr/settings-file-control"
 (cd "$workspace" && west build -b native_sim/native/64 -d "$control" -p always \
     "$repo/tests/native/configuration_settings_file" -- \
     -DZEPHYR_MODULES="$fatfs" -DCRUX_SETTINGS_FILE_CONTROL=ON > "$control.build.log" 2>&1)
-if "$control/zephyr/zephyr.exe" > "$control.run.log" 2>&1; then
+if timeout 120 "$control/zephyr/zephyr.exe" > "$control.run.log" 2>&1; then
     echo "settings-file control unexpectedly passed on the unpatched backend" >&2
     exit 1
 fi
-grep -q 'pass = 12, fail = 11' "$control.run.log" || {
-    echo "settings-file control did not fail as characterised (12 pass, 11 fail)" >&2
-    exit 1
+python3 - "$control.run.log" <<'PY'
+import re
+import sys
+
+expected = {
+    'test_a_callback_error_is_returned_by_the_load',
+    'test_compaction_close_error_is_not_success',
+    'test_compaction_read_error_keeps_other_records',
+    'test_compaction_read_fault_never_loses_a_record',
+    'test_each_load_read_fault_preserves_active',
+    'test_full_volume_never_acknowledges_a_lost_save',
+    'test_interrupted_save_never_yields_a_wrong_value',
+    'test_missing_file_with_a_compaction_leftover_is_an_error',
+    'test_name_write_error_is_failure',
+    'test_save_scan_error_is_not_success',
+    'test_scan_read_error_is_not_missing',
+    'test_short_write_is_failure',
+    'test_zero_write_is_failure',
 }
-echo "settings-file control (unpatched backend): 11 of 23 cases fail as expected"
+log = open(sys.argv[1], errors='replace').read()
+failed = set(re.findall(r'^ - FAIL - \[configuration_settings_file\.(\w+)\]', log, re.M))
+if failed != expected or 'pass = 12, fail = 13' not in log:
+    raise RuntimeError(f'settings-file control differs: unexpected {sorted(failed - expected)}, '
+                       f'missing {sorted(expected - failed)}')
+print(f'settings-file control (unpatched backend): {len(failed)} of 25 cases fail as expected')
+PY
 
 # A filtered/build-only Twister run must not satisfy the provider gate.
 python3 - "$repo/build/zephyr" <<'PY'
@@ -65,7 +87,7 @@ for directory, expected in [
     ('twister-storage-file', {'native_sim/native': 7, 'native_sim/native/64': 7}),
     ('twister-storage-fatfs', {'native_sim/native': 19, 'native_sim/native/64': 19}),
     ('twister-storage-configuration', {'native_sim/native/64': 10}),
-    ('twister-storage-settings-file', {'native_sim/native/64': 23}),
+    ('twister-storage-settings-file', {'native_sim/native/64': 25}),
 ]:
     suites = json.loads((root / directory / 'twister.json').read_text())['testsuites']
     if len(suites) != len(expected) or {s['platform'] for s in suites} != set(expected):
@@ -80,6 +102,6 @@ for directory, expected in [
 PY
 
 # Source staging must not patch the original Zephyr checkout.
-git -C "$ZEPHYR_BASE" diff --exit-code -- \
+git -C "$ZEPHYR_BASE" diff HEAD --exit-code -- \
     subsys/settings/src/settings_store.c subsys/settings/src/settings_nvs.c subsys/kvss/nvs/nvs.c \
     subsys/settings/src/settings_file.c subsys/settings/src/settings_line.c

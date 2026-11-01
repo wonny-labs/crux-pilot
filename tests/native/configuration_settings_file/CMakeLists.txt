@@ -7,6 +7,9 @@ if(NOT CONFIG_BOARD_NATIVE_SIM OR NOT CONFIG_SETTINGS_FILE)
 endif()
 get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 set(PROVIDER_COPY "${CMAKE_CURRENT_BINARY_DIR}/configuration_settings_probe.c")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+  ${CMAKE_CURRENT_LIST_DIR}/prepare_provider.py
+  ${CRUX_ROOT}/components/configuration/ports/zephyr/configuration_settings.c)
 execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/prepare_provider.py
   ${CRUX_ROOT}/components/configuration/ports/zephyr/configuration_settings.c ${PROVIDER_COPY}
   RESULT_VARIABLE result)
