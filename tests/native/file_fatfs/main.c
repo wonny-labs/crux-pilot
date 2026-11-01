@@ -1,23 +1,25 @@
-#include <crux/file.h>
 #include "file_native.h"
 #include "file_port.h"
-#include <zephyr/fs/fs.h>
-#include <zephyr/storage/disk_access.h>
-#include <zephyr/ztest.h>
+#include <crux/file.h>
 #include <ff.h>
 #include <stdint.h>
 #include <string.h>
+#include <zephyr/fs/fs.h>
+#include <zephyr/storage/disk_access.h>
+#include <zephyr/ztest.h>
 
 static FATFS fat;
 static struct fs_mount_t mount = {
-    .type = FS_FATFS, .mnt_point = "/RAM:", .fs_data = &fat,
+    .type = FS_FATFS,
+    .mnt_point = "/RAM:",
+    .fs_data = &fat,
     .flags = FS_MOUNT_FLAG_NO_FORMAT,
 };
 
 static void *setup(void)
 {
     zassert_not_equal(fs_mount(&mount), 0, "unformatted media must not be formatted");
-    zassert_ok(fs_mkfs(FS_FATFS, (uintptr_t)"RAM:", NULL, 0));
+    zassert_ok(fs_mkfs(FS_FATFS, (uintptr_t) "RAM:", NULL, 0));
     zassert_ok(fs_mount(&mount));
     zassert_ok(fs_mkdir("/RAM:/files"));
     zassert_ok(fs_mkdir("/RAM:/settings"));
@@ -408,8 +410,8 @@ ZTEST(file_fatfs, test_torn_sync_images_mount_and_leave_unrelated_files_intact)
 
     for (uint32_t subset = 0; subset < (1u << count_changed); subset++) {
         for (uint32_t i = 0; i < count_changed; i++) {
-            const uint8_t *src = (subset & (1u << i)) ? after_sector[i]
-                                                       : &before_image[changed[i] * SECTOR];
+            const uint8_t *src =
+                (subset & (1u << i)) ? after_sector[i] : &before_image[changed[i] * SECTOR];
             zassert_ok(disk_access_write("RAM", src, changed[i], 1));
         }
         zassert_ok(fs_mount(&mount), "torn image %u must still mount", subset);

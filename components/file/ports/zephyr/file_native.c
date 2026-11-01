@@ -7,7 +7,7 @@
 #include <zephyr/fs/fs.h>
 #include <zephyr/kernel.h>
 
-#if !defined(CONFIG_BOARD_NATIVE_SIM) ||                                                      \
+#if !defined(CONFIG_BOARD_NATIVE_SIM) ||                                                           \
     (!defined(CONFIG_CRUX_FILE_SIMULATOR) && !defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR))
 #error "File provider requires an approved simulator composition"
 #endif
@@ -15,7 +15,7 @@
 #error "File simulator compositions must be mutually exclusive"
 #endif
 #if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
-#if !defined(CONFIG_FS_FATFS_LFN) || !defined(CONFIG_FS_FATFS_REENTRANT) ||                   \
+#if !defined(CONFIG_FS_FATFS_LFN) || !defined(CONFIG_FS_FATFS_REENTRANT) ||                        \
     defined(CONFIG_FS_FATFS_MOUNT_MKFS)
 #error "FatFs File composition requires long names, reentrancy and no auto-format"
 #endif
