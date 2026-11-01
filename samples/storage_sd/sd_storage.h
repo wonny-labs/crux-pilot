@@ -22,8 +22,11 @@ enum sd_storage_status {
  * volume unmounted and the File component unbound, so a later call may succeed. */
 enum sd_storage_status sd_storage_start(void);
 
-/* Application-owned unmount and remount. The File provider stays bound to the same root; open
- * handles must be closed first because FatFs does not refuse an unmount while one is open. A card
- * swap needs a reboot. Return 0 on success, else a negative errno. */
+/* Application-owned unmount and remount, valid only after a successful start. The File provider
+ * stays bound to the same root; open handles must be closed first because FatFs does not refuse an
+ * unmount while one is open. stop is not a power-down: the disk stays initialised. After a stop,
+ * start reports ALREADY_STARTED and remount is the way back. A card swap needs a reboot.
+ * Return 0 on success; -EINVAL out of order (stop when not mounted, remount before start),
+ * -EALREADY for a remount of a mounted volume, else an errno. */
 int sd_storage_stop(void);
 int sd_storage_remount(void);

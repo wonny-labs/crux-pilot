@@ -53,5 +53,15 @@ if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 
                              s.get('runnable') for s in suites)):
     raise RuntimeError(f'RT1060 File link check did not build both scenarios: '
                        f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
+# The mount-at-boot scenario must really enable it, and the base scenario must not.
+from pathlib import Path
+root = Path(sys.argv[1]).parent
+for name, wanted in [('crux.sample.storage_sd', False), ('crux.sample.storage_sd.start', True)]:
+    configs = [p for p in root.rglob('.config') if p.parent.parent.name == name]
+    if len(configs) != 1:
+        raise RuntimeError(f'expected one build configuration for {name}, found {len(configs)}')
+    enabled = 'CONFIG_SAMPLE_SD_START=y' in configs[0].read_text().splitlines()
+    if enabled != wanted:
+        raise RuntimeError(f'{name}: CONFIG_SAMPLE_SD_START enabled={enabled}, expected {wanted}')
 print(f'RT1060 File link check built {len(suites)} scenarios on {sys.argv[2]}')
 PY

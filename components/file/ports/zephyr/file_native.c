@@ -13,7 +13,7 @@
     !defined(CONFIG_FAT_FILESYSTEM_ELM) || !defined(CONFIG_DISK_DRIVER_SDMMC) ||                   \
     !defined(CONFIG_IMX_USDHC) || !defined(CONFIG_FS_FATFS_LFN) ||                                 \
     !defined(CONFIG_FS_FATFS_REENTRANT) || defined(CONFIG_FS_FATFS_MOUNT_MKFS)
-#error "RT1060 File compile check requires the guarded FatFs/SDHC composition"
+#error "RT1060 File selections require the guarded FatFs/SDHC composition"
 #endif
 #elif !defined(CONFIG_BOARD_NATIVE_SIM) ||                                                         \
     (!defined(CONFIG_CRUX_FILE_SIMULATOR) && !defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR))

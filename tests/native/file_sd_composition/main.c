@@ -2,6 +2,7 @@
  * name order: the File provider binds once per process, so "not ready" cases come first. */
 #include "sd_storage.h"
 #include <crux/file.h>
+#include <errno.h>
 #include <ff.h>
 #include <stdint.h>
 #include <string.h>
@@ -9,15 +10,17 @@
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/ztest.h>
 
-enum { SECTOR = 512, SECTORS = 2048 };
+enum { SECTOR = 512 };
 
 /* FNV-1a over the whole medium: any write, format or directory creation changes it. */
 static uint32_t medium_digest(void)
 {
     uint8_t sector[SECTOR];
     uint32_t hash = 2166136261u;
+    uint32_t sectors = 0;
 
-    for (uint32_t index = 0; index < SECTORS; index++) {
+    zassert_ok(disk_access_ioctl(SD_STORAGE_DISK, DISK_IOCTL_GET_SECTOR_COUNT, &sectors));
+    for (uint32_t index = 0; index < sectors; index++) {
         zassert_ok(disk_access_read(SD_STORAGE_DISK, sector, index, 1));
         for (size_t i = 0; i < sizeof(sector); i++) {
             hash = (hash ^ sector[i]) * 16777619u;
@@ -55,6 +58,31 @@ static void expect_not_ready_and_untouched(uint32_t before)
     zassert_equal(crux_file_open("probe", CRUX_FILE_CREATE_REPLACE, &file), CRUX_FILE_ERR_NOT_READY,
                   "File calls must stay not ready");
     zassert_equal(medium_digest(), before, "a failed start changed the medium");
+}
+
+/* The digest must see any change to any sector, or the "unchanged medium" checks prove nothing. */
+ZTEST(file_sd_composition, test_0_the_medium_digest_sees_a_single_changed_byte)
+{
+    uint8_t sector[SECTOR], changed[SECTOR];
+    uint32_t sectors = 0, before = medium_digest();
+
+    zassert_ok(disk_access_ioctl(SD_STORAGE_DISK, DISK_IOCTL_GET_SECTOR_COUNT, &sectors));
+    zassert_ok(disk_access_read(SD_STORAGE_DISK, sector, sectors - 1, 1));
+    memcpy(changed, sector, sizeof(sector));
+    changed[SECTOR - 1] ^= 1;
+    zassert_ok(disk_access_write(SD_STORAGE_DISK, changed, sectors - 1, 1));
+    zassert_not_equal(medium_digest(), before);
+    zassert_ok(disk_access_write(SD_STORAGE_DISK, sector, sectors - 1, 1));
+    zassert_equal(medium_digest(), before);
+}
+
+ZTEST(file_sd_composition, test_0_stop_and_remount_before_start_are_refused)
+{
+    uint32_t before = medium_digest();
+
+    zassert_equal(sd_storage_stop(), -EINVAL);
+    zassert_equal(sd_storage_remount(), -EINVAL);
+    zassert_equal(medium_digest(), before);
 }
 
 ZTEST(file_sd_composition, test_a_blank_medium_fails_closed_and_is_never_formatted)
@@ -115,9 +143,11 @@ ZTEST(file_sd_composition, test_f_the_provider_survives_an_application_unmount_a
     /* Zephyr's FatFs unmount does not refuse while a handle is open (observed on this
      * composition), so the application must close every handle before stopping. */
     zassert_equal(sd_storage_stop(), 0);
-    zassert_not_equal(crux_file_open("hello", CRUX_FILE_READ, &file), CRUX_FILE_OK,
-                      "File calls must fail while the card is unmounted");
+    zassert_equal(sd_storage_stop(), -EINVAL, "a second stop must be refused");
+    zassert_equal(crux_file_open("hello", CRUX_FILE_READ, &file), CRUX_FILE_ERR_NOT_READY,
+                  "File calls must report not ready while the card is unmounted");
     zassert_equal(sd_storage_remount(), 0);
+    zassert_equal(sd_storage_remount(), -EALREADY, "a mounted volume must not be remounted");
     zassert_equal(crux_file_open("hello", CRUX_FILE_READ, &file), CRUX_FILE_OK);
     zassert_equal(crux_file_read(file, value, sizeof(value), &count), CRUX_FILE_OK);
     zassert_equal(count, 2);

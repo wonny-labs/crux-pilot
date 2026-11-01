@@ -15,6 +15,7 @@ static struct fs_mount_t mount = {
     .flags = FS_MOUNT_FLAG_NO_FORMAT,
 };
 static bool bound;
+static bool mounted;
 
 static bool is_directory(const char *path)
 {
@@ -34,6 +35,7 @@ static enum sd_storage_status mount_and_check(void)
         (void)fs_unmount(&mount);
         return SD_STORAGE_LAYOUT_MISSING;
     }
+    mounted = true;
     return SD_STORAGE_READY;
 }
 
@@ -48,6 +50,7 @@ enum sd_storage_status sd_storage_start(void)
     }
     if (crux_file_zephyr_bind(SD_STORAGE_FILE_DIR) != CRUX_FILE_OK) {
         (void)fs_unmount(&mount);
+        mounted = false;
         return SD_STORAGE_BIND_FAILED;
     }
     bound = true;
@@ -56,10 +59,23 @@ enum sd_storage_status sd_storage_start(void)
 
 int sd_storage_stop(void)
 {
-    return fs_unmount(&mount);
+    if (!mounted) {
+        return -EINVAL;
+    }
+    int rc = fs_unmount(&mount);
+    if (rc == 0) {
+        mounted = false;
+    }
+    return rc;
 }
 
 int sd_storage_remount(void)
 {
+    if (!bound) {
+        return -EINVAL; /* start first: a mount without a bound root would block a later start */
+    }
+    if (mounted) {
+        return -EALREADY;
+    }
     return mount_and_check() == SD_STORAGE_READY ? 0 : -EIO;
 }
