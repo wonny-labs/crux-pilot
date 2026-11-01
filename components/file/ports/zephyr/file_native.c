@@ -172,7 +172,18 @@ crux_file_result_t crux_file_impl_open(size_t s, const char *name, crux_file_mod
         flags |= FS_O_CREATE;
     }
     fs_file_t_init(&handles[s]);
-    return result(fs_open(&handles[s], paths[s], flags));
+    int fs_rc = fs_open(&handles[s], paths[s], flags);
+#if defined(CRUX_FILE_NATIVE_FATFS)
+    if (fs_rc == -EACCES && (flags & FS_O_CREATE) != 0) {
+        /* FatFs refuses a new entry with FR_DENIED when the directory cannot grow on a full volume.
+         */
+        struct fs_statvfs volume;
+        if (fs_statvfs(root, &volume) == 0 && volume.f_bfree == 0) {
+            return CRUX_FILE_ERR_NO_SPACE;
+        }
+    }
+#endif
+    return result(fs_rc);
 }
 
 crux_file_result_t crux_file_impl_truncate(size_t s)
