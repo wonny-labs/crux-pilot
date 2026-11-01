@@ -6,7 +6,8 @@ export ZEPHYR_BASE="$workspace/zephyr"
 CRUX_WORKSPACE="$workspace" CRUX_GPIO_COMPOSITION_TESTS=1 \
     python3 "$repo/tests/build/test_gpio_composition.py"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
-    -T "$repo/tests/gpio/zephyr" -O "$repo/build/zephyr/twister-gpio" --inline-logs \
+    -T "$repo/tests/gpio/zephyr" -T "$repo/tests/gpio/zephyr_failure" \
+    -O "$repo/build/zephyr/twister-gpio" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$repo")
 mapfile -t modules < <(cd "$workspace" && west list cmsis cmsis_6 hal_nxp -f '{abspath}')
 modules+=("$repo")

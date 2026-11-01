@@ -41,7 +41,14 @@ The representative consumer configures and reads one input. The existing control
 contract and physical validation status are independent of this new public
 capability.
 
-The Zephyr tests cannot induce a native driver failure or a controller that is
-not ready, because the GPIO emulator has no fault injection. Those statuses are
-verified only through the Host test of the native-result mapping and by review of
-the provider's use of it.
+Two native_sim apps reach native driver failures through the GPIO emulator. A
+Devicetree flag that requests open drain on the input line makes the emulator
+return `-ENOTSUP`, which maps to `CRUX_ERR_NOT_SUPPORTED`. A pin that the emulated
+controller does not implement makes it return `-EINVAL`, which maps to
+`CRUX_ERR_IO`. After either failure the line stays unconfigured and a read returns
+`CRUX_ERR_NOT_READY`. These apps run with Zephyr assertions disabled, because with
+assertions enabled Zephyr's generic GPIO layer asserts on both requests before the
+driver can return an error. A composition should therefore not request open drain,
+open source or an unimplemented pin for this input line. A controller that is not
+ready cannot be induced with the emulator; that status is verified only by review
+of the provider and through the Host test of the native-result mapping.
