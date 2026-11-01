@@ -137,12 +137,14 @@ config CRUX_FILE_SIMULATOR
       Does not select a target Flash layout, mount or format a volume.
 
 config CRUX_FILE_FATFS_SIMULATOR
-    bool "Crux File FatFs RAM disk simulator candidate"
-    depends on CRUX_PILOT_MODULE && BOARD_NATIVE_SIM && DISK_DRIVER_RAM && FAT_FILESYSTEM_ELM && FILE_SYSTEM
+    bool "Crux File FatFs simulated-disk simulator candidate"
+    depends on CRUX_PILOT_MODULE && BOARD_NATIVE_SIM && FAT_FILESYSTEM_ELM && FILE_SYSTEM
+    depends on DISK_DRIVER_RAM || DISK_DRIVER_FLASH
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
     depends on !FS_FATFS_MOUNT_MKFS
     help
-      Experimental native simulator composition; does not mount or format a volume.
+      Experimental native simulator composition on a RAM disk, or on a file-backed flash
+      disk whose contents outlive the process; does not mount or format a volume.
 
 config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
     bool "Compile-only Crux File FatFs RT1060 SDHC check"
