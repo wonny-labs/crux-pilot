@@ -46,6 +46,24 @@ class RT1170CompositionTests(unittest.TestCase):
             found = sorted(p.name for p in (app / directory).glob(pattern))
             self.assertEqual(found, [], f"{directory} would be auto-loaded for RT1170")
 
+    def test_gpio_consumer_is_cross_built_for_rt1170_with_only_the_button_selected(self):
+        overlay = ROOT / "tests/gpio/evkb/boards/mimxrt1170_evk_mimxrt1176_cm7.overlay"
+        self.assertTrue(overlay.is_file(), "the RT1170 GPIO overlay is missing")
+        text = overlay.read_text()
+        self.assertIn("crux-gpio0 = &user_button;", text)
+        for forbidden in ("chosen", "zephyr,flash", "zephyr,sram", "partition", "status"):
+            self.assertNotIn(forbidden, text, f"the overlay must not touch {forbidden}")
+
+        script = (ROOT / "scripts/test-gpio.sh").read_text()
+        self.assertIn("mimxrt1170_evk@A/mimxrt1176/cm7", script)
+        self.assertIn("gpio-rt1170", script)
+        self.assertIsNone(
+            re.search(r"\bwest\s+(flash|debug|debugserver|attach|reset)\b", script),
+            "the GPIO runner must not program, debug or reset a board",
+        )
+        rt1170 = script.index("mimxrt1170_evk@A/mimxrt1176/cm7")
+        self.assertIn(f"unset {INJECTION_VARIABLES}", script[:rt1170])
+
 
 if __name__ == "__main__":
     unittest.main()
