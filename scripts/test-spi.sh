@@ -22,6 +22,8 @@ printf '#include <crux/spi.h>\nint main() { return 0; }\n' |
 
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 export ZEPHYR_BASE="$workspace/zephyr"
+CRUX_WORKSPACE="$workspace" CRUX_SPI_COMPOSITION_TESTS=1 \
+    python3 "$repo/tests/build/test_spi_composition.py"
 (cd "$workspace" && west twister -j 2 -p native_sim \
     -T "$repo/tests/spi_zephyr" \
     -O "$repo/build/zephyr/twister-spi" --inline-logs \

@@ -41,6 +41,9 @@ static int test_io(const struct emul *target, const struct spi_config *config,
     if (length != 0 && tx[0] == 0xFF) {
         return -EIO;
     }
+    if (length != 0 && tx[0] == 0xEE) {
+        return -ENOTSUP;
+    }
     memcpy(rx, tx, length);
     return 0;
 }

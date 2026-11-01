@@ -2,6 +2,7 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/emul.h>
 #include <zephyr/drivers/spi.h>
+#include <zephyr/kernel.h>
 #include <zephyr/ztest.h>
 
 #include "spi_emulator.h"
@@ -46,6 +47,43 @@ ZTEST(crux_spi, test_invalid_arguments)
     zassert_equal(crux_spi_transceive(NULL, &byte, 1), CRUX_ERR_INVALID_ARGUMENT);
     zassert_equal(crux_spi_transceive(&byte, NULL, 1), CRUX_ERR_INVALID_ARGUMENT);
     zassert_equal(crux_spi_transceive(&byte, &byte, 0), CRUX_ERR_INVALID_ARGUMENT);
+}
+
+ZTEST(crux_spi, test_unsupported_native_operation_maps_to_not_supported)
+{
+    /* The emulated peripheral reports -ENOTSUP for a transfer whose first byte is the marker. */
+    const uint8_t tx[] = {0xEE};
+    uint8_t rx = 0;
+
+    zassert_equal(crux_spi_transceive(tx, &rx, sizeof(tx)), CRUX_ERR_NOT_SUPPORTED);
+}
+
+static K_SEM_DEFINE(isr_done, 0, 1);
+static volatile bool isr_ran_in_interrupt;
+static volatile crux_status_t isr_status;
+static volatile uint8_t isr_value;
+
+static void isr_expiry(struct k_timer *timer)
+{
+    const uint8_t tx = 0x12;
+    uint8_t rx = 0x5A;
+
+    ARG_UNUSED(timer);
+    isr_ran_in_interrupt = k_is_in_isr();
+    isr_status = crux_spi_transceive(&tx, &rx, sizeof(tx));
+    isr_value = rx;
+    k_sem_give(&isr_done);
+}
+
+static K_TIMER_DEFINE(isr_timer, isr_expiry, NULL);
+
+ZTEST(crux_spi, test_transceive_from_interrupt_context_is_rejected)
+{
+    k_timer_start(&isr_timer, K_MSEC(1), K_NO_WAIT);
+    zassert_equal(k_sem_take(&isr_done, K_MSEC(500)), 0);
+    zassert_true(isr_ran_in_interrupt, "the timer callback must run in interrupt context");
+    zassert_equal(isr_status, CRUX_ERR_NOT_SUPPORTED);
+    zassert_equal(isr_value, 0x5A, "the receive buffer must be untouched when rejected");
 }
 
 ZTEST_SUITE(crux_spi, NULL, NULL, NULL, NULL, NULL);

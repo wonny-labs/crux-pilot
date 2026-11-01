@@ -8,7 +8,7 @@ add_library(crux_spi_api INTERFACE)
 target_include_directories(crux_spi_api INTERFACE "${CRUX_SPI_COMPONENT_DIR}/include")
 target_link_libraries(crux_spi_api INTERFACE crux::base)
 
-add_library(crux_spi_zephyr STATIC ../../src/spi.c spi_port_zephyr.c)
+add_library(crux_spi_zephyr STATIC ../../src/spi.c spi_port_zephyr.c spi_status.c)
 target_include_directories(crux_spi_zephyr PRIVATE ../../src .)
 target_link_libraries(crux_spi_zephyr PRIVATE crux_spi_api zephyr_interface)
 zephyr_append_cmake_library(crux_spi_zephyr)

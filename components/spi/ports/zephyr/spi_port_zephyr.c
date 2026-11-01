@@ -1,7 +1,9 @@
 #include "spi_port.h"
+#include "spi_status.h"
 
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/spi.h>
+#include <zephyr/kernel.h>
 
 #if !DT_HAS_ALIAS(crux_spi0)
 #error "The Zephyr composition must provide the crux-spi0 alias"
@@ -21,6 +23,9 @@ static const struct spi_dt_spec peripheral = SPI_DT_SPEC_GET(CRUX_SPI_NODE, SPI_
 
 crux_status_t crux_spi_impl_transceive(const uint8_t *tx_data, uint8_t *rx_data, size_t length)
 {
+    if (k_is_in_isr()) {
+        return CRUX_ERR_NOT_SUPPORTED;
+    }
     if (!spi_is_ready_dt(&peripheral)) {
         return CRUX_ERR_NOT_READY;
     }
@@ -30,5 +35,5 @@ crux_status_t crux_spi_impl_transceive(const uint8_t *tx_data, uint8_t *rx_data,
     const struct spi_buf_set tx_set = {.buffers = &tx_buffer, .count = 1};
     const struct spi_buf_set rx_set = {.buffers = &rx_buffer, .count = 1};
 
-    return spi_transceive_dt(&peripheral, &tx_set, &rx_set) == 0 ? CRUX_OK : CRUX_ERR_IO;
+    return crux_spi_zephyr_status(spi_transceive_dt(&peripheral, &tx_set, &rx_set));
 }
