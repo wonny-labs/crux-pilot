@@ -10,7 +10,7 @@ contracts and in the [test guide](../tests/README.md).
 
 - One board: MIMXRT1060-EVKB Rev B, target `mimxrt1060_evk@B//qspi`.
 - The RT1170-EVK Rev A1 Cortex-M7 is outside the M6 and M7 scope by the owner's decision of
-  1 November 2026, so that work concentrates on the platform on a single board. Its cross-build and
+  1 November 2026, for now, so that work concentrates on the platform on a single board. Its cross-build and
   the [identification record](rt1170-evk-a1-feasibility.md) remain as software evidence only. No
   physical RT1170 item is planned.
 - Evidence is limited to the documented firmware, wiring and parts. A pass on one fixture is not a
@@ -40,8 +40,9 @@ records them again as a precondition to confirm, not as an assumption.
 | Arduino SPI | `arduino_spi` is `lpspi1` (pads `GPIO_SD_B0_00` to `GPIO_SD_B0_03`, chip select `PCS0`). The board file states that these pads conflict with the microSD (USDHC) pins and that resistors R278, R279, R280 and R281 must be connected on the board for SPI |
 | Second SPI | `lpspi3` is enabled but conflicts with LCD interface pins |
 
-Consequences: the SPI items need a board modification or a different pin set, and an enabled
-`lpspi1` takes the microSD pins away from the M4 file-storage path. Both must be decided before P3.
+Consequences: confirm whether R278 to R281 are populated on the board in hand; rework only if they
+are not, or choose a different pin set. An enabled `lpspi1` also takes the microSD pins away from the
+M4 file-storage path. Both must be decided before P3.
 Arduino header pin numbers are not stated here; take them from the board's user manual and record
 the document and revision used.
 
@@ -56,8 +57,10 @@ the document and revision used.
    record.
 4. **Observers are independent.** The target's own log is a witness, not the measurement. Where an
    item names an external observer, a pass needs the external record.
-5. **Logic levels and power.** Fixtures are 3.3 V. No 5 V part is connected to a pad. Pull-up
-   values and the supply for each module are recorded. Power is removed before wiring changes.
+5. **Logic levels and power.** Fixtures are 3.3 V. No 5 V part is connected to a pad, and each
+   module's regulator and level shifters are confirmed 3.3 V-safe. Pull-up values (including any
+   the header or module adds on SDA and SCL) and the supply for each module are recorded. Power is
+   removed before wiring changes.
 6. **Console.** Results are captured from the board's serial console with host receipt time. Target
    and host clocks are separate domains; correlate events, never subtract across them.
 7. **A software preparation step precedes each item.** The physical application, its overlay and
@@ -124,7 +127,7 @@ and the finding is recorded, not worked around.
 
 **Also record, without a pass criterion.** The measured clock frequency, and what status the
 consumer returns with the sensor unplugged (expected `CRUX_ERR_IO`), including how long the call
-took to return.
+took to return, taken from the analyser or from two target timestamps in one clock domain.
 
 **Does not show.** Behaviour with other targets, clock stretching, bus recovery or multi-controller
 operation.
@@ -134,9 +137,9 @@ operation.
 **Question.** Does the native LPSPI driver move bytes full-duplex through the Crux provider with
 the composed settings?
 
-**Preconditions to decide first.** The pad conflict with the microSD pins and the R278 to R281
-rework described above, or a different pin set. The decision, with the rework approval if chosen,
-is recorded before this item is approved.
+**Preconditions to decide first.** The pad conflict with the microSD pins: whether R278 to R281 are
+populated, any rework needed, or a different pin set, as described above. The decision, with the
+rework approval if chosen, is recorded before this item is approved.
 
 **Software preparation.** A physical application that sends a fixed byte pattern through
 `crux_spi_transceive` and compares the received bytes; an overlay with a loopback peripheral node.
@@ -145,11 +148,12 @@ is recorded before this item is approved.
 
 **Observer.** The target log, plus a logic analyser on SCK, MOSI, MISO and chip select.
 
-**Procedure.** At least 20 exchanges of lengths 1, 4 and 64 bytes with patterns that include
-`0x00`, `0xFF`, `0xA5` and an incrementing sequence.
+**Procedure.** At least 20 exchanges for each of the lengths 1, 4 and 64 bytes, with patterns that
+include `0x00`, `0xFF`, `0xA5` and an incrementing sequence.
 
-**Pass.** Received bytes equal sent bytes in every exchange, and the analyser shows the composed
-mode and clock for every exchange (see P4 for the signal checks).
+**Pass.** Received bytes equal sent bytes in every exchange. For every exchange the analyser shows
+the composed clock polarity, phase, bit order and clock frequency, and chip select asserted once for
+the whole exchange and released after the last byte.
 
 **Does not show.** That a peripheral on the bus interprets the settings the same way; a loopback
 cannot distinguish clock modes.
@@ -177,8 +181,9 @@ to differ and that is recorded as a finding.
 2. The command byte is `0x9F`; mode, bit order and clock match the composition.
 3. The decoded manufacturer, type and capacity bytes equal the part's data sheet and the values the
    target printed.
-4. With the flash disconnected the consumer returns `CRUX_ERR_IO` (idle line), not an
-   identification.
+4. With the flash disconnected and MISO held at a known level by a pull-up or pull-down (recorded),
+   the consumer returns `CRUX_ERR_IO` (idle line), not an identification. With MISO floating the
+   outcome is recorded as a finding, because noise can decode as a valid identification.
 
 **Fail with finding.** Chip select toggling between bytes would contradict the SPI contract and is
 recorded, not worked around.
@@ -198,7 +203,7 @@ None of these steps closes Issue #31 or #32. They are the evidence needed for cr
 ## Open decisions
 
 - Which TMP117 module and which flash part to buy or borrow.
-- Whether to rework the board for `lpspi1` (conflicts with the microSD pins) or choose another SPI
-  pin set.
+- Whether R278 to R281 are populated for `lpspi1` (conflicts with the microSD pins), whether to
+  rework the board, or whether to choose another SPI pin set.
 - Whether a logic analyser is available, and its decoder.
 - Who performs the approved physical steps, and where the records are kept.
