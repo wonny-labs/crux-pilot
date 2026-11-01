@@ -29,7 +29,8 @@ Project code in [`samples/storage_sd`](../samples/storage_sd), not in `component
 4. `crux_file_zephyr_bind("/SD:/files")`. Until it succeeds File calls return
    `CRUX_FILE_ERR_NOT_READY`.
 
-A failure at any step stops the sequence, leaves the volume unmounted and the File
+A failure at any step stops the sequence, unmounts the volume (the unmount result is not
+checked; FatFs fails an unmount only if the volume was not mounted) and leaves the File
 component unbound, so a later `sd_storage_start()` can succeed. The Settings File backend
 is not part of this sequence; its target provider is a separate decision.
 
@@ -62,19 +63,20 @@ stop and remount out of order return `-EINVAL`, and remounting a mounted volume 
 
 ## Resource measurements (static, from linked images)
 
-Linked with `CONFIG_MAIN_STACK_SIZE=4096`, `CONFIG_FS_FATFS_NUM_FILES=4`,
+Measured on the code of commit `9a03c5d` (`samples/storage_sd`, the File provider and the
+configuration unchanged since). Linked with `CONFIG_MAIN_STACK_SIZE=4096`, `CONFIG_FS_FATFS_NUM_FILES=4`,
 `CONFIG_FS_FATFS_MAX_LFN=127` (stack mode), `CRUX_FILE_POOL_SIZE=4`.
 
 | Image | FLASH | RAM (linker RAM region, including the main stack) |
 | --- | --- | --- |
 | mount sequence compiled out | 56,724 B | 9,184 B |
-| mount sequence compiled in | 57,860 B | 9,824 B |
+| mount sequence compiled in | 57,876 B | 9,824 B |
 
 RAM here is the 32 MB SDRAM selected by the board devicetree (`zephyr,sram`), not on-chip
 RAM. Whether USDHC buffers and DMA are correctly placed relative to cache is not verified.
 
-Static stack frames (`-fstack-usage`, bytes), from a separate build of the same sample with
-`CONFIG_STACK_USAGE=y` (frame sizes do not depend on the main stack size): `f_open` 360,
+Static stack frames (`-fstack-usage`, bytes), from a separate build of the same sample at the same commit with
+`CONFIG_STACK_USAGE=y` and the default 1,024 B main stack: `f_open` 360,
 `f_stat` 336, `fatfs_stat` 296, `mount_and_check` 144, `dir_register` 72, `f_read` 64,
 `dir_find` 64, `f_write` 56, `follow_path` 56, `f_mount` 40. The `fs_stat` chain used by the
 layout check and by every File call alone is about 780 B, and an open about 650 B, before the

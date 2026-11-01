@@ -18,8 +18,9 @@ enum sd_storage_status {
     SD_STORAGE_ALREADY_STARTED,
 };
 
-/* Disk init, mount without format, layout check, then File root binding. A failure leaves the
- * volume unmounted and the File component unbound, so a later call may succeed. */
+/* Disk init, mount without format, layout check, then File root binding. A failure unmounts the
+ * volume (the unmount result is not checked) and leaves the File component unbound, so a later
+ * call may succeed. */
 enum sd_storage_status sd_storage_start(void);
 
 /* Application-owned unmount and remount, valid only after a successful start. The File provider
