@@ -13,7 +13,7 @@ def complete():
     return build(3,m5_series.PHASES,7,8,'qualification_reset_')
 
 def focused():
-    return build(1,m5_series.FOCUSED['phases'],3,4,'focused_power_cycle_')
+    return build(1,m5_series.FOCUSED['phases'],7,8,'focused_power_cycle_')
 
 def build(count_boots,phases,loss_seq,recovery_seq,reset_name):
     boots=[]
@@ -123,13 +123,13 @@ class ActualShape(unittest.TestCase):
 if __name__=='__main__':unittest.main()
 
 class Focused(unittest.TestCase):
-    """One-boot, five-phase profile: idle, echo, loss, same-boot recovery echo, idle."""
+    """One-boot profile: the firmware's fixed nine-phase matrix run once, loss at phase 7, same-boot recovery at phase 8."""
     def check(self,data):
         return m5_series.validate_series(data,SOURCE,ABI,profile=m5_series.FOCUSED)
 
     def test_one_boot_series_passes_and_is_labelled_focused(self):
         result=self.check(focused())
-        self.assertEqual((result['status'],result['boots'],result['pairs'],result['calls']),('PASS',1,3,6))
+        self.assertEqual((result['status'],result['boots'],result['pairs'],result['calls']),('PASS',1,16,32))
         self.assertEqual(result['profile'],'focused')
         self.assertIs(result['physical_acceptance'],False)
         self.assertEqual(result['recovery'],'same boot, no reset')
@@ -163,15 +163,15 @@ class Focused(unittest.TestCase):
             with self.subTest(offset=offset),self.assertRaises(ValueError):self.check(data)
 
     def test_incomplete_boot_evidence_cannot_pass(self):
-        mutations=[lambda s:s['boots'][0]['peers'].pop('3'),lambda s:s['boots'][0]['peer_stops'].pop(),lambda s:s['boots'][0]['peer_stops'][0].update(reaped=False),lambda s:s['boots'][0]['writes'].pop(),lambda s:s['boots'][0]['uart'].pop(3),lambda s:s['boots'][0]['uart'][0]['record'].update(source='ffffffffffff')]
+        mutations=[lambda s:s['boots'][0]['peers'].pop('7'),lambda s:s['boots'][0]['peer_stops'].pop(),lambda s:s['boots'][0]['peer_stops'][0].update(reaped=False),lambda s:s['boots'][0]['writes'].pop(),lambda s:s['boots'][0]['uart'].pop(3),lambda s:s['boots'][0]['uart'][0]['record'].update(source='ffffffffffff')]
         for mutate in mutations:
             data=focused();mutate(data)
             with self.subTest(mutation=mutate),self.assertRaises(ValueError):self.check(data)
 
     def test_recovery_before_loss_udp_completion_is_rejected(self):
         data=focused();boot=data['boots'][0]
-        end=next(r for r in boot['uart'] if r['record']['event']=='END' and r['record'].get('seq')==3 and r['record']['udp'])
-        up=next(r for r in boot['uart'] if r['record']['event']=='LINK' and r['record']['link']==2 and r['record']['seq']==3)
+        end=next(r for r in boot['uart'] if r['record']['event']=='END' and r['record'].get('seq')==7 and r['record']['udp'])
+        up=next(r for r in boot['uart'] if r['record']['event']=='LINK' and r['record']['link']==2 and r['record']['seq']==7)
         up['record']['at']=end['record']['functional']-1
         with self.assertRaises(ValueError):self.check(data)
 

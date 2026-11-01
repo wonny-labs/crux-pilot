@@ -13,7 +13,8 @@ CLOCK='clock_gettime(CLOCK_MONOTONIC)'
 # A profile fixes the phase table, the boot count, which phase loses the link, which phase
 # is the same-boot recovery echo, and the reset operation name the host must record.
 FULL=dict(name='full',phases=PHASES,boots=3,loss=7,recovery=8,reset='qualification_reset_')
-FOCUSED=dict(name='focused',phases=((1,0,'idle'),(2,1,'echo'),(3,1,'loss'),(4,1,'echo'),(5,0,'idle')),boots=1,loss=3,recovery=4,reset='focused_power_cycle_',reset_witness='operator power cycle, not host-timestamped')
+# The firmware fixes the phase matrix (main.c step(), fixture.c result checks): the focused profile runs it once, in one boot.
+FOCUSED=dict(name='focused',phases=PHASES,boots=1,loss=7,recovery=8,reset='focused_power_cycle_',reset_witness='operator power cycle, not host-timestamped')
 
 def times(rows,key='monotonic'):
     values=[r[key] for r in rows]

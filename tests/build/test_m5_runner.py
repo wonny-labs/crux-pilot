@@ -256,14 +256,14 @@ class CanonicalApproval(unittest.TestCase):
 
 
 class FocusedProfile(unittest.TestCase):
-    """Same supervisor and loop, driven by the one-boot five-phase profile."""
+    """Same supervisor and loop, driven by the one-boot profile (the firmware's nine-phase matrix, loss at 7, recovery at 8)."""
     FOCUSED=runner.m5_series.FOCUSED
 
     def test_command_follows_the_profile_phase_matrix(self):
-        self.assertEqual(runner.command(31,2,1,99,self.FOCUSED),'P 31 2 1 99\n')
-        self.assertEqual(runner.command(31,3,1,99,self.FOCUSED),'L 31 3 99\n')
-        self.assertEqual(runner.command(31,5,0,99,self.FOCUSED),'I 31 5 99\n')
-        for values in [(31,2,10,99),(31,6,0,99),(31,7,1,99)]:
+        self.assertEqual(runner.command(31,2,10,99,self.FOCUSED),'P 31 2 10 99\n')
+        self.assertEqual(runner.command(31,7,1,99,self.FOCUSED),'L 31 7 99\n')
+        self.assertEqual(runner.command(31,9,0,99,self.FOCUSED),'I 31 9 99\n')
+        for values in [(31,2,1,99),(31,6,0,99),(31,10,0,99)]:
             with self.subTest(values=values),self.assertRaises(ValueError):runner.command(*values,self.FOCUSED)
         self.assertEqual(runner.command(31,7,1,99),'L 31 7 99\n')
 
@@ -275,7 +275,7 @@ class FocusedProfile(unittest.TestCase):
         from test_m5_series import focused,ABI,SOURCE
         boot=focused()['boots'][0]
         held={'cable_connect_receipt','host_up','route'}
-        recovery=next(e for e in boot['uart'] if e['record']['event']=='LINK' and e['record']['link']==2 and e['record']['seq']==3)
+        recovery=next(e for e in boot['uart'] if e['record']['event']=='LINK' and e['record']['link']==2 and e['record']['seq']==7)
         class Clock:
             now=0.
             def __call__(self):return self.now
@@ -317,9 +317,9 @@ class FocusedProfile(unittest.TestCase):
         result=runner.run_boot(s,io,clock)
         self.assertEqual(result['status'],'BOOT_PROTOCOL_COMPLETE_PENDING_RAW_REPLAY')
         self.assertEqual(io.writes,[e['line'] for e in boot['writes']])
-        self.assertEqual(io.stops,[2,3,4])
+        self.assertEqual(io.stops,[2,3,4,5,6,7,8])
         self.assertEqual((len(io.cues),io.restores),(1,1))
-        self.assertLess(io.order.index('restore'),io.order.index('prepare:4'))
+        self.assertLess(io.order.index('restore'),io.order.index('prepare:8'))
         self.assertEqual(s.state,'finished')
         self.assertFalse(s.aborted)
 
