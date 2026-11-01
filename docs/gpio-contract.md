@@ -9,13 +9,16 @@ reviewed consumer requires only a button input and the current EVKB selection is
 not a justified output resource.
 
 Calls run in task context and must be serialized by the caller for the line.
-Configuration and reads are synchronous. No output, interrupt callback, event,
+A call made from interrupt context returns `CRUX_ERR_NOT_SUPPORTED` where the
+provider can detect it (the Zephyr provider does; the Host provider has no
+interrupt context and does not check). Configuration and reads are synchronous. No output, interrupt callback, event,
 debounce, ownership handle, runtime discovery or general pin registry is
 provided. Reads preserve their output argument on error. Reading before
 configuration returns `CRUX_ERR_NOT_READY`. Null output pointers return
 `CRUX_ERR_INVALID_ARGUMENT`; unsupported logical line IDs return
-`CRUX_ERR_OUT_OF_RANGE`. Native driver failures map to `CRUX_ERR_IO`, with
-unsupported driver operations mapped to `CRUX_ERR_NOT_SUPPORTED`.
+`CRUX_ERR_OUT_OF_RANGE`. Native driver results `-ENOTSUP` and `-ENOSYS` map to
+`CRUX_ERR_NOT_SUPPORTED`; every other native driver failure, including
+`-EINVAL`, maps to `CRUX_ERR_IO`.
 
 The Host provider is an in-memory test simulation with private input-drive and
 failure-injection controls. The Zephyr provider uses `gpio_dt_spec` and native
