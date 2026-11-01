@@ -134,6 +134,28 @@ int main(void)
     assert(crux_file_write(f, b, 1, &n) == CRUX_FILE_ERR_ACCESS && n == 0);
     assert(crux_file_remove("record") == CRUX_FILE_ERR_INVALID_STATE);
     assert(crux_file_close(&f) == CRUX_FILE_OK);
+    /* A file open for writing excludes every other handle; readers may share it. */
+    crux_file_t *r1 = NULL, *r2 = NULL, *w = NULL;
+    size_t before_opens = opens;
+    assert(crux_file_open("record", CRUX_FILE_READ, &r1) == CRUX_FILE_OK);
+    assert(crux_file_open("record", CRUX_FILE_READ, &r2) == CRUX_FILE_OK);
+    assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &w) == CRUX_FILE_ERR_INVALID_STATE);
+    assert(w == NULL && opens == before_opens + 2);
+    assert(crux_file_open("record", CRUX_FILE_CREATE_REPLACE, &w) == CRUX_FILE_ERR_INVALID_STATE);
+    assert(w == NULL && opens == before_opens + 2);
+    assert(crux_file_close(&r1) == CRUX_FILE_OK);
+    assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &w) == CRUX_FILE_ERR_INVALID_STATE);
+    assert(crux_file_close(&r2) == CRUX_FILE_OK);
+    assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &w) == CRUX_FILE_OK);
+    crux_file_t *other = NULL;
+    assert(crux_file_open("record", CRUX_FILE_READ, &other) == CRUX_FILE_ERR_INVALID_STATE);
+    assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &other) == CRUX_FILE_ERR_INVALID_STATE);
+    assert(other == NULL);
+    assert(crux_file_open("different", CRUX_FILE_READ_WRITE, &other) == CRUX_FILE_OK);
+    assert(crux_file_close(&other) == CRUX_FILE_OK);
+    assert(crux_file_close(&w) == CRUX_FILE_OK);
+    assert(crux_file_open("record", CRUX_FILE_CREATE_REPLACE, &w) == CRUX_FILE_OK);
+    assert(crux_file_close(&w) == CRUX_FILE_OK);
     const char *bad[] = {"", ".", "..", "../a", "a/b", "a b", "a\\b", "\x80"};
     for (size_t i = 0; i < sizeof(bad) / sizeof(bad[0]); i++) {
         assert(crux_file_open(bad[i], CRUX_FILE_READ, &f) == CRUX_FILE_ERR_INVALID_ARGUMENT);

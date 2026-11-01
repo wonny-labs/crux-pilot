@@ -63,6 +63,11 @@ results. Error mapping must be explicit and unknown native errors map to IO.
   approved initial qualification choice, not a measured existing-consumer requirement or
   filesystem/security sandbox guarantee. Name and pool bounds are provider build
   configuration with documented supported minima, not a runtime framework.
+- A file open for writing (READ_WRITE or CREATE_REPLACE) excludes every other handle on the
+  same name, and a writer cannot open a name that is already open: such an open returns
+  INVALID_STATE with the output left null. Several READ handles may share a file. Providers
+  can hold per-handle state (for example FatFs with file locking disabled), so a second handle
+  next to a writer is not supported.
 - READ/READ_WRITE open an existing file; CREATE_REPLACE creates or truncates for
   read/write. No hidden retry or automatic directory creation/format/mount.
 - Open requires a non-null output initially null; an already non-null output is
