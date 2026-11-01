@@ -63,7 +63,7 @@ places:
 | System/watchdog | The opt-in `CRUX_SYSTEM` provider accepts native_sim or `CONFIG_BOARD_MIMXRT1060_EVK`; the RT1060 branch requires `crux-watchdog0` to be `wdog0` at `0x400b8000` and reads its running state through `WDOG_GetStatusFlags`. | A separate System-enabled RT1170 app needs an explicit binding for Rev A's `wdog1` at `0x40030000`. The pinned Zephyr `nxp,imx-wdog` driver also uses `WDOG_GetStatusFlags`, but Crux's board identity/address assertion does not match. This is outside the M3-only candidate below. |
 | Serial | `serial_binding.c` only allows the qualified RT1060 LPUART3 resource or native_sim. | A Rev A UART resource and any external connector route need an explicit composition decision. The board console is LPUART1, already owned by console output. |
 | Logging | `logging_binding.c` only allows the qualified RT1060 LPUART1 resource or native_sim, with RT1060-specific console sharing constraints. | The Rev A default console also uses LPUART1. A compatible logging selection and owner-conflict policy have not been established for this board. |
-| GPIO | The M6 GPIO increment is in Draft PR #123 and currently targets native_sim and RT1060-EVKB. | RT1170 is not yet an accepted GPIO provider target. A PR cross-build alone would not establish physical pin behavior. |
+| GPIO | The portable GPIO capability's software configurations do not include RT1170; see its contract for the current ones. | RT1170 is not yet an accepted GPIO provider target. A PR cross-build alone would not establish physical pin behavior. |
 | Network | Crux NetIf uses Zephyr's default interface. | Upstream board support lists Ethernet, but PHY/link and fixture suitability are unverified for this Rev A board. No Crux network qualification is claimed. |
 
 The M3-only profile in this assessment enables `CONFIG_CRUX_CONTROLLER_M3`
@@ -108,19 +108,25 @@ overlays replacing the upstream Rev A defaults.
 
 The direct cross-build command and the final runner were attempted locally;
 both stopped before configuration because `west` is not installed. CMake and
-an Arm Zephyr toolchain are also absent from the host. The local Zephyr checkout
-was clean at the pinned revision. Therefore no `.config`, generated DTS, map,
-ELF, ROM/RAM report, or image was produced for RT1170. The runner must be
-exercised in the PR's Zephyr workflow before cross-build acceptance. Local
-checks passed for the composition test (2/2), runner shell syntax, and Python
-syntax; these do not replace the target cross-build.
+an Arm Zephyr toolchain are also absent from the host, so nothing was built
+locally. Local checks passed for the composition test (2/2), runner shell
+syntax, and Python syntax; these do not replace the target cross-build.
+
+At head `baf2ae1ae45e2e23d0f06e4c64fdfd880a6f6531` the Zephyr workflow step
+"Cross-build RT1170-EVK Rev A CM7 composition (software-only)" succeeded
+(GitHub Actions run 41118849856), so the M3-only candidate configures and links
+for this target. This record does not capture the SoC, toolchain or image
+details: the generated `.config`, DTS, map, ELF and binary are kept only as
+expiring CI artifacts and were not inspected for this assessment, and no ROM/RAM
+figures are recorded here.
 
 ## Remaining evidence
 
-- Clean-build the M3-only candidate in the Zephyr workflow against the exact
-  pinned workspace. Review a watchdog binding only if a separate
-  System-enabled application becomes part of the target scope; it does not
-  block this M3-only build.
+- Record the SoC, board revision, toolchain and image configuration (ROM/RAM
+  use and load addresses) from the CI-generated `.config`, map and ELF; the
+  cross-build itself has succeeded in CI. Review a watchdog binding only if a
+  separate System-enabled application becomes part of the target scope; it does
+  not block this M3-only build.
 - Verify the selected Rev A hardware revision and fitted components before any
   physical test. Confirm boot mode, image format/address, debug path, and
   programming/erase risks before requesting any board operation.
