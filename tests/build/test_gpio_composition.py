@@ -17,6 +17,8 @@ class GpioCompositionTest(unittest.TestCase):
                         "requires a crux-gpio0"),
             "disabled": ('&crux_gpio0 { status = "disabled"; };',
                           "selected resource must be enabled"),
+            "controller_disabled": ('&gpio0 { status = "disabled"; };',
+                                    "controller must be enabled"),
             "malformed": ('/ { aliases { crux-gpio0 = &unsupported; }; '
                           'unsupported: unsupported { status = "okay"; }; };',
                           "selected resource must provide a gpios property"),
