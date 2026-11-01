@@ -1,6 +1,15 @@
 get_filename_component(CRUX_FILE_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
-if(NOT CONFIG_BOARD_NATIVE_SIM OR NOT CONFIG_FLASH_SIMULATOR)
-  message(FATAL_ERROR "Crux File native candidate is simulator-only")
+if(NOT CONFIG_BOARD_NATIVE_SIM OR
+   NOT (CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR))
+  message(FATAL_ERROR "Crux File native provider requires an approved simulator composition")
+endif()
+if(CONFIG_CRUX_FILE_SIMULATOR AND CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+  message(FATAL_ERROR "Crux File simulator compositions must be mutually exclusive")
+endif()
+if(CONFIG_CRUX_FILE_FATFS_SIMULATOR AND
+   (NOT CONFIG_FS_FATFS_LFN OR CONFIG_FS_FATFS_MAX_LFN LESS 127 OR
+    NOT CONFIG_FS_FATFS_REENTRANT OR CONFIG_FS_FATFS_MOUNT_MKFS))
+  message(FATAL_ERROR "FatFs simulator requires LFN >= 127, reentrancy and auto-format disabled")
 endif()
 
 add_library(crux_file_api INTERFACE)
