@@ -260,6 +260,45 @@ ZTEST(file_fatfs, test_short_read_at_eof_returns_ok_with_the_available_count)
     zassert_equal(crux_file_remove("eof"), CRUX_FILE_OK);
 }
 
+ZTEST(file_fatfs, test_storage_full_is_observable_and_space_is_reclaimed)
+{
+    static const uint8_t chunk[512] = {[0 ... 511] = 0x5a};
+    crux_file_t *file = NULL;
+    size_t count = 0;
+    bool full = false;
+
+    write_file("sentinel", "kept");
+    zassert_equal(crux_file_open("filler", CRUX_FILE_CREATE_REPLACE, &file), CRUX_FILE_OK);
+    for (unsigned i = 0; i < 4096 && !full; i++) {
+        crux_file_result_t rc = crux_file_write(file, chunk, sizeof(chunk), &count);
+        if (rc == CRUX_FILE_OK) {
+            continue;
+        }
+        /* The last chunk is either short or, when it fits exactly, refused outright. */
+        zassert_true(rc == CRUX_FILE_PARTIAL || rc == CRUX_FILE_ERR_NO_SPACE);
+        zassert_true(count < sizeof(chunk));
+        full = true;
+    }
+    zassert_true(full, "a 2 MiB workload must exhaust a 1 MiB RAM disk");
+    zassert_equal(crux_file_write(file, chunk, sizeof(chunk), &count), CRUX_FILE_ERR_NO_SPACE,
+                  "a write that makes no progress on a full volume reports no space");
+    zassert_equal(count, 0);
+    crux_file_result_t closed = crux_file_close(&file);
+    zassert_true(closed == CRUX_FILE_OK || closed == CRUX_FILE_ERR_NO_SPACE);
+    zassert_is_null(file);
+
+    zassert_equal(crux_file_remove("filler"), CRUX_FILE_OK);
+    write_file("fresh", "new");
+    expect_file("sentinel", "kept");
+    expect_file("fresh", "new");
+    zassert_ok(fs_unmount(&mount));
+    zassert_ok(fs_mount(&mount));
+    expect_file("sentinel", "kept");
+    expect_file("fresh", "new");
+    zassert_equal(crux_file_remove("sentinel"), CRUX_FILE_OK);
+    zassert_equal(crux_file_remove("fresh"), CRUX_FILE_OK);
+}
+
 ZTEST(file_fatfs, test_corrupted_media_is_not_formatted_and_recovers_when_restored)
 {
     uint8_t saved[512], now[512], zeros[512] = {0};
