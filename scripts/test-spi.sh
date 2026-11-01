@@ -11,6 +11,21 @@ cc -std=c17 -Wall -Wextra -Wpedantic -Werror \
     "$repo/components/spi/host/spi_port_host.c" \
     "$repo/tests/spi/src/spi_test.c" \
     -o "$repo/build/spi/host-test"
+
+cc -std=c17 -Wall -Wextra -Wpedantic -Werror \
+    -I"$repo/components/spi/include" -I"$repo/components/base/include" \
+    -I"$repo/components/spi/src" \
+    "$repo/components/spi/src/spi.c" \
+    "$repo/tests/spi/src/spi_fault_test.c" \
+    -o "$repo/build/spi/fault-test"
+"$repo/build/spi/fault-test"
+
+cc -std=c17 -Wall -Wextra -Wpedantic -Werror \
+    -I"$repo/components/base/include" -I"$repo/components/spi/ports/zephyr" \
+    "$repo/components/spi/ports/zephyr/spi_status.c" \
+    "$repo/tests/spi/src/spi_status_test.c" \
+    -o "$repo/build/spi/status-test"
+"$repo/build/spi/status-test"
 "$repo/build/spi/host-test"
 
 printf '#include <crux/spi.h>\nint main(void) { return 0; }\n' |

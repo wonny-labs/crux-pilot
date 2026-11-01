@@ -7,6 +7,7 @@ get_filename_component(CRUX_SPI_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." 
 add_library(crux_spi_api INTERFACE)
 target_include_directories(crux_spi_api INTERFACE "${CRUX_SPI_COMPONENT_DIR}/include")
 target_link_libraries(crux_spi_api INTERFACE crux::base)
+target_compile_options(crux_spi_api INTERFACE ${TOOLCHAIN_C_FLAGS})
 
 add_library(crux_spi_zephyr STATIC ../../src/spi.c spi_port_zephyr.c spi_status.c)
 target_include_directories(crux_spi_zephyr PRIVATE ../../src .)
