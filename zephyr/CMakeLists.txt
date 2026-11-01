@@ -61,6 +61,11 @@ if(CONFIG_CRUX_SERIAL)
         "${CMAKE_CURRENT_BINARY_DIR}/serial")
 endif()
 
+if(CONFIG_CRUX_I2C)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/i2c/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/i2c")
+endif()
+
 if(CONFIG_CRUX_SPI)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/spi/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/spi")
@@ -71,13 +76,21 @@ if(CONFIG_CRUX_LOGGING)
         "${CMAKE_CURRENT_BINARY_DIR}/logging")
 endif()
 
+if(CONFIG_CRUX_GPIO)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/gpio/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/gpio")
+endif()
+
 if(CONFIG_CRUX_SYSTEM)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/system/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/system")
 endif()
 
-if(CONFIG_CRUX_FILE_SIMULATOR)
+if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
+   CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/file/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/file")
-    cmake_language(DEFER CALL crux_assert_portable_usage crux::file)
+    if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+        cmake_language(DEFER CALL crux_assert_portable_usage crux::file)
+    endif()
 endif()

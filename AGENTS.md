@@ -23,23 +23,28 @@ Current implemented contracts and verified source behaviour are the factual base
 - Evaluate a documented POSIX subset or a narrow capability-specific interface where actual portable consumers need one. Do not pre-emptively create a universal HAL/OSAL, generic service registry, or pass-through wrappers for native APIs.
 - Preserve public interface naming, header ownership, dependency visibility and contribution rules defined in `CONTRIBUTING.md`. Do not promote Time-specific range, session or thread-safety constraints into platform-wide rules.
 - Separate application policy from platform mechanisms. Keep implementation and restructuring proportional to the approved outcome; do not introduce product-specific runtime integration or speculative capabilities without an agreed need.
+- For new or changed behaviour and bug fixes, use test-driven development by default, following the red-green-refactor cycle. When test-first development is impractical, explain why and provide appropriate alternative verification.
 - Reuse existing build and test tools. Keep the west workspace separate from this Git repository; retain upstream Zephyr, vendor modules, SDKs and caches outside this source tree.
 
 ## Scope and authorisation
 
-The user's current request and applicable prior approvals define authorised work. For an approved issue, use its agreed scope, acceptance criteria, exclusions and dependencies to plan execution. Identify any material conflict with the user request or adopted repository decisions before acting on it.
+The user's current request and applicable prior approvals define authorised work. Approval may cover a bounded issue, milestone or work package, including its agreed outcomes, scope, exclusions, dependencies and decision gates. Use those boundaries and acceptance criteria to plan execution. Identify material conflicts with the user request or adopted repository decisions before acting on them.
 
 **Publishing, assigning or scheduling an Issue, or creating a Goal, does not itself authorise investigation, implementation, hardware operation or integration.** A Goal tracks an approved objective and its completion criteria; it does not expand that approval or satisfy a technical decision gate. An issue description, proposed plan or AI recommendation alone is not evidence of user approval. Record or reference required user decisions explicitly.
 
-Respect technical decision gates and issue dependencies. Where a result requires user review before adoption, prepare the evidence and recommendation, then obtain that decision before beginning dependent implementation. Continue independent work within the approved scope while another task is blocked. Do not adopt a new public interface or architectural commitment merely because a probe or prototype demonstrates it.
+**Human gates are for decisions, not routine progress. Gate 1 — plan/design (conditional):** obtain human approval when the active workflow requires plan review or before adopting a material technical or scope decision. Do not invent approval gates for routine details or repeat an approved decision while its scope and assumptions remain valid. **Gate 2 — integration:** obtain explicit human authorisation before merging any PR. An AI review PASS or green CI does not constitute merge approval.
+
+Respect technical decision gates and issue dependencies. When approval is needed, provide the evidence, options and recommendation before dependent implementation. Do not infer approval from silence or adopt a new public interface or architectural commitment solely because a prototype demonstrates feasibility.
 
 ## Autonomous work and review boundaries
 
 For an approved milestone goal or issue, inspect the current code, tests, repository status and recorded evidence. Identify satisfied requirements before creating or changing work items. Break remaining work into small, independently verifiable tasks, implement within the agreed scope, run applicable checks and record the results.
 
-Within user-authorised work, AI may propose, create and maintain GitHub Issues, dependencies and progress when access is available. It may carry out routine implementation and fixes within approved scope without seeking approval for each edit. Avoid duplicate tickets and do not close work whose acceptance evidence is missing.
+Within user-authorised work, AI may propose, create and maintain GitHub Issues, dependencies and progress when access is available. Once a bounded work package is approved, carry out routine investigation, detailed planning, TDD implementation, debugging, tests, fixes, applicable independent AI review and Draft PR creation without asking permission for each step. Make low-risk, reversible implementation choices and non-material plan refinements autonomously, recording consequential choices and respecting task-specific gates. Avoid duplicate tickets and do not close work whose acceptance evidence is missing.
 
 **Escalate before adopting** significant public API or architecture changes, breaking compatibility, major dependency/toolchain upgrades, scope expansion, unsafe hardware operations or security-sensitive design decisions. Present the proposal and trade-offs for review. Prepare substantive changes on a dedicated development branch and submit a PR with actual validation evidence for human review. Do not push directly to `main`, merge a PR or change protected settings without explicit authorisation. Follow `CONTRIBUTING.md` for commits and PR content.
+
+If a material decision blocks one path, consolidate the questions with a recommended option and its impact. Pause only dependent work, record the blocker and continue independent tasks within the approved scope. Do not ask again about recorded decisions unless new evidence materially changes them.
 
 Record satisfied acceptance criteria, remaining gaps, blockers and support limits against the active work. Distinguish investigation findings, recommended decisions, approved decisions and implemented behaviour. Select representative probes and tests that resolve material uncertainties; do not interpret a broad investigation as a requirement to verify every API combination. Completion claims must match the approved acceptance criteria and available evidence.
 

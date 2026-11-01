@@ -109,6 +109,12 @@ config CRUX_SERIAL
     help
       One explicitly dedicated UART, 256-byte RX and TX buffers. Task context only.
 
+config CRUX_I2C
+    bool "Crux synchronous I2C transfers"
+    depends on CRUX_PILOT_MODULE && I2C
+    help
+      Synchronous 7-bit I2C transfers through the composition-selected crux-i2c0 alias.
+
 config CRUX_SPI
     bool "Crux synchronous SPI transceive"
     depends on CRUX_PILOT_MODULE && SPI
@@ -120,6 +126,13 @@ config CRUX_LOGGING
     depends on CRUX_PILOT_MODULE
     help
       Qualified native deferred UART backend; configuration is checked explicitly.
+
+config CRUX_GPIO
+    bool "Crux synchronous GPIO line"
+    depends on CRUX_PILOT_MODULE && GPIO
+    help
+      One statically selected input line using the native GPIO driver.
+      The required crux-gpio0 Devicetree alias is checked by the provider.
 
 config CRUX_SYSTEM
     bool "Crux System observation, reset and single-owner watchdog"
@@ -134,3 +147,23 @@ config CRUX_FILE_SIMULATOR
     help
       Experimental File provider for software-only storage validation.
       Does not select a target Flash layout, mount or format a volume.
+
+config CRUX_FILE_FATFS_SIMULATOR
+    bool "Crux File FatFs RAM disk simulator candidate"
+    depends on CRUX_PILOT_MODULE && BOARD_NATIVE_SIM && DISK_DRIVER_RAM && FAT_FILESYSTEM_ELM && FILE_SYSTEM
+    depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
+    depends on !FS_FATFS_MOUNT_MKFS
+    help
+      Experimental native simulator composition; does not mount or format a volume.
+
+config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
+    bool "Compile-only Crux File FatFs RT1060 SDHC check"
+    depends on CRUX_PILOT_MODULE && BOARD_MIMXRT1060_EVK && SOC_MIMXRT1062
+    depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
+    depends on DT_HAS_NXP_IMX_USDHC_ENABLED && DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
+    depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
+    depends on !FS_FATFS_MOUNT_MKFS
+    help
+      Compile the File implementation and RT1060 SDHC/FatFs composition as an
+      object-only check. This does not link or select a target File provider,
+      mount media, format media, or enable runtime File operations.
