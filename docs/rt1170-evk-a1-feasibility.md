@@ -1,5 +1,7 @@
 # RT1170-EVK Rev A1 Cortex-M7 software feasibility
 
+Status: RT1170-EVK is deferred from current platform development by owner decision of 1 November 2026. This record is kept as software-only evidence for Issue #33. It does not make RT1170-EVK a supported board. Porting Crux to another board is a candidate for a later milestone.
+
 ## Scope and evidence boundary
 
 This is a source and build-configuration review for Issue #33. No RT1170 board,

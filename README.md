@@ -31,7 +31,7 @@ See the [architecture overview](docs/architecture.md) for component ownership, p
 | Linux Host | Linux amd64 development, testing and selected Linux implementations, not production Embedded Linux support |
 | Zephyr `native_sim` | Selected Zephyr component and reference-controller tests without physical hardware |
 | MIMXRT1060-EVKB Rev B (`mimxrt1060_evk@B//qspi`) | Initial physical target, with results limited to documented firmware and configurations |
-| RT1170-EVK Rev A1 Cortex-M7 | Planned second physical target under M6, not yet qualified |
+| RT1170-EVK Rev A1 Cortex-M7 | Not a supported board. CI cross-builds selected software for it as build-only evidence. Porting Crux to another board is a candidate for a later milestone |
 | Production Embedded Linux | Future platform variant, not currently implemented or qualified |
 
 Host tests, `native_sim` runs and target cross-builds do not prove physical operation. The M4 Pilot has selected microSD with Zephyr VFS/FatFs for writable File storage instead of QSPI NOR. Settings file-backed persistence remains under evaluation, and RT1060 physical storage persistence and recovery are not yet qualified. See the [current storage decision](https://github.com/wonny-labs/crux-pilot/issues/14).
