@@ -30,6 +30,30 @@ fatfs="$(cd "$workspace" && west list fatfs -f '{abspath}')"
 
 python3 -m unittest discover -s "$repo/tests/native/configuration_settings" -p test_prepare.py -v
 
+# Settings File on a FatFs RAM disk with the staged fault-propagation corrections. This is a
+# 64-bit simulator fixture only; the corrected backend is not a product configuration.
+(cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
+    -T "$repo/tests/native/configuration_settings_file" \
+    -O "$repo/build/zephyr/twister-storage-settings-file" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
+python3 -m unittest discover -s "$repo/tests/native/configuration_settings_file" -p test_prepare.py -v
+
+# Negative control: the same suite on the unpatched upstream backend must fail.
+control="$repo/build/zephyr/settings-file-control"
+(cd "$workspace" && west build -b native_sim/native/64 -d "$control" -p always \
+    "$repo/tests/native/configuration_settings_file" -- \
+    -DZEPHYR_MODULES="$fatfs" -DCRUX_SETTINGS_FILE_CONTROL=ON > "$control.build.log" 2>&1)
+if "$control/zephyr/zephyr.exe" > "$control.run.log" 2>&1; then
+    echo "settings-file control unexpectedly passed on the unpatched backend" >&2
+    exit 1
+fi
+grep -q 'pass = 12, fail = 11' "$control.run.log" || {
+    echo "settings-file control did not fail as characterised (12 pass, 11 fail)" >&2
+    exit 1
+}
+echo "settings-file control (unpatched backend): 11 of 23 cases fail as expected"
+
 # A filtered/build-only Twister run must not satisfy the provider gate.
 python3 - "$repo/build/zephyr" <<'PY'
 import json
@@ -41,6 +65,7 @@ for directory, expected in [
     ('twister-storage-file', {'native_sim/native': 7, 'native_sim/native/64': 7}),
     ('twister-storage-fatfs', {'native_sim/native': 19, 'native_sim/native/64': 19}),
     ('twister-storage-configuration', {'native_sim/native/64': 10}),
+    ('twister-storage-settings-file', {'native_sim/native/64': 23}),
 ]:
     suites = json.loads((root / directory / 'twister.json').read_text())['testsuites']
     if len(suites) != len(expected) or {s['platform'] for s in suites} != set(expected):
@@ -56,4 +81,5 @@ PY
 
 # Source staging must not patch the original Zephyr checkout.
 git -C "$ZEPHYR_BASE" diff --exit-code -- \
-    subsys/settings/src/settings_store.c subsys/settings/src/settings_nvs.c subsys/kvss/nvs/nvs.c
+    subsys/settings/src/settings_store.c subsys/settings/src/settings_nvs.c subsys/kvss/nvs/nvs.c \
+    subsys/settings/src/settings_file.c subsys/settings/src/settings_line.c

@@ -1,0 +1,12 @@
+--- a/subsys/settings/src/settings_line.c
++++ b/subsys/settings/src/settings_line.c
+@@ -69,6 +69,9 @@
+ 	rem %= wbs;
+ 
+ 	rc = settings_io_cb.write_cb(cb_arg, w_loc, name, w_size);
++	if (rc) {
++		return -EIO;
++	}
+ 	w_loc += w_size;
+ 	name += w_size;
+ 	w_size = rem;

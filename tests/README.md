@@ -232,6 +232,21 @@ and the Configuration source-staging regressions. It requires the pinned west
 workspace with LittleFS and FatFs and a Host compiler with 32-bit development libraries.
 The Zephyr CI workflow runs this software-only gate; no physical storage is used.
 
+The gate also runs `tests/native/configuration_settings_file`: the Zephyr Settings File
+backend on a FatFs RAM disk, with I/O faults injected by link-time wraps of `fs_read`,
+`fs_write`, `fs_open` and `fs_close` (64-bit `native_sim` only). The pinned backend
+hides I/O faults (a failed write or read can be reported as success or as a missing
+key), so the fixture stages build-local copies of `settings_file.c`, `settings_line.c`
+and `settings_store.c` with the corrections in `settings_file.patch`, `settings_line.patch`
+and `settings_error/settings_store.patch`. It checks the pinned sources by hash, writes
+outside the Zephyr checkout and fails on drift. The fixture's provider copy can read each
+saved record back; that read-back is tested, not yet part of any product provider. A
+negative control builds the same suite against the unpatched backend and requires its
+characterised result (12 pass, 11 fail). These are simulator results. They do not show
+persistence, power-loss behaviour or recovery on a real card, and the format limits
+recorded by the tests (no checksum or resynchronisation, a non-atomic compaction, a torn
+tail that can lose the latest save or leave the file unreadable) remain.
+
 The [File contract](../docs/file-contract.md) and
 [qualification/handoff record](../docs/file-validation.md) cover the Linux Host
 provider and private deterministic failure tests. Normal Host CTest includes

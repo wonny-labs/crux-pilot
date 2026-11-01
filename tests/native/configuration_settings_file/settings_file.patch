@@ -1,0 +1,140 @@
+--- a/subsys/settings/src/settings_file.c
++++ b/subsys/settings/src/settings_file.c
+@@ -125,6 +125,8 @@
+ 		.len = 0 /* unknown length */
+ 	};
+ 
++	int err = 0;
++
+ 	lines = 0;
+ 
+ 	fs_file_t_init(&file);
+@@ -145,6 +147,10 @@
+ 
+ 		rc = settings_next_line_ctx(&entry_ctx);
+ 		if (rc || entry_ctx.len == 0) {
++			/* End of file is rc == 0 with no length. A torn tail (-ESPIPE) still ends the data. */
++			if (rc && rc != -ESPIPE) {
++				err = rc;
++			}
+ 			break;
+ 		}
+ 
+@@ -152,6 +158,9 @@
+ 					     &entry_ctx);
+ 
+ 		if (rc || name_len == 0) {
++			if (rc == -EIO) {
++				err = rc;
++			}
+ 			break;
+ 		}
+ 		name[name_len] = '\0';
+@@ -172,7 +181,7 @@
+ 	rc = fs_close(&file);
+ 	cf->cf_lines = lines;
+ 
+-	return rc;
++	return err ? err : rc;
+ }
+ 
+ /*
+@@ -181,10 +190,10 @@
+ static int settings_file_load(struct settings_store *cs,
+ 			      const struct settings_load_arg *arg)
+ {
+-	return settings_file_load_priv(cs,
+-				       settings_line_load_cb,
+-				       (void *)arg,
+-				       true);
++	int rc = settings_file_load_priv(cs, settings_line_load_cb, (void *)arg, true);
++
++	/* A settings file that was never created is an empty store. */
++	return rc == -ENOENT ? 0 : rc;
+ }
+ 
+ static void settings_tmpfile(char *dst, const char *src, char *pfx)
+@@ -270,6 +279,10 @@
+ 	while (1) {
+ 		rc = settings_next_line_ctx(&loc1);
+ 
++		if (rc && rc != -ESPIPE) {
++			/* Do not drop the remaining records: keep the original file. */
++			goto end_rolback;
++		}
+ 		if (rc || loc1.len == 0) {
+ 			/* try to amend new value to the compressed file */
+ 			break;
+@@ -277,6 +290,10 @@
+ 
+ 		rc = settings_line_name_read(name1, sizeof(name1), &val1_off,
+ 					     &loc1);
++		if (rc == -EIO) {
++			/* Do not drop the record: keep the original file. */
++			goto end_rolback;
++		}
+ 		if (rc) {
+ 			/* try to process next line */
+ 			continue;
+@@ -358,7 +375,7 @@
+ 	 * XXX at settings_file_load(), look for .cmp if actual file does not
+ 	 * exist.
+ 	 */
+-	return 0;
++	return rc;
+ end_rolback:
+ 	(void)fs_close(&wf);
+ 	if (fs_close(&rf) == 0) {
+@@ -399,11 +416,16 @@
+ 	if (rc == 0) {
+ 		rc = fs_seek(&file, 0, FS_SEEK_END);
+ 		if (rc == 0) {
++			off_t start = fs_tell(&file);
++
+ 			entry_ctx.stor_ctx = &file;
+ 			rc = settings_line_write(name, value, val_len, 0,
+ 						  (void *)&entry_ctx);
+ 			if (rc == 0) {
+ 				cf->cf_lines++;
++			} else if (start >= 0) {
++				/* Drop the partial record so that it cannot mis-frame later saves. */
++				(void)fs_truncate(&file, start);
+ 			}
+ 		}
+ 
+@@ -424,6 +446,7 @@
+ 			      const char *value, size_t val_len)
+ {
+ 	struct settings_line_dup_check_arg cdca;
++	int rc;
+ 
+ 	if (val_len > 0 && value == NULL) {
+ 		return -EINVAL;
+@@ -436,7 +459,10 @@
+ 	cdca.val = (char *)value;
+ 	cdca.is_dup = 0;
+ 	cdca.val_len = val_len;
+-	settings_file_load_priv(cs, settings_line_dup_check_cb, &cdca, false);
++	rc = settings_file_load_priv(cs, settings_line_dup_check_cb, &cdca, false);
++	if (rc != 0 && rc != -ENOENT) {
++		return rc;
++	}
+ 	if (cdca.is_dup == 1) {
+ 		return 0;
+ 	}
+@@ -496,10 +522,12 @@
+ 	rc = fs_seek(file, 0, FS_SEEK_END);
+ 
+ 	if (rc == 0) {
+-		rc = fs_write(file, buf, len);
++		ssize_t written = fs_write(file, buf, len);
+ 
+-		if (rc > 0) {
+-			rc = 0;
++		if (written < 0) {
++			rc = written;
++		} else if ((size_t)written != len) {
++			rc = -EIO;
+ 		}
+ 	}
+ 
