@@ -238,6 +238,21 @@ fails closed). `scripts/test-file-rt1060-compile.sh` additionally links that sam
 RT1060-EVKB Rev B (not flashed). See [the microSD composition](../docs/microsd-composition.md)
 for the decisions, measurements and the unverified hardware items.
 
+The gate also runs `tests/native/configuration_settings_file`: the Zephyr Settings File
+backend on a FatFs RAM disk, with I/O faults injected by link-time wraps of `fs_read`,
+`fs_write`, `fs_open` and `fs_close` (64-bit `native_sim` only). The pinned backend
+hides I/O faults (a failed write or read can be reported as success or as a missing
+key), so the fixture stages build-local copies of `settings_file.c`, `settings_line.c`
+and `settings_store.c` with the corrections in `settings_file.patch`, `settings_line.patch`
+and `settings_error/settings_store.patch`. It compares the pinned sources byte for byte with the pinned Git blobs, writes
+outside the Zephyr checkout and fails on drift. The fixture's provider copy can read each
+saved record back; that read-back is tested, not yet part of any product provider. A
+negative control builds the same suite against the unpatched backend and requires its
+characterised result: the named cases that expose the defects fail and the 12 others pass. These are simulator results. They do not show
+persistence, power-loss behaviour or recovery on a real card, and the format limits
+recorded by the tests (no checksum or resynchronisation, a non-atomic compaction, a torn
+tail that can lose the latest save or leave the file unreadable) remain. A missing settings file reads as an empty store unless a compaction leftover (`.cmp`) exists, which is an I/O error until the next save. The backend's inner duplicate scans can still resurrect a deleted key after a read fault; they are neither fixed nor tested, and Crux never deletes.
+
 The [File contract](../docs/file-contract.md) and
 [qualification/handoff record](../docs/file-validation.md) cover the Linux Host
 provider and private deterministic failure tests. Normal Host CTest includes
@@ -332,6 +347,17 @@ context, and `tests/build/test_i2c_composition.py` rejects a missing alias, a di
 and an unsupported provider. The emulated controller is always ready, so the not-ready status is
 not exercised on Zephyr. `scripts/test-i2c.sh` runs these checks without hardware. They do not
 qualify a physical bus or driver.
+
+A first portable consumer, `tests/i2c/consumer/tmp117.c`, reads a TI TMP117 temperature sensor
+(device identification and temperature, each as one combined write-then-read transfer) using only
+the public header. `I2c.Tmp117Consumer` runs it against a test-only provider that models the
+sensor's 16-bit registers: the conversion including negative and truncated values, the
+no-conversion marker (`CRUX_ERR_NO_DATA`), the device-ID check, verbatim transfer statuses and
+rejection of invalid arguments before any transfer. `tests/i2c_consumer_zephyr` runs the same
+source on `native_sim` against a software TMP117 behind Zephyr's I2C emulation controller and
+checks that each operation reaches the driver as a restarted write-read pair. The sensor model
+is written for these tests from the data sheet; no physical TMP117 or board has been used, so
+the temperature scaling and the pointer-register protocol are not confirmed against a part.
 
 ## SPI
 

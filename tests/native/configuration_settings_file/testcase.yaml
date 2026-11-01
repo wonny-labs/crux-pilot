@@ -1,0 +1,5 @@
+tests:
+  crux.configuration.settings_file:
+    platform_allow: [native_sim/native/64]
+    tags: [settings, filesystem, crux]
+    timeout: 120

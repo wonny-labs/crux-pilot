@@ -1,0 +1,15 @@
+/* Software-only TMP117 for the portable temperature consumer test. */
+/ {
+	aliases {
+		crux-i2c0 = &i2c0;
+	};
+};
+
+&i2c0 {
+	status = "okay";
+	crux_tmp117: crux-tmp117@48 {
+		compatible = "vnd,crux-tmp117-emulator";
+		reg = <0x48>;
+		status = "okay";
+	};
+};

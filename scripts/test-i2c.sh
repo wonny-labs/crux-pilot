@@ -21,6 +21,15 @@ cc -std=c17 -Wall -Wextra -Wpedantic -Werror \
 "$repo/build/i2c/fault-test"
 
 cc -std=c17 -Wall -Wextra -Wpedantic -Werror \
+    -I"$repo/components/i2c/include" -I"$repo/components/base/include" \
+    -I"$repo/components/i2c/src" -I"$repo/tests/i2c/consumer" \
+    "$repo/components/i2c/src/i2c.c" \
+    "$repo/tests/i2c/consumer/tmp117.c" \
+    "$repo/tests/i2c/consumer/tmp117_test.c" \
+    -o "$repo/build/i2c/tmp117-test"
+"$repo/build/i2c/tmp117-test"
+
+cc -std=c17 -Wall -Wextra -Wpedantic -Werror \
     -I"$repo/components/base/include" -I"$repo/components/i2c/ports/zephyr" \
     "$repo/components/i2c/ports/zephyr/i2c_status.c" \
     "$repo/tests/i2c/src/i2c_status_test.c" \
@@ -40,6 +49,6 @@ export ZEPHYR_BASE="$workspace/zephyr"
 CRUX_WORKSPACE="$workspace" CRUX_I2C_COMPOSITION_TESTS=1 \
     python3 "$repo/tests/build/test_i2c_composition.py"
 (cd "$workspace" && west twister -j 2 -p native_sim \
-    -T "$repo/tests/i2c_zephyr" \
+    -T "$repo/tests/i2c_zephyr" -T "$repo/tests/i2c_consumer_zephyr" \
     -O "$repo/build/zephyr/twister-i2c" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$repo")
