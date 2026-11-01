@@ -66,6 +66,11 @@ if(CONFIG_CRUX_LOGGING)
         "${CMAKE_CURRENT_BINARY_DIR}/logging")
 endif()
 
+if(CONFIG_CRUX_GPIO)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/gpio/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/gpio")
+endif()
+
 if(CONFIG_CRUX_SYSTEM)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/system/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/system")

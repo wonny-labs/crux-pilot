@@ -92,6 +92,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Configuration | Scalar validation, explicit save/load and encoding | Portable core with deterministic Host test provider and simulator-only Zephyr Settings/NVS integration; no EVKB persistence qualification | [Host contract and validation](configuration-validation.md), [simulator validation](configuration-native-validation.md) |
 | File | Bounded synchronous file operations | Linux Host provider and simulator-only Zephyr VFS/LittleFS provider; no EVKB writable-storage qualification | [Contract](file-contract.md), [Host validation](file-validation.md), [simulator validation](file-native-validation.md) |
 | Serial | Bounded synchronous UART/TTY byte transfer | Linux PTY/TTY and selected Zephyr UART emulator/EVKB compositions; explicit binding and exclusive UART ownership; no physical qualification | [Contract](serial-contract.md), [validation](serial-validation.md) |
+| GPIO | Synchronous input on one statically composed logical line | Host simulation and Zephyr native GPIO driver; no output or interrupt API, no physical qualification | [Contract](gpio-contract.md) |
 | Logging | Validated bounded text records and filtering | Linux stderr and selected Zephyr deferred UART logger compositions; explicit UART ownership/configuration checks; no physical qualification | [Contract](logging-contract.md), [validation](logging-validation.md) |
 | System | Service observations, reset diagnostics and single-owner watchdog | Linux watchdog simulation and selected Zephyr HWINFO/watchdog/reset composition; normal Host reset/cause unsupported; physical acceptance pending | [Approved contract](superpowers/specs/2026-10-24-system-health-design.md), [validation](system-validation.md) |
 
@@ -140,6 +141,7 @@ Use [CONTRIBUTING](../CONTRIBUTING.md) for code, PR and review requirements and 
 The [capability inventory](#current-capability-integration) links to component-specific API contracts and validation records. For cross-cutting information, use:
 
 - [Build and Integration Guide](build.md)
+- [GPIO contract](gpio-contract.md)
 - [Native-free consumer policy](native-interface-policy.md)
 - [Test organisation and commands](../tests/README.md)
 - [Reference controller and supported scenarios](../samples/controller/README.md)
