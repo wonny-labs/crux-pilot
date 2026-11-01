@@ -27,9 +27,10 @@ The pinned Rev A CM7 DTS selects:
   Flash controller, Flash, and code partition;
 - `wdog1` as the board `watchdog0` alias.
 
-The Rev A board DTS defines its own Flash layout: a 128 KiB boot partition,
-two 7 MiB image slots, and a storage partition in the 16 MiB device. These are
-upstream Rev A source settings and were not changed here. They are not copied
+The Rev A board inherits its Flash layout from the shared `mimxrt1170_evk.dtsi`:
+a 128 KiB boot partition, two 7 MiB image slots, and a storage partition in the
+16 MiB device. The Rev B overlay replaces it. These are upstream source
+settings and were not changed here. They are not copied
 from the RT1060 target and do not prove the fitted device or qualify erase,
 program, or persistence behavior on a physical board.
 
@@ -60,7 +61,7 @@ places:
 
 | Area | Current assumption | RT1170 consequence |
 | --- | --- | --- |
-| System/watchdog | The opt-in `CRUX_SYSTEM` provider accepts native_sim or `CONFIG_BOARD_MIMXRT1060_EVK`; the RT1060 branch requires `crux-watchdog0` to be `wdog0` at `0x400b8000` and reads its running state through `WDOG_GetStatusFlags`. | A separate System-enabled RT1170 app needs an explicit binding for Rev A's `wdog1` at `0x40030000`. The pinned Zephyr `nxp,imx-wdog` driver also uses `WDOG_GetStatusFlags`, but Crux's board identity/address assertion does not match. This is outside the M3-only candidate below. |
+| System/watchdog | The opt-in `CRUX_SYSTEM` provider accepts native_sim or `CONFIG_BOARD_MIMXRT1060_EVK`; the RT1060 branch requires `crux-watchdog0` to be `wdog0` at `0x400b8000` and reads its running state through `WDOG_GetStatusFlags`. | A separate System-enabled RT1170 app needs an explicit binding for Rev A's `wdog1` at `0x40030000`. The pinned Zephyr `nxp,imx-wdog` driver also uses `WDOG_GetStatusFlags`, but the Crux System provider rejects every board other than RT1060-EVK and native_sim outright with a build error, before any watchdog address check. This is outside the M3-only candidate below. |
 | Serial | `serial_binding.c` only allows the qualified RT1060 LPUART3 resource or native_sim. | A Rev A UART resource and any external connector route need an explicit composition decision. The board console is LPUART1, already owned by console output. |
 | Logging | `logging_binding.c` only allows the qualified RT1060 LPUART1 resource or native_sim, with RT1060-specific console sharing constraints. | The Rev A default console also uses LPUART1. A compatible logging selection and owner-conflict policy have not been established for this board. |
 | GPIO | The portable GPIO capability's software configurations do not include RT1170; see its contract for the current ones. | RT1170 is not yet an accepted GPIO provider target. A PR cross-build alone would not establish physical pin behavior. |
@@ -109,8 +110,8 @@ overlays replacing the upstream Rev A defaults.
 The direct cross-build command and the final runner were attempted locally;
 both stopped before configuration because `west` is not installed. CMake and
 an Arm Zephyr toolchain are also absent from the host, so nothing was built
-locally. Local checks passed for the composition test (2/2), runner shell
-syntax, and Python syntax; these do not replace the target cross-build.
+locally. Local checks passed for the composition test, runner shell syntax,
+and Python syntax; these do not replace the target cross-build.
 
 At head `baf2ae1ae45e2e23d0f06e4c64fdfd880a6f6531` the Zephyr workflow step
 "Cross-build RT1170-EVK Rev A CM7 composition (software-only)" succeeded
@@ -118,7 +119,9 @@ At head `baf2ae1ae45e2e23d0f06e4c64fdfd880a6f6531` the Zephyr workflow step
 for this target. This record does not capture the SoC, toolchain or image
 details: the generated `.config`, DTS, map, ELF and binary are kept only as
 expiring CI artifacts and were not inspected for this assessment, and no ROM/RAM
-figures are recorded here.
+figures are recorded here. Later commits change only this document, its Host
+composition test and an environment guard in the runner; the step runs again on
+every push.
 
 ## Remaining evidence
 
