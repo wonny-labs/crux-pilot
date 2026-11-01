@@ -1,22 +1,11 @@
 #include "gpio_binding.h"
 
 #include "gpio_port.h"
+#include "gpio_status.h"
 
-#include <errno.h>
 #include <zephyr/kernel.h>
 
 static bool configured;
-
-static crux_status_t native_result(int result)
-{
-    if (result == 0) {
-        return CRUX_OK;
-    }
-    if (result == -ENOTSUP || result == -ENOSYS || result == -EINVAL) {
-        return CRUX_ERR_NOT_SUPPORTED;
-    }
-    return CRUX_ERR_IO;
-}
 
 static crux_status_t selected_line(crux_gpio_line_t line, const struct gpio_dt_spec **out)
 {
@@ -45,7 +34,7 @@ crux_status_t crux_gpio_port_configure_input(crux_gpio_line_t line)
     if (native == 0) {
         configured = true;
     }
-    return native_result(native);
+    return crux_gpio_zephyr_status(native);
 }
 
 crux_status_t crux_gpio_port_read(crux_gpio_line_t line, bool *active)
@@ -60,7 +49,7 @@ crux_status_t crux_gpio_port_read(crux_gpio_line_t line, bool *active)
     }
     int native = gpio_pin_get_dt(spec);
     if (native < 0) {
-        return native_result(native);
+        return crux_gpio_zephyr_status(native);
     }
     *active = native != 0;
     return CRUX_OK;

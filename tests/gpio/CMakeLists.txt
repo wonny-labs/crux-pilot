@@ -11,3 +11,13 @@ target_link_libraries(crux_gpio_host_tests PRIVATE crux::gpio)
 target_compile_options(crux_gpio_host_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
 target_compile_features(crux_gpio_host_tests PRIVATE c_std_17)
 add_test(NAME GPIO.Host COMMAND crux_gpio_host_tests)
+
+# The native-result mapping has no Zephyr dependency, so it is checked on the Host.
+add_executable(crux_gpio_status_tests status_test.c
+    ../../components/gpio/ports/zephyr/gpio_status.c)
+target_include_directories(crux_gpio_status_tests PRIVATE
+    ../../components/gpio/ports/zephyr)
+target_link_libraries(crux_gpio_status_tests PRIVATE crux::base)
+target_compile_options(crux_gpio_status_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_compile_features(crux_gpio_status_tests PRIVATE c_std_17)
+add_test(NAME GPIO.NativeStatus COMMAND crux_gpio_status_tests)

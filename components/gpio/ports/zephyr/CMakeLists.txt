@@ -9,7 +9,7 @@ target_include_directories(crux_gpio_api INTERFACE "${CRUX_GPIO_COMPONENT_DIR}/i
 target_link_libraries(crux_gpio_api INTERFACE crux::base)
 target_compile_options(crux_gpio_api INTERFACE ${TOOLCHAIN_C_FLAGS})
 
-add_library(crux_gpio_zephyr STATIC ../../src/gpio.c gpio_zephyr.c gpio_binding.c)
+add_library(crux_gpio_zephyr STATIC ../../src/gpio.c gpio_zephyr.c gpio_binding.c gpio_status.c)
 target_include_directories(crux_gpio_zephyr PRIVATE ../../src .)
 target_link_libraries(crux_gpio_zephyr PRIVATE crux_gpio_api zephyr_interface)
 zephyr_append_cmake_library(crux_gpio_zephyr)
