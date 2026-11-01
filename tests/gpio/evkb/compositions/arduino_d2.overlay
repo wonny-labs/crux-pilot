@@ -10,8 +10,17 @@
 #include <zephyr/dt-bindings/gpio/arduino-header-r3.h>
 
 / {
-	crux_arduino_d2: crux-arduino-d2 {
-		gpios = <&arduino_header ARDUINO_HEADER_R3_D2 GPIO_ACTIVE_HIGH>;
+	/*
+	 * The node needs a binding so that its gpios property exists in the generated Devicetree
+	 * header. A child of a gpio-keys node gets one from that binding, as the board's own
+	 * user_button does. No input driver is enabled by this test application.
+	 */
+	crux_inputs {
+		compatible = "gpio-keys";
+
+		crux_arduino_d2: arduino-d2 {
+			gpios = <&arduino_header ARDUINO_HEADER_R3_D2 GPIO_ACTIVE_HIGH>;
+		};
 	};
 
 	aliases {

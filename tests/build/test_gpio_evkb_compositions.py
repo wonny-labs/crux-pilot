@@ -30,10 +30,21 @@ class GpioEvkbCompositionTests(unittest.TestCase):
         overlay = SECOND_OVERLAY.read_text()
         self.assertIn("crux-gpio0 = &crux_arduino_d2;", overlay)
         self.assertNotIn("user_button", re.sub(r"/\*.*?\*/", "", overlay, flags=re.S))
-        self.assertIn("&arduino_header ARDUINO_HEADER_R3_D2 GPIO_ACTIVE_HIGH", overlay)
+        self.assertRegex(
+            overlay, r"gpios\s*=\s*<&arduino_header\s+ARDUINO_HEADER_R3_D2\s+GPIO_ACTIVE_HIGH>"
+        )
         # The header pins that the I2C and SPI compositions need must stay unselected.
         for forbidden in ("_D10", "_D11", "_D12", "_D13", "_D14", "_D15", "_A4", "_A5"):
             self.assertNotIn(forbidden, overlay)
+
+    def test_second_overlay_node_has_a_binding_for_its_gpios_property(self):
+        # Without a compatible (here a gpio-keys parent) the generated Devicetree header has no
+        # gpios property and the provider's DT_NODE_HAS_PROP check fails the build.
+        overlay = re.sub(r"/\*.*?\*/", "", SECOND_OVERLAY.read_text(), flags=re.S)
+        parent = re.search(r"(\w+)\s*\{\s*compatible\s*=\s*\"gpio-keys\";(.*?)\n\t\};", overlay, re.S)
+        self.assertIsNotNone(parent, "the selected node must be a child of a gpio-keys node")
+        self.assertIn("crux_arduino_d2:", parent.group(2))
+        self.assertIn("gpios", parent.group(2))
 
     def test_runner_builds_both_compositions_from_the_same_source(self):
         commands = evkb_build_commands()
