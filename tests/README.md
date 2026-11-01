@@ -273,7 +273,8 @@ argument rejection before any provider call, exact argument hand-off and verbati
 propagation), and the native-result mapping (`Spi.NativeStatus`). A `native_sim` Ztest uses
 Zephyr's SPI emulation controller for full-duplex data, Devicetree-selected transfer settings, native
 error mapping and rejection from interrupt context, and `tests/build/test_spi_composition.py`
-rejects a missing alias, a disabled selection, a peripheral that holds chip select and an
+rejects a missing alias, a disabled selection, a peripheral that holds chip select, selects
+half-duplex or selects TI frame format, and an
 unsupported provider. `scripts/test-spi.sh` runs these checks without hardware. They do not
 qualify a physical peripheral. Native-free consumption is checked only by the public header
 compile checks in the script and by the common source checker; SPI has no external-application or

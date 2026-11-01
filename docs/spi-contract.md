@@ -14,9 +14,9 @@ must therefore release CS according to the native driver's normal end-of-transfe
 does not provide multi-call transaction continuity.
 
 Unsupported modes: half-duplex, TI frame format, peripheral (slave) mode, word sizes other than 8
-bits, and held chip select. Only held chip select is rejected at build time. The others are not
-detected; a composition that selects one gets whatever the native driver does, which may be an
-error status at run time or a transfer that does not match this contract.
+bits, and held chip select. The Zephyr provider rejects held chip select, half-duplex and TI frame
+format at build time. Peripheral mode and other word sizes are fixed by the provider, so a
+composition cannot select them.
 
 The call returns after the native transfer finishes. Crux provides no deadline, partial-progress
 count, rollback, or concurrency guarantee. Native results `-ENOTSUP` and `-ENOSYS` map to

@@ -29,9 +29,9 @@ extern "C" {
  * fixes the word size. Peripheral configuration (frequency, mode, bit order and
  * chip select) belongs to platform composition, and the Zephyr provider
  * rejects, at build time, a configuration that holds chip select beyond this
- * call. Half-duplex, TI frame format, peripheral (slave) mode and other word
- * sizes are not supported and are not rejected at build time; the driver
- * defines what happens if a composition selects one. Both buffers must be
+ * call or selects half-duplex or TI frame format. Peripheral (slave) mode and
+ * other word sizes are not supported; the provider fixes them, so a
+ * composition cannot select them. Both buffers must be
  * non-null, distinct, non-overlapping and valid until return; overlap is not
  * checked. No partial progress is reported. After a failure the receive buffer
  * contents are unspecified, except that a call rejected before the transfer

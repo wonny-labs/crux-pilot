@@ -20,6 +20,10 @@ class SpiCompositionTest(unittest.TestCase):
                          "must select an enabled SPI peripheral"),
             "hold_cs": ('&crux_spi_test_target { spi-hold-cs; };',
                         "must not request spi-hold-cs"),
+            "half_duplex": ('&crux_spi_test_target { duplex = <2048>; };',
+                            "must use full duplex and Motorola frame format"),
+            "ti_frame_format": ('&crux_spi_test_target { frame-format = <32768>; };',
+                                "must use full duplex and Motorola frame format"),
             "provider": ("", "unsupported provider"),
             "positive": ("", None),
         }
