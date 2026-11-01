@@ -153,7 +153,8 @@ expire on 15 November 2026, which is why the values are copied here.
 
 Three CI runs of the same build-relevant source (heads `baf2ae1`, `150646b` and
 `565689e` of PR #124, runs 41118849856, 41305559734 and 41314067098, which differ
-only in documentation, the runner's environment guard and a Host test) produced
+only in documentation, the runner's environment guard, which changes nothing in
+CI because none of those variables is set there, and a Host test) produced
 identical linker map, devicetree and `.config` files but different ELF and
 binary hashes. A byte comparison of the binaries of runs 41305559734 and
 41314067098 found 12 differing bytes out of 65,324, at offset `0xeb14` in the
@@ -161,12 +162,13 @@ read-only data. They are the 12-character source revision that
 `samples/controller/zephyr/CMakeLists.txt` takes from `git rev-parse --short=12 HEAD`
 and the M3 boot banner prints (`M3_BOOT source=...`): the commit CI checked out,
 which is `5df5d09cefc5` for the recorded run. Every other section with contents
-in the two ELF files was identical. So the image is reproducible apart from that
+in the two ELF files was identical. So the images were identical apart from that
 embedded revision, and each hash also identifies the commit CI checked out.
 Builds of different commits are expected to differ in those bytes.
 
-Later runs on `main` also changed the map and `.config`, because other changes
-had been merged by then; they do not test reproducibility. A rebuild of the same
+Later runs on `main` changed `.config`, in the first two by one added line
+(`# CONFIG_CRUX_GPIO is not set`) and in the third also the map, because other
+changes had been merged by then; they do not test reproducibility. A rebuild of the same
 commit was not run.
 
 ## Remaining evidence
