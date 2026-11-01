@@ -108,7 +108,7 @@ static void slot_name(char name[8], uint32_t slot)
     snprintf(name, 8, "s%u", slot);
 }
 
-/* With a mutant, the update is announced before it is synced (a deliberate defect). */
+/* With the mutant, the update is announced before sync and close (a deliberate defect). */
 static crux_file_result_t write_slot(uint32_t slot, uint32_t run, uint32_t update, bool ack_early)
 {
     static char data[MAX_CONTENT];
@@ -225,7 +225,7 @@ static void do_verify(void)
 
 static void do_stress(void)
 {
-    bool ack_early = option_is(mutant, "ack_before_sync");
+    bool ack_early = option_is(mutant, "ack_before_durable");
 
     mount_or_exit();
     for (uint32_t update = 0; count == 0 || update < count; update++) {

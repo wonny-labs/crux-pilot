@@ -39,7 +39,7 @@ import sys
 root = Path(sys.argv[1])
 for directory, expected in [
     ('twister-storage-file', {'native_sim/native': 7, 'native_sim/native/64': 7}),
-    ('twister-storage-fatfs', {'native_sim/native': 15, 'native_sim/native/64': 15}),
+    ('twister-storage-fatfs', {'native_sim/native': 19, 'native_sim/native/64': 19}),
     ('twister-storage-configuration', {'native_sim/native/64': 10}),
 ]:
     suites = json.loads((root / directory / 'twister.json').read_text())['testsuites']

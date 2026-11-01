@@ -229,7 +229,7 @@ These checks do not operate Flash or qualify an adopted persistence backend.
 `scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS and FatFs File suites on
 32/64-bit `native_sim`, the Settings/NVS Configuration suite on 64-bit `native_sim`,
 and the Configuration source-staging regressions. It requires the pinned west
-workspace with LittleFS and a Host compiler with 32-bit development libraries.
+workspace with LittleFS and FatFs and a Host compiler with 32-bit development libraries.
 The Zephyr CI workflow runs this software-only gate; no physical storage is used.
 
 The [File contract](../docs/file-contract.md) and
@@ -258,11 +258,15 @@ evidence of persistence.
 `scripts/test-file-persistence.sh` builds `tests/native/file_fatfs_persist`, where the disk is a
 `zephyr,flash-disk` on the flash simulator backed by a host file, and runs it as separate
 processes: files acknowledged by one process are intact in the next, blank media is never
-mounted or modified, and a process killed between updates (`SIGKILL`) leaves every acknowledged
-file intact. A deliberate acknowledge-before-sync defect must be detected
-(`--mutant ack_before_sync`). A kill at a random point is only recorded: on this
-erase-then-program medium an update in flight can destroy neighbouring sectors, so the result
-characterises the medium model, not FatFs, and is not a power-loss or physical-media claim.
+mounted or modified, and a process killed between updates (`SIGKILL`, sent within 80 ms of the
+child reporting that it is resting) leaves every acknowledged file intact. The same run executes a
+negative control: a deliberate defect that acknowledges an update before it is durable (before
+both sync and close) must be reported as a lost acknowledged file in every iteration
+(`--mutant ack_before_durable` runs only that control). It shows that the check can fail; it does
+not show that `sync` alone works, which the in-process torn-sync test covers. A kill at a random
+point is only recorded: where it lands is not controlled, and on this erase-then-program medium an
+update in flight can destroy neighbouring sectors. That says nothing about SD cards and is not a
+power-loss or physical-media claim.
 
 `tests/zephyr/file_fatfs_compile` compiles the File implementation and the RT1060 FatFs/SDHC
 composition for `mimxrt1060_evk@B//qspi` as an unlinked object. It does not mount, format or run

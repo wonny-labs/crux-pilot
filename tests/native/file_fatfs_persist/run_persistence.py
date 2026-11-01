@@ -5,13 +5,16 @@
 The disk is a zephyr,flash-disk on the flash simulator, backed by a host file, so its contents
 outlive the simulator process. A flash-disk update is a read-modify-erase-write of a larger block
 behind a write cache, which makes a kill during an update destructive for neighbouring sectors.
-The scenarios therefore separate what can be asserted from what is only recorded:
+The scenarios therefore separate what can be asserted from what is only recorded. A kill that
+lands inside an update is not controlled, so the recorded result is an observation of this
+medium model, not a measurement:
 
 * restart       asserted: files acknowledged in one process are intact in the next process
 * never-format  asserted: mounting blank media fails and changes no byte
 * kill-idle     asserted: killed between updates, every acknowledged file is intact
 * kill-anywhere recorded: killed at a random point, including inside a flush
-* mutant        the idle kill must detect an acknowledgement sent before the sync
+* mutant        the idle kill must detect an acknowledgement sent before the update is durable
+                (before both sync and close); it does not show that sync alone works
 
 This is software evidence only. It covers process exit and SIGKILL on a host file. It is not
 power-loss, reboot or physical-media evidence.
@@ -29,7 +32,9 @@ import tempfile
 import time
 
 LINE_TIMEOUT = 30.0
-IDLE_MS = 100
+IDLE_MS = 200
+KILL_LATENCY = 0.08  # a kill later than this after the IDLE report may have missed the rest
+RESAMPLES = 5
 
 
 def command(exe, flash, *options, realtime=False):
@@ -66,7 +71,8 @@ def scenario_restart(exe, flash):
     rc, out = run(exe, flash, "--crux_mode=verify", "--crux_run=2", "--crux_count=8")
     expect(rc == 0 and "VERIFIED 8" in out, f"verify of replaced files failed: {rc} {out}")
     rc, out = run(exe, flash, "--crux_mode=verify", "--crux_run=1", "--crux_count=8")
-    expect(rc != 0, "the first run's content must be gone after the files were replaced")
+    expect(rc == 1 and any(line.startswith("FAIL verify slot") for line in out),
+           f"the first run's content must be reported gone after replacement: {rc} {out}")
 
 
 def scenario_never_formats(exe, flash):
@@ -92,6 +98,7 @@ def parse(data, tag):
 
 
 def read_until(master, predicate, deadline):
+    """Return (data, time the predicate became true or None)."""
     data = b""
     while not predicate(data) and time.monotonic() < deadline:
         ready, _, _ = select.select([master], [], [], 0.02)
@@ -104,7 +111,7 @@ def read_until(master, predicate, deadline):
         if not chunk:
             break
         data += chunk
-    return data
+    return data, (time.monotonic() if predicate(data) else None)
 
 
 def drain(master):
@@ -143,18 +150,23 @@ def kill_once(exe, flash, run_id, rng, idle, mutant):
     os.close(slave)
     try:
         target = rng.randint(2, 9)
+        late = False
         if idle:
-            data = read_until(master, lambda d: any(k >= target for k in parse(d, "IDLE")),
-                              time.monotonic() + LINE_TIMEOUT)
+            data, seen = read_until(master, lambda d: any(k >= target for k in parse(d, "IDLE")),
+                                    time.monotonic() + LINE_TIMEOUT)
+            child.send_signal(signal.SIGKILL)
+            late = seen is None or time.monotonic() - seen > KILL_LATENCY
         else:
-            data = read_until(master, lambda d: len(parse(d, "ACK")) >= target * 4,
-                              time.monotonic() + LINE_TIMEOUT)
+            data, _ = read_until(master, lambda d: len(parse(d, "ACK")) >= target * 4,
+                                 time.monotonic() + LINE_TIMEOUT)
             time.sleep(rng.uniform(0.0, 0.02))  # land the kill at varying points inside an update
-        child.send_signal(signal.SIGKILL)
+            child.send_signal(signal.SIGKILL)
         child.wait()
         data += drain(master)
     finally:
         os.close(master)
+    if late:
+        return 0, "resample"  # the kill may not have landed between updates: not a valid sample
     acks = parse(data, "ACK")
     expect(acks, "the stress run acknowledged nothing before it was killed")
     last = max(acks)
@@ -170,14 +182,22 @@ def kill_once(exe, flash, run_id, rng, idle, mutant):
 def scenario_kill(exe, flash, iterations, seed, idle, mutant=""):
     rng = random.Random(seed)
     outcomes = {}
+    resampled = 0
     for index in range(iterations):
-        _, outcome = kill_once(exe, flash, index + 1, rng, idle, mutant)
+        for _ in range(RESAMPLES):
+            _, outcome = kill_once(exe, flash, index + 1, rng, idle, mutant)
+            if outcome != "resample":
+                break
+            resampled += 1
+        expect(outcome != "resample", f"iteration {index + 1}: {RESAMPLES} kills in a row were late")
         outcomes[outcome] = outcomes.get(outcome, 0) + 1
+    if resampled:
+        outcomes["(late kills retried)"] = resampled
     return outcomes
 
 
 def all_intact(outcomes):
-    return all(key.startswith("ok:") for key in outcomes)
+    return all(key.startswith("ok:") or key.startswith("(") for key in outcomes)
 
 
 def main():
@@ -186,10 +206,12 @@ def main():
     parser.add_argument("--iterations", type=int, default=25, help="idle-kill iterations")
     parser.add_argument("--anywhere-iterations", type=int, default=20,
                         help="random-time kill iterations (recorded only)")
+    parser.add_argument("--mutant-iterations", type=int, default=10,
+                        help="idle-kill iterations of the negative control")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--mutant", default="",
-                        help="run only the idle kill with a deliberate defect; the run succeeds "
-                        "only if the defect is detected")
+                        help="run only this negative control; succeeds only if every iteration "
+                        "reports a lost acknowledged file")
     args = parser.parse_args()
 
     with tempfile.TemporaryDirectory() as workdir:
@@ -199,12 +221,16 @@ def main():
             if os.path.exists(flash):
                 os.remove(flash)
 
+        def mutant_scenario(name):
+            fresh()
+            outcomes = scenario_kill(args.exe, flash, args.mutant_iterations, args.seed, True, name)
+            counted = {k: n for k, n in outcomes.items() if not k.startswith("(")}
+            detected = counted.get("acked_lost", 0) == sum(counted.values()) > 0
+            print(f"mutant {name!r}: outcomes {outcomes}")
+            return detected
+
         if args.mutant:
-            outcomes = scenario_kill(args.exe, flash, args.iterations, args.seed, True, args.mutant)
-            lost = sum(n for key, n in outcomes.items() if not key.startswith("ok:"))
-            print(f"mutant {args.mutant!r}: outcomes {outcomes}; detected in {lost} of "
-                  f"{args.iterations} iterations")
-            sys.exit(0 if lost else 1)
+            sys.exit(0 if mutant_scenario(args.mutant) else 1)
 
         scenario_restart(args.exe, flash)
         print("PASS restart: acknowledged files survive process exit and replacement")
@@ -219,12 +245,18 @@ def main():
             print("FAIL kill-idle: an acknowledged file was lost or the volume did not mount")
             sys.exit(1)
         print("PASS kill-idle: every acknowledged file was intact after every kill")
+        if not mutant_scenario("ack_before_durable"):
+            print("FAIL mutant: the acknowledge-before-durable defect was not reported as a lost "
+                  "acknowledged file in every iteration")
+            sys.exit(1)
+        print("PASS mutant: acknowledging before the update is durable is caught every time")
         fresh()
 
         anywhere = scenario_kill(args.exe, flash, args.anywhere_iterations, args.seed, False)
         print(f"RECORDED kill-anywhere: {args.anywhere_iterations} SIGKILL iterations at random "
-              f"times, outcomes {anywhere} (not asserted: an update in flight can destroy "
-              "neighbouring sectors on this erase-then-program medium)")
+              f"times, outcomes {anywhere}. Not asserted: where the kill lands is not controlled, "
+              "and on this erase-then-program medium an update in flight can destroy neighbouring "
+              "sectors")
 
 
 if __name__ == "__main__":
