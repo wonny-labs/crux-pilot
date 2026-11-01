@@ -325,8 +325,11 @@ including the active-low inversion taken from the Devicetree flag, argument erro
 rejection from interrupt context and reading before configuration.
 `scripts/test-gpio.sh` also rejects missing, disabled and malformed Devicetree
 selections, a disabled GPIO controller and an unsupported provider, and cross-builds
-the same portable consumer for RT1060-EVKB and for RT1170-EVK board revision A
-(Cortex-M7), each with its own alias overlay under `tests/gpio/evkb/boards`. Two further
+the same portable consumer for RT1060-EVKB (twice: with the user button, and with Arduino
+header D2 selected by an overlay in `tests/gpio/evkb/compositions`) and for RT1170-EVK board
+revision A (Cortex-M7), each with its own alias overlay under `tests/gpio/evkb/boards`;
+`tests/build/test_gpio_evkb_compositions.py` checks on the Host that the two RT1060-EVKB
+builds use one source, different lines and separate build directories. Two further
 native_sim apps under `tests/gpio/zephyr_failure` reach native driver failures through
 the emulator: an open-drain flag gives `-ENOTSUP` and a pin the emulated controller does
 not have gives `-EINVAL`. They run with Zephyr assertions disabled, because the generic

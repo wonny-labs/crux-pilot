@@ -1,0 +1,20 @@
+/*
+ * A second RT1060-EVKB composition for the same portable GPIO consumer: the logical line is a
+ * header input instead of the user button. It is active high, so the consumer's logical value
+ * follows the pin level, where the user button is active low. D2 is pin 11 of GPIO1 in the board's
+ * header map. It is not one of the I2C (D14, D15) or SPI (D10 to D13) pins that the other
+ * Arduino-header compositions need. This overlay is applied after the board overlay and replaces
+ * the alias; it is compile and link evidence for a composition, not a statement about the
+ * board's wiring.
+ */
+#include <zephyr/dt-bindings/gpio/arduino-header-r3.h>
+
+/ {
+	crux_arduino_d2: crux-arduino-d2 {
+		gpios = <&arduino_header ARDUINO_HEADER_R3_D2 GPIO_ACTIVE_HIGH>;
+	};
+
+	aliases {
+		crux-gpio0 = &crux_arduino_d2;
+	};
+};
