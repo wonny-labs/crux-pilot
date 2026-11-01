@@ -189,10 +189,12 @@ crux_file_result_t crux_file_impl_write(size_t s, const void *b, size_t l, size_
     if (rc < 0) {
         return result((int)rc);
     }
+#if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
     if (rc == 0) {
         /* FatFs reports a full volume as zero accepted bytes without an error. */
         return CRUX_FILE_ERR_NO_SPACE;
     }
+#endif
     *n = (size_t)rc;
     return CRUX_FILE_OK;
 }
