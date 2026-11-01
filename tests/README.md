@@ -245,7 +245,7 @@ negative control builds the same suite against the unpatched backend and require
 characterised result: the named cases that expose the defects fail and the 12 others pass. These are simulator results. They do not show
 persistence, power-loss behaviour or recovery on a real card, and the format limits
 recorded by the tests (no checksum or resynchronisation, a non-atomic compaction, a torn
-tail that can lose the latest save or leave the file unreadable) remain. The backend's inner duplicate scans can still resurrect a deleted key after a read fault; they are neither fixed nor tested, and Crux never deletes.
+tail that can lose the latest save or leave the file unreadable) remain. A missing settings file reads as an empty store unless a compaction leftover (`.cmp`) exists, which is an I/O error until the next save. The backend's inner duplicate scans can still resurrect a deleted key after a read fault; they are neither fixed nor tested, and Crux never deletes.
 
 The [File contract](../docs/file-contract.md) and
 [qualification/handoff record](../docs/file-validation.md) cover the Linux Host
