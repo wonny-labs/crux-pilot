@@ -66,6 +66,11 @@ if(CONFIG_CRUX_I2C)
         "${CMAKE_CURRENT_BINARY_DIR}/i2c")
 endif()
 
+if(CONFIG_CRUX_SPI)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/spi/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/spi")
+endif()
+
 if(CONFIG_CRUX_LOGGING)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/logging/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/logging")

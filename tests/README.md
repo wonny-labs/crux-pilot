@@ -310,6 +310,37 @@ checks that each operation reaches the driver as a restarted write-read pair. Th
 is written for these tests from the data sheet; no physical TMP117 or board has been used, so
 the temperature scaling and the pointer-register protocol are not confirmed against a part.
 
+## SPI
+
+The Host CTest suite covers the shipped loopback provider (`Spi.HostContract`), the portable layer
+against a test-only provider that records each call and injects failures (`Spi.PortableFaults`:
+argument rejection before any provider call, exact argument hand-off and verbatim status
+propagation), and the native-result mapping (`Spi.NativeStatus`). A `native_sim` Ztest uses
+Zephyr's SPI emulation controller for full-duplex data, Devicetree-selected transfer settings,
+native error mapping (an I/O error, `-ENOTSUP` and `-ENOSYS`) and rejection from interrupt context,
+and `tests/build/test_spi_composition.py`
+rejects a missing alias, a disabled selection, a peripheral that holds chip select, selects
+half-duplex or selects TI frame format, and an
+unsupported provider. The emulated controller and its chip select are always ready, so the
+not-ready status is not exercised on Zephyr. `scripts/test-spi.sh` runs these checks without
+hardware. They do not
+qualify a physical peripheral. Native-free consumption is checked only by the public header
+compile checks in the script and by the common source checker; SPI has no external-application or
+consumer-boundary profile yet because no application consumer exists.
+
+A first portable consumer, `tests/spi/consumer/spi_flash_id.c`, reads the JEDEC identification of a
+serial NOR flash (command `0x9F`) using only the public header, as one four-byte full-duplex
+exchange so chip select spans the command and the response. `Spi.FlashIdConsumer` runs it against a
+test-only provider that models the command and an idle line: decoding, the ignored first byte,
+rejection of an all-0x00 or all-0xFF answer as `CRUX_ERR_IO`, verbatim provider statuses with the
+output untouched, null arguments and the capacity code. `tests/spi_consumer_zephyr` runs the same
+source on `native_sim` against a software flash behind Zephyr's SPI emulation controller, and
+checks the single exchange, the composed mode (mode 0, most significant bit first, 8-bit words)
+and native error mapping. The flash model follows the common `0x9F` convention from data sheets;
+no physical flash or board has been used, so it is not confirmed against a part. The consumer's
+own chip-select assumption (one exchange is one chip-select assertion) is the Crux contract
+and is not observable on `native_sim`.
+
 ## Portable Serial
 
 `scripts/test-serial.sh --host-only` runs independently authored public C17/C++17
