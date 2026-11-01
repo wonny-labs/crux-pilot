@@ -1,0 +1,12 @@
+sample:
+  name: Crux microSD composition (link only)
+common:
+  build_only: true
+  platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
+  tags: [filesystem, crux, link_only]
+tests:
+  crux.sample.storage_sd:
+    extra_args: []
+  crux.sample.storage_sd.start:
+    extra_configs:
+      - CONFIG_SAMPLE_SD_START=y

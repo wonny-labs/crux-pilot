@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+mainmenu "Crux microSD composition"
+
+config SAMPLE_SD_START
+	bool "Run the microSD mount sequence at boot"
+	help
+	  Off by default. When on, the image initialises the SD disk and mounts the card without
+	  formatting it. Physical use needs approval for the current task.
+
+source "Kconfig.zephyr"
