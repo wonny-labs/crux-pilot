@@ -258,8 +258,10 @@ evidence of persistence.
 `scripts/test-file-persistence.sh` builds `tests/native/file_fatfs_persist`, where the disk is a
 `zephyr,flash-disk` on the flash simulator backed by a host file, and runs it as separate
 processes: files acknowledged by one process are intact in the next, blank media is never
-mounted or modified, and a process killed between updates (`SIGKILL`, sent within 80 ms of the
-child reporting that it is resting) leaves every acknowledged file intact. The same run executes a
+mounted or modified, and a process killed between updates (`SIGKILL`, right after the child
+reports that it is resting) leaves every acknowledged file intact. A sample is kept only if the
+runner saw the report within 80 ms and only one such report, and the check then finds the next
+update not yet begun; any other sample is discarded and redrawn (at most 5 times). The same run executes a
 negative control: a deliberate defect that acknowledges an update before it is durable (before
 both sync and close) must be reported as a lost acknowledged file in every iteration
 (`--mutant ack_before_durable` runs only that control). It shows that the check can fail; it does

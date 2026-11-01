@@ -154,8 +154,15 @@ def kill_once(exe, flash, run_id, rng, idle, mutant):
         if idle:
             data, seen = read_until(master, lambda d: any(k >= target for k in parse(d, "IDLE")),
                                     time.monotonic() + LINE_TIMEOUT)
+            expect(child.poll() is None,
+                   f"the stress child exited early (code {child.returncode}): "
+                   f"{data.decode(errors='replace')[-200:]!r}")
+            expect(seen is not None, "the stress child reported no resting state before the timeout")
             child.send_signal(signal.SIGKILL)
-            late = seen is None or time.monotonic() - seen > KILL_LATENCY
+            # Late if the runner read the line late, or already holds a second resting report
+            # (the child has moved on to another update).
+            late = (time.monotonic() - seen > KILL_LATENCY or
+                    len([k for k in parse(data, "IDLE") if k >= target]) > 1)
         else:
             data, _ = read_until(master, lambda d: len(parse(d, "ACK")) >= target * 4,
                                  time.monotonic() + LINE_TIMEOUT)
@@ -173,7 +180,10 @@ def kill_once(exe, flash, run_id, rng, idle, mutant):
     rc, out = run(exe, flash, "--crux_mode=check", f"--crux_run={run_id}", f"--crux_count={last}")
     if rc == 0:
         state = next((line for line in out if line.startswith("CHECK_OK")), "")
-        return last, "ok:" + state.split("inflight=")[-1]
+        inflight = state.split("inflight=")[-1]
+        if idle and not mutant and inflight in ("new", "torn"):
+            return last, "resample"  # the next update had begun: the kill was not between updates
+        return last, "ok:" + inflight
     if any(line.startswith("MOUNT_FAIL") for line in out):
         return last, "unmountable"
     return last, "acked_lost"
