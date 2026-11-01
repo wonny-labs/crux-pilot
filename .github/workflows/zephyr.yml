@@ -114,6 +114,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-gpio.sh
 
+      - name: Validate portable I2C without hardware
+        working-directory: crux-pilot
+        run: scripts/test-i2c.sh
+
       - name: Validate controller integration (software-only)
         working-directory: crux-pilot
         run: scripts/test-controller-integration.sh
