@@ -11,8 +11,11 @@ not a justified output resource.
 Calls run in task context and must be serialized by the caller for the line.
 A call made from interrupt context returns `CRUX_ERR_NOT_SUPPORTED` where the
 provider can detect it (the Zephyr provider does; the Host provider has no
-interrupt context and does not check). Configuration and reads are synchronous. No output, interrupt callback, event,
-debounce, ownership handle, runtime discovery or general pin registry is
+interrupt context and does not check). When such a call also has an invalid
+argument, which of the two statuses is returned is unspecified. Calls before the
+kernel is running (pre-kernel or early startup) are not supported but are not
+detected. Configuration and reads are synchronous. No output, interrupt callback,
+event, debounce, ownership handle, runtime discovery or general pin registry is
 provided. Reads preserve their output argument on error. Reading before
 configuration returns `CRUX_ERR_NOT_READY`. Null output pointers return
 `CRUX_ERR_INVALID_ARGUMENT`; unsupported logical line IDs return
@@ -33,3 +36,8 @@ The representative consumer configures and reads one input. The existing control
 `device_input` wrapper remains unchanged in this increment; its native sample
 contract and physical validation status are independent of this new public
 capability.
+
+The Zephyr tests cannot induce a native driver failure or a controller that is
+not ready, because the GPIO emulator has no fault injection. Those statuses are
+verified only through the Host test of the native-result mapping and by review of
+the provider's use of it.

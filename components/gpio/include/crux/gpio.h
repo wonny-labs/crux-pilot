@@ -6,9 +6,11 @@
  * logical active/inactive states; native polarity remains composition-owned.
  * Calls are synchronous, task-context only, and must be serialized by callers
  * for a line. A provider that can detect interrupt context returns
- * CRUX_ERR_NOT_SUPPORTED from every call made there; the Host provider has no
- * interrupt context and does not check. No interrupt or callback interface is
- * provided.
+ * CRUX_ERR_NOT_SUPPORTED from a call made there. When such a call also has an
+ * invalid argument, which of the two statuses is returned is unspecified. The
+ * Host provider has no interrupt context and does not check, and calls before
+ * the kernel is running (pre-kernel or early startup) are not supported but
+ * are not detected. No interrupt or callback interface is provided.
  */
 #ifndef CRUX_GPIO_H
 #define CRUX_GPIO_H
@@ -21,8 +23,10 @@
 extern "C" {
 #endif
 
+/** Logical GPIO line identifier selected by static composition. */
 typedef uint32_t crux_gpio_line_t;
 
+/** The only line in the initial profile. */
 enum { CRUX_GPIO_LINE_0 = 0 };
 
 /**
@@ -44,7 +48,7 @@ crux_status_t crux_gpio_configure_input(crux_gpio_line_t line);
  * The output is unchanged on every error.
  *
  * @param line Logical line; only CRUX_GPIO_LINE_0 exists.
- * @param active Receives true when the line is logically active.
+ * @param[out] active Receives true when the line is logically active.
  * @retval CRUX_OK @p active was written.
  * @retval CRUX_ERR_INVALID_ARGUMENT @p active is NULL.
  * @retval CRUX_ERR_OUT_OF_RANGE @p line is not a supported line.
