@@ -148,13 +148,20 @@ int main(void)
     assert(crux_file_close(&r2) == CRUX_FILE_OK);
     assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &w) == CRUX_FILE_OK);
     crux_file_t *other = NULL;
+    before_opens = opens;
     assert(crux_file_open("record", CRUX_FILE_READ, &other) == CRUX_FILE_ERR_INVALID_STATE);
     assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &other) == CRUX_FILE_ERR_INVALID_STATE);
-    assert(other == NULL);
+    assert(other == NULL && opens == before_opens);
     assert(crux_file_open("different", CRUX_FILE_READ_WRITE, &other) == CRUX_FILE_OK);
     assert(crux_file_close(&other) == CRUX_FILE_OK);
     assert(crux_file_close(&w) == CRUX_FILE_OK);
     assert(crux_file_open("record", CRUX_FILE_CREATE_REPLACE, &w) == CRUX_FILE_OK);
+    assert(crux_file_close(&w) == CRUX_FILE_OK);
+    /* A provider failure leaves no live slot behind, so the same name opens again. */
+    opened = CRUX_FILE_ERR_IO;
+    assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &w) == CRUX_FILE_ERR_IO && w == NULL);
+    opened = CRUX_FILE_OK;
+    assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &w) == CRUX_FILE_OK);
     assert(crux_file_close(&w) == CRUX_FILE_OK);
     const char *bad[] = {"", ".", "..", "../a", "a/b", "a b", "a\\b", "\x80"};
     for (size_t i = 0; i < sizeof(bad) / sizeof(bad[0]); i++) {
