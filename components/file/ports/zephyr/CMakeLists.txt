@@ -1,4 +1,7 @@
 get_filename_component(CRUX_FILE_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+if(CONFIG_CRUX_FILE_FATFS_RT1060 AND CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
+  message(FATAL_ERROR "The RT1060 provider and its compile-only check are mutually exclusive")
+endif()
 if(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
   if(CONFIG_BOARD_NATIVE_SIM OR NOT CONFIG_BOARD_MIMXRT1060_EVK OR
      NOT CONFIG_SOC_MIMXRT1062 OR NOT CONFIG_FAT_FILESYSTEM_ELM OR
@@ -20,9 +23,28 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
       "${CRUX_FILE_COMPONENT_DIR}/src"
       ".")
   target_link_libraries(crux_file_fatfs_rt1060_compile PRIVATE zephyr_interface)
+  # The object includes kernel headers that are generated during the build.
+  add_dependencies(crux_file_fatfs_rt1060_compile zephyr_generated_headers)
   target_compile_options(crux_file_fatfs_rt1060_compile PRIVATE -Wall -Wextra -Werror)
   add_custom_target(crux_file_target_compile_only ALL)
   add_dependencies(crux_file_target_compile_only crux_file_fatfs_rt1060_compile)
+  return()
+endif()
+
+if(CONFIG_CRUX_FILE_FATFS_RT1060)
+  if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+    message(FATAL_ERROR "The RT1060 provider cannot be combined with simulator providers")
+  endif()
+  add_library(crux_file_api INTERFACE)
+  target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
+  add_library(crux_file_zephyr STATIC "${CRUX_FILE_COMPONENT_DIR}/src/file.c" file_native.c)
+  target_include_directories(crux_file_zephyr PRIVATE "${CRUX_FILE_COMPONENT_DIR}/src" .)
+  zephyr_append_cmake_library(crux_file_zephyr)
+  target_link_libraries(crux_file_zephyr PRIVATE crux_file_api zephyr_interface)
+  target_compile_options(crux_file_zephyr PRIVATE -Wall -Wextra -Werror)
+  add_library(crux_file INTERFACE)
+  add_library(crux::file ALIAS crux_file)
+  target_link_libraries(crux_file INTERFACE crux_file_api)
   return()
 endif()
 

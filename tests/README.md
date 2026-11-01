@@ -232,6 +232,12 @@ and the Configuration source-staging regressions. It requires the pinned west
 workspace with LittleFS and FatFs and a Host compiler with 32-bit development libraries.
 The Zephyr CI workflow runs this software-only gate; no physical storage is used.
 
+The gate also runs `tests/native/file_sd_composition`, the microSD mount sequence of
+`samples/storage_sd` on a RAM disk named `SD` (never formats, never creates directories,
+fails closed). `scripts/test-file-rt1060-compile.sh` additionally links that sample for the
+RT1060-EVKB Rev B (not flashed). See [the microSD composition](../docs/microsd-composition.md)
+for the decisions, measurements and the unverified hardware items.
+
 The gate also runs `tests/native/configuration_settings_file`: the Zephyr Settings File
 backend on a FatFs RAM disk, with I/O faults injected by link-time wraps of `fs_read`,
 `fs_write`, `fs_open` and `fs_close` (64-bit `native_sim` only). The pinned backend

@@ -22,6 +22,13 @@ fatfs="$(cd "$workspace" && west list fatfs -f '{abspath}')"
     -O "$repo/build/zephyr/twister-storage-fatfs" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$fatfs")
 
+# The microSD composition sequence (mount order, fail-closed policy) on a RAM disk named "SD".
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/file_sd_composition" \
+    -O "$repo/build/zephyr/twister-storage-sd-composition" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
 # The Configuration fixture stages its existing three pinned source copies.
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
     -T "$repo/tests/native/configuration_settings" \
@@ -86,6 +93,7 @@ root = Path(sys.argv[1])
 for directory, expected in [
     ('twister-storage-file', {'native_sim/native': 7, 'native_sim/native/64': 7}),
     ('twister-storage-fatfs', {'native_sim/native': 19, 'native_sim/native/64': 19}),
+    ('twister-storage-sd-composition', {'native_sim/native': 8, 'native_sim/native/64': 8}),
     ('twister-storage-configuration', {'native_sim/native/64': 10}),
     ('twister-storage-settings-file', {'native_sim/native/64': 25}),
 ]:
