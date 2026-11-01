@@ -145,15 +145,36 @@ identify this CI output and not a build of current `main`.
 These values identify what CI produced. They do not show that the image boots,
 that the fitted Flash part matches the board configuration, or that the PCB
 marking Rev A1 corresponds to Zephyr revision `A`. The part number is Zephyr's
-configuration, not a reading of a physical part. Bit-for-bit reproducibility
-was not checked, so the hashes identify this CI output only. The CI artifacts
+configuration, not a reading of a physical part. The hashes identify this CI
+output; how they compare with other builds is recorded next. The CI artifacts
 expire on 15 November 2026, which is why the values are copied here.
+
+### Comparison with other CI builds
+
+Three CI runs of the same build-relevant source (heads `baf2ae1`, `150646b` and
+`565689e` of PR #124, runs 41118849856, 41305559734 and 41314067098, which differ
+only in documentation, the runner's environment guard and a Host test) produced
+identical linker map, devicetree and `.config` files but different ELF and
+binary hashes. A byte comparison of the binaries of runs 41305559734 and
+41314067098 found 12 differing bytes out of 65,324, at offset `0xeb14` in the
+read-only data. They are the 12-character source revision that
+`samples/controller/zephyr/CMakeLists.txt` takes from `git rev-parse --short=12 HEAD`
+and the M3 boot banner prints (`M3_BOOT source=...`): the commit CI checked out,
+which is `5df5d09cefc5` for the recorded run. Every other section with contents
+in the two ELF files was identical. So the image is reproducible apart from that
+embedded revision, and each hash also identifies the commit CI checked out.
+Builds of different commits are expected to differ in those bytes.
+
+Later runs on `main` also changed the map and `.config`, because other changes
+had been merged by then; they do not test reproducibility. A rebuild of the same
+commit was not run.
 
 ## Remaining evidence
 
-- Build the same configuration a second time, on a developer machine or in
-  another CI run, and compare the image hashes or explain the difference; record
-  the identification again when the Zephyr pin, the toolchain or the configuration
+- Rebuild the same commit, on a developer machine or in another CI run, and
+  confirm that the image hashes are identical; the comparison above covers
+  different commits of the same build-relevant source only. Record the
+  identification again when the Zephyr pin, the toolchain or the configuration
   changes. Review a watchdog binding only if a separate System-enabled application
   becomes part of the target scope; it does not block this M3-only build.
 - Verify the selected Rev A hardware revision and fitted components before any
