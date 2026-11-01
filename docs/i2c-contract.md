@@ -26,8 +26,13 @@ and write progress at the target are unspecified; native transfers can fail afte
 progress, and Crux provides no rollback or completed-byte count.
 
 Crux provides no transfer deadline. Blocking, native error causes, and any lower-level timeout
-follow the selected Zephyr driver; nonzero native transfer results map to `CRUX_ERR_IO`. A
-controller that is not ready returns `CRUX_ERR_NOT_READY`. Transfer serialization is specific to
+follow the selected Zephyr driver. Native results `-ENOTSUP` and `-ENOSYS` map to
+`CRUX_ERR_NOT_SUPPORTED`; every other nonzero native transfer result, including a missing
+acknowledgement, a bus error or a timeout, maps to `CRUX_ERR_IO`. A controller that is not ready
+returns `CRUX_ERR_NOT_READY`. A call made from interrupt context returns
+`CRUX_ERR_NOT_SUPPORTED` where the provider can detect it (the Zephyr provider does; the Host
+provider has no interrupt context and does not check). Reserved 7-bit addresses (0x00-0x07 and
+0x78-0x7F) are not rejected; avoiding them is the caller's responsibility. Transfer serialization is specific to
 the selected provider and driver. Crux adds no lock and makes no concurrency guarantee; separate
 calls are not an atomic application-level transaction.
 

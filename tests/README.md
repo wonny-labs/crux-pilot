@@ -14,10 +14,6 @@ unsupported-profile shims, and actual Linux integration under `tests/time/busy_w
 cross-builds EVKB. Shims and compilation do not qualify a physical ISR or timing.
 See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 
-The I2C contract has a strict C17 Host loopback test and a `native_sim` Ztest using Zephyr's I2C
-emulation controller. These checks cover argument validation, Host transfer behavior, native error
-mapping, and repeated-start message shape; they do not qualify a physical bus.
-
 | Test purpose | Runner or harness | Environment |
 | --- | --- | --- |
 | Portable components and controller logic | CTest with GoogleTest suites and standalone C/C++ tests | Linux Host |
@@ -268,6 +264,17 @@ Native 128-Hz exact/fractional deadline and ISR checks are retained in
 and independent messaging consumers. RTC-disabled Time/Thread tests also remain
 in `tests/thread/zephyr`. Historical measurements and old test names are retained
 in [the original evidence](../docs/messaging-validation.md), not new qualification.
+
+## I2C
+
+The Host CTest suite covers the shipped loopback provider (`I2c.HostContract`), the portable layer
+against a test-only provider that models a register device and injects failures
+(`I2c.PortableFaults`: argument rejection before any provider call, exact argument hand-off and
+verbatim status propagation), and the native-result mapping (`I2c.NativeStatus`). A `native_sim`
+Ztest uses Zephyr's I2C emulation controller for repeated-start message shape, native error
+mapping and rejection from interrupt context, and `tests/build/test_i2c_composition.py` rejects a
+missing alias, a disabled selection and an unsupported provider. `scripts/test-i2c.sh` runs these
+checks without hardware. They do not qualify a physical bus or driver.
 
 ## Portable Serial
 
