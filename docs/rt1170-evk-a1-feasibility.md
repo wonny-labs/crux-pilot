@@ -113,23 +113,72 @@ an Arm Zephyr toolchain are also absent from the host, so nothing was built
 locally. Local checks passed for the composition test, runner shell syntax,
 and Python syntax; these do not replace the target cross-build.
 
-At head `baf2ae1ae45e2e23d0f06e4c64fdfd880a6f6531` the Zephyr workflow step
-"Cross-build RT1170-EVK Rev A CM7 composition (software-only)" succeeded
-(GitHub Actions run 41118849856), so the M3-only candidate configures and links
-for this target. This record does not capture the SoC, toolchain or image
-details: the generated `.config`, DTS, map, ELF and binary are kept only as
-expiring CI artifacts and were not inspected for this assessment, and no ROM/RAM
-figures are recorded here. Later commits change only this document, its Host
-composition test and an environment guard in the runner; the step runs again on
-every push.
+The Zephyr workflow step "Cross-build RT1170-EVK Rev A CM7 composition
+(software-only)" succeeded in CI, first at head
+`baf2ae1ae45e2e23d0f06e4c64fdfd880a6f6531` (GitHub Actions run 41118849856), so
+the M3-only candidate configures and links for this target. The step runs again
+on every push. The identification below was read from a later run of the same
+step.
+
+### Recorded build identification
+
+Read on 1 November 2026 from the job log and the uploaded artifacts of GitHub
+Actions run 41314067098 (job `zephyr`, 14:01 to 14:36 UTC). CI built the merge
+reference `5df5d09` of PR #124, which merges the PR head
+`565689ee0d2888a0db8865f89dcea41e9b0871f7` into
+`8fe1a964c12186f2b17d44fb18201ff50c39748c`. PR #124 was merged afterwards as
+`cd34fa0`. The merge reference is not a commit on `main`, so the values below
+identify this CI output and not a build of current `main`.
+
+| Item | Value |
+| --- | --- |
+| Target | `mimxrt1170_evk@A/mimxrt1176/cm7`: board `mimxrt1170_evk`, revision `A`, qualifiers `mimxrt1176/cm7` |
+| SoC as configured | `CONFIG_SOC="mimxrt1176"`, series `imxrt11xx`, part number `MIMXRT1176DVMAA`, Cortex-M7 |
+| Zephyr and NXP HAL | Zephyr 4.4.0 (`684c9e8f32e4373a21098559f748f06915f950c9`, the pin in `west.yml`); NXP device files for `MIMXRT1176` from the `hal_nxp` module (`mcux-sdk-ng`) |
+| Toolchain and tools | Zephyr SDK 1.0.1; GCC 14.3.0 (`arm-zephyr-eabi`); GNU ld 2.43.1; dtc 1.7.0; CMake 3.28.4; west 1.4.0; Python 3.12.15 |
+| Configuration inputs | the board defconfig, `samples/controller/zephyr/prj.conf` and `m3.conf`; `CONFIG_CRUX_CONTROLLER_M3=y`; C17; no application overlay |
+| Memory and boot | XIP; Flash base `0x30000000`, 16 MiB; SDRAM (`zephyr,sram`) base `0x80000000`, 64 MiB; NXP boot header and FlexSPI NOR boot, XMCD and external SDRAM enabled |
+| Linker regions | FLASH `0x30000000` 16 MiB; RAM `0x80000000` 64 MiB; OCRAM `0x20200000` 256 KiB; ITCM `0x00000000` 256 KiB; DTCM `0x20000000` 256 KiB |
+| Image size | FLASH 65,324 B (0.39 %); RAM 14,016 B (0.02 %); ELF 1,241,236 B; binary 65,324 B |
+| Image identity | ELF SHA-256 `22bdc424506a61056f7475b92dffa08951f0dc468d0fc7a112a8e5cc1de1e6f4`; binary SHA-256 `998a391e452bcf21dd8cd0d23c4bbf6f4bde55697fc5f2243ffb792bfa7070a5`; ARM, entry `0x30005175` |
+
+These values identify what CI produced. They do not show that the image boots,
+that the fitted Flash part matches the board configuration, or that the PCB
+marking Rev A1 corresponds to Zephyr revision `A`. The part number is Zephyr's
+configuration, not a reading of a physical part. The hashes identify this CI
+output; how they compare with other builds is recorded next. The CI artifacts
+expire on 15 November 2026, which is why the values are copied here.
+
+### Comparison with other CI builds
+
+Three CI runs of the same build-relevant source (heads `baf2ae1`, `150646b` and
+`565689e` of PR #124, runs 41118849856, 41305559734 and 41314067098, which differ
+only in documentation, the runner's environment guard, which changes nothing in
+CI because none of those variables is set there, and a Host test) produced
+identical linker map, devicetree and `.config` files but different ELF and
+binary hashes. A byte comparison of the binaries of runs 41305559734 and
+41314067098 found 12 differing bytes out of 65,324, at offset `0xeb14` in the
+read-only data. They are the 12-character source revision that
+`samples/controller/zephyr/CMakeLists.txt` takes from `git rev-parse --short=12 HEAD`
+and the M3 boot banner prints (`M3_BOOT source=...`): the commit CI checked out,
+which is `5df5d09cefc5` for the recorded run. Every other section with contents
+in the two ELF files was identical. So the images were identical apart from that
+embedded revision, and each hash also identifies the commit CI checked out.
+Builds of different commits are expected to differ in those bytes.
+
+Later runs on `main` changed `.config`, in the first two by one added line
+(`# CONFIG_CRUX_GPIO is not set`) and in the third also the map, because other
+changes had been merged by then; they do not test reproducibility. A rebuild of the same
+commit was not run.
 
 ## Remaining evidence
 
-- Record the SoC, board revision, toolchain and image configuration (ROM/RAM
-  use and load addresses) from the CI-generated `.config`, map and ELF; the
-  cross-build itself has succeeded in CI. Review a watchdog binding only if a
-  separate System-enabled application becomes part of the target scope; it does
-  not block this M3-only build.
+- Rebuild the same commit, on a developer machine or in another CI run, and
+  confirm that the image hashes are identical; the comparison above covers
+  different commits of the same build-relevant source only. Record the
+  identification again when the Zephyr pin, the toolchain or the configuration
+  changes. Review a watchdog binding only if a separate System-enabled application
+  becomes part of the target scope; it does not block this M3-only build.
 - Verify the selected Rev A hardware revision and fitted components before any
   physical test. Confirm boot mode, image format/address, debug path, and
   programming/erase risks before requesting any board operation.
