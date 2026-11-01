@@ -275,7 +275,9 @@ Zephyr's SPI emulation controller for full-duplex data, Devicetree-selected tran
 error mapping and rejection from interrupt context, and `tests/build/test_spi_composition.py`
 rejects a missing alias, a disabled selection, a peripheral that holds chip select and an
 unsupported provider. `scripts/test-spi.sh` runs these checks without hardware. They do not
-qualify a physical peripheral.
+qualify a physical peripheral. Native-free consumption is checked only by the public header
+compile checks in the script and by the common source checker; SPI has no external-application or
+consumer-boundary profile yet because no consumer exists.
 
 ## Portable Serial
 
