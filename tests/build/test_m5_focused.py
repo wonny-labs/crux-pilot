@@ -264,7 +264,7 @@ class Adapter(unittest.TestCase):
             live,port,link=self.make(Path(directory))
             live.write_uart('A 31\n',deadline=live.clock()+1)
             self.assertEqual(port.writes,[b'A 31\n'])
-            for line in ['reboot\n','A 31','L 31 3\n']:
+            for line in ['reboot\n','A 31','L 31 7\n']:
                 with self.subTest(line=line),self.assertRaises(ValueError):live.write_uart(line,deadline=live.clock()+1)
             self.assertEqual(len(port.writes),1)
 
@@ -490,7 +490,7 @@ class FirmwareMatrix(unittest.TestCase):
     """The firmware fixes the phase matrix; a profile must not drift from it."""
     FIRMWARE=Path(__file__).resolve().parents[1]/'networking_physical'
 
-    def check(self,phases,loss):
+    def check(self,phases,loss,recovery):
         import re
         main=(self.FIRMWARE/'main.c').read_text();fixture=(self.FIRMWARE/'fixture.c').read_text()
         actions=re.search(r'actions\[\]\s*=\s*"([A-Z]+)"',main)[1]
@@ -500,17 +500,20 @@ class FirmwareMatrix(unittest.TestCase):
             runner.oracle.require(sequence<len(actions) and actions[sequence]==letter,'Phase %d action differs from firmware step()'%sequence)
             runner.oracle.require(count==(10 if sequence==2 else 0 if letter=='I' else 1),'Phase %d count differs from firmware step()'%sequence)
         modes={sequence:mode for sequence,_,mode in phases}
-        runner.oracle.require(modes.get(3)=='silent' and modes.get(5)=='close' and modes.get(loss)=='loss' and loss==7,'Phase modes differ from fixture result checks')
-        runner.oracle.require('command->sequence == 3' in fixture and 'command->sequence == 5' in fixture,'Fixture result checks changed')
+        runner.oracle.require(modes.get(3)=='silent' and modes.get(5)=='close' and modes.get(loss)=='loss' and loss==actions.index('L'),'Phase modes differ from fixture result checks')
+        runner.oracle.require(all(modes.get(n)=='echo' for n in (2,4,6,8)) and modes.get(1)=='idle' and modes.get(9)=='idle' and recovery==loss+1,'Echo/idle phases or the recovery phase differ from the firmware matrix')
+        flat=re.sub(r'\s+',' ',fixture)
+        runner.oracle.require('command->sequence == 3 ? result == -ETIMEDOUT' in flat and 'command->sequence == 5 ? result == (udp ? 0 : -ECONNRESET)' in flat,'Fixture result checks changed')
         runner.oracle.require([p[0] for p in phases]==list(range(1,len(actions))),'Phases must be the firmware sequence 1..%d'%(len(actions)-1))
 
     def test_both_profiles_match_the_firmware_matrix(self):
         for profile in (runner.m5_series.FULL,runner.m5_series.FOCUSED):
-            self.check(profile['phases'],profile['loss'])
+            self.check(profile['phases'],profile['loss'],profile['recovery'])
 
     def test_a_reduced_matrix_is_rejected(self):
         reduced=((1,0,'idle'),(2,1,'echo'),(3,1,'loss'),(4,1,'echo'),(5,0,'idle'))
-        with self.assertRaises(ValueError):self.check(reduced,3)
+        with self.assertRaises(ValueError):self.check(reduced,3,4)
+        with self.assertRaises(ValueError):self.check(runner.m5_series.PHASES,7,9)
 
 
 if __name__=='__main__':unittest.main()
