@@ -3,8 +3,11 @@
  * @brief Synchronous full-duplex byte exchange with the composed SPI peripheral.
  *
  * Calls are synchronous and task-context only. A provider that can detect
- * interrupt context returns CRUX_ERR_NOT_SUPPORTED from a call made there; the
- * Host provider has no interrupt context and does not check. Crux adds no lock
+ * interrupt context returns CRUX_ERR_NOT_SUPPORTED from a call made there. When
+ * such a call also has an invalid argument, which of the two statuses is
+ * returned is unspecified. The Host provider has no interrupt context and does
+ * not check, and calls before the kernel is running (pre-kernel or early
+ * startup) are not supported but are not detected. Crux adds no lock
  * and no deadline: blocking, timeout behavior, chip-select handling and
  * serialization of concurrent calls follow the native driver.
  */
@@ -30,7 +33,7 @@ extern "C" {
  * A failed call reports no partial progress.
  *
  * @param tx_data Bytes to transmit; @p length bytes are read.
- * @param rx_data Buffer for received bytes; @p length bytes are written.
+ * @param[out] rx_data Buffer for received bytes; @p length bytes are written.
  * @param length Number of bytes to exchange; must be greater than zero.
  * @retval CRUX_OK The transaction completed.
  * @retval CRUX_ERR_INVALID_ARGUMENT A buffer is NULL or @p length is zero.

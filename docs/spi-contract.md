@@ -18,7 +18,9 @@ count, rollback, or concurrency guarantee. Native results `-ENOTSUP` and `-ENOSY
 `CRUX_ERR_NOT_SUPPORTED`; every other nonzero native result maps to `CRUX_ERR_IO`. The controller
 not being ready maps to `CRUX_ERR_NOT_READY`. A call made from interrupt context returns
 `CRUX_ERR_NOT_SUPPORTED` where the provider can detect it (the Zephyr provider does; the Host
-provider has no interrupt context and does not check). Blocking, timeout, CS behavior, and
+provider has no interrupt context and does not check). When such a call also has an invalid
+argument, which of the two statuses is returned is unspecified. Calls before the kernel is
+running (pre-kernel or early startup) are not supported but are not detected. Blocking, timeout, CS behavior, and
 serialization depend on the selected driver. Crux adds no lock. Buffer overlap is a caller
 precondition and is not checked.
 
