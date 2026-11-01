@@ -101,14 +101,24 @@ static void valid_forms_reach_the_provider_unchanged(void)
 static void provider_failures_are_returned_unchanged(void)
 {
     const crux_status_t injected[] = {CRUX_ERR_NOT_READY, CRUX_ERR_IO, CRUX_ERR_NOT_SUPPORTED};
-    uint8_t byte = 0x10;
+    const uint8_t tx = 0x10;
+    uint8_t rx = 0;
 
     for (size_t i = 0; i < sizeof(injected) / sizeof(injected[0]); ++i) {
         reset();
         fake.inject = injected[i];
-        assert(crux_i2c_transfer(DEVICE_ADDRESS, &byte, 1, &byte, 1) == injected[i]);
+        assert(crux_i2c_transfer(DEVICE_ADDRESS, &tx, 1, &rx, 1) == injected[i]);
         assert(fake.calls == 1);
     }
+}
+
+static void the_highest_address_reaches_the_provider(void)
+{
+    const uint8_t byte = 0;
+
+    reset();
+    (void)crux_i2c_transfer(0x7F, &byte, 1, NULL, 0);
+    assert(fake.calls == 1 && fake.address == UINT16_C(0x7F));
 }
 
 static void absent_device_is_an_io_failure(void)
@@ -125,6 +135,7 @@ int main(void)
     invalid_requests_never_reach_the_provider();
     valid_forms_reach_the_provider_unchanged();
     provider_failures_are_returned_unchanged();
+    the_highest_address_reaches_the_provider();
     absent_device_is_an_io_failure();
     return 0;
 }

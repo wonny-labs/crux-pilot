@@ -7,6 +7,7 @@ get_filename_component(CRUX_I2C_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." 
 add_library(crux_i2c_api INTERFACE)
 target_include_directories(crux_i2c_api INTERFACE "${CRUX_I2C_COMPONENT_DIR}/include")
 target_link_libraries(crux_i2c_api INTERFACE crux::base)
+target_compile_options(crux_i2c_api INTERFACE ${TOOLCHAIN_C_FLAGS})
 
 add_library(crux_i2c_zephyr STATIC ../../src/i2c.c i2c_port_zephyr.c i2c_status.c)
 target_include_directories(crux_i2c_zephyr PRIVATE ../../src .)

@@ -11,6 +11,21 @@ cc -std=c17 -Wall -Wextra -Wpedantic -Werror \
     "$repo/components/i2c/host/i2c_port_host.c" \
     "$repo/tests/i2c/src/i2c_test.c" \
     -o "$repo/build/i2c/host-test"
+
+cc -std=c17 -Wall -Wextra -Wpedantic -Werror \
+    -I"$repo/components/i2c/include" -I"$repo/components/base/include" \
+    -I"$repo/components/i2c/src" \
+    "$repo/components/i2c/src/i2c.c" \
+    "$repo/tests/i2c/src/i2c_fault_test.c" \
+    -o "$repo/build/i2c/fault-test"
+"$repo/build/i2c/fault-test"
+
+cc -std=c17 -Wall -Wextra -Wpedantic -Werror \
+    -I"$repo/components/base/include" -I"$repo/components/i2c/ports/zephyr" \
+    "$repo/components/i2c/ports/zephyr/i2c_status.c" \
+    "$repo/tests/i2c/src/i2c_status_test.c" \
+    -o "$repo/build/i2c/status-test"
+"$repo/build/i2c/status-test"
 "$repo/build/i2c/host-test"
 
 printf '#include <crux/i2c.h>\nint main(void) { return 0; }\n' |

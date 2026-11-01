@@ -17,10 +17,10 @@ int main(void)
     assert(crux_i2c_transfer(0x20, NULL, 0, NULL, 1) == CRUX_ERR_INVALID_ARGUMENT);
     assert(crux_i2c_transfer(0x20, NULL, 0, NULL, 0) == CRUX_ERR_INVALID_ARGUMENT);
 
-    uint8_t longer_than_old_limit[256] = {0};
-    uint8_t echoed[sizeof(longer_than_old_limit)] = {0};
-    assert(crux_i2c_transfer(0x20, longer_than_old_limit, sizeof(longer_than_old_limit), echoed,
-                             sizeof(echoed)) == CRUX_OK);
+    uint8_t long_transfer[256] = {0};
+    uint8_t echoed[sizeof(long_transfer)] = {0};
+    assert(crux_i2c_transfer(0x20, long_transfer, sizeof(long_transfer), echoed, sizeof(echoed)) ==
+           CRUX_OK);
     for (size_t i = 0; i < sizeof(echoed); ++i) {
         assert(echoed[i] == 0);
     }

@@ -33,10 +33,11 @@ returns `CRUX_ERR_NOT_READY`. A call made from interrupt context returns
 `CRUX_ERR_NOT_SUPPORTED` where the provider can detect it (the Zephyr provider does; the Host
 provider has no interrupt context and does not check). When such a call also has an invalid
 argument, which of the two statuses is returned is unspecified. Calls before the kernel is
-running (pre-kernel or early startup) are not supported but are not detected. Reserved 7-bit addresses (0x00-0x07 and
-0x78-0x7F) are not rejected; avoiding them is the caller's responsibility. Transfer serialization is specific to
-the selected provider and driver. Crux adds no lock and makes no concurrency guarantee; separate
-calls are not an atomic application-level transaction.
+running (pre-kernel or early startup) are not supported but are not detected. Reserved 7-bit
+addresses (0x00-0x07 and 0x78-0x7F) are not rejected; avoiding them is the caller's responsibility.
+Arguments are checked in this order: the address, then an empty request or a NULL buffer, then the
+lengths. Transfer serialization is specific to the selected provider and driver. Crux adds no lock
+and makes no concurrency guarantee; separate calls are not an atomic application-level transaction.
 
 The Host provider is a deterministic loopback fixture: received bytes echo transmitted bytes, and
 read-only transfers return zero bytes. It is for portable consumer tests, not a bus model. The

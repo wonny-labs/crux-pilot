@@ -37,7 +37,8 @@ extern "C" {
  * buffer contents and the write progress at the target are unspecified; a
  * failed transfer does not roll back bytes already sent. Reserved 7-bit
  * addresses (0x00-0x07 and 0x78-0x7F) are not rejected; avoiding them is the
- * caller's responsibility.
+ * caller's responsibility. Arguments are checked in this order: the address,
+ * then an empty request or a NULL buffer, then the lengths.
  *
  * @param address Target address, 0x00-0x7F.
  * @param tx_data Bytes to write; may be NULL only when @p tx_length is 0.
