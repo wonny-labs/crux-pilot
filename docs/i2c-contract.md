@@ -6,10 +6,11 @@ Zephyr composition's `crux-i2c0` alias. The target address is supplied per call 
 
 The current Crux controller sample consumes only a GPIO input and has no SPI/I2C call site. The
 pinned RT1060 EVKB board tree exposes an LPI2C controller but does not define a Crux I2C target
-consumer. There is therefore no concrete Crux consumer or physical bus route to drive this API
-shape today. The `native_sim` fixture exercises the common register-device pattern (write a
-register index, then request a repeated-start read) as an enabling contract only; it does not
-establish a present application requirement or board support. A future consumer should identify
+consumer. There is therefore no application consumer or physical bus route to drive this API
+shape today. The only consumer is a test fixture, `tests/i2c/consumer/tmp117.c`, a TMP117
+temperature sensor that runs on the Host and on `native_sim`. The `native_sim` fixtures exercise
+the common register-device pattern (write a register index, then request a repeated-start read) as
+an enabling contract only; they do not establish a present application requirement or board support. A future consumer should identify
 its actual device contract before selecting a physical controller or expanding this API.
 
 At least one direction must contain data. A write-only call sends one message; a read-only call
