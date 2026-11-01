@@ -28,14 +28,18 @@ typedef enum { M5_PHASE_ARM, M5_PHASE_REPORT, M5_PHASE_OBSERVE } m5_phase_t;
 static inline m5_phase_t m5_decide_phase(int valid, uint32_t phase, int cause_known,
                                          int cause_watchdog)
 {
-    if (!cause_known)
+    if (!cause_known) {
         return M5_PHASE_OBSERVE; /* never arm blind */
-    if (valid && phase == M5_MARKER_DONE)
+    }
+    if (valid && phase == M5_MARKER_DONE) {
         return M5_PHASE_OBSERVE;
-    if (valid && phase != M5_MARKER_NONE && phase != M5_MARKER_WD_ARMED)
+    }
+    if (valid && phase != M5_MARKER_NONE && phase != M5_MARKER_WD_ARMED) {
         return M5_PHASE_OBSERVE; /* garbage behind a valid magic */
-    if (cause_watchdog || (valid && phase == M5_MARKER_WD_ARMED))
+    }
+    if (cause_watchdog || (valid && phase == M5_MARKER_WD_ARMED)) {
         return M5_PHASE_REPORT;
+    }
     return M5_PHASE_ARM;
 }
 

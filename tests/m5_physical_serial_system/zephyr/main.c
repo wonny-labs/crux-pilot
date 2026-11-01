@@ -101,12 +101,14 @@ static bool transfer(crux_serial_t port, uint32_t nonce, uint32_t sequence, tran
 
         out->read_status =
             crux_serial_read(port, response + out->read, sizeof(response) - out->read, 200, &count);
-        if (out->read_status != CRUX_OK && out->read_status != CRUX_ERR_TIMEOUT)
+        if (out->read_status != CRUX_OK && out->read_status != CRUX_ERR_TIMEOUT) {
             break;
+        }
         out->read += count;
     }
-    if (out->read == sizeof(response))
+    if (out->read == sizeof(response)) {
         out->read_status = CRUX_OK;
+    }
     out->match = out->read == sizeof(response) && memcmp(request, response, sizeof(request)) == 0;
     emit(SERIAL_TAG,
          "M5B_XFER_V1 seq=%u write_status=%d written=%u read_status=%d read=%u match=%d",
@@ -160,8 +162,9 @@ static void run_serial(void)
 
 static const char *marker_name(bool valid, uint32_t phase)
 {
-    if (!valid)
+    if (!valid) {
         return "none";
+    }
     switch (phase) {
     case M5_MARKER_NONE:
         return "none";
@@ -198,8 +201,9 @@ static int watchdog_state(void)
 
 static void idle_forever(void)
 {
-    for (;;)
+    for (;;) {
         k_sleep(K_FOREVER);
+    }
 }
 
 static void run_arm(void)
@@ -277,10 +281,12 @@ int main(void)
          (int)cause_status, (unsigned)cause.supported, (unsigned)cause.causes,
          marker_name(valid, stored));
     status_record(phase == M5_PHASE_ARM ? "initial" : "post_reset_observe");
-    if (phase == M5_PHASE_ARM)
+    if (phase == M5_PHASE_ARM) {
         run_arm();
-    if (phase == M5_PHASE_REPORT)
+    }
+    if (phase == M5_PHASE_REPORT) {
         run_report(&cause, cause_status);
+    }
     idle_forever();
     return 0;
 }
