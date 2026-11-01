@@ -2,7 +2,7 @@
 
 Inert until constructed. It never programs, erases, resets or power-cycles the board. The only
 host state it changes is the dedicated NIC en5 (administrative down/up) through the exact
-non-interactive command `sudo -n /sbin/ifconfig en5 down|up`; without a credential cached by the
+non-interactive command `sudo -n /sbin/ifconfig en5 down` or `... en5 inet 192.168.77.1 netmask 255.255.255.0 up`; without a credential cached by the
 operator in the same terminal that command fails and the run stops. It never reads a password.
 """
 import hashlib
@@ -51,21 +51,29 @@ class HostLink:
 
     def switch(self, up):
         # macOS also drops the manual address while the link is inactive, so `up` reassigns it.
-        self.command(ASSIGN if up else ['sudo', '-n', '/sbin/ifconfig', 'en5', 'down'])
+        if up:
+            self.identity()
+            self.command(ASSIGN)
+        else:
+            self.command(['sudo', '-n', '/sbin/ifconfig', 'en5', 'down'])
 
     def configure(self):
         """Assign the static address and wait until the carrier is active with that address present."""
         deadline = self.clock() + CARRIER_TIMEOUT
+        self.identity()
         self.command(ASSIGN)
+        assignments, last = 1, None
         while True:
             try:
                 observed = self.observe()
-            except ValueError:
-                observed = None
-                self.command(ASSIGN)
-            if observed is not None and observed['active']:
-                return observed
-            runner.oracle.require(self.clock() < deadline, 'en5 did not become active with the static address')
+                if observed['active']:
+                    return observed
+            except ValueError as error:
+                last = error
+                if assignments < 3:
+                    assignments += 1
+                    self.command(ASSIGN)
+            runner.oracle.require(self.clock() < deadline, 'en5 did not become active with the static address: ' + str(last))
             self.sleep(.1)
 
     def carrier(self):
@@ -98,6 +106,7 @@ class HostLink:
         connect = dict(event='cable_connect_receipt', monotonic=self.clock())
         self.wait_carrier(True, SETTLE_TIMEOUT)
         observed = self.observe()  # strict: the static address must be back
+        runner.oracle.require(observed['active'], 'Carrier dropped before the address check')
         up = dict(event='host_up', monotonic=self.clock(), interface='en5')
         route = parse_direct_route(self.command(['route', '-n', 'get', '192.168.77.2']), observed['source'])
         route['monotonic'] = self.clock()

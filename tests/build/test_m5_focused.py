@@ -27,8 +27,8 @@ class Time:
 
 class Host:
     """Fake host: ifconfig/route/sudo with a small NIC model."""
-    def __init__(self,time,carrier_delay=0.,sudo_rc=0,stuck=False,address=True,drops_address=False):
-        self.time=time;self.calls=[];self.admin=True;self.carrier_delay=carrier_delay;self.up_at=None;self.sudo_rc=sudo_rc;self.stuck=stuck;self.address=address;self.drops_address=drops_address
+    def __init__(self,time,carrier_delay=0.,sudo_rc=0,stuck=False,address=True,drops_address=False,ignores_assign=False,mac='00:0a:cd:41:89:cc'):
+        self.time=time;self.calls=[];self.admin=True;self.carrier_delay=carrier_delay;self.up_at=None;self.sudo_rc=sudo_rc;self.stuck=stuck;self.address=address;self.drops_address=drops_address;self.ignores_assign=ignores_assign;self.mac=mac
     def __call__(self,argv,**kwargs):
         self.calls.append(list(argv))
         class Result:pass
@@ -37,12 +37,12 @@ class Host:
             result.returncode=self.sudo_rc
             if self.sudo_rc==0:
                 self.admin=argv[-1]=='up'
-                if argv[4:5]==['inet']:self.address=True
+                if argv[4:5]==['inet'] and not self.ignores_assign:self.address=True
                 if not self.admin and self.drops_address:self.address=False
                 if self.admin:self.up_at=self.time()+self.carrier_delay
         elif argv[:2]==['ifconfig','en5']:
             active=self.admin and (self.up_at is None or self.time()>=self.up_at) and not self.stuck
-            result.stdout=(NIC_TEXT if self.address else NO_ADDRESS_TEXT)%('active' if active else 'inactive')
+            result.stdout=((NIC_TEXT if self.address else NO_ADDRESS_TEXT)%('active' if active else 'inactive')).replace('00:0a:cd:41:89:cc',self.mac)
         elif argv[:3]==['route','-n','get']:result.stdout=ROUTE_TEXT
         else:raise AssertionError(argv)
         return result
@@ -100,6 +100,29 @@ class HostLink(unittest.TestCase):
         observed=link.configure()
         self.assertEqual((observed['source'],observed['active']),('192.168.77.1',True))
         self.assertEqual([c for c in host.calls if c[0]=='sudo'][0],ASSIGN)
+
+    def test_configure_gives_up_after_three_assignments_and_names_the_cause(self):
+        link,host,time=self.link(address=False,ignores_assign=True)
+        with self.assertRaises(ValueError) as caught:link.configure()
+        self.assertLessEqual(len([c for c in host.calls if c==ASSIGN]),3)
+        self.assertIn('address',str(caught.exception))
+
+    def test_no_assignment_runs_on_a_foreign_adapter(self):
+        for action in ('configure','up'):
+            link,host,time=self.link(mac='aa:bb:cc:dd:ee:ff')
+            with self.subTest(action=action),self.assertRaises(ValueError):getattr(link,action)()
+            self.assertEqual([c for c in host.calls if c[0]=='sudo'],[])
+
+    def test_up_requires_the_carrier_still_active_at_the_address_check(self):
+        time=Time();host=Host(time);original=host.__call__;seen=[]
+        def flaky(argv,**kwargs):
+            result=original(argv,**kwargs)
+            if argv[:2]==['ifconfig','en5']:
+                seen.append(1)
+                if len(seen)>=3:result.stdout=NIC_TEXT%'inactive'
+            return result
+        link=focused.HostLink(run=flaky,clock=time,sleep=time.sleep)
+        with self.assertRaises(ValueError):link.up()
 
     def test_configure_stops_without_carrier(self):
         link,host,time=self.link(address=False,stuck=True)
