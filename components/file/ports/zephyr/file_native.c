@@ -7,14 +7,28 @@
 #include <zephyr/fs/fs.h>
 #include <zephyr/kernel.h>
 
-/* Target writable storage is intentionally not enabled by this provider PoC. */
-#if !defined(CONFIG_BOARD_NATIVE_SIM) || !defined(CONFIG_FLASH_SIMULATOR)
-#error "File provider is qualified for simulated Flash only"
+#if !defined(CONFIG_BOARD_NATIVE_SIM) ||                                                           \
+    (!defined(CONFIG_CRUX_FILE_SIMULATOR) && !defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR))
+#error "File provider requires an approved simulator composition"
+#endif
+#if defined(CONFIG_CRUX_FILE_SIMULATOR) && defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+#error "File simulator compositions must be mutually exclusive"
+#endif
+#if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+#if !defined(CONFIG_FS_FATFS_LFN) || !defined(CONFIG_FS_FATFS_REENTRANT) ||                        \
+    defined(CONFIG_FS_FATFS_MOUNT_MKFS)
+#error "FatFs File composition requires long names, reentrancy and no auto-format"
+#endif
+#define CRUX_FILE_NATIVE_LEAF_MAX (1 + 2 * CRUX_FILE_NAME_MAX)
+_Static_assert(CONFIG_FS_FATFS_MAX_LFN >= CRUX_FILE_NATIVE_LEAF_MAX,
+               "FatFs long filenames must accommodate encoded File names");
+#else
+#define CRUX_FILE_NATIVE_LEAF_MAX CRUX_FILE_NAME_MAX
 #endif
 K_MUTEX_DEFINE(file_lock);
 static struct fs_file_t handles[CRUX_FILE_POOL_SIZE];
 static char root[64];
-static char paths[CRUX_FILE_POOL_SIZE][sizeof(root) + CRUX_FILE_NAME_MAX + 1];
+static char paths[CRUX_FILE_POOL_SIZE][sizeof(root) + CRUX_FILE_NATIVE_LEAF_MAX + 1];
 static crux_file_result_t cleanup_error;
 
 static crux_file_result_t result(int rc)
@@ -29,6 +43,8 @@ static crux_file_result_t result(int rc)
     case -ENOMEM:
     case -EMFILE:
         return CRUX_FILE_ERR_NO_RESOURCES;
+    case -ENODEV:
+        return CRUX_FILE_ERR_NOT_READY;
     case -EACCES:
     case -EPERM:
     case -EROFS:
@@ -92,7 +108,7 @@ static crux_file_result_t ready(void)
         return CRUX_FILE_ERR_NOT_READY;
     }
     int rc = fs_stat(root, &st);
-    if (rc == -ENOENT) {
+    if (rc == -ENOENT || rc == -ENODEV) {
         return CRUX_FILE_ERR_NOT_READY;
     }
     if (rc < 0) {
@@ -101,15 +117,42 @@ static crux_file_result_t ready(void)
     return st.type == FS_DIR_ENTRY_DIR ? CRUX_FILE_OK : CRUX_FILE_ERR_NOT_READY;
 }
 
+static crux_file_result_t make_path(char *path, size_t capacity, const char *name)
+{
+#if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+    /* FatFs ignores case and trailing dots. Encode bytes to preserve File identity. */
+    static const char hex[] = "0123456789abcdef";
+    int n = snprintf(path, capacity, "%s/f", root);
+    if (n < 0 || (size_t)n >= capacity) {
+        return CRUX_FILE_ERR_OUT_OF_RANGE;
+    }
+    size_t pos = (size_t)n;
+    for (const unsigned char *p = (const unsigned char *)name; *p; ++p) {
+        if (capacity - pos <= 2) {
+            return CRUX_FILE_ERR_OUT_OF_RANGE;
+        }
+        path[pos++] = hex[*p >> 4];
+        path[pos++] = hex[*p & 0x0f];
+    }
+    path[pos] = '\0';
+#else
+    int n = snprintf(path, capacity, "%s/%s", root, name);
+    if (n < 0 || (size_t)n >= capacity) {
+        return CRUX_FILE_ERR_OUT_OF_RANGE;
+    }
+#endif
+    return CRUX_FILE_OK;
+}
+
 crux_file_result_t crux_file_impl_open(size_t s, const char *name, crux_file_mode_t mode)
 {
     crux_file_result_t rc = ready();
     if (rc != CRUX_FILE_OK) {
         return rc;
     }
-    int n = snprintf(paths[s], sizeof(paths[s]), "%s/%s", root, name);
-    if (n < 0 || (size_t)n >= sizeof(paths[s])) {
-        return CRUX_FILE_ERR_OUT_OF_RANGE;
+    rc = make_path(paths[s], sizeof(paths[s]), name);
+    if (rc != CRUX_FILE_OK) {
+        return rc;
     }
     fs_mode_t flags = mode == CRUX_FILE_READ ? FS_O_READ : FS_O_READ | FS_O_WRITE;
     if (mode == CRUX_FILE_CREATE_REPLACE) {
@@ -146,6 +189,12 @@ crux_file_result_t crux_file_impl_write(size_t s, const void *b, size_t l, size_
     if (rc < 0) {
         return result((int)rc);
     }
+#if defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+    if (rc == 0) {
+        /* FatFs reports a full volume as zero accepted bytes without an error. */
+        return CRUX_FILE_ERR_NO_SPACE;
+    }
+#endif
     *n = (size_t)rc;
     return CRUX_FILE_OK;
 }
@@ -197,10 +246,10 @@ crux_file_result_t crux_file_impl_remove(const char *name)
     if (rc != CRUX_FILE_OK) {
         return rc;
     }
-    char path[sizeof(root) + CRUX_FILE_NAME_MAX + 1];
-    int n = snprintf(path, sizeof(path), "%s/%s", root, name);
-    if (n < 0 || (size_t)n >= sizeof(path)) {
-        return CRUX_FILE_ERR_OUT_OF_RANGE;
+    char path[sizeof(root) + CRUX_FILE_NATIVE_LEAF_MAX + 1];
+    rc = make_path(path, sizeof(path), name);
+    if (rc != CRUX_FILE_OK) {
+        return rc;
     }
     return result(fs_unlink(path));
 }
