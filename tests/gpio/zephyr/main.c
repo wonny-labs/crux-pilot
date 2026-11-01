@@ -66,7 +66,8 @@ ZTEST_SUITE(gpio, NULL, NULL, NULL, NULL, NULL);
 
 /*
  * The provider keeps its configured state for the life of the image and Ztest runs suites in
- * name order, so this suite is named to run before "gpio" configures the line.
+ * name order (prj.conf disables shuffling), so this suite is named to run before "gpio"
+ * configures the line. Renaming either suite, or enabling shuffling, breaks this test.
  */
 ZTEST(crux_gpio_unconfigured, test_read_before_configure_is_not_ready)
 {
