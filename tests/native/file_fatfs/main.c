@@ -2,6 +2,7 @@
 #include "file_native.h"
 #include "file_port.h"
 #include <zephyr/fs/fs.h>
+#include <zephyr/storage/disk_access.h>
 #include <zephyr/ztest.h>
 #include <ff.h>
 #include <stdint.h>
@@ -196,4 +197,90 @@ ZTEST(file_fatfs, test_unmounted_volume_is_not_ready)
     zassert_is_null(file);
     zassert_ok(fs_mount(&mount));
 }
+static void write_file(const char *name, const char *text)
+{
+    crux_file_t *file = NULL;
+    size_t count = 0;
+    zassert_equal(crux_file_open(name, CRUX_FILE_CREATE_REPLACE, &file), CRUX_FILE_OK);
+    zassert_equal(crux_file_write(file, text, strlen(text), &count), CRUX_FILE_OK);
+    zassert_equal(count, strlen(text));
+    zassert_equal(crux_file_sync(file), CRUX_FILE_OK);
+    zassert_equal(crux_file_close(&file), CRUX_FILE_OK);
+}
+
+static void expect_file(const char *name, const char *text)
+{
+    crux_file_t *file = NULL;
+    size_t count = 0;
+    char value[32] = {0};
+    zassert_true(strlen(text) < sizeof(value));
+    zassert_equal(crux_file_open(name, CRUX_FILE_READ, &file), CRUX_FILE_OK);
+    zassert_equal(crux_file_read(file, value, sizeof(value), &count), CRUX_FILE_OK);
+    zassert_equal(count, strlen(text));
+    zassert_mem_equal(value, text, strlen(text));
+    zassert_equal(crux_file_close(&file), CRUX_FILE_OK);
+}
+
+ZTEST(file_fatfs, test_read_write_mode_updates_in_place_and_never_creates)
+{
+    crux_file_t *file = NULL;
+    size_t count = 0;
+    char value[6] = {0};
+
+    write_file("rw", "abcdef");
+    zassert_equal(crux_file_open("rw", CRUX_FILE_READ_WRITE, &file), CRUX_FILE_OK);
+    zassert_equal(crux_file_write(file, "XY", 2, &count), CRUX_FILE_OK);
+    zassert_equal(count, 2);
+    zassert_equal(crux_file_seek(file, 0), CRUX_FILE_OK);
+    zassert_equal(crux_file_read(file, value, sizeof(value), &count), CRUX_FILE_OK);
+    zassert_equal(count, sizeof(value));
+    zassert_mem_equal(value, "XYcdef", sizeof(value));
+    zassert_equal(crux_file_close(&file), CRUX_FILE_OK);
+
+    zassert_equal(crux_file_open("absent", CRUX_FILE_READ_WRITE, &file), CRUX_FILE_ERR_NOT_FOUND);
+    zassert_is_null(file);
+    zassert_equal(crux_file_open("absent", CRUX_FILE_READ, &file), CRUX_FILE_ERR_NOT_FOUND);
+    zassert_equal(crux_file_remove("rw"), CRUX_FILE_OK);
+}
+
+ZTEST(file_fatfs, test_short_read_at_eof_returns_ok_with_the_available_count)
+{
+    crux_file_t *file = NULL;
+    size_t count = 99;
+    char value[8] = {0};
+
+    write_file("eof", "abc");
+    zassert_equal(crux_file_open("eof", CRUX_FILE_READ, &file), CRUX_FILE_OK);
+    zassert_equal(crux_file_read(file, value, sizeof(value), &count), CRUX_FILE_OK);
+    zassert_equal(count, 3);
+    zassert_mem_equal(value, "abc", 3);
+    zassert_equal(crux_file_read(file, value, sizeof(value), &count), CRUX_FILE_OK);
+    zassert_equal(count, 0);
+    zassert_equal(crux_file_close(&file), CRUX_FILE_OK);
+    zassert_equal(crux_file_remove("eof"), CRUX_FILE_OK);
+}
+
+ZTEST(file_fatfs, test_corrupted_media_is_not_formatted_and_recovers_when_restored)
+{
+    uint8_t saved[512], now[512], zeros[512] = {0};
+    crux_file_t *file = NULL;
+
+    write_file("survivor", "kept");
+    zassert_ok(fs_unmount(&mount));
+    zassert_ok(disk_access_read("RAM", saved, 0, 1));
+    zassert_ok(disk_access_write("RAM", zeros, 0, 1));
+
+    zassert_true(fs_mount(&mount) < 0, "a volume without a boot sector must not mount");
+    zassert_ok(disk_access_read("RAM", now, 0, 1));
+    zassert_mem_equal(now, zeros, sizeof(now), "failed mount must not format");
+    zassert_equal(crux_file_open("survivor", CRUX_FILE_READ, &file), CRUX_FILE_ERR_NOT_READY);
+    zassert_is_null(file);
+    zassert_equal(crux_file_remove("survivor"), CRUX_FILE_ERR_NOT_READY);
+
+    zassert_ok(disk_access_write("RAM", saved, 0, 1));
+    zassert_ok(fs_mount(&mount));
+    expect_file("survivor", "kept");
+    zassert_equal(crux_file_remove("survivor"), CRUX_FILE_OK);
+}
+
 ZTEST_SUITE(file_fatfs, NULL, setup, NULL, NULL, NULL);
