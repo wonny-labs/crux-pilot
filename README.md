@@ -99,3 +99,7 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 Follow [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), [issues](https://github.com/wonny-labs/crux-pilot/issues) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) for current delivery work.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and review rules and [AGENTS.md](AGENTS.md) for AI execution boundaries.
+
+## License
+
+Crux is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
