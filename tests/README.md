@@ -296,6 +296,7 @@ composition for `mimxrt1060_evk@B//qspi` as an unlinked object. It does not moun
 anything on a board. `scripts/test-file-rt1060-compile.sh` runs it and fails if the testcase is
 filtered out instead of built. `scripts/test-storage-simulators.sh` and this script are in the
 Zephyr CI workflow; `scripts/test-file-persistence.sh` is not.
+It also refuses to build on Rev C and on the hyperflash variant (a negative control, checked by the Kconfig message).
 
 ## Portable queue and monotonic timing
 

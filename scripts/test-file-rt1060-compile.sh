@@ -75,6 +75,11 @@ for other in 'mimxrt1060_evk@C/mimxrt1062/qspi' 'mimxrt1060_evk@B/mimxrt1062/hyp
         echo "RT1060 File compile check was not refused on $other" >&2
         exit 1
     fi
+    # The refusal must come from the guard: Kconfig names the unmet Rev B / QSPI dependency.
+    tr '\n' ' ' < "$control.log" | grep -q 'BOARD_REVISION_B (=n)\|BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI (=n)' || {
+        echo "RT1060 File compile check was refused on $other without the board guard" >&2
+        exit 1
+    }
     grep -q 'compile check is not selected' "$control.log" || {
         echo "RT1060 File compile check failed on $other for another reason" >&2
         exit 1

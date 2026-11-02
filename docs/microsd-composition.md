@@ -95,8 +95,10 @@ needs a run on hardware.
   later, a different file system (for example Reliance Edge) is the intended route, so no FatFs
   effort goes into checksummed or atomic Settings storage. No Settings File target provider is
   part of this composition.
-- **File size:** FatFs files end at 4 GiB minus one byte. A write at that limit is reported as
-  `NO_SPACE`, not `OUT_OF_RANGE`, and `crux_file_seek` rejects offsets above `INT32_MAX`
+- **File size:** FAT32 (the card format here; exFAT is not enabled) files end at 4 GiB minus
+  one byte. A write that would cross the limit is cut to the remaining bytes and returns
+  `CRUX_FILE_PARTIAL`; a write made when no bytes remain is reported as `NO_SPACE`, not
+  `OUT_OF_RANGE`, and `crux_file_seek` rejects offsets above `INT32_MAX`
   (2 GiB minus one). Files larger than 2 GiB are outside this profile; this is a documented
   limit, not a tested behaviour (the simulator media is 1 MiB).
 - **Persistence script:** `scripts/test-file-persistence.sh` stays a manual gate and is not in
