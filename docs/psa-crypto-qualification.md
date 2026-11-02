@@ -78,7 +78,7 @@ success.
 | Area | Cases (positive, then negative status) |
 | --- | --- |
 | Initialisation, random | init is idempotent; requested bytes only are written and two requests differ; a 2500-byte request succeeds |
-| SHA-256 | known answers (one-shot, multipart); update after finish is `BAD_STATE`; 31-byte buffer is `BUFFER_TOO_SMALL`; mismatching or wrong-length expected hash is `INVALID_SIGNATURE` (or `INVALID_ARGUMENT` for the length); unassigned hash is `NOT_SUPPORTED` |
+| SHA-256 | known answers (one-shot, multipart); update after finish is `BAD_STATE`; 31-byte buffer is `BUFFER_TOO_SMALL`; mismatching or shorter expected hash is `INVALID_SIGNATURE` through `psa_hash_verify`; unassigned hash is `NOT_SUPPORTED` |
 | ECDSA P-256 verify | volatile import; known answer over the hash; flipped, zero and truncated signatures rejected; tampered data or hash is `INVALID_SIGNATURE`; off-curve or unprefixed key is `INVALID_ARGUMENT`; no usage flag or a wildcard algorithm is `NOT_PERMITTED` |
 | PBKDF2-HMAC-SHA-256 | RFC 7914 and 4096-iteration known answers; wrong password derives different output; verify-bytes when supported; output on an inactive operation is `BAD_STATE`; unassigned hash is `NOT_SUPPORTED` |
 | Key identifiers | a destroyed key is `INVALID_HANDLE` for use and for a second destroy |

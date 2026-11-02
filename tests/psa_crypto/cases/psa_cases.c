@@ -300,11 +300,12 @@ CASE(sha256_verify_mismatch_invalid_signature)
     CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE, psa_hash_verify(&r->hash, wrong, sizeof wrong));
     CHECK_STATUS(PSA_SUCCESS, psa_hash_abort(&r->hash));
 
-    /* An expected value of the wrong length is never accepted. */
+    /* A shorter expected value differs from the hash, which the header documents as
+     * INVALID_SIGNATURE. */
     CHECK_STATUS(PSA_SUCCESS, psa_hash_setup(&r->hash, PSA_ALG_SHA_256));
     CHECK_STATUS(PSA_SUCCESS, psa_hash_update(&r->hash, (const uint8_t *)"abc", 3));
-    CHECK_REJECTED_AS(PSA_ERROR_INVALID_SIGNATURE, PSA_ERROR_INVALID_ARGUMENT,
-                      psa_hash_verify(&r->hash, vec_sha256_abc, sizeof vec_sha256_abc - 1));
+    CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
+                 psa_hash_verify(&r->hash, vec_sha256_abc, sizeof vec_sha256_abc - 1));
     return NULL;
 }
 
