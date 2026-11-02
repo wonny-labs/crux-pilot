@@ -1,0 +1,60 @@
+### no provider (configure)
+configure_exit=1
+CMake Error at CMakeLists.txt:21 (message):
+  CRUX_PSA_PROVIDER is not set.  Select tf-psa-crypto, stub-unsupported or
+  stub-permissive; the conformance cases do not choose a provider.
+
+
+### stub-unsupported
+provider: stub-unsupported
+FAIL init_is_idempotent: psa_cases.c:183: psa_crypto_init() returned -134, expected 0
+FAIL random_fills_requested_bytes_only: psa_cases.c:194: psa_crypto_init() returned -134, expected 0
+FAIL random_large_request_succeeds: psa_cases.c:211: psa_crypto_init() returned -134, expected 0
+FAIL sha256_known_answer_one_shot: psa_cases.c:227: psa_crypto_init() returned -134, expected 0
+FAIL sha256_multipart_matches_known_answer: psa_cases.c:242: psa_crypto_init() returned -134, expected 0
+FAIL sha256_update_after_finish_is_bad_state: psa_cases.c:259: psa_crypto_init() returned -134, expected 0
+FAIL sha256_buffer_too_small: psa_cases.c:274: psa_crypto_init() returned -134, expected 0
+FAIL sha256_compare_and_verify_mismatch_invalid_signature: psa_cases.c:293: psa_crypto_init() returned -134, expected 0
+FAIL hash_unsupported_algorithm_not_supported: psa_cases.c:317: psa_crypto_init() returned -134, expected 0
+FAIL ecdsa_p256_import_is_volatile: psa_cases.c:337: psa_crypto_init() returned -134, expected 0
+FAIL ecdsa_p256_verify_message_known_answer: psa_cases.c:353: psa_crypto_init() returned -134, expected 0
+FAIL ecdsa_p256_verify_hash_known_answer: psa_cases.c:365: psa_crypto_init() returned -134, expected 0
+FAIL ecdsa_p256_wrong_signature_invalid: psa_cases.c:380: psa_crypto_init() returned -134, expected 0
+FAIL ecdsa_p256_tampered_input_invalid: psa_cases.c:407: psa_crypto_init() returned -134, expected 0
+FAIL ecdsa_p256_invalid_public_key_rejected: psa_cases.c:427: psa_crypto_init() returned -134, expected 0
+FAIL ecdsa_p256_key_policy_not_permitted: psa_cases.c:444: psa_crypto_init() returned -134, expected 0
+FAIL pbkdf2_hmac_sha256_known_answer_rfc7914: psa_cases.c:474: psa_crypto_init() returned -134, expected 0
+FAIL pbkdf2_hmac_sha256_known_answer_4096: psa_cases.c:485: psa_crypto_init() returned -134, expected 0
+FAIL pbkdf2_verify_wrong_password_invalid_signature: psa_cases.c:494: psa_crypto_init() returned -134, expected 0
+FAIL pbkdf2_output_over_capacity_insufficient_data: psa_cases.c:511: psa_crypto_init() returned -134, expected 0
+FAIL kdf_unsupported_algorithm_not_supported: psa_cases.c:523: psa_crypto_init() returned -134, expected 0
+FAIL destroyed_key_is_invalid_handle: psa_cases.c:535: psa_crypto_init() returned -134, expected 0
+22 cases, 22 failed
+exit=1
+
+### stub-permissive
+provider: stub-permissive
+PASS init_is_idempotent
+FAIL random_fills_requested_bytes_only: psa_cases.c:198: !all_bytes(buffer, 32, 0x00)
+FAIL random_large_request_succeeds: psa_cases.c:215: distinct_values(buffer, sizeof buffer) >= 200
+FAIL sha256_known_answer_one_shot: psa_cases.c:232: memcmp(hash, vec_sha256_abc, 32) == 0
+FAIL sha256_multipart_matches_known_answer: psa_cases.c:250: memcmp(hash, vec_sha256_two_block, 32) == 0
+FAIL sha256_update_after_finish_is_bad_state: psa_cases.c:263: psa_hash_update(&r->hash, (const uint8_t *)"d", 1) returned 0, expected -137
+FAIL sha256_buffer_too_small: psa_cases.c:277: psa_hash_compute(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3, hash, sizeof hash, &length) returned 0, expected -138
+FAIL sha256_compare_and_verify_mismatch_invalid_signature: psa_cases.c:300: psa_hash_compare(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3, wrong, sizeof wrong) returned 0, expected -149
+FAIL hash_unsupported_algorithm_not_supported: psa_cases.c:320: psa_hash_compute(UNASSIGNED_HASH, (const uint8_t *)"abc", 3, hash, sizeof hash, &length) returned 0, expected -134
+FAIL ecdsa_p256_import_is_volatile: psa_cases.c:347: ok
+PASS ecdsa_p256_verify_message_known_answer
+PASS ecdsa_p256_verify_hash_known_answer
+FAIL ecdsa_p256_wrong_signature_invalid: psa_cases.c:388: psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample, flipped, sizeof flipped) returned 0, expected -149
+FAIL ecdsa_p256_tampered_input_invalid: psa_cases.c:414: psa_verify_message(r->key, ECDSA_SHA256, tampered_message, sizeof tampered_message, vec_p256_signature_sample, sizeof vec_p256_signature_sample) returned 0, expected -149
+FAIL ecdsa_p256_invalid_public_key_rejected: psa_cases.c:431: import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, off_curve, sizeof off_curve) returned 0, expected -135
+FAIL ecdsa_p256_key_policy_not_permitted: psa_cases.c:450: psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample, vec_p256_signature_sample, sizeof vec_p256_signature_sample) returned 0, expected -133
+FAIL pbkdf2_hmac_sha256_known_answer_rfc7914: psa_cases.c:477: memcmp(out, vec_pbkdf2_rfc7914_64, sizeof out) == 0
+FAIL pbkdf2_hmac_sha256_known_answer_4096: psa_cases.c:488: memcmp(out, vec_pbkdf2_4096_32, sizeof out) == 0
+FAIL pbkdf2_verify_wrong_password_invalid_signature: psa_cases.c:503: psa_key_derivation_verify_bytes(&r->kdf, vec_pbkdf2_4096_32, sizeof vec_pbkdf2_4096_32) returned 0, expected -149
+FAIL pbkdf2_output_over_capacity_insufficient_data: psa_cases.c:515: memcmp(out, vec_pbkdf2_rfc7914_64, sizeof out) == 0
+FAIL kdf_unsupported_algorithm_not_supported: psa_cases.c:525: psa_key_derivation_setup(&r->kdf, PSA_ALG_PBKDF2_HMAC(UNASSIGNED_HASH)) returned 0, expected -134
+FAIL destroyed_key_is_invalid_handle: psa_cases.c:544: psa_verify_hash(stale, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample, vec_p256_signature_sample, sizeof vec_p256_signature_sample) returned 0, expected -136
+22 cases, 19 failed
+exit=1
