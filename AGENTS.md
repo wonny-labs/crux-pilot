@@ -57,8 +57,9 @@ evidence rather than relying on the author's summary or verdict. Record a
 reasoned `PASS`, `REVISE` or `ESCALATE` decision, including material limitations
 and unresolved findings. Review against the task's acceptance criteria. A
 blocking finding is an unmet criterion, a broken rule in this file or a factual
-error. `PASS` means no blocking finding. `REVISE` means blocking findings that the author can fix
-within the approved scope. Fix them and get one independent re-check.
+error. `PASS` means no blocking finding. `REVISE` means blocking findings that
+the author can fix within the approved scope. Fix them and get one independent
+re-check.
 `ESCALATE` means a finding needs a human decision, a material disagreement
 remains, or a blocking finding remains after the re-check. Record other findings
 in the issue, the PR or a follow-up issue and decide them there, instead of
@@ -78,12 +79,15 @@ reviews depend on:
 
 - `AGENTS.md`, `CLAUDE.md`, `.claude/` and `CONTRIBUTING.md`
 - `.github/`, `scripts/`, `CMakePresets.json`, `.clang-format` and `.clang-tidy`, which define the checks
+- `doc-links.toml`, `lychee.toml` and `cmake/CruxConsumerBoundary.cmake`, which configure the documentation and consumer-boundary checks
 - `docs/evidence/` and `docs/baseline.md`, which record verification evidence
 
 Change an existing file on these paths only within an explicit human approval
 that covers that change. A new check script or evidence record may be added
-within the task. Keep accepted evidence unchanged. In the PR description, list
-each changed protected file from
+within the task. An approved work package also covers edits to the test runner
+of a component that it changes, such as `scripts/test-spi.sh`, as long as no
+suite, board, build option or warning flag is removed. Keep accepted evidence
+unchanged. In the PR description, list each changed protected file from
 `git diff --name-only --no-renames origin/main...HEAD`, with a link to the human
 approval or, when it was given in a session, a quote with its time and place.
 Get a material independent review.
@@ -107,7 +111,7 @@ Use the existing repository checks as applicable:
 - `scripts/test-controller-integration.sh` for device, networking and integrated-controller software checks and EVKB cross-builds. It does not operate or qualify the physical board.
 - [Test guide](tests/README.md) and the active issue/PR for additional suites and their actual validation status.
 
-Use the Linux Dev Container and documented west workspace configuration for supported commands. Choose tests appropriate to the change; do not rerun costly unrelated checks without a reason. Distinguish passing local tests, passing GitHub Actions, successful EVKB compilation and **physical-board test evidence**. None implies the others. Record the tested revision, commands, configurations, failures, skipped checks and relevant artefacts in the issue/PR or applicable evidence document. Do not report unexecuted or blocked tests as passing.
+Use the Linux Dev Container and documented west workspace configuration for supported commands. Choose tests appropriate to the change; do not rerun costly unrelated checks without a reason. Distinguish passing host tests, passing `native_sim` or Twister runs, passing GitHub Actions, successful EVKB compilation and **physical-board test evidence**. None implies the others. Record the tested revision, commands, configurations, failures, skipped checks and relevant artefacts in the issue/PR or applicable evidence document. Do not report unexecuted or blocked tests as passing.
 
 ## Safety and workspace boundaries
 

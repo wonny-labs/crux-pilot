@@ -20,7 +20,7 @@ Inspect the request, the issue or PR, existing decisions and installed skills, t
 | Finding files or code | built-in `Explore` agent | Haiku |
 | Material review | `reviewer` agent | Opus, fixed in the agent |
 | Before claiming completion | `superpowers:verification-before-completion` | Same as the work |
-| Hand-off to another session or agent | Suggest `mattpocock-skills:handoff` to the user | Same as the work |
+| Handoff to another session or agent | Suggest `mattpocock-skills:handoff` to the user | Same as the work |
 | Small or mechanical change | none | Sonnet |
 
 Skills and subagents add no approval or permissions. When a skill asks for confirmation, continue only if the task's approval and tool permissions already cover the action. A skill's default folders, commits, branches, PRs and clean-up give way to `AGENTS.md` and the task's approval. Record skill outputs such as designs, plans and research in the issue or in existing docs.

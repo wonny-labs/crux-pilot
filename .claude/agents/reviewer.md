@@ -25,7 +25,7 @@ A blocking finding is an unmet criterion, a broken `AGENTS.md` rule or a factual
 
 - `PASS`: no blocking finding.
 - `REVISE`: blocking findings that the author can fix within the approved scope.
-- `ESCALATE`: a finding needs a human decision, or a blocking finding remains after the author's re-check.
+- `ESCALATE`: a finding needs a human decision, a material disagreement remains, or a blocking finding remains after the independent re-check.
 
 Report in this order:
 
