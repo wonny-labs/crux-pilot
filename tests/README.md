@@ -435,3 +435,14 @@ root entry point. External System profiles preserve parent testing/languages,
 exercise C17/C++17 public usage, reject conflicting providers and exclude
 unrelated components. The existing System contract and native ownership checks
 remain unchanged.
+
+## PSA Crypto conformance trial
+
+`tests/psa_crypto` holds provider-neutral PSA Crypto conformance cases (Issue #142) with a standalone
+Linux Host project, a `native_sim` Ztest app and two stub providers that prove the cases can fail.
+`scripts/test-psa-crypto.sh [host|zephyr|all]` runs them against TF-PSA-Crypto. It is a trial and is
+not in any CI workflow: the provider sources are not in this repository or in `west.yml`, so the script
+needs the trial trees (default `/opt/crux-cache/psa-trial/`) at the revisions Zephyr's manifest pins and
+fails if they differ. The Host part needs the Dev Container image with the Clang sanitizer runtime. It
+covers Host and `native_sim` only; no cross-build or hardware is involved. See the
+[qualification record](../docs/psa-crypto-qualification.md) for results, limits and open decisions.

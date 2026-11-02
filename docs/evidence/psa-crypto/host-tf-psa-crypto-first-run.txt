@@ -1,0 +1,26 @@
+### First Host run against TF-PSA-Crypto dc575a2d (before any case was changed)
+provider: tf-psa-crypto
+PASS init_is_idempotent
+PASS random_fills_requested_bytes_only
+PASS random_large_request_succeeds
+PASS sha256_known_answer_one_shot
+PASS sha256_multipart_matches_known_answer
+PASS sha256_update_after_finish_is_bad_state
+FAIL sha256_buffer_too_small: psa_cases.c:278: length == 0
+PASS sha256_compare_and_verify_mismatch_invalid_signature
+FAIL hash_unsupported_algorithm_not_supported: psa_cases.c:324: psa_hash_compute(PSA_ALG_HMAC(PSA_ALG_SHA_256), (const uint8_t *)"abc", 3, hash, sizeof hash, &length) returned -135, expected -134
+PASS ecdsa_p256_import_is_volatile
+PASS ecdsa_p256_verify_message_known_answer
+PASS ecdsa_p256_verify_hash_known_answer
+PASS ecdsa_p256_wrong_signature_invalid
+PASS ecdsa_p256_tampered_input_invalid
+PASS ecdsa_p256_invalid_public_key_rejected
+PASS ecdsa_p256_key_policy_not_permitted
+PASS pbkdf2_hmac_sha256_known_answer_rfc7914
+PASS pbkdf2_hmac_sha256_known_answer_4096
+FAIL pbkdf2_verify_wrong_password_invalid_signature: psa_cases.c:497: psa_key_derivation_verify_bytes(&r->kdf, vec_pbkdf2_4096_32, sizeof vec_pbkdf2_4096_32) returned -134, expected 0
+PASS pbkdf2_output_over_capacity_insufficient_data
+PASS kdf_unsupported_algorithm_not_supported
+PASS destroyed_key_is_invalid_handle
+22 cases, 3 failed
+exit=1
