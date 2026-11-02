@@ -11,7 +11,7 @@ Physical-board evidence for the RT1060-EVKB microSD composition ([composition](.
 
 - Toolchain: Zephyr v4.4.0 (`684c9e8f`), Zephyr SDK 1.0.1, `ZEPHYR_TOOLCHAIN_VARIANT=zephyr`, in the Linux Dev Container.
 - Run 1 image: `west build -p always -b "mimxrt1060_evk@B//qspi" crux-pilot/samples/storage_sd -d <build dir> -- -DCONFIG_SAMPLE_SD_START=y` (commit 050e995).
-- Run 2 image: the same with `-DCONFIG_SAMPLE_SD_START=y -DCONFIG_SAMPLE_SD_FILE_CHECK=y` (commit 1c70658; the ELF was built from the working tree twelve seconds before the commit, and `samples/` is identical at the later head). The reported FLASH size is Zephyr's memory-report figure.
+- Run 2 image: the same with `-DCONFIG_SAMPLE_SD_START=y -DCONFIG_SAMPLE_SD_FILE_CHECK=y` (commit 1c70658; the ELF was built from the working tree twelve seconds before the commit, and `samples/` is identical at the next commit; later commits add only a compile-time `_Static_assert` and a header comment). The reported FLASH size is Zephyr's memory-report figure.
 - J-Link, every step: `JLinkExe -device MIMXRT1062xxx6A -if SWD -speed 400 -autoconnect 1 -NoGui 1 -ExitOnError 1 -CommanderScript <file>` with the command files in this directory (`preflight.jlink`, `run1-flash.jlink`, `run2-flash.jlink`, `reset.jlink`).
 - Console: `python3 capture.py <port> 115200 <seconds> <file>` on the DAPLink virtual COM port.
 

@@ -101,7 +101,7 @@ for directory, expected in [
     ('twister-storage-file', {'native_sim/native': 7, 'native_sim/native/64': 7}),
     ('twister-storage-fatfs', {'native_sim/native': 19, 'native_sim/native/64': 19}),
     ('twister-storage-sd-composition', {'native_sim/native': 8, 'native_sim/native/64': 8}),
-    ('twister-storage-sd-check', {'native_sim/native': 6, 'native_sim/native/64': 6}),
+    ('twister-storage-sd-check', {'native_sim/native': 8, 'native_sim/native/64': 8}),
     ('twister-storage-configuration', {'native_sim/native/64': 10}),
     ('twister-storage-settings-file', {'native_sim/native/64': 25}),
 ]:
