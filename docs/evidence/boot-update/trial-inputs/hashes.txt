@@ -1,0 +1,33 @@
+# Hashes for the #141 A1 trial (build-only). SHA-256 values copied from the trial results.
+# Results archive d8f53cd7-results.tar.gz: 8e2e9839eae863b79a42a7a294a97e39f093a83c3f48d0598f9fb582f01cd3ed
+# Paths are container paths inside crux-141-boot-trial or paths relative to the results directory.
+
+## Development public key (ECDSA P-256). The private key is not in the results or in this repository.
+public key PEM file: dev-ecdsa-p256.pub.pem
+15127d78a4f119be73eefbf85ecae255fc5ca7f6f16856c2c6e9876521577d9c  /opt/crux-cache/keys/dev-ecdsa-p256.pub.pem
+DER SPKI length: 91
+DER SPKI sha256: 0aafb408cfe1de0f6cdb2e1f7f357a6bb171b6e53ea5b856321c2a8dcb7ea368
+X9.62 uncompressed point sha256: c0b2225f7ab81029559b01fe1c9a14438aaaa951113eb7b8271a8e499ca80620
+
+## baseline
+db3aedf539b31635e71665591128d9b198d011b7043179a494aee7a06fca2441  /opt/crux-cache/trial/baseline-build/zephyr/zephyr.elf
+4be80bc7cfcfc116bebba08d3d9c56b347cc6452548da299f7bf09a446ed55d2  /opt/crux-cache/trial/baseline-build/zephyr/zephyr.bin
+
+## build-a-ramload-revert/mcuboot
+90b8f5a6178387864472f62dde7991fa4b071e23ea2ba63ef732fa8db638a790  zephyr.elf
+42100c44991410d9fd4399aa3fba33b5ca6828703619933b0e457e7ddf1dbfb9  zephyr.bin
+
+## build-a-ramload-revert/app
+be99edadf604aac2df4fbc9da019a7dc471b74c175dbf661093745af53c9c082  zephyr.elf
+ee0aad8fe9b36f1dc828de301fbaf050cc5e921309a281d5e489e87432862095  zephyr.bin
+faf83d98f8f312e4c6667a8ad2390e586b8cf8daab1244a74421247a7c7274eb  zephyr.signed.bin
+
+## build-b-swap-offset/mcuboot
+620b8e69289d541881608eb97e6b6a959e0e259a14fdf47822a3d1bb1481d862  zephyr.elf
+1a3cd4a0f478485c1f4a8ccce9dae440d13940b1340fe032ff83b959a182837f  zephyr.bin
+
+## build-b-swap-offset/app
+cd8d26292226ad801021a47da3a51f014286c09cd6ec80123e0eabe2f72deb82  zephyr.elf
+b845ee5bfab1550eaa6e4bc3df8dd1bedc4687872b2cbcfcb4a7b6f4efc6bd0a  zephyr.bin
+1d1ddc3038607f3f125cfdce31e8c2cedca80333da73ebe207dda3804bb18821  zephyr.signed.bin
+

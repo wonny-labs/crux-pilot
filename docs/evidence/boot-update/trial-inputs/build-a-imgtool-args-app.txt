@@ -1,0 +1,1 @@
+imgtool.py sign --version 0.0.0+0 --header-size 0x400 --slot-size 3145728 --align 1 --load-addr 0x80000000 --key <DEV-KEY-PATH:/opt/crux-cache/keys/dev-ecdsa-p256.pem> --hex-addr 0x20000 /opt/crux-cache/trial/build-a-ramload-revert-build/zephyr/zephyr/zephyr.bin /opt/crux-cache/trial/build-a-ramload-revert-build/zephyr/zephyr/zephyr.signed.bin
