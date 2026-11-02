@@ -1,0 +1,3 @@
+/ {
+	aliases { crux-gpio0 = &user_button; };
+};
