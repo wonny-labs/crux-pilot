@@ -1,0 +1,18 @@
+# Repository checks, 2 Nov 2026, Linux Dev Container image (linux/amd64), clang-format via CLANG_FORMAT=clang-format.
+# check-host, check-host (host-sanitize), analyze-host were run at 6531d23. The only later commit (78be7ef)
+# changes tests/psa_crypto and docs, which are outside the root build and the analyze-host file list.
+# check-format and check-dependencies were rerun at 78be7ef: format exit 0, dependencies exit 0.
+check-host exit=0 seconds=145
+check-host-sanitize exit=0 seconds=173
+check-format exit=0 seconds=1
+analyze-host exit=1 seconds=97
+check-dependencies exit=0 seconds=2
+done
+
+# analyze-host exit 1 is pre-existing. The same command on a clean detached checkout of origin/main
+# (f57ff22478dae1069fb220659a438e800921528c, cmake --preset host-debug) exits 1 with the same four diagnostics:
+#   samples/logging/controller.h:3:10: error: 'crux/logging.h' file not found
+#   tests/logging_consumer/host/main.c:2:10: error: 'controller.h' file not found
+#   tests/logging_consumer/src/contract_test.c:73:53: error: suspicious usage of sizeof pointer [bugprone-sizeof-expression]
+#   tests/logging_consumer/src/runtime.h:4:10: error: 'crux/logging.h' file not found
+# None of these files is touched by this change.

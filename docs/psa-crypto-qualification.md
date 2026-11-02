@@ -104,9 +104,9 @@ output" check that zeros satisfy). It was strengthened to require the correct ou
 
 | Environment | Result | Evidence |
 | --- | --- | --- |
-| Linux Host, Debug, Clang 18 | 22 of 22 pass (one with a note, below) | [first run](evidence/psa-crypto/host-tf-psa-crypto-first-run.txt) and the script run recorded in the PR |
-| Linux Host, ASan and UBSan | 22 of 22 pass | script run recorded in the PR |
-| Zephyr `native_sim/native/64`, Twister | 22 cases plus one list-completeness check pass | script run recorded in the PR |
+| Linux Host, Debug, Clang 18 | 22 of 22 pass (one with a note, below) | [final run](evidence/psa-crypto/trial-run-final.txt); [first run](evidence/psa-crypto/host-tf-psa-crypto-first-run.txt) |
+| Linux Host, ASan and UBSan | 22 of 22 pass | [final run](evidence/psa-crypto/trial-run-final.txt) |
+| Zephyr `native_sim/native/64`, Twister | 22 cases plus one list-completeness check pass (1 of 1 test configurations) | [final run](evidence/psa-crypto/trial-run-final.txt) |
 
 **Finding (first Host run).** Three of 23 cases failed against the real provider. Checking the
 pinned header and the provider source showed two assertions that went beyond the documented API
@@ -279,6 +279,10 @@ completed until the owner states Crux's own licence (**Finding:** none is stated
 7. Host CI has no west workspace, which constrains the Host dependency options.
 8. The local `crux-pilot-devcontainer:local` image lacks `libclang-rt-18-dev`, so `host-sanitize`
    does not link in it until the package is added (next section).
+9. `scripts/analyze-host.sh` already fails on `origin/main` (`f57ff22`) with four diagnostics in
+   `samples/logging` and `tests/logging_consumer`, and fails identically with this change. It was
+   not fixed here because that would widen the scope. See
+   [repository-checks.txt](evidence/psa-crypto/repository-checks.txt).
 
 ## Environment notes
 
