@@ -91,7 +91,7 @@ container did not run out of memory or disk (end-of-run snapshot in
 | Application RAM | 8,704 B in SDRAM | 41,536 B in SDRAM, `0x80000000` to `0x8000a240`. Code, data and stack are all in this range. | 8,704 B in SDRAM | Same, `A/app/nm-key-symbols.txt` |
 | Application link and execution | XIP from `0x60000000`, vectors `0x60002000` | Linked and loaded at `0x80000000`, vectors `0x80000400` | XIP from `0x60020000`, vectors `0x60020400` | `baseline/nm-n.txt`, `A/app/nm-key-symbols.txt`, `B/app-flexspi-window-report.txt` |
 | `CONFIG_ROM_START_OFFSET` (image header size) | `0x2000` (NXP boot header) | `0x400` | `0x400` | `*/dot-config.txt` |
-| Unsigned application binary | 37,536 B | 32,880 B (includes the `0x400` header space) | 30,688 B | File sizes in the results |
+| Unsigned application binary | 37,536 B | 32,880 B (includes the `0x400` header space) | 30,688 B (includes the `0x400` header space) | File sizes in the results |
 | Signed application image | n/a | 33,032 B. Header `load_addr` `0x80000000`, flags `RAM_LOAD (0x20)`, `img_size` `0x7c70`, TLV area `0x98` B | 30,838 B. `load_addr` `0x0`, flags `0x0`, `img_size` `0x73e0`, TLV area `0x96` B | `*/imgtool-dumpinfo-app.txt` |
 
 Note on the application FLASH region: its size is the 3 MiB slot minus the

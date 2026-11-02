@@ -4,7 +4,7 @@
 | --- | --- |
 | Date | 2 November 2026 |
 | Status | **Proposal and analysis only.** No layout, bootloader, manifest change or execution model is adopted. The layout below is a **PROPOSAL**. It needs owner decision A3 and later implementation approval. |
-| Inputs | [Stage 4](stage4.md) placement, [Stage 5](stage5-trial-builds.md) build outputs (results archive SHA-256 `8e2e9839eae863b79a42a7a294a97e39f093a83c3f48d0598f9fb582f01cd3ed`), the [#22 phase matrix](../../flash-xip-evidence.md), Stage 1 and Stage 2 rows |
+| Inputs | Trial tree `1d6ac4f`, not `f57ff22` (Stage 5 section 1). [Stage 4](stage4.md) placement, [Stage 5](stage5-trial-builds.md) build outputs (results archive SHA-256 `8e2e9839eae863b79a42a7a294a97e39f093a83c3f48d0598f9fb582f01cd3ed`), the [#22 phase matrix](../../flash-xip-evidence.md), Stage 1 and Stage 2 rows |
 | Evidence class | Cross-compilation outputs (build-only), pinned-source rows and a small static disassembly of the archived MCUboot ELF files (section 3). No hardware result exists. |
 | Labels | **Verified by build** (read from the trial outputs), **Verified on pinned source** (Stage 1 and Stage 2 rows), **Inference**, **Not verified**. "Verified on hardware" is never used. |
 | Source column | Results paths are relative to the results directory of the archive. `A/` is `build-a-ramload-revert/`, `B/` is `build-b-swap-offset/`. |
@@ -108,7 +108,7 @@ These facts hold for every bootloader row below, in both builds.
 | --- | --- | --- | --- |
 | MCUboot executes in place from the same NOR it writes | Code partition `boot_partition`. Text, `rodata`, vectors and all MCUboot logic, including `flash_area_write` and `flash_area_erase`, are at `0x6000xxxx`. | Verified by build | `*/mcuboot/dts-key-nodes.txt` (A), `*/mcuboot/readelf-l.txt`, `*/mcuboot/nm-n.txt` |
 | FlexSPI driver linked | `flash_mcux_flexspi_nor.c` with `CONFIG_FLASH_MCUX_FLEXSPI_XIP=y` and `XIP_MEM="ITCM"`. NOR, MEMC and HAL transfer functions run from ITCM (`.itcm_text_reloc`, run address `0x0`, load address `0x600022c0`, `0x2160` B). | Verified by build | `*/mcuboot-flash-driver.txt`, `*/mcuboot/readelf-l.txt`, `*/mcuboot/nm-n.txt` |
-| Closure against the #22 matrix | Not shown. See section 3. | **Not verified** | Section 3 |
+| Closure against the #22 matrix | Not achieved: one data-closure failure is shown (section 3). Full closure Not verified. | **Not verified** | Section 3 |
 
 ### 2.2 RAM load with revert (Build A)
 
@@ -182,11 +182,11 @@ a whole slot per revert. The ranking is unchanged (Inference).
 | SDRAM dependence | Build A: MCUboot RAM is on-chip (OCRAM2), but the application code, data and stack are in SDRAM. Build B: MCUboot RAM is in SDRAM, so the bootloader itself depends on the DCD. Both rely on the bootloader DCD (`dcd_data` at `0x60001030`). That the boot ROM runs it is Not verified. | Placement Verified by build. ROM behaviour Not verified. |
 | Peripheral behaviour | No change expected in driver code. Not tested. | Not verified |
 
-### 4.1 Timing recommendation: confirmed
+### 4.1 Timing recommendation: supported
 
 Stage 2 recommended keeping the standalone XIP image as the reference until M7
 target validation closes, and changing the reference composition at the start
-of M8. **The build results confirm this recommendation.** Reasons:
+of M8. **The build results support this recommendation** (Inference, because a build cannot confirm a timing decision). Owner decision 16 also limits any M8 hardware step in which the bootloader writes NOR. Reasons:
 
 1. Both trial compositions change the application identity, link address and
    programming procedure (section 4). Changing during M6 or M7 would make

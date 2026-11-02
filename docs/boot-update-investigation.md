@@ -109,7 +109,7 @@ on.
 | SoC XIP encryption (BEE) | No BEE handling in the MCUboot and Zephyr files read (A8, B72, B73). MCUboot image encryption is a different feature: it protects a staged image at rest (B70). See [BEE](#bee-xip-encryption). | Verified for the listed files. Whole-tree absence Not verified. |
 | Validation on every boot | On by default in swap modes (`BOOT_VALIDATE_SLOT0`). Unconditional in direct-XIP and RAM load. RAM load validates the copy in RAM (A5, B57). | Verified on pinned source |
 | Crypto backend without Zephyr crypto modules | ECDSA P-256 with tinycrypt from MCUboot's own `ext/` directory needs no Zephyr crypto module. The sysbuild default is RSA, which needs Zephyr mbedTLS, so ECDSA P-256 must be set explicitly (A4, A6, B31, B32, B35). | Verified on pinned source |
-| RAM and Flash cost | MCUboot Flash: 51,760 B (RAM load with revert) and 53,940 B (swap using offset) of the 128 KiB `mcuboot` partition, headroom 79,312 B and 77,132 B. MCUboot RAM: 14,656 B in OCRAM2 and 27,904 B in SDRAM. ITCM 8,544 B in both. Trailer estimates from MCUboot CMake: 198 B image footer and 48 B upgrade footer for RAM load, 4,246 B and 4,096 B for swap using offset. Write alignment 1. Boot time and run-time stack are not measured. | Verified by build (Stage 5 section 4 and 9) |
+| RAM and Flash cost | MCUboot Flash: 51,760 B (RAM load with revert) and 53,940 B (swap using offset) of the 128 KiB `mcuboot` partition, headroom 79,312 B and 77,132 B. MCUboot RAM: 14,656 B in OCRAM2 and 27,904 B in SDRAM. ITCM 8,544 B in both. Trailer estimates from MCUboot CMake: 198 B image footer and 48 B upgrade footer for RAM load, 4,246 B and 4,096 B for swap using offset. Write alignment 1. Boot time and run-time stack are not measured. | Verified by build on the trial tree `1d6ac4f`, not `f57ff22` (Stage 5 sections 1, 4 and 9) |
 | Test, confirm, recovery and older-image rejection | Per mode, see the next two sections. | See below |
 | Licences | MCUboot Apache-2.0 (L1). `ext/tinycrypt` BSD-3-Clause and BSD-2-Clause by licence text (L2). `ext/mbedtls-asn1` files carry Apache-2.0 tags, but no licence file was found for the directory (L3). | Text and tags Verified on pinned source. Identifiers for tinycrypt are assigned from the text. |
 
@@ -182,8 +182,9 @@ checked against the pins:
 
 ### Trial build results for rank 1 and rank 2
 
-Both ranked trial modes were built on 2 November 2026 (A1, build-only). Details
-are in [Stage 5](evidence/boot-update/stage5-trial-builds.md). All rows are
+Both ranked trial modes were built on 2 November 2026 (A1, build-only) on the
+trial tree `1d6ac4f`, which is an older ancestor of the PR base `f57ff22`.
+Details are in [Stage 5](evidence/boot-update/stage5-trial-builds.md). All rows are
 Verified by build unless stated.
 
 | Point | Rank 1, RAM load with revert (Build A) | Rank 2, swap using offset (Build B) |
@@ -238,8 +239,9 @@ section 2. The main results:
 | Application writes | Image, test request and confirm. In RAM load modes the application executes from SDRAM during these writes. In swap modes it executes from the NOR it writes, which is the case #22 found blocked. A network download adds Ethernet DMA, which #22 lists as an open bus-master item. In RAM load modes, bus masters that reference NOR, cache coherence and FlexSPI reconfiguration still need review. The trial application links no Flash driver (`CONFIG_FLASH` not set), so no application write path was built. | Paths Verified on pinned source. Absence in the trial Verified by build. Bus-master and cache items Not verified. |
 | Write extent | Swap and overwrite write per update only up to the image size. The RAM load and direct-XIP revert paths erase the whole 3 MiB slot under bootloader XIP. Erase duration and watchdog behaviour on the board are Not verified. | Verified on pinned source. Duration Not verified. |
 
-Closure of the bootloader write path against the #22 matrix is **Not
-verified** in every phase. The data-closure failure above applies to both
+Closure of the bootloader write path against the #22 matrix is **not
+achieved**. One data-closure failure is shown (Stage 6 section 3). Full
+closure is **Not verified** in every phase. The data-closure failure above applies to both
 modes. Swap using offset writes much more under bootloader XIP per update, so
 the mode ranking is unchanged (Inference).
 
@@ -419,7 +421,8 @@ platform integration and validation" evidence (detail in
 
 Timing recommendation: change the reference composition at the start of M8,
 after M7 target validation, so that no milestone's evidence becomes invalid
-part-way through. **Stage 6 confirms this recommendation** and refines it: make
+part-way through. **The Stage 6 results support this recommendation**
+(Inference, because a build cannot confirm a timing decision). They refine it: make
 the switch as one step (bootloader, layout, signed-image options and
 programming scripts together), after owner decision 13, and rebuild at the
 revision that starts M8, because the trial used the older tree `1d6ac4f`.
@@ -447,9 +450,9 @@ and OTFAD claims were re-read at the pins when this record was assembled and
 matched (its "Assembly check" section). It has not had an independent review.
 
 **Build-only items are not done.** No RT1170 sysbuild configure and no RT1170
-bootloader cross-build was run. Both need A1 (the Stage 5 approval) to be
-extended to RT1170, and the documented Dev Container. A1 as given covers the
-two RT1060 trial builds only.
+bootloader cross-build was run. Both are covered by the A1 extension of
+2 November 2026 (owner decision 14) and need the documented Dev Container.
+Neither has been run.
 
 Summary: on pinned source the RT1170-EVK Rev A has a 16 MiB QSPI NOR at
 `0x30000000` with 7 MiB slots, 64 MiB SDRAM started by XMCD, the FCB at
