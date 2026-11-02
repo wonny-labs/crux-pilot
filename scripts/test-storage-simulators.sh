@@ -36,6 +36,16 @@ fatfs="$(cd "$workspace" && west list fatfs -f '{abspath}')"
     -O "$repo/build/zephyr/twister-storage-sd-check" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$fatfs")
 
+# The interrupted-write test: record format and recovery logic of samples/storage_sd_interrupt.
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/file_sd_interrupt" \
+    -O "$repo/build/zephyr/twister-storage-sd-interrupt" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
+# Its host script (parsing, pairing, port loss and return) runs against scripted boards, no hardware.
+python3 -m unittest discover -s "$repo/samples/storage_sd_interrupt/host" -p test_interrupt_capture.py -v
+
 # The Configuration fixture stages its existing three pinned source copies.
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
     -T "$repo/tests/native/configuration_settings" \
@@ -102,6 +112,7 @@ for directory, expected in [
     ('twister-storage-fatfs', {'native_sim/native': 19, 'native_sim/native/64': 19}),
     ('twister-storage-sd-composition', {'native_sim/native': 8, 'native_sim/native/64': 8}),
     ('twister-storage-sd-check', {'native_sim/native': 8, 'native_sim/native/64': 8}),
+    ('twister-storage-sd-interrupt', {'native_sim/native': 7, 'native_sim/native/64': 7}),
     ('twister-storage-configuration', {'native_sim/native/64': 10}),
     ('twister-storage-settings-file', {'native_sim/native/64': 25}),
 ]:

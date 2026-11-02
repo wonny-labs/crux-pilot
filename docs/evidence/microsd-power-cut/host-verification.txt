@@ -1,0 +1,23 @@
+Host-side read-only checks of the card after the power-cut test (macOS, 2 November 2026).
+Card: 15.9 GB, FDisk_partition_scheme (MBR), one Windows_FAT_32 partition (disk4s1).
+
+$ diskutil unmount disk4s1; diskutil verifyVolume disk4s1
+Performing fsck_msdos -n /dev/rdisk4s1
+** Phase 1 - Preparing FAT
+** Phase 2 - Checking Directories
+** Phase 3 - Checking for Orphan Clusters
+Warning: 162 files, 15529536 KiB free (1941192 clusters)
+File system check exit code is 0
+
+$ diskutil mount readOnly disk4s1     (Volume Read-Only: Yes)
+$ python3 verify_card.py "/Volumes/NO NAME" p1-results.json p2-results.json
+files on card: 47 (bootcount 1 byte, pattern 4096 bytes, intcount 2 bytes, run1..run44)
+run files: 44, range 1..44
+board reports compared with the card: 33
+mismatches vs board-side recovery: []
+last run 44: 77548 valid records, tail 0 bytes (the final power cut, made to stop the board, hit a run that was writing)
+runs with a tail after the last valid record: none
+intcount 44 (matches the 44 boots); pattern identical to the expected 4096 bytes
+bootcount 6: the earlier check image rebooted three more times when the board was power-cycled during the hub tests
+
+This transcript is hand-formatted from the tool output of the day; verify_card.py reproduces the run-file lines.
