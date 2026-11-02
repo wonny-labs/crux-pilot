@@ -92,7 +92,7 @@ needs a run on hardware.
 - **Settings and power loss (owner decision, 2 November 2026):** the controller may lose its
   latest saved setting after a power cut and fall back to a previous value or to defaults, then
   be configured again. FatFs is not required to do better. If it cannot meet the product need
-  later, a different file system (for example Reliance Edge) is the intended route, so no FatFs
+  after physical evidence, a different file system (for example Reliance Edge) is the intended route, so no FatFs
   effort goes into checksummed or atomic Settings storage. No Settings File target provider is
   part of this composition.
 - **File size:** FAT32 (the card format here; exFAT is not enabled) files end at 4 GiB minus
