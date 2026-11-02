@@ -1,5 +1,15 @@
 # Pre-M8 boot and update investigation plan
 
+> **Note of 2 November 2026.** The owner returned RT1170-EVK Rev A1 to #141 as
+> scope item 5, "Record the RT1170-EVK Rev A1 layout and boot differences",
+> desk and build-only. Stage 7 and question 11 return with it. RT1170 hardware
+> verification stays deferred and is tracked in #155. RT1060-EVKB Rev B remains
+> the primary target and the only board for physical validation. This plan is
+> kept as written on 1 November 2026. Read every "removed" or "deferred"
+> placeholder for item 5, Stage 7 and question 11 below in this way. The
+> [decision record](../boot-update-investigation.md#corrections-to-the-plan)
+> records the change.
+
 | Field | Value |
 | --- | --- |
 | Status | Investigation plan for #141. The plan itself authorises nothing. The owner gave approval A0 and, on 1 November 2026, approval A1 (see the [decision record](../boot-update-investigation.md#approvals)). A2 to A5 are not given. |

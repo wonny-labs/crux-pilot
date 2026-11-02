@@ -3,8 +3,8 @@
 | Field | Value |
 | --- | --- |
 | Issue | [#141](https://github.com/wonny-labs/crux-pilot/issues/141) "Investigate verified boot and firmware update feasibility for RT1060-EVKB" |
-| Status | **Draft. Desk results only.** Stages 5, 6 and 8 are pending the A1 trial build (approved 1 November 2026, running separately in the Dev Container). No hardware or fuse operation was performed. Nothing in this record is adopted. Revised after independent review 1 of PR #151 (verdict REVISE, findings F1 to F15). |
-| Target | RT1060-EVKB Rev B, `mimxrt1060_evk@B/mimxrt1062/qspi`. RT1170-EVK is deferred by owner decision of 1 November 2026. |
+| Status | **Draft. Desk results only.** Stages 5, 6 and 8 are pending the A1 trial build (approved 1 November 2026, running separately in the Dev Container). Stage 7 (RT1170-EVK Rev A1) is done as a desk study only. No RT1170 build was run. No hardware or fuse operation was performed. Nothing in this record is adopted. Revised after independent review 1 of PR #151 (verdict REVISE, findings F1 to F15) and independent review 2 (verdict PASS, optional findings N1 to N5). |
+| Target | Primary target and the only board for physical validation: RT1060-EVKB Rev B, `mimxrt1060_evk@B/mimxrt1062/qspi`. Secondary, desk and build-only: RT1170-EVK Rev A1, `mimxrt1170_evk@A/mimxrt1176/cm7` (owner decision of 2 November 2026). RT1170 hardware verification is deferred and tracked in [#155](https://github.com/wonny-labs/crux-pilot/issues/155). |
 | Pinned upstream | Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0). MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`. `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. |
 | crux-pilot read | `f67e22a` (Stages 0, 3 and 4) and `f57ff22` (Stage 2, after #147 merged) |
 | Plan | [Pre-M8 investigation plan](plans/pre-m8-investigation-plan.md) |
@@ -23,7 +23,7 @@ firmware update and recovery". It does not meet any M8 or M9 criterion.
 | 2. Update mode and staging medium | Stage 2 | Recommendation recorded |
 | 3. Flash writes during XIP for the candidate mode | Stages 2 and 6 | Desk summary recorded. Full write inventory pending Stage 6. |
 | 4. Current placement and a fenced layout | Stages 4 and 6 | Placement re-verified from committed records. Layout pending Stage 6. |
-| 5. (Removed on 1 November 2026, RT1170-EVK deferred) | None | Not applicable |
+| 5. Record the RT1170-EVK Rev A1 layout and boot differences (desk and build-only) | Stage 7 | Desk study recorded. RT1170 build-only items (sysbuild configure, bootloader cross-build) not done. Hardware verification deferred to #155. |
 | 6. HAB open configuration without fuse writes | Stage 3 | Documentation result recorded. RT1060 behaviour not verified. |
 | 7. Reproducible bootloader and signed image cross-build | Stages 5 and 8 | Pending. Desk findings on signing recorded. |
 
@@ -43,7 +43,7 @@ RAM load for SDRAM execution, and microSD on uSDHC for eMMC.
 | ID | Approval | State |
 | --- | --- | --- |
 | A0 | Start the #141 work package: desk work, decision record and Draft PR | Given by the owner |
-| A1 | Fetch MCUboot at the pin outside the repository, install imgtool dependencies in a separate virtual environment, generate development keys outside the repository | Given on 1 November 2026, for two trial builds: rank 1 (RAM load with revert) and rank 2 (swap using offset) |
+| A1 | Fetch MCUboot at the pin outside the repository, install imgtool dependencies in a separate virtual environment, generate development keys outside the repository | Given on 1 November 2026, for two RT1060 trial builds: rank 1 (RAM load with revert) and rank 2 (swap using offset). It does not cover RT1170 builds. |
 | A2 | Licence review before any NXP signing tool is downloaded (CST, SPSDK, SEC) | Not given. Stage 3 stayed documentation-only. |
 | A3 | Gate 1: accept or reject the recommendations in this record | Pending, after independent review |
 | A4 | Gate 2: merge the PR | Pending, after A3 |
@@ -59,6 +59,7 @@ in this summary.
 | Verified on pinned source | Checked at a cited file and line of a pinned revision. Shows what the code allows, not what a board does. |
 | Verified by public vendor document | Stage 3 only. A public vendor page or repository says so. It is the vendor's statement, not a Crux result. Where a document was read only through a summarising fetch, the label says "summarising fetch, not a full read". |
 | Verified by artefact | Stage 4 only. Read from a committed build output, record or map. |
+| Verified in repository | Stage 7 only. Read from a committed crux-pilot document. |
 | Inference | Reasoned from verified lines. |
 | Not verified | Not checked, not accessible or inferred. The reason is given in the evidence file. |
 | Verified by build | Not used yet. Reserved for Stages 5 and 8. |
@@ -88,6 +89,7 @@ recorded in [Corrections to the plan](#corrections-to-the-plan).
 | 3 HAB, BEE, boot media, signing tools | [stage3-findings.md](evidence/boot-update/stage3-findings.md), [stage3-summary.md](evidence/boot-update/stage3-summary.md) |
 | 4 Placement | [stage4.md](evidence/boot-update/stage4.md), [placement-rt1060.json](evidence/boot-update/placement-rt1060.json) |
 | 5, 6, 8 | Pending the A1 trial build |
+| 7 RT1170-EVK Rev A1 differences | [stage7-rt1170-delta.md](evidence/boot-update/stage7-rt1170-delta.md) (desk only, read at crux-pilot `5efdd8a`) |
 
 Row identifiers in brackets below (for example B61 or S2-4) point to the
 evidence files. A, B and L rows are in the Stage 1 findings. S2, V and R rows
@@ -170,7 +172,7 @@ checked against the pins:
 | Confirm | An application built for RAM load with revert compiles the swap variant of `boot_set_next`. It writes `image_ok` on the active slot, which is enough because the bootloader already wrote `copy_done`. The direct-XIP variant is compiled only for direct-XIP with revert (B63 as corrected). | Verified on pinned source |
 | Test request | Zephyr `boot_request_upgrade()` always opens slot 1. If slot 1 already has GOOD magic and is not active, nothing is written (B63a). | Verified on pinned source |
 | Consequence | When the application runs from slot 1 and writes a new image to slot 0, the request has no effect. The bootloader selects the higher-version image in slot 0, finds no GOOD magic and erases the whole slot. The update is lost without an error. | Inference |
-| Remedies | Application code that opens the inactive slot (from `BLINFO_RUNNING_SLOT`) and calls `boot_set_next(fa, false, permanent)`, or images signed with trailer magic (imgtool `--pad`). With a padded image, writing the image is itself the test request. | Code paths Verified on pinned source. Effect of padding is an Inference. |
+| Remedies | Application code that opens the inactive slot (from `BLINFO_RUNNING_SLOT`) and calls `boot_set_next(fa, false, permanent)`, or images signed with trailer magic (imgtool `--pad`). With a padded image, writing the image is itself the test request. A padded binary is the full slot size (imgtool `image.py`:453-454). | Code paths Verified on pinned source. Effect of padding is an Inference. |
 | mcumgr image management | Whether it avoids the problem was not checked. | Not verified |
 
 Rejected modes:
@@ -245,15 +247,18 @@ The upstream partitions are `mcuboot` `0x000000` to `0x020000`, `image-0`
 `0x620000` to `0x800000`, with 4 KiB erase blocks (A9). None of the three
 images exceeds 128 KiB.
 
-Open item for Stage 6: the real erase unit. The devicetree declares 4 KiB, and
+Open item for Stage 6: which erase size the update path may rely on. The devicetree declares 4 KiB, and
 the [storage assessment](storage-configuration-assessment.md) records 4 KiB
 sectors and 64 KiB erase blocks for this NOR. The LinkServer Flash algorithm
 used on this board detected the 8 MiB device as 128 sectors of 64 KiB and wrote
 in 64 KiB sectors
 ([#14 comment of 30 October 2026](https://github.com/wonny-labs/crux-pilot/issues/14#issuecomment-6530776373)).
-Keep partition boundaries 64 KiB aligned until the real erase unit is measured
-on the board. The upstream partition boundaries are already 64 KiB aligned.
- The 65,964-byte image size in the
+This does not show that 4 KiB erase is unavailable. Recommendation for Stage 6:
+keep partition boundaries 64 KiB aligned until the erase size the update path
+relies on is measured on the board. The upstream partition boundaries are
+already 64 KiB aligned.
+
+The 65,964-byte image size in the
 [M1 readiness record](platform-m1-readiness.md) matches no retained map or
 record and is unreconciled. The fenced layout proposal is pending Stage 6.
 
@@ -320,7 +325,7 @@ verified (Stage 3 A14).
 | Application built for MCUboot | Has no boot header and no DCD. It relies on the bootloader's DCD having run (A7, B86). | Build logic Verified on pinned source. That the boot ROM runs the bootloader's DCD is Not verified. A build cannot show it. Stage 3 D10 and the Stage 3 summary have been corrected to this label. |
 | RAM load address conflict | The board `zephyr,sram` is 32 MiB SDRAM at `0x80000000`. Bootloader RAM and the RAM load address both default to it (B53 to B56). MCUboot has no RT1060 overlay to change it. Its RT1050 RAM load overlay places retained boot information in SDRAM at `0x80007f00` (Stage 3 D11). On this board that would overlap an image loaded at `0x80000000`. | Lines Verified on pinned source. Conflict and the need for a Crux overlay are Inferences. Not verified by build. |
 | Boot from microSD as an eMMC analogue | Pinned Zephyr cannot build an SD or eMMC boot image (D1). SPSDK lists SD, MMC and eMMC boot layouts for this family (D4). The EVKB Board User Manual gives SW4 `ON-OFF-ON-OFF` for SD card boot (Table 10, D5 as corrected). | Switch setting: Verified by public vendor document (summarising fetch, not a full read). SD boot on EVKB without fuse settings: Not verified (D5 partly answered). |
-| Boot switch names | The Zephyr board document uses EVK (Rev A) names: SW7 for the boot switch and SW9 for reset (D3). On the EVKB the boot switch is SW4. QSPI boot is `OFF-OFF-ON-OFF`, recorded for the physical board in [baseline](baseline.md). Serial Downloader is SW4[3:4] `OFF ON`, that is `OFF-OFF-OFF-ON` (manual Table 9). SW7 is a reset button on the EVKB. | QSPI setting: repository record. Serial Downloader and SD settings: Verified by public vendor document (summarising fetch, not a full read). SW7 role: same, summary only. Rev A naming: Inference. |
+| Boot switch names | The Zephyr board document uses EVK (Rev A) names: SW7 for the boot switch and SW9 for reset (D3). On the EVKB the boot switch is SW4. QSPI boot is `OFF-OFF-ON-OFF`, recorded for the physical board in [baseline](baseline.md). Serial Downloader is SW4[3:4] = `01` (manual Table 9). With SW4[1:2] OFF this is `OFF-OFF-OFF-ON`. SW7 is a reset button on the EVKB. | QSPI setting: repository record. Serial Downloader two-bit value and SD setting: Verified by public vendor document (summarising fetch, not a full read). Four-position Serial Downloader string: Inference. SW7 role: same, summary only. Rev A naming: Inference. |
 | Recovery of a corrupted bootloader | The bootloader has one copy. Recovery depends on boot ROM paths, for example the serial downloader. Stage 3 did not answer this, although Stage 2 marked it pending Stage 3. | Not verified |
 
 ## Execution model
@@ -372,16 +377,83 @@ signature, version and size before it writes NOR. An application-side
 signature check needs an application crypto provider (#142, unscheduled).
 Source: [stage2-matrix.md](evidence/boot-update/stage2-matrix.md) section 6.
 
+## RT1170-EVK Rev A1
+
+On 2 November 2026 the owner returned RT1170-EVK Rev A1 to #141 as scope item
+5, desk and build-only. RT1060-EVKB Rev B remains the primary target and the
+only board for physical validation. RT1170 hardware verification is deferred
+and tracked in [#155](https://github.com/wonny-labs/crux-pilot/issues/155).
+Evidence: [stage7-rt1170-delta.md](evidence/boot-update/stage7-rt1170-delta.md).
+Stage 7 is a first-draft desk study. Its key layout, boot header, sample target
+and OTFAD claims were re-read at the pins when this record was assembled and
+matched (its "Assembly check" section). It has not had an independent review.
+
+**Build-only items are not done.** No RT1170 sysbuild configure and no RT1170
+bootloader cross-build was run. Both need A1 (the Stage 5 approval) to be
+extended to RT1170, and the documented Dev Container. A1 as given covers the
+two RT1060 trial builds only.
+
+Summary: on pinned source the RT1170-EVK Rev A has a 16 MiB QSPI NOR at
+`0x30000000` with 7 MiB slots, 64 MiB SDRAM started by XMCD, the FCB at
+`0x400`, and OTFAD in place of BEE. The mode ranking, version policy, staging
+variant (c) and the no-CSF finding carry over. RAM load needs an RT1170
+overlay. The XIP write evidence, HAB behaviour and OTFAD key and fuse needs are
+unknown. The upstream MCUboot sample target resolves to Rev B, not Rev A. No
+RT1170 build or hardware result exists.
+
+### Differences from RT1060
+
+| Topic | RT1060-EVKB Rev B | RT1170-EVK Rev A | Label | Rows |
+| --- | --- | --- | --- | --- |
+| External NOR | 8 MiB at `0x60000000` | IS25WP128, 16 MiB at `0x30000000` | Verified on pinned source | S7-L3, S7-L4 |
+| Upstream partitions | `mcuboot` 128 KiB, two 3 MiB slots, `storage` 1,920 KiB | `mcuboot` 128 KiB, two 7 MiB slots, `storage` 1,920 KiB. No scratch partition. | Verified on pinned source | S7-L6, S7-L8 |
+| Erase and write block in the devicetree | 4 KiB, 1 byte | 4 KiB, 1 byte. All boundaries are 64 KiB multiples. | Verified on pinned source. 64 KiB check is arithmetic. | S7-L6, S7-L7 |
+| SDRAM and its start-up | 32 MiB, DCD in the boot header | 64 MiB, XMCD in the boot header, DCD not built | Verified on pinned source | S7-L10, S7-B8 to S7-B10 |
+| Boot header offsets | FCB `0x0`, IVT `0x1000`, boot data `0x1020`, DCD `0x1030` | FCB `0x400`, IVT `0x1000`, boot data `0x1020`, XMCD `0x1040` | Offsets in Kconfig: Verified on pinned source. RT1170 addresses: Inference (no RT1170 map read). | S7-B3, S7-B6, S7-B9, S7-B12 |
+| Boot configuration file | One FCB file for revisions B and C | One FCB file per revision (Rev A and Rev B differ) | Verified on pinned source | S7-B2, S7-B4, S7-B5 |
+| XIP encryption | BEE | OTFAD (SPSDK also lists IEE). No BEE in the files read. | Verified by public vendor document. No BEE: Inference. | S7-S6, S7-S7 |
+| Upstream MCUboot sample target | Resolves to revision C | Resolves to revision B, not Rev A | Verified on pinned source | S7-A1 to S7-A3 |
+| MCUboot board files at the pin | None | None for the EVK. Only a `vmu_rt1170` configuration file. | Verified on pinned source (file-name listing) | S7-A5 |
+| Sectors per slot at 4 KiB | 768 | 1,792. Bootloader RAM effect not measured. | Inference | S7-A6 |
+| Boot switch | SW4 on the EVKB | SW1 patterns in the upstream board document, revision not named. Rev A1 settings Not verified. | Document text Verified on pinned source | S7-S15 |
+
+### Applicability of the RT1060 findings
+
+| Finding | RT1170-EVK Rev A | Reason |
+| --- | --- | --- |
+| Update mode ranking | Carries over | Mode logic is board-independent MCUboot code. A revert erases a 7 MiB slot instead of 3 MiB (Inference). |
+| RAM load with revert as rank 1 | Changes | Needs an RT1170 overlay for bootloader RAM, load window and retention region. The slot 1 request problem (B63a) and the RAM link (B68a) carry over. The SDRAM clock effect of the application's PLL set-up is Not verified. |
+| Staging variant (c) | Carries over | Stock MCUboot. 64 MiB SDRAM against 7 MiB slots. |
+| 64 KiB alignment recommendation | Carries over | Upstream boundaries conform. The erase size the update path may rely on is unknown for Rev A. |
+| XIP write hazards (#22) | Unknown | Same mechanism and driver family (Inference). The #22 evidence comes from RT1060 images only. |
+| Older-image rejection and version policy | Carries over | MCUboot comparison logic without board input. |
+| Signing tools | `imgtool` carries over. SPSDK unknown. | Whether SPSDK accepts a Zephyr image with FCB, IVT and XMCD is Not verified. |
+| No CSF in a Zephyr image | Carries over | Same IVT structure with `csf` 0. |
+| HAB open configuration | Unknown | RT1170 security reference manual not readable. |
+| BEE out of the candidate path | Does not apply | OTFAD replaces BEE. Its key source and fuse needs are Not verified. Address binding gives the same swap constraint (Inference). |
+| SDRAM readiness for an MCUboot application | Carries over, with XMCD in place of DCD | That the ROM runs the bootloader's XMCD is Not verified. |
+| Execution model and M6/M7 evidence | Not assessed | RT1170 is not part of the M6 and M7 scope. |
+
+### Later work for #155 (hardware)
+
+Stage 7 section 6 lists 13 items. They include confirming that the Rev A1 PCB
+is Zephyr revision `A` with the devicetree's flash and SDRAM, Rev A1 boot and
+serial downloader switch settings, ROM processing of the bootloader XMCD, the
+erase size, silicon revision, RAM load copy, watchdog, cache and clock
+behaviour, revert and recovery, #22-style closure, HAB event readback, OTFAD
+key behaviour and SD boot. This record proposes no hardware operation. Each
+item needs its own approval.
+
 ## Recommendations and decisions
 
 Nothing in this record is adopted. The owner decisions for #141 are the
-RT1170-EVK deferral, A0 and A1. All other rows are recommendations for A3.
+RT1170-EVK scope decisions of 1 and 2 November 2026, A0 and A1. All other rows are recommendations for A3.
 
 | Item | Content | Status |
 | --- | --- | --- |
 | Bootloader | MCUboot at the Zephyr pin, ECDSA P-256 with tinycrypt | Recommendation |
 | Update mode | Rank 1 RAM load with revert, rank 2 swap using offset, rank 3 direct-XIP with revert | Recommendation |
-| Rank 1 test request | Application code that marks the inactive slot, or images signed with trailer magic | Recommendation, owner decision needed |
+| Rank 1 test request | Application code that marks the inactive slot, or images signed with trailer magic | Owner decision needed |
 | Trial builds | Rank 1 and rank 2 | Approved (A1, 1 November 2026) |
 | Staging medium | Variant (c), NOR slot, optionally through an SDRAM buffer | Recommendation |
 | Execution model | RAM load into SDRAM as M8 reference candidate, after M7 target validation | Recommendation |
@@ -390,11 +462,12 @@ RT1170-EVK deferral, A0 and A1. All other rows are recommendations for A3.
 | BEE | Not part of the candidate path | Recommendation, owner decision needed |
 | HAB | Documentation result only. Event readback and closed configuration are later, separately approved work. | Recommendation |
 | Fenced layout | Pending Stage 6 | Not yet available |
+| RT1170-EVK Rev A1 | Desk differences recorded. Hardware deferred to #155. Build-only items pending. | Owner decision of 2 November 2026 (scope). Content is a desk result. |
 
 ## Owner decisions needed
 
-The recommended options summarise the stage recommendations. Rows 8, 11, 12
-and 13 have no stage recommendation and are left to the owner.
+The recommended options summarise the stage recommendations. Rows 8 and 11
+to 15 have no stage recommendation and are left to the owner.
 
 | # | Decision | Recommended option | Source |
 | --- | --- | --- | --- |
@@ -410,7 +483,9 @@ and 13 have no stage recommendation and are left to the owner.
 | 10 | Whether BEE stays out of M8, since it needs customised MCUboot and overwrite-only | Keep it out | Stage 3 decision 4 |
 | 11 | Whether to plan a dedicated board for future closed-configuration work | Owner choice. The EVKB is listed as no longer manufactured (Stage 3 E2). | Stage 3 decision 5 |
 | 12 | Whether to adopt the #141 scope wording corrections in plan section 9 | Owner choice | Plan section 9 |
-| 13 | Rank 1 needs either application code that marks the inactive slot for test, or images signed with trailer magic (imgtool `--pad`). Which one should the trial and M8 use? | Owner choice. Both are stock on source. Padding makes every written higher-version image a test request (Inference). | Independent review 1, F1. Stage 2 decision 7. |
+| 13 | Rank 1 needs either application code that marks the inactive slot for test, or images signed with trailer magic (imgtool `--pad`). Which one should the trial and M8 use? | Owner choice. Both are stock on source. Padding makes every written higher-version image a test request (Inference). A padded binary is the full slot size, so the network transfer, the SDRAM buffer and the NOR write become 3 MiB per update on RT1060, while the hex output is sparse (imgtool `image.py`:432-454). RAM load with revert does not imply `MCUBOOT_GENERATE_CONFIRMED_IMAGE`, unlike direct-XIP with revert, so confirmed images must be enabled explicitly (Zephyr `modules/Kconfig.mcuboot`:270-290 and 312). | Independent review 1, F1. Independent review 2, N2. Stage 2 decision 7. |
+| 14 | Extend A1 (the Stage 5 approval) to an RT1170 sysbuild configure and bootloader cross-build for rank 1 and rank 2 in the Dev Container | Owner choice. Without it, scope item 5 stays desk-only. | Stage 7 section 6 |
+| 15 | Which RT1170 items, if any, #155 should cover first when hardware work is planned | Owner choice | Stage 7 section 6 |
 
 ## Corrections to the plan
 
@@ -425,6 +500,7 @@ and 13 have no stage recommendation and are left to the owner.
 | Section 5.2: three evidence labels, with vendor documentation classed as Not verified | The record uses an extended label set: "Verified by public vendor document" (Stage 3), "Verified by artefact" and "Verified on source" (Stage 4), and "Inference". They were needed to separate a vendor's public statement, a committed build record and a reasoned conclusion from a plain Not verified. None of them means a Crux build or hardware result. | [Evidence labels](#evidence-labels) |
 | Stage 1 verification: a second agent re-reads each cited line | Not done as a separate step. Independent review 1 spot-checked 47 rows. See Method. | Method |
 | Evidence locations: `pinned-source-findings.md` and `review-record.md` | The Stage 1 files are `stage1-pinned-source-findings.md` and `stage1-answers.md`. No review record file is in the repository yet. Stage 9 will add it. | [Evidence index](evidence/boot-update/README.md) |
+| Section 1.1 item 5, Stage 7, question 11 and the model and mapping tables: RT1170-EVK removed or deferred (1 November 2026) | Superseded on 2 November 2026. Owner decision: RT1170-EVK Rev A1 is back in scope as item 5, desk and build-only. Hardware verification is deferred to #155. The plan is kept as written with a note at its top. | Plan note, [stage7-rt1170-delta.md](evidence/boot-update/stage7-rt1170-delta.md) |
 | Header: crux-pilot baseline `bb7f425` | Stage 0 read `f67e22a`. `origin/main` then moved to `f57ff22` when #147 merged. Stage 2 read `f57ff22`. Stages 3 and 4 cite `f67e22a`. | Stage 0, Stage 2 section 0 |
 
 Corrections between stages:
@@ -440,7 +516,8 @@ Corrections between stages:
 | Stage 1 B62: an image without a header is not booted | Independent review 1: the bootloader erases the whole slot of a selected image without GOOD trailer magic. |
 | Stage 2 write extents: "full swap of both slots", "erase the whole primary slot" | Independent review 1: swap and overwrite stop at the image size. Only the revert paths of RAM load and direct-XIP erase the whole slot. |
 | Stage 3 D10 and summary: the boot ROM runs the bootloader DCD, "Not verified by build" | Independent review 1: vendor boot ROM behaviour, Not verified. A build cannot show it. D11 "needs a Crux overlay" is an Inference. |
-| Stage 3 D3 and summary: SW7 boot switch settings from the Zephyr board document | The Zephyr document uses EVK (Rev A) names. On the EVKB the boot switch is SW4, Serial Downloader is `OFF-OFF-OFF-ON`, `ON-OFF-ON-OFF` selects SD card boot, and SW7 is a reset button. Source: EVKB Board User Manual Rev. 0, Tables 9 and 10, read through a summarising fetch, not a full read. |
+| Stage 3 D3 and summary: SW7 boot switch settings from the Zephyr board document | The Zephyr document uses EVK (Rev A) names. On the EVKB the boot switch is SW4, Serial Downloader is SW4[3:4] = `01` (read as `OFF-OFF-OFF-ON` with SW4[1:2] OFF, an Inference), `ON-OFF-ON-OFF` selects SD card boot, and SW7 is a reset button. Source: EVKB Board User Manual Rev. 0, Tables 9 and 10, read through a summarising fetch, not a full read. |
+| Earlier record wording "RT1170-EVK is deferred" (target line and scope row 5, 1 November 2026) | Superseded on 2 November 2026 by the owner decision above. Stage 4 keeps its dated wording with a note. Stage 0 keeps the dated PR #148 line. |
 | Stage 3 D5: SD boot switch settings not verified | Partly answered: the manual gives a switch setting. Whether SD boot works without fuse settings is still Not verified. |
 
 ## Not verified
@@ -461,7 +538,7 @@ Corrections between stages:
 | Rank 1 test request reaches the inactive slot in the trial configuration, and whether mcumgr image management avoids the slot 1 problem | Stage 5 or 6 check of the application path |
 | Duration of a whole-slot revert erase under bootloader XIP, and watchdog behaviour during the RAM load copy and the erase (`BOOT_WATCHDOG_SETUP_AT_BOOT`) | Stage 6, then hardware |
 | Cache and MPU state at the bootloader-to-application jump on the Cortex-M7 after a CPU copy into write-back cached SDRAM. MCUboot defaults `BOOT_DISABLE_CACHES=y` and `MCUBOOT_CLEANUP_ARM_CORE=y`. `MCUBOOT_CLEANUP_RAM` is not offered (B69). | Stage 5 `.config` check, then hardware |
-| Real NOR erase unit on the board (4 KiB in the devicetree, 64 KiB in the LinkServer algorithm) | Stage 6 layout, then a board measurement |
+| Which erase size the update path may rely on (4 KiB sector and 64 KiB block in the devicetree and storage assessment, 64 KiB in the LinkServer algorithm). 64 KiB alignment is a Stage 6 recommendation, not a finding. | Stage 6 layout, then a board measurement |
 | Recovery of a corrupted bootloader through boot ROM paths, for example the serial downloader | Reference manual, hardware |
 | RT1060 open-configuration HAB behaviour with blank SRK hash fuses, and event readback means | Security reference manual and a board |
 | BEE key default (conflict between C2 and C4) and fuse needs | Security reference manual |
@@ -470,13 +547,22 @@ Corrections between stages:
 | RT1060 fuse irreversibility and the closed-configuration procedure | Reference manual and security reference manual |
 | Licences of SEC, CST and SPSDK binary dependencies, and SEC headless operation | A2 |
 | Python version in the Dev Container | Dev Container check |
+| RT1170: any sysbuild configure or bootloader cross-build, bootloader size and RAM cost with 1,792 sectors per slot, and a working RAM load overlay | A1 extended to RT1170, and the Dev Container |
+| RT1170: that the Rev A1 PCB is Zephyr revision `A` with the devicetree's IS25WP128 and SDRAM, and whether the named SDRAM part matches the 64 MiB node | Board inspection (#155), part data sheet |
+| RT1170: boot ROM behaviour, including XMCD processing, HAB open configuration and event logging, and recovery of a corrupted bootloader | Reference manual, security reference manual, hardware (#155) |
+| RT1170: Rev A1 boot and serial downloader switch settings | Rev A1 user guide, hardware (#155) |
+| RT1170: OTFAD key source and fuse needs, which of OTFAD and IEE covers which memory, and any no-fuse evaluation | Security reference manual |
+| RT1170: cause of the 133 MHz FCB clock against the 104 MHz devicetree maximum | Flash data sheet |
+| RT1170: header addresses of a built image | RT1170 CI map or a rebuild |
+| RT1170: erase size the update path may rely on | Board measurement (#155) |
 
 ## Next steps
 
 | Step | Content |
 | --- | --- |
-| Stage 5 | Add the trial build inputs, provenance for the bootloader and each signed application, and the size, RAM and configuration results for rank 1 and rank 2. Check in the rank 1 application `.config` that `CONFIG_XIP=n`, `CONFIG_FLASH_SIZE=0` and `USE_DT_CODE_PARTITION=y`, and in the bootloader `.config` the values of `BOOT_DISABLE_CACHES`, `MCUBOOT_CLEANUP_ARM_CORE` and `BOOT_WATCHDOG_SETUP_AT_BOOT`. Record how the rank 1 trial marks the inactive slot for test. |
+| Stage 5 | Add the trial build inputs, provenance for the bootloader and each signed application, and the size, RAM and configuration results for rank 1 and rank 2. Check in the rank 1 application `.config` that `CONFIG_XIP=n`, `CONFIG_FLASH_SIZE=0` and `USE_DT_CODE_PARTITION=y`, and in the bootloader `.config` the values of `BOOT_DISABLE_CACHES`, `MCUBOOT_CLEANUP_ARM_CORE` and `BOOT_WATCHDOG_SETUP_AT_BOOT`. Record how the rank 1 trial marks the inactive slot for test, and whether `MCUBOOT_GENERATE_CONFIRMED_IMAGE` is set. |
 | Stage 6 | Add the fenced layout proposal with 64 KiB aligned partition boundaries, the NOR write inventory by actor and phase (including whole-slot revert erases), and the layout change timing against M6 and M7 evidence |
+| Stage 7 | Independent review of the Stage 7 desk study. RT1170 sysbuild configure and bootloader cross-build only after A1 is extended to RT1170 (owner decision 14). |
 | Stage 8 | Add the reproducibility comparison, `imgtool verify` output, public key hash and the check that no private key is in the repository, logs or evidence |
 | Stage 9 | Independent review by a reviewer who did not author this record, recorded as PASS, REVISE or ESCALATE |
 | A3, A4 | Owner decision on the recommendations, then merge approval |
