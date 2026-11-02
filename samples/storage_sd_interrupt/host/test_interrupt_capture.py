@@ -213,3 +213,27 @@ class ObserveWithPortLoss(unittest.TestCase):
                           judged[1]['acked_lost']), (3, 2, 1, 1))
         s = ic.summarize(results)
         self.assertEqual((s['judged'], s['with_acked_lost']), (2, 2))
+
+
+class PortNotThereYet(unittest.TestCase):
+    def test_a_port_that_appears_late_is_waited_for_not_an_error(self):
+        import os
+        import pty
+        import tempfile
+        import threading
+        import time
+
+        directory = tempfile.mkdtemp()
+        link = os.path.join(directory, 'port')
+        console = ic.Console(link, 115200)  # the port does not exist yet: must not raise
+        master, slave = pty.openpty()
+
+        def appear():
+            time.sleep(0.5)
+            os.symlink(os.ttyname(slave), link)
+            time.sleep(0.2)
+            os.write(master, (L('ACK 1') + '\r\n').encode())
+
+        threading.Thread(target=appear, daemon=True).start()
+        lines = list(console.lines(2.0))
+        self.assertIn(L('ACK 1'), lines)

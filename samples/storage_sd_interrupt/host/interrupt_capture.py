@@ -107,7 +107,10 @@ def judge(last_ack, recover):
 class Console:
     def __init__(self, path, rate):
         self.path, self.rate, self.fd, self.buffer = path, rate, None, b''
-        self.open()
+        try:
+            self.open()
+        except OSError:
+            pass  # the port may not be back yet after a power cut; lines() keeps trying
 
     def open(self):
         self.fd = os.open(self.path, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
