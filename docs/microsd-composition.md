@@ -35,7 +35,10 @@ component unbound, so a later `sd_storage_start()` can succeed. The Settings Fil
 is not part of this sequence; its target provider is a separate decision.
 
 Selection: `CONFIG_CRUX_FILE_FATFS_RT1060` links the File provider into an EVKB Rev B image.
-It is off by default and requires the guarded FatFs/SDHC configuration. The older
+It is off by default and requires the Rev B QSPI board (`BOARD_REVISION_B` and
+`BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI`, enforced in Kconfig, the File port CMake and a C `#error`;
+the testcase and sample CMake turn an unsatisfied dependency into an error because Kconfig only
+warns) and the guarded FatFs/SDHC configuration. Rev C and the hyperflash variant are refused. The older
 `CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK` object-only check remains.
 `CONFIG_SAMPLE_SD_START` (off by default) makes the sample image run the mount sequence at
 boot.
@@ -91,6 +94,23 @@ On one RT1060-EVKB Rev B and one 16 GB FAT32 (MBR) card the composition mounted 
 across two normal CPU resets; the card was clean under `fsck_msdos -n` and held the expected contents on
 the host afterwards. This is a single run on one card. It is not power-loss, removal, timing or endurance
 evidence. Details and limits: [docs/evidence/microsd-physical](evidence/microsd-physical/README.md).
+
+## Profile limits and decisions
+
+- **Settings and power loss (owner decision, 2 November 2026):** the controller may lose its
+  latest saved setting after a power cut and fall back to a previous value or to defaults, then
+  be configured again. FatFs is not required to do better. If it cannot meet the product need
+  after physical evidence, a different file system (for example Reliance Edge) is the intended route, so no FatFs
+  effort goes into checksummed or atomic Settings storage. No Settings File target provider is
+  part of this composition.
+- **File size:** FAT32 (the card format here; exFAT is not enabled) files end at 4 GiB minus
+  one byte. A write that would cross the limit is cut to the remaining bytes and returns
+  `CRUX_FILE_PARTIAL`; a write made when no bytes remain is reported as `NO_SPACE`, not
+  `OUT_OF_RANGE`, and `crux_file_seek` rejects offsets above `INT32_MAX`
+  (2 GiB minus one). Files larger than 2 GiB are outside this profile; this is a documented
+  limit, not a tested behaviour (the simulator media is 1 MiB).
+- **Persistence script:** `scripts/test-file-persistence.sh` stays a manual gate and is not in
+  CI (about a minute and dependent on host timing).
 
 ## Not covered (needs the card and board)
 

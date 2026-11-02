@@ -65,3 +65,24 @@ for name, wanted in [('crux.sample.storage_sd', False), ('crux.sample.storage_sd
         raise RuntimeError(f'{name}: CONFIG_SAMPLE_SD_START enabled={enabled}, expected {wanted}')
 print(f'RT1060 File link check built {len(suites)} scenarios on {sys.argv[2]}')
 PY
+
+# Negative control: the same check on Rev C and on the hyperflash variant must be refused, not
+# skipped. An unsatisfied Kconfig dependency only warns, so the testcase's CMake rejects it.
+for other in 'mimxrt1060_evk@C/mimxrt1062/qspi' 'mimxrt1060_evk@B/mimxrt1062/hyperflash'; do
+    control="$repo/build/zephyr/file-rt1060-refused-${other//[@\/]/_}"
+    if (cd "$workspace" && west build -p always -b "$other" -d "$control" \
+            "$repo/tests/zephyr/file_fatfs_compile" > "$control.log" 2>&1); then
+        echo "RT1060 File compile check was not refused on $other" >&2
+        exit 1
+    fi
+    # The refusal must come from the guard: Kconfig names the unmet Rev B / QSPI dependency.
+    grep -q 'BOARD_REVISION_B (=n)\|BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI (=n)' <(tr '\n' ' ' < "$control.log") || {
+        echo "RT1060 File compile check was refused on $other without the board guard" >&2
+        exit 1
+    }
+    grep -q 'compile check is not selected' "$control.log" || {
+        echo "RT1060 File compile check failed on $other for another reason" >&2
+        exit 1
+    }
+    echo "RT1060 File compile check refused on $other, as intended"
+done
