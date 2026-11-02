@@ -2,36 +2,42 @@
 
 @AGENTS.md
 
-This file adds Claude-specific workflow and model-selection guidance. Follow `AGENTS.md`, `CONTRIBUTING.md`, the active user authorisation, adopted decisions and applicable GitHub issue/PR records. Do not duplicate their architecture, testing or approval rules here.
+`AGENTS.md` holds the rules for every agent in this repository and wins over this file. This file adds Claude-specific routing: which skill, model and subagent fits each kind of work.
 
-## Choose a workflow
+## Route the work
 
-First inspect the request, issue/PR, existing decisions, current source and installed skills. The skill names below are preferences, not repository dependencies. Use them only when installed and applicable. Do not install plugins or change global settings without authorisation.
+Inspect the request, the issue or PR, existing decisions and installed skills, then pick the row that fits. Skills are preferences. Use an installed skill by its full `plugin:skill` name. Suggest a user-invoked skill to the user instead of running it. Run one workflow per task and reuse approved requirements and plans.
 
-Respect each installed skill's invocation metadata. Matt Pocock `grill-me`, `to-tickets` and `handoff` are user-invoked workflows: suggest them when appropriate rather than assuming automatic execution. Model-invocable skills such as `grilling` and `writing-for-agents` may be selected when installed and relevant. After installing Matt Pocock Skills, suggest `/setup-matt-pocock-skills` for project configuration, but review and obtain authorisation for any proposed repository, issue or label changes.
+| Work | Skill or agent | Model |
+|---|---|---|
+| Unclear requirements or a design decision | `mattpocock-skills:grilling` or `superpowers:brainstorming`, one of them. Suggest `mattpocock-skills:grill-me` to the user. | Opus for cross-cutting design, otherwise Sonnet |
+| Breaking large work into issues | Suggest `mattpocock-skills:to-tickets` to the user | Sonnet |
+| Approved multi-step implementation | `superpowers:writing-plans`, then `superpowers:executing-plans` or `superpowers:subagent-driven-development` | Sonnet |
+| New behaviour, bug fixes, scripts and tests | `superpowers:test-driven-development` | Sonnet |
+| Failing checks or unexpected behaviour | `superpowers:systematic-debugging` | Sonnet, or Opus if the cause stays unclear |
+| Agent guidance and skills | `mattpocock-skills:writing-for-agents` | Sonnet |
+| External research | `mattpocock-skills:research` | Sonnet |
+| Finding files or code | built-in `Explore` agent | Haiku |
+| Material review | `reviewer` agent | Opus, fixed in the agent |
+| Before claiming completion | `superpowers:verification-before-completion` | Same as the work |
+| Hand-off to another session or agent | Suggest `mattpocock-skills:handoff` to the user | Same as the work |
+| Small or mechanical change | none | Sonnet |
 
-- **Unresolved requirements or significant design decisions:** Suggest the user-invoked Matt Pocock `grill-me` for a focused interview, or use Superpowers `brainstorming` for a new design. Do not run both discovery workflows by default. Preserve previously approved decisions unless new evidence warrants review.
-- **Approved multi-step implementation:** Use Superpowers `writing-plans` if a new implementation plan is needed. After any required plan approval, use `subagent-driven-development` or `executing-plans` as appropriate, with `test-driven-development` for behaviour changes.
-- **Bugs, failed tests and CI failures:** Use `systematic-debugging` to establish the root cause. Add a failing regression test first where practical, then implement and verify the fix.
-- **Review and completion:** Use `requesting-code-review` when independent review is required, and `verification-before-completion` before claiming success. Neither skill replaces the project's human review gates.
-- **Breaking down larger work:** Suggest the user-invoked Matt Pocock `to-tickets` when issue decomposition would help. Create or change GitHub issues only within the active authorisation.
-- **Codex/Claude handoff:** Suggest the user-invoked Matt Pocock `handoff` when useful. Preserve authoritative progress, evidence, blockers and next steps in the relevant GitHub issue/PR when authorised.
-- **Small documentation or mechanical changes:** Keep the workflow proportionate. Do not force brainstorming, a new plan or additional subagents without a clear benefit.
+Skills and subagents add no approval or permissions. When a skill asks for confirmation, continue only if the task's approval and tool permissions already cover the action. A skill's default folders, commits, branches, PRs and clean-up give way to `AGENTS.md` and the task's approval. Record skill outputs such as designs, plans and research in the issue or in existing docs.
 
-Apply Superpowers and other skills within the work package and human gates defined in `AGENTS.md`. Reuse approved requirements, designs and plans instead of restarting discovery or seeking repeated approval for routine in-scope steps. Where a skill asks for confirmation, proceed only if existing authorisation and tool permissions cover that action. Escalate material decisions or required permissions, but continue independent authorised work rather than blocking the whole task.
+## Models and subagents
 
-Use one primary implementation orchestrator per task. Do not combine Superpowers implementation workflows with Matt Pocock `implement` or `implement-spec` for the same work unless explicitly directed. A skill's default branch, PR, issue-closure or clean-up steps never override the repository rules, existing work or task-specific approval gates.
+- The models above are defaults. The main session keeps its selected model. When work needs a different model, delegate it to a subagent with that model or ask the user to switch.
+- Choose for end-to-end efficiency: the required quality first, then time, retries and rework, then cost. Start with moderate reasoning effort and raise it for complex or risky work. Investigate a failure before reaching for a stronger model.
+- A subagent that a skill dispatches uses at least the default model for that work.
+- Change a default only through a reviewed change to this file, based on recorded outcomes such as rework.
+- Use a subagent for independent review, context isolation, safe parallel work or a different model. Keep work that shares files in one agent.
+- Record the exact model ID that ran, or "unknown", and the tool version.
 
-## Agents and models
+## Review with the reviewer agent
 
-- The main conversation uses its currently selected model. These preferences do not automatically switch the main-session model.
-- When available, prefer **Haiku** for bounded, read-only research or file discovery, **Sonnet** for routine implementation, testing and delegated review, and **Opus** for complex architecture, cross-component reasoning or high-risk investigations and reviews.
-- Select models and reasoning effort based on task complexity, uncertainty, risk, model capability and expected end-to-end efficiency, including execution time, retries, rework and cost. Prioritise achieving the required quality and reliability with appropriate verification rather than minimising cost or maximising model capability in isolation.
-- Start with moderate reasoning effort for well-defined tasks. Increase it when deeper analysis is justified, reserving the highest levels for exceptional complexity or risk. Investigate failures before assuming that a stronger model or higher effort is needed.
-- Use stronger models or higher reasoning effort proactively when justified by complexity, uncertainty or risk. Adapt selections based on verified outcomes and observed resource use, without compromising quality, safety or human approval requirements.
-- Use subagents only when independent review, context isolation or safe parallel investigation adds value. For a required independent review, the reviewer must not have authored the implementation. Do not parallelise tasks that may conflict in shared files or state.
-- Specify the model for a delegated task when the installed tool supports it. Otherwise use the available model without claiming a model switch. All subagents remain bound by the same approvals and safety requirements.
+The `reviewer` agent in `.claude/agents/` has read-only tools and a fixed Opus model. Use it for every material review and keep its model. Reviews inside a skill, such as the task reviews of `superpowers:subagent-driven-development`, do not replace it. It has no shell, so supply the base and head SHAs, the diff command, the diff as a file, the changed protected paths, the acceptance criteria, and the check results with who ran them. Run the checks yourself and record them apart from the review.
 
 ## Completion and handoff
 
-Record the actual revision, validation commands and outcomes, tests not run, open findings, blockers and required approvals. Mention significant skill, delegation and model choices when useful for review. Never equate Host tests, `native_sim`, cross-compilation, CI and physical-board evidence.
+Record the revision, the checks as `AGENTS.md` requires, open findings, approvals still needed, and significant skill, delegation and model choices.

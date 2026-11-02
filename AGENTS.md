@@ -55,16 +55,47 @@ not author the change or its implementation. The reviewer independently checks
 the applicable requirements, actual source and configuration, tests and retained
 evidence rather than relying on the author's summary or verdict. Record a
 reasoned `PASS`, `REVISE` or `ESCALATE` decision, including material limitations
-and unresolved findings. `REVISE` requires correction and independent re-review.
-`ESCALATE` or a material disagreement requires a human decision. A review `PASS`
-satisfies only its defined review gate and does not grant new scope, hardware,
-merge or issue-closure authority.
+and unresolved findings. Review against the task's acceptance criteria. A
+blocking finding is an unmet criterion, a broken rule in this file or a factual
+error. `PASS` means no blocking finding. `REVISE` means blocking findings that the author can fix
+within the approved scope. Fix them and get one independent re-check.
+`ESCALATE` means a finding needs a human decision, a material disagreement
+remains, or a blocking finding remains after the re-check. Record other findings
+in the issue, the PR or a follow-up issue and decide them there, instead of
+starting another review round. A review `PASS` satisfies only its defined review
+gate and does not grant new scope, hardware, merge or issue-closure authority.
 
 Completed work-specific delegations, decisions and acceptance evidence remain in
 the associated issues, pull requests and validation records. Their permissions
 are not standing authorisation for future work. Continue to follow adopted
 technical decisions where applicable, while resolving current task scope and
 approval independently.
+
+## Protected paths
+
+These paths hold the rules, the check definitions and the recorded evidence that
+reviews depend on:
+
+- `AGENTS.md`, `CLAUDE.md`, `.claude/` and `CONTRIBUTING.md`
+- `.github/`, `scripts/`, `CMakePresets.json`, `.clang-format` and `.clang-tidy`, which define the checks
+- `docs/evidence/` and `docs/baseline.md`, which record verification evidence
+
+Change an existing file on these paths only within an explicit human approval
+that covers that change. A new check script or evidence record may be added
+within the task. Keep accepted evidence unchanged. In the PR description, list
+each changed protected file from
+`git diff --name-only --no-renames origin/main...HEAD`, with a link to the human
+approval or, when it was given in a session, a quote with its time and place.
+Get a material independent review.
+
+Tests change with behaviour under test-driven development and are not protected.
+Change an existing assertion only when the approved behaviour changes, and never
+weaken or delete a test to make a check pass.
+
+Nothing enforces this list yet. The repository is public, so branch protection
+and required review are available, but `main` has none. Issue #162 tests which
+GitHub controls hold. Branch protection alone cannot check the scope of an
+approval or that the independent review ran.
 
 ## Validation and evidence
 
