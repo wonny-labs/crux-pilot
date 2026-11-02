@@ -329,7 +329,11 @@ the same portable consumer for RT1060-EVKB (twice: with the user button, and wit
 header D2 selected by an overlay in `tests/gpio/evkb/compositions`) and for RT1170-EVK board
 revision A (Cortex-M7), each with its own alias overlay under `tests/gpio/evkb/boards`;
 `tests/build/test_gpio_evkb_compositions.py` checks on the Host that the two RT1060-EVKB
-builds use one source, different lines and separate build directories. Two further
+builds use one source, different lines and separate build directories. The I2C and SPI
+runners (`scripts/test-i2c.sh`, `scripts/test-spi.sh`) cross-build the TMP117 and flash
+identification consumers for both boards from `tests/i2c/evkb` and `tests/spi/evkb`, each
+with an overlay that binds the Arduino header bus; they are compile and link evidence only,
+checked on the Host by `tests/build/test_i2c_spi_board_crossbuilds.py`. Two further
 native_sim apps under `tests/gpio/zephyr_failure` reach native driver failures through
 the emulator: an open-drain flag gives `-ENOTSUP` and a pin the emulated controller does
 not have gives `-EINVAL`. They run with Zephyr assertions disabled, because the generic

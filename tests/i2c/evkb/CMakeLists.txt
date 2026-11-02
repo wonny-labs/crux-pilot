@@ -1,0 +1,16 @@
+cmake_minimum_required(VERSION 3.20.0)
+set(DTS_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_i2c_evkb C)
+include("${CMAKE_CURRENT_LIST_DIR}/../../../cmake/CruxConsumerBoundary.cmake")
+# The portable consumer is the one the Host and native_sim tests already use.
+add_library(i2c_consumer_portable OBJECT ../consumer/tmp117.c)
+target_include_directories(i2c_consumer_portable PRIVATE ../consumer)
+target_link_libraries(i2c_consumer_portable PRIVATE crux::i2c)
+target_compile_options(i2c_consumer_portable PRIVATE -Wall -Wextra -Werror)
+set_target_properties(i2c_consumer_portable PROPERTIES C_STANDARD 17 C_STANDARD_REQUIRED YES
+    C_EXTENSIONS OFF)
+crux_assert_portable_consumer(i2c_consumer_portable)
+target_sources(app PRIVATE main.c $<TARGET_OBJECTS:i2c_consumer_portable>)
+target_include_directories(app PRIVATE ../consumer)
+target_link_libraries(app PRIVATE crux::i2c)

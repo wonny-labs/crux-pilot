@@ -52,3 +52,17 @@ CRUX_WORKSPACE="$workspace" CRUX_I2C_COMPOSITION_TESTS=1 \
     -T "$repo/tests/i2c_zephyr" -T "$repo/tests/i2c_consumer_zephyr" \
     -O "$repo/build/zephyr/twister-i2c" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$repo")
+mapfile -t modules < <(cd "$workspace" && west list cmsis cmsis_6 hal_nxp -f '{abspath}')
+modules+=("$repo")
+modules_text="$(IFS=';'; printf '%s' "${modules[*]}")"
+# The same portable consumer for both boards. Zephyr's CMake honours these variables, so clear
+# them: each build must use only the board's own configuration plus the overlay in
+# tests/i2c/evkb/boards.
+unset DTC_OVERLAY_FILE EXTRA_DTC_OVERLAY_FILE OVERLAY_CONFIG CONF_FILE BOARD_ROOT
+(cd "$workspace" && west build -p always -b 'mimxrt1060_evk@B//qspi' \
+    -d "$repo/build/zephyr/i2c-evkb" "$repo/tests/i2c/evkb" -- \
+    -DZEPHYR_MODULES="$modules_text" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+(cd "$workspace" && west build -p always -b 'mimxrt1170_evk@A/mimxrt1176/cm7' \
+    -d "$repo/build/zephyr/i2c-rt1170" "$repo/tests/i2c/evkb" -- \
+    -DZEPHYR_MODULES="$modules_text" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+# The cross-builds are compile and link evidence only; this script never operates hardware.
