@@ -73,7 +73,7 @@ Stage 1 found eleven sysbuild modes (A3, B10, B49). This matrix covers the eight
 | RAM load | `BOOT_RAM_LOAD` | B49 to B52 |
 | RAM load with revert | `BOOT_RAM_LOAD` + `BOOT_RAM_LOAD_REVERT` | B61 |
 
-Common facts for every mode: the BL keeps the NXP boot header and DCD and executes in place from QSPI NOR at `0x60000000` (A7, A9, B87). Every BL write listed below therefore happens while the BL executes from the same NOR. The #22 closure obligations (R2) apply to the BL's FlexSPI NOR driver path. Whether MCUboot links the RAM-relocated driver path is **Not verified (no build)**.
+Common facts for every mode: the BL keeps the NXP boot header and DCD and executes in place from QSPI NOR at `0x60000000` (A7, A9, B87, and MCUboot `boot/zephyr/app.overlay`:1-5, which sets `zephyr,code-partition = &boot_partition`). Every BL write listed below therefore happens while the BL executes from the same NOR. The #22 closure obligations (R2) apply to the BL's FlexSPI NOR driver path. Whether MCUboot links the RAM-relocated driver path is **Not verified (no build)**.
 
 ## 2. Mode matrix
 
@@ -81,14 +81,14 @@ Common facts for every mode: the BL keeps the NXP boot header and DCD and execut
 
 | Mode | App NOR writes | BL NOR writes | Rows |
 | --- | --- | --- | --- |
-| Swap using offset | Whole image into the secondary slot from its second sector. Pending trailer fields in the secondary slot. `image_ok` in the primary trailer to confirm. All while the App executes in place from the primary slot. | Next boot: full swap of both slots sector by sector, progress status in the primary trailer, then `copy_done`. On revert: a second full swap plus `image_ok`. Invalid secondary: slot erase. | B12, S2-2, S2-3, S2-4, S2-5, S2-6, S2-7, B5 |
+| Swap using offset | Whole image into the secondary slot from its second sector. Pending trailer fields in the secondary slot. `image_ok` in the primary trailer to confirm. All while the App executes in place from the primary slot. | Next boot: swap of both slots sector by sector up to the larger image size (plus trailer and status sectors), progress status in the primary trailer, then `copy_done`. On revert: a second swap of the same extent plus `image_ok`. Invalid secondary: slot erase. Corrected after independent review 1: the swap covers the larger image size, not the whole slot (M `loader.c`:1141-1197, 1227). | B12, S2-2, S2-3, S2-4, S2-5, S2-6, S2-7, B5 |
 | Swap using move | As swap using offset, but the image starts at the first sector of the secondary slot. | As swap using offset, plus an initial move of every primary sector up by one. More erase cycles than offset. | S2-9, S2-13, S2-4 to S2-7 |
 | Swap using scratch | As swap using offset. | Full swap through a scratch partition. Status writes go partly to scratch. The board devicetree has no scratch partition. | B5, B10, S2-4, S2-13 |
-| Overwrite-only | Whole image into the secondary slot plus pending fields. No confirm write is needed (see 2.2). | Next boot: erase the whole primary slot, copy the secondary, scramble the secondary header and trailer. With downgrade prevention, a strictly older secondary is erased. | S2-2, S2-5, S2-8, B22 |
+| Overwrite-only | Whole image into the secondary slot plus pending fields. No confirm write is needed (see 2.2). | Next boot: erase the primary slot up to the secondary image size, copy the secondary, scramble the secondary header and trailer. With downgrade prevention, a strictly older secondary is erased. Corrected after independent review 1: `BOOT_UPGRADE_ONLY` also defines `MCUBOOT_OVERWRITE_ONLY_FAST`, so the erase stops at the image size (M `mcuboot_config.h`:82-85, `loader.c`:977-991). | S2-2, S2-5, S2-8, B22 |
 | Direct-XIP | Whole image into the inactive slot while executing in place from the active slot on the same NOR. No pending write is needed because the highest version wins. | Nominal boot reads only. An image that fails validation is erased, in either slot. | B24, B27, B65 |
 | Direct-XIP with revert | Image into the inactive slot, with trailer magic. Pending request. `image_ok` in the active slot to confirm. All during XIP. | `copy_done` into the selected slot on its first selection. Whole-slot erase of a selected but unconfirmed image on the next boot. Erase of an invalid image. | B28, B63, B65, S2-14 |
-| RAM load | Image into a slot. The App executes from SDRAM at that time, not from NOR. Whether every App section, vector and constant is outside NOR is **Not verified (no build)**. | Nominal boot reads only (copy to RAM with `flash_area_read`). Erase of an image that fails to load or validate, in either slot. | B49, B50, B65, B66, B68 |
-| RAM load with revert | Image into the inactive slot, pending request, `image_ok` into the active slot. App executes from SDRAM, same caveat as RAM load. | `copy_done` on first selection. Whole-slot erase of an unconfirmed image. Erase of an invalid image. | B61, B63, B64, B65, S2-14 |
+| RAM load | Image into a slot. The App executes from SDRAM at that time, not from NOR. Whether every App section, vector and constant is outside NOR is **Not verified (no build)**. | Nominal boot reads only (copy to RAM with `flash_area_read`). Erase of an image that fails to load or validate, in either slot. | B49, B50, B65, B66, B68, B68a |
+| RAM load with revert | Image into the inactive slot, pending request, `image_ok` into the active slot. App executes from SDRAM, same caveat as RAM load. Corrected after independent review 1: the stock pending request always writes slot 1, so it needs application code that marks the inactive slot, or images with trailer magic (B63a). | `copy_done` on first selection. Whole-slot erase of an unconfirmed image, or of a selected image without GOOD trailer magic. Erase of an invalid image. | B61, B63, B63a, B64, B65, S2-14 |
 
 ### 2.2 Test and confirm, including the App-side confirm path
 
@@ -99,7 +99,7 @@ Common facts for every mode: the BL keeps the NXP boot header and DCD and execut
 | Direct-XIP | None. | None. Highest valid version boots. | B10, B24, B27 |
 | Direct-XIP with revert | Pending request on the inactive slot. BL writes `copy_done` when it first selects it. | App writes `image_ok` into its active slot, during XIP. Needs `MCUBOOT_BOOTUTIL_LIB_FOR_DIRECT_XIP`. The active slot comes from the `zephyr,code-partition` of the per-slot build. That each per-slot build sets this correctly is **Not verified (no build)**. | B28, B63, S2-3, S2-14 |
 | RAM load | None. | None. | B60 |
-| RAM load with revert | Pending request. BL writes `copy_done` on first selection. | App writes `image_ok` into the active slot. The App learns the active slot from bootloader information (`BLINFO_RUNNING_SLOT`). That needs MCUboot's share-data backend (off by default) and a `zephyr,bootloader-info` chosen node, which this board does not have. A retained memory region is needed. Its suitability on this board is **Not verified**. | B61, B63, B64, S2-3 |
+| RAM load with revert | Pending request. BL writes `copy_done` on first selection. Corrected after independent review 1: the stock `boot_request_upgrade()` always opens slot 1. When the App runs from slot 1, the request writes nothing and the BL then erases the new image in slot 0 (B63a, Inference for the consequence). Rank 1 needs either App code that opens the inactive slot (from `BLINFO_RUNNING_SLOT`) and calls `boot_set_next(fa, false, permanent)`, or images signed with trailer magic (imgtool `--pad`). Whether mcumgr image management avoids this is **Not verified**. | App writes `image_ok` into the active slot (swap variant of `boot_set_next`, B63 as corrected). The App learns the active slot from bootloader information (`BLINFO_RUNNING_SLOT`). That needs MCUboot's share-data backend (off by default) and a `zephyr,bootloader-info` chosen node, which this board does not have. A retained memory region is needed. Its suitability on this board is **Not verified**. | B61, B63, B63a, B64, S2-3 |
 
 ### 2.3 Recovery from an unconfirmed or failed image
 
@@ -114,7 +114,7 @@ Common facts for every mode: the BL keeps the NXP boot header and DCD and execut
 
 Watchdog-driven recovery of a valid but hanging image is not part of any stock path read. A test image that hangs before it confirms is recovered only after a reset. Who resets it (watchdog or operator) is an application and board decision. **Not verified** that the board watchdog survives into the BL in a way that helps.
 
-The BL itself has one copy. Recovery of a damaged BL depends on boot ROM paths. **Pending Stage 3**.
+The BL itself has one copy. Recovery of a damaged BL depends on boot ROM paths. **Pending Stage 3**. Corrected after independent review 1: Stage 3 did not answer this. Recovery of a corrupted bootloader through boot ROM paths is **Not verified** (reference manual, hardware).
 
 ### 2.4 Older-image rejection and its comparison basis
 
@@ -171,8 +171,8 @@ Variant (b) is the only route that can remove all NOR writes after provisioning.
 
 | Aspect | XIP from QSPI (swap, overwrite, direct-XIP) | RAM load into SDRAM | Rows |
 | --- | --- | --- | --- |
-| Where the App executes during its own NOR writes | From the same NOR. Full #22 closure is needed for every App write (download, pending, confirm). | From SDRAM. The #22 App-side obligation reduces to showing that no App code, data, vector or literal used during the write is in NOR. **Not verified by build.** | R2, B66, B68 |
-| BL NOR writes during BL XIP | Swap: two full-slot rewrites per update plus one more per revert. Overwrite: one full-slot erase and copy. Direct-XIP: none nominally, erases on failure. | Plain: none nominally, erases on failure. Revert: one `copy_done` write per new image and a whole-slot erase per revert. | S2-4 to S2-8, B65 |
+| Where the App executes during its own NOR writes | From the same NOR. Full #22 closure is needed for every App write (download, pending, confirm). | From SDRAM. The #22 App-side obligation reduces to showing that no App code, data, vector or literal used during the write is in NOR. **Not verified by build.** Corrected after independent review 1: the RAM link comes from sysbuild `CONFIG_XIP=n` and `CONFIG_FLASH_SIZE=0` (B68a), not from B68. | R2, B66, B68a |
+| BL NOR writes during BL XIP | Swap: both slots rewritten up to the larger image size per update, and again per revert. Overwrite: erase and copy up to the image size. Direct-XIP: none nominally, erases on failure. | Plain: none nominally, erases on failure. Revert: one `copy_done` write per new image and a whole-slot erase (3 MiB) per revert. Corrected after independent review 1: swap and overwrite write per update only up to the image size, while the RAM load and direct-XIP revert paths erase the whole slot (M `loader.c`:1227, 977-991, 2209). Revert erase duration and watchdog behaviour are **Not verified**. | S2-4 to S2-8, B65 |
 | Test, confirm, recovery | Swap modes and direct-XIP with revert provide them. | Only the revert variant provides them. It needs the share-data backend and a retained memory region. | B61, B64 |
 | Older-image rejection | Optional in swap and overwrite. None in direct-XIP. | None by the BL. | Section 2.4 |
 | Image encryption | Swap: MCUboot encryption works, plaintext in NOR after swap. Direct-XIP: not allowed. BEE: not with stock MCUboot. | MCUboot encryption works, decrypted into SDRAM. BEE not needed for the App. | B29, B58, B70 |
@@ -249,3 +249,6 @@ No direct contradiction with #147 was found. #147 does not provide a staging pat
 | Boot ROM runs the BL's DCD. SDRAM retention across the jump. RAM load copy time. Any revert or recovery behaviour | Hardware, not in #141 scope |
 | BEE key source, fuse needs, region use. HAB. Boot from microSD | Stage 3 |
 | Vendor rows V1 to V4 | Vendor documentation only |
+| RAM load with revert upgrade request reaches the inactive slot (App code or padded images), and whether mcumgr image management handles it (added after independent review 1) | Stage 5 or 6 check of the App configuration and source path |
+| Duration of a whole-slot revert erase under BL XIP, and watchdog behaviour during it (added after independent review 1) | Stage 6, then hardware |
+| Recovery of a corrupted bootloader through boot ROM paths (added after independent review 1) | Reference manual, hardware |

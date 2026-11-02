@@ -25,8 +25,8 @@ This is recorded as a constraint for the owner: either accept bounded NOR writes
 
 | Rank | Mode | Why | Main costs and risks | Rows |
 | --- | --- | --- | --- | --- |
-| 1 | RAM load with revert | Only stock mode where the App does not execute from NOR while it writes NOR. Provides test, confirm and revert. Nominal boot of a confirmed image reads only. Allows MCUboot image encryption. Close analogue of SDRAM execution loaded from block storage. | BL still writes `copy_done` per new image and erases a whole slot on revert, during its own XIP. Needs the share-data backend, a retained memory region and a `zephyr,bootloader-info` chosen node that the board lacks. BL RAM and image load address collide in SDRAM by default. No BL older-image rejection. Boot copy time not measured. | B58, B61, B63, B64, B65, B56, B60 |
-| 2 | Swap using offset | Sysbuild default, so the smallest configuration change. Works with the existing partitions (no scratch). Test, confirm, revert and resume after an interrupted swap. Optional BL downgrade prevention. Keeps the current XIP execution model, so it is the comparison build for rank 1. | Heaviest BL NOR write set (two full-slot rewrites per update, one more per revert). App writes NOR during XIP, exactly the open #22 case. Not compatible with address-bound encryption. | A4, B11, B12, B18, S2-1 to S2-7, R2 |
+| 1 | RAM load with revert | Only stock mode where the App does not execute from NOR while it writes NOR. Provides test, confirm and revert. Nominal boot of a confirmed image reads only. Allows MCUboot image encryption. Close analogue of SDRAM execution loaded from block storage. | BL still writes `copy_done` per new image and erases a whole slot on revert, during its own XIP. Needs the share-data backend, a retained memory region and a `zephyr,bootloader-info` chosen node that the board lacks. BL RAM and image load address collide in SDRAM by default. No BL older-image rejection. Boot copy time not measured. Corrected after independent review 1: the stock upgrade request always marks slot 1. When the App runs from slot 1, the request writes nothing and the BL erases the new image in slot 0. Rank 1 therefore needs App code that marks the inactive slot, or images signed with trailer magic (imgtool `--pad`). A revert erases the whole 3 MiB slot. | B58, B61, B63, B63a, B64, B65, B56, B60 |
+| 2 | Swap using offset | Sysbuild default, so the smallest configuration change. Works with the existing partitions (no scratch). Test, confirm, revert and resume after an interrupted swap. Optional BL downgrade prevention. Keeps the current XIP execution model, so it is the comparison build for rank 1. | Heaviest BL NOR write set per update (both slots rewritten up to the larger image size per update, and again per revert, not the whole slot, Corrected after independent review 1: M `loader.c`:1141-1197, 1227). App writes NOR during XIP, exactly the open #22 case. Not compatible with address-bound encryption. | A4, B11, B12, B18, S2-1 to S2-7, R2 |
 | 3 | Direct-XIP with revert | Smallest BL write set among XIP modes with revert. The vendor SDK uses direct-XIP for this board (with a vendor flash-remap extension that stock MCUboot does not use). | Two builds per release, one per slot. No BL downgrade prevention. MCUboot image encryption not allowed. App writes NOR during XIP. | B14, B27, B28, B29, V1 |
 
 The plan allows a second optional build. Building rank 1 and rank 2 gives one RAM-load and one XIP data point for size, configuration and ELF placement.
@@ -69,8 +69,9 @@ Conditions before adoption (owner decision A3):
 | Condition | Rows |
 | --- | --- |
 | BL RAM separated from the image load window by configuration | B53 to B56 |
-| Share-data backend and retained memory configured for the confirm path | B64 |
-| App ELF shows no NOR-resident code, data, vectors or literals | B68, R2 |
+| Share-data backend and retained memory configured for the confirm path. The retention region must lie outside the image load window and the App's linked RAM (added after independent review 1: the only MCUboot RAM load overlay, for RT1050, puts it in SDRAM at `0x80007f00`). | B64, Stage 3 D11 |
+| Upgrade request reaches the inactive slot: App code that opens it and calls `boot_set_next(fa, false, permanent)`, or images signed with trailer magic (added after independent review 1) | B63a |
+| App ELF shows no NOR-resident code, data, vectors or literals. Corrected after independent review 1: the RAM link comes from sysbuild `CONFIG_XIP=n` and `CONFIG_FLASH_SIZE=0` (B68a). `USE_DT_CODE_PARTITION=y` is expected in the App `.config`. | B68a, R2 |
 | BL size fits the `mcuboot` partition or a revised layout | A9, Stage 5 |
 | BL FlexSPI write path reviewed against the #22 matrix | R2, Stage 6 |
 
@@ -78,8 +79,8 @@ Impact on M6 and M7 evidence:
 
 | Effect | Detail |
 | --- | --- |
-| Image identity | Any bootloader composition changes the App link address (slot or SDRAM), removes the App boot header and DCD, and changes the ELF and BIN hashes. Evidence tied to the standalone image hash does not transfer automatically. Rows A7, B68, R3. |
-| Programming and debug | Scripts and procedures that program a standalone image at `0x60000000` would change. Two images (BL and signed App) must be programmed and identified. |
+| Image identity | Any bootloader composition changes the App link address (slot or SDRAM), removes the App boot header and DCD, and changes the ELF and BIN hashes. Evidence tied to the standalone image hash does not transfer automatically. Rows A7, B68, B68a, R3 (B68 covers plain RAM load, B68a the RAM link of both RAM load modes, corrected after independent review 1). |
+| Programming and debug | Scripts and procedures that program a standalone image at `0x60000000` would change. Two images (BL and signed App) must be programmed and identified. Added after independent review 1: under rank 1, a programmed App image must carry trailer magic and be confirmed (for example Zephyr's `*.signed.confirmed.hex`), or the BL erases the slot when it selects it (M `loader.c`:2199-2211, Z `cmake/mcuboot.cmake`:246-255). |
 | Peripheral behaviour | Driver behaviour should not change, but this is an inference. A defined smoke subset would need re-running on the new composition. **Not verified.** |
 | Timing-dependent evidence | Execution from SDRAM instead of cached QSPI and ITCM can change timing. Any timing or busy-wait evidence would need re-measurement. Which records depend on timing is **Not verified**. |
 | SDRAM dependence | Already present (current RAM is SDRAM, R4). RAM load makes code depend on it too. |
@@ -108,3 +109,4 @@ Timing proposal: change the reference composition at the start of M8, after M7 t
 4. Decide whether an App-side version policy (no older image, compared on major, minor and revision) is required, since the RAM-load BL provides none.
 5. Before any network-facing update interface (M9): require authentication and authorisation of update requests, and an App-side check before any NOR write.
 6. Whether the microSD may later hold a staging path (variant a), which would change the #147 card layout.
+7. Added after independent review 1: accept that rank 1 needs either App code that marks the inactive slot for test or images signed with trailer magic, and choose one for the trial (B63a).

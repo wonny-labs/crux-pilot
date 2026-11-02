@@ -9,8 +9,9 @@ these files, no hardware was used and no fuse was touched. Stages 5, 6 and 8
 their own files here.
 
 The files were collected on 1 November 2026. They are frozen records. Notes
-added when the record was assembled are marked as corrections, and the original
-rows are kept. Where a later stage disagrees with an earlier one, the later
+added when the record was assembled, and after independent review 1 of PR #151,
+are marked as corrections. Rows changed after that review say so in the row.
+Other original rows are kept. Where a later stage disagrees with an earlier one, the later
 stage is preferred. The correction is noted in the earlier file or in the
 decision record, or in both.
 
@@ -39,10 +40,10 @@ upgraded when the record is assembled.
 | Label | Used in | Meaning |
 | --- | --- | --- |
 | Verified on pinned source | Stages 1 to 3 | Checked at a cited file and line of a pinned Zephyr, MCUboot, `hal_nxp` or crux-pilot revision. Shows what the code allows, not what a board does. |
-| Verified by public vendor document | Stage 3 | Read from a public vendor page or repository, with URL and date. It is the vendor's statement, not a Crux result. Stage 2 cites some of the same documents as rows V1 to V4 and labels them Not verified. |
+| Verified by public vendor document | Stage 3 | Read from a public vendor page or repository, with URL and date. It is the vendor's statement, not a Crux result. Stage 2 cites some of the same documents as rows V1 to V4 and labels them Not verified. Where a document was read only through a summarising fetch, the label adds "summarising fetch, not a full read" (EVKB switch settings in Stage 3 D3 and D5). |
 | Verified by artefact | Stage 4 | Read from a committed build output, record or map in this repository. |
 | Verified on source | Stage 4 | Read from a pinned upstream file or a repository test assertion, not from a built output. |
-| Inference | Stages 1 and 2 | Reasoned from verified lines. Not checked directly. |
+| Inference | Stages 1 to 3 | Reasoned from verified lines. Not checked directly. |
 | Not verified | All | Not checked, not accessible, or inferred. The reason is given. |
 | Verified by build | None yet | Reserved for Stage 5 and Stage 8 outputs with provenance. |
 

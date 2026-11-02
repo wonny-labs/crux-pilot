@@ -4,6 +4,8 @@ Pins: Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0), MCUboot `ee39e
 
 Correction added when the record was assembled: caveat 1 in section 1.1 and the B8 reference in section 2a are resolved by Stage 3 ([stage3-findings.md](stage3-findings.md) D11). MCUboot has no RT1060 board file at the pin, found by file-name listing. The effect on the MCUboot RAM choice is an inference and is Not verified by build. See the corrections table in [stage1-pinned-source-findings.md](stage1-pinned-source-findings.md#corrections-from-later-stages).
 
+Correction added after independent review 1 of PR #151: rows B63 and B68 were corrected and rows B63a and B68a added. The RAM load with revert answers in section 2a are updated where they depend on them.
+
 ## 1. Stage 1 questions
 
 ### 1.1 Is sysbuild MCUboot available for `mimxrt1060_evk@B/mimxrt1062/qspi`?
@@ -84,7 +86,7 @@ Nothing at the pin in the files searched. MCUboot's encryption protects images i
 | --- | --- | --- | --- |
 | How are images copied to RAM? | The bootloader reads the whole image (header, payload, protected TLVs, TLVs) from the flash area into RAM at `ih_load_addr` using `flash_area_read`. It then authenticates the RAM copy and jumps to `ih_load_addr + ih_hdr_size`. | Verified on pinned source | B50, B57, B66 |
 | Which images are accepted? | Only images with `IMAGE_F_RAM_LOAD`. imgtool sets it when `--load-addr` is given. | Verified on pinned source | B51 |
-| Test and confirm | Plain RAM load has none. Revert variant: the application marks the secondary slot pending (trailer write in NOR). The bootloader writes `copy_done` on selection. The application writes `image_ok` into the active slot trailer to confirm. | Verified on pinned source | B61, B63 |
+| Test and confirm | Plain RAM load has none. Revert variant: the application marks the secondary slot pending (trailer write in NOR). The bootloader writes `copy_done` on selection. The application writes `image_ok` into the active slot trailer to confirm. | Verified on pinned source | B61, B63 Correction after independent review 1: the stock pending request always marks slot 1, the secondary slot. When the application runs from slot 1, it targets the running slot, writes nothing, and the bootloader then erases the new image in slot 0 (B63a, Inference for the consequence). The confirm write is `image_ok` only (B63 as corrected). |
 | Revert | An image selected earlier but not confirmed is erased on the next boot. The other slot is tried. | Verified on pinned source | B61 |
 | Older-image rejection | None beyond choosing the highest version. An older valid image boots if it is the only valid one or the newer image is invalid or unconfirmed. | Verified on pinned source | B60, B21 |
 | RAM address and size limits | The load address comes from the header. It must lie inside `IMAGE_EXECUTABLE_RAM_START` to `+_SIZE`, which default to MCUboot's `zephyr,sram`. Zephyr's imgtool call also uses `zephyr,sram` as `--load-addr`. The whole image including TLVs must fit. | Verified on pinned source | B52, B53, B54 |
@@ -93,7 +95,7 @@ Nothing at the pin in the files searched. MCUboot's encryption protects images i
 | Does the bootloader write Flash? | Not in a nominal boot of a valid image in plain RAM load (reads only). Yes in the revert variant (`copy_done` write, erase of an unconfirmed image) and yes for any image that fails to load or validate (slot erase, including the primary slot). | Verified on pinned source (read, not run) | B65, B61 |
 | Does the application write Flash? | In the revert variant, yes: it writes `image_ok` into the active slot trailer. A pending request writes the secondary slot trailer. | Verified on pinned source | B63 |
 | Extra requirement | The application finds its active slot through bootloader information, which needs MCUboot's share-data backend. It is off by default, and the board has no `zephyr,bootloader-info` chosen node. | Verified on pinned source | B64 |
-| Operational note | A manually programmed image in the revert variant must be marked confirmed and must have a header. | Verified on pinned source | B62 |
+| Operational note | A manually programmed image in the revert variant must be marked confirmed and must have a header. | Verified on pinned source | B62 Correction after independent review 1: an image without GOOD trailer magic is erased by the bootloader when selected (B62 note, M `loader.c`:2199-2211). |
 
 Consequence for update-mode choice: RAM load removes execute-in-place from NOR for the application, but it does not remove NOR writes. Trailer writes by the application (confirm, pending) and bootloader erases of bad images remain. The XIP write analysis still applies to the bootloader and to those trailers. Whether the application's own flash driver can run from RAM while it writes NOR is Not verified.
 

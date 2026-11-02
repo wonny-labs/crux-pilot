@@ -38,13 +38,14 @@ Issue: wonny-labs/crux-pilot#141, Stage 3. Desk study, 1 November 2026. Claim nu
 
 ## 5. Boot from SD or eMMC
 
-- SPSDK lists SD, MMC and eMMC boot layouts for this family, with the HAB container at 0x400 (D4). This suggests ROM support, but the RT1060 behaviour and EVKB switch settings are **Not verified** (D5). The Zephyr board doc gives only the QSPI and serial downloader SW7 settings (D3).
+- SPSDK lists SD, MMC and eMMC boot layouts for this family, with the HAB container at 0x400 (D4). This suggests ROM support, but the RT1060 behaviour and EVKB switch settings are **Not verified** (D5). The Zephyr board doc gives only the QSPI and serial downloader SW7 settings (D3). Correction after independent review 1: the Zephyr document uses EVK (Rev A) switch names. On the EVKB the boot switch is SW4. QSPI is `OFF-OFF-ON-OFF`, Serial Downloader is `OFF-OFF-OFF-ON` and `ON-OFF-ON-OFF` selects SD card boot. SW7 is a reset button. These come from the EVKB Board User Manual Rev. 0, Tables 9 and 10, read only through a summarising fetch (Verified by public vendor document, summarising fetch, not a full read). D5 is therefore partly answered: a switch setting for SD boot exists, but whether it boots without fuse settings is still **Not verified**.
 - Pinned Zephyr cannot build an SD or eMMC boot image for the bootloader (D1). Block-media boot would change the image layout (IVT at 0x400, no FCB, ROM copy to RAM). HAB still applies to the loaded image.
 
 ## 6. DCD and SDRAM
 
 - The EVK enables DCD and SDRAM by default. The DCD in the boot header configures the SEMC before any code runs (D6, D7). Default RAM is SDRAM (D8).
 - An MCUboot application has no boot header and no DCD (A6). The MCUboot image keeps the board DCD (D10), so the ROM initialises SDRAM before MCUboot and before a RAM-loaded application. Not verified by build. RT1060 RAM load needs a Crux overlay (D11).
+- Correction after independent review 1: that the boot ROM runs the bootloader DCD is vendor behaviour and is **Not verified**. A build cannot show it. That RT1060 RAM load needs a Crux overlay is an **Inference**.
 
 ## 7. HAB closed configuration (later work only)
 
@@ -54,7 +55,7 @@ Requirements, not instructions: a dedicated board that can be bricked or locked,
 
 1. **A2 licence review** before any download: SPSDK and its binary dependencies, SEC (account and licence), CST (LA_OPT36). Default remains documentation-only.
 2. Whether a later, separately approved hardware step may read HAB events in open configuration (no fuse writes).
-3. Accept the plan correction: `requirements-extras.txt` is Zephyr's, not Crux's. MCUboot requirements have seven entries, not six.
+3. Accept the plan correction: `requirements-extras.txt` is Zephyr's, not Crux's. MCUboot requirements have seven entries, not six. Correction after independent review 1: the plan already said seven in total and deferred the seventh. The only change is to name it: `pytest`.
 4. Whether BEE stays out of M8, given that it needs customised MCUboot and overwrite-only.
 5. Whether to plan a dedicated board for future closed-configuration work.
 
@@ -64,7 +65,7 @@ Requirements, not instructions: a dedicated board that can be bricked or locked,
 - HAB event readback means on RT1060, including `error-status` meaning (A8, A15).
 - SPSDK handling of a Zephyr image with FCB and IVT (A14). RT1060 HAB key types.
 - BEE key default and fuse needs (C2, C9).
-- SD or eMMC ROM boot on EVKB without fuses, and switch settings (D5).
+- SD or eMMC ROM boot on EVKB without fuses (D5). Switch settings are now partly answered (see section 5).
 - RT1060 fuse irreversibility and closed-configuration procedure (E1, E3).
 - SEC licence, SEC headless operation, CST licence text and Debian licence (B11 to B14).
 - Licences of SPSDK binary dependencies (B5). Python version in the Dev Container (B17).
