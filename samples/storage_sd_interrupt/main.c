@@ -1,28 +1,39 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "sd_interrupt.h"
 #include "sd_storage.h"
+#include <stdio.h>
 #include <zephyr/kernel.h>
 
 /* Interrupted-write test image for the RT1060-EVKB microSD card. Default builds touch no card. With
  * CONFIG_SAMPLE_SD_INTERRUPT_TEST it writes to the card until power is cut; do not flash it until
  * the physical gate has been approved for the current task. Console lines (115200 baud):
  *   sd_storage_start: <status>
- *   BOOT <n>
- *   RECOVER run=<n-1> present=<0|1> last_valid=<k> torn=<bytes> damaged=<0|1>
- *   ACK <seq>            one per record, printed only after the record was synced
+ *   BOOT <n> *XX
+ *   RECOVER run=<n-1> present=<0|1> last_valid=<k> torn=<bytes> damaged=<0|1> *XX
+ *   ACK <seq> *XX        one per record, printed only after the record was synced
  * BOOT and RECOVER repeat every REPORT_EVERY records: the console shares the board's power USB, so
  * after a power cut the serial port returns seconds after the board has already booted.
  */
 enum { REPORT_EVERY = 16 };
 
+/* BOOT, RECOVER and ACK lines end with " *XX", the checksum of the text before it. */
+static void emit(const char *text)
+{
+    printk("%s *%02X\n", text, (unsigned)sd_interrupt_checksum(text));
+}
+
 static void report(const struct sd_interrupt_recovery *recovery)
 {
-    printk("BOOT %u\n", (unsigned)recovery->boot);
+    char line[96];
+
+    snprintf(line, sizeof(line), "BOOT %u", (unsigned)recovery->boot);
+    emit(line);
     if (recovery->boot > 1u) {
-        printk("RECOVER run=%u present=%d last_valid=%u torn=%u damaged=%d\n",
-               (unsigned)(recovery->boot - 1u), (int)recovery->previous_run_present,
-               (unsigned)recovery->last_valid, (unsigned)recovery->torn_bytes,
-               (int)recovery->damaged_record);
+        snprintf(line, sizeof(line), "RECOVER run=%u present=%d last_valid=%u torn=%u damaged=%d",
+                 (unsigned)(recovery->boot - 1u), (int)recovery->previous_run_present,
+                 (unsigned)recovery->last_valid, (unsigned)recovery->torn_bytes,
+                 (int)recovery->damaged_record);
+        emit(line);
     }
 }
 
@@ -51,7 +62,10 @@ int main(void)
             printk("append_failed: %u\n", (unsigned)seq);
             break;
         }
-        printk("ACK %u\n", (unsigned)seq);
+        char ack[24];
+
+        snprintf(ack, sizeof(ack), "ACK %u", (unsigned)seq);
+        emit(ack);
     }
     return 0;
 }

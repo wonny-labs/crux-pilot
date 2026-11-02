@@ -7,6 +7,16 @@
 
 enum { MAGIC = 0x31585243u /* "CRX1" */, COUNTER_DIGITS = 9, NAME_BYTES = 16 };
 
+uint8_t sd_interrupt_checksum(const char *text)
+{
+    uint8_t value = 0;
+
+    for (; *text != '\0'; text++) {
+        value = (uint8_t)(value * 31u + (uint8_t)*text);
+    }
+    return value;
+}
+
 void sd_interrupt_make_record(uint32_t seq, uint8_t record[SD_INTERRUPT_RECORD_BYTES])
 {
     sys_put_le32(MAGIC, &record[0]);

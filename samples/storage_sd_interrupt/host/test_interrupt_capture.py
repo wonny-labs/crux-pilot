@@ -6,10 +6,15 @@ import unittest
 import interrupt_capture as ic
 
 
+def L(text):
+    """A console line as the image prints it: the text and its checksum."""
+    return f'{text} *{ic.checksum(text):02X}'
+
+
 def feed(lines):
     state = {}
     for line in lines:
-        ic.parse_line(line, state)
+        ic.parse_line(L(line) if line.startswith(('ACK', 'BOOT', 'RECOVER')) else line, state)
     return state
 
 
@@ -20,6 +25,21 @@ class Parse(unittest.TestCase):
         self.assertEqual(state['last_ack'], 0)
         self.assertEqual(state['recover'], {'run': 1, 'present': True, 'last_valid': 6, 'torn': 13,
                                             'damaged': False})
+
+    def test_a_line_with_a_wrong_checksum_is_dropped(self):
+        state = {}
+        self.assertEqual(ic.parse_line(L('ACK 7')[:-2] + '00', state), 'corrupt')
+        self.assertEqual(ic.parse_line('ACK 73166', state), 'corrupt', 'a line without a checksum')
+        self.assertEqual(ic.parse_line(L('ACK 8'), state), 'ack')
+        self.assertEqual(state['last_ack'], 8, 'a corrupted line must not move the ACK counter')
+
+    def test_a_garbled_digit_string_cannot_inflate_the_ack_count(self):
+        good = L('ACK 7675')
+        garbled = good[:-3] + '31 *7F'  # digits appended while power collapsed
+        state = {}
+        ic.parse_line(good, state)
+        ic.parse_line(garbled, state)
+        self.assertEqual(state['last_ack'], 7675)
 
     def test_ack_keeps_the_highest_sequence_and_ignores_noise(self):
         state = feed(['*** Booting Zephyr ***', 'ACK 3', 'ACK 2', 'garbage\x00', 'ACK 9'])
@@ -116,16 +136,17 @@ class LoopOnFakeBoard(unittest.TestCase):
 
         def board():
             boot, seq = 1, 0
-            os.write(master, b'sd_storage_start: 0\r\nBOOT 1\r\n')
+            os.write(master, ('sd_storage_start: 0\r\n' + L('BOOT 1') + '\r\n').encode())
             while not stop.is_set():
                 if os.path.exists(flag):
                     os.remove(flag)
                     boot += 1
-                    os.write(master, (f'sd_storage_start: 0\r\nBOOT {boot}\r\nRECOVER run={boot - 1} '
-                                      f'present=1 last_valid={seq - 1} torn=13 damaged=0\r\n').encode())
+                    os.write(master, ('sd_storage_start: 0\r\n' + L(f'BOOT {boot}') + '\r\n' +
+                                      L(f'RECOVER run={boot - 1} present=1 last_valid={seq - 1} '
+                                        f'torn=13 damaged=0') + '\r\n').encode())
                     seq = 0
                 seq += 1
-                os.write(master, f'ACK {seq}\r\n'.encode())
+                os.write(master, (L(f'ACK {seq}') + '\r\n').encode())
                 time.sleep(0.02)
 
         thread = threading.Thread(target=board, daemon=True)
@@ -166,17 +187,17 @@ class ObserveWithPortLoss(unittest.TestCase):
         def feeder():
             # boot 1 is seen with ACKs; the cut and boot 2 happen while the port is gone and its
             # repeated report arrives only after boot 3 has started: run2 was never observed.
-            os.write(master_a, b'BOOT 1\r\nACK 1\r\nACK 2\r\nACK 3\r\n')
+            os.write(master_a, ''.join(L(x) + '\r\n' for x in ('BOOT 1', 'ACK 1', 'ACK 2', 'ACK 3')).encode())
             time.sleep(0.4)
             os.close(master_a)  # the port vanishes
             os.remove(link)
             time.sleep(0.5)
             master_b, slave_b = pty.openpty()
             os.symlink(os.ttyname(slave_b), link)  # the port returns
-            report = 'RECOVER run={} present=1 last_valid={} torn=13 damaged=0\r\n'
-            os.write(master_b, ('BOOT 2\r\n' + report.format(1, 2) + 'ACK 1\r\nACK 2\r\n').encode())
+            report = 'RECOVER run={} present=1 last_valid={} torn=13 damaged=0'
+            os.write(master_b, ''.join(L(x) + '\r\n' for x in ('BOOT 2', report.format(1, 2), 'ACK 1', 'ACK 2')).encode())
             time.sleep(0.3)
-            os.write(master_b, ('BOOT 3\r\n' + report.format(2, 1) + 'ACK 1\r\n').encode())
+            os.write(master_b, ''.join(L(x) + '\r\n' for x in ('BOOT 3', report.format(2, 1), 'ACK 1')).encode())
             time.sleep(0.6)
 
         thread = threading.Thread(target=feeder, daemon=True)

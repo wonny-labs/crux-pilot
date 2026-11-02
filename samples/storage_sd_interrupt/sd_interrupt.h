@@ -34,6 +34,11 @@ struct sd_interrupt_recovery {
 enum sd_interrupt_status sd_interrupt_begin(struct sd_interrupt_recovery *recovery,
                                             crux_file_t **run);
 
+/* One-byte checksum of a console line's text, printed as ` *XX` after BOOT, RECOVER and ACK lines
+ * so the host can drop lines garbled while power collapsed. The host script computes the same
+ * value. */
+uint8_t sd_interrupt_checksum(const char *text);
+
 /* Write record seq and sync. The record is acknowledged only when this returns OK. */
 enum sd_interrupt_status sd_interrupt_append(crux_file_t *run, uint32_t seq);
 

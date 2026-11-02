@@ -138,4 +138,16 @@ ZTEST(file_sd_interrupt, test_f_an_invalid_counter_stops_without_creating_a_run)
     zassert_is_null(run, "no run file may be opened when the counter is unusable");
 }
 
+/* The host script (interrupt_capture.py) computes the same checksum; these vectors come from it, so
+ * a change on either side without the other breaks here. */
+ZTEST(file_sd_interrupt, test_g_the_line_checksum_matches_the_host_implementation)
+{
+    zassert_equal(sd_interrupt_checksum("ACK 1"), 0x3A);
+    zassert_equal(sd_interrupt_checksum("ACK 7675"), 0x54);
+    zassert_equal(sd_interrupt_checksum("BOOT 3"), 0x85);
+    zassert_equal(sd_interrupt_checksum("RECOVER run=2 present=1 last_valid=4 torn=13 damaged=0"),
+                  0xE7);
+    zassert_equal(sd_interrupt_checksum(""), 0);
+}
+
 ZTEST_SUITE(file_sd_interrupt, NULL, NULL, NULL, NULL, NULL);

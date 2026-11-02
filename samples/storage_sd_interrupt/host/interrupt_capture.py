@@ -33,8 +33,28 @@ ACK = re.compile(r'ACK (\d+)')
 START = re.compile(r'sd_storage_start: (-?\d+)')
 
 
+CHECKED = re.compile(r'^(.*\S) \*([0-9A-F]{2})$')
+
+
+def checksum(text):
+    """The image's line checksum: a rolling hash of the text, one byte."""
+    value = 0
+    for byte in text.encode('ascii', 'replace'):
+        value = (value * 31 + byte) & 0xFF
+    return value
+
+
 def parse_line(line, state):
-    """Update state from one console line; return the event name or None."""
+    """Update state from one console line; return the event name or None.
+
+    BOOT, RECOVER and ACK lines carry a checksum (`ACK 12 *4F`). A line that looks like one of them but
+    has no checksum or a wrong one is dropped as corrupt: power collapsing mid-line can garble digits
+    and must not move the ACK counter."""
+    if line.startswith(('ACK', 'BOOT', 'RECOVER')) or ' *' in line:
+        m = CHECKED.match(line.strip())
+        if not m or checksum(m.group(1)) != int(m.group(2), 16):
+            return 'corrupt'
+        line = m.group(1)
     if (m := START.search(line)):
         state['start_status'] = int(m.group(1))
         return 'start'
