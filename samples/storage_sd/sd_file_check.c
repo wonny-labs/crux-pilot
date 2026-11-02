@@ -5,6 +5,8 @@
 #include <string.h>
 
 enum { CHUNK = 512, COUNTER_DIGITS = 9 };
+_Static_assert(SD_FILE_CHECK_PATTERN_BYTES % CHUNK == 0,
+               "the pattern is written and verified in whole chunks");
 
 static uint8_t pattern_byte(uint32_t index)
 {

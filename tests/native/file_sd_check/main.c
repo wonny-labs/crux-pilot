@@ -100,6 +100,32 @@ ZTEST(file_sd_check, test_e_a_truncated_pattern_is_reported)
     zassert_equal(sd_file_check_run(&check), SD_FILE_CHECK_PATTERN_MISMATCH);
 }
 
+static void put_pattern_prefix(size_t length)
+{
+    static uint8_t data[SD_FILE_CHECK_PATTERN_BYTES + 1];
+
+    for (size_t i = 0; i < length; i++) {
+        data[i] = (uint8_t)((i * 7u + 13u) & 0xFFu);
+    }
+    put("pattern", data, length);
+}
+
+ZTEST(file_sd_check, test_e2_a_correct_prefix_that_is_too_short_is_reported)
+{
+    struct sd_file_check check = {0};
+
+    put_pattern_prefix(SD_FILE_CHECK_PATTERN_BYTES / 2);
+    zassert_equal(sd_file_check_run(&check), SD_FILE_CHECK_PATTERN_MISMATCH);
+}
+
+ZTEST(file_sd_check, test_e3_an_extra_trailing_byte_is_reported)
+{
+    struct sd_file_check check = {0};
+
+    put_pattern_prefix(SD_FILE_CHECK_PATTERN_BYTES + 1);
+    zassert_equal(sd_file_check_run(&check), SD_FILE_CHECK_PATTERN_MISMATCH);
+}
+
 ZTEST(file_sd_check, test_f_an_unreadable_counter_stops_the_check_without_writing)
 {
     struct sd_file_check check = {0};

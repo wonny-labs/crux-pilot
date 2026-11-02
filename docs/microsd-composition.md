@@ -97,8 +97,9 @@ evidence. Details and limits: [docs/evidence/microsd-physical](evidence/microsd-
 Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted;
 whether the M.2 Wi-Fi SDIO path shares uSDHC1 on this board (the board devicetree labels the
 same controller `m2_wifi_sdio`; nothing in this repository confirms pin or controller
-ownership); high-water stack use; cache and DMA placement; and persistence, power loss,
-reboot and interrupted-save behaviour.
+ownership); high-water stack use; cache and DMA placement; and persistence across power
+cycles, power loss and interrupted-save behaviour (data across normal CPU restarts is covered in the
+physical results above).
 
 ## Physical gate procedure (draft, nothing here is authorised)
 

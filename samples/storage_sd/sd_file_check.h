@@ -26,6 +26,8 @@ struct sd_file_check {
     bool pattern_created; /* the pattern file was missing and was written by this run */
 };
 
-/* Read the counter (missing means 0), write it back increased and synced, then verify the pattern
- * file, creating and re-reading it when it does not exist. Stops at the first failure. */
+/* A pattern file that is missing is created, not reported: a run with pattern_created set after the
+ * first boot means the file was lost. Read the counter (missing means 0), write it back increased
+ * and synced, then verify the pattern file, creating and re-reading it when it does not exist.
+ * Stops at the first failure. */
 enum sd_file_check_status sd_file_check_run(struct sd_file_check *check);
