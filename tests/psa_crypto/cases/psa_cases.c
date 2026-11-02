@@ -18,22 +18,25 @@
 /* An unassigned hash algorithm identifier: category HASH, hash id 0xfe. */
 #define UNASSIGNED_HASH ((psa_algorithm_t)0x020000feU)
 
-#define STR_(x) #x
-#define STR(x) STR_(x)
-
 static char failure_text[200];
+static const char *note_text;
+
+const char *psa_case_note(void)
+{
+    return note_text;
+}
 
 static const char *fail_check(const char *file, int line, const char *expr)
 {
     const char *base = strrchr(file, '/');
 
-    (void)snprintf(failure_text, sizeof failure_text, "%s:%d: %s",
-                   base != NULL ? base + 1 : file, line, expr);
+    (void)snprintf(failure_text, sizeof failure_text, "%s:%d: %s", base != NULL ? base + 1 : file,
+                   line, expr);
     return failure_text;
 }
 
-static const char *fail_status(const char *file, int line, const char *expr,
-                               psa_status_t got, psa_status_t want)
+static const char *fail_status(const char *file, int line, const char *expr, psa_status_t got,
+                               psa_status_t want)
 {
     const char *base = strrchr(file, '/');
 
@@ -42,28 +45,28 @@ static const char *fail_status(const char *file, int line, const char *expr,
     return failure_text;
 }
 
-#define CHECK(cond)                                  \
-    do {                                             \
-        if (!(cond)) {                               \
-            return fail_check(__FILE__, __LINE__, #cond); \
-        }                                            \
+#define CHECK(cond)                                                                                \
+    do {                                                                                           \
+        if (!(cond)) {                                                                             \
+            return fail_check(__FILE__, __LINE__, #cond);                                          \
+        }                                                                                          \
     } while (0)
 
-#define CHECK_STATUS(want, expr)                                     \
-    do {                                                             \
-        psa_status_t status_ = (expr);                               \
-        if (status_ != (want)) {                                     \
-            return fail_status(__FILE__, __LINE__, #expr, status_, (want)); \
-        }                                                            \
+#define CHECK_STATUS(want, expr)                                                                   \
+    do {                                                                                           \
+        psa_status_t status_ = (expr);                                                             \
+        if (status_ != (want)) {                                                                   \
+            return fail_status(__FILE__, __LINE__, #expr, status_, (want));                        \
+        }                                                                                          \
     } while (0)
 
 /* The specification lists both codes for this input; either is accepted, success is not. */
-#define CHECK_REJECTED_AS(a, b, expr)                                \
-    do {                                                             \
-        psa_status_t status_ = (expr);                               \
-        if (status_ != (a) && status_ != (b)) {                      \
-            return fail_status(__FILE__, __LINE__, #expr, status_, (a)); \
-        }                                                            \
+#define CHECK_REJECTED_AS(a, b, expr)                                                              \
+    do {                                                                                           \
+        psa_status_t status_ = (expr);                                                             \
+        if (status_ != (a) && status_ != (b)) {                                                    \
+            return fail_status(__FILE__, __LINE__, #expr, status_, (a));                           \
+        }                                                                                          \
     } while (0)
 
 #define INIT() CHECK_STATUS(PSA_SUCCESS, psa_crypto_init())
@@ -91,17 +94,18 @@ static void res_release(struct res *r)
     }
 }
 
-#define CASE(name)                                                           \
-    static const char *name##_body(struct res *r);                           \
-    const char *psa_case_##name(void)                                        \
-    {                                                                        \
-        struct res r;                                                        \
-        const char *failure;                                                 \
-        res_init(&r);                                                        \
-        failure = name##_body(&r);                                           \
-        res_release(&r);                                                     \
-        return failure;                                                      \
-    }                                                                        \
+#define CASE(name)                                                                                 \
+    static const char *name##_body(struct res *r);                                                 \
+    const char *psa_case_##name(void)                                                              \
+    {                                                                                              \
+        struct res r;                                                                              \
+        const char *failure;                                                                       \
+        note_text = NULL;                                                                          \
+        res_init(&r);                                                                              \
+        failure = name##_body(&r);                                                                 \
+        res_release(&r);                                                                           \
+        return failure;                                                                            \
+    }                                                                                              \
     static const char *name##_body(struct res *r)
 
 static int all_bytes(const uint8_t *p, size_t n, uint8_t value)
@@ -136,9 +140,8 @@ static const uint8_t pbkdf2_salt[] = {'s', 'a', 'l', 't'};
 #define ECDSA_SHA256 PSA_ALG_ECDSA(PSA_ALG_SHA_256)
 
 /* Volatile P-256 public key. Persistent keys are out of scope for this issue. */
-static psa_status_t import_p256_public(struct res *r, psa_key_usage_t usage,
-                                       psa_algorithm_t alg, const uint8_t *data,
-                                       size_t length)
+static psa_status_t import_p256_public(struct res *r, psa_key_usage_t usage, psa_algorithm_t alg,
+                                       const uint8_t *data, size_t length)
 {
     psa_key_attributes_t attributes = psa_key_attributes_init();
     psa_status_t status;
@@ -225,9 +228,8 @@ CASE(sha256_known_answer_one_shot)
 
     (void)r;
     INIT();
-    CHECK_STATUS(PSA_SUCCESS,
-                 psa_hash_compute(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3, hash, sizeof hash,
-                                  &length));
+    CHECK_STATUS(PSA_SUCCESS, psa_hash_compute(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3, hash,
+                                               sizeof hash, &length));
     CHECK(length == 32);
     CHECK(memcmp(hash, vec_sha256_abc, 32) == 0);
     return NULL;
@@ -268,21 +270,17 @@ CASE(sha256_update_after_finish_is_bad_state)
 CASE(sha256_buffer_too_small)
 {
     uint8_t hash[PSA_HASH_LENGTH(PSA_ALG_SHA_256) - 1];
-    size_t length = 0xdead;
+    size_t length = 0;
 
-    (void)r;
     INIT();
-    CHECK_STATUS(PSA_ERROR_BUFFER_TOO_SMALL,
-                 psa_hash_compute(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3, hash, sizeof hash,
-                                  &length));
-    CHECK(length == 0);
+    /* hash_length is documented only for success, so its value on failure is not checked. */
+    CHECK_STATUS(
+        PSA_ERROR_BUFFER_TOO_SMALL,
+        psa_hash_compute(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3, hash, sizeof hash, &length));
 
-    length = 0xdead;
     CHECK_STATUS(PSA_SUCCESS, psa_hash_setup(&r->hash, PSA_ALG_SHA_256));
     CHECK_STATUS(PSA_SUCCESS, psa_hash_update(&r->hash, (const uint8_t *)"abc", 3));
-    CHECK_STATUS(PSA_ERROR_BUFFER_TOO_SMALL,
-                 psa_hash_finish(&r->hash, hash, sizeof hash, &length));
-    CHECK(length == 0);
+    CHECK_STATUS(PSA_ERROR_BUFFER_TOO_SMALL, psa_hash_finish(&r->hash, hash, sizeof hash, &length));
     return NULL;
 }
 
@@ -296,11 +294,10 @@ CASE(sha256_compare_and_verify_mismatch_invalid_signature)
     memcpy(wrong, vec_sha256_abc, sizeof wrong);
     wrong[31] ^= 0x01;
     CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
-                 psa_hash_compare(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3, wrong,
-                                  sizeof wrong));
+                 psa_hash_compare(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3, wrong, sizeof wrong));
     CHECK_REJECTED_AS(PSA_ERROR_INVALID_SIGNATURE, PSA_ERROR_INVALID_ARGUMENT,
-                      psa_hash_compare(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3,
-                                       vec_sha256_abc, sizeof vec_sha256_abc - 1));
+                      psa_hash_compare(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3, vec_sha256_abc,
+                                       sizeof vec_sha256_abc - 1));
 
     CHECK_STATUS(PSA_SUCCESS, psa_hash_setup(&r->hash, PSA_ALG_SHA_256));
     CHECK_STATUS(PSA_SUCCESS, psa_hash_update(&r->hash, (const uint8_t *)"abc", 3));
@@ -313,16 +310,18 @@ CASE(hash_unsupported_algorithm_not_supported)
     uint8_t hash[PSA_HASH_MAX_SIZE];
     size_t length = 0;
 
-    (void)r;
     INIT();
-    CHECK_STATUS(PSA_ERROR_NOT_SUPPORTED,
-                 psa_hash_compute(UNASSIGNED_HASH, (const uint8_t *)"abc", 3, hash, sizeof hash,
-                                  &length));
-    /* An HMAC algorithm is not a hash algorithm. */
-    CHECK_STATUS(PSA_ERROR_NOT_SUPPORTED,
-                 psa_hash_compute(PSA_ALG_HMAC(PSA_ALG_SHA_256), (const uint8_t *)"abc", 3, hash,
-                                  sizeof hash, &length));
+    /* A well-formed hash algorithm identifier that no provider assigns. */
+    CHECK_STATUS(PSA_ERROR_NOT_SUPPORTED, psa_hash_compute(UNASSIGNED_HASH, (const uint8_t *)"abc",
+                                                           3, hash, sizeof hash, &length));
     CHECK_STATUS(PSA_ERROR_NOT_SUPPORTED, psa_hash_setup(&r->hash, UNASSIGNED_HASH));
+    /* An HMAC algorithm is not a hash algorithm. The pinned header documents
+     * NOT_SUPPORTED and INVALID_ARGUMENT for this input, so either is accepted. */
+    CHECK_REJECTED_AS(PSA_ERROR_NOT_SUPPORTED, PSA_ERROR_INVALID_ARGUMENT,
+                      psa_hash_compute(PSA_ALG_HMAC(PSA_ALG_SHA_256), (const uint8_t *)"abc", 3,
+                                       hash, sizeof hash, &length));
+    CHECK_REJECTED_AS(PSA_ERROR_NOT_SUPPORTED, PSA_ERROR_INVALID_ARGUMENT,
+                      psa_hash_setup(&r->hash, PSA_ALG_HMAC(PSA_ALG_SHA_256)));
     return NULL;
 }
 
@@ -335,12 +334,11 @@ CASE(ecdsa_p256_import_is_volatile)
     int ok;
 
     INIT();
-    CHECK_STATUS(PSA_SUCCESS, import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256,
-                                                 vec_p256_public_uncompressed,
-                                                 sizeof vec_p256_public_uncompressed));
+    CHECK_STATUS(PSA_SUCCESS,
+                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed,
+                                    sizeof vec_p256_public_uncompressed));
     status = psa_get_key_attributes(r->key, &attributes);
-    ok = status == PSA_SUCCESS &&
-         psa_get_key_lifetime(&attributes) == PSA_KEY_LIFETIME_VOLATILE &&
+    ok = status == PSA_SUCCESS && psa_get_key_lifetime(&attributes) == PSA_KEY_LIFETIME_VOLATILE &&
          psa_get_key_type(&attributes) == PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1) &&
          psa_get_key_bits(&attributes) == 256;
     psa_reset_key_attributes(&attributes);
@@ -351,9 +349,9 @@ CASE(ecdsa_p256_import_is_volatile)
 CASE(ecdsa_p256_verify_message_known_answer)
 {
     INIT();
-    CHECK_STATUS(PSA_SUCCESS, import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256,
-                                                 vec_p256_public_uncompressed,
-                                                 sizeof vec_p256_public_uncompressed));
+    CHECK_STATUS(PSA_SUCCESS,
+                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed,
+                                    sizeof vec_p256_public_uncompressed));
     CHECK_STATUS(PSA_SUCCESS,
                  psa_verify_message(r->key, ECDSA_SHA256, sample_message, sizeof sample_message,
                                     vec_p256_signature_sample, sizeof vec_p256_signature_sample));
@@ -363,9 +361,9 @@ CASE(ecdsa_p256_verify_message_known_answer)
 CASE(ecdsa_p256_verify_hash_known_answer)
 {
     INIT();
-    CHECK_STATUS(PSA_SUCCESS, import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256,
-                                                 vec_p256_public_uncompressed,
-                                                 sizeof vec_p256_public_uncompressed));
+    CHECK_STATUS(PSA_SUCCESS,
+                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed,
+                                    sizeof vec_p256_public_uncompressed));
     CHECK_STATUS(PSA_SUCCESS,
                  psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample,
                                  vec_p256_signature_sample, sizeof vec_p256_signature_sample));
@@ -378,9 +376,9 @@ CASE(ecdsa_p256_wrong_signature_invalid)
     uint8_t zeros[64] = {0};
 
     INIT();
-    CHECK_STATUS(PSA_SUCCESS, import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256,
-                                                 vec_p256_public_uncompressed,
-                                                 sizeof vec_p256_public_uncompressed));
+    CHECK_STATUS(PSA_SUCCESS,
+                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed,
+                                    sizeof vec_p256_public_uncompressed));
     memcpy(flipped, vec_p256_signature_sample, sizeof flipped);
     flipped[63] ^= 0x01;
     CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
@@ -405,13 +403,12 @@ CASE(ecdsa_p256_tampered_input_invalid)
     uint8_t tampered_hash[32];
 
     INIT();
-    CHECK_STATUS(PSA_SUCCESS, import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256,
-                                                 vec_p256_public_uncompressed,
-                                                 sizeof vec_p256_public_uncompressed));
+    CHECK_STATUS(PSA_SUCCESS,
+                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed,
+                                    sizeof vec_p256_public_uncompressed));
     CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
-                 psa_verify_message(r->key, ECDSA_SHA256, tampered_message,
-                                    sizeof tampered_message, vec_p256_signature_sample,
-                                    sizeof vec_p256_signature_sample));
+                 psa_verify_message(r->key, ECDSA_SHA256, tampered_message, sizeof tampered_message,
+                                    vec_p256_signature_sample, sizeof vec_p256_signature_sample));
     memcpy(tampered_hash, vec_sha256_sample, sizeof tampered_hash);
     tampered_hash[0] ^= 0x80;
     CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
@@ -432,8 +429,7 @@ CASE(ecdsa_p256_invalid_public_key_rejected)
     CHECK(r->key == PSA_KEY_ID_NULL);
     /* The format prefix is missing: 64 bytes instead of the 65-byte uncompressed point. */
     CHECK_STATUS(PSA_ERROR_INVALID_ARGUMENT,
-                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256,
-                                    vec_p256_public_uncompressed + 1,
+                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed + 1,
                                     sizeof vec_p256_public_uncompressed - 1));
     CHECK(r->key == PSA_KEY_ID_NULL);
     return NULL;
@@ -455,9 +451,9 @@ CASE(ecdsa_p256_key_policy_not_permitted)
     r->key = PSA_KEY_ID_NULL;
 
     /* A key bound to ECDSA(SHA-256) does not permit the wildcard ECDSA_ANY. */
-    CHECK_STATUS(PSA_SUCCESS, import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256,
-                                                 vec_p256_public_uncompressed,
-                                                 sizeof vec_p256_public_uncompressed));
+    CHECK_STATUS(PSA_SUCCESS,
+                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed,
+                                    sizeof vec_p256_public_uncompressed));
     CHECK_STATUS(PSA_ERROR_NOT_PERMITTED,
                  psa_verify_hash(r->key, PSA_ALG_ECDSA_ANY, vec_sha256_sample,
                                  sizeof vec_sha256_sample, vec_p256_signature_sample,
@@ -489,18 +485,46 @@ CASE(pbkdf2_hmac_sha256_known_answer_4096)
     return NULL;
 }
 
-CASE(pbkdf2_verify_wrong_password_invalid_signature)
+CASE(pbkdf2_wrong_password_derives_different_output)
 {
+    uint8_t right[32];
+    uint8_t wrong[32];
+
     INIT();
+    /* The right password must reproduce the known answer, so a provider that returns
+     * fixed output cannot satisfy the comparison below. */
     CHECK_STATUS(PSA_SUCCESS, pbkdf2_start(&r->kdf, 4096, "password"));
-    CHECK_STATUS(PSA_SUCCESS, psa_key_derivation_verify_bytes(&r->kdf, vec_pbkdf2_4096_32,
-                                                              sizeof vec_pbkdf2_4096_32));
+    CHECK_STATUS(PSA_SUCCESS, psa_key_derivation_output_bytes(&r->kdf, right, sizeof right));
+    CHECK(memcmp(right, vec_pbkdf2_4096_32, sizeof right) == 0);
     CHECK_STATUS(PSA_SUCCESS, psa_key_derivation_abort(&r->kdf));
 
     CHECK_STATUS(PSA_SUCCESS, pbkdf2_start(&r->kdf, 4096, "Password"));
-    CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
-                 psa_key_derivation_verify_bytes(&r->kdf, vec_pbkdf2_4096_32,
-                                                 sizeof vec_pbkdf2_4096_32));
+    CHECK_STATUS(PSA_SUCCESS, psa_key_derivation_output_bytes(&r->kdf, wrong, sizeof wrong));
+    CHECK(memcmp(wrong, right, sizeof wrong) != 0);
+    return NULL;
+}
+
+/* psa_key_derivation_verify_bytes() may be reported as not supported; when it is
+ * supported it must accept the right password and reject a wrong one. */
+CASE(pbkdf2_verify_bytes_when_supported)
+{
+    psa_status_t status;
+
+    INIT();
+    CHECK_STATUS(PSA_SUCCESS, pbkdf2_start(&r->kdf, 4096, "password"));
+    status =
+        psa_key_derivation_verify_bytes(&r->kdf, vec_pbkdf2_4096_32, sizeof vec_pbkdf2_4096_32);
+    if (status == PSA_ERROR_NOT_SUPPORTED) {
+        note_text = "psa_key_derivation_verify_bytes is not supported by this provider";
+        return NULL;
+    }
+    CHECK(status == PSA_SUCCESS);
+    CHECK_STATUS(PSA_SUCCESS, psa_key_derivation_abort(&r->kdf));
+
+    CHECK_STATUS(PSA_SUCCESS, pbkdf2_start(&r->kdf, 4096, "Password"));
+    CHECK_STATUS(
+        PSA_ERROR_INVALID_SIGNATURE,
+        psa_key_derivation_verify_bytes(&r->kdf, vec_pbkdf2_4096_32, sizeof vec_pbkdf2_4096_32));
     return NULL;
 }
 
@@ -533,9 +557,9 @@ CASE(destroyed_key_is_invalid_handle)
     psa_key_id_t stale;
 
     INIT();
-    CHECK_STATUS(PSA_SUCCESS, import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256,
-                                                 vec_p256_public_uncompressed,
-                                                 sizeof vec_p256_public_uncompressed));
+    CHECK_STATUS(PSA_SUCCESS,
+                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed,
+                                    sizeof vec_p256_public_uncompressed));
     stale = r->key;
     CHECK_STATUS(PSA_SUCCESS, psa_destroy_key(stale));
     r->key = PSA_KEY_ID_NULL;

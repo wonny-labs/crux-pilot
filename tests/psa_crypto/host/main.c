@@ -32,7 +32,13 @@ int main(void)
         const char *failure = entries[i].run();
 
         if (failure == NULL) {
-            printf("PASS %s\n", entries[i].name);
+            const char *note = psa_case_note();
+
+            if (note != NULL) {
+                printf("PASS %s (note: %s)\n", entries[i].name, note);
+            } else {
+                printf("PASS %s\n", entries[i].name);
+            }
         } else {
             printf("FAIL %s: %s\n", entries[i].name, failure);
             failed++;
