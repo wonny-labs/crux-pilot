@@ -1,0 +1,5 @@
+tests:
+  crux.psa_crypto.conformance:
+    platform_allow: [native_sim/native/64]
+    tags: [crypto, crux]
+    timeout: 120
