@@ -17,8 +17,32 @@ def evkb_build_commands():
     return [
         block
         for block in re.findall(r"\(cd \"\$workspace\" && west build.*?\)\n", text, re.S)
-        if "mimxrt1060_evk@B//qspi" in block
+        if "mimxrt1060_evk@B//qspi" in block and '"$repo/tests/gpio/evkb"' in block
     ]
+
+
+P1_APP = ROOT / "tests/gpio_physical"
+
+
+class GpioPhysicalP1Tests(unittest.TestCase):
+    def test_p1_overlay_selects_the_user_button(self):
+        overlay = (P1_APP / "boards/mimxrt1060_evk_mimxrt1062_qspi.overlay").read_text()
+        self.assertEqual(overlay, BOARD_OVERLAY.read_text())
+
+    def test_p1_reuses_the_portable_consumer_and_prints_identity_and_time(self):
+        cmake = (P1_APP / "CMakeLists.txt").read_text()
+        self.assertIn("../gpio/consumer.c", cmake)
+        main = (P1_APP / "main.c").read_text()
+        for needle in ("CRUX_P1_BUILD_ID", "CONFIG_BOARD", "k_uptime_get()", "read_logical_input"):
+            self.assertIn(needle, main)
+
+    def test_runner_builds_p1_for_the_board_without_running_it(self):
+        text = RUNNER.read_text()
+        self.assertRegex(
+            text,
+            r'-d "\$repo/build/zephyr/gpio-physical-p1" "\$repo/tests/gpio_physical"',
+        )
+        self.assertNotRegex(text, r"west flash|west debug|pyocd|JLink")
 
 
 class GpioEvkbCompositionTests(unittest.TestCase):
