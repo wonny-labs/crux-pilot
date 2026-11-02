@@ -1,0 +1,4 @@
+/* Crux I2C controller 0 is the board's Arduino header I2C bus. */
+/ {
+	aliases { crux-i2c0 = &arduino_i2c; };
+};
