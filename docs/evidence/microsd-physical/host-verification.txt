@@ -1,0 +1,22 @@
+Host-side read-only checks of the card after the run (macOS, 2026-11-02).
+Card: 15.9 GB, FDisk_partition_scheme (MBR), one Windows_FAT_32 partition, disk4s1.
+
+$ diskutil verifyVolume disk4s1
+Performing fsck_msdos -n /dev/rdisk4s1
+** Phase 1 - Preparing FAT
+** Phase 2 - Checking Directories
+** Phase 3 - Checking for Orphan Clusters
+Warning: 121 files, 15538632 KiB free (1942329 clusters)
+File system check exit code is 0
+
+$ diskutil mount readOnly disk4s1        (Volume Read-Only: Yes)
+files/f626f6f74636f756e74   1 byte, content "3"        (= "bootcount")
+files/f7061747465726e       4096 bytes                 (= "pattern")
+settings/                   empty
+root                        .Spotlight-V100, .fseventsd, System Volume Information (macOS/Windows),
+                            ._files, ._settings (macOS AppleDouble files created when the directories were made)
+
+pattern SHA-256  ad5dc1725525b3889fae9f1037ad5f9baca84655a6621fe8843cffead05b20f0
+expected SHA-256 ad5dc1725525b3889fae9f1037ad5f9baca84655a6621fe8843cffead05b20f0
+$ cmp files/f7061747465726e pattern.expected  -> identical
+expected pattern: byte i = (i*7 + 13) & 0xFF, i = 0..4095

@@ -1,0 +1,4 @@
+mem32 0x60000000 8
+mem32 0xE000ED00 1
+savebin <local path>/qspi-before-128k.bin 0x60000000 0x20000
+exit
