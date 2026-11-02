@@ -1,5 +1,9 @@
 # RT1170-EVK Rev A1 Cortex-M7 software feasibility
 
+Status: software scope of M6 and M7 by owner decision of 2 November 2026 (Issue #33). This record is
+software-only evidence. Hardware verification is deferred to Issue #155, and the board is not a
+qualified or supported physical target until that evidence exists.
+
 ## Scope and evidence boundary
 
 This is a source and build-configuration review for Issue #33. No RT1170 board,
