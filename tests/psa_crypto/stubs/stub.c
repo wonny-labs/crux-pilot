@@ -48,17 +48,6 @@ psa_status_t psa_hash_compute(psa_algorithm_t alg, const uint8_t *input, size_t 
     return STUB_STATUS;
 }
 
-psa_status_t psa_hash_compare(psa_algorithm_t alg, const uint8_t *input, size_t input_length,
-                              const uint8_t *hash, size_t hash_length)
-{
-    (void)alg;
-    (void)input;
-    (void)input_length;
-    (void)hash;
-    (void)hash_length;
-    return STUB_STATUS;
-}
-
 psa_status_t psa_hash_setup(psa_hash_operation_t *operation, psa_algorithm_t alg)
 {
     (void)operation;
@@ -122,19 +111,6 @@ psa_status_t psa_destroy_key(psa_key_id_t key)
     return STUB_STATUS;
 }
 
-psa_status_t psa_verify_message(psa_key_id_t key, psa_algorithm_t alg, const uint8_t *input,
-                                size_t input_length, const uint8_t *signature,
-                                size_t signature_length)
-{
-    (void)key;
-    (void)alg;
-    (void)input;
-    (void)input_length;
-    (void)signature;
-    (void)signature_length;
-    return STUB_STATUS;
-}
-
 psa_status_t psa_verify_hash(psa_key_id_t key, psa_algorithm_t alg, const uint8_t *hash,
                              size_t hash_length, const uint8_t *signature, size_t signature_length)
 {
@@ -172,14 +148,6 @@ psa_status_t psa_key_derivation_input_bytes(psa_key_derivation_operation_t *oper
     (void)step;
     (void)data;
     (void)data_length;
-    return STUB_STATUS;
-}
-
-psa_status_t psa_key_derivation_set_capacity(psa_key_derivation_operation_t *operation,
-                                             size_t capacity)
-{
-    (void)operation;
-    (void)capacity;
     return STUB_STATUS;
 }
 

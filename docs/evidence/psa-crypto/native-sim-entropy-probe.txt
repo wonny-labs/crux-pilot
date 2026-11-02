@@ -1,0 +1,16 @@
+# native_sim PSA random probe (throwaway app outside the repository, trial dir /opt/crux-cache/psa-trial/probe-random)
+# Source: psa_crypto_init(); psa_generate_random(buf, 16); print hex; exit. Same prj.conf as tests/psa_crypto/zephyr without Ztest.
+# Providers: tf-psa-crypto dc575a2d, mbedtls module a3e190fe. Board native_sim/native/64. Run 2 Nov 2026.
+## default, 3 runs
+WARNING: Using a test - not safe - entropy source
+PROBE 3bdb31ccb6d508aad2e1be87e47b88ae
+WARNING: Using a test - not safe - entropy source
+PROBE 3bdb31ccb6d508aad2e1be87e47b88ae
+WARNING: Using a test - not safe - entropy source
+PROBE 3bdb31ccb6d508aad2e1be87e47b88ae
+## --seed=7, 2 runs
+PROBE f5df5243e2193b07daaf9c7b6d1a4f1b
+PROBE f5df5243e2193b07daaf9c7b6d1a4f1b
+## --seed-random, 2 runs
+PROBE af63279658aa4846f544ae22e5d885e1
+PROBE 44a2cd6a447ba7bd16700503e646a426

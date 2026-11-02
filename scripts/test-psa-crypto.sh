@@ -90,7 +90,7 @@ run_host() {
         exit 1
     fi
     passed="$(grep '^PASS' "$out/stub-permissive.txt" | awk '{print $2}' | sort | tr '\n' ' ')"
-    allowed='ecdsa_p256_verify_hash_known_answer ecdsa_p256_verify_message_known_answer init_is_idempotent '
+    allowed='ecdsa_p256_verify_hash_known_answer init_is_idempotent '
     if [[ "$passed" != "$allowed" ]]; then
         printf 'FAIL: unexpected cases passed against the permissive stub: %s\n' "$passed" >&2
         exit 1

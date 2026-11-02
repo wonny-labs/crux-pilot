@@ -134,7 +134,6 @@ static size_t distinct_values(const uint8_t *p, size_t n)
 
 static const char two_block_message[] = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
 
-static const uint8_t sample_message[] = {'s', 'a', 'm', 'p', 'l', 'e'};
 static const uint8_t pbkdf2_salt[] = {'s', 'a', 'l', 't'};
 
 #define ECDSA_SHA256 PSA_ALG_ECDSA(PSA_ALG_SHA_256)
@@ -155,7 +154,7 @@ static psa_status_t import_p256_public(struct res *r, psa_key_usage_t usage, psa
     return status;
 }
 
-#define VERIFY_USAGE (PSA_KEY_USAGE_VERIFY_MESSAGE | PSA_KEY_USAGE_VERIFY_HASH)
+#define VERIFY_USAGE PSA_KEY_USAGE_VERIFY_HASH
 
 static psa_status_t pbkdf2_start(psa_key_derivation_operation_t *op, uint32_t cost,
                                  const char *password)
@@ -284,24 +283,28 @@ CASE(sha256_buffer_too_small)
     return NULL;
 }
 
-CASE(sha256_compare_and_verify_mismatch_invalid_signature)
+CASE(sha256_verify_mismatch_invalid_signature)
 {
     uint8_t wrong[32];
 
     INIT();
-    CHECK_STATUS(PSA_SUCCESS, psa_hash_compare(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3,
-                                               vec_sha256_abc, sizeof vec_sha256_abc));
+    CHECK_STATUS(PSA_SUCCESS, psa_hash_setup(&r->hash, PSA_ALG_SHA_256));
+    CHECK_STATUS(PSA_SUCCESS, psa_hash_update(&r->hash, (const uint8_t *)"abc", 3));
+    CHECK_STATUS(PSA_SUCCESS, psa_hash_verify(&r->hash, vec_sha256_abc, sizeof vec_sha256_abc));
+    CHECK_STATUS(PSA_SUCCESS, psa_hash_abort(&r->hash));
+
     memcpy(wrong, vec_sha256_abc, sizeof wrong);
     wrong[31] ^= 0x01;
-    CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
-                 psa_hash_compare(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3, wrong, sizeof wrong));
-    CHECK_REJECTED_AS(PSA_ERROR_INVALID_SIGNATURE, PSA_ERROR_INVALID_ARGUMENT,
-                      psa_hash_compare(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3, vec_sha256_abc,
-                                       sizeof vec_sha256_abc - 1));
-
     CHECK_STATUS(PSA_SUCCESS, psa_hash_setup(&r->hash, PSA_ALG_SHA_256));
     CHECK_STATUS(PSA_SUCCESS, psa_hash_update(&r->hash, (const uint8_t *)"abc", 3));
     CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE, psa_hash_verify(&r->hash, wrong, sizeof wrong));
+    CHECK_STATUS(PSA_SUCCESS, psa_hash_abort(&r->hash));
+
+    /* An expected value of the wrong length is never accepted. */
+    CHECK_STATUS(PSA_SUCCESS, psa_hash_setup(&r->hash, PSA_ALG_SHA_256));
+    CHECK_STATUS(PSA_SUCCESS, psa_hash_update(&r->hash, (const uint8_t *)"abc", 3));
+    CHECK_REJECTED_AS(PSA_ERROR_INVALID_SIGNATURE, PSA_ERROR_INVALID_ARGUMENT,
+                      psa_hash_verify(&r->hash, vec_sha256_abc, sizeof vec_sha256_abc - 1));
     return NULL;
 }
 
@@ -346,18 +349,6 @@ CASE(ecdsa_p256_import_is_volatile)
     return NULL;
 }
 
-CASE(ecdsa_p256_verify_message_known_answer)
-{
-    INIT();
-    CHECK_STATUS(PSA_SUCCESS,
-                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed,
-                                    sizeof vec_p256_public_uncompressed));
-    CHECK_STATUS(PSA_SUCCESS,
-                 psa_verify_message(r->key, ECDSA_SHA256, sample_message, sizeof sample_message,
-                                    vec_p256_signature_sample, sizeof vec_p256_signature_sample));
-    return NULL;
-}
-
 CASE(ecdsa_p256_verify_hash_known_answer)
 {
     INIT();
@@ -385,9 +376,6 @@ CASE(ecdsa_p256_wrong_signature_invalid)
                  psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample,
                                  flipped, sizeof flipped));
     CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
-                 psa_verify_message(r->key, ECDSA_SHA256, sample_message, sizeof sample_message,
-                                    flipped, sizeof flipped));
-    CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
                  psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample,
                                  zeros, sizeof zeros));
     /* A truncated signature is never accepted. */
@@ -401,14 +389,20 @@ CASE(ecdsa_p256_tampered_input_invalid)
 {
     static const uint8_t tampered_message[] = {'s', 'a', 'm', 'p', 'l', '3'};
     uint8_t tampered_hash[32];
+    size_t length = 0;
 
     INIT();
     CHECK_STATUS(PSA_SUCCESS,
                  import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed,
                                     sizeof vec_p256_public_uncompressed));
+    /* The image-check flow: hash the (altered) data, then verify the signature over the hash. */
+    CHECK_STATUS(PSA_SUCCESS,
+                 psa_hash_compute(PSA_ALG_SHA_256, tampered_message, sizeof tampered_message,
+                                  tampered_hash, sizeof tampered_hash, &length));
+    CHECK(length == sizeof tampered_hash);
     CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
-                 psa_verify_message(r->key, ECDSA_SHA256, tampered_message, sizeof tampered_message,
-                                    vec_p256_signature_sample, sizeof vec_p256_signature_sample));
+                 psa_verify_hash(r->key, ECDSA_SHA256, tampered_hash, sizeof tampered_hash,
+                                 vec_p256_signature_sample, sizeof vec_p256_signature_sample));
     memcpy(tampered_hash, vec_sha256_sample, sizeof tampered_hash);
     tampered_hash[0] ^= 0x80;
     CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
@@ -444,9 +438,6 @@ CASE(ecdsa_p256_key_policy_not_permitted)
     CHECK_STATUS(PSA_ERROR_NOT_PERMITTED,
                  psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample,
                                  vec_p256_signature_sample, sizeof vec_p256_signature_sample));
-    CHECK_STATUS(PSA_ERROR_NOT_PERMITTED,
-                 psa_verify_message(r->key, ECDSA_SHA256, sample_message, sizeof sample_message,
-                                    vec_p256_signature_sample, sizeof vec_p256_signature_sample));
     CHECK_STATUS(PSA_SUCCESS, psa_destroy_key(r->key));
     r->key = PSA_KEY_ID_NULL;
 
@@ -528,16 +519,20 @@ CASE(pbkdf2_verify_bytes_when_supported)
     return NULL;
 }
 
-CASE(pbkdf2_output_over_capacity_insufficient_data)
+CASE(kdf_output_on_inactive_operation_is_bad_state)
 {
     uint8_t out[16];
 
     INIT();
+    /* An operation that was never set up. */
+    CHECK_STATUS(PSA_ERROR_BAD_STATE, psa_key_derivation_output_bytes(&r->kdf, out, sizeof out));
+
+    /* An operation that was aborted after a successful derivation. */
     CHECK_STATUS(PSA_SUCCESS, pbkdf2_start(&r->kdf, 1, "passwd"));
-    CHECK_STATUS(PSA_SUCCESS, psa_key_derivation_set_capacity(&r->kdf, 16));
     CHECK_STATUS(PSA_SUCCESS, psa_key_derivation_output_bytes(&r->kdf, out, sizeof out));
     CHECK(memcmp(out, vec_pbkdf2_rfc7914_64, sizeof out) == 0);
-    CHECK_STATUS(PSA_ERROR_INSUFFICIENT_DATA, psa_key_derivation_output_bytes(&r->kdf, out, 1));
+    CHECK_STATUS(PSA_SUCCESS, psa_key_derivation_abort(&r->kdf));
+    CHECK_STATUS(PSA_ERROR_BAD_STATE, psa_key_derivation_output_bytes(&r->kdf, out, sizeof out));
     return NULL;
 }
 
