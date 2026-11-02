@@ -5,8 +5,10 @@
 
 /* Replace-pattern power-cut test for the microSD composition. The Zephyr Settings File backend
  * compacts by writing "<name>.cmp" and calling fs_rename(tmp, name); FatFs's rename first removes
- * the destination, so a cut in between leaves no settings file. This image repeats that sequence
- * with the same fs_* calls on fixed 8-record files and classifies what a cut left behind. Project
+ * the destination, so a cut in between leaves no settings file. This image repeats the order
+ * (write the temporary, close, fs_rename) and the identical fs_rename on fixed 8-record files, and
+ * classifies what a cut left behind; it is not the backend's code (it truncates on open and calls
+ * fs_sync, which the backend does not). Project
  * code, not a Crux API. It writes to the card and is meant to be interrupted: use it only when the
  * physical gate is approved for the current task. */
 
@@ -19,11 +21,13 @@ enum sd_replace_status {
     SD_REPLACE_COUNTER_INVALID = -2, /* present but not a decimal number; nothing was classified */
 };
 
+/* State of one file. NONE: it does not exist. VALID: complete, every record valid and of one
+ * generation. BAD: it exists but is short, long or has an invalid record; gen is then the
+ * generation field of record 0 when that carries the magic (even if its CRC is bad), else 0. */
 enum sd_replace_state {
-    SD_REPLACE_NONE,  /* the file does not exist */
-    SD_REPLACE_VALID, /* complete, every record valid and of one generation */
-    SD_REPLACE_BAD, /* exists but is short, long or has an invalid record; gen is that of the first
-                       valid record, else 0 */
+    SD_REPLACE_NONE,
+    SD_REPLACE_VALID,
+    SD_REPLACE_BAD,
 };
 
 struct sd_replace_file {

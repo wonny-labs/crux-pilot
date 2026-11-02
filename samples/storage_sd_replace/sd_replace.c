@@ -53,8 +53,8 @@ enum sd_replace_status sd_replace_generation(uint32_t gen)
     if (status != SD_REPLACE_OK) {
         return status;
     }
-    /* Exactly what the Settings File backend does: FatFs removes the destination inside the rename.
-     */
+    /* The same fs_rename the Settings File backend ends its compaction with: FatFs removes the
+     * destination inside it. */
     return fs_rename(CMP, CFG) == 0 ? SD_REPLACE_OK : SD_REPLACE_IO;
 }
 

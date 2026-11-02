@@ -8,11 +8,16 @@
 /* Replace-pattern power-cut test image for the RT1060-EVKB microSD card. Default builds touch no
  * card. With CONFIG_SAMPLE_SD_REPLACE_TEST it rewrites the settings file through a temporary and
  * fs_rename until power is cut; do not flash it until the physical gate has been approved for the
- * current task. Console lines (115200 baud), each of BOOT, CLASS and GEN ending with a checksum "
- * *XX": sd_storage_start: <status> BOOT <n> *XX CLASS run=<n-1> cfg=<none|valid|bad> cfg_gen=<g>
- * cmp=<none|valid|bad> cmp_gen=<g> *XX GEN <g> *XX          printed after the rename of generation
- * g returned BOOT and CLASS repeat every REPORT_EVERY generations: the console shares the board's
- * power USB, so after a cut the serial port returns seconds after the board has booted.
+ * current task.
+ *
+ * Console lines at 115200 baud; BOOT, CLASS and GEN end with a checksum " *XX":
+ *   sd_storage_start: <status>
+ *   BOOT <n> *XX
+ *   CLASS run=<n-1> cfg=<none|valid|bad> cfg_gen=<g> cmp=<none|valid|bad> cmp_gen=<g> *XX
+ *   GEN <g> *XX      printed after the rename of generation g returned
+ *
+ * BOOT and CLASS repeat every REPORT_EVERY generations: the console shares the board's power USB,
+ * so after a cut the serial port returns seconds after the board has booted.
  */
 enum { REPORT_EVERY = 16 };
 
