@@ -112,14 +112,22 @@ evidence. Details and limits: [docs/evidence/microsd-physical](evidence/microsd-
 - **Persistence script:** `scripts/test-file-persistence.sh` stays a manual gate and is not in
   CI (about a minute and dependent on host timing).
 
+## Power-cut results (2 November 2026)
+
+33 power cuts during continuous per-record syncs on the same board and card, made by switching the
+board's USB hub port: no acknowledged record was missing, no partial or damaged record was found, the
+card always mounted and a read-only `fsck_msdos -n` was clean. The writes were 32-byte appends with a sync
+each; larger writes, directory changes and renames were not cut, and it is one card. See
+[docs/evidence/microsd-power-cut](evidence/microsd-power-cut/README.md).
+
 ## Not covered (needs the card and board)
 
 Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted;
 whether the M.2 Wi-Fi SDIO path shares uSDHC1 on this board (the board devicetree labels the
 same controller `m2_wifi_sdio`; nothing in this repository confirms pin or controller
-ownership); high-water stack use; cache and DMA placement; and persistence across power
-cycles, power loss and interrupted-save behaviour (data across normal CPU restarts is covered in the
-physical results above).
+ownership); high-water stack use; cache and DMA placement; and power-loss behaviour beyond the 32-byte append test above (larger writes, directory changes, other
+cards); data across normal CPU restarts and the append power-cut test are covered in the physical
+results above.
 
 ## Physical gate procedure (draft, nothing here is authorised)
 

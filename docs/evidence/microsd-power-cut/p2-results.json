@@ -1,0 +1,49 @@
+{
+  "summary": {
+    "cycles": 3,
+    "judged": 3,
+    "no_report": 0,
+    "previous_run_not_observed": 0,
+    "with_acked_lost": 0,
+    "with_torn_tail": 0,
+    "with_damaged_record": 0
+  },
+  "cycles": [
+    {
+      "cycle": 1,
+      "boot": 40,
+      "start_status": 0,
+      "last_ack": 14827,
+      "last_valid": 14853,
+      "torn_bytes": 0,
+      "damaged_record": false,
+      "run_present": true,
+      "acked_lost": 0,
+      "unacked_present": 26
+    },
+    {
+      "cycle": 2,
+      "boot": 41,
+      "start_status": 0,
+      "last_ack": 20939,
+      "last_valid": 20964,
+      "torn_bytes": 0,
+      "damaged_record": false,
+      "run_present": true,
+      "acked_lost": 0,
+      "unacked_present": 25
+    },
+    {
+      "cycle": 3,
+      "boot": 42,
+      "start_status": 0,
+      "last_ack": 14946,
+      "last_valid": 14946,
+      "torn_bytes": 0,
+      "damaged_record": false,
+      "run_present": true,
+      "acked_lost": 0,
+      "unacked_present": 0
+    }
+  ]
+}

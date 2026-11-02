@@ -1,0 +1,348 @@
+��m�j�{�������������������{�������������������{�������������������BFBFBFBFBFBFB��o���FBFBFBFBFBFBFBfb��o���fbfb�
+R'MM�*BB
+ACK 5846 *BC
+ACK 5847 *BD
+ACK 5848 *BE
+... (5 ACK lines omitted) ...
+ACK 5854 *D9
+ACK 5855 *DA
+ACK 5856 *DB
+BOOT 8 *8A
+RECOVER run=7 present=1 last_valid=88901 torn=0 damaged=0 *5A
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 5857 *DC
+ACK 5858 *DD
+ACK 5859 *DE
+... (122 ACK lines omitted) ...
+ACK 5982 *F5
+ACK 5983 *F6
+ACK 5984 *F7
+BOOT 9 *8B
+RECOVER run=8 present=1 last_valid=6013 torn=0 damaged=0 *13
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (704 ACK lines omitted) ...
+ACK 708 *48
+ACK 709 *49
+ACK 710 *5F
+BOOT 10 *0D
+RECOVER run=9 present=1 last_valid=741 torn=0 damaged=0 *A2
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1260 ACK lines omitted) ...
+ACK 1264 *F6
+ACK 1265 *F7
+ACK 1266 *F8
+BOOT 11 *0E
+RECOVER run=10 present=1 last_valid=1296 torn=0 damaged=0 *4E
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1159 ACK lines omitted) ...
+ACK 1163 *34
+ACK 1164 *35
+ACK 1165 *36
+BOOT 12 *0F
+RECOVER run=11 present=1 last_valid=1192 torn=0 damaged=0 *D2
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (803 ACK lines omitted) ...
+ACK 807 *08
+ACK 808 *09
+ACK 809 *0A
+BOOT 13 *10
+RECOVER run=12 present=1 last_valid=838 torn=0 damaged=0 *9D
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (706 ACK lines omitted) ...
+ACK 710 *5F
+ACK 711 *60
+ACK 712 *61
+BOOT 14 *11
+RECOVER run=13 present=1 last_valid=735 torn=0 damaged=0 *A2
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1370 ACK lines omitted) ...
+ACK 1374 *D6
+ACK 1375 *D7
+ACK 1376 *D8
+BOOT 15 *12
+RECOVER run=14 present=1 last_valid=1406 torn=0 damaged=0 *BF
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1232 ACK lines omitted) ...
+ACK 1236 *9B
+ACK 1237 *9C
+ACK 1238 *9D
+BOOT 16 *13
+RECOVER run=15 present=1 last_valid=1238 torn=0 damaged=0 *E1
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1067 ACK lines omitted) ...
+ACK 1071 *90
+ACK 1072 *91
+ACK 1073 *92
+BOOT 17 *14
+RECOVER run=16 present=1 last_valid=1103 torn=0 damaged=0 *03
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (848 ACK lines omitted) ...
+ACK 852 *9E
+ACK 853 *9F
+ACK 854 *A0
+BOOT 18 *15
+RECOVER run=17 present=1 last_valid=882 torn=0 damaged=0 *6D
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (780 ACK lines omitted) ...
+ACK 784 *3C
+ACK 785 *3D
+ACK 786 *3E
+BOOT 19 *16
+RECOVER run=18 present=1 last_valid=816 torn=0 damaged=0 *63
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (538 ACK lines omitted) ...
+ACK 542 *3C
+ACK 543 *3D
+ACK 544 *3E
+BOOT 20 *2C
+RECOVER run=19 present=1 last_valid=572 torn=0 damaged=0 *11
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (719 ACK lines omitted) ...
+ACK 723 *81
+ACK 724 *82
+ACK 725 *83
+BOOT 21 *2D
+RECOVER run=20 present=1 last_valid=753 torn=0 damaged=0 *02
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1137 ACK lines omitted) ...
+ACK 1141 *F4
+ACK 1142 *F5
+ACK 1143 *F6
+BOOT 22 *2E
+RECOVER run=21 present=1 last_valid=1172 torn=0 damaged=0 *D1
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (381 ACK lines omitted) ...
+ACK 385 *39
+ACK 386 *3A
+ACK 387 *3B
+BOOT 23 *2F
+RECOVER run=22 present=1 last_valid=416 torn=0 damaged=0 *C0
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1271 ACK lines omitted) ...
+ACK 1275 *16
+ACK 1276 *17
+ACK 1277 *18
+BOOT 24 *30
+RECOVER run=23 present=1 last_valid=1305 torn=0 damaged=0 *63
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (778 ACK lines omitted) ...
+ACK 782 *3A
+ACK 783 *3B
+ACK 784 *3C
+BOOT 25 *31
+RECOVER run=24 present=1 last_valid=813 torn=0 damaged=0 *61
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (778 ACK lines omitted) ...
+ACK 782 *3A
+ACK 783 *3B
+ACK 784 *3C
+BOOT 26 *32
+RECOVER run=25 present=1 last_valid=814 torn=0 damaged=0 *41
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (365 ACK lines omitted) ...
+ACK 369 *FF
+ACK 370 *15
+ACK 371 *16
+BOOT 27 *33
+RECOVER run=26 present=1 last_valid=400 torn=0 damaged=0 *49
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1576 ACK lines omitted) ...
+ACK 1580 *73
+ACK 1581 *74
+ACK 1582 *75
+BOOT 28 *34
+RECOVER run=27 present=1 last_valid=1610 torn=0 damaged=0 *22
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1062 ACK lines omitted) ...
+ACK 1066 *76
+ACK 1067 *77
+ACK 1068 *78
+BOOT 29 *35
+RECOVER run=28 present=1 last_valid=1096 torn=0 damaged=0 *09
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1352 ACK lines omitted) ...
+ACK 1356 *9A
+ACK 1357 *9B
+ACK 1358 *9C
+BOOT 30 *4B
+RECOVER run=29 present=1 last_valid=1387 torn=0 damaged=0 *E3
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1166 ACK lines omitted) ...
+ACK 1170 *50
+ACK 1171 *51
+ACK 1172 *52
+BOOT 31 *4C
+RECOVER run=30 present=1 last_valid=1200 torn=0 damaged=0 *CD
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (565 ACK lines omitted) ...
+ACK 569 *81
+ACK 570 *97
+ACK 571 *98
+BOOT 32 *4D
+RECOVER run=31 present=1 last_valid=574 torn=0 damaged=0 *05
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (824 ACK lines omitted) ...
+ACK 828 *47
+ACK 829 *48
+ACK 830 *5E
+BOOT 33 *4E
+RECOVER run=32 present=1 last_valid=858 torn=0 damaged=0 *DD
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (920 ACK lines omitted) ...
+ACK 924 *04
+ACK 925 *05
+ACK 926 *06
+BOOT 34 *4F
+RECOVER run=33 present=1 last_valid=956 torn=0 damaged=0 *BF
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (663 ACK lines omitted) ...
+ACK 667 *40
+ACK 668 *41
+ACK 669 *42
+BOOT 35 *50
+RECOVER run=34 present=1 last_valid=696 torn=0 damaged=0 *67
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1410 ACK lines omitted) ...
+ACK 1414 *DD
+ACK 1415 *DE
+ACK 1416 *DF
+BOOT 36 *51
+RECOVER run=35 present=1 last_valid=1445 torn=0 damaged=0 *05
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (906 ACK lines omitted) ...
+ACK 910 *E1
+ACK 911 *E2
+ACK 912 *E3
+BOOT 37 *52
+RECOVER run=36 present=1 last_valid=943 torn=0 damaged=0 *E4
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (465 ACK lines omitted) ...
+ACK 469 *C0
+ACK 470 *D6
+ACK 471 *D7
+BOOT 38 *53
+RECOVER run=37 present=1 last_valid=500 torn=0 damaged=0 *C8
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (1368 ACK lines omitted) ...
+ACK 1372 *D4
+ACK 1373 *D5
+ACK 1374 *D6
