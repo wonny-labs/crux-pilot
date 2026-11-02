@@ -178,7 +178,8 @@ class FakeLink:
 class Adapter(unittest.TestCase):
     def make(self,root):
         port=Port();link=FakeLink()
-        live=focused.FocusedAdapter(31,root/'boot',lambda:port,receiver_factory=Receiver,process_backend=Backend(),link=link,clock=Time(),software_only=True)
+        clock=Time()
+        live=focused.FocusedAdapter(31,root/'boot',lambda:port,receiver_factory=Receiver,process_backend=Backend(),link=link,clock=clock,sleep=clock.sleep,software_only=True)
         return live,port,link
 
     def feed(self,live,*chunks):
@@ -258,6 +259,26 @@ class Adapter(unittest.TestCase):
             live.restore_link()
             self.assertEqual([e['record']['event'] for e in live.poll(0)],['cable_connect_receipt','host_up','route'])
             self.assertEqual(link.calls,['up'])
+
+    def test_write_waits_until_the_target_has_been_quiet(self):
+        with tempfile.TemporaryDirectory() as directory:
+            live,port,link=self.make(Path(directory));clock=live.clock
+            self.feed(live,BANNER+BOOT)
+            started=live.write_uart('A 31\n',deadline=clock()+10)
+            self.assertEqual(port.writes,[b'A 31\n'])
+            self.assertGreaterEqual(started-1.,focused.QUIET)
+            self.assertEqual([e['kind'] for e in live.poll(0)],['boot'])
+
+    def test_a_target_that_never_goes_quiet_stops_the_write(self):
+        with tempfile.TemporaryDirectory() as directory:
+            live,port,link=self.make(Path(directory));clock=live.clock
+            self.feed(live,BANNER+BOOT)
+            def chatter(seconds):
+                clock.value+=seconds
+                with (live.directory/'receive.jsonl').open('a') as out:out.write(json.dumps(dict(monotonic=clock.value,hex=b'.'.hex()))+'\n')
+            live.sleep=chatter
+            with self.assertRaises(ValueError):live.write_uart('A 31\n',deadline=clock()+2)
+            self.assertEqual(port.writes,[])
 
     def test_only_runner_commands_reach_the_uart(self):
         with tempfile.TemporaryDirectory() as directory:

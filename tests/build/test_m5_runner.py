@@ -291,8 +291,9 @@ class FocusedProfile(unittest.TestCase):
                 if not self.events:
                     self.clock.now+=timeout;return []
                 event=self.events.pop(0);self.clock.now=max(self.clock.now,event['monotonic']+.0002)
+                if event['kind']=='target' and event['record'].get('event')=='LINK' and event['record'].get('link')==2:self.order.append('link_up')
                 return [event]
-            def write_uart(self,line,*,deadline):self.writes.append(line);return self.clock()
+            def write_uart(self,line,*,deadline):self.writes.append(line);self.order.append('write:'+line.split()[0]);return self.clock()
             def prepare_peer(self,nonce,phase,count,mode):
                 if self.phase is not None:raise AssertionError('Old peer still owns ports')
                 self.phase=phase;self.order.append('prepare:'+str(phase))
@@ -320,6 +321,7 @@ class FocusedProfile(unittest.TestCase):
         self.assertEqual(io.stops,[2,3,4,5,6,7,8])
         self.assertEqual((len(io.cues),io.restores),(1,1))
         self.assertLess(io.order.index('restore'),io.order.index('prepare:8'))
+        self.assertLess(io.order.index('link_up'),io.order.index('write:I'),'the first command must wait for the LINK UP record')
         self.assertEqual(s.state,'finished')
         self.assertFalse(s.aborted)
 

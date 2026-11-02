@@ -22,6 +22,9 @@ BANNER = runner.BANNER_PREFIX
 ASSIGN = ['sudo', '-n', '/sbin/ifconfig', 'en5', 'inet', '192.168.77.1', 'netmask', '255.255.255.0', 'up']
 MAC = '00:0a:cd:41:89:cc'
 CARRIER_TIMEOUT = 15
+# Target prints with CONFIG_PRINTK_SYNC (interrupts locked for a whole record): a command that arrives
+# while the observer prints M5 LINK loses bytes. Write only after the UART has been quiet this long.
+QUIET = .25
 SETTLE_TIMEOUT = 5
 
 
@@ -164,11 +167,13 @@ class _NoNIC:
 class FocusedAdapter(CaptureAdapter):
     """CaptureAdapter for one boot: no approval plan, no reset, automatic host link control."""
 
-    def __init__(self, nonce, directory, uart_factory, *, receiver_factory=None, process_backend=None, link=None, clock=shared_clock.monotonic, software_only=False):
+    def __init__(self, nonce, directory, uart_factory, *, receiver_factory=None, process_backend=None, link=None, clock=shared_clock.monotonic, sleep=shared_clock.sleep, software_only=False):
         runner.oracle.require(type(nonce) is int and 0 < nonce <= 0xffffffff, 'Invalid boot nonce')
         self.nonce = nonce
         self.boot = 1
         self.clock = clock
+        self.sleep = sleep
+        self.last_rx = None
         self.factory = uart_factory
         self.safety = None
         self.directory = Path(directory)
@@ -218,6 +223,7 @@ class FocusedAdapter(CaptureAdapter):
         result = []
         for event in self.lines(self.directory / 'receive.jsonl'):
             chunk = bytes.fromhex(event['hex'])
+            self.last_rx = event['monotonic']
             if not self.cut:
                 self.prefix += chunk
                 at = self.prefix.find(BANNER)
@@ -255,6 +261,23 @@ class FocusedAdapter(CaptureAdapter):
         events = self.backlog + events
         self.backlog = []
         return sorted(events, key=lambda event: event['monotonic'])
+
+    def wait_quiet(self, deadline):
+        """Block (bounded by the command deadline) until nothing arrived for QUIET seconds.
+
+        Events read meanwhile stay queued for the runner loop (backlog); nothing is dropped.
+        """
+        while True:
+            self.backlog = self.poll(0)
+            now = self.clock()
+            if self.last_rx is None or now - self.last_rx >= QUIET:
+                return
+            runner.oracle.require(now < deadline, 'UART not quiet before the command deadline')
+            self.sleep(.01)
+
+    def write_uart(self, line, *, deadline):
+        self.wait_quiet(deadline)
+        return CaptureAdapter.write_uart(self, line, deadline=deadline)
 
     def wait_for_boot(self, *, deadline, sleep):
         """Block (bounded) until the operator's power cycle makes the target print its banner."""

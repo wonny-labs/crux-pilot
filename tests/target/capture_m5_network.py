@@ -382,7 +382,9 @@ def run_boot(supervisor,adapter,clock):
                         restore();restored=True
                     adapter.prepare_peer(supervisor.nonce,sequence,count,mode);peer_phase=sequence
                 recovery_ready=sequence!=supervisor.profile['recovery'] or ({r['event'] for r in supervisor.controls}=={'cable_disconnect_cue','cable_disconnect_receipt','host_down','cable_connect_receipt','host_up','route'} and supervisor.up is not None)
-                if (not count or supervisor.peer is not None) and recovery_ready:
+                # The first command waits for the target's own LINK record: its print would eat the command.
+                link_ready=supervisor.sequence!=1 or supervisor.last_link==2
+                if (not count or supervisor.peer is not None) and recovery_ready and link_ready:
                     line=supervisor.next_command(clock())
                     started=adapter.write_uart(line,deadline=min(supervisor.watch.absolute,supervisor.watch.progress))
                     if started is not None:supervisor.command_written(started,clock())
