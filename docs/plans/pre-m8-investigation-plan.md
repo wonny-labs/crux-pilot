@@ -151,6 +151,7 @@ Gate after Stage 4: report the Stage 1 to 4 findings to the owner with the candi
 | Evidence | `inputs/`, `provenance-mcuboot.json`, `provenance-app.json`, signed artefact hashes in `signing.txt`. |
 | Verification | MCUboot `.config` contains the expected mode, `CONFIG_BOOT_VALIDATE_SLOT0=y` and the tinycrypt backend. The application `.config` has `CONFIG_BOOTLOADER_MCUBOOT=y` and no NXP boot header. The bootloader image has the boot header at 0x60000000. |
 | Stop condition | Stop and escalate if the build needs an upstream source patch, a Zephyr crypto module, or a key inside the repository. Stop if the Dev Container runs out of memory or disk and record the limit rather than switching to an undocumented environment silently. |
+| Status (2 November 2026) | Done, build-only, for RAM load with revert and swap using offset. No stop condition triggered. See [stage5-trial-builds.md](../evidence/boot-update/stage5-trial-builds.md). |
 
 ### Stage 6: Fenced layout proposal and XIP write analysis (scope items 3 and 4)
 
@@ -161,6 +162,7 @@ Gate after Stage 4: report the Stage 1 to 4 findings to the owner with the candi
 | Evidence | Layout table and write inventory in the decision record. |
 | Verification | Layout offsets checked against DTS and the built partition map. Write inventory checked against Stage 1 citations and the MCUboot ELF. |
 | Stop condition | Do not claim closure. Mark bootloader write-path closure "Not verified" unless the ELF analysis covers it fully, which is not expected in this investigation. |
+| Status (2 November 2026) | Done as a proposal and analysis. Closure Not verified. See [stage6-layout-and-write-analysis.md](../evidence/boot-update/stage6-layout-and-write-analysis.md). |
 
 ### Stage 7: (removed, RT1170 deferred)
 
@@ -175,6 +177,7 @@ Removed on 1 November 2026 together with #141 scope item 5. The stage number is 
 | Evidence | `reproducibility.txt`, `signing.txt`. |
 | Verification | Hash comparison output and `imgtool verify` exit status. `git grep` for PEM private-key headers returns nothing. |
 | Stop condition | If hashes differ for reasons other than a documented embedded revision, record "not reproducible" and stop the claim. Do not adjust the build to hide differences. |
+| Status (2 November 2026) | Done, build-only. Unsigned binaries identical. ELF files differ only in debug sections. All signed images verify. Stop condition not triggered. See [stage8-reproducibility-and-signing.md](../evidence/boot-update/stage8-reproducibility-and-signing.md). |
 
 ### Stage 9: Decision record, Draft PR and independent review
 
