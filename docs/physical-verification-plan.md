@@ -23,7 +23,7 @@ contracts and in the [test guide](../tests/README.md).
 |---|---|---|
 | Host | Contract rules, argument checks, status propagation, native-free consumption, the two test consumers (TMP117 for I2C, flash identification for SPI) against test-only providers | Zephyr or any bus |
 | `native_sim` | The Zephyr providers against Zephyr's emulators, Devicetree-selected settings, native error mapping, build-time rejection of bad compositions | Real drivers, timing, signals, chip-select behaviour, controllers that are not ready |
-| Board cross-build | The portable GPIO consumer compiles and links for this board | That a pin, bus or peripheral works |
+| Board cross-build | The portable GPIO, I2C (TMP117) and SPI (flash identification) consumers compile and link for this board | That a pin, bus or peripheral works |
 
 The device models in the test consumers (TMP117 registers, the `0x9F` flash command) were written
 from data sheets as read. No physical TMP117 or flash has been used. The checks below are the first
