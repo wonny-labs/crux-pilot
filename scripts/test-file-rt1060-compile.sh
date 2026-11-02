@@ -96,6 +96,36 @@ for name, wanted in [('crux.sample.storage_sd_interrupt', False),
 print(f'RT1060 interrupted-write link check built {len(suites)} scenarios on {sys.argv[2]}')
 PY
 
+# Link only: the replace-pattern power-cut image. It writes to a card until power is cut, so the scenario
+# that enables it must never be flashed without physical approval.
+replace_output="${CRUX_FILE_RT1060_REPLACE_OUTPUT:-$repo/build/zephyr/twister-file-rt1060-replace}"
+(cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_sd_replace" \
+    --build-only -O "$replace_output" --inline-logs)
+
+python3 - "$replace_output/twister.json" "$board" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+suites = json.load(open(sys.argv[1]))['testsuites']
+names = sorted(s['name'] for s in suites)
+expected = ['crux.sample.storage_sd_replace', 'crux.sample.storage_sd_replace.test']
+if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 'not run' or
+                             s.get('runnable') for s in suites)):
+    raise RuntimeError(f'RT1060 replace-pattern link check did not build both scenarios: '
+                       f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
+root = Path(sys.argv[1]).parent
+for name, wanted in [('crux.sample.storage_sd_replace', False),
+                     ('crux.sample.storage_sd_replace.test', True)]:
+    configs = [p for p in root.rglob('.config') if p.parent.parent.name == name]
+    if len(configs) != 1:
+        raise RuntimeError(f'expected one build configuration for {name}, found {len(configs)}')
+    enabled = 'CONFIG_SAMPLE_SD_REPLACE_TEST=y' in configs[0].read_text().splitlines()
+    if enabled != wanted:
+        raise RuntimeError(f'{name}: CONFIG_SAMPLE_SD_REPLACE_TEST enabled={enabled}, expected {wanted}')
+print(f'RT1060 replace-pattern link check built {len(suites)} scenarios on {sys.argv[2]}')
+PY
+
 # Negative control: the same check on Rev C and on the hyperflash variant must be refused, not
 # skipped. An unsatisfied Kconfig dependency only warns, so the testcase's CMake rejects it.
 for other in 'mimxrt1060_evk@C/mimxrt1062/qspi' 'mimxrt1060_evk@B/mimxrt1062/hyperflash'; do
