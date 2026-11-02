@@ -33,6 +33,16 @@ class Parse(unittest.TestCase):
     def test_there_is_no_previous_run_before_the_first_boot_line(self):
         self.assertIsNone(feed(['BOOT 1'])['prev_run_ack'])
 
+    def test_a_repeated_boot_line_of_the_same_boot_changes_nothing(self):
+        state = feed(['BOOT 2', 'RECOVER run=1 present=1 last_valid=6 torn=0 damaged=0', 'ACK 1', 'ACK 2',
+                      'BOOT 2', 'RECOVER run=1 present=1 last_valid=6 torn=0 damaged=0', 'ACK 3'])
+        self.assertEqual(state['boot'], 2)
+        self.assertEqual(state['last_ack'], 3, 'a repeat must not reset the ACK counter')
+
+    def test_the_boot_before_a_new_boot_is_remembered_for_pairing(self):
+        state = feed(['BOOT 2', 'ACK 1', 'ACK 2', 'BOOT 3'])
+        self.assertEqual((state['prev_run_boot'], state['prev_run_ack']), (2, 2))
+
     def test_start_status_is_recorded(self):
         self.assertEqual(feed(['sd_storage_start: 2'])['start_status'], 2)
 
@@ -53,6 +63,23 @@ class Judge(unittest.TestCase):
     def test_a_record_that_landed_without_its_ack_is_not_a_loss(self):
         r = ic.judge(10, self.recover(11))
         self.assertEqual((r['acked_lost'], r['unacked_present']), (0, 1))
+
+
+class Pair(unittest.TestCase):
+    RECOVER = 'RECOVER run=2 present=1 last_valid=4 torn=13 damaged=0'
+
+    def test_a_report_is_judged_only_against_the_run_it_describes(self):
+        state = feed(['BOOT 2', 'ACK 1', 'ACK 5', 'BOOT 3', self.RECOVER])
+        self.assertEqual(ic.pair(state)['acked_lost'], 1)
+
+    def test_a_run_whose_acks_were_never_seen_is_not_judged(self):
+        state = feed(['BOOT 2', 'ACK 1', 'BOOT 4', 'RECOVER run=3 present=1 last_valid=4 torn=0 damaged=0'])
+        entry = ic.pair(state)
+        self.assertEqual(entry['outcome'], 'previous_run_not_observed')
+        self.assertNotIn('acked_lost', entry)
+
+    def test_the_first_boot_seen_has_nothing_to_pair(self):
+        self.assertIsNone(ic.pair(feed(['BOOT 5', self.RECOVER])))
 
 
 class Summary(unittest.TestCase):
@@ -118,3 +145,50 @@ class LoopOnFakeBoard(unittest.TestCase):
             self.assertEqual(r['acked_lost'], 1, 'the scripted board always loses exactly the last ACK')
             self.assertEqual(r['torn_bytes'], 13)
         self.assertEqual(ic.summarize(results)['with_acked_lost'], len(judged))
+
+
+class ObserveWithPortLoss(unittest.TestCase):
+    """--observe on a port that vanishes and returns, as the OpenSDA port does when power is cut."""
+
+    def test_reports_are_paired_across_a_vanished_port_and_unseen_boots_are_not_judged(self):
+        import argparse
+        import os
+        import pty
+        import tempfile
+        import threading
+        import time
+
+        directory = tempfile.mkdtemp()
+        link = os.path.join(directory, 'port')
+        master_a, slave_a = pty.openpty()
+        os.symlink(os.ttyname(slave_a), link)
+
+        def feeder():
+            # boot 1 is seen with ACKs; the cut and boot 2 happen while the port is gone and its
+            # repeated report arrives only after boot 3 has started: run2 was never observed.
+            os.write(master_a, b'BOOT 1\r\nACK 1\r\nACK 2\r\nACK 3\r\n')
+            time.sleep(0.4)
+            os.close(master_a)  # the port vanishes
+            os.remove(link)
+            time.sleep(0.5)
+            master_b, slave_b = pty.openpty()
+            os.symlink(os.ttyname(slave_b), link)  # the port returns
+            report = 'RECOVER run={} present=1 last_valid={} torn=13 damaged=0\r\n'
+            os.write(master_b, ('BOOT 2\r\n' + report.format(1, 2) + 'ACK 1\r\nACK 2\r\n').encode())
+            time.sleep(0.3)
+            os.write(master_b, ('BOOT 3\r\n' + report.format(2, 1) + 'ACK 1\r\n').encode())
+            time.sleep(0.6)
+
+        thread = threading.Thread(target=feeder, daemon=True)
+        thread.start()
+        args = argparse.Namespace(port=link, baud=115200, duration=3.0, log=os.path.join(directory, 'c.log'))
+        results = ic.run_observe(args)
+        thread.join(timeout=3)
+        judged = [r for r in results if 'acked_lost' in r]
+        self.assertEqual(len(judged), 2, results)
+        self.assertEqual((judged[0]['boot'], judged[0]['last_ack'], judged[0]['last_valid'],
+                          judged[0]['acked_lost']), (2, 3, 2, 1))
+        self.assertEqual((judged[1]['boot'], judged[1]['last_ack'], judged[1]['last_valid'],
+                          judged[1]['acked_lost']), (3, 2, 1, 1))
+        s = ic.summarize(results)
+        self.assertEqual((s['judged'], s['with_acked_lost']), (2, 2))

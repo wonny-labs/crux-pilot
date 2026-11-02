@@ -8,6 +8,10 @@ ACK <seq> is printed only after record <seq> was synced. For every interruption 
 seen and what the next boot found. Outcomes are recorded, not asserted.
 
 Interruption methods (the script never decides how power is cut):
+  --observe --duration S     the board is power-cycled by hand; the serial port may vanish and
+                             return. Reports are paired as they arrive; a run whose ACK lines were
+                             never seen (the cut came before the image repeated its report) is
+                             recorded as previous_run_not_observed, not judged
   --cycle-cmd CMD            one command that interrupts and restarts the board (a probe reset);
                              this restarts the CPU only and is NOT power-loss evidence
   --cut-cmd CMD --restore-cmd CMD   remove power, wait --off-seconds, restore it
@@ -35,11 +39,16 @@ def parse_line(line, state):
         state['start_status'] = int(m.group(1))
         return 'start'
     if (m := BOOT.search(line)):
+        boot = int(m.group(1))
+        if boot == state.get('boot'):
+            return 'boot_repeat'  # the image repeats its report: the port may have been absent
         # The console is an ordered stream: every ACK the previous run printed precedes this line.
+        state['prev_run_boot'] = state.get('boot')
         state['prev_run_ack'] = state.get('last_ack')
-        state['boot'] = int(m.group(1))
+        state['boot'] = boot
         state['last_ack'] = 0
         state['recover'] = None
+        state['judged'] = False
         return 'boot'
     if (m := RECOVER.search(line)):
         state['recover'] = {'run': int(m.group(1)), 'present': m.group(2) == '1',
@@ -50,6 +59,20 @@ def parse_line(line, state):
         state['last_ack'] = max(state.get('last_ack', 0), int(m.group(1)))
         return 'ack'
     return None
+
+
+def pair(state):
+    """The judged entry for the current boot's recovery report, or None when there is nothing to pair.
+
+    The report describes run<boot-1>. It is judged only if this host saw that run's ACK lines;
+    otherwise the cut happened before any report of that run reached the host."""
+    recover = state.get('recover')
+    if recover is None or state.get('prev_run_boot') is None:
+        return None
+    base = {'boot': state['boot'], 'start_status': state.get('start_status')}
+    if recover['run'] != state['prev_run_boot']:
+        return base | {'outcome': 'previous_run_not_observed', 'report': recover}
+    return base | judge(state['prev_run_ack'], recover)
 
 
 def judge(last_ack, recover):
@@ -63,21 +86,48 @@ def judge(last_ack, recover):
 
 class Console:
     def __init__(self, path, rate):
-        self.fd = os.open(path, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+        self.path, self.rate, self.fd, self.buffer = path, rate, None, b''
+        self.open()
+
+    def open(self):
+        self.fd = os.open(self.path, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
         attrs = termios.tcgetattr(self.fd)
         attrs[0] = attrs[1] = attrs[3] = 0
         attrs[2] = termios.CS8 | termios.CREAD | termios.CLOCAL
-        attrs[4] = attrs[5] = getattr(termios, f'B{rate}')
+        attrs[4] = attrs[5] = getattr(termios, f'B{self.rate}')
         attrs[6][termios.VMIN] = 0
         attrs[6][termios.VTIME] = 0
         termios.tcsetattr(self.fd, termios.TCSANOW, attrs)
         self.buffer = b''
 
+    def reopen(self):
+        """Wait for the port to come back after a power cut; the device may vanish and reappear."""
+        try:
+            os.close(self.fd)
+        except OSError:
+            pass
+        self.fd = None
+        self.buffer = b''
+
     def lines(self, seconds):
         end = time.time() + seconds
         while time.time() < end:
-            if select.select([self.fd], [], [], 0.1)[0]:
-                self.buffer += os.read(self.fd, 4096)
+            if self.fd is None:
+                try:
+                    self.open()
+                except OSError:
+                    time.sleep(0.2)
+                    continue
+            try:
+                if select.select([self.fd], [], [], 0.1)[0]:
+                    chunk = os.read(self.fd, 4096)
+                    if not chunk:
+                        self.reopen()
+                        continue
+                    self.buffer += chunk
+            except OSError:
+                self.reopen()
+                continue
             while b'\n' in self.buffer:
                 line, self.buffer = self.buffer.split(b'\n', 1)
                 yield line.decode('ascii', 'replace').strip()
@@ -116,11 +166,9 @@ def run_cycles(args):
             print(json.dumps(results[-1]), flush=True)
             restart()
             continue
-        boot_recover = state.get('recover')
-        previous_ack = state.get('prev_run_ack')
-        if boot_recover is not None and previous_ack is not None:
-            entry = {'cycle': cycle, 'boot': state['boot'], 'start_status': state.get('start_status')}
-            entry.update(judge(previous_ack, boot_recover))
+        entry = pair(state)
+        if entry is not None:
+            entry = {'cycle': cycle} | entry
             results.append(entry)
             print(json.dumps(entry), flush=True)
         pump(rng.uniform(args.min_run, args.max_run))
@@ -129,10 +177,32 @@ def run_cycles(args):
     return results
 
 
+def run_observe(args):
+    """Record every report while the board is restarted by hand; the port may vanish and return."""
+    console = Console(args.port, args.baud)
+    state = {}
+    results = []
+    with open(args.log, 'w') as log:
+        for line in console.lines(args.duration):
+            log.write(line + '\n')
+            log.flush()
+            event = parse_line(line, state)
+            if event == 'recover' and not state.get('judged'):
+                state['judged'] = True
+                entry = pair(state)
+                if entry is not None:
+                    entry = {'cycle': len(results) + 1} | entry
+                    results.append(entry)
+                    print(json.dumps(entry), flush=True)
+    return results
+
+
 def summarize(results):
     judged = [r for r in results if 'acked_lost' in r]
     return {'cycles': len(results), 'judged': len(judged),
             'no_report': sum(1 for r in results if r.get('outcome') == 'no_recovery_report'),
+            'previous_run_not_observed': sum(1 for r in results
+                                             if r.get('outcome') == 'previous_run_not_observed'),
             'with_acked_lost': sum(1 for r in judged if r['acked_lost'] > 0),
             'with_torn_tail': sum(1 for r in judged if r['torn_bytes'] > 0),
             'with_damaged_record': sum(1 for r in judged if r['damaged_record'])}
@@ -143,6 +213,9 @@ def main():
     parser.add_argument('--port', required=True)
     parser.add_argument('--baud', type=int, default=115200)
     parser.add_argument('--cycles', type=int, default=10)
+    parser.add_argument('--observe', action='store_true',
+                        help='do not interrupt anything: record while the board is restarted by hand')
+    parser.add_argument('--duration', type=float, default=900.0, help='seconds to observe')
     parser.add_argument('--cycle-cmd')
     parser.add_argument('--cut-cmd')
     parser.add_argument('--restore-cmd')
@@ -154,9 +227,9 @@ def main():
     parser.add_argument('--log', default='interrupt-console.log')
     parser.add_argument('--out', default='interrupt-results.json')
     args = parser.parse_args()
-    if not args.cycle_cmd and not (args.cut_cmd and args.restore_cmd):
-        parser.error('give --cycle-cmd, or both --cut-cmd and --restore-cmd')
-    results = run_cycles(args)
+    if not args.observe and not args.cycle_cmd and not (args.cut_cmd and args.restore_cmd):
+        parser.error('give --observe, --cycle-cmd, or both --cut-cmd and --restore-cmd')
+    results = run_observe(args) if args.observe else run_cycles(args)
     summary = summarize(results)
     with open(args.out, 'w') as f:
         json.dump({'summary': summary, 'cycles': results}, f, indent=2)
