@@ -15,7 +15,7 @@ files on card: 47 (bootcount 1 byte, pattern 4096 bytes, intcount 2 bytes, run1.
 run files: 44, range 1..44
 board reports compared with the card: 33
 mismatches vs board-side recovery: []
-last run 44: 77548 valid records, tail 0 bytes (the final power cut, made to stop the board, hit a run that was writing)
+last run 44: 77548 valid records, tail 0 bytes (an extra boot after the hub power-off that stopped boot 43; not observed by the script, see README)
 runs with a tail after the last valid record: none
 intcount 44 (matches the 44 boots); pattern identical to the expected 4096 bytes
 bootcount 6: the earlier check image rebooted three more times when the board was power-cycled during the hub tests

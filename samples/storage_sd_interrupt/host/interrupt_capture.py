@@ -33,6 +33,7 @@ ACK = re.compile(r'ACK (\d+)')
 START = re.compile(r'sd_storage_start: (-?\d+)')
 
 
+TOKEN = re.compile(r'(ACK|BOOT|RECOVER)\b')
 CHECKED = re.compile(r'^(.*\S) \*([0-9A-F]{2})$')
 
 
@@ -47,10 +48,10 @@ def checksum(text):
 def parse_line(line, state):
     """Update state from one console line; return the event name or None.
 
-    BOOT, RECOVER and ACK lines carry a checksum (`ACK 12 *4F`). A line that looks like one of them but
-    has no checksum or a wrong one is dropped as corrupt: power collapsing mid-line can garble digits
-    and must not move the ACK counter."""
-    if line.startswith(('ACK', 'BOOT', 'RECOVER')) or ' *' in line:
+    BOOT, RECOVER and ACK lines carry a checksum (`ACK 12 *4F`). Any line that contains one of those
+    words anywhere (garbage may precede it) but has no checksum or a wrong one is dropped as corrupt:
+    power collapsing mid-line can garble digits and must not move the ACK counter."""
+    if TOKEN.search(line) or ' *' in line:
         m = CHECKED.match(line.strip())
         if not m or checksum(m.group(1)) != int(m.group(2), 16):
             return 'corrupt'
@@ -189,8 +190,9 @@ def run_cycles(args):
             print(json.dumps(results[-1]), flush=True)
             restart()
             continue
-        entry = pair(state)
+        entry = pair(state) if not state.get('judged') else None
         if entry is not None:
+            state['judged'] = True
             entry = {'cycle': cycle} | entry
             results.append(entry)
             print(json.dumps(entry), flush=True)

@@ -33,6 +33,12 @@ class Parse(unittest.TestCase):
         self.assertEqual(ic.parse_line(L('ACK 8'), state), 'ack')
         self.assertEqual(state['last_ack'], 8, 'a corrupted line must not move the ACK counter')
 
+    def test_garbage_before_a_token_cannot_bypass_the_checksum(self):
+        for line in ('\ufffdACK 999', 'xx ACK 1000', '\x00ACK 77777', 'noise BOOT 9', '~RECOVER run=1'):
+            state = {}
+            self.assertEqual(ic.parse_line(line, state), 'corrupt', line)
+            self.assertNotIn('last_ack', state)
+
     def test_a_garbled_digit_string_cannot_inflate_the_ack_count(self):
         good = L('ACK 7675')
         garbled = good[:-3] + '31 *7F'  # digits appended while power collapsed
@@ -58,6 +64,9 @@ class Parse(unittest.TestCase):
                       'BOOT 2', 'RECOVER run=1 present=1 last_valid=6 torn=0 damaged=0', 'ACK 3'])
         self.assertEqual(state['boot'], 2)
         self.assertEqual(state['last_ack'], 3, 'a repeat must not reset the ACK counter')
+        again = {}
+        ic.parse_line(L('BOOT 2'), again)
+        self.assertEqual(ic.parse_line(L('BOOT 2'), again), 'boot_repeat')
 
     def test_the_boot_before_a_new_boot_is_remembered_for_pairing(self):
         state = feed(['BOOT 2', 'ACK 1', 'ACK 2', 'BOOT 3'])
@@ -65,6 +74,18 @@ class Parse(unittest.TestCase):
 
     def test_start_status_is_recorded(self):
         self.assertEqual(feed(['sd_storage_start: 2'])['start_status'], 2)
+
+
+class ChecksumVectors(unittest.TestCase):
+    """The same fixed vectors as tests/native/file_sd_interrupt (test_g): a change to the checksum on
+    either side without the other breaks one of the two suites."""
+
+    def test_the_checksum_matches_the_firmware_vectors(self):
+        self.assertEqual(ic.checksum('ACK 1'), 0x3A)
+        self.assertEqual(ic.checksum('ACK 7675'), 0x54)
+        self.assertEqual(ic.checksum('BOOT 3'), 0x85)
+        self.assertEqual(ic.checksum('RECOVER run=2 present=1 last_valid=4 torn=13 damaged=0'), 0xE7)
+        self.assertEqual(ic.checksum(''), 0)
 
 
 class Judge(unittest.TestCase):
@@ -113,9 +134,6 @@ class Summary(unittest.TestCase):
         self.assertEqual((s['cycles'], s['judged'], s['no_report'], s['with_acked_lost'],
                           s['with_torn_tail']), (3, 2, 1, 1, 1))
 
-
-if __name__ == '__main__':
-    unittest.main()
 
 
 class LoopOnFakeBoard(unittest.TestCase):
@@ -237,3 +255,7 @@ class PortNotThereYet(unittest.TestCase):
         threading.Thread(target=appear, daemon=True).start()
         lines = list(console.lines(2.0))
         self.assertIn(L('ACK 1'), lines)
+
+
+if __name__ == '__main__':
+    unittest.main()
