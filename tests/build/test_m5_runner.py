@@ -253,3 +253,90 @@ class CanonicalApproval(unittest.TestCase):
             approval=runner.approval_template(prepared);approval['authorization']='APPROVED_FOR_PHYSICAL_EXECUTION';approval['operations']={key:True for key in approval['operations']}
             with self.subTest(mutation=mutation),self.assertRaises(ValueError):runner.validate_approval(approval,prepared)
         self.assertEqual(runner.NIC['interface'],'en5')
+
+
+class FocusedProfile(unittest.TestCase):
+    """Same supervisor and loop, driven by the one-boot profile (the firmware's nine-phase matrix, loss at 7, recovery at 8)."""
+    FOCUSED=runner.m5_series.FOCUSED
+
+    def test_command_follows_the_profile_phase_matrix(self):
+        self.assertEqual(runner.command(31,2,10,99,self.FOCUSED),'P 31 2 10 99\n')
+        self.assertEqual(runner.command(31,7,1,99,self.FOCUSED),'L 31 7 99\n')
+        self.assertEqual(runner.command(31,9,0,99,self.FOCUSED),'I 31 9 99\n')
+        for values in [(31,2,1,99),(31,6,0,99),(31,10,0,99)]:
+            with self.subTest(values=values),self.assertRaises(ValueError):runner.command(*values,self.FOCUSED)
+        self.assertEqual(runner.command(31,7,1,99),'L 31 7 99\n')
+
+    def test_supervisor_default_profile_is_unchanged(self):
+        s=runner.Supervisor(31,'123456789abc',0,{})
+        self.assertIs(s.profile,runner.m5_series.FULL)
+
+    def run_focused(self,restore,drop_link=False):
+        from test_m5_series import focused,ABI,SOURCE
+        boot=focused()['boots'][0]
+        held={'cable_connect_receipt','host_up','route'}
+        recovery=next(e for e in boot['uart'] if e['record']['event']=='LINK' and e['record']['link']==2 and e['record']['seq']==7)
+        class Clock:
+            now=0.
+            def __call__(self):return self.now
+        class IO:
+            def __init__(self,clock):
+                self.clock=clock;self.phase=None;self.writes=[];self.stops=[];self.cues=[];self.restores=0;self.order=[]
+                self.events=[dict(kind='boot' if e['record']['event']=='BOOT' else 'target',**e) for e in boot['uart'] if e is not recovery and not (drop_link and e['record']['event']=='LINK' and e['record'].get('seq')==0)]
+                self.events += [dict(kind='peer_ready' if e['event']=='ready' else 'peer_request',monotonic=e['monotonic'],record=e) for rows in boot['peers'].values() for e in rows if e['event'] in ('ready','request')]
+                self.events += [dict(kind='control',monotonic=e['monotonic'],record=e) for e in boot['controls'] if e['event']!='cable_disconnect_cue' and e['event'] not in held]
+                self.events.sort(key=lambda e:e['monotonic'])
+                if drop_link:
+                    cutoff=next(e['monotonic'] for e in boot['uart'] if e['record']['event']=='READY')
+                    self.events=[e for e in self.events if e['monotonic']<=cutoff]
+            def poll(self,timeout):
+                if timeout>.25:raise AssertionError('Unbounded poll')
+                if not self.events:
+                    self.clock.now+=timeout;return []
+                event=self.events.pop(0);self.clock.now=max(self.clock.now,event['monotonic']+.0002)
+                if event['kind']=='target' and event['record'].get('event')=='LINK' and event['record'].get('link')==2:self.order.append('link_up')
+                return [event]
+            def write_uart(self,line,*,deadline):self.writes.append(line);self.order.append('write:'+line.split()[0]);return self.clock()
+            def prepare_peer(self,nonce,phase,count,mode):
+                if self.phase is not None:raise AssertionError('Old peer still owns ports')
+                self.phase=phase;self.order.append('prepare:'+str(phase))
+            def stop_peer(self):
+                if self.phase is None:return None
+                phase=self.phase;self.phase=None;self.stops.append(phase)
+                return dict(phase=phase,reaped=True)
+            def notify_operator(self,row):self.cues.append(row)
+        if restore:
+            def restore_link(self):
+                self.restores+=1;self.order.append('restore');base=self.clock.now
+                rows=[dict(event='cable_connect_receipt',monotonic=base+.001),dict(event='host_up',monotonic=base+.002,interface='en5'),dict(event='route',monotonic=base+.003,interface='en5',source='192.168.77.1',destination='192.168.77.2')]
+                self.events += [dict(kind='control',monotonic=r['monotonic'],record=r) for r in rows]
+                self.events.append(dict(kind='target',monotonic=base+.004,record=recovery['record']))
+                self.events.sort(key=lambda e:e['monotonic'])
+            IO.restore_link=restore_link
+        clock=Clock();io=IO(clock);s=runner.Supervisor(boot['nonce'],SOURCE,0,ABI,profile=self.FOCUSED)
+        return boot,io,s,clock
+
+    def test_focused_boot_runs_loss_and_adapter_driven_recovery(self):
+        boot,io,s,clock=self.run_focused(True)
+        result=runner.run_boot(s,io,clock)
+        self.assertEqual(result['status'],'BOOT_PROTOCOL_COMPLETE_PENDING_RAW_REPLAY')
+        self.assertEqual(io.writes,[e['line'] for e in boot['writes']])
+        self.assertEqual(io.stops,[2,3,4,5,6,7,8])
+        self.assertEqual((len(io.cues),io.restores),(1,1))
+        self.assertLess(io.order.index('restore'),io.order.index('prepare:8'))
+        self.assertLess(io.order.index('link_up'),io.order.index('write:I'),'the first command must wait for the LINK UP record')
+        self.assertEqual(s.state,'finished')
+        self.assertFalse(s.aborted)
+
+    def test_no_link_up_record_aborts_at_the_wait_deadline_before_any_command(self):
+        boot,io,s,clock=self.run_focused(True,drop_link=True)
+        with self.assertRaises(ValueError):runner.run_boot(s,io,clock)
+        self.assertTrue(s.aborted)
+        self.assertEqual(io.writes,['A %d\n'%boot['nonce']],'no command may be written without the target LINK UP record')
+        self.assertGreaterEqual(clock.now,90.)
+
+    def test_recovery_without_link_restore_aborts_at_the_operator_deadline(self):
+        boot,io,s,clock=self.run_focused(False)
+        with self.assertRaises(ValueError):runner.run_boot(s,io,clock)
+        self.assertTrue(s.aborted)
+        self.assertEqual(io.writes[-1].split()[0],'L')
