@@ -84,9 +84,17 @@ SD driver, disk layers and Crux frames. These frames are a lower bound, not a ca
 maximum. The 4,096 B main stack is a choice with no measured margin; its high-water mark
 needs a run on hardware.
 
+## Physical results (first card runs, 2 November 2026)
+
+On one RT1060-EVKB Rev B and one 16 GB FAT32 (MBR) card the composition mounted without formatting
+(`sd_storage_start: 0`), and the write/read/restart check kept a boot counter and a 4 KiB pattern file
+across two normal CPU resets; the card was clean under `fsck_msdos -n` and held the expected contents on
+the host afterwards. This is a single run on one card. It is not power-loss, removal, timing or endurance
+evidence. Details and limits: [docs/evidence/microsd-physical](evidence/microsd-physical/README.md).
+
 ## Not covered (needs the card and board)
 
-Card detect and power sequencing; real SD timing and error behaviour; removal while mounted;
+Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted;
 whether the M.2 Wi-Fi SDIO path shares uSDHC1 on this board (the board devicetree labels the
 same controller `m2_wifi_sdio`; nothing in this repository confirms pin or controller
 ownership); high-water stack use; cache and DMA placement; and persistence, power loss,

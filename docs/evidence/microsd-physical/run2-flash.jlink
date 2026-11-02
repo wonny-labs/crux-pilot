@@ -1,0 +1,5 @@
+h
+loadfile <build dir>/zephyr/zephyr.elf
+r
+g
+exit
