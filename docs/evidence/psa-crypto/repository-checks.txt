@@ -1,7 +1,7 @@
 # Repository checks, 2 Nov 2026, Linux Dev Container image (linux/amd64), clang-format via CLANG_FORMAT=clang-format.
-# check-host, check-host (host-sanitize), analyze-host were run at 6531d23. The only later commit (78be7ef)
+# check-host, check-host (host-sanitize), analyze-host were run at 6531d23. The later commits (78be7ef, 1d8ef0b)
 # changes tests/psa_crypto and docs, which are outside the root build and the analyze-host file list.
-# check-format and check-dependencies were rerun at 78be7ef: format exit 0, dependencies exit 0.
+# check-format and check-dependencies were rerun at 1d8ef0b: format exit 0, dependencies exit 0.
 check-host exit=0 seconds=145
 check-host-sanitize exit=0 seconds=173
 check-format exit=0 seconds=1

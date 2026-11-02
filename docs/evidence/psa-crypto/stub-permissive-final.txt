@@ -8,17 +8,17 @@ FAIL sha256_update_after_finish_is_bad_state: psa_cases.c:264: psa_hash_update(&
 FAIL sha256_buffer_too_small: psa_cases.c:278: psa_hash_compute(PSA_ALG_SHA_256, (const uint8_t *)"abc", 3, hash, sizeof hash, &length) returned 0, expected -138
 FAIL sha256_verify_mismatch_invalid_signature: psa_cases.c:300: psa_hash_verify(&r->hash, wrong, sizeof wrong) returned 0, expected -149
 FAIL hash_unsupported_algorithm_not_supported: psa_cases.c:320: psa_hash_compute(UNASSIGNED_HASH, (const uint8_t *)"abc", 3, hash, sizeof hash, &length) returned 0, expected -134
-FAIL ecdsa_p256_import_is_volatile: psa_cases.c:349: ok
+FAIL ecdsa_p256_import_is_volatile: psa_cases.c:351: ok
 PASS ecdsa_p256_verify_hash_known_answer
-FAIL ecdsa_p256_wrong_signature_invalid: psa_cases.c:378: psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample, flipped, sizeof flipped) returned 0, expected -149
-FAIL ecdsa_p256_tampered_input_invalid: psa_cases.c:406: psa_verify_hash(r->key, ECDSA_SHA256, tampered_hash, sizeof tampered_hash, vec_p256_signature_sample, sizeof vec_p256_signature_sample) returned 0, expected -149
-FAIL ecdsa_p256_invalid_public_key_rejected: psa_cases.c:423: import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, off_curve, sizeof off_curve) returned 0, expected -135
-FAIL ecdsa_p256_key_policy_not_permitted: psa_cases.c:441: psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample, vec_p256_signature_sample, sizeof vec_p256_signature_sample) returned 0, expected -133
-FAIL pbkdf2_hmac_sha256_known_answer_rfc7914: psa_cases.c:465: memcmp(out, vec_pbkdf2_rfc7914_64, sizeof out) == 0
-FAIL pbkdf2_hmac_sha256_known_answer_4096: psa_cases.c:476: memcmp(out, vec_pbkdf2_4096_32, sizeof out) == 0
-FAIL pbkdf2_wrong_password_derives_different_output: psa_cases.c:490: memcmp(right, vec_pbkdf2_4096_32, sizeof right) == 0
-FAIL pbkdf2_verify_bytes_when_supported: psa_cases.c:519: psa_key_derivation_verify_bytes(&r->kdf, vec_pbkdf2_4096_32, sizeof vec_pbkdf2_4096_32) returned 0, expected -149
-FAIL kdf_output_on_inactive_operation_is_bad_state: psa_cases.c:529: psa_key_derivation_output_bytes(&r->kdf, out, sizeof out) returned 0, expected -137
-FAIL kdf_unsupported_algorithm_not_supported: psa_cases.c:545: psa_key_derivation_setup(&r->kdf, PSA_ALG_PBKDF2_HMAC(UNASSIGNED_HASH)) returned 0, expected -134
-FAIL destroyed_key_is_invalid_handle: psa_cases.c:564: psa_verify_hash(stale, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample, vec_p256_signature_sample, sizeof vec_p256_signature_sample) returned 0, expected -136
+FAIL ecdsa_p256_wrong_signature_invalid: psa_cases.c:380: psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample, flipped, sizeof flipped) returned 0, expected -149
+FAIL ecdsa_p256_tampered_input_invalid: psa_cases.c:408: psa_verify_hash(r->key, ECDSA_SHA256, tampered_hash, sizeof tampered_hash, vec_p256_signature_sample, sizeof vec_p256_signature_sample) returned 0, expected -149
+FAIL ecdsa_p256_invalid_public_key_rejected: psa_cases.c:425: import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, off_curve, sizeof off_curve) returned 0, expected -135
+FAIL ecdsa_p256_key_policy_not_permitted: psa_cases.c:443: psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample, vec_p256_signature_sample, sizeof vec_p256_signature_sample) returned 0, expected -133
+FAIL pbkdf2_hmac_sha256_known_answer_rfc7914: psa_cases.c:467: memcmp(out, vec_pbkdf2_rfc7914_64, sizeof out) == 0
+FAIL pbkdf2_hmac_sha256_known_answer_4096: psa_cases.c:478: memcmp(out, vec_pbkdf2_4096_32, sizeof out) == 0
+FAIL pbkdf2_wrong_password_derives_different_output: psa_cases.c:492: memcmp(right, vec_pbkdf2_4096_32, sizeof right) == 0
+FAIL pbkdf2_verify_bytes_when_supported: psa_cases.c:521: psa_key_derivation_verify_bytes(&r->kdf, vec_pbkdf2_4096_32, sizeof vec_pbkdf2_4096_32) returned 0, expected -149
+FAIL kdf_output_on_inactive_operation_is_bad_state: psa_cases.c:531: psa_key_derivation_output_bytes(&r->kdf, out, sizeof out) returned 0, expected -137
+FAIL kdf_unsupported_algorithm_not_supported: psa_cases.c:546: psa_key_derivation_setup(&r->kdf, PSA_ALG_PBKDF2_HMAC(UNASSIGNED_HASH)) returned 0, expected -134
+FAIL destroyed_key_is_invalid_handle: psa_cases.c:565: psa_verify_hash(stale, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample, vec_p256_signature_sample, sizeof vec_p256_signature_sample) returned 0, expected -136
 22 cases, 20 failed
