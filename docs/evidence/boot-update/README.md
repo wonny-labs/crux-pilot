@@ -58,5 +58,5 @@ No file uses "verified on hardware".
 | Zephyr | `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0) |
 | MCUboot | `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2` (from the pinned Zephyr `west.yml`) |
 | `hal_nxp` | `2c2f28ac333e995d7279777409817c4b4f92c1ec` |
-| crux-pilot | `f67e22a` for Stages 0, 3 and 4. `f57ff22` for Stage 2, after #147 merged. `5efdd8a` for Stage 7. |
+| crux-pilot | `f67e22a` for Stages 0, 3 and 4. `f57ff22` for Stage 2, after #147 merged. `47da9e5` (`main`) for Stage 7. |
 | Access | The GitHub contents API was refused for the upstream repositories. Files were read as raw files at the pinned commits and from read-only blobless Git fetches outside the repository. Local copies are not committed. NXP documents on `www.nxp.com/docs/` could not be read and are cited by title only. |

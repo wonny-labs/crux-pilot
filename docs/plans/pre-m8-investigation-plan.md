@@ -6,7 +6,9 @@
 > verification stays deferred and is tracked in #155. RT1060-EVKB Rev B remains
 > the primary target and the only board for physical validation. This plan is
 > kept as written on 1 November 2026. Read every "removed" or "deferred"
-> placeholder for item 5, Stage 7 and question 11 below in this way. The
+> placeholder for item 5, Stage 7 and question 11 below in this way. This
+> includes the section 1.1 opening sentence "RT1170-EVK is out of scope", which
+> no longer applies: RT1170-EVK Rev A1 is a secondary, desk and build-only target. The
 > [decision record](../boot-update-investigation.md#corrections-to-the-plan)
 > records the change.
 

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Issue | [#141](https://github.com/wonny-labs/crux-pilot/issues/141) "Investigate verified boot and firmware update feasibility for RT1060-EVKB" |
+| Issue | [#141](https://github.com/wonny-labs/crux-pilot/issues/141) "Investigate verified boot and firmware update feasibility for RT1060-EVKB and RT1170-EVK" |
 | Status | **Draft. Desk results only.** Stages 5, 6 and 8 are pending the A1 trial build (approved 1 November 2026, running separately in the Dev Container). Stage 7 (RT1170-EVK Rev A1) is done as a desk study only. No RT1170 build was run. No hardware or fuse operation was performed. Nothing in this record is adopted. Revised after independent review 1 of PR #151 (verdict REVISE, findings F1 to F15) and independent review 2 (verdict PASS, optional findings N1 to N5). |
 | Target | Primary target and the only board for physical validation: RT1060-EVKB Rev B, `mimxrt1060_evk@B/mimxrt1062/qspi`. Secondary, desk and build-only: RT1170-EVK Rev A1, `mimxrt1170_evk@A/mimxrt1176/cm7` (owner decision of 2 November 2026). RT1170 hardware verification is deferred and tracked in [#155](https://github.com/wonny-labs/crux-pilot/issues/155). |
 | Pinned upstream | Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0). MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`. `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. |
@@ -16,6 +16,8 @@
 RT1060-EVKB Rev B before any implementation is planned. Its results inform the public
 milestones M8 "Boot platform foundation and verified boot" and M9 "Secure
 firmware update and recovery". It does not meet any M8 or M9 criterion.
+RT1170-EVK Rev A1 is a secondary, desk and build-only item, and its hardware
+verification is deferred to [#155](https://github.com/wonny-labs/crux-pilot/issues/155).
 
 | #141 scope item | Covered by | State in this draft |
 | --- | --- | --- |
@@ -89,7 +91,7 @@ recorded in [Corrections to the plan](#corrections-to-the-plan).
 | 3 HAB, BEE, boot media, signing tools | [stage3-findings.md](evidence/boot-update/stage3-findings.md), [stage3-summary.md](evidence/boot-update/stage3-summary.md) |
 | 4 Placement | [stage4.md](evidence/boot-update/stage4.md), [placement-rt1060.json](evidence/boot-update/placement-rt1060.json) |
 | 5, 6, 8 | Pending the A1 trial build |
-| 7 RT1170-EVK Rev A1 differences | [stage7-rt1170-delta.md](evidence/boot-update/stage7-rt1170-delta.md) (desk only, read at crux-pilot `5efdd8a`) |
+| 7 RT1170-EVK Rev A1 differences | [stage7-rt1170-delta.md](evidence/boot-update/stage7-rt1170-delta.md) (desk only, read at crux-pilot `main` `47da9e5`) |
 
 Row identifiers in brackets below (for example B61 or S2-4) point to the
 evidence files. A, B and L rows are in the Stage 1 findings. S2, V and R rows
@@ -422,10 +424,10 @@ RT1170 build or hardware result exists.
 | Finding | RT1170-EVK Rev A | Reason |
 | --- | --- | --- |
 | Update mode ranking | Carries over | Mode logic is board-independent MCUboot code. A revert erases a 7 MiB slot instead of 3 MiB (Inference). |
-| RAM load with revert as rank 1 | Changes | Needs an RT1170 overlay for bootloader RAM, load window and retention region. The slot 1 request problem (B63a) and the RAM link (B68a) carry over. The SDRAM clock effect of the application's PLL set-up is Not verified. |
+| RAM load with revert as rank 1 | Changes | Needs an RT1170 overlay for bootloader RAM, load window and retention region. The slot 1 request problem (B63a) and the RAM link (B68a) carry over. The SoC clock code warns about the SEMC clock only "If DCD is used", and this board uses XMCD. The SDRAM clock effect of the application's PLL set-up is Not verified. |
 | Staging variant (c) | Carries over | Stock MCUboot. 64 MiB SDRAM against 7 MiB slots. |
 | 64 KiB alignment recommendation | Carries over | Upstream boundaries conform. The erase size the update path may rely on is unknown for Rev A. |
-| XIP write hazards (#22) | Unknown | Same mechanism and driver family (Inference). The #22 evidence comes from RT1060 images only. |
+| XIP write hazards (#22) | Mechanism likely carries over. RT1060 evidence does not. | Same mechanism and driver family (Inference). The #22 evidence comes from RT1060 images only. RT1170 closure is Not verified. |
 | Older-image rejection and version policy | Carries over | MCUboot comparison logic without board input. |
 | Signing tools | `imgtool` carries over. SPSDK unknown. | Whether SPSDK accepts a Zephyr image with FCB, IVT and XMCD is Not verified. |
 | No CSF in a Zephyr image | Carries over | Same IVT structure with `csf` 0. |
