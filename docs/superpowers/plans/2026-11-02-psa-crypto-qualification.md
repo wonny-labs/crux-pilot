@@ -6,7 +6,7 @@
 
 **Architecture:** The cases are plain C17 that include only `<psa/crypto.h>` and ISO C. A case returns a failure text or `NULL`. Two thin harnesses run them: a standalone Linux Host CMake project and a Zephyr Ztest application. The provider is selected by the composition (a CMake cache variable on Host, `ZEPHYR_MODULES` on Zephyr), never by the cases. Provider sources stay outside the repository in `/opt/crux-cache/psa-trial/`. Nothing is added to the root CMake build or to `west.yml`.
 
-**Tech Stack:** C17, CMake 3.28, Ninja, Clang 18, Zephyr v4.4.0 (`684c9e8f`), Twister/Ztest, TF-PSA-Crypto `dc575a2d` (v1.1.0), Mbed TLS module `a3e190fe` (v4.1.0, carries the Zephyr CMake entry).
+**Tech Stack:** C17, CMake 3.28, Ninja, Clang 18, Zephyr v4.4.0 (`684c9e8f`), Twister/Ztest, TF-PSA-Crypto `dc575a2d` (labelled 1.1.0 in its `module.yml`), Mbed TLS module `a3e190fe` (v4.1.0, carries the Zephyr CMake entry).
 
 **Spec:** Issue #142 (`wonny-labs/crux-pilot`, read in full 2 Nov 2026) and the owner's task brief of 2 Nov 2026. Approval recorded at issue #142 comment 6565912192.
 

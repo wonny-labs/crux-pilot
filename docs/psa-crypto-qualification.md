@@ -89,7 +89,7 @@ All known-answer values were recomputed with Python `hashlib` and OpenSSL 3.0.13
 ### Failing before the provider is wired in
 
 Retained in [red-no-provider-and-stubs.txt](evidence/psa-crypto/red-no-provider-and-stubs.txt)
-(first form of the cases) and re-checked by the script on every run:
+(first form of the cases; case names have changed since) and re-checked by the script on every run. The final-form stub outputs are in [stub-unsupported-final.txt](evidence/psa-crypto/stub-unsupported-final.txt) (22 of 22 fail) and [stub-permissive-final.txt](evidence/psa-crypto/stub-permissive-final.txt) (20 of 22 fail):
 
 | Control | Result |
 | --- | --- |
@@ -108,7 +108,7 @@ output" check that zeros satisfy). It was strengthened to require the correct ou
 | Linux Host, ASan and UBSan | 22 of 22 pass | [final run](evidence/psa-crypto/trial-run-final.txt) |
 | Zephyr `native_sim/native/64`, Twister | 22 cases plus one list-completeness check pass (1 of 1 test configurations) | [final run](evidence/psa-crypto/trial-run-final.txt) |
 
-**Finding (first Host run).** Three of 23 cases failed against the real provider. Checking the
+**Finding (first Host run).** Three of 22 cases failed against the real provider. Checking the
 pinned header and the provider source showed two assertions that went beyond the documented API
 (the `hash_length` value after `BUFFER_TOO_SMALL`; a single code for a non-hash algorithm, where
 the header documents both `NOT_SUPPORTED` and `INVALID_ARGUMENT`) and one provider limitation:
@@ -228,9 +228,9 @@ do not depend on it. A one-off Host run as an independent cross-check can be a s
 | Option | Notes |
 | --- | --- |
 | **A (recommended):** `FetchContent` with a URL and SHA-256 at the same commit as Zephyr's pin, like GoogleTest | Fits the existing online `bootstrap-host.sh` then offline `check-host.sh` flow and needs no west in Host CI. The archive `https://github.com/zephyrproject-rtos/tf-psa-crypto/archive/dc575a2ddcc8cb16275d24c42a52eaf79ebe2231.tar.gz` was downloaded for the trial: 3,747,713 bytes, SHA-256 `1a122bcb91fc7c32060e64feeea29364a7cd894413e0ba89ee200fc5e384f95b`, 686 entries, generated sources included. Needs a check that the Host pin equals the Zephyr manifest pin, and the cache pre-populated for the offline step. Archive hash stability is a GitHub property that was not examined. |
-| B: system package | Rejected: Ubuntu 24.04 offers `libmbedtls-dev` 2.28.8 (checked with `apt-cache policy`), which is neither TF-PSA-Crypto nor the provider Zephyr uses. |
+| B: system package | Not recommended: Ubuntu 24.04 offers `libmbedtls-dev` 2.28.8 (checked with `apt-cache policy`), which is neither TF-PSA-Crypto nor the provider Zephyr uses. |
 | C: use the west module checkout | One pin, but Host CI would need a west workspace and a manifest change first (decision 1). |
-| D: vendor the sources | Rejected: size, licence bookkeeping and maintenance. |
+| D: vendor the sources | Not recommended: size, licence bookkeeping and maintenance. |
 
 ### 3. Declared API subset
 

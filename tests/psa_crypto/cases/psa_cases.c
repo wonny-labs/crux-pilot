@@ -319,6 +319,8 @@ CASE(hash_unsupported_algorithm_not_supported)
     CHECK_STATUS(PSA_ERROR_NOT_SUPPORTED, psa_hash_compute(UNASSIGNED_HASH, (const uint8_t *)"abc",
                                                            3, hash, sizeof hash, &length));
     CHECK_STATUS(PSA_ERROR_NOT_SUPPORTED, psa_hash_setup(&r->hash, UNASSIGNED_HASH));
+    /* The header does not promise an operation is unchanged after a failed setup. */
+    CHECK_STATUS(PSA_SUCCESS, psa_hash_abort(&r->hash));
     /* An HMAC algorithm is not a hash algorithm. The pinned header documents
      * NOT_SUPPORTED and INVALID_ARGUMENT for this input, so either is accepted. */
     CHECK_REJECTED_AS(PSA_ERROR_NOT_SUPPORTED, PSA_ERROR_INVALID_ARGUMENT,
@@ -539,7 +541,6 @@ CASE(kdf_output_on_inactive_operation_is_bad_state)
 
 CASE(kdf_unsupported_algorithm_not_supported)
 {
-    (void)r;
     INIT();
     CHECK_STATUS(PSA_ERROR_NOT_SUPPORTED,
                  psa_key_derivation_setup(&r->kdf, PSA_ALG_PBKDF2_HMAC(UNASSIGNED_HASH)));
