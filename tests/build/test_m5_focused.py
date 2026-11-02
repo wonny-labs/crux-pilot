@@ -277,7 +277,7 @@ class Adapter(unittest.TestCase):
                 clock.value+=seconds
                 with (live.directory/'receive.jsonl').open('a') as out:out.write(json.dumps(dict(monotonic=clock.value,hex=b'.'.hex()))+'\n')
             live.sleep=chatter
-            with self.assertRaises(ValueError):live.write_uart('A 31\n',deadline=clock()+2)
+            with self.assertRaisesRegex(ValueError,'not quiet'):live.write_uart('A 31\n',deadline=clock()+2)
             self.assertEqual(port.writes,[])
 
     def test_only_runner_commands_reach_the_uart(self):

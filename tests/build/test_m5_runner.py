@@ -271,7 +271,7 @@ class FocusedProfile(unittest.TestCase):
         s=runner.Supervisor(31,'123456789abc',0,{})
         self.assertIs(s.profile,runner.m5_series.FULL)
 
-    def run_focused(self,restore):
+    def run_focused(self,restore,drop_link=False):
         from test_m5_series import focused,ABI,SOURCE
         boot=focused()['boots'][0]
         held={'cable_connect_receipt','host_up','route'}
@@ -282,10 +282,13 @@ class FocusedProfile(unittest.TestCase):
         class IO:
             def __init__(self,clock):
                 self.clock=clock;self.phase=None;self.writes=[];self.stops=[];self.cues=[];self.restores=0;self.order=[]
-                self.events=[dict(kind='boot' if e['record']['event']=='BOOT' else 'target',**e) for e in boot['uart'] if e is not recovery]
+                self.events=[dict(kind='boot' if e['record']['event']=='BOOT' else 'target',**e) for e in boot['uart'] if e is not recovery and not (drop_link and e['record']['event']=='LINK' and e['record'].get('seq')==0)]
                 self.events += [dict(kind='peer_ready' if e['event']=='ready' else 'peer_request',monotonic=e['monotonic'],record=e) for rows in boot['peers'].values() for e in rows if e['event'] in ('ready','request')]
                 self.events += [dict(kind='control',monotonic=e['monotonic'],record=e) for e in boot['controls'] if e['event']!='cable_disconnect_cue' and e['event'] not in held]
                 self.events.sort(key=lambda e:e['monotonic'])
+                if drop_link:
+                    cutoff=next(e['monotonic'] for e in boot['uart'] if e['record']['event']=='READY')
+                    self.events=[e for e in self.events if e['monotonic']<=cutoff]
             def poll(self,timeout):
                 if timeout>.25:raise AssertionError('Unbounded poll')
                 if not self.events:
@@ -324,6 +327,13 @@ class FocusedProfile(unittest.TestCase):
         self.assertLess(io.order.index('link_up'),io.order.index('write:I'),'the first command must wait for the LINK UP record')
         self.assertEqual(s.state,'finished')
         self.assertFalse(s.aborted)
+
+    def test_no_link_up_record_aborts_at_the_wait_deadline_before_any_command(self):
+        boot,io,s,clock=self.run_focused(True,drop_link=True)
+        with self.assertRaises(ValueError):runner.run_boot(s,io,clock)
+        self.assertTrue(s.aborted)
+        self.assertEqual(io.writes,['A %d\n'%boot['nonce']],'no command may be written without the target LINK UP record')
+        self.assertGreaterEqual(clock.now,90.)
 
     def test_recovery_without_link_restore_aborts_at_the_operator_deadline(self):
         boot,io,s,clock=self.run_focused(False)

@@ -49,7 +49,7 @@ def capture(nonce, source, abi, evidence, uart, wait, *, link=None, port_factory
     evidence = Path(evidence)
     runner.oracle.require(not evidence.exists(), 'Never overwrite capture evidence')
     evidence.parent.mkdir(parents=True, exist_ok=True)
-    adapter = adapter_cls(nonce, evidence, port_factory or (lambda: RawPort(uart)), link=link, clock=clock, **adapter_kwargs)
+    adapter = adapter_cls(nonce, evidence, port_factory or (lambda: RawPort(uart)), link=link, clock=clock, sleep=sleep, **adapter_kwargs)
     primary = None
     try:
         say('Capture armed on ' + str(uart) + '. Power-cycle the board now (window ' + str(int(wait)) + ' s).')
