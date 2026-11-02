@@ -107,3 +107,24 @@ Cases (names are the contract): `use_before_init_is_bad_state`; `init_is_idempot
 - [ ] **Step 1:** Run `scripts/check-host.sh`, `CRUX_HOST_PRESET=host-sanitize scripts/check-host.sh`, `scripts/check-format.sh`, `scripts/analyze-host.sh`, `scripts/check-dependencies.sh`, `scripts/test-psa-crypto.sh`. Confirm portable roots include no Zephyr, board or vendor headers.
 - [ ] **Step 2:** Open a Draft PR linking #142 with revision, commands and outcomes, tests not run, trial inputs, proposals, wolfPSA blocker and open findings.
 - [ ] **Step 3:** Independent reviewer (not the author) returns PASS, REVISE or ESCALATE. Fix REVISE, then re-review. Record the result in the PR.
+
+---
+
+## Execution notes (how the work departed from the plan above)
+
+The plan stays as written. These are the departures, with the reason, so a reviewer can compare.
+
+- **Case table became an X-macro list.** `PSA_CASE_LIST` in `psa_cases.h` replaces the `psa_cases[]`
+  table so the Host and Ztest harnesses build from one list. Each case is `const char *psa_case_<name>(void)`.
+- **`use_before_init_is_bad_state` was dropped.** The pinned `psa/crypto.h` states that calling a function
+  before `psa_crypto_init()` is undefined, so asserting `BAD_STATE` would not be conformance. The same
+  review removed the `hash_length == 0` check after `BUFFER_TOO_SMALL` (documented for success only).
+- **Stub providers are one file** (`stubs/stub.c`) built twice with `CRUX_PSA_STUB_PERMISSIVE=0|1`.
+- **Optional-feature note.** `psa_key_derivation_verify_bytes` returns `NOT_SUPPORTED` in this provider
+  revision, so `pbkdf2_verify_bytes_when_supported` passes with a printed note (`psa_case_note()`).
+- **Cases were reduced to the proposed subset** (22 cases): `psa_verify_message`, `psa_hash_compare`
+  and `psa_key_derivation_set_capacity` have no stated consumer and were removed.
+- **Task 6, Task 7 and the evidence** are in `docs/psa-crypto-qualification.md` and
+  `docs/evidence/psa-crypto/`. The configure-only Kconfig resolution for `mimxrt1060_evk@B//qspi` was added to
+  check the reading of the Kconfig logic. It builds and runs nothing.
+- **Task 8** results (checks, PR, review) are recorded in the pull request, not here.
