@@ -30,10 +30,13 @@ fi
 printf '\nWorkspace: %s\n' "$(cd "$workspace" && west topdir)"
 printf 'Zephyr:    %s\n' "$workspace/zephyr"
 if [[ "${1:-}" == "--install-sdk" ]]; then
-    (cd "$workspace/zephyr" && west sdk install \
-        --version 1.0.1 \
-        --install-base "$cache_dir/sdk" \
-        --gnu-toolchains arm-zephyr-eabi)
+    sdk_args=(--version 1.0.1 --install-base "$cache_dir/sdk" --gnu-toolchains arm-zephyr-eabi)
+    # West looks up SDK releases through the GitHub REST API. Unauthenticated
+    # requests share a low rate limit on CI runners. Use a token when one is given.
+    if [[ -n "${CRUX_GITHUB_TOKEN:-}" ]]; then
+        sdk_args+=(--personal-access-token "$CRUX_GITHUB_TOKEN")
+    fi
+    (cd "$workspace/zephyr" && west sdk install "${sdk_args[@]}")
 elif [[ $# -eq 0 ]]; then
     printf 'SDK prerequisite: Zephyr SDK v1.0.1; arm-zephyr-eabi toolchain.\n'
     printf 'After confirming storage headroom, run: scripts/bootstrap-zephyr.sh --install-sdk\n'

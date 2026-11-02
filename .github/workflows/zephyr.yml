@@ -49,6 +49,8 @@ jobs:
 
       - name: Fetch pinned Zephyr workspace and install SDK
         working-directory: crux-pilot
+        env:
+          CRUX_GITHUB_TOKEN: ${{ github.token }}
         run: scripts/bootstrap-zephyr.sh --install-sdk
 
       - name: Check changed C patch style
