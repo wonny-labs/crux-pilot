@@ -23,7 +23,7 @@ verification is deferred to [#155](https://github.com/wonny-labs/crux-pilot/issu
 | --- | --- | --- |
 | 1. MCUboot against the adoption criteria | Stages 1, 2, 3 and 5 | Desk results recorded. Size and RAM cost Verified by build for both trial modes (Stage 5). |
 | 2. Update mode and staging medium | Stage 2 | Recommendation recorded |
-| 3. Flash writes during XIP for the candidate mode | Stages 2 and 6 | Write inventory by actor and phase recorded for both trial modes (Stage 6). Bootloader write-path closure Not verified. A #22 data-closure failure was found in the bootloader write path. |
+| 3. Flash writes during XIP for the candidate mode | Stages 2 and 6 | Write inventory by actor and phase recorded for both trial modes (Stage 6). Bootloader write-path closure is not achieved: a #22 data-closure failure was found in the bootloader write path. Full closure is Not verified. |
 | 4. Current placement and a fenced layout | Stages 4 and 6 | Placement re-verified from committed records and one baseline rebuild. Fenced layout proposal recorded (Stage 6). Not adopted. |
 | 5. Record the RT1170-EVK Rev A1 layout and boot differences (desk and build-only) | Stage 7 | Desk study recorded. RT1170 build-only items (sysbuild configure, bootloader cross-build) not done. Hardware verification deferred to #155. |
 | 6. HAB open configuration without fuse writes | Stage 3 | Documentation result recorded. RT1060 behaviour not verified. |
@@ -271,7 +271,7 @@ sectors and 64 KiB erase blocks for this NOR. The LinkServer Flash algorithm
 used on this board detected the 8 MiB device as 128 sectors of 64 KiB and wrote
 in 64 KiB sectors
 ([#14 comment of 30 October 2026](https://github.com/wonny-labs/crux-pilot/issues/14#issuecomment-6530776373)).
-This does not show that 4 KiB erase is unavailable. Recommendation, confirmed
+This does not show that 4 KiB erase is unavailable. Recommendation, supported
 by Stage 6: keep partition boundaries 64 KiB aligned until the erase size the
 update path relies on is measured on the board. The upstream partition
 boundaries are already 64 KiB aligned.
@@ -404,7 +404,7 @@ Conditions before adoption (A3), with the trial results:
 | Upgrade request reaches the inactive slot: application code that marks it, or images signed with trailer magic (imgtool `--pad`) | B63a | Open. The trial default image has no trailer magic and the sample has no update code (Stage 5 section 9). Owner decision 13. |
 | Application ELF shows no code, data, vectors or constants in NOR. The RAM link comes from sysbuild `CONFIG_XIP=n` and `CONFIG_FLASH_SIZE=0`. `USE_DT_CODE_PARTITION=y` is expected in the application `.config` and does not mean a Flash link. | B68a, R2 | Met for sections, LOAD segments and symbols, and the three Kconfig values are as B68a predicted (Stage 5 sections 6 and 7). Indirect references were not checked. |
 | Bootloader size fits the `mcuboot` partition or a revised layout | A9, Stage 5 | Met: 51,760 B of 131,072 B |
-| Bootloader FlexSPI write path reviewed against the #22 matrix | R2, Stage 6 | Reviewed at placement level and for the busy-wait path. The #22 data-closure failure is present in both modes. Closure Not verified. Owner decision 16. |
+| Bootloader FlexSPI write path reviewed against the #22 matrix | R2, Stage 6 | Reviewed at placement level and for the busy-wait path. The #22 data-closure failure is present in both modes, so closure is not achieved. Full closure Not verified. Owner decision 16. |
 
 Effect on M6 "Device interfaces and platform configuration" and M7 "Controller
 platform integration and validation" evidence (detail in
@@ -519,7 +519,7 @@ recommendations for A3.
 | Rank 1 test request | Application code that marks the inactive slot, or images signed with trailer magic | Owner decision needed |
 | Trial builds | Rank 1 and rank 2 | Approved (A1, 1 November 2026). Done as build-only evidence on 2 November 2026 (Stages 5 and 8). |
 | Staging medium | Variant (c), NOR slot, optionally through an SDRAM buffer | Recommendation |
-| Execution model | RAM load into SDRAM as M8 reference candidate, after M7 target validation. No build blocker found. Timing confirmed by Stage 6. | Recommendation |
+| Execution model | RAM load into SDRAM as M8 reference candidate, after M7 target validation. No build blocker found. Timing supported by Stage 6 (Inference). | Recommendation |
 | Application version policy | Reject older images in the application before any NOR write | Recommendation, owner decision needed |
 | Signing tools | `imgtool` for application images (used in the trial). SPSDK under A2, not yet run. SEC optional. No CST. | Recommendation |
 | BEE | Not part of the candidate path | Recommendation, owner decision needed |
@@ -539,7 +539,7 @@ come from Stages 6 and 8.
 | --- | --- | --- | --- |
 | 1 | Accept the constraint that no stock mode avoids NOR writes during XIP with test, confirm and recovery, or open a separate scope for bootloader customisation (variant b) | Accept the constraint for M8 | Stage 2 decision 1 |
 | 2 | Ranked candidates for the trial build | Done: A1 approved on 1 November 2026 with both builds, rank 1 and rank 2 | Stage 2 decision 2 |
-| 3 | Pursue RAM load into SDRAM as the M8 reference execution model, and when the reference composition may change relative to M7 | Pursue it, change at M8 start after M7 target validation. Stages 5 and 6 found no build blocker and confirm the timing. | Stage 2 decision 3, Stage 6 section 4.1 |
+| 3 | Pursue RAM load into SDRAM as the M8 reference execution model, and when the reference composition may change relative to M7 | Pursue it, change at M8 start after M7 target validation. Stages 5 and 6 found no build blocker and support the timing (Inference). Owner decision 16 limits any M8 hardware step in which the bootloader writes. | Stage 2 decision 3, Stage 6 section 4.1 |
 | 4 | Require an application-side version policy (no older image, compared on major, minor and revision) | Require it, because the RAM load bootloader provides none | Stage 2 decision 4 |
 | 5 | Before any network-facing update interface (M9), require authentication and authorisation of update requests and an application-side check before any NOR write | Require it | Stage 2 decision 5 |
 | 6 | Whether the microSD may later hold a staging path (variant a), which would change the #147 card layout | Defer. Stage 2 rates variant (a) as an optional later variant. | Stage 2 decision 6 |
