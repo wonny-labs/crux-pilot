@@ -265,6 +265,11 @@ for TF-PSA-Crypto and the Mbed TLS module, record the source, revision and licen
 [upstream-reuse](upstream-reuse.md) on adoption, and do not elect GPL-2.0-or-later. This cannot be
 completed until the owner states Crux's own licence (**Finding:** none is stated at `f57ff22`).
 
+**Owner decision (2 November 2026, in chat):** Crux is licensed under Apache-2.0, and the
+recommendations above are accepted. The `LICENSE` file is added by a separate change
+(`chore/add-apache-2-license`, not part of this branch). Electing the Apache-2.0 option of the dual
+licence applies at adoption; nothing is adopted by this change, and the legal-opinion caveat stands.
+
 ## Open findings
 
 1. `psa_key_derivation_verify_bytes` is unsupported in the pinned provider (decision 3).
