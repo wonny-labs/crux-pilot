@@ -120,6 +120,18 @@ card always mounted and a read-only `fsck_msdos -n` was clean. The writes were 3
 each; larger writes, directory changes and renames were not cut, and it is one card. See
 [docs/evidence/microsd-power-cut](evidence/microsd-power-cut/README.md).
 
+## Replace-pattern power-cut results (2 November 2026)
+
+The Settings File backend compacts by writing a temporary file and calling `fs_rename`, and FatFs's rename
+removes the destination first. Repeating that sequence on the same board and card with 100 power cuts:
+**29 left no settings file but a complete newer temporary** (the cut fell between the removal and the
+rename), 71 left a valid file, and none left a stale or damaged settings file; the card always mounted.
+The rate belongs to a loop that does nothing but replace the file: a real controller compacts rarely, so it
+is not a deployment risk. The read-only `fsck_msdos -n` afterwards reported 40 orphaned clusters (about
+320 KiB), where the earlier append test had been clean. One card, 256-byte files, the filesystem call
+sequence rather than the backend itself. See
+[docs/evidence/microsd-replace-cut](evidence/microsd-replace-cut/README.md).
+
 ## Not covered (needs the card and board)
 
 Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted;
