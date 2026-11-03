@@ -4,6 +4,28 @@ extends:
 rules:
   # The project publishes no contact address.
   contact-properties: off
+  crux-methods:
+    description: |
+      A path holds only GET, PUT, POST and DELETE. The other rules cover these four, so any other method is
+      rejected until they cover it too.
+    severity: error
+    given: $.paths[*]
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          additionalProperties: false
+          patternProperties:
+            '^x-': {}
+          properties:
+            get: {}
+            put: {}
+            post: {}
+            delete: {}
+            parameters: {}
+            summary: {}
+            description: {}
   crux-access-class:
     description: Every operation states its access class, as a route must in the web contract.
     message: 'x-crux-access must be public, session or a permission name: {{error}}'
@@ -37,12 +59,42 @@ rules:
       function: length
       functionOptions:
         max: 0
+  crux-session-security-not-empty:
+    description: An operation that is not public has at least one security requirement.
+    severity: error
+    given: $.paths[*][?(@['x-crux-access'] && @['x-crux-access'] !== 'public')]
+    then:
+      field: security
+      function: length
+      functionOptions:
+        min: 1
+  crux-security-needs-session-cookie:
+    description: Every security requirement of an operation that is not public includes the session cookie.
+    severity: error
+    given: $.paths[*][?(@['x-crux-access'] !== 'public')].security[*]
+    then:
+      field: sessionCookie
+      function: defined
   crux-session-routes-have-401:
     description: An operation that needs a session documents 401.
     severity: error
     given: $.paths[*][?(@['x-crux-access'] && @['x-crux-access'] !== 'public')].responses
     then:
       field: '401'
+      function: truthy
+  crux-permission-routes-have-403:
+    description: An operation that needs a fixed permission documents 403.
+    severity: error
+    given: $.paths[*][?(@['x-crux-access'] && @['x-crux-access'] !== 'public' && @['x-crux-access'] !== 'session')].responses
+    then:
+      field: '403'
+      function: truthy
+  crux-state-change-has-403:
+    description: A state-changing operation documents 403, because its CSRF token or Origin can be rejected.
+    severity: error
+    given: $.paths[*][put,post,delete].responses
+    then:
+      field: '403'
       function: truthy
   crux-state-change-needs-csrf:
     description: A state-changing operation with a session requires the X-XSRF-TOKEN header.
@@ -59,19 +111,33 @@ rules:
       field: xsrfHeader
       function: undefined
   crux-busy-409:
-    description: Every route can answer busy, because the server holds one request per route.
+    description: Every operation can answer busy, because the server holds one request per registered resource.
     severity: error
     given: $.paths[*][get,put,post,delete].responses
     then:
       field: '409'
       function: truthy
   crux-busy-409-no-body:
-    description: A 409 has no JSON body, which is what tells a client that the route is busy.
+    description: A 409 has no JSON body, which is what tells a client that the registered path is busy.
     severity: error
     given: $.paths[*][get,put,post,delete].responses['409']
     then:
       field: content
       function: undefined
+  crux-no-chunked-forbidden-status:
+    description: |
+      The HTTP server sends a dynamic response to an HTTP/1.1 client with chunked encoding, and RFC 9112
+      forbids that on 204 and 1xx. Such a status cannot be served.
+    severity: error
+    given: $.paths[*][get,put,post,delete].responses
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          propertyNames:
+            not:
+              pattern: '^(1[0-9][0-9]|204)$'
   crux-unavailable-503:
     description: Every route can answer 503.
     severity: error
@@ -86,6 +152,18 @@ rules:
     then:
       field: headers.Retry-After
       function: truthy
+  crux-login-503-busy-only:
+    description: A public route's 503 cannot say not_ready, which would reveal the credential store's state before login.
+    severity: error
+    given: $.paths[*][?(@['x-crux-access'] === 'public')].responses['503'].content['application/json'].schema.allOf[1].properties.code.enum
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          not:
+            contains:
+              const: not_ready
   crux-json-has-named-examples:
     description: Every JSON body has named examples, so that a mock server can serve it.
     severity: error

@@ -10,7 +10,8 @@ such change.
 
 Lint it with `scripts/check-management-api.sh`, which needs the Node.js version pinned in
 [`lint/package.json`](lint/package.json) and installs the locked tools outside the source tree. The rules
-specific to Crux are in [`lint/spectral.yaml`](lint/spectral.yaml).
+specific to Crux are in [`lint/spectral.yaml`](lint/spectral.yaml), and
+`python3 -m unittest discover -s tests/management_api` checks that the lint rejects broken copies of the file.
 
 The sources are the [web design](../../docs/plans/secure-management-web-design.md) and the
 [access contract proposal](../../docs/plans/access-contract-proposal.md), with the status proposal, the frontend
@@ -18,4 +19,4 @@ design and the gate record as they merge. The access contract replaces the web d
 frontend design and the status proposal refine its routes.
 
 Every JSON body has named examples for a mock server. A mock server sends the `x-crux-set-cookie` lines of an
-example along with it.
+example along with it, and those of a response with no body along with that response.
