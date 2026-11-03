@@ -159,24 +159,8 @@ ownership); high-water stack use; cache and DMA placement; and power-loss behavi
 writes, directory changes other than that replace, other cards, the Settings File backend itself); data
 across normal CPU restarts and those two power-cut tests are covered in the physical results above.
 
-## Physical gate procedure (draft, nothing here is authorised)
+## Physical gate procedure
 
-Every step below is a hardware operation. Each needs explicit approval for the current task,
-a verified board, probe and card, and a safe execution setup. A past approval does not
-authorise a later run. Use a card that is test-owned and may be erased.
-
-1. Record the board revision, card, reader and firmware commit. Confirm uSDHC1 and the
-   card-detect and power GPIO against the schematic, and the M.2 slot state.
-2. Prepare the card on a host: format FAT32, create `files` and `settings`. Keep the
-   card-reader output. This is the only formatting step.
-3. Flash the `crux.sample.storage_sd.start` image only after approval; read the status
-   printed by `sd_storage_start`. Expected: `0`. A blank card must give a mount failure and
-   leave the card unchanged (compare a host-side image before and after).
-4. Write, sync and read files through `crux_file_*`, then read the card on the host. The
-   sample image only calls `sd_storage_start`; an image with a write and read path is
-   separate work that does not exist yet.
-5. Only with separate approval, interrupt power and reboot during and between saves. Record
-   which acknowledged files and Settings records survive. Torn-write evidence from
-   simulators is not a substitute.
-6. Record every result, including failures, with the tested revision. Do not close #14 or
-   #16 from this record alone.
+The procedure, preconditions, card states, stop conditions and record requirements are in
+[microsd-physical-gate.md](microsd-physical-gate.md). It authorises nothing: every hardware step needs
+explicit approval for the current task.
