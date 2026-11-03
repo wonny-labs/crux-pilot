@@ -6,7 +6,7 @@ import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import re
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 from .errors import ManifestError
 
@@ -84,18 +84,31 @@ class Manifest:
         for name in self.files:
             self.verified_path(name)
 
-    def verified_path(self, name: str) -> Path:
-        """Returns a listed file's real path, after checking its location and hash."""
-        if name not in self.files:
-            raise ManifestError(f"{name} is not listed in the manifest")
+    def _hash_file(self, name: str) -> Tuple[Path, str]:
         root = self.path.resolve().parent
         path = (root / name).resolve()
         if root not in path.parents:
             raise ManifestError(f"{name} leaves the hand-off directory")
         try:
-            digest = sha256_file(path)
+            return path, sha256_file(path)
         except OSError as error:
             raise ManifestError(f"cannot read {name}: {error}") from error
+
+    def observed_hashes(self) -> Dict[str, Optional[str]]:
+        """What is on disk now, for the record. None means the file could not be checked."""
+        observed: Dict[str, Optional[str]] = {}
+        for name in self.files:
+            try:
+                observed[name] = self._hash_file(name)[1]
+            except ManifestError:
+                observed[name] = None
+        return observed
+
+    def verified_path(self, name: str) -> Path:
+        """Returns a listed file's real path, after checking its location and hash."""
+        if name not in self.files:
+            raise ManifestError(f"{name} is not listed in the manifest")
+        path, digest = self._hash_file(name)
         if digest != self.files[name]:
             raise ManifestError(f"{name} does not match its manifest hash")
         return path

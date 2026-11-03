@@ -18,10 +18,10 @@ authorisation of hardware operations for the current task. `--allow-flash` only 
 | `reset()` | Off unless `--allow-reset` is given. Discards earlier console output, runs the profile's reset command with its timeout, then waits for the ready marker. Never erases or programs |
 | `flash(artefact)` | Refused unless `--allow-flash=<approval reference>` is given and the profile has both a flash and a verify command. Rechecks the artefact's hash, runs flash, then verify. It does not reset or wait for boot; reset separately, under its own gate |
 | `confirm_boot()` | Waits for the ready marker and, if the profile sets `identity_pattern`, compares the printed identity with the manifest's `build_id` |
-| Refusals | A refused gate returns before the port opens, because opening a port can reset some boards |
-| Console | `open`, `read_until(pattern, timeout)` and `write`. Raw bytes, exclusive open, DTR and RTS from the profile. Timeouts use `time.monotonic()`. Knows no application protocol |
+| Refusals | A refused gate returns before the port opens, because opening a port can reset some boards. Reset and flash also refuse outside the run's `with` block |
+| Console | `open`, `read_until(pattern, timeout)` and `write`. Raw bytes, exclusive open, DTR and RTS from the profile. Timeouts use `time.monotonic()`. Knows no application protocol. Opening it has no gate of its own: `reset()` and an explicit `open_console()` or `confirm_boot()` open it, so check the DTR and RTS settings first |
 | Lock | One OS-level lock per board ID for the whole run. A held lock fails at once. The OS releases it if the process dies |
-| Evidence | A new directory per run; it fails if the directory exists. Keeps `rx.bin`, `events.jsonl`, `inputs.json`, `manifest.json`, `identity.json`, one `<operation>.log` per tool and `result.json`, including after a failure. A missing `result.json` means the process died |
+| Evidence | A new directory per run; it fails if the directory exists. Keeps `rx.bin`, `events.jsonl`, `inputs.json`, `manifest.json`, `identity.json`, one `<operation>.log` per tool and `result.json`, including after a failure. `identity.json` holds the expected and observed hashes. A missing `result.json` means the process died. `result.json` reports the `with` block: a refusal that a test catches still shows as passed, and appears in `events.jsonl` |
 
 ## Inputs
 
@@ -114,7 +114,10 @@ Also not shown:
 
 - **Nothing has run on hardware**: no real serial port, probe, reset, flash or `west flash`. One test uses real pyserial on a disposable pseudo-terminal when pyserial is installed; a pseudo-terminal has no DTR or RTS lines.
 - **DTR and RTS are set before the port opens**, but an operating system or USB bridge can still move those lines during open. A new board needs this checked before its profile is trusted.
-- **The erase and fuse check reads only command arguments.** A script or command file a profile names can still do either, so the profile needs review.
+- **The erase and fuse check reads only command arguments and the profile values they use.** A script or command file a profile names can still do either, so the profile needs review.
 - **The tool does not verify that a command does what its name says.** The verify command's result is only as good as that command.
-- **A flash or reset tool can outlive the lock.** If this process is killed while a tool runs, the OS releases the lock and the tool may still be operating the board.
+- **A flash or reset tool can outlive the lock.** If this process is killed while a tool runs, the OS releases the lock and the tool may still be operating the board. On a timeout, the tool's process group is stopped on POSIX, but a program that leaves that group survives, and on Windows only the tool itself is stopped.
+- **The lock only excludes runs that agree on it.** Two profiles with different `lock_directory` or `board_id` values for one board do not exclude each other, and `flock` on a shared or virtual machine filesystem was not tested.
+- **A reset can still see an old ready marker.** Earlier output is discarded for up to one second before the reset command starts. A marker printed after that, before the board actually resets, satisfies the wait, so choose a marker the application prints only once per boot.
 - **A file can change between the hash check and the flash tool reading it.** The hand-off directory must stay private to the run.
+- **Only `from_file` and `from_mapping` validate a profile.** Building `BoardProfile` or `ToolCommand` directly skips those checks.

@@ -162,6 +162,14 @@ class ProfileTest(Workspace):
             with self.subTest(section=section, token=token), self.assertRaisesRegex(ProfileError, 'erase or fuse'):
                 self.profile(**{section: {'command': command, 'timeout_seconds': 1}})
 
+    def test_erase_or_fuse_cannot_arrive_through_a_placeholder_value(self):
+        for field, value in (('mcu', '--mass-erase'), ('probe_serial', 'x-FUSE'), ('board', 'erase'),
+                             ('port', 'efuse')):
+            command = {'command': ['tool', '{%s}' % field], 'timeout_seconds': 1}
+            with self.subTest(field=field), self.assertRaisesRegex(ProfileError, 'erase or fuse'):
+                self.profile(**{field: value, 'reset': command})
+        self.assertEqual(self.profile(mcu='erase-capable').mcu, 'erase-capable')
+
     def test_from_file_reports_unreadable_json_as_a_profile_error(self):
         path = self.root / 'bad.json'
         path.write_text('{')
@@ -270,6 +278,54 @@ class EvidenceTest(Workspace):
             self.fail('entered a run with a mismatched manifest')
         self.assertEqual(self.result()['status'], 'failed')
         self.assertFalse(lock_path.exists())
+        self.assertEqual((self.evidence / 'manifest.json').read_bytes(), manifest.read_bytes())
+
+    def test_hash_failure_retains_expected_and_observed_identity(self):
+        manifest = self.manifest(files=[{'path': 'zephyr.hex', 'sha256': '0' * 64}])
+        with self.assertRaises(ManifestError), self.run_for(manifest=manifest):
+            self.fail('entered a run with a mismatched hash')
+        identity = json.loads((self.evidence / 'identity.json').read_text())
+        self.assertEqual(identity['files']['zephyr.hex'], '0' * 64)
+        self.assertEqual(identity['observed_sha256']['zephyr.hex'],
+                         hashlib.sha256(b'image-bytes').hexdigest())
+
+    def test_missing_file_is_recorded_as_not_observed(self):
+        manifest = self.manifest()
+        self.image.unlink()
+        with self.assertRaises(ManifestError), self.run_for(manifest=manifest):
+            self.fail('entered a run with a missing file')
+        identity = json.loads((self.evidence / 'identity.json').read_text())
+        self.assertIsNone(identity['observed_sha256']['zephyr.hex'])
+
+    def test_malformed_manifest_is_copied_for_the_record(self):
+        path = self.handoff / 'manifest.json'
+        path.write_text('{not json')
+        with self.assertRaises(ManifestError), self.run_for(manifest=path):
+            self.fail('entered a run with a malformed manifest')
+        self.assertEqual((self.evidence / 'manifest.json').read_text(), '{not json')
+        self.assertEqual(self.result()['status'], 'failed')
+
+    def test_a_cleanup_failure_is_not_recorded_as_passed_and_still_releases_the_lock(self):
+        class BadClose(FakeTransport):
+            def close(self):
+                raise OSError('port vanished')
+        with self.assertRaisesRegex(OSError, 'port vanished'):
+            with self.run_for(transport=BadClose()) as run:
+                run.open_console()
+        self.assertEqual(self.result()['status'], 'failed')
+        self.assertIn('port vanished', self.result()['error'])
+        with device_control.BoardLock(self.locks, 'bench/board-1'):
+            pass
+
+    def test_a_body_failure_is_recorded_even_if_cleanup_also_fails(self):
+        class BadClose(FakeTransport):
+            def close(self):
+                raise OSError('port vanished')
+        with self.assertRaisesRegex(ValueError, 'oracle'):
+            with self.run_for(transport=BadClose()) as run:
+                run.open_console()
+                raise ValueError('oracle rejected the output')
+        self.assertIn('oracle', self.result()['error'])
 
 
 class LockTest(Workspace):
@@ -489,6 +545,18 @@ class SerialTransportTest(Workspace):
         if os.name == 'posix':
             self.assertEqual(ioctl, [(99, 7)])
 
+    @unittest.skipUnless(os.name == 'posix', 'TIOCEXCL is POSIX only')
+    def test_failure_to_deny_other_programs_closes_the_port(self):
+        order = []
+
+        def refuse(*args):
+            raise OSError('no exclusive use')
+        modules = {'serial': self.fake_serial(order), 'fcntl': types.SimpleNamespace(ioctl=refuse),
+                   'termios': types.SimpleNamespace(TIOCEXCL=7)}
+        with mock.patch.dict(sys.modules, modules), self.assertRaisesRegex(ConsoleError, 'exclusive'):
+            console_module.SerialTransport(self.profile()).open()
+        self.assertEqual(order[-2:], ['open', 'close'])
+
     def test_open_failure_and_missing_pyserial_are_console_errors(self):
         fake = self.fake_serial([], open_error='port busy')
         with mock.patch.dict(sys.modules, {'serial': fake}), self.assertRaisesRegex(ConsoleError, 'port busy'):
@@ -684,6 +752,25 @@ class FlashTest(Workspace):
                 self.assertEqual(runner.calls, [])
 
 
+class RunLifetimeTest(Workspace):
+    def attempts(self, run):
+        return (run.reset, lambda: run.flash('zephyr.hex'), run.open_console, run.confirm_boot)
+
+    def test_operations_outside_a_run_touch_nothing(self):
+        transport, runner = FakeTransport(), FakeRunner()
+        gates = device_control.Gates(allow_reset=True, flash_approval='ref')
+        unopened = self.run_for(transport, runner, gates)
+        for attempt in self.attempts(unopened):
+            with self.assertRaisesRegex(DeviceControlError, 'not active'):
+                attempt()
+        with unopened as run:
+            pass
+        for attempt in self.attempts(run):
+            with self.assertRaisesRegex(DeviceControlError, 'not active'):
+                attempt()
+        self.assertEqual((transport.open_calls, runner.calls), (0, []))
+
+
 class RunLockTest(Workspace):
     def test_second_run_on_a_board_fails_and_retains_its_refusal(self):
         with self.run_for():
@@ -721,6 +808,34 @@ class RunToolTest(Workspace):
         with self.assertRaisesRegex(ToolFailed, 'timed out'):
             self.run_tool('import time; time.sleep(120)', timeout=0.2)
         self.assertLess(time.monotonic() - started, 20)
+
+
+    def test_timeout_also_stops_what_the_tool_started(self):
+        beat = self.root / 'beat'
+        heart = ('import sys, time\nend = time.monotonic() + 60\nwhile time.monotonic() < end:\n'
+                 '    open(sys.argv[1], "a").write("x")\n    time.sleep(0.02)\n')
+        wrapper = (f'import subprocess, sys, time\nsubprocess.Popen([sys.executable, "-c", {heart!r}, {str(beat)!r}])\n'
+                   'time.sleep(120)\n')
+        with self.assertRaisesRegex(ToolFailed, 'timed out'):
+            self.run_tool(wrapper, timeout=5)
+        self.assertTrue(beat.exists(), 'the child did not start before the timeout')
+        size = beat.stat().st_size
+        time.sleep(0.5)
+        self.assertEqual(beat.stat().st_size, size, 'the child kept running after the timeout')
+
+    def test_a_run_keeps_the_real_tool_output_as_evidence(self):
+        class Booting(FakeTransport):
+            def read(self, size):
+                self.reads = getattr(self, 'reads', 0) + 1
+                return b'APP READY' if self.reads > 1 else b''
+        code = 'print("tool output")'
+        profile = self.profile(reset={'command': [sys.executable, '-c', code], 'timeout_seconds': 30})
+        run = device_control.BoardRun(profile, self.manifest(), self.evidence,
+                                      device_control.Gates(allow_reset=True), transport=Booting())
+        with run:
+            run.reset()
+        self.assertIn('tool output', (self.evidence / 'reset.log').read_text())
+        self.assertEqual(self.result()['status'], 'passed')
 
 
 class CliTest(Workspace):

@@ -12,7 +12,7 @@ from typing import Any, List, Mapping, Optional, Tuple
 from .errors import ProfileError
 
 _PLACEHOLDER = re.compile(r"\{([^{}]*)\}")
-# Only what is visible in the arguments. A command file's contents are not seen.
+# Only what is visible in the rendered arguments. A command file's contents are not seen.
 _ERASE_OR_FUSE = re.compile(r"erase|fuse", re.IGNORECASE)
 _BASE_PLACEHOLDERS = {"probe_serial", "mcu", "port", "board"}
 _FIELDS = {"board_id", "board", "mcu", "port", "baud", "dtr", "rts", "ready_marker",
@@ -75,6 +75,10 @@ def _command(data: Mapping[str, Any], name: str, allowed: set, needs_image: bool
     unknown = used - allowed
     if unknown:
         raise ProfileError(f"{name}.command has an unknown placeholder: {sorted(unknown)}")
+    for placeholder in used - {"image"}:
+        if _ERASE_OR_FUSE.search(str(data.get(placeholder, ""))):
+            raise ProfileError(f"{name}.command must not perform an erase or fuse operation: "
+                               f"{placeholder} is {data[placeholder]!r}")
     if needs_image and "image" not in used:
         raise ProfileError(f"{name}.command must name the checked image with {{image}}")
     if "probe_serial" in used and not data.get("probe_serial"):
