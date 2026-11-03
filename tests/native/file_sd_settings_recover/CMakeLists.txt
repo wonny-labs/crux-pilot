@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20.0)
+get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_file_sd_settings_recover C)
+target_sources(app PRIVATE main.c ${CRUX_ROOT}/samples/storage_sd/sd_settings_recover.c)
+target_include_directories(app PRIVATE ${CRUX_ROOT}/samples/storage_sd)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)
+target_link_options(app PUBLIC -Wl,--wrap=fs_stat -Wl,--wrap=fs_rename)

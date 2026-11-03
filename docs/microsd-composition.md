@@ -150,6 +150,23 @@ stays LOST (`remount=-120`, `-EALREADY` on the RT1060 picolibc image, on the con
 the removal probe leaves `probe`. The blank-card and wrong-layout cases need a card prepared on a
 host, the M.2 slot and uSDHC1 ownership need the board in hand. None of these has been run on hardware.
 
+## Recovery step for an interrupted compaction (3 November 2026, software only)
+
+Owner decision of 3 November 2026: complete the rename at start-up in the one state the replace-pattern test
+found. `sd_settings_recover(path)` in [`samples/storage_sd`](../samples/storage_sd) renames `<path>.cmp` to
+`<path>` when the settings file is missing and the temporary is a non-empty regular file, and does nothing in
+any other state. It is safe because the backend closes the temporary (a synced close) before it starts the
+rename, so a missing settings file next to a `.cmp` means the compaction had finished writing. A stat error is
+never read as "missing", a zero-length temporary is left alone (`-ENODATA`), a directory is never renamed, and a
+path of 28 bytes or more is refused: `<path>.cmp` then does not fit the backend's 32-byte name buffer, the backend
+shortens the temporary's name, and this step does not handle that.
+Call it after the volume is mounted (on an unmounted volume the file system reports "not found" and the step
+returns 0) and before the first settings load. It is not called by any image yet: the
+2 November decision keeps a Settings File target provider out of this composition, so the call site belongs to
+whichever provider is added. It does not make Settings atomic: a cut during an append can still leave a torn
+tail, orphaned clusters remain, and a cut inside the FAT metadata update has no guarantee. It is covered by
+`tests/native/file_sd_settings_recover` on the unpatched backend; it has not been run on the board.
+
 ## Not covered (needs the card and board)
 
 Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted;
