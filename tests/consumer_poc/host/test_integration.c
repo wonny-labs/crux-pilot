@@ -17,8 +17,9 @@ static void record(void *context, int cycle, uint64_t skipped)
     record_t *totals = context;
     totals->cycles = cycle;
     totals->skipped += skipped;
-    if (cycle == APP_OVERRUN_CYCLE)
+    if (cycle == APP_OVERRUN_CYCLE) {
         totals->overrun_skipped = skipped;
+    }
 }
 
 int main(void)

@@ -11,8 +11,9 @@ typedef struct {
 static int scripted_now(void *context, int64_t *out)
 {
     const scripted_clock_t *script = context;
-    if (script->result != 0)
+    if (script->result != 0) {
         return script->result;
+    }
     *out = script->value_ns;
     return 0;
 }
@@ -64,7 +65,8 @@ int main(void)
     check(periodic_start(NULL, &clock, 100) != 0, "null state is rejected");
     check(periodic_next(&state, NULL, &skipped) != 0, "null clock is rejected");
 
-    if (failures == 0)
+    if (failures == 0) {
         puts("CONSUMER_UNIT passed");
+    }
     return failures != 0;
 }
