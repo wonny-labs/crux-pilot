@@ -140,7 +140,7 @@ for directory, expected in [
     ('twister-storage-sd-check', {'native_sim/native': 8, 'native_sim/native/64': 8}),
     ('twister-storage-sd-interrupt', {'native_sim/native': 7, 'native_sim/native/64': 7}),
     ('twister-storage-sd-replace', {'native_sim/native': 7, 'native_sim/native/64': 7}),
-    ('twister-storage-sd-settings-recover', {'native_sim/native': 11, 'native_sim/native/64': 11}),
+    ('twister-storage-sd-settings-recover', {'native_sim/native': 13, 'native_sim/native/64': 13}),
     ('twister-storage-configuration', {'native_sim/native/64': 10}),
     ('twister-storage-settings-file', {'native_sim/native/64': 25}),
 ]:

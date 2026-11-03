@@ -15,6 +15,8 @@
 #define CFG DIR_PATH "/cfg"
 #define CMP DIR_PATH "/cfg.cmp"
 #define LONG_CFG DIR_PATH "/a-long-settings-file-name"
+#define FIT_CFG DIR_PATH "/cfgabcdefghij"   /* 27 bytes: "<path>.cmp" is the backend's 31 */
+#define OVER_CFG DIR_PATH "/cfgabcdefghijk" /* 28 bytes: the backend shortens the temporary */
 
 static FATFS fat;
 static struct fs_mount_t mount = {
@@ -87,6 +89,10 @@ static void before(void *unused)
     remove_if_present(CMP);
     remove_if_present(LONG_CFG);
     remove_if_present(LONG_CFG ".cmp");
+    remove_if_present(FIT_CFG);
+    remove_if_present(FIT_CFG ".cmp");
+    remove_if_present(OVER_CFG);
+    remove_if_present(OVER_CFG ".cmp");
 }
 
 static size_t read_all(const char *path, uint8_t *buf, size_t size)
@@ -239,6 +245,9 @@ ZTEST(file_sd_settings_recover, test_a_stat_error_on_the_temporary_is_not_a_miss
     fault_path = CMP;
     zassert_equal(sd_settings_recover(CFG), -EIO);
     zassert_equal(rename_calls, 0);
+    stat_fault = 0;
+    zassert_true(exists(CMP));
+    zassert_false(exists(CFG));
 }
 
 ZTEST(file_sd_settings_recover, test_a_failed_rename_is_reported_and_leaves_the_temporary)
@@ -262,6 +271,27 @@ ZTEST(file_sd_settings_recover, test_a_path_the_backend_would_truncate_is_refuse
     zassert_equal(sd_settings_recover(LONG_CFG), -ENAMETOOLONG);
     zassert_equal(rename_calls, 0);
     zassert_false(exists(LONG_CFG));
+}
+
+ZTEST(file_sd_settings_recover, test_the_longest_path_with_a_whole_temporary_name_is_recovered)
+{
+    uint8_t data[4] = {1, 2, 3, 4}, after[4];
+
+    write_all(FIT_CFG ".cmp", data, sizeof(data));
+    zassert_equal(sd_settings_recover(FIT_CFG), SD_SETTINGS_RECOVERED);
+    zassert_equal(read_all(FIT_CFG, after, sizeof(after)), sizeof(after));
+    zassert_mem_equal(after, data, sizeof(data));
+    zassert_false(exists(FIT_CFG ".cmp"));
+}
+
+ZTEST(file_sd_settings_recover, test_the_shortest_path_whose_temporary_name_is_shortened_is_refused)
+{
+    uint8_t data[4] = {1, 2, 3, 4};
+
+    write_all(OVER_CFG ".cmp", data, sizeof(data));
+    zassert_equal(sd_settings_recover(OVER_CFG), -ENAMETOOLONG);
+    zassert_equal(rename_calls, 0);
+    zassert_false(exists(OVER_CFG));
 }
 
 ZTEST_SUITE(file_sd_settings_recover, NULL, setup, before, NULL, NULL);

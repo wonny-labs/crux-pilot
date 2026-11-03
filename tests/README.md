@@ -256,7 +256,7 @@ in CI. The first run is recorded in [docs/evidence/microsd-replace-cut](../docs/
 
 `tests/native/file_sd_settings_recover` runs the recovery step for the state that test found
 (`samples/storage_sd/sd_settings_recover`: no settings file and a complete `.cmp`, which it renames) on the
-real, unpatched Settings File backend over a FatFs RAM disk named like the card (11 cases, both `native_sim`
+real, unpatched Settings File backend over a FatFs RAM disk named like the card (13 cases, both `native_sim`
 variants). It creates the states; the real power cut is not exercised on the board, and the step is not yet
 called by any image. Mutation-checked: treating a stat error as a missing file, skipping the empty-temporary
 check, and renaming over an existing file each fail it.
