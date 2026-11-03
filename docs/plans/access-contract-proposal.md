@@ -152,13 +152,16 @@ void crux_access_logout(crux_access_session_t *session);
 - For IPv6, an adapter passes the /64 prefix as the source, so that address rotation inside one prefix does
   not create new delay entries. The current Crux networking profile is IPv4 only.
 - `crux_access_key_is_authorised` serves the SSH pre-check before a signature is verified, and wolfSSH calls
-  it on the signed request too. It applies the source delay but not the name delay, and never creates a session. A rejected
-  request with `signed_request` set counts as a key failure and produces an event. wolfSSH's result callback never
+  it on the signed request too. It applies the source delay but not the name delay, and never creates a session. A signed
+  request rejected because the key is not listed counts as a key failure and produces an event, while one inside a
+  window returns `CRUX_ACCESS_ERR_RETRY_LATER` without counting. wolfSSH's result callback never
   runs for it, because its authentication callback rejected the key first. An unsigned probe records nothing,
   because a client normally offers keys this way, and it reveals only whether a key it already holds is listed.
 - `crux_access_report_key_failure` records a failed signature against the source delay, and the provider calls
-  it from the failure branch of its result callback. Together with the signed request rule, this means every
-  rejected signed key attempt leaves an event and a delay.
+  it from the failure branch of its result callback. Together with the signed request rule, this means a signed
+  attempt with an unlisted key or a failed signature leaves an event and counts towards the delay. Key types that
+  wolfSSH does not support fail inside wolfSSH before any callback, and a `crux_access_login_verified` refusal
+  produces an event only.
 - `crux_access_login_verified` must be called only after the provider has verified the signature. It checks
   again that the key belongs to the account, refuses a disabled account or one with a forced password change,
   and leaves delay state alone. It uses no verification slot, and the name delay does not apply to key login, so a
@@ -232,7 +235,7 @@ count, the end of its window and the time of its last failure.
 
 These values bound guessing per bucket, and tests check the bound with a controlled clock. Staying under the cap
 allows about one attempt a minute. Waiting out the quiet period gives about eleven attempts in each period of about
-seventeen minutes, which is slower, so sustained guessing is limited to about 1,500 attempts a day per bucket. A
+sixteen minutes, which is slower, so sustained guessing is limited to about 1,500 attempts a day per bucket. A
 product that changes these values must keep the quiet period long enough for that to hold.
 
 | State | Key | Bound |
@@ -320,6 +323,7 @@ Existing sessions continue if the store fails later, because they hold no stored
 | --- | --- | --- | --- |
 | `crux_access_port_derive` | Derive and compare a verifier | Fast fake, plus PSA where available | PSA Crypto, Issue #142 |
 | `crux_access_port_random` | Salts and the delay hash key | Deterministic in tests | PSA Crypto |
+| `crux_access_port_hmac` | Keyed hash for delay buckets | Fake with fixed output in tests | PSA Crypto |
 | `crux_access_port_now_ms` | 64-bit monotonic time for expiry and delay | Controllable clock in tests | Native uptime |
 | `crux_access_port_store_*` | Load and save the table | In-memory fake with fault injection | Issue #178 |
 | `crux_access_port_event` | Report events, without waiting on storage, because checks emit denials | Recording fake | Issue #182 |
