@@ -141,7 +141,7 @@ removes the destination first. Repeating that sequence on the same board and car
 rename), 71 left a valid file, and none left a stale or damaged settings file (stale detection is a lower bound: two cuts could not be checked); the card always mounted.
 The rate belongs to a loop that does nothing but replace the file: a real controller compacts rarely, so it
 is not a deployment rate. With the corrections staged in the test fixture (#144, not a product backend) a missing settings file
-next to a `.cmp` leftover is an I/O error until the next save, not defaults; whether that is acceptable is an open owner question for #16. The read-only `fsck_msdos -n` afterwards reported 40 orphaned clusters (about
+next to a `.cmp` leftover is an I/O error until the next save, not defaults; on 3 November 2026 the owner chose to complete the rename with the start-up recovery step described below (software only, not yet called by any image). The read-only `fsck_msdos -n` afterwards reported 40 orphaned clusters (about
 320 KiB), where the earlier append test had been clean. One card, 256-byte files, the backend's
 write-temporary, close, rename order and the identical `fs_rename`, not the backend itself. See
 [docs/evidence/microsd-replace-cut](evidence/microsd-replace-cut/README.md).
