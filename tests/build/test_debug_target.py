@@ -6,7 +6,6 @@ import tempfile
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
-SCRIPT = REPO / "scripts/build-debug-target.sh"
 FRAGMENT = REPO / "scripts/debug-optimizations.conf"
 
 # Records its arguments, then makes the ELF that the script expects.
