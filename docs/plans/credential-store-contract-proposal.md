@@ -13,7 +13,8 @@ dependency adoption or hardware operations. Baseline: main `4444d70`, Zephyr v4.
 | S2 | Pilot protection: AES-256-GCM through PSA with a key derived from the device ID, Option A of the provider decision, declared as not confidential | Accept | A plain checksum removes sealing's #142 dependency and gives the same claim against a reader of the medium and chip ID, but leaves the card readable with no effort. Key generation still needs #142. |
 | S3 | Pilot medium: two extra directories on the microSD card, `secure-a` and `secure-b`, prepared on a host like the existing `files` and `settings` | Accept, with decision F1 of the file proposal | Without File roots the store needs its own native provider |
 | S4 | No unauthenticated wipe. `crux_credential_erase` exists for a product-defined local trigger, and the Pilot recovers an `UNUSABLE` store by clearing the slots with a card reader. This narrows the access proposal's open question, which allowed a reference serial command. | Accept | A serial command with no login would lower limit A7 from "medium and serial" to "serial alone" |
-| S5 | A device key is generated only when its record is absent from a readable store with no damaged slot. A key is not used until its save has succeeded | Accept | |
+| S5 | A device key is generated only when its record is absent from a readable store. A key is not used until its save has succeeded | Accept | |
+| S7 | A save that adds a record writes both slots before returning, and if the second write fails it returns `ERR_STORE` even though the record is already active and will survive a reset | Accept. `OK` would break the guarantee that an acknowledged record is in both slots, and a rollback adds states for a rare failure. | The rollback must be designed and its own failures stated |
 | S6 | Accept a wider statement of limit A7: damage to the directory entries of both slots also reads as `EMPTY`, so reopening provisioning can follow from a failed medium plus serial access, without an attacker blanking it | Accept for the Pilot. The tag protects slot contents only, and the store cannot see a lost directory entry from a file never created. | A manifest does not help, because it can be lost the same way. Only a marker outside the medium closes this, as A7 already says. |
 
 ## Trust boundary
@@ -110,7 +111,7 @@ typedef enum {
 typedef enum { CRUX_CREDENTIAL_KEY_ECDSA_P256 = 1, CRUX_CREDENTIAL_KEY_ED25519 = 2 } crux_credential_key_type_t;
 
 crux_credential_result_t crux_credential_start(crux_file_root_t slot_a, crux_file_root_t slot_b);
-void crux_credential_roots(crux_file_root_t roots[2]);
+crux_credential_result_t crux_credential_roots(crux_file_root_t roots[2]); /* NOT_READY before start. */
 crux_credential_state_t crux_credential_state(void);
 crux_credential_result_t crux_credential_read(crux_credential_record_t record, void *buffer, size_t capacity,
                                               size_t *length);
@@ -146,7 +147,7 @@ close provisioning. Its `UNUSABLE` is `CRUX_CREDENTIAL_ERR_UNUSABLE`, `NOT_READY
 The requirement is that a missing or invalid key fails closed with no silent regeneration. With one pair of files per
 record, an absent host key file looks the same as a host key that was never generated, so telling them apart needs a
 manifest with its own power-loss rules. With one sealed image, an absent record inside a readable image means it was never
-written, provided the two slots hold the same set of records, which the save rule below and the absent-record rule ensure. Loss of a key then fails the whole image closed.
+written or never acknowledged, because a save that adds a record reaches both slots before it returns and every later image carries that record. Loss of a key then fails the whole image closed.
 Every record also changes together, so there are no states across records to reason about.
 
 The cost is one static image buffer and a rewrite of the whole image for each change. Account changes, certificate
@@ -182,12 +183,14 @@ The Host fake uses protection identifier 0 with a CRC in place of the tag, and i
 6. If this save adds a record that the image did not have, repeat steps 2 to 5 on the other slot, so that both hold the record before the call returns.
 7. Clear the buffer.
 
-If step 3 or 4 fails after any write, the store tries to zero the slot's header and returns `CRUX_CREDENTIAL_ERR_STORE`. The active slot is unchanged, and so is RAM. This matters: FatFs sends whole sectors straight to disk, and `f_sync` updates the directory last, so the image can be complete and valid when a later step reports the error. A save reported as failed could otherwise win at the next boot. If zeroing also fails, because the medium has gone, that can still happen, and it is a stated limit.
+If step 3 or 4 of the first write fails after any byte was written, the store tries to replace the slot's header with the pending header below and returns `CRUX_CREDENTIAL_ERR_STORE`. The active slot is unchanged, and so is RAM. This matters: FatFs sends whole sectors straight to disk, and `f_sync` updates the directory last, so the image can be complete and valid when a later step reports the error. A save reported as failed could otherwise win at the next boot. If invalidating also fails, because the medium has gone, that can still happen, and it is a stated limit.
 
-The first save differs, because no file exists: create slot A with `CRUX_FILE_CREATE_REPLACE`, write the full size with a zeroed
-header, sync, then write the header and sync and close. Then do the same for slot B with the same image. After the first save both
-files exist at full size. An absent or short inactive slot found by a later save, which follows a first save cut after slot A, is
-created the same way.
+If step 6 fails, the same call returns `ERR_STORE`, but the new record is already active in the first slot and survives a reset. This is decision S7. `crux_access` keeps its RAM unchanged, so its next save writes the table it holds, and a reset before that loads the new record.
+
+The first save differs, because no file exists: create slot A with `CRUX_FILE_CREATE_REPLACE`, write the full size with a pending
+header (magic `CXCP`, the rest zero), sync, then write the real header and sync and close. Then do the same for slot B with the same image. After the first save both
+files exist at full size. An absent or undersized inactive slot found by a later save, which follows a first save cut after slot A, is
+created the same way. A full-size slot holding a pending header is written in place.
 
 The store does not use rename. `fatfs_rename` unlinks the destination before renaming, and the replace-pattern test in
 [the microSD composition](../microsd-composition.md) left no destination file in 29 of 100 cuts, with orphaned clusters
@@ -203,8 +206,8 @@ are stated under Limits. A build that lowers the setting cannot save an image th
 ### Load states
 
 `crux_credential_start` classifies each slot, then the store. A slot is *absent* when File reports `NOT_FOUND`. It is *short*
-when it is smaller than the header or its header region is all zeros. It is *valid* when it opens, and *corrupt* in every other case: a
-bad magic, an unknown format, a declared end past the file's size or past `CRUX_CREDENTIAL_SLOT_BYTES`, or a failed tag. Both-valid ties,
+when it is smaller than the header or holds a pending header. It is *valid* when it opens, and *corrupt* in every other case: a
+bad magic, including an all-zero header, an unknown format, a declared end past the file's size or past `CRUX_CREDENTIAL_SLOT_BYTES`, or a failed tag. Both-valid ties,
 which a first save produces, take slot A.
 
 | Slot A | Slot B | State | Reason |
@@ -216,19 +219,17 @@ which a first save produces, take slot A.
 | Either unreadable, meaning a File result other than `OK` or `NOT_FOUND` | Any | `UNUSABLE` | A read error cannot prove which generation is newest |
 
 The table is symmetric in A and B. A rotted length field makes a slot corrupt, never short, so it cannot read as absent. The *short* rule is
-sound because the first save writes the header last, so a cut before that leaves a zeroed header, and FatFs records a file's size only at sync. A
-cut inside the single header write can leave a partial header, which reads as corrupt: that fails closed and needs a local recovery. A zeroed
-header after a failed save is short by the same rule, and the other slot is valid then. The conformance suite shows
+sound because the first save writes the real header last, so a cut before that leaves a pending header, and FatFs records a file's size only at sync. A
+cut inside the single header write can leave a partial header, which reads as corrupt: that fails closed and needs a local recovery. A pending
+header after a failed save is short by the same rule, and the other slot is valid then. A sector that reads back as zeros is corrupt, so damage to slot contents cannot look like a first boot. The conformance suite shows
 old-or-new for a fake that cuts at each sector, and fail-closed at each byte.
 
 A corrupt slot next to a valid one loads the valid slot and produces `credential.slot_invalid`. If the newest slot rots, the
 older generation is used, so a removed account or a replaced key comes back, and the next save makes that older content permanent. A6 allows the old record, and the event makes it visible.
 
-**Absent records while a slot is damaged.** An older generation can legitimately lack a record that a newer one has. So while a slot is corrupt,
-`crux_credential_read` of an absent record returns `CRUX_CREDENTIAL_ERR_UNUSABLE`, and `crux_credential_key_ensure` generates nothing. Otherwise one bad slot could open
-provisioning or regenerate a key clients have seen. The save rule above makes the slots agree on the set of records, so this needs a cut
-between its two writes followed by damage, and it fails closed. At start, if both slots are valid and the older lacks a record the newer has, the store
-rewrites the older from the newer before returning.
+**Absent records.** An older generation can lack a record that a newer one has, so without care one bad slot could open
+provisioning or regenerate a key clients have seen. The save rule above prevents this: a record is acknowledged only once both slots hold it, and every later image carries it. So a valid slot that lacks a record means the record was never acknowledged, and `NOT_FOUND` is the correct old state, for instance after a cut during a first account save. At start, if both slots are valid and the older lacks a record the newer has, the store
+rewrites the older from the newer before returning, so that this state cannot last until damage arrives. Restoring an old copy of a slot can bring a record's absence back, which is limit A7.
 
 File `NOT_READY` is unreadable, so a missing medium or missing layout is `UNUSABLE` and never `EMPTY`.
 
@@ -243,8 +244,8 @@ boundary, and a host with a card reader can change anything, which is limit A7.
 
 ### Device keys
 
-`crux_credential_key_ensure` returns `OK` if the record exists. If it is absent and the store is `EMPTY` or `VALID` with no corrupt slot, it
-generates a key, saves it and only then returns `OK`, so a key is never used before it can survive a reset. In `UNUSABLE`, or while a slot is corrupt, it
+`crux_credential_key_ensure` returns `OK` if the record exists. If it is absent and the store is `EMPTY` or `VALID`, it
+generates a key, saves it and only then returns `OK`, so a key is never used before it can survive a reset. In `UNUSABLE` it
 returns that error and generates nothing. The composition calls it at first boot for each key that the build needs.
 `crux_credential_key_replace` is the deliberate rotation path and produces an event.
 
@@ -307,18 +308,19 @@ The composition in `samples/storage_sd` never creates a directory, so a host pre
 
 `crux_credential_erase` works in every state after start, including `UNUSABLE`, because it exists to recover from that state. It overwrites both slots with zeros, syncs, removes both files and leaves the state `UNUSABLE` until the
 next reset, because provisioning requires a store that was `EMPTY` at start. It returns `OK`, or `ERR_STORE` if a step failed, and it does nothing but report `NOT_READY` before start. It does not prove physical erasure: an SD card's
-internal mapping can keep old pages, and results must say so. An interrupted erase can leave a valid slot, or two zeroed slots, which read as short and so `EMPTY`, and the operator
-repeats it where needed. The reference gives no command for this. A product wires it to its own local trigger. On the Pilot, an `UNUSABLE`
+internal mapping can keep old pages, and results must say so. An interrupted erase can leave a valid slot, or zeroed slots, which read as corrupt and so `UNUSABLE`, and the operator
+repeats it. The reference gives no command for this. A product wires it to its own local trigger. On the Pilot, an `UNUSABLE`
 store is recovered by deleting the slots with a card reader.
 
 ## Failure handling
 
 | Failure | Result |
 | --- | --- |
-| Save fails at write, sync or read back | `CRUX_CREDENTIAL_ERR_STORE`, event, previous image active. The store zeroes the inactive slot's header. If that fails too, the next boot may see the new image, under Limits. |
+| Save fails at write, sync or read back | `CRUX_CREDENTIAL_ERR_STORE`, event, previous image active. The store writes a pending header to the inactive slot. If that fails too, the next boot may see the new image, under Limits. |
+| The second write of an added record fails | `CRUX_CREDENTIAL_ERR_STORE`, event. The new record is active. Decision S7. |
 | File pool full | `CRUX_CREDENTIAL_ERR_STORE`. The file service leaves one handle free, as stated in Issue #179. |
 | Medium removed while running | Reads give `ERR_READ` and saves `ERR_STORE`. Existing sessions continue, because they hold no stored state. Reinsertion needs a reset, as the microSD composition states. |
-| Power loss during a save | Old or new image, subject to the medium limit below |
+| Power loss during a save | Old or new image, subject to the medium limit below. A cut during a record's first save leaves it absent, and the operation can be repeated. |
 | Both slots damaged | `UNUSABLE`, and all logins rejected until local recovery |
 | Key missing from a build that needs it | The composition's call to `crux_credential_key_ensure` generates it only in the first-boot cases above. A failure stops that listener: the SSH design already says the server does not start. |
 
@@ -326,8 +328,8 @@ store is recovered by deleting the slots with a card reader.
 
 | Level | Cases |
 | --- | --- |
-| Host conformance, on the fake and on File with the Linux provider | Every row of the load table, read and write of each record, limits, `UNUSABLE` refusing every operation but erase, generation order and ties, no key generated in `UNUSABLE` or with a corrupt slot, an absent account record with a corrupt slot reading `UNUSABLE`, a new record reaching both slots, the repair at start, state before start, and each state of an interrupted erase |
-| Host faults | A cut at each sector of first and later saves, then a reload that must find the old or new image, and at each byte, then a reload that must find the old or new image or `UNUSABLE`, and never `EMPTY` once a save has completed. A flipped bit in each header field. Reload after a failed sync and after a failed read back, with zeroing working and failing. Full File pool. Runs under sanitizers. |
+| Host conformance, on the fake and on File with the Linux provider | Every row of the load table, read and write of each record, limits, `UNUSABLE` refusing every operation but erase, generation order and ties, no key generated in `UNUSABLE`, a cut at each step of a record's first save leaving `NOT_FOUND` and a usable store, an acknowledged record surviving damage to either slot, a new record reaching both slots, a failed second write, the repair at start, state before start, and each state of an interrupted erase |
+| Host faults | A cut at each sector of first and later saves, then a reload that must find the old or new image, and at each byte, then a reload that must find the old or new image or `UNUSABLE`, and never `EMPTY` once a save has completed. A flipped bit in each header field, and a zeroed header. Reload after a failed sync and after a failed read back, with invalidation working and failing. Full File pool. Runs under sanitizers. |
 | Host security | Secret values absent from every event. A forged or reused-generation slot on the fake. A bad tag in both slots is `UNUSABLE` and never `EMPTY`, and in one slot uses the other. |
 | Boundary | The adapter header cannot be reached from consumer targets. File service rejects an area on a store root. |
 | `native_sim`, with a RAM disk | The same suite on FatFs with `CONFIG_CRUX_FILE_FATFS_SIMULATOR`, which shows the file behaviour but no power loss |
@@ -345,10 +347,11 @@ Host tests show contract behaviour. They do not establish entropy quality, confi
   card's internal mapping can disturb data outside the sector being written, and the card makes no promise here. Damage to slot contents is
   detected. If it leaves neither valid the store reads `UNUSABLE`. If a cut comes before the inactive header is rewritten and the card also disturbs the active slot, the store can read an earlier generation, which is neither old nor new. A sector torn by a cut can also read back as an error, which gives `UNUSABLE`.
 - **Directory damage can read as `EMPTY`.** The tag protects contents only. Losing the directory entries of both slots looks like a first boot. Decision S6.
-- **A failed save can still take effect** at the next boot, if the error occurred after the image was complete and zeroing the header also failed.
+- **A failed save can still take effect** at the next boot, if the error occurred after the image was complete and invalidating the header also failed, or under decision S7.
 - **Allocating windows.** Creating a slot writes FAT sectors, as stated under Save sequence.
 - A corrupt slot next to an older valid one falls back to the older generation, with an event, and the next save makes that permanent.
 - A card that is moved to another board reads `UNUSABLE`.
+- The pinned FatFs `f4ead3b` lacks an explicit range check on its direct-write path that FatFs master labels `CVE-2026-6685`, and every save uses that path. Whether it matters here was not assessed. It is for dependency review.
 - This is a Pilot on one board and one card. Product storage is a product decision.
 
 ## Consistency with the access proposal
@@ -360,6 +363,6 @@ This contract meets A6 subject to the limits above, and three statements in the 
   cases are `UNUSABLE`. Limit A7 still stands, because a host can prepare a card.
 - `EMPTY` in the access port means that the account record is absent, not that the whole store is empty, because device keys
   may exist before the first account. Directory damage can also read as `EMPTY`, under S6.
-- "A save failure leaves both copies unchanged" and `CRUX_ACCESS_ERR_STORE`'s "state is unchanged" hold for RAM and for the active image. Stored bytes can change, and a failed save can win at the next boot if the store cannot then invalidate it.
+- "A save failure leaves both copies unchanged" and `CRUX_ACCESS_ERR_STORE`'s "state is unchanged" hold for RAM, and for the active image except under S7. Stored bytes can change, and a failed save can win at the next boot if the store cannot then invalidate it.
 
 Open question, with a working default: whether a product wants a reference local-reset trigger. The default is none, under S4.

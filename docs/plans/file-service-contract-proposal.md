@@ -278,7 +278,7 @@ For the web interface, or any caller that wants one file to appear only when it 
 3. `commit` syncs and closes the temporary file, then writes and syncs a small sidecar, `.crux-co-<slot>`, holding the target name. It removes an existing target, renames, and removes the sidecar. The transfer handle is consumed. A reader holding the target gives `ERR_BUSY`, and nothing changes.
 4. `close` without commit is the abort: it closes and removes the temporary file.
 
-A slot whose temporary file still exists is skipped, so a kept file is never reused. If no slot is free, the result is `ERR_NO_RESOURCES`.
+A slot whose temporary file or sidecar still exists is skipped, so a kept file is never reused and an old sidecar can never name a new upload. If no slot is free, the result is `ERR_NO_RESOURCES`.
 
 ### Direct write
 
@@ -321,7 +321,7 @@ The rule depends on the file's owner.
 | Sidecar, temporary, no target | The rename is completed, as `sd_settings_recover` does for Settings, and the sidecar removed | |
 | Sidecar, temporary, a target of a different size | Temporary and sidecar removed. The removal had not begun, so the old target stands. | |
 | Sidecar, temporary, a target of the same size | Kept, with event `file.recovery_needed`. It may be an unfinished removal, or it may share clusters with the target after a cut during rename, and removing it would free them. | Counts against the limit, and its slot is skipped. Removed only by a host repair, or by the composition when it declares that the risk is accepted. |
-| Sidecar with no temporary | Sidecar removed. The commit had finished. | |
+| Sidecar with no temporary, valid or torn | Sidecar removed. The commit had finished, or had not reached removal. | |
 | A file ending in the area's `partial_suffix` | Kept, because a client may resume it | When a new create or write would hit a limit, the service removes such files that have no live handle, in listing order, with event `file.partial_removed`, then retries once |
 
 No clock is needed, and a client whose partial was removed starts again. A direct write always leaves its partial file in place. The rule cannot tell a client's interrupted upload from a file that
