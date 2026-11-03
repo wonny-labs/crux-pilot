@@ -125,12 +125,12 @@ each; larger writes, directory changes and renames were not cut, and it is one c
 The Settings File backend compacts by writing a temporary file and calling `fs_rename`, and FatFs's rename
 removes the destination first. Repeating that sequence on the same board and card with 100 power cuts:
 **29 left no settings file but a complete newer temporary** (the cut fell between the removal and the
-rename), 71 left a valid file, and none left a stale or damaged settings file; the card always mounted.
+rename), 71 left a valid file, and none left a stale or damaged settings file (stale detection is a lower bound: two cuts could not be checked); the card always mounted.
 The rate belongs to a loop that does nothing but replace the file: a real controller compacts rarely, so it
-is not a deployment rate. With the corrected backend a missing settings file next to a `.cmp` leftover is an
-I/O error until the next save, not defaults; whether that is acceptable is an open owner question for #16. The read-only `fsck_msdos -n` afterwards reported 40 orphaned clusters (about
-320 KiB), where the earlier append test had been clean. One card, 256-byte files, the filesystem call
-sequence rather than the backend itself. See
+is not a deployment rate. With the corrections staged in the test fixture (#144, not a product backend) a missing settings file
+next to a `.cmp` leftover is an I/O error until the next save, not defaults; whether that is acceptable is an open owner question for #16. The read-only `fsck_msdos -n` afterwards reported 40 orphaned clusters (about
+320 KiB), where the earlier append test had been clean. One card, 256-byte files, the backend's
+write-temporary, close, rename order and the identical `fs_rename`, not the backend itself. See
 [docs/evidence/microsd-replace-cut](evidence/microsd-replace-cut/README.md).
 
 ## Not covered (needs the card and board)
