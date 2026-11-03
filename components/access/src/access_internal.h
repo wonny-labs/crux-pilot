@@ -9,6 +9,8 @@ _Static_assert(CRUX_ACCESS_SESSION_MAX >= 2 && CRUX_ACCESS_SESSION_MAX <= 256,
                "the handle holds an 8-bit slot, and slot 0 is reserved for serial");
 _Static_assert(CRUX_ACCESS_ACCOUNT_MAX >= 1 && CRUX_ACCESS_ACCOUNT_MAX <= 255,
                "the record holds an 8-bit account count");
+_Static_assert(CRUX_ACCESS_SESSIONS_PER_ACCOUNT >= 1, "an account must be able to hold a session");
+_Static_assert(CRUX_ACCESS_VERIFIER_ITERATIONS >= 1, "a verifier needs at least one iteration");
 _Static_assert(CRUX_ACCESS_KEYS_PER_ACCOUNT >= 1 && CRUX_ACCESS_KEYS_PER_ACCOUNT <= 255,
                "the record holds an 8-bit key count");
 _Static_assert(CRUX_ACCESS_KEY_SIZE_MAX >= 1 && CRUX_ACCESS_KEY_SIZE_MAX <= 65535,
@@ -106,6 +108,7 @@ typedef struct {
 } access_state_t;
 
 extern access_state_t crux_access_state;
+extern const uint8_t crux_access_dummy_derived[CRUX_ACCESS_DERIVED_SIZE];
 
 /* Shared helpers. */
 bool crux_access_name_valid(const char *name);

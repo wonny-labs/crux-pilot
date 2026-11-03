@@ -22,7 +22,8 @@ ALLOWED_INCLUDES = {"stdbool.h", "stddef.h", "stdint.h", "crux/access.h"}
 PROVIDER_TOKEN = re.compile(
     r"\b(?:wolf\w*|WOLF\w*|mbedtls\w*|MBEDTLS\w*|psa_\w+|PSA_\w+|ssl_\w+|SSL_\w+|WS_\w+|tls_\w+|TLS_\w+)\b")
 # Reachable through crux::access alone in a project: nothing here may build.
-CONFIGURE_REJECTED = ("public_service", "interface_directory", "direct_directory", "direct_link")
+CONFIGURE_REJECTED = ("public_service", "interface_directory", "parent_directory", "compile_option",
+                      "direct_interface", "direct_directory", "direct_link")
 COMPILE_REJECTED = {
     "include_adapter": "crux_access_adapter.h",
     "include_port": "access_port.h",

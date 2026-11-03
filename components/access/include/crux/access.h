@@ -201,8 +201,7 @@ crux_access_result_t crux_access_account_enable(crux_access_session_t session, c
  * Move an account to another role and end its sessions. Its current role changes nothing.
  * @param role Role name from the policy.
  * @retval CRUX_ACCESS_ERR_NOT_FOUND The account does not exist.
- * @retval CRUX_ACCESS_ERR_LAST_ADMINISTRATOR It is the last enabled administrator, and the new role
- * does not hold access.manage.
+ * @retval CRUX_ACCESS_ERR_LAST_ADMINISTRATOR It is the last enabled administrator.
  */
 crux_access_result_t crux_access_account_set_role(crux_access_session_t session, const char *user,
                                                   const char *role);

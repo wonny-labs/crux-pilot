@@ -10,46 +10,68 @@ typedef struct {
 
 typedef enum { REQUIRE_MANAGE, REQUIRE_MANAGE_OR_OWN, REQUIRE_SESSION_ONLY } requirement_t;
 
-static crux_access_result_t authorise(crux_access_session_t session, requirement_t requirement,
-                                      const char *target, actor_t *actor)
+/* Decides with the state lock held. Report the outcome afterwards, with no lock held. */
+static crux_access_result_t authorise_held(crux_access_session_t session, requirement_t requirement,
+                                           const char *target, actor_t *actor,
+                                           access_expired_t *expired)
 {
-    access_expired_t expired = {0};
     memset(actor, 0, sizeof(*actor));
-    if (!crux_access_lock_state()) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+    const access_slot_t *slot = crux_access_slot_find(session, crux_access_port_now_ms(), expired);
+    if (slot == NULL) {
+        return CRUX_ACCESS_ERR_SESSION_INVALID;
     }
-    crux_access_result_t result = CRUX_ACCESS_ERR_SESSION_INVALID;
-    const access_slot_t *slot = crux_access_slot_find(session, crux_access_port_now_ms(), &expired);
-    if (slot != NULL) {
-        bool permitted = requirement == REQUIRE_SESSION_ONLY ||
-                         crux_access_slot_permits(slot, CRUX_ACCESS_PERMISSION_MANAGE);
-        if (!permitted && requirement == REQUIRE_MANAGE_OR_OWN && strcmp(slot->user, target) == 0) {
-            permitted = crux_access_slot_permits(slot, CRUX_ACCESS_PERMISSION_SELF);
-        }
-        actor->origin = slot->origin;
-        crux_access_copy_name(actor->user, slot->user);
-        result = permitted ? CRUX_ACCESS_OK : CRUX_ACCESS_ERR_DENIED;
+    bool permitted = requirement == REQUIRE_SESSION_ONLY ||
+                     crux_access_slot_permits(slot, CRUX_ACCESS_PERMISSION_MANAGE);
+    if (!permitted && requirement == REQUIRE_MANAGE_OR_OWN && strcmp(slot->user, target) == 0) {
+        permitted = crux_access_slot_permits(slot, CRUX_ACCESS_PERMISSION_SELF);
     }
-    crux_access_unlock_state();
-    crux_access_expired_emit(&expired);
+    actor->origin = slot->origin;
+    crux_access_copy_name(actor->user, slot->user);
+    return permitted ? CRUX_ACCESS_OK : CRUX_ACCESS_ERR_DENIED;
+}
+
+static void authorise_report(crux_access_result_t result, const actor_t *actor,
+                             const access_expired_t *expired)
+{
+    crux_access_expired_emit(expired);
     if (result == CRUX_ACCESS_ERR_DENIED) {
         crux_access_emit(CRUX_ACCESS_EVENT_PERMISSION_DENIED, result, &actor->origin, actor->user,
                          false);
     }
+}
+
+static crux_access_result_t authorise(crux_access_session_t session, requirement_t requirement,
+                                      const char *target, actor_t *actor)
+{
+    access_expired_t expired = {0};
+    if (!crux_access_lock_state()) {
+        return CRUX_ACCESS_ERR_NOT_READY;
+    }
+    crux_access_result_t result = authorise_held(session, requirement, target, actor, &expired);
+    crux_access_unlock_state();
+    authorise_report(result, actor, &expired);
     return result;
 }
 
 /* Takes the change lock, checks the session again and starts a pending copy of the table. Writers
- * hold the change lock, so reading the table under it alone is safe. */
+ * hold the change lock, so reading the table under it alone is safe. A refusal is reported only
+ * after the change lock is released, because the event port runs with no lock held. */
 static crux_access_result_t change_begin(crux_access_session_t session, requirement_t requirement,
                                          const char *target, actor_t *actor)
 {
     if (!crux_access_lock_change()) {
         return CRUX_ACCESS_ERR_NOT_READY;
     }
-    crux_access_result_t result = authorise(session, requirement, target, actor);
+    if (!crux_access_lock_state()) {
+        crux_access_unlock_change();
+        return CRUX_ACCESS_ERR_NOT_READY;
+    }
+    access_expired_t expired = {0};
+    crux_access_result_t result = authorise_held(session, requirement, target, actor, &expired);
+    crux_access_unlock_state();
     if (result != CRUX_ACCESS_OK) {
         crux_access_unlock_change();
+        authorise_report(result, actor, &expired);
         return result;
     }
     crux_access_state.pending = crux_access_state.table;
@@ -67,6 +89,7 @@ typedef struct {
     const char *changed_user;
     bool end_sessions;
     uint32_t keep_value;
+    bool closes_provisioning;
 } change_effect_t;
 
 static uint64_t change_number_for(const char *user, bool changed)
@@ -104,6 +127,9 @@ static crux_access_result_t change_commit(change_effect_t effect)
     }
     state->table = crux_access_state.pending;
     memcpy(state->change_numbers, numbers, sizeof(numbers));
+    if (effect.closes_provisioning) {
+        state->provisioning_open = false;
+    }
     if (effect.end_sessions) {
         crux_access_slots_end_account(effect.changed_user, effect.keep_value);
     }
@@ -174,28 +200,29 @@ crux_access_result_t crux_access_account_list(crux_access_session_t session,
     if (count == NULL || (accounts == NULL && capacity != 0)) {
         return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
     }
-    actor_t actor;
-    crux_access_result_t result = authorise(session, REQUIRE_MANAGE, NULL, &actor);
-    if (result != CRUX_ACCESS_OK) {
-        return result;
-    }
     if (!crux_access_lock_state()) {
         return CRUX_ACCESS_ERR_NOT_READY;
     }
-    const access_table_t *table = &crux_access_state.table;
-    *count = table->count;
-    for (size_t index = 0; index < table->count && index < capacity; ++index) {
-        const access_account_t *account = &table->accounts[index];
-        crux_access_account_info_t *info = &accounts[index];
-        memset(info, 0, sizeof(*info));
-        crux_access_copy_name(info->user, account->user);
-        crux_access_copy_name(info->role, account->role);
-        info->enabled = account->enabled;
-        info->must_change_password = account->must_change_password;
-        info->key_count = account->key_count;
+    actor_t actor;
+    access_expired_t expired = {0};
+    crux_access_result_t result = authorise_held(session, REQUIRE_MANAGE, NULL, &actor, &expired);
+    if (result == CRUX_ACCESS_OK) {
+        const access_table_t *table = &crux_access_state.table;
+        *count = table->count;
+        for (size_t index = 0; index < table->count && index < capacity; ++index) {
+            const access_account_t *account = &table->accounts[index];
+            crux_access_account_info_t *info = &accounts[index];
+            memset(info, 0, sizeof(*info));
+            crux_access_copy_name(info->user, account->user);
+            crux_access_copy_name(info->role, account->role);
+            info->enabled = account->enabled;
+            info->must_change_password = account->must_change_password;
+            info->key_count = account->key_count;
+        }
     }
     crux_access_unlock_state();
-    return CRUX_ACCESS_OK;
+    authorise_report(result, &actor, &expired);
+    return result;
 }
 
 /* A preview under the state lock, so that a request the table must refuse wastes no derivation. The
@@ -270,7 +297,7 @@ crux_access_result_t crux_access_account_create(crux_access_session_t session, c
     }
     pending_append(&fresh);
     crux_access_secure_zero(&fresh, sizeof(fresh));
-    result = change_commit((change_effect_t){user, false, 0});
+    result = change_commit((change_effect_t){user, false, 0, false});
     crux_access_unlock_change();
     emit_change(CRUX_ACCESS_EVENT_ACCOUNT_CREATED, result, &actor, user);
     return result;
@@ -304,7 +331,9 @@ crux_access_result_t crux_access_account_remove(crux_access_session_t session, c
         crux_access_state.pending.accounts[next - 1u] = crux_access_state.pending.accounts[next];
     }
     crux_access_state.pending.count -= 1;
-    result = change_commit((change_effect_t){user, true, 0});
+    memset(&crux_access_state.pending.accounts[crux_access_state.pending.count], 0,
+           sizeof(crux_access_state.pending.accounts[0]));
+    result = change_commit((change_effect_t){user, true, 0, false});
     crux_access_unlock_change();
     emit_change(CRUX_ACCESS_EVENT_ACCOUNT_REMOVED, result, &actor, user);
     return result;
@@ -337,7 +366,7 @@ crux_access_result_t crux_access_account_disable(crux_access_session_t session, 
         return CRUX_ACCESS_ERR_LAST_ADMINISTRATOR;
     }
     account->enabled = false;
-    result = change_commit((change_effect_t){user, true, 0});
+    result = change_commit((change_effect_t){user, true, 0, false});
     crux_access_unlock_change();
     emit_change(CRUX_ACCESS_EVENT_ACCOUNT_DISABLED, result, &actor, user);
     return result;
@@ -366,7 +395,7 @@ crux_access_result_t crux_access_account_enable(crux_access_session_t session, c
         return CRUX_ACCESS_OK;
     }
     account->enabled = true;
-    result = change_commit((change_effect_t){user, false, 0});
+    result = change_commit((change_effect_t){user, false, 0, false});
     crux_access_unlock_change();
     emit_change(CRUX_ACCESS_EVENT_ACCOUNT_ENABLED, result, &actor, user);
     return result;
@@ -400,13 +429,12 @@ crux_access_result_t crux_access_account_set_role(crux_access_session_t session,
         change_abandon();
         return CRUX_ACCESS_OK;
     }
-    if (!crux_access_role_is_administrator(role_index) &&
-        is_last_administrator(&crux_access_state.pending, account)) {
+    if (is_last_administrator(&crux_access_state.pending, account)) {
         change_abandon();
         return CRUX_ACCESS_ERR_LAST_ADMINISTRATOR;
     }
     crux_access_copy_name(account->role, role);
-    result = change_commit((change_effect_t){user, true, 0});
+    result = change_commit((change_effect_t){user, true, 0, false});
     crux_access_unlock_change();
     emit_change(CRUX_ACCESS_EVENT_ACCOUNT_ROLE_CHANGED, result, &actor, user);
     return result;
@@ -462,7 +490,7 @@ crux_access_result_t crux_access_account_reset_password(crux_access_session_t se
     verifier_copy(account, &fresh);
     crux_access_secure_zero(&fresh, sizeof(fresh));
     account->must_change_password = true;
-    result = change_commit((change_effect_t){user, true, 0});
+    result = change_commit((change_effect_t){user, true, 0, false});
     crux_access_unlock_change();
     emit_change(CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_RESET, result, &actor, user);
     return result;
@@ -520,7 +548,7 @@ crux_access_result_t crux_access_account_change_password(crux_access_session_t s
     verifier_copy(account, &fresh);
     crux_access_secure_zero(&fresh, sizeof(fresh));
     account->must_change_password = false;
-    result = change_commit((change_effect_t){actor.user, true, session.value});
+    result = change_commit((change_effect_t){actor.user, true, session.value, false});
     crux_access_unlock_change();
     emit_change(CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_CHANGED, result, &actor, actor.user);
     return result;
@@ -572,7 +600,7 @@ crux_access_result_t crux_access_account_add_key(crux_access_session_t session, 
     added->length = key_length;
     memcpy(added->bytes, key, key_length);
     account->key_count += 1;
-    result = change_commit((change_effect_t){user, false, 0});
+    result = change_commit((change_effect_t){user, false, 0, false});
     crux_access_unlock_change();
     emit_change(CRUX_ACCESS_EVENT_ACCOUNT_KEY_ADDED, result, &actor, user);
     return result;
@@ -603,13 +631,13 @@ crux_access_result_t crux_access_account_remove_key(crux_access_session_t sessio
     }
     account->key_count -= 1;
     memset(&account->keys[account->key_count], 0, sizeof(account->keys[0]));
-    result = change_commit((change_effect_t){user, true, 0});
+    result = change_commit((change_effect_t){user, true, 0, false});
     crux_access_unlock_change();
     emit_change(CRUX_ACCESS_EVENT_ACCOUNT_KEY_REMOVED, result, &actor, user);
     return result;
 }
 
-/* Provisioning closes only after a save, so that a failed save can be retried. */
+/* Provisioning closes only with the apply after a save, so that a failed save can be retried. */
 static crux_access_result_t provision_commit(const access_account_t *fresh, const char *user)
 {
     if (!crux_access_lock_change()) {
@@ -627,11 +655,7 @@ static crux_access_result_t provision_commit(const access_account_t *fresh, cons
     }
     crux_access_state.pending = crux_access_state.table;
     pending_append(fresh);
-    crux_access_result_t result = change_commit((change_effect_t){user, false, 0});
-    if (result == CRUX_ACCESS_OK && crux_access_lock_state()) {
-        crux_access_state.provisioning_open = false;
-        crux_access_unlock_state();
-    }
+    crux_access_result_t result = change_commit((change_effect_t){user, false, 0, true});
     crux_access_unlock_change();
     return result;
 }
@@ -704,6 +728,6 @@ void crux_access_change_upgrade(const char *user, uint64_t change_number, const 
     }
     verifier_copy(account, &fresh);
     crux_access_secure_zero(&fresh, sizeof(fresh));
-    (void)change_commit((change_effect_t){user, false, 0});
+    (void)change_commit((change_effect_t){user, false, 0, false});
     crux_access_unlock_change();
 }

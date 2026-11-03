@@ -4,7 +4,7 @@
 
 /* Any fixed values do: a dummy match always fails. */
 static const uint8_t dummy_salt[CRUX_ACCESS_SALT_SIZE] = {0x5A, 0xA5};
-static const uint8_t dummy_derived[CRUX_ACCESS_DERIVED_SIZE] = {0xA5, 0x5A};
+const uint8_t crux_access_dummy_derived[CRUX_ACCESS_DERIVED_SIZE] = {0xA5, 0x5A};
 
 /* The copy of a record that verification works on, with no lock held. */
 typedef struct {
@@ -27,7 +27,7 @@ static void verification_prepare(const char *user, verification_t *verification)
         verification->algorithm = CRUX_ACCESS_VERIFIER_PBKDF2_HMAC_SHA256;
         verification->iterations = CRUX_ACCESS_VERIFIER_ITERATIONS;
         memcpy(verification->salt, dummy_salt, sizeof(verification->salt));
-        memcpy(verification->derived, dummy_derived, sizeof(verification->derived));
+        memcpy(verification->derived, crux_access_dummy_derived, sizeof(verification->derived));
         return;
     }
     verification->change_number = crux_access_state.change_numbers[index];
@@ -338,9 +338,12 @@ crux_access_result_t crux_access_key_is_authorised(const char *user, const uint8
         }
     }
     crux_access_unlock_state();
+    if (!signed_request) {
+        return result; /* A client normally offers keys this way, so a probe records nothing. */
+    }
     if (result == CRUX_ACCESS_ERR_RETRY_LATER) {
         crux_access_emit(CRUX_ACCESS_EVENT_DELAY_APPLIED, result, origin, NULL, false);
-    } else if (result == CRUX_ACCESS_ERR_DENIED && signed_request) {
+    } else if (result == CRUX_ACCESS_ERR_DENIED) {
         crux_access_emit(CRUX_ACCESS_EVENT_KEY_FAILURE, result, origin, known ? account_name : NULL,
                          role_missing);
     }

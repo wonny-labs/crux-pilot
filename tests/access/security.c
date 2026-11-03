@@ -102,10 +102,13 @@ static void unknown_and_disabled_match_wrong_password(void)
     CHECK(access_fake_event(0)->account[0] == '\0');
     CHECK(access_fake_event(0)->type == CRUX_ACCESS_EVENT_LOGIN_FAILURE);
 
-    /* The dummy record never matches, even a value derived from its own parameters. */
+    /* A dummy match always fails, here with a derivation that really does match. */
     crux_access_session_t none = {0};
     origin = access_test_web_from(7);
-    CHECK(access_test_login("no-such-user", "", &origin, &none) == CRUX_ACCESS_ERR_DENIED);
+    access_fake_derive_force(crux_access_dummy_derived);
+    observation_t dummy_match = observe("no-such-user", WRONG, &origin);
+    access_fake_derive_force(NULL);
+    expect_same_observation(&wrong, &dummy_match);
     CHECK(none.value == 0);
 
     /* A role removed by a firmware update denies login like a wrong password, and the event says
@@ -372,29 +375,82 @@ static void source_not_cleared_by_success_cases(void)
     CHECK(retry_after_ms == 2000);
 }
 
+/* A web source that does not share the target source's bucket, so that only the name can delay it.
+ */
+static crux_access_origin_t source_outside_bucket_of(const crux_access_origin_t *target)
+{
+    static uint32_t next_source = 0x400000u;
+    access_delay_buckets_t target_buckets;
+    CHECK(crux_access_delay_buckets(target, NULL, &target_buckets));
+    while (true) {
+        crux_access_origin_t origin = access_test_web_from(next_source);
+        next_source += 1;
+        access_delay_buckets_t buckets;
+        CHECK(crux_access_delay_buckets(&origin, NULL, &buckets));
+        if (buckets.source != target_buckets.source) {
+            return origin;
+        }
+    }
+}
+
+/* The window that a bucket's failure of this number sets, stepped over so that the next one counts.
+ */
+static void step_over_window(unsigned failure)
+{
+    if (failure > CRUX_ACCESS_DELAY_FREE_ATTEMPTS) {
+        uint32_t doublings = failure - CRUX_ACCESS_DELAY_FREE_ATTEMPTS - 1u;
+        access_fake_clock_advance((uint64_t)CRUX_ACCESS_DELAY_BASE_MS << doublings);
+    }
+}
+
+/* Rotating names and sources must not reset another entry. Nothing is evicted, and attempts inside
+ * the target's window do not count. So the target's exact remaining time survives the flood, while
+ * the flood's own windows, at most a second each, have passed. */
 static void flooding_cases(void)
 {
     access_test_boot_with_admin();
     crux_access_session_t session = {0};
     uint32_t retry_after_ms = 0;
-    uint32_t source = 1;
 
-    /* Delay the target name, and a target source. */
-    for (unsigned attempt = 0; attempt < CRUX_ACCESS_DELAY_FREE_ATTEMPTS + 1u; ++attempt) {
-        CHECK(failure_from_new_source(ADMIN, &source) == CRUX_ACCESS_ERR_DENIED);
+    /* A target source at a 32 s window, then a target name at an 8 s window. */
+    const crux_access_origin_t *target_source = &access_test_web_other;
+    char sprayed[16];
+    for (unsigned failure = 1; failure <= 11; ++failure) {
+        snprintf(sprayed, sizeof(sprayed), "spray-%u", failure);
+        CHECK(access_test_login(sprayed, WRONG, target_source, &session) == CRUX_ACCESS_ERR_DENIED);
+        if (failure < 11) {
+            step_over_window(failure);
+        }
     }
-    /* Flood with far more names and sources than there are buckets. */
+    for (unsigned failure = 1; failure <= 9; ++failure) {
+        crux_access_origin_t origin = source_outside_bucket_of(target_source);
+        CHECK(access_test_login(ADMIN, WRONG, &origin, &session) == CRUX_ACCESS_ERR_DENIED);
+        if (failure < 9) {
+            step_over_window(failure);
+        }
+    }
+    const uint32_t source_window_ms = 32000u - (1000u + 2000u + 4000u);
+    const uint32_t name_window_ms = 8000u;
+
+    /* Far more names and sources than there are buckets, with the clock stopped. */
     char name[16];
     for (uint32_t flood = 0; flood < 2000; ++flood) {
         snprintf(name, sizeof(name), "flood-%u", (unsigned)flood);
         crux_access_origin_t origin = access_test_web_from(0x10000u + flood);
-        (void)access_test_login(name, WRONG, &origin, &session);
+        crux_access_result_t result = access_test_login(name, WRONG, &origin, &session);
+        CHECK(result == CRUX_ACCESS_ERR_DENIED || result == CRUX_ACCESS_ERR_RETRY_LATER);
     }
-    /* Nothing is evicted, so neither the window nor the count of the target can reset. */
-    crux_access_origin_t origin = access_test_web_from(source);
-    CHECK(crux_access_login_password(ADMIN, PASSWORD, strlen(PASSWORD), &origin, &session,
+
+    /* Past the flood's windows, and the target's own state is exactly what it was. */
+    const uint32_t elapsed_ms = 2u * CRUX_ACCESS_DELAY_BASE_MS;
+    access_fake_clock_advance(elapsed_ms);
+    crux_access_origin_t clean_source = source_outside_bucket_of(target_source);
+    CHECK(crux_access_login_password(ADMIN, PASSWORD, strlen(PASSWORD), &clean_source, &session,
                                      &retry_after_ms) == CRUX_ACCESS_ERR_RETRY_LATER);
-    CHECK(retry_after_ms > 0);
+    CHECK(retry_after_ms == name_window_ms - elapsed_ms);
+    CHECK(crux_access_login_password("clean-name", WRONG, strlen(WRONG), target_source, &session,
+                                     &retry_after_ms) == CRUX_ACCESS_ERR_RETRY_LATER);
+    CHECK(retry_after_ms == source_window_ms - elapsed_ms);
     CHECK(session.value == 0);
 }
 
@@ -530,6 +586,15 @@ static void hook_create_user(void *context)
     access_test_create_user(racing_admin);
 }
 
+static void hook_own_password_change(void *context)
+{
+    crux_access_session_t *own = context;
+    uint32_t retry_after_ms = 0;
+    CHECK(crux_access_account_change_password(*own, PASSWORD, strlen(PASSWORD), OTHER_PASSWORD,
+                                              strlen(OTHER_PASSWORD),
+                                              &retry_after_ms) == CRUX_ACCESS_OK);
+}
+
 static void expect_race_denied(access_fake_hook_t hook, const char *password)
 {
     crux_access_origin_t origin = access_test_web_from(1);
@@ -559,6 +624,21 @@ static void login_race_cases(void)
     crux_access_session_t session = {0};
     crux_access_origin_t origin = access_test_web_from(2);
     CHECK(access_test_login(USER, PASSWORD, &origin, &session) == CRUX_ACCESS_ERR_DENIED);
+
+    /* The account's own password change, from serial, during verification on the network. */
+    race_setup(true);
+    crux_access_session_t own = access_test_session(USER, PASSWORD, &access_test_serial);
+    access_fake_derive_hook(hook_own_password_change, &own);
+    origin = access_test_web_from(5);
+    CHECK(access_test_login(USER, PASSWORD, &origin, &session) == CRUX_ACCESS_ERR_DENIED);
+    CHECK(session.value == 0);
+
+    /* An unknown name that gains an account during verification, with a derivation that matches
+     * the dummy record: it must still fail. */
+    race_setup(false);
+    access_fake_derive_force(crux_access_dummy_derived);
+    expect_race_denied(hook_create_user, PASSWORD);
+    access_fake_derive_force(NULL);
 
     /* Removing and recreating a name with the same password still differs. */
     race_setup(true);

@@ -26,7 +26,8 @@
 #define CRUX_ACCESS_NAME_BUCKETS 32
 #endif
 /* Reference delay values. A product that changes them must keep the quiet period long enough that
- * waiting it out stays slower than staying under the cap. */
+ * waiting it out stays slower than staying under the cap. The build checks only that it outlasts
+ * the cap. */
 #ifndef CRUX_ACCESS_DELAY_FREE_ATTEMPTS
 #define CRUX_ACCESS_DELAY_FREE_ATTEMPTS 5u
 #endif

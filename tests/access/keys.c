@@ -76,8 +76,11 @@ static void signed_request_cases(void)
                                         &retry_after_ms) == CRUX_ACCESS_ERR_RETRY_LATER);
     CHECK(retry_after_ms == CRUX_ACCESS_DELAY_BASE_MS);
     CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_KEY_FAILURE) == 0);
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_DELAY_APPLIED) == 1);
     CHECK(crux_access_key_is_authorised(USER, listed, sizeof(listed), false, &access_test_ssh,
                                         &retry_after_ms) == CRUX_ACCESS_ERR_RETRY_LATER);
+    /* An unsigned probe records nothing, even inside a window. */
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_DELAY_APPLIED) == 1);
     access_fake_clock_advance(CRUX_ACCESS_DELAY_BASE_MS - 1u);
     CHECK(crux_access_key_is_authorised(USER, listed, sizeof(listed), true, &access_test_ssh,
                                         &retry_after_ms) == CRUX_ACCESS_ERR_RETRY_LATER);

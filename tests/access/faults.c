@@ -447,7 +447,7 @@ typedef struct {
 static void *change_worker(void *context)
 {
     change_worker_t *worker = context;
-    while (!atomic_load(&worker->stop)) {
+    do {
         /* Changes that do not affect the worker's own session. */
         if (crux_access_account_disable(worker->admin, "carol") == CRUX_ACCESS_OK &&
             crux_access_account_enable(worker->admin, "carol") == CRUX_ACCESS_OK) {
@@ -456,7 +456,7 @@ static void *change_worker(void *context)
         const uint8_t key[] = {9, 9};
         (void)crux_access_account_add_key(worker->admin, USER, key, sizeof(key));
         (void)crux_access_account_remove_key(worker->admin, USER, key, sizeof(key));
-    }
+    } while (!atomic_load(&worker->stop));
     return NULL;
 }
 
@@ -481,6 +481,7 @@ static void concurrent_login_cases(void)
     atomic_store(&changer.stop, true);
     CHECK(pthread_join(changer_thread, NULL) == 0);
     CHECK(changer.changes > 0);
+    CHECK(ok > 0);
     /* Every slot and verification claim was released, once the delay state has decayed. */
     access_fake_clock_advance(CRUX_ACCESS_DELAY_QUIET_MS);
     crux_access_session_t session = access_test_session(USER, PASSWORD, &access_test_web_other);

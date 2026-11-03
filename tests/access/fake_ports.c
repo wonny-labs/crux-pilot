@@ -14,8 +14,10 @@ static pthread_mutex_t fake_lock = PTHREAD_MUTEX_INITIALIZER;
 static uint64_t clock_ms;
 static uint32_t random_counter;
 static bool random_fails, hmac_fails, hmac_is_fixed, derive_fails;
-static access_fake_hook_t derive_hook, save_hook;
-static void *derive_context, *save_context;
+static access_fake_hook_t derive_hook, save_hook, event_hook;
+static void *derive_context, *save_context, *event_context;
+static bool derive_is_forced;
+static uint8_t derive_forced[CRUX_ACCESS_DERIVED_SIZE];
 static unsigned derive_count, save_count;
 static uint64_t derive_iterations;
 static crux_access_store_state_t store_state;
@@ -31,8 +33,9 @@ void access_fake_reset(void)
     clock_ms = 1000;
     random_counter = 0;
     random_fails = hmac_fails = hmac_is_fixed = derive_fails = false;
-    derive_hook = save_hook = NULL;
-    derive_context = save_context = NULL;
+    derive_hook = save_hook = event_hook = NULL;
+    derive_context = save_context = event_context = NULL;
+    derive_is_forced = false;
     derive_count = save_count = 0;
     derive_iterations = 0;
     store_state = CRUX_ACCESS_STORE_EMPTY;
@@ -147,6 +150,16 @@ void access_fake_derive_hook(access_fake_hook_t hook, void *context)
     pthread_mutex_unlock(&fake_lock);
 }
 
+void access_fake_derive_force(const uint8_t *derived)
+{
+    pthread_mutex_lock(&fake_lock);
+    derive_is_forced = derived != NULL;
+    if (derived != NULL) {
+        memcpy(derive_forced, derived, sizeof(derive_forced));
+    }
+    pthread_mutex_unlock(&fake_lock);
+}
+
 unsigned access_fake_derive_count(void)
 {
     pthread_mutex_lock(&fake_lock);
@@ -189,6 +202,15 @@ bool crux_access_port_derive(uint32_t algorithm, uint32_t iterations,
     }
     if (fails) {
         return false;
+    }
+    pthread_mutex_lock(&fake_lock);
+    bool forced = derive_is_forced;
+    if (forced) {
+        memcpy(derived, derive_forced, CRUX_ACCESS_DERIVED_SIZE);
+    }
+    pthread_mutex_unlock(&fake_lock);
+    if (forced) {
+        return true;
     }
     uint64_t state = 0x84222325CBF29CE4ull ^ ((uint64_t)algorithm << 32) ^ iterations;
     uint8_t ignored[32];
@@ -290,8 +312,23 @@ bool crux_access_port_store_save(const uint8_t *record, size_t length)
     return mode == ACCESS_FAKE_SAVE_OK;
 }
 
+void access_fake_event_hook(access_fake_hook_t hook, void *context)
+{
+    pthread_mutex_lock(&fake_lock);
+    event_hook = hook;
+    event_context = context;
+    pthread_mutex_unlock(&fake_lock);
+}
+
 void crux_access_port_event(const crux_access_event_t *event)
 {
+    pthread_mutex_lock(&fake_lock);
+    access_fake_hook_t hook = event_hook;
+    void *context = event_context;
+    pthread_mutex_unlock(&fake_lock);
+    if (hook != NULL) {
+        hook(context);
+    }
     pthread_mutex_lock(&fake_lock);
     if (event_count < ACCESS_FAKE_EVENTS_MAX) {
         events[event_count] = *event;

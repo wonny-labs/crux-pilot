@@ -60,6 +60,28 @@ elseif(ACCESS_PROBE STREQUAL "interface_directory")
     add_library(access_copy_consumer OBJECT consumer.c)
     target_link_libraries(access_copy_consumer PRIVATE access_copy crux::access)
     crux_assert_access_consumer(access_copy_consumer)
+elseif(ACCESS_PROBE STREQUAL "parent_directory")
+    # A library that passes on a parent, from which <adapter/crux_access_adapter.h> resolves: must be
+    # rejected.
+    add_library(access_copy INTERFACE)
+    target_include_directories(access_copy INTERFACE "${CRUX_SOURCE_DIR}/components/access")
+    add_library(access_copy_consumer OBJECT consumer.c)
+    target_link_libraries(access_copy_consumer PRIVATE access_copy crux::access)
+    crux_assert_access_consumer(access_copy_consumer)
+elseif(ACCESS_PROBE STREQUAL "compile_option")
+    # A library that passes the directory on as a compile option: must be rejected.
+    add_library(access_copy INTERFACE)
+    target_compile_options(access_copy INTERFACE "-I${adapter_dir}")
+    add_library(access_copy_consumer OBJECT consumer.c)
+    target_link_libraries(access_copy_consumer PRIVATE access_copy crux::access)
+    crux_assert_access_consumer(access_copy_consumer)
+elseif(ACCESS_PROBE STREQUAL "direct_interface")
+    # A library that links the internal target through the direct-link property: must be rejected.
+    add_library(access_copy INTERFACE)
+    set_property(TARGET access_copy PROPERTY INTERFACE_LINK_LIBRARIES_DIRECT crux_access_adapter)
+    add_library(access_copy_consumer OBJECT consumer.c)
+    target_link_libraries(access_copy_consumer PRIVATE access_copy crux::access)
+    crux_assert_access_consumer(access_copy_consumer)
 elseif(ACCESS_PROBE STREQUAL "direct_directory")
     # A project that adds the directory itself: must be rejected.
     add_library(access_direct_consumer OBJECT consumer.c)

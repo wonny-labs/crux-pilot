@@ -323,7 +323,7 @@ static void unauthenticated_and_stale_cases(const access_test_profile_t *profile
           CRUX_ACCESS_ERR_SESSION_INVALID);
     CHECK(crux_access_check(second, CRUX_ACCESS_PERMISSION_MANAGE) == CRUX_ACCESS_OK);
 
-    /* A reset ends every session, and a handle from before it does not match by accident. */
+    /* Sessions do not survive a reset. A handle lives only in RAM, so none can outlast one. */
     access_test_power_cycle(&profile->policy);
     CHECK(crux_access_check(second, CRUX_ACCESS_PERMISSION_MANAGE) ==
           CRUX_ACCESS_ERR_SESSION_INVALID);

@@ -49,7 +49,7 @@ and exist only when Crux builds its own tests, so no product can select them.
 | `tests/access/` | Fakes and the conformance, security, fault and secret-absence suites |
 | `tests/access_consumer/` | Independent consumer and boundary probes |
 | `cmake/CruxAccessBoundary.cmake` | Rule that the adapter include directory cannot reach a consumer |
-| `scripts/test-access.sh`, `scripts/check-access-boundary.sh` | New runner and boundary check |
+| `scripts/test-access.sh`, `scripts/check-access-boundary.py` | New runner and boundary check |
 | `docs/access-contract.md` | Implemented behaviour, choices the proposal left open, support limits |
 
 ## Tasks
@@ -99,7 +99,7 @@ re-runs, then commits.
 ### Task 7: Secret absence, faults and boundary
 
 - Secret absence over a flow that uses every path; 64-bit time; lock failure; concurrent logins.
-- `cmake/CruxAccessBoundary.cmake`, consumer probes, `scripts/check-access-boundary.sh`, `scripts/test-access.sh`.
+- `cmake/CruxAccessBoundary.cmake`, consumer probes, `scripts/check-access-boundary.py`, `scripts/test-access.sh`.
 
 ### Task 8: Documentation, verification and review
 

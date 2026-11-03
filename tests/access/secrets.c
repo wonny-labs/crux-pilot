@@ -25,10 +25,25 @@ static bool contains(const void *haystack, size_t haystack_size, const void *nee
     return false;
 }
 
+/* The port contract: events run with no lock held. A held nonrecursive lock refuses this poll. */
+static void hook_expect_no_lock_held(void *context)
+{
+    (void)context;
+    const crux_mutex_t locks[] = {crux_access_state.state_lock, crux_access_state.change_lock};
+    for (size_t index = 0; index < 2; ++index) {
+        crux_status_t status = crux_mutex_lock(locks[index], 0);
+        CHECK(status == CRUX_OK);
+        if (status == CRUX_OK) {
+            (void)crux_mutex_unlock(locks[index]);
+        }
+    }
+}
+
 static void exercise_every_path(void)
 {
     const crux_access_policy_t *policy = &access_test_profile_reference.policy;
     access_test_boot(policy);
+    access_fake_event_hook(hook_expect_no_lock_held, NULL);
     crux_access_session_t session = {0};
     uint32_t retry_after_ms = 0;
     const size_t length = strlen(PASSWORD);
@@ -51,6 +66,7 @@ static void exercise_every_path(void)
           CRUX_ACCESS_OK);
     crux_access_session_t alice = access_test_session("alice", PASSWORD, &access_test_web_other);
     CHECK(crux_access_check(alice, CRUX_ACCESS_PERMISSION_MANAGE) == CRUX_ACCESS_ERR_DENIED);
+    CHECK(crux_access_account_remove(alice, "admin") == CRUX_ACCESS_ERR_DENIED);
     CHECK(crux_access_account_change_password(alice, PASSWORD, length, NEW_PASSWORD, new_length,
                                               &retry_after_ms) == CRUX_ACCESS_OK);
     (void)crux_access_account_change_password(alice, RESET_PASSWORD, reset_length, NEW_PASSWORD,
@@ -87,7 +103,8 @@ static void exercise_every_path(void)
         (void)access_test_login(TYPED_INTO_NAME, PASSWORD, &origin, &session);
     }
     access_fake_clock_advance((uint64_t)policy->session_idle_limit_s * 1000u);
-    (void)crux_access_check(admin, CRUX_ACCESS_PERMISSION_MANAGE);
+    CHECK(crux_access_account_remove(admin, "admin") == CRUX_ACCESS_ERR_SESSION_INVALID);
+    access_fake_event_hook(NULL, NULL);
 }
 
 static void every_event_type_was_reached(void)
@@ -144,6 +161,52 @@ static void no_plain_password_on_the_medium(void)
 }
 
 /* A change must not leave a derived value behind in the pending table or the save buffer. */
+static size_t copies_in_state(const uint8_t *derived)
+{
+    size_t copies = 0;
+    const uint8_t *state = (const uint8_t *)&crux_access_state;
+    for (size_t offset = 0; offset + CRUX_ACCESS_DERIVED_SIZE <= sizeof(crux_access_state);
+         ++offset) {
+        copies += memcmp(&state[offset], derived, CRUX_ACCESS_DERIVED_SIZE) == 0 ? 1u : 0u;
+    }
+    return copies;
+}
+
+/* A removed account's verifier and keys must not stay behind the end of the live table. */
+static void no_verifier_left_after_removal(void)
+{
+    const crux_access_policy_t *policy = &access_test_profile_reference.policy;
+    access_test_boot(policy);
+    CHECK(crux_access_provision_first_account("admin", PASSWORD, strlen(PASSWORD), "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_OK);
+    crux_access_session_t admin = access_test_session("admin", PASSWORD, &access_test_web);
+    CHECK(crux_access_account_create(admin, "alice", "viewer", PASSWORD, strlen(PASSWORD)) ==
+          CRUX_ACCESS_OK);
+    CHECK(crux_access_account_add_key(admin, "alice", known_key, sizeof(known_key)) ==
+          CRUX_ACCESS_OK);
+    size_t length = 0;
+    access_table_t table;
+    CHECK(crux_access_record_decode(access_fake_store_record(&length), length, &table));
+    uint8_t derived[CRUX_ACCESS_DERIVED_SIZE];
+    memcpy(derived, table.accounts[1].derived, sizeof(derived));
+    CHECK(copies_in_state(derived) == 1);
+    CHECK(crux_access_account_remove(admin, "alice") == CRUX_ACCESS_OK);
+    CHECK(copies_in_state(derived) == 0);
+    CHECK(!contains(&crux_access_state, sizeof(crux_access_state), known_key, sizeof(known_key)));
+    /* The same when the removed account is not the last in the table. */
+    CHECK(crux_access_account_create(admin, "alice", "viewer", PASSWORD, strlen(PASSWORD)) ==
+          CRUX_ACCESS_OK);
+    CHECK(crux_access_account_create(admin, "bob", "viewer", PASSWORD, strlen(PASSWORD)) ==
+          CRUX_ACCESS_OK);
+    CHECK(crux_access_record_decode(access_fake_store_record(&length), length, &table));
+    memcpy(derived, table.accounts[1].derived, sizeof(derived));
+    uint8_t moved[CRUX_ACCESS_DERIVED_SIZE];
+    memcpy(moved, table.accounts[2].derived, sizeof(moved));
+    CHECK(crux_access_account_remove(admin, "alice") == CRUX_ACCESS_OK);
+    CHECK(copies_in_state(derived) == 0);
+    CHECK(copies_in_state(moved) == 1);
+}
+
 static void no_verifier_left_in_scratch_state(void)
 {
     size_t length = 0;
@@ -151,14 +214,8 @@ static void no_verifier_left_in_scratch_state(void)
     access_table_t table;
     CHECK(crux_access_record_decode(stored, length, &table));
     const uint8_t *derived = table.accounts[0].derived;
-    size_t copies = 0;
-    const uint8_t *state = (const uint8_t *)&crux_access_state;
-    for (size_t offset = 0; offset + CRUX_ACCESS_DERIVED_SIZE <= sizeof(crux_access_state);
-         ++offset) {
-        copies += memcmp(&state[offset], derived, CRUX_ACCESS_DERIVED_SIZE) == 0 ? 1u : 0u;
-    }
     /* Exactly the live table's own copy. */
-    CHECK(copies == 1);
+    CHECK(copies_in_state(derived) == 1);
 }
 
 int main(void)
@@ -168,5 +225,6 @@ int main(void)
     no_event_holds_a_secret();
     no_plain_password_on_the_medium();
     no_verifier_left_in_scratch_state();
+    no_verifier_left_after_removal();
     return access_test_finish("Access secret absence");
 }

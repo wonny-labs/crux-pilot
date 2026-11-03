@@ -40,6 +40,8 @@ open to review, and a changed choice is small while nothing depends on it.
 | Result of a repeated `crux_access_init` | `CRUX_ACCESS_ERR_ALREADY_EXISTS`, and nothing changes | Changing a policy under live sessions has no safe meaning |
 | `crux_access_check` during a forced change | Denies `access.self` too | "Every other check is denied". The change and logout operations do not go through a check. |
 | Name no account can hold, at login | `INVALID_ARGUMENT`, with no work and no delay state | It reveals nothing, because no account can have it. The rule is public. |
+| Invalid policy at `crux_access_init` | `INVALID_ARGUMENT`, and later operations return `NOT_READY` | The proposal lists an invalid policy under `NOT_READY`, and says init "rejects" it. The caller can tell a bad policy from a bad store. |
+| Disabling a disabled account, enabling an enabled one, or setting the current role | `OK`, with no save, no event and no session ended | Nothing changed |
 
 ### Failure results
 
@@ -66,18 +68,31 @@ open to review, and a changed choice is small while nothing depends on it.
 | Any change to the account during an own password change | `DENIED`, because the verification no longer applies, or `SESSION_INVALID` if the change ended the session | The same rule as login |
 | Key pre-check on an account that cannot log in by key | Lists no keys, so a signed request counts as a key failure | Unknown, disabled, forced-change and role-less accounts cannot be told apart. `crux_access_login_verified` still refuses them, for a change after the pre-check. |
 | Failed signature reported inside a window | Leaves an event and neither counts nor extends | "An attempt inside a window" applies |
+| Unsigned probe inside a window | `RETRY_LATER`, with no event | "An unsigned probe records nothing" |
+| Successful current password in an own password change | Clears the name bucket | "Follows the login delay", and "success clears the name bucket" |
 
 ### Providers and events
 
 | Point | Choice | Reason |
 | --- | --- | --- |
 | Locks | The core uses `crux::sync`, and the ports do not include a lock | Reuses an existing capability, as `AGENTS.md` asks. `CRUX_BUILD_ACCESS` requires `CRUX_BUILD_SYNC`. |
+| Derive port | Derives only, and the core compares | The proposal's port table says "derive and compare". Step 6 of the login sequence needs the comparison and the clearing in one place, for every provider. |
 | Store port | Takes and returns bytes, and the core owns the versioned encoding | Each provider would otherwise repeat it. Issue #178 owns atomic replacement and corruption detection. |
 | Change numbers | RAM only | They detect a change racing a login, and a reset ends every login |
 | Stack | The pending table and record buffer are static, guarded by the change lock | A full table is about 4 KB, and a management worker's stack should not have to hold it |
 | `delay applied` event | Emitted when an attempt is rejected, naming nobody | A rejected attempt was not looked up, and its name may be a mistyped password |
-| No event | A session ended by the per-account cap, and a cost upgrade | The proposal's list has neither |
+| No event | A session ended by the per-account cap, a cost upgrade, `BUSY` or `NO_RESOURCES` at password login, an account operation refused as `LAST_ADMINISTRATOR`, `NOT_FOUND` or `ALREADY_EXISTS`, and a refused provisioning | The proposal's list has none of these. **The design's requirement R9 says rejected operations produce events, so Issue #182 should decide them.** |
 | Events | Carry the target account, and not the acting user | The proposal's list. An audit trail probably wants the actor, for Issue #182 to decide. |
+
+## Declared limits
+
+- A lock that cannot be taken means misuse, such as a call outside thread context. Every operation then fails closed,
+  with these effects. After a failed lock at the end of a verification, that channel stays `BUSY` until a reset. After
+  a failed lock between a save and applying it, the medium holds a newer table than RAM until a reset. Tests cover a
+  lock that fails from the first call of an operation, not these two.
+- The record's integrity across power loss is the store's. The core checks the shape of what it is told is valid.
+- The `host-sanitize` preset is ASan and UBSan, which do not detect data races. See the pull request for a separate
+  ThreadSanitizer run and its limits.
 
 ## Bounds
 
@@ -98,11 +113,18 @@ Compile-time defaults in `components/access/src/access_port.h`, each overridable
 
 ## Boundary
 
-`crux::access` links the core with `$<LINK_ONLY>`, so its include directories do not reach a consumer.
-`cmake/CruxAccessBoundary.cmake` adds the rule the proposal asked for: it follows the include directories a target
-exposes, and ignores `LINK_ONLY`, because that is what a consumer's compilation can see. A target such as `crux::web`
-can therefore link `crux_access_adapter` privately. The root build applies the rule to every public target, and
+`crux_access_core` links `crux_access_adapter` and its own `src` directory `PRIVATE`, so CMake records the adapter
+target as `$<LINK_ONLY:crux_access_adapter>` and neither directory reaches a consumer of `crux::access`.
+`cmake/CruxAccessBoundary.cmake` adds the rule the proposal asked for: it follows the include directories and `-I`
+options a target exposes, and ignores `LINK_ONLY`, because that is what a consumer's compilation can see. A target
+such as `crux::web` can therefore link `crux_access_adapter` privately. The rule rejects the adapter directory, a
+directory below it, and a parent from which the header resolves by a longer path. The root build applies it to every
+public target, and a designated consumer can call it. It cannot see a target that nothing asks it to check.
 `scripts/check-access-boundary.py` tests it in both directions.
+
+The test composition cannot be selected by any provider setting. A build that sets `CRUX_BUILD_TESTS=ON` creates the
+target `crux_access_test_composition`, which a superproject could still link by name, so it must not use that build
+for a product image.
 
 ## Tests
 
@@ -116,5 +138,5 @@ Access sources, and the boundary check. The root build also runs the suites as `
 | `tests/access/accounts.c` | Each operation, session ending rules, forced change, last administrator including concurrent changes, save failure, power loss, a login during a save, a check that does not wait on a save or derivation |
 | `tests/access/security.c` | Equal treatment of unknown and disabled names, table-filling probe, delay rules, guessing bound, collisions, flooding, serial independence, verification slots, races with a login, cost upgrade |
 | `tests/access/keys.c` | Signed and unsigned attempts, failed signatures, provider-verified login |
-| `tests/access/faults.c` | Session exhaustion and reclaim, store states, every truncation and field corruption of a record, 64-bit time, provider failures, lock failure, concurrent logins |
+| `tests/access/faults.c` | Session exhaustion and reclaim, store states, every truncation of a record and a chosen set of field corruptions, 64-bit time, provider failures, lock failure, concurrent logins |
 | `tests/access/secrets.c` | Known password and key values absent from every event type, and no plain password on the medium |

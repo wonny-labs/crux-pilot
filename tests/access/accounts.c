@@ -404,11 +404,27 @@ static void last_administrator_cases(void)
     CHECK(crux_access_check(admin, "status.read") == CRUX_ACCESS_ERR_SESSION_INVALID);
     crux_access_session_t user = access_test_session(USER, PASSWORD, &access_test_web);
     CHECK(crux_access_check(user, CRUX_ACCESS_PERMISSION_MANAGE) == CRUX_ACCESS_OK);
-    /* A role with access.manage moved to another with it stays an administrator role. */
     CHECK(crux_access_account_set_role(user, ADMIN, "administrator") == CRUX_ACCESS_OK);
     CHECK(crux_access_account_remove(user, USER) == CRUX_ACCESS_OK);
     CHECK(crux_access_check(user, CRUX_ACCESS_PERMISSION_MANAGE) ==
           CRUX_ACCESS_ERR_SESSION_INVALID);
+
+    /* The last administrator cannot be moved to another role, even one holding access.manage. */
+    static const char *const manage[] = {CRUX_ACCESS_PERMISSION_MANAGE};
+    static const crux_access_role_t two_roles[] = {{"chief", manage, 1}, {"deputy", manage, 1}};
+    static const crux_access_policy_t two_administrator_roles = {two_roles, 2, 900, 28800, NULL};
+    access_test_boot(&two_administrator_roles);
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, strlen(PASSWORD), "chief",
+                                              &access_test_serial) == CRUX_ACCESS_OK);
+    admin = admin_session();
+    saves = access_fake_store_saves();
+    CHECK(crux_access_account_set_role(admin, ADMIN, "deputy") ==
+          CRUX_ACCESS_ERR_LAST_ADMINISTRATOR);
+    CHECK(access_fake_store_saves() == saves);
+    /* With a second administrator it can be moved, to either kind of role. */
+    CHECK(crux_access_account_create(admin, USER, "deputy", PASSWORD, strlen(PASSWORD)) ==
+          CRUX_ACCESS_OK);
+    CHECK(crux_access_account_set_role(admin, ADMIN, "deputy") == CRUX_ACCESS_OK);
 }
 
 typedef struct {

@@ -30,6 +30,8 @@ void access_fake_hmac_fixed(bool fixed);
 void access_fake_derive_fail(bool fail);
 /* Runs once inside the next derivation, which proves that no lock is held across it. */
 void access_fake_derive_hook(access_fake_hook_t hook, void *context);
+/* Makes every derivation produce this value, or stops doing so when NULL. */
+void access_fake_derive_force(const uint8_t *derived);
 unsigned access_fake_derive_count(void);
 uint64_t access_fake_derive_iterations(void);
 void access_fake_derive_counters_clear(void);
@@ -42,6 +44,8 @@ void access_fake_store_save_mode(access_fake_save_mode_t mode);
 void access_fake_store_save_hook(access_fake_hook_t hook, void *context);
 unsigned access_fake_store_saves(void);
 
+/* Runs inside every event, until cleared with NULL. */
+void access_fake_event_hook(access_fake_hook_t hook, void *context);
 size_t access_fake_event_count(void);
 const crux_access_event_t *access_fake_event(size_t index);
 size_t access_fake_event_count_of(crux_access_event_type_t type);
