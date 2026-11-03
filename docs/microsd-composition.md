@@ -124,11 +124,17 @@ each; larger writes, directory changes and renames were not cut, and it is one c
 
 `samples/storage_sd_probe` holds two default-off images, both writing to the card (physical approval
 needed for each run): `CONFIG_SAMPLE_SD_STACK_PROBE=y` mounts, runs the file check and a FatFs workload
-(create, 64 KiB write across clusters, sync, read back, rename, stat, list, remove) twice and prints the
-Zephyr thread analyzer report (stack size and unused bytes per thread; interrupt stacks are not covered),
-and `CONFIG_SAMPLE_SD_REMOVAL_PROBE=y` writes one small file every 200 ms and prints every result code;
-after the first failure it unmounts and retries a remount every second, so removing and reinserting the
-card shows whether recovery needs a reboot. The blank-card and wrong-layout cases need a card prepared on a
+(create, 64 KiB write, sync, read back, rename, stat, list, remove) twice and prints the
+Zephyr thread analyzer report (stack size and unused bytes per thread; the interrupt stack appears as an
+`ISR0` line whose figure includes early boot, so it overstates interrupt use),
+and `CONFIG_SAMPLE_SD_REMOVAL_PROBE=y` writes one small file every 200 ms and prints the result codes of every
+failing step (successful steps print every 25th time); after the first failure it unmounts and retries a
+remount every second, so removing and reinserting the card shows whether the application remount path
+recovers without a reboot. It does not show whether the disk driver can recover: the remount does not force a
+new card initialisation (the source suggests the disk reference count never returns to zero), so a failure
+after a real swap is consistent with the documented reboot-on-swap policy. If the unmount fails the probe
+stays LOST (`remount=-114` on the console). The stack probe leaves `bootcount` and `pattern` in the File root,
+the removal probe leaves `probe`. The blank-card and wrong-layout cases need a card prepared on a
 host, the M.2 slot and uSDHC1 ownership need the board in hand. None of these has been run on hardware.
 
 ## Not covered (needs the card and board)

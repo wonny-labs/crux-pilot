@@ -12,13 +12,18 @@
  * approved for the current task. Console at 115200 baud.
  *
  * CONFIG_SAMPLE_SD_STACK_PROBE: mount, run the file check twice and the FatFs workload twice, then
- * print the thread analyzer report. The main thread's "unused" line is the stack margin; interrupt
- * stacks are not covered by it.
+ * print the thread analyzer report. The main thread's "unused" line is the stack margin. The report
+ * also has an ISR line for the interrupt stack; that figure includes early boot, which runs on the
+ * same stack, so it overstates interrupt use.
  *
  * CONFIG_SAMPLE_SD_REMOVAL_PROBE: write "probe" every 200 ms and print "OP <n> state=<s>
- * failures=<f> recoveries=<r> open/write/sync/close=<codes> remount=<rc>". Remove the card, wait,
+ * failures=<f> recoveries=<r> codes=<open>,<write>,<sync>,<close> remount=<rc>" (a successful step
+ * prints every 25th time; every failure and every remount attempt prints). Remove the card, wait,
  * put it back: after the first failure the volume is unmounted and a remount is retried every
- * second.
+ * second. This tests the application remount path only: it goes through sd_storage_remount(),
+ * which does not force the disk driver to initialise the card again, so a failure after a real card
+ * swap does not by itself show that the driver cannot recover. The probe leaves the file "probe"
+ * in the File root.
  */
 enum { STEP_PERIOD_MS = 200, LOST_PERIOD_MS = 1000, PRINT_EVERY = 25 };
 

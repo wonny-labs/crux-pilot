@@ -24,8 +24,10 @@ struct sd_probe {
     int remount;         /* result of the last remount attempt */
 };
 
-/* Create, write across clusters, sync, read back, rename and remove files in /SD:/settings, stat
- * and list the root. Returns 0, or the first failing result. Leaves no file behind. */
+/* Create, write 64 KiB, sync, read back (byte counts only), rename and remove files in
+ * /SD:/settings, stat the renamed file and list the volume root (a listing error ends the listing
+ * silently). Returns 0, or the first failing result. A successful run leaves no file behind;
+ * after a failure "probe.a" or "probe.b" may remain until the next successful run. */
 int sd_probe_workload(void);
 
 void sd_probe_init(struct sd_probe *probe);

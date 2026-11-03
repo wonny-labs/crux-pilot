@@ -15,13 +15,13 @@ config SAMPLE_SD_STACK_PROBE
 	help
 	  Mounts the card without formatting it, runs the file check and a workload that exercises the
 	  deepest FatFs paths, then prints the Zephyr thread analyzer report (stack size and unused
-	  bytes per thread).
+	  bytes per thread, and an ISR line for the interrupt stack, which includes early boot).
 
 config SAMPLE_SD_REMOVAL_PROBE
 	bool "Card-removal probe"
 	help
-	  Mounts the card without formatting it and keeps writing one small file, printing every result
-	  code. After the first failure it unmounts and retries a remount until the volume returns, so a
+	  Mounts the card without formatting it and keeps writing one small file, printing the result
+	  codes of every failing step (successful steps print every 25th time). After the first failure it unmounts and retries a remount until the volume returns, so a
 	  removal and reinsertion shows whether recovery needs a reboot.
 
 endchoice
