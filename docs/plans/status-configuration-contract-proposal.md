@@ -1,11 +1,12 @@
 # Status and configuration services proposal
 
-Status: proposal for review, Issue #180. It refines the management services in
+Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #180: C1 to C8. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval, and no merge is approved. It refines the management services in
 [the secure management design](secure-management-design.md), and it proposes an extension to the
-[Configuration contract](../configuration-contract.md). Nothing here authorises implementation, dependency adoption or hardware
-operations. Baseline: main `4444d70`, Zephyr v4.4.2 `dccb095`.
+[Configuration contract](../configuration-contract.md). Baseline: main `4444d70`, Zephyr v4.4.2 `dccb095`.
 
-## Decisions requested
+## Decisions
+
+The owner accepted the recommendation of every row below.
 
 | ID | Decision | Recommendation | Impact if rejected |
 | --- | --- | --- | --- |
