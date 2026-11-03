@@ -99,9 +99,9 @@ established physical cause of the earlier failure.
 # wolfSSL TLS socket backend
 
 The secure management work uses a wolfSSL backend behind the Zephyr TLS socket API. Its patch is not stored in this
-repository. New files in it carry an Apache-2.0 header, but the upstream repository has no top-level licence and the patch
-also changes existing Zephyr files, so the terms for the whole patch are not stated. Crux refers to it by revision until
-that is settled.
+repository. New files in it carry an Apache-2.0 header. The upstream repository has no licence file, and its README says
+that ports of projects other than wolfSSL follow each project's own licence, which for Zephyr is Apache-2.0. It does not name
+this patch, and the patch also calls wolfSSL, so Crux refers to it by revision until its terms are confirmed.
 
 | Input | Value |
 | --- | --- |
@@ -113,5 +113,6 @@ Upstream generated these for Zephyr 4.4.1. On v4.4.2, `git apply --check` of the
 `git apply --3way` merges it with no conflict. The result differs from the patched 4.4.1 file by exactly the upstream changes
 between those tags. It has been compiled and has not been run. How a composition applies it without editing the Zephyr
 checkout is decided under Issue #185. The wolfSSL, wolfSSH and wolfPSA projects are fetched only when a workspace enables the
-`crux-secure-management` group, and binaries built with them are subject to GPLv3 when distributed unless a commercial
-licence applies.
+`crux-secure-management` group. They are offered under GPL-3.0-or-later or a commercial licence, and binaries built with
+them are subject to those terms when distributed. The `mbedtls` and `tf-psa-crypto` projects in the same group are
+Apache-2.0 OR GPL-2.0-or-later.
