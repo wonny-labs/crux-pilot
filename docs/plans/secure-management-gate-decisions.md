@@ -1,7 +1,7 @@
 # Secure management gate G1: shared decisions
 
-Status: working record for Issue #183, for review. It collects what the five contract proposals for Issues #178 to #182 need from the
-owner and from each other. It decides nothing itself. Baseline: main `4444d70`.
+Status: decided by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #183. It collects what the five contract proposals for Issues #178 to #182 need from the
+owner and from each other. Baseline: main `4444d70`.
 
 The proposals are, by file under `docs/plans/`: `credential-store-contract-proposal.md` (#178), `file-service-contract-proposal.md`
 (#179), `status-configuration-contract-proposal.md` (#180), `cli-contract-proposal.md` (#181) and `security-events-contract-proposal.md` (#182).
@@ -21,7 +21,16 @@ Target implementations can finish later, so the gate does not need PSA (#142), a
 
 ## Decisions for the owner
 
-Each has a recommendation. Accepting all recommendations gives a consistent set.
+The owner's words, on 3 November 2026 at 21:56 UTC in the working session: "추천대로 진행해줘 3번까지만 하고 4번 하기전에 알려줘", in reply to the
+recommendation to accept this record's recommendations and approve the headers, fakes and Host tests of #178 to #182.
+
+- **Accepted:** G-A to G-D, AC1, AC3 to AC10, S1 to S7, F1 to F6 (F4 for now), C1 to C8, L1 to L6 and E1 to E6.
+- **Declined:** AC2.
+- **Also decided:** SSH user keys are Ed25519 and ECDSA only, so `rsa-sha2-256` leaves the user key table of the CLI and SFTP design.
+- **Still not approved:** target and physical work, which stays behind M7 and needs its own approval (G-B), and any merge. Accepting these
+  decisions does not pass the gate, because each contract still needs its header, fake and Host cases.
+
+The tables below keep each decision as it was put to the owner.
 
 ### Gate level
 
