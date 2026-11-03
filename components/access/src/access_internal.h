@@ -152,6 +152,10 @@ bool crux_access_delay_buckets(const crux_access_origin_t *origin, const char *u
 uint32_t crux_access_delay_remaining_ms(access_delay_buckets_t buckets, uint64_t now_ms);
 void crux_access_delay_record_failure(access_delay_buckets_t buckets, uint64_t now_ms);
 
+/* Whether a public key is an SSH blob of an accepted type: Ed25519, or ECDSA on P-256, P-384 or
+ * P-521. Checks the form only. The provider checks the point when it verifies a signature. */
+bool crux_access_key_acceptable(const uint8_t *key, size_t length);
+
 /* Account table encoding. Decoding fails closed on anything malformed. */
 size_t crux_access_record_encode(const access_table_t *table, uint8_t *record, size_t capacity);
 bool crux_access_record_decode(const uint8_t *record, size_t length, access_table_t *table);

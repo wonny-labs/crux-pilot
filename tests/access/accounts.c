@@ -11,9 +11,9 @@
 #define PASSWORD ACCESS_TEST_PASSWORD
 #define OTHER_PASSWORD ACCESS_TEST_OTHER_PASSWORD
 
-static const uint8_t key_one[] = {0x11, 0x22, 0x33, 0x44};
-static const uint8_t key_two[] = {0x55, 0x66};
-static const uint8_t key_three[] = {0x77};
+static const uint8_t key_one[] = ACCESS_TEST_ED25519_KEY(0x11);
+static const uint8_t key_two[] = ACCESS_TEST_ED25519_KEY(0x55);
+static const uint8_t key_three[] = ACCESS_TEST_ED25519_KEY(0x77);
 
 static const crux_access_policy_t *reference(void)
 {

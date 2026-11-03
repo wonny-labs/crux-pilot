@@ -18,7 +18,7 @@ static void not_ready_cases(void)
     bool required = false;
     uint32_t retry_after_ms = 0;
     size_t count = 0;
-    const uint8_t key[] = {1, 2, 3};
+    const uint8_t key[] = ACCESS_TEST_ED25519_KEY(1);
     CHECK(crux_access_check(session, "status.read") == CRUX_ACCESS_ERR_NOT_READY);
     CHECK(crux_access_session_user(session, name, sizeof(name)) == CRUX_ACCESS_ERR_NOT_READY);
     CHECK(crux_access_session_role(session, name, sizeof(name)) == CRUX_ACCESS_ERR_NOT_READY);

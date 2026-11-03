@@ -54,6 +54,33 @@ extern const crux_access_origin_t access_test_ssh;
 #define ACCESS_TEST_ADMIN "admin"
 #define ACCESS_TEST_USER "alice"
 
+/* An SSH Ed25519 public key blob whose 32 key bytes all hold one value. Use it as an initialiser. */
+#define ACCESS_TEST_KEY_8(b) b, b, b, b, b, b, b, b
+#define ACCESS_TEST_ED25519_KEY(b)                                                                 \
+    {0,                                                                                            \
+     0,                                                                                            \
+     0,                                                                                            \
+     11,                                                                                           \
+     's',                                                                                          \
+     's',                                                                                          \
+     'h',                                                                                          \
+     '-',                                                                                          \
+     'e',                                                                                          \
+     'd',                                                                                          \
+     '2',                                                                                          \
+     '5',                                                                                          \
+     '5',                                                                                          \
+     '1',                                                                                          \
+     '9',                                                                                          \
+     0,                                                                                            \
+     0,                                                                                            \
+     0,                                                                                            \
+     32,                                                                                           \
+     ACCESS_TEST_KEY_8(b),                                                                         \
+     ACCESS_TEST_KEY_8(b),                                                                         \
+     ACCESS_TEST_KEY_8(b),                                                                         \
+     ACCESS_TEST_KEY_8(b)}
+
 /* Powers on with an empty medium, and initialises. */
 void access_test_boot(const crux_access_policy_t *policy);
 /* Simulates a reset: RAM is lost, and the medium and clock survive. Initialises again. */

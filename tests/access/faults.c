@@ -60,7 +60,7 @@ static void exhaustion_cases(void)
     CHECK(access_test_login(ADMIN, PASSWORD, &access_test_ssh, &none) ==
           CRUX_ACCESS_ERR_NO_RESOURCES);
     CHECK(access_fake_derive_count() == 0);
-    const uint8_t key[] = {1};
+    const uint8_t key[] = ACCESS_TEST_ED25519_KEY(1);
     CHECK(crux_access_account_add_key(admin, USER, key, sizeof(key)) == CRUX_ACCESS_OK);
     /* A failed reservation must not hold the verification slot. */
     CHECK(crux_access_login_verified(USER, key, sizeof(key), &access_test_ssh, &none) ==
@@ -148,7 +148,7 @@ static void malformed_record_cases(void)
 {
     access_test_boot_with_admin();
     crux_access_session_t admin = access_test_session(ADMIN, PASSWORD, &access_test_serial);
-    const uint8_t key[] = {1, 2, 3};
+    const uint8_t key[] = ACCESS_TEST_ED25519_KEY(1);
     CHECK(crux_access_account_add_key(admin, ADMIN, key, sizeof(key)) == CRUX_ACCESS_OK);
     size_t length = 0;
     const uint8_t *stored = access_fake_store_record(&length);
@@ -193,6 +193,7 @@ static void malformed_record_cases(void)
         {iterations_at, 0},         /* Combined below with the rest of the zero count. */
         {key_length_at, 0},         /* Zero-length key. */
         {key_length_at + 1u, 0xFF}, /* Oversized key. */
+        {key_length_at + 2u + 7u, 'x'}, /* A key type this firmware does not accept. */
     };
     for (size_t index = 0; index < sizeof(corruptions) / sizeof(corruptions[0]); ++index) {
         memcpy(mutated, good, length);
@@ -284,7 +285,7 @@ static void provider_failure_cases(void)
     access_test_boot_with_admin();
     crux_access_session_t session = {0};
     uint32_t retry_after_ms = 0;
-    const uint8_t key[] = {1, 2};
+    const uint8_t key[] = ACCESS_TEST_ED25519_KEY(1);
 
     /* A hash failure refuses the attempt, before anything is verified. */
     access_fake_hmac_fail(true);
@@ -364,7 +365,7 @@ static void lock_failure_cases(void)
 {
     access_test_boot_with_admin();
     crux_access_session_t admin = access_test_session(ADMIN, PASSWORD, &access_test_web);
-    const uint8_t key[] = {1};
+    const uint8_t key[] = ACCESS_TEST_ED25519_KEY(1);
     uint32_t retry_after_ms = 0;
     char name[CRUX_ACCESS_NAME_SIZE];
     bool required = false;
@@ -394,6 +395,68 @@ static void lock_failure_cases(void)
     CHECK(ended.value == 0);
     fail_locks = false;
     CHECK(crux_access_check(admin, CRUX_ACCESS_PERMISSION_MANAGE) == CRUX_ACCESS_OK);
+}
+
+static void hook_fail_locks(void *context)
+{
+    (void)context;
+    fail_locks = true;
+}
+
+/* A lost lock around the first account's save must not leave provisioning open, or a retry could
+ * replace what the medium already holds. */
+static void provisioning_fails_closed_on_lock_failure(void)
+{
+    const crux_access_policy_t *policy = &access_test_profile_reference.policy;
+    const size_t length = strlen(PASSWORD);
+    crux_access_session_t session = {0};
+
+    /* The save completes, and the lock to apply it fails. */
+    access_test_boot(policy);
+    access_fake_store_save_hook(hook_fail_locks, NULL);
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_NOT_READY);
+    fail_locks = false;
+    size_t stored_length = 0;
+    uint8_t stored[CRUX_ACCESS_RECORD_SIZE_MAX];
+    memcpy(stored, access_fake_store_record(&stored_length), sizeof(stored));
+    CHECK(access_fake_store_saves() == 1);
+    CHECK(crux_access_provision_first_account(USER, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
+    CHECK(access_fake_store_saves() == 1);
+    size_t after_length = 0;
+    CHECK(memcmp(stored, access_fake_store_record(&after_length), sizeof(stored)) == 0);
+    CHECK(after_length == stored_length);
+    /* RAM stays behind the medium until a reset, so nobody can log in meanwhile. */
+    CHECK(access_test_login(ADMIN, PASSWORD, &access_test_web, &session) == CRUX_ACCESS_ERR_DENIED);
+    access_test_power_cycle(policy);
+    CHECK(crux_access_provision_first_account(USER, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
+    session = access_test_session(ADMIN, PASSWORD, &access_test_web);
+    CHECK(session.value != 0);
+
+    /* The save fails, and the lock to reopen provisioning fails. A reset finds the medium empty. */
+    access_test_boot(policy);
+    access_fake_store_save_mode(ACCESS_FAKE_SAVE_FAIL);
+    access_fake_store_save_hook(hook_fail_locks, NULL);
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_NOT_READY);
+    fail_locks = false;
+    access_fake_store_save_mode(ACCESS_FAKE_SAVE_OK);
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
+    access_test_power_cycle(policy);
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_OK);
+
+    /* A failed save with the lock intact can still be retried. */
+    access_test_boot(policy);
+    access_fake_store_save_mode(ACCESS_FAKE_SAVE_FAIL);
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_STORE);
+    access_fake_store_save_mode(ACCESS_FAKE_SAVE_OK);
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_OK);
 }
 
 /* --- Concurrent logins, for the sanitizers to watch. --- */
@@ -453,7 +516,7 @@ static void *change_worker(void *context)
             crux_access_account_enable(worker->admin, "carol") == CRUX_ACCESS_OK) {
             worker->changes += 1;
         }
-        const uint8_t key[] = {9, 9};
+        const uint8_t key[] = ACCESS_TEST_ED25519_KEY(1);
         (void)crux_access_account_add_key(worker->admin, USER, key, sizeof(key));
         (void)crux_access_account_remove_key(worker->admin, USER, key, sizeof(key));
     } while (!atomic_load(&worker->stop));
@@ -498,6 +561,7 @@ int main(void)
     time_limit_cases();
     provider_failure_cases();
     lock_failure_cases();
+    provisioning_fails_closed_on_lock_failure();
     concurrent_login_cases();
     return access_test_finish("Access faults");
 }

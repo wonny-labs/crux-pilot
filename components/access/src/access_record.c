@@ -139,6 +139,77 @@ static bool padded_name_valid(const char name[CRUX_ACCESS_NAME_SIZE])
     return true;
 }
 
+/* One SSH string: a big-endian 32-bit length, then that many bytes. */
+static bool ssh_string(reader_t *reader, const uint8_t **text, size_t *length)
+{
+    uint8_t bytes[4];
+    if (!get_bytes(reader, bytes, sizeof(bytes))) {
+        return false;
+    }
+    uint32_t claimed = ((uint32_t)bytes[0] << 24) | ((uint32_t)bytes[1] << 16) |
+                       ((uint32_t)bytes[2] << 8) | (uint32_t)bytes[3];
+    if (claimed > reader->length - reader->position) {
+        return false;
+    }
+    *text = &reader->bytes[reader->position];
+    *length = claimed;
+    reader->position += claimed;
+    return true;
+}
+
+static bool ssh_string_is(const uint8_t *text, size_t length, const char *expected)
+{
+    return length == strlen(expected) && memcmp(text, expected, length) == 0;
+}
+
+typedef struct {
+    const char *type;
+    const char *curve; /* NULL for a type with no curve string. */
+    size_t point_size;
+} key_type_t;
+
+static const key_type_t key_types[] = {
+    {"ssh-ed25519", NULL, 32u},
+    {"ecdsa-sha2-nistp256", "nistp256", 65u},
+    {"ecdsa-sha2-nistp384", "nistp384", 97u},
+    {"ecdsa-sha2-nistp521", "nistp521", 133u},
+};
+
+#define ACCESS_EC_POINT_UNCOMPRESSED 0x04u
+
+bool crux_access_key_acceptable(const uint8_t *key, size_t length)
+{
+    if (length == 0 || length > CRUX_ACCESS_KEY_SIZE_MAX) {
+        return false;
+    }
+    reader_t reader = {key, length, 0};
+    const uint8_t *text = NULL;
+    size_t text_length = 0;
+    if (!ssh_string(&reader, &text, &text_length)) {
+        return false;
+    }
+    const key_type_t *type = NULL;
+    for (size_t index = 0; index < sizeof(key_types) / sizeof(key_types[0]); ++index) {
+        if (ssh_string_is(text, text_length, key_types[index].type)) {
+            type = &key_types[index];
+        }
+    }
+    if (type == NULL) {
+        return false;
+    }
+    if (type->curve != NULL && (!ssh_string(&reader, &text, &text_length) ||
+                                !ssh_string_is(text, text_length, type->curve))) {
+        return false;
+    }
+    if (!ssh_string(&reader, &text, &text_length) || text_length != type->point_size) {
+        return false;
+    }
+    if (type->curve != NULL && text[0] != ACCESS_EC_POINT_UNCOMPRESSED) {
+        return false;
+    }
+    return reader.position == length;
+}
+
 static bool decode_key(reader_t *reader, access_key_t *key)
 {
     uint16_t length = 0;
@@ -146,7 +217,7 @@ static bool decode_key(reader_t *reader, access_key_t *key)
         return false;
     }
     key->length = length;
-    return get_bytes(reader, key->bytes, length);
+    return get_bytes(reader, key->bytes, length) && crux_access_key_acceptable(key->bytes, length);
 }
 
 static bool decode_account(reader_t *reader, access_account_t *account)

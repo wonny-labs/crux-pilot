@@ -15,7 +15,7 @@
 #ifndef CRUX_ACCESS_KEYS_PER_ACCOUNT
 #define CRUX_ACCESS_KEYS_PER_ACCOUNT 2
 #endif
-/* Holds an ECDSA P-521 SSH public key blob. An RSA blob needs a larger value. */
+/* Holds the largest accepted SSH public key blob, ECDSA P-521, at 172 bytes. */
 #ifndef CRUX_ACCESS_KEY_SIZE_MAX
 #define CRUX_ACCESS_KEY_SIZE_MAX 192
 #endif

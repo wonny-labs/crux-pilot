@@ -7,8 +7,10 @@
 #define RESET_PASSWORD "known-secret-password-3"
 #define TYPED_INTO_NAME "known-secret-typed-as-name"
 
-static const uint8_t known_key[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED, 0xFA, 0xCE};
-static const uint8_t other_key[] = {0xCA, 0xFE, 0xBA, 0xBE, 0x01, 0x02, 0x03, 0x04};
+static const uint8_t known_key[] = ACCESS_TEST_ED25519_KEY(0xDE);
+static const uint8_t other_key[] = ACCESS_TEST_ED25519_KEY(0xCA);
+/* Where a blob's own key bytes start, after its type name and lengths. */
+#define KEY_BYTES_AT 19u
 
 static bool contains(const void *haystack, size_t haystack_size, const void *needle,
                      size_t needle_size)
@@ -143,8 +145,8 @@ static void no_event_holds_a_secret(void)
             CHECK(!contains(recorded, sizeof(*recorded), secrets[index], 12));
             CHECK(strstr(recorded->account, "known-secret") == NULL);
         }
-        CHECK(!contains(recorded, sizeof(*recorded), known_key, 4));
-        CHECK(!contains(recorded, sizeof(*recorded), other_key, 4));
+        CHECK(!contains(recorded, sizeof(*recorded), &known_key[KEY_BYTES_AT], 8));
+        CHECK(!contains(recorded, sizeof(*recorded), &other_key[KEY_BYTES_AT], 8));
     }
 }
 
