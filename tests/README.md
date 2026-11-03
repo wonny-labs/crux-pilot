@@ -244,6 +244,11 @@ runs are recorded in [docs/evidence/microsd-physical](../docs/evidence/microsd-p
 (`samples/storage_sd_interrupt`), and the storage gate runs the host script's tests against scripted boards
 (no hardware). The sample's image writes to a card until power is cut and is only linked in CI. The
 first power-cut run is recorded in [docs/evidence/microsd-power-cut](../docs/evidence/microsd-power-cut/README.md).
+`tests/native/file_sd_replace` runs the classification logic of the replace-pattern power-cut test
+(`samples/storage_sd_replace`: the compaction sequence of the Settings File backend, a temporary file and
+`fs_rename` over the settings file, repeated until power is cut), and the storage gate runs its host
+script's tests against scripted boards. The image writes to a card until power is cut and is only linked
+in CI. The first run is recorded in [docs/evidence/microsd-replace-cut](../docs/evidence/microsd-replace-cut/README.md).
 
 The gate also runs `tests/native/configuration_settings_file`: the Zephyr Settings File
 backend on a FatFs RAM disk, with I/O faults injected by link-time wraps of `fs_read`,
