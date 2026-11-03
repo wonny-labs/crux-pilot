@@ -1,12 +1,14 @@
 # File contract extension and file service proposal
 
-Status: proposal for review, Issue #179. It refines the file sections of
+Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #179: F1 to F6, with F4 for now. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval, and no merge is approved. It refines the file sections of
 [the secure management design](secure-management-design.md) and [the CLI and SFTP design](secure-management-cli-sftp-design.md).
-Nothing here authorises implementation, dependency adoption or hardware operations. Baseline: main `4444d70`, Zephyr v4.4.2
+Baseline: main `4444d70`, Zephyr v4.4.2
 `dccb095`, FatFs `f4ead3b`, wolfSSH v1.6.0 `8221e4e`, and WinSCP source `246bbd4`, which is the current upstream tip and not
 a released version.
 
-## Decisions requested
+## Decisions
+
+The owner accepted the recommendation of every row below.
 
 | ID | Decision | Recommendation | Impact if rejected |
 | --- | --- | --- | --- |

@@ -1,11 +1,12 @@
 # Credential and key store contract proposal
 
-Status: proposal for review, Issue #178. It implements requirement A6 of the
+Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #178: S1 to S7. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval, and no merge is approved. It implements requirement A6 of the
 [access control proposal](access-contract-proposal.md) and uses the storage comparison in the provider decision record
-(`docs/plans/secure-management-provider-decision.md`, PR #198, not yet on main). Nothing here authorises implementation,
-dependency adoption or hardware operations. Baseline: main `4444d70`, Zephyr v4.4.2 `dccb095`, FatFs `f4ead3b`.
+(`docs/plans/secure-management-provider-decision.md`, PR #198, not yet on main). Baseline: main `4444d70`, Zephyr v4.4.2 `dccb095`, FatFs `f4ead3b`.
 
-## Decisions requested
+## Decisions
+
+The owner accepted the recommendation of every row below.
 
 | ID | Decision | Recommendation | Impact if rejected |
 | --- | --- | --- | --- |
@@ -151,9 +152,8 @@ written or never acknowledged, because a save that adds a record reaches both sl
 Every record also changes together, so there are no states across records to reason about.
 
 The cost is one static image buffer and a rewrite of the whole image for each change. Account changes, certificate
-replacement and host key rotation are rare, and SD wear from them is negligible. Rough sizing, not a measurement: 8 accounts
-with 2 public keys each is about 5.5 KB with RSA-2048 keys, a P-256 key is about 121 B in DER, and a certificate chain is up
-to about 2 KB. `CRUX_CREDENTIAL_SLOT_BYTES` defaults to 16 KiB and is a build setting. Issue #197 measures the real cost.
+replacement and host key rotation are rare, and SD wear from them is negligible. Rough sizing, not a measurement: SSH user keys are Ed25519 and ECDSA only, by the same decision, so a P-256 key is about 121 B in DER and
+an Ed25519 key is smaller. The access record is about 4 KB at its default bounds, and a certificate chain is up to about 2 KB. `CRUX_CREDENTIAL_SLOT_BYTES` defaults to 16 KiB and is a build setting. Issue #197 measures the real cost.
 
 ### Slot format
 
