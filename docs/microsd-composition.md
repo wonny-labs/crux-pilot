@@ -85,8 +85,8 @@ Static stack frames (`-fstack-usage`, bytes), from a separate build of the same 
 `dir_find` 64, `f_write` 56, `follow_path` 56, `f_mount` 40. The `fs_stat` chain used by the
 layout check and by every File call alone is about 780 B, and an open about 650 B, before the
 SD driver, disk layers and Crux frames. These frames are a lower bound, not a call-chain
-maximum. The 4,096 B main stack is a choice with no measured margin; its high-water mark
-needs a run on hardware.
+maximum. The 4,096 B main stack is a choice; its first measured high-water mark is
+2,264 B used with 1,832 B unused in one run on the board (see "Physical results").
 
 ## Physical results (first card runs, 2 November 2026)
 
@@ -134,7 +134,7 @@ next to a `.cmp` leftover is an I/O error until the next save, not defaults; whe
 write-temporary, close, rename order and the identical `fs_rename`, not the backend itself. See
 [docs/evidence/microsd-replace-cut](evidence/microsd-replace-cut/README.md).
 
-## Probes for the remaining physical items (prepared, not yet run)
+## Probes for the remaining physical items
 
 `samples/storage_sd_probe` holds two default-off images, both writing to the card (physical approval
 needed for each run): `CONFIG_SAMPLE_SD_STACK_PROBE=y` mounts, runs the file check and a FatFs workload
@@ -149,7 +149,10 @@ new card initialisation (the source suggests the disk reference count never retu
 after a real swap is consistent with the documented reboot-on-swap policy. If the unmount fails the probe
 stays LOST (`remount=-120`, `-EALREADY` on the RT1060 picolibc image, on the console). The stack probe leaves `bootcount` and `pattern` in the File root,
 the removal probe leaves `probe`. The blank-card and wrong-layout cases need a card prepared on a
-host, the M.2 slot and uSDHC1 ownership need the board in hand. None of these has been run on hardware.
+host, the M.2 slot and uSDHC1 ownership need the board in hand. The stack probe and the blank and
+wrong-layout cards were run on the board on 3 November 2026
+([evidence](evidence/microsd-card-states-stack/README.md)); the removal probe, the M.2 slot and uSDHC1
+ownership have not been run.
 
 ## Recovery step for an interrupted compaction (3 November 2026, software only)
 
@@ -173,7 +176,7 @@ tail, orphaned clusters remain, and a cut inside the FAT metadata update has no 
 Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted;
 whether the M.2 Wi-Fi SDIO path shares uSDHC1 on this board (the board devicetree labels the
 same controller `m2_wifi_sdio`; nothing in this repository confirms pin or controller
-ownership); high-water stack use; cache and DMA placement; and power-loss behaviour beyond the 32-byte append test and the replace-pattern test above (larger
+ownership); stack use beyond the one probe run (no Settings backend, networking or other threads); cache and DMA placement; and power-loss behaviour beyond the 32-byte append test and the replace-pattern test above (larger
 writes, directory changes other than that replace, other cards, the Settings File backend itself); data
 across normal CPU restarts and those two power-cut tests are covered in the physical results above.
 

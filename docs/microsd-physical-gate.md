@@ -45,6 +45,6 @@ Stop and do not continue when: the J-Link cannot connect, CPUID or VTref differ 
 
 Tested revision and image checksum, probe and board facts with their source (read by a tool or reported by the operator), commands and their logs, the approval for the task, raw results including failures and unobserved boots, host verification output, what the run shows and does not show, and the cleanup state. Put it under `docs/evidence/` with the raw files, and have it independently reviewed. Do not close #14, #15 or #16 from a record alone.
 
-## Prior runs (2 November 2026)
+## Prior runs (2 and 3 November 2026)
 
-[First card runs](evidence/microsd-physical/README.md), [append power cuts](evidence/microsd-power-cut/README.md), [replace-pattern power cuts](evidence/microsd-replace-cut/README.md). The setup facts above come from them. Still not shown on hardware: blank and wrong-layout cards, the stack high-water mark, the M.2 slot state and uSDHC1 ownership, card removal, SD errors and timing, another card, and the Settings File backend itself.
+[First card runs](evidence/microsd-physical/README.md), [append power cuts](evidence/microsd-power-cut/README.md), [replace-pattern power cuts](evidence/microsd-replace-cut/README.md), and on 3 November [blank and wrong-layout cards and the stack probe](evidence/microsd-card-states-stack/README.md) (on that day the DAPLink was on hub port 4, so confirm the port again each time). The setup facts above come from them. Still not shown on hardware: the M.2 slot state and uSDHC1 ownership, card removal (optional), SD errors and timing, another card, and the Settings File backend itself.
