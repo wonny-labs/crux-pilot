@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(consumer_poc_ztest LANGUAGES C)
+target_sources(app PRIVATE src/main.c ../src/app_run.c ../src/periodic.c)
+target_include_directories(app PRIVATE ../include)
+target_link_libraries(app PRIVATE crux::time crux::thread)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)
