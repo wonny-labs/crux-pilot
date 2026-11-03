@@ -46,7 +46,8 @@ These are changes the other contracts need. None has been made. #177 is being im
 | AC6 | Note that "a blank or reformatted medium reads as `EMPTY`" is true of a started store. A blank card on the microSD composition fails at mount and reads `UNUSABLE`. In the access port, `EMPTY` means that the account record is absent, because device keys can exist first. Limit A7 stands and widens under S6. | #178 | Accept, as wording |
 | AC7 | Add `crux_access_session_origin(session, uint8_t *channel, uint8_t source[16], uint8_t *source_length)` to the public header | #182, for `file.*` and `config.*` records, which hold only a session | Accept. Otherwise those records lose the channel and source that the secure management design lists for events. |
 | AC8 | "A save failure leaves both copies unchanged" and "state is unchanged" hold for RAM, and for the active image except under S7. Stored bytes can change, and a failed save can win at the next boot if the store cannot then invalidate it. | #178 | Accept, as wording |
-| AC9 | Emit events after releasing the state lock | #182 | Accept. An emit may wait up to 10 ms on the ring lock, and every `crux_access_check` takes the state lock. |
+| AC9 | Emit events after releasing the state lock | #182 | Accept. An emit may wait up to 10 ms on the ring lock, and every `crux_access_check` takes the state lock. The port on the #177 branch is already called with no lock held, so this only needs stating. |
+| AC10 | Add the permission and the acting user to `crux_access_event_t` on the #177 branch, which carries only one `account` name, the target of a change | #182 | Accept. Without them `access.permission_denied` has no subject and an account change has no actor. |
 
 ### Credential store, #178
 
