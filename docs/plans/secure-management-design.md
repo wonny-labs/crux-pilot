@@ -30,7 +30,7 @@ product manufacturer owns those obligations and the conclusions drawn from this 
 | D7 | Common work comes first. HTTPS and CLI/SFTP then proceed in parallel. | Owner, 3 November 2026 |
 | D8 | The Wolf profile is the first complete profile. Mbed TLS validates the HTTPS seam. | Proposal |
 | D9 | The production CLI is a Crux command registry. The Zephyr shell stays a development-only facility and is never reachable from the network. | Proposal |
-| D10 | Web login uses two requests, so that password verification runs on a worker and never stalls the HTTP server thread. | Proposal, owner decision requested |
+| D10 | Web login uses two requests, so that password verification runs on a worker and never stalls the HTTP server thread. | Owner, 3 November 2026 |
 
 ## Requirements
 

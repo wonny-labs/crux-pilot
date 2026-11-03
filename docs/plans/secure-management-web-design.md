@@ -97,7 +97,7 @@ account or source would avoid the per-account delay. Login therefore uses two re
 | Cookie | `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`, with no persistent expiry |
 | CSRF | A per-session token in a request header on every state-changing method, compared in constant time, with `Origin` checked too |
 | Expiry | Idle and absolute limits. Logout and reboot end sessions. A password or role change ends that account's other sessions. |
-| Login processing | Two steps, proposed in D10. `POST /api/v1/session` queues verification on the bounded management worker and returns `202` with an attempt identifier. `GET /api/v1/session/attempt/{id}` returns pending, rejected or success, and success sets the session cookie. One verification runs at a time. Another returns `503` with `Retry-After`, and a login inside its delay window returns `429`. Attempts expire quickly, and the password buffer is cleared after verification. |
+| Login processing | Two steps, decided in D10. `POST /api/v1/session` queues verification on the bounded management worker and returns `202` with an attempt identifier. `GET /api/v1/session/attempt/{id}` returns pending, rejected or success, and success sets the session cookie. One verification runs at a time. Another returns `503` with `Retry-After`, and a login inside its delay window returns `429`. Attempts expire quickly, and the password buffer is cleared after verification. |
 | Login limits | The `crux_access` delay applies. Replies do not reveal whether a user exists. `Origin` is checked on login too, which covers login CSRF. |
 | Authorisation | The adapter enforces the route's access class. Crux services and per-resource handlers check their own permissions. |
 
