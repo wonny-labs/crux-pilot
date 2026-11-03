@@ -162,9 +162,10 @@ media or execution from external RAM was not studied here.
 
 ## Licences
 
-wolfSSL, wolfSSH and wolfPSA are offered under GPLv3 or a commercial licence. Crux source stays Apache-2.0, and these stacks
+wolfSSL and wolfSSH are offered under GPLv3 or a commercial licence. wolfPSA's source states GPL-3.0-or-later only. A vendor
+article says it has the same licence options as wolfSSL, and its commercial terms need confirming with the vendor. Crux source stays Apache-2.0, and these stacks
 are fetched by west and are not copied into this repository. A binary built with a GPLv3 stack is subject to GPLv3 when
 distributed, so Pilot images with the Wolf profile are for evaluation and are not published. New files in the wolfSSL Zephyr
-patches carry an Apache-2.0 header, and the `wolfSSL/osp` repository has no top-level licence. Confirm the patch's licence
-before storing it in this repository. A product needs its own commercial licence, and its scope should cover each stack that it
+patches carry an Apache-2.0 header. The `wolfSSL/osp` repository has no licence file, and its README says that ports of other
+projects follow each project's own licence. It does not name this patch, so confirm the terms before storing it in this repository. A product needs its own commercial licence, and its scope should cover each stack that it
 uses. This is an engineering summary and needs legal review for any product.
