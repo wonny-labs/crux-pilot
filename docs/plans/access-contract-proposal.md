@@ -134,7 +134,7 @@ crux_access_result_t crux_access_login_password(const char *user, const char *pa
                                                 const crux_access_origin_t *origin,
                                                 crux_access_session_t *session, uint32_t *retry_after_ms);
 crux_access_result_t crux_access_key_is_authorised(const char *user, const uint8_t *key, size_t key_length,
-                                                   const crux_access_origin_t *origin,
+                                                   bool signed_request, const crux_access_origin_t *origin,
                                                    uint32_t *retry_after_ms);
 crux_access_result_t crux_access_login_verified(const char *user, const uint8_t *key, size_t key_length,
                                                 const crux_access_origin_t *origin,
@@ -152,12 +152,16 @@ void crux_access_logout(crux_access_session_t *session);
 - For IPv6, an adapter passes the /64 prefix as the source, so that address rotation inside one prefix does
   not create new delay entries. The current Crux networking profile is IPv4 only.
 - `crux_access_key_is_authorised` serves the SSH pre-check before a signature is verified, and wolfSSH calls
-  it on the signed request too. It applies the source delay but not the name delay, and never creates a session.
+  it on the signed request too. It applies the source delay but not the name delay, and never creates a session. A rejected
+  request with `signed_request` set counts as a key failure and produces an event. wolfSSH's result callback never
+  runs for it, because its authentication callback rejected the key first. An unsigned probe records nothing,
+  because a client normally offers keys this way, and it reveals only whether a key it already holds is listed.
 - `crux_access_report_key_failure` records a failed signature against the source delay, and the provider calls
-  it from the failure branch of its result callback. Without this, key guessing would leave no event or delay.
+  it from the failure branch of its result callback. Together with the signed request rule, this means every
+  rejected signed key attempt leaves an event and a delay.
 - `crux_access_login_verified` must be called only after the provider has verified the signature. It checks
   again that the key belongs to the account, refuses a disabled account or one with a forced password change,
-  and clears the name delay. It uses no verification slot, and the name delay does not apply to key login, so a
+  and leaves delay state alone. It uses no verification slot, and the name delay does not apply to key login, so a
   password flood on a name does not block its key login. A source bucket collision can still delay the pre-check
   up to the cap.
 - `crux_access_provision_first_account` succeeds only on the serial channel, while the table loaded at start
@@ -178,7 +182,9 @@ their slots are reclaimed whenever a login needs one, so abandoned sessions cann
 
 An account holds at most `CRUX_ACCESS_SESSIONS_PER_ACCOUNT`, default 3. A further login by that account
 ends its oldest session. Sessions do not survive a reset. Changing an account's password or role, resetting
-its password, removing one of its keys, disabling it or removing it ends all its other sessions.
+its password, removing one of its keys, disabling it or removing it ends all its sessions. The one exception is
+that a user changing their own password keeps the session that made the change. Upgrading a verifier's cost at
+login does not end sessions.
 
 ### Password login sequence
 
@@ -196,8 +202,10 @@ its password, removing one of its keys, disabling it or removing it ends all its
 7. Take the state lock and read the record again. If its change number differs or it is now disabled, the attempt
    fails, so a change racing a login cannot produce a session. Every account change takes a new number from a
    single counter, so removing and recreating a name also differs.
-8. Create the session and clear the name delay, or record a failure and release the reserved slot. Events
-   follow the outcome.
+8. In the same lock hold, create the session and clear the name bucket, or record a failure and release the
+   reserved slot. Events follow the outcome.
+9. If the record's cost is below the default, try an upgrade afterwards as an ordinary change under the change
+   lock, without ending sessions. A failed upgrade does not affect the login.
 
 Failure results for wrong passwords, unknown names and disabled accounts are the same. Callers own and clear
 their own password buffers. Web login runs this on the management worker, SSH on the connection's thread and
@@ -211,25 +219,42 @@ time, or success with the session cookie. This replaces the `429` on `POST` in t
 
 ### Delay state
 
-The effective delay for a password login is the larger of the source and name delays. Both double from a base
-value after a free attempt count and decay with time. A rejected attempt inside a window does not extend it.
+The effective delay for a password login is the larger of the source and name delays. Each bucket holds a failure
+count, the end of its window and the time of its last failure.
+
+| Rule | Behaviour | Reference value |
+| --- | --- | --- |
+| Free attempts | Failures up to this count set no window | 5 |
+| Window | Each further failure sets a window of the base doubled per failure, up to the cap | Base 1 second, cap 60 seconds |
+| Attempt inside a window | Rejected, without counting or extending | |
+| Decay | A bucket with no failure for the quiet period returns to zero, restoring its free attempts | 15 minutes |
+| Success | Clears the name bucket only | |
+
+These values bound guessing per bucket, and tests check the bound with a controlled clock. Staying under the cap
+allows about one attempt a minute. Waiting out the quiet period gives about eleven attempts in each period of about
+seventeen minutes, which is slower, so sustained guessing is limited to about 1,500 attempts a day per bucket. A
+product that changes these values must keep the quiet period long enough for that to hold.
 
 | State | Key | Bound |
 | --- | --- | --- |
-| Source | Keyed hash of the network channel and source address | `CRUX_ACCESS_SOURCE_BUCKETS`, default 32 |
-| Name | Keyed hash of the supplied name, whether or not it exists | `CRUX_ACCESS_NAME_BUCKETS`, default 32 |
+| Source | HMAC-SHA-256 of the channel, the source length and the source bytes | `CRUX_ACCESS_SOURCE_BUCKETS`, default 32 |
+| Name | HMAC-SHA-256 of the supplied name, whether or not it exists | `CRUX_ACCESS_NAME_BUCKETS`, default 32 |
 | Serial | The whole serial channel, with no source or name state | One |
 
-The hash key is chosen at each boot. Buckets are fixed, and nothing is evicted, so failures on other names cannot
-reset the state of an account, and rotating sources cannot reset the state of another source. Colliding names or
-sources share a bucket. A real account and an unknown name therefore behave the same, and a probe cannot tell them
-apart. The reference cap is 60 seconds for all states. A success clears only the name bucket. Source delay ends by
-decay, so that a valid account does not help an insider spray guesses at others.
+A 32-byte key is drawn at each boot. If that fails, `crux_access_init` fails and every operation returns
+`CRUX_ACCESS_ERR_NOT_READY`. Buckets are fixed and nothing is evicted, so failures on other names cannot reset the
+state of an account, and rotating sources cannot reset the state of another source. Colliding names or sources share
+a bucket. Real and unknown names follow the same rules, so failure results alone do not reveal which names exist.
 
-Because buckets are shared, a flood from many sources can keep network password login delayed up to the cap, and
-hold the network verification slot, while it lasts. Delay ends by decay after the flood stops, and the flood never
-affects the serial channel, which is the local recovery path. A cap slows guessing and does not stop it, so the
-verifier cost and password rule still matter. Delay values are reference settings that a product can replace.
+Sharing has two declared limits. An attacker can find colliding names by watching `RETRY_LATER`, without the key. A
+valid account's login clears its bucket, so a window can end early, and a name that shares a bucket with a valid
+account (about one chance in 32 per boot) gets less delay from the name state. Source delay still applies, and it
+is not cleared by a success, so that a valid account does not help an insider spray guesses at others.
+
+Because buckets are shared, a flood from many sources can keep network password login delayed up to the cap, and hold
+the network verification slot, while it lasts. Delay ends by decay after the flood stops, and the flood never affects
+the serial channel, which is the local recovery path. A cap slows guessing and does not stop it, so the verifier cost
+and password rule still matter. Delay values are reference settings that a product can replace.
 
 ### Password verifier
 
@@ -294,10 +319,10 @@ Existing sessions continue if the store fails later, because they hold no stored
 | Port | Purpose | Host | Zephyr |
 | --- | --- | --- | --- |
 | `crux_access_port_derive` | Derive and compare a verifier | Fast fake, plus PSA where available | PSA Crypto, Issue #142 |
-| `crux_access_port_random` | Salts and the name hash key | Deterministic in tests | PSA Crypto |
+| `crux_access_port_random` | Salts and the delay hash key | Deterministic in tests | PSA Crypto |
 | `crux_access_port_now_ms` | 64-bit monotonic time for expiry and delay | Controllable clock in tests | Native uptime |
 | `crux_access_port_store_*` | Load and save the table | In-memory fake with fault injection | Issue #178 |
-| `crux_access_port_event` | Report events | Recording fake | Issue #182 |
+| `crux_access_port_event` | Report events, without waiting on storage, because checks emit denials | Recording fake | Issue #182 |
 
 The fake derivation lets contract work proceed before Issue #142 is complete. A Host build with a fake verifier is a
 test composition only, and it must not be selectable for a product image.
@@ -315,7 +340,7 @@ field. No event contains a password, verifier, salt or key. Identifiers are fina
 | Level | Cases |
 | --- | --- |
 | Host conformance | Permitted, unauthenticated, unpermitted, expired, stale handle, reused slot, missing and invalid policy, each failing closed. Two different reference policies run the same suite. |
-| Host security | Unknown and disabled names behave like wrong passwords, with equal results and iteration counts at default cost. A table-filling probe cannot tell real names from unknown ones. Also delay windows and caps, bucket collisions, no reset of another entry by flooding, serial independence, last administrator under concurrent changes, disable and password change during verification, forced change with password and key login, and provisioning refused for a non-administrator role and for `UNUSABLE`. |
+| Host security | Unknown and disabled names behave like wrong passwords, with equal results and iteration counts at default cost. A table-filling probe cannot tell real names from unknown ones. Also delay windows, caps, decay and the guessing bound with a controlled clock, bucket collisions, signed and unsigned key attempts with unauthorised keys, failed signatures, no reset of another entry by flooding, serial independence, last administrator under concurrent changes, disable and password change during verification, forced change with password and key login, and provisioning refused for a non-administrator role and for `UNUSABLE`. |
 | Host faults | Session exhaustion and reclaim, save failure leaves state unchanged, interrupted save, corrupt record, 64-bit time limits, concurrent logins, all under sanitizers |
 | Secret absence | Known password and key values must not appear in any recorded event or log |
 | Boundary | The adapter header cannot be reached from consumer targets, and public headers contain no native types |
