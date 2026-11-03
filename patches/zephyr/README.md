@@ -3,7 +3,7 @@
 `nxp-enet-mdio-completion.patch` is an opt-in correction for the single-core
 RT1062 reference composition. It applies only to
 `drivers/ethernet/mdio/mdio_nxp_enet.c` at Zephyr
-`684c9e8f32e4373a21098559f748f06915f950c9`. The original file is NXP copyright,
+`dccb09599635bdff17633fa7e9dab014b91dce90`. The original file is NXP copyright,
 Apache-2.0 licensed; its notice remains in the generated copy. The patch is
 maintained here pending an upstream resolution, without a dependency upgrade.
 

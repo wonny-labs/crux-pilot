@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-PIN = '684c9e8f32e4373a21098559f748f06915f950c9'
+PIN = 'dccb09599635bdff17633fa7e9dab014b91dce90'
 HERE = Path(__file__).resolve().parent
 SOURCES = {
     'settings_file.c': ('subsys/settings/src/settings_file.c', HERE / 'settings_file.patch'),

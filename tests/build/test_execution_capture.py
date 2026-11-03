@@ -10,7 +10,7 @@ SPEC.loader.exec_module(CAPTURE)
 
 
 def controller():
-    lines = ["*** Booting Zephyr OS build v4.4.0 ***", "controller composition=zephyr init=0"]
+    lines = ["*** Booting Zephyr OS build v4.4.2 ***", "controller composition=zephyr init=0"]
     for index in range(20):
         value = "unavailable" if index < 2 else str(1792238400 if index < 6 else 1792234800)
         lines.extend([f"cycle={index} status={-4 if index < 2 else 0} valid={int(index >= 2)} "
@@ -22,7 +22,7 @@ def controller():
 def native():
     names = ("bounded_messages", "lifecycle_periodic_and_stack",
              "mutex_contention_timeout_and_recovery", "semaphore_expiry_wakeup_and_capacity")
-    lines = ["*** Booting Zephyr OS build v4.4.0 ***"]
+    lines = ["*** Booting Zephyr OS build v4.4.2 ***"]
     lines += [f"PASS - test_{name} in 0.1 seconds" for name in names]
     lines += [f"PROBE native cycle={index} lateness_ms=0" for index in range(6)]
     return "\n".join(lines + ["PROBE native periodic elapsed_ms=80 skipped=2 priority=5 stack_bytes=4160",
