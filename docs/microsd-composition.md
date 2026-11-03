@@ -1,9 +1,10 @@
 # RT1060-EVKB microSD composition (software only)
 
 Issue [#14](https://github.com/wonny-labs/crux-pilot/issues/14), acceptance criterion 2.
-This records the approved composition and what software evidence exists for it. No
-physical board, microSD card, power-loss, reboot or removal result exists. Nothing here
-claims persistence or hardware qualification.
+This records the approved composition and its evidence. The software evidence is below; the
+physical results (one board, one card: mount, reboot persistence, power cuts) are in their own
+sections and under `docs/evidence`. Removal results do not exist. Nothing here claims hardware
+qualification or product power-loss safety.
 
 ## Decisions in force
 
