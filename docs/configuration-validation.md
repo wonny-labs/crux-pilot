@@ -9,8 +9,8 @@ This is the software portion of the issue. There is **no adopted native Settings
 provider, persistent production backend or physical qualification** in this change.
 This text records the original software portion. The M4 storage direction in
 [#14](https://github.com/wonny-labs/crux-pilot/issues/14) is now microSD with FatFs and the
-Settings File backend; QSPI NOR/LittleFS plus Settings/NVS is a superseded design candidate. See
-[the microSD composition](microsd-composition.md).
+Settings File backend, with no Settings File target provider adopted; QSPI NOR/LittleFS plus
+Settings/NVS is a superseded design candidate. See [the microSD composition](microsd-composition.md).
 
 ## Implemented behavior
 
