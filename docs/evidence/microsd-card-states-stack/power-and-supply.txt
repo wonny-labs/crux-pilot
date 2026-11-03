@@ -15,7 +15,7 @@ Runs and the supply read after the final off (J-Link-read VTref):
 VTref before each run (preflight logs): 3.322 V.
 
 Hub topology at the start of the blank run (uhubctl): hub 0-1.4 port 4 held the DAPLink; the J-Link was on hub 0-1 port 1.
-No scripted power cut was part of these runs: the hub switch was used only to power the board on (two runs) and off (after each run). In the card-removal attempts the operator unplugged the power cable by hand (see the README).
+No scripted power cut was part of these runs: the hub switch was used only to power the board on (three runs: wrong layout, stack, removal) and off (after each run). In the card-removal attempts the operator unplugged the power cable by hand (see the README).
 
 Card-removal run (12:37-12:56 UTC): uhubctl -l 0-1.4 -p 4 -a on before the run; port 4 showed the DAPLink within 6 s;
 VTref 3.322 V in the preflight; after the restore image was flashed: uhubctl -l 0-1.4 -p 4 -a off -f, Port 4: 0000 off,
