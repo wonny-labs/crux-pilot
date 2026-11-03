@@ -38,19 +38,30 @@ info:
     | `400` | Malformed request, or field errors | JSON | `bad_request`, `invalid_field` |
     | `401` | No valid session | JSON | `unauthorized` |
     | `403` | Valid session without permission, or a rejected CSRF token or `Origin` | JSON | `permission_denied`, `csrf_rejected`, `origin_rejected` |
-    | `404` | A path outside this file, an unknown or expired attempt, or an item hidden from this session. These look the same. | JSON | `not_found` |
-    | `409` | The route is busy. The request was not processed, and the client retries. | None | |
+    | `404` | An unknown or expired attempt, or a path or item under a registered route that does not exist or is hidden from this session. These look the same. | JSON | `not_found` |
+    | `409` | The registered path is busy. The request was not processed, and the client retries on a new connection. | None | |
     | `413` | Body over the route's limit | JSON | `payload_too_large` |
     | `423` | A reboot refused by the application, with a reason | JSON | `reboot_refused` |
     | `429` | Attempt poll only. The attempt fell inside a delay window, and nothing was verified. `Retry-After` gives the time. | JSON | `retry_later` |
     | `501` | This device has no provider for the operation, so retrying will not help | JSON | `not_supported` |
-    | `503` | Temporarily unavailable, with `Retry-After` | JSON | `busy`, `not_ready` |
+    | `503` | Temporarily unavailable, with `Retry-After`. The two public login routes use `busy` only. | JSON | `busy`, `not_ready` |
 
     An error body is small and stable. It never holds a path, a stack trace or native error text, and a
-    client takes its display text from its own table, keyed by `code`. A `409` with a JSON body does not
-    exist in this API, so a `409` always means busy. The HTTP server sends that `409` itself, so it may
-    lack the headers below. A request may also get the server's own response or a closed connection
-    when it is malformed or oversized, or when the client limit is reached.
+    client takes its display text from its own table, keyed by `code`.
+
+    **Responses from the HTTP server.** The server sends three responses itself, before any Crux code runs,
+    so they never hold JSON or the headers below, and M11 declares them:
+
+    - A plain `404` with the text `Not Found`, for a path with no registered resource. The JSON `404` above
+      needs a registered resource to reach the adapter.
+    - A plain `405` with the text `Method Not Allowed`, for a method that a registered path does not
+      support.
+    - A `409` with no body, while another client holds the registered path. A `409` with a JSON body does
+      not exist in this API, so a `409` always means busy. The server closes the connection after it, so
+      a retry costs a new TLS handshake.
+
+    A request may also get the server's own response or a closed connection when it is malformed or
+    oversized, or when the client limit is reached.
 
     **Cookies and CSRF.** A successful login sets two cookies:
 
@@ -60,8 +71,8 @@ info:
 
     On every state-changing request with a session, the client sends the `XSRF-TOKEN` value in the
     `X-XSRF-TOKEN` header. The server compares it with the session's value in constant time and also
-    checks `Origin`. Login has no session, so it checks `Origin` only. A client treats both values as
-    opaque.
+    checks `Origin`. Login has no session, so `POST /api/v1/session` checks `Origin` only. The attempt poll
+    that sets the cookies is a public `GET` and checks neither. A client treats both values as opaque.
 
     **Idle timer.** State-changing requests refresh a session's idle timer, and `GET` requests do not,
     so a page that polls cannot keep a session alive for ever. The absolute limit always applies.
@@ -71,9 +82,14 @@ info:
     `Cache-Control: no-store`. There are no CORS headers, because cross-origin requests are not
     supported.
 
-    **Examples.** Every JSON body has named examples, for a mock server to select. An example may hold
-    `x-crux-set-cookie`, the `Set-Cookie` lines to send with that example only, because an OpenAPI header
-    map can hold one line per name and applies to every example of a response.
+    **Text bounds.** A bound stated in bytes is a bound on the UTF-8 encoding, and the server enforces it. A
+    schema's `maxLength` counts characters, so it can only be the same number as an upper limit, and a value
+    that passes it may still be over the byte bound.
+
+    **Examples.** Every JSON body has named examples, for a mock server to select. `x-crux-set-cookie` holds
+    the `Set-Cookie` lines for a mock server to send, because an OpenAPI header map can hold one line per name
+    and applies to every example of a response. On an example it applies to that example only. On a response
+    with no body it applies to the whole response.
 servers:
   - url: https://{device}
     description: The controller itself. Plain HTTP is not served, and requests are same-origin.
@@ -136,7 +152,7 @@ paths:
         '413':
           $ref: '#/components/responses/PayloadTooLarge'
         '503':
-          $ref: '#/components/responses/ServiceUnavailable'
+          $ref: '#/components/responses/LoginBusy'
     delete:
       operationId: deleteSession
       tags: [session]
@@ -147,11 +163,14 @@ paths:
         - sessionCookie: []
           xsrfHeader: []
       responses:
-        '204':
-          description: Session ended.
+        '200':
+          description: Session ended. The body is empty, and the cookies are cleared.
           headers:
             Set-Cookie:
               $ref: '#/components/headers/ClearSessionCookies'
+          x-crux-set-cookie:
+            - crux_session=; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=0
+            - XSRF-TOKEN=; Secure; SameSite=Strict; Path=/; Max-Age=0
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -167,12 +186,14 @@ paths:
       summary: Poll a login or password change attempt
       description: |
         Carries the outcome of an attempt from `POST /api/v1/session` or
-        `POST /api/v1/session/me/password`. The identifier is unguessable, because it is what collects
-        the session cookies.
+        `POST /api/v1/session/me/password`. The identifier holds at least 128 bits from the qualified
+        entropy source, because it is what collects the session cookies.
 
         - `pending`: keep polling.
-        - `rejected`: on a login there is no further detail, and wrong passwords, unknown names and
-          disabled accounts look the same. On a password change, `code` and `fields` say why.
+        - `rejected`: on a login there is no further detail. Wrong passwords, unknown names, disabled
+          accounts and an unusable credential store (`NOT_READY`) all look the same. On a password change,
+          `code` says why: `invalid_field` with `fields`, `storage_failed`, `not_ready`, or `unauthorized`
+          when the session ended while the attempt ran.
         - `success`: on a login this response sets both cookies. On a password change it sets none, and
           this session stays valid while the account's other sessions end.
         - `429`: inside a delay window, and nothing was verified. Start a new attempt after `Retry-After`.
@@ -181,6 +202,12 @@ paths:
 
         Every result except `pending` ends the attempt, and a later poll gets `404`. Attempts also expire
         quickly on their own.
+
+        A `404` on an attempt that was being polled means that its result is lost, and a repeat poll cannot
+        recover it. After a login, the client logs in again, and an unused session ends through the per-account
+        cap or its idle limit. After a password change, the client submits again, and `incorrect` on
+        `current_password` then shows that the earlier change succeeded. During a forced change,
+        `GET /api/v1/session/me` also shows it.
       x-crux-access: public
       security: []
       parameters:
@@ -232,10 +259,20 @@ paths:
                       - name: new_password
                         code: rule_not_met
                 save_failed:
-                  summary: Password change rejected, save failed and the password is unchanged
+                  summary: Password change rejected. The save failed, the running password is unchanged, and a later boot may use either.
                   value:
                     state: rejected
                     code: storage_failed
+                password_change_not_ready:
+                  summary: Password change rejected, because the account service is not ready
+                  value:
+                    state: rejected
+                    code: not_ready
+                password_change_session_ended:
+                  summary: Password change rejected, because the session ended while the attempt ran
+                  value:
+                    state: rejected
+                    code: unauthorized
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
@@ -243,7 +280,7 @@ paths:
         '429':
           $ref: '#/components/responses/RetryLater'
         '503':
-          $ref: '#/components/responses/ServiceUnavailable'
+          $ref: '#/components/responses/LoginBusy'
   /api/v1/session/me:
     get:
       operationId: getCurrentUser
@@ -391,8 +428,9 @@ paths:
       tags: [network]
       summary: Read running and saved IPv4 settings
       description: |
-        `running` holds the values in use, and `source` says where they came from at boot. `saved` holds
-        the values the next boot will apply, and it is absent when the next boot will use the defaults.
+        `running` holds the values in use, and it is absent while the interface has no IPv4 address. `source`
+        says where the composition took its values from at boot. `saved` holds the values the next boot will
+        apply, and it is absent when the next boot will use the defaults.
         `save` is present only while a save is pending or after one failed.
       x-crux-access: network.read
       security:
@@ -413,6 +451,11 @@ paths:
                       prefix_length: 24
                     source: default
                     reboot_required: false
+                no_address:
+                  summary: The interface has no IPv4 address at the moment
+                  value:
+                    source: default
+                    reboot_required: true
                 reboot_needed:
                   summary: New values saved, and a reboot is needed
                   value:
@@ -533,9 +576,9 @@ paths:
       responses:
         '200':
           description: |
-            The state of the latest request. `refused` also covers a refusal after the `202`, at the
-            second policy check, and `failed` means that the reset returned. The state stays until the
-            next accepted request.
+            The state of the latest request. `none` means that no reboot has been requested since this boot.
+            `refused` also covers a refusal after the `202`, at the second policy check, and `failed` means
+            that the reset returned. The state stays until the next accepted request.
           content:
             application/json:
               schema:
@@ -554,8 +597,10 @@ paths:
                   summary: The reset returned an error
                   value:
                     state: failed
-        '204':
-          description: No reboot has been requested since this boot.
+                none:
+                  summary: No reboot requested since this boot
+                  value:
+                    state: none
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -572,7 +617,11 @@ paths:
         Checks `system.reboot` and the composition's reboot policy, records the event and replies. The
         reset follows after a short delay on a worker, once events and pending saves have had a bounded
         time to finish and the policy has been checked again. Poll `GET /api/v1/system/reboot` for the
-        outcome. A request made while another is pending also gets `202`, and starts nothing new.
+        outcome.
+
+        A request made while another is pending still needs `system.reboot` and passes the CSRF and `Origin`
+        checks. It then gets `202` and starts nothing new. It does not run the policy check, so it cannot
+        produce `423`. The pending request's own check before the reset can still end in `refused`.
       x-crux-access: system.reboot
       security:
         - sessionCookie: []
@@ -619,10 +668,13 @@ components:
       name: id
       in: path
       required: true
-      description: The identifier from a `202`. An unknown or malformed one gets `404`.
+      description: |
+        The identifier from a `202`. On the server, an unknown or malformed one gets `404`, the same as an
+        expired one.
       schema:
         type: string
         pattern: '^[A-Za-z0-9_-]+$'
+        minLength: 22
         maxLength: 64
       example: k3Jq9sZp0vXw2LmN7bYt1A
   headers:
@@ -640,19 +692,20 @@ components:
       schema:
         type: string
     ClearSessionCookies:
-      description: Two `Set-Cookie` lines that clear `crux_session` and `XSRF-TOKEN`.
-      x-crux-set-cookie:
-        - crux_session=; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=0
-        - XSRF-TOKEN=; Secure; SameSite=Strict; Path=/; Max-Age=0
+      description: |
+        Two `Set-Cookie` lines that clear `crux_session` and `XSRF-TOKEN`. See `x-crux-set-cookie` on the
+        response.
       schema:
         type: string
       example: crux_session=; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=0
   responses:
     Busy:
       description: |
-        The route is busy, because the server holds one request per route. The body is empty, and this is
-        how a client tells it from every other response. The request was not processed, so a client
-        retries it.
+        The registered path is busy, because the server holds one request at a time for each registered
+        resource. `GET` and `POST` on one path share it, and all attempt identifiers share one. The body is
+        empty, and this is how a client tells it from every other response. The request was not processed,
+        so a client retries it. The server closes the connection after this response, so a retry costs a
+        new TLS handshake.
     MalformedRequest:
       description: The body is not the expected JSON. It reports no field, so it cannot reveal an account rule.
       content:
@@ -779,7 +832,10 @@ components:
               value:
                 code: origin_rejected
     OriginRejected:
-      description: A login with a missing or wrong `Origin`, which covers login CSRF.
+      description: |
+        A login with a missing or wrong `Origin`. This check covers `POST /api/v1/session` only. The poll
+        that sets the cookies is a public `GET` with no `Origin` check, so this does not close login CSRF on
+        its own. PR #223 lists that for the owner.
       content:
         application/json:
           schema:
@@ -797,8 +853,9 @@ components:
                 code: origin_rejected
     NotFound:
       description: |
-        An unknown or expired attempt. The same form answers any path outside this file, and any item
-        hidden from this session, so that the three cannot be told apart.
+        An unknown or expired attempt. The same form answers a path under a registered route that does not
+        exist, and an item under a registered route that is hidden from this session, so that those cannot be
+        told apart. A path with no registered resource gets the server's plain `404` instead.
       content:
         application/json:
           schema:
@@ -889,11 +946,35 @@ components:
               summary: No save provider
               value:
                 code: not_supported
+    LoginBusy:
+      description: |
+        The two public login routes use this form. It holds `busy` only, so that it cannot reveal the state of
+        the credential store before login, where every login is rejected instead. On `POST /api/v1/session`,
+        the queue is full or a verification is running, and nothing was queued. On the poll, the attempt could
+        not run and has now ended. In both cases the client starts a new attempt after `Retry-After`.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [busy]
+          examples:
+            busy:
+              summary: Busy
+              value:
+                code: busy
     ServiceUnavailable:
       description: |
-        Temporarily unavailable, and the request was not processed. `busy` covers a full login queue, a
-        verification or save already running, a service lock held at this moment, a full session table
-        and the client limit. `not_ready` means a service that has not started or could not start.
+        Temporarily unavailable, and the request was not processed. `busy` covers a full worker queue, a
+        save already running, a service lock held at this moment and the client limit. `not_ready` means a
+        service that has not started or could not start.
       headers:
         Retry-After:
           $ref: '#/components/headers/RetryAfter'
@@ -919,7 +1000,9 @@ components:
   schemas:
     ErrorCode:
       type: string
-      description: Stable error codes. A new code is a change to this file.
+      description: |
+        Stable error codes. A new code is a change to this file. `storage_failed` appears in an attempt result
+        only, and no HTTP error status carries it.
       enum:
         - bad_request
         - invalid_field
@@ -934,6 +1017,7 @@ components:
         - not_supported
         - busy
         - not_ready
+        - storage_failed
     FieldError:
       type: object
       additionalProperties: false
@@ -953,7 +1037,7 @@ components:
             - rule_not_met
     Error:
       type: object
-      description: The JSON error form. Every error body except `409` uses it, and `409` has no body.
+      description: The JSON error form, which every response from the API's own code uses for an error.
       additionalProperties: false
       required: [code]
       properties:
@@ -970,7 +1054,8 @@ components:
       type: string
       description: |
         The text that the application's reboot policy gave, with `reboot_refused` or `refused` only. At most
-        63 bytes, the bound of a status text value, and it follows the same character rule.
+        63 bytes of UTF-8, the bound of a status text value, and it follows the same character rule. The schema
+        counts characters, so the server enforces the byte bound.
       maxLength: 63
     LoginRequest:
       type: object
@@ -989,26 +1074,74 @@ components:
       properties:
         id:
           type: string
-          description: An unguessable identifier for `GET /api/v1/session/attempt/{id}`.
+          description: |
+            The identifier for `GET /api/v1/session/attempt/{id}`, with at least 128 bits from the qualified
+            entropy source. In this alphabet 128 bits take at least 22 characters.
           pattern: '^[A-Za-z0-9_-]+$'
+          minLength: 22
           maxLength: 64
     SessionAttempt:
+      description: |
+        An attempt's result. A login's `rejected` has no `code`. A password change's `rejected` always has
+        one, and `fields` appears only with `invalid_field`.
+      oneOf:
+        - $ref: '#/components/schemas/AttemptOpenOrDone'
+        - $ref: '#/components/schemas/AttemptRejectedWithoutReason'
+        - $ref: '#/components/schemas/AttemptRejectedFields'
+        - $ref: '#/components/schemas/AttemptRejectedCode'
+    AttemptOpenOrDone:
       type: object
       additionalProperties: false
       required: [state]
       properties:
         state:
           type: string
-          enum: [pending, rejected, success]
-        code:
+          enum: [pending, success]
+    AttemptRejectedWithoutReason:
+      type: object
+      description: A rejected login, with no detail.
+      additionalProperties: false
+      required: [state]
+      properties:
+        state:
           type: string
-          description: On a rejected password change only. A rejected login never has it.
-          enum: [invalid_field, storage_failed]
+          enum: [rejected]
+    AttemptRejectedFields:
+      type: object
+      description: A rejected password change, with one entry for each rejected field.
+      additionalProperties: false
+      required: [state, code, fields]
+      properties:
+        state:
+          type: string
+          enum: [rejected]
+        code:
+          allOf:
+            - $ref: '#/components/schemas/ErrorCode'
+            - type: string
+              enum: [invalid_field]
         fields:
           type: array
-          description: With `invalid_field` only.
+          minItems: 1
           items:
             $ref: '#/components/schemas/FieldError'
+    AttemptRejectedCode:
+      type: object
+      description: |
+        A password change that ended for another reason. `storage_failed`: the save failed, the running
+        password is unchanged, and a later boot may use either. `not_ready`: the account service could not run
+        it. `unauthorized`: the session ended while the attempt ran.
+      additionalProperties: false
+      required: [state, code]
+      properties:
+        state:
+          type: string
+          enum: [rejected]
+        code:
+          allOf:
+            - $ref: '#/components/schemas/ErrorCode'
+            - type: string
+              enum: [storage_failed, not_ready, unauthorized]
     CurrentUser:
       type: object
       additionalProperties: false
@@ -1117,7 +1250,9 @@ components:
           enum: [text]
         value:
           type: string
-          description: At most 63 bytes of well-formed UTF-8 with no control characters.
+          description: |
+            At most 63 bytes of well-formed UTF-8 with no control characters. The schema counts characters, so
+            the server enforces the byte bound.
           maxLength: 63
     StatusItemFailed:
       type: object
@@ -1162,7 +1297,7 @@ components:
     NetworkState:
       type: object
       additionalProperties: false
-      required: [running, source, reboot_required]
+      required: [source, reboot_required]
       properties:
         running:
           $ref: '#/components/schemas/Ipv4Settings'
@@ -1170,11 +1305,13 @@ components:
           $ref: '#/components/schemas/Ipv4Settings'
         source:
           type: string
-          description: Where the running values came from at boot.
+          description: Where the composition took its values from at boot.
           enum: [saved, default]
         reboot_required:
           type: boolean
-          description: True when the next boot would apply values that differ from the running ones.
+          description: |
+            True when the next boot would apply values that differ from the running ones, or when nothing is
+            running.
         save:
           $ref: '#/components/schemas/SaveState'
     SaveState:
@@ -1195,13 +1332,26 @@ components:
           type: string
           enum: [pending]
     RebootState:
+      description: The state of the latest reboot request. `refused` always has its `reason`.
+      oneOf:
+        - $ref: '#/components/schemas/RebootStateWithoutReason'
+        - $ref: '#/components/schemas/RebootStateRefused'
+    RebootStateWithoutReason:
       type: object
       additionalProperties: false
       required: [state]
       properties:
         state:
           type: string
-          enum: [pending, refused, failed]
+          enum: [none, pending, failed]
+    RebootStateRefused:
+      type: object
+      additionalProperties: false
+      required: [state, reason]
+      properties:
+        state:
+          type: string
+          enum: [refused]
         reason:
           $ref: '#/components/schemas/RefusalReason'
     RebootAccepted:
