@@ -258,7 +258,7 @@ class RunnerControls(unittest.TestCase):
             image_check.assert_not_called()
 
     def test_normal_recovery_cannot_filter_away_unhealthy_interval(self):
-        rows = [(0, '*** Booting Zephyr OS build v4.4.0 ***'),
+        rows = [(0, '*** Booting Zephyr OS build v4.4.2 ***'),
                 (.01, 'M3_BOOT source=0123456789ab profile=independent-health commands=0 fault_default=off')]
         rows.append((.02, 'M3_RESET support_status=0 supported=0x1f cause_status=0 cause=0x1 clear_status=0 remaining_status=0 remaining=0x0'))
         for n in range(1, 5):

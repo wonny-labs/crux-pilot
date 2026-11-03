@@ -11,7 +11,7 @@ import subprocess
 
 
 def fixture():
-    rows=[(0,'*** Booting Zephyr OS build v4.4.0 ***'),
+    rows=[(0,'*** Booting Zephyr OS build v4.4.2 ***'),
           (.01,'M3_BOOT source=0123456789ab profile=independent-health commands=0 fault_default=off'),
           (.02,'M3_RESET support_status=0 supported=0x1f cause_status=0 cause=0x1 clear_status=0 remaining_status=0 remaining=0x0')]
     presses={8,9,10,14,15,16,20,21,22,26,27,28,32,33,34}
