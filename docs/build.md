@@ -249,6 +249,31 @@ For all existing Python build checks, use `python3 -m unittest discover -s tests
 | Zephyr module or device selection failure | Verify west bootstrap, pinned SDK, selected module checkout, Kconfig prerequisites and board/Devicetree resource ownership |
 | Offline Host check cannot resolve GoogleTest | Run `scripts/bootstrap-host.sh` once to populate the dependency cache before `scripts/check-host.sh` |
 
+## Testing a consumer application
+
+Applications own their tests. Crux adds no test target, Kconfig symbol or public header for them, and it ships no mock per API: write doubles at your application's own port. A passing level implies nothing about another, and `native_sim` is not hardware evidence.
+
+| Level | Entry point | Example in the [out-of-tree consumer](../tests/consumer_poc/README.md) |
+| --- | --- | --- |
+| Unit | Your own CTest. Portable logic behind your own port needs no Crux target | `host/test_periodic.c` |
+| Host integration | The [root `add_subdirectory()` entry point](#external-linux-application-using-crux-source), with `crux_assert_portable_consumer()` on portable targets | `host/test_integration.c` |
+| `native_sim` | `west build` or `west twister` with `EXTRA_ZEPHYR_MODULES`, in a west workspace | `zephyr_test/` |
+| Functional | Standalone `pytest-twister-harness` on a `native_sim` build | `zephyr/`, `functional/` |
+| Hardware | No supported entry point. The internal [device-control tool](../tools/device_control/README.md) is untested on hardware, and any reset or flash needs authorisation for the current task | None |
+
+~~~sh
+west build -b native_sim/native/64 -d <build> <application> -- -DEXTRA_ZEPHYR_MODULES=<crux>
+west twister -p native_sim/native/64 -T <ztest-application> --extra-args=EXTRA_ZEPHYR_MODULES=<crux>
+PYTHONPATH="$ZEPHYR_BASE/scripts/pylib/pytest-twister-harness/src" python3 -m pytest \
+  -p twister_harness.plugin --twister-harness --device-type=native --build-dir=<build> <tests>
+~~~
+
+> **Warning: `EXTRA_ZEPHYR_MODULES` is skipped when there is no west workspace.** With only `ZEPHYR_BASE` set, Zephyr clears `WEST` and processes no modules. The failure is a missing `kconfig_module_dirs.cmake`, then undefined `CRUX_*` symbols, and neither names the cause. Run from a west workspace, whose manifest does not need to list Crux. Without a workspace, `ZEPHYR_MODULES=<crux>` has been shown to configure; that is the only part of it that has been run.
+
+- Do not depend on `ZEPHYR_<NAME>_*` variables for Crux. The module name follows the checkout directory.
+- The harness is upstream code at Alpha status with no version promise, and `west.yml` fixes its revision. It needs `ZEPHYR_BASE` set, plus `pyyaml` and `pykwalify`, which it does not declare.
+- Do not use the harness's `hardware` device type behind a safety claim: it flashes on every launch. The [proposal](test-foundation-proposal.md#pytest-twister-harness-findings) records this and the other gaps.
+
 ## Support and safety boundaries
 
 A successful Linux Host test proves behaviour only for the tested Host setup. Zephyr `native_sim` validates selected simulated integration. EVKB cross-builds do not prove Flash layout safety, UART electrical operation, timing, peripheral access or physical persistence. Firmware download, reset, Flash write/erase and physical validation require separate task-specific approval and verified hardware/provenance.

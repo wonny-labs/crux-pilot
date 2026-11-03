@@ -1,9 +1,11 @@
 # Test foundation for Crux consumer applications
 
-Status: **proposal, not adopted** ([Issue #169](https://github.com/wonny-labs/crux-pilot/issues/169)).
-Nothing here is a supported interface or a requirement until the owner decides the
-[open decisions](#open-decisions). The PoC result is evidence, not adoption. No milestone,
-CI job, runtime code or public API is added by this work.
+Status: **decisions accepted by the owner on 3 November 2026; see [Decisions](#decisions)**
+([Issue #169](https://github.com/wonny-labs/crux-pilot/issues/169)). The boundary below is adopted.
+The [consumer test guide](build.md#testing-a-consumer-application), the maintained
+[out-of-tree consumer](../tests/consumer_poc/README.md) and the
+[device-control tool](../tools/device_control/README.md) implement steps 2 to 4 of the
+[recommended order](#recommended-order). No milestone, CI job, runtime code or public API is added.
 
 Principle: **applications own their tests; Crux makes those tests easy to build, run and
 automate.** Test tooling stays outside the platform runtime: this proposal adds no `crux::` target,
@@ -21,7 +23,7 @@ Evidence: [out-of-tree consumer](../tests/consumer_poc/README.md) and its
 | Host integration | Root `add_subdirectory()`, explicit provider selection, `crux_assert_portable_consumer()` | Scenarios, timing tolerances, the final executable's composition | [External Linux application](build.md#external-linux-application-using-crux-source) |
 | `native_sim` | Zephyr module, Kconfig, the pinned revision in `west.yml` | Ztest applications, `testcase.yaml`, Devicetree and Kconfig choices | `west build` or `west twister` with `EXTRA_ZEPHYR_MODULES` in a west workspace. Listing Crux in the application's manifest is the proposed packaging route; it is not documented and was not run |
 | Functional | Guidance only, plus the Zephyr revision that fixes the harness version | Oracle, console protocol, scenarios | Upstream `pytest-twister-harness`, standalone |
-| Hardware | Proposed: the [device-control tool](#device-control-contract) below. Nothing today | Board profile, fixtures and peers, oracle, the approval to operate, evidence retention | None. `tests/target` is Crux's own suite, not a consumer interface |
+| Hardware | The internal [device-control tool](../tools/device_control/README.md), which has not run on hardware | Board profile, fixtures and peers, oracle, the approval to operate, evidence retention | None. `tests/target` is Crux's own suite, not a consumer interface |
 
 Limits at every level: `native_sim` is not hardware evidence, a passing level implies nothing
 about another level, and nothing here qualifies a physical board.
@@ -40,11 +42,11 @@ about another level, and nothing here qualifies a physical board.
 
 ## Device-control contract
 
-A proposed small Python interface for test tooling on the machine that holds the probe and UART.
-It is a contract only; nothing is implemented. It generalises what `tests/target/conftest.py`
-does for one board: there, the J-Link path, MCU, board, ready marker and POSIX-only locking are
-hardcoded. UART, J-Link and hash handling are also spread across about ten other files in that
-directory.
+A small Python interface for test tooling on the machine that holds the probe and UART,
+implemented in [`tools/device_control`](../tools/device_control/README.md) and tested only with
+fake transports. It generalises what `tests/target/conftest.py` does for one board: there, the
+J-Link path, MCU, board, ready marker and POSIX-only locking are hardcoded. UART, J-Link and hash
+handling are also spread across about ten other files in that directory.
 
 | Operation | Rule |
 | --- | --- |
@@ -62,6 +64,15 @@ authorisation of hardware operations for the current task, and the approval refe
 records it. Applications supply oracles and ready markers; the tool knows no application
 protocol and no product.
 
+The implementation settles these points that the table leaves open:
+
+- The profile separates `board_id`, one physical board and the lock's identity, from `board`, the build target compared with the manifest. Two boards of one type need separate locks.
+- The profile sets an absolute `lock_directory`. A temporary directory can differ between runs, which would silently defeat the lock.
+- DTR, RTS and the console timeouts have no defaults.
+- Every run needs a manifest, even for a reset, so its evidence is tied to an exact image.
+- The verify step is a separate profile command. `flash()` does not reset or wait for boot.
+- `flash` and `verify` commands must name `{image}`, so they act on the file that was hashed. Arguments containing `erase` or `fuse` are rejected; the contents of a script or command file are not checked.
+
 ## Build and flash host split
 
 A consumer may build in a Linux container and keep tools, probe and UART on a separate machine,
@@ -75,11 +86,11 @@ possibly Windows. So the contract assumes no shared filesystem, path layout or o
 3. Evidence returns with its manifest, so the result stays tied to an exact image.
 
 `west flash` is not assumed on the tool host (see the findings below). Pytest runs on the tool
-host in the recommended option; see [decision 4](#open-decisions).
+host; see [decision 4](#decisions).
 
 ## Packaging
 
-- A plain Python package at a path in this repository, consumed through the Crux revision the
+- A plain Python package at `tools/device_control`, consumed through the Crux revision the
   application pins in its `west.yml`. A tool host without west uses an archive of the same
   revision, named in the manifest. **No PyPI package** and no version promise.
 - **Internal until a second consumer uses it.** Until then it can change without compatibility
@@ -131,8 +142,8 @@ safety claim. A hardware tool can keep the same small reading surface (`readline
   when `west topdir` fails, and `zephyr_module.cmake` processes modules only under
   `if(WEST OR ZEPHYR_MODULES)`. With only `ZEPHYR_BASE` set, the failure is a missing
   `kconfig_module_dirs.cmake`, then undefined `CRUX_*` symbols, which does not point at the cause.
-  `ZEPHYR_MODULES` configures successfully there. `docs/build.md` scopes its advice to a west
-  workspace, so it is not wrong, but it does not warn about this.
+  `ZEPHYR_MODULES` configures successfully there. The
+  [consumer test guide](build.md#testing-a-consumer-application) now warns about this.
 - A consumer's own west workspace that does not list Crux works with `EXTRA_ZEPHYR_MODULES`. In
   the Dev Container layout west already finds Crux, so the variable is redundant there. Only the
   consumer workspace proves it matters.
@@ -141,32 +152,36 @@ safety claim. A hardware tool can keep the same small reading surface (`readline
 
 ## Recommended order
 
-Each step stands alone and needs its own approval; none of it is scheduled by this document.
+Steps 1 to 4 are approved and done, within the limits below. Step 5 is not started and needs its
+own approval.
 
-1. Decide the boundary and the position on doubles (decisions 1 and 2).
-2. Add a short consumer test guide to `docs/build.md` and `tests/README.md`, with the
+1. Done: decide the boundary and the position on doubles (decisions 1 and 2).
+2. Done: add a short consumer test guide to `docs/build.md` and `tests/README.md`, with the
    no-workspace warning above.
-3. Promote the PoC to a maintained check, as `tests/build/test_external_application.py` does for
-   the external fixture, if the owner wants this regression coverage. CI is a separate decision.
-4. Implement the device-control tool with fake transports and no hardware. Test locking and
-   evidence on Linux, macOS and Windows, or record what could not run.
-5. Use it from the first real consumer. Only after that, consider moving `tests/target` onto it,
-   with a separate hardware approval. Migration is excluded from this work.
+3. Done: promote the PoC to a maintained check, as `tests/build/test_external_application.py` does
+   for the external fixture. No workflow file changed. Its Host cases run wherever `tests/build` is
+   discovered, which includes Host CI. Its Zephyr levels are opt-in, and CI for them is a separate
+   decision.
+4. Done for Linux and macOS: implement the device-control tool with fake transports and no hardware,
+   and test locking and evidence. **Windows was not run**; see the
+   [tool's README](../tools/device_control/README.md#tests-and-what-they-do-not-show).
+5. Not started: use it from the first real consumer. Only after that, consider moving `tests/target`
+   onto it, with a separate hardware approval. Migration is excluded from this work.
 
-## Open decisions
+## Decisions
 
-For owner review. Each has a recommendation; none is decided.
+The owner accepted every recommendation on 3 November 2026.
 
-| # | Decision | Recommendation | If decided otherwise |
+| # | Decision | Outcome | Alternative not taken |
 | --- | --- | --- | --- |
-| 1 | Adopt the per-level boundary above? | Yes | Later steps need a new boundary first |
-| 2 | Keep "no mock per API, doubles at the application's port, selective controlled providers"? The I2C and SPI Host loopback fixtures count as controlled providers, not public fakes | Yes | Public fakes would need a change to the messaging position and API review for each |
-| 3 | Is standalone `pytest-twister-harness` the recommended functional entry point, given Alpha status and no version promise? | Yes for `native_sim`, documented as upstream behaviour pinned by `west.yml` | Crux writes and maintains its own process runner |
-| 4 | Where does pytest run with split hosts: on the tool host, or on the build host with a remote agent? | On the tool host: one process, no network protocol to secure | A remote protocol becomes security-sensitive design |
-| 5 | Hardware: a small Crux tool, the harness `hardware` type with a no-op `--flash-command`, or a Crux adapter behind an overridden `device_object` fixture? | A small tool, because gating, evidence and locking would all sit outside the harness anyway. The fixture override is the fallback if keeping `dut` matters | The no-op option accepts the gaps above, with gates only by convention |
-| 6 | Tool location and name, and "internal until a second consumer"? Should the path be protected? | A new top-level `tools/` path, outside runtime CMake. It holds a hardware safety gate, so add it to the `AGENTS.md` protected paths when the tool exists | Unprotected, the gate can be changed without human approval |
-| 7 | Is a reset gate needed separately from flash? | Yes: `AGENTS.md` treats reset as a hardware operation | One combined gate |
-| 8 | Keep `tests/consumer_poc` after this decision? | Keep it if step 3 is approved, otherwise remove it | It stays unmaintained and drifts |
+| 1 | Adopt the per-level boundary above? | Decided: yes | Later steps need a new boundary first |
+| 2 | Keep "no mock per API, doubles at the application's port, selective controlled providers"? The I2C and SPI Host loopback fixtures count as controlled providers, not public fakes | Decided: yes | Public fakes would need a change to the messaging position and API review for each |
+| 3 | Is standalone `pytest-twister-harness` the recommended functional entry point, given Alpha status and no version promise? | Decided: yes for `native_sim`, documented as upstream behaviour pinned by `west.yml` | Crux writes and maintains its own process runner |
+| 4 | Where does pytest run with split hosts: on the tool host, or on the build host with a remote agent? | Decided: on the tool host; one process, no network protocol to secure | A remote protocol becomes security-sensitive design |
+| 5 | Hardware: a small Crux tool, the harness `hardware` type with a no-op `--flash-command`, or a Crux adapter behind an overridden `device_object` fixture? | Decided: a small tool, because gating, evidence and locking would all sit outside the harness anyway. The fixture override is the fallback if keeping `dut` matters | The no-op option accepts the gaps above, with gates only by convention |
+| 6 | Tool location and name, and "internal until a second consumer"? Should the path be protected? | Decided: a new top-level `tools/` path, outside runtime CMake, added to the `AGENTS.md` protected paths because it holds a hardware safety gate | Unprotected, the gate can be changed without human approval |
+| 7 | Is a reset gate needed separately from flash? | Decided: yes; `AGENTS.md` treats reset as a hardware operation | One combined gate |
+| 8 | Keep `tests/consumer_poc` after this decision? | Decided: keep it, because step 3 is approved | It stays unmaintained and drifts |
 
 The objection from [#60](https://github.com/wonny-labs/crux-pilot/issues/60) was no recurring
 consumer and a duplicated oracle. Here the oracle belongs to the application, so nothing is
