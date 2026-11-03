@@ -34,7 +34,7 @@ See the [architecture overview](docs/architecture.md) for component ownership, p
 | RT1170-EVK Rev A1 Cortex-M7 | Second board, software scope of M6 and M7 (cross-build, identification, review); hardware verification deferred to [#155](https://github.com/wonny-labs/crux-pilot/issues/155), not qualified |
 | Production Embedded Linux | Future platform variant, not currently implemented or qualified |
 
-Host tests, `native_sim` runs and target cross-builds do not prove physical operation. The M4 Pilot has selected microSD with Zephyr VFS/FatFs for writable File storage instead of QSPI NOR. Settings file-backed persistence remains under evaluation, and RT1060 physical storage persistence and recovery are not yet qualified. See the [current storage decision](https://github.com/wonny-labs/crux-pilot/issues/14).
+Host tests, `native_sim` runs and target cross-builds do not prove physical operation. The M4 Pilot has selected microSD with Zephyr VFS/FatFs for writable File storage instead of QSPI NOR. The Zephyr Settings File backend is qualified on `native_sim` only, with corrections staged in the test fixture. Physical microSD evidence (one board, one card) covers mount, reboot persistence and power-cut cases; it is not a qualification of the board, the card or the Settings File backend. See the [current storage decision](https://github.com/wonny-labs/crux-pilot/issues/14).
 
 ## Getting started
 
