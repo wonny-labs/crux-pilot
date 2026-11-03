@@ -127,7 +127,7 @@ access_account_t *crux_access_table_find(access_table_t *table, const char *user
 bool crux_access_password_acceptable(const char *password, size_t length);
 
 /* Session table. The state lock is held for every function here. */
-bool crux_access_slot_reserve(crux_access_channel_t channel, uint64_t now_ms, size_t *slot,
+bool crux_access_slot_reserve(const crux_access_origin_t *origin, uint64_t now_ms, size_t *slot,
                               access_expired_t *expired);
 void crux_access_slot_cancel(size_t slot);
 crux_access_session_t crux_access_slot_activate(size_t slot, const char *user, size_t role_index,
@@ -155,8 +155,9 @@ bool crux_access_record_decode(const uint8_t *record, size_t length, access_tabl
 
 /* Verifies an account's password under the login delay and the verification slot, with no session
  * involved. Takes the state lock itself, and needs no lock held. */
-crux_access_result_t crux_access_verify_current(const char *user, const char *password,
-                                                size_t length, const crux_access_origin_t *origin,
+crux_access_result_t crux_access_verify_current(const char *user,
+                                                const crux_access_origin_t *origin,
+                                                const char *password, size_t length,
                                                 uint32_t *retry_after_ms, uint64_t *change_number);
 /* Step 9 of the login sequence. Takes the change lock itself, and leaves sessions alone. */
 void crux_access_change_upgrade(const char *user, uint64_t change_number, const char *password,

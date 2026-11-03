@@ -57,14 +57,14 @@ static bool slot_claim_free(crux_access_channel_t channel, size_t *slot_index)
     return false;
 }
 
-bool crux_access_slot_reserve(crux_access_channel_t channel, uint64_t now_ms, size_t *slot_index,
-                              access_expired_t *expired)
+bool crux_access_slot_reserve(const crux_access_origin_t *origin, uint64_t now_ms,
+                              size_t *slot_index, access_expired_t *expired)
 {
-    if (slot_claim_free(channel, slot_index)) {
+    if (slot_claim_free(origin->channel, slot_index)) {
         return true;
     }
     slots_reclaim_expired(now_ms, expired);
-    return slot_claim_free(channel, slot_index);
+    return slot_claim_free(origin->channel, slot_index);
 }
 
 void crux_access_slot_cancel(size_t slot_index)

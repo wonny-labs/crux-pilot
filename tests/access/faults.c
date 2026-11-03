@@ -3,6 +3,7 @@
 #include "access_test.h"
 
 #include <pthread.h>
+#include <stdatomic.h>
 
 #define ADMIN ACCESS_TEST_ADMIN
 #define USER ACCESS_TEST_USER
@@ -347,9 +348,13 @@ static void provider_failure_cases(void)
 /* --- A lock that cannot be taken: linked with --wrap=crux_mutex_lock. --- */
 
 static bool fail_locks;
+/* The linker's --wrap option fixes these names. */
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 crux_status_t __real_crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms);
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 crux_status_t __wrap_crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms);
 
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 crux_status_t __wrap_crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
 {
     return fail_locks ? CRUX_ERR_IO : __real_crux_mutex_lock(mutex, timeout_ms);
@@ -435,14 +440,14 @@ static void *login_worker(void *context)
 
 typedef struct {
     crux_access_session_t admin;
-    volatile bool stop;
+    atomic_bool stop;
     unsigned changes;
 } change_worker_t;
 
 static void *change_worker(void *context)
 {
     change_worker_t *worker = context;
-    while (!worker->stop) {
+    while (!atomic_load(&worker->stop)) {
         /* Changes that do not affect the worker's own session. */
         if (crux_access_account_disable(worker->admin, "carol") == CRUX_ACCESS_OK &&
             crux_access_account_enable(worker->admin, "carol") == CRUX_ACCESS_OK) {
@@ -461,7 +466,7 @@ static void concurrent_login_cases(void)
     enum { WORKERS = 4 };
     login_worker_t workers[WORKERS];
     pthread_t threads[WORKERS];
-    change_worker_t changer = {admin, false, 0};
+    change_worker_t changer = {.admin = admin};
     pthread_t changer_thread;
     CHECK(pthread_create(&changer_thread, NULL, change_worker, &changer) == 0);
     for (uint32_t index = 0; index < WORKERS; ++index) {
@@ -473,12 +478,11 @@ static void concurrent_login_cases(void)
         CHECK(pthread_join(threads[index], NULL) == 0);
         ok += workers[index].ok;
     }
-    changer.stop = true;
+    atomic_store(&changer.stop, true);
     CHECK(pthread_join(changer_thread, NULL) == 0);
     CHECK(changer.changes > 0);
     /* Every slot and verification claim was released, once the delay state has decayed. */
     access_fake_clock_advance(CRUX_ACCESS_DELAY_QUIET_MS);
-    admin = access_test_session(ADMIN, PASSWORD, &access_test_serial);
     crux_access_session_t session = access_test_session(USER, PASSWORD, &access_test_web_other);
     CHECK(crux_access_check(session, "status.read") == CRUX_ACCESS_OK);
     printf("Concurrent logins: %u succeeded, %u changes applied\n", ok, changer.changes);

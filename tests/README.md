@@ -463,3 +463,14 @@ root entry point. External System profiles preserve parent testing/languages,
 exercise C17/C++17 public usage, reject conflicting providers and exclude
 unrelated components. The existing System contract and native ownership checks
 remain unchanged.
+
+## Portable Access control
+
+Access control (Issue #177): the root Host suite runs `tests/access` with fake ports, a controllable clock and
+fault injection, as `Access.*` in CTest. These fakes are a test composition: they exist only when Crux builds its
+own tests, and no provider setting can select them for a product image.
+`scripts/test-access.sh` also runs them under the sanitizer preset, runs clang-tidy on the Access sources and
+runs `scripts/check-access-boundary.py`. That check configures and builds `tests/access_consumer` in both directions:
+a project cannot reach the adapter header, and a service that links the adapter target privately is still accepted.
+No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
+[Access contract](../docs/access-contract.md).

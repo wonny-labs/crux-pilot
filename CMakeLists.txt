@@ -151,6 +151,8 @@ endif()
 
 include(cmake/CruxConsumerBoundary.cmake)
 cmake_language(DEFER CALL crux_assert_portable_usage ${_crux_public_targets})
+include(cmake/CruxAccessBoundary.cmake)
+cmake_language(DEFER CALL crux_assert_access_adapter_unreachable ${_crux_public_targets})
 if(TARGET crux_time_commands)
     cmake_language(DEFER CALL crux_assert_portable_consumer crux_time_commands)
 endif()

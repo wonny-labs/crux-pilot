@@ -276,6 +276,8 @@ static void guessing_bound_cases(void)
     unsigned most = 0;
     for (size_t index = 0; index < sizeof(waits_ms) / sizeof(waits_ms[0]); ++index) {
         unsigned guesses = guess_for_a_day(waits_ms[index]);
+        printf("Waiting %llu ms after each failure: %u guesses in a day\n",
+               (unsigned long long)waits_ms[index], guesses);
         most = guesses > most ? guesses : most;
         CHECK(guesses <= 1500);
     }

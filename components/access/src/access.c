@@ -336,8 +336,8 @@ crux_access_result_t crux_access_check(crux_access_session_t session, const char
 
 typedef enum { QUERY_USER, QUERY_ROLE } query_kind_t;
 
-static crux_access_result_t session_name_query(crux_access_session_t session, char *name,
-                                               size_t size, query_kind_t kind)
+static crux_access_result_t session_name_query(crux_access_session_t session, query_kind_t kind,
+                                               char *name, size_t size)
 {
     if (!crux_access_state.ready) {
         return CRUX_ACCESS_ERR_NOT_READY;
@@ -372,13 +372,13 @@ static crux_access_result_t session_name_query(crux_access_session_t session, ch
 crux_access_result_t crux_access_session_user(crux_access_session_t session, char *name,
                                               size_t size)
 {
-    return session_name_query(session, name, size, QUERY_USER);
+    return session_name_query(session, QUERY_USER, name, size);
 }
 
 crux_access_result_t crux_access_session_role(crux_access_session_t session, char *name,
                                               size_t size)
 {
-    return session_name_query(session, name, size, QUERY_ROLE);
+    return session_name_query(session, QUERY_ROLE, name, size);
 }
 
 crux_access_result_t crux_access_session_must_change_password(crux_access_session_t session,

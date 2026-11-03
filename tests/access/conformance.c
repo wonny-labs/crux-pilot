@@ -200,6 +200,32 @@ static void provisioning_cases(const access_test_profile_t *profile)
     CHECK(crux_access_check(session, CRUX_ACCESS_PERMISSION_MANAGE) == CRUX_ACCESS_OK);
 }
 
+static const access_test_profile_t *nested_profile;
+static crux_access_result_t nested_result;
+
+static void hook_nested_provision(void *context)
+{
+    (void)context;
+    nested_result = provision("first", nested_profile->password, nested_profile->administrator_role,
+                              &access_test_serial);
+}
+
+/* Two provisioning attempts that both saw it open: the second to finish is refused. */
+static void concurrent_provisioning_cases(const access_test_profile_t *profile)
+{
+    access_test_boot(&profile->policy);
+    nested_profile = profile;
+    nested_result = CRUX_ACCESS_ERR_NOT_READY;
+    access_fake_derive_hook(hook_nested_provision, NULL);
+    CHECK(provision("second", profile->password, profile->administrator_role,
+                    &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
+    CHECK(nested_result == CRUX_ACCESS_OK);
+    crux_access_session_t session = {0};
+    CHECK(access_test_login("second", profile->password, &access_test_web, &session) ==
+          CRUX_ACCESS_ERR_DENIED);
+    (void)access_test_session("first", profile->password, &access_test_web);
+}
+
 static void permission_cases(const access_test_profile_t *profile)
 {
     access_test_boot(&profile->policy);
@@ -378,6 +404,8 @@ static void argument_cases(const access_test_profile_t *profile)
     crux_access_session_t session = {0};
     uint32_t retry_after_ms = 0;
     crux_access_origin_t bad_channel = access_test_web;
+    /* Deliberately out of range, to test that the contract rejects it. */
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     bad_channel.channel = (crux_access_channel_t)7;
     crux_access_origin_t bad_length = access_test_web;
     bad_length.source_length = 17;
@@ -418,6 +446,7 @@ static void suite(const access_test_profile_t *profile)
 {
     init_cases(profile);
     provisioning_cases(profile);
+    concurrent_provisioning_cases(profile);
     permission_cases(profile);
     unauthenticated_and_stale_cases(profile);
     expiry_cases(profile);

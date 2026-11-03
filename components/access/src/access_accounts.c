@@ -14,6 +14,7 @@ static crux_access_result_t authorise(crux_access_session_t session, requirement
                                       const char *target, actor_t *actor)
 {
     access_expired_t expired = {0};
+    memset(actor, 0, sizeof(*actor));
     if (!crux_access_lock_state()) {
         return CRUX_ACCESS_ERR_NOT_READY;
     }
@@ -107,7 +108,12 @@ static crux_access_result_t change_commit(change_effect_t effect)
         crux_access_slots_end_account(effect.changed_user, effect.keep_value);
     }
     if (effect.keep_value != 0) {
-        state->slots[effect.keep_value >> ACCESS_SLOT_SHIFT].must_change_password = false;
+        /* The session may have logged out during the save, and its slot may have been reused. */
+        access_slot_t *kept = &state->slots[effect.keep_value >> ACCESS_SLOT_SHIFT];
+        if (kept->state == ACCESS_SLOT_ACTIVE &&
+            kept->generation == (effect.keep_value & ACCESS_GENERATION_MASK)) {
+            kept->must_change_password = false;
+        }
     }
     crux_access_unlock_state();
     crux_access_secure_zero(&crux_access_state.pending, sizeof(crux_access_state.pending));
@@ -225,15 +231,17 @@ crux_access_result_t crux_access_account_create(crux_access_session_t session, c
     if (!crux_access_state.ready) {
         return CRUX_ACCESS_ERR_NOT_READY;
     }
-    size_t role_index = 0;
-    if (password == NULL || !crux_access_name_valid(user) ||
-        !crux_access_role_find(role, &role_index)) {
+    if (password == NULL || role == NULL || !crux_access_name_valid(user)) {
         return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
     }
     actor_t actor;
     crux_access_result_t result = authorise(session, REQUIRE_MANAGE, NULL, &actor);
     if (result != CRUX_ACCESS_OK) {
         return result;
+    }
+    size_t role_index = 0;
+    if (!crux_access_role_find(role, &role_index)) {
+        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
     }
     if (!crux_access_password_acceptable(password, length)) {
         return CRUX_ACCESS_ERR_PASSWORD_REJECTED;
@@ -370,14 +378,18 @@ crux_access_result_t crux_access_account_set_role(crux_access_session_t session,
     if (!crux_access_state.ready) {
         return CRUX_ACCESS_ERR_NOT_READY;
     }
-    size_t role_index = 0;
-    if (!crux_access_name_valid(user) || !crux_access_role_find(role, &role_index)) {
+    if (role == NULL || !crux_access_name_valid(user)) {
         return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
     }
     actor_t actor;
     crux_access_result_t result = change_begin(session, REQUIRE_MANAGE, NULL, &actor);
     if (result != CRUX_ACCESS_OK) {
         return result;
+    }
+    size_t role_index = 0;
+    if (!crux_access_role_find(role, &role_index)) {
+        change_abandon();
+        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
     }
     access_account_t *account = crux_access_table_find(&crux_access_state.pending, user, NULL);
     if (account == NULL) {
@@ -482,7 +494,7 @@ crux_access_result_t crux_access_account_change_password(crux_access_session_t s
         return CRUX_ACCESS_ERR_DENIED;
     }
     uint64_t change_number = 0;
-    result = crux_access_verify_current(actor.user, current, current_length, &actor.origin,
+    result = crux_access_verify_current(actor.user, &actor.origin, current, current_length,
                                         retry_after_ms, &change_number);
     if (result != CRUX_ACCESS_OK) {
         return result;

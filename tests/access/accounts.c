@@ -3,6 +3,8 @@
 #include "access_test.h"
 
 #include <pthread.h>
+#include <stdatomic.h>
+#include <time.h>
 
 #define ADMIN ACCESS_TEST_ADMIN
 #define USER ACCESS_TEST_USER
@@ -28,6 +30,7 @@ static bool account_info(crux_access_session_t admin, const char *user,
 {
     crux_access_account_info_t accounts[CRUX_ACCESS_ACCOUNT_MAX];
     size_t count = 0;
+    memset(info, 0, sizeof(*info));
     CHECK(crux_access_account_list(admin, accounts, CRUX_ACCESS_ACCOUNT_MAX, &count) ==
           CRUX_ACCESS_OK);
     for (size_t index = 0; index < count; ++index) {
@@ -422,9 +425,27 @@ static snapshot_t snapshot(crux_access_session_t admin)
     return result;
 }
 
+static bool same_snapshot(const snapshot_t *left, const snapshot_t *right)
+{
+    if (left->count != right->count) {
+        return false;
+    }
+    for (size_t index = 0; index < left->count; ++index) {
+        const crux_access_account_info_t *one = &left->accounts[index];
+        const crux_access_account_info_t *other = &right->accounts[index];
+        if (strcmp(one->user, other->user) != 0 || strcmp(one->role, other->role) != 0 ||
+            one->enabled != other->enabled ||
+            one->must_change_password != other->must_change_password ||
+            one->key_count != other->key_count) {
+            return false;
+        }
+    }
+    return true;
+}
+
 static void expect_same(const snapshot_t *left, const snapshot_t *right)
 {
-    CHECK(memcmp(left, right, sizeof(*left)) == 0);
+    CHECK(same_snapshot(left, right));
 }
 
 /* Applies a change. Each must leave state and medium unchanged if the save fails. */
@@ -475,23 +496,32 @@ static const change_t changes[] = {change_create,     change_remove,         cha
                                    change_remove_key, change_enable_disabled};
 #define CHANGE_COUNT (sizeof(changes) / sizeof(changes[0]))
 
-static void prepare_store_case(crux_access_session_t *admin, crux_access_session_t *user)
+typedef struct {
+    crux_access_session_t admin;
+    crux_access_session_t user;
+} store_case_t;
+
+static store_case_t prepare_store_case(void)
 {
+    store_case_t sessions;
     access_test_boot_with_admin();
-    *admin = admin_session();
-    access_test_create_user(*admin);
-    CHECK(crux_access_account_add_key(*admin, USER, key_one, sizeof(key_one)) == CRUX_ACCESS_OK);
-    CHECK(crux_access_account_create(*admin, "disabled", "viewer", PASSWORD, strlen(PASSWORD)) ==
+    sessions.admin = admin_session();
+    access_test_create_user(sessions.admin);
+    CHECK(crux_access_account_add_key(sessions.admin, USER, key_one, sizeof(key_one)) ==
           CRUX_ACCESS_OK);
-    CHECK(crux_access_account_disable(*admin, "disabled") == CRUX_ACCESS_OK);
-    *user = access_test_session(USER, PASSWORD, &access_test_web);
+    CHECK(crux_access_account_create(sessions.admin, "disabled", "viewer", PASSWORD,
+                                     strlen(PASSWORD)) == CRUX_ACCESS_OK);
+    CHECK(crux_access_account_disable(sessions.admin, "disabled") == CRUX_ACCESS_OK);
+    sessions.user = access_test_session(USER, PASSWORD, &access_test_web);
+    return sessions;
 }
 
 static void save_failure_cases(void)
 {
     for (size_t index = 0; index < CHANGE_COUNT; ++index) {
-        crux_access_session_t admin, user;
-        prepare_store_case(&admin, &user);
+        const store_case_t sessions = prepare_store_case();
+        crux_access_session_t admin = sessions.admin;
+        const crux_access_session_t user = sessions.user;
         snapshot_t before = snapshot(admin);
         uint8_t medium[CRUX_ACCESS_RECORD_SIZE_MAX];
         size_t medium_length = 0;
@@ -519,8 +549,7 @@ static void save_failure_cases(void)
 
     /* A change of one's own password that cannot be saved keeps the old one, and the restriction.
      */
-    crux_access_session_t admin, user;
-    prepare_store_case(&admin, &user);
+    const crux_access_session_t user = prepare_store_case().user;
     uint32_t retry_after_ms = 0;
     access_fake_store_save_mode(ACCESS_FAKE_SAVE_FAIL);
     CHECK(crux_access_account_change_password(user, PASSWORD, strlen(PASSWORD), OTHER_PASSWORD,
@@ -534,8 +563,8 @@ static void save_failure_cases(void)
 static void power_loss_cases(void)
 {
     for (size_t index = 0; index < CHANGE_COUNT; ++index) {
-        crux_access_session_t admin, user;
-        prepare_store_case(&admin, &user);
+        const store_case_t sessions = prepare_store_case();
+        crux_access_session_t admin = sessions.admin;
         snapshot_t before = snapshot(admin);
 
         access_fake_store_save_mode(ACCESS_FAKE_SAVE_POWER_LOSS_BEFORE);
@@ -554,7 +583,7 @@ static void power_loss_cases(void)
         access_fake_store_save_mode(ACCESS_FAKE_SAVE_OK);
         admin = admin_session();
         snapshot_t new_table = snapshot(admin);
-        CHECK(memcmp(&before, &new_table, sizeof(before)) != 0);
+        CHECK(!same_snapshot(&before, &new_table));
     }
 }
 
@@ -692,6 +721,56 @@ static void hook_add_key_to_user(void *context)
     CHECK(crux_access_account_add_key(*admin, USER, key_one, sizeof(key_one)) == CRUX_ACCESS_OK);
 }
 
+/* A session that logs out during its own save must not lift another account's restriction when the
+ * slot is reused before the change is applied. */
+typedef struct {
+    crux_access_session_t maker;
+    crux_access_session_t reused;
+} slot_reuse_t;
+
+static void hook_logout_and_reuse_slot(void *context)
+{
+    slot_reuse_t *reuse = context;
+    crux_access_session_t ended = reuse->maker;
+    crux_access_logout(&ended);
+    reuse->reused = access_test_session("forced", OTHER_PASSWORD, &access_test_web);
+}
+
+static void kept_session_reuse_cases(void)
+{
+    access_test_boot_with_admin();
+    crux_access_session_t admin = access_test_session(ADMIN, PASSWORD, &access_test_serial);
+    access_test_create_user(admin);
+    CHECK(crux_access_account_create(admin, "forced", "viewer", PASSWORD, strlen(PASSWORD)) ==
+          CRUX_ACCESS_OK);
+    CHECK(crux_access_account_reset_password(admin, "forced", OTHER_PASSWORD,
+                                             strlen(OTHER_PASSWORD)) == CRUX_ACCESS_OK);
+    slot_reuse_t reuse = {access_test_session(USER, PASSWORD, &access_test_web), {0}};
+    uint32_t retry_after_ms = 0;
+    access_fake_store_save_hook(hook_logout_and_reuse_slot, &reuse);
+    CHECK(crux_access_account_change_password(reuse.maker, PASSWORD, strlen(PASSWORD),
+                                              OTHER_PASSWORD, strlen(OTHER_PASSWORD),
+                                              &retry_after_ms) == CRUX_ACCESS_OK);
+    CHECK(reuse.reused.value >> 24 == reuse.maker.value >> 24);
+    bool required = false;
+    CHECK(crux_access_session_must_change_password(reuse.reused, &required) == CRUX_ACCESS_OK);
+    CHECK(required);
+    CHECK(crux_access_check(reuse.reused, "status.read") == CRUX_ACCESS_ERR_DENIED);
+}
+
+/* Role names are policy, and an invalid session must not learn which ones exist. */
+static void role_disclosure_cases(void)
+{
+    access_test_boot_with_admin();
+    crux_access_session_t none = {0};
+    const size_t length = strlen(PASSWORD);
+    CHECK(crux_access_account_create(none, "bob", "no-role", PASSWORD, length) ==
+          crux_access_account_create(none, "bob", "viewer", PASSWORD, length));
+    CHECK(crux_access_account_create(none, "bob", "no-role", PASSWORD, length) ==
+          CRUX_ACCESS_ERR_SESSION_INVALID);
+    CHECK(crux_access_account_set_role(none, ADMIN, "no-role") == CRUX_ACCESS_ERR_SESSION_INVALID);
+}
+
 static void change_during_derivation_cases(void)
 {
     uint32_t retry_after_ms = 0;
@@ -800,11 +879,25 @@ static void concurrent_rivals(int action)
 
 static rival_t ordered_rival;
 static pthread_t ordered_thread;
+static atomic_bool ordered_finished;
 
+static void *ordered_rival_thread(void *context)
+{
+    (void)rival_thread(context);
+    atomic_store(&ordered_finished, true);
+    return NULL;
+}
+
+/* The rival gets ample time to finish during the save. Only the change lock can stop it, and if it
+ * finishes here, both administrators could disable each other and leave none. */
 static void hook_start_rival(void *context)
 {
     (void)context;
-    CHECK(pthread_create(&ordered_thread, NULL, rival_thread, &ordered_rival) == 0);
+    atomic_store(&ordered_finished, false);
+    CHECK(pthread_create(&ordered_thread, NULL, ordered_rival_thread, &ordered_rival) == 0);
+    const struct timespec wait = {.tv_sec = 0, .tv_nsec = 100000000};
+    (void)nanosleep(&wait, NULL);
+    CHECK(!atomic_load(&ordered_finished));
 }
 
 static void last_administrator_concurrency_cases(void)
@@ -813,7 +906,7 @@ static void last_administrator_concurrency_cases(void)
         concurrent_rivals(round % 3);
     }
 
-    /* The rival starts while the first change holds the change lock in its save. */
+    /* The rival starts while the first change holds the change lock in its save, and must wait. */
     access_test_boot_with_admin();
     crux_access_session_t first = admin_session();
     CHECK(crux_access_account_create(first, "second", "administrator", PASSWORD,
@@ -843,5 +936,7 @@ int main(void)
     check_does_not_wait_cases();
     change_during_derivation_cases();
     last_administrator_concurrency_cases();
+    kept_session_reuse_cases();
+    role_disclosure_cases();
     return access_test_finish("Access accounts");
 }

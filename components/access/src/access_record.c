@@ -52,9 +52,8 @@ static void put_u32(writer_t *writer, uint32_t value)
 
 static void put_name(writer_t *writer, const char *name)
 {
-    uint8_t padded[CRUX_ACCESS_NAME_SIZE] = {0};
-    size_t length = strlen(name);
-    memcpy(padded, name, length);
+    char padded[CRUX_ACCESS_NAME_SIZE] = {0};
+    crux_access_copy_name(padded, name);
     put_bytes(writer, padded, sizeof(padded));
 }
 

@@ -37,8 +37,7 @@ static void verification_prepare(const char *user, verification_t *verification)
     memcpy(verification->derived, account->derived, sizeof(verification->derived));
 }
 
-/* Derives and compares in constant time, clearing internal copies. False means a provider failure.
- */
+/* Derives, compares in constant time and clears internal copies. False is a provider failure. */
 static bool verification_run(verification_t *verification, const char *password, size_t length,
                              bool *matched)
 {
@@ -76,8 +75,9 @@ static crux_access_result_t verification_claim(crux_access_channel_t channel,
     return CRUX_ACCESS_OK;
 }
 
-crux_access_result_t crux_access_verify_current(const char *user, const char *password,
-                                                size_t length, const crux_access_origin_t *origin,
+crux_access_result_t crux_access_verify_current(const char *user,
+                                                const crux_access_origin_t *origin,
+                                                const char *password, size_t length,
                                                 uint32_t *retry_after_ms, uint64_t *change_number)
 {
     access_delay_buckets_t buckets;
@@ -146,8 +146,7 @@ static bool account_may_login(const access_account_t *account, size_t *role_inde
     return account->enabled;
 }
 
-/* Step 7 and 8: read the record again, and in one lock hold create the session or record a failure.
- */
+/* Steps 7 and 8: read the record again, then create the session or record a failure. */
 static crux_access_session_t login_conclude(const char *user, const crux_access_origin_t *origin,
                                             const verification_t *verification, bool matched,
                                             size_t slot, access_delay_buckets_t buckets,
@@ -187,8 +186,7 @@ crux_access_result_t crux_access_login_password(const char *user, const char *pa
                                                 crux_access_session_t *session,
                                                 uint32_t *retry_after_ms)
 {
-    access_state_t *state = &crux_access_state;
-    if (!state->ready) {
+    if (!crux_access_state.ready) {
         return CRUX_ACCESS_ERR_NOT_READY;
     }
     if (password == NULL || session == NULL || retry_after_ms == NULL ||
@@ -219,7 +217,7 @@ crux_access_result_t crux_access_login_password(const char *user, const char *pa
     crux_access_result_t result =
         verification_claim(origin->channel, buckets, now_ms, retry_after_ms);
     if (result == CRUX_ACCESS_OK) {
-        if (crux_access_slot_reserve(origin->channel, now_ms, &slot, &expired)) {
+        if (crux_access_slot_reserve(origin, now_ms, &slot, &expired)) {
             verification_prepare(user, &verification);
         } else {
             *verifying_flag(origin->channel) = false;
@@ -373,7 +371,7 @@ crux_access_result_t crux_access_login_verified(const char *user, const uint8_t 
     bool role_missing = false;
     bool known = account_describe(user, &role_missing);
     if (account_listing_key(user, key, key_length, &role_index) != NULL) {
-        if (crux_access_slot_reserve(origin->channel, now_ms, &slot, &expired)) {
+        if (crux_access_slot_reserve(origin, now_ms, &slot, &expired)) {
             *session = crux_access_slot_activate(slot, user, role_index, false, origin, now_ms);
             result = CRUX_ACCESS_OK;
         } else {
