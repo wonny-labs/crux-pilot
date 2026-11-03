@@ -50,3 +50,12 @@ $ diskutil eraseDisk FAT32 TESTCARD MBRFormat disk5
                           SHA-256 ad5dc1725525b3889fae9f1037ad5f9baca84655a6621fe8843cffead05b20f0 for both)
   /settings is empty. Root: .Spotlight-V100, ._files, ._settings, files, settings (listed after a
   read-only re-mount; the earlier listings also showed .fseventsd, which this listing lacks; why was not investigated).
+
+== After the card-removal run
+  $ diskutil verifyVolume disk5s1   (unmounted, fsck_msdos -n)
+  Warning: 119 files, 15540024 KiB free (1942503 clusters)
+  File system check exit code is 0
+  Mounted read-only. /files: f626f6f74636f756e74 (bootcount, 1 byte, "2"), f7061747465726e (pattern, 4096 bytes,
+  SHA-256 prefix ad5dc1725525b3889fae9f10, same as pattern.expected), f70726f6265 ("probe", 32 bytes, all 0x00:
+  the probe's record is a zero-filled 32-byte array). /settings is empty. Root: .Spotlight-V100, ._files,
+  ._settings, .fseventsd, files, settings.

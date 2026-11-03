@@ -102,8 +102,10 @@ On the same board and card, a blank card (no partition table, no FAT volume) gav
 (`SD_STORAGE_MOUNT_FAILED`) and a FAT32 card without `files` and `settings` gave `3` (`SD_STORAGE_LAYOUT_MISSING`);
 nothing was formatted and no directory was created. With a provisioned card the stack probe left 1,832 B of the
 4,096 B main stack unused (2,264 B used; the probe's own analyzer frames may be included), and `fsck_msdos -n`
-was clean afterwards. One run per state; the M.2 slot was empty (operator-reported) and uSDHC1 ownership was
-not checked against a schematic. Details and limits:
+was clean afterwards. Removing the card while mounted gave `CRUX_FILE_ERR_IO` on the next open, no hang, and the
+application unmount and remount did not bring the volume back after the card was re-seated (`remount=-5`, no
+recovery; a reset mounts it again), which matches "a card swap needs a reboot". One run per state; the M.2 slot was
+empty (operator-reported) and uSDHC1 ownership was not checked against a schematic. Details and limits:
 [docs/evidence/microsd-card-states-stack](evidence/microsd-card-states-stack/README.md).
 
 ## Profile limits and decisions
@@ -159,10 +161,10 @@ new card initialisation (the source suggests the disk reference count never retu
 after a real swap is consistent with the documented reboot-on-swap policy. If the unmount fails the probe
 stays LOST (`remount=-120`, `-EALREADY` on the RT1060 picolibc image, on the console). The stack probe leaves `bootcount` and `pattern` in the File root,
 the removal probe leaves `probe`. The blank-card and wrong-layout cases need a card prepared on a
-host, the M.2 slot and uSDHC1 ownership need the board in hand. The stack probe and the blank and
-wrong-layout cards were run on the board on 3 November 2026
-([evidence](evidence/microsd-card-states-stack/README.md)); the removal probe, the M.2 slot and uSDHC1
-ownership have not been run.
+host, the M.2 slot and uSDHC1 ownership need the board in hand. The stack probe, the removal probe and the
+blank and wrong-layout cards were run on the board on 3 November 2026
+([evidence](evidence/microsd-card-states-stack/README.md)); uSDHC1 ownership has not been checked and the M.2 slot
+was reported empty by the operator.
 
 ## Recovery step for an interrupted compaction (3 November 2026, software only)
 
@@ -183,7 +185,7 @@ tail, orphaned clusters remain, and a cut inside the FAT metadata update has no 
 
 ## Not covered (needs the card and board)
 
-Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted;
+Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted beyond the one run above (no forced driver re-initialisation was tried);
 whether the M.2 Wi-Fi SDIO path shares uSDHC1 on this board (the board devicetree labels the
 same controller `m2_wifi_sdio`; nothing in this repository confirms pin or controller
 ownership); stack use beyond the one probe run (no Settings backend, networking or other threads); cache and DMA placement; and power-loss behaviour beyond the 32-byte append test and the replace-pattern test above (larger
