@@ -3,7 +3,7 @@
 Issue [#14](https://github.com/wonny-labs/crux-pilot/issues/14), acceptance criterion 2.
 This records the approved composition and its evidence. The software evidence is below; the
 physical results (one board, one card: mount, reboot persistence, power cuts) are in their own
-sections and under `docs/evidence`. Removal results do not exist. Nothing here claims hardware
+sections and under `docs/evidence`. The one card-removal run is under "Physical results, 3 November". Nothing here claims hardware
 qualification or product power-loss safety.
 
 ## Decisions in force
@@ -104,7 +104,7 @@ nothing was formatted and no directory was created. With a provisioned card the 
 4,096 B main stack unused (2,264 B used; the probe's own analyzer frames may be included), and `fsck_msdos -n`
 was clean afterwards. Removing the card while mounted gave `CRUX_FILE_ERR_IO` on the next open, no hang, and the
 application unmount and remount did not bring the volume back after the card was re-seated (`remount=-5`, no
-recovery; a reset mounts it again), which matches "a card swap needs a reboot". One run per state; the M.2 slot was
+recovery; flashing the `sd-start` image and resetting mounted the same card), which matches "a card swap needs a reboot". One run per state; the M.2 slot was
 empty (operator-reported) and uSDHC1 ownership was not checked against a schematic. Details and limits:
 [docs/evidence/microsd-card-states-stack](evidence/microsd-card-states-stack/README.md).
 
