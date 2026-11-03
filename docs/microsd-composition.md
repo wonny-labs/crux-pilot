@@ -86,7 +86,7 @@ Static stack frames (`-fstack-usage`, bytes), from a separate build of the same 
 layout check and by every File call alone is about 780 B, and an open about 650 B, before the
 SD driver, disk layers and Crux frames. These frames are a lower bound, not a call-chain
 maximum. The 4,096 B main stack is a choice; its first measured high-water mark is
-2,264 B used with 1,832 B unused in one run on the board (see "Physical results").
+2,264 B used with 1,832 B unused in one run on the board (see "Physical results, 3 November").
 
 ## Physical results (first card runs, 2 November 2026)
 
@@ -95,6 +95,16 @@ On one RT1060-EVKB Rev B and one 16 GB FAT32 (MBR) card the composition mounted 
 across two normal CPU resets; the card was clean under `fsck_msdos -n` and held the expected contents on
 the host afterwards. This is a single run on one card. It is not power-loss, removal, timing or endurance
 evidence. Details and limits: [docs/evidence/microsd-physical](evidence/microsd-physical/README.md).
+
+## Physical results, 3 November 2026 (card states and stack)
+
+On the same board and card, a blank card (no partition table, no FAT volume) gave `sd_storage_start: 2`
+(`SD_STORAGE_MOUNT_FAILED`) and a FAT32 card without `files` and `settings` gave `3` (`SD_STORAGE_LAYOUT_MISSING`);
+nothing was formatted and no directory was created. With a provisioned card the stack probe left 1,832 B of the
+4,096 B main stack unused (2,264 B used; the probe's own analyzer frames may be included), and `fsck_msdos -n`
+was clean afterwards. One run per state; the M.2 slot was empty (operator-reported) and uSDHC1 ownership was
+not checked against a schematic. Details and limits:
+[docs/evidence/microsd-card-states-stack](evidence/microsd-card-states-stack/README.md).
 
 ## Profile limits and decisions
 

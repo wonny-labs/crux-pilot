@@ -20,7 +20,7 @@ still hold the old data; the content of the rest of the card was not read.
 
 == After the blank-card run (card back on the host)
   Device / Media Name: USB3.0 CRW   -SD ; Disk Size 15931539456 B ; File System: None ; Content (IOContent): None
-  (the layout is unchanged; no sector hash was compared, which needs root)
+  (the layout is unchanged; no sector hash was compared: see the README)
 
 == Making the wrong-layout card
 $ diskutil eraseDisk FAT32 TESTCARD MBRFormat disk5
@@ -46,6 +46,7 @@ $ diskutil eraseDisk FAT32 TESTCARD MBRFormat disk5
   File system check exit code is 0
   Mounted read-only. /files holds two files, named by the File provider's hex encoding:
     f626f6f74636f756e74  ("bootcount", 1 byte, content 0x32 = "2")
-    f7061747465726e      ("pattern", 4096 bytes, byte-identical to the pattern file of the 2 November runs;
-                          SHA-256 prefix ad5dc1725525b3889fae for both)
-  /settings is empty. Root: .Spotlight-V100, ._files, ._settings, files, settings.
+    f7061747465726e      ("pattern", 4096 bytes, byte-identical to hw/pattern.expected of the 2 November runs;
+                          SHA-256 ad5dc1725525b3889fae9f1037ad5f9baca84655a6621fe8843cffead05b20f0 for both)
+  /settings is empty. Root: .Spotlight-V100, ._files, ._settings, files, settings (listed after a
+  read-only re-mount; the earlier listings also showed .fseventsd, which this listing lacks; why was not investigated).
