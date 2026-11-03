@@ -1,14 +1,18 @@
 # Portable access control contract proposal
 
-Status: proposal for owner and API review, Issue #177. It refines
+Status: decisions A1 to A7 accepted by the owner; contract not yet adopted, Issue #177. It refines
 [the secure management design](secure-management-design.md) and
 [the web design](secure-management-web-design.md), and it replaces their access control sketches and
 login status codes where they differ. Nothing here authorises implementation, dependency adoption or
 hardware operations. Baseline: main `5569478`, Zephyr v4.4.2.
 
-## Decisions requested
+## Decisions
 
-| ID | Decision | Recommendation |
+The owner accepted A1 to A7 as recommended on 3 November 2026, at about 15:30 GMT: "A1~A7 권장대로 수용할게". This
+settles these directions. It does not establish behaviour, and implementation of the contract still needs its
+own approval and evidence.
+
+| ID | Decision | Recommendation accepted |
 | --- | --- | --- |
 | A1 | Split public and adapter-only headers, so that projects cannot create sessions | Accept |
 | A2 | Use value handles with a generation in place of the pointer in the earlier sketch | Accept |
