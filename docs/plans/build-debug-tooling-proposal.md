@@ -52,7 +52,7 @@ Result: the runner can replace the **Flash** profile only on a machine that has 
 
 ## 5. Change draft
 
-The patch touches five files (section 7 lists the protected ones). It was applied to a scratch clone, never to this tree.
+The patch touches five files (section 7 lists the protected ones). The draft was first applied to a scratch clone.
 
 - `scripts/build-debug-target.sh <board> [--app <dir>] [--debug-optimizations]`. The default is unchanged: Time at `-Os` in `build/zephyr/<board>`. `--app` checks that the directory has a `CMakeLists.txt`. Without either option the directory is unchanged. Otherwise it is `build/zephyr/<board>[--<application path>][--og]`: the application part appears whenever `--app` is given, even for `samples/time`, and `--og` whenever `--debug-optimizations` is given. The directories differ because the script passes configuration arguments only when it creates a build directory, so reusing one could keep a stale choice. An application outside the repository would be keyed by its full sanitised path (not tested).
 - `scripts/debug-optimizations.conf` holds one line, `CONFIG_DEBUG_OPTIMIZATIONS=y`. **Read:** that is the `-Og` member of the optimisation choice (`Kconfig.zephyr:541-545`). `CONFIG_DEBUG=y` would default to it too (`Kconfig.zephyr:515`), but it is a broader switch that was not examined, so it is not used.
