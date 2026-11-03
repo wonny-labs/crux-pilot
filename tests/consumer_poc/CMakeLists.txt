@@ -11,6 +11,9 @@ add_subdirectory("${CRUX_SOURCE_DIR}" crux)
 
 add_library(consumer_periodic STATIC src/periodic.c)
 target_include_directories(consumer_periodic PUBLIC include)
+if(CONSUMER_DEFECT_REBASE)
+    target_compile_definitions(consumer_periodic PRIVATE CONSUMER_DEFECT_REBASE)
+endif()
 
 add_executable(consumer_unit host/test_periodic.c)
 target_link_libraries(consumer_unit PRIVATE consumer_periodic)
