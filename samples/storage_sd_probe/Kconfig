@@ -21,8 +21,9 @@ config SAMPLE_SD_REMOVAL_PROBE
 	bool "Card-removal probe"
 	help
 	  Mounts the card without formatting it and keeps writing one small file, printing the result
-	  codes of every failing step (successful steps print every 25th time). After the first failure it unmounts and retries a remount until the volume returns, so a
-	  removal and reinsertion shows whether recovery needs a reboot.
+	  codes of every failing step (successful steps print every 25th time). After the first failure it unmounts and retries a
+	  remount until the volume returns, so a removal and reinsertion shows whether the application
+	  remount path recovers without a reboot (it does not show whether the disk driver can recover).
 
 endchoice
 

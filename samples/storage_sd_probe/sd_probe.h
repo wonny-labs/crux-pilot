@@ -5,8 +5,8 @@
 
 /* Probes for the microSD physical gate: a workload that exercises the deepest FatFs paths so the
  * stack use can be read afterwards, and a removal probe that keeps writing one small file, reports
- * every result code, and after the first failure tries the documented policy (unmount, then an
- * application remount) until the volume comes back without a reboot. Project code, not a Crux API.
+ * the result codes of every failing step, and after the first failure tries the documented policy
+ * (unmount, then an application remount) until the volume comes back without a reboot. Project code, not a Crux API.
  * Both write to the card; use them only when the physical gate is approved for the current task. */
 
 enum sd_probe_state {

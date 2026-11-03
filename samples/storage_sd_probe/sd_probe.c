@@ -8,7 +8,7 @@
 #define PROBE_A SD_STORAGE_SETTINGS_DIR "/probe.a"
 #define PROBE_B SD_STORAGE_SETTINGS_DIR "/probe.b"
 
-enum { CHUNK = 512, CHUNKS = 128 /* 64 KiB: crosses a cluster boundary */ };
+enum { CHUNK = 512, CHUNKS = 128 /* 64 KiB: spans clusters of up to 32 KiB */ };
 
 static int fail(int code)
 {
