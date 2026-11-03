@@ -54,3 +54,4 @@ manifest:
         - crux-secure-management
   self:
     path: crux-pilot
+    west-commands: scripts/west-commands.yml
