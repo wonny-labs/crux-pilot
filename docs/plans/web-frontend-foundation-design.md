@@ -20,11 +20,13 @@ chooses.
 | W3 | The first screens are a home screen, network settings and reboot | Owner, 3 November 2026 |
 | W4 | Sign-in and forced password change are added to W3, because the other screens cannot be reached without them | Proposal |
 | W5 | Frontend work has its own milestone, M13, and the existing M11 and M12 keep their numbers | Proposal |
-| W6 | Angular support means the API, packaging and security settings work with it, shown by a minimal sample in CI. Crux ships no Angular components. | Proposal |
+| W6 | Angular support means the API, packaging and security settings work with it, shown by a minimal sample in CI and once packaged on `native_sim`. Crux ships no Angular components. | Proposal |
 | W7 | Network settings are saved and take effect at the next boot. There is no live apply. | Proposal |
 | W8 | Static IPv4 comes first, and DHCP is a separate later item | Proposal |
 | W9 | A composition must state its reboot policy explicitly | Proposal |
 | W10 | Crux's own frontend tooling is `tsc`, esbuild and a small mock server, and it does not use Vite | Proposal |
+| W11 | Frontend work with a mock server may run alongside M7 and before gate #183. The secure management design's default is planning only, so this needs the owner's decision. | Proposal |
+| W12 | Each API route and asset is its own registered server resource, and applications use hash routing | Proposal |
 
 W1 changes the plain HTML reference in the web design. A framework is justified here because hand-written DOM code
 is where cross-site scripting mistakes occur as a screen grows, while Preact escapes output by default. It adds one
@@ -66,10 +68,12 @@ session-only and the service filters items by permission.
 | Screen | API | Permission | Backend state |
 | --- | --- | --- | --- |
 | Sign-in | `POST /api/v1/session`, attempt polling, `DELETE`, `GET /api/v1/session/me` | Public for login | #186 |
-| Forced password change | Change own password | `access.self` | #186, #187 |
+| Forced password change | Change own password | Session-only route, with the account service authorising the change, as AC5 in the gate record recommends | #186, #187 |
 | Home | `GET /api/v1/status` | Session-only, filtered per item | #187, with the status service from #180 |
 | Network settings | `GET`, `PUT /api/v1/network` | `network.read`, `network.write` | New service |
 | Reboot | `POST /api/v1/system/reboot` | `system.reboot` | New service |
+
+The built interface itself is public, because a browser must load it before login. It must hold no secret or device data, and every API still checks access. This extends `CRUX_WEB_PUBLIC`, which the web design reserves for login and sign-in assets, to the whole bundle. A public bundle does reveal which screens exist.
 
 Account, file, certificate, firmware and console screens are outside this first set. Account management stays on
 the CLI until then. The first credential stays on the serial console, as the access contract requires.
@@ -81,12 +85,12 @@ disabled, so writing settings is a new capability.
 
 | Topic | Proposal |
 | --- | --- |
-| Values | IPv4 address, prefix length and gateway, stored with the existing `U32` Configuration type |
-| Validation | Unicast address, a usable prefix, and a gateway inside the subnet. Reject with field errors. |
+| Values | IPv4 address, prefix length and optional gateway, stored with the existing `U32` Configuration type. Zero means no gateway, as the samples use today. |
+| Integrity | The Configuration contract saves one key at a time and loads each with its own fallback, so a mixed set could boot. A fourth key holds a check over the other three and is saved last. A mismatch uses the defaults. |
+| Validation | Unicast address, a usable prefix, and a gateway inside the subnet when one is given. Reject with field errors. |
 | Apply | Saved only. The composition reads them at boot and applies them in private native code. |
-| Display | Both running and saved values, with a notice that a reboot is needed |
-| Bad or missing values | The composition's default values are used, and status reports the source |
-| Recovery from a wrong address | A serial command to clear the saved values, added under #181 |
+| Display | `GET /api/v1/network` returns running values, saved values and their source, saved or default, with a notice that a reboot is needed |
+| Recovery from a wrong address | A serial command, delivered with the service in #213 on the #181 registry. Configuration has no clear operation, so it saves a `use_saved` flag as false. It needs a composition with a serial console. |
 | Events | A change is a security event, with no secret involved |
 
 W7 avoids a live change that would cut off the user's own session and leave the device unreachable with no way to
@@ -99,6 +103,8 @@ confirm. A confirm-or-revert apply can be added later.
 - An address change can invalidate a certificate naming the old address, so the certificate work in #190 must state how
   this behaves.
 - DHCP is disabled in the Crux network samples today and has no evidence, which is why W8 defers it.
+- Saved values take effect at any later reset, including a power cut, and not only after the reboot that the user intended. Status and the screen show the difference, but an unintended reset can still apply a wrong address.
+- A product with no serial console needs its own recovery path, or must accept that a wrong address needs service access.
 
 ## Reboot
 
@@ -107,13 +113,13 @@ actions. A web request therefore goes through a service.
 
 1. Check `system.reboot` and the composition's reboot policy.
 2. Record the event and reply `202`, so that the browser gets an answer.
-3. After a short delay on a worker, give events and pending saves a bounded time to finish, then call `crux_system_reset`.
-4. The browser polls until the device answers, and then shows sign-in, because sessions do not survive a reset.
+3. After a short delay on a worker, give events and pending saves a bounded time to finish, and check the policy again, because the machine may have started in the meantime.
+4. Call `crux_system_reset`. If it returns, record the failure and report it through `GET /api/v1/system/reboot`, which returns pending, refused or failed.
+5. The browser polls. The running device also answers, so an answer alone is not success. Success is a session that is no longer valid, because sessions do not survive a reset, and the browser then shows sign-in. If nothing changes before a time limit, it says that the restart was not confirmed.
 
-**Policy (W9).** Rebooting a controller while it runs a machine is a safety matter that only the application can judge.
-A composition must therefore either register a callback that can refuse, returning `409` with a reason, or select an
-explicit always-allow option. It cannot simply leave this unset. The screen asks for confirmation, but that is a usability
-step and not a security control, since the server checks everything.
+Its contract says a native failure may hang, and in that case only a watchdog or an operator can recover.
+
+**Policy (W9).** Rebooting a controller while it runs a machine is a safety matter that only the application can judge. A composition must therefore either register a callback that can refuse, or select an explicit always-allow option. It cannot simply leave this unset. A refusal returns `423` with a reason. The screen asks for confirmation, but that is a usability step and not a security control, since the server checks everything.
 
 On the Host, `crux_system_reset` returns not supported, so tests observe the service's steps with a fake.
 
@@ -124,20 +130,32 @@ been tested here yet.
 
 | Topic | Fact | Requirement |
 | --- | --- | --- |
-| Response headers | A Zephyr static resource has no custom headers, while a dynamic response does | Serve assets through the dynamic path, with headers and `Content-Encoding` set by the adapter |
-| Style policy | Angular inserts styles at run time, so it needs a per-request nonce or `'unsafe-inline'` in `style-src` | A composition setting with two values: strict, or inline styles allowed. Scripts stay `'self'` in both, and no free-form policy string is offered. |
-| CSRF | `HttpClient` by default reads a JavaScript-readable `XSRF-TOKEN` cookie and sends `X-XSRF-TOKEN` on state-changing requests | Use those names. The session cookie stays `HttpOnly`, and the TypeScript client does the same. |
-| Deep links | A browser reload on an application path needs `index.html` | Requests outside `/api/` that match no asset return `index.html`, and `/api/` returns JSON errors |
+| Response headers | A Zephyr static resource has no custom headers, while a dynamic response does | Serve assets as dynamic resources, with headers and `Content-Encoding` set by the adapter |
+| Style policy | Angular inserts styles at run time, so it needs a per-request nonce or `'unsafe-inline'` in `style-src`. Its guide ties `script-src` needs to critical CSS inlining and subresource integrity, which the sample disables. | A composition setting with two values: strict, or inline styles allowed. Scripts stay `'self'` and `frame-ancestors 'none'` stays in both, and no free-form policy string is offered. |
+| CSRF | `HttpClient` by default reads a JavaScript-readable `XSRF-TOKEN` cookie and sends `X-XSRF-TOKEN` on state-changing requests | Use those names. The session cookie stays `HttpOnly`. The token cookie is `Secure`, `SameSite=Strict` and readable, holds a value independent of the session token, and is compared per session in constant time. The TypeScript client does the same. |
+| Deep links | A browser reload on an application path would need `index.html` | Hash routing, which Angular offers with `withHashLocation`, so the server sees only `/` and asset paths. Path-based routing is not supported at first. |
 | Connections | Lazy loading creates many files, and the server default is three clients | A packaging budget for file count and compressed size, failing the build when exceeded |
 | Header capture | Two cookies and more headers exceed the 128-byte, three-header default | Size them against real browsers, as #184 already requires |
 
-The strict setting is the default. Choosing the inline style setting weakens only style injection, and a project should
-record that choice. A nonce would need server-side templating, which the web design excludes.
+The strict setting is the default. Choosing the inline style setting weakens only style injection, which can still restyle a page to mislead a user, and a project should record that choice. A nonce would need server-side templating, which the web design excludes.
 
 **Sample.** `samples/web/angular-minimal` holds sign-in and home using the generated types, and is built in its own CI job
 with its own lockfile. It does not reach feature parity, and Angular versions move only when that sample is updated. It
 also gives the first measured comparison with Preact: compressed size, file count, policy violations and production
 package count.
+
+## Server resource model
+
+The Zephyr HTTP server allows one in-flight request per dynamic resource, recorded in a `holder` field, and it answers a second client with a bare `409`. When a client disconnects, the server releases holders only on registered resources, and it does not walk the service fallback resource. A single catch-all resource would therefore serialise every request, and a client that disconnected mid-request could block the interface until a restart.
+
+W12 follows from this:
+
+- The build generates one registered resource for each API route and asset, from the route table and the packaging step. The fallback resource is not used, which replaces the web design's catch-all and the fallback candidate in #184.
+- Hash routing removes the need for a deep-link fallback.
+- A `GET` completes in one server pass, while a `POST` or `PUT` whose body spans several reads holds its route until the body completes or the inactivity timeout, 10 seconds by default, closes the connection.
+- The client treats a `409` with no JSON body as busy and retries. A refused reboot therefore uses `423`, so that the two cannot be confused.
+
+**Limit.** Anyone who can reach the port can hold a route by sending a partial request without logging in, including the login route. Each attempt is bounded by the timeout, but a flood can keep network login busy while it lasts, like the login delay limit in the access contract, and the serial console is not affected. A slow reader also stalls the single server thread, which bounded send timeouts must limit. #184 measures both.
 
 ## Tooling and supply chain
 
@@ -169,19 +187,18 @@ the folder is missing, configuration fails.
 | Specification check | The mock server and the firmware adapter both conform to the OpenAPI file | M11 for the firmware side |
 | Browser tests on the mock | Each screen, a denied permission, an expired session and the reboot wait | A browser, in CI |
 | Browser tests on `native_sim` | The same tests against real TLS and real sessions, and policy violations | #184, #186, #187 |
-| Packaging tests | Headers, encodings, budgets and `index.html` fallback | M11 |
-| Angular sample | Sign-in and home under the inline style setting | Separate CI job |
+| Packaging tests | Headers, encodings, budgets and a missing folder | M11 |
+| Angular sample | Sign-in and home under the inline style setting, on the mock and once packaged on `native_sim` | Separate CI job, which needs owner approval like every new workflow under `.github/` |
 | Target, separately approved | Load time, connections, Flash and RAM on RT1060-EVKB | One board, one session at a time |
 
 ## Parallel work
 
-Frontend work needs the specification and not the firmware, so it can begin before gate #183. It uses a mock server until the
-real one is available.
+Frontend work needs the specification and not the firmware, so it could begin before gate #183, if the owner accepts W11. It uses a mock server until the real one is available.
 
 | Session | Work | Starts when |
 | --- | --- | --- |
-| Frontend | M13 | The API specification is reviewed |
-| HTTPS | M11, including the specification first | The specification can start now, and the rest after gate #183 |
+| Frontend | M13 | W11 is accepted and #212 is reviewed |
+| HTTPS | M11, with #212 first | #212 can start now, subject to W11, and the rest after gate #183 |
 | SSH | #192, #193 | Gate #183 and #205 |
 | SFTP | #194, then #195 | Gate #183, #205 and #179 |
 
