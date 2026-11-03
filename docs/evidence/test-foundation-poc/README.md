@@ -4,10 +4,10 @@ Evidence for the [test foundation proposal](../../test-foundation-proposal.md), 
 
 ## Revisions and environment
 
-- Crux: `ae7bdbc0a3c59191ad0db0a4c6922ba77a5a1af6`, on top of `origin/main` at `2760f59ef869687ca7f21eef8eb07f12a99a873d`. The commit is local only. The source was this commit's clean worktree, mounted read-only.
+- Crux: `ae7bdbc0a3c59191ad0db0a4c6922ba77a5a1af6`, on top of `origin/main` at `2760f59ef869687ca7f21eef8eb07f12a99a873d`. The commit was local when recorded, so keep it reachable: a squash merge would lose this anchor. The retained files do not themselves name the Crux revision. The source was this commit's clean worktree, mounted read-only.
 - Zephyr v4.4.0, `684c9e8f32e4373a21098559f748f06915f950c9`, the `west.yml` pin. Checkout clean.
 - Image `crux-pilot-dev:latest`, `sha256:dbbf1293a2032554bd9174c44059859e3cf8bc4f1b05b30e2fb093858b8dbbd7`, linux/amd64 emulated on an Apple Silicon Mac, 2 CPUs and 4 GiB as in the Dev Container. Each run used a new throwaway container and the existing `crux-host-cache` volume.
-- Python 3.12.3, pytest 8.3.5, CMake 3.28.4, west 1.4.0, GCC 13.3.0 for `native_sim` (`host_gnu`), Clang 18.1.3 for Host, Zephyr SDK 1.0.1 host tools.
+- Python 3.12.3, pytest 8.3.5, CMake 3.28.4, west 1.4.0, GCC 13.3.0 for `native_sim` (Zephyr's `host` toolchain), Clang 18.1.3 for Host, Zephyr SDK 1.0.1 host tools.
 - Build output was outside the Crux tree, under `/opt/crux-cache/test-foundation/`. `run_poc.sh` copies the fixture there first and refuses an output directory inside the Crux tree.
 
 ## Layouts
@@ -61,7 +61,7 @@ PYTHONPATH="$ZEPHYR_BASE/scripts/pylib/pytest-twister-harness/src" python3 -m py
 
 ## Results
 
-Both layouts, at the revision above.
+Both layouts, at the revision above. `run-summary.txt` in each directory is the script's own output, and the exit codes below come from it.
 
 | Step | Level | Expected exit | Consumer workspace | Dev Container | Result |
 | --- | --- | --- | --- | --- | --- |
@@ -91,14 +91,15 @@ Kept in [probes](probes/). No west workspace; only `ZEPHYR_BASE` was set and Zep
 | `cmake -S .../consumer_poc/zephyr -B ... -DBOARD=native_sim/native/64 -DEXTRA_ZEPHYR_MODULES=/opt/crux-src` | 1 | [Log](probes/no-workspace-extra-modules.log). Missing `kconfig_module_dirs.cmake`, undefined `CRUX_*` symbols. Reproduced; the cause is the `if(WEST OR ZEPHYR_MODULES)` test in `zephyr_module.cmake` |
 | The same with `-DZEPHYR_MODULES=/opt/crux-src` | 0 | [Log](probes/no-workspace-zephyr-modules.log). Configure only, not built |
 | Import of `twister_harness.plugin` and `twister_harness.fixtures` | 0 | [Modules loaded](probes/harness-imports.txt). Four Zephyr files; `yaml` and `pykwalify` load but `setup.cfg` does not declare them |
-| The same import with `ZEPHYR_BASE` unset | Failed | `OSError: ZEPHYR_BASE environment variable is not set` |
+| The same import with `ZEPHYR_BASE` unset | Failed | `OSError: ZEPHYR_BASE environment variable is not set`. Output not retained |
 
 In the Dev Container layout, `west build -b native_sim/native/64 -d ... crux-pilot/tests/consumer_poc/zephyr --cmake-only` with no module variable exited 0 and listed Crux once. The output of this probe was not retained.
 
 ## Other checks on the fixture
 
+- Outputs of these three checks were not retained.
 - `clang-format --dry-run --Werror` on the fixture's C files: pass, with the repository's `.clang-format`.
-- `scripts/check-native-interfaces.py --root`: pass. It does not scan this fixture; `crux_assert_portable_consumer(consumer_app)` is what checks the boundary, and it passed at configure.
+- `scripts/check-native-interfaces.py --root <crux>`: pass. It does not scan this fixture; `crux_assert_portable_consumer(consumer_app)` is what checks the boundary, and it passed at configure.
 - `python3 scripts/check_docs.py` with the proposal and this record staged: pass, exit 0, 0 link errors. Offline; external URLs are not verified.
 
 ## Not run
@@ -108,5 +109,17 @@ In the Dev Container layout, `west build -b native_sim/native/64 -d ... crux-pil
 - `dut.write` or the harness `shell` fixture. The PoC's application only prints. The device-control `write` operation is therefore unexercised.
 - The QEMU adapter, and Twister `harness: pytest`, which [#60](https://github.com/wonny-labs/crux-pilot/issues/60) already covered.
 - The device-control contract and hand-off manifest: proposed, with nothing implemented.
-- The repository's Host, sanitizer and Zephyr suites. No product code, public API or existing suite changed. CI did not run; the branch is local.
+- The repository's Host, sanitizer and Zephyr suites. No product code, public API or existing suite changed. CI did not run; the branch was local when recorded.
 - An application that lists Crux in its own `west.yml` projects, which is the proposal's packaging route. The consumer workspace used a read-only mount and `EXTRA_ZEPHYR_MODULES`.
+
+## Independent review
+
+The repository's `reviewer` agent type could not be loaded in this session (`Agent type 'reviewer' not found`), so a fresh agent on `claude-opus-5-5` was briefed to follow `.claude/agents/reviewer.md`, read-only. It did not write the change. Its tools went beyond the definition's Read, Grep and Glob: it also used a shell for read-only inspection and `gh issue view`. It ran no checks.
+
+First verdict at `89a7c80`: **REVISE**, four factual errors in the proposal: the claim that no testing Kconfig symbol exists, an undocumented entry point labelled as supported, an overstated claim about replacing the `hardware` adapter, and the reset row. All four were fixed in the proposal. The re-check is recorded on the issue.
+
+Other findings, not changed so this record stays tied to the tested fixture. They matter only if the fixture is promoted (proposal step 3):
+
+- `run_poc.sh` `module_is_required` accepts any build failure. The retained log shows the correct cause for this run, but the script does not check it.
+- `run_poc.sh` calls `mkdir` before the inside-the-tree guard, so a refused run leaves an empty directory in the tree.
+- The `type == "native"` assert in `test_functional.py` runs after `dut` has launched, so it cannot prevent a flash. `run_poc.sh` always passes `native`. It must not be read as a safety gate.

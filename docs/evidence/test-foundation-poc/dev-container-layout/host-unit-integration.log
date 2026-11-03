@@ -1,0 +1,79 @@
+-- The C compiler identification is Clang 18.1.3
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang-18 - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Crux Time realtime provider: memory
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Configuring done (6.9s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    FETCHCONTENT_FULLY_DISCONNECTED
+
+
+-- Build files have been written to: /opt/crux-cache/test-foundation/run-devcontainer/host
+[1/28] Building C object crux/components/interrupt/CMakeFiles/crux_interrupt.dir/ports/linux/interrupt_linux.c.o
+[2/28] Building C object CMakeFiles/consumer_periodic.dir/src/periodic.c.o
+[3/28] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/time_types.c.o
+[4/28] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/time.c.o
+[5/28] Building C object CMakeFiles/consumer_app.dir/src/app_run.c.o
+[6/28] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/busy_wait.c.o
+[7/28] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/time_clock.c.o
+[8/28] Building C object crux/components/time/CMakeFiles/crux_time_common.dir/src/time_calendar.c.o
+[9/28] Linking C static library libconsumer_periodic.a
+[10/28] Building C object CMakeFiles/consumer_unit.dir/host/test_periodic.c.o
+[11/28] Building C object CMakeFiles/consumer_integration.dir/host/test_integration.c.o
+[12/28] Linking C static library crux/components/interrupt/libcrux_interrupt.a
+[13/28] Linking C executable consumer_unit
+[14/28] Building C object crux/components/time/CMakeFiles/crux_time_clock_linux.dir/ports/linux/time_clock_linux.c.o
+[15/28] Building C object crux/components/time/CMakeFiles/crux_time_memory.dir/src/time_port_memory.c.o
+[16/28] Building C object crux/components/time/CMakeFiles/crux_time_busy_wait.dir/src/busy_wait_disabled.c.o
+[17/28] Building C object crux/components/time/CMakeFiles/crux_time_lock_linux.dir/ports/linux/time_lock_linux.c.o
+[18/28] Linking C static library crux/components/time/libcrux_time_common.a
+[19/28] Building C object crux/components/thread/CMakeFiles/crux_thread_host.dir/src/thread_sleep.c.o
+[20/28] Building C object crux/components/thread/CMakeFiles/crux_thread_host.dir/ports/linux/thread_native.c.o
+[21/28] Building C object crux/components/thread/CMakeFiles/crux_thread_host.dir/src/thread.c.o
+[22/28] Linking C static library crux/components/time/libcrux_time_clock_linux.a
+[23/28] Linking C static library crux/components/time/libcrux_time_busy_wait.a
+[24/28] Linking C static library crux/components/time/libcrux_time_memory.a
+[25/28] Linking C static library crux/components/time/libcrux_time_lock_linux.a
+[26/28] Linking C static library crux/components/thread/libcrux_thread_host.a
+[27/28] Linking C static library libconsumer_app.a
+[28/28] Linking C executable consumer_integration
+Internal ctest changing into directory: /opt/crux-cache/test-foundation/run-devcontainer/host
+UpdateCTestConfiguration  from :/opt/crux-cache/test-foundation/run-devcontainer/host/DartConfiguration.tcl
+Parse Config file:/opt/crux-cache/test-foundation/run-devcontainer/host/DartConfiguration.tcl
+UpdateCTestConfiguration  from :/opt/crux-cache/test-foundation/run-devcontainer/host/DartConfiguration.tcl
+Parse Config file:/opt/crux-cache/test-foundation/run-devcontainer/host/DartConfiguration.tcl
+Test project /opt/crux-cache/test-foundation/run-devcontainer/host
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+    Start 1: Consumer.Unit
+
+1: Test command: /opt/crux-cache/test-foundation/run-devcontainer/host/consumer_unit
+1: Working Directory: /opt/crux-cache/test-foundation/run-devcontainer/host
+1: Test timeout computed to be: 1500
+1: CONSUMER_UNIT passed
+1/2 Test #1: Consumer.Unit ....................   Passed    0.03 sec
+test 2
+    Start 2: Consumer.HostIntegration
+
+2: Test command: /opt/crux-cache/test-foundation/run-devcontainer/host/consumer_integration
+2: Working Directory: /opt/crux-cache/test-foundation/run-devcontainer/host
+2: Test timeout computed to be: 20
+2: CONSUMER_INTEGRATION result=0 cycles=6 skipped=2
+2/2 Test #2: Consumer.HostIntegration .........   Passed    0.18 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.26 sec

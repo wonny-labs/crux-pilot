@@ -6,8 +6,9 @@ Nothing here is a supported interface or a requirement until the owner decides t
 CI job, runtime code or public API is added by this work.
 
 Principle: **applications own their tests; Crux makes those tests easy to build, run and
-automate.** Test tooling stays outside the platform runtime: no `crux::` target, Kconfig symbol
-or public header exists for testing, and a production image links nothing new.
+automate.** Test tooling stays outside the platform runtime: this proposal adds no `crux::` target,
+Kconfig symbol or public header for testing, and a production image links nothing new. The
+existing `CONFIG_CRUX_TIME_TESTING` is private to Crux's own tests and is not a consumer interface.
 
 Evidence: [out-of-tree consumer](../tests/consumer_poc/README.md) and its
 [recorded runs](evidence/test-foundation-poc/README.md).
@@ -18,7 +19,7 @@ Evidence: [out-of-tree consumer](../tests/consumer_poc/README.md) and its
 | --- | --- | --- | --- |
 | Unit | Nothing is required. Portable logic can avoid Crux entirely behind its own port | Tests, framework and doubles | The application's own CTest |
 | Host integration | Root `add_subdirectory()`, explicit provider selection, `crux_assert_portable_consumer()` | Scenarios, timing tolerances, the final executable's composition | [External Linux application](build.md#external-linux-application-using-crux-source) |
-| `native_sim` | Zephyr module, Kconfig, the pinned revision in `west.yml` | Ztest applications, `testcase.yaml`, Devicetree and Kconfig choices | `west build` or `west twister` with `EXTRA_ZEPHYR_MODULES`, or Crux listed in the application's manifest |
+| `native_sim` | Zephyr module, Kconfig, the pinned revision in `west.yml` | Ztest applications, `testcase.yaml`, Devicetree and Kconfig choices | `west build` or `west twister` with `EXTRA_ZEPHYR_MODULES` in a west workspace. Listing Crux in the application's manifest is the proposed packaging route; it is not documented and was not run |
 | Functional | Guidance only, plus the Zephyr revision that fixes the harness version | Oracle, console protocol, scenarios | Upstream `pytest-twister-harness`, standalone |
 | Hardware | Proposed: the [device-control tool](#device-control-contract) below. Nothing today | Board profile, fixtures and peers, oracle, the approval to operate, evidence retention | None. `tests/target` is Crux's own suite, not a consumer interface |
 
@@ -53,7 +54,7 @@ directory.
 | Flash | An explicit `flash()`, never performed by a fixture or on launch. Refused unless `--allow-flash=<approval reference>` is given, the image hash matches the manifest and the board matches the profile. Requires a verify step. No erase or fuse operation |
 | Image identity | SHA-256 of each artefact checked against a manifest before any operation. Where the application prints a build identity, it is compared with the manifest after boot |
 | Evidence | A new directory per run that fails if it exists. Raw RX bytes, timestamped TX/RX events, inputs, tool logs and identity are retained, including on failure |
-| Single-board lock | One OS advisory lock per board ID for the whole run, released by the OS if the process dies. Held by another run: fail at once, do not wait |
+| Single-board lock | One OS-level lock per board ID for the whole run, released by the OS if the process dies. Held by another run: fail at once, do not wait |
 | Portability | No `fcntl` or `termios` at import. Lock and port details are chosen at run time. Timeouts use `time.monotonic()` |
 
 The flags are a tool gate, not authority. [`AGENTS.md`](../AGENTS.md) still requires explicit
@@ -89,16 +90,17 @@ host in the recommended option; see [decision 4](#open-decisions).
 
 Standalone use **ran on Linux** at the pinned Zephyr, with no Twister and no west process at test
 time: `pytest --twister-harness --device-type=native --build-dir=... -p twister_harness.plugin`.
-That is the only executed part. Upstream marks it Alpha, version 0.0.1.
+Upstream marks it Alpha, version 0.0.1.
 
-**Everything in the rest of this section is source reading, not execution.** No macOS, Windows,
-serial or hardware path was run.
+**Executed: only the Linux import chain and the `native` device, marked "ran" below. Every other
+entry in this section is source reading, not execution.** No macOS, Windows, serial or hardware
+path was run.
 
 | Area | Linux | macOS | Windows |
 | --- | --- | --- | --- |
 | Declared in `setup.cfg` | Yes | Not listed | Yes |
-| Import chain | Imported and ran | Nothing Linux-specific found | `pty` is guarded by `os.name`; pyserial selects its Windows backend |
-| Import requirements | `ZEPHYR_BASE` must be set and four Zephyr files load (`twisterlib` `__init__`, `hardwaredata`, `harnessconfig`, `build_helpers/domains`). `pyyaml` and `pykwalify` are needed but not declared. Applies to all three | Same | Same, so a tool host needs that part of a Zephyr checkout |
+| Import chain | Ran | Nothing Linux-specific found | `pty` is guarded by `os.name`; pyserial selects its Windows backend |
+| Import requirements | Ran on Linux, read for the others: `ZEPHYR_BASE` must be set and four Zephyr files load (`twisterlib` `__init__`, `hardwaredata`, `harnessconfig`, `build_helpers/domains`). `pyyaml` and `pykwalify` are needed but not declared. Applies to all three | Same | Same, so a tool host needs that part of a Zephyr checkout |
 | `native` device | Ran | `native_sim` is a Linux process, so not applicable | Not applicable |
 | `qemu` device | Uses `os.mkfifo` | Available | `os.mkfifo` does not exist; unusable |
 | `hardware` serial | pyserial | pyserial, `/dev/cu.*` | pyserial, COM ports |
@@ -110,14 +112,14 @@ Gaps against the contract above, also from reading:
 
 | Contract item | What the harness does |
 | --- | --- |
-| Flash gating | **`--device-type=hardware` flashes on every launch**: `dut` calls `launch()`, which always runs `_flash_and_run()`. This conflicts with the "never flashes" policy in `tests/README.md`. `unlaunched_dut` avoids launch but leaves connection to the test |
-| Reset | No operation. Only a flash or a `--pre-script` |
+| Flash gating | **`--device-type=hardware` flashes on every launch**: `dut` calls `launch()`, which always runs `_flash_and_run()`. This conflicts with what `tests/README.md` states for the existing physical suite, which never flashes. `unlaunched_dut` avoids launch but leaves connection to the test |
+| Reset | `DeviceAdapter` has no reset. `--pre-script` runs only as part of the flash step. `MCUmgr.reset_device()` exists but needs MCUmgr in the image |
 | Image identity | None. The PoC adds a hash in its own `conftest.py` |
 | Evidence | `handler.log` and `device.log` are appended in the build directory, so runs are not separated. Output is decoded with `errors='replace'`, stripped and split into lines, so raw bytes are lost |
 | Single-board lock | None. It opens pyserial without `exclusive`, so POSIX has no lock. Windows opens are exclusive through `CreateFile` share mode 0 in pyserial |
 | Split hosts | Default flashing is `west flash --build-dir`, which needs west plus the build directory's `CMakeCache.txt` and `zephyr/runners.yaml`. `--flash-command` is a seam, but it receives `--build-dir` |
 | Options | `--flash-before` uses `type=bool`, so any non-empty value including `False` enables it. Read timeouts use `time.time()`, so a wall-clock step changes them |
-| Extension | `--device-type` choices are fixed, and `register_device_class` ignores an existing name, so `hardware` cannot be replaced by a plugin |
+| Extension | `--device-type` choices are fixed, and `register_device_class` ignores an existing name, so the registration API cannot replace `hardware`. A conftest could override the `device_object` fixture (reasoned, not run); that is then a separate adapter outside the harness's own type |
 
 **Assessment:** use the harness as is for `native_sim`. Do not use its `hardware` type behind a
 safety claim. A hardware tool can keep the same small reading surface (`readlines_until`,
@@ -158,11 +160,11 @@ For owner review. Each has a recommendation; none is decided.
 | # | Decision | Recommendation | If decided otherwise |
 | --- | --- | --- | --- |
 | 1 | Adopt the per-level boundary above? | Yes | Later steps need a new boundary first |
-| 2 | Keep "no mock per API, doubles at the application's port, selective controlled providers"? | Yes | Public fakes would need a change to the messaging position and API review for each |
+| 2 | Keep "no mock per API, doubles at the application's port, selective controlled providers"? The I2C and SPI Host loopback fixtures count as controlled providers, not public fakes | Yes | Public fakes would need a change to the messaging position and API review for each |
 | 3 | Is standalone `pytest-twister-harness` the recommended functional entry point, given Alpha status and no version promise? | Yes for `native_sim`, documented as upstream behaviour pinned by `west.yml` | Crux writes and maintains its own process runner |
 | 4 | Where does pytest run with split hosts: on the tool host, or on the build host with a remote agent? | On the tool host: one process, no network protocol to secure | A remote protocol becomes security-sensitive design |
-| 5 | Hardware: a small Crux tool, or the harness `hardware` type with a no-op `--flash-command`? | A small tool, because gating, evidence and locking would all sit outside the harness anyway | Accept the gaps above, with gates only by convention |
-| 6 | Tool location and name, and "internal until a second consumer"? | A new top-level `tools/` path, outside runtime CMake and the protected `scripts/` | A different path; no design impact |
+| 5 | Hardware: a small Crux tool, the harness `hardware` type with a no-op `--flash-command`, or a Crux adapter behind an overridden `device_object` fixture? | A small tool, because gating, evidence and locking would all sit outside the harness anyway. The fixture override is the fallback if keeping `dut` matters | The no-op option accepts the gaps above, with gates only by convention |
+| 6 | Tool location and name, and "internal until a second consumer"? Should the path be protected? | A new top-level `tools/` path, outside runtime CMake. It holds a hardware safety gate, so add it to the `AGENTS.md` protected paths when the tool exists | Unprotected, the gate can be changed without human approval |
 | 7 | Is a reset gate needed separately from flash? | Yes: `AGENTS.md` treats reset as a hardware operation | One combined gate |
 | 8 | Keep `tests/consumer_poc` after this decision? | Keep it if step 3 is approved, otherwise remove it | It stays unmaintained and drifts |
 
