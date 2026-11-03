@@ -1,4 +1,4 @@
-# RT1060-EVKB microSD composition (software only)
+# RT1060-EVKB microSD composition
 
 Issue [#14](https://github.com/wonny-labs/crux-pilot/issues/14), acceptance criterion 2.
 This records the approved composition and its evidence. The software evidence is below; the
