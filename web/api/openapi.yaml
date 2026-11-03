@@ -211,8 +211,8 @@ paths:
         - `503`: the attempt could not run because the verifier or the session table was busy. It says
           nothing about the password. Start a new attempt after `Retry-After`.
 
-        Every result except `pending` ends the attempt, and a later poll gets `404`. Attempts also expire
-        quickly on their own.
+        A `rejected`, a `success`, a `429` or a `503` ends the attempt, and a later poll gets `404`. A `403` or a
+        `409` does not. Attempts also expire quickly on their own.
 
         A `404` on an attempt that was being polled means that its result is lost, and a repeat poll cannot
         recover it. After a login, the client logs in again, and an unused session ends through the per-account
@@ -866,7 +866,7 @@ components:
       description: |
         A login with a missing or wrong `Origin`. This check covers `POST /api/v1/session` only. The poll
         that sets the cookies is covered by its required `X-Crux-Request` header, and login CSRF protection
-        needs both. See issue #212.
+        needs both.
       content:
         application/json:
           schema:
