@@ -81,6 +81,7 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 | `zephyr/` | Out-of-tree Zephyr module integration |
 | `tests/` | Host, Zephyr, build-policy and target validation |
 | `scripts/` | Setup, build, analysis and test commands |
+| `tools/` | Test tooling for a machine that holds a board's probe and UART; outside the runtime build |
 | `.devcontainer/` | Linux development environment |
 | `.github/workflows/` | CI workflows |
 | `docs/` | Architecture, API contracts, decisions and evidence |
