@@ -1,6 +1,6 @@
 # Web frontend foundation design
 
-Status: proposal for review, candidate milestone M13. It refines the
+Status: decisions W1 to W12 accepted by the owner, milestone M13. It refines the
 [web design](secure-management-web-design.md), and it replaces that document's page set and reference
 technology where they differ. Nothing here authorises implementation, dependency adoption or hardware
 operations.
@@ -18,15 +18,15 @@ chooses.
 | W1 | The reference interface starts with Preact and TypeScript | Owner, 3 November 2026 |
 | W2 | Angular should also be supported where that is possible | Owner, 3 November 2026 |
 | W3 | The first screens are a home screen, network settings and reboot | Owner, 3 November 2026 |
-| W4 | Sign-in and forced password change are added to W3, because the other screens cannot be reached without them | Proposal |
-| W5 | Frontend work has its own milestone, M13, and the existing M11 and M12 keep their numbers | Proposal |
-| W6 | Angular support means the API, packaging and security settings work with it, shown by a minimal sample in CI and once packaged on `native_sim`. Crux ships no Angular components. | Proposal |
-| W7 | Network settings are saved and take effect at the next boot. There is no live apply. | Proposal |
-| W8 | Static IPv4 comes first, and DHCP is a separate later item | Proposal |
-| W9 | A composition must state its reboot policy explicitly | Proposal |
-| W10 | Crux's own frontend tooling is `tsc`, esbuild and a small mock server, and it does not use Vite | Proposal |
-| W11 | Frontend work with a mock server may run alongside M7 and before gate #183. The secure management design's default is planning only, so this needs the owner's decision. | Proposal |
-| W12 | Each fixed API route and asset is its own registered server resource, a route with a path parameter is one registered wildcard resource, and applications use hash routing | Proposal |
+| W4 | Sign-in and forced password change are added to W3, because the other screens cannot be reached without them | Owner, 3 November 2026 |
+| W5 | Frontend work has its own milestone, M13, and the existing M11 and M12 keep their numbers | Owner, 3 November 2026 |
+| W6 | Angular support means the API, packaging and security settings work with it, shown by a minimal sample in CI and once packaged on `native_sim`. Crux ships no Angular components. | Owner, 3 November 2026 |
+| W7 | Network settings are saved and take effect at the next boot. There is no live apply. | Owner, 3 November 2026 |
+| W8 | Static IPv4 comes first, and DHCP is a separate later item | Owner, 3 November 2026 |
+| W9 | A composition must state its reboot policy explicitly | Owner, 3 November 2026 |
+| W10 | Crux's own frontend tooling is `tsc`, esbuild and a small mock server, and it does not use Vite | Owner, 3 November 2026 |
+| W11 | Frontend work with a mock server may run alongside M7 and before gate #183. This departs from the secure management design's default of planning only. | Owner, 3 November 2026 |
+| W12 | Each fixed API route and asset is its own registered server resource, a route with a path parameter is one registered wildcard resource, and applications use hash routing | Owner, 3 November 2026 |
 
 W1 changes the plain HTML reference in the web design. A framework is justified here because hand-written DOM code
 is where cross-site scripting mistakes occur as a screen grows, while Preact escapes output by default. It adds one
@@ -197,12 +197,12 @@ the folder is missing, configuration fails.
 
 ## Parallel work
 
-Frontend work needs the specification and not the firmware, so it could begin before gate #183, if the owner accepts W11. It uses a mock server until the real one is available.
+Frontend work needs the specification and not the firmware, so W11 lets it begin before gate #183. It uses a mock server until the real one is available.
 
 | Session | Work | Starts when |
 | --- | --- | --- |
-| Frontend | M13 | W11 is accepted and #212 is reviewed |
-| HTTPS | M11, with #212 first | #212 can start now, subject to W11, and the rest after gate #183 |
+| Frontend | M13 | #212 is reviewed |
+| HTTPS | M11 | After gate #183. #212 is done first, by the frontend session. |
 | SSH | #192, #193 | Gate #183 and #205 |
 | SFTP | #194, then #195 | Gate #183, #205 and #179 |
 
