@@ -1,0 +1,112 @@
+# Rules for web/api/openapi.yaml. scripts/check-management-api.sh fails on any warning.
+extends:
+  - [spectral:oas, all]
+rules:
+  # The project publishes no contact address.
+  contact-properties: off
+  crux-access-class:
+    description: Every operation states its access class, as a route must in the web contract.
+    message: 'x-crux-access must be public, session or a permission name: {{error}}'
+    severity: error
+    given: $.paths[*][get,put,post,delete]
+    then:
+      field: x-crux-access
+      function: pattern
+      functionOptions:
+        match: '^(public|session|[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+)$'
+  crux-access-class-present:
+    description: Every operation states its access class.
+    severity: error
+    given: $.paths[*][get,put,post,delete]
+    then:
+      field: x-crux-access
+      function: truthy
+  crux-security-declared:
+    description: Every operation declares its security, so that public is never the default.
+    severity: error
+    given: $.paths[*][get,put,post,delete]
+    then:
+      field: security
+      function: defined
+  crux-public-has-no-security:
+    description: A public operation asks for no session.
+    severity: error
+    given: $.paths[*][?(@['x-crux-access'] === 'public')]
+    then:
+      field: security
+      function: length
+      functionOptions:
+        max: 0
+  crux-session-routes-have-401:
+    description: An operation that needs a session documents 401.
+    severity: error
+    given: $.paths[*][?(@['x-crux-access'] && @['x-crux-access'] !== 'public')].responses
+    then:
+      field: '401'
+      function: truthy
+  crux-state-change-needs-csrf:
+    description: A state-changing operation with a session requires the X-XSRF-TOKEN header.
+    severity: error
+    given: $.paths[*][put,post,delete][?(@property === 'security' && @.length > 0)][*]
+    then:
+      field: xsrfHeader
+      function: defined
+  crux-read-has-no-csrf:
+    description: A GET changes no state, so it does not ask for the CSRF token.
+    severity: error
+    given: $.paths[*].get.security[*]
+    then:
+      field: xsrfHeader
+      function: undefined
+  crux-busy-409:
+    description: Every route can answer busy, because the server holds one request per route.
+    severity: error
+    given: $.paths[*][get,put,post,delete].responses
+    then:
+      field: '409'
+      function: truthy
+  crux-busy-409-no-body:
+    description: A 409 has no JSON body, which is what tells a client that the route is busy.
+    severity: error
+    given: $.paths[*][get,put,post,delete].responses['409']
+    then:
+      field: content
+      function: undefined
+  crux-unavailable-503:
+    description: Every route can answer 503.
+    severity: error
+    given: $.paths[*][get,put,post,delete].responses
+    then:
+      field: '503'
+      function: truthy
+  crux-retry-after:
+    description: A 429 or 503 states how long to wait.
+    severity: error
+    given: $.paths[*][get,put,post,delete].responses[?(@property === '429' || @property === '503')]
+    then:
+      field: headers.Retry-After
+      function: truthy
+  crux-json-has-named-examples:
+    description: Every JSON body has named examples, so that a mock server can serve it.
+    severity: error
+    given:
+      - $.paths[*][get,put,post,delete].responses[*].content[*]
+      - $.paths[*][get,put,post,delete].requestBody.content[*]
+    then:
+      field: examples
+      function: truthy
+  crux-json-only:
+    description: Bodies are JSON and nothing else.
+    severity: error
+    given:
+      - $.paths[*][get,put,post,delete].responses[*].content
+      - $.paths[*][get,put,post,delete].requestBody.content
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          additionalProperties: false
+          properties:
+            application/json:
+              type: object

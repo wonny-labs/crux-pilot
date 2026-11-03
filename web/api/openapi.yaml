@@ -1,0 +1,1214 @@
+# Crux management API specification, first screens. Issue #212.
+#
+# Change rule: a change to this file is one reviewed PR that the firmware and
+# frontend tracks rebase onto.
+#
+# Check it with scripts/check-management-api.sh.
+openapi: 3.0.3
+info:
+  title: Crux management API
+  version: 0.1.0
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+  contact:
+    name: Crux
+    url: https://github.com/wonny-labs/crux-pilot
+  description: |
+    The API that a controller serves to its own web interface, over HTTPS only. It covers session,
+    attempt polling, current user, own password change, status, network settings and reboot. Other
+    areas are added by a change to this file.
+
+    **Change rule.** A change to this file is one reviewed PR that the firmware and frontend tracks
+    rebase onto.
+
+    **Access class.** Each operation states its class in `x-crux-access`: `public`, `session` (any
+    valid session, where a service may check more) or a permission name. Permission names are compared
+    exactly. The server checks access. A client hides nothing for security.
+
+    **Forced password change.** While `must_change_password` is true for a session, that session may read
+    `GET /api/v1/session/me`, change its password through `POST /api/v1/session/me/password` and the
+    public attempt poll, and log out. `GET /api/v1/status` returns an empty list, because every item is
+    hidden, and routes with a permission return `403`.
+
+    **Common forms.**
+
+    | Status | Meaning | Body | Code |
+    | --- | --- | --- | --- |
+    | `400` | Malformed request, or field errors | JSON | `bad_request`, `invalid_field` |
+    | `401` | No valid session | JSON | `unauthorized` |
+    | `403` | Valid session without permission, or a rejected CSRF token or `Origin` | JSON | `permission_denied`, `csrf_rejected`, `origin_rejected` |
+    | `404` | A path outside this file, an unknown or expired attempt, or an item hidden from this session. These look the same. | JSON | `not_found` |
+    | `409` | The route is busy. The request was not processed, and the client retries. | None | |
+    | `413` | Body over the route's limit | JSON | `payload_too_large` |
+    | `423` | A reboot refused by the application, with a reason | JSON | `reboot_refused` |
+    | `429` | Attempt poll only. The attempt fell inside a delay window, and nothing was verified. `Retry-After` gives the time. | JSON | `retry_later` |
+    | `501` | This device has no provider for the operation, so retrying will not help | JSON | `not_supported` |
+    | `503` | Temporarily unavailable, with `Retry-After` | JSON | `busy`, `not_ready` |
+
+    An error body is small and stable. It never holds a path, a stack trace or native error text, and a
+    client takes its display text from its own table, keyed by `code`. A `409` with a JSON body does not
+    exist in this API, so a `409` always means busy. The HTTP server sends that `409` itself, so it may
+    lack the headers below. A request may also get the server's own response or a closed connection
+    when it is malformed or oversized, or when the client limit is reached.
+
+    **Cookies and CSRF.** A successful login sets two cookies:
+
+    - `crux_session`: `Secure; HttpOnly; SameSite=Strict; Path=/`, with no persistent expiry.
+    - `XSRF-TOKEN`: `Secure; SameSite=Strict; Path=/`, with no persistent expiry and readable by page
+      scripts. Its value is independent of the session token.
+
+    On every state-changing request with a session, the client sends the `XSRF-TOKEN` value in the
+    `X-XSRF-TOKEN` header. The server compares it with the session's value in constant time and also
+    checks `Origin`. Login has no session, so it checks `Origin` only. A client treats both values as
+    opaque.
+
+    **Idle timer.** State-changing requests refresh a session's idle timer, and `GET` requests do not,
+    so a page that polls cannot keep a session alive for ever. The absolute limit always applies.
+
+    **Response headers.** Each response that the API produces carries
+    `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` and
+    `Cache-Control: no-store`. There are no CORS headers, because cross-origin requests are not
+    supported.
+
+    **Examples.** Every JSON body has named examples, for a mock server to select. An example may hold
+    `x-crux-set-cookie`, the `Set-Cookie` lines to send with that example only, because an OpenAPI header
+    map can hold one line per name and applies to every example of a response.
+servers:
+  - url: https://{device}
+    description: The controller itself. Plain HTTP is not served, and requests are same-origin.
+    variables:
+      device:
+        default: 192.0.2.10
+        description: Address or name of the controller
+tags:
+  - name: network
+    description: Static IPv4 settings, saved for the next boot
+  - name: session
+    description: Login, logout, attempt polling and the current user
+  - name: status
+    description: Status items visible to this session
+  - name: system
+    description: Reboot through the service in front of the system reset
+paths:
+  /api/v1/session:
+    post:
+      operationId: createSession
+      tags: [session]
+      summary: Queue a login attempt
+      description: |
+        Queues verification on the management worker and returns an attempt identifier. It cannot report
+        a result, so it never returns `429` and it never says whether a user exists. The poll carries the
+        outcome. A name or password outside the account rules is an ordinary attempt that ends as
+        `rejected`, so this schema holds no length limit.
+      x-crux-access: public
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              login:
+                summary: Credentials
+                value:
+                  user: operator
+                  password: example-password-not-real
+      responses:
+        '202':
+          description: Attempt queued. Poll `GET /api/v1/session/attempt/{id}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptAccepted'
+              examples:
+                queued:
+                  summary: Attempt queued
+                  value:
+                    id: k3Jq9sZp0vXw2LmN7bYt1A
+        '400':
+          $ref: '#/components/responses/MalformedRequest'
+        '403':
+          $ref: '#/components/responses/OriginRejected'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    delete:
+      operationId: deleteSession
+      tags: [session]
+      summary: Log out
+      description: Ends this session and clears both cookies. It works during a forced password change.
+      x-crux-access: session
+      security:
+        - sessionCookie: []
+          xsrfHeader: []
+      responses:
+        '204':
+          description: Session ended.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/ClearSessionCookies'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForgeryRejected'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/session/attempt/{id}:
+    get:
+      operationId: getSessionAttempt
+      tags: [session]
+      summary: Poll a login or password change attempt
+      description: |
+        Carries the outcome of an attempt from `POST /api/v1/session` or
+        `POST /api/v1/session/me/password`. The identifier is unguessable, because it is what collects
+        the session cookies.
+
+        - `pending`: keep polling.
+        - `rejected`: on a login there is no further detail, and wrong passwords, unknown names and
+          disabled accounts look the same. On a password change, `code` and `fields` say why.
+        - `success`: on a login this response sets both cookies. On a password change it sets none, and
+          this session stays valid while the account's other sessions end.
+        - `429`: inside a delay window, and nothing was verified. Start a new attempt after `Retry-After`.
+        - `503`: the attempt could not run because the verifier or the session table was busy. It says
+          nothing about the password. Start a new attempt after `Retry-After`.
+
+        Every result except `pending` ends the attempt, and a later poll gets `404`. Attempts also expire
+        quickly on their own.
+      x-crux-access: public
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/AttemptId'
+      responses:
+        '200':
+          description: The attempt's state. `Set-Cookie` is present only on a successful login.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/SetSessionCookies'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionAttempt'
+              examples:
+                pending:
+                  summary: Still verifying
+                  value:
+                    state: pending
+                rejected:
+                  summary: Login rejected, with no reason
+                  value:
+                    state: rejected
+                success:
+                  summary: Login succeeded, and the session cookies are set
+                  x-crux-set-cookie:
+                    - crux_session=example-session-token-not-real; Secure; HttpOnly; SameSite=Strict; Path=/
+                    - XSRF-TOKEN=example-xsrf-token-not-real; Secure; SameSite=Strict; Path=/
+                  value:
+                    state: success
+                password_changed:
+                  summary: Password changed, with no cookie set
+                  value:
+                    state: success
+                wrong_current_password:
+                  summary: Password change rejected, current password wrong
+                  value:
+                    state: rejected
+                    code: invalid_field
+                    fields:
+                      - name: current_password
+                        code: incorrect
+                new_password_refused:
+                  summary: Password change rejected, new password fails the password rule
+                  value:
+                    state: rejected
+                    code: invalid_field
+                    fields:
+                      - name: new_password
+                        code: rule_not_met
+                save_failed:
+                  summary: Password change rejected, save failed and the password is unchanged
+                  value:
+                    state: rejected
+                    code: storage_failed
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '429':
+          $ref: '#/components/responses/RetryLater'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/session/me:
+    get:
+      operationId: getCurrentUser
+      tags: [session]
+      summary: Read the current user
+      description: |
+        The session's user and role, and whether a password change is forced. It lists no permissions: a
+        screen learns what it may do from each route's own answer.
+      x-crux-access: session
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The current user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+              examples:
+                normal:
+                  summary: A normal session
+                  value:
+                    user: operator
+                    role: administrator
+                    must_change_password: false
+                forced_change:
+                  summary: A session that may only change its password and log out
+                  value:
+                    user: operator
+                    role: administrator
+                    must_change_password: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/session/me/password:
+    post:
+      operationId: changeOwnPassword
+      tags: [session]
+      summary: Queue a change of the session user's own password
+      description: |
+        Verifying and saving a password runs on the management worker, and a response cannot wait for
+        it, so this queues an attempt that `GET /api/v1/session/attempt/{id}` reports. The change needs the
+        current password and follows the login delay, so the poll can return `429`. The route is
+        session-only and the account service authorises the change, so it works during a forced change.
+        The reference password rule is 12 to 128 bytes with no composition rules, and a product can
+        replace it, so this schema holds no length limit.
+      x-crux-access: session
+      security:
+        - sessionCookie: []
+          xsrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+            examples:
+              change:
+                summary: Current and new password
+                value:
+                  current_password: example-password-not-real
+                  new_password: example-new-password-not-real
+      responses:
+        '202':
+          description: Attempt queued. Poll `GET /api/v1/session/attempt/{id}`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptAccepted'
+              examples:
+                queued:
+                  summary: Attempt queued
+                  value:
+                    id: Zt4Vb8Qm2nRx6HcP1sLk9w
+        '400':
+          $ref: '#/components/responses/MalformedRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForgeryRejected'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/status:
+    get:
+      operationId: getStatus
+      tags: [status]
+      summary: Read the status items this session may see
+      description: |
+        The route is session-only and the status service filters items, so a session that may see nothing
+        gets an empty list and never a `403`. Each item has its own result, so one failed source does not
+        hide the rest. Built-in items need `status.read`, and project items name their own permission.
+      x-crux-access: session
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The items visible to this session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusReport'
+              examples:
+                items:
+                  summary: One item of each type, and one failed source
+                  value:
+                    items:
+                      - name: system.uptime_ms
+                        status: ok
+                        type: u64
+                        value: '86400000'
+                      - name: net.link
+                        status: ok
+                        type: bool
+                        value: true
+                      - name: net.ipv4
+                        status: ok
+                        type: text
+                        value: 192.0.2.10
+                      - name: app.cycle_count
+                        status: ok
+                        type: u32
+                        value: 42
+                      - name: system.watchdog_state
+                        status: busy
+                hidden:
+                  summary: Nothing visible, as during a forced password change
+                  value:
+                    items: []
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/network:
+    get:
+      operationId: getNetwork
+      tags: [network]
+      summary: Read running and saved IPv4 settings
+      description: |
+        `running` holds the values in use, and `source` says where they came from at boot. `saved` holds
+        the values the next boot will apply, and it is absent when the next boot will use the defaults.
+        `save` is present only while a save is pending or after one failed.
+      x-crux-access: network.read
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Running and saved settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkState'
+              examples:
+                defaults:
+                  summary: Running on defaults, with nothing saved
+                  value:
+                    running:
+                      address: 192.0.2.10
+                      prefix_length: 24
+                    source: default
+                    reboot_required: false
+                reboot_needed:
+                  summary: New values saved, and a reboot is needed
+                  value:
+                    running:
+                      address: 192.0.2.10
+                      prefix_length: 24
+                    saved:
+                      address: 192.0.2.20
+                      prefix_length: 24
+                      gateway: 192.0.2.1
+                    source: default
+                    reboot_required: true
+                save_pending:
+                  summary: A save is running
+                  value:
+                    running:
+                      address: 192.0.2.20
+                      prefix_length: 24
+                      gateway: 192.0.2.1
+                    saved:
+                      address: 192.0.2.20
+                      prefix_length: 24
+                      gateway: 192.0.2.1
+                    source: saved
+                    reboot_required: false
+                    save:
+                      state: pending
+                save_failed:
+                  summary: The last save failed, and the stored set no longer passes its check
+                  value:
+                    running:
+                      address: 192.0.2.20
+                      prefix_length: 24
+                      gateway: 192.0.2.1
+                    source: saved
+                    reboot_required: true
+                    save:
+                      state: failed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    put:
+      operationId: putNetwork
+      tags: [network]
+      summary: Validate IPv4 settings and queue their save
+      description: |
+        Validates the whole set at once and queues the save on the management worker. Values take effect
+        at the next boot, and there is no live apply. Saved values apply at any later reset, including a
+        power cut. Omit `gateway` for no gateway.
+
+        Accepted does not mean saved. The result is read through `GET /api/v1/network`, which needs
+        `network.read`, so this response holds no values for a session that may only write.
+      x-crux-access: network.write
+      security:
+        - sessionCookie: []
+          xsrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ipv4Settings'
+            examples:
+              with_gateway:
+                summary: Address, prefix length and gateway
+                value:
+                  address: 192.0.2.20
+                  prefix_length: 24
+                  gateway: 192.0.2.1
+              without_gateway:
+                summary: No gateway
+                value:
+                  address: 192.0.2.20
+                  prefix_length: 24
+      responses:
+        '202':
+          description: Valid, and the save is queued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveQueued'
+              examples:
+                queued:
+                  summary: Save queued
+                  value:
+                    state: pending
+        '400':
+          $ref: '#/components/responses/InvalidNetworkSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '501':
+          $ref: '#/components/responses/NotSupported'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/system/reboot:
+    get:
+      operationId: getRebootState
+      tags: [system]
+      summary: Read the state of the latest reboot request
+      description: |
+        A `200` means that the device is still running, so an answer alone is never success. Success is a
+        session that is no longer valid, which appears as `401`, because sessions do not survive a reset.
+        A client that sees no change before its own time limit says that the restart was not confirmed.
+      x-crux-access: system.reboot
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: |
+            The state of the latest request. `refused` also covers a refusal after the `202`, at the
+            second policy check, and `failed` means that the reset returned. The state stays until the
+            next accepted request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RebootState'
+              examples:
+                pending:
+                  summary: Accepted, and the reset has not happened yet
+                  value:
+                    state: pending
+                refused:
+                  summary: Refused by the application's policy
+                  value:
+                    state: refused
+                    reason: Machine cycle running
+                failed:
+                  summary: The reset returned an error
+                  value:
+                    state: failed
+        '204':
+          description: No reboot has been requested since this boot.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    post:
+      operationId: requestReboot
+      tags: [system]
+      summary: Request a reboot
+      description: |
+        Checks `system.reboot` and the composition's reboot policy, records the event and replies. The
+        reset follows after a short delay on a worker, once events and pending saves have had a bounded
+        time to finish and the policy has been checked again. Poll `GET /api/v1/system/reboot` for the
+        outcome. A request made while another is pending also gets `202`, and starts nothing new.
+      x-crux-access: system.reboot
+      security:
+        - sessionCookie: []
+          xsrfHeader: []
+      responses:
+        '202':
+          description: Accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RebootAccepted'
+              examples:
+                accepted:
+                  summary: Reboot accepted
+                  value:
+                    state: pending
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '423':
+          $ref: '#/components/responses/RebootRefused'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: crux_session
+      description: |
+        The `HttpOnly` session token, set on a successful login. A failed check returns `401`.
+    xsrfHeader:
+      type: apiKey
+      in: header
+      name: X-XSRF-TOKEN
+      description: |
+        The value of the readable `XSRF-TOKEN` cookie, sent back on a state-changing request. A failed
+        check with a valid session returns `403` with `csrf_rejected`.
+  parameters:
+    AttemptId:
+      name: id
+      in: path
+      required: true
+      description: The identifier from a `202`. An unknown or malformed one gets `404`.
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9_-]+$'
+        maxLength: 64
+      example: k3Jq9sZp0vXw2LmN7bYt1A
+  headers:
+    RetryAfter:
+      description: Whole seconds to wait, rounded up.
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+      example: 5
+    SetSessionCookies:
+      description: |
+        Two `Set-Cookie` lines on a successful login, one for `crux_session` and one for `XSRF-TOKEN`.
+        See `x-crux-set-cookie` on the `success` example.
+      schema:
+        type: string
+    ClearSessionCookies:
+      description: Two `Set-Cookie` lines that clear `crux_session` and `XSRF-TOKEN`.
+      x-crux-set-cookie:
+        - crux_session=; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=0
+        - XSRF-TOKEN=; Secure; SameSite=Strict; Path=/; Max-Age=0
+      schema:
+        type: string
+      example: crux_session=; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=0
+  responses:
+    Busy:
+      description: |
+        The route is busy, because the server holds one request per route. The body is empty, and this is
+        how a client tells it from every other response. The request was not processed, so a client
+        retries it.
+    MalformedRequest:
+      description: The body is not the expected JSON. It reports no field, so it cannot reveal an account rule.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [bad_request]
+          examples:
+            malformed:
+              summary: Not valid JSON, or a missing or mistyped member
+              value:
+                code: bad_request
+    InvalidNetworkSettings:
+      description: The body is not the expected JSON, or a value fails validation.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [bad_request, invalid_field]
+          examples:
+            malformed:
+              summary: Not valid JSON
+              value:
+                code: bad_request
+            invalid_field:
+              summary: Values rejected, with one error for each field
+              value:
+                code: invalid_field
+                fields:
+                  - name: address
+                    code: not_unicast
+                  - name: prefix_length
+                    code: prefix_not_usable
+                  - name: gateway
+                    code: gateway_outside_subnet
+    Unauthorized:
+      description: No valid session, whether it is missing, expired, forged or ended by a reset.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [unauthorized]
+          examples:
+            no_session:
+              summary: No valid session
+              value:
+                code: unauthorized
+    PermissionDenied:
+      description: A valid session without the permission that the route needs.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [permission_denied]
+          examples:
+            denied:
+              summary: Permission not held
+              value:
+                code: permission_denied
+    Forbidden:
+      description: A valid session without the route's permission, or a rejected CSRF token or `Origin`.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [permission_denied, csrf_rejected, origin_rejected]
+          examples:
+            denied:
+              summary: Permission not held
+              value:
+                code: permission_denied
+            csrf:
+              summary: CSRF token missing or wrong
+              value:
+                code: csrf_rejected
+            origin:
+              summary: Origin missing or wrong
+              value:
+                code: origin_rejected
+    ForgeryRejected:
+      description: A rejected CSRF token or `Origin` on a session-only route.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [csrf_rejected, origin_rejected]
+          examples:
+            csrf:
+              summary: CSRF token missing or wrong
+              value:
+                code: csrf_rejected
+            origin:
+              summary: Origin missing or wrong
+              value:
+                code: origin_rejected
+    OriginRejected:
+      description: A login with a missing or wrong `Origin`, which covers login CSRF.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [origin_rejected]
+          examples:
+            origin:
+              summary: Origin missing or wrong
+              value:
+                code: origin_rejected
+    NotFound:
+      description: |
+        An unknown or expired attempt. The same form answers any path outside this file, and any item
+        hidden from this session, so that the three cannot be told apart.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [not_found]
+          examples:
+            missing:
+              summary: Unknown, expired or hidden
+              value:
+                code: not_found
+    PayloadTooLarge:
+      description: The body is over the route's limit, where the server can still respond.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [payload_too_large]
+          examples:
+            too_large:
+              summary: Body too large
+              value:
+                code: payload_too_large
+    RebootRefused:
+      description: The application's reboot policy refused the request, and `reason` says why.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                required: [reason]
+                properties:
+                  code:
+                    type: string
+                    enum: [reboot_refused]
+          examples:
+            refused:
+              summary: Refused by the application's policy
+              value:
+                code: reboot_refused
+                reason: Machine cycle running
+    RetryLater:
+      description: Inside a delay window, and nothing was verified or counted. `Retry-After` gives the time.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [retry_later]
+          examples:
+            delayed:
+              summary: Inside a delay window
+              value:
+                code: retry_later
+    NotSupported:
+      description: |
+        Saving is not available on this device, because it has no Configuration provider. Retrying will not
+        help. On the target this stands until the provider is decided under #16.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [not_supported]
+          examples:
+            no_provider:
+              summary: No save provider
+              value:
+                code: not_supported
+    ServiceUnavailable:
+      description: |
+        Temporarily unavailable, and the request was not processed. `busy` covers a full login queue, a
+        verification or save already running, a service lock held at this moment, a full session table
+        and the client limit. `not_ready` means a service that has not started or could not start.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/RetryAfter'
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [busy, not_ready]
+          examples:
+            busy:
+              summary: Busy
+              value:
+                code: busy
+            not_ready:
+              summary: Service not ready
+              value:
+                code: not_ready
+  schemas:
+    ErrorCode:
+      type: string
+      description: Stable error codes. A new code is a change to this file.
+      enum:
+        - bad_request
+        - invalid_field
+        - unauthorized
+        - permission_denied
+        - csrf_rejected
+        - origin_rejected
+        - not_found
+        - payload_too_large
+        - reboot_refused
+        - retry_later
+        - not_supported
+        - busy
+        - not_ready
+    FieldError:
+      type: object
+      additionalProperties: false
+      required: [name, code]
+      properties:
+        name:
+          type: string
+          description: The request member that this error is about.
+        code:
+          type: string
+          description: Stable reason for this field.
+          enum:
+            - not_unicast
+            - prefix_not_usable
+            - gateway_outside_subnet
+            - incorrect
+            - rule_not_met
+    Error:
+      type: object
+      description: The JSON error form. Every error body except `409` uses it, and `409` has no body.
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        fields:
+          type: array
+          description: With `invalid_field` only. One entry for each rejected field.
+          items:
+            $ref: '#/components/schemas/FieldError'
+        reason:
+          $ref: '#/components/schemas/RefusalReason'
+    RefusalReason:
+      type: string
+      description: |
+        The text that the application's reboot policy gave, with `reboot_refused` or `refused` only. At most
+        63 bytes, the bound of a status text value, and it follows the same character rule.
+      maxLength: 63
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [user, password]
+      properties:
+        user:
+          type: string
+        password:
+          type: string
+          format: password
+    AttemptAccepted:
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id:
+          type: string
+          description: An unguessable identifier for `GET /api/v1/session/attempt/{id}`.
+          pattern: '^[A-Za-z0-9_-]+$'
+          maxLength: 64
+    SessionAttempt:
+      type: object
+      additionalProperties: false
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [pending, rejected, success]
+        code:
+          type: string
+          description: On a rejected password change only. A rejected login never has it.
+          enum: [invalid_field, storage_failed]
+        fields:
+          type: array
+          description: With `invalid_field` only.
+          items:
+            $ref: '#/components/schemas/FieldError'
+    CurrentUser:
+      type: object
+      additionalProperties: false
+      required: [user, role, must_change_password]
+      properties:
+        user:
+          type: string
+          pattern: '^[a-z0-9_.-]{1,31}$'
+        role:
+          type: string
+        must_change_password:
+          type: boolean
+    PasswordChangeRequest:
+      type: object
+      additionalProperties: false
+      required: [current_password, new_password]
+      properties:
+        current_password:
+          type: string
+          format: password
+        new_password:
+          type: string
+          format: password
+    StatusReport:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusItem'
+    StatusItem:
+      description: One status item. An item whose source failed has no `type` or `value`.
+      oneOf:
+        - $ref: '#/components/schemas/StatusItemBool'
+        - $ref: '#/components/schemas/StatusItemU32'
+        - $ref: '#/components/schemas/StatusItemU64'
+        - $ref: '#/components/schemas/StatusItemText'
+        - $ref: '#/components/schemas/StatusItemFailed'
+    StatusItemName:
+      type: string
+      description: Project item names are 1 to 31 characters. Built-in names can be longer.
+      pattern: '^[a-z0-9_.-]+$'
+    StatusItemOk:
+      type: string
+      enum: [ok]
+    StatusItemBool:
+      type: object
+      additionalProperties: false
+      required: [name, status, type, value]
+      properties:
+        name:
+          $ref: '#/components/schemas/StatusItemName'
+        status:
+          $ref: '#/components/schemas/StatusItemOk'
+        type:
+          type: string
+          enum: [bool]
+        value:
+          type: boolean
+    StatusItemU32:
+      type: object
+      additionalProperties: false
+      required: [name, status, type, value]
+      properties:
+        name:
+          $ref: '#/components/schemas/StatusItemName'
+        status:
+          $ref: '#/components/schemas/StatusItemOk'
+        type:
+          type: string
+          enum: [u32]
+        value:
+          type: integer
+          minimum: 0
+          maximum: 4294967295
+    StatusItemU64:
+      type: object
+      additionalProperties: false
+      required: [name, status, type, value]
+      properties:
+        name:
+          $ref: '#/components/schemas/StatusItemName'
+        status:
+          $ref: '#/components/schemas/StatusItemOk'
+        type:
+          type: string
+          enum: [u64]
+        value:
+          type: string
+          description: Decimal text, because a JSON number loses precision above 2^53 in a browser.
+          pattern: '^(0|[1-9][0-9]*)$'
+          maxLength: 20
+    StatusItemText:
+      type: object
+      additionalProperties: false
+      required: [name, status, type, value]
+      properties:
+        name:
+          $ref: '#/components/schemas/StatusItemName'
+        status:
+          $ref: '#/components/schemas/StatusItemOk'
+        type:
+          type: string
+          enum: [text]
+        value:
+          type: string
+          description: At most 63 bytes of well-formed UTF-8 with no control characters.
+          maxLength: 63
+    StatusItemFailed:
+      type: object
+      additionalProperties: false
+      required: [name, status]
+      properties:
+        name:
+          $ref: '#/components/schemas/StatusItemName'
+        status:
+          type: string
+          description: The item's Base result, in lower case without its prefix.
+          enum:
+            - invalid_argument
+            - out_of_range
+            - not_ready
+            - no_data
+            - io
+            - busy
+            - timeout
+            - no_resources
+            - not_supported
+            - invalid_state
+    Ipv4Settings:
+      type: object
+      description: |
+        Static IPv4 settings. The server also checks that the address is unicast, that the prefix leaves
+        usable hosts and that a gateway lies inside the subnet, and it reports each failure as a field error.
+      additionalProperties: false
+      required: [address, prefix_length]
+      properties:
+        address:
+          type: string
+          format: ipv4
+        prefix_length:
+          type: integer
+          minimum: 1
+          maximum: 30
+        gateway:
+          type: string
+          format: ipv4
+          description: Absent means no gateway. `0.0.0.0` is not accepted here.
+    NetworkState:
+      type: object
+      additionalProperties: false
+      required: [running, source, reboot_required]
+      properties:
+        running:
+          $ref: '#/components/schemas/Ipv4Settings'
+        saved:
+          $ref: '#/components/schemas/Ipv4Settings'
+        source:
+          type: string
+          description: Where the running values came from at boot.
+          enum: [saved, default]
+        reboot_required:
+          type: boolean
+          description: True when the next boot would apply values that differ from the running ones.
+        save:
+          $ref: '#/components/schemas/SaveState'
+    SaveState:
+      type: object
+      description: Present while a save is pending, and after a failed save until the next accepted one.
+      additionalProperties: false
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [pending, failed]
+    SaveQueued:
+      type: object
+      additionalProperties: false
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [pending]
+    RebootState:
+      type: object
+      additionalProperties: false
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [pending, refused, failed]
+        reason:
+          $ref: '#/components/schemas/RefusalReason'
+    RebootAccepted:
+      type: object
+      additionalProperties: false
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [pending]
