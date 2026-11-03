@@ -114,7 +114,7 @@ actions. A web request therefore goes through a service.
 1. Check `system.reboot` and the composition's reboot policy.
 2. Record the event and reply `202`, so that the browser gets an answer.
 3. After a short delay on a worker, give events and pending saves a bounded time to finish, and check the policy again, because the machine may have started in the meantime.
-4. Call `crux_system_reset`. If it returns, record the failure and report it through `GET /api/v1/system/reboot`, which returns pending, refused or failed.
+4. Call `crux_system_reset`. If it returns, record the failure and report it through `GET /api/v1/system/reboot`, which returns none, pending, refused or failed.
 5. The browser polls. The running device also answers, so an answer alone is not success. Success is a session that is no longer valid, because sessions do not survive a reset, and the browser then shows sign-in. If nothing changes before a time limit, it says that the restart was not confirmed.
 
 Its contract says a native failure may hang, and in that case only a watchdog or an operator can recover.
@@ -132,6 +132,7 @@ been tested here yet.
 | --- | --- | --- |
 | Response headers | A Zephyr static resource has no custom headers, while a dynamic response does | Serve assets as dynamic resources, with headers and `Content-Encoding` set by the adapter |
 | Style policy | Angular inserts styles at run time, so it needs a per-request nonce or `'unsafe-inline'` in `style-src`. Its guide ties `script-src` needs to critical CSS inlining and subresource integrity, which the sample disables. | A composition setting with two values: strict, or inline styles allowed. Scripts stay `'self'` and `frame-ancestors 'none'` stays in both, and no free-form policy string is offered. |
+| Login CSRF | The attempt poll sets the session cookies on a public `GET`, and a top-level navigation could otherwise collect another account's session | The poll requires `X-Crux-Request: 1`, which a navigation cannot send and a cross-site `fetch` could send only after a preflight that the server does not answer. A poll without it gets `403` and leaves the attempt as it was. Adopted on the owner's advance approval, for review in the morning. |
 | CSRF | `HttpClient` by default reads a JavaScript-readable `XSRF-TOKEN` cookie and sends `X-XSRF-TOKEN` on state-changing requests | Use those names. The session cookie stays `HttpOnly`. The token cookie is `Secure`, `SameSite=Strict` and readable, holds a value independent of the session token, and is compared per session in constant time. The TypeScript client does the same. |
 | Deep links | A browser reload on an application path would need `index.html` | Hash routing, which Angular offers with `withHashLocation`, so the server sees only `/` and asset paths. Path-based routing is not supported at first. |
 | Connections | Lazy loading creates many files, and the server default is three clients | A packaging budget for file count and compressed size, failing the build when exceeded |
