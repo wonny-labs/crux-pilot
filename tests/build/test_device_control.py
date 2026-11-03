@@ -1,5 +1,6 @@
 """Device-control tool against fake transports and scripted tools. No hardware or serial port."""
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -497,25 +498,35 @@ class SerialTransportTest(Workspace):
 
     @unittest.skipUnless(hasattr(os, 'openpty'), 'needs a pseudo-terminal')
     def test_exclusive_open_on_a_disposable_pty_with_real_pyserial(self):
-        try:
-            import serial  # noqa: F401
-        except ImportError:
+        if importlib.util.find_spec('serial') is None:
             self.skipTest('pyserial is not installed')
-        master, slave = os.openpty()
-        self.addCleanup(os.close, master)
-        self.addCleanup(os.close, slave)
-        profile = self.profile(port=os.ttyname(slave))
-        first = console_module.SerialTransport(profile)
-        first.open()
-        self.addCleanup(first.close)
-        with self.assertRaises(ConsoleError):
-            console_module.SerialTransport(profile).open()
-        os.write(master, b'hello')
-        console = console_module.Console(first)
-        console._open = True
-        self.assertEqual(console.read_until('hello', 2), b'hello')
-        first.write(b'out')
-        self.assertEqual(os.read(master, 3), b'out')
+        # In its own process: test_m5_runner requires that this one never loads pyserial.
+        script = """
+import json, os, sys
+sys.path.insert(0, sys.argv[1])
+from device_control import BoardProfile, Console, SerialTransport
+from device_control.errors import ConsoleError
+master, slave = os.openpty()
+profile = BoardProfile.from_mapping(dict(json.loads(sys.argv[2]), port=os.ttyname(slave)))
+transport = SerialTransport(profile)
+console = Console(transport)
+console.open()
+try:
+    SerialTransport(profile).open()
+except ConsoleError:
+    pass
+else:
+    raise SystemExit('second open succeeded')
+os.write(master, b'hello')
+assert console.read_until('hello', 2) == b'hello'
+console.write(b'out')
+assert os.read(master, 3) == b'out'
+console.close()
+"""
+        result = subprocess.run([sys.executable, '-c', script, str(REPO / 'tools'),
+                                 json.dumps(profile_data(self.locks))],
+                                text=True, capture_output=True, timeout=60)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 class ResetTest(Workspace):
