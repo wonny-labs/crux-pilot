@@ -1,0 +1,5 @@
+h
+loadfile <local path>/images/sd-probe-removal.elf
+r
+g
+exit
