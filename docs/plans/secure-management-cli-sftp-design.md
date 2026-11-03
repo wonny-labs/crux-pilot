@@ -68,7 +68,7 @@ The server offers a short explicit list, set with the wolfSSH algorithm list API
 | --- | --- |
 | Key exchange | `mlkem768x25519-sha256` if its resource cost is acceptable, `curve25519-sha256`, `ecdh-sha2-nistp256` |
 | Host key | `ssh-ed25519`, or `ecdsa-sha2-nistp256` where Ed25519 is unavailable |
-| User public key | `ssh-ed25519`, `ecdsa-sha2-nistp256`, `rsa-sha2-256` |
+| User public key | `ssh-ed25519`, `ecdsa-sha2-nistp256` |
 | Cipher | `aes128-gcm@openssh.com`, `aes256-gcm@openssh.com`, `aes128-ctr` |
 | MAC for CTR | `hmac-sha2-256` |
 | Compression | `none` |

@@ -1,11 +1,13 @@
 # Security events contract proposal
 
-Status: proposal for review, Issue #182. It finalises the event identifiers that the
+Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #182: E1 to E6. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval, and no merge is approved. It finalises the event identifiers that the
 [access control proposal](access-contract-proposal.md) leaves to this issue, over the existing
-[Logging contract](../logging-contract.md). Nothing here authorises implementation, dependency adoption or hardware operations.
+[Logging contract](../logging-contract.md).
 Baseline: main `4444d70`, Zephyr v4.4.2 `dccb095`.
 
-## Decisions requested
+## Decisions
+
+The owner accepted the recommendation of every row below.
 
 | ID | Decision | Recommendation | Impact if rejected |
 | --- | --- | --- | --- |
