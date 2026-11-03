@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+mainmenu "Crux microSD physical-gate probes"
+
+choice SAMPLE_SD_PROBE_MODE
+	prompt "Probe to run at boot"
+	default SAMPLE_SD_PROBE_NONE
+	help
+	  Both probes write to the card; physical use needs approval for the current task.
+
+config SAMPLE_SD_PROBE_NONE
+	bool "None (the image touches no card)"
+
+config SAMPLE_SD_STACK_PROBE
+	bool "Stack-use probe"
+	help
+	  Mounts the card without formatting it, runs the file check and a workload that exercises the
+	  deepest FatFs paths, then prints the Zephyr thread analyzer report (stack size and unused
+	  bytes per thread).
+
+config SAMPLE_SD_REMOVAL_PROBE
+	bool "Card-removal probe"
+	help
+	  Mounts the card without formatting it and keeps writing one small file, printing every result
+	  code. After the first failure it unmounts and retries a remount until the volume returns, so a
+	  removal and reinsertion shows whether recovery needs a reboot.
+
+endchoice
+
+source "Kconfig.zephyr"

@@ -120,6 +120,17 @@ card always mounted and a read-only `fsck_msdos -n` was clean. The writes were 3
 each; larger writes, directory changes and renames were not cut, and it is one card. See
 [docs/evidence/microsd-power-cut](evidence/microsd-power-cut/README.md).
 
+## Probes for the remaining physical items (prepared, not yet run)
+
+`samples/storage_sd_probe` holds two default-off images, both writing to the card (physical approval
+needed for each run): `CONFIG_SAMPLE_SD_STACK_PROBE=y` mounts, runs the file check and a FatFs workload
+(create, 64 KiB write across clusters, sync, read back, rename, stat, list, remove) twice and prints the
+Zephyr thread analyzer report (stack size and unused bytes per thread; interrupt stacks are not covered),
+and `CONFIG_SAMPLE_SD_REMOVAL_PROBE=y` writes one small file every 200 ms and prints every result code;
+after the first failure it unmounts and retries a remount every second, so removing and reinserting the
+card shows whether recovery needs a reboot. The blank-card and wrong-layout cases need a card prepared on a
+host, the M.2 slot and uSDHC1 ownership need the board in hand. None of these has been run on hardware.
+
 ## Not covered (needs the card and board)
 
 Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted;

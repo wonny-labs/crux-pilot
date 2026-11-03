@@ -96,6 +96,38 @@ for name, wanted in [('crux.sample.storage_sd_interrupt', False),
 print(f'RT1060 interrupted-write link check built {len(suites)} scenarios on {sys.argv[2]}')
 PY
 
+# Link only: the physical-gate probes (stack use, card removal). Both write to a card, so the scenarios
+# that enable them must never be flashed without physical approval.
+probe_output="${CRUX_FILE_RT1060_PROBE_OUTPUT:-$repo/build/zephyr/twister-file-rt1060-probe}"
+(cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_sd_probe" \
+    --build-only -O "$probe_output" --inline-logs)
+
+python3 - "$probe_output/twister.json" "$board" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+suites = json.load(open(sys.argv[1]))['testsuites']
+names = sorted(s['name'] for s in suites)
+expected = ['crux.sample.storage_sd_probe', 'crux.sample.storage_sd_probe.removal',
+            'crux.sample.storage_sd_probe.stack']
+if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 'not run' or
+                             s.get('runnable') for s in suites)):
+    raise RuntimeError(f'RT1060 probe link check did not build all scenarios: '
+                       f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
+root = Path(sys.argv[1]).parent
+wanted = {'crux.sample.storage_sd_probe': 'CONFIG_SAMPLE_SD_PROBE_NONE=y',
+          'crux.sample.storage_sd_probe.stack': 'CONFIG_SAMPLE_SD_STACK_PROBE=y',
+          'crux.sample.storage_sd_probe.removal': 'CONFIG_SAMPLE_SD_REMOVAL_PROBE=y'}
+for name, line in wanted.items():
+    configs = [p for p in root.rglob('.config') if p.parent.parent.name == name]
+    if len(configs) != 1:
+        raise RuntimeError(f'expected one build configuration for {name}, found {len(configs)}')
+    if line not in configs[0].read_text().splitlines():
+        raise RuntimeError(f'{name}: expected {line}')
+print(f'RT1060 probe link check built {len(suites)} scenarios on {sys.argv[2]}')
+PY
+
 # Negative control: the same check on Rev C and on the hyperflash variant must be refused, not
 # skipped. An unsatisfied Kconfig dependency only warns, so the testcase's CMake rejects it.
 for other in 'mimxrt1060_evk@C/mimxrt1062/qspi' 'mimxrt1060_evk@B/mimxrt1062/hyperflash'; do
