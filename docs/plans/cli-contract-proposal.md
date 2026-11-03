@@ -247,6 +247,8 @@ learn by trying. The prompt does not announce the state, so no access change is 
 
 The Zephyr shell stays a development facility and never reaches the network. Its command entries have no permission field, `shell_set_root_cmd` applies to every instance, and it brings built-in commands.
 
+Production means the first row below. An image in the third row has no Crux management and is not a production result of this work.
+
 | Image | `CONFIG_SHELL` | Backends |
 | --- | --- | --- |
 | Has `CONFIG_CRUX_CLI`, `CONFIG_CRUX_WEB` or `CONFIG_CRUX_SSH`, and no `CONFIG_CRUX_DEVELOPMENT_IMAGE` | Must be `n` | None |
@@ -254,7 +256,7 @@ The Zephyr shell stays a development facility and never reaches the network. Its
 | Has none of those | May be `y`. Existing samples such as `samples/controller/zephyr/m3-network.conf` keep their settings, and they name no network backend. | Anything except the network backends and `MCUMGR_GRP_SHELL`, so `tests/time/zephyr` keeps `SHELL_BACKEND_DUMMY` |
 
 In Zephyr v4.4.2 the network backends are `SHELL_BACKEND_TELNET`, `SHELL_BACKEND_WEBSOCKET` and `SHELL_BACKEND_MQTT`. `MCUMGR_GRP_SHELL` also runs shell commands and depends on `SHELL` and
-`SHELL_BACKEND_DUMMY`. Whether it can sit on a network transport was not read, so it is refused without relying on that. With management enabled the rule is an allow list: of `CONFIG_SHELL_BACKEND_*`, only `SHELL_BACKEND_SERIAL` and its options pass, which also covers `RTT`, `RPMSG`, `DUMMY` and `ADSP_MEMORY_WINDOW`. A project's own `SHELL_DEFINE` backend has no symbol, and the image check catches it.
+`SHELL_BACKEND_DUMMY`. Whether it can sit on a network transport was not read, so it is refused without relying on that. With management enabled the rule is an allow list: of `CONFIG_SHELL_BACKEND_*`, only `SHELL_BACKEND_SERIAL` and its options pass, which also covers `RTT`, `RPMSG`, `DUMMY` and `ADSP_MEMORY_WINDOW`. A project's own `SHELL_DEFINE` backend has no symbol. No check here detects one in an image where the shell is allowed, so it is left to review, and a row 1 image cannot have one.
 
 Enforcement has three levels, none of which needs a protected file to change:
 

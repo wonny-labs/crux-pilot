@@ -236,7 +236,7 @@ Stable values, in the access proposal's list and beyond. A later change adds val
 | Value | Name | Class | Emitter | Fields |
 | --- | --- | --- | --- | --- |
 | 0x0100 | `access.login_ok` | C | access | channel, source, user |
-| 0x0101 | `access.login_failed` | R | access | channel, source, user only if the name exists, including a disabled account. Also a bad name form and a password over 128 bytes, with result `INVALID`. The client's result is unchanged. |
+| 0x0101 | `access.login_failed` | R | access | channel, source, user only if the name exists, including a disabled account. Also a bad name form, with result `INVALID`, and a password over 128 bytes, with result `DENIED`, the access contract's result for it. The client's result is unchanged. |
 | 0x0102 | `access.key_failed` | R | access | channel, source, user if known |
 | 0x0103 | `access.delayed` | R | access | channel, source |
 | 0x0104 | `access.login_busy` | R | access | channel, source |
@@ -288,11 +288,12 @@ Stable values, in the access proposal's list and beyond. A later change adds val
 | 0x0F00 | `event.unknown` | R | this component | |
 | 0x0F01 | `event.lost` | R | this component | Line only |
 
-Each `crux_access_result_t` from an access operation maps to one identifier, so the rejection paths are complete:
+Each `crux_access_result_t` from an access operation maps to one identifier, or to the one stated exception, so the rejection paths are complete:
 
 | Result | Where | Identifier | Event result |
 | --- | --- | --- | --- |
-| `DENIED` | Login, key login | `access.login_failed`, `access.key_failed` | `DENIED` |
+| `DENIED` | Login, signed key attempt | `access.login_failed`, `access.key_failed` | `DENIED` |
+| `DENIED` | Unsigned key probe | No event, as the access proposal says | |
 | `DENIED` | Permission check | `access.permission_denied` | `DENIED` |
 | `DENIED` | Provisioning | `access.provision_refused` | `DENIED` |
 | `DENIED` | Change own password, wrong current password | `access.change_rejected` | `DENIED` |
@@ -301,7 +302,8 @@ Each `crux_access_result_t` from an access operation maps to one identifier, so 
 | `INVALID_ARGUMENT` | Provisioning | `access.provision_refused` | `INVALID` |
 | `INVALID_ARGUMENT` | An account operation | `access.change_rejected`, with no subject | `INVALID` |
 | `NOT_READY` | Any | `access.not_ready` | `FAILED` |
-| `SESSION_INVALID` | Any | `access.session_invalid` | `DENIED` |
+| `SESSION_INVALID` | An expired session found on use | `access.session_expired` | `DENIED` |
+| `SESSION_INVALID` | Never valid or already ended | `access.session_invalid` | `DENIED` |
 | `RETRY_LATER` | Any | `access.delayed` | `DELAYED` |
 | `BUSY` | Login | `access.login_busy` | `BUSY` |
 | `NO_RESOURCES` | Session table | `access.login_no_session` | `LIMIT` |
@@ -357,6 +359,7 @@ M11 and M12 add values in their own ranges through one reviewed change to this t
 
 - **Access proposal, AC3:** the event list grows by `access.login_busy`, `access.login_no_session`, `access.login_refused`, `access.not_ready`, `access.session_invalid`, `access.provision_refused`, `access.change_failed` and `access.change_rejected`, because Issue #182 requires an event from each rejection path. The proposal says that identifiers are finalised here, so this fits it, but `crux_access_port_event` in the implementation under #177 must report them.
 - **Access proposal, AC4 and AC7:** a session keeps its origin, for session events. Services need it too, because `file.*` and `config.*` records carry a channel and source, and a service holds only the session. This asks for `crux_access_session_origin(session, uint8_t *channel, uint8_t source[16], uint8_t *source_length)` in the public header.
+- **Access proposal, AC9:** emit after releasing the state lock. An emit may wait up to 10 ms on the ring lock, and every `crux_access_check` takes the state lock. The rule above still allows the state lock to be held, as a defence.
 - **Access proposal comment:** the `source` comment noted above.
 - **Web design:** "Security events: `GET /api/v1/events` when a bounded store exists" is met by the RAM ring, and it reads records that a reset discards.
 - **Logging contract:** none. An optional later addition is a threshold getter, so that a result could report that a filter is hiding events.
