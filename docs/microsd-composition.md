@@ -163,8 +163,11 @@ stays LOST (`remount=-120`, `-EALREADY` on the RT1060 picolibc image, on the con
 the removal probe leaves `probe`. The blank-card and wrong-layout cases need a card prepared on a
 host, the M.2 slot and uSDHC1 ownership need the board in hand. The stack probe, the removal probe and the
 blank and wrong-layout cards were run on the board on 3 November 2026
-([evidence](evidence/microsd-card-states-stack/README.md)); uSDHC1 ownership has not been checked and the M.2 slot
-was reported empty by the operator.
+([evidence](evidence/microsd-card-states-stack/README.md)). uSDHC1 ownership was checked on 3 November 2026 against
+the vendor schematic (Rev B1, not stored in this repository) and the operator's photos: the SD slot reaches the uSDHC1 pads
+through populated zero-ohm resistors, and the M.2 SDIO lines reach the same pads only through unpopulated ones. That is a
+document and photo check, not a measurement on this board; the SD power-enable pin was not traced, and the M.2 slot was
+reported empty by the operator.
 
 ## Recovery step for an interrupted compaction (3 November 2026, software only)
 
