@@ -269,6 +269,35 @@ static unsigned guess_for_a_day(uint64_t wait_after_failure_ms)
     return guesses;
 }
 
+/* Spends the free attempts and the short windows, then waits for the bucket to return to zero. */
+static unsigned guess_in_bursts_for_a_day(void)
+{
+    const uint64_t day_ms = 24ull * 3600ull * 1000ull;
+    access_test_boot_with_admin();
+    const uint64_t start_ms = crux_access_port_now_ms();
+    unsigned guesses = 0;
+    unsigned in_burst = 0;
+    while (crux_access_port_now_ms() - start_ms < day_ms) {
+        crux_access_session_t session = {0};
+        uint32_t retry_after_ms = 0;
+        crux_access_origin_t origin = access_test_web_from(1);
+        crux_access_result_t result = crux_access_login_password(
+            ADMIN, WRONG, strlen(WRONG), &origin, &session, &retry_after_ms);
+        if (result == CRUX_ACCESS_ERR_RETRY_LATER) {
+            access_fake_clock_advance(retry_after_ms);
+            continue;
+        }
+        CHECK(result == CRUX_ACCESS_ERR_DENIED);
+        guesses += 1;
+        in_burst += 1;
+        if (in_burst == CRUX_ACCESS_DELAY_FREE_ATTEMPTS + 6u) {
+            in_burst = 0;
+            access_fake_clock_advance(CRUX_ACCESS_DELAY_QUIET_MS);
+        }
+    }
+    return guesses;
+}
+
 static void guessing_bound_cases(void)
 {
     /* The proposal bounds sustained guessing to about 1,500 attempts a day per bucket. */
@@ -281,13 +310,15 @@ static void guessing_bound_cases(void)
         most = guesses > most ? guesses : most;
         CHECK(guesses <= 1500);
     }
-    /* Staying under the cap, about one a minute, is the fastest strategy, and the bound is tight.
-     */
+    /* Staying under the cap, about one a minute, is the fastest strategy. */
     CHECK(most >= 1400);
-    /* Waiting out the quiet period allows about eleven attempts in each period of sixteen minutes,
-     * from which the windows are 1 to 32 seconds: 63 seconds, then the quiet period. */
-    unsigned quiet = guess_for_a_day(CRUX_ACCESS_DELAY_QUIET_MS);
-    CHECK(quiet <= 100);
+    /* Waiting out the quiet period after a burst is the proposal's other strategy: about eleven
+     * attempts in each period of about sixteen minutes, which is slower than the first. */
+    unsigned bursts = guess_in_bursts_for_a_day();
+    printf("Bursts of %u then a quiet period: %u guesses in a day\n",
+           CRUX_ACCESS_DELAY_FREE_ATTEMPTS + 6u, bursts);
+    CHECK(bursts >= 900);
+    CHECK(bursts <= most);
 }
 
 static void collision_cases(void)
