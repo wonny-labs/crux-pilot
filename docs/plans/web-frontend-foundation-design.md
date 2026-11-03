@@ -26,7 +26,7 @@ chooses.
 | W9 | A composition must state its reboot policy explicitly | Proposal |
 | W10 | Crux's own frontend tooling is `tsc`, esbuild and a small mock server, and it does not use Vite | Proposal |
 | W11 | Frontend work with a mock server may run alongside M7 and before gate #183. The secure management design's default is planning only, so this needs the owner's decision. | Proposal |
-| W12 | Each API route and asset is its own registered server resource, and applications use hash routing | Proposal |
+| W12 | Each fixed API route and asset is its own registered server resource, a route with a path parameter is one registered wildcard resource, and applications use hash routing | Proposal |
 
 W1 changes the plain HTML reference in the web design. A framework is justified here because hand-written DOM code
 is where cross-site scripting mistakes occur as a screen grows, while Preact escapes output by default. It adds one
@@ -71,7 +71,7 @@ session-only and the service filters items by permission.
 | Forced password change | Change own password | Session-only route, with the account service authorising the change, as AC5 in the gate record recommends | #186, #187 |
 | Home | `GET /api/v1/status` | Session-only, filtered per item | #187, with the status service from #180 |
 | Network settings | `GET`, `PUT /api/v1/network` | `network.read`, `network.write` | New service |
-| Reboot | `POST /api/v1/system/reboot` | `system.reboot` | New service |
+| Reboot | `POST`, `GET /api/v1/system/reboot` | `system.reboot` for both | New service |
 
 The built interface itself is public, because a browser must load it before login. It must hold no secret or device data, and every API still checks access. This extends `CRUX_WEB_PUBLIC`, which the web design reserves for login and sign-in assets, to the whole bundle. A public bundle does reveal which screens exist.
 
@@ -90,7 +90,7 @@ disabled, so writing settings is a new capability.
 | Validation | Unicast address, a usable prefix, and a gateway inside the subnet when one is given. Reject with field errors. |
 | Apply | Saved only. The composition reads them at boot and applies them in private native code. |
 | Display | `GET /api/v1/network` returns running values, saved values and their source, saved or default, with a notice that a reboot is needed |
-| Recovery from a wrong address | A serial command, delivered with the service in #213 on the #181 registry. Configuration has no clear operation, so it saves a `use_saved` flag as false. It needs a composition with a serial console. |
+| Recovery from a wrong address | A serial command, delivered with the service in #213 on the #181 registry. Configuration has no clear operation, so it saves a `use_saved` flag as false. The next successful save through the service sets the flag back to true, after the check key, so that later changes still apply. It needs a composition with a serial console. |
 | Events | A change is a security event, with no secret involved |
 
 W7 avoids a live change that would cut off the user's own session and leave the device unreachable with no way to
@@ -103,7 +103,7 @@ confirm. A confirm-or-revert apply can be added later.
 - An address change can invalidate a certificate naming the old address, so the certificate work in #190 must state how
   this behaves.
 - DHCP is disabled in the Crux network samples today and has no evidence, which is why W8 defers it.
-- Saved values take effect at any later reset, including a power cut, and not only after the reboot that the user intended. Status and the screen show the difference, but an unintended reset can still apply a wrong address.
+- Saved values take effect at any later reset, including a power cut, and not only after the reboot that the user intended. `GET /api/v1/network` and the network screen show the difference, but an unintended reset can still apply a wrong address.
 - A product with no serial console needs its own recovery path, or must accept that a wrong address needs service access.
 
 ## Reboot
@@ -146,16 +146,20 @@ package count.
 
 ## Server resource model
 
-The Zephyr HTTP server allows one in-flight request per dynamic resource, recorded in a `holder` field, and it answers a second client with a bare `409`. When a client disconnects, the server releases holders only on registered resources, and it does not walk the service fallback resource. A single catch-all resource would therefore serialise every request, and a client that disconnected mid-request could block the interface until a restart.
+The Zephyr HTTP server allows one in-flight request per dynamic resource, recorded in a `holder` field, and it answers a second client with a bare `409`. When a client disconnects, the server releases holders only on registered resources, and it does not walk the service fallback resource. A single catch-all resource would therefore serialise every request, and a client that disconnected mid-request would leave it held until a later complete request happened to use the same client slot.
 
 W12 follows from this:
 
-- The build generates one registered resource for each API route and asset, from the route table and the packaging step. The fallback resource is not used, which replaces the web design's catch-all and the fallback candidate in #184.
+- The build generates one registered resource for each fixed API route and asset, from the route table and the packaging step. The fallback resource is not used, which replaces the web design's catch-all and the fallback candidate in #184.
+- Registered matching is exact, so a route with a path parameter, such as `GET /api/v1/session/attempt/{id}` or `/api/v1/config/{name}`, gets one registered wildcard resource such as `/api/v1/session/attempt/*`. This needs `HTTP_SERVER_RESOURCE_WILDCARD`, which selects `POSIX_C_LIB_EXT`. Exact matches are tried first, and all requests under one wildcard share one holder. This has not been built here, so #184 must prove it on the provider profiles. If it cannot, path parameters become query parameters, which exact matching already accepts, in one reviewed change to the specification.
+- With that option, the server's `FNM_LEADING_DIR` flag lets any route also match deeper paths, so `/api/v1/status/x` reaches the status route, and a trailing `*` crosses `/`. The adapter therefore compares the whole path with the route table before it checks access, and answers `404` to anything else.
 - Hash routing removes the need for a deep-link fallback.
-- A `GET` completes in one server pass, while a `POST` or `PUT` whose body spans several reads holds its route until the body completes or the inactivity timeout, 10 seconds by default, closes the connection.
+- A `GET` completes in one server pass, while a `POST` or `PUT` whose body spans several reads holds its route until the body completes or the connection closes.
 - The client treats a `409` with no JSON body as busy and retries. A refused reboot therefore uses `423`, so that the two cannot be confused.
 
-**Limit.** Anyone who can reach the port can hold a route by sending a partial request without logging in, including the login route. Each attempt is bounded by the timeout, but a flood can keep network login busy while it lasts, like the login delay limit in the access contract, and the serial console is not affected. A slow reader also stalls the single server thread, which bounded send timeouts must limit. #184 measures both.
+**Limit.** Anyone who can reach the port can hold a route by sending a partial request without logging in, including the login route. The inactivity timeout, 10 seconds by default, restarts on every receive, so a client that keeps sending a few bytes holds the route past it. This can keep network login busy while it lasts, like the login delay limit in the access contract, and the serial console is not affected.
+
+The adapter's callback runs on each body chunk and a negative return closes the connection, so #184 adds a whole-request deadline there. Headers run no callback, so the adapter cannot close a client that trickles them. Such a client holds a client slot up to the parser's 80 KB header limit, and three of them at the default client limit block the whole web interface. #184 must measure this, then either add a server-side deadline, which is a Zephyr patch for the owner to decide, or declare the limit. A slow reader also stalls the single server thread, which bounded send timeouts must limit, and #184 measures that too.
 
 ## Tooling and supply chain
 
