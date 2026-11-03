@@ -72,7 +72,7 @@ if CRUX_SYNC
 config CRUX_SYNC_MUTEX_COUNT
 	int "Sync mutex slots"
 	default 8
-	range 1 64
+	range 1 256
 
 config CRUX_SYNC_SEMAPHORE_COUNT
 	int "Sync semaphore slots"

@@ -58,6 +58,8 @@ static int thread_metadata_admission_case(void)
     return 0;
 }
 
+/* Zephyr metadata admission never waits, so the workers can only be held off by the
+ * section itself: they must not run inside it, and must run as soon as it ends. */
 int execution_metadata_admission_case(void)
 {
     const crux_thread_options_t options = {.priority = CRUX_THREAD_PRIORITY_NORMAL};
@@ -78,19 +80,25 @@ int execution_metadata_admission_case(void)
         return 2;
     }
 
-    /* Both workers attempt admission while the real provider metadata mutex is held. */
+    const int caller_priority = k_thread_priority_get(k_current_get());
+    k_thread_priority_set(k_current_get(), K_LOWEST_APPLICATION_THREAD_PRIO);
+
     sync_native_metadata_lock();
     k_sem_give(&poll.start);
     k_sem_give(&finite.start);
-    bool poll_finished = k_sem_take(&poll.done, K_MSEC(500)) == 0;
-    bool finite_finished = k_sem_take(&finite.done, K_MSEC(500)) == 0;
+    k_busy_wait(2000);
+    bool ran_inside_section = k_sem_count_get(&poll.done) != 0;
     sync_native_metadata_unlock();
+    bool poll_finished_at_end = k_sem_count_get(&poll.done) != 0;
+    bool finite_finished = k_sem_take(&finite.done, K_MSEC(500)) == 0;
 
+    k_thread_priority_set(k_current_get(), caller_priority);
     crux_status_t poll_join = crux_thread_join(&poller, 1000);
     crux_status_t finite_join = crux_thread_join(&waiter, 1000);
-    if (!poll_finished || poll_join != CRUX_OK || poll.result != CRUX_ERR_BUSY ||
-        !finite_finished || finite_join != CRUX_OK || finite.result != CRUX_ERR_TIMEOUT ||
-        crux_semaphore_take(poll.semaphore, 0) != CRUX_OK ||
+    if (ran_inside_section || !poll_finished_at_end || poll_join != CRUX_OK ||
+        poll.result != CRUX_OK || !finite_finished || finite_join != CRUX_OK ||
+        finite.result != CRUX_ERR_TIMEOUT ||
+        crux_semaphore_take(poll.semaphore, 0) != CRUX_ERR_BUSY ||
         crux_semaphore_destroy(&poll.semaphore) != CRUX_OK ||
         crux_semaphore_destroy(&finite.semaphore) != CRUX_OK) {
         return 3;
