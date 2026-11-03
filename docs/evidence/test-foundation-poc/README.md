@@ -102,6 +102,15 @@ In the Dev Container layout, `west build -b native_sim/native/64 -d ... crux-pil
 - `scripts/check-native-interfaces.py --root <crux>`: pass. It does not scan this fixture; `crux_assert_portable_consumer(consumer_app)` is what checks the boundary, and it passed at configure.
 - `python3 scripts/check_docs.py` with the proposal and this record staged: pass, exit 0, 0 link errors. Offline; external URLs are not verified.
 
+## Recheck after the style fix
+
+The `zephyr` workflow's patch-style check rejected the fixture at `b185e4e`, so `0692fa0` added the required braces. The retained files in this directory still come from `ae7bdbc`. Outputs of the recheck were not retained.
+
+- `scripts/check-patch.sh origin/main 0692fa0`: 0 errors, 0 warnings.
+- `clang-format --dry-run --Werror` on the fixture's C files, version 18.1.8: pass.
+- `run_poc.sh` at `0692fa0`, Dev Container layout, same image and Zephyr pin: all 7 steps as expected, `failures=0`. `functional-defect` again failed on `cycle 3: skipped 0, expected 2`.
+- The consumer workspace layout, including `module-is-required`, was not rerun.
+
 ## Not run
 
 - **Any macOS or Windows execution.** The portability table in the proposal is source reading only.
