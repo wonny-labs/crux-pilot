@@ -16,8 +16,10 @@ void crux_file_unlock(void)
     assert(locks > unlocks);
     unlocks++;
 }
-crux_file_result_t crux_file_impl_open(size_t s, const char *n, crux_file_mode_t m)
+crux_file_result_t crux_file_impl_open(crux_file_root_t r, size_t s, const char *n,
+                                       crux_file_mode_t m)
 {
+    (void)r;
     (void)s;
     (void)n;
     (void)m;
@@ -64,11 +66,54 @@ crux_file_result_t crux_file_impl_sync(size_t s)
     assert(live[s]);
     return sync_result;
 }
-crux_file_result_t crux_file_impl_remove(const char *n)
+crux_file_result_t crux_file_impl_remove(crux_file_root_t r, const char *n)
 {
+    (void)r;
     (void)n;
     calls++;
     return io;
+}
+/* The additions have their own faults in fake_faults_test.c. */
+crux_file_result_t crux_file_impl_stat(crux_file_root_t r, const char *n, crux_file_info_t *o)
+{
+    (void)r;
+    (void)n;
+    (void)o;
+    return CRUX_FILE_ERR_NOT_SUPPORTED;
+}
+crux_file_result_t crux_file_impl_size(size_t s, uint64_t *o)
+{
+    (void)s;
+    (void)o;
+    return CRUX_FILE_ERR_NOT_SUPPORTED;
+}
+crux_file_result_t crux_file_impl_rename(crux_file_root_t r, const char *f, const char *t)
+{
+    (void)r;
+    (void)f;
+    (void)t;
+    return CRUX_FILE_ERR_NOT_SUPPORTED;
+}
+crux_file_result_t crux_file_impl_dir_open(size_t d, crux_file_root_t r)
+{
+    (void)d;
+    (void)r;
+    return CRUX_FILE_ERR_NOT_SUPPORTED;
+}
+crux_file_result_t crux_file_impl_dir_read(size_t d, char *n, size_t c, crux_file_info_t *i,
+                                           bool *e)
+{
+    (void)d;
+    (void)n;
+    (void)c;
+    (void)i;
+    (void)e;
+    return CRUX_FILE_ERR_NOT_SUPPORTED;
+}
+crux_file_result_t crux_file_impl_dir_close(size_t d)
+{
+    (void)d;
+    return CRUX_FILE_ERR_NOT_SUPPORTED;
 }
 void crux_file_record_cleanup_error(crux_file_result_t e)
 {
