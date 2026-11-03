@@ -52,7 +52,9 @@ static void not_ready_cases(void)
     crux_access_logout(&session);
     CHECK(session.value == 0);
     CHECK(access_fake_derive_count() == 0);
-    CHECK(access_fake_event_count() == 0);
+    /* Each refusal says why, and logging out a dead reference is not a refusal. */
+    CHECK(access_fake_event_count() > 0);
+    CHECK(access_fake_event_count() == access_fake_event_count_of(CRUX_ACCESS_EVENT_NOT_READY));
 }
 
 static void expect_policy_rejected(const crux_access_policy_t *policy)
@@ -242,7 +244,7 @@ static void permission_cases(const access_test_profile_t *profile)
     access_fake_events_clear();
     CHECK(crux_access_check(user, profile->not_granted_to_limited) == CRUX_ACCESS_ERR_DENIED);
     CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_PERMISSION_DENIED) == 1);
-    CHECK(strcmp(access_fake_event(0)->account, "user") == 0);
+    CHECK(strcmp(access_fake_event(0)->actor, "user") == 0);
     CHECK(crux_access_check(user, profile->unknown_permission) == CRUX_ACCESS_ERR_DENIED);
     CHECK(crux_access_check(admin, profile->unknown_permission) == CRUX_ACCESS_ERR_DENIED);
     CHECK(crux_access_check(user, "") == CRUX_ACCESS_ERR_INVALID_ARGUMENT);
@@ -347,7 +349,7 @@ static void expiry_cases(const access_test_profile_t *profile)
     CHECK(crux_access_check(session, CRUX_ACCESS_PERMISSION_MANAGE) ==
           CRUX_ACCESS_ERR_SESSION_INVALID);
     CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_EXPIRED) == 1);
-    CHECK(strcmp(access_fake_event(0)->account, "admin") == 0);
+    CHECK(strcmp(access_fake_event(0)->actor, "admin") == 0);
     CHECK(crux_access_touch(session) == CRUX_ACCESS_ERR_SESSION_INVALID);
     CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_EXPIRED) == 1);
 
@@ -442,6 +444,119 @@ static void argument_cases(const access_test_profile_t *profile)
     CHECK(access_fake_derive_count() == 0);
 }
 
+/* Boots a profile with an administrator, and a limited account's session from a known origin. */
+static crux_access_session_t boot_with_limited(const access_test_profile_t *profile)
+{
+    access_test_boot(&profile->policy);
+    CHECK(crux_access_provision_first_account("admin", profile->password, strlen(profile->password),
+                                              profile->administrator_role,
+                                              &access_test_serial) == CRUX_ACCESS_OK);
+    crux_access_session_t admin = access_test_session("admin", profile->password, &access_test_web);
+    CHECK(crux_access_account_create(admin, "alice", profile->limited_role, profile->password,
+                                     strlen(profile->password)) == CRUX_ACCESS_OK);
+    return access_test_session("alice", profile->password, &access_test_web_other);
+}
+
+/* A query for hiding what a session cannot use: the same answer as a check, and no side effect. */
+static void permitted_cases(const access_test_profile_t *profile)
+{
+    const crux_access_session_t never = {0};
+    crux_access_session_t limited = boot_with_limited(profile);
+    bool permitted = true;
+
+    CHECK(crux_access_permitted(limited, profile->granted_to_limited, &permitted) ==
+          CRUX_ACCESS_OK);
+    CHECK(permitted);
+    CHECK(crux_access_permitted(limited, profile->not_granted_to_limited, &permitted) ==
+          CRUX_ACCESS_OK);
+    CHECK(!permitted);
+    CHECK(crux_access_permitted(limited, profile->unknown_permission, &permitted) ==
+          CRUX_ACCESS_OK);
+    CHECK(!permitted);
+    CHECK(crux_access_permitted(limited, CRUX_ACCESS_PERMISSION_SELF, &permitted) ==
+          CRUX_ACCESS_OK);
+    CHECK(permitted);
+
+    /* Failures leave the output alone. */
+    permitted = true;
+    CHECK(crux_access_permitted(never, profile->granted_to_limited, &permitted) ==
+          CRUX_ACCESS_ERR_SESSION_INVALID);
+    CHECK(permitted);
+    CHECK(crux_access_permitted(limited, NULL, &permitted) == CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    CHECK(crux_access_permitted(limited, "", &permitted) == CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    CHECK(permitted);
+    CHECK(crux_access_permitted(limited, profile->granted_to_limited, NULL) ==
+          CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+
+    /* It does not refresh the idle timer. */
+    const uint64_t idle_ms = (uint64_t)profile->policy.session_idle_limit_s * 1000u;
+    access_fake_clock_advance(idle_ms - 1u);
+    CHECK(crux_access_permitted(limited, profile->granted_to_limited, &permitted) ==
+          CRUX_ACCESS_OK);
+    access_fake_clock_advance(1u);
+    CHECK(crux_access_permitted(limited, profile->granted_to_limited, &permitted) ==
+          CRUX_ACCESS_ERR_SESSION_INVALID);
+}
+
+static void permitted_forced_change_cases(const access_test_profile_t *profile)
+{
+    access_test_boot(&profile->policy);
+    CHECK(crux_access_provision_first_account("admin", profile->password, strlen(profile->password),
+                                              profile->administrator_role,
+                                              &access_test_serial) == CRUX_ACCESS_OK);
+    crux_access_session_t admin = access_test_session("admin", profile->password, &access_test_web);
+    CHECK(crux_access_account_create(admin, "alice", profile->limited_role, profile->password,
+                                     strlen(profile->password)) == CRUX_ACCESS_OK);
+    CHECK(crux_access_account_reset_password(admin, "alice", profile->other_password,
+                                             strlen(profile->other_password)) == CRUX_ACCESS_OK);
+    crux_access_session_t forced =
+        access_test_session("alice", profile->other_password, &access_test_web_other);
+    bool permitted = true;
+    CHECK(crux_access_permitted(forced, profile->granted_to_limited, &permitted) == CRUX_ACCESS_OK);
+    CHECK(!permitted);
+    permitted = true;
+    CHECK(crux_access_permitted(forced, CRUX_ACCESS_PERMISSION_SELF, &permitted) == CRUX_ACCESS_OK);
+    CHECK(!permitted);
+}
+
+static void session_origin_cases(const access_test_profile_t *profile)
+{
+    const crux_access_session_t never = {0};
+    crux_access_session_t limited = boot_with_limited(profile);
+    uint8_t channel = 0xEE, source_length = 0xEE;
+    uint8_t source[16];
+    memset(source, 0xEE, sizeof(source));
+
+    /* Failures leave the outputs alone. */
+    CHECK(crux_access_session_origin(never, &channel, source, &source_length) ==
+          CRUX_ACCESS_ERR_SESSION_INVALID);
+    CHECK(channel == 0xEE && source_length == 0xEE && source[0] == 0xEE);
+    CHECK(crux_access_session_origin(limited, NULL, source, &source_length) ==
+          CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    CHECK(crux_access_session_origin(limited, &channel, NULL, &source_length) ==
+          CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    CHECK(crux_access_session_origin(limited, &channel, source, NULL) ==
+          CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    CHECK(channel == 0xEE && source_length == 0xEE && source[0] == 0xEE);
+
+    /* The session's origin, with unused bytes zero, and the channel's documented value. */
+    CHECK(crux_access_session_origin(limited, &channel, source, &source_length) == CRUX_ACCESS_OK);
+    CHECK(channel == 2 && channel == (uint8_t)CRUX_ACCESS_CHANNEL_WEB);
+    CHECK(source_length == access_test_web_other.source_length);
+    CHECK(memcmp(source, access_test_web_other.source, source_length) == 0);
+    for (size_t index = source_length; index < sizeof(source); ++index) {
+        CHECK(source[index] == 0);
+    }
+
+    /* A serial session has no address. */
+    crux_access_session_t serial =
+        access_test_session("alice", profile->password, &access_test_serial);
+    CHECK(crux_access_session_origin(serial, &channel, source, &source_length) == CRUX_ACCESS_OK);
+    CHECK(channel == 1 && channel == (uint8_t)CRUX_ACCESS_CHANNEL_SERIAL);
+    CHECK(source_length == 0 && source[0] == 0);
+    CHECK((uint8_t)CRUX_ACCESS_CHANNEL_SSH == 3);
+}
+
 static void suite(const access_test_profile_t *profile)
 {
     init_cases(profile);
@@ -452,6 +567,9 @@ static void suite(const access_test_profile_t *profile)
     expiry_cases(profile);
     generation_cases(profile);
     argument_cases(profile);
+    permitted_cases(profile);
+    permitted_forced_change_cases(profile);
+    session_origin_cases(profile);
 }
 
 int main(void)

@@ -30,14 +30,46 @@ static crux_access_result_t authorise_held(crux_access_session_t session, requir
     return permitted ? CRUX_ACCESS_OK : CRUX_ACCESS_ERR_DENIED;
 }
 
-static void authorise_report(crux_access_result_t result, const actor_t *actor,
+static void authorise_report(crux_access_result_t result, requirement_t requirement,
+                             const char *target, const actor_t *actor,
                              const access_expired_t *expired)
 {
-    crux_access_expired_emit(expired);
+    crux_access_session_report(result, expired);
     if (result == CRUX_ACCESS_ERR_DENIED) {
-        crux_access_emit(CRUX_ACCESS_EVENT_PERMISSION_DENIED, result, &actor->origin, actor->user,
-                         false);
+        bool own = requirement == REQUIRE_MANAGE_OR_OWN && strcmp(actor->user, target) == 0;
+        crux_access_emit_session(CRUX_ACCESS_EVENT_PERMISSION_DENIED, result, &actor->origin,
+                                 actor->user, NULL,
+                                 own ? CRUX_ACCESS_PERMISSION_SELF : CRUX_ACCESS_PERMISSION_MANAGE);
     }
+}
+
+/* Reports a refusal with no lock held. target is NULL unless it names a known account. A lost lock
+ * has no event. */
+static crux_access_result_t reject(crux_access_result_t result, const actor_t *actor,
+                                   const char *target)
+{
+    if (result != CRUX_ACCESS_ERR_NOT_READY) {
+        crux_access_emit_session(CRUX_ACCESS_EVENT_CHANGE_REJECTED, result, &actor->origin,
+                                 actor->user, target, NULL);
+    }
+    return result;
+}
+
+/* Arguments are checked before the session, so this looks up the actor for the event only. */
+static crux_access_result_t reject_argument(crux_access_session_t session)
+{
+    actor_t actor;
+    memset(&actor, 0, sizeof(actor));
+    if (!crux_access_lock_state()) {
+        return CRUX_ACCESS_ERR_NOT_READY;
+    }
+    const access_slot_t *slot = crux_access_slot_peek(session, crux_access_port_now_ms());
+    if (slot != NULL) {
+        actor.origin = slot->origin;
+        crux_access_copy_name(actor.user, slot->user);
+    }
+    crux_access_unlock_state();
+    return reject(CRUX_ACCESS_ERR_INVALID_ARGUMENT, &actor, NULL);
 }
 
 static crux_access_result_t authorise(crux_access_session_t session, requirement_t requirement,
@@ -49,7 +81,7 @@ static crux_access_result_t authorise(crux_access_session_t session, requirement
     }
     crux_access_result_t result = authorise_held(session, requirement, target, actor, &expired);
     crux_access_unlock_state();
-    authorise_report(result, actor, &expired);
+    authorise_report(result, requirement, target, actor, &expired);
     return result;
 }
 
@@ -71,7 +103,7 @@ static crux_access_result_t change_begin(crux_access_session_t session, requirem
     crux_access_unlock_state();
     if (result != CRUX_ACCESS_OK) {
         crux_access_unlock_change();
-        authorise_report(result, actor, &expired);
+        authorise_report(result, requirement, target, actor, &expired);
         return result;
     }
     crux_access_state.pending = crux_access_state.table;
@@ -101,8 +133,9 @@ static uint64_t change_number_for(const char *user, bool changed)
     return crux_access_state.next_change_number;
 }
 
-/* Save, then apply. A save failure leaves both copies unchanged, and a login that completes during
- * the save sees the old record until applying the change ends its session. */
+/* Save, then apply. A save failure leaves RAM unchanged, although the store's own bytes may have
+ * changed. A login that completes during the save sees the old record until applying the change
+ * ends its session. */
 static crux_access_result_t change_commit(change_effect_t effect)
 {
     uint8_t *record = crux_access_state.record;
@@ -178,11 +211,15 @@ static bool is_last_administrator(const access_table_t *table, const access_acco
     return administrators == 1;
 }
 
+/* failed_target is what a failed save may name: NULL when the account would have been new. */
 static void emit_change(crux_access_event_type_t type, crux_access_result_t result,
-                        const actor_t *actor, const char *user)
+                        const actor_t *actor, const char *user, const char *failed_target)
 {
-    if (result == CRUX_ACCESS_OK || result == CRUX_ACCESS_ERR_STORE) {
-        crux_access_emit(type, result, &actor->origin, user, false);
+    if (result == CRUX_ACCESS_OK) {
+        crux_access_emit_session(type, result, &actor->origin, actor->user, user, NULL);
+    } else if (result == CRUX_ACCESS_ERR_STORE) {
+        crux_access_emit_session(CRUX_ACCESS_EVENT_CHANGE_FAILED, result, &actor->origin,
+                                 actor->user, failed_target, NULL);
     }
 }
 
@@ -191,10 +228,10 @@ crux_access_result_t crux_access_account_list(crux_access_session_t session,
                                               size_t *count)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (count == NULL || (accounts == NULL && capacity != 0)) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return reject_argument(session);
     }
     if (!crux_access_lock_state()) {
         return CRUX_ACCESS_ERR_NOT_READY;
@@ -217,7 +254,7 @@ crux_access_result_t crux_access_account_list(crux_access_session_t session,
         }
     }
     crux_access_unlock_state();
-    authorise_report(result, &actor, &expired);
+    authorise_report(result, REQUIRE_MANAGE, NULL, &actor, &expired);
     return result;
 }
 
@@ -252,10 +289,10 @@ crux_access_result_t crux_access_account_create(crux_access_session_t session, c
                                                 size_t length)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (password == NULL || role == NULL || !crux_access_name_valid(user)) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return reject_argument(session);
     }
     actor_t actor;
     crux_access_result_t result = authorise(session, REQUIRE_MANAGE, NULL, &actor);
@@ -264,21 +301,21 @@ crux_access_result_t crux_access_account_create(crux_access_session_t session, c
     }
     size_t role_index = 0;
     if (!crux_access_role_find(role, &role_index)) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return reject(CRUX_ACCESS_ERR_INVALID_ARGUMENT, &actor, NULL);
     }
     if (!crux_access_password_acceptable(password, length)) {
-        return CRUX_ACCESS_ERR_PASSWORD_REJECTED;
+        return reject(CRUX_ACCESS_ERR_PASSWORD_REJECTED, &actor, NULL);
     }
     result = table_preview_create(user);
     if (result != CRUX_ACCESS_OK) {
-        return result;
+        return reject(result, &actor, result == CRUX_ACCESS_ERR_ALREADY_EXISTS ? user : NULL);
     }
     access_account_t fresh = {.enabled = true};
     crux_access_copy_name(fresh.user, user);
     crux_access_copy_name(fresh.role, role);
     if (!verifier_make(&fresh, password, length)) {
         crux_access_secure_zero(&fresh, sizeof(fresh));
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(&actor.origin);
     }
     result = change_begin(session, REQUIRE_MANAGE, NULL, &actor);
     if (result != CRUX_ACCESS_OK) {
@@ -289,23 +326,23 @@ crux_access_result_t crux_access_account_create(crux_access_session_t session, c
     if (result != CRUX_ACCESS_OK) {
         change_abandon();
         crux_access_secure_zero(&fresh, sizeof(fresh));
-        return result;
+        return reject(result, &actor, result == CRUX_ACCESS_ERR_ALREADY_EXISTS ? user : NULL);
     }
     pending_append(&fresh);
     crux_access_secure_zero(&fresh, sizeof(fresh));
     result = change_commit((change_effect_t){user, false, 0});
     crux_access_unlock_change();
-    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_CREATED, result, &actor, user);
+    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_CREATED, result, &actor, user, NULL);
     return result;
 }
 
 crux_access_result_t crux_access_account_remove(crux_access_session_t session, const char *user)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (!crux_access_name_valid(user)) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return reject_argument(session);
     }
     actor_t actor;
     crux_access_result_t result = change_begin(session, REQUIRE_MANAGE, NULL, &actor);
@@ -317,11 +354,11 @@ crux_access_result_t crux_access_account_remove(crux_access_session_t session, c
         crux_access_table_find(&crux_access_state.pending, user, &index);
     if (account == NULL) {
         change_abandon();
-        return CRUX_ACCESS_ERR_NOT_FOUND;
+        return reject(CRUX_ACCESS_ERR_NOT_FOUND, &actor, NULL);
     }
     if (is_last_administrator(&crux_access_state.pending, account)) {
         change_abandon();
-        return CRUX_ACCESS_ERR_LAST_ADMINISTRATOR;
+        return reject(CRUX_ACCESS_ERR_LAST_ADMINISTRATOR, &actor, user);
     }
     for (size_t next = index + 1u; next < crux_access_state.pending.count; ++next) {
         crux_access_state.pending.accounts[next - 1u] = crux_access_state.pending.accounts[next];
@@ -331,17 +368,17 @@ crux_access_result_t crux_access_account_remove(crux_access_session_t session, c
            sizeof(crux_access_state.pending.accounts[0]));
     result = change_commit((change_effect_t){user, true, 0});
     crux_access_unlock_change();
-    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_REMOVED, result, &actor, user);
+    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_REMOVED, result, &actor, user, user);
     return result;
 }
 
 crux_access_result_t crux_access_account_disable(crux_access_session_t session, const char *user)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (!crux_access_name_valid(user)) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return reject_argument(session);
     }
     actor_t actor;
     crux_access_result_t result = change_begin(session, REQUIRE_MANAGE, NULL, &actor);
@@ -351,7 +388,7 @@ crux_access_result_t crux_access_account_disable(crux_access_session_t session, 
     access_account_t *account = crux_access_table_find(&crux_access_state.pending, user, NULL);
     if (account == NULL) {
         change_abandon();
-        return CRUX_ACCESS_ERR_NOT_FOUND;
+        return reject(CRUX_ACCESS_ERR_NOT_FOUND, &actor, NULL);
     }
     if (!account->enabled) {
         change_abandon();
@@ -359,22 +396,22 @@ crux_access_result_t crux_access_account_disable(crux_access_session_t session, 
     }
     if (is_last_administrator(&crux_access_state.pending, account)) {
         change_abandon();
-        return CRUX_ACCESS_ERR_LAST_ADMINISTRATOR;
+        return reject(CRUX_ACCESS_ERR_LAST_ADMINISTRATOR, &actor, user);
     }
     account->enabled = false;
     result = change_commit((change_effect_t){user, true, 0});
     crux_access_unlock_change();
-    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_DISABLED, result, &actor, user);
+    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_DISABLED, result, &actor, user, user);
     return result;
 }
 
 crux_access_result_t crux_access_account_enable(crux_access_session_t session, const char *user)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (!crux_access_name_valid(user)) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return reject_argument(session);
     }
     actor_t actor;
     crux_access_result_t result = change_begin(session, REQUIRE_MANAGE, NULL, &actor);
@@ -384,7 +421,7 @@ crux_access_result_t crux_access_account_enable(crux_access_session_t session, c
     access_account_t *account = crux_access_table_find(&crux_access_state.pending, user, NULL);
     if (account == NULL) {
         change_abandon();
-        return CRUX_ACCESS_ERR_NOT_FOUND;
+        return reject(CRUX_ACCESS_ERR_NOT_FOUND, &actor, NULL);
     }
     if (account->enabled) {
         change_abandon();
@@ -393,7 +430,7 @@ crux_access_result_t crux_access_account_enable(crux_access_session_t session, c
     account->enabled = true;
     result = change_commit((change_effect_t){user, false, 0});
     crux_access_unlock_change();
-    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_ENABLED, result, &actor, user);
+    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_ENABLED, result, &actor, user, user);
     return result;
 }
 
@@ -401,10 +438,10 @@ crux_access_result_t crux_access_account_set_role(crux_access_session_t session,
                                                   const char *role)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (role == NULL || !crux_access_name_valid(user)) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return reject_argument(session);
     }
     actor_t actor;
     crux_access_result_t result = change_begin(session, REQUIRE_MANAGE, NULL, &actor);
@@ -414,12 +451,12 @@ crux_access_result_t crux_access_account_set_role(crux_access_session_t session,
     size_t role_index = 0;
     if (!crux_access_role_find(role, &role_index)) {
         change_abandon();
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return reject(CRUX_ACCESS_ERR_INVALID_ARGUMENT, &actor, NULL);
     }
     access_account_t *account = crux_access_table_find(&crux_access_state.pending, user, NULL);
     if (account == NULL) {
         change_abandon();
-        return CRUX_ACCESS_ERR_NOT_FOUND;
+        return reject(CRUX_ACCESS_ERR_NOT_FOUND, &actor, NULL);
     }
     if (strcmp(account->role, role) == 0) {
         change_abandon();
@@ -427,12 +464,12 @@ crux_access_result_t crux_access_account_set_role(crux_access_session_t session,
     }
     if (is_last_administrator(&crux_access_state.pending, account)) {
         change_abandon();
-        return CRUX_ACCESS_ERR_LAST_ADMINISTRATOR;
+        return reject(CRUX_ACCESS_ERR_LAST_ADMINISTRATOR, &actor, user);
     }
     crux_access_copy_name(account->role, role);
     result = change_commit((change_effect_t){user, true, 0});
     crux_access_unlock_change();
-    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_ROLE_CHANGED, result, &actor, user);
+    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_ROLE_CHANGED, result, &actor, user, user);
     return result;
 }
 
@@ -451,10 +488,10 @@ crux_access_result_t crux_access_account_reset_password(crux_access_session_t se
                                                         size_t length)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (password == NULL || !crux_access_name_valid(user)) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return reject_argument(session);
     }
     actor_t actor;
     crux_access_result_t result = authorise(session, REQUIRE_MANAGE, NULL, &actor);
@@ -462,15 +499,15 @@ crux_access_result_t crux_access_account_reset_password(crux_access_session_t se
         return result;
     }
     if (!account_exists(user)) {
-        return CRUX_ACCESS_ERR_NOT_FOUND;
+        return reject(CRUX_ACCESS_ERR_NOT_FOUND, &actor, NULL);
     }
     if (!crux_access_password_acceptable(password, length)) {
-        return CRUX_ACCESS_ERR_PASSWORD_REJECTED;
+        return reject(CRUX_ACCESS_ERR_PASSWORD_REJECTED, &actor, user);
     }
     access_account_t fresh = {0};
     if (!verifier_make(&fresh, password, length)) {
         crux_access_secure_zero(&fresh, sizeof(fresh));
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(&actor.origin);
     }
     result = change_begin(session, REQUIRE_MANAGE, NULL, &actor);
     if (result != CRUX_ACCESS_OK) {
@@ -481,14 +518,14 @@ crux_access_result_t crux_access_account_reset_password(crux_access_session_t se
     if (account == NULL) {
         change_abandon();
         crux_access_secure_zero(&fresh, sizeof(fresh));
-        return CRUX_ACCESS_ERR_NOT_FOUND;
+        return reject(CRUX_ACCESS_ERR_NOT_FOUND, &actor, NULL);
     }
     verifier_copy(account, &fresh);
     crux_access_secure_zero(&fresh, sizeof(fresh));
     account->must_change_password = true;
     result = change_commit((change_effect_t){user, true, 0});
     crux_access_unlock_change();
-    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_RESET, result, &actor, user);
+    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_RESET, result, &actor, user, user);
     return result;
 }
 
@@ -498,10 +535,10 @@ crux_access_result_t crux_access_account_change_password(crux_access_session_t s
                                                          uint32_t *retry_after_ms)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (current == NULL || password == NULL || retry_after_ms == NULL) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return reject_argument(session);
     }
     *retry_after_ms = 0;
     actor_t actor;
@@ -510,12 +547,10 @@ crux_access_result_t crux_access_account_change_password(crux_access_session_t s
         return result;
     }
     if (!crux_access_password_acceptable(password, length)) {
-        return CRUX_ACCESS_ERR_PASSWORD_REJECTED;
+        return reject(CRUX_ACCESS_ERR_PASSWORD_REJECTED, &actor, actor.user);
     }
     if (current_length > CRUX_ACCESS_PASSWORD_MAX) {
-        crux_access_emit(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_DENIED, &actor.origin,
-                         actor.user, false);
-        return CRUX_ACCESS_ERR_DENIED;
+        return reject(CRUX_ACCESS_ERR_DENIED, &actor, actor.user);
     }
     uint64_t change_number = 0;
     result = crux_access_verify_current(actor.user, &actor.origin, current, current_length,
@@ -526,7 +561,7 @@ crux_access_result_t crux_access_account_change_password(crux_access_session_t s
     access_account_t fresh = {0};
     if (!verifier_make(&fresh, password, length)) {
         crux_access_secure_zero(&fresh, sizeof(fresh));
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(&actor.origin);
     }
     result = change_begin(session, REQUIRE_SESSION_ONLY, NULL, &actor);
     if (result != CRUX_ACCESS_OK) {
@@ -539,14 +574,14 @@ crux_access_result_t crux_access_account_change_password(crux_access_session_t s
     if (account == NULL || crux_access_state.change_numbers[index] != change_number) {
         change_abandon();
         crux_access_secure_zero(&fresh, sizeof(fresh));
-        return CRUX_ACCESS_ERR_DENIED;
+        return reject(CRUX_ACCESS_ERR_DENIED, &actor, account == NULL ? NULL : actor.user);
     }
     verifier_copy(account, &fresh);
     crux_access_secure_zero(&fresh, sizeof(fresh));
     account->must_change_password = false;
     result = change_commit((change_effect_t){actor.user, true, session.value});
     crux_access_unlock_change();
-    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_CHANGED, result, &actor, actor.user);
+    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_CHANGED, result, &actor, actor.user, actor.user);
     return result;
 }
 
@@ -567,11 +602,11 @@ crux_access_result_t crux_access_account_add_key(crux_access_session_t session, 
                                                  const uint8_t *key, size_t key_length)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (key == NULL || !crux_access_key_acceptable(key, key_length) ||
         !crux_access_name_valid(user)) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return reject_argument(session);
     }
     actor_t actor;
     crux_access_result_t result = change_begin(session, REQUIRE_MANAGE_OR_OWN, user, &actor);
@@ -582,15 +617,15 @@ crux_access_result_t crux_access_account_add_key(crux_access_session_t session, 
     size_t index = 0;
     if (account == NULL) {
         change_abandon();
-        return CRUX_ACCESS_ERR_NOT_FOUND;
+        return reject(CRUX_ACCESS_ERR_NOT_FOUND, &actor, NULL);
     }
     if (key_find(account, key, key_length, &index) != NULL) {
         change_abandon();
-        return CRUX_ACCESS_ERR_ALREADY_EXISTS;
+        return reject(CRUX_ACCESS_ERR_ALREADY_EXISTS, &actor, user);
     }
     if (account->key_count >= CRUX_ACCESS_KEYS_PER_ACCOUNT) {
         change_abandon();
-        return CRUX_ACCESS_ERR_NO_RESOURCES;
+        return reject(CRUX_ACCESS_ERR_NO_RESOURCES, &actor, user);
     }
     access_key_t *added = &account->keys[account->key_count];
     added->length = key_length;
@@ -598,7 +633,7 @@ crux_access_result_t crux_access_account_add_key(crux_access_session_t session, 
     account->key_count += 1;
     result = change_commit((change_effect_t){user, false, 0});
     crux_access_unlock_change();
-    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_KEY_ADDED, result, &actor, user);
+    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_KEY_ADDED, result, &actor, user, user);
     return result;
 }
 
@@ -606,10 +641,10 @@ crux_access_result_t crux_access_account_remove_key(crux_access_session_t sessio
                                                     const uint8_t *key, size_t key_length)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (key == NULL || key_length == 0 || !crux_access_name_valid(user)) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return reject_argument(session);
     }
     actor_t actor;
     crux_access_result_t result = change_begin(session, REQUIRE_MANAGE_OR_OWN, user, &actor);
@@ -620,7 +655,7 @@ crux_access_result_t crux_access_account_remove_key(crux_access_session_t sessio
     size_t index = 0;
     if (account == NULL || key_find(account, key, key_length, &index) == NULL) {
         change_abandon();
-        return CRUX_ACCESS_ERR_NOT_FOUND;
+        return reject(CRUX_ACCESS_ERR_NOT_FOUND, &actor, NULL);
     }
     for (size_t next = index + 1u; next < account->key_count; ++next) {
         account->keys[next - 1u] = account->keys[next];
@@ -629,7 +664,7 @@ crux_access_result_t crux_access_account_remove_key(crux_access_session_t sessio
     memset(&account->keys[account->key_count], 0, sizeof(account->keys[0]));
     result = change_commit((change_effect_t){user, true, 0});
     crux_access_unlock_change();
-    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_KEY_REMOVED, result, &actor, user);
+    emit_change(CRUX_ACCESS_EVENT_ACCOUNT_KEY_REMOVED, result, &actor, user, user);
     return result;
 }
 
@@ -667,6 +702,13 @@ static crux_access_result_t provision_commit(const access_account_t *fresh, cons
     return result;
 }
 
+static crux_access_result_t provision_refuse(crux_access_result_t result,
+                                             const crux_access_origin_t *origin)
+{
+    crux_access_emit(CRUX_ACCESS_EVENT_PROVISION_REFUSED, result, origin, NULL, false);
+    return result;
+}
+
 static bool provisioning_is_open(void)
 {
     if (!crux_access_lock_state()) {
@@ -682,37 +724,41 @@ crux_access_result_t crux_access_provision_first_account(const char *user, const
                                                          const crux_access_origin_t *origin)
 {
     if (crux_access_state.store_unusable) {
-        return CRUX_ACCESS_ERR_DENIED;
+        return provision_refuse(CRUX_ACCESS_ERR_DENIED, origin);
     }
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(origin);
     }
     if (password == NULL || role == NULL || !crux_access_name_valid(user) ||
         !crux_access_origin_valid(origin)) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return provision_refuse(CRUX_ACCESS_ERR_INVALID_ARGUMENT, origin);
     }
     if (origin->channel != CRUX_ACCESS_CHANNEL_SERIAL || !provisioning_is_open()) {
-        return CRUX_ACCESS_ERR_DENIED;
+        return provision_refuse(CRUX_ACCESS_ERR_DENIED, origin);
     }
     size_t role_index = 0;
     if (!crux_access_role_find(role, &role_index) ||
         !crux_access_role_is_administrator(role_index)) {
-        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+        return provision_refuse(CRUX_ACCESS_ERR_INVALID_ARGUMENT, origin);
     }
     if (!crux_access_password_acceptable(password, length)) {
-        return CRUX_ACCESS_ERR_PASSWORD_REJECTED;
+        return provision_refuse(CRUX_ACCESS_ERR_PASSWORD_REJECTED, origin);
     }
     access_account_t fresh = {.enabled = true};
     crux_access_copy_name(fresh.user, user);
     crux_access_copy_name(fresh.role, role);
     if (!verifier_make(&fresh, password, length)) {
         crux_access_secure_zero(&fresh, sizeof(fresh));
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(origin);
     }
     crux_access_result_t result = provision_commit(&fresh, user);
     crux_access_secure_zero(&fresh, sizeof(fresh));
-    if (result == CRUX_ACCESS_OK || result == CRUX_ACCESS_ERR_STORE) {
+    if (result == CRUX_ACCESS_OK) {
         crux_access_emit(CRUX_ACCESS_EVENT_PROVISIONED, result, origin, user, false);
+    } else if (result == CRUX_ACCESS_ERR_STORE) {
+        crux_access_emit(CRUX_ACCESS_EVENT_CHANGE_FAILED, result, origin, NULL, false);
+    } else if (result == CRUX_ACCESS_ERR_DENIED) {
+        (void)provision_refuse(result, origin);
     }
     return result;
 }

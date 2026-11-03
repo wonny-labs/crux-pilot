@@ -41,6 +41,40 @@ static void hook_expect_no_lock_held(void *context)
     }
 }
 
+static void hook_login_while_verifying(void *context)
+{
+    (void)context;
+    crux_access_session_t session = {0};
+    CHECK(access_test_login(TYPED_INTO_NAME, PASSWORD, &access_test_web, &session) ==
+          CRUX_ACCESS_ERR_BUSY);
+}
+
+#define FILLER_ACCOUNTS 3u
+
+static void fill_session_table(crux_access_session_t admin)
+{
+    char name[16];
+    for (unsigned account = 0; account < FILLER_ACCOUNTS; ++account) {
+        snprintf(name, sizeof(name), "filler-%u", account);
+        CHECK(crux_access_account_create(admin, name, "viewer", PASSWORD, strlen(PASSWORD)) ==
+              CRUX_ACCESS_OK);
+        for (unsigned count = 0; count < CRUX_ACCESS_SESSIONS_PER_ACCOUNT; ++count) {
+            crux_access_session_t session = {0};
+            crux_access_origin_t origin = access_test_web_from(200u + account * 10u + count);
+            (void)access_test_login(name, PASSWORD, &origin, &session);
+        }
+    }
+}
+
+static void empty_filler_accounts(crux_access_session_t admin)
+{
+    char name[16];
+    for (unsigned account = 0; account < FILLER_ACCOUNTS; ++account) {
+        snprintf(name, sizeof(name), "filler-%u", account);
+        CHECK(crux_access_account_remove(admin, name) == CRUX_ACCESS_OK);
+    }
+}
+
 static void exercise_every_path(void)
 {
     const crux_access_policy_t *policy = &access_test_profile_reference.policy;
@@ -95,6 +129,48 @@ static void exercise_every_path(void)
     CHECK(crux_access_account_remove_key(admin, "alice", known_key, sizeof(known_key)) ==
           CRUX_ACCESS_OK);
 
+    /* Rejections that take client input, which must never reach a field. */
+    CHECK(crux_access_account_remove(admin, TYPED_INTO_NAME) == CRUX_ACCESS_ERR_NOT_FOUND);
+    CHECK(crux_access_account_create(admin, TYPED_INTO_NAME, "no-such-role", PASSWORD, length) ==
+          CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    CHECK(crux_access_account_add_key(admin, TYPED_INTO_NAME, known_key, sizeof(known_key)) ==
+          CRUX_ACCESS_ERR_NOT_FOUND);
+    CHECK(crux_access_account_create(admin, "alice", "viewer", PASSWORD, length) ==
+          CRUX_ACCESS_ERR_ALREADY_EXISTS);
+    CHECK(crux_access_account_create(admin, TYPED_INTO_NAME, "viewer", "short", 5) ==
+          CRUX_ACCESS_ERR_PASSWORD_REJECTED);
+    CHECK(crux_access_provision_first_account(TYPED_INTO_NAME, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
+    access_fake_store_save_mode(ACCESS_FAKE_SAVE_FAIL);
+    CHECK(crux_access_account_create(admin, TYPED_INTO_NAME, "viewer", PASSWORD, length) ==
+          CRUX_ACCESS_ERR_STORE);
+    access_fake_store_save_mode(ACCESS_FAKE_SAVE_OK);
+    access_fake_hmac_fail(true);
+    (void)access_test_login(TYPED_INTO_NAME, PASSWORD, &access_test_web, &session);
+    access_fake_hmac_fail(false);
+
+    /* A forced change refuses key login, and a nested login finds the verification slot taken. */
+    CHECK(crux_access_account_reset_password(admin, "alice", NEW_PASSWORD, new_length) ==
+          CRUX_ACCESS_OK);
+    CHECK(crux_access_login_verified("alice", known_key, sizeof(known_key), &access_test_ssh,
+                                     &session) == CRUX_ACCESS_ERR_DENIED);
+    forced = access_test_session("alice", NEW_PASSWORD, &access_test_web);
+    CHECK(crux_access_account_change_password(forced, NEW_PASSWORD, new_length, RESET_PASSWORD,
+                                              reset_length, &retry_after_ms) == CRUX_ACCESS_OK);
+    crux_access_logout(&forced);
+    access_fake_derive_hook(hook_login_while_verifying, NULL);
+    (void)access_test_login("admin", PASSWORD, &access_test_web_other, &session);
+
+    /* A full session table, then a stale session. */
+    crux_access_session_t stale = access_test_session("alice", RESET_PASSWORD, &access_test_web);
+    crux_access_session_t ended = stale;
+    crux_access_logout(&ended);
+    CHECK(crux_access_check(stale, "status.read") == CRUX_ACCESS_ERR_SESSION_INVALID);
+    fill_session_table(admin);
+    CHECK(access_test_login("alice", RESET_PASSWORD, &access_test_web, &session) ==
+          CRUX_ACCESS_ERR_NO_RESOURCES);
+    empty_filler_accounts(admin);
+
     /* The rest of the account changes, an expiry and a delay. */
     CHECK(crux_access_account_set_role(admin, "alice", "viewer") == CRUX_ACCESS_OK);
     CHECK(crux_access_account_disable(admin, "alice") == CRUX_ACCESS_OK);
@@ -129,6 +205,14 @@ static void every_event_type_was_reached(void)
         CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_CHANGED,
         CRUX_ACCESS_EVENT_ACCOUNT_KEY_ADDED,
         CRUX_ACCESS_EVENT_ACCOUNT_KEY_REMOVED,
+        CRUX_ACCESS_EVENT_LOGIN_BUSY,
+        CRUX_ACCESS_EVENT_LOGIN_NO_SESSION,
+        CRUX_ACCESS_EVENT_LOGIN_REFUSED,
+        CRUX_ACCESS_EVENT_NOT_READY,
+        CRUX_ACCESS_EVENT_SESSION_INVALID,
+        CRUX_ACCESS_EVENT_PROVISION_REFUSED,
+        CRUX_ACCESS_EVENT_CHANGE_FAILED,
+        CRUX_ACCESS_EVENT_CHANGE_REJECTED,
     };
     for (size_t index = 0; index < sizeof(types) / sizeof(types[0]); ++index) {
         CHECK(access_fake_event_count_of(types[index]) > 0);
@@ -144,6 +228,8 @@ static void no_event_holds_a_secret(void)
         for (size_t index = 0; index < sizeof(secrets) / sizeof(secrets[0]); ++index) {
             CHECK(!contains(recorded, sizeof(*recorded), secrets[index], 12));
             CHECK(strstr(recorded->account, "known-secret") == NULL);
+            CHECK(strstr(recorded->actor, "known-secret") == NULL);
+            CHECK(strstr(recorded->permission, "known-secret") == NULL);
         }
         CHECK(!contains(recorded, sizeof(*recorded), &known_key[KEY_BYTES_AT], 8));
         CHECK(!contains(recorded, sizeof(*recorded), &other_key[KEY_BYTES_AT], 8));

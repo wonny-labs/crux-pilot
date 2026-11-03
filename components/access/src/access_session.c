@@ -112,8 +112,7 @@ crux_access_session_t crux_access_slot_activate(size_t slot_index, const char *u
     return session;
 }
 
-access_slot_t *crux_access_slot_find(crux_access_session_t session, uint64_t now_ms,
-                                     access_expired_t *expired)
+static access_slot_t *slot_lookup(crux_access_session_t session)
 {
     size_t slot_index = session.value >> ACCESS_SLOT_SHIFT;
     uint32_t generation = session.value & ACCESS_GENERATION_MASK;
@@ -124,12 +123,25 @@ access_slot_t *crux_access_slot_find(crux_access_session_t session, uint64_t now
     if (slot->state != ACCESS_SLOT_ACTIVE || slot->generation != generation) {
         return NULL;
     }
-    if (slot_expired(slot, now_ms)) {
+    return slot;
+}
+
+access_slot_t *crux_access_slot_find(crux_access_session_t session, uint64_t now_ms,
+                                     access_expired_t *expired)
+{
+    access_slot_t *slot = slot_lookup(session);
+    if (slot != NULL && slot_expired(slot, now_ms)) {
         note_expired(slot, expired);
-        crux_access_slot_release(slot_index);
+        crux_access_slot_release(session.value >> ACCESS_SLOT_SHIFT);
         return NULL;
     }
     return slot;
+}
+
+const access_slot_t *crux_access_slot_peek(crux_access_session_t session, uint64_t now_ms)
+{
+    const access_slot_t *slot = slot_lookup(session);
+    return slot != NULL && !slot_expired(slot, now_ms) ? slot : NULL;
 }
 
 void crux_access_slots_end_account(const char *user, uint32_t keep_value)
@@ -147,7 +159,15 @@ void crux_access_slots_end_account(const char *user, uint32_t keep_value)
 void crux_access_expired_emit(const access_expired_t *expired)
 {
     for (size_t index = 0; index < expired->count; ++index) {
-        crux_access_emit(CRUX_ACCESS_EVENT_SESSION_EXPIRED, CRUX_ACCESS_ERR_SESSION_INVALID,
-                         &expired->origins[index], expired->users[index], false);
+        crux_access_emit_session(CRUX_ACCESS_EVENT_SESSION_EXPIRED, CRUX_ACCESS_ERR_SESSION_INVALID,
+                                 &expired->origins[index], expired->users[index], NULL, NULL);
+    }
+}
+
+void crux_access_session_report(crux_access_result_t result, const access_expired_t *expired)
+{
+    crux_access_expired_emit(expired);
+    if (result == CRUX_ACCESS_ERR_SESSION_INVALID && expired->count == 0) {
+        crux_access_emit(CRUX_ACCESS_EVENT_SESSION_INVALID, result, NULL, NULL, false);
     }
 }

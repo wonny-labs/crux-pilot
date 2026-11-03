@@ -9,7 +9,7 @@ target_compile_definitions(crux_access_test_composition
     PUBLIC CRUX_ACCESS_TESTING=1 CRUX_ACCESS_TEST_COMPOSITION=1)
 target_compile_options(crux_access_test_composition PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
-foreach(suite IN ITEMS conformance accounts security keys faults secrets)
+foreach(suite IN ITEMS conformance accounts security keys faults secrets events)
     add_executable(access_${suite} ${suite}.c)
     target_link_libraries(access_${suite} PRIVATE crux_access_test_composition)
     target_compile_options(access_${suite} PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)

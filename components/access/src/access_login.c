@@ -75,13 +75,28 @@ static crux_access_result_t verification_claim(crux_access_channel_t channel,
     return CRUX_ACCESS_OK;
 }
 
+/* The event for an attempt refused before anything was verified. */
+static void report_unverified(crux_access_result_t result, const crux_access_origin_t *origin)
+{
+    if (result == CRUX_ACCESS_ERR_RETRY_LATER) {
+        crux_access_emit(CRUX_ACCESS_EVENT_DELAY_APPLIED, result, origin, NULL, false);
+    } else if (result == CRUX_ACCESS_ERR_BUSY) {
+        crux_access_emit(CRUX_ACCESS_EVENT_LOGIN_BUSY, result, origin, NULL, false);
+    } else if (result == CRUX_ACCESS_ERR_NO_RESOURCES) {
+        crux_access_emit(CRUX_ACCESS_EVENT_LOGIN_NO_SESSION, result, origin, NULL, false);
+    }
+}
+
 crux_access_result_t crux_access_verify_current(const char *user,
                                                 const crux_access_origin_t *origin,
                                                 const char *password, size_t length,
                                                 uint32_t *retry_after_ms, uint64_t *change_number)
 {
     access_delay_buckets_t buckets;
-    if (!crux_access_delay_buckets(origin, user, &buckets) || !crux_access_lock_state()) {
+    if (!crux_access_delay_buckets(origin, user, &buckets)) {
+        return crux_access_refuse_not_ready(origin);
+    }
+    if (!crux_access_lock_state()) {
         return CRUX_ACCESS_ERR_NOT_READY;
     }
     verification_t verification = {0};
@@ -92,9 +107,7 @@ crux_access_result_t crux_access_verify_current(const char *user,
     }
     crux_access_unlock_state();
     if (result != CRUX_ACCESS_OK) {
-        if (result == CRUX_ACCESS_ERR_RETRY_LATER) {
-            crux_access_emit(CRUX_ACCESS_EVENT_DELAY_APPLIED, result, origin, NULL, false);
-        }
+        report_unverified(result, origin);
         return result;
     }
 
@@ -114,13 +127,11 @@ crux_access_result_t crux_access_verify_current(const char *user,
     *verifying_flag(origin->channel) = false;
     crux_access_unlock_state();
     if (!derived) {
-        crux_access_emit(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_NOT_READY, origin, user,
-                         false);
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(origin);
     }
     if (!matched || !verification.known) {
-        crux_access_emit(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_DENIED, origin, user,
-                         false);
+        crux_access_emit_session(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_DENIED, origin,
+                                 user, user, NULL);
         return CRUX_ACCESS_ERR_DENIED;
     }
     *change_number = verification.change_number;
@@ -187,10 +198,12 @@ crux_access_result_t crux_access_login_password(const char *user, const char *pa
                                                 uint32_t *retry_after_ms)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(origin);
     }
     if (password == NULL || session == NULL || retry_after_ms == NULL ||
         !crux_access_name_valid(user) || !crux_access_origin_valid(origin)) {
+        crux_access_emit(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_INVALID_ARGUMENT, origin,
+                         NULL, false);
         return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
     }
     session->value = 0;
@@ -202,9 +215,7 @@ crux_access_result_t crux_access_login_password(const char *user, const char *pa
     }
     access_delay_buckets_t buckets;
     if (!crux_access_delay_buckets(origin, user, &buckets)) {
-        crux_access_emit(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_NOT_READY, origin, NULL,
-                         false);
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(origin);
     }
 
     access_expired_t expired = {0};
@@ -227,9 +238,7 @@ crux_access_result_t crux_access_login_password(const char *user, const char *pa
     crux_access_unlock_state();
     crux_access_expired_emit(&expired);
     if (result != CRUX_ACCESS_OK) {
-        if (result == CRUX_ACCESS_ERR_RETRY_LATER) {
-            crux_access_emit(CRUX_ACCESS_EVENT_DELAY_APPLIED, result, origin, NULL, false);
-        }
+        report_unverified(result, origin);
         return result;
     }
 
@@ -250,12 +259,12 @@ crux_access_result_t crux_access_login_password(const char *user, const char *pa
     *verifying_flag(origin->channel) = false;
     crux_access_unlock_state();
     if (!derived) {
-        crux_access_emit(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_NOT_READY, origin, NULL,
-                         false);
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(origin);
     }
     if (!outcome.session_created) {
-        crux_access_emit(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_DENIED, origin,
+        crux_access_emit(outcome.role_missing ? CRUX_ACCESS_EVENT_LOGIN_REFUSED
+                                              : CRUX_ACCESS_EVENT_LOGIN_FAILURE,
+                         CRUX_ACCESS_ERR_DENIED, origin,
                          outcome.account_known ? outcome.account_name : NULL, outcome.role_missing);
         return CRUX_ACCESS_ERR_DENIED;
     }
@@ -288,12 +297,12 @@ static const access_account_t *account_listing_key(const char *user, const uint8
 }
 
 /* Whether a name belongs to an account, and if so whether its role has left the policy. */
-static bool account_describe(const char *user, bool *role_missing)
+static const access_account_t *account_describe(const char *user, bool *role_missing)
 {
     size_t role_index = 0;
     const access_account_t *account = crux_access_table_find(&crux_access_state.table, user, NULL);
     *role_missing = account != NULL && !crux_access_role_find(account->role, &role_index);
-    return account != NULL;
+    return account;
 }
 
 crux_access_result_t crux_access_key_is_authorised(const char *user, const uint8_t *key,
@@ -302,16 +311,20 @@ crux_access_result_t crux_access_key_is_authorised(const char *user, const uint8
                                                    uint32_t *retry_after_ms)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(origin);
     }
     if (key == NULL || key_length == 0 || retry_after_ms == NULL || !crux_access_name_valid(user) ||
         !crux_access_origin_valid(origin)) {
+        if (signed_request) {
+            crux_access_emit(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_INVALID_ARGUMENT,
+                             origin, NULL, false);
+        }
         return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
     }
     *retry_after_ms = 0;
     access_delay_buckets_t buckets;
     if (!crux_access_delay_buckets(origin, NULL, &buckets)) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(origin);
     }
     if (!crux_access_lock_state()) {
         return CRUX_ACCESS_ERR_NOT_READY;
@@ -320,6 +333,7 @@ crux_access_result_t crux_access_key_is_authorised(const char *user, const uint8
     crux_access_result_t result;
     bool known = false;
     bool role_missing = false;
+    bool refused = false;
     char account_name[CRUX_ACCESS_NAME_SIZE] = {0};
     *retry_after_ms = crux_access_delay_remaining_ms(buckets, now_ms);
     if (*retry_after_ms != 0) {
@@ -331,9 +345,11 @@ crux_access_result_t crux_access_key_is_authorised(const char *user, const uint8
                      : CRUX_ACCESS_ERR_DENIED;
         if (result == CRUX_ACCESS_ERR_DENIED && signed_request) {
             crux_access_delay_record_failure(buckets, now_ms);
-            known = account_describe(user, &role_missing);
+            const access_account_t *account = account_describe(user, &role_missing);
+            known = account != NULL;
             if (known) {
                 crux_access_copy_name(account_name, user);
+                refused = role_missing || account->must_change_password;
             }
         }
     }
@@ -344,8 +360,8 @@ crux_access_result_t crux_access_key_is_authorised(const char *user, const uint8
     if (result == CRUX_ACCESS_ERR_RETRY_LATER) {
         crux_access_emit(CRUX_ACCESS_EVENT_DELAY_APPLIED, result, origin, NULL, false);
     } else if (result == CRUX_ACCESS_ERR_DENIED) {
-        crux_access_emit(CRUX_ACCESS_EVENT_KEY_FAILURE, result, origin, known ? account_name : NULL,
-                         role_missing);
+        crux_access_emit(refused ? CRUX_ACCESS_EVENT_LOGIN_REFUSED : CRUX_ACCESS_EVENT_KEY_FAILURE,
+                         result, origin, known ? account_name : NULL, role_missing);
     }
     return result;
 }
@@ -356,10 +372,12 @@ crux_access_result_t crux_access_login_verified(const char *user, const uint8_t 
                                                 crux_access_session_t *session)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(origin);
     }
     if (key == NULL || key_length == 0 || session == NULL || !crux_access_name_valid(user) ||
         !crux_access_origin_valid(origin)) {
+        crux_access_emit(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_INVALID_ARGUMENT, origin,
+                         NULL, false);
         return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
     }
     session->value = 0;
@@ -372,7 +390,7 @@ crux_access_result_t crux_access_login_verified(const char *user, const uint8_t 
     size_t role_index = 0;
     size_t slot = 0;
     bool role_missing = false;
-    bool known = account_describe(user, &role_missing);
+    bool known = account_describe(user, &role_missing) != NULL;
     if (account_listing_key(user, key, key_length, &role_index) != NULL) {
         if (crux_access_slot_reserve(origin, now_ms, &slot, &expired)) {
             *session = crux_access_slot_activate(slot, user, role_index, false, origin, now_ms);
@@ -383,15 +401,23 @@ crux_access_result_t crux_access_login_verified(const char *user, const uint8_t 
     }
     crux_access_unlock_state();
     crux_access_expired_emit(&expired);
+    if (result == CRUX_ACCESS_ERR_NO_RESOURCES) {
+        report_unverified(result, origin);
+        return result;
+    }
     crux_access_emit(result == CRUX_ACCESS_OK ? CRUX_ACCESS_EVENT_LOGIN_SUCCESS
-                                              : CRUX_ACCESS_EVENT_LOGIN_FAILURE,
+                                              : CRUX_ACCESS_EVENT_LOGIN_REFUSED,
                      result, origin, known ? user : NULL, role_missing);
     return result;
 }
 
 void crux_access_report_key_failure(const char *user, const crux_access_origin_t *origin)
 {
-    if (!crux_access_state.ready || !crux_access_origin_valid(origin)) {
+    if (!crux_access_origin_valid(origin)) {
+        return;
+    }
+    if (!crux_access_state.ready) {
+        (void)crux_access_refuse_not_ready(origin);
         return;
     }
     access_delay_buckets_t buckets;
@@ -405,7 +431,7 @@ void crux_access_report_key_failure(const char *user, const crux_access_origin_t
         crux_access_delay_record_failure(buckets, now_ms);
     }
     bool role_missing = false;
-    bool known = crux_access_name_valid(user) && account_describe(user, &role_missing);
+    bool known = crux_access_name_valid(user) && account_describe(user, &role_missing) != NULL;
     crux_access_unlock_state();
     crux_access_emit(CRUX_ACCESS_EVENT_KEY_FAILURE, CRUX_ACCESS_ERR_DENIED, origin,
                      known ? user : NULL, role_missing);
@@ -414,7 +440,7 @@ void crux_access_report_key_failure(const char *user, const crux_access_origin_t
 crux_access_result_t crux_access_touch(crux_access_session_t session)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     access_expired_t expired = {0};
     if (!crux_access_lock_state()) {
@@ -428,7 +454,7 @@ crux_access_result_t crux_access_touch(crux_access_session_t session)
         result = CRUX_ACCESS_OK;
     }
     crux_access_unlock_state();
-    crux_access_expired_emit(&expired);
+    crux_access_session_report(result, &expired);
     return result;
 }
 
@@ -447,16 +473,19 @@ void crux_access_logout(crux_access_session_t *session)
         return;
     }
     uint64_t now_ms = crux_access_port_now_ms();
-    crux_access_event_t event = {.type = CRUX_ACCESS_EVENT_LOGOUT, .result = CRUX_ACCESS_OK};
+    crux_access_origin_t origin = {0};
+    char actor[CRUX_ACCESS_NAME_SIZE] = {0};
     const access_slot_t *slot = crux_access_slot_find(ended, now_ms, &expired);
-    if (slot != NULL) {
-        event.origin = slot->origin;
-        crux_access_copy_name(event.account, slot->user);
+    bool found = slot != NULL;
+    if (found) {
+        origin = slot->origin;
+        crux_access_copy_name(actor, slot->user);
         crux_access_slot_release(ended.value >> ACCESS_SLOT_SHIFT);
     }
     crux_access_unlock_state();
     crux_access_expired_emit(&expired);
-    if (slot != NULL) {
-        crux_access_port_event(&event);
+    if (found) {
+        crux_access_emit_session(CRUX_ACCESS_EVENT_LOGOUT, CRUX_ACCESS_OK, &origin, actor, NULL,
+                                 NULL);
     }
 }

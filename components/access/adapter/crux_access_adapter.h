@@ -28,7 +28,7 @@ typedef enum {
 /** Where an attempt comes from. */
 typedef struct {
     crux_access_channel_t channel;
-    uint8_t source[16];    /**< Network address, used only for delay tracking and events. */
+    uint8_t source[16]; /**< Network address, for delay tracking. A session keeps it for events. */
     uint8_t source_length; /**< Bytes used in source, at most 16. */
 } crux_access_origin_t;
 
@@ -114,7 +114,8 @@ void crux_access_report_key_failure(const char *user, const crux_access_origin_t
  * unknown or does not hold access.manage.
  * @retval CRUX_ACCESS_ERR_PASSWORD_REJECTED The password fails the rule.
  * @retval CRUX_ACCESS_ERR_STORE The save failed. Provisioning stays open.
- * @retval CRUX_ACCESS_ERR_NOT_READY Not initialised, or a crypto provider failure.
+ * @retval CRUX_ACCESS_ERR_NOT_READY Not initialised, a crypto provider failure, or a lost lock. A
+ * lock lost around the save leaves provisioning closed until a reset.
  */
 crux_access_result_t crux_access_provision_first_account(const char *user, const char *password,
                                                          size_t length, const char *role,

@@ -54,7 +54,8 @@ extern const crux_access_origin_t access_test_ssh;
 #define ACCESS_TEST_ADMIN "admin"
 #define ACCESS_TEST_USER "alice"
 
-/* An SSH Ed25519 public key blob whose 32 key bytes all hold one value. Use it as an initialiser. */
+/* An SSH Ed25519 public key blob whose 32 key bytes all hold one value. Use it as an initialiser.
+ */
 #define ACCESS_TEST_KEY_8(b) b, b, b, b, b, b, b, b
 #define ACCESS_TEST_ED25519_KEY(b)                                                                 \
     {0,                                                                                            \

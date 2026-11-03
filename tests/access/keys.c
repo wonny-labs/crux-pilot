@@ -173,7 +173,7 @@ static void login_verified_cases(void)
                                          &refused) == CRUX_ACCESS_ERR_DENIED);
         CHECK(refused.value == 0);
     }
-    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_LOGIN_FAILURE) == 20);
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_LOGIN_REFUSED) == 20);
     CHECK(strcmp(access_fake_event(0)->account, USER) == 0);
     CHECK(probe(USER, listed, sizeof(listed), false, &access_test_ssh) == CRUX_ACCESS_OK);
 

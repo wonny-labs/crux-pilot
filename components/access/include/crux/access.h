@@ -52,7 +52,7 @@ typedef enum {
     CRUX_ACCESS_ERR_ALREADY_EXISTS = -9,
     CRUX_ACCESS_ERR_LAST_ADMINISTRATOR = -10,
     CRUX_ACCESS_ERR_PASSWORD_REJECTED = -11, /**< Fails the password rule. */
-    CRUX_ACCESS_ERR_STORE = -12              /**< Save failed; state is unchanged. */
+    CRUX_ACCESS_ERR_STORE = -12              /**< Save failed; RAM state is unchanged. */
 } crux_access_result_t;
 
 /** A role is a name and an exact list of permissions, with no wildcards or inheritance. */
@@ -113,6 +113,39 @@ crux_access_result_t crux_access_init(const crux_access_policy_t *policy);
 crux_access_result_t crux_access_check(crux_access_session_t session, const char *permission);
 
 /**
+ * Report whether a session may use a permission, for hiding what it cannot use.
+ *
+ * Decides as crux_access_check() does, and reports false during a forced password change. Emits no
+ * event, refreshes no timer, touches no storage and changes no state, so an expired session stays
+ * for the next operation to end and report.
+ *
+ * @param[out] permitted Unchanged on failure.
+ * @retval CRUX_ACCESS_OK Reported, whichever the answer.
+ * @retval CRUX_ACCESS_ERR_SESSION_INVALID Never valid, ended or expired.
+ * @retval CRUX_ACCESS_ERR_INVALID_ARGUMENT The permission or the output is missing, or the
+ * permission is empty.
+ * @retval CRUX_ACCESS_ERR_NOT_READY Not initialised.
+ */
+crux_access_result_t crux_access_permitted(crux_access_session_t session, const char *permission,
+                                           bool *permitted);
+
+/**
+ * Copy where a session came from, for a service's own event records.
+ *
+ * Emits no event, refreshes no timer and changes no state.
+ *
+ * @param[out] channel 1 for serial, 2 for web and 3 for SSH. Unchanged on failure.
+ * @param[out] source Network address, with unused bytes zero. Unchanged on failure.
+ * @param[out] source_length Bytes used in source. Unchanged on failure.
+ * @retval CRUX_ACCESS_OK Copied.
+ * @retval CRUX_ACCESS_ERR_SESSION_INVALID Never valid, ended or expired.
+ * @retval CRUX_ACCESS_ERR_INVALID_ARGUMENT An output is missing.
+ * @retval CRUX_ACCESS_ERR_NOT_READY Not initialised.
+ */
+crux_access_result_t crux_access_session_origin(crux_access_session_t session, uint8_t *channel,
+                                                uint8_t source[16], uint8_t *source_length);
+
+/**
  * Copy a session's user name.
  * @param[out] name Unchanged on failure.
  * @param size Size of name. CRUX_ACCESS_NAME_SIZE is always enough.
@@ -152,7 +185,7 @@ crux_access_result_t crux_access_session_must_change_password(crux_access_sessio
  * CRUX_ACCESS_ERR_NOT_READY before initialisation, CRUX_ACCESS_ERR_SESSION_INVALID for a session
  * that is not valid, CRUX_ACCESS_ERR_DENIED without the permission,
  * CRUX_ACCESS_ERR_INVALID_ARGUMENT for a malformed argument, and CRUX_ACCESS_ERR_STORE when a save
- * fails, leaving state unchanged.
+ * fails, leaving RAM state unchanged. See docs/access-contract.md for what the medium then holds.
  */
 
 /**

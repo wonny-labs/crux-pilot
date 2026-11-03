@@ -178,21 +178,21 @@ static void malformed_record_cases(void)
         size_t offset;
         uint8_t value;
     } corruptions[] = {
-        {0, 2},                     /* A version this firmware does not know. */
-        {2, 0},                     /* No accounts in a record that claims to be valid. */
-        {2, 255},                   /* More accounts than the table holds. */
-        {3, 1},                     /* Reserved byte. */
-        {name_at, 0},               /* Empty name. */
-        {name_at, 'A'},             /* Name outside the allowed characters. */
-        {name_at + 31u, 'x'},       /* Unterminated name. */
-        {role_at, 0},               /* Empty role. */
-        {role_at + 31u, 'x'},       /* Unterminated role. */
-        {flags_at, 0xFF},           /* Unknown flags. */
-        {algorithm_at, 99},         /* Unknown verifier algorithm. */
-        {key_count_at, 200},        /* More keys than an account holds. */
-        {iterations_at, 0},         /* Combined below with the rest of the zero count. */
-        {key_length_at, 0},         /* Zero-length key. */
-        {key_length_at + 1u, 0xFF}, /* Oversized key. */
+        {0, 2},                         /* A version this firmware does not know. */
+        {2, 0},                         /* No accounts in a record that claims to be valid. */
+        {2, 255},                       /* More accounts than the table holds. */
+        {3, 1},                         /* Reserved byte. */
+        {name_at, 0},                   /* Empty name. */
+        {name_at, 'A'},                 /* Name outside the allowed characters. */
+        {name_at + 31u, 'x'},           /* Unterminated name. */
+        {role_at, 0},                   /* Empty role. */
+        {role_at + 31u, 'x'},           /* Unterminated role. */
+        {flags_at, 0xFF},               /* Unknown flags. */
+        {algorithm_at, 99},             /* Unknown verifier algorithm. */
+        {key_count_at, 200},            /* More keys than an account holds. */
+        {iterations_at, 0},             /* Combined below with the rest of the zero count. */
+        {key_length_at, 0},             /* Zero-length key. */
+        {key_length_at + 1u, 0xFF},     /* Oversized key. */
         {key_length_at + 2u + 7u, 'x'}, /* A key type this firmware does not accept. */
     };
     for (size_t index = 0; index < sizeof(corruptions) / sizeof(corruptions[0]); ++index) {
@@ -372,6 +372,7 @@ static void lock_failure_cases(void)
     size_t count = 0;
     crux_access_session_t session = {0};
 
+    access_fake_events_clear();
     fail_locks = true;
     CHECK(crux_access_check(admin, CRUX_ACCESS_PERMISSION_MANAGE) == CRUX_ACCESS_ERR_NOT_READY);
     CHECK(crux_access_session_user(admin, name, sizeof(name)) == CRUX_ACCESS_ERR_NOT_READY);
@@ -394,6 +395,8 @@ static void lock_failure_cases(void)
     crux_access_logout(&ended);
     CHECK(ended.value == 0);
     fail_locks = false;
+    /* A lost lock means a call from the wrong context, where the event port cannot run either. */
+    CHECK(access_fake_event_count() == 0);
     CHECK(crux_access_check(admin, CRUX_ACCESS_PERMISSION_MANAGE) == CRUX_ACCESS_OK);
 }
 

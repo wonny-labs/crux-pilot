@@ -120,8 +120,17 @@ bool crux_access_lock_state(void);
 void crux_access_unlock_state(void);
 bool crux_access_lock_change(void);
 void crux_access_unlock_change(void);
+/* Events run with no lock held. An origin that is missing or invalid leaves the channel at zero. */
 void crux_access_emit(crux_access_event_type_t type, crux_access_result_t result,
                       const crux_access_origin_t *origin, const char *account, bool role_missing);
+/* For an event a session caused. account is a change's target, and must be a known account's name.
+ */
+void crux_access_emit_session(crux_access_event_type_t type, crux_access_result_t result,
+                              const crux_access_origin_t *origin, const char *actor,
+                              const char *account, const char *permission);
+/* Emits the not-ready event and returns the result. A lost lock has no event: it means a call from
+ * the wrong context, where the event port cannot run either. */
+crux_access_result_t crux_access_refuse_not_ready(const crux_access_origin_t *origin);
 bool crux_access_origin_valid(const crux_access_origin_t *origin);
 bool crux_access_role_find(const char *role, size_t *index);
 bool crux_access_role_is_administrator(size_t role_index);
@@ -141,10 +150,14 @@ void crux_access_slot_release(size_t slot);
 /* Finds a live session. An expired one is released, and its details are written to expired. */
 access_slot_t *crux_access_slot_find(crux_access_session_t session, uint64_t now_ms,
                                      access_expired_t *expired);
+/* Finds a live session and changes nothing, so an expired one stays for the next operation. */
+const access_slot_t *crux_access_slot_peek(crux_access_session_t session, uint64_t now_ms);
 /* Ends an account's sessions. Pass the current session value to keep it, or zero to keep none. */
 void crux_access_slots_end_account(const char *user, uint32_t keep_value);
 /* Emits the collected events. Call it with no lock held. */
 void crux_access_expired_emit(const access_expired_t *expired);
+/* As above, and reports a session that was invalid without having just expired. */
+void crux_access_session_report(crux_access_result_t result, const access_expired_t *expired);
 
 /* Delay state. The state lock is held for every function here except the hashing. */
 bool crux_access_delay_buckets(const crux_access_origin_t *origin, const char *user,

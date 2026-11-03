@@ -119,6 +119,9 @@ static void unknown_and_disabled_match_wrong_password(void)
     access_test_power_cycle(&reduced);
     origin = access_test_web_from(8);
     observation_t role_gone = observe(USER, PASSWORD, &origin);
+    /* A client sees the same as for a wrong password, and only the private event says why. */
+    CHECK(role_gone.event_type == CRUX_ACCESS_EVENT_LOGIN_REFUSED);
+    role_gone.event_type = wrong.event_type;
     expect_same_observation(&wrong, &role_gone);
     CHECK(access_fake_event(0)->role_missing);
     CHECK(strcmp(access_fake_event(0)->account, USER) == 0);

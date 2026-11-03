@@ -62,7 +62,9 @@
      CRUX_ACCESS_RECORD_ACCOUNT_SIZE * (size_t)CRUX_ACCESS_ACCOUNT_MAX)
 
 /* A provider reports exactly one state, and a missing medium, read error or corrupt record is
- * UNUSABLE. Only EMPTY opens provisioning. */
+ * UNUSABLE. EMPTY means that a started store holds no account record, because device keys can exist
+ * first, and only EMPTY opens provisioning. A blank medium reads as EMPTY only if the store can
+ * start on it: a blank card that fails at mount is UNUSABLE. */
 typedef enum {
     CRUX_ACCESS_STORE_EMPTY,
     CRUX_ACCESS_STORE_VALID,
@@ -86,23 +88,34 @@ typedef enum {
     CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_RESET,
     CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_CHANGED,
     CRUX_ACCESS_EVENT_ACCOUNT_KEY_ADDED,
-    CRUX_ACCESS_EVENT_ACCOUNT_KEY_REMOVED
+    CRUX_ACCESS_EVENT_ACCOUNT_KEY_REMOVED,
+    CRUX_ACCESS_EVENT_LOGIN_BUSY,
+    CRUX_ACCESS_EVENT_LOGIN_NO_SESSION,
+    CRUX_ACCESS_EVENT_LOGIN_REFUSED,
+    CRUX_ACCESS_EVENT_NOT_READY,
+    CRUX_ACCESS_EVENT_SESSION_INVALID,
+    CRUX_ACCESS_EVENT_PROVISION_REFUSED,
+    CRUX_ACCESS_EVENT_CHANGE_FAILED,
+    CRUX_ACCESS_EVENT_CHANGE_REJECTED
 } crux_access_event_type_t;
 
-/* Names only a known account, so that a password typed into the name field is never reported. No
+/* Names only known accounts, so that a password typed into the name field is never reported. No
  * event holds a password, verifier, salt or key. Identifiers are finalised under Issue #182. */
 typedef struct {
     crux_access_event_type_t type;
     crux_access_result_t result;
-    crux_access_origin_t origin;
-    char account[CRUX_ACCESS_NAME_SIZE]; /* Empty when no known account applies. */
-    bool role_missing;                   /* The account's role is no longer in the policy. */
+    crux_access_origin_t origin;         /* Channel zero when the channel is not known. */
+    char actor[CRUX_ACCESS_NAME_SIZE];   /* The acting session's user, or empty. */
+    char account[CRUX_ACCESS_NAME_SIZE]; /* The login's account or the change's target, or empty. */
+    char permission[CRUX_ACCESS_PERMISSION_MAX + 1u]; /* Set for a permission denial. */
+    bool role_missing; /* The account's role is no longer in the policy. */
 } crux_access_event_t;
 
 /* Private provider contract, implemented by a test composition or a product provider. Calls come
  * from thread context with no lock held, with two exceptions: the store runs under the change lock,
- * and the clock is read under the state lock, so that times compared under it are in order. The
- * clock and the event port must not wait on storage, because permission checks use them. */
+ * and the clock is read under the state lock, so that times compared under it are in order. Events
+ * always run after both locks are released, and can arrive before a successful init. The clock and
+ * the event port must not wait on storage, because permission checks use them. */
 bool crux_access_port_derive(uint32_t algorithm, uint32_t iterations,
                              const uint8_t salt[CRUX_ACCESS_SALT_SIZE], const char *password,
                              size_t length, uint8_t derived[CRUX_ACCESS_DERIVED_SIZE]);
@@ -113,7 +126,9 @@ uint64_t crux_access_port_now_ms(void);
 /* Writes *length bytes into record for VALID, and nothing otherwise. */
 crux_access_store_state_t crux_access_port_store_load(uint8_t *record, size_t capacity,
                                                       size_t *length);
-/* Completes, or leaves the previous record readable across power loss. */
+/* Completes, or leaves the previous record readable across power loss. False promises only that
+ * RAM stays unchanged: stored bytes can change, and a failed save can win at the next boot if the
+ * store cannot then invalidate it. */
 bool crux_access_port_store_save(const uint8_t *record, size_t length);
 void crux_access_port_event(const crux_access_event_t *event);
 

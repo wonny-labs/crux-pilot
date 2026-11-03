@@ -92,17 +92,47 @@ void crux_access_unlock_change(void)
     (void)crux_mutex_unlock(crux_access_state.change_lock);
 }
 
+static void event_send(crux_access_event_t *event, const crux_access_origin_t *origin)
+{
+    if (crux_access_origin_valid(origin)) {
+        event->origin = *origin;
+    }
+    crux_access_port_event(event);
+}
+
 void crux_access_emit(crux_access_event_type_t type, crux_access_result_t result,
                       const crux_access_origin_t *origin, const char *account, bool role_missing)
 {
     crux_access_event_t event = {.type = type, .result = result, .role_missing = role_missing};
-    if (origin != NULL) {
-        event.origin = *origin;
+    if (account != NULL) {
+        crux_access_copy_name(event.account, account);
+    }
+    event_send(&event, origin);
+}
+
+void crux_access_emit_session(crux_access_event_type_t type, crux_access_result_t result,
+                              const crux_access_origin_t *origin, const char *actor,
+                              const char *account, const char *permission)
+{
+    crux_access_event_t event = {.type = type, .result = result};
+    if (actor != NULL) {
+        crux_access_copy_name(event.actor, actor);
     }
     if (account != NULL) {
         crux_access_copy_name(event.account, account);
     }
-    crux_access_port_event(&event);
+    if (permission != NULL) {
+        size_t length = crux_access_bounded_length(permission, CRUX_ACCESS_PERMISSION_MAX);
+        memcpy(event.permission, permission,
+               length > CRUX_ACCESS_PERMISSION_MAX ? CRUX_ACCESS_PERMISSION_MAX : length);
+    }
+    event_send(&event, origin);
+}
+
+crux_access_result_t crux_access_refuse_not_ready(const crux_access_origin_t *origin)
+{
+    crux_access_emit(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, origin, NULL, false);
+    return CRUX_ACCESS_ERR_NOT_READY;
 }
 
 bool crux_access_origin_valid(const crux_access_origin_t *origin)
@@ -276,19 +306,19 @@ crux_access_result_t crux_access_init(const crux_access_policy_t *policy)
         return CRUX_ACCESS_ERR_ALREADY_EXISTS;
     }
     if (state->store_unusable) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (!policy_valid(policy)) {
         return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
     }
     if (!locks_create() || !crux_access_port_random(state->hash_key, sizeof(state->hash_key))) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     state->policy = policy;
     crux_access_result_t result = table_load();
     if (result != CRUX_ACCESS_OK) {
         crux_access_secure_zero(state->hash_key, sizeof(state->hash_key));
-        return result;
+        return crux_access_refuse_not_ready(NULL);
     }
     for (size_t index = 0; index < state->table.count; ++index) {
         state->next_change_number += 1;
@@ -304,14 +334,14 @@ crux_access_result_t crux_access_init(const crux_access_policy_t *policy)
 crux_access_result_t crux_access_check(crux_access_session_t session, const char *permission)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (permission == NULL || permission[0] == '\0') {
         return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
     }
     access_expired_t expired = {0};
-    crux_access_event_t denial = {.type = CRUX_ACCESS_EVENT_PERMISSION_DENIED,
-                                  .result = CRUX_ACCESS_ERR_DENIED};
+    crux_access_origin_t origin = {0};
+    char actor[CRUX_ACCESS_NAME_SIZE] = {0};
     if (!crux_access_lock_state()) {
         return CRUX_ACCESS_ERR_NOT_READY;
     }
@@ -322,15 +352,63 @@ crux_access_result_t crux_access_check(crux_access_session_t session, const char
         result =
             crux_access_slot_permits(slot, permission) ? CRUX_ACCESS_OK : CRUX_ACCESS_ERR_DENIED;
         if (result != CRUX_ACCESS_OK) {
-            denial.origin = slot->origin;
-            crux_access_copy_name(denial.account, slot->user);
+            origin = slot->origin;
+            crux_access_copy_name(actor, slot->user);
         }
     }
     crux_access_unlock_state();
-    crux_access_expired_emit(&expired);
+    crux_access_session_report(result, &expired);
     if (result == CRUX_ACCESS_ERR_DENIED) {
-        crux_access_port_event(&denial);
+        crux_access_emit_session(CRUX_ACCESS_EVENT_PERMISSION_DENIED, result, &origin, actor, NULL,
+                                 permission);
     }
+    return result;
+}
+
+crux_access_result_t crux_access_permitted(crux_access_session_t session, const char *permission,
+                                           bool *permitted)
+{
+    if (!crux_access_state.ready) {
+        return CRUX_ACCESS_ERR_NOT_READY;
+    }
+    if (permission == NULL || permission[0] == '\0' || permitted == NULL) {
+        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+    }
+    if (!crux_access_lock_state()) {
+        return CRUX_ACCESS_ERR_NOT_READY;
+    }
+    crux_access_result_t result = CRUX_ACCESS_ERR_SESSION_INVALID;
+    const access_slot_t *slot = crux_access_slot_peek(session, crux_access_port_now_ms());
+    if (slot != NULL) {
+        *permitted = crux_access_slot_permits(slot, permission);
+        result = CRUX_ACCESS_OK;
+    }
+    crux_access_unlock_state();
+    return result;
+}
+
+crux_access_result_t crux_access_session_origin(crux_access_session_t session, uint8_t *channel,
+                                                uint8_t source[16], uint8_t *source_length)
+{
+    if (!crux_access_state.ready) {
+        return CRUX_ACCESS_ERR_NOT_READY;
+    }
+    if (channel == NULL || source == NULL || source_length == NULL) {
+        return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
+    }
+    if (!crux_access_lock_state()) {
+        return CRUX_ACCESS_ERR_NOT_READY;
+    }
+    crux_access_result_t result = CRUX_ACCESS_ERR_SESSION_INVALID;
+    const access_slot_t *slot = crux_access_slot_peek(session, crux_access_port_now_ms());
+    if (slot != NULL) {
+        *channel = (uint8_t)slot->origin.channel;
+        *source_length = slot->origin.source_length;
+        memset(source, 0, sizeof(slot->origin.source));
+        memcpy(source, slot->origin.source, slot->origin.source_length);
+        result = CRUX_ACCESS_OK;
+    }
+    crux_access_unlock_state();
     return result;
 }
 
@@ -340,7 +418,7 @@ static crux_access_result_t session_name_query(crux_access_session_t session, qu
                                                char *name, size_t size)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (name == NULL) {
         return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
@@ -365,7 +443,7 @@ static crux_access_result_t session_name_query(crux_access_session_t session, qu
         }
     }
     crux_access_unlock_state();
-    crux_access_expired_emit(&expired);
+    crux_access_session_report(result, &expired);
     return result;
 }
 
@@ -385,7 +463,7 @@ crux_access_result_t crux_access_session_must_change_password(crux_access_sessio
                                                               bool *required)
 {
     if (!crux_access_state.ready) {
-        return CRUX_ACCESS_ERR_NOT_READY;
+        return crux_access_refuse_not_ready(NULL);
     }
     if (required == NULL) {
         return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
@@ -402,7 +480,7 @@ crux_access_result_t crux_access_session_must_change_password(crux_access_sessio
         result = CRUX_ACCESS_OK;
     }
     crux_access_unlock_state();
-    crux_access_expired_emit(&expired);
+    crux_access_session_report(result, &expired);
     return result;
 }
 
