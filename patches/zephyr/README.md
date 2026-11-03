@@ -113,6 +113,7 @@ Upstream generated these for Zephyr 4.4.1. On v4.4.2, `git apply --check` of the
 `git apply --3way` merges it with no conflict. The result differs from the patched 4.4.1 file by exactly the upstream changes
 between those tags. It has been compiled and has not been run. How a composition applies it without editing the Zephyr
 checkout is decided under Issue #185. The wolfSSL, wolfSSH and wolfPSA projects are fetched only when a workspace enables the
-`crux-secure-management` group. They are offered under GPL-3.0-or-later or a commercial licence, and binaries built with
-them are subject to those terms when distributed. The `mbedtls` and `tf-psa-crypto` projects in the same group are
+`crux-secure-management` group. wolfSSL and wolfSSH are offered under GPL-3.0-or-later or a commercial licence. wolfPSA's source
+states GPL-3.0-or-later only. A vendor article says it has the same licence options as wolfSSL, and its commercial terms need
+confirming with the vendor. Binaries built with these stacks are subject to those terms when distributed. The `mbedtls` and `tf-psa-crypto` projects in the same group are
 Apache-2.0 OR GPL-2.0-or-later.
