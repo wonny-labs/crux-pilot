@@ -13,7 +13,7 @@ operations. Baseline: main `4444d70`, Zephyr v4.4.2 `dccb095`.
 | C2 | Strings are well-formed UTF-8 up to `CRUX_CONFIG_STRING_MAX`, default 128 bytes, with no NUL, C0 control, DEL or C1 control | Accept | A value could carry terminal escapes to a CLI user or line breaks into a log |
 | C3 | Sensitive means write-only through the service. It is not encryption. Crux accounts and device keys never use it. An application's own secret may, with no confidentiality claim. | Accept | A stronger claim needs storage this contract does not have |
 | C4 | The service lock is polled by readers and the control thread, so only a save waits on storage | Accept | A control thread could wait on a save, against the rule that management must not block control work |
-| C7 | Status reads the System and Time sources at most once per `CRUX_MGMT_STATUS_REFRESH_MS`, default 1000 ms, and answers from that snapshot | Accept | A client's polling rate sets how often the status path holds locks that control threads also take |
+| C7 | Status reads the System and Time sources at most once per `CRUX_MGMT_STATUS_REFRESH_MS`, default 1000 ms, and answers from that snapshot. This knowingly leaves the design's rule, that management must not block control work, unproven for these two sources until target measurement. | Accept | A client's polling rate sets how often the status path holds locks that control threads also take |
 | C8 | The boot diagnostic owner passes captured reset causes to the status service, which never calls `crux_system_reset_cause_get` | Accept | Each status poll would re-open the System contract's one-clear permission |
 | C5 | Name the status service `crux_mgmt_status`, header `crux/management_status.h` | Accept | `crux/status.h` is the Base header and `crux_status_t` the Base result, and public paths must be unique |
 | C6 | Leave the real target Configuration provider out of this contract. Until it is decided, a composition selects a small no-provider port, and load and save return `CRUX_CONFIG_ERR_NOT_SUPPORTED`. | Accept, and decide under #16 | See "Target provider gap" |
@@ -252,7 +252,8 @@ Component `components/mgmt_status`, header `crux/management_status.h`, target `c
 
 | Dependency or port | Purpose | Host | Zephyr |
 | --- | --- | --- | --- |
-| `crux::access`, `crux::base` | Public contracts | Real, with a fake access provider | Real |
+| `crux::access`, `crux::base`, `crux::system` | Public contracts. System is public because the config carries `crux_reset_cause_t`. | Real, with a fake access provider | Real |
+| `crux::sync` | Private, for the snapshot's guard | Real | Real |
 | `crux_mgmt_status_port_*` | Built-in sources: System, netif, Time, and optionally the credential store and events | Fake with fault injection per source | Thin providers. A composition that links no store or event component omits those items. |
 
 ```c
@@ -329,7 +330,7 @@ lock. `crux_system_status_get` uses the System port lock, `crux_netif_get_status
 authority lock. None waits on storage, but none promises a time bound, and `net_if_lock` can be held by the network stack. This is unmeasured, and M11 measures it. If it
 exceeds the limit, the fallback is that the web adapter runs status on its worker, with no contract change. A project item must not block. Nothing enforces this, so review does.
 
-The opposite direction matters too. `crux_watchdog_feed` takes the same System lock as `crux_system_status_get`, and clock reads share the Time lock, both with an unbounded native wait. A management read can therefore delay a control thread's feed or clock read, which the design says a management operation must not do. Decision C7 bounds how often this happens, however fast clients poll, and it does not remove it. Whether native priority inheritance keeps the delay short is unverified. Target tests measure feed and clock jitter under a status poll, and if they fail, the snapshot moves to a separate low-rate reader that a control thread can outrun. This is a declared limit until then.
+The opposite direction matters too. `crux_watchdog_feed` takes the same System lock as `crux_system_status_get`, and clock reads share the Time lock, both with an unbounded native wait. A management read can therefore delay a control thread's feed or clock read, which the design says a management operation must not do. Decision C7 bounds how often this happens, however fast clients poll, and it does not remove it. Whether native priority inheritance keeps the delay short is unverified. One `crux_mutex`, polled with timeout 0, guards the snapshot. A caller that wins the poll and finds the snapshot older than the period refreshes it. A caller that loses the poll answers from the previous snapshot and never waits behind a refresh. Before the first successful refresh, affected entries carry `CRUX_ERR_BUSY`, and a failed source read sets that entry's status while keeping the others. Target tests measure feed and clock jitter under a status poll, and if they fail, the snapshot moves to a separate low-rate reader that a control thread can outrun. This is a declared limit until then.
 
 ## Failure handling
 
@@ -365,7 +366,7 @@ no provider say that a save is not available.
 | Validation | Each type with parser limits, including overflow, sign and leading zeros. Rejection keeps the old value. Text with a known secret never appears in an event. |
 | Sensitive | No path returns the value. Known values absent from events, logs and `applied`. |
 | Concurrency | `BUSY` during a held save, `try_read` and `try_update` returning without waiting on the service lock, under sanitizers with threads. A save failure in the middle of a list. `try_update` producing no event. Table bound. |
-| Status | Each built-in, per-entry failure, hidden items, no event from hiding, a project item with each type and with bad text. After any number of status polls, `crux_system_reset_cause_clear` still returns `INVALID_STATE` unless the owner made its own get. Snapshot age bound with a controlled clock. |
+| Status | Each built-in, per-entry failure, hidden items, no event from hiding, a project item with each type and with bad text. On `native_sim` with the real System component, because Host reports reset causes unsupported: after any number of status polls, `crux_system_reset_cause_clear` still returns `INVALID_STATE` unless the owner made its own get. Snapshot age bound with a controlled clock, and concurrent polls counting source reads. |
 | Boundary | Headers include no native types and no adapter header. The service header includes only public Crux headers. |
 | Target, separately approved | Stack use with strings, handler time on the HTTP thread, watchdog feed and clock jitter under a status poll, and a save once a provider exists |
 
