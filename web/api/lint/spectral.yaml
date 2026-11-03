@@ -153,17 +153,79 @@ rules:
       field: headers.Retry-After
       function: truthy
   crux-login-503-busy-only:
-    description: A public route's 503 cannot say not_ready, which would reveal the credential store's state before login.
+    description: |
+      A public route's 503 is JSON and narrows the code to busy, in the allOf form. A plain Error would allow
+      not_ready, which would reveal the credential store's state before login.
     severity: error
-    given: $.paths[*][?(@['x-crux-access'] === 'public')].responses['503'].content['application/json'].schema.allOf[1].properties.code.enum
+    given: $.paths[*][?(@['x-crux-access'] === 'public')].responses['503']
     then:
       function: schema
       functionOptions:
         schema:
-          type: array
-          not:
+          type: object
+          required: [content]
+          properties:
+            content:
+              type: object
+              required: [application/json]
+              properties:
+                application/json:
+                  type: object
+                  required: [schema]
+                  properties:
+                    schema:
+                      type: object
+                      required: [allOf]
+                      properties:
+                        allOf:
+                          type: array
+                          minItems: 2
+                          maxItems: 2
+                          items:
+                            - type: object
+                            - type: object
+                              required: [properties]
+                              properties:
+                                properties:
+                                  type: object
+                                  required: [code]
+                                  properties:
+                                    code:
+                                      type: object
+                                      required: [enum]
+                                      properties:
+                                        enum:
+                                          const: [busy]
+  crux-public-read-needs-request-header:
+    description: |
+      A public GET can set cookies with no session or Origin to check, so it requires X-Crux-Request: 1 and
+      documents the 403 for a request without it.
+    severity: error
+    given: $.paths[*][?(@property === 'get' && @['x-crux-access'] === 'public')]
+    then:
+      - field: parameters
+        function: schema
+        functionOptions:
+          schema:
+            type: array
             contains:
-              const: not_ready
+              type: object
+              required: [name, in, required, schema]
+              properties:
+                name:
+                  const: X-Crux-Request
+                in:
+                  const: header
+                required:
+                  const: true
+                schema:
+                  type: object
+                  required: [enum]
+                  properties:
+                    enum:
+                      const: ['1']
+      - field: responses.403
+        function: truthy
   crux-json-has-named-examples:
     description: Every JSON body has named examples, so that a mock server can serve it.
     severity: error

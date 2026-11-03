@@ -37,7 +37,7 @@ info:
     | --- | --- | --- | --- |
     | `400` | Malformed request, or field errors | JSON | `bad_request`, `invalid_field` |
     | `401` | No valid session | JSON | `unauthorized` |
-    | `403` | Valid session without permission, or a rejected CSRF token or `Origin` | JSON | `permission_denied`, `csrf_rejected`, `origin_rejected` |
+    | `403` | Valid session without permission, a rejected CSRF token or `Origin`, or an attempt poll without `X-Crux-Request: 1` | JSON | `permission_denied`, `csrf_rejected`, `origin_rejected` |
     | `404` | An unknown or expired attempt, or a path or item under a registered route that does not exist or is hidden from this session. These look the same. | JSON | `not_found` |
     | `409` | The registered path is busy. The request was not processed, and the client retries on a new connection. | None | |
     | `413` | Body over the route's limit | JSON | `payload_too_large` |
@@ -71,8 +71,14 @@ info:
 
     On every state-changing request with a session, the client sends the `XSRF-TOKEN` value in the
     `X-XSRF-TOKEN` header. The server compares it with the session's value in constant time and also
-    checks `Origin`. Login has no session, so `POST /api/v1/session` checks `Origin` only. The attempt poll
-    that sets the cookies is a public `GET` and checks neither. A client treats both values as opaque.
+    checks `Origin`. Login has no session, so `POST /api/v1/session` checks `Origin` only. A client treats
+    both values as opaque.
+
+    **Attempt poll.** The poll sets the cookies on a public `GET`, where there is no session to compare a
+    token with and a browser need not send `Origin`. It therefore requires the header `X-Crux-Request: 1`. A
+    browser cannot add a header on a top-level navigation, and a cross-site `fetch` would need a preflight,
+    which fails because the server sends no CORS headers. A poll without it gets `403` with `csrf_rejected`
+    and leaves the attempt as it was.
 
     **Idle timer.** State-changing requests refresh a session's idle timer, and `GET` requests do not,
     so a page that polls cannot keep a session alive for ever. The absolute limit always applies.
@@ -164,7 +170,9 @@ paths:
           xsrfHeader: []
       responses:
         '200':
-          description: Session ended. The body is empty, and the cookies are cleared.
+          description: |
+            Session ended, and the cookies are cleared. The body is empty, so a client must not parse it as
+            JSON.
           headers:
             Set-Cookie:
               $ref: '#/components/headers/ClearSessionCookies'
@@ -192,10 +200,13 @@ paths:
         - `pending`: keep polling.
         - `rejected`: on a login there is no further detail. Wrong passwords, unknown names, disabled
           accounts and an unusable credential store (`NOT_READY`) all look the same. On a password change,
-          `code` says why: `invalid_field` with `fields`, `storage_failed`, `not_ready`, or `unauthorized`
-          when the session ended while the attempt ran.
+          `code` says why: `invalid_field` with `fields`, `bad_request` when the account service refuses an
+          argument (`INVALID_ARGUMENT`), `storage_failed`, `not_ready`, or `unauthorized` when the session
+          ended while the attempt ran.
         - `success`: on a login this response sets both cookies. On a password change it sets none, and
           this session stays valid while the account's other sessions end.
+        - `403`: this poll did not send `X-Crux-Request: 1`. The attempt is unaffected, and a correct poll
+          can still collect its result.
         - `429`: inside a delay window, and nothing was verified. Start a new attempt after `Retry-After`.
         - `503`: the attempt could not run because the verifier or the session table was busy. It says
           nothing about the password. Start a new attempt after `Retry-After`.
@@ -205,13 +216,15 @@ paths:
 
         A `404` on an attempt that was being polled means that its result is lost, and a repeat poll cannot
         recover it. After a login, the client logs in again, and an unused session ends through the per-account
-        cap or its idle limit. After a password change, the client submits again, and `incorrect` on
-        `current_password` then shows that the earlier change succeeded. During a forced change,
-        `GET /api/v1/session/me` also shows it.
+        cap or its idle limit. After a password change, the client submits again. `incorrect` on
+        `current_password` then means either that the earlier change succeeded or that the current password
+        was wrong, so the client must not report success from it, and it asks the user to re-enter. During a
+        forced change, `GET /api/v1/session/me` also shows whether the earlier change succeeded.
       x-crux-access: public
       security: []
       parameters:
         - $ref: '#/components/parameters/AttemptId'
+        - $ref: '#/components/parameters/RequestHeader'
       responses:
         '200':
           description: The attempt's state. `Set-Cookie` is present only on a successful login.
@@ -263,6 +276,11 @@ paths:
                   value:
                     state: rejected
                     code: storage_failed
+                password_change_bad_argument:
+                  summary: Password change rejected, because the account service refused an argument
+                  value:
+                    state: rejected
+                    code: bad_request
                 password_change_not_ready:
                   summary: Password change rejected, because the account service is not ready
                   value:
@@ -273,6 +291,8 @@ paths:
                   value:
                     state: rejected
                     code: unauthorized
+        '403':
+          $ref: '#/components/responses/PollHeaderRejected'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
@@ -452,10 +472,10 @@ paths:
                     source: default
                     reboot_required: false
                 no_address:
-                  summary: The interface has no IPv4 address at the moment
+                  summary: The interface has no IPv4 address at the moment, and nothing says that a reboot would restore one
                   value:
                     source: default
-                    reboot_required: true
+                    reboot_required: false
                 reboot_needed:
                   summary: New values saved, and a reboot is needed
                   value:
@@ -677,6 +697,17 @@ components:
         minLength: 22
         maxLength: 64
       example: k3Jq9sZp0vXw2LmN7bYt1A
+    RequestHeader:
+      name: X-Crux-Request
+      in: header
+      required: true
+      description: |
+        Must be `1`. It holds no secret. It shows that page code made the request, because a browser cannot add
+        it on a top-level navigation, and a cross-site `fetch` would need a preflight that fails.
+      schema:
+        type: string
+        enum: ['1']
+      example: '1'
   headers:
     RetryAfter:
       description: Whole seconds to wait, rounded up.
@@ -834,8 +865,8 @@ components:
     OriginRejected:
       description: |
         A login with a missing or wrong `Origin`. This check covers `POST /api/v1/session` only. The poll
-        that sets the cookies is a public `GET` with no `Origin` check, so this does not close login CSRF on
-        its own. PR #223 lists that for the owner.
+        that sets the cookies is covered by its required `X-Crux-Request` header, and login CSRF protection
+        needs both. See issue #212.
       content:
         application/json:
           schema:
@@ -851,6 +882,25 @@ components:
               summary: Origin missing or wrong
               value:
                 code: origin_rejected
+    PollHeaderRejected:
+      description: |
+        An attempt poll without `X-Crux-Request: 1`. The attempt is unaffected, so a navigation to the poll's
+        address can neither collect its result nor end it.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [csrf_rejected]
+          examples:
+            header_missing:
+              summary: The request header is missing or wrong
+              value:
+                code: csrf_rejected
     NotFound:
       description: |
         An unknown or expired attempt. The same form answers a path under a registered route that does not
@@ -1128,9 +1178,10 @@ components:
     AttemptRejectedCode:
       type: object
       description: |
-        A password change that ended for another reason. `storage_failed`: the save failed, the running
-        password is unchanged, and a later boot may use either. `not_ready`: the account service could not run
-        it. `unauthorized`: the session ended while the attempt ran.
+        A password change that ended for another reason. `bad_request`: the account service refused an argument
+        (`INVALID_ARGUMENT`), and nothing changed. `storage_failed`: the save failed, the running password is
+        unchanged, and a later boot may use either. `not_ready`: the account service could not run it.
+        `unauthorized`: the session ended while the attempt ran.
       additionalProperties: false
       required: [state, code]
       properties:
@@ -1141,7 +1192,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/ErrorCode'
             - type: string
-              enum: [storage_failed, not_ready, unauthorized]
+              enum: [bad_request, storage_failed, not_ready, unauthorized]
     CurrentUser:
       type: object
       additionalProperties: false
@@ -1310,8 +1361,9 @@ components:
         reboot_required:
           type: boolean
           description: |
-            True when the next boot would apply values that differ from the running ones, or when nothing is
-            running.
+            True when the next boot would apply values that differ from the running ones. It is false while
+            `running` is absent, because there is nothing to compare and a reboot is not promised to restore an
+            address.
         save:
           $ref: '#/components/schemas/SaveState'
     SaveState:
