@@ -170,6 +170,10 @@ jobs:
         working-directory: crux-pilot
         run: ./scripts/test-m5-integrated-smoke.sh
 
+      - name: Check and build the product template without hardware
+        working-directory: crux-pilot
+        run: scripts/test-product-template.sh "$CRUX_BOARD_TARGET"
+
       # Avoid repeated glob traversals through large Twister build trees.
       - name: Collect Twister evidence paths
         if: always()

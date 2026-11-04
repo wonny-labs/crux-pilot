@@ -19,6 +19,26 @@
       }
     },
     {
+      "label": "Build firmware (application, -Og)",
+      "type": "process",
+      "command": "${workspaceFolder}/scripts/build-debug-target.sh",
+      "args": [
+        "mimxrt1060_evk@B//qspi",
+        "--app",
+        "${input:cruxApplication}",
+        "--debug-optimizations"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$gcc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
       "label": "Clean firmware",
       "type": "process",
       "command": "bash",
@@ -41,6 +61,14 @@
         "panel": "shared",
         "clear": true
       }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "cruxApplication",
+      "type": "promptString",
+      "description": "Application directory, relative to the repository",
+      "default": "samples/time"
     }
   ]
 }

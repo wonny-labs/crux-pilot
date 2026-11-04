@@ -1,4 +1,10 @@
 # Model the relevant upstream Zephyr registration/usage behaviour without an SDK.
+# Zephyr's version.cmake sets these before module files run. Model the baseline Crux states.
+include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/CruxZephyrBaseline.cmake")
+string(REPLACE "." ";" CRUX_MOCK_ZEPHYR_VERSION "${CRUX_ZEPHYR_BASELINE}")
+list(GET CRUX_MOCK_ZEPHYR_VERSION 0 KERNEL_VERSION_MAJOR)
+list(GET CRUX_MOCK_ZEPHYR_VERSION 1 KERNEL_VERSION_MINOR)
+list(GET CRUX_MOCK_ZEPHYR_VERSION 2 KERNEL_PATCHLEVEL)
 set(CONFIG_CRUX_PILOT_MODULE ON)
 set(CONFIG_CRUX_TIME ON)
 add_library(zephyr_interface INTERFACE)

@@ -212,6 +212,19 @@ Host CI runs these tests on Linux only; the macOS results were run by hand and a
 [recorded runs](../docs/evidence/test-foundation-tool/README.md). See the tool's README for what has
 not been exercised.
 
+## Product template
+
+`tests/build/test_product_template.py` checks `samples/product_template`: its C file and CMake
+use only public Crux names, and its manifest pins nothing Crux pins. Real west then takes the
+template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
+against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
+runs the frozen-manifest flow and the build record's input capture. These cases skip when west or
+PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <board>` runs them with
+`tests/build/test_crux_pins.py`, runs `west crux-pins` on Crux's own workspace and so on a real Zephyr
+manifest, then cross-builds the application in that workspace. It does not operate hardware. The
+Zephyr CI job runs it. See the
+[Product Composition Guide](../docs/product-composition.md).
+
 ## Portable execution capability
 
 Run `scripts/test-portable-execution.sh --host-only` for separately configured C/C++
@@ -334,6 +347,21 @@ backend is enabled by these checks.
 including READ_WRITE, EOF and partial writes, storage full and reclamation, corrupted media
 that is never formatted, remount, and a torn-sync model. A remount inside one process is not
 evidence of persistence.
+
+`tests/native/file_roots` runs the File additions on the same FatFs over a RAM disk: roots, stat,
+handle size, rename and listing. `tests/file/conformance.c` holds the cases, and the Linux provider
+(`File.file_conformance_linux`) and the in-memory fake (`File.file_conformance_fake`) run the same
+ones. The FatFs run also proves that an existing destination survives a rename, that short and long
+encoded names decode, and that names this provider could not have written stay out of a listing.
+`File.file_fake_faults` covers failed provider calls and walks a power cut across each mutation of a
+sequence, in forked children, under the fake's own simple model. None of these is power-loss
+evidence about FatFs or a card, and no physical run covers the additions.
+
+`scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
+a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
+the fake File provider and a double for access, and walk a power cut across every mutation of a commit
+and of the rename that recovery finishes. `FileService.with_access` runs the service on the real Access core with its fake
+ports. The service has not run on Zephyr or on a target, and a cut on the fake says nothing about a card.
 
 `scripts/test-file-persistence.sh` builds `tests/native/file_fatfs_persist`, where the disk is a
 `zephyr,flash-disk` on the flash simulator backed by a host file, and runs it as separate
@@ -499,3 +527,69 @@ root entry point. External System profiles preserve parent testing/languages,
 exercise C17/C++17 public usage, reject conflicting providers and exclude
 unrelated components. The existing System contract and native ownership checks
 remain unchanged.
+
+## Portable Access control
+
+Access control (Issue #177): the root Host suite runs `tests/access` with fake ports, a controllable clock and
+fault injection, as `Access.*` in CTest. These fakes are a test composition: they exist only when Crux builds its
+own tests, and no provider setting can select them for a product image.
+`scripts/test-access.sh` also runs them under the sanitizer preset, runs clang-tidy on the Access sources and
+runs `scripts/check-access-boundary.py`. That check configures and builds `tests/access_consumer` in both directions:
+a project cannot reach the adapter header, and a service that links the adapter target privately is still accepted.
+No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
+[Access contract](../docs/access-contract.md).
+
+## Portable credential store
+
+The credential store (Issue #178): the root Host suite runs `tests/credential` as `Credential.*` in CTest, on the File
+fake and on the Linux File provider. The protection in every suite is **test only**, a CRC in place of a tag and a
+keystream that is not encryption, because PSA is not qualified (Issue #142). It exists only when Crux builds its own
+tests, it refuses to compile outside a test composition, and `Credential.credential_production_refuses` shows a product
+build of the store refusing it at start. The fault suites cut power before each File operation, each sector and each byte
+of every save, with a medium model that proves nothing about a real card.
+`scripts/test-credential.sh` also runs them under the sanitizer preset, runs clang-tidy on the sources and runs
+`scripts/check-credential-boundary.py`, which configures and builds `tests/credential_consumer` in both directions.
+`tests/native/credential_fatfs` runs the conformance cases on real FatFs over a RAM disk, under
+`scripts/test-storage-simulators.sh`. None of this says anything about confidentiality, entropy or real power loss. See
+the [credential store](../docs/credential-store.md).
+
+## Portable Security events
+
+Security events (Issue #182): the root Host suite runs `tests/security_event` as `SecurityEvent.*` in CTest. Most suites
+control the clocks and the log through linker wraps. `rejections`, `read`, `waits` and `secrets` join the real Access core and the
+real provider, with Access's fake ports. `integration` links product cores with real Logging, Thread and Sync and Time's real
+authority lock and monotonic clock. Its realtime provider is Time's controlled `memory` one.
+`crux_security_event_fake` is a recording fake of the public contract for the Host tests of a consumer, and one suite runs on both
+it and the core. These exist only when Crux builds its own tests. `scripts/test-security-event.sh` also runs them under the
+sanitizer preset, runs clang-tidy on the sources and tests, and runs `scripts/check-security-event-boundary.py`, which builds
+`tests/security_event_consumer` in both directions. None of this runs on Zephyr or a target. See the
+[Security event contract](../docs/security-event-contract.md).
+
+## Web frontend
+
+The web frontend has its own tools under `web/` and needs Node.js, while no C build does. Its commands are in the
+[web guide](../web/README.md), and `.github/workflows/web.yml` runs them.
+
+| Check | Command | Environment |
+| --- | --- | --- |
+| Specification lint and its rejection tests | `scripts/check-management-api.sh`, `python3 -m unittest discover -s tests/management_api` | Node.js |
+| Pins, generated types, `tsc`, source rules, client and mock unit tests, build and budget | `npm run check` in `web` | Node.js |
+| Browser tests of the reference on the mock | `npm run test:browser` in `web` | Node.js and Chrome |
+| The shared browser cases on the Angular sample | `npm run test:angular` in `web`, after building the sample | Node.js and Chrome |
+
+All of these run against the mock server, on the loopback address and over plain HTTP. They show nothing about TLS, real
+sessions, connection limits or timing, and they are not `native_sim` or physical evidence. Issue #220 covers those.
+
+## SSH provider
+
+The standard Host CTest includes `Ssh.ProviderConformance`, which runs the cases in `tests/ssh/conformance.c` against a fake
+provider, `Ssh.ConformanceCatchesDefects`, which gives the fake each deliberate defect and requires the named case to fail, and
+`Ssh.Boundaries`, which runs `scripts/check-ssh-boundaries.py`. It also has `Ssh.FakeProvider`, `Ssh.AttachmentDouble`, `Ssh.CallbackTable`
+and a test of each stand-in entry point. The fake needs no SSH library, and the CLI and SFTP Host tests link it. It runs every callback
+on the calling thread, so it shows no concurrency, timing or protocol behaviour. No real provider has run the cases yet.
+`tests/build/test_ssh_boundaries.py` shows that the boundary check rejects each violation.
+
+`scripts/test-ssh-wolf-settings.sh` is not part of any default workflow, because it needs the optional `crux-secure-management`
+west group. It compiles and links `tests/zephyr/ssh_wolf_probe` for `mimxrt1060_evk@B//qspi` with the TLS socket backend, and for
+`native_sim/native/64` both ways, and runs negative controls. It never flashes or runs an image, and the file port it links
+is one that refuses every operation. See [the SSH provider contract](../docs/ssh-provider-contract.md).
