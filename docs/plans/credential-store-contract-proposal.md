@@ -1,8 +1,8 @@
 # Credential and key store contract proposal
 
-Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #178: S1 to S7. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval, and no merge is approved. It implements requirement A6 of the
+Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #178: S1 to S7. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval. Merging is allowed after independent review with green CI, as [recorded on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497), and hardware operations stay excluded. It implements requirement A6 of the
 [access control proposal](access-contract-proposal.md) and uses the storage comparison in the provider decision record
-(`docs/plans/secure-management-provider-decision.md`, PR #198, not yet on main). Baseline: main `4444d70`, Zephyr v4.4.2 `dccb095`, FatFs `f4ead3b`.
+(`docs/plans/secure-management-provider-decision.md`, merged in #198). Baseline: main `4444d70`, Zephyr v4.4.2 `dccb095`, FatFs `f4ead3b`.
 
 ## Decisions
 
@@ -105,7 +105,7 @@ typedef enum {
     CRUX_CREDENTIAL_ERR_NOT_FOUND = -4, /* Record absent from an EMPTY or VALID store. */
     CRUX_CREDENTIAL_ERR_TOO_LARGE = -5, /* Buffer too small, or a record over its limit. */
     CRUX_CREDENTIAL_ERR_ENTROPY = -6,   /* No random data for a key or nonce. Nothing was stored. */
-    CRUX_CREDENTIAL_ERR_STORE = -7,     /* Save failed. The previous image stays active. */
+    CRUX_CREDENTIAL_ERR_STORE = -7,     /* Save failed. The previous image stays active, except under S7. */
     CRUX_CREDENTIAL_ERR_READ = -8       /* A runtime read failed. Store state is unchanged. */
 } crux_credential_result_t;
 
@@ -152,7 +152,7 @@ written or never acknowledged, because a save that adds a record reaches both sl
 Every record also changes together, so there are no states across records to reason about.
 
 The cost is one static image buffer and a rewrite of the whole image for each change. Account changes, certificate
-replacement and host key rotation are rare, and SD wear from them is negligible. Rough sizing, not a measurement: SSH user keys are Ed25519 and ECDSA only, by the same decision, so a P-256 key is about 121 B in DER and
+replacement and host key rotation are rare, and SD wear from them is negligible. Rough sizing, not a measurement: SSH user keys are Ed25519 and ECDSA only, as `secure-management-gate-decisions.md` records, so a P-256 key is about 121 B in DER and
 an Ed25519 key is smaller. The access record is about 4 KB at its default bounds, and a certificate chain is up to about 2 KB. `CRUX_CREDENTIAL_SLOT_BYTES` defaults to 16 KiB and is a build setting. Issue #197 measures the real cost.
 
 ### Slot format
@@ -249,13 +249,13 @@ generates a key, saves it and only then returns `OK`, so a key is never used bef
 returns that error and generates nothing. The composition calls it at first boot for each key that the build needs.
 `crux_credential_key_replace` is the deliberate rotation path and produces an event.
 
-An interrupted first save gives `EMPTY`, and the next boot generates again. That key was never used, so this is not silent
-regeneration of a key that clients have seen. Blanking the store does regenerate keys, which is part of limit A7 and is
+A first save cut before slot A's write completes gives `EMPTY`, and the next boot generates again. That key was never used, so this is not silent
+regeneration of a key that clients have seen. After that write completes the key is present at the next boot, which uses it and generates nothing. Blanking the store does regenerate keys, which is part of limit A7 and is
 visible to clients as a changed host key.
 
 Generation uses PSA. The composition must have a qualified entropy source under Issue #142: `zephyr,entropy` selects the TRNG
 in `nxp_rt10xx.dtsi`, and its quality and start-up behaviour are not yet evidenced. Each save's nonce comes from the same source. If PSA or the random source fails,
-the result is `CRUX_CREDENTIAL_ERR_ENTROPY` and nothing is stored. Key types are ECDSA P-256 for TLS and, for SSH, Ed25519
+the result is `CRUX_CREDENTIAL_ERR_ENTROPY` and nothing is stored. The exception is a failure during step 6's second seal, after the first slot was written: that returns `CRUX_CREDENTIAL_ERR_STORE`, under S7. Key types are ECDSA P-256 for TLS and, for SSH, Ed25519
 or P-256 as the design states. Whether wolfPSA can generate Ed25519 is unverified, and M12 selects the type from evidence.
 Certificates come from M11. The store only holds their bytes.
 
@@ -320,7 +320,7 @@ store is recovered by deleting the slots with a card reader.
 | The second write of an added record fails | `CRUX_CREDENTIAL_ERR_STORE`, event. The new record is active. Decision S7. |
 | File pool full | `CRUX_CREDENTIAL_ERR_STORE`. The file service leaves one handle free, as stated in Issue #179. |
 | Medium removed while running | Reads give `ERR_READ` and saves `ERR_STORE`. Existing sessions continue, because they hold no stored state. Reinsertion needs a reset, as the microSD composition states. |
-| Power loss during a save | Old or new image, subject to the medium limit below. A cut during a record's first save leaves it absent, and the operation can be repeated. |
+| Power loss during a save | Old or new image, subject to the medium limit below. A cut before the first slot's write completes leaves a new record absent, and the operation can be repeated. After that write completes, the record is present at the next boot. |
 | Both slots damaged | `UNUSABLE`, and all logins rejected until local recovery |
 | Key missing from a build that needs it | The composition's call to `crux_credential_key_ensure` generates it only in the first-boot cases above. A failure stops that listener: the SSH design already says the server does not start. |
 
@@ -328,7 +328,7 @@ store is recovered by deleting the slots with a card reader.
 
 | Level | Cases |
 | --- | --- |
-| Host conformance, on the fake and on File with the Linux provider | Every row of the load table, read and write of each record, limits, `UNUSABLE` refusing every operation but erase, generation order and ties, no key generated in `UNUSABLE`, a cut at each step of a record's first save leaving `NOT_FOUND` and a usable store, an acknowledged record surviving damage to either slot, a new record reaching both slots, a failed second write, the repair at start, state before start, and each state of an interrupted erase |
+| Host conformance, on the fake and on File with the Linux provider | Every row of the load table, read and write of each record, limits, `UNUSABLE` refusing every operation but erase, generation order and ties, no key generated in `UNUSABLE`, a cut at each step of a record's first save leaving a usable store, with `NOT_FOUND` before the first slot's write completes and the record present after it, an acknowledged record surviving damage to either slot, a new record reaching both slots, a failed second write, the repair at start, state before start, and each state of an interrupted erase |
 | Host faults | A cut at each sector of first and later saves, then a reload that must find the old or new image, and at each byte, then a reload that must find the old or new image or `UNUSABLE`, and never `EMPTY` once a save has completed. A flipped bit in each header field, and a zeroed header. Reload after a failed sync and after a failed read back, with invalidation working and failing. Full File pool. Runs under sanitizers. |
 | Host security | Secret values absent from every event. A forged or reused-generation slot on the fake. A bad tag in both slots is `UNUSABLE` and never `EMPTY`, and in one slot uses the other. |
 | Boundary | The adapter header cannot be reached from consumer targets. File service rejects an area on a store root. |
@@ -356,7 +356,7 @@ Host tests show contract behaviour. They do not establish entropy quality, confi
 
 ## Consistency with the access proposal
 
-This contract meets A6 subject to the limits above, and three statements in the access proposal need attention at adoption. These are requests. The access proposal is not changed here.
+This contract meets A6 subject to the limits above, and three statements in the access proposal need attention at adoption. The owner accepted them as AC6 and AC8, and #210's contract carries them. The access proposal itself is not changed here.
 
 - "A blank or reformatted medium reads as `EMPTY`" is true of the store once the composition has started it. On the microSD
   composition a truly blank card fails at mount, and a reformatted card needs the host to recreate the directories. Those

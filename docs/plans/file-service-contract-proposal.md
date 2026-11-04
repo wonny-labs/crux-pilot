@@ -1,6 +1,6 @@
 # File contract extension and file service proposal
 
-Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #179: F1 to F6, with F4 for now. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval, and no merge is approved. It refines the file sections of
+Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #179: F1 to F6, with F4 for now. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval. Merging is allowed after independent review with green CI, as [recorded on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497), and hardware operations stay excluded. It refines the file sections of
 [the secure management design](secure-management-design.md) and [the CLI and SFTP design](secure-management-cli-sftp-design.md).
 Baseline: main `4444d70`, Zephyr v4.4.2
 `dccb095`, FatFs `f4ead3b`, wolfSSH v1.6.0 `8221e4e`, and WinSCP source `246bbd4`, which is the current upstream tip and not
@@ -135,7 +135,7 @@ The qualified contract stays true for existing consumers, and the proposal chang
 | Name rule, pool size, handle rules | Unchanged | |
 | Private port in `file_port.h` | `crux_file_impl_open` and `_remove` gain a root, and new functions appear | `tests/file/fault_test.c` implements this port, so its fixture changes, while its assertions do not |
 | `file_native.c` | One root becomes an array | Rerun File's Host and `native_sim` suites and `scripts/test-file-rt1060-compile.sh`, and record a new software result. |
-| `docs/file-contract.md` | "Directory trees, rename/atomic replace, append, sparse files, metadata, permissions" is out of scope today. On adoption, listing, stat, size metadata and rename move in scope. Atomic replace, append, sparse files and permissions stay out. | The M4 approval covered the old text, so adoption needs its own review |
+| `docs/file-contract.md` | #224 already changed its scope text: listing, stat, size metadata and rename are in scope, and atomic replace, append, sparse files and permissions stay out. That document, and not this proposal, is now the authority for these additions. | The M4 approval covered the old text, and #224 had its own independent review |
 
 Accepted evidence stays as recorded and is not edited. The physical runs under `docs/evidence` remain results for the revisions
 they name. They do not extend to the new operations, and the new code path does not re-qualify them. The 100-cut replace test
@@ -408,8 +408,8 @@ owner requires WinSCP support and the current design statement does not yet hold
 ## Changes other contracts need
 
 - **AC1, access control:** `crux_access_permitted(session, permission, bool *permitted)` in the public `crux/access.h`, with no event, no touch and no
-  storage. Services call it, so it cannot be adapter-only under decision A1. Hiding areas, parameters and commands would otherwise produce a denial event for every item hidden. This is an addition to the
-  access proposal, which is not changed here. It also affects `crux_cli` and the configuration service.
+  storage. Services call it, so it cannot be adapter-only under decision A1. Hiding areas, parameters and commands would otherwise produce a denial event for every item hidden. The owner accepted this as AC1, and #210 carries it. The
+  access proposal itself is not changed here. It also affects `crux_cli` and the configuration service.
 - **CLI and SFTP design:** the `SETSTAT` statement above, and "Modification time applied only if the medium supports it", which no Zephyr VFS call
   can do. The rename table row holds. `FSTAT` and `SFTP_GetAttributes_Handle` use `crux_file_service_size`.
 - **Web design:** a `Content-Length` check maps to `declared_size`, and a missing or wrong area maps to `404` under the hiding rule, which refines "`403` means a valid session without permission".
