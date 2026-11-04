@@ -9,6 +9,7 @@ This guide describes the supported ways to build Crux and consume its capabiliti
 | Develop and test Crux on Linux | `scripts/bootstrap-host.sh` and CMake presets | Current Linux amd64 development environment |
 | Build a Zephyr application | `west` with Crux's `zephyr/module.yml` | Pinned Zephyr workspace, selected `native_sim` and EVKB configurations |
 | Consume Crux from a separate Linux CMake project | Root `add_subdirectory()` | Source-tree integration in the supported Linux environment |
+| Start a product repository on Crux | [Product Composition Guide](product-composition.md) | Proposed practice, Zephyr only, no Crux release tag yet |
 
 Linux Host is a development and test composition, **not** a qualified production Embedded Linux variant. The Zephyr EVKB cross-build proves that a selected firmware image compiles and links, not that it boots or operates correctly on hardware. Installed packages, `find_package(Crux)`, a binary SDK and arbitrary toolchain or board combinations are not supported by this guide.
 
@@ -84,6 +85,8 @@ scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
 ~~~
 
 Both commands use the module from this checkout. The current EVKB target is `mimxrt1060_evk@B//qspi`, limited to its documented configuration.
+
+The Crux module compares the Zephyr release in use with the one Crux was verified on. On another release, every build that enables the module warns and continues without Crux evidence. `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON` stops such a build instead. `west crux-pins` compares the workspace's project commits with the ones Crux pins and fails on an undeclared difference; see [its description](product-composition.md#west-crux-pins).
 
 For another Zephyr application in the west workspace, prefer `EXTRA_ZEPHYR_MODULES` to add Crux while retaining the modules discovered through west. Existing Crux scripts also use the supported older spelling `ZEPHYR_EXTRA_MODULES`. By contrast, `ZEPHYR_MODULES` replaces automatic discovery and must list **all** required modules, not just Crux. For example, the following command builds the existing controller application on `native_sim` without hardware operations:
 
@@ -215,6 +218,8 @@ The external application tests also cover C++17, independently selected Thread/S
 | Time | Set `CRUX_BUILD_TIME=ON` and explicitly select `CRUX_TIME_PROVIDER=memory` (controlled development) or `linux` (system realtime). Controlled Host samples require memory; Linux native writes need explicit application authority. Neither implies production qualification |
 | Time CPU Busy-wait | Select `CRUX_TIME_BUSY_WAIT=ON` and Time with an explicit provider; link `crux::time`. Zephyr requires `CONFIG_CRUX_TIME=y` plus `CONFIG_CRUX_TIME_BUSY_WAIT=y`, without RTC. Disabled Busy-wait remains linkable and returns NOT_SUPPORTED for positive durations. See [limits and verified scope](time-busy-wait.md) |
 | Thread, Sync | Select independently through `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`. Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for the current controlled Host composition). Their public targets connect the current Linux implementation |
+| Access | Select `CRUX_BUILD_ACCESS=ON`, which requires `CRUX_BUILD_SYNC=ON`. The public target has no provider yet, so an image that calls it does not link. The [Access contract](access-contract.md) records the current state. |
+| File service | Select `CRUX_BUILD_FILE_SERVICE=ON`, which requires `CRUX_BUILD_ACCESS=ON`, `CRUX_BUILD_FILE=ON` and `CRUX_BUILD_SYNC=ON`. It has no event provider yet, so an image that calls it does not link. The [File service contract](file-service-contract.md) holds its rules and limits |
 | Queue | Portable targets use `crux::queue`. The final Linux executable additionally links `crux::queue_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and TTY binding belongs to platform composition |
 | I2C | Select `CRUX_BUILD_I2C=ON`; the Host provider is a deterministic loopback fixture for portable consumer tests. Zephyr applications compile the native provider and bind `crux-i2c0` to a selected controller |
