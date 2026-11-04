@@ -26,7 +26,7 @@
 - Physical programming, reset and power operations are out of this plan.
 - Style: `.clang-format` for owned C, `scripts/check-format.sh` before each commit, Conventional Commits, and this attribution on each commit: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
-**Delivery:** one branch and Draft PR per issue. `CONTRIBUTING.md` prefers a branch from the default branch; these are stacked on purpose, each on the previous issue's branch until that one merges, because each depends on the last, and each is rebased when its base merges. Merging needs the owner. Each PR records its protected paths, checks and independent review as `AGENTS.md` requires. The issue numbers below are the design's numbers 1 to 8; replace them with GitHub numbers once created.
+**Delivery:** one branch and Draft PR per issue. `CONTRIBUTING.md` prefers a branch from the default branch; these are stacked on purpose, each on the previous issue's branch until that one merges, because each depends on the last, and each is rebased when its base merges. Merging needs the owner. Each PR records its protected paths, checks and independent review as `AGENTS.md` requires. The issue numbers below are the design's numbers 1 to 8; replace them with GitHub numbers once created. Issue 9 is a planning item with no task here.
 
 ## Review Focus
 
@@ -172,7 +172,8 @@ ZTEST(emmc_stack, test_reads_see_held_data)
     /* cached: read returns new data while emmc_sim_read_persistent returns old.
        Without a cache: both return new data. */
 ZTEST(emmc_stack, test_transfers_are_aligned_for_dma)
-    /* after aligned and unaligned reads and writes: misaligned_transfers == 0 */
+    /* BUILD_ASSERT(CONFIG_SDHC_BUFFER_ALIGNMENT == 32); after aligned and unaligned reads and
+       writes: misaligned_transfers == 0 */
 ZTEST(emmc_stack, test_sync_sends_no_flush_at_the_pin)
     /* cached, option off: write, CTRL_SYNC returns 0, flush_commands == 0, persistent is old.
        Without a cache: persistent is new, flush_commands == 0. */
@@ -369,7 +370,7 @@ Controls on FatFs in this task:
 - [ ] **Step 5: Build the images and run**
 
 Add to `scripts/test-storage-emmc.sh`: build `fat-fix` (`-DEXTRA_CONF_FILE=fatfs.conf -DCONFIG_CRUX_MMC_CACHE_FLUSH=y`) and `fat-nofix` under `build/zephyr/emmc-powercut/`, with `ZEPHYR_MODULES` naming FatFs as the storage gate does. Then run `test_replay_model.py` and `run_replay.py --fs fatfs --seed 1 --samples 8 --max-seconds 300`.
-Expected: both controls fail as required; observations for W1 to W3 on both profiles in the JSON; exit 0. Run twice to confirm that the same seed gives the same JSON, apart from timing. Measure the run time and set the final `--samples` in the script from it: at most 5 minutes on one CI runner, reducing samples and never mandatory positions. If only an emulated local run is available, record its time as such. Record the counts and the observations as a new record in `docs/evidence/emmc-reliance/replay-fatfs/README.md`, with the revision and commands.
+Expected: both controls fail as required; observations for W1 to W3 on both profiles in the JSON; exit 0. Run twice to confirm that the same seed gives the same JSON, apart from timing. Measure the run time and set the final `--samples` in the script from it: at most 5 minutes on one CI runner, reducing samples and never mandatory positions. If only an emulated local run is available, record its time as such and pass a larger `--max-seconds` for that run, stating it; the 5 minutes applies to the CI runner. Record the environment with every result. Record the counts and the observations as a new record in `docs/evidence/emmc-reliance/replay-fatfs/README.md`, with the revision and commands.
 
 - [ ] **Step 6: Commit**
 
@@ -508,7 +509,7 @@ git commit -m "fix(storage): report unsaved writes when closing on a read-only v
 
 **Files:**
 - Modify: `zephyr/Kconfig`, `zephyr/CMakeLists.txt:92-100`, `components/file/ports/zephyr/CMakeLists.txt`, `components/file/ports/zephyr/file_native.c:10-37`, `docs/file-contract.md`, `tests/README.md`
-- Modify: `tests/native/file_reliance/{main.c,prj.conf,testcase.yaml}`, `scripts/test-storage-emmc.sh`
+- Modify: `tests/native/file_reliance/{CMakeLists.txt,main.c,prj.conf,testcase.yaml}`, `scripts/test-storage-emmc.sh`. The CMake adds `tests/file/conformance.c` and links `crux::file`
 
 **Interfaces:**
 - Consumes: `crux_file_zephyr_bind(const char *root)`, `crux::file`.
@@ -520,7 +521,7 @@ Ztest runs cases in name order and the File provider binds once per process, so 
 
 `test_maximum_length_name_roundtrip`, `test_distinct_portable_names_do_not_alias`, `test_create_replace_truncates_and_data_is_visible_after_in_process_remount`, `test_read_write_seek_and_eof_bounds`, `test_access_mapping_handle_lifetime_and_remove`, `test_file_handle_pool_limit_and_reuse`, `test_unmounted_volume_is_not_ready`, `test_read_write_mode_updates_in_place_and_never_creates`, `test_short_read_at_eof_returns_ok_with_the_available_count`, `test_storage_full_is_observable_and_space_is_reclaimed`, `test_write_that_only_partly_fits_returns_partial_with_progress`, `test_creating_a_file_on_a_full_volume_reports_no_space_not_access`, `test_corrupted_media_is_not_formatted_and_recovers_when_restored`, `test_bind_rejects_invalid_roots_and_a_second_bind`, `test_seek_to_eof_is_allowed_and_a_rejected_seek_keeps_the_position`, `test_removing_a_missing_file_reports_not_found`, `test_file_api_uses_a_separate_settings_directory`, `test_creating_empty_files_on_an_exhausted_volume_reports_no_space`.
 
-`test_torn_sync_images_mount_and_leave_unrelated_files_intact` is not repeated, because Task 8's replay covers it at more positions, with I1 and I4 under `torn`.
+`test_creating_empty_files_on_an_exhausted_volume_reports_no_space` keeps its `NO_SPACE` assertion, but not FatFs's `created > 0`, because here the first create may already find no free block. `test_torn_sync_images_mount_and_leave_unrelated_files_intact` is not repeated, because Task 8's replay covers it at more positions, with I1 and I4 under `torn`.
 
 The File additions, as `tests/native/file_roots/main.c` runs them, with `tests/file/conformance.c` compiled in and an environment whose roots are `/MMC:/a` and `/MMC:/b` and whose foreign files are names that fail the name rule: `test_conformance_on_reliance_edge` (the six `crux_file_conformance_*` functions), `test_a_rename_survives_a_remount_and_never_leaves_two_names`, `test_rename_keeps_an_existing_destination`, `test_listing_skips_directories_and_foreign_names`, `test_an_unmounted_volume_is_not_ready`.
 
@@ -530,7 +531,8 @@ Plus:
 ZTEST(file_reliance, test_names_are_stored_unencoded)      /* fs_stat of the plain name succeeds */
 ZTEST(file_reliance, test_access_after_a_critical_error_reports_access)
 ZTEST(file_reliance, test_task_ids_are_unique_across_threads)
-    /* TASK_COUNT - 1 new threads each open a file, because the Ztest thread already holds a slot */
+    /* new threads each open a file until the slots are used, counting the ones the suite's setup
+       and Ztest threads hold; every thread's file works, so no two share an ID */
 ZTEST(file_reliance, test_thread_limit_reports_no_resources)
     /* one thread beyond the slots: CRUX_FILE_ERR_NO_RESOURCES; earlier threads still work. Runs last
        or in its own scenario, because exited threads keep their slots */
@@ -550,14 +552,14 @@ Expected: a Kconfig failure.
 
 - [ ] **Step 3: Implement the selection**
 
-Add the Kconfig symbol. Add it to the two conditions in `zephyr/CMakeLists.txt`. In the port's CMake, add a block that builds `crux_file_zephyr` and returns, including the simulator's `-m32`, `-m64` and `TOOLCHAIN_C_FLAGS` handling on `native_sim`. In `file_native.c`, treat the selection as allowed on any board, and do not define `CRUX_FILE_NATIVE_FATFS`. Add, for this selection: `BUILD_ASSERT(CONFIG_FILE_SYSTEM_MAX_FILE_NAME >= CRUX_FILE_NATIVE_LEAF_MAX)`; a check that `REDCONF_HANDLE_COUNT` covers `CRUX_FILE_POOL_SIZE + CRUX_FILE_DIR_POOL_SIZE`, through a Kconfig minimum or a CMake check, because `file_native.c` does not include Reliance Edge headers; and the existing `CONFIG_DCACHE` alignment `_Static_assert`, moved so that it covers this selection too. Add this selection to the condition of `configdefault SDHC_BUFFER_ALIGNMENT` in `zephyr/Kconfig`, leaving the FatFs window line as it is, and add `crux_file_api`'s `CRUX_FILE_POOL_SIZE=4` definition in the new CMake block, as the others have.
+Add the Kconfig symbol. Add it to the two conditions in `zephyr/CMakeLists.txt`. In the port's CMake, add a block that builds `crux_file_zephyr` and returns, including the simulator's `-m32`, `-m64` and `TOOLCHAIN_C_FLAGS` handling on `native_sim`. In `file_native.c`, treat the selection as allowed on any board, and do not define `CRUX_FILE_NATIVE_FATFS`. Add, for this selection: `BUILD_ASSERT(CONFIG_FILE_SYSTEM_MAX_FILE_NAME >= CRUX_FILE_NATIVE_LEAF_MAX)`; a check that `REDCONF_HANDLE_COUNT` covers `CRUX_FILE_POOL_SIZE + CRUX_FILE_DIR_POOL_SIZE`, through a Kconfig minimum or a CMake check, because `file_native.c` does not include Reliance Edge headers; and the existing `CONFIG_DCACHE` alignment `_Static_assert`, moved so that it covers this selection too, under `CONFIG_SDHC`, because the symbol exists only there and this selection is valid on a board without SDHC. Add this selection to the condition of `configdefault SDHC_BUFFER_ALIGNMENT` in `zephyr/Kconfig`, leaving the FatFs window line as it is, and add `crux_file_api`'s `CRUX_FILE_POOL_SIZE=4` definition in the new CMake block, as the others have.
 
 - [ ] **Step 4: See them pass, and record the case counts**
 
 Run: the Task 5 command.
 Expected: all PASS, with no FatFs behaviour in the image: `nm zephyr.exe | grep -c f_mount` prints 0.
 Run, for the existing selections: 64-bit Twister on `tests/native/file_fatfs`, `file_roots`, `file_littlefs` and `file_sd_composition`, and `scripts/test-file-rt1060-compile.sh`. Expected: the same counts as `scripts/test-storage-simulators.sh` requires. The whole gate runs in CI once the branch can be pushed.
-Add both scenarios to `scripts/test-storage-emmc.sh` with exact expected counts. Add a short "Reliance Edge mapping" section to `docs/file-contract.md`, stating that the contract's statements are unchanged.
+Add both scenarios to `scripts/test-storage-emmc.sh` with exact expected counts. Add a short "Reliance Edge mapping" section to `docs/file-contract.md`, stating that the contract's statements are unchanged, and correct its sentence that the additions have run on FatFs only.
 
 - [ ] **Step 5: Commit**
 
@@ -686,7 +688,7 @@ With `CONFIG_STACK_USAGE=y` in a separate build: record FLASH and RAM from the l
 
 - [ ] **Step 4: Write `docs/emmc-reliance-composition.md`**
 
-In the style of `docs/microsd-composition.md`: decisions in force; the sequence; selection, including that any use of an MMC disk needs the flush option, and that FatFs on an MMC disk is not a Crux File selection; the commercial kit selection point; the failure table; software evidence as it actually is; what is not covered. Add a pointer in `docs/architecture.md`. Run `python3 scripts/check_docs.py`. Expected: PASS.
+In the style of `docs/microsd-composition.md`: decisions in force, including the owner's link-only exception for the File additions (spec, Intent); the sequence; selection, including that any use of an MMC disk needs the flush option, and that FatFs on an MMC disk is not a Crux File selection; the commercial kit selection point; the failure table; software evidence as it actually is; what is not covered. Add a pointer in `docs/architecture.md`. Run `python3 scripts/check_docs.py`. Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -704,7 +706,7 @@ Propose the change: a step that runs `west config manifest.group-filter -- +crux
 ### Task 11: Configuration on a Settings File target provider (issue 7)
 
 **Files:**
-- Create: `components/configuration/ports/zephyr/CMakeLists.txt`, `samples/storage_emmc/emmc_configuration.c`, `samples/storage_emmc/emmc_configuration.h`, `tests/native/configuration_settings_file/fixture_fatfs.h`, `tests/native/configuration_settings_reliance/{CMakeLists.txt,Kconfig,prj.conf,app.overlay,fixture_reliance.h,testcase.yaml}`, `docs/evidence/emmc-reliance/replay-settings/README.md`
+- Create: `components/configuration/ports/zephyr/CMakeLists.txt`, `samples/storage_emmc/emmc_configuration.c`, `samples/storage_emmc/emmc_configuration.h`, `tests/native/configuration_settings_file/fixture_fatfs.h`, `tests/native/configuration_settings_reliance/{CMakeLists.txt,Kconfig,prj.conf,app.overlay,fixture_reliance.h,extra_cases.c,testcase.yaml}`, `docs/evidence/emmc-reliance/replay-settings/README.md`
 - Modify: `tests/native/configuration_settings_file/main.c`, `components/configuration/ports/zephyr/configuration_settings.c:12-15`, `zephyr/Kconfig`, `zephyr/CMakeLists.txt`, `samples/storage_emmc/{main.c,prj.conf,Kconfig,CMakeLists.txt}`, `tests/native/emmc_powercut/{workloads.c,run_replay.py}`, `scripts/test-storage-emmc.sh`, `scripts/test-file-emmc-compile.sh`, `tests/README.md`, `docs/emmc-reliance-composition.md`
 
 **No file moves.** The corrections stay where they are, used by the provider and the fixture alike through `tests/native/configuration_settings_file/candidate.cmake`. Moving them would touch `tests/native/settings_error`'s hash record, `.gitattributes` and frozen evidence for no behaviour. A product build reaches a file under `tests/` for this; that is recorded in the composition document.
@@ -718,14 +720,14 @@ Propose the change: a step that runs `west config manifest.group-filter -- +crux
 
 - [ ] **Step 1: Make the existing suite's fixture a header, with no change in behaviour**
 
-`main.c` gets `FIXTURE_ROOT`, the mount object and provisioning from `#include FIXTURE_HEADER`, default `fixture_fatfs.h`, and the suite name from `FIXTURE_SUITE`, default `configuration_settings_file`. The read-back cases and `extern bool crux_probe_read_back` compile under `FIXTURE_HAS_READ_BACK`, defined only by the FatFs fixture, because that symbol exists only in the copy `prepare_provider.py` makes. Assertions stay as they are.
+`main.c` gets `FIXTURE_ROOT`, the mount object and provisioning from `#include FIXTURE_HEADER`, default `fixture_fatfs.h`. The suite name stays the literal `configuration_settings_file` in `main.c`, because Twister scans it from the source and a macro there would fail every case with a suite mismatch. The read-back cases and `extern bool crux_probe_read_back` compile under `FIXTURE_HAS_READ_BACK`, defined only by the FatFs fixture, because that symbol exists only in the copy `prepare_provider.py` makes. Assertions stay as they are.
 
 Run: `west twister -p native_sim/native/64 -T crux-pilot/tests/native/configuration_settings_file` with `ZEPHYR_MODULES` naming FatFs, `test_prepare.py`, and the control build and regular expression from `scripts/test-storage-simulators.sh:91-126`.
 Expected: 25 executed cases PASS; the control fails exactly its 13 named cases.
 
 - [ ] **Step 2: Write the failing suite**
 
-`tests/native/configuration_settings_reliance` compiles that `main.c` with `FIXTURE_HEADER="fixture_reliance.h"` and `FIXTURE_SUITE=configuration_settings_reliance`, on a RAM disk, against the **real provider**, `configuration_settings.c` with the new selection, not the `prepare_provider.py` copy. So 24 cases run. Plus, with a wrap counting `settings_subsys_init`:
+`tests/native/configuration_settings_reliance` compiles that `main.c` with `FIXTURE_HEADER="fixture_reliance.h"` and `-Dconfiguration_settings_file=configuration_settings_reliance`, plus its own `extra_cases.c`, on a RAM disk, against the **real provider**, `configuration_settings.c` with the new selection, not the `prepare_provider.py` copy. So 24 of the shared cases run. Plus, in `extra_cases.c`, with a wrap counting `settings_subsys_init`:
 
 ```c
 ZTEST(configuration_settings_reliance, test_compaction_leaves_no_cmp_file)
@@ -738,7 +740,7 @@ Cases whose expected result comes from FatFs behaviour, such as `test_missing_fi
 
 - [ ] **Step 3: See it fail, implement, see it pass**
 
-Expected first: a Kconfig failure.
+Expected first: a Kconfig failure. Twister scans the cases of `extra_cases.c` only, so the gate's expected count for this suite is set from the first passing run and checked against the case names in the run log.
 
 In `configuration_settings.c`, keep the existing guard's text and wrap it, so that `prepare_provider.py` still finds it:
 
@@ -752,7 +754,7 @@ In `configuration_settings.c`, keep the existing guard's text and wrap it, so th
 #endif
 ```
 
-Add `components/configuration/ports/zephyr/CMakeLists.txt`, and in `zephyr/CMakeLists.txt` add it under the new symbol, followed by `include(<crux>/tests/native/configuration_settings_file/candidate.cmake)` unless `CRUX_SETTINGS_FILE_CONTROL` is set. If that CMake does not work at module scope, stop and report: it runs at application scope today.
+Add `components/configuration/ports/zephyr/CMakeLists.txt`, and in `zephyr/CMakeLists.txt` add it under the new symbol, followed by `include(<crux>/tests/native/configuration_settings_file/candidate.cmake)` unless `CRUX_SETTINGS_FILE_CONTROL` is set, which is a `FATAL_ERROR` on any board other than `native_sim`. If that CMake does not work at module scope, stop and report: it runs at application scope today.
 
 - [ ] **Step 4: Add the control**
 

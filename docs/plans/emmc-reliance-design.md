@@ -22,6 +22,14 @@ before the board.
 - The scope is the data file system. The boot path is out of scope.
 - The MCU is in the RT1060 series.
 
+**Owner's decisions on changes after `main` moved (4 November 2026, session, "추천안대로 해줘", accepting these three as recommended):**
+
+- The RT1060 link may compile the File additions (F18). This is an exception to the contract's condition that target work on
+  them stays behind M7. It covers linking only, and nothing runs on a target.
+- The File service and the credential store on this profile are out of this milestone, with a separate assessment issue.
+- The File contract is not changed for atomic replace now. It is reconsidered after physical evidence, and the assessment
+  issue records this.
+
 **Success means:**
 
 1. A consumer of `crux/file.h` runs unchanged on Reliance Edge on an eMMC disk, in a composition that can be copied.
@@ -61,7 +69,7 @@ Paths are in the pinned Zephyr unless they begin with `reliance-edge/` or `linux
 | F15 | The CI artefact list uploads 40 named `zephyr.elf` and `zephyr.bin` paths of cross-builds. Only its Twister search and wildcards exclude images. | `.github/workflows/zephyr.yml` (upload step) | A Reliance Edge build added in the same pattern would publish a GPLv2-linked image. See [D6](#d6-licence-boundary). |
 | F16 | On a read-only volume, `red_close` skips the transaction and returns success, while `red_fsync` reports `RED_EROFS`. | `reliance-edge/posix/posix.c:6328`, `:6357-6360`, `:4022-4025`; `reliance-edge/core/driver/core.c:391` | A handle with unsaved writes could close with `OK` after another handle's commit failed, and its data would be gone. See [the adapter](#reliance-edge-adapter). |
 | F17 | On the RT1060 the USDHC HAL invalidates a read target by whole D-cache lines, so a target that shares a line with another object can lose that object's write. The two existing RT1060 File selections set `SDHC_BUFFER_ALIGNMENT` to 32, and the SD layer bounces anything less aligned. The setting and the check name those selections only. | `zephyr/Kconfig` (`configdefault SDHC_BUFFER_ALIGNMENT`), `components/file/ports/zephyr/file_native.c:19-25`, `docs/microsd-composition.md` | A new target selection must set and check the same value, or it would silently have the 4-byte default. |
-| F18 | The File contract gained roots, stat, size, rename and listing (#224). `crux_file_rename` refuses an existing destination. The additions are accepted for Host and `native_sim` work, and target and physical work on them needs its own approval. | `docs/file-contract.md`, `components/file/src/file_port.h`, `tests/native/file_roots/` | The provider must run them on this file system too. Atomic replace is reachable through the VFS, not through `crux_file_rename`. |
+| F18 | The File contract gained roots, stat, size, rename and listing (#224). `crux_file_rename` refuses an existing destination. The additions are accepted for Host and `native_sim` work, and target and physical work on them "stays behind M7 and needs its own approval". | `docs/file-contract.md`, `components/file/src/file_port.h`, `tests/native/file_roots/` | The provider must run them on this file system too. Atomic replace is reachable through the VFS, not through `crux_file_rename`. |
 
 ## Decisions proposed
 
@@ -159,7 +167,7 @@ measurements; the physical procedure as a document.
 **Out of scope:** boot partitions, RPMB, reliable write, a boot loader that reads the file system, HS200 and HS400
 qualification, TRIM and discard, several volumes, wear reporting, encryption, file logging (#112), commercial kit
 integration beyond the selection point, any change to FatFs behaviour, and the File service and credential store on this
-profile (see [Open items](#open-items)).
+profile, which issue 9 assesses.
 
 ### D9. Failure policy
 
@@ -418,6 +426,7 @@ information. Each issue has its own Draft PR and independent review. Issue 1 own
 | 6 | Reference composition and RT1060 link | 3, 5 | The composition tests pass on the simulator; the RT1060 image links with `red_format` absent; figures recorded; a composition document exists; the proposed CI change fetches the optional group and uploads no image from a Reliance Edge build. |
 | 7 | Configuration on Settings File target provider | 5, 6 | The Configuration suite passes on this file system, including injected faults; W4 asserts I1 to I5; layout check before provider init is tested; a control on the unpatched backend fails as characterised. |
 | 8 | Physical validation procedure | 5, 6 | A gate document in the style of `docs/microsd-physical-gate.md` exists. It authorises nothing, and no hardware is touched. |
+| 9 | Assess the File service and credential store on this profile | 5 | A planning item, not scheduled in this plan: a written assessment of what they rely on from FatFs, what changes on this file system, and whether File should offer atomic replace, decided after physical evidence. |
 
 **Approvals this needs beyond the milestone and issues the owner asked for:**
 
@@ -425,7 +434,7 @@ information. Each issue has its own Draft PR and independent review. Issue 1 own
 - Editing `.github/workflows/zephyr.yml` to fetch the optional group and run the new gate. It is a protected path and is
   proposed in issue 6's PR. `scripts/bootstrap-zephyr.sh` runs a plain `west update`, so the group needs its own step.
 - Editing any other existing protected file, should one prove necessary. The design avoids this with new scripts.
-- Any target or physical run of the File additions (F18). The RT1060 link here compiles them and runs nothing.
+- Any target or physical run of the File additions (F18). The owner's decision above covers the RT1060 link only.
 - Any upstream Zephyr issue or pull request.
 - Merging, and every physical step.
 
@@ -455,8 +464,8 @@ information. Each issue has its own Draft PR and independent review. Issue 1 own
 ## Open items
 
 - **`crux_file_rename` refuses an existing destination (F18),** because of FatFs, and the File service composes replacement
-  from remove and rename. On this file system that gives up the atomic replace it offers. It is an adopted contract and is
-  not changed here. Whether to offer atomic replace through File is a later contract decision, after physical evidence.
+  from remove and rename. On this file system that gives up the atomic replace it offers, so a cut between the two can leave
+  no target. Atomic replace is reachable only through the VFS, as Settings does. Issue 9 tracks this.
 - **The File service and the credential store** are built on the File contract, and their designs lean on FatFs behaviour.
-  They have not been assessed on this profile, and a product that needs them needs that assessment.
+  They have not been assessed on this profile, so nothing here shows that they work on it. Issue 9 tracks this.
 - **The boot path** remains with #141 and M8, where F5 needs to be considered.
