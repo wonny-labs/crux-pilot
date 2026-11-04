@@ -174,8 +174,8 @@ jobs:
         # environment value, so the files are copied to one folder instead.
         run: |
           set -euo pipefail
+          mkdir -p crux-pilot/build/twister-evidence
           cd crux-pilot/build
-          mkdir -p twister-evidence
           for directory in zephyr/twister-*; do
             [ -d "$directory" ] || continue
             find "$directory" -type f \( \
