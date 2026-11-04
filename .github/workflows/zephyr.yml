@@ -157,6 +157,7 @@ jobs:
       # Runs the consumer's own levels from a copy outside this tree: Twister, a console
       # oracle on native_sim and a controlled defect. No hardware.
       - name: Validate the out-of-tree consumer at its Zephyr levels
+        if: matrix.shard == 'runtime'
         working-directory: crux-pilot
         env:
           CRUX_CONSUMER_POC_ZEPHYR_TESTS: "1"
