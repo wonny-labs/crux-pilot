@@ -291,7 +291,7 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 
 **What was not run**
 
-- The shipped `firmware_identity` on a real build at two paths. Nothing has measured it as equal. A unit test checks its computation on fake build outputs, so the comparison table under [Identity](#identity) comes from the prototype.
+- The shipped `firmware_identity` on a real build at two paths. Nothing has measured it as equal, so the comparison table under [Identity](#identity) comes from the prototype. A unit test checks its computation on fake build outputs only.
 - The template in CI. `scripts/test-product-template.sh <board>` runs the checks, runs `west crux-pins` on Crux's own workspace and cross-builds `app/` by hand. No workflow calls it, and CI wiring is proposed separately. It builds inside Crux's own workspace, not through the template's manifest.
 - A real Bitbucket server. Local repositories stood in for it, so server behaviour, authentication and clone URL forms are untested.
 - A real commercial module. `vendor-runtime` was an invented stand-in.
