@@ -8,11 +8,12 @@ contracts and in the [test guide](../tests/README.md).
 
 ## Scope
 
-- One board: MIMXRT1060-EVKB Rev B, target `mimxrt1060_evk@B//qspi`.
-- The RT1170-EVK Rev A1 Cortex-M7 is outside the M6 and M7 scope by the owner's decision of
-  1 November 2026, for now, so that work concentrates on the platform on a single board. Its cross-build and
-  the [identification record](rt1170-evk-a1-feasibility.md) remain as software evidence only. No
-  physical RT1170 item is planned.
+- First physical board: MIMXRT1060-EVKB Rev B, target `mimxrt1060_evk@B//qspi`.
+- The RT1170-EVK Rev A1 Cortex-M7 is in the software scope of M6 and M7 by the owner's decision of
+  2 November 2026 (Issue #33): its cross-build and the [identification
+  record](rt1170-evk-a1-feasibility.md) are software evidence. Its hardware verification is
+  deferred to Issue #155 and gets its own plan when scheduled. No physical RT1170 item is planned
+  here.
 - Evidence is limited to the documented firmware, wiring and parts. A pass on one fixture is not a
   claim about other peripherals, other pins or other boards.
 
@@ -22,7 +23,7 @@ contracts and in the [test guide](../tests/README.md).
 |---|---|---|
 | Host | Contract rules, argument checks, status propagation, native-free consumption, the two test consumers (TMP117 for I2C, flash identification for SPI) against test-only providers | Zephyr or any bus |
 | `native_sim` | The Zephyr providers against Zephyr's emulators, Devicetree-selected settings, native error mapping, build-time rejection of bad compositions | Real drivers, timing, signals, chip-select behaviour, controllers that are not ready |
-| Board cross-build | The portable GPIO consumer compiles and links for this board | That a pin, bus or peripheral works |
+| Board cross-build | The portable GPIO, I2C (TMP117) and SPI (flash identification) consumers compile and link for this board | That a pin, bus or peripheral works |
 
 The device models in the test consumers (TMP117 registers, the `0x9F` flash command) were written
 from data sheets as read. No physical TMP117 or flash has been used. The checks below are the first
@@ -197,8 +198,9 @@ recorded, not worked around.
 3. Approve and run P1, then P2, one at a time, recording results in a new document.
 4. Approve and run P3, then P4, under the same rule.
 
-None of these steps closes Issue #31 or #32. They are the evidence needed for criterion 4 of Issue
-#31 on this board.
+These steps are the evidence for criterion 4 of Issue #31, which the owner moved to Issue #152
+on 2 November 2026. #31 and #32 are closed at the `native_sim` scope; none of these steps is needed
+for that closure.
 
 ## Open decisions
 

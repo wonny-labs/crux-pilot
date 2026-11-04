@@ -1,0 +1,4 @@
+OP 613 state=1 failures=1 recoveries=0 codes=-8,0,0,0 remount=-5
+*** Booting Zephyr OS build v4.4.0 ***
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0

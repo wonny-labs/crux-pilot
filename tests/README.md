@@ -22,6 +22,8 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 | Build tools and validation oracles | Python `unittest` | Linux host |
 | Physical Time/RTC functional tests | Standalone pytest through `scripts/test-target.sh` | macOS, EVKB and J-Link |
 | Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and controlled Mac/peer setup |
+| Out-of-tree consumer, all software levels | Python `unittest`; its Zephyr levels are opt-in | Linux host and Zephyr `native_sim` |
+| Device-control tool | Python `unittest` with fake transports | Linux and macOS hosts; Windows not run |
 
 ## Host: `time/` and `controller/`
 
@@ -176,6 +178,54 @@ The fixture uses public capabilities in portable targets and declares platform
 composition separately. It does not establish an installed SDK, production Linux,
 physical qualification or support for additional toolchains.
 
+## Testing a consumer application
+
+Applications own their tests; the [build guide](../docs/build.md#testing-a-consumer-application) gives the
+entry point for each level and warns that `EXTRA_ZEPHYR_MODULES` is skipped when there is no west
+workspace. `consumer_poc/` is a worked example, kept working by `build/test_consumer_poc.py`:
+
+```sh
+python3 -m unittest discover -s tests/build -p test_consumer_poc.py -v
+```
+
+The test copies the consumer outside the Crux tree, then builds and runs its unit and Host integration
+levels. It also checks which components are built, that the unit level links no Crux target, and that
+a controlled policy defect (`-DCONSUMER_DEFECT_REBASE=ON`) fails both levels on their own assertions.
+These Host cases need no west workspace, so the existing `tests/build` discovery in Host CI runs them.
+
+The `native_sim` and functional levels are opt-in. No CI job runs them. Run them in the Linux
+development environment, from a west workspace with pytest installed:
+
+```sh
+CRUX_CONSUMER_POC_ZEPHYR_TESTS=1 python3 -m unittest discover -s tests/build -p test_consumer_poc.py -v
+```
+
+This runs `consumer_poc/run_poc.sh`, which requires the functional oracle to reject the same defect. None
+of these checks flashes, resets or opens a device. These levels last ran at Zephyr v4.4.0, before
+`west.yml` moved to v4.4.2.
+
+## Device-control tool
+
+`build/test_device_control.py` tests [`tools/device_control`](../tools/device_control/README.md) with
+fake transports and scripted tools, including its reset and flash gates, manifest checks, evidence
+retention and board lock. No test uses hardware or a real serial port, and nothing has run on Windows.
+Host CI runs these tests on Linux only; the macOS results were run by hand and are in the
+[recorded runs](../docs/evidence/test-foundation-tool/README.md). See the tool's README for what has
+not been exercised.
+
+## Product template
+
+`tests/build/test_product_template.py` checks `samples/product_template`: its C file and CMake
+use only public Crux names, and its manifest pins nothing Crux pins. Real west then takes the
+template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
+against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
+runs the frozen-manifest flow and the build record's input capture. These cases skip when west or
+PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <board>` runs them with
+`tests/build/test_crux_pins.py`, runs `west crux-pins` on Crux's own workspace and so on a real Zephyr
+manifest, then cross-builds the application in that workspace. It does not operate hardware. The
+Zephyr CI job runs it. See the
+[Product Composition Guide](../docs/product-composition.md).
+
 ## Portable execution capability
 
 Run `scripts/test-portable-execution.sh --host-only` for separately configured C/C++
@@ -237,6 +287,29 @@ The gate also runs `tests/native/file_sd_composition`, the microSD mount sequenc
 fails closed). `scripts/test-file-rt1060-compile.sh` additionally links that sample for the
 RT1060-EVKB Rev B (not flashed). See [the microSD composition](../docs/microsd-composition.md)
 for the decisions, measurements and the unverified hardware items.
+`tests/native/file_sd_check` runs the sample's write/read/restart check (a boot counter and a 4 KiB
+pattern file) on the same RAM disk; its remount is not persistence evidence. The first physical-card
+runs are recorded in [docs/evidence/microsd-physical](../docs/evidence/microsd-physical/README.md).
+`tests/native/file_sd_probe` runs the workload and the removal state machine of the physical-gate probes
+(`samples/storage_sd_probe`: stack use after a FatFs workload, and a card-removal probe that retries a
+remount), with a removed card stood in for by an application unmount. The probe images write to a card and
+are only linked in CI.
+`tests/native/file_sd_interrupt` runs the record format and recovery logic of the interrupted-write test
+(`samples/storage_sd_interrupt`), and the storage gate runs the host script's tests against scripted boards
+(no hardware). The sample's image writes to a card until power is cut and is only linked in CI. The
+first power-cut run is recorded in [docs/evidence/microsd-power-cut](../docs/evidence/microsd-power-cut/README.md).
+`tests/native/file_sd_replace` runs the classification logic of the replace-pattern power-cut test
+(`samples/storage_sd_replace`: the compaction sequence of the Settings File backend, a temporary file and
+`fs_rename` over the settings file, repeated until power is cut), and the storage gate runs its host
+script's tests against scripted boards. The image writes to a card until power is cut and is only linked
+in CI. The first run is recorded in [docs/evidence/microsd-replace-cut](../docs/evidence/microsd-replace-cut/README.md).
+
+`tests/native/file_sd_settings_recover` runs the recovery step for the state that test found
+(`samples/storage_sd/sd_settings_recover`: no settings file and a complete `.cmp`, which it renames) on the
+real, unpatched Settings File backend over a FatFs RAM disk named like the card (13 cases, both `native_sim`
+variants). It creates the states; the real power cut is not exercised on the board, and the step is not yet
+called by any image. Mutation-checked: treating a stat error as a missing file, skipping the empty-temporary
+check, and renaming over an existing file each fail it.
 
 The gate also runs `tests/native/configuration_settings_file`: the Zephyr Settings File
 backend on a FatFs RAM disk, with I/O faults injected by link-time wraps of `fs_read`,
@@ -276,6 +349,21 @@ including READ_WRITE, EOF and partial writes, storage full and reclamation, corr
 that is never formatted, remount, and a torn-sync model. A remount inside one process is not
 evidence of persistence.
 
+`tests/native/file_roots` runs the File additions on the same FatFs over a RAM disk: roots, stat,
+handle size, rename and listing. `tests/file/conformance.c` holds the cases, and the Linux provider
+(`File.file_conformance_linux`) and the in-memory fake (`File.file_conformance_fake`) run the same
+ones. The FatFs run also proves that an existing destination survives a rename, that short and long
+encoded names decode, and that names this provider could not have written stay out of a listing.
+`File.file_fake_faults` covers failed provider calls and walks a power cut across each mutation of a
+sequence, in forked children, under the fake's own simple model. None of these is power-loss
+evidence about FatFs or a card, and no physical run covers the additions.
+
+`scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
+a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
+the fake File provider and a double for access, and walk a power cut across every mutation of a commit
+and of the rename that recovery finishes. `FileService.with_access` runs the service on the real Access core with its fake
+ports. The service has not run on Zephyr or on a target, and a cut on the fake says nothing about a card.
+
 `scripts/test-file-persistence.sh` builds `tests/native/file_fatfs_persist`, where the disk is a
 `zephyr,flash-disk` on the flash simulator backed by a host file, and runs it as separate
 processes: files acknowledged by one process are intact in the next, blank media is never
@@ -296,6 +384,7 @@ composition for `mimxrt1060_evk@B//qspi` as an unlinked object. It does not moun
 anything on a board. `scripts/test-file-rt1060-compile.sh` runs it and fails if the testcase is
 filtered out instead of built. `scripts/test-storage-simulators.sh` and this script are in the
 Zephyr CI workflow; `scripts/test-file-persistence.sh` is not.
+It also refuses to build on Rev C and on the hyperflash variant (a negative control, checked by the Kconfig message).
 
 ## Portable queue and monotonic timing
 
@@ -325,8 +414,15 @@ including the active-low inversion taken from the Devicetree flag, argument erro
 rejection from interrupt context and reading before configuration.
 `scripts/test-gpio.sh` also rejects missing, disabled and malformed Devicetree
 selections, a disabled GPIO controller and an unsupported provider, and cross-builds
-the same portable consumer for RT1060-EVKB and for RT1170-EVK board revision A
-(Cortex-M7), each with its own alias overlay under `tests/gpio/evkb/boards`. Two further
+the same portable consumer for RT1060-EVKB (twice: with the user button, and with Arduino
+header D2 selected by an overlay in `tests/gpio/evkb/compositions`) and for RT1170-EVK board
+revision A (Cortex-M7), each with its own alias overlay under `tests/gpio/evkb/boards`;
+`tests/build/test_gpio_evkb_compositions.py` checks on the Host that the two RT1060-EVKB
+builds use one source, different lines and separate build directories. The I2C and SPI
+runners (`scripts/test-i2c.sh`, `scripts/test-spi.sh`) cross-build the TMP117 and flash
+identification consumers for both boards from `tests/i2c/evkb` and `tests/spi/evkb`, each
+with an overlay that binds the Arduino header bus; they are compile and link evidence only,
+checked on the Host by `tests/build/test_i2c_spi_board_crossbuilds.py`. Two further
 native_sim apps under `tests/gpio/zephyr_failure` reach native driver failures through
 the emulator: an open-drain flag gives `-ENOTSUP` and a pin the emulated controller does
 not have gives `-EINVAL`. They run with Zephyr assertions disabled, because the generic
@@ -432,6 +528,72 @@ root entry point. External System profiles preserve parent testing/languages,
 exercise C17/C++17 public usage, reject conflicting providers and exclude
 unrelated components. The existing System contract and native ownership checks
 remain unchanged.
+
+## Portable Access control
+
+Access control (Issue #177): the root Host suite runs `tests/access` with fake ports, a controllable clock and
+fault injection, as `Access.*` in CTest. These fakes are a test composition: they exist only when Crux builds its
+own tests, and no provider setting can select them for a product image.
+`scripts/test-access.sh` also runs them under the sanitizer preset, runs clang-tidy on the Access sources and
+runs `scripts/check-access-boundary.py`. That check configures and builds `tests/access_consumer` in both directions:
+a project cannot reach the adapter header, and a service that links the adapter target privately is still accepted.
+No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
+[Access contract](../docs/access-contract.md).
+
+## Portable credential store
+
+The credential store (Issue #178): the root Host suite runs `tests/credential` as `Credential.*` in CTest, on the File
+fake and on the Linux File provider. The protection in every suite is **test only**, a CRC in place of a tag and a
+keystream that is not encryption, because PSA is not qualified (Issue #142). It exists only when Crux builds its own
+tests, it refuses to compile outside a test composition, and `Credential.credential_production_refuses` shows a product
+build of the store refusing it at start. The fault suites cut power before each File operation, each sector and each byte
+of every save, with a medium model that proves nothing about a real card.
+`scripts/test-credential.sh` also runs them under the sanitizer preset, runs clang-tidy on the sources and runs
+`scripts/check-credential-boundary.py`, which configures and builds `tests/credential_consumer` in both directions.
+`tests/native/credential_fatfs` runs the conformance cases on real FatFs over a RAM disk, under
+`scripts/test-storage-simulators.sh`. None of this says anything about confidentiality, entropy or real power loss. See
+the [credential store](../docs/credential-store.md).
+
+## Portable Security events
+
+Security events (Issue #182): the root Host suite runs `tests/security_event` as `SecurityEvent.*` in CTest. Most suites
+control the clocks and the log through linker wraps. `rejections`, `read`, `waits` and `secrets` join the real Access core and the
+real provider, with Access's fake ports. `integration` links product cores with real Logging, Thread and Sync and Time's real
+authority lock and monotonic clock. Its realtime provider is Time's controlled `memory` one.
+`crux_security_event_fake` is a recording fake of the public contract for the Host tests of a consumer, and one suite runs on both
+it and the core. These exist only when Crux builds its own tests. `scripts/test-security-event.sh` also runs them under the
+sanitizer preset, runs clang-tidy on the sources and tests, and runs `scripts/check-security-event-boundary.py`, which builds
+`tests/security_event_consumer` in both directions. None of this runs on Zephyr or a target. See the
+[Security event contract](../docs/security-event-contract.md).
+
+## Web frontend
+
+The web frontend has its own tools under `web/` and needs Node.js, while no C build does. Its commands are in the
+[web guide](../web/README.md), and `.github/workflows/web.yml` runs them.
+
+| Check | Command | Environment |
+| --- | --- | --- |
+| Specification lint and its rejection tests | `scripts/check-management-api.sh`, `python3 -m unittest discover -s tests/management_api` | Node.js |
+| Pins, generated types, `tsc`, source rules, client and mock unit tests, build and budget | `npm run check` in `web` | Node.js |
+| Browser tests of the reference on the mock | `npm run test:browser` in `web` | Node.js and Chrome |
+| The shared browser cases on the Angular sample | `npm run test:angular` in `web`, after building the sample | Node.js and Chrome |
+
+All of these run against the mock server, on the loopback address and over plain HTTP. They show nothing about TLS, real
+sessions, connection limits or timing, and they are not `native_sim` or physical evidence. Issue #220 covers those.
+
+## SSH provider
+
+The standard Host CTest includes `Ssh.ProviderConformance`, which runs the cases in `tests/ssh/conformance.c` against a fake
+provider, `Ssh.ConformanceCatchesDefects`, which gives the fake each deliberate defect and requires the named case to fail, and
+`Ssh.Boundaries`, which runs `scripts/check-ssh-boundaries.py`. It also has `Ssh.FakeProvider`, `Ssh.AttachmentDouble`, `Ssh.CallbackTable`
+and a test of each stand-in entry point. The fake needs no SSH library, and the CLI and SFTP Host tests link it. It runs every callback
+on the calling thread, so it shows no concurrency, timing or protocol behaviour. No real provider has run the cases yet.
+`tests/build/test_ssh_boundaries.py` shows that the boundary check rejects each violation.
+
+`scripts/test-ssh-wolf-settings.sh` is not part of any default workflow, because it needs the optional `crux-secure-management`
+west group. It compiles and links `tests/zephyr/ssh_wolf_probe` for `mimxrt1060_evk@B//qspi` with the TLS socket backend, and for
+`native_sim/native/64` both ways, and runs negative controls. It never flashes or runs an image, and the file port it links
+is one that refuses every operation. See [the SSH provider contract](../docs/ssh-provider-contract.md).
 
 ## PSA Crypto conformance trial
 

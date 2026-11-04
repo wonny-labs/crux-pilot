@@ -1,0 +1,5 @@
+"crux-pilot":"/workspaces/crux/crux-pilot":"/workspaces/crux/crux-pilot/zephyr"
+"cmsis":"/workspaces/crux/modules/hal/cmsis":"${ZEPHYR_CMSIS_CMAKE_DIR}"
+"cmsis_6":"/workspaces/crux/modules/hal/cmsis_6":"${ZEPHYR_CMSIS_6_CMAKE_DIR}"
+"hal_nxp":"/workspaces/crux/modules/hal/nxp":"${ZEPHYR_HAL_NXP_CMAKE_DIR}"
+"littlefs":"/workspaces/crux/modules/fs/littlefs":"${ZEPHYR_LITTLEFS_CMAKE_DIR}"

@@ -114,3 +114,17 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/system_consumer/src/contract_test.c" \
     "$repo/tests/system_consumer/host/main.c" \
     "$repo/samples/controller/system/controller_system.c"
+
+"$tidy" -p "$build_dir" \
+    "$repo/components/ssh/src/crux_ssh_callbacks.c" \
+    "$repo/components/ssh/access/crux_ssh_access.c" \
+    "$repo/components/ssh/cli/crux_ssh_cli.c" \
+    "$repo/components/ssh/sftp/crux_ssh_sftp.c" \
+    "$repo/tests/ssh/fake_provider.c" \
+    "$repo/tests/ssh/fake_attachment.c" \
+    "$repo/tests/ssh/conformance.c" \
+    "$repo/tests/ssh/conformance_test.c" \
+    "$repo/tests/ssh/fault_test.c" \
+    "$repo/tests/ssh/fake_test.c" \
+    "$repo/tests/ssh/attachment_test.c" \
+    "$repo/tests/ssh/callback_table_test.c"

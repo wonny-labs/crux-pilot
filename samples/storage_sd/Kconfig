@@ -7,4 +7,12 @@ config SAMPLE_SD_START
 	  Off by default. When on, the image initialises the SD disk and mounts the card without
 	  formatting it. Physical use needs approval for the current task.
 
+config SAMPLE_SD_FILE_CHECK
+	bool "Write and verify files on the card after the mount"
+	depends on SAMPLE_SD_START
+	help
+	  Off by default. Advances a boot counter file and verifies a fixed pattern file through
+	  crux_file_*, so a restart shows what the previous boot left on the card. This WRITES to the
+	  card; physical use needs approval for the current task.
+
 source "Kconfig.zephyr"

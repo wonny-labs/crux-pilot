@@ -1,0 +1,2 @@
+third-party: ['cython_runtime', 'dateutil', 'domains', 'iniconfig', 'pluggy', 'psutil', 'py', 'pykwalify', 'pytest', 'ruamel', 'serial', 'sitecustomize', 'six', 'twisterlib', 'yaml']
+zephyr files: ['scripts/pylib/build_helpers/domains.py', 'scripts/pylib/twister/twisterlib/__init__.py', 'scripts/pylib/twister/twisterlib/hardwaredata.py', 'scripts/pylib/twister/twisterlib/harnessconfig.py']

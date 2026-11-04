@@ -1,0 +1,5 @@
+h
+loadfile <local path>/images/sd-start.elf
+r
+g
+exit

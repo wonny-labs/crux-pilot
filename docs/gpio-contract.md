@@ -31,8 +31,10 @@ GPIO drivers. A composition must select the line with the `crux-gpio0`
 Devicetree alias; a missing, disabled or malformed selection fails the provider
 build. Current software configurations are Zephyr `native_sim/native/64` using
 GPIO emulation, the RT1060-EVKB Rev B cross-build using the `user_button`
-resource (Zephyr's `sw0` alias), and the RT1170-EVK board revision A Cortex-M7
-cross-build, which selects the board's own `user_button` (GPIO13 pin 0). The
+resource (Zephyr's `sw0` alias), a second RT1060-EVKB composition of the same
+consumer source that selects Arduino header D2 as an active-high input through an
+overlay (`tests/gpio/evkb/compositions/arduino_d2.overlay`), and the RT1170-EVK
+board revision A Cortex-M7 cross-build, which selects the board's own `user_button` (GPIO13 pin 0). The
 cross-builds do not qualify pin routing, electrical behaviour, timing or physical
 operation. Neither board is qualified for physical use of this capability.
 

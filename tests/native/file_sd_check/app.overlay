@@ -1,0 +1,10 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* A RAM disk named like the RT1060-EVKB microSD disk stands in for the card. */
+/ {
+    ramdisk0 {
+        compatible = "zephyr,ram-disk";
+        disk-name = "SD";
+        sector-size = <512>;
+        sector-count = <2048>;
+    };
+};

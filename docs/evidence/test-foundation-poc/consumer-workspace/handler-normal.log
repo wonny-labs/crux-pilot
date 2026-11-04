@@ -1,0 +1,12 @@
+
+==== Test test_periodic_schedule started at 2026-11-03 00:31:17.172671 ====
+*** Booting Zephyr OS build v4.4.0 ***
+APP ready
+APP cycle=1 skipped=0
+APP cycle=2 skipped=0
+APP cycle=3 skipped=2
+APP cycle=4 skipped=0
+APP cycle=5 skipped=0
+APP cycle=6 skipped=0
+APP done result=0
+Stopped at 0.169s

@@ -22,11 +22,67 @@ fatfs="$(cd "$workspace" && west list fatfs -f '{abspath}')"
     -O "$repo/build/zephyr/twister-storage-fatfs" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$fatfs")
 
+# The File additions (roots, stat, size, rename, listing) on the same FatFs RAM disk.
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/file_roots" \
+    -O "$repo/build/zephyr/twister-storage-file-roots" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
+# The credential store's contract on the same FatFs, with its test-only protection (Issue #142).
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/credential_fatfs" \
+    -O "$repo/build/zephyr/twister-storage-credential" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
 # The microSD composition sequence (mount order, fail-closed policy) on a RAM disk named "SD".
 (cd "$workspace" && west twister -j 2 \
     -p native_sim/native -p native_sim/native/64 \
     -T "$repo/tests/native/file_sd_composition" \
     -O "$repo/build/zephyr/twister-storage-sd-composition" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
+# The write/read/restart check of the same sample (boot counter and a 4 KiB pattern file).
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/file_sd_check" \
+    -O "$repo/build/zephyr/twister-storage-sd-check" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
+# The interrupted-write test: record format and recovery logic of samples/storage_sd_interrupt.
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/file_sd_interrupt" \
+    -O "$repo/build/zephyr/twister-storage-sd-interrupt" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
+# Its host script (parsing, pairing, port loss and return) runs against scripted boards, no hardware.
+python3 -m unittest discover -s "$repo/samples/storage_sd_interrupt/host" -p test_interrupt_capture.py -v
+
+# The replace-pattern power-cut test: classification logic of samples/storage_sd_replace.
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/file_sd_replace" \
+    -O "$repo/build/zephyr/twister-storage-sd-replace" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
+# Its host script (parsing, classification, cycle loop) runs against scripted boards, no hardware.
+python3 -m unittest discover -s "$repo/samples/storage_sd_replace/host" -p test_replace_capture.py -v
+
+# The probes for the remaining physical items: the workload and the removal state machine.
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/file_sd_probe" \
+    -O "$repo/build/zephyr/twister-storage-sd-probe" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
+# The recovery step for the one state a Settings File compaction can leave after a power cut (no
+# settings file, a complete temporary), on the real unpatched Settings File backend.
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/file_sd_settings_recover" \
+    -O "$repo/build/zephyr/twister-storage-sd-settings-recover" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$fatfs")
 
 # The Configuration fixture stages its existing three pinned source copies.
@@ -93,7 +149,14 @@ root = Path(sys.argv[1])
 for directory, expected in [
     ('twister-storage-file', {'native_sim/native': 7, 'native_sim/native/64': 7}),
     ('twister-storage-fatfs', {'native_sim/native': 19, 'native_sim/native/64': 19}),
+    ('twister-storage-file-roots', {'native_sim/native': 5, 'native_sim/native/64': 5}),
+    ('twister-storage-credential', {'native_sim/native': 2, 'native_sim/native/64': 2}),
     ('twister-storage-sd-composition', {'native_sim/native': 8, 'native_sim/native/64': 8}),
+    ('twister-storage-sd-probe', {'native_sim/native': 4, 'native_sim/native/64': 4}),
+    ('twister-storage-sd-check', {'native_sim/native': 8, 'native_sim/native/64': 8}),
+    ('twister-storage-sd-interrupt', {'native_sim/native': 7, 'native_sim/native/64': 7}),
+    ('twister-storage-sd-replace', {'native_sim/native': 7, 'native_sim/native/64': 7}),
+    ('twister-storage-sd-settings-recover', {'native_sim/native': 13, 'native_sim/native/64': 13}),
     ('twister-storage-configuration', {'native_sim/native/64': 10}),
     ('twister-storage-settings-file', {'native_sim/native/64': 25}),
 ]:

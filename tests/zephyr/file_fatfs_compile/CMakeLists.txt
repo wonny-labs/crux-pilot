@@ -3,4 +3,8 @@ get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_file_fatfs_compile C)
+# An unsatisfied Kconfig dependency only warns, which would build an empty application.
+if(NOT CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
+  message(FATAL_ERROR "The RT1060 File compile check is not selected: it requires the Rev B QSPI board")
+endif()
 target_sources(app PRIVATE main.c)

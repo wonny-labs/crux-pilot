@@ -1,6 +1,6 @@
 # Portable File contract
 
-Status: approved for software-only development by the human M4 Architecture and API Review on 23 October 2026. Production backend/layout adoption, upstream/native Flash changes, physical operations, PR merge and Issue closure remain separately gated.
+Status: approved for software-only development by the human M4 Architecture and API Review on 23 October 2026. Production backend/layout adoption, upstream/native Flash changes, physical operations, PR merge and Issue closure remain separately gated. The [additions for roots, stat, size, rename and listing](#additions-for-roots-stat-size-rename-and-listing) come from decisions F1, F2, F3 and F6 of [the File extension proposal, PR #206](https://github.com/wonny-labs/crux-pilot/pull/206), with F4 keeping the name rule, accepted by [the owner on 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894) for Host and `native_sim` work. Target and physical work on them stays behind M7 and needs its own approval.
 
 Baseline: main `225cd21b5fff37c31c5dff52570e9f26179682a1`.
 
@@ -17,8 +17,9 @@ Baseline: main `225cd21b5fff37c31c5dff52570e9f26179682a1`.
 
 This recommendation is specific to #23; it is not a rule to wrap all native APIs.
 The justified operations follow #15 CRUD/sync/recovery and bounded file-position
-access. Directory trees, rename/atomic replace, append, sparse files, metadata,
-permissions, descriptor multiplexing and asynchronous I/O are out of scope.
+access, and later the additions below. Directory trees, atomic replace, append,
+sparse files, metadata other than size, permissions, descriptor multiplexing and
+asynchronous I/O are out of scope.
 Seek is a proposed representative runtime-consumer operation, not a discovered
 existing firmware requirement: the qualification fixture will re-read an earlier
 record in a two-record file. This operation is approved for software qualification.
@@ -39,7 +40,8 @@ typedef enum {
     CRUX_FILE_ERR_NOT_READY = -3, CRUX_FILE_ERR_NOT_FOUND = -4,
     CRUX_FILE_ERR_NO_SPACE = -5, CRUX_FILE_ERR_NO_RESOURCES = -6,
     CRUX_FILE_ERR_ACCESS = -7, CRUX_FILE_ERR_IO = -8,
-    CRUX_FILE_ERR_NOT_SUPPORTED = -9, CRUX_FILE_ERR_OUT_OF_RANGE = -10
+    CRUX_FILE_ERR_NOT_SUPPORTED = -9, CRUX_FILE_ERR_OUT_OF_RANGE = -10,
+    CRUX_FILE_ERR_EXISTS = -11
 } crux_file_result_t;
 crux_file_result_t crux_file_open(const char *name, crux_file_mode_t mode,
                                 crux_file_t **out);
@@ -63,6 +65,14 @@ results. Error mapping must be explicit and unknown native errors map to IO.
   approved initial qualification choice, not a measured existing-consumer requirement or
   filesystem/security sandbox guarantee. Name and pool bounds are provider build
   configuration with documented supported minima, not a runtime framework.
+- A file open for writing (READ_WRITE or CREATE_REPLACE) excludes every other handle on the
+  same name, and a writer cannot open a name that is already open: such an open returns
+  INVALID_STATE with the output left null. Several READ handles may share a file. Providers
+  can hold per-handle state (for example FatFs with file locking disabled), so a second handle
+  next to a writer is not supported. The check follows argument validation and precedes the
+  pool check and any provider call, so a conflicting open returns INVALID_STATE even when the
+  pool is full, and a rejected CREATE_REPLACE never touches the file. Other conflicting
+  operations on a name remain the caller's to serialise.
 - READ/READ_WRITE open an existing file; CREATE_REPLACE creates or truncates for
   read/write. No hidden retry or automatic directory creation/format/mount.
 - Open requires a non-null output initially null; an already non-null output is
@@ -94,6 +104,78 @@ results. Error mapping must be explicit and unknown native errors map to IO.
   serializes access to a handle and conflicting same-file operations. No shared
   seek position/concurrent modification guarantee. Providers protect pool state;
   composition owns mount/unmount and does not change it with live handles.
+
+## Additions for roots, stat, size, rename and listing
+
+```c
+typedef uint8_t crux_file_root_t;
+enum { CRUX_FILE_ROOT_DEFAULT = 0 };
+typedef struct crux_file_dir crux_file_dir_t; /* opaque; only crux_file_dir_close retires it */
+typedef struct { uint64_t size; } crux_file_info_t;
+
+crux_file_result_t crux_file_open_at(crux_file_root_t root, const char *name,
+                                     crux_file_mode_t mode, crux_file_t **out);
+crux_file_result_t crux_file_remove_at(crux_file_root_t root, const char *name);
+crux_file_result_t crux_file_stat(crux_file_root_t root, const char *name, crux_file_info_t *out);
+crux_file_result_t crux_file_size(crux_file_t *file, uint64_t *size);
+crux_file_result_t crux_file_rename(crux_file_root_t root, const char *from, const char *to);
+crux_file_result_t crux_file_dir_open(crux_file_root_t root, crux_file_dir_t **out);
+crux_file_result_t crux_file_dir_read(crux_file_dir_t *dir, char *name, size_t capacity,
+                                      crux_file_info_t *info, bool *end);
+crux_file_result_t crux_file_dir_close(crux_file_dir_t **dir);
+```
+
+The rules above apply: thread context, synchronous, no ISR use, buffers borrowed for the
+call, and no retry. The existing functions keep their behaviour on root 0.
+
+- **Roots.** A root is a directory that the composition binds, once per index, with
+  `crux_file_linux_bind_root` or `crux_file_zephyr_bind_root`. `crux_file_linux_bind` and
+  `crux_file_zephyr_bind` bind root 0. A path that is equal to, inside or a parent of another
+  bound root returns INVALID_STATE, comparing path text only, so a FAT case alias or a Linux
+  symbolic link in a composition's paths is not caught. An unbound or out-of-range root
+  returns NOT_READY, after argument checks. `CRUX_FILE_ROOTS_MAX` is a build setting, default 8.
+  The conflict rule compares the root and the name together. Roots separate names. They are
+  not a security sandbox, as for the name rule above.
+- **Stat.** Regular files only: a directory or a Linux symbolic link is NOT_FOUND. The size is
+  what the provider last recorded, so a file with an open writer may report an older size.
+- **Size.** A handle's current size, which includes unsynced writes and leaves the position
+  where it was. It reads the end of the file on the same path as seek's check. It implies no
+  durability.
+- **Rename.** Inside one root. It refuses an existing destination of any type. Checks run in
+  this order: arguments, INVALID_STATE for a live handle on either name, NOT_FOUND for a missing
+  or non-regular source, and EXISTS for an existing destination, including `from` equal to `to`.
+  No other Crux File call sees a partial state, because it runs under the File lock. **It is not
+  atomic across power loss**: on FAT, a cut between the two directory writes of `f_rename` can
+  leave two names on one cluster chain. This comes from reading `ff.c` and has not been
+  reproduced here. Native clients that bypass File can race the destination check.
+- **Listing.** A bounded pool of `CRUX_FILE_DIR_POOL_SIZE` handles, default 2, gives NO_RESOURCES
+  when full. `crux_file_dir_read` returns entries in provider order and sets `end` at the finish,
+  which then repeats without a provider call. It yields only regular files whose names pass the
+  name rule, so subdirectories, Linux symbolic links and foreign files are skipped without an
+  error. A skipped entry still costs a provider read under the File lock, so a directory full of
+  foreign files delays other File callers. A capacity below 64 returns OUT_OF_RANGE and uses up no
+  entry. After a failed read the listing can go on, and whether the failed entry comes back
+  depends on the provider. An entry created or removed during a listing may be missed or repeated,
+  because a listing is not a snapshot and it holds no file open.
+- **Pool size.** `CRUX_FILE_POOL_SIZE` is also a public compile definition of `crux::file`, so
+  that a consumer can size what it leaves free at build time.
+
+The `crux_file_fake` test library is an in-memory provider behind the same private port, for
+tests of code built on File. It injects faults and cuts power at a chosen mutation, under a
+simple model stated in `tests/file/fake_file.h`. Results from it say nothing about FatFs or a card.
+
+### Native mapping of the additions
+
+The FatFs provider stores a name as `f` followed by the hex of its bytes. Listing decodes this and
+skips anything else, including upper-case hex and an encoded NUL, so one file has one identity.
+`fatfs_rename` in Zephyr's `subsys/fs/fat_fs.c` calls `f_unlink` on an existing destination before
+`f_rename`, so the provider calls `fs_stat` on the destination first under the File lock and never
+reaches that path. The Linux provider uses `fstatat` and then `renameat` for the same reason.
+`CONFIG_FS_FATFS_NUM_DIRS` must be at least the listing pool, and the build checks this.
+
+`struct fs_dirent` has no modification time, which is why decision F6 leaves time out. On
+`native_sim` these additions have run on FatFs only. The LittleFS simulator composition compiles
+them and has not run them. Earlier physical runs do not extend to them.
 
 ## Verified native mapping and limits
 

@@ -31,10 +31,10 @@ See the [architecture overview](docs/architecture.md) for component ownership, p
 | Linux Host | Linux amd64 development, testing and selected Linux implementations, not production Embedded Linux support |
 | Zephyr `native_sim` | Selected Zephyr component and reference-controller tests without physical hardware |
 | MIMXRT1060-EVKB Rev B (`mimxrt1060_evk@B//qspi`) | Initial physical target, with results limited to documented firmware and configurations |
-| RT1170-EVK Rev A1 Cortex-M7 | Cross-build and identification record only; outside the M6 and M7 scope for now, not qualified |
+| RT1170-EVK Rev A1 Cortex-M7 | Second board, software scope of M6 and M7 (cross-build, identification, review); hardware verification deferred to [#155](https://github.com/wonny-labs/crux-pilot/issues/155), not qualified |
 | Production Embedded Linux | Future platform variant, not currently implemented or qualified |
 
-Host tests, `native_sim` runs and target cross-builds do not prove physical operation. The M4 Pilot has selected microSD with Zephyr VFS/FatFs for writable File storage instead of QSPI NOR. Settings file-backed persistence remains under evaluation, and RT1060 physical storage persistence and recovery are not yet qualified. See the [current storage decision](https://github.com/wonny-labs/crux-pilot/issues/14).
+Host tests, `native_sim` runs and target cross-builds do not prove physical operation. The M4 Pilot has selected microSD with Zephyr VFS/FatFs for writable File storage instead of QSPI NOR. The Zephyr Settings File backend has been tested only on `native_sim`, with corrections staged in the test fixture; there is no Settings File target provider and the backend is not qualified. Physical microSD evidence (one board, one card) covers mount, reboot persistence, power cuts during plain File appends on FatFs and a repeat of the compaction's write, close and rename order (not the backend), and blank-card, wrong-layout, stack and card-removal runs; it is not a qualification of the board, the card or the Settings File backend. See the [current storage decision](https://github.com/wonny-labs/crux-pilot/issues/14).
 
 ## Getting started
 
@@ -80,7 +80,9 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 | `samples/` | Capability examples and reference controller applications |
 | `zephyr/` | Out-of-tree Zephyr module integration |
 | `tests/` | Host, Zephyr, build-policy and target validation |
+| `web/` | Management API specification, TypeScript client and reference browser interface. No C build needs it. See the [web guide](web/README.md). |
 | `scripts/` | Setup, build, analysis and test commands |
+| `tools/` | Test tooling for a machine that holds a board's probe and UART; outside the runtime build |
 | `.devcontainer/` | Linux development environment |
 | `.github/workflows/` | CI workflows |
 | `docs/` | Architecture, API contracts, decisions and evidence |
@@ -91,7 +93,9 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 | --- | --- |
 | Architecture, components and API contracts | [Architecture overview and capability inventory](docs/architecture.md) |
 | Setup, builds, external applications and debugging | [Build and Integration Guide](docs/build.md) |
+| Composing, versioning and releasing a product on Crux | [Product Composition Guide](docs/product-composition.md) |
 | Test commands and qualification procedures | [Test guide](tests/README.md) |
+| Testing your own application on Crux | [Consumer test guide](docs/build.md#testing-a-consumer-application) and [test foundation decisions](docs/test-foundation-proposal.md) |
 | Reference scenarios and recorded hardware validation | [Reference controller](samples/controller/README.md) and [M3 validation](docs/m3-validation.md) |
 
 ## Project status and contributing
@@ -99,3 +103,7 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 Follow [GitHub milestones](https://github.com/wonny-labs/crux-pilot/milestones), [issues](https://github.com/wonny-labs/crux-pilot/issues) and [pull requests](https://github.com/wonny-labs/crux-pilot/pulls) for current delivery work.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and review rules and [AGENTS.md](AGENTS.md) for AI execution boundaries.
+
+## License
+
+Crux is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).

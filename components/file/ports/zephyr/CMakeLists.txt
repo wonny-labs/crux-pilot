@@ -4,12 +4,13 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060 AND CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
 endif()
 if(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
   if(CONFIG_BOARD_NATIVE_SIM OR NOT CONFIG_BOARD_MIMXRT1060_EVK OR
+     NOT CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI OR NOT CONFIG_BOARD_REVISION_B OR
      NOT CONFIG_SOC_MIMXRT1062 OR NOT CONFIG_FAT_FILESYSTEM_ELM OR
      NOT CONFIG_FILE_SYSTEM OR NOT CONFIG_DISK_DRIVER_SDMMC OR
      NOT CONFIG_IMX_USDHC OR NOT CONFIG_FS_FATFS_LFN OR
      CONFIG_FS_FATFS_MAX_LFN LESS 127 OR NOT CONFIG_FS_FATFS_REENTRANT OR
      CONFIG_FS_FATFS_MOUNT_MKFS)
-    message(FATAL_ERROR "RT1060 File check requires the selected FatFs/SDHC build with auto-format disabled")
+    message(FATAL_ERROR "RT1060 File check requires the Rev B QSPI board and the selected FatFs/SDHC build with auto-format disabled")
   endif()
   if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR)
     message(FATAL_ERROR "RT1060 compile check cannot be combined with simulator providers")
@@ -23,6 +24,7 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
       "${CRUX_FILE_COMPONENT_DIR}/src"
       ".")
   target_link_libraries(crux_file_fatfs_rt1060_compile PRIVATE zephyr_interface)
+  target_compile_definitions(crux_file_fatfs_rt1060_compile PRIVATE CRUX_FILE_POOL_SIZE=4)
   # The object includes kernel headers that are generated during the build.
   add_dependencies(crux_file_fatfs_rt1060_compile zephyr_generated_headers)
   target_compile_options(crux_file_fatfs_rt1060_compile PRIVATE -Wall -Wextra -Werror)
@@ -35,8 +37,12 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060)
   if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR)
     message(FATAL_ERROR "The RT1060 provider cannot be combined with simulator providers")
   endif()
+  if(NOT CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI OR NOT CONFIG_BOARD_REVISION_B)
+    message(FATAL_ERROR "The RT1060 File provider requires the Rev B QSPI board")
+  endif()
   add_library(crux_file_api INTERFACE)
   target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
+  target_compile_definitions(crux_file_api INTERFACE CRUX_FILE_POOL_SIZE=4)
   add_library(crux_file_zephyr STATIC "${CRUX_FILE_COMPONENT_DIR}/src/file.c" file_native.c)
   target_include_directories(crux_file_zephyr PRIVATE "${CRUX_FILE_COMPONENT_DIR}/src" .)
   zephyr_append_cmake_library(crux_file_zephyr)
@@ -63,6 +69,7 @@ endif()
 
 add_library(crux_file_api INTERFACE)
 target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
+target_compile_definitions(crux_file_api INTERFACE CRUX_FILE_POOL_SIZE=4)
 # Match native_sim's non-PIE CPU image, without kernel headers/definitions.
 target_compile_options(crux_file_api INTERFACE ${TOOLCHAIN_C_FLAGS} -fno-pic -fno-pie)
 # native_sim's width is a compiler ABI requirement, not a kernel API requirement.

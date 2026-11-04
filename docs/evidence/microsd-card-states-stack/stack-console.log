@@ -1,0 +1,11 @@
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+stack_probe round 1: workload=0 file_check=0 boot=1
+stack_probe round 2: workload=0 file_check=0 boot=2
+Thread analyze:
+ idle                : STACK: unused 256 usage 64 / 320 (20 %); CPU: 97 %
+                     : Total CPU cycles used: 1550148459
+ main                : STACK: unused 1832 usage 2264 / 4096 (55 %); CPU: 2 %
+                     : Total CPU cycles used: 41444538
+ ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %
+                     : Total CPU cycles used: 0

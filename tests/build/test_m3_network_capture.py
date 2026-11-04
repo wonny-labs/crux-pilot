@@ -193,7 +193,7 @@ class NetworkCaptureControls(unittest.TestCase):
     def test_fresh_boot_excludes_queued_pre_reset_state(self):
         source='known'
         old=[(10.,'M3_NET_STATE monotonic_ms=695696 link=1 address=1 service_ready=0')]
-        fresh=[(11.,'*** Booting Zephyr OS build v4.4.0 ***'),
+        fresh=[(11.,'*** Booting Zephyr OS build v4.4.2 ***'),
                (11.1,'M3_NET_BOOT source=known profile=network-probe'),
                (12.,'M3_NET_STATE monotonic_ms=1561 link=0 address=1 service_ready=0'),
                (13.,'M3_NET_STATE monotonic_ms=2582 link=0 address=1 service_ready=0'),
@@ -217,7 +217,7 @@ class NetworkCaptureControls(unittest.TestCase):
             'm3-critical         : STACK: unused 3744 usage 352 / 4096 (8 %); CPU: 0 %',
             ': Total CPU cycles used: 3205900825',
             'ISR0                : STACK: unused 1808 usage 240 / 2048 (11 %); CPU: 0 %')]
-        fresh = [(2., '*** Booting Zephyr OS build v4.4.0 ***'),
+        fresh = [(2., '*** Booting Zephyr OS build v4.4.2 ***'),
                  (2.1, 'M3_NET_BOOT source=known profile=network-probe')]
         self.assertEqual(runner.fresh_network_rows(old, 'known', 'normal'), [])
         self.assertEqual(runner.fresh_network_rows(old + fresh, 'known', 'normal'), fresh)

@@ -1,0 +1,15 @@
+sample:
+  name: Crux microSD physical-gate probes (link only)
+common:
+  build_only: true
+  platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
+  tags: [filesystem, crux, link_only]
+tests:
+  crux.sample.storage_sd_probe:
+    extra_args: []
+  crux.sample.storage_sd_probe.stack:
+    extra_configs:
+      - CONFIG_SAMPLE_SD_STACK_PROBE=y
+  crux.sample.storage_sd_probe.removal:
+    extra_configs:
+      - CONFIG_SAMPLE_SD_REMOVAL_PROBE=y

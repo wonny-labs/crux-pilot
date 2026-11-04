@@ -16,8 +16,11 @@ void crux_file_unlock(void)
     assert(locks > unlocks);
     unlocks++;
 }
-crux_file_result_t crux_file_impl_open(size_t s, const char *n, crux_file_mode_t m)
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a port signature, named for its callers
+crux_file_result_t crux_file_impl_open(crux_file_root_t r, size_t s, const char *n,
+                                       crux_file_mode_t m)
 {
+    (void)r;
     (void)s;
     (void)n;
     (void)m;
@@ -64,11 +67,56 @@ crux_file_result_t crux_file_impl_sync(size_t s)
     assert(live[s]);
     return sync_result;
 }
-crux_file_result_t crux_file_impl_remove(const char *n)
+crux_file_result_t crux_file_impl_remove(crux_file_root_t r, const char *n)
 {
+    (void)r;
     (void)n;
     calls++;
     return io;
+}
+/* The additions have their own faults in fake_faults_test.c. */
+crux_file_result_t crux_file_impl_stat(crux_file_root_t r, const char *n, crux_file_info_t *o)
+{
+    (void)r;
+    (void)n;
+    (void)o;
+    return CRUX_FILE_ERR_NOT_SUPPORTED;
+}
+crux_file_result_t crux_file_impl_size(size_t s, uint64_t *o)
+{
+    (void)s;
+    (void)o;
+    return CRUX_FILE_ERR_NOT_SUPPORTED;
+}
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a port signature, named for its callers
+crux_file_result_t crux_file_impl_rename(crux_file_root_t r, const char *from, const char *to)
+{
+    (void)r;
+    (void)from;
+    (void)to;
+    return CRUX_FILE_ERR_NOT_SUPPORTED;
+}
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a port signature, named for its callers
+crux_file_result_t crux_file_impl_dir_open(size_t d, crux_file_root_t r)
+{
+    (void)d;
+    (void)r;
+    return CRUX_FILE_ERR_NOT_SUPPORTED;
+}
+crux_file_result_t crux_file_impl_dir_read(size_t d, char *n, size_t c, crux_file_info_t *i,
+                                           bool *e)
+{
+    (void)d;
+    (void)n;
+    (void)c;
+    (void)i;
+    (void)e;
+    return CRUX_FILE_ERR_NOT_SUPPORTED;
+}
+crux_file_result_t crux_file_impl_dir_close(size_t d)
+{
+    (void)d;
+    return CRUX_FILE_ERR_NOT_SUPPORTED;
 }
 void crux_file_record_cleanup_error(crux_file_result_t e)
 {
@@ -134,6 +182,35 @@ int main(void)
     assert(crux_file_write(f, b, 1, &n) == CRUX_FILE_ERR_ACCESS && n == 0);
     assert(crux_file_remove("record") == CRUX_FILE_ERR_INVALID_STATE);
     assert(crux_file_close(&f) == CRUX_FILE_OK);
+    /* A file open for writing excludes every other handle; readers may share it. */
+    crux_file_t *r1 = NULL, *r2 = NULL, *w = NULL;
+    size_t before_opens = opens;
+    assert(crux_file_open("record", CRUX_FILE_READ, &r1) == CRUX_FILE_OK);
+    assert(crux_file_open("record", CRUX_FILE_READ, &r2) == CRUX_FILE_OK);
+    assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &w) == CRUX_FILE_ERR_INVALID_STATE);
+    assert(w == NULL && opens == before_opens + 2);
+    assert(crux_file_open("record", CRUX_FILE_CREATE_REPLACE, &w) == CRUX_FILE_ERR_INVALID_STATE);
+    assert(w == NULL && opens == before_opens + 2);
+    assert(crux_file_close(&r1) == CRUX_FILE_OK);
+    assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &w) == CRUX_FILE_ERR_INVALID_STATE);
+    assert(crux_file_close(&r2) == CRUX_FILE_OK);
+    assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &w) == CRUX_FILE_OK);
+    crux_file_t *other = NULL;
+    before_opens = opens;
+    assert(crux_file_open("record", CRUX_FILE_READ, &other) == CRUX_FILE_ERR_INVALID_STATE);
+    assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &other) == CRUX_FILE_ERR_INVALID_STATE);
+    assert(other == NULL && opens == before_opens);
+    assert(crux_file_open("different", CRUX_FILE_READ_WRITE, &other) == CRUX_FILE_OK);
+    assert(crux_file_close(&other) == CRUX_FILE_OK);
+    assert(crux_file_close(&w) == CRUX_FILE_OK);
+    assert(crux_file_open("record", CRUX_FILE_CREATE_REPLACE, &w) == CRUX_FILE_OK);
+    assert(crux_file_close(&w) == CRUX_FILE_OK);
+    /* A provider failure leaves no live slot behind, so the same name opens again. */
+    opened = CRUX_FILE_ERR_IO;
+    assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &w) == CRUX_FILE_ERR_IO && w == NULL);
+    opened = CRUX_FILE_OK;
+    assert(crux_file_open("record", CRUX_FILE_READ_WRITE, &w) == CRUX_FILE_OK);
+    assert(crux_file_close(&w) == CRUX_FILE_OK);
     const char *bad[] = {"", ".", "..", "../a", "a/b", "a b", "a\\b", "\x80"};
     for (size_t i = 0; i < sizeof(bad) / sizeof(bad[0]); i++) {
         assert(crux_file_open(bad[i], CRUX_FILE_READ, &f) == CRUX_FILE_ERR_INVALID_ARGUMENT);

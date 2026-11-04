@@ -161,6 +161,7 @@ config CRUX_FILE_FATFS_SIMULATOR
 config CRUX_FILE_FATFS_RT1060
     bool "Crux File FatFs provider on the RT1060-EVKB microSD"
     depends on CRUX_PILOT_MODULE && BOARD_MIMXRT1060_EVK && SOC_MIMXRT1062
+    depends on BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI && BOARD_REVISION_B
     depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
     depends on DT_HAS_NXP_IMX_USDHC_ENABLED && DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
@@ -173,6 +174,7 @@ config CRUX_FILE_FATFS_RT1060
 config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
     bool "Compile-only Crux File FatFs RT1060 SDHC check"
     depends on CRUX_PILOT_MODULE && BOARD_MIMXRT1060_EVK && SOC_MIMXRT1062
+    depends on BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI && BOARD_REVISION_B
     depends on FAT_FILESYSTEM_ELM && FILE_SYSTEM && DISK_DRIVER_SDMMC
     depends on DT_HAS_NXP_IMX_USDHC_ENABLED && DT_HAS_ZEPHYR_SDMMC_DISK_ENABLED
     depends on FS_FATFS_LFN && FS_FATFS_MAX_LFN >= 127 && FS_FATFS_REENTRANT
@@ -181,3 +183,12 @@ config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
       Compile the File implementation and RT1060 SDHC/FatFs composition as an
       object-only check. This does not link or select a target File provider,
       mount media, format media, or enable runtime File operations.
+
+# The USDHC HAL invalidates a read target by whole D-cache lines when a transfer completes, so the
+# RT1060 selections take line-aligned targets only. file_native.c refuses a smaller SDHC value.
+configdefault SDHC_BUFFER_ALIGNMENT
+    default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
+
+# Keeps the FatFs sector window out of the SD layer's bounce path.
+configdefault FS_FATFS_WINDOW_ALIGNMENT
+    default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
