@@ -61,7 +61,7 @@ crux_access_result_t crux_access_login_password(const char *user, const char *pa
  * Applies the source delay but not the name delay. An account that cannot log in by key, because it
  * is unknown, disabled, under a forced password change or without a role, lists no keys. A signed
  * request rejected here counts as a key failure and produces an event. An unsigned probe records
- * nothing.
+ * nothing, except the event for CRUX_ACCESS_ERR_NOT_READY.
  *
  * @param signed_request True when the request carries a signature.
  * @param[out] retry_after_ms Remaining delay for CRUX_ACCESS_ERR_RETRY_LATER, otherwise zero.
@@ -115,7 +115,7 @@ void crux_access_report_key_failure(const char *user, const crux_access_origin_t
  * @retval CRUX_ACCESS_ERR_PASSWORD_REJECTED The password fails the rule.
  * @retval CRUX_ACCESS_ERR_STORE The save failed. Provisioning stays open.
  * @retval CRUX_ACCESS_ERR_NOT_READY Not initialised, a crypto provider failure, or a lost lock. A
- * lock lost around the save leaves provisioning closed until a reset.
+ * lock lost after provisioning closes for the save leaves it closed until a reset.
  */
 crux_access_result_t crux_access_provision_first_account(const char *user, const char *password,
                                                          size_t length, const char *role,

@@ -1,6 +1,8 @@
 /* Signed and unsigned key attempts, failed signatures and provider-verified login. */
 #include "access_test.h"
 
+#include <stdlib.h>
+
 #define ADMIN ACCESS_TEST_ADMIN
 #define USER ACCESS_TEST_USER
 #define PASSWORD ACCESS_TEST_PASSWORD
@@ -309,11 +311,41 @@ static void key_type_cases(void)
     blob[3] = 10;
     CHECK(crux_access_account_add_key(admin, other_user, blob, sizeof(ed25519)) ==
           CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    /* The same with a whole blob, so that only the name's own comparison can refuse it. */
+    uint8_t point[32];
+    memset(point, 0x42, sizeof(point));
+    used = blob_string(blob, "ssh-ed2551", 10);
+    used += blob_string(&blob[used], point, sizeof(point));
+    CHECK(crux_access_account_add_key(admin, other_user, blob, used) ==
+          CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    used = blob_string(blob, "", 0);
+    used += blob_string(&blob[used], point, sizeof(point));
+    CHECK(crux_access_account_add_key(admin, other_user, blob, used) ==
+          CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    used = ecdsa_blob(blob, "ecdsa-sha2-nistp25", 65, "nistp256", 4);
+    CHECK(crux_access_account_add_key(admin, other_user, blob, used) ==
+          CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", 65, "nistp25", 4);
+    CHECK(crux_access_account_add_key(admin, other_user, blob, used) ==
+          CRUX_ACCESS_ERR_INVALID_ARGUMENT);
     /* A length that claims more than the blob holds. */
     memcpy(blob, ed25519, sizeof(ed25519));
     blob[0] = 0xFF;
     CHECK(crux_access_account_add_key(admin, other_user, blob, sizeof(ed25519)) ==
           CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    /* Every truncation of an ECDSA blob, each in a buffer of exactly that size for the sanitizers,
+     * which includes a point length with no point after it. */
+    used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", 65, "nistp256", 4);
+    for (size_t cut = 1; cut < used; ++cut) {
+        uint8_t *exact = malloc(cut);
+        CHECK(exact != NULL);
+        if (exact != NULL) {
+            memcpy(exact, blob, cut);
+            CHECK(crux_access_account_add_key(admin, other_user, exact, cut) ==
+                  CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+            free(exact);
+        }
+    }
     /* Curves that disagree, a point of the wrong size and a compressed point. */
     used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", 65, "nistp384", 4);
     CHECK(crux_access_account_add_key(admin, other_user, blob, used) ==
