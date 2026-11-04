@@ -617,6 +617,15 @@ static void every_temporary_name_taken_gives_no_resources(void)
     assert(crux_file_service_open(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED, 0,
                                   &t) == CRUX_FILE_SERVICE_ERR_NO_RESOURCES);
     assert(t == NULL);
+
+    /* The entry it reserved came back: all five still fit once a name is free. */
+    assert(crux_file_remove_at(ROOT_WEB, ".crux-up-0") == CRUX_FILE_OK);
+    for (int i = 0; i < 5; i++) {
+        char name[8];
+        (void)snprintf(name, sizeof(name), "n%d", i);
+        t = open_as(SESSION_ALL, "web", name, CRUX_FILE_SERVICE_OPEN_MANAGED);
+        assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_OK);
+    }
 }
 
 /* A commit needs what the upload's writes needed, and no read permission. */
@@ -1010,6 +1019,7 @@ static void a_kept_target_with_the_partial_suffix_stays(void)
     put_sidecar(ROOT_DATA, 0, "doc.filepart");
     test_start();
     assert(events_of(CRUX_FILE_SERVICE_EVENT_RECOVERY_NEEDED) == 1);
+    expect_target_held("data", "doc.filepart");
     static const char fill[AREA_MAX_FILE];
     size_t count = 0;
     crux_file_service_transfer_t *a =
@@ -1095,6 +1105,24 @@ static void held_name_then_next_start(void)
     assert(run_child(a_failed_commit_holds_its_target_until_the_next_start) == 0);
     crux_file_fake_power_on();
     assert(run_child(the_next_start_frees_the_name) == 0);
+}
+
+/* More kept names than the table holds: the area stops rather than leave a target unheld. */
+static void a_full_name_table_at_start_stops_the_area(void)
+{
+    for (int slot = 0; slot <= CRUX_FILE_SERVICE_RESERVATIONS; slot++) {
+        char target[8];
+        char temp[16];
+        (void)snprintf(target, sizeof(target), "d%d", slot);
+        (void)snprintf(temp, sizeof(temp), ".crux-up-%d", slot);
+        put_raw(ROOT_WEB, target, "same");
+        put_raw(ROOT_WEB, temp, "same");
+        put_sidecar(ROOT_WEB, slot, target);
+    }
+    test_start();
+    crux_file_info_t info;
+    assert(crux_file_service_stat(SESSION_ALL, "web", "d0", &info) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
 }
 
 static void kept_state_above_the_allocation_setting_holds_too(void)
@@ -1232,6 +1260,7 @@ void test_interrupted(void)
     run_case("kept_suffix", a_kept_target_with_the_partial_suffix_stays);
     run_case("above_setting", recovery_ignores_the_allocation_setting);
     run_case("kept_above_setting", kept_state_above_the_allocation_setting_holds_too);
+    run_case("full_table", a_full_name_table_at_start_stops_the_area);
     held_name_then_next_start();
     a_failed_removal_is_decided_at_the_next_start();
     a_sidecar_with_its_magic_but_no_valid_check_is_torn();

@@ -276,6 +276,88 @@ static void a_partial_in_use_is_never_removed(void)
     assert(crux_file_service_close(&v) == CRUX_FILE_SERVICE_OK);
 }
 
+static bool partial_moved;
+
+static void partial_finished_by_its_client(void)
+{
+    if (!partial_moved) {
+        partial_moved = true;
+        assert(crux_file_rename(ROOT_DATA, "x.filepart", "x") == CRUX_FILE_OK);
+    }
+}
+
+/*
+ * A client finishes its upload after the stale rule has read the partial file's name, and before
+ * the rule reaches it. That file was not the rule's to remove, so it frees nothing, and the area
+ * stays at its limit. The hook is on both, because it must run at the first call after the
+ * listing's read.
+ */
+static void a_partial_that_moved_during_the_rule_is_not_counted_as_removed(void)
+{
+    crux_file_t *file = NULL;
+    size_t count = 0;
+    const char *names[] = {"x.filepart", "y"};
+    for (size_t i = 0; i < 2; i++) {
+        assert(crux_file_open_at(ROOT_DATA, names[i], CRUX_FILE_CREATE_REPLACE, &file) ==
+               CRUX_FILE_OK);
+        assert(crux_file_write(file, zeros, AREA_MAX_FILE, &count) == CRUX_FILE_OK);
+        assert(crux_file_close(&file) == CRUX_FILE_OK);
+    }
+    test_start();
+    crux_file_service_transfer_t *t = open_new("data", "z", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    crux_file_fake_on_call(CRUX_FILE_FAKE_STAT, 0, partial_finished_by_its_client);
+    crux_file_fake_on_call(CRUX_FILE_FAKE_REMOVE, 0, partial_finished_by_its_client);
+    assert(crux_file_service_write(SESSION_ALL, t, 0, zeros, AREA_MAX_FILE, &count) ==
+           CRUX_FILE_SERVICE_ERR_LIMIT);
+    assert(count == 0 && partial_moved);
+    assert(crux_file_fake_exists(ROOT_DATA, "x"));
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED) == 0);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+}
+
+static void project_removes_the_partial(void)
+{
+    assert(crux_file_remove_at(ROOT_DATA, "x.filepart") == CRUX_FILE_OK);
+}
+
+/* Gone between the rule's check and its removal: the room is real, and the removal is not the
+ * rule's. */
+static void a_partial_removed_by_another_caller_frees_room_with_no_event(void)
+{
+    crux_file_t *file = NULL;
+    size_t count = 0;
+    const char *names[] = {"x.filepart", "y"};
+    for (size_t i = 0; i < 2; i++) {
+        assert(crux_file_open_at(ROOT_DATA, names[i], CRUX_FILE_CREATE_REPLACE, &file) ==
+               CRUX_FILE_OK);
+        assert(crux_file_write(file, zeros, AREA_MAX_FILE, &count) == CRUX_FILE_OK);
+        assert(crux_file_close(&file) == CRUX_FILE_OK);
+    }
+    test_start();
+    crux_file_service_transfer_t *t = open_new("data", "z", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    crux_file_fake_on_call(CRUX_FILE_FAKE_REMOVE, 0, project_removes_the_partial);
+    write_all(t, 0, AREA_MAX_FILE);
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED) == 0);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+}
+
+static void project_removes_the_file(void)
+{
+    assert(crux_file_remove_at(ROOT_DATA, "held") == CRUX_FILE_OK);
+}
+
+/* The same for a client's remove: it reports what it found, and it records nothing it did not do.
+ */
+static void a_file_removed_by_another_caller_records_no_removal(void)
+{
+    put_raw(ROOT_DATA, "held", "abcd");
+    test_start();
+    crux_file_fake_on_call(CRUX_FILE_FAKE_REMOVE, 0, project_removes_the_file);
+    assert(crux_file_service_remove(SESSION_ALL, "data", "held") ==
+           CRUX_FILE_SERVICE_ERR_NOT_FOUND);
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_REMOVED) == 0);
+}
+
 /* An area with no declared suffix never loses a file to this rule. */
 static void no_suffix_means_nothing_is_removed(void)
 {
@@ -497,6 +579,9 @@ void test_capacity(void)
     run_case("stale_partials", stale_partials_go_only_when_room_is_needed);
     run_case("partial_in_use", a_partial_in_use_is_never_removed);
     run_case("partial_with_reader", a_partial_with_a_reader_is_never_removed);
+    run_case("partial_moved", a_partial_that_moved_during_the_rule_is_not_counted_as_removed);
+    run_case("partial_gone", a_partial_removed_by_another_caller_frees_room_with_no_event);
+    run_case("file_gone", a_file_removed_by_another_caller_records_no_removal);
     run_case("no_suffix", no_suffix_means_nothing_is_removed);
     run_case("over_entries", an_area_over_its_entries_still_writes);
     run_case("over_bytes", an_area_over_its_bytes_still_overwrites);

@@ -3,13 +3,17 @@
 #include <stdio.h>
 #include <string.h>
 
+/* The most temporary names any build can allocate, and the width of the masks that track them.
+ * Recovery covers all of them, so that lowering the allocation setting strands no file. */
+#define RECOVERY_SLOTS 32
+
 _Static_assert(
     CRUX_FILE_SERVICE_TRANSFER_MAX < CRUX_FILE_POOL_SIZE,
     "One File handle must stay free from the service for the credential store and project");
 _Static_assert(CRUX_FILE_SERVICE_AREAS_MAX >= 1, "The file service needs an area");
 _Static_assert(CRUX_FILE_SERVICE_DIR_MAX >= 1, "The file service needs a listing handle");
 _Static_assert(CRUX_FILE_SERVICE_RESERVATIONS >= 2, "A rename reserves two names");
-_Static_assert(CRUX_FILE_SERVICE_TEMP_SLOTS >= 1 && CRUX_FILE_SERVICE_TEMP_SLOTS <= 32, /* Mask. */
+_Static_assert(CRUX_FILE_SERVICE_TEMP_SLOTS >= 1 && CRUX_FILE_SERVICE_TEMP_SLOTS <= RECOVERY_SLOTS,
                "Temporary names are tracked in a 32-bit mask");
 
 #define STATE_LOCK_WAIT_MS 1000u
@@ -18,9 +22,6 @@ _Static_assert(CRUX_FILE_SERVICE_TEMP_SLOTS >= 1 && CRUX_FILE_SERVICE_TEMP_SLOTS
 #define AREA_NAME_MAX 15u
 #define TEMP_PREFIX ".crux-up-"
 #define SIDECAR_PREFIX ".crux-co-"
-/* The most temporary names any build can allocate, and the width of the masks that track them.
- * Recovery covers all of them, so that lowering the allocation setting strands no file. */
-#define RECOVERY_SLOTS 32
 #define RESERVED_PREFIX ".crux-"
 /* Sidecar: magic, one length byte, the target name, and an additive check of all the bytes before.
  */
@@ -406,11 +407,20 @@ static bool room_reserve_or_clear(crux_access_session_t session, size_t area, ui
             reserve(area, name, NULL) != CRUX_FILE_SERVICE_OK) {
             continue;
         }
-        bool gone = entry_gone(declared->root, name, crux_file_remove_at(declared->root, name));
+        /* The listing is old by now: a client may have finished this upload since, so only what is
+         * still there under the reservation is this rule's to remove, at its current size. */
+        if (crux_file_stat(declared->root, name, &info) != CRUX_FILE_OK) {
+            release(area, name);
+            continue;
+        }
+        crux_file_result_t removed = crux_file_remove_at(declared->root, name);
+        bool gone = entry_gone(declared->root, name, removed);
         release(area, name);
         if (gone) {
             counters_remove(area, info.size, 1);
-            event(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED, session, area, name, NULL);
+            if (removed != CRUX_FILE_ERR_NOT_FOUND) {
+                event(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED, session, area, name, NULL);
+            }
             if (room_reserve(area, bytes, entries)) {
                 fits = true;
                 break;
@@ -466,7 +476,7 @@ static uint8_t sidecar_check(const uint8_t *bytes, size_t length)
     return sum;
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): private, with two callers
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): private, with one caller
 static crux_file_result_t sidecar_write(crux_file_root_t root, int slot, const char *target)
 {
     char name[NAME_CAPACITY];
@@ -987,7 +997,9 @@ crux_file_service_result_t crux_file_service_remove(crux_access_session_t sessio
         file_result = crux_file_remove_at(root, name);
         if (entry_gone(root, name, file_result)) {
             counters_remove(index, info.size, 1);
-            event(CRUX_FILE_SERVICE_EVENT_REMOVED, session, index, name, NULL);
+            if (file_result != CRUX_FILE_ERR_NOT_FOUND) {
+                event(CRUX_FILE_SERVICE_EVENT_REMOVED, session, index, name, NULL);
+            }
         }
     }
     release(index, name);
