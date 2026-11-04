@@ -182,6 +182,13 @@ class ManifestTest(unittest.TestCase):
                    if entry.get("userdata")]
         self.assertEqual(1, len(reasons))
 
+    def test_reliance_edge_stays_in_its_optional_group(self):
+        # Without its group the project would drop out of the check that optional stacks stay
+        # off by default, and an ordinary workspace would fetch the GPLv2 source.
+        projects = {entry["name"]: entry for entry in self.crux["projects"]}
+        self.assertEqual(["crux-reliance"], projects["reliance-edge"].get("groups"))
+        self.assertIn("-crux-reliance", self.crux["group-filter"])
+
 
 @unittest.skipUnless(WEST and GIT and yaml, "west, git and PyYAML are required for the workspace tests")
 class TemplateWorkspaceTest(unittest.TestCase):
