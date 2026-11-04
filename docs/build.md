@@ -9,6 +9,7 @@ This guide describes the supported ways to build Crux and consume its capabiliti
 | Develop and test Crux on Linux | `scripts/bootstrap-host.sh` and CMake presets | Current Linux amd64 development environment |
 | Build a Zephyr application | `west` with Crux's `zephyr/module.yml` | Pinned Zephyr workspace, selected `native_sim` and EVKB configurations |
 | Consume Crux from a separate Linux CMake project | Root `add_subdirectory()` | Source-tree integration in the supported Linux environment |
+| Start a product repository on Crux | [Product Composition Guide](product-composition.md) | Zephyr only, no Crux release tag yet |
 
 Linux Host is a development and test composition, **not** a qualified production Embedded Linux variant. The Zephyr EVKB cross-build proves that a selected firmware image compiles and links, not that it boots or operates correctly on hardware. Installed packages, `find_package(Crux)`, a binary SDK and arbitrary toolchain or board combinations are not supported by this guide.
 
@@ -85,6 +86,8 @@ scripts/test-zephyr-time.sh 'mimxrt1060_evk@B//qspi'
 
 Both commands use the module from this checkout. The current EVKB target is `mimxrt1060_evk@B//qspi`, limited to its documented configuration.
 
+The Crux module compares the Zephyr release in use with the one Crux was verified on. On another release, every build that enables the module warns and continues without Crux evidence. `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON` stops such a build instead. `west crux-pins` compares the workspace's project commits with the ones Crux pins and fails on an undeclared difference; see [its description](product-composition.md#west-crux-pins).
+
 For another Zephyr application in the west workspace, prefer `EXTRA_ZEPHYR_MODULES` to add Crux while retaining the modules discovered through west. Existing Crux scripts also use the supported older spelling `ZEPHYR_EXTRA_MODULES`. By contrast, `ZEPHYR_MODULES` replaces automatic discovery and must list **all** required modules, not just Crux. For example, the following command builds the existing controller application on `native_sim` without hardware operations:
 
 ~~~sh
@@ -118,7 +121,25 @@ The existing VS Code [debug configurations](../.vscode/launch.json) connect from
 - **EVKB QSPI: Attach** uses an ELF matching the image already on the board and does not download firmware. The connection may still halt the target.
 - **EVKB QSPI: Flash** builds the **Time sample**, then resets the board and downloads that image. It must not be used to flash arbitrary applications or unapproved storage candidates.
 
-See the [Time sample build task](../scripts/build-debug-target.sh) and [physical UART test instructions](../tests/README.md#physical-uart-target). Stop the debugger, GDB Server and serial monitors before a separately authorised physical test that requires exclusive access.
+See the [debug build script](../scripts/build-debug-target.sh) and [physical UART test instructions](../tests/README.md#physical-uart-target). Stop the debugger, GDB Server and serial monitors before a separately authorised physical test that requires exclusive access.
+
+### Debug builds of other applications
+
+`scripts/build-debug-target.sh` builds the Time sample unless told otherwise. Inside the Dev Container, `--app <directory>` builds another application, and `--debug-optimizations` adds [the fragment](../scripts/debug-optimizations.conf) that selects `-Og`:
+
+~~~sh
+scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/storage_sd --debug-optimizations
+~~~
+
+Without either option the build directory is the one that the VS Code profile and the clean task name. With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time`, and `--debug-optimizations` appends `--og`. The script replaces each run of characters other than letters, digits, `_`, `.` and `-` with a single `_` in the board and in the path, so the example above builds in `build/zephyr/mimxrt1060_evk_B_qspi--samples_storage_sd--og`. A path outside the repository is keyed by its whole sanitised absolute path, and a relative path is resolved against the directory that the command runs in. The script prints the build directory before it builds and the ELF path when it finishes. A debug build records no provenance. A build with `--debug-optimizations` is never verification evidence: its stack use and timing may differ from the `-Os` images that the verification scripts build, and they have not been re-measured. `--app` builds an application's base configuration only: samples and tests that need extra configuration files, overlays or modules, such as the controller and networking compositions, are built by their own scripts. The **EVKB QSPI: Flash** profile still downloads only the Time sample. Downloading another application remains a separately authorised physical operation.
+
+### What the platform provides for build and debug
+
+| Provided by the platform | Owned by the project | Not provided |
+|---|---|---|
+| The build and debug scripts above for the RT1060-EVKB QSPI target. The J-Link GDB Server launcher and the VS Code profiles for that target. The `-Og` fragment. | The board, including its SDRAM timing and device configuration data (DCD). Any J-Link script that prepares a board other than the verified EVKB QSPI flow. Its own build, flash and debug scripts, which may reuse the pieces above. | A general flash or debug wrapper over `west flash` and `west debug`. Unattended programming. A J-Link script that initialises SEMC. |
+
+The Zephyr J-Link runner needs a local J-Link Commander even when it is given a remote GDB host. The Dev Container has none, so the split between the Mac-hosted server and the container GDB stays.
 
 ## External Linux application using Crux source
 
@@ -215,6 +236,10 @@ The external application tests also cover C++17, independently selected Thread/S
 | Time | Set `CRUX_BUILD_TIME=ON` and explicitly select `CRUX_TIME_PROVIDER=memory` (controlled development) or `linux` (system realtime). Controlled Host samples require memory; Linux native writes need explicit application authority. Neither implies production qualification |
 | Time CPU Busy-wait | Select `CRUX_TIME_BUSY_WAIT=ON` and Time with an explicit provider; link `crux::time`. Zephyr requires `CONFIG_CRUX_TIME=y` plus `CONFIG_CRUX_TIME_BUSY_WAIT=y`, without RTC. Disabled Busy-wait remains linkable and returns NOT_SUPPORTED for positive durations. See [limits and verified scope](time-busy-wait.md) |
 | Thread, Sync | Select independently through `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`. Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for the current controlled Host composition). Their public targets connect the current Linux implementation |
+| Access | Select `CRUX_BUILD_ACCESS=ON`, which requires `CRUX_BUILD_SYNC=ON`. The public target has no provider yet, so an image that calls it does not link. The [Access contract](access-contract.md) records the current state. |
+| File service | Select `CRUX_BUILD_FILE_SERVICE=ON`, which requires `CRUX_BUILD_ACCESS=ON`, `CRUX_BUILD_FILE=ON` and `CRUX_BUILD_SYNC=ON`. It has no event provider yet, so an image that calls it does not link. The [File service contract](file-service-contract.md) holds its rules and limits |
+| Credential store | Select `CRUX_BUILD_CREDENTIAL=ON`, which requires `CRUX_BUILD_SYNC=ON` and `CRUX_BUILD_FILE=ON`. The public target has no protection provider yet, so an image that calls it does not link, and a product build refuses the test-only ports at start. The [credential store](credential-store.md) records the current state. |
+| Security events | Select `CRUX_BUILD_SECURITY_EVENT=ON`, which requires Access, Logging, Sync, Thread and Time. A final link adds the object target `crux_security_event_access_port`, or it does not link. A composition sets `CRUX_SECURITY_EVENT_RING`, `_RESERVE`, `_DRAIN_BURST` and `_DRAIN_PAUSE_MS` to suit its log buffer, and keeps the Logging threshold at INFO or more verbose. See the [Security event contract](security-event-contract.md). |
 | Queue | Portable targets use `crux::queue`. The final Linux executable additionally links `crux::queue_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and TTY binding belongs to platform composition |
 | I2C | Select `CRUX_BUILD_I2C=ON`; the Host provider is a deterministic loopback fixture for portable consumer tests. Zephyr applications compile the native provider and bind `crux-i2c0` to a selected controller |

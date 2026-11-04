@@ -26,22 +26,11 @@ OpenSSH, whose newer clients use the SFTP protocol for `scp` by default.
 ## Provider
 
 wolfSSH is the first provider, pinned to a reviewed commit or release. It sits behind a small private
-interface:
-
-```c
-/* Private to Crux. Never included by a project. */
-typedef struct {
-    int (*start)(const crux_ssh_config_t *config, const crux_ssh_callbacks_t *callbacks);
-    int (*stop)(void);
-    int (*read)(crux_ssh_channel_t *channel, void *buffer, size_t length);
-    int (*write)(crux_ssh_channel_t *channel, const void *buffer, size_t length);
-    int (*close)(crux_ssh_channel_t *channel);
-} crux_ssh_provider_t;
-```
-
-The callbacks cover credential checks and shell, `exec` and SFTP subsystem requests, and every other
-request is refused. This interface exists to keep SSH library types out of the rest of Crux. It will
-be revised once a second provider is actually attempted.
+interface, so that SSH library types stay out of the rest of Crux. Issue #205 defines it in
+[`crux_ssh_provider.h`](../../components/ssh/src/crux_ssh_provider.h), and
+[the SSH provider contract](../ssh-provider-contract.md) holds the ownership rules and the wolfSSL settings
+arrangement. That contract replaces the sketch that stood here. The interface will be revised once a second
+provider is actually attempted.
 
 ## Authentication
 
@@ -68,10 +57,12 @@ The server offers a short explicit list, set with the wolfSSH algorithm list API
 | --- | --- |
 | Key exchange | `mlkem768x25519-sha256` if its resource cost is acceptable, `curve25519-sha256`, `ecdh-sha2-nistp256` |
 | Host key | `ssh-ed25519`, or `ecdsa-sha2-nistp256` where Ed25519 is unavailable |
-| User public key | `ssh-ed25519`, `ecdsa-sha2-nistp256`, `rsa-sha2-256` |
+| User public key | `ssh-ed25519`, `ecdsa-sha2-nistp256` |
 | Cipher | `aes128-gcm@openssh.com`, `aes256-gcm@openssh.com`, `aes128-ctr` |
 | MAC for CTR | `hmac-sha2-256` |
 | Compression | `none` |
+
+The user key row is the first SSH provider's scope, and #192 compiles in only what the table names. `crux_access` is wider: it also accepts `ecdsa-sha2-nistp384` and `ecdsa-sha2-nistp521` keys.
 
 Strict key exchange stays on. SHA-1, CBC, DES and RC4 are not offered. The WinSCP algorithm
 documentation lists every name above. A client from before the Terrapin fix (WinSCP before 6.2.2) can
@@ -132,9 +123,13 @@ permission checks. It also has no per-operation permission callback. Three optio
 Each port macro receives an `fs` argument, which is the per-session handle set with
 `wolfSSH_SetFilesystemHandle`. That handle carries the Crux session, so no thread-local state is
 needed. The port header must also supply `SFTP_GetAttributes`, `SFTP_GetAttributes_Handle` and
-directory reads in the shape the handlers expect, and define `WOLFSSH_SFTP_ERRNO` with `errno` set so
-that a refusal reaches the client as a permission error. Track M12 proves this port before anything
-else. `wolfSSH_SFTP_SetConfinePath` is added as a second defence, never as the permission check.
+directory reads in the shape the handlers expect. Track M12 proves this port before anything else.
+`wolfSSH_SFTP_SetConfinePath` is added as a second defence, never as the permission check.
+
+An earlier version of this design relied on `WOLFSSH_SFTP_ERRNO` to report a refusal as a permission error.
+That name does not occur in wolfSSH v1.6.0, the pinned revision. Reading its source, a refused `OPEN` is sent
+as a general failure, so Issue #194 has to settle how a refusal reaches the client. See
+[the SSH provider contract](../ssh-provider-contract.md#findings-for-the-sftp-session).
 
 ### Client view and operations
 
@@ -176,7 +171,7 @@ CLI command. Signature checks stay with the M9 path. This entry does not exist i
 | Session or channel limit reached | Connection closed after the SSH disconnect message, control work unaffected |
 | Transfer abort or disconnect | Handle closed. A partial file stays in place, because the client's resume depends on it, and counts against the area limit. Removing stale partial files is a declared service rule. |
 | Slow client | Window and timeouts hold the transfer, session ended at the idle limit |
-| Rejected file operation | Permission-denied status through `WOLFSSH_SFTP_ERRNO`, and a security event |
+| Rejected file operation | A refusal status, whose exact form Issue #194 settles, and a security event |
 | Storage missing or full | General failure status, because SFTP version 3 in wolfSSH has no out-of-space status. An event records the cause. |
 | Host key unavailable | Server does not start, event recorded, no key is silently regenerated |
 

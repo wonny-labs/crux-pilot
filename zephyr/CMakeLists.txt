@@ -1,6 +1,9 @@
 message(STATUS "Crux Zephyr integration module discovered")
 
 if(CONFIG_CRUX_PILOT_MODULE)
+    include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxZephyrBaseline.cmake")
+    crux_check_zephyr_baseline()
+
     add_library(crux_base INTERFACE)
     target_include_directories(crux_base INTERFACE
         "${CMAKE_CURRENT_LIST_DIR}/../components/base/include"
