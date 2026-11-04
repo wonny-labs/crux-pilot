@@ -1,0 +1,34 @@
+// The Crux management API client. No framework, no dependency, and no secret held.
+export { createClient, defaultClientTiming } from './client.ts';
+export type {
+  AttemptOptions,
+  AttemptOutcome,
+  AttemptProgress,
+  CallOptions,
+  ClientOptions,
+  ClientTiming,
+  CruxClient,
+  QuietOptions,
+  RebootOutcome,
+  RebootUpdate,
+  RejectionCode,
+  SaveOutcome,
+  Wait,
+  WatchRebootOptions,
+} from './client.ts';
+export type { ApiError, ApiErrorKind, Result } from './errors.ts';
+export { checkIpv4Settings, parseIpv4 } from './ipv4.ts';
+export type { Ipv4Input, Ipv4Problem, Ipv4ProblemCode } from './ipv4.ts';
+export type {
+  CurrentUser,
+  ErrorCode,
+  FieldError,
+  Ipv4Settings,
+  NetworkState,
+  RebootAccepted,
+  RebootState,
+  SaveQueued,
+  StatusItem,
+  StatusReport,
+} from './api-types.generated.ts';
+export { operations } from './api-types.generated.ts';
