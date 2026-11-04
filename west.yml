@@ -12,7 +12,7 @@ manifest:
     - name: zephyr
       remote: zephyrproject-rtos
       repo-path: zephyr
-      revision: dccb09599635bdff17633fa7e9dab014b91dce90
+      revision: dccb09599635bdff17633fa7e9dab014b91dce90 # v4.4.2
       import:
         name-allowlist:
           - cmsis
@@ -54,3 +54,4 @@ manifest:
         - crux-secure-management
   self:
     path: crux-pilot
+    west-commands: scripts/west-commands.yml
