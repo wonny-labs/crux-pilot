@@ -20,6 +20,8 @@ import xml.etree.ElementTree as ET
 
 REPO = Path(__file__).resolve().parents[1]
 SOURCE_HASH_ALGORITHM = "sha256-path-mode-content-v1"
+FIRMWARE_IDENTITY_ALGORITHM = "crux-firmware-identity-v1"
+DISABLED_OPTION = re.compile(rb"# CONFIG_[A-Za-z0-9_]+ is not set")
 
 
 def run(command: list[str], cwd: Path, *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -165,14 +167,74 @@ def command_version(command: str | None, arguments: list[str]) -> str | None:
     return next((line.strip() for line in result.stdout.splitlines() if line.strip()), None)
 
 
-def image_identity(repo: Path) -> dict[str, Any]:
-    dockerfile = repo / ".devcontainer/Dockerfile"
-    devcontainer = repo / ".devcontainer/devcontainer.json"
-    from_line = next(
-        (line.split(None, 1)[1] for line in dockerfile.read_text().splitlines()
-         if line.strip().startswith("FROM ")),
-        None,
-    )
+def normalised_config(content: bytes) -> bytes:
+    """Keep what Kconfig decided. Comments can name workspace paths; blank lines mean nothing."""
+    kept = [line for line in content.splitlines()
+            if line and (not line.startswith(b"#") or DISABLED_OPTION.fullmatch(line))]
+    return b"".join(line + b"\n" for line in kept)
+
+
+def firmware_identity(build_root: Path, target: str) -> dict[str, str]:
+    """Identify the firmware by what the build produced, not by where it was built."""
+    config = normalised_config((build_root / ".config").read_bytes())
+    return {
+        "algorithm": FIRMWARE_IDENTITY_ALGORITHM,
+        "target": target,
+        "image_sha256": sha256_file(build_root / "zephyr.bin"),
+        "configuration_sha256": hashlib.sha256(config).hexdigest(),
+    }
+
+
+def firmware_digest(identity: dict[str, str]) -> str:
+    return hashlib.sha256(
+        json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def find_devcontainer(repo: Path, explicit: Path | None) -> tuple[Path | None, str | None]:
+    if explicit:
+        return explicit.resolve(), "explicit"
+    if (repo / ".devcontainer").is_dir():
+        return repo / ".devcontainer", "repository"
+    if (REPO / ".devcontainer").is_dir():
+        return REPO / ".devcontainer", "crux"
+    return None, None
+
+
+def recipe_source(repo: Path, directory: Path | None, origin: str | None) -> dict[str, str | None]:
+    """Say which recipe was used without recording where it lives outside the repository."""
+    if directory is None:
+        return {"directory": None, "origin": None}
+    try:
+        display = directory.relative_to(repo).as_posix()
+    except ValueError:
+        display = directory.name
+    return {"directory": display, "origin": origin}
+
+
+def devcontainer_recipe(directory: Path | None) -> dict[str, str | None] | None:
+    """Hash the recipe files that exist. An image-based recipe has no Dockerfile."""
+    if directory is None:
+        return None
+    dockerfile = directory / "Dockerfile"
+    config = directory / "devcontainer.json"
+    if not dockerfile.is_file() and not config.is_file():
+        return None
+    from_line = None
+    if dockerfile.is_file():
+        from_line = next(
+            (line.split(None, 1)[1] for line in dockerfile.read_text().splitlines()
+             if line.strip().startswith("FROM ")),
+            None,
+        )
+    return {
+        "base_image": from_line,
+        "dockerfile_sha256": sha256_file(dockerfile) if dockerfile.is_file() else None,
+        "config_sha256": sha256_file(config) if config.is_file() else None,
+    }
+
+
+def image_identity(repo: Path, recipe_directory: Path | None) -> dict[str, Any]:
     packages = command_version("dpkg-query", ["--version"])
     package_manifest_hash = None
     if packages:
@@ -209,13 +271,7 @@ def image_identity(repo: Path) -> dict[str, Any]:
             if github_runner["provider"]
             else None,
         },
-        "devcontainer_recipe": {
-            "base_image": from_line,
-            "dockerfile_sha256": sha256_file(dockerfile),
-            "config_sha256": sha256_file(devcontainer),
-        }
-        if in_container
-        else None,
+        "devcontainer_recipe": devcontainer_recipe(recipe_directory) if in_container else None,
         "installed_package_inventory_sha256": package_manifest_hash,
         "github_runner": github_runner,
         "host": {
@@ -234,11 +290,23 @@ def main() -> int:
     parser.add_argument("--capture-inputs", type=Path)
     parser.add_argument("--inputs", type=Path)
     parser.add_argument("--test-inputs", type=Path)
-    parser.add_argument("--workspace", type=Path, default=Path(os.environ.get("CRUX_WORKSPACE", REPO.parent)))
+    parser.add_argument("--workspace", type=Path,
+                        help="west workspace; default $CRUX_WORKSPACE, otherwise the repository's parent")
+    parser.add_argument("--repo", type=Path,
+                        help="repository that was built, such as a product that consumes Crux as a "
+                             "west project; default the Crux checkout that holds this script")
+    parser.add_argument("--devcontainer", type=Path, metavar="DIR",
+                        help="container recipe directory; default <repo>/.devcontainer when present, "
+                             "otherwise Crux's own")
+    parser.add_argument("--test-root", type=Path,
+                        help="Twister output inside the repository; "
+                             "default <repo>/build/zephyr/twister-time")
     arguments = parser.parse_args()
 
-    repo = REPO.resolve()
-    workspace = arguments.workspace.resolve()
+    repo = (arguments.repo or REPO).resolve()
+    if arguments.repo and not (repo / "west.yml").is_file():
+        parser.error(f"repository has no west manifest: {repo / 'west.yml'}")
+    workspace = (arguments.workspace or Path(os.environ.get("CRUX_WORKSPACE", repo.parent))).resolve()
     workspace_config = workspace / ".west/config"
     if not workspace_config.is_file():
         parser.error(f"west workspace configuration is missing: {workspace_config}")
@@ -250,7 +318,16 @@ def main() -> int:
     if not arguments.build_dir or not arguments.target or not arguments.inputs:
         parser.error("recording requires --build-dir, --target and pre-build --inputs")
     build_dir = arguments.build_dir.resolve()
-    build_dir.relative_to(repo)
+    if not build_dir.is_relative_to(repo):
+        parser.error(f"build directory {build_dir} is outside the repository {repo}")
+    test_root = repo / "build/zephyr/twister-time"
+    if arguments.test_root:
+        test_root = arguments.test_root.resolve()
+        if not test_root.is_relative_to(repo):
+            parser.error(f"test root {test_root} is outside the repository {repo}")
+    recipe_directory, recipe_origin = find_devcontainer(repo, arguments.devcontainer)
+    if arguments.devcontainer and not devcontainer_recipe(recipe_directory):
+        parser.error(f"--devcontainer holds no Dockerfile or devcontainer.json: {recipe_directory}")
     output = build_dir / "provenance.json"
     output.unlink(missing_ok=True)
     build_root = build_dir / "zephyr"
@@ -292,7 +369,6 @@ def main() -> int:
     projects = current_inputs["west_projects"]
 
     artifacts = [file_record(path, path.relative_to(repo).as_posix()) for path in required_artifacts]
-    test_root = repo / "build/zephyr/twister-time"
     test_files = []
     if arguments.test_inputs and test_root.is_dir():
         test_names = {
@@ -336,7 +412,7 @@ def main() -> int:
     }
     require_matching_inputs(captured_inputs, workspace_inputs(repo, workspace))
     source = current_inputs["source"]
-    image = image_identity(repo)
+    image = image_identity(repo, recipe_directory)
     stable_image = {
         **image,
         "github_runner": {
@@ -358,10 +434,14 @@ def main() -> int:
     build_id = hashlib.sha256(
         json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
+    firmware = firmware_identity(build_root, arguments.target)
     manifest = {
         "schema_version": 2,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "build_id": build_id,
+        # Outside `identity` on purpose: build_id keeps its inputs. Do not move these into `image`.
+        "firmware_identity": firmware,
+        "devcontainer_recipe_source": recipe_source(repo, recipe_directory, recipe_origin),
         "repository": repo.name,
         "target": arguments.target,
         "build_directory": build_dir.relative_to(repo).as_posix(),
@@ -389,6 +469,7 @@ def main() -> int:
     write_json(output, manifest)
     print(f"Build provenance: {output}")
     print(f"Build identity:   {build_id}")
+    print(f"Firmware identity: {firmware_digest(firmware)}")
     print(f"Source snapshot:  {source['snapshot_sha256']} ({source['snapshot_file_count']} files)")
     print(f"Source recoverable from Git: {source['recoverable_from_git']}")
     print(f"Test summary:     {test_summary or 'no Twister report found'}")
