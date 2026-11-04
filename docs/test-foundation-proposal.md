@@ -71,7 +71,7 @@ The implementation settles these points that the table leaves open:
 - DTR, RTS and the console timeouts have no defaults.
 - Every run needs a manifest, even for a reset, so its evidence is tied to an exact image.
 - The verify step is a separate profile command. `flash()` does not reset or wait for boot.
-- `flash` and `verify` commands must name `{image}`, so they act on the file that was hashed. Arguments and the profile values they use are rejected if they contain `erase` or `fuse`; the contents of a script or command file are not checked.
+- `flash` and `verify` commands must name `{image}`, so they act on the file that was hashed. Rendered arguments, without the image path, are rejected if they contain `erase` or `fuse`; the contents of a script or command file are not checked.
 
 ## Build and flash host split
 

@@ -68,9 +68,12 @@ class Console:
         self._transport = transport
         self._evidence = evidence
         self._open = False
+        self._retired = False
         self._pending = b""
 
     def open(self) -> None:
+        if self._retired:
+            raise ConsoleError("this console's run has ended, and its lock with it")
         if not self._open:
             self._transport.open()
             self._open = True
@@ -83,6 +86,11 @@ class Console:
             self._transport.close()
             if self._evidence:
                 self._evidence.event("console_close")
+
+    def retire(self) -> None:
+        """Closes for good, before the owning run gives up the board's lock."""
+        self._retired = True
+        self.close()
 
     def _require_open(self) -> None:
         if not self._open:

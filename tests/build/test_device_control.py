@@ -170,6 +170,20 @@ class ProfileTest(Workspace):
                 self.profile(**{field: value, 'reset': command})
         self.assertEqual(self.profile(mcu='erase-capable').mcu, 'erase-capable')
 
+    def test_erase_or_fuse_cannot_be_assembled_from_literal_text_and_values(self):
+        for section, token, values in (('reset', 'er{mcu}', {'mcu': 'ase'}),
+                                       ('reset', '{mcu}{port}', {'mcu': 'er', 'port': 'ase'}),
+                                       ('reset', 'FU{probe_serial}', {'probe_serial': 'se'}),
+                                       ('verify', '{board}se', {'board': 'fu'}),
+                                       ('flash', 'er{mcu}', {'mcu': 'ase'})):
+            command = ['tool', token] + (['{image}'] if section != 'reset' else [])
+            with self.subTest(section=section, token=token), self.assertRaisesRegex(ProfileError, 'erase or fuse'):
+                self.profile(**values, **{section: {'command': command, 'timeout_seconds': 1}})
+
+    def test_an_image_placeholder_cannot_hide_a_visible_erase(self):
+        with self.assertRaisesRegex(ProfileError, 'erase or fuse'):
+            self.profile(flash={'command': ['tool', 'er{image}ase'], 'timeout_seconds': 1})
+
     def test_from_file_reports_unreadable_json_as_a_profile_error(self):
         path = self.root / 'bad.json'
         path.write_text('{')
@@ -304,6 +318,66 @@ class EvidenceTest(Workspace):
             self.fail('entered a run with a malformed manifest')
         self.assertEqual((self.evidence / 'manifest.json').read_text(), '{not json')
         self.assertEqual(self.result()['status'], 'failed')
+
+    def test_malformed_manifest_leaves_an_identity_record(self):
+        for name, content in (('not json', '{not json'), ('wrong schema', '{"schema_version": 2}')):
+            with self.subTest(name=name):
+                self.evidence = self.root / 'evidence' / name
+                path = self.handoff / 'manifest.json'
+                path.write_text(content)
+                with self.assertRaises(ManifestError), self.run_for(manifest=path):
+                    self.fail('entered a run with a malformed manifest')
+                identity = json.loads((self.evidence / 'identity.json').read_text())
+                self.assertEqual(identity['manifest_sha256'], hashlib.sha256(content.encode()).hexdigest())
+                self.assertIsNone(identity['board'])
+                self.assertEqual((identity['files'], identity['observed_sha256']), ({}, {}))
+
+    def test_absent_manifest_leaves_an_identity_record(self):
+        with self.assertRaises(ManifestError), self.run_for(manifest=self.handoff / 'absent.json'):
+            self.fail('entered a run without a manifest')
+        identity = json.loads((self.evidence / 'identity.json').read_text())
+        self.assertIsNone(identity['manifest_sha256'])
+        self.assertEqual(self.result()['status'], 'failed')
+
+    def test_an_interrupt_while_closing_the_console_still_releases_the_lock_and_records_the_result(self):
+        class Interrupted(FakeTransport):
+            def close(self):
+                raise KeyboardInterrupt()
+        with self.assertRaises(KeyboardInterrupt):
+            with self.run_for(transport=Interrupted()) as run:
+                run.open_console()
+        self.assertEqual(self.result()['status'], 'failed')
+        self.assertEqual(self.result()['error_type'], 'KeyboardInterrupt')
+        with device_control.BoardLock(self.locks, 'bench/board-1'):
+            pass
+
+    def test_an_interrupt_while_releasing_the_lock_still_records_the_result(self):
+        with mock.patch.object(lock_module, '_release', side_effect=KeyboardInterrupt()):
+            with self.assertRaises(KeyboardInterrupt), self.run_for():
+                pass
+        self.assertEqual(self.result()['error_type'], 'KeyboardInterrupt')
+        with device_control.BoardLock(self.locks, 'bench/board-1'):
+            pass
+
+    def test_an_interrupt_during_cleanup_is_not_lost_to_a_body_failure(self):
+        class Interrupted(FakeTransport):
+            def close(self):
+                raise KeyboardInterrupt()
+        with self.assertRaises(KeyboardInterrupt):
+            with self.run_for(transport=Interrupted()) as run:
+                run.open_console()
+                raise ValueError('oracle rejected the output')
+        self.assertIn('oracle', self.result()['error'])
+        self.assertIn('KeyboardInterrupt', self.result()['cleanup_error'])
+
+    def test_evidence_files_are_closed_when_writing_the_result_fails(self):
+        run = self.run_for()
+        with self.assertRaisesRegex(OSError, 'disk full'):
+            with run:
+                run.evidence.write_json = mock.Mock(side_effect=OSError('disk full'))
+        self.assertTrue(run.evidence._events.closed)
+        with device_control.BoardLock(self.locks, 'bench/board-1'):
+            pass
 
     def test_a_cleanup_failure_is_not_recorded_as_passed_and_still_releases_the_lock(self):
         class BadClose(FakeTransport):
@@ -769,6 +843,44 @@ class RunLifetimeTest(Workspace):
             with self.assertRaisesRegex(DeviceControlError, 'not active'):
                 attempt()
         self.assertEqual((transport.open_calls, runner.calls), (0, []))
+
+
+    def test_the_console_cannot_reopen_the_port_after_the_run_ends(self):
+        transport = FakeTransport()
+        with self.run_for(transport) as run:
+            console = run.open_console()
+        self.assertEqual(transport.open_calls, 1)
+        with self.assertRaisesRegex(ConsoleError, 'run has ended'):
+            console.open()
+        self.assertEqual(transport.open_calls, 1)
+
+    def test_the_console_cannot_first_open_the_port_after_the_run_ends(self):
+        transport = FakeTransport()
+        with self.run_for(transport) as run:
+            pass
+        with self.assertRaisesRegex(ConsoleError, 'run has ended'):
+            run.console.open()
+        self.assertEqual(transport.open_calls, 0)
+
+    def test_the_console_stays_closed_when_closing_it_failed(self):
+        class BadClose(FakeTransport):
+            def close(self):
+                raise OSError('port vanished')
+        transport = BadClose()
+        with self.assertRaises(OSError):
+            with self.run_for(transport) as run:
+                run.open_console()
+        with self.assertRaisesRegex(ConsoleError, 'run has ended'):
+            run.console.open()
+        self.assertEqual(transport.open_calls, 1)
+
+    def test_the_console_can_reopen_while_the_run_is_active(self):
+        transport = FakeTransport()
+        with self.run_for(transport) as run:
+            run.open_console()
+            run.console.close()
+            run.console.open()
+        self.assertEqual((transport.open_calls, transport.close_calls), (2, 2))
 
 
 class RunLockTest(Workspace):

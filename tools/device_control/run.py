@@ -101,14 +101,19 @@ class BoardRun:
             "manifest_path": str(self._manifest_path),
             "host": {"platform": platform.platform(), "python": platform.python_version()},
         })
+        # Written before the manifest is read: null fields mean it could not be read.
+        self._identity = {"manifest_sha256": None, "board": None, "source_revision": None,
+                          "zephyr_revision": None, "build_id": None, "files": {},
+                          "observed_sha256": {}, "observed_build_id": None}
+        self.evidence.write_json("identity.json", self._identity)
         if self._manifest_path.is_file():
             self.evidence.copy_file(self._manifest_path, "manifest.json")
+            self._identity["manifest_sha256"] = sha256_file(self._manifest_path)
+            self.evidence.write_json("identity.json", self._identity)
         manifest = Manifest.load(self._manifest_path)
-        self._identity = {"manifest_sha256": sha256_file(self._manifest_path), "board": manifest.board,
-                          "source_revision": manifest.source_revision,
-                          "zephyr_revision": manifest.zephyr_revision, "build_id": manifest.build_id,
-                          "files": dict(manifest.files), "observed_sha256": manifest.observed_hashes(),
-                          "observed_build_id": None}
+        self._identity.update(board=manifest.board, source_revision=manifest.source_revision,
+                              zephyr_revision=manifest.zephyr_revision, build_id=manifest.build_id,
+                              files=dict(manifest.files), observed_sha256=manifest.observed_hashes())
         self.evidence.write_json("identity.json", self._identity)
         manifest.verify(self.profile.board)
         if self.profile.identity_pattern and not manifest.build_id:
@@ -124,26 +129,29 @@ class BoardRun:
     def _finish(self, error: Optional[BaseException]) -> None:
         self._active = False
         cleanup_error = None
+        # BaseException: an interrupt here must not skip the lock release or the result.
         if self.console is not None:
             try:
-                self.console.close()
-            except Exception as failure:
+                self.console.retire()
+            except BaseException as failure:
                 cleanup_error = failure
         if self._lock is not None:
+            lock, self._lock = self._lock, None
             try:
-                self._lock.__exit__(None, None, None)
-            except Exception as failure:
+                lock.__exit__(None, None, None)
+            except BaseException as failure:
                 cleanup_error = cleanup_error or failure
-            self._lock = None
         failure = error or cleanup_error
         result = {"status": "passed" if failure is None else "failed"}
         if failure is not None:
             result.update(error_type=type(failure).__name__, error=str(failure))
         if error is not None and cleanup_error is not None:
-            result["cleanup_error"] = str(cleanup_error)
-        self.evidence.write_json("result.json", result)
-        self.evidence.close()
-        if error is None and cleanup_error is not None:
+            result["cleanup_error"] = repr(cleanup_error)
+        try:
+            self.evidence.write_json("result.json", result)
+        finally:
+            self.evidence.close()
+        if cleanup_error is not None and (error is None or not isinstance(cleanup_error, Exception)):
             raise cleanup_error
 
     def _require_active(self) -> None:

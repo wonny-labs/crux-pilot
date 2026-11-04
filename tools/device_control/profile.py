@@ -43,6 +43,10 @@ def _seconds(data: Mapping[str, Any], name: str) -> float:
     return float(value)
 
 
+def _substitute(token: str, values: Mapping[str, Any]) -> str:
+    return _PLACEHOLDER.sub(lambda match: str(values[match.group(1)]), token)
+
+
 @dataclass(frozen=True)
 class ToolCommand:
     """An argument list run without a shell, with a bounded timeout."""
@@ -53,8 +57,7 @@ class ToolCommand:
     def render(self, profile: "BoardProfile", **values: str) -> List[str]:
         known = {"probe_serial": profile.probe_serial, "mcu": profile.mcu,
                  "port": profile.port, "board": profile.board, **values}
-        return [_PLACEHOLDER.sub(lambda match: str(known[match.group(1)]), token)
-                for token in self.command]
+        return [_substitute(token, known) for token in self.command]
 
 
 def _command(data: Mapping[str, Any], name: str, allowed: set, needs_image: bool) -> Optional[ToolCommand]:
@@ -69,20 +72,22 @@ def _command(data: Mapping[str, Any], name: str, allowed: set, needs_image: bool
         raise ProfileError(f"{name}.command must be a non-empty list of strings")
     used = set()
     for token in command:
-        if _ERASE_OR_FUSE.search(token):
-            raise ProfileError(f"{name}.command must not perform an erase or fuse operation: {token!r}")
         used.update(_PLACEHOLDER.findall(token))
     unknown = used - allowed
     if unknown:
         raise ProfileError(f"{name}.command has an unknown placeholder: {sorted(unknown)}")
-    for placeholder in used - {"image"}:
-        if _ERASE_OR_FUSE.search(str(data.get(placeholder, ""))):
-            raise ProfileError(f"{name}.command must not perform an erase or fuse operation: "
-                               f"{placeholder} is {data[placeholder]!r}")
     if needs_image and "image" not in used:
         raise ProfileError(f"{name}.command must name the checked image with {{image}}")
     if "probe_serial" in used and not data.get("probe_serial"):
         raise ProfileError(f"{name}.command uses probe_serial, which the profile does not set")
+    # The whole argument: "er{mcu}" with mcu "ase" names an erase, though neither part does.
+    # The image path is not known yet and only names a file, so it counts as empty.
+    values = {**data, "image": ""}
+    for token in command:
+        rendered = _substitute(token, values)
+        if _ERASE_OR_FUSE.search(rendered):
+            raise ProfileError(f"{name}.command must not perform an erase or fuse operation: "
+                               f"{token!r} renders as {rendered!r}")
     return ToolCommand(tuple(command), _seconds(section, "timeout_seconds"))
 
 
