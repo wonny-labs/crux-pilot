@@ -517,6 +517,18 @@ of every save, with a medium model that proves nothing about a real card.
 `scripts/test-storage-simulators.sh`. None of this says anything about confidentiality, entropy or real power loss. See
 the [credential store](../docs/credential-store.md).
 
+## Portable Security events
+
+Security events (Issue #182): the root Host suite runs `tests/security_event` as `SecurityEvent.*` in CTest. Most suites
+control the clocks and the log through linker wraps. `rejections`, `read`, `waits` and `secrets` join the real Access core and the
+real provider, with Access's fake ports. `integration` links product cores with real Logging, Thread and Sync and Time's real
+authority lock and monotonic clock. Its realtime provider is Time's controlled `memory` one.
+`crux_security_event_fake` is a recording fake of the public contract for the Host tests of a consumer, and one suite runs on both
+it and the core. These exist only when Crux builds its own tests. `scripts/test-security-event.sh` also runs them under the
+sanitizer preset, runs clang-tidy on the sources and tests, and runs `scripts/check-security-event-boundary.py`, which builds
+`tests/security_event_consumer` in both directions. None of this runs on Zephyr or a target. See the
+[Security event contract](../docs/security-event-contract.md).
+
 ## Web frontend
 
 The web frontend has its own tools under `web/` and needs Node.js, while no C build does. Its commands are in the

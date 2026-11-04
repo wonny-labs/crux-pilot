@@ -100,6 +100,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Access | Accounts, roles, sessions and permission checks for management channels | Portable core with Host fake ports only, under review for Issue #177; no provider, so no product composition | [Contract](access-contract.md), [proposal](plans/access-contract-proposal.md) |
 | File service | Declared file areas with permissions, limits, direct writes and managed uploads for management channels | Portable core with the Host fake File provider only, under review for Issue #179; no event provider, so no product image links it; not atomic across power loss | [Contract](file-service-contract.md) |
 | Credential store | One sealed image in two slots for accounts, device keys and certificates, with its protection basis declared | Portable core over File with test-only protection, under review for Issue #178; no PSA provider (Issue #142), so no product composition, and not confidential on the planned pilot basis | [Contract and design](credential-store.md) |
+| Security events | Bounded records of management activity with stable identifiers and counted loss, through Logging | Portable core and Access provider on Host, under review for Issue #182; no Zephyr composition, no persistence | [Contract](security-event-contract.md) |
 
 ## Build and platform composition
 
