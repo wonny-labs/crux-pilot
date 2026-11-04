@@ -22,6 +22,8 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 | Build tools and validation oracles | Python `unittest` | Linux host |
 | Physical Time/RTC functional tests | Standalone pytest through `scripts/test-target.sh` | macOS, EVKB and J-Link |
 | Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and controlled Mac/peer setup |
+| Out-of-tree consumer, all software levels | Python `unittest`; its Zephyr levels are opt-in | Linux host and Zephyr `native_sim` |
+| Device-control tool | Python `unittest` with fake transports | Linux and macOS hosts; Windows not run |
 
 ## Host: `time/` and `controller/`
 
@@ -176,6 +178,41 @@ The fixture uses public capabilities in portable targets and declares platform
 composition separately. It does not establish an installed SDK, production Linux,
 physical qualification or support for additional toolchains.
 
+## Testing a consumer application
+
+Applications own their tests; the [build guide](../docs/build.md#testing-a-consumer-application) gives the
+entry point for each level and warns that `EXTRA_ZEPHYR_MODULES` is skipped when there is no west
+workspace. `consumer_poc/` is a worked example, kept working by `build/test_consumer_poc.py`:
+
+```sh
+python3 -m unittest discover -s tests/build -p test_consumer_poc.py -v
+```
+
+The test copies the consumer outside the Crux tree, then builds and runs its unit and Host integration
+levels. It also checks which components are built, that the unit level links no Crux target, and that
+a controlled policy defect (`-DCONSUMER_DEFECT_REBASE=ON`) fails both levels on their own assertions.
+These Host cases need no west workspace, so the existing `tests/build` discovery in Host CI runs them.
+
+The `native_sim` and functional levels are opt-in, and the `zephyr-software` workflow runs them. To
+run them yourself, use the Linux development environment, from a west workspace with pytest installed:
+
+```sh
+CRUX_CONSUMER_POC_ZEPHYR_TESTS=1 python3 -m unittest discover -s tests/build -p test_consumer_poc.py -v
+```
+
+This runs `consumer_poc/run_poc.sh`, which requires the functional oracle to reject the same defect. None
+of these checks flashes, resets or opens a device.
+
+## Device-control tool
+
+`build/test_device_control.py` tests [`tools/device_control`](../tools/device_control/README.md) with
+fake transports and scripted tools, including its reset and flash gates, manifest checks, evidence
+retention and board lock. One test also runs real `sudo` where it needs no password. No test uses
+hardware or a real serial port, and nothing has run on Windows.
+Host CI runs these tests on Linux only; the macOS results were run by hand and are in the
+[recorded runs](../docs/evidence/test-foundation-tool/README.md). See the tool's README for what has
+not been exercised.
+
 ## Product template
 
 `tests/build/test_product_template.py` checks `samples/product_template`: its C file and CMake
@@ -236,6 +273,27 @@ the independent C17/C++17 consumer build without private consumer dependencies.
 See [Configuration qualification](../docs/configuration-validation.md) for the
 focused manual `native_sim` and pinned Settings source-wrapper probe commands.
 These checks do not operate Flash or qualify an adopted persistence backend.
+`Configuration.Conformance` also runs the string cases of `string_conformance.c`, and
+`Configuration.NoProvider` runs a parameter over the no-provider port. The storage gate runs the
+same cases on `native_sim` from `tests/configuration/zephyr`, and a string case on each of the two
+Settings backends.
+
+## Status and configuration services
+
+`scripts/test-mgmt-services.sh` runs the services on Host, with and without sanitizers, then their
+thread suites under ThreadSanitizer, their clang-tidy selection, a C and C++ consumer built from
+public headers, and `scripts/check-mgmt-services-boundary.py`. `ConfigService.*` and `MgmtStatus.*`
+run on the real Access core with its fake ports, the fake Configuration store, a recording event port
+and fake status sources with fault injection per source. `MgmtStatus.openapi_schema` holds the
+service's JSON to the status schema read from `web/api/openapi.yaml`, with negative controls.
+`MgmtStatus.source_mapping` holds each mapping in the thin providers to a stand-in for the contract it
+calls, and `MgmtStatus.real_sources` runs them on the real System, Time and Netif on Linux.
+
+The storage gate also runs `tests/native/mgmt_services` on `native_sim`, with the real System, Time
+and Sync and a double for access: after any number of status polls,
+`crux_system_reset_cause_clear` still returns `INVALID_STATE` until the boot owner makes its own read.
+None of this operates hardware, and no target has run these services. See the
+[services contract](../docs/status-configuration-services.md).
 
 ## Portable File software slice
 
@@ -284,7 +342,7 @@ and `settings_error/settings_store.patch`. It compares the pinned sources byte f
 outside the Zephyr checkout and fails on drift. The fixture's provider copy can read each
 saved record back; that read-back is tested, not yet part of any product provider. A
 negative control builds the same suite against the unpatched backend and requires its
-characterised result: the named cases that expose the defects fail and the 12 others pass. These are simulator results. They do not show
+characterised result: the named cases that expose the defects fail and the 13 others pass. These are simulator results. They do not show
 persistence, power-loss behaviour or recovery on a real card, and the format limits
 recorded by the tests (no checksum or resynchronisation, a non-atomic compaction, a torn
 tail that can lose the latest save or leave the file unreadable) remain. A missing settings file reads as an empty store unless a compaction leftover (`.cmp`) exists, which is an I/O error until the next save. The backend's inner duplicate scans can still resurrect a deleted key after a read fault; they are neither fixed nor tested, and Crux never deletes.
@@ -509,6 +567,20 @@ Command line (Issue #181): the root Host suite runs `tests/cli` as `Cli.*` in CT
 `scripts/test-cli.sh` also runs them under the sanitizer preset, runs clang-tidy on the CLI sources, runs `scripts/check-cli-boundary.py`, which configures and builds `tests/cli_consumer` both ways, runs `scripts/check-cli-session-commands.py`, and runs the shell rule's Host tests in `tests/build/test_management_shell.py`.
 `scripts/test-cli.sh --zephyr`, in the Zephyr CI job, runs `tests/build/test_cli_composition.py`: refused compositions at configuration, accepted ones built on `native_sim`, and `tests/zephyr/cli_serial_compile` compiled and linked for the RT1060-EVKB with LPUART3, with the `.config` and image checks of `scripts/check-management-shell.py` on each. No image built here calls the console, and none is flashed or run. Physical serial login needs separate approval. See the [command line contract](../docs/cli-contract.md).
 
+## Portable credential store
+
+The credential store (Issue #178): the root Host suite runs `tests/credential` as `Credential.*` in CTest, on the File
+fake and on the Linux File provider. The protection in every suite is **test only**, a CRC in place of a tag and a
+keystream that is not encryption, because PSA is not qualified (Issue #142). It exists only when Crux builds its own
+tests, it refuses to compile outside a test composition, and `Credential.credential_production_refuses` shows a product
+build of the store refusing it at start. The fault suites cut power before each File operation, each sector and each byte
+of every save, with a medium model that proves nothing about a real card.
+`scripts/test-credential.sh` also runs them under the sanitizer preset, runs clang-tidy on the sources and runs
+`scripts/check-credential-boundary.py`, which configures and builds `tests/credential_consumer` in both directions.
+`tests/native/credential_fatfs` runs the conformance cases on real FatFs over a RAM disk, under
+`scripts/test-storage-simulators.sh`. None of this says anything about confidentiality, entropy or real power loss. See
+the [credential store](../docs/credential-store.md).
+
 ## Portable Security events
 
 Security events (Issue #182): the root Host suite runs `tests/security_event` as `SecurityEvent.*` in CTest. Most suites
@@ -535,3 +607,27 @@ The web frontend has its own tools under `web/` and needs Node.js, while no C bu
 
 All of these run against the mock server, on the loopback address and over plain HTTP. They show nothing about TLS, real
 sessions, connection limits or timing, and they are not `native_sim` or physical evidence. Issue #220 covers those.
+
+## SSH provider
+
+The standard Host CTest includes `Ssh.ProviderConformance`, which runs the cases in `tests/ssh/conformance.c` against a fake
+provider, `Ssh.ConformanceCatchesDefects`, which gives the fake each deliberate defect and requires the named case to fail, and
+`Ssh.Boundaries`, which runs `scripts/check-ssh-boundaries.py`. It also has `Ssh.FakeProvider`, `Ssh.AttachmentDouble`, `Ssh.CallbackTable`
+and a test of each stand-in entry point. The fake needs no SSH library, and the CLI and SFTP Host tests link it. It runs every callback
+on the calling thread, so it shows no concurrency, timing or protocol behaviour. No real provider has run the cases yet.
+`tests/build/test_ssh_boundaries.py` shows that the boundary check rejects each violation.
+
+`scripts/test-ssh-wolf-settings.sh` is not part of any default workflow, because it needs the optional `crux-secure-management`
+west group. It compiles and links `tests/zephyr/ssh_wolf_probe` for `mimxrt1060_evk@B//qspi` with the TLS socket backend, and for
+`native_sim/native/64` both ways, and runs negative controls. It never flashes or runs an image, and the file port it links
+is one that refuses every operation. See [the SSH provider contract](../docs/ssh-provider-contract.md).
+
+## PSA Crypto qualification
+
+`tests/psa_crypto` holds provider-neutral PSA Crypto conformance cases (Issue #142), a standalone Linux Host project, a `native_sim` Ztest app and two
+stub providers that prove the cases can fail. `provider_declarations.cmake` states what each provider does not support or fails, and the harnesses compare it with the run in both directions.
+
+`scripts/test-psa-crypto.sh [host|zephyr|target|all]` needs a west workspace with the optional `crux-secure-management` group. `host` runs the controls and both providers with and without sanitizers. `zephyr` runs
+Twister on `native_sim/native/64` and checks that `native_sim` random stays test-only. `target` compiles both providers for `mimxrt1060_evk@B//qspi`, and never flashes, resets or runs an image. The `psa-crypto` workflow runs all three with the second argument `tf-psa-crypto`, because a default workflow must not select the GPL stacks, so wolfPSA runs only locally.
+No consumer calls a provider here. See the [qualification record](../docs/psa-crypto-qualification.md) and the [design](../docs/psa-crypto-design.md).
+

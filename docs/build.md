@@ -121,7 +121,25 @@ The existing VS Code [debug configurations](../.vscode/launch.json) connect from
 - **EVKB QSPI: Attach** uses an ELF matching the image already on the board and does not download firmware. The connection may still halt the target.
 - **EVKB QSPI: Flash** builds the **Time sample**, then resets the board and downloads that image. It must not be used to flash arbitrary applications or unapproved storage candidates.
 
-See the [Time sample build task](../scripts/build-debug-target.sh) and [physical UART test instructions](../tests/README.md#physical-uart-target). Stop the debugger, GDB Server and serial monitors before a separately authorised physical test that requires exclusive access.
+See the [debug build script](../scripts/build-debug-target.sh) and [physical UART test instructions](../tests/README.md#physical-uart-target). Stop the debugger, GDB Server and serial monitors before a separately authorised physical test that requires exclusive access.
+
+### Debug builds of other applications
+
+`scripts/build-debug-target.sh` builds the Time sample unless told otherwise. Inside the Dev Container, `--app <directory>` builds another application, and `--debug-optimizations` adds [the fragment](../scripts/debug-optimizations.conf) that selects `-Og`:
+
+~~~sh
+scripts/build-debug-target.sh 'mimxrt1060_evk@B//qspi' --app samples/storage_sd --debug-optimizations
+~~~
+
+Without either option the build directory is the one that the VS Code profile and the clean task name. With `--app` the directory is `build/zephyr/<board>--<application path>`, even for `samples/time`, and `--debug-optimizations` appends `--og`. The script replaces each run of characters other than letters, digits, `_`, `.` and `-` with a single `_` in the board and in the path, so the example above builds in `build/zephyr/mimxrt1060_evk_B_qspi--samples_storage_sd--og`. A path outside the repository is keyed by its whole sanitised absolute path, and a relative path is resolved against the directory that the command runs in. The script prints the build directory before it builds and the ELF path when it finishes. A debug build records no provenance. A build with `--debug-optimizations` is never verification evidence: its stack use and timing may differ from the `-Os` images that the verification scripts build, and they have not been re-measured. `--app` builds an application's base configuration only: samples and tests that need extra configuration files, overlays or modules, such as the controller and networking compositions, are built by their own scripts. The **EVKB QSPI: Flash** profile still downloads only the Time sample. Downloading another application remains a separately authorised physical operation.
+
+### What the platform provides for build and debug
+
+| Provided by the platform | Owned by the project | Not provided |
+|---|---|---|
+| The build and debug scripts above for the RT1060-EVKB QSPI target. The J-Link GDB Server launcher and the VS Code profiles for that target. The `-Og` fragment. | The board, including its SDRAM timing and device configuration data (DCD). Any J-Link script that prepares a board other than the verified EVKB QSPI flow. Its own build, flash and debug scripts, which may reuse the pieces above. | A general flash or debug wrapper over `west flash` and `west debug`. Unattended programming. A J-Link script that initialises SEMC. |
+
+The Zephyr J-Link runner needs a local J-Link Commander even when it is given a remote GDB host. The Dev Container has none, so the split between the Mac-hosted server and the container GDB stays.
 
 ## External Linux application using Crux source
 
@@ -221,7 +239,11 @@ The external application tests also cover C++17, independently selected Thread/S
 | Access | Select `CRUX_BUILD_ACCESS=ON`, which requires `CRUX_BUILD_SYNC=ON`. The public target has no provider yet, so an image that calls it does not link. The [Access contract](access-contract.md) records the current state. |
 | Command line | Select `CRUX_BUILD_CLI=ON`, which requires `CRUX_BUILD_ACCESS=ON`. `crux::cli` holds command tables and handlers, and the event port has no provider yet, so an image that calls it does not link. The [command line contract](cli-contract.md) records the current state. On Zephyr, `CONFIG_CRUX_CLI=y` and the shell rule there apply: without `CONFIG_CRUX_DEVELOPMENT_IMAGE`, such an image has no Zephyr shell. |
 | File service | Select `CRUX_BUILD_FILE_SERVICE=ON`, which requires `CRUX_BUILD_ACCESS=ON`, `CRUX_BUILD_FILE=ON` and `CRUX_BUILD_SYNC=ON`. It has no event provider yet, so an image that calls it does not link. The [File service contract](file-service-contract.md) holds its rules and limits |
+| Credential store | Select `CRUX_BUILD_CREDENTIAL=ON`, which requires `CRUX_BUILD_SYNC=ON` and `CRUX_BUILD_FILE=ON`. The public target has no protection provider yet, so an image that calls it does not link, and a product build refuses the test-only ports at start. The [credential store](credential-store.md) records the current state. |
 | Security events | Select `CRUX_BUILD_SECURITY_EVENT=ON`, which requires Access, Logging, Sync, Thread and Time. A final link adds the object target `crux_security_event_access_port`, or it does not link. A composition sets `CRUX_SECURITY_EVENT_RING`, `_RESERVE`, `_DRAIN_BURST` and `_DRAIN_PAUSE_MS` to suit its log buffer, and keeps the Logging threshold at INFO or more verbose. See the [Security event contract](security-event-contract.md). |
+| Configuration | Select `CRUX_BUILD_CONFIGURATION=ON`. A composition with no provider links `crux_configuration_no_provider`, and a load or save then returns `NOT_SUPPORTED`. `CRUX_CONFIG_STRING_MAX` changes the longest string for every user of the header. See the [contract](configuration-contract.md) |
+| Configuration service | Select `CRUX_BUILD_CONFIG_SERVICE=ON`, which requires `CRUX_BUILD_ACCESS=ON` and `CRUX_BUILD_CONFIGURATION=ON`. It has no event provider yet, so an image that calls it does not link. The [services contract](status-configuration-services.md) holds its rules and limits |
+| Status service | Select `CRUX_BUILD_MGMT_STATUS=ON`, which requires Access, System, and Configuration for its library `crux_configuration_text`. A composition links `crux_mgmt_status_sources` and `crux_mgmt_status_no_security`, or its own providers. The [services contract](status-configuration-services.md) holds its rules and limits |
 | Queue | Portable targets use `crux::queue`. The final Linux executable additionally links `crux::queue_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and TTY binding belongs to platform composition |
 | I2C | Select `CRUX_BUILD_I2C=ON`; the Host provider is a deterministic loopback fixture for portable consumer tests. Zephyr applications compile the native provider and bind `crux-i2c0` to a selected controller |
@@ -255,6 +277,33 @@ For all existing Python build checks, use `python3 -m unittest discover -s tests
 | `native consumer requirement` from CMake | Remove private/native targets, headers or flags from the portable consumer. Keep platform composition separate |
 | Zephyr module or device selection failure | Verify west bootstrap, pinned SDK, selected module checkout, Kconfig prerequisites and board/Devicetree resource ownership |
 | Offline Host check cannot resolve GoogleTest | Run `scripts/bootstrap-host.sh` once to populate the dependency cache before `scripts/check-host.sh` |
+
+## Testing a consumer application
+
+Applications own their tests. Crux adds no test target, Kconfig symbol or public header for them, and it ships no mock per API: write doubles at your application's own port. A passing level implies nothing about another, and `native_sim` is not hardware evidence.
+
+| Level | Entry point | Example in the [out-of-tree consumer](../tests/consumer_poc/README.md) |
+| --- | --- | --- |
+| Unit | Your own CTest. Portable logic behind your own port needs no Crux target | `host/test_periodic.c` |
+| Host integration | The [root `add_subdirectory()` entry point](#external-linux-application-using-crux-source), with `crux_assert_portable_consumer()` on portable targets | `host/test_integration.c` |
+| `native_sim` | `west build` or `west twister` with `EXTRA_ZEPHYR_MODULES`, in a west workspace | `zephyr_test/` |
+| Functional | Standalone `pytest-twister-harness` on a `native_sim` build | `zephyr/`, `functional/` |
+| Hardware | No supported entry point. The internal [device-control tool](../tools/device_control/README.md) is untested on hardware, and any reset or flash needs authorisation for the current task | None |
+
+~~~sh
+west build -b native_sim/native/64 -d <build> <application> -- -DEXTRA_ZEPHYR_MODULES=<crux>
+west twister -p native_sim/native/64 -T <ztest-application> --extra-args=EXTRA_ZEPHYR_MODULES=<crux>
+PYTHONPATH="$ZEPHYR_BASE/scripts/pylib/pytest-twister-harness/src" python3 -m pytest \
+  -p twister_harness.plugin --twister-harness --device-type=native --build-dir=<build> <tests>
+~~~
+
+> **Warning: `EXTRA_ZEPHYR_MODULES` is skipped when there is no west workspace.** With only `ZEPHYR_BASE` set, Zephyr clears `WEST` and processes no modules. The failure is a missing `kconfig_module_dirs.cmake`, then undefined `CRUX_*` symbols, and neither names the cause. Run from a west workspace, whose manifest does not need to list Crux. Without a workspace, `ZEPHYR_MODULES=<crux>` has been shown to configure; that is the only part of it that has been run.
+
+- Do not depend on `ZEPHYR_<NAME>_*` variables for Crux. The module name follows the checkout directory.
+- The harness is upstream code at Alpha status with no version promise, and `west.yml` fixes its revision. It needs `ZEPHYR_BASE` set, plus `pyyaml` and `pykwalify`, which it does not declare.
+- Do not use the harness's `hardware` device type behind a safety claim: it flashes on every launch. The [proposal](test-foundation-proposal.md#pytest-twister-harness-findings) records this and the other gaps.
+
+The proposal's [current state](test-foundation-proposal.md#current-state) lists what has run at each level and what has not.
 
 ## Support and safety boundaries
 

@@ -1,0 +1,1 @@
+"crux-src":"/opt/crux-src":"/opt/crux-src/zephyr"

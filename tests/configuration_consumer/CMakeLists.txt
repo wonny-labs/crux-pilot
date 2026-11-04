@@ -23,3 +23,11 @@ foreach(language IN ITEMS c cpp)
     target_link_libraries(configuration_${language} PRIVATE configuration_${language}_portable
         crux::configuration configuration_fixture)
 endforeach()
+# The string additions, in a file of their own, so that the files above still compile unchanged.
+add_library(configuration_string_cpp_portable OBJECT consumer_string.cpp)
+target_link_libraries(configuration_string_cpp_portable PRIVATE crux::configuration)
+target_compile_options(configuration_string_cpp_portable PRIVATE -Wall -Wextra -Wpedantic -Werror)
+crux_assert_portable_consumer(configuration_string_cpp_portable)
+add_executable(configuration_string_cpp composition_string.c)
+target_link_libraries(configuration_string_cpp PRIVATE configuration_string_cpp_portable
+    crux::configuration configuration_fixture)

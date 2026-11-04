@@ -81,6 +81,7 @@ reviews depend on:
 - `.github/`, `scripts/`, `CMakePresets.json`, `.clang-format` and `.clang-tidy`, which define the checks
 - `doc-links.toml`, `lychee.toml` and `cmake/CruxConsumerBoundary.cmake`, which configure the documentation and consumer-boundary checks
 - `docs/evidence/` and `docs/baseline.md`, which record verification evidence
+- `tools/`, which holds the hardware safety gates of the device-control tool
 
 Change an existing file on these paths only within an explicit human approval
 that covers that change. A new check script or evidence record may be added

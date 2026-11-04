@@ -237,9 +237,78 @@ static void test_dead_medium_fails_every_call(void)
     expect("record", "abc");
 }
 
+/* Write through puts each unit on the medium as it is written, and the size only at a sync. */
+static void test_write_through_cuts_between_units(void)
+{
+    static uint8_t data[1024];
+    memset(data, 0xA5, sizeof(data));
+    crux_file_t *file = NULL;
+    size_t count = 0;
+    crux_file_info_t info;
+
+    /* In a new file, nothing is visible until the sync, though the file itself exists. */
+    start();
+    crux_file_fake_write_through(512);
+    assert(crux_file_open("slot", CRUX_FILE_CREATE_REPLACE, &file) == CRUX_FILE_OK);
+    assert(crux_file_write(file, data, sizeof(data), &count) == CRUX_FILE_OK);
+    assert(count == sizeof(data));
+    crux_file_fake_cut_after(0, NULL);
+    assert(crux_file_sync(file) == CRUX_FILE_ERR_IO);
+    assert(crux_file_close(&file) == CRUX_FILE_ERR_IO);
+    crux_file_fake_power_on();
+    assert(crux_file_stat(0, "slot", &info) == CRUX_FILE_OK && info.size == 0);
+
+    /* An existing file: one unit and only one reached the medium before the cut. */
+    assert(crux_file_open("slot", CRUX_FILE_CREATE_REPLACE, &file) == CRUX_FILE_OK);
+    assert(crux_file_write(file, data, sizeof(data), &count) == CRUX_FILE_OK);
+    assert(crux_file_close(&file) == CRUX_FILE_OK);
+    memset(data, 0x5A, sizeof(data));
+    assert(crux_file_open("slot", CRUX_FILE_READ_WRITE, &file) == CRUX_FILE_OK);
+    crux_file_fake_cut_after(1, NULL);
+    assert(crux_file_write(file, data, sizeof(data), &count) == CRUX_FILE_ERR_IO);
+    assert(count == 512);
+    assert(crux_file_close(&file) == CRUX_FILE_ERR_IO);
+    crux_file_fake_power_on();
+    static uint8_t read_back[1024];
+    assert(crux_file_open("slot", CRUX_FILE_READ, &file) == CRUX_FILE_OK);
+    assert(crux_file_read(file, read_back, sizeof(read_back), &count) == CRUX_FILE_OK);
+    assert(count == sizeof(read_back));
+    assert(crux_file_close(&file) == CRUX_FILE_OK);
+    assert(read_back[0] == 0x5A && read_back[511] == 0x5A);
+    assert(read_back[512] == 0xA5 && read_back[1023] == 0xA5);
+
+    /* A write that straddles a unit boundary splits on it. */
+    assert(crux_file_open("slot", CRUX_FILE_READ_WRITE, &file) == CRUX_FILE_OK);
+    assert(crux_file_seek(file, 510) == CRUX_FILE_OK);
+    uint32_t before = crux_file_fake_mutations();
+    assert(crux_file_write(file, data, 4, &count) == CRUX_FILE_OK);
+    assert(crux_file_fake_mutations() - before == 2);
+    assert(crux_file_close(&file) == CRUX_FILE_OK);
+
+    /* A medium that drops a write reports it as done, and the file does not change. */
+    crux_file_fake_drop_writes(true);
+    assert(crux_file_open("slot", CRUX_FILE_READ_WRITE, &file) == CRUX_FILE_OK);
+    memset(data, 0x11, sizeof(data));
+    assert(crux_file_write(file, data, 4, &count) == CRUX_FILE_OK && count == 4);
+    assert(crux_file_close(&file) == CRUX_FILE_OK);
+    crux_file_fake_drop_writes(false);
+    assert(crux_file_open("slot", CRUX_FILE_READ, &file) == CRUX_FILE_OK);
+    assert(crux_file_read(file, read_back, 1, &count) == CRUX_FILE_OK);
+    assert(read_back[0] == 0x5A);
+    assert(crux_file_close(&file) == CRUX_FILE_OK);
+
+    /* A medium that leaves fails everything, and reset brings the default model back. */
+    crux_file_fake_remove_medium();
+    assert(crux_file_stat(0, "slot", &info) == CRUX_FILE_ERR_IO);
+    crux_file_fake_write_through(0);
+    crux_file_fake_power_on();
+    assert(crux_file_stat(0, "slot", &info) == CRUX_FILE_OK);
+}
+
 int main(void)
 {
     test_provider_failures_pass_through();
+    test_write_through_cuts_between_units();
     test_rename_never_removes_a_destination();
     test_common_checks_do_not_reach_the_provider();
     test_short_write_and_capacity();

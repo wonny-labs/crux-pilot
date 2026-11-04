@@ -1,0 +1,83 @@
+# GitHub Actions run 41891057428, 4 November 2026, merge revision 6f0d09b of e763852 into main.
+# This is the one CI run that enabled the crux-secure-management group. scripts/check-ssh-boundaries.py forbids that in a
+# default workflow, so the workflow was then limited to TF-PSA-Crypto. RT1060 lines are compile only, and nothing was run.
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+Crux revision: 6f0d09b934672c45dff60bdb7572431df9c7e8fe
+pin ok: mbedtls a3e190fe44c78d1ba67f55979e1257328cc7d0d8
+pin ok: tf-psa-crypto dc575a2ddcc8cb16275d24c42a52eaf79ebe2231
+pin ok: wolfssl 3c5eead44904df64e6a5a1f4ebdce377d35a849a
+pin ok: wolfpsa 55ae0ec58cd2ef4c528f44e8466095550c16ca8a
+control ok: no provider selected fails to configure
+control ok: unsupported stub fails every case
+control ok: permissive stub fails every case that expects an error status
+control ok: stub-permissive: a stale declaration fails
+archive ok: same files as the west checkout
+tf-psa-crypto: 41 cases, 0 failed, 3 declared unsupported, 0 declared deviations
+host random differs between processes: tf-psa-crypto
+control ok: tf-psa-crypto: without declarations, 3 cases fail
+tf-psa-crypto-sanitize: 41 cases, 0 failed, 3 declared unsupported, 0 declared deviations
+wolfpsa: 41 cases, 0 failed, 0 declared unsupported, 2 declared deviations
+host random differs between processes: wolfpsa
+control ok: wolfpsa: without declarations, 2 cases fail
+wolfpsa-sanitize: 41 cases, 0 failed, 0 declared unsupported, 2 declared deviations
+wolfSSL UBSan reports, recorded: 4
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+Crux revision: 6f0d09b934672c45dff60bdb7572431df9c7e8fe
+pin ok: mbedtls a3e190fe44c78d1ba67f55979e1257328cc7d0d8
+pin ok: tf-psa-crypto dc575a2ddcc8cb16275d24c42a52eaf79ebe2231
+pin ok: wolfssl 3c5eead44904df64e6a5a1f4ebdce377d35a849a
+pin ok: wolfpsa 55ae0ec58cd2ef4c528f44e8466095550c16ca8a
+INFO    - 3 of 3 executed test configurations passed (100.00%), 0 built (not run), 0 failed, 0 errored, with no warnings in 68.96 seconds.
+INFO    - 119 of 119 executed test cases passed (100.00%) on 1 out of total 1473 platforms (0.07%).
+crux.psa_crypto.conformance.tf_psa_crypto {'passed': 39, 'skipped': 3}
+crux.psa_crypto.conformance.wolfpsa {'passed': 40, 'skipped': 2}
+crux.psa_crypto.conformance.wolfpsa_with_tls {'passed': 40, 'skipped': 2}
+default	PSA_RANDOM_PROBE 3bdb31ccb6d508aad2e1be87e47b88ae
+default	PSA_RANDOM_PROBE 3bdb31ccb6d508aad2e1be87e47b88ae
+seed=7	PSA_RANDOM_PROBE f5df5243e2193b07daaf9c7b6d1a4f1b
+seed=7	PSA_RANDOM_PROBE f5df5243e2193b07daaf9c7b6d1a4f1b
+seed-random	PSA_RANDOM_PROBE 0699b348891b76e9985213acfe560c00
+seed-random	PSA_RANDOM_PROBE d424550575f6857f3dfa6a787ebd07ae
+entropy declaration holds: tf_psa_crypto, native_sim random is test-only
+default	PSA_RANDOM_PROBE a2eff5b81eea4763a5c79a14b0c1409d
+default	PSA_RANDOM_PROBE a2eff5b81eea4763a5c79a14b0c1409d
+seed=7	PSA_RANDOM_PROBE 684a14af51401317e9275764d0cd667a
+seed=7	PSA_RANDOM_PROBE 684a14af51401317e9275764d0cd667a
+seed-random	PSA_RANDOM_PROBE 9d027eade5a18a7ada7a0faa54c59859
+seed-random	PSA_RANDOM_PROBE 7de23dd8d9a9672d7df33670050388a5
+entropy declaration holds: wolfpsa, native_sim random is test-only
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+Crux revision: 6f0d09b934672c45dff60bdb7572431df9c7e8fe
+pin ok: mbedtls a3e190fe44c78d1ba67f55979e1257328cc7d0d8
+pin ok: tf-psa-crypto dc575a2ddcc8cb16275d24c42a52eaf79ebe2231
+pin ok: wolfssl 3c5eead44904df64e6a5a1f4ebdce377d35a849a
+pin ok: wolfpsa 55ae0ec58cd2ef4c528f44e8466095550c16ca8a
+Memory region         Used Size  Region Size  %age Used
+           FLASH:      118564 B         8 MB      1.41%
+             RAM:       84352 B        32 MB      0.25%
+           OCRAM:           0 B       256 KB      0.00%
+tf-psa-crypto on mimxrt1060_evk@B//qspi, compile only: ENTROPY_MCUX_TRNG, zephyr,entropy = &trng at 0x400cc000, no DCP, nothing run
+CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS=y
+CONFIG_MBEDTLS_PSA_DRIVER_GET_ENTROPY=y
+CONFIG_MBEDTLS_PSA_CRYPTO_LEGACY_RNG=y
+CONFIG_MBEDTLS_PSA_STATIC_KEY_SLOTS=y
+CONFIG_ENTROPY_MCUX_TRNG=y
+CONFIG_ENTROPY_NEEDS_PRNG=y
+CONFIG_XOSHIRO_RANDOM_GENERATOR=y
+CONFIG_CSPRNG_ENABLED=y
+Memory region         Used Size  Region Size  %age Used
+           FLASH:      254932 B         8 MB      3.04%
+             RAM:       72832 B        32 MB      0.22%
+           OCRAM:           0 B       256 KB      0.00%
+wolfpsa on mimxrt1060_evk@B//qspi, compile only: ENTROPY_MCUX_TRNG, zephyr,entropy = &trng at 0x400cc000, no DCP, nothing run
+CONFIG_PSA_CRYPTO_PROVIDER_CUSTOM=y
+CONFIG_WOLFSSL_AES_TOUCH_LINES=y
+CONFIG_WOLFPSA=y
+CONFIG_ENTROPY_MCUX_TRNG=y
+CONFIG_ENTROPY_NEEDS_PRNG=y
+CONFIG_XOSHIRO_RANDOM_GENERATOR=y
+CONFIG_CSPRNG_ENABLED=y
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig

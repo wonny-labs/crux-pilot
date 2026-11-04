@@ -1,0 +1,18 @@
+# UBSan reports from wolfPSA on Linux Host with ASan and UBSan, revision a0fa506. All are inside the wolfSSL sources.
+/ws/modules/crypto/wolfssl/wolfcrypt/src/sp_c32.c:27404:37: runtime error: signed integer overflow: 16777215 * 130329821 cannot be represented in type 'int'
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /ws/modules/crypto/wolfssl/wolfcrypt/src/sp_c32.c:27404:37 
+/ws/modules/crypto/wolfssl/wolfcrypt/src/misc.c:503:40: runtime error: load of misaligned address 0x5340000fe9ac for type 'const word64' (aka 'const unsigned long'), which requires 8 byte alignment
+0x5340000fe9ac: note: pointer points here
+  0c 00 00 00 ac be f2 05  79 b4 b8 eb ce 88 9b ac  87 32 da d7 00 00 00 00  00 00 00 00 00 00 00 00
+              ^ 
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /ws/modules/crypto/wolfssl/wolfcrypt/src/misc.c:503:40 
+/ws/modules/crypto/wolfssl/wolfcrypt/src/misc.c:503:13: runtime error: store to misaligned address 0x5340000fe9ac for type 'word64' (aka 'unsigned long'), which requires 8 byte alignment
+0x5340000fe9ac: note: pointer points here
+  0c 00 00 00 ac be f2 05  79 b4 b8 eb ce 88 9b ac  87 32 da d7 00 00 00 00  00 00 00 00 00 00 00 00
+              ^ 
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /ws/modules/crypto/wolfssl/wolfcrypt/src/misc.c:503:13 
+/ws/modules/crypto/wolfssl/wolfcrypt/src/aes.c:10125:20: runtime error: load of misaligned address 0x5340000fe9ac for type 'word64' (aka 'unsigned long'), which requires 8 byte alignment
+0x5340000fe9ac: note: pointer points here
+  0c 00 00 00 eb b8 b4 79  05 f2 be ac d7 da 32 87  ac 9b 88 ce 00 00 00 00  00 00 00 00 00 00 00 00
+              ^ 
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /ws/modules/crypto/wolfssl/wolfcrypt/src/aes.c:10125:20 

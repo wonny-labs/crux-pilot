@@ -17,8 +17,8 @@ Owner: `components/access`. Public header `<crux/access.h>`, usage target `crux:
 | Public and adapter contracts | Implemented as proposed, with the additions below and the accepted requests |
 | Portable core | Builds on Host. It has no provider, so a product image does not link until one exists. |
 | Fake ports | Test composition in `tests/access`. They exist only when Crux builds its own tests. |
-| PSA derivation, random and keyed hash | Not implemented, Issue #142 |
-| Credential store | Not implemented, Issue #178. Requirement A6 is checked against a fake only. |
+| PSA derivation, random and keyed hash | Not implemented. Issue #142 [qualifies the calls](psa-crypto-design.md#what-each-port-calls) on both providers, and [#242](https://github.com/wonny-labs/crux-pilot/issues/242) supplies the provider. |
+| Credential store | Host implementation under review, Issue #178, with `crux_credential_access_store` as this contract's store port. Its [own suite](credential-store.md#tests) runs this core on it for A6, and these suites still use a fake store. |
 | Event identifiers and Logging output | In the [Security event contract](security-event-contract.md), Issue #182, whose provider implements the event port. Access's own Host tests keep their recording fake. |
 | Zephyr composition, target measurements | Not implemented. Target work needs separate hardware approval. |
 

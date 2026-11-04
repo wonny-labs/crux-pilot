@@ -89,12 +89,13 @@ module defaults. Trimming should reduce the wolfSSL figures, and the amount is u
 
 - **Combined image on `native_sim`.** No tested configuration builds wolfSSH with the wolfSSL socket backend on
   `native_sim`. M12's plan to test SFTP with OpenSSH on `native_sim` depends on solving this, or on testing SSH without
-  the socket backend. Issue #192 owns it.
+  the socket backend. Issue #205 decided this: see [the SSH provider contract](../ssh-provider-contract.md#testing-on-native_sim).
 - **wolfSSL settings must suit both consumers.** The socket backend requires Kconfig-driven wolfSSL settings, so it
   rejects `CONFIG_WOLFSSL_SETTINGS_FILE`. The module's default `user_settings.h` then defines `NO_FILESYSTEM`
   unconditionally. In `wolfssh/port.h` that takes priority over the file system ports other than
   `WOLFSSH_FATFS`, including `WOLFSSH_USER_FILESYSTEM`, so SFTP does not compile. The combined probe built only after that line was removed in a
-  scratch copy, and it also added definitions such as `WOLFSSL_WOLFSSH`. Issue #192 must find a maintainable answer.
+  scratch copy, and it also added definitions such as `WOLFSSL_WOLFSSH`. Issue #205 decided the arrangement: see
+  [the SSH provider contract](../ssh-provider-contract.md#wolfssl-and-wolfssh-settings).
 - **wolfPSA needs the Mbed modules in the workspace.** The PSA Kconfig tree lives under Zephyr's Mbed TLS module, so
   `mbedtls` and `tf-psa-crypto` must be present for configuration, even though no `mbedtls_` symbol is linked. Without
   them, `PSA_CRYPTO_PROVIDER_CUSTOM` has no effect and configuration fails.
@@ -155,8 +156,8 @@ product's threat model, such as physical access, and compliance owns that decisi
 
 ## Not done
 
-wolfPSA was built only for the RT1060 target, and not for `native_sim`. No PSA conformance case has run, which Issue #142
-covers. Stack use is unmeasured, and so is a full image's footprint, which Issue #197 covers. Handshake time and verifier cost
+wolfPSA was built only for the RT1060 target here. Since then, Issue #142 has run wolfPSA on Linux Host and `native_sim` with
+[the PSA conformance cases](../psa-crypto-qualification.md). Stack use is unmeasured, and so is a full image's footprint, which Issue #197 covers. Handshake time and verifier cost
 need hardware approval. Whether a low-cost evaluation kit can represent other boot
 media or execution from external RAM was not studied here.
 

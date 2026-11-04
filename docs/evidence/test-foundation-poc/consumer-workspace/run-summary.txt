@@ -1,0 +1,9 @@
+ok    host-unit-integration  exit=0 expected=0 17s
+ok    twister-native-sim     exit=0 expected=0 286s
+ok    image-normal           exit=0 expected=0 130s
+ok    functional-normal      exit=0 expected=0 1s
+ok    image-defect           exit=0 expected=0 163s
+ok    functional-defect      exit=1 expected=1 1s
+ok    defect-found-by-oracle exit=0 expected=0 0s
+ok    module-is-required     exit=0 expected=0 20s
+failures=0

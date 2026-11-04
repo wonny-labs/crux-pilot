@@ -16,6 +16,13 @@
     !defined(CONFIG_FS_FATFS_REENTRANT) || defined(CONFIG_FS_FATFS_MOUNT_MKFS)
 #error "RT1060 File selections require the Rev B QSPI board and the guarded FatFs/SDHC composition"
 #endif
+#if defined(CONFIG_DCACHE)
+/* The USDHC HAL invalidates a read target by whole cache lines on completion, so a buffer that
+ * shares a line with another object can drop that object's write made during the transfer. The SD
+ * layer bounces every buffer that is not aligned to this value. */
+_Static_assert(CONFIG_SDHC_BUFFER_ALIGNMENT >= CONFIG_DCACHE_LINE_SIZE,
+               "SDHC DMA buffers must be aligned to a whole D-cache line");
+#endif
 #elif !defined(CONFIG_BOARD_NATIVE_SIM) ||                                                         \
     (!defined(CONFIG_CRUX_FILE_SIMULATOR) && !defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR))
 #error "File provider requires an approved simulator composition"

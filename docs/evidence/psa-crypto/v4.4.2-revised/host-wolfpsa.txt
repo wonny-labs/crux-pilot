@@ -1,0 +1,49 @@
+# Linux Host, Debug, Clang 18, revision a0fa506
+provider: wolfpsa
+PSA_RANDOM_PROBE 2bccec83bb305a15788cfa269b7db73e
+PASS init_is_idempotent
+PASS random_fills_requested_bytes_only
+PASS random_large_request_succeeds
+PASS sha256_known_answer_one_shot
+PASS sha256_multipart_matches_known_answer
+PASS sha256_update_after_finish_is_bad_state
+PASS sha256_buffer_too_small
+PASS sha256_verify_mismatch_invalid_signature
+PASS hash_unsupported_algorithm_not_supported
+PASS ecdsa_p256_import_is_volatile
+PASS ecdsa_p256_verify_hash_known_answer
+PASS ecdsa_p256_flipped_signature_invalid
+DEVIATION ecdsa_p256_zero_signature_invalid (declared): psa_cases.c:504: psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample, zeros, sizeof zeros) returned -132, expected -149
+PASS ecdsa_p256_truncated_signature_rejected
+PASS ecdsa_p256_tampered_input_invalid
+DEVIATION ecdsa_p256_off_curve_import_rejected (declared): psa_cases.c:558: import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, off_curve, sizeof off_curve) returned 0, expected -135
+PASS ecdsa_p256_missing_prefix_import_rejected
+PASS ecdsa_p256_off_curve_key_never_verifies
+PASS ecdsa_p256_key_policy_not_permitted
+PASS pbkdf2_hmac_sha256_known_answer_rfc7914
+PASS pbkdf2_hmac_sha256_known_answer_4096
+PASS pbkdf2_wrong_password_derives_different_output
+PASS pbkdf2_verify_bytes_when_supported
+PASS kdf_output_on_inactive_operation_is_bad_state
+PASS kdf_unsupported_algorithm_not_supported
+PASS destroyed_key_is_invalid_handle
+PASS hmac_sha256_known_answer
+PASS hmac_sha256_empty_input_known_answer
+PASS hmac_sha256_buffer_too_small
+PASS hmac_key_policy_not_permitted
+PASS pbkdf2_longest_password_known_answer
+PASS pbkdf2_empty_password_known_answer
+PASS aes256_gcm_known_answer_one_shot
+PASS aes256_gcm_multipart_separate_tag_known_answer
+PASS aes256_gcm_slot_image_known_answer
+PASS aes256_gcm_tampering_is_invalid_signature
+PASS aes256_gcm_key_policy_not_permitted
+PASS aes256_key_import_wrong_size_rejected
+PASS p256_generate_export_forms
+PASS p256_generated_key_signs_and_verifies
+PASS p256_private_import_gives_known_public
+PASS p256_private_export_requires_usage
+PASS ed25519_known_answer_rfc8032
+PASS ed25519_generate_export_forms
+PASS ed25519_generated_key_signs_and_verifies
+45 cases, 0 failed, 0 declared unsupported, 2 declared deviations
