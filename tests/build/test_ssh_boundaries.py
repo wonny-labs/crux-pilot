@@ -149,6 +149,11 @@ class SshBoundaryTests(unittest.TestCase):
         self.edit("west.yml", "group-filter: [-crux-secure-management, -crux-reliance]", "group-filter: []")
         self.assert_rejected("must stay off by default")
 
+    def test_reliance_group_on_by_default(self):
+        self.edit("west.yml", "group-filter: [-crux-secure-management, -crux-reliance]",
+                  "group-filter: [-crux-secure-management]")
+        self.assert_rejected("the Reliance Edge group must stay off by default")
+
     def test_default_workflow_selects_the_stacks(self):
         workflow = self.root / ".github/workflows/added.yml"
         workflow.write_text("run: west config manifest.group-filter +crux-secure-management\n",
