@@ -1048,7 +1048,7 @@ class StopToolTest(Workspace):
             self.assertLess(time.monotonic(), deadline, 'the child did not start')
             time.sleep(0.02)
         stopped = device_control.run._stop(process)
-        if not stopped and self.only_zombies_left(process.pid):
+        if not stopped and process.returncode is not None and self.only_zombies_left(process.pid):
             self.skipTest('PID 1 here does not reap orphans, so the killed child stays in the group')
         self.assertIs(stopped, True)
 
