@@ -55,7 +55,7 @@ def paths_ignore(workflow, event):
 def is_check(step):
     """A check is any step that runs repository code after the common set-up."""
     text = step["text"]
-    return "scripts/" in text or "python3 " in text
+    return "scripts/" in text or "python3 " in text or "west " in text
 
 
 class ZephyrShardsTest(unittest.TestCase):
@@ -108,6 +108,8 @@ class ZephyrShardsTest(unittest.TestCase):
         self.assertIn("needs: shard", summary)
         self.assertIn("if: always()", summary)
         self.assertIn("needs.shard.result", summary)
+        # Only "success" may pass: failed, cancelled and skipped shards must all fail it.
+        self.assertIn('test "$SHARD_RESULT" = success', summary)
 
     def test_only_documentation_skips_the_workflow(self):
         self.assertEqual(DOCS_ONLY, paths_ignore(self.workflow, "push"))
