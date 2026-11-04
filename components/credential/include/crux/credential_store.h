@@ -35,7 +35,9 @@ typedef enum {
     /** Not confidential against the medium and chip ID. */
     CRUX_CREDENTIAL_BASIS_DEVICE_ID_KEY = 1,
     /** Declared only by a provider with its own evidence. */
-    CRUX_CREDENTIAL_BASIS_HARDWARE_BOUND = 2
+    CRUX_CREDENTIAL_BASIS_HARDWARE_BOUND = 2,
+    /** The provider cannot run, or its declaration was refused. The state is UNUSABLE. */
+    CRUX_CREDENTIAL_BASIS_UNDECLARED = 3
 } crux_credential_basis_t;
 
 /** How far the provider's declaration has been shown to hold. */
@@ -44,7 +46,9 @@ typedef enum {
     CRUX_CREDENTIAL_EVIDENCE_HOST_FAKE = 0,
     CRUX_CREDENTIAL_EVIDENCE_SOFTWARE = 1,
     /** The composition states this after approved target runs. */
-    CRUX_CREDENTIAL_EVIDENCE_PHYSICAL = 2
+    CRUX_CREDENTIAL_EVIDENCE_PHYSICAL = 2,
+    /** The provider cannot run, or its declaration was refused. The state is UNUSABLE. */
+    CRUX_CREDENTIAL_EVIDENCE_UNDECLARED = 3
 } crux_credential_evidence_t;
 
 /** Store state and the provider's declaration, always together. */

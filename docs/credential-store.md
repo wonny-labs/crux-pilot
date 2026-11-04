@@ -175,6 +175,7 @@ sequenceDiagram
 | Full-size slot, and no valid slot exists | In place, pending header first, real header last | The same reason: a retried first save must still read as `EMPTY` after a cut. See decision 7. |
 | The second slot of a first save | The same image, so a tie | No new nonce is needed for identical bytes |
 | Repair at start | The newer slot's sealed bytes, unchanged | Needs no key and no nonce, and a tie reads the same |
+| `crux_credential_key_ensure` on a key that one slot lacks | The same copy as a repair, before it returns `OK` | `OK` must mean that both slots hold the key. See decision 26. |
 
 The store does not use rename, as the proposal explains.
 
@@ -202,8 +203,8 @@ Each of these was taken without the owner, who was unavailable. The narrower, sa
 | 9 | A pending header must be exact, so a stray bit in one is corrupt, not short | A rotted slot can then never read as absent |
 | 10 | A payload behind a good tag is still checked, and a repeated, unknown or empty record makes the slot corrupt | The tag proves who wrote it, not that it is well formed |
 | 11 | A provider failure that is not a tag failure makes the slot unreadable, not corrupt | A passing glitch must not fall back to an older generation, which the next save makes permanent |
-| 12 | A declaration of `NULL` means that the provider cannot run. A claim of confidentiality on any basis but hardware-bound is refused. | Meets "if hwinfo is unavailable the store is `UNUSABLE`", including on a blank medium, where no slot would ever fail a tag |
-| 13 | A product core refuses `BASIS_NONE` and `EVIDENCE_HOST_FAKE` at start, so `UNUSABLE` with no slot touched | The refusal the task asks for, in addition to the fake's own compile guard |
+| 12 | A declaration of `NULL` means that the provider cannot run. A claim of confidentiality on any basis but hardware-bound is refused. `get_info` then reports `BASIS_UNDECLARED`. See decision 27. | Meets "if hwinfo is unavailable the store is `UNUSABLE`", including on a blank medium, where no slot would ever fail a tag |
+| 13 | A product core refuses `BASIS_NONE` or `EVIDENCE_HOST_FAKE` at start, either one alone, so `UNUSABLE` with no slot touched | The refusal the task asks for, in addition to the fake's own compile guard |
 | 14 | Arguments are checked first, then the state. A repeated `crux_credential_start` or equal roots is `INVALID_ARGUMENT`. | Follows Access, and adds no result code |
 | 15 | `crux_credential_start` returns `ERR_UNUSABLE` when the state is `UNUSABLE`, and the store has then started | Erase has to work in that state |
 | 16 | `crux_credential_key_replace` on an absent key is `NOT_FOUND` | Rotation that silently creates a key would hide a composition mistake |
@@ -211,11 +212,13 @@ Each of these was taken without the owner, who was unavailable. The narrower, sa
 | 18 | The active slot is read again for every operation, and its generation must match RAM | A medium swapped while running is an error, never a new image |
 | 19 | A save at the last generation is refused with `ERR_STORE` | The next value would wrap and lose to every older image |
 | 20 | Events run under the store lock, and never under the info lock, so an event may read the state | The gate's lock table allows the ring lock under the store lock. Unlike Access's state lock, nothing fast waits on the store lock. |
-| 21 | A failed second write produces `save_failed` only, never `key_generated`, even though the key is active | The caller was told that it must not use the key |
+| 21 | A failed second write produces `save_failed`, and `key_generated` waits until both slots hold the key: when a retry of `key_ensure`, or the repair at start, finishes the write | The caller was told not to use the key until then, and the event must exist once it is used |
 | 22 | `crux_credential_write` can store a well-formed key record, and replacing a key that way also produces `key_replaced` | The proposal's test table asks for a write of each record, and the design says that a host key change is always recorded. Nothing in Crux calls it for a key: M11 and M12 generate theirs. |
 | 23 | Swapped slots read normally. The image is not bound to its directory. | A swap is the same two images, so old-or-new still holds |
 | 24 | The boundary rule is a new module instead of a change to `cmake/CruxAccessBoundary.cmake` | Avoids conflict with #210, which is still open. Merging the two is a small follow-up. |
 | 25 | The File fake gained `crux_file_fake_write_through`, `crux_file_fake_drop_writes` and `crux_file_fake_remove_medium`, in `tests/file` | The proposal asks for a cut at each sector and byte, and the fake had one cut per File operation. Its default is unchanged. |
+| 26 | `crux_credential_key_ensure` on an existing key checks the other slot, and writes it unless that slot is valid and holds the key. A failure is `ERR_STORE`. This includes an absent, pending or corrupt slot, not only one that lacks the record. `key_generated` follows if the slot proves the key was never there. A corrupt or unreadable slot proves nothing, so a key whose second write failed and whose slot could not be invalidated goes unannounced. | The proposal's rule is that a record is acknowledged only once both slots hold it, and `OK` is the acknowledgement. It costs one more slot read at each call. It also rewrites a corrupt slot at boot, which the next save would have done. |
+| 27 | Two new enumerators, `CRUX_CREDENTIAL_BASIS_UNDECLARED` and `CRUX_CREDENTIAL_EVIDENCE_UNDECLARED`, which `get_info` reports with every claim false when the provider cannot run or its declaration was refused. A provider cannot declare them. | Zero is `BASIS_NONE` and `EVIDENCE_HOST_FAKE`, which would tell a product that it runs on the test fake. Each is additive, and the proposal's values do not change. |
 
 ## Limits
 
@@ -226,12 +229,13 @@ These are the proposal's, and each has a test where a Host test can show it.
 | Not confidential on the pilot against the medium and chip ID. **No real provider exists yet, and the fake's cipher is not encryption.** | `get_info` carries the declaration, in `test_info_carries_the_declaration` |
 | Rollback is not detected, including the return of a record's absence | `test_accepted_limits` |
 | S6: losing both directory entries reads as `EMPTY` and reopens provisioning | `test_accepted_limits`, `test_lost_directory_entries_reopen_provisioning` |
+| A writer without the chip ID can overwrite both headers with an exact pending header, which has no tag, and the store reads `EMPTY` with no event. This is wider than S6's wording, which speaks of a lost directory entry, and it equals blanking the card under limit A7. | `test_accepted_limits` |
 | S7: a failed second write returns an error, and the record is active and survives a reset | `test_failed_second_write`, in both the store and Access suites |
 | AC8: a failed save can win at the next boot if invalidating also fails | `test_failed_save_and_invalidation`, `test_failed_save_keeps_ram` |
 | A corrupt newest slot falls back to the older generation, with an event, and the next save makes that permanent, so a removed account can return | `test_accepted_limits`, `test_rotted_newest_slot_restores_an_account` |
 | A card moved to another board reads `UNUSABLE` | `test_wrong_device_key` |
 | A cut inside the single header write can leave a corrupt slot, which fails closed and needs local recovery | The byte walks of a first save, which assert that this happens |
-| A repair that fails before it touches the older slot leaves an added record in one slot. Each later boot tries again and the next save closes it, but if the newer slot rots first, the record reads as absent, and a key would be generated again. It takes a failed second write, a failed repair and then damage. | The end of `test_failed_second_write` |
+| A record whose second write failed is active but not acknowledged, and one slot holds it until a save or the repair at start reaches the other. If that slot rots first, the record reads as absent, which is the old state, because its save returned an error. For an account, which a reset loads and a login can then use, this can reopen provisioning, and it takes a failed second write, the repair at start also failing or no reset yet, and then damage. **A device key cannot be regenerated this way**, because `key_ensure` says `OK` only once both slots hold it. | `test_failed_second_write`, `test_key_used_after_a_failed_second_write` |
 | The two-slot assumption depends on the medium: a card's mapping can disturb another sector | **Not shown.** A Host fake cannot. |
 | Creating a slot writes FAT sectors that can hold the other slot's chain | **Not shown.** A Host fake cannot. |
 | The pinned FatFs lacks a range check on its direct-write path that upstream labels `CVE-2026-6685`, and every save uses that path | **Not assessed.** It is for dependency review. |
@@ -247,10 +251,10 @@ sources, and the boundary check. The root build also runs the suites as `Credent
 | --- | --- | --- |
 | `credential_conformance_fake`, `credential_conformance_linux` | 16 KiB | The same cases on each File provider: before start, every pair of the load table, an unbound root, each record's read and write, limits, generation order and ties, a new record in both slots, repair, `UNUSABLE` refusing all but erase, device keys, erase and its interrupted states, the declaration, swapped slots, wrong device key, other formats and providers, malformed payloads behind a good tag, slot size changes, accepted limits |
 | `credential_concurrency` | 16 KiB | Writers, a reader and a status poller sharing the store on the Linux provider: every save succeeds, and every read finds a whole value |
-| `credential_faults` | 1 KiB | A cut before each File operation, each sector and each byte of: a first save, a first save over a pending slot, replacing in either direction, adding a record, generating and rotating a key, the repair, erase. Every bit of the header, and each sealed byte. Read errors at start, failed sync and read back with invalidation working and failing, a failed second write at each step, a full File pool, a full medium, an image too large for the slot, a medium that leaves, a status read during a save, a lost lock. |
+| `credential_faults` | 1 KiB | A cut before each File operation, each sector and each byte, with a first save's value longer than a sector and its corrupt cuts counted exactly, of: a first save, a first save over a pending slot, replacing in either direction, adding a record, generating and rotating a key, the repair, erase. Every bit of the header, and each sealed byte. Read errors at start, failed sync and read back with invalidation working and failing, a failed second write at each step, a key used after one, retried and then damaged in either slot, a full File pool, a full medium, an image too large for the slot, a medium that leaves, a status read during a save, a lost lock. |
 | `credential_faults_default_slot` | 16 KiB | The same walks at the default size, by File operation and sector |
 | `credential_security` | 16 KiB | Nothing plain on the medium, nothing secret in an event, the key event following its save, forged and reused-generation slots, bad tags, a fresh nonce per seal. The fake's cipher is not encryption, so this shows the store's handling only. |
-| `credential_production_refuses` | 16 KiB | A product core linked with the test-only ports: `UNUSABLE`, with no slot read or written |
+| `credential_production_refuses` | 16 KiB | A product core linked with the test-only ports: `UNUSABLE` with no slot read or written, for either half of a test declaration, a refused claim and no provider, each in its own process, and two real declarations accepted as a control |
 | `credential_access_store` | 16 KiB | The real Access core on the real store: AC6, AC8, S6 and S7, a cut at each sector of the first account's save, and what the bridge maps each result to |
 | `credential_file_service_roots` | 16 KiB | The real file service, given the store's roots as its reserved list, refuses an area on either slot and accepts another |
 | `credential_cpp_headers` | | Public and adapter headers from C++ |

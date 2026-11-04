@@ -97,13 +97,15 @@ typedef enum {
     KIND_ALL_ZEROS,
     KIND_NEW_FORMAT,
     KIND_ROTTED_PENDING,
+    KIND_PENDING_ONLY,
+    KIND_HEADER_ONLY,
     KIND_COUNT
 } slot_kind_t;
 
 static bool kind_is_corrupt(slot_kind_t kind)
 {
     return kind == KIND_BAD_TAG || kind == KIND_ALL_ZEROS || kind == KIND_NEW_FORMAT ||
-           kind == KIND_ROTTED_PENDING;
+           kind == KIND_ROTTED_PENDING || kind == KIND_HEADER_ONLY;
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters): every helper takes the slot first.
@@ -151,6 +153,16 @@ static void slot_prepare(size_t slot, slot_kind_t kind)
         crux_credential_header_encode_pending(large);
         large[CRUX_CREDENTIAL_HEADER_BYTES - 1u] = 0x01u;
         test_slot_write(slot, large, sizeof(large));
+        break;
+    case KIND_PENDING_ONLY:
+        /* Exactly a header's size: short, because the header is pending. */
+        crux_credential_header_encode_pending(large);
+        test_slot_write(slot, large, CRUX_CREDENTIAL_HEADER_BYTES);
+        break;
+    case KIND_HEADER_ONLY:
+        /* Exactly a header's size, with a real header: corrupt, because it promises more. */
+        test_image_build(large, 3, &record_accounts_one, 1);
+        test_slot_write(slot, large, CRUX_CREDENTIAL_HEADER_BYTES);
         break;
     case KIND_COUNT:
         break;
@@ -473,6 +485,8 @@ static void test_repair_at_start(void)
         test_slot_write(newer, image_b, sizeof(image_b));
         CHECK(test_boot() == CRUX_CREDENTIAL_OK);
         CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_SAVE_FAILED) == 0u);
+        /* A certificate is no key, so finishing its second write announces nothing. */
+        CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 0u);
         test_expect_record(CRUX_CREDENTIAL_RECORD_TLS_CERTIFICATE, certificate,
                            sizeof(certificate));
         CHECK(test_slot_read(older, large, sizeof(large)) == CRUX_CREDENTIAL_SLOT_BYTES);
@@ -814,31 +828,39 @@ static void test_info_carries_the_declaration(void)
 }
 
 /* A provider that cannot run, such as one without a device ID, must never read as a first boot. */
+static void expect_undeclared(void)
+{
+    crux_credential_store_info_t info;
+    CHECK(test_boot() == CRUX_CREDENTIAL_ERR_UNUSABLE);
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_UNUSABLE);
+    expect_refuses(CRUX_CREDENTIAL_ERR_UNUSABLE);
+    CHECK(crux_credential_store_get_info(&info) == CRUX_OK);
+    CHECK(info.state == CRUX_CREDENTIAL_STATE_UNUSABLE);
+    /* Nothing vouches for the store, and it must not read as the test fake or make any claim. */
+    CHECK(info.basis == CRUX_CREDENTIAL_BASIS_UNDECLARED);
+    CHECK(info.evidence == CRUX_CREDENTIAL_EVIDENCE_UNDECLARED);
+    CHECK(!info.confidential_against_medium_reader);
+    CHECK(!info.forgery_detected_without_device_id);
+    CHECK(!info.rollback_detected);
+    CHECK(!test_slot_exists(TEST_SLOT_A) && !test_slot_exists(TEST_SLOT_B));
+}
+
 static void test_provider_that_cannot_run(void)
 {
     test_fresh();
     credential_fake_declare(NULL);
-    CHECK(test_boot() == CRUX_CREDENTIAL_ERR_UNUSABLE);
-    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_UNUSABLE);
-    expect_refuses(CRUX_CREDENTIAL_ERR_UNUSABLE);
-    crux_credential_store_info_t info;
-    CHECK(crux_credential_store_get_info(&info) == CRUX_OK);
-    CHECK(info.state == CRUX_CREDENTIAL_STATE_UNUSABLE);
-    CHECK(info.basis == CRUX_CREDENTIAL_BASIS_NONE);
-    CHECK(!info.confidential_against_medium_reader);
-    CHECK(!test_slot_exists(TEST_SLOT_A) && !test_slot_exists(TEST_SLOT_B));
+    expect_undeclared();
 
     /* A basis that cannot be confidential cannot claim to be. */
     const crux_credential_store_info_t overclaim = {
         .basis = CRUX_CREDENTIAL_BASIS_DEVICE_ID_KEY,
         .evidence = CRUX_CREDENTIAL_EVIDENCE_SOFTWARE,
         .confidential_against_medium_reader = true,
+        .forgery_detected_without_device_id = true,
     };
     test_fresh();
     credential_fake_declare(&overclaim);
-    CHECK(test_boot() == CRUX_CREDENTIAL_ERR_UNUSABLE);
-    CHECK(crux_credential_store_get_info(&info) == CRUX_OK);
-    CHECK(!info.confidential_against_medium_reader);
+    expect_undeclared();
     const crux_credential_store_info_t overclaim_none = {
         .basis = CRUX_CREDENTIAL_BASIS_NONE,
         .evidence = CRUX_CREDENTIAL_EVIDENCE_HOST_FAKE,
@@ -846,9 +868,23 @@ static void test_provider_that_cannot_run(void)
     };
     test_fresh();
     credential_fake_declare(&overclaim_none);
-    CHECK(test_boot() == CRUX_CREDENTIAL_ERR_UNUSABLE);
-    CHECK(crux_credential_store_get_info(&info) == CRUX_OK);
-    CHECK(!info.confidential_against_medium_reader);
+    expect_undeclared();
+
+    /* Nor can a provider declare what only the store's refusal reports. */
+    const crux_credential_store_info_t undeclared_basis = {
+        .basis = CRUX_CREDENTIAL_BASIS_UNDECLARED,
+        .evidence = CRUX_CREDENTIAL_EVIDENCE_SOFTWARE,
+    };
+    test_fresh();
+    credential_fake_declare(&undeclared_basis);
+    expect_undeclared();
+    const crux_credential_store_info_t undeclared_evidence = {
+        .basis = CRUX_CREDENTIAL_BASIS_DEVICE_ID_KEY,
+        .evidence = CRUX_CREDENTIAL_EVIDENCE_UNDECLARED,
+    };
+    test_fresh();
+    credential_fake_declare(&undeclared_evidence);
+    expect_undeclared();
 }
 
 /* Slots are not bound to their directory: a swap reads the same, and the next save carries on. */
@@ -1024,6 +1060,23 @@ static void test_accepted_limits(void)
     test_slot_remove(TEST_SLOT_B);
     CHECK(test_boot() == CRUX_CREDENTIAL_OK);
     CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_EMPTY);
+    expect_absent(CRUX_CREDENTIAL_RECORD_ACCOUNTS);
+
+    /* The same reach as S6 by another path: the pending header is public and carries no tag, so a
+     * writer without the chip ID can put it on both slots. That equals blanking the card, limit A7.
+     */
+    test_fresh_empty();
+    CHECK(crux_credential_write(CRUX_CREDENTIAL_RECORD_ACCOUNTS, accounts_one,
+                                sizeof(accounts_one)) == CRUX_CREDENTIAL_OK);
+    for (size_t slot = TEST_SLOT_A; slot <= TEST_SLOT_B; ++slot) {
+        CHECK(test_slot_read(slot, large, sizeof(large)) == CRUX_CREDENTIAL_SLOT_BYTES);
+        crux_credential_header_encode_pending(large);
+        test_slot_write(slot, large, sizeof(large));
+    }
+    credential_fake_events_clear();
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_EMPTY);
+    CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_SLOT_INVALID) == 0u);
     expect_absent(CRUX_CREDENTIAL_RECORD_ACCOUNTS);
 
     /* Losing only one entry does not: the other slot still loads, and no event says it went. */

@@ -432,6 +432,11 @@ static bool declaration_acceptable(const crux_credential_store_info_t *declarati
     if (declaration == NULL) {
         return false;
     }
+    /* Only the store reports UNDECLARED, for a provider it did not accept. */
+    if (declaration->basis == CRUX_CREDENTIAL_BASIS_UNDECLARED ||
+        declaration->evidence == CRUX_CREDENTIAL_EVIDENCE_UNDECLARED) {
+        return false;
+    }
     bool can_be_confidential = declaration->basis == CRUX_CREDENTIAL_BASIS_HARDWARE_BOUND;
     if (declaration->confidential_against_medium_reader && !can_be_confidential) {
         return false;
@@ -446,15 +451,30 @@ static bool declaration_acceptable(const crux_credential_store_info_t *declarati
     return true;
 }
 
-/* Rewrites the older slot from the newer, so that the state a failed second write leaves cannot
- * last until damage arrives. The sealed bytes are copied, so it needs no nonce and no key. */
-static void slot_repair(size_t older)
+/* Rewrites the other slot from the active one, so that the state a failed second write leaves
+ * cannot last until damage arrives. The sealed bytes are copied, so it needs no nonce and no key.
+ */
+static bool slot_repair(void)
 {
     slot_view_t view;
     slot_classify(store.active, &view);
     if (view.kind != SLOT_VALID || view.generation != store.generation ||
-        !slot_commit(older, false, store.generation)) {
+        !slot_commit(1u - store.active, false, store.generation)) {
         (void)save_fail(CRUX_CREDENTIAL_ERR_STORE);
+        return false;
+    }
+    return true;
+}
+
+/* A repair finished a save that returned an error, so a key it added is announced only now. */
+static void keys_announce(uint32_t records)
+{
+    static const crux_credential_record_t keys[] = {CRUX_CREDENTIAL_RECORD_TLS_KEY,
+                                                    CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY};
+    for (size_t index = 0; index < sizeof(keys) / sizeof(keys[0]); ++index) {
+        if ((records & (1u << (uint32_t)keys[index])) != 0) {
+            event_send_key(CRUX_CREDENTIAL_EVENT_KEY_GENERATED, keys[index]);
+        }
     }
 }
 
@@ -487,8 +507,9 @@ static void store_load(void)
     store.active = active;
     store.generation = views[active].generation;
     state_publish(CRUX_CREDENTIAL_STATE_VALID);
-    if (views[other].kind == SLOT_VALID && (views[active].records & ~views[other].records) != 0) {
-        slot_repair(other);
+    uint32_t missing = views[active].records & ~views[other].records;
+    if (views[other].kind == SLOT_VALID && missing != 0 && slot_repair()) {
+        keys_announce(missing);
     }
 }
 
@@ -513,6 +534,10 @@ crux_credential_result_t crux_credential_start(crux_file_root_t slot_a, crux_fil
     store.roots[0] = slot_a;
     store.roots[1] = slot_b;
     store.started = true;
+    store.published = (crux_credential_store_info_t){
+        .basis = CRUX_CREDENTIAL_BASIS_UNDECLARED,
+        .evidence = CRUX_CREDENTIAL_EVIDENCE_UNDECLARED,
+    };
     const crux_credential_store_info_t *declaration = crux_credential_port_declaration();
     if (declaration_acceptable(declaration)) {
         store.published = *declaration;
@@ -695,6 +720,28 @@ static crux_credential_result_t key_generate(crux_credential_record_t record,
     return result;
 }
 
+/*
+ * A key is acknowledged only once both slots hold it, and every later image then carries it.
+ * Without that, a key used after a failed second write could rot away with its one slot and read as
+ * absent, and the next call would silently generate another. A slot that lacks the key proves that
+ * it was never announced, while a corrupt or unreadable one might have held it.
+ */
+static crux_credential_result_t key_acknowledge(crux_credential_record_t record)
+{
+    slot_view_t other;
+    slot_classify(1u - store.active, &other);
+    if (other.kind == SLOT_VALID && (other.records & (1u << (uint32_t)record)) != 0) {
+        return CRUX_CREDENTIAL_OK;
+    }
+    if (!slot_repair()) {
+        return CRUX_CREDENTIAL_ERR_STORE;
+    }
+    if (other.kind != SLOT_CORRUPT && other.kind != SLOT_UNREADABLE) {
+        event_send_key(CRUX_CREDENTIAL_EVENT_KEY_GENERATED, record);
+    }
+    return CRUX_CREDENTIAL_OK;
+}
+
 crux_credential_result_t crux_credential_key_ensure(crux_credential_record_t record,
                                                     crux_credential_key_type_t type)
 {
@@ -713,6 +760,8 @@ crux_credential_result_t crux_credential_key_ensure(crux_credential_record_t rec
         if (result == CRUX_CREDENTIAL_OK) {
             event_send_key(CRUX_CREDENTIAL_EVENT_KEY_GENERATED, record);
         }
+    } else {
+        result = key_acknowledge(record);
     }
     store_leave();
     return result;

@@ -59,7 +59,7 @@ target_link_libraries(credential_production_refuses PRIVATE crux_credential_core
 target_include_directories(credential_production_refuses PRIVATE .
     ../../components/credential/src)
 target_compile_definitions(credential_production_refuses PRIVATE
-    CRUX_CREDENTIAL_TEST_COMPOSITION=1)
+    CRUX_CREDENTIAL_TEST_COMPOSITION=1 _POSIX_C_SOURCE=200809L)
 
 # The real Access core on the real store, through the adapter a composition links.
 if(CRUX_BUILD_ACCESS)

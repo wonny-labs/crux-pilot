@@ -147,17 +147,22 @@ crux_credential_result_t crux_credential_write(crux_credential_record_t record, 
                                                size_t length);
 
 /**
- * Generate a device key if its record is absent from a readable store, and save it before
- * returning, so that a key is never used before it can survive a reset. An existing record is left
- * alone whatever its type: use crux_credential_key_parse() to learn it.
+ * Generate a device key if its record is absent from a readable store, and save it in both slots
+ * before returning, so that a key is never used before it can survive a reset and damage to either
+ * slot. An existing key that only one slot holds, because an earlier call failed, is written to the
+ * other. Its value and type are left alone: use crux_credential_key_parse() to learn the type.
+ *
+ * Call this at each boot before using a key, and again after an error.
  *
  * @param record CRUX_CREDENTIAL_RECORD_TLS_KEY or CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY.
- * @retval CRUX_CREDENTIAL_OK The record exists, and it has been saved. Do not use the key
- * otherwise.
+ * @retval CRUX_CREDENTIAL_OK Both slots hold the key. Do not use the key otherwise.
  * @retval CRUX_CREDENTIAL_ERR_ENTROPY No random data, or the key could not be generated.
  * @retval CRUX_CREDENTIAL_ERR_READ The medium could not be read, so absence is unproven. No key was
  * generated.
- * @retval CRUX_CREDENTIAL_ERR_STORE The save failed. See crux_credential_result_t.
+ * @retval CRUX_CREDENTIAL_ERR_TOO_LARGE The image with a new key would not fit its slot. Nothing
+ * was stored.
+ * @retval CRUX_CREDENTIAL_ERR_STORE The save failed, or the other slot could not be completed. See
+ * crux_credential_result_t.
  * @retval CRUX_CREDENTIAL_ERR_UNUSABLE The state is UNUSABLE. No key was generated.
  * @retval CRUX_CREDENTIAL_ERR_NOT_READY Not started.
  * @retval CRUX_CREDENTIAL_ERR_INVALID_ARGUMENT Not a key record, or an unknown type.
@@ -169,7 +174,10 @@ crux_credential_result_t crux_credential_key_ensure(crux_credential_record_t rec
  * Replace a device key with a new one, the deliberate rotation path. Clients will see the change.
  * The older slot keeps the old key until the next save.
  *
+ * @retval CRUX_CREDENTIAL_OK Saved. The other slot still holds the old key until the next save.
  * @retval CRUX_CREDENTIAL_ERR_NOT_FOUND There is no key to rotate.
+ * @retval CRUX_CREDENTIAL_ERR_TOO_LARGE The image with the new key would not fit its slot. Nothing
+ * was stored.
  * @return Otherwise as crux_credential_key_ensure().
  */
 crux_credential_result_t crux_credential_key_replace(crux_credential_record_t record,

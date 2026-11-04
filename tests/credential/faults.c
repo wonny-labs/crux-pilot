@@ -14,6 +14,9 @@ static uint8_t image_b[CRUX_CREDENTIAL_SLOT_BYTES];
 static const uint8_t value_old[] = "the old value of this record";
 static const uint8_t value_new[] = "the new value of this record, which is longer";
 static const uint8_t certificate[] = "certificate bytes";
+/* Longer than a sector, so that a real header put down before the rest of its image shows, even in
+ * a walk by sector. */
+static uint8_t value_large[700];
 
 /*
  * Cuts land between these. 0 is the fake's default, with one cut per File operation. A cut at each
@@ -151,14 +154,33 @@ static void walk_run(const walk_t *walk)
     }
 }
 
+/* What opening slot A takes in a first save: creating and truncating it, or nothing if it exists.
+ */
+static uint32_t slot_a_open_mutations;
+
 static void setup_blank(void)
 {
+    slot_a_open_mutations = 2u;
     CHECK(test_boot() == CRUX_CREDENTIAL_OK);
 }
 
-static void action_write_new(void)
+/*
+ * The cuts of a first save that leave a corrupt slot, in a walk by byte. Slot A's real header goes
+ * down after its open, one mutation per byte of the slot and a sync. Its first three bytes are also
+ * the pending header's, so a cut there changes nothing, and the fourth makes the magic real. Its
+ * last byte finishes it. A real header written any earlier would corrupt far more cuts than these.
+ */
+#define FIRST_SAVE_CORRUPT_CUTS (CRUX_CREDENTIAL_HEADER_BYTES - 4u)
+
+static bool inside_header_write(uint32_t cut)
 {
-    last_result = write_record(ACCOUNTS, value_new, sizeof(value_new));
+    uint32_t start = slot_a_open_mutations + CRUX_CREDENTIAL_SLOT_BYTES + 1u;
+    return walk_unit == 1u && cut >= start + 4u && cut < start + CRUX_CREDENTIAL_HEADER_BYTES;
+}
+
+static void action_write_large(void)
+{
+    last_result = write_record(ACCOUNTS, value_large, sizeof(value_large));
 }
 
 /* After any cut in a first save the store is usable, and a repeat of the save succeeds, or it holds
@@ -169,15 +191,15 @@ static void check_first_save(walk_point_t point)
     case CRUX_CREDENTIAL_STATE_EMPTY:
         CHECK(read_record(ACCOUNTS) == CRUX_CREDENTIAL_ERR_NOT_FOUND);
         CHECK(point.cut < point.total);
-        CHECK(write_record(ACCOUNTS, value_new, sizeof(value_new)) == CRUX_CREDENTIAL_OK);
+        CHECK(write_record(ACCOUNTS, value_large, sizeof(value_large)) == CRUX_CREDENTIAL_OK);
         CHECK(test_boot() == CRUX_CREDENTIAL_OK);
-        CHECK(record_is(ACCOUNTS, value_new, sizeof(value_new)));
+        CHECK(record_is(ACCOUNTS, value_large, sizeof(value_large)));
         break;
     case CRUX_CREDENTIAL_STATE_VALID:
-        CHECK(record_is(ACCOUNTS, value_new, sizeof(value_new)));
+        CHECK(record_is(ACCOUNTS, value_large, sizeof(value_large)));
         break;
     case CRUX_CREDENTIAL_STATE_UNUSABLE:
-        CHECK(walk_unit == 1u);
+        CHECK(inside_header_write(point.cut));
         CHECK(point.cut < point.total);
         break;
     }
@@ -186,7 +208,7 @@ static void check_first_save(walk_point_t point)
 static const walk_t walk_first_save = {
     "first save",
     setup_blank,
-    action_write_new,
+    action_write_large,
     check_first_save,
 };
 
@@ -277,7 +299,7 @@ static void action_key_ensure(void)
 static void check_key_ensure(walk_point_t point)
 {
     if (crux_credential_state() == CRUX_CREDENTIAL_STATE_UNUSABLE) {
-        CHECK(walk_unit == 1u);
+        CHECK(inside_header_write(point.cut));
         CHECK(point.cut < point.total);
         CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) ==
               CRUX_CREDENTIAL_ERR_UNUSABLE);
@@ -414,6 +436,7 @@ static void setup_pending_slot(void)
     memset(pending, 0, sizeof(pending));
     crux_credential_header_encode_pending(pending);
     test_slot_write(TEST_SLOT_A, pending, sizeof(pending));
+    slot_a_open_mutations = 0u;
     CHECK(test_boot() == CRUX_CREDENTIAL_OK);
     CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_EMPTY);
 }
@@ -421,16 +444,17 @@ static void setup_pending_slot(void)
 static const walk_t walk_first_save_over_pending = {
     "first save over a pending slot",
     setup_pending_slot,
-    action_write_new,
+    action_write_large,
     check_first_save,
 };
 
 static void test_power_loss_walks(void)
 {
+    const unsigned corrupt_cuts = FAULTS_SMALL_SLOT ? FIRST_SAVE_CORRUPT_CUTS : 0u;
     walk_run(&walk_first_save);
-    CHECK(FAULTS_SMALL_SLOT == (count_unusable > 0));
+    CHECK(count_unusable == corrupt_cuts);
     walk_run(&walk_first_save_over_pending);
-    CHECK(FAULTS_SMALL_SLOT == (count_unusable > 0));
+    CHECK(count_unusable == corrupt_cuts);
     walk_run(&walk_replace);
     CHECK(count_unusable == 0 && count_empty == 0);
     walk_run(&walk_replace_other);
@@ -438,6 +462,7 @@ static void test_power_loss_walks(void)
     walk_run(&walk_add);
     CHECK(count_unusable == 0 && count_empty == 0);
     walk_run(&walk_key_ensure);
+    CHECK(count_unusable == corrupt_cuts);
     walk_run(&walk_key_replace);
     CHECK(count_unusable == 0 && count_empty == 0);
     walk_run(&walk_repair);
@@ -744,6 +769,192 @@ static void test_failed_erase_steps(void)
     credential_test_context[0] = '\0';
 }
 
+static void arm_no_second_nonce(void)
+{
+    credential_fake_random_fail(1);
+}
+
+/* The load, then the first slot's write and read back, and then the second slot's write. */
+static void arm_second_open(void)
+{
+    crux_file_fake_fail(CRUX_FILE_FAKE_OPEN, 3, CRUX_FILE_ERR_IO);
+}
+
+static void arm_second_write(void)
+{
+    crux_file_fake_fail(CRUX_FILE_FAKE_WRITE, 1, CRUX_FILE_ERR_IO);
+}
+
+static size_t key_public_read(uint8_t *public_key)
+{
+    size_t length = 0;
+    CHECK(crux_credential_key_public(HOST_KEY, public_key, CRUX_CREDENTIAL_KEY_PUBLIC_BYTES_MAX,
+                                     &length) == CRUX_CREDENTIAL_OK);
+    return length;
+}
+
+/* A key must not change once key_ensure has said OK, whichever slot later rots. */
+static void expect_key_survives_damage(const uint8_t *public_key, size_t length)
+{
+    uint8_t again[CRUX_CREDENTIAL_KEY_PUBLIC_BYTES_MAX];
+    unsigned generated = credential_fake_keygen_count();
+    for (size_t damaged = TEST_SLOT_A; damaged <= TEST_SLOT_B; ++damaged) {
+        CHECK(test_slot_read(damaged, image_a, sizeof(image_a)) == CRUX_CREDENTIAL_SLOT_BYTES);
+        test_slot_flip(damaged, CRUX_CREDENTIAL_HEADER_BYTES, 0x80);
+        CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+        CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_VALID);
+        CHECK(key_public_read(again) == length);
+        CHECK(memcmp(again, public_key, length) == 0);
+        CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) ==
+              CRUX_CREDENTIAL_OK);
+        CHECK(credential_fake_keygen_count() == generated);
+        test_slot_write(damaged, image_a, sizeof(image_a));
+    }
+}
+
+/*
+ * The caller was told not to use a key whose second write failed. A retry of key_ensure may say OK
+ * only if both slots then hold the key, because that is when the key starts being used. Otherwise
+ * damage to the one slot holding it would read as absent, and the next key_ensure would silently
+ * generate another.
+ */
+static void test_key_used_after_a_failed_second_write(void)
+{
+    static const struct {
+        const char *name;
+        void (*arm)(void);
+    } faults[] = {
+        {"no second nonce", arm_no_second_nonce},
+        {"second open", arm_second_open},
+        {"second write", arm_second_write},
+    };
+    uint8_t public_key[CRUX_CREDENTIAL_KEY_PUBLIC_BYTES_MAX];
+    const test_record_t accounts = {ACCOUNTS, value_old, sizeof(value_old)};
+    for (size_t index = 0; index < sizeof(faults) / sizeof(faults[0]); ++index) {
+        (void)snprintf(credential_test_context, sizeof(credential_test_context), "retry after %s",
+                       faults[index].name);
+        test_fresh_empty();
+        CHECK(write_record(ACCOUNTS, value_old, sizeof(value_old)) == CRUX_CREDENTIAL_OK);
+        credential_fake_events_clear();
+        faults[index].arm();
+        CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) ==
+              CRUX_CREDENTIAL_ERR_STORE);
+        CHECK(credential_fake_keygen_count() == 1u);
+        CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 0u);
+        size_t length = key_public_read(public_key);
+
+        /* The retry finishes the save, and only now is the key announced. */
+        CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) ==
+              CRUX_CREDENTIAL_OK);
+        CHECK(credential_fake_keygen_count() == 1u);
+        CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 1u);
+        CHECK(crux_credential_test_buffers_clear());
+
+        /* With both slots holding it there is nothing more to do or to announce. */
+        unsigned writes = crux_file_fake_calls(CRUX_FILE_FAKE_WRITE);
+        CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) ==
+              CRUX_CREDENTIAL_OK);
+        CHECK(crux_file_fake_calls(CRUX_FILE_FAKE_WRITE) == writes);
+        CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 1u);
+        expect_key_survives_damage(public_key, length);
+
+        /* The reset's own repair finishes it too, and it is announced once. */
+        test_fresh_empty();
+        CHECK(write_record(ACCOUNTS, value_old, sizeof(value_old)) == CRUX_CREDENTIAL_OK);
+        faults[index].arm();
+        CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) ==
+              CRUX_CREDENTIAL_ERR_STORE);
+        length = key_public_read(public_key);
+        credential_fake_events_clear();
+        CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+        CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) ==
+              CRUX_CREDENTIAL_OK);
+        CHECK(credential_fake_keygen_count() == 1u);
+        CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 1u);
+        expect_key_survives_damage(public_key, length);
+    }
+    credential_test_context[0] = '\0';
+
+    /* A retry that cannot finish is ERR_STORE, so the key still goes unused and unannounced. */
+    test_fresh_empty();
+    CHECK(write_record(ACCOUNTS, value_old, sizeof(value_old)) == CRUX_CREDENTIAL_OK);
+    arm_no_second_nonce();
+    CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) ==
+          CRUX_CREDENTIAL_ERR_STORE);
+    credential_fake_events_clear();
+    crux_file_fake_fail(CRUX_FILE_FAKE_WRITE, 0, CRUX_FILE_ERR_IO);
+    CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) ==
+          CRUX_CREDENTIAL_ERR_STORE);
+    CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_SAVE_FAILED) == 1u);
+    CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 0u);
+    CHECK(crux_credential_test_buffers_clear());
+    CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) == CRUX_CREDENTIAL_OK);
+    CHECK(credential_fake_keygen_count() == 1u);
+    CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 1u);
+
+    /* After a reset whose repair failed, the same call closes the gap before the key is used. */
+    uint8_t record[CRUX_CREDENTIAL_KEY_RECORD_BYTES_MAX];
+    size_t record_length = test_key_record(CRUX_CREDENTIAL_KEY_ED25519, record, 0x77);
+    const test_record_t both[] = {accounts, {HOST_KEY, record, record_length}};
+    test_fresh();
+    test_image_build(image_a, 3, &accounts, 1);
+    test_image_build(image_b, 4, both, 2);
+    test_slot_write(TEST_SLOT_A, image_a, sizeof(image_a));
+    test_slot_write(TEST_SLOT_B, image_b, sizeof(image_b));
+    /* One open per slot at start, one to read the newer slot, and then the repair's own. */
+    crux_file_fake_fail(CRUX_FILE_FAKE_OPEN, 3, CRUX_FILE_ERR_IO);
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 0u);
+    CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) == CRUX_CREDENTIAL_OK);
+    CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 1u);
+    size_t length = key_public_read(public_key);
+    expect_key_survives_damage(public_key, length);
+
+    /* A first save cut after slot A: the other slot was never written, so the key was never
+     * announced, and acknowledging it writes that slot. */
+    const test_record_t only_key = {HOST_KEY, record, record_length};
+    test_fresh();
+    test_image_build(image_a, 1, &only_key, 1);
+    test_slot_write(TEST_SLOT_A, image_a, sizeof(image_a));
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    CHECK(!test_slot_exists(TEST_SLOT_B));
+    CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) == CRUX_CREDENTIAL_OK);
+    CHECK(test_slot_exists(TEST_SLOT_B));
+    CHECK(credential_fake_keygen_count() == 0u);
+    CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 1u);
+    length = key_public_read(public_key);
+    expect_key_survives_damage(public_key, length);
+
+    /* A corrupt slot may have held the key, which is then not news, so nothing is announced. */
+    test_fresh();
+    test_image_build(image_a, 3, &only_key, 1);
+    test_slot_write(TEST_SLOT_A, image_a, sizeof(image_a));
+    test_slot_write(TEST_SLOT_B, image_a, sizeof(image_a));
+    test_slot_flip(TEST_SLOT_B, CRUX_CREDENTIAL_HEADER_BYTES, 0x80);
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    CHECK(credential_fake_slot_invalid_count('b') == 1u);
+    CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) == CRUX_CREDENTIAL_OK);
+    CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 0u);
+    length = key_public_read(public_key);
+    expect_key_survives_damage(public_key, length);
+
+    /* An unreadable other slot proves nothing either. It is rewritten, or the key is refused. */
+    test_fresh();
+    test_image_build(image_a, 3, &only_key, 1);
+    test_slot_write(TEST_SLOT_A, image_a, sizeof(image_a));
+    test_slot_write(TEST_SLOT_B, image_a, sizeof(image_a));
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    /* The active slot's read comes first. */
+    crux_file_fake_fail(CRUX_FILE_FAKE_READ, 1, CRUX_FILE_ERR_IO);
+    CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) == CRUX_CREDENTIAL_OK);
+    CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_KEY_GENERATED) == 0u);
+    /* The next read fails that way, and so does the write that would have closed the gap. */
+    crux_file_fake_fail(CRUX_FILE_FAKE_READ, 1, CRUX_FILE_ERR_IO);
+    crux_file_fake_fail(CRUX_FILE_FAKE_WRITE, 0, CRUX_FILE_ERR_IO);
+    CHECK(crux_credential_key_ensure(HOST_KEY, CRUX_CREDENTIAL_KEY_ED25519) ==
+          CRUX_CREDENTIAL_ERR_STORE);
+}
+
 /* S7: a failed second write returns an error, and the added record is active and survives a reset.
  */
 static void test_failed_second_write(void)
@@ -811,6 +1022,8 @@ static void test_failed_second_write(void)
     CHECK(test_boot() == CRUX_CREDENTIAL_OK);
     CHECK(crux_credential_state() == CRUX_CREDENTIAL_STATE_EMPTY);
 
+    test_key_used_after_a_failed_second_write();
+
     /* A repair that fails leaves the store usable from the newer slot, and says so. */
     test_fresh();
     setup_needs_repair();
@@ -820,10 +1033,11 @@ static void test_failed_second_write(void)
     CHECK(credential_fake_event_count_of(CRUX_CREDENTIAL_EVENT_SAVE_FAILED) == 1u);
     CHECK(record_is(CERTIFICATE, certificate, sizeof(certificate)));
 
-    /* An accepted limit, by a narrow path. A repair that fails before touching the older slot
-     * leaves the record in one slot, and each boot tries again. If the newer slot rots first, the
-     * record reads as absent. The opens are one per slot at start, one to read the newer slot, and
-     * then the repair's own. */
+    /* An accepted limit, for a record no key_ensure protects. Its save returned an error, so it was
+     * never acknowledged, and a repair that fails before touching the older slot leaves it in one
+     * slot. Each boot tries again. If the newer slot rots first, the record reads as absent, which
+     * is the old state. The opens are one per slot at start, one to read the newer slot, and then
+     * the repair's own. */
     test_fresh();
     setup_needs_repair();
     crux_file_fake_fail(CRUX_FILE_FAKE_OPEN, 3, CRUX_FILE_ERR_IO);
@@ -1057,6 +1271,9 @@ static void test_lost_lock(void)
 
 int main(void)
 {
+    for (size_t index = 0; index < sizeof(value_large); ++index) {
+        value_large[index] = (uint8_t)(index * 31u + 7u);
+    }
     test_no_locks_available();
     test_power_loss_walks();
     if (FAULTS_SMALL_SLOT) {
