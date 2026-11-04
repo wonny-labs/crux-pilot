@@ -178,3 +178,203 @@ void psa_reset_key_attributes(psa_key_attributes_t *attributes)
 {
     *attributes = psa_key_attributes_init();
 }
+
+psa_status_t psa_generate_key(const psa_key_attributes_t *attributes, psa_key_id_t *key)
+{
+    (void)attributes;
+    *key = STUB_LENGTH((psa_key_id_t)1);
+    return STUB_STATUS;
+}
+
+psa_status_t psa_export_key(psa_key_id_t key, uint8_t *data, size_t data_size, size_t *data_length)
+{
+    (void)key;
+    memset(data, 0, data_size);
+    *data_length = STUB_LENGTH(data_size);
+    return STUB_STATUS;
+}
+
+psa_status_t psa_export_public_key(psa_key_id_t key, uint8_t *data, size_t data_size,
+                                   size_t *data_length)
+{
+    (void)key;
+    memset(data, 0, data_size);
+    *data_length = STUB_LENGTH(data_size);
+    return STUB_STATUS;
+}
+
+psa_status_t psa_sign_hash(psa_key_id_t key, psa_algorithm_t alg, const uint8_t *hash,
+                           size_t hash_length, uint8_t *signature, size_t signature_size,
+                           size_t *signature_length)
+{
+    (void)key;
+    (void)alg;
+    (void)hash;
+    (void)hash_length;
+    memset(signature, 0, signature_size);
+    *signature_length = STUB_LENGTH(signature_size);
+    return STUB_STATUS;
+}
+
+psa_status_t psa_sign_message(psa_key_id_t key, psa_algorithm_t alg, const uint8_t *input,
+                              size_t input_length, uint8_t *signature, size_t signature_size,
+                              size_t *signature_length)
+{
+    (void)key;
+    (void)alg;
+    (void)input;
+    (void)input_length;
+    memset(signature, 0, signature_size);
+    *signature_length = STUB_LENGTH(signature_size);
+    return STUB_STATUS;
+}
+
+psa_status_t psa_verify_message(psa_key_id_t key, psa_algorithm_t alg, const uint8_t *input,
+                                size_t input_length, const uint8_t *signature,
+                                size_t signature_length)
+{
+    (void)key;
+    (void)alg;
+    (void)input;
+    (void)input_length;
+    (void)signature;
+    (void)signature_length;
+    return STUB_STATUS;
+}
+
+psa_status_t psa_mac_compute(psa_key_id_t key, psa_algorithm_t alg, const uint8_t *input,
+                             size_t input_length, uint8_t *mac, size_t mac_size, size_t *mac_length)
+{
+    (void)key;
+    (void)alg;
+    (void)input;
+    (void)input_length;
+    memset(mac, 0, mac_size);
+    *mac_length = STUB_LENGTH(mac_size);
+    return STUB_STATUS;
+}
+
+psa_status_t psa_aead_encrypt(psa_key_id_t key, psa_algorithm_t alg, const uint8_t *nonce,
+                              size_t nonce_length, const uint8_t *additional_data,
+                              size_t additional_data_length, const uint8_t *plaintext,
+                              size_t plaintext_length, uint8_t *ciphertext, size_t ciphertext_size,
+                              size_t *ciphertext_length)
+{
+    (void)key;
+    (void)alg;
+    (void)nonce;
+    (void)nonce_length;
+    (void)additional_data;
+    (void)additional_data_length;
+    (void)plaintext;
+    (void)plaintext_length;
+    memset(ciphertext, 0, ciphertext_size);
+    *ciphertext_length = STUB_LENGTH(ciphertext_size);
+    return STUB_STATUS;
+}
+
+psa_status_t psa_aead_decrypt(psa_key_id_t key, psa_algorithm_t alg, const uint8_t *nonce,
+                              size_t nonce_length, const uint8_t *additional_data,
+                              size_t additional_data_length, const uint8_t *ciphertext,
+                              size_t ciphertext_length, uint8_t *plaintext, size_t plaintext_size,
+                              size_t *plaintext_length)
+{
+    (void)key;
+    (void)alg;
+    (void)nonce;
+    (void)nonce_length;
+    (void)additional_data;
+    (void)additional_data_length;
+    (void)ciphertext;
+    (void)ciphertext_length;
+    memset(plaintext, 0, plaintext_size);
+    *plaintext_length = STUB_LENGTH(plaintext_size);
+    return STUB_STATUS;
+}
+
+psa_status_t psa_aead_encrypt_setup(psa_aead_operation_t *operation, psa_key_id_t key,
+                                    psa_algorithm_t alg)
+{
+    (void)operation;
+    (void)key;
+    (void)alg;
+    return STUB_STATUS;
+}
+
+psa_status_t psa_aead_decrypt_setup(psa_aead_operation_t *operation, psa_key_id_t key,
+                                    psa_algorithm_t alg)
+{
+    (void)operation;
+    (void)key;
+    (void)alg;
+    return STUB_STATUS;
+}
+
+psa_status_t psa_aead_set_lengths(psa_aead_operation_t *operation, size_t ad_length,
+                                  size_t plaintext_length)
+{
+    (void)operation;
+    (void)ad_length;
+    (void)plaintext_length;
+    return STUB_STATUS;
+}
+
+psa_status_t psa_aead_set_nonce(psa_aead_operation_t *operation, const uint8_t *nonce,
+                                size_t nonce_length)
+{
+    (void)operation;
+    (void)nonce;
+    (void)nonce_length;
+    return STUB_STATUS;
+}
+
+psa_status_t psa_aead_update_ad(psa_aead_operation_t *operation, const uint8_t *input,
+                                size_t input_length)
+{
+    (void)operation;
+    (void)input;
+    (void)input_length;
+    return STUB_STATUS;
+}
+
+psa_status_t psa_aead_update(psa_aead_operation_t *operation, const uint8_t *input,
+                             size_t input_length, uint8_t *output, size_t output_size,
+                             size_t *output_length)
+{
+    (void)operation;
+    (void)input;
+    (void)input_length;
+    memset(output, 0, output_size);
+    *output_length = STUB_LENGTH(input_length);
+    return STUB_STATUS;
+}
+
+psa_status_t psa_aead_finish(psa_aead_operation_t *operation, uint8_t *ciphertext,
+                             size_t ciphertext_size, size_t *ciphertext_length, uint8_t *tag,
+                             size_t tag_size, size_t *tag_length)
+{
+    (void)operation;
+    memset(ciphertext, 0, ciphertext_size);
+    memset(tag, 0, tag_size);
+    *ciphertext_length = 0;
+    *tag_length = STUB_LENGTH(tag_size);
+    return STUB_STATUS;
+}
+
+psa_status_t psa_aead_verify(psa_aead_operation_t *operation, uint8_t *plaintext,
+                             size_t plaintext_size, size_t *plaintext_length, const uint8_t *tag,
+                             size_t tag_length)
+{
+    (void)operation;
+    (void)tag;
+    (void)tag_length;
+    memset(plaintext, 0, plaintext_size);
+    *plaintext_length = 0;
+    return STUB_STATUS;
+}
+
+psa_status_t psa_aead_abort(psa_aead_operation_t *operation)
+{
+    (void)operation;
+    return PSA_SUCCESS;
+}

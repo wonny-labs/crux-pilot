@@ -1,5 +1,11 @@
+common:
+  platform_allow: [native_sim/native/64]
+  tags: [crypto, crux]
+  timeout: 300
 tests:
-  crux.psa_crypto.conformance:
-    platform_allow: [native_sim/native/64]
-    tags: [crypto, crux]
-    timeout: 120
+  crux.psa_crypto.conformance.tf_psa_crypto:
+    extra_args: EXTRA_CONF_FILE=tf-psa-crypto.conf
+  crux.psa_crypto.conformance.wolfpsa:
+    extra_args: EXTRA_CONF_FILE=wolfpsa.conf
+  crux.psa_crypto.conformance.wolfpsa_with_tls:
+    extra_args: EXTRA_CONF_FILE="wolfpsa.conf;wolfpsa-with-tls.conf"
