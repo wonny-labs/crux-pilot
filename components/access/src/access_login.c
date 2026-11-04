@@ -131,7 +131,7 @@ crux_access_result_t crux_access_verify_current(const char *user,
     }
     if (!matched || !verification.known) {
         crux_access_emit_session(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_DENIED, origin,
-                                 user, user, NULL);
+                                 user, user);
         return CRUX_ACCESS_ERR_DENIED;
     }
     *change_number = verification.change_number;
@@ -473,7 +473,8 @@ void crux_access_logout(crux_access_session_t *session)
         return;
     }
     uint64_t now_ms = crux_access_port_now_ms();
-    crux_access_origin_t origin = {0};
+    crux_access_origin_t origin;
+    memset(&origin, 0, sizeof(origin));
     char actor[CRUX_ACCESS_NAME_SIZE] = {0};
     const access_slot_t *slot = crux_access_slot_find(ended, now_ms, &expired);
     bool found = slot != NULL;
@@ -485,7 +486,6 @@ void crux_access_logout(crux_access_session_t *session)
     crux_access_unlock_state();
     crux_access_expired_emit(&expired);
     if (found) {
-        crux_access_emit_session(CRUX_ACCESS_EVENT_LOGOUT, CRUX_ACCESS_OK, &origin, actor, NULL,
-                                 NULL);
+        crux_access_emit_session(CRUX_ACCESS_EVENT_LOGOUT, CRUX_ACCESS_OK, &origin, actor, NULL);
     }
 }

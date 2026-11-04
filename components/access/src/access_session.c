@@ -160,7 +160,7 @@ void crux_access_expired_emit(const access_expired_t *expired)
 {
     for (size_t index = 0; index < expired->count; ++index) {
         crux_access_emit_session(CRUX_ACCESS_EVENT_SESSION_EXPIRED, CRUX_ACCESS_ERR_SESSION_INVALID,
-                                 &expired->origins[index], expired->users[index], NULL, NULL);
+                                 &expired->origins[index], expired->users[index], NULL);
     }
 }
 

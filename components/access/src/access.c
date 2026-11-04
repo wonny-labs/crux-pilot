@@ -112,7 +112,7 @@ void crux_access_emit(crux_access_event_type_t type, crux_access_result_t result
 
 void crux_access_emit_session(crux_access_event_type_t type, crux_access_result_t result,
                               const crux_access_origin_t *origin, const char *actor,
-                              const char *account, const char *permission)
+                              const char *account)
 {
     crux_access_event_t event = {.type = type, .result = result};
     if (actor != NULL) {
@@ -121,11 +121,18 @@ void crux_access_emit_session(crux_access_event_type_t type, crux_access_result_
     if (account != NULL) {
         crux_access_copy_name(event.account, account);
     }
-    if (permission != NULL) {
-        size_t length = crux_access_bounded_length(permission, CRUX_ACCESS_PERMISSION_MAX);
-        memcpy(event.permission, permission,
-               length > CRUX_ACCESS_PERMISSION_MAX ? CRUX_ACCESS_PERMISSION_MAX : length);
-    }
+    event_send(&event, origin);
+}
+
+void crux_access_emit_denial(const char *actor, const crux_access_origin_t *origin,
+                             const char *permission)
+{
+    crux_access_event_t event = {.type = CRUX_ACCESS_EVENT_PERMISSION_DENIED,
+                                 .result = CRUX_ACCESS_ERR_DENIED};
+    crux_access_copy_name(event.actor, actor);
+    size_t length = crux_access_bounded_length(permission, CRUX_ACCESS_PERMISSION_MAX);
+    memcpy(event.permission, permission,
+           length > CRUX_ACCESS_PERMISSION_MAX ? CRUX_ACCESS_PERMISSION_MAX : length);
     event_send(&event, origin);
 }
 
@@ -340,7 +347,8 @@ crux_access_result_t crux_access_check(crux_access_session_t session, const char
         return CRUX_ACCESS_ERR_INVALID_ARGUMENT;
     }
     access_expired_t expired = {0};
-    crux_access_origin_t origin = {0};
+    crux_access_origin_t origin;
+    memset(&origin, 0, sizeof(origin));
     char actor[CRUX_ACCESS_NAME_SIZE] = {0};
     if (!crux_access_lock_state()) {
         return CRUX_ACCESS_ERR_NOT_READY;
@@ -359,8 +367,7 @@ crux_access_result_t crux_access_check(crux_access_session_t session, const char
     crux_access_unlock_state();
     crux_access_session_report(result, &expired);
     if (result == CRUX_ACCESS_ERR_DENIED) {
-        crux_access_emit_session(CRUX_ACCESS_EVENT_PERMISSION_DENIED, result, &origin, actor, NULL,
-                                 permission);
+        crux_access_emit_denial(actor, &origin, permission);
     }
     return result;
 }
