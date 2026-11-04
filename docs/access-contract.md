@@ -19,7 +19,7 @@ Owner: `components/access`. Public header `<crux/access.h>`, usage target `crux:
 | Fake ports | Test composition in `tests/access`. They exist only when Crux builds its own tests. |
 | PSA derivation, random and keyed hash | Not implemented, Issue #142 |
 | Credential store | Not implemented, Issue #178. Requirement A6 is checked against a fake only. |
-| Event identifiers and Logging output | Not implemented, Issue #182 |
+| Event identifiers and Logging output | In the [Security event contract](security-event-contract.md), Issue #182, whose provider implements the event port. Access's own Host tests keep their recording fake. |
 | Zephyr composition, target measurements | Not implemented. Target work needs separate hardware approval. |
 
 Host tests show contract behaviour. They do not establish entropy quality, storage confidentiality or timing on
@@ -93,7 +93,8 @@ open to review, and a changed choice is small while nothing depends on it.
 | Event fields | `actor` is the acting session's user, and empty when no session acted. `account` is a login's account or a change's target. `permission` is set on a denial. Each name is a known account's, or the field is empty. | AC10. `actor` and `account` are the same when an account changes its own password. |
 | No event, by design | A session ended by the per-account cap, a cost upgrade including one whose save fails, an operation that changed nothing, a lost lock, an unsigned key probe unless it is refused as `NOT_READY`, a logout of a reference already ended, and a malformed argument to a check or session query | Nothing was rejected, or the call came from a context where the port cannot run, or it is a caller's programming error. An unsigned probe records nothing, as the proposal says. |
 
-The accepted request AC3 adds rejection events. Issue #182 owns the final identifiers.
+The accepted request AC3 adds rejection events. The identifiers are final in the
+[Security event contract](security-event-contract.md), which also lists each port event's fields and result.
 
 | Port event | Identifier | When |
 | --- | --- | --- |

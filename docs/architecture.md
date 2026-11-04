@@ -99,6 +99,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | SPI | Synchronous full-duplex byte exchange with one statically composed peripheral | Host loopback fixture and Zephyr native SPI driver; no handle, deadline or Crux lock; held chip select rejected at build time; no physical qualification | [Contract](spi-contract.md) |
 | Access | Accounts, roles, sessions and permission checks for management channels | Portable core with Host fake ports only, under review for Issue #177; no provider, so no product composition | [Contract](access-contract.md), [proposal](plans/access-contract-proposal.md) |
 | File service | Declared file areas with permissions, limits, direct writes and managed uploads for management channels | Portable core with the Host fake File provider only, under review for Issue #179; no event provider, so no product image links it; not atomic across power loss | [Contract](file-service-contract.md) |
+| Security events | Bounded records of management activity with stable identifiers and counted loss, through Logging | Portable core and Access provider on Host, under review for Issue #182; no Zephyr composition, no persistence | [Contract](security-event-contract.md) |
 
 ## Build and platform composition
 
