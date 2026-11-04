@@ -274,7 +274,8 @@ static void no_verifier_left_after_removal(void)
           CRUX_ACCESS_OK);
     size_t length = 0;
     access_table_t table;
-    CHECK(crux_access_record_decode(access_fake_store_record(&length), length, &table));
+    const uint8_t *stored = access_fake_store_record(&length);
+    CHECK(crux_access_record_decode(stored, length, &table));
     uint8_t derived[CRUX_ACCESS_DERIVED_SIZE];
     memcpy(derived, table.accounts[1].derived, sizeof(derived));
     CHECK(copies_in_state(derived) == 1);
@@ -286,7 +287,8 @@ static void no_verifier_left_after_removal(void)
           CRUX_ACCESS_OK);
     CHECK(crux_access_account_create(admin, "bob", "viewer", PASSWORD, strlen(PASSWORD)) ==
           CRUX_ACCESS_OK);
-    CHECK(crux_access_record_decode(access_fake_store_record(&length), length, &table));
+    stored = access_fake_store_record(&length);
+    CHECK(crux_access_record_decode(stored, length, &table));
     memcpy(derived, table.accounts[1].derived, sizeof(derived));
     uint8_t moved[CRUX_ACCESS_DERIVED_SIZE];
     memcpy(moved, table.accounts[2].derived, sizeof(moved));

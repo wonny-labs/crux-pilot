@@ -124,9 +124,9 @@ class TemplateScriptTest(unittest.TestCase):
 
 
 class GuideTest(unittest.TestCase):
-    def test_guide_says_at_the_top_that_it_is_proposed_and_untagged(self):
+    def test_guide_says_at_the_top_that_it_is_adopted_and_untagged(self):
         top = GUIDE.read_text()[:800].lower()
-        self.assertIn("proposed practice", top)
+        self.assertIn("adopted practice", top)
         self.assertIn("no crux release tag", top)
 
     def test_readers_can_reach_the_guide(self):

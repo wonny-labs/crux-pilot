@@ -23,7 +23,7 @@ Owner: `components/cli`.
 | Built-in commands `help`, `logout`, `passwd`, `account list` | Built | Host, on a scripted and on the real `crux_access` |
 | Serial login loop and first-account setup `!setup` (L4) | Built | Host, on both |
 | Serial console over `crux_serial` (L1) | Built | Host: a scripted Serial and the real Linux provider on a pseudo-terminal |
-| Security events | Port and recording fake. **The real provider connects when #234 lands**, below. | Host |
+| Security events | Port and recording fake. #234 is on `main`, and **the provider that connects them is not added here**, as below. | Host |
 | Shell rule (L5) at configuration, at compilation, by script and by image check | Built | Host for the rule's logic. Real builds in `scripts/test-cli.sh --zephyr`, which runs in the Zephyr CI job. |
 | LPUART3 wiring | Compile only: `tests/zephyr/cli_serial_compile` | RT1060-EVKB compile and link, in CI. **Never flashed, and not evidence of a console.** |
 | `crux_access` on Zephyr | Not available, so nothing links the console into an image | |
@@ -52,7 +52,7 @@ flowchart TB
     core --> port["crux_cli_port_event"]
     console --> port
     port -.->|"Host tests"| fake["Recording fake"]
-    port -.->|"when #234 lands"| events["crux_security_event_emit"]
+    port -.->|"thin provider, not added yet"| events["crux_security_event_emit"]
 ```
 
 Serial and SSH are two users of one transport. `crux_cli_adapter.h` names no serial or SSH type, and `scripts/check-cli-boundary.py` fails if it does.
@@ -261,9 +261,9 @@ static int cli_exec(void *context, crux_ssh_attachment_t *attachment, crux_ssh_c
 
 **A gap for #193 and #205.** #205 accepts `pty-req` with no callback, so nothing tells `cli_shell` whether a terminal was requested, and `echo` and the line-end mapping depend on that. The narrow choice is for #205 to pass that fact to `shell`. Until then, #193 can only choose one behaviour for every shell channel.
 
-## What connects when #234 lands
+## Connecting the real security events
 
-Nothing in `components/cli` changes. A composition adds one file, the thin provider of the port, which translates and holds no state:
+#234 landed on `main` while this was in review, and this PR was asked to leave the two connected only through the port. Nothing in `components/cli` changes. A composition adds one file, the thin provider of the port, which translates and holds no state:
 
 ```c
 #include "cli_port.h"
@@ -289,7 +289,7 @@ void crux_cli_port_event(const crux_cli_event_t *event)
 }
 ```
 
-The identifiers `cli.line_rejected` and `cli.console_error` exist on that branch, at 0x0500 and 0x0501, and its emit needs no session and does not wait on storage, as the port requires. This file was compiled against that branch's public header at `46ee74e`, in a scratch directory. That is all: #234 is in review, and it can change. Only this file would change with it, because nothing else in `components/cli` names a security event. Its target `crux::security_event` and this file then join the composition, and `Cli.*` can run a further case through the real ring. Until then an image has no provider, and it does not link.
+The identifiers `cli.line_rejected` and `cli.console_error` exist at 0x0500 and 0x0501, and the emit needs no session and does not wait on storage, as the port requires. This file was compiled against the public header on `main`, in a scratch directory, and has not run. Only this file would change if that header does, because nothing else in `components/cli` names a security event. It and the target `crux::security_event` then join the composition, and `Cli.*` can run a further case through the real ring. Until then an image has no provider, and it does not link.
 
 ## Registering the recovery command of #213
 

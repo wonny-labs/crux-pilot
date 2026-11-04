@@ -100,7 +100,8 @@ typedef enum {
 } crux_access_event_type_t;
 
 /* Names only known accounts, so that a password typed into the name field is never reported. No
- * event holds a password, verifier, salt or key. Identifiers are finalised under Issue #182. */
+ * event holds a password, verifier, salt or key. The product provider and the final identifiers are
+ * in components/security_event. */
 typedef struct {
     crux_access_event_type_t type;
     crux_access_result_t result;

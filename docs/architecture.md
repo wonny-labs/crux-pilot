@@ -100,6 +100,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Access | Accounts, roles, sessions and permission checks for management channels | Portable core with Host fake ports only, under review for Issue #177; no provider, so no product composition | [Contract](access-contract.md), [proposal](plans/access-contract-proposal.md) |
 | Command line | Permission-aware command registry and the serial console's login, over a narrow session transport | Portable core with Host fakes and a Linux pseudo-terminal, under review for Issue #181; RT1060-EVKB LPUART3 wiring is compile only, no provider, so no product composition | [Contract](cli-contract.md) |
 | File service | Declared file areas with permissions, limits, direct writes and managed uploads for management channels | Portable core with the Host fake File provider only, under review for Issue #179; no event provider, so no product image links it; not atomic across power loss | [Contract](file-service-contract.md) |
+| Security events | Bounded records of management activity with stable identifiers and counted loss, through Logging | Portable core and Access provider on Host, under review for Issue #182; no Zephyr composition, no persistence | [Contract](security-event-contract.md) |
 
 ## Build and platform composition
 

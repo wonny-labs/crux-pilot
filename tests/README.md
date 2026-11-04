@@ -185,8 +185,8 @@ against local repositories, with URLs redirected by `url.<base>.insteadOf` and n
 runs the frozen-manifest flow and the build record's input capture. These cases skip when west or
 PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <board>` runs them with
 `tests/build/test_crux_pins.py`, runs `west crux-pins` on Crux's own workspace and so on a real Zephyr
-manifest, then cross-builds the application in that workspace. It does not operate hardware. It runs
-by hand: no workflow calls it, and CI wiring is proposed separately. See the
+manifest, then cross-builds the application in that workspace. It does not operate hardware. The
+Zephyr CI job runs it. See the
 [Product Composition Guide](../docs/product-composition.md).
 
 ## Portable execution capability
@@ -508,6 +508,18 @@ No real provider exists yet, so none of this says anything about entropy, storag
 Command line (Issue #181): the root Host suite runs `tests/cli` as `Cli.*` in CTest, with a scripted transport, a recording event port, a scripted Serial, and either a scripted access control or the real `crux_access` on its fake ports. These fakes are a test composition: they exist only when Crux builds its own tests.
 `scripts/test-cli.sh` also runs them under the sanitizer preset, runs clang-tidy on the CLI sources, runs `scripts/check-cli-boundary.py`, which configures and builds `tests/cli_consumer` both ways, runs `scripts/check-cli-session-commands.py`, and runs the shell rule's Host tests in `tests/build/test_management_shell.py`.
 `scripts/test-cli.sh --zephyr`, in the Zephyr CI job, runs `tests/build/test_cli_composition.py`: refused compositions at configuration, accepted ones built on `native_sim`, and `tests/zephyr/cli_serial_compile` compiled and linked for the RT1060-EVKB with LPUART3, with the `.config` and image checks of `scripts/check-management-shell.py` on each. No image built here calls the console, and none is flashed or run. Physical serial login needs separate approval. See the [command line contract](../docs/cli-contract.md).
+
+## Portable Security events
+
+Security events (Issue #182): the root Host suite runs `tests/security_event` as `SecurityEvent.*` in CTest. Most suites
+control the clocks and the log through linker wraps. `rejections`, `read`, `waits` and `secrets` join the real Access core and the
+real provider, with Access's fake ports. `integration` links product cores with real Logging, Thread and Sync and Time's real
+authority lock and monotonic clock. Its realtime provider is Time's controlled `memory` one.
+`crux_security_event_fake` is a recording fake of the public contract for the Host tests of a consumer, and one suite runs on both
+it and the core. These exist only when Crux builds its own tests. `scripts/test-security-event.sh` also runs them under the
+sanitizer preset, runs clang-tidy on the sources and tests, and runs `scripts/check-security-event-boundary.py`, which builds
+`tests/security_event_consumer` in both directions. None of this runs on Zephyr or a target. See the
+[Security event contract](../docs/security-event-contract.md).
 
 ## Web frontend
 
