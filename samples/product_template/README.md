@@ -27,6 +27,6 @@ west crux-pins
 west build -b <board> -d product-x/build/app product-x/app
 ~~~
 
-`west crux-pins` compares the workspace with the revisions Crux pins, and fails on a difference with no declared reason. The build stops if the workspace uses another Zephyr release. The guide lists both checks, how to modify third-party code and how to make a release.
+`west crux-pins` compares the workspace with the revisions Crux pins, and fails on a difference with no declared reason. The build warns if the workspace uses another Zephyr release, and stops with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`. The guide lists both checks, how to modify third-party code and how to make a release.
 
 Pin a Crux tag or SHA in `west.yml` before you make a release.

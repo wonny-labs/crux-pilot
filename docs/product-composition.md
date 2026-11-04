@@ -110,9 +110,11 @@ userdata:
 
 ### Zephyr baseline gate
 
-The Crux Zephyr module compares the release numbers of the Zephyr in use with the release Crux was verified on, currently 4.4.2. A difference stops the build. A fork with an `EXTRAVERSION` suffix passes, because its release numbers are unchanged.
+The Crux Zephyr module compares the release numbers of the Zephyr in use with the release Crux was verified on, currently 4.4.2. A difference, or a version it cannot read, gives a CMake warning and the build continues. Crux evidence does not apply to that build. A fork with an `EXTRAVERSION` suffix stays quiet, because its release numbers are unchanged.
 
-`-DCRUX_ALLOW_UNVERIFIED_ZEPHYR=ON` turns the error into a warning. Crux evidence does not apply to that build.
+`-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON` turns the warning into an error that stops the build.
+
+The gate runs while `CONFIG_CRUX_PILOT_MODULE` is on, so an application that sets it to `n` turns the gate off with the module.
 
 ## Modifying third-party code
 
