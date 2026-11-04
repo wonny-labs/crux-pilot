@@ -12,6 +12,7 @@ REPO = Path(__file__).resolve().parents[2]
 ZEPHYR = REPO / ".github/workflows/zephyr.yml"
 HOST = REPO / ".github/workflows/host.yml"
 DOCS_ONLY = ["docs/**", "**.md"]
+SET_UP_SCRIPTS = re.compile(r"scripts/(bootstrap-zephyr\.sh|verify-apt-cache\.py)")
 SHARD_CONDITION = re.compile(r"^matrix\.shard == '([a-z-]+)'$")
 
 
@@ -76,7 +77,7 @@ class ZephyrShardsTest(unittest.TestCase):
 
     def test_every_check_runs_in_a_named_shard(self):
         for step in self.steps:
-            if not is_check(step) or "scripts/bootstrap-zephyr.sh" in step["text"]:
+            if not is_check(step) or SET_UP_SCRIPTS.search(step["text"]):
                 continue
             with self.subTest(step=step["title"]):
                 condition = SHARD_CONDITION.match(step["condition"] or "")
@@ -123,12 +124,31 @@ class ZephyrShardsTest(unittest.TestCase):
     def test_host_packages_are_restored_before_they_are_installed(self):
         # Slow mirrors cost one job in six up to ten minutes, which sets a run's length.
         titles = [s["title"] for s in self.steps]
-        install = next(s for s in self.steps if "apt-get install" in s["text"])
+        install = self.install_step()
         self.assertIn("Dir::Cache::archives=", install["text"])
         restore = self.step_using("actions/cache/restore@")
         save = self.step_using("actions/cache/save@")
         self.assertLess(titles.index(restore["title"]), titles.index(install["title"]))
         self.assertLess(titles.index(install["title"]), titles.index(save["title"]))
+
+    def install_step(self):
+        matches = [s for s in self.steps if re.search(r"apt-get install -y -o", s["text"])]
+        self.assertEqual(1, len(matches), "one step must install from the package cache")
+        return matches[0]
+
+    def test_restored_packages_are_verified_before_apt_reads_them(self):
+        # apt accepts a cached file by name and size alone, so a poisoned cache would install.
+        text = self.install_step()["text"]
+        self.assertIn("scripts/verify-apt-cache.py", text)
+        self.assertLess(text.index("scripts/verify-apt-cache.py"), text.index("apt-get install"))
+
+    def test_package_list_comes_from_the_index_with_a_strong_hash(self):
+        # --print-uris reports MD5 unless a hash is forced.
+        listing = next(s for s in self.steps if "--print-uris" in s["text"])
+        self.assertIn("Acquire::ForceHash=SHA256", listing["text"])
+        self.assertIn("apt-get update", listing["text"])
+        self.assertIn("$CI_HOST_PACKAGES", listing["text"])
+        self.assertIn("$CI_HOST_PACKAGES", self.install_step()["text"])
 
     def test_restored_and_saved_packages_use_one_path_and_key(self):
         field = re.compile(r"^\s+(path|key): (.+)$", re.MULTILINE)
