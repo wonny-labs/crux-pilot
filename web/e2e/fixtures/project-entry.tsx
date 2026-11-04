@@ -3,12 +3,13 @@
 import '../../reference/src/style.css';
 import { mountReferenceInterface } from '../../reference/src/app.tsx';
 import { homeScreen } from '../../reference/src/screens/home.tsx';
+import { networkScreen } from '../../reference/src/screens/network.tsx';
 import { rebootScreen } from '../../reference/src/screens/reboot.tsx';
 
 const root = document.getElementById('app');
 if (root !== null) {
   mountReferenceInterface(root, {
-    screens: [homeScreen, rebootScreen],
+    screens: [homeScreen, networkScreen, rebootScreen],
     homeItems: [
       {
         name: 'app.cycle_count',
