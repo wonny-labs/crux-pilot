@@ -345,6 +345,27 @@ static void exec_form(void)
         CHECK_TEXT(cli_test_output(), "invalid line\n");
         CHECK(echo_runs == 0);
     }
+    /* Quotes do not make a control byte acceptable. */
+    const char *const refused_in_quotes[] = {"echo-args \"a\x01z\"", "echo-args \"a\tz\"",
+                                             "echo-args \"a\nz\"",   "echo-args \"a\x7fz\"",
+                                             "echo-args \"a\x1bz\"", "echo-args \"a\\\x01z\""};
+    for (size_t index = 0; index < sizeof(refused_in_quotes) / sizeof(refused_in_quotes[0]);
+         ++index) {
+        begin();
+        CHECK(cli_test_exec(refused_in_quotes[index], CRUX_ACCESS_CHANNEL_SSH, &status) ==
+              CRUX_CLI_OK);
+        CHECK(status == 2);
+        CHECK_TEXT(cli_test_output(), "invalid line\n");
+        CHECK(echo_runs == 0);
+    }
+    static const char nul_in_quotes[] = {'e', 'c', 'h', 'o', '-',  'a', 'r', 'g',
+                                         's', ' ', '"', 'a', '\0', 'z', '"'};
+    begin();
+    CHECK(cli_test_exec_bytes(nul_in_quotes, sizeof(nul_in_quotes), CRUX_ACCESS_CHANNEL_SSH,
+                              &status) == CRUX_CLI_OK);
+    CHECK(status == 2);
+    CHECK_TEXT(cli_test_output(), "invalid line\n");
+    CHECK(echo_runs == 0);
     static const char embedded_nul[] = {'e', 'c', 'h', 'o', '\0', 'x'};
     begin();
     CHECK(cli_test_exec_bytes(embedded_nul, sizeof(embedded_nul), CRUX_ACCESS_CHANNEL_SSH,

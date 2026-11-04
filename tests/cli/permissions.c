@@ -528,10 +528,13 @@ static void output_path(void)
     begin();
     cli_test_fake.write_overclaims = true;
     CHECK(cli_test_exec("large", CRUX_ACCESS_CHANNEL_SSH, &status) == CRUX_CLI_ERR_OUTPUT);
+    /* It stops there, without believing the count and running on past the end of the data. */
+    CHECK(cli_test_fake.write_calls == 1);
     begin();
     cli_test_fake.read_overclaims = true;
     CHECK(cli_test_session("sess\n", false, CRUX_ACCESS_CHANNEL_SERIAL) == CRUX_CLI_ERR_OUTPUT);
     CHECK(session_runs == 0);
+    CHECK(cli_test_fake.read_calls == 1);
 
     /* A zero-length write does nothing, and the transport is not asked. */
     begin();
@@ -640,6 +643,17 @@ static void passwd_command(void)
     CHECK(cli_fake_access.change_calls == 0);
     CHECK_TEXT(cli_test_output(), "> current password: new password: repeat: passwords differ\n> ");
     CHECK(!cli_test_contains(&cli_test_context, sizeof(cli_test_context), "word"));
+
+    /* A prefix of the first entry is not the same entry, whichever came first. */
+    const char *const prefixes[] = {"passwd\nold-pass-word\nnew-pass-word\nnew-pass\n",
+                                    "passwd\nold-pass-word\nnew-pass\nnew-pass-word\n"};
+    for (size_t index = 0; index < 2; ++index) {
+        begin();
+        CHECK(cli_test_session(prefixes[index], false, CRUX_ACCESS_CHANNEL_SERIAL) ==
+              CRUX_CLI_ERR_OUTPUT);
+        CHECK(cli_fake_access.change_calls == 0);
+        CHECK(strstr(cli_test_output(), "passwords differ\n") != NULL);
+    }
 
     /* Ctrl-C at any of the three prompts stops it with no call. */
     const char *const stops[] = {"passwd\n\x03", "passwd\na\n\x03", "passwd\na\nb\n\x03"};

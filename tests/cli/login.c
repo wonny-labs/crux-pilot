@@ -24,6 +24,30 @@ static void begin(void)
     context_clean_at_verify = false;
 }
 
+/* What a command sees of the session's memory while it runs. */
+static bool password_seen_in_session, name_seen_in_session;
+static unsigned scans;
+
+static crux_cli_result_t scan_memory(crux_cli_call_t *call, size_t argc, const char *const *argv,
+                                     void *context)
+{
+    (void)call;
+    (void)argc;
+    (void)argv;
+    (void)context;
+    scans += 1;
+    password_seen_in_session =
+        cli_test_contains(&cli_test_context, sizeof(cli_test_context), PASSWORD);
+    name_seen_in_session =
+        cli_test_contains(&cli_test_context, sizeof(cli_test_context), "a-longer-account-name");
+    return CRUX_CLI_OK;
+}
+
+static const crux_cli_command_t scanning_table[] = {
+    CRUX_CLI_COMMAND("scan", "look at the session's memory", CRUX_CLI_SESSION_ONLY, 0, 0,
+                     CRUX_CLI_CHANNEL_SERIAL, scan_memory, NULL),
+};
+
 static crux_cli_result_t serve(void)
 {
     crux_cli_io_t io = cli_fake_io(&cli_test_fake, true);
@@ -100,6 +124,17 @@ static void login_table(void)
     CHECK(serve() == CRUX_CLI_ERR_OUTPUT);
     CHECK_TEXT(cli_test_output(), "login: alice\npassword: \n> help\nsession ended\nlogin: ");
     CHECK(cli_fake_access.logout_calls == 1);
+
+    /* Nothing typed at login stays in memory while the session runs. The name is longer than the
+     * command that scans for it, so overwriting the start of the line would not hide it. */
+    cli_test_begin_table(scanning_table, 1);
+    scans = 0;
+    password_seen_in_session = name_seen_in_session = true;
+    cli_fake_input(&cli_test_fake, "a-longer-account-name\n" PASSWORD "\nscan\nlogout\n");
+    CHECK(serve() == CRUX_CLI_ERR_OUTPUT);
+    CHECK(scans == 1);
+    CHECK(!password_seen_in_session);
+    CHECK(!name_seen_in_session);
 
     /* The transport fails during a session: the session is ended before serve returns. */
     begin();
@@ -207,6 +242,21 @@ static void login_details(void)
     CHECK(cli_test_fake.read_timeouts_seen == CRUX_CLI_SECRET_IDLE_POLLS);
     CHECK(!cli_test_contains(&cli_test_context, sizeof(cli_test_context), PASSWORD));
     CHECK(strstr(cli_test_output(), "login: alice\npassword: \nlogin: tail\npassword: ") != NULL);
+
+    /* Any byte restarts that count, so typing slowly is not abandoning. */
+    begin();
+    cli_fake_input(&cli_test_fake, "alice\n");
+    cli_fake_input_timeouts(&cli_test_fake, CRUX_CLI_SECRET_IDLE_POLLS - 1u);
+    cli_fake_input(&cli_test_fake, "first");
+    cli_fake_input_timeouts(&cli_test_fake, CRUX_CLI_SECRET_IDLE_POLLS - 1u);
+    cli_fake_input(&cli_test_fake, "second");
+    cli_fake_input_timeouts(&cli_test_fake, CRUX_CLI_SECRET_IDLE_POLLS - 1u);
+    cli_fake_access.login_result = CRUX_ACCESS_ERR_DENIED;
+    cli_fake_input(&cli_test_fake, "\n");
+    CHECK(serve() == CRUX_CLI_ERR_OUTPUT);
+    CHECK(cli_fake_access.login_calls == 1);
+    CHECK_TEXT(cli_fake_access.last_password, "firstsecond");
+    CHECK(cli_test_fake.read_timeouts_seen == 3u * (CRUX_CLI_SECRET_IDLE_POLLS - 1u));
 
     /* Waiting at the name prompt has no limit. */
     begin();
@@ -319,6 +369,17 @@ static void setup_table(void)
     CHECK(serve() == CRUX_CLI_ERR_OUTPUT);
     CHECK(cli_fake_access.provision_calls == 1);
     CHECK(strstr(cli_test_output(), "account created\nlogin: ") != NULL);
+
+    /* A prefix of the first entry is not the same entry, whichever came first. */
+    const char *const prefixes[] = {"!setup\nfirst\n" PASSWORD "\ncorrect-horse\n",
+                                    "!setup\nfirst\ncorrect-horse\n" PASSWORD "\n"};
+    for (size_t index = 0; index < 2; ++index) {
+        begin();
+        cli_fake_input(&cli_test_fake, prefixes[index]);
+        CHECK(serve() == CRUX_CLI_ERR_OUTPUT);
+        CHECK(cli_fake_access.provision_calls == 0);
+        CHECK(strstr(cli_test_output(), "passwords differ\nnew user: ") != NULL);
+    }
 
     /* An overlong entry is refused with no call. */
     begin();

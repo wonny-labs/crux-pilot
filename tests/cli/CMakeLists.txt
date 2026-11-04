@@ -4,7 +4,7 @@
 set(CRUX_CLI_TEST_INCLUDES
     . ../../components/cli/src ../../components/cli/console)
 set(CRUX_CLI_TEST_DEFINITIONS
-    CRUX_CLI_TESTING=1 CRUX_CLI_TEST_COMPOSITION=1 CRUX_CLI_CONSOLE_RETRY_MS=1)
+    CRUX_CLI_TESTING=1 CRUX_CLI_TEST_COMPOSITION=1)
 set(CRUX_CLI_TEST_WARNINGS -Wall -Wextra -Wpedantic -Werror)
 
 # The registry, the sessions and the portable login loop, with a recording event port and a scripted
@@ -30,9 +30,10 @@ foreach(suite IN ITEMS parser registry rejection permissions login ssh_shape fuz
     set_tests_properties(Cli.${suite} PROPERTIES TIMEOUT 120)
 endforeach()
 
-# The serial cycle over a scripted crux_serial, with the real Thread sleep at a short pause.
+# The serial cycle over a scripted crux_serial. The pause is wrapped, so that a test can read it.
 add_executable(cli_console console.c fake_serial.c ../../components/cli/console/cli_console_serial.c)
 target_link_libraries(cli_console PRIVATE cli_test_scripted crux::thread)
+target_link_options(cli_console PRIVATE -Wl,--wrap=crux_thread_sleep_for)
 target_compile_options(cli_console PRIVATE ${CRUX_CLI_TEST_WARNINGS} -UNDEBUG)
 add_test(NAME Cli.console COMMAND cli_console)
 set_tests_properties(Cli.console PROPERTIES TIMEOUT 60)

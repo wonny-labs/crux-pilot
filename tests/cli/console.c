@@ -3,6 +3,7 @@
 #include "cli_session_test.h"
 #include "fake_serial.h"
 
+#include <crux/thread.h>
 #include <setjmp.h>
 
 #define PASSWORD "correct-horse-password"
@@ -251,16 +252,48 @@ static void close_refused(void)
     CHECK(cli_fake_serial.handles_open == 1);
 }
 
+/* The pause between cycles. The linker's --wrap option fixes these names, and it takes no time. */
+#define PAUSES_MAX 16u
+static int64_t pauses_ns[PAUSES_MAX];
+static unsigned pause_count;
+static unsigned pause_status_failures;
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+crux_status_t __wrap_crux_thread_sleep_for(crux_duration_t duration);
+
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+crux_status_t __wrap_crux_thread_sleep_for(crux_duration_t duration)
+{
+    if (pause_count < PAUSES_MAX) {
+        pauses_ns[pause_count] = duration.private_ns;
+    }
+    pause_count += 1;
+    return pause_status_failures > 0 ? CRUX_ERR_IO : CRUX_OK;
+}
+
 /* The run loop never returns, so a test leaves it from inside the fake's open. */
 static jmp_buf leave_run;
 static unsigned opens_until_leave;
+static unsigned opens_without_pause;
 
 static void leave_after_opens(void)
 {
+    /* Every open after the first follows a pause, so a persistent failure cannot spin. */
+    if (pause_count != cli_fake_serial.open_calls) {
+        opens_without_pause += 1;
+    }
     if (opens_until_leave == 0) {
         longjmp(leave_run, 1);
     }
     opens_until_leave -= 1;
+}
+
+static void expect_five_second_pauses(unsigned count)
+{
+    CHECK(pause_count == count);
+    CHECK(opens_without_pause == 0);
+    for (unsigned index = 0; index < count && index < PAUSES_MAX; ++index) {
+        CHECK(pauses_ns[index] == INT64_C(5000000000));
+    }
 }
 
 static void run_loop(void)
@@ -279,17 +312,22 @@ static void run_loop(void)
     cli_fake_serial.open_result = CRUX_ERR_IO;
     cli_fake_serial.on_open = leave_after_opens;
     opens_until_leave = 4;
+    pause_count = 0;
+    opens_without_pause = 0;
     if (setjmp(leave_run) == 0) {
         (void)crux_cli_console_run(&cli_test_context, &config);
         CHECK(false);
     }
     CHECK(cli_fake_serial.open_calls == 4);
     CHECK(cli_fake_event_count_of(CRUX_CLI_EVENT_CONSOLE_ERROR) == 4);
+    expect_five_second_pauses(4);
 
     /* And comes back after a serial error. */
     begin();
     cli_fake_serial.on_open = leave_after_opens;
     opens_until_leave = 2;
+    pause_count = 0;
+    opens_without_pause = 0;
     cli_fake_input(wire(), "alice\r" PASSWORD "\r");
     if (setjmp(leave_run) == 0) {
         (void)crux_cli_console_run(&cli_test_context, &config);
@@ -297,6 +335,23 @@ static void run_loop(void)
     }
     CHECK(cli_fake_serial.open_calls == 2);
     CHECK(cli_fake_access.logout_calls == 1);
+    expect_five_second_pauses(2);
+
+    /* A sleep that fails is no reason to stop, and it cannot be a reason to spin either. */
+    begin();
+    cli_fake_serial.open_result = CRUX_ERR_IO;
+    cli_fake_serial.on_open = leave_after_opens;
+    opens_until_leave = 2;
+    pause_count = 0;
+    opens_without_pause = 0;
+    pause_status_failures = 1;
+    if (setjmp(leave_run) == 0) {
+        (void)crux_cli_console_run(&cli_test_context, &config);
+        CHECK(false);
+    }
+    pause_status_failures = 0;
+    CHECK(cli_fake_serial.open_calls == 2);
+    expect_five_second_pauses(2);
 }
 
 int main(void)

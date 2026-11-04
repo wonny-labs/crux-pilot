@@ -88,6 +88,8 @@ static void hidden_looks_unknown(void)
         "help config",      /* for a first word */
         "help config no-such",
         "help no-such",
+        "help logout foo", /* a real name with a word after it is not that name */
+        "help visible foo",
         "visible-not", /* a longer word */
         "VISIBLE",     /* names are lower case */
         "!setup",      /* login's input means nothing in a session */
