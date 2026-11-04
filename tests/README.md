@@ -312,6 +312,15 @@ including READ_WRITE, EOF and partial writes, storage full and reclamation, corr
 that is never formatted, remount, and a torn-sync model. A remount inside one process is not
 evidence of persistence.
 
+`tests/native/file_roots` runs the File additions on the same FatFs over a RAM disk: roots, stat,
+handle size, rename and listing. `tests/file/conformance.c` holds the cases, and the Linux provider
+(`File.file_conformance_linux`) and the in-memory fake (`File.file_conformance_fake`) run the same
+ones. The FatFs run also proves that an existing destination survives a rename, that short and long
+encoded names decode, and that names this provider could not have written stay out of a listing.
+`File.file_fake_faults` covers failed provider calls and walks a power cut across each mutation of a
+sequence, in forked children, under the fake's own simple model. None of these is power-loss
+evidence about FatFs or a card, and no physical run covers the additions.
+
 `scripts/test-file-persistence.sh` builds `tests/native/file_fatfs_persist`, where the disk is a
 `zephyr,flash-disk` on the flash simulator backed by a host file, and runs it as separate
 processes: files acknowledged by one process are intact in the next, blank media is never
