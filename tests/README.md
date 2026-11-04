@@ -273,6 +273,27 @@ the independent C17/C++17 consumer build without private consumer dependencies.
 See [Configuration qualification](../docs/configuration-validation.md) for the
 focused manual `native_sim` and pinned Settings source-wrapper probe commands.
 These checks do not operate Flash or qualify an adopted persistence backend.
+`Configuration.Conformance` also runs the string cases of `string_conformance.c`, and
+`Configuration.NoProvider` runs a parameter over the no-provider port. The storage gate runs the
+same cases on `native_sim` from `tests/configuration/zephyr`, and a string case on each of the two
+Settings backends.
+
+## Status and configuration services
+
+`scripts/test-mgmt-services.sh` runs the services on Host, with and without sanitizers, then their
+thread suites under ThreadSanitizer, their clang-tidy selection, a C and C++ consumer built from
+public headers, and `scripts/check-mgmt-services-boundary.py`. `ConfigService.*` and `MgmtStatus.*`
+run on the real Access core with its fake ports, the fake Configuration store, a recording event port
+and fake status sources with fault injection per source. `MgmtStatus.openapi_schema` holds the
+service's JSON to the status schema read from `web/api/openapi.yaml`, with negative controls.
+`MgmtStatus.source_mapping` holds each mapping in the thin providers to a stand-in for the contract it
+calls, and `MgmtStatus.real_sources` runs them on the real System, Time and Netif on Linux.
+
+The storage gate also runs `tests/native/mgmt_services` on `native_sim`, with the real System, Time
+and Sync and a double for access: after any number of status polls,
+`crux_system_reset_cause_clear` still returns `INVALID_STATE` until the boot owner makes its own read.
+None of this operates hardware, and no target has run these services. See the
+[services contract](../docs/status-configuration-services.md).
 
 ## Portable File software slice
 
@@ -321,7 +342,7 @@ and `settings_error/settings_store.patch`. It compares the pinned sources byte f
 outside the Zephyr checkout and fails on drift. The fixture's provider copy can read each
 saved record back; that read-back is tested, not yet part of any product provider. A
 negative control builds the same suite against the unpatched backend and requires its
-characterised result: the named cases that expose the defects fail and the 12 others pass. These are simulator results. They do not show
+characterised result: the named cases that expose the defects fail and the 13 others pass. These are simulator results. They do not show
 persistence, power-loss behaviour or recovery on a real card, and the format limits
 recorded by the tests (no checksum or resynchronisation, a non-atomic compaction, a torn
 tail that can lose the latest save or leave the file unreadable) remain. A missing settings file reads as an empty store unless a compaction leftover (`.cmp`) exists, which is an I/O error until the next save. The backend's inner duplicate scans can still resurrect a deleted key after a read fault; they are neither fixed nor tested, and Crux never deletes.
