@@ -61,7 +61,12 @@ def _stop(process: subprocess.Popen) -> bool:
         # one whose members this user may not signal, such as a tool run through sudo.
         if process.poll() is None:
             return False
-    process.wait()
+    try:
+        # A signal that reached the group need not have reached the tool: it reports success
+        # for a root leader with a member this user may signal.
+        process.wait(timeout=_STOP_GRACE_SECONDS)
+    except subprocess.TimeoutExpired:
+        return False
     return _group_is_gone(process.pid)
 
 

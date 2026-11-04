@@ -1015,10 +1015,12 @@ class StopToolTest(Workspace):
     def wait_gives_up(self, error, after_exit=False):
         real_wait = subprocess.Popen.wait
         until_exited = self.until_exited
+        gave_up = []
 
         def wait(process, timeout=None):
-            if timeout is None:
-                return real_wait(process)
+            if timeout is None or gave_up:
+                return real_wait(process, timeout)
+            gave_up.append(True)
             if after_exit:
                 until_exited(process)
             raise error(process.args, timeout) if error is subprocess.TimeoutExpired else error()
@@ -1092,6 +1094,25 @@ class StopToolTest(Workspace):
         with self.may_not_signal():
             self.assertIs(device_control.run._stop(process), False)
         self.assertEqual(process.returncode, 0)
+
+    def test_a_timeout_on_a_leader_that_survives_the_signal_does_not_wait_for_it(self):
+        # As with a root leader and a member this user may signal: the signal works, but not on the leader.
+        created = self.recording_tools()
+        self.stop_afterwards(created)
+        started = time.monotonic()
+        with mock.patch.object(os, 'killpg'), self.assertRaisesRegex(ToolFailed, 'timed out.*may still be running'):
+            self.tool('import time; time.sleep(20)', timeout=0.2)
+        self.assertLess(time.monotonic() - started, 15)
+        self.assertIsNone(created[0].poll())
+
+    def test_an_interrupt_on_a_leader_that_survives_the_signal_does_not_wait_for_it(self):
+        created = self.recording_tools()
+        self.stop_afterwards(created)
+        started = time.monotonic()
+        with self.wait_gives_up(KeyboardInterrupt), mock.patch.object(os, 'killpg'), self.assertRaises(KeyboardInterrupt):
+            self.tool('import time; time.sleep(20)')
+        self.assertLess(time.monotonic() - started, 15)
+        self.assertIn('may still be running', (self.root / 'tool.log').read_text())
 
     def test_a_killed_wrapper_with_a_member_left_in_its_group_may_still_be_running(self):
         process = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'], start_new_session=True)
