@@ -357,7 +357,13 @@ static void every_operation_checks_the_session_and_the_permission(void)
     assert(crux_file_service_size(SESSION_WRITE, t, &size) == CRUX_FILE_SERVICE_OK && size == 3);
     assert(crux_file_service_read(SESSION_WRITE, t, 0, value, 1, &count) ==
            CRUX_FILE_SERVICE_ERR_DENIED);
-    assert(count == 0 || count == 1);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+
+    /* A read-only session reports the size of what it reads. */
+    t = NULL;
+    assert(crux_file_service_open(SESSION_READ, "data", "file", CRUX_FILE_SERVICE_OPEN_READ, 0,
+                                  &t) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_size(SESSION_READ, t, &size) == CRUX_FILE_SERVICE_OK && size == 3);
     assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
 
     /* A mode the area does not offer. */

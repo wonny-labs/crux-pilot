@@ -27,7 +27,7 @@ Every operation that takes a session checks the session and the permission, incl
 | Holds the other permission only | `ERR_DENIED`, with one denial |
 | Another session's listing or transfer | `ERR_DENIED`, including a session that has ended |
 
-`crux_file_service_area_next` uses the quiet probe, so hiding an area leaves no denial event. A read-only area refuses any write with `ERR_DENIED` to a session that can see it. A write mode the area does not offer is also `ERR_DENIED`. These two, a write through a read transfer and use of another session's handle check no permission, so they record no denial from `crux_access_check`. Timing is not equalised, so a client may still tell a hidden area from a missing one that way.
+`crux_file_service_area_next` uses the quiet probe, so hiding an area leaves no denial event. A read-only area refuses any write with `ERR_DENIED` to a session that can see it. A write mode the area does not offer is also `ERR_DENIED`. These two, a write through a read transfer and use of another session's handle record no denial from `crux_access_check`, because the session holds what was checked or nothing was checked. Timing is not equalised, so a client may still tell a hidden area from a missing one that way.
 
 ## Paths and names
 
@@ -80,7 +80,7 @@ At start, before any client can call:
 | Found | Action |
 | --- | --- |
 | Temporary, with no sidecar or a torn one | Removed, with the sidecar. The removal had not begun. |
-| Temporary, with a sidecar that cannot be read | Both stay, and the area returns `ERR_IO` until a reset, when start tries again. The target may be gone, so the temporary may be the only copy. |
+| Temporary, with a sidecar that cannot be read | Both stay, and the area returns `ERR_IO` until a reset, when start tries again. The target may be gone, so the temporary may be the only copy. A sidecar that stays unreadable keeps the area down until a host repair. |
 | Sidecar, temporary, no target | The rename is completed and the sidecar removed |
 | Sidecar, temporary, a target of a different size | Temporary and sidecar removed. The old target stands. |
 | Sidecar, temporary, a target of the same size | Kept, with `file.recovery_needed`. It may be an unfinished removal, or it may share clusters with the target after a cut during rename, and removing it would free them. It counts against the limit and its slot is skipped. Only a host repair removes it today. |

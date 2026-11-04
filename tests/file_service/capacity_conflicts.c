@@ -399,6 +399,29 @@ static void a_failed_temporary_leaves_nothing_behind(void)
     }
 }
 
+/* A truncation that fails may or may not have happened, so the counters follow what is there. */
+static void a_failed_truncation_counts_what_is_left(void)
+{
+    put_raw(ROOT_DATA, "f", "abcd");
+    test_start();
+    crux_file_service_transfer_t *t = NULL;
+    crux_file_fake_fail(CRUX_FILE_FAKE_TRUNCATE, 0, CRUX_FILE_ERR_IO);
+    assert(crux_file_service_open(SESSION_ALL, "data", "f", CRUX_FILE_SERVICE_OPEN_DIRECT_TRUNCATE,
+                                  0, &t) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(t == NULL);
+    expect_raw(ROOT_DATA, "f", "abcd");
+
+    /* The four bytes are still counted, so the area fills exactly. */
+    put_sized("data", "g", AREA_MAX_FILE);
+    t = open_new("data", "h", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    size_t room = AREA_MAX_AREA - AREA_MAX_FILE - 4;
+    write_all(t, 0, room);
+    size_t count = 99;
+    assert(crux_file_service_write(SESSION_ALL, t, room, zeros, 1, &count) ==
+           CRUX_FILE_SERVICE_ERR_LIMIT);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+}
+
 /* A direct write's final size says nothing about room, because it may replace what is there. */
 static void a_direct_mode_ignores_the_declared_size(void)
 {
@@ -427,6 +450,7 @@ void test_capacity(void)
     run_case("over_bytes", an_area_over_its_bytes_still_overwrites);
     run_case("failed_temporary", a_failed_temporary_leaves_nothing_behind);
     run_case("direct_declared", a_direct_mode_ignores_the_declared_size);
+    run_case("failed_truncation", a_failed_truncation_counts_what_is_left);
     run_case("sparse", a_sparse_write_touches_no_partial);
     run_case("own_files", the_stale_rule_leaves_the_services_own_files);
     run_case("impossible_write", an_impossible_write_removes_nothing);
@@ -586,8 +610,11 @@ static void two_uploads_never_share_a_temporary(void)
     expect_raw(ROOT_WEB, "b", "bbbb");
 }
 
+static unsigned store_opened;
+
 static void store_opens(void)
 {
+    store_opened++;
     crux_file_t *store = NULL;
     assert(crux_file_open_at(ROOT_STORE, "store.img", CRUX_FILE_CREATE_REPLACE, &store) ==
            CRUX_FILE_OK);
@@ -605,6 +632,7 @@ static void the_store_can_open_during_a_commit(void)
     crux_file_fake_on_call(CRUX_FILE_FAKE_SIZE, 0, store_opens);
     crux_file_fake_on_write(store_opens);
     assert(crux_file_service_commit(SESSION_ALL, &up) == CRUX_FILE_SERVICE_OK);
+    assert(store_opened == 2);
     assert(crux_file_service_close(&a) == CRUX_FILE_SERVICE_OK);
     assert(crux_file_service_close(&b) == CRUX_FILE_SERVICE_OK);
 }

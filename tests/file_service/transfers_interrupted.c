@@ -437,7 +437,7 @@ static void a_reader_during_the_commit_changes_nothing(void)
     expect_raw(ROOT_WEB, "doc", "newer");
 }
 
-/* Running out of handles at either open keeps the upload, so that the caller can retry. */
+/* A provider that reports no handle at either open leaves the upload for a retry. */
 static void no_handle_for_a_commit_keeps_the_upload(void)
 {
     put_raw(ROOT_WEB, "doc", "old");
@@ -453,6 +453,42 @@ static void no_handle_for_a_commit_keeps_the_upload(void)
     }
     assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_OK);
     expect_raw(ROOT_WEB, "doc", "new");
+}
+
+static void no_handle_at_the_next_open(void)
+{
+    crux_file_fake_fail(CRUX_FILE_FAKE_OPEN, 0, CRUX_FILE_ERR_NO_RESOURCES);
+}
+
+/* With no handle for the probe or for reopening the temporary, the upload is lost and it says so.
+ * This takes something else filling the pool in the moment that the commit freed a handle. */
+static void no_handle_at_all_loses_the_upload_and_keeps_the_target(void)
+{
+    put_raw(ROOT_WEB, "doc", "old");
+    test_start();
+    crux_file_service_transfer_t *t =
+        open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    put_text(t, 0, "new");
+    crux_file_fake_fail(CRUX_FILE_FAKE_OPEN, 0, CRUX_FILE_ERR_NO_RESOURCES);
+    crux_file_fake_on_call(CRUX_FILE_FAKE_OPEN, 1, no_handle_at_the_next_open);
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(t == NULL);
+    expect_raw(ROOT_WEB, "doc", "old");
+    assert(!crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
+}
+
+/* Only the refusals before anything changed may keep the handle, so a sync cannot report one. */
+static void a_failure_that_consumes_is_never_reported_as_a_refusal(void)
+{
+    put_raw(ROOT_WEB, "doc", "old");
+    test_start();
+    crux_file_service_transfer_t *t =
+        open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    put_text(t, 0, "new");
+    crux_file_fake_fail(CRUX_FILE_FAKE_SYNC, 0, CRUX_FILE_ERR_NO_RESOURCES);
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(t == NULL);
+    expect_raw(ROOT_WEB, "doc", "old");
 }
 
 /* If the temporary cannot be opened again there is nothing left to retry. */
@@ -602,6 +638,8 @@ void test_transfers(void)
     run_case("late_reader", a_reader_during_the_commit_changes_nothing);
     run_case("no_handle", no_handle_for_a_commit_keeps_the_upload);
     run_case("failed_reopen", a_failed_reopen_consumes_the_upload);
+    run_case("no_handle_at_all", no_handle_at_all_loses_the_upload_and_keeps_the_target);
+    run_case("consuming_failure", a_failure_that_consumes_is_never_reported_as_a_refusal);
     run_case("failed_abort", a_failed_abort_is_reported_and_its_slot_skipped);
     run_case("close_error", a_close_error_is_passed_on);
 }

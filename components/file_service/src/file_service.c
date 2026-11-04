@@ -1416,7 +1416,11 @@ static crux_file_service_result_t commit_abandoned(crux_file_service_transfer_t 
     size_t area = t->area;
     *transfer = NULL;
     (void)transfer_retire(t, true);
-    return storage_result(failure, session, area);
+    /* ERR_BUSY and ERR_NO_RESOURCES tell a caller that it still holds the upload. */
+    crux_file_service_result_t mapped = storage_result(failure, session, area);
+    return mapped == CRUX_FILE_SERVICE_ERR_BUSY || mapped == CRUX_FILE_SERVICE_ERR_NO_RESOURCES
+               ? CRUX_FILE_SERVICE_ERR_IO
+               : mapped;
 }
 
 /* The commit changed nothing, so the caller keeps the upload and can write on, retry or close. */
