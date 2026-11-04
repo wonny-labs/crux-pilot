@@ -262,7 +262,9 @@ class TemplateWorkspaceTest(unittest.TestCase):
         shutil.copytree(REPO / "scripts/west_commands", directory / "scripts/west_commands",
                         ignore=shutil.ignore_patterns("__pycache__"))
         shutil.copy(REPO / "scripts/west-commands.yml", directory / "scripts/west-commands.yml")
-        cls.commit(directory, {"west.yml": crux_text}, "crux manifest")
+        # West writes bytecode beside the command, which the real repository ignores.
+        cls.commit(directory, {"west.yml": crux_text, ".gitignore": (REPO / ".gitignore").read_text()},
+                   "crux manifest")
 
     @staticmethod
     def remote_base():
