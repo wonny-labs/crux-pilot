@@ -18,6 +18,34 @@ static void put_text(crux_file_service_transfer_t *t, uint64_t offset, const cha
     assert(count == strlen(text));
 }
 
+static void put_bytes(crux_file_root_t root, const char *name, const void *bytes, size_t length)
+{
+    crux_file_t *file = NULL;
+    size_t count = 0;
+    assert(crux_file_open_at(root, name, CRUX_FILE_CREATE_REPLACE, &file) == CRUX_FILE_OK);
+    assert(crux_file_write(file, bytes, length, &count) == CRUX_FILE_OK && count == length);
+    assert(crux_file_sync(file) == CRUX_FILE_OK);
+    assert(crux_file_close(&file) == CRUX_FILE_OK);
+}
+
+/* The record a commit writes, so that a case can begin from any state. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a test helper
+static void put_sidecar(crux_file_root_t root, int slot, const char *target)
+{
+    uint8_t record[80] = {'C', 'X', 'C', 'O', (uint8_t)strlen(target)};
+    size_t body = 5 + strlen(target);
+    // NOLINTNEXTLINE(bugprone-not-null-terminated-result): a counted name in a binary record
+    memcpy(&record[5], target, strlen(target));
+    uint8_t sum = 0x5a;
+    for (size_t i = 0; i < body; i++) {
+        sum = (uint8_t)(sum + record[i]);
+    }
+    record[body] = sum;
+    char name[32];
+    (void)snprintf(name, sizeof(name), ".crux-co-%d", slot);
+    put_bytes(root, name, record, body + 1);
+}
+
 static void a_listing_shows_only_what_a_client_may_name(void)
 {
     put_raw(ROOT_DATA, "one", "abc");
@@ -377,6 +405,7 @@ static void a_failed_commit_keeps_the_old_target_until_its_removal(void)
 
     /* The slot it kept is skipped, so a new upload cannot be confused with it. */
     t = open_as(SESSION_ALL, "web", "other", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-up-1"));
     assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_OK);
     expect_raw(ROOT_WEB, "other", "");
 }
@@ -482,13 +511,17 @@ static void a_failure_that_consumes_is_never_reported_as_a_refusal(void)
 {
     put_raw(ROOT_WEB, "doc", "old");
     test_start();
-    crux_file_service_transfer_t *t =
-        open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
-    put_text(t, 0, "new");
-    crux_file_fake_fail(CRUX_FILE_FAKE_SYNC, 0, CRUX_FILE_ERR_NO_RESOURCES);
-    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_IO);
-    assert(t == NULL);
-    expect_raw(ROOT_WEB, "doc", "old");
+    const crux_file_result_t failures[] = {CRUX_FILE_ERR_NO_RESOURCES,
+                                           CRUX_FILE_ERR_INVALID_ARGUMENT};
+    for (size_t i = 0; i < sizeof(failures) / sizeof(failures[0]); i++) {
+        crux_file_service_transfer_t *t =
+            open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+        put_text(t, 0, "new");
+        crux_file_fake_fail(CRUX_FILE_FAKE_SYNC, 0, failures[i]);
+        assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_IO);
+        assert(t == NULL);
+        expect_raw(ROOT_WEB, "doc", "old");
+    }
 }
 
 /* If the temporary cannot be opened again there is nothing left to retry. */
@@ -572,6 +605,89 @@ static void a_failed_removal_is_decided_at_the_next_start(void)
     assert(run_child(next_start_finds_the_old_file) == 0);
 }
 
+static void every_temporary_name_taken_gives_no_resources(void)
+{
+    test_start();
+    for (int slot = 0; slot < CRUX_FILE_SERVICE_TEMP_SLOTS; slot++) {
+        char name[16];
+        (void)snprintf(name, sizeof(name), ".crux-up-%d", slot);
+        put_raw(ROOT_WEB, name, "");
+    }
+    crux_file_service_transfer_t *t = NULL;
+    assert(crux_file_service_open(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED, 0,
+                                  &t) == CRUX_FILE_SERVICE_ERR_NO_RESOURCES);
+    assert(t == NULL);
+}
+
+/* A commit needs what the upload's writes needed, and no read permission. */
+static void a_write_only_session_can_commit(void)
+{
+    test_start();
+    crux_file_service_transfer_t *t = NULL;
+    size_t count = 0;
+    assert(crux_file_service_open(SESSION_WRITE, "data", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED, 0,
+                                  &t) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_write(SESSION_WRITE, t, 0, "abc", 3, &count) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_commit(SESSION_WRITE, &t) == CRUX_FILE_SERVICE_OK);
+    expect_raw(ROOT_DATA, "doc", "abc");
+}
+
+static void a_failed_listing_gives_its_handle_back(void)
+{
+    test_start();
+    crux_file_service_dir_t *dir = NULL;
+    crux_file_fake_fail(CRUX_FILE_FAKE_DIR_OPEN, 0, CRUX_FILE_ERR_IO);
+    assert(crux_file_service_dir_open(SESSION_ALL, "data", &dir) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(dir == NULL);
+    assert(crux_file_service_dir_open(SESSION_ALL, "data", &dir) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_dir_close(&dir) == CRUX_FILE_SERVICE_OK);
+}
+
+static void a_rename_onto_itself_reports_what_it_finds(void)
+{
+    put_raw(ROOT_DATA, "same", "abc");
+    test_start();
+    assert(crux_file_service_rename(SESSION_ALL, "data", "same", "same") ==
+           CRUX_FILE_SERVICE_ERR_EXISTS);
+    assert(crux_file_service_rename(SESSION_ALL, "data", "none", "none") ==
+           CRUX_FILE_SERVICE_ERR_NOT_FOUND);
+
+    /* Its one name came back, so the file can be opened for writing. */
+    crux_file_service_transfer_t *t =
+        open_as(SESSION_ALL, "data", "same", CRUX_FILE_SERVICE_OPEN_DIRECT);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+}
+
+/* An error after the entry has gone still frees what the entry held, in each place that removes. */
+static void a_removal_that_fails_after_the_entry_went_settles(void)
+{
+    for (int i = 0; i < 4; i++) {
+        char name[8];
+        (void)snprintf(name, sizeof(name), "f%d", i);
+        put_raw(ROOT_WEB, name, "");
+    }
+    put_raw(ROOT_DATA, "held", "abcd");
+    put_raw(ROOT_DATA, "two", "");
+    put_raw(ROOT_DATA, "three", "");
+    put_raw(ROOT_DATA, "four", "");
+    put_raw(ROOT_DATA, "five", "");
+    test_start();
+    crux_file_fake_remove_then_fail(CRUX_FILE_ERR_IO);
+    assert(crux_file_service_remove(SESSION_ALL, "data", "held") == CRUX_FILE_SERVICE_ERR_IO);
+    assert(!crux_file_fake_exists(ROOT_DATA, "held"));
+    crux_file_service_transfer_t *t =
+        open_as(SESSION_ALL, "data", "fits", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+
+    /* An abort, with four files beside it, so that a leaked entry would refuse the next upload. */
+    t = open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    crux_file_fake_remove_then_fail(CRUX_FILE_ERR_IO);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(!crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
+    t = open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_OK);
+}
+
 /* A close that cannot remove its temporary says so, and the slot stays out of use. */
 static void a_failed_abort_is_reported_and_its_slot_skipped(void)
 {
@@ -641,6 +757,11 @@ void test_transfers(void)
     run_case("no_handle_at_all", no_handle_at_all_loses_the_upload_and_keeps_the_target);
     run_case("consuming_failure", a_failure_that_consumes_is_never_reported_as_a_refusal);
     run_case("failed_abort", a_failed_abort_is_reported_and_its_slot_skipped);
+    run_case("no_slots", every_temporary_name_taken_gives_no_resources);
+    run_case("write_only_commit", a_write_only_session_can_commit);
+    run_case("failed_listing", a_failed_listing_gives_its_handle_back);
+    run_case("rename_onto_itself", a_rename_onto_itself_reports_what_it_finds);
+    run_case("failed_removal_counts", a_removal_that_fails_after_the_entry_went_settles);
     run_case("close_error", a_close_error_is_passed_on);
 }
 
@@ -831,6 +952,162 @@ static void an_unreadable_sidecar_keeps_the_upload(void)
     assert(run_child(after_recovery_cut) == 0);
 }
 
+static void expect_target_held(const char *area, const char *name)
+{
+    crux_file_service_transfer_t *t = NULL;
+    assert(crux_file_service_remove(SESSION_ALL, area, name) == CRUX_FILE_SERVICE_ERR_BUSY);
+    assert(crux_file_service_rename(SESSION_ALL, area, name, "moved") ==
+           CRUX_FILE_SERVICE_ERR_BUSY);
+    assert(crux_file_service_rename(SESSION_ALL, area, "other", name) ==
+           CRUX_FILE_SERVICE_ERR_BUSY);
+    const crux_file_service_open_t writers[] = {
+        CRUX_FILE_SERVICE_OPEN_DIRECT, CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE,
+        CRUX_FILE_SERVICE_OPEN_DIRECT_TRUNCATE, CRUX_FILE_SERVICE_OPEN_DIRECT_EXCLUSIVE,
+        CRUX_FILE_SERVICE_OPEN_MANAGED};
+    for (size_t i = 0; i < sizeof(writers) / sizeof(writers[0]); i++) {
+        crux_file_service_result_t expected = CRUX_FILE_SERVICE_ERR_BUSY;
+        bool offered = strcmp(area, "web") != 0 || writers[i] == CRUX_FILE_SERVICE_OPEN_MANAGED;
+        expected = offered ? expected : CRUX_FILE_SERVICE_ERR_DENIED;
+        assert(crux_file_service_open(SESSION_ALL, area, name, writers[i], 0, &t) == expected);
+        assert(t == NULL);
+    }
+}
+
+static void kept_state_stays_as_it_was(void)
+{
+    test_start();
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_RECOVERY_NEEDED) == 1);
+    expect_target_held("web", "doc");
+
+    /* It can still be read. */
+    crux_file_service_transfer_t *reader =
+        open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_READ);
+    assert(crux_file_service_close(&reader) == CRUX_FILE_SERVICE_OK);
+    expect_raw(ROOT_WEB, "doc", old_content);
+    expect_raw(ROOT_WEB, ".crux-up-0", "new");
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-co-0"));
+}
+
+/* A client must not change what the choice to keep a temporary depends on: another size would let
+ * the next start remove it, and no target would let the next start publish it. */
+static void a_kept_temporary_holds_its_target_across_starts(void)
+{
+    upload_content = "new";
+    cut_point = 8; /* Create, truncate, write, sync, and the sidecar's four. */
+    test_medium_reset();
+    put_raw(ROOT_WEB, "doc", old_content);
+    assert(run_child(upload_and_commit) == CUT_EXIT);
+    crux_file_fake_power_on();
+    assert(run_child(kept_state_stays_as_it_was) == 0);
+    assert(run_child(kept_state_stays_as_it_was) == 0);
+}
+
+/* The stale rule is one of the ways a kept temporary's target could go. */
+static void a_kept_target_with_the_partial_suffix_stays(void)
+{
+    put_raw(ROOT_DATA, "doc.filepart", "new");
+    put_raw(ROOT_DATA, ".crux-up-0", "new");
+    put_sidecar(ROOT_DATA, 0, "doc.filepart");
+    test_start();
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_RECOVERY_NEEDED) == 1);
+    static const char fill[AREA_MAX_FILE];
+    size_t count = 0;
+    crux_file_service_transfer_t *a =
+        open_as(SESSION_ALL, "data", "a", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    assert(crux_file_service_write(SESSION_ALL, a, 0, fill, sizeof(fill), &count) ==
+           CRUX_FILE_SERVICE_OK);
+    crux_file_service_transfer_t *b =
+        open_as(SESSION_ALL, "data", "b", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    assert(crux_file_service_write(SESSION_ALL, b, 0, fill, sizeof(fill), &count) ==
+           CRUX_FILE_SERVICE_ERR_LIMIT);
+    assert(crux_file_fake_exists(ROOT_DATA, "doc.filepart"));
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED) == 0);
+    assert(crux_file_service_close(&a) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_close(&b) == CRUX_FILE_SERVICE_OK);
+}
+
+/* After a failed commit the name stays out of use until the next start decides. */
+static void a_failed_commit_holds_its_target_until_the_next_start(void)
+{
+    test_start();
+    crux_file_service_transfer_t *t =
+        open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    put_text(t, 0, "newer");
+    crux_file_fake_fail(CRUX_FILE_FAKE_RENAME, 0, CRUX_FILE_ERR_IO);
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_IO);
+    expect_target_held("web", "doc");
+}
+
+static void the_next_start_frees_the_name(void)
+{
+    test_start();
+    expect_raw(ROOT_WEB, "doc", "newer");
+    assert(!temporaries_remain());
+    assert(crux_file_service_remove(SESSION_ALL, "web", "doc") == CRUX_FILE_SERVICE_OK);
+}
+
+static void recovery_ignores_the_allocation_setting(void)
+{
+    /* Written by a build with more slots than this one allocates. */
+    put_raw(ROOT_WEB, ".crux-up-20", "new");
+    put_sidecar(ROOT_WEB, 20, "doc");
+    put_raw(ROOT_WEB, ".crux-up-21", "partial");
+    put_sidecar(ROOT_WEB, 22, "gone");
+    put_raw(ROOT_WEB, ".crux-up-31", "partial");
+
+    /* Names that no build can write. */
+    put_raw(ROOT_WEB, ".crux-up-32", "x");
+    put_raw(ROOT_WEB, ".crux-up-99", "x");
+    put_raw(ROOT_WEB, ".crux-up-007", "x");
+    put_raw(ROOT_WEB, ".crux-co-abc", "x");
+
+    /* Not one of the service's temporary forms, so nothing says it may go. */
+    put_raw(ROOT_WEB, ".crux-other", "x");
+    test_start();
+
+    expect_raw(ROOT_WEB, "doc", "new");
+    const char *gone[] = {".crux-up-20", ".crux-co-20",  ".crux-up-21",
+                          ".crux-co-22", ".crux-up-31",  ".crux-up-32",
+                          ".crux-up-99", ".crux-up-007", ".crux-co-abc"};
+    for (size_t i = 0; i < sizeof(gone) / sizeof(gone[0]); i++) {
+        assert(!crux_file_fake_exists(ROOT_WEB, gone[i]));
+    }
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-other"));
+
+    /* The counters followed: doc and .crux-other, so three more entries fit and a fourth does not.
+     */
+    for (int i = 0; i < 3; i++) {
+        char name[8];
+        (void)snprintf(name, sizeof(name), "n%d", i);
+        crux_file_service_transfer_t *t =
+            open_as(SESSION_ALL, "web", name, CRUX_FILE_SERVICE_OPEN_MANAGED);
+        assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_OK);
+    }
+    crux_file_service_transfer_t *t = NULL;
+    assert(crux_file_service_open(SESSION_ALL, "web", "n9", CRUX_FILE_SERVICE_OPEN_MANAGED, 0,
+                                  &t) == CRUX_FILE_SERVICE_ERR_LIMIT);
+}
+
+static void held_name_then_next_start(void)
+{
+    test_medium_reset();
+    put_raw(ROOT_WEB, "doc", "old");
+    assert(run_child(a_failed_commit_holds_its_target_until_the_next_start) == 0);
+    crux_file_fake_power_on();
+    assert(run_child(the_next_start_frees_the_name) == 0);
+}
+
+static void kept_state_above_the_allocation_setting_holds_too(void)
+{
+    put_raw(ROOT_WEB, "doc", "old");
+    put_raw(ROOT_WEB, ".crux-up-20", "new");
+    put_sidecar(ROOT_WEB, 20, "doc");
+    test_start();
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_RECOVERY_NEEDED) == 1);
+    expect_target_held("web", "doc");
+    expect_raw(ROOT_WEB, ".crux-up-20", "new");
+}
+
 /* A sidecar that holds no valid record means the removal never began. */
 static void a_torn_sidecar_is_only_debris(void)
 {
@@ -844,16 +1121,6 @@ static void a_torn_sidecar_is_only_debris(void)
     assert(!temporaries_remain());
     expect_raw(ROOT_WEB, "doc", "old");
     assert(events_of(CRUX_FILE_SERVICE_EVENT_RECOVERY_NEEDED) == 0);
-}
-
-static void put_bytes(crux_file_root_t root, const char *name, const void *bytes, size_t length)
-{
-    crux_file_t *file = NULL;
-    size_t count = 0;
-    assert(crux_file_open_at(root, name, CRUX_FILE_CREATE_REPLACE, &file) == CRUX_FILE_OK);
-    assert(crux_file_write(file, bytes, length, &count) == CRUX_FILE_OK && count == length);
-    assert(crux_file_sync(file) == CRUX_FILE_OK);
-    assert(crux_file_close(&file) == CRUX_FILE_OK);
 }
 
 /* Read back what a commit wrote, as the medium holds it. */
@@ -961,6 +1228,11 @@ void test_interrupted(void)
          "temporary for a host repair. This says nothing about FAT or a card.");
     recovery_survives_its_own_cut();
     an_unreadable_sidecar_keeps_the_upload();
+    a_kept_temporary_holds_its_target_across_starts();
+    run_case("kept_suffix", a_kept_target_with_the_partial_suffix_stays);
+    run_case("above_setting", recovery_ignores_the_allocation_setting);
+    run_case("kept_above_setting", kept_state_above_the_allocation_setting_holds_too);
+    held_name_then_next_start();
     a_failed_removal_is_decided_at_the_next_start();
     a_sidecar_with_its_magic_but_no_valid_check_is_torn();
     run_case("torn_sidecar", a_torn_sidecar_is_only_debris);

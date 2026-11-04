@@ -369,7 +369,9 @@ static void every_operation_checks_the_session_and_the_permission(void)
     /* A mode the area does not offer. */
     assert(try_open(SESSION_ALL, "web", "x", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE) ==
            CRUX_FILE_SERVICE_ERR_DENIED);
-    assert(try_open(SESSION_ALL, "data", "x", (crux_file_service_open_t)99) ==
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange): invalid-input probe
+    crux_file_service_open_t unknown_mode = (crux_file_service_open_t)99;
+    assert(try_open(SESSION_ALL, "data", "x", unknown_mode) ==
            CRUX_FILE_SERVICE_ERR_INVALID_ARGUMENT);
 }
 

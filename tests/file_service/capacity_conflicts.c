@@ -255,32 +255,63 @@ static void a_partial_in_use_is_never_removed(void)
     test_start();
     crux_file_service_transfer_t *t =
         open_new("data", "up.filepart", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
-    write_all(t, 0, AREA_MAX_FILE);
+    write_all(t, 0, AREA_MAX_FILE - 100);
     crux_file_service_transfer_t *u = open_new("data", "f", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
     write_all(u, 0, AREA_MAX_FILE);
+    crux_file_service_transfer_t *v = open_new("data", "g", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    write_all(v, 0, 100);
     size_t count = 99;
-    assert(crux_file_service_write(SESSION_ALL, u, AREA_MAX_FILE, zeros, 1, &count) ==
+    assert(crux_file_service_write(SESSION_ALL, v, 100, zeros, 1, &count) ==
            CRUX_FILE_SERVICE_ERR_LIMIT);
     assert(crux_file_fake_exists(ROOT_DATA, "up.filepart"));
     assert(events_of(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED) == 0);
 
-    /* The writer of the partial reached the limit itself, and it does not remove its own file. */
-    assert(crux_file_service_write(SESSION_ALL, t, AREA_MAX_FILE, zeros, 1, &count) ==
+    /* The writer of the partial reached the area limit itself, and it does not remove its own file.
+     */
+    assert(crux_file_service_write(SESSION_ALL, t, AREA_MAX_FILE - 100, zeros, 1, &count) ==
            CRUX_FILE_SERVICE_ERR_LIMIT);
     assert(crux_file_fake_exists(ROOT_DATA, "up.filepart"));
     assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
     assert(crux_file_service_close(&u) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_close(&v) == CRUX_FILE_SERVICE_OK);
 }
 
 /* An area with no declared suffix never loses a file to this rule. */
 static void no_suffix_means_nothing_is_removed(void)
 {
     put_raw(ROOT_WEB, "one.filepart", "abcd");
+    crux_file_t *big = NULL;
+    size_t count = 0;
+    assert(crux_file_open_at(ROOT_WEB, "big", CRUX_FILE_CREATE_REPLACE, &big) == CRUX_FILE_OK);
+    assert(crux_file_write(big, zeros, AREA_MAX_AREA - 4, &count) == CRUX_FILE_OK);
+    assert(crux_file_close(&big) == CRUX_FILE_OK);
     test_start();
+
+    /* Inside the file limit, and over the area limit by a little. */
     crux_file_service_transfer_t *t = NULL;
-    assert(crux_file_service_open(SESSION_ALL, "web", "big", CRUX_FILE_SERVICE_OPEN_MANAGED,
-                                  AREA_MAX_AREA, &t) == CRUX_FILE_SERVICE_ERR_LIMIT);
+    assert(crux_file_service_open(SESSION_ALL, "web", "new", CRUX_FILE_SERVICE_OPEN_MANAGED, 10,
+                                  &t) == CRUX_FILE_SERVICE_ERR_LIMIT);
     assert(t == NULL && crux_file_fake_exists(ROOT_WEB, "one.filepart"));
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED) == 0);
+}
+
+/* A partial file open only for reading has a handle and no reservation, so File's rule stops it. */
+static void a_partial_with_a_reader_is_never_removed(void)
+{
+    put_raw(ROOT_DATA, "up.filepart", "abcd");
+    test_start();
+    crux_file_service_transfer_t *reader =
+        open_new("data", "up.filepart", CRUX_FILE_SERVICE_OPEN_READ);
+    put_sized("data", "a", AREA_MAX_FILE);
+    crux_file_service_transfer_t *t = open_new("data", "b", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    write_all(t, 0, AREA_MAX_FILE - 4);
+    size_t count = 99;
+    assert(crux_file_service_write(SESSION_ALL, t, AREA_MAX_FILE - 4, zeros, 1, &count) ==
+           CRUX_FILE_SERVICE_ERR_LIMIT);
+    assert(crux_file_fake_exists(ROOT_DATA, "up.filepart"));
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED) == 0);
+    assert(crux_file_service_close(&reader) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
 }
 
 /* An area over a bound, after a table changed, still overwrites. It only cannot grow past the
@@ -422,6 +453,26 @@ static void a_failed_truncation_counts_what_is_left(void)
     assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
 }
 
+/* If nothing can say what a failed truncation left, the old size stays counted, on the safe side.
+ */
+static void a_failed_truncation_with_a_failed_check_keeps_the_old_size(void)
+{
+    put_raw(ROOT_DATA, "f", "abcd");
+    test_start();
+    crux_file_service_transfer_t *t = NULL;
+    crux_file_fake_fail(CRUX_FILE_FAKE_TRUNCATE, 0, CRUX_FILE_ERR_IO);
+    crux_file_fake_fail(CRUX_FILE_FAKE_STAT, 1, CRUX_FILE_ERR_IO);
+    assert(crux_file_service_open(SESSION_ALL, "data", "f", CRUX_FILE_SERVICE_OPEN_DIRECT_TRUNCATE,
+                                  0, &t) == CRUX_FILE_SERVICE_ERR_IO);
+    put_sized("data", "g", AREA_MAX_FILE);
+    t = open_new("data", "h", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    write_all(t, 0, AREA_MAX_AREA - AREA_MAX_FILE - 4);
+    size_t count = 99;
+    assert(crux_file_service_write(SESSION_ALL, t, AREA_MAX_AREA - AREA_MAX_FILE - 4, zeros, 1,
+                                   &count) == CRUX_FILE_SERVICE_ERR_LIMIT);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+}
+
 /* A direct write's final size says nothing about room, because it may replace what is there. */
 static void a_direct_mode_ignores_the_declared_size(void)
 {
@@ -445,12 +496,14 @@ void test_capacity(void)
     run_case("medium_full", medium_full_reports_no_space_and_the_accepted_count);
     run_case("stale_partials", stale_partials_go_only_when_room_is_needed);
     run_case("partial_in_use", a_partial_in_use_is_never_removed);
+    run_case("partial_with_reader", a_partial_with_a_reader_is_never_removed);
     run_case("no_suffix", no_suffix_means_nothing_is_removed);
     run_case("over_entries", an_area_over_its_entries_still_writes);
     run_case("over_bytes", an_area_over_its_bytes_still_overwrites);
     run_case("failed_temporary", a_failed_temporary_leaves_nothing_behind);
     run_case("direct_declared", a_direct_mode_ignores_the_declared_size);
     run_case("failed_truncation", a_failed_truncation_counts_what_is_left);
+    run_case("failed_truncation_check", a_failed_truncation_with_a_failed_check_keeps_the_old_size);
     run_case("sparse", a_sparse_write_touches_no_partial);
     run_case("own_files", the_stale_rule_leaves_the_services_own_files);
     run_case("impossible_write", an_impossible_write_removes_nothing);

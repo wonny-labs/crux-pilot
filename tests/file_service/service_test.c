@@ -84,9 +84,11 @@ crux_access_result_t crux_access_session_user(crux_access_session_t session, cha
 static recorded_event_t recorded[64];
 static unsigned recorded_count;
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): the private port fixes this signature
 void crux_file_service_port_event(crux_file_service_event_t event, crux_access_session_t session,
                                   const char *area, const char *name, const char *new_name,
                                   bool storage_limit)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     (void)session;
     assert(recorded_count < sizeof(recorded) / sizeof(recorded[0]));
@@ -161,6 +163,7 @@ void test_start(void)
     assert(crux_file_service_start(&config) == CRUX_FILE_SERVICE_OK);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a test helper
 void put_raw(crux_file_root_t root, const char *name, const char *text)
 {
     crux_file_t *file = NULL;
@@ -183,6 +186,7 @@ size_t get_raw(crux_file_root_t root, const char *name, char *value, size_t capa
     return count;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a test helper
 void expect_raw(crux_file_root_t root, const char *name, const char *text)
 {
     char value[64];

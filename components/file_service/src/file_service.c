@@ -9,7 +9,7 @@ _Static_assert(
 _Static_assert(CRUX_FILE_SERVICE_AREAS_MAX >= 1, "The file service needs an area");
 _Static_assert(CRUX_FILE_SERVICE_DIR_MAX >= 1, "The file service needs a listing handle");
 _Static_assert(CRUX_FILE_SERVICE_RESERVATIONS >= 2, "A rename reserves two names");
-_Static_assert(CRUX_FILE_SERVICE_TEMP_SLOTS >= 1 && CRUX_FILE_SERVICE_TEMP_SLOTS <= 32,
+_Static_assert(CRUX_FILE_SERVICE_TEMP_SLOTS >= 1 && CRUX_FILE_SERVICE_TEMP_SLOTS <= 32, /* Mask. */
                "Temporary names are tracked in a 32-bit mask");
 
 #define STATE_LOCK_WAIT_MS 1000u
@@ -18,12 +18,16 @@ _Static_assert(CRUX_FILE_SERVICE_TEMP_SLOTS >= 1 && CRUX_FILE_SERVICE_TEMP_SLOTS
 #define AREA_NAME_MAX 15u
 #define TEMP_PREFIX ".crux-up-"
 #define SIDECAR_PREFIX ".crux-co-"
+/* The most temporary names any build can allocate, and the width of the masks that track them.
+ * Recovery covers all of them, so that lowering the allocation setting strands no file. */
+#define RECOVERY_SLOTS 32
 #define RESERVED_PREFIX ".crux-"
 /* Sidecar: magic, one length byte, the target name, and an additive check of all the bytes before.
  */
-#define SIDECAR_MAGIC "CXCO"
 #define SIDECAR_MAGIC_BYTES 4u
 #define SIDECAR_BYTES (SIDECAR_MAGIC_BYTES + 1u + NAME_CAPACITY + 1u)
+
+static const uint8_t sidecar_magic[SIDECAR_MAGIC_BYTES] = {'C', 'X', 'C', 'O'};
 
 typedef enum { AREA_READY, AREA_NOT_READY, AREA_FAILED } area_status_t;
 
@@ -39,15 +43,15 @@ typedef enum { NEED_READ, NEED_WRITE } need_t;
 typedef enum { KIND_READ, KIND_MANAGED, KIND_DIRECT } kind_t;
 
 struct crux_file_service_transfer {
-    bool live;
-    kind_t kind;
-    crux_access_session_t session;
     size_t area;
     crux_file_t *file;
-    char name[NAME_CAPACITY];
-    int temp_slot;
     uint64_t size;
     uint64_t position;
+    crux_access_session_t session;
+    kind_t kind;
+    int temp_slot;
+    char name[NAME_CAPACITY];
+    bool live;
     bool position_known;
     bool holds_name;
 };
@@ -213,7 +217,7 @@ static crux_file_service_result_t area_available(size_t area)
  * depends on what the session may see: a session with neither permission gets what a missing area
  * gets, and the probe of the other permission records nothing more.
  */
-static crux_file_service_result_t permitted(crux_access_session_t session, size_t area, need_t need)
+static crux_file_service_result_t permitted(size_t area, crux_access_session_t session, need_t need)
 {
     const crux_file_area_t *declared = &config->areas[area];
     const char *wanted = need == NEED_READ ? declared->read_permission : declared->write_permission;
@@ -251,7 +255,7 @@ static crux_file_service_result_t enter_area(crux_access_session_t session, cons
         }
         return name ? CRUX_FILE_SERVICE_ERR_NOT_FOUND : CRUX_FILE_SERVICE_ERR_INVALID_ARGUMENT;
     }
-    crux_file_service_result_t result = permitted(session, *area, need);
+    crux_file_service_result_t result = permitted(*area, session, need);
     return result != CRUX_FILE_SERVICE_OK ? result : area_available(*area);
 }
 
@@ -270,7 +274,7 @@ static void reservation_put(size_t index, size_t area, const char *name)
 {
     reservations[index].used = true;
     reservations[index].area = area;
-    strcpy(reservations[index].name, name);
+    memcpy(reservations[index].name, name, strlen(name) + 1);
 }
 
 /* Take one or two names, or neither, so that a stat and the open after it cannot be split. */
@@ -316,6 +320,7 @@ static void release(size_t area, const char *name)
     state_unlock();
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): named amounts of different things
 static void counters_add(size_t area, uint64_t bytes, uint32_t entries)
 {
     state_lock();
@@ -324,12 +329,23 @@ static void counters_add(size_t area, uint64_t bytes, uint32_t entries)
     state_unlock();
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): named amounts of different things
 static void counters_remove(size_t area, uint64_t bytes, uint32_t entries)
 {
     state_lock();
     areas[area].used_bytes -= bytes < areas[area].used_bytes ? bytes : areas[area].used_bytes;
     areas[area].entries -= entries < areas[area].entries ? entries : areas[area].entries;
     state_unlock();
+}
+
+/* A removal can fail after the entry has gone, so a failure is checked against what is there.
+ * File refuses INVALID_STATE before it reaches the medium. */
+static bool entry_gone(crux_file_root_t root, const char *name, crux_file_result_t removed)
+{
+    crux_file_info_t info;
+    return removed == CRUX_FILE_OK || removed == CRUX_FILE_ERR_NOT_FOUND ||
+           (removed != CRUX_FILE_ERR_INVALID_STATE &&
+            crux_file_stat(root, name, &info) == CRUX_FILE_ERR_NOT_FOUND);
 }
 
 /* Reserve room under the lock, so that two transfers cannot both pass the same check. */
@@ -390,9 +406,9 @@ static bool room_reserve_or_clear(crux_access_session_t session, size_t area, ui
             reserve(area, name, NULL) != CRUX_FILE_SERVICE_OK) {
             continue;
         }
-        crux_file_result_t removed = crux_file_remove_at(declared->root, name);
+        bool gone = entry_gone(declared->root, name, crux_file_remove_at(declared->root, name));
         release(area, name);
-        if (removed == CRUX_FILE_OK) {
+        if (gone) {
             counters_remove(area, info.size, 1);
             event(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED, session, area, name, NULL);
             if (room_reserve(area, bytes, entries)) {
@@ -410,20 +426,35 @@ static void temp_name(char *name, const char *prefix, int slot)
     (void)snprintf(name, NAME_CAPACITY, "%s%d", prefix, slot);
 }
 
+/* The slot of a name some build can write, or -1. Digits are canonical, so one slot has one name.
+ */
 static int slot_of_name(const char *name, const char *prefix)
 {
     size_t length = strlen(prefix);
     if (strncmp(name, prefix, length) != 0 || !name[length]) {
         return -1;
     }
+    const char *digits = &name[length];
+    if (digits[0] == '0' && digits[1]) {
+        return -1;
+    }
     int slot = 0;
-    for (const char *p = &name[length]; *p; p++) {
-        if (*p < '0' || *p > '9' || slot >= CRUX_FILE_SERVICE_TEMP_SLOTS) {
+    for (const char *p = digits; *p; p++) {
+        if (*p < '0' || *p > '9' || slot >= RECOVERY_SLOTS) {
             return -1;
         }
         slot = slot * 10 + (*p - '0');
     }
-    return slot < CRUX_FILE_SERVICE_TEMP_SLOTS ? slot : -1;
+    return slot < RECOVERY_SLOTS ? slot : -1;
+}
+
+/* A name of the service's temporary forms that no build can write. */
+static bool temporary_name_unknown(const char *name)
+{
+    return (strncmp(name, TEMP_PREFIX, strlen(TEMP_PREFIX)) == 0 &&
+            slot_of_name(name, TEMP_PREFIX) < 0) ||
+           (strncmp(name, SIDECAR_PREFIX, strlen(SIDECAR_PREFIX)) == 0 &&
+            slot_of_name(name, SIDECAR_PREFIX) < 0);
 }
 
 static uint8_t sidecar_check(const uint8_t *bytes, size_t length)
@@ -435,13 +466,15 @@ static uint8_t sidecar_check(const uint8_t *bytes, size_t length)
     return sum;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): private, with two callers
 static crux_file_result_t sidecar_write(crux_file_root_t root, int slot, const char *target)
 {
     char name[NAME_CAPACITY];
     uint8_t record[SIDECAR_BYTES];
     size_t length = strlen(target);
-    memcpy(record, SIDECAR_MAGIC, SIDECAR_MAGIC_BYTES);
+    memcpy(record, sidecar_magic, SIDECAR_MAGIC_BYTES);
     record[SIDECAR_MAGIC_BYTES] = (uint8_t)length;
+    // NOLINTNEXTLINE(bugprone-not-null-terminated-result): a counted name in a binary record
     memcpy(&record[SIDECAR_MAGIC_BYTES + 1], target, length);
     size_t body = SIDECAR_MAGIC_BYTES + 1 + length;
     record[body] = sidecar_check(record, body);
@@ -468,6 +501,7 @@ typedef enum { SIDECAR_VALID, SIDECAR_TORN, SIDECAR_UNREADABLE } sidecar_state_t
 
 /* A torn record means no removal or rename began. An unreadable one says nothing at all, and the
  * temporary may be the only copy of the file, so the two must stay apart. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): private, with one caller
 static sidecar_state_t sidecar_read(crux_file_root_t root, int slot, char *target)
 {
     char name[NAME_CAPACITY];
@@ -485,7 +519,7 @@ static sidecar_state_t sidecar_read(crux_file_root_t root, int slot, char *targe
         return SIDECAR_UNREADABLE;
     }
     if (count < SIDECAR_MAGIC_BYTES + 2 ||
-        memcmp(record, SIDECAR_MAGIC, SIDECAR_MAGIC_BYTES) != 0) {
+        memcmp(record, sidecar_magic, SIDECAR_MAGIC_BYTES) != 0) {
         return SIDECAR_TORN;
     }
     size_t length = record[SIDECAR_MAGIC_BYTES];
@@ -516,6 +550,7 @@ static bool recovery_remove(size_t area, const char *name)
 }
 
 /* The table of states in docs/file-service-contract.md. False stops the area until a reset. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): private, with one caller
 static bool recover_slot(size_t area, int slot, bool has_temp, bool has_sidecar)
 {
     const crux_access_session_t none = {0};
@@ -559,10 +594,46 @@ static bool recover_slot(size_t area, int slot, bool has_temp, bool has_sidecar)
         return recovery_remove(area, temp) && recovery_remove(area, sidecar);
     }
     /* It may be an unfinished removal, or share clusters with the target after a cut during rename,
-     * and removing it would free them. It counts against the limit and its slot stays skipped. */
+     * and removing it would free them. It counts against the limit and its slot stays skipped.
+     *
+     * The target's name stays held for as long as this lasts, and each start takes it again.
+     * Another size would make the next start remove the temporary, and no target would make it
+     * publish one, so no client may change what this choice depends on. Readers are unaffected. A
+     * second kept slot may already hold the name, and a full table stops the area rather than go
+     * unheld. */
+    if (reserve(area, target, NULL) == CRUX_FILE_SERVICE_ERR_NO_RESOURCES) {
+        return false;
+    }
     crux_file_service_port_event(CRUX_FILE_SERVICE_EVENT_RECOVERY_NEEDED, none,
                                  config->areas[area].name, target, NULL, false);
     return true;
+}
+
+static bool unknown_temporaries_remove(size_t area)
+{
+    crux_file_dir_t *dir = NULL;
+    if (crux_file_dir_open(config->areas[area].root, &dir) != CRUX_FILE_OK) {
+        return false;
+    }
+    bool removed = true;
+    for (;;) {
+        char name[NAME_CAPACITY];
+        crux_file_info_t info;
+        bool end = false;
+        if (crux_file_dir_read(dir, name, sizeof(name), &info, &end) != CRUX_FILE_OK) {
+            removed = false;
+            break;
+        }
+        if (end) {
+            break;
+        }
+        if (temporary_name_unknown(name) && !recovery_remove(area, name)) {
+            removed = false;
+            break;
+        }
+    }
+    (void)crux_file_dir_close(&dir);
+    return removed;
 }
 
 /* Count an area and clear what a cut left, in that order, so that a listing never sees a removal.
@@ -573,6 +644,7 @@ static void scan_area(size_t area)
     crux_file_dir_t *dir = NULL;
     uint32_t temps = 0;
     uint32_t sidecars = 0;
+    bool unknown = false;
 
     crux_file_result_t result = crux_file_dir_open(root, &dir);
     if (result != CRUX_FILE_OK) {
@@ -597,19 +669,24 @@ static void scan_area(size_t area)
         if (sidecar >= 0) {
             sidecars |= 1u << sidecar;
         }
+        unknown = unknown || temporary_name_unknown(name);
     }
     (void)crux_file_dir_close(&dir);
     if (result != CRUX_FILE_OK) {
         areas[area].status = AREA_FAILED;
         return;
     }
-    for (int slot = 0; slot < CRUX_FILE_SERVICE_TEMP_SLOTS; slot++) {
+    for (int slot = 0; slot < RECOVERY_SLOTS; slot++) {
         bool has_temp = (temps & (1u << slot)) != 0;
         bool has_sidecar = (sidecars & (1u << slot)) != 0;
         if ((has_temp || has_sidecar) && !recover_slot(area, slot, has_temp, has_sidecar)) {
             areas[area].status = AREA_FAILED;
             return;
         }
+    }
+    if (unknown && !unknown_temporaries_remove(area)) {
+        areas[area].status = AREA_FAILED;
+        return;
     }
     areas[area].status = AREA_READY;
 }
@@ -716,7 +793,7 @@ crux_file_service_result_t crux_file_service_resolve(const char *path,
         return CRUX_FILE_SERVICE_ERR_NOT_FOUND;
     }
     *area = &config->areas[index];
-    strcpy(name, leaf);
+    memcpy(name, leaf, strlen(leaf) + 1);
     return CRUX_FILE_SERVICE_OK;
 }
 
@@ -822,7 +899,7 @@ crux_file_service_result_t crux_file_service_dir_read(crux_access_session_t sess
     }
     name[0] = '\0';
     *end = false;
-    crux_file_service_result_t checked = permitted(session, dir->area, NEED_READ);
+    crux_file_service_result_t checked = permitted(dir->area, session, NEED_READ);
     if (checked != CRUX_FILE_SERVICE_OK) {
         return checked;
     }
@@ -865,8 +942,10 @@ static crux_file_service_result_t check_name(crux_access_session_t session, size
     return CRUX_FILE_SERVICE_ERR_INVALID_ARGUMENT;
 }
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): the accepted contract fixes these signatures
 crux_file_service_result_t crux_file_service_stat(crux_access_session_t session, const char *area,
                                                   const char *name, crux_file_info_t *out)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     size_t index = 0;
     crux_file_service_result_t result = enter_area(session, area, NEED_READ, &index);
@@ -883,8 +962,10 @@ crux_file_service_result_t crux_file_service_stat(crux_access_session_t session,
     return storage_result(crux_file_stat(config->areas[index].root, name, out), session, index);
 }
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): the accepted contract fixes these signatures
 crux_file_service_result_t crux_file_service_remove(crux_access_session_t session, const char *area,
                                                     const char *name)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     size_t index = 0;
     crux_file_service_result_t result = enter_area(session, area, NEED_WRITE, &index);
@@ -904,17 +985,19 @@ crux_file_service_result_t crux_file_service_remove(crux_access_session_t sessio
     crux_file_result_t file_result = crux_file_stat(root, name, &info);
     if (file_result == CRUX_FILE_OK) {
         file_result = crux_file_remove_at(root, name);
-    }
-    if (file_result == CRUX_FILE_OK) {
-        counters_remove(index, info.size, 1);
-        event(CRUX_FILE_SERVICE_EVENT_REMOVED, session, index, name, NULL);
+        if (entry_gone(root, name, file_result)) {
+            counters_remove(index, info.size, 1);
+            event(CRUX_FILE_SERVICE_EVENT_REMOVED, session, index, name, NULL);
+        }
     }
     release(index, name);
     return storage_result(file_result, session, index);
 }
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): the accepted contract fixes these signatures
 crux_file_service_result_t crux_file_service_rename(crux_access_session_t session, const char *area,
                                                     const char *from, const char *to)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     size_t index = 0;
     crux_file_service_result_t result = enter_area(session, area, NEED_WRITE, &index);
@@ -1076,7 +1159,7 @@ static crux_file_service_result_t open_managed(struct crux_file_service_transfer
     if (opened != CRUX_FILE_ERR_INVALID_STATE) {
         removed = crux_file_remove_at(root, temp);
     }
-    if (removed == CRUX_FILE_OK || removed == CRUX_FILE_ERR_NOT_FOUND) {
+    if (entry_gone(root, temp, removed)) {
         counters_remove(t->area, 0, 1);
     }
     slot_release(t->area, t->temp_slot);
@@ -1115,6 +1198,9 @@ static crux_file_service_result_t open_create(struct crux_file_service_transfer 
         counters_add(t->area, after.size, 0);
     } else if (checked == CRUX_FILE_ERR_NOT_FOUND) {
         counters_remove(t->area, 0, 1);
+    } else {
+        /* Nothing says what is left, so the old size stays counted, on the safe side. */
+        counters_add(t->area, already_used, 0);
     }
     return storage_result(result, session, t->area);
 }
@@ -1154,11 +1240,12 @@ static crux_file_result_t transfer_retire(struct crux_file_service_transfer *t, 
     if (remove_temp) {
         char temp[NAME_CAPACITY];
         temp_name(temp, TEMP_PREFIX, t->temp_slot);
-        removed = crux_file_remove_at(config->areas[t->area].root, temp);
-        if (removed == CRUX_FILE_OK || removed == CRUX_FILE_ERR_NOT_FOUND) {
+        crux_file_root_t root = config->areas[t->area].root;
+        removed = crux_file_remove_at(root, temp);
+        if (entry_gone(root, temp, removed)) {
             counters_remove(t->area, t->size, 1);
-            removed = CRUX_FILE_OK;
         }
+        removed = removed == CRUX_FILE_ERR_NOT_FOUND ? CRUX_FILE_OK : removed;
     }
     if (t->temp_slot >= 0) {
         slot_release(t->area, t->temp_slot);
@@ -1170,10 +1257,12 @@ static crux_file_result_t transfer_retire(struct crux_file_service_transfer *t, 
     return removed;
 }
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): the accepted contract fixes these signatures
 crux_file_service_result_t crux_file_service_open(crux_access_session_t session, const char *area,
                                                   const char *name, crux_file_service_open_t mode,
                                                   uint64_t declared_size,
                                                   crux_file_service_transfer_t **out)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     if (!config) {
         return CRUX_FILE_SERVICE_ERR_NOT_READY;
@@ -1208,7 +1297,7 @@ crux_file_service_result_t crux_file_service_open(crux_access_session_t session,
     t->session = session;
     t->area = index;
     t->position_known = true;
-    strcpy(t->name, name);
+    memcpy(t->name, name, strlen(name) + 1);
     if (!reading) {
         result = reserve(index, name, NULL);
         if (result != CRUX_FILE_SERVICE_OK) {
@@ -1262,7 +1351,7 @@ static crux_file_service_result_t transfer_enter(crux_access_session_t session,
     if (t->session.value != session.value) {
         return CRUX_FILE_SERVICE_ERR_DENIED;
     }
-    return permitted(session, t->area, need);
+    return permitted(t->area, session, need);
 }
 
 /* Move only when the offset differs, because the provider's seek reads the end of the file. */
@@ -1416,9 +1505,10 @@ static crux_file_service_result_t commit_abandoned(crux_file_service_transfer_t 
     size_t area = t->area;
     *transfer = NULL;
     (void)transfer_retire(t, true);
-    /* ERR_BUSY and ERR_NO_RESOURCES tell a caller that it still holds the upload. */
+    /* These three tell a caller that it still holds the upload. */
     crux_file_service_result_t mapped = storage_result(failure, session, area);
-    return mapped == CRUX_FILE_SERVICE_ERR_BUSY || mapped == CRUX_FILE_SERVICE_ERR_NO_RESOURCES
+    return mapped == CRUX_FILE_SERVICE_ERR_BUSY || mapped == CRUX_FILE_SERVICE_ERR_NO_RESOURCES ||
+                   mapped == CRUX_FILE_SERVICE_ERR_INVALID_ARGUMENT
                ? CRUX_FILE_SERVICE_ERR_IO
                : mapped;
 }
@@ -1445,7 +1535,10 @@ static crux_file_service_result_t commit_failed(crux_file_service_transfer_t **t
     struct crux_file_service_transfer *t = *transfer;
     *transfer = NULL;
     event(CRUX_FILE_SERVICE_EVENT_COMMIT_FAILED, t->session, t->area, t->name, NULL);
-    /* The temporary counts against the limit now. The sidecar counts from the next start's scan. */
+    /* The temporary counts against the limit now. The sidecar counts from the next start's scan.
+     * The target's name stays held until then, because a client's change to it would change what
+     * that start decides, and could undo an acknowledged removal. */
+    t->holds_name = false;
     (void)transfer_retire(t, false);
     return CRUX_FILE_SERVICE_ERR_IO;
 }
@@ -1509,9 +1602,7 @@ crux_file_service_result_t crux_file_service_commit(crux_access_session_t sessio
             (void)crux_file_remove_at(root, sidecar);
             return commit_refused(transfer, CRUX_FILE_SERVICE_ERR_BUSY);
         }
-        crux_file_info_t info;
-        if (stepped == CRUX_FILE_OK || stepped == CRUX_FILE_ERR_NOT_FOUND ||
-            crux_file_stat(root, t->name, &info) == CRUX_FILE_ERR_NOT_FOUND) {
+        if (entry_gone(root, t->name, stepped)) {
             counters_remove(t->area, old_size, 1);
         }
         if (stepped != CRUX_FILE_OK && stepped != CRUX_FILE_ERR_NOT_FOUND) {

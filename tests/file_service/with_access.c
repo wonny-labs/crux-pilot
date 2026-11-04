@@ -4,9 +4,11 @@
 #include "fake_file.h"
 #include "file_service_port.h"
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): the private port fixes this signature
 void crux_file_service_port_event(crux_file_service_event_t event, crux_access_session_t session,
                                   const char *area, const char *name, const char *new_name,
                                   bool storage_limit)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     (void)event;
     (void)session;

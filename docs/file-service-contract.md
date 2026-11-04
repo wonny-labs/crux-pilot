@@ -12,7 +12,7 @@ It runs on the [File additions](file-contract.md) and the [access contract](acce
 
 ## Areas
 
-A composition declares each area once, in a table that stays borrowed for the program's life. `crux_file_service_start` validates the whole table and refuses a duplicate name or root, a reserved root, an empty reserved list unless `no_credential_store` is set, zero limits, a `max_file_bytes` above `INT32_MAX`, a missing permission, a writable area with no mode, and a suffix that is empty or begins with `.crux-`. After a refused table every operation returns `ERR_NOT_READY`, and a corrected table can still start. A second start returns `ERR_EXISTS`.
+A composition declares up to `CRUX_FILE_SERVICE_AREAS_MAX` areas, default 8, in a table that stays borrowed for the program's life. `crux_file_service_start` validates the whole table and refuses a duplicate name or root, a reserved root, an empty reserved list unless `no_credential_store` is set, zero limits, a `max_file_bytes` above `INT32_MAX`, a missing permission, a writable area with no mode, and a suffix that is empty or begins with `.crux-`. After a refused table every operation returns `ERR_NOT_READY`, and a corrected table can still start. A second start returns `ERR_EXISTS`.
 
 An area whose root is not ready returns `ERR_NOT_READY` until a reset. An area whose scan or recovery failed returns `ERR_IO` until a reset. Neither stops the others.
 
@@ -73,7 +73,7 @@ A session that ends mid-transfer fails its next chunk with `ERR_SESSION_INVALID`
 
 `ERR_BUSY`, `ERR_NO_RESOURCES` and a refusal of the session or the permission change nothing and keep the handle, so that the caller can write on, retry or close. That includes a reader that arrives after step 2, which File refuses at the removal, before it reaches the target. The service then opens the temporary again, and if that fails the result is `ERR_IO` and the upload is gone. Every other result consumes the handle.
 
-An upload claims its temporary name under the service lock before it checks that the name is free, so that two uploads cannot share one. A slot whose temporary file or sidecar still exists is skipped, so a kept file is never reused and an old sidecar can never name a new upload. If a failure comes before the removal in step 4, the temporary file and sidecar go and the target stands. A failed removal or rename returns `ERR_IO` with `file.commit_failed`, and both files stay, because FatFs can report an error after the entry has gone. The temporary counts against the limit from then on, and the sidecar from the next start, which decides the outcome by the table below.
+An upload claims its temporary name under the service lock before it checks that the name is free, so that two uploads cannot share one. A slot whose temporary file or sidecar still exists is skipped, so a kept file is never reused and an old sidecar can never name a new upload. If a failure comes before the removal in step 4, the temporary file and sidecar go and the target stands. A failed removal or rename returns `ERR_IO` with `file.commit_failed`, and both files stay, because FatFs can report an error after the entry has gone. The temporary counts against the limit from then on, and the sidecar from the next start, which decides the outcome by the table below. The target's name stays held until that start, so remove, rename and every write mode give `ERR_BUSY`. A client's change to it would change what the start decides, and could undo an acknowledged removal. The cost is that a client cannot retry that name until a reset.
 
 At start, before any client can call:
 
@@ -83,9 +83,10 @@ At start, before any client can call:
 | Temporary, with a sidecar that cannot be read | Both stay, and the area returns `ERR_IO` until a reset, when start tries again. The target may be gone, so the temporary may be the only copy. A sidecar that stays unreadable keeps the area down until a host repair. |
 | Sidecar, temporary, no target | The rename is completed and the sidecar removed |
 | Sidecar, temporary, a target of a different size | Temporary and sidecar removed. The old target stands. |
-| Sidecar, temporary, a target of the same size | Kept, with `file.recovery_needed`. It may be an unfinished removal, or it may share clusters with the target after a cut during rename, and removing it would free them. It counts against the limit and its slot is skipped. Only a host repair removes it today. |
+| Sidecar, temporary, a target of the same size | Kept, with `file.recovery_needed`. It may be an unfinished removal, or it may share clusters with the target after a cut during rename, and removing it would free them. It counts against the limit and its slot is skipped. The target's name is held, and each start takes it again, so that no client can change what this choice depends on: remove, rename and every write mode give `ERR_BUSY`, and readers are unaffected. Only a host repair clears this. |
 | Sidecar with no temporary, valid or torn | Removed |
 | A file with the area's partial suffix | Kept |
+| `.crux-up-` or `.crux-co-` with a name no build can write: not canonical digits, or 32 and above | Removed |
 
 ## Limits
 
@@ -94,7 +95,8 @@ At start, before any client can call:
 - A listing is not a snapshot. Names are ASCII, flat and at most 63 characters (F4), so WinSCP cannot upload a name with a space. There is no modification time (F6), permissions, directories or sparse writes.
 - Foreign files are invisible, so they are not counted against an area's limits.
 - A kept temporary needs a host repair.
-- A temporary name above `CRUX_FILE_SERVICE_TEMP_SLOTS`, which can follow lowering that setting, stays hidden and counted, and start leaves it alone.
+- `CRUX_FILE_SERVICE_TEMP_SLOTS` limits allocation only, and it cannot exceed 32. Recovery covers all 32 names, so that lowering the setting strands no file. Any other name beginning `.crux-` stays hidden and counted, and start leaves it alone.
+- Each kept temporary and each failed commit holds a name in the reservation table until a reset or a host repair. If the table is full at start, the area returns `ERR_IO`.
 - The service keeps its own copy of the File name rule, so that `resolve` touches no storage. A test holds the two together on every byte value and on the length bound.
 - The File lock is global and held across each storage call, so one slow card write delays other File callers. No operation promises a time bound, and M10 measures this.
 - The SFTP adapter, its `SETSTAT` handling and a recorded WinSCP run belong to M12, and none is part of this work.

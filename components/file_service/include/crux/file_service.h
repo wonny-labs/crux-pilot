@@ -28,6 +28,7 @@ extern "C" {
 enum { CRUX_FILE_SERVICE_MANAGED = 1u << 0, CRUX_FILE_SERVICE_DIRECT = 1u << 1 };
 
 /** One directory that clients may reach. Strings are borrowed for the program's life. */
+// NOLINTNEXTLINE(clang-analyzer-optin.performance.Padding): reads as a table, and it stays constant
 typedef struct {
     const char *name;             /**< Client-visible, 1 to 15 characters of [a-z0-9_-]. */
     crux_file_root_t root;        /**< A root the composition bound. */
@@ -155,7 +156,7 @@ crux_file_service_result_t crux_file_service_dir_close(crux_file_service_dir_t *
 crux_file_service_result_t crux_file_service_stat(crux_access_session_t session, const char *area,
                                                   const char *name, crux_file_info_t *out);
 
-/** Remove a file. Needs the area's write permission. ERR_BUSY if it is open. */
+/** Remove a file. Needs the area's write permission. ERR_BUSY if it is open or its name is held. */
 crux_file_service_result_t crux_file_service_remove(crux_access_session_t session, const char *area,
                                                     const char *name);
 
@@ -224,8 +225,8 @@ crux_file_service_result_t crux_file_service_size(crux_access_session_t session,
  * @retval CRUX_FILE_SERVICE_ERR_DENIED Another session's transfer, or not a managed upload.
  * @retval CRUX_FILE_SERVICE_ERR_IO No success, and the handle is gone. Either the upload was
  * discarded and the target stands, which includes failing to reopen the temporary after a refusal,
- * or the event file.commit_failed was raised, when the target may be gone and the next start
- * decides.
+ * or the event file.commit_failed was raised. Then the target may be gone, its name stays held and
+ * refuses writers until a reset, and the next start decides.
  */
 crux_file_service_result_t crux_file_service_commit(crux_access_session_t session,
                                                     crux_file_service_transfer_t **transfer);
