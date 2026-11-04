@@ -62,7 +62,7 @@ static crux_security_event_record_t newest(void)
     crux_security_event_record_t record;
     memset(&record, 0, sizeof(record));
     crux_security_event_record_t next;
-    while (crux_security_event_read_unchecked(&cursor, &next) == CRUX_SECURITY_READ_OK) {
+    while (crux_security_event_test_read(&cursor, &next) == CRUX_SECURITY_READ_OK) {
         record = next;
     }
     return record;

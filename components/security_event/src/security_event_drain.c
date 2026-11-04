@@ -87,11 +87,11 @@ static void write_report(const drain_item_t *item)
     }
 }
 
-unsigned crux_security_event_drain_burst(void)
+unsigned crux_security_event_drain_lines(unsigned limit)
 {
     unsigned lines = 0;
     bool may_report = true;
-    while (lines < CRUX_SECURITY_EVENT_DRAIN_BURST) {
+    while (lines < limit) {
         drain_item_t item;
         if (!drain_take(may_report, &item)) {
             break;
@@ -126,18 +126,24 @@ static void drain_main(void *argument)
 {
     (void)argument;
     const crux_duration_t pause = crux_duration_from_ms(CRUX_SECURITY_EVENT_DRAIN_PAUSE_MS);
+    /* Lines since the last pause, across wakes, so that small batches cannot overrun a small log
+     * buffer any more than a full ring can. */
+    unsigned written = 0;
     while (drain_should_run()) {
         crux_status_t waited = crux_semaphore_take(STATE.signal, CRUX_SECURITY_EVENT_DRAIN_WAIT_MS);
-        unsigned lines = crux_security_event_drain_burst();
-        /* A full burst pauses, so that a full ring cannot overrun a small log buffer. Waiting then
-         * returns at once if more arrived. A wait that failed must not become a busy loop. */
-        if (lines >= CRUX_SECURITY_EVENT_DRAIN_BURST ||
-            (waited != CRUX_OK && waited != CRUX_ERR_TIMEOUT)) {
-            (void)crux_thread_sleep_for(pause);
+        if (waited == CRUX_ERR_TIMEOUT) {
+            /* A whole wait with nothing signalled gave the log buffer time to empty. */
+            written = 0;
         }
-        if (lines >= CRUX_SECURITY_EVENT_DRAIN_BURST) {
+        written += crux_security_event_drain_lines(CRUX_SECURITY_EVENT_DRAIN_BURST - written);
+        if (written >= CRUX_SECURITY_EVENT_DRAIN_BURST) {
+            (void)crux_thread_sleep_for(pause);
+            written = 0;
             /* There may be more with no token left to say so. */
             (void)crux_semaphore_give(STATE.signal);
+        } else if (waited != CRUX_OK && waited != CRUX_ERR_TIMEOUT) {
+            /* A wait that failed must not become a busy loop. */
+            (void)crux_thread_sleep_for(pause);
         }
     }
 }
@@ -168,7 +174,9 @@ void crux_security_event_test_drain_clear(void)
 
 unsigned crux_security_event_test_drain_step(void)
 {
-    return atomic_load(&STATE.ready) ? crux_security_event_drain_burst() : 0u;
+    return atomic_load(&STATE.ready)
+               ? crux_security_event_drain_lines(CRUX_SECURITY_EVENT_DRAIN_BURST)
+               : 0u;
 }
 
 crux_status_t crux_security_event_test_stop_drain(void)

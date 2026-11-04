@@ -54,7 +54,7 @@ static void inspect_after_event(void *context)
     expect_clean_bytes(crux_security_event_state.slots, sizeof(crux_security_event_state.slots));
     uint32_t cursor = crux_security_event_state.next_sequence - 1u;
     crux_security_event_record_t record;
-    if (crux_security_event_read_unchecked(&cursor, &record) == CRUX_SECURITY_READ_OK) {
+    if (crux_security_event_test_read(&cursor, &record) == CRUX_SECURITY_READ_OK) {
         expect_clean_bytes(&record, sizeof(record));
         /* No name outside the known accounts. */
         CHECK(strstr(record.user, "secret") == NULL);

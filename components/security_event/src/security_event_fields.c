@@ -93,6 +93,17 @@ static size_t lower_name_length(const char *name, size_t limit)
     return length <= limit ? length : 0;
 }
 
+/* A project name equal to a Crux name would forge that event in a log line. */
+static bool name_is_crux(const char *name)
+{
+    for (size_t index = 0; index < sizeof(id_table) / sizeof(id_table[0]); ++index) {
+        if (strcmp(id_table[index].name, name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool crux_security_event_project_table_valid(const crux_security_event_project_id_t *project_ids,
                                              size_t count)
 {
@@ -107,11 +118,13 @@ bool crux_security_event_project_table_valid(const crux_security_event_project_i
         bool class_valid = row->event_class == CRUX_SECURITY_EVENT_ROUTINE ||
                            row->event_class == CRUX_SECURITY_EVENT_CHANGE;
         if (row->id < CRUX_SECURITY_EVENT_ID_PROJECT_FIRST || row->name == NULL ||
-            lower_name_length(row->name, CRUX_SECURITY_EVENT_NAME_MAX) == 0 || !class_valid) {
+            lower_name_length(row->name, CRUX_SECURITY_EVENT_NAME_MAX) == 0 || !class_valid ||
+            name_is_crux(row->name)) {
             return false;
         }
         for (size_t other = 0; other < index; ++other) {
-            if (project_ids[other].id == row->id) {
+            if (project_ids[other].id == row->id ||
+                strcmp(project_ids[other].name, row->name) == 0) {
                 return false;
             }
         }

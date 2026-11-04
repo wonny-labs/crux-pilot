@@ -86,12 +86,18 @@ static void init_rules(void)
     static const crux_security_event_project_id_t duplicate[] = {
         {0x8000, "app.one", CRUX_SECURITY_EVENT_ROUTINE},
         {0x8000, "app.two", CRUX_SECURITY_EVENT_CHANGE}};
+    static const crux_security_event_project_id_t forged_lost[] = {
+        {0x8000, "event.lost", CRUX_SECURITY_EVENT_ROUTINE}};
+    static const crux_security_event_project_id_t forged_login[] = {
+        {0x8000, "access.login_ok", CRUX_SECURITY_EVENT_ROUTINE}};
     static const crux_security_event_project_id_t good[] = {
         {0x8001, "app.good", CRUX_SECURITY_EVENT_CHANGE}};
     CHECK(crux_security_event_init(NULL, 1) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(crux_security_event_init(low, 1) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(crux_security_event_init(bad_name, 1) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(crux_security_event_init(duplicate, 2) == CRUX_ERR_INVALID_ARGUMENT);
+    CHECK(crux_security_event_init(forged_lost, 1) == CRUX_ERR_INVALID_ARGUMENT);
+    CHECK(crux_security_event_init(forged_login, 1) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(crux_security_event_init(good, 1) == CRUX_OK);
     CHECK(crux_security_event_init(NULL, 0) == CRUX_ERR_INVALID_STATE);
     CHECK(strcmp(crux_security_event_name(0x8001), "app.good") == 0);

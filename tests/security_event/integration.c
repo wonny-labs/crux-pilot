@@ -1,6 +1,7 @@
 /* The real arrangement a composition uses: product cores with no test hooks, the provider as
- * objects, real Logging, Time, Thread and Sync. Only Access's crypto and storage ports are fakes.
- * Lines reach the Host Logging provider's stderr, captured here. */
+ * objects, and real Logging, Thread, Sync and Time authority and monotonic clock. Time's realtime
+ * provider is its controlled memory one, and Access's crypto and storage ports are fakes. Lines
+ * reach the Host Logging provider's stderr, captured here. */
 #include "fake_ports.h"
 #include "realtime_port.h"
 
@@ -166,6 +167,25 @@ int main(void)
     CHECK(crux_duration_to_ms_floor(took) >= 200);
     CHECK(stats().dropped == 0);
 
+    /* Batches smaller than a burst get the same pacing, because the count carries across wakes.
+     * Thirty-six lines hold eight pauses of 100 ms. A wake after a long stall of this thread would
+     * restart the count, so this asks for half of them. */
+    before = now();
+    for (unsigned batch = 0; batch < 12; ++batch) {
+        delivered = stats().delivered;
+        for (unsigned index = 0; index < 3; ++index) {
+            crux_security_event_t event = {.id = CRUX_SECURITY_EVENT_ID_CONFIG_UPDATED,
+                                           .result = CRUX_SECURITY_EVENT_OK,
+                                           .user = "admin",
+                                           .subject = "net.hostname"};
+            crux_security_event_emit(&event);
+        }
+        wait_for_delivered(delivered + 3u);
+    }
+    took = crux_monotonic_diff(now(), before);
+    CHECK(crux_duration_to_ms_floor(took) >= 400);
+    CHECK(stats().dropped == 0);
+
     /* The contract's limit under E6: a threshold below INFO hides OK lines from the log, Logging
      * still returns OK, delivered overstates, and the record stays readable. */
     CHECK(crux_log_set_level(CRUX_LOG_WARN) == CRUX_OK);
@@ -193,7 +213,7 @@ int main(void)
               strncmp(line, "WARN crux.security: evt=", 24) == 0);
         lines += 1;
     }
-    CHECK(lines >= 16u);
+    CHECK(lines >= 52u);
     CHECK(stats().log_errors == 0);
 
     /* Nothing stops the drain's thread in a product. It simply ends with the process. */

@@ -234,6 +234,60 @@ static void emit_takes_no_authority_lock(void)
     CHECK(event_test_wall_reads() > 0);
 }
 
+/* The lost line states time as any other line does, and counts as any other line does. */
+static void lost_line_time_and_counts(void)
+{
+    /* A loss with nothing pending, so the step writes only the report. */
+    event_test_boot();
+    event_test_clock_set_ms(5000);
+    event_test_wall_set(1793750400, 0, CRUX_REALTIME_SOURCE_RTC, true, false);
+    crux_security_event_emit(NULL);
+    const char *line = drain_one_line();
+    CHECK(strcmp(line,
+                 "evt=event.lost seq=1 up=5000 wall=1793750400 clock=rtc count=1 res=failed") == 0);
+    CHECK(event_test_line(0)->level == CRUX_LOG_WARN);
+
+    /* The clock unset. */
+    event_test_boot();
+    crux_security_event_emit(NULL);
+    CHECK(strcmp(drain_one_line(), "evt=event.lost seq=1 up=1000 clock=none count=1 res=failed") ==
+          0);
+
+    /* The monotonic clock failing at the drain: no uptime and no wall time. */
+    event_test_boot();
+    event_test_wall_set(1793750400, 0, CRUX_REALTIME_SOURCE_RTC, true, false);
+    crux_security_event_emit(NULL);
+    event_test_clock_fail(CRUX_ERR_IO);
+    CHECK(strcmp(drain_one_line(), "evt=event.lost seq=1 clock=none count=1 res=failed") == 0);
+    event_test_clock_fail(CRUX_OK);
+
+    /* The snapshot failing at the drain. */
+    event_test_boot();
+    crux_security_event_emit(NULL);
+    event_test_wall_fail(CRUX_ERR_IO);
+    CHECK(strcmp(drain_one_line(), "evt=event.lost seq=1 up=1000 clock=none count=1 res=failed") ==
+          0);
+    event_test_wall_fail(CRUX_OK);
+
+    /* A report that Logging refuses is an error, and is not sent again. */
+    event_test_boot();
+    crux_security_event_emit(NULL);
+    event_test_log_status(CRUX_ERR_IO);
+    CHECK(crux_security_event_test_drain_step() == 1);
+    crux_security_event_stats_t stats = event_test_stats();
+    CHECK(stats.log_errors == 1);
+    CHECK(stats.delivered == 0);
+    CHECK(crux_security_event_test_drain_step() == 0);
+
+    /* One that it accepts is delivered. */
+    event_test_log_status(CRUX_OK);
+    crux_security_event_emit(NULL);
+    CHECK(crux_security_event_test_drain_step() == 1);
+    stats = event_test_stats();
+    CHECK(stats.log_errors == 1);
+    CHECK(stats.delivered == 1);
+}
+
 int main(void)
 {
     clock_unset();
@@ -247,5 +301,6 @@ int main(void)
     wall_before_the_epoch_makes_no_claim();
     clock_running_backwards_is_age_zero();
     emit_takes_no_authority_lock();
+    lost_line_time_and_counts();
     return event_test_finish("Security event time");
 }

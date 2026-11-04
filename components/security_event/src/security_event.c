@@ -220,8 +220,9 @@ static const security_event_stored_t *ring_find(uint32_t cursor)
     return NULL;
 }
 
-crux_security_event_read_result_t
-crux_security_event_read_unchecked(uint32_t *cursor, crux_security_event_record_t *out)
+/* Takes the ring lock for the copy only. Static, so that no link can read without the check. */
+static crux_security_event_read_result_t ring_read(uint32_t *cursor,
+                                                   crux_security_event_record_t *out)
 {
     if (crux_mutex_lock(STATE.lock, CRUX_SECURITY_EVENT_LOCK_MS) != CRUX_OK) {
         return CRUX_SECURITY_READ_ERR_NOT_READY;
@@ -257,7 +258,7 @@ crux_security_event_read_result_t crux_security_event_read(crux_access_session_t
     /* Before the ring lock: a denial's own record needs that lock. */
     switch (crux_access_check(session, CRUX_SECURITY_EVENT_PERMISSION_READ)) {
     case CRUX_ACCESS_OK:
-        return crux_security_event_read_unchecked(cursor, out);
+        return ring_read(cursor, out);
     case CRUX_ACCESS_ERR_DENIED:
         return CRUX_SECURITY_READ_ERR_DENIED;
     case CRUX_ACCESS_ERR_SESSION_INVALID:
@@ -287,6 +288,12 @@ crux_mutex_t crux_security_event_test_ring_lock(void)
 void crux_security_event_test_set_next_sequence(uint32_t sequence)
 {
     STATE.next_sequence = sequence;
+}
+
+crux_security_event_read_result_t crux_security_event_test_read(uint32_t *cursor,
+                                                                crux_security_event_record_t *out)
+{
+    return ring_read(cursor, out);
 }
 
 size_t crux_security_event_test_pending(void)

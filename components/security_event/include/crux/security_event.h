@@ -89,6 +89,12 @@ enum {
     CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REPLACED = 0x0602,
     CRUX_SECURITY_EVENT_ID_SSH_AUTH_LIMIT = 0x0700,
     CRUX_SECURITY_EVENT_ID_SSH_HOST_KEY_MISSING = 0x0701,
+    CRUX_SECURITY_EVENT_ID_NETWORK_CHANGED = 0x0800,
+    CRUX_SECURITY_EVENT_ID_NETWORK_SAVE_FAILED = 0x0801,
+    CRUX_SECURITY_EVENT_ID_NETWORK_SAVED_IGNORED = 0x0802,
+    CRUX_SECURITY_EVENT_ID_SYSTEM_REBOOT_REQUESTED = 0x0900,
+    CRUX_SECURITY_EVENT_ID_SYSTEM_REBOOT_REFUSED = 0x0901,
+    CRUX_SECURITY_EVENT_ID_SYSTEM_REBOOT_FAILED = 0x0902,
     CRUX_SECURITY_EVENT_ID_EVENT_UNKNOWN = 0x0F00,
     CRUX_SECURITY_EVENT_ID_EVENT_LOST = 0x0F01, /**< A line only. An emit cannot use it. */
     CRUX_SECURITY_EVENT_ID_PROJECT_FIRST = 0x8000
@@ -159,7 +165,8 @@ typedef struct {
 /** A project's identifier, for its name in a line and its admission class. */
 typedef struct {
     crux_security_event_id_t id; /**< 0x8000 and above. */
-    const char *name;            /**< 1 to 24 of [a-z0-9_.-]. Borrowed for the program's life. */
+    /** 1 to 24 of [a-z0-9_.-], and no name Crux uses. Borrowed for the program's life. */
+    const char *name;
     crux_security_event_class_t event_class;
 } crux_security_event_project_id_t;
 
@@ -195,7 +202,7 @@ typedef struct {
  * @param count Number of entries.
  * @retval CRUX_OK Ready.
  * @retval CRUX_ERR_INVALID_ARGUMENT The table is missing, or holds an identifier below 0x8000, a
- * duplicate, a bad name or an unknown class.
+ * repeated identifier or name, a bad name, a name Crux uses, or an unknown class.
  * @retval CRUX_ERR_INVALID_STATE Already initialised; nothing changed.
  * @return A Sync error if the lock or signal cannot be created, such as a full pool.
  */
@@ -246,8 +253,10 @@ crux_status_t crux_security_event_get_stats(crux_security_event_stats_t *out);
  *
  * @param session Reading session.
  * @param[in,out] cursor Starts at zero, and holds the next sequence to read. Unchanged unless the
- * result is CRUX_SECURITY_READ_OK. A cursor from before a reset is ahead of the numbering, and
- * restarts at the oldest record, so the caller sees the sequence fall.
+ * result is CRUX_SECURITY_READ_OK. A cursor ahead of the numbering restarts at the oldest record,
+ * so the caller sees the sequence fall. A cursor from before a reset is ahead only until the
+ * numbering passes it, and after that it reads as an ordinary cursor, so this does not detect every
+ * reset.
  * @param[out] out Unchanged unless the result is CRUX_SECURITY_READ_OK.
  * @retval CRUX_SECURITY_READ_OK A record was copied.
  * @retval CRUX_SECURITY_READ_END No record at or after the cursor.

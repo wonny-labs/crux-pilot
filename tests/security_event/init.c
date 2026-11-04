@@ -106,17 +106,31 @@ static void invalid_project_tables(void)
         {0x8000, "App.Name", CRUX_SECURITY_EVENT_ROUTINE}};
     static const crux_security_event_project_id_t space_name[] = {
         {0x8000, "app name", CRUX_SECURITY_EVENT_ROUTINE}};
+    /* A project name equal to a Crux name would forge that event in a log line. */
+    static const crux_security_event_project_id_t forged_lost[] = {
+        {0x8000, "event.lost", CRUX_SECURITY_EVENT_ROUTINE}};
+    static const crux_security_event_project_id_t forged_unknown[] = {
+        {0x8000, "event.unknown", CRUX_SECURITY_EVENT_ROUTINE}};
+    static const crux_security_event_project_id_t forged_login[] = {
+        {0x8000, "access.login_ok", CRUX_SECURITY_EVENT_ROUTINE}};
+    static const crux_security_event_project_id_t forged_reboot[] = {
+        {0x8000, "system.reboot_failed", CRUX_SECURITY_EVENT_ROUTINE}};
+    static const crux_security_event_project_id_t same_name[] = {
+        {0x8000, "app.one", CRUX_SECURITY_EVENT_ROUTINE},
+        {0x8001, "app.one", CRUX_SECURITY_EVENT_ROUTINE}};
     static const crux_security_event_project_id_t bad_class[] = {
         // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange): the case under test.
         {0x8000, "app.name", (crux_security_event_class_t)7}};
     const crux_security_event_project_id_t *const tables[] = {
-        low_id, crux_id, no_name, empty_name, long_name, upper_name, space_name, bad_class,
+        low_id,     crux_id,   no_name,     empty_name,     long_name,    upper_name,
+        space_name, bad_class, forged_lost, forged_unknown, forged_login, forged_reboot,
     };
     event_test_reset();
     for (size_t index = 0; index < sizeof(tables) / sizeof(tables[0]); ++index) {
         CHECK(crux_security_event_init(tables[index], 1) == CRUX_ERR_INVALID_ARGUMENT);
     }
     CHECK(crux_security_event_init(duplicate, 2) == CRUX_ERR_INVALID_ARGUMENT);
+    CHECK(crux_security_event_init(same_name, 2) == CRUX_ERR_INVALID_ARGUMENT);
     CHECK(crux_security_event_init(NULL, 1) == CRUX_ERR_INVALID_ARGUMENT);
     event_test_emit_routine();
     CHECK(event_test_stats().dropped == 1);

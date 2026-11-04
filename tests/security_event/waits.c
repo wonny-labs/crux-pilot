@@ -105,7 +105,7 @@ static void never_waits_on_storage_or_log(void)
     uint32_t cursor = 0;
     crux_security_event_record_t record;
     bool found = false;
-    while (crux_security_event_read_unchecked(&cursor, &record) == CRUX_SECURITY_READ_OK) {
+    while (crux_security_event_test_read(&cursor, &record) == CRUX_SECURITY_READ_OK) {
         found = found || record.id == CRUX_SECURITY_EVENT_ID_ACCESS_PERMISSION_DENIED;
     }
     CHECK(found);

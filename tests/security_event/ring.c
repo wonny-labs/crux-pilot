@@ -274,6 +274,23 @@ static void report_cannot_starve_records(void)
     CHECK(reports == 1);
 }
 
+/* High water is what was pending at once, not what stays readable after the drain. */
+static void high_water_counts_pending_only(void)
+{
+    event_test_boot();
+    for (size_t index = 0; index < RING + 3u; ++index) {
+        event_test_emit_routine();
+        event_test_drain_all();
+    }
+    CHECK(event_test_stats().high_water == 1);
+    event_test_emit_routine();
+    event_test_emit_routine();
+    CHECK(event_test_stats().high_water == 2);
+    event_test_drain_all();
+    event_test_emit_routine();
+    CHECK(event_test_stats().high_water == 2);
+}
+
 static void lines_stay_in_order(void)
 {
     event_test_boot();
@@ -604,6 +621,7 @@ int main(void)
     full_ring_reports_loss_with_a_free_slot();
     burst_is_bounded();
     report_cannot_starve_records();
+    high_water_counts_pending_only();
     lines_stay_in_order();
     log_failure_moves_on();
     lock_timeout_is_counted_without_a_number();

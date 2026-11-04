@@ -74,6 +74,15 @@ void event_test_lines_clear(void);
 /* The most recent kept line, or an empty one. */
 const char *event_test_last_line(void);
 
+/* The drain's signal and pause, which pass through to the real functions. */
+unsigned event_test_signal_gives(void);
+unsigned event_test_signal_takes(void);
+uint32_t event_test_signal_last_wait_ms(void);
+/* Makes the next take report this status once its real wait ends. */
+void event_test_signal_next_reports(crux_status_t status);
+unsigned event_test_pauses(void);
+int64_t event_test_last_pause_ms(void);
+
 /* Fail the next creations, which then pass through again. */
 void event_test_mutex_create_fail(crux_status_t status);
 void event_test_semaphore_create_fail(crux_status_t status);

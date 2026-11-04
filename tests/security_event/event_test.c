@@ -25,6 +25,10 @@ static size_t line_count;
 static crux_status_t mutex_create_status, semaphore_create_status, thread_create_status;
 static crux_thread_options_t thread_options;
 static bool in_isr;
+static unsigned signal_gives, signal_takes, pauses;
+static uint32_t signal_last_wait_ms;
+static crux_status_t signal_report;
+static int64_t last_pause_ms;
 
 // NOLINTNEXTLINE(bugprone-reserved-identifier)
 crux_status_t __real_crux_monotonic_now(crux_monotonic_time_t *out);
@@ -54,6 +58,18 @@ crux_status_t __wrap_crux_thread_create(const crux_thread_options_t *options,
                                         crux_thread_t *out);
 // NOLINTNEXTLINE(bugprone-reserved-identifier)
 bool __wrap_crux_is_in_isr(void);
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+crux_status_t __real_crux_semaphore_give(crux_semaphore_t semaphore);
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+crux_status_t __wrap_crux_semaphore_give(crux_semaphore_t semaphore);
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+crux_status_t __real_crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_ms);
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+crux_status_t __wrap_crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_ms);
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+crux_status_t __real_crux_thread_sleep_for(crux_duration_t duration);
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+crux_status_t __wrap_crux_thread_sleep_for(crux_duration_t duration);
 
 int event_test_finish(const char *suite)
 {
@@ -80,6 +96,10 @@ void event_test_reset(void)
     mutex_create_status = semaphore_create_status = thread_create_status = CRUX_OK;
     memset(&thread_options, 0, sizeof(thread_options));
     in_isr = false;
+    signal_gives = signal_takes = pauses = 0;
+    signal_last_wait_ms = 0;
+    signal_report = CRUX_OK;
+    last_pause_ms = 0;
     pthread_mutex_unlock(&control_lock);
 }
 
@@ -333,6 +353,89 @@ crux_status_t __wrap_crux_thread_create(const crux_thread_options_t *options,
     thread_options = *options;
     pthread_mutex_unlock(&control_lock);
     return status != CRUX_OK ? status : __real_crux_thread_create(options, entry, argument, out);
+}
+
+unsigned event_test_signal_gives(void)
+{
+    pthread_mutex_lock(&control_lock);
+    unsigned count = signal_gives;
+    pthread_mutex_unlock(&control_lock);
+    return count;
+}
+
+unsigned event_test_signal_takes(void)
+{
+    pthread_mutex_lock(&control_lock);
+    unsigned count = signal_takes;
+    pthread_mutex_unlock(&control_lock);
+    return count;
+}
+
+uint32_t event_test_signal_last_wait_ms(void)
+{
+    pthread_mutex_lock(&control_lock);
+    uint32_t wait_ms = signal_last_wait_ms;
+    pthread_mutex_unlock(&control_lock);
+    return wait_ms;
+}
+
+void event_test_signal_next_reports(crux_status_t status)
+{
+    pthread_mutex_lock(&control_lock);
+    signal_report = status;
+    pthread_mutex_unlock(&control_lock);
+}
+
+unsigned event_test_pauses(void)
+{
+    pthread_mutex_lock(&control_lock);
+    unsigned count = pauses;
+    pthread_mutex_unlock(&control_lock);
+    return count;
+}
+
+int64_t event_test_last_pause_ms(void)
+{
+    pthread_mutex_lock(&control_lock);
+    int64_t pause_ms = last_pause_ms;
+    pthread_mutex_unlock(&control_lock);
+    return pause_ms;
+}
+
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+crux_status_t __wrap_crux_semaphore_give(crux_semaphore_t semaphore)
+{
+    pthread_mutex_lock(&control_lock);
+    signal_gives += 1;
+    pthread_mutex_unlock(&control_lock);
+    return __real_crux_semaphore_give(semaphore);
+}
+
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+crux_status_t __wrap_crux_semaphore_take(crux_semaphore_t semaphore, uint32_t timeout_ms)
+{
+    pthread_mutex_lock(&control_lock);
+    signal_takes += 1;
+    signal_last_wait_ms = timeout_ms;
+    pthread_mutex_unlock(&control_lock);
+    crux_status_t status = __real_crux_semaphore_take(semaphore, timeout_ms);
+    pthread_mutex_lock(&control_lock);
+    if (signal_report != CRUX_OK) {
+        status = signal_report;
+        signal_report = CRUX_OK;
+    }
+    pthread_mutex_unlock(&control_lock);
+    return status;
+}
+
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
+crux_status_t __wrap_crux_thread_sleep_for(crux_duration_t duration)
+{
+    pthread_mutex_lock(&control_lock);
+    pauses += 1;
+    last_pause_ms = crux_duration_to_ms_floor(duration);
+    pthread_mutex_unlock(&control_lock);
+    return __real_crux_thread_sleep_for(duration);
 }
 
 void event_test_in_isr(bool value)

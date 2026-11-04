@@ -5,6 +5,7 @@
 
 #include <pthread.h>
 #include <stdatomic.h>
+#include <time.h>
 
 #define EMITTERS 6u
 #define READERS 2u
@@ -36,6 +37,12 @@ static void *emitter(void *argument)
             .subject = (which & 2u) == 0 ? "config.save" : "file.read",
         };
         crux_security_event_emit(&event);
+        /* Pauses let the drain keep up, so that readers and the drain meet many admitted records,
+         * rather than a full ring and a stream of refusals. */
+        if ((index & 3u) == 3u) {
+            const struct timespec pause = {0, 1000000};
+            (void)nanosleep(&pause, NULL);
+        }
     }
     return NULL;
 }
@@ -91,7 +98,8 @@ int main(void)
     /* Every event is accounted for. */
     crux_security_event_stats_t stats = event_test_stats();
     CHECK(stats.emitted + stats.dropped == EMITTERS * EMITS_EACH);
-    CHECK(stats.emitted >= 1u);
+    /* More than a ring's worth, so the emitters and the drain really ran together. */
+    CHECK(stats.emitted > 2u * CRUX_SECURITY_EVENT_RING);
     CHECK(stats.high_water <= CRUX_SECURITY_EVENT_RING);
     CHECK(stats.log_errors == 0);
     CHECK(stats.invalid_fields == 0);

@@ -135,10 +135,7 @@ extern security_event_state_t crux_security_event_state;
  * be held. */
 void crux_security_event_clock_fill(uint64_t uptime_ms, bool no_uptime, int64_t *wall_s,
                                     crux_security_event_clock_t *clock);
-/* Reads without a permission check. Takes the ring lock for the copy only. */
-crux_security_event_read_result_t
-crux_security_event_read_unchecked(uint32_t *cursor, crux_security_event_record_t *out);
-/* Writes at most one burst of lines and returns how many. Holds no lock across a log write. */
-unsigned crux_security_event_drain_burst(void);
+/* Writes at most limit lines and returns how many. Holds no lock across a log write. */
+unsigned crux_security_event_drain_lines(unsigned limit);
 
 #endif

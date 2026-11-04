@@ -3,11 +3,12 @@
 # tests, and no public target or provider setting selects them.
 set(_security_event_wraps
     crux_monotonic_now crux_realtime_get_snapshot crux_log_write crux_mutex_create
-    crux_semaphore_create crux_thread_create crux_is_in_isr)
+    crux_semaphore_create crux_semaphore_give crux_semaphore_take crux_thread_create
+    crux_thread_sleep_for crux_is_in_isr)
 list(TRANSFORM _security_event_wraps PREPEND "-Wl,--wrap=" OUTPUT_VARIABLE _security_event_wrap_options)
 set(_security_event_warnings -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
 
-function(security_event_test_core name)
+function(security_event_test_core name drain_wait_ms)
     add_library(${name} STATIC ${CRUX_SECURITY_EVENT_SOURCES} event_test.c)
     target_include_directories(${name}
         PUBLIC . ../../components/security_event/src
@@ -18,7 +19,7 @@ function(security_event_test_core name)
     # Real threads in these suites need no real pacing, which the integration suite covers.
     target_compile_definitions(${name} PUBLIC
         CRUX_SECURITY_EVENT_TESTING=1 CRUX_SECURITY_EVENT_DRAIN_PAUSE_MS=1
-        CRUX_SECURITY_EVENT_DRAIN_WAIT_MS=5 ${ARGN})
+        CRUX_SECURITY_EVENT_DRAIN_WAIT_MS=${drain_wait_ms} ${ARGN})
     target_compile_options(${name} PRIVATE ${_security_event_warnings})
 endfunction()
 
@@ -32,16 +33,19 @@ function(security_event_test_suite name core)
     set_tests_properties(SecurityEvent.${name} PROPERTIES TIMEOUT 120)
 endfunction()
 
-security_event_test_core(security_event_test_core)
+security_event_test_core(security_event_test_core 5)
 # A different build-time ring, so that a default does not hide in a case.
-security_event_test_core(security_event_test_core_small
+security_event_test_core(security_event_test_core_small 5
     CRUX_SECURITY_EVENT_RING=8 CRUX_SECURITY_EVENT_RESERVE=2 CRUX_SECURITY_EVENT_DRAIN_BURST=3)
+# A drain whose timed wake never fires in a run, so that only the signal can move it.
+security_event_test_core(security_event_test_core_signal 60000)
 
 # The core alone, answering the read path's permission check with a stub.
 foreach(suite IN ITEMS conformance ring time_cases init concurrency)
     security_event_test_suite(${suite} security_event_test_core ${suite}.c access_check_stub.c)
 endforeach()
 security_event_test_suite(ring_small security_event_test_core_small ring.c access_check_stub.c)
+security_event_test_suite(drain security_event_test_core_signal drain.c access_check_stub.c)
 target_link_libraries(security_event_concurrency PRIVATE Threads::Threads)
 
 # The real Access core and the real provider, with Access's fake ports. The fake keeps its recording

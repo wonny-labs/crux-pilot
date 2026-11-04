@@ -64,6 +64,12 @@ static const expected_id_t expected_ids[] = {
     {0x0602, "web.certificate_replaced", C},
     {0x0700, "ssh.auth_limit", R},
     {0x0701, "ssh.host_key_missing", C},
+    {0x0800, "network.changed", C},
+    {0x0801, "network.save_failed", C},
+    {0x0802, "network.saved_ignored", C},
+    {0x0900, "system.reboot_requested", C},
+    {0x0901, "system.reboot_refused", R},
+    {0x0902, "system.reboot_failed", C},
     {0x0F00, "event.unknown", R},
     {0x0F01, "event.lost", R},
 };
@@ -85,6 +91,12 @@ _Static_assert(CRUX_SECURITY_EVENT_ID_WEB_TLS_FAILED == 0x0600, "stable value");
 _Static_assert(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REPLACED == 0x0602, "stable value");
 _Static_assert(CRUX_SECURITY_EVENT_ID_SSH_AUTH_LIMIT == 0x0700, "stable value");
 _Static_assert(CRUX_SECURITY_EVENT_ID_SSH_HOST_KEY_MISSING == 0x0701, "stable value");
+_Static_assert(CRUX_SECURITY_EVENT_ID_NETWORK_CHANGED == 0x0800, "stable value");
+_Static_assert(CRUX_SECURITY_EVENT_ID_NETWORK_SAVE_FAILED == 0x0801, "stable value");
+_Static_assert(CRUX_SECURITY_EVENT_ID_NETWORK_SAVED_IGNORED == 0x0802, "stable value");
+_Static_assert(CRUX_SECURITY_EVENT_ID_SYSTEM_REBOOT_REQUESTED == 0x0900, "stable value");
+_Static_assert(CRUX_SECURITY_EVENT_ID_SYSTEM_REBOOT_REFUSED == 0x0901, "stable value");
+_Static_assert(CRUX_SECURITY_EVENT_ID_SYSTEM_REBOOT_FAILED == 0x0902, "stable value");
 _Static_assert(CRUX_SECURITY_EVENT_ID_EVENT_UNKNOWN == 0x0F00, "stable value");
 _Static_assert(CRUX_SECURITY_EVENT_ID_EVENT_LOST == 0x0F01, "stable value");
 _Static_assert(CRUX_SECURITY_EVENT_ID_PROJECT_FIRST == 0x8000, "stable value");
@@ -263,6 +275,69 @@ static void subject_rule(void)
     CHECK(invalid_fields() == 2);
 }
 
+/* Every byte value, in the middle of a field, so that no extra character slips into a rule. A
+ * character outside the rule could forge a field in a log line: = and space, ESC and CR above all.
+ */
+static void every_byte_value(void)
+{
+    for (unsigned value = 1; value <= 255u; ++value) {
+        const char c = (char)value;
+        const char text[] = {'a', c, 'b', '\0'};
+        const bool is_lower = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+        const bool is_common = c == '_' || c == '.' || c == '-';
+        const bool user_allowed = is_lower || is_common;
+        const bool subject_allowed = user_allowed || (c >= 'A' && c <= 'Z') || c == '/' || c == ':';
+
+        crux_security_event_t event = {.id = CRUX_SECURITY_EVENT_ID_CONFIG_UPDATED, .user = text};
+        crux_security_event_record_t record = emit_and_read(&event);
+        CHECK(strcmp(record.user, user_allowed ? text : "") == 0);
+        CHECK(invalid_fields() == (user_allowed ? 0u : 1u));
+
+        event.user = NULL;
+        event.subject = text;
+        record = emit_and_read(&event);
+        CHECK(strcmp(record.subject, subject_allowed ? text : "") == 0);
+        CHECK(invalid_fields() == (subject_allowed ? 0u : 1u));
+    }
+}
+
+/* The scan stops at 256 bytes, so an emit stays bounded on a text with no end. */
+static void subject_scan_is_bounded(void)
+{
+    enum { SCAN_MAX = 256 };
+    crux_security_event_t event = {.id = CRUX_SECURITY_EVENT_ID_CONFIG_UPDATED};
+
+    /* No terminator in reach: the sanitizers report any read past the allocation. */
+    char *unterminated = malloc(SCAN_MAX);
+    CHECK(unterminated != NULL);
+    if (unterminated == NULL) {
+        return;
+    }
+    memset(unterminated, 'a', SCAN_MAX);
+    event.subject = unterminated;
+    crux_security_event_record_t record = emit_and_read(&event);
+    CHECK(record.subject_truncated);
+    CHECK(strlen(record.subject) == 48);
+    CHECK(invalid_fields() == 0);
+
+    /* The last byte checked refuses the field, and the first byte past it is never looked at. */
+    unterminated[SCAN_MAX - 1] = ' ';
+    record = emit_and_read(&event);
+    CHECK(record.subject[0] == '\0');
+    CHECK(invalid_fields() == 1);
+    free(unterminated);
+
+    char past_the_scan[SCAN_MAX + 2];
+    memset(past_the_scan, 'a', sizeof(past_the_scan));
+    past_the_scan[SCAN_MAX] = ' ';
+    past_the_scan[SCAN_MAX + 1] = '\0';
+    event.subject = past_the_scan;
+    record = emit_and_read(&event);
+    CHECK(record.subject_truncated);
+    CHECK(strlen(record.subject) == 48);
+    CHECK(invalid_fields() == 0);
+}
+
 static void source_and_channel_rule(void)
 {
     crux_security_event_t event = {.id = CRUX_SECURITY_EVENT_ID_ACCESS_DELAYED,
@@ -337,6 +412,12 @@ static void identifier_and_result_rule(void)
     event.id = CRUX_SECURITY_EVENT_ID_ACCESS_LOGOUT;
     // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange): the case under test.
     event.result = (crux_security_event_result_t)99;
+    record = emit_and_read(&event);
+    CHECK(record.result == CRUX_SECURITY_EVENT_FAILED);
+    CHECK(invalid_fields() == 1);
+
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange): the case under test.
+    event.result = (crux_security_event_result_t)-1;
     record = emit_and_read(&event);
     CHECK(record.result == CRUX_SECURITY_EVENT_FAILED);
     CHECK(invalid_fields() == 1);
@@ -504,6 +585,8 @@ int main(void)
     identifiers();
     user_rule();
     subject_rule();
+    every_byte_value();
+    subject_scan_is_bounded();
     source_and_channel_rule();
     identifier_and_result_rule();
     line_format();

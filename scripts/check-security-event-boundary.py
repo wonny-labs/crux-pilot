@@ -131,6 +131,11 @@ def composition_errors(build_root):
     for forbidden in ("crux_security_event_test_", "security_event_fake_", "crux_access_port_"):
         if forbidden in symbols:
             errors.append(f"product core defines {forbidden}*")
+    # The one way to read a record checks the permission, so no link can skip it.
+    exported = run(["nm", "--defined-only", "--extern-only", str(core)]).stdout
+    readers = set(re.findall(r"\b\w*read\w*\b", exported))
+    if readers != {"crux_security_event_read"}:
+        errors.append(f"product core exports other read functions: {sorted(readers)}")
     # The fake refuses to compile outside the test composition.
     result = run([C_COMPILER, "-fsyntax-only", "-Icomponents/security_event/include",
                   "-Icomponents/security_event/src", "-Icomponents/base/include",

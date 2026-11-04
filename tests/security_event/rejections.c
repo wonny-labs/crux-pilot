@@ -52,7 +52,7 @@ static const char *channel_text(uint8_t channel)
 static void expect(const expected_t *row)
 {
     crux_security_event_record_t record;
-    crux_security_event_read_result_t result = crux_security_event_read_unchecked(&cursor, &record);
+    crux_security_event_read_result_t result = crux_security_event_test_read(&cursor, &record);
     CHECK(result == CRUX_SECURITY_READ_OK);
     if (result != CRUX_SECURITY_READ_OK) {
         printf("  no record for %s\n", row->name);
@@ -60,7 +60,7 @@ static void expect(const expected_t *row)
     }
     uint32_t next = cursor;
     crux_security_event_record_t extra;
-    CHECK(crux_security_event_read_unchecked(&next, &extra) == CRUX_SECURITY_READ_END);
+    CHECK(crux_security_event_test_read(&next, &extra) == CRUX_SECURITY_READ_END);
 
     CHECK(record.id == row->id);
     CHECK(record.result == row->result);
@@ -259,13 +259,43 @@ static void busy_slot(void)
     /* The nested attempt's record, then the login that held the slot. */
     crux_access_origin_t origin = access_test_web_from(3);
     crux_security_event_record_t record;
-    CHECK(crux_security_event_read_unchecked(&cursor, &record) == CRUX_SECURITY_READ_OK);
+    CHECK(crux_security_event_test_read(&cursor, &record) == CRUX_SECURITY_READ_OK);
     CHECK(record.id == ID(ACCESS_LOGIN_BUSY));
     CHECK(record.result == CRUX_SECURITY_EVENT_BUSY);
     CHECK(record.channel == (uint8_t)origin.channel);
     CHECK(memcmp(record.source, origin.source, 4) == 0);
     CHECK(record.user[0] == '\0');
-    CHECK(crux_security_event_read_unchecked(&cursor, &record) == CRUX_SECURITY_READ_OK);
+    CHECK(crux_security_event_test_read(&cursor, &record) == CRUX_SECURITY_READ_OK);
+    CHECK(record.id == ID(ACCESS_LOGIN_OK));
+}
+
+static void hook_change_password_while_verifying(void *context)
+{
+    crux_access_session_t session = *(crux_access_session_t *)context;
+    uint32_t retry_after_ms = 0;
+    CHECK(crux_access_account_change_password(session, PASSWORD, strlen(PASSWORD), OTHER_PASSWORD,
+                                              strlen(OTHER_PASSWORD),
+                                              &retry_after_ms) == CRUX_ACCESS_ERR_BUSY);
+}
+
+/* The result table's other BUSY row: changing one's own password also needs the slot. */
+static void busy_slot_on_own_password(void)
+{
+    (void)boot_with_user();
+    crux_access_session_t user = access_test_session(USER, PASSWORD, &access_test_web_other);
+    start();
+    access_fake_derive_hook(hook_change_password_while_verifying, &user);
+    crux_access_session_t other = access_test_session(ADMIN, PASSWORD, &access_test_web);
+    CHECK(other.value != 0);
+
+    crux_security_event_record_t record;
+    CHECK(crux_security_event_test_read(&cursor, &record) == CRUX_SECURITY_READ_OK);
+    CHECK(record.id == ID(ACCESS_LOGIN_BUSY));
+    CHECK(record.result == CRUX_SECURITY_EVENT_BUSY);
+    CHECK(record.channel == (uint8_t)access_test_web_other.channel);
+    CHECK(memcmp(record.source, access_test_web_other.source, 4) == 0);
+    CHECK(record.user[0] == '\0');
+    CHECK(crux_security_event_test_read(&cursor, &record) == CRUX_SECURITY_READ_OK);
     CHECK(record.id == ID(ACCESS_LOGIN_OK));
 }
 
@@ -599,7 +629,7 @@ static void provider_maps_each_event(void)
         __real_crux_access_port_event(&event);
         uint32_t read_cursor = 0;
         crux_security_event_record_t record;
-        CHECK(crux_security_event_read_unchecked(&read_cursor, &record) == CRUX_SECURITY_READ_OK);
+        CHECK(crux_security_event_test_read(&read_cursor, &record) == CRUX_SECURITY_READ_OK);
         CHECK(record.id == rows[index].id);
         CHECK(strcmp(record.user, rows[index].user == NULL ? "" : rows[index].user) == 0);
         CHECK(strcmp(record.subject, rows[index].subject == NULL ? "" : rows[index].subject) == 0);
@@ -638,7 +668,7 @@ static void provider_maps_each_result(void)
         __real_crux_access_port_event(&event);
         uint32_t read_cursor = 0;
         crux_security_event_record_t record;
-        CHECK(crux_security_event_read_unchecked(&read_cursor, &record) == CRUX_SECURITY_READ_OK);
+        CHECK(crux_security_event_test_read(&read_cursor, &record) == CRUX_SECURITY_READ_OK);
         CHECK(record.result == rows[index].to);
         /* An empty field in the port's event is no field, and no failed rule. */
         CHECK(record.user[0] == '\0' && record.subject[0] == '\0');
@@ -653,7 +683,7 @@ static void provider_maps_each_result(void)
     __real_crux_access_port_event(&event);
     uint32_t read_cursor = 0;
     crux_security_event_record_t record;
-    CHECK(crux_security_event_read_unchecked(&read_cursor, &record) == CRUX_SECURITY_READ_OK);
+    CHECK(crux_security_event_test_read(&read_cursor, &record) == CRUX_SECURITY_READ_OK);
     CHECK(record.result == CRUX_SECURITY_EVENT_FAILED);
 
     /* A port event with a type this table does not know is recorded as unknown, and counted. */
@@ -661,7 +691,7 @@ static void provider_maps_each_result(void)
     crux_access_event_t odd = {.type = (crux_access_event_type_t)999, .result = CRUX_ACCESS_OK};
     __real_crux_access_port_event(&odd);
     read_cursor = 0;
-    CHECK(crux_security_event_read_unchecked(&read_cursor, &record) == CRUX_SECURITY_READ_OK);
+    CHECK(crux_security_event_test_read(&read_cursor, &record) == CRUX_SECURITY_READ_OK);
     CHECK(record.id == CRUX_SECURITY_EVENT_ID_EVENT_UNKNOWN);
     CHECK(event_test_stats().invalid_fields == 1);
 }
@@ -672,6 +702,7 @@ int main(void)
     key_failures();
     delay_window();
     busy_slot();
+    busy_slot_on_own_password();
     full_tables();
     removed_role();
     session_rejections();
