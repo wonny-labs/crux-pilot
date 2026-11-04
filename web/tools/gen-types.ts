@@ -14,46 +14,51 @@ type Schema = Record<string, unknown>;
 
 const SCHEMA_PREFIX = '#/components/schemas/';
 const METHODS = ['get', 'put', 'post', 'delete', 'patch', 'head', 'options'];
-// Keywords that only document or constrain a value, with no effect on its TypeScript type.
-const IGNORED = new Set([
-  'description',
-  'summary',
-  'example',
-  'examples',
-  'format',
-  'pattern',
-  'minLength',
-  'maxLength',
-  'minimum',
-  'maximum',
-  'minItems',
-  'maxItems',
-]);
-const SHAPE = new Set([
-  '$ref',
-  'oneOf',
-  'allOf',
-  'enum',
-  'type',
-  'items',
-  'properties',
-  'required',
-  'additionalProperties',
-]);
+// Keywords that document a schema, with no effect on its TypeScript type.
+const NOTES = ['description', 'summary', 'example', 'examples'];
+// The keywords that each form of schema may hold. A schema has exactly one form, and any other keyword
+// beside it is refused, because a tool would read the combination differently from this generator.
+const FORMS: Record<string, string[]> = {
+  $ref: ['$ref'],
+  oneOf: ['oneOf'],
+  allOf: ['allOf'],
+  enum: ['enum', 'type'],
+  string: ['type', 'format', 'pattern', 'minLength', 'maxLength'],
+  integer: ['type', 'format', 'minimum', 'maximum'],
+  number: ['type', 'format', 'minimum', 'maximum'],
+  boolean: ['type'],
+  array: ['type', 'items', 'minItems', 'maxItems'],
+  object: ['type', 'properties', 'required', 'additionalProperties'],
+};
 
-function literal(value: unknown): string {
+function literal(value: unknown, where: string): string {
   if (typeof value !== 'string') {
-    throw new Error(`enum value ${String(value)} is not a string`);
+    throw new Error(`${where}: enum value ${String(value)} is not a string`);
   }
   return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
 }
 
-function checkKeywords(schema: Schema, where: string): void {
+/** The schema's form, once its keywords have been checked against that form. */
+function formOf(schema: Schema, where: string): string {
+  const marked = ['$ref', 'oneOf', 'allOf', 'enum'].filter((keyword) => keyword in schema);
+  if (marked.length > 1) {
+    throw new Error(`${where}: ${marked.join(' and ')} cannot be used together`);
+  }
+  const type = schema['type'];
+  const form = marked[0] ?? (typeof type === 'string' ? type : undefined);
+  const allowed = form === undefined ? undefined : FORMS[form];
+  if (form === undefined || allowed === undefined) {
+    throw new Error(`${where}: schema has no type that this generator supports`);
+  }
+  if (form === 'enum' && type !== undefined && type !== 'string') {
+    throw new Error(`${where}: an enum on type ${String(type)} is not supported`);
+  }
   for (const keyword of Object.keys(schema)) {
-    if (!IGNORED.has(keyword) && !SHAPE.has(keyword)) {
-      throw new Error(`${where}: schema keyword ${keyword} is not supported`);
+    if (!allowed.includes(keyword) && !NOTES.includes(keyword)) {
+      throw new Error(`${where}: schema keyword ${keyword} is not supported with ${form}`);
     }
   }
+  return form;
 }
 
 function members(schema: Schema, where: string): [string, string][] {
@@ -62,6 +67,11 @@ function members(schema: Schema, where: string): [string, string][] {
   }
   const required = new Set((schema['required'] as string[] | undefined) ?? []);
   const properties = (schema['properties'] ?? {}) as Record<string, Schema>;
+  for (const name of required) {
+    if (!(name in properties)) {
+      throw new Error(`${where}: required names ${name}, which is not in properties`);
+    }
+  }
   return Object.entries(properties).map(([name, value]) => [
     `${name}${required.has(name) ? '' : '?'}`,
     typeOf(value, `${where}.${name}`),
@@ -69,32 +79,26 @@ function members(schema: Schema, where: string): [string, string][] {
 }
 
 function typeOf(schema: Schema, where: string): string {
-  checkKeywords(schema, where);
-  const ref = schema['$ref'];
-  if (typeof ref === 'string') {
-    if (!ref.startsWith(SCHEMA_PREFIX)) {
-      throw new Error(`${where}: reference ${ref} is outside the schemas`);
+  const form = formOf(schema, where);
+  switch (form) {
+    case '$ref': {
+      const ref = schema['$ref'];
+      if (typeof ref !== 'string' || !ref.startsWith(SCHEMA_PREFIX)) {
+        throw new Error(`${where}: reference ${String(ref)} is outside the schemas`);
+      }
+      return ref.slice(SCHEMA_PREFIX.length);
     }
-    return ref.slice(SCHEMA_PREFIX.length);
-  }
-  const oneOf = schema['oneOf'] as Schema[] | undefined;
-  if (oneOf) {
-    return oneOf.map((part, index) => typeOf(part, `${where}.oneOf[${index}]`)).join(' | ');
-  }
-  const allOf = schema['allOf'] as Schema[] | undefined;
-  if (allOf) {
-    return allOf
-      .map((part, index) => {
-        const inner = typeOf(part, `${where}.allOf[${index}]`);
-        return inner.includes(' | ') ? `(${inner})` : inner;
-      })
-      .join(' & ');
-  }
-  const values = schema['enum'] as unknown[] | undefined;
-  if (values) {
-    return values.map(literal).join(' | ');
-  }
-  switch (schema['type']) {
+    case 'oneOf':
+      return (schema['oneOf'] as Schema[]).map((part, index) => typeOf(part, `${where}.oneOf[${index}]`)).join(' | ');
+    case 'allOf':
+      return (schema['allOf'] as Schema[])
+        .map((part, index) => {
+          const inner = typeOf(part, `${where}.allOf[${index}]`);
+          return inner.includes(' | ') ? `(${inner})` : inner;
+        })
+        .join(' & ');
+    case 'enum':
+      return (schema['enum'] as unknown[]).map((value) => literal(value, where)).join(' | ');
     case 'string':
       return 'string';
     case 'integer':
@@ -106,12 +110,10 @@ function typeOf(schema: Schema, where: string): string {
       const inner = typeOf((schema['items'] ?? {}) as Schema, `${where}.items`);
       return /[|&]/.test(inner) ? `(${inner})[]` : `${inner}[]`;
     }
-    case 'object': {
+    default: {
       const parts = members(schema, where).map(([name, type]) => `${name}: ${type}`);
       return parts.length === 0 ? 'Record<string, never>' : `{ ${parts.join('; ')} }`;
     }
-    default:
-      throw new Error(`${where}: schema has no type that this generator supports`);
   }
 }
 
@@ -121,8 +123,7 @@ function declaration(name: string, schema: Schema): string {
     typeof description === 'string'
       ? `/** ${description.trim().replace(/\s*\n\s*/g, ' ').replaceAll('*/', '* /')} */\n`
       : '';
-  checkKeywords(schema, name);
-  if (schema['type'] === 'object' && !schema['enum']) {
+  if (formOf(schema, name) === 'object') {
     const lines = members(schema, name).map(([member, type]) => `  ${member}: ${type};\n`);
     return `${comment}export interface ${name} {\n${lines.join('')}}\n`;
   }
