@@ -5,7 +5,7 @@ Evidence for the fix to `_stop` in `tools/device_control/run.py`, [Issue #169](h
 ## Revisions
 
 - Fix: `ef54643a1882ba18d346d37d0e6f3839b7f8736c`, on top of `61924bb41570ad264190befd830123d452681422`.
-- Limit on the wait, and its tests: `2cd336e5cc018ac3f268d31e92f50c6b6f2d8316`.
+- Limit on the wait, and its tests: `2cd336e5cc018ac3f268d31e92f50c6b6f2d8316`, on top of `cddbf13422ae6ddc482c1b68ffcd0e4b81920e46`, the last commit without it.
 - Tests as run: `54971e670466f9ecd5ca031e0815e7f7ceae5285`. `run.py` is the same as at the limit.
 - [`stop-probe-unsignallable-linux.txt`](stop-probe-unsignallable-linux.txt) is from `bbc98310ef48f5e179156deb709e62ac01beec04`, whose `run.py` is the same as at the fix, so it predates the limit. [`stop-probe-unsignallable-linux-with-limit.txt`](stop-probe-unsignallable-linux-with-limit.txt) is from `54971e6`. [`stop-probe-macos-after-fix.txt`](stop-probe-macos-after-fix.txt) is from `ef54643`.
 
@@ -19,7 +19,7 @@ The defect is wider than the `PermissionError` first reported.
 | Linux, real `sudo` 1.9.15p5: `sudo` can be signalled and dies, its root child stays in the group | A plain timeout, **with no sign that the root child still runs**, and the lock released | The error says the tool may still be running. The lock is still released |
 | Linux, tool stays root and this user may not signal any of the group | `PermissionError` from `_stop`, which also skips the wait | `_stop` returns `False` without waiting |
 | Linux, root tool exited, not reaped, nothing else in the group | `PermissionError` | `_stop` returns `True` |
-| Linux, root leader with a member this user may signal | `_stop` waits without a limit: the signal reaches only the member, and the probe was still waiting after 5 s | `_stop` gives up after 1 s and returns `False`, against a real root leader in the probe |
+| Linux, root leader with a member this user may signal | `_stop` waits without a limit: the signal reaches only the member, and the probe was still waiting after 5 s | `_stop` returns `False` against a real root leader in the probe, within its 5 s bound. The 1 s comes from `run.py`; the probe does not measure it |
 | Linux, a killed child in a container whose PID 1 does not reap orphans | A plain timeout | A false warning that the tool may still be running, and 1 s more, because a zombie stays in the group |
 
 The "before" cells for the third and fourth rows rest on the `killpg` lines in the raw output and on one `_stop` run against a live root tool at `61924bb`, whose output was not kept.
@@ -66,7 +66,7 @@ docker run --rm --platform linux/amd64 --cpus 1 --memory 1g --user 0 -e PYTHONDO
   /work/docs/evidence/test-foundation-tool/stop-probe-unsignallable.py /work/tools
 ```
 
-The macOS "fail" rows are the first command, with the new tests in the working tree and `run.py` not yet changed. The Linux "fails" row is the second `docker run` shape, adding `-v <copy>:/work/tools:ro`, where the copy of `tools/` has `run.py` from `61924bb`, and running only that test. The macOS race is forced in the tests by patching `Popen.wait` to give up after the tool has exited; it was not caught happening by chance.
+The macOS "fail" rows are the first command, with the new tests in the working tree and `run.py` not yet changed. The Linux "fails" row used `docker run --rm --init --platform linux/amd64 --cpus 1 --memory 1g --user vscode`, with the source mounted as above, adding `-v <copy>:/work/tools:ro`, where the copy of `tools/` has `run.py` from `61924bb`, and ran only that test with `-k test_a_real_tool_run_through_sudo`. The `bbc9831` probe output was run without the `timeout 150` wrapper. The macOS race is forced in the tests by patching `Popen.wait` to give up after the tool has exited; it was not caught happening by chance.
 
 `test_timeout_also_stops_what_the_tool_started` failed in that container while the host was busy, with `the child did not start before the timeout`. It failed the same way with `run.py` from `61924bb`, and it passed in the later run. Its 5 s timeout can be too short on a loaded emulated host. This fix does not change it.
 
