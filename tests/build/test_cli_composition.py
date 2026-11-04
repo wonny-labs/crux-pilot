@@ -24,7 +24,9 @@ CONFIG_NET_DRIVERS=y
 CONFIG_NET_SOCKETS=y
 """
 # Each refused composition must really hold the symbol, or Kconfig drops it with only a warning and
-# the case fails as "unexpectedly accepted".
+# the case fails as "unexpectedly accepted". SHELL_BACKEND_WEBSOCKET and MCUMGR_GRP_SHELL are not here:
+# they need the mbedtls and zcbor modules, which the pinned workspace does not fetch, so Kconfig cannot
+# set them. tests/build/test_management_shell.py covers those two at each level of the rule.
 REFUSED = {
     "management_with_shell": ("CONFIG_SHELL=y\nCONFIG_SHELL_BACKEND_SERIAL=y\n",
                               "must not enable CONFIG_SHELL unless"),
@@ -35,15 +37,9 @@ REFUSED = {
                "must not enable CONFIG_SHELL_BACKEND_TELNET"),
     "mqtt": ("CONFIG_CRUX_CLI=n\nCONFIG_SHELL=y\nCONFIG_SHELL_BACKEND_MQTT=y\n" + NETWORK,
              "must not enable CONFIG_SHELL_BACKEND_MQTT"),
-    "websocket": ("CONFIG_CRUX_CLI=n\nCONFIG_SHELL=y\nCONFIG_SHELL_BACKEND_WEBSOCKET=y\n"
-                  "CONFIG_HTTP_SERVER=y\nCONFIG_HTTP_SERVER_WEBSOCKET=y\n" + NETWORK,
-                  "must not enable CONFIG_SHELL_BACKEND_WEBSOCKET"),
-    "mcumgr_shell": ("CONFIG_CRUX_CLI=n\nCONFIG_SHELL=y\nCONFIG_SHELL_BACKEND_DUMMY=y\n"
-                     "CONFIG_NET_BUF=y\nCONFIG_ZCBOR=y\nCONFIG_CRC=y\nCONFIG_MCUMGR=y\n"
-                     "CONFIG_MCUMGR_GRP_SHELL=y\nCONFIG_BASE64=y\n",
-                     "must not enable CONFIG_MCUMGR_GRP_SHELL"),
 }
-# A composition without the rule's symbols must still fail if the check names the wrong thing.
+# The flag says whether the image check applies. A marked image holds a real shell, so there the check
+# must fail, which shows that it can.
 ACCEPTED_NATIVE = {
     "production": ("", True),
     # The shell's own UART is not the console's. A real development image needs its own composition.
@@ -83,6 +79,16 @@ class CliCompositionTest(unittest.TestCase):
         # The component compiled, including the rule's own file. It is not linked into the image.
         self.assertTrue(list(build.rglob("libcrux_cli_zephyr.a")), "the component was not built")
 
+    def assert_image_check_fails(self, build):
+        result = subprocess.run(["python3", str(REPO / "scripts/check-management-shell.py"),
+                                 "--config", str(build / "zephyr/.config"),
+                                 "--elf", str(build / "zephyr/zephyr.elf")],
+                                text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                check=False)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("shell_root_cmds section holds entries", result.stdout)
+        self.assertIn("shell symbol linked", result.stdout)
+
     def test_refused_compositions(self):
         selected = os.environ.get("CRUX_CLI_COMPOSITION_CASE")
         for name, (config, diagnostic) in REFUSED.items():
@@ -104,6 +110,8 @@ class CliCompositionTest(unittest.TestCase):
                 build, result = self.west(name, NATIVE, config)
                 self.assertEqual(result.returncode, 0, result.stdout[-6000:])
                 self.check_image(build, image)
+                if not image:
+                    self.assert_image_check_fails(build)
                 print(f"{name}: built and passed the rule", flush=True)
 
     def test_compiles_for_the_rt1060_with_lpuart3(self):

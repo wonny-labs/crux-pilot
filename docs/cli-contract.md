@@ -71,7 +71,7 @@ Defaults, each a build setting: `CRUX_CLI_LINE_MAX` and `CRUX_CLI_TOKENS_MAX` as
 
 A build check refuses a line limit below the 301 bytes that `config set <31-byte name> "<128-byte value>"` needs with every value byte escaped. That size comes from the proposal, because #180 is not merged.
 
-Memory: a `crux_cli_context_t` is about 800 bytes on 64-bit Linux, with the line, the argument pointers and three password buffers, and it belongs to the caller, one per session. Keeping the secrets there rather than on the stack makes "cleared on every path" testable. No session allocates. **Stack use is unmeasured.** `account list` holds up to 8 account records on the stack, about 640 bytes.
+Memory: a `crux_cli_context_t` is about 800 bytes on 64-bit Linux, with the line, the argument pointers and three password buffers, and it belongs to the caller, one per session. Keeping the secrets there rather than on the stack makes "cleared on every path" testable. No session allocates. **Stack use is unmeasured.** `account list` holds up to 8 account records on the stack, about 640 bytes. The component's objects for the RT1060-EVKB hold about 6.5 KB of text and 20 bytes of BSS, compiled against Zephyr v4.4.0 with default options. That is a compile result, not an image's cost.
 
 ## Input
 
@@ -320,7 +320,9 @@ It needs a session and its permission, so it cannot run before login. It does no
 | Has one of those, and is marked | May be `y` | `SHELL_BACKEND_SERIAL` and its options only |
 | Has none of those | May be `y` | Anything except the network backends and `MCUMGR_GRP_SHELL` |
 
-The rule reads `CONFIG_CRUX_WEB` and `CONFIG_CRUX_SSH` by name, so it applies as soon as those Kconfig symbols exist. They do not exist yet.
+The rule reads `CONFIG_CRUX_WEB` and `CONFIG_CRUX_SSH` by name, so it applies as soon as those Kconfig symbols exist. They do not exist yet, so only Host tests cover those two.
+
+Real builds cannot set `SHELL_BACKEND_WEBSOCKET` or `MCUMGR_GRP_SHELL`, because they need the mbedtls and zcbor modules, which the pinned workspace does not fetch, so Kconfig drops them. Host tests cover those two at each level. A real build covers `SHELL`, the dummy backend, Telnet and MQTT. A marked image on `native_sim` also proves that the image check can fail, because it holds a real shell.
 
 ## Tests
 
