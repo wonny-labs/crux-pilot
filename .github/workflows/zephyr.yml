@@ -3,7 +3,13 @@ name: zephyr-software
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
   pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
   workflow_dispatch:
 
 # Supersede only older runs for this PR and workflow. Main/manual runs are unique.
@@ -15,8 +21,15 @@ permissions:
   contents: read
 
 jobs:
-  zephyr:
+  # Every check step names its shard. tests/build/test_zephyr_ci_shards.py keeps a
+  # mistyped or missing condition from silently skipping a check.
+  shard:
+    name: zephyr ${{ matrix.shard }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [storage, controller, runtime, io]
     env:
       CRUX_WORKSPACE: ${{ github.workspace }}
       CRUX_CACHE_DIR: ${{ github.workspace }}/../crux-cache
@@ -54,6 +67,7 @@ jobs:
         run: scripts/bootstrap-zephyr.sh --install-sdk
 
       - name: Check changed C patch style
+        if: matrix.shard == 'storage'
         working-directory: crux-pilot
         env:
           ZEPHYR_BASE: ${{ github.workspace }}/zephyr
@@ -76,101 +90,123 @@ jobs:
           fi
 
       - name: Validate actual storage providers on simulated Flash
+        if: matrix.shard == 'storage'
         working-directory: crux-pilot
         run: scripts/test-storage-simulators.sh
 
       - name: Compile the File RT1060 FatFs/SDHC check without hardware
+        if: matrix.shard == 'storage'
         working-directory: crux-pilot
         run: scripts/test-file-rt1060-compile.sh
 
       # Uses the already-fetched pinned sources and host C compiler; no extra job/SDK build.
       - name: Check isolated Flash PoC fault paths
+        if: matrix.shard == 'storage'
         working-directory: crux-pilot
         env:
           ZEPHYR_BASE: ${{ github.workspace }}/zephyr
         run: python3 tests/native/flash_safety/test_driver.py
 
       - name: Compare controller execution candidates without hardware
+        if: matrix.shard == 'controller'
         working-directory: crux-pilot
         run: scripts/test-execution.sh
 
       - name: Validate the early controller without hardware
+        if: matrix.shard == 'controller'
         working-directory: crux-pilot
         run: scripts/test-controller.sh
 
       - name: Validate portable execution without hardware
+        if: matrix.shard == 'runtime'
         working-directory: crux-pilot
         run: scripts/test-portable-execution.sh
 
       - name: Validate Time CPU Busy-wait without hardware
+        if: matrix.shard == 'runtime'
         working-directory: crux-pilot
         run: scripts/test-time-busy-wait.sh
 
       - name: Validate portable messaging without hardware
+        if: matrix.shard == 'runtime'
         working-directory: crux-pilot
         run: |
           scripts/test-messaging.sh
           scripts/measure-messaging.sh
 
       - name: Validate portable Serial without hardware
+        if: matrix.shard == 'io'
         working-directory: crux-pilot
         run: scripts/test-serial.sh
 
       - name: Validate portable GPIO without hardware
+        if: matrix.shard == 'io'
         working-directory: crux-pilot
         run: scripts/test-gpio.sh
 
       - name: Validate portable I2C without hardware
+        if: matrix.shard == 'io'
         working-directory: crux-pilot
         run: scripts/test-i2c.sh
 
       - name: Validate portable SPI without hardware
+        if: matrix.shard == 'io'
         working-directory: crux-pilot
         run: scripts/test-spi.sh
 
       # Runs the consumer's own levels from a copy outside this tree: Twister, a console
       # oracle on native_sim and a controlled defect. No hardware.
       - name: Validate the out-of-tree consumer at its Zephyr levels
+        if: matrix.shard == 'runtime'
         working-directory: crux-pilot
         env:
           CRUX_CONSUMER_POC_ZEPHYR_TESTS: "1"
         run: python3 -m unittest discover -s tests/build -p test_consumer_poc.py -k ConsumerZephyrLevelsTest -v
 
       - name: Validate controller integration (software-only)
+        if: matrix.shard == 'controller'
         working-directory: crux-pilot
         run: scripts/test-controller-integration.sh
 
       - name: Cross-build RT1170-EVK Rev A CM7 composition (software-only)
+        if: matrix.shard == 'controller'
         working-directory: crux-pilot
         run: scripts/test-m3-rt1170.sh
 
       - name: Qualify portable networking without hardware
+        if: matrix.shard == 'io'
         working-directory: crux-pilot
         run: |
           scripts/bootstrap-networking-tests.sh
           scripts/test-networking.sh
 
       - name: Prepare networking physical fixture without hardware
+        if: matrix.shard == 'io'
         working-directory: crux-pilot
         run: scripts/test-networking-physical.sh
 
       - name: Run native_sim RTC tests and build EVKB firmware
+        if: matrix.shard == 'storage'
         working-directory: crux-pilot
         run: scripts/test-zephyr-time.sh "$CRUX_BOARD_TARGET"
 
       - name: Validate portable Logging, ownership and EVKB composition
+        if: matrix.shard == 'runtime'
         working-directory: crux-pilot
         run: ./scripts/test-logging.sh
 
       - name: Validate portable System and EVKB composition without hardware
+        if: matrix.shard == 'runtime'
         working-directory: crux-pilot
         run: ./scripts/test-system.sh
 
       - name: Validate integrated M5 software smoke without hardware
+        if: matrix.shard == 'controller'
         working-directory: crux-pilot
         run: ./scripts/test-m5-integrated-smoke.sh
 
       - name: Check and build the product template without hardware
+        if: matrix.shard == 'storage'
         working-directory: crux-pilot
         run: scripts/test-product-template.sh "$CRUX_BOARD_TARGET"
 
@@ -203,7 +239,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: zephyr-${{ github.run_id }}-${{ github.run_attempt }}
+          name: zephyr-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             # The collected paths retain the original build/zephyr/twister-* layout.
             ${{ steps.twister_evidence.outputs.paths }}
@@ -389,3 +425,14 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
           include-hidden-files: true
+
+  # One check that passes only when every shard passed.
+  zephyr:
+    needs: shard
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every shard to pass
+        env:
+          SHARD_RESULT: ${{ needs.shard.result }}
+        run: test "$SHARD_RESULT" = success
