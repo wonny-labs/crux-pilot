@@ -23,7 +23,7 @@ here was run on a board.
 
 ## Structure
 
-The firmware takes a built folder, and nothing below the dashed line needs Node.js.
+The firmware takes a built folder, so it needs no Node.js. The dotted lines are not exercised in this work.
 
 ```mermaid
 flowchart TB
@@ -259,7 +259,7 @@ until new firmware changes it. This holds on the target until #16 is decided.
 
 **Accessibility.** Each input has a label, each error is tied to its input and focus moves to the first bad field. Errors
 use `role="alert"` and progress uses `role="status"`. A route change moves focus to the heading and updates the title.
-Confirmation steps focus Cancel. Colours are set for WCAG AA contrast in both schemes, by calculation and not by a tool.
+Confirmation steps focus Cancel. Colours meet WCAG AA in both schemes, by calculating each text and background pair from the stylesheet: the lowest is 6.8 to 1 in the light scheme and 7.4 to 1 in the dark one. A disabled button is lighter, which WCAG exempts. No audit tool was run.
 
 **First credential.** No web path sets one. The specification has no such operation, the client has no such call, and a
 browser test shows that a device with no account only ever gets login requests and a pointer to the serial console.
@@ -402,5 +402,5 @@ Each was taken for lack of an answer, as the narrower choice.
 | Forced change only, with no general change-password link | Account management stays on the CLI, as the design says |
 | A malformed address gets `bad_request` from the mock, because the field codes have no format error | The specification does not say. #213 decides for the real service. |
 | The client's IPv4 checks also refuse a subnet's network and broadcast addresses, reported as `not_unicast` | The design says "unicast address". If #213 allows these, the client check must follow. |
-| Node.js 24, not 26 | Both are long-term support, and 24 has been in use longer. All the tools here accept either. |
+| Node.js 24, not 26 | Both are long-term support, and 24 has been in use longer. Only 24 was run. |
 | The Angular job is in `web.yml` | The approval names the web checks, and #219 asks for a job. It is a separate job, so it can be removed alone. |
