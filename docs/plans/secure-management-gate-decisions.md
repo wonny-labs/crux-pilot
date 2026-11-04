@@ -9,13 +9,13 @@ Each holds the reasoning behind its decisions.
 
 ## What the gate requires
 
-| #183 criterion | State on this baseline |
+| #183 criterion | State on 4 November 2026 |
 | --- | --- |
-| #176 decided, stacks pinned in the manifest | Evidence and recommendation in draft PR #198, and pins in draft PR #202. Neither is merged. |
-| #177 reviewed contract, fake provider, Host conformance | Proposal merged in #201. Implementation is under way in a sibling session, not reviewed yet. The access proposal says implementation needs its own approval, and this record cannot cite one, so the owner should confirm it. |
-| #178 to #182 reviewed contracts, fake providers, Host conformance | **Proposals only.** Accepting them does not meet this criterion: each still needs its header, fake provider and Host cases, as its own approved work. |
-| A rule for later shared contract changes | Decision G-A below |
-| Owner decides whether this runs alongside M7 | Decision G-B below. M7 has two open issues. |
+| #176 decided, stacks pinned in the manifest | The evidence and recommendation in #198, and the pins in #202, merged on 3 November. |
+| #177 reviewed contract, fake provider, Host conformance | Proposal merged in #201. The implementation is in #210, not merged. G-D is accepted: [the owner's approval](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6611325037) is quoted on #177. |
+| #178 to #182 reviewed contracts, fake providers, Host conformance | **In progress.** #224 merged the File additions of #179, and the file service is in #232. Accepting the proposals does not meet this criterion: each contract must reach main with its header, fake provider and Host cases. |
+| A rule for later shared contract changes | Decision G-A below, accepted |
+| Owner decides whether this runs alongside M7 | Decision G-B below, accepted |
 
 Target implementations can finish later, so the gate does not need PSA (#142), a Configuration target provider, or hardware results.
 
@@ -26,9 +26,11 @@ recommendation to accept this record's recommendations and approve the headers, 
 
 - **Accepted:** G-A to G-D, AC1, AC3 to AC10, S1 to S7, F1 to F6 (F4 for now), C1 to C8, L1 to L6 and E1 to E6.
 - **Declined:** AC2.
-- **Also decided:** SSH user keys are Ed25519 and ECDSA only, so `rsa-sha2-256` leaves the user key table of the CLI and SFTP design.
-- **Still not approved:** target and physical work, which stays behind M7 and needs its own approval (G-B), and any merge. Accepting these
-  decisions does not pass the gate, because each contract still needs its header, fake and Host cases.
+- **Also decided:** SSH user keys are Ed25519 and ECDSA only, so `rsa-sha2-256` leaves the user key table of the CLI and SFTP design, [quoted on #210](https://github.com/wonny-labs/crux-pilot/pull/210#issuecomment-6616401439).
+- **Still not approved:** target and physical work, which stays behind M7 and needs its own approval (G-B). Hardware operations stay excluded.
+- **Merging:** allowed after independent review with green CI, as [recorded on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497).
+
+Accepting these decisions does not pass the gate, because each contract must still reach main with its header, fake and Host cases.
 
 The tables below keep each decision as it was put to the owner.
 
@@ -41,9 +43,14 @@ The tables below keep each decision as it was put to the owner.
 | G-B | Whether M10 work other than #177's running implementation runs alongside M7 | Allow contract work with fakes to run alongside M7, and keep target and physical work behind it. New components are the bulk of that work, and among existing ones it changes only File and Configuration, while target work would compete for the one board. The design's working default was planning only, so this is a change the owner must make. |
 | G-C | Build order after acceptance | Follow the dependencies. First the File additions and `crux_access`, including AC1 and AC7. Then events, which take a session, and the credential store and file service, which need File roots. Last the configuration and status services and the CLI. The status service also reads the store's and events' getters. |
 
+Notes since the owner accepted these:
+
+- G-A says M11 does not use `crux_cli`, but `web-frontend-foundation-design.md` puts the serial recovery command of #213 on the #181 registry, so a change there reaches that track too.
+- G-A's shared list also includes `web/api/openapi.yaml`, merged in #223.
+
 ### Requests to the access control contract
 
-These are changes the other contracts need. None has been made. #177 is being implemented now, so the earlier these are decided, the less rework.
+These are changes the other contracts need. The owner accepted all but AC2, and #210 carries them, so they reach main when it merges.
 
 | ID | Request | Needed by | Recommendation |
 | --- | --- | --- | --- |
@@ -118,7 +125,7 @@ These are changes the other contracts need. None has been made. #177 is being im
 
 ## Findings that affect the track designs
 
-The proposals do not change these designs. Each needs its own correction when its track starts, or earlier.
+The proposals do not change these designs, apart from the owner-directed removal of `rsa-sha2-256` from the user key table, which #208 makes. Each needs its own correction when its track starts, or earlier.
 
 | Finding | Design | Owner of the fix |
 | --- | --- | --- |
@@ -145,6 +152,8 @@ The proposals do not change these designs. Each needs its own correction when it
 | Per area, project-defined, such as `file.logs.read` | File service |
 | `events.read` | Security events |
 | `tls.manage`, `firmware.upgrade` | Web and secure management designs |
+| `network.read`, `network.write` | Network settings service, #213 |
+| `system.reboot` | Reboot service, in the web frontend design |
 
 **Hiding.** A list uses AC1 and leaves no event. Direct use of something the session may not see returns not-found and produces a denial event through `crux_access_check`, and something it can see but not use returns denied. A sensitive parameter's read returns `WRITE_ONLY`. A CLI command the session cannot run gives the same output as an unknown one. The status service uses Base results, so it skips hidden items and reports an invalid session as `CRUX_ERR_INVALID_STATE`.
 
@@ -158,6 +167,8 @@ The proposals do not change these designs. Each needs its own correction when it
 | 4 | File service lock | No |
 | 5 | File lock | Yes, each call |
 | Leaf | Access state lock, then event ring lock | No. The state lock is a leaf among these, and AC9 asks that emits run outside it. |
+| Leaf | The store's published-copy lock | No. It is short, and the store's state getter takes it instead of the store lock. |
+| Polled | Status snapshot guard | No. A caller that loses the poll answers from the previous snapshot, so it never waits. |
 
 A service calls `crux_access_check` before taking its own lock. Account operations check permission under the change lock, as the access proposal says. Validators and status sources call no service. `crux_security_event_read` checks permission before the ring lock. Sync's unlock and give take a global metadata lock with no timeout, in every path here.
 
@@ -166,10 +177,10 @@ A service calls `crux_access_check` before taking its own lock. Account operatio
 | Resource | Default | Claimed |
 | --- | --- | --- |
 | File handles | `CRUX_FILE_POOL_SIZE` 4, `CONFIG_FS_FATFS_NUM_FILES` 4 | 3 for the service, 1 free for the store and project |
-| File directory handles | 2 proposed, `CONFIG_FS_FATFS_NUM_DIRS` 4 | File service |
-| File roots | 8 proposed | 2 for the store, the rest for root 0 and areas |
+| File directory handles | 2, `CONFIG_FS_FATFS_NUM_DIRS` 4 | File service |
+| File roots | 8 | 2 for the store, the rest for root 0 and areas |
 | Crux threads | 4, at a uniform 4096 B usable stack per slot on Zephyr | Console, web worker, event drain and up to 2 SSH sessions if those use Crux threads. **This exceeds the default**, so the integrated composition must raise it. The uniform stack is also unlikely to suit: the storage probe alone used 2,264 B of a 4,096 B main stack, and upstream's wolfSSH sample configures 32 KB. |
-| Crux mutexes | 8 | Access 2 or more, store 1 or 2, configuration, file service, event ring, status snapshot, which can reach all 8 |
+| Crux mutexes | 8 | Access 2, store 1 or 2, configuration, file service, event ring, status snapshot, which can reach all 8 |
 | Crux semaphores | 8 | Event drain |
 | FatFs file objects | 4, shared | A future Settings File provider takes one outside the Crux File pool, so its count must rise then |
 | RAM, estimates | | Store image 16 KiB, event ring about 4.1 KB, one CLI context of at least 320 B per session |
