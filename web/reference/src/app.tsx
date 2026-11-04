@@ -1,7 +1,7 @@
 // The reference interface: a small shell around the screens. A project reuses it through the options of
 // mountReferenceInterface, or replaces it entirely with any folder of built files.
 import { render } from 'preact';
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { createClient } from '../../client/src/index.ts';
 import type { ApiError, ClientOptions, CruxClient, CurrentUser } from '../../client/src/index.ts';
 import { Heading, Notice } from './components.tsx';
@@ -35,11 +35,12 @@ type Session =
 
 /**
  * Keep the title and the keyboard focus with the screen. Focus moves to the heading when the screen changes,
- * but not on the first load, and not to sign-in, which focuses its first field.
+ * but not on the first load, and not to sign-in, which focuses its first field. A layout effect moves focus in
+ * the same step as the page change, so that a key pressed straight away cannot land on nothing.
  */
 function useFocusOnChange(key: string, title: string, product: string): void {
   const previous = useRef('checking');
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.title = `${title} – ${product}`;
     const arriving = previous.current === 'checking' || previous.current === 'unavailable';
     previous.current = key;

@@ -80,6 +80,8 @@ export function sharedCases(config: AppConfig): void {
     const posts = () => mock.control.requests.filter((request) => request.method === 'POST').length;
     const before = posts();
     await page.getByRole('button', { name: 'Sign in' }).click({ force: true });
+    // Give a request that should not exist the time to reach the mock.
+    await page.waitForTimeout(200);
     assert.equal(posts(), before);
     mock.control.set({ delaySeconds: null });
     await page.waitForFunction(() => !document.querySelector('[role="alert"]')?.textContent?.match(/try again in/i), undefined, {

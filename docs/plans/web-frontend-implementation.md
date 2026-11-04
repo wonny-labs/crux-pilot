@@ -273,9 +273,9 @@ by file.
 | Limit | Value | Measured |
 | --- | --- | --- |
 | Files | 4: index, one script, one style, one icon | 4 |
-| Compressed bytes | 32768 | 20138 |
+| Compressed bytes | 32768 | 20161 |
 
-The reference's parts, in bytes then compressed bytes: script 53705 and 18420, style 3465 and 1214, index 548 and 345, icon 174
+The reference's parts, in bytes then compressed bytes: script 53810 and 18441, style 3465 and 1214, index 548 and 347, icon 174
 and 159.
 
 ## Supply chain
@@ -308,8 +308,8 @@ sign-in, home and sign-out, in `e2e/angular-policy.test.ts`.
 
 | Build | Files | Bytes | Compressed bytes | Production packages | Locked packages |
 | --- | --- | --- | --- | --- | --- |
-| Preact reference, all five screens | 4 | 57892 | 20138 | 1 | 38 |
-| Preact reference, sign-in and home | 4 | 47703 | 17681 | 1 | 38 |
+| Preact reference, all five screens | 4 | 57997 | 20161 | 1 | 38 |
+| Preact reference, sign-in and home | 4 | 47806 | 17704 | 1 | 38 |
 | Angular sample, sign-in and home | 5 | 249379 | 76695 | 7 | 362 |
 
 The two-screen Preact build still holds the forced password change, which the shell needs, and the Angular sample does
@@ -334,7 +334,7 @@ What this shows, on the mock only:
 | Question | Result |
 | --- | --- |
 | Does Angular work with the web foundation? | Yes, on these two screens, with the same browser cases as the reference. |
-| Compressed size against Preact on the same screens | About 4.3 times: 76,695 against 17,681 bytes. Excluding the licence file, 4.1 times. |
+| Compressed size against Preact on the same screens | About 4.3 times: 76,695 against 17,704 bytes. Excluding the licence file, 4.1 times. |
 | File count | No lazy loading is used, so one script and one style, as for Preact. |
 | CSRF | `HttpClient`'s default names work with no configuration, shown by the sign-out case. |
 | Hash routing | `withHashLocation` works, and the server sees only API and asset paths. |
@@ -373,6 +373,8 @@ Faults that this found on the way:
 | The heading took focus from the first field on sign-in | Browser test |
 | The client kept a reference to `Date.now`, so a replaced clock did not apply to it | Browser test |
 | A wait message inside a live region changed every second, which a screen reader would repeat | Reading the code, then a browser test |
+| Focus moved in a deferred effect, so for a moment after a screen changed it was on nothing, and a key pressed then was lost. It now moves in a layout effect, in the same step as the change. | CI, on a faster machine than the local one, and then reproduced locally |
+| An uptime value that was not a number took the whole page down | Reading the code, then a browser test |
 | Two test helpers: a reused `Response` body, and an order that assumed sorted file names | The test failing for the wrong reason |
 
 The mock has no idle timer, session cap or real delay window, so those paths are forced and not modelled.

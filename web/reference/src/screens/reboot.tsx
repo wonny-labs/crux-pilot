@@ -1,6 +1,6 @@
 // Reboot: a confirmation, then the wait. The running device also answers, so an answer is never success.
 // Success is a session that is no longer valid, and a wait that sees no change says it was not confirmed.
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { ApiError, RebootUpdate } from '../../../client/src/index.ts';
 import { Heading, Notice } from '../components.tsx';
 import { useApp } from '../context.ts';
@@ -99,7 +99,7 @@ function Reboot() {
     return () => abort.current?.abort();
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (view.kind === 'confirm') {
       cancelRef.current?.focus();
     } else if (view.kind === 'idle' && focusStartNext.current) {

@@ -93,8 +93,10 @@ run('status is read about every five seconds, not faster', async (app) => {
   await page.clock.fastForward(4000);
   await page.waitForTimeout(200);
   assert.equal(statusReads(app), first);
-  await page.clock.fastForward(1100);
-  await page.waitForResponse((response) => response.url().endsWith('/api/v1/status'));
+  await Promise.all([
+    page.waitForResponse((response) => response.url().endsWith('/api/v1/status')),
+    page.clock.fastForward(1100),
+  ]);
   assert.equal(statusReads(app), first + 1);
 });
 

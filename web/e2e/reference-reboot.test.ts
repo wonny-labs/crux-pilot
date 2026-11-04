@@ -213,6 +213,8 @@ run('an expired session on arrival returns to sign-in', async ({ page, mock }) =
   await openReboot(page);
   await page.getByRole('link', { name: 'Home' }).click();
   await waitForHeading(page, 'Home');
+  // Home's first read has to finish, or that read would end the session before the click.
+  await page.getByText('192.0.2.10').waitFor();
   mock.control.expireSessions();
   await page.getByRole('link', { name: 'Restart' }).click();
   await page.getByText(/session has ended/i).waitFor();

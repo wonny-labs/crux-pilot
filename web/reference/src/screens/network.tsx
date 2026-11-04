@@ -1,7 +1,7 @@
 // Network settings: running and saved values, and a save that takes effect at the next boot. The checks
 // here are for usability, and the server remains the authority. A session that may not read can still
 // submit, because a screen learns what it may do from each route's own answer.
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { checkIpv4Settings } from '../../../client/src/index.ts';
 import type { ApiError, FieldError, Ipv4Settings, NetworkState } from '../../../client/src/index.ts';
 import { Field, Heading, Notice } from '../components.tsx';
@@ -107,7 +107,7 @@ function Network() {
     return () => abort.current?.abort();
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (pending !== null && !saving) {
       cancelRef.current?.focus();
     } else if (pending === null && focusReview.current) {
