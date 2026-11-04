@@ -463,3 +463,18 @@ root entry point. External System profiles preserve parent testing/languages,
 exercise C17/C++17 public usage, reject conflicting providers and exclude
 unrelated components. The existing System contract and native ownership checks
 remain unchanged.
+
+## Web frontend
+
+The web frontend has its own tools under `web/` and needs Node.js, while no C build does. Its commands are in the
+[web guide](../web/README.md), and `.github/workflows/web.yml` runs them.
+
+| Check | Command | Environment |
+| --- | --- | --- |
+| Specification lint and its rejection tests | `scripts/check-management-api.sh`, `python3 -m unittest discover -s tests/management_api` | Node.js |
+| Pins, generated types, `tsc`, source rules, client and mock unit tests, build and budget | `npm run check` in `web` | Node.js |
+| Browser tests of the reference on the mock | `npm run test:browser` in `web` | Node.js and Chrome |
+| The shared browser cases on the Angular sample | `npm run test:angular` in `web`, after building the sample | Node.js and Chrome |
+
+All of these run against the mock server, on the loopback address and over plain HTTP. They show nothing about TLS, real
+sessions, connection limits or timing, and they are not `native_sim` or physical evidence. Issue #220 covers those.
