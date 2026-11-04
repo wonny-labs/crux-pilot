@@ -103,6 +103,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Security events | Bounded records of management activity with stable identifiers and counted loss, through Logging | Portable core and Access provider on Host, under review for Issue #182; no Zephyr composition, no persistence | [Contract](security-event-contract.md) |
 | Configuration service | Per-parameter permissions, one parser for text forms and a polled lock, above Configuration | Portable core on Host fakes and `native_sim` Sync, under review for Issue #180; no event provider, so no product image links it; accepted is not applied, and sensitive is write-only and not encrypted | [Services contract](status-configuration-services.md) |
 | Status service | Permission-filtered status items and their JSON form, with a rate-limited snapshot of System and clock sources | Portable core with thin System, Time and Netif providers, on Host and `native_sim`, under review for Issue #180; timing and its effect on control threads unmeasured | [Services contract](status-configuration-services.md) |
+| SSH provider (private) | The interface that keeps SSH library types out of the CLI, SFTP and access adapters; not a public capability | Host fake provider only, under review for Issue #205; wolfSSL and wolfSSH settings built for RT1060-EVKB and `native_sim`, and never run; no real provider | [Contract](ssh-provider-contract.md) |
 
 ## Build and platform composition
 
