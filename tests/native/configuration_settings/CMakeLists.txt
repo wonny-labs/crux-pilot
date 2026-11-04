@@ -7,6 +7,7 @@ if(NOT CONFIG_BOARD_NATIVE_SIM OR NOT CONFIG_FLASH_SIMULATOR)
 endif()
 set(CRUX_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../..)
 target_sources(app PRIVATE main.c ${CRUX_ROOT}/components/configuration/src/configuration.c
+  ${CRUX_ROOT}/components/configuration/src/configuration_text.c
   ${CRUX_ROOT}/components/configuration/ports/zephyr/configuration_settings.c)
 target_include_directories(app PRIVATE ${CRUX_ROOT}/components/configuration/include
   ${CRUX_ROOT}/components/configuration/src ${CRUX_ROOT}/components/configuration/ports/zephyr

@@ -43,6 +43,8 @@ jobs:
         run: ./scripts/test-credential.sh
       - name: Validate Security events on Host
         run: ./scripts/test-security-event.sh
+      - name: Validate the status and configuration services on Host
+        run: ./scripts/test-mgmt-services.sh
       - name: Validate independent execution consumers and public boundaries
         run: ./scripts/test-portable-execution.sh --host-only
       - name: Validate independent File consumers

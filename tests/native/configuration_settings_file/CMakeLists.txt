@@ -17,7 +17,8 @@ if(NOT result EQUAL 0)
   message(FATAL_ERROR "Could not prepare simulator-only provider copy")
 endif()
 target_sources(app PRIVATE main.c ${PROVIDER_COPY}
-  ${CRUX_ROOT}/components/configuration/src/configuration.c)
+  ${CRUX_ROOT}/components/configuration/src/configuration.c
+  ${CRUX_ROOT}/components/configuration/src/configuration_text.c)
 target_include_directories(app PRIVATE ${CRUX_ROOT}/components/configuration/include
   ${CRUX_ROOT}/components/configuration/src ${CRUX_ROOT}/components/configuration/ports/zephyr)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)

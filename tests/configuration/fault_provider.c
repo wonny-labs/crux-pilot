@@ -3,16 +3,20 @@
 
 #include <string.h>
 
-enum { RECORDS = 4, KEY_BYTES = 32, RECORD_BYTES = 16 };
+enum { RECORDS = 16, KEY_BYTES = 32, RECORD_BYTES = 4 + CRUX_CONFIG_STRING_MAX + 8 };
 static struct {
-    char key[KEY_BYTES];
-    uint8_t bytes[RECORD_BYTES];
     size_t length;
     int present;
+    char key[KEY_BYTES];
+    uint8_t bytes[RECORD_BYTES];
 } records[RECORDS];
 static crux_config_result_t read_result, write_result;
 static size_t read_limit, reads, writes;
 static int change_first;
+static config_fault_hook_t write_hook;
+static void *write_hook_context;
+static const char *fail_key;
+static crux_config_result_t fail_key_result;
 
 static size_t find(const char *key)
 {
@@ -31,6 +35,10 @@ void config_fault_reset(void)
     read_limit = SIZE_MAX;
     reads = writes = 0;
     change_first = 0;
+    write_hook = NULL;
+    write_hook_context = NULL;
+    fail_key = NULL;
+    fail_key_result = CRUX_CONFIG_OK;
 }
 
 void config_fault_record(const char *key, const uint8_t *bytes, size_t length)
@@ -59,6 +67,18 @@ void config_fault_write(config_fault_write_options_t options)
 {
     write_result = options.result;
     change_first = options.change_before_error;
+}
+
+void config_fault_write_hook(config_fault_hook_t hook, void *context)
+{
+    write_hook = hook;
+    write_hook_context = context;
+}
+
+void config_fault_write_fail_key(const char *key, crux_config_result_t result)
+{
+    fail_key = key;
+    fail_key_result = result;
 }
 
 size_t config_fault_reads(void)
@@ -106,6 +126,12 @@ crux_config_result_t crux_config_record_read(const char *key, uint8_t *buffer, s
 crux_config_result_t crux_config_record_write(const char *key, const uint8_t *buffer, size_t length)
 {
     ++writes;
+    if (write_hook != NULL) {
+        write_hook(write_hook_context);
+    }
+    if (fail_key != NULL && strcmp(fail_key, key) == 0) {
+        return fail_key_result;
+    }
     if (write_result == CRUX_CONFIG_OK || change_first) {
         config_fault_record(key, buffer, length);
     }
