@@ -1,6 +1,6 @@
 # Web frontend implementation, M13
 
-Status: draft for review, issues #215, #216, #217, #218 and #219. Issue #220 needs firmware and is not started. It
+Status: merged in #228 for issues #215, #216, #217, #218 and #219, and shown on the mock only. Issue #220 needs firmware and is not started. It
 follows the [web frontend foundation design](web-frontend-foundation-design.md), whose decisions W1 to W18 are accepted,
 and the [management API specification](../../web/api/openapi.yaml). Since
 [the owner's decision of 4 November 2026](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084), W13, Preact and Angular are examples and the product owns its application UI.
@@ -49,7 +49,7 @@ flowchart LR
     interim(["Interim result<br/>software functional completion"])
     phys["Physical<br/>RT1060-EVKB, separately approved"]
     done(["M11 and M13 exit"])
-    mock --> interim
+    mock --> done
     host --> interim
     sim --> interim
     interim --> done
@@ -58,8 +58,8 @@ flowchart LR
 
 | Rule | Detail |
 | --- | --- |
-| Prerequisites | Real HTTPS on `native_sim` needs PSA (#142) and the management composition in #242. Neither is a criterion of gate #183. |
-| Interim result | Host and `native_sim` functional completion is recorded as an interim result. It closes no milestone. |
+| Prerequisites | Real HTTPS on `native_sim` needs PSA (#142), the management composition in #242, #190 or a declared test certificate, and the first credential through #181 or a declared test step. #142 and #242 are not criteria of gate #183. |
+| Interim result | Host and `native_sim` functional completion is recorded as an interim result, and mock results are not part of it. It closes no milestone. |
 | Physical | Physical evidence stays tracked separately and is not waived. It needs its own approval. |
 | Limits | A limit of a TLS profile on `native_sim` is recorded with its evidence, and it is not replaced by a mock result. |
 

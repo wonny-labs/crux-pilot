@@ -208,8 +208,9 @@ Authorisation and rejection have their own tests.
 - **Host:** route table, permission enforcement, session and CSRF rules, JSON parsing limits, secret
   absence, using a fake transport
 - **`native_sim`:** real TLS with `curl` where available, both provider profiles running the same
-  suite, listener check for no plain HTTP. This needs real PSA providers (#142) and the management
-  composition in #242, and a limit on a provider profile is recorded and not replaced by a mock.
+  suite, listener check for no plain HTTP. This needs real PSA providers (#142), the management
+  composition in #242, #190 or a declared test certificate, and the first credential through #181 or a
+  declared test step, and a limit on a provider profile is recorded and not replaced by a mock.
 - **Negative:** missing or expired session, wrong role, missing CSRF token, wrong `Origin`, oversized
   bodies, path traversal in area and file names, slow clients, connection floods
 - **Target, with separate approval:** handshake time, concurrent browser load, upload stall, jitter

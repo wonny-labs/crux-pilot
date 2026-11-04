@@ -21,7 +21,7 @@ read every secret. See [Limits](#limits). Results must state this, and `crux_cre
 | Store port of `crux_access` | Implemented, target `crux_credential_access_store` | The real Access core on the real store, on Host |
 | Slot access | Crux File, unchanged | Host on the Linux provider and on the fake. See [native\_sim](#tests) for FatFs. |
 | Fake ports | **Test only.** CRC in place of a tag, a keystream that is not encryption, deterministic randomness and key generation | Refuses to compile outside a test composition, and a product core refuses it at start |
-| Device-ID protection through PSA | **Not implemented, Issue #142.** PSA is not qualified or in the Host build. | Gap: nothing here has run AES-256-GCM or a real key derivation |
+| Device-ID protection through PSA | **Not implemented, Issue #242.** PSA is not qualified or in the Host build, which is Issue #142. | Gap: nothing here has run AES-256-GCM or a real key derivation |
 | Event identifiers | Six private event types, named for their `credential.*` identifiers. The mapping waits for Issue #182. | Gap |
 | Reserved roots in the file service | `crux_credential_roots` feeds the reserved list of the file service from #232 | `credential_file_service_roots`, on the real service |
 | Pilot card layout, Zephyr composition, target runs | Not implemented. Target and physical work is out of scope and needs separate approval. | Gap |
@@ -50,7 +50,7 @@ flowchart TB
     subgraph below["Selected by the composition"]
         file["crux::file<br/>Linux, FatFs or the fake"]
         fake["Fake ports<br/>TEST ONLY"]
-        psa["Device-ID provider through PSA<br/>not implemented, #142"]
+        psa["Device-ID provider through PSA<br/>not implemented, #242"]
     end
     status --> public
     tls --> adapter
@@ -282,7 +282,7 @@ still uses the test-only protection. The other suites do not run there: a walk n
 
 ### Gaps to close before this is usable on a target
 
-1. A protection provider through PSA, with AES-256-GCM and a key that is SHA-256 of a fixed label and the `hwinfo` device ID, once Issue #142 qualifies PSA. It implements the ports in `credential_port.h`, with `BASIS_DEVICE_ID_KEY` and `confidential_against_medium_reader` false. Key generation and nonces come with it.
+1. A protection provider through PSA, with AES-256-GCM and a key that is SHA-256 of a fixed label and the `hwinfo` device ID, in Issue #242, once Issue #142 qualifies PSA. It implements the ports in `credential_port.h`, with `BASIS_DEVICE_ID_KEY` and `confidential_against_medium_reader` false. Key generation and nonces come with it.
 2. A mapping of `crux_credential_event_t` to `crux_security_event_emit`, once Issue #182 lands.
 3. `samples/storage_sd` checking `secure-a` and `secure-b` through a build setting, and a Zephyr composition.
 4. Target runs, under separate approval: cuts during a save on the card, entropy and timing.

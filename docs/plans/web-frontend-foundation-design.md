@@ -60,8 +60,8 @@ changes no service or its tests.
 | W13 | Crux provides management services, APIs and HTTPS hosting, and the product owns its application UI. Common pages are withdrawn as a promise. Preact and Angular are examples with a shared core and optional advanced flows. The five Preact screens and their tests stay. This replaces W3, W6 and the common pages in D1. | [Owner, 4 November 2026](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084) |
 | W14 | The network settings service (#213) follows the HTTPS core, #184 to #190. Its specification and screen stay. | Owner, 4 November 2026 |
 | W15 | Angular gains its core scenarios after the configuration API exists, as one small issue, #243 | Owner, 4 November 2026 |
-| W16 | Filesystem-hosted assets leave M11 for a separate proof of concept, #244. W12's generation of one resource per asset is firmware-only. | Owner, 4 November 2026 |
-| W17 | PSA (#142) is a prerequisite of real HTTPS on `native_sim`, delivered through the composition in #242 | Owner, 4 November 2026 |
+| W16 | Filesystem-hosted assets leave M11 for a separate proof of concept. *Author's means, not the owner's words: it is tracked in #244, and W12's generation of one resource per asset is limited to firmware.* | Owner, 4 November 2026, except the part in italics |
+| W17 | PSA (#142) is a prerequisite of real HTTPS on `native_sim`. *Author's means, not the owner's words: it is delivered through the composition in #242.* | Owner, 4 November 2026, except the part in italics |
 | W18 | Host and `native_sim` functional completion is an explicit interim result. Physical evidence stays tracked separately and is not waived. | Owner, 4 November 2026 |
 
 How the earlier rows read after W13:
@@ -74,7 +74,9 @@ How the earlier rows read after W13:
 | W4 | Stands. Sign-in and forced password change are core. |
 | W5 | Stands. The milestone keeps its title. |
 | W6 | Replaced. Two parts carry on: Crux ships no Angular components, and the Angular example runs in CI and is packaged on `native_sim` in #220. |
-| W7 to W12 | Stand. W16 limits the per-asset generation in W12 to firmware-embedded assets, which is the only source W12 had in view. |
+| W7, W8, W10, W11 | Stand. |
+| W9 | Stands for a composition that includes the reboot service. *Author's reading:* W13 classes reboot as Advanced, so a composition may leave the service out, and then it has no policy to state. |
+| W12 | Stands. *Author's reading of W16:* its per-asset generation applies to firmware-embedded assets, which is the only source W12 had in view. |
 
 W1 changes the plain HTML reference in the web design. A framework is justified here because hand-written DOM code
 is where cross-site scripting mistakes occur as a screen grows, while Preact escapes output by default. It adds one
@@ -108,8 +110,8 @@ tests underneath. Neither kind is a product promise, and a new API does not by i
 | Forced password change | Core | Accounts, #186 and #187 | Built | A notice only. The screen is in #243. |
 | Status | Core | Status, #180 and #187 | Built, as home | Built, as home |
 | Simple configuration update | Core | Configuration, #180 and #187 | In #243 | In #243 |
-| Network settings | Advanced | #213, after the HTTPS core | Built, labelled advanced | Not planned |
-| Reboot | Advanced | #214, optional and policy-controlled | Built, labelled advanced | Not planned |
+| Network settings | Advanced | #213, after the HTTPS core | Built. The advanced label is in the documents only, not on the screen. | Not planned |
+| Reboot | Advanced | #214, optional and policy-controlled | Built. The advanced label is in the documents only, not on the screen. | Not planned |
 | Browser console | Optional follow-up in M13 | Endpoint in #204 | No page | No page |
 
 The state above covers the mock only. The evidence for each flow is in the
@@ -180,8 +182,8 @@ confirm. A confirm-or-revert apply can be added later.
 
 ## Reboot
 
-This is an optional service with no required screen, #214. A composition that includes it must still state its policy, as W9
-says. `crux_system_reset` exists, and its contract says that it does not flush storage, drain logs or perform safe-state
+W13 classes reboot as Advanced, so this is an optional service with no required screen, #214. W9 applies to a composition that
+includes it, which must state its policy. `crux_system_reset` exists, and its contract says that it does not flush storage, drain logs or perform safe-state
 actions. A web request therefore goes through a service.
 
 1. Check `system.reboot` and the composition's reboot policy.
@@ -269,7 +271,7 @@ application contract. Filesystem-hosted assets are a separate proof of concept, 
 | Client unit tests | Login polling, CSRF, error mapping, retry timing | Node.js |
 | Specification check | The mock server and the firmware adapter both conform to the OpenAPI file | M11 for the firmware side |
 | Browser tests on the mock | Each screen, a denied permission, an expired session and the reboot wait | A browser, in CI |
-| Browser tests on `native_sim`, core | The shared cases on both examples against real TLS and real sessions, and policy violations | #184, #185, #186, #187, #189, #142, #242 and #243, in #220 |
+| Browser tests on `native_sim`, core | The shared cases on both examples against real TLS and real sessions, and policy violations | #184, #185, #186, #187, #189, #142, #242 and #243, #190 or a declared test certificate, and the first credential through #181 or a declared test step, in #220 |
 | Browser tests on `native_sim`, advanced | Network settings and reboot on the Preact example, with service tests underneath | #213 and #214, in #220 |
 | Packaging tests | Headers, encodings, budgets and a missing folder | M11 |
 | Angular example | The core under the inline style setting, on the mock and once packaged on `native_sim` | Separate CI job, which needs owner approval like every new workflow under `.github/` |

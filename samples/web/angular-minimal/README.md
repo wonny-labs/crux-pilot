@@ -2,8 +2,8 @@
 
 This example shows that a product can use Angular with Crux. It holds sign-in and home, uses the types generated from
 the [management API specification](../../../web/api/openapi.yaml), and passes the same browser cases as the
-[Preact example](../../../web/README.md) on those screens. Crux ships no Angular components, and this is not a starting
-template for a product. The product owns its application UI.
+[Preact example](../../../web/README.md) on those screens. Crux ships no Angular components. A product may copy or adapt
+this example, but Crux does not maintain it as a starting template. The product owns its application UI.
 
 | Flow | Kind | Here |
 | --- | --- | --- |
