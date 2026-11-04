@@ -91,7 +91,7 @@ open to review, and a changed choice is small while nothing depends on it.
 | `delay applied` event | Emitted when an attempt is rejected, naming nobody | A rejected attempt was not looked up, and its name may be a mistyped password |
 | When events run | After both locks are released, on every path. They can arrive before a successful init. | AC9. An emit may wait on the event ring, and every check takes the state lock. Tests poll both locks inside the event port. |
 | Event fields | `actor` is the acting session's user, and empty when no session acted. `account` is a login's account or a change's target. `permission` is set on a denial. Each name is a known account's, or the field is empty. | AC10. `actor` and `account` are the same when an account changes its own password. |
-| No event, by design | A session ended by the per-account cap, a cost upgrade including one whose save fails, an operation that changed nothing, a lost lock, an unsigned key probe, a logout of a reference already ended, and a malformed argument to a check or session query | Nothing was rejected, or the call came from a context where the port cannot run, or it is a caller's programming error. An unsigned probe records nothing, as the proposal says. |
+| No event, by design | A session ended by the per-account cap, a cost upgrade including one whose save fails, an operation that changed nothing, a lost lock, an unsigned key probe unless it is refused as `NOT_READY`, a logout of a reference already ended, and a malformed argument to a check or session query | Nothing was rejected, or the call came from a context where the port cannot run, or it is a caller's programming error. An unsigned probe records nothing, as the proposal says. |
 
 The accepted request AC3 adds rejection events. Issue #182 owns the final identifiers.
 
@@ -117,10 +117,11 @@ The accepted request AC3 adds rejection events. Issue #182 owns the final identi
   fail closed, with these effects until a reset. After a failed lock at the end of a verification, that channel stays
   `BUSY`, and a login's reserved session slot stays taken. After a failed lock between a save and applying it, the
   medium holds a newer table than RAM. For the first account, provisioning closes before the save and reopens only
-  after a save that failed, so a lost lock leaves it closed and a retry cannot replace what the medium holds. For
-  other changes, RAM still holds the old table, so a change such as disabling an account has not taken effect until
-  the reset. Tests cover a lock that fails from the first call of an operation and the provisioning cases, not the
-  other effects.
+  after a save that failed. A lock lost after it closes leaves it closed, so a retry cannot replace what the medium
+  holds. A lock lost before it closes saved nothing, leaves it open, and can be retried. For other changes, RAM still
+  holds the old table, so a change such as disabling an account has not taken effect until the reset. Tests cover a
+  lock that fails from the first call of an operation, a reset that loses its second lock, and the provisioning cases,
+  not the other effects.
 - The record's integrity across power loss is the store's. The core checks the shape of what it is told is valid.
 - The `host-sanitize` preset is ASan and UBSan, which do not detect data races. See the pull request for a separate
   ThreadSanitizer run and its limits.
@@ -150,7 +151,9 @@ target as `$<LINK_ONLY:crux_access_adapter>` and neither directory reaches a con
 options a target exposes, and ignores `LINK_ONLY`, because that is what a consumer's compilation can see. A target
 such as `crux::web` can therefore link `crux_access_adapter` privately. The rule rejects the adapter directory, a
 directory below it, and a parent from which the header resolves by a longer path. The root build applies it to every
-public target, and a designated consumer can call it. It cannot see a target that nothing asks it to check.
+public target, and a designated consumer can call it. It cannot see a target that nothing asks it to check, a `-I`
+option given as two separate tokens, or a relative path. Each of those is a project's deliberate choice, which the
+rule is not meant to stop.
 `scripts/check-access-boundary.py` tests it in both directions.
 
 The test composition cannot be selected by any provider setting. A build that sets `CRUX_BUILD_TESTS=ON` creates the

@@ -258,6 +258,8 @@ sources, and the boundary check. The root build also runs the suites as `Credent
 accepted, and everything that reaches the adapter or port header is refused. It also checks that a product core defines
 no port and no test hook, that the fake refuses to compile outside a test composition, that an image without providers
 does not link, and that the headers are free of provider tokens.
+The rule has the limits of the Access rule it copies: it cannot see a target that nothing asks it to check, a `-I` option
+given as two separate tokens, or a relative path.
 
 `tests/native/credential_fatfs` runs the conformance cases on real Zephyr FatFs over a RAM disk, under
 `scripts/test-storage-simulators.sh`, on both `native_sim` widths. It shows the file behaviour and no power loss, and it

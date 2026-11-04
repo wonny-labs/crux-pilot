@@ -349,6 +349,8 @@ static void provider_failure_cases(void)
 /* --- A lock that cannot be taken: linked with --wrap=crux_mutex_lock. --- */
 
 static bool fail_locks;
+static unsigned
+    fail_lock_countdown; /* When nonzero, fails only the lock this many calls from now. */
 /* The linker's --wrap option fixes these names. */
 // NOLINTNEXTLINE(bugprone-reserved-identifier)
 crux_status_t __real_crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms);
@@ -358,6 +360,12 @@ crux_status_t __wrap_crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms);
 // NOLINTNEXTLINE(bugprone-reserved-identifier)
 crux_status_t __wrap_crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
 {
+    if (fail_lock_countdown > 0) {
+        fail_lock_countdown -= 1;
+        if (fail_lock_countdown == 0) {
+            return CRUX_ERR_IO;
+        }
+    }
     return fail_locks ? CRUX_ERR_IO : __real_crux_mutex_lock(mutex, timeout_ms);
 }
 
@@ -394,16 +402,40 @@ static void lock_failure_cases(void)
     crux_access_session_t ended = admin;
     crux_access_logout(&ended);
     CHECK(ended.value == 0);
+    bool permitted = false;
+    uint8_t channel = 0, source[16], source_length = 0;
+    CHECK(crux_access_permitted(admin, "status.read", &permitted) == CRUX_ACCESS_ERR_NOT_READY);
+    CHECK(crux_access_session_origin(admin, &channel, source, &source_length) ==
+          CRUX_ACCESS_ERR_NOT_READY);
     fail_locks = false;
     /* A lost lock means a call from the wrong context, where the event port cannot run either. */
     CHECK(access_fake_event_count() == 0);
     CHECK(crux_access_check(admin, CRUX_ACCESS_PERMISSION_MANAGE) == CRUX_ACCESS_OK);
+
+    /* A reset that loses its second lock does not report the account as missing. */
+    fail_lock_countdown = 2;
+    CHECK(crux_access_account_reset_password(admin, ADMIN, PASSWORD, strlen(PASSWORD)) ==
+          CRUX_ACCESS_ERR_NOT_READY);
+    CHECK(fail_lock_countdown == 0);
+    CHECK(access_fake_event_count() == 0);
 }
 
 static void hook_fail_locks(void *context)
 {
     (void)context;
     fail_locks = true;
+}
+
+static void hook_fail_next_lock(void *context)
+{
+    (void)context;
+    fail_lock_countdown = 1;
+}
+
+static void hook_fail_second_lock(void *context)
+{
+    (void)context;
+    fail_lock_countdown = 2;
 }
 
 /* A lost lock around the first account's save must not leave provisioning open, or a retry could
@@ -413,6 +445,26 @@ static void provisioning_fails_closed_on_lock_failure(void)
     const crux_access_policy_t *policy = &access_test_profile_reference.policy;
     const size_t length = strlen(PASSWORD);
     crux_access_session_t session = {0};
+
+    /* A lock lost before provisioning closes saves nothing, reports no refusal and can be retried:
+     * from the first call, then at the change lock, then at the step that closes it. */
+    access_test_boot(policy);
+    fail_locks = true;
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_NOT_READY);
+    fail_locks = false;
+    access_fake_derive_hook(hook_fail_next_lock, NULL);
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_NOT_READY);
+    CHECK(fail_lock_countdown == 0);
+    access_fake_derive_hook(hook_fail_second_lock, NULL);
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_NOT_READY);
+    CHECK(fail_lock_countdown == 0);
+    CHECK(access_fake_store_saves() == 0);
+    CHECK(access_fake_event_count() == 0);
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_OK);
 
     /* The save completes, and the lock to apply it fails. */
     access_test_boot(policy);
@@ -435,6 +487,19 @@ static void provisioning_fails_closed_on_lock_failure(void)
     access_test_power_cycle(policy);
     CHECK(crux_access_provision_first_account(USER, PASSWORD, length, "administrator",
                                               &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
+    session = access_test_session(ADMIN, PASSWORD, &access_test_web);
+    CHECK(session.value != 0);
+
+    /* The same when only that one lock fails, so that a later lock could have reopened it. */
+    access_test_boot(policy);
+    access_fake_store_save_hook(hook_fail_next_lock, NULL);
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_NOT_READY);
+    CHECK(fail_lock_countdown == 0);
+    CHECK(crux_access_provision_first_account(USER, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
+    CHECK(access_fake_store_saves() == 1);
+    access_test_power_cycle(policy);
     session = access_test_session(ADMIN, PASSWORD, &access_test_web);
     CHECK(session.value != 0);
 

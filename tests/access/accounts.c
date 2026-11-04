@@ -154,8 +154,11 @@ static void success_cases(void)
     CHECK(crux_access_account_disable(admin, "ghost") == CRUX_ACCESS_ERR_NOT_FOUND);
     CHECK(crux_access_account_enable(admin, "ghost") == CRUX_ACCESS_ERR_NOT_FOUND);
     CHECK(crux_access_account_set_role(admin, "ghost", "viewer") == CRUX_ACCESS_ERR_NOT_FOUND);
+    access_fake_derive_counters_clear();
     CHECK(crux_access_account_reset_password(admin, "ghost", PASSWORD, length) ==
           CRUX_ACCESS_ERR_NOT_FOUND);
+    /* A target that does not exist is refused before any derivation. */
+    CHECK(access_fake_derive_count() == 0);
     CHECK(crux_access_account_add_key(admin, "ghost", key_one, sizeof(key_one)) ==
           CRUX_ACCESS_ERR_NOT_FOUND);
     CHECK(crux_access_account_remove_key(admin, USER, key_one, sizeof(key_one)) ==
@@ -464,7 +467,8 @@ static void expect_same(const snapshot_t *left, const snapshot_t *right)
     CHECK(same_snapshot(left, right));
 }
 
-/* Applies a change. Each must leave state and medium unchanged if the save fails. */
+/* Applies a change. Each must leave RAM unchanged if the save fails, and here the fake's medium
+ * too. A real store's bytes can change: see docs/access-contract.md. */
 typedef crux_access_result_t (*change_t)(crux_access_session_t admin);
 
 static crux_access_result_t change_create(crux_access_session_t admin)
