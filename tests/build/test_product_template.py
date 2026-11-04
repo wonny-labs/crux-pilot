@@ -296,6 +296,7 @@ class TemplateWorkspaceTest(unittest.TestCase):
         workspace = self.workspace()
         output = self.assert_pins_pass(workspace)
         self.assertIn(f"OK zephyr {self.zephyr[:12]}", output)
+        self.assertRegex(output, r"(?m)^CONTRACT crux-pilot [0-9a-f]{12}$")
         for name in self.allowlist:
             self.assertIn(f"OK {name} {self.modules[name][:12]}", output)
         self.assertNotIn(OUTSIDE, output)

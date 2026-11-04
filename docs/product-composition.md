@@ -84,16 +84,22 @@ West itself does not reject a mismatched Zephyr. It accepts a manifest that pick
 
 ### `west crux-pins`
 
-This compares the workspace with the contract: the `west.yml` of `crux-pilot` at the pinned revision, plus the `west.yml` of Zephyr at the revision Crux pins. It compares commits resolved by git, so a tag and its commit are equal. Inactive projects are not reported.
+This compares the workspace with the contract: the `west.yml` of the Crux repository that holds the command, plus the `west.yml` of Zephyr at the revision Crux pins. It reads Crux at the pinned revision when Crux is a project, under any name, and from the working tree when Crux is the manifest repository. A lock passed with `--mf` is never the contract.
+
+It compares commits resolved by git, so a tag and its commit are equal. The workspace side is each project's `HEAD`, which must be what `west update` fetched (`manifest-rev`). Inactive projects are not reported.
 
 | Output | Meaning | Exit |
 | --- | --- | --- |
+| `CONTRACT name sha` | The Crux project: where the contract came from. `(working tree)` follows when Crux is the manifest repository | 0 |
 | `OK name sha` | Same commit as the contract | 0 |
 | `OVERRIDE name sha (contract sha): reason` | Differs, with a declared `crux-override` reason | 0 |
 | `PRODUCT name sha` | Not part of the contract | 0 |
 | `MISMATCH name sha (contract sha)` | Differs, with no declared reason | Non-zero |
+| `MISMATCH name sha: why` | The checkout is not what the manifest pins: `HEAD` left `manifest-rev`, or a SHA or tag in the manifest is not what west fetched. Run `west update`. No `crux-override` excuses this | Non-zero |
 
 A contract revision that cannot be resolved is an error, never `OK`. So a fork must contain the commit that Crux pins.
+
+A branch revision is checked through `manifest-rev` alone, because west keeps no ref for it and a local branch of that name proves nothing. So a manifest edited to name another branch, with no `west update` after it, is not detected.
 
 Declare a difference in the product manifest:
 

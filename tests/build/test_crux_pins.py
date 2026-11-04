@@ -116,6 +116,18 @@ class ComparisonTest(unittest.TestCase):
         self.assertIn("one", str(caught.exception))
         self.assertIn("two", str(caught.exception))
 
+    def test_the_project_that_holds_the_contract_is_reported_as_its_source(self):
+        results = self.pins.compare_pins({"hal": SHA_A}, [project("crux", SHA_C), project("hal", SHA_A)],
+                                         FakeResolver({("crux", SHA_C): SHA_C, ("hal", SHA_A): SHA_A}),
+                                         source="crux")
+        self.assertEqual(["CONTRACT", "OK"], [r["status"] for r in results])
+        self.assertEqual(f"CONTRACT crux {SHA_C[:12]}", self.pins.format_result(results[0]))
+        self.assertEqual(0, self.pins.count_mismatches(results))
+
+    def test_a_stale_checkout_of_the_contract_project_is_a_mismatch(self):
+        results = self.pins.compare_pins({}, [project("crux", SHA_C)], self.stale_resolver(SHA_B), source="crux")
+        self.assertEqual("MISMATCH", results[0]["status"])
+
     def stale_resolver(self, head):
         def resolve(name, revision, role):
             raise self.pins.StaleCheckout(head, f"HEAD differs from manifest-rev {SHA_A[:12]}")
@@ -362,6 +374,7 @@ class WorkspaceTest(unittest.TestCase):
         result = self.pins(self.product())
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("OK fake-module " + self.module_v1[:12], result.stdout)
+        self.assertIn(f"CONTRACT crux-pilot {self.crux[:12]}\n", result.stdout)
         self.assertNotIn("optional-module", result.stdout)
 
     def test_crux_as_the_manifest_repository_uses_its_working_tree(self):
@@ -372,6 +385,23 @@ class WorkspaceTest(unittest.TestCase):
         self.west("update", cwd=workspace, check=True)
         result = self.pins(workspace)
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("OK fake-module " + self.module_v1[:12], result.stdout)
+        self.assertIn(f"CONTRACT crux-pilot {self.crux[:12]} (working tree)\n", result.stdout)
+
+    def test_every_active_project_gets_a_line(self):
+        workspace = self.product(self.module_entry(self.module_v2))
+        active = self.west("list", "-f", "{name}", cwd=workspace, check=True).stdout.split()
+        active.remove("manifest")
+        reported = [line.split()[1] for line in self.pins(workspace).stdout.splitlines()]
+        self.assertEqual(sorted(active), sorted(reported))
+
+    def test_a_moved_crux_checkout_fails_and_the_contract_stays_at_the_pin(self):
+        workspace = self.product()
+        git(workspace / "crux-pilot", "commit", "-q", "--allow-empty", "-m", "local", env=self.env)
+        moved = git(workspace / "crux-pilot", "rev-parse", "HEAD", env=self.env)
+        result = self.pins(workspace)
+        self.assertNotEqual(0, result.returncode)
+        self.assertRegex(result.stdout, f"MISMATCH crux-pilot {moved[:12]}.*manifest-rev {self.crux[:12]}")
         self.assertIn("OK fake-module " + self.module_v1[:12], result.stdout)
 
     def test_crux_under_another_name_is_found_from_the_command_location(self):
@@ -396,6 +426,7 @@ class WorkspaceTest(unittest.TestCase):
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn(f"MISMATCH zephyr {self.zephyr_two[:12]} (contract {self.zephyr_one[:12]})", result.stdout)
         self.assertIn(f"MISMATCH fake-module {self.module_v2[:12]} (contract {self.module_v1[:12]})", result.stdout)
+        self.assertIn(f"CONTRACT crux {self.crux[:12]}\n", result.stdout)
 
     def test_crux_as_the_manifest_repository_ignores_a_lock_passed_with_mf(self):
         workspace = self.root / "crux-workspace"

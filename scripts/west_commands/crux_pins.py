@@ -8,13 +8,15 @@ Zephyr's. When Crux is a project, under any name, its west.yml is read at the
 revision the workspace pins. When Crux is the manifest repository, it is read from
 the working tree, and never from the manifest file in use, which can be a lock.
 
-Every active project gets one line:
+Every active project gets one line. The manifest repository gets one only when it
+is Crux, as CONTRACT with "(working tree)" after the commit:
 
-    OK name sha                          same commit as the contract
+    CONTRACT name sha                       the Crux project: where the contract came from
+    OK name sha                             same commit as the contract
     OVERRIDE name sha (contract sha): why   differs, declared with userdata
-    PRODUCT name sha                     not part of the contract
-    MISMATCH name sha (contract sha)     differs without a declared reason
-    MISMATCH name sha: why               the checkout is not what the manifest pins
+    PRODUCT name sha                        not part of the contract
+    MISMATCH name sha (contract sha)        differs without a declared reason
+    MISMATCH name sha: why                  the checkout is not what the manifest pins
 
 A product declares a difference in its manifest:
 
@@ -26,7 +28,8 @@ must be what west update fetched for the project (manifest-rev), and a SHA or ta
 in the manifest must be that commit too, so a moved checkout or a skipped or failed
 update is a MISMATCH that no override excuses. A branch name in the manifest cannot
 be checked this way: west keeps no ref for it, and a local branch of that name
-proves nothing.
+proves nothing. So a manifest edited to name another branch, with no west update
+after it, is not detected.
 
 The contract side is compared by commit, resolved by git in the project checkout,
 so a tag and its commit are equal. If a contract revision cannot be resolved the
@@ -82,7 +85,7 @@ def override_reason(userdata):
     return None
 
 
-def compare_pins(contract, projects, resolve, skip=()):
+def compare_pins(contract, projects, resolve, skip=(), source=None):
     """Compare projects with the contract and return one result dict per active project.
 
     contract maps a project name to a revision string. projects is a list of
@@ -90,8 +93,9 @@ def compare_pins(contract, projects, resolve, skip=()):
     returns a full commit id or raises ValueError. role is "workspace" for the
     commit checked out for that revision and "contract" for the one Crux pins. A
     "workspace" resolve may raise StaleCheckout, which becomes a MISMATCH whatever
-    the contract or a declared override says. Raises ContractError, naming every
-    revision that could not be resolved, so that nothing is reported OK on guesswork.
+    the contract or a declared override says. source names the project the contract
+    was read from. Raises ContractError, naming every revision that could not be
+    resolved, so that nothing is reported OK on guesswork.
     """
     results = []
     problems = []
@@ -111,6 +115,9 @@ def compare_pins(contract, projects, resolve, skip=()):
             have = commit(name, entry["revision"], "workspace")
         except StaleCheckout as stale:
             results.append({"status": "MISMATCH", "name": name, "sha": stale.head, "stale": str(stale)})
+            continue
+        if name == source:
+            results.append({"status": "CONTRACT", "name": name, "sha": have})
             continue
         want_revision = contract.get(name)
         if want_revision is None:
@@ -136,10 +143,8 @@ def compare_pins(contract, projects, resolve, skip=()):
 def format_result(result):
     sha = result["sha"][:SHORT]
     status, name = result["status"], result["name"]
-    if status == "PRODUCT":
-        return f"PRODUCT {name} {sha}"
-    if status == "OK":
-        return f"OK {name} {sha}"
+    if status in ("CONTRACT", "PRODUCT", "OK"):
+        return f"{status} {name} {sha}"
     if "stale" in result:
         return f"MISMATCH {name} {sha}: {result['stale']}"
     contract = result["contract_sha"][:SHORT]
@@ -227,8 +232,8 @@ class CruxPins(WestCommand):
         super().__init__(
             "crux-pins",
             "compare the workspace pins with the versions Crux was verified on",
-            "Print OK, OVERRIDE, PRODUCT or MISMATCH for each active project and fail on "
-            "a MISMATCH. A product declares a difference with "
+            "Print CONTRACT, OK, OVERRIDE, PRODUCT or MISMATCH for each active project and "
+            "fail on a MISMATCH. A product declares a difference with "
             f"userdata: {{{OVERRIDE_KEY}: <reason>}}.")
 
     def do_add_parser(self, parser_adder):
@@ -281,7 +286,10 @@ class CruxPins(WestCommand):
             contract = self.read_contract(crux, projects)
         except ContractError as error:
             self.die(str(error))
-        skip = {MANIFEST_PROJECT} | ({crux.name} if crux is not None else set())
+        if crux is None:
+            repository = Path(self.manifest.repo_abspath)
+            head = rev_parse(repository, "HEAD") or "uncommitted"
+            self.inf(f"CONTRACT {repository.name} {head[:SHORT]} (working tree)")
         entries = [{"name": name, "revision": str(project.revision),
                     "active": self.manifest.is_active(project), "userdata": project.userdata}
                    for name, project in projects.items()]
@@ -291,7 +299,8 @@ class CruxPins(WestCommand):
             return read(projects[name].abspath, revision)
 
         try:
-            results = compare_pins(contract, entries, resolve, skip=skip)
+            results = compare_pins(contract, entries, resolve, skip=(MANIFEST_PROJECT,),
+                                   source=crux.name if crux is not None else None)
         except ContractError as error:
             self.die(f"cannot compare with the Crux contract:\n{error}")
         for result in results:
