@@ -1,0 +1,6 @@
+{
+  "image": "/opt/crux-cache/test-foundation/run-devcontainer/app-defect/zephyr/zephyr.exe",
+  "sha256": "f3d2a0f3074be9cdd74e292ef3f2fed86c2a483fdf2fd200454d0dbf361cfab7",
+  "device_type": "native",
+  "host": "Linux-7.0.14-linuxkit-x86_64-with-glibc2.39"
+}
