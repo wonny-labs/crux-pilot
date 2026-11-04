@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -958,6 +959,150 @@ class RunToolTest(Workspace):
             run.reset()
         self.assertIn('tool output', (self.evidence / 'reset.log').read_text())
         self.assertEqual(self.result()['status'], 'passed')
+
+
+def passwordless_sudo():
+    if os.name != 'posix' or os.geteuid() == 0 or not shutil.which('sudo'):
+        return False
+    return subprocess.run(['sudo', '-n', 'true'], capture_output=True).returncode == 0
+
+
+@unittest.skipUnless(os.name == 'posix', 'process groups are POSIX only')
+class StopToolTest(Workspace):
+    def until_exited(self, process):
+        # Exited, and not reaped until something waits for it. A fixed delay is too short for a loaded host.
+        deadline = time.monotonic() + 60
+        while not subprocess.run(['ps', '-o', 'stat=', '-p', str(process.pid)], capture_output=True,
+                                 text=True).stdout.startswith('Z'):
+            self.assertLess(time.monotonic(), deadline, 'the tool did not exit')
+            time.sleep(0.02)
+
+    def exited_tool(self):
+        process = subprocess.Popen([sys.executable, '-c', 'pass'], start_new_session=True)
+        self.addCleanup(process.wait)
+        self.until_exited(process)
+        return process
+
+    def recording_tools(self):
+        created = []
+
+        class Recording(subprocess.Popen):
+            def __init__(self, *arguments, **options):
+                super().__init__(*arguments, **options)
+                created.append(self)
+        patch = mock.patch.object(subprocess, 'Popen', Recording)
+        patch.start()
+        self.addCleanup(patch.stop)
+        return created
+
+    def stop_afterwards(self, created):
+        def stop():
+            for process in created:
+                process.kill()
+                process.wait()
+        self.addCleanup(stop)
+
+    def wait_gives_up(self, error, after_exit=False):
+        real_wait = subprocess.Popen.wait
+        until_exited = self.until_exited
+
+        def wait(process, timeout=None):
+            if timeout is None:
+                return real_wait(process)
+            if after_exit:
+                until_exited(process)
+            raise error(process.args, timeout) if error is subprocess.TimeoutExpired else error()
+        return mock.patch.object(subprocess.Popen, 'wait', wait)
+
+    def may_not_signal(self):
+        return mock.patch.object(os, 'killpg', side_effect=PermissionError(1, 'Operation not permitted'))
+
+    def tool(self, code='pass', timeout=30):
+        device_control.run.run_tool([sys.executable, '-c', code], self.root / 'tool.log', timeout)
+
+    def test_a_tool_that_just_exited_counts_as_stopped(self):
+        process = self.exited_tool()
+        self.assertIs(device_control.run._stop(process), True)
+        self.assertEqual(process.returncode, 0)
+
+    def test_a_wrapper_and_what_it_started_count_as_stopped(self):
+        code = ('import subprocess, sys, time\n'
+                'subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])\ntime.sleep(60)\n')
+        process = subprocess.Popen([sys.executable, '-c', code], start_new_session=True)
+        self.assertIs(device_control.run._stop(process), True)
+
+    def test_a_timeout_that_races_the_exit_of_the_tool_reports_the_timeout(self):
+        with self.wait_gives_up(subprocess.TimeoutExpired, after_exit=True):
+            with self.assertRaisesRegex(ToolFailed, 'timed out') as raised:
+                self.tool()
+        self.assertNotIn('may still be running', str(raised.exception))
+
+    def test_an_interrupt_that_races_the_exit_of_the_tool_reaches_the_caller(self):
+        with self.wait_gives_up(KeyboardInterrupt, after_exit=True), self.assertRaises(KeyboardInterrupt):
+            self.tool()
+        self.assertNotIn('may still be running', (self.root / 'tool.log').read_text())
+
+    def test_a_run_records_the_tool_failure_when_the_timeout_races_the_exit(self):
+        profile = self.profile(reset={'command': [sys.executable, '-c', 'pass'], 'timeout_seconds': 30})
+        run = self.run_for(gates=device_control.Gates(allow_reset=True), profile=profile,
+                           runner=device_control.run.run_tool)
+        with self.wait_gives_up(subprocess.TimeoutExpired, after_exit=True), self.assertRaises(ToolFailed):
+            with run:
+                run.reset()
+        self.assertEqual(self.result()['error_type'], 'ToolFailed')
+        self.assertTrue(any(event['event'] == 'tool_failed' for event in self.events()))
+
+    def test_a_timeout_on_a_tool_this_user_may_not_signal_says_it_may_still_be_running(self):
+        created = self.recording_tools()
+        self.stop_afterwards(created)
+        started = time.monotonic()
+        with self.may_not_signal(), self.assertRaisesRegex(ToolFailed, 'timed out.*may still be running'):
+            self.tool('import time; time.sleep(60)', timeout=0.2)
+        self.assertLess(time.monotonic() - started, 20)
+        self.assertIsNone(created[0].poll())
+
+    def test_an_interrupt_on_a_tool_this_user_may_not_signal_reaches_the_caller_and_the_log(self):
+        created = self.recording_tools()
+        self.stop_afterwards(created)
+        with self.wait_gives_up(KeyboardInterrupt), self.may_not_signal(), self.assertRaises(KeyboardInterrupt):
+            self.tool('import time; time.sleep(60)')
+        self.assertIn('may still be running', (self.root / 'tool.log').read_text())
+
+    def test_an_exited_tool_with_a_member_left_in_its_group_may_still_be_running(self):
+        process = self.exited_tool()
+        with self.may_not_signal():
+            self.assertIs(device_control.run._stop(process), False)
+        self.assertEqual(process.returncode, 0)
+
+    def test_a_killed_wrapper_with_a_member_left_in_its_group_may_still_be_running(self):
+        process = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'], start_new_session=True)
+
+        def kill_only_the_wrapper(group, number):
+            if number == 0:
+                raise PermissionError(1, 'Operation not permitted')
+            process.kill()
+        with mock.patch.object(os, 'killpg', side_effect=kill_only_the_wrapper):
+            self.assertIs(device_control.run._stop(process), False)
+
+    @unittest.skipUnless(passwordless_sudo(), 'needs sudo without a password, and not to be root')
+    def test_a_real_tool_run_through_sudo_is_not_reported_as_stopped_while_it_runs(self):
+        created = self.recording_tools()
+
+        def stop():
+            subprocess.run(['sudo', '-n', 'kill', '-9', '--', f'-{created[0].pid}'], capture_output=True)
+            created[0].wait()
+        self.addCleanup(stop)
+        with self.assertRaises(ToolFailed) as raised:
+            device_control.run.run_tool(['sudo', '-n', 'sleep', '20'], self.root / 'tool.log', 1)
+        # sudo itself can often be signalled. Its root child may stay in the group or leave it.
+        try:
+            os.killpg(created[0].pid, 0)
+            left_running = True
+        except PermissionError:
+            left_running = True
+        except ProcessLookupError:
+            left_running = False
+        self.assertEqual('may still be running' in str(raised.exception), left_running)
 
 
 class CliTest(Workspace):

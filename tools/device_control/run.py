@@ -20,6 +20,9 @@ from .profile import BoardProfile
 
 Runner = Callable[[Sequence[str], Path, float], None]
 
+_STILL_RUNNING = "it could not be stopped and may still be running"
+_STOP_GRACE_SECONDS = 1.0
+
 
 def run_tool(command: Sequence[str], log_path: Path, timeout: float) -> None:
     """Runs an external tool without a shell. Its output goes only to the log."""
@@ -32,25 +35,49 @@ def run_tool(command: Sequence[str], log_path: Path, timeout: float) -> None:
         try:
             returncode = process.wait(timeout=timeout)
         except subprocess.TimeoutExpired as error:
-            _stop(process)
-            raise ToolFailed(f"{command[0]} timed out after {timeout} s") from error
+            detail = "" if _stop(process) else f"; {_STILL_RUNNING}"
+            raise ToolFailed(f"{command[0]} timed out after {timeout} s{detail}") from error
         except BaseException:
-            _stop(process)
+            if not _stop(process):
+                log.write(f"{command[0]}: {_STILL_RUNNING}\n".encode())
             raise
     if returncode != 0:
         raise ToolFailed(f"{command[0]} failed with exit {returncode}; see {log_path}")
 
 
-def _stop(process: subprocess.Popen) -> None:
+def _stop(process: subprocess.Popen) -> bool:
+    """Stops the tool and what it started. False means some of it may still be running."""
     # The lock is released soon after this, so a wrapper's children must stop as well.
-    if os.name == "posix":
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-    else:
+    if os.name != "posix":
         process.kill()
+        process.wait()
+        return True
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    except PermissionError:
+        # macOS refuses a group that holds only an exited, unreaped tool. Any POSIX host refuses
+        # one whose members this user may not signal, such as a tool run through sudo.
+        if process.poll() is None:
+            return False
     process.wait()
+    return _group_is_gone(process.pid)
+
+
+def _group_is_gone(group: int) -> bool:
+    # Killed members stay in the group until their new parent reaps them.
+    deadline = time.monotonic() + _STOP_GRACE_SECONDS
+    while True:
+        try:
+            os.killpg(group, 0)
+        except ProcessLookupError:
+            return True
+        except PermissionError:
+            pass
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.02)
 
 
 @dataclass(frozen=True)
