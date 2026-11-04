@@ -328,6 +328,12 @@ encoded names decode, and that names this provider could not have written stay o
 sequence, in forked children, under the fake's own simple model. None of these is power-loss
 evidence about FatFs or a card, and no physical run covers the additions.
 
+`scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
+a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
+the fake File provider and a double for access, and walk a power cut across every mutation of a commit
+and of the rename that recovery finishes. `FileService.with_access` runs the service on the real Access core with its fake
+ports. The service has not run on Zephyr or on a target, and a cut on the fake says nothing about a card.
+
 `scripts/test-file-persistence.sh` builds `tests/native/file_fatfs_persist`, where the disk is a
 `zephyr,flash-disk` on the flash simulator backed by a host file, and runs it as separate
 processes: files acknowledged by one process are intact in the next, blank media is never
@@ -503,3 +509,18 @@ runs `scripts/check-access-boundary.py`. That check configures and builds `tests
 a project cannot reach the adapter header, and a service that links the adapter target privately is still accepted.
 No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
 [Access contract](../docs/access-contract.md).
+
+## Web frontend
+
+The web frontend has its own tools under `web/` and needs Node.js, while no C build does. Its commands are in the
+[web guide](../web/README.md), and `.github/workflows/web.yml` runs them.
+
+| Check | Command | Environment |
+| --- | --- | --- |
+| Specification lint and its rejection tests | `scripts/check-management-api.sh`, `python3 -m unittest discover -s tests/management_api` | Node.js |
+| Pins, generated types, `tsc`, source rules, client and mock unit tests, build and budget | `npm run check` in `web` | Node.js |
+| Browser tests of the reference on the mock | `npm run test:browser` in `web` | Node.js and Chrome |
+| The shared browser cases on the Angular sample | `npm run test:angular` in `web`, after building the sample | Node.js and Chrome |
+
+All of these run against the mock server, on the loopback address and over plain HTTP. They show nothing about TLS, real
+sessions, connection limits or timing, and they are not `native_sim` or physical evidence. Issue #220 covers those.

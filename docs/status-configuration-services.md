@@ -1,6 +1,6 @@
 # Status and configuration services
 
-Status: implemented on Host with fakes, Issue #180, with `native_sim` suites through CI. The contract is not adopted until review and gate #183 pass. The owner [accepted decisions C1 to C8 on 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894) and approved the headers, fakes and Host tests. Target and physical work stays behind M7 and needs its own approval. The reasoning and the threat table are in [the proposal, PR #207](https://github.com/wonny-labs/crux-pilot/pull/207), which this document does not repeat.
+Status: implemented on Host with fakes, Issue #180, with `native_sim` suites through CI. The contract is not adopted until review and gate #183 pass. The owner [accepted decisions C1 to C8 on 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894) and approved the headers, fakes and Host tests. Target and physical work stays behind M7 and needs its own approval. The reasoning and the threat table are in [the proposal](plans/status-configuration-contract-proposal.md), which this document does not repeat.
 
 | Component | Public header | Usage target |
 | --- | --- | --- |
