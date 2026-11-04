@@ -29,7 +29,7 @@ product manufacturer owns those obligations and the conclusions drawn from this 
 | D6 | Telnet, FTP and plain HTTP are not provided (1 November 2026). WinSCP must work as an SFTP client (3 November 2026). | Owner |
 | D7 | Common work comes first. HTTPS and CLI/SFTP then proceed in parallel. | Owner, 3 November 2026 |
 | D8 | The Wolf profile is the first complete profile. Mbed TLS validates the HTTPS seam. | Proposal |
-| D9 | The production CLI is a Crux command registry. The Zephyr shell stays a development-only facility and is never reachable from the network. | Proposal |
+| D9 | The production CLI is a Crux command registry. The Zephyr shell stays a development-only facility and is never reachable from the network. | Owner, 3 November 2026, as rule L5 of [the command line contract](../cli-contract.md#zephyr-shell-rule) |
 | D10 | Web login uses two requests, so that password verification runs on a worker and never stalls the HTTP server thread. | Owner, 3 November 2026 |
 
 ## Requirements
@@ -201,8 +201,8 @@ deliver wraps the M9 update path and enforces `firmware.upgrade` itself, for bot
 ### CLI command registry
 
 `crux_cli` holds a table of commands, each with a name, argument limits, handler and access class. It parses a bounded line, checks permission and runs the handler with the session. Serial
-and SSH use the same registry. Commands that a session cannot run are hidden from help and rejected
-if typed.
+and SSH use the same registry. Commands that a session cannot run are hidden from help, and typing one
+gives the same output as an unknown command (rule L3 of [the command line contract](../cli-contract.md)).
 
 ### Credentials and keys
 
