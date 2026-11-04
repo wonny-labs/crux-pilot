@@ -1,9 +1,11 @@
 """Negative controls prevent incomplete physical UART output being accepted."""
 import importlib.util
+import json
 from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "target"))
 SPEC = importlib.util.spec_from_file_location(
@@ -104,6 +106,29 @@ class ExecutionCaptureTest(unittest.TestCase):
             for artifacts in ([], [{"path": str(root / "a/.config")}, {"path": str(root / "b/.config")}]):
                 with self.assertRaises(AssertionError):
                     CAPTURE.verify_optimization({"artifacts": artifacts})
+
+    def test_runner_rejects_a_debug_build_before_any_hardware_step(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = root / ".config"
+            config.write_text('CONFIG_DEBUG_OPTIMIZATIONS=y\nCONFIG_COMPILER_OPT=""\n')
+            manifest = root / "manifest.json"
+            manifest.write_text(json.dumps({
+                "target": "mimxrt1060_evk@B//qspi", "application": "native",
+                "source": {"recoverable_from_git": True, "dirty": False},
+                "artifacts": [{"path": str(config), "sha256": CAPTURE.sha(config)}]}))
+            evidence = root / "evidence"
+            argv = ["capture_execution.py", "--program", "--mode", "native",
+                    "--uart", "/dev/cu.usbmodem11102", "--probe", "602003106",
+                    "--board", "mimxrt1060_evk@B//qspi",
+                    "--manifest", str(manifest), "--evidence", str(evidence)]
+            with mock.patch.object(sys, "argv", argv), \
+                    mock.patch.object(CAPTURE.platform, "system", return_value="Darwin"), \
+                    mock.patch.object(CAPTURE.subprocess, "run") as run:
+                with self.assertRaises(ValueError):
+                    CAPTURE.main()
+            run.assert_not_called()
+            self.assertFalse(evidence.exists())
 
 
 if __name__ == "__main__":

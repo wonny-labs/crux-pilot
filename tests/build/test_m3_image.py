@@ -150,10 +150,6 @@ class ImageChecks(unittest.TestCase):
                     check_image(binary, elf, config, 'probe')
 
 
-if __name__ == '__main__':
-    unittest.main()
-
-
 class OptimizationChecks(unittest.TestCase):
     def test_every_profile_rejects_an_image_not_built_at_the_verified_level(self):
         for profile in ('probe', 'normal', 'network', 'integrated-probe', 'integrated-normal'):
@@ -175,12 +171,15 @@ class OptimizationChecks(unittest.TestCase):
             with self.assertRaises(ValueError):
                 check_image(*image, 'probe')
 
-
     def test_recorded_evidence_configurations_are_accepted(self):
         for name in ('configuration-native/zephyr.config', 'm5-execution/execution_runtime-evkb.config',
                      'm5-execution/portable_execution-evkb.config', 'm5-system/selected.config'):
             with self.subTest(name=name):
                 check_optimization((ROOT / 'docs/evidence' / name).read_text().splitlines())
+
+
+if __name__ == '__main__':
+    unittest.main()
 
 
 class RecordOutputControls(unittest.TestCase):

@@ -64,7 +64,7 @@ Risks and limits:
 
 - A `-Og` build may change stack use and timing. **Not run:** no build used the fragment, and no stack was measured. The image checks in `tests/target/` pin layout, boot header and stack sizes, but **not** the optimisation level (`m3_image.py:97-102`, `m5_image.py:8-23`), so a `-Og` image with matching settings would pass them. What keeps debug builds apart is the separate directory, the missing provenance and the "not evidence" statement. The draft changes nothing in `tests/target/`. **Update:** a later change added the optimisation level to the M2, M3 and M5 image checks; see [the build guide](../build.md#debug-builds-of-other-applications).
 - The **Clean firmware** task still cleans the default directory only.
-- A debug build records no provenance. Tooling that requires provenance rejects it; nothing else stops it being used as an image.
+- A debug build records no provenance. Tooling that requires provenance rejects it; nothing else stops it being used as an image. **Update:** the M2, M3 and M5 image checks now also reject it; the physical Time suite does not check. See [the build guide](../build.md#debug-builds-of-other-applications).
 
 ## 6. Decision for the owner: a SEMC initialisation script for J-Link
 
