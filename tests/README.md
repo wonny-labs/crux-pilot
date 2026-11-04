@@ -580,3 +580,17 @@ The web frontend has its own tools under `web/` and needs Node.js, while no C bu
 
 All of these run against the mock server, on the loopback address and over plain HTTP. They show nothing about TLS, real
 sessions, connection limits or timing, and they are not `native_sim` or physical evidence. Issue #220 covers those.
+
+## SSH provider
+
+The standard Host CTest includes `Ssh.ProviderConformance`, which runs the cases in `tests/ssh/conformance.c` against a fake
+provider, `Ssh.ConformanceCatchesDefects`, which gives the fake each deliberate defect and requires the named case to fail, and
+`Ssh.Boundaries`, which runs `scripts/check-ssh-boundaries.py`. It also has `Ssh.FakeProvider`, `Ssh.AttachmentDouble`, `Ssh.CallbackTable`
+and a test of each stand-in entry point. The fake needs no SSH library, and the CLI and SFTP Host tests link it. It runs every callback
+on the calling thread, so it shows no concurrency, timing or protocol behaviour. No real provider has run the cases yet.
+`tests/build/test_ssh_boundaries.py` shows that the boundary check rejects each violation.
+
+`scripts/test-ssh-wolf-settings.sh` is not part of any default workflow, because it needs the optional `crux-secure-management`
+west group. It compiles and links `tests/zephyr/ssh_wolf_probe` for `mimxrt1060_evk@B//qspi` with the TLS socket backend, and for
+`native_sim/native/64` both ways, and runs negative controls. It never flashes or runs an image, and the file port it links
+is one that refuses every operation. See [the SSH provider contract](../docs/ssh-provider-contract.md).
