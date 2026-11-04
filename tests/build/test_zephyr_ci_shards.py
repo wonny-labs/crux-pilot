@@ -115,6 +115,34 @@ class ZephyrShardsTest(unittest.TestCase):
         self.assertEqual(DOCS_ONLY, paths_ignore(self.workflow, "push"))
         self.assertEqual(DOCS_ONLY, paths_ignore(self.workflow, "pull_request"))
 
+    def step_using(self, action):
+        matches = [s for s in self.steps if f"uses: {action}" in s["text"]]
+        self.assertEqual(1, len(matches), f"{action} must be used by exactly one step")
+        return matches[0]
+
+    def test_host_packages_are_restored_before_they_are_installed(self):
+        # Slow mirrors cost one job in six up to ten minutes, which sets a run's length.
+        titles = [s["title"] for s in self.steps]
+        install = next(s for s in self.steps if "apt-get install" in s["text"])
+        self.assertIn("Dir::Cache::archives=", install["text"])
+        restore = self.step_using("actions/cache/restore@")
+        save = self.step_using("actions/cache/save@")
+        self.assertLess(titles.index(restore["title"]), titles.index(install["title"]))
+        self.assertLess(titles.index(install["title"]), titles.index(save["title"]))
+
+    def test_restored_and_saved_packages_use_one_path_and_key(self):
+        field = re.compile(r"^\s+(path|key): (.+)$", re.MULTILINE)
+        self.assertEqual(field.findall(self.step_using("actions/cache/restore@")["text"]),
+                         field.findall(self.step_using("actions/cache/save@")["text"]))
+
+    def test_cache_paths_are_accepted_by_the_cache_action(self):
+        # actions/cache only warns about a path with "..", then stores nothing: every run
+        # stays cold while the workflow stays green.
+        for step in (s for s in self.steps if "actions/cache" in s["text"]):
+            with self.subTest(step=step["title"]):
+                path = re.search(r"^\s+path: (.+)$", step["text"], re.MULTILINE).group(1)
+                self.assertNotIn("..", path)
+
     def test_host_workflow_still_runs_for_documentation(self):
         # tests/build reads documentation, so one workflow must keep running on such changes.
         host = HOST.read_text()
