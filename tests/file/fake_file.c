@@ -45,6 +45,8 @@ typedef struct {
     crux_file_result_t fail_result[CRUX_FILE_FAKE_OP_COUNT];
     unsigned calls[CRUX_FILE_FAKE_OP_COUNT];
     size_t write_limit;
+    size_t write_through;
+    bool drop_writes;
     uint64_t capacity;
     void (*write_hook)(void);
     bool cut_armed;
@@ -85,6 +87,8 @@ void crux_file_fake_reset(void)
     memset(s->fail_armed, 0, sizeof(s->fail_armed));
     memset(s->calls, 0, sizeof(s->calls));
     s->write_limit = SIZE_MAX;
+    s->write_through = 0;
+    s->drop_writes = false;
     s->capacity = UINT64_MAX;
     s->write_hook = NULL;
     s->cut_armed = false;
@@ -174,6 +178,21 @@ unsigned crux_file_fake_calls(crux_file_fake_op_t op)
 void crux_file_fake_limit_write(size_t bytes)
 {
     fake()->write_limit = bytes;
+}
+
+void crux_file_fake_write_through(size_t unit)
+{
+    fake()->write_through = unit;
+}
+
+void crux_file_fake_drop_writes(bool drop)
+{
+    fake()->drop_writes = drop;
+}
+
+void crux_file_fake_remove_medium(void)
+{
+    fake()->dead = true;
 }
 
 void crux_file_fake_on_write(void (*hook)(void))
@@ -292,7 +311,7 @@ crux_file_result_t crux_file_impl_open(crux_file_root_t root, size_t slot, const
         if (!mutate()) {
             return CRUX_FILE_ERR_IO;
         }
-        index = add(root, name, false, false);
+        index = add(root, name, false, s->write_through != 0);
         if (index == FAKE_ENTRIES) {
             return CRUX_FILE_ERR_NO_SPACE;
         }
@@ -318,6 +337,9 @@ crux_file_result_t crux_file_impl_truncate(size_t slot)
         return CRUX_FILE_ERR_IO;
     }
     s->entries[s->handles[slot].entry].size = 0;
+    if (s->write_through != 0) {
+        s->entries[s->handles[slot].entry].medium_size = 0;
+    }
     s->handles[slot].position = 0;
     s->handles[slot].dirty = true;
     return CRUX_FILE_OK;
@@ -359,7 +381,8 @@ crux_file_result_t crux_file_impl_write(size_t slot, const void *buffer, size_t 
     if (result != CRUX_FILE_OK) {
         return result;
     }
-    if (!mutate()) {
+    /* With write through, each unit below is its own mutation. */
+    if (s->write_through == 0 && !mutate()) {
         return CRUX_FILE_ERR_IO;
     }
     if (s->write_hook) {
@@ -369,6 +392,10 @@ crux_file_result_t crux_file_impl_write(size_t slot, const void *buffer, size_t 
     }
     handle_t *handle = &s->handles[slot];
     entry_t *entry = &s->entries[handle->entry];
+    if (s->drop_writes) {
+        *count = length;
+        return CRUX_FILE_OK;
+    }
     size_t room = CRUX_FILE_FAKE_FILE_BYTES - handle->position;
     size_t taken = length < room ? length : room;
     taken = taken < s->write_limit ? taken : s->write_limit;
@@ -383,7 +410,23 @@ crux_file_result_t crux_file_impl_write(size_t slot, const void *buffer, size_t 
         return CRUX_FILE_ERR_NO_SPACE;
     }
 
-    memcpy(&entry->data[handle->position], buffer, taken);
+    if (s->write_through != 0) {
+        const uint8_t *source = buffer;
+        for (size_t done = 0; done < taken;) {
+            size_t offset = handle->position + done;
+            size_t chunk = s->write_through - offset % s->write_through;
+            chunk = chunk < taken - done ? chunk : taken - done;
+            if (!mutate()) {
+                *count = done;
+                return CRUX_FILE_ERR_IO;
+            }
+            memcpy(&entry->data[offset], &source[done], chunk);
+            memcpy(&entry->medium[offset], &source[done], chunk);
+            done += chunk;
+        }
+    } else {
+        memcpy(&entry->data[handle->position], buffer, taken);
+    }
     handle->position += taken;
     if (handle->position > entry->size) {
         entry->size = handle->position;

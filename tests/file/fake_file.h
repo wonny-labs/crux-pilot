@@ -15,6 +15,7 @@
  *  - Create, truncate and write reach storage at a sync or a close of that handle.
  *  - Remove and rename reach storage when they return.
  *  - A cut stops at the start of a mutation, so that mutation and all later ones do not happen.
+ * crux_file_fake_write_through() replaces the first of these rules with a finer one.
  */
 typedef enum {
     CRUX_FILE_FAKE_OPEN,
@@ -59,6 +60,19 @@ void crux_file_fake_limit_write(size_t bytes);
 void crux_file_fake_on_write(void (*hook)(void));
 /* Total bytes of file content the volume holds. UINT64_MAX is the default, no limit. */
 void crux_file_fake_set_capacity(uint64_t bytes);
+
+/*
+ * Take writes as FatFs takes them, for a test that cuts inside a save. Each unit of a write,
+ * aligned to the unit, reaches storage at once as one mutation, so a cut can land between units. A
+ * file's size reaches storage only at a sync or a close. Creating and truncating reach storage at
+ * once. A unit of 512 is a cut at each sector, and of 1 a cut at each byte. 0 restores the default.
+ * This is still simpler than FatFs: nothing reorders, and it proves nothing about a real card.
+ */
+void crux_file_fake_write_through(size_t unit);
+/* A medium that reports each later write as done and stores none of it, until turned off. */
+void crux_file_fake_drop_writes(bool drop);
+/* As if the medium left while running: every later provider call returns CRUX_FILE_ERR_IO. */
+void crux_file_fake_remove_medium(void);
 
 /*
  * Call cut, which normally calls _exit, at the start of the mutation that comes after this many
