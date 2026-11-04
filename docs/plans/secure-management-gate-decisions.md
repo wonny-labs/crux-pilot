@@ -12,7 +12,7 @@ Each holds the reasoning behind its decisions.
 | #183 criterion | State on 4 November 2026 |
 | --- | --- |
 | #176 decided, stacks pinned in the manifest | The evidence and recommendation in #198, and the pins in #202, merged on 3 November. |
-| #177 reviewed contract, fake provider, Host conformance | Proposal merged in #201. The implementation is in #210, not merged. G-D is accepted: [the owner's approval](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6611325037) is quoted on #177. |
+| #177 reviewed contract, fake provider, Host conformance | Proposal merged in #201. The implementation merged in #210 (`473b50c`), and `docs/access-contract.md` says it is not adopted until gate #183 passes. G-D is accepted: [the owner's approval](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6611325037) is quoted on #177. |
 | #178 to #182 reviewed contracts, fake providers, Host conformance | **In progress.** #224 merged the File additions of #179, and the file service is in #232. Accepting the proposals does not meet this criterion: each contract must reach main with its header, fake provider and Host cases. |
 | A rule for later shared contract changes | Decision G-A below, accepted |
 | Owner decides whether this runs alongside M7 | Decision G-B below, accepted |
@@ -46,11 +46,11 @@ The tables below keep each decision as it was put to the owner.
 Notes since the owner accepted these:
 
 - G-A says M11 does not use `crux_cli`, but `web-frontend-foundation-design.md` puts the serial recovery command of #213 on the #181 registry, so a change there reaches that track too.
-- G-A's shared list also includes `web/api/openapi.yaml`, merged in #223.
+- The same rule applies to `web/api/openapi.yaml`, merged in #223, although the accepted G-A list does not name it: the file's header and `web-frontend-foundation-design.md` make a change to it one reviewed PR that both tracks rebase onto.
 
 ### Requests to the access control contract
 
-These are changes the other contracts need. The owner accepted all but AC2, and #210 carries them, so they reach main when it merges.
+These are changes the other contracts need. The owner accepted all but AC2, and #210 merged them.
 
 | ID | Request | Needed by | Recommendation |
 | --- | --- | --- | --- |
@@ -125,7 +125,7 @@ These are changes the other contracts need. The owner accepted all but AC2, and 
 
 ## Findings that affect the track designs
 
-The proposals do not change these designs, apart from the owner-directed removal of `rsa-sha2-256` from the user key table, which #208 makes. Each needs its own correction when its track starts, or earlier.
+The proposals do not change these designs, apart from the owner-directed removal of `rsa-sha2-256` from the user key table, which #210 made. Each needs its own correction when its track starts, or earlier.
 
 | Finding | Design | Owner of the fix |
 | --- | --- | --- |
