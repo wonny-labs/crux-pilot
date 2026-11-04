@@ -2,6 +2,7 @@
  * Links the wolfSSH server, stream and SFTP paths, and one TLS socket when the image has the socket
  * backend, so that the settings arrangement is built as a real image would use it. It is never run.
  */
+#include "crux_ssh_callbacks.h"
 #include <wolfssh/internal.h>
 #include <wolfssh/ssh.h>
 #include <wolfssh/wolfsftp.h>
@@ -35,40 +36,6 @@
 #if !defined(WOLFSSH_NO_HMAC_SHA1) || !defined(WOLFSSH_NO_AES_CBC)
 #error "SHA-1 and CBC are not offered"
 #endif
-
-int crux_ssh_probe_fs_fail(void)
-{
-    return -1;
-}
-
-/* The hooks of the WOLFSSH_USER_FILESYSTEM port that are functions, not macros. */
-int SFTP_GetAttributes(void *fs, const char *fileName, WS_SFTP_FILEATRB *atr, byte noFollow,
-                       void *heap)
-{
-    (void)fs;
-    (void)fileName;
-    (void)atr;
-    (void)noFollow;
-    (void)heap;
-    return WS_BAD_FILE_E;
-}
-
-int SFTP_GetAttributes_Handle(WOLFSSH *ssh, WFD fd, char *name, WS_SFTP_FILEATRB *atr)
-{
-    (void)ssh;
-    (void)fd;
-    (void)name;
-    (void)atr;
-    return WS_BAD_FILE_E;
-}
-
-int SFTP_Name_readdir(void *fs, WDIR *dir, WS_SFTPNAME *out)
-{
-    (void)fs;
-    (void)dir;
-    (void)out;
-    return WS_NEXT_ERROR;
-}
 
 static int recv_cb(WOLFSSH *ssh, void *buf, word32 sz, void *ctx)
 {
@@ -106,7 +73,6 @@ static int channel_cb(WOLFSSH_CHANNEL *channel, void *ctx)
 }
 
 static int file_handle;
-int crux_ssh_probe_owned(WOLFSSH *ssh, void *handle);
 
 int main(void)
 {
@@ -118,6 +84,9 @@ int main(void)
     zsock_close(tls);
 #endif
 
+    if (crux_ssh_callback_table()->password == NULL) {
+        return 1;
+    }
     wolfSSH_Init();
     WOLFSSH_CTX *ctx = wolfSSH_CTX_new(WOLFSSH_ENDPOINT_SERVER, NULL);
 
@@ -138,7 +107,7 @@ int main(void)
     WOLFSSH *ssh = wolfSSH_new(ctx);
 
     wolfSSH_set_fd(ssh, -1);
-    crux_ssh_probe_owned(ssh, &file_handle);
+    wolfSSH_SetFilesystemHandle(ssh, &file_handle);
     wolfSSH_accept(ssh);
     wolfSSH_stream_read(ssh, buf, sizeof(buf));
     wolfSSH_stream_send(ssh, buf, sizeof(buf));

@@ -77,13 +77,21 @@ typedef struct {
  * Every callback runs on the thread of its connection, never with a provider lock held, and may
  * block that thread only. Pointers it receives are borrowed for the call, unless stated otherwise.
  *
- * A provider has already rejected these without a callback: a user name that is empty, longer than
- * CRUX_SSH_USER_NAME_MAX or holds an embedded NUL, a key of any other type, and every request other
- * than those below. Every refused attempt counts towards max_auth_attempts, including a refused
- * request without a signature, and only an accepted one does not.
+ * User names. The first authentication request binds the name to the connection. An empty name, or
+ * a later request with another name, ends the connection without a callback, so a client that wants
+ * another user reconnects. A name longer than CRUX_SSH_USER_NAME_MAX or with an embedded NUL is
+ * refused without a callback.
  *
- * A connection carries one session. The first shell, exec or SFTP request starts it, and the
- * provider ends the connection when it ends.
+ * Attempts. Every refused attempt counts towards max_auth_attempts: a bad name, a key of any type
+ * other than those above, a refused key with or without a signature, a failed signature, a refusal
+ * from key_verified and a wrong password. An accepted attempt and the opening `none` request, which
+ * every client sends to learn the methods, do not count.
+ *
+ * Requests. The provider accepts `pty-req` and `window-change` with no callback, and only those two
+ * besides shell, exec and the `sftp` subsystem below. It refuses every other request and channel
+ * type with no callback. A connection carries one session: the first shell, exec or SFTP request
+ * starts it, and the provider ends the connection when it ends. Once a provider has granted a
+ * request, failure of its callback appears to the client as the connection ending.
  */
 typedef struct {
     void *context; /**< Passed unchanged to every callback. */
@@ -120,9 +128,12 @@ typedef struct {
 
     /**
      * Runs an interactive shell until it returns. It returns the exit status, from 0 to 255, and
-     * the provider sends 255 for anything else. The provider then ends the connection.
+     * the provider sends 255 for anything else. The provider then ends the connection. terminal is
+     * true when the client sent `pty-req` on this channel before the shell request, so that the CLI
+     * knows whether to echo.
      */
-    int (*shell)(void *context, crux_ssh_attachment_t *attachment, crux_ssh_channel_t *channel);
+    int (*shell)(void *context, crux_ssh_attachment_t *attachment, crux_ssh_channel_t *channel,
+                 bool terminal);
 
     /**
      * Runs one command until it returns, with the same rules as shell. The command is terminated,
@@ -133,7 +144,8 @@ typedef struct {
 
     /**
      * The client asked for the SFTP subsystem. On CRUX_OK it must set *handle to a non-NULL value,
-     * and the provider serves SFTP with it on this thread. On any other status the connection ends.
+     * and the provider serves SFTP with it on this thread. On any other status, or with no handle,
+     * the connection ends and sftp_close does not run.
      */
     crux_status_t (*sftp_open)(void *context, crux_ssh_attachment_t *attachment,
                                crux_ssh_file_handle_t **handle);
@@ -142,6 +154,13 @@ typedef struct {
      */
     void (*sftp_close)(void *context, crux_ssh_attachment_t *attachment,
                        crux_ssh_file_handle_t *handle);
+
+    /**
+     * Polled each time SFTP has waited io_timeout_ms with no request, because SFTP has no session
+     * callback of its own to notice an expired session. False ends the connection, with sftp_close
+     * and connection_closed as usual. It must not wait on storage or derivation.
+     */
+    bool (*session_alive)(void *context, crux_ssh_attachment_t *attachment);
 
     /**
      * The connection has ended, for any reason. Runs exactly once for each attachment, after every
@@ -180,7 +199,8 @@ typedef struct {
 
     /**
      * Reads what has arrived, waiting up to io_timeout_ms for at least one byte. A slow or idle
-     * client holds only this thread. *transferred is 0 after any failure, if it is not NULL.
+     * client holds only this thread. The wait is fixed for the server, and a caller cannot shorten
+     * it. *transferred is 0 after any failure, if it is not NULL.
      *
      * @retval CRUX_OK *transferred is from 1 to length.
      * @retval CRUX_ERR_INVALID_ARGUMENT A pointer is NULL or length is zero.

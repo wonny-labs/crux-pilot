@@ -17,8 +17,15 @@ import runpy
 import sys
 
 PROVIDER_HEADER = "components/ssh/src/crux_ssh_provider.h"
+ATTACHMENT_HEADER = "components/ssh/adapter/crux_ssh_attachment.h"
+# Files that hold no type of the SSH library, the OS or, unless listed below, access control.
 NATIVE_FREE_FILES = (
     PROVIDER_HEADER,
+    ATTACHMENT_HEADER,
+    "components/ssh/src/crux_ssh_callbacks.h",
+    "components/ssh/src/crux_ssh_callbacks.c",
+    "tests/ssh/fake_attachment.h",
+    "tests/ssh/fake_attachment.c",
     "tests/ssh/ssh_test_client.h",
     "tests/ssh/fake_provider.h",
     "tests/ssh/fake_provider.c",
@@ -26,10 +33,15 @@ NATIVE_FREE_FILES = (
     "tests/ssh/conformance.c",
 )
 ALLOWED_HEADER_INCLUDES = {"stdbool.h", "stddef.h", "stdint.h", "crux/status.h"}
-# Forbidden in code, comments excluded. The access types stay out so that #192 alone connects them.
+ALLOWED_ATTACHMENT_INCLUDES = {"crux_ssh_provider.h", "crux/access.h"}
+# The accessor names the access session, which is its purpose, and the provider interface must not.
+ACCESS_ALLOWED = {ATTACHMENT_HEADER, "tests/ssh/fake_attachment.h", "tests/ssh/fake_attachment.c"}
+# Forbidden in code, comments excluded. The socket address types are here because the native policy
+# allows them for the networking profile. The access types stay out so that #192 alone connects them.
 FORBIDDEN_TOKEN = re.compile(
     r"\b(?:wolf\w*|WOLF\w*|WS_\w+|WFD|WFILE|byte|word32|word64|mbedtls\w*|MBEDTLS\w*|psa_\w+|PSA_\w+|"
-    r"crux_access\w*|CRUX_ACCESS\w*|crux_cli\w*)\b")
+    r"crux_cli\w*|sockaddr\w*|net_sockaddr\w*|socklen_t|in_addr\w*|in6_addr\w*)\b")
+ACCESS_TOKEN = re.compile(r"\b(?:crux_access\w*|CRUX_ACCESS\w*)\b")
 INCLUDE = re.compile(r'^\s*#\s*include\s*[<"]([^>"\n]+)[>"]', re.MULTILINE)
 # Places that a project or a portable consumer builds from. A project never includes the interface.
 CONSUMER_ROOTS = ("samples", "applications", "runtime", "tests/external_application")
@@ -52,12 +64,18 @@ def native_free_errors(root):
         for line, reason in native["violations"](path, public=name == PROVIDER_HEADER, networking=False):
             errors.append(f"{name}:{line}: {reason}")
         source = path.read_text(encoding="utf-8")
-        for match in FORBIDDEN_TOKEN.finditer(native["LEXEME"].sub(native["mask"], source)):
+        code = native["LEXEME"].sub(native["mask"], source)
+        for match in FORBIDDEN_TOKEN.finditer(code):
             errors.append(f"{name}: forbidden type or name {match.group()}")
-    source = (root / PROVIDER_HEADER).read_text(encoding="utf-8") if (root / PROVIDER_HEADER).is_file() else ""
-    for include in INCLUDE.findall(source):
-        if include not in ALLOWED_HEADER_INCLUDES:
-            errors.append(f"{PROVIDER_HEADER}: unexpected include {include}")
+        if name not in ACCESS_ALLOWED:
+            for match in ACCESS_TOKEN.finditer(code):
+                errors.append(f"{name}: forbidden type or name {match.group()}")
+    for name, allowed in ((PROVIDER_HEADER, ALLOWED_HEADER_INCLUDES),
+                          (ATTACHMENT_HEADER, ALLOWED_ATTACHMENT_INCLUDES)):
+        source = (root / name).read_text(encoding="utf-8") if (root / name).is_file() else ""
+        for include in INCLUDE.findall(source):
+            if include not in allowed:
+                errors.append(f"{name}: unexpected include {include}")
     return errors
 
 
@@ -88,7 +106,8 @@ def consumer_errors(root):
             continue
         for path in sorted(base.rglob("*")):
             if path.suffix in SOURCE_SUFFIXES and path.is_file():
-                if "crux_ssh_provider.h" in path.read_text(encoding="utf-8", errors="replace"):
+                text = path.read_text(encoding="utf-8", errors="replace")
+                if "crux_ssh_provider.h" in text or "crux_ssh_attachment.h" in text:
                     errors.append(f"{relative(root, path)}: a consumer must not include the interface")
             elif path.name == "CMakeLists.txt" and "crux_ssh_" in path.read_text(encoding="utf-8"):
                 errors.append(f"{relative(root, path)}: a consumer must not link an SSH target")

@@ -68,6 +68,30 @@ class SshBoundaryTests(unittest.TestCase):
         self.add_to_interface("typedef crux_access_session_t crux_ssh_session_t;")
         self.assert_rejected("forbidden type or name crux_access_session_t")
 
+    def test_socket_address_in_the_interface(self):
+        self.add_to_interface("struct sockaddr *crux_ssh_address(void);")
+        self.assert_rejected("forbidden type or name sockaddr")
+
+    def test_zephyr_socket_address_in_the_interface(self):
+        self.add_to_interface("struct net_sockaddr *crux_ssh_address(void);")
+        self.assert_rejected("forbidden type or name net_sockaddr")
+
+    def test_access_type_in_the_table(self):
+        with (self.root / "components/ssh/src/crux_ssh_callbacks.h").open("a", encoding="utf-8") as stream:
+            stream.write("crux_access_session_t crux_ssh_session(void);\n")
+        self.assert_rejected("crux_ssh_callbacks.h: forbidden type or name crux_access_session_t")
+
+    def test_other_header_in_the_accessor(self):
+        with (self.root / "components/ssh/adapter/crux_ssh_attachment.h").open("a", encoding="utf-8") as stream:
+            stream.write("#include <crux/file.h>\n")
+        self.assert_rejected("unexpected include crux/file.h")
+
+    def test_sample_includes_the_accessor(self):
+        sample = self.root / "samples/controller/main.c"
+        sample.parent.mkdir(parents=True)
+        sample.write_text('#include "crux_ssh_attachment.h"\n', encoding="utf-8")
+        self.assert_rejected("a consumer must not include the interface")
+
     def test_zephyr_header_in_the_interface(self):
         self.add_to_interface("#include <zephyr/kernel.h>")
         self.assert_rejected("zephyr/kernel.h")
@@ -95,7 +119,7 @@ class SshBoundaryTests(unittest.TestCase):
         self.assert_rejected("ssh must not join the public component list")
 
     def test_fake_outside_the_test_build(self):
-        self.edit("CMakeLists.txt", "    add_subdirectory(tests/ssh)\n", "")
+        self.edit("CMakeLists.txt", "        add_subdirectory(tests/ssh)\n", "")
         self.assert_rejected("tests/ssh must be added only under CRUX_BUILD_TESTS")
 
     def test_sample_includes_the_interface(self):

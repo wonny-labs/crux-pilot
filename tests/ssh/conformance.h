@@ -1,4 +1,5 @@
-/* The behaviour every SSH provider must show, as cases any provider's test client can run. */
+/* The behaviour every SSH provider must show, written so that a provider can run it with its own
+ * client. */
 #ifndef CRUX_SSH_CONFORMANCE_H
 #define CRUX_SSH_CONFORMANCE_H
 

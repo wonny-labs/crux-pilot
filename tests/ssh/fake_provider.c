@@ -4,7 +4,11 @@
 
 #define FAKE_CAPACITY 4u
 #define FAKE_CONNECTION_RECORDS 32u
-#define FAKE_BUFFER 256u
+#define FAKE_NAME_MAX 64u
+
+/* The size of real key blobs: ssh-ed25519 is 51 bytes and ecdsa-sha2-nistp256 is 104. */
+#define FAKE_ED25519_KEY_LENGTH 51u
+#define FAKE_ECDSA_KEY_LENGTH 104u
 
 struct crux_ssh_channel {
     int connection;
@@ -16,16 +20,21 @@ typedef struct {
     bool authenticated;
     bool channel_open;
     bool session_started;
+    bool terminal;
     unsigned attempts;
+    unsigned requests;
+    bool name_bound;
+    char bound_name[FAKE_NAME_MAX];
+    size_t bound_name_length;
     crux_ssh_peer_t peer;
     crux_ssh_attachment_t *attachment;
     crux_ssh_file_handle_t *file_handle;
     struct crux_ssh_channel channel;
-    char input[FAKE_BUFFER];
+    char input[CRUX_SSH_FAKE_BUFFER];
     size_t input_length;
     size_t input_position;
     bool input_eof;
-    char output[FAKE_BUFFER];
+    char output[CRUX_SSH_FAKE_BUFFER];
     size_t output_length;
     size_t window;
     bool output_eof;
@@ -46,6 +55,13 @@ static struct {
     connection_t connections[FAKE_CONNECTION_RECORDS];
     size_t connection_records;
 } fake;
+
+static const uint8_t fake_host_key[FAKE_ED25519_KEY_LENGTH] = {0x48, 0x4f, 0x53, 0x54};
+static const uint8_t fake_ed25519_key[FAKE_ED25519_KEY_LENGTH] = {
+    0, 0, 0, 11, 's', 's', 'h', '-', 'e', 'd', '2', '5', '5', '1', '9'};
+static const uint8_t fake_ecdsa_key[FAKE_ECDSA_KEY_LENGTH] = {0, 0, 0, 19, 'e', 'c', 'd', 's', 'a'};
+/* Stands for a handle that is not the one Crux returned. It is only ever compared. */
+static char wrong_handle;
 
 static bool has_fault(crux_ssh_fake_fault_t fault)
 {
@@ -86,6 +102,19 @@ static size_t active_connections(void)
     return count;
 }
 
+/* The address a callback receives, which a fault can take from another connection. */
+static const crux_ssh_peer_t *peer_for(const connection_t *connection, crux_ssh_fake_fault_t fault)
+{
+    if (has_fault(fault)) {
+        for (size_t i = 0; i < fake.connection_records; ++i) {
+            if (&fake.connections[i] != connection && fake.connections[i].connected) {
+                return &fake.connections[i].peer;
+            }
+        }
+    }
+    return &connection->peer;
+}
+
 static void end_sftp_session(connection_t *connection)
 {
     crux_ssh_file_handle_t *handle = connection->file_handle;
@@ -93,6 +122,9 @@ static void end_sftp_session(connection_t *connection)
     if (handle != NULL) {
         connection->file_handle = NULL;
         if (!has_fault(CRUX_SSH_FAKE_FAULT_NO_SFTP_CLOSE)) {
+            if (has_fault(CRUX_SSH_FAKE_FAULT_SFTP_CLOSE_WRONG_HANDLE)) {
+                handle = (crux_ssh_file_handle_t *)&wrong_handle;
+            }
             ++fake.callback_depth;
             callbacks()->sftp_close(callbacks()->context, connection->attachment, handle);
             --fake.callback_depth;
@@ -146,9 +178,9 @@ static crux_status_t fake_start(const crux_ssh_config_t *config, const crux_ssh_
     if (config == NULL || given == NULL || given->password == NULL || given->key_check == NULL ||
         given->key_verified == NULL || given->key_failed == NULL || given->shell == NULL ||
         given->exec == NULL || given->sftp_open == NULL || given->sftp_close == NULL ||
-        given->connection_closed == NULL || config->max_connections == 0 ||
-        config->max_auth_attempts == 0 || config->auth_timeout_ms == 0 ||
-        config->io_timeout_ms == 0) {
+        given->session_alive == NULL || given->connection_closed == NULL ||
+        config->max_connections == 0 || config->max_auth_attempts == 0 ||
+        config->auth_timeout_ms == 0 || config->io_timeout_ms == 0) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
     if (!has_fault(CRUX_SSH_FAKE_FAULT_START_ACCEPTS_NO_HOST_KEY) &&
@@ -181,6 +213,9 @@ static crux_status_t fake_stop(void)
     }
     if (!has_fault(CRUX_SSH_FAKE_FAULT_STOP_KEEPS_CONNECTIONS)) {
         for (size_t i = 0; i < fake.connection_records; ++i) {
+            if (has_fault(CRUX_SSH_FAKE_FAULT_STOP_SKIPS_SFTP_CLOSE)) {
+                fake.connections[i].file_handle = NULL;
+            }
             end_connection(&fake.connections[i]);
         }
     }
@@ -205,7 +240,7 @@ static crux_status_t fake_read(crux_ssh_channel_t *channel, void *buffer, size_t
     if (channel->closed && !has_fault(CRUX_SSH_FAKE_FAULT_READ_AFTER_CLOSE)) {
         return CRUX_ERR_INVALID_STATE;
     }
-    if (connection->dropped) {
+    if (connection->dropped && !has_fault(CRUX_SSH_FAKE_FAULT_READ_AFTER_DROP_OK)) {
         return CRUX_ERR_IO;
     }
     available = connection->input_length - connection->input_position;
@@ -259,8 +294,8 @@ static crux_status_t fake_write(crux_ssh_channel_t *channel, const void *buffer,
     if (room > length) {
         room = length;
     }
-    if (room > FAKE_BUFFER - connection->output_length) {
-        room = FAKE_BUFFER - connection->output_length;
+    if (room > CRUX_SSH_FAKE_BUFFER - connection->output_length) {
+        room = CRUX_SSH_FAKE_BUFFER - connection->output_length;
     }
     memcpy(connection->output + connection->output_length, buffer, room);
     connection->output_length += room;
@@ -309,22 +344,48 @@ static bool client_connect(const crux_ssh_peer_t *peer, int *id)
     memset(connection, 0, sizeof(*connection));
     connection->connected = true;
     connection->peer = *peer;
-    connection->window = FAKE_BUFFER;
+    connection->window = CRUX_SSH_FAKE_BUFFER;
     connection->channel.connection = *id;
     return true;
 }
 
-static bool user_is_valid(const char *user, size_t user_length)
+/*
+ * The name rules that apply to every authentication request. False means the request has been dealt
+ * with: the connection has ended, or the attempt has been counted.
+ */
+static bool admit_name(connection_t *connection, const char *user, size_t user_length)
 {
-    if (has_fault(CRUX_SSH_FAKE_FAULT_NO_USER_CHECK)) {
-        return true;
+    size_t kept = user_length < FAKE_NAME_MAX ? user_length : FAKE_NAME_MAX;
+
+    if (user_length == 0 && !has_fault(CRUX_SSH_FAKE_FAULT_NO_USER_CHECK)) {
+        if (has_fault(CRUX_SSH_FAKE_FAULT_EMPTY_NAME_KEEPS_CONNECTION)) {
+            count_failure(connection);
+        } else {
+            end_connection(connection);
+        }
+        return false;
     }
-    return user_length >= 1 && user_length <= CRUX_SSH_USER_NAME_MAX &&
-           memchr(user, '\0', user_length) == NULL;
+    if (!connection->name_bound) {
+        connection->name_bound = true;
+        connection->bound_name_length = user_length;
+        memcpy(connection->bound_name, user, kept);
+    } else if ((connection->bound_name_length != user_length ||
+                memcmp(connection->bound_name, user, kept) != 0) &&
+               !has_fault(CRUX_SSH_FAKE_FAULT_NAME_CHANGE_ALLOWED)) {
+        end_connection(connection);
+        return false;
+    }
+    ++connection->requests;
+    if (!has_fault(CRUX_SSH_FAKE_FAULT_NO_USER_CHECK) &&
+        (user_length > CRUX_SSH_USER_NAME_MAX || memchr(user, '\0', user_length) != NULL)) {
+        count_failure(connection);
+        return false;
+    }
+    return true;
 }
 
-/* Copies a length-delimited user name, which user_is_valid has checked unless a fault disabled
- * that. */
+/* Copies a length-delimited user name, which admit_name has checked unless a fault disabled that.
+ */
 static void terminated_user(char *out, const char *user, size_t user_length)
 {
     size_t length = user_length <= CRUX_SSH_USER_NAME_MAX ? user_length : CRUX_SSH_USER_NAME_MAX;
@@ -342,18 +403,23 @@ static bool grants(crux_ssh_auth_result_t result, const crux_ssh_attachment_t *a
     return result == CRUX_SSH_AUTH_ACCEPTED && attachment != NULL;
 }
 
+static bool may_attempt(const connection_t *connection)
+{
+    return connection != NULL &&
+           (!connection->authenticated || has_fault(CRUX_SSH_FAKE_FAULT_SECOND_LOGIN_OVERWRITES));
+}
+
 static bool client_password(int id, const char *user, size_t user_length, const char *password)
 {
     connection_t *connection = connected_connection(id);
     crux_ssh_attachment_t *attachment = NULL;
     char name[CRUX_SSH_USER_NAME_MAX + 1];
+    uint8_t wrong[CRUX_SSH_FAKE_BUFFER];
+    const uint8_t *bytes = (const uint8_t *)password;
+    size_t length = strlen(password);
     crux_ssh_auth_result_t result;
 
-    if (connection == NULL || connection->authenticated) {
-        return false;
-    }
-    if (!user_is_valid(user, user_length)) {
-        count_failure(connection);
+    if (!may_attempt(connection) || !admit_name(connection, user, user_length)) {
         return false;
     }
     /* Only START_BORROWS_CALLBACKS can lose a callback: the caller has cleared its structure. */
@@ -361,10 +427,18 @@ static bool client_password(int id, const char *user, size_t user_length, const 
         count_failure(connection);
         return false;
     }
+    if (has_fault(CRUX_SSH_FAKE_FAULT_PASSWORD_WRONG_LENGTH) && length > 0) {
+        --length;
+    }
+    if (has_fault(CRUX_SSH_FAKE_FAULT_PASSWORD_WRONG_BYTES) && length <= sizeof(wrong)) {
+        memset(wrong, 'x', length);
+        bytes = wrong;
+    }
     terminated_user(name, user, user_length);
     ++fake.callback_depth;
-    result = callbacks()->password(callbacks()->context, &connection->peer, name,
-                                   (const uint8_t *)password, strlen(password), &attachment);
+    result = callbacks()->password(callbacks()->context,
+                                   peer_for(connection, CRUX_SSH_FAKE_FAULT_PEER_WRONG_ON_PASSWORD),
+                                   name, bytes, length, &attachment);
     --fake.callback_depth;
     if (!grants(result, attachment)) {
         count_failure(connection);
@@ -373,6 +447,22 @@ static bool client_password(int id, const char *user, size_t user_length, const 
     connection->attachment = attachment;
     connection->authenticated = true;
     return true;
+}
+
+static bool client_none_request(int id, const char *user)
+{
+    connection_t *connection = connected_connection(id);
+    unsigned before;
+
+    if (connection == NULL || connection->authenticated) {
+        return false;
+    }
+    before = connection->requests;
+    if (admit_name(connection, user, strlen(user)) &&
+        (before != 0 || has_fault(CRUX_SSH_FAKE_FAULT_OPENING_NONE_COUNTED))) {
+        count_failure(connection);
+    }
+    return false;
 }
 
 static bool key_type_from_name(const char *algorithm, crux_ssh_key_type_t *type)
@@ -399,8 +489,9 @@ static bool complete_key_login(connection_t *connection, const char *name, crux_
     crux_ssh_auth_result_t result;
 
     ++fake.callback_depth;
-    result = callbacks()->key_verified(callbacks()->context, &connection->peer, name, type, key,
-                                       key_length, &attachment);
+    result = callbacks()->key_verified(
+        callbacks()->context, peer_for(connection, CRUX_SSH_FAKE_FAULT_PEER_WRONG_ON_VERIFIED),
+        name, type, key, key_length, &attachment);
     --fake.callback_depth;
     if (grants(result, attachment) || has_fault(CRUX_SSH_FAKE_FAULT_VERIFIED_RESULT_IGNORED)) {
         connection->attachment = attachment;
@@ -410,6 +501,7 @@ static bool complete_key_login(connection_t *connection, const char *name, crux_
     return false;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static bool client_key_probe(int id, const char *user, const char *algorithm, const uint8_t *key,
                              size_t key_length)
 {
@@ -418,17 +510,20 @@ static bool client_key_probe(int id, const char *user, const char *algorithm, co
     crux_ssh_key_type_t type;
     crux_ssh_auth_result_t result;
 
-    if (connection == NULL || connection->authenticated) {
+    if (!may_attempt(connection) || !admit_name(connection, user, strlen(user))) {
         return false;
     }
-    if (!user_is_valid(user, strlen(user)) || !key_type_from_name(algorithm, &type)) {
-        count_failure(connection);
+    if (!key_type_from_name(algorithm, &type)) {
+        if (!has_fault(CRUX_SSH_FAKE_FAULT_NOT_COUNTED_REFUSED_TYPE)) {
+            count_failure(connection);
+        }
         return false;
     }
     terminated_user(name, user, strlen(user));
     ++fake.callback_depth;
-    result = callbacks()->key_check(callbacks()->context, &connection->peer, name, type, key,
-                                    key_length, false);
+    result = callbacks()->key_check(callbacks()->context,
+                                    peer_for(connection, CRUX_SSH_FAKE_FAULT_PEER_WRONG_ON_PROBE),
+                                    name, type, key, key_length, false);
     --fake.callback_depth;
     if (result != CRUX_SSH_AUTH_ACCEPTED) {
         count_failure(connection);
@@ -440,6 +535,7 @@ static bool client_key_probe(int id, const char *user, const char *algorithm, co
     return true;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static bool client_key_login(int id, const char *user, const char *algorithm, const uint8_t *key,
                              size_t key_length, bool good_signature)
 {
@@ -448,33 +544,42 @@ static bool client_key_login(int id, const char *user, const char *algorithm, co
     crux_ssh_key_type_t type;
     crux_ssh_auth_result_t result;
 
-    if (connection == NULL || connection->authenticated) {
+    if (!may_attempt(connection) || !admit_name(connection, user, strlen(user))) {
         return false;
     }
-    if (!user_is_valid(user, strlen(user)) || !key_type_from_name(algorithm, &type)) {
-        count_failure(connection);
+    if (!key_type_from_name(algorithm, &type)) {
+        if (!has_fault(CRUX_SSH_FAKE_FAULT_NOT_COUNTED_REFUSED_TYPE)) {
+            count_failure(connection);
+        }
         return false;
     }
     terminated_user(name, user, strlen(user));
     ++fake.callback_depth;
-    result = callbacks()->key_check(callbacks()->context, &connection->peer, name, type, key,
-                                    key_length, true);
+    result = callbacks()->key_check(
+        callbacks()->context, peer_for(connection, CRUX_SSH_FAKE_FAULT_PEER_WRONG_ON_SIGNED), name,
+        type, key, has_fault(CRUX_SSH_FAKE_FAULT_SIGNED_CHECK_EMPTY_KEY) ? 0 : key_length, true);
     --fake.callback_depth;
     if (result != CRUX_SSH_AUTH_ACCEPTED) {
-        count_failure(connection);
+        if (!has_fault(CRUX_SSH_FAKE_FAULT_NOT_COUNTED_REFUSED_SIGNED)) {
+            count_failure(connection);
+        }
         return false;
     }
     if (!good_signature && !has_fault(CRUX_SSH_FAKE_FAULT_SIGNATURE_NOT_CHECKED)) {
         if (!has_fault(CRUX_SSH_FAKE_FAULT_KEY_FAILURE_SILENT)) {
             ++fake.callback_depth;
-            callbacks()->key_failed(callbacks()->context, &connection->peer, name);
+            callbacks()->key_failed(callbacks()->context,
+                                    peer_for(connection, CRUX_SSH_FAKE_FAULT_PEER_WRONG_ON_FAILED),
+                                    name);
             --fake.callback_depth;
         }
         count_failure(connection);
         return false;
     }
     if (!complete_key_login(connection, name, type, key, key_length)) {
-        count_failure(connection);
+        if (!has_fault(CRUX_SSH_FAKE_FAULT_NOT_COUNTED_VERIFIED_REFUSAL)) {
+            count_failure(connection);
+        }
         return false;
     }
     return true;
@@ -491,6 +596,28 @@ static void client_pass_auth_time(int id)
 
     if (connection != NULL && !connection->authenticated &&
         !has_fault(CRUX_SSH_FAKE_FAULT_NO_AUTH_TIME_LIMIT)) {
+        end_connection(connection);
+    }
+}
+
+static void client_pass_read_timeout(int id)
+{
+    connection_t *connection = connected_connection(id);
+    bool alive;
+
+    if (connection == NULL || connection->file_handle == NULL) {
+        return;
+    }
+    if (has_fault(CRUX_SSH_FAKE_FAULT_SESSION_ALIVE_IGNORED)) {
+        return;
+    }
+    ++fake.callback_depth;
+    alive = callbacks()->session_alive(callbacks()->context,
+                                       has_fault(CRUX_SSH_FAKE_FAULT_SESSION_ALIVE_WRONG_ATTACHMENT)
+                                           ? NULL
+                                           : connection->attachment);
+    --fake.callback_depth;
+    if (!alive) {
         end_connection(connection);
     }
 }
@@ -550,12 +677,18 @@ static void finish_session(connection_t *connection, int status)
 
 static bool run_shell(connection_t *connection)
 {
+    bool terminal = connection->terminal;
     int status;
 
+    if (has_fault(CRUX_SSH_FAKE_FAULT_TERMINAL_ALWAYS_FALSE)) {
+        terminal = false;
+    } else if (has_fault(CRUX_SSH_FAKE_FAULT_TERMINAL_ALWAYS_TRUE)) {
+        terminal = true;
+    }
     connection->session_started = true;
     ++fake.callback_depth;
-    status =
-        callbacks()->shell(callbacks()->context, attachment_for(connection), &connection->channel);
+    status = callbacks()->shell(callbacks()->context, attachment_for(connection),
+                                &connection->channel, terminal);
     --fake.callback_depth;
     finish_session(connection, status);
     return true;
@@ -563,7 +696,7 @@ static bool run_shell(connection_t *connection)
 
 static bool run_exec(connection_t *connection, const char *command, size_t command_length)
 {
-    char terminated[FAKE_BUFFER];
+    char terminated[CRUX_SSH_FAKE_BUFFER];
     int status;
 
     if (command_length >= sizeof(terminated) ||
@@ -584,6 +717,7 @@ static bool run_exec(connection_t *connection, const char *command, size_t comma
 
 static bool run_subsystem(connection_t *connection, const char *name, size_t name_length)
 {
+    static char fault_handle;
     crux_ssh_file_handle_t *handle = NULL;
     crux_status_t status;
 
@@ -595,6 +729,10 @@ static bool run_subsystem(connection_t *connection, const char *name, size_t nam
     ++fake.callback_depth;
     status = callbacks()->sftp_open(callbacks()->context, attachment_for(connection), &handle);
     --fake.callback_depth;
+    if (status == CRUX_OK && handle == NULL &&
+        has_fault(CRUX_SSH_FAKE_FAULT_SFTP_NULL_HANDLE_ACCEPTED)) {
+        handle = (crux_ssh_file_handle_t *)&fault_handle;
+    }
     if (status != CRUX_OK || handle == NULL) {
         end_connection(connection);
         return false;
@@ -603,7 +741,7 @@ static bool run_subsystem(connection_t *connection, const char *name, size_t nam
     return true;
 }
 
-/* The signature of this and client_set_window is fixed by ssh_test_client.h. */
+/* The signature of each NOLINT function here is fixed by ssh_test_client.h. */
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static bool client_channel_request(int id, const char *type, const char *data, size_t data_length)
 {
@@ -619,7 +757,14 @@ static bool client_channel_request(int id, const char *type, const char *data, s
     if (!connection->authenticated || !connection->channel_open || connection->session_started) {
         return false;
     }
-    if (strcmp(type, "pty-req") == 0 || strcmp(type, "window-change") == 0) {
+    if (strcmp(type, "pty-req") == 0) {
+        if (has_fault(CRUX_SSH_FAKE_FAULT_TERMINAL_REQUEST_REFUSED)) {
+            return false;
+        }
+        connection->terminal = true;
+        return true;
+    }
+    if (strcmp(type, "window-change") == 0) {
         return true;
     }
     if (strcmp(type, "shell") == 0) {
@@ -640,14 +785,16 @@ static bool client_global_request(int id, const char *type)
     return has_fault(CRUX_SSH_FAKE_FAULT_ACCEPTS_FORWARDING) && strcmp(type, "tcpip-forward") == 0;
 }
 
-static void client_send(int id, const void *data, size_t length)
+static bool client_send(int id, const void *data, size_t length)
 {
     connection_t *connection = find_connection(id);
 
-    if (connection != NULL && length <= FAKE_BUFFER - connection->input_length) {
-        memcpy(connection->input + connection->input_length, data, length);
-        connection->input_length += length;
+    if (connection == NULL || length > CRUX_SSH_FAKE_BUFFER - connection->input_length) {
+        return false;
     }
+    memcpy(connection->input + connection->input_length, data, length);
+    connection->input_length += length;
+    return true;
 }
 
 static void client_send_eof(int id)
@@ -739,12 +886,23 @@ static void client_disconnect(int id)
 static const crux_ssh_test_client_t client = {
     .provider = &provider,
     .connection_capacity = FAKE_CAPACITY,
+    .host_key_type = CRUX_SSH_KEY_ED25519,
+    .host_key = fake_host_key,
+    .host_key_length = sizeof(fake_host_key),
+    .ed25519_key = fake_ed25519_key,
+    .ed25519_key_length = sizeof(fake_ed25519_key),
+    .ecdsa_key = fake_ecdsa_key,
+    .ecdsa_key_length = sizeof(fake_ecdsa_key),
+    .peer_a = {.address = {192, 0, 2, 1}, .address_length = 4},
+    .peer_b = {.address = {192, 0, 2, 2}, .address_length = 4},
     .connect = client_connect,
     .password = client_password,
+    .none_request = client_none_request,
     .key_probe = client_key_probe,
     .key_login = client_key_login,
     .is_connected = client_is_connected,
     .pass_auth_time = client_pass_auth_time,
+    .pass_read_timeout = client_pass_read_timeout,
     .open_channel = client_open_channel,
     .channel_request = client_channel_request,
     .global_request = client_global_request,
