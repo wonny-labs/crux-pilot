@@ -29,6 +29,8 @@
 static char failure_text[200];
 static const char *note_text;
 static const char not_supported_marker[] = "not supported by this provider";
+/* Set by CHECK_STATUS_OR_DEVIATION. Only a failure it reports can count as a declared deviation. */
+static int deviation_reported;
 
 const char *psa_case_note(void)
 {
@@ -75,7 +77,7 @@ psa_outcome_t psa_case_outcome(const char *name, const char *result, const char 
         return PSA_OUTCOME_FAIL;
     }
     *text = result;
-    return deviation ? PSA_OUTCOME_DECLARED_DEVIATION : PSA_OUTCOME_FAIL;
+    return deviation && deviation_reported ? PSA_OUTCOME_DECLARED_DEVIATION : PSA_OUTCOME_FAIL;
 }
 
 void psa_case_print_random_probe(void)
@@ -127,6 +129,20 @@ static const char *fail_status(const char *file, int line, const char *expr, psa
     do {                                                                                           \
         psa_status_t status_ = (expr);                                                             \
         if (status_ != (want)) {                                                                   \
+            return fail_status(__FILE__, __LINE__, #expr, status_, (want));                        \
+        }                                                                                          \
+    } while (0)
+
+/*
+ * One assertion that a provider is recorded as breaking in one known way. The expected status
+ * passes. Only the status named as known can count as a deviation, and only if the composition
+ * declares the case, so any other status, and any other failure in the case, stays a failure.
+ */
+#define CHECK_STATUS_OR_DEVIATION(want, known, expr)                                               \
+    do {                                                                                           \
+        psa_status_t status_ = (expr);                                                             \
+        if (status_ != (want)) {                                                                   \
+            deviation_reported = status_ == (known);                                               \
             return fail_status(__FILE__, __LINE__, #expr, status_, (want));                        \
         }                                                                                          \
     } while (0)
@@ -193,6 +209,7 @@ static void res_release(struct res *r)
         struct res r;                                                                              \
         const char *failure;                                                                       \
         note_text = NULL;                                                                          \
+        deviation_reported = 0;                                                                    \
         res_init(&r);                                                                              \
         failure = name##_body(&r);                                                                 \
         res_release(&r);                                                                           \
@@ -456,10 +473,9 @@ CASE(ecdsa_p256_verify_hash_known_answer)
     return NULL;
 }
 
-CASE(ecdsa_p256_wrong_signature_invalid)
+CASE(ecdsa_p256_flipped_signature_invalid)
 {
     uint8_t flipped[64];
-    uint8_t zeros[64] = {0};
 
     INIT();
     CHECK_STATUS(PSA_SUCCESS,
@@ -470,9 +486,31 @@ CASE(ecdsa_p256_wrong_signature_invalid)
     CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
                  psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample,
                                  flipped, sizeof flipped));
-    CHECK_STATUS(PSA_ERROR_INVALID_SIGNATURE,
-                 psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample,
-                                 zeros, sizeof zeros));
+    return NULL;
+}
+
+CASE(ecdsa_p256_zero_signature_invalid)
+{
+    uint8_t zeros[64] = {0};
+
+    INIT();
+    CHECK_STATUS(PSA_SUCCESS,
+                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed,
+                                    sizeof vec_p256_public_uncompressed));
+    /* Known: wolfPSA returns PSA_ERROR_GENERIC_ERROR, and so still rejects it. Success never
+     * passes. */
+    CHECK_STATUS_OR_DEVIATION(PSA_ERROR_INVALID_SIGNATURE, PSA_ERROR_GENERIC_ERROR,
+                              psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample,
+                                              sizeof vec_sha256_sample, zeros, sizeof zeros));
+    return NULL;
+}
+
+CASE(ecdsa_p256_truncated_signature_rejected)
+{
+    INIT();
+    CHECK_STATUS(PSA_SUCCESS,
+                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed,
+                                    sizeof vec_p256_public_uncompressed));
     /* A truncated signature is never accepted. */
     CHECK_REJECTED_AS(PSA_ERROR_INVALID_SIGNATURE, PSA_ERROR_INVALID_ARGUMENT,
                       psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample,
@@ -506,16 +544,25 @@ CASE(ecdsa_p256_tampered_input_invalid)
     return NULL;
 }
 
-CASE(ecdsa_p256_invalid_public_key_rejected)
+CASE(ecdsa_p256_off_curve_import_rejected)
 {
     uint8_t off_curve[sizeof vec_p256_public_uncompressed];
 
     INIT();
     memcpy(off_curve, vec_p256_public_uncompressed, sizeof off_curve);
     off_curve[sizeof off_curve - 1] ^= 0x01;
-    CHECK_STATUS(PSA_ERROR_INVALID_ARGUMENT,
-                 import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, off_curve, sizeof off_curve));
+    /* Known: wolfPSA accepts it at import. ecdsa_p256_off_curve_key_never_verifies covers its use.
+     */
+    CHECK_STATUS_OR_DEVIATION(
+        PSA_ERROR_INVALID_ARGUMENT, PSA_SUCCESS,
+        import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, off_curve, sizeof off_curve));
     CHECK(r->key == PSA_KEY_ID_NULL);
+    return NULL;
+}
+
+CASE(ecdsa_p256_missing_prefix_import_rejected)
+{
+    INIT();
     /* The format prefix is missing: 64 bytes instead of the 65-byte uncompressed point. */
     CHECK_STATUS(PSA_ERROR_INVALID_ARGUMENT,
                  import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, vec_p256_public_uncompressed + 1,
@@ -726,6 +773,22 @@ CASE(hmac_sha256_known_answer)
                                     sizeof vec_hmac_data - 1, mac, sizeof mac, &length));
     CHECK(length == sizeof mac);
     CHECK(memcmp(mac, vec_hmac_sha256, sizeof mac) == 0);
+    return NULL;
+}
+
+/* An empty login name reaches crux_access_port_hmac with a length of zero. */
+CASE(hmac_sha256_empty_input_known_answer)
+{
+    static const uint8_t empty[1] = {0};
+    uint8_t mac[32];
+    size_t length = 0;
+
+    INIT();
+    CHECK_SUPPORTED(import_key(&r->key, PSA_KEY_TYPE_HMAC, 256, PSA_KEY_USAGE_SIGN_MESSAGE,
+                               HMAC_SHA256, vec_hmac_key, sizeof vec_hmac_key));
+    CHECK_SUPPORTED(psa_mac_compute(r->key, HMAC_SHA256, empty, 0, mac, sizeof mac, &length));
+    CHECK(length == sizeof mac);
+    CHECK(memcmp(mac, vec_hmac_sha256_empty, sizeof mac) == 0);
     return NULL;
 }
 
@@ -1127,8 +1190,8 @@ CASE(p256_generated_key_signs_and_verifies)
     CHECK_STATUS(PSA_SUCCESS,
                  psa_export_public_key(r->key, public_key, sizeof public_key, &length));
     CHECK(length == sizeof public_key);
-    /* The exported form is what a later reader imports. The import checks that it is on the curve.
-     */
+    /* The exported form is what a later reader imports. A provider need not check the point at
+     * import, so the verification below is what shows that the pair belongs together. */
     CHECK_STATUS(PSA_SUCCESS, import_key(&r->key2, P256_PUBLIC, 256, PSA_KEY_USAGE_VERIFY_HASH,
                                          ECDSA_SHA256, public_key, sizeof public_key));
     CHECK_STATUS(PSA_SUCCESS,

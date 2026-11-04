@@ -107,6 +107,9 @@ function(crux_psa_declaration_control name unsupported deviations)
 endfunction()
 crux_psa_declaration_control(psa_conformance_undeclared "" "")
 crux_psa_declaration_control(psa_conformance_stale "init_is_idempotent" "")
+# A declared deviation must cover only the status it names. The permissive stub accepts an all-zero
+# signature, which no declaration may excuse, so this must fail.
+crux_psa_declaration_control(psa_conformance_hidden "" "ecdsa_p256_zero_signature_invalid")
 
 enable_testing()
 add_test(NAME PsaCrypto.Conformance COMMAND psa_conformance)

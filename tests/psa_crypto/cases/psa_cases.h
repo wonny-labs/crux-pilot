@@ -29,9 +29,12 @@
     X(hash_unsupported_algorithm_not_supported)                                                    \
     X(ecdsa_p256_import_is_volatile)                                                               \
     X(ecdsa_p256_verify_hash_known_answer)                                                         \
-    X(ecdsa_p256_wrong_signature_invalid)                                                          \
+    X(ecdsa_p256_flipped_signature_invalid)                                                        \
+    X(ecdsa_p256_zero_signature_invalid)                                                           \
+    X(ecdsa_p256_truncated_signature_rejected)                                                     \
     X(ecdsa_p256_tampered_input_invalid)                                                           \
-    X(ecdsa_p256_invalid_public_key_rejected)                                                      \
+    X(ecdsa_p256_off_curve_import_rejected)                                                        \
+    X(ecdsa_p256_missing_prefix_import_rejected)                                                   \
     X(ecdsa_p256_off_curve_key_never_verifies)                                                     \
     X(ecdsa_p256_key_policy_not_permitted)                                                         \
     X(pbkdf2_hmac_sha256_known_answer_rfc7914)                                                     \
@@ -42,6 +45,7 @@
     X(kdf_unsupported_algorithm_not_supported)                                                     \
     X(destroyed_key_is_invalid_handle)                                                             \
     X(hmac_sha256_known_answer)                                                                    \
+    X(hmac_sha256_empty_input_known_answer)                                                        \
     X(hmac_sha256_buffer_too_small)                                                                \
     X(hmac_key_policy_not_permitted)                                                               \
     X(pbkdf2_longest_password_known_answer)                                                        \
@@ -99,6 +103,6 @@ void psa_case_print_random_probe(void);
 #define PSA_CASE_COUNT (0 PSA_CASE_LIST(PSA_CASE_ONE))
 
 /* Harnesses compare against this so dropping a case from the list is noticed. */
-#define PSA_CASE_EXPECTED_COUNT 41
+#define PSA_CASE_EXPECTED_COUNT 45
 
 #endif

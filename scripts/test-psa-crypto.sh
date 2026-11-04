@@ -47,9 +47,12 @@ board='mimxrt1060_evk@B//qspi'
 native_board='native_sim/native/64'
 
 # Case counts, so a run that silently shrinks fails. Host runs the cases, and Zephyr adds a list check.
-case_count=41
-tf_unsupported=3
-wolf_deviations=2
+case_count=45
+tf_unsupported=(ed25519_generate_export_forms ed25519_generated_key_signs_and_verifies ed25519_known_answer_rfc8032)
+wolf_deviations=(ecdsa_p256_off_curve_import_rejected ecdsa_p256_zero_signature_invalid)
+# UBSan reports inside the wolfSSL sources under wolfPSA's standalone Host settings. Pinned, so that a new
+# one is seen. See the qualification record.
+wolf_ubsan_reports=4
 
 fail() {
     printf 'FAIL: %s\n' "$*" >&2
@@ -103,10 +106,18 @@ check_pins() {
 }
 
 # The result has the expected counts, and nothing failed. Reports the summary line.
-check_host_result() { # file, unsupported, deviations
+check_host_result() { # file, number unsupported, number of deviations
     local want="$case_count cases, 0 failed, $2 declared unsupported, $3 declared deviations"
     grep -qxF "$want" "$1" || fail "$1 does not end with: $want"
     printf '%s: %s\n' "$(basename "$1" .txt)" "$want"
+}
+
+# Exactly these cases have this result. Names are in sorted order.
+check_case_names() { # file, result word, names
+    local file="$1" word="$2" actual
+    shift 2
+    actual="$({ grep "^$word " "$file" || true; } | awk '{print $2}' | sed 's/:$//' | sort | tr '\n' ' ')"
+    [[ "$actual" == "${*:+$* }" ]] || fail "$file: expected $word for: $*. Got: $actual"
 }
 
 host_configure() { # build name, then CMake options
@@ -132,9 +143,16 @@ check_host_random_differs() { # program, name
 }
 
 # Without declarations a provider's declared gaps must show as failures, and a declaration on a passing
-# case must fail. provider_declarations.cmake then only states what a run does.
+# case must fail. A declared deviation must not excuse a provider that accepts what the case refuses.
+# provider_declarations.cmake then only states what a run does.
 check_declaration_controls() { # build name
     local build="$out/$1"
+    if "$build/psa_conformance_hidden" > "$out/$1-hidden.txt"; then
+        fail "$1: a declared deviation hid a failure"
+    fi
+    grep -q '^FAIL ecdsa_p256_zero_signature_invalid: ' "$out/$1-hidden.txt" ||
+        fail "$1: a declared deviation excused an accepted all-zero signature"
+    printf 'control ok: %s: a declared deviation covers only the status it names\n' "$1"
     if "$build/psa_conformance_stale" > "$out/$1-stale.txt"; then
         fail "$1: a stale declaration went unnoticed"
     fi
@@ -143,21 +161,21 @@ check_declaration_controls() { # build name
     printf 'control ok: %s: a stale declaration fails\n' "$1"
 }
 
-check_undeclared() { # build name, expected number of failures, text every failure must contain
-    local build="$out/$1" count
-    if "$build/psa_conformance_undeclared" > "$out/$1-undeclared.txt"; then
-        fail "$1: a gap passed without a declaration"
+check_undeclared() { # build name, text every failure must contain, names
+    local name="$1" text="$2" log="$out/$1-undeclared.txt"
+    shift 2
+    if "$out/$name/psa_conformance_undeclared" > "$log"; then
+        fail "$name: a gap passed without a declaration"
     fi
-    count="$(grep -c '^FAIL' "$out/$1-undeclared.txt" || true)"
-    [[ "$count" == "$2" ]] || fail "$1: expected $2 failures without declarations, got $count"
-    if grep '^FAIL' "$out/$1-undeclared.txt" | grep -vF "$3"; then
-        fail "$1: an unexpected failure without declarations"
+    check_case_names "$log" FAIL "$@"
+    if grep '^FAIL' "$log" | grep -vF "$text"; then
+        fail "$name: an unexpected failure without declarations"
     fi
-    printf 'control ok: %s: without declarations, %s cases fail\n' "$1" "$2"
+    printf 'control ok: %s: without declarations, exactly %s cases fail\n' "$name" "$#"
 }
 
 run_host() {
-    local passed allowed
+    local reports
     mkdir -p "$out"
 
     # Control 1: with no provider selected the cases cannot be configured.
@@ -167,15 +185,15 @@ run_host() {
     grep -q 'CRUX_PSA_PROVIDER is not set' "$out/none.log"
     printf 'control ok: no provider selected fails to configure\n'
 
-    # Control 2: a provider that supports nothing fails every case.
+    # Control 2: a provider that initialises and supports nothing else may pass only the cases that
+    # expect it to say so.
     host_configure stub-unsupported -DCRUX_PSA_PROVIDER=stub-unsupported > /dev/null
     if "$out/stub-unsupported/psa_conformance" > "$out/stub-unsupported.txt"; then
         fail 'the unsupported stub passed the cases'
     fi
-    if grep -q '^PASS' "$out/stub-unsupported.txt"; then
-        fail 'a case passed against the unsupported stub'
-    fi
-    printf 'control ok: unsupported stub fails every case\n'
+    check_case_names "$out/stub-unsupported.txt" PASS hash_unsupported_algorithm_not_supported \
+        init_is_idempotent kdf_unsupported_algorithm_not_supported
+    printf 'control ok: unsupported stub fails every case that needs an algorithm\n'
 
     # Control 3: a provider that accepts everything may pass only the positive
     # cases whose expected status is success.
@@ -183,9 +201,7 @@ run_host() {
     if "$out/stub-permissive/psa_conformance" > "$out/stub-permissive.txt"; then
         fail 'the permissive stub passed the cases'
     fi
-    passed="$({ grep '^PASS' "$out/stub-permissive.txt" || true; } | awk '{print $2}' | sort | tr '\n' ' ')"
-    allowed='ecdsa_p256_verify_hash_known_answer init_is_idempotent '
-    [[ "$passed" == "$allowed" ]] || fail "unexpected cases passed against the permissive stub: $passed"
+    check_case_names "$out/stub-permissive.txt" PASS ecdsa_p256_verify_hash_known_answer init_is_idempotent
     printf 'control ok: permissive stub fails every case that expects an error status\n'
 
     # Control 4: a declaration cannot hide a gap, and cannot go stale.
@@ -199,13 +215,15 @@ run_host() {
     # The real providers, without and with sanitizers.
     host_configure tf-psa-crypto -DCRUX_PSA_PROVIDER=tf-psa-crypto > /dev/null
     "$out/tf-psa-crypto/psa_conformance" > "$out/tf-psa-crypto.txt" || { cat "$out/tf-psa-crypto.txt"; fail 'TF-PSA-Crypto on Host'; }
-    check_host_result "$out/tf-psa-crypto.txt" "$tf_unsupported" 0
+    check_host_result "$out/tf-psa-crypto.txt" "${#tf_unsupported[@]}" 0
+    check_case_names "$out/tf-psa-crypto.txt" UNSUPPORTED "${tf_unsupported[@]}"
+    check_case_names "$out/tf-psa-crypto.txt" DEVIATION
     check_host_random_differs "$out/tf-psa-crypto/psa_conformance" tf-psa-crypto
-    check_undeclared tf-psa-crypto "$tf_unsupported" 'does not declare that'
+    check_undeclared tf-psa-crypto 'does not declare that' "${tf_unsupported[@]}"
 
     host_configure tf-psa-crypto-sanitize -DCRUX_PSA_PROVIDER=tf-psa-crypto "${sanitize_options[@]}" > /dev/null
     UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 "$out/tf-psa-crypto-sanitize/psa_conformance" > "$out/tf-psa-crypto-sanitize.txt" || { cat "$out/tf-psa-crypto-sanitize.txt"; fail 'TF-PSA-Crypto on Host with sanitizers'; }
-    check_host_result "$out/tf-psa-crypto-sanitize.txt" "$tf_unsupported" 0
+    check_host_result "$out/tf-psa-crypto-sanitize.txt" "${#tf_unsupported[@]}" 0
 
     if [[ "$scope" != all ]]; then
         printf 'not run: wolfPSA on Host, because this run is limited to %s\n' "$scope"
@@ -213,19 +231,24 @@ run_host() {
     fi
     host_configure wolfpsa "${wolf_options[@]}" > /dev/null
     "$out/wolfpsa/psa_conformance" > "$out/wolfpsa.txt" || { cat "$out/wolfpsa.txt"; fail 'wolfPSA on Host'; }
-    check_host_result "$out/wolfpsa.txt" 0 "$wolf_deviations"
+    check_host_result "$out/wolfpsa.txt" 0 "${#wolf_deviations[@]}"
+    check_case_names "$out/wolfpsa.txt" DEVIATION "${wolf_deviations[@]}"
+    check_case_names "$out/wolfpsa.txt" UNSUPPORTED
     check_host_random_differs "$out/wolfpsa/psa_conformance" wolfpsa
-    check_undeclared wolfpsa "$wolf_deviations" 'psa_cases.c'
+    check_undeclared wolfpsa 'psa_cases.c' "${wolf_deviations[@]}"
 
     host_configure wolfpsa-sanitize "${wolf_options[@]}" "${sanitize_options[@]}" > /dev/null
     # UBSan reports inside the wolfSSL sources are recorded and do not halt: see the qualification
     # record. AddressSanitizer still ends the run on an error.
     "$out/wolfpsa-sanitize/psa_conformance" > "$out/wolfpsa-sanitize.txt" 2> "$out/wolfpsa-sanitize-reports.txt" || { cat "$out/wolfpsa-sanitize.txt" "$out/wolfpsa-sanitize-reports.txt"; fail 'wolfPSA on Host with sanitizers'; }
-    check_host_result "$out/wolfpsa-sanitize.txt" 0 "$wolf_deviations"
+    check_host_result "$out/wolfpsa-sanitize.txt" 0 "${#wolf_deviations[@]}"
     if grep -E 'runtime error|ERROR: AddressSanitizer' "$out/wolfpsa-sanitize-reports.txt" | grep -v '/modules/crypto/wolfssl/'; then
         fail 'a sanitizer report outside the wolfSSL sources'
     fi
-    grep -c 'runtime error' "$out/wolfpsa-sanitize-reports.txt" | sed 's/^/wolfSSL UBSan reports, recorded: /' || true
+    reports="$(grep -c 'runtime error' "$out/wolfpsa-sanitize-reports.txt" || true)"
+    [[ "$reports" == "$wolf_ubsan_reports" ]] ||
+        fail "expected $wolf_ubsan_reports UBSan reports inside wolfSSL, got $reports: review them and the record"
+    printf 'wolfSSL UBSan reports, as pinned: %s\n' "$reports"
 }
 
 # native_sim entropy is declared test-only, and this keeps that declaration honest. The source warns
@@ -268,14 +291,25 @@ run_zephyr() {
     mkdir -p "$out"
     (cd "$workspace" && west twister -j "$jobs" -p "$native_board" -T "$zephyr_source" \
         -O "$report" --inline-logs --tag "$tag")
-    python3 - "$report/twister.json" "$expected" <<'PY'
+    python3 - "$report/twister.json" "$expected" "$case_count" <<'PY'
 import json, sys
 suites = json.load(open(sys.argv[1]))["testsuites"]
 names = sorted(s["name"] for s in suites)
 if len(names) != int(sys.argv[2]) or any(s["status"] != "passed" for s in suites):
     sys.exit(f"expected {sys.argv[2]} passed configurations, got {[(s['name'], s['status']) for s in suites]}")
+# Ztest shows a declared gap or deviation as skipped, so a passed suite says nothing about which.
+expected = {
+    "tf_psa_crypto": {"test_ed25519_generate_export_forms", "test_ed25519_generated_key_signs_and_verifies",
+                      "test_ed25519_known_answer_rfc8032"},
+    "wolfpsa": {"test_ecdsa_p256_off_curve_import_rejected", "test_ecdsa_p256_zero_signature_invalid"},
+    "wolfpsa_with_tls": {"test_ecdsa_p256_off_curve_import_rejected", "test_ecdsa_p256_zero_signature_invalid"},
+}
 for s in suites:
     states = [t["status"] for t in s["testcases"]]
+    skipped = {t["identifier"].rsplit(".", 1)[-1] for t in s["testcases"] if t["status"] != "passed"}
+    want = expected[s["name"].rsplit(".", 1)[-1]]
+    if skipped != want or set(states) - {"passed", "skipped"} or len(states) != int(sys.argv[3]) + 1:
+        sys.exit(f"{s['name']}: expected {sorted(want)} skipped of {int(sys.argv[3]) + 1}, got {sorted(skipped)} of {len(states)}")
     print(s["name"], {k: states.count(k) for k in sorted(set(states))})
 PY
     [[ "$scope" == all ]] || printf 'not run: wolfPSA on native_sim, because this run is limited to %s\n' "$scope"
@@ -302,6 +336,7 @@ run_target() {
         config="$build/zephyr/.config"
         grep -qx 'CONFIG_ENTROPY_MCUX_TRNG=y' "$config" || fail "$provider: the RT1060 entropy driver is not selected"
         ! grep -q '^CONFIG_FAKE_ENTROPY_NATIVE_SIM=y' "$config" || fail "$provider: a test entropy source on the target"
+        ! grep -q '^CONFIG_TEST_RANDOM_GENERATOR=y' "$config" || fail "$provider: a non-random generator is allowed on the target"
         ! grep -q '^CONFIG_CRYPTO_MCUX_DCP=y' "$config" || fail "$provider: DCP is on, so the unsupported declaration needs review"
         python3 - "$build/zephyr/zephyr.dts" <<'PY'
 import re, sys

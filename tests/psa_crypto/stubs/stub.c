@@ -3,8 +3,9 @@
  *
  * Neither stub is a provider. They exist so the cases can be shown to fail
  * before a real provider is wired in:
- *   - CRUX_PSA_STUB_PERMISSIVE=0: every call returns PSA_ERROR_NOT_SUPPORTED.
- *     Every case must fail.
+ *   - CRUX_PSA_STUB_PERMISSIVE=0: initialisation succeeds and every other call returns
+ *     PSA_ERROR_NOT_SUPPORTED, so each case reaches what it tests. Only the cases that expect that
+ *     status may pass.
  *   - CRUX_PSA_STUB_PERMISSIVE=1: every call returns PSA_SUCCESS with zeroed
  *     output. Every case that expects an error status must fail.
  * Only the PSA API headers of the provider tree are used; none of its sources
@@ -28,7 +29,7 @@
 
 psa_status_t psa_crypto_init(void)
 {
-    return STUB_STATUS;
+    return PSA_SUCCESS;
 }
 
 psa_status_t psa_generate_random(uint8_t *output, size_t output_size)

@@ -29,14 +29,16 @@ function(crux_psa_tf_psa_crypto_source out_dir)
 endfunction()
 
 # Adds the provider as the static library target tfpsacrypto, built as upstream configures it, with
-# none of Crux's warning options. Generated files are already present at this pin.
+# none of Crux's warning options. Generated files are already present at this pin. These are normal
+# variables in this function's scope, which upstream's option() calls honour, so a project that also
+# has an option called ENABLE_TESTING keeps its own value.
 function(crux_psa_tf_psa_crypto_add)
     crux_psa_tf_psa_crypto_source(source_dir)
-    set(ENABLE_PROGRAMS OFF CACHE BOOL "" FORCE)
-    set(ENABLE_TESTING OFF CACHE BOOL "" FORCE)
-    set(GEN_FILES OFF CACHE BOOL "" FORCE)
-    set(TF_PSA_CRYPTO_FATAL_WARNINGS OFF CACHE BOOL "" FORCE)
-    set(USE_STATIC_TF_PSA_CRYPTO_LIBRARY ON CACHE BOOL "" FORCE)
-    set(USE_SHARED_TF_PSA_CRYPTO_LIBRARY OFF CACHE BOOL "" FORCE)
+    set(ENABLE_PROGRAMS OFF)
+    set(ENABLE_TESTING OFF)
+    set(GEN_FILES OFF)
+    set(TF_PSA_CRYPTO_FATAL_WARNINGS OFF)
+    set(USE_STATIC_TF_PSA_CRYPTO_LIBRARY ON)
+    set(USE_SHARED_TF_PSA_CRYPTO_LIBRARY OFF)
     add_subdirectory("${source_dir}" tf-psa-crypto EXCLUDE_FROM_ALL)
 endfunction()
