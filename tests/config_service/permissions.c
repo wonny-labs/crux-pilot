@@ -15,8 +15,11 @@ static void expect_listing(crux_access_session_t session, const char *const *nam
         CHECK(strcmp(item.name, names[i]) == 0);
     }
     crux_config_service_item_t item = {.name = "untouched"};
+    /* The end says nothing about how many entries the table has beyond what was shown. */
+    size_t before_end = cursor;
     CHECK(crux_config_service_next(session, &cursor, &item) == CRUX_CONFIG_SERVICE_END);
     CHECK(strcmp(item.name, "untouched") == 0);
+    CHECK(cursor == before_end);
     /* The end stays the end. */
     CHECK(crux_config_service_next(session, &cursor, &item) == CRUX_CONFIG_SERVICE_END);
 }
@@ -160,6 +163,14 @@ static void read_rows(void)
     access_fake_events_clear();
     CHECK(READ(s_stranger, "no_such_name") == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
     CHECK(READ(s_both, "no_such_name") == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+    /* A name matches whole: not a prefix of a key, or a key with more after it. */
+    CHECK(READ(s_both, "host") == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+    CHECK(READ(s_both, "host_name_more") == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+    CHECK(READ(s_both, "") == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+    CHECK(update_text(s_both, "host", "x") == CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
+    crux_config_value_t unread = {.type = CRUX_CONFIG_BOOL};
+    CHECK(crux_config_service_try_read("host", &unread, text, sizeof(text)) ==
+          CRUX_CONFIG_SERVICE_ERR_NOT_FOUND);
     CHECK(access_fake_event_count() == 0);
 
     /* Read only: the value. */
@@ -345,8 +356,9 @@ static void save_permission(void)
     CHECK(crux_config_service_save(s_saver, NULL) == CRUX_CONFIG_SERVICE_ERR_INVALID_ARGUMENT);
     CHECK(config_fault_writes() == writes);
 
+    /* It saved a parameter this session cannot see, so its report counts none. */
     CHECK(crux_config_service_save(s_saver, &report) == CRUX_CONFIG_SERVICE_OK);
-    CHECK(report.saved == 1 && report.failed_name == NULL);
+    CHECK(report.saved == 0 && report.failed_name == NULL);
     CHECK(config_fault_writes() == writes + 1);
 }
 
@@ -472,9 +484,9 @@ static void table_bound(void)
     snprintf(name, sizeof(name), "p%02d", CRUX_CONFIG_SERVICE_MAX - 1);
     CHECK(update_text(s_both, name, "1") == CRUX_CONFIG_SERVICE_OK);
     crux_config_service_save_report_t report;
-    CHECK(crux_config_service_save(s_saver, &report) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(crux_config_service_save(s_admin, &report) == CRUX_CONFIG_SERVICE_OK);
     CHECK(report.saved == 1);
-    CHECK(crux_config_service_save(s_saver, &report) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(crux_config_service_save(s_admin, &report) == CRUX_CONFIG_SERVICE_OK);
     CHECK(report.saved == 0);
 }
 

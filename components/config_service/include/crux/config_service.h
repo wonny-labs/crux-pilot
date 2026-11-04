@@ -85,11 +85,18 @@ typedef struct {
     bool unsaved;  /**< Accepted update since the last acknowledged save. False unless writable. */
 } crux_config_service_item_t;
 
-/** What a save did. Parameters saved before a failure stay saved: there is no atomicity. */
+/**
+ * What a save did. Parameters saved before a failure stay saved: there is no atomicity. A session's
+ * report tells it only what it may see, and an application's report tells it everything.
+ */
 typedef struct {
-    size_t saved;
-    const char *failed_name; /**< NULL if every save succeeded. */
-    crux_config_result_t failed_result;
+    size_t saved; /**< For a session, only those it can read or write, which can be fewer. */
+    /**
+     * NULL if every save succeeded, and also if the session cannot read or write the parameter that
+     * failed. So test the result, and not this, to learn whether a save failed.
+     */
+    const char *failed_name;
+    crux_config_result_t failed_result; /**< CRUX_CONFIG_OK if every save succeeded. */
 } crux_config_service_save_report_t;
 
 /**
@@ -117,7 +124,8 @@ crux_config_service_result_t crux_config_service_start(const crux_config_service
  * returns CRUX_CONFIG_SERVICE_ERR_BUSY with the cursor unchanged.
  *
  * @param session Session asking.
- * @param[in,out] cursor Starts at zero. Unchanged unless the result is OK or END.
+ * @param[in,out] cursor Starts at zero. Unchanged unless the result is CRUX_CONFIG_SERVICE_OK. It
+ * counts entries this session cannot see, so an adapter keeps it and never sends it to a client.
  * @param[out] item Unchanged unless the result is CRUX_CONFIG_SERVICE_OK.
  * @retval CRUX_CONFIG_SERVICE_OK An item was copied.
  * @retval CRUX_CONFIG_SERVICE_END No more parameters.
@@ -189,6 +197,12 @@ crux_config_service_result_t crux_config_service_update(crux_access_session_t se
  * storage, so it runs on a worker, SSH session or console thread and never on the HTTP server
  * thread. A failed save may already have changed stored bytes, so its mark stays on.
  *
+ * It writes every marked parameter, including those this session cannot see and those the
+ * application marked with crux_config_service_try_update(). Its events name them all, for the
+ * operator. Its report does not: a parameter the session cannot read or write stays out of
+ * report.saved and report.failed_name, as it stays out of a listing. The session still learns from
+ * CRUX_CONFIG_SERVICE_ERR_STORE and report.failed_result that some save failed.
+ *
  * @param session Session asking.
  * @param[out] report Set whenever the session is permitted and the report is present.
  * @retval CRUX_CONFIG_SERVICE_OK Every unsaved parameter was saved, which may be none.
@@ -197,8 +211,8 @@ crux_config_service_result_t crux_config_service_update(crux_access_session_t se
  * @retval CRUX_CONFIG_SERVICE_ERR_SESSION_INVALID Never valid, ended or expired.
  * @retval CRUX_CONFIG_SERVICE_ERR_DENIED The session lacks the permission.
  * @retval CRUX_CONFIG_SERVICE_ERR_BUSY Another save held the lock throughout the wait.
- * @retval CRUX_CONFIG_SERVICE_ERR_STORE A save failed. The report names it, and with no provider
- * its result is CRUX_CONFIG_ERR_NOT_SUPPORTED.
+ * @retval CRUX_CONFIG_SERVICE_ERR_STORE A save failed. The report names it if the session can see
+ * it, and with no provider its result is CRUX_CONFIG_ERR_NOT_SUPPORTED.
  */
 crux_config_service_result_t crux_config_service_save(crux_access_session_t session,
                                                       crux_config_service_save_report_t *report);
@@ -242,7 +256,8 @@ crux_config_service_result_t crux_config_service_try_update(const char *name,
 
 /**
  * Save for the owning application, on a thread that may wait on storage. No session, no permission
- * and no event. Otherwise as crux_config_service_save(), so table order decides what is saved last.
+ * and no event. Otherwise as crux_config_service_save(), so table order decides what is saved last,
+ * except that its report counts and names everything, because the application owns the table.
  *
  * @param[out] report Set unless it is missing.
  * @retval CRUX_CONFIG_SERVICE_OK Every unsaved parameter was saved, which may be none.

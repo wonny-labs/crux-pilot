@@ -124,7 +124,8 @@ crux_status_t crux_mgmt_status_start(const crux_mgmt_status_config_t *config);
  * CRUX_ERR_BUSY. A list spans several calls, so its items are not one instant.
  *
  * @param session Session asking, checked on each call.
- * @param[in,out] cursor Starts at zero. Unchanged unless the result is CRUX_OK or CRUX_ERR_NO_DATA.
+ * @param[in,out] cursor Starts at zero. Unchanged unless the result is CRUX_OK. It counts items
+ * this session cannot see, so an adapter keeps it and never sends it to a client.
  * @param[out] entry Unchanged unless the result is CRUX_OK. Its own status can be a failure.
  * @retval CRUX_OK An entry was copied.
  * @retval CRUX_ERR_NO_DATA No more items.

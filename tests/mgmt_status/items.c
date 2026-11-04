@@ -18,8 +18,11 @@ static void expect_order(crux_access_session_t session, const char *const *names
         CHECK(strcmp(entry.name, names[i]) == 0);
     }
     crux_mgmt_status_entry_t entry = {.name = "untouched"};
+    /* The end says nothing about how many items there are beyond what was shown. */
+    size_t before_end = cursor;
     CHECK(crux_mgmt_status_next(session, &cursor, &entry) == CRUX_ERR_NO_DATA);
     CHECK(strcmp(entry.name, "untouched") == 0);
+    CHECK(cursor == before_end);
     /* The end stays the end. */
     CHECK(crux_mgmt_status_next(session, &cursor, &entry) == CRUX_ERR_NO_DATA);
 }
@@ -201,6 +204,29 @@ static void per_entry_failures(void)
     status_fake_events(true, CRUX_ERR_IO, counts);
     expect_failed_item(s_viewer, "security.events_emitted", CRUX_ERR_IO);
     expect_failed_item(s_viewer, "security.events_log_errors", CRUX_ERR_IO);
+}
+
+/* A provider is code in the image, but an answer out of range does not reach a client. It also
+ * must not spill into the other item's part of the published word. */
+static void out_of_range_answers(void)
+{
+    fixture_start();
+    const int values[] = {5, 7, 8, 99, 1000};
+    for (size_t i = 0; i < sizeof(values) / sizeof(values[0]); ++i) {
+        status_fake_clock(CRUX_OK, CRUX_MGMT_STATUS_CLOCK_MANUAL);
+        // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange): refused by contract
+        status_fake_system(CRUX_OK, CRUX_OK, (crux_watchdog_state_t)values[i]);
+        status_fake_advance_ms(CRUX_MGMT_STATUS_REFRESH_MS);
+        expect_failed_item(s_viewer, "system.watchdog_state", CRUX_ERR_IO);
+        expect_text_item(s_viewer, "system.clock", "manual");
+
+        status_fake_system(CRUX_OK, CRUX_OK, CRUX_WATCHDOG_IDLE);
+        // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange): refused by contract
+        status_fake_clock(CRUX_OK, (crux_mgmt_status_clock_t)values[i]);
+        status_fake_advance_ms(CRUX_MGMT_STATUS_REFRESH_MS);
+        expect_failed_item(s_viewer, "system.clock", CRUX_ERR_IO);
+        expect_text_item(s_viewer, "system.watchdog_state", "idle");
+    }
 }
 
 static void network_partial_answers(void)
@@ -430,6 +456,7 @@ static void filtering(void)
     size_t cursor = 0;
     crux_mgmt_status_entry_t entry;
     CHECK(crux_mgmt_status_next(s_none, &cursor, &entry) == CRUX_ERR_NO_DATA);
+    CHECK(cursor == 0);
     CHECK(status_fake_system_reads() == 0);
     CHECK(status_fake_clock_reads() == 0);
     CHECK(status_fake_net_reads() == 0);
@@ -610,12 +637,10 @@ static void start_refusals(void)
     REFUSES_ITEM("app.a", long_permission, project_read);
     REFUSES_ITEM("app.a", "app.read", NULL);
 
-    /* A duplicate, and too many. */
+    /* A duplicate. */
     items[0] = valid;
     items[1] = valid;
     config.project_item_count = 2;
-    CHECK(refused_start(config) == CRUX_ERR_INVALID_ARGUMENT);
-    config.project_item_count = CRUX_MGMT_STATUS_PROJECT_ITEMS_MAX + 1u;
     CHECK(refused_start(config) == CRUX_ERR_INVALID_ARGUMENT);
 
     /* The longest name and a 63-byte version are fine. A corrected table can still start. */
@@ -638,11 +663,46 @@ static void start_refusals(void)
 #undef REFUSES_ITEM
 }
 
+static crux_status_t bound_read(void *context, crux_mgmt_status_value_t *out)
+{
+    (void)context;
+    out->type = CRUX_MGMT_STATUS_U32;
+    return CRUX_OK;
+}
+
+/* One over the bound with every name valid and different, so that the bound is what refuses it. */
+static void project_table_bound(void)
+{
+    fixture_boot();
+    static crux_mgmt_status_item_t items[CRUX_MGMT_STATUS_PROJECT_ITEMS_MAX + 1u];
+    static char names[CRUX_MGMT_STATUS_PROJECT_ITEMS_MAX + 1u][8];
+    for (size_t i = 0; i < CRUX_MGMT_STATUS_PROJECT_ITEMS_MAX + 1u; ++i) {
+        snprintf(names[i], sizeof(names[i]), "app.%02zu", i);
+        items[i] = (crux_mgmt_status_item_t){names[i], "app.read", bound_read, NULL};
+    }
+    crux_mgmt_status_config_t config = fixture_config();
+    config.project_items = items;
+    config.project_item_count = CRUX_MGMT_STATUS_PROJECT_ITEMS_MAX + 1u;
+    CHECK(crux_mgmt_status_start(&config) == CRUX_ERR_INVALID_ARGUMENT);
+
+    /* Exactly the bound starts, and each is listed. */
+    config.project_item_count = CRUX_MGMT_STATUS_PROJECT_ITEMS_MAX;
+    CHECK(crux_mgmt_status_start(&config) == CRUX_OK);
+    size_t cursor = 0;
+    size_t count = 0;
+    crux_mgmt_status_entry_t entry;
+    while (crux_mgmt_status_next(s_app, &cursor, &entry) == CRUX_OK) {
+        ++count;
+    }
+    CHECK(count == CRUX_MGMT_STATUS_PROJECT_ITEMS_MAX);
+}
+
 int main(void)
 {
     run_case("builtin values", builtin_values);
     run_case("clock and watchdog words", clock_and_watchdog_words);
     run_case("per entry failures", per_entry_failures);
+    run_case("out of range answers", out_of_range_answers);
     run_case("network partial answers", network_partial_answers);
     run_case("credential words are checked", credential_words_are_checked);
     run_case("reset cause as captured", reset_cause_as_captured);
@@ -657,5 +717,6 @@ int main(void)
     run_case("idle timer is not touched", idle_timer_is_not_touched);
     run_case("access not ready", access_not_ready);
     run_case("start refusals", start_refusals);
+    run_case("project table bound", project_table_bound);
     return suite_finish("MgmtStatus.items");
 }

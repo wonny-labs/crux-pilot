@@ -32,6 +32,8 @@ endfunction()
 foreach(suite IN ITEMS permissions values save concurrency)
     crux_config_service_suite(${suite})
 endforeach()
+# It reads the update's candidate from where that goes into the mechanism.
+target_link_options(config_service_values PRIVATE -Wl,--wrap=crux_config_update)
 
 add_executable(config_service_lock_faults lock_faults.c access_double.c ${CRUX_CONFIG_SERVICE_SOURCE})
 target_link_libraries(config_service_lock_faults PRIVATE crux_config_service_api

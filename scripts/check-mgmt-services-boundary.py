@@ -6,6 +6,8 @@
 - The status service never reads the reset cause, or arms or feeds a watchdog (decision C8).
 - The configuration service never loads a parameter, and no fake is reachable from a product build,
   which the consumer project in tests/mgmt_services_consumer checks when it configures.
+- The status service links the character rule's library and not the mechanism, because a link that
+  takes a whole archive would otherwise need a Configuration provider.
 """
 from pathlib import Path
 import re
@@ -64,8 +66,21 @@ def call_errors():
     return errors
 
 
+def link_errors():
+    path = REPO / "components/mgmt_status/CMakeLists.txt"
+    lines = [line for line in path.read_text(encoding="utf-8").splitlines()
+             if not line.lstrip().startswith("#")]
+    text = "\n".join(lines)
+    errors = []
+    if "crux_configuration_text" not in text:
+        errors.append(f"{path.relative_to(REPO)}: must link crux_configuration_text")
+    if re.search(r"crux::configuration\b|\bcrux_configuration\b", text):
+        errors.append(f"{path.relative_to(REPO)}: must not link the Configuration mechanism")
+    return errors
+
+
 def main():
-    errors = header_errors() + call_errors()
+    errors = header_errors() + call_errors() + link_errors()
     for error in errors:
         print(error, file=sys.stderr)
     if errors:

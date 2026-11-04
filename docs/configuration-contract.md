@@ -31,10 +31,17 @@ Owner `components/configuration/include/crux/configuration.h`; public usage targ
 Native-provider ports and injected test controls remain private.
 
 ```c
-typedef enum { CRUX_CONFIG_BOOL = 1, CRUX_CONFIG_U32 = 2 } crux_config_type_t;
+#ifndef CRUX_CONFIG_STRING_MAX
+#define CRUX_CONFIG_STRING_MAX 128
+#endif
+typedef enum { CRUX_CONFIG_BOOL = 1, CRUX_CONFIG_U32 = 2, CRUX_CONFIG_STRING = 3 } crux_config_type_t;
 typedef struct {
     crux_config_type_t type;
-    union { bool boolean; uint32_t u32; } data;
+    union {
+        bool boolean;
+        uint32_t u32;
+        struct { const char *text; size_t length; } string;
+    } data;
 } crux_config_value_t;
 typedef bool (*crux_config_validator_t)(const crux_config_value_t *candidate,
                                         void *context);
@@ -49,6 +56,8 @@ typedef struct {
     /* Caller storage; fields reserved to the implementation after init. */
     const crux_config_spec_t *spec;
     crux_config_value_t value;
+    char *storage;
+    size_t capacity;
 } crux_config_param_t;
 typedef enum {
     CRUX_CONFIG_OK = 0,
@@ -64,6 +73,11 @@ typedef enum {
 } crux_config_result_t;
 crux_config_result_t crux_config_init(crux_config_param_t *parameter,
                                      const crux_config_spec_t *spec);
+crux_config_result_t crux_config_init_string(crux_config_param_t *parameter,
+                                             const crux_config_spec_t *spec, char *storage,
+                                             size_t capacity);
+const char *crux_config_key(const crux_config_param_t *parameter);
+bool crux_config_text_valid(const char *text, size_t length);
 crux_config_result_t crux_config_read(const crux_config_param_t *parameter,
                                      crux_config_value_t *out);
 crux_config_result_t crux_config_update(crux_config_param_t *parameter,
@@ -128,10 +142,12 @@ before the application publishes a runtime snapshot; no batch API is implied.
 ## Encoding and provider boundary
 
 Canonical wire format: byte 0 format version 1, byte 1 type, bytes 2–3 application
-schema version in little-endian, followed by BOOL byte 0/1 (total 5 bytes) or U32
-little-endian (total 8 bytes). Reject all other lengths, noncanonical BOOL values,
-type/version mismatches and invalid values. No C-struct padding/endian encoding,
-application CRC/authentication promise or raw-NVS consumer interface.
+schema version in little-endian, followed by BOOL byte 0/1 (total 5 bytes), U32
+little-endian (total 8 bytes) or type 3 STRING text with no terminator (total 4 +
+length bytes). Reject any other length for the parameter's type, including text that
+would not fit its capacity, noncanonical BOOL values, type/version mismatches and
+invalid values. No C-struct padding/endian encoding, application CRC/authentication
+promise or raw-NVS consumer interface.
 
 The shared mechanism calls a composition-selected private read-record/write-record
 port. Reads must distinguish explicit missing, complete record and error, carrying
@@ -147,22 +163,7 @@ or altered backend remains a separate ownership/architecture decision.
 
 ## String parameters
 
-```c
-#ifndef CRUX_CONFIG_STRING_MAX
-#define CRUX_CONFIG_STRING_MAX 128
-#endif
-
-typedef enum { CRUX_CONFIG_BOOL = 1, CRUX_CONFIG_U32 = 2, CRUX_CONFIG_STRING = 3 } crux_config_type_t;
-/* data.string.text and data.string.length join the value's union. bool stays its first member. */
-
-crux_config_result_t crux_config_init_string(crux_config_param_t *parameter,
-                                             const crux_config_spec_t *spec, char *storage,
-                                             size_t capacity);
-const char *crux_config_key(const crux_config_param_t *parameter);
-bool crux_config_text_valid(const char *text, size_t length);
-```
-
-`crux_config_spec_t` does not change, because new fields would break consumers that initialise it by position under `-Wextra -Werror`. `crux_config_param_t` gains private fields. A C++17 consumer sets a string default at run time, because only the first union member takes a brace initialiser and designators are C++20. `tests/configuration_consumer/consumer_string.cpp` shows how.
+The declarations are under [Public data and operations](#public-data-and-operations). `bool` stays the first member of the value's union. `crux_config_spec_t` does not change, because new fields would break consumers that initialise it by position under `-Wextra -Werror`. `crux_config_param_t` gains private fields. A C++17 consumer sets a string default at run time, because only the first union member takes a brace initialiser and designators are C++20. `tests/configuration_consumer/consumer_string.cpp` shows how.
 
 | Rule | Behaviour |
 | --- | --- |
@@ -173,11 +174,13 @@ bool crux_config_text_valid(const char *text, size_t length);
 | Read | `data.string.text` borrows the parameter's storage until the next update or load, unlike a scalar's copy |
 | Update | The rule and the capacity, then the validator, then a copy. A candidate may alias the storage. A rejected update keeps the old value. |
 
-The encoding is the same header, with type 3, followed by the text with no terminator and no separate length, because a record's length comes from the port. An empty string is 4 bytes. BOOL and U32 records stay byte-identical.
+The [encoding](#encoding-and-provider-boundary) is the same header, with type 3, followed by the text with no terminator and no separate length, because a record's length comes from the port. An empty string is 4 bytes. BOOL and U32 records stay byte-identical.
 
 Load keeps the existing rules. A record whose length is under 4, or whose text would not fit `capacity`, is `DEFAULT_REJECTED` from its metadata, with nothing read past the buffer. A failed or short transfer of a valid length stays `IO`. A record that fails the rule is rejected the same way.
 
 `crux_config_load` and `crux_config_save` use `CRUX_CONFIG_STRING_MAX + 5` bytes of stack for every type, and both clear that buffer on every path after it holds a value, by volatile writes that a compiler cannot remove. The simulator Settings provider's own buffer is not cleared, which fits the absence of a confidentiality claim. It holds a 252-byte string at most, and a build check keeps `CRUX_CONFIG_STRING_MAX` at or below that when it is selected.
+
+`crux_config_text_valid` is a library of its own, `crux_configuration_text`, which `crux::configuration` links publicly. A service that shows text can link it alone: a link that takes a whole archive, as Zephyr's does for each library registered with it, would otherwise pull in the mechanism and need a provider.
 
 ## No-provider port
 

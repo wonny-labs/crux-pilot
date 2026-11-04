@@ -249,7 +249,8 @@ public headers, and `scripts/check-mgmt-services-boundary.py`. `ConfigService.*`
 run on the real Access core with its fake ports, the fake Configuration store, a recording event port
 and fake status sources with fault injection per source. `MgmtStatus.openapi_schema` holds the
 service's JSON to the status schema read from `web/api/openapi.yaml`, with negative controls.
-`MgmtStatus.real_sources` runs on the thin providers and the real System, Time and Netif on Linux.
+`MgmtStatus.source_mapping` holds each mapping in the thin providers to a stand-in for the contract it
+calls, and `MgmtStatus.real_sources` runs them on the real System, Time and Netif on Linux.
 
 The storage gate also runs `tests/native/mgmt_services` on `native_sim`, with the real System, Time
 and Sync and a double for access: after any number of status polls,

@@ -51,7 +51,7 @@ static void busy_during_a_held_save(void)
     config_fault_write_hook(hook_during_save, &seen);
 
     crux_config_service_save_report_t report;
-    CHECK(crux_config_service_save(s_saver, &report) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(crux_config_service_save(s_admin, &report) == CRUX_CONFIG_SERVICE_OK);
     CHECK(seen.next == CRUX_CONFIG_SERVICE_ERR_BUSY);
     CHECK(seen.cursor_after_next == 0);
     CHECK(seen.read == CRUX_CONFIG_SERVICE_ERR_BUSY);

@@ -301,6 +301,37 @@ static void report_forms(void)
           CRUX_ERR_INVALID_ARGUMENT);
 }
 
+/* A source that ends the session part of the way through the report. */
+static crux_access_session_t ending_session;
+
+static crux_status_t end_the_session(void *context, crux_mgmt_status_value_t *out)
+{
+    (void)context;
+    crux_access_logout(&ending_session);
+    out->type = CRUX_MGMT_STATUS_U32;
+    return CRUX_OK;
+}
+
+static void report_when_the_session_ends_part_way(void)
+{
+    fixture_boot();
+    static const crux_mgmt_status_item_t items[] = {
+        {"app.first", "app.read", end_the_session, NULL},
+        {"app.second", "app.read", end_the_session, NULL},
+    };
+    crux_mgmt_status_config_t config = fixture_config();
+    config.project_items = items;
+    config.project_item_count = 2;
+    CHECK(crux_mgmt_status_start(&config) == CRUX_OK);
+
+    ending_session = s_app;
+    char out[1024];
+    size_t length = 99;
+    /* Not a shorter list that looks whole. */
+    CHECK(crux_mgmt_status_report_json(s_app, out, sizeof(out), &length) == CRUX_ERR_INVALID_STATE);
+    CHECK(length == 99);
+}
+
 static void report_before_start(void)
 {
     fixture_boot();
@@ -316,6 +347,7 @@ int main(void)
     run_case("refuses what the service cannot produce", refuses_what_the_service_cannot_produce);
     run_case("the promised buffer holds the worst case", the_promised_buffer_holds_the_worst_case);
     run_case("report forms", report_forms);
+    run_case("report when the session ends part way", report_when_the_session_ends_part_way);
     run_case("report before start", report_before_start);
     return suite_finish("MgmtStatus.json");
 }

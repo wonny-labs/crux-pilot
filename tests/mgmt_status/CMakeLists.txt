@@ -43,6 +43,19 @@ if(CRUX_BUILD_TIME AND CRUX_TIME_PROVIDER STREQUAL "memory")
     set_tests_properties(MgmtStatus.real_sources PROPERTIES TIMEOUT 60)
 endif()
 
+# Each thin provider over a stand-in for the contract it calls.
+add_executable(mgmt_status_source_mapping source_mapping.c
+    ../../components/mgmt_status/src/source_system.c
+    ../../components/mgmt_status/src/source_time.c
+    ../../components/mgmt_status/src/source_netif.c
+    ../../components/mgmt_status/src/source_no_security.c)
+target_include_directories(mgmt_status_source_mapping PRIVATE ../../components/mgmt_status/src
+    ../../components/time/include ../../components/netif/include)
+target_link_libraries(mgmt_status_source_mapping PRIVATE crux_mgmt_status_api)
+target_compile_options(mgmt_status_source_mapping PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+add_test(NAME MgmtStatus.source_mapping COMMAND mgmt_status_source_mapping)
+set_tests_properties(MgmtStatus.source_mapping PROPERTIES TIMEOUT 60)
+
 add_executable(mgmt_status_lock_faults lock_faults.c ../config_service/access_double.c)
 target_link_libraries(mgmt_status_lock_faults PRIVATE crux_mgmt_status_core
     crux_mgmt_status_fake_sources crux::sync)

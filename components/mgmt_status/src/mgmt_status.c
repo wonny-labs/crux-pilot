@@ -99,6 +99,10 @@ static size_t project_item_count;
 #define WORD_RESULT_MASK 0xFu
 #define WORD_VALUE_MASK 0x7u
 
+/* A loser of the poll reads the word with no lock and must never wait, so a build whose atomic
+ * falls back on a lock is refused. char32_t is the type of uint_least32_t, which the word uses. */
+_Static_assert(ATOMIC_CHAR32_T_LOCK_FREE == 2, "The snapshot's word must be lock-free");
+
 static crux_mutex_t snapshot_lock;
 static uint64_t snapshot_ms; /* Guarded by the lock. */
 static bool snapshot_taken;  /* Guarded by the lock. */
@@ -482,9 +486,6 @@ crux_status_t crux_mgmt_status_next(crux_access_session_t session, size_t *curso
         *entry = found;
         *cursor = position + 1;
         return CRUX_OK;
-    }
-    if (*cursor < total) {
-        *cursor = total;
     }
     return CRUX_ERR_NO_DATA;
 }

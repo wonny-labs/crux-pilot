@@ -282,6 +282,60 @@ static void parse_buffer_is_cleared(void)
     config_events_hook(NULL, NULL);
 }
 
+/* The update's candidate, seen where it goes into the mechanism, and read from inside the event
+ * that follows while it is still in scope. */
+static const crux_config_value_t *candidate_seen;
+
+// NOLINTBEGIN(bugprone-reserved-identifier): GNU linker wrapping ABI
+crux_config_result_t __real_crux_config_update(crux_config_param_t *parameter,
+                                               const crux_config_value_t *candidate);
+crux_config_result_t __wrap_crux_config_update(crux_config_param_t *parameter,
+                                               const crux_config_value_t *candidate);
+
+crux_config_result_t __wrap_crux_config_update(crux_config_param_t *parameter,
+                                               const crux_config_value_t *candidate)
+{
+    candidate_seen = candidate;
+    return __real_crux_config_update(parameter, candidate);
+}
+// NOLINTEND(bugprone-reserved-identifier)
+
+static void count_candidate_bytes_left(void *context)
+{
+    (void)context;
+    const unsigned char *bytes = (const unsigned char *)candidate_seen;
+    for (size_t i = 0; i < sizeof(*candidate_seen); ++i) {
+        bytes_left += bytes[i] != 0;
+    }
+}
+
+static bool refuse_seven(const crux_config_value_t *value, void *context)
+{
+    (void)context;
+    return value->data.u32 != 7;
+}
+
+static void scalar_candidate_is_cleared(void)
+{
+    fixture_boot();
+    static const crux_config_spec_t spec = {
+        "pin", 1, {.type = CRUX_CONFIG_U32, .data.u32 = 1}, refuse_seven, NULL};
+    static crux_config_param_t parameter;
+    CHECK(crux_config_init(&parameter, &spec) == CRUX_CONFIG_OK);
+    static const crux_config_service_entry_t table[] = {
+        {&parameter, "cfg.read", "cfg.write", true, CRUX_CONFIG_ACTIVATION_APPLICATION}};
+    CHECK(crux_config_service_start(table, 1) == CRUX_CONFIG_SERVICE_OK);
+    config_events_hook(count_candidate_bytes_left, NULL);
+
+    /* After an accepted value, and after a refused one. */
+    CHECK(update_text(s_both, "pin", "12345") == CRUX_CONFIG_SERVICE_OK);
+    CHECK(candidate_seen != NULL);
+    CHECK(bytes_left == 0);
+    CHECK(update_text(s_both, "pin", "7") == CRUX_CONFIG_SERVICE_ERR_REJECTED);
+    CHECK(bytes_left == 0);
+    config_events_hook(NULL, NULL);
+}
+
 static void application_calls(void)
 {
     fixture_start();
@@ -346,6 +400,7 @@ int main(void)
     run_case("string forms", string_forms);
     run_case("sensitive is write-only", sensitive_is_write_only);
     run_case("parse buffer is cleared", parse_buffer_is_cleared);
+    run_case("scalar candidate is cleared", scalar_candidate_is_cleared);
     run_case("application calls", application_calls);
     return suite_finish("ConfigService.values");
 }

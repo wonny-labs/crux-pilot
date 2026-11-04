@@ -24,18 +24,19 @@ extern crux_access_session_t s_saver;    /* config.save only. */
 extern crux_access_session_t s_stranger; /* A permission that nothing here uses. */
 
 /* The table, in order. */
-#define NAME_MODE "mode"           /* BOOL, default false. */
-#define NAME_LIMIT "limit"         /* U32, default 5, validator 1 to 100. */
-#define NAME_WIDE "wide"           /* U32, default 0, no validator. */
-#define NAME_HOST "host_name"      /* STRING, default "crux", rejects text holding "bad". */
-#define NAME_SMALL "small"         /* STRING, default "", capacity 8. */
-#define NAME_SECRET "link_secret"  /* STRING, sensitive. Restart activation. */
-#define NAME_FIXED "fixed"         /* U32, read-only, default 7. Safe state activation. */
+#define NAME_MODE "mode"          /* BOOL, default false. */
+#define NAME_LIMIT "limit"        /* U32, default 5, validator 1 to 100. */
+#define NAME_MIDDLE "middle"      /* U32, in the middle of the table, under no role's permission. */
+#define NAME_WIDE "wide"          /* U32, default 0, no validator. */
+#define NAME_HOST "host_name"     /* STRING, default "crux", rejects text holding "bad". */
+#define NAME_SMALL "small"        /* STRING, default "", capacity 8. */
+#define NAME_SECRET "link_secret" /* STRING, sensitive. Restart activation. */
+#define NAME_FIXED "fixed"        /* U32, read-only, default 7. Safe state activation. */
 #define NAME_PRIVATE "private_key" /* U32, under a permission no role holds. */
-#define TABLE_ENTRIES 8u
+#define TABLE_ENTRIES 9u
 
-extern crux_config_param_t param_mode, param_limit, param_wide, param_host, param_small,
-    param_secret, param_fixed, param_private;
+extern crux_config_param_t param_mode, param_limit, param_middle, param_wide, param_host,
+    param_small, param_secret, param_fixed, param_private;
 extern const crux_config_service_entry_t test_table[TABLE_ENTRIES];
 
 /* Boots access, logs in each account, and initialises each parameter. Does not start the service.

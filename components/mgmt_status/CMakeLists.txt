@@ -5,12 +5,12 @@ target_include_directories(crux_mgmt_status_api INTERFACE include)
 target_link_libraries(crux_mgmt_status_api INTERFACE crux::base crux_access_api crux_system_api)
 
 # The core calls the private source ports in src/mgmt_status_port.h. No provider is linked here, so a
-# product image links only once a composition selects one for each. Configuration is needed for its
-# character rule only, which is an object of its own, so this needs no Configuration provider.
+# product image links only once a composition selects one for each. It needs only the character rule
+# from Configuration, which is a library of its own, so it needs no Configuration provider.
 add_library(crux_mgmt_status_core STATIC src/mgmt_status.c src/mgmt_status_json.c)
 target_include_directories(crux_mgmt_status_core PRIVATE src)
 target_link_libraries(crux_mgmt_status_core PUBLIC crux_mgmt_status_api
-    PRIVATE crux::sync crux::configuration)
+    PRIVATE crux::sync crux_configuration_text)
 target_compile_definitions(crux_mgmt_status_core PRIVATE
     CRUX_MGMT_STATUS_REFRESH_MS=${CRUX_MGMT_STATUS_REFRESH_MS}u)
 target_compile_options(crux_mgmt_status_core PRIVATE -Wall -Wextra -Wpedantic -Werror)

@@ -1,9 +1,12 @@
 /* The status service on the thin providers and the real System, Time and Netif on Linux, with no
- * Configuration provider linked: only the character rule's object is pulled in from that library.
- * The fake sources in the other suites do not show that a provider fits. */
+ * Configuration provider linked: it needs only the character rule's small library. The fake sources
+ * in the other suites do not show that a provider fits, and source_mapping.c holds every mapping
+ * with controlled answers. */
+#include "mgmt_status_port.h"
 #include "status_test.h"
 
 #include <crux/time.h>
+#include <crux/time_authority.h>
 
 /* The shared fixture resets the fakes, which this composition does not have. */
 void status_fake_reset(void)
@@ -56,6 +59,22 @@ static void clock_words(void)
     CHECK(crux_realtime_init() == CRUX_OK);
     CHECK(crux_mgmt_status_start(&config) == CRUX_OK);
     expect_text_item(s_viewer, "system.clock", "unset");
+
+    /* The real authority behind the provider, by each source that can set it. The service answers
+     * from its snapshot, so this asks the provider, which has no rate limit. */
+    const crux_realtime_t now = {CRUX_TIME_MIN_UNIX_SECONDS + 1, 0};
+    static const struct {
+        crux_realtime_source_t source;
+        crux_mgmt_status_clock_t expected;
+    } sources[] = {{CRUX_REALTIME_SOURCE_RTC, CRUX_MGMT_STATUS_CLOCK_RTC},
+                   {CRUX_REALTIME_SOURCE_MANUAL, CRUX_MGMT_STATUS_CLOCK_MANUAL},
+                   {CRUX_REALTIME_SOURCE_EXTERNAL, CRUX_MGMT_STATUS_CLOCK_EXTERNAL}};
+    for (size_t i = 0; i < sizeof(sources) / sizeof(sources[0]); ++i) {
+        CHECK(crux_realtime_set(&now, sources[i].source, false) == CRUX_OK);
+        crux_mgmt_status_clock_t clock = CRUX_MGMT_STATUS_CLOCK_UNSET;
+        CHECK(crux_mgmt_status_port_clock(&clock) == CRUX_OK);
+        CHECK(clock == sources[i].expected);
+    }
 }
 
 int main(void)

@@ -109,6 +109,8 @@ Each operation checks the session first. A permission is always named, and a che
 
 `crux_config_service_save` needs the fixed permission `config.save`, and returns `DENIED` without it. A name that is missing and a name that is hidden both give `NOT_FOUND`, and timing is not equalised. Only a parameter in the table can produce an event, because a name that failed to match is a client's text.
 
+A cursor counts entries the session cannot see, so an adapter keeps it on the server and never sends it to a client. It stays where it was at the end of a list, so that the end does not disclose the size of the table.
+
 ### Text forms
 
 Web and CLI share one parser, so they cannot differ.
@@ -153,6 +155,14 @@ Once a parameter is in a started table, no thread calls `crux_config_read`, `_up
 ### Save
 
 Each `unsaved` parameter is saved in table order, stopping at the first failure. Earlier saves stay saved, there is no atomicity, and the failed one keeps its mark because stored bytes may already have changed. **Table order is therefore how a composition decides what is saved last.** Every accepted update sets the mark, with no comparison of values.
+
+Holding `config.save` does not show a session the table. A session's save writes every marked parameter, and its report follows the rule of a listing:
+
+| What the save touched | `report.saved` | `report.failed_name` | Result and `failed_result` | Events |
+| --- | --- | --- | --- | --- |
+| A parameter the session can read or write | Counted | Its key, if it failed | The failure | Name it |
+| A parameter the session cannot read or write | Not counted | `NULL`, if it failed | The failure, which stays known | Name it, for the operator |
+| Anything, in `crux_config_service_save_local` | Counted | Its key, if it failed | The failure | None |
 
 With no provider, a save returns `ERR_STORE` with `CRUX_CONFIG_ERR_NOT_SUPPORTED` in `failed_result`, and an adapter says that saving is not available. `web/api/openapi.yaml` holds `501` and `not_supported` for this.
 
@@ -233,7 +243,7 @@ Nothing in this PR merges that branch. These three changes connect it, and they 
 | `crux_mgmt_status_port_has_security_events`, `crux_mgmt_status_port_security_events` | `components/mgmt_status/src/source_security_events.c` | `crux_security_event_get_stats`, copying `emitted`, `dropped`, `delivered` and `log_errors` |
 | The `no_security` half for events | `source_no_security.c` splits, so that a composition drops only that half | |
 
-Two draft providers for the first two rows compiled with `-Wall -Wextra -Wpedantic -Werror` against the header at `46ee74e`, the head of #234 in review. They are not committed, so that nothing here breaks if that header changes in review. The drafts pass `crux_access_session_origin`'s source through, which is 0, 4 or 8 bytes for what an adapter gives it.
+Two draft providers for the first two rows compiled with `-Wall -Wextra -Wpedantic -Werror` against the header at `061f197`, the head of #234 in review. They are not committed, so that nothing here breaks if that header changes in review. The drafts pass `crux_access_session_origin`'s source through, which is 0, 4 or 8 bytes for what an adapter gives it.
 
 The same port takes #178: `crux_mgmt_status_port_credential` maps `crux_credential_store_get_info` to the words `unusable`, `empty` or `valid`, `none`, `device_id_key` or `hardware_bound`, and `host_fake`, `software` or `physical`. Tests can then use `crux_security_event_fake` in place of the recording port.
 
@@ -241,9 +251,9 @@ The same port takes #178: `crux_mgmt_status_port_credential` maps `crux_credenti
 
 | Issue | Uses | Notes |
 | --- | --- | --- |
-| #187, web | `crux_mgmt_status_report_json`, or `crux_mgmt_status_next` with `crux_mgmt_status_entry_json` to stream. `crux_config_service_next`, `_read`, `_update`, `_save`. | `web/api/openapi.yaml` holds no configuration routes yet, so adding them is a change under its rule. `read` gives `type`, which chooses the JSON form. A hidden parameter and a missing one are both `404`, and `ERR_BUSY` is `503` with `Retry-After`. A route that may run a slow validator, and every save, runs on the worker. After an update, the response carries `applied.activation` and no value, and a read follows only for a parameter that is not sensitive. |
+| #187, web | `crux_mgmt_status_report_json`, or `crux_mgmt_status_next` with `crux_mgmt_status_entry_json` to stream. `crux_config_service_next`, `_read`, `_update`, `_save`. | `web/api/openapi.yaml` holds no configuration routes yet, so adding them is a change under its rule. `read` gives `type`, which chooses the JSON form. A hidden parameter and a missing one are both `404`, and `ERR_BUSY` is `503` with `Retry-After`. A route that may run a slow validator, and every save, runs on the worker. After an update, the response carries `applied.activation` and no value, and a read follows only for a parameter that is not sensitive. A save's `ERR_STORE` can come with `failed_name` `NULL`, so test the result. A cursor stays on the server: a paged route uses its own opaque token. |
 | #193, CLI over SSH | The same calls through #181's registry, and `crux_mgmt_status_result_name` for an item that failed | `config set` on a sensitive parameter takes its value by prompt, not as an argument. Permitted and refused commands stay the same on serial. |
-| #213, network settings | Its parameters in the composition's table, under a permission no role holds. `crux_config_service_try_read`, `_try_update` and `_save_local`. Its own session check with `crux_access_check`. | Table order puts the check key after the values it covers. `_save_local` saves every marked parameter, so anything else marked is saved with them, and a failure stops there. `failed_result` of `CRUX_CONFIG_ERR_NOT_SUPPORTED` is the state until #16 decides a provider. `_try_*` polls, so it returns `ERR_BUSY` during any save. |
+| #213, network settings | Its parameters in the composition's table, under a permission no role holds. `crux_config_service_try_read`, `_try_update` and `_save_local`. Its own session check with `crux_access_check`. | Table order puts the check key after the values it covers. `_save_local` saves every marked parameter, so anything else marked is saved with them, and a failure stops there. **A session's `crux_config_service_save` also writes these marks, so it can land part way through the set, between two `_try_update` calls, and leave a mixed set stored.** The check key has to catch that as it catches an interrupted save. `failed_result` of `CRUX_CONFIG_ERR_NOT_SUPPORTED` is the state until #16 decides a provider. `_try_*` polls, so it returns `ERR_BUSY` during any save. |
 
 ## Decisions taken for lack of an answer
 
@@ -252,7 +262,9 @@ Each is open to review, and a changed choice is small while nothing depends on i
 | Point | Choice | Reason |
 | --- | --- | --- |
 | The proposal says one `crux_mutex` guards the snapshot, and a caller that loses the poll answers from the previous one | The mutex guards the refresh, and the answer is published as one atomic word | A loser cannot read what the lock holder is writing through the lock it just failed to take. Two words of the same answer cannot tear. It needs a lock-free 32-bit atomic, as #234's counters do. |
-| The character rule in a second component | `crux_config_text_valid` is public in `crux/configuration.h`, in an object of its own, and status links `crux::configuration` privately | One rule cannot differ between components, and the tests share one vector table. This adds a function, and a dependency beyond the proposal's table. A status-only image still needs no Configuration provider, which `MgmtStatus.real_sources` shows. The alternative is a second copy. |
+| The character rule in a second component | `crux_config_text_valid` is public in `crux/configuration.h`, in the library `crux_configuration_text`, and status links that privately | One rule cannot differ between components, and the tests share one vector table. This adds a function, and a dependency beyond the proposal's table. A status-only image needs no Configuration provider, which `MgmtStatus.real_sources` shows. It is a library and not only an object because Zephyr links each library registered with it as a whole archive (`WHOLE_ARCHIVE_LIBS` in Zephyr's `CMakeLists.txt`), so one archive would pull in the mechanism and its port. The test script checks that this archive refers to no port. The alternative is a second copy. |
+| What a save's report tells a session | A session holding `config.save` learns only what it may see: `saved` counts what it can read or write, and `failed_name` is `NULL` for anything else, with `ERR_STORE` and `failed_result` kept. A probe that fails counts as not visible. `crux_config_service_save_local` is unchanged. | **The proposal conflicts with itself.** Its Save section says "`saved` and `failed_name` go back to the caller". Its threat table says a parameter the session cannot read or write "is absent from listings and looks missing when named", and its permission table and "Hiding" in the gate record agree. Independent review found that the report broke the rule for a session with an empty listing, and hiding wins. The result and `failed_result` stay, because a caller must be able to tell a failure from a success, so such a session learns that something it cannot see failed, and not what. The events still name everything, for the operator. |
+| Stack copies of a sensitive scalar | The update clears its candidate as well as its parse buffer | A sensitive value may be a scalar. The Configuration mechanism's own locals are not cleared, which fits the absence of a confidentiality claim. |
 | JSON | Three functions beyond the proposal: `crux_mgmt_status_entry_json`, `_report_json` and `_result_name` | The shape must match the merged schema, and web and any other adapter should not each carry it |
 | Repeating `crux_config_service_start` | `ERR_INVALID_ARGUMENT`, and nothing changes | The accepted result list has no "exists" value |
 | Repeating `crux_mgmt_status_start` | `CRUX_ERR_INVALID_STATE`, and nothing changes | The Base result that fits |
@@ -271,8 +283,9 @@ Each is open to review, and a changed choice is small while nothing depends on i
 ## Limits
 
 - Accepted is not applied.
-- Sensitive is write-only handling, not protection at rest. Crux accounts and device keys never use it. The update's parse buffer is cleared by volatile writes, and a test reads it from inside the event that follows. The wire buffer of a load or save is cleared the same way just before the function returns, where no test can read it without undefined behaviour, so that is checked by reading the code. The provider's own buffer is not cleared.
-- Saves are per parameter, with no atomicity and no rollback. A save covers every marked parameter, and there is no call to save one set alone.
+- Sensitive is write-only handling, not protection at rest. Crux accounts and device keys never use it. The update's parse buffer and candidate are cleared by volatile writes, and tests read them from inside the event that follows. The wire buffer of a load or save is cleared the same way just before the function returns, where no test can read it without undefined behaviour, so that is checked by reading the code. The provider's own buffer is not cleared.
+- Saves are per parameter, with no atomicity and no rollback. A save covers every marked parameter, and there is no call to save one set alone. So a session's save also writes marks the application made, which can land part way through a set the application is updating, such as #213's.
+- A session holding `config.save` can learn that a save of something it cannot see failed, though not what, and can cause that save.
 - The service covers scalars and bounded strings, with no arrays or blobs.
 - There is no save provider on the target.
 - Validators give no reason for a rejection.
@@ -292,16 +305,17 @@ Each is open to review, and a changed choice is small while nothing depends on i
 | `Configuration.NoProvider` | Load and save on the selected port, linked as a composition links it |
 | `ConfigService.permissions` | Every row above for listing, read, update and save, with success, unauthenticated, unpermitted and invalid input, forced change, table validation and the bound |
 | `ConfigService.values` | Parser limits, validators, string forms, sensitive values absent from every result and event, and the application's calls |
-| `ConfigService.save` | Table order, marks, failure part of the way through a list, stored bytes changed by a failed save, events with no lock held |
+| `ConfigService.save` | Table order, marks, failure part of the way through a list, stored bytes changed by a failed save, events with no lock held, and what a report tells a session that sees none, some or all of what was saved |
 | `ConfigService.concurrency` | `BUSY` during a held save for each polling call, a second save timing out, a validator calling back, and threads under load |
 | `ConfigService.lock_faults` | Each result the Sync contract can give, through a wrapped lock |
 | `ConfigService.no_provider` | The service over the selected port |
 | `MgmtStatus.items` | Each built-in and word, per-entry failure, omitted sources, project items of each type with bad text and wrong types, filtering, forced change, the idle timer, and start refusals |
 | `MgmtStatus.snapshot` | Age with a controlled clock, a failed read, a failed or backward clock, a loser during a refresh, and concurrent polls counting source reads |
 | `MgmtStatus.lock_faults` | The snapshot's lock is only ever polled, and a lock that fails means no read, through a wrapped lock |
+| `MgmtStatus.source_mapping` | Each mapping in the thin providers, over a stand-in for the contract each one calls |
 | `MgmtStatus.json` | Exact text of each form, escapes, the promised buffer's worst case, and each buffer size below what fits |
 | `MgmtStatus.openapi_schema` | Reports from the service held to the schema read from the merged specification, with negative controls showing that the check can fail |
-| `MgmtStatus.real_sources` | The thin providers on the real System, Time and Netif, with no Configuration provider linked |
+| `MgmtStatus.real_sources` | The thin providers on the real System, Time and Netif, with no Configuration provider linked, and each clock source through the real authority |
 | `tests/configuration/zephyr`, `native_sim` | The same scalar and string conformance |
 | `tests/native/configuration_settings`, `_file`, `native_sim` | A string of the maximum length through each real backend |
 | `tests/native/mgmt_services`, `native_sim` | After any number of status polls, `crux_system_reset_cause_clear` returns `INVALID_STATE` until the boot owner reads the cause. The rate limit on the real clock with the real System, and `BUSY` on the real Sync. |

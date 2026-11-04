@@ -241,9 +241,6 @@ crux_config_service_result_t crux_config_service_next(crux_access_session_t sess
         *cursor = position + 1;
         return CRUX_CONFIG_SERVICE_OK;
     }
-    if (*cursor < table_count) {
-        *cursor = table_count;
-    }
     return CRUX_CONFIG_SERVICE_END;
 }
 
@@ -384,9 +381,10 @@ static crux_config_service_result_t parse_candidate(crux_config_type_t type, con
     return CRUX_CONFIG_SERVICE_OK;
 }
 
-static void clear_buffer(char *buffer, size_t size)
+/* A sensitive value passes through these. A volatile write cannot be removed as a dead store. */
+static void clear_bytes(void *memory, size_t size)
 {
-    volatile char *bytes = buffer;
+    volatile unsigned char *bytes = memory;
     for (size_t i = 0; i < size; ++i) {
         bytes[i] = 0;
     }
@@ -444,7 +442,8 @@ crux_config_service_result_t crux_config_service_update(crux_access_session_t se
     if (result == CRUX_CONFIG_SERVICE_OK) {
         result = apply(index, &candidate);
     }
-    clear_buffer(buffer, sizeof(buffer));
+    clear_bytes(buffer, sizeof(buffer));
+    clear_bytes(&candidate, sizeof(candidate));
 
     const char *key = crux_config_key(entry->parameter);
     if (result == CRUX_CONFIG_SERVICE_OK) {
@@ -495,6 +494,22 @@ static crux_config_service_result_t save_marked(crux_config_service_save_report_
     return result;
 }
 
+/* The rule of a listing: a session sees a parameter it can read or write. A probe that fails
+ * denies, so that a session ended during its own save learns nothing more. */
+static bool session_sees(const crux_config_service_entry_t *entry, crux_access_session_t session)
+{
+    bool can_read = false;
+    bool can_write = false;
+    if (crux_access_permitted(session, entry->read_permission, &can_read) != CRUX_ACCESS_OK) {
+        return false;
+    }
+    if (entry->write_permission != NULL &&
+        crux_access_permitted(session, entry->write_permission, &can_write) != CRUX_ACCESS_OK) {
+        return false;
+    }
+    return can_read || can_write;
+}
+
 crux_config_service_result_t crux_config_service_save(crux_access_session_t session,
                                                       crux_config_service_save_report_t *report)
 {
@@ -512,15 +527,25 @@ crux_config_service_result_t crux_config_service_save(crux_access_session_t sess
     uint32_t saved = 0;
     size_t failed = table_count;
     result = save_marked(report, &saved, &failed);
+
+    /* The events are the operator's record and name everything. The report goes to this session,
+     * which holds config.save and may still not be allowed to know a parameter exists. */
+    report->saved = 0;
     for (size_t i = 0; i < table_count; ++i) {
         if ((saved & bit_of(i)) != 0) {
             crux_config_service_port_event(CRUX_CONFIG_SERVICE_EVENT_SAVED, session,
                                            crux_config_key(table[i].parameter));
+            if (session_sees(&table[i], session)) {
+                ++report->saved;
+            }
         }
     }
     if (failed != table_count) {
         crux_config_service_port_event(CRUX_CONFIG_SERVICE_EVENT_SAVE_FAILED, session,
                                        report->failed_name);
+        if (!session_sees(&table[failed], session)) {
+            report->failed_name = NULL;
+        }
     }
     return result;
 }

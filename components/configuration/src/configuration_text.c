@@ -1,5 +1,5 @@
-/* The character rule, decision C2. Separate from the mechanism, so that a service that shows text
- * can use the rule without needing a Configuration provider at link time. */
+/* The character rule, decision C2. It is a library apart from the mechanism, so that a service that
+ * shows text can use the rule without needing a Configuration provider at link time. */
 #include <crux/configuration.h>
 
 /* One row for each lead byte range of well-formed UTF-8 (Unicode table 3-7), except that U+0080 to
