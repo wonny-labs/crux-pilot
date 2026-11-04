@@ -1,6 +1,6 @@
 # Command registry and serial login proposal
 
-Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #181: L1 to L6. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval, and no merge is approved. It refines the registry in [the secure management design](secure-management-design.md) and
+Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #181: L1 to L6. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval. Merging is allowed after independent review with green CI, as [recorded on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497), and hardware operations stay excluded. It refines the registry in [the secure management design](secure-management-design.md) and
 the command line in [the CLI and SFTP design](secure-management-cli-sftp-design.md), and it is the smallest consumer of the
 [access control proposal](access-contract-proposal.md). Baseline: main `4444d70`, Zephyr v4.4.2 `dccb095`.
 
@@ -241,7 +241,7 @@ learn by trying. The prompt does not announce the state, so no access change is 
 | `DENIED` | `setup not available` | Login prompt |
 | `PASSWORD_REJECTED` | `password not accepted`, with the configured rule's text | Setup prompt again |
 | `INVALID_ARGUMENT` | `invalid name`. A bad configured role also lands here and needs a corrected build. | Setup prompt again |
-| `STORE` | `could not save, nothing changed` | Login prompt |
+| `STORE` | `could not save, a later boot may use either` | Login prompt |
 | `NOT_READY` | `login unavailable` | Login prompt |
 
 ### Zephyr shell rule
@@ -309,9 +309,9 @@ Host tests do not establish behaviour on the wire or that a production image is 
 
 ## Changes other contracts need
 
-- **AC1, access control:** `crux_access_permitted(session, permission, bool *permitted)` in the public `crux/access.h`, with no event, no touch and no storage, for help. This is a request. The access contract is not changed here. If AC1 is refused, help must list everything a session could see, or fill the event ring with denials.
+- **AC1, access control:** `crux_access_permitted(session, permission, bool *permitted)` in the public `crux/access.h`, with no event, no touch and no storage, for help. The owner accepted this as AC1, and #210 carries it.
 - **AC2, access control, declined by the owner:** a query that says whether provisioning is open, for a friendlier prompt. L4 avoids needing it.
 - **Access proposal wording:** `access.self` is said to allow changing one's own password and keys and logging out, while the forced-change text allows only a password change and logout. The result of `crux_access_check(session, "access.self")` during a forced change is therefore unclear. The registry avoids relying on it: `passwd` and `logout` are `SESSION` commands with `FORCED_CHANGE_OK`. The access contract should state the result.
 - **CLI and SFTP design:** "the same registry runs on the serial console" holds, but on LPUART3. `account list` becomes a `PERMISSION` command.
 - **Secure management design:** rule L3 replaces "hidden from help and rejected if typed" with identical output, which is stricter for `PERMISSION` commands.
-- **Secure management design:** decision D9 is met by L5, and it can move from proposal to adopted when this is accepted.
+- **Secure management design:** decision D9 is met by L5, which the owner accepted, so it can move from proposal to adopted.

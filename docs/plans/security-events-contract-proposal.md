@@ -1,6 +1,6 @@
 # Security events contract proposal
 
-Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #182: E1 to E6. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval, and no merge is approved. It finalises the event identifiers that the
+Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #182: E1 to E6. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval. Merging is allowed after independent review with green CI, as [recorded on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497), and hardware operations stay excluded. It finalises the event identifiers that the
 [access control proposal](access-contract-proposal.md) leaves to this issue, over the existing
 [Logging contract](../logging-contract.md).
 Baseline: main `4444d70`, Zephyr v4.4.2 `dccb095`.
@@ -260,7 +260,7 @@ Stable values, in the access proposal's list and beyond. A later change adds val
 | 0x0116 | `access.password_changed` | C | access | user |
 | 0x0117 | `access.key_added` | C | access | same as account changes |
 | 0x0118 | `access.key_removed` | C | access | same |
-| 0x0119 | `access.change_failed` | C | access | user, result `FAILED`. Save failed, so state is unchanged. |
+| 0x0119 | `access.change_failed` | C | access | user, result `FAILED`. RAM unchanged; stored state may differ (AC8, S7). |
 | 0x011A | `access.change_rejected` | R | access | user, subject the target if it exists, result by the table below |
 | 0x0200 | `credential.state` | C | store | Result `OK`, `FAILED` for `UNUSABLE`, subject the state |
 | 0x0201 | `credential.slot_invalid` | C | store | Subject `a` or `b` |
@@ -287,6 +287,12 @@ Stable values, in the access proposal's list and beyond. A later change adds val
 | 0x0602 | `web.certificate_replaced` | C | M11 | user, channel |
 | 0x0700 | `ssh.auth_limit` | R | M12 | channel, source |
 | 0x0701 | `ssh.host_key_missing` | C | M12 | |
+| 0x0800 | `network.changed` | C | network settings service | user, channel. No values. |
+| 0x0801 | `network.save_failed` | C | network settings service | user, channel. No values. |
+| 0x0802 | `network.saved_ignored` | C | network settings service | user, channel. The serial recovery command stopped the saved values being used. |
+| 0x0900 | `system.reboot_requested` | C | reboot service | user, channel |
+| 0x0901 | `system.reboot_refused` | R | reboot service | user, channel. The composition's policy refused. |
+| 0x0902 | `system.reboot_failed` | C | reboot service | `crux_system_reset` returned |
 | 0x0F00 | `event.unknown` | R | this component | |
 | 0x0F01 | `event.lost` | R | this component | Line only |
 
@@ -307,7 +313,7 @@ Each `crux_access_result_t` from an access operation maps to one identifier, or 
 | `SESSION_INVALID` | An expired session found on use | `access.session_expired` | `DENIED` |
 | `SESSION_INVALID` | Never valid or already ended | `access.session_invalid` | `DENIED` |
 | `RETRY_LATER` | Any | `access.delayed` | `DELAYED` |
-| `BUSY` | Login | `access.login_busy` | `BUSY` |
+| `BUSY` | Login, change own password | `access.login_busy` | `BUSY` |
 | `NO_RESOURCES` | Session table | `access.login_no_session` | `LIMIT` |
 | `NO_RESOURCES` | Account table | `access.change_rejected` | `LIMIT` |
 | `NOT_FOUND` | An account operation | `access.change_rejected`, with no subject, because the name is unverified client input | `INVALID` |
@@ -316,7 +322,7 @@ Each `crux_access_result_t` from an access operation maps to one identifier, or 
 | `PASSWORD_REJECTED` | Any | `access.change_rejected` or `access.provision_refused` | `INVALID` |
 | `STORE` | Any | `access.change_failed` | `FAILED` |
 
-M11 and M12 add values in their own ranges through one reviewed change to this table, as G1 requires. Names are limited to 24 characters, which the build checks. A role name is left out of `access.role_changed`, because policy data is the product's and not needed in a line.
+M11 and M12 add values in their own ranges through one reviewed change to this table, as G1 requires. 0x08 and 0x09 are the network settings and reboot services of `web-frontend-foundation-design.md`, added under G-A. Names are limited to 24 characters, which the build checks. A role name is left out of `access.role_changed`, because policy data is the product's and not needed in a line.
 
 ## Failure handling
 
@@ -359,10 +365,10 @@ M11 and M12 add values in their own ranges through one reviewed change to this t
 
 ## Changes other contracts need
 
-- **Access proposal, AC3:** the event list grows by `access.login_busy`, `access.login_no_session`, `access.login_refused`, `access.not_ready`, `access.session_invalid`, `access.provision_refused`, `access.change_failed` and `access.change_rejected`, because Issue #182 requires an event from each rejection path. The proposal says that identifiers are finalised here, so this fits it, but `crux_access_port_event` in the implementation under #177 must report them.
-- **Access proposal, AC4 and AC7:** a session keeps its origin, for session events. Services need it too, because `file.*` and `config.*` records carry a channel and source, and a service holds only the session. This asks for `crux_access_session_origin(session, uint8_t *channel, uint8_t source[16], uint8_t *source_length)` in the public header.
-- **Access event port, AC10:** the port on the #177 implementation branch, `crux_access_event_t`, carries a type, result, origin, one `account` name and `role_missing`. This table needs two more fields: the permission, as `subject` of `access.permission_denied`, and the acting user, because `account` holds only the target of a change. It also needs the added types under AC3. That branch is unreviewed, so the port is not yet a contract.
-- **Access proposal, AC9:** emit after releasing the state lock. The port on that branch is already called with no lock held, so this asks only that the contract says so. An emit may wait up to 10 ms on the ring lock, and every `crux_access_check` takes the state lock. The rule above still allows the state lock to be held, as a defence.
+- **Access proposal, AC3:** the event list grows by `access.login_busy`, `access.login_no_session`, `access.login_refused`, `access.not_ready`, `access.session_invalid`, `access.provision_refused`, `access.change_failed` and `access.change_rejected`, because Issue #182 requires an event from each rejection path. The proposal says that identifiers are finalised here, so this fits it. The owner accepted this as AC3, and #210 reports them.
+- **Access proposal, AC4 and AC7:** a session keeps its origin, for session events. Services need it too, because `file.*` and `config.*` records carry a channel and source, and a service holds only the session. The owner accepted this as AC4 and AC7, and #210's public header has `crux_access_session_origin`.
+- **Access event port, AC10:** `crux_access_event_t` on #210 now has `actor`, `account` and `permission`, in `components/access/src/access_port.h` since `4ab6e86`, with the added types under AC3. This table needs them: the permission, as `subject` of `access.permission_denied`, and the acting user, because `account` holds only the target of a change. The request stands until #210 merges.
+- **Access proposal, AC9:** emit after releasing the state lock. The owner accepted this, and the port on #210 is called with no lock held. An emit may wait up to 10 ms on the ring lock, and every `crux_access_check` takes the state lock. The rule above still allows the state lock to be held, as a defence.
 - **Access proposal comment:** the `source` comment noted above.
 - **Web design:** "Security events: `GET /api/v1/events` when a bounded store exists" is met by the RAM ring, and it reads records that a reset discards.
 - **Logging contract:** none. An optional later addition is a threshold getter, so that a result could report that a filter is hiding events.
