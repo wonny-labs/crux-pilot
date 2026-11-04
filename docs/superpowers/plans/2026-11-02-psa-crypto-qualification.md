@@ -1,5 +1,7 @@
 # PSA Crypto qualification (Issue #142) Implementation Plan
 
+> **Historical plan of the first trial, at Zephyr v4.4.0.** The current state is in [the qualification record](../../psa-crypto-qualification.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Provider-neutral PSA Crypto conformance cases, trial-qualified against TF-PSA-Crypto on Linux Host and Zephyr `native_sim`, with per-provider declarations and decision proposals, without adopting any dependency.

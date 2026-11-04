@@ -1,0 +1,42 @@
+# scripts/test-psa-crypto.sh all, Dev Container image, linux/amd64 under emulation, 4 November 2026.
+# Local run. Build lines removed. Not a CI result and not physical evidence.
+Crux revision: 9286a5625e5cb61758ee7a2536cdfaa1fe4df870
+pin ok: mbedtls a3e190fe44c78d1ba67f55979e1257328cc7d0d8
+pin ok: tf-psa-crypto dc575a2ddcc8cb16275d24c42a52eaf79ebe2231
+pin ok: wolfssl 3c5eead44904df64e6a5a1f4ebdce377d35a849a
+pin ok: wolfpsa 55ae0ec58cd2ef4c528f44e8466095550c16ca8a
+control ok: no provider selected fails to configure
+control ok: unsupported stub fails every case
+control ok: permissive stub fails every case that expects an error status
+control ok: stub-permissive: a stale declaration fails
+archive ok: same files as the west checkout
+tf-psa-crypto: 41 cases, 0 failed, 3 declared unsupported, 0 declared deviations
+host random differs between processes: tf-psa-crypto
+control ok: tf-psa-crypto: without declarations, 3 cases fail
+tf-psa-crypto-sanitize: 41 cases, 0 failed, 3 declared unsupported, 0 declared deviations
+wolfpsa: 41 cases, 0 failed, 0 declared unsupported, 2 declared deviations
+host random differs between processes: wolfpsa
+control ok: wolfpsa: without declarations, 2 cases fail
+wolfpsa-sanitize: 41 cases, 0 failed, 0 declared unsupported, 2 declared deviations
+wolfSSL UBSan reports, recorded: 4
+INFO    - 3 of 3 executed test configurations passed (100.00%), 0 built (not run), 0 failed, 0 errored, with no warnings in 111.76 seconds.
+INFO    - 119 of 119 executed test cases passed (100.00%) on 1 out of total 1473 platforms (0.07%).
+INFO    - 7 selected test cases not executed: 7 skipped.
+crux.psa_crypto.conformance.tf_psa_crypto {'passed': 39, 'skipped': 3}
+crux.psa_crypto.conformance.wolfpsa {'passed': 40, 'skipped': 2}
+crux.psa_crypto.conformance.wolfpsa_with_tls {'passed': 40, 'skipped': 2}
+default	PSA_RANDOM_PROBE 3bdb31ccb6d508aad2e1be87e47b88ae
+default	PSA_RANDOM_PROBE 3bdb31ccb6d508aad2e1be87e47b88ae
+seed=7	PSA_RANDOM_PROBE f5df5243e2193b07daaf9c7b6d1a4f1b
+seed=7	PSA_RANDOM_PROBE f5df5243e2193b07daaf9c7b6d1a4f1b
+seed-random	PSA_RANDOM_PROBE 31ccd816312dd78f0b002ffb03e6abe1
+seed-random	PSA_RANDOM_PROBE bc741b5e45f138eebcbfc704e5c7cfbd
+entropy declaration holds: tf_psa_crypto, native_sim random is test-only
+default	PSA_RANDOM_PROBE a2eff5b81eea4763a5c79a14b0c1409d
+default	PSA_RANDOM_PROBE a2eff5b81eea4763a5c79a14b0c1409d
+seed=7	PSA_RANDOM_PROBE 684a14af51401317e9275764d0cd667a
+seed=7	PSA_RANDOM_PROBE 684a14af51401317e9275764d0cd667a
+seed-random	PSA_RANDOM_PROBE 6a8c70eb36410c21b0d711c004736ee1
+seed-random	PSA_RANDOM_PROBE 09cde9e97071c3facae5e7700ad3064e
+entropy declaration holds: wolfpsa, native_sim random is test-only
+PSA Crypto qualification (all) finished.

@@ -1,314 +1,274 @@
 # PSA Crypto qualification for Zephyr and Linux Host
 
-**Status: trial results and proposals for owner decision. Nothing here is adopted.**
-This record supports [Issue #142](https://github.com/wonny-labs/crux-pilot/issues/142). The
-owner's approval to start the work is recorded in
-[the issue comment](https://github.com/wonny-labs/crux-pilot/issues/142#issuecomment-6565912192).
-That approval covers investigation, test-first development, trial builds and a Draft PR. It does
-not adopt a dependency, a manifest change, an API subset or a licence statement.
+**Status: provider results recorded and decisions adopted under the owner's approval, in a Draft PR.** This record supports
+[Issue #142](https://github.com/wonny-labs/crux-pilot/issues/142). The design of how consumers reach a provider is in
+[the design document](psa-crypto-design.md), and the declared subset is in [the native-free consumer
+policy](native-interface-policy.md#qualified-psa-crypto-subset). Nothing here is a claim of general PSA Crypto conformance.
 
-Labels used below: **Finding** (observed in source or by a run), **Proposal** (needs an owner
-decision), **Implemented** (test-only code in this change). The [native-free consumer
-policy](native-interface-policy.md) is unchanged by this change.
+| Approval | Covers |
+| --- | --- |
+| [Start of #142, 2 November 2026](https://github.com/wonny-labs/crux-pilot/issues/142#issuecomment-6565912192) | Investigation, test-first development, Draft PR, trial builds |
+| [Owner decision, 4 November 2026 17:55 UTC](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084) | PSA as a prerequisite of real HTTPS on `native_sim`, and the steps that needed asking: the manifest, module and Host decisions, the subset, and running wolfPSA. Hardware stays excluded. |
 
-## What this change adds and what it does not
-
-Adds only test material, a trial script and documentation:
-
-- `tests/psa_crypto/cases/`: provider-neutral conformance cases (C17, `<psa/crypto.h>` and ISO C
-  only).
-- `tests/psa_crypto/host/`: a standalone Linux Host CMake project that is not part of the root
-  build.
-- `tests/psa_crypto/zephyr/`: a `native_sim` Ztest application that runs the same case list.
-- `tests/psa_crypto/stubs/`: two test-only stub providers used as negative controls.
-- `scripts/test-psa-crypto.sh`: the trial runner. It is not in any CI workflow.
-- This document, the [plan](superpowers/plans/2026-11-02-psa-crypto-qualification.md) and the
-  [retained evidence](evidence/psa-crypto/).
-
-Unchanged: `west.yml`, the root `CMakeLists.txt`, `.devcontainer/`, the CI workflows and the policy
-document. The provider sources are never stored in this repository.
-
-## Existing state (at `f57ff22`)
-
-- **Finding:** The repository contains no cryptography. `west.yml` imports Zephyr
-  `684c9e8f32e4373a21098559f748f06915f950c9` (`git describe`: `v4.4.0`) with
-  `name-allowlist` `cmsis`, `cmsis_6`, `hal_nxp`, `littlefs`, `fatfs`.
-- **Finding:** Host CI ([`host.yml`](../.github/workflows/host.yml)) has no west workspace. It
-  fetches GoogleTest with `FetchContent` (URL and SHA-256) into `CRUX_CACHE_DIR`, then
-  [`scripts/check-host.sh`](../scripts/check-host.sh) runs with `FETCHCONTENT_FULLY_DISCONNECTED=ON`.
-- **Finding:** `native_sim` tests pass external modules through Twister
-  `--extra-args="ZEPHYR_MODULES=..."` (for example `scripts/test-storage-simulators.sh`). The trial
-  uses the same mechanism.
-- **Finding:** `origin/main` has no `LICENSE`, `NOTICE` or `COPYING` file, so Crux's own licence is
-  not stated in the repository.
-
-## Trial inputs
+## Inputs
 
 | Item | Value |
 | --- | --- |
-| Crux base | `f57ff22478dae1069fb220659a438e800921528c` (`origin/main`, 1 Nov 2026), branch `feat/issue-142-psa-crypto-qualification` |
-| Zephyr | `684c9e8f32e4373a21098559f748f06915f950c9`, `v4.4.0` (verified with `git describe`) |
-| `tf-psa-crypto` | `dc575a2ddcc8cb16275d24c42a52eaf79ebe2231`, fetched from `https://github.com/zephyrproject-rtos/tf-psa-crypto.git` with `git fetch --depth 1` (matches the Zephyr manifest) |
-| `mbedtls` module | `a3e190fe44c78d1ba67f55979e1257328cc7d0d8`, from `https://github.com/zephyrproject-rtos/mbedtls.git` (matches the Zephyr manifest) |
-| `psa-arch-tests` | `6e8219237435112df33bbcf37b7f5657fcfb9cff`, inspected only, not built |
-| Trial directory | `/opt/crux-cache/psa-trial/` in a container of image `crux-pilot-devcontainer:local` (linux/amd64, Clang 18.1.3, CMake 3.28.4, Ninja 1.11.1, west 1.4.0). The #141 directory `/opt/crux-cache/trial/` was not touched. |
-| Disk | Host volume 13 GiB free before and after (94% used). Cache volume 190 GiB free. Trial trees: `tf-psa-crypto` 26 MB, `mbedtls` 11 MB, `psa-arch-tests` 14 MB (shallow, working tree). |
-| Container change | `libclang-rt-18-dev=1:18.1.3-1ubuntu1` was installed into the throwaway trial container only. See [Environment notes](#environment-notes). |
+| Zephyr | `dccb09599635bdff17633fa7e9dab014b91dce90`, v4.4.2 |
+| `tf-psa-crypto` | `dc575a2ddcc8cb16275d24c42a52eaf79ebe2231`, the same as Zephyr's manifest |
+| `mbedtls` module | `a3e190fe44c78d1ba67f55979e1257328cc7d0d8`, the same as Zephyr's manifest |
+| `wolfssl` | `3c5eead44904df64e6a5a1f4ebdce377d35a849a`, v5.9.4-stable |
+| `wolfpsa` | `55ae0ec58cd2ef4c528f44e8466095550c16ca8a`, v5.9.4 |
+| Host toolchain | Clang 18.1.3, CMake 3.28.4 |
+| `native_sim` toolchain | Host GCC, as `ZEPHYR_TOOLCHAIN_VARIANT=host` |
 
-The provider pin is a commit in Zephyr's fork. Its `zephyr/module.yml` labels it TF-PSA-Crypto
-`1.1.0`, but the upstream tag `v1.1.0` resolves to a different commit
-(`29160dd877d29658279fd683b2ae57b320ddcf09`). **Finding:** the relation between the pin and the
-upstream tag was not established here.
+`scripts/test-psa-crypto.sh` checks that `cmake/CruxPsaCrypto.cmake`, `west.yml`, Zephyr's manifest and the checkouts agree, and that
+the Host archive has the same files as the west checkout.
 
-Commands (all inside the container, from the repository root):
+## Why the earlier `zephyr` CI run failed
 
-```sh
-scripts/test-psa-crypto.sh all      # Host controls, Host provider with and without ASan/UBSan, Twister native_sim
-CLANG_FORMAT=clang-format scripts/check-format.sh
+Run [41401511997](https://github.com/wonny-labs/crux-pilot/actions/runs/41401511997), 2 November 2026, failed in the step "Fetch pinned Zephyr
+workspace and install SDK":
+
+```text
+fetch_releases API rate limit exceeded.
+Exception: Failed to fetch: 403, {"message":"API rate limit exceeded for 20.172.111.210. ...
 ```
+
+`west sdk install` looks up SDK releases through the GitHub API without a token, and the runner shared a rate limit. It had nothing to do
+with PSA, and no test ran. #164 fixed it on `main` by passing `CRUX_GITHUB_TOKEN`, and this branch has it from the merge of `origin/main`.
+After the merge that step passes, in run [41891057049](https://github.com/wonny-labs/crux-pilot/actions/runs/41891057049). The Pull Request has the full result of the latest run.
 
 ## Conformance cases
 
-**Implemented.** 22 cases, listed in `PSA_CASE_LIST` in
-[`psa_cases.h`](../tests/psa_crypto/cases/psa_cases.h). The cases assert behaviour that the pinned
-`psa/crypto.h` documents. Behaviour it leaves undefined is not asserted: calling a function
-before `psa_crypto_init()` is explicitly undefined, and `hash_length` is documented only on
-success.
+41 cases, in [`psa_cases.h`](../tests/psa_crypto/cases/psa_cases.h). They use `<psa/crypto.h>` and ISO C only, and the composition chooses the provider.
+The Zephyr suite adds a check of the list's length. Vectors come from published test values or an independent implementation, as
+[`vectors.h`](../tests/psa_crypto/cases/vectors.h) records.
 
-| Area | Cases (positive, then negative status) |
-| --- | --- |
-| Initialisation, random | init is idempotent; requested bytes only are written and two requests differ; a 2500-byte request succeeds |
-| SHA-256 | known answers (one-shot, multipart); update after finish is `BAD_STATE`; 31-byte buffer is `BUFFER_TOO_SMALL`; mismatching or shorter expected hash is `INVALID_SIGNATURE` through `psa_hash_verify`; unassigned hash is `NOT_SUPPORTED` |
-| ECDSA P-256 verify | volatile import; known answer over the hash; flipped, zero and truncated signatures rejected; tampered data or hash is `INVALID_SIGNATURE`; off-curve or unprefixed key is `INVALID_ARGUMENT`; no usage flag or a wildcard algorithm is `NOT_PERMITTED` |
-| PBKDF2-HMAC-SHA-256 | RFC 7914 and 4096-iteration known answers; wrong password derives different output; verify-bytes when supported; output on an inactive operation is `BAD_STATE`; unassigned hash is `NOT_SUPPORTED` |
-| Key identifiers | a destroyed key is `INVALID_HANDLE` for use and for a second destroy |
-
-All known-answer values were recomputed with Python `hashlib` and OpenSSL 3.0.13 before use. See
-[`vectors.h`](../tests/psa_crypto/cases/vectors.h).
-
-### Failing before the provider is wired in
-
-Retained in [red-no-provider-and-stubs.txt](evidence/psa-crypto/red-no-provider-and-stubs.txt)
-(first form of the cases; case names have changed since) and re-checked by the script on every run. The final-form stub outputs are in [stub-unsupported-final.txt](evidence/psa-crypto/stub-unsupported-final.txt) (22 of 22 fail) and [stub-permissive-final.txt](evidence/psa-crypto/stub-permissive-final.txt) (20 of 22 fail):
-
-| Control | Result |
-| --- | --- |
-| No provider selected | CMake configure fails with a message naming `CRUX_PSA_PROVIDER` |
-| Stub that returns `PSA_ERROR_NOT_SUPPORTED` | every case fails |
-| Stub that returns `PSA_SUCCESS` | every case that expects an error status fails; only `init_is_idempotent` and `ecdsa_p256_verify_hash_known_answer` pass, and the script rejects any other pass |
-
-The permissive stub exposed one weak case during development (a "differs from the expected
-output" check that zeros satisfy). It was strengthened to require the correct output first.
-
-### Results with TF-PSA-Crypto
-
-| Environment | Result | Evidence |
-| --- | --- | --- |
-| Linux Host, Debug, Clang 18 | 22 of 22 pass (one with a note, below) | [final run](evidence/psa-crypto/trial-run-final.txt); [first run](evidence/psa-crypto/host-tf-psa-crypto-first-run.txt) |
-| Linux Host, ASan and UBSan | 22 of 22 pass | [final run](evidence/psa-crypto/trial-run-final.txt) |
-| Zephyr `native_sim/native/64`, Twister | 22 cases plus one list-completeness check pass (1 of 1 test configurations) | [final run](evidence/psa-crypto/trial-run-final.txt) |
-
-**Finding (first Host run).** Three of 22 cases failed against the real provider. Checking the
-pinned header and the provider source showed two assertions that went beyond the documented API
-(the `hash_length` value after `BUFFER_TOO_SMALL`; a single code for a non-hash algorithm, where
-the header documents both `NOT_SUPPORTED` and `INVALID_ARGUMENT`) and one provider limitation:
-
-- **Finding:** `psa_key_derivation_verify_bytes()` is an unconditional stub that returns
-  `PSA_ERROR_NOT_SUPPORTED` in this provider revision (`core/psa_crypto.c`, definition at line
-  6735 of the pinned tree). The case `pbkdf2_verify_bytes_when_supported` reports this as a note
-  next to PASS rather than passing silently.
-
-Cases passed here mean the same cases pass with this provider in these two environments. They are
-not a claim of general PSA Crypto API conformance.
-
-## Proposed API subset
-
-**Proposal, not decided.** Derived from the four planned consumers. Every function has a stated
-consumer. The cases call these functions and no others, apart from the test-only ones marked.
-
-| Consumer | Crux code calls PSA? | Functions | Algorithms and key material |
+| Area | For | Cases | Negative status checks |
 | --- | --- | --- | --- |
-| Random values for keys and nonces | Yes | `psa_crypto_init`, `psa_generate_random` | none |
-| Application image check (ECDSA P-256 signature and SHA-256 before a Flash write) | Yes | `psa_hash_setup`, `psa_hash_update`, `psa_hash_finish`, `psa_hash_verify`, `psa_hash_abort`, `psa_hash_compute` (small metadata), `psa_import_key`, `psa_destroy_key`, `psa_verify_hash`, key-attribute setters (`psa_set_key_type`, `_bits`, `_usage_flags`, `_algorithm`), `psa_reset_key_attributes` | SHA-256; ECDSA with SHA-256 verification only; P-256 public key as a volatile, uncompressed point with `VERIFY_HASH` usage. A multipart hash then `psa_verify_hash` suits an image that does not fit in RAM; `psa_verify_message` is therefore not proposed. |
-| Credential verification (local login) | Yes | `psa_key_derivation_setup`, `psa_key_derivation_input_integer` (cost), `psa_key_derivation_input_bytes` (salt, password), `psa_key_derivation_output_bytes`, `psa_key_derivation_abort` | PBKDF2-HMAC-SHA-256 with a caller-chosen iteration count. `psa_key_derivation_verify_bytes` is wanted for a constant-time comparison but is **unsupported by this provider revision**; see decision 3. |
-| TLS client and server | No. The TLS library, the Zephyr default provider, calls PSA internally. | none by Crux code | Named for later, **not qualified here** (TLS is out of scope): ECDHE and ECDSA on P-256, an AEAD, HMAC, HKDF and SHA-256 or SHA-384. Qualify them when a TLS consumer is planned. |
+| Initialisation, random | Access, store | 3 | Writes only what was asked. Two requests differ. |
+| SHA-256 | Device key | 6 | `BAD_STATE`, `BUFFER_TOO_SMALL`, `INVALID_SIGNATURE`, `NOT_SUPPORTED` |
+| ECDSA P-256 verify, key identifiers | Image check, and generated keys | 8 | Bad signatures, tampered input, off-curve key, `NOT_PERMITTED`, `INVALID_HANDLE` |
+| HMAC-SHA-256 | `crux_access_port_hmac` | 3 | `BUFFER_TOO_SMALL`, `NOT_PERMITTED` |
+| PBKDF2-HMAC-SHA-256 | `crux_access_port_derive` | 8 | Wrong password, `BAD_STATE`, `NOT_SUPPORTED`. Includes a 128-byte password and an empty one. |
+| AES-256-GCM | `crux_credential_port_seal`, `_open` | 6 | Tampered tag, ciphertext, additional data or nonce, and a wrong key, are each `INVALID_SIGNATURE`. Also `NOT_PERMITTED` and a wrong key size. Includes a whole 16,336-byte slot payload. |
+| P-256 key generation | `crux_credential_port_generate_key` | 4 | `NOT_PERMITTED` on a private export without the usage. Forms are 32 and 65 bytes. |
+| Ed25519 key generation | `crux_credential_port_generate_key` | 3 | RFC 8032 known answer. Forms are 32 and 32 bytes. A changed signature is `INVALID_SIGNATURE`. |
 
-Test-only use, not a consumer interface: `psa_get_key_attributes` with the attribute getters
-(proves the key lifetime is volatile).
+### What a run can report
 
-Limits that go with the subset: volatile keys only; no persistent keys, secure storage,
-provisioning or key-confidentiality claim; single-threaded use was tested, concurrency was not;
-interrupt-context use was not examined; stack, heap and timing were not measured on a target.
+| Result | Meaning | Counts as |
+| --- | --- | --- |
+| `PASS` | As documented | Pass |
+| `UNSUPPORTED` | The provider lacks it, and [`provider_declarations.cmake`](../tests/psa_crypto/provider_declarations.cmake) says so | Not a pass. Zephyr shows it as skipped. |
+| `DEVIATION` | The case fails, and the declarations say so, with the reason below | Not a pass. Zephyr shows it as skipped. |
+| `FAIL` | Any other failure, an undeclared gap, or a declaration that no longer holds | Failure |
+
+### Controls
+
+Each runs on every invocation of `scripts/test-psa-crypto.sh host`.
+
+| Control | Result required |
+| --- | --- |
+| No provider selected | Configure fails, naming `CRUX_PSA_PROVIDER` |
+| Stub that returns `NOT_SUPPORTED` | Every case fails |
+| Stub that returns success with zeroed output | Every case fails except `init_is_idempotent` and `ecdsa_p256_verify_hash_known_answer`, whose expected status is success and whose output is not checked |
+| Each provider with no declarations | Exactly its declared cases fail |
+| A passing case declared unsupported | Reported as a stale declaration |
+
+## Results
+
+| Environment | TF-PSA-Crypto | wolfPSA |
+| --- | --- | --- |
+| Linux Host, Debug | 38 pass, 3 declared unsupported, 0 fail | 39 pass, 2 declared deviations, 0 fail |
+| Linux Host, ASan and UBSan | The same, with UBSan set to halt | The same, with 4 UBSan reports inside wolfSSL recorded, below |
+| `native_sim/native/64`, Twister | 39 pass and 3 skipped, including the list check | 40 pass and 2 skipped, including the list check |
+| `native_sim`, with the wolfSSL TLS layer in the image | Not applicable | 40 pass and 2 skipped. The cases do not use TLS, and there is no TLS socket backend. |
+| RT1060-EVKB `mimxrt1060_evk@B//qspi` | Compile only, in CI, [results below](#rt1060-evkb-entropy-source) | Compile only, in one CI run, [results below](#rt1060-evkb-entropy-source) |
+
+Retained logs: [`docs/evidence/psa-crypto/v4.4.2/`](evidence/psa-crypto/v4.4.2/). The Host and `native_sim` figures come from a local run at `9286a56`, [`local-all.txt`](evidence/psa-crypto/v4.4.2/local-all.txt), and match
+CI run [41891057428](https://github.com/wonny-labs/crux-pilot/actions/runs/41891057428), [`ci-run-41891057428.txt`](evidence/psa-crypto/v4.4.2/ci-run-41891057428.txt). Host, `native_sim`, cross-build, CI and physical evidence are separate, and physical evidence does not exist.
+
+### What CI keeps running
+
+| Part | `psa-crypto` workflow | Local, `scripts/test-psa-crypto.sh all` in the Dev Container with the group enabled |
+| --- | --- | --- |
+| Controls, TF-PSA-Crypto on Host and `native_sim`, pins, entropy declaration | Every run | Yes |
+| TF-PSA-Crypto compiled for RT1060-EVKB | Every run | With `target` |
+| **wolfPSA on Host and `native_sim`** | **No** | Yes |
+| wolfPSA compiled for RT1060-EVKB | **No** | With `target` |
+
+`scripts/check-ssh-boundaries.py` and its test forbid a default workflow from selecting the secure management stacks, so a change to a wolf pin or to these cases gets no automatic wolfPSA result. That rule is unchanged: see [decision 7 of the design](psa-crypto-design.md#decisions-for-review).
+
+Run 41891057428 is the exception. The first form of the workflow enabled the group, and that run passed all three parts with both providers while `Ssh.Boundaries` failed in `host-foundation` because of it. The workflow was then narrowed, so it is one result at one revision, and no later run repeats it.
+
+**Feasibility result: wolfPSA runs on Linux Host and `native_sim`, and meets every case that the two consumers need.** Its two deviations are in the image check's
+public-key handling, which neither consumer uses.
+
+### What each consumer needs, by provider
+
+| Need | Consumer | TF-PSA-Crypto | wolfPSA |
+| --- | --- | --- | --- |
+| PBKDF2-HMAC-SHA-256 | `crux_access` | Yes | Yes |
+| Keyed hash, HMAC-SHA-256 | `crux_access` | Yes | Yes |
+| Random | Both | Yes | Yes |
+| AES-256-GCM, one-shot | Credential store | Yes | Yes |
+| AES-256-GCM, multipart with a separate tag | Credential store | Yes | Yes, and on `native_sim` only with `WOLFSSL_AESGCM_STREAM`, which the module's Kconfig does not offer |
+| P-256 key generation and export | Credential store | Yes | Yes |
+| **Ed25519 key generation and export** | Credential store | **No.** Generation is `NOT_SUPPORTED`, import is `INVALID_ARGUMENT`, and Zephyr's Kconfig has no symbol for it. | Yes, with `CONFIG_WOLFSSL_CURVE25519` on `native_sim` |
+| `psa_key_derivation_verify_bytes` | Nobody: the Access core compares | No. An unconditional `NOT_SUPPORTED` stub. | Yes |
+
+This answers the open point in the [gate decisions](plans/secure-management-gate-decisions.md) on whether wolfPSA can generate Ed25519: it can, on Host and `native_sim`.
+SSH host keys therefore need the Wolf profile, which fits the design: the Mbed profile has no SSH.
+
+### Provider deviations
+
+| Provider | Case | Observed | Documented | Effect |
+| --- | --- | --- | --- | --- |
+| wolfPSA | `ecdsa_p256_wrong_signature_invalid` | An all-zero signature gives `PSA_ERROR_GENERIC_ERROR` (-132) | `PSA_ERROR_INVALID_SIGNATURE` | Still rejected. A caller must treat every status but success as rejection. |
+| wolfPSA | `ecdsa_p256_invalid_public_key_rejected` | `psa_import_key` accepts an off-curve P-256 point | `PSA_ERROR_INVALID_ARGUMENT` | Refused at use: `ecdsa_p256_off_curve_key_never_verifies` passes. `WOLFSSL_VALIDATE_ECC_IMPORT` did not change the import result. Do not treat import as validation of an untrusted key. |
+| TF-PSA-Crypto | `ed25519_known_answer_rfc8032` | Import of a valid Ed25519 seed gives `INVALID_ARGUMENT`, where generation gives `NOT_SUPPORTED` | | The case counts this as a gap. An undeclared gap still fails, so wolfPSA cannot hide behind it. |
+
+Neither wolfPSA deviation stops a consumer named in this issue: neither `crux_access` nor the store imports an untrusted public key through PSA. Each can be reported
+upstream, and neither was. The cases were not changed to fit either provider.
+
+### Other findings
+
+| # | Finding | Status |
+| --- | --- | --- |
+| 1 | UBSan reports 4 issues inside wolfSSL under the Host Makefile settings: signed overflow in `sp_c32.c`, and misaligned loads and stores in `misc.c` and `aes.c`. The cases still pass. | Recorded, not fixed. Vendor code, and not in Crux's Host default. [Retained](evidence/psa-crypto/v4.4.2/host-wolfpsa-ubsan-reports.txt). |
+| 2 | `native_sim` random repeats on every run, for both providers. | [Declared test-only](#provider-declarations) |
+| 3 | Zephyr's glue for TF-PSA-Crypto can fall back to `sys_rand_get()` when the entropy read fails (`allow_non_cs` in `zephyr_entropy.c`). wolfCrypt's seed returns `RNG_FAILURE_E` instead. On RT1060 `sys_rand_get()` is a non-cryptographic generator. | Source read. Weighs for the Wolf profile. Whether a TRNG read can fail in practice is untested. |
+| 4 | `CSPRNG_ENABLED` depends only on `ENTROPY_HAS_DRIVER`, so it is `y` with the test generator and certifies nothing. | Source and configuration read |
+| 5 | TF-PSA-Crypto's Zephyr configuration has no thread-safety option resolved, while wolfPSA defaults `CONFIG_WOLFPSA_THREAD_SAFE=y`. | Configuration read. Concurrency is untested for both. |
+| 6 | `tf-psa-crypto` is a commit in Zephyr's fork, whose relation to the upstream `v1.1.0` tag was not established. | Open, unchanged |
+| 7 | The archive hash is a GitHub property that was not examined for stability. GoogleTest has the same exposure. If it changes, a Host configure fails loudly. | Accepted |
 
 ## Provider declarations
 
-**TF-PSA-Crypto `dc575a2d`.** API conformance does not establish these four items, so each is
-declared separately with its evidence status. "Not evaluated" is not a pass.
+API conformance does not establish these four, so each is declared apart, for each provider and environment, with its evidence level.
+**Run** means executed in this qualification. "Not evaluated" is not a pass.
 
-| Item | Linux Host | Zephyr `native_sim` | RT1060-EVKB (`mimxrt1060_evk@B//qspi`) |
-| --- | --- | --- | --- |
-| Algorithm support | The subset above passes the cases. Everything outside the subset is not qualified. `verify_bytes` is unsupported. *Run on Host.* | Same, built with only the `PSA_WANT_*` symbols the subset needs ([`prj.conf`](../tests/psa_crypto/zephyr/prj.conf)). *Run on `native_sim`.* | Not built or executed. Kconfig resolves with the same symbols (configure only). |
-| Key storage | Volatile lifetime is checked by `ecdsa_p256_import_is_volatile`. Persistent storage and slot configuration were not examined. | Volatile lifetime checked. Static key slots, 16 (`MBEDTLS_PSA_STATIC_KEY_SLOTS=y`). `MBEDTLS_PSA_CRYPTO_STORAGE_C` not enabled. | Static slots, 16, in the resolved Kconfig. Not built. |
-| Entropy source | Linux `getrandom()` through `mbedtls_platform_get_entropy` (source read, `platform/platform_util.c`). The cases exercise `psa_generate_random` and it works. Entropy quality not assessed. | **Test-only and deterministic.** The simulator's generator repeats its output on every run unless seeded differently ([probe](evidence/psa-crypto/native-sim-entropy-probe.txt)). It must not be used for any security claim. | The NXP TRNG through `entropy_mcux_trng`, see below. *Source read and Kconfig resolved, not executed.* |
-| Hardware acceleration | **Unsupported** (none configured or evidenced for the subset; CPU-instruction options in the provider were not evaluated). | **Unsupported.** | **Unsupported.** The Zephyr tree has a separate DCP crypto driver (`crypto_mcux_dcp.c`, node enabled in `nxp_rt10xx.dtsi`), but no PSA accelerator integration exists in `modules/mbedtls` at the pin, and it is not enabled in the resolved configuration. |
+### Algorithm support
+
+| Environment | TF-PSA-Crypto | wolfPSA |
+| --- | --- | --- |
+| Linux Host | The subset without Ed25519. Run. Everything else in its default configuration is not qualified. | The subset with Ed25519. Run. Uses wolfPSA's standalone settings, unedited. |
+| `native_sim` | The subset without Ed25519, built from only the `PSA_WANT` symbols in [`prj.conf`](../tests/psa_crypto/zephyr/prj.conf). Run. | The subset with Ed25519, on the wolfSSL module's Kconfig settings, the route a management image must use. Run, with and without the TLS layer. |
+| RT1060-EVKB | The same configuration compiled. Compile only. | The same configuration compiled. Compile only. |
+
+### Key storage
+
+| Environment | TF-PSA-Crypto | wolfPSA |
+| --- | --- | --- |
+| Linux Host | Volatile keys, checked by `ecdsa_p256_import_is_volatile`. Persistent storage not examined. | Volatile keys, checked the same way. The standalone build has a POSIX store, not used or examined. |
+| `native_sim` | Volatile. 16 static key slots (`MBEDTLS_PSA_STATIC_KEY_SLOTS`). `MBEDTLS_PSA_CRYPTO_STORAGE_C` off. Run. | Volatile, in wolfPSA's in-memory list. Zephyr secure storage is off, and no case uses a persistent key. Run. |
+| RT1060-EVKB | The same. Compile only. | The same. Compile only. |
+
+Crux does not use PSA persistent keys. The credential store owns persistence, and this issue makes no secure-storage, provisioning or key-confidentiality claim.
+
+### Entropy source
+
+| Environment | TF-PSA-Crypto | wolfPSA |
+| --- | --- | --- |
+| Linux Host | The kernel through `mbedtls_platform_get_entropy`. Two processes differ. Run. Quality is the host's, and not assessed. | The kernel through `wc_GenerateSeed`, seeding a Hash-DRBG. Two processes differ. Run. Quality not assessed. |
+| `native_sim` | **Test-only.** `fake_entropy_native_sim`, through `MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG`. Repeats on every run. Run. | **Test-only.** The same driver seeding the Hash-DRBG. Repeats on every run. Run. |
+| RT1060-EVKB | The TRNG, [below](#rt1060-evkb-entropy-source). Sources and compile only. | The TRNG, [below](#rt1060-evkb-entropy-source). Sources and compile only. |
+
+The reasoning and its consequence for later compositions are in [What "real" means](psa-crypto-design.md#what-real-means-on-native_sim).
+
+### Hardware acceleration
+
+**Unsupported, for each provider and environment.** Nothing is evidenced, and no Crux claim depends on it.
+
+| Environment | Source reading |
+| --- | --- |
+| Linux Host | TF-PSA-Crypto's default configuration defines `MBEDTLS_AESNI_C`, which can use CPU instructions at run time. That is a provider detail. It was not measured, and Crux does not rely on it. wolfPSA's standalone settings do not ask for AES-NI. |
+| `native_sim` | None configured |
+| RT1060-EVKB | Zephyr has a separate DCP crypto driver, and neither provider's configuration uses it. `scripts/test-psa-crypto.sh target` fails if `CONFIG_CRYPTO_MCUX_DCP` is set. |
 
 ## RT1060-EVKB entropy source
 
-**Evidence status: source-read and Kconfig-resolved. Not built, not executed on a target.** Target
-execution needs a separate approval.
+**Evidence status: from sources and compile only. Not executed on a target, and target execution needs separate approval.**
 
-- **Finding:** The chosen entropy device is the i.MX RT TRNG. `nxp_rt10xx.dtsi` sets
-  `zephyr,entropy = &trng` and defines `trng: random@400cc000` with compatible
-  `nxp,kinetis-trng`, interrupt 53, `status = "okay"`. The board files in
-  `boards/nxp/mimxrt1060_evk/` contain no override.
-- **Finding:** The driver is `drivers/entropy/entropy_mcux_trng.c` (Kconfig `ENTROPY_MCUX_TRNG`,
-  default y) on the NXP SDK `fsl_trng.c` in `hal_nxp`. The HAL default configuration uses ring
-  oscillator clocking with raw sampling and sets statistical health-check limits (monobit, run
-  lengths). Their adequacy and the entropy rate were not assessed. No SP 800-90B or AIS 31
-  assessment exists in this repository.
-- **Finding:** The driver's Kconfig selects `ENTROPY_NEEDS_PRNG`, and its comment says the TRNG is
-  not designed to supply a continuous stream and should seed a generator. At the pin this makes
-  `MBEDTLS_PSA_CRYPTO_LEGACY_RNG` the PSA random source, with an HMAC_DRBG over the entropy
-  driver, and `XOSHIRO_RANDOM_GENERATOR` the source for `sys_rand_get()`
-  ([resolved Kconfig, configure only](evidence/psa-crypto/rt1060-kconfig-resolution-configure-only.txt)).
-- **Finding (risk):** In `modules/mbedtls/zephyr_entropy.c`, `mbedtls_platform_get_entropy()`
-  calls the entropy device, and if that call returns an error it falls back to `sys_rand_get()`
-  and still reports `8 * output_size` bits of entropy. (A device that is not ready returns an
-  error before that point and does not fall back.) On this board `sys_rand_get()` is the xoshiro
-  generator, which Zephyr's own help text calls non-cryptographically secure. A failing TRNG read
-  would therefore not stop key generation. Whether the TRNG read can fail in practice was not
-  tested.
-- **Finding:** `CSPRNG_ENABLED` depends only on `ENTROPY_HAS_DRIVER`. It is `y` on `native_sim`
-  with the test-only generator, so it does not certify an entropy source.
+| Point | Finding | Evidence |
+| --- | --- | --- |
+| Source | The i.MX RT TRNG: `zephyr,entropy = &trng`, `trng: random@400cc000`, compatible `nxp,kinetis-trng`, in `nxp_rt10xx.dtsi`, with no override in the board files | Source, and the check on the generated `zephyr.dts` |
+| Driver | `entropy_mcux_trng.c`, `CONFIG_ENTROPY_MCUX_TRNG=y`, on the NXP SDK `fsl_trng.c` in `hal_nxp` | Source, and the check on the generated `.config` |
+| Generator above it, TF-PSA-Crypto | The driver selects `ENTROPY_NEEDS_PRNG`, so the PSA source is the legacy RNG with an HMAC_DRBG over it | Source, and `.config` retained for the compile |
+| Generator above it, wolfPSA | wolfCrypt's Hash-DRBG, seeded straight from the device. A failed read is `RNG_FAILURE_E`. | Source |
+| Not assessed | Health-check limits, entropy rate, start-up time, SP 800-90B or AIS 31 | Nothing ran |
 
-## wolfPSA and other alternative providers
+Compile results, from [run 41891057428](evidence/psa-crypto/v4.4.2/ci-run-41891057428.txt). Each image holds the conformance cases and Ztest, so these figures are not a product's footprint. RAM includes configured stacks.
 
-**Blocked on licence review. Not fetched, not built, not run.** The feasibility result for #142 is
-therefore not recorded. The review must answer:
+| Provider | Flash | RAM | Resolved |
+| --- | --- | --- | --- |
+| TF-PSA-Crypto | 118,564 B | 84,352 B | `ENTROPY_MCUX_TRNG`, `ENTROPY_NEEDS_PRNG`, `MBEDTLS_PSA_CRYPTO_LEGACY_RNG`, `MBEDTLS_PSA_DRIVER_GET_ENTROPY`, `XOSHIRO_RANDOM_GENERATOR` |
+| wolfPSA, crypto only | 254,932 B | 72,832 B | `ENTROPY_MCUX_TRNG`, `ENTROPY_NEEDS_PRNG`, `WOLFPSA`, `WOLFSSL_AES_TOUCH_LINES`, `XOSHIRO_RANDOM_GENERATOR` |
 
-1. Under which licence terms would Crux obtain and use the source (an open-source copyleft
-   licence or a commercial one), and is either acceptable for a public repository and for firmware
-   that is distributed?
-2. Whether the trial fetch itself is allowed for evaluation under those terms.
-3. Compatibility with Crux's own licence, which is not yet stated, and with Zephyr's Apache-2.0 in
-   one firmware image.
-4. The obligations that linking into firmware triggers (source offer, relinking, notices) and who
-   carries them.
-5. Which exact repository and release is meant, which PSA Crypto API version it implements, and
-   whether any patent or export-control conditions apply.
-6. A statement that no commercially licensed or employer-owned code, document or licence key is
-   used, so that any such material held by a person involved stays out.
-7. Who signs off the statement.
+The script checks the entropy driver, the devicetree node and the absence of DCP on each build. CI keeps doing that for TF-PSA-Crypto.
 
-## `psa-arch-tests`
+## Decisions
 
-Not built, not run. **Finding:** the pinned tree (Apache-2.0) has `api-tests/dev_apis/crypto` with
-68 test directories and platform targets `tgt_dev_apis_stdc` and `tgt_dev_apis_linux`, so the
-crypto suite is not tied to TF-M in principle. Zephyr's module entry holds only a `module.yml`.
+Each is adopted under the [owner's decision](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084). Reasons not to take the alternatives are in the table.
 
-Trade-off: it covers far more than the subset, so it is useful to choose and classify cases, but it
-brings its own validation layer and CMake flow, a 14 MB second checkout and its own pass/fail
-oracle for little extra evidence about four consumers. **Proposal:** use it as a reference only and
-do not depend on it. A one-off Host run as an independent cross-check can be a separate task.
+### Manifest and module
 
-## Decision proposals
+**Adopted: keep `mbedtls`, `tf-psa-crypto`, `wolfssl` and `wolfpsa` as projects of the `crux-secure-management` group, off by default.** `west.yml` does not change. #202 already
+placed them, so the record's earlier proposal, `name-allowlist`, is replaced. A workspace enables them with `west config manifest.group-filter -- +crux-secure-management`, and a composition no longer
+passes `ZEPHYR_MODULES`.
 
-**None of these is decided.** Each needs an owner decision before adoption.
-
-### 1. Manifest change
-
-| Option | Notes |
+| Option | Result |
 | --- | --- |
-| **M1 (recommended):** add `mbedtls` and `tf-psa-crypto` to `name-allowlist` in `west.yml`, when a consumer is approved | Both are needed at this pin: `modules/mbedtls/CMakeLists.txt` adds the `mbedtls` module as the build entry and takes the provider from `ZEPHYR_TF_PSA_CRYPTO_MODULE_DIR`. The trial built with both and with no other module (`mldsa-native` was not needed). Do not add `psa-arch-tests` or `mbedtls-3.6`. |
-| M2: keep the manifest and pass the modules with `ZEPHYR_MODULES` from a cache | No adopted dependency, but builds are not reproducible from `west update` and every consumer has to provision the cache. |
-| M3: add `tf-psa-crypto` only | Not viable at this pin, by the CMake entry above. |
+| **Group, as on `main`** | **Chosen.** An ordinary workspace fetches no cryptography, and one pin per project. |
+| `name-allowlist` | Rejected. Every workspace would fetch them, and it would repeat what the group already holds. |
+| `ZEPHYR_MODULES` from a cache | Rejected. Not reproducible from `west update`. |
+| `tf-psa-crypto` alone | Not viable. The `mbedtls` module holds the CMake entry and the PSA Kconfig tree, and wolfPSA also needs them for configuration. |
 
-### 2. Linux Host dependency
+### Linux Host dependency
 
-| Option | Notes |
+**Adopted: [`cmake/CruxPsaCrypto.cmake`](../cmake/CruxPsaCrypto.cmake) fetches TF-PSA-Crypto as a pinned archive with a SHA-256, as GoogleTest does.** The script checks it against `west.yml`.
+The root build does not call it yet, and Host CI has no west workspace. wolfPSA on Host is a test built from the west workspace.
+
+| Option | Result |
 | --- | --- |
-| **A (recommended):** `FetchContent` with a URL and SHA-256 at the same commit as Zephyr's pin, like GoogleTest | Fits the existing online `bootstrap-host.sh` then offline `check-host.sh` flow and needs no west in Host CI. The archive `https://github.com/zephyrproject-rtos/tf-psa-crypto/archive/dc575a2ddcc8cb16275d24c42a52eaf79ebe2231.tar.gz` was downloaded for the trial: 3,747,713 bytes, SHA-256 `1a122bcb91fc7c32060e64feeea29364a7cd894413e0ba89ee200fc5e384f95b`, 686 entries, generated sources included. Needs a check that the Host pin equals the Zephyr manifest pin, and the cache pre-populated for the offline step. Archive hash stability is a GitHub property that was not examined. |
-| B: system package | Not recommended: Ubuntu 24.04 offers `libmbedtls-dev` 2.28.8 (checked with `apt-cache policy`), which is neither TF-PSA-Crypto nor the provider Zephyr uses. |
-| C: use the west module checkout | One pin, but Host CI would need a west workspace and a manifest change first (decision 1). |
-| D: vendor the sources | Not recommended: size, licence bookkeeping and maintenance. |
+| **`FetchContent`, URL and SHA-256 at Zephyr's pin** | **Chosen.** Fits the online `bootstrap-host.sh` and offline `check-host.sh` flow. |
+| System package | Rejected. Ubuntu 24.04 offers Mbed TLS 2.28, which is neither provider. |
+| West module checkout for every Host build | Rejected for the default. Host CI would need a west workspace. It stays the route for wolfPSA on Host. |
+| Vendoring | Rejected: size, licence bookkeeping and maintenance. |
 
-### 3. Declared API subset
+### API subset
 
-| Option | Notes |
-| --- | --- |
-| **S1 (recommended):** the [subset above](#proposed-api-subset), from the four consumers | Small, every function has a consumer, and each is covered by cases. |
-| S2: a TLS-ready subset now (AEAD, ECDH, HKDF and more) | More to qualify with no Crux consumer; TLS is out of scope here. |
-| S3: defer the subset until a consumer lands | Leaves the cases unanchored. |
+**Adopted:** the [subset in the policy](native-interface-policy.md#qualified-psa-crypto-subset). `psa_key_derivation_verify_bytes` is out, because the Access core compares and TF-PSA-Crypto lacks it, which closes the record's earlier open point. TLS and SSH are not in it,
+because they do not reach the provider through PSA.
 
-Within S1 an **open point needs a decision**: `psa_key_derivation_verify_bytes` is unsupported, so
-the credential consumer has no provider-supported constant-time comparison. Options: (i) a
-consumer-owned constant-time comparison after `psa_key_derivation_output_bytes`, which adds
-security-sensitive code outside the provider; (ii) a provider revision or patch that implements
-it; (iii) route the comparison through another PSA function such as `psa_hash_verify`, which
-needs review and adds to the subset. The final policy text belongs in
-[the native-free consumer policy](native-interface-policy.md) and is not changed here.
+### Licence basis
 
-### 4. Licence compatibility statement
+Recorded in [upstream reuse](upstream-reuse.md#psa-crypto-providers), from each project's own files. This is an engineering summary, and it is not legal advice.
 
-**Findings** (from file headers and licence files; not a legal opinion; headers only were scanned):
+| Component | Licence stated by its source | Basis here |
+| --- | --- | --- |
+| TF-PSA-Crypto, `mbedtls` module | Apache-2.0 OR GPL-2.0-or-later | The Apache-2.0 option, matching Crux |
+| wolfPSA | GPL-3.0-or-later | Fetched by west only in a workspace that enables the group, and never stored here. Test builds only, and no binary is published. |
+| wolfSSL | GPL-3.0-or-later in its file headers, with `LICENSING` adding an exception for other named software | The same |
 
-| Component | Licence found |
-| --- | --- |
-| TF-PSA-Crypto `dc575a2d` | `LICENSE`: Apache-2.0 OR GPL-2.0-or-later. 253 SPDX lines in C, header, Python and CMake files carry that expression. Exceptions: `drivers/everest/**` (4 files, Apache-2.0 only) and `configs/ext/crypto_config_profile_medium.h` (BSD-3-Clause). |
-| `mbedtls` module `a3e190fe` | `LICENSE`: Apache-2.0 OR GPL-2.0-or-later; all 69 SPDX lines found in `library/` and `include/` carry it. |
-| Zephyr glue (`zephyr_entropy.c`, `zephyr_init.c`, read for this record) | Apache-2.0 |
-| `psa-arch-tests` (reference only) | Apache-2.0 `LICENSE.md`; one file with a BSD-3-Clause SPDX line |
-| wolfPSA | not reviewed (blocked) |
+Whoever distributes an image that links a provider needs a licence basis that covers it, and establishes that for their own case. This repository states no position on anyone's licences.
 
-**Proposal:** if Crux states Apache-2.0 for itself, elect the Apache-2.0 option of the dual licence
-for TF-PSA-Crypto and the Mbed TLS module, record the source, revision and licence in
-[upstream-reuse](upstream-reuse.md) on adoption, and do not elect GPL-2.0-or-later. This cannot be
-completed until the owner states Crux's own licence (**Finding:** none is stated at `f57ff22`).
+## History
 
-**Owner decision (2 November 2026, in chat):** Crux is licensed under Apache-2.0, and the
-recommendations above are accepted. The `LICENSE` file is added by a separate change
-(`chore/add-apache-2-license`, not part of this branch). Electing the Apache-2.0 option of the dual
-licence applies at adoption; nothing is adopted by this change, and the legal-opinion caveat stands.
+The first trial, at Zephyr v4.4.0 and `f57ff22`, covered 22 cases on TF-PSA-Crypto. Its logs stay unchanged in [`docs/evidence/psa-crypto/`](evidence/psa-crypto/) and its plan in
+[`docs/superpowers/plans/`](superpowers/plans/2026-11-02-psa-crypto-qualification.md). Its first run found the `verify_bytes` stub and two assertions that went beyond the documented API.
 
-## Open findings
-
-1. `psa_key_derivation_verify_bytes` is unsupported in the pinned provider (decision 3).
-2. The Zephyr entropy glue can fall back to a non-cryptographic generator and still report full
-   entropy; on RT1060 the fallback is xoshiro (RT1060 entropy section).
-3. `native_sim` PSA random output is deterministic by default. Any test that needs fresh random
-   data on the simulator must say so.
-4. The RT1060 TRNG configuration and entropy rate were not assessed, and nothing ran on a board.
-5. The provider pin is a Zephyr fork commit whose relation to the upstream `v1.1.0` tag was not
-   established.
-6. Crux has no stated licence, which blocks the compatibility statement.
-7. Host CI has no west workspace, which constrains the Host dependency options.
-8. The local `crux-pilot-devcontainer:local` image lacks `libclang-rt-18-dev`, so `host-sanitize`
-   does not link in it until the package is added (next section).
-9. `scripts/analyze-host.sh` already fails on `origin/main` (`f57ff22`) with four diagnostics in
-   `samples/logging` and `tests/logging_consumer`, and fails identically with this change. It was
-   not fixed here because that would widen the scope. See
-   [repository-checks.txt](evidence/psa-crypto/repository-checks.txt).
-
-## Environment notes
-
-- The Dockerfile lists `libclang-rt-18-dev=1:18.1.3-1ubuntu1`, but the local image did not contain
-  it, so ASan and UBSan could not link. The pinned package was installed into the throwaway trial
-  container only. The image, the Dockerfile and `.devcontainer/` were not changed. Whether the
-  image is stale or built from an older Dockerfile was not investigated.
-- The trial container did not set `CLANG_FORMAT`, so `scripts/check-format.sh` ran with
-  `CLANG_FORMAT=clang-format` (the venv's clang-format 18.1.8), as `devcontainer.json` does.
-
-## Acceptance criteria status
+## Acceptance criteria
 
 | Criterion | Status |
 | --- | --- |
-| Manifest, module and Host dependency decisions, including licence, approved before adoption | **Not met.** Prepared as proposals 1, 2 and 4. Nothing adopted or fetched into the build. |
-| Declared subset and limits documented in the native-free consumer policy | **Not met.** The subset is a proposal in this document. The policy is unchanged until decision 3. |
-| Cases pass with the primary provider on Linux Host and `native_sim` | **Met for the trial**, with TF-PSA-Crypto from outside the repository. Not part of the adopted build or of CI. |
-| wolfPSA feasibility result recorded, pass or not | **Not met.** Blocked on licence review; not run. |
-| RT1060-EVKB entropy source identified with its evidence status | **Met** at *source-read, Kconfig-resolved, not executed* status. Target execution is not approved. |
-| Hardware acceleration declared unsupported unless evidenced | **Met.** Unsupported for all three environments. |
+| Manifest, module and Host dependency decisions, including licence, approved before adoption | Met, under the owner's decision of 4 November 2026 |
+| Declared subset and limits documented in the native-free consumer policy | Met |
+| Cases pass with the primary provider on Linux Host and `native_sim` | Met for TF-PSA-Crypto, with Ed25519 declared unsupported |
+| wolfPSA feasibility result recorded, pass or not | Met: it runs, with two declared deviations |
+| RT1060-EVKB entropy source identified with its evidence status | Met, from sources and compile only |
+| Hardware acceleration declared unsupported unless evidenced | Met |
 
-Not run: GitHub Actions, any RT1060 build or cross-compilation with the PSA application (the
-Kconfig was resolved with a configure-only run), any physical-board operation, `psa-arch-tests`,
-wolfPSA, TLS, secure storage.
+Not run: any physical-board operation, `psa-arch-tests`, TLS through either provider, secure storage, a consumer calling a real provider, and concurrency.
