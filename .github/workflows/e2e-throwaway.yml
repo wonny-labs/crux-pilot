@@ -1,0 +1,52 @@
+# Throwaway. Measures the shipped tools on real builds for PR 227. Never to be merged.
+name: e2e-throwaway
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CRUX_WORKSPACE: ${{ github.workspace }}
+      CRUX_CACHE_DIR: ${{ github.workspace }}/../crux-cache
+      CRUX_PYTHON: ${{ github.workspace }}/../crux-tools/bin/python
+      ZEPHYR_SDK_INSTALL_DIR: ${{ github.workspace }}/../crux-cache/sdk/zephyr-sdk-1.0.1
+      CRUX_BOARD_TARGET: mimxrt1060_evk@B//qspi
+      CRUX_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: crux-pilot
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Zephyr host packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential gcc-multilib ca-certificates device-tree-compiler file gperf git \
+            libmagic1 libsdl2-dev pkg-config python3-dev python3-tk wget xz-utils
+
+      - name: Install pinned Python tools
+        run: |
+          python -m venv "$GITHUB_WORKSPACE/../crux-tools"
+          "$GITHUB_WORKSPACE/../crux-tools/bin/pip" install --disable-pip-version-check \
+            cmake==3.28.4 ninja==1.11.1 west==1.4.0 clang-format==18.1.8
+          echo "$GITHUB_WORKSPACE/../crux-tools/bin" >> "$GITHUB_PATH"
+
+      - name: Fetch pinned Zephyr workspace and install SDK
+        working-directory: crux-pilot
+        env:
+          CRUX_GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/bootstrap-zephyr.sh --install-sdk
+
+      - name: Release flow at two paths
+        run: bash crux-pilot/.github/e2e-throwaway.sh
