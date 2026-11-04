@@ -20,6 +20,7 @@
 #define MAX_SECTORS 8U
 #define MAX_OFFSET 16U
 #define CACHED (CONFIG_CRUX_EMMC_SIM_CACHE_KB > 0)
+#define HOST DEVICE_DT_GET(DT_NODELABEL(emmc_sim0))
 
 BUILD_ASSERT(CONFIG_SDHC_BUFFER_ALIGNMENT == 32);
 
@@ -52,6 +53,12 @@ static void assert_reads_back(uint32_t sector, uint32_t count, const uint8_t *ex
     memset(read_data, 0, sizeof(read_data));
     zassert_equal(disk_access_read(DISK, read_data, sector, count), 0);
     zassert_mem_equal(read_data, expected, count * SECTOR_SIZE);
+}
+
+static void assert_busy_for_one_poll(void)
+{
+    zassert_equal(sdhc_card_busy(HOST), 1);
+    zassert_equal(sdhc_card_busy(HOST), 0);
 }
 
 static void assert_persistent(uint32_t sector, uint32_t count, const uint8_t *expected)
@@ -179,8 +186,31 @@ ZTEST(emmc_stack, test_hard_read_fault_returns_nonzero)
 ZTEST(emmc_stack, test_busy_past_the_timeout_returns_error)
 {
     const uint32_t sector = 80;
+    struct sdhc_command write = {
+        .opcode = SD_WRITE_SINGLE_BLOCK,
+        .arg = sector,
+        .response_type = SD_RSP_TYPE_R1,
+    };
+    struct sdhc_data data = {
+        .block_addr = sector,
+        .block_size = SECTOR_SIZE,
+        .blocks = 1,
+        .data = new_data,
+    };
+    struct sdhc_command power_class = {
+        .opcode = SD_SWITCH,
+        .arg = (3U << 24) | (187U << 16), /* write byte: EXT_CSD POWER_CLASS, value 0 */
+        .response_type = SD_RSP_TYPE_R1b,
+    };
 
     prepare_new_data(new_data, sector, 1);
+
+    /* An ordinary busy period ends by itself, so a wait sees the card go from busy to ready. */
+    zassert_equal(sdhc_request(HOST, &write, &data), 0);
+    assert_busy_for_one_poll();
+    zassert_equal(sdhc_request(HOST, &power_class, NULL), 0);
+    assert_busy_for_one_poll();
+
     emmc_sim_hold_busy(true);
     zassert_equal(disk_access_write(DISK, new_data, sector, 1), -ETIMEDOUT);
     zassert_equal(disk_access_ioctl(DISK, DISK_IOCTL_CTRL_SYNC, NULL), -EBUSY);
@@ -208,10 +238,13 @@ ZTEST(emmc_stack, test_transfers_are_aligned_for_dma)
     const uint32_t sector = 100;
     const uint32_t offsets[] = {0, 1, 4, MAX_OFFSET};
 
+    /* Each pass has sectors and bytes of its own, so that a dropped write cannot read back. */
     for (size_t i = 0; i < ARRAY_SIZE(offsets); i++) {
-        prepare_new_data(new_data + offsets[i], sector, 2);
-        zassert_equal(disk_access_write(DISK, new_data + offsets[i], sector, 2), 0);
-        zassert_equal(disk_access_read(DISK, read_data + offsets[i], sector, 2), 0);
+        const uint32_t pass_sector = sector + 2U * i;
+
+        prepare_new_data(new_data + offsets[i], pass_sector, 2);
+        zassert_equal(disk_access_write(DISK, new_data + offsets[i], pass_sector, 2), 0);
+        zassert_equal(disk_access_read(DISK, read_data + offsets[i], pass_sector, 2), 0);
         zassert_mem_equal(read_data + offsets[i], new_data + offsets[i], 2 * SECTOR_SIZE);
     }
     zassert_equal(stats().misaligned_transfers, 0);
@@ -228,7 +261,7 @@ ZTEST(emmc_stack, test_transfers_are_aligned_for_dma)
         .blocks = 1,
         .data = read_data + 1,
     };
-    zassert_equal(sdhc_request(DEVICE_DT_GET(DT_NODELABEL(emmc_sim0)), &cmd, &data), 0);
+    zassert_equal(sdhc_request(HOST, &cmd, &data), 0);
     zassert_equal(stats().misaligned_transfers, 1);
 }
 

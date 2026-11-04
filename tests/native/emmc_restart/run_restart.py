@@ -37,18 +37,18 @@ def expect(condition, message):
 
 
 def write(exe, image, profile, seed, *options):
-    rc, out, err = run(exe, image, profile, "--restart-phase=write", f"--restart-seed={seed}",
+    rc, out, err = run(exe, image, profile, "--phase=write", f"--restart-seed={seed}",
                        *options)
     expect(rc == 0 and "WROTE" in out, f"write failed: {rc} {out} {err}")
 
 
 def expect_holds(exe, image, profile, seed):
-    rc, out, err = run(exe, image, profile, "--restart-phase=verify", f"--restart-seed={seed}")
+    rc, out, err = run(exe, image, profile, "--phase=verify", f"--restart-seed={seed}")
     expect(rc == 0 and "VERIFIED" in out, f"seed {seed} is not on the medium: {rc} {out} {err}")
 
 
 def expect_does_not_hold(exe, image, profile, seed):
-    rc, out, err = run(exe, image, profile, "--restart-phase=verify", f"--restart-seed={seed}")
+    rc, out, err = run(exe, image, profile, "--phase=verify", f"--restart-seed={seed}")
     expect(rc == 3 and "MISMATCH" in out, f"seed {seed} should not read back: {rc} {out} {err}")
 
 
@@ -86,7 +86,7 @@ def test_image_size_mismatch_is_an_error(exe, workdir):
     for size in (0, SECTOR_SIZE, MEDIUM_SIZE - 1, MEDIUM_SIZE + SECTOR_SIZE):
         with open(image, "wb") as handle:
             handle.write(b"\xa5" * size)
-        rc, out, err = run(exe, image, "--restart-phase=verify", "--restart-seed=1")
+        rc, out, err = run(exe, image, "--phase=verify", "--restart-seed=1")
         expect(rc != 0 and "emmc_sim" in err, f"an image of {size} bytes: {rc} {out} {err}")
         expect(read_file(image) == b"\xa5" * size, f"an image of {size} bytes was changed")
 

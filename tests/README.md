@@ -401,8 +401,8 @@ not in the Zephyr CI workflow.
 
 The simulator is a model written from the stack's needs, by the same author as the tests, and is not
 device evidence. Results show how the stack behaves against that model, not how an eMMC device behaves.
-It models no timing and no wear, has a busy period only when one is injected, and holds cached writes
-until a flush whatever the size it reports. A process exit is not a power loss.
+It models no timing and no wear. Its busy period after CMD6 and after a write lasts one poll unless a
+longer one is injected, and it holds cached writes until a flush whatever the size it reports. A process exit is not a power loss.
 
 ## Portable queue and monotonic timing
 

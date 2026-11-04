@@ -19,7 +19,8 @@ void emmc_sim_status_not_ready(uint32_t count); /* next `count` CMD13 report not
 void emmc_sim_hold_busy(bool busy);             /* sdhc_card_busy reports busy now */
 /* Armed now, taking effect only after the next CMD6, so that a wait before the flush does not use
  * them up. Bit 7 from a rejected switch appears in the first CMD13 after that CMD6.
- * Without `forever`, the card is busy for one sdhc_card_busy poll. */
+ * Without `forever`, the card is busy for one sdhc_card_busy poll, which is also the busy period
+ * of any CMD6 or write. */
 void emmc_sim_busy_after_switch(bool forever);
 void emmc_sim_not_ready_after_switch(uint32_t count);
 void emmc_sim_clear_faults(void);

@@ -2,8 +2,8 @@
 /*
  * A native_sim SD host driver that behaves as one eMMC device, so that the unmodified Zephyr MMC
  * stack runs without hardware. Register values and commands are those the stack needs at the pin;
- * any other command is refused, so that a stack change is visible. There is no modelled timing and
- * no busy period unless one is injected.
+ * any other command is refused, so that a stack change is visible. There is no modelled timing:
+ * after CMD6 and after a write the card is busy for one sdhc_card_busy poll, however long the work.
  *
  * A write held in the cache stays held until a flush, whatever the cache size says, and power-off
  * drops it. That is the unfavourable case for software, not a measurement of a device.
@@ -19,6 +19,7 @@
 #include <string.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sdhc.h>
+#include <zephyr/sys/__assert.h>
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/util.h>
@@ -206,6 +207,7 @@ static void card_switch(uint32_t arg)
         not_ready_reads = not_ready_reads_after_switch;
         not_ready_reads_after_switch = 0;
     }
+    busy_polls = MAX(busy_polls, 1U);
 }
 
 static uint32_t read_status(void)
@@ -231,6 +233,7 @@ static void read_sectors(uint32_t sector, uint8_t *to, uint32_t count)
 static void write_sectors(uint32_t sector, const uint8_t *from, uint32_t count)
 {
     trace_record(TRACE_WRITE, sector, count, 0, from);
+    busy_polls = MAX(busy_polls, 1U);
     if (!cache_on) {
         persist(sector, from, count);
         return;
@@ -433,11 +436,13 @@ DEVICE_DT_INST_DEFINE(0, emmc_sim_init, NULL, NULL, NULL, POST_KERNEL, CONFIG_SD
 
 void emmc_sim_fail(enum emmc_sim_op op, uint32_t nth, uint32_t attempts)
 {
+    __ASSERT(nth >= 1U, "nth is 1-based");
     op_faults[op] = (struct fault){.skip = nth - 1U, .attempts = attempts};
 }
 
 void emmc_sim_fail_command(uint8_t opcode, uint32_t nth, uint32_t attempts)
 {
+    __ASSERT(nth >= 1U, "nth is 1-based");
     command_fault_opcode = opcode;
     command_fault = (struct fault){.skip = nth - 1U, .attempts = attempts};
 }

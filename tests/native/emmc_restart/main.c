@@ -36,7 +36,7 @@ static uint8_t contents[SECTORS * SECTOR_SIZE] __aligned(CONFIG_SDHC_BUFFER_ALIG
 static void add_options(void)
 {
     static struct args_struct_t options[] = {
-        {.option = "restart-phase",
+        {.option = "phase",
          .name = "phase",
          .type = 's',
          .dest = (void *)&phase,
