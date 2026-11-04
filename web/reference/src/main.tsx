@@ -3,8 +3,9 @@
 import './style.css';
 import { mountReferenceInterface } from './app.tsx';
 import { homeScreen } from './screens/home.tsx';
+import { rebootScreen } from './screens/reboot.tsx';
 
 const root = document.getElementById('app');
 if (root !== null) {
-  mountReferenceInterface(root, { screens: [homeScreen] });
+  mountReferenceInterface(root, { screens: [homeScreen, rebootScreen] });
 }
