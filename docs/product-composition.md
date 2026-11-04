@@ -282,7 +282,7 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 
 - A throwaway proof of concept built one small application that links `crux::time`. It used Zephyr v4.4.2, west 1.4.0 and SDK 1.0.1, in the amd64 Dev Container image under emulation. It was a cross-build only, for the current EVKB target. Nothing ran on a board. It exercised the composition, fork, `west patch`, SBOM, frozen-manifest and two-path image comparisons. Its copy of the application is not byte-for-byte the template's.
 - `tests/build/test_product_template.py` runs the template manifest through real west 1.4.0, `west crux-pins`, the frozen-manifest flow and input capture for the build record. It uses local throwaway repositories in place of every remote and builds nothing with Zephyr.
-- `scripts/test-product-template.sh` is configured in the Zephyr CI workflow to cross-build `app/` for the current EVKB target. It builds inside Crux's own workspace, not through the template's manifest.
+- `scripts/test-product-template.sh <board>` runs the checks and cross-builds `app/` by hand. No workflow calls it, and CI wiring is proposed separately. It builds inside Crux's own workspace, not through the template's manifest.
 
 **What was not run**
 

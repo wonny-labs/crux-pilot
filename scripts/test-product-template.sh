@@ -24,6 +24,9 @@ python="${CRUX_PYTHON:-python3}"
 "$python" -m unittest discover -s "$repo/tests/build" -p test_crux_pins.py -v
 "$python" -m unittest discover -s "$repo/tests/build" -p test_product_template.py -v
 
+# This runs the shipped command on a real Zephyr manifest: Crux's own workspace.
+(cd "$workspace" && west crux-pins)
+
 # This builds the application inside Crux's own workspace, not through the template's
 # manifest. Build only: no debugger, serial transport, programming or reset.
 export ZEPHYR_BASE="$workspace/zephyr"

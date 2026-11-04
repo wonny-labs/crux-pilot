@@ -107,11 +107,7 @@ class TemplateFilesTest(unittest.TestCase):
         self.assertRegex((TEMPLATE / ".gitignore").read_text(), r"(?m)^/?build/$")
 
 
-class ContinuousIntegrationTest(unittest.TestCase):
-    def test_the_zephyr_workflow_runs_the_template_script(self):
-        workflow = (REPO / ".github/workflows/zephyr.yml").read_text()
-        self.assertIn('scripts/test-product-template.sh "$CRUX_BOARD_TARGET"', workflow)
-
+class TemplateScriptTest(unittest.TestCase):
     def test_the_script_builds_the_template_application_and_runs_these_tests(self):
         script = (REPO / "scripts/test-product-template.sh")
         self.assertTrue(os.access(script, os.X_OK))
@@ -120,6 +116,11 @@ class ContinuousIntegrationTest(unittest.TestCase):
         self.assertIn("samples/product_template/app", text)
         self.assertIn("test_product_template.py", text)
         self.assertNotRegex(text, r"\bwest (flash|debug|attach)\b")
+
+    def test_the_script_runs_the_pin_check_on_the_real_manifest_before_the_build(self):
+        text = (REPO / "scripts/test-product-template.sh").read_text()
+        self.assertIn('(cd "$workspace" && west crux-pins)', text)
+        self.assertLess(text.index("west crux-pins"), text.index("west build -p always"))
 
 
 class GuideTest(unittest.TestCase):
