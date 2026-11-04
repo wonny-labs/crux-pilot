@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Qualification of the provider-neutral PSA Crypto conformance cases (Issue #142).
 #
-#   scripts/test-psa-crypto.sh [host|zephyr|target|all]
+#   scripts/test-psa-crypto.sh [host|zephyr|target|all] [all|tf-psa-crypto]
 #
 # host:   no-provider and stub-provider controls, then TF-PSA-Crypto and wolfPSA with and without
 #         ASan and UBSan, and a check that each provider's pin matches west.yml.
@@ -12,11 +12,21 @@
 #
 # Each part needs a west workspace with the optional stacks, and none implies another:
 #   west config manifest.group-filter -- +crux-secure-management && west update
+#
+# The second argument limits a run to TF-PSA-Crypto, so that no GPL stack is needed. A default workflow
+# must not select the wolf stacks, and scripts/check-ssh-boundaries.py holds it to that, so CI uses this:
+#   west config manifest.project-filter -- +mbedtls,+tf-psa-crypto && west update
 set -euo pipefail
 
 mode="${1:-all}"
+scope="${2:-all}"
 case "$mode" in host | zephyr | target | all) ;; *)
-    printf 'usage: %s [host|zephyr|target|all]\n' "$0" >&2
+    printf 'usage: %s [host|zephyr|target|all] [all|tf-psa-crypto]\n' "$0" >&2
+    exit 2
+    ;;
+esac
+case "$scope" in all | tf-psa-crypto) ;; *)
+    printf 'usage: %s [host|zephyr|target|all] [all|tf-psa-crypto]\n' "$0" >&2
     exit 2
     ;;
 esac
@@ -81,7 +91,9 @@ check_pins() {
         [[ "$pin" == "$(zephyr_pinned_revision "$module")" ]] ||
             fail "west.yml pins $module at $pin, and Zephyr's manifest at $(zephyr_pinned_revision "$module")"
     done
-    for module in mbedtls tf-psa-crypto wolfssl wolfpsa; do
+    local checked=(mbedtls tf-psa-crypto)
+    [[ "$scope" != all ]] || checked+=(wolfssl wolfpsa)
+    for module in "${checked[@]}"; do
         require_module "$module" "$modules/$module"
         pin="$(pinned_revision "$module")"
         actual="$(git -C "$modules/$module" rev-parse HEAD)"
@@ -195,6 +207,10 @@ run_host() {
     UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 "$out/tf-psa-crypto-sanitize/psa_conformance" > "$out/tf-psa-crypto-sanitize.txt" || { cat "$out/tf-psa-crypto-sanitize.txt"; fail 'TF-PSA-Crypto on Host with sanitizers'; }
     check_host_result "$out/tf-psa-crypto-sanitize.txt" "$tf_unsupported" 0
 
+    if [[ "$scope" != all ]]; then
+        printf 'not run: wolfPSA on Host, because this run is limited to %s\n' "$scope"
+        return
+    fi
     host_configure wolfpsa "${wolf_options[@]}" > /dev/null
     "$out/wolfpsa/psa_conformance" > "$out/wolfpsa.txt" || { cat "$out/wolfpsa.txt"; fail 'wolfPSA on Host'; }
     check_host_result "$out/wolfpsa.txt" 0 "$wolf_deviations"
@@ -240,24 +256,30 @@ check_native_sim_entropy() { # name, zephyr.exe
 }
 
 run_zephyr() {
-    local name exe report="$out/twister"
+    local name exe report="$out/twister" tag=psa-all expected=3 names=(tf_psa_crypto wolfpsa)
+    if [[ "$scope" != all ]]; then
+        tag=psa-tf-psa-crypto
+        expected=1
+        names=(tf_psa_crypto)
+    fi
     require_module Zephyr "$workspace/zephyr"
     export ZEPHYR_BASE="$workspace/zephyr"
     export ZEPHYR_TOOLCHAIN_VARIANT=host
     mkdir -p "$out"
     (cd "$workspace" && west twister -j "$jobs" -p "$native_board" -T "$zephyr_source" \
-        -O "$report" --inline-logs)
-    python3 - "$report/twister.json" <<'PY'
+        -O "$report" --inline-logs --tag "$tag")
+    python3 - "$report/twister.json" "$expected" <<'PY'
 import json, sys
 suites = json.load(open(sys.argv[1]))["testsuites"]
 names = sorted(s["name"] for s in suites)
-if len(names) != 3 or any(s["status"] != "passed" for s in suites):
-    sys.exit(f"expected three passed configurations, got {[(s['name'], s['status']) for s in suites]}")
+if len(names) != int(sys.argv[2]) or any(s["status"] != "passed" for s in suites):
+    sys.exit(f"expected {sys.argv[2]} passed configurations, got {[(s['name'], s['status']) for s in suites]}")
 for s in suites:
     states = [t["status"] for t in s["testcases"]]
     print(s["name"], {k: states.count(k) for k in sorted(set(states))})
 PY
-    for name in tf_psa_crypto wolfpsa; do
+    [[ "$scope" == all ]] || printf 'not run: wolfPSA on native_sim, because this run is limited to %s\n' "$scope"
+    for name in "${names[@]}"; do
         exe="$(find "$report" -path "*conformance.$name/zephyr/zephyr.exe" -print -quit)"
         [[ -n "$exe" ]] || fail "no native_sim executable for $name"
         check_native_sim_entropy "$name" "$exe"
@@ -267,12 +289,13 @@ PY
 # Compile only. Nothing here touches a board. The configuration and devicetree are the evidence for the
 # RT1060-EVKB entropy source and for hardware acceleration being off.
 run_target() {
-    local provider build config
+    local provider build config providers=(tf-psa-crypto wolfpsa)
+    [[ "$scope" == all ]] || providers=(tf-psa-crypto)
     require_module Zephyr "$workspace/zephyr"
     export ZEPHYR_BASE="$workspace/zephyr"
     unset ZEPHYR_TOOLCHAIN_VARIANT
     mkdir -p "$out"
-    for provider in tf-psa-crypto wolfpsa; do
+    for provider in "${providers[@]}"; do
         build="$out/rt1060-$provider"
         (cd "$workspace" && west build -p always -b "$board" -d "$build" "$zephyr_source" -- \
             "-DEXTRA_CONF_FILE=$provider.conf")

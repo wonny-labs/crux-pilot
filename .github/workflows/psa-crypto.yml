@@ -1,8 +1,8 @@
 name: psa-crypto
 
-# Qualifies the PSA Crypto providers (Issue #142). It enables the optional crux-secure-management west
-# group, which the other workflows leave off, so it runs apart from them. It uploads logs and reports only:
-# an image or test program linked with a GPL stack must not leave the run as an artefact.
+# Qualifies TF-PSA-Crypto (Issue #142) on Linux Host and native_sim, and compiles it for RT1060-EVKB. A
+# default workflow must not select the GPL stacks, so wolfPSA does not run here: see
+# docs/psa-crypto-qualification.md. It takes only the two Apache-2.0 option projects by name.
 
 on:
   push:
@@ -51,26 +51,26 @@ jobs:
             cmake==3.28.4 ninja==1.11.1 west==1.4.0
           echo "$GITHUB_WORKSPACE/../crux-tools/bin" >> "$GITHUB_PATH"
 
-      - name: Fetch the pinned workspace with the optional stacks, and install the SDK
+      - name: Fetch the pinned workspace with the TF-PSA-Crypto projects, and install the SDK
         env:
           CRUX_GITHUB_TOKEN: ${{ github.token }}
         run: |
           west init -l crux-pilot
-          west config manifest.group-filter -- +crux-secure-management
+          west config manifest.project-filter -- +mbedtls,+tf-psa-crypto
           cd crux-pilot
           scripts/bootstrap-zephyr.sh --install-sdk
 
-      - name: Providers on Linux Host, with controls and sanitizers
+      - name: TF-PSA-Crypto on Linux Host, with controls and sanitizers
         working-directory: crux-pilot
-        run: scripts/test-psa-crypto.sh host
+        run: scripts/test-psa-crypto.sh host tf-psa-crypto
 
-      - name: Providers on native_sim, with the entropy declaration
+      - name: TF-PSA-Crypto on native_sim, with the entropy declaration
         working-directory: crux-pilot
-        run: scripts/test-psa-crypto.sh zephyr
+        run: scripts/test-psa-crypto.sh zephyr tf-psa-crypto
 
-      - name: Compile both providers for RT1060-EVKB, without running them
+      - name: Compile TF-PSA-Crypto for RT1060-EVKB, without running it
         working-directory: crux-pilot
-        run: scripts/test-psa-crypto.sh target
+        run: scripts/test-psa-crypto.sh target tf-psa-crypto
 
       - name: Upload logs and reports
         if: always()
