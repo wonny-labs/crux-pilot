@@ -13,7 +13,7 @@ Each holds the reasoning behind its decisions.
 | --- | --- |
 | #176 decided, stacks pinned in the manifest | The evidence and recommendation in #198, and the pins in #202, merged on 3 November. |
 | #177 reviewed contract, fake provider, Host conformance | Proposal merged in #201. The implementation merged in #210 (`473b50c`), and `docs/access-contract.md` says it is not adopted until gate #183 passes. G-D is accepted: [the owner's approval](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6611325037) is quoted on #177. |
-| #178 to #182 reviewed contracts, fake providers, Host conformance | **In progress.** #224 merged the File additions of #179, and the file service is in #232. Accepting the proposals does not meet this criterion: each contract must reach main with its header, fake provider and Host cases. |
+| #178 to #182 reviewed contracts, fake providers, Host conformance | **In progress.** #224 merged the File additions of #179, and #232 merged the file service (`b63582c`). Accepting the proposals does not meet this criterion: each contract must reach main with its header, fake provider and Host cases. |
 | A rule for later shared contract changes | Decision G-A below, accepted |
 | Owner decides whether this runs alongside M7 | Decision G-B below, accepted |
 
@@ -125,7 +125,7 @@ These are changes the other contracts need. The owner accepted all but AC2, and 
 
 ## Findings that affect the track designs
 
-The proposals do not change these designs, apart from the owner-directed removal of `rsa-sha2-256` from the user key table, which #210 made. Each needs its own correction when its track starts, or earlier.
+The proposals do not change these designs, apart from the user key table of the CLI and SFTP design, where #210 removed `rsa-sha2-256` and #208 added a note on its scope. Each needs its own correction when its track starts, or earlier.
 
 | Finding | Design | Owner of the fix |
 | --- | --- | --- |
@@ -191,4 +191,4 @@ A service calls `crux_access_check` before taking its own lock. Account operatio
 
 ## Limits of this record
 
-Everything here comes from reading source at the stated revisions. No contract has run, and nothing was flashed or built. Whether wolfPSA can generate Ed25519, how FatFs and the card behave across a cut in the store's save sequence, and the timing of status sources on the HTTP thread are all open. WinSCP was read at its current upstream tip, not at a release, and no client trace exists yet.
+Decisions here come from reading source at the stated revisions. Since then the File additions (#224), access (#210) and file service (#232) have run on Host, and no contract has run on a target or been flashed. Whether wolfPSA can generate Ed25519, how FatFs and the card behave across a cut in the store's save sequence, and the timing of status sources on the HTTP thread are all open. WinSCP was read at its current upstream tip, not at a release, and no client trace exists yet.
