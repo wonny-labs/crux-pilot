@@ -21,7 +21,7 @@ product manufacturer owns those obligations and the conclusions drawn from this 
 
 | ID | Decision | State |
 | --- | --- | --- |
-| D1 | Crux provides the HTTPS server, management APIs, authentication and authorisation, plus common pages that a project can replace. Projects add their own pages and APIs. | Owner, 3 November 2026 |
+| D1 | Crux provides the HTTPS server, management APIs, authentication and authorisation, plus common pages that a project can replace. Projects add their own pages and APIs. | Owner, 3 November 2026. Its common pages are withdrawn by D11, and the rest stands. |
 | D2 | A device generates its own TLS certificate and SSH host key at first boot. An operator can replace the TLS certificate later. | Owner, 3 November 2026 |
 | D3 | Web, CLI, file transfer and serial console share one account and role store. | Owner, 3 November 2026 |
 | D4 | The Pilot evaluates wolfSSL and wolfSSH under GPLv3. Products use a commercial licence that they obtain themselves. | Owner, 3 November 2026 |
@@ -31,6 +31,7 @@ product manufacturer owns those obligations and the conclusions drawn from this 
 | D8 | The Wolf profile is the first complete profile. Mbed TLS validates the HTTPS seam. | Proposal |
 | D9 | The production CLI is a Crux command registry. The Zephyr shell stays a development-only facility and is never reachable from the network. | Proposal |
 | D10 | Web login uses two requests, so that password verification runs on a worker and never stalls the HTTP server thread. | Owner, 3 November 2026 |
+| D11 | Crux provides management services, APIs and HTTPS hosting, and the product owns its application UI. Common pages are withdrawn as a promise. Preact and Angular are examples. See W13 in the [frontend design](web-frontend-foundation-design.md). | [Owner, 4 November 2026](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084) |
 
 ## Requirements
 
@@ -251,7 +252,7 @@ After G1:
 
 | Track | Owns | Must not change without a shared review |
 | --- | --- | --- |
-| M11 HTTPS | `crux_web`, HTTP adapter, certificate management, web pages | `crux_access`, services, `west.yml` |
+| M11 HTTPS | `crux_web`, HTTP adapter, certificate management, asset hosting | `crux_access`, services, `west.yml` |
 | M12 CLI/SFTP | SSH private interface, wolfSSH provider, SFTP adapter, CLI over SSH | `crux_access`, services, `west.yml` |
 
 A change to a shared contract after G1 is one reviewed PR that both tracks rebase onto. Each track

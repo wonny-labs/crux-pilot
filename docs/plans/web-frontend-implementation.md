@@ -1,8 +1,11 @@
 # Web frontend implementation, M13
 
 Status: draft for review, issues #215, #216, #217, #218 and #219. Issue #220 needs firmware and is not started. It
-follows the [web frontend foundation design](web-frontend-foundation-design.md), whose decisions W1 to W12 are accepted,
-and the [management API specification](../../web/api/openapi.yaml). The approval is the owner's comment on
+follows the [web frontend foundation design](web-frontend-foundation-design.md), whose decisions W1 to W18 are accepted,
+and the [management API specification](../../web/api/openapi.yaml). Since
+[the owner's decision of 4 November 2026](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084), W13, Preact and Angular are examples and the product owns its application UI.
+The folder `web/reference`, the test files named `reference-*` and the function `mountReferenceInterface` keep their names,
+and here they mean the Preact example. The approval is the owner's comment on
 [#183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497), with its
 [correction](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6619502432) that M13 other than #220 is not
 behind the gate. It covers no hardware, and nothing here was run on a board.
@@ -11,16 +14,54 @@ behind the gate. It covers no hardware, and nothing here was run on a board.
 
 | State | Item |
 | --- | --- |
-| Built | `web/client`: a framework-free client for login polling, CSRF, error mapping and retry timing |
-| Built | `web/reference`: Preact screens for sign-in, forced password change, home, network settings and reboot |
+| Built | `web/client`: an optional framework-free client for login polling, CSRF, error mapping and retry timing |
+| Built | `web/reference`: the Preact example, with sign-in, forced password change and home as core screens, and network settings and reboot as advanced examples |
 | Built | `web/mock`: a mock server from the specification, and a conformance check that M11 can reuse |
 | Built | `web/tools`: type generation, the build, the packaging budget, source rules and pin checks |
-| Built | `samples/web/angular-minimal`: sign-in and home, with the generated types |
+| Built | `samples/web/angular-minimal`: the Angular example, with sign-in and home, using the generated types |
+| Not built | A simple configuration update in either example, and a forced password change screen in the Angular example. Both are in #243. |
 | Built | `.github/workflows/web.yml`: the specification lint, `tests/management_api`, web checks, browser tests and the Angular job |
 | Faked | The whole device. The mock runs on the loopback address over plain HTTP, and it holds one session at a time |
 | Untested | TLS, real sessions, connection limits, the Zephyr server's real `409`, timing, load time, Flash and RAM. All are in #220 |
 | Untested | Firefox and Edge. The browser tests ran on Chrome only, because playwright-core cannot drive a stock Firefox |
 | Untested | A screen reader. Accessibility is checked through roles, labels, focus and the keyboard |
+
+## Core and Advanced evidence
+
+Each evidence state is recorded on its own, and none stands in for another. Core flows run on both examples, and advanced
+flows on the Preact example with service tests underneath. Host here means the C services, which have no web route yet.
+
+| Flow | Kind | Mock | Host | `native_sim` | Physical |
+| --- | --- | --- | --- | --- | --- |
+| Sign-in and sign-out | Core | Both examples | Access contract. Web sessions in #186. | Not run, #220 | Not run |
+| Session expiry | Core | Both examples | Access contract. Web sessions in #186. | Not run, #220 | Not run |
+| Forced password change | Core | Preact. Angular shows a notice, #243. | Access contract. Web route in #187. | Not run, #220 | Not run |
+| Status | Core | Both examples | Service in draft #237. Web route in #187. | Not run, #220 | Not run |
+| Simple configuration update | Core | Neither, #243 | Service in draft #237. Web route in #187. | Not run, #220 | Not run |
+| Network settings | Advanced | Preact | Not started, #213 | Not run, #220 after #213 | Not run |
+| Reboot | Advanced | Preact | Not started, #214 | Not run, #220 after #214 | Not run |
+
+```mermaid
+flowchart LR
+    mock["Mock<br/>browser tests in CI"]
+    host["Host<br/>C services, fakes where declared"]
+    sim["native_sim<br/>real TLS, sessions and limits"]
+    interim(["Interim result<br/>software functional completion"])
+    phys["Physical<br/>RT1060-EVKB, separately approved"]
+    done(["M11 and M13 exit"])
+    mock --> interim
+    host --> interim
+    sim --> interim
+    interim --> done
+    phys --> done
+```
+
+| Rule | Detail |
+| --- | --- |
+| Prerequisites | Real HTTPS on `native_sim` needs PSA (#142) and the management composition in #242. Neither is a criterion of gate #183. |
+| Interim result | Host and `native_sim` functional completion is recorded as an interim result. It closes no milestone. |
+| Physical | Physical evidence stays tracked separately and is not waived. It needs its own approval. |
+| Limits | A limit of a TLS profile on `native_sim` is recorded with its evidence, and it is not replaced by a mock result. |
 
 ## Structure
 
@@ -29,8 +70,8 @@ The firmware takes a built folder, so it needs no Node.js. The dotted lines are 
 ```mermaid
 flowchart TB
     subgraph browser["Browser"]
-        ref["web/reference<br/>Preact shell and screens"]
-        ang["samples/web/angular-minimal<br/>Angular, HttpClient"]
+        ref["web/reference<br/>Preact example"]
+        ang["samples/web/angular-minimal<br/>Angular example, HttpClient"]
         client["web/client<br/>session, polling, CSRF, errors, retry"]
         types["client/src/api-types.generated.ts"]
         ref --> client
@@ -87,8 +128,8 @@ Every request uses `credentials: same-origin`, `redirect: error` and `cache: no-
 
 ### Timing
 
-The status poll is set through the reference's `timing` option, and every other default through the client's `timing` option,
-which the reference takes as `client: { timing }`. A project with a slow boot sets a longer restart limit.
+The status poll is set through the Preact example's `timing` option, and every other default through the client's `timing` option,
+which the Preact example takes as `client: { timing }`. A project with a slow boot sets a longer restart limit.
 
 | Value | Default | Why |
 | --- | --- | --- |
@@ -222,9 +263,9 @@ stateDiagram-v2
     Refused --> Confirm
 ```
 
-## How a project replaces or reuses the reference interface
+## How a product builds its own interface or starts from an example
 
-The reference is a folder of static files that calls only the API, so changing it changes no firmware logic.
+The product owns its application UI. The Preact example is a folder of static files that calls only the API, so changing it changes no firmware logic, and a product may reuse, copy or ignore it.
 
 | Need | What the project does | Changes to Crux files |
 | --- | --- | --- |
@@ -237,7 +278,7 @@ The reference is a folder of static files that calls only the API, so changing i
 | Its own framework, using the client | Imports `web/client/src/index.ts`, which has no framework dependency | None |
 | Its own framework and client | Generates types from the specification, as `web/tools/gen-types.ts` or any generator does, and follows the same rules for the poll header, CSRF and plain answers | None |
 
-To replace it entirely, a project builds any folder and names it to the asset packaging in its firmware composition, which
+To use none of it, a product builds any folder and names it to the asset packaging in its firmware composition, which
 is M11's. The folder must meet four conditions:
 
 1. It runs under the content policy that the composition selects, strict or inline styles, with no external asset.
@@ -246,18 +287,18 @@ is M11's. The folder must meet four conditions:
 4. It holds no secret or device data, because the bundle is public: a browser must load it before login.
 
 `e2e/fixtures/project-entry.tsx` is a working example of the reuse rows, and a browser test runs it. **Limit:** a project
-cannot add a route to the reference's navigation without an entry file of its own, which is the intended seam, and the
-reference code is not published as a package, so a project copies or vendors the folder. #220 adds a small reference project.
+cannot add a route to the Preact example's navigation without an entry file of its own, which is the intended seam, and the
+example's code is not published as a package, so a project copies or vendors the folder. #220 adds a small example project.
 
 ## Screens
 
-| Screen | Permission handling | Failure handling |
-| --- | --- | --- |
-| Sign-in | Public | Rejected, delay, busy and lost are each shown. The wait holds the form, and the count sits outside the live region. A login followed by a `401` on the current user says that the session was not there on the next request, and names both causes: the browser refusing the cookie, which is what real HTTPS would show, and the device ending the session. |
-| Forced password change | Holds the session on this screen, whatever the route. The server also enforces it. | Field errors, failed save, delay and busy. A lost result asks the device through `GET /api/v1/session/me`. An `incorrect` after a lost, failed or timed-out poll says that the earlier change may have taken effect, and it never reports success from that. |
-| Home | The server filters, and an empty list shows "nothing to show" | One failed source shows as unavailable. A failed read keeps the last values and says how old they are. |
-| Network settings | A `403` on the read says so and leaves the form, because a session may be able to write but not read | Client checks before a warning, field errors from the server, failed and unconfirmed saves, and `501` |
-| Reboot | A `403` on the read says so and hides the button | Refused, late refusal, failed reset, never restarts and stays away |
+| Screen | Kind | Permission handling | Failure handling |
+| --- | --- | --- | --- |
+| Sign-in | Core | Public | Rejected, delay, busy and lost are each shown. The wait holds the form, and the count sits outside the live region. A login followed by a `401` on the current user says that the session was not there on the next request, and names both causes: the browser refusing the cookie, which is what real HTTPS would show, and the device ending the session. |
+| Forced password change | Core | Holds the session on this screen, whatever the route. The server also enforces it. | Field errors, failed save, delay and busy. A lost result asks the device through `GET /api/v1/session/me`. An `incorrect` after a lost, failed or timed-out poll says that the earlier change may have taken effect, and it never reports success from that. |
+| Home | Core | The server filters, and an empty list shows "nothing to show" | One failed source shows as unavailable. A failed read keeps the last values and says how old they are. |
+| Network settings | Advanced | A `403` on the read says so and leaves the form, because a session may be able to write but not read | Client checks before a warning, field errors from the server, failed and unconfirmed saves, and `501` |
+| Reboot | Advanced | A `403` on the read says so and hides the button | Refused, late refusal, failed reset, never restarts and stays away |
 
 **A target with no Configuration provider.** Reading works, and `source` is `default`. A save returns `501`, and the screen
 says that the device has no Configuration provider, that nothing was changed, and that the running address stays in use
@@ -281,18 +322,18 @@ by file.
 | Files | 4: index, one script, one style, one icon | 4 |
 | Compressed bytes | 32768 | 20406 |
 
-The reference's parts, in bytes then compressed bytes: script 54656 and 18687, style 3465 and 1214, index 548 and 346, icon 174
+The Preact example's parts, in bytes then compressed bytes: script 54656 and 18687, style 3465 and 1214, index 548 and 346, icon 174
 and 159.
 
 ## Supply chain
 
 | Item | Record |
 | --- | --- |
-| Node.js | 24.22.2, pinned exactly in `web`, `web/api/lint` and the Angular sample, and checked by `tools/check-pins.ts` |
+| Node.js | 24.22.2, pinned exactly in `web`, `web/api/lint` and the Angular example, and checked by `tools/check-pins.ts` |
 | Production packages | One: `preact` 11.1.1, with no dependencies |
 | Development packages | `typescript` 6.0.3, `esbuild` 0.28.2 with its 26 platform packages, `playwright-core` 1.64.1, `ajv` 8.20.0, `yaml` 2.9.1 and `@types/node` 24.19.2, and what they need: `fast-deep-equal`, `fast-uri`, `json-schema-traverse`, `require-from-string` and `undici-types`. 38 locked in all, and 13 installed on one platform. |
 | Lockfile | `web/package-lock.json`, installed with `npm ci`. `tools/check-pins.ts` compares each lockfile's root with its manifest. |
-| Lifecycle scripts | Off through `.npmrc` in `web` and the sample, and `check-pins` requires that. `npm ci` works without them: esbuild runs from its platform package without its install step, and `npm run` still runs its named script. |
+| Lifecycle scripts | Off through `.npmrc` in `web` and the Angular example, and `check-pins` requires that. `npm ci` works without them: esbuild runs from its platform package without its install step, and `npm run` still runs its named script. |
 | Browser storage | None. A source rule refuses `localStorage`, `sessionStorage`, `indexedDB` and a cookie written by script, and a browser case shows that no password reaches them. |
 | SBOM | `npm run sbom` gives CycloneDX 1.5 with one component, and CI keeps it as an artifact. It names the licence and holds no copyright notice, so it does not replace a product's notices. |
 | CI actions | Pinned to full commits in `web.yml`, and `tools/check-pins.ts` requires that. The existing workflows still use tags. |
@@ -317,33 +358,33 @@ sign-in, home and sign-out, in `e2e/angular-policy.test.ts`.
 
 | Build | Files | Bytes | Compressed bytes | Production packages | Locked packages |
 | --- | --- | --- | --- | --- | --- |
-| Preact reference, all five screens | 4 | 58843 | 20406 | 1 | 38 |
-| Preact reference, sign-in and home | 4 | 48485 | 17922 | 1 | 38 |
-| Angular sample, sign-in and home | 5 | 249403 | 76710 | 7 | 362 |
+| Preact example, all five screens | 4 | 58843 | 20406 | 1 | 38 |
+| Preact example, sign-in and home | 4 | 48485 | 17922 | 1 | 38 |
+| Angular example, sign-in and home | 5 | 249403 | 76710 | 7 | 362 |
 
-The two-screen Preact build still holds the forced password change, which the shell needs, and the Angular sample does
+The two-screen Preact build still holds the forced password change, which the shell needs, and the Angular example does
 not, so the comparison slightly favours Angular. The fifth Angular file is `3rdpartylicenses.txt`, at 4822 compressed bytes,
-which the build writes by default, so the sample's code and style are 71,384 compressed bytes. The Preact build writes no
+which the build writes by default, so the example's code and style are 71,384 compressed bytes. The Preact build writes no
 licence file, and the SBOM names Preact's MIT licence but holds no copyright notice. MIT requires that notice in copies, so
 this build alone does not meet it, and a product must add the text of Preact's `LICENSE` to its own notices. Installed tools measured 55 MB, 13 packages and 1,252 files for
-`web`, and 237 MB, 240 packages and 16,245 files for the sample, on macOS arm64.
+`web`, and 237 MB, 240 packages and 16,245 files for the Angular example, on macOS arm64.
 
 The production packages are, for Preact, `preact`; and for Angular, `@angular/common`, `@angular/compiler`, `@angular/core`,
 `@angular/platform-browser`, `@angular/router`, `rxjs` and `tslib`.
 
 | Policy, on the same walk | Violations |
 | --- | --- |
-| Preact reference, strict | 0 |
-| Preact reference, strict with Trusted Types | 0 |
-| Angular sample, inline styles | 0 |
-| Angular sample, inline styles with Trusted Types | 0 |
-| Angular sample, strict | 1, `style-src-elem`, the component style that Angular inserts. No script was blocked. |
+| Preact example, strict | 0 |
+| Preact example, strict with Trusted Types | 0 |
+| Angular example, inline styles | 0 |
+| Angular example, inline styles with Trusted Types | 0 |
+| Angular example, strict | 1, `style-src-elem`, the component style that Angular inserts. No script was blocked. |
 
 What this shows, on the mock only:
 
 | Question | Result |
 | --- | --- |
-| Does Angular work with the web foundation? | Yes, on these two screens, with the same browser cases as the reference. |
+| Does Angular work with the web foundation? | Yes, on these two screens, with the same browser cases as the Preact example. |
 | Compressed size against Preact on the same screens | About 4.3 times: 76,710 against 17,922 bytes. Excluding the licence file, 4.0 times. |
 | File count | No lazy loading is used, so one script and one style, as for Preact. |
 | CSRF | `HttpClient`'s default names work with no configuration, shown by the sign-out case. |
@@ -351,8 +392,9 @@ What this shows, on the mock only:
 | Generated types | A type-only import from `web/client/src/api-types.generated.ts` compiles under the Angular build, and adds nothing to the bundle. |
 | What Angular needs that the foundation lacks | Nothing new. The style policy setting and the budget are in #189, and header capture is in #184. #186 holds the rule on the token's value. |
 
-**The owner reviews this, and confirms or changes the Preact default.** On these numbers the recommendation is to keep Preact,
-because the reference then needs the strict setting and one production package.
+**The owner kept Preact on 4 November 2026, in #219,** on the recommendation that it needs the strict setting and one
+production package. Since W13 this makes Preact the larger of the two examples, and it sets no default that a product has
+to follow.
 
 ## Tests
 
@@ -366,7 +408,7 @@ Results are in the PR, for the revision that it names.
 | Mock behaviour | `mock/test/behaviour.test.ts` | The stateful flows, with every answer passing through the conformance check |
 | Tools | `tools/test` | The generator refuses each schema form and combination outside its list, the source rules catch their targets, a build over budget fails, the pins and lockfiles agree, and the C-build boundary catches its fixtures. Tests remove their temporary folders. |
 | Browser | `e2e/reference-*.test.ts` | Each screen, on Chrome. A test fails on a policy violation, a page error, a request to another origin or a mock answer outside the specification. |
-| Shared browser cases | `e2e/shared-cases.ts` | One list, run on both the reference and the Angular sample, finding elements by role, label and visible text |
+| Shared browser cases | `e2e/shared-cases.ts` | One list, run on both the Preact example and the Angular example, finding elements by role, label and visible text |
 
 Tests went first where that could work: generator, client, mock, tools and browser cases each failed before their code
 existed, because the module or the build was missing. The client-against-mock tests, the boundary test and the policy
@@ -426,7 +468,7 @@ Each was taken for lack of an answer, as the narrower choice.
 | One PR with one commit for each issue | The issues build on each other and PRs must be based on `main` |
 | A small local type generator, not `openapi-typescript` | Keeps the package count low, and it refuses schema forms it does not know. Any project can still use another generator. |
 | `ajv` for the conformance check | A real validator is worth five development packages here, because a home-made one could hide a fault |
-| Exact budget numbers, and a raw limit of 300 kB in the sample's `angular.json` | The design gives none |
+| Exact budget numbers, and a raw limit of 300 kB in the Angular example's `angular.json` | The design gives none |
 | Reboot and save time limits | No measurement exists, so they are assumptions and can be changed through an option |
 | No automatic new attempt after a `429`, a `503` or a `404` | The specification says that the client starts a new attempt, and the safer reading is that the user asks for it. The only time a password is sent again without a user action is after a `409`, which the server did not process, so no verification ran. Nothing keeps a password after the form. |
 | Forced change only, with no general change-password link | Account management stays on the CLI, as the design says |

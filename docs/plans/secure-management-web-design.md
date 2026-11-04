@@ -14,11 +14,12 @@ firmware, each only when authenticated and permitted.
 
 | Crux provides | Project provides | Excluded |
 | --- | --- | --- |
-| HTTPS service and bounded connections | Controller pages and branding | Web framework or server-side templates |
+| HTTPS service and bounded connections | Application UI: screens, workflows, branding and framework | Web framework or server-side templates |
 | Route and static asset registration | Project APIs and data | UI generated from a configuration schema |
 | Login, session and CSRF handling | Role policy | External identity providers |
 | APIs for status, configuration, files, accounts and certificates | Choosing which areas and parameters to expose | Plain HTTP and redirects |
-| Replaceable common pages | Replacing common pages if wanted | Multi-tenant or internet-facing hardening claims |
+| Example applications in M13, with no promise of product-ready pages | Maintaining its own UI, which may start from an example | Multi-tenant or internet-facing hardening claims |
+| Hosting a built folder as firmware-embedded assets | The built folder, from any tool | Common pages, and filesystem-hosted assets in this track |
 
 ## Engine
 
@@ -136,24 +137,39 @@ restart or a safe state says so in its response, and the application decides. Up
 temporary name and renamed on success. Downloads set `Content-Disposition: attachment` and stream from
 a bounded buffer, so file content cannot run as a page from the device origin.
 
-## Common pages
+## Application UI and asset hosting
 
-Crux provides a small page set: sign-in, status, configuration, files, accounts and certificates.
-Firmware appears after M9. The web interface has no first-credential setup. In the reference
-configuration the first credential is set over the serial console, and until then every network login
-is rejected, so an unprovisioned device has no network path to take over. A product that needs another
-setup path designs and reviews it as its own decision. The
-pages are static files that call only the APIs above, so a project can replace them without changing
-firmware logic.
+Crux provides the services, the APIs and the hosting, and the product owns its application UI. This
+withdraws the common page set that this section proposed earlier, by
+[owner decision of 4 November 2026](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084),
+recorded as W13 in the [frontend design](web-frontend-foundation-design.md). The Preact and Angular
+applications in M13 are examples, and they are not a product-ready interface. Pages are static files
+that call only the APIs above, so a product builds them with any tool, as long as the result satisfies
+the size limit and the content policy. The plain HTML reference proposed here was replaced by W1 and
+then W13.
 
-Projects add pages through a build step that bundles, compresses and hashes assets into read-only
-data. The default keeps pages in the firmware image, so they are covered by image signing and updated
-with the firmware. Pages on removable storage are excluded, because they would load code from a
-medium that image verification does not cover.
+The web interface has no first-credential setup. In the reference configuration the first credential
+is set over the serial console, and until then every network login is rejected, so an unprovisioned
+device has no network path to take over. A product that needs another setup path designs and reviews
+it as its own decision.
 
-The reference is plain HTML, CSS and JavaScript with no runtime dependency, because each dependency
-adds size and upstream fixes to track. A project may build its bundle with any tool, as long as the
-result satisfies the size limit and the content policy.
+| Asset source | State | Trust | Notes |
+| --- | --- | --- | --- |
+| Firmware image | M11, #189 | Covered by image signing, and updated with the firmware | A build step bundles, compresses and hashes a built folder into read-only data. The asset table stays private, so this is not a public application contract. |
+| Removable storage | Excluded | None: it would load code from a medium that image verification does not cover | |
+| Filesystem on non-removable storage | Not in M11. Separate proof of concept, #244, with no commitment to ship. | Being on that storage is not a trust boundary | W12's generation of one resource per asset is firmware-only, so this route needs its own resource model. |
+
+The proof of concept has to meet each of these conditions before any adoption:
+
+| Condition | What it has to show |
+| --- | --- |
+| Trusted packages | The bundle is authenticated, and its manifest and file hashes are checked before activation. A later change to a file is detected. |
+| Recoverable updates | A complete bundle is staged, validated and selected atomically, and a known-good version is kept. Interruption, restart and corruption each recover. |
+| Isolation | Served assets are kept apart from user-writable areas, logs, credentials, keys and application data, with defined path canonicalisation and no directory listing. |
+| Compatibility | Each bundle declares the management API versions that it supports, so a UI-only update cannot silently need a missing endpoint. |
+| Bounded operation | Files stream in bounded chunks on the single server thread, with memory and latency measured under simultaneous requests and storage failure tested. |
+| Headers | Content policy, content type, cache and other required headers are the same as for firmware-embedded assets. |
+| Recovery access | A missing or corrupted bundle does not remove every authorised recovery path. |
 
 ## Certificate model
 
@@ -192,10 +208,17 @@ Authorisation and rejection have their own tests.
 - **Host:** route table, permission enforcement, session and CSRF rules, JSON parsing limits, secret
   absence, using a fake transport
 - **`native_sim`:** real TLS with `curl` where available, both provider profiles running the same
-  suite, listener check for no plain HTTP
+  suite, listener check for no plain HTTP. This needs real PSA providers (#142) and the management
+  composition in #242, and a limit on a provider profile is recorded and not replaced by a mock.
 - **Negative:** missing or expired session, wrong role, missing CSRF token, wrong `Origin`, oversized
   bodies, path traversal in area and file names, slow clients, connection floods
 - **Target, with separate approval:** handshake time, concurrent browser load, upload stall, jitter
   under management load, reboot during upload
-- **Browser:** the common pages against a real device build, checking the content policy has no
-  violations
+- **Browser:** the M13 example applications against real HTTPS on `native_sim`, with the core flows on
+  both and the advanced flows on the Preact example plus service tests (#220), checking that the
+  content policy each one selects has no violations. An example is not a product page, so this shows
+  the API and hosting and not a product UI.
+
+Mock, Host, `native_sim` and physical evidence are recorded separately. Host and `native_sim` functional
+completion is an explicit interim result of M11, and it does not close the milestone: physical evidence
+stays tracked separately and is not waived.
