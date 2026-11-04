@@ -1,0 +1,4 @@
+# The build record needs the build directory inside this repository, and it
+# counts anything not ignored as a dirty source tree.
+/build/
+.DS_Store

@@ -1,0 +1,6 @@
+west-commands:
+  - file: scripts/west_commands/crux_pins.py
+    commands:
+      - name: crux-pins
+        class: CruxPins
+        help: compare the workspace pins with the versions Crux was verified on
