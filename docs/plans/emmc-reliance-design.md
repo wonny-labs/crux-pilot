@@ -4,7 +4,7 @@ Status: design proposal for owner review. Nothing here is adopted, and no result
 findings are source readings, and every test and tool described below is still to be built. This document authorises
 no physical operation, merge or upstream contribution.
 
-Baseline: main `82d2c9b`, Zephyr v4.4.2 `dccb095`, Reliance Edge v3.0 `6706984`.
+Baseline: main `a80acd7`, Zephyr v4.4.2 `dccb095`, Reliance Edge v3.0 `6706984`.
 
 ## Intent
 
@@ -53,13 +53,15 @@ Paths are in the pinned Zephyr unless they begin with `reliance-edge/` or `linux
 | F7 | The public Reliance Edge source has no Zephyr port. Its `os/` directory has FreeRTOS, Linux, stub, U-Boot and Windows. A port implements the services in `redosserv.h`. | `reliance-edge/os/`, `reliance-edge/include/redosserv.h` | Crux writes the port. |
 | F8 | The VFS accepts external file systems. | `include/zephyr/fs/fs.h:68`, `subsys/fs/fs.c:908` | The file system can be added without changing Zephyr. |
 | F9 | Zephyr's FatFs rename removes the destination first, which left no settings file in 29 of 100 cuts on the board. With `REDCONF_RENAME_ATOMIC`, Reliance Edge documents an atomic replace. | `subsys/fs/fat_fs.c:177-186`, [replace-cut evidence](../evidence/microsd-replace-cut/README.md), `reliance-edge/posix/posix.c:3085-3089` | The specific FatFs failure already measured is one that this file system documents as addressed. Replay checks the claim. |
-| F10 | The File provider's target selection requires EVKB Rev B QSPI, FatFs and the SDMMC disk. An MMC disk does not satisfy it. | `zephyr/Kconfig` (`CRUX_FILE_FATFS_RT1060`), `zephyr/CMakeLists.txt:89-94`, `components/file/ports/zephyr/file_native.c:10-30` | A new, board-independent selection is needed. |
+| F10 | The File provider's target selection requires EVKB Rev B QSPI, FatFs and the SDMMC disk. An MMC disk does not satisfy it. | `zephyr/Kconfig` (`CRUX_FILE_FATFS_RT1060`), `zephyr/CMakeLists.txt:92-98`, `components/file/ports/zephyr/file_native.c:10-37` | A new, board-independent selection is needed. |
 | F11 | Configuration's Zephyr port is restricted to the simulator and NVS. The Settings File backend hides I/O faults, and the corrections exist only in a test fixture. | `components/configuration/ports/zephyr/configuration_settings.c:12-15`, [test guide](../../tests/README.md), `tests/native/configuration_settings_file/` | No target Settings provider exists. It is new work, not a connection. |
 | F12 | Crux Logging's build refuses `LOG_BACKEND_FS`. | `components/logging/ports/zephyr/CMakeLists.txt` | File logging stays with #112. |
 | F13 | The public Reliance Edge source is GPL version 2 only. The FSF lists Apache-2.0 as compatible with GPLv3 and not with GPLv2. The source separates kits, and some features exist only in the commercial one. | `reliance-edge/include/redposix.h` (header), `reliance-edge/README.md`, `reliance-edge/include/redapimacs.h:49`, [FSF licence list](https://www.gnu.org/licenses/license-list.html) | See [D6](#d6-licence-boundary). |
 | F14 | A failed commit, or a failed block read or write on a mounted volume, calls `RedVolCriticalError`. It sets the volume read-only and, with `REDCONF_ASSERTS` on, calls `RedOsAssertFail`, whose stub never returns. | `reliance-edge/core/driver/volume.c:727`, `:1001-1021`; `reliance-edge/core/driver/blockio.c:94`, `:152`; `reliance-edge/core/include/redcoremacs.h:120-125`; `reliance-edge/os/stub/services/osassert.c` | Asserts stay off in this profile, or a media error would hang the caller. One media error turns the volume read-only until a remount. See [D9](#d9-failure-policy). |
 | F15 | The CI artefact list uploads 40 named `zephyr.elf` and `zephyr.bin` paths of cross-builds. Only its Twister search and wildcards exclude images. | `.github/workflows/zephyr.yml` (upload step) | A Reliance Edge build added in the same pattern would publish a GPLv2-linked image. See [D6](#d6-licence-boundary). |
 | F16 | On a read-only volume, `red_close` skips the transaction and returns success, while `red_fsync` reports `RED_EROFS`. | `reliance-edge/posix/posix.c:6328`, `:6357-6360`, `:4022-4025`; `reliance-edge/core/driver/core.c:391` | A handle with unsaved writes could close with `OK` after another handle's commit failed, and its data would be gone. See [the adapter](#reliance-edge-adapter). |
+| F17 | On the RT1060 the USDHC HAL invalidates a read target by whole D-cache lines, so a target that shares a line with another object can lose that object's write. The two existing RT1060 File selections set `SDHC_BUFFER_ALIGNMENT` to 32, and the SD layer bounces anything less aligned. The setting and the check name those selections only. | `zephyr/Kconfig` (`configdefault SDHC_BUFFER_ALIGNMENT`), `components/file/ports/zephyr/file_native.c:19-25`, `docs/microsd-composition.md` | A new target selection must set and check the same value, or it would silently have the 4-byte default. |
+| F18 | The File contract gained roots, stat, size, rename and listing (#224). `crux_file_rename` refuses an existing destination. The additions are accepted for Host and `native_sim` work, and target and physical work on them needs its own approval. | `docs/file-contract.md`, `components/file/src/file_port.h`, `tests/native/file_roots/` | The provider must run them on this file system too. Atomic replace is reachable through the VFS, not through `crux_file_rename`. |
 
 ## Decisions proposed
 
@@ -73,7 +75,8 @@ Reliance Edge is registered through `fs_register` under `FS_TYPE_EXTERNAL_BASE`.
 
 ### D2. Public contracts do not change
 
-`crux/file.h` and `crux/configuration.h` are unchanged. The adapter has one private header for compositions, which gives
+This work does not change `crux/file.h` or `crux/configuration.h`. It runs the contract as `main` has it, including the
+additions in F18. The adapter has one private header for compositions, which gives
 the file system type and is not a `crux/` API. The File contract's "no atomic update" statement stays: what this
 composition offers is recorded in its own document, as the microSD composition does. Strengthening the contract is a
 later decision, after physical evidence.
@@ -155,7 +158,8 @@ measurements; the physical procedure as a document.
 
 **Out of scope:** boot partitions, RPMB, reliable write, a boot loader that reads the file system, HS200 and HS400
 qualification, TRIM and discard, several volumes, wear reporting, encryption, file logging (#112), commercial kit
-integration beyond the selection point, and any change to FatFs behaviour.
+integration beyond the selection point, any change to FatFs behaviour, and the File service and credential store on this
+profile (see [Open items](#open-items)).
 
 ### D9. Failure policy
 
@@ -318,7 +322,9 @@ anything unknown is `-EIO`; `RED_EUSERS` is `-ENOMEM`, which the File provider r
 links, symlinks, working directory, owners and permissions, and deleting open files off; one volume; 4 KiB blocks;
 timestamps off, so that no clock contract is needed; output and asserts off. Build-time checks: `REDCONF_NAME_MAX` and
 `CONFIG_FILE_SYSTEM_MAX_FILE_NAME` against the File provider's 63-character limit, because Zephyr falls back to 12 with only
-an external file system (`include/zephyr/fs/fs_interface.h`); buffer alignment against `CONFIG_SDHC_BUFFER_ALIGNMENT`; and
+an external file system (`include/zephyr/fs/fs_interface.h`); `REDCONF_BUFFER_ALIGNMENT` against
+`CONFIG_SDHC_BUFFER_ALIGNMENT`, which this selection sets to 32 with the same D-cache check as the existing ones (F17);
+`REDCONF_HANDLE_COUNT` against the File provider's file and listing pools, because the two share handles here; and
 `REDCONF_TRANSACT_DEFAULT` must include `RED_TRANSACT_FSYNC`, because without it `red_fsync` commits nothing and returns
 success (`reliance-edge/posix/posix.c:3972-3973`), which would defeat sync and the close rule. Transactions commit on create, mkdir, rename, unlink, fsync, close, a full volume, unmount and `red_sync`, following the
 upstream sample without link. Buffer, handle and task counts, sector offset and sector count are Kconfig values. Automatic
@@ -332,6 +338,8 @@ formatted medium and the image that mounts it must use the same profile.
 `CONFIG_CRUX_FILE_RELIANCE_EDGE`, on any board, requires the adapter and is mutually exclusive with the existing File
 selections. `zephyr/Kconfig`, `zephyr/CMakeLists.txt`, the port's CMake and the guards in `file_native.c` change together.
 FatFs name encoding and full-volume heuristics stay FatFs-only; they should not be needed here, and tests confirm that.
+The additions in F18 run through the same provider code. `crux_file_rename` keeps its contract and refuses an existing
+destination, so its stat-before-rename path applies here as it does on FatFs.
 
 ### Reference composition
 
@@ -376,7 +384,7 @@ used by the provider and the fixture alike, because the pinned backend hides I/O
 | Layer | Runs | Shows | Does not show |
 | --- | --- | --- | --- |
 | Host | Existing File and Configuration suites | Portable behaviour stays unchanged | Anything about Reliance Edge |
-| `native_sim`, RAM disk | `tests/native/file_reliance`, the File behaviours of `file_fatfs` plus atomic rename, close on a read-only volume, thread limit and error mapping | Adapter and provider behaviour | The MMC stack, power loss |
+| `native_sim`, RAM disk | `tests/native/file_reliance`, the File behaviours of `file_fatfs` and `file_roots` plus atomic rename through the VFS, close on a read-only volume, thread limit and error mapping | Adapter and provider behaviour | The MMC stack, power loss |
 | `native_sim`, eMMC simulator | `tests/native/emmc_stack`, stack init, geometry, reads, writes, bounds, faults and flush commands, with and without a cache | The unmodified stack against the model | Real device behaviour, timing, DMA |
 | `native_sim`, composition | `tests/native/file_emmc_composition`, the sequence and failures on the simulator | The composition path end to end | Target behaviour |
 | Replay | `tests/native/emmc_powercut` | Invariants under modelled cuts, with controls | FTL behaviour, damage outside the current write |
@@ -406,7 +414,7 @@ information. Each issue has its own Draft PR and independent review. Issue 1 own
 | 2 | eMMC simulator and MMC stack tests | 1 | The unmodified stack initialises and reads and writes on the simulator; bounds and faults behave as listed; an image survives a process restart; `scripts/test-storage-emmc.sh` runs them; a test shows that a sync sends no flush at the pinned revision. |
 | 3 | eMMC cache flush correction | 2 | The sync test passes with the option on; a control build still shows the defect; no flush without a cache; a rejected flush, with a bit that clears on read, and a busy timeout return errors; drift fails the configuration; recorded in `patches/zephyr/README.md`. |
 | 4 | Power-cut replay | 2, 3 | W1 to W3 run on `fat-fix` and are recorded; cut models and sampling are deterministic by seed; mandatory positions are all tested; the FatFs flush control and the damaged image fail as required. |
-| 5 | Reliance Edge VFS adapter and File conformance | 1, 4 | `tests/native/file_reliance` passes; replay asserts I1 to I5 on `red-fix`, including a torn metaroot; the Reliance Edge flush, barrier, early acknowledgement and damaged image controls fail as required; the CMake guard fails without the option or the control variable; `git grep 'Tuxera US Inc' -- ':!docs/plans/emmc-reliance-design.md'` finds nothing; a build without the tree fails with the named message. |
+| 5 | Reliance Edge VFS adapter and File conformance | 1, 4 | `tests/native/file_reliance` passes; replay asserts I1 to I5 on `red-fix`, including a torn metaroot; the Reliance Edge flush, barrier, early acknowledgement and damaged image controls fail as required; the CMake guard fails without the option or the control variable; `git grep 'Tuxera US Inc' -- zephyr components samples tests scripts patches` finds nothing; a build without the tree fails with the named message. |
 | 6 | Reference composition and RT1060 link | 3, 5 | The composition tests pass on the simulator; the RT1060 image links with `red_format` absent; figures recorded; a composition document exists; the proposed CI change fetches the optional group and uploads no image from a Reliance Edge build. |
 | 7 | Configuration on Settings File target provider | 5, 6 | The Configuration suite passes on this file system, including injected faults; W4 asserts I1 to I5; layout check before provider init is tested; a control on the unpatched backend fails as characterised. |
 | 8 | Physical validation procedure | 5, 6 | A gate document in the style of `docs/microsd-physical-gate.md` exists. It authorises nothing, and no hardware is touched. |
@@ -417,6 +425,7 @@ information. Each issue has its own Draft PR and independent review. Issue 1 own
 - Editing `.github/workflows/zephyr.yml` to fetch the optional group and run the new gate. It is a protected path and is
   proposed in issue 6's PR. `scripts/bootstrap-zephyr.sh` runs a plain `west update`, so the group needs its own step.
 - Editing any other existing protected file, should one prove necessary. The design avoids this with new scripts.
+- Any target or physical run of the File additions (F18). The RT1060 link here compiles them and runs nothing.
 - Any upstream Zephyr issue or pull request.
 - Merging, and every physical step.
 
@@ -439,11 +448,15 @@ information. Each issue has its own Draft PR and independent review. Issue 1 own
   The transaction policy can be changed through the configuration directory, within the build-time check on fsync. Endurance
   is not assessed.
 - **DMA and cache on the target.** The driver uses DMA with a non-cached descriptor table, while Crux images run from
-  SDRAM with a data cache. Linking shows nothing about it.
+  SDRAM with a data cache. F17 prevents the known line-sharing hazard at build time and the simulator counts misaligned
+  transfers, but a link and a simulator show nothing about the hardware, and no board has run the alignment change, on FatFs
+  or here. The bounce path's effect on speed is unmeasured.
 
 ## Open items
 
-- **#179 and its proposal in #206** define `crux_file_rename` to refuse an existing destination and compose replacement
-  from remove and rename, because of FatFs. That would give up atomic replace on this file system. It is not changed here
-  and should be raised in that review.
+- **`crux_file_rename` refuses an existing destination (F18),** because of FatFs, and the File service composes replacement
+  from remove and rename. On this file system that gives up the atomic replace it offers. It is an adopted contract and is
+  not changed here. Whether to offer atomic replace through File is a later contract decision, after physical evidence.
+- **The File service and the credential store** are built on the File contract, and their designs lean on FatFs behaviour.
+  They have not been assessed on this profile, and a product that needs them needs that assessment.
 - **The boot path** remains with #141 and M8, where F5 needs to be considered.
