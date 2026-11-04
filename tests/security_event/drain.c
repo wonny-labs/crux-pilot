@@ -17,7 +17,7 @@ static void rest_1_ms(void)
 }
 
 /* Waits for at least this many lines and pauses, and then for the drain to be idle again. */
-static void wait_for(size_t lines, unsigned pauses)
+static void wait_for(unsigned lines, unsigned pauses)
 {
     for (unsigned waited = 0; waited < WAIT_LIMIT_MS; ++waited) {
         if (event_test_line_count() >= lines && event_test_pauses() >= pauses) {
@@ -117,11 +117,11 @@ static void pause_counts_across_wakes(void)
     const unsigned batches = BURST;
     for (unsigned index = 1; index <= batches; ++index) {
         emit_routine_lines(batch);
-        wait_for((size_t)index * batch, 0);
+        wait_for(index * batch, 0);
     }
     /* That many lines hold this many full bursts, whatever the wakes were. */
     const unsigned expected = (batch * batches) / BURST;
-    wait_for((size_t)batch * batches, expected);
+    wait_for(batch * batches, expected);
     CHECK(event_test_pauses() == expected);
     CHECK(event_test_last_pause_ms() == CRUX_SECURITY_EVENT_DRAIN_PAUSE_MS);
     stop_drain();
