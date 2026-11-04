@@ -91,7 +91,7 @@ class SshBoundaryTests(unittest.TestCase):
         self.assert_rejected("SSH must have no crux:: target")
 
     def test_public_component_list(self):
-        self.edit("CMakeLists.txt", "i2c spi)", "i2c spi ssh)")
+        self.edit("CMakeLists.txt", "i2c spi access", "i2c spi ssh access")
         self.assert_rejected("ssh must not join the public component list")
 
     def test_fake_outside_the_test_build(self):

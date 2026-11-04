@@ -37,6 +37,8 @@ jobs:
         run: ./scripts/check-host.sh
       - name: Verify host sanitizers
         run: CRUX_HOST_PRESET=host-sanitize ./scripts/check-host.sh
+      - name: Validate Access on Host
+        run: ./scripts/test-access.sh
       - name: Validate independent execution consumers and public boundaries
         run: ./scripts/test-portable-execution.sh --host-only
       - name: Validate independent File consumers

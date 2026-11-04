@@ -42,7 +42,7 @@ The provider owns every thread and all of the wolfSSH state. No other code calls
 Every Crux callback runs on the thread of its connection, with no provider lock held, and can block that thread only. So a
 slow client or a slow verification holds one connection and no other. A callback must not call `stop`, and a channel must
 not be used after its session callback returns. Whether these threads are Crux threads or native ones is for #192 to decide. The gate
-record notes that the Crux thread default of four is too low for the integrated composition.
+decisions record notes that the Crux thread default of four is too low for the integrated composition.
 
 The wolfSSH channel callbacks run while a packet is being parsed, and `wolfssh/ssh.h` warns against re-entering the receive
 side from such a callback. So the provider's wolfSSH channel callbacks only record a request. The worker calls the Crux `shell`,
@@ -60,7 +60,7 @@ then needs its own connection and slot. A later change could relax this, and it 
 ### From a connection to Crux
 
 The header names two opaque types and defines neither. Each is an incomplete type that its owner defines in its own source,
-so nothing in the interface depends on `crux_access`, which is not merged yet.
+so nothing in the interface depends on `crux_access`.
 
 | Type | Defined by | Provider's part | Life |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ A session attaches to a file handle like this:
 ### How #192 connects this to `crux_access`
 
 The adapter defines `struct crux_ssh_attachment` to hold a `crux_access_session_t` and a `crux_access_origin_t`, in a
-static pool of `max_connections`. It is a small mapping, to be checked against the merged access header:
+static pool of `max_connections`. It is a small mapping onto `components/access/adapter/crux_access_adapter.h`:
 
 | Provider callback | Adapter call | Accepted when |
 | --- | --- | --- |
@@ -133,7 +133,7 @@ for the rest of a wolfSSH translation unit. That module hook is why no wrapper i
   sees in an HTTPS-only image, and wolfSSH reaches files only through the port.
 - **`WOLFSSH_ZEPHYR` has to go as well.** The module always defines it. With `NO_FILESYSTEM` undefined, it compiles wolfSSH's
   direct Zephyr file code in `port.c` and `ssh.c`, even with `WOLFSSH_USER_FILESYSTEM`, and it compiles the `SETSTAT` and
-  `FSETSTAT` handlers out of `wolfsftp.c`. Removing it resolves the finding in the gate record that "accepted without effect"
+  `FSETSTAT` handlers out of `wolfsftp.c`. Removing it resolves the finding in the gate decisions record (PR #209) that "accepted without effect"
   could not hold. Its other effects are the socket code, which `WOLFSSH_USER_IO` replaces with provider callbacks using
   `zsock_recv` and `zsock_send`, the Zephyr default directory, which the port supplies through `WGETCWD`, and a `/RAM:` path
   rule for the FAT layout, which the virtual root does not use.

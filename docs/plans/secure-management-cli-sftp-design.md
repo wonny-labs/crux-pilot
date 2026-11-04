@@ -57,10 +57,12 @@ The server offers a short explicit list, set with the wolfSSH algorithm list API
 | --- | --- |
 | Key exchange | `mlkem768x25519-sha256` if its resource cost is acceptable, `curve25519-sha256`, `ecdh-sha2-nistp256` |
 | Host key | `ssh-ed25519`, or `ecdsa-sha2-nistp256` where Ed25519 is unavailable |
-| User public key | `ssh-ed25519`, `ecdsa-sha2-nistp256` (owner decision: no RSA) |
+| User public key | `ssh-ed25519`, `ecdsa-sha2-nistp256` |
 | Cipher | `aes128-gcm@openssh.com`, `aes256-gcm@openssh.com`, `aes128-ctr` |
 | MAC for CTR | `hmac-sha2-256` |
 | Compression | `none` |
+
+The user key row is the first SSH provider's scope, and #192 compiles in only what the table names. `crux_access` is wider: it also accepts `ecdsa-sha2-nistp384` and `ecdsa-sha2-nistp521` keys.
 
 Strict key exchange stays on. SHA-1, CBC, DES and RC4 are not offered. The WinSCP algorithm
 documentation lists every name above. A client from before the Terrapin fix (WinSCP before 6.2.2) can
