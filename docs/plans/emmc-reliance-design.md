@@ -426,7 +426,7 @@ information. Each issue has its own Draft PR and independent review. Issue 1 own
 | 6 | Reference composition and RT1060 link | 3, 5 | The composition tests pass on the simulator; the RT1060 image links with `red_format` absent; figures recorded; a composition document exists; the proposed CI change fetches the optional group and uploads no image from a Reliance Edge build. |
 | 7 | Configuration on Settings File target provider | 5, 6 | The Configuration suite passes on this file system, including injected faults; W4 asserts I1 to I5; layout check before provider init is tested; a control on the unpatched backend fails as characterised. |
 | 8 | Physical validation procedure | 5, 6 | A gate document in the style of `docs/microsd-physical-gate.md` exists. It authorises nothing, and no hardware is touched. |
-| 9 | Assess the File service and credential store on this profile | 5 | A planning item, not scheduled in this plan: a written assessment of what they rely on from FatFs, what changes on this file system, and whether File should offer atomic replace, decided after physical evidence. |
+| 9 | Assess the File service and credential store on this profile | 5 | Outside M14, so that the milestone does not wait on physical evidence. A planning item, not scheduled in this plan: a written assessment of what they rely on from FatFs, what changes on this file system, and whether File should offer atomic replace, decided after physical evidence. |
 
 **Approvals this needs beyond the milestone and issues the owner asked for:**
 

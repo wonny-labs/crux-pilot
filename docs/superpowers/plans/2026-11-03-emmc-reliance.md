@@ -531,8 +531,8 @@ Plus:
 ZTEST(file_reliance, test_names_are_stored_unencoded)      /* fs_stat of the plain name succeeds */
 ZTEST(file_reliance, test_access_after_a_critical_error_reports_access)
 ZTEST(file_reliance, test_task_ids_are_unique_across_threads)
-    /* new threads each open a file until the slots are used, counting the ones the suite's setup
-       and Ztest threads hold; every thread's file works, so no two share an ID */
+    /* several threads each record RedOsTaskId(): all values are non-zero and distinct. Opening a
+       file would not show this, because threads sharing an ID share a slot and both still work */
 ZTEST(file_reliance, test_thread_limit_reports_no_resources)
     /* one thread beyond the slots: CRUX_FILE_ERR_NO_RESOURCES; earlier threads still work. Runs last
        or in its own scenario, because exited threads keep their slots */
@@ -727,7 +727,7 @@ Expected: 25 executed cases PASS; the control fails exactly its 13 named cases.
 
 - [ ] **Step 2: Write the failing suite**
 
-`tests/native/configuration_settings_reliance` compiles that `main.c` with `FIXTURE_HEADER="fixture_reliance.h"` and `-Dconfiguration_settings_file=configuration_settings_reliance`, plus its own `extra_cases.c`, on a RAM disk, against the **real provider**, `configuration_settings.c` with the new selection, not the `prepare_provider.py` copy. So 24 of the shared cases run. Plus, in `extra_cases.c`, with a wrap counting `settings_subsys_init`:
+`tests/native/configuration_settings_reliance` compiles that `main.c` with `FIXTURE_HEADER="fixture_reliance.h"` and `-Dconfiguration_settings_file=configuration_settings_reliance`, plus its own `extra_cases.c`, on a RAM disk (the fixture's mount object is not `static` where these cases need it), against the **real provider**, `configuration_settings.c` with the new selection, not the `prepare_provider.py` copy. So 24 of the shared cases run. Plus, in `extra_cases.c`, with a wrap counting `settings_subsys_init`:
 
 ```c
 ZTEST(configuration_settings_reliance, test_compaction_leaves_no_cmp_file)
