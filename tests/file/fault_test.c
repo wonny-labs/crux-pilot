@@ -88,6 +88,7 @@ crux_file_result_t crux_file_impl_size(size_t s, uint64_t *o)
     (void)o;
     return CRUX_FILE_ERR_NOT_SUPPORTED;
 }
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a port signature, named for its callers
 crux_file_result_t crux_file_impl_rename(crux_file_root_t r, const char *from, const char *to)
 {
     (void)r;
