@@ -10,29 +10,39 @@ static int file_consumer_additions(void)
     char name[64];
     bool end = false;
     if (crux_file_open_at(CRUX_FILE_ROOT_DEFAULT, "listed", CRUX_FILE_CREATE_REPLACE, &f) !=
-        CRUX_FILE_OK)
+        CRUX_FILE_OK) {
         return 20;
+    }
     int result = 0;
-    if (crux_file_size(f, &size) != CRUX_FILE_OK || size != 0)
+    if (crux_file_size(f, &size) != CRUX_FILE_OK || size != 0) {
         result = 21;
-    if (crux_file_close(&f) != CRUX_FILE_OK && !result)
+    }
+    if (crux_file_close(&f) != CRUX_FILE_OK && !result) {
         result = 22;
-    if (!result && crux_file_stat(CRUX_FILE_ROOT_DEFAULT, "listed", &info) != CRUX_FILE_OK)
+    }
+    if (!result && crux_file_stat(CRUX_FILE_ROOT_DEFAULT, "listed", &info) != CRUX_FILE_OK) {
         result = 23;
-    if (!result && crux_file_rename(CRUX_FILE_ROOT_DEFAULT, "listed", "moved") != CRUX_FILE_OK)
+    }
+    if (!result && crux_file_rename(CRUX_FILE_ROOT_DEFAULT, "listed", "moved") != CRUX_FILE_OK) {
         result = 24;
+    }
     if (!result &&
-        crux_file_rename(CRUX_FILE_ROOT_DEFAULT, "moved", "moved") != CRUX_FILE_ERR_EXISTS)
+        crux_file_rename(CRUX_FILE_ROOT_DEFAULT, "moved", "moved") != CRUX_FILE_ERR_EXISTS) {
         result = 25;
-    if (!result && crux_file_dir_open(CRUX_FILE_ROOT_DEFAULT, &d) != CRUX_FILE_OK)
+    }
+    if (!result && crux_file_dir_open(CRUX_FILE_ROOT_DEFAULT, &d) != CRUX_FILE_OK) {
         result = 26;
+    }
     if (!result && (crux_file_dir_read(d, name, sizeof(name), &info, &end) != CRUX_FILE_OK || end ||
-                    strcmp(name, "moved") != 0))
+                    strcmp(name, "moved") != 0)) {
         result = 27;
-    if (d && crux_file_dir_close(&d) != CRUX_FILE_OK && !result)
+    }
+    if (d && crux_file_dir_close(&d) != CRUX_FILE_OK && !result) {
         result = 28;
-    if (crux_file_remove_at(CRUX_FILE_ROOT_DEFAULT, "moved") != CRUX_FILE_OK && !result)
+    }
+    if (crux_file_remove_at(CRUX_FILE_ROOT_DEFAULT, "moved") != CRUX_FILE_OK && !result) {
         result = 29;
+    }
     return result;
 }
 int file_consumer(void)

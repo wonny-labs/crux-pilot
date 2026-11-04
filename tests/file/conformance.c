@@ -187,6 +187,8 @@ void crux_file_conformance_rename(const crux_file_conformance_env_t *env)
     CHECK(crux_file_rename(0, "tree", "to") == CRUX_FILE_ERR_NOT_FOUND);
     CHECK(crux_file_rename(0, "from", "tree") == CRUX_FILE_ERR_EXISTS);
     expect(0, "from", "old");
+    /* Refused again, so the directory is still there. */
+    CHECK(crux_file_rename(0, "from", "tree") == CRUX_FILE_ERR_EXISTS);
     CHECK(crux_file_stat(0, "tree", &info) == CRUX_FILE_ERR_NOT_FOUND);
 
     /* Success moves the name and the content, and renames stay inside one root. */

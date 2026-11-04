@@ -35,6 +35,8 @@ int main(void)
     crux_file_conformance_size();
     crux_file_conformance_rename(&env);
     crux_file_conformance_listing(&env);
+    /* The top of the tree is a parent of everything. */
+    assert(crux_file_fake_bind_root(2, "/") == CRUX_FILE_ERR_INVALID_STATE);
     crux_file_conformance_binding(&env);
     puts("File conformance on the fake provider passed");
     return 0;

@@ -379,5 +379,8 @@ bool crux_file_paths_overlap(const char *a, const char *b)
     size_t lb = path_length(b);
     const char *longer = la > lb ? a : b;
     size_t shorter = la > lb ? lb : la;
-    return strncmp(a, b, shorter) == 0 && (la == lb || longer[shorter] == '/');
+    /* A shorter path that keeps its final separator is the top of the tree, which holds any path.
+     */
+    return strncmp(a, b, shorter) == 0 &&
+           (la == lb || longer[shorter] == '/' || (shorter > 0 && longer[shorter - 1] == '/'));
 }

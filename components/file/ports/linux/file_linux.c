@@ -86,6 +86,7 @@ crux_file_result_t crux_file_linux_bind(const char *r)
     return crux_file_linux_bind_root(CRUX_FILE_ROOT_DEFAULT, r);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a port signature, named for its callers
 crux_file_result_t crux_file_impl_open(crux_file_root_t r, size_t s, const char *n,
                                        crux_file_mode_t m)
 {
@@ -244,6 +245,7 @@ crux_file_result_t crux_file_impl_rename(crux_file_root_t r, const char *from, c
                                                              : crux_file_linux_error(errno);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a port signature, named for its callers
 crux_file_result_t crux_file_impl_dir_open(size_t d, crux_file_root_t r)
 {
     if (!roots[r].bound) {

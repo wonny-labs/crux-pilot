@@ -24,8 +24,10 @@ typedef struct crux_file_dir crux_file_dir_t;
 
 /** Index of a directory that the composition bound. Root 0 is the one crux_file_open() uses. */
 typedef uint8_t crux_file_root_t;
+/** The root that crux_file_open() and crux_file_remove() use. */
 enum { CRUX_FILE_ROOT_DEFAULT = 0 };
 
+/** What File reports about a regular file. */
 typedef struct {
     uint64_t size; /**< Bytes. */
 } crux_file_info_t;

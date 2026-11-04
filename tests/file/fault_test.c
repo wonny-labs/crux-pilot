@@ -16,6 +16,7 @@ void crux_file_unlock(void)
     assert(locks > unlocks);
     unlocks++;
 }
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a port signature, named for its callers
 crux_file_result_t crux_file_impl_open(crux_file_root_t r, size_t s, const char *n,
                                        crux_file_mode_t m)
 {
@@ -87,13 +88,14 @@ crux_file_result_t crux_file_impl_size(size_t s, uint64_t *o)
     (void)o;
     return CRUX_FILE_ERR_NOT_SUPPORTED;
 }
-crux_file_result_t crux_file_impl_rename(crux_file_root_t r, const char *f, const char *t)
+crux_file_result_t crux_file_impl_rename(crux_file_root_t r, const char *from, const char *to)
 {
     (void)r;
-    (void)f;
-    (void)t;
+    (void)from;
+    (void)to;
     return CRUX_FILE_ERR_NOT_SUPPORTED;
 }
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a port signature, named for its callers
 crux_file_result_t crux_file_impl_dir_open(size_t d, crux_file_root_t r)
 {
     (void)d;

@@ -1,6 +1,6 @@
 # Portable File contract
 
-Status: approved for software-only development by the human M4 Architecture and API Review on 23 October 2026. Production backend/layout adoption, upstream/native Flash changes, physical operations, PR merge and Issue closure remain separately gated. The [additions for roots, stat, size, rename and listing](#additions-for-roots-stat-size-rename-and-listing) come from decisions F1 to F6 of [the File extension proposal, PR #206](https://github.com/wonny-labs/crux-pilot/pull/206), accepted by [the owner on 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894) for Host and `native_sim` work. Target and physical work on them stays behind M7 and needs its own approval.
+Status: approved for software-only development by the human M4 Architecture and API Review on 23 October 2026. Production backend/layout adoption, upstream/native Flash changes, physical operations, PR merge and Issue closure remain separately gated. The [additions for roots, stat, size, rename and listing](#additions-for-roots-stat-size-rename-and-listing) come from decisions F1, F2, F3 and F6 of [the File extension proposal, PR #206](https://github.com/wonny-labs/crux-pilot/pull/206), with F4 keeping the name rule, accepted by [the owner on 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894) for Host and `native_sim` work. Target and physical work on them stays behind M7 and needs its own approval.
 
 Baseline: main `225cd21b5fff37c31c5dff52570e9f26179682a1`.
 

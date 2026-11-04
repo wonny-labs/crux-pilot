@@ -116,6 +116,8 @@ int main(void)
     assert(crux_file_remove_at(1, "real") == CRUX_FILE_OK);
 
     assert(crux_file_linux_last_cleanup_error() == CRUX_FILE_OK);
+    /* The top of the tree is a parent of everything. */
+    assert(crux_file_linux_bind_root(2, "/") == CRUX_FILE_ERR_INVALID_STATE);
     crux_file_conformance_binding(&env);
     puts("File conformance on the Linux provider passed");
     return 0;

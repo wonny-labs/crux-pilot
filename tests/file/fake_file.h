@@ -73,6 +73,6 @@ uint32_t crux_file_fake_mutations(void);
  */
 void crux_file_fake_power_on(void);
 
-/* The stored content of a file, without touching File. False if it does not exist. */
+/* Whether an entry exists, including one that has not reached storage, without touching File. */
 bool crux_file_fake_exists(crux_file_root_t root, const char *name);
 #endif
