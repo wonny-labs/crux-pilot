@@ -168,6 +168,10 @@ static void key_rejections(void)
                                         &retry_after_ms) == CRUX_ACCESS_ERR_DENIED);
     expect_event(CRUX_ACCESS_EVENT_KEY_FAILURE, CRUX_ACCESS_ERR_DENIED, NULL,
                  CRUX_ACCESS_CHANNEL_SSH, USER);
+    CHECK(crux_access_key_is_authorised("Not A Name!", key_two, sizeof(key_two), false,
+                                        &access_test_ssh,
+                                        &retry_after_ms) == CRUX_ACCESS_ERR_INVALID_ARGUMENT);
+    CHECK(access_fake_event_count() == 0);
     CHECK(crux_access_key_is_authorised("Not A Name!", key_two, sizeof(key_two), true,
                                         &access_test_ssh,
                                         &retry_after_ms) == CRUX_ACCESS_ERR_INVALID_ARGUMENT);

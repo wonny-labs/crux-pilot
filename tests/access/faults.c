@@ -349,6 +349,7 @@ static void provider_failure_cases(void)
 /* --- A lock that cannot be taken: linked with --wrap=crux_mutex_lock. --- */
 
 static bool fail_locks;
+static unsigned fail_next_locks;
 /* The linker's --wrap option fixes these names. */
 // NOLINTNEXTLINE(bugprone-reserved-identifier)
 crux_status_t __real_crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms);
@@ -358,6 +359,10 @@ crux_status_t __wrap_crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms);
 // NOLINTNEXTLINE(bugprone-reserved-identifier)
 crux_status_t __wrap_crux_mutex_lock(crux_mutex_t mutex, uint32_t timeout_ms)
 {
+    if (fail_next_locks > 0) {
+        fail_next_locks -= 1;
+        return CRUX_ERR_IO;
+    }
     return fail_locks ? CRUX_ERR_IO : __real_crux_mutex_lock(mutex, timeout_ms);
 }
 
@@ -406,6 +411,12 @@ static void hook_fail_locks(void *context)
     fail_locks = true;
 }
 
+static void hook_fail_next_lock(void *context)
+{
+    (void)context;
+    fail_next_locks = 1;
+}
+
 /* A lost lock around the first account's save must not leave provisioning open, or a retry could
  * replace what the medium already holds. */
 static void provisioning_fails_closed_on_lock_failure(void)
@@ -435,6 +446,19 @@ static void provisioning_fails_closed_on_lock_failure(void)
     access_test_power_cycle(policy);
     CHECK(crux_access_provision_first_account(USER, PASSWORD, length, "administrator",
                                               &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
+    session = access_test_session(ADMIN, PASSWORD, &access_test_web);
+    CHECK(session.value != 0);
+
+    /* The same when only that one lock fails, so that a later lock could have reopened it. */
+    access_test_boot(policy);
+    access_fake_store_save_hook(hook_fail_next_lock, NULL);
+    CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_NOT_READY);
+    CHECK(fail_next_locks == 0);
+    CHECK(crux_access_provision_first_account(USER, PASSWORD, length, "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
+    CHECK(access_fake_store_saves() == 1);
+    access_test_power_cycle(policy);
     session = access_test_session(ADMIN, PASSWORD, &access_test_web);
     CHECK(session.value != 0);
 
