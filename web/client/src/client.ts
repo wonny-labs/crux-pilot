@@ -219,7 +219,8 @@ export function createClient(options: ClientOptions = {}): CruxClient {
   const fetchImpl = options.fetch ?? globalThis.fetch.bind(globalThis);
   const baseUrl = options.baseUrl ?? '';
   const readCookies = options.readCookies ?? readDocumentCookies;
-  const now = options.now ?? Date.now;
+  // Read at call time, so that a test's replacement clock also applies to a client that already exists.
+  const now = options.now ?? (() => Date.now());
   const random = options.random ?? Math.random;
   const sleep = options.sleep ?? defaultSleep;
   const timing: ClientTiming = { ...defaultClientTiming, ...options.timing };
