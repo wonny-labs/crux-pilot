@@ -16,6 +16,10 @@ and exist only when Crux builds its own tests, so no product can select them.
 
 ## Global constraints
 
+The owner's decisions of 3 November 2026, quoted on PR #210, changed this plan after Task 8: provisioning fails closed
+on a lost lock, user keys are Ed25519 and ECDSA only, AC1 and AC3 to AC10 are added, and
+`.github/workflows/host.yml` gains one step. That step is the only change to an existing protected path.
+
 - Host only. No PSA, store or Zephyr provider, no manifest change, no hardware operation.
 - Existing protected paths stay unchanged, including `.github/`, `scripts/` files that exist and
   `cmake/CruxConsumerBoundary.cmake`. New check scripts may be added.

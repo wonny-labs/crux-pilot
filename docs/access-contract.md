@@ -4,7 +4,8 @@ Status: Host implementation for review under Issue #177, with fake providers. Th
 until this review and gate #183 pass. The decisions and reasoning are in
 [the accepted proposal](plans/access-contract-proposal.md), which this document does not repeat. The requests that
 other contracts made of this one, AC1 and AC3 to AC10 in the secure management gate record, are accepted and
-included. AC2 is declined.
+included. AC2 is declined. Where they change the proposal's text, such as its `source` comment and its wording about
+a failed save and a blank medium, this document and the headers hold.
 
 Owner: `components/access`. Public header `<crux/access.h>`, usage target `crux::access`. Adapter header
 `crux_access_adapter.h`, internal target `crux_access_adapter`.
