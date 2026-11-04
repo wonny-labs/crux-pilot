@@ -1,0 +1,18 @@
+Linux-7.0.14-linuxkit-x86_64-with-glibc2.39 3.12.3
+uid now 65534
+root tool alive, killpg SIGKILL: PermissionError errno 1
+root tool alive, killpg 0: PermissionError errno 1
+root tool alive, poll: None
+root tool exited, not reaped, killpg SIGKILL: PermissionError errno 1
+root tool exited, not reaped, killpg 0: PermissionError errno 1
+root tool exited, not reaped, poll: 0
+root tool exited, root child alive, killpg SIGKILL: PermissionError errno 1
+root tool exited, root child alive, killpg 0: PermissionError errno 1
+root tool exited, root child alive, poll: 0
+root tool reaped, root child alive, killpg SIGKILL: PermissionError errno 1
+root tool reaped, root child alive, killpg 0: PermissionError errno 1
+root tool reaped, no child, killpg SIGKILL: ProcessLookupError errno 3
+root tool reaped, no child, killpg 0: ProcessLookupError errno 3
+run._stop, root tool alive: False, returncode None
+run._stop, root tool exited, not reaped: True, returncode 0
+run._stop, root tool exited, root child alive: False, returncode 0
