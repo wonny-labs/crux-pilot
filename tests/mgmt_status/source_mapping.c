@@ -123,20 +123,21 @@ static void net_cases(void)
                 {CRUX_NETIF_LINK_UP, true, true}};
     for (size_t i = 0; i < sizeof(rows) / sizeof(rows[0]); ++i) {
         netif_result = CRUX_OK;
-        netif = (crux_netif_status_t){true, rows[i].link, true, {192, 0, 2, 10}};
+        /* The two flags differ each time, so that neither can be taken for the other. */
+        netif = (crux_netif_status_t){false, rows[i].link, true, {192, 0, 2, 10}};
         crux_mgmt_status_net_t out = {0};
         CHECK(crux_mgmt_status_port_net(&out) == CRUX_OK);
         CHECK(out.link_known == rows[i].known);
         CHECK(out.link_up == rows[i].up);
-        CHECK(out.admin_up);
+        CHECK(!out.admin_up);
         CHECK(out.ipv4_available);
         CHECK(memcmp(out.ipv4, netif.ipv4_address, sizeof(out.ipv4)) == 0);
 
-        netif = (crux_netif_status_t){false, rows[i].link, false, {0, 0, 0, 0}};
+        netif = (crux_netif_status_t){true, rows[i].link, false, {0, 0, 0, 0}};
         CHECK(crux_mgmt_status_port_net(&out) == CRUX_OK);
         CHECK(out.link_known == rows[i].known);
         CHECK(out.link_up == rows[i].up);
-        CHECK(!out.admin_up);
+        CHECK(out.admin_up);
         CHECK(!out.ipv4_available);
     }
     netif_result = CRUX_ERR_NOT_READY;
