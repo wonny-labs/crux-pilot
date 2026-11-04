@@ -5,7 +5,8 @@ Evidence for the fix to `_stop` in `tools/device_control/run.py`, [Issue #169](h
 ## Revisions
 
 - Fix: `ef54643a1882ba18d346d37d0e6f3839b7f8736c`, on top of `61924bb41570ad264190befd830123d452681422`.
-- Tests and probe script as run: `bbc98310ef48f5e179156deb709e62ac01beec04`. `run.py` is the same as at the fix.
+- Limit on the wait, and its tests: `2cd336e5cc018ac3f268d31e92f50c6b6f2d8316`.
+- The Linux container results and the raw probe output are from `bbc98310ef48f5e179156deb709e62ac01beec04`, whose `run.py` is the same as at the fix, so **they predate the limit**.
 - The "before" results use those tests with `run.py` from `61924bb`.
 
 ## What the probes found
@@ -18,7 +19,7 @@ The defect is wider than the `PermissionError` first reported.
 | Linux, real `sudo` 1.9.15p5: `sudo` can be signalled and dies, its root child stays in the group | A plain timeout, **with no sign that the root child still runs**, and the lock released | The error says the tool may still be running. The lock is still released |
 | Linux, tool stays root and this user may not signal any of the group | `PermissionError` from `_stop`, which also skips the wait | `_stop` returns `False` without waiting |
 | Linux, root tool exited, not reaped, nothing else in the group | `PermissionError` | `_stop` returns `True` |
-| Linux, root leader with a member this user may signal | `_stop` waits without a limit | **The same. Not fixed:** the signal reaches only the member, and the probe was still waiting after 5 s |
+| Linux, root leader with a member this user may signal | `_stop` waits without a limit: the signal reaches only the member, and the probe was still waiting after 5 s | `_stop` gives up after 1 s and returns `False`. **Shown with a faked `os.killpg` only;** see below |
 | Linux, a killed child in a container whose PID 1 does not reap orphans | A plain timeout | A false warning that the tool may still be running, and 1 s more, because a zombie stays in the group |
 
 The "before" cells for the third and fourth rows rest on the `killpg` lines in the raw output and on one `_stop` run against a live root tool at `61924bb`, whose output was not kept.
@@ -27,12 +28,13 @@ Raw output: [`stop-probe-unsignallable-linux.txt`](stop-probe-unsignallable-linu
 
 ## Results
 
-Run by the authoring agent, not by a reviewer, at the fix commit unless a row says otherwise.
+Run by the authoring agent, not by a reviewer.
 
 | Check | Where | Result |
 | --- | --- | --- |
-| `test_device_control.py` | macOS 15.7.4 arm64, Python 3.9.6, no pyserial | 103 tests OK, 2 skipped: the pseudo-terminal test, and the real `sudo` test, because `sudo` here needs a password |
-| `test_device_control.py` | Linux container with an init, user `vscode`, Python 3.12.3, pyserial 3.5, `sudo` without a password | 103 tests OK, including both of those |
+| `test_device_control.py`, at `2cd336e` | macOS 15.7.4 arm64, Python 3.9.6, no pyserial | 105 tests OK, 2 skipped: the pseudo-terminal test, and the real `sudo` test, because `sudo` here needs a password |
+| The two new limit tests, without the limit | The same | Fail: the stop waited about 21 s, until the 20 s tool ended |
+| `test_device_control.py`, at `bbc9831` | Linux container with an init, user `vscode`, Python 3.12.3, pyserial 3.5, `sudo` without a password | 103 tests OK, including both of those |
 | `test_m5_runner.py` | The same container, no pyserial | OK |
 | `test_a_wrapper_and_what_it_started_count_as_stopped` | The same image without an init, where PID 1 does not reap | Skipped, with that reason |
 | The real `sudo` test with `run.py` from `61924bb` | The same container | Fails: `False != True`, so the error gave no warning while a member stayed in the group |
@@ -62,7 +64,10 @@ GitHub Actions results are on the pull request.
 
 - **macOS with a real tool this user may not signal.** `sudo` here needs a password, which nothing here supplies. A `sudo` waiting at its prompt is no stand-in: `ps` showed this user's real user ID with effective user root, `killpg` succeeded and it exited with -9. No password was entered, and nothing ran as root. That output was not kept. macOS covers this path only with a faked `os.killpg`.
 - **Which path `sudo` takes on GitHub's Linux runner.** The test accepts either: a member stays in the group and the error warns, or the group has gone and it does not. A `sudo` configured to run its command in its own session would leave the group, and this check could not see that.
-- **A leader that survives a signal that worked.** `_stop` still waits for it without a limit. The root leader above does this, and a tool in uninterruptible sleep could too. So a timeout does not bound the run in those cases.
+- **The limit against a real root leader.** The Docker daemon was not running when the limit was added, and it was not restarted, so the probe was not rerun. The limit rests on a faked `os.killpg`, on macOS by hand and on Linux in `host-foundation`. The earlier probe shows the case is real and what it did before the limit.
+- **A tool in uninterruptible sleep.** It should be reported the same way, but none was run.
+- **A false warning from a slow exit.** A tool that takes longer than the 1 s limit to exit after a signal is reported as possibly still running. A warning errs on the safe side.
+- **Windows.** That branch still waits without a limit and reports the tool as stopped. It has never run.
 - **A member that left the group.** It is not seen, as before.
 - **The lock.** The run ends and releases the lock even if the tool could not be stopped, as it did before this fix. The error warns about the tool and does not mention the lock, and after an interrupt only the tool's log warns. Nothing prevents the next run.
 - Windows and hardware, anything.
