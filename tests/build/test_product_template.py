@@ -107,6 +107,21 @@ class TemplateFilesTest(unittest.TestCase):
         self.assertRegex((TEMPLATE / ".gitignore").read_text(), r"(?m)^/?build/$")
 
 
+class GuideTest(unittest.TestCase):
+    def test_guide_says_at_the_top_that_it_is_proposed_and_untagged(self):
+        top = GUIDE.read_text()[:800].lower()
+        self.assertIn("proposed practice", top)
+        self.assertIn("no crux release tag", top)
+
+    def test_readers_can_reach_the_guide(self):
+        self.assertIn("docs/product-composition.md", (REPO / "README.md").read_text())
+        self.assertIn("(product-composition.md)", (REPO / "docs/build.md").read_text())
+        self.assertIn("product-composition.md", (TEMPLATE / "README.md").read_text())
+
+    def test_guide_draws_its_structure_decision_and_release_flows(self):
+        self.assertGreaterEqual(GUIDE.read_text().count("```mermaid"), 3)
+
+
 @unittest.skipUnless(yaml, "PyYAML is required to parse the manifests; west installs it")
 class ManifestTest(unittest.TestCase):
     def setUp(self):

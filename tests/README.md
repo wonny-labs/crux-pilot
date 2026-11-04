@@ -176,6 +176,15 @@ The fixture uses public capabilities in portable targets and declares platform
 composition separately. It does not establish an installed SDK, production Linux,
 physical qualification or support for additional toolchains.
 
+## Product template
+
+`tests/build/test_product_template.py` checks `samples/product_template`: its C file and CMake
+use only public Crux names, and its manifest pins nothing Crux pins. Real west then takes the
+template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
+against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
+runs the frozen-manifest flow and the build record's input capture. These cases skip when west or
+PyYAML is missing, as on the host CI job. See the [Product Composition Guide](../docs/product-composition.md).
+
 ## Portable execution capability
 
 Run `scripts/test-portable-execution.sh --host-only` for separately configured C/C++
