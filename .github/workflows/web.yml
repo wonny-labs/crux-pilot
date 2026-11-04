@@ -66,3 +66,72 @@ jobs:
           name: crux-web-sbom
           path: web/crux-web.cdx.json
           if-no-files-found: error
+
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: web
+    env:
+      CRUX_SCREENSHOTS: ${{ github.workspace }}/screenshots
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: web/package.json
+      - name: Install the locked tools, with lifecycle scripts off
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Show the browser that the tests use
+        run: google-chrome --version
+      - name: Run the browser tests on the mock
+        run: npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: crux-web-screenshots
+          path: screenshots
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: crux-web-failures
+          path: web/build/e2e-failures
+          if-no-files-found: ignore
+
+  angular:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CRUX_REQUIRE_ANGULAR: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: samples/web/angular-minimal/package.json
+      - name: Build the Angular sample from its own lockfile
+        working-directory: samples/web/angular-minimal
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+      - name: Install the locked web tools
+        working-directory: web
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check the sample's sources
+        working-directory: web
+        run: node tools/check-dom.ts ../samples/web/angular-minimal/src
+      - name: Run the shared browser cases on the sample
+        working-directory: web
+        run: npm run test:angular
+      - name: Record the comparison with the reference
+        working-directory: web
+        run: |
+          npm run build
+          node tools/build.ts --entry e2e/fixtures/two-screens.tsx --out build/two-screens
+          node tools/compare.ts >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: crux-angular-failures
+          path: web/build/e2e-failures
+          if-no-files-found: ignore
