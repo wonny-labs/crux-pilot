@@ -1,6 +1,7 @@
 # Session-only commands, reviewed by name. Each one passes no permission check in the registry, so its
-# handler or the service it calls must check further. scripts/check-cli-session-commands.py compares
-# this list with the source.
+# handler or the service it calls must check further. One that sets CRUX_CLI_FLAG_FORCED_CHANGE_OK also
+# runs during a forced password change, and only this review notices that.
+# scripts/check-cli-session-commands.py compares this list with the source.
 help
 logout
 passwd

@@ -6,6 +6,7 @@ binding compile. It does not show that the wiring works.
 """
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import unittest
@@ -25,8 +26,9 @@ CONFIG_NET_SOCKETS=y
 """
 # Each refused composition must really hold the symbol, or Kconfig drops it with only a warning and
 # the case fails as "unexpectedly accepted". SHELL_BACKEND_WEBSOCKET and MCUMGR_GRP_SHELL are not here:
-# they need the mbedtls and zcbor modules, which the pinned workspace does not fetch, so Kconfig cannot
-# set them. tests/build/test_management_shell.py covers those two at each level of the rule.
+# they need the mbedtls and zcbor modules, and the default workspace, which CI uses, has neither, so
+# Kconfig cannot set them. mbedtls is pinned in the optional crux-secure-management group, and zcbor
+# is not pinned at all. tests/build/test_management_shell.py covers those two at each level of the rule.
 REFUSED = {
     "management_with_shell": ("CONFIG_SHELL=y\nCONFIG_SHELL_BACKEND_SERIAL=y\n",
                               "must not enable CONFIG_SHELL unless"),
@@ -100,6 +102,19 @@ class CliCompositionTest(unittest.TestCase):
                                     f"{name}: unexpectedly accepted\n{result.stdout[-3000:]}")
                 self.assertIn(diagnostic, result.stdout, f"{name}: unrelated failure")
                 print(f"{name}: refused as expected", flush=True)
+
+    def test_the_compile_rule_names_every_backend(self):
+        """The compile rule is a deny list, because the preprocessor cannot iterate, while the
+        configuration rule is an allow list. This keeps them the same on a Zephyr upgrade."""
+        kconfig = (self.workspace / "zephyr/subsys/shell/backends/Kconfig.backends").read_text(
+            encoding="utf-8")
+        backends = re.findall(r"^config (SHELL_BACKEND_\w+)\n\s+bool\b", kconfig, re.MULTILINE)
+        rule = (REPO / "components/cli/ports/zephyr/cli_shell_rule.c").read_text(encoding="utf-8")
+        self.assertIn("SHELL_BACKEND_SERIAL", backends)
+        for backend in backends:
+            if re.match(r"SHELL_BACKEND_SERIAL_", backend):
+                continue
+            self.assertIn(f"CONFIG_{backend})", rule, f"{backend} is new to the compile rule")
 
     def test_accepted_on_native_sim(self):
         selected = os.environ.get("CRUX_CLI_COMPOSITION_CASE")

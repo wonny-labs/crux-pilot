@@ -13,8 +13,9 @@ No image of any kind has a network backend or MCUMGR_GRP_SHELL.
 
 With --elf or --nm-output, it also inspects a production image: no shell symbol, no shell backend
 instance and no shell command section is linked. The Zephyr linker script always places the shell's
-iterable sections, so their start and end markers exist in every image and must enclose nothing.
-Pass --elf only for an image that the first row applies to.
+iterable sections, so their start and end markers exist in every image and must enclose nothing. A
+missing marker is a failure, because a stripped image or an empty listing would otherwise pass having
+shown nothing. Pass --elf only for an image that the first row applies to.
 
 cmake/CruxManagementShell.cmake applies the same table at configuration, and
 components/cli/ports/zephyr/cli_shell_rule.c at compilation. A project's own SHELL_DEFINE backend
@@ -38,16 +39,19 @@ SHELL_SYMBOL = re.compile(r"^(_{0,2}|z_)shell(_|$)")
 
 
 def read_config(text):
-    """The symbols a .config sets. A symbol that is not set has no CONFIG_X= line."""
+    """The symbols a .config sets. A symbol that is not set has no CONFIG_X= line, or says =n."""
     settings = {}
     for line in text.splitlines():
         match = SETTING.match(line.strip())
-        if match:
+        if match and match.group(2) != "n":
             settings[match.group(1)] = match.group(2)
     return settings
 
 
 def config_errors(settings):
+    # Zephyr always sets something, so this is the wrong file, and it would otherwise pass.
+    if not settings:
+        return ["the .config holds no settings"]
     errors = [f"CONFIG_{symbol} is set: no image may have it"
               for symbol in FORBIDDEN_EVERYWHERE if symbol in settings]
     if not any(symbol in settings for symbol in MANAGEMENT):
@@ -69,7 +73,8 @@ def config_errors(settings):
 
 
 def read_symbols(text):
-    """The defined symbols in nm output, as a name to address map."""
+    """The defined symbols in nm output, as a name to address map. nm prints an undefined symbol with
+    no address, so it is not here: a reference is not a linked symbol, and is not a marker either."""
     symbols = {}
     for line in text.splitlines():
         fields = line.split()
@@ -84,7 +89,9 @@ def image_errors(symbols):
     for section in SHELL_SECTIONS:
         start, end = f"_{section}_list_start", f"_{section}_list_end"
         markers.update((start, end))
-        if start in symbols and end in symbols and int(symbols[start], 16) != int(symbols[end], 16):
+        missing = [marker for marker in (start, end) if marker not in symbols]
+        errors += [f"the marker {marker} is missing, so the image shows nothing" for marker in missing]
+        if not missing and int(symbols[start], 16) != int(symbols[end], 16):
             errors.append(f"the {section} section holds entries")
     for name in sorted(symbols):
         if name not in markers and SHELL_SYMBOL.match(name):
@@ -101,14 +108,21 @@ def main():
     parser.add_argument("--nm-output", type=Path, help="Saved nm output, in place of --elf")
     args = parser.parse_args()
 
-    errors = config_errors(read_config(args.config.read_text(encoding="utf-8")))
+    try:
+        errors = config_errors(read_config(args.config.read_text(encoding="utf-8")))
+    except OSError as error:
+        errors = [f"could not read {args.config}: {error}"]
     if args.elf is not None:
-        result = subprocess.run([args.nm, str(args.elf)], stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE, text=True, check=False)
-        if result.returncode != 0:
-            errors.append(f"nm could not read {args.elf}: {result.stderr.strip()}")
+        try:
+            result = subprocess.run([args.nm, str(args.elf)], stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, text=True, check=False)
+        except OSError as error:
+            errors.append(f"nm could not read {args.elf}: {error}")
         else:
-            errors += image_errors(read_symbols(result.stdout))
+            if result.returncode != 0:
+                errors.append(f"nm could not read {args.elf}: {result.stderr.strip()}")
+            else:
+                errors += image_errors(read_symbols(result.stdout))
     if args.nm_output is not None:
         errors += image_errors(read_symbols(args.nm_output.read_text(encoding="utf-8")))
     for error in errors:
