@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Test-only eMMC simulator on native_sim, an SD host controller with one eMMC device behind it. Give
+  it a zephyr,mmc-disk child. It is a model written from the needs of the Zephyr MMC stack and is
+  not evidence about a device.
+
+compatible: "crux,emmc-sim"
+
+include: sdhc.yaml

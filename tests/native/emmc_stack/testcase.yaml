@@ -1,0 +1,9 @@
+common:
+  platform_allow: [native_sim/native, native_sim/native/64]
+  tags: [storage, crux]
+  timeout: 180
+tests:
+  crux.emmc.stack.cached: {}
+  crux.emmc.stack.nocache:
+    extra_configs:
+      - CONFIG_CRUX_EMMC_SIM_CACHE_KB=0

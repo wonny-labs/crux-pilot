@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+
+config CRUX_EMMC_SIM
+	bool "Test-only eMMC simulator"
+	default y
+	depends on DT_HAS_CRUX_EMMC_SIM_ENABLED && BOARD_NATIVE_SIM
+	select SDHC_SUPPORTS_NATIVE_MODE
+	help
+	  An SD host driver for native_sim that behaves as an eMMC device, so that the unmodified MMC
+	  stack runs without hardware. It is a model and cannot be selected on a target.
+
+if CRUX_EMMC_SIM
+
+config CRUX_EMMC_SIM_CACHE_KB
+	int "Volatile cache size in KiB, zero for no cache"
+	default 64
+	help
+	  The size that EXT_CSD reports. A held write stays held until a flush, however much is held.
+	  --emmc-cache-kb overrides this value at run time.
+
+config CRUX_EMMC_SIM_SECTORS
+	int "Capacity in 512-byte sectors"
+	default 8192
+
+# The value the RT1060 selections use, so that the stack's bounce path runs here too.
+configdefault SDHC_BUFFER_ALIGNMENT
+	default 32
+
+endif # CRUX_EMMC_SIM
