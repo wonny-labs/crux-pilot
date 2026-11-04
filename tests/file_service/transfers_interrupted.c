@@ -1125,6 +1125,41 @@ static void a_full_name_table_at_start_stops_the_area(void)
     assert(crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
 }
 
+/* The table is shared: names held in one area can leave no room for a writer in another. */
+static void a_full_name_table_refuses_new_writers_everywhere(void)
+{
+    for (int slot = 0; slot < CRUX_FILE_SERVICE_RESERVATIONS; slot++) {
+        char target[8];
+        char temp[16];
+        (void)snprintf(target, sizeof(target), "d%d", slot);
+        (void)snprintf(temp, sizeof(temp), ".crux-up-%d", slot);
+        put_raw(ROOT_WEB, target, "same");
+        put_raw(ROOT_WEB, temp, "same");
+        put_sidecar(ROOT_WEB, slot, target);
+    }
+    put_raw(ROOT_DATA, "file", "abc");
+    test_start();
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_RECOVERY_NEEDED) == CRUX_FILE_SERVICE_RESERVATIONS);
+
+    /* Another area's writer finds no room in the table, and a remove and a rename need room too. */
+    crux_file_service_transfer_t *t = NULL;
+    assert(crux_file_service_open(SESSION_ALL, "data", "new", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE,
+                                  0, &t) == CRUX_FILE_SERVICE_ERR_NO_RESOURCES);
+    assert(t == NULL && !crux_file_fake_exists(ROOT_DATA, "new"));
+    assert(crux_file_service_remove(SESSION_ALL, "data", "file") ==
+           CRUX_FILE_SERVICE_ERR_NO_RESOURCES);
+    assert(crux_file_service_rename(SESSION_ALL, "data", "file", "moved") ==
+           CRUX_FILE_SERVICE_ERR_NO_RESOURCES);
+
+    /* A writer of a held name is told that it is held. */
+    assert(crux_file_service_open(SESSION_ALL, "web", "d0", CRUX_FILE_SERVICE_OPEN_MANAGED, 0,
+                                  &t) == CRUX_FILE_SERVICE_ERR_BUSY);
+
+    /* Readers need no room. */
+    t = open_as(SESSION_ALL, "data", "file", CRUX_FILE_SERVICE_OPEN_READ);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+}
+
 static void kept_state_above_the_allocation_setting_holds_too(void)
 {
     put_raw(ROOT_WEB, "doc", "old");
@@ -1261,6 +1296,7 @@ void test_interrupted(void)
     run_case("above_setting", recovery_ignores_the_allocation_setting);
     run_case("kept_above_setting", kept_state_above_the_allocation_setting_holds_too);
     run_case("full_table", a_full_name_table_at_start_stops_the_area);
+    run_case("shared_table", a_full_name_table_refuses_new_writers_everywhere);
     held_name_then_next_start();
     a_failed_removal_is_decided_at_the_next_start();
     a_sidecar_with_its_magic_but_no_valid_check_is_torn();

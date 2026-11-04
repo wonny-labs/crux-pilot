@@ -276,23 +276,7 @@ static void a_partial_in_use_is_never_removed(void)
     assert(crux_file_service_close(&v) == CRUX_FILE_SERVICE_OK);
 }
 
-static bool partial_moved;
-
-static void partial_finished_by_its_client(void)
-{
-    if (!partial_moved) {
-        partial_moved = true;
-        assert(crux_file_rename(ROOT_DATA, "x.filepart", "x") == CRUX_FILE_OK);
-    }
-}
-
-/*
- * A client finishes its upload after the stale rule has read the partial file's name, and before
- * the rule reaches it. That file was not the rule's to remove, so it frees nothing, and the area
- * stays at its limit. The hook is on both, because it must run at the first call after the
- * listing's read.
- */
-static void a_partial_that_moved_during_the_rule_is_not_counted_as_removed(void)
+static void fill_with_a_partial_and_a_file(void)
 {
     crux_file_t *file = NULL;
     size_t count = 0;
@@ -303,15 +287,81 @@ static void a_partial_that_moved_during_the_rule_is_not_counted_as_removed(void)
         assert(crux_file_write(file, zeros, AREA_MAX_FILE, &count) == CRUX_FILE_OK);
         assert(crux_file_close(&file) == CRUX_FILE_OK);
     }
+}
+
+static void partial_finished_by_its_client(void)
+{
+    assert(crux_file_service_rename(SESSION_ALL, "data", "x.filepart", "x") ==
+           CRUX_FILE_SERVICE_OK);
+}
+
+/*
+ * A client finishes its upload after the stale rule has read the partial file's name, and before
+ * the rule reserves it, as WinSCP's final rename can. That file was not the rule's to remove, so it
+ * frees nothing, and the area stays at its limit.
+ */
+static void a_partial_that_moved_during_the_rule_is_not_counted_as_removed(void)
+{
+    fill_with_a_partial_and_a_file();
     test_start();
     crux_file_service_transfer_t *t = open_new("data", "z", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
-    crux_file_fake_on_call(CRUX_FILE_FAKE_STAT, 0, partial_finished_by_its_client);
-    crux_file_fake_on_call(CRUX_FILE_FAKE_REMOVE, 0, partial_finished_by_its_client);
+    crux_file_fake_after_dir_read(partial_finished_by_its_client);
+    size_t count = 99;
     assert(crux_file_service_write(SESSION_ALL, t, 0, zeros, AREA_MAX_FILE, &count) ==
            CRUX_FILE_SERVICE_ERR_LIMIT);
-    assert(count == 0 && partial_moved);
-    assert(crux_file_fake_exists(ROOT_DATA, "x"));
+    assert(count == 0 && crux_file_fake_exists(ROOT_DATA, "x"));
     assert(events_of(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED) == 0);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+
+    /* The rule gave its reservation back, so the old name can be used again. */
+    t = open_new("data", "x.filepart", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+}
+
+static void partial_shrinks(void)
+{
+    crux_file_t *file = NULL;
+    size_t count = 0;
+    assert(crux_file_open_at(ROOT_DATA, "x.filepart", CRUX_FILE_CREATE_REPLACE, &file) ==
+           CRUX_FILE_OK);
+    assert(crux_file_write(file, "a", 1, &count) == CRUX_FILE_OK);
+    assert(crux_file_close(&file) == CRUX_FILE_OK);
+}
+
+/* The listing's size is old by the time of the removal, and only the current size may be
+ * subtracted. The hook uses File, because the rule's reservation already refuses any client here.
+ */
+static void the_stale_rule_counts_the_current_size(void)
+{
+    fill_with_a_partial_and_a_file();
+    test_start();
+    crux_file_service_transfer_t *t = open_new("data", "z", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    crux_file_fake_on_call(CRUX_FILE_FAKE_STAT, 0, partial_shrinks);
+    size_t count = 99;
+    assert(crux_file_service_write(SESSION_ALL, t, 0, zeros, AREA_MAX_FILE, &count) ==
+           CRUX_FILE_SERVICE_ERR_LIMIT);
+    assert(count == 0 && !crux_file_fake_exists(ROOT_DATA, "x.filepart"));
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED) == 1);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+}
+
+/* If the check fails, nothing says the file is the rule's to remove, and the name comes back. */
+static void a_failed_check_removes_no_partial(void)
+{
+    fill_with_a_partial_and_a_file();
+    test_start();
+    crux_file_service_transfer_t *t = open_new("data", "z", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    crux_file_fake_fail(CRUX_FILE_FAKE_STAT, 0, CRUX_FILE_ERR_IO);
+    size_t count = 99;
+    assert(crux_file_service_write(SESSION_ALL, t, 0, zeros, AREA_MAX_FILE, &count) ==
+           CRUX_FILE_SERVICE_ERR_LIMIT);
+    assert(count == 0 && crux_file_fake_exists(ROOT_DATA, "x.filepart"));
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED) == 0);
+
+    /* With the fault gone, the next attempt finds the name free and the rule works. */
+    write_all(t, 0, AREA_MAX_FILE);
+    assert(!crux_file_fake_exists(ROOT_DATA, "x.filepart"));
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED) == 1);
     assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
 }
 
@@ -320,19 +370,12 @@ static void project_removes_the_partial(void)
     assert(crux_file_remove_at(ROOT_DATA, "x.filepart") == CRUX_FILE_OK);
 }
 
-/* Gone between the rule's check and its removal: the room is real, and the removal is not the
- * rule's. */
+/* Removed between the rule's check and its removal: the room is real, and the removal is not the
+ * rule's. Only code outside the service can do this, because the reservation stops clients. If that
+ * code renamed the file instead, the counters would stay low until a reset. */
 static void a_partial_removed_by_another_caller_frees_room_with_no_event(void)
 {
-    crux_file_t *file = NULL;
-    size_t count = 0;
-    const char *names[] = {"x.filepart", "y"};
-    for (size_t i = 0; i < 2; i++) {
-        assert(crux_file_open_at(ROOT_DATA, names[i], CRUX_FILE_CREATE_REPLACE, &file) ==
-               CRUX_FILE_OK);
-        assert(crux_file_write(file, zeros, AREA_MAX_FILE, &count) == CRUX_FILE_OK);
-        assert(crux_file_close(&file) == CRUX_FILE_OK);
-    }
+    fill_with_a_partial_and_a_file();
     test_start();
     crux_file_service_transfer_t *t = open_new("data", "z", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
     crux_file_fake_on_call(CRUX_FILE_FAKE_REMOVE, 0, project_removes_the_partial);
@@ -580,6 +623,8 @@ void test_capacity(void)
     run_case("partial_in_use", a_partial_in_use_is_never_removed);
     run_case("partial_with_reader", a_partial_with_a_reader_is_never_removed);
     run_case("partial_moved", a_partial_that_moved_during_the_rule_is_not_counted_as_removed);
+    run_case("partial_shrank", the_stale_rule_counts_the_current_size);
+    run_case("partial_check_failed", a_failed_check_removes_no_partial);
     run_case("partial_gone", a_partial_removed_by_another_caller_frees_room_with_no_event);
     run_case("file_gone", a_file_removed_by_another_caller_records_no_removal);
     run_case("no_suffix", no_suffix_means_nothing_is_removed);

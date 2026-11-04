@@ -50,6 +50,7 @@ typedef struct {
     void (*call_hook[CRUX_FILE_FAKE_OP_COUNT])(void);
     unsigned call_hook_skip[CRUX_FILE_FAKE_OP_COUNT];
     crux_file_result_t remove_then_fail;
+    void (*dir_read_hook)(void);
     bool cut_armed;
     bool dead;
     uint32_t cut_remaining;
@@ -92,6 +93,7 @@ void crux_file_fake_reset(void)
     s->write_hook = NULL;
     memset(s->call_hook, 0, sizeof(s->call_hook));
     s->remove_then_fail = CRUX_FILE_OK;
+    s->dir_read_hook = NULL;
     s->cut_armed = false;
     s->dead = false;
     s->cut = NULL;
@@ -190,6 +192,11 @@ void crux_file_fake_on_call(crux_file_fake_op_t op, unsigned skip, void (*hook)(
 {
     fake()->call_hook[op] = hook;
     fake()->call_hook_skip[op] = skip;
+}
+
+void crux_file_fake_after_dir_read(void (*hook)(void))
+{
+    fake()->dir_read_hook = hook;
 }
 
 void crux_file_fake_remove_then_fail(crux_file_result_t result)
@@ -571,6 +578,11 @@ crux_file_result_t crux_file_impl_dir_read(size_t slot, char *name, size_t capac
             strlen(entry->name) < capacity) {
             strcpy(name, entry->name);
             info->size = entry->size;
+            if (s->dir_read_hook) {
+                void (*hook)(void) = s->dir_read_hook;
+                s->dir_read_hook = NULL;
+                hook();
+            }
             return CRUX_FILE_OK;
         }
     }
