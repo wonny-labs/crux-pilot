@@ -1,8 +1,11 @@
 """Negative controls prevent incomplete physical UART output being accepted."""
 import importlib.util
 from pathlib import Path
+import sys
+import tempfile
 import unittest
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "target"))
 SPEC = importlib.util.spec_from_file_location(
     "capture_execution", Path(__file__).resolve().parents[1] / "target/capture_execution.py")
 CAPTURE = importlib.util.module_from_spec(SPEC)
@@ -78,6 +81,29 @@ class ExecutionCaptureTest(unittest.TestCase):
     def test_wrong_physical_stack_object_size_is_rejected(self):
         with self.assertRaises(AssertionError):
             CAPTURE.validate(controller().replace("stack_bytes=4160", "stack_bytes=4096"), "controller")
+
+    def manifest(self, root, config):
+        (root / ".config").write_text(config)
+        return {"artifacts": [{"path": str(root / "zephyr.bin")}, {"path": str(root / ".config")}]}
+
+    def test_image_built_at_the_verified_level_is_accepted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            CAPTURE.verify_optimization(self.manifest(
+                Path(directory), 'CONFIG_SIZE_OPTIMIZATIONS=y\nCONFIG_COMPILER_OPT=""\n'))
+
+    def test_debug_build_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = self.manifest(Path(directory), '# CONFIG_SIZE_OPTIMIZATIONS is not set\n'
+                                     'CONFIG_DEBUG_OPTIMIZATIONS=y\nCONFIG_COMPILER_OPT=""\n')
+            with self.assertRaises(ValueError):
+                CAPTURE.verify_optimization(manifest)
+
+    def test_manifest_without_one_configuration_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for artifacts in ([], [{"path": str(root / "a/.config")}, {"path": str(root / "b/.config")}]):
+                with self.assertRaises(AssertionError):
+                    CAPTURE.verify_optimization({"artifacts": artifacts})
 
 
 if __name__ == "__main__":

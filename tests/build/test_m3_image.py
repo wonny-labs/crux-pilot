@@ -7,7 +7,17 @@ from pathlib import Path
 import struct
 import tempfile
 import unittest
-from m3_image import check_image
+from m3_image import check_image, check_optimization
+
+ROOT = Path(__file__).resolve().parents[2]
+SIZE = 'CONFIG_SIZE_OPTIMIZATIONS=y'
+NOT_SIZE = '# CONFIG_SIZE_OPTIMIZATIONS is not set\n'
+# Each member of the Kconfig choice other than -Os, and the option appended after it.
+OTHER_OPTIMIZATIONS = [(SIZE, NOT_SIZE + 'CONFIG_DEBUG_OPTIMIZATIONS=y'),
+                       (SIZE, NOT_SIZE + 'CONFIG_SPEED_OPTIMIZATIONS=y'),
+                       (SIZE, NOT_SIZE + 'CONFIG_NO_OPTIMIZATIONS=y'),
+                       (SIZE, NOT_SIZE + 'CONFIG_SIZE_OPTIMIZATIONS_AGGRESSIVE=y'),
+                       ('CONFIG_COMPILER_OPT=""', 'CONFIG_COMPILER_OPT="-Og"')]
 
 
 def fixture(root, profile="probe"):
@@ -57,6 +67,8 @@ CONFIG_SHELL_BACKEND_SERIAL=y
 # CONFIG_DEVICE_SHELL is not set
 # CONFIG_DATE_SHELL is not set
 # CONFIG_DEVMEM_SHELL is not set
+CONFIG_SIZE_OPTIMIZATIONS=y
+CONFIG_COMPILER_OPT=""
 '''
     if network:
         config = config.replace('CONFIG_MAIN_STACK_SIZE=2048', 'CONFIG_MAIN_STACK_SIZE=4096')
@@ -140,6 +152,35 @@ class ImageChecks(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class OptimizationChecks(unittest.TestCase):
+    def test_every_profile_rejects_an_image_not_built_at_the_verified_level(self):
+        for profile in ('probe', 'normal', 'network', 'integrated-probe', 'integrated-normal'):
+            for old, new in OTHER_OPTIMIZATIONS:
+                with self.subTest(profile=profile, new=new), tempfile.TemporaryDirectory() as d:
+                    image = fixture(Path(d), profile)
+                    check_image(*image, profile)
+                    image[2].write_text(image[2].read_text().replace(old, new))
+                    with self.assertRaises(ValueError):
+                        check_image(*image, profile)
+
+    def test_the_debug_build_fragment_is_rejected(self):
+        fragment = (ROOT / 'scripts/debug-optimizations.conf').read_text().splitlines()
+        setting = next(line for line in fragment if line.startswith('CONFIG_'))
+        with tempfile.TemporaryDirectory() as d:
+            image = fixture(Path(d))
+            image[2].write_text(image[2].read_text().replace(
+                'CONFIG_SIZE_OPTIMIZATIONS=y', '# CONFIG_SIZE_OPTIMIZATIONS is not set\n' + setting))
+            with self.assertRaises(ValueError):
+                check_image(*image, 'probe')
+
+
+    def test_recorded_evidence_configurations_are_accepted(self):
+        for name in ('configuration-native/zephyr.config', 'm5-execution/execution_runtime-evkb.config',
+                     'm5-execution/portable_execution-evkb.config', 'm5-system/selected.config'):
+            with self.subTest(name=name):
+                check_optimization((ROOT / 'docs/evidence' / name).read_text().splitlines())
 
 
 class RecordOutputControls(unittest.TestCase):
