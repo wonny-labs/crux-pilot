@@ -20,7 +20,7 @@ Provider of the Access event port: object target `crux_security_event_access_por
 | Drain to Logging on a low-priority thread | Runs on Host, with the Linux Logging provider |
 | Provider of `crux_access_port_event` | Implemented, every port event and result mapped |
 | Recording fake of the public contract | `tests/security_event/fake`, for consumers' Host tests |
-| Emitters outside Access: credential, file, config, CLI, web, SSH | Identifiers exist. The emitters are other issues. |
+| Emitters outside Access: credential, file, config, CLI, web, SSH, network settings, reboot | Identifiers exist. The emitters are other issues. |
 | `GET /api/v1/events` | Not implemented, M11. The read function it needs exists. |
 | Status items from the counts | Not implemented, Issue #180. The getter it needs exists. |
 | Zephyr composition, `native_sim`, target | Not implemented. See [What is not known](#what-is-not-known). |
@@ -141,7 +141,7 @@ sequenceDiagram
     D->>R: lock, copy the oldest pending, unlock
     D->>W: snapshot, with no ring lock held
     D->>L: crux_log_write, with no lock held
-    Note over D,L: At most 4 lines, then a 100 ms pause
+    Note over D,L: A 100 ms pause after every 4 lines, across wakes
 ```
 
 Each record in the ring has one of these states. A new record may overwrite only a retained one.
@@ -150,11 +150,11 @@ Each record in the ring has one of these states. A new record may overwrite only
 stateDiagram-v2
     [*] --> Pending: admitted
     [*] --> Lost: refused, takes a number
-    [*] --> Uncounted: lock timeout, ISR, before init, no number
+    [*] --> Unnumbered: lock timeout, ISR, NULL, before init, in dropped
     Pending --> Retained: drain handles it
     Retained --> [*]: overwritten
     Lost --> Reported: event.lost line
-    Uncounted --> Reported: event.lost line, in count only
+    Unnumbered --> Reported: event.lost line, in count only
 ```
 
 ### Admission
@@ -192,6 +192,15 @@ built without `printf`, so there is no format string, and the drain's stack hold
 | Filtered by the Logging threshold | Not by Crux | Missing from the log, still readable, `delivered` overstates. Tested, decision E6. |
 | Reset or power loss | Not counted | The sequence restarts |
 | UART or later transport | Not by Crux | A gap in `seq` |
+
+A gap does not always mean a lost event. Each `event.lost` line takes a number and is not a ring record, so a reader of the ring
+sees a gap at that number too, and a reader of the log sees that line instead.
+
+### Pacing
+
+The drain counts lines across wakes, and sleeps `CRUX_SECURITY_EVENT_DRAIN_PAUSE_MS` each time the count reaches
+`CRUX_SECURITY_EVENT_DRAIN_BURST`. A timed wake with nothing signalled restarts the count, because the log buffer has had a whole
+wait to empty. So a wake never writes more than the burst has left, whether the records arrive together or in small batches.
 
 ## Identifiers
 
@@ -250,6 +259,12 @@ Values are stable. A later change adds values and never reuses one. Projects use
 | 0x0602 | `web.certificate_replaced` | C | M11 |
 | 0x0700 | `ssh.auth_limit` | R | M12 |
 | 0x0701 | `ssh.host_key_missing` | C | M12 |
+| 0x0800 | `network.changed` | C | Network settings service |
+| 0x0801 | `network.save_failed` | C | Network settings service |
+| 0x0802 | `network.saved_ignored` | C | Network settings service |
+| 0x0900 | `system.reboot_requested` | C | Reboot service |
+| 0x0901 | `system.reboot_refused` | R | Reboot service |
+| 0x0902 | `system.reboot_failed` | C | Reboot service |
 | 0x0F00 | `event.unknown` | R | This component |
 | 0x0F01 | `event.lost` | R | This component, a line only |
 
@@ -283,9 +298,9 @@ The owner could not be asked. Each is the narrow choice, and a changed choice is
 | # | Point | Choice | Reason |
 | --- | --- | --- | --- |
 | 1 | A name for a record | Added `crux_security_event_name(id)`, which is not in the proposal | A read result holds only the value, and M11 must show a name. The project table is private to the core, so no one else can answer. |
-| 2 | Cursor ahead of the numbering | Restarts at the oldest record | A cursor kept across a reset would otherwise read `END` until the numbers caught up. The caller sees the sequence fall. |
+| 2 | Cursor ahead of the numbering | Restarts at the oldest record | A cursor kept across a reset would otherwise read `END` until the numbers caught up. The caller sees the sequence fall. A cursor from before a reset is ahead only until the numbering passes it, and then it reads as an ordinary cursor, so this does not detect every reset. |
 | 3 | Sequence wrap | Skips zero | Zero is a cursor's start, so a record numbered zero could not be read after a wrap. |
-| 4 | `event.lost` passed to an emit | Records `event.unknown`, counted | It is a line only, and only the drain writes it. |
+| 4 | Forging a Crux event | `event.lost` passed to an emit records `event.unknown`, counted. `crux_security_event_init` refuses a project name equal to any Crux name, and a name used twice. Only exact names are refused, so `access.other` is allowed. | `event.lost` is a line only, and only the drain writes it. The proposal reserves no name prefix. |
 | 5 | Fields the proposal gives no rule for | A channel above 3 or a source length other than 0, 4 or 8 is omitted and counted. A result out of range becomes `FAILED` and is counted. | They fail closed, in the way the listed fields do. |
 | 6 | How much of a subject is checked | The first 256 bytes, so an emit stays bounded. A bad character there omits the field. | Text past that is never recorded. |
 | 7 | An empty `user` | Omitted and counted, because the rule is 1 to 31 characters. An empty `subject` is simply no subject. | The table's rules, read literally. The provider passes NULL for an empty name. |
@@ -293,24 +308,25 @@ The owner could not be asked. Each is the narrow choice, and a changed choice is
 | 9 | What counts as `dropped` | Also a NULL event, an ISR call and a call before init, each without a number. The next `event.lost` includes them in `count`. | The failure table says that they count as dropped. |
 | 10 | Pacing `event.lost` | At most one in a burst | Otherwise new loss between records could fill every burst and starve the records. |
 | 11 | Order of `seq` in the log | An `event.lost` line can carry a number above records still pending, because it takes the next number | The proposal asks for this. A reader sorts by `seq`. |
-| 12 | The drain's wake | A binary signal, and a timed wake every 1000 ms | The proposal's "timeout to keep a clock check" is taken as this. A loss with no ring record sends no signal, so the timed wake bounds how late its report can be. |
+| 12 | The drain's wake | A binary signal, and a timed wake after 1000 ms with nothing signalled | The proposal's "timeout to keep a clock check" is taken as this. A loss with no ring record sends no signal, so the timed wake bounds how late its report can be. |
 | 13 | Read when the ring lock times out, or access control gives an unexpected result | `NOT_READY` | No other result fits, and the output stays unchanged. |
 | 14 | Wall time that would be negative, or a valid clock with source `NONE` | `clock=none` | Makes no claim, and keeps a line's bound. |
 | 15 | `access.change_failed` subject | The target, if Access named one | The proposal lists only `user`, but the access contract names the target, and `access.change_rejected` carries it. |
 | 16 | `role_missing` on the port event | Not carried | No field in the record, and the proposal says that role names stay out. |
 | 17 | `get_stats` before init | Answers `OK`, with the counts so far | A failed init is the case a status page most needs to show. |
-| 18 | Build settings | `RING`, `RESERVE`, `DRAIN_BURST` and `DRAIN_PAUSE_MS` are CMake cache values. `LOCK_MS`, `DRAIN_WAIT_MS` and the stack size are macros with defaults. | The proposal names the first three as settings for a composition. |
+| 18 | Build settings | `RING`, `RESERVE`, `DRAIN_BURST` and `DRAIN_PAUSE_MS` are CMake cache values. `LOCK_MS`, `DRAIN_WAIT_MS` and the stack size are macros with defaults. | A composition sizes the ring and reserve, and matches the burst and its pause to its log buffer. The rest keep the proposal's defaults. |
 | 19 | The fake's rules | Field, identifier and project table rules are the real source. Ring, reserve and drain are not modelled, and a test asks for a drop. | A consumer's tests then hold on the core, and it stays small. |
-| 20 | `native_sim` | Not attempted | `crux_access` has no Zephyr composition yet, so this needs that first. The brief makes it optional if cheap, and it is not. |
+| 20 | `native_sim` | Not attempted | Gate decision G-B approves contract work with fakes and Host tests here. `crux_access` has no Zephyr composition yet, so this needs that first. |
 
 ## What is built, faked and untested
 
 | Kind | Items |
 | --- | --- |
-| Real in Host tests | Ring, admission, sequence numbers, cursors, line format, identifier table, provider, Access core, Sync, Thread, and in one suite Logging and Time |
-| Faked in most suites | The monotonic clock, the Time snapshot, `crux_log_write`, and failures of Sync and Thread creation, through linker wraps |
-| Faked in every suite that uses Access | Access's crypto and storage ports, from `tests/access/fake_ports.c` |
-| Untested | Anything on Zephyr, `native_sim` or a target. The native log queue dropping after `OK`. Emit time on a real thread, and loss under real management load. Stack use of the drain on Zephyr. Whether 4 lines per 100 ms suits a real log buffer. |
+| Real in Host tests | Ring, admission, sequence numbers, cursors, line format, identifier table and Sync and Thread. In the suites that join Access: its core and the provider. In `integration` alone: Logging, and Time's authority lock and monotonic clock. |
+| Never real | Time's realtime provider, which is the controlled `memory` one even in `integration`. Access's crypto and storage ports, which are `tests/access/fake_ports.c` wherever Access runs. |
+| Controlled in every suite but `integration`, `public_fake` and `fake_cases` | Through linker wraps: the monotonic clock, unless a case asks for the real one, the Time snapshot, `crux_log_write`, `crux_is_in_isr`, and failures of Sync and Thread creation. The signal and the pause pass through and are counted, and a case can change what a wait reports. |
+| Stubbed in `conformance`, `ring`, `ring_small`, `drain`, `time_cases`, `init`, `concurrency` and `public_core` | `crux_access_check`, from `tests/security_event/access_check_stub.c`, which answers what a case sets. These suites do not link Access. |
+| Untested | Anything on Zephyr, `native_sim` or a target. The native log queue dropping after `OK`. Emit time on a real thread, and loss under real management load. Stack use of the drain on Zephyr. Whether a pause of 100 ms after every 4 lines suits a real log buffer. |
 
 ## What is not known
 
@@ -330,7 +346,7 @@ The owner could not be asked. Each is the narrow choice, and a changed choice is
   ThreadSanitizer and its limits.
 - Loss after `crux_log_write` returns `OK` is only visible as a gap, or through the native report.
 - A long subject is truncated, with a mark, so two long file names can look alike in a line.
-- A caller that passes a secret of allowed characters as a subject would record it. Field rules cannot tell, so emitters must follow
+- A caller that passes a secret of allowed characters as a user or subject would record it. Field rules cannot tell, so emitters must follow
   the rule that client input failing validation is never a field. Tests use known values against the real Access emitters only.
 - A composition must keep the Logging threshold at `CRUX_LOG_INFO` or more verbose (decision E6). Nothing enforces this, and
   Logging offers no getter.
@@ -354,15 +370,16 @@ tests, and the boundary check. The root build also runs them as `SecurityEvent.*
 
 | Suite | Composition | Covers |
 | --- | --- | --- |
-| `conformance` | Core, controlled time and log | Every identifier's value, name, class and length, and that no other exists. Field rules, truncation and omission. Line format, levels, and the worst-case line. |
-| `ring`, `ring_small` | The same, with a 32/8 and an 8/2 ring | Overflow, the reserve, change admitted while routine is dropped, a gap per drop, `event.lost` content, burst bound, lock timeout with a really held lock, log errors, cursors, gaps, overwriting, the wrap, no lock across time or log |
-| `time_cases` | The same | Clock unset, each source, age, snapshot errors, `no_uptime`, set and invalidated between emit and drain, for lines and read results. An emit reads no authority. |
-| `init` | The same | Before init, failed init and retry, no leak on a failed init, repeated init, project identifiers and their classes, ISR and NULL, thread failure and retry |
-| `concurrency` | Core with real threads | Six emitters, two readers and the drain, with every event accounted for, for the sanitizers |
-| `rejections` | Real Access, real provider, core | Each rejection path of Issue #182 and each row of the result table, in the record and in the line. Every port event and every result, one by one. |
+| `conformance` | Core, controlled time and log | Every identifier's value, name, class and length, and that no other exists. Field rules, truncation and omission, every byte value in a user and a subject, and the bounded subject scan. Line format, levels, and the worst-case line. |
+| `ring`, `ring_small` | The same, with a 32/8 and an 8/2 ring | Overflow, the reserve, change admitted while routine is dropped, a gap per drop, `event.lost` content, burst bound, lock timeout with a really held lock, log errors, cursors, gaps, overwriting, the wrap, no lock across time or log, high water from pending only |
+| `drain` | The same, with real threads and no timed wake in a run | A signal for each admitted record and none for a refused one, a wake by the signal alone, a bounded wait, a signal again after a burst, a pause counted across wakes, an idle wake restarting the count, and a pause after a failed wait |
+| `time_cases` | The same | Clock unset, each source, age, snapshot errors, `no_uptime`, set and invalidated between emit and drain, for lines and read results. The `event.lost` line's time and counts. An emit reads no authority. |
+| `init` | The same | Before init, failed init and retry, no leak on a failed init, repeated init, project identifiers and their classes, project names that repeat or forge a Crux name, ISR and NULL, thread failure and retry |
+| `concurrency` | Core with real threads | Six paced emitters, two readers and the drain, with every event accounted for, for the sanitizers |
+| `rejections` | Real Access, real provider, core | Each rejection path of Issue #182 and each row of the result table, including `BUSY` on a login and on an own password change, in the record and in the line. Every port event and every result, one by one. |
 | `read` | The same | No session, ended, expired, without `events.read`, forced change, permitted. The denial's own record. The check runs before the ring lock. No effect on the idle timer. |
 | `secrets` | The same | Runs Access's own `tests/access/secrets.c` through the real path, and inspects each record and line for known passwords, typed names, keys, salts and verifiers |
 | `waits` | The same, with real threads | With the storage fake and the log fake both blocked, a denial and a flood past the ring's size all return. A check still answers. Emit under the state lock returns. |
-| `integration` | Product cores, provider as objects, real Logging, Time, Thread, Sync | Lines on the real provider's stderr. Real read. An emit with the Time authority lock held on another thread. Pacing of 12 lines. The threshold limit of E6. |
+| `integration` | Product cores, provider as objects, real Logging, Thread and Sync, and Time's real authority lock and monotonic clock over its controlled `memory` provider | Lines on the real provider's stderr. Real read. An emit with the Time authority lock held on another thread. Pacing of 12 lines together and of 36 lines in batches of 3. The threshold limit of E6. |
 | `public_core`, `public_fake` | Core, and fake | One suite on the public header alone, on both, so a consumer's test on the fake holds on the core |
 | `fake_cases` | Fake | The controls consumers use |
