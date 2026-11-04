@@ -116,6 +116,29 @@ class ComparisonTest(unittest.TestCase):
         self.assertIn("one", str(caught.exception))
         self.assertIn("two", str(caught.exception))
 
+    def stale_resolver(self, head):
+        def resolve(name, revision, role):
+            raise self.pins.StaleCheckout(head, f"HEAD differs from manifest-rev {SHA_A[:12]}")
+        return resolve
+
+    def test_a_stale_checkout_is_a_mismatch_that_names_both_commits(self):
+        results = self.pins.compare_pins({"hal": SHA_A}, [project("hal", SHA_A)], self.stale_resolver(SHA_B))
+        self.assertEqual("MISMATCH", results[0]["status"])
+        self.assertEqual(1, self.pins.count_mismatches(results))
+        line = self.pins.format_result(results[0])
+        self.assertIn(f"MISMATCH hal {SHA_B[:12]}", line)
+        self.assertIn(f"manifest-rev {SHA_A[:12]}", line)
+
+    def test_an_override_does_not_excuse_a_stale_checkout(self):
+        declared = project("hal", SHA_B, userdata={"crux-override": "vendor fix 123"})
+        results = self.pins.compare_pins({"hal": SHA_A}, [declared], self.stale_resolver(SHA_B))
+        self.assertEqual("MISMATCH", results[0]["status"])
+        self.assertNotIn("vendor fix 123", self.pins.format_result(results[0]))
+
+    def test_a_stale_checkout_of_a_product_only_project_fails_too(self):
+        results = self.pins.compare_pins({}, [project("driver", SHA_C)], self.stale_resolver(SHA_B))
+        self.assertEqual("MISMATCH", results[0]["status"])
+
     def test_explicit_crux_entries_win_over_zephyr(self):
         merged = self.pins.merge_contract(
             [{"name": "hal", "revision": "crux-rev"}, {"name": "extra"}],
@@ -132,6 +155,80 @@ class ComparisonTest(unittest.TestCase):
 def git(directory, *arguments, env=None):
     return subprocess.run(["git", "-C", str(directory), *arguments], check=True,
                           capture_output=True, text=True, env=env).stdout.strip()
+
+
+@unittest.skipUnless(GIT, "git is required")
+class CheckoutTest(unittest.TestCase):
+    """Read one checkout with its refs laid out as west update leaves them."""
+
+    def setUp(self):
+        self.pins = load_module()
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.path = Path(temporary.name).resolve()
+        self.env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1",
+                    "GIT_AUTHOR_NAME": "Pins Test", "GIT_AUTHOR_EMAIL": "pins@example.invalid",
+                    "GIT_COMMITTER_NAME": "Pins Test", "GIT_COMMITTER_EMAIL": "pins@example.invalid"}
+        self.git("init", "-q")
+        self.one = self.commit("one", tag="v1")
+        self.two = self.commit("two", tag="v2")
+        self.git("update-ref", "refs/heads/manifest-rev", self.one)
+        self.git("checkout", "-q", "--detach", "refs/heads/manifest-rev")
+
+    def git(self, *arguments):
+        return git(self.path, *arguments, env=self.env)
+
+    def commit(self, message, tag):
+        self.git("commit", "-q", "--allow-empty", "-m", message)
+        self.git("tag", tag)
+        return self.git("rev-parse", "HEAD")
+
+    def stale(self, revision):
+        with self.assertRaises(self.pins.StaleCheckout) as caught:
+            self.pins.checkout_commit(self.path, revision)
+        return caught.exception
+
+    def test_head_at_what_west_fetched_is_returned_for_each_kind_of_revision(self):
+        for revision in (self.one, self.one[:12], "v1", "a-branch-west-keeps-no-ref-for"):
+            with self.subTest(revision=revision):
+                self.assertEqual(self.one, self.pins.checkout_commit(self.path, revision))
+
+    def test_head_moved_off_manifest_rev_names_both(self):
+        self.git("checkout", "-q", "--detach", self.two)
+        stale = self.stale(self.one)
+        self.assertEqual(self.two, stale.head)
+        self.assertIn(self.one[:12], str(stale))
+        self.assertIn("manifest-rev", str(stale))
+
+    def test_a_pinned_sha_that_was_never_fetched_is_stale(self):
+        for revision in ("f" * 40, "f" * 12):
+            with self.subTest(revision=revision):
+                stale = self.stale(revision)
+                self.assertEqual(self.one, stale.head)
+                self.assertIn(revision, str(stale))
+
+    def test_a_sha_or_tag_other_than_what_west_fetched_is_stale(self):
+        for revision in (self.two, "v2"):
+            with self.subTest(revision=revision):
+                stale = self.stale(revision)
+                self.assertEqual(self.one, stale.head)
+                self.assertIn(revision, str(stale))
+                self.assertIn(self.one[:12], str(stale))
+
+    def test_a_local_branch_named_like_the_revision_is_ignored(self):
+        self.git("branch", "stable", self.two)
+        self.assertEqual(self.one, self.pins.checkout_commit(self.path, "stable"))
+
+    def test_a_checkout_west_never_updated_is_stale(self):
+        self.git("update-ref", "-d", "refs/heads/manifest-rev")
+        stale = self.stale(self.one)
+        self.assertEqual(self.one, stale.head)
+        self.assertIn("manifest-rev", str(stale))
+
+    def test_a_directory_without_a_checkout_cannot_be_resolved(self):
+        with tempfile.TemporaryDirectory() as empty:
+            with self.assertRaises(ValueError):
+                self.pins.checkout_commit(empty, self.one)
 
 
 @unittest.skipUnless(WEST and GIT, "west and git are required for the workspace tests")
@@ -219,15 +316,24 @@ class WorkspaceTest(unittest.TestCase):
                 "  self:\n"
                 "    path: zephyr\n")
 
+    def product_manifest(self, extra_projects="", header=""):
+        return ("manifest:\n" + header +
+                "  projects:\n"
+                "    - name: crux-pilot\n"
+                f"      url: {self.url('crux-pilot')}\n"
+                f"      revision: {self.crux}\n"
+                "      import: true\n" + extra_projects +
+                "  self:\n"
+                "    path: product-x\n")
+
+    def module_entry(self, revision, extra=""):
+        return ("    - name: fake-module\n"
+                f"      url: {self.url('fake-module')}\n"
+                f"      revision: {revision}\n"
+                "      path: modules/fake\n" + extra)
+
     def product(self, extra_projects="", header=""):
-        manifest = ("manifest:\n" + header +
-                    "  projects:\n"
-                    "    - name: crux-pilot\n"
-                    f"      url: {self.url('crux-pilot')}\n"
-                    f"      revision: {self.crux}\n"
-                    "      import: true\n" + extra_projects +
-                    "  self:\n"
-                    "    path: product-x\n")
+        manifest = self.product_manifest(extra_projects, header)
         workspace = self.root / "workspace"
         shutil.rmtree(workspace, ignore_errors=True)
         directory = workspace / "product-x"
@@ -354,6 +460,73 @@ class WorkspaceTest(unittest.TestCase):
         result = self.pins(workspace)
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("OVERRIDE fake-module", result.stdout)
+
+    def test_a_checkout_moved_off_what_west_fetched_fails(self):
+        workspace = self.product()
+        git(workspace / "modules/fake", "checkout", "-q", self.module_v2, env=self.env)
+        result = self.pins(workspace)
+        self.assertNotEqual(0, result.returncode)
+        self.assertRegex(result.stdout, f"MISMATCH fake-module {self.module_v2[:12]}.*manifest-rev {self.module_v1[:12]}")
+        self.assertNotIn("OK fake-module", result.stdout)
+
+    def test_a_moved_checkout_cannot_pass_by_landing_on_the_contract_commit(self):
+        reason = "      userdata:\n        crux-override: \"vendor fix 123\"\n"
+        workspace = self.product(self.module_entry(self.module_v2, reason))
+        git(workspace / "modules/fake", "checkout", "-q", self.module_v1, env=self.env)
+        result = self.pins(workspace)
+        self.assertNotEqual(0, result.returncode)
+        self.assertRegex(result.stdout, f"MISMATCH fake-module {self.module_v1[:12]}.*manifest-rev {self.module_v2[:12]}")
+        self.assertNotIn("OK fake-module", result.stdout)
+        self.assertNotIn("OVERRIDE fake-module", result.stdout)
+
+    def test_a_pinned_sha_that_was_never_fetched_fails(self):
+        workspace = self.product()
+        never_fetched = "f" * 40
+        (workspace / "product-x/west.yml").write_text(
+            self.product_manifest(self.module_entry(never_fetched)))
+        result = self.pins(workspace)
+        self.assertNotEqual(0, result.returncode)
+        self.assertRegex(result.stdout, f"MISMATCH fake-module {self.module_v1[:12]}.*{never_fetched}")
+        self.assertNotIn("OK fake-module", result.stdout)
+
+    def test_a_manifest_changed_without_west_update_fails(self):
+        workspace = self.product(self.module_entry(self.module_v2))
+        reason = "      userdata:\n        crux-override: \"vendor fix 123\"\n"
+        (workspace / "product-x/west.yml").write_text(
+            self.product_manifest(self.module_entry(self.module_v1, reason)))
+        result = self.pins(workspace)
+        self.assertNotEqual(0, result.returncode)
+        self.assertRegex(result.stdout, f"MISMATCH fake-module {self.module_v2[:12]}.*{self.module_v1}")
+
+    def test_a_stale_local_branch_named_like_the_revision_cannot_report_ok(self):
+        workspace = self.product(self.module_entry("stable"))
+        checkout = workspace / "modules/fake"
+        git(checkout, "branch", "stable", self.module_v1, env=self.env)
+        git(self.repos / "fake-module", "branch", "-f", "stable", self.module_v2, env=self.env)
+        self.west("update", cwd=workspace, check=True)
+        self.assertEqual(self.module_v2, git(checkout, "rev-parse", "HEAD", env=self.env))
+        result = self.pins(workspace)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn(f"MISMATCH fake-module {self.module_v2[:12]} (contract {self.module_v1[:12]})",
+                      result.stdout)
+
+    def test_a_checkout_left_on_a_stale_local_branch_fails(self):
+        workspace = self.product(self.module_entry("stable"))
+        checkout = workspace / "modules/fake"
+        git(checkout, "branch", "stable", self.module_v1, env=self.env)
+        git(self.repos / "fake-module", "branch", "-f", "stable", self.module_v2, env=self.env)
+        self.west("update", cwd=workspace, check=True)
+        git(checkout, "checkout", "-q", "stable", env=self.env)
+        result = self.pins(workspace)
+        self.assertNotEqual(0, result.returncode)
+        self.assertRegex(result.stdout, f"MISMATCH fake-module {self.module_v1[:12]}.*manifest-rev {self.module_v2[:12]}")
+
+    def test_a_stale_local_branch_does_not_fail_a_correct_checkout(self):
+        workspace = self.product(self.module_entry("stable"))
+        git(workspace / "modules/fake", "branch", "stable", self.module_v2, env=self.env)
+        result = self.pins(workspace)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("OK fake-module " + self.module_v1[:12], result.stdout)
 
     def test_a_fork_without_the_contract_commit_is_an_error_not_ok(self):
         fork = self.init("zephyr-fork")
