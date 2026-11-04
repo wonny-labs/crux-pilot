@@ -154,6 +154,14 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-spi.sh
 
+      # Runs the consumer's own levels from a copy outside this tree: Twister, a console
+      # oracle on native_sim and a controlled defect. No hardware.
+      - name: Validate the out-of-tree consumer at its Zephyr levels
+        working-directory: crux-pilot
+        env:
+          CRUX_CONSUMER_POC_ZEPHYR_TESTS: "1"
+        run: python3 -m unittest discover -s tests/build -p test_consumer_poc.py -k ConsumerZephyrLevelsTest -v
+
       - name: Validate controller integration (software-only)
         if: matrix.shard == 'controller'
         working-directory: crux-pilot
