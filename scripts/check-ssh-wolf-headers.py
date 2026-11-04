@@ -6,9 +6,10 @@ build's compile_commands.json is preprocessed twice with its real flags: as buil
 file that lacks that #undef, which is what wolfSSL itself sees. The text from each wolfSSL header is then compared.
 Some sources read a header before the #undef takes effect, so it cannot differ there, and others read it after.
 
-Only the file functions and file types in ALLOWED_DECLARATIONS may differ. They do not exist in wolfSSL's own build, and
-no structure that the two share mentions them, so a difference in anything else fails this check. So does finding
-no difference at all, which would mean the comparison sees nothing. Repeat this on any upgrade of the stacks. It reads a
+Only wolfcrypt/wc_port.h may differ, and only by exactly ALLOWED_LINES, in that order. They are file functions and a file
+type that do not exist in wolfSSL's own build, and no structure that the two share mentions them. Anything else fails this
+check, including one of those lines added elsewhere. So does finding no difference at all, which would mean the
+comparison sees nothing. Repeat this on any upgrade of the stacks. It reads a
 build directory and writes only temporary files.
 """
 import argparse
@@ -27,15 +28,14 @@ ALLOWED_HEADER = "wolfcrypt/wc_port.h"
 UNDEFINE = "#undef NO_FILESYSTEM"
 WOLFSSL_HEADER = re.compile(r"/wolfssl/wolfssl/.+\.h$")
 MARKER = re.compile(r'^# \d+ "([^"]+)"')
-# Each entry is one whole preprocessed line of wolfcrypt/wc_port.h: wolfSSL's file functions, which its own build
-# leaves out, and ReadDirCtx, the type that only those functions take.
-ALLOWED_DECLARATIONS = frozenset((
+# The preprocessed lines of wolfcrypt/wc_port.h, whole and in order: wolfSSL's file functions, which its own build leaves
+# out, and ReadDirCtx, the type that only those functions take.
+ALLOWED_LINES = [
     "struct fs_file_t* z_fs_open(const char* filename, const char* mode);",
     "int z_fs_close(struct fs_file_t* file);",
     "int z_fs_rewind(struct fs_file_t* file);",
     "int wc_FileLoad(const char* fname, unsigned char** buf,",
     "size_t* bufLen, void* heap);",
-    "int wc_FileExists(const char* fname);",
     "typedef struct ReadDirCtx {",
     "struct fs_dirent entry;",
     "struct fs_dir_t dir;",
@@ -46,7 +46,8 @@ ALLOWED_DECLARATIONS = frozenset((
     "int wc_ReadDirFirst(ReadDirCtx* ctx, const char* path, char** name);",
     "int wc_ReadDirNext(ReadDirCtx* ctx, const char* path, char** name);",
     "void wc_ReadDirClose(ReadDirCtx* ctx);",
-))
+    "int wc_FileExists(const char* fname);",
+]
 
 
 def sources_of(build):
@@ -125,22 +126,23 @@ def main():
                 compared.add(header)
                 name = header.split("/wolfssl/wolfssl/")[-1]
                 changed = changed_lines(baseline.get(header, []), real.get(header, []))
-                if changed:
-                    differing.setdefault(name, set()).add(source)
-                for line in changed:
-                    if name != ALLOWED_HEADER or line.strip() not in ALLOWED_DECLARATIONS:
-                        unexpected.append(f"{source}: {name}: {line.strip()}")
+                changed = [line.strip() for line in changed]
+                if not changed:
+                    continue
+                differing.setdefault(name, set()).add(source)
+                if name != ALLOWED_HEADER or changed != ALLOWED_LINES:
+                    unexpected.extend(f"{source}: {name}: {line}" for line in changed)
     for line in unexpected:
         print(line, file=sys.stderr)
     if unexpected:
-        print(f"{len(unexpected)} lines differ that are not listed declarations.", file=sys.stderr)
+        print(f"{len(unexpected)} lines differ in a way that the list does not allow.", file=sys.stderr)
         return 1
     if not differing:
         print("Control failed: no header differed, so this comparison sees nothing.", file=sys.stderr)
         return 1
     print(f"{len(entries)} wolfSSH sources and {len(compared)} wolfSSL headers compared.")
     for name, sources in sorted(differing.items()):
-        print(f"{name} differs only in listed declarations, in: {', '.join(sorted(sources))}")
+        print(f"{name} differs by exactly the listed lines, in: {', '.join(sorted(sources))}")
     return 0
 
 

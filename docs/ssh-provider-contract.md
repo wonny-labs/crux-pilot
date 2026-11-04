@@ -53,8 +53,8 @@ those callbacks reaches the client only as the connection ending. `wolfSSH_SetUs
 do call Crux, because the login decision belongs there, and they have no channel to use. wolfSSH's success value is zero,
 so #192 maps `CRUX_SSH_AUTH_ACCEPTED` explicitly and every other value to failure.
 
-The provider's `io_timeout_ms` is one value for the server. `crux_cli_io_t` in `components/cli/adapter/crux_cli_adapter.h` takes a
-`timeout_ms` for each call, and an adapter on this interface cannot shorten the wait below `io_timeout_ms`. So a composition sets
+The provider's `io_timeout_ms` is one value for the server. `crux_cli_io_t` in `components/cli/adapter/crux_cli_adapter.h`, which
+arrives with #238, takes a `timeout_ms` for each call, and an adapter on this interface cannot shorten the wait below `io_timeout_ms`. So a composition sets
 `io_timeout_ms` no longer than the CLI's shortest bound, and the adapter returns 0 after that wait. A conformance case proves that
 `read`, `write` and `terminal` can carry that shape, including a line of the CLI's default limit of 320 bytes.
 
@@ -69,7 +69,8 @@ then needs its own connection and slot. A later change could relax this, and it 
 
 These come from `src/internal.c` in wolfSSH, and the header records them as the rule for any provider. The first authentication
 request binds the name to the connection (`src/internal.c:11859`). An empty name, or a later request with another name, ends the
-connection with no callback (`src/ssh.c:2143`), so a client that wants another user reconnects. Every refused attempt counts, and the
+connection with no callback (`src/ssh.c:2143`), so a client that wants another user reconnects. An authentication request after a
+successful login also ends the connection before any hook (`src/internal.c:879` and `:14036`). Every refused attempt counts, and the
 opening `none` request does not (`src/internal.c:11921`).
 
 ### From a connection to Crux
@@ -110,7 +111,8 @@ flowchart TB
     loop -->|"fs argument of each port macro"| port["myFilesystem.h port (#194)"]
     port -->|"session from fs, no thread-local state"| files["File service"]
     loop -->|"session_alive at each read timeout"| access
-    worker -->|"at the end: sftp_close, then connection_closed once"| access
+    worker -->|"when SFTP ends: sftp_close"| sftp
+    worker -->|"last, once: connection_closed"| access
 ```
 
 ### How #192 connects this to `crux_access`
@@ -135,7 +137,8 @@ embedded NUL, and `crux_access` checks its character set.
 The CLI and SFTP pieces get the session from the attachment with `crux_ssh_attachment_session()`, declared in
 [`components/ssh/adapter/crux_ssh_attachment.h`](../components/ssh/adapter/crux_ssh_attachment.h). #192 defines it, and until then
 `components/ssh/access/` holds a stand-in that returns the zero session. On the Host, `tests/ssh/fake_attachment.h` is a double
-that holds any session a test gives it.
+that holds any session a test gives it. Linking both the table and the double fails with `multiple definition of
+crux_ssh_attachment_session`, so a CLI or SFTP test links the double and its own entry points, not the table.
 
 A session belongs to one SSH connection. `crux_access_touch` is the caller's job, so #193 and #194 call it on user activity.
 
@@ -146,7 +149,7 @@ The shared files and every hook are in place now, so no session has to change a 
 | Session | May change | How it adds code |
 | --- | --- | --- |
 | Provider and authentication, #192 | `components/ssh/access/`, `components/ssh/ports/zephyr/provider_sources.cmake` and the provider sources it lists, `tests/ssh/access/`, new `tests/zephyr/ssh_*`, new `scripts/test-ssh*.sh` | The provider sources go in `provider_sources.cmake`, and `crux_ssh_wolf_settings()` builds them with the wolfSSH settings. The access entry points and `struct crux_ssh_attachment` replace the stand-in in `components/ssh/access/`, with `sources.cmake` and `CMakeLists.txt` there. Its tests go in `tests/ssh/access/CMakeLists.txt`. |
-| CLI over SSH, #193 | `components/ssh/cli/`, `tests/ssh/cli/` | `crux_ssh_cli_shell` and `crux_ssh_cli_exec` replace the stand-in, with `sources.cmake` and `CMakeLists.txt` there. It uses `read`, `write` and `close`, with the fake provider on the Host, and links `crux_cli_adapter` PRIVATE from its own `CMakeLists.txt`. |
+| CLI over SSH, #193 | `components/ssh/cli/`, `tests/ssh/cli/` | `crux_ssh_cli_shell` and `crux_ssh_cli_exec` replace the stand-in, with `sources.cmake` and `CMakeLists.txt` there. It uses `read`, `write` and `close`, with the fake provider on the Host, and links `crux_cli_adapter`, which arrives with #238, PRIVATE from its own `CMakeLists.txt`. |
 | SFTP, #194 | `components/ssh/sftp/`, `tests/ssh/sftp/` | `crux_ssh_sftp_open` and `crux_ssh_sftp_close` replace the stand-in. The real `myFilesystem.h` replaces the refusing one in `components/ssh/sftp/port/`, whose directory `sources.cmake` names, so `crux_ssh_wolf_settings()` puts it on the include path of the wolfSSH sources in `app`. |
 | Shared, by one reviewed PR that all sessions rebase onto | `components/ssh/CMakeLists.txt`, `components/ssh/src/`, `components/ssh/adapter/`, `components/ssh/ports/zephyr/crux_wolfssh_settings.h`, `wolf-ssh.conf`, `wolf_ssh_settings.cmake`, `tests/ssh/CMakeLists.txt` and the files directly in `tests/ssh/` | The callback table is here, in `components/ssh/src/crux_ssh_callbacks.c`, and already names every entry point. This is the rule that gate #183 records. |
 
@@ -189,8 +192,9 @@ for the rest of a wolfSSH translation unit. That module hook is why no wrapper i
   - The socket code, which `WOLFSSH_USER_IO` replaces with provider callbacks using `zsock_recv` and `zsock_send`.
   - The Zephyr default directory, which the port supplies through `WGETCWD`.
   - A `/RAM:` path rule for the FAT layout, which the virtual root does not use.
-  - `WLOCALTIME` becomes `localtime_r` in place of `gmtime_r` (`wolfssh/port.h:737`). Zephyr's minimal C library has no `localtime_r`. It
-    links today because the module defines `WOLFSSH_NO_TIMESTAMP`, and if #194 needs a timestamp the port has to redefine this.
+  - `WLOCALTIME` becomes `localtime_r` in place of `gmtime_r` (`wolfssh/port.h:737`). SFTP long names call it (`src/wolfsftp.c:3252`), because
+    `WOLFSSH_NO_TIMESTAMP` guards only `src/log.c:145`. Zephyr's minimal C library provides it and gives UTC on `native_sim`
+    (`lib/libc/common/source/time/localtime_r_utc.c`), and on the target it comes from Picolibc. #194 has nothing to redefine.
   - `wolfssh/port.h:682` includes `<stdio.h>` in place of `<strings.h>`.
 - **`WOLFSSL_ED25519_STREAMING_VERIFY` matters.** wolfSSH defines `WOLFSSH_NO_ED25519` without it. The first probe did not set
   it, or `CONFIG_WOLFSSL_CURVE25519`, so `ssh-ed25519` was missing from its figures. The probe now fails to compile if a
@@ -201,8 +205,8 @@ A wolfSSH translation unit and wolfSSL now disagree about `NO_FILESYSTEM`, which
 copy of the settings file that lacks the `#undef`, and compares the text of each wolfSSL header. Most sources read `wolfcrypt/wc_port.h`
 through `wolfcrypt/types.h` before the `#undef` takes effect, so it cannot differ for them. `port.c`, `ossh.c` and `wolfscp.c` read it
 after, and there it differs by 16 lines: the declarations of `z_fs_open`, `wc_FileLoad` and similar, and the type `ReadDirCtx` that only
-those functions take. wolfSSH calls none of them, as the images link, and no structure that the two share mentions them. The check allows
-only those lines, and fails on any other difference, or on no difference at all. A stack upgrade could change this, so the recipe runs it.
+those functions take. wolfSSH calls none of them, as the images link, and no structure that the two share mentions them. The check requires
+exactly those lines in that order, and fails on any other difference, or on no difference at all. A stack upgrade could change this, so the recipe runs it.
 
 ### Rules for Crux code that includes wolfSSH headers
 
@@ -276,8 +280,8 @@ it finished because the settings above made it unnecessary, so that attempt has 
 ### What is still open
 
 This PR has no evidence that wolfSSH's socket callbacks work over the native socket offload. The independent review of this PR reported that
-a review-only server on these settings ran OpenSSH 9.6 through a handshake, password login, key login, `exec` and a shell over the offload. That
-run did not include SFTP, and its server is not in this repository. #192 proves this with the design's OpenSSH cases. If it does not hold, the
+a review-only server on these settings ran OpenSSH 9.6 through a handshake, password login, key login, `exec` and a shell over the offload. In that
+run SFTP reached only the refusal from the stand-in port, and no file was transferred. Its server is not in this repository. #192 proves this with the design's OpenSSH cases. If it does not hold, the
 fallback is the `native_sim` Ethernet driver with a TAP interface, which needs host privileges that CI may not have. The settings arrangement does
 not change in that case.
 
@@ -298,10 +302,10 @@ server does not look up names. It is Zephyr's source, so it stays as it is, and 
 
 | Test | What it holds |
 | --- | --- |
-| `Ssh.ProviderConformance` | The 49 cases in [`tests/ssh/conformance.c`](../tests/ssh/conformance.c), on the fake provider |
-| `Ssh.ConformanceCatchesDefects` | Each of the fake's 57 deliberate defects must fail its named case |
+| `Ssh.ProviderConformance` | The 51 cases in [`tests/ssh/conformance.c`](../tests/ssh/conformance.c), on the fake provider |
+| `Ssh.ConformanceCatchesDefects` | Each of the fake's 60 deliberate defects must fail its named case |
 | `Ssh.FakeProvider` | What the fake promises to other tests: a buffer of at least 1 KiB, a failed `send` reported, and key blobs of real size |
-| `Ssh.AttachmentDouble` | `crux_ssh_attachment_session()` on the Host double |
+| `Ssh.AttachmentDouble` | `crux_ssh_attachment_session()` on the Host double. A test links the double or the table, not both, because each brings a definition of it. |
 | `Ssh.CallbackTable` | Every member of the shared table is the named entry point, and a provider accepts it |
 | `Ssh.access_stub`, `Ssh.cli_stub`, `Ssh.sftp_stub` | The stand-ins fail closed, until each session replaces them |
 | `Ssh.Boundaries` | `scripts/check-ssh-boundaries.py` |
@@ -336,7 +340,7 @@ Recorded on 4 November 2026 at the revision in the PR that adds this document, w
 
 | Kind | What | Result |
 | --- | --- | --- |
-| Host | The `Ssh.*` CTest cases, Clang 18 | 9 of 9 pass. 49 cases on the fake, and all 57 deliberate defects caught. |
+| Host | The `Ssh.*` CTest cases, Clang 18 | 9 of 9 pass. 51 cases on the fake, and all 60 deliberate defects caught. |
 | Host | The same with ASan and UBSan, GCC 13, because the image lacks the Clang sanitizer runtime | 9 of 9 pass |
 | Target compile, not flashed | Combined image for `mimxrt1060_evk@B//qspi`: wolfSSH, SFTP through the refusing port, the callback table and the TLS socket backend | Links: 418,116 B Flash, 219,924 B RAM, of which the probe configures a 32 KB main stack and a 128 KB arena |
 | `native_sim` build, not run | `native_sim/native/64`, wolfSSH without the socket backend, on an unpatched Zephyr, with TAP off | Links |

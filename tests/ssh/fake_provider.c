@@ -47,6 +47,7 @@ typedef struct {
 static struct {
     bool started;
     bool stopped_once;
+    bool terminal_seen;
     unsigned callback_depth;
     crux_ssh_fake_fault_t fault;
     crux_ssh_config_t config;
@@ -403,10 +404,19 @@ static bool grants(crux_ssh_auth_result_t result, const crux_ssh_attachment_t *a
     return result == CRUX_SSH_AUTH_ACCEPTED && attachment != NULL;
 }
 
-static bool may_attempt(const connection_t *connection)
+/* A request after a successful login ends the connection, before any callback. */
+static bool may_attempt(connection_t *connection)
 {
-    return connection != NULL &&
-           (!connection->authenticated || has_fault(CRUX_SSH_FAKE_FAULT_SECOND_LOGIN_OVERWRITES));
+    if (connection == NULL) {
+        return false;
+    }
+    if (connection->authenticated && !has_fault(CRUX_SSH_FAKE_FAULT_SECOND_LOGIN_OVERWRITES)) {
+        if (!has_fault(CRUX_SSH_FAKE_FAULT_SECOND_LOGIN_KEEPS_CONNECTION)) {
+            end_connection(connection);
+        }
+        return false;
+    }
+    return true;
 }
 
 static bool client_password(int id, const char *user, size_t user_length, const char *password)
@@ -454,7 +464,7 @@ static bool client_none_request(int id, const char *user)
     connection_t *connection = connected_connection(id);
     unsigned before;
 
-    if (connection == NULL || connection->authenticated) {
+    if (!may_attempt(connection)) {
         return false;
     }
     before = connection->requests;
@@ -603,6 +613,7 @@ static void client_pass_auth_time(int id)
 static void client_pass_read_timeout(int id)
 {
     connection_t *connection = connected_connection(id);
+    crux_ssh_attachment_t *attachment;
     bool alive;
 
     if (connection == NULL || connection->file_handle == NULL) {
@@ -611,11 +622,19 @@ static void client_pass_read_timeout(int id)
     if (has_fault(CRUX_SSH_FAKE_FAULT_SESSION_ALIVE_IGNORED)) {
         return;
     }
+    attachment = connection->attachment;
+    if (has_fault(CRUX_SSH_FAKE_FAULT_SESSION_ALIVE_WRONG_ATTACHMENT)) {
+        attachment = NULL;
+    }
+    if (has_fault(CRUX_SSH_FAKE_FAULT_SESSION_ALIVE_OTHER_CONNECTION)) {
+        for (size_t i = 0; i < fake.connection_records; ++i) {
+            if (&fake.connections[i] != connection && fake.connections[i].connected) {
+                attachment = fake.connections[i].attachment;
+            }
+        }
+    }
     ++fake.callback_depth;
-    alive = callbacks()->session_alive(callbacks()->context,
-                                       has_fault(CRUX_SSH_FAKE_FAULT_SESSION_ALIVE_WRONG_ATTACHMENT)
-                                           ? NULL
-                                           : connection->attachment);
+    alive = callbacks()->session_alive(callbacks()->context, attachment);
     --fake.callback_depth;
     if (!alive) {
         end_connection(connection);
@@ -684,6 +703,8 @@ static bool run_shell(connection_t *connection)
         terminal = false;
     } else if (has_fault(CRUX_SSH_FAKE_FAULT_TERMINAL_ALWAYS_TRUE)) {
         terminal = true;
+    } else if (has_fault(CRUX_SSH_FAKE_FAULT_TERMINAL_ACROSS_CONNECTIONS)) {
+        terminal = fake.terminal_seen;
     }
     connection->session_started = true;
     ++fake.callback_depth;
@@ -762,6 +783,7 @@ static bool client_channel_request(int id, const char *type, const char *data, s
             return false;
         }
         connection->terminal = true;
+        fake.terminal_seen = true;
         return true;
     }
     if (strcmp(type, "window-change") == 0) {

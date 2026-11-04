@@ -80,7 +80,8 @@ typedef struct {
  * User names. The first authentication request binds the name to the connection. An empty name, or
  * a later request with another name, ends the connection without a callback, so a client that wants
  * another user reconnects. A name longer than CRUX_SSH_USER_NAME_MAX or with an embedded NUL is
- * refused without a callback.
+ * refused without a callback. An authentication request after a successful login ends the
+ * connection without a callback.
  *
  * Attempts. Every refused attempt counts towards max_auth_attempts: a bad name, a key of any type
  * other than those above, a refused key with or without a signature, a failed signature, a refusal

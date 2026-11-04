@@ -683,31 +683,37 @@ static void case_opening_none_does_not_count(const crux_ssh_test_client_t *clien
     CHECK(!client->is_connected(connection));
 }
 
-static void case_second_login_is_refused(const crux_ssh_test_client_t *client)
+static void case_request_after_login_ends_the_connection(const crux_ssh_test_client_t *client)
 {
     int connection;
-    size_t before;
     const event_t *event;
 
     start(client);
     state.password_result = CRUX_SSH_AUTH_ACCEPTED;
     state.key_check_result = CRUX_SSH_AUTH_ACCEPTED;
     state.key_verified_result = CRUX_SSH_AUTH_ACCEPTED;
+
+    /* A second password. There is no second credential call, and the first attachment is released.
+     */
     connection = connect_ok(client, &client->peer_a);
     CHECK(client->password(connection, "operator", 8, "secret"));
-    before = state.event_count;
     CHECK(!client->password(connection, "operator", 8, "secret"));
-    CHECK(!client->key_login(connection, "operator", ed25519, ED25519_KEY(client), true));
-    CHECK(state.event_count == before);
-
-    /* The first attachment is still the connection's own, and the only one released. */
-    CHECK(client->open_channel(connection, "session"));
-    CHECK(client->channel_request(connection, "shell", NULL, 0));
-    event = find_event(EVENT_SHELL);
-    CHECK(event != NULL && event->attachment_id == 1);
+    CHECK(!client->is_connected(connection));
+    CHECK(count_events(EVENT_PASSWORD) == 1);
     CHECK(count_events(EVENT_CONNECTION_CLOSED) == 1);
     event = find_event(EVENT_CONNECTION_CLOSED);
     CHECK(event != NULL && event->attachment_id == 1);
+
+    /* A signed key request, on a second connection. */
+    connection = connect_ok(client, &client->peer_b);
+    CHECK(client->password(connection, "operator", 8, "secret"));
+    CHECK(!client->key_login(connection, "operator", ed25519, ED25519_KEY(client), true));
+    CHECK(!client->is_connected(connection));
+    CHECK(count_events(EVENT_KEY_CHECK) == 0);
+    CHECK(count_events(EVENT_KEY_VERIFIED) == 0);
+    CHECK(count_events(EVENT_CONNECTION_CLOSED) == 2);
+    event = last_event(EVENT_CONNECTION_CLOSED);
+    CHECK(event != NULL && event->attachment_id == 2);
 }
 
 /* Two connections at once, so a provider that mixes them up reports the wrong address. */
@@ -1000,11 +1006,11 @@ static void case_shell_is_told_about_a_terminal(const crux_ssh_test_client_t *cl
 }
 
 /*
- * The shape of crux_cli_io_t in components/cli/adapter/crux_cli_adapter.h, which the SSH adapter of
- * #193 fills from a channel. This case proves that the channel functions can carry it: bytes on
- * success, 0 on timeout, negative when the transport has ended, one byte per read, and echo from
- * the terminal. The timeout argument cannot shorten the provider's io_timeout_ms, so an adapter
- * ignores it.
+ * The shape of crux_cli_io_t in components/cli/adapter/crux_cli_adapter.h, which arrives with #238
+ * and which the SSH adapter of #193 fills from a channel. This case proves that the channel
+ * functions can carry it: bytes on success, 0 on timeout, negative when the transport has ended,
+ * one byte per read, and echo from the terminal. The timeout argument cannot shorten the provider's
+ * io_timeout_ms, so an adapter ignores it.
  */
 typedef struct {
     int (*read)(void *transport, void *buffer, size_t length, uint32_t timeout_ms);
@@ -1112,6 +1118,26 @@ static void case_cli_transport_shape_carries_a_full_line(const crux_ssh_test_cli
     CHECK(!shape_echo_on);
     CHECK(shape_line_length == CLI_LINE_MAX);
     CHECK(client->received(connection, output, sizeof(output)) == 5);
+}
+
+static void case_terminal_belongs_to_its_connection(const crux_ssh_test_client_t *client)
+{
+    int with_terminal;
+    int without_terminal;
+    const event_t *event;
+
+    start(client);
+    with_terminal = session_connection(client, &client->peer_a);
+    without_terminal = session_connection(client, &client->peer_b);
+    CHECK(client->channel_request(with_terminal, "pty-req", NULL, 0));
+
+    /* Both are open, and the request on one says nothing about the other. */
+    CHECK(client->channel_request(without_terminal, "shell", NULL, 0));
+    event = last_event(EVENT_SHELL);
+    CHECK(event != NULL && event->attachment_id == 2 && !event->terminal);
+    CHECK(client->channel_request(with_terminal, "shell", NULL, 0));
+    event = last_event(EVENT_SHELL);
+    CHECK(event != NULL && event->attachment_id == 1 && event->terminal);
 }
 
 static void case_exit_status_is_clamped(const crux_ssh_test_client_t *client)
@@ -1603,6 +1629,34 @@ static void case_stop_ends_connections(const crux_ssh_test_client_t *client)
     CHECK(!client->connect(&client->peer_a, &refused));
 }
 
+static void case_session_alive_belongs_to_its_connection(const crux_ssh_test_client_t *client)
+{
+    int first;
+    int second;
+    const event_t *event;
+
+    start(client);
+    first = session_connection(client, &client->peer_a);
+    second = session_connection(client, &client->peer_b);
+    CHECK(client->channel_request(first, "subsystem", "sftp", 4));
+    CHECK(client->channel_request(second, "subsystem", "sftp", 4));
+
+    /* The poll names the connection that waited, and its answer ends that connection alone. */
+    state.session_alive_result = false;
+    client->pass_read_timeout(second);
+    event = last_event(EVENT_SESSION_ALIVE);
+    CHECK(event != NULL && event->attachment_id == 2);
+    CHECK(!client->is_connected(second));
+    CHECK(client->is_connected(first));
+    CHECK(client->file_handle(first) == &state.handles[0]);
+
+    state.session_alive_result = true;
+    client->pass_read_timeout(first);
+    event = last_event(EVENT_SESSION_ALIVE);
+    CHECK(event != NULL && event->attachment_id == 1);
+    CHECK(client->is_connected(first));
+}
+
 static void case_stop_during_sftp_closes_in_order(const crux_ssh_test_client_t *client)
 {
     int connection;
@@ -1657,7 +1711,7 @@ const crux_ssh_conformance_case_t crux_ssh_conformance_cases[] = {
     CASE(attempts_are_bounded),
     CASE(each_refusal_counts),
     CASE(opening_none_does_not_count),
-    CASE(second_login_is_refused),
+    CASE(request_after_login_ends_the_connection),
     CASE(callbacks_get_their_own_peer),
     CASE(auth_time_is_bounded),
     CASE(connections_are_bounded),
@@ -1671,6 +1725,7 @@ const crux_ssh_conformance_case_t crux_ssh_conformance_cases[] = {
     CASE(no_request_before_authentication),
     CASE(shell_runs_and_returns_status),
     CASE(shell_is_told_about_a_terminal),
+    CASE(terminal_belongs_to_its_connection),
     CASE(cli_transport_shape_carries_a_full_line),
     CASE(exit_status_is_clamped),
     CASE(exec_receives_the_command),
@@ -1689,6 +1744,7 @@ const crux_ssh_conformance_case_t crux_ssh_conformance_cases[] = {
     CASE(sftp_open_failure_closes_the_channel),
     CASE(sftp_open_without_a_handle_ends_the_connection),
     CASE(sftp_ends_when_the_session_has_gone),
+    CASE(session_alive_belongs_to_its_connection),
     CASE(disconnect_during_sftp_closes_in_order),
     CASE(connection_closed_runs_once),
     CASE(stop_ends_connections),
