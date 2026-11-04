@@ -186,7 +186,7 @@ flowchart TD
     B --> C["Fresh workspace: west init --mf"]
     C --> D["west update, with mirror rewrites active"]
     D --> E["west crux-pins"]
-    E --> F["Rewrites off: capture inputs, west spdx --init, west build"]
+    E --> F["Rewrites off: capture inputs, west spdx --init, west build with the Zephyr gate required"]
     F --> G["scripts/record-build-provenance.py --repo"]
     G --> H["west spdx"]
     H --> I["Assemble the release bundle"]
@@ -195,6 +195,7 @@ flowchart TD
 Freeze with `--active-only`, because plain `--freeze` fails when a declared optional project is not cloned.
 
 ```sh
+mkdir -p product-x/locks
 west manifest --freeze --active-only > product-x/locks/west.frozen.yml
 git -C product-x switch -c release/1.2
 git -C product-x add locks/west.frozen.yml
@@ -217,7 +218,7 @@ west crux-pins
 python3 crux-pilot/scripts/record-build-provenance.py --repo product-x --workspace . \
     --capture-inputs product-x/build/inputs.json
 west spdx --init -d product-x/build/app
-west build -b <board> -d product-x/build/app product-x/app
+west build -b <board> -d product-x/build/app product-x/app -- -DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON
 west build -d product-x/build/app -t rom_report
 west build -d product-x/build/app -t ram_report
 python3 crux-pilot/scripts/record-build-provenance.py --repo product-x --workspace . \
@@ -225,6 +226,7 @@ python3 crux-pilot/scripts/record-build-provenance.py --repo product-x --workspa
 west spdx -d product-x/build/app
 ```
 
+- **Zephyr gate.** On its own the [baseline gate](#zephyr-baseline-gate) warns and the build continues. A release passes `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`, so another Zephyr release or an unreadable version stops the build. A release that uses another Zephyr on purpose leaves the option out and records why.
 - **Mirror rewrites.** `url.<base>.insteadOf` rules belong in a separate Git configuration file that is used only for `west update`. If the rules are active at build time, modules are marked `-off` and the SBOM records the mirror location.
 - **Pinned workspace.** The build record resolves each project's revision in its checkout, so it fails on a workspace that follows `revision: main`. Run it on the frozen workspace.
 - **Build directory.** The record refuses a build directory outside `--repo`. The template's `.gitignore` keeps `build/` out of the source tree the record hashes.

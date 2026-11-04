@@ -137,6 +137,14 @@ class GuideTest(unittest.TestCase):
     def test_guide_draws_its_structure_decision_and_release_flows(self):
         self.assertGreaterEqual(GUIDE.read_text().count("```mermaid"), 3)
 
+    def test_release_flow_creates_the_lock_directory_before_writing_to_it(self):
+        text = GUIDE.read_text()
+        self.assertLess(text.index("mkdir -p product-x/locks\n"), text.index("> product-x/locks/west.frozen.yml"))
+
+    def test_release_build_requires_the_verified_zephyr(self):
+        self.assertIn("west build -b <board> -d product-x/build/app product-x/app -- "
+                      "-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON\n", GUIDE.read_text())
+
 
 @unittest.skipUnless(yaml, "PyYAML is required to parse the manifests; west installs it")
 class ManifestTest(unittest.TestCase):
