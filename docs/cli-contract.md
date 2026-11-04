@@ -1,7 +1,7 @@
 # Command line contract
 
 Status: Host implementation for review under Issue #181, with fake providers and a scripted transport. Not adopted until this review and gate #183 pass. The decisions and reasoning are in
-[the accepted proposal, PR #208](https://github.com/wonny-labs/crux-pilot/pull/208) (`docs/plans/cli-contract-proposal.md`), which this document does not repeat. L1 to L6 are accepted and AC2 is declined, as [the gate record, PR #209](https://github.com/wonny-labs/crux-pilot/pull/209) says. Where this document and the proposal differ, the choices below say why.
+[the accepted proposal](plans/cli-contract-proposal.md), which this document does not repeat. L1 to L6 are accepted and AC2 is declined, as [the gate record, PR #209](https://github.com/wonny-labs/crux-pilot/pull/209) says. Where this document and the proposal differ, the choices below say why.
 
 Owner: `components/cli`.
 
@@ -374,7 +374,7 @@ Host tests show contract behaviour. They do not establish behaviour on the wire,
 ## Declared limits
 
 - All of the proposal's limits stand: the serial wire is not encrypted, a session survives an unplugged cable until the idle limit, a paste beyond the receive ring can latch `IO` and end the session, a quarantined binding keeps the console down until a reset, a sensitive value cannot be set through `exec`, and a project handler's output is its own responsibility.
-- A handler that returns success after a failed write is still ended at the next write, because the failure is remembered.
+- A handler that returns success after a failed write still ends the session when it returns, because the failure is remembered.
 - Two threads must not share a context. Nothing detects it.
 - `crux_cli_init` and `crux_cli_set_password_rule` must return before any session starts. They take no lock.
 - `tests/zephyr/cli_serial_compile` does not call the console, so it does not show that the console fits a stack or links with real providers.

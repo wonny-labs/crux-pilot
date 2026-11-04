@@ -73,6 +73,8 @@ The server offers a short explicit list, set with the wolfSSH algorithm list API
 | MAC for CTR | `hmac-sha2-256` |
 | Compression | `none` |
 
+The user key row is the first SSH provider's scope, and #192 compiles in only what the table names. `crux_access` is wider: it also accepts `ecdsa-sha2-nistp384` and `ecdsa-sha2-nistp521` keys.
+
 Strict key exchange stays on. SHA-1, CBC, DES and RC4 are not offered. The WinSCP algorithm
 documentation lists every name above. A client from before the Terrapin fix (WinSCP before 6.2.2) can
 still connect but lacks the mitigation, so user documentation states a minimum version.
