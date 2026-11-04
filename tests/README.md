@@ -595,13 +595,12 @@ west group. It compiles and links `tests/zephyr/ssh_wolf_probe` for `mimxrt1060_
 `native_sim/native/64` both ways, and runs negative controls. It never flashes or runs an image, and the file port it links
 is one that refuses every operation. See [the SSH provider contract](../docs/ssh-provider-contract.md).
 
-## PSA Crypto conformance trial
+## PSA Crypto qualification
 
-`tests/psa_crypto` holds provider-neutral PSA Crypto conformance cases (Issue #142) with a standalone
-Linux Host project, a `native_sim` Ztest app and two stub providers that prove the cases can fail.
-`scripts/test-psa-crypto.sh [host|zephyr|all]` runs them against TF-PSA-Crypto. It is a trial and is
-not in any CI workflow: the provider sources are not in this repository or in `west.yml`, so the script
-needs the trial trees (default `/opt/crux-cache/psa-trial/`) at the revisions Zephyr's manifest pins and
-fails if they differ. The Host part needs the Dev Container image with the Clang sanitizer runtime. It
-covers Host and `native_sim` only; no cross-build or hardware is involved. See the
-[qualification record](../docs/psa-crypto-qualification.md) for results, limits and open decisions.
+`tests/psa_crypto` holds provider-neutral PSA Crypto conformance cases (Issue #142), a standalone Linux Host project, a `native_sim` Ztest app and two
+stub providers that prove the cases can fail. `provider_declarations.cmake` states what each provider does not support or fails, and the harnesses compare it with the run in both directions.
+
+`scripts/test-psa-crypto.sh [host|zephyr|target|all]` needs a west workspace with the optional `crux-secure-management` group. `host` runs the controls and both providers with and without sanitizers. `zephyr` runs
+Twister on `native_sim/native/64` and checks that `native_sim` random stays test-only. `target` compiles both providers for `mimxrt1060_evk@B//qspi`, and never flashes, resets or runs an image. The `psa-crypto` workflow runs all three with the second argument `tf-psa-crypto`, because a default workflow must not select the GPL stacks, so wolfPSA runs only locally.
+No consumer calls a provider here. See the [qualification record](../docs/psa-crypto-qualification.md) and the [design](../docs/psa-crypto-design.md).
+
