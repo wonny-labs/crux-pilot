@@ -5,7 +5,7 @@
   "description": "Pinned tools for scripts/check-management-api.sh. Nothing here ships in a product.",
   "license": "Apache-2.0",
   "engines": {
-    "node": "20.18.0"
+    "node": "24.22.2"
   },
   "dependencies": {
     "@stoplight/spectral-cli": "6.16.3"
