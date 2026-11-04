@@ -128,7 +128,7 @@ jobs:
         run: |
           npm run build
           node tools/build.ts --entry e2e/fixtures/two-screens.tsx --out build/two-screens
-          node tools/compare.ts >> "$GITHUB_STEP_SUMMARY"
+          node tools/compare.ts | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: ${{ failure() }}
         with:

@@ -18,11 +18,11 @@ a project replaces the reference interface.
 ## Set up
 
 Use the Node.js version in `package.json`. It is pinned exactly, and the same version pins the specification lint and
-the Angular sample. Lifecycle scripts stay off, and esbuild works without its install step.
+the Angular sample. Lifecycle scripts stay off through `.npmrc`, and esbuild works without its install step.
 
 ```sh
 cd web
-npm ci --ignore-scripts
+npm ci
 ```
 
 ## Commands

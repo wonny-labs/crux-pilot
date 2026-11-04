@@ -32,10 +32,10 @@ setting. The measured effect is in the
 `node_modules` is about 240 MB, so delete it when finished. Use the Node.js version in `package.json`.
 
 ```sh
-npm ci --ignore-scripts
+npm ci
 npm run build
 cd ../../../web
-npm ci --ignore-scripts
+npm ci
 npm run test:angular
 ```
 
