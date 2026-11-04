@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "sd_file_ops.h"
 #include <crux/file.h>
-#include <string.h>
 
 enum { PROBE = 16 };
 

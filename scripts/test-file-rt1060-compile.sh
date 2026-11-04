@@ -36,7 +36,8 @@ print(f"RT1060 File compile check built on {sys.argv[2]}: {suites[0]['name']}")
 PY
 
 # Link only: the microSD composition image links the File provider and FatFs for the same board.
-# Both scenarios must build (the mount sequence compiled out, and compiled in). No board is
+# Every scenario must build (the mount sequence compiled out and compiled in, and the seek and
+# remove check). No board is
 # programmed, and the mount-at-boot scenario must not be flashed without physical approval.
 link_output="${CRUX_FILE_RT1060_LINK_OUTPUT:-$repo/build/zephyr/twister-file-rt1060-link}"
 (cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_sd" \
@@ -52,7 +53,7 @@ expected = ['crux.sample.storage_sd', 'crux.sample.storage_sd.file_ops',
             'crux.sample.storage_sd.start']
 if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 'not run' or
                              s.get('runnable') for s in suites)):
-    raise RuntimeError(f'RT1060 File link check did not build both scenarios: '
+    raise RuntimeError(f'RT1060 File link check did not build every scenario: '
                        f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
 # The mount-at-boot scenario must really enable it, and the base scenario must not.
 from pathlib import Path

@@ -240,6 +240,8 @@ for the decisions, measurements and the unverified hardware items.
 `tests/native/file_sd_check` runs the sample's write/read/restart check (a boot counter and a 4 KiB
 pattern file) on the same RAM disk; its remount is not persistence evidence. The first physical-card
 runs are recorded in [docs/evidence/microsd-physical](../docs/evidence/microsd-physical/README.md).
+`tests/native/file_sd_ops` runs the sample's seek and remove check (`crux_file_seek`, `crux_file_remove`) on the
+same RAM disk; it is not hardware evidence, and the image that runs it on the board is only linked in CI.
 `tests/native/file_sd_probe` runs the workload and the removal state machine of the physical-gate probes
 (`samples/storage_sd_probe`: stack use after a FatFs workload, and a card-removal probe that retries a
 remount), with a removed card stood in for by an application unmount. The probe images write to a card and
