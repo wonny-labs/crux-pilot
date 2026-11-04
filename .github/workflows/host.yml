@@ -39,6 +39,8 @@ jobs:
         run: CRUX_HOST_PRESET=host-sanitize ./scripts/check-host.sh
       - name: Validate Access on Host
         run: ./scripts/test-access.sh
+      - name: Validate the credential store on Host
+        run: ./scripts/test-credential.sh
       - name: Validate Security events on Host
         run: ./scripts/test-security-event.sh
       - name: Validate independent execution consumers and public boundaries

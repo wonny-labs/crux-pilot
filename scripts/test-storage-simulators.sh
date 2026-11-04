@@ -29,6 +29,13 @@ fatfs="$(cd "$workspace" && west list fatfs -f '{abspath}')"
     -O "$repo/build/zephyr/twister-storage-file-roots" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$fatfs")
 
+# The credential store's contract on the same FatFs, with its test-only protection (Issue #142).
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/credential_fatfs" \
+    -O "$repo/build/zephyr/twister-storage-credential" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
 # The microSD composition sequence (mount order, fail-closed policy) on a RAM disk named "SD".
 (cd "$workspace" && west twister -j 2 \
     -p native_sim/native -p native_sim/native/64 \
@@ -143,6 +150,7 @@ for directory, expected in [
     ('twister-storage-file', {'native_sim/native': 7, 'native_sim/native/64': 7}),
     ('twister-storage-fatfs', {'native_sim/native': 19, 'native_sim/native/64': 19}),
     ('twister-storage-file-roots', {'native_sim/native': 5, 'native_sim/native/64': 5}),
+    ('twister-storage-credential', {'native_sim/native': 2, 'native_sim/native/64': 2}),
     ('twister-storage-sd-composition', {'native_sim/native': 8, 'native_sim/native/64': 8}),
     ('twister-storage-sd-probe', {'native_sim/native': 4, 'native_sim/native/64': 4}),
     ('twister-storage-sd-check', {'native_sim/native': 8, 'native_sim/native/64': 8}),
