@@ -99,7 +99,9 @@ It compares commits resolved by git, so a tag and its commit are equal. The work
 
 A contract revision that cannot be resolved is an error, never `OK`. So a fork must contain the commit that Crux pins.
 
-A branch revision is checked through `manifest-rev` alone, because west keeps no ref for it and a local branch of that name proves nothing. So a manifest edited to name another branch, with no `west update` after it, is not detected.
+A branch revision is checked through `manifest-rev` alone, because west keeps no ref for it and a local branch of that name proves nothing. So a manifest edited to name another branch, with no `west update` after it, is not detected. The command uses no network, so it cannot see an upstream branch that moved after the last `west update`. A tag not yet fetched is treated the same way.
+
+Matching is by project name, so a module replaced under a new name, with the original filtered out of the import, reports `PRODUCT`. `OK` describes `HEAD` only, so a change applied to the checkout without a commit still reports `OK`; the build record refuses that checkout.
 
 Declare a difference in the product manifest:
 
@@ -252,13 +254,13 @@ Signing was not tested. It is undecided whether identity is taken before or afte
 
 ## Identity
 
-`firmware_identity` in `provenance.json` is designed for comparing builds across workspaces. It holds the build target, the hash of `zephyr.bin` and the hash of `.config` with its comment lines removed. Lines of the form `# CONFIG_X is not set` stay, because they carry meaning.
+`firmware_identity` in `provenance.json` is for comparing builds across workspaces. It holds the build target, the hash of `zephyr.bin` and the hash of `.config` with its comment lines removed. Lines of the form `# CONFIG_X is not set` stay, because they carry meaning.
 
-Equality across paths is the design intent. The shipped value has not been measured on a real build. The table comes from the proof of concept: for one application at two paths, `zephyr.bin` was byte-identical and a prototype `.config` comparison was equal. That comparison removed every comment line, including `# CONFIG_X is not set`, so it is not the shipped hash. See [Limits](#limits).
+One real measurement backs the table. The template application, built from one frozen manifest at two workspace paths on a GitHub runner, gave the same `firmware_identity` and the same `zephyr.bin`. Its `build_id`, `.elf` and whole-file `.config` differed. One application is not a general proof. See [Limits](#limits).
 
 | Value | Compare across workspace paths? | Why |
 | --- | --- | --- |
-| `firmware_identity` | Intended, not yet measured | Comes from the image and the decided configuration |
+| `firmware_identity` | Yes | Comes from the image and the decided configuration |
 | `build_id` | No | Hashes `.elf`, `.map`, the whole `.config` and tool paths |
 | `.elf`, `.map` | No | Hold absolute paths |
 | Whole-file `.config` | No | Its comment lines hold absolute paths |
@@ -287,14 +289,14 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 - A throwaway proof of concept built one small application that links `crux::time`. It used Zephyr v4.4.2, west 1.4.0 and SDK 1.0.1, in the amd64 Dev Container image under emulation. It was a cross-build only, for the current EVKB target. Nothing ran on a board. It exercised the composition, fork, `west patch`, SBOM, frozen-manifest and two-path image comparisons. Its copy of the application is not byte-for-byte the template's.
 - That proof of concept ran prototype versions of the pin check and the gate, not the ones in this repository. Its `.config` comparison across paths also removed `# CONFIG_X is not set`, which `firmware_identity` keeps.
 - `tests/build/test_product_template.py` runs the template manifest through real west 1.4.0, `west crux-pins`, the frozen-manifest flow and input capture for the build record. It uses local throwaway repositories in place of every remote and builds nothing with Zephyr.
+- A one-off check on a GitHub runner followed the release flow in this guide through the template's own manifest, against the real upstream repositories. It used the tools in this repository, with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`, at two workspace paths. `west crux-pins` reported `OK`, the build record passed, and `firmware_identity` and `zephyr.bin` were identical. Builds with `-DBUILD_VERSION` set were also byte-identical across the two paths. With Zephyr v4.4.0 in the manifest, `west crux-pins` failed on `zephyr` and `hal_nxp`, a default configure warned and continued, and the required option stopped it. That check is not part of CI.
 - `tests/build/test_crux_pins.py` runs `west crux-pins` through real west 1.4.0 on local throwaway repositories, and `tests/build/test_zephyr_baseline.py` evaluates the gate in `zephyr/CMakeLists.txt` with a mock Zephyr. Neither uses a real Zephyr build.
 
 **What was not run**
 
-- The shipped `firmware_identity` on a real build at two paths. Nothing has measured it as equal, so the comparison table under [Identity](#identity) comes from the prototype. A unit test checks its computation on fake build outputs only.
-- The template in CI. `scripts/test-product-template.sh <board>` runs the checks, runs `west crux-pins` on Crux's own workspace and cross-builds `app/` by hand. No workflow calls it, and CI wiring is proposed separately. It builds inside Crux's own workspace, not through the template's manifest.
+- The template in regular CI. `scripts/test-product-template.sh <board>` runs the checks, runs `west crux-pins` on Crux's own workspace and cross-builds `app/`. It passed once on a draft pull request, but no workflow on the default branch calls it, so the west-based tests are not run there. It builds inside Crux's own workspace, not through the template's manifest.
 - A real Bitbucket server. Local repositories stood in for it, so server behaviour, authentication and clone URL forms are untested.
 - A real commercial module. `vendor-runtime` was an invented stand-in.
 - Signing, a physical board, or a baseline upgrade through a fork.
-- More than one application, SDK or container image. Image comparison across paths holds for that one case.
+- More than one application or SDK. Image comparison across paths holds for that one case, on each machine it ran on.
 - Linux, Yocto or any other build system.

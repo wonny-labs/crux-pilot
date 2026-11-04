@@ -312,6 +312,21 @@ including READ_WRITE, EOF and partial writes, storage full and reclamation, corr
 that is never formatted, remount, and a torn-sync model. A remount inside one process is not
 evidence of persistence.
 
+`tests/native/file_roots` runs the File additions on the same FatFs over a RAM disk: roots, stat,
+handle size, rename and listing. `tests/file/conformance.c` holds the cases, and the Linux provider
+(`File.file_conformance_linux`) and the in-memory fake (`File.file_conformance_fake`) run the same
+ones. The FatFs run also proves that an existing destination survives a rename, that short and long
+encoded names decode, and that names this provider could not have written stay out of a listing.
+`File.file_fake_faults` covers failed provider calls and walks a power cut across each mutation of a
+sequence, in forked children, under the fake's own simple model. None of these is power-loss
+evidence about FatFs or a card, and no physical run covers the additions.
+
+`scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
+a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
+the fake File provider and a double for access, and walk a power cut across every mutation of a commit
+and of the rename that recovery finishes. `FileService.with_access` runs the service on the real Access core with its fake
+ports. The service has not run on Zephyr or on a target, and a cut on the fake says nothing about a card.
+
 `scripts/test-file-persistence.sh` builds `tests/native/file_fatfs_persist`, where the disk is a
 `zephyr,flash-disk` on the flash simulator backed by a host file, and runs it as separate
 processes: files acknowledged by one process are intact in the next, blank media is never
@@ -476,3 +491,29 @@ root entry point. External System profiles preserve parent testing/languages,
 exercise C17/C++17 public usage, reject conflicting providers and exclude
 unrelated components. The existing System contract and native ownership checks
 remain unchanged.
+
+## Portable Access control
+
+Access control (Issue #177): the root Host suite runs `tests/access` with fake ports, a controllable clock and
+fault injection, as `Access.*` in CTest. These fakes are a test composition: they exist only when Crux builds its
+own tests, and no provider setting can select them for a product image.
+`scripts/test-access.sh` also runs them under the sanitizer preset, runs clang-tidy on the Access sources and
+runs `scripts/check-access-boundary.py`. That check configures and builds `tests/access_consumer` in both directions:
+a project cannot reach the adapter header, and a service that links the adapter target privately is still accepted.
+No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
+[Access contract](../docs/access-contract.md).
+
+## Web frontend
+
+The web frontend has its own tools under `web/` and needs Node.js, while no C build does. Its commands are in the
+[web guide](../web/README.md), and `.github/workflows/web.yml` runs them.
+
+| Check | Command | Environment |
+| --- | --- | --- |
+| Specification lint and its rejection tests | `scripts/check-management-api.sh`, `python3 -m unittest discover -s tests/management_api` | Node.js |
+| Pins, generated types, `tsc`, source rules, client and mock unit tests, build and budget | `npm run check` in `web` | Node.js |
+| Browser tests of the reference on the mock | `npm run test:browser` in `web` | Node.js and Chrome |
+| The shared browser cases on the Angular sample | `npm run test:angular` in `web`, after building the sample | Node.js and Chrome |
+
+All of these run against the mock server, on the loopback address and over plain HTTP. They show nothing about TLS, real
+sessions, connection limits or timing, and they are not `native_sim` or physical evidence. Issue #220 covers those.
