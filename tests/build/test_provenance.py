@@ -171,15 +171,24 @@ def expected_build_id(manifest, build):
 
 
 @contextlib.contextmanager
-def inside_container():
-    """Take the branch of image_identity that hashes the recipe on any host."""
+def container_marker(present):
     real = Path.exists
 
     def exists(path, *arguments, **keywords):
-        return True if str(path) == "/.dockerenv" else real(path, *arguments, **keywords)
+        return present if str(path) == "/.dockerenv" else real(path, *arguments, **keywords)
 
     with patch.object(Path, "exists", exists):
         yield
+
+
+def inside_container():
+    """Take the branch of image_identity that hashes the recipe on any host."""
+    return container_marker(True)
+
+
+def outside_container():
+    """Take the branch of image_identity that hashes no recipe, also in the Dev Container."""
+    return container_marker(False)
 
 
 class ConfigNormalisationTest(unittest.TestCase):
@@ -450,7 +459,7 @@ class RecordingTest(unittest.TestCase):
         (crux / ".devcontainer/Dockerfile").write_text("FROM crux-base:3\n")
         git(repo, "add", ".")
         git(repo, "commit", "-qm", "vendored layout")
-        with patch.object(PROVENANCE, "REPO", crux):
+        with patch.object(PROVENANCE, "REPO", crux), inside_container():
             manifest, _ = self.record(repo, write_build(repo))
         self.assertEqual(manifest["devcontainer_recipe_source"],
                          {"directory": "modules/crux/.devcontainer", "origin": "crux"})
@@ -461,6 +470,17 @@ class RecordingTest(unittest.TestCase):
             manifest, _ = self.record(repo, write_build(repo))
         self.assertEqual(manifest["devcontainer_recipe_source"], {"directory": None, "origin": None})
         self.assertIsNone(manifest["image"]["devcontainer_recipe"])
+
+    def test_no_recipe_source_is_recorded_outside_a_container(self):
+        for location, recipe in (("repository", True), ("product without one", False)):
+            with self.subTest(location=location):
+                _, repo, _ = self.make_workspace(name=f"ws-{recipe}", recipe=recipe)
+                build = write_build(repo)
+                with outside_container():
+                    manifest, _ = self.record(repo, build)
+                self.assertIsNone(manifest["devcontainer_recipe_source"])
+                self.assertIsNone(manifest["image"]["devcontainer_recipe"])
+                self.assertEqual(manifest["build_id"], expected_build_id(manifest, build))
 
     def test_new_fields_hold_no_absolute_path_from_the_workspace(self):
         workspace, repo, _ = self.make_workspace(recipe=True)
@@ -591,6 +611,72 @@ class RecordingTest(unittest.TestCase):
         with patch.object(PROVENANCE, "REPO", moved):
             self.capture()
         self.assertEqual(self.west_directories, [workspace])
+
+    def record_by_default(self, repo, build, *arguments):
+        """Run what the existing scripts run: neither --repo nor, by default, --devcontainer."""
+        inputs = self.root / "default-inputs.json"
+        with patch.object(PROVENANCE, "REPO", repo):
+            code, _, err = self.invoke("--capture-inputs", inputs)
+            self.assertEqual(code, 0, err)
+            return self.invoke("--build-dir", build, "--target", "board", "--inputs", inputs, *arguments)
+
+    def assert_refused_by_default(self, repo, name):
+        build = write_build(repo, "build/zephyr/board")
+        (build / "provenance.json").write_text('{"stale": true}\n')
+        code, _, err = self.record_by_default(repo, build)
+        self.assertEqual(code, 2)
+        self.assertIn(f".devcontainer/{name}", err)
+        self.assertFalse((build / "provenance.json").exists())
+
+    def test_default_invocation_stops_without_a_dockerfile(self):
+        for inside in (False, True):
+            with self.subTest(inside=inside), container_marker(inside):
+                _, repo, _ = self.make_workspace(name=f"ws-{inside}", repository="crux-pilot",
+                                                 dependency="zephyr", recipe=True)
+                (repo / ".devcontainer/Dockerfile").unlink()
+                self.assert_refused_by_default(repo, "Dockerfile")
+
+    def test_default_invocation_stops_without_a_recipe_directory(self):
+        for inside in (False, True):
+            with self.subTest(inside=inside), container_marker(inside):
+                _, repo, _ = self.make_workspace(name=f"ws-{inside}", repository="crux-pilot", dependency="zephyr")
+                self.assert_refused_by_default(repo, "Dockerfile")
+
+    def test_default_invocation_in_a_container_stops_without_devcontainer_json(self):
+        _, repo, _ = self.make_workspace(repository="crux-pilot", dependency="zephyr", recipe=True)
+        (repo / ".devcontainer/devcontainer.json").unlink()
+        with inside_container():
+            self.assert_refused_by_default(repo, "devcontainer.json")
+
+    def test_default_invocation_on_a_host_needs_no_devcontainer_json(self):
+        _, repo, _ = self.make_workspace(repository="crux-pilot", dependency="zephyr", recipe=True)
+        (repo / ".devcontainer/devcontainer.json").unlink()
+        build = write_build(repo, "build/zephyr/board")
+        with outside_container():
+            code, _, err = self.record_by_default(repo, build)
+        self.assertEqual(code, 0, err)
+        self.assertTrue((build / "provenance.json").is_file())
+
+    def test_naming_a_recipe_replaces_the_default_recipe_check(self):
+        _, repo, _ = self.make_workspace(repository="crux-pilot", dependency="zephyr")
+        shared = self.root / "shared/recipe"
+        shared.mkdir(parents=True)
+        (shared / "devcontainer.json").write_text('{"image": "prebuilt"}\n')
+        build = write_build(repo, "build/zephyr/board")
+        with inside_container():
+            code, _, err = self.record_by_default(repo, build, "--devcontainer", shared)
+        self.assertEqual(code, 0, err)
+        manifest = json.loads((build / "provenance.json").read_text())
+        self.assertIsNotNone(manifest["image"]["devcontainer_recipe"]["config_sha256"])
+
+    def test_a_named_repository_stays_tolerant_of_a_missing_recipe(self):
+        for inside in (False, True):
+            with self.subTest(inside=inside), container_marker(inside), \
+                    patch.object(PROVENANCE, "REPO", self.root / "no-such-checkout"):
+                _, repo, _ = self.make_workspace(name=f"ws-{inside}")
+                build = write_build(repo)
+                manifest, _ = self.record(repo, build)
+                self.assertIsNone(manifest["image"]["devcontainer_recipe"])
 
 
 if __name__ == "__main__":

@@ -191,6 +191,18 @@ def firmware_digest(identity: dict[str, str]) -> str:
     ).hexdigest()
 
 
+def in_container() -> bool:
+    return Path("/.dockerenv").exists()
+
+
+def missing_default_recipe(repo: Path) -> list[str]:
+    """Name what a build of Crux itself must have. The Dockerfile is required on any host."""
+    required = [".devcontainer/Dockerfile"]
+    if in_container():
+        required.append(".devcontainer/devcontainer.json")
+    return [name for name in required if not (repo / name).is_file()]
+
+
 def find_devcontainer(repo: Path, explicit: Path | None) -> tuple[Path | None, str | None]:
     if explicit:
         return explicit.resolve(), "explicit"
@@ -245,7 +257,7 @@ def image_identity(repo: Path, recipe_directory: Path | None) -> dict[str, Any]:
             package_manifest_hash = hashlib.sha256(
                 "\n".join(sorted(package_list.stdout.splitlines())).encode()
             ).hexdigest()
-    in_container = Path("/.dockerenv").exists()
+    container = in_container()
     github_runner = {
         "provider": "github-actions" if os.environ.get("GITHUB_ACTIONS") == "true" else None,
         "os": os.environ.get("ImageOS"),
@@ -261,9 +273,9 @@ def image_identity(repo: Path, recipe_directory: Path | None) -> dict[str, Any]:
             "kind": "github-actions-runner"
             if github_runner["provider"]
             else "container"
-            if in_container
+            if container
             else "host",
-            "runtime_image_id": os.environ.get("CRUX_BUILD_IMAGE_ID") if in_container else None,
+            "runtime_image_id": os.environ.get("CRUX_BUILD_IMAGE_ID") if container else None,
             "runner_image": {
                 "os": github_runner["os"],
                 "version": github_runner["image_version"],
@@ -271,7 +283,7 @@ def image_identity(repo: Path, recipe_directory: Path | None) -> dict[str, Any]:
             if github_runner["provider"]
             else None,
         },
-        "devcontainer_recipe": devcontainer_recipe(recipe_directory) if in_container else None,
+        "devcontainer_recipe": devcontainer_recipe(recipe_directory) if container else None,
         "installed_package_inventory_sha256": package_manifest_hash,
         "github_runner": github_runner,
         "host": {
@@ -330,6 +342,10 @@ def main() -> int:
         parser.error(f"--devcontainer holds no Dockerfile or devcontainer.json: {recipe_directory}")
     output = build_dir / "provenance.json"
     output.unlink(missing_ok=True)
+    if not arguments.repo and not arguments.devcontainer:
+        missing = missing_default_recipe(repo)
+        if missing:
+            parser.error("container recipe is missing: " + ", ".join(missing))
     build_root = build_dir / "zephyr"
     captured_inputs = json.loads(arguments.inputs.read_text())
     current_inputs = workspace_inputs(repo, workspace)
@@ -441,7 +457,9 @@ def main() -> int:
         "build_id": build_id,
         # Outside `identity` on purpose: build_id keeps its inputs. Do not move these into `image`.
         "firmware_identity": firmware,
-        "devcontainer_recipe_source": recipe_source(repo, recipe_directory, recipe_origin),
+        "devcontainer_recipe_source": recipe_source(repo, recipe_directory, recipe_origin)
+        if in_container()
+        else None,
         "repository": repo.name,
         "target": arguments.target,
         "build_directory": build_dir.relative_to(repo).as_posix(),
