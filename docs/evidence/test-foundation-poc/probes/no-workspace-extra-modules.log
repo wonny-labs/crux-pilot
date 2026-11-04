@@ -1,0 +1,46 @@
+Loading Zephyr default modules (Zephyr base).
+-- Application: /opt/crux-src/tests/consumer_poc/zephyr
+-- CMake version: 3.28.4
+-- Found Python3: /opt/crux-cache/venv/bin/python (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter 
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.0 (/opt/env/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native/64
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: host (gcc/ld)
+-- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6") 
+-- Found BOARD.dts: /opt/env/zephyr/boards/native/native_sim/native_sim_64.dts
+-- Generated zephyr.dts: /opt/crux-cache/test-foundation/probes/nowest-extra/zephyr/zephyr.dts
+-- Generated pickled edt: /opt/crux-cache/test-foundation/probes/nowest-extra/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /opt/crux-cache/test-foundation/probes/nowest-extra/zephyr/include/generated/zephyr/devicetree_generated.h
+CMake Error at /opt/env/zephyr/cmake/modules/kconfig.cmake:150 (include):
+  include could not find requested file:
+
+    /opt/crux-cache/test-foundation/probes/nowest-extra/Kconfig/kconfig_module_dirs.cmake
+Call Stack (most recent call first):
+  /opt/env/zephyr/cmake/modules/zephyr_default.cmake:129 (include)
+  /opt/env/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake:66 (include)
+  /opt/env/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake:92 (include_boilerplate)
+  CMakeLists.txt:3 (find_package)
+
+
+
+/opt/crux-src/tests/consumer_poc/zephyr/prj.conf:2: warning: attempt to assign the value 'y' to the undefined symbol CRUX_TIME
+
+/opt/crux-src/tests/consumer_poc/zephyr/prj.conf:3: warning: attempt to assign the value 'y' to the undefined symbol CRUX_THREAD
+Parsing /opt/env/zephyr/Kconfig
+Loaded configuration '/opt/env/zephyr/boards/native/native_sim/native_sim_64_defconfig'
+Merged configuration '/opt/crux-src/tests/consumer_poc/zephyr/prj.conf'
+
+error: Aborting due to Kconfig warnings
+
+CMake Error at /opt/env/zephyr/cmake/modules/kconfig.cmake:424 (message):
+  command failed with return code: 1
+Call Stack (most recent call first):
+  /opt/env/zephyr/cmake/modules/zephyr_default.cmake:129 (include)
+  /opt/env/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake:66 (include)
+  /opt/env/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake:92 (include_boilerplate)
+  CMakeLists.txt:3 (find_package)
+
+
+-- Configuring incomplete, errors occurred!

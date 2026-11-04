@@ -24,6 +24,7 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
       "${CRUX_FILE_COMPONENT_DIR}/src"
       ".")
   target_link_libraries(crux_file_fatfs_rt1060_compile PRIVATE zephyr_interface)
+  target_compile_definitions(crux_file_fatfs_rt1060_compile PRIVATE CRUX_FILE_POOL_SIZE=4)
   # The object includes kernel headers that are generated during the build.
   add_dependencies(crux_file_fatfs_rt1060_compile zephyr_generated_headers)
   target_compile_options(crux_file_fatfs_rt1060_compile PRIVATE -Wall -Wextra -Werror)
@@ -41,6 +42,7 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060)
   endif()
   add_library(crux_file_api INTERFACE)
   target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
+  target_compile_definitions(crux_file_api INTERFACE CRUX_FILE_POOL_SIZE=4)
   add_library(crux_file_zephyr STATIC "${CRUX_FILE_COMPONENT_DIR}/src/file.c" file_native.c)
   target_include_directories(crux_file_zephyr PRIVATE "${CRUX_FILE_COMPONENT_DIR}/src" .)
   zephyr_append_cmake_library(crux_file_zephyr)
@@ -67,6 +69,7 @@ endif()
 
 add_library(crux_file_api INTERFACE)
 target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
+target_compile_definitions(crux_file_api INTERFACE CRUX_FILE_POOL_SIZE=4)
 # Match native_sim's non-PIE CPU image, without kernel headers/definitions.
 target_compile_options(crux_file_api INTERFACE ${TOOLCHAIN_C_FLAGS} -fno-pic -fno-pie)
 # native_sim's width is a compiler ABI requirement, not a kernel API requirement.

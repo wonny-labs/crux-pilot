@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.342" timestamp="2026-11-03T00:43:25.536048+00:00" hostname="c70b5e966833"><testcase classname="test_functional" name="test_periodic_schedule" time="0.311"><failure message="AssertionError: cycle 3: skipped 0, expected 2">dut = &lt;twister_harness.device.binary_adapter.NativeSimulatorAdapter object at 0x7ffffe05bf20&gt;
+image_identity = {'device_type': 'native', 'host': 'Linux-7.0.14-linuxkit-x86_64-with-glibc2.39', 'image': '/opt/crux-cache/test-founda...vcontainer/app-defect/zephyr/zephyr.exe', 'sha256': 'f3d2a0f3074be9cdd74e292ef3f2fed86c2a483fdf2fd200454d0dbf361cfab7'}
+
+    def test_periodic_schedule(dut, image_identity):
+        assert dut.device_config.type == "native", "this PoC never targets a device"
+        assert image_identity["sha256"]
+&gt;       check_schedule(dut.readlines_until(regex=r"^APP done ", timeout=15))
+
+test_functional.py:8: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+lines = ['*** Booting Zephyr OS build v4.4.0 ***', 'APP ready', 'APP cycle=1 skipped=0', 'APP cycle=2 skipped=0', 'APP cycle=3 skipped=0', 'APP cycle=4 skipped=0', ...]
+cycles = 6, overrun_cycle = 3, overrun_skips = 2
+
+    def check_schedule(lines, cycles=6, overrun_cycle=3, overrun_skips=2):
+        """Raise AssertionError naming the first console line that breaks the schedule."""
+        observed = [CYCLE.match(line) for line in lines]
+        observed = [(int(found[1]), int(found[2])) for found in observed if found]
+        assert [cycle for cycle, _ in observed] == list(range(1, cycles + 1)), f"cycles: {observed}"
+        for cycle, skipped in observed:
+            expected = overrun_skips if cycle == overrun_cycle else 0
+&gt;           assert skipped == expected, f"cycle {cycle}: skipped {skipped}, expected {expected}"
+E           AssertionError: cycle 3: skipped 0, expected 2
+
+oracle.py:15: AssertionError</failure></testcase></testsuite></testsuites>
