@@ -431,6 +431,46 @@ static void change_rejections(void)
                  CRUX_ACCESS_CHANNEL_WEB, NULL);
 }
 
+static void hook_change_password_while_verifying(void *context)
+{
+    const crux_access_session_t *session = context;
+    uint32_t retry_after_ms = 0;
+    access_fake_events_clear();
+    CHECK(crux_access_account_change_password(*session, PASSWORD, strlen(PASSWORD), OTHER_PASSWORD,
+                                              strlen(OTHER_PASSWORD),
+                                              &retry_after_ms) == CRUX_ACCESS_ERR_BUSY);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_BUSY, CRUX_ACCESS_ERR_BUSY, NULL, CRUX_ACCESS_CHANNEL_WEB,
+                 NULL);
+}
+
+/* An own password change follows the login delay and verification slot, with the same events. */
+static void own_change_refusals(void)
+{
+    (void)boot_with_user();
+    crux_access_session_t user = access_test_session(USER, PASSWORD, &access_test_web_other);
+    uint32_t retry_after_ms = 0;
+    const size_t other_length = strlen(OTHER_PASSWORD);
+
+    access_fake_derive_hook(hook_change_password_while_verifying, &user);
+    CHECK(crux_access_account_change_password(user, PASSWORD, strlen(PASSWORD), OTHER_PASSWORD,
+                                              other_length, &retry_after_ms) == CRUX_ACCESS_OK);
+    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_CHANGED, CRUX_ACCESS_OK, USER,
+                 CRUX_ACCESS_CHANNEL_WEB, USER);
+
+    for (unsigned attempt = 0; attempt < CRUX_ACCESS_DELAY_FREE_ATTEMPTS + 1u; ++attempt) {
+        CHECK(crux_access_account_change_password(user, WRONG, strlen(WRONG), OTHER_PASSWORD,
+                                                  other_length,
+                                                  &retry_after_ms) == CRUX_ACCESS_ERR_DENIED);
+    }
+    access_fake_events_clear();
+    CHECK(crux_access_account_change_password(user, WRONG, strlen(WRONG), OTHER_PASSWORD,
+                                              other_length,
+                                              &retry_after_ms) == CRUX_ACCESS_ERR_RETRY_LATER);
+    CHECK(retry_after_ms > 0);
+    expect_event(CRUX_ACCESS_EVENT_DELAY_APPLIED, CRUX_ACCESS_ERR_RETRY_LATER, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
+}
+
 /* What a forced change refuses names the permission it would have needed. */
 static void forced_change_denial(void)
 {
@@ -687,6 +727,7 @@ int main(void)
     removed_role();
     session_rejections();
     change_rejections();
+    own_change_refusals();
     forced_change_denial();
     changes_name_actor_and_target();
     change_failures();

@@ -464,7 +464,8 @@ static void expect_same(const snapshot_t *left, const snapshot_t *right)
     CHECK(same_snapshot(left, right));
 }
 
-/* Applies a change. Each must leave state and medium unchanged if the save fails. */
+/* Applies a change. Each must leave RAM unchanged if the save fails, and here the fake's medium
+ * too. A real store's bytes can change: see docs/access-contract.md. */
 typedef crux_access_result_t (*change_t)(crux_access_session_t admin);
 
 static crux_access_result_t change_create(crux_access_session_t admin)

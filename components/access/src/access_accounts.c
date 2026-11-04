@@ -472,14 +472,14 @@ crux_access_result_t crux_access_account_set_role(crux_access_session_t session,
     return result;
 }
 
-static bool account_exists(const char *user)
+static crux_access_result_t account_lookup(const char *user)
 {
     if (!crux_access_lock_state()) {
-        return false;
+        return CRUX_ACCESS_ERR_NOT_READY;
     }
     bool exists = crux_access_table_find(&crux_access_state.table, user, NULL) != NULL;
     crux_access_unlock_state();
-    return exists;
+    return exists ? CRUX_ACCESS_OK : CRUX_ACCESS_ERR_NOT_FOUND;
 }
 
 crux_access_result_t crux_access_account_reset_password(crux_access_session_t session,
@@ -497,8 +497,9 @@ crux_access_result_t crux_access_account_reset_password(crux_access_session_t se
     if (result != CRUX_ACCESS_OK) {
         return result;
     }
-    if (!account_exists(user)) {
-        return reject(CRUX_ACCESS_ERR_NOT_FOUND, &actor, NULL);
+    result = account_lookup(user);
+    if (result != CRUX_ACCESS_OK) {
+        return reject(result, &actor, NULL);
     }
     if (!crux_access_password_acceptable(password, length)) {
         return reject(CRUX_ACCESS_ERR_PASSWORD_REJECTED, &actor, user);
@@ -667,9 +668,9 @@ crux_access_result_t crux_access_account_remove_key(crux_access_session_t sessio
     return result;
 }
 
-/* Provisioning closes before the save, and reopens only after a save that failed. A lost lock at
- * either step leaves it closed until a reset, so a retry cannot replace an account the medium may
- * already hold. */
+/* Provisioning closes before the save, and reopens only after a save that failed. A lock lost after
+ * it closes leaves it closed until a reset, so a retry cannot replace an account the medium may
+ * already hold. A lock lost before it closes saved nothing, and leaves it open. */
 static crux_access_result_t provision_commit(const access_account_t *fresh, const char *user)
 {
     if (!crux_access_lock_change()) {
@@ -708,14 +709,14 @@ static crux_access_result_t provision_refuse(crux_access_result_t result,
     return result;
 }
 
-static bool provisioning_is_open(void)
+static bool provisioning_read(bool *open)
 {
     if (!crux_access_lock_state()) {
         return false;
     }
-    bool open = crux_access_state.provisioning_open;
+    *open = crux_access_state.provisioning_open;
     crux_access_unlock_state();
-    return open;
+    return true;
 }
 
 crux_access_result_t crux_access_provision_first_account(const char *user, const char *password,
@@ -732,7 +733,14 @@ crux_access_result_t crux_access_provision_first_account(const char *user, const
         !crux_access_origin_valid(origin)) {
         return provision_refuse(CRUX_ACCESS_ERR_INVALID_ARGUMENT, origin);
     }
-    if (origin->channel != CRUX_ACCESS_CHANNEL_SERIAL || !provisioning_is_open()) {
+    if (origin->channel != CRUX_ACCESS_CHANNEL_SERIAL) {
+        return provision_refuse(CRUX_ACCESS_ERR_DENIED, origin);
+    }
+    bool open = false;
+    if (!provisioning_read(&open)) {
+        return CRUX_ACCESS_ERR_NOT_READY;
+    }
+    if (!open) {
         return provision_refuse(CRUX_ACCESS_ERR_DENIED, origin);
     }
     size_t role_index = 0;
