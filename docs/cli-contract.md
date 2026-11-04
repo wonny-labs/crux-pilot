@@ -39,15 +39,15 @@ Owner: `components/cli`.
 flowchart TB
     project["Project: command tables and handlers"] -->|"crux::cli"| public["&lt;crux/cli.h&gt;"]
     subgraph channels["Channel adapters, linking crux_cli_adapter PRIVATE"]
-        console["Serial console\ncomponents/cli/console"]
-        ssh["SSH adapter, #193\n(not built)"]
+        console["Serial console<br/>components/cli/console"]
+        ssh["SSH adapter, #193<br/>(not built)"]
     end
     console -->|"crux_cli_io_t"| core
     ssh -->|"crux_cli_io_t"| core
-    public --> core["crux_cli_core\nregistry, parser, sessions, built-ins"]
-    core --> access["crux_access\ncheck, permitted, touch, change password"]
-    console --> access2["crux_access adapter\nlogin, first account, logout"]
-    console --> serial["crux_serial\nLPUART3 on the EVKB"]
+    public --> core["crux_cli_core<br/>registry, parser, sessions, built-ins"]
+    core --> access["crux_access<br/>check, permitted, touch, change password"]
+    console --> access2["crux_access adapter<br/>login, first account, logout"]
+    console --> serial["crux_serial<br/>LPUART3 on the EVKB"]
     ssh --> provider["SSH provider, #205"]
     core --> port["crux_cli_port_event"]
     console --> port
@@ -108,7 +108,7 @@ flowchart TD
     channel -- no --> unknown
     channel -- yes --> forced{"forced change, and no flag?"}
     forced -- yes --> unknown
-    forced -- no --> perm{"crux_access_check,\nfor a PERMISSION command"}
+    forced -- no --> perm{"crux_access_check,<br/>for a PERMISSION command"}
     perm -- "not OK" --> unknown
     perm -- OK --> exec{"interactive, under exec?"}
     exec -- yes --> notexec["not available for exec, status 2"]
@@ -376,3 +376,4 @@ Host tests show contract behaviour. They do not establish behaviour on the wire,
 - Two threads must not share a context. Nothing detects it.
 - `crux_cli_init` and `crux_cli_set_password_rule` must return before any session starts. They take no lock.
 - `tests/zephyr/cli_serial_compile` does not call the console, so it does not show that the console fits a stack or links with real providers.
+- A development image must say so in its identifier and in its evidence, as the proposal requires. Nothing checks that yet, because no image identifier carries the mark.

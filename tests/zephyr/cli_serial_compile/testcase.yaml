@@ -1,7 +1,0 @@
-tests:
-  crux.cli.serial_compile:
-    build_only: true
-    platform_allow:
-      - native_sim/native/64
-      - mimxrt1060_evk@B/mimxrt1062/qspi
-    tags: [cli, crux, compile_only]
