@@ -43,6 +43,15 @@ if(CRUX_BUILD_TIME AND CRUX_TIME_PROVIDER STREQUAL "memory")
     set_tests_properties(MgmtStatus.real_sources PROPERTIES TIMEOUT 60)
 endif()
 
+add_executable(mgmt_status_lock_faults lock_faults.c ../config_service/access_double.c)
+target_link_libraries(mgmt_status_lock_faults PRIVATE crux_mgmt_status_core
+    crux_mgmt_status_fake_sources crux::sync)
+target_link_options(mgmt_status_lock_faults PRIVATE -Wl,--wrap=crux_mutex_lock
+    -Wl,--wrap=crux_mutex_create)
+target_compile_options(mgmt_status_lock_faults PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+add_test(NAME MgmtStatus.lock_faults COMMAND mgmt_status_lock_faults)
+set_tests_properties(MgmtStatus.lock_faults PROPERTIES TIMEOUT 60)
+
 # Every public declaration must also compile for a C++ consumer.
 add_library(mgmt_status_cpp_headers OBJECT cpp_headers.cpp)
 target_link_libraries(mgmt_status_cpp_headers PRIVATE crux_mgmt_status_api)

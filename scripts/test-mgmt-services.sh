@@ -18,7 +18,7 @@ targets=(crux_configuration_tests crux_configuration_no_provider_test crux_confi
     config_service_permissions config_service_values config_service_save config_service_concurrency
     config_service_lock_faults config_service_no_provider config_service_cpp_headers
     mgmt_status_items mgmt_status_snapshot mgmt_status_json mgmt_status_json_fixture
-    mgmt_status_real_sources mgmt_status_cpp_headers)
+    mgmt_status_lock_faults mgmt_status_real_sources mgmt_status_cpp_headers)
 tests='^(Configuration\.|ConfigService\.|MgmtStatus\.)'
 
 for preset in host-debug host-sanitize; do

@@ -234,6 +234,54 @@ static void sensitive_is_write_only(void)
     expect_string(NAME_SECRET, SECRET);
 }
 
+/* The validator sees the update's parse buffer, and the event runs in the same call after it should
+ * have been cleared, while that buffer is still in scope. */
+static const char *seen_by_validator;
+static size_t seen_length;
+static unsigned bytes_left;
+
+static bool remember_candidate(const crux_config_value_t *value, void *context)
+{
+    (void)context;
+    seen_by_validator = value->data.string.text;
+    seen_length = value->data.string.length;
+    return strstr(seen_by_validator, "bad") == NULL;
+}
+
+static void count_bytes_left(void *context)
+{
+    (void)context;
+    for (size_t i = 0; i < seen_length; ++i) {
+        bytes_left += seen_by_validator[i] != '\0';
+    }
+}
+
+static void parse_buffer_is_cleared(void)
+{
+    fixture_boot();
+    static const crux_config_value_t default_value = {.type = CRUX_CONFIG_STRING,
+                                                      .data.string = {.text = "", .length = 0}};
+    static const crux_config_spec_t spec = {"held", 1, default_value, remember_candidate, NULL};
+    static crux_config_param_t parameter;
+    static char storage[CRUX_CONFIG_SERVICE_TEXT_SIZE];
+    CHECK(crux_config_init_string(&parameter, &spec, storage, sizeof(storage)) == CRUX_CONFIG_OK);
+    static const crux_config_service_entry_t table[] = {
+        {&parameter, "cfg.read", "cfg.write", true, CRUX_CONFIG_ACTIVATION_APPLICATION}};
+    CHECK(crux_config_service_start(table, 1) == CRUX_CONFIG_SERVICE_OK);
+    config_events_hook(count_bytes_left, NULL);
+
+    /* After an accepted value, and after a refused one. */
+    CHECK(update_text(s_both, "held", SECRET) == CRUX_CONFIG_SERVICE_OK);
+    CHECK(seen_length == strlen(SECRET));
+    CHECK(config_events_of(CRUX_CONFIG_SERVICE_EVENT_UPDATED) == 1);
+    CHECK(bytes_left == 0);
+    CHECK(update_text(s_both, "held", "bad " SECRET) == CRUX_CONFIG_SERVICE_ERR_REJECTED);
+    CHECK(seen_length == strlen("bad " SECRET));
+    CHECK(config_events_of(CRUX_CONFIG_SERVICE_EVENT_REJECTED) == 1);
+    CHECK(bytes_left == 0);
+    config_events_hook(NULL, NULL);
+}
+
 static void application_calls(void)
 {
     fixture_start();
@@ -297,6 +345,7 @@ int main(void)
     run_case("validator rejects", validator_rejects);
     run_case("string forms", string_forms);
     run_case("sensitive is write-only", sensitive_is_write_only);
+    run_case("parse buffer is cleared", parse_buffer_is_cleared);
     run_case("application calls", application_calls);
     return suite_finish("ConfigService.values");
 }

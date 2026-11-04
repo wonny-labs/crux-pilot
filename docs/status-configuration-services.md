@@ -171,7 +171,7 @@ Built-in items need `status.read`. A project's item names its own permission. Ea
 | `net.link` | bool | Port, read on each call | `no_data` when the driver cannot tell |
 | `net.admin_up` | bool | Port | The source's result |
 | `net.ipv4` | text | Port | `no_data` when there is no address |
-| `version.platform`, `version.project` | text | Configuration, copied at start | None |
+| `version.platform`, `version.project` | text | What the composition passed, copied at start | None |
 | `security.credential_state`, `_basis`, `_evidence` | text | Port, #178 | Omitted if not linked |
 | `security.credential_confidential`, `_forgery_detected`, `_rollback_detected` | bool | Port, #178 | Omitted if not linked |
 | `security.events_emitted`, `_dropped`, `_delivered`, `_log_errors` | u32 | Port, #182 | Omitted if not linked |
@@ -237,6 +237,14 @@ Two draft providers for the first two rows compiled with `-Wall -Wextra -Wpedant
 
 The same port takes #178: `crux_mgmt_status_port_credential` maps `crux_credential_store_get_info` to the words `unusable`, `empty` or `valid`, `none`, `device_id_key` or `hardware_bound`, and `host_fake`, `software` or `physical`. Tests can then use `crux_security_event_fake` in place of the recording port.
 
+## For the adapters
+
+| Issue | Uses | Notes |
+| --- | --- | --- |
+| #187, web | `crux_mgmt_status_report_json`, or `crux_mgmt_status_next` with `crux_mgmt_status_entry_json` to stream. `crux_config_service_next`, `_read`, `_update`, `_save`. | `web/api/openapi.yaml` holds no configuration routes yet, so adding them is a change under its rule. `read` gives `type`, which chooses the JSON form. A hidden parameter and a missing one are both `404`, and `ERR_BUSY` is `503` with `Retry-After`. A route that may run a slow validator, and every save, runs on the worker. After an update, the response carries `applied.activation` and no value, and a read follows only for a parameter that is not sensitive. |
+| #193, CLI over SSH | The same calls through #181's registry, and `crux_mgmt_status_result_name` for an item that failed | `config set` on a sensitive parameter takes its value by prompt, not as an argument. Permitted and refused commands stay the same on serial. |
+| #213, network settings | Its parameters in the composition's table, under a permission no role holds. `crux_config_service_try_read`, `_try_update` and `_save_local`. Its own session check with `crux_access_check`. | Table order puts the check key after the values it covers. `_save_local` saves every marked parameter, so anything else marked is saved with them, and a failure stops there. `failed_result` of `CRUX_CONFIG_ERR_NOT_SUPPORTED` is the state until #16 decides a provider. `_try_*` polls, so it returns `ERR_BUSY` during any save. |
+
 ## Decisions taken for lack of an answer
 
 Each is open to review, and a changed choice is small while nothing depends on it.
@@ -263,8 +271,8 @@ Each is open to review, and a changed choice is small while nothing depends on i
 ## Limits
 
 - Accepted is not applied.
-- Sensitive is write-only handling, not protection at rest. Crux accounts and device keys never use it. The wire buffer and the update's parse buffer are cleared by volatile writes, which is checked by reading the code, not by a test. The provider's own buffer is not cleared.
-- Saves are per parameter, with no atomicity and no rollback.
+- Sensitive is write-only handling, not protection at rest. Crux accounts and device keys never use it. The update's parse buffer is cleared by volatile writes, and a test reads it from inside the event that follows. The wire buffer of a load or save is cleared the same way just before the function returns, where no test can read it without undefined behaviour, so that is checked by reading the code. The provider's own buffer is not cleared.
+- Saves are per parameter, with no atomicity and no rollback. A save covers every marked parameter, and there is no call to save one set alone.
 - The service covers scalars and bounded strings, with no arrays or blobs.
 - There is no save provider on the target.
 - Validators give no reason for a rejection.
@@ -290,6 +298,7 @@ Each is open to review, and a changed choice is small while nothing depends on i
 | `ConfigService.no_provider` | The service over the selected port |
 | `MgmtStatus.items` | Each built-in and word, per-entry failure, omitted sources, project items of each type with bad text and wrong types, filtering, forced change, the idle timer, and start refusals |
 | `MgmtStatus.snapshot` | Age with a controlled clock, a failed read, a failed or backward clock, a loser during a refresh, and concurrent polls counting source reads |
+| `MgmtStatus.lock_faults` | The snapshot's lock is only ever polled, and a lock that fails means no read, through a wrapped lock |
 | `MgmtStatus.json` | Exact text of each form, escapes, the promised buffer's worst case, and each buffer size below what fits |
 | `MgmtStatus.openapi_schema` | Reports from the service held to the schema read from the merged specification, with negative controls showing that the check can fail |
 | `MgmtStatus.real_sources` | The thin providers on the real System, Time and Netif, with no Configuration provider linked |
