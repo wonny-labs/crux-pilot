@@ -150,9 +150,9 @@ check_common_image() { # nm, build directory, symbol list
     require_config "$config" 'CONFIG_WOLFSSH_SETTINGS_FILE="crux_wolfssh_settings.h"'
     require_config "$config" 'CONFIG_WOLFSSL_SETTINGS_FILE=""'
     reject_config "$config" CONFIG_MBEDTLS
-    # wolfSSH server and SFTP, through the stand-in port, with the algorithms SSH needs.
-    for symbol in wolfSSH_accept wolfSSH_SFTP_read wolfSSH_SetFilesystemHandle crux_ssh_probe_fs_fail \
-        crux_ssh_probe_owned wc_ed25519_verify_msg wc_ecc_verify_hash wc_AesCtrEncrypt; do
+    # wolfSSH server and SFTP, through the file port, the table, and the algorithms SSH needs.
+    for symbol in wolfSSH_accept wolfSSH_SFTP_read wolfSSH_SetFilesystemHandle SFTP_GetAttributes \
+        crux_ssh_callback_table crux_ssh_cli_shell wc_ed25519_verify_msg wc_ecc_verify_hash wc_AesCtrEncrypt; do
         require_symbol "$3" "$symbol"
     done
     "$1" --defined-only "$2"/modules/wolfssl/*.a "$2"/app/libapp.a 2>/dev/null | awk 'NF == 3 {print $3}' > "$compiled"
@@ -194,6 +194,7 @@ build_native_image() {
     reject_config "$directory/zephyr/.config" CONFIG_NET_SOCKETS_SOCKOPT_TLS
     reject_config "$directory/zephyr/.config" CONFIG_POSIX_API
     require_config "$directory/zephyr/.config" 'CONFIG_NET_NATIVE_OFFLOADED_SOCKETS=y'
+    reject_config "$directory/zephyr/.config" CONFIG_ETH_NATIVE_TAP
     printf 'native_sim build result (not run): %s, wolfSSH without the socket backend.\n' "$native_board"
 }
 
