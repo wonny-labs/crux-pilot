@@ -1,9 +1,9 @@
 // The browser cases that the Preact reference and the Angular sample both pass, for sign-in and home.
-// They find elements by role and label only, so they hold for any framework.
+// They find elements by role, label and visible text only, so they hold for any framework.
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import type { Browser } from 'playwright-core';
-import { launchBrowser, requireBuilt, runCase, signIn, waitForHeading } from './harness.ts';
+import { launchBrowser, PASSWORD, requireBuilt, runCase, signIn, waitForHeading } from './harness.ts';
 import type { AppConfig, OpenApp } from './harness.ts';
 
 export function sharedCases(config: AppConfig): void {
@@ -44,6 +44,24 @@ export function sharedCases(config: AppConfig): void {
     assert.equal(session?.httpOnly, true);
     assert.equal(session?.secure, true);
     assert.equal(session?.sameSite, 'Strict');
+  });
+
+  run('the password reaches no browser storage, readable cookie or address', async ({ page }) => {
+    await page.goto('/');
+    await signIn(page);
+    await waitForHeading(page, 'Home');
+    const seen = await page.evaluate(async () => ({
+      local: { ...localStorage },
+      session: { ...sessionStorage },
+      databases: (await indexedDB.databases()).length,
+      cookies: document.cookie,
+      address: window.location.href,
+    }));
+    assert.deepEqual(seen.local, {});
+    assert.deepEqual(seen.session, {});
+    assert.equal(seen.databases, 0);
+    assert.equal(seen.cookies.includes(PASSWORD), false);
+    assert.equal(seen.address.includes(PASSWORD), false);
   });
 
   run('every poll carries the required header', async ({ page, mock }) => {
@@ -150,7 +168,13 @@ export function sharedCases(config: AppConfig): void {
     assert.ok(page.url().includes('#'), 'the route is in the fragment');
     await page.reload();
     await waitForHeading(page, 'Home');
-    assert.ok(mock.control.requests.every((request) => request.path.startsWith('/api/')));
+    // The route stays in the fragment, so besides the API the server sees only the root and the assets.
+    const other = mock.control.requests.map((request) => request.path).filter((path) => !path.startsWith('/api/'));
+    assert.ok(other.includes('/'), 'the page itself was loaded');
+    assert.deepEqual(
+      other.filter((path) => path !== '/' && !/^\/[\w./-]+\.(js|css|svg|ico)$/.test(path)),
+      [],
+    );
   });
 
   run('home shows only what the session may read', async ({ page }) => {
@@ -175,6 +199,22 @@ export function sharedCases(config: AppConfig): void {
     await waitForHeading(page, 'Home');
     await page.getByText(/not available/i).first().waitFor();
     await page.getByText('192.0.2.10').waitFor();
+  });
+
+  run('an item named like a built-in JavaScript property keeps its name as its label', async ({ page, mock }) => {
+    mock.control.set({
+      statusItems: ['constructor', 'tostring', '__proto__', 'hasownproperty'].map((name, index) => ({
+        item: { name, status: 'ok', type: 'u32', value: 100 + index },
+        permission: 'status.read',
+      })),
+    });
+    await page.goto('/');
+    await signIn(page);
+    await waitForHeading(page, 'Home');
+    for (const name of ['constructor', 'tostring', '__proto__', 'hasownproperty']) {
+      await page.getByText(name, { exact: true }).waitFor();
+    }
+    await page.getByText('100', { exact: true }).waitFor();
   });
 
   run('a project item that the interface does not know is shown by its name', async ({ page }) => {

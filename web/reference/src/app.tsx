@@ -71,14 +71,16 @@ function Shell(props: { options: ReferenceOptions; text: Text }) {
     [],
   );
 
-  async function loadUser(): Promise<boolean> {
+  async function loadUser(justSignedIn = false): Promise<boolean> {
     const result = await client.getCurrentUser({ quiet: true });
     if (result.ok) {
       setSession({ phase: 'signed_in', user: result.value });
       return !result.value.must_change_password;
     }
     if (result.error.kind === 'unauthorized') {
-      setSession({ phase: 'signed_out', notice: undefined });
+      // Straight after a successful login, this means that the browser refused the cookie. Plain HTTP or
+      // blocked cookies look like this, and without a message the form would just appear to do nothing.
+      setSession({ phase: 'signed_out', notice: justSignedIn ? 'session_not_kept' : undefined });
     } else {
       setSession({ phase: 'unavailable', error: result.error });
     }
@@ -187,11 +189,11 @@ function Shell(props: { options: ReferenceOptions; text: Text }) {
             text={text}
             notice={session.notice}
             onSignedIn={async () => {
-              await loadUser();
+              await loadUser(true);
             }}
           />
         ) : null}
-        {forced ? <ChangePassword client={client} text={text} onChanged={loadUser} /> : null}
+        {forced ? <ChangePassword client={client} text={text} onChanged={() => loadUser()} /> : null}
         {value !== null && !forced ? (
           <AppContext.Provider value={value}>
             {active ? (

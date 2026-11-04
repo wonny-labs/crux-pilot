@@ -26,8 +26,9 @@ export function ChangePassword({ client, text, onChanged }: Props) {
   const [progress, setProgress] = useState<AttemptProgress['phase'] | null>(null);
   const [hold, setHold] = useState<Hold | null>(null);
   const [waitLeft, startWait] = useCountdown();
-  // Set once a result is lost, because the meaning of "incorrect" then changes.
+  // Set once the outcome of an attempt is unknown, because the meaning of "incorrect" then changes.
   const lostEarlier = useRef(false);
+  const queued = useRef(false);
   const currentRef = useRef<HTMLInputElement>(null);
   const nextRef = useRef<HTMLInputElement>(null);
   const abort = useRef<AbortController | null>(null);
@@ -94,11 +95,17 @@ export function ChangePassword({ client, text, onChanged }: Props) {
       return;
     }
     setWorking(true);
+    queued.current = false;
     const controller = new AbortController();
     abort.current = controller;
     const outcome = await client.changePassword(current, next, {
       signal: controller.signal,
-      onProgress: (update) => setProgress(update.phase),
+      onProgress: (update) => {
+        setProgress(update.phase);
+        if (update.phase === 'verifying') {
+          queued.current = true;
+        }
+      },
     });
     setProgress(null);
     switch (outcome.kind) {
@@ -144,11 +151,16 @@ export function ChangePassword({ client, text, onChanged }: Props) {
         clearAll();
         break;
       case 'timed_out':
+        lostEarlier.current = true;
         setMessage(t.timedOut);
         break;
       case 'failed':
         if (outcome.error.kind === 'unauthorized') {
           return;
+        }
+        // Once queued, or with no answer at all, the attempt may have run with its result never seen.
+        if (queued.current || outcome.error.kind === 'network') {
+          lostEarlier.current = true;
         }
         setMessage(text.errors[outcome.error.kind]);
         break;

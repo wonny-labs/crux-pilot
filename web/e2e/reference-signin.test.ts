@@ -60,6 +60,16 @@ run('a wait is announced once, and the running count stays out of the live regio
   assert.equal(await page.locator('[role="alert"] .hint, [role="status"] .hint').count(), 0);
 });
 
+run('a sign-in whose session the browser did not keep says so, and does not just start again', async ({ page, mock }) => {
+  await page.goto('/');
+  await waitForHeading(page, 'Sign in');
+  mock.control.force('getCurrentUser', { status: 401 });
+  await signIn(page);
+  await page.getByRole('alert').getByText(/browser did not keep the session/i).waitFor();
+  await page.getByRole('alert').getByText(/https/i).waitFor();
+  await waitForHeading(page, 'Sign in');
+});
+
 run('empty fields are refused before any request', async ({ page, mock }) => {
   await page.goto('/');
   await waitForHeading(page, 'Sign in');
@@ -105,7 +115,8 @@ run('no web path sets a first credential, on a device with no account every logi
   await page.getByText(/serial console/i).waitFor();
   assert.equal(await page.getByRole('link').count(), 0);
   assert.equal(await page.locator('input').count(), 2);
-  const paths = new Set(mock.control.requests.map((request) => `${request.method} ${request.path.replace(/attempt\/.*/, 'attempt')}`));
+  const api = mock.control.requests.filter((request) => request.path.startsWith('/api/'));
+  const paths = new Set(api.map((request) => `${request.method} ${request.path.replace(/attempt\/.*/, 'attempt')}`));
   for (const path of paths) {
     assert.ok(
       ['GET /api/v1/session/me', 'POST /api/v1/session', 'GET /api/v1/session/attempt'].includes(path),
@@ -227,6 +238,59 @@ run('a lost result with the change still required asks to submit again, and neve
   await page.getByText(/earlier attempt may have taken effect/i).waitFor();
   await waitForHeading(page, 'Change your password');
   assert.equal(await page.getByText(/password changed/i).count(), 0);
+});
+
+run('after a password poll that failed, a later incorrect is reported as uncertain', async ({ page, mock }) => {
+  await reachForcedChange(page);
+  mock.control.force('getSessionAttempt', { status: 403, example: 'header_missing' });
+  await fillPasswords(page, PASSWORD, NEW_PASSWORD);
+  await page.getByRole('alert').getByText(/security token/i).waitFor();
+  await fillPasswords(page, 'not-the-password', NEW_PASSWORD);
+  await page.getByText(/earlier attempt may have taken effect/i).waitFor();
+  assert.equal(await page.getByText(/current password is not correct/i).count(), 0);
+});
+
+run('after a password poll that timed out, a later incorrect is reported as uncertain', async ({ page, mock }) => {
+  await page.clock.install();
+  await reachForcedChange(page);
+  mock.control.set({ verifyPolls: 1000 });
+  await fillPasswords(page, PASSWORD, NEW_PASSWORD);
+  await page.getByRole('status').getByText(/checking and saving/i).waitFor();
+  await page.clock.fastForward(31_000);
+  await page.getByRole('alert').getByText(/did not finish in time/i).waitFor();
+  mock.control.set({ verifyPolls: 0 });
+  await fillPasswords(page, 'not-the-password', NEW_PASSWORD);
+  await page.getByText(/earlier attempt may have taken effect/i).waitFor();
+});
+
+run('a change refused before it was queued leaves a later incorrect as it is', async ({ page, mock }) => {
+  await reachForcedChange(page);
+  mock.control.force('changeOwnPassword', { status: 403, example: 'csrf' });
+  await fillPasswords(page, PASSWORD, NEW_PASSWORD);
+  await page.getByRole('alert').getByText(/security token/i).waitFor();
+  await fillPasswords(page, 'not-the-password', NEW_PASSWORD);
+  await page.getByText(/current password is not correct/i).waitFor();
+  assert.equal(await page.getByText(/earlier attempt may have taken effect/i).count(), 0);
+});
+
+run('neither password reaches browser storage or a readable cookie during a change', async ({ page }) => {
+  await reachForcedChange(page);
+  await fillPasswords(page, PASSWORD, NEW_PASSWORD);
+  await waitForHeading(page, 'Home');
+  const seen = await page.evaluate(async () => ({
+    local: { ...localStorage },
+    session: { ...sessionStorage },
+    databases: (await indexedDB.databases()).length,
+    cookies: document.cookie,
+    address: window.location.href,
+  }));
+  assert.deepEqual(seen.local, {});
+  assert.deepEqual(seen.session, {});
+  assert.equal(seen.databases, 0);
+  for (const text of [PASSWORD, NEW_PASSWORD]) {
+    assert.equal(seen.cookies.includes(text), false);
+    assert.equal(seen.address.includes(text), false);
+  }
 });
 
 run('a session that ended during the change returns to sign-in', async ({ page, mock }) => {

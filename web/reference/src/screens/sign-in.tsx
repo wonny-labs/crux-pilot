@@ -5,7 +5,7 @@ import type { AttemptProgress, CruxClient } from '../../../client/src/index.ts';
 import { Field, Heading, Notice, useCountdown, WaitNotice } from '../components.tsx';
 import type { Text } from '../text.ts';
 
-export type SignInNotice = 'session_ended' | 'restarted' | 'signed_out';
+export type SignInNotice = 'session_ended' | 'restarted' | 'signed_out' | 'session_not_kept';
 
 interface Props {
   client: CruxClient;
@@ -107,13 +107,20 @@ export function SignIn({ client, text, notice, onSignedIn }: Props) {
     setWorking(false);
   }
 
-  const noticeText =
-    notice === 'session_ended' ? t.sessionEnded : notice === 'restarted' ? t.restarted : notice === 'signed_out' ? t.signedOut : null;
+  const noticeTexts: Record<SignInNotice, string> = {
+    session_ended: t.sessionEnded,
+    restarted: t.restarted,
+    signed_out: t.signedOut,
+    session_not_kept: t.sessionNotKept,
+  };
+  const noticeText = notice === undefined ? null : noticeTexts[notice];
 
   return (
     <div class="narrow">
       <Heading title={t.title} />
-      {noticeText !== null && message === null && hold === null ? <Notice kind="info">{noticeText}</Notice> : null}
+      {noticeText !== null && message === null && hold === null ? (
+        <Notice kind={notice === 'session_not_kept' ? 'error' : 'info'}>{noticeText}</Notice>
+      ) : null}
       <form onSubmit={(event) => void submit(event)} noValidate>
         <Field
           id="sign-in-user"

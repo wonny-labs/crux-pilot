@@ -41,6 +41,8 @@ export const englishText = {
     sessionEnded: 'Your session has ended. Sign in again to continue.',
     restarted: 'The device has restarted. Sign in again to continue.',
     signedOut: 'You have signed out.',
+    sessionNotKept:
+      'The device accepted your sign-in, but your browser did not keep the session. Load this page over HTTPS from the address of the device, allow cookies for it, and sign in again.',
   },
   password: {
     title: 'Change your password',
@@ -69,7 +71,6 @@ export const englishText = {
     busy: (wait: number) => `The device is busy. Try again in ${seconds(wait)}.`,
     lost: 'The result was lost, so this change may or may not have taken effect. Enter the passwords again.',
     timedOut: 'The device did not finish in time. Check whether the change took effect, then try again.',
-    done: 'Your password has been changed.',
   },
   home: {
     title: 'Home',
@@ -144,6 +145,7 @@ export const englishText = {
       not_unicast: 'This is not a usable device address on this subnet.',
       prefix_not_usable: 'Enter a prefix length from 1 to 30.',
       gateway_outside_subnet: 'The gateway must be inside the subnet of the address.',
+      gateway_not_usable: 'The gateway must be another device on this subnet. Leave it empty for no gateway.',
     } as Record<string, string>,
     fieldUnknown: 'The device refused this value.',
     confirmTitle: 'Before you save',
@@ -221,6 +223,11 @@ type DeepPartial<T> = {
 };
 
 export type TextOverrides = DeepPartial<Text>;
+
+/** A table entry by a name from the device, which must not reach built-in properties such as constructor. */
+export function lookup(table: Record<string, string>, key: string): string | undefined {
+  return Object.hasOwn(table, key) ? table[key] : undefined;
+}
 
 function isTable(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;

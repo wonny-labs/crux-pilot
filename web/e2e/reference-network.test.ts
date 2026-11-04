@@ -158,13 +158,30 @@ run('a save is confirmed only when the device shows it, and sends the token', as
   assert.equal(puts(app), 1);
 });
 
-run('a request with no gateway leaves it out', async ({ page, mock }) => {
+run('a request with no gateway leaves it out', async ({ page }) => {
   await openNetwork(page);
+  const put = page.waitForRequest((request) => request.method() === 'PUT');
   await saveThrough(page, '192.0.2.20', '24');
+  assert.deepEqual((await put).postDataJSON(), { address: '192.0.2.20', prefix_length: 24 });
   await page.getByRole('status').getByText(/settings are saved/i).waitFor();
   assert.equal(await page.getByRole('region', { name: 'Saved for the next boot' }).getByText('None').count(), 1);
-  assert.equal(mock.conformanceProblems.length, 0);
 });
+
+for (const [name, gateway] of [
+  ['0.0.0.0', '0.0.0.0'],
+  ['the address itself', '192.0.2.20'],
+  ["the subnet's broadcast address", '192.0.2.255'],
+] as const) {
+  run(`a gateway of ${name} is refused before any request`, async (app) => {
+    const { page } = app;
+    await openNetwork(page);
+    await fill(page, '192.0.2.20', '24', gateway);
+    await page.getByRole('button', { name: 'Review and save' }).click();
+    await page.getByText(/must be another device/i).waitFor();
+    assert.equal(await page.getByLabel('Gateway').getAttribute('aria-invalid'), 'true');
+    assert.equal(puts(app), 0);
+  });
+}
 
 run('a failed save is reported as failed', async ({ page, mock }) => {
   await openNetwork(page);

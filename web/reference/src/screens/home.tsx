@@ -5,6 +5,7 @@ import type { ApiError, StatusItem } from '../../../client/src/index.ts';
 import { Heading, Notice } from '../components.tsx';
 import { useApp } from '../context.ts';
 import type { HomeItemDefinition, Screen } from '../context.ts';
+import { lookup } from '../text.ts';
 import type { Text } from '../text.ts';
 
 interface Row {
@@ -43,7 +44,7 @@ function uptimeText(value: string, text: Text): string {
 
 function valueText(item: StatusItem, definition: HomeItemDefinition | undefined, text: Text): string {
   if (item.status !== 'ok') {
-    return text.home.itemStatus[item.status] ?? text.home.unavailable;
+    return lookup(text.home.itemStatus, item.status) ?? text.home.unavailable;
   }
   if (definition?.format) {
     return definition.format(item.value);
@@ -68,7 +69,7 @@ function group(items: StatusItem[], definitions: HomeItemDefinition[], text: Tex
     const section = definition?.section ?? sectionOf(item.name, text);
     const row: Row = {
       name: item.name,
-      label: definition?.label ?? text.home.items[item.name] ?? item.name,
+      label: definition?.label ?? lookup(text.home.items, item.name) ?? item.name,
       value: valueText(item, definition, text),
       failed: item.status !== 'ok',
     };

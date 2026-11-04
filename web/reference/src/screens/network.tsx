@@ -8,6 +8,7 @@ import { Field, Heading, Notice } from '../components.tsx';
 import { useApp } from '../context.ts';
 import type { Screen } from '../context.ts';
 import { hrefFor } from '../router.ts';
+import { lookup } from '../text.ts';
 
 interface FormValues {
   address: string;
@@ -128,7 +129,7 @@ function Network() {
     const messages: FieldMessages = {};
     for (const { name, code } of found) {
       if (FIELD_ORDER.includes(name as FieldName)) {
-        messages[name as FieldName] = t.fieldErrors[code] ?? t.fieldUnknown;
+        messages[name as FieldName] = lookup(t.fieldErrors, code) ?? t.fieldUnknown;
       }
     }
     focusField.current = FIELD_ORDER.find((name) => messages[name] !== undefined) ?? null;

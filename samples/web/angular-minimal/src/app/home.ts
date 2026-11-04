@@ -68,7 +68,7 @@ export class Home implements OnInit, OnDestroy {
   }
 
   protected label(item: StatusItem): string {
-    return LABELS[item.name] ?? item.name;
+    return Object.hasOwn(LABELS, item.name) ? (LABELS[item.name] as string) : item.name;
   }
 
   protected show(item: StatusItem): string {
