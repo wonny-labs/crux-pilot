@@ -1,5 +1,7 @@
 # Simulator File provider candidate
 
+This page covers the VFS/LittleFS simulator candidate only. The FatFs provider, its `native_sim` fixture and the microSD results on one board are in [microsd-composition.md](microsd-composition.md).
+
 The user approved D1–D4 for software-only implementation. This candidate preserves
 `<crux/file.h>` and adds a private Zephyr VFS provider qualified only with
 native_sim and LittleFS. It neither mounts/formats media nor selects a target

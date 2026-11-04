@@ -116,7 +116,7 @@ nothing was formatted and no directory was created. With a provisioned card the 
 was clean afterwards. Removing the card while mounted gave `CRUX_FILE_ERR_IO` on the next open, no hang, and the
 application unmount and remount did not bring the volume back after the card was re-seated (`remount=-5`, no
 recovery; flashing the `sd-start` image and resetting mounted the same card), which matches "a card swap needs a reboot". One run per state; the M.2 slot was
-empty (operator-reported) and uSDHC1 ownership was not checked against a schematic. Details and limits:
+empty (operator-reported) and uSDHC1 ownership was not checked at the time of these runs (a later schematic and photo check is recorded below). Details and limits:
 [docs/evidence/microsd-card-states-stack](evidence/microsd-card-states-stack/README.md).
 
 ## Profile limits and decisions
@@ -174,8 +174,11 @@ stays LOST (`remount=-120`, `-EALREADY` on the RT1060 picolibc image, on the con
 the removal probe leaves `probe`. The blank-card and wrong-layout cases need a card prepared on a
 host, the M.2 slot and uSDHC1 ownership need the board in hand. The stack probe, the removal probe and the
 blank and wrong-layout cards were run on the board on 3 November 2026
-([evidence](evidence/microsd-card-states-stack/README.md)); uSDHC1 ownership has not been checked and the M.2 slot
-was reported empty by the operator.
+([evidence](evidence/microsd-card-states-stack/README.md)). uSDHC1 ownership was checked on 3 November 2026 against
+the vendor schematic (Rev B1, not stored in this repository) and the operator's photos: the SD slot reaches the uSDHC1 pads
+through populated zero-ohm resistors, and the M.2 SDIO lines reach the same pads only through unpopulated ones. That is a
+document and photo check, not a measurement on this board; the SD power-enable pin was not traced, and the M.2 slot was
+reported empty by the operator.
 
 ## Recovery step for an interrupted compaction (3 November 2026, software only)
 
@@ -198,8 +201,8 @@ tail, orphaned clusters remain, and a cut inside the FAT metadata update has no 
 
 Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted beyond the one run above (no forced driver re-initialisation was tried);
 whether the M.2 Wi-Fi SDIO path shares uSDHC1 on this board (the board devicetree labels the
-same controller `m2_wifi_sdio`; nothing in this repository confirms pin or controller
-ownership); stack use beyond the one probe run (no Settings backend, networking or other threads); the line-aligned bounce path of USDHC reads and writes and cache coherence with a concurrent writer (no physical run used alignment 32); and power-loss behaviour beyond the 32-byte append test and the replace-pattern test above (larger
+same controller `m2_wifi_sdio`; the later schematic and photo check above is a document check, not a
+measurement, and the schematic is not stored in this repository); stack use beyond the one probe run (no Settings backend, networking or other threads); the line-aligned bounce path of USDHC reads and writes and cache coherence with a concurrent writer (no physical run used alignment 32); and power-loss behaviour beyond the 32-byte append test and the replace-pattern test above (larger
 writes, directory changes other than that replace, other cards, the Settings File backend itself); data
 across normal CPU restarts and those two power-cut tests are covered in the physical results above.
 
