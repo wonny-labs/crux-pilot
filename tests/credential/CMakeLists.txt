@@ -75,6 +75,16 @@ if(CRUX_BUILD_ACCESS)
         credential_access_composition crux_credential_test_composition crux_file_fake)
 endif()
 
+# The real file service, given the store's real roots as its reserved list.
+if(CRUX_BUILD_ACCESS AND CRUX_BUILD_FILE_SERVICE)
+    credential_suite(credential_file_service_roots 20 file_service_roots.c medium_fake.c)
+    target_include_directories(credential_file_service_roots PRIVATE
+        ../../components/file_service/src)
+    target_link_libraries(credential_file_service_roots PRIVATE crux_file_service_core
+        credential_access_composition crux_credential_access_store
+        crux_credential_test_composition crux_file_fake)
+endif()
+
 # Every public and adapter declaration must also compile for a C++ consumer.
 add_library(credential_cpp_headers OBJECT cpp_headers.cpp)
 target_link_libraries(credential_cpp_headers PRIVATE crux_credential_adapter)

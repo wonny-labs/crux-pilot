@@ -2,7 +2,7 @@
 
 Status: Host implementation for review under Issue #178, with test-only protection. The contract is not adopted until
 this review and gate #183 pass. The decisions and reasoning are in the
-[accepted proposal](https://github.com/wonny-labs/crux-pilot/pull/206), which this document does not repeat. S1 to S7 are
+[accepted proposal](plans/credential-store-contract-proposal.md), which this document does not repeat. S1 to S7 are
 accepted, recorded in [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894).
 
 Owner: `components/credential`. Public header `<crux/credential_store.h>`, usage target `crux::credential_store`. Adapter
@@ -23,7 +23,7 @@ read every secret. See [Limits](#limits). Results must state this, and `crux_cre
 | Fake ports | **Test only.** CRC in place of a tag, a keystream that is not encryption, deterministic randomness and key generation | Refuses to compile outside a test composition, and a product core refuses it at start |
 | Device-ID protection through PSA | **Not implemented, Issue #142.** PSA is not qualified or in the Host build. | Gap: nothing here has run AES-256-GCM or a real key derivation |
 | Event identifiers | Six private event types, named for their `credential.*` identifiers. The mapping waits for Issue #182. | Gap |
-| Reserved roots in the file service | `crux_credential_roots` is ready for it. The refusal itself belongs to Issue #179. | Not tested here |
+| Reserved roots in the file service | `crux_credential_roots` feeds the reserved list of the file service from #232 | `credential_file_service_roots`, on the real service |
 | Pilot card layout, Zephyr composition, target runs | Not implemented. Target and physical work is out of scope and needs separate approval. | Gap |
 
 Host tests show contract behaviour. They do not establish confidentiality, entropy quality, or behaviour across real
@@ -80,7 +80,7 @@ flowchart TB
 | 1 | `crux_credential_start(root_a, root_b)` | Once, on every boot path, whether or not the medium mounted, before other threads use the store |
 | 2 | `crux_access_init(policy)` | Loads accounts through the bridge. Its `EMPTY` is the absence of the account record. |
 | 3 | `crux_credential_key_ensure(record, type)` | For each key the build needs. A failure stops that listener. |
-| 4 | `crux_credential_roots(roots)` | Passed to `crux_file_service_start` as the reserved list, under Issue #179 |
+| 4 | `crux_credential_roots(roots)` | Passed to `crux_file_service_start` as the reserved list, which refuses an area on either slot |
 
 ## Slot format
 
@@ -252,6 +252,7 @@ sources, and the boundary check. The root build also runs the suites as `Credent
 | `credential_security` | 16 KiB | Nothing plain on the medium, nothing secret in an event, the key event following its save, forged and reused-generation slots, bad tags, a fresh nonce per seal. The fake's cipher is not encryption, so this shows the store's handling only. |
 | `credential_production_refuses` | 16 KiB | A product core linked with the test-only ports: `UNUSABLE`, with no slot read or written |
 | `credential_access_store` | 16 KiB | The real Access core on the real store: AC6, AC8, S6 and S7, a cut at each sector of the first account's save, and what the bridge maps each result to |
+| `credential_file_service_roots` | 16 KiB | The real file service, given the store's roots as its reserved list, refuses an area on either slot and accepts another |
 | `credential_cpp_headers` | | Public and adapter headers from C++ |
 
 `scripts/check-credential-boundary.py` runs 13 probes of `tests/credential_consumer`: a project and a private service are
@@ -274,7 +275,6 @@ still uses the test-only protection. The other suites do not run there: a walk n
 | Behaviour across real power loss, on a real card | Target work is out of scope. The fake's model is simpler than FatFs: nothing reorders. |
 | FAT chain damage while a slot is created | Needs a real file system under a cut |
 | Timing and RAM measurements | Issue #197 |
-| The file service's refusal of a store root | Issue #179 owns it |
 
 ### Gaps to close before this is usable on a target
 

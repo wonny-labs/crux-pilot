@@ -15,7 +15,7 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
 targets=(crux_credential_core crux_credential_access_store credential_conformance_fake
     credential_conformance_linux credential_concurrency credential_faults
     credential_faults_default_slot credential_security credential_production_refuses
-    credential_access_store credential_cpp_headers file_fake_faults)
+    credential_access_store credential_file_service_roots credential_cpp_headers file_fake_faults)
 
 for preset in host-debug host-sanitize; do
     cmake --preset "$preset" -S "$repo" -DFETCHCONTENT_FULLY_DISCONNECTED=ON
