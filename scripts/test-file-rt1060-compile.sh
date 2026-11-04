@@ -48,7 +48,8 @@ import sys
 
 suites = json.load(open(sys.argv[1]))['testsuites']
 names = sorted(s['name'] for s in suites)
-expected = ['crux.sample.storage_sd', 'crux.sample.storage_sd.start']
+expected = ['crux.sample.storage_sd', 'crux.sample.storage_sd.file_ops',
+            'crux.sample.storage_sd.start']
 if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 'not run' or
                              s.get('runnable') for s in suites)):
     raise RuntimeError(f'RT1060 File link check did not build both scenarios: '
@@ -56,13 +57,18 @@ if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 
 # The mount-at-boot scenario must really enable it, and the base scenario must not.
 from pathlib import Path
 root = Path(sys.argv[1]).parent
-for name, wanted in [('crux.sample.storage_sd', False), ('crux.sample.storage_sd.start', True)]:
+for name, wanted in [('crux.sample.storage_sd', False), ('crux.sample.storage_sd.start', True),
+                     ('crux.sample.storage_sd.file_ops', True)]:
     configs = [p for p in root.rglob('.config') if p.parent.parent.name == name]
     if len(configs) != 1:
         raise RuntimeError(f'expected one build configuration for {name}, found {len(configs)}')
-    enabled = 'CONFIG_SAMPLE_SD_START=y' in configs[0].read_text().splitlines()
+    lines = configs[0].read_text().splitlines()
+    enabled = 'CONFIG_SAMPLE_SD_START=y' in lines
     if enabled != wanted:
         raise RuntimeError(f'{name}: CONFIG_SAMPLE_SD_START enabled={enabled}, expected {wanted}')
+    ops = 'CONFIG_SAMPLE_SD_FILE_OPS=y' in lines
+    if ops != (name.endswith('.file_ops')):
+        raise RuntimeError(f'{name}: CONFIG_SAMPLE_SD_FILE_OPS enabled={ops}')
 print(f'RT1060 File link check built {len(suites)} scenarios on {sys.argv[2]}')
 PY
 

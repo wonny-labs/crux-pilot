@@ -10,3 +10,7 @@ tests:
   crux.sample.storage_sd.start:
     extra_configs:
       - CONFIG_SAMPLE_SD_START=y
+  crux.sample.storage_sd.file_ops:
+    extra_configs:
+      - CONFIG_SAMPLE_SD_START=y
+      - CONFIG_SAMPLE_SD_FILE_OPS=y

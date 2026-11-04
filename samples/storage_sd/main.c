@@ -1,12 +1,13 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 #include "sd_file_check.h"
+#include "sd_file_ops.h"
 #include "sd_storage.h"
 #include <zephyr/kernel.h>
 
 /* Link and measurement image for the RT1060-EVKB microSD composition. The mount runs only when
  * CONFIG_SAMPLE_SD_START is set; the default image touches no card. CONFIG_SAMPLE_SD_FILE_CHECK
- * additionally writes to the card. Do not flash an image with either set until the physical gate
- * has been approved for the current task. */
+ * and CONFIG_SAMPLE_SD_FILE_OPS additionally write to the card. Do not flash an image with any of
+ * them set until the physical gate has been approved for the current task. */
 int main(void)
 {
     if (IS_ENABLED(CONFIG_SAMPLE_SD_START)) {
@@ -17,6 +18,9 @@ int main(void)
             enum sd_file_check_status result = sd_file_check_run(&check);
             printk("sd_file_check: status=%d boot=%u pattern_created=%d\n", (int)result,
                    (unsigned)check.boot_count, (int)check.pattern_created);
+        }
+        if (IS_ENABLED(CONFIG_SAMPLE_SD_FILE_OPS) && status == SD_STORAGE_READY) {
+            printk("sd_file_ops: status=%d\n", (int)sd_file_ops_run());
         }
     }
     return 0;
