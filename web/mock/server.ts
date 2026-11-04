@@ -109,6 +109,7 @@ interface SpecAnswer {
 const EXAMPLE_PASSWORD = 'example-password-not-real';
 const ALL_PERMISSIONS = ['status.read', 'network.read', 'network.write', 'system.reboot', 'app.cycle.read'];
 const BODY_LIMIT = 4096;
+const DEFAULT_NETWORK: Record<string, unknown> = { address: '192.0.2.10', prefix_length: 24 };
 
 function accounts(): Map<string, Account> {
   return new Map<string, Account>([
@@ -230,7 +231,7 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
   const forced = new Map<string, ForcedResponse[]>();
   const requests: RecordedRequest[] = [];
   let network = {
-    running: { address: '192.0.2.10', prefix_length: 24 } as Record<string, unknown>,
+    running: DEFAULT_NETWORK,
     saved: undefined as Record<string, unknown> | undefined,
     source: 'default' as 'default' | 'saved',
     saving: null as null | { pollsLeft: number; values: Record<string, unknown>; result: 'ok' | 'fail' },
@@ -253,7 +254,7 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
     forced.clear();
     requests.length = 0;
     network = {
-      running: { address: '192.0.2.10', prefix_length: 24 },
+      running: DEFAULT_NETWORK,
       saved: undefined,
       source: 'default',
       saving: null,
@@ -596,11 +597,13 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
         network.saving = null;
       }
     }
+    // True when the next boot would apply values that differ from the running ones. With nothing valid saved,
+    // the next boot applies the defaults.
+    const nextBoot = network.saved ?? DEFAULT_NETWORK;
     const state: Record<string, unknown> = {
       running: network.running,
       source: network.source,
-      reboot_required:
-        network.saved !== undefined && JSON.stringify(network.saved) !== JSON.stringify(network.running),
+      reboot_required: JSON.stringify(nextBoot) !== JSON.stringify(network.running),
     };
     if (network.saved) {
       state['saved'] = network.saved;
@@ -648,7 +651,11 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
     });
     if (problems.length > 0) {
       error(response, request, operation, 400, 'invalid_field', {
-        fields: problems.map((problem) => ({ name: problem.name, code: problem.code })),
+        // The specification has one code for a gateway, so a client-only reason maps to it here.
+        fields: problems.map((problem) => ({
+          name: problem.name,
+          code: problem.code === 'gateway_not_usable' ? 'gateway_outside_subnet' : problem.code,
+        })),
       });
       return;
     }
@@ -669,10 +676,8 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
     reboot = { state: 'none', reason: '', pendingLeft: 0, away: false, awayForever: false, awayLeft: 0 };
     sessions.clear();
     attempts.clear();
-    if (network.saved) {
-      network.running = network.saved;
-      network.source = 'saved';
-    }
+    network.running = network.saved ?? DEFAULT_NETWORK;
+    network.source = network.saved ? 'saved' : 'default';
   }
 
   function dropConnection(request: IncomingMessage): void {
@@ -920,11 +925,14 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
       headers[name] = Array.isArray(value) ? value.join(', ') : (value ?? '');
     }
     const work = async (): Promise<void> => {
-      if (path.startsWith('/api/')) {
-        requests.push({ method: request.method ?? '', path, headers });
-        await handleApi(request, response, path);
-      } else if (options.httpControl && path === '/__mock/control' && request.method === 'POST') {
+      if (options.httpControl && path === '/__mock/control' && request.method === 'POST') {
         await handleControl(request, response);
+        return;
+      }
+      // Every path is recorded, so that a test can say what the server saw, assets included.
+      requests.push({ method: request.method ?? '', path, headers });
+      if (path.startsWith('/api/')) {
+        await handleApi(request, response, path);
       } else {
         await handleStatic(request, response, path);
       }

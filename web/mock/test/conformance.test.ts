@@ -1,7 +1,7 @@
 // The mock against the specification. Every named example is served as written, every stateful answer
 // matches its schema, and the check itself is shown to reject answers that are wrong.
 import assert from 'node:assert/strict';
-import { after, before, test } from 'node:test';
+import { after, afterEach, before, test } from 'node:test';
 import { checkResponse } from '../conformance.ts';
 import { caller, spec } from './support.ts';
 import type { Caller } from './support.ts';
@@ -19,6 +19,10 @@ before(async () => {
 });
 after(async () => {
   await harness.mock.close();
+});
+// Every answer in this file also went through the check, and none may have failed it.
+afterEach(() => {
+  assert.deepEqual(harness.mock.conformanceProblems, []);
 });
 
 for (const operation of spec.operations.values()) {
@@ -64,10 +68,20 @@ for (const operation of spec.operations.values()) {
   }
 }
 
-test('every operation in the specification has a route in the mock', () => {
+test('every operation in the specification has a route in the mock, with no forced answer', async () => {
   assert.equal(spec.operations.size, 10);
   for (const operation of spec.operations.values()) {
-    assert.ok(operation.responses.size > 0, operation.id);
+    harness.mock.control.reset();
+    harness.jar.clear();
+    await harness.login();
+    const requestBody = [...operation.requestExamples.values()][0];
+    const reply = await harness.call(
+      operation.method,
+      pathOf(operation.path),
+      requestBody === undefined ? {} : { body: requestBody },
+    );
+    assert.ok(operation.responses.has(reply.status), `${operation.id} answered ${reply.status}`);
+    assert.ok(reply.headers.has('content-security-policy'), `${operation.id} got the server's plain answer`);
   }
 });
 
@@ -173,6 +187,78 @@ test('the check rejects a 429 without Retry-After', () => {
 test('the check rejects a logout whose 200 has a body', () => {
   const record = { ...baseRecord, operationId: 'deleteSession', status: 200, bodyText: '{}' };
   assert.notDeepEqual(checkResponse(spec, record), []);
+});
+
+const SESSION = 'crux_session=session-token; Secure; HttpOnly; SameSite=Strict; Path=/';
+const TOKEN = 'XSRF-TOKEN=csrf-token; Secure; SameSite=Strict; Path=/';
+const pollRecord = {
+  ...baseRecord,
+  operationId: 'getSessionAttempt',
+  bodyText: '{"state":"success"}',
+  setCookie: [SESSION, TOKEN],
+};
+const logoutRecord = {
+  ...baseRecord,
+  operationId: 'deleteSession',
+  bodyText: '',
+  contentType: null,
+  setCookie: [
+    'crux_session=; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=0',
+    'XSRF-TOKEN=; Secure; SameSite=Strict; Path=/; Max-Age=0',
+  ],
+};
+
+test('the check accepts the cookies of a login and of a logout', () => {
+  assert.deepEqual(checkResponse(spec, pollRecord), []);
+  assert.deepEqual(checkResponse(spec, logoutRecord), []);
+});
+
+test('the check accepts a password change that sets no cookie', () => {
+  assert.deepEqual(checkResponse(spec, { ...pollRecord, setCookie: [] }), []);
+});
+
+const wrongLogin: [string, string[]][] = [
+  ['only the session cookie', [SESSION]],
+  ['only the token cookie', [TOKEN]],
+  ['a session cookie without HttpOnly', ['crux_session=a; Secure; SameSite=Strict; Path=/', TOKEN]],
+  ['a session cookie without Secure', ['crux_session=a; HttpOnly; SameSite=Strict; Path=/', TOKEN]],
+  ['a session cookie without SameSite=Strict', ['crux_session=a; Secure; HttpOnly; SameSite=Lax; Path=/', TOKEN]],
+  ['a session cookie on a narrower path', ['crux_session=a; Secure; HttpOnly; SameSite=Strict; Path=/api', TOKEN]],
+  ['a persistent session cookie', [`${SESSION}; Max-Age=3600`, TOKEN]],
+  ['a session cookie with an expiry date', [`${SESSION}; Expires=Wed, 04 Nov 2026 10:00:00 GMT`, TOKEN]],
+  ['an empty session cookie', ['crux_session=; Secure; HttpOnly; SameSite=Strict; Path=/', TOKEN]],
+  ['a token cookie that scripts cannot read', [SESSION, 'XSRF-TOKEN=b; Secure; HttpOnly; SameSite=Strict; Path=/']],
+  ['a token cookie without Secure', [SESSION, 'XSRF-TOKEN=b; SameSite=Strict; Path=/']],
+  ['a persistent token cookie', [SESSION, `${TOKEN}; Max-Age=3600`]],
+  ['a token equal to the session', ['crux_session=same; Secure; HttpOnly; SameSite=Strict; Path=/', 'XSRF-TOKEN=same; Secure; SameSite=Strict; Path=/']],
+  ['a token holding a percent sign', [SESSION, 'XSRF-TOKEN=a%2Fb; Secure; SameSite=Strict; Path=/']],
+  ['a token in surrounding quotes', [SESSION, 'XSRF-TOKEN="a"; Secure; SameSite=Strict; Path=/']],
+  ['a cookie of another name', [SESSION, TOKEN, 'other=1; Secure; Path=/']],
+];
+for (const [name, setCookie] of wrongLogin) {
+  test(`the check rejects a login with ${name}`, () => {
+    assert.notDeepEqual(checkResponse(spec, { ...pollRecord, setCookie }), []);
+  });
+}
+
+test('the check rejects cookies on a poll that is not a success', () => {
+  assert.notDeepEqual(checkResponse(spec, { ...pollRecord, bodyText: '{"state":"pending"}' }), []);
+  assert.notDeepEqual(checkResponse(spec, { ...pollRecord, bodyText: '{"state":"rejected"}' }), []);
+});
+
+test('the check rejects cookies on a response that declares none', () => {
+  assert.notDeepEqual(checkResponse(spec, { ...baseRecord, setCookie: [SESSION, TOKEN] }), []);
+  const plain = { ...baseRecord, operationId: null, contentType: 'text/plain', headers: {}, status: 404, bodyText: 'Not Found' };
+  assert.notDeepEqual(checkResponse(spec, { ...plain, setCookie: [SESSION] }), []);
+});
+
+test('the check rejects a logout that does not clear both cookies', () => {
+  const [session, token] = logoutRecord.setCookie as [string, string];
+  assert.notDeepEqual(checkResponse(spec, { ...logoutRecord, setCookie: [session] }), []);
+  assert.notDeepEqual(checkResponse(spec, { ...logoutRecord, setCookie: [] }), []);
+  assert.notDeepEqual(checkResponse(spec, { ...logoutRecord, setCookie: [session.replace('; Max-Age=0', ''), token] }), []);
+  assert.notDeepEqual(checkResponse(spec, { ...logoutRecord, setCookie: [session.replace('crux_session=', 'crux_session=a'), token] }), []);
+  assert.notDeepEqual(checkResponse(spec, { ...logoutRecord, setCookie: [session.replace(' HttpOnly;', ''), token] }), []);
 });
 
 test('the check accepts the plain server answers and nothing else without headers', () => {

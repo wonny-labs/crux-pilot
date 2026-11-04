@@ -305,6 +305,57 @@ test('a failed save shows as failed until the next accepted one', async () => {
   assert.deepEqual(state.save, { state: 'failed' });
 });
 
+test('after a failed save, a reboot is needed when the defaults differ from the running values', async () => {
+  await h.login();
+  h.mock.control.set({ rebootOutcome: 'restart', rebootPendingPolls: 0, rebootAwayPolls: 0 });
+  const wanted = { address: '192.0.2.20', prefix_length: 24 };
+  await h.call('PUT', '/api/v1/network', { body: wanted });
+  await h.call('GET', '/api/v1/network');
+  await h.call('GET', '/api/v1/network');
+  await h.call('POST', '/api/v1/system/reboot');
+  assert.equal((await h.call('GET', '/api/v1/system/reboot')).status, 401);
+  await h.login();
+  const running = (await h.call('GET', '/api/v1/network')).body as Record<string, unknown>;
+  assert.deepEqual(running['running'], wanted);
+  assert.equal(running['source'], 'saved');
+  assert.equal(running['reboot_required'], false);
+  h.mock.control.set({ saveResult: 'fail', savePolls: 0 });
+  await h.call('PUT', '/api/v1/network', { body: { address: '192.0.2.30', prefix_length: 24 } });
+  const failed = (await h.call('GET', '/api/v1/network')).body as Record<string, unknown>;
+  assert.deepEqual(failed['save'], { state: 'failed' });
+  assert.equal(failed['saved'], undefined);
+  assert.equal(failed['reboot_required'], true);
+});
+
+test('after a failed save, no reboot is needed when the running values are the defaults', async () => {
+  await h.login();
+  h.mock.control.set({ saveResult: 'fail', savePolls: 0 });
+  await h.call('PUT', '/api/v1/network', { body: { address: '192.0.2.30', prefix_length: 24 } });
+  const failed = (await h.call('GET', '/api/v1/network')).body as Record<string, unknown>;
+  assert.deepEqual(failed['save'], { state: 'failed' });
+  assert.equal(failed['reboot_required'], false);
+});
+
+test('a restart with nothing saved runs on the defaults', async () => {
+  await h.login();
+  h.mock.control.set({ rebootOutcome: 'restart', rebootPendingPolls: 0, rebootAwayPolls: 0 });
+  await h.call('POST', '/api/v1/system/reboot');
+  assert.equal((await h.call('GET', '/api/v1/system/reboot')).status, 401);
+  await h.login();
+  const state = (await h.call('GET', '/api/v1/network')).body as Record<string, unknown>;
+  assert.equal(state['source'], 'default');
+  assert.equal(state['reboot_required'], false);
+});
+
+test('a gateway equal to the address gets the field code that the specification holds', async () => {
+  await h.login();
+  const reply = await h.call('PUT', '/api/v1/network', {
+    body: { address: '192.0.2.20', prefix_length: 24, gateway: '192.0.2.20' },
+  });
+  assert.equal(reply.status, 400);
+  assert.deepEqual(reply.body, { code: 'invalid_field', fields: [{ name: 'gateway', code: 'gateway_outside_subnet' }] });
+});
+
 test('a device with no Configuration provider answers 501 and keeps its values', async () => {
   await h.login();
   h.mock.control.set({ networkProvider: false });

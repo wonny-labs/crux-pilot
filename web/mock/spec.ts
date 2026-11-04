@@ -17,6 +17,8 @@ export interface SpecResponse {
   setCookie?: string[];
   /** Lower-case names of headers that the response must carry. */
   requiredHeaders: string[];
+  /** The specification declares Set-Cookie on this response. */
+  declaresCookies: boolean;
   /** The example value of Retry-After, where the response has one. */
   retryAfterExample?: number;
 }
@@ -54,7 +56,12 @@ function resolve(document: Node, node: Node): Node {
 
 function readResponse(document: Node, status: number, raw: Node): SpecResponse {
   const node = resolve(document, raw);
-  const response: SpecResponse = { status, examples: new Map(), requiredHeaders: [] };
+  const response: SpecResponse = {
+    status,
+    examples: new Map(),
+    requiredHeaders: [],
+    declaresCookies: 'Set-Cookie' in ((node['headers'] ?? {}) as Record<string, unknown>),
+  };
   const setCookie = node['x-crux-set-cookie'];
   if (Array.isArray(setCookie)) {
     response.setCookie = setCookie as string[];

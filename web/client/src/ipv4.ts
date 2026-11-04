@@ -2,7 +2,13 @@
 // and it reports its own result with the same field codes.
 import type { Ipv4Settings } from './api-types.generated.ts';
 
-export type Ipv4ProblemCode = 'not_ipv4' | 'not_unicast' | 'prefix_not_usable' | 'gateway_outside_subnet';
+export type Ipv4ProblemCode =
+  | 'not_ipv4'
+  | 'not_unicast'
+  | 'prefix_not_usable'
+  | 'gateway_outside_subnet'
+  // Client only: 0.0.0.0, the address itself, or the subnet's network or broadcast address.
+  | 'gateway_not_usable';
 
 export interface Ipv4Problem {
   name: 'address' | 'prefix_length' | 'gateway';
@@ -74,12 +80,15 @@ export function checkIpv4Settings(input: Ipv4Input): { problems: Ipv4Problem[]; 
     const gateway = parseIpv4(gatewayText);
     if (gateway === null) {
       problems.push({ name: 'gateway', code: 'not_ipv4' });
-    } else if (
-      address !== null &&
-      usablePrefix !== null &&
-      subnetOf(gateway, usablePrefix) !== subnetOf(address, usablePrefix)
-    ) {
-      problems.push({ name: 'gateway', code: 'gateway_outside_subnet' });
+    } else if (gateway === 0 || gateway === address) {
+      problems.push({ name: 'gateway', code: 'gateway_not_usable' });
+    } else if (address !== null && usablePrefix !== null) {
+      const hosts = hostBits(gateway, usablePrefix);
+      if (subnetOf(gateway, usablePrefix) !== subnetOf(address, usablePrefix)) {
+        problems.push({ name: 'gateway', code: 'gateway_outside_subnet' });
+      } else if (hosts === 0 || hosts === 2 ** (32 - usablePrefix) - 1) {
+        problems.push({ name: 'gateway', code: 'gateway_not_usable' });
+      }
     }
   }
 

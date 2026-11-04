@@ -64,10 +64,26 @@ test('a gateway must be well formed and inside the subnet', () => {
   assert.deepEqual(problems('192.0.2.20', '24', '198.51.100.1'), [
     { name: 'gateway', code: 'gateway_outside_subnet' },
   ]);
-  assert.deepEqual(problems('192.0.2.20', '24', '0.0.0.0'), [
-    { name: 'gateway', code: 'gateway_outside_subnet' },
-  ]);
   assert.deepEqual(problems('10.1.2.3', '8', '10.200.0.1'), []);
+});
+
+test('a gateway of 0.0.0.0 is refused, because absent is how to say no gateway', () => {
+  const code = [{ name: 'gateway', code: 'gateway_not_usable' }];
+  assert.deepEqual(problems('192.0.2.20', '24', '0.0.0.0'), code);
+  // 0.0.0.0 lies inside this subnet, so the subnet check alone would pass it.
+  assert.deepEqual(problems('1.2.3.4', '1', '0.0.0.0'), code);
+});
+
+test('a gateway cannot be the address itself', () => {
+  assert.deepEqual(problems('192.0.2.20', '24', '192.0.2.20'), [{ name: 'gateway', code: 'gateway_not_usable' }]);
+});
+
+test("a gateway cannot be the subnet's broadcast or network address", () => {
+  const code = [{ name: 'gateway', code: 'gateway_not_usable' }];
+  assert.deepEqual(problems('192.0.2.20', '24', '192.0.2.255'), code);
+  assert.deepEqual(problems('192.0.2.20', '24', '192.0.2.0'), code);
+  assert.deepEqual(problems('192.0.2.1', '30', '192.0.2.3'), code);
+  assert.deepEqual(problems('192.0.2.1', '30', '192.0.2.2'), []);
 });
 
 test('the subnet arithmetic holds for a short prefix with the top bit set', () => {
