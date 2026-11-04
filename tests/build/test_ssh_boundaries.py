@@ -146,7 +146,7 @@ class SshBoundaryTests(unittest.TestCase):
         self.assert_rejected("rejects a wolfSSL settings file")
 
     def test_group_on_by_default(self):
-        self.edit("west.yml", "group-filter: [-crux-secure-management]", "group-filter: []")
+        self.edit("west.yml", "group-filter: [-crux-secure-management, -crux-reliance]", "group-filter: []")
         self.assert_rejected("must stay off by default")
 
     def test_default_workflow_selects_the_stacks(self):

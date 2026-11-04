@@ -343,9 +343,14 @@ class TemplateWorkspaceTest(unittest.TestCase):
         self.assertRegex(output, r"(?m)^PRODUCT vendor-runtime [0-9a-f]{12}$")
         self.assertIn(f"OVERRIDE {override['name']} ", output)
         self.assertIn(override["userdata"]["crux-override"], output)
+        # Only the groups the examples enable are fetched. A group they leave off stays absent.
+        enabled = {group.lstrip("+") for group in manifest["group-filter"]}
         for entry in self.optional:
             with self.subTest(name=entry["name"]):
-                self.assertIn(f"OK {entry['name']} ", output)
+                if enabled & set(entry["groups"]):
+                    self.assertIn(f"OK {entry['name']} ", output)
+                else:
+                    self.assertNotIn(f"OK {entry['name']} ", output)
 
     def filtered(self, names):
         return MANIFEST.read_text().replace(
