@@ -57,6 +57,14 @@ unsigned crux_file_fake_calls(crux_file_fake_op_t op);
 void crux_file_fake_limit_write(size_t bytes);
 /* Call this once from inside the next write, as if another caller ran while the medium was busy. */
 void crux_file_fake_on_write(void (*hook)(void));
+/* Call this once at the start of the call of op that comes after skip more calls. */
+void crux_file_fake_on_call(crux_file_fake_op_t op, unsigned skip, void (*hook)(void));
+/* Call this once from inside the next listing read that finds an entry, after it has chosen one, as
+ * if another caller ran between that read and whatever the caller does with the name. */
+void crux_file_fake_after_dir_read(void (*hook)(void));
+/* The next remove takes the entry away and still returns result, as FatFs can when its later steps
+ * fail. */
+void crux_file_fake_remove_then_fail(crux_file_result_t result);
 /* Total bytes of file content the volume holds. UINT64_MAX is the default, no limit. */
 void crux_file_fake_set_capacity(uint64_t bytes);
 
