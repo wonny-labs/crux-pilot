@@ -1,5 +1,7 @@
 add_library(crux_file_api INTERFACE)
 target_include_directories(crux_file_api INTERFACE include)
+# Public, so that a consumer can size what it keeps free of the handle pool at build time.
+target_compile_definitions(crux_file_api INTERFACE CRUX_FILE_POOL_SIZE=4)
 
 add_library(crux_file_linux STATIC src/file.c ports/linux/file_linux.c ports/linux/file_lock.c)
 find_package(Threads REQUIRED)
