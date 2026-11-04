@@ -36,8 +36,8 @@ flows on the Preact example with service tests underneath. Host here means the C
 | Sign-in and sign-out | Core | Both examples | Access contract. Web sessions in #186. | Not run, #220 | Not run |
 | Session expiry | Core | Both examples | Access contract. Web sessions in #186. | Not run, #220 | Not run |
 | Forced password change | Core | Preact. Angular shows a notice, #243. | Access contract. Web route in #187. | Not run, #220 | Not run |
-| Status | Core | Both examples | Service in draft #237. Web route in #187. | Not run, #220 | Not run |
-| Simple configuration update | Core | Neither, #243 | Service in draft #237. Web route in #187. | Not run, #220 | Not run |
+| Status | Core | Both examples | Service in #180. Web route in #187. | Not run, #220 | Not run |
+| Simple configuration update | Core | Neither, #243 | Service in #180. Web route in #187. | Not run, #220 | Not run |
 | Network settings | Advanced | Preact | Not started, #213 | Not run, #220 after #213 | Not run |
 | Reboot | Advanced | Preact | Not started, #214 | Not run, #220 after #214 | Not run |
 
