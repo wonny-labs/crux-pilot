@@ -179,6 +179,8 @@ build_target_image() {
     for symbol in wolfSSL_CTX_new wolfSSL_read wolfSSL_write; do
         require_symbol "$output/target-symbols.txt" "$symbol"
     done
+    # wolfSSL keeps NO_FILESYSTEM and wolfSSH does not: nothing they share may depend on it.
+    python3 "$repo/scripts/check-ssh-wolf-headers.py" "$directory"
     printf 'Target compile result (not flashed): %s combined image, with the socket backend.\n' "$board"
 }
 
@@ -220,7 +222,7 @@ run_controls() {
         "-DEXTRA_CONF_FILE=$output/control-settings-file.conf" > "$directory.log" 2>&1; then
         fail 'Control failed: the socket backend accepted CONFIG_WOLFSSL_SETTINGS_FILE'
     fi
-    grep -q 'WOLFSSL_HAS_SETTINGS_FILE\|WOLFSSL_ALWAYS_VERIFY_CB' "$directory.log" ||
+    grep -q 'WOLFSSL_ALWAYS_VERIFY_CB' "$directory.log" && grep -q 'Aborting due to Kconfig warnings' "$directory.log" ||
         fail "Control failed for another reason: see $directory.log"
     printf 'Control passed: the socket backend rejects CONFIG_WOLFSSL_SETTINGS_FILE.\n'
 

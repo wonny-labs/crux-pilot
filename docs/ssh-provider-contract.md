@@ -41,10 +41,11 @@ The provider owns every thread and all of the wolfSSH state. No other code calls
 
 Every Crux callback runs on the thread of its connection, with no provider lock held, and can block that thread only. So a
 slow client or a slow verification holds one connection and no other. A callback must not call `stop`, and a channel must
-not be used after its session callback returns.
+not be used after its session callback returns. Whether these threads are Crux threads or native ones is for #192 to decide. The gate
+record notes that the Crux thread default of four is too low for the integrated composition.
 
-Because the typed wolfSSH channel callbacks run while a packet is being parsed, and `wolfssh/ssh.h` says that nothing may
-re-enter the receive side there, the provider's wolfSSH callbacks only record a request. The worker calls the Crux `shell`,
+The wolfSSH channel callbacks run while a packet is being parsed, and `wolfssh/ssh.h` warns against re-entering the receive
+side from such a callback. So the provider's wolfSSH channel callbacks only record a request. The worker calls the Crux `shell`,
 `exec` or `sftp_open` callback after `wolfSSH_accept` has returned. `wolfSSH_SetUserAuth` and `wolfSSH_SetUserAuthResult`
 do call Crux, because the login decision belongs there, and they have no channel to use. wolfSSH's success value is zero,
 so #192 maps `CRUX_SSH_AUTH_ACCEPTED` explicitly and every other value to failure.
@@ -95,7 +96,7 @@ as the access contract says. Every access result other than success is a denial 
 embedded NUL, and `crux_access` checks its character set. The CLI and SFTP pieces get the session from the attachment
 through one accessor that #192 publishes in its adapter header.
 
-The session goes to an SSH connection, and `crux_access_touch` is the caller's job. #193 and #194 call it on user activity.
+A session belongs to one SSH connection. `crux_access_touch` is the caller's job, so #193 and #194 call it on user activity.
 
 ### Which files each session changes
 
@@ -128,7 +129,7 @@ for the rest of a wolfSSH translation unit. That module hook is why no wrapper i
 ### Why
 
 - **wolfSSL keeps `NO_FILESYSTEM`.** Removing it for the whole image, as the first probe and the wrapper below do, gives the
-  TLS layer its own direct file code and pulls Zephyr's file system into the image. Here TLS sees exactly the settings it
+  TLS layer its own direct file code. Here TLS sees exactly the settings it
   sees in an HTTPS-only image, and wolfSSH reaches files only through the port.
 - **`WOLFSSH_ZEPHYR` has to go as well.** The module always defines it. With `NO_FILESYSTEM` undefined, it compiles wolfSSH's
   direct Zephyr file code in `port.c` and `ssh.c`, even with `WOLFSSH_USER_FILESYSTEM`, and it compiles the `SETSTAT` and
@@ -141,9 +142,10 @@ for the rest of a wolfSSH translation unit. That module hook is why no wrapper i
   required algorithm is missing, or if RSA, SHA-1 or CBC is present.
 
 A wolfSSH translation unit and wolfSSL now disagree about `NO_FILESYSTEM`, which is safe only if nothing they share depends
-on it. The 21 wolfCrypt headers that wolfSSH uses were preprocessed for the target with the same flags, as wolfSSH includes them,
-with and without the `#undef`: the outputs were identical. wolfSSH also includes no `wolfssl/ssl.h` here, because
-`WOLFSSH_CERTS` is off. A later release could change this, so this check needs repeating on a wolfSSL upgrade.
+on it. `scripts/check-ssh-wolf-headers.py` preprocesses the 21 wolfCrypt headers that wolfSSH includes for the target, with the flags of
+a wolfSSH source, with and without the `#undef`: the outputs are identical. `wolfssl/ssl.h` does differ, which is the check's control.
+wolfSSH includes it only in `certman.c`, before these settings apply, so there it sees what wolfSSL sees. A stack upgrade could change this, so
+the recipe runs this check.
 
 ### Rules for Crux code that includes wolfSSH headers
 
@@ -187,7 +189,7 @@ socket patch by revision, checks its SHA-256, merges it into a separate sparse c
 against a recorded Git tree ID. No default workflow runs it. How a real composition applies the patch stays with #185.
 
 The script fails unless the image holds the wolfSSH SFTP path and the required algorithms, holds none of wolfSSL's file
-functions, wolfSSH's Zephyr file code or a Zephyr file system, and the two modules are unedited at their pins. Two controls
+functions, wolfSSH's Zephyr file code or a Zephyr file system, the shared headers agree, and the two modules are unedited at their pins. Two controls
 must fail for the expected reason: `CONFIG_WOLFSSL_SETTINGS_FILE` with the socket backend, and the probe with no wolfSSH
 settings file.
 
@@ -244,7 +246,23 @@ From reading wolfSSH v1.6.0 source. None of this has run.
 
 ## Evidence and limits
 
-@@EVIDENCE@@
+Recorded on 4 November 2026 at the revision in the PR that adds this document, with Zephyr v4.4.2 `dccb095`, `hal_nxp` `7554bc0`, wolfSSL
+`3c5eead`, wolfSSH `8221e4e` and Zephyr SDK 1.0.1, in the Dev Container image. Size figures are from the linker memory report.
+
+| Kind | What | Result |
+| --- | --- | --- |
+| Host | `Ssh.ProviderConformance`, `Ssh.ConformanceCatchesDefects`, `Ssh.Boundaries`, Clang 18 | Pass. 39 cases on the fake, and all 33 deliberate defects caught. |
+| Host | The same three with ASan and UBSan, GCC 13, because the image lacks the Clang sanitizer runtime | Pass |
+| Target compile, not flashed | Combined image for `mimxrt1060_evk@B//qspi`: wolfSSH, SFTP through the stand-in port and the TLS socket backend | Links: 418,016 B Flash, 219,924 B RAM, of which the probe configures a 32 KB main stack and a 128 KB arena |
+| `native_sim` build, not run | `native_sim/native/64`, wolfSSH without the socket backend, on an unpatched Zephyr | Links |
+| `native_sim` build, not run | `native_sim/native/64`, wolfSSH with the socket backend, on a patched Zephyr | Links |
+| Target build, source check | `scripts/check-ssh-wolf-headers.py` on the target build | The 21 headers are identical with and without the `#undef`, and its control differs |
+| Control | `CONFIG_WOLFSSL_SETTINGS_FILE` with the socket backend | Refused at configuration, as Kconfig warnings stop the build |
+| Control | The probe with no wolfSSH settings file | Stops at the probe's check that wolfSSH sees `NO_FILESYSTEM` |
+| One-off, in a scratch copy | The `#include_next` wrapper, and the mount fallback with it, both for the target | Link. Figures above. These are not in the recipe. |
+
+Compiling wolfSSH gives two warnings in `wolfsftp.c` from the vendor source (`maybe-uninitialized` and `unused-variable`). They do not stop the
+build, because the module's sources are not under the warning policy for owned code.
 
 Not shown by any of this: that wolfSSH works with these settings at run time, a handshake, a login, a transfer, stack use,
 timing, or any behaviour on a board. No real provider exists until #192, and the file port is a stand-in that always fails.
