@@ -80,7 +80,9 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 | `samples/` | Capability examples and reference controller applications |
 | `zephyr/` | Out-of-tree Zephyr module integration |
 | `tests/` | Host, Zephyr, build-policy and target validation |
+| `web/` | Management API specification, TypeScript client and reference browser interface. No C build needs it. See the [web guide](web/README.md). |
 | `scripts/` | Setup, build, analysis and test commands |
+| `tools/` | Test tooling for a machine that holds a board's probe and UART; outside the runtime build |
 | `.devcontainer/` | Linux development environment |
 | `.github/workflows/` | CI workflows |
 | `docs/` | Architecture, API contracts, decisions and evidence |
@@ -91,7 +93,9 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 | --- | --- |
 | Architecture, components and API contracts | [Architecture overview and capability inventory](docs/architecture.md) |
 | Setup, builds, external applications and debugging | [Build and Integration Guide](docs/build.md) |
+| Composing, versioning and releasing a product on Crux | [Product Composition Guide](docs/product-composition.md) |
 | Test commands and qualification procedures | [Test guide](tests/README.md) |
+| Testing your own application on Crux | [Consumer test guide](docs/build.md#testing-a-consumer-application) and [test foundation decisions](docs/test-foundation-proposal.md) |
 | Reference scenarios and recorded hardware validation | [Reference controller](samples/controller/README.md) and [M3 validation](docs/m3-validation.md) |
 
 ## Project status and contributing

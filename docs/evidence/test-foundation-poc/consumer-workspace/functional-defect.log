@@ -1,0 +1,39 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.3.5, pluggy-1.7.0 -- /opt/crux-cache/venv/bin/python3
+rootdir: /opt/crux-cache/test-foundation/run-consumer-ws/consumer/functional
+collecting ... collected 1 item
+
+test_functional.py::test_periodic_schedule FAILED                        [100%]
+
+=================================== FAILURES ===================================
+____________________________ test_periodic_schedule ____________________________
+
+dut = <twister_harness.device.binary_adapter.NativeSimulatorAdapter object at 0x7ffffe0942c0>
+image_identity = {'device_type': 'native', 'host': 'Linux-7.0.14-linuxkit-x86_64-with-glibc2.39', 'image': '/opt/crux-cache/test-founda...onsumer-ws/app-defect/zephyr/zephyr.exe', 'sha256': 'cb0afc5d7c0e9c856b3be3d18c7dc890bbbb507dda1c8cfaa768226b5ee1ae69'}
+
+    def test_periodic_schedule(dut, image_identity):
+        assert dut.device_config.type == "native", "this PoC never targets a device"
+        assert image_identity["sha256"]
+>       check_schedule(dut.readlines_until(regex=r"^APP done ", timeout=15))
+
+test_functional.py:8: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+lines = ['*** Booting Zephyr OS build v4.4.0 ***', 'APP ready', 'APP cycle=1 skipped=0', 'APP cycle=2 skipped=0', 'APP cycle=3 skipped=0', 'APP cycle=4 skipped=0', ...]
+cycles = 6, overrun_cycle = 3, overrun_skips = 2
+
+    def check_schedule(lines, cycles=6, overrun_cycle=3, overrun_skips=2):
+        """Raise AssertionError naming the first console line that breaks the schedule."""
+        observed = [CYCLE.match(line) for line in lines]
+        observed = [(int(found[1]), int(found[2])) for found in observed if found]
+        assert [cycle for cycle, _ in observed] == list(range(1, cycles + 1)), f"cycles: {observed}"
+        for cycle, skipped in observed:
+            expected = overrun_skips if cycle == overrun_cycle else 0
+>           assert skipped == expected, f"cycle {cycle}: skipped {skipped}, expected {expected}"
+E           AssertionError: cycle 3: skipped 0, expected 2
+
+oracle.py:15: AssertionError
+- generated xml file: /opt/crux-cache/test-foundation/run-consumer-ws/evidence/functional-defect.junit.xml -
+=========================== short test summary info ============================
+FAILED test_functional.py::test_periodic_schedule - AssertionError: cycle 3: ...
+============================== 1 failed in 0.45s ===============================

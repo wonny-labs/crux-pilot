@@ -68,7 +68,7 @@ stop and remount out of order return `-EINVAL`, and remounting a mounted volume 
 ## Resource measurements (static, from linked images)
 
 Measured on the code of commit `9a03c5d` (`samples/storage_sd`, the File provider and the
-configuration unchanged since). Linked with `CONFIG_MAIN_STACK_SIZE=4096`, `CONFIG_FS_FATFS_NUM_FILES=4`,
+configuration unchanged until the alignment change described below). Linked with `CONFIG_MAIN_STACK_SIZE=4096`, `CONFIG_FS_FATFS_NUM_FILES=4`,
 `CONFIG_FS_FATFS_MAX_LFN=127` (stack mode), `CRUX_FILE_POOL_SIZE=4`.
 
 | Image | FLASH | RAM (linker RAM region, including the main stack) |
@@ -77,7 +77,18 @@ configuration unchanged since). Linked with `CONFIG_MAIN_STACK_SIZE=4096`, `CONF
 | mount sequence compiled in | 57,876 B | 9,824 B |
 
 RAM here is the 32 MB SDRAM selected by the board devicetree (`zephyr,sram`), not on-chip
-RAM. Whether USDHC buffers and DMA are correctly placed relative to cache is not verified.
+RAM. The region is cached write-back with 32-byte D-cache lines. Zephyr's i.MX USDHC default
+accepts any 4-byte-aligned read target, and the HAL invalidates the target by whole lines when a
+transfer completes, so a buffer sharing a line with another object could lose that object's write
+made during the transfer. No failing caller was found: the Crux File component serialises on one
+lock, and the hardware samples read into stack buffers owned by the blocked thread. The FatFs sector
+window in the static `FATFS` object was also a read target in those images, and no link map was
+inspected for what shared its last line. The two RT1060 File selections now set `SDHC_BUFFER_ALIGNMENT` and `FS_FATFS_WINDOW_ALIGNMENT` to 32
+(`zephyr/Kconfig`), which sends every target that is not line-aligned through the SD layer's bounce
+buffer, and a compile-time check in `file_native.c` refuses a smaller value. The sizes above and
+every physical result below predate this change and ran with the Zephyr defaults (SDHC alignment
+4, FatFs window alignment 1). No board has run the new values, so the bounce path and its effect on
+read and write speed are not measured, and the table is not re-measured.
 
 Static stack frames (`-fstack-usage`, bytes), from a separate build of the same sample at the same commit with
 `CONFIG_STACK_USAGE=y` and the default 1,024 B main stack: `f_open` 360,
@@ -191,7 +202,7 @@ tail, orphaned clusters remain, and a cut inside the FAT metadata update has no 
 Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted beyond the one run above (no forced driver re-initialisation was tried);
 whether the M.2 Wi-Fi SDIO path shares uSDHC1 on this board (the board devicetree labels the
 same controller `m2_wifi_sdio`; the later schematic and photo check above is a document check, not a
-measurement, and the schematic is not stored in this repository); stack use beyond the one probe run (no Settings backend, networking or other threads); cache and DMA placement; and power-loss behaviour beyond the 32-byte append test and the replace-pattern test above (larger
+measurement, and the schematic is not stored in this repository); stack use beyond the one probe run (no Settings backend, networking or other threads); the line-aligned bounce path of USDHC reads and writes and cache coherence with a concurrent writer (no physical run used alignment 32); and power-loss behaviour beyond the 32-byte append test and the replace-pattern test above (larger
 writes, directory changes other than that replace, other cards, the Settings File backend itself); data
 across normal CPU restarts and those two power-cut tests are covered in the physical results above.
 
