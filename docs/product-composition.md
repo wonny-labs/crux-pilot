@@ -99,7 +99,9 @@ It compares commits resolved by git, so a tag and its commit are equal. The work
 
 A contract revision that cannot be resolved is an error, never `OK`. So a fork must contain the commit that Crux pins.
 
-A branch revision is checked through `manifest-rev` alone, because west keeps no ref for it and a local branch of that name proves nothing. So a manifest edited to name another branch, with no `west update` after it, is not detected.
+A branch revision is checked through `manifest-rev` alone, because west keeps no ref for it and a local branch of that name proves nothing. So a manifest edited to name another branch, with no `west update` after it, is not detected. The command uses no network, so it cannot see an upstream branch that moved after the last `west update`. A tag not yet fetched is treated the same way.
+
+Matching is by project name, so a module replaced under a new name, with the original filtered out of the import, reports `PRODUCT`. `OK` describes `HEAD` only, so a change applied to the checkout without a commit still reports `OK`; the build record refuses that checkout.
 
 Declare a difference in the product manifest:
 
@@ -292,7 +294,7 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 
 **What was not run**
 
-- The template in CI. `scripts/test-product-template.sh <board>` runs the checks, runs `west crux-pins` on Crux's own workspace and cross-builds `app/` by hand. No workflow calls it, and CI wiring is proposed separately. It builds inside Crux's own workspace, not through the template's manifest.
+- The template in regular CI. `scripts/test-product-template.sh <board>` runs the checks, runs `west crux-pins` on Crux's own workspace and cross-builds `app/`. It passed once on a draft pull request, but no workflow on the default branch calls it, so the west-based tests are not run there. It builds inside Crux's own workspace, not through the template's manifest.
 - A real Bitbucket server. Local repositories stood in for it, so server behaviour, authentication and clone URL forms are untested.
 - A real commercial module. `vendor-runtime` was an invented stand-in.
 - Signing, a physical board, or a baseline upgrade through a fork.
