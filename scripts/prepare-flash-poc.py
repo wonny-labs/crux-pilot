@@ -2,7 +2,7 @@
 import hashlib
 from pathlib import Path
 import re
-NOR_HASH='397019890b4ce7afae88c7da1913ab0b8ac57c3ee1a2c1975c7ba6c4c08a3ea4'
+NOR_HASH='25733356c1b06bf03178e78431b697ad8736553b63a42dc725a1a5173486c5fa'
 def transform_nor(source):
     if hashlib.sha256(source.encode()).hexdigest()!=NOR_HASH:
         raise ValueError('unsupported NOR source')

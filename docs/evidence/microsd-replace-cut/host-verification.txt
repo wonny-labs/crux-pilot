@@ -1,0 +1,28 @@
+Host-side read-only checks of the card after the replace-pattern power-cut test (macOS, 2 November 2026).
+Card: 15.9 GB, FDisk_partition_scheme (MBR), one Windows_FAT_32 partition (disk4s1).
+
+$ diskutil unmount disk4s1; diskutil verifyVolume disk4s1
+Performing fsck_msdos -n /dev/rdisk4s1
+** Phase 1 - Preparing FAT
+** Phase 2 - Checking Directories
+** Phase 3 - Checking for Orphan Clusters
+Warning: Found orphan cluster(s)
+Warning: Found 40 orphaned clusters
+Warning: 170 files, 15529000 KiB free (1941125 clusters)
+File system check exit code is 206
+Error: -69845: File system verify or repair failed
+
+(The card was not repaired; repairing would free the orphan clusters and remove the evidence. The cluster size is
+ 15529000 KiB / 1941125 clusters = 8 KiB, so 40 orphaned clusters are about 320 KiB.)
+
+$ diskutil mount readOnly disk4s1     (Volume Read-Only: Yes)
+settings/ holds: cfg, cfg.cmp, repcount
+  cfg      256 bytes, 8 records of generation 19250, all CRC-valid
+  cfg.cmp  0 bytes (the last power-off hit the creation of the temporary file)
+  repcount 103
+files/   holds 48 entries: bootcount, intcount, pattern and run1..run45 (decoded from f<hex> names)
+
+Reference: the previous card check (after the 33-cut append test) was clean, fsck_msdos -n exit code 0 with
+162 files (docs/evidence/microsd-power-cut/host-verification.txt).
+
+This transcript is hand-formatted from the tool output of the day.

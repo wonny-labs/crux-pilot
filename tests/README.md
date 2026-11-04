@@ -274,10 +274,26 @@ for the decisions, measurements and the unverified hardware items.
 `tests/native/file_sd_check` runs the sample's write/read/restart check (a boot counter and a 4 KiB
 pattern file) on the same RAM disk; its remount is not persistence evidence. The first physical-card
 runs are recorded in [docs/evidence/microsd-physical](../docs/evidence/microsd-physical/README.md).
+`tests/native/file_sd_probe` runs the workload and the removal state machine of the physical-gate probes
+(`samples/storage_sd_probe`: stack use after a FatFs workload, and a card-removal probe that retries a
+remount), with a removed card stood in for by an application unmount. The probe images write to a card and
+are only linked in CI.
 `tests/native/file_sd_interrupt` runs the record format and recovery logic of the interrupted-write test
 (`samples/storage_sd_interrupt`), and the storage gate runs the host script's tests against scripted boards
 (no hardware). The sample's image writes to a card until power is cut and is only linked in CI. The
 first power-cut run is recorded in [docs/evidence/microsd-power-cut](../docs/evidence/microsd-power-cut/README.md).
+`tests/native/file_sd_replace` runs the classification logic of the replace-pattern power-cut test
+(`samples/storage_sd_replace`: the compaction sequence of the Settings File backend, a temporary file and
+`fs_rename` over the settings file, repeated until power is cut), and the storage gate runs its host
+script's tests against scripted boards. The image writes to a card until power is cut and is only linked
+in CI. The first run is recorded in [docs/evidence/microsd-replace-cut](../docs/evidence/microsd-replace-cut/README.md).
+
+`tests/native/file_sd_settings_recover` runs the recovery step for the state that test found
+(`samples/storage_sd/sd_settings_recover`: no settings file and a complete `.cmp`, which it renames) on the
+real, unpatched Settings File backend over a FatFs RAM disk named like the card (13 cases, both `native_sim`
+variants). It creates the states; the real power cut is not exercised on the board, and the step is not yet
+called by any image. Mutation-checked: treating a stat error as a missing file, skipping the empty-temporary
+check, and renaming over an existing file each fail it.
 
 The gate also runs `tests/native/configuration_settings_file`: the Zephyr Settings File
 backend on a FatFs RAM disk, with I/O faults injected by link-time wraps of `fs_read`,

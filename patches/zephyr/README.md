@@ -3,7 +3,7 @@
 `nxp-enet-mdio-completion.patch` is an opt-in correction for the single-core
 RT1062 reference composition. It applies only to
 `drivers/ethernet/mdio/mdio_nxp_enet.c` at Zephyr
-`684c9e8f32e4373a21098559f748f06915f950c9`. The original file is NXP copyright,
+`dccb09599635bdff17633fa7e9dab014b91dce90`. The original file is NXP copyright,
 Apache-2.0 licensed; its notice remains in the generated copy. The patch is
 maintained here pending an upstream resolution, without a dependency upgrade.
 
@@ -95,3 +95,25 @@ exercise long 64-bit records and actual forced-overflow loss reporting; output
 loss, incomplete records and unexpected configurations remain failures. UART wait,
 IRQ dispatch and native tick rounding are relevant source hypotheses, not an
 established physical cause of the earlier failure.
+
+# wolfSSL TLS socket backend
+
+The secure management work uses a wolfSSL backend behind the Zephyr TLS socket API. Its patch is not stored in this
+repository. New files in it carry an Apache-2.0 header. The upstream repository has no licence file, and its README says
+that ports of projects other than wolfSSL follow each project's own licence, which for Zephyr is Apache-2.0. It does not name
+this patch, and the patch also calls wolfSSL, so Crux refers to it by revision until its terms are confirmed.
+
+| Input | Value |
+| --- | --- |
+| Repository | `wolfSSL/osp`, revision `8c32b060ac6017b1291a6da0875a48637bfb682d` |
+| Core patch | `zephyr/4.4/zephyr-tls-4.4.1.patch`, SHA-256 `3d1cc0307bbeea5f000698bca5be717f73fdb8c47e90083b003336364e8fdbda` |
+| Decoupling patch | `zephyr/4.4/zephyr-tls-4.4.1-mbedtls-decoupling.patch`, SHA-256 `b581396c70e7ecaf4b09ae66875b8cc5d29e428fd74c9938d3249d426b185c05` |
+
+Upstream generated these for Zephyr 4.4.1. On v4.4.2, `git apply --check` of the core patch fails in `sockets_tls.c`, and
+`git apply --3way` merges it with no conflict. The result differs from the patched 4.4.1 file by exactly the upstream changes
+between those tags. It has been compiled and has not been run. How a composition applies it without editing the Zephyr
+checkout is decided under Issue #185. The wolfSSL, wolfSSH and wolfPSA projects are fetched only when a workspace enables the
+`crux-secure-management` group. wolfSSL and wolfSSH are offered under GPL-3.0-or-later or a commercial licence. wolfPSA's source
+states GPL-3.0-or-later only. A vendor article says it has the same licence options as wolfSSL, and its commercial terms need
+confirming with the vendor. Binaries built with these stacks are subject to those terms when distributed. The `mbedtls` and `tf-psa-crypto` projects in the same group are
+Apache-2.0 OR GPL-2.0-or-later.

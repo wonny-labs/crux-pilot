@@ -1,9 +1,10 @@
-# RT1060-EVKB microSD composition (software only)
+# RT1060-EVKB microSD composition
 
 Issue [#14](https://github.com/wonny-labs/crux-pilot/issues/14), acceptance criterion 2.
-This records the approved composition and what software evidence exists for it. No
-physical board, microSD card, power-loss, reboot or removal result exists. Nothing here
-claims persistence or hardware qualification.
+This records the approved composition and its evidence. The software evidence is below; the
+physical results (one board, one card: mount, reboot persistence, power cuts) are in their own
+sections and under `docs/evidence`. The one card-removal run is under "Physical results, 3 November". Nothing here claims hardware
+qualification or product power-loss safety.
 
 ## Decisions in force
 
@@ -84,8 +85,8 @@ Static stack frames (`-fstack-usage`, bytes), from a separate build of the same 
 `dir_find` 64, `f_write` 56, `follow_path` 56, `f_mount` 40. The `fs_stat` chain used by the
 layout check and by every File call alone is about 780 B, and an open about 650 B, before the
 SD driver, disk layers and Crux frames. These frames are a lower bound, not a call-chain
-maximum. The 4,096 B main stack is a choice with no measured margin; its high-water mark
-needs a run on hardware.
+maximum. The 4,096 B main stack is a choice; its first measured high-water mark is
+2,264 B used with 1,832 B unused in one run on the board (see "Physical results, 3 November").
 
 ## Physical results (first card runs, 2 November 2026)
 
@@ -94,6 +95,18 @@ On one RT1060-EVKB Rev B and one 16 GB FAT32 (MBR) card the composition mounted 
 across two normal CPU resets; the card was clean under `fsck_msdos -n` and held the expected contents on
 the host afterwards. This is a single run on one card. It is not power-loss, removal, timing or endurance
 evidence. Details and limits: [docs/evidence/microsd-physical](evidence/microsd-physical/README.md).
+
+## Physical results, 3 November 2026 (card states and stack)
+
+On the same board and card, a blank card (no partition table, no FAT volume) gave `sd_storage_start: 2`
+(`SD_STORAGE_MOUNT_FAILED`) and a FAT32 card without `files` and `settings` gave `3` (`SD_STORAGE_LAYOUT_MISSING`);
+nothing was formatted and no directory was created. With a provisioned card the stack probe left 1,832 B of the
+4,096 B main stack unused (2,264 B used; the probe's own analyzer frames may be included), and `fsck_msdos -n`
+was clean afterwards. Removing the card while mounted gave `CRUX_FILE_ERR_IO` on the next open, no hang, and the
+application unmount and remount did not bring the volume back after the card was re-seated (`remount=-5`, no
+recovery; flashing the `sd-start` image and resetting mounted the same card), which matches "a card swap needs a reboot". One run per state; the M.2 slot was
+empty (operator-reported) and uSDHC1 ownership was not checked against a schematic. Details and limits:
+[docs/evidence/microsd-card-states-stack](evidence/microsd-card-states-stack/README.md).
 
 ## Profile limits and decisions
 
@@ -120,33 +133,67 @@ card always mounted and a read-only `fsck_msdos -n` was clean. The writes were 3
 each; larger writes, directory changes and renames were not cut, and it is one card. See
 [docs/evidence/microsd-power-cut](evidence/microsd-power-cut/README.md).
 
+## Replace-pattern power-cut results (2 November 2026)
+
+The Settings File backend compacts by writing a temporary file and calling `fs_rename`, and FatFs's rename
+removes the destination first. Repeating that sequence on the same board and card with 100 power cuts:
+**29 left no settings file but a complete newer temporary** (the cut fell between the removal and the
+rename), 71 left a valid file, and none left a stale or damaged settings file (stale detection is a lower bound: two cuts could not be checked); the card always mounted.
+The rate belongs to a loop that does nothing but replace the file: a real controller compacts rarely, so it
+is not a deployment rate. With the corrections staged in the test fixture (#144, not a product backend) a missing settings file
+next to a `.cmp` leftover is an I/O error until the next save, not defaults; on 3 November 2026 the owner chose to complete the rename with the start-up recovery step described below (software only, not yet called by any image). The read-only `fsck_msdos -n` afterwards reported 40 orphaned clusters (about
+320 KiB), where the earlier append test had been clean. One card, 256-byte files, the backend's
+write-temporary, close, rename order and the identical `fs_rename`, not the backend itself. See
+[docs/evidence/microsd-replace-cut](evidence/microsd-replace-cut/README.md).
+
+## Probes for the remaining physical items
+
+`samples/storage_sd_probe` holds two default-off images, both writing to the card (physical approval
+needed for each run): `CONFIG_SAMPLE_SD_STACK_PROBE=y` mounts, runs the file check and a FatFs workload
+(create, 64 KiB write, sync, read back, rename, stat, list, remove) twice and prints the
+Zephyr thread analyzer report (stack size and unused bytes per thread; the interrupt stack appears as an
+`ISR0` line whose figure includes early boot, so it overstates interrupt use),
+and `CONFIG_SAMPLE_SD_REMOVAL_PROBE=y` writes one small file every 200 ms and prints the result codes of every
+failing step (successful steps print every 25th time); after the first failure it unmounts and retries a
+remount every second, so removing and reinserting the card shows whether the application remount path
+recovers without a reboot. It does not show whether the disk driver can recover: the remount does not force a
+new card initialisation (the source suggests the disk reference count never returns to zero), so a failure
+after a real swap is consistent with the documented reboot-on-swap policy. If the unmount fails the probe
+stays LOST (`remount=-120`, `-EALREADY` on the RT1060 picolibc image, on the console). The stack probe leaves `bootcount` and `pattern` in the File root,
+the removal probe leaves `probe`. The blank-card and wrong-layout cases need a card prepared on a
+host, the M.2 slot and uSDHC1 ownership need the board in hand. The stack probe, the removal probe and the
+blank and wrong-layout cards were run on the board on 3 November 2026
+([evidence](evidence/microsd-card-states-stack/README.md)); uSDHC1 ownership has not been checked and the M.2 slot
+was reported empty by the operator.
+
+## Recovery step for an interrupted compaction (3 November 2026, software only)
+
+Owner decision of 3 November 2026: complete the rename at start-up in the one state the replace-pattern test
+found. `sd_settings_recover(path)` in [`samples/storage_sd`](../samples/storage_sd) renames `<path>.cmp` to
+`<path>` when the settings file is missing and the temporary is a non-empty regular file, and does nothing in
+any other state. It is safe because the backend closes the temporary (a synced close) before it starts the
+rename, so a missing settings file next to a `.cmp` means the compaction had finished writing. A stat error is
+never read as "missing", a zero-length temporary is left alone (`-ENODATA`), a directory is never renamed, and a
+path of 28 bytes or more is refused: `<path>.cmp` then does not fit the backend's 32-byte name buffer, the backend
+shortens the temporary's name, and this step does not handle that.
+Call it after the volume is mounted (on an unmounted volume the file system reports "not found" and the step
+returns 0) and before the first settings load. It is not called by any image yet: the
+2 November decision keeps a Settings File target provider out of this composition, so the call site belongs to
+whichever provider is added. It does not make Settings atomic: a cut during an append can still leave a torn
+tail, orphaned clusters remain, and a cut inside the FAT metadata update has no guarantee. It is covered by
+`tests/native/file_sd_settings_recover` on the unpatched backend; it has not been run on the board.
+
 ## Not covered (needs the card and board)
 
-Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted;
+Card detect and power sequencing (the card was present at every boot); real SD timing and error behaviour; removal while mounted beyond the one run above (no forced driver re-initialisation was tried);
 whether the M.2 Wi-Fi SDIO path shares uSDHC1 on this board (the board devicetree labels the
 same controller `m2_wifi_sdio`; nothing in this repository confirms pin or controller
-ownership); high-water stack use; cache and DMA placement; and power-loss behaviour beyond the 32-byte append test above (larger writes, directory changes, other
-cards); data across normal CPU restarts and the append power-cut test are covered in the physical
-results above.
+ownership); stack use beyond the one probe run (no Settings backend, networking or other threads); cache and DMA placement; and power-loss behaviour beyond the 32-byte append test and the replace-pattern test above (larger
+writes, directory changes other than that replace, other cards, the Settings File backend itself); data
+across normal CPU restarts and those two power-cut tests are covered in the physical results above.
 
-## Physical gate procedure (draft, nothing here is authorised)
+## Physical gate procedure
 
-Every step below is a hardware operation. Each needs explicit approval for the current task,
-a verified board, probe and card, and a safe execution setup. A past approval does not
-authorise a later run. Use a card that is test-owned and may be erased.
-
-1. Record the board revision, card, reader and firmware commit. Confirm uSDHC1 and the
-   card-detect and power GPIO against the schematic, and the M.2 slot state.
-2. Prepare the card on a host: format FAT32, create `files` and `settings`. Keep the
-   card-reader output. This is the only formatting step.
-3. Flash the `crux.sample.storage_sd.start` image only after approval; read the status
-   printed by `sd_storage_start`. Expected: `0`. A blank card must give a mount failure and
-   leave the card unchanged (compare a host-side image before and after).
-4. Write, sync and read files through `crux_file_*`, then read the card on the host. The
-   sample image only calls `sd_storage_start`; an image with a write and read path is
-   separate work that does not exist yet.
-5. Only with separate approval, interrupt power and reboot during and between saves. Record
-   which acknowledged files and Settings records survive. Torn-write evidence from
-   simulators is not a substitute.
-6. Record every result, including failures, with the tested revision. Do not close #14 or
-   #16 from this record alone.
+The procedure, preconditions, card states, stop conditions and record requirements are in
+[microsd-physical-gate.md](microsd-physical-gate.md). It authorises nothing: every hardware step needs
+explicit approval for the current task.
