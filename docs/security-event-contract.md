@@ -199,7 +199,8 @@ sees a gap at that number too, and a reader of the log sees that line instead.
 
 The drain counts lines across wakes, and sleeps `CRUX_SECURITY_EVENT_DRAIN_PAUSE_MS` each time the count reaches
 `CRUX_SECURITY_EVENT_DRAIN_BURST`. A timed wake with nothing signalled restarts the count, because the log buffer has had a whole
-wait to empty. So a wake never writes more than the burst has left, whether the records arrive together or in small batches.
+wait to empty. So a wake never writes more than the burst has left, whether the records arrive together or in small batches. The
+burst also holds at most one `event.lost` line. A pause after a failed wait only stops the drain spinning, and the burst goes on.
 
 ## Identifiers
 
@@ -299,13 +300,13 @@ The owner could not be asked. Each is the narrow choice, and a changed choice is
 | 1 | A name for a record | Added `crux_security_event_name(id)`, which is not in the proposal | A read result holds only the value, and M11 must show a name. The project table is private to the core, so no one else can answer. |
 | 2 | Cursor ahead of the numbering | Restarts at the oldest record | A cursor kept across a reset would otherwise read `END` until the numbers caught up. The caller sees the sequence fall. A cursor from before a reset is ahead only until the numbering passes it, and then it reads as an ordinary cursor, so this does not detect every reset. |
 | 3 | Sequence wrap | Skips zero | Zero is a cursor's start, so a record numbered zero could not be read after a wrap. |
-| 4 | Forging a Crux event | `event.lost` passed to an emit records `event.unknown`, counted. `crux_security_event_init` refuses a project name equal to any Crux name, and a name used twice. Only exact names are refused, so `access.other` is allowed. | `event.lost` is a line only, and only the drain writes it. The proposal reserves no name prefix. |
+| 4 | Forging a Crux event | `event.lost` passed to an emit records `event.unknown`, counted. `crux_security_event_init` refuses a project name equal to any Crux name, and a name used twice. Only exact names are refused, so `access.other` and `event.lost.x` are allowed. | `event.lost` is a line only, and only the drain writes it. The proposal reserves no name prefix. |
 | 5 | Fields the proposal gives no rule for | A channel above 3 or a source length other than 0, 4 or 8 is omitted and counted. A result out of range becomes `FAILED` and is counted. | They fail closed, in the way the listed fields do. |
 | 6 | How much of a subject is checked | The first 256 bytes, so an emit stays bounded. A bad character there omits the field. | Text past that is never recorded. |
 | 7 | An empty `user` | Omitted and counted, because the rule is 1 to 31 characters. An empty `subject` is simply no subject. | The table's rules, read literally. The provider passes NULL for an empty name. |
 | 8 | Which lines the counts cover | `delivered` and `log_errors` count every line, including `event.lost` | The proposal defines them by what `crux_log_write` returned. So `delivered` can exceed `emitted`. |
 | 9 | What counts as `dropped` | Also a NULL event, an ISR call and a call before init, each without a number. The next `event.lost` includes them in `count`. | The failure table says that they count as dropped. |
-| 10 | Pacing `event.lost` | At most one in a burst | Otherwise new loss between records could fill every burst and starve the records. |
+| 10 | Pacing `event.lost` | At most one in a burst, which spans wakes. A later loss waits for the next burst, and is then reported. A burst must be 2 or more lines, or the build fails. | Otherwise new loss between records could fill every burst and starve the records. |
 | 11 | Order of `seq` in the log | An `event.lost` line can carry a number above records still pending, because it takes the next number | The proposal asks for this. A reader sorts by `seq`. |
 | 12 | The drain's wake | A binary signal, and a timed wake after 1000 ms with nothing signalled | The proposal's "timeout to keep a clock check" is taken as this. A loss with no ring record sends no signal, so the timed wake bounds how late its report can be. |
 | 13 | Read when the ring lock times out, or access control gives an unexpected result | `NOT_READY` | No other result fits, and the output stays unchanged. |
@@ -371,9 +372,9 @@ tests, and the boundary check. The root build also runs them as `SecurityEvent.*
 | --- | --- | --- |
 | `conformance` | Core, controlled time and log | Every identifier's value, name, class and length, and that no other exists. Field rules, truncation and omission, every byte value in a user and a subject, and the bounded subject scan. Line format, levels, and the worst-case line. |
 | `ring`, `ring_small` | The same, with a 32/8 and an 8/2 ring | Overflow, the reserve, change admitted while routine is dropped, a gap per drop, `event.lost` content, burst bound, lock timeout with a really held lock, log errors, cursors, gaps, overwriting, the wrap, no lock across time or log, high water from pending only |
-| `drain` | The same, with real threads and no timed wake in a run | A signal for each admitted record and none for a refused one, a wake by the signal alone, a bounded wait, a signal again after a burst, a pause counted across wakes, an idle wake restarting the count, and a pause after a failed wait |
+| `drain` | The same, with real threads and no timed wake in a run | A signal for each admitted record and none for a refused one, a wake by the signal alone, a bounded wait, a signal again after a burst, a pause counted across wakes, one report in a burst across wakes, an idle wake restarting the burst, and a pause after a failed wait that keeps the count |
 | `time_cases` | The same | Clock unset, each source, age, snapshot errors, `no_uptime`, set and invalidated between emit and drain, for lines and read results. The `event.lost` line's time and counts. An emit reads no authority. |
-| `init` | The same | Before init, failed init and retry, no leak on a failed init, repeated init, project identifiers and their classes, project names that repeat or forge a Crux name, ISR and NULL, thread failure and retry |
+| `init` | The same | Before init, failed init and retry, no leak on a failed init, repeated init, project identifiers and their classes, project names that repeat or forge a Crux name, near names that stay allowed, ISR and NULL, thread failure and retry |
 | `concurrency` | Core with real threads | Six paced emitters, two readers and the drain, with every event accounted for, for the sanitizers |
 | `rejections` | Real Access, real provider, core | Each rejection path of Issue #182 and each row of the result table, including `BUSY` on a login and on an own password change, in the record and in the line. Every port event and every result, one by one. |
 | `read` | The same | No session, ended, expired, without `events.read`, forced change, permitted. The denial's own record. The check runs before the ring lock. No effect on the idle timer. |
