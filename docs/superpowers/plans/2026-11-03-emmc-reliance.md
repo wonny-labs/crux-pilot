@@ -26,7 +26,7 @@
 - Physical programming, reset and power operations are out of this plan.
 - Style: `.clang-format` for owned C, `scripts/check-format.sh` before each commit, Conventional Commits, and this attribution on each commit: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
-**Delivery:** one branch and Draft PR per issue. `CONTRIBUTING.md` prefers a branch from the default branch; these are stacked on purpose, each on the previous issue's branch until that one merges, because each depends on the last, and each is rebased when its base merges. Merging needs the owner. Each PR records its protected paths, checks and independent review as `AGENTS.md` requires. The issue numbers below are the design's numbers 1 to 8; replace them with GitHub numbers once created. Issue 9 is a planning item with no task here.
+**Delivery:** one branch and Draft PR per issue. `CONTRIBUTING.md` prefers a branch from the default branch; these are stacked on purpose, each on the previous issue's branch until that one merges, because each depends on the last, and each is rebased when its base merges. Merging needs the owner. Each PR records its protected paths, checks and independent review as `AGENTS.md` requires. The issue numbers below are the design's: 1 is #249, 2 is #250, 3 is #251, 4 is #252, 5 is #253, 6 is #254, 7 is #255, 8 is #256. Issue 9, #257, is a planning item with no task here, outside the milestone.
 
 ## Review Focus
 

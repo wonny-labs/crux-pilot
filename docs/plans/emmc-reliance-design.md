@@ -414,7 +414,8 @@ needs a board with one. Every step needs approval for that task.
 ## Delivery
 
 New milestone: **M14 — Transactional storage on eMMC**. Issues and pull requests are generic and carry no product
-information. Each issue has its own Draft PR and independent review. Issue 1 owns this document.
+information. Each issue up to 8 has its own Draft PR and independent review. Issue 1 owns this document. GitHub numbers: 1 is #249, 2 is #250,
+3 is #251, 4 is #252, 5 is #253, 6 is #254, 7 is #255, 8 is #256 and 9 is #257.
 
 | # | Issue | Depends on | Acceptance |
 | --- | --- | --- | --- |
