@@ -167,29 +167,28 @@ jobs:
         run: scripts/test-product-template.sh "$CRUX_BOARD_TARGET"
 
       # Avoid repeated glob traversals through large Twister build trees.
-      - name: Collect Twister evidence paths
+      - name: Collect Twister evidence
         if: always()
-        id: twister_evidence
         shell: bash
+        # Listing each file in the upload path exceeded the runner's limit on one
+        # environment value, so the files are copied to one folder instead.
         run: |
           set -euo pipefail
-          {
-            echo 'paths<<TWISTER_EVIDENCE'
-            for directory in crux-pilot/build/zephyr/twister-*; do
-              [ -d "$directory" ] || continue
-              find "$directory" -type f \( \
-                -name 'production_*.h' -o \
-                -name '*.log' -o -name '*.err' -o \
-                -name 'CMakeConfigureLog.yaml' -o \
-                -name 'CMakeCache.txt' -o -name 'compile_commands.json' -o \
-                -path '*/zephyr/.config' -o \
-                -path '*/zephyr/zephyr.map' -o \
-                -path '*/zephyr/zephyr.dts' \
-              \) -print
-              find "$directory" -maxdepth 1 -type f \( -name '*.json' -o -name '*.xml' \) -print
-            done | LC_ALL=C sort -u
-            echo 'TWISTER_EVIDENCE'
-          } >> "$GITHUB_OUTPUT"
+          cd crux-pilot/build
+          mkdir -p twister-evidence
+          for directory in zephyr/twister-*; do
+            [ -d "$directory" ] || continue
+            find "$directory" -type f \( \
+              -name 'production_*.h' -o \
+              -name '*.log' -o -name '*.err' -o \
+              -name 'CMakeConfigureLog.yaml' -o \
+              -name 'CMakeCache.txt' -o -name 'compile_commands.json' -o \
+              -path '*/zephyr/.config' -o \
+              -path '*/zephyr/zephyr.map' -o \
+              -path '*/zephyr/zephyr.dts' \
+            \) -print0
+            find "$directory" -maxdepth 1 -type f \( -name '*.json' -o -name '*.xml' \) -print0
+          done | LC_ALL=C sort -zu | xargs -0 -r cp --parents -t twister-evidence
 
       - name: Upload Zephyr reports and raw logs
         if: always()
@@ -197,8 +196,8 @@ jobs:
         with:
           name: zephyr-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            # The collected paths retain the original build/zephyr/twister-* layout.
-            ${{ steps.twister_evidence.outputs.paths }}
+            # Keeps the original zephyr/twister-* layout under twister-evidence.
+            crux-pilot/build/twister-evidence/
             # Direct cross-build outputs: do not scan every EVKB generated header tree.
             crux-pilot/build/zephyr/*/*.log
             crux-pilot/build/zephyr/*/*.err
