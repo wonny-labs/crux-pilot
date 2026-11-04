@@ -16,3 +16,4 @@ root tool reaped, no child, killpg 0: ProcessLookupError errno 3
 run._stop, root tool alive: False, returncode None
 run._stop, root tool exited, not reaped: True, returncode 0
 run._stop, root tool exited, root child alive: False, returncode 0
+run._stop, root leader with a member this user may signal: still waiting after 5 s, returncode None
