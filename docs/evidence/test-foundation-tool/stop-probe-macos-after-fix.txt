@@ -1,0 +1,5 @@
+macOS-15.7.4-arm64-arm-64bit 3.9.6
+killpg, leader exited, not reaped: PermissionError errno 1
+killpg, leader exited, not reaped, a child still running: no error
+killpg, leader reaped: ProcessLookupError errno 3
+run._stop, tool exited, not reaped: returned, returncode 0
