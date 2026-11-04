@@ -193,16 +193,15 @@ levels. It also checks which components are built, that the unit level links no 
 a controlled policy defect (`-DCONSUMER_DEFECT_REBASE=ON`) fails both levels on their own assertions.
 These Host cases need no west workspace, so the existing `tests/build` discovery in Host CI runs them.
 
-The `native_sim` and functional levels are opt-in. No CI job runs them. Run them in the Linux
-development environment, from a west workspace with pytest installed:
+The `native_sim` and functional levels are opt-in, and the `zephyr-software` workflow runs them. To
+run them yourself, use the Linux development environment, from a west workspace with pytest installed:
 
 ```sh
 CRUX_CONSUMER_POC_ZEPHYR_TESTS=1 python3 -m unittest discover -s tests/build -p test_consumer_poc.py -v
 ```
 
 This runs `consumer_poc/run_poc.sh`, which requires the functional oracle to reject the same defect. None
-of these checks flashes, resets or opens a device. These levels last ran at Zephyr v4.4.0, before
-`west.yml` moved to v4.4.2.
+of these checks flashes, resets or opens a device.
 
 ## Device-control tool
 
