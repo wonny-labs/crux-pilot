@@ -1,4 +1,5 @@
 #include "logging_binding.h"
+#if defined(CONFIG_LOG_BACKEND_UART)
 #include <zephyr/devicetree.h>
 #include <zephyr/sys/util.h>
 
@@ -61,4 +62,5 @@ const struct device *crux_log_zephyr_device(void)
 {
     return DEVICE_DT_GET(LOG_UART);
 }
+#endif
 #endif
