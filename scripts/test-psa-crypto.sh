@@ -299,10 +299,10 @@ if len(names) != int(sys.argv[2]) or any(s["status"] != "passed" for s in suites
     sys.exit(f"expected {sys.argv[2]} passed configurations, got {[(s['name'], s['status']) for s in suites]}")
 # Ztest shows a declared gap or deviation as skipped, so a passed suite says nothing about which.
 expected = {
-    "tf_psa_crypto": {"test_ed25519_generate_export_forms", "test_ed25519_generated_key_signs_and_verifies",
-                      "test_ed25519_known_answer_rfc8032"},
-    "wolfpsa": {"test_ecdsa_p256_off_curve_import_rejected", "test_ecdsa_p256_zero_signature_invalid"},
-    "wolfpsa_with_tls": {"test_ecdsa_p256_off_curve_import_rejected", "test_ecdsa_p256_zero_signature_invalid"},
+    "tf_psa_crypto": {"ed25519_generate_export_forms", "ed25519_generated_key_signs_and_verifies",
+                      "ed25519_known_answer_rfc8032"},
+    "wolfpsa": {"ecdsa_p256_off_curve_import_rejected", "ecdsa_p256_zero_signature_invalid"},
+    "wolfpsa_with_tls": {"ecdsa_p256_off_curve_import_rejected", "ecdsa_p256_zero_signature_invalid"},
 }
 for s in suites:
     states = [t["status"] for t in s["testcases"]]
