@@ -1,6 +1,6 @@
 # Product Composition Guide
 
-**Status: proposed practice.** No Crux release tag exists yet. This guide is not an adopted decision. It records how a product on Crux can compose, check, version and release its firmware, and what was run to support that. See [Limits](#limits).
+**Status: adopted practice, 2026-11-04.** No Crux release tag exists yet: the first tag follows the first real product's trial of the template. The release bundle is a convention with no tool yet, and the baseline gate warns by default until consumers reach the baseline. This guide records how a product on Crux can compose, check, version and release its firmware, and what was run to support that. See [Limits](#limits).
 
 Use it with the [product template](../samples/product_template/README.md), a small directory you copy to start a product repository. For other ways to consume Crux, see the [Build and Integration Guide](build.md).
 
@@ -290,11 +290,12 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 - That proof of concept ran prototype versions of the pin check and the gate, not the ones in this repository. Its `.config` comparison across paths also removed `# CONFIG_X is not set`, which `firmware_identity` keeps.
 - `tests/build/test_product_template.py` runs the template manifest through real west 1.4.0, `west crux-pins`, the frozen-manifest flow and input capture for the build record. It uses local throwaway repositories in place of every remote and builds nothing with Zephyr.
 - A one-off check on a GitHub runner followed the release flow in this guide through the template's own manifest, against the real upstream repositories. It used the tools in this repository, with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`, at two workspace paths. `west crux-pins` reported `OK`, the build record passed, and `firmware_identity` and `zephyr.bin` were identical. Builds with `-DBUILD_VERSION` set were also byte-identical across the two paths. With Zephyr v4.4.0 in the manifest, `west crux-pins` failed on `zephyr` and `hal_nxp`, a default configure warned and continued, and the required option stopped it. That check is not part of CI.
+- `scripts/test-product-template.sh <board>` runs in the Zephyr CI job. It runs the west-based tests, runs `west crux-pins` on Crux's own workspace and cross-builds `app/`.
 - `tests/build/test_crux_pins.py` runs `west crux-pins` through real west 1.4.0 on local throwaway repositories, and `tests/build/test_zephyr_baseline.py` evaluates the gate in `zephyr/CMakeLists.txt` with a mock Zephyr. Neither uses a real Zephyr build.
 
 **What was not run**
 
-- The template in regular CI. `scripts/test-product-template.sh <board>` runs the checks, runs `west crux-pins` on Crux's own workspace and cross-builds `app/`. It passed once on a draft pull request, but no workflow on the default branch calls it, so the west-based tests are not run there. It builds inside Crux's own workspace, not through the template's manifest.
+- A regular CI build through the template's own manifest. `scripts/test-product-template.sh <board>` runs in the Zephyr CI job, but it builds inside Crux's own workspace.
 - A real Bitbucket server. Local repositories stood in for it, so server behaviour, authentication and clone URL forms are untested.
 - A real commercial module. `vendor-runtime` was an invented stand-in.
 - Signing, a physical board, or a baseline upgrade through a fork.

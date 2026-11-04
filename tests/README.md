@@ -185,8 +185,8 @@ against local repositories, with URLs redirected by `url.<base>.insteadOf` and n
 runs the frozen-manifest flow and the build record's input capture. These cases skip when west or
 PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <board>` runs them with
 `tests/build/test_crux_pins.py`, runs `west crux-pins` on Crux's own workspace and so on a real Zephyr
-manifest, then cross-builds the application in that workspace. It does not operate hardware. It runs
-by hand: no workflow calls it, and CI wiring is proposed separately. See the
+manifest, then cross-builds the application in that workspace. It does not operate hardware. The
+Zephyr CI job runs it. See the
 [Product Composition Guide](../docs/product-composition.md).
 
 ## Portable execution capability
