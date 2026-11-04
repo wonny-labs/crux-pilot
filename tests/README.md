@@ -183,7 +183,9 @@ use only public Crux names, and its manifest pins nothing Crux pins. Real west t
 template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
 against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
 runs the frozen-manifest flow and the build record's input capture. These cases skip when west or
-PyYAML is missing, as on the host CI job. See the [Product Composition Guide](../docs/product-composition.md).
+PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <board>` runs them with
+`tests/build/test_crux_pins.py`, then cross-builds the application inside Crux's own workspace. It
+does not operate hardware. See the [Product Composition Guide](../docs/product-composition.md).
 
 ## Portable execution capability
 

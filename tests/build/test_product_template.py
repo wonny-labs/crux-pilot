@@ -107,6 +107,21 @@ class TemplateFilesTest(unittest.TestCase):
         self.assertRegex((TEMPLATE / ".gitignore").read_text(), r"(?m)^/?build/$")
 
 
+class ContinuousIntegrationTest(unittest.TestCase):
+    def test_the_zephyr_workflow_runs_the_template_script(self):
+        workflow = (REPO / ".github/workflows/zephyr.yml").read_text()
+        self.assertIn('scripts/test-product-template.sh "$CRUX_BOARD_TARGET"', workflow)
+
+    def test_the_script_builds_the_template_application_and_runs_these_tests(self):
+        script = (REPO / "scripts/test-product-template.sh")
+        self.assertTrue(os.access(script, os.X_OK))
+        text = script.read_text()
+        self.assertIn("west build -p always", text)
+        self.assertIn("samples/product_template/app", text)
+        self.assertIn("test_product_template.py", text)
+        self.assertNotRegex(text, r"\bwest (flash|debug|attach)\b")
+
+
 class GuideTest(unittest.TestCase):
     def test_guide_says_at_the_top_that_it_is_proposed_and_untagged(self):
         top = GUIDE.read_text()[:800].lower()
