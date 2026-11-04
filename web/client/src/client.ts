@@ -168,7 +168,10 @@ interface RequestSpec {
   quiet?: boolean;
   /** Retry a 409 and a short 503 busy. Off where the caller has its own loop. */
   retry?: boolean;
-  /** Retry a 503 busy. Off for the poll, where a 503 has ended the attempt. */
+  /**
+   * Retry a 503 busy. Off for the poll, where a 503 has ended the attempt, and for a request that holds a
+   * password, which is sent again only after a 409, because the server did not process that one.
+   */
   retryUnavailable?: boolean;
   id?: string;
   signal?: AbortSignal;
@@ -405,6 +408,7 @@ export function createClient(options: ClientOptions = {}): CruxClient {
     const spec: RequestSpec = {
       body,
       token,
+      retryUnavailable: false,
       onWait: (wait) => attempt.onProgress?.({ phase: 'waiting', reason: wait.reason, delayMs: wait.delayMs }),
     };
     if (attempt.signal) {

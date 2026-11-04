@@ -41,6 +41,25 @@ test('logout, password change and network save carry the token', async () => {
   );
 });
 
+test('the token is read again for each try, so a newer session is used on the retry', async () => {
+  const cookies = ['XSRF-TOKEN=first', 'XSRF-TOKEN=second'];
+  const { client, requests } = harness([empty(409), json(202, { state: 'pending' })], {
+    readCookies: () => cookies.shift() ?? '',
+  });
+  await client.requestReboot();
+  assert.equal(requests[0]?.headers.get('X-XSRF-TOKEN'), 'first');
+  assert.equal(requests[1]?.headers.get('X-XSRF-TOKEN'), 'second');
+});
+
+test('a token that has gone by the retry is not sent again from memory', async () => {
+  const cookies = ['XSRF-TOKEN=first', ''];
+  const { client, requests } = harness([empty(409), json(401, { code: 'unauthorized' })], {
+    readCookies: () => cookies.shift() ?? '',
+  });
+  await client.requestReboot();
+  assert.equal(requests[1]?.headers.has('X-XSRF-TOKEN'), false);
+});
+
 test('a read sends no token', async () => {
   const { client, requests } = harness([json(200, { items: [] })], { cookies: 'XSRF-TOKEN=t' });
   await client.getStatus();

@@ -46,14 +46,24 @@ test('a poll that could not run reports busy with the wait and starts no new att
   assert.equal(requests.length, 2);
 });
 
-test('a busy login route reports busy after its automatic retry', async () => {
-  const { client, requests, sleeps } = harness([
-    json(503, { code: 'busy' }, { 'Retry-After': '1' }),
-    json(503, { code: 'busy' }, { 'Retry-After': '2' }),
-  ]);
-  assert.deepEqual(await client.login('operator', 'password'), { kind: 'busy', retryAfterSeconds: 2 });
-  assert.equal(requests.length, 2);
-  assert.deepEqual(sleeps, [1000]);
+test('a busy login route reports busy at once, and the password is not sent again', async () => {
+  const { client, requests, sleeps } = harness([json(503, { code: 'busy' }, { 'Retry-After': '1' })]);
+  assert.deepEqual(await client.login('operator', 'password'), { kind: 'busy', retryAfterSeconds: 1 });
+  assert.equal(requests.length, 1);
+  assert.deepEqual(sleeps, []);
+});
+
+test('a busy password change route reports busy at once, and the passwords are not sent again', async () => {
+  const { client, requests, sleeps } = harness([json(503, { code: 'busy' }, { 'Retry-After': '1' })]);
+  assert.deepEqual(await client.changePassword('old', 'new'), { kind: 'busy', retryAfterSeconds: 1 });
+  assert.equal(requests.length, 1);
+  assert.deepEqual(sleeps, []);
+});
+
+test('a login held off by a 409 is the only resend, because the server did not process it', async () => {
+  const { client, requests } = harness([empty(409), json(202, { id }), json(200, { state: 'success' })]);
+  assert.deepEqual(await client.login('operator', 'password'), { kind: 'success' });
+  assert.equal(requests.filter((request) => request.method === 'POST').length, 2);
 });
 
 test('a login route held by another client reports busy after its retries', async () => {
@@ -76,9 +86,42 @@ test('a 409 on a poll keeps the attempt and polls again', async () => {
   assert.equal(requests[2]?.url, `/api/v1/session/attempt/${id}`);
 });
 
+test('a poll 409 that outlasts its retries leaves the attempt alive, and polling goes on', async () => {
+  const { client, requests } = harness([
+    accepted(),
+    empty(409),
+    empty(409),
+    empty(409),
+    empty(409),
+    json(200, { state: 'success' }),
+  ]);
+  assert.deepEqual(await client.login('operator', 'password'), { kind: 'success' });
+  assert.equal(requests.length, 6);
+  assert.ok(requests.slice(1).every((request) => request.url === `/api/v1/session/attempt/${id}`));
+});
+
+test('a poll 409 that never ends stops at the attempt limit', async () => {
+  const { client } = harness((request) => (request.method === 'POST' ? json(202, { id }) : empty(409)));
+  assert.deepEqual(await client.login('operator', 'password'), { kind: 'timed_out' });
+});
+
 test('a short network failure while polling is tolerated', async () => {
   const { client } = harness([accepted(), new TypeError('reset'), new TypeError('reset'), json(200, { state: 'success' })]);
   assert.deepEqual(await client.login('operator', 'password'), { kind: 'success' });
+});
+
+test('only consecutive failed polls count, so a good answer in between starts the count again', async () => {
+  const { client, requests } = harness([
+    accepted(),
+    new TypeError('a'),
+    new TypeError('b'),
+    json(200, { state: 'pending' }),
+    new TypeError('c'),
+    new TypeError('d'),
+    json(200, { state: 'success' }),
+  ]);
+  assert.deepEqual(await client.login('operator', 'password'), { kind: 'success' });
+  assert.equal(requests.length, 7);
 });
 
 test('a lasting network failure while polling ends the attempt with the error', async () => {

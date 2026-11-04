@@ -24,6 +24,16 @@ test('a save is confirmed only when no save is pending and the saved values matc
   assert.deepEqual(outcome.kind === 'saved' && outcome.state.saved, wanted);
 });
 
+test('a save still pending is not confirmed, even when the saved values already match', async () => {
+  const { client, requests } = harness([
+    state({ saved: wanted, save: { state: 'pending' } }),
+    state({ saved: wanted }),
+  ]);
+  const outcome = await client.watchSave(wanted);
+  assert.equal(outcome.kind, 'saved');
+  assert.equal(requests.length, 2);
+});
+
 test('a failed save is reported with the state the device holds', async () => {
   const { client } = harness([state({ save: { state: 'failed' } })]);
   const outcome = await client.watchSave(wanted);
