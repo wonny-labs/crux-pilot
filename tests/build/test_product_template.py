@@ -23,7 +23,7 @@ GUIDE = REPO / "docs/product-composition.md"
 WEST = shutil.which("west")
 GIT = shutil.which("git")
 PUBLIC_BASE = "https://github.com/"
-INTERNAL_BASE = "https://bitbucket.example/"
+INTERNAL_BASE = "https://git.example/"
 OUTSIDE = "outside-allowlist"  # a module in Zephyr's manifest that Crux did not allow
 
 
@@ -129,13 +129,46 @@ class GuideTest(unittest.TestCase):
         self.assertIn("adopted practice", top)
         self.assertIn("no crux release tag", top)
 
+    def test_guide_says_at_the_top_that_the_routes_are_provisional(self):
+        self.assertIn("provisional", GUIDE.read_text()[:800].lower())
+
+    def test_examples_use_the_neutral_internal_host(self):
+        for path in (GUIDE, MANIFEST):
+            with self.subTest(path=path.name):
+                self.assertNotIn("bitbucket.example", path.read_text())
+                self.assertIn("git.example", path.read_text())
+
     def test_readers_can_reach_the_guide(self):
         self.assertIn("docs/product-composition.md", (REPO / "README.md").read_text())
         self.assertIn("(product-composition.md)", (REPO / "docs/build.md").read_text())
         self.assertIn("product-composition.md", (TEMPLATE / "README.md").read_text())
 
-    def test_guide_draws_its_structure_decision_and_release_flows(self):
-        self.assertGreaterEqual(GUIDE.read_text().count("```mermaid"), 3)
+    def test_guide_draws_its_structure_decision_upgrade_and_release_flows(self):
+        self.assertGreaterEqual(GUIDE.read_text().count("```mermaid"), 4)
+
+    def test_guide_chooses_the_modification_route_by_kind_of_code(self):
+        text = GUIDE.read_text().lower()
+        for route in ("vendor branch", "different project name", "soft fork", "west blobs",
+                      "outside the checkout"):
+            with self.subTest(route=route):
+                self.assertIn(route, text)
+
+    def test_guide_says_a_hand_pinned_product_must_name_the_commands(self):
+        self.assertIn("west-commands: scripts/west-commands.yml", GUIDE.read_text())
+
+    def test_guide_lists_the_carried_changes_of_a_vendor_branch_as_tested(self):
+        self.assertIn("git log --no-merges vendor/1.1.0..HEAD", GUIDE.read_text())
+
+    def test_release_flow_checks_the_pins_before_it_burns_a_tag(self):
+        text = GUIDE.read_text()
+        tag = text.index("git -C product-x tag -a")
+        self.assertLess(text.index("west crux-pins\n"), tag)
+        self.assertGreater(text.rindex("west crux-pins\n"), tag)
+
+    def test_release_bundle_lists_the_manifest_and_licences(self):
+        text = GUIDE.read_text()
+        self.assertIn("`release-manifest.json`", text)
+        self.assertIn("`licences/`", text)
 
     def test_release_flow_creates_the_lock_directory_before_writing_to_it(self):
         text = GUIDE.read_text()
@@ -263,8 +296,11 @@ class TemplateWorkspaceTest(unittest.TestCase):
                         ignore=shutil.ignore_patterns("__pycache__"))
         shutil.copy(REPO / "scripts/west-commands.yml", directory / "scripts/west-commands.yml")
         # West writes bytecode beside the command, which the real repository ignores.
-        cls.commit(directory, {"west.yml": crux_text, ".gitignore": (REPO / ".gitignore").read_text()},
-                   "crux manifest")
+        cls.crux = cls.commit(directory, {"west.yml": crux_text, ".gitignore": (REPO / ".gitignore").read_text()},
+                              "crux manifest")
+        # Another Zephyr that Crux does not pin. Everything else pins by SHA, so it moves nothing.
+        cls.other_zephyr = cls.commit(cls.root / "public/zephyrproject-rtos/zephyr", {"o.txt": "next"},
+                                      "zephyr, one commit on")
 
     @staticmethod
     def remote_base():
@@ -280,8 +316,8 @@ class TemplateWorkspaceTest(unittest.TestCase):
             self.fail(f"west {' '.join(arguments)} failed:\n{result.stdout}\n{result.stderr}")
         return result
 
-    def workspace(self, manifest=None):
-        """Copy the template as a team would, then run west init -l and west update."""
+    def prepared(self, manifest=None):
+        """Copy the template as a team would, then run west init -l."""
         workspace = Path(tempfile.mkdtemp(dir=self.root))
         product = workspace / "product-x"
         shutil.copytree(TEMPLATE, product)
@@ -291,6 +327,11 @@ class TemplateWorkspaceTest(unittest.TestCase):
         git(product, "add", "-A", env=self.env)
         git(product, "commit", "-q", "-m", "start product-x", env=self.env)
         self.west("init", "-l", str(product), cwd=workspace, check=True)
+        return workspace
+
+    def workspace(self, manifest=None):
+        """Prepare a workspace, then run west update."""
+        workspace = self.prepared(manifest)
         self.west("update", cwd=workspace, check=True)
         return workspace
 
@@ -417,6 +458,169 @@ class TemplateWorkspaceTest(unittest.TestCase):
         self.assertFalse(captured["source"]["dirty"], captured["source"]["git_status_counts"])
         commits = {entry["name"]: entry["git_commit"] for entry in captured["west_projects"]}
         self.assertEqual(self.zephyr, commits["zephyr"])
+
+    def internal(self, entries, crux_import="      import: true\n", header=""):
+        """Return the template manifest with an internal remote and more project entries."""
+        return MANIFEST.read_text().replace(
+            "  projects:\n",
+            f"    - name: acme\n      url-base: {INTERNAL_BASE}scm/acme\n\n  projects:\n", 1
+        ).replace("      import: true\n", crux_import + entries).replace(
+            "  remotes:\n", header + "  remotes:\n", 1)
+
+    @staticmethod
+    def entry(name, revision, path, extra=""):
+        return (f"    - name: {name}\n      remote: acme\n      revision: {revision}\n"
+                f"      path: {path}\n" + extra)
+
+    def deliver(self, repository, version, files):
+        """Import a delivery as received, as the guide says, so what it dropped goes too."""
+        git(repository, "switch", "-q", "vendor", env=self.env)
+        git(repository, "rm", "-rq", ".", env=self.env)
+        self.commit_delivery(repository, version, files)
+
+    def commit_delivery(self, repository, version, files):
+        for name, content in files.items():
+            path = repository / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content)
+        git(repository, "add", "-A", "-f", env=self.env)
+        git(repository, "commit", "-q", "-m", f"vendor: import delivery {version}", env=self.env)
+        git(repository, "tag", "-a", f"vendor/{version}", "-m", f"delivery {version}", env=self.env)
+
+    def test_a_vendor_branch_carries_local_changes_across_deliveries(self):
+        repository = self.root / "internal/scm/acme/vendor-sdk"
+        repository.mkdir(parents=True)
+        git(repository, "init", "-q", env=self.env)
+        git(repository, "switch", "-q", "-c", "vendor", env=self.env)
+        self.commit_delivery(repository, "1.0.0", {"src/a.c": "a 1.0.0\n", "src/b.c": "b 1.0.0\n",
+                                                   "src/old.c": "old\n", ".gitignore": "*.a\n",
+                                                   "lib/vendor.a": "binary 1.0.0\n"})
+        git(repository, "switch", "-q", "-c", "main", env=self.env)
+        self.commit(repository, {"src/a.c": "a 1.0.0\nlocal fix\n"}, "[acme noup] keep the local fix")
+        delivery = {"src/a.c": "a 1.0.0\n", "src/b.c": "b 1.1.0\n", "src/new.c": "new\n",
+                    ".gitignore": "*.a\n", "lib/vendor.a": "binary 1.1.0\n"}
+        self.deliver(repository, "1.1.0", delivery)
+        self.assertEqual(sorted(delivery), sorted(git(
+            repository, "ls-tree", "-r", "--name-only", "vendor/1.1.0", env=self.env).splitlines()))
+        git(repository, "switch", "-q", "main", env=self.env)
+        git(repository, "merge", "-q", "--no-edit", "vendor/1.1.0", env=self.env)
+        merge = git(repository, "rev-parse", "HEAD", env=self.env)
+        self.assertEqual(2, len(git(repository, "show", "-s", "--format=%P", merge, env=self.env).split()))
+
+        workspace = self.workspace(self.internal(self.entry("vendor-sdk", merge, "modules/vendor-sdk")))
+        self.assertRegex(self.assert_pins_pass(workspace), rf"(?m)^PRODUCT vendor-sdk {merge[:12]}$")
+        checkout = workspace / "modules/vendor-sdk"
+        self.assertEqual("a 1.0.0\nlocal fix\n", (checkout / "src/a.c").read_text())
+        self.assertEqual("b 1.1.0\n", (checkout / "src/b.c").read_text())
+        self.assertEqual("new\n", (checkout / "src/new.c").read_text())
+        self.assertEqual("binary 1.1.0\n", (checkout / "lib/vendor.a").read_text())
+        self.assertFalse((checkout / "src/old.c").exists())
+        carried = git(checkout, "log", "--no-merges", "--format=%s", "vendor/1.1.0..HEAD", env=self.env)
+        self.assertEqual("[acme noup] keep the local fix", carried)
+        self.assertEqual("src/a.c", git(checkout, "diff", "--name-only", "vendor/1.1.0", "HEAD", env=self.env))
+
+    def commercial_edition(self, name):
+        return self.repository(f"internal/scm/acme/{name}", {"edition.txt": "commercial"})
+
+    def test_a_commercial_edition_under_a_new_name_with_the_group_off_is_a_product_module(self):
+        revision = self.commercial_edition("wolfssl-commercial")
+        workspace = self.workspace(self.internal(
+            self.entry("wolfssl-commercial", revision, "modules/crypto/wolfssl-commercial")))
+        output = self.assert_pins_pass(workspace)
+        self.assertRegex(output, rf"(?m)^PRODUCT wolfssl-commercial {revision[:12]}$")
+        self.assertNotRegex(output, r"(?m)^\w+ wolfssl ")
+        self.assertFalse((workspace / "modules/crypto/wolfssl").exists())
+
+    def test_a_commercial_edition_can_take_the_path_only_when_the_original_is_filtered_out(self):
+        revision = self.commercial_edition("wolfssh-commercial")
+        entry = self.entry("wolfssh-commercial", revision, "modules/crypto/wolfssh")
+        taken = self.west("update", cwd=self.prepared(self.internal(entry)))
+        self.assertNotEqual(0, taken.returncode, "an inactive project still holds its path")
+        self.assertIn('path "modules/crypto/wolfssh" is taken', taken.stderr)
+
+        names = ["zephyr", *self.allowlist, *(e["name"] for e in self.optional if e["name"] != "wolfssh")]
+        allow = f"      import:\n        name-allowlist: [{', '.join(names)}]\n"
+        workspace = self.workspace(self.internal(
+            entry, allow, header="  group-filter: [+crux-secure-management]\n"))
+        output = self.assert_pins_pass(workspace)
+        self.assertRegex(output, rf"(?m)^PRODUCT wolfssh-commercial {revision[:12]}$")
+        self.assertRegex(output, r"(?m)^OK wolfssl ")
+        self.assertNotRegex(output, r"(?m)^\w+ wolfssh ")
+
+    def test_reusing_a_crux_name_without_the_contract_commit_fails(self):
+        # test_crux_pins.py covers this for zephyr, which fails earlier. This is any other project.
+        revision = self.commercial_edition("wolfpsa")
+        reason = '      userdata:\n        crux-override: "commercial edition"\n'
+        for extra in ("", reason):
+            with self.subTest(extra=extra):
+                workspace = self.workspace(self.internal(
+                    self.entry("wolfpsa", revision, "modules/crypto/wolfpsa", extra)))
+                result = self.west("crux-pins", cwd=workspace)
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertNotRegex(result.stdout, r"(?m)^OK ")
+                self.assertIn("wolfpsa: cannot resolve the contract revision", result.stderr)
+
+    def test_a_zephyr_soft_fork_is_an_override_and_restates_the_allowlist(self):
+        fork = self.root / "internal/scm/acme/zephyr"
+        fork.parent.mkdir(parents=True, exist_ok=True)
+        git(self.root, "clone", "-q", str(self.root / "public/zephyrproject-rtos/zephyr"), str(fork), env=self.env)
+        git(fork, "reset", "-q", "--hard", self.zephyr, env=self.env)
+        revision = self.commit(fork, {"fix.txt": "fix"}, "[acme noup] fix")
+        git(fork, "tag", "v4.4.2-acme3", env=self.env)
+        entry = (f"    - name: zephyr\n      remote: acme\n      revision: {revision}\n"
+                 f"      import:\n        name-allowlist: [{self.allowlist[0]}]\n"
+                 '      userdata:\n        crux-override: "acme fix"\n')
+        workspace = self.workspace(self.internal(entry))
+        output = self.assert_pins_pass(workspace)
+        self.assertIn(f"OVERRIDE zephyr {revision[:12]} (contract {self.zephyr[:12]}): acme fix", output)
+        self.assertIn(f"OK {self.allowlist[0]} ", output)
+        self.assertNotIn(self.allowlist[1], output, "the import through Crux is gone")
+
+    def hand_pinned(self, zephyr=None, commands=True, name="zephyr", modules=None):
+        """Return a product manifest that imports nothing and pins each project itself."""
+        modules = [self.allowlist[0], OUTSIDE] if modules is None else modules
+        pinned = "".join(f"    - name: {module}\n      remote: zephyrproject-rtos\n"
+                         f"      revision: {self.modules[module]}\n      path: modules/{module}\n"
+                         for module in modules)
+        west_commands = "      west-commands: scripts/west-commands.yml\n" if commands else ""
+        return ("manifest:\n"
+                '  version: "1.2"\n'
+                "  remotes:\n"
+                f"    - name: crux\n      url-base: {self.remote_base()}\n"
+                f"    - name: zephyrproject-rtos\n      url-base: {PUBLIC_BASE}zephyrproject-rtos\n"
+                "  projects:\n"
+                f"    - name: crux-pilot\n      remote: crux\n      revision: {self.crux}\n"
+                f"{west_commands}"
+                f"    - name: {name}\n      remote: zephyrproject-rtos\n      repo-path: zephyr\n"
+                f"      revision: {zephyr or self.zephyr}\n"
+                f"{pinned}"
+                "  self:\n    path: product-x\n")
+
+    def test_a_hand_pinned_product_passes_while_its_pins_match(self):
+        output = self.assert_pins_pass(self.workspace(self.hand_pinned()))
+        self.assertRegex(output, rf"(?m)^CONTRACT crux-pilot {self.crux[:12]}$")
+        self.assertIn(f"OK zephyr {self.zephyr[:12]}", output)
+        self.assertIn(f"OK {self.allowlist[0]} {self.modules[self.allowlist[0]][:12]}", output)
+        # Outside Crux's allowlist, but in Zephyr's manifest at Crux's pin.
+        self.assertIn(f"OK {OUTSIDE} {self.modules[OUTSIDE][:12]}", output)
+        # Only what the workspace holds is reported. A module left out says nothing.
+        self.assertNotIn(self.allowlist[1], output)
+
+    def test_a_hand_pinned_product_on_another_zephyr_is_a_mismatch(self):
+        result = self.west("crux-pins", cwd=self.workspace(self.hand_pinned(self.other_zephyr)))
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(f"MISMATCH zephyr {self.other_zephyr[:12]} (contract {self.zephyr[:12]})", result.stdout)
+
+    def test_a_hand_pinned_product_gets_the_command_only_by_naming_it(self):
+        result = self.west("crux-pins", cwd=self.workspace(self.hand_pinned(commands=False)))
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("crux-pins", result.stderr)
+        self.assertNotIn("CONTRACT", result.stdout)
+
+    def test_a_hand_pinned_zephyr_must_keep_its_name(self):
+        result = self.west("crux-pins", cwd=self.workspace(self.hand_pinned(name="rtos")))
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("no zephyr project is pinned", result.stderr)
 
 
 if __name__ == "__main__":
