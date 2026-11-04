@@ -27,7 +27,7 @@ Nothing here has run on hardware or on Windows, and none of it qualifies a physi
 | Device-control tool | `tools/device_control` | Fake transports and scripted tools: Linux in Host CI and macOS by hand. Locking across real processes on both. Real pyserial on one disposable pseudo-terminal | Windows. Any real serial port, probe, reset or flash. No CI job runs it on macOS |
 | Harness findings | [Recorded below](#pytest-twister-harness-findings) | Linux import chain and `native` device at Zephyr v4.4.0 | Everything else in that section is source reading |
 | Hand-off manifest writer, pytest plugin for the gate flags | No. Both wait for the first real consumer | None | Not applicable |
-| Use from a real consumer (step 5) | No. Deferred, and needs its own approval | None | Not applicable |
+| Use from a real consumer (step 5) | No. Not started in this repository, and needs its own approval | None | Not applicable |
 
 ## What Crux provides and what applications own
 
@@ -57,8 +57,8 @@ about another level, and nothing here qualifies a physical board.
 ## Device-control contract
 
 A small Python interface for test tooling on the machine that holds the probe and UART,
-implemented in [`tools/device_control`](../tools/device_control/README.md) and tested only with
-fake transports. It generalises what `tests/target/conftest.py` does for one board: there, the
+implemented in [`tools/device_control`](../tools/device_control/README.md) and tested with
+fake transports and scripted tools, never on hardware. It generalises what `tests/target/conftest.py` does for one board: there, the
 J-Link path, MCU, board, ready marker and POSIX-only locking are hardcoded. UART, J-Link and hash
 handling are also spread across about ten other files in that directory.
 
@@ -87,7 +87,7 @@ The implementation settles these points that the table leaves open:
 - The verify step is a separate profile command. `flash()` does not reset or wait for boot.
 - `flash` and `verify` commands must name `{image}`, so they act on the file that was hashed. Rendered arguments, without the image path, are rejected if they contain `erase` or `fuse`; the contents of a script or command file are not checked.
 - A run's console refuses to open once the run ends, because the lock has gone.
-- An interrupt during cleanup does not skip the lock release or `result.json`, and it still reaches the caller.
+- An interrupt raised inside the console close or the lock release does not skip the rest of the cleanup, and it reaches the caller unless writing `result.json` also fails. Other interrupt windows remain; see the [tool's README](../tools/device_control/README.md#tests-and-what-they-do-not-show).
 - `identity.json` is written before the manifest is read. A null `board` means the manifest could not be read.
 
 ## Build and flash host split
@@ -173,8 +173,8 @@ safety claim. A hardware tool can keep the same small reading surface (`readline
 
 ## Recommended order
 
-Steps 1 to 4 are approved and done, within the limits below. Step 5 is deferred and needs its own
-approval.
+Steps 1 to 4 are approved and done, within the limits below. Step 5 is not started in this
+repository and needs its own approval.
 
 1. Done: decide the boundary and the position on doubles (decisions 1 and 2).
 2. Done: add a short consumer test guide to `docs/build.md` and `tests/README.md`, with the
@@ -186,7 +186,7 @@ approval.
 4. Done for Linux and macOS: implement the device-control tool with fake transports and no hardware,
    and test locking and evidence. **Windows was not run**; see the
    [tool's README](../tools/device_control/README.md#tests-and-what-they-do-not-show).
-5. Deferred: use it from the first real consumer. Only after that, consider moving `tests/target`
+5. Not started: use it from the first real consumer. Only after that, consider moving `tests/target`
    onto it, with a separate hardware approval. Migration is excluded from this work.
 
 ## Decisions
