@@ -312,7 +312,7 @@ It needs a session and its permission, so it cannot run before login. It does no
 | Configuration | `cmake/CruxManagementShell.cmake`, from `zephyr/CMakeLists.txt` for every image | All three image rows | `tests/build/test_management_shell.py` for the logic, `test_cli_composition.py` on real builds |
 | Compilation | `components/cli/ports/zephyr/cli_shell_rule.c` | The management rows | `test_management_shell.py`, compiling it with each symbol |
 | Script | `scripts/check-management-shell.py --config` | All three rows on a built `.config` | Both |
-| Image | The same script, `--elf` | No shell symbol, and the shell's sections empty | Saved `nm` output, and real RT1060 and `native_sim` images |
+| Image | The same script, `--elf` | No shell symbol, the shell's sections empty, and all 8 of their markers present, so a stripped image or an empty listing fails | Saved `nm` output, a real ELF on the Host, stripped and not, and real RT1060 and `native_sim` images |
 
 | Image | `CONFIG_SHELL` | Backends |
 | --- | --- | --- |
@@ -322,7 +322,7 @@ It needs a session and its permission, so it cannot run before login. It does no
 
 The rule reads `CONFIG_CRUX_WEB` and `CONFIG_CRUX_SSH` by name, so it applies as soon as those Kconfig symbols exist. They do not exist yet, so only Host tests cover those two.
 
-Real builds cannot set `SHELL_BACKEND_WEBSOCKET` or `MCUMGR_GRP_SHELL`, because they need the mbedtls and zcbor modules, which the pinned workspace does not fetch, so Kconfig drops them. Host tests cover those two at each level. A real build covers `SHELL`, the dummy backend, Telnet and MQTT. A marked image on `native_sim` also proves that the image check can fail, because it holds a real shell.
+Real builds here cannot set `SHELL_BACKEND_WEBSOCKET` or `MCUMGR_GRP_SHELL`, because they need the mbedtls and zcbor modules. The default workspace, which CI uses, fetches neither, so Kconfig drops those symbols. That holds only for the default workspace: `mbedtls` is pinned in the optional `crux-secure-management` group, and a workspace with that group could set the first. `zcbor` is not pinned at all. Host tests cover those two at each level. A real build covers `SHELL`, the dummy backend, Telnet and MQTT. A marked image on `native_sim` also proves that the image check can fail, because it holds a real shell.
 
 ## Tests
 
@@ -351,6 +351,7 @@ Host tests show contract behaviour. They do not establish behaviour on the wire,
 | --- | --- | --- |
 | Where the console's types live | `crux_cli_console.h` and target `crux_cli_console`, not the adapter header | The proposal put `crux_serial_config_t` in the adapter header, which would make the SSH adapter depend on Serial and defeat the narrow transport |
 | Field order of `crux_cli_command_t` | Pointers first, so a table entry has no padding worth the name. `CRUX_CLI_COMMAND`'s argument order is the proposal's. | The analyser refuses the proposal's order for 9 bytes of padding per entry, and every project goes through the macro |
+| Line ends on a terminal | Added `crux_cli_write_terminal` and `crux_cli_line_ends_t` to the adapter header | The proposal says that adapters map line ends, and serial and SSH with a terminal would each repeat the same mapping, including keeping its place across a short write |
 | Built-in commands | `help`, `logout`, `passwd` and `account list` are always registered by `crux_cli_init` | A forced change needs `passwd` and `logout` to exist, whatever a project's tables say. `account list` needs only `crux_access`, and gives an image one real permission command. |
 | Added result | `CRUX_CLI_ERR_CANCELLED`, for Ctrl-C at a prompt | Nothing in the proposal's list means this, and `FAILED` would print a line |
 | Session over, from `crux_cli_run` and `crux_cli_exec` | `CRUX_CLI_ERR_DENIED`, with `session ended` | The proposal's list has no such result. `OUTPUT` would make the console close and reopen a healthy port. |
@@ -362,7 +363,7 @@ Host tests show contract behaviour. They do not establish behaviour on the wire,
 | An empty or overlong name at the setup prompt | `invalid name` at once | The password prompts would be wasted |
 | A password over 128 bytes at the login prompt | `crux_access_login_password` with length 129 and a zeroed buffer | Access denies it by length with its own event, so the outcome stays in one place |
 | An abandoned password prompt | Gives up after 60 read timeouts, and clears | An unattended console should not hold a partly typed secret. The proposal did not ask for this. |
-| One byte per read | Always | No secret ever sits in a pending-input buffer, and no read-ahead has to be kept between prompts. A paste can outrun the ring sooner. |
+| One byte per read | Always | No secret sits in a pending-input buffer of the CLI's own, and no read-ahead has to be kept between prompts. The transport's buffers are another matter, under declared limits. A paste can outrun the ring sooner. |
 | Session check while reading a stream | Every 256 bytes | Otherwise a client that never pauses outlives the idle limit |
 | Writes with no session | Three timed-out attempts, then a transport failure | There is no session limit to end them |
 | Retry pause | 5 s, after every cycle, with an event per attempt | "Slow rate" was not given. The ring keeps other events under a persistent failure, and a user waits 5 s after a serial error. |
@@ -373,9 +374,17 @@ Host tests show contract behaviour. They do not establish behaviour on the wire,
 
 ## Declared limits
 
+- **Clearing covers the CLI's own buffers only.** The context's line and secret buffers are zeroed on every path, and the byte being read too. Typed password bytes also pass through buffers the CLI cannot reach, and they stay there until overwritten. On Zephyr, that is Serial's RX ring, `native.rx_storage` in `components/serial/ports/zephyr/serial_zephyr.c`, which neither `ring_buf_get` nor `ring_buf_reset` clears, and neither does close. It is also the UART driver's FIFO. On Linux, it is the Serial provider's staging buffer and the kernel's TTY queues. On SSH, it is the provider's and the SSH library's buffers. See the follow-up below.
+- **A session-only command can set `CRUX_CLI_FLAG_FORCED_CHANGE_OK`.** Nothing refuses that, so a project's such command runs during a forced password change, before the new password is set, without a permission check. Only the review of its name in `session-only-commands.txt` would notice, and that list covers Crux's own code. Access still refuses a service's own check during a forced change, so the handler's service is what stops it.
 - All of the proposal's limits stand: the serial wire is not encrypted, a session survives an unplugged cable until the idle limit, a paste beyond the receive ring can latch `IO` and end the session, a quarantined binding keeps the console down until a reset, a sensitive value cannot be set through `exec`, and a project handler's output is its own responsibility.
 - A handler that returns success after a failed write still ends the session when it returns, because the failure is remembered.
 - Two threads must not share a context. Nothing detects it.
 - `crux_cli_init` and `crux_cli_set_password_rule` must return before any session starts. They take no lock.
 - `tests/zephyr/cli_serial_compile` does not call the console, so it does not show that the console fits a stack or links with real providers.
 - A development image must say so in its identifier and in its evidence, as the proposal requires. Nothing checks that yet, because no image identifier carries the mark.
+- `scripts/check-cli-session-commands.py` reads Crux's components and samples, with no preprocessor. It fails on what it cannot read, but a raw table entry whose class is a bare number or a cast is not found.
+- The compile rule is a deny list, because the preprocessor cannot iterate over symbols. `tests/build/test_cli_composition.py` fails if Zephyr's shell Kconfig gains a backend that the list does not name.
+
+## Follow-up
+
+- **Zero Serial's RX ring.** Issue #181 does not change Serial, because every Serial consumer shares that code and it has its own [validation record](serial-validation.md). A likely narrow change is to zero `native.rx_storage` at close, and each byte as it leaves the ring. It needs its own contract line and a look at the cost, because the interrupt side shares the ring. It would not cover the driver's FIFO, or a byte still waiting in the ring.
