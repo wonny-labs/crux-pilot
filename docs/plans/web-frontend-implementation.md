@@ -273,9 +273,9 @@ by file.
 | Limit | Value | Measured |
 | --- | --- | --- |
 | Files | 4: index, one script, one style, one icon | 4 |
-| Compressed bytes | 32768 | 20131 |
+| Compressed bytes | 32768 | 20138 |
 
-The reference's parts, in bytes then compressed bytes: script 53673 and 18410, style 3465 and 1214, index 548 and 348, icon 174
+The reference's parts, in bytes then compressed bytes: script 53705 and 18420, style 3465 and 1214, index 548 and 345, icon 174
 and 159.
 
 ## Supply chain
@@ -284,7 +284,7 @@ and 159.
 | --- | --- |
 | Node.js | 24.22.2, pinned exactly in `web`, `web/api/lint` and the Angular sample, and checked by `tools/check-pins.ts` |
 | Production packages | One: `preact` 11.1.1, with no dependencies |
-| Development packages | `typescript` 6.0.3, `esbuild` 0.28.2, `playwright-core` 1.64.1, `ajv` 8.20.0, `yaml` 2.9.1, `@types/node` 24.19.2, and what they need |
+| Development packages | `typescript` 6.0.3, `esbuild` 0.28.2 with its 26 platform packages, `playwright-core` 1.64.1, `ajv` 8.20.0, `yaml` 2.9.1 and `@types/node` 24.19.2, and what they need: `fast-deep-equal`, `fast-uri`, `json-schema-traverse`, `require-from-string` and `undici-types`. 38 locked in all, and 13 installed on one platform. |
 | Lockfile | `web/package-lock.json`, installed with `npm ci` |
 | Lifecycle scripts | `npm ci --ignore-scripts` works. esbuild runs from its platform package without its install step. |
 | SBOM | `npm run sbom` gives CycloneDX 1.5 with one component, and CI keeps it as an artifact |
@@ -308,8 +308,8 @@ sign-in, home and sign-out, in `e2e/angular-policy.test.ts`.
 
 | Build | Files | Bytes | Compressed bytes | Production packages | Locked packages |
 | --- | --- | --- | --- | --- | --- |
-| Preact reference, all five screens | 4 | 57860 | 20131 | 1 | 38 |
-| Preact reference, sign-in and home | 4 | 47671 | 17663 | 1 | 38 |
+| Preact reference, all five screens | 4 | 57892 | 20138 | 1 | 38 |
+| Preact reference, sign-in and home | 4 | 47703 | 17681 | 1 | 38 |
 | Angular sample, sign-in and home | 5 | 249379 | 76695 | 7 | 362 |
 
 The two-screen Preact build still holds the forced password change, which the shell needs, and the Angular sample does
@@ -334,7 +334,7 @@ What this shows, on the mock only:
 | Question | Result |
 | --- | --- |
 | Does Angular work with the web foundation? | Yes, on these two screens, with the same browser cases as the reference. |
-| Compressed size against Preact on the same screens | About 4.3 times: 76,695 against 17,663 bytes. Excluding the licence file, 4.1 times. |
+| Compressed size against Preact on the same screens | About 4.3 times: 76,695 against 17,681 bytes. Excluding the licence file, 4.1 times. |
 | File count | No lazy loading is used, so one script and one style, as for Preact. |
 | CSRF | `HttpClient`'s default names work with no configuration, shown by the sign-out case. |
 | Hash routing | `withHashLocation` works, and the server sees only API and asset paths. |
