@@ -1,0 +1,85 @@
+name: psa-crypto
+
+# Qualifies TF-PSA-Crypto (Issue #142) on Linux Host and native_sim, and compiles it for RT1060-EVKB. A
+# default workflow must not select the GPL stacks, so wolfPSA does not run here: see
+# docs/psa-crypto-qualification.md. It takes only the two Apache-2.0 option projects by name.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Supersede only older runs for this PR and workflow. Main/manual runs are unique.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  psa-crypto:
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang-18
+      CXX: clang++-18
+      CRUX_WORKSPACE: ${{ github.workspace }}
+      CRUX_CACHE_DIR: ${{ github.workspace }}/../crux-cache
+      CRUX_PYTHON: ${{ github.workspace }}/../crux-tools/bin/python
+      ZEPHYR_SDK_INSTALL_DIR: ${{ github.workspace }}/../crux-cache/sdk/zephyr-sdk-1.0.1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: crux-pilot
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install host packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential ca-certificates clang-18=1:18.1.3-1ubuntu1 device-tree-compiler file \
+            gperf git libclang-rt-18-dev=1:18.1.3-1ubuntu1 libmagic1 pkg-config python3-dev wget xz-utils
+
+      - name: Install pinned Python tools
+        run: |
+          python -m venv "$GITHUB_WORKSPACE/../crux-tools"
+          "$GITHUB_WORKSPACE/../crux-tools/bin/pip" install --disable-pip-version-check \
+            cmake==3.28.4 ninja==1.11.1 west==1.4.0
+          echo "$GITHUB_WORKSPACE/../crux-tools/bin" >> "$GITHUB_PATH"
+
+      - name: Fetch the pinned workspace with the TF-PSA-Crypto projects, and install the SDK
+        env:
+          CRUX_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          west init -l crux-pilot
+          west config manifest.project-filter -- +mbedtls,+tf-psa-crypto
+          cd crux-pilot
+          scripts/bootstrap-zephyr.sh --install-sdk
+
+      - name: TF-PSA-Crypto on Linux Host, with controls and sanitizers
+        working-directory: crux-pilot
+        run: scripts/test-psa-crypto.sh host tf-psa-crypto
+
+      - name: TF-PSA-Crypto on native_sim, with the entropy declaration
+        working-directory: crux-pilot
+        run: scripts/test-psa-crypto.sh zephyr tf-psa-crypto
+
+      - name: Compile TF-PSA-Crypto for RT1060-EVKB, without running it
+        working-directory: crux-pilot
+        run: scripts/test-psa-crypto.sh target tf-psa-crypto
+
+      - name: Upload logs and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: psa-crypto-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            crux-pilot/build/psa-crypto/*.txt
+            crux-pilot/build/psa-crypto/*.log
+            crux-pilot/build/psa-crypto/twister/twister.json
+          if-no-files-found: warn
+          retention-days: 14
