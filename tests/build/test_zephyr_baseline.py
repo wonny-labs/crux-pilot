@@ -147,6 +147,11 @@ class ModuleGateTest(unittest.TestCase):
             return subprocess.run([CMAKE, "-S", str(root), "-B", str(root / "build")],
                                   capture_output=True, text=True)
 
+    @staticmethod
+    def wrong_version():
+        major, minor, _ = declared_baseline().split(".")
+        return f"{major}.{minor}.99"
+
     def test_the_baseline_version_is_quiet(self):
         result = self.configure()
         output = single_line(result)
@@ -160,6 +165,7 @@ class ModuleGateTest(unittest.TestCase):
         self.assertEqual(0, result.returncode, output)
         self.assertIn("CMake Warning", output)
         self.assertIn(f"{VERIFIED_ON} {declared_baseline()}", output)
+        self.assertIn(self.wrong_version(), output)
         self.assertIn(OPTION, output)
 
     def test_a_wrong_version_stops_under_the_required_option(self):
@@ -168,6 +174,8 @@ class ModuleGateTest(unittest.TestCase):
         self.assertNotEqual(0, result.returncode, output)
         self.assertIn("CMake Error", output)
         self.assertIn(f"{VERIFIED_ON} {declared_baseline()}", output)
+        self.assertIn(self.wrong_version(), output)
+        self.assertIn(OPTION, output)
 
     def test_an_unset_version_stops_under_the_required_option(self):
         for name in ("KERNEL_VERSION_MAJOR", "KERNEL_VERSION_MINOR", "KERNEL_PATCHLEVEL"):
