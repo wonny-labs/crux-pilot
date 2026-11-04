@@ -311,7 +311,7 @@ evidence about FatFs or a card, and no physical run covers the additions.
 `scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
 a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
 the fake File provider and a double for access, and walk a power cut across every mutation of a commit
-and of its recovery. `FileService.with_access` runs the service on the real Access core with its fake
+and of the rename that recovery finishes. `FileService.with_access` runs the service on the real Access core with its fake
 ports. The service has not run on Zephyr or on a target, and a cut on the fake says nothing about a card.
 
 `scripts/test-file-persistence.sh` builds `tests/native/file_fatfs_persist`, where the disk is a

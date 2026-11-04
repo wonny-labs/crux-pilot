@@ -47,6 +47,9 @@ typedef struct {
     size_t write_limit;
     uint64_t capacity;
     void (*write_hook)(void);
+    void (*call_hook[CRUX_FILE_FAKE_OP_COUNT])(void);
+    unsigned call_hook_skip[CRUX_FILE_FAKE_OP_COUNT];
+    crux_file_result_t remove_then_fail;
     bool cut_armed;
     bool dead;
     uint32_t cut_remaining;
@@ -87,6 +90,8 @@ void crux_file_fake_reset(void)
     s->write_limit = SIZE_MAX;
     s->capacity = UINT64_MAX;
     s->write_hook = NULL;
+    memset(s->call_hook, 0, sizeof(s->call_hook));
+    s->remove_then_fail = CRUX_FILE_OK;
     s->cut_armed = false;
     s->dead = false;
     s->cut = NULL;
@@ -181,6 +186,17 @@ void crux_file_fake_on_write(void (*hook)(void))
     fake()->write_hook = hook;
 }
 
+void crux_file_fake_on_call(crux_file_fake_op_t op, unsigned skip, void (*hook)(void))
+{
+    fake()->call_hook[op] = hook;
+    fake()->call_hook_skip[op] = skip;
+}
+
+void crux_file_fake_remove_then_fail(crux_file_result_t result)
+{
+    fake()->remove_then_fail = result;
+}
+
 void crux_file_fake_set_capacity(uint64_t bytes)
 {
     fake()->capacity = bytes;
@@ -238,6 +254,15 @@ static crux_file_result_t enter(crux_file_fake_op_t op)
 {
     state_t *s = fake();
     s->calls[op]++;
+    if (s->call_hook[op]) {
+        if (s->call_hook_skip[op] == 0) {
+            void (*hook)(void) = s->call_hook[op];
+            s->call_hook[op] = NULL;
+            hook();
+        } else {
+            s->call_hook_skip[op]--;
+        }
+    }
     if (s->dead) {
         return CRUX_FILE_ERR_IO;
     }
@@ -457,7 +482,9 @@ crux_file_result_t crux_file_impl_remove(crux_file_root_t root, const char *name
         return CRUX_FILE_ERR_IO;
     }
     s->entries[index].used = false;
-    return CRUX_FILE_OK;
+    result = s->remove_then_fail;
+    s->remove_then_fail = CRUX_FILE_OK;
+    return result;
 }
 
 crux_file_result_t crux_file_impl_stat(crux_file_root_t root, const char *name,

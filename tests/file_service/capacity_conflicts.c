@@ -317,6 +317,63 @@ static void an_area_over_its_bytes_still_overwrites(void)
     assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
 }
 
+/* A hole is refused for what it is, before the limit and the stale rule can act on it. */
+static void a_sparse_write_touches_no_partial(void)
+{
+    put_raw(ROOT_DATA, "one.filepart", "abcd");
+    test_start();
+    crux_file_service_transfer_t *t = open_new("data", "f", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    size_t count = 99;
+    assert(crux_file_service_write(SESSION_ALL, t, AREA_MAX_AREA + 10, zeros, 1, &count) ==
+           CRUX_FILE_SERVICE_ERR_OUT_OF_RANGE);
+    assert(count == 0 && crux_file_fake_exists(ROOT_DATA, "one.filepart"));
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+}
+
+static const crux_file_area_t tight_area = {"tight",
+                                            ROOT_DATA,
+                                            "data.read",
+                                            "data.write",
+                                            100,
+                                            10,
+                                            8,
+                                            "-0",
+                                            CRUX_FILE_SERVICE_MANAGED | CRUX_FILE_SERVICE_DIRECT};
+static const crux_file_service_config_t tight_table = {&tight_area, 1, NULL, 0, true};
+
+/* A suffix can match the service's own names, and those are never the stale rule's to remove. */
+static void the_stale_rule_leaves_the_services_own_files(void)
+{
+    assert(crux_file_service_start(&tight_table) == CRUX_FILE_SERVICE_OK);
+    crux_file_service_transfer_t *t = open_new("tight", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    write_all(t, 0, 3);
+    crux_file_fake_fail(CRUX_FILE_FAKE_RENAME, 0, CRUX_FILE_ERR_IO);
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(crux_file_fake_exists(ROOT_DATA, ".crux-up-0"));
+
+    t = open_new("tight", "f", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    size_t count = 99;
+    assert(crux_file_service_write(SESSION_ALL, t, 0, zeros, 10, &count) ==
+           CRUX_FILE_SERVICE_ERR_LIMIT);
+    assert(crux_file_fake_exists(ROOT_DATA, ".crux-up-0"));
+    assert(crux_file_fake_exists(ROOT_DATA, ".crux-co-0"));
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED) == 0);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+}
+
+/* A write bigger than the whole area can never fit, so it costs no partial file. */
+static void an_impossible_write_removes_nothing(void)
+{
+    put_raw(ROOT_DATA, "one-0", "abcd");
+    assert(crux_file_service_start(&tight_table) == CRUX_FILE_SERVICE_OK);
+    crux_file_service_transfer_t *t = open_new("tight", "f", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    size_t count = 99;
+    assert(crux_file_service_write(SESSION_ALL, t, 0, zeros, 11, &count) ==
+           CRUX_FILE_SERVICE_ERR_LIMIT);
+    assert(crux_file_fake_exists(ROOT_DATA, "one-0"));
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+}
+
 /* A failed open of the temporary leaves neither a file nor a counted entry behind. */
 static void a_failed_temporary_leaves_nothing_behind(void)
 {
@@ -370,6 +427,9 @@ void test_capacity(void)
     run_case("over_bytes", an_area_over_its_bytes_still_overwrites);
     run_case("failed_temporary", a_failed_temporary_leaves_nothing_behind);
     run_case("direct_declared", a_direct_mode_ignores_the_declared_size);
+    run_case("sparse", a_sparse_write_touches_no_partial);
+    run_case("own_files", the_stale_rule_leaves_the_services_own_files);
+    run_case("impossible_write", an_impossible_write_removes_nothing);
 }
 
 static void writers_and_readers_of_one_name(void)
@@ -499,6 +559,56 @@ static void a_project_handle_counts_as_a_conflict(void)
     assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
 }
 
+static crux_file_service_transfer_t *second_upload;
+
+static void open_second_upload(void)
+{
+    assert(crux_file_service_open(SESSION_ALL, "web", "b", CRUX_FILE_SERVICE_OPEN_MANAGED, 0,
+                                  &second_upload) == CRUX_FILE_SERVICE_OK);
+}
+
+/* The second upload arrives after the first found its temporary name free and before it opened it.
+ */
+static void two_uploads_never_share_a_temporary(void)
+{
+    test_start();
+    crux_file_fake_on_call(CRUX_FILE_FAKE_STAT, 1, open_second_upload);
+    crux_file_service_transfer_t *first = open_new("web", "a", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    assert(second_upload != NULL);
+    size_t count = 0;
+    assert(crux_file_service_write(SESSION_ALL, first, 0, "aaa", 3, &count) ==
+           CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_write(SESSION_ALL, second_upload, 0, "bbbb", 4, &count) ==
+           CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_commit(SESSION_ALL, &first) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_commit(SESSION_ALL, &second_upload) == CRUX_FILE_SERVICE_OK);
+    expect_raw(ROOT_WEB, "a", "aaa");
+    expect_raw(ROOT_WEB, "b", "bbbb");
+}
+
+static void store_opens(void)
+{
+    crux_file_t *store = NULL;
+    assert(crux_file_open_at(ROOT_STORE, "store.img", CRUX_FILE_CREATE_REPLACE, &store) ==
+           CRUX_FILE_OK);
+    assert(crux_file_close(&store) == CRUX_FILE_OK);
+}
+
+/* The handle left for the store stays free during a commit too, with every transfer open. */
+static void the_store_can_open_during_a_commit(void)
+{
+    put_raw(ROOT_WEB, "doc", "old");
+    test_start();
+    crux_file_service_transfer_t *up = open_new("web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    crux_file_service_transfer_t *a = open_new("data", "a", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    crux_file_service_transfer_t *b = open_new("data", "b", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE);
+    crux_file_fake_on_call(CRUX_FILE_FAKE_SIZE, 0, store_opens);
+    crux_file_fake_on_write(store_opens);
+    assert(crux_file_service_commit(SESSION_ALL, &up) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_close(&a) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_close(&b) == CRUX_FILE_SERVICE_OK);
+}
+
 void test_conflicts(void)
 {
     run_case("writers_and_readers", writers_and_readers_of_one_name);
@@ -506,4 +616,6 @@ void test_conflicts(void)
     run_case("pool", the_pool_leaves_a_handle_for_the_store);
     run_case("name_table", the_name_table_refuses_when_full);
     run_case("project_handle", a_project_handle_counts_as_a_conflict);
+    run_case("shared_temporary", two_uploads_never_share_a_temporary);
+    run_case("store_during_commit", the_store_can_open_during_a_commit);
 }

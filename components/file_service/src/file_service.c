@@ -31,6 +31,7 @@ typedef struct {
     area_status_t status;
     uint64_t used_bytes;
     uint32_t entries;
+    uint32_t claimed_slots; /* Temporary names a live upload has taken, so no other can. */
 } area_state_t;
 
 typedef enum { NEED_READ, NEED_WRITE } need_t;
@@ -367,7 +368,8 @@ static bool room_reserve_or_clear(crux_access_session_t session, size_t area, ui
         return true;
     }
     const crux_file_area_t *declared = &config->areas[area];
-    if (!declared->partial_suffix) {
+    /* More than the whole area never fits, so it costs no partial file. */
+    if (!declared->partial_suffix || bytes > declared->max_area_bytes) {
         return false;
     }
     crux_file_dir_t *dir = NULL;
@@ -382,7 +384,9 @@ static bool room_reserve_or_clear(crux_access_session_t session, size_t area, ui
         if (crux_file_dir_read(dir, name, sizeof(name), &info, &end) != CRUX_FILE_OK || end) {
             break;
         }
-        if (!has_partial_suffix(name, declared->partial_suffix) ||
+        /* A suffix can match the service's own names, and those are not partial files. */
+        if (strncmp(name, RESERVED_PREFIX, strlen(RESERVED_PREFIX)) == 0 ||
+            !has_partial_suffix(name, declared->partial_suffix) ||
             reserve(area, name, NULL) != CRUX_FILE_SERVICE_OK) {
             continue;
         }
@@ -460,32 +464,39 @@ static crux_file_result_t sidecar_write(crux_file_root_t root, int slot, const c
     return result != CRUX_FILE_OK ? result : closed;
 }
 
-/* False for a sidecar that is missing or torn, which means no removal or rename began. */
-static bool sidecar_read(crux_file_root_t root, int slot, char *target)
+typedef enum { SIDECAR_VALID, SIDECAR_TORN, SIDECAR_UNREADABLE } sidecar_state_t;
+
+/* A torn record means no removal or rename began. An unreadable one says nothing at all, and the
+ * temporary may be the only copy of the file, so the two must stay apart. */
+static sidecar_state_t sidecar_read(crux_file_root_t root, int slot, char *target)
 {
     char name[NAME_CAPACITY];
     uint8_t record[SIDECAR_BYTES];
     temp_name(name, SIDECAR_PREFIX, slot);
     crux_file_t *file = NULL;
-    if (crux_file_open_at(root, name, CRUX_FILE_READ, &file) != CRUX_FILE_OK) {
-        return false;
+    crux_file_result_t result = crux_file_open_at(root, name, CRUX_FILE_READ, &file);
+    if (result != CRUX_FILE_OK) {
+        return result == CRUX_FILE_ERR_NOT_FOUND ? SIDECAR_TORN : SIDECAR_UNREADABLE;
     }
     size_t count = 0;
-    crux_file_result_t result = crux_file_read(file, record, sizeof(record), &count);
+    result = crux_file_read(file, record, sizeof(record), &count);
     (void)crux_file_close(&file);
-    if (result != CRUX_FILE_OK || count < SIDECAR_MAGIC_BYTES + 2 ||
+    if (result != CRUX_FILE_OK) {
+        return SIDECAR_UNREADABLE;
+    }
+    if (count < SIDECAR_MAGIC_BYTES + 2 ||
         memcmp(record, SIDECAR_MAGIC, SIDECAR_MAGIC_BYTES) != 0) {
-        return false;
+        return SIDECAR_TORN;
     }
     size_t length = record[SIDECAR_MAGIC_BYTES];
     size_t body = SIDECAR_MAGIC_BYTES + 1 + length;
     if (length >= NAME_CAPACITY || count != body + 1 ||
         record[body] != sidecar_check(record, body)) {
-        return false;
+        return SIDECAR_TORN;
     }
     memcpy(target, &record[SIDECAR_MAGIC_BYTES + 1], length);
     target[length] = '\0';
-    return client_name_valid(target);
+    return client_name_valid(target) ? SIDECAR_VALID : SIDECAR_TORN;
 }
 
 /* Remove a temporary file that start found, keeping the counters true. A missing one is fine. */
@@ -515,11 +526,14 @@ static bool recover_slot(size_t area, int slot, bool has_temp, bool has_sidecar)
     temp_name(temp, TEMP_PREFIX, slot);
     temp_name(sidecar, SIDECAR_PREFIX, slot);
 
-    bool valid = has_sidecar && sidecar_read(root, slot, target);
     if (!has_temp) {
         return recovery_remove(area, sidecar);
     }
-    if (!valid) {
+    sidecar_state_t state = has_sidecar ? sidecar_read(root, slot, target) : SIDECAR_TORN;
+    if (state == SIDECAR_UNREADABLE) {
+        return false;
+    }
+    if (state == SIDECAR_TORN) {
         return recovery_remove(area, temp) && recovery_remove(area, sidecar);
     }
 
@@ -963,31 +977,53 @@ static bool transfer_valid(const crux_file_service_transfer_t *t)
     return false;
 }
 
-/* Find a temporary name with no file under it, so that a kept file is never reused and an old
- * sidecar can never name a new upload. Live uploads are found the same way. */
-static crux_file_service_result_t temp_slot_find(size_t area, int *slot)
+static bool slot_claim(size_t area, int slot)
+{
+    state_lock();
+    bool free_slot = (areas[area].claimed_slots & (1u << slot)) == 0;
+    if (free_slot) {
+        areas[area].claimed_slots |= 1u << slot;
+    }
+    state_unlock();
+    return free_slot;
+}
+
+static void slot_release(size_t area, int slot)
+{
+    state_lock();
+    areas[area].claimed_slots &= ~(1u << slot);
+    state_unlock();
+}
+
+/*
+ * Claim a temporary name with no file under it, so that a kept file is never reused and an old
+ * sidecar can never name a new upload. The claim comes before the checks, so that two uploads
+ * cannot both find one name free, and it lasts until the transfer retires.
+ */
+static crux_file_service_result_t temp_slot_find(crux_access_session_t session, size_t area,
+                                                 int *slot)
 {
     crux_file_root_t root = config->areas[area].root;
     for (int i = 0; i < CRUX_FILE_SERVICE_TEMP_SLOTS; i++) {
+        if (!slot_claim(area, i)) {
+            continue;
+        }
         char temp[NAME_CAPACITY];
         char sidecar[NAME_CAPACITY];
         crux_file_info_t info;
         temp_name(temp, TEMP_PREFIX, i);
         temp_name(sidecar, SIDECAR_PREFIX, i);
-        crux_file_result_t has_temp = crux_file_stat(root, temp, &info);
-        if (has_temp != CRUX_FILE_ERR_NOT_FOUND) {
-            if (has_temp != CRUX_FILE_OK) {
-                return from_file(has_temp);
-            }
-            continue;
+        crux_file_result_t found = crux_file_stat(root, temp, &info);
+        if (found == CRUX_FILE_ERR_NOT_FOUND) {
+            found = crux_file_stat(root, sidecar, &info);
         }
-        crux_file_result_t has_sidecar = crux_file_stat(root, sidecar, &info);
-        if (has_sidecar == CRUX_FILE_ERR_NOT_FOUND) {
+        if (found == CRUX_FILE_ERR_NOT_FOUND) {
             *slot = i;
             return CRUX_FILE_SERVICE_OK;
         }
-        if (has_sidecar != CRUX_FILE_OK) {
-            return from_file(has_sidecar);
+        slot_release(area, i);
+        if (found != CRUX_FILE_OK) {
+            return storage_result(found, session, area);
         }
     }
     return CRUX_FILE_SERVICE_ERR_NO_RESOURCES;
@@ -1022,24 +1058,29 @@ static crux_file_service_result_t open_managed(struct crux_file_service_transfer
     if (!room_reserve_or_clear(session, t->area, 0, 1)) {
         return CRUX_FILE_SERVICE_ERR_LIMIT;
     }
-    result = temp_slot_find(t->area, &t->temp_slot);
-    if (result == CRUX_FILE_SERVICE_OK) {
-        char temp[NAME_CAPACITY];
-        temp_name(temp, TEMP_PREFIX, t->temp_slot);
-        result = storage_result(crux_file_open_at(config->areas[t->area].root, temp,
-                                                  CRUX_FILE_CREATE_REPLACE, &t->file),
-                                session, t->area);
-    }
+    result = temp_slot_find(session, t->area, &t->temp_slot);
     if (result != CRUX_FILE_SERVICE_OK) {
-        /* A failed create may still have made the file. */
-        if (t->temp_slot >= 0) {
-            char temp[NAME_CAPACITY];
-            temp_name(temp, TEMP_PREFIX, t->temp_slot);
-            (void)crux_file_remove_at(config->areas[t->area].root, temp);
-        }
+        counters_remove(t->area, 0, 1);
+        return result;
+    }
+    char temp[NAME_CAPACITY];
+    temp_name(temp, TEMP_PREFIX, t->temp_slot);
+    crux_file_root_t root = config->areas[t->area].root;
+    crux_file_result_t opened = crux_file_open_at(root, temp, CRUX_FILE_CREATE_REPLACE, &t->file);
+    if (opened == CRUX_FILE_OK) {
+        return CRUX_FILE_SERVICE_OK;
+    }
+    /* A failed create may still have made the file. A refused one reached no file, and it is not
+     * this upload's to remove. */
+    crux_file_result_t removed = CRUX_FILE_OK;
+    if (opened != CRUX_FILE_ERR_INVALID_STATE) {
+        removed = crux_file_remove_at(root, temp);
+    }
+    if (removed == CRUX_FILE_OK || removed == CRUX_FILE_ERR_NOT_FOUND) {
         counters_remove(t->area, 0, 1);
     }
-    return result;
+    slot_release(t->area, t->temp_slot);
+    return storage_result(opened, session, t->area);
 }
 
 static crux_file_service_result_t open_create(struct crux_file_service_transfer *t,
@@ -1072,7 +1113,7 @@ static crux_file_service_result_t open_create(struct crux_file_service_transfer 
     crux_file_result_t checked = crux_file_stat(root, t->name, &after);
     if (checked == CRUX_FILE_OK) {
         counters_add(t->area, after.size, 0);
-    } else if (replacing || checked == CRUX_FILE_ERR_NOT_FOUND) {
+    } else if (checked == CRUX_FILE_ERR_NOT_FOUND) {
         counters_remove(t->area, 0, 1);
     }
     return storage_result(result, session, t->area);
@@ -1106,20 +1147,27 @@ static crux_file_service_result_t open_direct(struct crux_file_service_transfer 
     }
 }
 
-/* Remove what an upload has written, and release what it holds. */
-static void transfer_retire(struct crux_file_service_transfer *t, bool remove_temp)
+/* Remove what an upload has written if asked, release what it holds, and report the removal. */
+static crux_file_result_t transfer_retire(struct crux_file_service_transfer *t, bool remove_temp)
 {
+    crux_file_result_t removed = CRUX_FILE_OK;
     if (remove_temp) {
         char temp[NAME_CAPACITY];
         temp_name(temp, TEMP_PREFIX, t->temp_slot);
-        if (crux_file_remove_at(config->areas[t->area].root, temp) == CRUX_FILE_OK) {
+        removed = crux_file_remove_at(config->areas[t->area].root, temp);
+        if (removed == CRUX_FILE_OK || removed == CRUX_FILE_ERR_NOT_FOUND) {
             counters_remove(t->area, t->size, 1);
+            removed = CRUX_FILE_OK;
         }
+    }
+    if (t->temp_slot >= 0) {
+        slot_release(t->area, t->temp_slot);
     }
     if (t->holds_name) {
         release(t->area, t->name);
     }
     transfer_give_back(t);
+    return removed;
 }
 
 crux_file_service_result_t crux_file_service_open(crux_access_session_t session, const char *area,
@@ -1185,7 +1233,7 @@ crux_file_service_result_t crux_file_service_open(crux_access_session_t session,
             /* Without a size no later check is sound, so the file does not stay open. */
             (void)crux_file_close(&t->file);
             if (managed) {
-                transfer_retire(t, true);
+                (void)transfer_retire(t, true);
                 return storage_result(sized, session, index);
             }
             result = storage_result(sized, session, index);
@@ -1339,8 +1387,8 @@ crux_file_service_result_t crux_file_service_size(crux_access_session_t session,
 
 /* A handle on the target stops a commit before it changes anything. Opening for writing is refused
  * next to any other handle, so it also finds a reader outside the service. */
-static crux_file_service_result_t target_free(const struct crux_file_service_transfer *t,
-                                              bool *exists, uint64_t *old_size)
+static crux_file_result_t target_free(const struct crux_file_service_transfer *t, bool *exists,
+                                      uint64_t *old_size)
 {
     crux_file_root_t root = config->areas[t->area].root;
     crux_file_t *probe = NULL;
@@ -1348,15 +1396,54 @@ static crux_file_service_result_t target_free(const struct crux_file_service_tra
     if (result == CRUX_FILE_ERR_NOT_FOUND) {
         *exists = false;
         *old_size = 0;
-        return CRUX_FILE_SERVICE_OK;
+        return CRUX_FILE_OK;
     }
     if (result != CRUX_FILE_OK) {
-        return from_file(result);
+        return result;
     }
     *exists = true;
     result = crux_file_size(probe, old_size);
     crux_file_result_t closed = crux_file_close(&probe);
-    return from_file(result != CRUX_FILE_OK ? result : closed);
+    return result != CRUX_FILE_OK ? result : closed;
+}
+
+/* Nothing that the target depends on has changed, and the upload is gone. */
+static crux_file_service_result_t commit_abandoned(crux_file_service_transfer_t **transfer,
+                                                   crux_file_result_t failure)
+{
+    struct crux_file_service_transfer *t = *transfer;
+    crux_access_session_t session = t->session;
+    size_t area = t->area;
+    *transfer = NULL;
+    (void)transfer_retire(t, true);
+    return storage_result(failure, session, area);
+}
+
+/* The commit changed nothing, so the caller keeps the upload and can write on, retry or close. */
+static crux_file_service_result_t commit_refused(crux_file_service_transfer_t **transfer,
+                                                 crux_file_service_result_t refusal)
+{
+    struct crux_file_service_transfer *t = *transfer;
+    char temp[NAME_CAPACITY];
+    temp_name(temp, TEMP_PREFIX, t->temp_slot);
+    crux_file_result_t reopened =
+        crux_file_open_at(config->areas[t->area].root, temp, CRUX_FILE_READ_WRITE, &t->file);
+    if (reopened == CRUX_FILE_OK) {
+        t->position_known = false;
+        return refusal;
+    }
+    return commit_abandoned(transfer, CRUX_FILE_ERR_IO);
+}
+
+/* The target may be gone, so both files stay, and the next start finishes or undoes the commit. */
+static crux_file_service_result_t commit_failed(crux_file_service_transfer_t **transfer)
+{
+    struct crux_file_service_transfer *t = *transfer;
+    *transfer = NULL;
+    event(CRUX_FILE_SERVICE_EVENT_COMMIT_FAILED, t->session, t->area, t->name, NULL);
+    /* The temporary counts against the limit now. The sidecar counts from the next start's scan. */
+    (void)transfer_retire(t, false);
+    return CRUX_FILE_SERVICE_ERR_IO;
 }
 
 crux_file_service_result_t crux_file_service_commit(crux_access_session_t session,
@@ -1376,63 +1463,66 @@ crux_file_service_result_t crux_file_service_commit(crux_access_session_t sessio
     if (t->kind != KIND_MANAGED) {
         return CRUX_FILE_SERVICE_ERR_DENIED;
     }
-    bool target_exists = false;
-    uint64_t old_size = 0;
-    result = target_free(t, &target_exists, &old_size);
-    if (result == CRUX_FILE_SERVICE_ERR_BUSY || result == CRUX_FILE_SERVICE_ERR_NO_RESOURCES) {
-        return result;
+
+    /* Closing the temporary first keeps the service to its share of the File handles while the
+     * probe and the sidecar each take one. */
+    crux_file_root_t root = config->areas[t->area].root;
+    crux_file_result_t stepped = crux_file_sync(t->file);
+    crux_file_result_t closed = crux_file_close(&t->file);
+    stepped = stepped != CRUX_FILE_OK ? stepped : closed;
+    if (stepped != CRUX_FILE_OK) {
+        return commit_abandoned(transfer, stepped);
     }
 
-    /* From here the handle is consumed, whatever happens. */
-    *transfer = NULL;
-    crux_file_root_t root = config->areas[t->area].root;
-    if (result == CRUX_FILE_SERVICE_OK) {
-        crux_file_result_t synced = crux_file_sync(t->file);
-        result = storage_result(synced, session, t->area);
+    bool target_exists = false;
+    uint64_t old_size = 0;
+    stepped = target_free(t, &target_exists, &old_size);
+    if (stepped == CRUX_FILE_ERR_INVALID_STATE || stepped == CRUX_FILE_ERR_NO_RESOURCES) {
+        return commit_refused(transfer, from_file(stepped));
     }
-    crux_file_result_t closed = crux_file_close(&t->file);
-    if (result == CRUX_FILE_SERVICE_OK) {
-        result = storage_result(closed, session, t->area);
-    }
-    if (result != CRUX_FILE_SERVICE_OK) {
-        transfer_retire(t, true);
-        return result;
+    if (stepped != CRUX_FILE_OK) {
+        return commit_abandoned(transfer, stepped);
     }
 
     char temp[NAME_CAPACITY];
     char sidecar[NAME_CAPACITY];
     temp_name(temp, TEMP_PREFIX, t->temp_slot);
     temp_name(sidecar, SIDECAR_PREFIX, t->temp_slot);
-    crux_file_result_t stepped = sidecar_write(root, t->temp_slot, t->name);
+    stepped = sidecar_write(root, t->temp_slot, t->name);
     if (stepped != CRUX_FILE_OK) {
         (void)crux_file_remove_at(root, sidecar);
-        transfer_retire(t, true);
-        return storage_result(stepped, session, t->area);
+        if (stepped == CRUX_FILE_ERR_INVALID_STATE || stepped == CRUX_FILE_ERR_NO_RESOURCES) {
+            return commit_refused(transfer, from_file(stepped));
+        }
+        return commit_abandoned(transfer, stepped);
     }
 
     /* The sidecar is on the medium, so the next start can finish or undo every step below. */
     if (target_exists) {
         stepped = crux_file_remove_at(root, t->name);
-        if (stepped == CRUX_FILE_OK) {
-            counters_remove(t->area, old_size, 1);
-        } else {
-            /* The target stands. A reader that arrived since the probe is what makes it busy. */
+        if (stepped == CRUX_FILE_ERR_INVALID_STATE) {
+            /* A reader arrived since the probe. File refused before it reached the target. */
             (void)crux_file_remove_at(root, sidecar);
-            transfer_retire(t, true);
-            return storage_result(stepped, session, t->area);
+            return commit_refused(transfer, CRUX_FILE_SERVICE_ERR_BUSY);
+        }
+        crux_file_info_t info;
+        if (stepped == CRUX_FILE_OK || stepped == CRUX_FILE_ERR_NOT_FOUND ||
+            crux_file_stat(root, t->name, &info) == CRUX_FILE_ERR_NOT_FOUND) {
+            counters_remove(t->area, old_size, 1);
+        }
+        if (stepped != CRUX_FILE_OK && stepped != CRUX_FILE_ERR_NOT_FOUND) {
+            /* FatFs can report an error after the entry has gone, so nothing here is removed. */
+            return commit_failed(transfer);
         }
     }
-    stepped = crux_file_rename(root, temp, t->name);
-    if (stepped != CRUX_FILE_OK) {
-        event(CRUX_FILE_SERVICE_EVENT_COMMIT_FAILED, session, t->area, t->name, NULL);
-        /* Both files stay, count against the limit, and keep their slot for the next start. */
-        transfer_retire(t, false);
-        return CRUX_FILE_SERVICE_ERR_IO;
+    if (crux_file_rename(root, temp, t->name) != CRUX_FILE_OK) {
+        return commit_failed(transfer);
     }
     /* A sidecar left here is removed at the next start, and it only skips its slot until then. */
     (void)crux_file_remove_at(root, sidecar);
     event(CRUX_FILE_SERVICE_EVENT_CREATED, session, t->area, t->name, NULL);
-    transfer_retire(t, false);
+    *transfer = NULL;
+    (void)transfer_retire(t, false);
     return CRUX_FILE_SERVICE_OK;
 }
 
@@ -1447,6 +1537,6 @@ crux_file_service_result_t crux_file_service_close(crux_file_service_transfer_t 
     struct crux_file_service_transfer *t = *transfer;
     *transfer = NULL;
     crux_file_result_t closed = crux_file_close(&t->file);
-    transfer_retire(t, t->kind == KIND_MANAGED);
-    return from_file(closed);
+    crux_file_result_t removed = transfer_retire(t, t->kind == KIND_MANAGED);
+    return from_file(closed != CRUX_FILE_OK ? closed : removed);
 }

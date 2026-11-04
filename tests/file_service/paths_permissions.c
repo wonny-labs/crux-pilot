@@ -346,6 +346,20 @@ static void every_operation_checks_the_session_and_the_permission(void)
            CRUX_FILE_SERVICE_ERR_NOT_FOUND);
     expect_raw(ROOT_LOGS, "log", "abc");
 
+    /* A write-only session's direct transfer writes and reports its size, and it cannot read. */
+    crux_file_service_transfer_t *t = NULL;
+    size_t count = 0;
+    uint64_t size = 0;
+    char value[4];
+    assert(crux_file_service_open(SESSION_WRITE, "data", "file", CRUX_FILE_SERVICE_OPEN_DIRECT, 0,
+                                  &t) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_write(SESSION_WRITE, t, 0, "x", 1, &count) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_size(SESSION_WRITE, t, &size) == CRUX_FILE_SERVICE_OK && size == 3);
+    assert(crux_file_service_read(SESSION_WRITE, t, 0, value, 1, &count) ==
+           CRUX_FILE_SERVICE_ERR_DENIED);
+    assert(count == 0 || count == 1);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
+
     /* A mode the area does not offer. */
     assert(try_open(SESSION_ALL, "web", "x", CRUX_FILE_SERVICE_OPEN_DIRECT_CREATE) ==
            CRUX_FILE_SERVICE_ERR_DENIED);
@@ -385,11 +399,65 @@ static void a_failed_scan_stops_only_its_area_until_a_reset(void)
     assert(crux_file_service_stat(SESSION_ALL, "logs", "log", &info) == CRUX_FILE_SERVICE_OK);
 }
 
+/* Service names and File names must not drift apart, because the service keeps its own copy of the
+ * rule so that resolve touches no storage. */
+static void the_name_rule_matches_files(void)
+{
+    test_start();
+    for (int c = 1; c < 256; c++) {
+        char name[3] = {'a', (char)c, '\0'};
+        char path[16];
+        char out[64];
+        const crux_file_area_t *area = NULL;
+        crux_file_info_t info;
+        (void)snprintf(path, sizeof(path), "/data/%s", name);
+        bool service =
+            crux_file_service_resolve(path, &area, out, sizeof(out)) == CRUX_FILE_SERVICE_OK;
+        bool file = crux_file_stat(ROOT_DATA, name, &info) != CRUX_FILE_ERR_INVALID_ARGUMENT;
+        assert(service == file);
+    }
+    char longest[66];
+    memset(longest, 'a', sizeof(longest));
+    longest[63] = '\0';
+    crux_file_info_t info;
+    assert(crux_file_stat(ROOT_DATA, longest, &info) == CRUX_FILE_ERR_NOT_FOUND);
+    assert(crux_file_service_stat(SESSION_ALL, "data", longest, &info) ==
+           CRUX_FILE_SERVICE_ERR_NOT_FOUND);
+    longest[63] = 'a';
+    longest[64] = '\0';
+    assert(crux_file_stat(ROOT_DATA, longest, &info) == CRUX_FILE_ERR_INVALID_ARGUMENT);
+    assert(crux_file_service_stat(SESSION_ALL, "data", longest, &info) ==
+           CRUX_FILE_SERVICE_ERR_INVALID_ARGUMENT);
+}
+
+/* The longest area and the longest name make 80 bytes, the bound on a whole path. */
+static void the_longest_legal_path_resolves(void)
+{
+    static const crux_file_area_t area = {
+        "fifteen-letters", ROOT_DATA, "data.read", NULL, 10, 10, 1, NULL, 0};
+    static const crux_file_service_config_t table = {&area, 1, NULL, 0, true};
+    assert(crux_file_service_start(&table) == CRUX_FILE_SERVICE_OK);
+    char path[82];
+    memset(path, 'n', sizeof(path));
+    memcpy(path, "/fifteen-letters/", 17);
+    path[80] = '\0';
+    const crux_file_area_t *found = NULL;
+    char name[64];
+    assert(crux_file_service_resolve(path, &found, name, sizeof(name)) == CRUX_FILE_SERVICE_OK);
+    assert(found == &area && strlen(name) == 63);
+    path[80] = 'n';
+    path[81] = '\0';
+    assert(crux_file_service_resolve(path, &found, name, sizeof(name)) ==
+           CRUX_FILE_SERVICE_ERR_INVALID_ARGUMENT);
+}
+
 void test_paths(void)
 {
     run_case("start_refuses_bad_tables", start_refuses_bad_tables);
     run_case("resolve_accepts_only_the_two_shapes", resolve_accepts_only_the_two_shapes);
     run_case("rejected_names_are_never_recorded", rejected_names_are_never_recorded);
+    run_case("name_rule", the_name_rule_matches_files);
+    run_case("longest_path", the_longest_legal_path_resolves);
 }
 
 void test_permissions(void)

@@ -237,7 +237,20 @@ static void a_session_that_ends_mid_transfer(void)
            CRUX_FILE_SERVICE_OK);
     assert(crux_file_service_write(SESSION_OTHER, managed, 0, "abc", 3, &count) ==
            CRUX_FILE_SERVICE_OK);
+    crux_file_service_dir_t *listing = NULL;
+    assert(crux_file_service_dir_open(SESSION_OTHER, "data", &listing) == CRUX_FILE_SERVICE_OK);
     fake_access_end_other();
+    char name[64];
+    crux_file_info_t info;
+    bool end = false;
+    uint64_t size = 0;
+    assert(crux_file_service_dir_read(SESSION_OTHER, listing, name, sizeof(name), &info, &end) ==
+           CRUX_FILE_SERVICE_ERR_SESSION_INVALID);
+    assert(crux_file_service_dir_close(&listing) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_size(SESSION_OTHER, direct, &size) ==
+           CRUX_FILE_SERVICE_ERR_SESSION_INVALID);
+    assert(crux_file_service_read(SESSION_OTHER, direct, 0, name, 1, &count) ==
+           CRUX_FILE_SERVICE_ERR_SESSION_INVALID);
     assert(crux_file_service_write(SESSION_OTHER, direct, 3, "d", 1, &count) ==
            CRUX_FILE_SERVICE_ERR_SESSION_INVALID);
     assert(crux_file_service_commit(SESSION_OTHER, &managed) ==
@@ -358,14 +371,185 @@ static void a_failed_commit_keeps_the_old_target_until_its_removal(void)
     assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_IO);
     assert(t == NULL);
     assert(!crux_file_fake_exists(ROOT_WEB, "doc"));
-    assert(crux_file_fake_exists(ROOT_WEB, ".crux-up-0") ||
-           crux_file_fake_exists(ROOT_WEB, ".crux-up-1"));
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-co-0"));
     assert(events_of(CRUX_FILE_SERVICE_EVENT_COMMIT_FAILED) == 1);
 
     /* The slot it kept is skipped, so a new upload cannot be confused with it. */
     t = open_as(SESSION_ALL, "web", "other", CRUX_FILE_SERVICE_OPEN_MANAGED);
     assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_OK);
     expect_raw(ROOT_WEB, "other", "");
+}
+
+/* A sidecar that cannot be written, or is written short, leaves the target and no debris. */
+static void a_failed_sidecar_or_close_keeps_the_target(void)
+{
+    put_raw(ROOT_WEB, "doc", "old");
+    test_start();
+    crux_file_service_transfer_t *t =
+        open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    put_text(t, 0, "new");
+    crux_file_fake_limit_write(2);
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_IO);
+    crux_file_fake_limit_write(SIZE_MAX);
+    assert(t == NULL);
+    expect_raw(ROOT_WEB, "doc", "old");
+    assert(!crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
+    assert(!crux_file_fake_exists(ROOT_WEB, ".crux-co-0"));
+
+    t = open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    put_text(t, 0, "new");
+    crux_file_fake_fail(CRUX_FILE_FAKE_CLOSE, 0, CRUX_FILE_ERR_IO);
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(t == NULL);
+    expect_raw(ROOT_WEB, "doc", "old");
+    assert(!crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
+}
+
+static crux_file_t *late_reader;
+
+static void open_late_reader(void)
+{
+    assert(crux_file_open_at(ROOT_WEB, "doc", CRUX_FILE_READ, &late_reader) == CRUX_FILE_OK);
+}
+
+/* A reader after the first check is found at the removal, and it still changes nothing. */
+static void a_reader_during_the_commit_changes_nothing(void)
+{
+    put_raw(ROOT_WEB, "doc", "old");
+    test_start();
+    crux_file_service_transfer_t *t =
+        open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    put_text(t, 0, "new");
+
+    /* The only write left is the sidecar's. */
+    crux_file_fake_on_write(open_late_reader);
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_BUSY);
+    assert(t != NULL && late_reader != NULL);
+    assert(!crux_file_fake_exists(ROOT_WEB, ".crux-co-0"));
+    expect_raw(ROOT_WEB, "doc", "old");
+    assert(crux_file_close(&late_reader) == CRUX_FILE_OK);
+
+    /* The upload goes on from where it was, and a retry finishes it. */
+    put_text(t, 3, "er");
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_OK);
+    assert(t == NULL);
+    expect_raw(ROOT_WEB, "doc", "newer");
+}
+
+/* Running out of handles at either open keeps the upload, so that the caller can retry. */
+static void no_handle_for_a_commit_keeps_the_upload(void)
+{
+    put_raw(ROOT_WEB, "doc", "old");
+    test_start();
+    crux_file_service_transfer_t *t =
+        open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    put_text(t, 0, "new");
+    for (unsigned skip = 0; skip < 2; skip++) {
+        crux_file_fake_fail(CRUX_FILE_FAKE_OPEN, skip, CRUX_FILE_ERR_NO_RESOURCES);
+        assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_NO_RESOURCES);
+        assert(t != NULL);
+        expect_raw(ROOT_WEB, "doc", "old");
+    }
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_OK);
+    expect_raw(ROOT_WEB, "doc", "new");
+}
+
+/* If the temporary cannot be opened again there is nothing left to retry. */
+static void a_failed_reopen_consumes_the_upload(void)
+{
+    put_raw(ROOT_WEB, "doc", "old");
+    test_start();
+    crux_file_t *reader = NULL;
+    assert(crux_file_open_at(ROOT_WEB, "doc", CRUX_FILE_READ, &reader) == CRUX_FILE_OK);
+    crux_file_service_transfer_t *t =
+        open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    put_text(t, 0, "new");
+    crux_file_fake_fail(CRUX_FILE_FAKE_OPEN, 0, CRUX_FILE_ERR_IO);
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(t == NULL);
+    assert(crux_file_close(&reader) == CRUX_FILE_OK);
+    expect_raw(ROOT_WEB, "doc", "old");
+    assert(!crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
+}
+
+/* FatFs can report an error after the entry went, so a failed removal leaves the choice to start.
+ */
+static void removal_failed_after_the_entry_went(void)
+{
+    test_start();
+    crux_file_service_transfer_t *t =
+        open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    put_text(t, 0, "newer");
+    crux_file_fake_remove_then_fail(CRUX_FILE_ERR_IO);
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(t == NULL);
+    assert(!crux_file_fake_exists(ROOT_WEB, "doc"));
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-co-0"));
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_COMMIT_FAILED) == 1);
+}
+
+static void removal_failed_with_the_entry_kept(void)
+{
+    test_start();
+    crux_file_service_transfer_t *t =
+        open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    put_text(t, 0, "newer");
+    crux_file_fake_fail(CRUX_FILE_FAKE_REMOVE, 0, CRUX_FILE_ERR_IO);
+    assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(t == NULL);
+    expect_raw(ROOT_WEB, "doc", "old");
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-co-0"));
+    assert(events_of(CRUX_FILE_SERVICE_EVENT_COMMIT_FAILED) == 1);
+}
+
+static void next_start_finds_the_new_file(void)
+{
+    test_start();
+    expect_raw(ROOT_WEB, "doc", "newer");
+    assert(!crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
+    assert(!crux_file_fake_exists(ROOT_WEB, ".crux-co-0"));
+}
+
+static void next_start_finds_the_old_file(void)
+{
+    test_start();
+    expect_raw(ROOT_WEB, "doc", "old");
+    assert(!crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
+    assert(!crux_file_fake_exists(ROOT_WEB, ".crux-co-0"));
+}
+
+static void a_failed_removal_is_decided_at_the_next_start(void)
+{
+    test_medium_reset();
+    put_raw(ROOT_WEB, "doc", "old");
+    assert(run_child(removal_failed_after_the_entry_went) == 0);
+    crux_file_fake_power_on();
+    assert(run_child(next_start_finds_the_new_file) == 0);
+
+    test_medium_reset();
+    put_raw(ROOT_WEB, "doc", "old");
+    assert(run_child(removal_failed_with_the_entry_kept) == 0);
+    crux_file_fake_power_on();
+    assert(run_child(next_start_finds_the_old_file) == 0);
+}
+
+/* A close that cannot remove its temporary says so, and the slot stays out of use. */
+static void a_failed_abort_is_reported_and_its_slot_skipped(void)
+{
+    test_start();
+    crux_file_service_transfer_t *t =
+        open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    put_text(t, 0, "abc");
+    crux_file_fake_fail(CRUX_FILE_FAKE_REMOVE, 0, CRUX_FILE_ERR_IO);
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(t == NULL);
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
+    t = open_as(SESSION_ALL, "web", "doc", CRUX_FILE_SERVICE_OPEN_MANAGED);
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-up-1"));
+    assert(crux_file_service_close(&t) == CRUX_FILE_SERVICE_OK);
 }
 
 static void an_abort_removes_the_temporary_and_gives_back_its_room(void)
@@ -414,6 +598,11 @@ void test_transfers(void)
     run_case("commit_reader", a_commit_with_a_reader_on_the_target_changes_nothing);
     run_case("failed_commit", a_failed_commit_keeps_the_old_target_until_its_removal);
     run_case("abort", an_abort_removes_the_temporary_and_gives_back_its_room);
+    run_case("failed_sidecar", a_failed_sidecar_or_close_keeps_the_target);
+    run_case("late_reader", a_reader_during_the_commit_changes_nothing);
+    run_case("no_handle", no_handle_for_a_commit_keeps_the_upload);
+    run_case("failed_reopen", a_failed_reopen_consumes_the_upload);
+    run_case("failed_abort", a_failed_abort_is_reported_and_its_slot_skipped);
     run_case("close_error", a_close_error_is_passed_on);
 }
 
@@ -460,16 +649,19 @@ static void after_a_cut_with_a_different_size(void)
     assert(strcmp(value, old_content) == 0 || strcmp(value, upload_content) == 0);
     assert(!temporaries_remain());
     assert(events_of(CRUX_FILE_SERVICE_EVENT_RECOVERY_NEEDED) == 0);
-    /* The counters match what is there. */
+
+    /* The counters match what is there: four files, so one more fits and a sixth does not. */
     crux_file_service_transfer_t *t =
         open_as(SESSION_ALL, "web", "more", CRUX_FILE_SERVICE_OPEN_MANAGED);
     assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_OK);
+    assert(crux_file_service_open(SESSION_ALL, "web", "last", CRUX_FILE_SERVICE_OPEN_MANAGED, 0,
+                                  &t) == CRUX_FILE_SERVICE_ERR_LIMIT);
 }
 
 /*
  * The same walk with an upload of the old file's size. Removing such a temporary could free
  * clusters it shares with the target, so a state start cannot tell apart stays for a host repair.
- * Results do not claim that replacement is atomic: this is a model of the sequence, not of FAT.
+ * This is a model of the sequence, not of FAT.
  */
 static bool saw_kept;
 
@@ -483,15 +675,24 @@ static void after_a_cut_with_the_same_size(void)
     unsigned kept = events_of(CRUX_FILE_SERVICE_EVENT_RECOVERY_NEEDED);
     assert(kept <= 1);
     if (kept == 1) {
-        assert(temporaries_remain());
         assert(strcmp(events_get(events_count() - 1)->area, "web") == 0);
+        expect_raw(ROOT_WEB, ".crux-up-0", upload_content);
 
-        /* A kept temporary counts against the limit, and its slot is skipped. */
-        crux_file_service_transfer_t *t =
-            open_as(SESSION_ALL, "web", "more", CRUX_FILE_SERVICE_OPEN_MANAGED);
-        put_text(t, 0, "abc");
+        /* The kept temporary and its sidecar count against the limit: four files and these two. */
+        crux_file_service_transfer_t *t = NULL;
+        assert(crux_file_service_open(SESSION_ALL, "web", "more", CRUX_FILE_SERVICE_OPEN_MANAGED, 0,
+                                      &t) == CRUX_FILE_SERVICE_ERR_LIMIT);
+        assert(crux_file_service_remove(SESSION_ALL, "web", "f1") == CRUX_FILE_SERVICE_OK);
+        assert(crux_file_service_remove(SESSION_ALL, "web", "f2") == CRUX_FILE_SERVICE_OK);
+
+        /* Its slot is skipped, so the new upload takes the next one and leaves the kept files. */
+        t = open_as(SESSION_ALL, "web", "more", CRUX_FILE_SERVICE_OPEN_MANAGED);
+        assert(crux_file_fake_exists(ROOT_WEB, ".crux-up-1"));
+        put_text(t, 0, "abcd");
         assert(crux_file_service_commit(SESSION_ALL, &t) == CRUX_FILE_SERVICE_OK);
-        expect_raw(ROOT_WEB, "more", "abc");
+        expect_raw(ROOT_WEB, "more", "abcd");
+        expect_raw(ROOT_WEB, ".crux-up-0", upload_content);
+        assert(crux_file_fake_exists(ROOT_WEB, ".crux-co-0"));
         _exit(CUT_EXIT + 1);
     }
     assert(!temporaries_remain());
@@ -503,6 +704,9 @@ static void walk_cuts(const char *content, void (*check)(void), bool *any_kept)
     for (cut_point = 0;; cut_point++) {
         test_medium_reset();
         put_raw(ROOT_WEB, "doc", old_content);
+        put_raw(ROOT_WEB, "f1", "");
+        put_raw(ROOT_WEB, "f2", "");
+        put_raw(ROOT_WEB, "f3", "");
         int code = run_child(upload_and_commit);
         crux_file_fake_power_on();
         int checked = run_child(check);
@@ -565,6 +769,28 @@ static void recovery_survives_its_own_cut(void)
         assert(code == CUT_EXIT);
     }
     assert(recovery_cut == 2); /* The rename and the sidecar's removal. */
+}
+
+static void start_with_an_unreadable_sidecar(void)
+{
+    crux_file_fake_fail(CRUX_FILE_FAKE_READ, 0, CRUX_FILE_ERR_IO);
+    test_start();
+    crux_file_info_t info;
+    assert(crux_file_service_stat(SESSION_ALL, "web", "doc", &info) == CRUX_FILE_SERVICE_ERR_IO);
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-up-0"));
+    assert(crux_file_fake_exists(ROOT_WEB, ".crux-co-0"));
+}
+
+/* A read error is not a torn record. Here the target has gone, so the temporary is the only copy.
+ */
+static void an_unreadable_sidecar_keeps_the_upload(void)
+{
+    test_medium_reset();
+    put_raw(ROOT_WEB, "doc", old_content);
+    assert(run_child(leave_a_half_commit) == CUT_EXIT);
+    crux_file_fake_power_on();
+    assert(run_child(start_with_an_unreadable_sidecar) == 0);
+    assert(run_child(after_recovery_cut) == 0);
 }
 
 /* A sidecar that holds no valid record means the removal never began. */
@@ -692,7 +918,12 @@ void test_interrupted(void)
     saw_kept = false;
     walk_cuts("new", after_a_cut_with_the_same_size, &saw_kept);
     assert(saw_kept);
+    puts("Interrupted commits: replacement is not atomic across power loss. On the fake's model a "
+         "different size ends with the whole old or new file, and the same size can keep a "
+         "temporary for a host repair. This says nothing about FAT or a card.");
     recovery_survives_its_own_cut();
+    an_unreadable_sidecar_keeps_the_upload();
+    a_failed_removal_is_decided_at_the_next_start();
     a_sidecar_with_its_magic_but_no_valid_check_is_torn();
     run_case("torn_sidecar", a_torn_sidecar_is_only_debris);
     run_case("no_sidecar", a_temporary_with_no_sidecar_is_removed);

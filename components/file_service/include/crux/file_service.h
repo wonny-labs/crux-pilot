@@ -217,7 +217,9 @@ crux_file_service_result_t crux_file_service_size(crux_access_session_t session,
  *
  * It removes an existing target and then renames, which is not atomic across power loss. A refusal
  * of the session or the permission, ERR_BUSY and ERR_NO_RESOURCES change nothing and keep the
- * handle, so that the caller can retry or close. Any other result consumes it.
+ * handle, so that the caller can write on, retry or close. If the temporary file cannot be opened
+ * again after such a refusal, the result is ERR_IO and the upload is gone. Any other result
+ * consumes the handle.
  *
  * @retval CRUX_FILE_SERVICE_ERR_DENIED Another session's transfer, or not a managed upload.
  * @retval CRUX_FILE_SERVICE_ERR_IO No success. The target may be gone, and the next start finishes

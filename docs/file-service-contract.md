@@ -27,7 +27,7 @@ Every operation that takes a session checks the session and the permission, incl
 | Holds the other permission only | `ERR_DENIED`, with one denial |
 | Another session's listing or transfer | `ERR_DENIED`, including a session that has ended |
 
-`crux_file_service_area_next` uses the quiet probe, so hiding an area leaves no denial event. A read-only area refuses any write with `ERR_DENIED` to a session that can see it. A write mode the area does not offer is also `ERR_DENIED`. Timing is not equalised, so a client may still tell a hidden area from a missing one that way.
+`crux_file_service_area_next` uses the quiet probe, so hiding an area leaves no denial event. A read-only area refuses any write with `ERR_DENIED` to a session that can see it. A write mode the area does not offer is also `ERR_DENIED`. These two, a write through a read transfer and use of another session's handle check no permission, so they record no denial from `crux_access_check`. Timing is not equalised, so a client may still tell a hidden area from a missing one that way.
 
 ## Paths and names
 
@@ -66,18 +66,21 @@ A session that ends mid-transfer fails its next chunk with `ERR_SESSION_INVALID`
 
 **Neither write mode provides atomic replacement across power loss, and results must say so.** Commit runs in this order:
 
-1. Check the target by opening it for writing, which File refuses next to any other handle, so that a reader inside or outside the service gives `ERR_BUSY` before anything changes. `ERR_BUSY`, `ERR_NO_RESOURCES` and a refusal of the session or the permission keep the handle, so that the caller can retry or close. Every other result consumes it.
-2. Sync and close the temporary file `.crux-up-<slot>`.
+1. Sync and close the temporary file `.crux-up-<slot>`, so that the service stays within its share of the File handles during the next steps.
+2. Check the target by opening it for writing, which File refuses next to any other handle, so that a reader inside or outside the service gives `ERR_BUSY` before anything changes.
 3. Write and sync a sidecar, `.crux-co-<slot>`, holding the target name and a check byte.
 4. Remove an existing target, rename the temporary, and remove the sidecar.
 
-A slot whose temporary file or sidecar still exists is skipped, so a kept file is never reused and an old sidecar can never name a new upload. If a failure comes before the target's removal, the temporary file and sidecar go and the target stands. A failed rename after the removal returns `ERR_IO` with `file.commit_failed`. The target is gone by then, both files stay and count against the limit, and the next start finishes the rename.
+`ERR_BUSY`, `ERR_NO_RESOURCES` and a refusal of the session or the permission change nothing and keep the handle, so that the caller can write on, retry or close. That includes a reader that arrives after step 2, which File refuses at the removal, before it reaches the target. The service then opens the temporary again, and if that fails the result is `ERR_IO` and the upload is gone. Every other result consumes the handle.
+
+An upload claims its temporary name under the service lock before it checks that the name is free, so that two uploads cannot share one. A slot whose temporary file or sidecar still exists is skipped, so a kept file is never reused and an old sidecar can never name a new upload. If a failure comes before the removal in step 4, the temporary file and sidecar go and the target stands. A failed removal or rename returns `ERR_IO` with `file.commit_failed`, and both files stay, because FatFs can report an error after the entry has gone. The temporary counts against the limit from then on, and the sidecar from the next start, which decides the outcome by the table below.
 
 At start, before any client can call:
 
 | Found | Action |
 | --- | --- |
 | Temporary, with no sidecar or a torn one | Removed, with the sidecar. The removal had not begun. |
+| Temporary, with a sidecar that cannot be read | Both stay, and the area returns `ERR_IO` until a reset, when start tries again. The target may be gone, so the temporary may be the only copy. |
 | Sidecar, temporary, no target | The rename is completed and the sidecar removed |
 | Sidecar, temporary, a target of a different size | Temporary and sidecar removed. The old target stands. |
 | Sidecar, temporary, a target of the same size | Kept, with `file.recovery_needed`. It may be an unfinished removal, or it may share clusters with the target after a cut during rename, and removing it would free them. It counts against the limit and its slot is skipped. Only a host repair removes it today. |
@@ -91,9 +94,11 @@ At start, before any client can call:
 - A listing is not a snapshot. Names are ASCII, flat and at most 63 characters (F4), so WinSCP cannot upload a name with a space. There is no modification time (F6), permissions, directories or sparse writes.
 - Foreign files are invisible, so they are not counted against an area's limits.
 - A kept temporary needs a host repair.
+- A temporary name above `CRUX_FILE_SERVICE_TEMP_SLOTS`, which can follow lowering that setting, stays hidden and counted, and start leaves it alone.
+- The service keeps its own copy of the File name rule, so that `resolve` touches no storage. A test holds the two together on every byte value and on the length bound.
 - The File lock is global and held across each storage call, so one slow card write delays other File callers. No operation promises a time bound, and M10 measures this.
 - The SFTP adapter, its `SETSTAT` handling and a recorded WinSCP run belong to M12, and none is part of this work.
 
 ## Validation
 
-`FileService.default` and `FileService.small_table` run the cases in `tests/file_service` on `crux_file_fake`, with a test double for the three access functions that the service calls. `scripts/test-file-service.sh` runs them with and without sanitizers and builds a C and C++ consumer from the public headers alone. No part of the service has run on Zephyr or on a target.
+`FileService.default` and `FileService.small_table` run the cases in `tests/file_service` on `crux_file_fake`, with a test double for the three access functions that the service calls. `FileService.with_access` runs the service on the real Access core with its fake ports. `scripts/test-file-service.sh` runs them with and without sanitizers and builds a C and C++ consumer from the public headers alone. No part of the service has run on Zephyr or on a target.
