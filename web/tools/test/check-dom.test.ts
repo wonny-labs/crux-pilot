@@ -80,3 +80,53 @@ test('each problem names the file, the line and the rule', () => {
   assert.match(problem ?? '', /^src\/a\.tsx:2: /);
   assert.match(problem ?? '', /innerHTML/);
 });
+
+for (const [name, code] of Object.entries({
+  setHTMLUnsafe: 'node.setHTMLUnsafe(value);',
+  createContextualFragment: 'document.createRange().createContextualFragment(value);',
+  DOMParser: 'new DOMParser().parseFromString(value, "text/html");',
+})) {
+  test(`a tsx file with ${name} is refused`, () => {
+    assert.notDeepEqual(problems('a.tsx', code), []);
+  });
+}
+
+test('a style element in JSX is refused, because the strict policy blocks it', () => {
+  assert.notDeepEqual(problems('a.tsx', '<style>{css}</style>'), []);
+});
+
+for (const [name, code] of Object.entries({
+  localStorage: 'localStorage.setItem("user", value);',
+  sessionStorage: 'window.sessionStorage.setItem("token", value);',
+  indexedDB: 'indexedDB.open("store");',
+  'a cookie written by script': 'document.cookie = "a=b";',
+})) {
+  test(`${name} is refused, so that no secret can reach browser storage`, () => {
+    assert.notDeepEqual(problems('a.ts', code), []);
+  });
+}
+
+test('reading the cookie is still allowed, because the CSRF token is read that way', () => {
+  assert.deepEqual(problems('a.ts', 'return document.cookie;'), []);
+  assert.deepEqual(problems('a.ts', 'if (document.cookie === value) {'), []);
+});
+
+for (const [name, code] of Object.entries({
+  'a URL with an IP address': 'fetch("http://192.0.2.10/api");',
+  'a protocol-relative IP address': '<img src="//192.0.2.10/x.png">',
+  'a localhost URL': 'fetch("http://localhost:8080/api");',
+  'a loopback URL': 'fetch("https://127.0.0.1/api");',
+  'an IPv6 URL': 'fetch("http://[::1]:8080/api");',
+  'a WebSocket address': 'new WebSocket("wss://device.example/x");',
+  'a bare address in a string': 'const device = "192.0.2.10";',
+  'a bare address with a path': 'fetch("192.0.2.10/api");',
+  'a bare localhost in a string': 'fetch("localhost:8080/api");',
+})) {
+  test(`${name} is refused`, () => {
+    assert.notDeepEqual(problems('a.ts', code), []);
+  });
+}
+
+test('an address inside a sentence of the text table is fine', () => {
+  assert.deepEqual(problems('a.ts', "not_ipv4: 'Enter an address, such as 192.0.2.20.',"), []);
+});
