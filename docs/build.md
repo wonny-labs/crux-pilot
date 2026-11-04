@@ -9,7 +9,7 @@ This guide describes the supported ways to build Crux and consume its capabiliti
 | Develop and test Crux on Linux | `scripts/bootstrap-host.sh` and CMake presets | Current Linux amd64 development environment |
 | Build a Zephyr application | `west` with Crux's `zephyr/module.yml` | Pinned Zephyr workspace, selected `native_sim` and EVKB configurations |
 | Consume Crux from a separate Linux CMake project | Root `add_subdirectory()` | Source-tree integration in the supported Linux environment |
-| Start a product repository on Crux | [Product Composition Guide](product-composition.md) | Proposed practice, Zephyr only, no Crux release tag yet |
+| Start a product repository on Crux | [Product Composition Guide](product-composition.md) | Zephyr only, no Crux release tag yet |
 
 Linux Host is a development and test composition, **not** a qualified production Embedded Linux variant. The Zephyr EVKB cross-build proves that a selected firmware image compiles and links, not that it boots or operates correctly on hardware. Installed packages, `find_package(Crux)`, a binary SDK and arbitrary toolchain or board combinations are not supported by this guide.
 
@@ -220,6 +220,7 @@ The external application tests also cover C++17, independently selected Thread/S
 | Thread, Sync | Select independently through `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`. Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for the current controlled Host composition). Their public targets connect the current Linux implementation |
 | Access | Select `CRUX_BUILD_ACCESS=ON`, which requires `CRUX_BUILD_SYNC=ON`. The public target has no provider yet, so an image that calls it does not link. The [Access contract](access-contract.md) records the current state. |
 | File service | Select `CRUX_BUILD_FILE_SERVICE=ON`, which requires `CRUX_BUILD_ACCESS=ON`, `CRUX_BUILD_FILE=ON` and `CRUX_BUILD_SYNC=ON`. It has no event provider yet, so an image that calls it does not link. The [File service contract](file-service-contract.md) holds its rules and limits |
+| Security events | Select `CRUX_BUILD_SECURITY_EVENT=ON`, which requires Access, Logging, Sync, Thread and Time. A final link adds the object target `crux_security_event_access_port`, or it does not link. A composition sets `CRUX_SECURITY_EVENT_RING`, `_RESERVE`, `_DRAIN_BURST` and `_DRAIN_PAUSE_MS` to suit its log buffer, and keeps the Logging threshold at INFO or more verbose. See the [Security event contract](security-event-contract.md). |
 | Queue | Portable targets use `crux::queue`. The final Linux executable additionally links `crux::queue_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and TTY binding belongs to platform composition |
 | I2C | Select `CRUX_BUILD_I2C=ON`; the Host provider is a deterministic loopback fixture for portable consumer tests. Zephyr applications compile the native provider and bind `crux-i2c0` to a selected controller |
