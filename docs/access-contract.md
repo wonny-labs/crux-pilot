@@ -18,7 +18,7 @@ Owner: `components/access`. Public header `<crux/access.h>`, usage target `crux:
 | Portable core | Builds on Host. It has no provider, so a product image does not link until one exists. |
 | Fake ports | Test composition in `tests/access`. They exist only when Crux builds its own tests. |
 | PSA derivation, random and keyed hash | Not implemented, Issue #142 |
-| Credential store | Not implemented, Issue #178. Requirement A6 is checked against a fake only. |
+| Credential store | Host implementation under review, Issue #178, with `crux_credential_access_store` as this contract's store port. Its [own suite](credential-store.md#tests) runs this core on it for A6, and these suites still use a fake store. |
 | Event identifiers and Logging output | Not implemented, Issue #182 |
 | Zephyr composition, target measurements | Not implemented. Target work needs separate hardware approval. |
 

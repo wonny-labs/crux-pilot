@@ -98,6 +98,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | I2C | Synchronous 7-bit transfers with one statically composed controller | Host loopback fixture and Zephyr native I2C driver; no bus handle, deadline or Crux lock; no physical qualification | [Contract](i2c-contract.md) |
 | SPI | Synchronous full-duplex byte exchange with one statically composed peripheral | Host loopback fixture and Zephyr native SPI driver; no handle, deadline or Crux lock; held chip select rejected at build time; no physical qualification | [Contract](spi-contract.md) |
 | Access | Accounts, roles, sessions and permission checks for management channels | Portable core with Host fake ports only, under review for Issue #177; no provider, so no product composition | [Contract](access-contract.md), [proposal](plans/access-contract-proposal.md) |
+| Credential store | One sealed image in two slots for accounts, device keys and certificates, with its protection basis declared | Portable core over File with test-only protection, under review for Issue #178; no PSA provider (Issue #142), so no product composition, and not confidential on the planned pilot basis | [Contract and design](credential-store.md) |
 
 ## Build and platform composition
 

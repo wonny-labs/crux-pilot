@@ -483,3 +483,17 @@ runs `scripts/check-access-boundary.py`. That check configures and builds `tests
 a project cannot reach the adapter header, and a service that links the adapter target privately is still accepted.
 No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
 [Access contract](../docs/access-contract.md).
+
+## Portable credential store
+
+The credential store (Issue #178): the root Host suite runs `tests/credential` as `Credential.*` in CTest, on the File
+fake and on the Linux File provider. The protection in every suite is **test only**, a CRC in place of a tag and a
+keystream that is not encryption, because PSA is not qualified (Issue #142). It exists only when Crux builds its own
+tests, it refuses to compile outside a test composition, and `Credential.credential_production_refuses` shows a product
+build of the store refusing it at start. The fault suites cut power before each File operation, each sector and each byte
+of every save, with a medium model that proves nothing about a real card.
+`scripts/test-credential.sh` also runs them under the sanitizer preset, runs clang-tidy on the sources and runs
+`scripts/check-credential-boundary.py`, which configures and builds `tests/credential_consumer` in both directions.
+`tests/native/credential_fatfs` runs the conformance cases on real FatFs over a RAM disk, under
+`scripts/test-storage-simulators.sh`. None of this says anything about confidentiality, entropy or real power loss. See
+the [credential store](../docs/credential-store.md).
