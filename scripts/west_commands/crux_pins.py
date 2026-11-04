@@ -2,9 +2,11 @@
 
 west accepts a product manifest that picks another Zephyr, or another module
 revision, without a word. This command makes such a difference visible. The
-contract is the west.yml of crux-pilot at the revision the workspace pins, plus
-the west.yml of Zephyr at the revision that Crux pins. Explicit Crux entries win
-over Zephyr's.
+contract is the west.yml of the Crux repository that holds this command, plus the
+west.yml of Zephyr at the revision that Crux pins. Explicit Crux entries win over
+Zephyr's. When Crux is a project, under any name, its west.yml is read at the
+revision the workspace pins. When Crux is the manifest repository, it is read from
+the working tree, and never from the manifest file in use, which can be a lock.
 
 Every active project gets one line:
 
@@ -41,8 +43,8 @@ try:
 except ImportError:  # keeps the pure functions importable and testable without west
     WestCommand = object
 
-CRUX_PROJECT = "crux-pilot"
 OVERRIDE_KEY = "crux-override"
+MANIFEST_PROJECT = "manifest"  # west's name for the manifest repository in its project list
 SHORT = 12
 MANIFEST_REV = "refs/heads/manifest-rev"
 MAYBE_SHA = re.compile(r"[0-9a-fA-F]{4,40}")
@@ -233,19 +235,31 @@ class CruxPins(WestCommand):
         return parser_adder.add_parser(
             self.name, help=self.help, description=self.description)
 
-    def read_contract(self, projects):
-        crux = projects.get(CRUX_PROJECT)
+    def find_crux(self, projects):
+        """Return the project that holds this command, or None if it is the manifest repository."""
+        root = Path(__file__).resolve().parents[2]
+        for name, project in projects.items():
+            if name != MANIFEST_PROJECT and Path(project.abspath).resolve() == root:
+                return project
+        if Path(self.manifest.repo_abspath).resolve() == root:
+            return None
+        raise ContractError(f"cannot find the Crux contract: {root}, which holds this command, is "
+                            "neither a project of this workspace nor its manifest repository")
+
+    def read_contract(self, crux, projects):
         if crux is not None:
             try:
                 commit = fetched_commit(crux.abspath, str(crux.revision))
             except ValueError as error:
-                raise ContractError(f"cannot read the Crux contract: {CRUX_PROJECT}: {error}")
+                raise ContractError(f"cannot read the Crux contract: {crux.name}: {error}")
             text = show_manifest(crux.abspath, commit)
-            source = f"{CRUX_PROJECT} {crux.revision}"
+            source = f"{crux.name} {crux.revision}"
         else:
-            # crux-pilot is itself the manifest repository: use its working tree.
-            text = Path(self.manifest.abspath).read_text()
-            source = "the manifest repository"
+            source = Path(self.manifest.repo_abspath) / "west.yml"
+            try:
+                text = source.read_text()
+            except OSError as error:
+                raise ContractError(f"cannot read the Crux contract: {error}")
         crux_projects = parse_projects(text, source)
         zephyr_pin = next((entry.get("revision") for entry in crux_projects
                            if entry["name"] == "zephyr"), None)
@@ -263,9 +277,11 @@ class CruxPins(WestCommand):
     def do_run(self, args, unknown):
         projects = {project.name: project for project in self.manifest.projects}
         try:
-            contract = self.read_contract(projects)
+            crux = self.find_crux(projects)
+            contract = self.read_contract(crux, projects)
         except ContractError as error:
             self.die(str(error))
+        skip = {MANIFEST_PROJECT} | ({crux.name} if crux is not None else set())
         entries = [{"name": name, "revision": str(project.revision),
                     "active": self.manifest.is_active(project), "userdata": project.userdata}
                    for name, project in projects.items()]
@@ -275,7 +291,7 @@ class CruxPins(WestCommand):
             return read(projects[name].abspath, revision)
 
         try:
-            results = compare_pins(contract, entries, resolve, skip=("manifest", CRUX_PROJECT))
+            results = compare_pins(contract, entries, resolve, skip=skip)
         except ContractError as error:
             self.die(f"cannot compare with the Crux contract:\n{error}")
         for result in results:

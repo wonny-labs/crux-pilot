@@ -333,7 +333,9 @@ class WorkspaceTest(unittest.TestCase):
                 "      path: modules/fake\n" + extra)
 
     def product(self, extra_projects="", header=""):
-        manifest = self.product_manifest(extra_projects, header)
+        return self.init_product(self.product_manifest(extra_projects, header))
+
+    def init_product(self, manifest):
         workspace = self.root / "workspace"
         shutil.rmtree(workspace, ignore_errors=True)
         directory = workspace / "product-x"
@@ -371,6 +373,100 @@ class WorkspaceTest(unittest.TestCase):
         result = self.pins(workspace)
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("OK fake-module " + self.module_v1[:12], result.stdout)
+
+    def test_crux_under_another_name_is_found_from_the_command_location(self):
+        manifest = ("manifest:\n"
+                    "  remotes:\n"
+                    "    - name: local\n"
+                    f"      url-base: {self.repos.as_uri()}\n"
+                    "  projects:\n"
+                    "    - name: zephyr\n"
+                    "      remote: local\n"
+                    f"      revision: {self.zephyr_two}\n"
+                    "      import:\n"
+                    "        name-allowlist: [fake-module]\n"
+                    "    - name: crux\n"
+                    "      remote: local\n"
+                    "      repo-path: crux-pilot\n"
+                    f"      revision: {self.crux}\n"
+                    "      import: true\n"
+                    "  self:\n"
+                    "    path: product-x\n")
+        result = self.pins(self.init_product(manifest))
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(f"MISMATCH zephyr {self.zephyr_two[:12]} (contract {self.zephyr_one[:12]})", result.stdout)
+        self.assertIn(f"MISMATCH fake-module {self.module_v2[:12]} (contract {self.module_v1[:12]})", result.stdout)
+
+    def test_crux_as_the_manifest_repository_ignores_a_lock_passed_with_mf(self):
+        workspace = self.root / "crux-workspace"
+        workspace.mkdir()
+        repository = workspace / "crux-pilot"
+        git(workspace, "clone", "-q", self.url("crux-pilot"), "crux-pilot", env=self.env)
+        lock = ("manifest:\n"
+                "  projects:\n"
+                "    - name: zephyr\n"
+                f"      url: {self.url('zephyr')}\n"
+                f"      revision: {self.zephyr_two}\n"
+                "    - name: fake-module\n"
+                f"      url: {self.url('fake-module')}\n"
+                f"      revision: {self.module_v2}\n"
+                "      path: modules/fake\n"
+                "  self:\n"
+                "    path: crux-pilot\n"
+                "    west-commands: scripts/west-commands.yml\n")
+        self.commit(repository, {"locks/west.frozen.yml": lock}, "lock")
+        self.west("init", "-l", "--mf", "locks/west.frozen.yml", str(repository), cwd=workspace, check=True)
+        self.west("update", cwd=workspace, check=True)
+        result = self.pins(workspace)
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(f"MISMATCH zephyr {self.zephyr_two[:12]} (contract {self.zephyr_one[:12]})", result.stdout)
+        self.assertIn(f"MISMATCH fake-module {self.module_v2[:12]} (contract {self.module_v1[:12]})", result.stdout)
+
+    def test_a_command_outside_crux_dies_with_a_clear_error(self):
+        tools = self.init("tools")
+        revision = self.commit(tools, {
+            "vendor/crux/scripts/west_commands/crux_pins.py": COMMAND.read_text(),
+            "west-commands.yml": ("west-commands:\n"
+                                  "  - file: vendor/crux/scripts/west_commands/crux_pins.py\n"
+                                  "    commands:\n"
+                                  "      - name: crux-pins\n"
+                                  "        class: CruxPins\n"
+                                  "        help: a copy that is not in a Crux repository\n")}, "tools")
+        manifest = ("manifest:\n"
+                    "  projects:\n"
+                    "    - name: tools\n"
+                    f"      url: {self.url('tools')}\n"
+                    f"      revision: {revision}\n"
+                    "      west-commands: west-commands.yml\n"
+                    "    - name: zephyr\n"
+                    f"      url: {self.url('zephyr')}\n"
+                    f"      revision: {self.zephyr_one}\n"
+                    "  self:\n"
+                    "    path: product-x\n")
+        result = self.pins(self.init_product(manifest))
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertNotIn("OK ", result.stdout)
+        self.assertIn("neither a project of this workspace nor its manifest repository", result.stderr)
+
+    def test_the_contract_is_read_at_what_west_fetched_not_at_a_local_branch(self):
+        repository = self.repos / "crux-pilot"
+        manifest = (repository / "west.yml").read_text().replace(self.zephyr_one, self.zephyr_two)
+        self.commit(repository, {"west.yml": manifest}, "crux moves to zephyr two")
+        workspace = self.init_product(self.product_manifest().replace(self.crux, "main"))
+        git(workspace / "crux-pilot", "branch", "main", self.crux, env=self.env)
+        result = self.pins(workspace)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(f"OK zephyr {self.zephyr_two[:12]}", result.stdout)
+
+    def test_a_crux_revision_that_was_never_fetched_cannot_give_a_contract(self):
+        workspace = self.product()
+        never_fetched = "f" * 40
+        (workspace / "product-x/west.yml").write_text(
+            self.product_manifest().replace(self.crux, never_fetched))
+        result = self.pins(workspace)
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertNotIn("OK ", result.stdout)
+        self.assertIn(never_fetched, result.stderr)
 
     def test_a_tag_and_its_commit_are_the_same_pin(self):
         workspace = self.product(
