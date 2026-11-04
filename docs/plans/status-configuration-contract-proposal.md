@@ -1,6 +1,6 @@
 # Status and configuration services proposal
 
-Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #180: C1 to C8. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval, and no merge is approved. It refines the management services in
+Status: accepted by [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), Issue #180: C1 to C8. Implementing its headers, fakes and Host tests is approved. Target and physical work stays behind M7 and needs its own approval. Merging is allowed after independent review with green CI, as [recorded on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497), and hardware operations stay excluded. It refines the management services in
 [the secure management design](secure-management-design.md), and it proposes an extension to the
 [Configuration contract](../configuration-contract.md). Baseline: main `4444d70`, Zephyr v4.4.2 `dccb095`.
 
@@ -386,7 +386,7 @@ Host tests show contract behaviour. They do not show that applying a change is s
 
 ## Changes other contracts need
 
-- **AC1, access control:** `crux_access_permitted(crux_access_session_t session, const char *permission, bool *permitted)` in the public header `crux/access.h`, with no event, no touch and no storage. Services call it, so it cannot be adapter-only under decision A1. It creates no session, so it does not widen what a project can do. Without it, a poll of status would fill the event ring. This is a request, and the access contract is not changed here.
+- **AC1, access control:** `crux_access_permitted(crux_access_session_t session, const char *permission, bool *permitted)` in the public header `crux/access.h`, with no event, no touch and no storage. Services call it, so it cannot be adapter-only under decision A1. It creates no session, so it does not widen what a project can do. Without it, a poll of status would fill the event ring. The owner accepted this as AC1, and #210 carries it.
 - **CLI, Issue #181:** `config set` on a sensitive parameter takes its value through `crux_cli_read_secret`, so it is not echoed and not kept in the line buffer.
 - **Web design:** the route for `PUT /api/v1/config/{name}` runs on the server thread only if validators are quick, and otherwise on the worker. `503` on `BUSY`, and `404` for a hidden parameter, refine its error table. "Updates respond with the applied value" becomes a `read` after the update, and never for a sensitive parameter. `GET /api/v1/status` becomes session-only with the service filtering, because a project item with its own permission is unreachable behind `status.read`.
 - **Configuration contract document:** revised on adoption, as stated above. No change happens in this proposal.
