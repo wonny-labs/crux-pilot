@@ -1,6 +1,6 @@
 # Product Composition Guide
 
-**Status: adopted practice, 2026-11-04.** The routes below are provisional until the first products have tried them. No Crux release tag exists yet: the first tag waits for that trial. The release bundle is a convention with no tool yet, and the baseline gate warns by default until consumers reach the baseline. This guide records how a product on Crux can compose, check, version and release its firmware, and what was run to support that. See [Limits](#limits).
+**Status: adopted practice, 2026-11-04.** The routes below are provisional until the first products have tried them. No Crux release tag exists yet: the first tag waits for that trial. The release bundle is a convention with no schema or checker yet, and the baseline gate warns by default until consumers reach the baseline. This guide records how a product on Crux can compose, check, version and release its firmware, and what was run to support that. See [Limits](#limits).
 
 Use it with the [product template](../samples/product_template/README.md), a small directory you copy to start a product repository. For other ways to consume Crux, see the [Build and Integration Guide](build.md).
 
@@ -15,7 +15,7 @@ Dependencies run one way: product to Crux to Zephyr. Crux knows nothing about an
 | Checks | `west crux-pins`, the Zephyr baseline gate and `scripts/record-build-provenance.py` | Running them in its own CI and keeping the results |
 | Third-party changes | Only what Crux itself needs | The route it takes and the pin in its manifest. The organisation, not a product, owns each fork and vendor repository, its tags, its `-acmeN` counter and its carried-changes list |
 | Versions | Its own tags, once they exist | The product version and its security counter |
-| Release | No bundle, signing or SBOM reduction tool | The release branch, the lock file, signing and what goes outward |
+| Release | No bundle schema or checker, signing or SBOM reduction tool | The release branch, the lock file, signing and what goes outward |
 | Commercial modules | Nothing. Crux's manifest names only public modules | Their names, URLs and licences, in product or organisation manifests |
 
 ## Structure
@@ -63,7 +63,7 @@ manifest:
 This resolves Zephyr and every allowlisted module at the revisions Crux pins. The product repeats no revision. Importing is recommended, not required. See [Pinning by hand](#pinning-by-hand).
 
 - **First definition wins.** West uses the first definition of a project name. Entries in the product manifest beat anything imported.
-- **Optional groups are off by default.** Crux keeps its secure management stacks in the `crux-secure-management` group. An ordinary workspace does not fetch them.
+- **Optional groups are off by default.** Crux keeps its secure management stacks in the `crux-secure-management` group. An ordinary workspace does not fetch them. The wolfSSL TLS backend of those stacks needs a [Zephyr patch](../patches/zephyr/README.md#wolfssl-tls-socket-backend) that is not stored in this repository. How a composition applies it is undecided, under Issue #185.
 - **A filter only narrows.** A product `name-allowlist` on the Crux import can remove what Crux allows. It cannot add what Crux left out.
 
 | Goal | What to write | `west crux-pins` reports |
@@ -76,6 +76,7 @@ This resolves Zephyr and every allowlisted module at the revisions Crux pins. Th
 | Add a Zephyr module Crux did not allow | A plain project entry with its revision | `OK` at the revision in Zephyr's manifest. Another revision needs `crux-override` |
 | Add such a module and own the module list | Redefine `zephyr`, with your own allowlist | `OK` while the Zephyr revision and modules match the contract |
 | Import nothing | [Plain entries](#pinning-by-hand) for Crux, Zephyr and each module | `OK` while the pins match the contract |
+| Import Zephyr only | [Crux as a plain entry](#pinning-by-hand), and `zephyr` with your own allowlist | `OK` while the pins match the contract |
 
 Redefining `zephyr` drops Crux's Zephyr import. The product then owns the allowlist, and must repeat the Zephyr SHA and every module it needs.
 
@@ -103,6 +104,25 @@ A product may pin Crux and Zephyr itself, with no `import`:
 - **The contract is unchanged.** `west crux-pins` still reads it from Crux at the pinned revision and from Zephyr at Crux's pin. Another Zephyr gives `MISMATCH`. A Zephyr module outside Crux's allowlist counts as `OK` if it matches Zephyr's manifest at Crux's pin.
 - **The name `zephyr` is required.** Under any other name the command stops with `no zephyr project is pinned`.
 - **Only what the workspace holds is reported.** A module the product left out gives no line.
+
+A variant imports Zephyr only, with the product's own allowlist, and pins Crux as a plain entry:
+
+```yaml
+  projects:
+    - name: crux-pilot
+      remote: crux
+      revision: <Crux SHA>
+      west-commands: scripts/west-commands.yml
+    - name: zephyr
+      remote: zephyrproject-rtos
+      revision: <the SHA that Crux pins>
+      import:
+        name-allowlist: [hal_nxp, <a module Crux did not allow>]
+```
+
+The contract is the same. Matching pins pass, and a module outside Crux's allowlist reports `OK` when it matches Zephyr's manifest at Crux's pin. Another Zephyr gives `MISMATCH`. Crux's optional projects are not in this workspace.
+
+An older Crux revision has no `west crux-pins`, so such a product must first move its Crux pin to a revision that holds the command. The contract then comes from that revision.
 
 ## Checks
 
@@ -172,38 +192,72 @@ flowchart TD
 
 ### Vendor branch
 
-Import each delivery unmodified on a `vendor` branch, tag it and keep local changes as commits on a working branch. Merge each new delivery into that branch and pin the merge commit's SHA in `west.yml`.
+Keep one vendor branch and one working branch per delivery line. Import each delivery unmodified on its line's vendor branch, tag it and keep local changes as commits on the working branch. Merge each delivery into its line's working branch and pin the merge commit's SHA in `west.yml`.
+
+A fix delivery for an older line stays on that line. On one linear vendor branch it would drag the current tree back. Use branch names that git allows beside each other, such as `vendor-1.x` and `work-1.x`, never `vendor/1.x` beside a branch `vendor`.
 
 ```sh
-# The first delivery, in a new internal repository.
-git switch -c vendor
+# The first delivery of line 1.x, in a new internal repository.
+git switch -c vendor-1.x
 # Unpack delivery 1.0.0 here, as received.
 git add -A -f
 git commit -m "vendor: import delivery 1.0.0"
 git tag -a vendor/1.0.0 -m "delivery 1.0.0"
-git switch -c main
+git switch -c work-1.x
 # Commit local changes here, tagged as for a soft fork.
 
-# Each later delivery. Removing the files first drops what the vendor dropped.
-git switch vendor
+# A later delivery of that line. Removing the files first drops what the vendor dropped.
+git switch vendor-1.x
 git rm -rq .
 # Unpack delivery 1.1.0 here, as received.
 git add -A -f
 git commit -m "vendor: import delivery 1.1.0"
 git tag -a vendor/1.1.0 -m "delivery 1.1.0"
-git switch main
+git switch work-1.x
 git merge vendor/1.1.0
+
+# A new line, from the delivery and the working branch before it.
+git switch -c vendor-2.x vendor/1.1.0
+git rm -rq .
+# Unpack delivery 2.0.0 here, as received.
+git add -A -f
+git commit -m "vendor: import delivery 2.0.0"
+git tag -a vendor/2.0.0 -m "delivery 2.0.0"
+git switch -c work-2.x work-1.x
+git merge vendor/2.0.0
+
+# A fix delivery for line 1.x: the later-delivery steps again, on vendor-1.x and work-1.x only.
 ```
 
-- `-f` stops a `.gitignore` in the delivery from dropping files.
-- `git log --no-merges vendor/1.1.0..HEAD`, naming the last delivery merged, is the carried-changes list. `git diff vendor/1.1.0 HEAD` also shows what a conflict resolution changed, which that list leaves out.
-- Keep a hash list of each delivery as received, outside the `vendor` branch, so that the branch stays the delivery.
+- **Durable refs.** Delivery tags stay. Each released SHA also gets a durable ref, as for a fork. Use a tag outside `vendor/*`, such as `work/1.0.1-acme1`, so that `git describe` below still names the delivery.
+- **History of local commits.** `git log --no-merges vendor/1.1.0..HEAD`, naming the last delivery merged, lists them. A local commit stays listed after a later delivery absorbs it.
+- **What is actually carried.** `git diff vendor/1.1.0 HEAD` states it, including what a conflict resolution changed.
+- **Delivery identity.** The build record holds only the commit of each west project and names no delivery. `git describe --tags --match 'vendor/*' HEAD`, run in the project, names the last delivery merged, as in `vendor/1.1.0-2-g1a2b3c4`. The `2` counts commits since that tag, merges included, so it is not a count of local changes. `--abbrev=0` prints the tag alone. `release-manifest.json` must list, per vendor project, that delivery tag and the hash of its hash list.
+- **SBOM.** A plain delivery appears in the SBOM only if it is a Zephyr module. That case was not built.
+- **Import.** `-f` stops a `.gitignore` in the delivery from dropping files, but it also takes any stray file left in the directory, and line-ending settings can change what git stores. So check each delivery tag against its hash list.
+
+Keep a hash list of each delivery as received, outside the vendor branch, so that the branch stays the delivery:
+
+```sh
+# In an empty directory, with delivery 1.1.0 unpacked as received.
+find . -type f -exec sha256sum {} + | LC_ALL=C sort -k 2 > ../delivery-1.1.0.sha256
+```
+
+Then check the tag. Any output is a difference. A symlink in the delivery always shows as one, so check that by hand.
+
+```sh
+# In the repository. git cat-file gives the stored bytes, with no line-ending filter.
+git -c core.quotePath=false ls-tree -r --name-only vendor/1.1.0 | while IFS= read -r file; do
+    printf '%s  ./%s\n' "$(git cat-file blob "vendor/1.1.0:$file" | sha256sum | cut -d ' ' -f 1)" "$file"
+done | LC_ALL=C sort -k 2 | diff - ../delivery-1.1.0.sha256
+```
 
 ### Commercial editions
 
 Give the edition a different project name, so that it reports `PRODUCT`.
 
 - **Group or filter.** With the Crux group off, the original is inactive but still holds its path, and west rejects a second project on it. Use another path. To keep the path, or to enable the group for its other projects, filter the original out with `name-allowlist` on the Crux import.
+- **Record.** The original gets no line of its own and the new name reports `PRODUCT`, with no stated reason. So list each replaced module in `release-manifest.json`.
 - **Name.** Do not reuse the name unless the repository contains the commit Crux pins, because `west crux-pins` errors otherwise.
 - **Licence.** A public edition's licence may not suit a closed product. For example, the public wolfSSL and wolfSSH are offered under GPL-3.0-or-later or a commercial licence, so check [their terms](../patches/zephyr/README.md#wolfssl-tls-socket-backend) before enabling the optional group.
 
@@ -231,7 +285,7 @@ The costs:
 
 - Redefining `zephyr` drops Crux's Zephyr import, so the product restates the allowlist.
 - A tag such as `v4.4.2-acme3` never gives the SBOM version or CPE. Only an exact `vX.Y.Z` tag does.
-- An `ssh://` URL also loses the purl. Use `https://` URLs where possible.
+- An `ssh://` URL also loses the purl. Use `https://` URLs where possible, and see [SBOM](#sbom) for what a reduction must then remove.
 
 ### NXP code
 
@@ -258,7 +312,8 @@ This public repository carries one replaced Zephyr source as a [build-local repl
 | --- | --- | --- | --- |
 | Crux | `v0.y.z`, SemVer | None yet | No tag exists yet |
 | Fork | `v<upstream>-<org><n>` | `v4.4.2-acme3` | The upstream release, then a counter the organisation owns |
-| Vendor delivery | `vendor/<delivery>` | `vendor/1.0.0` | The delivery as received, on the `vendor` branch |
+| Vendor delivery | `vendor/<delivery>` | `vendor/1.0.0` | The delivery as received, on its line's vendor branch |
+| Released vendor-branch commit | `work/<delivery>-<org><n>` | `work/1.0.1-acme1` | A durable ref on the released SHA of a working branch |
 | Product | `major.minor.patch+build` | `1.2.3+45` | Fits MCUboot's 8, 8, 16 and 32-bit fields |
 | Security counter | A separate integer | `7` | Raised on its own schedule, not derived from the version |
 
@@ -283,7 +338,37 @@ flowchart TD
 - **Owner.** Each product names one owner.
 - **Maintenance branch.** A released product is maintained on a maintenance branch from its release tag.
 - **Support period.** Each product must set its own. This guide gives no number.
-- **Zephyr patch releases.** The [baseline gate](#zephyr-baseline-gate) compares exact release numbers, so taking a Zephyr patch release such as 4.4.3 warns. A required build then needs the option dropped, or Crux's baseline moved first.
+
+### Taking a Zephyr patch release
+
+A Zephyr patch release such as 4.4.3 trips both checks until Crux moves its baseline.
+
+- **`west crux-pins`.** It reports `MISMATCH` on `zephyr` and on each module whose pin moved with it.
+- **Baseline gate.** The [gate](#zephyr-baseline-gate) compares exact release numbers, so the build warns, and `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON` stops it. A required build then needs the option dropped, or Crux's baseline moved first.
+
+To take the release in the product:
+
+1. Redefine `zephyr` at the new revision, with `crux-override`.
+2. Restate the allowlist under its `import`, because redefining `zephyr` drops Crux's.
+3. Add an entry with `crux-override` for each module the new manifest moved, with its name, path and new revision. Each `MISMATCH` still reported names one.
+
+```yaml
+    - name: zephyr
+      url: https://github.com/zephyrproject-rtos/zephyr
+      revision: <the SHA of the patch release>
+      import:
+        name-allowlist: [<each module you need>]
+      userdata:
+        crux-override: "zephyr patch release, drop when Crux moves its baseline"
+    - name: hal_nxp
+      url: https://github.com/zephyrproject-rtos/hal_nxp
+      revision: <the SHA in that release's manifest>
+      path: modules/hal/nxp
+      userdata:
+        crux-override: "follows the zephyr patch release"
+```
+
+Then `zephyr` and each moved module report `OVERRIDE`, and the rest `OK`. Each commit Crux pins must stay reachable, or the command stops with an error that no override excuses. For a SHA pin, `west update` fetches every branch and tag of the remote, so the commit Crux pins need not be an ancestor of the new pin. `west update --narrow` fetches only the pin's history, so there it must be one.
 
 ## Release
 
@@ -347,18 +432,18 @@ west spdx -d product-x/build/app
 
 ### Release bundle
 
-This is a convention. A tool to assemble it comes at the first product release.
+This is a convention. Its schema and checker come at the first product release.
 
 | Item | Source | Audience |
 | --- | --- | --- |
 | Firmware image | `build/app/zephyr/zephyr.bin` | Outward |
 | `licences/` | The licence texts of what the image contains | Outward |
 | Outward SBOM | Reduced by the product from the full set | Customers |
-| `release-manifest.json` | Product version, security counter, release tag, SDK version, container image, hashes of the bundle's items, and any delivery the build record does not cover | Internal |
+| `release-manifest.json` | Product version, security counter, release tag, SDK version, container image, hashes of the bundle's items. Per vendor project, its delivery tag and the hash of its hash list. Each module replaced under a new name. Any other delivery the build record does not cover | Internal |
 | Build record | `build/app/provenance.json` | Internal |
 | Lock file | `locks/west.frozen.yml` at the release tag | Internal |
 | Pin report | Output of `west crux-pins` | Internal |
-| Carried-changes list | The `git log` command above, for each fork and vendor branch | Internal |
+| Carried-changes list | For each fork and vendor branch, the history of local commits, `git log --no-merges <last-delivery-tag>..HEAD`, and what is actually carried, `git diff <last-delivery-tag> HEAD`. A fork names its upstream tag in place of the delivery tag | Internal |
 | Full SBOM | `build/app/spdx/` | Internal. Authorities receive it on request |
 | Debug files | `build/app/zephyr/zephyr.elf` and `zephyr.map` | Internal only |
 
@@ -389,6 +474,9 @@ At Zephyr v4.4.2:
 - Prebuilt libraries declared in `module.yml` appear in no document. A release step must add them.
 - `zspdx/walker.py` `_build_purl` accepts only `git@` and `http(s)://` URLs, so a fork on an `ssh://` URL gets no purl.
 - Only an exact `vX.Y.Z` tag gives the package version and the CPE, so a fork tag such as `v4.4.2-acme1` does not. A release step can add the upstream base identity back. A fork on an `https://` URL was not tested.
+- A repair step must cover each modified package, including the module dependency records in `modules-deps.spdx`, whose references come from `module.yml` and not from the fork.
+- `_build_purl` on an `https://` URL gives a purl that carries the host and path, so a reduction must remove it for an internal host. `https://git.example/scm/acme/zephyr` gives `pkg:git/scm/acme/zephyr`.
+- The walker builds a purl for each tag on the Zephyr commit, so an organisation string in a fork tag on an `https://` URL appears in the outward SBOM unless it is removed.
 
 A real product must scan its own image for private strings. `.elf` and `.map` stay internal.
 
@@ -405,7 +493,7 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 - `tests/build/test_product_template.py` runs the template manifest through real west 1.4.0, `west crux-pins`, the frozen-manifest flow and input capture for the build record. It uses local throwaway repositories in place of every remote and builds nothing with Zephyr.
 - A one-off check on a GitHub runner followed the release flow in this guide through the template's own manifest, against the real upstream repositories. It used the tools in this repository, with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`, at two workspace paths. `west crux-pins` reported `OK`, the build record passed, and `firmware_identity` and `zephyr.bin` were identical. Builds with `-DBUILD_VERSION` set were also byte-identical across the two paths. With Zephyr v4.4.0 in the manifest, `west crux-pins` failed on `zephyr` and `hal_nxp`, a default configure warned and continued, and the required option stopped it. That check is not part of CI.
 - `scripts/test-product-template.sh <board>` runs in the Zephyr CI job. It runs the west-based tests, runs `west crux-pins` on Crux's own workspace and cross-builds `app/`.
-- `tests/build/test_product_template.py` also takes these routes through real west 1.4.0 and `west crux-pins`: a vendor branch across two deliveries, a commercial edition under a new project name, a reused project name that must fail, and a hand-pinned manifest with no import. The vendor branch was tried only on invented local repositories. None of these routes built anything with Zephyr.
+- `tests/build/test_product_template.py` also takes these routes through real west 1.4.0 and `west crux-pins`: a vendor branch across two deliveries, delivery lines with a fix on the older one, the hash-list check, a commercial edition under a new project name, a reused project name that must fail, a hand-pinned manifest with no import or with a Zephyr-only import, and the steps for a Zephyr patch release. All of these used invented local repositories. None of these routes built anything with Zephyr.
 - `tests/build/test_crux_pins.py` runs `west crux-pins` through real west 1.4.0 on local throwaway repositories, and `tests/build/test_zephyr_baseline.py` evaluates the gate in `zephyr/CMakeLists.txt` with a mock Zephyr. Neither uses a real Zephyr build.
 
 **What was not run**
@@ -416,5 +504,7 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 - The comparison of a soft fork with patch files on a fresh workspace.
 - `west blobs`, or a delivery kept outside the checkout. What this guide says of `west blobs` comes from reading its source at v4.4.2.
 - Signing, a physical board, or a baseline upgrade through a fork.
+- A real Zephyr patch release, or the baseline gate on one. The steps above ran on fake repositories only.
+- A vendor project built as a Zephyr module. What this guide says of its place in the SBOM, and of a purl on an `https://` URL, comes from reading `zspdx/walker.py` at v4.4.2.
 - More than one application or SDK. Image comparison across paths holds for that one case, on each machine it ran on.
 - Linux, Yocto or any other build system.
