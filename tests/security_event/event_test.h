@@ -78,6 +78,8 @@ const char *event_test_last_line(void);
 unsigned event_test_signal_gives(void);
 unsigned event_test_signal_takes(void);
 uint32_t event_test_signal_last_wait_ms(void);
+/* True while the drain is inside its wait. */
+bool event_test_signal_waiting(void);
 /* Makes the next take report this status once its real wait ends. */
 void event_test_signal_next_reports(crux_status_t status);
 unsigned event_test_pauses(void);

@@ -27,6 +27,7 @@ static crux_thread_options_t thread_options;
 static bool in_isr;
 static unsigned signal_gives, signal_takes, pauses;
 static uint32_t signal_last_wait_ms;
+static bool signal_waiting;
 static crux_status_t signal_report;
 static int64_t last_pause_ms;
 
@@ -98,6 +99,7 @@ void event_test_reset(void)
     in_isr = false;
     signal_gives = signal_takes = pauses = 0;
     signal_last_wait_ms = 0;
+    signal_waiting = false;
     signal_report = CRUX_OK;
     last_pause_ms = 0;
     pthread_mutex_unlock(&control_lock);
@@ -379,6 +381,14 @@ uint32_t event_test_signal_last_wait_ms(void)
     return wait_ms;
 }
 
+bool event_test_signal_waiting(void)
+{
+    pthread_mutex_lock(&control_lock);
+    bool waiting = signal_waiting;
+    pthread_mutex_unlock(&control_lock);
+    return waiting;
+}
+
 void event_test_signal_next_reports(crux_status_t status)
 {
     pthread_mutex_lock(&control_lock);
@@ -417,9 +427,11 @@ crux_status_t __wrap_crux_semaphore_take(crux_semaphore_t semaphore, uint32_t ti
     pthread_mutex_lock(&control_lock);
     signal_takes += 1;
     signal_last_wait_ms = timeout_ms;
+    signal_waiting = true;
     pthread_mutex_unlock(&control_lock);
     crux_status_t status = __real_crux_semaphore_take(semaphore, timeout_ms);
     pthread_mutex_lock(&control_lock);
+    signal_waiting = false;
     if (signal_report != CRUX_OK) {
         status = signal_report;
         signal_report = CRUX_OK;

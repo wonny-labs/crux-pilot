@@ -220,7 +220,8 @@ static const security_event_stored_t *ring_find(uint32_t cursor)
     return NULL;
 }
 
-/* Takes the ring lock for the copy only. Static, so that no link can read without the check. */
+/* Takes the ring lock for the copy only. Static, so that no function outside this file reads
+ * without the check. */
 static crux_security_event_read_result_t ring_read(uint32_t *cursor,
                                                    crux_security_event_record_t *out)
 {

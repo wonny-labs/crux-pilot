@@ -9,6 +9,8 @@
 #define ROUTINE_ROOM ((size_t)CRUX_SECURITY_EVENT_RING - CRUX_SECURITY_EVENT_RESERVE)
 #define WAIT_LIMIT_MS 10000u
 
+_Static_assert(CRUX_SECURITY_EVENT_DRAIN_BURST >= 4, "the cases below use part of a burst");
+
 /* Not crux_thread_sleep_for, which counts as a pause of the drain in this composition. */
 static void rest_1_ms(void)
 {
@@ -16,7 +18,7 @@ static void rest_1_ms(void)
     (void)nanosleep(&rest, NULL);
 }
 
-/* Waits for at least this many lines and pauses, and then for the drain to be idle again. */
+/* Waits for at least this many lines and pauses. The drain may still be finishing that wake. */
 static void wait_for(unsigned lines, unsigned pauses)
 {
     for (unsigned waited = 0; waited < WAIT_LIMIT_MS; ++waited) {
@@ -27,6 +29,26 @@ static void wait_for(unsigned lines, unsigned pauses)
     }
     CHECK(event_test_line_count() >= lines);
     CHECK(event_test_pauses() >= pauses);
+}
+
+/* Waits until the drain stays in its wait, so that the next emit starts a new wake. */
+static void wait_for_idle(void)
+{
+    unsigned quiet = 0;
+    for (unsigned waited = 0; waited < WAIT_LIMIT_MS && quiet < 3u; ++waited) {
+        quiet = event_test_signal_waiting() ? quiet + 1u : 0u;
+        rest_1_ms();
+    }
+    CHECK(quiet >= 3u);
+}
+
+static size_t report_lines(void)
+{
+    size_t reports = 0;
+    for (size_t index = 0; index < event_test_line_count(); ++index) {
+        reports += strncmp(event_test_line(index)->text, "evt=event.lost ", 15) == 0 ? 1u : 0u;
+    }
+    return reports;
 }
 
 static void start_drain(void)
@@ -155,17 +177,76 @@ static void idle_timeout_restarts_the_count(void)
     stop_drain();
 }
 
-/* A wait that fails pauses rather than spins, and keeps the count. */
-static void failed_wait_pauses(void)
+/* A wait that fails pauses rather than spins, and that pause does not end the burst. */
+static void failed_wait_pauses_and_keeps_the_count(void)
 {
     start_drain();
     emit_routine_lines(1);
     wait_for(1, 0);
+    wait_for_idle();
     CHECK(event_test_pauses() == 0);
     event_test_signal_next_reports(CRUX_ERR_IO);
     emit_routine_lines(1);
     wait_for(2, 1);
-    CHECK(event_test_pauses() >= 1);
+    wait_for_idle();
+    CHECK(event_test_pauses() == 1);
+    /* Two lines are used, so the burst's pause comes after the rest of them. */
+    emit_routine_lines(BURST - 3u);
+    wait_for(BURST - 1u, 1);
+    wait_for_idle();
+    CHECK(event_test_pauses() == 1);
+    emit_routine_lines(1);
+    wait_for(BURST, 2);
+    CHECK(event_test_pauses() == 2);
+    stop_drain();
+}
+
+/* One report in a burst, across wakes. A later loss waits for the next burst, and is not lost. */
+static void one_report_in_a_burst_across_wakes(void)
+{
+    start_drain();
+    /* A loss sends no signal, and the record that follows wakes the drain for both. */
+    crux_security_event_emit(NULL);
+    emit_routine_lines(1);
+    wait_for(2, 0);
+    wait_for_idle();
+    CHECK(report_lines() == 1);
+
+    /* A new wake in the same burst, with a new loss: only the record is written. */
+    crux_security_event_emit(NULL);
+    emit_routine_lines(1);
+    wait_for(3, 0);
+    wait_for_idle();
+    CHECK(event_test_line_count() == 3);
+    CHECK(report_lines() == 1);
+
+    /* The burst's last line brings the pause, and the waiting report opens the next burst. */
+    emit_routine_lines(BURST - 3u);
+    wait_for(BURST + 1u, 1);
+    wait_for_idle();
+    CHECK(event_test_line_count() == BURST + 1u);
+    CHECK(event_test_pauses() == 1);
+    CHECK(report_lines() == 2);
+    CHECK(strncmp(event_test_last_line(), "evt=event.lost ", 15) == 0);
+    stop_drain();
+}
+
+/* An idle timeout starts a new burst, so a new report may be written in it. */
+static void idle_timeout_allows_a_report(void)
+{
+    start_drain();
+    crux_security_event_emit(NULL);
+    emit_routine_lines(1);
+    wait_for(2, 0);
+    wait_for_idle();
+    CHECK(report_lines() == 1);
+    crux_security_event_emit(NULL);
+    event_test_signal_next_reports(CRUX_ERR_TIMEOUT);
+    emit_routine_lines(1);
+    wait_for(4, 0);
+    wait_for_idle();
+    CHECK(report_lines() == 2);
+    CHECK(event_test_pauses() == 0);
     stop_drain();
 }
 
@@ -178,7 +259,9 @@ int main(void)
     pause_counts_across_wakes();
     pause_comes_at_the_burst_size();
     idle_timeout_restarts_the_count();
-    failed_wait_pauses();
+    failed_wait_pauses_and_keeps_the_count();
+    one_report_in_a_burst_across_wakes();
+    idle_timeout_allows_a_report();
     event_test_reset();
     return event_test_finish("Security event drain");
 }

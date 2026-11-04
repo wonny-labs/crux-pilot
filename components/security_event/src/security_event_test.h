@@ -7,7 +7,7 @@
 
 /* Returns to the state before init, as a reset does. Stop the drain first. */
 void crux_security_event_test_reset(void);
-/* Writes up to one burst with no thread and no pause. Returns the lines it wrote. */
+/* Writes up to one whole burst with no thread and no pause. Returns the lines it wrote. */
 unsigned crux_security_event_test_drain_step(void);
 /* Asks a started drain to end, and joins it. */
 crux_status_t crux_security_event_test_stop_drain(void);

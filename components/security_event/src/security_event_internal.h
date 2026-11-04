@@ -39,7 +39,8 @@ _Static_assert(CRUX_SECURITY_EVENT_RESERVE >= 1 &&
                    CRUX_SECURITY_EVENT_RESERVE < CRUX_SECURITY_EVENT_RING,
                "the reserve must leave routine events some of the ring");
 _Static_assert(CRUX_SECURITY_EVENT_LOCK_MS >= 1, "an emit that never waits drops under contention");
-_Static_assert(CRUX_SECURITY_EVENT_DRAIN_BURST >= 1, "the drain must write");
+_Static_assert(CRUX_SECURITY_EVENT_DRAIN_BURST >= 2,
+               "a burst holds a report and a record, or constant loss would starve the records");
 _Static_assert(CRUX_SECURITY_EVENT_DRAIN_PAUSE_MS >= 1, "the pause paces a full ring");
 _Static_assert(CRUX_SECURITY_EVENT_DRAIN_WAIT_MS >= 1, "the drain needs a finite wait");
 
@@ -135,7 +136,8 @@ extern security_event_state_t crux_security_event_state;
  * be held. */
 void crux_security_event_clock_fill(uint64_t uptime_ms, bool no_uptime, int64_t *wall_s,
                                     crux_security_event_clock_t *clock);
-/* Writes at most limit lines and returns how many. Holds no lock across a log write. */
-unsigned crux_security_event_drain_lines(unsigned limit);
+/* Writes at most limit lines and returns how many, with a report only while may_report is true,
+ * which a report clears. Holds no lock across a log write. */
+unsigned crux_security_event_drain_lines(unsigned limit, bool *may_report);
 
 #endif

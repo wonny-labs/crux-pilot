@@ -131,7 +131,8 @@ def composition_errors(build_root):
     for forbidden in ("crux_security_event_test_", "security_event_fake_", "crux_access_port_"):
         if forbidden in symbols:
             errors.append(f"product core defines {forbidden}*")
-    # The one way to read a record checks the permission, so no link can skip it.
+    # The one function that reads a record checks the permission. This does not hide the ring,
+    # which crux_security_event_state still exposes to code in the image.
     exported = run(["nm", "--defined-only", "--extern-only", str(core)]).stdout
     readers = set(re.findall(r"\b\w*read\w*\b", exported))
     if readers != {"crux_security_event_read"}:
@@ -152,7 +153,8 @@ def composition_errors(build_root):
 
 
 def setting_errors():
-    """A reserve that leaves routine events no room must not compile."""
+    """A reserve that leaves routine events no room, or a burst only reports could fill, must not
+    compile."""
     errors = []
     base = [C_COMPILER, "-fsyntax-only", "-Icomponents/security_event/include",
             "-Icomponents/security_event/src", "-Icomponents/base/include",
@@ -161,7 +163,8 @@ def setting_errors():
             "components/security_event/src/security_event_fields.c"]
     bad = [("-DCRUX_SECURITY_EVENT_RING=8", "-DCRUX_SECURITY_EVENT_RESERVE=8"),
            ("-DCRUX_SECURITY_EVENT_RING=8", "-DCRUX_SECURITY_EVENT_RESERVE=0"),
-           ("-DCRUX_SECURITY_EVENT_RING=1", "-DCRUX_SECURITY_EVENT_RESERVE=1")]
+           ("-DCRUX_SECURITY_EVENT_RING=1", "-DCRUX_SECURITY_EVENT_RESERVE=1"),
+           ("-DCRUX_SECURITY_EVENT_DRAIN_BURST=1",)]
     for settings in bad:
         result = run(base[:1] + list(settings) + base[1:])
         if result.returncode == 0:
@@ -170,6 +173,9 @@ def setting_errors():
                  + base[1:])
     if result.returncode != 0:
         errors.append(f"a reserve one below the ring must compile\n{result.stdout}")
+    result = run(base[:1] + ["-DCRUX_SECURITY_EVENT_DRAIN_BURST=2"] + base[1:])
+    if result.returncode != 0:
+        errors.append(f"a burst of 2 must compile\n{result.stdout}")
     return errors
 
 

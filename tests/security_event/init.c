@@ -140,6 +140,22 @@ static void invalid_project_tables(void)
     CHECK(strcmp(crux_security_event_name(0x7FFF), "event.unknown") == 0);
 }
 
+/* Only exact names are refused, because the contract reserves no prefix. */
+static void near_names_are_allowed(void)
+{
+    static const crux_security_event_project_id_t table[] = {
+        {0x8000, "event.lost.x", CRUX_SECURITY_EVENT_ROUTINE},
+        {0x8001, "access.other", CRUX_SECURITY_EVENT_ROUTINE},
+    };
+    event_test_reset();
+    CHECK(crux_security_event_init(table, 2) == CRUX_OK);
+    CHECK(strcmp(crux_security_event_name(0x8000), "event.lost.x") == 0);
+    CHECK(strcmp(crux_security_event_name(0x8001), "access.other") == 0);
+    event_test_emit(0x8000, CRUX_SECURITY_EVENT_OK, NULL, NULL);
+    CHECK(crux_security_event_test_drain_step() == 1);
+    CHECK(strncmp(event_test_last_line(), "evt=event.lost.x seq=1 ", 23) == 0);
+}
+
 static void project_identifiers(void)
 {
     static const crux_security_event_project_id_t table[] = {
@@ -249,6 +265,7 @@ int main(void)
     failed_init();
     repeated_init();
     invalid_project_tables();
+    near_names_are_allowed();
     project_identifiers();
     refused_calls();
     start_failure_leaves_the_ring_usable();
