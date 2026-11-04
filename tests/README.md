@@ -22,6 +22,8 @@ See the [Time Busy-wait contract](../docs/time-busy-wait.md).
 | Build tools and validation oracles | Python `unittest` | Linux host |
 | Physical Time/RTC functional tests | Standalone pytest through `scripts/test-target.sh` | macOS, EVKB and J-Link |
 | Physical device, network and integrated watchdog tests | Dedicated Python CLI capture runners | EVKB and controlled Mac/peer setup |
+| Out-of-tree consumer, all software levels | Python `unittest`; its Zephyr levels are opt-in | Linux host and Zephyr `native_sim` |
+| Device-control tool | Python `unittest` with fake transports | Linux and macOS hosts; Windows not run |
 
 ## Host: `time/` and `controller/`
 
@@ -175,6 +177,41 @@ See the [external application example](../docs/build.md#external-linux-applicati
 The fixture uses public capabilities in portable targets and declares platform
 composition separately. It does not establish an installed SDK, production Linux,
 physical qualification or support for additional toolchains.
+
+## Testing a consumer application
+
+Applications own their tests; the [build guide](../docs/build.md#testing-a-consumer-application) gives the
+entry point for each level and warns that `EXTRA_ZEPHYR_MODULES` is skipped when there is no west
+workspace. `consumer_poc/` is a worked example, kept working by `build/test_consumer_poc.py`:
+
+```sh
+python3 -m unittest discover -s tests/build -p test_consumer_poc.py -v
+```
+
+The test copies the consumer outside the Crux tree, then builds and runs its unit and Host integration
+levels. It also checks which components are built, that the unit level links no Crux target, and that
+a controlled policy defect (`-DCONSUMER_DEFECT_REBASE=ON`) fails both levels on their own assertions.
+These Host cases need no west workspace, so the existing `tests/build` discovery in Host CI runs them.
+
+The `native_sim` and functional levels are opt-in. No CI job runs them. Run them in the Linux
+development environment, from a west workspace with pytest installed:
+
+```sh
+CRUX_CONSUMER_POC_ZEPHYR_TESTS=1 python3 -m unittest discover -s tests/build -p test_consumer_poc.py -v
+```
+
+This runs `consumer_poc/run_poc.sh`, which requires the functional oracle to reject the same defect. None
+of these checks flashes, resets or opens a device. These levels last ran at Zephyr v4.4.0, before
+`west.yml` moved to v4.4.2.
+
+## Device-control tool
+
+`build/test_device_control.py` tests [`tools/device_control`](../tools/device_control/README.md) with
+fake transports and scripted tools, including its reset and flash gates, manifest checks, evidence
+retention and board lock. No test uses hardware or a real serial port, and nothing has run on Windows.
+Host CI runs these tests on Linux only; the macOS results were run by hand and are in the
+[recorded runs](../docs/evidence/test-foundation-tool/README.md). See the tool's README for what has
+not been exercised.
 
 ## Product template
 
@@ -523,6 +560,20 @@ runs `scripts/check-access-boundary.py`. That check configures and builds `tests
 a project cannot reach the adapter header, and a service that links the adapter target privately is still accepted.
 No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
 [Access contract](../docs/access-contract.md).
+
+## Portable credential store
+
+The credential store (Issue #178): the root Host suite runs `tests/credential` as `Credential.*` in CTest, on the File
+fake and on the Linux File provider. The protection in every suite is **test only**, a CRC in place of a tag and a
+keystream that is not encryption, because PSA is not qualified (Issue #142). It exists only when Crux builds its own
+tests, it refuses to compile outside a test composition, and `Credential.credential_production_refuses` shows a product
+build of the store refusing it at start. The fault suites cut power before each File operation, each sector and each byte
+of every save, with a medium model that proves nothing about a real card.
+`scripts/test-credential.sh` also runs them under the sanitizer preset, runs clang-tidy on the sources and runs
+`scripts/check-credential-boundary.py`, which configures and builds `tests/credential_consumer` in both directions.
+`tests/native/credential_fatfs` runs the conformance cases on real FatFs over a RAM disk, under
+`scripts/test-storage-simulators.sh`. None of this says anything about confidentiality, entropy or real power loss. See
+the [credential store](../docs/credential-store.md).
 
 ## Portable Security events
 

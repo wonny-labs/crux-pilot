@@ -1,0 +1,30 @@
+Loading Zephyr default modules (Zephyr base).
+-- Application: /opt/crux-src/tests/consumer_poc/zephyr
+-- CMake version: 3.28.4
+-- Found Python3: /opt/crux-cache/venv/bin/python (found suitable version "3.12.3", minimum required is "3.12") found components: Interpreter 
+-- Cache files will be written to: /root/.cache/zephyr
+-- Zephyr version: 4.4.0 (/opt/env/zephyr)
+-- Found west (found suitable version "1.4.0", minimum required is "0.14.0")
+-- Board: native_sim, qualifiers: native/64
+-- Found host-tools: zephyr 1.0.1 (/opt/crux-cache/sdk/zephyr-sdk-1.0.1)
+-- Found toolchain: host (gcc/ld)
+-- Found Dtc: /opt/crux-cache/sdk/zephyr-sdk-1.0.1/hosttools/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6") 
+-- Found BOARD.dts: /opt/env/zephyr/boards/native/native_sim/native_sim_64.dts
+-- Generated zephyr.dts: /opt/crux-cache/test-foundation/probes/nowest-modules/zephyr/zephyr.dts
+-- Generated pickled edt: /opt/crux-cache/test-foundation/probes/nowest-modules/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /opt/crux-cache/test-foundation/probes/nowest-modules/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing /opt/env/zephyr/Kconfig
+Loaded configuration '/opt/env/zephyr/boards/native/native_sim/native_sim_64_defconfig'
+Merged configuration '/opt/crux-src/tests/consumer_poc/zephyr/prj.conf'
+Configuration saved to '/opt/crux-cache/test-foundation/probes/nowest-modules/zephyr/.config'
+Kconfig header saved to '/opt/crux-cache/test-foundation/probes/nowest-modules/zephyr/include/generated/zephyr/autoconf.h'
+-- Found GnuLd: /usr/bin/ld.bfd (found version "2.42") 
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /usr/bin/gcc
+-- Crux Zephyr integration module discovered
+-- Found gen_kobject_list: /opt/env/zephyr/scripts/build/gen_kobject_list.py
+-- Configuring done (125.0s)
+-- Generating done (0.1s)
+-- Build files have been written to: /opt/crux-cache/test-foundation/probes/nowest-modules
