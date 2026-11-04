@@ -39,13 +39,18 @@ function measured(name: string, dist: string, stylePolicy: StylePolicy, trustedT
   return { name, config: { name, dist, stylePolicy }, trustedTypes };
 }
 
+/** A blocked style also logs a console message, so only the violation events are counted. */
+function events(app: OpenApp): string[] {
+  return app.violations.filter((violation) => violation.startsWith('CSP-VIOLATION'));
+}
+
 const skip = built ? false : 'the Angular sample has not been built';
 
 test('the Angular sample has no violation under the inline style setting', { skip }, async (t) => {
   const { config, trustedTypes } = measured('angular', angular, 'inline', false);
   const app = await walk(config, trustedTypes);
   try {
-    t.diagnostic(`angular, inline styles: ${app.violations.length} violations`);
+    t.diagnostic(`angular, inline styles: ${events(app).length} violations`);
     assert.deepEqual(app.violations, []);
     app.finish();
   } finally {
@@ -57,14 +62,14 @@ test('under the strict setting the Angular sample breaks only on styles, never o
   const { config, trustedTypes } = measured('angular', angular, 'strict', false);
   const app = await walk(config, trustedTypes);
   try {
-    t.diagnostic(`angular, strict: ${app.violations.length} violations: ${app.violations.join(' | ')}`);
-    assert.ok(app.violations.length > 0, 'the component style is what the setting exists for');
+    t.diagnostic(`angular, strict: ${events(app).length} violations: ${events(app).join(' | ')}`);
+    assert.ok(events(app).length > 0, 'the component style is what the setting exists for');
     assert.ok(
-      app.violations.filter((violation) => /CSP-VIOLATION/.test(violation)).every((violation) => /style/.test(violation)),
-      app.violations.join('\n'),
+      events(app).every((violation) => /style/.test(violation)),
+      events(app).join('\n'),
     );
     assert.equal(
-      app.violations.some((violation) => /script-src/.test(violation)),
+      events(app).some((violation) => /script-src/.test(violation)),
       false,
     );
   } finally {
@@ -72,11 +77,12 @@ test('under the strict setting the Angular sample breaks only on styles, never o
   }
 });
 
-test('the Angular sample under Trusted Types, as a record', { skip }, async (t) => {
+test('the Angular sample has no violation with Trusted Types added', { skip }, async (t) => {
   const { config, trustedTypes } = measured('angular', angular, 'inline', true);
   const app = await walk(config, trustedTypes);
   try {
-    t.diagnostic(`angular, inline styles and Trusted Types: ${app.violations.length} violations: ${app.violations.join(' | ')}`);
+    t.diagnostic(`angular, inline styles and Trusted Types: ${events(app).length} violations: ${events(app).join(' | ')}`);
+    assert.deepEqual(app.violations, []);
   } finally {
     await app.close();
   }
@@ -86,7 +92,7 @@ test('the reference has no violation under the strict setting with Trusted Types
   const { config, trustedTypes } = measured('reference', join(webRoot, 'reference', 'dist'), 'strict', true);
   const app = await walk(config, trustedTypes);
   try {
-    t.diagnostic(`reference, strict with Trusted Types: ${app.violations.length} violations`);
+    t.diagnostic(`reference, strict with Trusted Types: ${events(app).length} violations`);
     assert.deepEqual(app.violations, []);
   } finally {
     await app.close();

@@ -43,6 +43,23 @@ run('the verifying state is shown while the attempt is pending', async ({ page, 
   await waitForHeading(page, 'Home');
 });
 
+run('a wait is announced once, and the running count stays out of the live region', async ({ page, mock }) => {
+  mock.control.set({ delaySeconds: 5 });
+  await page.goto('/');
+  await signIn(page);
+  const alert = page.getByRole('alert');
+  await alert.getByText(/try again in 5 seconds/i).waitFor();
+  const count = page.getByText(/time left: \d+ second/i);
+  const first = await count.textContent();
+  await page.waitForFunction(
+    (text) => !document.body.textContent?.includes(text as string),
+    first,
+    { timeout: 5000 },
+  );
+  await alert.getByText(/try again in 5 seconds/i).waitFor();
+  assert.equal(await page.locator('[role="alert"] .hint, [role="status"] .hint').count(), 0);
+});
+
 run('empty fields are refused before any request', async ({ page, mock }) => {
   await page.goto('/');
   await waitForHeading(page, 'Sign in');
