@@ -37,9 +37,8 @@ static void authorise_report(crux_access_result_t result, requirement_t requirem
     crux_access_session_report(result, expired);
     if (result == CRUX_ACCESS_ERR_DENIED) {
         bool own = requirement == REQUIRE_MANAGE_OR_OWN && strcmp(actor->user, target) == 0;
-        crux_access_emit_session(CRUX_ACCESS_EVENT_PERMISSION_DENIED, result, &actor->origin,
-                                 actor->user, NULL,
-                                 own ? CRUX_ACCESS_PERMISSION_SELF : CRUX_ACCESS_PERMISSION_MANAGE);
+        crux_access_emit_denial(actor->user, &actor->origin,
+                                own ? CRUX_ACCESS_PERMISSION_SELF : CRUX_ACCESS_PERMISSION_MANAGE);
     }
 }
 
@@ -50,7 +49,7 @@ static crux_access_result_t reject(crux_access_result_t result, const actor_t *a
 {
     if (result != CRUX_ACCESS_ERR_NOT_READY) {
         crux_access_emit_session(CRUX_ACCESS_EVENT_CHANGE_REJECTED, result, &actor->origin,
-                                 actor->user, target, NULL);
+                                 actor->user, target);
     }
     return result;
 }
@@ -216,10 +215,10 @@ static void emit_change(crux_access_event_type_t type, crux_access_result_t resu
                         const actor_t *actor, const char *user, const char *failed_target)
 {
     if (result == CRUX_ACCESS_OK) {
-        crux_access_emit_session(type, result, &actor->origin, actor->user, user, NULL);
+        crux_access_emit_session(type, result, &actor->origin, actor->user, user);
     } else if (result == CRUX_ACCESS_ERR_STORE) {
         crux_access_emit_session(CRUX_ACCESS_EVENT_CHANGE_FAILED, result, &actor->origin,
-                                 actor->user, failed_target, NULL);
+                                 actor->user, failed_target);
     }
 }
 

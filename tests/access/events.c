@@ -44,9 +44,10 @@ static crux_access_session_t boot_with_user(void)
     return admin;
 }
 
-/* Exactly one event since the last clear, with these fields. NULL means the field is empty. */
+/* Exactly one event since the last clear: this actor, on this channel, acting on this account. NULL
+ * means the field is empty. */
 static void expect_event(crux_access_event_type_t type, crux_access_result_t result,
-                         crux_access_channel_t channel, const char *actor, const char *account)
+                         const char *actor, crux_access_channel_t channel, const char *account)
 {
     CHECK(access_fake_event_count() == 1);
     const crux_access_event_t *event = access_fake_event(0);
@@ -76,24 +77,24 @@ static void login_rejections(void)
 
     crux_access_origin_t origin = access_test_web_from(1);
     CHECK(access_test_login(USER, WRONG, &origin, &session) == CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_WEB,
-                 NULL, USER);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, USER);
     CHECK(access_test_login("no-such-user", WRONG, &origin, &session) == CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_WEB,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(access_test_login("disabled", PASSWORD, &origin, &session) == CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_WEB,
-                 NULL, "disabled");
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, "disabled");
 
     /* A bad name form and an over-long password. Neither names anyone. */
     CHECK(access_test_login("Not A Name!", WRONG, &origin, &session) ==
           CRUX_ACCESS_ERR_INVALID_ARGUMENT);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_INVALID_ARGUMENT,
-                 CRUX_ACCESS_CHANNEL_WEB, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_INVALID_ARGUMENT, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_login_password(USER, WRONG, CRUX_ACCESS_PASSWORD_MAX + 1u, &origin, &session,
                                      &retry_after_ms) == CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_WEB,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
 
     /* A delay window. */
     crux_access_origin_t delayed = access_test_web_from(2);
@@ -102,8 +103,8 @@ static void login_rejections(void)
     }
     access_fake_events_clear();
     CHECK(access_test_login(USER, WRONG, &delayed, &session) == CRUX_ACCESS_ERR_RETRY_LATER);
-    expect_event(CRUX_ACCESS_EVENT_DELAY_APPLIED, CRUX_ACCESS_ERR_RETRY_LATER,
-                 CRUX_ACCESS_CHANNEL_WEB, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_DELAY_APPLIED, CRUX_ACCESS_ERR_RETRY_LATER, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
 }
 
 static void hook_login_while_verifying(void *context)
@@ -143,12 +144,12 @@ static void busy_and_full_tables(void)
     access_fake_events_clear();
     crux_access_origin_t origin = access_test_web_from(99);
     CHECK(access_test_login(USER, PASSWORD, &origin, &session) == CRUX_ACCESS_ERR_NO_RESOURCES);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_NO_SESSION, CRUX_ACCESS_ERR_NO_RESOURCES,
-                 CRUX_ACCESS_CHANNEL_WEB, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_NO_SESSION, CRUX_ACCESS_ERR_NO_RESOURCES, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_login_verified(USER, key_one, sizeof(key_one), &access_test_ssh, &session) ==
           CRUX_ACCESS_ERR_NO_RESOURCES);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_NO_SESSION, CRUX_ACCESS_ERR_NO_RESOURCES,
-                 CRUX_ACCESS_CHANNEL_SSH, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_NO_SESSION, CRUX_ACCESS_ERR_NO_RESOURCES, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, NULL);
 }
 
 static void key_rejections(void)
@@ -165,31 +166,31 @@ static void key_rejections(void)
     CHECK(access_fake_event_count() == 0);
     CHECK(crux_access_key_is_authorised(USER, key_two, sizeof(key_two), true, &access_test_ssh,
                                         &retry_after_ms) == CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_KEY_FAILURE, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_SSH,
-                 NULL, USER);
+    expect_event(CRUX_ACCESS_EVENT_KEY_FAILURE, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, USER);
     CHECK(crux_access_key_is_authorised("Not A Name!", key_two, sizeof(key_two), true,
                                         &access_test_ssh,
                                         &retry_after_ms) == CRUX_ACCESS_ERR_INVALID_ARGUMENT);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_INVALID_ARGUMENT,
-                 CRUX_ACCESS_CHANNEL_SSH, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_FAILURE, CRUX_ACCESS_ERR_INVALID_ARGUMENT, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, NULL);
 
     /* A failed signature, naming a known account only. */
     crux_access_report_key_failure(USER, &access_test_ssh);
-    expect_event(CRUX_ACCESS_EVENT_KEY_FAILURE, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_SSH,
-                 NULL, USER);
+    expect_event(CRUX_ACCESS_EVENT_KEY_FAILURE, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, USER);
     crux_access_report_key_failure(TYPED_NAME, &access_test_ssh);
-    expect_event(CRUX_ACCESS_EVENT_KEY_FAILURE, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_SSH,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_KEY_FAILURE, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, NULL);
 
     /* A refused verified login. */
     CHECK(crux_access_login_verified(USER, key_two, sizeof(key_two), &access_test_ssh, &session) ==
           CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_SSH,
-                 NULL, USER);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, USER);
     CHECK(crux_access_login_verified("no-such-user", key_two, sizeof(key_two), &access_test_ssh,
                                      &session) == CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_SSH,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, NULL);
 
     /* A forced change refuses key login at both steps, with the client's results unchanged. */
     CHECK(crux_access_account_reset_password(admin, USER, OTHER_PASSWORD, strlen(OTHER_PASSWORD)) ==
@@ -197,12 +198,12 @@ static void key_rejections(void)
     access_fake_events_clear();
     CHECK(crux_access_key_is_authorised(USER, key_one, sizeof(key_one), true, &access_test_ssh,
                                         &retry_after_ms) == CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_SSH,
-                 NULL, USER);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, USER);
     CHECK(crux_access_login_verified(USER, key_one, sizeof(key_one), &access_test_ssh, &session) ==
           CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_SSH,
-                 NULL, USER);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, USER);
 }
 
 static void removed_role(void)
@@ -219,18 +220,18 @@ static void removed_role(void)
 
     CHECK(access_test_login(USER, PASSWORD, &access_test_web, &session) == CRUX_ACCESS_ERR_DENIED);
     CHECK(access_fake_event(0)->role_missing);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_WEB,
-                 NULL, USER);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, USER);
     CHECK(crux_access_key_is_authorised(USER, key_one, sizeof(key_one), true, &access_test_ssh,
                                         &retry_after_ms) == CRUX_ACCESS_ERR_DENIED);
     CHECK(access_fake_event(0)->role_missing);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_SSH,
-                 NULL, USER);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, USER);
     CHECK(crux_access_login_verified(USER, key_one, sizeof(key_one), &access_test_ssh, &session) ==
           CRUX_ACCESS_ERR_DENIED);
     CHECK(access_fake_event(0)->role_missing);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_SSH,
-                 NULL, USER);
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_REFUSED, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, USER);
 }
 
 static void session_rejections(void)
@@ -245,46 +246,46 @@ static void session_rejections(void)
     CHECK(crux_access_check(user, CRUX_ACCESS_PERMISSION_MANAGE) == CRUX_ACCESS_ERR_DENIED);
     CHECK(strcmp(access_fake_event(0)->permission, CRUX_ACCESS_PERMISSION_MANAGE) == 0);
     CHECK(access_fake_event(0)->origin.source[3] == access_test_web_other.source[3]);
-    expect_event(CRUX_ACCESS_EVENT_PERMISSION_DENIED, CRUX_ACCESS_ERR_DENIED,
-                 CRUX_ACCESS_CHANNEL_WEB, USER, NULL);
+    expect_event(CRUX_ACCESS_EVENT_PERMISSION_DENIED, CRUX_ACCESS_ERR_DENIED, USER,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_check(user, "firmware.upgrade") == CRUX_ACCESS_ERR_DENIED);
     CHECK(strcmp(access_fake_event(0)->permission, "firmware.upgrade") == 0);
-    expect_event(CRUX_ACCESS_EVENT_PERMISSION_DENIED, CRUX_ACCESS_ERR_DENIED,
-                 CRUX_ACCESS_CHANNEL_WEB, USER, NULL);
+    expect_event(CRUX_ACCESS_EVENT_PERMISSION_DENIED, CRUX_ACCESS_ERR_DENIED, USER,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
 
     /* An account operation's denial names the permission it needed. */
     CHECK(crux_access_account_disable(user, ADMIN) == CRUX_ACCESS_ERR_DENIED);
     CHECK(strcmp(access_fake_event(0)->permission, CRUX_ACCESS_PERMISSION_MANAGE) == 0);
-    expect_event(CRUX_ACCESS_EVENT_PERMISSION_DENIED, CRUX_ACCESS_ERR_DENIED,
-                 CRUX_ACCESS_CHANNEL_WEB, USER, NULL);
+    expect_event(CRUX_ACCESS_EVENT_PERMISSION_DENIED, CRUX_ACCESS_ERR_DENIED, USER,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
 
     /* A stale session has no channel to report, on every operation that takes a session. */
     crux_access_session_t stale = user;
     crux_access_logout(&user);
-    expect_event(CRUX_ACCESS_EVENT_LOGOUT, CRUX_ACCESS_OK, CRUX_ACCESS_CHANNEL_WEB, USER, NULL);
+    expect_event(CRUX_ACCESS_EVENT_LOGOUT, CRUX_ACCESS_OK, USER, CRUX_ACCESS_CHANNEL_WEB, NULL);
     size_t count = 0;
     CHECK(crux_access_check(stale, "status.read") == CRUX_ACCESS_ERR_SESSION_INVALID);
-    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, no_channel,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, NULL,
+                 no_channel, NULL);
     CHECK(crux_access_touch(stale) == CRUX_ACCESS_ERR_SESSION_INVALID);
-    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, no_channel,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, NULL,
+                 no_channel, NULL);
     CHECK(crux_access_session_user(stale, name, sizeof(name)) == CRUX_ACCESS_ERR_SESSION_INVALID);
-    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, no_channel,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, NULL,
+                 no_channel, NULL);
     CHECK(crux_access_session_role(stale, name, sizeof(name)) == CRUX_ACCESS_ERR_SESSION_INVALID);
-    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, no_channel,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, NULL,
+                 no_channel, NULL);
     CHECK(crux_access_session_must_change_password(stale, &required) ==
           CRUX_ACCESS_ERR_SESSION_INVALID);
-    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, no_channel,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, NULL,
+                 no_channel, NULL);
     CHECK(crux_access_account_list(stale, NULL, 0, &count) == CRUX_ACCESS_ERR_SESSION_INVALID);
-    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, no_channel,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, NULL,
+                 no_channel, NULL);
     CHECK(crux_access_account_disable(stale, ADMIN) == CRUX_ACCESS_ERR_SESSION_INVALID);
-    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, no_channel,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, NULL,
+                 no_channel, NULL);
     /* Logging out a reference that already ended is not a rejection. */
     crux_access_session_t ended = stale;
     crux_access_logout(&ended);
@@ -293,11 +294,11 @@ static void session_rejections(void)
     /* An expired session is reported as expired once, and then as stale. */
     access_fake_clock_advance((uint64_t)policy()->session_idle_limit_s * 1000u);
     CHECK(crux_access_check(admin, "status.read") == CRUX_ACCESS_ERR_SESSION_INVALID);
-    expect_event(CRUX_ACCESS_EVENT_SESSION_EXPIRED, CRUX_ACCESS_ERR_SESSION_INVALID,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_SESSION_EXPIRED, CRUX_ACCESS_ERR_SESSION_INVALID, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_check(admin, "status.read") == CRUX_ACCESS_ERR_SESSION_INVALID);
-    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, no_channel,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_SESSION_INVALID, CRUX_ACCESS_ERR_SESSION_INVALID, NULL,
+                 no_channel, NULL);
 }
 
 static void change_rejections(void)
@@ -310,82 +311,82 @@ static void change_rejections(void)
 
     /* Last administrator. */
     CHECK(crux_access_account_disable(admin, ADMIN) == CRUX_ACCESS_ERR_LAST_ADMINISTRATOR);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_LAST_ADMINISTRATOR,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, ADMIN);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_LAST_ADMINISTRATOR, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, ADMIN);
     CHECK(crux_access_account_remove(admin, ADMIN) == CRUX_ACCESS_ERR_LAST_ADMINISTRATOR);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_LAST_ADMINISTRATOR,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, ADMIN);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_LAST_ADMINISTRATOR, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, ADMIN);
     CHECK(crux_access_account_set_role(admin, ADMIN, "viewer") ==
           CRUX_ACCESS_ERR_LAST_ADMINISTRATOR);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_LAST_ADMINISTRATOR,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, ADMIN);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_LAST_ADMINISTRATOR, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, ADMIN);
 
     /* A password the rule refuses: a new name is not a known account, and a reset's target is. */
     CHECK(crux_access_account_create(admin, "bob", "viewer", "short", 5) ==
           CRUX_ACCESS_ERR_PASSWORD_REJECTED);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_PASSWORD_REJECTED,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_PASSWORD_REJECTED, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_account_reset_password(admin, USER, "short", 5) ==
           CRUX_ACCESS_ERR_PASSWORD_REJECTED);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_PASSWORD_REJECTED,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, USER);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_PASSWORD_REJECTED, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, USER);
     CHECK(
         crux_access_account_change_password(user, PASSWORD, length, "short", 5, &retry_after_ms) ==
         CRUX_ACCESS_ERR_PASSWORD_REJECTED);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_PASSWORD_REJECTED,
-                 CRUX_ACCESS_CHANNEL_WEB, USER, USER);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_PASSWORD_REJECTED, USER,
+                 CRUX_ACCESS_CHANNEL_WEB, USER);
 
     /* A name that exists, and a target that does not. Unverified input is never a field. */
     CHECK(crux_access_account_create(admin, USER, "viewer", PASSWORD, length) ==
           CRUX_ACCESS_ERR_ALREADY_EXISTS);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_ALREADY_EXISTS,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, USER);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_ALREADY_EXISTS, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, USER);
     CHECK(crux_access_account_remove(admin, TYPED_NAME) == CRUX_ACCESS_ERR_NOT_FOUND);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_account_disable(admin, TYPED_NAME) == CRUX_ACCESS_ERR_NOT_FOUND);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_account_enable(admin, TYPED_NAME) == CRUX_ACCESS_ERR_NOT_FOUND);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_account_set_role(admin, TYPED_NAME, "viewer") == CRUX_ACCESS_ERR_NOT_FOUND);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_account_reset_password(admin, TYPED_NAME, PASSWORD, length) ==
           CRUX_ACCESS_ERR_NOT_FOUND);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_account_add_key(admin, TYPED_NAME, key_one, sizeof(key_one)) ==
           CRUX_ACCESS_ERR_NOT_FOUND);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_account_remove_key(admin, TYPED_NAME, key_one, sizeof(key_one)) ==
           CRUX_ACCESS_ERR_NOT_FOUND);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NOT_FOUND, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
 
     /* Invalid arguments never name a target, and name the actor only for a live session. */
     CHECK(crux_access_account_remove(admin, "Not A Name!") == CRUX_ACCESS_ERR_INVALID_ARGUMENT);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_INVALID_ARGUMENT,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_INVALID_ARGUMENT, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_account_create(admin, "bob", "no-such-role", PASSWORD, length) ==
           CRUX_ACCESS_ERR_INVALID_ARGUMENT);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_INVALID_ARGUMENT,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_INVALID_ARGUMENT, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_account_set_role(admin, USER, "no-such-role") ==
           CRUX_ACCESS_ERR_INVALID_ARGUMENT);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_INVALID_ARGUMENT,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_INVALID_ARGUMENT, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     const uint8_t not_a_blob[] = {1, 2, 3};
     CHECK(crux_access_account_add_key(admin, USER, not_a_blob, sizeof(not_a_blob)) ==
           CRUX_ACCESS_ERR_INVALID_ARGUMENT);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_INVALID_ARGUMENT,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_INVALID_ARGUMENT, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     const crux_access_session_t never = {0};
     CHECK(crux_access_account_remove(never, "Not A Name!") == CRUX_ACCESS_ERR_INVALID_ARGUMENT);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_INVALID_ARGUMENT, no_channel,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_INVALID_ARGUMENT, NULL,
+                 no_channel, NULL);
 
     /* A full key table names its target, and a repeated key does too. */
     CHECK(crux_access_account_add_key(admin, USER, key_one, sizeof(key_one)) == CRUX_ACCESS_OK);
@@ -393,24 +394,24 @@ static void change_rejections(void)
     access_fake_events_clear();
     CHECK(crux_access_account_add_key(admin, USER, key_two, sizeof(key_two)) ==
           CRUX_ACCESS_ERR_ALREADY_EXISTS);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_ALREADY_EXISTS,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, USER);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_ALREADY_EXISTS, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, USER);
     CHECK(crux_access_account_add_key(admin, USER, key_three, sizeof(key_three)) ==
           CRUX_ACCESS_ERR_NO_RESOURCES);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NO_RESOURCES,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, USER);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NO_RESOURCES, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, USER);
 
     /* A wrong current password, and an over-long one. */
     CHECK(crux_access_account_change_password(user, WRONG, strlen(WRONG), OTHER_PASSWORD,
                                               strlen(OTHER_PASSWORD),
                                               &retry_after_ms) == CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_WEB,
-                 USER, USER);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_DENIED, USER,
+                 CRUX_ACCESS_CHANNEL_WEB, USER);
     CHECK(crux_access_account_change_password(user, WRONG, CRUX_ACCESS_PASSWORD_MAX + 1u,
                                               OTHER_PASSWORD, strlen(OTHER_PASSWORD),
                                               &retry_after_ms) == CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_DENIED, CRUX_ACCESS_CHANNEL_WEB,
-                 USER, USER);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_DENIED, USER,
+                 CRUX_ACCESS_CHANNEL_WEB, USER);
 
     /* A full account table names nobody, because the new name is not an account. */
     char name[16];
@@ -422,8 +423,8 @@ static void change_rejections(void)
     access_fake_events_clear();
     CHECK(crux_access_account_create(admin, "one-too-many", "viewer", PASSWORD, length) ==
           CRUX_ACCESS_ERR_NO_RESOURCES);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NO_RESOURCES,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_REJECTED, CRUX_ACCESS_ERR_NO_RESOURCES, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
 }
 
 /* What a forced change refuses names the permission it would have needed. */
@@ -438,12 +439,12 @@ static void forced_change_denial(void)
     CHECK(crux_access_account_add_key(forced, USER, key_one, sizeof(key_one)) ==
           CRUX_ACCESS_ERR_DENIED);
     CHECK(strcmp(access_fake_event(0)->permission, CRUX_ACCESS_PERMISSION_SELF) == 0);
-    expect_event(CRUX_ACCESS_EVENT_PERMISSION_DENIED, CRUX_ACCESS_ERR_DENIED,
-                 CRUX_ACCESS_CHANNEL_WEB, USER, NULL);
+    expect_event(CRUX_ACCESS_EVENT_PERMISSION_DENIED, CRUX_ACCESS_ERR_DENIED, USER,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_check(forced, CRUX_ACCESS_PERMISSION_SELF) == CRUX_ACCESS_ERR_DENIED);
     CHECK(strcmp(access_fake_event(0)->permission, CRUX_ACCESS_PERMISSION_SELF) == 0);
-    expect_event(CRUX_ACCESS_EVENT_PERMISSION_DENIED, CRUX_ACCESS_ERR_DENIED,
-                 CRUX_ACCESS_CHANNEL_WEB, USER, NULL);
+    expect_event(CRUX_ACCESS_EVENT_PERMISSION_DENIED, CRUX_ACCESS_ERR_DENIED, USER,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
 }
 
 static void changes_name_actor_and_target(void)
@@ -454,29 +455,29 @@ static void changes_name_actor_and_target(void)
     uint32_t retry_after_ms = 0;
 
     CHECK(crux_access_account_create(admin, "bob", "viewer", PASSWORD, length) == CRUX_ACCESS_OK);
-    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_CREATED, CRUX_ACCESS_OK, CRUX_ACCESS_CHANNEL_WEB, ADMIN,
+    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_CREATED, CRUX_ACCESS_OK, ADMIN, CRUX_ACCESS_CHANNEL_WEB,
                  "bob");
     CHECK(crux_access_account_disable(admin, "bob") == CRUX_ACCESS_OK);
-    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_DISABLED, CRUX_ACCESS_OK, CRUX_ACCESS_CHANNEL_WEB, ADMIN,
+    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_DISABLED, CRUX_ACCESS_OK, ADMIN, CRUX_ACCESS_CHANNEL_WEB,
                  "bob");
     CHECK(crux_access_account_enable(admin, "bob") == CRUX_ACCESS_OK);
-    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_ENABLED, CRUX_ACCESS_OK, CRUX_ACCESS_CHANNEL_WEB, ADMIN,
+    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_ENABLED, CRUX_ACCESS_OK, ADMIN, CRUX_ACCESS_CHANNEL_WEB,
                  "bob");
     CHECK(crux_access_account_set_role(admin, "bob", "operator") == CRUX_ACCESS_OK);
-    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_ROLE_CHANGED, CRUX_ACCESS_OK, CRUX_ACCESS_CHANNEL_WEB,
-                 ADMIN, "bob");
+    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_ROLE_CHANGED, CRUX_ACCESS_OK, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, "bob");
     CHECK(crux_access_account_reset_password(admin, "bob", OTHER_PASSWORD, other_length) ==
           CRUX_ACCESS_OK);
-    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_RESET, CRUX_ACCESS_OK, CRUX_ACCESS_CHANNEL_WEB,
-                 ADMIN, "bob");
+    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_RESET, CRUX_ACCESS_OK, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, "bob");
     CHECK(crux_access_account_add_key(admin, "bob", key_one, sizeof(key_one)) == CRUX_ACCESS_OK);
-    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_KEY_ADDED, CRUX_ACCESS_OK, CRUX_ACCESS_CHANNEL_WEB,
-                 ADMIN, "bob");
+    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_KEY_ADDED, CRUX_ACCESS_OK, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, "bob");
     CHECK(crux_access_account_remove_key(admin, "bob", key_one, sizeof(key_one)) == CRUX_ACCESS_OK);
-    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_KEY_REMOVED, CRUX_ACCESS_OK, CRUX_ACCESS_CHANNEL_WEB,
-                 ADMIN, "bob");
+    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_KEY_REMOVED, CRUX_ACCESS_OK, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, "bob");
     CHECK(crux_access_account_remove(admin, "bob") == CRUX_ACCESS_OK);
-    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_REMOVED, CRUX_ACCESS_OK, CRUX_ACCESS_CHANNEL_WEB, ADMIN,
+    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_REMOVED, CRUX_ACCESS_OK, ADMIN, CRUX_ACCESS_CHANNEL_WEB,
                  "bob");
 
     /* An account changing its own password is both actor and target. */
@@ -484,12 +485,12 @@ static void changes_name_actor_and_target(void)
     access_fake_events_clear();
     CHECK(crux_access_account_change_password(user, PASSWORD, length, OTHER_PASSWORD, other_length,
                                               &retry_after_ms) == CRUX_ACCESS_OK);
-    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_CHANGED, CRUX_ACCESS_OK,
-                 CRUX_ACCESS_CHANNEL_WEB, USER, USER);
+    expect_event(CRUX_ACCESS_EVENT_ACCOUNT_PASSWORD_CHANGED, CRUX_ACCESS_OK, USER,
+                 CRUX_ACCESS_CHANNEL_WEB, USER);
 
     /* A login names its account, and has no actor because no session acted. */
     (void)access_test_session(USER, OTHER_PASSWORD, &access_test_web_other);
-    expect_event(CRUX_ACCESS_EVENT_LOGIN_SUCCESS, CRUX_ACCESS_OK, CRUX_ACCESS_CHANNEL_WEB, NULL,
+    expect_event(CRUX_ACCESS_EVENT_LOGIN_SUCCESS, CRUX_ACCESS_OK, NULL, CRUX_ACCESS_CHANNEL_WEB,
                  USER);
 }
 
@@ -498,13 +499,13 @@ static void change_failures(void)
     crux_access_session_t admin = boot_with_user();
     access_fake_store_save_mode(ACCESS_FAKE_SAVE_FAIL);
     CHECK(crux_access_account_disable(admin, USER) == CRUX_ACCESS_ERR_STORE);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_FAILED, CRUX_ACCESS_ERR_STORE, CRUX_ACCESS_CHANNEL_WEB,
-                 ADMIN, USER);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_FAILED, CRUX_ACCESS_ERR_STORE, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, USER);
     /* A failed create leaves no such account to name. */
     CHECK(crux_access_account_create(admin, "bob", "viewer", PASSWORD, strlen(PASSWORD)) ==
           CRUX_ACCESS_ERR_STORE);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_FAILED, CRUX_ACCESS_ERR_STORE, CRUX_ACCESS_CHANNEL_WEB,
-                 ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_FAILED, CRUX_ACCESS_ERR_STORE, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     access_fake_store_save_mode(ACCESS_FAKE_SAVE_OK);
 }
 
@@ -516,42 +517,42 @@ static void provisioning_rejections(void)
 
     CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
                                               &access_test_web) == CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_PROVISION_REFUSED, CRUX_ACCESS_ERR_DENIED,
-                 CRUX_ACCESS_CHANNEL_WEB, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_PROVISION_REFUSED, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_provision_first_account("Not A Name!", PASSWORD, length, "administrator",
                                               &access_test_serial) ==
           CRUX_ACCESS_ERR_INVALID_ARGUMENT);
-    expect_event(CRUX_ACCESS_EVENT_PROVISION_REFUSED, CRUX_ACCESS_ERR_INVALID_ARGUMENT,
-                 CRUX_ACCESS_CHANNEL_SERIAL, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_PROVISION_REFUSED, CRUX_ACCESS_ERR_INVALID_ARGUMENT, NULL,
+                 CRUX_ACCESS_CHANNEL_SERIAL, NULL);
     CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "viewer",
                                               &access_test_serial) ==
           CRUX_ACCESS_ERR_INVALID_ARGUMENT);
-    expect_event(CRUX_ACCESS_EVENT_PROVISION_REFUSED, CRUX_ACCESS_ERR_INVALID_ARGUMENT,
-                 CRUX_ACCESS_CHANNEL_SERIAL, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_PROVISION_REFUSED, CRUX_ACCESS_ERR_INVALID_ARGUMENT, NULL,
+                 CRUX_ACCESS_CHANNEL_SERIAL, NULL);
     CHECK(crux_access_provision_first_account(ADMIN, "short", 5, "administrator",
                                               &access_test_serial) ==
           CRUX_ACCESS_ERR_PASSWORD_REJECTED);
-    expect_event(CRUX_ACCESS_EVENT_PROVISION_REFUSED, CRUX_ACCESS_ERR_PASSWORD_REJECTED,
-                 CRUX_ACCESS_CHANNEL_SERIAL, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_PROVISION_REFUSED, CRUX_ACCESS_ERR_PASSWORD_REJECTED, NULL,
+                 CRUX_ACCESS_CHANNEL_SERIAL, NULL);
 
     /* A failed save names nobody, because no such account exists. */
     access_fake_store_save_mode(ACCESS_FAKE_SAVE_FAIL);
     CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
                                               &access_test_serial) == CRUX_ACCESS_ERR_STORE);
-    expect_event(CRUX_ACCESS_EVENT_CHANGE_FAILED, CRUX_ACCESS_ERR_STORE, CRUX_ACCESS_CHANNEL_SERIAL,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_CHANGE_FAILED, CRUX_ACCESS_ERR_STORE, NULL,
+                 CRUX_ACCESS_CHANNEL_SERIAL, NULL);
     access_fake_store_save_mode(ACCESS_FAKE_SAVE_OK);
 
     CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, length, "administrator",
                                               &access_test_serial) == CRUX_ACCESS_OK);
-    expect_event(CRUX_ACCESS_EVENT_PROVISIONED, CRUX_ACCESS_OK, CRUX_ACCESS_CHANNEL_SERIAL, NULL,
+    expect_event(CRUX_ACCESS_EVENT_PROVISIONED, CRUX_ACCESS_OK, NULL, CRUX_ACCESS_CHANNEL_SERIAL,
                  ADMIN);
 
     /* Provisioning is closed once an account exists. */
     CHECK(crux_access_provision_first_account(USER, PASSWORD, length, "administrator",
                                               &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_PROVISION_REFUSED, CRUX_ACCESS_ERR_DENIED,
-                 CRUX_ACCESS_CHANNEL_SERIAL, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_PROVISION_REFUSED, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_SERIAL, NULL);
 }
 
 static void not_ready_rejections(void)
@@ -566,52 +567,52 @@ static void not_ready_rejections(void)
     access_fake_reset();
     crux_access_test_reset();
     CHECK(crux_access_check(session, "status.read") == CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, no_channel, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL, no_channel, NULL);
     CHECK(crux_access_touch(session) == CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, no_channel, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL, no_channel, NULL);
     CHECK(crux_access_session_user(session, name, sizeof(name)) == CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, no_channel, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL, no_channel, NULL);
     CHECK(crux_access_session_must_change_password(session, &required) ==
           CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, no_channel, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL, no_channel, NULL);
     CHECK(crux_access_account_list(session, NULL, 0, &count) == CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, no_channel, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL, no_channel, NULL);
     CHECK(crux_access_account_remove(session, USER) == CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, no_channel, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL, no_channel, NULL);
     CHECK(access_test_login(USER, PASSWORD, &access_test_web, &session) ==
           CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, CRUX_ACCESS_CHANNEL_WEB,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_key_is_authorised(USER, key_one, sizeof(key_one), true, &access_test_ssh,
                                         &retry_after_ms) == CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, CRUX_ACCESS_CHANNEL_SSH,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, NULL);
     CHECK(crux_access_login_verified(USER, key_one, sizeof(key_one), &access_test_ssh, &session) ==
           CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, CRUX_ACCESS_CHANNEL_SSH,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, NULL);
     crux_access_report_key_failure(USER, &access_test_ssh);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, CRUX_ACCESS_CHANNEL_SSH,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL,
+                 CRUX_ACCESS_CHANNEL_SSH, NULL);
     CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, strlen(PASSWORD), "administrator",
                                               &access_test_serial) == CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, CRUX_ACCESS_CHANNEL_SERIAL,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL,
+                 CRUX_ACCESS_CHANNEL_SERIAL, NULL);
 
     /* An unusable store, at init and afterwards. Provisioning reports its own refusal. */
     access_fake_reset();
     crux_access_test_reset();
     access_fake_store_state(CRUX_ACCESS_STORE_UNUSABLE);
     CHECK(crux_access_init(policy()) == CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, no_channel, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL, no_channel, NULL);
     CHECK(access_test_login(USER, PASSWORD, &access_test_web, &session) ==
           CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, CRUX_ACCESS_CHANNEL_WEB,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_provision_first_account(ADMIN, PASSWORD, strlen(PASSWORD), "administrator",
                                               &access_test_serial) == CRUX_ACCESS_ERR_DENIED);
-    expect_event(CRUX_ACCESS_EVENT_PROVISION_REFUSED, CRUX_ACCESS_ERR_DENIED,
-                 CRUX_ACCESS_CHANNEL_SERIAL, NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_PROVISION_REFUSED, CRUX_ACCESS_ERR_DENIED, NULL,
+                 CRUX_ACCESS_CHANNEL_SERIAL, NULL);
 
     /* A provider failure, which names nobody and counts as no attempt. */
     crux_access_session_t admin = boot_with_user();
@@ -619,18 +620,18 @@ static void not_ready_rejections(void)
     access_fake_derive_fail(true);
     CHECK(access_test_login(USER, PASSWORD, &access_test_web_other, &none) ==
           CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, CRUX_ACCESS_CHANNEL_WEB,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     CHECK(crux_access_account_create(admin, "bob", "viewer", PASSWORD, strlen(PASSWORD)) ==
           CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, CRUX_ACCESS_CHANNEL_WEB,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     access_fake_derive_fail(false);
     access_fake_hmac_fail(true);
     CHECK(access_test_login(USER, PASSWORD, &access_test_web_other, &none) ==
           CRUX_ACCESS_ERR_NOT_READY);
-    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, CRUX_ACCESS_CHANNEL_WEB,
-                 NULL, NULL);
+    expect_event(CRUX_ACCESS_EVENT_NOT_READY, CRUX_ACCESS_ERR_NOT_READY, NULL,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
     access_fake_hmac_fail(false);
 }
 
@@ -663,8 +664,8 @@ static void queries_stay_silent(void)
     CHECK(access_fake_event_count() == 0);
     /* The expiry was left for the next operation to report. */
     CHECK(crux_access_check(admin, "status.read") == CRUX_ACCESS_ERR_SESSION_INVALID);
-    expect_event(CRUX_ACCESS_EVENT_SESSION_EXPIRED, CRUX_ACCESS_ERR_SESSION_INVALID,
-                 CRUX_ACCESS_CHANNEL_WEB, ADMIN, NULL);
+    expect_event(CRUX_ACCESS_EVENT_SESSION_EXPIRED, CRUX_ACCESS_ERR_SESSION_INVALID, ADMIN,
+                 CRUX_ACCESS_CHANNEL_WEB, NULL);
 
     access_fake_reset();
     crux_access_test_reset();

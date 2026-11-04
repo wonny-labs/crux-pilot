@@ -127,7 +127,9 @@ void crux_access_emit(crux_access_event_type_t type, crux_access_result_t result
  */
 void crux_access_emit_session(crux_access_event_type_t type, crux_access_result_t result,
                               const crux_access_origin_t *origin, const char *actor,
-                              const char *account, const char *permission);
+                              const char *account);
+void crux_access_emit_denial(const char *actor, const crux_access_origin_t *origin,
+                             const char *permission);
 /* Emits the not-ready event and returns the result. A lost lock has no event: it means a call from
  * the wrong context, where the event port cannot run either. */
 crux_access_result_t crux_access_refuse_not_ready(const crux_access_origin_t *origin);

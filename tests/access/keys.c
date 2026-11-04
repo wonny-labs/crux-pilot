@@ -247,7 +247,7 @@ static size_t blob_string(uint8_t *blob, const void *text, size_t length)
 }
 
 /* An ECDSA blob whose point is all one value, after a first byte that says how it is encoded. */
-static size_t ecdsa_blob(uint8_t *blob, const char *type, const char *curve, size_t point_size,
+static size_t ecdsa_blob(uint8_t *blob, const char *type, size_t point_size, const char *curve,
                          uint8_t encoding)
 {
     uint8_t point[256];
@@ -269,13 +269,13 @@ static void key_type_cases(void)
     CHECK(crux_access_account_create(admin, other_user, "viewer", PASSWORD, strlen(PASSWORD)) ==
           CRUX_ACCESS_OK);
 
-    used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", "nistp256", 65, 4);
+    used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", 65, "nistp256", 4);
     CHECK(crux_access_account_add_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
     CHECK(crux_access_account_remove_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
-    used = ecdsa_blob(blob, "ecdsa-sha2-nistp384", "nistp384", 97, 4);
+    used = ecdsa_blob(blob, "ecdsa-sha2-nistp384", 97, "nistp384", 4);
     CHECK(crux_access_account_add_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
     CHECK(crux_access_account_remove_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
-    used = ecdsa_blob(blob, "ecdsa-sha2-nistp521", "nistp521", 133, 4);
+    used = ecdsa_blob(blob, "ecdsa-sha2-nistp521", 133, "nistp521", 4);
     CHECK(used <= CRUX_ACCESS_KEY_SIZE_MAX);
     CHECK(crux_access_account_add_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
     CHECK(crux_access_account_remove_key(admin, other_user, blob, used) == CRUX_ACCESS_OK);
@@ -315,13 +315,13 @@ static void key_type_cases(void)
     CHECK(crux_access_account_add_key(admin, other_user, blob, sizeof(ed25519)) ==
           CRUX_ACCESS_ERR_INVALID_ARGUMENT);
     /* Curves that disagree, a point of the wrong size and a compressed point. */
-    used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", "nistp384", 65, 4);
+    used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", 65, "nistp384", 4);
     CHECK(crux_access_account_add_key(admin, other_user, blob, used) ==
           CRUX_ACCESS_ERR_INVALID_ARGUMENT);
-    used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", "nistp256", 64, 4);
+    used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", 64, "nistp256", 4);
     CHECK(crux_access_account_add_key(admin, other_user, blob, used) ==
           CRUX_ACCESS_ERR_INVALID_ARGUMENT);
-    used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", "nistp256", 65, 2);
+    used = ecdsa_blob(blob, "ecdsa-sha2-nistp256", 65, "nistp256", 2);
     CHECK(crux_access_account_add_key(admin, other_user, blob, used) ==
           CRUX_ACCESS_ERR_INVALID_ARGUMENT);
     crux_access_account_info_t info[CRUX_ACCESS_ACCOUNT_MAX];
