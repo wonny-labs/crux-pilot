@@ -1,24 +1,56 @@
 # Crux web frontend
 
-Everything a controller's browser interface needs on the frontend side. The firmware build needs none of it: it takes
-a built folder, and no C build runs Node.js.
+Examples and tooling for a browser interface on a controller. Crux provides management services, APIs and HTTPS hosting,
+and the product owns its application UI, in any framework. Nothing here is a product-ready interface, a common page set or
+a design system. The firmware build needs none of it: it takes a built folder, and no C build runs Node.js.
 
 | Folder | What it holds |
 | --- | --- |
 | [`api`](api/README.md) | The management API specification, shared with the firmware track |
-| `client` | A TypeScript client with no framework: login polling, CSRF, error mapping and retry timing |
-| `reference` | The reference interface in Preact: sign-in, forced password change, home, network settings and reboot |
+| `client` | An optional TypeScript client with no framework: login polling, CSRF, error mapping and retry timing |
+| `reference` | The Preact example, in a folder that keeps its earlier name: sign-in, forced password change, home, and network settings and reboot as advanced examples |
 | `mock` | A small mock server that follows the specification, and its conformance check |
 | `e2e` | Browser tests on the mock |
 | `tools` | Type generation, the build, the packaging budget and the source rules |
 
-The [implementation design](../docs/plans/web-frontend-implementation.md) has the diagrams and decisions, and it says how
-a project replaces the reference interface.
+The second example is the [Angular example](../samples/web/angular-minimal/README.md). The
+[implementation design](../docs/plans/web-frontend-implementation.md) has the diagrams and decisions, and it says how
+a product builds its own interface or starts from an example.
+
+## Core and Advanced flows
+
+Core flows belong in both examples and in the shared browser cases. Advanced flows are in the Preact example, with service
+tests underneath, and the Angular example does not copy them.
+
+| Flow | Kind | Preact example | Angular example |
+| --- | --- | --- | --- |
+| Sign-in and sign-out | Core | Built | Built |
+| Session expiry | Core | Built | Built |
+| Forced password change | Core | Built | A notice only, screen in #243 |
+| Status | Core | Built | Built |
+| Simple configuration update | Core | In #243 | In #243 |
+| Network settings | Advanced | Built | Not planned |
+| Reboot | Advanced | Built | Not planned |
+
+## Evidence
+
+Each state is recorded on its own, and none stands in for another. The flow-by-flow table is in the
+[implementation design](../docs/plans/web-frontend-implementation.md#core-and-advanced-evidence).
+
+| State | What it shows | Today |
+| --- | --- | --- |
+| Mock | The examples and the client against the specification, over plain HTTP on the loopback address | Run in CI |
+| Host | The management services in C, with no web server | Some services pass, with no web route yet |
+| `native_sim` | Real TLS, sessions and limits with a browser | Not run, #220 |
+| Physical | RT1060-EVKB, with separate approval | Not run |
+
+Host and `native_sim` functional completion is an interim result. Physical evidence stays tracked separately and is not
+waived.
 
 ## Set up
 
 Use the Node.js version in `package.json`. It is pinned exactly, and the same version pins the specification lint and
-the Angular sample. Lifecycle scripts stay off through `.npmrc`, and esbuild works without its install step.
+the Angular example. Lifecycle scripts stay off through `.npmrc`, and esbuild works without its install step.
 
 ```sh
 cd web
@@ -30,11 +62,11 @@ npm ci
 | Command | What it does |
 | --- | --- |
 | `npm run check` | Pins, generated types, `tsc`, source rules, unit tests and the build, with its budget |
-| `npm run test:browser` | Browser tests of the reference on the mock |
-| `npm run test:angular` | The same browser cases on the Angular sample, once it is built |
+| `npm run test:browser` | Browser tests of the Preact example on the mock |
+| `npm run test:angular` | The shared browser cases on the Angular example, once it is built |
 | `npm run gen:types` | Regenerate `client/src/api-types.generated.ts` after a specification change |
 | `npm run build` | Build `reference/dist`. It fails over the budget in `reference/budget.json`. |
-| `npm run dev` | Build, then serve the reference from the mock on <http://127.0.0.1:8080> |
+| `npm run dev` | Build, then serve the Preact example from the mock on <http://127.0.0.1:8080> |
 | `npm run sbom` | Print a CycloneDX record of the production packages |
 | `npm run audit:prod` | Audit the production packages |
 
