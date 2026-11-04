@@ -274,6 +274,8 @@ PYTHONPATH="$ZEPHYR_BASE/scripts/pylib/pytest-twister-harness/src" python3 -m py
 - The harness is upstream code at Alpha status with no version promise, and `west.yml` fixes its revision. It needs `ZEPHYR_BASE` set, plus `pyyaml` and `pykwalify`, which it does not declare.
 - Do not use the harness's `hardware` device type behind a safety claim: it flashes on every launch. The [proposal](test-foundation-proposal.md#pytest-twister-harness-findings) records this and the other gaps.
 
+The proposal's [current state](test-foundation-proposal.md#current-state) lists what has run at each level and what has not.
+
 ## Support and safety boundaries
 
 A successful Linux Host test proves behaviour only for the tested Host setup. Zephyr `native_sim` validates selected simulated integration. EVKB cross-builds do not prove Flash layout safety, UART electrical operation, timing, peripheral access or physical persistence. Firmware download, reset, Flash write/erase and physical validation require separate task-specific approval and verified hardware/provenance.

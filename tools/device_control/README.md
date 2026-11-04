@@ -21,7 +21,7 @@ authorisation of hardware operations for the current task. `--allow-flash` only 
 | Refusals | A refused gate returns before the port opens, because opening a port can reset some boards. Reset and flash also refuse outside the run's `with` block |
 | Console | `open`, `read_until(pattern, timeout)` and `write`. Raw bytes, exclusive open, DTR and RTS from the profile. Timeouts use `time.monotonic()`. Knows no application protocol. Opening it has no gate of its own: `reset()` and an explicit `open_console()` or `confirm_boot()` open it, so check the DTR and RTS settings first. It refuses to open once the run ends, because the lock has gone |
 | Lock | One OS-level lock per board ID for the whole run. A held lock fails at once. The OS releases it if the process dies |
-| Evidence | A new directory per run; it fails if the directory exists. Keeps `rx.bin`, `events.jsonl`, `inputs.json`, `manifest.json`, `identity.json`, one `<operation>.log` per tool and `result.json`, including after a failure. `identity.json` holds the expected and observed hashes, with null fields if the manifest could not be read. A missing `result.json` means the process died. `result.json` reports the `with` block: a refusal that a test catches still shows as passed, and appears in `events.jsonl` |
+| Evidence | A new directory per run; it fails if the directory exists. Keeps `rx.bin`, `events.jsonl`, `inputs.json`, `manifest.json`, `identity.json`, one `<operation>.log` per tool and `result.json`, including after a failure. `identity.json` holds the expected and observed hashes; a null `board` means the manifest could not be read. A missing `result.json` means the process died, or that writing the file failed or was interrupted. `result.json` reports the `with` block: a refusal that a test catches still shows as passed, and appears in `events.jsonl` |
 
 ## Inputs
 
@@ -98,7 +98,8 @@ with BoardRun(profile, "handoff/manifest.json", evidence_directory, Gates(allow_
 ## Tests and what they do not show
 
 `tests/build/test_device_control.py` uses fake transports and scripted tools. The Linux test build
-discovers it. On macOS, run only this file, because the other build tests need Linux:
+discovers it, and the [recorded runs](../../docs/evidence/test-foundation-tool/README.md) give the
+revisions and results. On macOS, run only this file, because the other build tests need Linux:
 
 ```sh
 python3 -m unittest discover -s tests/build -p test_device_control.py -v
@@ -114,9 +115,11 @@ Also not shown:
 
 - **Nothing has run on hardware**: no real serial port, probe, reset, flash or `west flash`. One test uses real pyserial on a disposable pseudo-terminal when pyserial is installed; a pseudo-terminal has no DTR or RTS lines.
 - **DTR and RTS are set before the port opens**, but an operating system or USB bridge can still move those lines during open. A new board needs this checked before its profile is trusted.
-- **The erase and fuse check reads only the rendered command arguments, without the image path.** A script or command file a profile names can still do either, so the profile needs review.
+- **The erase and fuse check reads only the rendered command arguments, without the image path.** A script or command file a profile names can still do either, and so can an inline `sh -c` or an option split across arguments, so the profile needs review.
 - **The tool does not verify that a command does what its name says.** The verify command's result is only as good as that command.
 - **A flash or reset tool can outlive the lock.** If this process is killed while a tool runs, the OS releases the lock and the tool may still be operating the board. On a timeout, the tool's process group is stopped on POSIX, but a program that leaves that group survives, and on Windows only the tool itself is stopped.
+- **Stopping a tool on macOS can raise the wrong error.** If a tool exits just before its timeout stops it, `os.killpg` raises `PermissionError` on macOS. The run still fails and releases the lock, but with that error instead of `ToolFailed`. A tool this user may not signal, such as one run through `sudo`, could give the same error while it keeps running; that was not probed. The [recorded runs](../../docs/evidence/test-foundation-tool/README.md#stopping-a-tool-on-macos-a-known-defect-not-fixed) hold the probe. Not fixed.
+- **Cleanup is not fully safe from interrupts.** An interrupt raised inside the console close or the lock release no longer skips the rest. One that lands between those steps, or during the write of `result.json`, still can, and one that lands as the port opens can leave it open past the lock until the process exits. The OS releases the lock and the port when the process exits.
 - **The lock only excludes runs that agree on it.** Two profiles with different `lock_directory` or `board_id` values for one board do not exclude each other, and `flock` on a shared or virtual machine filesystem was not tested.
 - **A reset can still see an old ready marker.** Earlier output is discarded for up to one second before the reset command starts. A marker printed after that, before the board actually resets, satisfies the wait, so choose a marker the application prints only once per boot.
 - **A file can change between the hash check and the flash tool reading it.** The hand-off directory must stay private to the run.
