@@ -100,6 +100,7 @@ for (const [name, schema] of Object.entries({
   'oneOf with allOf': { oneOf: [reference], allOf: [reference] },
   'oneOf with enum': { oneOf: [reference], enum: ['a'] },
   'required naming an absent member': { type: 'object', additionalProperties: false, required: ['b'], properties: { a: { type: 'string' } } },
+  'required naming a built-in property': { type: 'object', additionalProperties: false, required: ['constructor'], properties: { a: { type: 'string' } } },
   'type integer with a string enum': { type: 'integer', enum: ['one', 'two'] },
   'type boolean with an enum': { type: 'boolean', enum: [true] },
   'an enum holding a number': { type: 'string', enum: [1] },

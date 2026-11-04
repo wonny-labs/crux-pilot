@@ -33,8 +33,8 @@ jobs:
     env:
       CRUX_CACHE_DIR: ${{ github.workspace }}/../crux-cache
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: web/api/lint/package.json
       - name: Lint the management API specification
@@ -49,8 +49,8 @@ jobs:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: web/package.json
       - name: Install the locked tools, with lifecycle scripts off
@@ -61,7 +61,7 @@ jobs:
         run: npm run audit:prod
       - name: Record the production packages as CycloneDX
         run: npm run --silent sbom > crux-web.cdx.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: crux-web-sbom
           path: web/crux-web.cdx.json
@@ -76,8 +76,8 @@ jobs:
     env:
       CRUX_SCREENSHOTS: ${{ github.workspace }}/screenshots
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: web/package.json
       - name: Install the locked tools, with lifecycle scripts off
@@ -86,13 +86,13 @@ jobs:
         run: google-chrome --version
       - name: Run the browser tests on the mock
         run: npm run test:browser
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:
           name: crux-web-screenshots
           path: screenshots
           if-no-files-found: warn
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ failure() }}
         with:
           name: crux-web-failures
@@ -105,8 +105,8 @@ jobs:
     env:
       CRUX_REQUIRE_ANGULAR: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: samples/web/angular-minimal/package.json
       - name: Build the Angular sample from its own lockfile
@@ -126,10 +126,11 @@ jobs:
       - name: Record the comparison with the reference
         working-directory: web
         run: |
+          set -o pipefail
           npm run build
           node tools/build.ts --entry e2e/fixtures/two-screens.tsx --out build/two-screens
           node tools/compare.ts | tee -a "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ failure() }}
         with:
           name: crux-angular-failures

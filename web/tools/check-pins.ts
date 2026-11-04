@@ -36,6 +36,18 @@ function checkLockfile(name: string, path: string, manifest: Manifest, problems:
   }
 }
 
+/** Every action in a workflow is pinned to a full commit, because a tag can be moved. */
+export function checkWorkflowPins(workflow: string): string[] {
+  const problems: string[] = [];
+  for (const match of workflow.matchAll(/^\s*(?:-\s*)?uses:\s*(\S+)/gm)) {
+    const action = match[1] as string;
+    if (!/@[0-9a-f]{40}$/.test(action)) {
+      problems.push(`${action} is not pinned to a full commit`);
+    }
+  }
+  return problems;
+}
+
 export function checkPins(root: string, packages: string[], running: string, scriptsOff: string[] = []): string[] {
   const problems: string[] = [];
   const pins = new Map<string, string>();
@@ -86,6 +98,7 @@ function main(): number {
     scriptsOff.push('samples/web/angular-minimal');
   }
   const problems = checkPins(root, packages, process.versions.node, scriptsOff);
+  problems.push(...checkWorkflowPins(readFileSync(join(root, '.github/workflows/web.yml'), 'utf8')));
   for (const problem of problems) {
     process.stderr.write(`check-pins: ${problem}\n`);
   }

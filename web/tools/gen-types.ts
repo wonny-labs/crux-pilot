@@ -68,7 +68,7 @@ function members(schema: Schema, where: string): [string, string][] {
   const required = new Set((schema['required'] as string[] | undefined) ?? []);
   const properties = (schema['properties'] ?? {}) as Record<string, Schema>;
   for (const name of required) {
-    if (!(name in properties)) {
+    if (!Object.hasOwn(properties, name)) {
       throw new Error(`${where}: required names ${name}, which is not in properties`);
     }
   }

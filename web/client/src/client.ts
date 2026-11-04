@@ -418,11 +418,12 @@ export function createClient(options: ClientOptions = {}): CruxClient {
     if (!accepted.ok) {
       return outcomeFromRouteError(accepted.error);
     }
+    // A 202 means that the attempt is queued, even if the identifier then turns out to be unusable.
+    attempt.onProgress?.({ phase: 'verifying' });
     const id = accepted.value.id;
     if (typeof id !== 'string' || !ATTEMPT_ID.test(id)) {
       return { kind: 'failed', error: { kind: 'unexpected', status: 202 } };
     }
-    attempt.onProgress?.({ phase: 'verifying' });
     return pollAttempt(id, attempt);
   }
 

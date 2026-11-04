@@ -173,6 +173,14 @@ test('a malformed attempt identifier is refused before it reaches a URL', async 
   assert.equal(requests.length, 1);
 });
 
+test('a 202 with a malformed identifier still reports that the attempt was queued', async () => {
+  const seen: string[] = [];
+  const { client } = harness([json(202, { id: '../../evil' })]);
+  const outcome = await client.changePassword('old', 'new', { onProgress: (progress) => seen.push(progress.phase) });
+  assert.equal(outcome.kind === 'failed' && outcome.error.kind, 'unexpected');
+  assert.deepEqual(seen, ['submitting', 'verifying']);
+});
+
 test('an abort stops the polling', async () => {
   const controller = new AbortController();
   const { client, requests } = harness((request) => {

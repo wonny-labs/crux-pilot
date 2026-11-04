@@ -78,8 +78,9 @@ function Shell(props: { options: ReferenceOptions; text: Text }) {
       return !result.value.must_change_password;
     }
     if (result.error.kind === 'unauthorized') {
-      // Straight after a successful login, this means that the browser refused the cookie. Plain HTTP or
-      // blocked cookies look like this, and without a message the form would just appear to do nothing.
+      // Straight after a successful login, the browser may have refused the cookie, through plain HTTP or
+      // blocked cookies, or the device may have ended the session. Both give this 401, so the message names
+      // both. Without one, the form would just appear to do nothing.
       setSession({ phase: 'signed_out', notice: justSignedIn ? 'session_not_kept' : undefined });
     } else {
       setSession({ phase: 'unavailable', error: result.error });

@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import type { TestContext } from 'node:test';
-import { checkPins } from '../check-pins.ts';
+import { checkPins, checkWorkflowPins } from '../check-pins.ts';
 import { tempFolder } from './support.ts';
 
 function tree(t: TestContext, files: Record<string, unknown>): string {
@@ -102,4 +102,21 @@ test('the setting passes, and a setting that is off does not', (t) => {
   assert.deepEqual(checkPins(on, ['a'], '24.22.2', ['a']), []);
   const off = tree(t, { 'a/package.json': manifest, 'a/package-lock.json': lockFor(), 'a/.npmrc': 'ignore-scripts=false\n' });
   assert.notDeepEqual(checkPins(off, ['a'], '24.22.2', ['a']), []);
+});
+
+const SHA = '11d5960a326750d5838078e36cf38b85af677262';
+
+test('a workflow action pinned by commit passes', () => {
+  assert.deepEqual(checkWorkflowPins(`steps:\n  - uses: actions/checkout@${SHA} # v4.4.0\n`), []);
+});
+
+test('a workflow action on a tag or a branch fails', () => {
+  for (const reference of ['v4', 'main', 'v4.4.0', '11d5960']) {
+    const problems = checkWorkflowPins(`steps:\n  - uses: actions/checkout@${reference}\n`);
+    assert.match(problems.join('\n'), /actions\/checkout/, reference);
+  }
+});
+
+test('a workflow action with no version fails', () => {
+  assert.notDeepEqual(checkWorkflowPins('steps:\n  - uses: actions/checkout\n'), []);
 });

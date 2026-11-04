@@ -1,5 +1,5 @@
-// Client-side checks of IPv4 settings, for usability only. The server remains the authority,
-// and it reports its own result with the same field codes.
+// Client-side checks of IPv4 settings, for usability only. The server remains the authority. It reports its
+// own result with the specification's field codes, and not_ipv4 and gateway_not_usable are this client's own.
 import type { Ipv4Settings } from './api-types.generated.ts';
 
 export type Ipv4ProblemCode =

@@ -60,12 +60,13 @@ run('a wait is announced once, and the running count stays out of the live regio
   assert.equal(await page.locator('[role="alert"] .hint, [role="status"] .hint').count(), 0);
 });
 
-run('a sign-in whose session the browser did not keep says so, and does not just start again', async ({ page, mock }) => {
+run('a sign-in whose session is gone on the next request says so, and does not just start again', async ({ page, mock }) => {
   await page.goto('/');
   await waitForHeading(page, 'Sign in');
   mock.control.force('getCurrentUser', { status: 401 });
   await signIn(page);
-  await page.getByRole('alert').getByText(/browser did not keep the session/i).waitFor();
+  await page.getByRole('alert').getByText(/the session was not there on the next request/i).waitFor();
+  await page.getByRole('alert').getByText(/device may also have ended/i).waitFor();
   await page.getByRole('alert').getByText(/https/i).waitFor();
   await waitForHeading(page, 'Sign in');
 });
@@ -259,6 +260,16 @@ run('after a password poll that timed out, a later incorrect is reported as unce
   await page.clock.fastForward(31_000);
   await page.getByRole('alert').getByText(/did not finish in time/i).waitFor();
   mock.control.set({ verifyPolls: 0 });
+  await fillPasswords(page, 'not-the-password', NEW_PASSWORD);
+  await page.getByText(/earlier attempt may have taken effect/i).waitFor();
+});
+
+run('after a password POST with no answer, a later incorrect is reported as uncertain', async ({ page }) => {
+  await reachForcedChange(page);
+  await page.route('**/api/v1/session/me/password', (route) => route.abort('connectionreset'));
+  await fillPasswords(page, PASSWORD, NEW_PASSWORD);
+  await page.getByRole('alert').getByText(/did not answer/i).waitFor();
+  await page.unroute('**/api/v1/session/me/password');
   await fillPasswords(page, 'not-the-password', NEW_PASSWORD);
   await page.getByText(/earlier attempt may have taken effect/i).waitFor();
 });

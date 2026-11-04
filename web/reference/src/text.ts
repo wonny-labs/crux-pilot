@@ -42,7 +42,7 @@ export const englishText = {
     restarted: 'The device has restarted. Sign in again to continue.',
     signedOut: 'You have signed out.',
     sessionNotKept:
-      'The device accepted your sign-in, but your browser did not keep the session. Load this page over HTTPS from the address of the device, allow cookies for it, and sign in again.',
+      'The device accepted your sign-in, but the session was not there on the next request. The browser may have refused the cookie, so load this page over HTTPS from the address of the device and allow cookies for it. The device may also have ended the session. Sign in again.',
   },
   password: {
     title: 'Change your password',
