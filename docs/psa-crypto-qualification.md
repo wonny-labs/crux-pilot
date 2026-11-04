@@ -8,7 +8,9 @@ policy](native-interface-policy.md#qualified-psa-crypto-subset). Nothing here is
 | Approval | Covers |
 | --- | --- |
 | [Start of #142, 2 November 2026](https://github.com/wonny-labs/crux-pilot/issues/142#issuecomment-6565912192) | Investigation, test-first development, Draft PR, trial builds |
-| [Owner decision, 4 November 2026 17:55 UTC](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084) | PSA as a prerequisite of real HTTPS on `native_sim`, and the steps that needed asking: the manifest, module and Host decisions, the subset, and running wolfPSA. Hardware stays excluded. |
+| [#198](https://github.com/wonny-labs/crux-pilot/pull/198), merged 3 November 2026 | The provider decision. Its Licences section covers wolfPSA. |
+| [#202](https://github.com/wonny-labs/crux-pilot/pull/202), merged 3 November 2026 | The manifest group, with `mbedtls`, `tf-psa-crypto`, `wolfssl` and `wolfpsa` pinned |
+| [Owner decision, 4 November 2026 17:55 UTC](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084) | Literally: PSA as a prerequisite of real HTTPS on `native_sim`, and "the steps that needed asking". **As a reading of that approval:** the Host decision, the subset, and running wolfPSA beyond #142's start approval, which had held it for licence review. The owner did not name these items. Hardware stays excluded. |
 
 ## Inputs
 
@@ -41,7 +43,7 @@ After the merge that step passes, in run [41891057049](https://github.com/wonny-
 
 ## Conformance cases
 
-41 cases, in [`psa_cases.h`](../tests/psa_crypto/cases/psa_cases.h). They use `<psa/crypto.h>` and ISO C only, and the composition chooses the provider.
+45 cases, in [`psa_cases.h`](../tests/psa_crypto/cases/psa_cases.h). They use `<psa/crypto.h>` and ISO C only, and the composition chooses the provider.
 The Zephyr suite adds a check of the list's length. Vectors come from published test values or an independent implementation, as
 [`vectors.h`](../tests/psa_crypto/cases/vectors.h) records.
 
@@ -49,8 +51,8 @@ The Zephyr suite adds a check of the list's length. Vectors come from published 
 | --- | --- | --- | --- |
 | Initialisation, random | Access, store | 3 | Writes only what was asked. Two requests differ. |
 | SHA-256 | Device key | 6 | `BAD_STATE`, `BUFFER_TOO_SMALL`, `INVALID_SIGNATURE`, `NOT_SUPPORTED` |
-| ECDSA P-256 verify, key identifiers | Image check, and generated keys | 8 | Bad signatures, tampered input, off-curve key, `NOT_PERMITTED`, `INVALID_HANDLE` |
-| HMAC-SHA-256 | `crux_access_port_hmac` | 3 | `BUFFER_TOO_SMALL`, `NOT_PERMITTED` |
+| ECDSA P-256 verify, key identifiers | Image check, and generated keys | 11 | Bad signatures, tampered input, off-curve key, `NOT_PERMITTED`, `INVALID_HANDLE` |
+| HMAC-SHA-256 | `crux_access_port_hmac` | 4 | `BUFFER_TOO_SMALL`, `NOT_PERMITTED`. Includes empty input, which an empty login name reaches. |
 | PBKDF2-HMAC-SHA-256 | `crux_access_port_derive` | 8 | Wrong password, `BAD_STATE`, `NOT_SUPPORTED`. Includes a 128-byte password and an empty one. |
 | AES-256-GCM | `crux_credential_port_seal`, `_open` | 6 | Tampered tag, ciphertext, additional data or nonce, and a wrong key, are each `INVALID_SIGNATURE`. Also `NOT_PERMITTED` and a wrong key size. Includes a whole 16,336-byte slot payload. |
 | P-256 key generation | `crux_credential_port_generate_key` | 4 | `NOT_PERMITTED` on a private export without the usage. Forms are 32 and 65 bytes. |
@@ -62,7 +64,7 @@ The Zephyr suite adds a check of the list's length. Vectors come from published 
 | --- | --- | --- |
 | `PASS` | As documented | Pass |
 | `UNSUPPORTED` | The provider lacks it, and [`provider_declarations.cmake`](../tests/psa_crypto/provider_declarations.cmake) says so | Not a pass. Zephyr shows it as skipped. |
-| `DEVIATION` | The case fails, and the declarations say so, with the reason below | Not a pass. Zephyr shows it as skipped. |
+| `DEVIATION` | The case fails at its one marked assertion, with the one status named there, and the declarations say so, with the reason below. Any other status, or a failure elsewhere in the case, is `FAIL`. | Not a pass. Zephyr shows it as skipped, and the script checks exactly which cases were skipped. |
 | `FAIL` | Any other failure, an undeclared gap, or a declaration that no longer holds | Failure |
 
 ### Controls
@@ -72,23 +74,23 @@ Each runs on every invocation of `scripts/test-psa-crypto.sh host`.
 | Control | Result required |
 | --- | --- |
 | No provider selected | Configure fails, naming `CRUX_PSA_PROVIDER` |
-| Stub that returns `NOT_SUPPORTED` | Every case fails |
+| Stub that initialises and returns `NOT_SUPPORTED` for everything else | Every case fails except `init_is_idempotent` and the two `*_unsupported_algorithm_not_supported` cases, which expect that status. It used to fail at initialisation, so it reached nothing, which the review of `00db0bf` found. |
 | Stub that returns success with zeroed output | Every case fails except `init_is_idempotent` and `ecdsa_p256_verify_hash_known_answer`, whose expected status is success and whose output is not checked |
-| Each provider with no declarations | Exactly its declared cases fail |
+| Each provider with no declarations | Exactly its declared cases fail, by name |
 | A passing case declared unsupported | Reported as a stale declaration |
+| The permissive stub, with the all-zero signature case declared a deviation | `FAIL`, because it accepted the signature and a deviation excuses only the named status. This control failed before the classifier was narrowed: [log](evidence/psa-crypto/v4.4.2-revised/red-hidden-deviation.txt). |
 
 ## Results
 
 | Environment | TF-PSA-Crypto | wolfPSA |
 | --- | --- | --- |
-| Linux Host, Debug | 38 pass, 3 declared unsupported, 0 fail | 39 pass, 2 declared deviations, 0 fail |
+| Linux Host, Debug | 42 pass, 3 declared unsupported, 0 fail | 43 pass, 2 declared deviations, 0 fail |
 | Linux Host, ASan and UBSan | The same, with UBSan set to halt | The same, with 4 UBSan reports inside wolfSSL recorded, below |
-| `native_sim/native/64`, Twister | 39 pass and 3 skipped, including the list check | 40 pass and 2 skipped, including the list check |
-| `native_sim`, with the wolfSSL TLS layer in the image | Not applicable | 40 pass and 2 skipped. The cases do not use TLS, and there is no TLS socket backend. |
-| RT1060-EVKB `mimxrt1060_evk@B//qspi` | Compile only, in CI, [results below](#rt1060-evkb-entropy-source) | Compile only, in one CI run, [results below](#rt1060-evkb-entropy-source) |
+| `native_sim/native/64`, Twister | 43 pass and 3 skipped, including the list check | 44 pass and 2 skipped, including the list check |
+| `native_sim`, with the wolfSSL TLS layer in the image | Not applicable | 44 pass and 2 skipped. The cases do not use TLS, and there is no TLS socket backend. |
+| RT1060-EVKB `mimxrt1060_evk@B//qspi` | Compile only, in CI and locally, [results below](#rt1060-evkb-entropy-source) | Compile only, locally, [results below](#rt1060-evkb-entropy-source) |
 
-Retained logs: [`docs/evidence/psa-crypto/v4.4.2/`](evidence/psa-crypto/v4.4.2/). The Host and `native_sim` figures come from a local run at `9286a56`, [`local-all.txt`](evidence/psa-crypto/v4.4.2/local-all.txt), and match
-CI run [41891057428](https://github.com/wonny-labs/crux-pilot/actions/runs/41891057428), [`ci-run-41891057428.txt`](evidence/psa-crypto/v4.4.2/ci-run-41891057428.txt). Host, `native_sim`, cross-build, CI and physical evidence are separate, and physical evidence does not exist.
+Retained logs: [`docs/evidence/psa-crypto/v4.4.2-revised/`](evidence/psa-crypto/v4.4.2-revised/), from a local run with these 45 cases, revision `a0fa506`. The earlier [`v4.4.2/`](evidence/psa-crypto/v4.4.2/) logs, including CI run 41891057428, are of the 41-case form, in which a deviation stopped its case early: they stay unchanged as a record of that state. Host, `native_sim`, cross-build, CI and physical evidence are separate, and physical evidence does not exist.
 
 ### What CI keeps running
 
@@ -101,10 +103,9 @@ CI run [41891057428](https://github.com/wonny-labs/crux-pilot/actions/runs/41891
 
 `scripts/check-ssh-boundaries.py` and its test forbid a default workflow from selecting the secure management stacks, so a change to a wolf pin or to these cases gets no automatic wolfPSA result. That rule is unchanged: see [decision 7 of the design](psa-crypto-design.md#decisions-for-review).
 
-Run 41891057428 is the exception. The first form of the workflow enabled the group, and that run passed all three parts with both providers while `Ssh.Boundaries` failed in `host-foundation` because of it. The workflow was then narrowed, so it is one result at one revision, and no later run repeats it.
+Run 41891057428 is the exception. The first form of the workflow enabled the group, and that run passed all three parts with both providers while `Ssh.Boundaries` failed in `host-foundation` because of it. The workflow was then narrowed, so it is one result at one revision, with the 41-case form, and no later run repeats it. **So the 45-case wolfPSA results are local only.**
 
-**Feasibility result: wolfPSA runs on Linux Host and `native_sim`, and meets every case that the two consumers need.** Its two deviations are in the image check's
-public-key handling, which neither consumer uses.
+**Feasibility result: wolfPSA runs on Linux Host and `native_sim`, and passes every case that the two consumers depend on.** Its two deviations are in ECDSA P-256 verification and public-key import. Neither consumer depends on either behaviour, and the deviations do not stop the checks beside them, which pass.
 
 ### What each consumer needs, by provider
 
@@ -116,32 +117,34 @@ public-key handling, which neither consumer uses.
 | AES-256-GCM, one-shot | Credential store | Yes | Yes |
 | AES-256-GCM, multipart with a separate tag | Credential store | Yes | Yes, and on `native_sim` only with `WOLFSSL_AESGCM_STREAM`, which the module's Kconfig does not offer |
 | P-256 key generation and export | Credential store | Yes | Yes |
-| **Ed25519 key generation and export** | Credential store | **No.** Generation is `NOT_SUPPORTED`, import is `INVALID_ARGUMENT`, and Zephyr's Kconfig has no symbol for it. | Yes, with `CONFIG_WOLFSSL_CURVE25519` on `native_sim` |
+| **Ed25519 key generation and export** | Credential store | **No.** Generation is `NOT_SUPPORTED`, import is `INVALID_ARGUMENT`, and Zephyr's Kconfig has no symbol for it. A store provider's port reports this as `ERR_ENTROPY`, which is how such a request surfaces. | Yes, with `CONFIG_WOLFSSL_CURVE25519` on `native_sim` |
 | `psa_key_derivation_verify_bytes` | Nobody: the Access core compares | No. An unconditional `NOT_SUPPORTED` stub. | Yes |
 
 This answers the open point in the [gate decisions](plans/secure-management-gate-decisions.md) on whether wolfPSA can generate Ed25519: it can, on Host and `native_sim`.
-SSH host keys therefore need the Wolf profile, which fits the design: the Mbed profile has no SSH.
+The missing Ed25519 is not what ties SSH to the Wolf profile: the [SSH design](plans/secure-management-cli-sftp-design.md) allows a P-256 host key where Ed25519 is unavailable. SSH needs the Wolf profile because [the Mbed profile has no SSH](plans/secure-management-design.md#provider-profiles).
 
 ### Provider deviations
 
 | Provider | Case | Observed | Documented | Effect |
 | --- | --- | --- | --- | --- |
-| wolfPSA | `ecdsa_p256_wrong_signature_invalid` | An all-zero signature gives `PSA_ERROR_GENERIC_ERROR` (-132) | `PSA_ERROR_INVALID_SIGNATURE` | Still rejected. A caller must treat every status but success as rejection. |
-| wolfPSA | `ecdsa_p256_invalid_public_key_rejected` | `psa_import_key` accepts an off-curve P-256 point | `PSA_ERROR_INVALID_ARGUMENT` | Refused at use: `ecdsa_p256_off_curve_key_never_verifies` passes. `WOLFSSL_VALIDATE_ECC_IMPORT` did not change the import result. Do not treat import as validation of an untrusted key. |
+| wolfPSA | `ecdsa_p256_zero_signature_invalid` | An all-zero signature gives `PSA_ERROR_GENERIC_ERROR` (-132) | `PSA_ERROR_INVALID_SIGNATURE` | Still rejected. A caller must treat every status but success as rejection. Success at this assertion would be `FAIL`. |
+| wolfPSA | `ecdsa_p256_off_curve_import_rejected` | `psa_import_key` accepts an off-curve P-256 point | `PSA_ERROR_INVALID_ARGUMENT` | Refused at use: `ecdsa_p256_off_curve_key_never_verifies` passes. `WOLFSSL_VALIDATE_ECC_IMPORT` did not change the import result. Do not treat import as validation of an untrusted key. |
 | TF-PSA-Crypto | `ed25519_known_answer_rfc8032` | Import of a valid Ed25519 seed gives `INVALID_ARGUMENT`, where generation gives `NOT_SUPPORTED` | | The case counts this as a gap. An undeclared gap still fails, so wolfPSA cannot hide behind it. |
 
 Neither wolfPSA deviation stops a consumer named in this issue: neither `crux_access` nor the store imports an untrusted public key through PSA. Each can be reported
-upstream, and neither was. The cases were not changed to fit either provider.
+upstream, and neither was.
+
+The review of `00db0bf` found that these two used to be declared on whole cases. A declared case stopped at the deviating assertion, so the truncated-signature and missing-prefix checks after it had never run on wolfPSA, and a provider that accepted a truncated signature would have been reported as a deviation. Each case is now split so that a deviation covers one assertion, and those two checks now run and pass on wolfPSA. What each assertion expects did not change, for either provider.
 
 ### Other findings
 
 | # | Finding | Status |
 | --- | --- | --- |
-| 1 | UBSan reports 4 issues inside wolfSSL under the Host Makefile settings: signed overflow in `sp_c32.c`, and misaligned loads and stores in `misc.c` and `aes.c`. The cases still pass. | Recorded, not fixed. Vendor code, and not in Crux's Host default. [Retained](evidence/psa-crypto/v4.4.2/host-wolfpsa-ubsan-reports.txt). |
+| 1 | UBSan reports 4 issues inside wolfSSL under wolfPSA's standalone Host settings: signed overflow in `sp_256_num_bits_29_9` in `sp_c32.c`, and misaligned loads and stores in `ByteReverseWords64` in `misc.c` and the 64-bit `GMULT` in `aes.c`. The cases still pass, and the script pins the count, so a new one fails. Whether the Zephyr builds reach them: `sp_c32.c` and `aes.c` are compiled on `native_sim` and RT1060, and `misc.c` is included. Preprocessed with their own flags, neither `sp_256_num_bits_29_9` nor that `GMULT` is present on either, so the Zephyr settings select other variants. `ByteReverseWords64` is defined there with no caller in `aes.c`. UBSan itself ran only on Host, so this shows only that those functions are absent. | Recorded, not fixed. Vendor code. [Reports](evidence/psa-crypto/v4.4.2-revised/host-wolfpsa-ubsan-reports.txt), [source check](evidence/psa-crypto/v4.4.2-revised/zephyr-ubsan-sources.txt). |
 | 2 | `native_sim` random repeats on every run, for both providers. | [Declared test-only](#provider-declarations) |
 | 3 | Zephyr's glue for TF-PSA-Crypto can fall back to `sys_rand_get()` when the entropy read fails (`allow_non_cs` in `zephyr_entropy.c`). wolfCrypt's seed returns `RNG_FAILURE_E` instead. On RT1060 `sys_rand_get()` is a non-cryptographic generator. | Source read. Weighs for the Wolf profile. Whether a TRNG read can fail in practice is untested. |
 | 4 | `CSPRNG_ENABLED` depends only on `ENTROPY_HAS_DRIVER`, so it is `y` with the test generator and certifies nothing. | Source and configuration read |
-| 5 | TF-PSA-Crypto's Zephyr configuration has no thread-safety option resolved, while wolfPSA defaults `CONFIG_WOLFPSA_THREAD_SAFE=y`. | Configuration read. Concurrency is untested for both. |
+| 5 | Zephyr's module has no `MBEDTLS_THREADING_C` option at this pin, so TF-PSA-Crypto's core has no lock, and on the Mbed profile TLS threads call the same core. wolfPSA defaults `CONFIG_WOLFPSA_THREAD_SAFE=y`. | Source and configuration read. Concurrency is untested for both. Open for #242. |
 | 6 | `tf-psa-crypto` is a commit in Zephyr's fork, whose relation to the upstream `v1.1.0` tag was not established. | Open, unchanged |
 | 7 | The archive hash is a GitHub property that was not examined for stability. GoogleTest has the same exposure. If it changes, a Host configure fails loudly. | Accepted |
 
@@ -200,18 +203,18 @@ The reasoning and its consequence for later compositions are in [What "real" mea
 | Generator above it, wolfPSA | wolfCrypt's Hash-DRBG, seeded straight from the device. A failed read is `RNG_FAILURE_E`. | Source |
 | Not assessed | Health-check limits, entropy rate, start-up time, SP 800-90B or AIS 31 | Nothing ran |
 
-Compile results, from [run 41891057428](evidence/psa-crypto/v4.4.2/ci-run-41891057428.txt). Each image holds the conformance cases and Ztest, so these figures are not a product's footprint. RAM includes configured stacks.
+Compile results, from [a local compile at `a0fa506`](evidence/psa-crypto/v4.4.2-revised/local-target.txt). Each image holds the conformance cases and Ztest, so these figures are not a product's footprint. RAM includes configured stacks.
 
 | Provider | Flash | RAM | Resolved |
 | --- | --- | --- | --- |
-| TF-PSA-Crypto | 118,564 B | 84,352 B | `ENTROPY_MCUX_TRNG`, `ENTROPY_NEEDS_PRNG`, `MBEDTLS_PSA_CRYPTO_LEGACY_RNG`, `MBEDTLS_PSA_DRIVER_GET_ENTROPY`, `XOSHIRO_RANDOM_GENERATOR` |
-| wolfPSA, crypto only | 254,932 B | 72,832 B | `ENTROPY_MCUX_TRNG`, `ENTROPY_NEEDS_PRNG`, `WOLFPSA`, `WOLFSSL_AES_TOUCH_LINES`, `XOSHIRO_RANDOM_GENERATOR` |
+| TF-PSA-Crypto | 120,672 B | 84,480 B | `ENTROPY_MCUX_TRNG`, `ENTROPY_NEEDS_PRNG`, `MBEDTLS_PSA_CRYPTO_LEGACY_RNG`, `MBEDTLS_PSA_DRIVER_GET_ENTROPY`, `XOSHIRO_RANDOM_GENERATOR` |
+| wolfPSA, crypto only | 251 KB | 72,960 B | `ENTROPY_MCUX_TRNG`, `ENTROPY_NEEDS_PRNG`, `WOLFPSA`, `WOLFSSL_AES_TOUCH_LINES`, `XOSHIRO_RANDOM_GENERATOR` |
 
-The script checks the entropy driver, the devicetree node and the absence of DCP on each build. CI keeps doing that for TF-PSA-Crypto.
+The script checks the entropy driver, the devicetree node, and the absence of DCP and of `CONFIG_TEST_RANDOM_GENERATOR` on each build. CI keeps doing that for TF-PSA-Crypto.
 
 ## Decisions
 
-Each is adopted under the [owner's decision](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084). Reasons not to take the alternatives are in the table.
+The manifest and module arrangement and the wolf pins come from [#198](https://github.com/wonny-labs/crux-pilot/pull/198) and [#202](https://github.com/wonny-labs/crux-pilot/pull/202). The rest is adopted on a reading of the [owner's decision](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084), [as above](#psa-crypto-qualification-for-zephyr-and-linux-host), for the owner to confirm at merge. Reasons not to take the alternatives are in the table.
 
 ### Manifest and module
 
@@ -240,8 +243,7 @@ The root build does not call it yet, and Host CI has no west workspace. wolfPSA 
 
 ### API subset
 
-**Adopted:** the [subset in the policy](native-interface-policy.md#qualified-psa-crypto-subset). `psa_key_derivation_verify_bytes` is out, because the Access core compares and TF-PSA-Crypto lacks it, which closes the record's earlier open point. TLS and SSH are not in it,
-because they do not reach the provider through PSA.
+**Adopted:** the [subset in the policy](native-interface-policy.md#qualified-psa-crypto-subset). `psa_key_derivation_verify_bytes` is out, because the Access core compares and TF-PSA-Crypto lacks it, which closes the record's earlier open point. The subset is for Crux's own code. TLS and SSH are not in it. On the Wolf profile they call wolfCrypt directly. On the Mbed profile Mbed TLS calls PSA itself, beyond this subset, in the same provider, and that use is **not qualified here**.
 
 ### Licence basis
 
@@ -264,10 +266,10 @@ The first trial, at Zephyr v4.4.0 and `f57ff22`, covered 22 cases on TF-PSA-Cryp
 
 | Criterion | Status |
 | --- | --- |
-| Manifest, module and Host dependency decisions, including licence, approved before adoption | Met, under the owner's decision of 4 November 2026 |
+| Manifest, module and Host dependency decisions, including licence, approved before adoption | Manifest and modules: met by #198 and #202. Host dependency: met on a reading of the owner's decision of 4 November 2026, for the owner to confirm. |
 | Declared subset and limits documented in the native-free consumer policy | Met |
 | Cases pass with the primary provider on Linux Host and `native_sim` | Met for TF-PSA-Crypto, with Ed25519 declared unsupported |
-| wolfPSA feasibility result recorded, pass or not | Met: it runs, with two declared deviations |
+| wolfPSA feasibility result recorded, pass or not | Met: it runs, with two declared deviations, each on one assertion |
 | RT1060-EVKB entropy source identified with its evidence status | Met, from sources and compile only |
 | Hardware acceleration declared unsupported unless evidenced | Met |
 

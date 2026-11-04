@@ -191,4 +191,4 @@ A service calls `crux_access_check` before taking its own lock. Account operatio
 
 ## Limits of this record
 
-Decisions here come from reading source at the stated revisions. Since then the File additions (#224), access (#210) and file service (#232) have run on Host, and no contract has run on a target or been flashed. Whether wolfPSA can generate Ed25519, how FatFs and the card behave across a cut in the store's save sequence, and the timing of status sources on the HTTP thread are all open. WinSCP was read at its current upstream tip, not at a release, and no client trace exists yet.
+Decisions here come from reading source at the stated revisions. Since then the File additions (#224), access (#210) and file service (#232) have run on Host, and no contract has run on a target or been flashed. Issue #142 has since shown that wolfPSA can generate Ed25519 on Linux Host and `native_sim`, and RT1060 is compile only. How FatFs and the card behave across a cut in the store's save sequence, and the timing of status sources on the HTTP thread are all open. WinSCP was read at its current upstream tip, not at a release, and no client trace exists yet.

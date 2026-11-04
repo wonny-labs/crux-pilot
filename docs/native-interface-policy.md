@@ -60,7 +60,7 @@ header and an application do not include `<psa/crypto.h>`: they reach cryptograp
 | Start | `psa_crypto_init` | | All, before first use |
 | Random | `psa_generate_random` | | Access, credential store |
 | Key derivation | `psa_key_derivation_setup`, `_input_integer`, `_input_bytes`, `_output_bytes`, `_abort` | PBKDF2-HMAC-SHA-256, caller-chosen cost, passwords of 0 to 128 bytes | Access |
-| Keyed hash | `psa_mac_compute` | HMAC-SHA-256, 32-byte volatile key | Access |
+| Keyed hash | `psa_mac_compute` | HMAC-SHA-256, 32-byte volatile key, input may be empty | Access |
 | Hash | `psa_hash_compute`, `psa_hash_setup`, `_update`, `_finish`, `_verify`, `_abort` | SHA-256 | Credential store device key, image check |
 | Authenticated encryption | `psa_aead_encrypt_setup`, `psa_aead_decrypt_setup`, `psa_aead_set_lengths`, `_set_nonce`, `_update_ad`, `_update`, `_finish`, `_verify`, `_abort`, and the one-shot `psa_aead_encrypt`, `psa_aead_decrypt` | AES-256-GCM, 12-byte nonce, 16-byte tag | Credential store |
 | Key handling | `psa_import_key`, `psa_generate_key`, `psa_export_key`, `psa_export_public_key`, `psa_destroy_key`, the attribute setters, `psa_key_attributes_init`, `psa_reset_key_attributes` | Volatile keys only | Access, credential store |
@@ -76,8 +76,8 @@ Limits that go with this subset:
 - A consumer must treat every status but `PSA_SUCCESS` from a verification as rejection, because the providers differ in which error they return. Only the store's AEAD open depends on one error, `PSA_ERROR_INVALID_SIGNATURE`, and the cases hold both providers to it.
 - A successful `psa_import_key` of a public key does not show that the key is valid: wolfPSA refuses an off-curve point only at use.
 - Input and output buffers must not overlap. Overlap is not qualified.
-- One thread at a time was tested, on a thread and not in an interrupt. Stack, heap and timing were not measured on a target.
-- Persistent keys, secure storage, provisioning and key confidentiality are outside this subset. TLS and SSH are also outside it: they call their own libraries, and do not use this API from Crux code.
+- One thread at a time was tested, on a thread and not in an interrupt. Stack, heap and timing were not measured on a target. TF-PSA-Crypto on Zephyr has no lock in its core at this pin.
+- Persistent keys, secure storage, provisioning and key confidentiality are outside this subset. TLS and SSH are also outside it, and Crux code does not call this API for them. On the Wolf profile they call wolfCrypt directly. On the Mbed profile Mbed TLS calls PSA itself, beyond this subset, in the same provider, and that use is not qualified.
 
 ### Selected standard-library toolchain sysroot
 
