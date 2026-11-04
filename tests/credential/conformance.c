@@ -96,12 +96,14 @@ typedef enum {
     KIND_BAD_TAG,
     KIND_ALL_ZEROS,
     KIND_NEW_FORMAT,
+    KIND_ROTTED_PENDING,
     KIND_COUNT
 } slot_kind_t;
 
 static bool kind_is_corrupt(slot_kind_t kind)
 {
-    return kind == KIND_BAD_TAG || kind == KIND_ALL_ZEROS || kind == KIND_NEW_FORMAT;
+    return kind == KIND_BAD_TAG || kind == KIND_ALL_ZEROS || kind == KIND_NEW_FORMAT ||
+           kind == KIND_ROTTED_PENDING;
 }
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters): every helper takes the slot first.
@@ -144,6 +146,12 @@ static void slot_prepare(size_t slot, slot_kind_t kind)
         test_slot_write(slot, large, sizeof(large));
         break;
     }
+    case KIND_ROTTED_PENDING:
+        memset(large, 0, sizeof(large));
+        crux_credential_header_encode_pending(large);
+        large[CRUX_CREDENTIAL_HEADER_BYTES - 1u] = 0x01u;
+        test_slot_write(slot, large, sizeof(large));
+        break;
     case KIND_COUNT:
         break;
     }
@@ -941,6 +949,23 @@ static void test_malformed_payload_behind_a_good_tag(void)
     test_fresh();
     test_image_build(image_a, 3, &record_accounts_one, 1);
     test_slot_write(TEST_SLOT_A, image_a, CRUX_CREDENTIAL_HEADER_BYTES + 4u);
+    CHECK(test_boot() == CRUX_CREDENTIAL_ERR_UNUSABLE);
+
+    /* The same when only a last tag byte of zero is cut off, which padding would otherwise restore,
+     * so that only the size can show it. Each build has its own nonce, and so its own tag. */
+    const size_t end = CRUX_CREDENTIAL_HEADER_BYTES + CRUX_CREDENTIAL_TABLE_HEADER_BYTES +
+                       CRUX_CREDENTIAL_TABLE_ENTRY_BYTES + sizeof(accounts_one) +
+                       CRUX_CREDENTIAL_TAG_BYTES;
+    test_fresh();
+    unsigned tries = 0;
+    do {
+        test_image_build(image_a, 3, &record_accounts_one, 1);
+        tries += 1;
+    } while (image_a[end - 1u] != 0 && tries < 65536u);
+    CHECK(image_a[end - 1u] == 0);
+    test_slot_write(TEST_SLOT_A, image_a, end);
+    CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    test_slot_write(TEST_SLOT_A, image_a, end - 1u);
     CHECK(test_boot() == CRUX_CREDENTIAL_ERR_UNUSABLE);
 }
 
