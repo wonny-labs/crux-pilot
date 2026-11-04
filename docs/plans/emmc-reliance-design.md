@@ -1,8 +1,8 @@
 # Transactional storage on eMMC: design
 
-Status: design proposal for owner review. Nothing here is adopted, and no result here shows that anything works: the
-findings are source readings, and every test and tool described below is still to be built. This document authorises
-no physical operation, merge or upstream contribution.
+Status: design approved by the owner for software-only development on 3 November 2026 (session), with the decisions under
+Intent. No result here shows that anything works: the findings are source readings, and the tests and tools described below
+are being built under M14. This document authorises no physical operation, merge or upstream contribution.
 
 Baseline: main `a80acd7`, Zephyr v4.4.2 `dccb095`, Reliance Edge v3.0 `6706984`.
 
