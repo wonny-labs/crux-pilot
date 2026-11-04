@@ -46,4 +46,5 @@ The build writes `dist`, which the mock serves. Run `node tools/compare.ts` in `
 
 - It has no forced password change screen. A session that must change its password sees a notice saying so.
 - It has no network or reboot screen.
+- A login followed by a `401` on the current user returns to sign-in with no message.
 - It has not been packaged into firmware. Issue #220 covers that, on `native_sim`.

@@ -253,7 +253,7 @@ reference code is not published as a package, so a project copies or vendors the
 
 | Screen | Permission handling | Failure handling |
 | --- | --- | --- |
-| Sign-in | Public | Rejected, delay, busy and lost are each shown. The wait holds the form, and the count sits outside the live region. A login followed by a `401` on the current user says that the browser did not keep the session, because real HTTPS refusing the cookie looks like this. |
+| Sign-in | Public | Rejected, delay, busy and lost are each shown. The wait holds the form, and the count sits outside the live region. A login followed by a `401` on the current user says that the session was not there on the next request, and names both causes: the browser refusing the cookie, which is what real HTTPS would show, and the device ending the session. |
 | Forced password change | Holds the session on this screen, whatever the route. The server also enforces it. | Field errors, failed save, delay and busy. A lost result asks the device through `GET /api/v1/session/me`. An `incorrect` after a lost, failed or timed-out poll says that the earlier change may have taken effect, and it never reports success from that. |
 | Home | The server filters, and an empty list shows "nothing to show" | One failed source shows as unavailable. A failed read keeps the last values and says how old they are. |
 | Network settings | A `403` on the read says so and leaves the form, because a session may be able to write but not read | Client checks before a warning, field errors from the server, failed and unconfirmed saves, and `501` |
@@ -279,9 +279,9 @@ by file.
 | Limit | Value | Measured |
 | --- | --- | --- |
 | Files | 4: index, one script, one style, one icon | 4 |
-| Compressed bytes | 32768 | 20382 |
+| Compressed bytes | 32768 | 20406 |
 
-The reference's parts, in bytes then compressed bytes: script 54563 and 18663, style 3465 and 1214, index 548 and 346, icon 174
+The reference's parts, in bytes then compressed bytes: script 54656 and 18687, style 3465 and 1214, index 548 and 346, icon 174
 and 159.
 
 ## Supply chain
@@ -294,13 +294,14 @@ and 159.
 | Lockfile | `web/package-lock.json`, installed with `npm ci`. `tools/check-pins.ts` compares each lockfile's root with its manifest. |
 | Lifecycle scripts | Off through `.npmrc` in `web` and the sample, and `check-pins` requires that. `npm ci` works without them: esbuild runs from its platform package without its install step, and `npm run` still runs its named script. |
 | Browser storage | None. A source rule refuses `localStorage`, `sessionStorage`, `indexedDB` and a cookie written by script, and a browser case shows that no password reaches them. |
-| SBOM | `npm run sbom` gives CycloneDX 1.5 with one component, and CI keeps it as an artifact |
+| SBOM | `npm run sbom` gives CycloneDX 1.5 with one component, and CI keeps it as an artifact. It names the licence and holds no copyright notice, so it does not replace a product's notices. |
+| CI actions | Pinned to full commits in `web.yml`, and `tools/check-pins.ts` requires that. The existing workflows still use tags. |
 | Advisories | `npm run audit:prod` in CI |
 | Browser | playwright-core downloads nothing. It uses Chrome from the machine, which GitHub's Ubuntu image has. |
 
 **Move off Node.js 20.** It is past its end of life, and current Angular needs `^22.22.3 || ^24.15.0 || >=26.0.0`. The move was
-one line in `web/api/lint/package.json`. The Spectral lock did not change, the lint and `tests/management_api` pass on
-24.22.2, and `scripts/check-management-api.sh` needed no edit. **Effect:** that script fails with a clear message under any
+the pin in `web/api/lint/package.json` and the matching root entry of `web/api/lint/package-lock.json`. No package changed,
+the lint and `tests/management_api` pass on 24.22.2, and `scripts/check-management-api.sh` needed no edit. **Effect:** that script fails with a clear message under any
 other version, so a machine with Node.js 20 needs 24.22.2 on its path before it runs the lint. The Dev Container has no
 Node.js. `AGENTS.md` treats a major toolchain upgrade as an escalation, so this is flagged for the owner at merge. It goes
 ahead under the owner's advance approval, because Node.js 20 is past its end of support.
@@ -316,14 +317,15 @@ sign-in, home and sign-out, in `e2e/angular-policy.test.ts`.
 
 | Build | Files | Bytes | Compressed bytes | Production packages | Locked packages |
 | --- | --- | --- | --- | --- | --- |
-| Preact reference, all five screens | 4 | 58750 | 20382 | 1 | 38 |
-| Preact reference, sign-in and home | 4 | 48392 | 17898 | 1 | 38 |
+| Preact reference, all five screens | 4 | 58843 | 20406 | 1 | 38 |
+| Preact reference, sign-in and home | 4 | 48485 | 17922 | 1 | 38 |
 | Angular sample, sign-in and home | 5 | 249403 | 76710 | 7 | 362 |
 
 The two-screen Preact build still holds the forced password change, which the shell needs, and the Angular sample does
 not, so the comparison slightly favours Angular. The fifth Angular file is `3rdpartylicenses.txt`, at 4822 compressed bytes,
 which the build writes by default, so the sample's code and style are 71,384 compressed bytes. The Preact build writes no
-licence file, so a product takes its notices from the SBOM. Installed tools measured 55 MB, 13 packages and 1,252 files for
+licence file, and the SBOM names Preact's MIT licence but holds no copyright notice. MIT requires that notice in copies, so
+this build alone does not meet it, and a product must add the text of Preact's `LICENSE` to its own notices. Installed tools measured 55 MB, 13 packages and 1,252 files for
 `web`, and 237 MB, 240 packages and 16,245 files for the sample, on macOS arm64.
 
 The production packages are, for Preact, `preact`; and for Angular, `@angular/common`, `@angular/compiler`, `@angular/core`,
@@ -342,7 +344,7 @@ What this shows, on the mock only:
 | Question | Result |
 | --- | --- |
 | Does Angular work with the web foundation? | Yes, on these two screens, with the same browser cases as the reference. |
-| Compressed size against Preact on the same screens | About 4.3 times: 76,710 against 17,898 bytes. Excluding the licence file, 4.0 times. |
+| Compressed size against Preact on the same screens | About 4.3 times: 76,710 against 17,922 bytes. Excluding the licence file, 4.0 times. |
 | File count | No lazy loading is used, so one script and one style, as for Preact. |
 | CSRF | `HttpClient`'s default names work with no configuration, shown by the sign-out case. |
 | Hash routing | `withHashLocation` works, and the server sees only API and asset paths. |
