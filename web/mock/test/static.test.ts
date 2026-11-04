@@ -58,8 +58,11 @@ test('a missing asset gets the plain 404', async () => {
 });
 
 test('a path cannot leave the folder', async () => {
-  const directory = folder();
-  writeFileSync(join(directory, '..', 'crux-secret-outside.txt'), 'secret');
+  const parent = mkdtempSync(join(tmpdir(), 'crux-static-'));
+  const directory = join(parent, 'site');
+  mkdirSync(join(directory, 'assets'), { recursive: true });
+  writeFileSync(join(directory, 'index.html'), '<!doctype html>');
+  writeFileSync(join(parent, 'crux-secret-outside.txt'), 'secret');
   const mock = await startMock({ staticDir: directory });
   for (const path of ['/../crux-secret-outside.txt', '/%2e%2e/crux-secret-outside.txt', '/assets/..%2f..%2fcrux-secret-outside.txt']) {
     const response = await fetch(`${mock.url}${path}`);
