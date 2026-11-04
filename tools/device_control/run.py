@@ -101,7 +101,7 @@ class BoardRun:
             "manifest_path": str(self._manifest_path),
             "host": {"platform": platform.platform(), "python": platform.python_version()},
         })
-        # Written before the manifest is read: null fields mean it could not be read.
+        # Written before the manifest is read: a null board means it could not be read.
         self._identity = {"manifest_sha256": None, "board": None, "source_revision": None,
                           "zephyr_revision": None, "build_id": None, "files": {},
                           "observed_sha256": {}, "observed_build_id": None}
@@ -140,7 +140,8 @@ class BoardRun:
             try:
                 lock.__exit__(None, None, None)
             except BaseException as failure:
-                cleanup_error = cleanup_error or failure
+                if cleanup_error is None or not isinstance(failure, Exception):
+                    cleanup_error = failure
         failure = error or cleanup_error
         result = {"status": "passed" if failure is None else "failed"}
         if failure is not None:

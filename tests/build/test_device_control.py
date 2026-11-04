@@ -370,6 +370,16 @@ class EvidenceTest(Workspace):
         self.assertIn('oracle', self.result()['error'])
         self.assertIn('KeyboardInterrupt', self.result()['cleanup_error'])
 
+    def test_an_interrupt_is_kept_when_an_ordinary_cleanup_failure_came_first(self):
+        class BadClose(FakeTransport):
+            def close(self):
+                raise OSError('port vanished')
+        with mock.patch.object(lock_module, '_release', side_effect=KeyboardInterrupt()):
+            with self.assertRaises(KeyboardInterrupt):
+                with self.run_for(transport=BadClose()) as run:
+                    run.open_console()
+        self.assertEqual(self.result()['error_type'], 'KeyboardInterrupt')
+
     def test_evidence_files_are_closed_when_writing_the_result_fails(self):
         run = self.run_for()
         with self.assertRaisesRegex(OSError, 'disk full'):
