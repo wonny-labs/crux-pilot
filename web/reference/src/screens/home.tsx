@@ -32,6 +32,10 @@ function sectionOf(name: string, text: Text): string {
 }
 
 function uptimeText(value: string, text: Text): string {
+  // BigInt throws on anything but digits, and one bad value must not take the page down.
+  if (!/^[0-9]+$/.test(value)) {
+    return value;
+  }
   const ms = BigInt(value);
   const minutes = ms / 60_000n;
   return text.home.uptime(minutes / 1440n, (minutes / 60n) % 24n, minutes % 60n);

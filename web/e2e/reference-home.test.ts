@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import type { Browser } from 'playwright-core';
 import { launchBrowser, requireBuilt, runCase, signIn, waitForHeading, webRoot } from './harness.ts';
-import type { AppConfig, OpenApp } from './harness.ts';
+import type { AppConfig, OpenApp, OpenOptions } from './harness.ts';
 
 const config: AppConfig = { name: 'reference', dist: join(webRoot, 'reference', 'dist'), stylePolicy: 'strict' };
 
@@ -17,8 +17,8 @@ after(async () => {
   await browser.close();
 });
 
-function run(name: string, body: (app: OpenApp) => Promise<void>) {
-  test(name, () => runCase(browser, config, name, {}, body));
+function run(name: string, body: (app: OpenApp) => Promise<void>, options: OpenOptions = {}) {
+  test(name, () => runCase(browser, config, name, options, body));
 }
 
 function statusReads(app: OpenApp): number {
@@ -55,6 +55,20 @@ run('a u64 above 2^53 keeps its precision in arithmetic', async ({ page, mock })
   await page.getByText('9007199254740993').waitFor();
   await page.getByText('213503982334 d 14 h 25 min').waitFor();
 });
+
+run(
+  'an uptime that is not a number is shown as sent, and does not break the page',
+  async ({ page, mock }) => {
+    mock.control.set({
+      statusItems: [{ item: { name: 'system.uptime_ms', status: 'ok', type: 'u64', value: 'soon' }, permission: 'status.read' }],
+    });
+    await page.goto('/');
+    await signIn(page);
+    await waitForHeading(page, 'Home');
+    await page.getByText('soon').waitFor();
+  },
+  { allowNonConforming: true },
+);
 
 run('status text from the device is shown as text, never as markup', async ({ page, mock }) => {
   const hostile = '<img src=x onerror=alert(1)>';

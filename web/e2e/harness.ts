@@ -25,6 +25,8 @@ export interface OpenOptions {
   trustedTypes?: boolean;
   /** Violations are expected, so they are counted and do not fail the test. */
   recordViolationsOnly?: boolean;
+  /** The test sends an answer outside the specification on purpose. */
+  allowNonConforming?: boolean;
 }
 
 export interface OpenApp {
@@ -100,7 +102,7 @@ export async function openApp(browser: Browser, config: AppConfig, options: Open
     foreignRequests,
     finish() {
       const all = [
-        ...problems.map((problem) => `not in the specification: ${problem}`),
+        ...(options.allowNonConforming ? [] : problems.map((problem) => `not in the specification: ${problem}`)),
         ...(options.recordViolationsOnly ? [] : violations.map((violation) => `policy violation: ${violation}`)),
         ...pageErrors.map((error) => `page error: ${error}`),
         ...consoleErrors.map((error) => `console error: ${error}`),
