@@ -78,6 +78,18 @@ python3 -m unittest discover -s "$repo/samples/storage_sd_replace/host" -p test_
     -O "$repo/build/zephyr/twister-storage-sd-settings-recover" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$fatfs")
 
+# The shared Configuration conformance cases, scalar and string, with the fake provider.
+(cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
+    -T "$repo/tests/configuration/zephyr" \
+    -O "$repo/build/zephyr/twister-configuration-software" --inline-logs)
+
+# The status and configuration services with the real System, Time and Sync. Only here can a status
+# poll be shown to leave the System contract's one permission to clear alone.
+(cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
+    -T "$repo/tests/native/mgmt_services" \
+    -O "$repo/build/zephyr/twister-mgmt-services" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$repo")
+
 # The Configuration fixture stages its existing three pinned source copies.
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
     -T "$repo/tests/native/configuration_settings" \
@@ -126,7 +138,7 @@ expected = {
 }
 log = open(sys.argv[1], errors='replace').read()
 failed = set(re.findall(r'^ - FAIL - \[configuration_settings_file\.(\w+)\]', log, re.M))
-if failed != expected or 'pass = 12, fail = 13' not in log:
+if failed != expected or 'pass = 13, fail = 13' not in log:
     raise RuntimeError(f'settings-file control differs: unexpected {sorted(failed - expected)}, '
                        f'missing {sorted(expected - failed)}')
 print(f'settings-file control (unpatched backend): {len(failed)} of 25 cases fail as expected')

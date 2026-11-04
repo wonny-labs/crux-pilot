@@ -4,6 +4,8 @@ Status: approved for software-only development by the human M4 Architecture and 
 
 Baseline: main `225cd21b5fff37c31c5dff52570e9f26179682a1`.
 
+[String parameters](#string-parameters) and `crux_config_key` were added under decisions C1 and C2 of Issue #180, on Host and `native_sim`. The [services above this mechanism](status-configuration-services.md) use them. No target provider exists: [a composition selects the no-provider port](#no-provider-port) until #16 decides one.
+
 ## Recommendation and alternatives
 
 Recommend a small **per-parameter scalar mechanism**, with application-owned
@@ -84,8 +86,8 @@ crux_config_result_t crux_config_save(const crux_config_param_t *parameter);
   value and return ERR_REJECTED. Save revalidates the current value before backend
   dispatch and rejects it without writing if validation now fails. Read returns
   the last accepted value without claiming cross-parameter consistency.
-- Only BOOL/U32 are initially supported. Application supplies range and meaning;
-  no implicit type conversion, strings, floating-point, arbitrary blobs or schema
+- BOOL, U32 and bounded STRING are supported. Application supplies range and meaning;
+  no implicit type conversion, floating-point, arbitrary blobs or schema
   migration. Additional types require an evidenced contract extension.
 - Keys are single ASCII leaf names `[A-Za-z0-9_.-]`, excluding `.` and `..`.
   Native provider composition supplies the namespace prefix and documented name
@@ -142,6 +144,44 @@ as safe merely from its signature. The retained entry assessment shows why gener
 subtree/direct returns and current NVS fallback can hide errors. Native provider
 acceptance requires actual Settings/backend fault evidence; any upstream change
 or altered backend remains a separate ownership/architecture decision.
+
+## String parameters
+
+```c
+#ifndef CRUX_CONFIG_STRING_MAX
+#define CRUX_CONFIG_STRING_MAX 128
+#endif
+
+typedef enum { CRUX_CONFIG_BOOL = 1, CRUX_CONFIG_U32 = 2, CRUX_CONFIG_STRING = 3 } crux_config_type_t;
+/* data.string.text and data.string.length join the value's union. bool stays its first member. */
+
+crux_config_result_t crux_config_init_string(crux_config_param_t *parameter,
+                                             const crux_config_spec_t *spec, char *storage,
+                                             size_t capacity);
+const char *crux_config_key(const crux_config_param_t *parameter);
+bool crux_config_text_valid(const char *text, size_t length);
+```
+
+`crux_config_spec_t` does not change, because new fields would break consumers that initialise it by position under `-Wextra -Werror`. `crux_config_param_t` gains private fields. A C++17 consumer sets a string default at run time, because only the first union member takes a brace initialiser and designators are C++20. `tests/configuration_consumer/consumer_string.cpp` shows how.
+
+| Rule | Behaviour |
+| --- | --- |
+| Which init | `crux_config_init` refuses a string spec, and `crux_config_init_string` refuses a scalar one, with `INVALID_ARGUMENT` |
+| Capacity | Above the default's length and at most `CRUX_CONFIG_STRING_MAX + 1`. The default must not overlap the storage. Otherwise `INVALID_ARGUMENT`. |
+| A value | `text` is non-null, `text[length]` is the terminator and no earlier byte is one, and `crux_config_text_valid` holds. This applies to a default at init and at fallback, and to a candidate, so a validator never sees other bytes than those stored. Otherwise `REJECTED`. |
+| Character rule | Well-formed UTF-8 with no NUL, C0 control, DEL or C1 control. U+2028, bidirectional controls and similar characters pass, so an adapter still escapes for its format. |
+| Read | `data.string.text` borrows the parameter's storage until the next update or load, unlike a scalar's copy |
+| Update | The rule and the capacity, then the validator, then a copy. A candidate may alias the storage. A rejected update keeps the old value. |
+
+The encoding is the same header, with type 3, followed by the text with no terminator and no separate length, because a record's length comes from the port. An empty string is 4 bytes. BOOL and U32 records stay byte-identical.
+
+Load keeps the existing rules. A record whose length is under 4, or whose text would not fit `capacity`, is `DEFAULT_REJECTED` from its metadata, with nothing read past the buffer. A failed or short transfer of a valid length stays `IO`. A record that fails the rule is rejected the same way.
+
+`crux_config_load` and `crux_config_save` use `CRUX_CONFIG_STRING_MAX + 5` bytes of stack for every type, and both clear that buffer on every path after it holds a value, by volatile writes that a compiler cannot remove. The simulator Settings provider's own buffer is not cleared, which fits the absence of a confidentiality claim. It holds a 252-byte string at most, and a build check keeps `CRUX_CONFIG_STRING_MAX` at or below that when it is selected.
+
+## No-provider port
+
+`crux_config_save` and `crux_config_load` call the private port directly, and no target provider exists, so an image using Configuration on a target would fail to link. A composition links `crux_configuration_no_provider` to fix this. Both port functions return `CRUX_CONFIG_ERR_NOT_SUPPORTED`, which `crux_config_load` and `crux_config_save` pass on, and each parameter keeps its default from init. The application treats that as running on defaults. It is objects, so a final link always takes it, and a second provider is a duplicate symbol. Issue #16 decides the real provider.
 
 ## Application-owned controller example
 

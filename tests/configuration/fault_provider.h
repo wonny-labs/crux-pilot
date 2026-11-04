@@ -19,6 +19,11 @@ typedef struct {
 } config_fault_write_options_t;
 void config_fault_read(config_fault_read_options_t options);
 void config_fault_write(config_fault_write_options_t options);
+typedef void (*config_fault_hook_t)(void *context);
+/* Runs at the start of each write, which a test uses to act while a save holds a lock. */
+void config_fault_write_hook(config_fault_hook_t hook, void *context);
+/* Fails each write of one key, for a save that stops part of the way through a list. */
+void config_fault_write_fail_key(const char *key, crux_config_result_t result);
 size_t config_fault_reads(void);
 size_t config_fault_writes(void);
 size_t config_fault_bytes(const char *key, uint8_t *out, size_t capacity);
