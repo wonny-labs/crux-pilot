@@ -1,10 +1,9 @@
 # Security event contract
 
 Status: Host implementation for review under Issue #182, with fakes. The contract is not adopted until this review
-and gate #183 pass. The decisions and reasoning are in the accepted proposal,
-`docs/plans/security-events-contract-proposal.md` on branch `docs/cli-events-contracts`
-([PR #208](https://github.com/wonny-labs/crux-pilot/pull/208)), with decisions E1 to E6 accepted in the
-[gate record](https://github.com/wonny-labs/crux-pilot/pull/209). This document does not repeat the reasoning. It states what
+and gate #183 pass. The decisions and reasoning are in [the accepted proposal](plans/security-events-contract-proposal.md),
+with decisions E1 to E6 accepted in the [gate record](https://github.com/wonny-labs/crux-pilot/pull/209). This document does not
+repeat the reasoning. It states what
 was built, what was chosen, and what is not known.
 
 Owner: `components/security_event`. Public header `<crux/security_event.h>`, usage target `crux::security_event`.
