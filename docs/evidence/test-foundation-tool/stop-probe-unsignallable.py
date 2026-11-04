@@ -24,6 +24,14 @@ def signal_group(label, process):
             print(f"{label}, killpg {name}: {type(error).__name__} errno {error.errno}")
 
 
+MIXED = ("import os, time\nif os.fork() == 0:\n    os.setresuid(65534, 65534, 65534)\n    time.sleep(30)\n"
+         "    os._exit(0)\ntime.sleep(30)\n")
+
+
+def give_up(number, frame):
+    raise TimeoutError
+
+
 print(platform.platform(), platform.python_version())
 alive = subprocess.Popen(["sleep", "30"], start_new_session=True)
 stop_alive = subprocess.Popen(["sleep", "30"], start_new_session=True)
@@ -31,7 +39,9 @@ exited = subprocess.Popen(["true"], start_new_session=True)
 stop_exited = subprocess.Popen(["true"], start_new_session=True)
 left_child = subprocess.Popen(["sh", "-c", "sleep 30 & exit 0"], start_new_session=True)
 stop_left_child = subprocess.Popen(["sh", "-c", "sleep 30 & exit 0"], start_new_session=True)
-time.sleep(1.0)
+# A root leader with a member the later user may signal.
+mixed = subprocess.Popen([sys.executable, "-c", MIXED], start_new_session=True)
+time.sleep(3.0)
 os.setresuid(65534, 65534, 65534)
 print("uid now", os.getuid())
 
@@ -47,3 +57,10 @@ signal_group("root tool reaped, no child", exited)
 for label, process in (("root tool alive", stop_alive), ("root tool exited, not reaped", stop_exited),
                        ("root tool exited, root child alive", stop_left_child)):
     print(f"run._stop, {label}: {run._stop(process)}, returncode {process.returncode}")
+
+signal.signal(signal.SIGALRM, give_up)
+signal.alarm(5)
+try:
+    print(f"run._stop, root leader with a member this user may signal: {run._stop(mixed)}, returncode {mixed.returncode}")
+except TimeoutError:
+    print(f"run._stop, root leader with a member this user may signal: still waiting after 5 s, returncode {mixed.returncode}")

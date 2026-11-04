@@ -962,9 +962,14 @@ class RunToolTest(Workspace):
 
 
 def passwordless_sudo():
+    # Asked the way the tool asks: no terminal, a new session and the same kind of command.
     if os.name != 'posix' or os.geteuid() == 0 or not shutil.which('sudo'):
         return False
-    return subprocess.run(['sudo', '-n', 'true'], capture_output=True).returncode == 0
+    try:
+        return subprocess.run(['sudo', '-n', 'sleep', '0'], stdin=subprocess.DEVNULL, capture_output=True,
+                              start_new_session=True, timeout=30).returncode == 0
+    except subprocess.TimeoutExpired:
+        return False
 
 
 @unittest.skipUnless(os.name == 'posix', 'process groups are POSIX only')
@@ -976,6 +981,11 @@ class StopToolTest(Workspace):
                                  text=True).stdout.startswith('Z'):
             self.assertLess(time.monotonic(), deadline, 'the tool did not exit')
             time.sleep(0.02)
+
+    def only_zombies_left(self, group):
+        listing = subprocess.run(['ps', '-A', '-o', 'pgid=,stat='], capture_output=True, text=True).stdout
+        states = [line.split()[1] for line in listing.splitlines() if line.split()[0] == str(group)]
+        return bool(states) and all(state.startswith('Z') for state in states)
 
     def exited_tool(self):
         process = subprocess.Popen([sys.executable, '-c', 'pass'], start_new_session=True)
@@ -1026,10 +1036,19 @@ class StopToolTest(Workspace):
         self.assertEqual(process.returncode, 0)
 
     def test_a_wrapper_and_what_it_started_count_as_stopped(self):
-        code = ('import subprocess, sys, time\n'
-                'subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])\ntime.sleep(60)\n')
+        marker = self.root / 'child-started'
+        child = f'import time; open({str(marker)!r}, "w").close(); time.sleep(60)'
+        code = (f'import subprocess, sys, time\nsubprocess.Popen([sys.executable, "-c", {child!r}])\n'
+                'time.sleep(60)\n')
         process = subprocess.Popen([sys.executable, '-c', code], start_new_session=True)
-        self.assertIs(device_control.run._stop(process), True)
+        deadline = time.monotonic() + 60
+        while not marker.exists():
+            self.assertLess(time.monotonic(), deadline, 'the child did not start')
+            time.sleep(0.02)
+        stopped = device_control.run._stop(process)
+        if not stopped and self.only_zombies_left(process.pid):
+            self.skipTest('PID 1 here does not reap orphans, so the killed child stays in the group')
+        self.assertIs(stopped, True)
 
     def test_a_timeout_that_races_the_exit_of_the_tool_reports_the_timeout(self):
         with self.wait_gives_up(subprocess.TimeoutExpired, after_exit=True):
@@ -1084,15 +1103,16 @@ class StopToolTest(Workspace):
         with mock.patch.object(os, 'killpg', side_effect=kill_only_the_wrapper):
             self.assertIs(device_control.run._stop(process), False)
 
-    @unittest.skipUnless(passwordless_sudo(), 'needs sudo without a password, and not to be root')
     def test_a_real_tool_run_through_sudo_is_not_reported_as_stopped_while_it_runs(self):
+        if not passwordless_sudo():
+            self.skipTest('needs sudo without a password, and not to be root')
         created = self.recording_tools()
 
         def stop():
             subprocess.run(['sudo', '-n', 'kill', '-9', '--', f'-{created[0].pid}'], capture_output=True)
             created[0].wait()
         self.addCleanup(stop)
-        with self.assertRaises(ToolFailed) as raised:
+        with self.assertRaisesRegex(ToolFailed, 'timed out') as raised:
             device_control.run.run_tool(['sudo', '-n', 'sleep', '20'], self.root / 'tool.log', 1)
         # sudo itself can often be signalled. Its root child may stay in the group or leave it.
         try:

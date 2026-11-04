@@ -208,7 +208,8 @@ of these checks flashes, resets or opens a device. These levels last ran at Zeph
 
 `build/test_device_control.py` tests [`tools/device_control`](../tools/device_control/README.md) with
 fake transports and scripted tools, including its reset and flash gates, manifest checks, evidence
-retention and board lock. No test uses hardware or a real serial port, and nothing has run on Windows.
+retention and board lock. One test also runs real `sudo` where it needs no password. No test uses
+hardware or a real serial port, and nothing has run on Windows.
 Host CI runs these tests on Linux only; the macOS results were run by hand and are in the
 [recorded runs](../docs/evidence/test-foundation-tool/README.md). See the tool's README for what has
 not been exercised.
