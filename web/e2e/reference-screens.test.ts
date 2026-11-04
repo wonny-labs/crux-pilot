@@ -111,9 +111,9 @@ test('screenshots of each screen', { skip: folder === undefined }, async () => {
   });
   await capture('reboot-not-confirmed', async ({ page, mock }) => {
     mock.control.set({ rebootOutcome: 'away_forever', rebootPendingPolls: 0 });
+    await page.clock.install();
     await page.goto('/#/reboot');
     await signIn(page);
-    await page.clock.install();
     await page.getByRole('button', { name: 'Restart the device…' }).click();
     await page.getByRole('button', { name: 'Restart now' }).click();
     await page.getByText(/not answering/i).waitFor();

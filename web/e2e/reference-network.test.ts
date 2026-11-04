@@ -175,9 +175,9 @@ run('a failed save is reported as failed', async ({ page, mock }) => {
 });
 
 run('a save that stays pending is reported as not confirmed', async ({ page, mock }) => {
+  await page.clock.install();
   await openNetwork(page);
   mock.control.set({ savePolls: 1000 });
-  await page.clock.install();
   await saveThrough(page, '192.0.2.20', '24');
   await page.getByText(/saving the settings/i).waitFor();
   await page.clock.fastForward(16_000);

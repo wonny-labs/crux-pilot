@@ -55,8 +55,8 @@ run('a restart is success once the session is gone, and sign-in says so', async 
   const { page, mock } = app;
   // A browser may repeat a request on a dropped connection, so the device stays away for several.
   mock.control.set({ rebootPendingPolls: 1, rebootAwayPolls: 4 });
-  await openReboot(page);
   await page.clock.install();
+  await openReboot(page);
   await confirmReboot(page);
   await page.getByText(/waiting for the device to restart/i).waitFor();
   assert.equal(posts(app), 1);
@@ -76,8 +76,8 @@ run('a restart is success once the session is gone, and sign-in says so', async 
 
 run('an answer from the running device alone does not count as success', async ({ page, mock }) => {
   mock.control.set({ rebootOutcome: 'never' });
-  await openReboot(page);
   await page.clock.install();
+  await openReboot(page);
   await confirmReboot(page);
   await page.getByText(/waiting for the device to restart/i).waitFor();
   await page.clock.fastForward(2100);
@@ -88,8 +88,8 @@ run('an answer from the running device alone does not count as success', async (
 
 run('a device that never restarts is reported as not confirmed', async ({ page, mock }) => {
   mock.control.set({ rebootOutcome: 'never' });
-  await openReboot(page);
   await page.clock.install();
+  await openReboot(page);
   await confirmReboot(page);
   await page.getByText(/waiting for the device to restart/i).waitFor();
   await page.clock.fastForward(181_000);
@@ -100,8 +100,8 @@ run('a device that never restarts is reported as not confirmed', async ({ page, 
 
 run('a device that stays away longer than expected is flagged, then reported as not confirmed', async ({ page, mock }) => {
   mock.control.set({ rebootOutcome: 'away_forever', rebootPendingPolls: 0 });
-  await openReboot(page);
   await page.clock.install();
+  await openReboot(page);
   await confirmReboot(page);
   await page.getByText(/not answering, which is expected/i).waitFor();
   await page.clock.fastForward(61_000);
@@ -112,8 +112,8 @@ run('a device that stays away longer than expected is flagged, then reported as 
 
 run('a device that comes back after the limit is still recognised by keeping on waiting', async ({ page, mock }) => {
   mock.control.set({ rebootOutcome: 'away_forever', rebootPendingPolls: 0 });
-  await openReboot(page);
   await page.clock.install();
+  await openReboot(page);
   await confirmReboot(page);
   await page.getByText(/not answering, which is expected/i).waitFor();
   await page.clock.fastForward(181_000);

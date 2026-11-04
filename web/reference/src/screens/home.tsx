@@ -1,6 +1,6 @@
 // Home: the status items that this session may read, refreshed at a low rate because the server has one
 // thread. It takes what the device sends and hides nothing itself: the server filters.
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { ApiError, StatusItem } from '../../../client/src/index.ts';
 import { Heading, Notice } from '../components.tsx';
 import { useApp } from '../context.ts';
@@ -129,11 +129,17 @@ function Home() {
 
   useEffect(() => {
     void read();
-    return () => {
+  }, []);
+
+  // Preact runs the cleanup of a passive effect after paint, when a poll could still fire. A layout effect's
+  // cleanup runs as the screen goes, so that no read follows it.
+  useLayoutEffect(
+    () => () => {
       clearTimeout(timer.current);
       abort.current?.abort();
-    };
-  }, []);
+    },
+    [],
+  );
 
   const groups = items === null ? [] : group(items, homeItems, text);
 
