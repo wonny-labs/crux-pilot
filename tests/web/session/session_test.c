@@ -93,11 +93,10 @@ static const crux_access_role_t session_roles[] = {
 };
 static const crux_access_policy_t session_policy = {session_roles, 2, 900u, 28800u, NULL};
 
-void session_test_setup(void)
+void session_test_setup_web(void)
 {
     static const crux_web_config_t config = {crux_web_session_authenticate, NULL, 5000u, 100u};
     static const crux_web_session_config_t session_config = {"https", NULL, 0u};
-    uint32_t retry = 0;
 
     web_clock_ms = 1000u;
     session_test_route_session.value = 0u;
@@ -106,6 +105,15 @@ void session_test_setup(void)
     hash_fail = false;
     random_calls = 0u;
     random_state = 0x9e3779b97f4a7c15u;
+    crux_web_core_init(&config);
+    CHECK(crux_web_session_init(&session_config) == CRUX_WEB_OK);
+    fake_transport_reset();
+}
+
+void session_test_setup(void)
+{
+    uint32_t retry = 0;
+
     access_fake_reset();
     crux_access_test_reset();
     CHECK(crux_access_init(&session_policy) == CRUX_ACCESS_OK);
@@ -123,9 +131,7 @@ void session_test_setup(void)
                                              strlen(SESSION_TEST_PASSWORD)) == CRUX_ACCESS_OK);
     access_fake_events_clear();
     access_fake_derive_counters_clear();
-    crux_web_core_init(&config);
-    CHECK(crux_web_session_init(&session_config) == CRUX_WEB_OK);
-    fake_transport_reset();
+    session_test_setup_web();
 }
 
 const fake_reply_t *session_send(const session_request_t *request)

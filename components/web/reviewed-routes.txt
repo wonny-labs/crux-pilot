@@ -7,3 +7,10 @@ session DELETE /api/v1/session
 public GET /api/v1/session/attempt/{id}
 session GET /api/v1/session/me
 session POST /api/v1/session/me/password
+# The status and configuration routes of #187, in components/web/management/web_management_routes.c.
+# Each is session-only, and the status and configuration services filter what a session sees and check
+# its permissions. The save is not listed, because its access class is the permission config.save.
+session GET /api/v1/status
+session GET /api/v1/config
+session GET /api/v1/config/{name}
+session PUT /api/v1/config/{name}
