@@ -323,9 +323,308 @@
   }
  ],
  "counts": {
-  "cases": 1240,
-  "observed_failures": 172,
-  "processes": 410
+  "cases": 1182,
+  "observed_failures": 175,
+  "processes": 465
+ },
+ "early_ack_observation": {
+  "cases": [
+   {
+    "acked": 1,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 3,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 17073750479937311365,
+    "workload": "W1"
+   },
+   {
+    "acked": 2,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 7,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 10912414769448028879,
+    "workload": "W1"
+   },
+   {
+    "acked": 3,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 12,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 14494925852963999087,
+    "workload": "W1"
+   },
+   {
+    "acked": 4,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 16,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 9587601841380587823,
+    "workload": "W1"
+   },
+   {
+    "acked": 5,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 20,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 13643797017242318341,
+    "workload": "W1"
+   },
+   {
+    "acked": 6,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 25,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 13456060949000595997,
+    "workload": "W1"
+   },
+   {
+    "acked": 7,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 29,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 6248552764305510361,
+    "workload": "W1"
+   },
+   {
+    "acked": 8,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 34,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 17266217520417571312,
+    "workload": "W1"
+   },
+   {
+    "acked": 9,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 38,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 6239679408653580665,
+    "workload": "W1"
+   },
+   {
+    "acked": 10,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 42,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 10575122013025520722,
+    "workload": "W1"
+   },
+   {
+    "acked": 11,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 48,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 10186918830915776728,
+    "workload": "W1"
+   },
+   {
+    "acked": 12,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 52,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 9835054895564193846,
+    "workload": "W1"
+   },
+   {
+    "acked": 13,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 57,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 12038117128077597813,
+    "workload": "W1"
+   },
+   {
+    "acked": 14,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 61,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 5343714360715868582,
+    "workload": "W1"
+   },
+   {
+    "acked": 15,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 65,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 17619407698042822296,
+    "workload": "W1"
+   },
+   {
+    "acked": 16,
+    "exe": "fix",
+    "model": "lost",
+    "phase": "run-early",
+    "position": 70,
+    "profile": "cached",
+    "result": {
+     "data": 0,
+     "mount": 1,
+     "read_error": 0,
+     "recommit": 1,
+     "replace": 1,
+     "untouched": 1
+    },
+    "seed": 9418005985975019475,
+    "workload": "W1"
+   }
+  ],
+  "data_failures": 16,
+  "image": "fat-fix",
+  "model": "lost",
+  "phase": "run-early",
+  "positions": "after each mark",
+  "profile": "cached",
+  "workload": "W1"
  },
  "failures": [],
  "fs": "fatfs",
@@ -346,6 +645,7 @@
      "violations": {}
     },
     "reordered": {
+     "I2_acknowledged_intact": 3,
      "cases": 68,
      "no_result": 0,
      "passed": 65,
@@ -354,11 +654,14 @@
      }
     },
     "torn": {
-     "cases": 64,
+     "I2_acknowledged_intact": 2,
+     "I2_acknowledged_lost": 4,
+     "cases": 40,
      "no_result": 0,
-     "passed": 59,
+     "passed": 34,
+     "tore": 40,
      "violations": {
-      "I2": 5,
+      "I2": 6,
       "read_error": 1
      }
     }
@@ -371,9 +674,11 @@
      "violations": {}
     },
     "torn": {
-     "cases": 57,
+     "I2_acknowledged_lost": 1,
+     "cases": 40,
      "no_result": 0,
-     "passed": 56,
+     "passed": 39,
+     "tore": 40,
      "violations": {
       "I2": 1,
       "read_error": 1
@@ -413,10 +718,11 @@
     "torn": {
      "cases": 64,
      "no_result": 0,
-     "passed": 44,
+     "passed": 46,
+     "tore": 64,
      "violations": {
-      "I2": 20,
-      "I3": 20
+      "I2": 18,
+      "I3": 18
      }
     }
    },
@@ -433,10 +739,11 @@
     "torn": {
      "cases": 64,
      "no_result": 0,
-     "passed": 52,
+     "passed": 49,
+     "tore": 64,
      "violations": {
-      "I2": 12,
-      "I3": 12
+      "I2": 15,
+      "I3": 15
      }
     }
    }
@@ -466,11 +773,12 @@
      }
     },
     "torn": {
-     "cases": 64,
+     "cases": 44,
      "no_result": 0,
-     "passed": 48,
+     "passed": 27,
+     "tore": 44,
      "violations": {
-      "I2": 16
+      "I2": 17
      }
     }
    },
@@ -484,9 +792,10 @@
      }
     },
     "torn": {
-     "cases": 57,
+     "cases": 44,
      "no_result": 0,
-     "passed": 41,
+     "passed": 28,
+     "tore": 44,
      "violations": {
       "I2": 16
      }
@@ -497,6 +806,7 @@
  "observed_failures": [
   {
    "acked": 8,
+   "acknowledged_intact": true,
    "exe": "fix",
    "model": "reordered",
    "position": 39,
@@ -514,6 +824,7 @@
   },
   {
    "acked": 11,
+   "acknowledged_intact": true,
    "exe": "fix",
    "model": "reordered",
    "position": 53,
@@ -531,6 +842,7 @@
   },
   {
    "acked": 12,
+   "acknowledged_intact": true,
    "exe": "fix",
    "model": "reordered",
    "position": 58,
@@ -548,6 +860,7 @@
   },
   {
    "acked": 0,
+   "acknowledged_intact": false,
    "exe": "fix",
    "model": "torn",
    "position": 3,
@@ -565,6 +878,7 @@
   },
   {
    "acked": 1,
+   "acknowledged_intact": false,
    "exe": "fix",
    "model": "torn",
    "position": 7,
@@ -582,6 +896,7 @@
   },
   {
    "acked": 3,
+   "acknowledged_intact": true,
    "exe": "fix",
    "model": "torn",
    "position": 16,
@@ -599,6 +914,7 @@
   },
   {
    "acked": 8,
+   "acknowledged_intact": false,
    "exe": "fix",
    "model": "torn",
    "position": 38,
@@ -616,6 +932,7 @@
   },
   {
    "acked": 10,
+   "acknowledged_intact": false,
    "exe": "fix",
    "model": "torn",
    "position": 48,
@@ -632,7 +949,26 @@
    "workload": "W1"
   },
   {
+   "acked": 15,
+   "acknowledged_intact": true,
+   "exe": "fix",
+   "model": "torn",
+   "position": 70,
+   "profile": "cached",
+   "result": {
+    "data": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 1,
+    "untouched": 1
+   },
+   "seed": 9860231100035373137,
+   "workload": "W1"
+  },
+  {
    "acked": 0,
+   "acknowledged_intact": false,
    "exe": "fix",
    "model": "torn",
    "position": 2,
@@ -1570,7 +1906,7 @@
    "acked": 0,
    "exe": "fix",
    "model": "torn",
-   "position": 9,
+   "position": 7,
    "profile": "cached",
    "result": {
     "data": 0,
@@ -1580,7 +1916,24 @@
     "replace": 0,
     "untouched": 1
    },
-   "seed": 15542528873911712486,
+   "seed": 18374881695287274152,
+   "workload": "W2"
+  },
+  {
+   "acked": 0,
+   "exe": "fix",
+   "model": "torn",
+   "position": 8,
+   "profile": "cached",
+   "result": {
+    "data": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 0,
+    "untouched": 1
+   },
+   "seed": 6263998387152354080,
    "workload": "W2"
   },
   {
@@ -1604,7 +1957,7 @@
    "acked": 1,
    "exe": "fix",
    "model": "torn",
-   "position": 21,
+   "position": 20,
    "profile": "cached",
    "result": {
     "data": 0,
@@ -1614,14 +1967,31 @@
     "replace": 0,
     "untouched": 1
    },
-   "seed": 10820790427509720705,
+   "seed": 9279332817811286911,
+   "workload": "W2"
+  },
+  {
+   "acked": 1,
+   "exe": "fix",
+   "model": "torn",
+   "position": 22,
+   "profile": "cached",
+   "result": {
+    "data": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 0,
+    "untouched": 1
+   },
+   "seed": 5385621226059396813,
    "workload": "W2"
   },
   {
    "acked": 2,
    "exe": "fix",
    "model": "torn",
-   "position": 33,
+   "position": 32,
    "profile": "cached",
    "result": {
     "data": 0,
@@ -1631,7 +2001,7 @@
     "replace": 0,
     "untouched": 1
    },
-   "seed": 5568485699189208217,
+   "seed": 10363711763851791866,
    "workload": "W2"
   },
   {
@@ -1655,6 +2025,23 @@
    "acked": 3,
    "exe": "fix",
    "model": "torn",
+   "position": 44,
+   "profile": "cached",
+   "result": {
+    "data": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 0,
+    "untouched": 1
+   },
+   "seed": 1358374611580421876,
+   "workload": "W2"
+  },
+  {
+   "acked": 3,
+   "exe": "fix",
+   "model": "torn",
    "position": 45,
    "profile": "cached",
    "result": {
@@ -1666,23 +2053,6 @@
     "untouched": 1
    },
    "seed": 5073137200937116442,
-   "workload": "W2"
-  },
-  {
-   "acked": 3,
-   "exe": "fix",
-   "model": "torn",
-   "position": 46,
-   "profile": "cached",
-   "result": {
-    "data": 0,
-    "mount": 1,
-    "read_error": 0,
-    "recommit": 1,
-    "replace": 0,
-    "untouched": 1
-   },
-   "seed": 12123072450688684635,
    "workload": "W2"
   },
   {
@@ -1706,7 +2076,7 @@
    "acked": 4,
    "exe": "fix",
    "model": "torn",
-   "position": 59,
+   "position": 58,
    "profile": "cached",
    "result": {
     "data": 0,
@@ -1716,7 +2086,7 @@
     "replace": 0,
     "untouched": 1
    },
-   "seed": 2319778871765370323,
+   "seed": 1182698213157908151,
    "workload": "W2"
   },
   {
@@ -1740,6 +2110,23 @@
    "acked": 5,
    "exe": "fix",
    "model": "torn",
+   "position": 71,
+   "profile": "cached",
+   "result": {
+    "data": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 0,
+    "untouched": 1
+   },
+   "seed": 8454000271502819484,
+   "workload": "W2"
+  },
+  {
+   "acked": 5,
+   "exe": "fix",
+   "model": "torn",
    "position": 72,
    "profile": "cached",
    "result": {
@@ -1751,40 +2138,6 @@
     "untouched": 1
    },
    "seed": 8833981320466566948,
-   "workload": "W2"
-  },
-  {
-   "acked": 5,
-   "exe": "fix",
-   "model": "torn",
-   "position": 73,
-   "profile": "cached",
-   "result": {
-    "data": 0,
-    "mount": 1,
-    "read_error": 0,
-    "recommit": 1,
-    "replace": 0,
-    "untouched": 1
-   },
-   "seed": 17618700117179937576,
-   "workload": "W2"
-  },
-  {
-   "acked": 5,
-   "exe": "fix",
-   "model": "torn",
-   "position": 74,
-   "profile": "cached",
-   "result": {
-    "data": 0,
-    "mount": 1,
-    "read_error": 0,
-    "recommit": 1,
-    "replace": 0,
-    "untouched": 1
-   },
-   "seed": 15470617230208159689,
    "workload": "W2"
   },
   {
@@ -1802,23 +2155,6 @@
     "untouched": 1
    },
    "seed": 8322656936894259117,
-   "workload": "W2"
-  },
-  {
-   "acked": 6,
-   "exe": "fix",
-   "model": "torn",
-   "position": 87,
-   "profile": "cached",
-   "result": {
-    "data": 0,
-    "mount": 1,
-    "read_error": 0,
-    "recommit": 1,
-    "replace": 0,
-    "untouched": 1
-   },
-   "seed": 8117875141403996961,
    "workload": "W2"
   },
   {
@@ -1853,40 +2189,6 @@
     "untouched": 1
    },
    "seed": 5815128138481850740,
-   "workload": "W2"
-  },
-  {
-   "acked": 7,
-   "exe": "fix",
-   "model": "torn",
-   "position": 100,
-   "profile": "cached",
-   "result": {
-    "data": 0,
-    "mount": 1,
-    "read_error": 0,
-    "recommit": 1,
-    "replace": 0,
-    "untouched": 1
-   },
-   "seed": 14705425656256693971,
-   "workload": "W2"
-  },
-  {
-   "acked": 7,
-   "exe": "fix",
-   "model": "torn",
-   "position": 101,
-   "profile": "cached",
-   "result": {
-    "data": 0,
-    "mount": 1,
-    "read_error": 0,
-    "recommit": 1,
-    "replace": 0,
-    "untouched": 1
-   },
-   "seed": 6162884968271626289,
    "workload": "W2"
   },
   {
@@ -2196,6 +2498,23 @@
    "workload": "W2"
   },
   {
+   "acked": 2,
+   "exe": "fix",
+   "model": "torn",
+   "position": 25,
+   "profile": "nocache",
+   "result": {
+    "data": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 0,
+    "untouched": 1
+   },
+   "seed": 1018354428578982311,
+   "workload": "W2"
+  },
+  {
    "acked": 3,
    "exe": "fix",
    "model": "torn",
@@ -2210,6 +2529,23 @@
     "untouched": 1
    },
    "seed": 12913193530340480638,
+   "workload": "W2"
+  },
+  {
+   "acked": 3,
+   "exe": "fix",
+   "model": "torn",
+   "position": 35,
+   "profile": "nocache",
+   "result": {
+    "data": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 0,
+    "untouched": 1
+   },
+   "seed": 1782435164551227373,
    "workload": "W2"
   },
   {
@@ -2264,6 +2600,40 @@
    "workload": "W2"
   },
   {
+   "acked": 5,
+   "exe": "fix",
+   "model": "torn",
+   "position": 56,
+   "profile": "nocache",
+   "result": {
+    "data": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 0,
+    "untouched": 1
+   },
+   "seed": 2472648788682267399,
+   "workload": "W2"
+  },
+  {
+   "acked": 6,
+   "exe": "fix",
+   "model": "torn",
+   "position": 66,
+   "profile": "nocache",
+   "result": {
+    "data": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 0,
+    "untouched": 1
+   },
+   "seed": 10769524844525554467,
+   "workload": "W2"
+  },
+  {
    "acked": 7,
    "exe": "fix",
    "model": "torn",
@@ -2278,23 +2648,6 @@
     "untouched": 1
    },
    "seed": 9310184168753571663,
-   "workload": "W2"
-  },
-  {
-   "acked": 7,
-   "exe": "fix",
-   "model": "torn",
-   "position": 77,
-   "profile": "nocache",
-   "result": {
-    "data": 0,
-    "mount": 1,
-    "read_error": 0,
-    "recommit": 1,
-    "replace": 0,
-    "untouched": 1
-   },
-   "seed": 10860954760648245256,
    "workload": "W2"
   },
   {
@@ -2907,6 +3260,23 @@
     "untouched": 1
    },
    "seed": 15334556271280084810,
+   "workload": "W3"
+  },
+  {
+   "acked": 10,
+   "exe": "fix",
+   "model": "torn",
+   "position": 60,
+   "profile": "cached",
+   "result": {
+    "data": 0,
+    "mount": 1,
+    "read_error": 0,
+    "recommit": 1,
+    "replace": 1,
+    "untouched": 1
+   },
+   "seed": 3453948467514087279,
    "workload": "W3"
   },
   {
@@ -3643,7 +4013,7 @@
  "timing": {
   "machine": "x86_64",
   "max_seconds": 300.0,
-  "seconds": 24.6
+  "seconds": 25.7
  },
  "traces": {
   "W1": {

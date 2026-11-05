@@ -48,6 +48,12 @@
 
 static uint8_t buffer[MAX_FILE];
 static uint8_t expected[MAX_FILE];
+static bool acked_only;
+
+void powercut_set_acked_only(bool on)
+{
+    acked_only = on;
+}
 
 static void fill(uint8_t *to, size_t size, uint32_t tag)
 {
@@ -363,7 +369,10 @@ static bool holds(const char *path, size_t want, struct powercut_result *out)
     return rc == 0 && size == want && memcmp(buffer, expected, want) == 0;
 }
 
-/* I2 for W1: records 1 to n, complete and in order, with n not below the acknowledged count. */
+/*
+ * I2 for W1: records 1 to n, complete and in order, with n not below the acknowledged count. With
+ * acked_only, records 1 to the acknowledged count must be intact and the rest is ignored.
+ */
 static bool check_w1(uint32_t acked, struct powercut_result *out)
 {
     size_t size = 0;
@@ -371,7 +380,12 @@ static bool check_w1(uint32_t acked, struct powercut_result *out)
     size_t records = size / W1_RECORD_SIZE;
 
     note(rc, true, out);
-    if (rc != 0 || size % W1_RECORD_SIZE != 0U || records < acked || records > W1_RECORDS) {
+    if (rc != 0 || records < acked) {
+        return false;
+    }
+    if (acked_only) {
+        records = acked;
+    } else if (size % W1_RECORD_SIZE != 0U || records > W1_RECORDS) {
         return false;
     }
     for (size_t i = 0; i < records; i++) {

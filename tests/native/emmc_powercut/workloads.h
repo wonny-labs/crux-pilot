@@ -23,4 +23,12 @@ struct powercut_result {
 /* Expects the volume unmounted; mounts it without formatting and leaves it mounted. */
 void powercut_verify(enum powercut_workload w, uint32_t acked, struct powercut_result *out);
 
+/*
+ * By default, data allows a later unacknowledged step only as its complete result. With
+ * acked_only, the W1 check asks only that every acknowledged record is intact and ignores what
+ * follows, which is the design's I2. It changes nothing for W2, whose check already allows any
+ * complete later generation, or for W3.
+ */
+void powercut_set_acked_only(bool acked_only);
+
 #endif /* CRUX_TESTS_EMMC_POWERCUT_WORKLOADS_H */

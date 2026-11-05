@@ -412,11 +412,14 @@ workloads with a trace mark after each acknowledged step (W1 appends records, W2
 through a temporary and a rename, W3 creates, overwrites and removes files and a directory), and
 verifies a medium in a new process. `run_replay.py` rebuilds the medium from the baseline and the
 trace at chosen cut points with four models (`lost`, `prefix`, `reordered`, `torn`; only `prefix`
-and `torn` without a cache): each side of every flush always, and other positions drawn by seed. It records
-the invariants (mount, acknowledged data, a complete replaced file, an untouched file byte-exact, a
-new write and remount) as observations, because FatFs does not claim them, and requires two
-controls to fail: `fat-nofix` on the cached profile loses acknowledged W1 data at every mark, and a
-baseline with its boot sector overwritten does not mount. `test_replay_model.py` tests the model
+and `torn` without a cache): each side of every flush always, and other positions drawn by seed,
+for `torn` only where a write is cut. It records the invariants (mount, acknowledged data, a complete
+replaced file, an untouched file byte-exact, a new write and remount) as observations, because FatFs
+does not claim them. A W1 data failure is checked again with `--acked-only`, which separates a lost
+acknowledged record from a stale record of a later, unacknowledged step. Two controls must fail:
+`fat-nofix` on the cached profile loses acknowledged W1 data at every mark, and a baseline with its
+boot sector overwritten does not mount. A `run-early` W1 trace, which marks each step before its
+sync, is recorded as well. `test_replay_model.py` tests the model
 without a build. The same seed gives the same JSON apart from timing. Results are about the model,
 not about power loss on a device; see the
 [replay record](../docs/evidence/emmc-reliance/replay-fatfs/README.md).

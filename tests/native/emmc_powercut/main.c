@@ -5,7 +5,8 @@
  *   provision  format and write the baseline content of every workload
  *   run        run a workload, with a trace mark after each acknowledged step
  *   run-early  the same, with each mark before the step's sync: a deliberate defect for a control
- *   verify     mount without formatting, check the invariants and print one POWERCUT line
+ *   verify     mount without formatting, check the invariants and print one POWERCUT line;
+ *              --acked-only narrows the W1 data check to the acknowledged records
  */
 #include "fs_backend.h"
 #include "workloads.h"
@@ -21,6 +22,7 @@
 static const char *phase;
 static const char *workload;
 static uint32_t acked;
+static bool acked_only;
 
 static void add_options(void)
 {
@@ -40,6 +42,11 @@ static void add_options(void)
          .type = 'u',
          .dest = (void *)&acked,
          .descript = "verify: steps acknowledged before the cut"},
+        {.option = "acked-only",
+         .is_switch = true,
+         .type = 'b',
+         .dest = (void *)&acked_only,
+         .descript = "verify: W1 data checks only the acknowledged records"},
         ARG_TABLE_ENDMARKER,
     };
 
@@ -125,6 +132,7 @@ static void verify(enum powercut_workload w)
 {
     struct powercut_result result;
 
+    powercut_set_acked_only(acked_only);
     powercut_verify(w, acked, &result);
     printf("POWERCUT mount=%d data=%d read_error=%d replace=%d untouched=%d recommit=%d\n",
            result.mounted, result.data, result.read_error, result.replaced, result.untouched,

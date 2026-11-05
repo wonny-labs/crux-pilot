@@ -16,12 +16,18 @@ FatFs does not claim these invariants. Every result is an observation of the sim
 not evidence about power loss on a device.
 
 Cut positions: on the cached profile, each side of every flush with the lost, prefix and one
-reordered draw; then --samples positions per workload and model, drawn by seed. The no-cache
-profile has no flush, so only prefix and torn apply. The sample count alone selects positions,
+reordered draw; then --samples positions per workload and model, drawn by seed, from write
+positions only for torn, because only a write at the cut can tear. The no-cache profile has no
+flush, so only prefix and torn apply. The sample count alone selects positions,
 never the clock; --max-seconds fails a run that takes longer and never skips work. A rebuilt image
 that was already verified for the same workload and acknowledged count is not verified again,
 because the verifier is deterministic; the JSON counts cases and processes separately. The
 verifier runs without a cache, so it reads the rebuilt image as it is.
+
+A W1 case that fails data is verified again with --acked-only, which asks only that every
+acknowledged record is intact. The JSON then counts it as I2_acknowledged_intact, when only a
+later, unacknowledged record is stale, or as I2_acknowledged_lost. A process that runs longer than
+TIMEOUT seconds is killed and recorded as a failure, with its seed, position and image.
 """
 import argparse
 import hashlib
@@ -88,8 +94,12 @@ class Replay:
         self.failures = []
 
     def run(self, exe, *options):
-        proc = subprocess.run([self.exes[exe], *options], capture_output=True, text=True,
-                              timeout=TIMEOUT)
+        """Returns (exit code, stdout lines, stderr); the code is None for a process that hung."""
+        try:
+            proc = subprocess.run([self.exes[exe], *options], capture_output=True, text=True,
+                                  timeout=TIMEOUT)
+        except subprocess.TimeoutExpired:
+            return None, [], f'killed after {TIMEOUT} s'
         return proc.returncode, proc.stdout.splitlines(), proc.stderr
 
     def provision(self):
@@ -118,25 +128,32 @@ class Replay:
         with open(path, 'rb') as handle:
             return parse_trace(handle.read())
 
-    def verify(self, exe, image, workload, acked):
-        """Returns the six fields, or None if the verifier gave no POWERCUT line."""
-        self.cases += 1
-        key = (exe, workload, acked, hashlib.sha256(image).digest())
+    def verify(self, exe, image, workload, acked, acked_only=False):
+        """Returns the six fields and None, or None and why the verifier gave no POWERCUT line.
+
+        acked_only narrows the W1 data check to the acknowledged records; such a call is a second
+        look at a case, not a case of its own.
+        """
+        if not acked_only:
+            self.cases += 1
+        key = (exe, workload, acked, acked_only, hashlib.sha256(image).digest())
         if key in self.memo:
             return self.memo[key]
         with open(self.image, 'wb') as handle:
             handle.write(image)
         rc, out, err = self.run(exe, f'--emmc-image={self.image}', '--emmc-cache-kb=0',
-                                '--phase=verify', f'--workload={workload}', f'--acked={acked}')
+                                '--phase=verify', f'--workload={workload}', f'--acked={acked}',
+                                *(['--acked-only'] if acked_only else []))
         self.processes += 1
         lines = [LINE.fullmatch(line) for line in out]
         if rc != 0 or len(out) != 1 or lines[0] is None:
-            result = None
-            print(f'verifier gave no result: rc {rc} {out} {err[-500:]}', file=sys.stderr)
+            answer = (None, f'rc {rc} {out} {err[-500:]}')
+            print(f'verifier gave no result: {answer[1]}', file=sys.stderr)
         else:
-            result = {field: int(value) for field, value in zip(FIELDS, lines[0].groups())}
-        self.memo[key] = result
-        return result
+            answer = ({field: int(value) for field, value in zip(FIELDS, lines[0].groups())},
+                      None)
+        self.memo[key] = answer
+        return answer
 
     def keep(self, name, image):
         os.makedirs(self.kept, exist_ok=True)
@@ -157,7 +174,10 @@ class Replay:
         acked = acked_at(events, position)
         record = {'exe': exe, 'workload': workload, 'profile': profile, 'model': model,
                   'position': position, 'seed': seed, 'acked': acked}
-        return record, image, self.verify(exe, image, workload, acked)
+        result, reason = self.verify(exe, image, workload, acked)
+        if result is None:
+            record['no_result'] = reason
+        return record, image, result
 
     def positions(self, events, workload, profile):
         """Distinct (position, model) pairs: the mandatory ones first, then the sampled ones."""
@@ -168,9 +188,11 @@ class Replay:
         models = METAROOT_MODELS if profile == 'cached' else PROFILE_MODELS[profile]
         for position in self.metaroot_positions(events):
             chosen += [(position, model) for model in models]
+        writes = [index for index, event in enumerate(events) if event.kind == 'write']
         for model in PROFILE_MODELS[profile]:
             draw = random.Random(derive(self.args.seed, workload, profile, model, 'positions'))
-            population = range(len(events) + 1)
+            # torn tears the write at the cut, so only a write position tears anything
+            population = writes if model == 'torn' else range(len(events) + 1)
             sample = draw.sample(population, min(self.args.samples, len(population)))
             chosen += [(position, model) for position in sorted(sample)]
         return list(dict.fromkeys(chosen))  # a drawn position can also be a mandatory one
@@ -200,6 +222,9 @@ class Replay:
             group = groups.setdefault(model, {'cases': 0, 'passed': 0, 'no_result': 0,
                                               'violations': {}})
             group['cases'] += 1
+            if model == 'torn':
+                tore = position < len(events) and events[position].kind == 'write'
+                group['tore'] = group.get('tore', 0) + tore
             if result is None:
                 group['no_result'] += 1
                 self.fail(record, 'the verifier gave no result', image)
@@ -210,8 +235,21 @@ class Replay:
                 continue
             for invariant in found:
                 group['violations'][invariant] = group['violations'].get(invariant, 0) + 1
+            if workload == 'W1' and result['data'] == 0:
+                intact = self.acknowledged_intact(image, record)
+                record['acknowledged_intact'] = intact
+                key = 'I2_acknowledged_intact' if intact else 'I2_acknowledged_lost'
+                group[key] = group.get(key, 0) + 1
             failed.append(dict(record, result=result))
         return groups, failed
+
+    def acknowledged_intact(self, image, record):
+        """Whether every acknowledged W1 record is intact, so that only a later step is stale."""
+        result, reason = self.verify(record['exe'], image, 'W1', record['acked'], acked_only=True)
+        if result is None:
+            self.fail(record, f'the acked-only verifier gave no result: {reason}', image)
+            return False
+        return result['data'] == 1
 
     def flush_control(self):
         """fat-nofix, cached, lost: W1 must lose acknowledged data after each mark."""
@@ -233,15 +271,34 @@ class Replay:
             'cases': cases, 'failed_as_required': bool(marks) and not failed,
         }
 
+    def early_ack_observation(self):
+        """fat-fix, cached, lost, W1 with each mark before its sync: recorded, not asserted."""
+        events = self.trace('fix', 'W1', 'cached', phase='run-early')
+        cases = []
+        for position in [index + 1 for index, event in enumerate(events) if event.kind == 'mark']:
+            record, image, result = self.case('fix', events, 'W1', 'cached', 'lost', position)
+            record['phase'] = 'run-early'
+            if result is None:
+                self.fail(record, 'the verifier gave no result', image)
+            cases.append(dict(record, result=result))
+        return {
+            'image': 'fat-fix', 'phase': 'run-early', 'profile': 'cached', 'model': 'lost',
+            'workload': 'W1', 'positions': 'after each mark', 'cases': cases,
+            'data_failures': sum(1 for case in cases
+                                 if case['result'] is not None and case['result']['data'] == 0),
+        }
+
     def damaged_control(self):
         """fat-fix, the baseline with its boot sector overwritten, must not mount."""
         boot = self.baseline[:SECTOR]
         if boot[510:512] != b'\x55\xaa' or boot[0] not in (0xeb, 0xe9):
             raise RunError('sector 0 of the baseline is not a FAT boot sector')
         image = b'\xa5' * SECTOR + self.baseline[SECTOR:]
-        result = self.verify('fix', image, 'W1', 0)
+        result, reason = self.verify('fix', image, 'W1', 0)
         ok = result is not None and result['mount'] == 0
         record = {'exe': 'fix', 'workload': 'W1', 'acked': 0, 'damage': 'sector 0 = 0xa5'}
+        if result is None:
+            record['no_result'] = reason
         if not ok:
             self.fail(record, 'the damaged image control did not report mount=0', image)
         return {'name': 'damaged image', 'image': 'fat-fix', 'required': 'mount=0',
@@ -269,6 +326,7 @@ class Replay:
                 report['observations'].setdefault(workload, {})[profile] = groups
                 report['observed_failures'] += failed
         report['controls'] = [self.flush_control(), self.damaged_control()]
+        report['early_ack_observation'] = self.early_ack_observation()
         seconds = time.monotonic() - started
         if seconds > self.args.max_seconds:
             self.failures.append({'reason': f'took {seconds:.1f} s, over --max-seconds '
@@ -286,8 +344,13 @@ def summarise(report):
         for profile, groups in profiles.items():
             for model, group in groups.items():
                 found = ' '.join(f'{k}={v}' for k, v in sorted(group['violations'].items()))
+                for key in ('tore', 'I2_acknowledged_intact', 'I2_acknowledged_lost'):
+                    if key in group:
+                        found += f' {key}={group[key]}'
                 print(f'{workload} {profile:7} {model:9} cases {group["cases"]:4} '
                       f'passed {group["passed"]:4} {found}')
+    early = report['early_ack_observation']
+    print(f'run-early W1 lost: {len(early["cases"])} cases, data=0 in {early["data_failures"]}')
     for control in report['controls']:
         print(f'control {control["name"]}: '
               f'{"failed as required" if control["failed_as_required"] else "DID NOT FAIL"}')
@@ -320,10 +383,13 @@ def main():
         report = replay.execute()
     except RunError as error:
         print(f'FAIL {error}', file=sys.stderr)
-        return 1
+        report = {'fs': args.fs, 'seed': args.seed, 'samples': args.samples,
+                  'error': str(error), 'failures': replay.failures}
     with open(os.path.join(args.out, f'{args.fs}.json'), 'w') as handle:
         json.dump(report, handle, indent=1, sort_keys=True)
         handle.write('\n')
+    if 'error' in report:
+        return 1
     summarise(report)
     bad_controls = [c['name'] for c in report['controls'] if not c['failed_as_required']]
     if report['failures'] or bad_controls:

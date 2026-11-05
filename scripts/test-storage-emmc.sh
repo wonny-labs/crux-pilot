@@ -88,7 +88,7 @@ powercut_dir="$repo/build/zephyr/emmc-powercut"
 python3 "$repo/tests/native/emmc_powercut/test_replay_model.py" -v 2>&1 |
     tee "$powercut_dir/test_replay_model.log"
 grep -Eq '^Ran 14 tests in ' "$powercut_dir/test_replay_model.log"
-# 64 samples took 24 to 25 s in an emulated amd64 container. The bound is 5 minutes on one CI
+# 64 samples took about 25 s in an emulated amd64 container. The bound is 5 minutes on one CI
 # runner.
 python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
     --exe-fix "$powercut_dir/fat-fix/zephyr/zephyr.exe" \
@@ -96,7 +96,8 @@ python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
     --fs fatfs --seed 1 --samples 64 --max-seconds 300 --out "$powercut_dir/replay"
 
 # The replay must not pass with fewer cases or a missing profile. The case count is exact for seed
-# 1 and 64 samples at the pinned Zephyr and FatFs.
+# 1 and 64 samples. It depends on the traces, so on the pinned Zephyr and FatFs, and on the
+# algorithms of Python's random module, which draw the sampled positions.
 python3 - "$powercut_dir/replay/fatfs.json" <<'PY'
 import json
 from pathlib import Path
@@ -112,7 +113,7 @@ for workload in ('W1', 'W2', 'W3'):
 controls = {control['name']: control['failed_as_required'] for control in report['controls']}
 if controls != {'flush': True, 'damaged image': True}:
     raise RuntimeError(f'controls: {controls}')
-if report['counts']['cases'] != 1240 or report['failures']:
+if report['counts']['cases'] != 1182 or report['failures']:
     raise RuntimeError(f'counts {report["counts"]}, failures {report["failures"]}')
 print(f'replay fatfs: {report["counts"]["cases"]} cases, '
       f'{report["counts"]["observed_failures"]} observed failures, '
