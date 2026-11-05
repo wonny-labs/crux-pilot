@@ -312,3 +312,8 @@ configdefault HTTP_SERVER_CAPTURE_HEADER_BUFFER_SIZE
 
 configdefault HTTP_SERVER_STACK_SIZE
     default 4096 if CRUX_WEB
+
+# The server thread runs each TLS handshake inside accept, so a client that sends nothing stops every
+# client for this long. Proposed from native_sim in docs/https-composition.md, until RT1060 evidence.
+configdefault NET_SOCKETS_TLS_CONNECT_TIMEOUT
+    default 2000 if CRUX_WEB
