@@ -17,7 +17,8 @@ ALLOWED = {
     "crux_cli_write_terminal",
     "crux_ssh_attachment_session",
 }
-COMPILER = re.compile(r"^(?:__asan|__ubsan|__sanitizer|__tsan|__stack_chk|_GLOBAL_OFFSET_TABLE_$|memset$|memcpy$)")
+COMPILER = re.compile(r"^(?:__asan|__ubsan|__sanitizer|__tsan|__stack_chk|__start_asan_globals$|"
+                      r"__stop_asan_globals$|_GLOBAL_OFFSET_TABLE_$|memset$|memcpy$)")
 
 
 def undefined(nm, path):
