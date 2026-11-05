@@ -1,0 +1,10 @@
+/ {
+    aliases { crux-serial0 = &serial_test; };
+    serial_test: serial-test {
+        compatible = "zephyr,uart-emul";
+        current-speed = <115200>;
+        rx-fifo-size = <1024>;
+        tx-fifo-size = <8>;
+        status = "okay";
+    };
+};
