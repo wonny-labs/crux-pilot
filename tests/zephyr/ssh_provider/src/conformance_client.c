@@ -17,6 +17,7 @@
  *   otherwise each connection would poll on its own timer at the same moment.
  */
 #include "conformance.h"
+#include "crux_ssh_callbacks.h"
 #include "crux_ssh_wolf_provider.h"
 #include "test_support.h"
 
@@ -1226,6 +1227,81 @@ static bool prepare_client(void)
     return true;
 }
 
+/* What this provider adds to the interface, which the shared cases cannot know about. */
+static unsigned check_host_key_rules(void)
+{
+    const crux_ssh_provider_t *provider = crux_ssh_wolf_provider();
+    crux_ssh_callbacks_t callbacks = *crux_ssh_callback_table();
+    crux_ssh_config_t config = {
+        .port = SERVER_PORT,
+        .max_connections = 1,
+        .max_auth_attempts = 1,
+        .auth_timeout_ms = 1000,
+        .io_timeout_ms = 100,
+    };
+    test_key_t ecdsa_key;
+    test_key_t damaged;
+    char text[CRUX_SSH_WOLF_FINGERPRINT_SIZE];
+    unsigned failures = 0;
+
+#define HOST_KEY_CHECK(expression)                                                                 \
+    do {                                                                                           \
+        if (!(expression)) {                                                                       \
+            printf("FAIL host key rules, line %d: %s\n", __LINE__, #expression);                   \
+            ++failures;                                                                            \
+        }                                                                                          \
+    } while (0)
+    /* Each type starts, and both forms give a fingerprint of OpenSSH's length. */
+    config.host_key_type = CRUX_SSH_KEY_ED25519;
+    config.host_key = host_key.host_key;
+    config.host_key_length = host_key.host_key_length;
+    HOST_KEY_CHECK(provider->start(&config, &callbacks) == CRUX_OK);
+    HOST_KEY_CHECK(provider->stop() == CRUX_OK);
+    HOST_KEY_CHECK(test_key_generate(CRUX_SSH_KEY_ECDSA_P256, &ecdsa_key));
+    config.host_key_type = CRUX_SSH_KEY_ECDSA_P256;
+    config.host_key = ecdsa_key.host_key;
+    config.host_key_length = ecdsa_key.host_key_length;
+    HOST_KEY_CHECK(provider->start(&config, &callbacks) == CRUX_OK);
+    HOST_KEY_CHECK(provider->stop() == CRUX_OK);
+    HOST_KEY_CHECK(crux_ssh_wolf_host_key_fingerprint(CRUX_SSH_KEY_ECDSA_P256, ecdsa_key.host_key,
+                                                      ecdsa_key.host_key_length, text,
+                                                      sizeof(text)) == CRUX_OK);
+    HOST_KEY_CHECK(strlen(text) == sizeof(text) - 1u);
+
+    /* A key of the wrong length, or of another type's length, cannot be used. */
+    config.host_key_length = ecdsa_key.host_key_length - 1u;
+    HOST_KEY_CHECK(provider->start(&config, &callbacks) == CRUX_ERR_IO);
+    config.host_key_type = CRUX_SSH_KEY_ED25519;
+    config.host_key_length = ecdsa_key.host_key_length;
+    HOST_KEY_CHECK(provider->start(&config, &callbacks) == CRUX_ERR_IO);
+
+    /* Nor can a record whose parts disagree, for either type. */
+    damaged = host_key;
+    damaged.host_key[40] ^= 0x01u;
+    config.host_key = damaged.host_key;
+    config.host_key_length = damaged.host_key_length;
+    HOST_KEY_CHECK(provider->start(&config, &callbacks) == CRUX_ERR_IO);
+    damaged = ecdsa_key;
+    damaged.host_key[40] ^= 0x01u;
+    config.host_key_type = CRUX_SSH_KEY_ECDSA_P256;
+    config.host_key = damaged.host_key;
+    config.host_key_length = damaged.host_key_length;
+    HOST_KEY_CHECK(provider->start(&config, &callbacks) == CRUX_ERR_IO);
+
+    /* A failed start left nothing to stop. */
+    HOST_KEY_CHECK(provider->stop() == CRUX_ERR_INVALID_STATE);
+
+    HOST_KEY_CHECK(crux_ssh_wolf_host_key_fingerprint(CRUX_SSH_KEY_ED25519, host_key.host_key, 63u,
+                                                      text,
+                                                      sizeof(text)) == CRUX_ERR_INVALID_ARGUMENT);
+    HOST_KEY_CHECK(crux_ssh_wolf_host_key_fingerprint(
+                       CRUX_SSH_KEY_ED25519, host_key.host_key, host_key.host_key_length, text,
+                       sizeof(text) - 1u) == CRUX_ERR_INVALID_ARGUMENT);
+#undef HOST_KEY_CHECK
+    printf("%-48s %s\n", "host_key_rules", failures == 0u ? "ok" : "FAILED");
+    return failures;
+}
+
 int test_conformance_run(const char *only)
 {
     unsigned failed = 0;
@@ -1248,6 +1324,9 @@ int test_conformance_run(const char *only)
         ++ran;
     }
     reset_all();
+    if (only == NULL) {
+        failed += check_host_key_rules() != 0u;
+    }
     test_print_measurements();
     printf("%u cases, %u failed\n", ran, failed);
     return failed == 0u ? 0 : 1;

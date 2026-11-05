@@ -608,13 +608,18 @@ The standard Host CTest includes `Ssh.ProviderConformance`, which runs the cases
 provider, `Ssh.ConformanceCatchesDefects`, which gives the fake each deliberate defect and requires the named case to fail, and
 `Ssh.Boundaries`, which runs `scripts/check-ssh-boundaries.py`. It also has `Ssh.FakeProvider`, `Ssh.AttachmentDouble`, `Ssh.CallbackTable`
 and a test of each stand-in entry point. The fake needs no SSH library, and the CLI and SFTP Host tests link it. It runs every callback
-on the calling thread, so it shows no concurrency, timing or protocol behaviour. No real provider has run the cases yet.
+on the calling thread, so it shows no concurrency, timing or protocol behaviour.
 `tests/build/test_ssh_boundaries.py` shows that the boundary check rejects each violation.
 
 `scripts/test-ssh-wolf-settings.sh` is not part of any default workflow, because it needs the optional `crux-secure-management`
 west group. It compiles and links `tests/zephyr/ssh_wolf_probe` for `mimxrt1060_evk@B//qspi` with the TLS socket backend, and for
 `native_sim/native/64` both ways, and runs negative controls. It never flashes or runs an image, and the file port it links
 is one that refuses every operation. See [the SSH provider contract](../docs/ssh-provider-contract.md).
+
+`scripts/test-ssh-provider.sh`, also outside every default workflow for the same reason, runs the wolfSSH provider: the conformance cases
+with a scripted client, and `tests/zephyr/ssh_provider/openssh_test.py` with a real OpenSSH client, both on `native_sim/native/64` over the
+native socket offload. It also records resource use as simulation results, compiles for `mimxrt1060_evk@B//qspi`, and shows that the Mbed
+profile fails at configuration. See [the wolfSSH provider](../docs/ssh-wolf-provider.md), which declares the test ports behind these results.
 
 ## PSA Crypto qualification
 

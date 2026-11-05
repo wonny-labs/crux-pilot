@@ -5,7 +5,9 @@ here is adopted until it is reviewed, and it authorises no hardware operation.
 
 The evidence is of three different kinds. Host tests run the fake provider and the conformance cases. Build results come
 from compiling and linking probe images, which this PR never ran. Statements about wolfSSH behaviour come from reading its
-source at v1.6.0 (`8221e4e`), and no real provider exists yet. See [Evidence and limits](#evidence-and-limits).
+source at v1.6.0 (`8221e4e`). See [Evidence and limits](#evidence-and-limits).
+
+Issue #192 has since implemented the provider: [the wolfSSH provider](ssh-wolf-provider.md) records what it chose and what ran.
 
 ## The interface
 
@@ -43,8 +45,8 @@ The provider owns every thread and all of the wolfSSH state. No other code calls
 
 Every Crux callback runs on the thread of its connection, with no provider lock held, and can block that thread only. So a
 slow client or a slow verification holds one connection and no other. A callback must not call `stop`, and a channel must
-not be used after its session callback returns. Whether these threads are Crux threads or native ones is for #192 to decide. The gate
-decisions record notes that the Crux thread default of four is too low for the integrated composition.
+not be used after its session callback returns. #192 uses native threads, because the gate decisions record notes that the Crux thread
+default of four is too low for the integrated composition.
 
 The wolfSSH channel callbacks run while a packet is being parsed, and `wolfssh/ssh.h` warns against re-entering the receive
 side from such a callback. So the provider's wolfSSH channel callbacks only record a request. The worker calls the Crux `shell`,
@@ -135,8 +137,8 @@ as the access contract says. Every access result other than success is a denial 
 embedded NUL, and `crux_access` checks its character set.
 
 The CLI and SFTP pieces get the session from the attachment with `crux_ssh_attachment_session()`, declared in
-[`components/ssh/adapter/crux_ssh_attachment.h`](../components/ssh/adapter/crux_ssh_attachment.h). #192 defines it, and until then
-`components/ssh/access/` holds a stand-in that returns the zero session. On the Host, `tests/ssh/fake_attachment.h` is a double
+[`components/ssh/adapter/crux_ssh_attachment.h`](../components/ssh/adapter/crux_ssh_attachment.h). #192 defines it in
+`components/ssh/access/`. On the Host, `tests/ssh/fake_attachment.h` is a double
 that holds any session a test gives it. Linking both the table and the double fails with `multiple definition of
 crux_ssh_attachment_session`, so a CLI or SFTP test links the double and its own entry points, not the table.
 
@@ -280,10 +282,8 @@ it finished because the settings above made it unnecessary, so that attempt has 
 ### What is still open
 
 This PR has no evidence that wolfSSH's socket callbacks work over the native socket offload. The independent review of this PR reported that
-a review-only server on these settings ran OpenSSH 9.6 through a handshake, password login, key login, `exec` and a shell over the offload. In that
-run SFTP reached only the refusal from the stand-in port, and no file was transferred. Its server is not in this repository. #192 proves this with the design's OpenSSH cases. If it does not hold, the
-fallback is the `native_sim` Ethernet driver with a TAP interface, which needs host privileges that CI may not have. The settings arrangement does
-not change in that case.
+a review-only server on these settings ran OpenSSH 9.6 through a handshake, password login, key login, `exec` and a shell over the offload. #192 now
+shows this with [the design's OpenSSH cases](ssh-wolf-provider.md#results), so the TAP fallback was not needed.
 
 Building with the offload gives a compiler warning from Zephyr: an implicit declaration of `strdup` at `drivers/net/nsos_sockets.c:1556`, with
 the minimal C library. On 64-bit `native_sim` that call returns a truncated pointer if a host name lookup returns a canonical name. The SSH
@@ -307,12 +307,14 @@ server does not look up names. It is Zephyr's source, so it stays as it is, and 
 | `Ssh.FakeProvider` | What the fake promises to other tests: a buffer of at least 1 KiB, a failed `send` reported, and key blobs of real size |
 | `Ssh.AttachmentDouble` | `crux_ssh_attachment_session()` on the Host double. A test links the double or the table, not both, because each brings a definition of it. |
 | `Ssh.CallbackTable` | Every member of the shared table is the named entry point, and a provider accepts it |
-| `Ssh.access_stub`, `Ssh.cli_stub`, `Ssh.sftp_stub` | The stand-ins fail closed, until each session replaces them |
+| `Ssh.cli_stub`, `Ssh.sftp_stub` | The stand-ins fail closed, until each session replaces them |
+| `Ssh.access_adapter`, `Ssh.host_key` | The access mapping on the real `crux_access` core, and the host key's way from the credential store, with fake ports |
+| `Ssh.ProviderTypes` | SSH library names stay in the provider and the file port |
 | `Ssh.Boundaries` | `scripts/check-ssh-boundaries.py` |
 
 The cases go through a scripted client (`ssh_test_client.h`), which also supplies the key and address material, because a real library parses what the
-fake does not. They are written so that a provider can run them with its own client, following wolfSSH's rules on names and granted requests. No real
-provider has run them, so that remains to be shown in #192.
+fake does not. They are written so that a provider can run them with its own client, following wolfSSH's rules on names and granted requests. The wolfSSH
+provider runs them on `native_sim` with [its own client](ssh-wolf-provider.md#results).
 
 The cases fix the order and content of the calls that the defects cover: password bytes and length, the peer and key on each credential callback with two
 connections at once, which refusals count, the handle and attachment each SFTP call receives, and what happens when `stop` or a drop comes during a session.
@@ -354,4 +356,4 @@ Compiling wolfSSH gives two warnings in `wolfsftp.c` from the vendor source (`ma
 build, because the module's sources are not under the warning policy for owned code.
 
 Not shown by any of this: that wolfSSH works with these settings at run time, a handshake, a login, a transfer, stack use,
-timing, or any behaviour on a board. No real provider exists until #192, and the file port refuses every operation. The review's server run, noted above, is the review's evidence, not this PR's.
+timing, or any behaviour on a board. The review's server run, noted above, is the review's evidence, not this PR's. [#192's own results](ssh-wolf-provider.md#results) cover the run time on `native_sim`.

@@ -17,8 +17,10 @@
 
 #include <wolfssh/ssh.h>
 #include <wolfssh/wolfsftp.h>
+#include <wolfssl/wolfcrypt/ecc.h>
 #include <wolfssl/wolfcrypt/ed25519.h>
 #include <wolfssl/wolfcrypt/hash.h>
+#include <wolfssl/wolfcrypt/random.h>
 #include <wolfssl/wolfcrypt/sha256.h>
 
 #include <errno.h>
@@ -931,14 +933,59 @@ static int load_p256_host_key(const crux_ssh_config_t *config)
     return result;
 }
 
+/*
+ * wolfSSH derives what it sends from the private part, and the fingerprint comes from the public
+ * part. So a record whose parts disagree would show users a fingerprint that the server never
+ * presents.
+ */
+static bool ed25519_parts_agree(const crux_ssh_config_t *config)
+{
+    ed25519_key key;
+    uint8_t derived[ED25519_PUB_KEY_SIZE];
+    bool agree = false;
+
+    if (wc_ed25519_init(&key) == 0) {
+        agree =
+            wc_ed25519_import_private_only(config->host_key, HOST_KEY_PRIVATE_BYTES, &key) == 0 &&
+            wc_ed25519_make_public(&key, derived, sizeof(derived)) == 0 &&
+            memcmp(derived, config->host_key + HOST_KEY_PRIVATE_BYTES, sizeof(derived)) == 0;
+        wc_ed25519_free(&key);
+    }
+    return agree;
+}
+
+static bool p256_parts_agree(const crux_ssh_config_t *config)
+{
+    ecc_key key;
+    WC_RNG rng;
+    uint8_t derived[65];
+    word32 derived_length = sizeof(derived);
+    bool agree = false;
+
+    if (wc_InitRng(&rng) != 0) {
+        return false;
+    }
+    if (wc_ecc_init(&key) == 0) {
+        agree = wc_ecc_import_private_key_ex(config->host_key, HOST_KEY_PRIVATE_BYTES, NULL, 0u,
+                                             &key, ECC_SECP256R1) == 0 &&
+                wc_ecc_make_pub_ex(&key, NULL, &rng) == 0 &&
+                wc_ecc_export_x963(&key, derived, &derived_length) == 0 &&
+                derived_length == sizeof(derived) &&
+                memcmp(derived, config->host_key + HOST_KEY_PRIVATE_BYTES, sizeof(derived)) == 0;
+        wc_ecc_free(&key);
+    }
+    (void)wc_FreeRng(&rng);
+    return agree;
+}
+
 static bool load_host_key(const crux_ssh_config_t *config)
 {
     if (config->host_key_type == CRUX_SSH_KEY_ED25519) {
-        return config->host_key_length == HOST_KEY_ED25519_BYTES &&
+        return config->host_key_length == HOST_KEY_ED25519_BYTES && ed25519_parts_agree(config) &&
                load_ed25519_host_key(config) == WS_SUCCESS &&
                wolfSSH_CTX_SetAlgoListKey(server.ctx, algorithm_ed25519) == WS_SUCCESS;
     }
-    return config->host_key_length == HOST_KEY_P256_BYTES &&
+    return config->host_key_length == HOST_KEY_P256_BYTES && p256_parts_agree(config) &&
            load_p256_host_key(config) == WS_SUCCESS &&
            wolfSSH_CTX_SetAlgoListKey(server.ctx, algorithm_p256) == WS_SUCCESS;
 }

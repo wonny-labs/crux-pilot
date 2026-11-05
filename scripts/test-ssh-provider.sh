@@ -59,7 +59,7 @@ mkdir -p "$output"
 build() { # directory, board, extra arguments after --
     local directory="$1" board="$2"
     shift 2
-    west build -p auto -b "$board" -d "$directory" -o "-j$jobs" "$app" -- "$@"
+    west build -p auto -b "$board" -d "$directory" "-o=-j$jobs" "$app" -- "$@"
 }
 
 memory_report() { # log of a build
@@ -79,12 +79,24 @@ fi
 if [[ "$run_measure" == true ]]; then
     # Simulation results only: a 64-bit image, with a host stack under each thread.
     for window in 8192 16384 32768 131072; do
-        build "$output/window-$window" "$native_board" -DEXTRA_CONF_FILE=native_sim.conf \
-            "-DCRUX_SSH_TEST_WINDOW_BYTES=$window"
+        build "$output/measure" "$native_board" -DEXTRA_CONF_FILE=native_sim.conf \
+            "-DCRUX_SSH_TEST_WINDOW_BYTES=$window" -DCONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE=1048576
         printf '%s\n' "--- channel window $window bytes"
-        python3 "$app/openssh_test.py" "$output/window-$window/zephyr/zephyr.exe" --only resource_use
-        rm -rf "$output/window-$window"
+        python3 "$app/openssh_test.py" "$output/measure/zephyr/zephyr.exe" --only resource_use
     done
+    rm -rf "$output/measure"
+    # The cost of ML-KEM in the image. OpenSSH before 9.9 cannot choose it: see the design document.
+    build "$output/mlkem-native" "$native_board" "-DEXTRA_CONF_FILE=native_sim.conf;mlkem.conf" \
+        -DCRUX_SSH_TEST_OFFER_MLKEM=ON
+    printf '%s\n' '--- mlkem768x25519-sha256 offered'
+    python3 "$app/openssh_test.py" "$output/mlkem-native/zephyr/zephyr.exe" --only resource_use
+fi
+
+if [[ "$run_target" == true && "$run_measure" == true ]]; then
+    build "$output/mlkem-target" "$target_board" "-DEXTRA_CONF_FILE=rt1060.conf;mlkem.conf" \
+        -DCRUX_SSH_TEST_OFFER_MLKEM=ON 2>&1 | tee "$output/mlkem-target.log"
+    memory_report "$output/mlkem-target.log"
+    rm -rf "$output/mlkem-target"
 fi
 
 if [[ "$run_target" == true ]]; then
