@@ -107,3 +107,9 @@ if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
         cmake_language(DEFER CALL crux_assert_portable_usage crux::file)
     endif()
 endif()
+
+if(CONFIG_CRUX_WEB)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/web/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/web")
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::web)
+endif()

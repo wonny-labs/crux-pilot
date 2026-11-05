@@ -158,7 +158,7 @@ The shared files and every hook are in place now, so no session has to change a 
 **Which port #192 builds against.** `wolfssh/port.h` includes `myFilesystem.h` whenever SFTP is on, so wolfSSH cannot compile without one.
 #192 builds against the refusing port in `components/ssh/sftp/port/` until #194 replaces it. It compiles and links, every operation in it
 fails, and the stand-in `crux_ssh_sftp_open` refuses before any of it runs. The probe uses the same port, so no probe holds a private
-copy. #192 does not edit that directory.
+copy. #192 does not edit that directory. Since #194 the macros there are real, and they reach refusing operations unless a composition sets `CRUX_SSH_SFTP_FILE_SERVICE`.
 
 Each stand-in fails closed, and `tests/ssh/{cli,sftp}/stub_test.c` show that. #192 has replaced the access one. The session that replaces a stand-in replaces its test as
 well. It keeps the file names that `scripts/analyze-host.sh` lists, or changes that list under the protected-path rule.
@@ -324,7 +324,7 @@ Those belong to #192 on `native_sim`.
 
 ## Findings for the SFTP session
 
-From reading wolfSSH v1.6.0 source. None of this has run.
+From reading wolfSSH v1.6.0 source. None of this had run when it was written. [The SFTP design](sftp-design.md) settles the refused `OPEN`, and has what the provider needs from the port.
 
 - `WOLFSSH_SFTP_ERRNO`, named in the design and in #194, does not occur anywhere in this revision. A failed `WOPEN` is sent
   as `WOLFSSH_FTP_FAILURE`. `WS_PERMISSIONS` becomes a permission status from a few places, such as path confinement and the

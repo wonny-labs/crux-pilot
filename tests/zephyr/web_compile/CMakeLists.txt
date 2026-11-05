@@ -1,0 +1,10 @@
+# Compile and link check of the web adapter for a target on each TLS profile. Never flashed or run.
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(crux_web_compile LANGUAGES C)
+get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+include(${CRUX_ROOT}/cmake/CruxWebRoutes.cmake)
+target_sources(app PRIVATE src/main.c src/routes.c)
+target_link_libraries(app PRIVATE crux_web_adapter)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)
+crux_web_routes(app SOURCES src/routes.c ZEPHYR_RESOURCES REVIEWED reviewed-routes.txt)

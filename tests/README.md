@@ -295,6 +295,14 @@ and Sync and a double for access: after any number of status polls,
 None of this operates hardware, and no target has run these services. See the
 [services contract](../docs/status-configuration-services.md).
 
+## Web contract and HTTP adapter
+
+`scripts/test-web.sh host` runs `Web.*` on the real web and Access cores with a fake transport, and the
+boundary, generator and route review checks. `scripts/test-web.sh native` runs the adapter on the real
+Zephyr server on `native_sim`, over plain HTTP on loopback. `scripts/test-web.sh target` compiles for
+RT1060 on the TLS profiles: Mbed TLS runs in CI in the PSA workflow, and wolfSSL does not. Nothing here runs TLS or uses a
+board. See the [web contract](../docs/web-contract.md).
+
 ## Portable File software slice
 
 `scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS and FatFs File suites on
@@ -625,6 +633,9 @@ on the calling thread, so it shows no concurrency, timing or protocol behaviour.
 west group. It compiles and links `tests/zephyr/ssh_wolf_probe` for `mimxrt1060_evk@B//qspi` with the TLS socket backend, and for
 `native_sim/native/64` both ways, and runs negative controls. It never flashes or runs an image, and the file port it links
 is one that refuses every operation. See [the SSH provider contract](../docs/ssh-provider-contract.md).
+
+`Ssh.sftp` runs the SFTP operations through the fake provider on the real file service and Access core, and `Ssh.sftp_port_shape` calls the port's macros as wolfSSH does.
+`scripts/test-ssh-sftp-openssh.sh` is not part of any default workflow, for the same reason. It runs OpenSSH against the unedited wolfSSH handlers on Linux, through the real port and file service, with a server in `tests/ssh/sftp/openssh` that stands in for the provider, and replays the requests of WinSCP. `scripts/test-ssh-sftp-native.sh` runs the same cases on `native_sim`, through the provider of #192, the real file service and FatFs over a RAM disk, and it stops at once on a tree without that provider. `scripts/test-ssh-sftp-compile.sh` compiles the real operations for the target and `native_sim`. See [the SFTP design](../docs/sftp-design.md).
 
 `scripts/test-ssh-provider.sh`, also outside every default workflow for the same reason, runs the wolfSSH provider: the conformance cases
 with a scripted client, and `tests/zephyr/ssh_provider/openssh_test.py` with a real OpenSSH client, both on `native_sim/native/64` over the
