@@ -1,6 +1,7 @@
 /*
- * The calls that the access entry points of #192 make into crux_access, each refusing. This image is a
- * compile and link check of the settings arrangement, is never run, and has no access core of its own.
+ * The calls that the access entry points of #192 make into crux_access, each refusing. This image
+ * is a compile and link check of the settings arrangement, is never run, and has no access core of
+ * its own.
  */
 #include <crux_access_adapter.h>
 
@@ -51,7 +52,8 @@ void crux_access_report_key_failure(const char *user, const crux_access_origin_t
     (void)origin;
 }
 
-crux_access_result_t crux_access_session_user(crux_access_session_t session, char *name, size_t size)
+crux_access_result_t crux_access_session_user(crux_access_session_t session, char *name,
+                                              size_t size)
 {
     (void)session;
     (void)name;

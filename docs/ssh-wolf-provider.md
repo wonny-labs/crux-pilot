@@ -103,7 +103,7 @@ Revision, tools and commands are in the pull request. `scripts/test-ssh-provider
 | Host | `Ssh.*` CTest, including the access adapter on the real `crux_access` core | All pass |
 | `native_sim`, run | The 51 conformance cases of `tests/ssh` on this provider, over real sockets, with the scripted client | 51 pass, and the provider's own host key rules. The earlier failures are [below](#how-the-cases-went-from-red-to-green). |
 | `native_sim`, run | `openssh_test.py`, with OpenSSH 9.6 | All cases pass. See the table below. |
-| `native_sim`, run | OpenSSH 9.9 from the Mac, through a relay into the container | `mlkem768x25519-sha256`, `curve25519-sha256` and `ecdh-sha2-nistp256` each log in by key |
+| `native_sim`, run | OpenSSH 9.9 on the development machine, through a relay into the container | `mlkem768x25519-sha256`, `curve25519-sha256` and `ecdh-sha2-nistp256` each log in by key |
 | RT1060-EVKB, compile only | The test image, without the TLS socket backend | Links: 298,352 B Flash, 703,756 B RAM, of which the test configures a 512 KiB arena |
 | Control | `CONFIG_MBEDTLS=y` | Stops at configuration, with the message in `provider_sources.cmake` |
 
@@ -120,8 +120,8 @@ What each OpenSSH case shows, on a real socket:
 | `each_algorithm_negotiates`, `refused_algorithms_do_not_negotiate` | OpenSSH chooses each listed algorithm when told to, and fails on `aes128-cbc`, `aes256-cbc`, `3des-cbc`, `hmac-sha1`, two `diffie-hellman` groups, `ssh-rsa` and `rsa-sha2-256` |
 | `strict_key_exchange` | OpenSSH reports strict ordering. A stray message from a strict client ends the exchange, and the same message from a client without the marker does not, as a control. |
 | `connection_limit` | A third client reads "too many connections", no access event runs, held connections stay, and a freed slot works |
-| `unauthenticated_time_limit` | A silent client closes after 1.51 s for a limit of 1.50 s, and a session may outlast the limit |
-| `concurrent_logins_do_not_stall_others` | During a 3 s verification, a key login and session finish at 0.16 s and a second password login is refused as busy at 0.39 s. The first login then succeeds at 3.10 s. |
+| `unauthenticated_time_limit` | A silent client closes about 20 ms after a limit of 1.50 s, and a session may outlast the limit |
+| `concurrent_logins_do_not_stall_others` | During a 3 s verification, a key login and its session finish in about 0.2 s and a second password login is refused as busy in under 0.5 s. The first login then succeeds at about 3.1 s. |
 | `clean_close` | Exit statuses 0, 1, 7 and 255 arrive. 200 kB out, five times, arrives intact and with its status. 50 kB round trip. A terminal is reported with `-tt` and not without. |
 | `nothing_is_left_behind` | The heap is the same before and after repeated logins, refusals and dropped connections. After `stop`, 128 B stays allocated. |
 | `forwarding_is_refused` | `-R` fails, and `-L` is refused when used |
@@ -162,7 +162,7 @@ The kernel's report on these stacks would have read 16,344 B free of 16,384 B, b
 
 ## Cost of `mlkem768x25519-sha256`
 
-Measured with `CONFIG_WOLFSSL_MLKEM=y` and `CRUX_SSH_WOLF_OFFER_MLKEM`, on the module's small-memory settings. OpenSSH 9.6 in the container cannot choose it, so OpenSSH 9.9 from the Mac did.
+Measured with `CONFIG_WOLFSSL_MLKEM=y` and `CRUX_SSH_WOLF_OFFER_MLKEM`, on the module's small-memory settings. OpenSSH 9.6 in the container cannot choose it, so OpenSSH 9.9 on the development machine did.
 
 | Measure | `curve25519-sha256` in the same image | `mlkem768x25519-sha256` | Difference |
 | --- | --- | --- | --- |
