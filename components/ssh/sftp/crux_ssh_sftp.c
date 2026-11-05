@@ -250,8 +250,8 @@ static void report_if_hidden(const struct crux_ssh_file_handle *handle,
  * refused whatever the answer. The text goes no further than the rule that refuses it.
  *
  * A stat needs read permission, so a session that can only write asks with a rename of the text to
- * itself, which needs write permission. That changes nothing whatever the text is: File refuses a
- * rename onto its own name.
+ * itself, which needs write permission. That changes nothing: the text is always invalid here, so
+ * check_name in the service refuses it before any reservation, and File is never reached.
  */
 static void report_refused_name(const struct crux_ssh_file_handle *handle, const char *path)
 {

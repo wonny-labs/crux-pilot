@@ -46,18 +46,18 @@ flowchart TB
 
 ### Requests and what answers them
 
-Each statement about a status was seen on the wire in `wire_a_refused_open_is_a_general_failure` or a case beside it, except the failed `FSTAT` and the failed `CLOSE`, which no client can provoke here, and which are read from source (`wolfsftp.c:5958` and the `RecvClose` handler).
+Each statement about a status was seen on the wire in `wire_a_refused_open_is_a_general_failure` or a case beside it, except a failure from the port itself in `FSTAT` and in `CLOSE`, which no client can provoke here, and which is read from source (`wolfsftp.c:5958` and the `RecvClose` handler). A client can send an unknown handle, and wolfSSH answers that alone: `CLOSE` gets `FAILURE`, "Close File Error", and `FSTAT` ends that client's connection with no status.
 
 | SFTP request | Port | Service | On refusal the client gets |
 | --- | --- | --- | --- |
 | `INIT`, `REALPATH` | None. `WGETCWD` gives `/` once | None | Handled by wolfSSH. See [long paths](#long-paths) |
 | `OPENDIR`, `READDIR`, `CLOSE` | `WOPENDIR`, `SFTP_Name_readdir`, `WCLOSEDIR` | `area_next` at the root, `dir_*` in an area | `OPENDIR`: `NO_SUCH_FILE`. `READDIR`: see [listing limits](#limits) |
 | `STAT`, `LSTAT` | `SFTP_GetAttributes` | `stat`, `area_next` | `FAILURE`, "STAT error" or "LSTAT error" |
-| `FSTAT` | `SFTP_GetAttributes_Handle` | `size` | `FAILURE`, "STAT error". From source |
+| `FSTAT` | `SFTP_GetAttributes_Handle` | `size` | `FAILURE`, "STAT error", from source. An unknown handle ends the connection |
 | `OPEN` | `WOPEN` | `open`, after a `stat` that wolfSSH always does first | `FAILURE`, "Open File Error". An area or the root: `FAILURE`, "Not A File" |
 | `READ` | `WPREAD` | `read`. Past the end is `EOF` | `FAILURE` |
 | `WRITE` | `WPWRITE`, or `WWRITE` for `APPEND` | `write` | `FAILURE`, "Write File Error" |
-| `CLOSE` | `WCLOSE` | `close` | `FAILURE` if the close reports an error. From source |
+| `CLOSE` | `WCLOSE` | `close` | `FAILURE` if the close reports an error, from source. An unknown handle: `FAILURE`, "Close File Error" |
 | `REMOVE`, `RENAME` | `WREMOVE`, `WRENAME` | `remove`, `rename`. Across areas stops in the port | `FAILURE` |
 | `SETSTAT` | `WCHMOD`, `WSETTIME` | `area_next`: accepted with no effect for a visible area | `FAILURE`. Size or owner: `OP_UNSUPPORTED` |
 | `FSETSTAT` | `WFCHMOD`, `WFSETTIME` | `size`, which checks the session: accepted with no effect on a live one | `FAILURE`. Size or owner: `OP_UNSUPPORTED` |
@@ -124,7 +124,7 @@ The design asks for a refusal status and a security event for a rejected file op
 | --- | --- | --- | --- |
 | Direct use of a hidden area: `STAT`, `LSTAT`, `SETSTAT`, `OPENDIR`, `REMOVE`, `MKDIR`, `RMDIR`, an area or a file in it, an `OPEN` with flags that mean nothing or past the session's bound, an `OPENDIR` past it | As for a missing one, by request | `access.permission_denied`, once for each call of the port | Hiding. For requests that do not reach the service, the port asks it with a `stat` that stops at the permission, and it changes nothing |
 | `OPEN` in a hidden area | "Open File Error" | **Two** denials | wolfSSH's `stat` before `OPEN` is a call of its own |
-| `RENAME` naming a hidden area, including across areas | "Rename File Error" | One denial for each hidden area named | Hiding |
+| `RENAME` naming a hidden area, including across areas | "Rename File Error" | One denial for each hidden area named. **Two** for one hidden area when the other path holds a refused name, as in `RENAME /data/doc /data/my file` | Hiding. The refused name is reported for itself, and the other path is then still direct use |
 | Missing area | As for a hidden one | None | No area exists to record it against, and the service says the same. So the two differ in the log, and on the wire they do not |
 | Session may read and not write: `OPEN` to write, `REMOVE`, `RENAME` | `FAILURE` | One denial | The service's check |
 | Session may write and not read: `OPEN` to read, `STAT` of a file, `OPENDIR` | `FAILURE`, or `NO_SUCH_FILE` for `OPENDIR` | One denial, and two for `OPEN` | The service's check, and wolfSSH's `stat` |
@@ -146,14 +146,15 @@ The design asks for a refusal status and a security event for a rejected file op
 | The service's pools, reservations and a busy name or listing | `FAILURE`, or `NO_SUCH_FILE` for `OPENDIR` | None | The contract gives `ERR_NO_RESOURCES` and `ERR_BUSY` no event |
 | A limit, a sparse write | "Write File Error", or "Open File Error" for entries | None | The contract gives `ERR_LIMIT` and `ERR_OUT_OF_RANGE` no event |
 | A full medium, a storage failure | `FAILURE` | `file.storage_failed` | The service |
-| `MKDIR`, `RMDIR` in an area it can see | `PERMISSION_DENIED` | None | The operation does not exist. The session holds what it holds |
+| `MKDIR`, `RMDIR` in an area it can see | `PERMISSION_DENIED` | None, except that a name the rule refuses records `file.name_rejected`, as anywhere | The operation does not exist. The session holds what it holds |
 | `SETSTAT` with a size or an owner, in any area, hidden or not | `OP_UNSUPPORTED` | None | wolfSSH stops it before the port |
 | `SYMLINK`, `READLINK`, other requests, in any area, hidden or not | `FAILURE` | None | No port call exists |
 | `REALPATH` of any path, hidden or not | The normalised path | None | wolfSSH answers it from the text, and it reveals nothing |
 | A path of 256 bytes or more, in any area | See [long paths](#long-paths) | None | wolfSSH stops it before the port |
-| A session that has ended | `FAILURE`, then the connection ends at the next poll | None | The service gives `ERR_SESSION_INVALID`, which has no event of its own |
+| A session that has ended, by logout or otherwise | `FAILURE`, then the connection ends at the next poll | `access.session_invalid`, **twice** for each request that reaches the port | One from the port's `crux_access_touch`, and one from the service's check. A close asks nothing |
+| A session that the idle limit ended | The same | `access.session_expired` once, from the touch, and `access.session_invalid` from the service. Each later request is as above | Access |
 
-Evidence: `case_each_direct_use_of_a_hidden_area_records_a_denial`, `case_what_the_service_records_for_an_area_used_as_a_file` and `case_a_refused_name_is_recorded_once_with_no_text` on Host, and `wire_a_refused_name_is_recorded_with_no_text` on both servers, for `file.name_rejected`. The rows with no event are read from the code. The port reaches events only through the file service: its event port is private, and an identifier for the rows that have none would be a change to the file service and #182, which is outside the files of #194. **I did not add one, and that is for review.**
+Evidence: `case_each_direct_use_of_a_hidden_area_records_a_denial`, `case_what_the_service_records_for_an_area_used_as_a_file` and `case_a_refused_name_is_recorded_once_with_no_text`, `case_a_session_that_has_ended_is_recorded` and `case_a_session_that_expired_is_recorded_first_as_expired` on Host, and `wire_a_refused_name_is_recorded_with_no_text` on both servers, for `file.name_rejected`. The rows with no event are read from the code. The port reaches events only through the file service: its event port is private, and an identifier for the rows that have none would be a change to the file service and #182, which is outside the files of #194, so I did not add one. [#270](https://github.com/wonny-labs/crux-pilot/issues/270) lists them, as a shared change under G-A and #182.
 
 ### Long paths
 
@@ -326,7 +327,7 @@ Each was taken without asking, as the narrow and safer choice.
 | 14 | A Linux proof server and its cases live in `tests/ssh/sftp/openssh` | The issue asks for proof first, and #192 did not exist when this began. It builds only from its script. It stays because a run takes seconds, and because only it can look at the medium itself | Remove it now that the image runs |
 | 15 | The `native_sim` image is in `tests/ssh/sftp/native_sim`, and reuses #192's test Access ports and keys by path | So that it stays within the files of #194, and adds no copy of them. It cannot build until #192 merges, and its script says so | Add cases to `tests/zephyr/ssh_provider`, as #192's document suggests, which changes #192's files |
 | 16 | The port records direct use of a hidden area with a service `stat` that stops at the permission, and sends `REMOVE` and `RENAME` of an area to the service with an empty name | So that Hiding holds with no new interface, and the one rule that decides stays in the service | A new service call for each |
-| 17 | No new event identifier for the refusals with none, and a rule outside the file service does not emit one | The event port is the service's, and a new identifier changes the service and #182, outside the files of #194 | Add identifiers in a follow-up, for review |
+| 17 | No new event identifier for the refusals with none, and a rule outside the file service does not emit one | The event port is the service's, and a new identifier changes the service and #182, outside the files of #194 | Add identifiers in [#270](https://github.com/wonny-labs/crux-pilot/issues/270), as a shared change under G-A and #182 |
 
 ## Follow-ups on #179
 

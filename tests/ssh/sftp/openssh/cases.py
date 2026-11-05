@@ -630,6 +630,8 @@ def wire_a_refused_open_is_a_general_failure(config, work):
     expect_status(root.call(SSH_FXP_READLINK, root.text("/data/doc")), FX_FAILURE, unknown)
     expect_status(stranger.setstat("/data/doc", ATTR_ACMODTIME, times=(1, 2)), FX_FAILURE)
     expect_status(root.setstat("/data/doc", ATTR_SIZE, size=1), FX_OP_UNSUPPORTED)
+    # An unknown handle, in wolfSSH alone: a status for CLOSE, and for FSTAT no answer at all.
+    expect_status(root.close(b"\0" * 8), FX_FAILURE, "Close File Error")
     # The session carries on after each of them.
     handle = expect_handle(root.open("/data/doc", FXF_READ))
     expect_true(root.read(handle, 0, 3) == b"abc", "the session did not carry on")
@@ -805,6 +807,12 @@ def wire_a_refused_name_is_recorded_with_no_text(config, work):
         expect_true(all(line.startswith("event 5 ") and " name=- " in line and "secret" not in line
                         for line in new), f"{new}")
         wire.finish()
+
+
+@case
+def wire_fstat_of_an_unknown_handle_ends_the_connection(config, work):
+    expect_true(long_path_answer(config, lambda wire: wire.call(SSH_FXP_FSTAT, wire.text(b"\0" * 8))) == "ended",
+                "FSTAT of an unknown handle was answered")
 
 
 def long_path_answer(config, request):

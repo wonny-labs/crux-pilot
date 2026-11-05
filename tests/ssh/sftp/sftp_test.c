@@ -873,6 +873,12 @@ static void case_each_direct_use_of_a_hidden_area_records_a_denial(void)
     CHECK(crux_ssh_sftp_rename(stranger, "/data/doc", "/logs/x") < 0);
     CHECK(denials() == before + 2);
 
+    /* A refused name in the same hidden area is recorded for itself as well as for the other path.
+     */
+    before = denials();
+    CHECK(crux_ssh_sftp_rename(stranger, "/data/doc", "/data/my file") < 0);
+    CHECK(denials() == before + 2);
+
     /* Past a bound of this session, a hidden area is still a hidden area. */
     int first = crux_ssh_sftp_file_open(dropper, "/inbox/a", O_REPLACE);
     int second = crux_ssh_sftp_file_open(dropper, "/inbox/b", O_REPLACE);
@@ -924,9 +930,13 @@ static void case_what_the_service_records_for_an_area_used_as_a_file(void)
     CHECK(crux_ssh_sftp_rename(admin, "/data/doc", "/logs/doc") < 0);
     CHECK(denials() == denied);
     CHECK(rejected_names == 3);
-    /* Nor is a directory a denial of a permission that it holds. */
+    /* Nor is a directory a denial of a permission that it holds. A refused name is still one. */
     CHECK(crux_ssh_sftp_directory_refused(admin, "/data/sub") == 0);
     CHECK(denials() == denied);
+    CHECK(rejected_names == 3);
+    CHECK(crux_ssh_sftp_directory_refused(admin, "/data/my dir") == 0);
+    CHECK(denials() == denied);
+    CHECK(rejected_names == 4);
 
     CHECK(size_on_medium(ROOT_DATA, "doc") == 3);
     CHECK(!crux_file_fake_exists(ROOT_DATA, "moved"));
@@ -1346,6 +1356,62 @@ static void case_a_session_that_ends_fails_the_next_chunk(void)
     CHECK(size_on_medium(ROOT_DATA, "up") == 3);
 }
 
+/* Each request tells Access twice about a session that has gone: the touch, and the service. */
+static void case_a_session_that_has_ended_is_recorded(void)
+{
+    fresh_world();
+    place(ROOT_DATA, "doc", "abc");
+    crux_access_session_t root =
+        access_test_session("root", ACCESS_TEST_PASSWORD, &access_test_ssh);
+    crux_ssh_attachment_t *attachment = crux_ssh_fake_attachment(root);
+    crux_ssh_file_handle_t *handle = NULL;
+    CHECK(crux_ssh_sftp_open(NULL, attachment, &handle) == CRUX_OK);
+    void *fs = handle;
+    int fd = crux_ssh_sftp_file_open(fs, "/data/doc", O_READ);
+    CHECK(fd >= 0);
+    crux_access_logout(&root);
+    char buffer[1];
+    crux_ssh_sftp_attributes_t info;
+
+#define INVALID_TWICE(expression)                                                                  \
+    do {                                                                                           \
+        size_t before = access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_INVALID);             \
+        CHECK((expression) < 0);                                                                   \
+        CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_INVALID) == before + 2u);       \
+    } while (0)
+
+    INVALID_TWICE(crux_ssh_sftp_file_pread(fs, fd, buffer, sizeof(buffer), OFFSET_0));
+    INVALID_TWICE(crux_ssh_sftp_file_set_attributes(fs, fd));
+    INVALID_TWICE(crux_ssh_sftp_attributes(fs, "/data/doc", &info));
+    INVALID_TWICE(crux_ssh_sftp_attributes(fs, "/", &info));
+#undef INVALID_TWICE
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_EXPIRED) == 0u);
+    /* A close needs no session, and asks Access nothing. */
+    size_t before_close = access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_INVALID);
+    CHECK(crux_ssh_sftp_file_close(fs, fd) == 0);
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_INVALID) == before_close);
+    crux_ssh_sftp_close(NULL, attachment, handle);
+}
+
+static void case_a_session_that_expired_is_recorded_first_as_expired(void)
+{
+    fresh_world();
+    place(ROOT_DATA, "doc", "abc");
+    void *fs = open_as("root");
+    crux_ssh_sftp_attributes_t info;
+    CHECK(crux_ssh_sftp_attributes(fs, "/data/doc", &info) == 0);
+    access_fake_clock_advance(IDLE_LIMIT_MS + 1000u);
+    size_t invalid = access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_INVALID);
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_EXPIRED) == 0u);
+    CHECK(crux_ssh_sftp_attributes(fs, "/data/doc", &info) < 0);
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_EXPIRED) == 1u);
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_INVALID) == invalid + 1u);
+    /* From then on it is a session that has ended. */
+    CHECK(crux_ssh_sftp_attributes(fs, "/data/doc", &info) < 0);
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_EXPIRED) == 1u);
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_SESSION_INVALID) == invalid + 3u);
+}
+
 static void case_a_close_that_fails_is_reported_and_gives_the_handle_back(void)
 {
     fresh_world();
@@ -1490,6 +1556,8 @@ int main(void)
     RUN(case_close_gives_back_all_a_session_holds);
     RUN(case_activity_keeps_the_session_and_idleness_ends_it);
     RUN(case_a_session_that_ends_fails_the_next_chunk);
+    RUN(case_a_session_that_has_ended_is_recorded);
+    RUN(case_a_session_that_expired_is_recorded_first_as_expired);
     RUN(case_a_close_that_fails_is_reported_and_gives_the_handle_back);
     RUN(case_a_session_that_ends_cannot_set_attributes_on_an_open_file);
     RUN(case_open_says_why_it_could_not_start);
