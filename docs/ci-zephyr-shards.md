@@ -26,14 +26,14 @@ Each shard is a separate runner with its own checkout, Zephyr workspace and SDK.
 
 ## Shards
 
-Times are medians from 12 runs of the single job, taken before the split.
+Times are medians from 12 runs of the single job, taken before the split. Steps added since are not included in the times.
 
 | Shard | Steps | Minutes |
 | --- | --- | ---: |
 | `storage` | Patch style, storage simulators, File RT1060 compile, Flash PoC fault paths, Time and EVKB build, product template | 11.5 |
 | `controller` | Execution candidates, early controller, controller integration, RT1170 cross-build, M5 integrated smoke | 11.5 |
 | `runtime` | Portable execution, Time busy-wait, messaging, out-of-tree consumer, Logging, System | 12.2 |
-| `io` | Serial, GPIO, I2C, SPI, networking, networking physical fixture | 12.2 |
+| `io` | Serial, command line shell rule and serial wiring, command line SSH entry points, GPIO, I2C, SPI, networking, networking physical fixture | 12.2, measured before the two command line steps were added |
 
 Set-up (packages, tools, SDK and workspace) adds about 2.7 minutes to every shard, and the upload 0.1 to 0.2 minutes.
 
@@ -59,7 +59,7 @@ Set-up (packages, tools, SDK and workspace) adds about 2.7 minutes to every shar
 | Anything other than documentation skips the workflow | Code changes would go untested |
 | `host.yml` also skips documentation | Nothing would run the tests that read documentation |
 
-The test does not notice a deleted step. Review the comparison with `main` when a change touches `zephyr.yml`.
+The test has two gaps. It does not notice a deleted step, so review the comparison with `main` when a change touches `zephyr.yml`. It also recognises a check only by `scripts/`, `python3 ` or `west ` in the step text, so a step that runs another command directly, such as `tests/ssh/cli/test-compile.sh`, is not caught if it has no shard condition or names an unknown shard. Give every new step a condition whatever it runs.
 
 ## Documentation-only changes
 
@@ -96,7 +96,7 @@ Another stall seen once: the `io` job took 6.2 minutes to fetch the Zephyr works
 | Twister `-j 4` instead of `-j 2` | 22.1 | 23.9 | No clear gain. Both runs were lengthened by package downloads (9.6 and 10.3 minutes). The longest shard's checks took 11.6 and 13.4 minutes, against 13.1 to 14.1 with `-j 2`. |
 | ccache, both runs cold | 16.4 | 14.1 | Both started empty, because `actions/cache` rejected a path containing `..`. This pair says nothing about re-use. |
 
-A later pair with a working cache, on identical source, gave the second run 99.2%, 84.7%, 99.7% and 99.6% hits in the four shards. Its check steps summed to 41.4 minutes. Seven runs without ccache summed to 40.7 to 53.2 minutes. Only 34% to 54% of compiler calls are cacheable, and configuring, linking and running tests do not benefit. This is one warm run and runs on identical source differ by up to 8.9 minutes, so it shows no benefit but does not prove there is none. It was not adopted because it adds a cache and its upkeep for no measured gain.
+A later pair with a working cache, on identical source, gave the second run 99.2% (`storage`), 99.6% (`controller`), 84.7% (`runtime`) and 99.7% (`io`) hits. Its check steps summed to 41.4 minutes. Seven runs without ccache summed to 40.7 to 53.2 minutes. Only 34% to 54% of compiler calls are cacheable, and configuring, linking and running tests do not benefit. This is one warm run and runs on identical source differ by up to 8.9 minutes, so it shows no benefit but does not prove there is none. It was not adopted because it adds a cache and its upkeep for no measured gain.
 
 ## Limits
 
