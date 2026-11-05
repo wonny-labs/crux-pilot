@@ -24,6 +24,10 @@ typedef void (*config_fault_hook_t)(void *context);
 void config_fault_write_hook(config_fault_hook_t hook, void *context);
 /* Fails each write of one key, for a save that stops part of the way through a list. */
 void config_fault_write_fail_key(const char *key, crux_config_result_t result);
+/* The keys of the writes that were tried, in order, whether or not they succeeded. At most 64. */
+size_t config_fault_write_log_count(void);
+void config_fault_write_log_clear(void);
+const char *config_fault_write_log_key(size_t index);
 size_t config_fault_reads(void);
 size_t config_fault_writes(void);
 size_t config_fault_bytes(const char *key, uint8_t *out, size_t capacity);
