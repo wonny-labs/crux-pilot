@@ -36,6 +36,10 @@ PORT = 18443
 # NET_SOCKETS_TLS_CONNECT_TIMEOUT in the reference configuration, which zephyr/Kconfig sets for CRUX_WEB.
 CONNECT_TIMEOUT_S = 2.0
 SLACK_S = suite.SLACK_S
+# How long the next request may take after a refused handshake or a close. Mbed measured 0.12 to 0.13 s. Wolf
+# keeps a bound the size of W1 (issue #280), which reads a new connection's first request up to about 1 s late:
+# docs/https-composition.md declares it.
+NEXT_REQUEST_S = {"mbed": 0.5, "wolf": 1.0 + SLACK_S}
 VERSIONS = {"tls1": "TLSv1", "tls1_1": "TLSv1.1", "tls1_2": "TLSv1.2", "tls1_3": "TLSv1.3"}
 TLS13_SUITES = ["TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384", "TLS_CHACHA20_POLY1305_SHA256",
                 "TLS_AES_128_CCM_SHA256", "TLS_AES_128_CCM_8_SHA256"]
@@ -221,13 +225,23 @@ def case_tls_certificate_is_the_declared_one():
                               "other_ca": refused}
 
 
+def case_tls_hello_retry():
+    """OpenSSL's client sends a key share for its first group only. With X25519 first and P-256 second, the Mbed
+    profile, which has no X25519, must ask for P-256 with a HelloRetryRequest, as it must for a browser that
+    sends only X25519 shares. The Wolf profile takes X25519 at once."""
+    result = handshake("-tls1_3", "-groups", "X25519:P-256")
+    expected = "prime256v1" if profile == "mbed" else "X25519"
+    check(result["ok"] and expected in (result.get("group") or ""), f"{result}")
+    results["hello_retry"] = {**result, "retry_expected": profile == "mbed"}
+
+
 # Refused handshakes leave the server serving.
 
 def expect_refused_then_served(name, *options):
     refused = handshake(*options)
     check(not refused["ok"], f"{name}: {refused}")
     response, seconds = timed_request()
-    check(response.status == 200 and seconds < 1.0 + SLACK_S, f"{name}: next request {seconds}s")
+    check(response.status == 200 and seconds < NEXT_REQUEST_S[profile], f"{name}: next request {seconds}s")
     results.setdefault("refused", {})[name] = {**refused, "next_request_s": seconds}
 
 
@@ -279,7 +293,7 @@ def case_tls_abrupt_close():
         action()
         share = cpu_share(2.0)
         response, seconds = timed_request()
-        check(response.status == 200 and seconds < 1.0 + SLACK_S, f"{name}: next request {seconds}s")
+        check(response.status == 200 and seconds < NEXT_REQUEST_S[profile], f"{name}: next request {seconds}s")
         check(share < 0.5, f"{name}: the image used {share} of a CPU after the close")
         seen[name] = {"cpu_share_2s": share, "next_request_s": seconds}
     # Four closed clients, then the three slots must all be free.
@@ -321,7 +335,7 @@ def case_tls_request_after_a_close():
         time.sleep(1.5)
     # A request 1.5 s after the last close, which W1 does not reach.
     seen["no_close_within_1.5s"] = fresh
-    check(max(max(waits) for waits in seen.values()) < 1.0 + SLACK_S, f"{seen}")
+    check(max(max(waits) for waits in seen.values()) < NEXT_REQUEST_S[profile], f"{seen}")
     results["request_after_a_close_s"] = seen
 
 
@@ -603,6 +617,11 @@ def offload_fin_control(executable, log):
             served, seconds = False, None
         results["offload_fin_control"] = {"idle_cpu_share": idle, "cpu_share_after_close": share,
                                           "next_client_served": served, "next_request_s": seconds}
+        if profile == "mbed":
+            # The limit the test image's driver copy exists for. If it stops holding, drop the copy.
+            check(share >= 0.3 and not served, f"the offload's FIN limit no longer shows: {share}, {served}")
+        else:
+            check(served and share < 0.5, f"wolfSSL sees the close without the fix: {share}, {served}")
     finally:
         stop()
 
@@ -654,13 +673,15 @@ def firefox(binary):
     check(capture["post"]["cookie"] >= 100 and capture["post"]["request"] == 1, f"{capture}")
 
 
-# A case that can fail on a profile for a limit recorded in docs/https-composition.md. It still runs and its
-# result is recorded. W1 depends on where a request falls in a period of about 1 s, so the case can pass too.
+# A case that can fail on a profile for a limit recorded in docs/https-composition.md: only an AssertionError
+# whose text holds the given words is that limit. Anything else, in the same case, fails the run. W1 depends on
+# where a request falls in a period of about 1 s, so the case can pass too.
 KNOWN_LIMITS = {
     "wolf": {
-        "deadline_then_silent_closes_before_inactivity":
+        "deadline_then_silent_closes_before_inactivity": (
+            "not closed within",
             "W1, issue #280: the server reads a new connection's first request up to about 1 s late, so the first "
-            "callback, and the deadline that runs from it, can start late",
+            "callback, and the deadline that runs from it, can start late"),
     },
 }
 
@@ -676,9 +697,9 @@ def run_cases(cases):
             print(f"PASS {name} ({time.monotonic() - started:.1f}s){' despite a known limit' if known else ''}",
                   flush=True)
         except Exception as error:  # A failed case should not hide the others.
-            if known:
-                results.setdefault("known_limits", {})[name] = {"limit": known, "error": str(error)}
-                print(f"KNOWN {name}: {known}: {type(error).__name__}: {error}", flush=True)
+            if known and isinstance(error, AssertionError) and known[0] in str(error):
+                results.setdefault("known_limits", {})[name] = {"limit": known[1], "error": str(error)}
+                print(f"KNOWN {name}: {known[1]}: {type(error).__name__}: {error}", flush=True)
             else:
                 failures += 1
                 print(f"FAIL {name}: {type(error).__name__}: {error}", flush=True)

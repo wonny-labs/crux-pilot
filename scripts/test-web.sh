@@ -67,6 +67,7 @@ run_host() {
         "$repo"/components/web/session/*.c "$repo"/tests/web/session/*.c
     python3 "$repo/scripts/check-web-boundary.py"
     python3 -m unittest discover -s "$repo/tests/build" -p test_web_routes.py
+    python3 -m unittest discover -s "$repo/tests/build" -p test_web_tls_profile.py
     python3 "$repo/scripts/check-web-routes.py"
     python3 "$repo/scripts/check-web-routes.py" --reviewed "$repo/tests/native/web_http/reviewed-routes.txt" \
         "$repo"/tests/native/web_http/src/probe_routes.c "$repo"/tests/native/web_http/src/project_routes.c

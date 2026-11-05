@@ -7,6 +7,20 @@ compile only, and the handshake time and memory on RT1060 stay open for a separa
 Every timing below is a `native_sim` figure: the host's TCP stack through the native socket offload, the host's CPU
 under amd64 emulation, on a loaded machine. It says nothing about a target.
 
+## Acceptance criteria of #185
+
+**Not every criterion is met.** Accepting this pull request with criterion 1 partly met and #280 open, or holding it until
+W1 is explained, is the owner's decision, listed under [approvals needed](#approvals-needed).
+
+| # | Criterion | State | Evidence |
+| --- | --- | --- | --- |
+| 1 | The same conformance suite passes on both profiles, on `native_sim` where the stack allows | **Met on Mbed. On Wolf one case stays open**, `deadline_then_silent_closes_before_inactivity`, on [W1](#w1-wolf-reads-a-new-connections-first-request-late), issue #280. The driver excuses only that case's "not closed within" assertion on Wolf. Any other failure fails the run. | [Suite](#the-conformance-suite-over-tls) |
+| 2 | No plain HTTP listener or redirect in the reference configuration | Met on `native_sim`, both profiles | [Listener check](#no-plain-http-listener-and-no-redirect) |
+| 3 | Handshake time and memory on RT1060-EVKB, with separately approved physical evidence | **Open.** Compile only. | Needs a separately approved run |
+| 4 | A stalled TLS handshake measured and declared on both profiles | Met on `native_sim` | [Stalled handshake](#stalled-handshake) |
+| 5 | Whether to halve the sends of a small response is decided | Decided, no, from measurements | [Sends](#sends-of-a-small-response) |
+| 6 | `NET_SOCKETS_TLS_CONNECT_TIMEOUT` lowered and declared | 2,000 ms, proposed from `native_sim`. The target value needs criterion 3. | [Stalled handshake](#stalled-handshake) |
+
 ## What is built, faked and untested
 
 | Item | State | Evidence |
@@ -22,7 +36,7 @@ under amd64 emulation, on a loaded machine. It says nothing about a target.
 | The offload's FIN fix | **Test image only**: a build-local copy of the driver's host side | `native_sim`, with a control |
 | Entropy, key confidentiality | **Test-only**, as [#242 declares](native-management-composition.md#declarations) | |
 | Firefox 159.0.1 over TLS | **Run by hand** in the container, not in CI | `native_sim` |
-| Results | Retained in [`docs/evidence/https-composition/`](evidence/https-composition/), from `4ed6eb9` | |
+| Results | Retained in [`docs/evidence/https-composition/`](evidence/https-composition/): from `4ed6eb9`, and `*-after-review.json` from `b9c9fbc` with the review fixes | |
 | Wolf profile in CI | **Not run.** A default workflow must not fetch a GPL stack. | Local |
 | RT1060-EVKB | Compile and link of `tests/zephyr/web_compile` with the declared profile: Mbed 197,364 B Flash and 209,856 B RAM, Wolf 336,836 B and 213,652 B, from the linker report, so RAM is configured and not used. Handshake time and memory not measured. | Compile |
 | Safari, Chromium over TLS | Not run | |
@@ -95,6 +109,14 @@ list. Each accepted socket copies both. Nothing in the server is changed.
 | Record size | 16 KiB in and out | wolfSSL's default | A browser may send 16 KiB records. See limit 6 of #242. |
 | HSTS, redirect, plain listener | None | None | The listener check below |
 
+### HelloRetryRequest on Mbed
+
+Browsers send their first key share for X25519, and Chromium sends no P-256 share at all. The Mbed profile has no
+X25519, so a browser reaches it only after a HelloRetryRequest for P-256. `case_tls_hello_retry` holds that path with
+OpenSSL's client, which sends a share for its first group alone: X25519 first, P-256 second, and the Mbed profile
+completes on P-256 while Wolf takes X25519 at once. **No browser test exercises it**: the Firefox check ran on Mbed and
+passed, and its key shares were not recorded, so it may not have needed the retry.
+
 ### Checked on the wire
 
 `https_driver.py` makes each handshake with `openssl s_client` 3.0.13, which offers exactly one version, suite or group
@@ -109,6 +131,7 @@ at a time, and checks that the accepted set equals the declared one.
 | P-384, P-521, X448, ffdhe2048 | Refused | Refused |
 | X25519 | Refused | Accepted, and chosen when a client offers it first |
 | A client that trusts another certificate | Refuses the server | Refuses the server |
+| X25519 first, P-256 second, a share for X25519 alone | Completes on P-256, after a HelloRetryRequest | Completes on X25519 |
 | Python's client with defaults | TLS 1.3, `TLS_AES_128_GCM_SHA256`, the declared certificate byte for byte | The same |
 
 Before the change, the same cases failed on the Mbed profile: TLS 1.2 was accepted with `ECDHE-ECDSA-AES128-GCM-SHA256`,
@@ -123,21 +146,25 @@ and a silent client held the next one for 9.96 s. That red run is retained, as `
 | An image started with no certificate under the service's tag | The TLS layer refuses the tag, so **nothing listens** and a connect is refused. No fallback to plain text. |
 | Build | `CRUX_WEB_PLAIN_HTTP_FOR_TESTS` depends on `BOARD_NATIVE_SIM`, the HTTPS image does not set it, and `scripts/test-web.sh https` fails if it does |
 
+The listener check is a snapshot: it reads the image's sockets once, after the suite's cases and before the other TLS
+cases. It does not watch for a listener opened and closed at another moment. The build checks above hold for all of it.
+
 ## The conformance suite over TLS
 
 The 39 cases of `tests/native/web_http/test_driver.py`, the `native_sim` suite of #266, run against the HTTPS image
 with each client wrapped in TLS. The driver changes only how a client connects, and an `ssl` end of stream reads as a
-plain one. Then 13 more TLS cases run, the Firefox check, and two images that start apart.
+plain one. Then 14 more TLS cases run, the Firefox check when a browser is given, and two images that start apart.
 
 | Part | Mbed | Wolf |
 | --- | --- | --- |
 | Suite cases unchanged | 37 of 37 | 36 of 37, and `deadline_then_silent_closes_before_inactivity` fails on [W1](#w1-wolf-reads-a-new-connections-first-request-late) |
 | Suite cases replaced by a TLS variant, below | 2 of 2 | 2 of 2 |
-| Other TLS cases | 13 of 13 | 13 of 13 |
-| Firefox | 1 of 1 | 1 of 1 |
-| Separate images: no certificate, and the offload without the FIN fix | 2 of 2 | 2 of 2 |
-| Total, `CRUX_WEB_FIREFOX=... scripts/test-web.sh https both` at `4ed6eb9` | **55 of 55** | **54 of 55**, 1 on a known limit |
-| CI, PSA workflow, Mbed profile, without Firefox, at `8e506a2` | 53 of 53 | Not run |
+| Other TLS cases, with `hello_retry` added after review | 14 of 14 | 14 of 14 |
+| Separate images: no certificate, and the offload without the FIN fix, each now asserting | 2 of 2 | 2 of 2 |
+| **Total, `scripts/test-web.sh https both` at `b9c9fbc` with the review fixes, without Firefox** | **55 of 55** | **54 of 55**, 1 excused on W1's assertion alone |
+| Firefox, at `4ed6eb9`, not run again since nothing it uses changed | 1 of 1 | 1 of 1 |
+| Earlier total at `4ed6eb9`, with Firefox | 55 of 55, of which `offload_fin_control` only recorded | 54 of 55 |
+| CI, PSA workflow, Mbed profile, without Firefox | 53 of 53 at `8e506a2`, 54 of 54 at `0a06de0` | Not run |
 
 Two suite cases measure what one send costs when a reader stops, and that differs over TLS for a reason in the stack,
 so the HTTPS driver runs a TLS variant in their place. It holds the same properties and records the mechanism.
@@ -151,6 +178,10 @@ The `-EAGAIN` path is the one #266 had to inject on plain text. Over TLS it happ
 cases of the suite, which cover what follows it, pass.
 
 ## Negative handshakes
+
+The next request after each case must come within a declared bound per profile: 0.5 s on Mbed, which measured 0.12 to
+0.13 s, and 2.5 s on Wolf, a bound the size of [W1](#w1-wolf-reads-a-new-connections-first-request-late), declared
+for that reason and to be narrowed when #280 is fixed.
 
 | Case | Mbed | Wolf |
 | --- | --- | --- |
@@ -173,6 +204,10 @@ many browsers, so this is the ordinary end of a connection.
 | --- | --- | --- |
 | Control, `--no-rdhup`: the offload as it is, one client closes after a request | CPU share 0.63 over 3 s, from 0.02 idle, and **the next client is never served** | CPU share 0.03, from 0.03, and the next client is served in 1.03 s |
 | With the fix, the same close | CPU share 0.02, next request in 0.12 s | CPU share 0.02, next request in 1.02 s |
+
+The control is a case of its own, `offload_fin_control`, and it asserts what it shows: on Mbed a CPU share of at least
+0.3 and the next client not served, so that the run fails if the limit stops holding and the copy can go; on Wolf the
+next client served and a share under 0.5. At `4ed6eb9` it only recorded, and was counted in the totals all the same.
 
 **The fix, test image only.** Zephyr's own TCP reports `POLLHUP` once the peer has closed (`sock_is_eof` in
 `sockets_inet.c`), and the server closes a client on `POLLHUP`. `tests/native/web_https/nsos_rdhup.cmake` builds a copy of
@@ -205,10 +240,16 @@ handshake here at 45 ms on the Mbed profile and 53 ms on the Wolf profile, under
 | Network | One TCP retransmission of 200 ms to 1 s still fits on a local network |
 | A browser and a self-signed certificate | The browser aborts that handshake at once and shows its warning. The user's decision is not inside a handshake, and the browser connects again after it. |
 | What it bounds | One stalled connection stops every client for at most 2 s, and a client can repeat it, as two stallers show. It is a bound, not a defence, as #268 says for trickled headers. |
+| What else it bounds | The `configdefault` in `zephyr/Kconfig` applies to the whole image, so **every outbound TLS connect in an image with `CRUX_WEB` also fails after 2 s**, as a client's handshake does. No Crux component connects out over TLS today. A product that does sets the option itself. |
 
 ### Heap and the client limit
 
 Each figure is read over a connection, so the step between rows is one connection.
+
+**The retained JSON of `4ed6eb9` shows `per_client_bytes` 23,275 on Mbed and 3,520 on Wolf.** Those came from a formula
+that `5c3a2b5` corrected, which divided by three a total that held the measuring connection too. The correct figures,
+from the same rows, are 34,912 and 5,280 B per connection, as below. Later results name the field
+`per_connection_bytes`.
 
 | Measurement | Mbed: Mbed TLS's own buffer | Wolf: the C library's arena, which wolfSSL allocates from |
 | --- | --- | --- |
@@ -293,8 +334,8 @@ A packet capture shows the request arriving and the server silent until the answ
 client. Five cheap explanations were ruled out: a CPU cost per connection, the offload's poll interval of 1 ms, data read
 ahead during the handshake, the handshake loop's 100 ms wait, and the abrupt close. A system call trace is unreadable under
 the emulation used here. It costs the suite one case, `deadline_then_silent_closes_before_inactivity`, whose deadline runs
-from a first callback that W1 can delay, so the driver lists it as a known limit on Wolf: it still runs, and its result is
-recorded either way. Whether W1 exists on a target, or with Zephyr's own TCP, is unknown. New issue
+from a first callback that W1 can delay, so the driver lists it as a known limit on Wolf: it still runs, its result is
+recorded either way, and only its "not closed within" assertion is excused. Any other failure in it fails the run. Whether W1 exists on a target, or with Zephyr's own TCP, is unknown. New issue
 [#280](https://github.com/wonny-labs/crux-pilot/issues/280) tracks it.
 
 ## How a product applies the wolfSSL patch
@@ -323,14 +364,41 @@ because it is a product decision and the owner's.
 | 6 | W1: on Wolf a new connection's first request is read up to about 1 s late | One suite case fails on Wolf, and every first request is slower | Measured, [above](#w1-wolf-reads-a-new-connections-first-request-late), issue #280 |
 | 7 | Marionette did not accept the self-signed certificate with `acceptInsecureCerts` | The browser check writes the override a user's acceptance writes | Declared in the driver |
 
+## Approvals needed
+
+| # | Approval | Options |
+| --- | --- | --- |
+| A1 | **Criterion 1 with one case open on Wolf** | Accept the issue's software result as partly met with #280 open, or have W1 explained first |
+| A2 | **TLS 1.3 only**, a security and compatibility decision, below | Keep TLS 1.3 only, the narrower choice and this pull request's default, or the alternative below |
+| A3 | How a product applies the wolfSSL patch | [Above](#how-a-product-applies-the-wolfssl-patch) |
+| A4 | A separately approved physical run | RT1060 handshake time, memory, and the connect timeout's target value, criterion 3 |
+| A5 | Merge | After independent review |
+
+### TLS 1.3 only: who cannot connect
+
+Current browsers, current curl and OpenSSL, WinSCP, Python and Go all have TLS 1.3. These clients do not, from their
+published support, not tested here:
+
+| Client | TLS 1.3 |
+| --- | --- |
+| Windows 10's SChannel, and so on Windows 10: Windows PowerShell 5.1 (`Invoke-WebRequest`), .NET Framework applications, and the inbox `curl.exe`, which uses SChannel | No. Windows 11 and Windows Server 2022 have it. |
+| Java before 8u261 | No |
+| Android before 10, and applications on its platform TLS | No |
+| Embedded clients on old TLS stacks | Varies |
+
+**Alternative:** TLS 1.2 and 1.3 on both profiles. On Mbed that is the server's own `NET_IPPROTO_TLS_1_2`, which Mbed
+TLS reads as a minimum. On Wolf it needs the wolfSSL socket patch changed to use a method that allows both versions
+with 1.2 as the minimum, which the patch does not offer at this pin. TLS 1.2 would then need its own declared suite,
+`ECDHE-ECDSA-AES128-GCM-SHA256`. **This pull request keeps TLS 1.3 only, as the narrower choice**, until the owner decides.
+
 ## Decisions for review
 
 | # | Decision | Why | If changed |
 | --- | --- | --- | --- |
-| 1 | TLS 1.3 only, on both profiles | `NET_IPPROTO_TLS_1_2` would give 1.2 alone on Wolf and both on Mbed. 1.3 is the one value that means the same on both, and every current browser has it. | Mbed and Wolf could offer 1.2 and 1.3 only with a change to the wolfSSL patch, or 1.2 alone on both |
+| 1 | TLS 1.3 only, on both profiles, pending approval A2 | `NET_IPPROTO_TLS_1_2` would give 1.2 alone on Wolf and both on Mbed. 1.3 is the one value that means the same on both, and every current browser has it. Some older clients cannot connect, [listed above](#tls-13-only-who-cannot-connect). A source check, `tls_profile_errors` in `scripts/check-web-boundary.py`, holds the version and suite, since a Mbed run cannot see their loss. | 1.2 and 1.3 on both, with a change to the wolfSSL patch |
 | 2 | One suite, `TLS_AES_128_GCM_SHA256` | Mandatory in TLS 1.3, the only one the Mbed profile compiles, and the same on both | Add suites to the list, per profile |
 | 3 | Groups are left to each library | No socket option exists at this pin. Both offer only elliptic-curve groups. | A patch, or library configuration |
-| 4 | `NET_SOCKETS_TLS_CONNECT_TIMEOUT` 2,000 ms for every `CRUX_WEB` image | Bounds the one-thread stall, with room for a slow handshake | Set from RT1060 evidence |
+| 4 | `NET_SOCKETS_TLS_CONNECT_TIMEOUT` 2,000 ms for every `CRUX_WEB` image, outbound connects included | Bounds the one-thread stall, with room for a slow handshake | Set from RT1060 evidence |
 | 5 | The FIN fix is a build-local copy of the offload driver, in the HTTPS test image only | The spin is a `native_sim` limit, and the suite cannot run on Mbed without it. The checkout stays clean. | Offer it upstream, and drop the copy when it lands |
 | 6 | The suite's two slow-reader cases have TLS variants, with the plain cases unchanged | The stack behaves otherwise over TLS, and the variants hold the same properties and the mechanism | |
 | 7 | The composition's roles gain `network.read`, `network.write` and `app.pump.read` | The suite's routes use them, so the real Access core enforces the same rules as #266's double | A separate role table for this image |
@@ -339,7 +407,7 @@ because it is a product decision and the owner's.
 | 10 | Mbed heap stays 120,000 B for three clients, by the formula above | Measured | Scale with `HTTP_SERVER_MAX_CLIENTS` |
 | 11 | RT1060 compile configurations take the declared profile: TLS 1.3 and its suite, 16 KiB records, 120,000 B heap | A compile of the sample's settings would not be the profile this declares | |
 | 12 | The wolfSSL patch: a build-time copy for checks, a pinned fork recommended for a product | Its terms keep it out of this repository | Owner's decision |
-| 13 | On Wolf, `deadline_then_silent_closes_before_inactivity` is a known limit: it runs and is recorded, and does not fail the run | W1 delays the first callback that its deadline runs from, by an amount that depends on timing | Removed when #280 is fixed |
+| 13 | On Wolf, `deadline_then_silent_closes_before_inactivity` is a known limit only for its "not closed within" assertion: it runs and is recorded, and any other failure in it fails the run | W1 delays the first callback that its deadline runs from, by an amount that depends on timing | Removed when #280 is fixed |
 | 14 | The Wolf arena is declared at the RT1060 compile's 131,072 B, not from a measurement at 16 KiB records | Only small records were measured | #197 |
 | 15 | The no-certificate case expects no listener at all | The TLS layer refuses a tag with no credential, so the service does not start. That fails closed, and no plain fallback exists. | |
 
@@ -362,5 +430,5 @@ because it is a product decision and the owner's.
 | `scripts/test-web.sh https wolfssl` | `native_sim` | The same on a patched copy of Zephyr. Local only. |
 | `CRUX_WEB_FIREFOX=<binary> scripts/test-web.sh https ...` | `native_sim`, by hand | Adds the Firefox check |
 | `scripts/test-web.sh native` | `native_sim` | The plain suite, which keeps its Access double, with the driver's TLS off |
-| `scripts/test-web.sh host` | Host | Now also checks the HTTPS image's route review list |
+| `scripts/test-web.sh host` | Host | Now also checks the HTTPS image's route review list, the declared TLS profile in the adapter's source, and that check's own negative cases, `tests/build/test_web_tls_profile.py` |
 | `scripts/test-web.sh target mbedtls`, `target wolfssl` | RT1060 compile | The declared profile's configuration compiles and links |
