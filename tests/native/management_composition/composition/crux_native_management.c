@@ -23,7 +23,10 @@ enum { ROOT_SLOT_A = 1, ROOT_SLOT_B = 2 };
 #define PATH_SLOT_A MOUNT_POINT "/secure-a"
 #define PATH_SLOT_B MOUNT_POINT "/secure-b"
 
-static const char *const viewer_permissions[] = {CRUX_MGMT_STATUS_PERMISSION_READ};
+/* network.* and app.pump.read are the web suite's routes, which tests/native/web_https runs here.
+ */
+static const char *const viewer_permissions[] = {CRUX_MGMT_STATUS_PERMISSION_READ, "network.read",
+                                                 "app.pump.read"};
 static const char *const operator_permissions[] = {CRUX_MGMT_STATUS_PERMISSION_READ,
                                                    CRUX_NATIVE_MANAGEMENT_PERMISSION_CONFIG_READ,
                                                    CRUX_NATIVE_MANAGEMENT_PERMISSION_CONFIG_WRITE};
@@ -33,7 +36,10 @@ static const char *const administrator_permissions[] = {
     CRUX_NATIVE_MANAGEMENT_PERMISSION_CONFIG_WRITE,
     CRUX_CONFIG_SERVICE_PERMISSION_SAVE,
     CRUX_SECURITY_EVENT_PERMISSION_READ,
-    CRUX_ACCESS_PERMISSION_MANAGE};
+    CRUX_ACCESS_PERMISSION_MANAGE,
+    "network.read",
+    "network.write",
+    "app.pump.read"};
 /* A permission no service names, so that this role can be refused by every service. */
 static const char *const guest_permissions[] = {"guest.only"};
 static const crux_access_role_t roles[] = {
