@@ -36,6 +36,9 @@ jobs:
       CRUX_PYTHON: ${{ github.workspace }}/../crux-tools/bin/python
       ZEPHYR_SDK_INSTALL_DIR: ${{ github.workspace }}/../crux-cache/sdk/zephyr-sdk-1.0.1
       CRUX_BOARD_TARGET: mimxrt1060_evk@B//qspi
+      CI_HOST_PACKAGES: >-
+        build-essential gcc-multilib ca-certificates device-tree-compiler file gperf git
+        libmagic1 libsdl2-dev pkg-config python3-dev python3-tk wget xz-utils
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,12 +49,42 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Zephyr host packages
+      # Mirror downloads stalled for up to ten minutes in about one job in six. The cache is
+      # only as trusted as its contents, so it is checked against the signed index before use.
+      - name: List host packages from the signed index
+        id: apt_list
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential gcc-multilib ca-certificates device-tree-compiler file gperf git \
-            libmagic1 libsdl2-dev pkg-config python3-dev python3-tk wget xz-utils
+          empty="$(mktemp -d)"
+          sudo apt-get install -y -qq --print-uris --no-install-recommends \
+            -o Acquire::ForceHash=SHA256 -o "Dir::Cache::archives=$empty" \
+            $CI_HOST_PACKAGES > "$RUNNER_TEMP/apt-uris"
+          echo "key=zephyr-apt-ubuntu-24.04-$(sha256sum < "$RUNNER_TEMP/apt-uris" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore downloaded host packages
+        id: apt_restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/crux-apt
+          key: ${{ steps.apt_list.outputs.key }}
+          restore-keys: zephyr-apt-ubuntu-24.04-
+
+      - name: Install Zephyr host packages
+        run: |
+          archives="$HOME/.cache/crux-apt"
+          python3 crux-pilot/scripts/verify-apt-cache.py "$RUNNER_TEMP/apt-uris" "$archives"
+          mkdir -p "$archives/partial"
+          sudo apt-get install -y -o "Dir::Cache::archives=$archives" --no-install-recommends \
+            $CI_HOST_PACKAGES
+          sudo rm -rf "$archives/partial" "$archives/lock"
+          sudo chown -R "$(id -u):$(id -g)" "$archives"
+
+      - name: Save downloaded host packages
+        if: steps.apt_restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/crux-apt
+          key: ${{ steps.apt_list.outputs.key }}
 
       - name: Install pinned Python tools
         run: |
