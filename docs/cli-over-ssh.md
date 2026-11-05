@@ -26,13 +26,15 @@ sequenceDiagram
     participant C as OpenSSH client
     participant W as Provider worker, #192
     participant A as crux_ssh_cli_*, this issue
+    participant S as SSH access adapter, #192
     participant R as crux_cli_run or crux_cli_exec
     participant X as crux_access
     C->>W: pty-req, optional
     C->>W: shell, or exec with a command
     W->>A: shell(attachment, channel, terminal)
-    A->>X: crux_ssh_attachment_session(attachment)
-    alt no provider, no channel, no command or a zero session
+    A->>S: crux_ssh_attachment_session(attachment)
+    S-->>A: the session the attachment holds, unchecked
+    alt no provider, no channel, a NULL command or a zero session
         A-->>W: 255, and nothing written
     else usable
         A->>R: run on a transport over the channel
@@ -46,7 +48,8 @@ sequenceDiagram
         A-->>W: exit status
     end
     W->>C: exit-status, then close
-    W->>X: connection_closed: crux_access_logout
+    W->>S: connection_closed
+    S->>X: crux_access_logout
 ```
 
 Everything between `shell` or `exec` and its return runs on the worker of one connection. The adapter holds a transport and a `crux_cli_context_t` on that stack, and has no lock and no thread of its own.
@@ -66,10 +69,12 @@ CR LF comes from `crux_cli_write_terminal`, the helper the serial console uses, 
 
 | Form | Outcome | Status |
 | --- | --- | --- |
-| Any | No provider, no channel, a zero session, or exec with no command text | 255, with nothing read or written |
+| Any | No provider, no channel, a zero session, or exec with a NULL command | 255, with nothing read or written |
 | Shell | `logout` | 0 |
 | Shell | Client EOF, a dropped connection, expiry, or a registry that is not ready | 1 |
 | Exec | As `crux_cli_exec` reports: success 0, failed or denied 1, usage or length 2, unknown or hidden 127 | 0, 1, 2, 127 |
+| Exec | An empty line, which is a command of no length and not a NULL one | 0, with nothing written |
+| Exec | A session lost at the permission check | 127, with `unknown command` and then `session ended`, because the line was refused before the loss was known |
 
 `crux_access_logout` stays with `connection_closed`, so a CLI `logout` ends the shell and the provider then ends the session.
 
@@ -85,16 +90,17 @@ This is the table in [the command line contract](cli-contract.md#what-193-uses).
 | Client stops reading, window full | Its worker, in `write` | Its catching up, or the idle limit, seen at each write timeout | `Ssh.cli_session`, `Ssh.cli_real_access`, `a_stuck_client_ends_at_the_idle_limit` |
 | Another client during either | Nothing of the first | It runs to its end | `Ssh.cli_concurrency`, `a_slow_client_holds_only_itself` |
 
-A `write` timeout does not refresh the idle timer, so a stuck client cannot keep a session alive. Output needs no buffer of its own here, because each `crux_cli_write` passes through to the channel and waits on that connection alone. `native_sim` also shows the slot being freed after the provider has drained, for a next client.
+A `write` timeout does not refresh the idle timer, so a stuck client cannot keep a session alive. The session is checked at each timeout, and not while bytes are moving, so a slow reader that keeps taking bytes is not stopped at the limits during one command: see [limits](#declared-limits). Output needs no buffer of its own here, because each `crux_cli_write` passes through to the channel and waits on that connection alone. `native_sim` also shows the slot being freed after the provider has drained, for a next client.
 
 ## Why the Zephyr shell is not reachable
 
 | Check | What it shows | Result |
 | --- | --- | --- |
-| `Ssh.cli_session`: 49 built-in commands and module roots, on a shell with and without a terminal and on exec | `unknown command`, status 127, no handler, an event for each rejected line | Pass |
+| `Ssh.cli_session`: 180 generated lines, on a shell with and without a terminal and on exec. Every root command registered under Zephyr's own directories at the pin, every `kernel` and `kernel thread` subcommand, and some lines of the shell's syntax. | `unknown command`, status 127, no handler, an event for each rejected line | Pass |
+| `check_zephyr_shell_lines.py`, in `test-compile.sh` | That list equals what the pinned Zephyr registers, so an upgrade has to bring it along | Pass, and an edited list fails |
 | The same suite: `help` | Exactly the registry's list, in its order, and Tab and the history keys do nothing | Pass |
 | `Ssh.cli_entry_symbols`: `nm` on the entry points' object | They reach only `crux_cli_run`, `crux_cli_exec`, `crux_cli_write_terminal` and `crux_ssh_attachment_session` | Pass |
-| `the_zephyr_shell_is_not_reachable` with OpenSSH | 18 of those lines, through exec and a terminal, and no `uart:~$` | Pass |
+| `the_zephyr_shell_is_not_reachable` with OpenSSH | 23 of those lines through exec, all 180 through one terminal shell, and no `uart:~$` prompt | Pass |
 | `scripts/check-management-shell.py --config --elf` on the running image | `CONFIG_SHELL=n`, no shell symbol, and its sections empty | Pass |
 
 Rule L5 of the command line contract applies once `CONFIG_CRUX_SSH` exists. The image here has `CONFIG_CRUX_CLI`, which the same rule covers.
@@ -127,7 +133,7 @@ The Host suites first ran against a stand-in that refuses everything: `Ssh.cli_s
 | The shell or exec names the serial channel | All three |
 | Exec returns 0 always. The shell returns 0 always, or 1 always. | `session`, `real_access`, and `concurrency` for the shell |
 | No `close` on the shell or on exec | `session` |
-| Zero session, no channel, no provider or no command accepted | `session` |
+| Zero session, no channel, no provider or a NULL command accepted | `session` |
 | `CRUX_OK` with no byte accepted | `session`, as a hang that the CTest limit ends |
 | A timeout read as a failure, or a failure as a timeout | All three |
 | A provider with no `read` or no `close` accepted, or a bad one leaving the last in place | `session` |
@@ -139,13 +145,13 @@ Starting the exec status at 0 did not fail, and is equivalent, because `crux_cli
 
 ## A finding for #192 and Thread
 
-**An image with the command line and the provider does not link.** `CONFIG_CRUX_CLI` needs `CONFIG_CRUX_THREAD`, and both `crux_ssh_wolf_provider.c` and `components/thread/ports/zephyr/thread_native.c` define `K_THREAD_STACK_ARRAY_DEFINE(worker_stacks, ...)` at file scope, which gives one global name:
+The coordinator reports that #265 is taking this fix. **An image with the command line and the provider does not link.** `CONFIG_CRUX_CLI` needs `CONFIG_CRUX_THREAD`, and both `crux_ssh_wolf_provider.c` and `components/thread/ports/zephyr/thread_native.c` define `K_THREAD_STACK_ARRAY_DEFINE(worker_stacks, ...)` at file scope, which gives one global name:
 
 ```text
 multiple definition of `worker_stacks'
 ```
 
-#192's own test image has no `crux::thread`, so it does not meet this. Neither file is #193's to change. `tests/ssh/cli/openssh/CMakeLists.txt` renames the provider's array with a compile definition, for this test image only. The fix is one word, `static`, on either array, and that line then does nothing.
+#192's own test image has no `crux::thread`, so it does not meet this. Neither file is #193's to change. `tests/ssh/cli/openssh/CMakeLists.txt` renames the provider's array with a compile definition, for this test image only. The fix is one word, `static`, on either array, and that line is then removed.
 
 ## Decisions for review
 
@@ -162,15 +168,20 @@ No owner answer was available for these, so each is the narrow choice.
 | 7 | Shell exit status at client EOF | 1, as the contract's snippet has it | Only a logout is clean. `printf 'status\n' \| ssh -T host` therefore reports 1, so scripts should use exec. | 0 |
 | 8 | `close` | Called once before returning on every session that started | The contract says that #193 uses it, and EOF then precedes the exit status | Leave it to the provider's end of connection |
 | 9 | History, which the issue names | None, as accepted rule L6 says | It cannot hold a secret if it does not exist | |
-| 10 | The issue's "Zephyr shell" list | The Host list holds 49 lines from memory of the shell and its modules | It is a test of names that must not exist, so a missing one loses little, and `Ssh.cli_entry_symbols` and the image check do not depend on it | Generating it from a shell-enabled build |
+| 10 | Where the list of Zephyr shell commands comes from | Generated lexically from the pinned Zephyr by `check_zephyr_shell_lines.py`, and checked in the Zephyr job. It covers `subsys`, `drivers`, `kernel`, `lib`, `arch` and `soc`, and not modules outside the Zephyr tree. | A list from memory missed `rem`, `app`, `zyclictest` and most of `kernel`. A macro of another name is still missed, and `Ssh.cli_entry_symbols` and the image check do not depend on the list. | Asking a shell-enabled build, which needs that build in the check |
 | 11 | Echo of a byte above 0x7F, including 0x9B, the first of the #181 follow-ups | Declared and pinned as the same as serial. `components/cli` is not in this issue's files. | The bytes are the client's own, and go back to it alone | Refuse them in `cli_input.c`, for both channels, in #181's follow-up |
-| 12 | Files outside the contract's list for #193 | This document, one row each in `docs/cli-contract.md` and `docs/ssh-provider-contract.md`, a paragraph in `tests/README.md`, one step each in `zephyr.yml` and `host.yml` | A design document is required. Scripts live under `tests/ssh/cli/`, because `scripts/test-ssh*.sh` belong to #192. | |
+| 12 | Files outside the contract's list for #193 | This document, the #193 passages of `docs/cli-contract.md`, one row of `docs/ssh-provider-contract.md`, a paragraph in `tests/README.md`, one step each in `zephyr.yml` and `host.yml` | A design document is required. Scripts live under `tests/ssh/cli/`, because `scripts/test-ssh*.sh` belong to #192. | |
 | 13 | `tests/cli/ssh_shape.c` and its stand-in | Left alone | Not in this issue's files, and it still tests the transport's shape | Remove it in a later clean-up |
 | 14 | OpenSSH case in CI | None. `test-openssh.sh` is local, as #192's script is. | `scripts/check-ssh-boundaries.py` keeps the optional stacks out of default workflows. `test-compile.sh` runs in CI because it needs no wolfSSH. | #247 can add it |
+| 15 | `CONFIG_CRUX_CLI_LINE_MAX`, which can reach 4096, and grows a context on a fixed worker stack | `crux_ssh_cli.c` refuses to compile above `CRUX_SSH_CLI_LINE_MAX_ON_STACK`, 1024 by default. A composition raises the worker's stack first, then this. `Ssh.cli_line_at_the_stack_bound` and `Ssh.cli_line_over_the_stack_bound` hold it. | A stack overflow on a target can be silent. The value of 1024 is a judgement, not a measurement, because Cortex-M7 stack use is unmeasured. | Only stating it |
+| 16 | A build with the command line that lacks a target these suites need | `tests/ssh/cli/CMakeLists.txt` stops at configuration. A build that deselects the CLI, Serial or Thread says so and carries on. | A silent skip would pass having shown nothing, and a deselected build is a supported configuration | Failing both |
 
 ## Declared limits
 
-- **`ssh -t host command`.** The exec callback does not say whether a terminal was requested, so the output has LF only, and a raw terminal shows a staircase for a command of several lines. Passing the flag to `exec` would change the shared callback table.
+- **`ssh -t host command`.** The exec callback does not say whether a terminal was requested, so the output has LF only, and a raw terminal shows a staircase for a command of several lines. Passing the flag to `exec` changes the shared callback table, and #269 tracks it.
+- **`ssh -T` from a real terminal shows `passwd` entries on the user's own screen.** With no `pty-req` the client leaves its terminal's local echo on, and the server cannot turn that off. The server does not echo it. Use `ssh` with a terminal for `passwd`.
+- **A slow reader that keeps moving can outlast the limits during one command.** The session is checked at a write timeout, and not after a write that was accepted, so a command with much output runs on while bytes keep moving. The limits apply again at the next prompt, read timeout or stall. A handler's output is bounded by that handler.
+- **A longer line needs a larger worker stack**, as decision 15 says. The context is about 470 B plus the line on a 64-bit image, and each token of the limit adds a pointer.
 - **Ctrl-D does nothing in a terminal shell**, because the CLI drops C0 controls, as on serial. Use `logout`.
 - **A byte above 0x7F is echoed raw**, including 0x9B, as on serial. It goes back only to the client that sent it.
 - **Typed bytes pass through the provider's and wolfSSH's buffers**, which the CLI cannot clear, as [the contract declares](cli-contract.md#declared-limits).
@@ -183,6 +194,7 @@ No owner answer was available for these, so each is the narrow choice.
 - Anything on a board, timing, or the worker's stack on a Cortex-M7.
 - WinSCP, or any SSH client other than OpenSSH 9.6.
 - A key login through the CLI: the cases use passwords, and #192 covers keys up to its stand-in sessions.
+- **A rekey while a shell is reading.** With `RekeyLimit=16K` and 2,000 lines on standard input, the provider's `read` returned `CRUX_ERR_IO` and the session ended, with `SSH worker ended: no error` in the image. The same input with no rekey passes, as do 20 lines with the limit. The adapter passes that status on as the contract says, so this is for #265. `a_rekey_during_input` holds it as a known failure, and the run fails when it starts to pass, so that the entry is removed. A rekey during output passes, in `a_rekey_during_output`. The independent review measured stack peaks with a rekey of 10,152 B with an Ed25519 host key and 11,232 B with an ECDSA one. Those are its figures, and this PR did not repeat them.
 - `window-change` over the wire: the Host covers it through the fake, and it has no effect by contract.
 - The real security event provider.
 - The OpenSSH and target results on `main`: they ran on a local merge with #192's branch, so they need repeating once #192 has merged.
