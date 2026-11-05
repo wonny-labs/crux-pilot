@@ -12,6 +12,7 @@ import argparse
 import json
 import pathlib
 import socket
+import ssl
 import struct
 import subprocess
 import sys
@@ -51,10 +52,39 @@ TOKEN = "A" * 43
 BROWSER_COOKIE = f"crux_session=admin{'0' * 38}; XSRF-TOKEN={TOKEN}"
 
 results = {}
+# An ssl.SSLContext when a driver runs these cases over TLS, as tests/native/web_https does.
+TLS = None
 
 
 class Closed(Exception):
     """The server closed the connection before a whole response."""
+
+
+class TlsSocket:
+    """An ssl socket whose end of stream reads as a plain socket's, so that each case reads the same.
+
+    The server closes a client without close_notify, which ssl reports as an error.
+    """
+
+    def __init__(self, sock):
+        self.tls = sock
+
+    def recv(self, size):
+        try:
+            return self.tls.recv(size)
+        except (ssl.SSLZeroReturnError, ssl.SSLEOFError):
+            return b""
+        except ssl.SSLError as error:
+            raise ConnectionResetError(str(error)) from error
+
+    def sendall(self, data):
+        try:
+            self.tls.sendall(data)
+        except ssl.SSLError as error:
+            raise ConnectionResetError(str(error)) from error
+
+    def __getattr__(self, name):
+        return getattr(self.tls, name)
 
 
 class Client:
@@ -65,6 +95,11 @@ class Client:
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.sock.settimeout(timeout)
         self.sock.connect((HOST, PORT))
+        if TLS is not None:
+            # The handshake gets the usual time, whatever a case then sets for its reads.
+            self.sock.settimeout(20.0)
+            self.sock = TlsSocket(TLS.wrap_socket(self.sock, server_hostname="localhost"))
+            self.sock.settimeout(timeout)
         self.buffer = b""
 
     def close(self):

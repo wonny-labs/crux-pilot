@@ -1,0 +1,403 @@
+{
+  "profile": "mbed",
+  "suite": {
+    "baseline_latency": {
+      "closed_by_server": 0,
+      "max_ms": 62.7,
+      "median_ms": 48.1,
+      "samples": 28,
+      "unfinished": 0
+    },
+    "capture_browser_shape": {
+      "body": 2,
+      "cookie": 112,
+      "host": 15,
+      "length": 1,
+      "origin": 28,
+      "request": 1,
+      "type": 16,
+      "xsrf": 43
+    },
+    "capture_cookie_max_bytes": 511,
+    "capture_one_byte_per_send_bytes": 711,
+    "client_slots": {
+      "fourth_waited_s": 2.99,
+      "max_clients": 3,
+      "note": "idle keep-alive connections hold a slot until the timer"
+    },
+    "deadline_close_after_last_byte_s": 0.011,
+    "handler_500ms_stall": {
+      "closed_by_server": 0,
+      "handler_max_ms": 510,
+      "max_ms": 513.5,
+      "median_ms": 55.4,
+      "samples": 6,
+      "unfinished": 0
+    },
+    "partial_body_silent_held_s": 3.02,
+    "released_after_close_s": 0.133,
+    "released_after_reset_s": 0.112,
+    "server_plain": {
+      "404": "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found",
+      "405": "HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 18\r\n\r\nMethod Not Allowed",
+      "409": "HTTP/1.1 409 Conflict\r\n\r\n"
+    },
+    "short_request_closed_after_s": 3.12,
+    "slow_reader_drains_later": {
+      "by_response_deadline": false,
+      "released_s": 3.02
+    },
+    "slow_reader_no_progress": {
+      "closed_by_server": 0,
+      "max_ms": 524.0,
+      "median_ms": 48.4,
+      "samples": 28,
+      "send_timeout_ms": 500,
+      "unfinished": 0
+    },
+    "stalled_reader_closed_by_timer_s": 2.81,
+    "stalled_reader_dot_split_alone": {
+      "closed": false,
+      "own_body_bytes": 3072
+    },
+    "trickled_body_closed_s": 2.04,
+    "trickled_headers": {
+      "bytes_each": 12,
+      "clients": 3,
+      "fourth_client_served_after_s": 0.05,
+      "held_s": 12.38,
+      "inactivity_s": 3.0,
+      "parser_header_limit_bytes": 81920,
+      "worst_case_hold_at_10s_timer_days": 9.5
+    },
+    "upload_probe": {
+      "blocked_max_ms": 210,
+      "blocked_total_ms": 3730,
+      "bytes": 32768,
+      "chunk_ms": 5,
+      "elapsed_s": 3.86,
+      "other_client": {
+        "closed_by_server": 0,
+        "max_ms": 2033.0,
+        "median_ms": 48.1,
+        "samples": 7,
+        "unfinished": 0
+      },
+      "overflow": false,
+      "queue_bytes": 2048,
+      "received": 32768,
+      "stall_every_chunks": 16,
+      "stall_ms": 200
+    }
+  },
+  "tls": {
+    "abrupt_close": {
+      "after_request": {
+        "cpu_share_2s": 0.02,
+        "next_request_s": 0.115
+      },
+      "mid_handshake": {
+        "cpu_share_2s": 0.04,
+        "next_request_s": 0.13
+      },
+      "mid_request": {
+        "cpu_share_2s": 0.02,
+        "next_request_s": 0.131
+      },
+      "reset_mid_handshake": {
+        "cpu_share_2s": 0.03,
+        "next_request_s": 0.127
+      },
+      "three_slots_after_four_closes_s": 0.15
+    },
+    "certificate": {
+      "other_ca": {
+        "alert": null,
+        "ok": false,
+        "seconds": 0.127
+      },
+      "presented_is_declared": true,
+      "python_client": {
+        "cipher": "TLS_AES_128_GCM_SHA256",
+        "version": "TLSv1.3"
+      }
+    },
+    "firefox": {
+      "browser": "Mozilla Firefox 159.0.1",
+      "capture": {
+        "get": {
+          "body": 0,
+          "cookie": 113,
+          "host": 15,
+          "length": -1,
+          "origin": -1,
+          "request": 1,
+          "type": -1,
+          "xsrf": -1
+        },
+        "parallel": [
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200,
+          200
+        ],
+        "post": {
+          "body": 2,
+          "cookie": 113,
+          "host": 15,
+          "length": 1,
+          "origin": 23,
+          "request": 1,
+          "type": 16,
+          "xsrf": 43
+        },
+        "postStatus": 200,
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:159.0) Gecko/20100101 Firefox/159.0"
+      },
+      "timing": {
+        "connect": 25,
+        "connectEnd": 70,
+        "end": 125,
+        "protocol": "http/1.1",
+        "request": 72,
+        "secure": 25
+      },
+      "tls_handshake_ms": 45
+    },
+    "groups": {
+      "P-256": {
+        "alert": null,
+        "group": "ECDH, prime256v1, 256 bits",
+        "ok": true,
+        "protocol": "TLSv1.3",
+        "seconds": 0.086,
+        "suite": "TLS_AES_128_GCM_SHA256"
+      },
+      "P-384": {
+        "alert": null,
+        "ok": false,
+        "seconds": 0.052
+      },
+      "P-521": {
+        "alert": null,
+        "ok": false,
+        "seconds": 0.053
+      },
+      "X25519": {
+        "alert": null,
+        "ok": false,
+        "seconds": 0.049
+      },
+      "X448": {
+        "alert": null,
+        "ok": false,
+        "seconds": 0.052
+      },
+      "ffdhe2048": {
+        "alert": null,
+        "ok": false,
+        "seconds": 0.047
+      }
+    },
+    "heap": {
+      "fourth_client_waited_s": 3.07,
+      "idle_bytes": 34928,
+      "per_client_bytes": 23275,
+      "profile": "mbed",
+      "with_clients": [
+        {
+          "bytes": 34928,
+          "clients": 1,
+          "largest_bytes": 73432
+        },
+        {
+          "bytes": 69840,
+          "clients": 2,
+          "largest_bytes": 73432
+        },
+        {
+          "bytes": 104752,
+          "clients": 3,
+          "largest_bytes": 108328
+        }
+      ]
+    },
+    "listener": {
+      "listening": [
+        "tcp6:18443"
+      ],
+      "plain_request_reply": ""
+    },
+    "no_certificate": {
+      "connect": "refused",
+      "listening": []
+    },
+    "offload_fin_control": {
+      "cpu_share_after_close": 0.63,
+      "idle_cpu_share": 0.02,
+      "next_client_served": false,
+      "next_request_s": null
+    },
+    "over_heap": {
+      "client_saw": {
+        "error": "SSLEOFError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)",
+        "seconds": 0.012
+      },
+      "held_bytes": 83072,
+      "next_request_s": 0.133,
+      "released": "over the kept connection"
+    },
+    "refused": {
+      "tls1.2_only_client": {
+        "alert": "40B7FEFEFF7F0000:error:0A00042E:SSL routines:ssl3_read_bytes:tlsv1 alert protocol version:../ssl/record/rec_layer_s3.c:1599:SSL alert number 70",
+        "next_request_s": 0.115,
+        "ok": false,
+        "seconds": 0.068
+      },
+      "tls1.3_aes256_only": {
+        "alert": "40B7FEFEFF7F0000:error:0A000410:SSL routines:ssl3_read_bytes:sslv3 alert handshake failure:../ssl/record/rec_layer_s3.c:1599:SSL alert number 40",
+        "next_request_s": 0.119,
+        "ok": false,
+        "seconds": 0.083
+      },
+      "tls1.3_chacha_only": {
+        "alert": "40B7FEFEFF7F0000:error:0A000410:SSL routines:ssl3_read_bytes:sslv3 alert handshake failure:../ssl/record/rec_layer_s3.c:1599:SSL alert number 40",
+        "next_request_s": 0.119,
+        "ok": false,
+        "seconds": 0.062
+      }
+    },
+    "request_after_a_close_s": {
+      "client_abrupt": [
+        0.129,
+        0.139,
+        0.129
+      ],
+      "client_close_notify": [
+        0.145,
+        0.133,
+        0.132
+      ],
+      "no_close_within_1.5s": [
+        0.126,
+        0.127,
+        0.12
+      ]
+    },
+    "slow_reader_small_responses": {
+      "attempts": 2,
+      "closed_by_server": 0,
+      "max_ms": 520.7,
+      "median_ms": 49.0,
+      "requests_to_fill": 21,
+      "samples": 16,
+      "send_timeout_ms": 500,
+      "sends_returned_eagain": 4,
+      "sends_waited": 1.0,
+      "unfinished": 0
+    },
+    "slow_reader_with_progress": {
+      "bytes_read": 10428,
+      "closed_by_server": 0,
+      "max_ms": 560.5,
+      "median_ms": 48.2,
+      "response_deadline_ms": 1500,
+      "samples": 58,
+      "stopped_by_response_deadline": 0,
+      "stopped_by_send_eagain": 1,
+      "unfinished": 0
+    },
+    "small_response": {
+      "joined": {
+        "median_ms": 49.7,
+        "p90_ms": 51.6,
+        "sends_per_response": 9.0,
+        "tcp_sends_per_response": 9.0
+      },
+      "send_timeout_ms": 500,
+      "split": {
+        "median_ms": 49.5,
+        "p90_ms": 52.8,
+        "sends_per_response": 21.0,
+        "tcp_sends_per_response": 21.0
+      },
+      "split_with_nodelay": {
+        "median_ms": 0.6,
+        "p90_ms": 0.8,
+        "sends_per_response": 21.0,
+        "tcp_sends_per_response": 21.0
+      }
+    },
+    "stalled_handshake": {
+      "connect_timeout_s": 2.0,
+      "partial_client_hello": {
+        "next_client_waited_s": 1.941
+      },
+      "silent": {
+        "next_client_waited_s": 1.929
+      },
+      "two_silent": {
+        "next_client_waited_s": 3.966
+      }
+    },
+    "suites": {
+      "TLS_AES_128_CCM_8_SHA256": {
+        "alert": "40B7FEFEFF7F0000:error:0A000410:SSL routines:ssl3_read_bytes:sslv3 alert handshake failure:../ssl/record/rec_layer_s3.c:1599:SSL alert number 40",
+        "ok": false,
+        "seconds": 0.053
+      },
+      "TLS_AES_128_CCM_SHA256": {
+        "alert": "40B7FEFEFF7F0000:error:0A000410:SSL routines:ssl3_read_bytes:sslv3 alert handshake failure:../ssl/record/rec_layer_s3.c:1599:SSL alert number 40",
+        "ok": false,
+        "seconds": 0.046
+      },
+      "TLS_AES_128_GCM_SHA256": {
+        "alert": null,
+        "group": "ECDH, prime256v1, 256 bits",
+        "ok": true,
+        "protocol": "TLSv1.3",
+        "seconds": 0.148,
+        "suite": "TLS_AES_128_GCM_SHA256"
+      },
+      "TLS_AES_256_GCM_SHA384": {
+        "alert": "40B7FEFEFF7F0000:error:0A000410:SSL routines:ssl3_read_bytes:sslv3 alert handshake failure:../ssl/record/rec_layer_s3.c:1599:SSL alert number 40",
+        "ok": false,
+        "seconds": 0.051
+      },
+      "TLS_CHACHA20_POLY1305_SHA256": {
+        "alert": "40B7FEFEFF7F0000:error:0A000410:SSL routines:ssl3_read_bytes:sslv3 alert handshake failure:../ssl/record/rec_layer_s3.c:1599:SSL alert number 40",
+        "ok": false,
+        "seconds": 0.052
+      }
+    },
+    "versions": {
+      "TLSv1": {
+        "alert": "40B7FEFEFF7F0000:error:0A00042E:SSL routines:ssl3_read_bytes:tlsv1 alert protocol version:../ssl/record/rec_layer_s3.c:1599:SSL alert number 70",
+        "ok": false,
+        "seconds": 0.09
+      },
+      "TLSv1.1": {
+        "alert": "40B7FEFEFF7F0000:error:0A00042E:SSL routines:ssl3_read_bytes:tlsv1 alert protocol version:../ssl/record/rec_layer_s3.c:1599:SSL alert number 70",
+        "ok": false,
+        "seconds": 0.059
+      },
+      "TLSv1.2": {
+        "alert": "40B7FEFEFF7F0000:error:0A00042E:SSL routines:ssl3_read_bytes:tlsv1 alert protocol version:../ssl/record/rec_layer_s3.c:1599:SSL alert number 70",
+        "ok": false,
+        "seconds": 0.049
+      },
+      "TLSv1.3": {
+        "alert": null,
+        "group": "ECDH, prime256v1, 256 bits",
+        "ok": true,
+        "protocol": "TLSv1.3",
+        "seconds": 0.131,
+        "suite": "TLS_AES_128_GCM_SHA256"
+      }
+    }
+  }
+}

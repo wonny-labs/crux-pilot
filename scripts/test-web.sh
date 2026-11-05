@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # Web contract and private HTTP adapter (Issue #184).
 #
-#   scripts/test-web.sh [host|native|target|all] [mbedtls|wolfssl|both]
+#   scripts/test-web.sh [host|native|https|target|all] [mbedtls|wolfssl|both]
 #
 # host:   the suites under debug and sanitizer presets on a fake transport, clang-tidy, the boundary
 #         check, the route generator's tests and the review lists.
 # native: the adapter on the real Zephyr server, on native_sim over plain HTTP on loopback with the
 #         native socket offload, with tests/native/web_http/test_driver.py as the client.
+# https:  the adapter over TLS on native_sim (Issue #185), on the management composition and its declared
+#         test certificate, with tests/native/web_https/https_driver.py: the native suite over TLS, then the
+#         TLS cases. Profiles as for target. CRUX_WEB_FIREFOX names a Firefox binary for the browser check.
 # target: compiles and links the adapter for mimxrt1060_evk@B//qspi on a TLS profile. It builds images
 #         and never flashes, resets or runs one. mbedtls needs the optional Mbed TLS modules, and
 #         wolfssl also the wolfSSL module and a copy of Zephyr with the socket patch. The PSA workflow runs
@@ -17,13 +20,13 @@ set -euo pipefail
 
 mode="${1:-all}"
 profile="${2:-both}"
-case "$mode" in host | native | target | all) ;; *)
-    printf 'usage: %s [host|native|target|all] [mbedtls|wolfssl|both]\n' "$0" >&2
+case "$mode" in host | native | https | target | all) ;; *)
+    printf 'usage: %s [host|native|https|target|all] [mbedtls|wolfssl|both]\n' "$0" >&2
     exit 2
     ;;
 esac
 case "$profile" in mbedtls | wolfssl | both) ;; *)
-    printf 'usage: %s [host|native|target|all] [mbedtls|wolfssl|both]\n' "$0" >&2
+    printf 'usage: %s [host|native|https|target|all] [mbedtls|wolfssl|both]\n' "$0" >&2
     exit 2
     ;;
 esac
@@ -64,9 +67,13 @@ run_host() {
         "$repo"/components/web/session/*.c "$repo"/tests/web/session/*.c
     python3 "$repo/scripts/check-web-boundary.py"
     python3 -m unittest discover -s "$repo/tests/build" -p test_web_routes.py
+    python3 -m unittest discover -s "$repo/tests/build" -p test_web_tls_profile.py
     python3 "$repo/scripts/check-web-routes.py"
     python3 "$repo/scripts/check-web-routes.py" --reviewed "$repo/tests/native/web_http/reviewed-routes.txt" \
         "$repo"/tests/native/web_http/src/probe_routes.c "$repo"/tests/native/web_http/src/project_routes.c
+    python3 "$repo/scripts/check-web-routes.py" --reviewed "$repo/tests/native/web_https/reviewed-routes.txt" \
+        "$repo"/tests/native/web_http/src/probe_routes.c "$repo"/tests/native/web_http/src/project_routes.c \
+        "$repo"/tests/native/web_https/src/tls_probe.c
 }
 
 run_native() {
@@ -85,6 +92,34 @@ run_native() {
     python3 "$repo/tests/native/web_http/test_driver.py" "$build/zephyr/zephyr.exe" \
         --results "$output/native-results.json"
     printf 'native_sim result, plain HTTP on loopback, not device evidence: %s\n' "$output/native-results.json"
+}
+
+run_https() { # profile
+    local selected="$1" short="${1%%tls}" tree="$workspace/zephyr" build
+    short="${short%%ssl}"
+    build="$output/https-$short"
+    if [[ "$selected" == wolfssl ]]; then
+        prepare_patched_zephyr
+        tree="$patched_zephyr"
+    fi
+    (cd "$workspace" && ZEPHYR_BASE="$tree" ZEPHYR_TOOLCHAIN_VARIANT=host west build -p always -b "$native_board" \
+        -d "$build" -o="-j$jobs" "$repo/tests/native/web_https" -- "-DCRUX_WEB_PROFILE=$short") > "$build.log" 2>&1 ||
+        { tail -40 "$build.log" >&2; fail "$short: the HTTPS image did not build"; }
+    nm "$build/zephyr/zephyr.exe" > "$build/symbols.txt"
+    if grep -q 'U fnmatch@' "$build/symbols.txt"; then
+        fail "the image uses the host's fnmatch, which reads Zephyr's flags differently"
+    fi
+    grep -q ' [tT] fnmatch$' "$build/symbols.txt" || fail "the image has no Zephyr fnmatch"
+    grep -q ' [tT] crux_nsos_set_rdhup$' "$build/symbols.txt" || fail "the image lacks the offload's FIN fix"
+    for setting in NET_NATIVE_OFFLOADED_SOCKETS=y NET_SOCKETS_SOCKOPT_TLS=y NET_SOCKETS_TLS_CONNECT_TIMEOUT=2000; do
+        grep -qx "CONFIG_$setting" "$build/zephyr/.config" || fail "$short: the image needs CONFIG_$setting"
+    done
+    if grep -q '^CONFIG_CRUX_WEB_PLAIN_HTTP_FOR_TESTS=y' "$build/zephyr/.config"; then
+        fail "the HTTPS image must not hold plain HTTP"
+    fi
+    python3 "$repo/tests/native/web_https/https_driver.py" "$build/zephyr/zephyr.exe" --profile "$short" \
+        --results "$output/https-$short-results.json" ${CRUX_WEB_FIREFOX:+--firefox "$CRUX_WEB_FIREFOX"}
+    printf 'native_sim result over TLS, %s profile, not device evidence: %s\n' "$short" "$output/https-$short-results.json"
 }
 
 prepare_patched_zephyr() {
@@ -144,6 +179,10 @@ mkdir -p "$output"
 case "$mode" in
     host) run_host ;;
     native) run_native ;;
+    https)
+        if [[ "$profile" == mbedtls || "$profile" == both ]]; then run_https mbedtls; fi
+        if [[ "$profile" == wolfssl || "$profile" == both ]]; then run_https wolfssl; fi
+        ;;
     all)
         run_host
         run_native
