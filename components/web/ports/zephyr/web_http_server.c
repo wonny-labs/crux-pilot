@@ -88,9 +88,37 @@ HTTP_SERVICE_DEFINE(crux_web_service, NULL, &crux_web_port, CONFIG_HTTP_SERVER_M
                     CONFIG_CRUX_WEB_BACKLOG, NULL, NULL, NULL);
 #else
 static const sec_tag_t crux_web_sec_tags[] = {CONFIG_CRUX_WEB_TLS_SEC_TAG};
+/* TLS_AES_128_GCM_SHA256, the one suite every TLS 1.3 client implements (RFC 8446, 9.1). */
+static const int crux_web_tls_suites[] = {0x1301};
+
+/* The declared TLS profile, set on the listener, which every accepted socket copies. The server
+ * asks for NET_IPPROTO_TLS_1_2, which Mbed TLS reads as a minimum and the wolfSSL backend as exact,
+ * so the two profiles would differ. TLS 1.3 means TLS 1.3 alone on both. See
+ * docs/https-composition.md.
+ */
+static int crux_web_tls_socket(const struct http_service_desc *service, int family, int protocol)
+{
+    int fd;
+
+    ARG_UNUSED(service);
+    ARG_UNUSED(protocol);
+    fd = zsock_socket(family, NET_SOCK_STREAM, NET_IPPROTO_TLS_1_3);
+    if (fd >= 0 && zsock_setsockopt(fd, ZSOCK_SOL_TLS, ZSOCK_TLS_CIPHERSUITE_LIST,
+                                    crux_web_tls_suites, sizeof(crux_web_tls_suites)) < 0) {
+        int error = errno;
+
+        (void)zsock_close(fd);
+        errno = error;
+        fd = -1;
+    }
+    return fd;
+}
+
+static const struct http_service_config crux_web_tls_config = {.socket_create =
+                                                                   crux_web_tls_socket};
 
 HTTPS_SERVICE_DEFINE(crux_web_service, NULL, &crux_web_port, CONFIG_HTTP_SERVER_MAX_CLIENTS,
-                     CONFIG_CRUX_WEB_BACKLOG, NULL, NULL, NULL, crux_web_sec_tags,
+                     CONFIG_CRUX_WEB_BACKLOG, NULL, NULL, &crux_web_tls_config, crux_web_sec_tags,
                      sizeof(crux_web_sec_tags));
 #endif
 

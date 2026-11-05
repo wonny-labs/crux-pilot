@@ -300,8 +300,10 @@ None of this operates hardware, and no target has run these services. See the
 `scripts/test-web.sh host` runs `Web.*` on the real web and Access cores with a fake transport, and the
 boundary, generator and route review checks. `scripts/test-web.sh native` runs the adapter on the real
 Zephyr server on `native_sim`, over plain HTTP on loopback. `scripts/test-web.sh target` compiles for
-RT1060 on the TLS profiles: Mbed TLS runs in CI in the PSA workflow, and wolfSSL does not. Nothing here runs TLS or uses a
-board. See the [web contract](../docs/web-contract.md).
+RT1060 on the TLS profiles: Mbed TLS runs in CI in the PSA workflow, and wolfSSL does not. `scripts/test-web.sh https`
+runs the native suite over TLS on the management composition, with the TLS cases of `tests/native/web_https`, on each
+profile: Mbed in the PSA workflow, Wolf locally. Nothing here uses a board. See the [web contract](../docs/web-contract.md)
+and the [HTTPS composition](../docs/https-composition.md).
 
 `scripts/test-web-session.sh native` runs login and sessions on the management composition, with the real Access core
 on its PSA ports, over plain HTTP on `native_sim`, and CI runs it in the PSA workflow. `Web.session_*` are its Host

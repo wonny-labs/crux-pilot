@@ -89,6 +89,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-native-composition.sh mbed
 
+      - name: The web adapter over HTTPS on the composition, Mbed profile, on native_sim
+        working-directory: crux-pilot
+        run: scripts/test-web.sh https mbedtls
+
       - name: Login and sessions on the composition, Mbed profile, on native_sim over plain HTTP
         working-directory: crux-pilot
         run: scripts/test-web-session.sh native
@@ -111,6 +115,7 @@ jobs:
             crux-pilot/build/native-composition/*/*.log
             crux-pilot/build/native-composition/*/*.txt
             crux-pilot/build/native-composition/*/*.json
+            crux-pilot/build/web/https-*-results*
             crux-pilot/build/web-session/*.json
             crux-pilot/build/web-session/*.log
           if-no-files-found: warn

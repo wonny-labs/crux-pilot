@@ -20,7 +20,7 @@ internal target `crux_web_adapter`.
 | Access core on Zephyr | **Faked on `native_sim`** by a double, until #242. The real core and its fake ports run on Host | |
 | Socket shutdown on `native_sim` | **Shimmed in the test image**, see [below](#three-limits-of-native_sim-found-here) | |
 | A send that returns `-EAGAIN` on `native_sim` | **Injected in the test image** by a wrapped send, because the offload rarely produces one | |
-| TLS handshake stall | **Not measured.** Read from source and declared, see [below](#tls-handshake-stall) | |
+| TLS handshake stall | **Measured on both profiles in #185**, and bounded at 2 s: [HTTPS composition](https-composition.md#stalled-handshake) | `native_sim` |
 | Streaming upload contract | Not built. A probe in the test image measures it, and #188 chooses the contract | |
 | Anything on a board | Not run. Hardware needs separate approval | |
 
@@ -309,8 +309,8 @@ gets `400` on every route, and clearing its cookies fixes it.
 
 ## TLS handshake stall
 
-Read from source at v4.4.2 and in the wolfSSL socket patch at the pinned revision. Not measured, because no TLS runs on
-`native_sim` until #185 and #242. **This acceptance criterion stays open for #185.**
+Read from source at v4.4.2 and in the wolfSSL socket patch at the pinned revision. #185 measured it on both profiles and
+lowered the limit to 2 s: see [the HTTPS composition](https-composition.md#stalled-handshake).
 
 | Path | What the source does |
 | --- | --- |

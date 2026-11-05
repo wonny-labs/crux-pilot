@@ -7,6 +7,8 @@
   checks, and cannot reach the adapter or the core's private headers.
 - No fake exists in a build that a product could use, which that project checks when it configures.
 - The Zephyr server is named only in the adapter, and the service has no fallback resource.
+- The HTTPS listener holds the declared TLS profile of Issue #185: TLS 1.3 and TLS_AES_128_GCM_SHA256 alone.
+  A Mbed TLS run cannot see its loss, since that stack reads the server's TLS 1.2 as a minimum.
 """
 from pathlib import Path
 import re
@@ -66,6 +68,21 @@ def header_errors():
     return errors
 
 
+def tls_profile_errors(code):
+    """The listener's version and suite list, in the adapter's source with its comments removed."""
+    errors = []
+    if not re.search(r"zsock_socket\(\s*family\s*,\s*NET_SOCK_STREAM\s*,\s*NET_IPPROTO_TLS_1_3\s*\)", code):
+        errors.append("the HTTPS listener must be created for TLS 1.3, the declared version")
+    suites = re.search(r"crux_web_tls_suites\[\]\s*=\s*\{([^}]*)\}", code)
+    if suites is None or [suite.strip() for suite in suites.group(1).split(",")] != ["0x1301"]:
+        errors.append("the HTTPS listener's suite list must be 0x1301, TLS_AES_128_GCM_SHA256, alone")
+    if not re.search(r"ZSOCK_TLS_CIPHERSUITE_LIST\s*,\s*crux_web_tls_suites", code):
+        errors.append("the HTTPS listener must set its suite list with ZSOCK_TLS_CIPHERSUITE_LIST")
+    if not re.search(r"\.socket_create\s*=\s*crux_web_tls_socket", code):
+        errors.append("the HTTPS service must create its listener with crux_web_tls_socket")
+    return errors
+
+
 def source_errors():
     errors = []
     for path in sorted((COMPONENT / "src").glob("*")):
@@ -74,13 +91,16 @@ def source_errors():
     adapter = (COMPONENT / "ports/zephyr/web_http_server.c").read_text(encoding="utf-8")
     code = COMMENT.sub("", adapter)
     # Arguments 5 to 7 are the detail, the fallback resource and the configuration.
-    services = re.findall(r"HTTPS?_SERVICE_DEFINE\(crux_web_service,([^;]*)\);", code, re.DOTALL)
+    # The HTTPS service's configuration creates its listener with the declared TLS profile (#185).
+    services = re.findall(r"(HTTPS?)_SERVICE_DEFINE\(crux_web_service,([^;]*)\);", code, re.DOTALL)
     if len(services) != 2:
         errors.append("expected one HTTPS service and one for native_sim tests")
-    for service in services:
+    for kind, service in services:
         arguments = [argument.strip() for argument in service.split(",")]
-        if arguments[4:7] != ["NULL", "NULL", "NULL"]:
+        expected = ["NULL", "NULL", "&crux_web_tls_config" if kind == "HTTPS" else "NULL"]
+        if arguments[4:7] != expected:
             errors.append(f"the service must have no fallback resource: {arguments[4:7]}")
+    errors += tls_profile_errors(code)
     if re.search(r"\bEAGAIN\b", code):
         errors.append("a close must not use EAGAIN, with which the server keeps the connection")
     return errors
