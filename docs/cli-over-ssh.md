@@ -115,7 +115,7 @@ Recorded on 5 November 2026, in the Dev Container image under emulation, with Op
 | Host, ASan and UBSan, GCC 13 | The same on a local build with `CC=gcc`, because the image lacks Clang's sanitizer runtime | 7 of 7, and `Ssh.CallbackTable` |
 | Host, clang-tidy 18 | The entry points and `tests/ssh/cli/*.c` | No finding |
 | Host, ThreadSanitizer | `tests/ssh/cli/test-thread-sanitizer.sh` | Passes in the Host CI job. It cannot run locally, because it cannot map its shadow memory under emulation. |
-| CI, at `8e708ef` | `host`, `links`, `psa-crypto` and the four Zephyr shards | All pass, including Clang's ASan and UBSan on `Ssh.cli_*`, and `test-compile.sh` in the `io` shard |
+| CI, at `91439b1` | `host`, `links`, `psa-crypto` and the four Zephyr shards | All pass, including Clang's ASan and UBSan on `Ssh.cli_*`, and `test-compile.sh` with the list check in the `io` shard. CI does not run the OpenSSH script. |
 | `native_sim`, real OpenSSH, real provider from #265 at `800d0af` | `tests/ssh/cli/test-openssh.sh`, on a local merge | 15 of 15 cases |
 | RT1060-EVKB, compile and link only, not flashed or run | `tests/ssh/cli/test-openssh.sh --target`, the same image and merge, with #192's `rt1060.conf` | Links: 307,000 B Flash, 703,884 B RAM, which includes the test's 512 KiB arena and 32 KiB main stack. The shell rule passes on the image. |
 | `native_sim` and RT1060-EVKB, compile only, no wolfSSH | `tests/ssh/cli/test-compile.sh`, also in the Zephyr CI job | Both build, with the limits' flags on the source, and the shell rule passes on `.config` |
@@ -173,7 +173,7 @@ No owner answer was available for these, so each is the narrow choice.
 | 13 | `tests/cli/ssh_shape.c` and its stand-in | Left alone | Not in this issue's files, and it still tests the transport's shape | Remove it in a later clean-up |
 | 14 | OpenSSH case in CI | None. `test-openssh.sh` is local, as #192's script is. | `scripts/check-ssh-boundaries.py` keeps the optional stacks out of default workflows. `test-compile.sh` runs in CI because it needs no wolfSSH. | #247 can add it |
 | 15 | `CONFIG_CRUX_CLI_LINE_MAX`, which can reach 4096, and grows a context on a fixed worker stack | `crux_ssh_cli.c` refuses to compile above `CRUX_SSH_CLI_LINE_MAX_ON_STACK`, 1024 by default. A composition raises the worker's stack first, then this. `Ssh.cli_line_at_the_stack_bound` and `Ssh.cli_line_over_the_stack_bound` hold it. | A stack overflow on a target can be silent. The value of 1024 is a judgement, not a measurement, because Cortex-M7 stack use is unmeasured. | Only stating it |
-| 16 | A build with the command line that lacks a target these suites need | `tests/ssh/cli/CMakeLists.txt` stops at configuration. A build that deselects the CLI, Serial or Thread says so and carries on. | A silent skip would pass having shown nothing, and a deselected build is a supported configuration | Failing both |
+| 16 | A build with the command line that lacks a target these suites need | `tests/ssh/cli/CMakeLists.txt` stops at configuration. A build that deselects the CLI, Serial or Thread says so and carries on. Only the second path has run, with `CRUX_BUILD_CLI=OFF`. | A silent skip would pass having shown nothing, and a deselected build is a supported configuration | Failing both |
 
 ## Declared limits
 
