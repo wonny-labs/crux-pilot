@@ -1,0 +1,36 @@
+cmake_minimum_required(VERSION 3.28)
+project(crux_web_consumer LANGUAGES C CXX)
+if(NOT CRUX_SOURCE_DIR)
+    get_filename_component(CRUX_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+endif()
+foreach(required IN ITEMS SYNC ACCESS WEB)
+    set(CRUX_BUILD_${required} ON CACHE BOOL "Required by Web")
+endforeach()
+add_subdirectory("${CRUX_SOURCE_DIR}" crux)
+include("${CRUX_SOURCE_DIR}/cmake/CruxConsumerBoundary.cmake")
+include("${CRUX_SOURCE_DIR}/cmake/CruxAccessBoundary.cmake")
+include("${CRUX_SOURCE_DIR}/cmake/CruxWebRoutes.cmake")
+crux_assert_portable_usage(crux::web)
+crux_assert_access_adapter_unreachable(crux::web)
+
+# No fake or test composition exists in a build that a product could use.
+foreach(forbidden IN ITEMS crux_web_test_core crux_access_test_composition)
+    if(TARGET ${forbidden})
+        message(FATAL_ERROR "${forbidden} must not exist outside Crux's own tests")
+    endif()
+endforeach()
+
+# A project: a route through the public header, and the table the build generates for it. A final
+# link needs a platform adapter, so this stops at objects.
+add_library(web_consumer_c OBJECT consumer.c)
+add_library(web_consumer_cpp OBJECT consumer.cpp)
+foreach(target IN ITEMS web_consumer_c web_consumer_cpp)
+    target_link_libraries(${target} PRIVATE crux::web)
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    crux_assert_portable_consumer(${target})
+    crux_assert_access_consumer(${target})
+endforeach()
+crux_web_routes(web_consumer_c SOURCES consumer.c)
+set_target_properties(web_consumer_c PROPERTIES C_STANDARD 17 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
+set_target_properties(web_consumer_cpp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF)

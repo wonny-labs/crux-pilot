@@ -154,6 +154,11 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-spi.sh
 
+      - name: Validate the web adapter on native_sim over plain HTTP
+        if: matrix.shard == 'io'
+        working-directory: crux-pilot
+        run: scripts/test-web.sh native
+
       # Runs the consumer's own levels from a copy outside this tree: Twister, a console
       # oracle on native_sim and a controlled defect. No hardware.
       - name: Validate the out-of-tree consumer at its Zephyr levels

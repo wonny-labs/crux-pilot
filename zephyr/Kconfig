@@ -192,3 +192,87 @@ configdefault SDHC_BUFFER_ALIGNMENT
 # Keeps the FatFs sector window out of the SD layer's bounce path.
 configdefault FS_FATFS_WINDOW_ALIGNMENT
     default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
+
+menuconfig CRUX_WEB
+    bool "Crux web server adapter"
+    depends on CRUX_PILOT_MODULE && NETWORKING
+    select HTTP_SERVER
+    select HTTP_SERVER_CAPTURE_HEADERS
+    select HTTP_SERVER_RESOURCE_WILDCARD
+    select HTTP_SERVER_COMPLETE_STATUS_PHRASES
+    select NET_CONTEXT_SNDTIMEO if NET_NATIVE
+    help
+      The private adapter over the Zephyr HTTP server, for routes defined with crux/web.h. HTTPS
+      only, unless a native_sim test asks otherwise. A composition starts it, and provides the
+      Access core. See docs/web-contract.md.
+
+if CRUX_WEB
+
+config CRUX_WEB_PORT
+    int "Port of the web service, or 0 for an ephemeral one"
+    default 443
+    range 0 65535
+
+config CRUX_WEB_BACKLOG
+    int "Connections the listening socket queues"
+    default 4
+    range 1 32
+
+config CRUX_WEB_TLS_SEC_TAG
+    int "TLS security tag of the service's credentials"
+    default 1
+    depends on !CRUX_WEB_PLAIN_HTTP_FOR_TESTS
+
+config CRUX_WEB_BODY_BUFFER
+    int "Bytes of request body held per client"
+    default 1024
+    range 64 16384
+
+config CRUX_WEB_SEND_TIMEOUT_MS
+    int "Longest wait of one socket send, on the server thread"
+    default 1000
+    range 10 60000
+
+config CRUX_WEB_RESPONSE_PIECE
+    int "Bytes of a response body passed to the server at a time"
+    default 1024
+    range 64 65536
+
+config CRUX_WEB_RESPONSE_DEADLINE_MS
+    int "Longest time one response may keep the server thread"
+    default 3000
+    range 10 600000
+
+config CRUX_WEB_REQUEST_DEADLINE_MS
+    int "Whole-request deadline, from the headers to the last body byte"
+    default 5000
+    range 10 600000
+    help
+      Every received byte restarts the server's inactivity timer, so that timer does not bound a
+      client that trickles a body. A composition passes this in crux_web_config_t.
+
+config CRUX_WEB_PLAIN_HTTP_FOR_TESTS
+    bool "Plain HTTP on loopback, for tests of the adapter only"
+    depends on BOARD_NATIVE_SIM
+    help
+      The design excludes plain HTTP. This exists so the adapter can run on native_sim before the
+      TLS profiles of Issue #185 do, and no other board can select it.
+
+endif # CRUX_WEB
+
+# The two cookies and the X-Crux-Request of the attempt poll fit, with room for what else a device's
+# address may carry. Sized in docs/web-contract.md, and each is checked when the adapter compiles.
+configdefault HTTP_SERVER_VERSION_2
+    default n if CRUX_WEB
+
+configdefault HTTP_SERVER_MAX_HEADER_LEN
+    default 512 if CRUX_WEB
+
+configdefault HTTP_SERVER_CAPTURE_HEADER_COUNT
+    default 7 if CRUX_WEB
+
+configdefault HTTP_SERVER_CAPTURE_HEADER_BUFFER_SIZE
+    default 1024 if CRUX_WEB
+
+configdefault HTTP_SERVER_STACK_SIZE
+    default 4096 if CRUX_WEB

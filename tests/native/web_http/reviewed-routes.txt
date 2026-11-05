@@ -1,0 +1,15 @@
+# The test image's public and session-only routes, for scripts/test-web.sh. Not for a product.
+public POST /api/v1/session
+session DELETE /api/v1/session
+public GET /api/v1/session/attempt/{id}
+session GET /api/v1/session/me
+session GET /api/v1/status
+session GET /api/v1/files/{area}
+session GET /api/v1/files/{area}/{name}
+session GET /api/v1/app/pump/{id}
+public GET /probe/echo
+public POST /probe/echo
+public GET /probe/cookies
+public GET /probe/slow/{ms}
+public GET /probe/static/{size}
+public GET /probe/stats

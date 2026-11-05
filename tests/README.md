@@ -295,6 +295,14 @@ and Sync and a double for access: after any number of status polls,
 None of this operates hardware, and no target has run these services. See the
 [services contract](../docs/status-configuration-services.md).
 
+## Web contract and HTTP adapter
+
+`scripts/test-web.sh host` runs `Web.*` on the real web and Access cores with a fake transport, and the
+boundary, generator and route review checks. `scripts/test-web.sh native` runs the adapter on the real
+Zephyr server on `native_sim`, over plain HTTP on loopback. `scripts/test-web.sh target` compiles for
+RT1060 on the TLS profiles and is not in CI. None of it uses TLS or a board. See the
+[web contract](../docs/web-contract.md).
+
 ## Portable File software slice
 
 `scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS and FatFs File suites on

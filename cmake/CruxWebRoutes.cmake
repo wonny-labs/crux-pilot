@@ -1,0 +1,43 @@
+include_guard(GLOBAL)
+
+# Generates the route table of a web image from the sources that hold its CRUX_WEB_ROUTE uses, and
+# adds it to a target that links crux::web, along with those sources' routes. A route in a source not
+# named here is not in the table, so it cannot be reached.
+#
+#   crux_web_routes(<target> SOURCES <files> [ZEPHYR_RESOURCES] [FAKE_MANIFEST])
+#
+# ZEPHYR_RESOURCES also generates the registered resources, and needs the Zephyr port's header and
+# Zephyr's headers on the target, as `app` has. FAKE_MANIFEST is for the Host's fake transport only.
+function(crux_web_routes target)
+    cmake_parse_arguments(PARSE_ARGV 1 ARG "ZEPHYR_RESOURCES;FAKE_MANIFEST" "" "SOURCES")
+    if(NOT ARG_SOURCES OR ARG_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "crux_web_routes(<target> SOURCES <files> ...)")
+    endif()
+    set(tool "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../components/web/tools/web_routes.py")
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    set(sources)
+    foreach(source IN LISTS ARG_SOURCES)
+        cmake_path(ABSOLUTE_PATH source BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)
+        list(APPEND sources "${source}")
+    endforeach()
+    set(directory "${CMAKE_CURRENT_BINARY_DIR}/crux_web_generated/${target}")
+    set(outputs "${directory}/crux_web_routes.c")
+    set(arguments --table "${directory}/crux_web_routes.c")
+    if(ARG_ZEPHYR_RESOURCES)
+        list(APPEND outputs "${directory}/crux_web_resources.c")
+        list(APPEND arguments --zephyr "${directory}/crux_web_resources.c")
+    endif()
+    if(ARG_FAKE_MANIFEST)
+        list(APPEND outputs "${directory}/fake_resources.c")
+        list(APPEND arguments --manifest "${directory}/fake_resources.c")
+    endif()
+    add_custom_command(OUTPUT ${outputs}
+        COMMAND "${Python3_EXECUTABLE}" "${tool}" ${arguments} ${sources}
+        DEPENDS "${tool}" ${sources}
+        COMMENT "Generating the web route table of ${target}"
+        VERBATIM)
+    target_sources(${target} PRIVATE ${outputs})
+    if(ARG_ZEPHYR_RESOURCES)
+        target_link_libraries(${target} PRIVATE crux_web_zephyr_resources)
+    endif()
+endfunction()

@@ -45,6 +45,8 @@ jobs:
         run: ./scripts/test-security-event.sh
       - name: Validate the status and configuration services on Host
         run: ./scripts/test-mgmt-services.sh
+      - name: Validate the web contract on Host
+        run: ./scripts/test-web.sh host
       - name: Validate independent execution consumers and public boundaries
         run: ./scripts/test-portable-execution.sh --host-only
       - name: Validate independent File consumers
