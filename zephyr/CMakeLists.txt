@@ -98,3 +98,7 @@ if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
         cmake_language(DEFER CALL crux_assert_portable_usage crux::file)
     endif()
 endif()
+
+if(CONFIG_CRUX_MMC_CACHE_FLUSH)
+    include("${CMAKE_CURRENT_LIST_DIR}/mmc_cache_flush.cmake")
+endif()

@@ -165,7 +165,7 @@ Use it for short-term development checks only. At Zephyr v4.4.2:
 
 ### One file in this repository
 
-This public repository carries one replaced Zephyr source as a [build-local replacement](../patches/zephyr/README.md). A script checks the original hash and patches a temporary copy, and CMake swaps exactly that one source in the build. It never edits the Zephyr checkout. This suits a single file. For anything larger, the flow above leads to a fork.
+This public repository carries two replaced Zephyr sources, each as a [build-local replacement](../patches/zephyr/README.md) of one file. For each, a script checks the original hash and patches a temporary copy, and CMake swaps exactly that one source in the build. It never edits the Zephyr checkout. This suits a single file. For anything larger, the flow above leads to a fork.
 
 ## Versions
 

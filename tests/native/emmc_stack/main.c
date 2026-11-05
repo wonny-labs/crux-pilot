@@ -1,8 +1,9 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
- * The unmodified Zephyr MMC stack (drivers/disk/mmc_subsys.c, subsys/sd) against the eMMC
- * simulator, with and without a cache. Results show how the stack behaves against a model written
- * from its own needs, not how a device behaves.
+ * The Zephyr MMC stack (drivers/disk/mmc_subsys.c, subsys/sd) against the eMMC simulator, with and
+ * without a cache. The stack is unmodified unless CONFIG_CRUX_MMC_CACHE_FLUSH replaces
+ * subsys/sd/mmc.c with the build-local correction. Results show how the stack behaves against a
+ * model written from its own needs, not how a device behaves.
  *
  * Every case starts from a freshly initialised card with no faults and zeroed statistics, and new
  * data is derived from what the medium holds, so no case depends on another having run.
@@ -265,6 +266,7 @@ ZTEST(emmc_stack, test_transfers_are_aligned_for_dma)
     zassert_equal(stats().misaligned_transfers, 1);
 }
 
+#if !defined(CONFIG_CRUX_MMC_CACHE_FLUSH)
 ZTEST(emmc_stack, test_sync_sends_no_flush_at_the_pin)
 {
     const uint32_t sector = 110;
@@ -275,6 +277,137 @@ ZTEST(emmc_stack, test_sync_sends_no_flush_at_the_pin)
     zassert_equal(stats().flush_commands, 0);
     assert_persistent(sector, 1, CACHED ? old_data : new_data);
 }
+#endif
+
+#if defined(CONFIG_CRUX_MMC_CACHE_FLUSH)
+/* The cases below run with the build-local correction of subsys/sd/mmc.c. */
+
+static void require_profile(bool cached)
+{
+    if (CACHED != cached) {
+        ztest_test_skip();
+    }
+}
+
+static int sync(void)
+{
+    return disk_access_ioctl(DISK, DISK_IOCTL_CTRL_SYNC, NULL);
+}
+
+ZTEST(emmc_stack, test_sync_flushes_cached_writes)
+{
+    const uint32_t sector = 120;
+
+    require_profile(true);
+    prepare_new_data(new_data, sector, 2);
+    zassert_equal(disk_access_write(DISK, new_data, sector, 2), 0);
+    assert_persistent(sector, 2, old_data);
+    zassert_equal(sync(), 0);
+    zassert_equal(stats().flush_commands, 1);
+    assert_persistent(sector, 2, new_data);
+}
+
+ZTEST(emmc_stack, test_sync_without_cache_sends_no_flush)
+{
+    const uint32_t sector = 124;
+
+    require_profile(false);
+    prepare_new_data(new_data, sector, 1);
+    zassert_equal(disk_access_write(DISK, new_data, sector, 1), 0);
+    zassert_equal(sync(), 0);
+    zassert_equal(stats().flush_commands, 0);
+    assert_persistent(sector, 1, new_data);
+}
+
+ZTEST(emmc_stack, test_rejected_flush_returns_eio)
+{
+    require_profile(true);
+    emmc_sim_reject_next_switch();
+    zassert_equal(sync(), -EIO);
+    zassert_equal(stats().flush_commands, 1);
+    zassert_equal(sync(), 0, "a rejected flush leaves no state behind");
+}
+
+ZTEST(emmc_stack, test_switch_error_in_any_status_response_is_detected)
+{
+    require_profile(true);
+    /* Bit 7 is in the first status response after the flush, which also says not ready, and
+     * reading it clears it, so a poll that only waits for ready would never see it. */
+    emmc_sim_reject_next_switch();
+    emmc_sim_not_ready_after_switch(2);
+    zassert_equal(sync(), -EIO);
+    zassert_equal(stats().flush_commands, 1);
+}
+
+ZTEST(emmc_stack, test_flush_command_failure_returns_error)
+{
+    require_profile(true);
+    emmc_sim_fail_command(SD_SWITCH, 1, UINT32_MAX);
+    zassert_not_equal(sync(), 0);
+    zassert_equal(stats().flush_commands, 1);
+}
+
+ZTEST(emmc_stack, test_status_command_failure_after_the_flush_returns_error)
+{
+    require_profile(true);
+    /* The first status read is the wait before the flush. A lost response after the flush may
+     * have held bit 7, so one failed read is an error even though the next would succeed. */
+    emmc_sim_fail_command(SD_SEND_STATUS, 2, 1);
+    zassert_not_equal(sync(), 0);
+    zassert_equal(stats().flush_commands, 1);
+    zassert_equal(sync(), 0);
+}
+
+ZTEST(emmc_stack, test_busy_before_the_flush_returns_error_and_sends_none)
+{
+    require_profile(true);
+    emmc_sim_hold_busy(true);
+    zassert_equal(sync(), -EBUSY, "the value of the wait before the flush");
+    zassert_equal(stats().flush_commands, 0);
+    emmc_sim_hold_busy(false);
+}
+
+ZTEST(emmc_stack, test_busy_after_the_flush_returns_etimedout)
+{
+    require_profile(true);
+    emmc_sim_busy_after_switch(true);
+    zassert_equal(sync(), -ETIMEDOUT);
+    zassert_equal(stats().flush_commands, 1);
+}
+
+ZTEST(emmc_stack, test_status_never_ready_after_the_flush_returns_etimedout)
+{
+    require_profile(true);
+    emmc_sim_not_ready_after_switch(UINT32_MAX);
+    zassert_equal(sync(), -ETIMEDOUT);
+    zassert_equal(stats().flush_commands, 1);
+}
+
+ZTEST(emmc_stack, test_reinit_without_cache_clears_the_flag)
+{
+    const uint32_t sector = 126;
+
+    require_profile(true);
+    emmc_sim_set_cache_kb(0);
+    zassert_equal(disk_access_ioctl(DISK, DISK_IOCTL_CTRL_DEINIT, NULL), 0);
+    zassert_equal(disk_access_init(DISK), 0);
+    zassert_false(stats().cache_on);
+    emmc_sim_reset_stats(); /* the de-initialisation above flushed */
+    prepare_new_data(new_data, sector, 1);
+    zassert_equal(disk_access_write(DISK, new_data, sector, 1), 0);
+    zassert_equal(sync(), 0);
+    zassert_equal(stats().flush_commands, 0);
+
+    /* Back to the cached profile for later cases; the flag is set again. */
+    emmc_sim_set_cache_kb(CONFIG_CRUX_EMMC_SIM_CACHE_KB);
+    zassert_equal(disk_access_ioctl(DISK, DISK_IOCTL_CTRL_DEINIT, NULL), 0);
+    zassert_equal(disk_access_init(DISK), 0);
+    zassert_true(stats().cache_on);
+    emmc_sim_reset_stats();
+    zassert_equal(sync(), 0);
+    zassert_equal(stats().flush_commands, 1);
+}
+#endif
 
 static void before_each(void *fixture)
 {

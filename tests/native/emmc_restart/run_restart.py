@@ -6,8 +6,10 @@ The simulator's persistent state is backed by a host file, so it outlives the pr
 cache is RAM, so it does not. A process exit stands in for nothing more than that: this is software
 evidence about the model and says nothing about power loss on a device.
 
-The stack sends no flush at the pinned Zephyr revision, so a sync reaches the medium only without a
-cache. On the cached profile the flush path is driven by a command the test program sends itself.
+The unmodified stack sends no flush at the pinned Zephyr revision, so with it a sync reaches the
+medium only without a cache, and on the cached profile the flush path is driven by a command the test
+program sends itself. A second build of the same program with CONFIG_CRUX_MMC_CACHE_FLUSH=y, given
+with --flush-exe, checks that a sync through the corrected stack reaches the medium with the cache on.
 """
 import argparse
 import os
@@ -127,9 +129,34 @@ def test_trace_records_writes_flushes_and_marks(exe, workdir):
     expect(records[2][3] == 7, f"mark id: {records[2][3]}")
 
 
+def test_cached_sync_survives_a_process_restart_only_with_the_correction(exe, flush_exe, workdir):
+    # At the pin, a sync with the cache on leaves the data in the cache, which the exit drops.
+    image = os.path.join(workdir, "pinned.bin")
+    write(exe, image, CACHED, 1, "--restart-sync")
+    expect_does_not_hold(exe, image, CACHED, 1)
+
+    # With the correction, the same sync flushes the cache, with no command from the test.
+    image = os.path.join(workdir, "corrected.bin")
+    write(flush_exe, image, CACHED, 1, "--restart-sync")
+    expect_holds(flush_exe, image, CACHED, 1)
+    expect_does_not_hold(flush_exe, image, CACHED, 2)
+
+
+def test_corrected_sync_traces_one_flush_after_the_write(exe, flush_exe, workdir):
+    del exe
+    image = os.path.join(workdir, "traced.bin")
+    trace = os.path.join(workdir, "trace.bin")
+    write(flush_exe, image, CACHED, 5, f"--emmc-trace={trace}", "--restart-sync")
+    kinds = [record[0] for record in read_trace(trace)]
+    expect(kinds == [TRACE_CACHE_ON, TRACE_WRITE, TRACE_MARK, TRACE_FLUSH],
+           f"unexpected trace order: {kinds}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--exe", required=True, help="built native_sim executable")
+    parser.add_argument("--flush-exe", required=True,
+                        help="the same program built with CONFIG_CRUX_MMC_CACHE_FLUSH=y")
     args = parser.parse_args()
 
     for test in (test_flushed_data_survives_a_process_restart,
@@ -138,6 +165,12 @@ def main():
                  test_trace_records_writes_flushes_and_marks):
         with tempfile.TemporaryDirectory() as workdir:
             test(args.exe, workdir)
+        print(f"PASS {test.__name__}")
+
+    for test in (test_cached_sync_survives_a_process_restart_only_with_the_correction,
+                 test_corrected_sync_traces_one_flush_after_the_write):
+        with tempfile.TemporaryDirectory() as workdir:
+            test(args.exe, args.flush_exe, workdir)
         print(f"PASS {test.__name__}")
 
 

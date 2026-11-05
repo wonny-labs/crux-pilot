@@ -70,7 +70,7 @@ static void finish(const char *what, int code)
     posix_exit(code);
 }
 
-/* The stack sends no flush at the pin, so this sends the command itself to reach the cache. */
+/* The unmodified stack sends no flush at the pin, so this sends the command itself. */
 static int send_flush(void)
 {
     struct sdhc_command cmd = {
