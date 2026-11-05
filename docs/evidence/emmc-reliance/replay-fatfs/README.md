@@ -14,7 +14,10 @@ FatFs does not claim the invariants, so nothing about FatFs is asserted: only th
     `98246e0`. `1b909cc` changed documentation only: two sentences in `patches/zephyr/README.md`.
   - The run recorded here: the first review's fixes, uncommitted, on `98246e0`. The runner log shows
     that `HEAD` and the changed files. The fixes were then committed unchanged as the next commit, which
-    also adds this text. The figures below are from this run and replace the first run's.
+    also adds this text. This log sat in the untracked build directory and is not kept in the
+    repository, so the claim that the fixes were committed unchanged as `b7e19d7` cannot be checked
+    from the record. A re-run at `b7e19d7` would settle it. The figures below are from this run and
+    replace the first run's.
 - Zephyr `dccb09599635bdff17633fa7e9dab014b91dce90`, FatFs module
   `f4ead3bf4a6dab3a07d7b5f5315795c073db568d`, `native_sim/native/64`, Python 3.12.3.
 - Environment: the Dev Container image, run with Docker as `linux/amd64` under emulation on an arm64 Mac,
@@ -92,8 +95,10 @@ failure is not counted as a case. The same seed gave the same JSON apart from ti
 compared field by field.
 
 `torn` positions are drawn from write positions only, because only a write at the cut can tear.
-Every `torn` case therefore tore a sector. When a trace has fewer write positions than `--samples`, all
-of them are used: 40 for W1 and 44 for W3 on each profile, and 64 of the 72 for W2.
+Each `torn` case cut a write in progress and mixed its sector byte by byte. The count does not
+check that the mixed sector differs from both the old and the new contents, so a small change such
+as a directory entry's size can leave the old or the new sector whole. When a trace has fewer write
+positions than `--samples`, all of them are used: 40 for W1 and 44 for W3 on each profile, and 64 of the 72 for W2.
 
 `I2` is the brief's rule: every acknowledged step's result is present, and a later unacknowledged step
 counts only as its complete result. For W1 the design's I2 is weaker: the acknowledged records are
@@ -128,17 +133,20 @@ The volume mounted (I1), `files/keep` was byte-exact (I4), and a new write, sync
   the removal of the destination and the end of the rename, as with `lost` at positions 10 and 11.
   This is the order in Zephyr's FatFs rename, which removes the destination first (finding F9). The
   [board measurement](../../microsd-replace-cut/README.md) found the same window on a card.
-- **W1 with `reordered`, 3 cases.** Every acknowledged record was intact. The directory entry with the
-  new size survived without its data sector, so the next, unacknowledged record read back stale, as at
+- **W1 with `reordered`, 3 cases.** Every acknowledged record was intact. The author's analysis,
+  which the record cannot back because no image was kept: the directory entry with the new size
+  survived without its data sector, so the next, unacknowledged record read back stale, as at
   position 39 with 8 acknowledged. These cases fail only the brief's stricter rule. They are not a loss
   of acknowledged data.
-- **W1 with `torn`.** In every failing case the torn sector was the directory sector, which holds the
-  file's size and first cluster.
+- **W1 with `torn`.** The author's analysis, which the record cannot back because no image was kept:
+  in every failing case the torn sector was the directory sector, which holds the file's size and
+  first cluster.
   - Every acknowledged record was intact in 2 cached cases, at positions 16 and 70, and only the next
     record was stale.
   - The other 3 cached cases, at positions 7, 38 and 48, lost an acknowledged record.
   - At the first step, on both profiles (cached position 3 and no-cache position 2), the torn entry
-    made `files/w1` unreadable, which reports `read_error=1`. These are counted as losses.
+    made `files/w1` unreadable, which reports `read_error=1`. These are counted as losses. With nothing acknowledged, I2 holds vacuously, and what failed there
+    is that the provisioned `files/w1` was unreadable.
 - **W3 with `prefix`, `reordered` and `torn`.** A cut inside a step left a state that matches no step,
   for example a FAT update and new data without the directory entry that points to them. `lost`
   never failed, because each W3 step in this trace has one flush, at its end. The W3 check is the
