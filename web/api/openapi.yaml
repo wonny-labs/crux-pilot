@@ -16,8 +16,8 @@ info:
     url: https://github.com/wonny-labs/crux-pilot
   description: |
     The API that a controller serves to its own web interface, over HTTPS only. It covers session,
-    attempt polling, current user, own password change, status, network settings and reboot. Other
-    areas are added by a change to this file.
+    attempt polling, current user, own password change, status, configuration, network settings and reboot.
+    Other areas are added by a change to this file.
 
     **Change rule.** A change to this file is one reviewed PR that the firmware and frontend tracks
     rebase onto.
@@ -104,6 +104,8 @@ servers:
         default: 192.0.2.10
         description: Address or name of the controller
 tags:
+  - name: config
+    description: Configuration parameters that this session may see, and their saving
   - name: network
     description: Static IPv4 settings, saved for the next boot
   - name: session
@@ -442,6 +444,292 @@ paths:
           $ref: '#/components/responses/Busy'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/config:
+    get:
+      operationId: listConfig
+      tags: [config]
+      summary: List the configuration parameters this session may see
+      description: |
+        The route is session-only and the configuration service filters the list, so a session that may
+        see nothing gets an empty list and never a `403`. A list holds no value. A client reads one with
+        `GET /api/v1/config/{name}`, which a sensitive parameter never allows: its `readable` is `false`
+        and its `sensitive` is `true`.
+
+        `save` is present only for a session that holds `config.save`, and only after a save was
+        requested since this boot. It reports the latest `POST /api/v1/config/save`, which the service
+        runs on the management worker.
+      x-crux-access: session
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The parameters visible to this session, in the order of the device's table.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigList'
+              examples:
+                items:
+                  summary: One parameter of each type, a sensitive one and a read-only one, for a session that may read and write
+                  value:
+                    items:
+                      - name: verbose
+                        type: bool
+                        activation: application
+                        sensitive: false
+                        readable: true
+                        writable: true
+                        unsaved: false
+                      - name: report_interval
+                        type: u32
+                        activation: application
+                        sensitive: false
+                        readable: true
+                        writable: true
+                        unsaved: true
+                      - name: device_label
+                        type: string
+                        activation: restart
+                        sensitive: false
+                        readable: true
+                        writable: true
+                        unsaved: false
+                      - name: link_secret
+                        type: string
+                        activation: restart
+                        sensitive: true
+                        readable: false
+                        writable: true
+                        unsaved: false
+                      - name: build_limit
+                        type: u32
+                        activation: safe_state
+                        sensitive: false
+                        readable: true
+                        writable: false
+                        unsaved: false
+                read_only:
+                  summary: A session that may read and not write, so nothing is sensitive, writable or unsaved to it
+                  value:
+                    items:
+                      - name: verbose
+                        type: bool
+                        activation: application
+                        sensitive: false
+                        readable: true
+                        writable: false
+                        unsaved: false
+                      - name: report_interval
+                        type: u32
+                        activation: application
+                        sensitive: false
+                        readable: true
+                        writable: false
+                        unsaved: false
+                save_pending:
+                  summary: A session that holds config.save, while a save runs
+                  value:
+                    items:
+                      - name: report_interval
+                        type: u32
+                        activation: application
+                        sensitive: false
+                        readable: true
+                        writable: true
+                        unsaved: true
+                    save:
+                      state: pending
+                save_failed:
+                  summary: The latest save failed because the device has no Configuration provider
+                  value:
+                    items:
+                      - name: report_interval
+                        type: u32
+                        activation: application
+                        sensitive: false
+                        readable: true
+                        writable: true
+                        unsaved: true
+                    save:
+                      state: failed
+                      code: not_supported
+                hidden:
+                  summary: Nothing visible, as during a forced password change
+                  value:
+                    items: []
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/config/save:
+    post:
+      operationId: saveConfig
+      tags: [config]
+      summary: Queue a save of every parameter changed since the last save
+      description: |
+        Saving holds the service lock across storage, so it runs on the management worker and this
+        response cannot wait for it. Read the outcome in `save` of `GET /api/v1/config`. One save runs at a
+        time, and a request while one is queued or running gets `503` with `busy`.
+
+        A save writes every parameter marked unsaved, including parameters this session cannot see, and
+        it stops at the first failure, with no rollback. A failure therefore reports `failed` with a code
+        and never a parameter's name. `not_supported` means that the device has no Configuration provider,
+        so retrying will not help.
+
+        The request has no body, and a body gets `413`.
+      x-crux-access: config.save
+      security:
+        - sessionCookie: []
+          xsrfHeader: []
+      responses:
+        '202':
+          description: Queued. Read `save` of `GET /api/v1/config`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveQueued'
+              examples:
+                queued:
+                  summary: Save queued
+                  value:
+                    state: pending
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v1/config/{name}:
+    get:
+      operationId: getConfigItem
+      tags: [config]
+      summary: Read one configuration parameter
+      description: |
+        The route is session-only and the service checks the parameter's own read permission. A missing
+        parameter and one that this session may neither read nor write get the same `404`. A parameter
+        that this session may write but not read, and every sensitive parameter, get `403`.
+      x-crux-access: session
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/ConfigName'
+      responses:
+        '200':
+          description: The parameter and its accepted value. This is the value in memory, which may be unsaved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigValue'
+              examples:
+                u32:
+                  summary: An unsigned 32-bit parameter
+                  value:
+                    name: report_interval
+                    type: u32
+                    value: 5
+                bool:
+                  summary: A boolean parameter
+                  value:
+                    name: verbose
+                    type: bool
+                    value: false
+                string:
+                  summary: A string parameter
+                  value:
+                    name: device_label
+                    type: string
+                    value: Pump station 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PermissionDenied'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    put:
+      operationId: putConfigItem
+      tags: [config]
+      summary: Update one configuration parameter in memory
+      description: |
+        The route is session-only and the service checks the parameter's own write permission. The JSON
+        type of `value` must be the parameter's: a boolean, an integer from 0 to 4294967295, or a string.
+        An accepted value changes the value in memory only, and marks the parameter unsaved. It applies
+        nothing: `activation` says when the application means to act on it. Save it with
+        `POST /api/v1/config/save`.
+
+        The response holds no value, and never a sensitive one. A client reads the value back with
+        `GET /api/v1/config/{name}` unless the parameter is sensitive.
+
+        A request that a validator, the character rule or the capacity refuses gets `rule_not_met` and
+        no reason, and the old value stays. A missing or hidden parameter gets `404` whatever the body
+        holds, and a visible one that this session may not write gets `403` whatever the body holds.
+        The server closes the connection after every response, because any parameter may be sensitive.
+      x-crux-access: session
+      security:
+        - sessionCookie: []
+          xsrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/ConfigName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigUpdate'
+            examples:
+              u32:
+                summary: An unsigned 32-bit parameter
+                value:
+                  value: 10
+              bool:
+                summary: A boolean parameter
+                value:
+                  value: true
+              string:
+                summary: A string parameter
+                value:
+                  value: Pump station 4
+      responses:
+        '200':
+          description: Accepted in memory and marked unsaved. No value is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigItem'
+              examples:
+                accepted:
+                  summary: Accepted, with the activation the application declared
+                  value:
+                    name: report_interval
+                    type: u32
+                    activation: application
+                    sensitive: false
+                    readable: true
+                    writable: true
+                    unsaved: true
+        '400':
+          $ref: '#/components/responses/InvalidConfigValue'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Busy'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /api/v1/network:
     get:
       operationId: getNetwork
@@ -697,6 +985,19 @@ components:
         minLength: 22
         maxLength: 64
       example: k3Jq9sZp0vXw2LmN7bYt1A
+    ConfigName:
+      name: name
+      in: path
+      required: true
+      description: |
+        A parameter's key: 1 to 30 characters from `A-Z a-z 0-9 _ - .`, and never `.` or `..`. A missing
+        parameter and one that this session may not see both get `404`. `save` cannot be a parameter name,
+        because `/api/v1/config/save` is a fixed route: a `GET` or `PUT` of that path gets the server's
+        plain `405`.
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9_.-]{1,30}$'
+      example: report_interval
     RequestHeader:
       name: X-Crux-Request
       in: header
@@ -782,6 +1083,47 @@ components:
                     code: prefix_not_usable
                   - name: gateway
                     code: gateway_outside_subnet
+    InvalidConfigValue:
+      description: |
+        The body is not the expected JSON, or the value is refused. `wrong_type`: the JSON type is not the
+        parameter's. `out_of_range`: a number that is not an integer from 0 to 4294967295. `rule_not_met`:
+        a validator, the character rule or the capacity refused it, with no reason.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [bad_request, invalid_field]
+          examples:
+            malformed:
+              summary: Not valid JSON, not one object with a single value member, or a value that is null, an array or an object
+              value:
+                code: bad_request
+            wrong_type:
+              summary: A string for a boolean parameter
+              value:
+                code: invalid_field
+                fields:
+                  - name: value
+                    code: wrong_type
+            out_of_range:
+              summary: A negative number for an unsigned parameter
+              value:
+                code: invalid_field
+                fields:
+                  - name: value
+                    code: out_of_range
+            rule_not_met:
+              summary: A validator or the character rule refused the value
+              value:
+                code: invalid_field
+                fields:
+                  - name: value
+                    code: rule_not_met
     Unauthorized:
       description: No valid session, whether it is missing, expired, forged or ended by a reset.
       content:
@@ -904,7 +1246,8 @@ components:
     NotFound:
       description: |
         An unknown or expired attempt. The same form answers a path under a registered route that does not
-        exist, and an item under a registered route that is hidden from this session, so that those cannot be
+        exist, and an item under a registered route that is hidden from this session, such as a configuration
+        parameter that is missing or that this session may neither read nor write, so that those cannot be
         told apart. A path with no registered resource gets the server's plain `404` instead.
       content:
         application/json:
@@ -1052,7 +1395,7 @@ components:
       type: string
       description: |
         Stable error codes. A new code is a change to this file. `storage_failed` appears in an attempt result
-        only, and no HTTP error status carries it.
+        and in the `code` of a failed configuration save only, and no HTTP error status carries it.
       enum:
         - bad_request
         - invalid_field
@@ -1078,13 +1421,17 @@ components:
           description: The request member that this error is about.
         code:
           type: string
-          description: Stable reason for this field.
+          description: |
+            Stable reason for this field. `rule_not_met` covers a password rule and a configuration value that
+            a validator, the character rule or the capacity refused.
           enum:
             - not_unicast
             - prefix_not_usable
             - gateway_outside_subnet
             - incorrect
             - rule_not_met
+            - wrong_type
+            - out_of_range
     Error:
       type: object
       description: The JSON error form, which every response from the API's own code uses for an error.
@@ -1326,6 +1673,145 @@ components:
             - no_resources
             - not_supported
             - invalid_state
+    ConfigName:
+      type: string
+      description: A parameter's key, as in the `name` path parameter.
+      pattern: '^[A-Za-z0-9_.-]{1,30}$'
+    ConfigItem:
+      type: object
+      description: |
+        A parameter as this session may know it. It never holds a value. `readable` is always `false` for a
+        sensitive parameter, and `unsaved` is always `false` for a session that may not write it.
+      additionalProperties: false
+      required: [name, type, activation, sensitive, readable, writable, unsaved]
+      properties:
+        name:
+          $ref: '#/components/schemas/ConfigName'
+        type:
+          type: string
+          enum: [bool, u32, string]
+        activation:
+          type: string
+          description: |
+            When the application means to act on an accepted value. Metadata only: the service never acts on
+            it, and applying a change safely stays application policy.
+          enum: [application, restart, safe_state]
+        sensitive:
+          type: boolean
+          description: Write-only through this API. It is not encryption, and nothing here promises confidentiality at rest.
+        readable:
+          type: boolean
+        writable:
+          type: boolean
+        unsaved:
+          type: boolean
+          description: An accepted update since the last acknowledged save.
+    ConfigList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConfigItem'
+        save:
+          $ref: '#/components/schemas/ConfigSaveState'
+    ConfigSaveState:
+      description: |
+        The latest save since this boot, for a session that holds `config.save`. `pending` covers a save that
+        is queued or running. A `saved` or `failed` stays until the next accepted save. The code of a failure
+        names no parameter, because a save also writes parameters this session cannot see.
+      oneOf:
+        - $ref: '#/components/schemas/ConfigSaveOpen'
+        - $ref: '#/components/schemas/ConfigSaveFailed'
+    ConfigSaveOpen:
+      type: object
+      additionalProperties: false
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [pending, saved]
+    ConfigSaveFailed:
+      type: object
+      additionalProperties: false
+      required: [state, code]
+      properties:
+        state:
+          type: string
+          enum: [failed]
+        code:
+          description: |
+            `storage_failed`: a save failed, and earlier ones stay saved. `not_supported`: no Configuration
+            provider. `not_ready`: the service could not run it. `busy`: another save held the service for
+            the whole wait. `unauthorized`: the session ended before the save ran. `permission_denied`: its
+            permission was withdrawn meanwhile. Each is a value of `ErrorCode`.
+          type: string
+          enum: [storage_failed, not_supported, not_ready, busy, unauthorized, permission_denied]
+    ConfigValue:
+      description: A parameter and its accepted value, in the JSON form of its type.
+      oneOf:
+        - $ref: '#/components/schemas/ConfigValueBool'
+        - $ref: '#/components/schemas/ConfigValueU32'
+        - $ref: '#/components/schemas/ConfigValueString'
+    ConfigValueBool:
+      type: object
+      additionalProperties: false
+      required: [name, type, value]
+      properties:
+        name:
+          $ref: '#/components/schemas/ConfigName'
+        type:
+          type: string
+          enum: [bool]
+        value:
+          type: boolean
+    ConfigValueU32:
+      type: object
+      additionalProperties: false
+      required: [name, type, value]
+      properties:
+        name:
+          $ref: '#/components/schemas/ConfigName'
+        type:
+          type: string
+          enum: [u32]
+        value:
+          type: integer
+          minimum: 0
+          maximum: 4294967295
+    ConfigValueString:
+      type: object
+      additionalProperties: false
+      required: [name, type, value]
+      properties:
+        name:
+          $ref: '#/components/schemas/ConfigName'
+        type:
+          type: string
+          enum: [string]
+        value:
+          type: string
+          description: |
+            At most the string maximum of the build, 128 bytes of UTF-8 by default, with no control
+            characters. The schema counts characters, so the server enforces the byte bound.
+    ConfigUpdate:
+      type: object
+      additionalProperties: false
+      required: [value]
+      properties:
+        value:
+          description: |
+            The JSON type of the parameter. A number is an integer from 0 to 4294967295, with no sign,
+            fraction or exponent. A string is at most the string maximum of the build in bytes, 128 by
+            default. The schema holds no bound that depends on the build.
+          oneOf:
+            - type: boolean
+            - type: integer
+              minimum: 0
+              maximum: 4294967295
+            - type: string
     Ipv4Settings:
       type: object
       description: |

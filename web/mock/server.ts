@@ -26,6 +26,20 @@ export interface ForcedResponse {
 
 export type RebootOutcome = 'restart' | 'never' | 'fail' | 'away_forever' | { refuseLate: string };
 
+export type ConfigType = 'bool' | 'u32' | 'string';
+
+export interface MockConfigParam {
+  name: string;
+  type: ConfigType;
+  activation: 'application' | 'restart' | 'safe_state';
+  sensitive: boolean;
+  readPermission: string;
+  /** Null for a read-only parameter. */
+  writePermission: string | null;
+  value: boolean | number | string;
+  unsaved: boolean;
+}
+
 export interface MockStatusItem {
   item: Record<string, unknown>;
   permission: string;
@@ -40,9 +54,10 @@ export interface MockConfig {
   loginBusySeconds: number | null;
   /** New attempts answer 503 busy on the poll, with this Retry-After. */
   attemptBusySeconds: number | null;
+  /** GET /api/v1/network and GET /api/v1/config calls that report a save as pending before it ends. */
   savePolls: number;
   saveResult: 'ok' | 'fail';
-  /** False is a device with no Configuration provider. */
+  /** False is a device with no Configuration provider, for the network settings and for a config save. */
   networkProvider: boolean;
   rebootPolicy: 'allow' | { refuse: string };
   rebootOutcome: RebootOutcome;
@@ -107,15 +122,25 @@ interface SpecAnswer {
 }
 
 const EXAMPLE_PASSWORD = 'example-password-not-real';
-const ALL_PERMISSIONS = ['status.read', 'network.read', 'network.write', 'system.reboot', 'app.cycle.read'];
+const ALL_PERMISSIONS = [
+  'status.read',
+  'network.read',
+  'network.write',
+  'system.reboot',
+  'app.cycle.read',
+  'config.read',
+  'config.write',
+  'config.save',
+];
+const STRING_MAX = 128;
 const BODY_LIMIT = 4096;
 const DEFAULT_NETWORK: Record<string, unknown> = { address: '192.0.2.10', prefix_length: 24 };
 
 function accounts(): Map<string, Account> {
   return new Map<string, Account>([
     ['operator', { password: EXAMPLE_PASSWORD, role: 'administrator', permissions: ALL_PERMISSIONS }],
-    ['viewer', { password: EXAMPLE_PASSWORD, role: 'viewer', permissions: ['status.read', 'network.read'] }],
-    ['writer', { password: EXAMPLE_PASSWORD, role: 'installer', permissions: ['network.write'] }],
+    ['viewer', { password: EXAMPLE_PASSWORD, role: 'viewer', permissions: ['status.read', 'network.read', 'config.read'] }],
+    ['writer', { password: EXAMPLE_PASSWORD, role: 'installer', permissions: ['network.write', 'config.write'] }],
     ['guest', { password: EXAMPLE_PASSWORD, role: 'guest', permissions: [] }],
     ['newuser', { password: EXAMPLE_PASSWORD, role: 'administrator', permissions: ALL_PERMISSIONS, mustChange: true }],
     ['disabled', { password: EXAMPLE_PASSWORD, role: 'guest', permissions: [], disabled: true }],
@@ -137,6 +162,51 @@ function defaultStatusItems(): MockStatusItem[] {
     builtIn({ name: 'system.watchdog_state', status: 'busy' }),
     { item: { name: 'app.cycle_count', status: 'ok', type: 'u32', value: 42 }, permission: 'app.cycle.read' },
   ];
+}
+
+function defaultConfigParams(): MockConfigParam[] {
+  const param = (
+    name: string,
+    type: ConfigType,
+    activation: MockConfigParam['activation'],
+    value: boolean | number | string,
+    extra: Partial<MockConfigParam> = {},
+  ): MockConfigParam => ({
+    name,
+    type,
+    activation,
+    sensitive: false,
+    readPermission: 'config.read',
+    writePermission: 'config.write',
+    value,
+    unsaved: false,
+    ...extra,
+  });
+  return [
+    param('verbose', 'bool', 'application', false),
+    param('report_interval', 'u32', 'application', 5),
+    param('device_label', 'string', 'restart', 'pilot'),
+    param('link_secret', 'string', 'restart', 'unset', { sensitive: true }),
+    param('build_limit', 'u32', 'safe_state', 64, { writePermission: null }),
+    // Under a permission that no account holds, as a composition keeps a parameter private.
+    param('private_key', 'u32', 'application', 9, { readPermission: 'config.internal', writePermission: 'config.internal' }),
+  ];
+}
+
+/** The validators of the mock's table, which give no reason, as the service's do not. */
+function configValueAccepted(parameter: MockConfigParam, value: boolean | number | string): boolean {
+  if (parameter.name === 'report_interval') {
+    return typeof value === 'number' && value >= 1 && value <= 3600;
+  }
+  if (parameter.type === 'string') {
+    const text = value as string;
+    return (
+      Buffer.byteLength(text, 'utf8') <= STRING_MAX &&
+      !/[\u0000-\u001f\u007f-\u009f]/.test(text) &&
+      !(parameter.name === 'device_label' && text.includes('bad'))
+    );
+  }
+  return true;
 }
 
 function defaultConfig(): MockConfig {
@@ -230,6 +300,13 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
   const attempts = new Map<string, Attempt>();
   const forced = new Map<string, ForcedResponse[]>();
   const requests: RecordedRequest[] = [];
+  let configParams = defaultConfigParams();
+  let configSave = {
+    state: 'none' as 'none' | 'pending' | 'saved' | 'failed',
+    code: '',
+    pollsLeft: 0,
+    result: 'ok' as 'ok' | 'fail' | 'not_supported',
+  };
   let network = {
     running: DEFAULT_NETWORK,
     saved: undefined as Record<string, unknown> | undefined,
@@ -253,6 +330,8 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
     attempts.clear();
     forced.clear();
     requests.length = 0;
+    configParams = defaultConfigParams();
+    configSave = { state: 'none', code: '', pollsLeft: 0, result: 'ok' };
     network = {
       running: DEFAULT_NETWORK,
       saved: undefined,
@@ -738,6 +817,143 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
     json(response, request, operation.id, 202, { state: 'pending' });
   }
 
+  function configVisible(account: Account, parameter: MockConfigParam): boolean {
+    return may(account, parameter.readPermission) || (parameter.writePermission !== null && may(account, parameter.writePermission));
+  }
+
+  function configItem(account: Account, parameter: MockConfigParam): Record<string, unknown> {
+    const writable = parameter.writePermission !== null && may(account, parameter.writePermission);
+    return {
+      name: parameter.name,
+      type: parameter.type,
+      activation: parameter.activation,
+      sensitive: parameter.sensitive,
+      readable: !parameter.sensitive && may(account, parameter.readPermission),
+      writable,
+      unsaved: writable && parameter.unsaved,
+    };
+  }
+
+  /** The save completes after the configured number of reads of the configuration list. */
+  function advanceConfigSave(): void {
+    if (configSave.state !== 'pending') {
+      return;
+    }
+    if (configSave.pollsLeft > 0) {
+      configSave.pollsLeft -= 1;
+      return;
+    }
+    if (configSave.result === 'ok') {
+      for (const parameter of configParams) {
+        parameter.unsaved = false;
+      }
+      configSave.state = 'saved';
+    } else {
+      configSave.state = 'failed';
+      configSave.code = configSave.result === 'fail' ? 'storage_failed' : 'not_supported';
+    }
+  }
+
+  function handleListConfig(request: IncomingMessage, response: ServerResponse, operation: SpecOperation, account: Account): void {
+    advanceConfigSave();
+    const body: Record<string, unknown> = {
+      items: configParams.filter((parameter) => configVisible(account, parameter)).map((parameter) => configItem(account, parameter)),
+    };
+    if (may(account, 'config.save') && configSave.state !== 'none') {
+      body['save'] = configSave.state === 'failed' ? { state: 'failed', code: configSave.code } : { state: configSave.state };
+    }
+    json(response, request, operation.id, 200, body);
+  }
+
+  function handleGetConfig(
+    request: IncomingMessage,
+    response: ServerResponse,
+    operation: SpecOperation,
+    account: Account,
+    name: string,
+  ): void {
+    const parameter = configParams.find((candidate) => candidate.name === name);
+    if (!parameter || !configVisible(account, parameter)) {
+      error(response, request, operation, 404, 'not_found');
+      return;
+    }
+    if (parameter.sensitive || !may(account, parameter.readPermission)) {
+      error(response, request, operation, 403, 'permission_denied');
+      return;
+    }
+    json(response, request, operation.id, 200, { name: parameter.name, type: parameter.type, value: parameter.value });
+  }
+
+  async function handlePutConfig(
+    request: IncomingMessage,
+    response: ServerResponse,
+    operation: SpecOperation,
+    account: Account,
+    name: string,
+  ): Promise<void> {
+    let text: string;
+    try {
+      text = await readBody(request);
+    } catch {
+      error(response, request, operation, 413, 'payload_too_large');
+      return;
+    }
+    const body = parseJsonObject(text);
+    const value = body?.['value'];
+    if (
+      !body ||
+      !hasOnly(body, ['value']) ||
+      (typeof value !== 'boolean' && typeof value !== 'number' && typeof value !== 'string')
+    ) {
+      error(response, request, operation, 400, 'bad_request');
+      return;
+    }
+    const parameter = configParams.find((candidate) => candidate.name === name);
+    if (!parameter || !configVisible(account, parameter)) {
+      error(response, request, operation, 404, 'not_found');
+      return;
+    }
+    if (parameter.writePermission === null || !may(account, parameter.writePermission)) {
+      error(response, request, operation, 403, 'permission_denied');
+      return;
+    }
+    const field = (code: string): void =>
+      error(response, request, operation, 400, 'invalid_field', { fields: [{ name: 'value', code }] });
+    if (typeof value !== { bool: 'boolean', u32: 'number', string: 'string' }[parameter.type]) {
+      field('wrong_type');
+      return;
+    }
+    // A number is a u32 only as a plain integer literal from 0 to 4294967295, the same as on the device.
+    const plainInteger = /^\s*\{\s*"value"\s*:\s*(0|[1-9][0-9]*)\s*\}\s*$/.test(text);
+    if (parameter.type === 'u32' && (!plainInteger || (value as number) > 4294967295)) {
+      field('out_of_range');
+      return;
+    }
+    if (!configValueAccepted(parameter, value)) {
+      field('rule_not_met');
+      return;
+    }
+    parameter.value = value;
+    parameter.unsaved = true;
+    json(response, request, operation.id, 200, configItem(account, parameter));
+  }
+
+  function handleSaveConfig(request: IncomingMessage, response: ServerResponse, operation: SpecOperation): void {
+    if (configSave.state === 'pending') {
+      error(response, request, operation, 503, 'busy', { retryAfter: 1 });
+      return;
+    }
+    const pending = configParams.some((parameter) => parameter.unsaved);
+    configSave = {
+      state: 'pending',
+      code: '',
+      pollsLeft: config.savePolls,
+      // With nothing to save the service succeeds, even with no provider.
+      result: !pending || (config.networkProvider && config.saveResult === 'ok') ? 'ok' : config.networkProvider ? 'fail' : 'not_supported',
+    };
+    json(response, request, operation.id, 202, { state: 'pending' });
+  }
+
   function statusItems(account: Account): unknown[] {
     if (account.mustChange) {
       return [];
@@ -799,6 +1015,18 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
       case 'getStatus':
         json(response, request, operation.id, 200, { items: statusItems(current.account) });
         return;
+      case 'listConfig':
+        handleListConfig(request, response, operation, current.account);
+        return;
+      case 'getConfigItem':
+        handleGetConfig(request, response, operation, current.account, path.slice(path.lastIndexOf('/') + 1));
+        return;
+      case 'putConfigItem':
+        await handlePutConfig(request, response, operation, current.account, path.slice(path.lastIndexOf('/') + 1));
+        return;
+      case 'saveConfig':
+        handleSaveConfig(request, response, operation);
+        return;
       case 'getNetwork':
         json(response, request, operation.id, 200, networkState());
         return;
@@ -825,7 +1053,9 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
       }
       completeRestart();
     }
-    const candidates = operationList.filter((operation) => operation.pattern.test(path));
+    // The server tries exact paths first, so a fixed path such as /api/v1/config/save shadows a parameter.
+    const exact = operationList.filter((operation) => operation.path === path);
+    const candidates = exact.length > 0 ? exact : operationList.filter((operation) => operation.pattern.test(path));
     if (candidates.length === 0) {
       if (operationList.some((operation) => path.startsWith(`${operation.path}/`))) {
         json(response, request, null, 404, { code: 'not_found' });
