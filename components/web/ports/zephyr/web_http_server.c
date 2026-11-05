@@ -170,10 +170,42 @@ static void capture(const char **field, const char *value, crux_web_request_head
     *field = value;
 }
 
+/* The peer for crux_access's delays: IPv4 whole, IPv6 as its /64 prefix. Unknown leaves none. */
+static void read_source(const struct http_client_ctx *client, crux_web_request_head_t *head)
+{
+    struct net_sockaddr_storage peer;
+    net_socklen_t length = sizeof(peer);
+
+    if (zsock_getpeername(client->fd, (struct net_sockaddr *)&peer, &length) != 0) {
+        return;
+    }
+    if (peer.ss_family == NET_AF_INET) {
+        memcpy(head->source, &((struct net_sockaddr_in *)&peer)->sin_addr, 4u);
+        head->source_length = 4u;
+    }
+#if defined(CONFIG_NET_IPV6)
+    if (peer.ss_family == NET_AF_INET6) {
+        static const uint8_t mapped[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff};
+        const uint8_t *address = (const uint8_t *)&((struct net_sockaddr_in6 *)&peer)->sin6_addr;
+
+        /* An IPv4 client on a dual-stack socket keeps its own bucket, and not the /64 of ::ffff:0:0
+         * that every IPv4 client would share. */
+        if (memcmp(address, mapped, sizeof(mapped)) == 0) {
+            memcpy(head->source, address + sizeof(mapped), 4u);
+            head->source_length = 4u;
+        } else {
+            memcpy(head->source, address, 8u);
+            head->source_length = 8u;
+        }
+    }
+#endif
+}
+
 static void read_head(struct http_client_ctx *client, const struct http_request_ctx *request,
                       crux_web_request_head_t *head)
 {
     memset(head, 0, sizeof(*head));
+    read_source(client, head);
     head->method = method_bit(client->method);
     head->url = (const char *)client->url_buffer;
     head->chunked = (client->parser.flags & F_CHUNKED) != 0u;

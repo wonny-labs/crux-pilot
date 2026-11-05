@@ -305,6 +305,10 @@ runs the native suite over TLS on the management composition, with the TLS cases
 profile: Mbed in the PSA workflow, Wolf locally. Nothing here uses a board. See the [web contract](../docs/web-contract.md)
 and the [HTTPS composition](../docs/https-composition.md).
 
+`scripts/test-web-session.sh native` runs login and sessions on the management composition, with the real Access core
+on its PSA ports, over plain HTTP on `native_sim`, and CI runs it in the PSA workflow. `Web.session_*` are its Host
+suites. Entropy there is test-only. See [web login and sessions](../docs/web-session.md).
+
 ## Portable File software slice
 
 `scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS and FatFs File suites on

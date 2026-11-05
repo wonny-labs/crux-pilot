@@ -15,7 +15,7 @@ internal target `crux_web_adapter`.
 | Portable core: whole-path comparison, form checks, enforcement, body, deadline | Built | Host on the real Access core |
 | Adapter over the Zephyr HTTP server | Built | `native_sim`, plain HTTP on loopback |
 | Wildcard resources on RT1060 | Compile and link only | Mbed TLS and wolfSSL profiles, not run |
-| Login, sessions, CSRF and `Origin` rules | **Faked.** A session lookup port, which #186 implements | Host and `native_sim` use stand-ins |
+| Login, sessions, CSRF and `Origin` rules | **Built** in #186: see [web-session.md](web-session.md). This suite still uses stand-ins. | Host, and `native_sim` in `tests/native/web_session` |
 | Access core on Zephyr | **Faked on `native_sim`** by a double, until #242. The real core and its fake ports run on Host | |
 | Socket shutdown on `native_sim` | **Shimmed in the test image**, see [below](#three-limits-of-native_sim-found-here) | |
 | A send that returns `-EAGAIN` on `native_sim` | **Injected in the test image** by a wrapped send, because the offload rarely produces one | |
@@ -137,6 +137,7 @@ usual result of closing with unread data.
 | A body on `GET` or `DELETE` | `400 bad_request`, closed | The server calls back once per read, which would run a handler twice |
 | More or fewer bytes than `Content-Length` | `400 bad_request`, closed | The server passes its whole buffer, so these can be the next request's |
 | `Content-Length` over the route's limit | `413 payload_too_large`, closed, before any session lookup | |
+| Access refused at the check after a body of more than one read | The refusal, closed | The server's buffer may hold a password, and closing clears it. #186. |
 | Pipelined requests in one read | The server joins their URLs and headers, and routes the joined path | `GET /api/v1 ...` then `GET /status ...` in one send gets `/api/v1/status`. Access applies to the joined path, with the headers of both, so a `Cookie` in either counts and a `Host` in both is a duplicate. Shown on `native_sim`. No browser sends this. |
 | A path parameter holding anything but unreserved characters, or `.` or `..` | JSON `404` | Nothing is decoded, so `%2F` and `%2e%2e` cannot become a path |
 | A handler that returns with no response | `503 not_ready`, with `Retry-After` | The `ErrorCode` list has no code for it, and a new code is a change to the specification |
@@ -297,6 +298,7 @@ The capture holds seven headers, and a request whose capture dropped anything ge
 | Longest Cookie, 511 bytes, and one more | `native_sim` | Accepted, then `400` |
 | A capture overflow across headers | `native_sim` | `400` |
 | Other headers of 2,000 bytes | `native_sim` | Ignored |
+| Safari | Not run | Not run in #186 either: Safari cannot run unattended on the machine that did #186, so the criterion stays open |
 
 **Safari has not run**, because it cannot run unattended here, so that part moved to #186, where real login first gives a
 reason to open the interface in one. Both browsers ran over plain HTTP on `localhost`, so a real address, and HTTPS, may
