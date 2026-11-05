@@ -45,8 +45,8 @@ static void use_vector_device(void)
 static void access_derive(void)
 {
     uint8_t derived[CRUX_ACCESS_DERIVED_SIZE];
-    CHECK(crux_access_port_derive(CRUX_ACCESS_VERIFIER_PBKDF2_HMAC_SHA256, 10000u, vec_pbkdf2_salt16,
-                                  (const char *)vec_pbkdf2_long_password,
+    CHECK(crux_access_port_derive(CRUX_ACCESS_VERIFIER_PBKDF2_HMAC_SHA256, 10000u,
+                                  vec_pbkdf2_salt16, (const char *)vec_pbkdf2_long_password,
                                   sizeof(vec_pbkdf2_long_password), derived));
     CHECK(memcmp(derived, vec_pbkdf2_long_10000, sizeof(derived)) == 0);
     /* An empty password, with no bytes behind the pointer. */
@@ -197,8 +197,10 @@ static void store_other_device_and_no_device(void)
 /* The largest payload of a default slot, with a header as additional data, in separate buffers. */
 static void store_whole_slot_round_trip(void)
 {
-    enum { PAYLOAD = CRUX_CREDENTIAL_SLOT_BYTES - CRUX_CREDENTIAL_HEADER_BYTES -
-                     CRUX_CREDENTIAL_TAG_BYTES };
+    enum {
+        PAYLOAD =
+            CRUX_CREDENTIAL_SLOT_BYTES - CRUX_CREDENTIAL_HEADER_BYTES - CRUX_CREDENTIAL_TAG_BYTES
+    };
     static uint8_t plain[PAYLOAD];
     static uint8_t sealed[PAYLOAD];
     static uint8_t opened[PAYLOAD];
@@ -271,10 +273,9 @@ static void store_generate_p256(void)
                                             lengths) == CRUX_CREDENTIAL_ERR_ENTROPY);
     CHECK(all_zero(small, sizeof(small)));
     CHECK(all_zero(public_first, sizeof(public_first)));
-    CHECK(crux_credential_port_generate_key((crux_credential_key_type_t)99, public_first,
-                                            sizeof(public_first), private_first,
-                                            sizeof(private_first),
-                                            lengths) == CRUX_CREDENTIAL_ERR_ENTROPY);
+    CHECK(crux_credential_port_generate_key(
+              (crux_credential_key_type_t)99, public_first, sizeof(public_first), private_first,
+              sizeof(private_first), lengths) == CRUX_CREDENTIAL_ERR_ENTROPY);
 }
 
 static void store_generate_ed25519(void)
@@ -329,10 +330,9 @@ static void ports_leave_no_key_slot(void)
                                         sizeof(vec_seal_cipher), vec_seal_nonce, vec_seal_cipher,
                                         plain) == CRUX_CREDENTIAL_ERR_UNUSABLE);
         CHECK(crux_credential_port_declaration() != NULL);
-        CHECK(crux_credential_port_generate_key(CRUX_CREDENTIAL_KEY_ECDSA_P256, public_key,
-                                                sizeof(public_key), private_key,
-                                                sizeof(private_key),
-                                                lengths) == CRUX_CREDENTIAL_OK);
+        CHECK(crux_credential_port_generate_key(
+                  CRUX_CREDENTIAL_KEY_ECDSA_P256, public_key, sizeof(public_key), private_key,
+                  sizeof(private_key), lengths) == CRUX_CREDENTIAL_OK);
     }
 }
 

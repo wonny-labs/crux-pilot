@@ -6,8 +6,8 @@
  * key slot goes at once, because a slot is scarce and shared with TLS on the Mbed profile. Someone
  * who can read the medium and the chip ID can read every secret, as the declaration states.
  */
-#include "credential_port.h"
 #include "credential_psa.h"
+#include "credential_port.h"
 
 #include <psa/crypto.h>
 
@@ -40,9 +40,9 @@ static psa_status_t device_key_import(psa_key_id_t *key)
     }
     psa_status_t status = psa_crypto_init();
     if (status == PSA_SUCCESS) {
-        status = psa_hash_compute(PSA_ALG_SHA_256, material,
-                                  sizeof(DEVICE_KEY_LABEL) - 1u + id_length, digest, sizeof(digest),
-                                  &digest_length);
+        status =
+            psa_hash_compute(PSA_ALG_SHA_256, material, sizeof(DEVICE_KEY_LABEL) - 1u + id_length,
+                             digest, sizeof(digest), &digest_length);
     }
     if (status == PSA_SUCCESS) {
         psa_key_attributes_t attributes = psa_key_attributes_init();

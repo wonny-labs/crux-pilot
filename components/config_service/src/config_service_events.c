@@ -1,5 +1,6 @@
 /* The event port of the configuration service, as a thin translation onto the public emit. It holds
- * no state and takes no lock of its own. The name is a key from the table, never a client's text. */
+ * no state and takes no lock of its own. The name is a key from the table, never a client's text.
+ */
 #include "config_service_port.h"
 
 #include <crux/security_event.h>

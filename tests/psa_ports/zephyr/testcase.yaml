@@ -6,5 +6,5 @@ tests:
     tags: [crypto, crux, psa-ports, psa-ports-tf-psa-crypto]
     extra_args: EXTRA_CONF_FILE=../../psa_crypto/zephyr/tf-psa-crypto.conf
   crux.psa_ports.wolfpsa:
-    tags: [crypto, crux, psa-ports]
+    tags: [crypto, crux, psa-ports, psa-ports-wolfpsa]
     extra_args: EXTRA_CONF_FILE=../../psa_crypto/zephyr/wolfpsa.conf

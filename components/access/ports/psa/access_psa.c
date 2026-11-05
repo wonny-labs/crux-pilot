@@ -21,17 +21,18 @@ bool crux_access_port_derive(uint32_t algorithm, uint32_t iterations,
                              const uint8_t salt[CRUX_ACCESS_SALT_SIZE], const char *password,
                              size_t length, uint8_t derived[CRUX_ACCESS_DERIVED_SIZE])
 {
-    if (algorithm != CRUX_ACCESS_VERIFIER_PBKDF2_HMAC_SHA256 ||
-        psa_crypto_init() != PSA_SUCCESS) {
+    if (algorithm != CRUX_ACCESS_VERIFIER_PBKDF2_HMAC_SHA256 || psa_crypto_init() != PSA_SUCCESS) {
         return false;
     }
     psa_key_derivation_operation_t operation = PSA_KEY_DERIVATION_OPERATION_INIT;
-    /* An empty password reaches this from a login with no password, so it has no bytes to point to. */
+    /* An empty password reaches this from a login with no password, so it has no bytes to point to.
+     */
     const uint8_t *secret = length > 0u ? (const uint8_t *)password : (const uint8_t *)"";
-    psa_status_t status = psa_key_derivation_setup(&operation, PSA_ALG_PBKDF2_HMAC(PSA_ALG_SHA_256));
+    psa_status_t status =
+        psa_key_derivation_setup(&operation, PSA_ALG_PBKDF2_HMAC(PSA_ALG_SHA_256));
     if (status == PSA_SUCCESS) {
-        status = psa_key_derivation_input_integer(&operation, PSA_KEY_DERIVATION_INPUT_COST,
-                                                  iterations);
+        status =
+            psa_key_derivation_input_integer(&operation, PSA_KEY_DERIVATION_INPUT_COST, iterations);
     }
     if (status == PSA_SUCCESS) {
         status = psa_key_derivation_input_bytes(&operation, PSA_KEY_DERIVATION_INPUT_SALT, salt,

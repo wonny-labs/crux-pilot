@@ -1,4 +1,5 @@
-/* A device ID that a test controls. The real one, from hwinfo, runs in the management composition. */
+/* A device ID that a test controls. The real one, from hwinfo, runs in the management composition.
+ */
 #include "credential_psa.h"
 #include "psa_port_cases.h"
 
