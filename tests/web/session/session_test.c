@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <time.h>
 
 crux_access_session_t session_admin;
 extern crux_access_session_t session_test_route_session;
@@ -266,6 +267,15 @@ const fake_reply_t *session_login(const char *user, const char *password, sessio
     while (web_session_work_once()) {
     }
     reply = session_poll(id);
+    /* With the worker thread started, it may have taken the attempt instead. */
+    for (unsigned waited = 0; waited < 5000u && reply->status == 200 &&
+                              strcmp(reply->body, "{\"state\":\"pending\"}") == 0;
+         ++waited) {
+        struct timespec pause = {0, 1000000L};
+
+        (void)nanosleep(&pause, NULL);
+        reply = session_poll(id);
+    }
     if (jar != NULL) {
         memset(jar, 0, sizeof(*jar));
         count = session_reply_headers(reply, "Set-Cookie", cookies, 4u);
