@@ -57,7 +57,8 @@ int crux_ssh_sftp_file_close(void *fs, int fd)
     return 0;
 }
 
-int crux_ssh_sftp_file_pread(void *fs, int fd, void *buffer, uint32_t size, const uint32_t offset[2])
+int crux_ssh_sftp_file_pread(void *fs, int fd, void *buffer, uint32_t size,
+                             const uint32_t offset[2])
 {
     saw(fs);
     seen_number = fd;
@@ -101,6 +102,7 @@ int crux_ssh_sftp_remove(void *fs, const char *path)
     return 0;
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): the operation's own signature
 int crux_ssh_sftp_rename(void *fs, const char *from, const char *to)
 {
     saw(fs);
@@ -140,10 +142,10 @@ char *crux_ssh_sftp_start_directory(char *buffer, size_t size)
 
 int main(void)
 {
-    char session[1];
+    static char session[1];
     void *fs = session;
-    char buffer[8] = {0};
-    const uint32_t offset[2] = {1, 2};
+    static char buffer[8];
+    static const uint32_t offset[2] = {1, 2};
     WDIR dir = 0;
     WFD fd = WOPEN(fs, "/a/b", WOLFSSH_O_WRONLY | WOLFSSH_O_CREAT, 0644);
     SSH_CHECK(fd == 7);

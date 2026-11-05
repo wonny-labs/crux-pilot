@@ -207,7 +207,8 @@ static void fresh_world(void)
     CHECK(crux_access_provision_first_account("root", ACCESS_TEST_PASSWORD,
                                               strlen(ACCESS_TEST_PASSWORD), "administrator",
                                               &access_test_serial) == CRUX_ACCESS_OK);
-    crux_access_session_t admin = access_test_session("root", ACCESS_TEST_PASSWORD, &access_test_web);
+    crux_access_session_t admin =
+        access_test_session("root", ACCESS_TEST_PASSWORD, &access_test_web);
     create_account(admin, "vera", "viewer");
     create_account(admin, "dora", "dropper");
     create_account(admin, "stan", "stranger");
@@ -232,8 +233,8 @@ static void fresh_world(void)
 static int connect_as(const char *user)
 {
     int connection = -1;
-    const char *password = strcmp(user, "root") == 0 ? ACCESS_TEST_PASSWORD
-                                                     : ACCESS_TEST_OTHER_PASSWORD;
+    const char *password =
+        strcmp(user, "root") == 0 ? ACCESS_TEST_PASSWORD : ACCESS_TEST_OTHER_PASSWORD;
     CHECK(client->connect(&client->peer_a, &connection));
     CHECK(client->password(connection, user, strlen(user), password));
     CHECK(client->open_channel(connection, "session"));
@@ -250,6 +251,7 @@ static void *open_as(const char *user)
 }
 
 /* Puts a file on the medium past the service, as one that was already there. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a name and its text, in a test
 static void place(crux_file_root_t root, const char *name, const char *content)
 {
     crux_file_t *file = NULL;
@@ -293,16 +295,16 @@ static void case_open_needs_a_live_session(void)
     CHECK(crux_ssh_sftp_open(NULL, NULL, &handle) != CRUX_OK);
     CHECK(handle == NULL);
 
-    crux_access_session_t vera = access_test_session("vera", ACCESS_TEST_OTHER_PASSWORD,
-                                                     &access_test_ssh);
+    crux_access_session_t vera =
+        access_test_session("vera", ACCESS_TEST_OTHER_PASSWORD, &access_test_ssh);
     CHECK(crux_ssh_sftp_open(NULL, crux_ssh_fake_attachment(vera), NULL) != CRUX_OK);
 }
 
 static void case_session_handles_are_bounded_and_come_back(void)
 {
     fresh_world();
-    crux_access_session_t vera = access_test_session("vera", ACCESS_TEST_OTHER_PASSWORD,
-                                                     &access_test_ssh);
+    crux_access_session_t vera =
+        access_test_session("vera", ACCESS_TEST_OTHER_PASSWORD, &access_test_ssh);
     crux_ssh_attachment_t *attachment = crux_ssh_fake_attachment(vera);
     crux_ssh_file_handle_t *handles[8] = {NULL};
     size_t opened = 0;
@@ -368,7 +370,7 @@ static void read_all(void *fs, const char *path, char names[][CRUX_SSH_SFTP_NAME
             break;
         }
         CHECK(*count < capacity);
-        strcpy(names[*count], name);
+        memcpy(names[*count], name, strlen(name) + 1u);
         attributes[*count] = found;
         (*count)++;
     }
@@ -383,8 +385,8 @@ static void read_all(void *fs, const char *path, char names[][CRUX_SSH_SFTP_NAME
 static void case_root_lists_only_visible_areas_with_no_denial(void)
 {
     fresh_world();
-    char names[8][CRUX_SSH_SFTP_NAME_CAPACITY];
-    crux_ssh_sftp_attributes_t attributes[8];
+    char names[8][CRUX_SSH_SFTP_NAME_CAPACITY] = {{0}};
+    crux_ssh_sftp_attributes_t attributes[8] = {{0}};
     size_t count = 0;
 
     read_all(open_as("root"), "/", names, attributes, 8, &count);
@@ -415,8 +417,8 @@ static void case_area_lists_files_and_hides_what_the_service_hides(void)
     place(ROOT_DATA, "two", "22");
     crux_file_fake_add_directory(ROOT_DATA, "subdir");
     crux_file_fake_add_raw(ROOT_DATA, "has space");
-    char names[8][CRUX_SSH_SFTP_NAME_CAPACITY];
-    crux_ssh_sftp_attributes_t attributes[8];
+    char names[8][CRUX_SSH_SFTP_NAME_CAPACITY] = {{0}};
+    crux_ssh_sftp_attributes_t attributes[8] = {{0}};
     size_t count = 0;
 
     void *fs = open_as("root");
@@ -1157,7 +1159,8 @@ static void case_a_session_that_ends_fails_the_next_chunk(void)
 {
     fresh_world();
     place(ROOT_DATA, "doc", "abc");
-    crux_access_session_t vera = access_test_session("root", ACCESS_TEST_PASSWORD, &access_test_ssh);
+    crux_access_session_t vera =
+        access_test_session("root", ACCESS_TEST_PASSWORD, &access_test_ssh);
     crux_ssh_attachment_t *attachment = crux_ssh_fake_attachment(vera);
     crux_ssh_file_handle_t *handle = NULL;
     CHECK(crux_ssh_sftp_open(NULL, attachment, &handle) == CRUX_OK);

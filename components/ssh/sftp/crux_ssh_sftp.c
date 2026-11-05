@@ -57,7 +57,7 @@ typedef struct {
     const crux_file_area_t *area; /* NULL for the virtual root. */
     crux_file_service_dir_t *listing;
     size_t cursor;
-    uint32_t file_mode;
+    uint32_t entry_mode;
 } open_dir_t;
 
 struct crux_ssh_file_handle {
@@ -165,6 +165,7 @@ static int slot_descriptor(const struct crux_ssh_file_handle *handle, size_t slo
     return (int)(((unsigned)handle->generation << SLOT_BITS) | (unsigned)slot);
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a descriptor and a count, used only below
 static bool slot_from_descriptor(const struct crux_ssh_file_handle *handle, int descriptor,
                                  size_t capacity, size_t *slot)
 {
@@ -243,30 +244,38 @@ static path_kind_t path_resolve(const struct crux_ssh_file_handle *handle, const
     }
 }
 
-/* What the session may do in an area, as the service says, with no denial event. */
+typedef struct {
+    bool readable;
+    bool writable;
+} area_rights_t;
+
+/* What the session may do in an area, as the service says, with no denial event. It only decides
+ * what a client is shown: each operation still goes to the service. False if the area is hidden. */
 static bool area_rights(const struct crux_ssh_file_handle *handle, const crux_file_area_t *area,
-                        bool *readable, bool *writable)
+                        area_rights_t *rights)
 {
     size_t cursor = 0;
     const crux_file_area_t *found = NULL;
-    while (crux_file_service_area_next(handle->session, &cursor, &found, writable) ==
+    while (crux_file_service_area_next(handle->session, &cursor, &found, &rights->writable) ==
            CRUX_FILE_SERVICE_OK) {
         if (found == area) {
-            return crux_access_permitted(handle->session, area->read_permission, readable) ==
-                   CRUX_ACCESS_OK;
+            return crux_access_permitted(handle->session, area->read_permission,
+                                         &rights->readable) == CRUX_ACCESS_OK;
         }
     }
     return false;
 }
 
-static uint32_t directory_mode(bool readable, bool writable)
+static uint32_t directory_mode(area_rights_t rights)
 {
-    return CRUX_SSH_SFTP_MODE_DIRECTORY | (readable ? 0555u : 0u) | (writable ? 0300u : 0u);
+    return CRUX_SSH_SFTP_MODE_DIRECTORY | (rights.readable ? 0555u : 0u) |
+           (rights.writable ? 0300u : 0u);
 }
 
-static uint32_t file_mode(bool readable, bool writable)
+static uint32_t file_mode(area_rights_t rights)
 {
-    return CRUX_SSH_SFTP_MODE_FILE | (readable ? 0444u : 0u) | (writable ? 0200u : 0u);
+    return CRUX_SSH_SFTP_MODE_FILE | (rights.readable ? 0444u : 0u) |
+           (rights.writable ? 0200u : 0u);
 }
 
 static void attributes_of_root(crux_ssh_sftp_attributes_t *attributes)
@@ -403,8 +412,8 @@ int crux_ssh_sftp_file_append(void *fs, int fd, const void *buffer, uint32_t siz
     struct crux_ssh_file_handle *handle = session_enter(fs);
     open_file_t *file = handle != NULL ? file_from_descriptor(handle, fd) : NULL;
     uint64_t end = 0;
-    if (file == NULL || crux_file_service_size(handle->session, file->transfer, &end) !=
-                            CRUX_FILE_SERVICE_OK) {
+    if (file == NULL ||
+        crux_file_service_size(handle->session, file->transfer, &end) != CRUX_FILE_SERVICE_OK) {
         return -1;
     }
     return write_at(handle, file, end, buffer, size);
@@ -414,15 +423,14 @@ int crux_ssh_sftp_file_attributes(void *fs, int fd, crux_ssh_sftp_attributes_t *
 {
     struct crux_ssh_file_handle *handle = session_enter(fs);
     open_file_t *file = handle != NULL ? file_from_descriptor(handle, fd) : NULL;
-    bool readable = false;
-    bool writable = false;
+    area_rights_t rights = {false, false};
     if (file == NULL || attributes == NULL ||
         crux_file_service_size(handle->session, file->transfer, &attributes->size) !=
             CRUX_FILE_SERVICE_OK ||
-        !area_rights(handle, file->area, &readable, &writable)) {
+        !area_rights(handle, file->area, &rights)) {
         return -1;
     }
-    attributes->mode = file_mode(readable, writable);
+    attributes->mode = file_mode(rights);
     return 0;
 }
 
@@ -477,8 +485,7 @@ int crux_ssh_sftp_attributes(void *fs, const char *path, crux_ssh_sftp_attribute
     }
     const crux_file_area_t *area = NULL;
     char name[NAME_CAPACITY];
-    bool readable = false;
-    bool writable = false;
+    area_rights_t rights = {false, false};
     crux_status_t ignored = CRUX_OK;
     crux_file_info_t info = {0};
 
@@ -490,20 +497,20 @@ int crux_ssh_sftp_attributes(void *fs, const char *path, crux_ssh_sftp_attribute
         attributes_of_root(attributes);
         return 0;
     case PATH_AREA:
-        if (!area_rights(handle, area, &readable, &writable)) {
+        if (!area_rights(handle, area, &rights)) {
             return -1;
         }
         attributes->size = 0;
-        attributes->mode = directory_mode(readable, writable);
+        attributes->mode = directory_mode(rights);
         return 0;
     case PATH_FILE:
         if (crux_file_service_stat(handle->session, area->name, name, &info) !=
                 CRUX_FILE_SERVICE_OK ||
-            !area_rights(handle, area, &readable, &writable)) {
+            !area_rights(handle, area, &rights)) {
             return -1;
         }
         attributes->size = info.size;
-        attributes->mode = file_mode(readable, writable);
+        attributes->mode = file_mode(rights);
         return 0;
     default:
         return -1;
@@ -523,8 +530,7 @@ int crux_ssh_sftp_set_attributes(void *fs, const char *path)
     }
     const crux_file_area_t *area = NULL;
     char name[NAME_CAPACITY];
-    bool readable = false;
-    bool writable = false;
+    area_rights_t rights = {false, false};
     crux_status_t ignored = CRUX_OK;
 
     switch (path_resolve(handle, path, &area, name)) {
@@ -532,7 +538,7 @@ int crux_ssh_sftp_set_attributes(void *fs, const char *path)
         return session_usable(handle->session, &ignored) ? 0 : -1;
     case PATH_AREA:
     case PATH_FILE:
-        return area_rights(handle, area, &readable, &writable) ? 0 : -1;
+        return area_rights(handle, area, &rights) ? 0 : -1;
     default:
         return -1;
     }
@@ -566,8 +572,7 @@ int crux_ssh_sftp_dir_open(void *fs, const char *path, int *dir)
             return -1;
         }
     } else {
-        bool readable = false;
-        bool writable = false;
+        area_rights_t rights = {false, false};
         /* A listing is held from here, not from the first read, because wolfSSH turns a failure of
          * a read into the end of a listing: a client could not tell a busy service from an empty
          * area. A listing that is opened and never read holds it until the client closes it. */
@@ -575,11 +580,11 @@ int crux_ssh_sftp_dir_open(void *fs, const char *path, int *dir)
             CRUX_FILE_SERVICE_OK) {
             return -1;
         }
-        if (!area_rights(handle, area, &readable, &writable)) {
+        if (!area_rights(handle, area, &rights)) {
             (void)crux_file_service_dir_close(&opened.listing);
             return -1;
         }
-        opened.file_mode = file_mode(readable, writable);
+        opened.entry_mode = file_mode(rights);
     }
     handle->dirs[slot] = opened;
     *dir = slot_descriptor(handle, slot);
@@ -587,27 +592,26 @@ int crux_ssh_sftp_dir_open(void *fs, const char *path, int *dir)
 }
 
 static int dir_read_root(struct crux_ssh_file_handle *handle, open_dir_t *dir, char *name,
-                         size_t capacity, crux_ssh_sftp_attributes_t *attributes)
+                         crux_ssh_sftp_attributes_t *attributes)
 {
     const crux_file_area_t *area = NULL;
-    bool writable = false;
+    area_rights_t rights = {false, false};
     crux_file_service_result_t result =
-        crux_file_service_area_next(handle->session, &dir->cursor, &area, &writable);
+        crux_file_service_area_next(handle->session, &dir->cursor, &area, &rights.writable);
     if (result == CRUX_FILE_SERVICE_END) {
         dir->finished = true;
         return 1;
     }
-    bool readable = false;
     if (result != CRUX_FILE_SERVICE_OK ||
-        crux_access_permitted(handle->session, area->read_permission, &readable) !=
-            CRUX_ACCESS_OK ||
-        strlen(area->name) >= capacity) {
+        crux_access_permitted(handle->session, area->read_permission, &rights.readable) !=
+            CRUX_ACCESS_OK) {
         dir->finished = true;
         return -1;
     }
-    strcpy(name, area->name);
+    /* The service holds an area's name to 15 characters, and capacity is at least 64. */
+    memcpy(name, area->name, strlen(area->name) + 1u);
     attributes->size = 0;
-    attributes->mode = directory_mode(readable, writable);
+    attributes->mode = directory_mode(rights);
     return 0;
 }
 
@@ -625,7 +629,7 @@ static int dir_read_area(struct crux_ssh_file_handle *handle, open_dir_t *dir, c
         return result == CRUX_FILE_SERVICE_OK ? 1 : -1;
     }
     attributes->size = info.size;
-    attributes->mode = dir->file_mode;
+    attributes->mode = dir->entry_mode;
     return 0;
 }
 
@@ -640,7 +644,7 @@ int crux_ssh_sftp_dir_read(void *fs, int dir, char *name, size_t capacity,
     if (opened->finished) {
         return 1;
     }
-    return opened->area == NULL ? dir_read_root(handle, opened, name, capacity, attributes)
+    return opened->area == NULL ? dir_read_root(handle, opened, name, attributes)
                                 : dir_read_area(handle, opened, name, capacity, attributes);
 }
 
