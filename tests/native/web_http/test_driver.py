@@ -703,7 +703,8 @@ def case_slow_reader_no_progress():
 
 
 def case_slow_reader_held_slot_closes():
-    """After the send times out the slot is held until the inactivity timer, and no longer."""
+    """A reader that stops, then drains. Which close comes first varies, so this records which."""
+    before = stats()["response_deadlines"]
     reader = Client(rcvbuf=4096)
     reader.send(encode("GET", "/probe/static/8000000"))
     started = time.monotonic()
@@ -712,8 +713,12 @@ def case_slow_reader_held_slot_closes():
     # The receive above drains what is queued, so the send may progress before it stops.
     reader.reset()
     check(closed, "a stalled reader must lose its slot")
-    results["slow_reader_slot_released_s"] = round(time.monotonic() - started, 2)
+    released = round(time.monotonic() - started, 2)
     wait_for_settled()
+    results["slow_reader_drains_later"] = {
+        "released_s": released,
+        "by_response_deadline": stats()["response_deadlines"] == before + 1,
+    }
 
 
 def case_slow_reader_with_progress():
@@ -840,6 +845,30 @@ def case_stalled_reader_same_request_alone():
     """In this state the server keeps a new request's bytes in data_len, so this is seen too."""
     client = stalled_response()
     client.send(encode("GET", f"/probe/fail/{SENDS_BEFORE_SECOND_BODY_PIECE}"))
+    expect_closed_with_only_own_bytes(client)
+    wait_for_settled()
+
+
+def send_split_request(client):
+    """A whole next request in two reads, so that the first sets the parser back to headers."""
+    request = encode("GET", f"/probe/fail/{SENDS_BEFORE_SECOND_BODY_PIECE}")
+    client.send(request[:len(request) // 2])
+    time.sleep(0.2)
+    client.send(request[len(request) // 2:])
+
+
+def case_stalled_reader_split_request_after_other_client():
+    """The server takes this request's bytes off data_len again, so that alone cannot see it."""
+    client = stalled_response()
+    other_clients_response()
+    send_split_request(client)
+    expect_closed_with_only_own_bytes(client)
+    wait_for_settled()
+
+
+def case_stalled_reader_split_request_alone():
+    client = stalled_response()
+    send_split_request(client)
     expect_closed_with_only_own_bytes(client)
     wait_for_settled()
 

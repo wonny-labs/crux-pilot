@@ -42,6 +42,28 @@ static crux_web_result_t on_route(crux_web_request_t *request, crux_access_sessi
     case WEB_HANDLER_SLOW:
         web_test_clock_set(crux_web_port_now_ms_for_tests() + WEB_TEST_HANDLER_LIMIT_MS + 50u);
         break;
+    case WEB_HANDLER_STATIC_HEADERS: {
+        static const crux_web_header_t headers[CRUX_WEB_RESPONSE_HEADERS_MAX + 1u] = {
+            {"Content-Type", "text/plain"},
+            {"X-A", "1"},
+            {"X-B", "2"},
+            {"X-C", "3"},
+            {"X-D", "4"},
+            {"X-E", "5"},
+            {"X-F", "6"},
+            {"X-G", "7"},
+            {"X-H", "8"},
+            {"X-I", "9"},
+            {"X-J", "a"},
+            {"X-K", "b"},
+        };
+
+        /* Each header is three sends that can each wait out the send timeout on one callback. */
+        CHECK(crux_web_respond_static(request, 200, headers, CRUX_WEB_RESPONSE_HEADERS_MAX + 1u,
+                                      "x", 1u) == CRUX_WEB_ERR_INVALID_ARGUMENT);
+        return crux_web_respond_static(request, 200, headers, CRUX_WEB_RESPONSE_HEADERS_MAX, "x",
+                                       1u);
+    }
     case WEB_HANDLER_API_CHECKS: {
         char small[2];
 

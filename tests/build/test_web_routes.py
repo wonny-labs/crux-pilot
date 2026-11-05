@@ -1,6 +1,7 @@
 """The web route generator and the review list, without a compiler or Zephyr."""
 import importlib.util
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -75,6 +76,18 @@ class Parsing(unittest.TestCase):
             with self.subTest(line=line):
                 self.refuses(line + '\nCRUX_WEB_ROUTE(a, "/a", CRUX_WEB_GET, "x", on_a, NULL);', "may not")
 
+    def test_continued_directives_are_read_too(self):
+        for text in ("#define \\\n    CRUX_WEB_PUBLIC \"x.y\"\n",
+                     "#undef \\\nCRUX_WEB_GET\n",
+                     "# \\\n  define CRUX_WEB_BODY_BUFFER 9\n"):
+            with self.subTest(text=text):
+                self.refuses(text + 'CRUX_WEB_ROUTE(a, "/a", CRUX_WEB_GET, "x", on_a, NULL);', "may not")
+        self.refuses('#define MINE(n) \\\n  CRUX_WEB_ROUTE(n, "/a", CRUX_WEB_GET, "x", on_a, NULL)\n',
+                     "cannot be read")
+        # The line number still points at the use.
+        with self.assertRaisesRegex(web_routes.RouteError, r"fixture.c:3:"):
+            routes_of('int a = 1 + \\\n    2;\nCRUX_WEB_ROUTE(a, "/a", CRUX_WEB_GET, on_a, NULL);')
+
     def test_table_holds_what_the_scan_read(self):
         text = web_routes.render_table(routes_of(
             'CRUX_WEB_ROUTE(a, "/a", CRUX_WEB_GET | CRUX_WEB_PUT, "x.y", h, NULL);'
@@ -136,6 +149,23 @@ class Resources(unittest.TestCase):
             source = Path(directory) / "none.c"
             source.write_text("int nothing;\n", encoding="utf-8")
             self.assertEqual(web_routes.main([str(source), "--table", f"{directory}/t.c"]), 1)
+
+
+class BuildFunction(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("cmake"), "needs cmake")
+    def test_generated_resources_need_a_reviewed_list(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "routes.c").write_text("", encoding="utf-8")
+            (root / "CMakeLists.txt").write_text(
+                "cmake_minimum_required(VERSION 3.28)\nproject(probe NONE)\n"
+                f"include({REPO}/cmake/CruxWebRoutes.cmake)\n"
+                "add_library(app INTERFACE)\n"
+                "crux_web_routes(app SOURCES routes.c ZEPHYR_RESOURCES)\n", encoding="utf-8")
+            result = subprocess.run(["cmake", "-S", directory, "-B", f"{directory}/build"],
+                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("REVIEWED", result.stdout)
 
 
 class ReviewList(unittest.TestCase):

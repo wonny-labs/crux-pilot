@@ -17,7 +17,8 @@ typedef enum {
     WEB_HANDLER_FAIL,
     WEB_HANDLER_SLOW,
     WEB_HANDLER_API_CHECKS,
-    WEB_HANDLER_HEADER_NO_RESPONSE
+    WEB_HANDLER_HEADER_NO_RESPONSE,
+    WEB_HANDLER_STATIC_HEADERS
 } web_handler_mode_t;
 
 typedef struct {

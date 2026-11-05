@@ -69,6 +69,13 @@ typedef struct {
     const char *value;
 } crux_web_header_t;
 
+/**
+ * The most headers on a response. Each is three sends on one callback, and each send can wait out
+ * the send timeout on the server thread, so this keeps the worst stall under the inactivity timer
+ * at the defaults: (6 + 3 x 11) x 250 ms = 9.75 s, against 10 s. See docs/web-contract.md.
+ */
+#define CRUX_WEB_RESPONSE_HEADERS_MAX 11u
+
 /** A response for the transport to send. See crux_web_response_generation() for how long it lasts.
  */
 typedef struct {
@@ -156,6 +163,8 @@ const crux_web_request_head_t *crux_web_request_head(const crux_web_request_t *r
  * Respond once with a body that outlives the request, and a header list that the caller owns, for
  * firmware-embedded assets. The core adds nothing, so the caller supplies Content-Type and the
  * security headers.
+ *
+ * @param header_count One to CRUX_WEB_RESPONSE_HEADERS_MAX.
  */
 crux_web_result_t crux_web_respond_static(crux_web_request_t *request, int status,
                                           const crux_web_header_t *headers, size_t header_count,

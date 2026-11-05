@@ -15,6 +15,10 @@ static const char *const owned_names[] = {
     "Content-Security-Policy", "X-Content-Type-Options", "Referrer-Policy", "Cache-Control",
 };
 
+_Static_assert(CRUX_WEB_FIXED_HEADERS + CRUX_WEB_EXTRA_HEADERS + 1u <=
+                   CRUX_WEB_RESPONSE_HEADERS_MAX,
+               "the core's own responses must fit the cap");
+
 static struct {
     crux_web_header_t headers[CRUX_WEB_FIXED_HEADERS + CRUX_WEB_EXTRA_HEADERS + 1u];
     char extra[CRUX_WEB_EXTRA_HEADER_BYTES];
@@ -227,7 +231,8 @@ crux_web_result_t crux_web_respond_static(crux_web_request_t *request, int statu
         return result;
     }
     if (status < 200 || status > 599 || status == 204 || status == 304 ||
-        (body == NULL && length != 0u) || headers == NULL || header_count == 0u) {
+        (body == NULL && length != 0u) || headers == NULL || header_count == 0u ||
+        header_count > CRUX_WEB_RESPONSE_HEADERS_MAX) {
         return CRUX_WEB_ERR_INVALID_ARGUMENT;
     }
     request->response->status = status;

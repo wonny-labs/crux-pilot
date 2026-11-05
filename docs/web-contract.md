@@ -78,7 +78,7 @@ CRUX_WEB_ROUTE(pump_item, "/api/v1/app/pump/{id}", CRUX_WEB_GET, CRUX_WEB_SESSIO
 ```
 
 ```cmake
-crux_web_routes(app SOURCES src/pump_routes.c ZEPHYR_RESOURCES)
+crux_web_routes(app SOURCES src/pump_routes.c REVIEWED reviewed-routes.txt ZEPHYR_RESOURCES)
 ```
 
 | Rule | How it holds |
@@ -88,7 +88,7 @@ crux_web_routes(app SOURCES src/pump_routes.c ZEPHYR_RESOURCES)
 | A route in a source not named to the build | Not in the table, so it is unreachable: fails closed. |
 | A route the scan saw but the compiler did not, such as in `#if 0` | Fails to link. |
 | A project sees no native header | `tests/web_consumer` builds as C17 and C++17 under `crux_assert_portable_consumer` and `crux_assert_access_consumer`, and `tests/native/web_http` builds its project route in a library with no Zephyr requirement. |
-| Public and session-only routes get a review | `crux_web_routes(... REVIEWED list)` fails the build otherwise, in both directions, and sees generated sources and any layout. `scripts/check-web-routes.py` lists them, and holds what is tracked outside `tests/` to `components/web/reviewed-routes.txt`. |
+| Public and session-only routes get a review | `crux_web_routes(... REVIEWED list)` fails the build otherwise, in both directions, and sees generated sources and any layout. An image with Zephyr resources must give a list. `scripts/check-web-routes.py` lists them, and holds what is tracked outside `tests/` to `components/web/reviewed-routes.txt`. |
 
 ## Resources the build generates
 
@@ -159,19 +159,19 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 | Measurement | Level | Result | Bound and declaration |
 | --- | --- | --- | --- |
 | Whole request deadline, Host | Host | A trickled body stays open up to the deadline, and closes on the first chunk after it, with no handler | |
-| Trickled body, one byte every 200 ms | `native_sim` | Closed at 2.21 s with nothing sent, no plain `500`, and the login route free straight after | At most the deadline plus the gap to the next chunk, and that gap is at most the inactivity timer. The deadline returns `-ECONNABORTED`, because `-EAGAIN` would not close. |
-| Silent partial body | `native_sim` | Closed at 3.01 s by the inactivity timer | The route is held, and others get the plain `409`, until then. Anyone who can reach the port can do this, including to login, so network login can be kept busy by repeating it, as the frontend design declares. The serial console is not affected. |
+| Trickled body, one byte every 200 ms | `native_sim` | Closed at 2.02 s with nothing sent, no plain `500`, and the login route free straight after | At most the deadline plus the gap to the next chunk, and that gap is at most the inactivity timer. The deadline returns `-ECONNABORTED`, because `-EAGAIN` would not close. |
+| Silent partial body | `native_sim` | Closed at 3.02 s by the inactivity timer | The route is held, and others get the plain `409`, until then. Anyone who can reach the port can do this, including to login, so network login can be kept busy by repeating it, as the frontend design declares. The serial console is not affected. |
 | Disconnect mid-request | Host and `native_sim` | Route free within 10 ms of a FIN or a reset, and on Host the body cleared | The registered resources get the server's release, which a fallback resource would not |
 | Trickled headers, three clients, one byte per second | `native_sim` | All three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s | **Limit declared, see below.** |
 | Client slots, three idle keep-alive connections | `native_sim` | A fourth request waited 3.0 s | An idle browser connection holds a slot for one inactivity period. A real browser's eight parallel requests all succeeded through three slots. |
-| Slow handler, 500 ms | `native_sim` | Another client's largest wait 515 ms, against a median of 50 ms, and the overrun counted | A handler stalls every client for as long as it runs |
-| Reader that reads nothing, 8 MB body | `native_sim` | Another client's largest wait 2.04 s | See [the slow reader bound](#the-slow-reader-bound) |
-| Reader that drains 20 KB/s, 8 MB body | `native_sim` | Another client's largest wait 1.52 s. The response was cut by its deadline, and counted. | By the source, without pieces this would hold the thread for the whole body. That was not run. |
-| Silent reader with a full socket, small responses | `native_sim` | Another client's largest wait 10.18 s, about 20 sends at 0.5 s each. Another client's idle connection was closed meanwhile. | **The worst case.** See below. |
+| Slow handler, 500 ms | `native_sim` | Another client's largest wait 506 ms, against a median of 48 ms, and the overrun counted | A handler stalls every client for as long as it runs |
+| Reader that reads nothing, 8 MB body | `native_sim` | Another client's largest wait 2.09 s | See [the slow reader bound](#the-slow-reader-bound) |
+| Reader that drains 20 KB/s, 8 MB body | `native_sim` | Another client's largest wait 1.76 s. The response was cut by its deadline, and counted. | By the source, without pieces this would hold the thread for the whole body. That was not run. |
+| Silent reader with a full socket, small responses | `native_sim` | Another client's largest wait 10.19 s, about 20 sends at 0.5 s each. Another client's idle connection was closed meanwhile. | **The worst case.** See below. |
 | A send that returns `-EAGAIN`, then more from that client | `native_sim`, injected | Closed within a second, with none of another client's bytes | See [below](#a-response-that-stops-part-way) |
 | A send that returns `-EAGAIN`, then silence | `native_sim`, injected | Closed by the inactivity timer at 2.81 s | |
-| Stop just after the deadline | `native_sim` | Closed 2 ms after the byte that found it late, well before the inactivity timer | A `-EAGAIN` here would not close, and a mutation control shows this case fails then |
-| Slot of a stalled reader | `native_sim` | Released after 2.33 s in this run. It varies from run to run with when the send stopped. | The inactivity timer ends it, counted from the last send that made progress |
+| Stop just after the deadline | `native_sim` | Closed 7 ms after the byte that found it late, well before the inactivity timer | A `-EAGAIN` here would not close, and a mutation control shows this case fails then |
+| A reader that stops, then drains | `native_sim` | Released after 1.97 s in this run, by the response deadline. | **Not a stalled reader**, since the case drains. It varies between the response deadline and the inactivity timer, so the case records which. The stalled reader's own figure is the row with the injected `-EAGAIN` above. |
 | Flow control probe, see below | `native_sim` | Another client's largest wait 211 ms | The stall is the storage stall |
 | Baseline | `native_sim` | Median 50 ms, on an otherwise idle server | See below. This is not on the server thread. |
 
@@ -189,14 +189,16 @@ and with pieces, the response deadline plus that.
 
 | Setting | Largest stall for one small response |
 | --- | --- |
-| Test image, 500 ms | 21 x 0.5 = 10.5 s. Measured 10.18 s. |
+| Test image, 500 ms | 21 x 0.5 = 10.5 s. Measured 10.19 s. |
 | Default, 250 ms | 21 x 0.25 = 5.25 s, by that sum. Not measured. |
+| Most headers on a response, 11 | (6 + 3 x 11) x 0.25 = 9.75 s, by that sum, under the 10 s timer. `crux_web_respond_static` refuses more. Sixteen would be 13.5 s. |
 
 The response deadline does not help here, because it is checked only between pieces, and a response of one piece has
 none. A stall past the inactivity timer has a second effect: the system work queue still runs that timer, so another
-client's idle connection is closed during the stall. At the defaults, 5.25 s is under the 10 s timer, which is why this
-pull request lowers the default send timeout from 1,000 to 250 ms. A lower value would also close a client on a poor link
-sooner. A later change could halve the sends by passing the headers in one value, which would also mean fewer TLS records,
+client's connection is closed during the stall if it was idle, or if its request is sitting unread, which then loses that
+request. A client whose request was delayed by the stall cannot tell this from a refusal. At the defaults, 5.25 s is under the 10 s timer, which is why this
+pull request lowers the default send timeout from 1,000 to 250 ms. That is close to a TCP retransmit of about 200 ms, so an
+honest client on a lossy link can lose a response to it, and #197 sizes it against the integrated image. A later change could halve the sends by passing the headers in one value, which would also mean fewer TLS records,
 but that leans on how the server writes them, so it is left for #185 to weigh.
 
 ### A response that stops part-way
@@ -206,11 +208,19 @@ The client stays, and so do its holder and this adapter's slot. The next byte it
 independent review found it, the adapter then went on with the next piece, from `store.body`, which all clients share, so
 a stalled client could read another client's response.
 
-The callback now closes on any re-entry. Inside the server's piece loop `client->data_len` does not change, and a re-entry
-has at least one new byte in it, because in this state the server does not take a new request's header bytes off before the
-callback. A mutation control shows this alone stops the leak: with only the second guard, the store generation, removed, the
-cases still pass, and with both removed, 2,048 bytes of another client's body arrive. The generation is a second guard, for a
-server change that breaks the first, and only its Host test exercises it separately.
+The callback now closes on any re-entry. Three values, recorded when the response begins, are stable inside the server's piece
+loop, and each of them catches a re-entry that another can miss:
+
+| Re-entry | What changes | Why |
+| --- | --- | --- |
+| A byte, or a request that arrives in one read | `client->data_len` | The parser stays past its header state, so the server does not take these bytes off before the callback |
+| A request that arrives in two or more reads | `strlen(client->url_buffer)` | The first read sets the parser back to its header state, so on the last read the server takes the header bytes off and `data_len` returns to its recorded value. A trace showed `rest 3072 dl 0/0 gen 87/86`. But `on_url` appends every new URL. |
+| Any of them, after another client's response | The store's generation | Nothing else needs to change |
+
+Every request has a URL, and a callback runs only after a read with bytes in it or after a URL, so the first two cover every
+re-entry. The generation is a further guard for what the rest points at. Mutation controls are in the pull request. With the
+URL and generation checks off, a split request carries 2,048 bytes of another client's body to the stalled client. A split
+request alone, with only the URL check off, resumes and finishes its old response.
 
 The injected send proves the path runs: `send_eagain` in `/probe/stats` counts each one, because the suite reached it zero
 times before. Real `-EAGAIN` on Zephyr's own stack has not been run.
@@ -241,7 +251,7 @@ with it. A bare resource in the test image measures this, with a queue of 2 KiB 
 | --- | --- |
 | Time | 3.74 s |
 | Longest wait of the callback | 210 ms |
-| Another client's median and largest wait | 49.0 ms and 211 ms |
+| Another client's median and largest wait | 49.6 ms and 211 ms |
 | Data lost | None. The queue never overflowed. |
 
 So flow control works on the single thread as a stall bounded by the slowest storage write, and not by the transfer. #188
@@ -319,9 +329,9 @@ Each would have made results here wrong without being seen.
 | #186 | `crux_web_start(const crux_web_config_t *)` | `crux_web_adapter.h` |
 | #186 | `crux_web_request_head(request)`, for `Origin` on login and `X-Crux-Request` on the poll | `crux_web_adapter.h` |
 | #186 | `crux_web_add_header(request, "Set-Cookie", value)`, up to four headers and 384 bytes | `crux/web.h` |
-| Every composition | `crux_web_routes(app SOURCES ... REVIEWED list ZEPHYR_RESOURCES)`, which fails the build on a public or session-only route that is not on the list | `cmake/CruxWebRoutes.cmake` |
+| Every composition | `crux_web_routes(app SOURCES ... REVIEWED list ZEPHYR_RESOURCES)`, whose list is mandatory with resources, and which fails the build on a public or session-only route that is not on it | `cmake/CruxWebRoutes.cmake` |
 | #187, projects | `CRUX_WEB_ROUTE`, `CRUX_WEB_ROUTE_BODY`, `crux_web_path_param`, `crux_web_query`, `crux_web_content_type`, `crux_web_body_length`, `crux_web_read_body`, `crux_web_respond`, `crux_web_respond_error` | `crux/web.h` |
-| #189 | `crux_web_respond_static(request, status, headers, count, body, length)`, with the packager generating a source of `CRUX_WEB_ROUTE` uses that it names to `crux_web_routes` | `crux_web_adapter.h` |
+| #189 | `crux_web_respond_static(request, status, headers, count, body, length)`, at most 11 headers, with the packager generating a source of `CRUX_WEB_ROUTE` uses that it names to `crux_web_routes` | `crux_web_adapter.h` |
 | #188 | Nothing yet: the probe above is its starting point | |
 
 A copied response body is at most 4 KiB, `CRUX_WEB_RESPONSE_MAX`. A request body is at most `CRUX_WEB_BODY_BUFFER`, 1 KiB,
@@ -343,7 +353,8 @@ fits the 4 KiB.
 | Responses go in 1 KiB pieces with a deadline | A large body is bounded, which the send timeout alone does not do. #189: 3 s can cut a large asset for a slow but honest client, so its size and this deadline need setting together. | A send on one call, with no bound on a slow reader |
 | Default send timeout 250 ms, not 1,000 | Keeps one callback's worst stall under the inactivity timer | A longer timeout is kinder to a poor link |
 | `crux_web_start` checks the route table, and that `fnmatch` behaves | A value changed by a macro between the scan and the compiler, or a C library's own `fnmatch`, stops the start | Trust the build |
-| A source of routes may not `#define` or `#undef` a `CRUX_WEB_*` name | The scan and the compiler then read the same thing | |
+| A source of routes may not `#define` or `#undef` a `CRUX_WEB_*` name, also across a `\\` continuation | The scan and the compiler then read the same thing. A header the source includes can still do it, unseen, and the table comparison at start is the backstop. | |
+| `ZEPHYR_RESOURCES` needs `REVIEWED` | Every real image then has its public and session-only routes held to a list | An optional list, which a project could forget |
 | `/api/v1/config/save` shadows a parameter named `save` | Follows from the server's exact pass, so declared | Move fixed routes elsewhere, in #187 |
 | The route scan reads named sources, not preprocessed output | Simple, and it fails closed in both directions above, and start compares the two | A scan of compiled objects |
 | Plain HTTP exists only as `CONFIG_CRUX_WEB_PLAIN_HTTP_FOR_TESTS`, which depends on `BOARD_NATIVE_SIM` | No other board can select it, and the target runner rejects it | |

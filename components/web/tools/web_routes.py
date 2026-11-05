@@ -38,6 +38,7 @@ FIXED_SEGMENT = re.compile(r"[A-Za-z0-9._~-]+\Z")
 PARAM_SEGMENT = re.compile(r"\{[a-z][a-z0-9_]*\}\Z")
 MACRO = re.compile(r"\bCRUX_WEB_ROUTE(_BODY)?\s*\(")
 REDEFINED = re.compile(r"^[ \t]*#[ \t]*(define|undef)[ \t]+(CRUX_WEB_\w*)", re.MULTILINE)
+CONTINUATION = re.compile(r"\\\r?\n")
 PATH_PARAMS_MAX = 4
 
 
@@ -181,18 +182,20 @@ def parse_access(argument, where):
 def parse_source(text, source):
     """Return the routes in one source file."""
     clean = strip_comments(text)
-    redefined = REDEFINED.search(clean)
+    # Directives span continued lines. Blanks of the same length keep every offset, for line numbers.
+    joined = CONTINUATION.sub(lambda match: " " * len(match.group(0)), clean)
+    redefined = REDEFINED.search(joined)
     if redefined:
         line = clean.count("\n", 0, redefined.start()) + 1
         raise RouteError(f"{source}:{line}: a source of routes may not {redefined.group(1)} "
                          f"{redefined.group(2)}, which would make the table differ from this scan")
     routes = []
-    for match in MACRO.finditer(blank_strings(clean)):
+    for match in MACRO.finditer(blank_strings(joined)):
         line = clean.count("\n", 0, match.start()) + 1
         where = f"{source}:{line}"
-        if re.match(r"\s*#\s*define\b", clean[clean.rfind("\n", 0, match.start()) + 1:match.start()]):
+        if re.match(r"\s*#\s*define\b", joined[joined.rfind("\n", 0, match.start()) + 1:match.start()]):
             raise RouteError(f"{where}: a macro that defines routes cannot be read")
-        arguments = split_arguments(clean, match.end(), where)
+        arguments = split_arguments(joined, match.end(), where)
         expected = 7 if match.group(1) else 6
         if len(arguments) != expected:
             raise RouteError(f"{where}: CRUX_WEB_ROUTE takes {expected} arguments, with a mandatory "

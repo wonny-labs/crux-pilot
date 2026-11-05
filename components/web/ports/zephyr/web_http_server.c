@@ -15,10 +15,13 @@
  *   request's first callback. It bounds one send, not a response: the server makes about twenty
  * sends for a small response, in one callback, without returning to poll.
  * - A send that fails with -EAGAIN comes back through the server, which swallows it and leaves the
- *   client open with its resource and this slot held. The response stops there, and the next
- * received byte runs the callback again, possibly long after another client's response has been
- * built in the same store. A callback that finds a finished exchange, or a piece with its
- * response's data_len or its store generation changed, is that re-entry, and it closes.
+ *   client open with its resource and this slot held. The response stops there, and what the client
+ *   sends next runs the callback again, possibly long after another client's response has been
+ * built in the same store. A callback that finds a finished exchange is that re-entry, and so is a
+ * piece whose data_len, URL length or store generation has changed since its response began. Each
+ * is stable inside the server's piece loop. A request in one read changes data_len. A request in
+ * two sets the parser back to headers, and then the server takes its bytes off data_len again, but
+ *   every new URL is appended to the buffer. Every re-entry closes.
  * - The server calls back without returning to poll until a response is final, so a large body goes
  * in pieces, and a callback between pieces closes a response that has run over its deadline. A
  * response of one piece never reaches that check.
@@ -40,7 +43,6 @@
 
 /* A registered resource can be held by one client, so a slot per client is one per request. */
 #define CRUX_WEB_SLOTS CONFIG_HTTP_SERVER_MAX_CLIENTS
-#define CRUX_WEB_RESPONSE_HEADERS_MAX 16u
 #define CRUX_WEB_RAW_HEAD_MAX 768u
 /* Longer than any address form of Origin or Host that a device serves, with a name of 100 bytes. */
 #define CRUX_WEB_ORIGIN_VALUE_MAX 128u
@@ -101,6 +103,7 @@ static struct {
     int64_t response_started_ms;
     /* What stays the same between pieces inside the server's loop, to tell a re-entry from it. */
     size_t response_data_len;
+    size_t response_url_length;
     uint32_t response_generation;
 } crux_web_slots[CRUX_WEB_SLOTS];
 
@@ -263,6 +266,7 @@ static int apply_step(struct http_client_ctx *client, int slot, crux_web_step_t 
         }
         crux_web_slots[slot].response_started_ms = k_uptime_get();
         crux_web_slots[slot].response_data_len = client->data_len;
+        crux_web_slots[slot].response_url_length = strlen((const char *)client->url_buffer);
         crux_web_slots[slot].response_generation = crux_web_response_generation();
         for (size_t index = 0; index < response->header_count; ++index) {
             crux_web_response_headers[index].name = response->headers[index].name;
@@ -337,6 +341,7 @@ int crux_web_zephyr_callback(struct http_client_ctx *client, enum http_transacti
          * store that another client's response has overwritten, so nothing more of it may go out.
          */
         if (client->data_len != crux_web_slots[slot].response_data_len ||
+            strlen((const char *)client->url_buffer) != crux_web_slots[slot].response_url_length ||
             crux_web_response_generation() != crux_web_slots[slot].response_generation) {
             client->http1_headers_sent = true;
             return -ECONNABORTED;

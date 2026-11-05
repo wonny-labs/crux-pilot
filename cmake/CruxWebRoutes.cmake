@@ -8,13 +8,18 @@ include_guard(GLOBAL)
 #
 # REVIEWED fails the build on a public or session-only route that is not on that list, or an entry with
 # no route. This is the check that sees generated sources, such as the asset routes of #189, and any
-# project layout, so a product image should use it. See scripts/check-web-routes.py for the list's form.
+# project layout, so an image with ZEPHYR_RESOURCES must give it. See scripts/check-web-routes.py for the
+# list's form.
 # ZEPHYR_RESOURCES also generates the registered resources, and needs the Zephyr port's header and
 # Zephyr's headers on the target, as `app` has. FAKE_MANIFEST is for the Host's fake transport only.
 function(crux_web_routes target)
     cmake_parse_arguments(PARSE_ARGV 1 ARG "ZEPHYR_RESOURCES;FAKE_MANIFEST" "REVIEWED" "SOURCES")
     if(NOT ARG_SOURCES OR ARG_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR "crux_web_routes(<target> SOURCES <files> ...)")
+    endif()
+    if(ARG_ZEPHYR_RESOURCES AND NOT ARG_REVIEWED)
+        message(FATAL_ERROR "crux_web_routes: an image with ZEPHYR_RESOURCES needs REVIEWED <file>, "
+            "the list of its public and session-only routes")
     endif()
     set(tool "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../components/web/tools/web_routes.py")
     find_package(Python3 REQUIRED COMPONENTS Interpreter)

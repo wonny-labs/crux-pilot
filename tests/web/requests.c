@@ -439,6 +439,17 @@ static void test_chunk_larger_than_buffer(void)
     expect_closed_with(400, "bad_request");
 }
 
+/* The most headers a response may have, which bounds its sends on one callback. */
+static void test_static_response_header_cap(void)
+{
+    CHECK(CRUX_WEB_RESPONSE_HEADERS_MAX == 11u);
+    fresh();
+    web_record.mode = WEB_HANDLER_STATIC_HEADERS;
+    CHECK(fake_request(client, "/api/v1/status", CRUX_WEB_GET, web_admin_cookie)->status == 200);
+    CHECK(client->reply.header_count == CRUX_WEB_RESPONSE_HEADERS_MAX);
+    CHECK(fake_reply_header(&client->reply, "X-K") == NULL);
+}
+
 /* The store's generation is what a transport checks before sending more of an old response. */
 static void test_response_generation_changes(void)
 {
@@ -478,5 +489,6 @@ int main(void)
     test_content_length_wrap();
     test_chunk_larger_than_buffer();
     test_response_generation_changes();
+    test_static_response_header_cap();
     return access_test_finish("web requests");
 }
