@@ -109,6 +109,39 @@ config CRUX_SERIAL
     help
       One explicitly dedicated UART, 256-byte RX and TX buffers. Task context only.
 
+config CRUX_CLI
+    bool "Crux command line and serial console"
+    depends on CRUX_PILOT_MODULE && CRUX_SERIAL && CRUX_THREAD
+    help
+      The command registry and the serial console over Crux Serial. Access and a provider of the
+      event port have no Zephyr composition yet, so an image that calls it does not link.
+      Without CRUX_DEVELOPMENT_IMAGE, an image with this has no Zephyr shell.
+
+if CRUX_CLI
+
+config CRUX_CLI_LINE_MAX
+    int "Longest input line, in bytes before the line end"
+    default 320
+    range 301 4096
+    help
+      At least `config set <31-byte name> "<128-byte value>"` with every value byte escaped.
+
+config CRUX_CLI_TOKENS_MAX
+    int "Most tokens in a line, counting the command's words"
+    default 10
+    range 4 32
+
+endif # CRUX_CLI
+
+config CRUX_DEVELOPMENT_IMAGE
+    bool "Mark this image as a development image"
+    depends on CRUX_PILOT_MODULE
+    help
+      Opt-in. It allows the Zephyr shell, on its serial backend only, in an image that also has Crux
+      management. No image may have a network shell backend or MCUMGR_GRP_SHELL, with or without
+      this mark. A development image says so in its identifier and in its evidence, and it is never
+      the subject of a production result.
+
 config CRUX_I2C
     bool "Crux synchronous I2C transfers"
     depends on CRUX_PILOT_MODULE && I2C
