@@ -104,7 +104,7 @@ Revision, tools and commands are in the pull request. `scripts/test-ssh-provider
 | `native_sim`, run | The 51 conformance cases of `tests/ssh` on this provider, over real sockets, with the scripted client | 51 pass, and the provider's own host key rules. The earlier failures are [below](#how-the-cases-went-from-red-to-green). |
 | `native_sim`, run | `openssh_test.py`, with OpenSSH 9.6 | All cases pass. See the table below. |
 | `native_sim`, run | OpenSSH 9.9 on the development machine, through a relay into the container | `mlkem768x25519-sha256`, `curve25519-sha256` and `ecdh-sha2-nistp256` each log in by key |
-| RT1060-EVKB, compile only | The test image, without the TLS socket backend | Links: 298,352 B Flash, 703,756 B RAM, of which the test configures a 512 KiB arena |
+| RT1060-EVKB, compile only | The test image, without the TLS socket backend | Links: 298,560 B Flash, 703,820 B RAM, of which the test configures a 512 KiB arena |
 | Control | `CONFIG_MBEDTLS=y` | Stops at configuration, with the message in `provider_sources.cmake` |
 
 What each OpenSSH case shows, on a real socket:
@@ -166,7 +166,7 @@ Measured with `CONFIG_WOLFSSL_MLKEM=y` and `CRUX_SSH_WOLF_OFFER_MLKEM`, on the m
 
 | Measure | `curve25519-sha256` in the same image | `mlkem768x25519-sha256` | Difference |
 | --- | --- | --- | --- |
-| RT1060 Flash, compile only | 298,352 B (image without ML-KEM) | 306,088 B | +7,736 B |
+| RT1060 Flash, compile only, both builds one commit before the final revision | 298,352 B (image without ML-KEM) | 306,088 B | +7,736 B |
 | RT1060 static RAM, compile only | 703,756 B | 703,756 B | None |
 | `native_sim` heap peak, one login | 22,320 B | 25,456 B | +3,136 B during the exchange |
 | `native_sim` heap in a session | 22,160 B | 22,160 B | None, though the build adds 1,352 B per session over one without ML-KEM |
