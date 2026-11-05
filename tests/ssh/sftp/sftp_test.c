@@ -990,6 +990,8 @@ static void case_remove_and_rename(void)
 
     /* Within one area only, and never over an existing name, which WinSCP removes first. */
     CHECK(crux_ssh_sftp_rename(fs, "/data/doc", "/logs/doc") < 0);
+    CHECK(crux_ssh_sftp_rename(fs, "/data/doc", "/logs/moved") < 0);
+    CHECK(!crux_file_fake_exists(ROOT_DATA, "moved"));
     CHECK(crux_ssh_sftp_rename(fs, "/data/doc", "/data/other") < 0);
     CHECK(crux_ssh_sftp_rename(fs, "/data/doc", "/data/doc") < 0);
     CHECK(crux_ssh_sftp_rename(fs, "/data/missing", "/data/x") < 0);
@@ -1236,6 +1238,8 @@ static void run_case(const char *name, void (*body)(void))
     pid_t child = fork();
     CHECK(child >= 0);
     if (child == 0) {
+        /* A case answers for its own checks only. */
+        access_test_failures = 0;
         body();
         fflush(stdout);
         _exit(access_test_failures == 0 ? 0 : 1);

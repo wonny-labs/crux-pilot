@@ -15,6 +15,7 @@ repo="$(git rev-parse --show-toplevel)"
 workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
 modules="${CRUX_SSH_WOLF_MODULES:-$workspace/modules/crypto}"
 build="${CRUX_SSH_SFTP_BUILD:-$repo/build/ssh-sftp-openssh}"
+preset="${CRUX_SSH_SFTP_PRESET:-host-debug}"
 jobs="${CRUX_SSH_SFTP_JOBS:-3}"
 port="${CRUX_SSH_SFTP_PORT:-2222}"
 idle_port=$((port + 1))
@@ -46,7 +47,7 @@ for module in wolfssl wolfssh; do
     fi
 done
 
-cmake --preset host-debug -B "$build" "-DCRUX_SSH_SFTP_WOLF_MODULES=$modules" > "$build.configure.log"
+cmake --preset "$preset" -B "$build" "-DCRUX_SSH_SFTP_WOLF_MODULES=$modules" > "$build.configure.log"
 ninja -C "$build" -j "$jobs" crux_ssh_sftp_proof_server > "$build.build.log"
 server="$build/tests/ssh/sftp/openssh/crux_ssh_sftp_proof_server"
 

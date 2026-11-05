@@ -616,6 +616,9 @@ west group. It compiles and links `tests/zephyr/ssh_wolf_probe` for `mimxrt1060_
 `native_sim/native/64` both ways, and runs negative controls. It never flashes or runs an image, and the file port it links
 is one that refuses every operation. See [the SSH provider contract](../docs/ssh-provider-contract.md).
 
+`Ssh.sftp` runs the SFTP operations through the fake provider on the real file service and Access core, and `Ssh.sftp_port_shape` calls the port's macros as wolfSSH does.
+`scripts/test-ssh-sftp-openssh.sh` is not part of any default workflow, for the same reason. It runs OpenSSH against the unedited wolfSSH handlers on Linux, through the real port and file service, with a server in `tests/ssh/sftp/openssh` that stands in for the provider, and replays the requests of WinSCP. `scripts/test-ssh-sftp-compile.sh` compiles the real operations for the target and `native_sim`. None of these runs on `native_sim`. See [the SFTP design](../docs/sftp-design.md).
+
 ## PSA Crypto qualification
 
 `tests/psa_crypto` holds provider-neutral PSA Crypto conformance cases (Issue #142), a standalone Linux Host project, a `native_sim` Ztest app and two

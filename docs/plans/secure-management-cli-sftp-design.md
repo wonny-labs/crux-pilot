@@ -130,6 +130,7 @@ An earlier version of this design relied on `WOLFSSH_SFTP_ERRNO` to report a ref
 That name does not occur in wolfSSH v1.6.0, the pinned revision. Reading its source, a refused `OPEN` is sent
 as a general failure, so Issue #194 has to settle how a refusal reaches the client. See
 [the SSH provider contract](../ssh-provider-contract.md#findings-for-the-sftp-session).
+[The SFTP design](../sftp-design.md) settles it: a general failure.
 
 ### Client view and operations
 

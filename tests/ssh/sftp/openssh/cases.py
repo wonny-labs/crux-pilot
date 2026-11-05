@@ -505,7 +505,9 @@ def sftp_rename_and_remove_follow_the_service(config, work):
     expect_true(result.returncode != 0, "rename over a file worked")
     with open(config.disk("data", "other"), "rb") as file:
         expect_true(file.read() == b"z", "the rename replaced the file")
-    expect_true(config.sftp("root", ["rename /data/doc /logs/doc"]).returncode != 0, "across areas")
+    expect_true(config.sftp("root", ["rename /data/doc /logs/moved"]).returncode != 0, "across areas")
+    expect_true(not os.path.exists(config.disk("data", "moved")), "the rename lost the area")
+    expect_true(not os.path.exists(config.disk("logs", "moved")), "the rename crossed the areas")
     expect_true(config.sftp("root", ["rm /data/other", "rename /data/doc /data/other"]).returncode == 0,
                 "remove and rename")
     expect_true(os.path.exists(config.disk("data", "other")), "the new name is missing")
