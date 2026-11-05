@@ -623,7 +623,7 @@ west group. It compiles and links `tests/zephyr/ssh_wolf_probe` for `mimxrt1060_
 is one that refuses every operation. See [the SSH provider contract](../docs/ssh-provider-contract.md).
 
 `Ssh.sftp` runs the SFTP operations through the fake provider on the real file service and Access core, and `Ssh.sftp_port_shape` calls the port's macros as wolfSSH does.
-`scripts/test-ssh-sftp-openssh.sh` is not part of any default workflow, for the same reason. It runs OpenSSH against the unedited wolfSSH handlers on Linux, through the real port and file service, with a server in `tests/ssh/sftp/openssh` that stands in for the provider, and replays the requests of WinSCP. `scripts/test-ssh-sftp-compile.sh` compiles the real operations for the target and `native_sim`. None of these runs on `native_sim`. See [the SFTP design](../docs/sftp-design.md).
+`scripts/test-ssh-sftp-openssh.sh` is not part of any default workflow, for the same reason. It runs OpenSSH against the unedited wolfSSH handlers on Linux, through the real port and file service, with a server in `tests/ssh/sftp/openssh` that stands in for the provider, and replays the requests of WinSCP. `scripts/test-ssh-sftp-native.sh` runs the same cases on `native_sim`, through the provider of #192, the real file service and FatFs over a RAM disk, and it stops at once on a tree without that provider. `scripts/test-ssh-sftp-compile.sh` compiles the real operations for the target and `native_sim`. See [the SFTP design](../docs/sftp-design.md).
 
 ## PSA Crypto qualification
 
