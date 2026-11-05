@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The MMC cache flush correction refuses a drifted source and output inside Zephyr.
 
-The good run needs the pinned Zephyr checkout, from ZEPHYR_BASE or beside the repository.
+The good run needs the pinned Zephyr checkout, named by ZEPHYR_BASE.
 """
 import importlib.util
 import json
@@ -12,7 +12,9 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
-ZEPHYR = Path(os.environ.get("ZEPHYR_BASE", ROOT.parent / "zephyr"))
+if not os.environ.get("ZEPHYR_BASE"):
+    raise RuntimeError("ZEPHYR_BASE is unset: set it to the pinned Zephyr checkout to run test_prepare.py")
+ZEPHYR = Path(os.environ["ZEPHYR_BASE"])
 SPEC = importlib.util.spec_from_file_location("prepare_mmc_cache_flush",
                                               ROOT / "scripts/prepare-mmc-cache-flush.py")
 PREPARE = importlib.util.module_from_spec(SPEC)

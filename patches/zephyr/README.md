@@ -147,7 +147,8 @@ that bit. Without a cache, or before initialisation, the sync behaves as at the 
 qualification claim. Only the bit 7 error is read from the status; other R1 error bits are not. Linux allows 30 s for a
 flush, while `CONFIG_SD_DATA_TIMEOUT` defaults to 10 s; a composition that needs longer raises that value. The timeouts are
 counted in polling delays, as `sdmmc_wait_ready` does, so they are a lower bound. The disk de-initialisation path also
-sends the sync and discards its result.
+sends the sync and discards its result. The drift check covers `mmc.c` only. The correction also relies on bit 15 of
+`card->flags` staying unused in `sd_spec.h`, on `sd_init_io` clearing the flags, and on `sdmmc_wait_ready` behaving as at the pin, so a Zephyr update that leaves `mmc.c` unchanged still needs this reviewed. CMD13 is sent without retries as a named decision: a transient status error makes the sync fail, and the volume is read-only until a remount, which is the safe direction.
 
 `scripts/prepare-mmc-cache-flush.py` checks the exact original source hash, applies the patch in a temporary directory and
 verifies the generated hash. `zephyr/mmc_cache_flush.cmake` replaces exactly one `subsys/sd/mmc.c` in the existing

@@ -420,7 +420,11 @@ static void before_each(void *fixture)
 static void after_each(void *fixture)
 {
     ARG_UNUSED(fixture);
-    /* The next init cycles power, so held data does not carry into the next case. */
+    /*
+     * On the flush scenarios this flushes held data. A fault that outlives the case makes the
+     * flush fail silently, which is harmless because before_each clears faults. The next init
+     * cycles power, so held data does not carry into the next case.
+     */
     (void)disk_access_ioctl(DISK, DISK_IOCTL_CTRL_DEINIT, NULL);
 }
 
