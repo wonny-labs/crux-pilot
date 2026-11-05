@@ -73,6 +73,10 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-psa-crypto.sh target tf-psa-crypto
 
+      - name: Compile the web adapter for RT1060-EVKB on the Mbed TLS profile, without running it
+        working-directory: crux-pilot
+        run: scripts/test-web.sh target mbedtls
+
       - name: The PSA ports on TF-PSA-Crypto on Linux Host, with sanitizers and controls
         working-directory: crux-pilot
         run: scripts/test-native-composition.sh host

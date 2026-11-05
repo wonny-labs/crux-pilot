@@ -1,0 +1,3 @@
+# The public and session-only web routes that Crux itself defines, checked by
+# scripts/check-web-routes.py. A change here is a security review item. Crux defines no routes yet:
+# Issue #186 adds login, its attempt result and the session routes.
