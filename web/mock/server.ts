@@ -299,7 +299,13 @@ function repeatsMember(text: string): boolean {
         end += text[end] === '\\' ? 2 : 1;
       }
       if (depth === 1 && expectKey) {
-        const key = JSON.parse(text.slice(index, end + 1)) as string;
+        let key: string;
+        try {
+          key = JSON.parse(text.slice(index, end + 1)) as string;
+        } catch {
+          // An unterminated key or a bad escape is not a repeat. The body is malformed, which the caller finds.
+          return false;
+        }
         if (seen.has(key)) {
           return true;
         }
@@ -1207,6 +1213,17 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
       process.stderr.write(`mock: ${String(cause)}\n`);
       if (!response.headersSent) {
         response.statusCode = 500;
+        // The specification declares no 500, so the conformance check must see it and fail the test.
+        options.onApiResponse?.({
+          path,
+          method: request.method ?? '',
+          operationId: null,
+          status: 500,
+          contentType: null,
+          headers: {},
+          setCookie: [],
+          bodyText: '',
+        });
       }
       response.end();
     });

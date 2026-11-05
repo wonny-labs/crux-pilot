@@ -217,6 +217,14 @@ test('a malformed body gets bad_request', async () => {
     { body: { value: { a: 1 } } },
     { body: { value: 1, extra: 2 } },
     { body: { other: 1 } },
+    // An unterminated key or a bad escape in a key is malformed, as it is on the device.
+    { rawBody: '{"value' },
+    { rawBody: '{"' },
+    { rawBody: '{"\\q":1}' },
+    { rawBody: '{"val\\' },
+    { rawBody: '{"value":1,"' },
+    { rawBody: '{"value":1,"\\x":2}' },
+    { rawBody: '{"value":1,"a\\u12":2}' },
   ]) {
     const reply = await h.call('PUT', '/api/v1/config/report_interval', options);
     assert.equal(reply.status, 400, JSON.stringify(options));

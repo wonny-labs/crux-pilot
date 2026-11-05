@@ -176,7 +176,7 @@ No error form holds a path, a parameter's value or native error text. `Retry-Aft
 | A string over the maximum, a validator, the character rule and the capacity | `400` `rule_not_met`. A string that does not fit the handler's buffer is refused without calling the service. | `config.c` |
 | The connection closes after every answer | Any parameter may be sensitive, and a refusal must not show which. The server then clears its copy of the request. | `config.c` |
 | The handler's static buffers hold no value afterwards | The body, the decoded string and the text of a bool or u32 are static and cleared on every path | `config.c`, with a marker for a string and for a u32, and a mutation that removes the clearing of the scalar text |
-| **Not cleared:** the stack | The reader's result (`web_value_t`, holding a bool or a u32) and the call's arguments are on the stack and are not wiped, so a sensitive bool or u32 stays on the stack until it is overwritten. The service's own stack copies are not wiped either, as its limits state. No test can see a stack. | Nothing, stated here |
+| **Not cleared:** the stack | The reader's result (`web_value_t`, holding a bool or a u32) and the call's arguments are on the stack and are not wiped, so a sensitive bool or u32 stays on the stack until it is overwritten. The service clears its update candidate and parse buffer, and does not clear the Configuration mechanism's own locals or the provider's buffer, as its limits state. No test can see a stack. | Nothing, stated here |
 | A request that never reached the service leaves no event | The type, range and body checks answer first | `config.c` |
 | A hidden or missing name reaches the service, which records a denial for a hidden one and nothing for a missing one | `update` is called with the request's text, so the service decides | `config.c`, mutation below |
 
@@ -252,7 +252,7 @@ refused part way through a string. The reader now terminates after every byte.
 | A failed save reads as saved | 6 in `save.c` |
 | A hidden update never reaches the service | 1 in `config.c`, the denial check that was added after the mutation first passed |
 | No check for a string over the buffer | 1 in `config.c`. The text then reaches the service, which refuses it and records a rejection, so the test asks for none. |
-| The text of a bool or a u32 is not cleared | 2 in `config.c` |
+| The text of a bool or a u32 is not cleared | 1 case in `config.c`, `put: no scalar text left`, which has three checks of the buffer |
 | The list asks `crux_access_check` for `config.save` in place of `crux_access_permitted` | 1 in `config.c`, the denial check. The idle check is made too, and this mutation does not change it. |
 | The worker is never signalled (`crux_semaphore_give` removed) | **Not caught.** The worker wakes by its own 1 s timeout, inside the test's 5 s wait. A wake-up time is not tested. |
 | A lock that does not come in time reads as not pending (`web_mgmt_save_view`) | **Not caught.** A lock held for that long cannot be made in a Host test. |

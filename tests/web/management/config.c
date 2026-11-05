@@ -409,7 +409,8 @@ static void test_put_leaves_no_scalar_text_behind(void)
     jar = mgmt_jar("both");
     /* The text of a u32 goes through its own buffer, whether the update is accepted or refused. A
      * sensitive scalar would be a secret there, so the handlers' buffers must hold none of it
-     * afterwards. The stack is not looked at: there is no scalar copy on it. */
+     * afterwards. The stack is not looked at: the reader's web_value_t holds the bool or u32 there,
+     * and no test can see a stack. */
     CHECK(mgmt_put(jar, LIST "/limit", "{\"value\":77}")->status == 200);
     CHECK(!web_management_routes_hold_bytes("77", 2u));
     CHECK(mgmt_put(jar, LIST "/limit", "{\"value\":4711}")->status == 400);
