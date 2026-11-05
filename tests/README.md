@@ -314,6 +314,14 @@ services. `scripts/test-web.sh host` runs them, and `Web.management_openapi` hol
 `web/api/openapi.yaml`. Nothing serves these routes on `native_sim` yet. See
 [status, configuration and account web APIs](../docs/web-management-apis.md).
 
+## Packaged web assets
+
+`scripts/test-web-assets.sh host` runs the packager's and its CMake function's tests (`tests/build/test_web_assets.py`), `Web.assets_*` on
+the real web core with a fake transport for both content policies, clang-tidy on the new C, and the route review and boundary
+checks. `scripts/test-web-assets.sh native` builds `tests/native/web_assets` and runs its driver against the real Zephyr
+server on `native_sim`. The full Host build and `unittest discover tests/build` pick up `Web.assets_*` and the Python tests on their own, and `zephyr.yml`, shard `io`, runs the
+`native_sim` image. Nothing here uses a board. See [web assets](../docs/web-assets.md).
+
 ## Portable File software slice
 
 `scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS and FatFs File suites on

@@ -421,7 +421,7 @@ with 1.2 as the minimum, which the patch does not offer at this pin. TLS 1.2 wou
 | --- | --- | --- |
 | #186, login and sessions | An HTTPS image with the real Access core and the composition behind the adapter, `tests/native/web_https`, and a driver that runs any case over TLS: set `test_driver.TLS`. `https_authenticate` in `src/main.c` is the stand-in to replace. `Origin` over HTTPS is 23 bytes from Firefox. | Real session tokens, CSRF and `Origin` rules, the attempt worker |
 | #187, status and configuration APIs | The same image and driver, with the status and configuration services already started | Its routes, and fitting a status response in 4 KiB |
-| #189, assets | Over TLS a response stops at the first send that cannot finish within the send timeout, so a slow client gets a cut asset sooner than on plain text | Size assets and the response deadline together, as #266 said |
+| #189, assets | Over TLS a response stops at the first send that cannot finish within the send timeout, so a slow client gets a cut asset sooner than on plain text | Size assets and the response deadline together, as #266 said. Done in the [packager's budget](web-assets.md#budget-and-the-response-deadline), with no TLS run of its own. |
 | #190, certificate model | The listener takes whatever certificate is under `CRUX_WEB_TLS_SEC_TAG`, and with none it does not listen at all | Put the stored key and certificate under that tag before `crux_web_start` |
 | #197, integrated image | The declared heap formula, the client limit's backlog behaviour, and the Nagle figure | Measure them on RT1060 |
 | #268, trickled headers | Each reconnect also costs a handshake on the server thread, bounded at 2 s | |
