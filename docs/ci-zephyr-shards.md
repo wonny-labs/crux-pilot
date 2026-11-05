@@ -6,7 +6,11 @@ The [`zephyr-software` workflow](../.github/workflows/zephyr.yml) runs its check
 
 ```mermaid
 flowchart LR
-    event["Push to main, pull request or manual run"] --> filter{"Only docs/** or **.md changed?"}
+    event["Push to main or pull request"] --> filter{"Only docs/** or **.md changed?"}
+    manual["Manual run"] --> storage
+    manual --> controller
+    manual --> runtime
+    manual --> io
     filter -- "Yes" --> skip["Zephyr workflow does not run<br/>Host and link checks still run"]
     filter -- "No" --> storage["zephyr storage"]
     filter -- "No" --> controller["zephyr controller"]
@@ -31,7 +35,7 @@ Times are medians from 12 runs of the single job, taken before the split.
 | `runtime` | Portable execution, Time busy-wait, messaging, out-of-tree consumer, Logging, System | 12.2 |
 | `io` | Serial, GPIO, I2C, SPI, networking, networking physical fixture | 12.2 |
 
-Set-up adds about 2.7 minutes and the upload about 0.8 minutes to every shard.
+Set-up (packages, tools, SDK and workspace) adds about 2.7 minutes to every shard, and the upload 0.1 to 0.2 minutes.
 
 `scripts/test-networking-physical.sh` reads the Picolibc checkout that `scripts/bootstrap-networking-tests.sh` fetches, so these two must stay in the same shard. No other step reads what a step in another shard produces.
 
@@ -65,32 +69,34 @@ If `zephyr` becomes a required check, a documentation-only pull request would wa
 
 ## Measurements
 
-All runs used GitHub-hosted `ubuntu-24.04` runners. Run time is from creation to the last update.
+All runs used GitHub-hosted `ubuntu-24.04` runners. Run time is from creation to the last update. Times are in minutes.
 
-| Workflow | Runs | Run time in minutes |
+| Workflow | Runs | Run time |
 | --- | ---: | --- |
 | Single job, before the split | 12 | Median 50.8, range 35.7 to 56.9 |
-| Four shards | 4 | 16.1, 16.1, 20.3, 26.0 |
+| Four shards | 4 | 16.1, 20.3, 16.1, 26.0, in run order |
 
-The 26.0 minute run waited about 100 seconds for runners. The test scope did not change: runs before and after the split had 77 Twister configurations, 67 passes, 43 `west build` configures and 116 Zephyr configures.
+The test scope did not change: runs before and after the split had 77 Twister configurations, 67 passes, 43 `west build` configures and 116 Zephyr configures.
 
-| Shard | Run 1 | Run 2 | Run 3 | Run 4 |
-| --- | ---: | ---: | ---: | ---: |
-| `storage` | 13.1 | 15.4 | 15.4 | 15.2 |
-| `controller` | 14.2 | 15.7 | 15.9 | 15.6 |
-| `runtime` | 13.2 | 11.2 | 12.1 | 16.8 |
-| `io` | 15.9 | 20.1 | 15.3 | 24.2 |
+| Run | Run time | `storage` | `controller` | `runtime` | `io` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | 16.1 | 13.1 | 14.2 | 13.2 | 15.9 |
+| 2 | 20.3 | 15.4 | 15.7 | 11.2 | 20.1 |
+| 3 | 16.1 | 15.4 | 15.9 | 12.1 | 15.3 |
+| 4 | 26.0 | 15.2 | 15.6 | 16.8 | 24.2 |
 
-`io` varied most. The cause was not investigated.
+The slow runs are not slow checks. In run 2 the `io` job spent 4.8 minutes installing packages and in run 4 it spent 7.7 minutes, against about 0.3 minutes normally. Across 32 shard jobs in 8 measured runs, 5 spent 3.5 to 10.3 minutes in that step, and those 5 lengthened 4 of the 8 runs. All five were `.deb` downloads from the archive mirror. [PR #261](https://github.com/wonny-labs/crux-pilot/pull/261) proposes caching them. It is not merged, so update this page if it is.
+
+Another stall seen once: the `io` job took 6.2 minutes to fetch the Zephyr workspace in a `-j 4` run.
 
 ## Options measured and not adopted
 
-| Option | Run 1 | Run 2 | Decision |
+| Option | Run 1 | Run 2 | Finding |
 | --- | ---: | ---: | --- |
-| Twister `-j 4` instead of `-j 2` | 22.1 | 23.9 | Rejected: slower in both runs. The cause was not investigated. |
-| ccache, first without and then with a restored cache | 16.4 | 14.1 | Not adopted: two runs do not separate it from runner variation. |
+| Twister `-j 4` instead of `-j 2` | 22.1 | 23.9 | No clear gain. Both runs were lengthened by package downloads (9.6 and 10.3 minutes). The longest shard's checks took 11.6 and 13.4 minutes, against 13.1 to 14.1 with `-j 2`. |
+| ccache, both runs cold | 16.4 | 14.1 | Both started empty, because `actions/cache` rejected a path containing `..`. This pair says nothing about re-use. |
 
-In the first ccache run, 37% to 69% of cacheable compiler calls hit the cache, depending on the shard. In one measured run, a `west build` spent a median of 10.2 seconds configuring and 17.6 seconds compiling and linking, and ccache only helps the second part.
+A later pair with a working cache, on identical source, gave the second run 99.2%, 84.7%, 99.7% and 99.6% hits in the four shards. Its check steps summed to 41.4 minutes. Seven runs without ccache summed to 40.7 to 53.2 minutes. Only 34% to 54% of compiler calls are cacheable, and configuring, linking and running tests do not benefit. This is one warm run and runs on identical source differ by up to 8.9 minutes, so it shows no benefit but does not prove there is none. It was not adopted because it adds a cache and its upkeep for no measured gain.
 
 ## Limits
 
