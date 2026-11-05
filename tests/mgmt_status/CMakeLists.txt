@@ -48,7 +48,8 @@ add_executable(mgmt_status_source_mapping source_mapping.c
     ../../components/mgmt_status/src/source_system.c
     ../../components/mgmt_status/src/source_time.c
     ../../components/mgmt_status/src/source_netif.c
-    ../../components/mgmt_status/src/source_no_security.c)
+    ../../components/mgmt_status/src/source_no_credential.c
+    ../../components/mgmt_status/src/source_no_security_events.c)
 target_include_directories(mgmt_status_source_mapping PRIVATE ../../components/mgmt_status/src
     ../../components/time/include ../../components/netif/include)
 target_link_libraries(mgmt_status_source_mapping PRIVATE crux_mgmt_status_api)

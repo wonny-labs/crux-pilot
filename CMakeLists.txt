@@ -201,6 +201,7 @@ if(CRUX_BUILD_TESTS)
     endif()
     if(CRUX_BUILD_MGMT_STATUS)
         add_subdirectory(tests/mgmt_status)
+        add_subdirectory(tests/management_providers)
     endif()
     # SSH has no public target. Its private interface exists here for the fake and conformance cases.
     if(CRUX_BUILD_ACCESS)

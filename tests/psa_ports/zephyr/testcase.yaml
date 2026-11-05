@@ -1,0 +1,10 @@
+common:
+  platform_allow: [native_sim/native/64]
+  timeout: 300
+tests:
+  crux.psa_ports.tf_psa_crypto:
+    tags: [crypto, crux, psa-ports, psa-ports-tf-psa-crypto]
+    extra_args: EXTRA_CONF_FILE=../../psa_crypto/zephyr/tf-psa-crypto.conf
+  crux.psa_ports.wolfpsa:
+    tags: [crypto, crux, psa-ports]
+    extra_args: EXTRA_CONF_FILE=../../psa_crypto/zephyr/wolfpsa.conf
