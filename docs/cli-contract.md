@@ -29,7 +29,7 @@ Owner: `components/cli`.
 | `crux_access` on Zephyr | Not available, so nothing links the console into an image | |
 | `status`, `config *`, `device fingerprint` | Not built. They need #180 and #178. They register in a table when those land. | |
 | Recovery command of #213 | Not built. Its shape is tested, below. | Host |
-| SSH shell and exec | Not built. #193 connects as below. | Host, for the transport's shape |
+| SSH shell and exec | Built in [the CLI over SSH](cli-over-ssh.md), as below | Host through the fake provider. `native_sim` with OpenSSH: see that document. |
 | `native_sim` console over a UART emulator | Not built | |
 | Physical serial login, acceptance criterion 3 of #181 | Not done. Hardware was not approved. | |
 
@@ -40,7 +40,7 @@ flowchart TB
     project["Project: command tables and handlers"] -->|"crux::cli"| public["&lt;crux/cli.h&gt;"]
     subgraph channels["Channel adapters, linking crux_cli_adapter PRIVATE"]
         console["Serial console<br/>components/cli/console"]
-        ssh["SSH adapter, #193<br/>(not built)"]
+        ssh["SSH adapter, #193<br/>components/ssh/cli"]
     end
     console -->|"crux_cli_io_t"| core
     ssh -->|"crux_cli_io_t"| core
@@ -257,9 +257,9 @@ static int cli_exec(void *context, crux_ssh_attachment_t *attachment, crux_ssh_c
 }
 ```
 
-`tests/cli/ssh_shape.c` runs exactly this mapping against a stand-in with #205's statuses, and shows that permitted and rejected commands print the same as on serial. #205 is not merged, so nothing in this repository names it. I also ran the same callbacks through #205's fake provider and client from its worktree, in a scratch directory, for shell and for each exec status: that check is not repeatable from this branch. The provider applies its own `io_timeout_ms`, so `timeout_ms` goes unused. `crux_access_logout` stays with #192's `connection_closed`, and the CLI calls `crux_access_touch` itself for each complete line. `crux_cli_run` reads one byte per call.
+`tests/cli/ssh_shape.c` runs exactly this mapping against a stand-in with #205's statuses, and shows that permitted and rejected commands print the same as on serial. The real entry points are in `components/ssh/cli/crux_ssh_cli.c`, and `tests/ssh/cli` runs them through #205's fake provider: see [the CLI over SSH](cli-over-ssh.md). The provider applies its own `io_timeout_ms`, so `timeout_ms` goes unused. `crux_access_logout` stays with #192's `connection_closed`, and the CLI calls `crux_access_touch` itself for each complete line. `crux_cli_run` reads one byte per call.
 
-**A gap for #193 and #205.** #205 accepts `pty-req` with no callback, so nothing tells `cli_shell` whether a terminal was requested, and `echo` and the line-end mapping depend on that. The narrow choice is for #205 to pass that fact to `shell`. Until then, #193 can only choose one behaviour for every shell channel.
+The `shell` callback says whether the client asked for a terminal, and that sets `echo` and the line-end mapping. The `exec` callback does not, so exec always has neither.
 
 ## Connecting the real security events
 

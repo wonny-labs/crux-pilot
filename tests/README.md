@@ -567,6 +567,10 @@ Command line (Issue #181): the root Host suite runs `tests/cli` as `Cli.*` in CT
 `scripts/test-cli.sh` also runs them under the sanitizer preset, runs clang-tidy on the CLI sources, runs `scripts/check-cli-boundary.py`, which configures and builds `tests/cli_consumer` both ways, runs `scripts/check-cli-session-commands.py`, and runs the shell rule's Host tests in `tests/build/test_management_shell.py`.
 `scripts/test-cli.sh --zephyr`, in the Zephyr CI job, runs `tests/build/test_cli_composition.py`: refused compositions at configuration, accepted ones built on `native_sim`, and `tests/zephyr/cli_serial_compile` compiled and linked for the RT1060-EVKB with LPUART3, with the `.config` and image checks of `scripts/check-management-shell.py` on each. No image built here calls the console, and none is flashed or run. Physical serial login needs separate approval. See the [command line contract](../docs/cli-contract.md).
 
+## Command line over SSH
+
+The real entry points of Issue #193 run in `tests/ssh/cli` as `Ssh.cli_*` in the root Host suite. `Ssh.cli_session` compares them, through the fake provider, with the real serial console on a scripted Serial, byte for byte. `Ssh.cli_real_access` runs them on the real `crux_access` core with its fake ports, `Ssh.cli_concurrency` shows one stuck client holding only itself on real threads with a provider double, and `Ssh.cli_entry_symbols` reads what the object files can reach. `tests/ssh/cli/test-compile.sh`, in the Zephyr CI job, compiles them for `native_sim` and the RT1060-EVKB with no wolfSSH. `tests/ssh/cli/test-openssh.sh` runs them on the wolfSSH provider against a real OpenSSH client on `native_sim`. It needs the optional stacks, so no default workflow runs it, and `--target` only compiles for the RT1060-EVKB. None of this flashes, resets or runs a board. See [the CLI over SSH](../docs/cli-over-ssh.md).
+
 ## Portable credential store
 
 The credential store (Issue #178): the root Host suite runs `tests/credential` as `Credential.*` in CTest, on the File
