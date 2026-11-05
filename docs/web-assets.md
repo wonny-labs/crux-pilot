@@ -27,7 +27,7 @@ interface, and firmware-embedded assets only.
 | Asset size and speed on RT1060 | **Not measured.** The declared client rate is a decision. | |
 | Safari, Chrome, Firefox loading a packaged folder | **Not run** | |
 | Angular example folder | **Not packaged.** Its size is from the [implementation design](plans/web-frontend-implementation.md#packaging-budget). | |
-| CI running the `native_sim` image | **Not added.** A workflow change needs the owner's approval. | |
+| CI running the `native_sim` image | **Added** as one step in `zephyr.yml`, shard `io`, beside `scripts/test-web.sh native`. A change under `.github/` is listed in the PR for the owner's approval. | Not yet seen to run on CI |
 
 ## Acceptance criteria of #189
 
@@ -108,7 +108,7 @@ public GET @assets
 | --- | --- | --- |
 | `FOLDER` | The built folder. A missing folder, or one with no `index.html`, **fails to configure**. | Required |
 | `STYLE` | `strict`, or `inline` for a framework that injects styles at run time. No other value, and no policy string. | `strict` |
-| `RESPONSE_DEADLINE_MS` | Sizes the largest asset. | `CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS` in a Zephyr image, required elsewhere |
+| `RESPONSE_DEADLINE_MS` | Sizes the largest asset. In a Zephyr image it is `CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS`, and **a different value here fails to configure**, so the budget is always sized for the deadline the image runs. | The Kconfig value, required elsewhere |
 | `CLIENT_RATE` | Slowest honest client, in bytes a second, that the deadline is sized for | 32,768 |
 | `MAX_FILES`, `MAX_TOTAL_BYTES` | The budget | 32 files, 393,216 compressed bytes |
 | `DENY_STRINGS` | A file of strings, one per line, that may not appear in any file | None |
@@ -129,6 +129,8 @@ All of them are reported in one run, and a failed run writes nothing.
 | No hidden file or folder | A built folder needs none: `.DS_Store`, `.git`, `.env` | Any segment starting with `.` |
 | A known type only | Each asset needs a `Content-Type`, and none is guessed | `.map`, `.pem`, `.crt`, `.env`, `.md`, `.wasm`, no extension |
 | No symbolic link | It could reach outside the folder | A link to a file or folder |
+| A folder that can be read | An unreadable subfolder would be left out without a word | A folder the build cannot open, reported with its path |
+| Nothing at `/api` or under it | An exact resource there would answer, with a plain `405`, in front of an API route with a path parameter | `api/v1/users/admin.json` |
 | No empty file | A zero-length array is not C, and an empty script is a mistake | An empty file |
 | No two paths differing only in case | The two server stacks compare differently | `Readme.txt` and `README.txt` |
 | Secret and device data patterns | The bundle is public | Below |
@@ -173,8 +175,8 @@ shared buffer holds one between pieces.
 | Inline styles allowed | `inline` | The same with `style-src 'self' 'unsafe-inline'` |
 
 Scripts stay `'self'` and `frame-ancestors 'none'` stays in both. The packager has no way to take a policy: its
-`--style` takes two values, the text is in one private header, and a test fails if either value gains an origin, a wildcard, `unsafe-eval`
-or an inline script. Choosing `inline` weakens only style injection, which can still restyle a page to mislead a user, and
+`--style` takes two values, and the text is in one private header. Two tests hold the exact text: the Host C suite compares the header
+that each asset is served with to a literal string, for both values, and the Python policy test compares the header's two definitions to the same literals, so a `data:` or `blob:` source added to any directive fails both. Choosing `inline` weakens only style injection, which can still restyle a page to mislead a user, and
 a project should record that choice. The core's own JSON responses keep their policy, `default-src 'self'; frame-ancestors 'none'`.
 
 **Cache.** The server has no conditional requests, so `no-cache` costs a full download on every load, and it is the safe side for a file whose name does not
@@ -194,10 +196,12 @@ loses the cache.
 Assets are public because a browser must load them before login, which extends `CRUX_WEB_PUBLIC` to the whole bundle as the
 [frontend design](plans/web-frontend-foundation-design.md) says. A person reviews public routes through the reviewed list, and
 a build changes the set of assets each time the frontend does, so the list holds one entry, `public GET @assets`, and the
-review of content is the packager's checks and its hash list. Three rules keep that entry from covering more:
+review of content is the packager's checks and its hash list. Four rules keep that entry from covering more:
 
-- `crux_web_routes()` accepts a generated source as a bundle only through `crux_web_assets()`, and `web_routes.py` refuses a bundle source that holds any route
-  that is not a public `GET` of a fixed path named `crux_web_asset_route_*`.
+- `crux_web_routes()` reads a bundle only from the source that `crux_web_assets()` set and marked with a private property, and stops the configure when the source property is set any other way.
+  That guard is for mistakes: a project that sets both properties by hand is not stopped by it, and the next rule is what holds then.
+- `web_routes.py` refuses a bundle source that holds any route that is not a public `GET` of a fixed path outside `/api`, in the plain `CRUX_WEB_ROUTE` form, named
+  `crux_web_asset_route_*`, with the handler `crux_web_assets_serve` and an element of `crux_web_asset_table` as its context. So a bundle can serve bytes at a public path, and cannot run another handler.
 - The entry is required when the bundle exists, and refused as stale when it does not.
 - Session-only and permission routes of the same image are listed and reviewed one by one, as before.
 
@@ -218,6 +222,9 @@ slow client can hold the thread until the deadline. So the largest asset is size
 
 The packager prints this, and an asset over it fails the build and names the asset, its size and both numbers. The number is bytes served, which for a gzip asset
 is the compressed size. The default budget is 32 files and 393,216 compressed bytes in all.
+
+**RAM.** The data stays in Flash. Each asset is a registered resource whose detail struct is writable, because the server records the client that holds it there, which is
+about 1 to 2 KB for 32 files. This is an estimate from the struct, **not measured**, and the route table and resource descriptors are read-only data on top of it.
 
 | Value | Where it comes from |
 | --- | --- |
@@ -271,7 +278,9 @@ product joins the two. The embedded bytes are in the signed firmware image, so t
 | 7 | Cache by file name: a fingerprint is immutable for a year, everything else `no-cache` | No revalidation exists on the server | An option to name which files are immutable |
 | 8 | A fixed list of served types, with `.map` and `.wasm` refused | A source map exposes source, and WebAssembly needs a weaker script policy | Add a type with its own review |
 | 9 | The secret check is a short list of shapes plus a deny list | A broader pattern, such as `password =`, would fail ordinary login screens | Product patterns in the deny list |
-| 10 | The packager errors on a hidden file, an empty file and a symbolic link rather than skipping them | A silent skip hides what a build does not ship | A skip list |
+| 10 | The packager errors on a hidden file, an empty file, a symbolic link, an unreadable folder and a path under `/api` rather than skipping them | A silent skip hides what a build does not ship, and an exact resource under `/api` would answer in front of an API route | A skip list |
+| 15 | A file that is already gzip, whatever its name, is served as it is with `Content-Encoding: gzip`, after it decodes cleanly (at most 16 MiB) and its content is scanned | Packing it again would double the size and break the file | Refuse them |
+| 16 | In a Zephyr image `CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS` wins, and a different `RESPONSE_DEADLINE_MS` is an error | The budget must be sized for the deadline that runs | Warn and use the Kconfig value |
 | 11 | No `ETag`, no `HEAD`, no range requests | The server answers a conditional request in full and `HEAD` with `405`, and the adapter's capture has no room | Later, with the capture |
 | 12 | `base-uri 'self'` and `form-action 'self'` are in both policies | Angular's index has a base element, and a form may post to the API | Tighter when no framework needs them |
 | 13 | A new check script and a new test runner, `scripts/test-web-assets.sh`, and `scripts/test-web.sh` is not touched | #281 edits that runner, so this avoids a conflict | Join the two |
@@ -296,8 +305,8 @@ product joins the two. The embedded bytes are in the signed firmware image, so t
 | --- | --- | --- |
 | `python3 -m unittest tests/build/test_web_assets.py` | Python, with CMake | Packager: encoding, hashes, headers, policy, routes, review list, budget, folder and name checks, secrets, boundaries, the CMake function |
 | `scripts/test-web-assets.sh host` | Host | The above, `Web.assets_strict` and `Web.assets_inline` under the debug and sanitizer presets, clang-tidy, route review and boundary checks |
-| `scripts/test-web-assets.sh native` | `native_sim` | `tests/native/web_assets`: the real server, the real adapter, a packaged folder, and the driver |
-| `scripts/test-web.sh host` | Host | Unchanged. The `Web.assets_*` suites and the Python tests are registered in the full Host build and in `unittest discover tests/build`, so the PR's CI runs them without a workflow change. The sanitizer preset ran only in CI, since the local image lacks the clang runtime. |
+| `scripts/test-web-assets.sh native` | `native_sim` | `tests/native/web_assets`: the real server, the real adapter, a packaged folder, and the driver. In `zephyr.yml`, shard `io`. |
+| `scripts/test-web.sh host` | Host | Unchanged. The `Web.assets_*` suites and the Python tests are registered in the full Host build and in `unittest discover tests/build`, so the PR's CI runs them. The sanitizer preset ran only in CI, since the local image lacks the clang runtime. |
 
 The Host suites use a fake transport that sends a response whole, so a client going away mid-asset there shows that nothing
 stays held. The `native_sim` driver resets a connection while the server is part-way through a large asset.

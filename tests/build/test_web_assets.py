@@ -141,6 +141,26 @@ class Encoding(Fixture):
         self.assertEqual(encodings["index.html"], "gzip")
         self.assertEqual(encodings["logo.png"], "identity")
 
+    def test_a_file_that_is_already_gzip_is_not_compressed_twice(self):
+        packed = gzip.compress(SCRIPT, compresslevel=9, mtime=0)
+        make_site(self.site, {"pre-Zz11Yy22.js": packed})
+        self.ok()
+        asset = next(a for a in self.hashes()["assets"] if a["file"] == "pre-Zz11Yy22.js")
+        self.assertEqual(asset["encoding"], "gzip")
+        self.assertTrue(asset["precompressed"])
+        self.assertEqual(asset["served_bytes"], len(packed))
+        self.assertEqual(asset["sha256"], hashlib.sha256(packed).hexdigest())
+        index = [a["file"] for a in self.hashes()["assets"]].index("pre-Zz11Yy22.js")
+        self.assertEqual(embedded(self.generated())[index], packed)
+        self.assertIn(("Content-Encoding", "gzip"), header_lists(self.generated())[index])
+        self.assertNotIn("precompressed", next(a for a in self.hashes()["assets"] if a["file"] == "style.css"))
+
+    def test_a_precompressed_file_is_still_scanned_and_must_be_valid(self):
+        make_site(self.site, {"bad.js": b"\x1f\x8bnot really gzip"})
+        self.fails(r"bad\.js.*not valid gzip")
+        make_site(self.site, {"bad.js": "1", "key.txt": gzip.compress(PRIVATE_KEY.encode())})
+        self.fails(r"key\.txt.*a PEM private key")
+
     def test_content_encoding_header_follows_the_encoding(self):
         self.ok()
         lists = header_lists(self.generated())
@@ -239,6 +259,11 @@ class Headers(Fixture):
         self.assertNotIn("'unsafe-inline'", strict)
         self.assertEqual(inline.count("'unsafe-inline'"), 1)
         self.assertRegex(inline, r"style-src 'self' 'unsafe-inline'")
+        # The exact values, so that a source such as data: or blob: added to any directive fails here.
+        self.assertEqual(strict, "default-src 'self'; script-src 'self'; style-src 'self'; base-uri 'self'; "
+                                 "form-action 'self'; frame-ancestors 'none'")
+        self.assertEqual(inline, "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+                                 "base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
 
 
 class Routes(Fixture):
@@ -283,17 +308,57 @@ class Routes(Fixture):
         self.assertEqual(web_routes.review_errors(routes, listing), [])
         self.assertEqual(web_routes.review_errors([], listing), ["reviewed, but no such route: public GET @assets"])
 
+    GOOD = ('CRUX_WEB_ROUTE(crux_web_asset_route_0000, "/a", CRUX_WEB_GET, CRUX_WEB_PUBLIC, '
+            'crux_web_assets_serve, &crux_web_asset_table[0]);')
+
+    def refused(self, text):
+        bad = self.root / "bad.c"
+        bad.write_text(text, encoding="utf-8")
+        with self.assertRaises(web_routes.RouteError):
+            web_routes.parse_sources([], bundle=[str(bad)])
+
     def test_a_bundle_source_may_hold_only_public_get_asset_routes(self):
         bad = self.root / "bad.c"
-        for text in ('CRUX_WEB_ROUTE(crux_web_asset_route_0000, "/a", CRUX_WEB_POST, CRUX_WEB_PUBLIC, h, NULL);',
-                     'CRUX_WEB_ROUTE(crux_web_asset_route_0000, "/a", CRUX_WEB_GET, CRUX_WEB_SESSION, h, NULL);',
-                     'CRUX_WEB_ROUTE(crux_web_asset_route_0000, "/a", CRUX_WEB_GET, "x.read", h, NULL);',
-                     'CRUX_WEB_ROUTE(mine, "/a", CRUX_WEB_GET, CRUX_WEB_PUBLIC, h, NULL);',
-                     'CRUX_WEB_ROUTE(crux_web_asset_route_0000, "/a/{id}", CRUX_WEB_GET, CRUX_WEB_PUBLIC, h, NULL);'):
+        bad.write_text(self.GOOD, encoding="utf-8")
+        self.assertEqual(len(web_routes.parse_sources([], bundle=[str(bad)])), 1)
+        for text in (self.GOOD.replace("CRUX_WEB_GET", "CRUX_WEB_POST"),
+                     self.GOOD.replace("CRUX_WEB_PUBLIC", "CRUX_WEB_SESSION"),
+                     self.GOOD.replace("CRUX_WEB_PUBLIC", '"x.read"'),
+                     self.GOOD.replace("crux_web_asset_route_0000", "mine"),
+                     self.GOOD.replace('"/a"', '"/a/{id}"')):
             with self.subTest(text=text):
-                bad.write_text(text, encoding="utf-8")
-                with self.assertRaises(web_routes.RouteError):
-                    web_routes.parse_sources([], bundle=[str(bad)])
+                self.refused(text)
+
+    def test_a_bundle_route_must_use_the_asset_handler_and_a_table_entry(self):
+        for label, text in {
+            "a foreign handler": self.GOOD.replace("crux_web_assets_serve", "factory_reset"),
+            "a handler that only starts like it": self.GOOD.replace("crux_web_assets_serve",
+                                                                    "crux_web_assets_serve_all"),
+            "a foreign context": self.GOOD.replace("&crux_web_asset_table[0]", "NULL"),
+            "another table": self.GOOD.replace("crux_web_asset_table", "other_table"),
+            "a context that is not an element": self.GOOD.replace("&crux_web_asset_table[0]",
+                                                                  "crux_web_asset_table"),
+            "an index that is not a number": self.GOOD.replace("[0]", "[x]"),
+            "the body-limit form": self.GOOD.replace("CRUX_WEB_ROUTE(", "CRUX_WEB_ROUTE_BODY(").replace(
+                ");", ", 512u);"),
+        }.items():
+            with self.subTest(label):
+                self.refused(text)
+
+    def test_a_bundle_cannot_take_a_path_under_the_api(self):
+        for path in ("/api", "/api/v1/reset", "/api/v1/users/admin.json"):
+            with self.subTest(path=path):
+                self.refused(self.GOOD.replace('"/a"', f'"{path}"'))
+
+    def test_the_repro_of_a_foreign_route_is_refused_by_the_tool(self):
+        bad = self.root / "b.c"
+        bad.write_text('CRUX_WEB_ROUTE(crux_web_asset_route_9, "/reset", CRUX_WEB_GET, CRUX_WEB_PUBLIC, '
+                       'factory_reset, NULL);\n', encoding="utf-8")
+        listing = self.root / "rev.txt"
+        listing.write_text("public GET @assets\n", encoding="utf-8")
+        self.assertEqual(web_routes.main(["--bundle", str(bad), "--table", str(self.root / "t.c"),
+                                          "--reviewed", str(listing)]), 1)
+        self.assertFalse((self.root / "t.c").exists())
 
     def test_the_generator_runs_on_the_generated_source(self):
         self.ok()
@@ -476,6 +541,23 @@ class Folder(Fixture):
         make_site(self.site, {"empty.js": ""})
         self.fails(r"empty")
 
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can read any folder")
+    def test_an_unreadable_folder_is_an_error_and_not_skipped(self):
+        make_site(self.site, {"hidden/secret.js": "x"})
+        os.chmod(self.site / "hidden", 0)
+        self.addCleanup(os.chmod, self.site / "hidden", 0o755)
+        self.fails(r"hidden.*(cannot be read|Permission denied)")
+
+    def test_paths_under_the_api_are_refused(self):
+        for name in ("api/v1/users/admin.json", "api/x.json"):
+            with self.subTest(name=name):
+                shutil.rmtree(self.site)
+                make_site(self.site, {name: "{}"})
+                self.fails(r"under /api")
+        shutil.rmtree(self.site)
+        make_site(self.site, {"apiary.js": "1", "apis/x.json": "{}"})
+        self.ok()
+
     def test_failures_are_all_reported_at_once(self):
         make_site(self.site, {".DS_Store": "x", "a.map": "y"})
         result = self.fails(r"hidden")
@@ -610,6 +692,30 @@ class BuildFunction(Fixture):
         directory = self.project(f"set(CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000)\n"
                                  f"crux_web_assets(app FOLDER {self.site})\n")
         self.assertEqual(self.configure(directory).returncode, 0)
+
+    def test_an_explicit_deadline_that_differs_from_kconfig_is_refused(self):
+        directory = self.project("set(CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000)\n"
+                                 f"crux_web_assets(app FOLDER {self.site} RESPONSE_DEADLINE_MS 10000)\n")
+        result = self.configure(directory)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS", result.stdout)
+        self.assertIn("10000", result.stdout)
+        self.assertIn("3000", result.stdout)
+
+    def test_an_explicit_deadline_equal_to_kconfig_is_accepted(self):
+        directory = self.project("set(CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000)\n"
+                                 f"crux_web_assets(app FOLDER {self.site} RESPONSE_DEADLINE_MS 3000)\n")
+        self.assertEqual(self.configure(directory).returncode, 0)
+
+    def test_the_bundle_property_set_by_hand_is_not_a_bundle(self):
+        (self.root / "hidden.c").write_text(
+            'CRUX_WEB_ROUTE(crux_web_asset_route_0000, "/x", CRUX_WEB_GET, CRUX_WEB_PUBLIC, h, NULL);',
+            encoding="utf-8")
+        directory = self.project(f"set_target_properties(app PROPERTIES CRUX_WEB_ASSETS_SOURCE "
+                                 f"{self.root}/hidden.c)\ncrux_web_routes(app SOURCES routes.c)\n")
+        result = self.configure(directory)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("crux_web_assets", result.stdout)
 
     def test_assets_must_come_before_the_routes(self):
         directory = self.project(f"crux_web_routes(app SOURCES routes.c)\n"

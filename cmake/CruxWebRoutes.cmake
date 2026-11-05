@@ -25,7 +25,14 @@ function(crux_web_routes target)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     # The packaged web folder of crux_web_assets() (Issue #189): its generated routes are scanned as a
     # bundle, which the reviewed list holds as the one entry `public GET @assets`.
+    # Only the source that crux_web_assets() set and marked is a bundle. web_routes.py also holds each
+    # route of a bundle to the asset handler, which is what the single review line relies on.
     get_target_property(assets_source ${target} CRUX_WEB_ASSETS_SOURCE)
+    get_target_property(assets_mark ${target} CRUX_WEB_ASSETS_MARK)
+    if(assets_source AND NOT "${assets_mark}" STREQUAL "crux_web_assets:${assets_source}")
+        message(FATAL_ERROR "crux_web_routes(${target}): CRUX_WEB_ASSETS_SOURCE was not set by "
+            "crux_web_assets(), so ${assets_source} is not accepted as a packaged web folder")
+    endif()
     set(sources)
     foreach(source IN LISTS ARG_SOURCES)
         cmake_path(ABSOLUTE_PATH source BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)

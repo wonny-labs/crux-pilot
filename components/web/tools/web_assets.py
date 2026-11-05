@@ -24,6 +24,7 @@ import os
 from pathlib import Path
 import re
 import sys
+import zlib
 
 FORMAT = "crux-web-assets/1"
 # Mirrors CRUX_WEB_RESPONSE_HEADERS_MAX in crux_web_adapter.h: three headers come from the policy macro.
@@ -31,6 +32,8 @@ RESPONSE_HEADERS_MAX = 11
 SECURITY_HEADER_COUNT = 3
 # The URL buffer of the HTTP server holds 255 bytes, and a request over it gets a plain 500.
 PATH_MAX = 128
+# The most that a gzip file may decode to, when it is checked.
+DECODE_MAX = 16 * 1024 * 1024
 
 # Declared defaults, for review in docs/web-assets.md.
 DEFAULT_MAX_FILES = 32
@@ -111,7 +114,11 @@ def collect(folder, errors):
     if not folder.is_dir():
         raise AssetError(f"{folder} is not a folder")
     found = []
-    for directory, names, files in os.walk(folder, followlinks=False):
+
+    def unreadable(error):
+        errors.append(f"{error.filename}: cannot be read ({error.strerror})")
+
+    for directory, names, files in os.walk(folder, followlinks=False, onerror=unreadable):
         directory = Path(directory)
         for name in list(names):
             if (directory / name).is_symlink():
@@ -144,6 +151,10 @@ def check_names(found, errors):
             errors.append(f"{relative}: cannot be a URL path: only letters, digits and . _ ~ - are served, "
                           "because the server compares a path without decoding it")
             continue
+        if url == "/api" or url.startswith("/api/"):
+            errors.append(f"{relative}: under /api, which is the API's: an exact resource here would "
+                          "answer in front of a route with a path parameter")
+            continue
         if len(url) > PATH_MAX:
             errors.append(f"{relative}: the path is too long, at most {PATH_MAX} bytes")
             continue
@@ -165,15 +176,21 @@ def scan_secrets(found, deny, errors):
     for url, path in found:
         relative = url[1:]
         content = path.read_bytes()
+        plain = content
+        packed = pregzipped(content, relative, errors)
+        if packed:
+            plain = decoded(content)
+        elif packed is None:
+            continue
         if path.suffix.lower() in TEXT_SUFFIXES:
-            text = content.decode("utf-8", errors="replace")
+            text = plain.decode("utf-8", errors="replace")
             for label, pattern in SECRET_PATTERNS:
                 if pattern.search(text):
                     errors.append(f"{relative}: looks like a secret or device data: {label}. The bundle "
                                   "is public, so remove it from the folder")
                     break
         for entry in deny:
-            if entry.encode("utf-8") in content:
+            if entry.encode("utf-8") in content or entry.encode("utf-8") in plain:
                 errors.append(f"{relative}: holds {entry}, which the deny file lists")
 
 
@@ -191,6 +208,25 @@ def read_deny(path):
     return entries
 
 
+def pregzipped(content, relative, errors):
+    """Whether a file is already gzip, which is served as it is. A damaged one is an error."""
+    if content[:2] != b"\x1f\x8b":
+        return False
+    try:
+        decoder = zlib.decompressobj(wbits=31)
+        decoder.decompress(content, DECODE_MAX)
+        if decoder.unconsumed_tail or not decoder.eof:
+            raise zlib.error("too large or incomplete")
+    except zlib.error:
+        errors.append(f"{relative}: starts like gzip but is not valid gzip, or decodes to over {DECODE_MAX} bytes")
+        return None
+    return True
+
+
+def decoded(content):
+    return zlib.decompressobj(wbits=31).decompress(content, DECODE_MAX)
+
+
 def compress(content):
     packed = gzip.compress(content, compresslevel=9, mtime=0)
     return ("gzip", packed) if len(packed) < len(content) else ("identity", content)
@@ -200,7 +236,9 @@ def build_assets(found):
     assets = []
     for url, path in found:
         content = path.read_bytes()
-        encoding, served = compress(content)
+        # A file that is already gzip is served as it is, with its Content-Encoding, and not packed twice.
+        precompressed = content[:2] == b"\x1f\x8b"
+        encoding, served = ("gzip", content) if precompressed else compress(content)
         assets.append({
             "path": url,
             "file": url[1:],
@@ -212,6 +250,7 @@ def build_assets(found):
             "served_bytes": len(served),
             "served_sha256": hashlib.sha256(served).hexdigest(),
             "_served": served,
+            **({"precompressed": True} if precompressed else {}),
         })
     return assets
 

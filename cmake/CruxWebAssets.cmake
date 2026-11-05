@@ -13,8 +13,8 @@ include_guard(GLOBAL)
 #            styles at run time. Scripts stay 'self' and frame-ancestors stays 'none' in both. There is no
 #            way to give a policy string.
 # RESPONSE_DEADLINE_MS, CLIENT_RATE
-#            The largest asset is deadline x rate. The deadline defaults to
-#            CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS in a Zephyr image. See docs/web-assets.md.
+#            The largest asset is deadline x rate. In a Zephyr image the deadline is
+#            CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS, and a different RESPONSE_DEADLINE_MS is refused. See docs/web-assets.md.
 # MAX_FILES, MAX_TOTAL_BYTES
 #            The budget, with the packager's declared defaults. The build fails when exceeded.
 # DENY_STRINGS
@@ -39,13 +39,18 @@ function(crux_web_assets target)
         message(FATAL_ERROR "crux_web_assets: STYLE is strict or inline, not '${ARG_STYLE}'. "
             "No other policy is offered.")
     endif()
-    if(NOT ARG_RESPONSE_DEADLINE_MS)
-        if(DEFINED CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS)
-            set(ARG_RESPONSE_DEADLINE_MS "${CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS}")
-        else()
-            message(FATAL_ERROR "crux_web_assets: RESPONSE_DEADLINE_MS is needed outside Zephyr, because "
-                "the largest asset is sized from the response deadline")
+    # The image's own deadline is what the largest asset must fit, so Kconfig wins: a different value
+    # here would size the budget for a deadline the image does not run.
+    if(DEFINED CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS)
+        if(ARG_RESPONSE_DEADLINE_MS AND NOT ARG_RESPONSE_DEADLINE_MS EQUAL CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS)
+            message(FATAL_ERROR "crux_web_assets: RESPONSE_DEADLINE_MS ${ARG_RESPONSE_DEADLINE_MS} differs "
+                "from CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS ${CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS}, which "
+                "is the deadline the image runs. Leave the argument out, or change the Kconfig value.")
         endif()
+        set(ARG_RESPONSE_DEADLINE_MS "${CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS}")
+    elseif(NOT ARG_RESPONSE_DEADLINE_MS)
+        message(FATAL_ERROR "crux_web_assets: RESPONSE_DEADLINE_MS is needed outside Zephyr, because "
+            "the largest asset is sized from the response deadline")
     endif()
     cmake_path(ABSOLUTE_PATH ARG_FOLDER BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)
     if(NOT IS_DIRECTORY "${ARG_FOLDER}")
@@ -94,5 +99,5 @@ function(crux_web_assets target)
         INCLUDE_DIRECTORIES "${runtime}")
     target_link_libraries(${target} PRIVATE crux_web_adapter)
     set_target_properties(${target} PROPERTIES CRUX_WEB_ASSETS_SOURCE "${source}"
-        CRUX_WEB_ASSETS_HASH_LIST "${hash_list}")
+        CRUX_WEB_ASSETS_MARK "crux_web_assets:${source}" CRUX_WEB_ASSETS_HASH_LIST "${hash_list}")
 endfunction()
