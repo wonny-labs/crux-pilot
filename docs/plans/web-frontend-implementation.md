@@ -449,6 +449,32 @@ Faults that this found on the way:
 
 The mock has no idle timer, session cap or real delay window, so those paths are forced and not modelled. It records every request, including assets, so a test can say which paths the server saw.
 
+### The C-build boundary rule
+
+`tools/test/boundary.test.ts` holds every CMake, Kconfig, preset and component file to one rule: no C build needs
+Node.js. `tools/c-boundary.ts` decides what counts as a use. The web workflow runs it only when a path under `web/`
+changes, so firmware PRs that name a frontend path were not checked until the next `web/` change. Two kinds of
+firmware file then broke it, and the matcher is narrowed for exactly these two.
+
+```mermaid
+flowchart LR
+    text[File text] --> nodeuse{Node.js, npm or a frontend path?}
+    nodeuse -- "web/client, reference, mock, tools, e2e, package" --> reds[Counts, unless under components/web/]
+    nodeuse -- "web/api/lint or any other web/api path" --> reds
+    nodeuse -- "web/api/openapi.yaml" --> okspec[Does not count: plain YAML, no Node.js runs on it]
+    nodeuse -- "components/web/tools, the route generator" --> okgen[Does not count: firmware Python, not the frontend]
+```
+
+| Text | Counts | Reason |
+| --- | --- | --- |
+| `components/web/tools/web_routes.py`, in `cmake/CruxWebRoutes.cmake` and the generated header | No | The firmware component `components/web` has its own `tools`. The old pattern matched the `web/tools` inside that path. |
+| `web/api/openapi.yaml`, in component comments and `tests/mgmt_status/CMakeLists.txt` | No | The specification is the contract between firmware and frontend, and firmware tests read it as data with Python. |
+| `web/api/lint`, `web/api` as a directory, any other file in `web/api` | Yes | The lint tools need Node.js. |
+| `web/tools`, `web/client` and the rest, in any path that is not `components/web/` | Yes | Unchanged. `components/web/../../web/tools` still counts. |
+
+The test gained fixtures for each row, including the cases that must still count. A scan of the repository with a new
+tracked offending file in `cmake/` and in `components/web/` fails, as before.
+
 ## Findings for the firmware track
 
 | Finding | For |

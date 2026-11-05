@@ -6,7 +6,12 @@ const USES: RegExp[] = [
   /\b(npm|npx|nodejs|pnpm|yarn)\b/i,
   /\bcommand\s+(\S*\/)?node\b/i,
   /(^|[\s"'])(\S*\/)?node\s+\S+\.(m?js|cjs|ts)\b/m,
-  /\bweb\/(client|reference|mock|tools|api|e2e|package)\b/,
+  // The frontend directory of the repository. Not `components/web/`, the firmware component of that
+  // name, whose own `components/web/tools` holds the route generator. Of `web/api`, the specification
+  // file is the one thing a C build may name: it is plain YAML that firmware code and tests read, and
+  // no Node.js runs on it. Its lint tools, which need Node.js, and any other file there still count.
+  /(?<!components\/)\bweb\/(client|reference|mock|tools|e2e|package)\b/,
+  /(?<!components\/)\bweb\/api\b(?!\/openapi\.yaml(?![\w-]|\.\w))/,
   /\bsamples\/web\b/,
 ];
 
