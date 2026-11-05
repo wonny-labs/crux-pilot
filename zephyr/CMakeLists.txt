@@ -1,5 +1,9 @@
 message(STATUS "Crux Zephyr integration module discovered")
 
+# Rule L5 of the command line contract applies to every image, including one with no management.
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxManagementShell.cmake")
+crux_check_management_shell()
+
 if(CONFIG_CRUX_PILOT_MODULE)
     include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxZephyrBaseline.cmake")
     crux_check_zephyr_baseline()
@@ -62,6 +66,11 @@ endif()
 if(CONFIG_CRUX_SERIAL)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/serial/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/serial")
+endif()
+
+if(CONFIG_CRUX_CLI)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/cli/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/cli")
 endif()
 
 if(CONFIG_CRUX_I2C)

@@ -139,6 +139,11 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-serial.sh
 
+      - name: Check the command line's shell rule and serial wiring without hardware
+        if: matrix.shard == 'io'
+        working-directory: crux-pilot
+        run: scripts/test-cli.sh --zephyr
+
       - name: Validate portable GPIO without hardware
         if: matrix.shard == 'io'
         working-directory: crux-pilot
