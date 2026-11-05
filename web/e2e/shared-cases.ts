@@ -614,6 +614,8 @@ export function sharedCases(config: AppConfig): void {
     await openConfiguration(page);
     await waitForValues(page);
     await update(page, 'report_interval', '10');
+    // The read-back after the update has ended, so that the 401 below meets the save and nothing else.
+    await parameter(page, 'report_interval').getByText('Current value: 10', { exact: true }).waitFor();
     mock.control.expireSessions();
     await page.getByRole('button', { name: 'Save changes' }).click();
     await page.getByText(/session has ended/i).waitFor();

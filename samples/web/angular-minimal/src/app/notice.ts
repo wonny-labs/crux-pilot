@@ -15,5 +15,5 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Notice {
-  readonly kind = input<'error' | 'info'>('info');
+  readonly kind = input<'error' | 'warning' | 'success' | 'info'>('info');
 }
