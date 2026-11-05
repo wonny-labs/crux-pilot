@@ -129,7 +129,7 @@ for the card to be ready. No flush command exists in the stack, so on a device w
 that the data reached the medium. The eMMC simulator in `tests/support/emmc_sim` reproduces this; it has not been observed
 on a device.
 
-With the correction, `mmc_set_cache` records in a private bit of `card->flags` that it turned the cache on. `sd_init`
+With the correction, `mmc_set_cache` records in a private bit of `card->flags` that it turned the cache on, after it has sent the cache-on command and waited for the card. It does not read back whether the card accepted the command, as `sdmmc_wait_ready` discards the switch error bit; if the card rejected it, an extra flush is sent, which is the safe direction. `sd_init`
 clears the flags on each initialisation. When that bit is set, a sync holds the card lock and:
 
 1. Waits for the card with `sdmmc_wait_ready`, which finishes earlier writes and clears any stale status.
@@ -148,7 +148,7 @@ qualification claim. Only the bit 7 error is read from the status; other R1 erro
 flush, while `CONFIG_SD_DATA_TIMEOUT` defaults to 10 s; a composition that needs longer raises that value. The timeouts are
 counted in polling delays, as `sdmmc_wait_ready` does, so they are a lower bound. The disk de-initialisation path also
 sends the sync and discards its result. The drift check covers `mmc.c` only. The correction also relies on bit 15 of
-`card->flags` staying unused in `sd_spec.h`, on `sd_init_io` clearing the flags, and on `sdmmc_wait_ready` behaving as at the pin, so a Zephyr update that leaves `mmc.c` unchanged still needs this reviewed. CMD13 is sent without retries as a named decision: a transient status error makes the sync fail, and the volume is read-only until a remount, which is the safe direction.
+`card->flags` staying unused in `sd_spec.h`, on `sd_init_io` clearing the flags, and on `sdmmc_wait_ready` behaving as at the pin, so a Zephyr update that leaves `mmc.c` unchanged still needs this reviewed. CMD13 is sent without retries as a named decision: a transient status error makes the sync fail, and the caller gets that error. With the Reliance Edge file system, as designed, the volume then becomes read-only until a remount, which is the safe direction; that adapter does not exist yet.
 
 `scripts/prepare-mmc-cache-flush.py` checks the exact original source hash, applies the patch in a temporary directory and
 verifies the generated hash. `zephyr/mmc_cache_flush.cmake` replaces exactly one `subsys/sd/mmc.c` in the existing
