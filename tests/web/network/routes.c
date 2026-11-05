@@ -214,6 +214,8 @@ static void test_malformed_bodies(void)
         "{\"address\":\"192.0.2.20\",\"prefix_length\":24,\"prefix_length\":25}",
         "{\"address\":\"192.0.2.20\",\"prefix_length\":24,\"gateway\":\"192.0.2.1\",\"gateway\":\"192.0.2.2\"}",
         "{\"address\":\"192.0.2.20\",\"prefix_length\":24,\"mtu\":1500}",
+        "{\"address\":\"192.0.2.20\",\"prefix_length\":24,\"note\":\"x\"}",
+        "{\"address\\u0000x\":\"192.0.2.20\",\"prefix_length\":24}",
         "{\"address\":\"192.0.2.20\",\"prefix_length\":24,\"gateway\":null}",
         "{\"address\":null,\"prefix_length\":24}",
         "{\"address\":192,\"prefix_length\":24}",
