@@ -433,7 +433,9 @@ ZTEST(first_boot, test_08_tls_beside_the_services)
                   CRUX_ACCESS_OK);
 
     zassert_equal(zsock_send(socket, message, sizeof(message), 0), (ssize_t)sizeof(message));
-    zassert_equal(zsock_recv(socket, received, sizeof(received), 0), (ssize_t)sizeof(message));
+    ssize_t echoed = zsock_recv(socket, received, sizeof(received), 0);
+    zassert_equal(echoed, (ssize_t)sizeof(message), "recv %d errno %d, server %d", (int)echoed, errno,
+                  server_result);
     zassert_mem_equal(received, message, sizeof(message));
     zsock_close(socket);
     zassert_equal(k_thread_join(&server_thread, K_SECONDS(10)), 0);

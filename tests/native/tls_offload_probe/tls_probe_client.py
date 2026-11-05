@@ -137,6 +137,15 @@ def full_exchange(port, version):
     return info
 
 
+def tls12_port_with_a_newer_client(port):
+    """What the TLS 1.2 protocol number means: Mbed TLS takes it as a minimum, and wolfSSL as exact."""
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.load_verify_locations(cafile=str(CERTIFICATE))
+    raw = socket.create_connection((HOST, port), timeout=30)
+    with context.wrap_socket(raw, server_hostname="localhost") as tls:
+        return {"negotiated": tls.version()}
+
+
 def untrusted_is_refused(port, version):
     try:
         connect(port, version, trust=OTHER_CA).close()
@@ -306,6 +315,9 @@ def main():
             step(results, f"tls{name}_exchange", lambda: full_exchange(port, version))
             step(results, f"tls{name}_untrusted_refused", lambda: untrusted_is_refused(port, version))
             step(results, f"tls{name}_plain_text", lambda: plain_text_gets_nothing(port))
+        if opened["1.2"]:
+            step(results, "tls1.2_port_newer_client",
+                 lambda: tls12_port_with_a_newer_client(listeners["1.2"][0]))
         name = "1.3" if opened["1.3"] else "1.2"
         port, version = listeners[name]
         step(results, "repeated_connections", lambda: repeated(port, version, 20))
