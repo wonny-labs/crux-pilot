@@ -76,10 +76,12 @@ class Cases:
 
     def case_exec_follows_the_permission(self):
         with self.image() as image:
-            mark = image.mark()
             expect(self.exec("probe-read", user=VIEWER), b"ran\n", 0, "viewer")
+            mark = image.mark()
             expect(self.exec("probe-admin", user=VIEWER), b"unknown command\n", 127, "viewer")
-            image.wait_for(r"^ACCESS event type=\S*(?:denied|DENIED)", start=mark)
+            # Access reports the denial itself, and the CLI adds no event of its own.
+            image.wait_for(r"^ACCESS event type=OTHER result=-\d+ channel=3 ", start=mark)
+            check(image.count(r"^CLI event ", mark) == 0, "a CLI event on top of Access's")
             help_text = self.exec("help", user=VIEWER).stdout
             check(b"probe-read" in help_text and b"probe-admin" not in help_text, help_text)
             check(b"probe-admin" in self.exec("help").stdout, "the administrator's help")
@@ -175,8 +177,15 @@ class Cases:
             stuck = self.client.popen(f"flood {FLOOD_BYTES}", self.password)
             image.wait_for(r"^CLI write timeout$", 60, start=mark)
             image.wait_for(r"^CLI channel close$", 60, start=mark)
-            # Its slot is free, for the next client.
-            expect(self.exec("probe-read"), b"ran\n", 0, "after the stuck client")
+            # The provider lets it drain, then frees the slot for the next client.
+            image.wait_for(r"^SSH worker ended", 60, start=mark)
+            result = self.exec("probe-read")
+            for _ in range(10):
+                if b"too many connections" not in result.stderr:
+                    break
+                time.sleep(1)
+                result = self.exec("probe-read")
+            expect(result, b"ran\n", 0, "after the stuck client")
             output, _ = stuck.communicate(timeout=30)
             check(len(output) < FLOOD_BYTES, "the stuck client received everything")
 
@@ -199,7 +208,8 @@ class Cases:
             self.exec("flood 65536", password=NEW_PASSWORD)
             expect(self.exec("measure", password=NEW_PASSWORD), b"", 0)
             print(f"    {image.wait_for(r'^MEASURE ')}")
-            expect(self.exec("stop", password=NEW_PASSWORD), b"", 0)
+            # A stop ends this connection too, so its own exit status may not arrive.
+            self.exec("stop", password=NEW_PASSWORD)
             image.wait_for(r"^STOPPED 0$", 30)
 
 
