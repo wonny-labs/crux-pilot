@@ -19,10 +19,10 @@ Applying a change safely remains application policy. A successful update changes
 | Configuration service | Built. Host on the real Access core, with fake ports. `native_sim` on the real Sync, with an access double. |
 | Status service, including the JSON forms | Built. Host on the real Access core with fake sources, and on the real System, Time and Netif on Linux. `native_sim` on the real System, Time and Sync. |
 | Thin providers for System, Time and Netif | Built. The Netif one has run on Linux only. |
-| Access | Real core with its fake ports on Host, and a double on `native_sim`, because it has no Zephyr composition. |
-| Event port of the configuration service | Faked by a recording port. **No provider exists, so an image using this service does not link until #234 lands.** |
-| Security event counts in status | Port and fake only. A composition selects `crux_mgmt_status_no_security`, which omits those items, until #234 lands. |
-| Credential store items in status | Port and fake only, because #178's header is not on main. Omitted in the same way. |
+| Access | Real core with its fake ports on Host, and a double in `tests/native/mgmt_services`. The [management composition](native-management-composition.md) runs both services on the real core and real ports, on `native_sim`. |
+| Event port of the configuration service | `crux_config_service_security_events`, over `crux_security_event_emit`. The service's own suites keep their recording port. |
+| Security event counts in status | `crux_mgmt_status_security_events`, over `crux_security_event_get_stats`. `crux_mgmt_status_no_security_events` omits them. |
+| Credential store items in status | `crux_mgmt_status_credential`, over `crux_credential_store_get_info`. `crux_mgmt_status_no_credential` omits them, and `crux_mgmt_status_no_security` is both. |
 | Target Configuration provider | None, by decision C6. It waits for #16. |
 | Zephyr module integration, Kconfig | None. The `native_sim` suite compiles the sources directly. |
 | Target or physical runs | None, and out of scope. Target results would be compile only under the current approval. |
@@ -62,8 +62,8 @@ flowchart TB
     access["crux::access: crux_access_permitted, crux_access_check"]
     sources["Thin providers: System, Time, Netif"]
     none["crux_mgmt_status_no_security"]
-    events["Issue #182, #234: not merged"]
-    store["Issue #178: not merged"]
+    events["Security events, #182"]
+    store["Credential store, #178"]
     fake["Fake store, or the no-provider port"]
 
     web --> json --> next
@@ -83,9 +83,9 @@ flowchart TB
     ops --> eport
     sports --> sources
     sports --> none
-    sports -. "when they land" .-> events
-    sports -. "when they land" .-> store
-    eport -. "when it lands" .-> events
+    sports --> events
+    sports --> store
+    eport --> events
 ```
 
 ## Configuration additions
@@ -233,19 +233,15 @@ This bounds how often status takes locks that control threads also take, and it 
 | `CRUX_ERR_NOT_READY` | `503` `not_ready` |
 | `CRUX_ERR_NO_RESOURCES` | Its buffer is too small for this composition's items, so it streams instead |
 
-## What connects when #234 lands
+## How the event and store providers connect
 
-Nothing in this PR merges that branch. These three changes connect it, and they are small enough to review in the PR that does so. `crux_security_event_get_stats` takes no lock and needs no initialisation, and `crux_access_session_origin` is on main.
-
-| Port | Provider to add | Calls |
+| Port | Provider | Calls |
 | --- | --- | --- |
-| `crux_config_service_port_event` | `components/config_service/src/config_service_events.c` | `crux_security_event_emit`, with `CRUX_SECURITY_EVENT_ID_CONFIG_UPDATED`, `_REJECTED`, `_SAVED` and `_SAVE_FAILED`. Results are `OK`, `INVALID`, `OK` and `FAILED`. `subject` is the name. Channel and source come from `crux_access_session_origin`, and user from `crux_access_session_user`. |
+| `crux_config_service_port_event` | `components/config_service/src/config_service_events.c` | `crux_security_event_emit`, with `CRUX_SECURITY_EVENT_ID_CONFIG_UPDATED`, `_REJECTED`, `_SAVED` and `_SAVE_FAILED`. Results are `OK`, `INVALID`, `OK` and `FAILED`. `subject` is the name. Channel and source come from `crux_access_session_origin`, and user from `crux_access_session_user`. A session that has ended leaves the record, with no origin and no user. |
 | `crux_mgmt_status_port_has_security_events`, `crux_mgmt_status_port_security_events` | `components/mgmt_status/src/source_security_events.c` | `crux_security_event_get_stats`, copying `emitted`, `dropped`, `delivered` and `log_errors` |
-| The `no_security` half for events | `source_no_security.c` splits, so that a composition drops only that half | |
+| `crux_mgmt_status_port_has_credential`, `crux_mgmt_status_port_credential` | `components/mgmt_status/src/source_credential.c` | `crux_credential_store_get_info`, mapped to the words `unusable`, `empty` or `valid`, `none`, `device_id_key`, `hardware_bound` or `undeclared`, and `host_fake`, `software`, `physical` or `undeclared` |
 
-Two draft providers for the first two rows compiled with `-Wall -Wextra -Wpedantic -Werror` against the header at `061f197`, the head of #234 in review. They are not committed, so that nothing here breaks if that header changes in review. The drafts pass `crux_access_session_origin`'s source through, which is 0, 4 or 8 bytes for what an adapter gives it.
-
-The same port takes #178: `crux_mgmt_status_port_credential` maps `crux_credential_store_get_info` to the words `unusable`, `empty` or `valid`, `none`, `device_id_key` or `hardware_bound`, and `host_fake`, `software` or `physical`. Tests can then use `crux_security_event_fake` in place of the recording port.
+`ManagementProviders.*` holds each mapping to a controlled answer. Tests of an adapter can use `crux_security_event_fake` in place of the recording port.
 
 ## For the adapters
 

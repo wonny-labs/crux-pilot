@@ -636,3 +636,8 @@ stub providers that prove the cases can fail. `provider_declarations.cmake` stat
 Twister on `native_sim/native/64` and checks that `native_sim` random stays test-only. `target` compiles both providers for `mimxrt1060_evk@B//qspi`, and never flashes, resets or runs an image. The `psa-crypto` workflow runs all three with the second argument `tf-psa-crypto`, because a default workflow must not select the GPL stacks, so wolfPSA runs only locally.
 No consumer calls a provider here. See the [qualification record](../docs/psa-crypto-qualification.md) and the [design](../docs/psa-crypto-design.md).
 
+## Management composition on `native_sim`
+
+`tests/management_providers` runs in the root Host suite, as `ManagementProviders.*`: the event providers, status sources and the Access clock, each against a controlled answer. `tests/psa_ports` holds the PSA providers' cases, on Linux Host and `native_sim`, and `tests/psa_ports/suites` runs existing Access and credential suites on them, on Host, with `-DCRUX_TEST_SUITES_ON_PSA=ON`. `tests/native/tls_offload_probe` is a TLS socket over the native socket offload with a client on the host, and `tests/native/management_composition` is the services together on real providers.
+
+`scripts/test-tls-offload-probe.sh [all|mbed|wolf]` and `scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]` run them. `mbed` needs the `mbedtls` and `tf-psa-crypto` projects, and the `psa-crypto` workflow runs it. `wolf` needs the `crux-secure-management` group, and no default workflow runs it. `target-*` compiles and never flashes, resets or runs an image. See the [composition](../docs/native-management-composition.md).

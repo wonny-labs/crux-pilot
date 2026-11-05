@@ -16,12 +16,13 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
 targets=(crux_configuration_text crux_configuration_tests crux_configuration_no_provider_test
     crux_configuration_controller
     crux_config_service_core crux_mgmt_status_core crux_mgmt_status_sources crux_mgmt_status_no_security
+    management_providers_events management_providers_halves management_providers_clock
     config_service_permissions config_service_values config_service_save config_service_concurrency
     config_service_lock_faults config_service_no_provider config_service_cpp_headers
     mgmt_status_items mgmt_status_snapshot mgmt_status_json mgmt_status_json_fixture
     mgmt_status_lock_faults mgmt_status_source_mapping mgmt_status_real_sources
     mgmt_status_cpp_headers)
-tests='^(Configuration\.|ConfigService\.|MgmtStatus\.)'
+tests='^(Configuration\.|ConfigService\.|MgmtStatus\.|ManagementProviders\.)'
 
 for preset in host-debug host-sanitize; do
     cmake --preset "$preset" -S "$repo" -DFETCHCONTENT_FULLY_DISCONNECTED=ON
@@ -31,8 +32,12 @@ done
 
 # A link can take a whole archive, as Zephyr's does for each library registered with it, so the
 # character rule's archive must not need a Configuration provider. Nothing in it may refer to the port.
-if nm --undefined-only "$repo/build/linux/debug/components/configuration/libcrux_configuration_text.a" |
-    grep crux_config_record; then
+text_archive="$repo/build/linux/debug/components/configuration/libcrux_configuration_text.a"
+if [[ ! -f "$text_archive" ]]; then
+    printf 'The character rule archive is missing or moved: %s\n' "$text_archive" >&2
+    exit 1
+fi
+if nm --undefined-only "$text_archive" | grep crux_config_record; then
     printf 'The character rule must not need a Configuration provider.\n' >&2
     exit 1
 fi
