@@ -218,7 +218,7 @@ there.
 | notAfter | `99991231235959Z`, or notBefore plus the composition's days | |
 | Basic constraints | Critical, not a CA | |
 | Key usage | Critical, digital signature | TLS 1.3 with ECDSA |
-| Extended key usage | Server authentication | Apple platforms require it of a TLS server certificate |
+| Extended key usage | Server authentication | Safari's platform requires it of a TLS server certificate |
 | Subject alternative names | The composition's DNS names and IPv4 and IPv6 addresses, at most 4, left out when none | Browsers match the name here and ignore the common name |
 
 ### What an upload is checked for
@@ -246,8 +246,8 @@ shown as `?`, so a description never carries raw input.
 | A composition that trusts its clock | Its time | Its choice, such as 825 days |
 
 A fixed notBefore in the past is valid for any client whose own clock is right. A fixed notAfter would expire on one
-date whatever the boot date, and a device with no clock cannot renew on time, so the reference sets none. Apple's
-platforms have refused TLS server certificates valid for more than 825 days; whether that applies to a self-signed
+date whatever the boot date, and a device with no clock cannot renew on time, so the reference sets none. Safari's
+platform has refused TLS server certificates valid for more than 825 days; whether that applies to a self-signed
 certificate a user has accepted is **not tested**, because no browser ran. A composition with a trusted clock can set
 825 days and regenerate before then.
 
@@ -417,7 +417,7 @@ Container `crux-190`, image `crux-pilot-devcontainer:local` under amd64 emulatio
 | One more mutex from the Sync pool, which the gate record already counts as full | **Not measured.** The integrated composition must raise the pool. |
 | 10,696 bytes of static RAM on the 64-bit Host build: two buffers of 8,800 bytes together, a request buffer of 1,600, the key of 138 | `size` and `nm` on the Host object. A 32-bit target differs a little, and nothing was measured there. |
 | An install or regeneration waits on one store save, so a web route must run it on a worker | The header says so. No route exists. |
-| A browser's view of the self-signed profile, including Apple's validity rule | **Not run** |
+| A browser's view of the self-signed profile, including Safari's validity rule | **Not run** |
 | A fuzzer with coverage feedback | **Not run**: this container's clang has no fuzzer runtime. The seeded mutation suite, under ASan and UBSan, stands in. |
 
 ## Decisions for review
