@@ -824,6 +824,10 @@ paths:
 
         Accepted does not mean saved. The result is read through `GET /api/v1/network`, which needs
         `network.read`, so this response holds no values for a session that may only write.
+
+        The order of the answers is: the body is not the expected JSON (`400` `bad_request`), a value fails a
+        rule (`400` `invalid_field`), the device has no Configuration provider (`501`), a save is queued or
+        running (`503` `busy`), and then `202`.
       x-crux-access: network.write
       security:
         - sessionCookie: []
@@ -1426,7 +1430,9 @@ components:
           type: string
           description: |
             Stable reason for this field. `rule_not_met` covers a password rule and a configuration value that
-            a validator, the character rule or the capacity refused.
+            a validator, the character rule or the capacity refused. `gateway_outside_subnet` covers every
+            refusal of a gateway of the network settings, and `prefix_not_usable` a prefix length outside 1 to 30,
+            whatever its sign or size.
           enum:
             - not_unicast
             - prefix_not_usable
@@ -1818,8 +1824,13 @@ components:
     Ipv4Settings:
       type: object
       description: |
-        Static IPv4 settings. The server also checks that the address is unicast, that the prefix leaves
-        usable hosts and that a gateway lies inside the subnet, and it reports each failure as a field error.
+        Static IPv4 settings. The server also checks them, and reports each failure as a field error. The
+        address must be of unicast class, which leaves out 0.0.0.0/8, 127.0.0.0/8 and everything from 224.0.0.0,
+        and it must not be the network or the broadcast address of its subnet. The prefix length must be 1 to
+        30. A gateway must be of unicast class, must not be the address itself, and must lie in the subnet of
+        the address without being its network or broadcast address. An address that is not a dotted quad of four
+        decimal numbers from 0 to 255 with no leading zero, and a member of another type, are `bad_request`.
+        The rules are the firmware's, and `network-validation-vectors.tsv` holds the client's checks to them.
       additionalProperties: false
       required: [address, prefix_length]
       properties:
@@ -1833,7 +1844,9 @@ components:
         gateway:
           type: string
           format: ipv4
-          description: Absent means no gateway. `0.0.0.0` is not accepted here.
+          description: |
+            Absent means no gateway. `0.0.0.0` is not accepted here. Every refusal of a gateway is
+            `gateway_outside_subnet`, the one gateway code.
     NetworkState:
       type: object
       additionalProperties: false

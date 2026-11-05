@@ -9,3 +9,14 @@ set(CRUX_WEB_MANAGEMENT_SOURCES
     CACHE INTERNAL "Web management sources")
 set(CRUX_WEB_MANAGEMENT_ROUTES "${CMAKE_CURRENT_LIST_DIR}/web_management_routes.c" CACHE INTERNAL
     "Web management routes")
+
+# Network settings routes (Issue #213): GET and PUT /api/v1/network, for a composition that offers
+# the network settings service. Compile the sources with crux::network_settings beside the sources
+# above, and name the routes source to crux_web_routes(... SOURCES ...) beside the one above. Both
+# routes have a permission as their access class, so components/web/reviewed-routes.txt does not
+# list them.
+set(CRUX_WEB_MANAGEMENT_NETWORK_SOURCES
+    "${CMAKE_CURRENT_LIST_DIR}/web_management_network_json.c"
+    CACHE INTERNAL "Web management network sources")
+set(CRUX_WEB_MANAGEMENT_NETWORK_ROUTES "${CMAKE_CURRENT_LIST_DIR}/web_management_network.c"
+    CACHE INTERNAL "Web management network routes")

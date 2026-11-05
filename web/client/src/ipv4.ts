@@ -1,5 +1,8 @@
-// Client-side checks of IPv4 settings, for usability only. The server remains the authority. It reports its
-// own result with the specification's field codes, and not_ipv4 and gateway_not_usable are this client's own.
+// Client-side checks of IPv4 settings, for usability only. The server remains the authority, and the rules here
+// are those of the firmware's network settings service (components/network_settings), which the shared vectors in
+// api/network-validation-vectors.tsv hold both sides to. The server reports its result with the specification's
+// field codes. not_ipv4 and gateway_not_usable are this client's own: the server answers a malformed address with
+// bad_request, and every refusal of a gateway with gateway_outside_subnet.
 import type { Ipv4Settings } from './api-types.generated.ts';
 
 export type Ipv4ProblemCode =
@@ -7,7 +10,8 @@ export type Ipv4ProblemCode =
   | 'not_unicast'
   | 'prefix_not_usable'
   | 'gateway_outside_subnet'
-  // Client only: 0.0.0.0, the address itself, or the subnet's network or broadcast address.
+  // Client only: 0.0.0.0, the address itself, an address that is not of unicast class, or the subnet's network or
+  // broadcast address. The server reports these as gateway_outside_subnet.
   | 'gateway_not_usable';
 
 export interface Ipv4Problem {
@@ -80,7 +84,7 @@ export function checkIpv4Settings(input: Ipv4Input): { problems: Ipv4Problem[]; 
     const gateway = parseIpv4(gatewayText);
     if (gateway === null) {
       problems.push({ name: 'gateway', code: 'not_ipv4' });
-    } else if (gateway === 0 || gateway === address) {
+    } else if (gateway === 0 || gateway === address || !isUnicastClass(gateway)) {
       problems.push({ name: 'gateway', code: 'gateway_not_usable' });
     } else if (address !== null && usablePrefix !== null) {
       const hosts = hostBits(gateway, usablePrefix);

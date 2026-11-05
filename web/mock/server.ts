@@ -742,10 +742,6 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
       error(response, request, operation, 413, 'payload_too_large');
       return;
     }
-    if (!config.networkProvider) {
-      error(response, request, operation, 501, 'not_supported');
-      return;
-    }
     const body = parseJsonObject(text);
     const address = body?.['address'];
     const prefix = body?.['prefix_length'];
@@ -775,6 +771,11 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
           code: problem.code === 'gateway_not_usable' ? 'gateway_outside_subnet' : problem.code,
         })),
       });
+      return;
+    }
+    // As the device: the shape, then the rules, then whether anything can be saved, then whether a save runs.
+    if (!config.networkProvider) {
+      error(response, request, operation, 501, 'not_supported');
       return;
     }
     if (network.saving) {
