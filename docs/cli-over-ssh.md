@@ -111,13 +111,13 @@ Recorded on 5 November 2026, in the Dev Container image under emulation, with Op
 
 | Kind | Command | Result |
 | --- | --- | --- |
-| Host, Clang 18 | `ctest --preset host-debug -R '^Ssh\.cli'` | 7 of 7. `Ssh.cli_session` makes SESSION_CHECKS checks. |
+| Host, Clang 18 | `ctest --preset host-debug -R '^Ssh\.cli'` | 7 of 7. `Ssh.cli_session` makes 9,367 checks. |
 | Host, ASan and UBSan, GCC 13 | The same on a local build with `CC=gcc`, because the image lacks Clang's sanitizer runtime | 7 of 7, and `Ssh.CallbackTable` |
 | Host, clang-tidy 18 | The entry points and `tests/ssh/cli/*.c` | No finding |
 | Host, ThreadSanitizer | `tests/ssh/cli/test-thread-sanitizer.sh` | Passes in the Host CI job. It cannot run locally, because it cannot map its shadow memory under emulation. |
 | CI, at `8e708ef` | `host`, `links`, `psa-crypto` and the four Zephyr shards | All pass, including Clang's ASan and UBSan on `Ssh.cli_*`, and `test-compile.sh` in the `io` shard |
 | `native_sim`, real OpenSSH, real provider from #265 at `800d0af` | `tests/ssh/cli/test-openssh.sh`, on a local merge | 15 of 15 cases |
-| RT1060-EVKB, compile and link only, not flashed or run | `tests/ssh/cli/test-openssh.sh --target`, the same image with #192's `rt1060.conf` | Links: 306,712 B Flash, 703,820 B RAM, which includes the test's 512 KiB arena and 32 KiB main stack. The shell rule passes on the image. |
+| RT1060-EVKB, compile and link only, not flashed or run | `tests/ssh/cli/test-openssh.sh --target`, the same image and merge, with #192's `rt1060.conf` | Links: 307,000 B Flash, 703,884 B RAM, which includes the test's 512 KiB arena and 32 KiB main stack. The shell rule passes on the image. |
 | `native_sim` and RT1060-EVKB, compile only, no wolfSSH | `tests/ssh/cli/test-compile.sh`, also in the Zephyr CI job | Both build, with the limits' flags on the source, and the shell rule passes on `.config` |
 
 `native_sim` resource use, simulation only and on a 64-bit image: **8,768 B** at most on a worker with a password login, Ed25519 host key, `account list`, `passwd` and 64 KiB of output, and a heap peak of 21,408 B. The figure is for the whole worker, handshake included, and is below #192's 13,808 B, which covers ECDSA too. It does not separate the CLI's part, and it says nothing about a Cortex-M7. The context alone is about 800 B.
