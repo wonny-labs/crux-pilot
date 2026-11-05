@@ -13,7 +13,7 @@ Status: draft for review, Issue #193, approved in advance under gate #183. It co
 | Provider for the threaded Host suite | **Double**, with a bounded wait | `tests/ssh/cli/concurrency_test.c` |
 | Serial console in the comparison | **Real**, on a scripted Serial | `Ssh.cli_session` |
 | Access control | **Scripted** in `Ssh.cli_session`. **Real core with fake ports** in the other suites and in the `native_sim` image. | `tests/cli/fake_access.c`, `tests/access/fake_ports.c`, #192's `test_access_ports.c` |
-| wolfSSH provider and OpenSSH | **Real** on `native_sim`, from #192's branch, which is not on `main` yet | `tests/ssh/cli/openssh/` |
+| wolfSSH provider and OpenSSH | **Real** on `native_sim`, from #265, which is not on `main` yet | `tests/ssh/cli/openssh/` |
 | Commands in the `native_sim` image | **Test commands**. No product has `probe-read` or `flood`. | `tests/ssh/cli/openssh/src/main.c` |
 | Security event provider | **Not connected.** It prints in the image, and records on the Host. | [The contract](cli-contract.md#connecting-the-real-security-events) |
 | A product composition | **Not built.** No Kconfig symbol selects SSH yet. | #197 |
@@ -111,12 +111,12 @@ Recorded on 5 November 2026, in the Dev Container image under emulation, with Op
 
 | Kind | Command | Result |
 | --- | --- | --- |
-| Host, Clang 18 | `ctest --preset host-debug -R '^Ssh\.cli'` | 5 of 5. `Ssh.cli_session` makes 6,384 checks. |
-| Host, ASan and UBSan, GCC 13 | The same on a local build with `CC=gcc`, because the image lacks Clang's sanitizer runtime | 5 of 5, and `Ssh.CallbackTable` |
+| Host, Clang 18 | `ctest --preset host-debug -R '^Ssh\.cli'` | 7 of 7. `Ssh.cli_session` makes SESSION_CHECKS checks. |
+| Host, ASan and UBSan, GCC 13 | The same on a local build with `CC=gcc`, because the image lacks Clang's sanitizer runtime | 7 of 7, and `Ssh.CallbackTable` |
 | Host, clang-tidy 18 | The entry points and `tests/ssh/cli/*.c` | No finding |
 | Host, ThreadSanitizer | `tests/ssh/cli/test-thread-sanitizer.sh` | Passes in the Host CI job. It cannot run locally, because it cannot map its shadow memory under emulation. |
 | CI, at `8e708ef` | `host`, `links`, `psa-crypto` and the four Zephyr shards | All pass, including Clang's ASan and UBSan on `Ssh.cli_*`, and `test-compile.sh` in the `io` shard |
-| `native_sim`, real OpenSSH, real provider from #192's branch | `tests/ssh/cli/test-openssh.sh` | 13 of 13 cases |
+| `native_sim`, real OpenSSH, real provider from #265 at `800d0af` | `tests/ssh/cli/test-openssh.sh`, on a local merge | 15 of 15 cases |
 | RT1060-EVKB, compile and link only, not flashed or run | `tests/ssh/cli/test-openssh.sh --target`, the same image with #192's `rt1060.conf` | Links: 306,712 B Flash, 703,820 B RAM, which includes the test's 512 KiB arena and 32 KiB main stack. The shell rule passes on the image. |
 | `native_sim` and RT1060-EVKB, compile only, no wolfSSH | `tests/ssh/cli/test-compile.sh`, also in the Zephyr CI job | Both build, with the limits' flags on the source, and the shell rule passes on `.config` |
 
@@ -143,15 +143,14 @@ The Host suites first ran against a stand-in that refuses everything: `Ssh.cli_s
 
 Starting the exec status at 0 did not fail, and is equivalent, because `crux_cli_exec` always sets it. Accepting an over-claimed count survived at first, because the CLI checks most counts too. That led to the case for the CR of a line end, which then caught it.
 
-## A finding for #192 and Thread
+## Found with #192
 
-The coordinator reports that #265 is taking this fix. **An image with the command line and the provider does not link.** `CONFIG_CRUX_CLI` needs `CONFIG_CRUX_THREAD`, and both `crux_ssh_wolf_provider.c` and `components/thread/ports/zephyr/thread_native.c` define `K_THREAD_STACK_ARRAY_DEFINE(worker_stacks, ...)` at file scope, which gives one global name:
+Running the CLI on the provider found two things that #265 has since fixed, both at `800d0af`. Neither fix is in this PR, so this PR's OpenSSH run needs that revision or later.
 
-```text
-multiple definition of `worker_stacks'
-```
-
-#192's own test image has no `crux::thread`, so it does not meet this. Neither file is #193's to change. `tests/ssh/cli/openssh/CMakeLists.txt` renames the provider's array with a compile definition, for this test image only. The fix is one word, `static`, on either array, and that line is then removed.
+| Finding | Effect | Fix in #265 |
+| --- | --- | --- |
+| `crux_ssh_wolf_provider.c` and `thread_native.c` both defined a global `worker_stacks` | An image with the command line, which needs `crux::thread`, did not link. #192's own image has no `crux::thread`. | `static` on the provider's array |
+| The provider's `read` returned `CRUX_ERR_IO` when OpenSSH rekeyed during shell input, seen at `383f0bf` | The session ended, with `SSH worker ended: no error`. The adapter passes that status on, as the contract says. | Its rekey handling. The case `a_rekey_during_input` passes at `800d0af`. |
 
 ## Decisions for review
 
@@ -194,7 +193,7 @@ No owner answer was available for these, so each is the narrow choice.
 - Anything on a board, timing, or the worker's stack on a Cortex-M7.
 - WinSCP, or any SSH client other than OpenSSH 9.6.
 - A key login through the CLI: the cases use passwords, and #192 covers keys up to its stand-in sessions.
-- **A rekey while a shell is reading.** With `RekeyLimit=16K` and 2,000 lines on standard input, the provider's `read` returned `CRUX_ERR_IO` and the session ended, with `SSH worker ended: no error` in the image. The same input with no rekey passes, as do 20 lines with the limit. The adapter passes that status on as the contract says, so this is for #265. `a_rekey_during_input` holds it as a known failure, and the run fails when it starts to pass, so that the entry is removed. A rekey during output passes, in `a_rekey_during_output`. The independent review measured stack peaks with a rekey of 10,152 B with an Ed25519 host key and 11,232 B with an ECDSA one. Those are its figures, and this PR did not repeat them.
+- A rekey started by the server, or with any client but OpenSSH. Rekeys that OpenSSH starts pass, both during output and while a shell reads, in `a_rekey_during_output` and `a_rekey_during_input`. The independent review measured stack peaks with a rekey of 10,152 B with an Ed25519 host key and 11,232 B with an ECDSA one. Those are its figures, and this PR did not repeat them.
 - `window-change` over the wire: the Host covers it through the fake, and it has no effect by contract.
 - The real security event provider.
-- The OpenSSH and target results on `main`: they ran on a local merge with #192's branch, so they need repeating once #192 has merged.
+- The OpenSSH and target results on `main`: they ran on a local merge with #265 at `800d0af`, so they need repeating once it has merged.

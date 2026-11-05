@@ -19,11 +19,7 @@ endif()
 set(CRUX_SSH_CLI_COMMAND_LINE ON)
 include("${repository}/components/ssh/ports/zephyr/wolf_ssh_settings.cmake")
 crux_ssh_wolf_settings()
-target_compile_definitions(crux_ssh_wolf_provider PRIVATE CRUX_SSH_WOLF_TESTING=1
-    # The provider's stack array and crux::thread's have the same global name, so a real image with the
-    # command line, which needs crux::thread, does not link. docs/cli-over-ssh.md reports this. It is for
-    # #192 or Thread to fix, and this line does nothing once they have.
-    worker_stacks=crux_ssh_wolf_worker_stacks)
+target_compile_definitions(crux_ssh_wolf_provider PRIVATE CRUX_SSH_WOLF_TESTING=1)
 
 target_sources(app PRIVATE
     src/main.c

@@ -36,11 +36,6 @@ ZEPHYR_SHELL_LINES = ("kernel", "kernel thread list", "kernel reboot cold", "ker
 ALL_ZEPHYR_SHELL_LINES = tuple(re.findall(r'^    "(.*)",$', (HERE / "../zephyr_shell_lines.h").read_text(), re.M))
 
 
-# What the provider of #192 does not do yet, and this script expects to fail. A case here that passes fails
-# the run, so that the entry is removed. docs/cli-over-ssh.md has the reason for each.
-KNOWN_FAILURES = {"a_rekey_during_input"}
-
-
 def check(condition, message):
     if not condition:
         raise AssertionError(message)
@@ -218,7 +213,7 @@ class Cases:
             check(len(result.stdout) == 262144, f"{len(result.stdout)} bytes")
 
     def case_a_rekey_during_input(self):
-        # The same on a shell that is reading. See KNOWN_FAILURES.
+        # The same on a shell that is reading, which reaches read in the provider.
         lines = b"probe-read\n" * 2000 + b"logout\n"
         with self.image():
             result = self.client.run(None, self.password + ["-o", "RekeyLimit=16K", "-T"], stdin=lines,
@@ -253,17 +248,10 @@ def main():
                 continue
             try:
                 getattr(cases, name)()
-                if short in KNOWN_FAILURES:
-                    failures.append(short)
-                    print(f"FAIL {short}: passes now, so remove it from KNOWN_FAILURES", flush=True)
-                else:
-                    print(f"PASS {short}", flush=True)
+                print(f"PASS {short}", flush=True)
             except Exception as error:  # A failed case must not hide the next one.
-                if short in KNOWN_FAILURES:
-                    print(f"KNOWN FAILURE {short}: {error}", flush=True)
-                else:
-                    failures.append(short)
-                    print(f"FAIL {short}: {error}", flush=True)
+                failures.append(short)
+                print(f"FAIL {short}: {error}", flush=True)
     if failures:
         print(f"{len(failures)} cases failed: {', '.join(failures)}")
         return 1
