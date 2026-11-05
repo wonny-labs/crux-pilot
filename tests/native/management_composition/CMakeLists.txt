@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # The management composition's own test, on the profile that EXTRA_CONF_FILE selects:
-#   mbed: ../tls_offload_probe/mbed.conf;profile-psa.conf
+#   mbed: ../tls_offload_probe/mbed.conf;profile-psa.conf;mbed-threading.conf
 #   wolf: ../tls_offload_probe/wolf.conf;profile-psa.conf, with a patched ZEPHYR_BASE
 cmake_minimum_required(VERSION 3.20.0)
 get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)

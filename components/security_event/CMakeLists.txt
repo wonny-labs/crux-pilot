@@ -44,12 +44,3 @@ add_library(crux_security_event_access_port OBJECT src/security_event_access_por
 target_include_directories(crux_security_event_access_port PRIVATE ../access/src)
 target_link_libraries(crux_security_event_access_port PRIVATE crux_access_adapter crux_security_event_api)
 target_compile_options(crux_security_event_access_port PRIVATE -Wall -Wextra -Wpedantic -Werror)
-
-# The provider of crux_credential_port_event, in the same way. It also reaches a private port header.
-if(TARGET crux_credential_adapter)
-    add_library(crux_security_event_credential_port OBJECT src/security_event_credential_port.c)
-    target_include_directories(crux_security_event_credential_port PRIVATE ../credential/src)
-    target_link_libraries(crux_security_event_credential_port
-        PRIVATE crux_credential_adapter crux_security_event_api)
-    target_compile_options(crux_security_event_credential_port PRIVATE -Wall -Wextra -Wpedantic -Werror)
-endif()

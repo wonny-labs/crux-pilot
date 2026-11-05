@@ -1,8 +1,79 @@
 # `native_sim` management composition
 
-Status: for review under [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), in a Draft PR. This document starts with the TLS probe, because it decides how [#185](https://github.com/wonny-labs/crux-pilot/issues/185) proceeds. The composition follows in this PR.
+Status: for review under [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), in a Draft PR. Decision W17 makes PSA a prerequisite of real HTTPS on `native_sim`, and W18 makes Host and `native_sim` completion an interim result, with physical evidence tracked apart.
 
-Nothing here is physical evidence. `native_sim` results use the host's TCP stack, and the simulator's clock, memory and entropy. They say nothing about a device.
+Nothing here is physical evidence. `native_sim` results use the host's TCP stack, and the simulator's clock, memory and entropy. They say nothing about a device. [Real here means](psa-crypto-design.md#what-real-means-on-native_sim) that the protocol and the algorithms run for real, and it does not mean that any secret is safe.
+
+## What is built, faked and untested
+
+| Item | State | Evidence level |
+| --- | --- | --- |
+| Access ports for derive, random, keyed hash | **Built**, on PSA, `components/access/ports/psa` | Host: TF-PSA-Crypto. `native_sim`: both providers. RT1060: compile. |
+| Access clock, `crux_access_port_now_ms` | **Built**, on Crux Time, `crux_access_time_clock` | Host, `native_sim` |
+| Store ports for declaration, seal, open, key generation, random | **Built**, on PSA, `components/credential/ports/psa`, with the device ID from `hwinfo` | As the Access ports |
+| Event providers: `crux_config_service_port_event`, `crux_credential_port_event`, `crux_mgmt_status_port_security_events`, and the existing `crux_security_event_access_port` | **Built** | Host against a controlled answer, `native_sim` end to end |
+| Status of the store, `crux_mgmt_status_port_credential` | **Built**. The issue did not list it, and the status document named it for this point. | The same |
+| Composition | **Built**, `tests/native/management_composition`, on both profiles | `native_sim` |
+| TLS socket over the offload | **Probed** on both profiles | `native_sim` with a host client |
+| First credential | **Declared test step**: serial provisioning called directly, in place of the console of #181 | Named in results |
+| TLS certificate | **Declared test certificate**, in place of #190 | Named in results |
+| Entropy, confidentiality | **Declared test-only** and simulation, below | |
+| Configuration save | **No provider**, `configuration_no_provider`, by decision C6 until #16. A save returns `ERR_STORE` with `NOT_SUPPORTED`. | `native_sim` |
+| Logging | The Crux provider on an **emulated UART**: a line counts as delivered when `crux_log_write` returns `CRUX_OK`, and nothing reads the wire | `native_sim` |
+| Reset causes, watchdog | Real System on `native_sim`. `system.watchdog_state` reads `not_supported`. | `native_sim` |
+| HTTPS listener, login routes, TLS certificate from the store | **Not built here**: #185, #186, #190 | |
+| Access and credential suites on the real ports | **Not run.** They depend on the fakes' fault injection and declarations. New port cases and the composition cover the real path, and the cut walks stay on the fake. | |
+| A race in a provider | **Untested and untestable here**: a `native_sim` thread that does not sleep is never preempted | |
+| Anything on RT1060-EVKB beyond the ports compiling | **Not run.** No board was touched. | |
+
+```mermaid
+flowchart TB
+    subgraph test["Test: login, status, configuration, events, three boots"]
+        suite["src/main.c"]
+    end
+    subgraph services["Product cores, no test hook compiled"]
+        access["crux_access"]
+        store["credential store"]
+        events["security events"]
+        config["config service"]
+        status["status service"]
+    end
+    subgraph providers["Providers this issue adds"]
+        accessPsa["Access on PSA"]
+        storePsa["Store on PSA"]
+        clock["Access clock on Time"]
+        eventPorts["Config and store event ports"]
+        sources["Status: event counts and store"]
+    end
+    subgraph profile["One provider profile per image"]
+        wolf["Wolf: wolfPSA, wolfSSL socket backend, one wolfCrypt"]
+        mbed["Mbed: TF-PSA-Crypto, Mbed TLS, core locks"]
+    end
+    subgraph sim["native_sim only"]
+        fake["fake_entropy_native_sim: TEST ONLY"]
+        hwinfo["hwinfo --device_id: an identifier"]
+        disk["FatFs on a host file"]
+        nsos["Socket offload: the host's TCP stack"]
+        uart["Emulated UART"]
+    end
+    suite --> access & store & events & config & status
+    access --> accessPsa & clock
+    access -->|"bridge"| store
+    store --> storePsa
+    store --> disk
+    config --> eventPorts
+    store --> eventPorts
+    access -->|"crux_security_event_access_port"| events
+    eventPorts --> events
+    status --> sources
+    sources --> events & store
+    events --> uart
+    accessPsa --> wolf & mbed
+    storePsa --> wolf & mbed
+    storePsa --> hwinfo
+    wolf --> fake & nsos
+    mbed --> fake & nsos
+```
 
 ## TLS probe
 
@@ -66,7 +137,7 @@ Connection limits, timing and memory here come from the host's stack and the sim
 | 1 | **A TCP close with no `close_notify` is invisible to `poll`.** A host socket reports a peer's FIN as `POLLIN` alone, where Zephyr's native sockets add `POLLHUP`. `mbedtls_ssl_read` turns the end of the stream into a length of 0, which the TLS layer reads as "a partial record, try again". So `zsock_poll` with no timeout returns 0, at once and every time, for as long as that client stays. | Mbed | `raw_poll_after_abrupt_close`: the server never saw the close, and the image's CPU share rose from 0.02 to 0.64. In a debugging trace, not retained, the simulated clock also stopped while this ran, because a `native_sim` thread that never sleeps stops it. A `recv` finds the end of the stream at once, which is how the probe's server gets past it: `abrupt_closes` passes. |
 | 2 | wolfSSL peeks instead, and reports it | Wolf | The same step: the close is seen, and CPU stays at 0.03 |
 | 3 | The handshake runs inside `accept`, on the caller's thread, for non-blocking sockets too. A client that connects and says nothing holds a one-thread server for `NET_SOCKETS_TLS_CONNECT_TIMEOUT`, default 10 s. | Both | `stalled_client`: a second client waited 9.6 s and 9.5 s, and then worked |
-| 4 | Each connection costs about 33 KiB of Mbed TLS heap at a 16 KiB record size, plus what a handshake takes, so a 120,000 B heap held 3 connections. **The fourth `accept` fails with `EINVAL`**, not `ENOMEM`, because the socket layer maps a failed certificate parse to it. Held connections keep working, and later ones work once these close. | Mbed | `concurrent_connections`, and `PROBE accept ... errno=22` |
+| 4 | A 120,000 B Mbed TLS heap held 3 connections at a 16 KiB record size. **The fourth `accept` fails with `EINVAL`**, not `ENOMEM`. The socket layer maps a failed certificate parse to it, which fits a full heap, and heap use was not measured. Held connections keep working, and later ones work once these close. | Mbed | `concurrent_connections`, and `PROBE accept ... errno=22` |
 | 5 | wolfSSL allocates from the host's `malloc` on `native_sim`, so **no memory limit applied**. The bound here was `NET_SOCKETS_TLS_MAX_CONTEXTS`: 2 listeners and 4 clients, then `ENOMEM`. | Wolf | `concurrent_connections`, and `errno=12` |
 | 6 | A smaller record size than 16 KiB loses a browser's data unless the server negotiates less, so the probe holds 16 KiB. Nothing here tested a smaller value. | Mbed | Configuration choice |
 | 7 | The negotiated suites differ, because neither profile restricts them here. #185 declares them. | Both | The table above |
@@ -80,7 +151,7 @@ Connection limits, timing and memory here come from the host's stack and the sim
 | Limit 1 reaches Zephyr's HTTP server on the Mbed profile. `http_server_core.c` treats a poll result of 0 as "poll again", and finds a dead client only through `POLLHUP` or `POLLERR`. | A client that drops TCP without `close_notify` can leave the server thread spinning, and its inactivity timer needs a clock that this stops. #185 has not run that, and should test it first. curl and OpenSSL's clients send `close_notify` on a normal exit, and a browser may not. |
 | The offload could report it instead: its `poll` mapping has no `EPOLLRDHUP` | **A one-line fix in Zephyr's driver, not tried here.** It would need a build-local copy, or an upstream report. Limit 1 is `native_sim` only: it does not apply to Zephyr's native sockets, on a target. |
 | Limit 3 applies to the HTTP server, which accepts on its one thread | A stalled client stalls every client for up to the timeout, on both profiles, and the design's rule on bounded handlers cannot help. This one is not specific to `native_sim`, from the source, and was not run on a target. |
-| Limit 4 fixes the heap for the connection limit, on the Mbed profile | #185 sizes the Mbed TLS heap from its connection count, and treats `EINVAL` from `accept` as a full heap |
+| Limit 4 ties the heap to the connection limit, on the Mbed profile | #185 sizes the Mbed TLS heap from its connection count, and expects `EINVAL` from `accept` when it runs out |
 
 ### How the Wolf profile gets its socket backend
 
@@ -93,6 +164,141 @@ The backend is a patch on Zephyr, which stays out of this repository: [patches/z
 | Used by | `ZEPHYR_BASE` for that build only. The west checkout is not edited. |
 | Not used | The optional `-mbedtls-decoupling` patch. The image compiles with `CONFIG_MBEDTLS=n` without it. |
 
+## Provider results
+
+`tests/psa_ports` runs the providers alone, through a device ID that a test controls.
+
+| What | Host, TF-PSA-Crypto, ASan and UBSan | `native_sim`, TF-PSA-Crypto | `native_sim`, wolfPSA | RT1060-EVKB |
+| --- | --- | --- | --- | --- |
+| Derive, keyed hash: known answers from the qualification, including 128-byte and empty passwords | Pass | Pass | Pass | Compile |
+| A stored verifier of another kind, a zero cost: `false` and no output that could match | Pass | Pass | Pass | Compile |
+| Seal and open against a vector from independent code, Python `hashlib` and OpenSSL `libcrypto` | Pass | Pass | Pass | Compile |
+| Tag, ciphertext, additional data or nonce changed: `ERR_UNUSABLE`, and plain text wiped | Pass | Pass | Pass | Compile |
+| Another device ID: `ERR_UNUSABLE`. No device ID: `ERR_READ` and a `NULL` declaration | Pass | Pass | Pass | Compile |
+| A whole slot's payload, 16,336 B | Pass | Pass | Pass | Compile |
+| P-256 generation: forms, and the scalar gives the exported point | Pass | Pass | Pass | Compile |
+| **Ed25519 generation** | `ERR_ENTROPY` and buffers wiped, as declared | `ERR_ENTROPY`, as declared | **Pass**, and the seed gives the exported key | Compile |
+| 40 rounds of each port with no key slot left behind | Pass | Pass | Pass | Compile |
+| Control: a provider that supports nothing, and one that accepts everything | Both fail, 239 and 104 checks | | | |
+| Control: a board build with a test random generator | | | | Refuses to compile |
+
+### What each port maps
+
+The mapping is [the design's](psa-crypto-design.md#what-each-port-calls), and these are the choices it left.
+
+| Port | Choice |
+| --- | --- |
+| `crux_access_port_now_ms` | A clock that fails, or reads negative, gives 0. That reads as a clock that ran backwards, which expires sessions and never clears a delay bucket. Holding the last value would keep sessions alive for as long as the clock stays broken. |
+| Device key | Derived for each call, and its slot goes at once, because a slot is scarce and shared with TLS on the Mbed profile. This costs a hash and an import per seal or open. |
+| Declaration | `BASIS_DEVICE_ID_KEY`, `EVIDENCE_SOFTWARE`, not confidential, forgery detected without the ID, no rollback detection. `NULL` if the ID or PSA cannot run. It is the same on `native_sim` as the design states for a target. |
+| `crux_credential_port_seal` failure | `ERR_ENTROPY` for `PSA_ERROR_INSUFFICIENT_ENTROPY`, otherwise `ERR_STORE`, which the store reports as a failed save |
+| Test generator on a board | `credential_device_id.c` refuses to compile if `CONFIG_FAKE_ENTROPY_NATIVE_SIM` or `CONFIG_TEST_RANDOM_GENERATOR` reaches any board but `native_sim`. The composition's CMake also refuses any board but `native_sim`. |
+
+## Composition results
+
+`scripts/test-native-composition.sh` runs one image three times on one disk file, as separate processes, each with its own seed.
+
+```mermaid
+sequenceDiagram
+    participant S as Script
+    participant I as Image
+    participant D as Disk file on the host
+    S->>I: first boot, device ID A
+    I->>D: blank: format, seal the first device key
+    I->>I: first_boot suite: login, status, configuration, events, medium, TLS beside the services
+    S->>I: second run, device ID B
+    I->>D: both tags fail
+    I->>I: other_device suite: everything refused, provisioning stays closed
+    S->>I: third run, device ID A
+    I->>D: opens, nothing was rewritten
+    I->>I: later_boot suite: accounts and keys survive, no new key
+    S->>S: the device keys of the first and last runs are identical
+```
+
+| Check, on `native_sim/native/64` | Mbed profile | Wolf profile |
+| --- | --- | --- |
+| Builds, with the TLS stack and the PSA provider in one image | Yes | Yes, on the patched copy |
+| No fake port: 19 ports each from its real source, read from the image with `nm -l` | Yes | Yes |
+| Device keys generated at start | P-256 | P-256 and Ed25519 |
+| Ed25519 asked for | `ERR_ENTROPY`, and no record | Generated |
+
+Each row is the same on both profiles, and each runs on the real services, ports and FatFs:
+
+| Service | Permitted | Unauthenticated | Unpermitted |
+| --- | --- | --- | --- |
+| Access | `crux_access_check` is `OK` | `SESSION_INVALID` | `DENIED` |
+| Login | A session from a web origin | Wrong password and unknown name: `DENIED`, with `access.login_failed` | |
+| Status | The report, with the store's words and the event counts | `INVALID_STATE`, which an adapter sends as `401` | `{"items":[]}`: everything hidden |
+| Configuration | Update, read back. A sensitive value is `WRITE_ONLY`. | `SESSION_INVALID` | `NOT_FOUND`, for a read and an update. A save without `config.save` is `DENIED`. |
+| Events | Read back with `config.updated`, its user, its channel and its source | `SESSION_INVALID` | `DENIED` |
+
+| Other check | Result |
+| --- | --- |
+| **A configuration update records its event, and status reports the counts** | `config.updated` reads back, and `security.events_emitted` is at least the count. `emitted` 31 and 32, `delivered` the same, `dropped` 0, `log_errors` 0, `high_water` 9, on the two profiles. |
+| A slot on the medium | `CXCS`, protection identifier 1, 16,384 B, and no account name or password in it. This shows sealing and nothing about confidentiality against someone with the device ID. |
+| TLS beside the services, in one image: a TLS 1.2 server and client over the offload, with peer verification, and a login and an account change while connected | Pass |
+| After a restart | Provisioning stays closed, the password logs in, the wrong one does not, and no key is generated |
+| Another device ID | The store is `UNUSABLE`, login is `NOT_READY`, provisioning is `DENIED`, key generation refused, and the next boot with the right ID opens the same files |
+| Status report on the first boot | [Retained](evidence/native-composition/mbed/status.json), with `system.clock` `unset` and `net.ipv4` `no_data`, since the offload interface has no address |
+
+The same run does not show: a client over HTTP, power loss, a real card, or entropy.
+
+### Declarations
+
+| Point | Declaration |
+| --- | --- |
+| Entropy | **Test-only.** `fake_entropy_native_sim`, which `composition.cmake` requires, so that a change needs review. Any key here repeats for the same seed. The private keys these runs generate are test keys, and they appear only in the file on the host. |
+| Credential confidentiality | **Simulation.** The device key comes from a 4-byte identifier that `--device_id` or `gethostid()` sets. It is not secret on `native_sim`, and it is not secret on a target either. `status` reports `device_id_key`, `software`, not confidential. |
+| The disk | A file on the host, and it belongs to the test, so the composition formats a blank one. The pilot's composition does not: a blank card reads `UNUSABLE`. |
+
+### Locks on the Mbed profile
+
+The design asks #242 to make the providers safe beside TLS threads on TF-PSA-Crypto, or to record that it cannot, and says that serialising Crux's calls is not enough.
+
+| Point | Finding |
+| --- | --- |
+| The way through | Zephyr's module has no Kconfig for it, and it does read `CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE`. `composition/tf_psa_threading` turns on `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_ALT` there, and gives the core locks on `k_mutex` and `k_condvar` before the module's own start. |
+| What this covers | The core's own key table and random source, for Mbed TLS and the Crux providers alike, because they take the same locks |
+| Shown | It builds and runs, and the core took 203,361 locks on one first boot, from a login, TLS and the store |
+| **Not shown** | That no race remains. A `native_sim` thread that does not sleep is never preempted, so a race cannot show here. It has not compiled for a target, its overhead is unmeasured, and #185 still has to adopt it for a product composition. |
+| Wolf profile | `CONFIG_WOLFPSA_THREAD_SAFE` is on. wolfSSL's own use of its one Hash-DRBG beside wolfPSA is equally unshown. |
+
+### Limits of the composition
+
+Each is a statement about `native_sim`, and none is device evidence.
+
+| Limit | Seen as |
+| --- | --- |
+| The simulated clock stands still while a thread runs, so a verifier's cost takes no simulated time. No duration here means anything for a device. | `test_03_login` reads as 0 ms |
+| The drain runs at low priority, and a thread that never sleeps lets nothing else run. A burst with no pause fills the ring. | The first run: `stats.dropped` was not 0, until the test paused between steps. A real client's requests leave room. |
+| Stack, heap and memory are the host's. wolfSSL's allocation is the host's `malloc`. | No figure is recorded |
+| CI runs the Mbed profile only, because a default workflow must not select the wolf stacks. The Wolf profile's results are local, and #247 tracks that. | The `psa-crypto` workflow |
+| `native_sim/native`, the 32-bit width, was not run | Not run |
+
+## What #142 asked of this issue
+
+| # | Piece, from the [design](psa-crypto-design.md#what-the-next-issue-must-supply) | Where it went |
+| --- | --- | --- |
+| 1, 1a | Provider selection on each profile | `tests/native/tls_offload_probe/mbed.conf`, `wolf.conf`, `tests/native/management_composition/profile-psa.conf` |
+| 2 | `WOLFSSL_AESGCM_STREAM` | `composition.cmake`, from the qualification's list |
+| 3, 4 | The providers | `components/access/ports/psa`, `components/credential/ports/psa` |
+| 5 | The label on what `native_sim` proves | This document, and `composition.cmake` requires the test source |
+| 6 | Seed choice | Each run has its own `--seed`, because repeating one repeats every nonce on the same device key. A seed still chooses a fixed sequence. |
+| 7 | A guard for product images | `credential_device_id.c`, with a control that the build fails |
+| 8 | Provider tests | `tests/psa_ports` and the composition, in place of the existing suites, as above |
+| 9 | The Mbed profile's limits | [Locks](#locks-on-the-mbed-profile). No Ed25519, as shown. Slots: the providers hold none between calls, which `ports_leave_no_key_slot` shows. How many TLS takes from the 16 was not measured. |
+
+## What later issues can use
+
+| Issue | What it has now | What it must still do |
+| --- | --- | --- |
+| #184, HTTP adapter | `tests/native/management_composition/composition`: `crux_native_management_start`, sessions from `crux_native_management_login`, and real status and configuration services behind the adapter's routes. Link with `composition.cmake`. | Its own routes. The composition starts no listener. |
+| #185, HTTPS | The [probe's result](#what-185-needs-to-know), both profile configurations, the patched tree for a test, the declared certificate through `crux_native_management_tls_test_credentials`, and the core locks | Decide how a product applies the Wolf patch. Declare versions and suites. Test an abrupt client close on the Mbed profile. |
+| #186, login and sessions | Real PBKDF2 verifiers, the real session table, and a PSA provider to draw attempt identifiers and tokens from | Entropy stays test-only here, so a token's strength is not shown |
+| #190, certificate model | `crux_credential_key_ensure(CRUX_CREDENTIAL_RECORD_TLS_KEY, P256)` generates and persists a key at start, and survives a restart. The event port is real. | Connect a stored key and certificate to the TLS credentials. The composition's TLS still uses the declared certificate, not this key. |
+| #192, SSH provider | On the Wolf profile: a persisted Ed25519 host key, one wolfCrypt with the wolfSSH definitions beside the TLS backend and wolfPSA, and real Access for keys and passwords | wolfSSH is not in this image, so it has not been built with these. |
+| #187, #193, #220 | The same services on real ports | |
+
 ## Decisions for review
 
 | # | Decision | Why | If changed |
@@ -100,3 +306,12 @@ The backend is a patch on Zephyr, which stays out of this repository: [patches/z
 | 1 | The test certificate and its private key are committed, under `tests/native/tls_offload_probe/credentials`, and the image refuses any board but `native_sim` | The issue asks for a declared certificate. A fixed one needs no tool at build time, and #185 can reuse it. A secret scanner may flag the key. | Generate it at build time |
 | 2 | The Wolf profile's test uses a patched copy of the tree, and not an edit of the checkout | The rule is that the checkout stays clean, and #185 still owns the product answer | #185 replaces the script |
 | 3 | The probe's server reads every client when a poll returns nothing, and a message from the driver turns this off to show the limit | The rest of the steps would otherwise hang on the Mbed profile, and the limit stays recorded and pinned: the script fails if it stops holding | None for a product |
+| 4 | The PSA providers are source files that a composition lists, and they have no CMake target in the root build | Decision 1 of the PSA design: the root build holds no PSA | Add targets when a Host composition needs them |
+| 5 | The device ID goes through one small function, `crux_credential_psa_device_id`, and `hwinfo` stays in `ports/zephyr` | The provider then runs on Host under sanitizers, and it keeps `hwinfo` out of portable code | None for a composition |
+| 6 | The composition lives under `tests/native`, and not in a component or the Zephyr module | Nothing yet says what a product's composition is, and the Kconfig integration has no owner. Later issues include its CMake. | Move it when a product composition exists |
+| 7 | The composition has no save provider, so `config.save` gives `ERR_STORE` with `NOT_SUPPORTED` | Decision C6, until #16. The Settings backends need a patched backend on this pin. | Add a provider when #16 decides |
+| 8 | New suites and not the existing ones for the real ports | The existing ones assert the fake's declaration, its image identifier and its fault injection. Running them unchanged is not possible, and changing them would weaken what they hold on the fake. | A shim could run part of them |
+| 9 | The core locks are test composition code, under `tests/native`, and only the Mbed profile links them, and `composition.cmake` refuses that profile without them | The design asks for a way, and a product adopting one is #185's. The probe stays without them, on one thread. | Move them when a product composition adopts them |
+| 10 | A role, `guest`, holds a permission no service names | So that "unpermitted" can be shown on status, where every other role holds `status.read` | None |
+| 11 | The status provider for the store, and splitting `source_no_security.c`, were added though the issue does not list them | The status document lists both as what connects next, and the composition has a store, so leaving its items out would misstate it | One provider less |
+| 12 | The Wolf copy of Zephyr leaves out documents, samples and tests, about 323 MB | Disk | None for a build |

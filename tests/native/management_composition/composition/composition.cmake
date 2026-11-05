@@ -36,13 +36,13 @@ function(crux_native_management_compose)
         "${component}/credential/access_store/credential_access_store.c"
         "${component}/credential/ports/psa/credential_psa.c"
         "${component}/credential/ports/zephyr/credential_device_id.c"
-        # Security events, and the providers of the Access and store event ports.
+        "${component}/credential/src/credential_security_events.c"
+        # Security events, and the provider of the Access event port.
         "${component}/security_event/src/security_event.c"
         "${component}/security_event/src/security_event_drain.c"
         "${component}/security_event/src/security_event_fields.c"
         "${component}/security_event/src/security_event_line.c"
         "${component}/security_event/src/security_event_access_port.c"
-        "${component}/security_event/src/security_event_credential_port.c"
         # Configuration, with no save provider: decision C6, until #16.
         "${component}/configuration/src/configuration.c"
         "${component}/configuration/src/configuration_text.c"
@@ -76,6 +76,14 @@ function(crux_native_management_compose)
         CRUX_SECURITY_EVENT_DRAIN_BURST=4 CRUX_SECURITY_EVENT_DRAIN_PAUSE_MS=100
         CRUX_MGMT_STATUS_REFRESH_MS=1000u)
     target_compile_options(app PRIVATE -Wall -Wextra -Werror)
+    if(CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS)
+        if(NOT CONFIG_TF_PSA_CRYPTO_USER_CONFIG)
+            message(FATAL_ERROR "The Mbed profile needs the core's locks: add mbed-threading.conf")
+        endif()
+        target_sources(app PRIVATE
+            "${CRUX_NATIVE_MANAGEMENT_DIR}/tf_psa_threading/crux_tf_psa_threading.c")
+        zephyr_include_directories("${CRUX_NATIVE_MANAGEMENT_DIR}/tf_psa_threading")
+    endif()
     if(CONFIG_WOLFPSA)
         # One wolfCrypt under wolfPSA, the socket backend and wolfSSH, so that they agree. The backend
         # rejects a settings file. See components/ssh/ports/zephyr/wolf_ssh_settings.cmake.

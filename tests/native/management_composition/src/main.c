@@ -7,6 +7,9 @@
  */
 #include "crux_native_management.h"
 #include "test_tls_credentials.h"
+#if defined(CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS)
+#include "crux_tf_psa_threading.h"
+#endif
 
 #include <crux/file.h>
 #include <crux/management_status.h>
@@ -396,6 +399,9 @@ ZTEST(first_boot, test_08_tls_beside_the_services)
     static uint8_t received[64];
     crux_access_session_t beside = {0};
     int required = ZSOCK_TLS_PEER_VERIFY_REQUIRED;
+#if defined(CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS)
+    uint32_t locks_at_start = crux_tf_psa_threading_lock_count();
+#endif
 
     zassert_equal(crux_native_management_tls_test_credentials(TLS_SERVER_TAG), 0);
     zassert_equal(tls_credential_add(TLS_CLIENT_TAG, TLS_CREDENTIAL_CA_CERTIFICATE,
@@ -432,6 +438,12 @@ ZTEST(first_boot, test_08_tls_beside_the_services)
     zsock_close(socket);
     zassert_equal(k_thread_join(&server_thread, K_SECONDS(10)), 0);
     zassert_equal(server_result, 0, "%d", server_result);
+#if defined(CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS)
+    /* Both a Crux provider and TLS go through the core's locks. No race can show here: a native_sim
+     * thread that does not sleep is never preempted. */
+    zassert_true(crux_tf_psa_threading_lock_count() > locks_at_start);
+    printk("COMPOSITION tf_psa_core_locks=%u\n", crux_tf_psa_threading_lock_count());
+#endif
     printk("COMPOSITION first boot complete\n");
 }
 

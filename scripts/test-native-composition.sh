@@ -63,11 +63,11 @@ run_ports() { # Twister tag
         -O "$out/twister-ports-$1" --inline-logs --tag "$1")
 }
 
-run_composition() { # profile, ZEPHYR_BASE
+run_composition() { # profile, ZEPHYR_BASE, more configuration
     local profile="$1" build="$out/$1/build"
     mkdir -p "$out/$profile"
     (cd "$workspace" && ZEPHYR_BASE="$2" west build -p always -b "$board" -d "$build" -o="-j$jobs" "$composition" \
-        -- "-DEXTRA_CONF_FILE=../tls_offload_probe/$profile.conf;profile-psa.conf") > "$out/$profile/build.log" 2>&1 ||
+        -- "-DEXTRA_CONF_FILE=../tls_offload_probe/$profile.conf;profile-psa.conf$3") > "$out/$profile/build.log" 2>&1 ||
         { tail -40 "$out/$profile/build.log" >&2; fail "$profile: the build failed"; }
     python3 "$repo/scripts/check-composition-image.py" "$build/zephyr/zephyr.exe" --profile "$profile"
     python3 "$composition/run_composition.py" "$build/zephyr/zephyr.exe" --profile "$profile" --output "$out/$profile"
@@ -112,13 +112,13 @@ else
     export ZEPHYR_TOOLCHAIN_VARIANT=host
     case "$mode" in mbed | all)
         run_ports psa-ports-tf-psa-crypto
-        run_composition mbed "$workspace/zephyr"
+        run_composition mbed "$workspace/zephyr" ";mbed-threading.conf"
         ;;
     esac
     case "$mode" in wolf | all)
         run_ports psa-ports-wolfpsa
         "$repo/scripts/prepare-wolf-tls-zephyr.sh" "$out/zephyr-wolf"
-        run_composition wolf "$out/zephyr-wolf"
+        run_composition wolf "$out/zephyr-wolf" ""
         ;;
     esac
 fi

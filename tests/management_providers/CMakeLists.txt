@@ -2,7 +2,7 @@
 # services and real crypto meet them in tests/native/management_composition. These exist only when
 # Crux builds its own tests.
 foreach(required IN ITEMS crux_config_service_security_events crux_mgmt_status_security_events
-        crux_mgmt_status_credential crux_security_event_credential_port crux_security_event_fake
+        crux_mgmt_status_credential crux_credential_security_events crux_security_event_fake
         crux_access_test_composition)
     if(NOT TARGET ${required})
         return()
@@ -16,7 +16,7 @@ target_include_directories(management_providers_events PRIVATE
     ../../components/config_service/src ../../components/mgmt_status/src ../../components/credential/src)
 target_link_libraries(management_providers_events PRIVATE
     crux_config_service_security_events crux_mgmt_status_security_events crux_mgmt_status_credential
-    crux_security_event_credential_port crux_security_event_fake crux_access_test_composition
+    crux_credential_security_events crux_security_event_fake crux_access_test_composition
     crux_config_service_api crux_mgmt_status_api crux_credential_adapter Threads::Threads)
 target_compile_definitions(management_providers_events PRIVATE _POSIX_C_SOURCE=200809L)
 target_compile_options(management_providers_events PRIVATE ${_management_providers_warnings})

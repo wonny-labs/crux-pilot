@@ -24,7 +24,7 @@ PORTS = {
     "crux_credential_port_open": "components/credential/ports/psa/credential_psa.c",
     "crux_credential_port_generate_key": "components/credential/ports/psa/credential_psa.c",
     "crux_credential_port_random": "components/credential/ports/psa/credential_psa.c",
-    "crux_credential_port_event": "components/security_event/src/security_event_credential_port.c",
+    "crux_credential_port_event": "components/credential/src/credential_security_events.c",
     "crux_credential_psa_device_id": "components/credential/ports/zephyr/credential_device_id.c",
     "crux_config_service_port_event": "components/config_service/src/config_service_events.c",
     "crux_mgmt_status_port_has_security_events": "components/mgmt_status/src/source_security_events.c",
