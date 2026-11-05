@@ -217,7 +217,7 @@ Read from `crux_ssh_wolf_provider.c` at #192's `e787b21`, and run through it on 
 
 ### Simulation figures
 
-From the image's heap statistics and #192's stack probe, over all 25 cases. **`native_sim` only: a 64-bit image, with a host stack under each thread.** They say nothing about a Cortex-M7, and FatFs with `CONFIG_FS_FATFS_LFN_MODE_STACK` adds its own use there.
+From the image's heap statistics and #192's stack probe, over all 27 cases. **`native_sim` only: a 64-bit image, with a host stack under each thread.** They say nothing about a Cortex-M7, and FatFs with `CONFIG_FS_FATFS_LFN_MODE_STACK` adds its own use there.
 
 | Measure | Result |
 | --- | --- |
