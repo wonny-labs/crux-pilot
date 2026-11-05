@@ -8,11 +8,11 @@ This document says what is built, what is faked, what is untested, and which dec
 | --- | --- | --- |
 | Host, fake provider | `Ssh.sftp`, on the real file service and Access core, with fake File and crypto | What the port owes the file service |
 | Host, real wolfSSH | `scripts/test-ssh-sftp-openssh.sh`: OpenSSH 9.6 against the unedited wolfSSH handlers on Linux, through the real port and file service, on the Linux File provider | That the port works with the real handlers and a real client. **The server stands in for the provider** |
-| `native_sim`, real provider | `scripts/test-ssh-sftp-native.sh`: OpenSSH 9.6 against the provider of #192, the real access adapter, the port, the file service, and real FatFs over a RAM disk | The acceptance path of #194. **Run on a scratch merge with #192's branch**, because #192 has not merged. Access ports and the host key are test ones |
+| `native_sim`, real provider | `scripts/test-ssh-sftp-native.sh`: OpenSSH 9.6 against the provider of #192, merged in #265, the real access adapter, the port, the file service, and real FatFs over a RAM disk | The acceptance path of #194. **Run on this branch with `main` merged**: 28 cases and the idle case pass. Access ports and the host key are test ones |
 | Target compile | `scripts/test-ssh-wolf-settings.sh` and `scripts/test-ssh-sftp-compile.sh` | That it compiles for RT1060 and `native_sim`. Nothing ran |
 | Read from source | wolfSSH v1.6.0 `8221e4e`, WinSCP `246bbd4` | What each of them should do. Each statement says so |
 
-**OpenSSH on `native_sim` passes on a merge with #192's branch, and it must be repeated once #192 has merged:** on this branch alone, `scripts/test-ssh-sftp-native.sh` says that it needs the provider, and stops. See [Acceptance](#acceptance).
+**OpenSSH on `native_sim` passes on `main`**, through the provider of #192 as merged in #265 (`af4c9e6`): 28 cases and the idle case. See [Acceptance](#acceptance).
 
 ## What is built
 
@@ -203,7 +203,7 @@ A descriptor holds a generation of the session slot. wolfSSH can close what a cl
 
 ## How this fits the provider of #192
 
-Read from `crux_ssh_wolf_provider.c` at #192's `e787b21`, and run through it on `native_sim`. Nothing here asks #192 for a change.
+Read from `crux_ssh_wolf_provider.c` as merged in #265 (`af4c9e6`), and run through it on `native_sim`. Nothing here asks for a change to it.
 
 | Item | What the provider does | Why it matters here |
 | --- | --- | --- |
@@ -212,13 +212,14 @@ Read from `crux_ssh_wolf_provider.c` at #192's `e787b21`, and run through it on 
 | Channel window and packet | 16 KiB each, by default | Below `WOLFSSH_MAX_SFTP_RW`. WinSCP sizes a read by throughput up to the channel's packet (`SftpFileSystem.cpp:2243`), and a `READ` above 32768 makes wolfSSH return with no status (`wolfsftp.c:4650`), which ends the session. **A composition must not raise the packet above 32768** |
 | A window smaller than a reply | OpenSSH asks for 32 KiB blocks, and a 1 MiB transfer passes both ways | So the `WS_WINDOW_FULL` path in `serve_sftp`, which #192's document says had never run, must have run in these cases. No counter shows it |
 | `wolfSSH_SFTP_read` failing with nothing to send | Ends the connection | Some requests with a long path come back this way: see [long paths](#long-paths) |
+| Receive budget | A receive returns would-block after 16 KiB while data waits, and sleeps 1 ms. At `native_sim`'s 100 Hz that is a 10 ms tick, about 1.6 MB/s of what the server receives | A 1 MiB upload ran at 0.62 to 0.77 MB/s, under the budget, and a download at 4.0 to 6.6 MB/s, above it, because the server then receives only requests. Simulation figures only. Why uploads reach about half the budget was not isolated |
 | `session_alive` | Polled each `io_timeout_ms` with no request | `idle_session_ends_and_activity_does_not`, with a 4 s limit |
 | `max_connections` | The image uses 4 | `CRUX_SSH_SFTP_SESSIONS_MAX` is 4, and a composition keeps it at least as large |
-| `CRUX_SSH_SFTP_FILE_SERVICE` | The composition sets it before including `wolf_ssh_settings.cmake` | Without it SFTP is refused, and #192's own image, with its stand-ins, is unaffected: its `sftp_reaches_the_stand_in` and `repository_stand_ins_refuse` still pass on the merge |
+| `CRUX_SSH_SFTP_FILE_SERVICE` | The composition sets it before including `wolf_ssh_settings.cmake` | Without it SFTP is refused, and #192's own image, with its stand-ins, is unaffected: its `sftp_reaches_the_stand_in` and `repository_stand_ins_refuse` still pass with this branch merged |
 
 ### Simulation figures
 
-From the image's heap statistics and #192's stack probe, over the 27 cases of that scratch run; the case list has since grown to 28. **`native_sim` only: a 64-bit image, with a host stack under each thread.** They say nothing about a Cortex-M7, and FatFs with `CONFIG_FS_FATFS_LFN_MODE_STACK` adds its own use there.
+From the image's heap statistics and #192's stack probe, over the 28 cases on `main`, the same as before #265 merged. **`native_sim` only: a 64-bit image, with a host stack under each thread.** They say nothing about a Cortex-M7, and FatFs with `CONFIG_FS_FATFS_LFN_MODE_STACK` adds its own use there.
 
 | Measure | Result |
 | --- | --- |
@@ -281,7 +282,7 @@ flowchart TD
 
 | Item | State |
 | --- | --- |
-| The provider | Faked on Host. On Linux, the proof server has its own loop. On `native_sim`, the real one, from #192's branch |
+| The provider | Faked on Host. On Linux, the proof server has its own loop. On `native_sim`, the real one, as merged in #265 |
 | Authentication | Real key login on `native_sim`, through the real adapter and `crux_access`, on #192's test ports: a RAM store, a test random generator, and no PSA. On Linux, the proof server accepts every key and takes a session from the user name, with fake crypto |
 | Host key | A test key generated at each boot, on `native_sim`. A file on Linux |
 | Medium | Fake File in `Ssh.sftp`, the Linux File provider in the Linux run, and real FatFs over a RAM disk on `native_sim`. No card |
@@ -290,7 +291,8 @@ flowchart TD
 | The target | Compiled, never linked with the service, never run. No board was touched |
 | Concurrency | Two sessions at once were held open in the cases, but nothing stresses a race |
 | Stack and heap on a target | Not measured. See [the simulation figures](#simulation-figures) |
-| Throughput, power loss | Not measured. Direct writes promise nothing across power loss, as the file service says |
+| Throughput | On `native_sim` only: see [the receive budget](#how-this-fits-the-provider-of-192). Not on a target |
+| Power loss | Not measured. Direct writes promise nothing across power loss, as the file service says |
 | Leaks | ASan and UBSan ran during the Linux cases, but that server is killed, so no leak check runs at its end. On `native_sim` the heap comes back to its baseline |
 | The `crux_ssh_callbacks` table on the real operations | Not linked on Host, as it needs a composition. `Ssh.CallbackTable` links the refusing ones |
 
@@ -325,7 +327,7 @@ Each was taken without asking, as the narrow and safer choice.
 | 12 | Every request that reaches the port counts as activity, refused ones included | It is a client that is there, and the absolute limit still applies | Count only those that succeed |
 | 13 | Rights: file `0644`, `0444` or `0200`, area `0755`, `0555` or `0300`, root `0555` | The design derives them from the session, and these are never all set, which WinSCP would read as a link | Other values |
 | 14 | A Linux proof server and its cases live in `tests/ssh/sftp/openssh` | The issue asks for proof first, and #192 did not exist when this began. It builds only from its script. It stays because a run takes seconds, and because only it can look at the medium itself | Remove it now that the image runs |
-| 15 | The `native_sim` image is in `tests/ssh/sftp/native_sim`, and reuses #192's test Access ports and keys by path | So that it stays within the files of #194, and adds no copy of them. It cannot build until #192 merges, and its script says so | Add cases to `tests/zephyr/ssh_provider`, as #192's document suggests, which changes #192's files |
+| 15 | The `native_sim` image is in `tests/ssh/sftp/native_sim`, and reuses #192's test Access ports and keys by path | So that it stays within the files of #194, and adds no copy of them. It needs the provider, which `main` holds since #265, and on a tree without it the script says so | Add cases to `tests/zephyr/ssh_provider`, as #192's document suggests, which changes #192's files |
 | 16 | The port records direct use of a hidden area with a service `stat` that stops at the permission, and sends `REMOVE` and `RENAME` of an area to the service with an empty name | So that Hiding holds with no new interface, and the one rule that decides stays in the service | A new service call for each |
 | 17 | No new event identifier for the refusals with none, and a rule outside the file service does not emit one | The event port is the service's, and a new identifier changes the service and #182, outside the files of #194 | Add identifiers in [#270](https://github.com/wonny-labs/crux-pilot/issues/270), as a shared change under G-A and #182 |
 
@@ -347,8 +349,8 @@ They are in the file service, outside the files of #194, and none blocks this.
 | Attributes, directory reads and permission errors | **Met**. `WOLFSSH_SFTP_ERRNO` does not exist, and permission errors are as above |
 | Virtual root and direct write mode | **Met** |
 | Confinement as a second defence | **Not as written**: [decision 6](#decisions-for-review) |
-| Traversal, permission, capacity and disconnect with OpenSSH on `native_sim` | **Passes on a scratch merge with #192's branch.** To be repeated on `main` once #192 has merged, as this branch cannot build the image alone |
-| Rename and partial files follow the file service | **Met** on Host, on Linux and on that merge. The stale rule's removal is Host only |
+| Traversal, permission, capacity and disconnect with OpenSSH on `native_sim` | **Met** on `main`, with the provider as merged in #265: 28 cases and the idle case |
+| Rename and partial files follow the file service | **Met** on Host, on Linux and on `native_sim`. The stale rule's removal is Host only |
 | A recorded decision if the port cannot do this | **Recorded**: it can, and the fallback is not selected |
 | WinSCP | **Open.** Source and replay only |
 
@@ -358,5 +360,5 @@ They are in the file service, outside the files of #194, and none blocks this.
 | --- | --- | --- |
 | `ctest -R '^Ssh\.sftp'` in the Host build | Nothing more | In the PR |
 | `scripts/test-ssh-sftp-openssh.sh` | `wolfssl` and `wolfssh` at their pins, `ssh`, `sftp`, `openssl` | In the PR |
-| `scripts/test-ssh-sftp-native.sh` | That, the provider of #192, and `fatfs` | In the PR |
+| `scripts/test-ssh-sftp-native.sh` | That, and `fatfs`. The provider is in `main` since #265 | In the PR |
 | `scripts/test-ssh-wolf-settings.sh --target --native`, then `scripts/test-ssh-sftp-compile.sh` | The `crux-secure-management` west group | In the PR |
