@@ -54,6 +54,7 @@ int main(void)
     CHECK(requested_stack >= (size_t)REPORTED_MINIMUM);
 
     ran = 0;
+    requested_stack = 0;
     options.stack_size_bytes = 65536;
     CHECK(crux_thread_create(&options, worker, &ran, &thread) == CRUX_OK);
     CHECK(crux_thread_join(&thread, 1000) == CRUX_OK);
