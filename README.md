@@ -18,7 +18,7 @@ Applications select the components they need. Portable application and runtime-p
 | Device I/O | `gpio`, `i2c`, `spi` | Synchronous GPIO input, I2C transfers and SPI exchange, each on one statically composed resource |
 | Management and security | `access`, `credential`, `security_event`, `file_service`, `config_service`, `mgmt_status`, `cli` | Accounts and permission checks, a credential and key store, security events, and management services for files, configuration, status and a command line |
 
-All listed components have implemented source, but available OS implementations and validation levels differ. Most of the management and security components are portable cores tested on Host and have no provider yet that a product image can link. The Sockets capability uses a documented, tested POSIX socket API subset rather than a Crux socket wrapper. For each component's contract, available implementations and limitations, see the [capability inventory](docs/architecture.md#current-capability-integration).
+All listed components have implemented source, but available OS implementations and validation levels differ. Most of the management and security components are portable cores tested on Host. Their providers so far are linked only by Crux's own test compositions, and no product composition uses them yet. The Sockets capability uses a documented, tested POSIX socket API subset rather than a Crux socket wrapper. For each component's contract, available implementations and limitations, see the [capability inventory](docs/architecture.md#current-capability-integration).
 
 ## Architecture
 
