@@ -176,8 +176,10 @@ class Encoding(Fixture):
 
     def test_a_gzip_bomb_is_refused_at_the_cap_with_memory_bounded(self):
         import tracemalloc
-        bomb = gzip.compress(bytes(web_assets.DECODE_MAX + 4 * 1024 * 1024), mtime=0)
-        self.assertLess(len(bomb), 100 * 1024)
+        # Four times the cap, so that unbounded decoding would peak at four times it and the margin
+        # to the bound below is a whole cap, not a few MiB.
+        bomb = gzip.compress(bytes(4 * web_assets.DECODE_MAX), mtime=0)
+        self.assertLess(len(bomb), 1024 * 1024)
         errors = []
         tracemalloc.start()
         try:
@@ -187,10 +189,22 @@ class Encoding(Fixture):
             tracemalloc.stop()
         self.assertEqual(len(errors), 1)
         self.assertIn("bomb.js", errors[0])
+        # Bounded decoding builds the output buffer and may copy it once, so about twice the cap, which
+        # was 32.1 MiB measured on CPython 3.12 on Linux. Unbounded would reach the bomb's 64 MiB, so
+        # 48 MiB is a bound with a margin of 16 MiB on each side.
         self.assertLess(peak, 3 * web_assets.DECODE_MAX)
         make_site(self.site, {"bomb.js": bomb})
         self.fails(r"bomb\.js.*(not valid gzip|decodes to over)")
         self.assertEqual(web_assets.DECODE_MAX, 16 * 1024 * 1024)
+
+    def test_a_gzip_file_that_decodes_to_exactly_the_cap_is_accepted_and_one_more_byte_is_not(self):
+        at_cap = gzip.compress(bytes(web_assets.DECODE_MAX), mtime=0)
+        errors = []
+        self.assertTrue(web_assets.pregzipped(at_cap, "cap.js", errors), errors)
+        self.assertEqual(errors, [])
+        over = gzip.compress(bytes(web_assets.DECODE_MAX + 1), mtime=0)
+        self.assertIsNone(web_assets.pregzipped(over, "over.js", errors))
+        self.assertEqual(len(errors), 1)
 
     def test_a_precompressed_file_is_still_scanned_and_must_be_valid(self):
         make_site(self.site, {"bad.js": b"\x1f\x8bnot really gzip"})
@@ -360,7 +374,9 @@ class Routes(Fixture):
     def test_a_bundle_source_may_hold_only_public_get_asset_routes(self):
         bad = self.root / "bad.c"
         bad.write_text(self.PREAMBLE + self.GOOD, encoding="utf-8")
-        self.assertEqual(len(web_routes.parse_sources([], bundle=[str(bad)])), 1)
+        # Even a well-formed route is refused in a file that the packager did not write.
+        with self.assertRaises(web_routes.RouteError):
+            web_routes.parse_sources([], bundle=[str(bad)])
         for text in (self.GOOD.replace("CRUX_WEB_GET", "CRUX_WEB_POST"),
                      self.GOOD.replace("CRUX_WEB_PUBLIC", "CRUX_WEB_SESSION"),
                      self.GOOD.replace("CRUX_WEB_PUBLIC", '"x.read"'),
@@ -446,6 +462,139 @@ class Routes(Fixture):
         self.assertEqual(web_routes.main(["--bundle", str(bad), "--table", str(self.root / "t.c"),
                                           "--reviewed", str(listing)]), 1)
         self.assertFalse((self.root / "t.c").exists())
+
+    # The reviewer's repros of the loose route pattern, named. Each is refused, by the equality with
+    # what the packager writes, and not by a pattern.
+    def test_repro_a_comma_declarator_after_a_route_hides_a_define(self):
+        text = (self.PREAMBLE + 'CRUX_WEB_ROUTE(crux_web_asset_route_0, "/a", CRUX_WEB_GET, CRUX_WEB_PUBLIC, '
+                'crux_web_assets_serve, &crux_web_asset_table[0])\n'
+                '#define crux_web_assets_serve do_factory_reset\n, *crux_unused = (0);\n'
+                'CRUX_WEB_ROUTE(crux_web_asset_route_1, "/reset", CRUX_WEB_GET, CRUX_WEB_PUBLIC, '
+                'crux_web_assets_serve, &crux_web_asset_table[0]);\n')
+        self.refused(text, preamble="")
+
+    def test_repro_a_valid_route_followed_by_a_declaration(self):
+        self.refused('CRUX_WEB_ROUTE(valid), hidden = {0}, *p = (0);\n', preamble="")
+
+    def test_repro_a_directive_between_the_close_of_a_route_and_its_end(self):
+        self.refused('CRUX_WEB_ROUTE(valid)\n#define crux_web_assets_serve evil\n );\n', preamble="")
+
+    def test_repros_through_the_tool_and_a_good_file_through_the_same_door(self):
+        self.ok()
+        good = (self.out / "assets.c").read_text(encoding="utf-8")
+        listing = self.root / "rev.txt"
+        listing.write_text("public GET @assets\n", encoding="utf-8")
+        bad = self.root / "b.c"
+        bad.write_text(good.replace('CRUX_WEB_ROUTE(crux_web_asset_route_0001,',
+                                    '#define crux_web_assets_serve do_factory_reset\nCRUX_WEB_ROUTE('
+                                    'crux_web_asset_route_0001,'), encoding="utf-8")
+        for path, status in ((self.out / "assets.c", 0), (bad, 1)):
+            table = self.root / f"t{status}.c"
+            self.assertEqual(web_routes.main(["--bundle", str(path), "--table", str(table),
+                                              "--reviewed", str(listing)]), status, path)
+
+    def test_a_bundle_that_is_not_text_is_refused(self):
+        bad = self.root / "bad.c"
+        bad.write_bytes(b"\xff\xfe\x00")
+        with self.assertRaises(web_routes.RouteError):
+            web_routes.parse_sources([], bundle=[str(bad)])
+
+    def test_the_form_is_shared_so_the_writer_and_the_check_cannot_drift(self):
+        form = load("web_assets_form_under_test", REPO / "components/web/tools/web_assets_form.py")
+        self.ok()
+        text = self.generated()
+        self.assertIsNone(form.check_source(text))
+        assets = [(a["path"], embedded(text)[i]) for i, a in enumerate(self.hashes()["assets"])]
+        self.assertEqual(form.render_source("strict", assets)[0], text)
+
+    def test_the_generated_source_is_refused_if_one_byte_of_form_changes(self):
+        form = load("web_assets_form_under_test2", REPO / "components/web/tools/web_assets_form.py")
+        self.ok()
+        text = self.generated()
+        for old, new in (("crux_web_assets_serve", "crux_web_assets_servf"),
+                         ("CRUX_WEB_GET", "CRUX_WEB_PUT"), ("5u}", "6u}"), ("no-cache", "no-store"),
+                         ("served as gzip", "served as identity"), ("\n", "\r\n"),
+                         ("_table[1]);", "_table[1]) ;"), ("\n\nCRUX", "\n\n\nCRUX")):
+            with self.subTest(old=old, new=new):
+                self.assertIn(old, text)
+                with self.assertRaises(form.FormError):
+                    form.check_source(text.replace(old, new, 1) if old != "\n" else text.replace(old, new))
+        with self.assertRaises(form.FormError):
+            form.check_source(text + "\n")
+        with self.assertRaises(form.FormError):
+            form.check_source(text + "int x;\n")
+        with self.assertRaises(form.FormError):
+            form.check_source(text[:-1])
+
+    def test_mutations_of_real_output_are_never_accepted_unless_they_equal_it(self):
+        import random
+        data_row = re.compile(r"^    0x[0-9a-f]{2}(, 0x[0-9a-f]{2})*,$")
+        style_line = re.compile(r"^#define CRUX_ASSETS_INLINE_STYLES [01]$")
+
+        def shape(text):
+            """Every line but the data rows, with the style value left out: what a mutation must keep."""
+            return [line for line in text.replace("\r", "<CR>").split("\n")
+                    if not data_row.match(line) and not style_line.match(line)]
+
+        junk = ["\n", "#", ";", "(", ")", '"', "\\", "{", "}", ",", " ", "\t", "\r", "*", "/", "&", "x", "0",
+                "]", "[", "#define crux_web_assets_serve do_factory_reset\n", "#include \"evil.h\"\n",
+                "); #define a b\n", ", hidden = {0}, *p = (0);", "\n#pragma once\n", "\\\n"]
+        accepted = refused = 0
+        for style in ("strict", "inline"):
+            shutil.rmtree(self.out)
+            self.out.mkdir()
+            extra = make_site(self.root / f"site-{style}", {"assets/font-Qq11Ww22.woff2": noise(200, 3),
+                                                            "data.json": '{"a": 1}'})
+            self.assertEqual(package(extra, self.out, "--style", style).returncode, 0)
+            canonical = self.generated()
+            canonical_routes = [(r.name, r.path) for r in web_routes.parse_sources([], bundle=[str(self.out / "assets.c")])]
+            rng = random.Random(189)
+            lines = canonical.split("\n")
+            for _ in range(700):
+                kind = rng.randrange(10)
+                if kind == 0:
+                    position = rng.randrange(len(canonical) + 1)
+                    mutated = canonical[:position] + rng.choice(junk) + canonical[position:]
+                elif kind == 1:
+                    position = rng.randrange(len(canonical))
+                    mutated = canonical[:position] + canonical[position + 1:]
+                elif kind == 2:
+                    position = rng.randrange(len(canonical))
+                    mutated = canonical[:position] + rng.choice(junk) + canonical[position + 1:]
+                elif kind == 3:
+                    number = rng.randrange(len(lines))
+                    mutated = "\n".join(lines[:number] + [lines[number] + rng.choice(junk)] + lines[number + 1:])
+                elif kind == 4:
+                    number = rng.randrange(len(lines))
+                    mutated = "\n".join(lines[:number] + [rng.choice(junk).strip("\n")] + lines[number:])
+                elif kind == 5:
+                    number = rng.randrange(len(lines))
+                    mutated = "\n".join(lines[:number] + [lines[rng.randrange(len(lines))]] + lines[number:])
+                elif kind == 6:
+                    number = rng.randrange(len(lines))
+                    mutated = "\n".join(lines[:number] + lines[number + 1:])
+                elif kind == 7:
+                    first, second = rng.randrange(len(lines)), rng.randrange(len(lines))
+                    swapped = list(lines)
+                    swapped[first], swapped[second] = swapped[second], swapped[first]
+                    mutated = "\n".join(swapped)
+                elif kind == 8:
+                    mutated = canonical.replace("\n", "\r\n")
+                else:
+                    mutated = canonical + rng.choice(junk)
+                path = self.root / "mutant.c"
+                path.write_bytes(mutated.encode("utf-8"))
+                try:
+                    routes = web_routes.parse_sources([], bundle=[str(path)])
+                except web_routes.RouteError:
+                    refused += 1
+                    continue
+                accepted += 1
+                # Only a data row or the style choice may differ, and the routes must be the same.
+                self.assertEqual(shape(mutated), shape(canonical), mutated[:300])
+                self.assertEqual([(r.name, r.path) for r in routes], canonical_routes)
+        self.assertGreater(refused, 0.9 * (accepted + refused))
+        self.assertGreater(refused, 1000)
 
     def test_the_generator_runs_on_the_generated_source(self):
         self.ok()

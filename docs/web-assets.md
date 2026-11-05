@@ -200,11 +200,15 @@ review of content is the packager's checks and its hash list. These rules keep t
 
 - `crux_web_routes()` reads a bundle only from the source that `crux_web_assets()` set and marked with a private property, and stops the configure when the source property is set any other way.
   That guard is for mistakes, and a project that sets both properties by hand is not stopped by it.
-- `web_routes.py` holds a bundle source to the form that the packager writes, and refuses anything else: exactly two preprocessor lines, `#define CRUX_ASSETS_INLINE_STYLES` as 0 or 1 and
-  `#include "web_assets_internal.h"`, in that order and first, then only the data arrays, header lists, the table, its count and the routes in their generated shapes. Any other `#define`,
-  `#include`, `#pragma` or conditional, and any other statement, is an error, so the preprocessor cannot rename the handler or the table. Each route must also be a public `GET` of a fixed path outside `/api`, in the plain
-  `CRUX_WEB_ROUTE` form, named `crux_web_asset_route_*`, with the handler `crux_web_assets_serve` and exactly an element of `crux_web_asset_table` as its context. So a bundle can serve bytes at a public path, and cannot run another handler.
-- **What no scan sees.** The tool reads one source file. Compile definitions (`-D`), include paths that put another `web_assets_internal.h` first, and a project that sets both private properties by hand are
+- `web_routes.py` accepts a source as a bundle only if it is **byte for byte what the packager writes**. This is an equality, not a pattern. `components/web/tools/web_assets_form.py`
+  holds the one form, and both tools use it: `web_assets.py` writes the source with `render_source()`, and `web_routes.py` reads the content policy choice, each asset's path and
+  its embedded bytes out of the file, renders the source again from those, and refuses the file unless it equals the result. So every other line, the two preprocessor lines, the header lists, the table, the count, each route and its handler `crux_web_assets_serve`, is
+  derived and never read. A different line end, a trailing space or tail, an extra or missing blank line, a directive, a comma declarator or any other statement is a difference, and so is a route that does not match its asset.
+  What can differ from a given output is the data bytes, which are inert, and the 0 or 1 of the style choice, which the scan cannot check against the CMake call.
+  The bundle file is read without newline translation, so a CR is a difference too. The route macro reader of the next rule still runs on the accepted text.
+- Each route must also be a public `GET` of a fixed path outside `/api`, in the plain `CRUX_WEB_ROUTE` form, named `crux_web_asset_route_*`, with the handler `crux_web_assets_serve` and exactly an element of
+  `crux_web_asset_table` as its context. So a bundle can serve bytes at a public path, and cannot run another handler.
+- **What no scan sees.** The tool reads one source file, and it has no way to see how the compiler is run. Compile definitions (`-D`), include paths that put another `web_assets_internal.h` first, and a project that sets both private properties by hand are
   outside any scan, and deliberate misuse of them is caught only by reviewing the project's CMake composition. The reviewed entry means that the bundle came through `crux_web_assets()`, not that a hostile build was stopped.
 - The entry is required when the bundle exists, and refused as stale when it does not.
 - Session-only and permission routes of the same image are listed and reviewed one by one, as before.
@@ -283,7 +287,7 @@ product joins the two. The embedded bytes are in the signed firmware image, so t
 | 8 | A fixed list of served types, with `.map` and `.wasm` refused | A source map exposes source, and WebAssembly needs a weaker script policy | Add a type with its own review |
 | 9 | The secret check is a short list of shapes plus a deny list | A broader pattern, such as `password =`, would fail ordinary login screens | Product patterns in the deny list |
 | 10 | The packager errors on a hidden file, an empty file, a symbolic link, an unreadable folder and a path under `/api` rather than skipping them | A silent skip hides what a build does not ship, and an exact resource under `/api` would answer in front of an API route | A skip list |
-| 15 | A file that is already gzip, whatever its name, is served as it is with `Content-Encoding: gzip`, after it decodes cleanly as **one member with nothing after it** (at most 16 MiB) and its content is scanned. A second member or a trailing byte is an error, because a client decodes every member and the scan reads one. | Packing it again would double the size and break the file | Refuse them |
+| 15 | A file that is already gzip, whatever its name, is served as it is with `Content-Encoding: gzip`, after it decodes cleanly as **one member with nothing after it** (up to and including 16 MiB, one byte more is refused) and its content is scanned. A second member or a trailing byte is an error, because a client decodes every member and the scan reads one. | Packing it again would double the size and break the file | Refuse them |
 | 16 | In a Zephyr image `CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS` wins, and a different `RESPONSE_DEADLINE_MS` is an error | The budget must be sized for the deadline that runs | Warn and use the Kconfig value |
 | 11 | No `ETag`, no `HEAD`, no range requests | The server answers a conditional request in full and `HEAD` with `405`, and the adapter's capture has no room | Later, with the capture |
 | 12 | `base-uri 'self'` and `form-action 'self'` are in both policies | Angular's index has a base element, and a form may post to the API | Tighter when no framework needs them |

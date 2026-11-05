@@ -22,6 +22,9 @@ from pathlib import Path
 import re
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import web_assets_form  # noqa: E402
+
 ACCESS_SESSION = "CRUX_WEB_SESSION"
 ACCESS_PUBLIC = "CRUX_WEB_PUBLIC"
 METHODS = {
@@ -47,22 +50,6 @@ BUNDLE_ROUTE_PREFIX = "crux_web_asset_route_"
 BUNDLE_REVIEW = "public GET @assets"
 BUNDLE_HANDLER = "crux_web_assets_serve"
 BUNDLE_CONTEXT = re.compile(r"&crux_web_asset_table\[\d+\]\Z")
-# What web_assets.py writes, and the only forms that a bundle source may hold: two preprocessor lines,
-# then data, header lists, the table, its count and the routes. Anything else, such as a #define that
-# renames the handler, an #include, or another statement, is refused, because the scan reads names
-# as text and the preprocessor could change what they mean.
-_STRING = r'"[^"\\\n]*"'
-BUNDLE_PREAMBLE = re.compile(r'\s*#define CRUX_ASSETS_INLINE_STYLES [01]\n#include "web_assets_internal\.h"\n')
-BUNDLE_STATEMENTS = [re.compile(pattern) for pattern in (
-    r"static const uint8_t crux_web_asset_data_\d{4}\[\] = \{[\s0-9a-fx,]*\};",
-    r"static const crux_web_header_t crux_web_asset_headers_\d{4}\[\] = \{(?:\s*(?:\{" + _STRING + ", " +
-    _STRING + r"\}|CRUX_WEB_ASSETS_SECURITY_HEADERS),)*\s*\};",
-    r"const crux_web_asset_t crux_web_asset_table\[\] = \{(?:\s*\{" + _STRING +
-    r", crux_web_asset_data_\d{4}, sizeof\(crux_web_asset_data_\d{4}\), crux_web_asset_headers_\d{4}, "
-    r"\d+u\},)*\s*\};",
-    r"const size_t crux_web_asset_count = \d+u;",
-    r"CRUX_WEB_ROUTE\((?:[^;\"]|" + _STRING + r")*\);",
-)]
 
 
 class RouteError(Exception):
@@ -203,28 +190,18 @@ def parse_access(argument, where):
     return permission
 
 
-def check_bundle_form(clean, source):
-    """Refuse a bundle source that holds anything but the forms that web_assets.py writes."""
-    start = BUNDLE_PREAMBLE.match(clean)
-    if start is None:
-        raise RouteError(f"{source}: a packaged web folder must start with the two lines that "
-                         "web_assets.py writes, the style define and the include of web_assets_internal.h")
-    position = start.end()
-    while True:
-        while position < len(clean) and clean[position].isspace():
-            position += 1
-        if position == len(clean):
-            return
-        for statement in BUNDLE_STATEMENTS:
-            found = statement.match(clean, position)
-            if found:
-                position = found.end()
-                break
-        else:
-            line = clean.count("\n", 0, position) + 1
-            raise RouteError(f"{source}:{line}: a packaged web folder may hold only what web_assets.py "
-                             "writes: data, header lists, the table, its count and asset routes, with "
-                             "no other preprocessor line or statement")
+def check_bundle_form(text, source):
+    """Refuse a bundle source that is not byte for byte what web_assets.py writes for its assets.
+
+    This is an equality, not a grammar: web_assets_form renders the source again from the style choice,
+    the paths and the embedded bytes it finds, and the file must equal that. A line that names a handler,
+    a header, a route or a preprocessor directive is therefore derived, and cannot be anything else.
+    """
+    try:
+        web_assets_form.check_source(text)
+    except web_assets_form.FormError as error:
+        raise RouteError(f"{source}: not what web_assets.py writes, so not a packaged web folder: "
+                         f"{error}") from None
 
 
 def parse_source(text, source, bundle=False):
@@ -236,9 +213,9 @@ def parse_source(text, source, bundle=False):
     crux_web_asset_table as its context. A source named as a bundle therefore cannot carry any other
     route or handler past the single review line.
     """
-    clean = strip_comments(text)
     if bundle:
-        check_bundle_form(clean, source)
+        check_bundle_form(text, source)
+    clean = strip_comments(text)
     # Directives span continued lines. Blanks of the same length keep every offset, for line numbers.
     joined = CONTINUATION.sub(lambda match: " " * len(match.group(0)), clean)
     redefined = REDEFINED.search(joined)
@@ -282,7 +259,14 @@ def parse_sources(paths, bundle=()):
     for path in paths:
         routes.extend(parse_source(Path(path).read_text(encoding="utf-8"), path))
     for path in bundle:
-        routes.extend(parse_source(Path(path).read_text(encoding="utf-8"), path, bundle=True))
+        # newline="" keeps a CR as it is, so that a file with other line ends is not read as the
+        # canonical one that the compiler would see differently.
+        try:
+            with open(path, encoding="utf-8", newline="") as source:
+                text = source.read()
+        except UnicodeDecodeError:
+            raise RouteError(f"{path}: not UTF-8, so not what web_assets.py writes") from None
+        routes.extend(parse_source(text, path, bundle=True))
     return routes
 
 
