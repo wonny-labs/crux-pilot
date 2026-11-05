@@ -37,8 +37,8 @@ int main(void)
     now_ns = INT64_C(86400000) * INT64_C(1000000);
     CHECK(crux_access_port_now_ms() == UINT64_C(86400000));
 
-    /* A clock that failed reads as one that ran backwards. tests/access/clock_fault.c holds what the
-     * core then does, which is not all fail-closed. */
+    /* A clock that failed reads as one that ran backwards. tests/access/clock_fault.c holds what
+     * the core then does, which is not all fail-closed. */
     answer = CRUX_ERR_NOT_READY;
     CHECK(crux_access_port_now_ms() == 0u);
     /* A negative reading cannot wrap into a far future. */
