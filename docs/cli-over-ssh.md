@@ -13,7 +13,7 @@ Status: draft for review, Issue #193, approved in advance under gate #183. It co
 | Provider for the threaded Host suite | **Double**, with a bounded wait | `tests/ssh/cli/concurrency_test.c` |
 | Serial console in the comparison | **Real**, on a scripted Serial | `Ssh.cli_session` |
 | Access control | **Scripted** in `Ssh.cli_session`. **Real core with fake ports** in the other suites and in the `native_sim` image. | `tests/cli/fake_access.c`, `tests/access/fake_ports.c`, #192's `test_access_ports.c` |
-| wolfSSH provider and OpenSSH | **Real** on `native_sim`, from #265, which is not on `main` yet | `tests/ssh/cli/openssh/` |
+| wolfSSH provider and OpenSSH | **Real** on `native_sim`, from #265, which is on `main` | `tests/ssh/cli/openssh/` |
 | Commands in the `native_sim` image | **Test commands**. No product has `probe-read` or `flood`. | `tests/ssh/cli/openssh/src/main.c` |
 | Security event provider | **Not connected.** It prints in the image, and records on the Host. | [The contract](cli-contract.md#connecting-the-real-security-events) |
 | A product composition | **Not built.** No Kconfig symbol selects SSH yet. | #197 |
@@ -116,8 +116,8 @@ Recorded on 5 November 2026, in the Dev Container image under emulation, with Op
 | Host, clang-tidy 18 | The entry points and `tests/ssh/cli/*.c` | No finding |
 | Host, ThreadSanitizer | `tests/ssh/cli/test-thread-sanitizer.sh` | Passes in the Host CI job. It cannot run locally, because it cannot map its shadow memory under emulation. |
 | CI, at `91439b1` | `host`, `links`, `psa-crypto` and the four Zephyr shards | All pass, including Clang's ASan and UBSan on `Ssh.cli_*`, and `test-compile.sh` with the list check in the `io` shard. CI does not run the OpenSSH script. |
-| `native_sim`, real OpenSSH, real provider from #265 at `800d0af` | `tests/ssh/cli/test-openssh.sh`, on a local merge | 15 of 15 cases |
-| RT1060-EVKB, compile and link only, not flashed or run | `tests/ssh/cli/test-openssh.sh --target`, the same image and merge, with #192's `rt1060.conf` | Links: 307,000 B Flash, 703,884 B RAM, which includes the test's 512 KiB arena and 32 KiB main stack. The shell rule passes on the image. |
+| `native_sim`, real OpenSSH, real provider from #265 | `tests/ssh/cli/test-openssh.sh --all`, on `ea24a94`, which merges `main` at `af4c9e6` | 15 of 15 cases |
+| RT1060-EVKB, compile and link only, not flashed or run | `tests/ssh/cli/test-openssh.sh --all`, on `ea24a94`, the same image with #192's `rt1060.conf` | Links: 307,000 B Flash, 703,884 B RAM, which includes the test's 512 KiB arena and 32 KiB main stack. The shell rule passes on the image. |
 | `native_sim` and RT1060-EVKB, compile only, no wolfSSH | `tests/ssh/cli/test-compile.sh`, also in the Zephyr CI job | Both build, with the limits' flags on the source, and the shell rule passes on `.config` |
 
 `native_sim` resource use, simulation only and on a 64-bit image: **8,768 B** at most on a worker with a password login, Ed25519 host key, `account list`, `passwd` and 64 KiB of output, and a heap peak of 21,408 B. The figure is for the whole worker, handshake included, and is below #192's 13,808 B, which covers ECDSA too. It does not separate the CLI's part, and it says nothing about a Cortex-M7. The context alone is about 800 B.
@@ -196,4 +196,4 @@ No owner answer was available for these, so each is the narrow choice.
 - A rekey started by the server, or with any client but OpenSSH. Rekeys that OpenSSH starts pass, both during output and while a shell reads, in `a_rekey_during_output` and `a_rekey_during_input`. The independent review measured stack peaks with a rekey of 10,152 B with an Ed25519 host key and 11,232 B with an ECDSA one. Those are its figures, and this PR did not repeat them.
 - `window-change` over the wire: the Host covers it through the fake, and it has no effect by contract.
 - The real security event provider.
-- The OpenSSH and target results on `main`: they ran on a local merge with #265 at `800d0af`, so they need repeating once it has merged.
+- The OpenSSH and target results on any revision after `ea24a94`, where they last ran. CI does not run that script.
