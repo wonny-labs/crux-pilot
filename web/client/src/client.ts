@@ -2,6 +2,10 @@
 // HttpOnly cookie that it cannot read, and it reads the CSRF token from its cookie for each request.
 import { operations } from './api-types.generated.ts';
 import type {
+  ConfigItem,
+  ConfigList,
+  ConfigSaveFailed,
+  ConfigValue,
   CurrentUser,
   FieldError,
   Ipv4Settings,
@@ -138,6 +142,20 @@ export type SaveOutcome =
   | { kind: 'aborted' }
   | { kind: 'failed_request'; error: ApiError };
 
+export type ConfigSaveOutcome =
+  /** The device reports the latest save as saved. The list is the one that said so. */
+  | { kind: 'saved'; list: ConfigList }
+  /** The device reports it as failed. The code names no parameter. */
+  | { kind: 'failed'; code: ConfigSaveFailed['code']; list: ConfigList }
+  /** The list has no `save` member, so this session cannot see how the save went. */
+  | { kind: 'not_visible' }
+  | { kind: 'not_confirmed' }
+  | { kind: 'aborted' }
+  | { kind: 'failed_request'; error: ApiError };
+
+/** A value in the JSON type of its parameter. */
+export type ConfigInput = boolean | number | string;
+
 export interface QuietOptions extends CallOptions {
   /** Do not call onSessionLost on a 401. */
   quiet?: boolean;
@@ -149,6 +167,11 @@ export interface CruxClient {
   getCurrentUser(options?: QuietOptions): Promise<Result<CurrentUser>>;
   changePassword(currentPassword: string, newPassword: string, options?: AttemptOptions): Promise<AttemptOutcome>;
   getStatus(options?: CallOptions): Promise<Result<StatusReport>>;
+  listConfig(options?: CallOptions): Promise<Result<ConfigList>>;
+  getConfigItem(name: string, options?: CallOptions): Promise<Result<ConfigValue>>;
+  putConfigItem(name: string, value: ConfigInput, options?: CallOptions): Promise<Result<ConfigItem>>;
+  saveConfig(options?: CallOptions): Promise<Result<SaveQueued>>;
+  watchConfigSave(options?: { signal?: AbortSignal }): Promise<ConfigSaveOutcome>;
   getNetwork(options?: CallOptions): Promise<Result<NetworkState>>;
   putNetwork(settings: Ipv4Settings, options?: CallOptions): Promise<Result<SaveQueued>>;
   watchSave(expected: Ipv4Settings, options?: { signal?: AbortSignal }): Promise<SaveOutcome>;
@@ -174,11 +197,19 @@ interface RequestSpec {
    */
   retryUnavailable?: boolean;
   id?: string;
+  /** A configuration parameter's name, for the `{name}` of the path. */
+  name?: string;
   signal?: AbortSignal;
   onWait?: (wait: Wait) => void;
 }
 
 const ATTEMPT_ID = /^[A-Za-z0-9_-]{22,64}$/;
+/** A parameter's key as the specification gives it. `save` is a fixed route and never a parameter. */
+const CONFIG_NAME = /^[A-Za-z0-9_.-]{1,30}$/;
+
+function usableConfigName(name: string): boolean {
+  return CONFIG_NAME.test(name) && name !== '.' && name !== '..' && name !== 'save';
+}
 
 function defaultSleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -246,7 +277,14 @@ export function createClient(options: ClientOptions = {}): CruxClient {
 
   async function request<T>(operation: OperationId, spec: RequestSpec = {}): Promise<Result<T>> {
     const { method, path } = operations[operation];
-    const url = baseUrl + (spec.id === undefined ? path : path.replace('{id}', spec.id));
+    let target: string = path;
+    if (spec.id !== undefined) {
+      target = target.replace('{id}', spec.id);
+    }
+    if (spec.name !== undefined) {
+      target = target.replace('{name}', spec.name);
+    }
+    const url = baseUrl + target;
     const headers: Record<string, string> = { Accept: 'application/json' };
     const init: RequestInit = {
       method,
@@ -459,6 +497,74 @@ export function createClient(options: ClientOptions = {}): CruxClient {
 
     getStatus(call = {}) {
       return request<StatusReport>('getStatus', call);
+    },
+
+    listConfig(call = {}) {
+      return request<ConfigList>('listConfig', call);
+    },
+
+    async getConfigItem(name, call = {}) {
+      if (!usableConfigName(name)) {
+        return { ok: false, error: { kind: 'bad_request' } };
+      }
+      return request<ConfigValue>('getConfigItem', { ...call, name });
+    },
+
+    async putConfigItem(name, value, call = {}) {
+      if (!usableConfigName(name)) {
+        return { ok: false, error: { kind: 'bad_request' } };
+      }
+      return request<ConfigItem>('putConfigItem', { ...call, name, body: { value }, token: true });
+    },
+
+    saveConfig(call = {}) {
+      return request<SaveQueued>('saveConfig', { ...call, token: true });
+    },
+
+    async watchConfigSave(watch = {}) {
+      const start = now();
+      for (;;) {
+        let delay = timing.savePollMs;
+        // The service answers busy while the worker is inside storage, so busy is the save still running.
+        const spec: RequestSpec = { retryUnavailable: false };
+        if (watch.signal) {
+          spec.signal = watch.signal;
+        }
+        const result = await request<ConfigList>('listConfig', spec);
+        if (result.ok) {
+          const save = result.value.save;
+          if (save === undefined) {
+            return { kind: 'not_visible' };
+          }
+          if (save.state === 'saved') {
+            return { kind: 'saved', list: result.value };
+          }
+          if (save.state === 'failed') {
+            return { kind: 'failed', code: save.code, list: result.value };
+          }
+        } else {
+          const { error } = result;
+          switch (error.kind) {
+            case 'aborted':
+              return { kind: 'aborted' };
+            case 'busy':
+            case 'not_ready':
+              delay = Math.max(delay, (error.retryAfterSeconds ?? 0) * 1000);
+              break;
+            case 'network':
+            case 'unexpected':
+              break;
+            default:
+              return { kind: 'failed_request', error };
+          }
+        }
+        if (now() - start >= timing.saveLimitMs) {
+          return { kind: 'not_confirmed' };
+        }
+        if (!(await pause(delay, watch.signal))) {
+          return { kind: 'aborted' };
+        }
+      }
     },
 
     getNetwork(call = {}) {
