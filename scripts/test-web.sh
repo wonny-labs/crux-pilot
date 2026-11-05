@@ -9,8 +9,9 @@
 #         native socket offload, with tests/native/web_http/test_driver.py as the client.
 # target: compiles and links the adapter for mimxrt1060_evk@B//qspi on a TLS profile. It builds images
 #         and never flashes, resets or runs one. mbedtls needs the optional Mbed TLS modules, and
-#         wolfssl also the wolfSSL module and a copy of Zephyr with the socket patch, so no default
-#         workflow runs this: west config manifest.group-filter -- +crux-secure-management
+#         wolfssl also the wolfSSL module and a copy of Zephyr with the socket patch. The PSA workflow runs
+#         mbedtls, and no default workflow runs wolfssl, because none selects a GPL stack:
+#         west config manifest.group-filter -- +crux-secure-management
 # all:    host and native.
 set -euo pipefail
 

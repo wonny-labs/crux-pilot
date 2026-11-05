@@ -69,7 +69,8 @@ typedef struct {
     const char *value;
 } crux_web_header_t;
 
-/** A response for the transport to send. It stays valid only until the next core call. */
+/** A response for the transport to send. See crux_web_response_generation() for how long it lasts.
+ */
 typedef struct {
     int status;
     const crux_web_header_t *headers;
@@ -105,12 +106,22 @@ typedef struct {
 /** Reset every exchange and set the configuration. Before the transport starts. */
 void crux_web_core_init(const crux_web_config_t *config);
 
+/**
+ * Check the route table that the image linked, against what the build read from its sources. Stops
+ * a start if a macro changed a value between the two, or a route is malformed.
+ */
+bool crux_web_routes_valid(void);
+
+/** Changes each time the core builds a response in its shared store. */
+uint32_t crux_web_response_generation(void);
+
 /** Take an exchange from the pool, or NULL when every one is in use. */
 crux_web_exchange_t *crux_web_exchange_open(void);
 
 /**
- * Begin a request from its headers: whole-path comparison first, then the request's form, then the
- * body limit, then the access class. Nothing runs the handler here.
+ * Begin a request from its headers: the request's form first, then the whole-path comparison, then
+ * the body limit, then the access class, so that an unknown path costs no session lookup. Nothing
+ * runs the handler here.
  */
 crux_web_step_t crux_web_exchange_start(crux_web_exchange_t *exchange,
                                         const crux_web_request_head_t *head,

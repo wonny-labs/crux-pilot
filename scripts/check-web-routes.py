@@ -8,12 +8,14 @@ so does an entry with no route, so the list changes with the code and shows up i
 
     scripts/check-web-routes.py [--reviewed FILE] [SOURCE ...]
 
-With no source it reads every C source under components/ and samples/ that uses the macro. A line of
+With no source it reads every tracked source outside tests/ that uses the macro, which cannot see a
+generated source: for those, name the list at build, with crux_web_routes(... REVIEWED file). A line of
 the reviewed list reads `public POST /api/v1/session`, and # starts a comment.
 """
 import argparse
 import importlib.util
 from pathlib import Path
+import subprocess
 import sys
 
 REPO = Path(__file__).resolve().parents[1]
@@ -24,36 +26,21 @@ sys.modules["web_routes"] = web_routes
 SPEC.loader.exec_module(web_routes)
 METHOD_NAME = {token: token.removeprefix("CRUX_WEB_") for token in web_routes.METHODS}
 DEFAULT_LIST = REPO / "components/web/reviewed-routes.txt"
+SOURCE_SUFFIXES = {".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".inc", ".def"}
 
 
 def default_sources():
+    tracked = subprocess.run(["git", "-C", str(REPO), "ls-files", "--cached", "--others",
+                              "--exclude-standard"], stdout=subprocess.PIPE, text=True, check=True)
     found = []
-    for root in (REPO / "components", REPO / "samples"):
-        for path in sorted(root.rglob("*.[ch]")) + sorted(root.rglob("*.cpp")):
-            if path == REPO / "components/web/include/crux/web.h":
-                continue
-            if web_routes.MACRO.search(web_routes.strip_comments(path.read_text(encoding="utf-8"))):
-                found.append(path)
+    for name in tracked.stdout.splitlines():
+        path = REPO / name
+        if (path.suffix not in SOURCE_SUFFIXES or name.startswith("tests/") or not path.is_file() or
+                path == REPO / "components/web/include/crux/web.h"):
+            continue
+        if web_routes.MACRO.search(web_routes.strip_comments(path.read_text(encoding="utf-8"))):
+            found.append(path)
     return found
-
-
-def lines_for(routes):
-    """One sorted `class METHOD path` line for each method of each route that needs a review."""
-    lines = []
-    for route in routes:
-        if route.access_class in ("public", "session"):
-            for method in route.methods:
-                lines.append(f"{route.access_class} {METHOD_NAME[method]} {route.path}")
-    return sorted(lines)
-
-
-def read_reviewed(path):
-    entries = []
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
-        line = line.split("#", 1)[0].strip()
-        if line:
-            entries.append(" ".join(line.split()))
-    return sorted(entries)
 
 
 def main(argv=None):
@@ -70,7 +57,7 @@ def main(argv=None):
     except (web_routes.RouteError, OSError) as error:
         print(f"check-web-routes: {error}", file=sys.stderr)
         return 1
-    found = lines_for(routes)
+    found = web_routes.review_lines(routes)
     for route in sorted(routes, key=lambda route: (route.access_class, route.path)):
         methods = "|".join(METHOD_NAME[method] for method in route.methods)
         access = route.access if route.access_class == "permission" else route.access_class
@@ -78,15 +65,10 @@ def main(argv=None):
     print(f"{len(found)} public or session-only method routes in {len(routes)} routes")
     if reviewed is None:
         return 0
-    expected = read_reviewed(reviewed)
-    failed = False
-    for entry in sorted(set(found) - set(expected)):
-        print(f"not reviewed: {entry}", file=sys.stderr)
-        failed = True
-    for entry in sorted(set(expected) - set(found)):
-        print(f"reviewed, but no such route: {entry}", file=sys.stderr)
-        failed = True
-    return 1 if failed else 0
+    errors = web_routes.review_errors(routes, reviewed)
+    for error in errors:
+        print(error, file=sys.stderr)
+    return 1 if errors else 0
 
 
 if __name__ == "__main__":

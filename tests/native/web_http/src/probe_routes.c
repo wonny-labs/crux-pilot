@@ -123,6 +123,89 @@ static crux_web_result_t on_static(crux_web_request_t *request, crux_access_sess
                                    MIN((size_t)atoi(text), sizeof(large_body)));
 }
 
+/* A page for a real browser, whose script makes the requests a client makes, as the page itself. */
+static crux_web_result_t on_page(crux_web_request_t *request, crux_access_session_t session,
+                                 void *context)
+{
+    static const char page[] = "<!doctype html><title>probe</title><pre id=out></pre>"
+                               "<script src=/probe/page.js></script>";
+
+    (void)session;
+    (void)context;
+    return crux_web_respond(request, 200, "text/html", page, sizeof(page) - 1u);
+}
+
+static crux_web_result_t on_page_script(crux_web_request_t *request, crux_access_session_t session,
+                                        void *context)
+{
+    static const char script[] =
+        "(async () => {\n"
+        "  const out = document.getElementById('out');\n"
+        "  try {\n"
+        "    const token = document.cookie.split('; ').find(c => c.startsWith('XSRF-TOKEN='));\n"
+        "    const post = await fetch('/probe/echo', {method: 'POST', headers: {\n"
+        "      'Content-Type': 'application/json', 'X-XSRF-TOKEN': token.split('=')[1],\n"
+        "      'X-Crux-Request': '1'}, body: '{}'});\n"
+        "    const postBody = await post.json();\n"
+        "    const get = await fetch('/probe/echo', {headers: {'X-Crux-Request': '1'}});\n"
+        "    const getBody = await get.json();\n"
+        "    const parallel = await Promise.all(Array.from({length: 8}, (_, i) =>\n"
+        "      fetch('/probe/stats?' + i).then(r => r.status)));\n"
+        "    out.textContent = JSON.stringify({userAgent: navigator.userAgent,\n"
+        "      postStatus: post.status, post: postBody, get: getBody, parallel});\n"
+        "  } catch (e) {\n"
+        "    out.textContent = JSON.stringify({error: String(e)});\n"
+        "  }\n"
+        "})();\n";
+
+    (void)session;
+    (void)context;
+    return crux_web_respond(request, 200, "text/javascript", script, sizeof(script) - 1u);
+}
+
+/* A response in pieces, whose chosen send returns -EAGAIN as a stalled reader's would. */
+static crux_web_result_t on_fail(crux_web_request_t *request, crux_access_session_t session,
+                                 void *context)
+{
+    static uint8_t body[4096];
+    char text[12];
+
+    (void)session;
+    (void)context;
+    if (crux_web_path_param(request, 0u, text, sizeof(text)) != CRUX_WEB_OK) {
+        return crux_web_respond_error(request, 404, "not_found");
+    }
+    memset(body, 'A', sizeof(body));
+    web_probe_fail_send_after((unsigned)atoi(text));
+    return crux_web_respond(request, 200, "text/plain", body, sizeof(body));
+}
+
+/* Another client's response, through the one shared buffer. */
+static crux_web_result_t on_other(crux_web_request_t *request, crux_access_session_t session,
+                                  void *context)
+{
+    static uint8_t body[4096];
+
+    (void)session;
+    (void)context;
+    memset(body, 'B', sizeof(body));
+    return crux_web_respond(request, 200, "text/plain", body, sizeof(body));
+}
+
+static crux_web_result_t on_send_buffer(crux_web_request_t *request, crux_access_session_t session,
+                                        void *context)
+{
+    char text[12];
+
+    (void)session;
+    (void)context;
+    if (crux_web_path_param(request, 0u, text, sizeof(text)) != CRUX_WEB_OK) {
+        return crux_web_respond_error(request, 404, "not_found");
+    }
+    web_probe_set_next_send_buffer(atoi(text));
+    return crux_web_respond(request, 200, NULL, "{}", 2u);
+}
+
 static crux_web_result_t on_stats(crux_web_request_t *request, crux_access_session_t session,
                                   void *context)
 {
@@ -136,10 +219,10 @@ static crux_web_result_t on_stats(crux_web_request_t *request, crux_access_sessi
     length = snprintf(body, sizeof(body),
                       "{\"requests\":%u,\"rejected\":%u,\"handlers\":%u,\"deadlines\":%u,"
                       "\"response_deadlines\":%u,"
-                      "\"aborted\":%u,\"overruns\":%u,\"handler_max_ms\":%u}",
+                      "\"aborted\":%u,\"overruns\":%u,\"handler_max_ms\":%u,\"send_eagain\":%u}",
                       stats.requests, stats.rejected, stats.handlers, stats.deadlines,
                       stats.response_deadlines, stats.aborted, stats.handler_overruns,
-                      stats.handler_max_ms);
+                      stats.handler_max_ms, web_probe_eagain_count());
     return crux_web_respond(request, 200, NULL, body, (size_t)length);
 }
 
@@ -163,4 +246,10 @@ CRUX_WEB_ROUTE(browser_cookies, "/probe/cookies", CRUX_WEB_GET, CRUX_WEB_PUBLIC,
                NULL);
 CRUX_WEB_ROUTE(slow, "/probe/slow/{ms}", CRUX_WEB_GET, CRUX_WEB_PUBLIC, on_slow, NULL);
 CRUX_WEB_ROUTE(static_body, "/probe/static/{size}", CRUX_WEB_GET, CRUX_WEB_PUBLIC, on_static, NULL);
+CRUX_WEB_ROUTE(page, "/probe/page", CRUX_WEB_GET, CRUX_WEB_PUBLIC, on_page, NULL);
+CRUX_WEB_ROUTE(page_script, "/probe/page.js", CRUX_WEB_GET, CRUX_WEB_PUBLIC, on_page_script, NULL);
+CRUX_WEB_ROUTE(fail, "/probe/fail/{skip}", CRUX_WEB_GET, CRUX_WEB_PUBLIC, on_fail, NULL);
+CRUX_WEB_ROUTE(other, "/probe/other", CRUX_WEB_GET, CRUX_WEB_PUBLIC, on_other, NULL);
+CRUX_WEB_ROUTE(send_buffer, "/probe/send-buffer/{bytes}", CRUX_WEB_GET, CRUX_WEB_PUBLIC,
+               on_send_buffer, NULL);
 CRUX_WEB_ROUTE(stats, "/probe/stats", CRUX_WEB_GET, CRUX_WEB_PUBLIC, on_stats, NULL);

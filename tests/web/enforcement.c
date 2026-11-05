@@ -1,4 +1,5 @@
 /* Access enforcement before a handler runs, with the real Access core and real logins. */
+#include "web_internal.h"
 #include "web_test.h"
 
 #include <string.h>
@@ -222,6 +223,36 @@ static void test_handler_gets_session(void)
     CHECK(crux_access_check(web_record.session, "network.write") == CRUX_ACCESS_ERR_DENIED);
 }
 
+/* What the core checks of the table at start: every field, and what the build read against it. */
+static void test_route_table_checked(void)
+{
+    static const crux_web_route_t good = {"/a", CRUX_WEB_GET, "x.y", never_runs, NULL, 16u};
+    static const crux_web_route_t bad[] = {
+        {NULL, CRUX_WEB_GET, "x.y", never_runs, NULL, 16u},
+        {"a", CRUX_WEB_GET, "x.y", never_runs, NULL, 16u},
+        {"/a", 0u, "x.y", never_runs, NULL, 16u},
+        {"/a", 0x100u, "x.y", never_runs, NULL, 16u},
+        {"/a", CRUX_WEB_GET, NULL, never_runs, NULL, 16u},
+        {"/a", CRUX_WEB_GET, "", never_runs, NULL, 16u},
+        {"/a", CRUX_WEB_GET, "x.y", NULL, NULL, 16u},
+        {"/a", CRUX_WEB_GET, "x.y", never_runs, NULL, CRUX_WEB_BODY_BUFFER + 1u},
+        /* Well formed, but not what the build read. */
+        {"/b", CRUX_WEB_GET, "x.y", never_runs, NULL, 16u},
+        {"/a", CRUX_WEB_PUT, "x.y", never_runs, NULL, 16u},
+        {"/a", CRUX_WEB_GET, CRUX_WEB_PUBLIC, never_runs, NULL, 16u},
+    };
+    static const crux_web_route_t expected = {"/a", CRUX_WEB_GET, "x.y", NULL, NULL, 0u};
+    const crux_web_route_t *table[1] = {&good};
+
+    CHECK(crux_web_routes_check(table, &expected, 1u));
+    for (size_t index = 0; index < sizeof(bad) / sizeof(bad[0]); ++index) {
+        table[0] = &bad[index];
+        CHECK(!crux_web_routes_check(table, &expected, 1u));
+    }
+    /* The table this image linked is what its build read. */
+    CHECK(crux_web_routes_valid());
+}
+
 int main(void)
 {
     test_public_route_needs_no_session();
@@ -235,5 +266,6 @@ int main(void)
     test_route_without_access_class_never_runs();
     test_access_checked_again_before_handler();
     test_handler_gets_session();
+    test_route_table_checked();
     return access_test_finish("web enforcement");
 }

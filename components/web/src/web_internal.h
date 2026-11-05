@@ -49,6 +49,10 @@ bool crux_web_route_matches(const char *pattern, const char *path, size_t path_l
 const crux_web_route_t *crux_web_route_find(const char *path, size_t path_length, unsigned method,
                                             crux_web_request_t *request);
 
+/* Whether one table of routes is well formed and matches what the build read. */
+bool crux_web_routes_check(const crux_web_route_t *const *table, const crux_web_route_t *expected,
+                           size_t count);
+
 /* The core's own answer, with the security headers. Status and code are the caller's constants. */
 void crux_web_error_response(crux_web_response_t *response, int status, const char *code);
 

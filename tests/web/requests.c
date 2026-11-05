@@ -355,6 +355,104 @@ static void test_exchange_finished_after_response(void)
     crux_web_exchange_close(exchange, false);
 }
 
+/* A Set-Cookie must not stay in the shared store for the next client's response. */
+static void test_extra_headers_reset(void)
+{
+    fake_client_t *other;
+
+    fresh();
+    web_record.mode = WEB_HANDLER_HEADER_NO_RESPONSE;
+    CHECK(fake_request(client, "/api/v1/status", CRUX_WEB_GET, web_admin_cookie)->status == 503);
+    CHECK(fake_reply_header(&client->reply, "Set-Cookie") == NULL);
+    web_record.mode = WEB_HANDLER_OK;
+    other = fake_connect();
+    CHECK(fake_request(other, "/api/v1/status", CRUX_WEB_GET, web_admin_cookie)->status == 200);
+    CHECK(fake_reply_header(&other->reply, "Set-Cookie") == NULL);
+    /* A response that did set one, then a refusal and a success for others. */
+    web_record.mode = WEB_HANDLER_API_CHECKS;
+    CHECK(fake_request(client, "/api/v1/status", CRUX_WEB_GET, web_admin_cookie)->status == 200);
+    CHECK(fake_reply_header(&client->reply, "Set-Cookie") != NULL);
+    web_record.mode = WEB_HANDLER_OK;
+    CHECK(fake_request(other, "/api/v1/status/x", CRUX_WEB_GET, web_admin_cookie)->status == 404);
+    CHECK(fake_reply_header(&other->reply, "Set-Cookie") == NULL);
+    CHECK(fake_request(other, "/api/v1/status", CRUX_WEB_GET, NULL)->status == 401);
+    CHECK(fake_reply_header(&other->reply, "Set-Cookie") == NULL);
+    CHECK(fake_request(other, "/api/v1/status", CRUX_WEB_GET, web_admin_cookie)->status == 200);
+    CHECK(fake_reply_header(&other->reply, "Set-Cookie") == NULL);
+}
+
+/* An exchange from the pool must not bring the last client's session to a public route. */
+static void test_pool_session_reset(void)
+{
+    fresh();
+    CHECK(fake_request(client, "/api/v1/status", CRUX_WEB_GET, web_admin_cookie)->status == 200);
+    CHECK(web_record.session.value == web_admin.value);
+    CHECK(fake_request(client, "/api/v1/session/attempt/x", CRUX_WEB_GET, NULL)->status == 200);
+    CHECK(strcmp(web_record.route, "attempt") == 0);
+    CHECK(web_record.session.value == 0u);
+    /* The same through every slot of the pool. */
+    for (size_t index = 0; index < 3u; ++index) {
+        fake_client_t *other = fake_connect();
+
+        CHECK(fake_request(other, "/api/v1/status", CRUX_WEB_GET, web_admin_cookie)->status == 200);
+        CHECK(fake_request(other, "/api/v1/session/attempt/x", CRUX_WEB_GET, NULL)->status == 200);
+        CHECK(web_record.session.value == 0u);
+    }
+}
+
+/* A length past what a size holds must not wrap to a small one. */
+static void test_content_length_wrap(void)
+{
+    static const char *const lengths[] = {
+        "18446744073709551615", "18446744073709551616", "18446744073709552128",
+        "4294967296",           "36893488147419103232", "340282366920938463463374607431768211456",
+    };
+
+    for (size_t index = 0; index < sizeof(lengths) / sizeof(lengths[0]); ++index) {
+        fresh();
+        CHECK(!fake_begin(client, CRUX_WEB_POST, "/api/v1/session",
+                          head_with_length(NULL, false, lengths[index])));
+        expect_closed_with(413, "payload_too_large");
+    }
+}
+
+/* A chunk larger than the body buffer is refused and copies nothing. ASan watches the store. */
+static void test_chunk_larger_than_buffer(void)
+{
+    static char chunk[CRUX_WEB_BODY_BUFFER * 4u];
+    char length[16];
+
+    memset(chunk, 'x', sizeof(chunk));
+    snprintf(length, sizeof(length), "%u", (unsigned)CRUX_WEB_BODY_BUFFER);
+    fresh();
+    CHECK(fake_begin(client, CRUX_WEB_PUT, "/api/v1/files/a/b",
+                     head_with_length(web_admin_cookie, false, length)));
+    fake_body(client, chunk, sizeof(chunk), false);
+    expect_closed_with(400, "bad_request");
+    /* Filled exactly, then one byte over. */
+    fresh();
+    CHECK(fake_begin(client, CRUX_WEB_PUT, "/api/v1/files/a/b",
+                     head_with_length(web_admin_cookie, false, length)));
+    fake_body(client, chunk, CRUX_WEB_BODY_BUFFER, false);
+    CHECK(client->open);
+    fake_body(client, chunk, 1u, true);
+    expect_closed_with(400, "bad_request");
+}
+
+/* The store's generation is what a transport checks before sending more of an old response. */
+static void test_response_generation_changes(void)
+{
+    uint32_t before;
+
+    fresh();
+    before = crux_web_response_generation();
+    CHECK(fake_request(client, "/api/v1/status", CRUX_WEB_GET, web_admin_cookie)->status == 200);
+    CHECK(crux_web_response_generation() != before);
+    before = crux_web_response_generation();
+    CHECK(fake_request(client, "/api/v1/status/x", CRUX_WEB_GET, web_admin_cookie)->status == 404);
+    CHECK(crux_web_response_generation() != before);
+}
+
 int main(void)
 {
     test_body_reassembled();
@@ -375,5 +473,10 @@ int main(void)
     test_response_api_checks();
     test_handler_limit_counted();
     test_exchange_finished_after_response();
+    test_extra_headers_reset();
+    test_pool_session_reset();
+    test_content_length_wrap();
+    test_chunk_larger_than_buffer();
+    test_response_generation_changes();
     return access_test_finish("web requests");
 }

@@ -69,6 +69,19 @@ class Parsing(unittest.TestCase):
         self.refuses('#define MINE(n) CRUX_WEB_ROUTE(n, "/a", CRUX_WEB_GET, "x", on_a, NULL)\n',
                      "cannot be read")
 
+    def test_redefining_a_web_macro_refused(self):
+        for line in ("#define CRUX_WEB_PUBLIC \"x.y\"", "#undef CRUX_WEB_GET", "  #  define CRUX_WEB_ROUTE(x) x",
+                     "#define CRUX_WEB_BODY_BUFFER 9"):
+            with self.subTest(line=line):
+                self.refuses(line + '\nCRUX_WEB_ROUTE(a, "/a", CRUX_WEB_GET, "x", on_a, NULL);', "may not")
+
+    def test_table_holds_what_the_scan_read(self):
+        text = web_routes.render_table(routes_of(
+            'CRUX_WEB_ROUTE(a, "/a", CRUX_WEB_GET | CRUX_WEB_PUT, "x.y", h, NULL);'
+            'CRUX_WEB_ROUTE(b, "/b", CRUX_WEB_POST, CRUX_WEB_PUBLIC, h, NULL);'))
+        self.assertIn('{"/a", CRUX_WEB_GET | CRUX_WEB_PUT, "x.y", NULL, NULL, 0u},', text)
+        self.assertIn('{"/b", CRUX_WEB_POST, CRUX_WEB_PUBLIC, NULL, NULL, 0u},', text)
+
     def test_duplicates_refused(self):
         self.refuses('''CRUX_WEB_ROUTE(a, "/a", CRUX_WEB_GET, "x", on_a, NULL);
                         CRUX_WEB_ROUTE(a, "/b", CRUX_WEB_GET, "x", on_a, NULL);''', "route name")
@@ -158,6 +171,25 @@ class ReviewList(unittest.TestCase):
     def test_a_route_changing_class_fails(self):
         result = self.run_check(self.SOURCE, "session POST /a\nsession GET /b\n")
         self.assertEqual(result.returncode, 1)
+
+    def test_generator_holds_routes_to_the_list_at_build(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "generated.inc"
+            source.write_text(self.SOURCE, encoding="utf-8")
+            listing = Path(directory) / "reviewed.txt"
+            listing.write_text("public POST /a\n", encoding="utf-8")
+            table = f"{directory}/table.c"
+            self.assertEqual(web_routes.main([str(source), "--table", table, "--reviewed", str(listing)]), 1)
+            self.assertFalse(Path(table).exists())
+            listing.write_text("public POST /a\nsession GET /b\n", encoding="utf-8")
+            self.assertEqual(web_routes.main([str(source), "--table", table, "--reviewed", str(listing)]), 0)
+
+    def test_default_scan_reads_every_kind_of_source(self):
+        check = importlib.util.spec_from_file_location("check_web_routes", CHECK)
+        module = importlib.util.module_from_spec(check)
+        check.loader.exec_module(module)
+        for suffix in (".c", ".cc", ".cpp", ".inc", ".def", ".h"):
+            self.assertIn(suffix, module.SOURCE_SUFFIXES)
 
     def test_repository_list_holds(self):
         result = subprocess.run([sys.executable, str(CHECK)], stdout=subprocess.PIPE,

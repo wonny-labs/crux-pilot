@@ -13,3 +13,8 @@ public GET /probe/cookies
 public GET /probe/slow/{ms}
 public GET /probe/static/{size}
 public GET /probe/stats
+public GET /probe/fail/{skip}
+public GET /probe/other
+public GET /probe/send-buffer/{bytes}
+public GET /probe/page
+public GET /probe/page.js

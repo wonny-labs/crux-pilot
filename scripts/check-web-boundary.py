@@ -28,13 +28,15 @@ PROVIDER_TOKEN = re.compile(
     r"\b(?:wolf\w*|WOLF\w*|mbedtls\w*|MBEDTLS\w*|psa_\w+|PSA_\w+|ssl_\w+|SSL_\w+|tls_\w+|TLS_\w+|"
     r"zsock_\w+|http_\w+|HTTP_\w+|k_\w+)\b")
 COMMENT = re.compile(r"/\*.*?\*/|//[^\n]*", re.DOTALL)
+EXPECTED_LITERAL = r"expected ['\u2018]\)['\u2019]"
 REJECTED = {
     "no_access": "requires 6 arguments|too few arguments",
     "empty_access": "a route needs an access class",
     "empty_literal": "a route needs an access class",
-    "null_access": "",
-    "number_access": "",
-    "variable_access": "",
+    # The access argument between empty literals is a syntax error, unless it is a string literal.
+    "null_access": EXPECTED_LITERAL,
+    "number_access": EXPECTED_LITERAL,
+    "variable_access": EXPECTED_LITERAL,
     "no_methods": "a route needs known methods",
     "big_body": "body limit",
     "include_adapter": "crux_web_adapter.h",
@@ -79,8 +81,8 @@ def source_errors():
         arguments = [argument.strip() for argument in service.split(",")]
         if arguments[4:7] != ["NULL", "NULL", "NULL"]:
             errors.append(f"the service must have no fallback resource: {arguments[4:7]}")
-    if "-EAGAIN" in code:
-        errors.append("a close must not use -EAGAIN, with which the server keeps the connection")
+    if re.search(r"\bEAGAIN\b", code):
+        errors.append("a close must not use EAGAIN, with which the server keeps the connection")
     return errors
 
 

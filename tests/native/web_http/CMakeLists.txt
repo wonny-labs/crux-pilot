@@ -16,9 +16,10 @@ target_compile_options(web_project_routes PRIVATE -Wall -Wextra -Werror)
 crux_assert_portable_consumer(web_project_routes)
 
 target_sources(app PRIVATE src/main.c src/probe_routes.c src/access_double.c src/upload_probe.c
-  src/shutdown_shim.c)
-target_sources(native_simulator INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/host_shutdown.c)
-target_link_options(app PUBLIC -Wl,--wrap=z_impl_zsock_shutdown)
+  src/socket_shim.c)
+target_sources(native_simulator INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/host_socket.c)
+target_link_options(app PUBLIC -Wl,--wrap=z_impl_zsock_shutdown -Wl,--wrap=z_impl_zsock_sendto)
 target_link_libraries(app PRIVATE crux_web_adapter web_project_routes)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
-crux_web_routes(app SOURCES src/probe_routes.c src/project_routes.c ZEPHYR_RESOURCES)
+crux_web_routes(app SOURCES src/probe_routes.c src/project_routes.c ZEPHYR_RESOURCES
+  REVIEWED reviewed-routes.txt)

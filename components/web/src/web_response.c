@@ -18,6 +18,7 @@ static const char *const owned_names[] = {
 static struct {
     crux_web_header_t headers[CRUX_WEB_FIXED_HEADERS + CRUX_WEB_EXTRA_HEADERS + 1u];
     char extra[CRUX_WEB_EXTRA_HEADER_BYTES];
+    uint32_t generation;
     size_t extra_used;
     size_t extra_count;
     char content_type[CONTENT_TYPE_MAX];
@@ -42,8 +43,14 @@ static void fill_response(crux_web_response_t *response, int status, const char 
 
 void crux_web_response_begin(void)
 {
+    ++store.generation;
     store.extra_used = 0u;
     store.extra_count = 0u;
+}
+
+uint32_t crux_web_response_generation(void)
+{
+    return store.generation;
 }
 
 void crux_web_error_response(crux_web_response_t *response, int status, const char *code)

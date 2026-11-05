@@ -17,7 +17,8 @@ internal target `crux_web_adapter`.
 | Wildcard resources on RT1060 | Compile and link only | Mbed TLS and wolfSSL profiles, not run |
 | Login, sessions, CSRF and `Origin` rules | **Faked.** A session lookup port, which #186 implements | Host and `native_sim` use stand-ins |
 | Access core on Zephyr | **Faked on `native_sim`** by a double, until #242. The real core and its fake ports run on Host | |
-| Socket shutdown on `native_sim` | **Shimmed in the test image**, see [below](#two-limits-of-native_sim-found-here) | |
+| Socket shutdown on `native_sim` | **Shimmed in the test image**, see [below](#three-limits-of-native_sim-found-here) | |
+| A send that returns `-EAGAIN` on `native_sim` | **Injected in the test image** by a wrapped send, because the offload rarely produces one | |
 | TLS handshake stall | **Not measured.** Read from source and declared, see [below](#tls-handshake-stall) | |
 | Streaming upload contract | Not built. A probe in the test image measures it, and #188 chooses the contract | |
 | Anything on a board | Not run. Hardware needs separate approval | |
@@ -87,7 +88,7 @@ crux_web_routes(app SOURCES src/pump_routes.c ZEPHYR_RESOURCES)
 | A route in a source not named to the build | Not in the table, so it is unreachable: fails closed. |
 | A route the scan saw but the compiler did not, such as in `#if 0` | Fails to link. |
 | A project sees no native header | `tests/web_consumer` builds as C17 and C++17 under `crux_assert_portable_consumer` and `crux_assert_access_consumer`, and `tests/native/web_http` builds its project route in a library with no Zephyr requirement. |
-| Public and session-only routes get a review | `scripts/check-web-routes.py` lists them and holds them to `components/web/reviewed-routes.txt`, in both directions. |
+| Public and session-only routes get a review | `crux_web_routes(... REVIEWED list)` fails the build otherwise, in both directions, and sees generated sources and any layout. `scripts/check-web-routes.py` lists them, and holds what is tracked outside `tests/` to `components/web/reviewed-routes.txt`. |
 
 ## Resources the build generates
 
@@ -136,7 +137,7 @@ usual result of closing with unread data.
 | A body on `GET` or `DELETE` | `400 bad_request`, closed | The server calls back once per read, which would run a handler twice |
 | More or fewer bytes than `Content-Length` | `400 bad_request`, closed | The server passes its whole buffer, so these can be the next request's |
 | `Content-Length` over the route's limit | `413 payload_too_large`, closed, before any session lookup | |
-| Pipelined requests in one read | Nothing routes | The server joins their URLs, so the comparison fails. Shown on `native_sim`. |
+| Pipelined requests in one read | The server joins their URLs and headers, and routes the joined path | `GET /api/v1 ...` then `GET /status ...` in one send gets `/api/v1/status`. Access applies to the joined path, with the headers of both, so a `Cookie` in either counts and a `Host` in both is a duplicate. Shown on `native_sim`. No browser sends this. |
 | A path parameter holding anything but unreserved characters, or `.` or `..` | JSON `404` | Nothing is decoded, so `%2F` and `%2e%2e` cannot become a path |
 | A handler that returns with no response | `503 not_ready`, with `Retry-After` | The `ErrorCode` list has no code for it, and a new code is a change to the specification |
 
@@ -150,25 +151,69 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 | --- | --- | --- | --- |
 | `HTTP_SERVER_CLIENT_INACTIVITY_TIMEOUT` | 3 s | 10 s | Upstream's |
 | `CRUX_WEB_REQUEST_DEADLINE_MS` | 2,000 | 5,000 | Whole request, from first callback to last body byte |
-| `CRUX_WEB_SEND_TIMEOUT_MS` | 500 | 1,000 | One socket send with no progress |
-| `CRUX_WEB_RESPONSE_DEADLINE_MS` | 1,500 | 3,000 | One response, checked between pieces |
+| `CRUX_WEB_SEND_TIMEOUT_MS` | 500 | 250 | One socket send, not one response |
+| `CRUX_WEB_RESPONSE_DEADLINE_MS` | 1,500 | 3,000 | One response, checked only between pieces |
 | `HTTP_SERVER_MAX_CLIENTS` | 3 | 3 | Upstream's |
 | `handler_limit_ms` | 100 | Set by the composition | Counted, since nothing can preempt a handler |
 
 | Measurement | Level | Result | Bound and declaration |
 | --- | --- | --- | --- |
 | Whole request deadline, Host | Host | A trickled body stays open up to the deadline, and closes on the first chunk after it, with no handler | |
-| Trickled body, one byte every 200 ms | `native_sim` | Closed at 2.02 s with nothing sent, no plain `500`, and the login route free straight after | At most the deadline plus the gap to the next chunk, and that gap is at most the inactivity timer. The deadline returns `-ECONNABORTED`, because `-EAGAIN` would not close. |
-| Silent partial body | `native_sim` | Closed at 3.02 s by the inactivity timer | The route is held, and others get the plain `409`, until then. Anyone who can reach the port can do this, including to login, so network login can be kept busy by repeating it, as the frontend design declares. The serial console is not affected. |
+| Trickled body, one byte every 200 ms | `native_sim` | Closed at 2.21 s with nothing sent, no plain `500`, and the login route free straight after | At most the deadline plus the gap to the next chunk, and that gap is at most the inactivity timer. The deadline returns `-ECONNABORTED`, because `-EAGAIN` would not close. |
+| Silent partial body | `native_sim` | Closed at 3.01 s by the inactivity timer | The route is held, and others get the plain `409`, until then. Anyone who can reach the port can do this, including to login, so network login can be kept busy by repeating it, as the frontend design declares. The serial console is not affected. |
 | Disconnect mid-request | Host and `native_sim` | Route free within 10 ms of a FIN or a reset, and on Host the body cleared | The registered resources get the server's release, which a fallback resource would not |
 | Trickled headers, three clients, one byte per second | `native_sim` | All three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s | **Limit declared, see below.** |
 | Client slots, three idle keep-alive connections | `native_sim` | A fourth request waited 3.0 s | An idle browser connection holds a slot for one inactivity period. A real browser's eight parallel requests all succeeded through three slots. |
-| Slow handler, 500 ms | `native_sim` | Another client's largest latency 500 ms, against a median of 48 ms, and the overrun counted | A handler stalls every client for as long as it runs |
-| Reader that reads nothing, 8 MB body | `native_sim` | Another client's largest latency 2.09 s | At most the response deadline plus two send timeouts |
-| Reader that drains 20 KB/s, 8 MB body | `native_sim` | Another client's largest latency 1.76 s. The response was cut by its deadline, and counted. | By the source, without pieces this would hold the thread for the whole body, because each send makes progress. That was not run. |
-| Slot of a stalled reader | `native_sim` | Released after 3.2 s | The server's `-EAGAIN` leaves it open until the inactivity timer, and any further callback closes it |
-| Flow control probe, see below | `native_sim` | Another client's largest latency 200 ms | The stall is the storage stall |
+| Slow handler, 500 ms | `native_sim` | Another client's largest wait 515 ms, against a median of 50 ms, and the overrun counted | A handler stalls every client for as long as it runs |
+| Reader that reads nothing, 8 MB body | `native_sim` | Another client's largest wait 2.04 s | See [the slow reader bound](#the-slow-reader-bound) |
+| Reader that drains 20 KB/s, 8 MB body | `native_sim` | Another client's largest wait 1.52 s. The response was cut by its deadline, and counted. | By the source, without pieces this would hold the thread for the whole body. That was not run. |
+| Silent reader with a full socket, small responses | `native_sim` | Another client's largest wait 10.18 s, about 20 sends at 0.5 s each. Another client's idle connection was closed meanwhile. | **The worst case.** See below. |
+| A send that returns `-EAGAIN`, then more from that client | `native_sim`, injected | Closed within a second, with none of another client's bytes | See [below](#a-response-that-stops-part-way) |
+| A send that returns `-EAGAIN`, then silence | `native_sim`, injected | Closed by the inactivity timer at 2.81 s | |
+| Stop just after the deadline | `native_sim` | Closed 2 ms after the byte that found it late, well before the inactivity timer | A `-EAGAIN` here would not close, and a mutation control shows this case fails then |
+| Slot of a stalled reader | `native_sim` | Released after 2.33 s in this run. It varies from run to run with when the send stopped. | The inactivity timer ends it, counted from the last send that made progress |
+| Flow control probe, see below | `native_sim` | Another client's largest wait 211 ms | The stall is the storage stall |
 | Baseline | `native_sim` | Median 50 ms, on an otherwise idle server | See below. This is not on the server thread. |
+
+### The slow reader bound
+
+The send timeout bounds one send, and not a response. The server makes about twenty sends for a small response: the status
+line, three for each header, an end of headers, three for a chunk and a terminator. All are in one callback, and the thread
+serves nobody else until they finish. So the bound, **for one callback, is the number of sends times the send timeout**,
+and with pieces, the response deadline plus that.
+
+| Stack | What a send does when the reader is slow |
+| --- | --- |
+| Native socket offload | `nsos_wait_for_poll` waits out the whole timeout and returns 0, and the send then goes through if the socket has any room. So every send can cost the whole timeout while free space stays under what `POLLOUT` asks for. This is what the measurement above hit. |
+| Zephyr's own TCP, from source, not run | `http_server_sendall` loops on partial sends, so a reader opening its window a little costs up to the send timeout per partial send: bounded by sends and bytes times the timeout. |
+
+| Setting | Largest stall for one small response |
+| --- | --- |
+| Test image, 500 ms | 21 x 0.5 = 10.5 s. Measured 10.18 s. |
+| Default, 250 ms | 21 x 0.25 = 5.25 s, by that sum. Not measured. |
+
+The response deadline does not help here, because it is checked only between pieces, and a response of one piece has
+none. A stall past the inactivity timer has a second effect: the system work queue still runs that timer, so another
+client's idle connection is closed during the stall. At the defaults, 5.25 s is under the 10 s timer, which is why this
+pull request lowers the default send timeout from 1,000 to 250 ms. A lower value would also close a client on a poor link
+sooner. A later change could halve the sends by passing the headers in one value, which would also mean fewer TLS records,
+but that leans on how the server writes them, so it is left for #185 to weigh.
+
+### A response that stops part-way
+
+A send that fails with `-EAGAIN` comes back through `http1_dynamic_response` to `handle_http_request`, which swallows it.
+The client stays, and so do its holder and this adapter's slot. The next byte it sends runs the callback again. Until
+independent review found it, the adapter then went on with the next piece, from `store.body`, which all clients share, so
+a stalled client could read another client's response.
+
+The callback now closes on any re-entry. Inside the server's piece loop `client->data_len` does not change, and a re-entry
+has at least one new byte in it, because in this state the server does not take a new request's header bytes off before the
+callback. A mutation control shows this alone stops the leak: with only the second guard, the store generation, removed, the
+cases still pass, and with both removed, 2,048 bytes of another client's body arrive. The generation is a second guard, for a
+server change that breaks the first, and only its Host test exercises it separately.
+
+The injected send proves the path runs: `send_eagain` in `/probe/stats` counts each one, because the suite reached it zero
+times before. Real `-EAGAIN` on Zephyr's own stack has not been run.
 
 ### Trickled headers: a decision for the owner
 
@@ -180,10 +225,10 @@ no bandwidth. The serial console, the control work and any other network service
 | Option | Effect | Cost |
 | --- | --- | --- |
 | **A. Declare it, as this pull request does** | No change | The interface can be blocked by anyone who can reach the port, for as long as they keep it up |
-| **B. A Zephyr patch, recommended.** In `http_client_timer_restart`, stop extending the timer while the parser has not reached `HTTP1_RECEIVED_HEADER_STATE`, so headers get one inactivity period in all | Closes this and bounds slot time from a connection's start | A small patch to maintain, in the way `patches/zephyr` already holds one, and worth offering upstream |
+| **B. A Zephyr patch, recommended.** A `k_work_schedule` in the header phase, so the timer stops being extended there, gated on `server_state` because HTTP/2 stays at parser state 0 | Headers get one inactivity period in all | A small patch to maintain, delivered as `scripts/prepare-nxp-mdio.py` does, with an upstream Kconfig offered. **A client that reconnects still holds a slot for one period per connection.** |
 | C. Raise the client limit | Only raises the number of clients needed | RAM per client |
 
-This pull request does not take B, because the issue leaves it to the owner.
+This pull request does not take B, because the issue leaves it to the owner. New issue #268 records it.
 
 ### Flow control for large transfers
 
@@ -196,7 +241,7 @@ with it. A bare resource in the test image measures this, with a queue of 2 KiB 
 | --- | --- |
 | Time | 3.74 s |
 | Longest wait of the callback | 210 ms |
-| Another client's median and largest latency | 49.7 ms and 200 ms |
+| Another client's median and largest wait | 49.0 ms and 211 ms |
 | Data lost | None. The queue never overflowed. |
 
 So flow control works on the single thread as a stall bounded by the slowest storage write, and not by the transfer. #188
@@ -229,16 +274,18 @@ The capture holds seven headers, and a request whose capture dropped anything ge
 
 | Check | Level | Result |
 | --- | --- | --- |
-| A real browser, Chromium 152 in an Electron host, over a loopback forward to the image: cookies set by a response, then `fetch` with the CSRF and poll headers | `native_sim` | `POST`: Cookie 113, Origin 22, Host 15, X-XSRF-TOKEN 43, X-Crux-Request 1, Content-Type 16, Content-Length 1. `GET` sends no `Origin`. |
+| Chromium 152 in an Electron host, over a loopback forward to the image: cookies set by a response, then `fetch` with the CSRF and poll headers | `native_sim`, by hand | `POST`: Cookie 113, Origin 22, Host 15, X-XSRF-TOKEN 43, X-Crux-Request 1, Content-Type 16, Content-Length 1. `GET` sends no `Origin`. Eight parallel requests all `200`. |
+| Firefox 159.0.1 headless, `tests/native/web_http/firefox_capture.py`, in the same container as the image: a page whose own script makes those requests | `native_sim`, by hand | The same lengths in every field. `GET` sends no `Origin`. Eight parallel requests all `200`. |
 | The same shape with a browser's other headers, as a fixture, one byte per send | `native_sim` | Every value intact |
 | Longest Cookie, 511 bytes, and one more | `native_sim` | Accepted, then `400` |
 | A capture overflow across headers | `native_sim` | `400` |
 | Other headers of 2,000 bytes | `native_sim` | Ignored |
 
-Only that one browser has run. **Firefox and Safari have not.** Their fixture sizes are the same by construction, since
-these cookie and header values are ours, but other cookies on the device's address are a browser's own, and a device that
-shares an address with something else that sets many cookies can exceed 511 bytes. That client then gets `400` on every
-route, and clearing its cookies fixes it.
+**Safari has not run**, because it cannot run unattended here, so that part moved to #186, where real login first gives a
+reason to open the interface in one. Both browsers ran over plain HTTP on `localhost`, so a real address, and HTTPS, may
+change `Origin` and `Host`, which the reservation above allows for. Other cookies on the device's address are a browser's
+own: a device that shares an address with something else that sets many cookies can exceed 511 bytes. That client then
+gets `400` on every route, and clearing its cookies fixes it.
 
 ## TLS handshake stall
 
@@ -254,14 +301,15 @@ Read from source at v4.4.2 and in the wolfSSL socket patch at the pinned revisio
 So one client that opens a TCP connection and sends nothing stops every client for 10 seconds, and it can repeat that. #185
 should set this much lower and measure both profiles. The whole-request deadline does not help, since no callback runs.
 
-## Two limits of `native_sim` found here
+## Three limits of `native_sim` found here
 
-Both would have made results here wrong without being seen.
+Each would have made results here wrong without being seen.
 
 | Finding | Effect | What this does |
 | --- | --- | --- |
 | The server passes Zephyr's `FNM_*` values to `fnmatch`. With `CONFIG_EXTERNAL_LIBC`, which `native_sim` selects by default, that resolves to the host's, where those numbers mean `FNM_NOESCAPE` and `FNM_CASEFOLD`. So `*` crosses `/`, matching ignores case, and a fixed route matches no deeper path. | `/api/v1/status/x` got the plain `404` where a target gets the JSON one. Enforcement stayed correct, because the core still compares the whole path. | The adapter has a build assertion against `CONFIG_EXTERNAL_LIBC`, the test image selects `CONFIG_MINIMAL_LIBC`, and the runner checks that the image holds Zephyr's `fnmatch`. **#185, #186 and #242 inherit this.** |
 | The native socket offload has no `shutdown` operation, so `zsock_shutdown` fails, and the server's inactivity timer does nothing. | A client on the offload is never closed for inactivity. | The test image wraps that call and shuts the host socket down, which is the effect it has on Zephyr's own stack. This is test code that depends on a private driver struct at this pin. **The wrap has not been compared with Zephyr's own TCP stack**, which needs a target or a TAP interface. |
+| The offload's send waits out its whole timeout and then sends if it can, so `-EAGAIN` hardly ever reaches the server, while on a real stack it would. | The suite reached that path zero times, and a defect there went unseen until independent review. | The test image wraps the send, and a probe route makes a chosen send return `-EAGAIN`. |
 
 ## Signatures for the next issues
 
@@ -271,6 +319,7 @@ Both would have made results here wrong without being seen.
 | #186 | `crux_web_start(const crux_web_config_t *)` | `crux_web_adapter.h` |
 | #186 | `crux_web_request_head(request)`, for `Origin` on login and `X-Crux-Request` on the poll | `crux_web_adapter.h` |
 | #186 | `crux_web_add_header(request, "Set-Cookie", value)`, up to four headers and 384 bytes | `crux/web.h` |
+| Every composition | `crux_web_routes(app SOURCES ... REVIEWED list ZEPHYR_RESOURCES)`, which fails the build on a public or session-only route that is not on the list | `cmake/CruxWebRoutes.cmake` |
 | #187, projects | `CRUX_WEB_ROUTE`, `CRUX_WEB_ROUTE_BODY`, `crux_web_path_param`, `crux_web_query`, `crux_web_content_type`, `crux_web_body_length`, `crux_web_read_body`, `crux_web_respond`, `crux_web_respond_error` | `crux/web.h` |
 | #189 | `crux_web_respond_static(request, status, headers, count, body, length)`, with the packager generating a source of `CRUX_WEB_ROUTE` uses that it names to `crux_web_routes` | `crux_web_adapter.h` |
 | #188 | Nothing yet: the probe above is its starting point | |
@@ -291,9 +340,12 @@ fits the 4 KiB.
 | Path parameters hold unreserved characters only, with no decoding | Removes encoded traversal for every later route | Decoding per route. A file name with a space would need this, and rule F4 keeps those out for now. |
 | Duplicate captured headers are refused | No ambiguity over which one a check reads | First or last wins |
 | One copied response buffer shared by all clients | A response is sent before another callback runs, so one suffices, and it saves RAM | One per client |
-| Responses go in 1 KiB pieces with a deadline | A progressing slow reader is bounded, which the send timeout alone does not do | A send on one call, with no bound on a slow reader |
+| Responses go in 1 KiB pieces with a deadline | A large body is bounded, which the send timeout alone does not do. #189: 3 s can cut a large asset for a slow but honest client, so its size and this deadline need setting together. | A send on one call, with no bound on a slow reader |
+| Default send timeout 250 ms, not 1,000 | Keeps one callback's worst stall under the inactivity timer | A longer timeout is kinder to a poor link |
+| `crux_web_start` checks the route table, and that `fnmatch` behaves | A value changed by a macro between the scan and the compiler, or a C library's own `fnmatch`, stops the start | Trust the build |
+| A source of routes may not `#define` or `#undef` a `CRUX_WEB_*` name | The scan and the compiler then read the same thing | |
 | `/api/v1/config/save` shadows a parameter named `save` | Follows from the server's exact pass, so declared | Move fixed routes elsewhere, in #187 |
-| The route scan reads named sources, not preprocessed output | Simple, and it fails closed in both directions above | A scan of compiled objects |
+| The route scan reads named sources, not preprocessed output | Simple, and it fails closed in both directions above, and start compares the two | A scan of compiled objects |
 | Plain HTTP exists only as `CONFIG_CRUX_WEB_PLAIN_HTTP_FOR_TESTS`, which depends on `BOARD_NATIVE_SIM` | No other board can select it, and the target runner rejects it | |
 | Inactivity and other defaults left at upstream's or chosen here | Unmeasured against a device, and sized in #197 | |
 | `CONFIG_HTTP_SERVER_STACK_SIZE` 4,096 | **Unmeasured.** `native_sim` threads run on host stacks, so a reading there means nothing. It must be measured on a target. | |
@@ -305,14 +357,14 @@ fits the 4 KiB.
 | --- | --- | --- |
 | `scripts/test-web.sh host` | Host | `tests/web` on the real Web and Access cores, fake transport, debug and sanitizers, clang-tidy, boundary check, generator tests, review lists |
 | `scripts/test-web.sh native` | `native_sim` | `tests/native/web_http`, the real server and the real adapter, with a Python client |
-| `scripts/test-web.sh target mbedtls` | RT1060 compile | Links with wildcard resources. In the PSA workflow. |
+| `scripts/test-web.sh target mbedtls` | RT1060 compile | Links with wildcard resources. In CI, in the PSA workflow. |
 | `scripts/test-web.sh target wolfssl` | RT1060 compile | Links on a Zephyr with the socket patch. Not in CI, because no default workflow selects a GPL stack. |
 
 | Host suite | Covers |
 | --- | --- |
 | `routing.c` | Generated order, merged methods, a wildcard not captured by a shorter route, deeper before shallower, JSON `404` on deeper paths, parameter rules, query, fixed over parameter, the server's plain answers as modelled |
-| `enforcement.c` | Public, session and permission classes on real logins, denial events, forced change, session lookup outcomes, no port, dropped headers, a hand-made route, access checked again after a long body |
-| `requests.c` | Body assembly and limits, malformed `Content-Length`, chunked, body on a bodyless method, mismatched length, upgrade, deadline, disconnect, pool bound, body cleared, security headers, response rules |
+| `enforcement.c` | Public, session and permission classes on real logins, denial events, forced change, session lookup outcomes, no port, dropped headers, a hand-made route, access checked again after a long body, the route table check |
+| `requests.c` | Body assembly and limits, malformed and wrapping `Content-Length`, a chunk over the buffer, chunked, body on a bodyless method, mismatched length, upgrade, deadline, disconnect, pool bound and session reset, body cleared, extra headers reset, store generation, security headers, response rules |
 
 The fake transport models the server's rules from its source. The `native_sim` suite holds those same rules to the real
 server, which is how the first limit above was found: the Host suite passed on a rule that the default `native_sim` image

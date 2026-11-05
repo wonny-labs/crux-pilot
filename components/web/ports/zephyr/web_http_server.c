@@ -12,13 +12,16 @@
  *   chunked terminator goes after the last callback. To answer before the body ends, the adapter
  *   writes a complete response itself and closes. It never does this on a kept connection.
  * - The server sends on a blocking socket with no timeout of its own, so a timeout is set on each
- *   request's first callback. A send that times out returns -EAGAIN through the server, which
- * leaves the client held until its inactivity timer closes it. A second callback in that state
- * closes it.
- * - That timeout bounds a send with no progress only. The server calls back without returning to
- * poll until a response is final, so a large body goes in pieces, and a callback between pieces
- * closes a response that has run over its deadline. A reader that drains a little at a time is
- * bounded so.
+ *   request's first callback. It bounds one send, not a response: the server makes about twenty
+ * sends for a small response, in one callback, without returning to poll.
+ * - A send that fails with -EAGAIN comes back through the server, which swallows it and leaves the
+ *   client open with its resource and this slot held. The response stops there, and the next
+ * received byte runs the callback again, possibly long after another client's response has been
+ * built in the same store. A callback that finds a finished exchange, or a piece with its
+ * response's data_len or its store generation changed, is that re-entry, and it closes.
+ * - The server calls back without returning to poll until a response is final, so a large body goes
+ * in pieces, and a callback between pieces closes a response that has run over its deadline. A
+ * response of one piece never reaches that check.
  */
 #include "crux_web_zephyr_resources.h"
 
@@ -32,6 +35,7 @@
 #include <zephyr/net/http/parser.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/tls_credentials.h>
+#include <zephyr/posix/fnmatch.h>
 #include <zephyr/sys/util.h>
 
 /* A registered resource can be held by one client, so a slot per client is one per request. */
@@ -95,6 +99,9 @@ static struct {
     const uint8_t *rest;
     size_t rest_length;
     int64_t response_started_ms;
+    /* What stays the same between pieces inside the server's loop, to tell a re-entry from it. */
+    size_t response_data_len;
+    uint32_t response_generation;
 } crux_web_slots[CRUX_WEB_SLOTS];
 
 /* Used only on the server thread, for a response that is sent before the next callback. */
@@ -255,6 +262,8 @@ static int apply_step(struct http_client_ctx *client, int slot, crux_web_step_t 
             break;
         }
         crux_web_slots[slot].response_started_ms = k_uptime_get();
+        crux_web_slots[slot].response_data_len = client->data_len;
+        crux_web_slots[slot].response_generation = crux_web_response_generation();
         for (size_t index = 0; index < response->header_count; ++index) {
             crux_web_response_headers[index].name = response->headers[index].name;
             crux_web_response_headers[index].value = response->headers[index].value;
@@ -324,9 +333,18 @@ int crux_web_zephyr_callback(struct http_client_ctx *client, enum http_transacti
             return result;
         }
     } else if (crux_web_slots[slot].rest_length != 0u) {
+        /* A send failed earlier and this client has sent something since. The rest may point into a
+         * store that another client's response has overwritten, so nothing more of it may go out.
+         */
+        if (client->data_len != crux_web_slots[slot].response_data_len ||
+            crux_web_response_generation() != crux_web_slots[slot].response_generation) {
+            client->http1_headers_sent = true;
+            return -ECONNABORTED;
+        }
         if (k_uptime_get() - crux_web_slots[slot].response_started_ms >
             CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS) {
             crux_web_stats_count_response_deadline();
+            client->http1_headers_sent = true;
             return -ECONNABORTED;
         }
         next_piece(slot, crux_web_slots[slot].rest, crux_web_slots[slot].rest_length,
@@ -351,10 +369,24 @@ int crux_web_zephyr_callback(struct http_client_ctx *client, enum http_transacti
     return apply_step(client, slot, step, &response, server_response);
 }
 
+/* What the server's wildcard pass needs of fnmatch(), which the build assertion cannot see of a C
+ * library that brings its own: a star stops at a slash, a route takes deeper paths, and case
+ * counts. */
+static bool wildcard_pass_behaves(void)
+{
+    const int flags = FNM_PATHNAME | FNM_LEADING_DIR;
+
+    return fnmatch("/a", "/a/b", flags) == 0 && fnmatch("/a/*/c", "/a/b/d/c", flags) != 0 &&
+           fnmatch("/a", "/A", flags) != 0;
+}
+
 crux_web_result_t crux_web_start(const crux_web_config_t *config)
 {
     if (config == NULL) {
         return CRUX_WEB_ERR_INVALID_ARGUMENT;
+    }
+    if (!wildcard_pass_behaves() || !crux_web_routes_valid()) {
+        return CRUX_WEB_ERR_FAILED;
     }
     memset(crux_web_slots, 0, sizeof(crux_web_slots));
     crux_web_core_init(config);

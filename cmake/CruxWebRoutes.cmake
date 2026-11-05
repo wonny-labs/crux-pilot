@@ -4,12 +4,15 @@ include_guard(GLOBAL)
 # adds it to a target that links crux::web, along with those sources' routes. A route in a source not
 # named here is not in the table, so it cannot be reached.
 #
-#   crux_web_routes(<target> SOURCES <files> [ZEPHYR_RESOURCES] [FAKE_MANIFEST])
+#   crux_web_routes(<target> SOURCES <files> [REVIEWED <file>] [ZEPHYR_RESOURCES] [FAKE_MANIFEST])
 #
+# REVIEWED fails the build on a public or session-only route that is not on that list, or an entry with
+# no route. This is the check that sees generated sources, such as the asset routes of #189, and any
+# project layout, so a product image should use it. See scripts/check-web-routes.py for the list's form.
 # ZEPHYR_RESOURCES also generates the registered resources, and needs the Zephyr port's header and
 # Zephyr's headers on the target, as `app` has. FAKE_MANIFEST is for the Host's fake transport only.
 function(crux_web_routes target)
-    cmake_parse_arguments(PARSE_ARGV 1 ARG "ZEPHYR_RESOURCES;FAKE_MANIFEST" "" "SOURCES")
+    cmake_parse_arguments(PARSE_ARGV 1 ARG "ZEPHYR_RESOURCES;FAKE_MANIFEST" "REVIEWED" "SOURCES")
     if(NOT ARG_SOURCES OR ARG_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR "crux_web_routes(<target> SOURCES <files> ...)")
     endif()
@@ -31,9 +34,15 @@ function(crux_web_routes target)
         list(APPEND outputs "${directory}/fake_resources.c")
         list(APPEND arguments --manifest "${directory}/fake_resources.c")
     endif()
+    set(reviewed)
+    if(ARG_REVIEWED)
+        cmake_path(ABSOLUTE_PATH ARG_REVIEWED BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)
+        list(APPEND arguments --reviewed "${ARG_REVIEWED}")
+        set(reviewed "${ARG_REVIEWED}")
+    endif()
     add_custom_command(OUTPUT ${outputs}
         COMMAND "${Python3_EXECUTABLE}" "${tool}" ${arguments} ${sources}
-        DEPENDS "${tool}" ${sources}
+        DEPENDS "${tool}" ${sources} ${reviewed}
         COMMENT "Generating the web route table of ${target}"
         VERBATIM)
     target_sources(${target} PRIVATE ${outputs})

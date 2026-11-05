@@ -263,8 +263,11 @@ config CRUX_WEB_BODY_BUFFER
 
 config CRUX_WEB_SEND_TIMEOUT_MS
     int "Longest wait of one socket send, on the server thread"
-    default 1000
+    default 250
     range 10 60000
+    help
+      A small response is about twenty sends in one callback, and each can wait this long while the
+      server thread serves nobody else. A stall past the inactivity timer also closes other clients.
 
 config CRUX_WEB_RESPONSE_PIECE
     int "Bytes of a response body passed to the server at a time"

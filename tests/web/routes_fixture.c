@@ -34,6 +34,9 @@ static crux_web_result_t on_route(crux_web_request_t *request, crux_access_sessi
     switch (web_record.mode) {
     case WEB_HANDLER_NO_RESPONSE:
         return CRUX_WEB_OK;
+    case WEB_HANDLER_HEADER_NO_RESPONSE:
+        CHECK(crux_web_add_header(request, "Set-Cookie", "crux_session=x; Secure") == CRUX_WEB_OK);
+        return CRUX_WEB_OK;
     case WEB_HANDLER_FAIL:
         return CRUX_WEB_ERR_FAILED;
     case WEB_HANDLER_SLOW:

@@ -26,6 +26,14 @@ SEND_TIMEOUT_S = 0.5
 RESPONSE_DEADLINE_S = 1.5
 # Allowance for scheduling in an emulated container.
 SLACK_S = 1.5
+# One small response from the server: the status line, three sends per header, an end of headers, then
+# a chunk's three sends and the terminator. Each can wait out the send timeout on one callback.
+SENDS_PER_RESPONSE = 1 + 3 * 5 + 1 + 3 + 1
+STALL_BOUND_S = RESPONSE_DEADLINE_S + SENDS_PER_RESPONSE * SEND_TIMEOUT_S + SLACK_S
+# Sends before the failing one in /probe/fail: the head, the first piece, and the second piece's size.
+# Of the sizes tried, this one leaves room for a small send while free space stays too low for POLLOUT.
+SMALL_RESPONSE_SEND_BUFFER = 8192
+SENDS_BEFORE_SECOND_BODY_PIECE = 1 + 3 * 5 + 1 + 3 + 1
 
 ADMIN = "crux_session=admin"
 VIEWER = "crux_session=viewer"
@@ -392,6 +400,15 @@ def case_protocol_edges():
     first = encode("GET", "/api/v1/status", {"Cookie": ADMIN})
     data = raw_exchange(first + first + encode("GET", "/nothing", {"Connection": "close"}))
     check(b'"route"' not in data, f"{data[:120]!r}")
+    # The joined URL is what routes, and access applies to it, so a joined path gets no way round it.
+    joined = b"GET /api/v1 HTTP/1.1\r\nHost: a\r\n\r\nGET /status HTTP/1.1\r\nConnection: close\r\n"
+    data = raw_exchange(joined + b"\r\n")
+    check(data.startswith(b"HTTP/1.1 401 "), f"{data[:60]!r}")
+    data = raw_exchange(joined + f"Cookie: {ADMIN}\r\n\r\n".encode())
+    check(data.startswith(b"HTTP/1.1 200 ") and b'"route":"status"' in data, f"{data[:60]!r}")
+    # A header sent in both is a duplicate, however it arrived.
+    data = raw_exchange(joined.replace(b"Connection: close", b"Host: b\r\nConnection: close") + b"\r\n")
+    check(data.startswith(b"HTTP/1.1 400 "), f"{data[:60]!r}")
     # A URL over the server's limit.
     data = raw_exchange(encode("GET", "/" + "a" * 300))
     check(data.startswith(b"HTTP/1.1 500"), f"{data[:40]!r}")
@@ -399,7 +416,7 @@ def case_protocol_edges():
     data = raw_exchange(b"GET /api/v1/status HTP/1.1\r\nHost: padding-for-the-preface\r\n\r\n")
     check(data.startswith(b"HTTP/1.1 500") or data == b"", f"{data[:40]!r}")
     after = stats()
-    check(after["handlers"] == before["handlers"] + 1, f"only stats ran: {before} {after}")
+    check(after["handlers"] == before["handlers"] + 2, f"stats and the joined path: {before} {after}")
     # HTTP/1.0: no chunks, and the server closes.
     data = raw_exchange(encode("GET", "/api/v1/status", {"Cookie": ADMIN}, version="1.0"))
     check(b'{"route":"status","body":0}' in data, f"{data!r}")
@@ -489,6 +506,23 @@ def case_trickled_body_closed_by_deadline():
     results["trickled_body_closed_s"] = round(closed_at, 2)
 
 
+def case_deadline_then_silent_closes_before_inactivity():
+    """The check runs on a chunk, and its error must close, which -EAGAIN would not."""
+    holder = Client()
+    holder.send(encode("POST", "/api/v1/session", {"Content-Length": "500"}, b"a"))
+    time.sleep(DEADLINE_S + 0.2)
+    holder.send(b"b")
+    started = time.monotonic()
+    closed = holder.is_closed_within(INACTIVITY_S - 1.0)
+    waited = time.monotonic() - started
+    data = holder.buffer
+    holder.close()
+    check(closed, f"not closed within {waited} s, before the inactivity timer")
+    check(data == b"", f"the close sends nothing: {data[:60]!r}")
+    wait_route_free(1.0)
+    results["deadline_close_after_last_byte_s"] = round(waited, 3)
+
+
 # Slots.
 
 def case_trickled_headers_hold_slots():
@@ -560,26 +594,52 @@ def case_client_slots():
 
 # Stalls of the single server thread.
 
-def ping_latencies(stop, out):
-    client = Client(timeout=30.0)
-    try:
-        while not stop.is_set():
-            started = time.monotonic()
-            client.send(encode("GET", "/api/v1/status", {"Cookie": ADMIN}))
-            client.read_response()
-            out.append(time.monotonic() - started)
-            time.sleep(0.01)
-    except (OSError, Closed):
-        pass
-    finally:
-        client.close()
-
-
 class Pinger:
-    def __init__(self):
+    """Small requests on one connection, with a ping that never finishes counted at its full wait."""
+
+    def __init__(self, timeout=30.0):
         self.stop = threading.Event()
         self.latencies = []
-        self.thread = threading.Thread(target=ping_latencies, args=(self.stop, self.latencies))
+        self.unfinished = 0
+        self.closed_by_server = 0
+        self.longest_gap = 0.0
+        self.started = None
+        self.timeout = timeout
+        self.thread = threading.Thread(target=self.run)
+
+    def run(self):
+        client = Client(timeout=self.timeout)
+        last_done = time.monotonic()
+        try:
+            while not self.stop.is_set():
+                self.started = time.monotonic()
+                try:
+                    client.send(encode("GET", "/api/v1/status", {"Cookie": ADMIN}))
+                    client.read_response()
+                except TimeoutError:
+                    self.unfinished += 1
+                    self.latencies.append(time.monotonic() - self.started)
+                    client.close()
+                    client = Client(timeout=self.timeout)
+                    continue
+                except (OSError, Closed):
+                    # A stall longer than the inactivity timer closes other clients' connections.
+                    self.closed_by_server += 1
+                    client.close()
+                    client = Client(timeout=self.timeout)
+                    continue
+                now = time.monotonic()
+                self.latencies.append(now - self.started)
+                self.longest_gap = max(self.longest_gap, now - last_done)
+                last_done = now
+                self.started = None
+                time.sleep(0.01)
+        finally:
+            client.close()
+
+    def waiting_s(self):
+        started = self.started
+        return 0.0 if started is None else time.monotonic() - started
 
     def __enter__(self):
         self.thread.start()
@@ -594,8 +654,10 @@ class Pinger:
         ordered = sorted(self.latencies)
         return {
             "samples": len(ordered),
+            "unfinished": self.unfinished,
+            "closed_by_server": self.closed_by_server,
             "median_ms": round(ordered[len(ordered) // 2] * 1000, 1),
-            "max_ms": round(ordered[-1] * 1000, 1),
+            "max_ms": round(max(ordered[-1], self.longest_gap) * 1000, 1),
         }
 
 
@@ -635,7 +697,8 @@ def case_slow_reader_no_progress():
     summary = pinger.summary()
     reader.reset()
     wait_for_settled()
-    check(summary["max_ms"] <= (RESPONSE_DEADLINE_S + SEND_TIMEOUT_S * 2 + SLACK_S) * 1000, f"{summary}")
+    check(summary["unfinished"] == 0, f"a ping never finished: {summary}")
+    check(summary["max_ms"] <= STALL_BOUND_S * 1000, f"{summary}")
     results["slow_reader_no_progress"] = {**summary, "send_timeout_ms": int(SEND_TIMEOUT_S * 1000)}
 
 
@@ -679,9 +742,134 @@ def case_slow_reader_with_progress():
     # The client sees the close only after draining what the host still holds for it.
     check(after["response_deadlines"] == before["response_deadlines"] + 1, f"{before} {after}")
     check(total < 8000000, "the response must be cut")
-    check(summary["max_ms"] <= (RESPONSE_DEADLINE_S + SEND_TIMEOUT_S * 2 + SLACK_S) * 1000, f"{summary}")
+    check(summary["unfinished"] == 0, f"a ping never finished: {summary}")
+    check(summary["max_ms"] <= STALL_BOUND_S * 1000, f"{summary}")
     results["slow_reader_with_progress"] = {
         **summary, "bytes_read": total, "response_deadline_ms": int(RESPONSE_DEADLINE_S * 1000)}
+
+
+def case_slow_reader_small_responses():
+    """A silent reader whose socket is full: a one-piece response never meets the response deadline."""
+    reader = Client(rcvbuf=2048)
+    check(reader.request("GET", f"/probe/send-buffer/{SMALL_RESPONSE_SEND_BUFFER}").status == 200, "arming")
+    request = encode("GET", "/api/v1/status", {"Cookie": ADMIN})
+    sent = 0
+    with Pinger() as pinger:
+        limit = time.monotonic() + 40.0
+        while time.monotonic() < limit:
+            # Paced, because requests that the server reads together have their URLs joined.
+            if pinger.waiting_s() > 0.2:
+                time.sleep(0.05)
+                continue
+            if pinger.latencies and max(pinger.latencies) >= 4 * SEND_TIMEOUT_S:
+                break
+            try:
+                reader.send(request)
+            except OSError:
+                break
+            sent += 1
+            time.sleep(0.03)
+        time.sleep(0.2)
+    summary = pinger.summary()
+    reader.reset()
+    wait_for_settled()
+    check(summary["unfinished"] == 0, f"a ping never finished: {summary}")
+    check(summary["max_ms"] >= 4 * SEND_TIMEOUT_S * 1000, f"several sends waited: {summary}")
+    check(summary["max_ms"] <= STALL_BOUND_S * 1000, f"{summary}")
+    results["slow_reader_small_responses"] = {
+        **summary, "requests_to_fill": sent, "send_timeout_ms": int(SEND_TIMEOUT_S * 1000),
+        "sends_waited": round(summary["max_ms"] / (SEND_TIMEOUT_S * 1000), 1)}
+
+
+# A send that returns -EAGAIN: the server swallows it, and holder and slot stay.
+
+def stalled_response():
+    """A client whose response stopped at a -EAGAIN, with pieces still to go.
+
+    Nothing else may build a response here, so that a case can show which guard closes the client.
+    """
+    before = stats()["send_eagain"]
+    client = Client()
+    client.send(encode("GET", f"/probe/fail/{SENDS_BEFORE_SECOND_BODY_PIECE}"))
+    time.sleep(0.2)
+    client.eagain_before = before
+    return client
+
+
+def expect_closed_with_only_own_bytes(client):
+    closed = client.is_closed_within(1.0)
+    data = client.buffer
+    client.close()
+    check(stats()["send_eagain"] == client.eagain_before + 1, "the send must have returned -EAGAIN")
+    check(b"B" * 4 not in data, f"another client's body reached this client: {data.count(b'B')} bytes")
+    check(closed, "the client must be closed, and not left to the inactivity timer")
+    # What had gone out before the failed send: the first piece, and nothing after it.
+    check(data.count(b"A") == 1024, f"{data.count(b'A')} bytes of its own body")
+
+
+def other_clients_response():
+    response = one("GET", "/probe/other")
+    check(response.body == b"B" * 4096, "the other client's own response")
+
+
+def case_stalled_reader_byte_after_other_client():
+    client = stalled_response()
+    other_clients_response()
+    client.send(b"\r\n")
+    expect_closed_with_only_own_bytes(client)
+    wait_for_settled()
+
+
+def case_stalled_reader_request_after_other_client():
+    client = stalled_response()
+    other_clients_response()
+    client.send(encode("GET", "/api/v1/status/x"))
+    expect_closed_with_only_own_bytes(client)
+    wait_for_settled()
+
+
+def case_stalled_reader_same_request_after_other_client():
+    client = stalled_response()
+    other_clients_response()
+    client.send(encode("GET", f"/probe/fail/{SENDS_BEFORE_SECOND_BODY_PIECE}"))
+    expect_closed_with_only_own_bytes(client)
+    wait_for_settled()
+
+
+def case_stalled_reader_same_request_alone():
+    """In this state the server keeps a new request's bytes in data_len, so this is seen too."""
+    client = stalled_response()
+    client.send(encode("GET", f"/probe/fail/{SENDS_BEFORE_SECOND_BODY_PIECE}"))
+    expect_closed_with_only_own_bytes(client)
+    wait_for_settled()
+
+
+def case_stalled_reader_byte_alone():
+    client = stalled_response()
+    client.send(b"\r\n")
+    expect_closed_with_only_own_bytes(client)
+    wait_for_settled()
+
+
+def case_stalled_reader_silent_is_closed_by_timer():
+    client = stalled_response()
+    started = time.monotonic()
+    check(client.is_closed_within(INACTIVITY_S + SLACK_S), "the inactivity timer must close it")
+    results["stalled_reader_closed_by_timer_s"] = round(time.monotonic() - started, 2)
+    client.close()
+    wait_for_settled()
+
+
+def case_stalled_reader_does_not_block_others():
+    client = stalled_response()
+    other_clients_response()
+    client.reset()
+    wait_for_settled()
+    response = one("GET", "/probe/fail/1000")
+    check(response.body == b"A" * 4096, "the resource is free, and an unfailed response is whole")
+    # Disarm what that request left, so that it cannot fall on a later case.
+    response = one("GET", "/probe/fail/100000000")
+    check(response.status == 200, "disarmed")
 
 
 def case_upload_flow_control():
