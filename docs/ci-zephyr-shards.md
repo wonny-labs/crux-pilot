@@ -50,8 +50,8 @@ Set-up (packages, tools, SDK and workspace) adds about 2.7 minutes to every shar
 
 | Defect | Why it matters |
 | --- | --- |
-| A check names an unknown shard | The step would be skipped while the run stays green |
-| A check has no shard condition | The step would run in all four shards |
+| A step that runs a command names an unknown shard | The step would be skipped while the run stays green |
+| A step that runs a command has no shard condition and is not a set-up step | The step would run in all four shards |
 | A shard has no checks | The matrix and the steps have drifted apart |
 | The networking steps are in different shards | The fixture step would not find its library |
 | Two shards could share an artifact name | The upload would be refused |
@@ -59,7 +59,7 @@ Set-up (packages, tools, SDK and workspace) adds about 2.7 minutes to every shar
 | Anything other than documentation skips the workflow | Code changes would go untested |
 | `host.yml` also skips documentation | Nothing would run the tests that read documentation |
 
-The test has two gaps. It does not notice a deleted step, so review the comparison with `main` when a change touches `zephyr.yml`. It also recognises a check only by `scripts/`, `python3 ` or `west ` in the step text, so a step that runs another command directly, such as `tests/ssh/cli/test-compile.sh`, is not caught if it has no shard condition or names an unknown shard. Give every new step a condition whatever it runs.
+The test has one gap. It does not notice a deleted step, so review the comparison with `main` when a change touches `zephyr.yml`. It does check every step that has a `run:`, whatever command it runs: a step must name a shard of the matrix, unless it is one of the set-up steps listed in `SET_UP_STEPS` in the test. Add a new set-up step to that list only if it must run in every shard.
 
 ## Documentation-only changes
 
