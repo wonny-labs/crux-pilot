@@ -51,6 +51,8 @@
 BUILD_ASSERT(IS_ENABLED(CONFIG_HTTP_SERVER_VERSION_1) && !IS_ENABLED(CONFIG_HTTP_SERVER_VERSION_2),
              "the web adapter handles HTTP/1.1 only");
 BUILD_ASSERT(!IS_ENABLED(CONFIG_HTTP_SERVER_WEBSOCKET), "the web adapter has no WebSocket route");
+BUILD_ASSERT(!IS_ENABLED(CONFIG_HTTP_SERVER_REPORT_FAILURE_REASON),
+             "an error must not carry native error text");
 /* The server passes Zephyr's FNM_* values to fnmatch(). The host's C library gives those numbers
  * other meanings, including no FNM_PATHNAME and a case-insensitive match, so a test there shows
  * nothing. */

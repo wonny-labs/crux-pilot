@@ -126,7 +126,8 @@ The server finishes a response only when the request is complete, and it adds a 
 headers were sent. So a refusal before the body has ended is written by the adapter as a complete response with
 `Connection: close`, then the adapter marks headers sent and returns an error. The same path answers `400`, `401`,
 `403`, `404` and `413` with the JSON form and the security headers. A request with no body uses the server's own path
-and keeps its connection.
+and keeps its connection. A client still sending when the socket closes may see a reset instead of the answer, which is the
+usual result of closing with unread data.
 
 | Request | Answer | Reason |
 | --- | --- | --- |

@@ -251,7 +251,8 @@ crux_web_step_t crux_web_exchange_start(crux_web_exchange_t *exchange,
         /* The server calls back once per read here, which would run a handler more than once. */
         return reject(exchange, response, 400, "bad_request", false);
     }
-    if (exchange->declared_length > request->route->body_max) {
+    if (exchange->declared_length > request->route->body_max ||
+        exchange->declared_length > sizeof(exchange->body)) {
         return reject(exchange, response, 413, "payload_too_large", false);
     }
     return enforce_access(exchange, response);
