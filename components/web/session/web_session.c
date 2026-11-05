@@ -258,7 +258,8 @@ static bool session_cookie(const char *header, char value[WEB_SESSION_TOKEN_SIZE
         pair = header;
         length = strcspn(pair, ";");
         header += length;
-        if (length > sizeof(name) && memcmp(pair, name, sizeof(name) - 1u) == 0 &&
+        /* An empty value counts too, so that `crux_session=` beside a token is a second cookie. */
+        if (length >= sizeof(name) && memcmp(pair, name, sizeof(name) - 1u) == 0 &&
             pair[sizeof(name) - 1u] == '=') {
             size_t value_length = length - sizeof(name);
 
@@ -347,6 +348,9 @@ crux_web_auth_t crux_web_session_authenticate(const crux_web_request_head_t *hea
 }
 
 /* Plain HTTP exists only in a native_sim test image, whose build defines this. */
+#if defined(CRUX_WEB_SESSION_PLAIN_HTTP_FOR_TESTS) && !defined(CONFIG_BOARD_NATIVE_SIM)
+#error "Plain HTTP for the session module is for a native_sim test image only"
+#endif
 static bool scheme_allowed(const char *scheme)
 {
 #if defined(CRUX_WEB_SESSION_PLAIN_HTTP_FOR_TESTS)

@@ -157,8 +157,18 @@ static void read_source(const struct http_client_ctx *client, crux_web_request_h
     }
 #if defined(CONFIG_NET_IPV6)
     if (peer.ss_family == NET_AF_INET6) {
-        memcpy(head->source, &((struct net_sockaddr_in6 *)&peer)->sin6_addr, 8u);
-        head->source_length = 8u;
+        static const uint8_t mapped[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff};
+        const uint8_t *address = (const uint8_t *)&((struct net_sockaddr_in6 *)&peer)->sin6_addr;
+
+        /* An IPv4 client on a dual-stack socket keeps its own bucket, and not the /64 of ::ffff:0:0
+         * that every IPv4 client would share. */
+        if (memcmp(address, mapped, sizeof(mapped)) == 0) {
+            memcpy(head->source, address + sizeof(mapped), 4u);
+            head->source_length = 4u;
+        } else {
+            memcpy(head->source, address, 8u);
+            head->source_length = 8u;
+        }
     }
 #endif
 }

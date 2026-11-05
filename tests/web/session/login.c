@@ -6,6 +6,7 @@
 
 bool web_core_holds_bytes(const void *bytes, size_t length);
 bool web_session_attempts_hold_bytes(const void *bytes, size_t length);
+bool web_session_routes_hold_bytes(const void *bytes, size_t length);
 
 static void base64url(const uint8_t *bytes, char *text)
 {
@@ -419,6 +420,7 @@ static void test_password_does_not_stay(void)
     reply = session_post_login("admin", marker, id, sizeof(id));
     CHECK(reply->status == 202 && reply->closed);
     CHECK(!web_core_holds_bytes(marker, strlen(marker)));
+    CHECK(!web_session_routes_hold_bytes(marker, strlen(marker)));
     CHECK(web_session_attempts_hold_bytes(marker, strlen(marker)));
     CHECK(web_session_work_once());
     CHECK(!web_session_attempts_hold_bytes(marker, strlen(marker)));
@@ -463,6 +465,12 @@ static void test_full_session_table(void)
     CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_LOGOUT) == 1u);
     CHECK(session_with(&jars[1], CRUX_WEB_DELETE, "/api/v1/session", NULL)->status == 200);
     CHECK(session_login("viewer", SESSION_TEST_PASSWORD, NULL)->status == 200);
+    /* A session that crux_access ended, with no request since, is cleared when a slot is needed. */
+    CHECK(web_session_table_count() == 3u);
+    CHECK(crux_access_account_disable(session_admin, "forced") == CRUX_ACCESS_OK);
+    CHECK(web_session_table_count() == 3u);
+    CHECK(session_login("viewer", SESSION_TEST_PASSWORD, NULL)->status == 200);
+    CHECK(web_session_table_count() == 3u);
 }
 
 int main(void)

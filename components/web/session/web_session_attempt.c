@@ -74,7 +74,9 @@ void web_session_attempts_reset(void)
     }
     /* Before the server starts, on one thread, or in a Host test with no worker running. */
     for (size_t index = 0; index < CRUX_WEB_SESSION_ATTEMPTS; ++index) {
-        if (attempts[index].state == ATTEMPT_DONE && attempts[index].result.session.value != 0u) {
+        if (attempts[index].state == ATTEMPT_DONE &&
+            attempts[index].result.kind == WEB_ATTEMPT_LOGIN &&
+            attempts[index].result.session.value != 0u) {
             crux_access_logout(&attempts[index].result.session);
         }
         clear_attempt(&attempts[index]);
@@ -105,7 +107,9 @@ static size_t expire_locked(crux_access_session_t *orphans, size_t capacity)
         if (!expired(attempt, now_ms)) {
             continue;
         }
-        if (attempt->result.session.value != 0u && count < capacity) {
+        /* Only a finished login holds a session of its own. A change holds the requester's. */
+        if (attempt->state == ATTEMPT_DONE && attempt->result.kind == WEB_ATTEMPT_LOGIN &&
+            attempt->result.session.value != 0u && count < capacity) {
             orphans[count++] = attempt->result.session;
         }
         ++stats.expired;

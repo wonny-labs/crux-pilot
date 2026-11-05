@@ -137,6 +137,7 @@ usual result of closing with unread data.
 | A body on `GET` or `DELETE` | `400 bad_request`, closed | The server calls back once per read, which would run a handler twice |
 | More or fewer bytes than `Content-Length` | `400 bad_request`, closed | The server passes its whole buffer, so these can be the next request's |
 | `Content-Length` over the route's limit | `413 payload_too_large`, closed, before any session lookup | |
+| Access refused at the check after a body of more than one read | The refusal, closed | The server's buffer may hold a password, and closing clears it. #186. |
 | Pipelined requests in one read | The server joins their URLs and headers, and routes the joined path | `GET /api/v1 ...` then `GET /status ...` in one send gets `/api/v1/status`. Access applies to the joined path, with the headers of both, so a `Cookie` in either counts and a `Host` in both is a duplicate. Shown on `native_sim`. No browser sends this. |
 | A path parameter holding anything but unreserved characters, or `.` or `..` | JSON `404` | Nothing is decoded, so `%2F` and `%2e%2e` cannot become a path |
 | A handler that returns with no response | `503 not_ready`, with `Retry-After` | The `ErrorCode` list has no code for it, and a new code is a change to the specification |

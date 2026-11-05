@@ -289,12 +289,13 @@ crux_web_step_t crux_web_exchange_data(crux_web_exchange_t *exchange, const void
         return reject(exchange, response, 400, "bad_request", false);
     }
     exchange->body_expected = false;
-    /* What a session may do can change while a long body arrives. */
+    /* What a session may do can change while a long body arrives. A refusal then closes, so that
+     * the server clears its copy of a body that may hold a password. */
     if (exchange->data_calls > 1u && strcmp(request->route->access, CRUX_WEB_PUBLIC) != 0) {
         crux_web_step_t step = check_class(exchange, response);
 
         if (step != CRUX_WEB_STEP_MORE) {
-            return step;
+            return step == CRUX_WEB_STEP_RESPOND ? CRUX_WEB_STEP_RESPOND_CLOSE : step;
         }
     }
     return run_handler(exchange, response);

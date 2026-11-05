@@ -370,3 +370,25 @@ CRUX_WEB_ROUTE(crux_session_attempt, "/api/v1/session/attempt/{id}", CRUX_WEB_GE
 CRUX_WEB_ROUTE(crux_session_me, "/api/v1/session/me", CRUX_WEB_GET, CRUX_WEB_SESSION, on_me, NULL);
 CRUX_WEB_ROUTE_BODY(crux_session_password, "/api/v1/session/me/password", CRUX_WEB_POST,
                     CRUX_WEB_SESSION, on_change_password, NULL, WEB_SESSION_BODY_MAX);
+
+#ifdef CRUX_WEB_SESSION_TESTING
+bool web_session_routes_hold_bytes(const void *bytes, size_t length);
+
+static bool holds(const void *memory, size_t size, const void *bytes, size_t length)
+{
+    for (size_t offset = 0; offset + length <= size; ++offset) {
+        if (memcmp((const uint8_t *)memory + offset, bytes, length) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/* The handlers' own buffers. The worker's copy is on its stack, which no test can see. */
+bool web_session_routes_hold_bytes(const void *bytes, size_t length)
+{
+    return holds(request_body, sizeof(request_body), bytes, length) ||
+           holds(field_one, sizeof(field_one), bytes, length) ||
+           holds(field_two, sizeof(field_two), bytes, length);
+}
+#endif

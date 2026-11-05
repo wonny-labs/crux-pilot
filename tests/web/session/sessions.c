@@ -84,6 +84,11 @@ static void test_forged_sessions(void)
              "crux_session=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA; crux_session=%s",
              jar.session);
     expect_error(get_with_cookie(cookie, "/api/v1/session/me"), 401, "unauthorized");
+    /* An empty duplicate of the name is a second cookie too. */
+    snprintf(cookie, sizeof(cookie), "crux_session=%s; crux_session=", jar.session);
+    expect_error(get_with_cookie(cookie, "/api/v1/session/me"), 401, "unauthorized");
+    snprintf(cookie, sizeof(cookie), "crux_session=; crux_session=%s", jar.session);
+    expect_error(get_with_cookie(cookie, "/api/v1/session/me"), 401, "unauthorized");
     /* The real one, among other cookies and with spacing, still works. */
     snprintf(cookie, sizeof(cookie), "a=1;crux_session=%s ;  b=2", jar.session);
     CHECK(get_with_cookie(cookie, "/api/v1/session/me")->status == 200);
@@ -190,6 +195,22 @@ static void test_configured_origins(void)
         CHECK(session_json_string(reply->body, "id", id, sizeof(id)));
         CHECK(web_session_work_once());
         CHECK(session_poll(id)->status == 200);
+    }
+    {
+        static const char *const wrong[] = {"https://192.0.2.1", "https://192.0.2.100",
+                                            "https://controller.example/",
+                                            "https://controller.exampl", "http://192.0.2.10"};
+
+        for (size_t index = 0; index < sizeof(wrong) / sizeof(wrong[0]); ++index) {
+            session_request_t login = {.method = CRUX_WEB_POST,
+                                       .url = "/api/v1/session",
+                                       .origin = wrong[index],
+                                       .host = "192.0.2.10",
+                                       .content_type = "application/json",
+                                       .body = "{\"user\":\"viewer\",\"password\":\"x\"}"};
+
+            expect_error(session_send(&login), 403, "origin_rejected");
+        }
     }
     {
         const crux_web_session_config_t bad = {"ftp", NULL, 0u};
@@ -448,6 +469,86 @@ static void test_hash_failure(void)
     CHECK(session_with(&jar, CRUX_WEB_GET, "/api/v1/session/me", NULL)->status == 200);
 }
 
+/* A refusal after a body that came in two reads still closes, because the server's buffer holds the
+ * passwords. Here the account is disabled between the two reads. */
+static void test_refused_change_closes(void)
+{
+    static const char body[] =
+        "{\"current_password\":\"" SESSION_TEST_PASSWORD "\",\"new_password\":\"a brand new one\"}";
+    session_jar_t jar;
+    crux_web_request_head_t head;
+    char length[16];
+    fake_client_t *client;
+
+    session_test_setup();
+    CHECK(session_login("viewer", SESSION_TEST_PASSWORD, &jar)->status == 200);
+    client = fake_connect();
+    CHECK(client != NULL);
+    if (client == NULL) {
+        return;
+    }
+    memset(&head, 0, sizeof(head));
+    head.cookie = jar.header;
+    head.origin = SESSION_TEST_ORIGIN;
+    head.host = SESSION_TEST_HOST;
+    head.xsrf_token = jar.xsrf;
+    head.content_type = "application/json";
+    snprintf(length, sizeof(length), "%zu", strlen(body));
+    head.content_length = length;
+    CHECK(fake_begin(client, CRUX_WEB_POST, "/api/v1/session/me/password", head));
+    fake_body(client, body, 10u, false);
+    CHECK(crux_access_account_disable(session_admin, "viewer") == CRUX_ACCESS_OK);
+    fake_body(client, body + 10, strlen(body) - 10u, true);
+    expect_error(&client->reply, 401, "unauthorized");
+    CHECK(client->reply.closed);
+    CHECK(!web_session_work_once());
+}
+
+/* A change that expires before the worker takes it leaves the requester's session alone. */
+static void test_expired_change_keeps_the_session(void)
+{
+    session_jar_t jar;
+    char body[200];
+
+    session_test_setup();
+    CHECK(session_login("viewer", SESSION_TEST_PASSWORD, &jar)->status == 200);
+    snprintf(body, sizeof(body), "{\"current_password\":\"%s\",\"new_password\":\"%s\"}",
+             SESSION_TEST_PASSWORD, "a brand new password");
+    CHECK(session_with(&jar, CRUX_WEB_POST, "/api/v1/session/me/password", body)->status == 202);
+    session_clock_advance(CRUX_WEB_SESSION_ATTEMPT_TTL_MS + 1u);
+    access_fake_events_clear();
+    web_session_attempts_expire();
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_LOGOUT) == 0u);
+    CHECK(session_with(&jar, CRUX_WEB_GET, "/api/v1/session/me", NULL)->status == 200);
+}
+
+/* A password change inside a delay window is 429, and nothing was verified. */
+static void test_change_delay_window_is_429(void)
+{
+    session_jar_t jar;
+    char body[200];
+    char id[80];
+    const fake_reply_t *reply = NULL;
+    const char *retry[2];
+    bool delayed = false;
+
+    session_test_setup();
+    CHECK(session_login("viewer", SESSION_TEST_PASSWORD, &jar)->status == 200);
+    snprintf(body, sizeof(body), "{\"current_password\":\"%s\",\"new_password\":\"%s\"}",
+             "a wrong current pw", "a brand new password");
+    for (unsigned attempt = 0; attempt < 10u && !delayed; ++attempt) {
+        reply = session_with(&jar, CRUX_WEB_POST, "/api/v1/session/me/password", body);
+        CHECK(reply->status == 202);
+        CHECK(session_json_string(reply->body, "id", id, sizeof(id)));
+        CHECK(web_session_work_once());
+        reply = session_poll(id);
+        delayed = reply->status == 429;
+    }
+    CHECK(delayed);
+    expect_error(reply, 429, "retry_later");
+    CHECK(session_reply_headers(reply, "Retry-After", retry, 2u) == 1u);
+}
+
 int main(void)
 {
     test_missing_session();
@@ -463,5 +564,8 @@ int main(void)
     test_logout();
     test_response_headers();
     test_hash_failure();
+    test_refused_change_closes();
+    test_expired_change_keeps_the_session();
+    test_change_delay_window_is_429();
     return session_test_finish("web_session_sessions");
 }
