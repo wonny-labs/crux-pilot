@@ -459,7 +459,7 @@ firmware file then broke it, and the matcher is narrowed for exactly these two.
 ```mermaid
 flowchart LR
     text[File text] --> nodeuse{Node.js, npm or a frontend path?}
-    nodeuse -- "web/client, reference, mock, tools, e2e, package" --> reds[Counts, unless under components/web/]
+    nodeuse -- "web/client, reference, mock, tools, e2e, package" --> reds[Counts, unless web/ follows a components/ segment]
     nodeuse -- "web/api/lint or any other web/api path" --> reds
     nodeuse -- "web/api/openapi.yaml" --> okspec[Does not count: plain YAML, no Node.js runs on it]
     nodeuse -- "components/web/tools, the route generator" --> okgen[Does not count: firmware Python, not the frontend]
@@ -467,10 +467,11 @@ flowchart LR
 
 | Text | Counts | Reason |
 | --- | --- | --- |
-| `components/web/tools/web_routes.py`, in `cmake/CruxWebRoutes.cmake` and the generated header | No | The firmware component `components/web` has its own `tools`. The old pattern matched the `web/tools` inside that path. |
-| `web/api/openapi.yaml`, in component comments and `tests/mgmt_status/CMakeLists.txt` | No | The specification is the contract between firmware and frontend, and firmware tests read it as data with Python. |
+| `components/web/tools/web_routes.py`, in `cmake/CruxWebRoutes.cmake` and the generated header | No | The firmware component `components/web` has its own `tools`. The old pattern matched the `web/tools` inside that path. A path segment named exactly `components` exempts it. `mycomponents/`, `xcomponents/` and `.components/` do not. A scan cannot tell `src/components/` from `${DIR}/components/`, and the repository has no nested components directory, so `src/components/web/...` is taken as the firmware tree. |
+| `web/api/openapi.yaml`, in component comments and `tests/mgmt_status/CMakeLists.txt` | No | The specification is the contract between firmware and frontend, and firmware tests read it as data with Python. A path that goes on from the file name (`openapi.yaml/../lint`, `openapi.yaml/`, `openapi.yaml.orig`) still counts. |
 | `web/api/lint`, `web/api` as a directory, any other file in `web/api` | Yes | The lint tools need Node.js. |
-| `web/tools`, `web/client` and the rest, in any path that is not `components/web/` | Yes | Unchanged. `components/web/../../web/tools` still counts. |
+| `web/tools`, `web/client` and the rest, in any path whose `web/` does not follow a `components/` segment | Yes | Unchanged. `components/web/../../web/tools` still counts. |
+| `redocly lint web/api/openapi.yaml`, `spectral lint web/api/openapi.yaml` | **No, a known gap** | A Node.js tool run on the specification by its bare path is no longer caught by the path rule. This is the accepted cost of exempting the file. The npm and npx rules still catch `npx spectral`. A fixture pins the gap. |
 
 The test gained fixtures for each row, including the cases that must still count. A scan of the repository with a new
 tracked offending file in `cmake/` and in `components/web/` fails, as before.

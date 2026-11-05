@@ -35,6 +35,14 @@ for (const [name, text] of Object.entries({
   'a copy of the specification under another name': 'COMMAND check ${PROJECT_SOURCE_DIR}/web/api/openapi.yaml.orig',
   'the lint tools named after the specification': '/* web/api/openapi.yaml, linted by web/api/lint */',
   'a frontend directory under a component path': 'COMMAND python3 components/web/../../web/tools/gen-types.ts',
+  'the specification as a directory, then the lint tools': 'COMMAND check web/api/openapi.yaml/../lint',
+  'the lint package beside the specification path': 'COMMAND check web/api/openapi.yaml/../lint/package.json',
+  'the specification name with a trailing slash': 'COMMAND check web/api/openapi.yaml/',
+  'web tools under a directory that only ends in components': 'COMMAND python3 mycomponents/web/tools/gen-types.ts',
+  'web tools under a directory that starts with an x before components': 'COMMAND python3 xcomponents/web/tools/gen-types.ts',
+  'the API lint under a directory that ends in components': 'add_subdirectory(mycomponents/web/api/lint)',
+  'a hidden directory that ends in components': 'COMMAND python3 .components/web/tools/gen-types.ts',
+  'an npm tool run on the specification': 'COMMAND npx spectral lint web/api/openapi.yaml',
 })) {
   test(`${name} counts as a C build using Node.js`, () => {
     assert.notDeepEqual(nodeUseIn(text), [], text);
@@ -54,6 +62,14 @@ for (const text of [
   'add_test(NAME x COMMAND python3 check.py --spec ${PROJECT_SOURCE_DIR}/web/api/openapi.yaml)',
   '/* The JSON forms of web/api/openapi.yaml. */',
   '/* Written as the StatusReport of web/api/openapi.yaml. */',
+  // A component directory is met as `components/`, `../components/` or `${DIR}/components/`, so any path
+  // segment named exactly `components` is the firmware tree. A scan cannot tell `src/components/` from
+  // `${DIR}/components/`, and no nested components directory exists.
+  'COMMAND python3 src/components/web/tools/web_routes.py',
+  // Known gap, accepted with the rule on the specification file: a Node.js tool run on the specification
+  // by its bare path is not caught by the path rule. The npm and npx rules still catch `npx spectral`.
+  'COMMAND redocly lint web/api/openapi.yaml',
+  'COMMAND spectral lint web/api/openapi.yaml',
 ]) {
   test(`${JSON.stringify(text)} does not count`, () => {
     assert.deepEqual(nodeUseIn(text), []);
