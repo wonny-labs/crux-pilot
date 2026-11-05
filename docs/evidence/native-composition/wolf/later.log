@@ -14,15 +14,16 @@ TESTSUITE later_boot succeeded
 
 ------ TESTSUITE SUMMARY START ------
 
-SUITE SKIP -   0.00% [first_boot]: pass = 0, fail = 0, skip = 8, total = 8 duration = 0.000 seconds
+SUITE SKIP -   0.00% [first_boot]: pass = 0, fail = 0, skip = 9, total = 9 duration = 0.000 seconds
  - SKIP - [first_boot.test_01_declaration] duration = 0.000 seconds
  - SKIP - [first_boot.test_02_ssh_host_key_by_profile] duration = 0.000 seconds
  - SKIP - [first_boot.test_03_login] duration = 0.000 seconds
  - SKIP - [first_boot.test_04_status] duration = 0.000 seconds
  - SKIP - [first_boot.test_05_configuration] duration = 0.000 seconds
  - SKIP - [first_boot.test_06_events] duration = 0.000 seconds
- - SKIP - [first_boot.test_07_medium] duration = 0.000 seconds
- - SKIP - [first_boot.test_08_tls_beside_the_services] duration = 0.000 seconds
+ - SKIP - [first_boot.test_07_stored_verifier_is_real] duration = 0.000 seconds
+ - SKIP - [first_boot.test_08_medium] duration = 0.000 seconds
+ - SKIP - [first_boot.test_09_tls_beside_the_services] duration = 0.000 seconds
 
 SUITE PASS - 100.00% [later_boot]: pass = 1, fail = 0, skip = 0, total = 1 duration = 0.000 seconds
  - PASS - [later_boot.test_01_accounts_and_keys_survive] duration = 0.000 seconds

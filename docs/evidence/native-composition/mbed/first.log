@@ -25,27 +25,31 @@ START - test_06_events
 COMPOSITION events emitted=31 delivered=31 dropped=0 log_errors=0 high_water=9
  PASS - test_06_events in 2.120 seconds
 ===================================================================
-START - test_07_medium
- PASS - test_07_medium in 0.610 seconds
+START - test_07_stored_verifier_is_real
+ PASS - test_07_stored_verifier_is_real in 0.610 seconds
 ===================================================================
-START - test_08_tls_beside_the_services
-COMPOSITION tf_psa_core_locks=203361
+START - test_08_medium
+ PASS - test_08_medium in 0.610 seconds
+===================================================================
+START - test_09_tls_beside_the_services
+COMPOSITION tf_psa_core_locks=203379
 COMPOSITION first boot complete
- PASS - test_08_tls_beside_the_services in 0.700 seconds
+ PASS - test_09_tls_beside_the_services in 0.710 seconds
 ===================================================================
 TESTSUITE first_boot succeeded
 
 ------ TESTSUITE SUMMARY START ------
 
-SUITE PASS - 100.00% [first_boot]: pass = 8, fail = 0, skip = 0, total = 8 duration = 7.090 seconds
+SUITE PASS - 100.00% [first_boot]: pass = 9, fail = 0, skip = 0, total = 9 duration = 7.710 seconds
  - PASS - [first_boot.test_01_declaration] duration = 0.610 seconds
  - PASS - [first_boot.test_02_ssh_host_key_by_profile] duration = 0.610 seconds
  - PASS - [first_boot.test_03_login] duration = 1.220 seconds
  - PASS - [first_boot.test_04_status] duration = 0.610 seconds
  - PASS - [first_boot.test_05_configuration] duration = 0.610 seconds
  - PASS - [first_boot.test_06_events] duration = 2.120 seconds
- - PASS - [first_boot.test_07_medium] duration = 0.610 seconds
- - PASS - [first_boot.test_08_tls_beside_the_services] duration = 0.700 seconds
+ - PASS - [first_boot.test_07_stored_verifier_is_real] duration = 0.610 seconds
+ - PASS - [first_boot.test_08_medium] duration = 0.610 seconds
+ - PASS - [first_boot.test_09_tls_beside_the_services] duration = 0.710 seconds
 
 SUITE SKIP -   0.00% [later_boot]: pass = 0, fail = 0, skip = 1, total = 1 duration = 0.000 seconds
  - SKIP - [later_boot.test_01_accounts_and_keys_survive] duration = 0.000 seconds

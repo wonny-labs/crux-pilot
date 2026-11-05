@@ -100,7 +100,7 @@ sequenceDiagram
 
 ### Results
 
-Run by `scripts/test-tls-offload-probe.sh all` in the Dev Container image at `68adea7`, on `native_sim/native/64`. Retained in [`docs/evidence/tls-offload-probe/`](evidence/tls-offload-probe/). CI also runs the Mbed profile, with the same result, and only that one, because a default workflow must not fetch the wolf stacks.
+Run by `scripts/test-tls-offload-probe.sh all` in the Dev Container image at `53a0494`, on `native_sim/native/64`. Retained in [`docs/evidence/tls-offload-probe/`](evidence/tls-offload-probe/). CI also runs the Mbed profile, with the same result, and only that one, because a default workflow must not fetch the wolf stacks.
 
 | Step | Mbed profile | Wolf profile |
 | --- | --- | --- |
@@ -218,7 +218,7 @@ The mapping is [the design's](psa-crypto-design.md#what-each-port-calls), and th
 
 ## Composition results
 
-`scripts/test-native-composition.sh` runs one image three times on one disk file, as separate processes, each with its own seed. Retained in [`docs/evidence/native-composition/`](evidence/native-composition/), from a local run at `68adea7`. CI runs the Mbed profile, and the Wolf profile is local only.
+`scripts/test-native-composition.sh` runs one image three times on one disk file, as separate processes, each with its own seed. Retained in [`docs/evidence/native-composition/`](evidence/native-composition/), from a local run at `53a0494`. CI runs the Mbed profile, and the Wolf profile is local only.
 
 ```mermaid
 sequenceDiagram

@@ -4,29 +4,29 @@
   "steps": {
     "abrupt_closes": {
       "count": 6,
-      "handshake_seconds_max": 0.013,
+      "handshake_seconds_max": 0.014,
       "handshake_seconds_min": 0.008,
       "result": "pass",
-      "seconds": 0.319
+      "seconds": 0.331
     },
     "after_limit_recovers": {
       "count": 2,
-      "handshake_seconds_max": 0.016,
-      "handshake_seconds_min": 0.015,
+      "handshake_seconds_max": 0.011,
+      "handshake_seconds_min": 0.01,
       "result": "pass",
-      "seconds": 0.09
+      "seconds": 0.07
     },
     "after_stall_recovers": {
       "count": 2,
-      "handshake_seconds_max": 0.017,
-      "handshake_seconds_min": 0.012,
+      "handshake_seconds_max": 0.019,
+      "handshake_seconds_min": 0.013,
       "result": "pass",
-      "seconds": 0.073
+      "seconds": 0.077
     },
     "concurrent_connections": {
       "connections_held": 4,
       "result": "pass",
-      "seconds": 0.239,
+      "seconds": 0.186,
       "still_working": 4,
       "stopped_by": "ConnectionResetError: [Errno 104] Connection reset by peer",
       "tried": 9
@@ -54,67 +54,67 @@
       "result": "pass"
     },
     "raw_poll_after_abrupt_close": {
-      "cpu_share_after_abrupt_close": 0.01,
-      "cpu_share_idle": 0.02,
+      "cpu_share_after_abrupt_close": 0.03,
+      "cpu_share_idle": 0.03,
       "result": "pass",
-      "seconds": 5.057,
+      "seconds": 5.053,
       "server_saw_the_close": true
     },
     "repeated_connections": {
       "count": 20,
       "handshake_seconds_max": 0.015,
-      "handshake_seconds_min": 0.01,
+      "handshake_seconds_min": 0.008,
       "result": "pass",
-      "seconds": 0.86
+      "seconds": 0.81
     },
     "stalled_client": {
       "result": "pass",
       "second_client_ok": true,
-      "second_client_waited_seconds": 9.534,
-      "seconds": 10.113
+      "second_client_waited_seconds": 9.539,
+      "seconds": 10.121
     },
     "tls1.2_exchange": {
       "cipher": "ECDHE-ECDSA-AES256-GCM-SHA384",
       "cipher_bits": 256,
       "close_notify_from_server": true,
       "result": "pass",
-      "seconds": 0.398,
+      "seconds": 0.206,
       "version": "TLSv1.2"
     },
     "tls1.2_plain_text": {
       "answer_bytes": 0,
       "ended": "ConnectionResetError",
       "result": "pass",
-      "seconds": 0.009
+      "seconds": 0.002
     },
     "tls1.2_port_newer_client": {
       "negotiated": "TLSv1.2",
       "result": "pass",
-      "seconds": 0.058
+      "seconds": 0.062
     },
     "tls1.2_untrusted_refused": {
       "refused": "self-signed certificate",
       "result": "pass",
-      "seconds": 0.012
+      "seconds": 0.009
     },
     "tls1.3_exchange": {
       "cipher": "TLS_AES_256_GCM_SHA384",
       "cipher_bits": 256,
       "close_notify_from_server": true,
       "result": "pass",
-      "seconds": 0.185,
+      "seconds": 0.108,
       "version": "TLSv1.3"
     },
     "tls1.3_plain_text": {
       "answer_bytes": 0,
       "ended": "ConnectionResetError",
       "result": "pass",
-      "seconds": 0.002
+      "seconds": 0.001
     },
     "tls1.3_untrusted_refused": {
       "refused": "self-signed certificate",
       "result": "pass",
-      "seconds": 0.015
+      "seconds": 0.009
     }
   }
 }
