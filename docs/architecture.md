@@ -106,6 +106,7 @@ This is a source/integration inventory, not a qualification matrix. “Host” m
 | Status service | Permission-filtered status items and their JSON form, with a rate-limited snapshot of System and clock sources | Portable core with thin System, Time and Netif providers, on Host and `native_sim`, under review for Issue #180; timing and its effect on control threads unmeasured | [Services contract](status-configuration-services.md) |
 | Web | Project routes with a mandatory access class, enforced before a handler runs, on a private adapter over the Zephyr HTTP server | Portable core on Host fakes, and the adapter on `native_sim` over plain HTTP, under review for Issue #184. No TLS or login yet, and no target has run it | [Contract](web-contract.md) |
 | SSH provider (private) | The interface that keeps SSH library types out of the CLI, SFTP and access adapters; not a public capability | Host fake provider only, under review for Issue #205; wolfSSL and wolfSSH settings built for RT1060-EVKB and `native_sim`, and never run; no real provider | [Contract](ssh-provider-contract.md) |
+| SSH provider (private) | The interface that keeps SSH library types out of the CLI, SFTP and access adapters; not a public capability | Host fake provider. wolfSSH provider under review for Issue #192: OpenSSH and the conformance cases on `native_sim`, with test Access ports and a test host key; compile only for RT1060-EVKB; no board evidence | [Contract](ssh-provider-contract.md), [provider](ssh-wolf-provider.md) |
 
 ## Build and platform composition
 
