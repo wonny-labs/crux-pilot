@@ -19,6 +19,15 @@ if [[ "${CRUX_STORAGE_32BIT:-0}" == 1 ]]; then
     platforms+=(-p native_sim/native)
 fi
 
+# This gate builds Reliance Edge, so a workspace without the optional tree fails rather than
+# skipping those steps.
+reliance="$workspace/modules/fs/reliance-edge"
+if [[ ! -f "$reliance/include/redposix.h" ]]; then
+    printf 'Reliance Edge source not found at %s. Enable the optional west group crux-reliance (west config manifest.group-filter -- +crux-reliance, then west update reliance-edge).\n' \
+        "$reliance" >&2
+    exit 2
+fi
+
 # The MMC stack against the eMMC simulator, with and without a cache, unmodified and with the
 # build-local cache flush correction; never a target board.
 (cd "$workspace" && west twister -j 2 "${platforms[@]}" \
@@ -119,3 +128,78 @@ print(f'replay fatfs: {report["counts"]["cases"]} cases, '
       f'{report["counts"]["observed_failures"]} observed failures, '
       'both controls failed as required')
 PY
+
+# Reliance Edge behind the Zephyr VFS on a RAM disk named MMC. The images link the GPLv2 source and
+# are test images only.
+(cd "$workspace" && west twister -j 2 "${platforms[@]}" \
+    -T "$repo/tests/native/file_reliance" \
+    -O "$repo/build/zephyr/twister-file-reliance" --inline-logs)
+python3 - "$repo/build/zephyr/twister-file-reliance/twister.json" <<'PY'
+import json
+import os
+from pathlib import Path
+import sys
+
+executed = {'crux.file.reliance': 10}
+platforms = ['native_sim/native/64']
+if os.environ.get('CRUX_STORAGE_32BIT') == '1':
+    platforms.append('native_sim/native')
+expected = {(scenario, platform): count
+            for scenario, count in executed.items()
+            for platform in platforms}
+
+suites = json.loads(Path(sys.argv[1]).read_text())['testsuites']
+found = {(suite['name'].rsplit('/', 1)[-1], suite['platform']): suite for suite in suites}
+if len(suites) != len(found) or set(found) != set(expected):
+    raise RuntimeError(f'unexpected or missing Reliance Edge suites: {sorted(found)}')
+for key, suite in found.items():
+    cases = suite.get('testcases', [])
+    passed = [c for c in cases if c.get('status') == 'passed']
+    if (suite.get('status') != 'passed' or not suite.get('runnable') or
+            len(passed) != expected[key] or len(cases) != expected[key]):
+        raise RuntimeError(f'{key}: the cases did not all execute and pass')
+    print(f'{key[0]} {key[1]}: {len(passed)} executed cases PASS')
+PY
+
+# Negative builds, configuration only. Reliance Edge on an MMC disk without the cache flush
+# correction must fail, naming the option; the correction or the fixture-only control lets it
+# configure, so the failure is the guard's.
+guard_dir="$repo/build/zephyr/reliance-guard"
+guard_log="$guard_dir.log"
+if (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$guard_dir" \
+        "$repo/tests/native/emmc_stack" -- -DCONFIG_FILE_SYSTEM=y \
+        -DCONFIG_CRUX_FS_RELIANCE_EDGE=y) >"$guard_log" 2>&1; then
+    printf 'Reliance Edge on an MMC disk configured without CONFIG_CRUX_MMC_CACHE_FLUSH\n' >&2
+    exit 1
+fi
+# CMake wraps a message over lines, so whitespace is folded before matching.
+folded="$(tr -s '[:space:]' ' ' <"$guard_log")"
+[[ "$folded" == *'Reliance Edge on an MMC disk requires CONFIG_CRUX_MMC_CACHE_FLUSH=y'* ]] || {
+    printf 'The MMC guard did not fail for the stated reason; see %s\n' "$guard_log" >&2
+    exit 1
+}
+for allowed in -DCONFIG_CRUX_MMC_CACHE_FLUSH=y -DCRUX_EMMC_FLUSH_CONTROL=ON; do
+    (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$guard_dir" \
+        "$repo/tests/native/emmc_stack" -- -DCONFIG_FILE_SYSTEM=y \
+        -DCONFIG_CRUX_FS_RELIANCE_EDGE=y "$allowed") >"$guard_log" 2>&1 || {
+        printf 'The MMC guard refused %s; see %s\n' "$allowed" "$guard_log" >&2
+        exit 1
+    }
+done
+printf 'Reliance Edge MMC guard: refused without the correction, allowed with it or the control\n'
+
+# A tree that is not there is a configuration error that names the west group.
+missing_dir="$repo/build/zephyr/reliance-missing"
+missing_log="$missing_dir.log"
+if (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$missing_dir" \
+        "$repo/tests/native/file_reliance" -- -DCRUX_RELIANCE_EDGE_DIR=/nonexistent) \
+        >"$missing_log" 2>&1; then
+    printf 'A build without the Reliance Edge tree configured\n' >&2
+    exit 1
+fi
+folded="$(tr -s '[:space:]' ' ' <"$missing_log")"
+[[ "$folded" == *'Enable the optional west group crux-reliance'* ]] || {
+    printf 'A missing Reliance Edge tree did not name the west group; see %s\n' "$missing_log" >&2
+    exit 1
+}
+printf 'Reliance Edge missing tree: refused, naming the west group crux-reliance\n'

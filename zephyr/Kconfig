@@ -203,3 +203,5 @@ config CRUX_MMC_CACHE_FLUSH
       cache on, DISK_IOCTL_CTRL_SYNC sends FLUSH_CACHE and returns an error unless
       the card completes it. The Zephyr checkout is never edited, and a pinned
       source that differs from the expected one fails the configuration.
+
+rsource "fs/reliance_edge/Kconfig"

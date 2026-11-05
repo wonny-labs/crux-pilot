@@ -102,3 +102,8 @@ endif()
 if(CONFIG_CRUX_MMC_CACHE_FLUSH)
     include("${CMAKE_CURRENT_LIST_DIR}/mmc_cache_flush.cmake")
 endif()
+
+if(CONFIG_CRUX_FS_RELIANCE_EDGE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/fs/reliance_edge"
+        "${CMAKE_CURRENT_BINARY_DIR}/fs_reliance_edge")
+endif()
