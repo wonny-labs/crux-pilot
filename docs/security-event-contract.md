@@ -19,10 +19,12 @@ Provider of the Access event port: object target `crux_security_event_access_por
 | Drain to Logging on a low-priority thread | Runs on Host, with the Linux Logging provider |
 | Provider of `crux_access_port_event` | Implemented, every port event and result mapped |
 | Recording fake of the public contract | `tests/security_event/fake`, for consumers' Host tests |
-| Emitters outside Access: credential, file, config, CLI, web, SSH, network settings, reboot | Identifiers exist. The emitters are other issues. |
+| Provider of `crux_credential_port_event` | `crux_credential_security_events`, in the store's component, because this component names no storage type |
+| Emitters outside Access: file, CLI, web, SSH, network settings, reboot | Identifiers exist. The emitters are other issues. The credential store and configuration service emit, through their providers. |
 | `GET /api/v1/events` | Not implemented, M11. The read function it needs exists. |
-| Status items from the counts | Not implemented, Issue #180. The getter it needs exists. |
-| Zephyr composition, `native_sim`, target | Not implemented. See [What is not known](#what-is-not-known). |
+| Status items from the counts | `crux_mgmt_status_security_events`, in [the status service](status-configuration-services.md) |
+| Zephyr composition on `native_sim` | [For tests](native-management-composition.md), on the Crux Logging provider with an emulated UART, which shows the drain's counts and nothing on a wire |
+| Target | Not implemented. See [What is not known](#what-is-not-known). |
 | Persistence | None, by decision E5. A reset loses the ring. |
 
 ## Structure

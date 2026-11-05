@@ -397,6 +397,44 @@ ZTEST(configuration_settings_file, test_roundtrip_survives_remount_for_u32_and_b
     zassert_true(flag.data.boolean);
 }
 
+/* A string of the maximum length through the real store, and an empty one. */
+ZTEST(configuration_settings_file, test_string_roundtrip_survives_remount)
+{
+    static const crux_config_spec_t text_spec = {
+        .key = "host_name",
+        .schema_version = 1,
+        .default_value = {.type = CRUX_CONFIG_STRING, .data.string = {.text = "crux", .length = 4}},
+    };
+    static char storage[CRUX_CONFIG_STRING_MAX + 1];
+    static char longest[CRUX_CONFIG_STRING_MAX + 1];
+    memset(longest, 'x', CRUX_CONFIG_STRING_MAX);
+    crux_config_param_t p = {0};
+    zassert_ok(crux_config_init_string(&p, &text_spec, storage, sizeof(storage)));
+    zassert_equal(crux_config_load(&p), CRUX_CONFIG_DEFAULT_MISSING);
+
+    crux_config_value_t v = {.type = CRUX_CONFIG_STRING};
+    v.data.string.text = longest;
+    v.data.string.length = CRUX_CONFIG_STRING_MAX;
+    zassert_ok(crux_config_update(&p, &v));
+    zassert_equal(crux_config_save(&p), CRUX_CONFIG_OK);
+    remount();
+    zassert_ok(crux_config_update(&p, &text_spec.default_value));
+    zassert_equal(crux_config_load(&p), CRUX_CONFIG_OK);
+    zassert_ok(crux_config_read(&p, &v));
+    zassert_equal(v.data.string.length, CRUX_CONFIG_STRING_MAX);
+    zassert_str_equal(v.data.string.text, longest);
+
+    v.data.string.text = "";
+    v.data.string.length = 0;
+    zassert_ok(crux_config_update(&p, &v));
+    zassert_equal(crux_config_save(&p), CRUX_CONFIG_OK);
+    remount();
+    zassert_ok(crux_config_update(&p, &text_spec.default_value));
+    zassert_equal(crux_config_load(&p), CRUX_CONFIG_OK);
+    zassert_ok(crux_config_read(&p, &v));
+    zassert_equal(v.data.string.length, 0);
+}
+
 ZTEST(configuration_settings_file, test_each_load_read_fault_preserves_active)
 {
     static const uint8_t unrelated[5] = {1, 1, 1, 0, 1};

@@ -714,6 +714,19 @@ static void case_request_after_login_ends_the_connection(const crux_ssh_test_cli
     CHECK(count_events(EVENT_CONNECTION_CLOSED) == 2);
     event = last_event(EVENT_CONNECTION_CLOSED);
     CHECK(event != NULL && event->attachment_id == 2);
+
+    /* A key probe, and the request that is free only as the opening one. */
+    connection = connect_ok(client, &client->peer_b);
+    CHECK(client->password(connection, "operator", 8, "secret"));
+    CHECK(!client->key_probe(connection, "operator", ed25519, ED25519_KEY(client)));
+    CHECK(!client->is_connected(connection));
+    connection = connect_ok(client, &client->peer_b);
+    CHECK(client->password(connection, "operator", 8, "secret"));
+    CHECK(!client->none_request(connection, "operator"));
+    CHECK(!client->is_connected(connection));
+    CHECK(count_events(EVENT_KEY_CHECK) == 0);
+    CHECK(count_events(EVENT_PASSWORD) == 4);
+    CHECK(count_events(EVENT_CONNECTION_CLOSED) == 4);
 }
 
 /* Two connections at once, so a provider that mixes them up reports the wrong address. */
@@ -1768,6 +1781,8 @@ unsigned crux_ssh_conformance_run_case(const crux_ssh_conformance_case_t *test,
     verbose_output = verbose;
     current_case = test->name;
     state.client = client;
+    /* A real provider polls during a case that takes its time, as the fake never does. */
+    state.session_alive_result = true;
     test->run(client);
     return failures;
 }

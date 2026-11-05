@@ -1,10 +1,11 @@
 """Read-only M5 fixture identity. Reuse M3 geometry checks, not M3 profiles or protocol."""
 from pathlib import Path
-from m3_image import check_image_bytes,require
+from m3_image import check_image_bytes,check_optimization,require
 
 def check_image(binary_path,elf_path,config_path):
     geometry=check_image_bytes(binary_path,elf_path)
     symbols=geometry['symbols'];config=Path(config_path).read_text().splitlines()
+    check_optimization(config)
     required={
         'CONFIG_BOARD_REVISION="B"','CONFIG_BOARD_TARGET="mimxrt1060_evk@B/mimxrt1062/qspi"',
         'CONFIG_FLASH_BASE_ADDRESS=0x60000000','CONFIG_FLASH_SIZE=8192','CONFIG_FLASH_LOAD_OFFSET=0',
