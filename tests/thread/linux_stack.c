@@ -58,6 +58,7 @@ int main(void)
     CHECK(crux_thread_create(&options, worker, &ran, &thread) == CRUX_OK);
     CHECK(crux_thread_join(&thread, 1000) == CRUX_OK);
     CHECK(ran == 1);
+    CHECK(requested_stack >= (size_t)REPORTED_MINIMUM);
 
     options.stack_size_bytes = 65537;
     CHECK(crux_thread_create(&options, worker, &ran, &thread) == CRUX_ERR_OUT_OF_RANGE);
