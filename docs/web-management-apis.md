@@ -280,6 +280,7 @@ Local runs in container `crux-187`, image `crux-pilot-devcontainer:local` under 
 - The save state is global. Any session holding `config.save` sees the outcome of another user's save, and only a failure code, never a name.
 - The worker has no stop or join. `crux_web_management_init()` resets the state and is safe only before the worker starts, which a composition does once at boot.
 - The mock follows the device where a client could see a difference: a repeated member and a content type that is not JSON are `400`, and a malformed body is `400` before the parameter is looked at. It still differs in three ways: its body limit is 4,096 bytes and not 1,024, it ignores the query as the device does but never answers the server's plain `500`, and its number rule reads the lexeme of the one `value` member by pattern.
+- Two more differences, which were already there and which no client of a browser sends. An escaped member name such as `{"v\u0061lue":8}` is accepted by the device, and the mock's pattern for a plain integer names the literal `value`, so the mock refuses a u32 sent that way as `out_of_range`. A lone surrogate escape in a string value, such as `"\ud800"`, is `400` on the device and `200` in the mock, which holds it as a string.
 
 ## What is not verified
 
