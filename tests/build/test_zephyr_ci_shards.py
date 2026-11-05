@@ -76,7 +76,8 @@ def misplaced_steps(job_steps, shards):
     A check is any step with a `run:` and any step that mentions repository code, whatever
     command it runs: one that names no shard runs in all of them, and one that names a
     shard the matrix lacks is skipped while the run stays green. A named set-up step is
-    exempt, but only while it mentions no repository code beyond the set-up scripts.
+    exempt while it mentions no repository code. One that runs a set-up script is exempt
+    whatever else it runs, as it was under the earlier rule.
     """
     result = []
     for step in job_steps:
