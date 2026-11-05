@@ -26,6 +26,7 @@
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/printk.h>
 
+#include <wolfssh/internal.h>
 #include <wolfssl/wolfcrypt/aes.h>
 #include <wolfssl/wolfcrypt/curve25519.h>
 #include <wolfssl/wolfcrypt/ed25519.h>
@@ -35,6 +36,14 @@
 
 #include <stdio.h>
 #include <string.h>
+
+/* The design's user key row: Ed25519 and P-256 are compiled in, and no other key type. */
+#if defined(WOLFSSH_NO_ED25519) || defined(WOLFSSH_NO_ECDSA_SHA2_NISTP256)
+#error "Ed25519 and ECDSA P-256 keys are required"
+#endif
+#if !defined(WOLFSSH_NO_ECDSA_SHA2_NISTP384) || !defined(WOLFSSH_NO_ECDSA_SHA2_NISTP521)
+#error "Only P-256 is in the design's user key row"
+#endif
 
 #define SERVER_PORT 2222 /* The port of valid_config in tests/ssh/conformance.c. */
 #define CONNECTIONS_MAX 24

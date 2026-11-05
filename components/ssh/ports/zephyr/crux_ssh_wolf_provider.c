@@ -26,6 +26,14 @@
 #include <errno.h>
 #include <string.h>
 
+/* The design leaves these out, so that their code is not exposed to the network. */
+#if defined(WOLFSSH_SCP) || defined(WOLFSSH_FWD) || defined(WOLFSSH_AGENT) || defined(WOLFSSH_CERTS)
+#error "SCP, forwarding, agent forwarding and certificates stay disabled"
+#endif
+#ifndef WOLFSSH_NO_RSA
+#error "Owner decision: no RSA in SSH"
+#endif
+
 /* The longest a worker or the listener goes without looking at its limits and for a stop. */
 #define WOLF_TICK_MS 50
 
@@ -57,6 +65,10 @@
 /* How often a login with no session yet asks whether its access session still stands. */
 #define WOLF_PRESESSION_POLL_MS 30000
 
+/* How many refused sockets wait to close, and for how long. */
+#define WOLF_REFUSALS_HELD 2
+#define WOLF_REFUSAL_HOLD_MS 500
+
 #define HOST_KEY_ED25519_BYTES 64u
 #define HOST_KEY_P256_BYTES 97u
 #define HOST_KEY_PRIVATE_BYTES 32u
@@ -65,7 +77,7 @@ static const char algorithm_ed25519[] = "ssh-ed25519";
 static const char algorithm_p256[] = "ecdsa-sha2-nistp256";
 static const char curve_p256[] = "nistp256";
 
-#if !defined(WOLFSSH_NO_CURVE25519_MLKEM768_SHA256) && defined(CRUX_SSH_WOLF_OFFER_MLKEM)
+#ifdef CRUX_SSH_WOLF_OFFER_MLKEM
 #define WOLF_KEX_LIST "mlkem768x25519-sha256,curve25519-sha256,ecdh-sha2-nistp256"
 #else
 #define WOLF_KEX_LIST "curve25519-sha256,ecdh-sha2-nistp256"
@@ -109,6 +121,11 @@ K_THREAD_STACK_ARRAY_DEFINE(worker_stacks, CRUX_SSH_WOLF_CONNECTIONS_MAX,
 K_THREAD_STACK_DEFINE(listener_stack, CRUX_SSH_WOLF_LISTENER_STACK_BYTES);
 static K_MUTEX_DEFINE(server_lock);
 
+typedef struct {
+    int socket;
+    int64_t close_at;
+} refused_socket_t;
+
 static struct {
     bool started;
     atomic_t stopping;
@@ -118,11 +135,21 @@ static struct {
     int listener_socket;
     struct k_thread listener;
     connection_t connections[CRUX_SSH_WOLF_CONNECTIONS_MAX];
+    refused_socket_t refused[WOLF_REFUSALS_HELD];
 #ifdef CRUX_SSH_WOLF_TESTING
     size_t worker_stack_used;
     size_t listener_stack_used;
 #endif
 } server;
+
+static void wipe(void *buffer, size_t length)
+{
+    volatile uint8_t *bytes = buffer;
+
+    for (size_t i = 0; i < length; ++i) {
+        bytes[i] = 0u;
+    }
+}
 
 static bool is_stopping(void)
 {
@@ -292,11 +319,13 @@ static int check_password(connection_t *connection, const char *user,
                           const WS_UserAuthData_Password *password)
 {
     crux_ssh_attachment_t *attachment = NULL;
+    crux_ssh_auth_result_t result =
+        server.callbacks.password(server.callbacks.context, &connection->peer, user,
+                                  password->password, password->passwordSz, &attachment);
 
-    if (server.callbacks.password(server.callbacks.context, &connection->peer, user,
-                                  password->password, password->passwordSz,
-                                  &attachment) != CRUX_SSH_AUTH_ACCEPTED ||
-        attachment == NULL) {
+    /* It is plain text in wolfSSH's input buffer, which nothing reads again and which keeps it. */
+    wipe((void *)(uintptr_t)password->password, password->passwordSz);
+    if (result != CRUX_SSH_AUTH_ACCEPTED || attachment == NULL) {
         return WOLFSSH_USERAUTH_FAILURE;
     }
     connection->attachment = attachment;
@@ -777,6 +806,10 @@ static void connection_thread(void *first, void *second, void *third)
  * Past max_connections there is no worker to spend on the client, so the listener answers in one
  * non-blocking send: the version line and a disconnect in the clear, which RFC 4253 allows before
  * keys. Reason 12 is "too many connections". The packet is 48 bytes, with 10 of padding.
+ *
+ * The client is writing its own version and key exchange by then, and a write to a closed socket
+ * would reset the connection before it reads this. So the socket stays half closed for a moment, in
+ * one of a few places, and a flood only shortens that moment for the oldest.
  */
 static void refuse_connection(int socket)
 {
@@ -785,12 +818,36 @@ static void refuse_connection(int socket)
                                                    "too many connections"
                                                    "\x00\x00\x00\x00"
                                                    "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
-    uint8_t ignored[64];
+    refused_socket_t *place = &server.refused[0];
 
     (void)zsock_send(socket, refusal, sizeof(refusal) - 1u, ZSOCK_MSG_DONTWAIT);
-    /* Unread input would turn the close into a reset, which can overtake the message. */
-    (void)zsock_recv(socket, ignored, sizeof(ignored), ZSOCK_MSG_DONTWAIT);
-    (void)zsock_close(socket);
+    (void)zsock_shutdown(socket, ZSOCK_SHUT_WR);
+    for (size_t i = 0; i < ARRAY_SIZE(server.refused); ++i) {
+        if (server.refused[i].socket < 0) {
+            place = &server.refused[i];
+            break;
+        }
+        if (server.refused[i].close_at < place->close_at) {
+            place = &server.refused[i];
+        }
+    }
+    if (place->socket >= 0) {
+        (void)zsock_close(place->socket);
+    }
+    place->socket = socket;
+    place->close_at = k_uptime_get() + WOLF_REFUSAL_HOLD_MS;
+}
+
+static void close_refused_sockets(bool all)
+{
+    int64_t now = k_uptime_get();
+
+    for (size_t i = 0; i < ARRAY_SIZE(server.refused); ++i) {
+        if (server.refused[i].socket >= 0 && (all || now >= server.refused[i].close_at)) {
+            (void)zsock_close(server.refused[i].socket);
+            server.refused[i].socket = -1;
+        }
+    }
 }
 
 static connection_t *take_slot(void)
@@ -871,6 +928,7 @@ static void listener_thread(void *first, void *second, void *third)
         net_socklen_t address_length = sizeof(address);
         int socket;
 
+        close_refused_sockets(false);
         if (zsock_poll(&poll_entry, 1, WOLF_TICK_MS) <= 0) {
             continue;
         }
@@ -880,19 +938,11 @@ static void listener_thread(void *first, void *second, void *third)
             start_connection(socket, &address);
         }
     }
+    close_refused_sockets(true);
     STACK_PROBE_RECORD(server.listener_stack_used);
 }
 
 /* ---- Start and stop. ---- */
-
-static void wipe(void *buffer, size_t length)
-{
-    volatile uint8_t *bytes = buffer;
-
-    for (size_t i = 0; i < length; ++i) {
-        bytes[i] = 0u;
-    }
-}
 
 /*
  * The key in the form wolfSSH reads. These are fixed DER around the store's parts, so that there is
@@ -1086,6 +1136,9 @@ static crux_status_t provider_start(const crux_ssh_config_t *config,
         atomic_set(&server.stopping, 0);
         for (size_t i = 0; i < ARRAY_SIZE(server.connections); ++i) {
             atomic_set(&server.connections[i].state, SLOT_FREE);
+        }
+        for (size_t i = 0; i < ARRAY_SIZE(server.refused); ++i) {
+            server.refused[i].socket = -1;
         }
         (void)k_thread_create(&server.listener, listener_stack,
                               K_THREAD_STACK_SIZEOF(listener_stack), listener_thread, NULL, NULL,

@@ -58,7 +58,7 @@ flowchart TB
 ```mermaid
 stateDiagram-v2
     [*] --> Refused: past max_connections
-    Refused --> [*]: version line, disconnect 12, close
+    Refused --> [*]: version line, disconnect 12, half closed for 500 ms, close
     [*] --> Handshake: slot taken
     Handshake --> Closed: auth_timeout_ms, a failure, or stop
     Handshake --> Authenticated: password, or key with a verified signature
@@ -186,7 +186,7 @@ Each was taken without the owner, and the narrower choice was taken where there 
 | 2 | Non-blocking socket calls and a poll of at most 50 ms | A worker sees `auth_timeout_ms`, `session_alive` and a stop however quiet the client is. It costs up to 20 wake-ups a second per idle connection. | Socket wake-ups would need a primitive that both the offload and the target stack support |
 | 3 | `wolfSSH_CTX_SetChannelReqAnyCb` decides every channel request | It sees the raw request, so an embedded NUL and a subsystem name are refused before wolfSSH keeps them. `pty-req` and `window-change` are accepted with `WOLFSSH_TERM` off, which keeps its terminal code out. | The typed callbacks cannot see a NUL |
 | 4 | `sftp_open` runs as soon as the request is granted, before the client's `SSH_FXP_INIT` | A client that never sends it still gets the idle poll and the close. No file operation can come before `INIT`. | It could wait, and a silent client would then hold no file handle |
-| 5 | Refusal past the limit is the version line and a plain `SSH_MSG_DISCONNECT` with reason 12, in one non-blocking send from the listener | The design asks for a disconnect message, and the listener must not wait on a client. OpenSSH prints "too many connections". | A bare close |
+| 5 | Refusal past the limit is the version line and a plain `SSH_MSG_DISCONNECT` with reason 12, in one non-blocking send from the listener, and the socket stays half closed for 500 ms, for at most two refusals at a time | The design asks for a disconnect message, and the listener must not wait on a client. A prompt close raced the client's own write, which reset the connection and lost the message in one run. OpenSSH prints "too many connections". A composition counts two more sockets. | A bare close |
 | 6 | A logged-in connection with no session polls `session_alive` every 30 s | The interface names SFTP only, and otherwise an expired session could hold a slot until the client left. The case for `auth_timeout_ms` forbids applying that limit here. | The slot stays held until the client leaves |
 | 7 | Only a finished SFTP request resets the SFTP idle timer, and `SSH_MSG_IGNORE` does not, by the loop's construction and with no test of its own | A client cannot defer the poll with traffic that does nothing | None for a normal client |
 | 8 | An IPv4-mapped IPv6 address is that IPv4 source for the delay key | Passing its /64 would put every IPv4 client in one bucket | One test |
@@ -211,6 +211,8 @@ From running wolfSSH v1.6.0, for whoever works on this next.
 | The key exchange list also holds `ext-info-s` and `kex-strict-s` | Markers added by wolfSSH. They name nothing that can be negotiated. |
 | A concurrent password login gets `CRUX_ACCESS_ERR_BUSY`, which is a denial on the wire and counts as an attempt | The contract asks for this. A user can see a refused password while another login is verifying. |
 
+The provider wipes a password from wolfSSH's input buffer once the callback returns. That covers the plain text in that one buffer, and no copy that the TCP path or the client keeps.
+
 ## What was not verified
 
 | Item | Why |
@@ -222,6 +224,7 @@ From running wolfSSH v1.6.0, for whoever works on this next.
 | WinSCP | Needs a Windows host, and belongs to #194's acceptance |
 | `ssh-audit` | Not installed, and not fetched. The OpenSSH cases read the server's `KEXINIT` directly and test strict key exchange with a control. |
 | IPv6 through the provider | Decision 10 |
+| `scripts/test-ssh-wolf-settings.sh`, and with it the provider beside the TLS socket backend | This workspace is a shallow clone, and the recipe's patch needs blobs it lacks. The probe was built without the backend instead. See the pull request. |
 | wolfSSH in CI | Decision 15. Host suites run in CI, and the `native_sim` results here are from one local run. |
 | OpenSSH 10.1's warning | No such client here. 9.9 was the newest available. |
 

@@ -422,9 +422,11 @@ class Cases:
             for connection in held:
                 read_version(connection)
             mark = image.mark()
-            result = self.client.run("whoami", self.client.key_options("ed25519"))
-            check(result.returncode == 255, result.returncode)
-            check(b"too many connections" in result.stderr.lower(), result.stderr)
+            # Several times, because the message once lost a race with the client's own write.
+            for _ in range(10):
+                result = self.client.run("whoami", self.client.key_options("ed25519"))
+                check(result.returncode == 255, result.returncode)
+                check(b"too many connections" in result.stderr.lower(), result.stderr)
             check(not image.count(r"^ACCESS ", mark), image.snapshot()[mark:])
             check(not closed_within(held[0], 0.3), "the limit disturbed a held connection")
             held[0].close()
