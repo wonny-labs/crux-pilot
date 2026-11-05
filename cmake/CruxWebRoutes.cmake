@@ -23,6 +23,9 @@ function(crux_web_routes target)
     endif()
     set(tool "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../components/web/tools/web_routes.py")
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    # The packaged web folder of crux_web_assets() (Issue #189): its generated routes are scanned as a
+    # bundle, which the reviewed list holds as the one entry `public GET @assets`.
+    get_target_property(assets_source ${target} CRUX_WEB_ASSETS_SOURCE)
     set(sources)
     foreach(source IN LISTS ARG_SOURCES)
         cmake_path(ABSOLUTE_PATH source BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)
@@ -39,6 +42,11 @@ function(crux_web_routes target)
         list(APPEND outputs "${directory}/fake_resources.c")
         list(APPEND arguments --manifest "${directory}/fake_resources.c")
     endif()
+    set(bundle)
+    if(assets_source)
+        list(APPEND arguments --bundle "${assets_source}")
+        set(bundle "${assets_source}")
+    endif()
     set(reviewed)
     if(ARG_REVIEWED)
         cmake_path(ABSOLUTE_PATH ARG_REVIEWED BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)
@@ -47,10 +55,11 @@ function(crux_web_routes target)
     endif()
     add_custom_command(OUTPUT ${outputs}
         COMMAND "${Python3_EXECUTABLE}" "${tool}" ${arguments} ${sources}
-        DEPENDS "${tool}" ${sources} ${reviewed}
+        DEPENDS "${tool}" ${sources} ${bundle} ${reviewed}
         COMMENT "Generating the web route table of ${target}"
         VERBATIM)
     target_sources(${target} PRIVATE ${outputs})
+    set_target_properties(${target} PROPERTIES CRUX_WEB_ROUTES_CONFIGURED TRUE)
     if(ARG_ZEPHYR_RESOURCES)
         target_link_libraries(${target} PRIVATE crux_web_zephyr_resources)
     endif()
