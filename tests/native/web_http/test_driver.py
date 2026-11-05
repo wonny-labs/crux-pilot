@@ -753,8 +753,8 @@ def case_slow_reader_with_progress():
         **summary, "bytes_read": total, "response_deadline_ms": int(RESPONSE_DEADLINE_S * 1000)}
 
 
-def case_slow_reader_small_responses():
-    """A silent reader whose socket is full: a one-piece response never meets the response deadline."""
+def fill_a_silent_readers_socket():
+    """Small requests to a reader that reads nothing, until a stall shows. Returns the other client's view."""
     reader = Client(rcvbuf=2048)
     check(reader.request("GET", f"/probe/send-buffer/{SMALL_RESPONSE_SEND_BUFFER}").status == 200, "arming")
     request = encode("GET", "/api/v1/status", {"Cookie": ADMIN})
@@ -775,14 +775,28 @@ def case_slow_reader_small_responses():
             sent += 1
             time.sleep(0.03)
         time.sleep(0.2)
-    summary = pinger.summary()
     reader.reset()
     wait_for_settled()
-    check(summary["unfinished"] == 0, f"a ping never finished: {summary}")
-    check(summary["max_ms"] >= 4 * SEND_TIMEOUT_S * 1000, f"several sends waited: {summary}")
+    return {**pinger.summary(), "requests_to_fill": sent}
+
+
+def case_slow_reader_small_responses():
+    """A silent reader whose socket is full: a one-piece response never meets the response deadline.
+
+    How far it goes depends on the socket's state when the buffer fills. With no room at all a send fails
+    and the server closes that client on its next request, so this tries a few times for the worst case.
+    """
+    attempts = []
+    for _ in range(4):
+        attempts.append(fill_a_silent_readers_socket())
+        if attempts[-1]["max_ms"] >= 4 * SEND_TIMEOUT_S * 1000:
+            break
+    summary = max(attempts, key=lambda attempt: attempt["max_ms"])
+    check(all(attempt["unfinished"] == 0 for attempt in attempts), f"a ping never finished: {attempts}")
+    check(summary["max_ms"] >= 4 * SEND_TIMEOUT_S * 1000, f"several sends waited: {attempts}")
     check(summary["max_ms"] <= STALL_BOUND_S * 1000, f"{summary}")
     results["slow_reader_small_responses"] = {
-        **summary, "requests_to_fill": sent, "send_timeout_ms": int(SEND_TIMEOUT_S * 1000),
+        **summary, "attempts": len(attempts), "send_timeout_ms": int(SEND_TIMEOUT_S * 1000),
         "sends_waited": round(summary["max_ms"] / (SEND_TIMEOUT_S * 1000), 1)}
 
 
