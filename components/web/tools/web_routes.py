@@ -47,6 +47,22 @@ BUNDLE_ROUTE_PREFIX = "crux_web_asset_route_"
 BUNDLE_REVIEW = "public GET @assets"
 BUNDLE_HANDLER = "crux_web_assets_serve"
 BUNDLE_CONTEXT = re.compile(r"&crux_web_asset_table\[\d+\]\Z")
+# What web_assets.py writes, and the only forms that a bundle source may hold: two preprocessor lines,
+# then data, header lists, the table, its count and the routes. Anything else, such as a #define that
+# renames the handler, an #include, or another statement, is refused, because the scan reads names
+# as text and the preprocessor could change what they mean.
+_STRING = r'"[^"\\\n]*"'
+BUNDLE_PREAMBLE = re.compile(r'\s*#define CRUX_ASSETS_INLINE_STYLES [01]\n#include "web_assets_internal\.h"\n')
+BUNDLE_STATEMENTS = [re.compile(pattern) for pattern in (
+    r"static const uint8_t crux_web_asset_data_\d{4}\[\] = \{[\s0-9a-fx,]*\};",
+    r"static const crux_web_header_t crux_web_asset_headers_\d{4}\[\] = \{(?:\s*(?:\{" + _STRING + ", " +
+    _STRING + r"\}|CRUX_WEB_ASSETS_SECURITY_HEADERS),)*\s*\};",
+    r"const crux_web_asset_t crux_web_asset_table\[\] = \{(?:\s*\{" + _STRING +
+    r", crux_web_asset_data_\d{4}, sizeof\(crux_web_asset_data_\d{4}\), crux_web_asset_headers_\d{4}, "
+    r"\d+u\},)*\s*\};",
+    r"const size_t crux_web_asset_count = \d+u;",
+    r"CRUX_WEB_ROUTE\((?:[^;\"]|" + _STRING + r")*\);",
+)]
 
 
 class RouteError(Exception):
@@ -187,6 +203,30 @@ def parse_access(argument, where):
     return permission
 
 
+def check_bundle_form(clean, source):
+    """Refuse a bundle source that holds anything but the forms that web_assets.py writes."""
+    start = BUNDLE_PREAMBLE.match(clean)
+    if start is None:
+        raise RouteError(f"{source}: a packaged web folder must start with the two lines that "
+                         "web_assets.py writes, the style define and the include of web_assets_internal.h")
+    position = start.end()
+    while True:
+        while position < len(clean) and clean[position].isspace():
+            position += 1
+        if position == len(clean):
+            return
+        for statement in BUNDLE_STATEMENTS:
+            found = statement.match(clean, position)
+            if found:
+                position = found.end()
+                break
+        else:
+            line = clean.count("\n", 0, position) + 1
+            raise RouteError(f"{source}:{line}: a packaged web folder may hold only what web_assets.py "
+                             "writes: data, header lists, the table, its count and asset routes, with "
+                             "no other preprocessor line or statement")
+
+
 def parse_source(text, source, bundle=False):
     """Return the routes in one source file.
 
@@ -197,6 +237,8 @@ def parse_source(text, source, bundle=False):
     route or handler past the single review line.
     """
     clean = strip_comments(text)
+    if bundle:
+        check_bundle_form(clean, source)
     # Directives span continued lines. Blanks of the same length keep every offset, for line numbers.
     joined = CONTINUATION.sub(lambda match: " " * len(match.group(0)), clean)
     redefined = REDEFINED.search(joined)

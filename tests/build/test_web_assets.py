@@ -155,6 +155,43 @@ class Encoding(Fixture):
         self.assertIn(("Content-Encoding", "gzip"), header_lists(self.generated())[index])
         self.assertNotIn("precompressed", next(a for a in self.hashes()["assets"] if a["file"] == "style.css"))
 
+    def test_a_gzip_file_with_anything_after_its_member_is_an_error(self):
+        first = gzip.compress(b"console.log(1)\n" * 50, mtime=0)
+        for label, content in {
+            "a second member holding a key": first + gzip.compress(PRIVATE_KEY.encode(), mtime=0),
+            "a second harmless member": first + gzip.compress(b"x", mtime=0),
+            "bytes that are not gzip": first + b"trailing bytes that are not gzip",
+            "a single zero byte": first + b"\x00",
+        }.items():
+            with self.subTest(label):
+                make_site(self.site, {"app.js": content})
+                self.fails(r"app\.js.*(more than one|trailing|not valid gzip)")
+        make_site(self.site, {"app.js": first})
+        self.ok()
+
+    def test_a_truncated_gzip_member_is_an_error(self):
+        first = gzip.compress(b"console.log(1)\n" * 50, mtime=0)
+        make_site(self.site, {"app.js": first[:-6]})
+        self.fails(r"app\.js.*not valid gzip")
+
+    def test_a_gzip_bomb_is_refused_at_the_cap_with_memory_bounded(self):
+        import tracemalloc
+        bomb = gzip.compress(bytes(web_assets.DECODE_MAX + 4 * 1024 * 1024), mtime=0)
+        self.assertLess(len(bomb), 100 * 1024)
+        errors = []
+        tracemalloc.start()
+        try:
+            self.assertIsNone(web_assets.pregzipped(bomb, "bomb.js", errors))
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        self.assertEqual(len(errors), 1)
+        self.assertIn("bomb.js", errors[0])
+        self.assertLess(peak, 3 * web_assets.DECODE_MAX)
+        make_site(self.site, {"bomb.js": bomb})
+        self.fails(r"bomb\.js.*(not valid gzip|decodes to over)")
+        self.assertEqual(web_assets.DECODE_MAX, 16 * 1024 * 1024)
+
     def test_a_precompressed_file_is_still_scanned_and_must_be_valid(self):
         make_site(self.site, {"bad.js": b"\x1f\x8bnot really gzip"})
         self.fails(r"bad\.js.*not valid gzip")
@@ -311,15 +348,18 @@ class Routes(Fixture):
     GOOD = ('CRUX_WEB_ROUTE(crux_web_asset_route_0000, "/a", CRUX_WEB_GET, CRUX_WEB_PUBLIC, '
             'crux_web_assets_serve, &crux_web_asset_table[0]);')
 
-    def refused(self, text):
+    # What the packager writes before its first statement, which a bundle must start with.
+    PREAMBLE = '#define CRUX_ASSETS_INLINE_STYLES 0\n#include "web_assets_internal.h"\n'
+
+    def refused(self, text, preamble=None):
         bad = self.root / "bad.c"
-        bad.write_text(text, encoding="utf-8")
+        bad.write_text((self.PREAMBLE if preamble is None else preamble) + text, encoding="utf-8")
         with self.assertRaises(web_routes.RouteError):
             web_routes.parse_sources([], bundle=[str(bad)])
 
     def test_a_bundle_source_may_hold_only_public_get_asset_routes(self):
         bad = self.root / "bad.c"
-        bad.write_text(self.GOOD, encoding="utf-8")
+        bad.write_text(self.PREAMBLE + self.GOOD, encoding="utf-8")
         self.assertEqual(len(web_routes.parse_sources([], bundle=[str(bad)])), 1)
         for text in (self.GOOD.replace("CRUX_WEB_GET", "CRUX_WEB_POST"),
                      self.GOOD.replace("CRUX_WEB_PUBLIC", "CRUX_WEB_SESSION"),
@@ -339,11 +379,58 @@ class Routes(Fixture):
             "a context that is not an element": self.GOOD.replace("&crux_web_asset_table[0]",
                                                                   "crux_web_asset_table"),
             "an index that is not a number": self.GOOD.replace("[0]", "[x]"),
+            "text after the element": self.GOOD.replace("[0]", "[1] + x"),
+            "an element and a cast": self.GOOD.replace("&crux", "(void *)&crux"),
             "the body-limit form": self.GOOD.replace("CRUX_WEB_ROUTE(", "CRUX_WEB_ROUTE_BODY(").replace(
                 ");", ", 512u);"),
         }.items():
             with self.subTest(label):
                 self.refused(text)
+
+    def test_a_bundle_holds_no_preprocessor_line_but_the_two_generated_ones(self):
+        route, pre = self.GOOD, self.PREAMBLE
+        for label, text in {
+            "the rename of the handler": pre + "#define crux_web_assets_serve do_factory_reset\n" + route,
+            "an include before the route": pre + '#include "evil.h"\n' + route,
+            "a rename of the table": pre + "#define crux_web_asset_table secrets\n" + route,
+            "a rename of the route macro": pre + "#define CRUX_WEB_ROUTE(...)\n" + route,
+            "a directive hidden by a continuation": pre + "#define crux_web_assets_serve \\\n  do_factory_reset\n" + route,
+            "a directive with a space after the hash": pre + "  #  define crux_web_assets_serve other\n" + route,
+            "a pragma": pre + "#pragma weak crux_web_assets_serve\n" + route,
+            "a conditional": pre + "#if 0\n#endif\n" + route,
+            "a second include": pre + '#include "web_assets_internal.h"\n' + route,
+            "another style define": pre + "#define CRUX_ASSETS_INLINE_STYLES 1\n" + route,
+            "a directive after the route": pre + route + "\n#define crux_web_assets_serve other\n",
+            "a define with another value": '#define CRUX_ASSETS_INLINE_STYLES 2\n#include "web_assets_internal.h"\n' + route,
+            "an include of another file": '#define CRUX_ASSETS_INLINE_STYLES 0\n#include "evil.h"\n' + route,
+            "no preamble": route,
+            "the preamble the wrong way round": '#include "web_assets_internal.h"\n#define CRUX_ASSETS_INLINE_STYLES 0\n' + route,
+        }.items():
+            with self.subTest(label):
+                self.refused(text, preamble="")
+
+    def test_a_bundle_holds_no_other_statement(self):
+        for label, extra in {
+            "a variable": "int hidden;\n",
+            "a function": "int hidden(void) { return 1; }\n",
+            "a typedef": "typedef int route_t;\n",
+            "an extern": "extern int secrets;\n",
+            "a second table": "const crux_web_asset_t other_table[] = {{\"/x\", 0, 0, 0, 0u}};\n",
+            "a data array that holds code": "static const uint8_t crux_web_asset_data_0000[] = {1 + hidden()};\n",
+            "a header list with a call": 'static const crux_web_header_t crux_web_asset_headers_0000[] = {{"A", hidden()},};\n',
+            "a table entry with a foreign member": 'const crux_web_asset_t crux_web_asset_table[] = {{"/x", other, 1, h, 1u},};\n',
+            "an asm statement": 'asm("nop");\n',
+        }.items():
+            with self.subTest(label):
+                self.refused(extra + self.GOOD)
+                self.refused(self.GOOD + extra)
+
+    def test_the_generated_form_passes_the_structure_check(self):
+        self.ok()
+        routes = web_routes.parse_sources([], bundle=[str(self.out / "assets.c")])
+        self.assertEqual(len(routes), 5)
+        self.ok("--style", "inline")
+        self.assertEqual(len(web_routes.parse_sources([], bundle=[str(self.out / "assets.c")])), 5)
 
     def test_a_bundle_cannot_take_a_path_under_the_api(self):
         for path in ("/api", "/api/v1/reset", "/api/v1/users/admin.json"):
@@ -716,6 +803,19 @@ class BuildFunction(Fixture):
         result = self.configure(directory)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("crux_web_assets", result.stdout)
+
+    def test_the_kconfig_deadline_is_what_the_packager_uses(self):
+        directory = self.project("set(CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 1500)\n"
+                                 f"crux_web_assets(app FOLDER {self.site})\n")
+        self.assertEqual(self.configure(directory).returncode, 0)
+        built = subprocess.run(["cmake", "--build", str(directory / "build"), "--target", "crux_web_assets_app"],
+                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+        self.assertEqual(built.returncode, 0, built.stdout)
+        budget = json.loads(next((directory / "build").rglob("crux-web-assets.json")).read_text(
+            encoding="utf-8"))["budget"]
+        self.assertEqual(budget["response_deadline_ms"], 1500)
+        self.assertEqual(budget["max_asset_bytes"], 49152)
+        self.assertIn("1500 ms", built.stdout)
 
     def test_assets_must_come_before_the_routes(self):
         directory = self.project(f"crux_web_routes(app SOURCES routes.c)\n"

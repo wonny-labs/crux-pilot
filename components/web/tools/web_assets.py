@@ -220,6 +220,12 @@ def pregzipped(content, relative, errors):
     except zlib.error:
         errors.append(f"{relative}: starts like gzip but is not valid gzip, or decodes to over {DECODE_MAX} bytes")
         return None
+    if decoder.unused_data:
+        # A client decodes every member, and the scan reads only the first, so a second member or any
+        # trailing byte could carry what the scan never saw.
+        errors.append(f"{relative}: gzip with more than one member or trailing bytes after its member, "
+                      "which the scan would not see: pack it as one member")
+        return None
     return True
 
 
