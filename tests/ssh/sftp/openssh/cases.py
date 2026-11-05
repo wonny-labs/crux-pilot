@@ -3,8 +3,9 @@
 
 It runs the real `sftp` client, and a small SFTP version 3 client of its own over `ssh -s`, so that a
 case can see the exact status on the wire. The transport is always real OpenSSH. It needs nothing of the
-server but a port, a key and the file areas that proof_server.c declares, and --directory, which lets it
-look at the medium. A server on native_sim can run the same cases once it has a provider.
+server but a port, a key and the file areas and accounts that proof_server.c and native_sim/src/main.c
+declare. With --directory it looks at the medium itself. Without it, on native_sim, it asks the server as
+an account that may read each area, so a case there trusts what the same server reports.
 
 The WinSCP cases replay requests that were read from its source. They are not WinSCP.
 """
@@ -289,6 +290,35 @@ class Config:
     def disk(self, *parts):
         return os.path.join(self.directory, *parts)
 
+    # ---- What is on the medium ----
+
+    def exists(self, area, name):
+        if self.directory:
+            return os.path.exists(self.disk(area, name))
+        wire = Wire(self, "audit")
+        found = wire.stat(f"/{area}/{name}")
+        wire.finish()
+        return not isinstance(found, Status)
+
+    def size(self, area, name):
+        if self.directory:
+            return os.path.getsize(self.disk(area, name))
+        wire = Wire(self, "audit")
+        found = expect_attrs(wire.stat(f"/{area}/{name}"))
+        wire.finish()
+        return found.size
+
+    def content(self, area, name):
+        if self.directory:
+            with open(self.disk(area, name), "rb") as file:
+                return file.read()
+        wire = Wire(self, "audit")
+        handle = expect_handle(wire.open(f"/{area}/{name}", FXF_READ))
+        data = download(wire, handle)
+        expect_ok(wire.close(handle))
+        wire.finish()
+        return data
+
     def events(self):
         with open(self.server_log, encoding="utf-8") as log:
             return [line.strip() for line in log if line.startswith("event ")]
@@ -413,15 +443,17 @@ def sftp_round_trip_small_and_above_a_packet(config, work):
         result = config.sftp("root", [f"put {source} /data/{name}", f"get /data/{name} {back}"])
         expect_true(result.returncode == 0, f"{size}: {result.stderr}")
         expect_true(digest(source) == digest(back), f"{size}: different after the round trip")
-        expect_true(digest(source) == digest(config.disk("data", name)), f"{size}: different on disk")
+        expect_true(hashlib.sha256(config.content("data", name)).hexdigest() == digest(source), f"{size}: different on disk")
         drop(config, f"/data/{name}")
 
 
 @case
 def sftp_traversal_reaches_nothing(config, work):
-    secret = os.path.join(config.directory, "outside")
-    with open(secret, "w", encoding="utf-8") as file:
-        file.write("outside the areas")
+    secret = None
+    if config.directory:
+        secret = os.path.join(config.directory, "outside")
+        with open(secret, "w", encoding="utf-8") as file:
+            file.write("outside the areas")
     local = os.path.join(work, "stolen")
     for path in ("/../outside", "/data/../../outside", "../outside", "/data/../outside",
                  "/data/../../../../../../etc/hostname", "/etc/hostname", "/data/..%2foutside"):
@@ -434,11 +466,18 @@ def sftp_traversal_reaches_nothing(config, work):
     for path in ("/../planted", "/data/../../planted", "../planted", "/planted", "/data/../planted"):
         result = config.sftp("root", [f"put {source} {path}"])
         expect_true(result.returncode != 0, f"put {path} worked")
-    expect_true(not os.path.exists(config.disk("planted")), "a file landed outside the areas")
+    if config.directory:
+        expect_true(not os.path.exists(config.disk("planted")), "a file landed outside the areas")
+    wire = Wire(config, "root")
+    names = [name for name, _ in wire.list("/")]
+    expect_true(sorted(names) == ["data", "logs", "web"], f"the root now holds {names}")
+    expect_true(isinstance(wire.stat("/data/planted"), Status), "the path landed in an area")
+    wire.finish()
     # cd stops at the virtual root, however far up it asks.
     result = config.sftp("root", ["cd /data/../..", "pwd"])
     expect_true("Remote working directory: /\n" in result.stdout, result.stdout)
-    os.unlink(secret)
+    if secret:
+        os.unlink(secret)
 
 
 @case
@@ -453,22 +492,21 @@ def sftp_permission_refusals(config, work):
     for command in (f"put {source} /data/doc", f"put {source} /data/new", "rm /data/doc",
                     "rename /data/doc /data/other"):
         expect_true(config.sftp("vera", [command]).returncode != 0, f"viewer could: {command}")
-    with open(config.disk("data", "doc"), "rb") as file:
-        expect_true(file.read() == b"abc", "the viewer changed the file")
-    expect_true(not os.path.exists(config.disk("data", "new")), "the viewer made a file")
-    expect_true(not os.path.exists(config.disk("data", "other")), "the viewer renamed a file")
+    expect_true(config.content("data", "doc") == b"abc", "the viewer changed the file")
+    expect_true(not config.exists("data", "new"), "the viewer made a file")
+    expect_true(not config.exists("data", "other"), "the viewer renamed a file")
     # A read-only area refuses an administrator too.
     expect_true(config.sftp("root", [f"put {source} /logs/x"]).returncode != 0, "wrote to logs")
-    expect_true(not os.path.exists(config.disk("logs", "x")), "a file landed in logs")
+    expect_true(not config.exists("logs", "x"), "a file landed in logs")
     # An area that offers managed uploads only has no write mode for SFTP.
     expect_true(config.sftp("root", [f"put {source} /web/x"]).returncode != 0, "wrote to web")
-    expect_true(not os.path.exists(config.disk("web", "x")), "a file landed in web")
+    expect_true(not config.exists("web", "x"), "a file landed in web")
     # A session that cannot see the area is told what a missing one is told.
     expect_true(config.sftp("stan", [f"get /data/doc {local}2"]).returncode != 0, "stranger read")
     expect_true(config.sftp("stan", ["ls /data"]).returncode != 0, "stranger listed")
     # Write without read: it can drop a file, and it cannot read it back.
     expect_true(config.sftp("dora", [f"put {source} /inbox/drop"]).returncode == 0, "cannot drop")
-    expect_true(os.path.exists(config.disk("inbox", "drop")), "the drop is missing")
+    expect_true(config.exists("inbox", "drop"), "the drop is missing")
     expect_true(config.sftp("dora", [f"get /inbox/drop {local}3"]).returncode != 0, "dropper read")
     expect_true(config.sftp("dora", ["rm /inbox/drop"]).returncode == 0, "the dropper cannot remove")
     drop(config, "/data/doc")
@@ -481,7 +519,7 @@ def sftp_capacity_refusals(config, work):
         file.write(pattern(FILE_LIMIT + 1))
     result = config.sftp("root", [f"put {over} /data/too-big"])
     expect_true(result.returncode != 0, "a file above the limit was written")
-    size = os.path.getsize(config.disk("data", "too-big"))
+    size = config.size("data", "too-big")
     expect_true(size <= FILE_LIMIT, f"the limit let {size} bytes through")
     # What was written stays, as a direct write does, and it can be removed.
     expect_true(config.sftp("root", ["rm /data/too-big"]).returncode == 0, "cannot clean up")
@@ -493,7 +531,7 @@ def sftp_capacity_refusals(config, work):
         expect_true(config.sftp("root", [f"put {full} /data/{name}"]).returncode == 0, name)
     expect_true(config.sftp("root", [f"put {over} /data/d"]).returncode != 0, "the area overflowed")
     for name in ("a", "b", "c", "d"):
-        if os.path.exists(config.disk("data", name)):
+        if config.exists("data", name):
             expect_true(config.sftp("root", [f"rm /data/{name}"]).returncode == 0, f"rm {name}")
 
 
@@ -503,15 +541,14 @@ def sftp_rename_and_remove_follow_the_service(config, work):
     seed(config, "/data/" + "other", b"z")
     result = config.sftp("root", ["rename /data/doc /data/other"])
     expect_true(result.returncode != 0, "rename over a file worked")
-    with open(config.disk("data", "other"), "rb") as file:
-        expect_true(file.read() == b"z", "the rename replaced the file")
+    expect_true(config.content("data", "other") == b"z", "the rename replaced the file")
     expect_true(config.sftp("root", ["rename /data/doc /logs/moved"]).returncode != 0, "across areas")
-    expect_true(not os.path.exists(config.disk("data", "moved")), "the rename lost the area")
-    expect_true(not os.path.exists(config.disk("logs", "moved")), "the rename crossed the areas")
+    expect_true(not config.exists("data", "moved"), "the rename lost the area")
+    expect_true(not config.exists("logs", "moved"), "the rename crossed the areas")
     expect_true(config.sftp("root", ["rm /data/other", "rename /data/doc /data/other"]).returncode == 0,
                 "remove and rename")
-    expect_true(os.path.exists(config.disk("data", "other")), "the new name is missing")
-    expect_true(not os.path.exists(config.disk("data", "doc")), "the old name is still there")
+    expect_true(config.exists("data", "other"), "the new name is missing")
+    expect_true(not config.exists("data", "doc"), "the old name is still there")
     drop(config, "/data/other")
 
 
@@ -520,7 +557,7 @@ def sftp_directories_cannot_be_made(config, work):
     result = config.sftp("root", ["mkdir /data/sub"])
     expect_true(result.returncode != 0, "mkdir worked")
     expect_true("Permission denied" in result.stderr + result.stdout, result.stderr)
-    expect_true(not os.path.exists(config.disk("data", "sub")), "a directory appeared")
+    expect_true(not config.exists("data", "sub"), "a directory appeared")
     expect_true(config.sftp("root", ["mkdir /newarea"]).returncode != 0, "a top level directory")
     expect_true(config.sftp("root", ["rmdir /data"]).returncode != 0, "rmdir worked")
 
@@ -536,25 +573,21 @@ def sftp_disconnect_keeps_a_partial_upload_and_resume_finishes_it(config, work):
     client = subprocess.Popen(
         ["sftp", "-b", batch.name, "-l", "800", "-P", str(config.port)] + config.options()
         + [f"root@{config.host}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    target = config.disk("data", "large.filepart")
-    deadline = time.monotonic() + 30
-    while time.monotonic() < deadline:
-        if os.path.exists(target) and os.path.getsize(target) > 0:
-            break
-        time.sleep(0.05)
+    # At 100 kB/s the transfer needs 6 s. FatFs records a size only at a close, so go by the clock.
+    time.sleep(2.0)
     client.send_signal(signal.SIGKILL)
     client.wait(timeout=10)
     os.unlink(batch.name)
     time.sleep(1.5)
-    partial = os.path.getsize(target)
+    partial = config.size("data", "large.filepart")
     expect_true(0 < partial < len(data), f"partial size {partial}")
-    with open(target, "rb") as file:
-        expect_true(file.read() == data[:partial], "the partial file is not a prefix")
+    expect_true(config.content("data", "large.filepart") == data[:partial],
+                "the partial file is not a prefix")
     # The name is free again, and `reput` continues from what is there.
     result = config.sftp("root", [f"reput {source} /data/large.filepart",
                                   "rename /data/large.filepart /data/large"])
     expect_true(result.returncode == 0, result.stderr)
-    expect_true(digest(source) == digest(config.disk("data", "large")), "resume changed the content")
+    expect_true(hashlib.sha256(config.content("data", "large")).hexdigest() == digest(source), "resume changed the content")
     drop(config, "/data/large")
 
 
@@ -614,7 +647,7 @@ def wire_a_limit_refuses_the_write_with_nothing_written(config, work):
     # A sparse write has no File behind it.
     expect_status(root.write(handle, FILE_LIMIT + 100, b"x"), FX_FAILURE, "Write File Error")
     expect_ok(root.close(handle))
-    expect_true(os.path.getsize(config.disk("data", "edge")) == FILE_LIMIT, "the size is wrong")
+    expect_true(config.size("data", "edge") == FILE_LIMIT, "the size is wrong")
     expect_ok(root.remove("/data/edge"))
     root.finish()
 
@@ -643,14 +676,13 @@ def wire_open_flags(config, work):
     expect_status(root.open("/data/doc", FXF_READ | FXF_TRUNC), FX_FAILURE)
     expect_status(root.open("/data/doc", FXF_WRITE | FXF_TRUNC), FX_FAILURE)
     expect_status(root.open("/data/doc", FXF_WRITE | FXF_CREAT | FXF_EXCL), FX_FAILURE)
-    expect_true(os.path.getsize(config.disk("data", "doc")) == 6, "a refused open changed the file")
-    expect_true(not os.path.exists(config.disk("data", "none")), "a refused open made a file")
+    expect_true(config.size("data", "doc") == 6, "a refused open changed the file")
+    expect_true(not config.exists("data", "none"), "a refused open made a file")
     # APPEND goes to the end, whatever the client gives as an offset.
     handle = expect_handle(root.open("/data/doc", FXF_WRITE | FXF_APPEND))
     expect_ok(root.write(handle, 0, b"gh"))
     expect_ok(root.close(handle))
-    with open(config.disk("data", "doc"), "rb") as file:
-        expect_true(file.read() == b"abcdefgh", "append did not go to the end")
+    expect_true(config.content("data", "doc") == b"abcdefgh", "append did not go to the end")
     # READ and WRITE together.
     handle = expect_handle(root.open("/data/doc", FXF_READ | FXF_WRITE))
     expect_ok(root.write(handle, 0, b"XY"))
@@ -702,7 +734,7 @@ def wire_handles_are_bounded_for_each_session(config, work):
     expect_status(greedy.open("/data/c", FXF_READ), FX_FAILURE, "Open File Error")
     # Refused before anything happened to the name.
     expect_status(greedy.open("/data/never", FXF_WRITE | FXF_CREAT | FXF_TRUNC), FX_FAILURE)
-    expect_true(not os.path.exists(config.disk("data", "never")), "a refused open made a file")
+    expect_true(not config.exists("data", "never"), "a refused open made a file")
     theirs = expect_handle(other.open("/data/c", FXF_READ))
     expect_ok(other.close(theirs))
     expect_ok(greedy.close(first))
@@ -843,8 +875,7 @@ def winscp_small_upload_new_and_overwrite(config, work):
     wire = Wire(config, "root")
     first = pattern(4000, 1)
     expect_true(winscp_small_upload(wire, "/data/small", first) is None, "the new upload")
-    with open(config.disk("data", "small"), "rb") as file:
-        expect_true(file.read() == first, "the new upload's content")
+    expect_true(config.content("data", "small") == first, "the new upload's content")
     # The name exists: EXCL fails, LSTAT finds it, and after the user's confirmation it truncates.
     second = pattern(1000, 2)
     refused = wire.open("/data/small", FXF_WRITE | FXF_CREAT | FXF_EXCL, size=len(second))
@@ -854,8 +885,7 @@ def winscp_small_upload_new_and_overwrite(config, work):
     upload(wire, handle, second)
     expect_ok(wire.close(handle))
     winscp_set_time(wire, "/data/small")
-    with open(config.disk("data", "small"), "rb") as file:
-        expect_true(file.read() == second, "the overwrite's content")
+    expect_true(config.content("data", "small") == second, "the overwrite's content")
     wire.finish()
     drop(config, "/data/small")
 
@@ -873,8 +903,7 @@ def winscp_large_upload_through_filepart(config, work):
     expect_ok(wire.close(handle))
     expect_ok(wire.rename("/data/big.bin.filepart", "/data/big.bin"))
     winscp_set_time(wire, "/data/big.bin")
-    with open(config.disk("data", "big.bin"), "rb") as file:
-        expect_true(file.read() == data, "the new upload's content")
+    expect_true(config.content("data", "big.bin") == data, "the new upload's content")
     # Over an existing file: it removes the target and then renames, because this server has no
     # posix-rename and a rename over a name is an error.
     newer = pattern(RESUME_THRESHOLD + 1000, 4)
@@ -888,8 +917,7 @@ def winscp_large_upload_through_filepart(config, work):
     expect_ok(wire.remove("/data/big.bin"))
     expect_ok(wire.rename("/data/big.bin.filepart", "/data/big.bin"))
     winscp_set_time(wire, "/data/big.bin")
-    with open(config.disk("data", "big.bin"), "rb") as file:
-        expect_true(file.read() == newer, "the overwrite's content")
+    expect_true(config.content("data", "big.bin") == newer, "the overwrite's content")
     wire.finish()
     drop(config, "/data/big.bin")
 
@@ -913,8 +941,7 @@ def winscp_resume_of_an_interrupted_upload(config, work):
     expect_ok(wire.close(handle))
     expect_ok(wire.rename("/data/res.bin.filepart", "/data/res.bin"))
     winscp_set_time(wire, "/data/res.bin")
-    with open(config.disk("data", "res.bin"), "rb") as file:
-        expect_true(file.read() == data, "the resumed content")
+    expect_true(config.content("data", "res.bin") == data, "the resumed content")
     # Declining to resume removes the partial file.
     handle = expect_handle(wire.open("/data/no.filepart", FXF_WRITE | FXF_CREAT | FXF_TRUNC))
     expect_ok(wire.write(handle, 0, b"x"))
@@ -946,12 +973,15 @@ def winscp_name_with_a_space_is_refused_at_every_step(config, work):
     expect_ok(wire.write(handle, 0, b"abcd"))
     expect_ok(wire.close(handle))
     # A name that exists only on the medium, with a space, is not listed, so it cannot be fetched.
-    with open(config.disk("data", "from a card"), "wb") as file:
-        file.write(b"x")
+    # On native_sim the image put it there at boot.
+    if config.directory:
+        with open(config.disk("data", "from a card"), "wb") as file:
+            file.write(b"x")
     names = [name for name, _ in wire.list("/data")]
     expect_true(names == ["my_file.txt"], f"{names}")
     # A foreign file is invisible to the service and is not counted, so that this leaves no trace.
-    os.remove(config.disk("data", "from a card"))
+    if config.directory:
+        os.remove(config.disk("data", "from a card"))
     expect_ok(wire.remove("/data/my_file.txt"))
     wire.finish()
 
@@ -1033,7 +1063,7 @@ def main():
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, required=True)
     parser.add_argument("--key", required=True)
-    parser.add_argument("--directory", required=True, help="the directory that holds the areas")
+    parser.add_argument("--directory", help="the directory that holds the areas, if a host one does")
     parser.add_argument("--server-log", required=True)
     parser.add_argument("--only", help="run only the cases whose name holds this text")
     parser.add_argument("--idle-limit", type=int,
