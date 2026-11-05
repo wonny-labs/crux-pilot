@@ -1,0 +1,11 @@
+# The session suites' public and session-only routes: Crux's session routes and one test route.
+public POST /api/v1/session
+session DELETE /api/v1/session
+public GET /api/v1/session/attempt/{id}
+session GET /api/v1/session/me
+session POST /api/v1/session/me/password
+session GET /api/v1/test/session
+session POST /api/v1/test/session
+session PUT /api/v1/test/session
+session DELETE /api/v1/test/session
+session PATCH /api/v1/test/session

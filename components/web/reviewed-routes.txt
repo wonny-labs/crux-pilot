@@ -1,3 +1,9 @@
 # The public and session-only web routes that Crux itself defines, checked by
-# scripts/check-web-routes.py. A change here is a security review item. Crux defines no routes yet:
-# Issue #186 adds login, its attempt result and the session routes.
+# scripts/check-web-routes.py. A change here is a security review item. The session routes of #186,
+# in components/web/session/web_session_routes.c: login and its attempt are public, and the session
+# routes check their own rules, or crux_access does for the password change.
+public POST /api/v1/session
+session DELETE /api/v1/session
+public GET /api/v1/session/attempt/{id}
+session GET /api/v1/session/me
+session POST /api/v1/session/me/password

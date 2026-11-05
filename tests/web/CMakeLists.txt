@@ -23,3 +23,8 @@ endforeach()
 add_library(web_cpp_headers OBJECT cpp_headers.cpp)
 target_link_libraries(web_cpp_headers PRIVATE crux_web_adapter crux_web_api)
 target_compile_options(web_cpp_headers PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
+# The session module on the real web and Access cores (Issue #186).
+if(TARGET crux::thread)
+    add_subdirectory(session)
+endif()
