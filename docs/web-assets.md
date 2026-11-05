@@ -204,7 +204,9 @@ review of content is the packager's checks and its hash list. These rules keep t
   holds the one form, and both tools use it: `web_assets.py` writes the source with `render_source()`, and `web_routes.py` reads the content policy choice, each asset's path and
   its embedded bytes out of the file, renders the source again from those, and refuses the file unless it equals the result. So every other line, the two preprocessor lines, the header lists, the table, the count, each route and its handler `crux_web_assets_serve`, is
   derived and never read. A different line end, a trailing space or tail, an extra or missing blank line, a directive, a comma declarator or any other statement is a difference, and so is a route that does not match its asset.
-  What can differ from a given output is the data bytes, which are inert, and the 0 or 1 of the style choice, which the scan cannot check against the CMake call.
+  What can differ from a given output is the data bytes, which are inert, the 0 or 1 of the style choice, which the scan cannot check against the CMake call, and **the set of assets itself**: a hand-made bundle
+  chooses its asset paths and how many there are, within the path characters, as public `GET` routes outside `/api` with an `/index.html`, and the review line `public GET @assets` does not say which. The packager's folder checks do not apply to it,
+  so what such a bundle serves is reviewed in the project that makes it.
   The bundle file is read without newline translation, so a CR is a difference too. The route macro reader of the next rule still runs on the accepted text.
 - Each route must also be a public `GET` of a fixed path outside `/api`, in the plain `CRUX_WEB_ROUTE` form, named `crux_web_asset_route_*`, with the handler `crux_web_assets_serve` and exactly an element of
   `crux_web_asset_table` as its context. So a bundle can serve bytes at a public path, and cannot run another handler.
