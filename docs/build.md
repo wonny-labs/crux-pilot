@@ -266,7 +266,7 @@ For the focused external-application integration suite, from the Crux source roo
 python3 -m unittest discover -s tests/build -p test_external_application.py -v
 ~~~
 
-For all existing Python build checks, use `python3 -m unittest discover -s tests/build -v`. Independent Host consumers and Zephyr composition runners are listed in the [test guide](../tests/README.md). The current CI definitions are [Host](../.github/workflows/host.yml) and [Zephyr](../.github/workflows/zephyr.yml). Run tests appropriate to the claimed change rather than assuming Host success qualifies Zephyr or hardware behaviour.
+For all existing Python build checks, use `python3 -m unittest discover -s tests/build -v`. Independent Host consumers and Zephyr composition runners are listed in the [test guide](../tests/README.md). The current CI definitions are [Host](../.github/workflows/host.yml) and [Zephyr](../.github/workflows/zephyr.yml). The Zephyr workflow runs in parallel jobs, described in [Zephyr CI shards](ci-zephyr-shards.md). Run tests appropriate to the claimed change rather than assuming Host success qualifies Zephyr or hardware behaviour.
 
 | Symptom | Check |
 | --- | --- |
