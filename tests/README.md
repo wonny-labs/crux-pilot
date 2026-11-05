@@ -314,6 +314,13 @@ services. `scripts/test-web.sh host` runs them, and `Web.management_openapi` hol
 `web/api/openapi.yaml`. Nothing serves these routes on `native_sim` yet. See
 [status, configuration and account web APIs](../docs/web-management-apis.md).
 
+`NetworkSettings.*` and `Web.network_*` are the Host suites of the network settings service and of `GET` and `PUT /api/v1/network`,
+on the real Access core and Configuration service, with the fake Configuration provider, a fake apply port and a recording event
+port. `scripts/test-network-settings.sh` runs them under both presets with clang-tidy, and `scripts/test-web.sh host` runs the
+`Web.network_*` ones. `Web.network_openapi` holds their real answers to the schemas of `web/api/openapi.yaml`, and
+`web/api/network-validation-vectors.tsv` holds the firmware's checks and the TypeScript client's to the same lines. Nothing here
+applies an address to an interface or operates a board. See [network settings service](../docs/network-settings-service.md).
+
 ## Packaged web assets
 
 `scripts/test-web-assets.sh host` runs the packager's and its CMake function's tests (`tests/build/test_web_assets.py`), `Web.assets_*` on

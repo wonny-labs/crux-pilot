@@ -372,7 +372,7 @@ static void test_an_ended_session_is_a_401(void)
 
     web_net_setup();
     jar = web_net_jar("both");
-    session_clock_advance(9u * 3600u * 1000u);
+    session_clock_advance(9ull * 3600ull * 1000ull);
     web_net_expect_error(web_net_get(jar), 401, "unauthorized");
     web_net_expect_error(web_net_put(jar, SET_A_JSON), 401, "unauthorized");
 }

@@ -94,7 +94,8 @@ static void write_permission(void)
     /* Permission comes before validation, so that an unpermitted session learns nothing of the
      * rules. */
     crux_network_settings_t bad = {0u, 99u, false, 0u};
-    crux_network_findings_t findings = {7, {{0, 0}}};
+    crux_network_findings_t findings = {
+        7, {{CRUX_NETWORK_FIELD_ADDRESS, CRUX_NETWORK_PROBLEM_NOT_UNICAST}}};
     CHECK(crux_network_settings_request(s_stranger, &bad, &findings) == CRUX_NETWORK_ERR_DENIED);
     CHECK(findings.count == 0u);
     /* Write alone is enough to save. */

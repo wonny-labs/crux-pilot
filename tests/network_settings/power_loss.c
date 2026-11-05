@@ -26,6 +26,7 @@ static void prepare(scenario_t scenario)
 }
 
 /* What the boot must decide when `stored` of the five writes have reached the store. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a test helper
 static crux_network_boot_reason_t expected_reason(scenario_t scenario, size_t stored,
                                                   crux_network_settings_t *values)
 {
@@ -57,6 +58,7 @@ static crux_network_boot_reason_t expected_reason(scenario_t scenario, size_t st
     }
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): a test helper
 static void run_cut(scenario_t scenario, size_t cut, bool last_write_lands)
 {
     crux_network_settings_t reboot_values = {0};

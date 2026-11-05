@@ -464,6 +464,7 @@ static crux_network_failure_t failure_of_update(crux_config_service_result_t res
 
 /* Updates one parameter in memory, waiting out another session's save for a bounded time. Nothing
  * is lost by waiting: no earlier step of this save is unsaved when a phase begins. */
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters): the index, the number and the flag differ
 static crux_config_service_result_t update_parameter(size_t index, uint32_t number, bool flag)
 {
     crux_config_value_t candidate = {.type = specs[index].default_value.type};
