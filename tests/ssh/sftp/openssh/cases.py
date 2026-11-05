@@ -625,8 +625,10 @@ def wire_a_refused_open_is_a_general_failure(config, work):
     expect_status(root.call(SSH_FXP_RMDIR, root.text("/data")),
                   FX_PERMISSION_DENIED, "Permission denied")
     # Requests with no handler, and a size or owner, in the status that wolfSSH has for each.
-    expect_status(root.call(SSH_FXP_SYMLINK, root.text("/data/l") + root.text("/data/doc")), FX_FAILURE)
-    expect_status(root.call(SSH_FXP_READLINK, root.text("/data/doc")), FX_FAILURE)
+    unknown = "Unknown/Unsupported packet type"
+    expect_status(root.call(SSH_FXP_SYMLINK, root.text("/data/l") + root.text("/data/doc")), FX_FAILURE, unknown)
+    expect_status(root.call(SSH_FXP_READLINK, root.text("/data/doc")), FX_FAILURE, unknown)
+    expect_status(stranger.setstat("/data/doc", ATTR_ACMODTIME, times=(1, 2)), FX_FAILURE)
     expect_status(root.setstat("/data/doc", ATTR_SIZE, size=1), FX_OP_UNSUPPORTED)
     # The session carries on after each of them.
     handle = expect_handle(root.open("/data/doc", FXF_READ))
