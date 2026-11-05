@@ -134,8 +134,8 @@ Connection limits, timing and memory here come from the host's stack and the sim
 
 | # | Limit | Profile | Seen as |
 | --- | --- | --- | --- |
-| 1 | **A TCP close with no `close_notify` is invisible to `poll`.** A host socket reports a peer's FIN as `POLLIN` alone, where Zephyr's native sockets add `POLLHUP`. `mbedtls_ssl_read` turns the end of the stream into a length of 0, which the TLS layer reads as "a partial record, try again". So `zsock_poll` with no timeout returns 0, at once and every time, for as long as that client stays. | Mbed | `raw_poll_after_abrupt_close`: the server never saw the close, and the image's CPU share rose from about 0.02 to between 0.59 and 0.86 across runs, locally and in CI. In a debugging trace, not retained, the simulated clock also stopped while this ran, because a `native_sim` thread that never sleeps stops it. A `recv` finds the end of the stream at once, which is how the probe's server gets past it: `abrupt_closes` passes. |
-| 2 | wolfSSL peeks instead, and reports it | Wolf | The same step: the close is seen, and CPU stays at 0.01 |
+| 1 | **A TCP close with no `close_notify` is invisible to `poll`.** A host socket reports a peer's FIN as `POLLIN` alone, where Zephyr's native sockets add `POLLHUP`. `mbedtls_ssl_read` turns the end of the stream into a length of 0, which the TLS layer reads as "a partial record, try again". So `zsock_poll` with no timeout returns 0, at once and every time, for as long as that client stays. | Mbed | `raw_poll_after_abrupt_close`: the server never saw the close, and the image's CPU share rose from about 0.02 to between 0.55 and 0.86 across runs, locally and in CI. In a debugging trace, not retained, the simulated clock also stopped while this ran, because a `native_sim` thread that never sleeps stops it. A `recv` finds the end of the stream at once, which is how the probe's server gets past it: `abrupt_closes` passes. |
+| 2 | wolfSSL peeks instead, and reports it | Wolf | The same step: the close is seen, and CPU stays at 0.01 to 0.03 |
 | 3 | The handshake runs inside `accept`, on the caller's thread, for non-blocking sockets too. A client that connects and says nothing holds a one-thread server for `NET_SOCKETS_TLS_CONNECT_TIMEOUT`, default 10 s. | Both | `stalled_client`: a second client waited 9.6 s and 9.5 s, and then worked |
 | 4 | A 120,000 B Mbed TLS heap held 3 connections at a 16 KiB record size. **The fourth `accept` fails with `EINVAL`**, not `ENOMEM`. The socket layer maps a failed certificate parse to it, which fits a full heap, and heap use was not measured. Held connections keep working, and later ones work once these close. | Mbed | `concurrent_connections`, and `PROBE accept ... errno=22` |
 | 5 | wolfSSL allocates from the host's `malloc` on `native_sim`, so **no memory limit applied**. The bound here was `NET_SOCKETS_TLS_MAX_CONTEXTS`: 2 listeners and 4 clients, then `ENOMEM`. | Wolf | `concurrent_connections`, and `errno=12` |
@@ -184,7 +184,7 @@ The backend is a patch on Zephyr, which stays out of this repository: [patches/z
 | Control: a provider that supports nothing, and one that accepts everything | Both fail, 279 and 104 checks | | | |
 | Control: a board build with a test random generator | Each PSA file refuses, with either setting | | | Refuses to compile, on both providers |
 
-The Host run is on GCC locally and Clang in CI. RT1060 is compile only, and nothing was flashed, reset or run. TF-PSA-Crypto compiled locally and in CI, and wolfPSA locally only.
+The Host run is on GCC locally and Clang in CI. RT1060 is compile only, and nothing was flashed, reset or run. TF-PSA-Crypto compiled locally and in CI. wolfPSA compiled locally at `25cb522`, before the guard moved into the PSA files, and was not compiled again.
 
 ### What each port maps
 
@@ -282,7 +282,7 @@ The design asks #242 to make the providers safe beside TLS threads on TF-PSA-Cry
 | --- | --- |
 | The way through | Zephyr's module has no Kconfig for it, and it does read `CONFIG_TF_PSA_CRYPTO_USER_CONFIG_FILE`. `composition/tf_psa_threading` turns on `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_ALT` there, and gives the core locks on `k_mutex` and `k_condvar` before the module's own start. |
 | What this covers | The core's own key table and random source, for Mbed TLS and the Crux providers alike, because they take the same locks |
-| Shown | It builds and runs, and the core took 203,361 locks on one first boot, from a login, TLS and the store |
+| Shown | It builds and runs, and the core took about 203,000 locks on one first boot, from a login, TLS and the store |
 | **Not shown** | That no race remains. A `native_sim` thread that does not sleep is never preempted, so a race cannot show here. It has not compiled for a target, its overhead is unmeasured, and #185 still has to adopt it for a product composition. |
 | Wolf profile | `CONFIG_WOLFPSA_THREAD_SAFE` is on. wolfSSL's own use of its one Hash-DRBG beside wolfPSA is equally unshown. |
 
