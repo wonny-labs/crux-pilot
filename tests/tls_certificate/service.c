@@ -181,8 +181,14 @@ static void stored_refused(crux_tls_certificate_result_t expected, const uint8_t
     CHECK(stored_length == length && memcmp(stored, record, length) == 0);
     CHECK(fake_events_count() == 1u);
     const crux_tls_certificate_event_t *event = fake_event(0);
-    CHECK(event->type == CRUX_TLS_CERTIFICATE_EVENT_REJECTED);
-    CHECK(event->reason == CRUX_TLS_CERTIFICATE_REASON_STORED);
+    CHECK(event->type == CRUX_TLS_CERTIFICATE_EVENT_UNUSABLE);
+    /* The reason says why the stored one was refused. */
+    CHECK(event->reason == (expected == CRUX_TLS_CERTIFICATE_ERR_KEY_MISMATCH
+                                ? CRUX_TLS_CERTIFICATE_REASON_KEY_MISMATCH
+                            : expected == CRUX_TLS_CERTIFICATE_ERR_INVALID
+                                ? CRUX_TLS_CERTIFICATE_REASON_INVALID
+                                : CRUX_TLS_CERTIFICATE_REASON_MALFORMED));
+    CHECK(event->user[0] == '\0' && event->channel == 0u);
 
     crux_tls_certificate_info_t info;
     CHECK(crux_tls_certificate_get(s_admin, &info) == CRUX_TLS_CERTIFICATE_ERR_NOT_READY);
@@ -567,6 +573,25 @@ static void test_private_key_in_no_output(void)
     CHECK(tls_test_contains(material.private_key, material.private_key_length, scalar, 32));
 }
 
+/* The copy read from the store is cleared at once, and the PKCS #8 copy when start fails. */
+static void test_key_copies_cleared(void)
+{
+    fixture_start();
+    CHECK(!crux_tls_certificate_test_key_cleared());
+    CHECK(!crux_tls_certificate_test_ram_holds(fake_device_scalar, 32));
+    fake_store_read_result(CRUX_CREDENTIAL_RECORD_TLS_CERTIFICATE, CRUX_CREDENTIAL_ERR_READ);
+    crux_tls_certificate_start_t how;
+    CHECK(fixture_restart(&how) == CRUX_TLS_CERTIFICATE_ERR_STORE);
+    CHECK(crux_tls_certificate_test_key_cleared());
+    CHECK(!crux_tls_certificate_test_ram_holds(fake_device_scalar, 32));
+
+    fixture_boot();
+    fake_store_write_result(CRUX_CREDENTIAL_ERR_STORE);
+    CHECK(crux_tls_certificate_start(&fixture_options, &how) == CRUX_TLS_CERTIFICATE_ERR_STORE);
+    CHECK(crux_tls_certificate_test_key_cleared());
+    CHECK(!crux_tls_certificate_test_ram_holds(fake_device_scalar, 32));
+}
+
 static void test_dates_at(void)
 {
     crux_tls_certificate_info_t info;
@@ -608,6 +633,7 @@ int main(void)
     tls_test_case("material held blocks overwrite", test_material_held_blocks_overwrite);
     tls_test_case("contention", test_contention);
     tls_test_case("private key in no output", test_private_key_in_no_output);
+    tls_test_case("key copies cleared", test_key_copies_cleared);
     tls_test_case("dates at", test_dates_at);
     return tls_test_finish("tls_certificate_service");
 }

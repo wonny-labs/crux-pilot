@@ -42,6 +42,12 @@ static const uint8_t pkcs8_public_head[] = {0xa1, 0x44, 0x03, 0x42, 0x00};
 #define TAG_OCTET_STRING 0x04u
 #define TAG_OID 0x06u
 #define TAG_UTF8_STRING 0x0cu
+#define TAG_NUMERIC_STRING 0x12u
+#define TAG_PRINTABLE_STRING 0x13u
+#define TAG_TELETEX_STRING 0x14u
+#define TAG_IA5_STRING 0x16u
+#define TAG_UNIVERSAL_STRING 0x1cu
+#define TAG_BMP_STRING 0x1eu
 #define TAG_UTC_TIME 0x17u
 #define TAG_GENERALIZED_TIME 0x18u
 #define TAG_SEQUENCE 0x30u
@@ -126,7 +132,8 @@ typedef struct {
 /* One TLV with a low tag number and a definite, minimal length inside what remains. */
 static bool der_next(span_t *in, uint8_t *tag, span_t *content, span_t *whole)
 {
-    if (in->n < 2u || (in->p[0] & 0x1fu) == 0x1fu) {
+    /* Universal tag 0 is end-of-contents, which DER never holds. */
+    if (in->n < 2u || in->p[0] == 0u || (in->p[0] & 0x1fu) == 0x1fu) {
         return false;
     }
     size_t header = 2;
@@ -238,6 +245,134 @@ static void copy_shown(span_t value, char out[CRUX_TLS_CERTIFICATE_NAME_SIZE])
     out[length] = '\0';
 }
 
+/* UTF-8 with no overlong form, no surrogate and nothing above U+10FFFF. */
+static bool utf8_valid(span_t text)
+{
+    size_t i = 0;
+    while (i < text.n) {
+        uint8_t first = text.p[i];
+        size_t extra;
+        uint32_t code;
+        uint32_t least;
+        if (first < 0x80u) {
+            i += 1u;
+            continue;
+        }
+        if ((first & 0xe0u) == 0xc0u) {
+            extra = 1;
+            code = first & 0x1fu;
+            least = 0x80u;
+        } else if ((first & 0xf0u) == 0xe0u) {
+            extra = 2;
+            code = first & 0x0fu;
+            least = 0x800u;
+        } else if ((first & 0xf8u) == 0xf0u) {
+            extra = 3;
+            code = first & 0x07u;
+            least = 0x10000u;
+        } else {
+            return false;
+        }
+        if (extra > text.n - i - 1u) {
+            return false;
+        }
+        for (size_t k = 1; k <= extra; ++k) {
+            uint8_t next = text.p[i + k];
+            if ((next & 0xc0u) != 0x80u) {
+                return false;
+            }
+            code = (code << 6) | (next & 0x3fu);
+        }
+        if (code < least || code > 0x10ffffu || (code >= 0xd800u && code <= 0xdfffu)) {
+            return false;
+        }
+        i += extra + 1u;
+    }
+    return true;
+}
+
+static bool printable_character(uint8_t c)
+{
+    switch (c) {
+    case ' ':
+    case '\'':
+    case '(':
+    case ')':
+    case '+':
+    case ',':
+    case '-':
+    case '.':
+    case '/':
+    case ':':
+    case '=':
+    case '?':
+        return true;
+    default:
+        return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+    }
+}
+
+static bool all_bytes(span_t text, bool (*allowed)(uint8_t))
+{
+    for (size_t i = 0; i < text.n; ++i) {
+        if (!allowed(text.p[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool ia5_character(uint8_t c)
+{
+    return c < 0x80u;
+}
+
+static bool numeric_character(uint8_t c)
+{
+    return (c >= '0' && c <= '9') || c == ' ';
+}
+
+/* UCS-2 or UCS-4 big-endian code units: whole units, no surrogate, nothing above U+10FFFF. */
+static bool wide_valid(span_t text, size_t unit)
+{
+    if (text.n % unit != 0u) {
+        return false;
+    }
+    for (size_t i = 0; i < text.n; i += unit) {
+        uint32_t code = 0;
+        for (size_t k = 0; k < unit; ++k) {
+            code = (code << 8) | text.p[i + k];
+        }
+        if (code > 0x10ffffu || (code >= 0xd800u && code <= 0xdfffu)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/* An attribute value: one of the string types X.509 names use, with its content checked. */
+static bool string_valid(uint8_t tag, span_t text)
+{
+    switch (tag) {
+    case TAG_UTF8_STRING:
+        return utf8_valid(text);
+    case TAG_PRINTABLE_STRING:
+        return all_bytes(text, printable_character);
+    case TAG_IA5_STRING:
+        return all_bytes(text, ia5_character);
+    case TAG_NUMERIC_STRING:
+        return all_bytes(text, numeric_character);
+    case TAG_TELETEX_STRING:
+        return true; /* T.61 has no check that both clients and CAs agree on. */
+    case TAG_BMP_STRING:
+        return wide_valid(text, 2);
+    case TAG_UNIVERSAL_STRING:
+        return wide_valid(text, 4);
+    default:
+        return false;
+    }
+}
+
 /* Name: SETs of attribute type and value. Copies the first common name. */
 static bool name_well_formed(span_t content, char out[CRUX_TLS_CERTIFICATE_NAME_SIZE])
 {
@@ -253,7 +388,8 @@ static bool name_well_formed(span_t content, char out[CRUX_TLS_CERTIFICATE_NAME_
             uint8_t tag = 0;
             if (!der_expect(&set, TAG_SEQUENCE, &attribute, NULL) ||
                 !der_expect(&attribute, TAG_OID, &oid, NULL) || !oid_well_formed(oid) ||
-                !der_next(&attribute, &tag, &value, NULL) || attribute.n != 0u) {
+                !der_next(&attribute, &tag, &value, NULL) || attribute.n != 0u ||
+                !string_valid(tag, value)) {
                 return false;
             }
             if (!found && span_equals(oid, oid_common_name, sizeof(oid_common_name))) {
@@ -304,6 +440,8 @@ static bool time_value(span_t *in, int64_t *out)
     }
     if (year_digits == 2u) {
         year += year < 50 ? 2000 : 1900;
+    } else if (year >= UTC_TIME_FIRST_YEAR && year <= UTC_TIME_LAST_YEAR) {
+        return false; /* RFC 5280: a UTCTime holds these years. */
     }
     return tls_x509_time_from_civil(year, month, day, hour, minute, second, out);
 }
@@ -340,6 +478,148 @@ static tls_x509_result_t key_info(span_t content, const uint8_t **point)
     return TLS_X509_OK;
 }
 
+/* The extensions whose values are parsed, and the ones a critical flag may carry. */
+static const uint8_t oid_basic_constraints[] = {0x55, 0x1d, 0x13};
+static const uint8_t oid_key_usage[] = {0x55, 0x1d, 0x0f};
+static const uint8_t oid_ext_key_usage[] = {0x55, 0x1d, 0x25};
+static const uint8_t oid_alt_name[] = {0x55, 0x1d, 0x11};
+static const uint8_t oid_subject_key_id[] = {0x55, 0x1d, 0x0e};
+/* Name constraints, certificate policies, policy mappings, policy constraints, inhibit any. */
+static const uint8_t critical_also[][3] = {{0x55, 0x1d, 0x1e},
+                                           {0x55, 0x1d, 0x20},
+                                           {0x55, 0x1d, 0x21},
+                                           {0x55, 0x1d, 0x24},
+                                           {0x55, 0x1d, 0x36}};
+
+static bool basic_constraints_valid(span_t value)
+{
+    span_t sequence, flag, length;
+    if (!der_expect(&value, TAG_SEQUENCE, &sequence, NULL) || value.n != 0u) {
+        return false;
+    }
+    if (next_is(&sequence, TAG_BOOLEAN) &&
+        (!der_expect(&sequence, TAG_BOOLEAN, &flag, NULL) || flag.n != 1u || flag.p[0] != 0xffu)) {
+        return false;
+    }
+    if (next_is(&sequence, TAG_INTEGER) &&
+        (!der_expect(&sequence, TAG_INTEGER, &length, NULL) || !integer_minimal(length) ||
+         (length.p[0] & 0x80u) != 0u)) {
+        return false;
+    }
+    return sequence.n == 0u;
+}
+
+static bool key_usage_valid(span_t value)
+{
+    span_t bits;
+    if (!der_expect(&value, TAG_BIT_STRING, &bits, NULL) || value.n != 0u || bits.n < 2u ||
+        bits.p[0] > 7u) {
+        return false;
+    }
+    /* DER: the unused bits of the last byte are zero. */
+    return (bits.p[bits.n - 1u] & ((1u << bits.p[0]) - 1u)) == 0u;
+}
+
+static bool usages_valid(span_t value)
+{
+    span_t sequence, oid;
+    if (!der_expect(&value, TAG_SEQUENCE, &sequence, NULL) || value.n != 0u || sequence.n == 0u) {
+        return false;
+    }
+    while (sequence.n > 0u) {
+        if (!der_expect(&sequence, TAG_OID, &oid, NULL) || !oid_well_formed(oid)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/* GeneralNames, RFC 5280 4.2.1.6, each name by its context tag. */
+static bool alt_names_valid(span_t value)
+{
+    span_t sequence;
+    if (!der_expect(&value, TAG_SEQUENCE, &sequence, NULL) || value.n != 0u || sequence.n == 0u) {
+        return false;
+    }
+    while (sequence.n > 0u) {
+        uint8_t tag = 0;
+        span_t name;
+        if (!der_next(&sequence, &tag, &name, NULL)) {
+            return false;
+        }
+        switch (tag) {
+        case 0x81: /* rfc822Name */
+        case 0x82: /* dNSName */
+        case 0x86: /* uniformResourceIdentifier */
+            if (!all_bytes(name, ia5_character)) {
+                return false;
+            }
+            break;
+        case 0x87: /* iPAddress */
+            if (name.n != 4u && name.n != 16u) {
+                return false;
+            }
+            break;
+        case 0x88: /* registeredID */
+            if (!oid_well_formed(name)) {
+                return false;
+            }
+            break;
+        case 0xa4: { /* directoryName, an explicit Name */
+            span_t inner;
+            char ignored[CRUX_TLS_CERTIFICATE_NAME_SIZE];
+            if (!der_expect(&name, TAG_SEQUENCE, &inner, NULL) || name.n != 0u ||
+                !name_well_formed(inner, ignored)) {
+                return false;
+            }
+            break;
+        }
+        case 0xa0: /* otherName */
+        case 0xa3: /* x400Address */
+        case 0xa5: /* ediPartyName */
+            break;
+        default:
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool subject_key_id_valid(span_t value)
+{
+    span_t octets;
+    return der_expect(&value, TAG_OCTET_STRING, &octets, NULL) && value.n == 0u;
+}
+
+/* MALFORMED if a parsed value is, INVALID for an unknown critical one, OK otherwise. */
+static tls_x509_result_t extension_value(span_t oid, bool critical, span_t value)
+{
+    bool (*check)(span_t) = NULL;
+    if (span_equals(oid, oid_basic_constraints, 3)) {
+        check = basic_constraints_valid;
+    } else if (span_equals(oid, oid_key_usage, 3)) {
+        check = key_usage_valid;
+    } else if (span_equals(oid, oid_ext_key_usage, 3)) {
+        check = usages_valid;
+    } else if (span_equals(oid, oid_alt_name, 3)) {
+        check = alt_names_valid;
+    } else if (span_equals(oid, oid_subject_key_id, 3)) {
+        check = subject_key_id_valid;
+    }
+    if (check != NULL) {
+        return check(value) ? TLS_X509_OK : TLS_X509_MALFORMED;
+    }
+    if (!critical) {
+        return TLS_X509_OK; /* Not parsed. */
+    }
+    for (size_t i = 0; i < sizeof(critical_also) / sizeof(critical_also[0]); ++i) {
+        if (span_equals(oid, critical_also[i], 3)) {
+            return TLS_X509_OK;
+        }
+    }
+    return TLS_X509_INVALID; /* A client must refuse an unknown critical extension. */
+}
+
 /* Extensions: a non-empty list, each an OID, DER TRUE if critical, and an OCTET STRING. */
 static tls_x509_result_t extensions(span_t content)
 {
@@ -356,7 +636,8 @@ static tls_x509_result_t extensions(span_t content)
             !der_expect(&extension, TAG_OID, &oid, NULL) || !oid_well_formed(oid)) {
             return TLS_X509_MALFORMED;
         }
-        if (next_is(&extension, TAG_BOOLEAN)) {
+        bool is_critical = next_is(&extension, TAG_BOOLEAN);
+        if (is_critical) {
             if (!der_expect(&extension, TAG_BOOLEAN, &critical, NULL) || critical.n != 1u ||
                 critical.p[0] != 0xffu) {
                 return TLS_X509_MALFORMED;
@@ -365,6 +646,11 @@ static tls_x509_result_t extensions(span_t content)
         if (!der_expect(&extension, TAG_OCTET_STRING, &value, NULL) || extension.n != 0u) {
             return TLS_X509_MALFORMED;
         }
+        tls_x509_result_t verdict = extension_value(oid, is_critical, value);
+        if (verdict == TLS_X509_MALFORMED) {
+            return verdict;
+        }
+        invalid = invalid || verdict == TLS_X509_INVALID;
         if (count == EXTENSIONS_MAX) {
             invalid = true;
             continue;

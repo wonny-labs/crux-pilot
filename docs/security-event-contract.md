@@ -260,6 +260,7 @@ Values are stable. A later change adds values and never reuses one. Projects use
 | 0x0601 | `web.csrf_rejected` | R | M11 |
 | 0x0602 | `web.certificate_replaced` | C | M11, the [TLS certificate](tls-certificate.md), #190 |
 | 0x0603 | `web.certificate_rejected` | R | The [TLS certificate](tls-certificate.md), #190 |
+| 0x0604 | `web.certificate_unusable` | C | The [TLS certificate](tls-certificate.md), #190: the stored certificate refused at start, so nothing is served |
 | 0x0700 | `ssh.auth_limit` | R | M12 |
 | 0x0701 | `ssh.host_key_missing` | C | M12 |
 | 0x0800 | `network.changed` | C | Network settings service |

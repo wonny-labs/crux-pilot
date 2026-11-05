@@ -30,7 +30,8 @@ bool crux_tls_certificate_port_random(uint8_t *buffer, size_t length);
 /* Events, with the web.* identifiers they map to. */
 typedef enum {
     CRUX_TLS_CERTIFICATE_EVENT_REPLACED, /* web.certificate_replaced, OK or FAILED. */
-    CRUX_TLS_CERTIFICATE_EVENT_REJECTED  /* web.certificate_rejected, INVALID. */
+    CRUX_TLS_CERTIFICATE_EVENT_REJECTED, /* web.certificate_rejected, INVALID: an upload. */
+    CRUX_TLS_CERTIFICATE_EVENT_UNUSABLE  /* web.certificate_unusable, FAILED: the stored one. */
 } crux_tls_certificate_event_type_t;
 
 /* Why, which becomes the record's subject. */
@@ -42,8 +43,7 @@ typedef enum {
     CRUX_TLS_CERTIFICATE_REASON_MALFORMED,    /* "malformed". */
     CRUX_TLS_CERTIFICATE_REASON_INVALID,      /* "invalid". */
     CRUX_TLS_CERTIFICATE_REASON_KEY_MISMATCH, /* "key_mismatch". */
-    CRUX_TLS_CERTIFICATE_REASON_TOO_LARGE,    /* "too_large". */
-    CRUX_TLS_CERTIFICATE_REASON_STORED        /* "stored": the stored one, refused at start. */
+    CRUX_TLS_CERTIFICATE_REASON_TOO_LARGE     /* "too_large". */
 } crux_tls_certificate_reason_t;
 
 /* Holds no certificate or key bytes, and no client input but what Access validated. */

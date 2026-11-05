@@ -27,8 +27,6 @@ static const char *subject_of(crux_tls_certificate_reason_t reason)
         return "key_mismatch";
     case CRUX_TLS_CERTIFICATE_REASON_TOO_LARGE:
         return "too_large";
-    case CRUX_TLS_CERTIFICATE_REASON_STORED:
-        return "stored";
     }
     return NULL;
 }
@@ -45,6 +43,10 @@ void crux_tls_certificate_port_event(const crux_tls_certificate_event_t *event)
     case CRUX_TLS_CERTIFICATE_EVENT_REJECTED:
         record.id = CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REJECTED;
         record.result = CRUX_SECURITY_EVENT_INVALID;
+        break;
+    case CRUX_TLS_CERTIFICATE_EVENT_UNUSABLE:
+        record.id = CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_UNUSABLE;
+        record.result = CRUX_SECURITY_EVENT_FAILED;
         break;
     }
     record.channel = event->channel;

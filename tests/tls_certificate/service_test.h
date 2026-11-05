@@ -13,6 +13,7 @@
 /* From the instrumented core, built with CRUX_TLS_CERTIFICATE_TESTING. */
 void crux_tls_certificate_test_reset(void);
 bool crux_tls_certificate_test_ram_holds(const uint8_t *bytes, size_t length);
+bool crux_tls_certificate_test_key_cleared(void);
 
 /* From tests/access, which these suites link. */
 extern unsigned access_test_failures;

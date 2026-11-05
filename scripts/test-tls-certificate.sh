@@ -5,7 +5,8 @@
 #
 #   scripts/test-tls-certificate.sh [host|psa|all]
 #
-# host: the TlsCertificate.* suites, and the security event conformance suite, debug and sanitize,
+# host: the TlsCertificate.* suites, including the differential suite against OpenSSL where its headers
+#       exist and the adapter boundary probes, and the security event conformance suite, debug and sanitize,
 #       then clang-tidy on the module and its suites.
 # psa:  tests/tls_certificate/psa on TF-PSA-Crypto under ASan and UBSan, clang-tidy on the PSA ports,
 #       then OpenSSL on the certificate, request and key it writes, and a TLS 1.3 handshake.
@@ -39,9 +40,15 @@ run_host() {
         local build="$out/$preset"
         cmake --preset "$preset" -B "$build" "-DFETCHCONTENT_BASE_DIR=$cache_dir/cmake" > "$out/$preset.log" 2>&1 ||
             { tail -40 "$out/$preset.log" >&2; fail "configuring $preset"; }
-        cmake --build "$build" -j "$jobs" --target tls_certificate_x509 tls_certificate_service \
-            tls_certificate_install tls_certificate_store tls_certificate_events tls_certificate_cpp_headers \
-            security_event_conformance >> "$out/$preset.log" 2>&1 ||
+        local targets=(tls_certificate_x509 tls_certificate_service tls_certificate_install tls_certificate_store
+            tls_certificate_events tls_certificate_cpp_headers security_event_conformance)
+        # The differential suite exists only where CMake found OpenSSL's headers.
+        if cmake --build "$build" --target help | grep -q '^tls_certificate_differential:'; then
+            targets+=(tls_certificate_differential)
+        else
+            printf 'note: %s has no OpenSSL headers, so the differential suite is not built\n' "$preset"
+        fi
+        cmake --build "$build" -j "$jobs" --target "${targets[@]}" >> "$out/$preset.log" 2>&1 ||
             { tail -40 "$out/$preset.log" >&2; fail "building $preset"; }
         ctest --test-dir "$build" -R '^(TlsCertificate\.|SecurityEvent\.conformance)' --no-tests=error \
             --output-on-failure -j 2 || fail "the suites under $preset"

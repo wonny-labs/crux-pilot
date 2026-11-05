@@ -7,9 +7,12 @@
  * self-signed certificate for it. An operator can then create a certificate request signed by that
  * key, install the certificate a CA returns, or install any certificate for the device's key.
  *
- * An installed certificate is checked for format and for a match with the device key only. Its
- * signature, its chain, its trust, its revocation, its names and its dates are not checked. Every
- * result that describes a certificate carries CRUX_TLS_CERTIFICATE_CHECKS, which says so.
+ * An installed certificate is checked for format and for a match with the device key only. Format
+ * means strict DER and the X.509 v3 shape, the string types and content of names, the time form of
+ * each year, the structure of five common extension values, and no critical extension the device
+ * does not recognise. Its signature, its chain, its trust, its revocation, its names against the
+ * device, its dates, what its extension values mean, and the values of other extensions are not
+ * checked. Every result that describes a certificate carries CRUX_TLS_CERTIFICATE_CHECKS.
  *
  * A rejected certificate changes nothing: the previous one stays active. No operation here returns
  * the private key, and no output holds it.
@@ -37,8 +40,8 @@ extern "C" {
 
 /** What a certificate result states about the checks. Every info carries it. */
 #define CRUX_TLS_CERTIFICATE_CHECKS                                                                \
-    "Checked for DER format and a match with the device key only. Not checked: signature, chain, " \
-    "trust, revocation, names or dates."
+    "Checked for X.509 DER format and a match with the device key only. Not checked: signature, "  \
+    "chain, trust, revocation, names against the device, dates, or what extension values mean."
 
 /** Largest certificate the device holds, in DER bytes. */
 #define CRUX_TLS_CERTIFICATE_DER_MAX 4088u
@@ -63,7 +66,7 @@ typedef enum {
     CRUX_TLS_CERTIFICATE_ERR_DENIED = -4,
     CRUX_TLS_CERTIFICATE_ERR_BUSY =
         -5, /**< Another operation, or the TLS side holds both copies. */
-    CRUX_TLS_CERTIFICATE_ERR_MALFORMED = -6, /**< Not one DER X.509 certificate. */
+    CRUX_TLS_CERTIFICATE_ERR_MALFORMED = -6, /**< Not one well-formed DER X.509 certificate. */
     CRUX_TLS_CERTIFICATE_ERR_INVALID = -7,   /**< Well formed, but not one this device can use. */
     CRUX_TLS_CERTIFICATE_ERR_KEY_MISMATCH = -8, /**< Its public key is not the device key. */
     CRUX_TLS_CERTIFICATE_ERR_TOO_LARGE = -9,    /**< Over the limit, or the output is too small. */
@@ -159,8 +162,9 @@ crux_tls_certificate_request(crux_access_session_t session,
                              size_t capacity, size_t *length);
 
 /**
- * Replace the active certificate with an operator's, after checking that it is one DER X.509 v3
- * certificate whose public key is the device's P-256 key. Nothing else is checked. A rejection, for
+ * Replace the active certificate with an operator's, after checking that it is one well-formed DER
+ * X.509 v3 certificate, as the file comment defines it, whose public key is the device's P-256 key.
+ * Nothing else is checked. A rejection, for
  * any reason after the permission check, is logged as web.certificate_rejected and keeps the
  * previous certificate active. Success is logged as web.certificate_replaced, and the composition's
  * change callback then runs on this thread.
@@ -170,9 +174,13 @@ crux_tls_certificate_request(crux_access_session_t session,
  * @param der The upload, borrowed for the call.
  * @param[out] out The installed certificate, or NULL. Written only on success.
  * @retval CRUX_TLS_CERTIFICATE_OK Installed and saved.
- * @retval CRUX_TLS_CERTIFICATE_ERR_MALFORMED Not one strict DER certificate, with nothing after it.
+ * @retval CRUX_TLS_CERTIFICATE_ERR_MALFORMED Not one strict DER certificate with nothing after it,
+ * or a name value of the wrong type or with content its type forbids, a GeneralizedTime for 1950
+ * to 2049, or a malformed basic constraints, key usage, extended key usage, subject alternative
+ * names or subject key identifier value.
  * @retval CRUX_TLS_CERTIFICATE_ERR_INVALID Not X.509 v3, not a P-256 key, differing signature
- * algorithms, or notAfter before notBefore.
+ * algorithms, notAfter before notBefore, a serial over 20 octets, an extension twice, more than
+ * 32 extensions, or a critical extension the device does not recognise.
  * @retval CRUX_TLS_CERTIFICATE_ERR_KEY_MISMATCH Another key's certificate.
  * @retval CRUX_TLS_CERTIFICATE_ERR_TOO_LARGE Over CRUX_TLS_CERTIFICATE_DER_MAX.
  * @retval CRUX_TLS_CERTIFICATE_ERR_STORE The save failed. See crux_tls_certificate_result_t.

@@ -63,6 +63,7 @@ static const expected_id_t expected_ids[] = {
     {0x0601, "web.csrf_rejected", R},
     {0x0602, "web.certificate_replaced", C},
     {0x0603, "web.certificate_rejected", R},
+    {0x0604, "web.certificate_unusable", C},
     {0x0700, "ssh.auth_limit", R},
     {0x0701, "ssh.host_key_missing", C},
     {0x0800, "network.changed", C},
@@ -91,6 +92,7 @@ _Static_assert(CRUX_SECURITY_EVENT_ID_CLI_CONSOLE_ERROR == 0x0501, "stable value
 _Static_assert(CRUX_SECURITY_EVENT_ID_WEB_TLS_FAILED == 0x0600, "stable value");
 _Static_assert(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REPLACED == 0x0602, "stable value");
 _Static_assert(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REJECTED == 0x0603, "stable value");
+_Static_assert(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_UNUSABLE == 0x0604, "stable value");
 _Static_assert(CRUX_SECURITY_EVENT_ID_SSH_AUTH_LIMIT == 0x0700, "stable value");
 _Static_assert(CRUX_SECURITY_EVENT_ID_SSH_HOST_KEY_MISSING == 0x0701, "stable value");
 _Static_assert(CRUX_SECURITY_EVENT_ID_NETWORK_CHANGED == 0x0800, "stable value");

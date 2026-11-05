@@ -65,7 +65,6 @@ static void test_rejected(void)
         {CRUX_TLS_CERTIFICATE_REASON_INVALID, "invalid"},
         {CRUX_TLS_CERTIFICATE_REASON_KEY_MISMATCH, "key_mismatch"},
         {CRUX_TLS_CERTIFICATE_REASON_TOO_LARGE, "too_large"},
-        {CRUX_TLS_CERTIFICATE_REASON_STORED, "stored"},
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
         crux_tls_certificate_event_t event =
@@ -78,14 +77,32 @@ static void test_rejected(void)
         CHECK(record != NULL && strcmp(record->subject, cases[i].subject) == 0);
         CHECK(record != NULL && strcmp(record->user, "admin") == 0);
     }
-    CHECK(security_event_fake_count_of(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REJECTED) == 5u);
+    CHECK(security_event_fake_count_of(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REJECTED) == 4u);
     CHECK(strcmp(crux_security_event_name(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REJECTED),
                  "web.certificate_rejected") == 0);
+}
+
+static void test_unusable(void)
+{
+    security_event_fake_reset();
+    security_event_fake_boot();
+    crux_tls_certificate_event_t event = event_of(CRUX_TLS_CERTIFICATE_EVENT_UNUSABLE,
+                                                  CRUX_TLS_CERTIFICATE_REASON_KEY_MISMATCH, false);
+    crux_tls_certificate_port_event(&event);
+    const crux_security_event_record_t *record =
+        security_event_fake_last(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_UNUSABLE);
+    CHECK(record != NULL && record->result == CRUX_SECURITY_EVENT_FAILED);
+    CHECK(record != NULL && strcmp(record->subject, "key_mismatch") == 0);
+    CHECK(record != NULL && record->user[0] == '\0');
+    CHECK(security_event_fake_count_of(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REJECTED) == 0u);
+    CHECK(strcmp(crux_security_event_name(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_UNUSABLE),
+                 "web.certificate_unusable") == 0);
 }
 
 int main(void)
 {
     tls_test_case("replaced", test_replaced);
     tls_test_case("rejected", test_rejected);
+    tls_test_case("unusable", test_unusable);
     return tls_test_finish("tls_certificate_events");
 }

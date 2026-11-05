@@ -420,7 +420,11 @@ static void test_validity(void)
         {"270101000000Z", "260101000000Z", TLS_X509_INVALID, 0x17, 0x17}, /* Reversed. */
         {"260101000000Z", "260101000000Z", TLS_X509_OK, 0x17, 0x17},      /* Equal. */
         {"500101000000Z", "491231235959Z", TLS_X509_OK, 0x17, 0x17},      /* 1950, and 2049. */
-        {"20260101000000Z", "99991231235959Z", TLS_X509_OK, 0x18, 0x18},
+        {"20500101000000Z", "99991231235959Z", TLS_X509_OK, 0x18, 0x18},
+        /* RFC 5280: a date through 2049 is a UTCTime, so a GeneralizedTime then is malformed. */
+        {"20260101000000Z", "99991231235959Z", TLS_X509_MALFORMED, 0x18, 0x18},
+        {"260101000000Z", "20491231235959Z", TLS_X509_MALFORMED, 0x17, 0x18},
+        {"19490101000000Z", "260101000000Z", TLS_X509_OK, 0x18, 0x17},      /* Before 1950. */
         {"261301000000Z", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17}, /* Month 13. */
         {"260100000000Z", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17}, /* Day 0. */
         {"260229000000Z", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17}, /* Not a leap year. */
@@ -449,7 +453,7 @@ static void test_validity(void)
 
     parts_default(&p);
     p.validity.n = 0;
-    validity(&p.validity, 0x18, "20260101000000Z", 0x18, "99991231235959Z");
+    validity(&p.validity, 0x17, "260101000000Z", 0x18, "99991231235959Z");
     length = assemble(&p, scratch);
     CHECK(tls_x509_parse(scratch, length, &view) == TLS_X509_OK);
     CHECK(view.no_expiry);
@@ -541,7 +545,7 @@ static void test_extensions(void)
     static const uint8_t unknown_critical[] = {0x2a, 0x03, 0x04};
     extension(&list, unknown_critical, 3, critical_true, 3, basic_constraints_value, 2);
     extensions_of(&p.extensions, &list);
-    CHECK(parse_parts(&p) == TLS_X509_OK); /* Not this device's concern: a client decides. */
+    CHECK(parse_parts(&p) == TLS_X509_INVALID); /* A client would refuse it, so the device does. */
 
     /* Unique identifiers before the extensions are well formed and skipped. */
     parts_default(&p);
@@ -644,6 +648,209 @@ static void test_length_encodings(void)
     n = assemble(&p, big);
     CHECK(n > CRUX_TLS_CERTIFICATE_DER_MAX);
     CHECK(tls_x509_parse(big, n, &view) == TLS_X509_MALFORMED);
+}
+
+/* ---- Review of d7e86bd: values the parser took that OpenSSL refuses. */
+
+static void expect_byte_edit(size_t at, uint8_t was, uint8_t now)
+{
+    uint8_t copy[sizeof(fixture_ec_self)];
+    memcpy(copy, fixture_ec_self, sizeof(copy));
+    CHECK(copy[at] == was);
+    copy[at] = now;
+    tls_x509_view_t view;
+    tls_x509_result_t result = tls_x509_parse(copy, sizeof(copy), &view);
+    if (result != TLS_X509_MALFORMED) {
+        printf("byte %zu 0x%02x -> 0x%02x: %d\n", at, was, now, (int)result);
+    }
+    CHECK(result == TLS_X509_MALFORMED);
+}
+
+static void test_review_byte_edits(void)
+{
+    expect_byte_edit(58, 0x0c, 0x00);  /* Issuer O value with universal tag 0. */
+    expect_byte_edit(140, 0x6d, 0xff); /* Not UTF-8, in the subject's UTF8String. */
+    expect_byte_edit(135, 0x0c, 0x83); /* A context tag where a DirectoryString belongs. */
+}
+
+static tls_x509_result_t subject_value(uint8_t tag, const void *value, size_t length)
+{
+    parts_t p;
+    parts_default(&p);
+    buf_t atv = {0}, set = {0}, seq = {0};
+    tlv(&atv, 0x06, oid_cn, sizeof(oid_cn));
+    tlv(&atv, tag, value, length);
+    wrap(&set, 0x30, &atv);
+    wrap(&seq, 0x31, &set);
+    p.subject.n = 0;
+    wrap(&p.subject, 0x30, &seq);
+    return parse_parts(&p);
+}
+
+static void test_string_values(void)
+{
+    struct {
+        const char *value;
+        size_t length;
+        tls_x509_result_t expected;
+        uint8_t tag;
+    } cases[] = {
+        {"plain", 5, TLS_X509_OK, 0x0c},
+        {"caf\xc3\xa9", 5, TLS_X509_OK, 0x0c},
+        {"\xf0\x9f\x94\x92", 4, TLS_X509_OK, 0x0c}, /* U+1F512. */
+        {"\xff", 1, TLS_X509_MALFORMED, 0x0c},
+        {"\xc0\x80", 2, TLS_X509_MALFORMED, 0x0c},         /* Overlong. */
+        {"\xe0\x80\x80", 3, TLS_X509_MALFORMED, 0x0c},     /* Overlong. */
+        {"\xed\xa0\x80", 3, TLS_X509_MALFORMED, 0x0c},     /* A surrogate. */
+        {"\xf4\x90\x80\x80", 4, TLS_X509_MALFORMED, 0x0c}, /* Above U+10FFFF. */
+        {"\xe2\x82", 2, TLS_X509_MALFORMED, 0x0c},         /* Cut short. */
+        {"a\x80", 2, TLS_X509_MALFORMED, 0x0c},            /* A lone continuation. */
+        {"AZaz09 '()+,-./:=?", 18, TLS_X509_OK, 0x13},
+        {"a_b", 3, TLS_X509_MALFORMED, 0x13},
+        {"a*b", 3, TLS_X509_MALFORMED, 0x13},
+        {"user@example", 12, TLS_X509_OK, 0x16},
+        {"\x80", 1, TLS_X509_MALFORMED, 0x16},
+        {"0123 45", 7, TLS_X509_OK, 0x12},
+        {"12a", 3, TLS_X509_MALFORMED, 0x12},
+        {"\xfe\x01", 2, TLS_X509_OK, 0x14}, /* TeletexString is not checked. */
+        {"\x00\x41", 2, TLS_X509_OK, 0x1e},
+        {"\x00\x41\x00", 3, TLS_X509_MALFORMED, 0x1e},
+        {"\xd8\x00", 2, TLS_X509_MALFORMED, 0x1e}, /* A surrogate. */
+        {"\x00\x00\x00\x41", 4, TLS_X509_OK, 0x1c},
+        {"\x00\x00\x41", 3, TLS_X509_MALFORMED, 0x1c},
+        {"\x00\x11\x00\x00", 4, TLS_X509_MALFORMED, 0x1c}, /* Above U+10FFFF. */
+        {"abc", 3, TLS_X509_MALFORMED, 0x00},
+        {"abc", 3, TLS_X509_MALFORMED, 0x04},
+        {"abc", 3, TLS_X509_MALFORMED, 0x83},
+        {"", 0, TLS_X509_MALFORMED, 0x30},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+        tls_x509_result_t result = subject_value(cases[i].tag, cases[i].value, cases[i].length);
+        if (result != cases[i].expected) {
+            printf("string case %zu: %d\n", i, (int)result);
+        }
+        CHECK(result == cases[i].expected);
+    }
+}
+
+static void test_universal_tag_zero(void)
+{
+    parts_t p;
+    parts_default(&p);
+    static const uint8_t zero[] = {0x00, 0x00};
+    set(&p.tbs_extra, zero, sizeof(zero));
+    CHECK(parse_parts(&p) == TLS_X509_MALFORMED);
+    parts_default(&p);
+    static const uint8_t null_parameter[] = {0x30, 0x0c, 0x06, 0x08, 0x2a, 0x86, 0x48,
+                                             0xce, 0x3d, 0x04, 0x03, 0x02, 0x00, 0x00};
+    set(&p.inner_algorithm, null_parameter, sizeof(null_parameter));
+    set(&p.outer_algorithm, null_parameter, sizeof(null_parameter));
+    CHECK(parse_parts(&p) == TLS_X509_MALFORMED);
+}
+
+static tls_x509_result_t with_extension(const uint8_t *oid, size_t oid_length, bool critical,
+                                        const uint8_t *value, size_t value_length)
+{
+    parts_t p;
+    parts_default(&p);
+    buf_t list = {0};
+    extension(&list, oid, oid_length, critical ? critical_true : NULL, critical ? 3u : 0u, value,
+              value_length);
+    p.extensions.n = 0;
+    extensions_of(&p.extensions, &list);
+    return parse_parts(&p);
+}
+
+static void test_extension_values(void)
+{
+    static const uint8_t bc[] = {0x55, 0x1d, 0x13}, ku[] = {0x55, 0x1d, 0x0f},
+                         eku[] = {0x55, 0x1d, 0x25}, san[] = {0x55, 0x1d, 0x11},
+                         ski[] = {0x55, 0x1d, 0x0e}, other[] = {0x2a, 0x03, 0x04};
+    struct {
+        const uint8_t *oid;
+        const char *value;
+        size_t length;
+        bool critical;
+        tls_x509_result_t expected;
+    } cases[] = {
+        {bc, "\x30\x00", 2, true, TLS_X509_OK},
+        {bc, "\x30\x03\x01\x01\xff", 5, true, TLS_X509_OK},
+        {bc, "\x30\x06\x01\x01\xff\x02\x01\x00", 8, true, TLS_X509_OK},
+        {bc, "\x30\x03\x01\x01\x00", 5, true, TLS_X509_MALFORMED}, /* An explicit default. */
+        {bc, "\x30\x03\x02\x01\xff", 5, true, TLS_X509_MALFORMED}, /* A negative length. */
+        {bc, "\x04\x00", 2, true, TLS_X509_MALFORMED},
+        {bc, "\x30\x00\x00", 3, true, TLS_X509_MALFORMED}, /* After the value. */
+        {ku, "\x03\x02\x07\x80", 4, true, TLS_X509_OK},
+        {ku, "\x03\x02\x08\x80", 4, true, TLS_X509_MALFORMED},
+        {ku, "\x03\x01\x00", 3, true, TLS_X509_MALFORMED}, /* No bits. */
+        {ku, "\x04\x01\x80", 3, true, TLS_X509_MALFORMED},
+        {eku, "\x30\x0a\x06\x08\x2b\x06\x01\x05\x05\x07\x03\x01", 12, false, TLS_X509_OK},
+        {eku, "\x30\x00", 2, false, TLS_X509_MALFORMED},
+        {eku, "\x30\x03\x02\x01\x01", 5, false, TLS_X509_MALFORMED},
+        {san, "\x30\x03\x82\x01\x61", 5, false, TLS_X509_OK},
+        {san, "\x30\x06\x87\x04\xc0\x00\x02\x0a", 8, false, TLS_X509_OK},
+        {san, "\x30\x00", 2, false, TLS_X509_MALFORMED},
+        {san, "\x30\x05\x87\x03\xc0\x00\x02", 7, false, TLS_X509_MALFORMED}, /* 3-byte IP. */
+        {san, "\x30\x03\x82\x01\x80", 5, false, TLS_X509_MALFORMED},         /* Not IA5. */
+        {san, "\x30\x03\x16\x01\x61", 5, false, TLS_X509_MALFORMED}, /* Not a GeneralName. */
+        {san, "\x30\x04\xa4\x02\x30\x00", 6, false, TLS_X509_OK},    /* An empty Name. */
+        {san, "\x30\x02\xa4\x00", 4, false, TLS_X509_MALFORMED},     /* No Name. */
+        {san, "\x30\x04\xa4\x02\x31\x00", 6, false, TLS_X509_MALFORMED},
+        {ski, "\x04\x02\x01\x02", 4, false, TLS_X509_OK},
+        {ski, "\x30\x00", 2, false, TLS_X509_MALFORMED},
+        {other, "\xff\xff", 2, false, TLS_X509_OK}, /* An unknown value is not parsed. */
+        {other, "\xff\xff", 2, true, TLS_X509_INVALID},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+        tls_x509_result_t result = with_extension(cases[i].oid, 3, cases[i].critical,
+                                                  (const uint8_t *)cases[i].value, cases[i].length);
+        if (result != cases[i].expected) {
+            printf("extension case %zu: %d\n", i, (int)result);
+        }
+        CHECK(result == cases[i].expected);
+    }
+}
+
+static tls_x509_result_t with_extension_count(size_t count)
+{
+    parts_t p;
+    parts_default(&p);
+    buf_t list = {0};
+    for (size_t i = 0; i < count; ++i) {
+        const uint8_t oid[] = {0x2a, 0x03, (uint8_t)(i / 100u + 1u), (uint8_t)(i % 100u + 1u)};
+        extension(&list, oid, sizeof(oid), NULL, 0, basic_constraints_value, 2);
+    }
+    p.extensions.n = 0;
+    extensions_of(&p.extensions, &list);
+    return parse_parts(&p);
+}
+
+static void test_extension_count(void)
+{
+    CHECK(with_extension_count(32) == TLS_X509_OK);
+    CHECK(with_extension_count(33) == TLS_X509_INVALID);
+    CHECK(with_extension_count(120) == TLS_X509_INVALID);
+}
+
+static void test_key_info_and_unique_ids(void)
+{
+    parts_t p;
+    parts_default(&p);
+    static const uint8_t extra[] = {0x05, 0x00};
+    buf_t inner = {0};
+    /* The key's content again, with an element after the BIT STRING. */
+    put(&inner, p.key.b + 2, p.key.n - 2u);
+    put(&inner, extra, sizeof(extra));
+    p.key.n = 0;
+    wrap(&p.key, 0x30, &inner);
+    CHECK(parse_parts(&p) == TLS_X509_MALFORMED);
+
+    parts_default(&p);
+    static const uint8_t unique_ids[] = {0x81, 0x02, 0x08, 0x01};
+    buf_t ext = p.extensions;
+    set(&p.extensions, unique_ids, sizeof(unique_ids));
+    put(&p.extensions, ext.b, ext.n);
+    CHECK(parse_parts(&p) == TLS_X509_MALFORMED);
 }
 
 /* ---- Every truncation, every flipped byte, and random mutation. */
@@ -1208,6 +1415,12 @@ int main(void)
     tls_test_case("extensions", test_extensions);
     tls_test_case("signature and framing", test_signature_and_framing);
     tls_test_case("length encodings", test_length_encodings);
+    tls_test_case("review byte edits", test_review_byte_edits);
+    tls_test_case("string values", test_string_values);
+    tls_test_case("universal tag zero", test_universal_tag_zero);
+    tls_test_case("extension values", test_extension_values);
+    tls_test_case("extension count", test_extension_count);
+    tls_test_case("key info and unique identifiers", test_key_info_and_unique_ids);
     tls_test_case("truncations", test_truncations);
     tls_test_case("flipped bytes", test_flipped_bytes);
     tls_test_case("random mutation", test_random_mutation);

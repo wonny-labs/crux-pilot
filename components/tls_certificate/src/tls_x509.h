@@ -21,8 +21,11 @@
 /* A parse's verdict. Each is a reason a certificate is refused, except OK. */
 typedef enum {
     TLS_X509_OK = 0,
-    TLS_X509_MALFORMED, /* Not strict DER, not the X.509 shape, or bytes after it. */
-    TLS_X509_INVALID,   /* Well formed: not v3, not P-256, differing algorithms, reversed dates. */
+    /* Not strict DER, not the X.509 shape, bytes after it, a bad string, time or parsed value. */
+    TLS_X509_MALFORMED,
+    /* Well formed: not v3, not P-256, differing algorithms, reversed dates, a long serial, an
+     * extension twice, too many, or an unknown critical one. */
+    TLS_X509_INVALID,
 } tls_x509_result_t;
 
 /* What a parse found. Pointers point into the parsed bytes. */

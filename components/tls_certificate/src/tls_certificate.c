@@ -58,6 +58,9 @@ static slot_t slots[2];
 static size_t active;
 static uint32_t generation;
 static uint8_t request_scratch[CRUX_TLS_CERTIFICATE_CSR_MAX + 64u];
+/* The key record read from the store, held only during start and cleared before it returns. A
+ * static buffer rather than the stack, so that a test can see that it is cleared. */
+static uint8_t key_record[CRUX_CREDENTIAL_KEY_RECORD_BYTES_MAX];
 static void (*on_changed)(void *context);
 static void *on_changed_context;
 
@@ -290,10 +293,10 @@ static crux_tls_certificate_result_t load_key(void)
     if (result != CRUX_TLS_CERTIFICATE_OK) {
         return result;
     }
-    uint8_t record[CRUX_CREDENTIAL_KEY_RECORD_BYTES_MAX];
+    uint8_t *record = key_record;
     size_t length = 0;
     result = from_store(
-        crux_credential_read(CRUX_CREDENTIAL_RECORD_TLS_KEY, record, sizeof(record), &length));
+        crux_credential_read(CRUX_CREDENTIAL_RECORD_TLS_KEY, record, sizeof(key_record), &length));
     crux_credential_key_view_t view;
     if (result == CRUX_TLS_CERTIFICATE_OK &&
         (crux_credential_key_parse(record, length, &view) != CRUX_CREDENTIAL_OK ||
@@ -310,7 +313,7 @@ static crux_tls_certificate_result_t load_key(void)
             result = CRUX_TLS_CERTIFICATE_ERR_INVALID;
         }
     }
-    wipe(record, sizeof(record));
+    wipe(key_record, sizeof(key_record));
     return result;
 }
 
@@ -381,7 +384,7 @@ crux_tls_certificate_start(const crux_tls_certificate_options_t *options,
     if (result != CRUX_TLS_CERTIFICATE_OK) {
         /* Fail closed: keep the key for an operator's recovery, serve nothing, replace nothing. */
         state = STATE_NO_CERTIFICATE;
-        emit(CRUX_TLS_CERTIFICATE_EVENT_REJECTED, CRUX_TLS_CERTIFICATE_REASON_STORED, false, NULL);
+        emit(CRUX_TLS_CERTIFICATE_EVENT_UNUSABLE, reason_of(result), false, NULL);
         return result;
     }
     make_active(&slots[0]);
@@ -706,9 +709,10 @@ void crux_tls_certificate_test_reset(void)
 bool crux_tls_certificate_test_ram_holds(const uint8_t *bytes, size_t length);
 bool crux_tls_certificate_test_ram_holds(const uint8_t *bytes, size_t length)
 {
-    const uint8_t *areas[] = {(const uint8_t *)slots, request_scratch, device_public};
-    const size_t sizes[] = {sizeof(slots), sizeof(request_scratch), sizeof(device_public)};
-    for (size_t a = 0; a < 3u; ++a) {
+    const uint8_t *areas[] = {(const uint8_t *)slots, request_scratch, device_public, key_record};
+    const size_t sizes[] = {sizeof(slots), sizeof(request_scratch), sizeof(device_public),
+                            sizeof(key_record)};
+    for (size_t a = 0; a < 4u; ++a) {
         for (size_t i = 0; i + length <= sizes[a]; ++i) {
             if (memcmp(areas[a] + i, bytes, length) == 0) {
                 return true;
@@ -717,4 +721,17 @@ bool crux_tls_certificate_test_ram_holds(const uint8_t *bytes, size_t length)
     }
     return false;
 }
+
+/* True if the PKCS #8 copy holds only zeros. */
+bool crux_tls_certificate_test_key_cleared(void);
+bool crux_tls_certificate_test_key_cleared(void)
+{
+    for (size_t i = 0; i < sizeof(key_der); ++i) {
+        if (key_der[i] != 0u) {
+            return false;
+        }
+    }
+    return true;
+}
+
 #endif

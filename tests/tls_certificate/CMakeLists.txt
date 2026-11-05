@@ -57,3 +57,32 @@ set_tests_properties(TlsCertificate.tls_certificate_store PROPERTIES TIMEOUT 120
 add_library(tls_certificate_cpp_headers OBJECT cpp_headers.cpp)
 target_link_libraries(tls_certificate_cpp_headers PRIVATE crux_tls_certificate_adapter)
 target_compile_options(tls_certificate_cpp_headers PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
+# The parser against OpenSSL's DER decoder, when the Host has OpenSSL's headers.
+find_package(OpenSSL QUIET COMPONENTS Crypto)
+if(OpenSSL_FOUND)
+    tls_certificate_suite(tls_certificate_differential 300 differential.c
+        ../../components/tls_certificate/src/tls_x509.c)
+    target_link_libraries(tls_certificate_differential PRIVATE crux_tls_certificate_api
+        OpenSSL::Crypto)
+else()
+    message(STATUS "OpenSSL headers not found: TlsCertificate.tls_certificate_differential skipped")
+endif()
+
+# The adapter boundary, configured both ways in a separate project.
+foreach(probe IN ITEMS leak clean)
+    if(probe STREQUAL "leak")
+        set(_leak ON)
+    else()
+        set(_leak OFF)
+    endif()
+    add_test(NAME TlsCertificate.boundary_${probe}
+        COMMAND ${CMAKE_COMMAND} -S ${CMAKE_CURRENT_SOURCE_DIR}/boundary
+            -B ${CMAKE_CURRENT_BINARY_DIR}/boundary-${probe} -G ${CMAKE_GENERATOR}
+            -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DPROBE_LEAK=${_leak})
+    set_tests_properties(TlsCertificate.boundary_${probe} PROPERTIES TIMEOUT 120)
+endforeach()
+set_tests_properties(TlsCertificate.boundary_leak PROPERTIES
+    PASS_REGULAR_EXPRESSION "Credential adapter header reachable by a consumer")
+set_tests_properties(TlsCertificate.boundary_clean PROPERTIES
+    FAIL_REGULAR_EXPRESSION "reachable by a consumer")

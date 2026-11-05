@@ -121,7 +121,7 @@ sequenceDiagram
     else present and matching
         T-->>C: STARTED
     else malformed, invalid or another key's
-        T-->>C: refused, web.certificate_rejected "stored", nothing served
+        T-->>C: refused, web.certificate_unusable, nothing served
     end
     C->>T: material_take
     C->>Z: tls_credential_add(certificate), tls_credential_add(PKCS #8 key)
@@ -164,8 +164,8 @@ operation that finds another running returns `BUSY` and does not wait.
 
 | Result | Meaning |
 | --- | --- |
-| `ERR_MALFORMED` | Not one strict DER X.509 certificate with nothing after it: a PEM file, a truncated one, a request, any DER rule broken |
-| `ERR_INVALID` | Well formed, but not X.509 v3, not an uncompressed P-256 key, inner and outer signature algorithms differ, notAfter before notBefore, a serial over 20 octets, or one extension twice |
+| `ERR_MALFORMED` | Not one strict DER X.509 certificate with nothing after it: a PEM file, a truncated one, a request, any DER rule broken, universal tag 0, a name value that is not one of the string types names use or whose content breaks its type (UTF-8, PrintableString, IA5String, NumericString, BMPString, UniversalString), a GeneralizedTime for a year from 1950 to 2049, or a malformed value of basic constraints, key usage, extended key usage, subject alternative names or subject key identifier |
+| `ERR_INVALID` | Well formed, but not X.509 v3, not an uncompressed P-256 key, inner and outer signature algorithms differ, notAfter before notBefore, a serial over 20 octets, one extension twice, more than 32 extensions, or a critical extension the device does not recognise |
 | `ERR_KEY_MISMATCH` | Another key's certificate |
 | `ERR_TOO_LARGE` | Over 4,088 bytes, the largest that fits the store's certificate record with this module's header |
 | `ERR_STORE` | The save failed and the previous certificate stays active. As for any replaced record of the store, a failed save can still win at the next boot if the store could not invalidate it. |
@@ -225,16 +225,21 @@ there.
 
 | Checked | Not checked |
 | --- | --- |
-| Exactly one DER element, with definite and minimal lengths, low tag numbers and nothing after it | The signature, so any issuer and any signature algorithm is accepted |
+| Exactly one DER element, with definite and minimal lengths, low tag numbers, no universal tag 0, and nothing after it | The signature, so any issuer and any signature algorithm is accepted |
 | The X.509 shape: TBS, algorithm, signature, and inside the TBS each field in order | The chain: one certificate only, and no intermediate is kept or served |
 | Version 3, a serial of at most 20 octets, the same algorithm inside and outside | Trust in any CA |
-| Well-formed names, times, extensions, and no extension twice | Revocation |
-| An uncompressed P-256 point equal to the device key's | The names against the device's address |
+| Names: each value one of UTF8String, PrintableString, IA5String, NumericString, TeletexString, BMPString or UniversalString, with its content valid for the type. TeletexString content is not checked. | Revocation |
+| Times: `YYMMDDHHMMSSZ` for 1950 to 2049 and `YYYYMMDDHHMMSSZ` otherwise, real dates, notAfter not before notBefore | The names against the device's address |
+| Extensions: each well formed, none twice, at most 32. The values of basic constraints, key usage, extended key usage, subject alternative names and subject key identifier are parsed for their structure. A critical extension other than those and name constraints, certificate policies, policy mappings, policy constraints and inhibit any policy is refused. | The values of any other extension, which are not parsed |
+| An uncompressed P-256 point equal to the device key's | What the parsed values say: a certificate whose key usage lacks digital signature, or whose extended key usage lacks server authentication, is installed, and clients will refuse it |
 | At most 4,088 bytes | The dates against any clock: an expired certificate is installed and reported |
 
 The parser has no recursion and no allocation. Each read is checked against what remains of its parent, and each parent
 must be used up exactly. It copies the subject's and issuer's first common name, with any byte outside printable ASCII
 shown as `?`, so a description never carries raw input.
+
+A differential test holds the parser to OpenSSL's decoder: of 300,000 seeded mutations of the OpenSSL fixtures, every one
+the parser accepts must also decode with `d2i_X509`. Before the review fixes, 9,994 did not. After them, none.
 
 ### Dates without a clock
 
@@ -275,7 +280,7 @@ profile, but Zephyr's TLS credentials at the pinned revision take no key handle,
 | `web.certificate_replaced` 0x0602 | C | `OK` | `installed` | An install |
 | `web.certificate_replaced` 0x0602 | C | `FAILED` | `save_failed` | A save failed and the previous certificate stays |
 | `web.certificate_rejected` **0x0603, new** | R | `INVALID` | `malformed`, `invalid`, `key_mismatch`, `too_large` | An upload refused after the permission check |
-| `web.certificate_rejected` 0x0603 | R | `INVALID` | `stored` | The stored certificate refused at start |
+| `web.certificate_unusable` **0x0604, new** | C | `FAILED` | `malformed`, `invalid`, `key_mismatch` | The stored certificate refused at start, so nothing is served. A change event, like `credential.slot_invalid`, so a full ring still admits it. |
 
 A refused permission is Access's `access.permission_denied`, and this module logs nothing for it, so a session without
 `tls.manage` learns nothing about its upload. No event holds certificate or key bytes: the port's structure has none.
@@ -332,7 +337,7 @@ locking users out, as the web design explains.
 ### Recovery
 
 When the stored certificate is refused at boot, as after a key rotation through `crux_credential_key_replace`, the device
-serves no HTTPS, and the event log shows `web.certificate_rejected` with `stored`. An administrator on the serial console
+serves no HTTPS, and the event log shows `web.certificate_unusable` with the reason. An administrator on the serial console
 installs a certificate for the key or regenerates a self-signed one. Nothing regenerates silently.
 
 ## Tests
@@ -343,8 +348,10 @@ CI runs. `scripts/test-tls-certificate.sh psa` runs the PSA composition and the 
 
 | Suite | Covers |
 | --- | --- |
-| `tls_certificate_x509` | Six certificates made by OpenSSL; hand-made variants of each refusal; every truncation of four certificates; every byte of one flipped three ways; 60,000 seeded random mutations; the builders' output, bounds, signature encoding, serial forms, dates across 2050, the largest names, name rules, and the PKCS #8 bytes |
-| `tls_certificate_service` | First boot, a later boot, start's arguments and failures, a stored record refused for each reason and recovered, read failures, permissions, the request, regeneration and an address change, the material and its two buffers, contention, and no output holding the private key |
+| `tls_certificate_x509` | Six certificates made by OpenSSL; hand-made variants of each refusal, including each string type and its content, universal tag 0, the time form for each year, each parsed extension value, unknown critical extensions, 32, 33 and 120 extensions, an element after the key, and unique-identifier bits; the review's three byte edits of a certificate for the device key; every truncation of four certificates; every byte of one flipped three ways; 60,000 seeded random mutations; the builders' output, bounds, signature encoding, serial forms, dates across 2050, the largest names, name rules, and the PKCS #8 bytes |
+| `tls_certificate_differential` | 300,000 seeded mutations of the fixtures; every one the parser accepts must decode with OpenSSL's `d2i_X509`. Built only where CMake finds OpenSSL's headers. |
+| `TlsCertificate.boundary_leak`, `boundary_clean` | A separate project configured twice: a consumer reaching the adapter is refused by the credential boundary rule, and one of the public target is accepted |
+| `tls_certificate_service` | First boot, a later boot, start's arguments and failures, a stored record refused for each reason and recovered, read failures, permissions, the request, regeneration and an address change, the material and its two buffers, contention, no output holding the private key, and the key record and the PKCS #8 copy cleared when start fails |
 | `tls_certificate_install` | The acceptance criteria: each kind of refusal logged with nothing changed, every truncation and flip of another key's certificate, accepted certificates, a failed save, and the checks statement |
 | `tls_certificate_store` | The module on the real credential store: first boot, a power cycle, refused uploads leaving the stored record, an installed certificate across a power cycle, an unusable store, and a store-generated key |
 | `tls_certificate_events` | Each port event to its record, on the recording fake of the event contract |
@@ -355,38 +362,54 @@ CI runs. `scripts/test-tls-certificate.sh psa` runs the PSA composition and the 
 
 ### Mutations
 
-Each was applied once to the source on Host and the four service and parser suites were run. A count is the failing
-checks; a count of cases means a case crashed, which also fails the suite.
+Each was applied once to the source on Host, at the review fixes, and the parser, service, install, store and
+differential suites were run. A count is the failing checks. 42 mutations: 41 caught, one equivalent. The first run, at
+`f51e277`, also found a gap, a two-byte length that fits one byte, which a case now covers.
 
 | Mutation | Caught by |
 | --- | --- |
-| Key match skipped | 6 in `service.c`, 271 in `install.c`, 2 in `store.c` |
-| Key match on the first byte only | 6 in `service.c`, 271 in `install.c`, 2 in `store.c` |
+| Key match skipped | 6 in `service.c`, 258 in `install.c`, 2 in `store.c` |
+| Key match on the first byte only | 6 in `service.c`, 258 in `install.c`, 2 in `store.c` |
 | Key match on all but the last byte | 8 in `install.c` |
 | Bytes after the certificate accepted | 2 in `x509.c`, 8 in `install.c` |
-| A one-byte long length that fits the short form accepted | 1 in `x509.c` |
-| A two-byte long length that fits one byte accepted | 2 in `x509.c`, after a case added for it: the first run did not catch it |
-| Inner and outer algorithms not compared | 1 in `x509.c`, 8 in `install.c` |
+| Non-minimal one-byte long length accepted | 1 in `x509.c` |
+| Non-minimal two-byte long length accepted | 2 in `x509.c` |
+| A TLV one byte longer than its parent accepted | **Not caught**, also under ASan. Equivalent: each parent must then be used up exactly, and the overrun leaves its count wrapped, so the input is refused before the extra byte is read. |
+| Inner and outer algorithms not compared | 1 in `x509.c`, 8 in `install.c`, `differential.c` (at least 10 disagreements with OpenSSL) |
 | Reversed dates accepted | 2 in `x509.c` |
 | Version 3 not required | 1 in `x509.c` |
-| Named curve not checked | 1 in `x509.c` |
-| Point form not checked | 37 in `x509.c`, 2 in `store.c` |
-| Unused bits in the key accepted | 2 in `x509.c` |
-| A critical flag that is not DER TRUE accepted | 2 in `x509.c` |
-| A duplicate extension accepted | 1 in `x509.c` |
-| A non-minimal integer accepted | 3 in `x509.c` |
-| A time without `Z` accepted | 1 in `x509.c` |
-| A policy refusal returned as accepted | 27 in `x509.c`, 2 cases each in `install.c` and `store.c` |
-| An upload over the limit not refused as too large | 2 in `install.c` |
-| A refusal not logged | 1 in `service.c`, 73 in `install.c`, 1 in `store.c` |
-| A refusal logged with the wrong reason | 6 in `install.c` |
-| An upload written over the active buffer | 14 in `service.c`, 12 in `install.c` |
-| A buffer the TLS side holds overwritten | 5 in `service.c` |
-| A refused stored certificate replaced at start | 36 in `service.c` |
-| The permission not checked | 15 in `service.c`, 5 in `install.c` |
-| A failed save treated as saved | 3 in `service.c`, 4 in `install.c` |
-| Absence assumed on a read error at start | 5 in `service.c` |
-| A TLV one byte longer than its parent accepted | **Not caught**, also under ASan. Equivalent: each parent must then be used up exactly, and the overrun leaves its count wrapped, so the input is refused before the extra byte is read. |
+| Named curve not checked | 1 in `x509.c`, `differential.c` (at least 10 disagreements with OpenSSL) |
+| Point form not checked | 35 in `x509.c`, 2 in `store.c` |
+| Unused bits in the key accepted | 2 in `x509.c`, `differential.c` (at least 10 disagreements with OpenSSL) |
+| Critical flag not DER TRUE accepted | 2 in `x509.c` |
+| Duplicate extension accepted | 1 in `x509.c` |
+| Non-minimal integer accepted | 3 in `x509.c`, `differential.c` (1 disagreement) |
+| Time without Z accepted | 1 in `x509.c` |
+| Policy refusal reported as accepted when malformed checks pass | 27 in `x509.c`, 2 cases crashed in `install.c`, 2 cases crashed in `store.c`, `differential.c` (at least 10 disagreements with OpenSSL) |
+| Upload too large not refused as such | 2 in `install.c` |
+| Universal tag 0 accepted | 1 in `x509.c` |
+| Attribute value type and content not checked | 20 in `x509.c`, `differential.c` (at least 10 disagreements with OpenSSL) |
+| UTF-8 overlong forms accepted | 2 in `x509.c` |
+| UTF-8 surrogates accepted | 1 in `x509.c` |
+| PrintableString content not checked | 2 in `x509.c` |
+| GeneralizedTime before 2050 accepted | 2 in `x509.c` |
+| Parsed extension values not checked | 16 in `x509.c` |
+| Subject alternative names not checked | 6 in `x509.c` |
+| Unknown critical extension accepted | 2 in `x509.c` |
+| Bound of 32 extensions removed | 1 in `x509.c` |
+| Element after the key accepted | 1 in `x509.c` |
+| Unique identifier unused bits not checked | 1 in `x509.c`, `differential.c` (at least 10 disagreements with OpenSSL) |
+| Key record copy not cleared | 4 in `service.c` |
+| PKCS #8 copy kept after a failed start | 1 in `service.c` |
+| Refusal not logged | 1 in `service.c`, 73 in `install.c`, 1 in `store.c` |
+| Refusal logged with the wrong reason | 6 in `install.c` |
+| Upload written over the active buffer | 14 in `service.c`, 12 in `install.c` |
+| A held buffer overwritten | 5 in `service.c` |
+| Refused stored certificate replaced at start (fail open) | 36 in `service.c` |
+| Permission not checked | 15 in `service.c`, 5 in `install.c` |
+| Failed save treated as saved | 3 in `service.c`, 4 in `install.c` |
+| Stored refusal logged as an upload refusal | 9 in `service.c` |
+| Absence assumed on a read error at start | 9 in `service.c` |
 
 ### Local results
 
@@ -400,9 +423,12 @@ Container `crux-190`, image `crux-pilot-devcontainer:local` under amd64 emulatio
 | clang-tidy 18 on the module, the PSA ports and the suites | Host | No finding |
 | `scripts/check-format.sh` | Host | Pass |
 | `scripts/check-dependencies.sh`, `scripts/check-credential-boundary.py`, `scripts/check_docs.py` | Host | Pass |
-| Negative probe: `crux::tls_certificate` made to link the adapter, root configure | Host | Refused by `cmake/CruxCredentialBoundary.cmake`, as intended. Reverted. |
+| Negative probe by hand, before the automated one: `crux::tls_certificate` made to link the adapter, root configure | Host | Refused by `cmake/CruxCredentialBoundary.cmake`, as intended. Reverted. |
 | `scripts/test-tls-certificate.sh psa`, gcc with ASan and UBSan, TF-PSA-Crypto `dc575a2`, OpenSSL 3.0.13 | Host | Pass |
-| The mutations above | Host | 26 of 27 caught, one equivalent |
+| The mutations above | Host | 41 of 42 caught, one equivalent |
+| Review fixes, tests first | Host | Red before the fixes: `x509` 6 of 32 cases failed, the event tests did not build without `web.certificate_unusable`, and the wipe test did not link without its hook |
+| `tls_certificate_differential`, 300,000 rounds | Host | 0 disagreements with OpenSSL 3.0.13's `d2i_X509`; 9,994 on the parser before the fixes |
+| `TlsCertificate.boundary_leak`, `boundary_clean` | Host | Leak refused by `cmake/CruxCredentialBoundary.cmake`, clean accepted |
 | `scripts/check-host.sh`, both presets | Host | **Not run locally.** CI's host workflow runs it. |
 | `native_sim`, target compile | | **Not run** |
 
@@ -415,10 +441,22 @@ Container `crux-190`, image `crux-pilot-devcontainer:local` under amd64 emulatio
 | Mbed profile: the signature port and TLS share one PSA core with no lock, as the [PSA design](psa-crypto-design.md#what-a-provider-must-take-care-of) states | **Not shown.** No composition ran. |
 | `psa_sign_hash` is outside the qualified subset | Run here on TF-PSA-Crypto on Host only. #142 ran it in tests on both providers. |
 | One more mutex from the Sync pool, which the gate record already counts as full | **Not measured.** The integrated composition must raise the pool. |
-| 10,696 bytes of static RAM on the 64-bit Host build: two buffers of 8,800 bytes together, a request buffer of 1,600, the key of 138 | `size` and `nm` on the Host object. A 32-bit target differs a little, and nothing was measured there. |
+| 10,840 bytes of static RAM on the 64-bit Host build: two buffers of 8,800 bytes together, a request buffer of 1,600, the key of 138, and the key record of 101 used during start | `size` and `nm` on the Host object. A 32-bit target differs a little, and nothing was measured there. |
 | An install or regeneration waits on one store save, so a web route must run it on a worker | The header says so. No route exists. |
 | A browser's view of the self-signed profile, including Safari's validity rule | **Not run** |
-| A fuzzer with coverage feedback | **Not run**: this container's clang has no fuzzer runtime. The seeded mutation suite, under ASan and UBSan, stands in. |
+| A fuzzer with coverage feedback | **Not run**: this container's clang has no fuzzer runtime. The seeded mutation suite under ASan and UBSan, and the differential test against OpenSSL, stand in. |
+| What parsed extension values mean is not checked, and other extension values are not parsed | By design, decision 7. A certificate without server authentication installs and clients refuse it. |
+
+## Owner decisions needed before adoption
+
+These are security-sensitive. **An independent review PASS and green CI are not this approval.**
+
+| # | Decision | Recommendation |
+| --- | --- | --- |
+| A | The reference self-signed validity, 2026-01-01 to 9999-12-31, against Safari's 825-day rule for TLS server certificates, which no browser run has tested | Accept for a device with no trusted clock; a composition with one sets 825 days |
+| B | Decision 2: the private key as PKCS #8 bytes in RAM, handed to Zephyr's TLS credentials, which keep the pointer | Accept: both profiles need it at the pinned Zephyr |
+| C | Decision 3: `psa_sign_hash` used by a consumer, outside #142's qualified subset, run on TF-PSA-Crypto on Host only | Accept for review now, and qualify it on wolfPSA before a Wolf-profile composition |
+| D | Decision 5: the two event identifiers and their classes | Accept |
 
 ## Decisions for review
 
@@ -430,9 +468,9 @@ Each was taken without asking the owner, as the task instructs. The narrower cho
 | 2 | The module reads no clock. The reference notBefore is 2026-01-01, and notAfter `99991231235959Z`. | A device with no clock cannot renew on time, and a fixed expiry date would hit every device at once | A composition with a trusted clock sets its own dates |
 | 3 | The TLS stack gets the key as PKCS #8 bytes through the composition-only adapter | Zephyr's TLS credentials take bytes on both profiles and keep the pointer | An opaque key on the Mbed profile alone |
 | 4 | The adapter target links the credential adapter, so the existing boundary rule covers it | No change to a protected or shared CMake module | A rule of its own |
-| 5 | A new identifier `web.certificate_rejected`, 0x0603, routine, like `config.rejected` | The contract adds identifiers and never reuses one; a refusal is not a replacement | Class change, or `web.certificate_replaced` with `INVALID` |
+| 5 | Two new identifiers: `web.certificate_rejected`, 0x0603, routine like `config.rejected`, for an upload; `web.certificate_unusable`, 0x0604, change class like `credential.slot_invalid`, for the stored certificate refused at start | The contract adds identifiers and never reuses one. A refused upload changes nothing; a refused stored certificate takes HTTPS down, so its record must survive a full ring. Changed after the review of `d7e86bd`, which had one routine identifier for both. | Other classes, or one identifier |
 | 6 | A stored certificate refused at start fails closed and is never regenerated there | A missing or invalid credential fails closed in the store's rules, and silent regeneration would replace an operator's certificate | Regenerate with an event |
-| 7 | DER only, one certificate, dates and unknown critical extensions not checked | The design says format and key match only; a client decides the rest | PEM, or a chain record |
+| 7 | DER only, one certificate, dates not checked, and the meaning of extension values not checked | The design says format and key match only; a client decides the rest | PEM, a chain record, or requiring digital signature and server authentication |
 | 8 | Refusal classes: malformed, invalid, key mismatch, too large | Each tells an operator something different | Fewer classes |
 | 9 | The lock is polled, so a busy module answers `BUSY` | A web thread never waits behind a save | A bounded wait |
 | 10 | Two certificate buffers; a change returns `BUSY` while both are held | Zephyr keeps the pointer; overwriting a registered buffer would race a handshake | A copy into Zephyr's own storage, which it does not offer |
@@ -441,6 +479,12 @@ Each was taken without asking the owner, as the task instructs. The narrower cho
 | 13 | At most 4 alternative names, and a common name of 1 to 64 safe characters | Bounds the request at 1,536 bytes and the certificate well inside its record | Wider rules |
 | 14 | The request asks only for alternative names | CAs set usage themselves | Request key usages too |
 | 15 | No web routes, no Zephyr registration, no `native_sim` image in this PR | The task makes the interface and its Host tests the deliverable | Follow-up work |
+| 16 | "Format" includes what a client's decoder needs: string types and their content in names, the time form for each year, the structure of five extension values, and no unknown critical extension | The review of `d7e86bd` found certificates for the device key that the parser installed and OpenSSL refused, which would leave HTTPS down until someone reached the serial console. Refusing them up front is the narrower outcome. | Parse every extension, or check fewer |
+| 17 | TeletexString content is accepted unchecked | Its T.61 repertoire is not decoded consistently by clients, and old CAs wrote Latin-1 in it | Refuse TeletexString |
+| 18 | The differential test links the Host's OpenSSL `libcrypto`, and only when CMake finds its headers; otherwise it is skipped with a message | It is a test oracle, not a dependency of the module | Fetch OpenSSL, or keep the test local |
+| 19 | The key record read at start is copied into a static buffer, cleared before start returns | A test can then show that it is cleared; on the stack it could not | The stack, with the wipe untested |
+| 20 | The module's lock is taken after `crux_access_check` and held across `crux_credential_write`, the Access session getters and the event emit. It is recorded in the [gate's lock order](plans/secure-management-gate-decisions.md#rules-across-the-contracts). | No path takes it from under the store lock, the Access state lock or the ring lock, so there is no cycle today | Release it across the save |
+| 21 | One more Sync mutex, beyond the eight the gate record already counts as claimed. Recorded there for #197. | The default pool of 8 is then exceeded in a composition with every service, which must raise `CRUX_SYNC_MUTEX_COUNT` | Share the store's lock |
 
 ## Not verified
 
