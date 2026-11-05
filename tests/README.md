@@ -219,7 +219,9 @@ not been exercised.
 use only public Crux names, and its manifest pins nothing Crux pins. Real west then takes the
 template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
 against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
-runs the frozen-manifest flow and the build record's input capture. These cases skip when west or
+runs the frozen-manifest flow, the build record's input capture and the guide's routes: a vendor
+branch across two deliveries, a commercial edition under a new project name, a reused project name
+that must fail and a hand-pinned manifest with no import. These cases skip when west or
 PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <board>` runs them with
 `tests/build/test_crux_pins.py`, runs `west crux-pins` on Crux's own workspace and so on a real Zephyr
 manifest, then cross-builds the application in that workspace. It does not operate hardware. The
