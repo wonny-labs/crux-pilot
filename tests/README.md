@@ -309,6 +309,11 @@ and the [HTTPS composition](../docs/https-composition.md).
 on its PSA ports, over plain HTTP on `native_sim`, and CI runs it in the PSA workflow. `Web.session_*` are its Host
 suites. Entropy there is test-only. See [web login and sessions](../docs/web-session.md).
 
+`Web.management_*` are the Host suites of the status, configuration and account routes, on the real status and configuration
+services. `scripts/test-web.sh host` runs them, and `Web.management_openapi` holds their real answers to the schemas of
+`web/api/openapi.yaml`. Nothing serves these routes on `native_sim` yet. See
+[status, configuration and account web APIs](../docs/web-management-apis.md).
+
 ## Packaged web assets
 
 `scripts/test-web-assets.sh host` runs the packager's and its CMake function's tests (`tests/build/test_web_assets.py`), `Web.assets_*` on

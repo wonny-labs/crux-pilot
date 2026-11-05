@@ -98,7 +98,7 @@ if (status.ok) {
 
 ## The mock server
 
-`npm run mock` listens on the loopback address only, over plain HTTP. The accounts are `operator`, `viewer`, `writer`,
+`npm run mock` listens on the loopback address only, over plain HTTP. The configuration routes keep their parameters and the state of a save in the mock, and `writer` may write them while `viewer` may read them. The accounts are `operator`, `viewer`, `writer`,
 `guest`, `newuser` and `disabled`, each with the password `example-password-not-real`. They differ in permissions, and
 `newuser` has to change its password.
 

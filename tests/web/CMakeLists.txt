@@ -31,3 +31,9 @@ endif()
 
 # The packaged web assets (Issue #189) on the same core and fake transport.
 add_subdirectory(assets)
+
+# The status and configuration routes on the real services (Issue #187).
+if(TARGET crux::thread AND TARGET crux_config_service_fake_events AND TARGET crux_mgmt_status_core
+   AND TARGET crux_mgmt_status_fake_sources)
+    add_subdirectory(management)
+endif()

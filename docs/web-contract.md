@@ -16,6 +16,7 @@ internal target `crux_web_adapter`.
 | Adapter over the Zephyr HTTP server | Built | `native_sim`, plain HTTP on loopback |
 | Wildcard resources on RT1060 | Compile and link only | Mbed TLS and wolfSSL profiles, not run |
 | Login, sessions, CSRF and `Origin` rules | **Built** in #186: see [web-session.md](web-session.md). This suite still uses stand-ins. | Host, and `native_sim` in `tests/native/web_session` |
+| Status, configuration and account routes | **Built** in #187: see [web-management-apis.md](web-management-apis.md). Host only, and no composition serves them yet. | Host |
 | Access core on Zephyr | **Faked on `native_sim`** by a double, until #242. The real core and its fake ports run on Host | |
 | Socket shutdown on `native_sim` | **Shimmed in the test image**, see [below](#three-limits-of-native_sim-found-here) | |
 | A send that returns `-EAGAIN` on `native_sim` | **Injected in the test image** by a wrapped send, because the offload rarely produces one | |
