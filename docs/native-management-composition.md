@@ -141,6 +141,7 @@ Connection limits, timing and memory here come from the host's stack and the sim
 | 5 | wolfSSL allocates from the host's `malloc` on `native_sim`, so **no memory limit applied**. The bound here was `NET_SOCKETS_TLS_MAX_CONTEXTS`: 2 listeners and 4 clients, then `ENOMEM`. | Wolf | `concurrent_connections`, and `errno=12` |
 | 6 | A smaller record size than 16 KiB loses a browser's data unless the server negotiates less, so the probe holds 16 KiB. Nothing here tested a smaller value. | Mbed | Configuration choice |
 | 7 | The negotiated suites differ, because neither profile restricts them here. #185 declares them. | Both | The table above |
+| 7a | `NET_IPPROTO_TLS_1_2` differs between the backends. **Mbed TLS takes it as a minimum, and a newer client gets TLS 1.3. wolfSSL takes it as exact.** | Both | `tls1.2_port_newer_client` |
 | 8 | `native_sim/native` (32-bit) was not tried. | Both | Not run |
 
 ### What #185 needs to know
@@ -236,7 +237,7 @@ Each row is the same on both profiles, and each runs on the real services, ports
 | --- | --- |
 | **A configuration update records its event, and status reports the counts** | `config.updated` reads back, and `security.events_emitted` is at least the count. `emitted` 31 and 32, `delivered` the same, `dropped` 0, `log_errors` 0, `high_water` 9, on the two profiles. |
 | A slot on the medium | `CXCS`, protection identifier 1, 16,384 B, and no account name or password in it. This shows sealing and nothing about confidentiality against someone with the device ID. |
-| TLS beside the services, in one image: a TLS 1.2 server and client over the offload, with peer verification, and a login and an account change while connected | Pass |
+| TLS beside the services, in one image: a server and client over the offload, with peer verification, and a login and an account change while connected | Pass |
 | After a restart | Provisioning stays closed, the password logs in, the wrong one does not, and no key is generated |
 | Another device ID | The store is `UNUSABLE`, login is `NOT_READY`, provisioning is `DENIED`, key generation refused, and the next boot with the right ID opens the same files |
 | Status report on the first boot | [Retained](evidence/native-composition/mbed/status.json), with `system.clock` `unset` and `net.ipv4` `no_data`, since the offload interface has no address |
@@ -273,6 +274,7 @@ Each is a statement about `native_sim`, and none is device evidence.
 | The drain runs at low priority, and a thread that never sleeps lets nothing else run. A burst with no pause fills the ring. | The first run: `stats.dropped` was not 0, until the test paused between steps. A real client's requests leave room. |
 | Stack, heap and memory are the host's. wolfSSL's allocation is the host's `malloc`. | No figure is recorded |
 | CI runs the Mbed profile only, because a default workflow must not select the wolf stacks. The Wolf profile's results are local, and #247 tracks that. | The `psa-crypto` workflow |
+| **A Ztest image over the offload needs `CONFIG_NATIVE_SIM_SLOWDOWN_TO_REAL_TIME`.** Its simulated clock otherwise runs as fast as it can, while the host's TCP stack keeps real time. | Twice in CI, on a fast runner and not locally: the server's handshake timed out at 10 simulated seconds, `-110`, with the client connected. A delayed ACK is the likely cause and was not traced. The setting cleared it. #185 and #186 must keep it. |
 | `native_sim/native`, the 32-bit width, was not run | Not run |
 
 ## What #142 asked of this issue
