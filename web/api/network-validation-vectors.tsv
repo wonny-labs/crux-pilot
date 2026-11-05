@@ -1,0 +1,56 @@
+# Validation vectors of the IPv4 settings, shared by the firmware and the TypeScript client.
+# The firmware service (components/network_settings) decides, and tests/network_settings/validation.c
+# checks every line. web/client/test/ipv4-vectors.test.ts checks the same lines against the client's
+# checks, mapping the client's own codes: not_ipv4 is bad_request, and gateway_not_usable is
+# gateway_outside_subnet. Columns, separated by one tab: address, prefix length, gateway or -, and the
+# expected answer: ok, bad_request (an address that is not a dotted quad), or the findings in order as
+# field:code separated by commas. The prefix length is an integer, and a negative or huge one is not
+# usable. See docs/network-settings-service.md.
+192.0.2.20	24	-	ok
+192.0.2.20	24	192.0.2.1	ok
+192.0.2.1	30	-	ok
+192.0.2.2	30	192.0.2.1	ok
+169.254.1.1	16	-	ok
+10.1.2.3	8	10.200.0.1	ok
+100.1.1.1	2	100.1.1.200	ok
+192.0.2.0	24	-	address:not_unicast
+192.0.2.255	24	-	address:not_unicast
+192.0.2.0	30	-	address:not_unicast
+192.0.2.3	30	-	address:not_unicast
+0.0.0.1	24	-	address:not_unicast
+127.0.0.1	24	-	address:not_unicast
+224.0.0.1	24	-	address:not_unicast
+240.0.0.1	24	-	address:not_unicast
+255.255.255.255	24	-	address:not_unicast
+192.0.2.20	0	-	prefix_length:prefix_not_usable
+192.0.2.20	31	-	prefix_length:prefix_not_usable
+192.0.2.20	32	-	prefix_length:prefix_not_usable
+192.0.2.20	-1	-	prefix_length:prefix_not_usable
+192.0.2.20	99999999999	-	prefix_length:prefix_not_usable
+192.0.2.0	0	-	prefix_length:prefix_not_usable
+192.0.2.20	24	0.0.0.0	gateway:gateway_outside_subnet
+1.2.3.4	1	0.0.0.0	gateway:gateway_outside_subnet
+192.0.2.20	24	192.0.2.20	gateway:gateway_outside_subnet
+192.0.2.20	24	192.0.2.0	gateway:gateway_outside_subnet
+192.0.2.20	24	192.0.2.255	gateway:gateway_outside_subnet
+192.0.2.20	24	198.51.100.1	gateway:gateway_outside_subnet
+192.0.2.20	24	224.0.0.5	gateway:gateway_outside_subnet
+192.0.2.1	30	192.0.2.0	gateway:gateway_outside_subnet
+192.0.2.1	30	192.0.2.3	gateway:gateway_outside_subnet
+100.1.1.1	2	127.0.0.1	gateway:gateway_outside_subnet
+100.1.1.1	2	64.0.0.0	gateway:gateway_outside_subnet
+224.0.0.1	31	198.51.100.1	address:not_unicast,prefix_length:prefix_not_usable
+192.0.2.20	0	198.51.100.1	prefix_length:prefix_not_usable
+192.0.2.20	0	0.0.0.0	prefix_length:prefix_not_usable,gateway:gateway_outside_subnet
+224.0.0.1	24	224.0.0.1	address:not_unicast,gateway:gateway_outside_subnet
+192.0.2	24	-	bad_request
+256.0.0.1	24	-	bad_request
+01.2.3.4	24	-	bad_request
+1.2.3.4.5	24	-	bad_request
+1.2.3.x	24	-	bad_request
+-1.2.3.4	24	-	bad_request
+1..2.3	24	-	bad_request
+192.0.2.20	24	x	bad_request
+192.0.2.20	24	192.0.2	bad_request
+192.0.2.20	24	300.0.0.1	bad_request
+192.0.2	31	0.0.0.0	bad_request
