@@ -24,6 +24,9 @@
 static char response_body[CRUX_WEB_MANAGEMENT_BODY_MAX];
 static uint8_t request_body[REQUEST_BODY_MAX];
 static char value_text[CRUX_CONFIG_SERVICE_TEXT_SIZE];
+/* The text of a bool or a u32, which a sensitive parameter may have, so it is static to be cleared.
+ */
+static char scalar_text[12];
 
 static void wipe(void *buffer, size_t length)
 {
@@ -38,6 +41,7 @@ static void clear_update(void)
 {
     wipe(request_body, sizeof(request_body));
     wipe(value_text, sizeof(value_text));
+    wipe(scalar_text, sizeof(scalar_text));
 }
 
 static crux_web_result_t respond_not_ready(crux_web_request_t *request)
@@ -420,7 +424,6 @@ static crux_web_result_t on_config_put(crux_web_request_t *request, crux_access_
                                        void *context)
 {
     char name[WEB_MGMT_NAME_SIZE];
-    char scalar[12];
     web_value_t value;
     crux_config_service_item_t item;
     crux_config_service_result_t found;
@@ -456,9 +459,9 @@ static crux_web_result_t on_config_put(crux_web_request_t *request, crux_access_
     } else if (value.kind == WEB_VALUE_STRING) {
         answer = update_and_respond(request, session, name, value_text, value.length);
     } else {
-        size_t length = update_text(&value, scalar, sizeof(scalar));
+        size_t length = update_text(&value, scalar_text, sizeof(scalar_text));
 
-        answer = update_and_respond(request, session, name, scalar, length);
+        answer = update_and_respond(request, session, name, scalar_text, length);
     }
     clear_update();
     return answer;
@@ -512,6 +515,7 @@ bool web_management_routes_hold_bytes(const void *bytes, size_t length)
 {
     return holds(request_body, sizeof(request_body), bytes, length) ||
            holds(value_text, sizeof(value_text), bytes, length) ||
+           holds(scalar_text, sizeof(scalar_text), bytes, length) ||
            holds(response_body, sizeof(response_body), bytes, length);
 }
 #endif

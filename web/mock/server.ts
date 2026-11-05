@@ -286,6 +286,39 @@ function parseJsonObject(text: string): Record<string, unknown> | null {
   }
 }
 
+/** True when an object at the top level of this JSON text names a member twice, which the device refuses. */
+function repeatsMember(text: string): boolean {
+  const seen = new Set<string>();
+  let depth = 0;
+  let expectKey = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index] as string;
+    if (character === '"') {
+      let end = index + 1;
+      while (end < text.length && text[end] !== '"') {
+        end += text[end] === '\\' ? 2 : 1;
+      }
+      if (depth === 1 && expectKey) {
+        const key = JSON.parse(text.slice(index, end + 1)) as string;
+        if (seen.has(key)) {
+          return true;
+        }
+        seen.add(key);
+        expectKey = false;
+      }
+      index = end;
+    } else if (character === '{' || character === '[') {
+      depth += 1;
+      expectKey = character === '{' && depth === 1;
+    } else if (character === '}' || character === ']') {
+      depth -= 1;
+    } else if (character === ',' && depth === 1) {
+      expectKey = true;
+    }
+  }
+  return false;
+}
+
 function hasOnly(body: Record<string, unknown>, allowed: string[]): boolean {
   return Object.keys(body).every((key) => allowed.includes(key));
 }
@@ -900,7 +933,10 @@ export async function startMock(options: MockOptions = {}): Promise<MockHandle> 
     }
     const body = parseJsonObject(text);
     const value = body?.['value'];
+    const contentType = request.headers['content-type'] ?? '';
     if (
+      !/^application\/json\s*(;|$)/i.test(contentType) ||
+      repeatsMember(text) ||
       !body ||
       !hasOnly(body, ['value']) ||
       (typeof value !== 'boolean' && typeof value !== 'number' && typeof value !== 'string')

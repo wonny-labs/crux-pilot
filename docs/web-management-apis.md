@@ -175,7 +175,8 @@ No error form holds a path, a parameter's value or native error text. `Retry-Aft
 | A u32 is a plain integer from 0 to 4294967295 | Digits only: a sign, fraction, exponent or more than 32 bits is `400` `out_of_range` | `config.c`, `fuzz.c` |
 | A string over the maximum, a validator, the character rule and the capacity | `400` `rule_not_met`. A string that does not fit the handler's buffer is refused without calling the service. | `config.c` |
 | The connection closes after every answer | Any parameter may be sensitive, and a refusal must not show which. The server then clears its copy of the request. | `config.c` |
-| The handler's buffers hold no value afterwards | The body, the decoded text and the scalar text are cleared on every path | `config.c`, with a marker |
+| The handler's static buffers hold no value afterwards | The body, the decoded string and the text of a bool or u32 are static and cleared on every path | `config.c`, with a marker for a string and for a u32, and a mutation that removes the clearing of the scalar text |
+| **Not cleared:** the stack | The reader's result (`web_value_t`, holding a bool or a u32) and the call's arguments are on the stack and are not wiped, so a sensitive bool or u32 stays on the stack until it is overwritten. The service's own stack copies are not wiped either, as its limits state. No test can see a stack. | Nothing, stated here |
 | A request that never reached the service leaves no event | The type, range and body checks answer first | `config.c` |
 | A hidden or missing name reaches the service, which records a denial for a hidden one and nothing for a missing one | `update` is called with the request's text, so the service decides | `config.c`, mutation below |
 
@@ -221,7 +222,7 @@ Every route has the four cases that the issue asks for.
 | Suite | Cases | Also covers |
 | --- | --- | --- |
 | `Web.management_status` | 9 | Items by permission, a failed source, errors with no path |
-| `Web.management_config` | 36 | The list of up to 32 long names, events, a held lock from another thread, and the connection closing |
+| `Web.management_config` | 39 | The list of up to 32 long names, events, a held lock from another thread, and the connection closing |
 | `Web.management_save` | 19 | One save at a time, the state shown only with `config.save`, every code, a session that ended, the application's save holding the service |
 | `Web.management_account` | 9 | The routes of #186 |
 | `Web.management_fuzz` | 9 | The reader against 74 refused forms, 40,000 random bodies and 34,500 mutations; 4,000 mutated updates and 6,000 random names through the routes; every body size from the limit up |
@@ -250,7 +251,11 @@ refused part way through a string. The reader now terminates after every byte.
 | A failed save loses its code | 6 in `save.c` |
 | A failed save reads as saved | 6 in `save.c` |
 | A hidden update never reaches the service | 1 in `config.c`, the denial check that was added after the mutation first passed |
-| No check for a string over the buffer | **Not caught.** The service refuses the same text, so the check is defence in depth. |
+| No check for a string over the buffer | 1 in `config.c`. The text then reaches the service, which refuses it and records a rejection, so the test asks for none. |
+| The text of a bool or a u32 is not cleared | 2 in `config.c` |
+| The list asks `crux_access_check` for `config.save` in place of `crux_access_permitted` | 1 in `config.c`, the denial check. The idle check is made too, and this mutation does not change it. |
+| The worker is never signalled (`crux_semaphore_give` removed) | **Not caught.** The worker wakes by its own 1 s timeout, inside the test's 5 s wait. A wake-up time is not tested. |
+| A lock that does not come in time reads as not pending (`web_mgmt_save_view`) | **Not caught.** A lock held for that long cannot be made in a Host test. |
 | A leading zero is accepted by the number reader | **Not caught.** The next token is a digit and the object is refused anyway. |
 | A name too long is searched for | **Not caught.** An empty name is not found either. |
 
@@ -261,14 +266,20 @@ Local runs in container `crux-187`, image `crux-pilot-devcontainer:local` under 
 | Check | Level | Result |
 | --- | --- | --- |
 | `Web.*`, 13 suites: the three of #184, the four of #186 and the six of this change, debug preset, clang 18 | Host | Pass |
-| The same management and session suites on GCC 13 with `-fsanitize=address,undefined` | Host, sanitizer | Pass. This container's clang has no ASan runtime, so `host-sanitize` was **not** run locally, and CI's host workflow runs it. |
+| The same management and session suites on GCC 13 with `-fsanitize=address,undefined` | Host, sanitizer | Pass, with `-fsanitize=address,undefined -fno-omit-frame-pointer -Wno-format-truncation`. GCC 13 needs the last flag: `-Werror=format-truncation` fails `config.c` and #186's `sessions.c` otherwise. This container's clang has no ASan runtime, so `host-sanitize` was **not** run locally, and CI's host workflow runs it. |
 | First run of the management suites with every route answering `503 not_ready` | Host, red | status 6 of 9 cases failed, config 24 of 36, save 16 of 19, fuzz 3 of 9. `Web.management_account` passed, because it tests routes that #186 already built. The routes source existed in the worktree before the first run, and was swapped for that placeholder to record the red. |
 | clang-tidy 18 on the management sources and suites | Host | No finding |
 | `scripts/check-format.sh` (clang-format 18), `check-web-routes.py`, `check-web-boundary.py`, `check-mgmt-services-boundary.py`, the generator's tests | Host | Pass |
 | `scripts/check-management-api.sh` (Spectral 6.16.3, Node.js 24.22.2) and `python3 -m unittest discover -s tests/management_api` | Node.js | Pass |
 | `npm run check:types`, `typecheck` and the unit tests in `web` | Node.js | 521 of 523 pass. The 2 failures, in `tools/test/boundary.test.ts`, are on `main` before this change, [decision 17](#decisions-taken-without-an-answer). |
-| 18 mutations of the routes, the reader and the save | Host | 15 caught, 3 equivalent, [above](#tests) |
+| 20 mutations of the routes, the reader and the save | Host | 18 caught, 2 equivalent, [above](#tests). Review found 2 more that are not caught, listed there. |
 | `native_sim`, RT1060 compile, `host-sanitize` with clang | | **Not run** |
+
+## Limits of the design
+
+- The save state is global. Any session holding `config.save` sees the outcome of another user's save, and only a failure code, never a name.
+- The worker has no stop or join. `crux_web_management_init()` resets the state and is safe only before the worker starts, which a composition does once at boot.
+- The mock follows the device where a client could see a difference: a repeated member and a content type that is not JSON are `400`, and a malformed body is `400` before the parameter is looked at. It still differs in three ways: its body limit is 4,096 bytes and not 1,024, it ignores the query as the device does but never answers the server's plain `500`, and its number rule reads the lexeme of the one `value` member by pattern.
 
 ## What is not verified
 

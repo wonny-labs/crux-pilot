@@ -224,6 +224,34 @@ test('a malformed body gets bad_request', async () => {
   }
 });
 
+test('a repeated member and a content type that is not JSON are malformed, as on the device', async () => {
+  await h.login();
+  for (const rawBody of ['{"value":1,"value":2}', '{"value":1, "value" : 1}', '{"value":5,"v\\u0061lue":6}']) {
+    const reply = await h.call('PUT', '/api/v1/config/report_interval', { rawBody });
+    assert.equal(reply.status, 400, rawBody);
+    assert.deepEqual(reply.body, { code: 'bad_request' });
+  }
+  for (const type of ['text/plain', 'application/x-www-form-urlencoded', 'application/jsonx', 'application/json-seq']) {
+    const reply = await h.call('PUT', '/api/v1/config/report_interval', { body: { value: 9 }, headers: { 'Content-Type': type } });
+    assert.equal(reply.status, 400, type);
+    assert.deepEqual(reply.body, { code: 'bad_request' });
+  }
+  const upper = await h.call('PUT', '/api/v1/config/report_interval', {
+    body: { value: 9 },
+    headers: { 'Content-Type': 'Application/JSON; charset=utf-8' },
+  });
+  assert.equal(upper.status, 200);
+  assert.equal(((await h.call('GET', '/api/v1/config/report_interval')).body as { value: number }).value, 9);
+});
+
+test('a malformed body gets 400 before the parameter is looked at, as on the device', async () => {
+  await h.login('viewer');
+  for (const name of ['private_key', 'nothing_here', 'report_interval']) {
+    const reply = await h.call('PUT', `/api/v1/config/${name}`, { rawBody: '{' });
+    assert.equal(reply.status, 400, name);
+  }
+});
+
 test('a body over the limit gets 413', async () => {
   await h.login();
   const reply = await h.call('PUT', '/api/v1/config/device_label', { rawBody: `{"value":"${'x'.repeat(5000)}"}` });

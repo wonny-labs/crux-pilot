@@ -670,8 +670,11 @@ paths:
         `GET /api/v1/config/{name}` unless the parameter is sensitive.
 
         A request that a validator, the character rule or the capacity refuses gets `rule_not_met` and
-        no reason, and the old value stays. A missing or hidden parameter gets `404` whatever the body
-        holds, and a visible one that this session may not write gets `403` whatever the body holds.
+        no reason, and the old value stays. The body is read first, so a malformed body gets `400`
+        whatever the parameter. After that, a missing or hidden parameter gets `404` whatever a
+        well-formed body holds, and a visible one that this session may not write gets `403` whatever a
+        well-formed body holds. The request needs `Content-Type: application/json`, and a body with a
+        repeated member is malformed.
         The server closes the connection after every response, because any parameter may be sensitive.
       x-crux-access: session
       security:

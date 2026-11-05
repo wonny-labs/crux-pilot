@@ -9,6 +9,8 @@
     "\",\"sensitive\":" sensitive ",\"readable\":" readable ",\"writable\":" writable              \
     ",\"unsaved\":" unsaved "}"
 
+static void expect_field(const fake_reply_t *reply, const char *code);
+
 static bool has(const fake_reply_t *reply, const char *text)
 {
     return strstr(reply->body, text) != NULL;
@@ -107,6 +109,26 @@ static void test_list_empty_for_a_session_that_may_see_nothing(void)
     }
     /* A forced password change hides everything, and a hidden list is empty and not forbidden. */
     mgmt_expect_body(mgmt_get(mgmt_jar("forced"), LIST), 200, "{\"items\":[]}");
+}
+
+/* The list asks whether the session holds config.save with the quiet check. A session that does not
+ * hold it is not refused anything, so no denial is recorded, and no idle timer is refreshed by a
+ * read. */
+static void test_a_list_records_no_denial_and_keeps_no_session_alive(void)
+{
+    const session_jar_t *jar;
+
+    mgmt_setup();
+    jar = mgmt_jar("both");
+    access_fake_events_clear();
+    CHECK(mgmt_get(jar, LIST)->status == 200);
+    CHECK(mgmt_get(mgmt_jar("reader"), LIST)->status == 200);
+    CHECK(access_fake_event_count_of(CRUX_ACCESS_EVENT_PERMISSION_DENIED) == 0u);
+    /* Idle limit is 15 minutes. A list after 14 does not start the clock again. */
+    session_clock_advance(UINT64_C(14) * 60u * 1000u);
+    CHECK(mgmt_get(jar, LIST)->status == 200);
+    session_clock_advance(UINT64_C(2) * 60u * 1000u);
+    mgmt_expect_error(mgmt_get(jar, "/api/v1/session/me"), 401, "unauthorized");
 }
 
 static void test_list_unauthenticated(void)
@@ -377,6 +399,43 @@ static void test_put_the_sensitive_value_is_written_and_never_returned(void)
     /* Neither the handlers' buffers nor the core's hold the secret once the request is done. */
     CHECK(!web_management_routes_hold_bytes("SECRET-MARKER-4711", 18u));
     CHECK(!web_core_holds_bytes("SECRET-MARKER-4711", 18u));
+}
+
+static void test_put_leaves_no_scalar_text_behind(void)
+{
+    const session_jar_t *jar;
+
+    mgmt_setup();
+    jar = mgmt_jar("both");
+    /* The text of a u32 goes through its own buffer, whether the update is accepted or refused. A
+     * sensitive scalar would be a secret there, so the handlers' buffers must hold none of it
+     * afterwards. The stack is not looked at: there is no scalar copy on it. */
+    CHECK(mgmt_put(jar, LIST "/limit", "{\"value\":77}")->status == 200);
+    CHECK(!web_management_routes_hold_bytes("77", 2u));
+    CHECK(mgmt_put(jar, LIST "/limit", "{\"value\":4711}")->status == 400);
+    CHECK(!web_management_routes_hold_bytes("4711", 4u));
+    CHECK(mgmt_put(jar, LIST "/limit", "{\"value\":4711")->status == 400);
+    CHECK(!web_management_routes_hold_bytes("4711", 4u));
+    /* A string value is cleared with the rest. */
+    CHECK(mgmt_put(jar, LIST "/host_name", "{\"value\":\"REFUSED-MARKER\"}")->status == 200);
+    CHECK(!web_management_routes_hold_bytes("REFUSED-MARKER", 14u));
+}
+
+static void test_an_overlong_string_reaches_no_service_call(void)
+{
+    char long_text[CRUX_CONFIG_SERVICE_TEXT_SIZE + 8u];
+    char body[CRUX_CONFIG_SERVICE_TEXT_SIZE + 32u];
+    size_t rejected;
+
+    mgmt_setup();
+    memset(long_text, 'x', sizeof(long_text) - 1u);
+    long_text[sizeof(long_text) - 1u] = '\0';
+    snprintf(body, sizeof(body), "{\"value\":\"%s\"}", long_text);
+    rejected = config_events_of(CRUX_CONFIG_SERVICE_EVENT_REJECTED);
+    expect_field(mgmt_put(mgmt_jar("both"), LIST "/host_name", body), "rule_not_met");
+    /* The handler refuses it on its own, so the service records no rejection and no update. */
+    CHECK(config_events_of(CRUX_CONFIG_SERVICE_EVENT_REJECTED) == rejected);
+    CHECK(config_events_of(CRUX_CONFIG_SERVICE_EVENT_UPDATED) == 0u);
 }
 
 static void test_put_closes_the_connection_after_every_answer(void)
@@ -735,6 +794,8 @@ int main(void)
     mgmt_run_case("list: no value and no private parameter",
                   test_list_holds_no_value_and_never_the_private_parameter);
     mgmt_run_case("list: empty", test_list_empty_for_a_session_that_may_see_nothing);
+    mgmt_run_case("list: no denial, no idle refresh",
+                  test_a_list_records_no_denial_and_keeps_no_session_alive);
     mgmt_run_case("list: unauthenticated", test_list_unauthenticated);
     mgmt_run_case("list: invalid requests", test_list_invalid_requests);
     mgmt_run_case("list: not ready", test_list_not_ready);
@@ -749,6 +810,8 @@ int main(void)
     mgmt_run_case("put: each type", test_put_each_type);
     mgmt_run_case("put: a sensitive value",
                   test_put_the_sensitive_value_is_written_and_never_returned);
+    mgmt_run_case("put: no scalar text left", test_put_leaves_no_scalar_text_behind);
+    mgmt_run_case("put: an overlong string", test_an_overlong_string_reaches_no_service_call);
     mgmt_run_case("put: closes the connection", test_put_closes_the_connection_after_every_answer);
     mgmt_run_case("put: unauthenticated", test_put_unauthenticated);
     mgmt_run_case("put: forgery checks", test_put_needs_the_forgery_checks);

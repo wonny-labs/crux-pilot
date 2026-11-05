@@ -55,7 +55,8 @@ fail() {
 run_host() {
     local targets=(web_routing web_enforcement web_requests web_cpp_headers web_session_login web_session_sessions
         web_session_json web_session_concurrency web_session_cpp_header web_management_status web_management_config
-        web_management_save web_management_account web_management_fuzz web_management_cpp_header)
+        web_management_save web_management_account web_management_fuzz web_management_cpp_header
+        web_management_openapi_fixture)
     for preset in host-debug host-sanitize; do
         cmake --preset "$preset" -S "$repo" -DFETCHCONTENT_FULLY_DISCONNECTED=ON
         cmake --build --preset "$preset" --target "${targets[@]}"
