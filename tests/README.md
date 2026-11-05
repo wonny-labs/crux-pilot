@@ -614,7 +614,7 @@ The standard Host CTest includes `Ssh.ProviderConformance`, which runs the cases
 provider, `Ssh.ConformanceCatchesDefects`, which gives the fake each deliberate defect and requires the named case to fail, and
 `Ssh.Boundaries`, which runs `scripts/check-ssh-boundaries.py`. It also has `Ssh.FakeProvider`, `Ssh.AttachmentDouble`, `Ssh.CallbackTable`
 and a test of each stand-in entry point. The fake needs no SSH library, and the CLI and SFTP Host tests link it. It runs every callback
-on the calling thread, so it shows no concurrency, timing or protocol behaviour. No real provider has run the cases yet.
+on the calling thread, so it shows no concurrency, timing or protocol behaviour.
 `tests/build/test_ssh_boundaries.py` shows that the boundary check rejects each violation.
 
 `scripts/test-ssh-wolf-settings.sh` is not part of any default workflow, because it needs the optional `crux-secure-management`
@@ -624,6 +624,11 @@ is one that refuses every operation. See [the SSH provider contract](../docs/ssh
 
 `Ssh.sftp` runs the SFTP operations through the fake provider on the real file service and Access core, and `Ssh.sftp_port_shape` calls the port's macros as wolfSSH does.
 `scripts/test-ssh-sftp-openssh.sh` is not part of any default workflow, for the same reason. It runs OpenSSH against the unedited wolfSSH handlers on Linux, through the real port and file service, with a server in `tests/ssh/sftp/openssh` that stands in for the provider, and replays the requests of WinSCP. `scripts/test-ssh-sftp-native.sh` runs the same cases on `native_sim`, through the provider of #192, the real file service and FatFs over a RAM disk, and it stops at once on a tree without that provider. `scripts/test-ssh-sftp-compile.sh` compiles the real operations for the target and `native_sim`. See [the SFTP design](../docs/sftp-design.md).
+
+`scripts/test-ssh-provider.sh`, also outside every default workflow for the same reason, runs the wolfSSH provider: the conformance cases
+with a scripted client, and `tests/zephyr/ssh_provider/openssh_test.py` with a real OpenSSH client, both on `native_sim/native/64` over the
+native socket offload. It also records resource use as simulation results, compiles for `mimxrt1060_evk@B//qspi`, and shows that the Mbed
+profile fails at configuration. See [the wolfSSH provider](../docs/ssh-wolf-provider.md), which declares the test ports behind these results.
 
 ## PSA Crypto qualification
 
