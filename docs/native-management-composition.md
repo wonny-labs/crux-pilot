@@ -100,7 +100,7 @@ sequenceDiagram
 
 ### Results
 
-Run by `scripts/test-tls-offload-probe.sh all` in the Dev Container image at `85520c4`, on `native_sim/native/64`. Retained in [`docs/evidence/tls-offload-probe/`](evidence/tls-offload-probe/). CI runs the Mbed profile only, because a default workflow must not fetch the wolf stacks.
+Run by `scripts/test-tls-offload-probe.sh all` in the Dev Container image at `68adea7`, on `native_sim/native/64`. Retained in [`docs/evidence/tls-offload-probe/`](evidence/tls-offload-probe/). CI also runs the Mbed profile, with the same result, and only that one, because a default workflow must not fetch the wolf stacks.
 
 | Step | Mbed profile | Wolf profile |
 | --- | --- | --- |
@@ -134,8 +134,8 @@ Connection limits, timing and memory here come from the host's stack and the sim
 
 | # | Limit | Profile | Seen as |
 | --- | --- | --- | --- |
-| 1 | **A TCP close with no `close_notify` is invisible to `poll`.** A host socket reports a peer's FIN as `POLLIN` alone, where Zephyr's native sockets add `POLLHUP`. `mbedtls_ssl_read` turns the end of the stream into a length of 0, which the TLS layer reads as "a partial record, try again". So `zsock_poll` with no timeout returns 0, at once and every time, for as long as that client stays. | Mbed | `raw_poll_after_abrupt_close`: the server never saw the close, and the image's CPU share rose from 0.02 to 0.64. In a debugging trace, not retained, the simulated clock also stopped while this ran, because a `native_sim` thread that never sleeps stops it. A `recv` finds the end of the stream at once, which is how the probe's server gets past it: `abrupt_closes` passes. |
-| 2 | wolfSSL peeks instead, and reports it | Wolf | The same step: the close is seen, and CPU stays at 0.03 |
+| 1 | **A TCP close with no `close_notify` is invisible to `poll`.** A host socket reports a peer's FIN as `POLLIN` alone, where Zephyr's native sockets add `POLLHUP`. `mbedtls_ssl_read` turns the end of the stream into a length of 0, which the TLS layer reads as "a partial record, try again". So `zsock_poll` with no timeout returns 0, at once and every time, for as long as that client stays. | Mbed | `raw_poll_after_abrupt_close`: the server never saw the close, and the image's CPU share rose from 0.02 to 0.59, and to 0.86 in CI. In a debugging trace, not retained, the simulated clock also stopped while this ran, because a `native_sim` thread that never sleeps stops it. A `recv` finds the end of the stream at once, which is how the probe's server gets past it: `abrupt_closes` passes. |
+| 2 | wolfSSL peeks instead, and reports it | Wolf | The same step: the close is seen, and CPU stays at 0.01 |
 | 3 | The handshake runs inside `accept`, on the caller's thread, for non-blocking sockets too. A client that connects and says nothing holds a one-thread server for `NET_SOCKETS_TLS_CONNECT_TIMEOUT`, default 10 s. | Both | `stalled_client`: a second client waited 9.6 s and 9.5 s, and then worked |
 | 4 | A 120,000 B Mbed TLS heap held 3 connections at a 16 KiB record size. **The fourth `accept` fails with `EINVAL`**, not `ENOMEM`. The socket layer maps a failed certificate parse to it, which fits a full heap, and heap use was not measured. Held connections keep working, and later ones work once these close. | Mbed | `concurrent_connections`, and `PROBE accept ... errno=22` |
 | 5 | wolfSSL allocates from the host's `malloc` on `native_sim`, so **no memory limit applied**. The bound here was `NET_SOCKETS_TLS_MAX_CONTEXTS`: 2 listeners and 4 clients, then `ENOMEM`. | Wolf | `concurrent_connections`, and `errno=12` |
@@ -181,7 +181,9 @@ The backend is a patch on Zephyr, which stays out of this repository: [patches/z
 | **Ed25519 generation** | `ERR_ENTROPY` and buffers wiped, as declared | `ERR_ENTROPY`, as declared | **Pass**, and the seed gives the exported key | Compile |
 | 40 rounds of each port with no key slot left behind | Pass | Pass | Pass | Compile |
 | Control: a provider that supports nothing, and one that accepts everything | Both fail, 239 and 104 checks | | | |
-| Control: a board build with a test random generator | | | | Refuses to compile |
+| Control: a board build with a test random generator | | | | Refuses to compile, on both providers |
+
+The Host run is on GCC locally and Clang in CI. RT1060 is compile only, and nothing was flashed, reset or run. TF-PSA-Crypto compiled locally and in CI, and wolfPSA locally only.
 
 ### What each port maps
 
@@ -197,7 +199,7 @@ The mapping is [the design's](psa-crypto-design.md#what-each-port-calls), and th
 
 ## Composition results
 
-`scripts/test-native-composition.sh` runs one image three times on one disk file, as separate processes, each with its own seed.
+`scripts/test-native-composition.sh` runs one image three times on one disk file, as separate processes, each with its own seed. Retained in [`docs/evidence/native-composition/`](evidence/native-composition/), from a local run at `68adea7`. CI runs the Mbed profile, and the Wolf profile is local only.
 
 ```mermaid
 sequenceDiagram
@@ -270,7 +272,7 @@ Each is a statement about `native_sim`, and none is device evidence.
 
 | Limit | Seen as |
 | --- | --- |
-| The simulated clock stands still while a thread runs, so a verifier's cost takes no simulated time. No duration here means anything for a device. | `test_03_login` reads as 0 ms |
+| The simulated clock does not count a thread's computing, so no duration here means anything for a device | Before the setting below, `test_03_login`, with real PBKDF2, reported 0 ms |
 | The drain runs at low priority, and a thread that never sleeps lets nothing else run. A burst with no pause fills the ring. | The first run: `stats.dropped` was not 0, until the test paused between steps. A real client's requests leave room. |
 | Stack, heap and memory are the host's. wolfSSL's allocation is the host's `malloc`. | No figure is recorded |
 | CI runs the Mbed profile only, because a default workflow must not select the wolf stacks. The Wolf profile's results are local, and #247 tracks that. | The `psa-crypto` workflow |

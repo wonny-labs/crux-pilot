@@ -1,0 +1,36 @@
+WARNING: Using a test - not safe - entropy source
+uart connected to pseudotty: /dev/pts/0
+*** Booting Zephyr OS build 4.4.2 ***
+COMPOSITION started=0 store_at_start=2 profile=wolf
+Running TESTSUITE later_boot
+===================================================================
+START - test_01_accounts_and_keys_survive
+COMPOSITION tls_key type=1 public=0487ccfaef3b8d263b04bc003550437cd56e09bb2933a9e51409f291f4ce9b08394d744caf657015dfed94a169c56b335ca7df46d072934447f6c3c2c739e61125
+COMPOSITION ssh_host_key type=2 public=37e8f836540b299f3e991821a0afc984128159fdf23a89d37a278e5976bd83de
+COMPOSITION later boot complete
+ PASS - test_01_accounts_and_keys_survive in 0.000 seconds
+===================================================================
+TESTSUITE later_boot succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE SKIP -   0.00% [first_boot]: pass = 0, fail = 0, skip = 8, total = 8 duration = 0.000 seconds
+ - SKIP - [first_boot.test_01_declaration] duration = 0.000 seconds
+ - SKIP - [first_boot.test_02_ssh_host_key_by_profile] duration = 0.000 seconds
+ - SKIP - [first_boot.test_03_login] duration = 0.000 seconds
+ - SKIP - [first_boot.test_04_status] duration = 0.000 seconds
+ - SKIP - [first_boot.test_05_configuration] duration = 0.000 seconds
+ - SKIP - [first_boot.test_06_events] duration = 0.000 seconds
+ - SKIP - [first_boot.test_07_medium] duration = 0.000 seconds
+ - SKIP - [first_boot.test_08_tls_beside_the_services] duration = 0.000 seconds
+
+SUITE PASS - 100.00% [later_boot]: pass = 1, fail = 0, skip = 0, total = 1 duration = 0.000 seconds
+ - PASS - [later_boot.test_01_accounts_and_keys_survive] duration = 0.000 seconds
+
+SUITE SKIP -   0.00% [other_device]: pass = 0, fail = 0, skip = 1, total = 1 duration = 0.000 seconds
+ - SKIP - [other_device.test_01_everything_stays_closed] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL
