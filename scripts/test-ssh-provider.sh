@@ -71,7 +71,7 @@ if [[ "$run_native" == true ]]; then
     "$output/native/zephyr/zephyr.exe" -testargs conformance | tee "$output/conformance.log"
     grep -qE '^51 cases, 0 failed$|^[0-9]+ cases, 0 failed$' "$output/conformance.log" ||
         fail 'The conformance cases did not all pass.'
-    python3 "$app/openssh_test.py" "$output/native/zephyr/zephyr.exe" | tee "$output/openssh.log"
+    python3 -u "$app/openssh_test.py" "$output/native/zephyr/zephyr.exe" | tee "$output/openssh.log"
     tail -n 1 "$output/openssh.log" | grep -q '^All cases passed\.$' ||
         fail 'The OpenSSH cases did not all pass.'
 fi
@@ -82,14 +82,18 @@ if [[ "$run_measure" == true ]]; then
         build "$output/measure" "$native_board" -DEXTRA_CONF_FILE=native_sim.conf \
             "-DCRUX_SSH_TEST_WINDOW_BYTES=$window" -DCONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE=1048576
         printf '%s\n' "--- channel window $window bytes"
-        python3 "$app/openssh_test.py" "$output/measure/zephyr/zephyr.exe" --only resource_use
+        python3 -u "$app/openssh_test.py" "$output/measure/zephyr/zephyr.exe" --only resource_use
     done
+    # An arena that three clients before keys can fill must refuse a login and recover.
+    build "$output/measure" "$native_board" -DEXTRA_CONF_FILE=native_sim.conf \
+        -DCRUX_SSH_TEST_WINDOW_BYTES=16384 -DCONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE=151552
+    python3 -u "$app/openssh_test.py" "$output/measure/zephyr/zephyr.exe" --small-arena
     rm -rf "$output/measure"
     # The cost of ML-KEM in the image. OpenSSH before 9.9 cannot choose it: see the design document.
     build "$output/mlkem-native" "$native_board" "-DEXTRA_CONF_FILE=native_sim.conf;mlkem.conf" \
         -DCRUX_SSH_TEST_OFFER_MLKEM=ON
     printf '%s\n' '--- mlkem768x25519-sha256 offered'
-    python3 "$app/openssh_test.py" "$output/mlkem-native/zephyr/zephyr.exe" --only resource_use
+    python3 -u "$app/openssh_test.py" "$output/mlkem-native/zephyr/zephyr.exe" --only resource_use
 fi
 
 if [[ "$run_target" == true && "$run_measure" == true ]]; then
@@ -107,7 +111,10 @@ if [[ "$run_target" == true ]]; then
 fi
 
 if [[ "$run_controls" == true ]]; then
-    # The Mbed profile must fail at configuration, for the stated reason.
+    # The Mbed profile must fail at configuration, for the stated reason. Without its module the
+    # option is unknown, and the build would stop for that reason instead.
+    [[ -e "$workspace/modules/crypto/mbedtls/.git" ]] ||
+        fail 'The control needs the mbedtls module of the secure management group. Run: west update mbedtls tf-psa-crypto'
     printf '%s\n' 'CONFIG_MBEDTLS=y' > "$output/mbed.conf"
     if build "$output/control-mbed" "$native_board" \
         "-DEXTRA_CONF_FILE=native_sim.conf;$output/mbed.conf" >"$output/control-mbed.log" 2>&1; then

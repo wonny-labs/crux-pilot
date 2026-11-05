@@ -119,8 +119,8 @@ flowchart TB
 
 ### How #192 connects this to `crux_access`
 
-The adapter defines `struct crux_ssh_attachment` to hold a `crux_access_session_t` and a `crux_access_origin_t`, in a
-static pool of `max_connections`. It is a small mapping onto `components/access/adapter/crux_access_adapter.h`:
+The adapter defines `struct crux_ssh_attachment` to hold a `crux_access_session_t`, in a static pool of
+`CRUX_SSH_ACCESS_ATTACHMENT_MAX`, which is no smaller than `max_connections`. It works out the origin for each call. It is a small mapping onto `components/access/adapter/crux_access_adapter.h`:
 
 | Provider callback | Adapter call | Accepted when |
 | --- | --- | --- |
@@ -160,7 +160,7 @@ The shared files and every hook are in place now, so no session has to change a 
 fails, and the stand-in `crux_ssh_sftp_open` refuses before any of it runs. The probe uses the same port, so no probe holds a private
 copy. #192 does not edit that directory.
 
-Each stand-in fails closed, and `tests/ssh/{access,cli,sftp}/stub_test.c` show that. The session that replaces a stand-in replaces its test as
+Each stand-in fails closed, and `tests/ssh/{cli,sftp}/stub_test.c` show that. #192 has replaced the access one. The session that replaces a stand-in replaces its test as
 well. It keeps the file names that `scripts/analyze-host.sh` lists, or changes that list under the protected-path rule.
 
 The three sessions can run separately after this issue and the gate. #193 and #194 do not need a working provider: they

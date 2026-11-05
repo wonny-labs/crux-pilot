@@ -8,6 +8,7 @@ results are native_sim results only.
 """
 import argparse
 import base64
+import faulthandler
 import hashlib
 import os
 from pathlib import Path
@@ -232,6 +233,55 @@ def closed_within(connection, seconds):
 
 # ---- Cases ----
 
+class Flood:
+    """Sends SSH_MSG_IGNORE in the clear before any key exchange, which a client may do."""
+
+    def __init__(self):
+        self.connection = raw_connect()
+        read_version(self.connection)
+        self.connection.sendall(b"SSH-2.0-test\r\n")
+        self.started = time.monotonic()
+        self.ended = None
+        self.thread = threading.Thread(target=self._run, daemon=True)
+        self.thread.start()
+
+    def _run(self):
+        batch = plain_packet(b"\x02\x00\x00\x00\x00") * 2048
+        self.connection.settimeout(1.0)
+        limit = self.started + 30.0
+        try:
+            while time.monotonic() < limit:
+                try:
+                    self.connection.sendall(batch)
+                except socket.timeout:
+                    continue
+        except OSError:
+            self.ended = time.monotonic()
+
+    def finish(self):
+        self.thread.join(35.0)
+        self.connection.close()
+        return None if self.ended is None else self.ended - self.started
+
+
+def sftp_packet(kind, body):
+    return struct.pack(">IB", 1 + len(body), kind) + body
+
+
+def read_sftp_packet(stream):
+    length = struct.unpack(">I", stream.read(4))[0]
+    return stream.read(length)
+
+
+def hold_with_large_packet():
+    """A client before keys that announces the largest packet, and sends only a little of it."""
+    connection = raw_connect()
+    read_version(connection)
+    connection.sendall(b"SSH-2.0-test\r\n")
+    connection.sendall(struct.pack(">I", 34988) + bytes(16))
+    return connection
+
+
 class Cases:
     def __init__(self, binary, client):
         self.binary = binary
@@ -450,6 +500,112 @@ class Cases:
             check(result.returncode == 0, result.stderr)
             image.process.poll()
 
+    def case_flood_before_keys_meets_the_login_limit(self):
+        with self.image("auth-ms=1500", "connections=4") as image:
+            flood = Flood()
+            started = time.monotonic()
+            other = self.client.run("whoami", self.client.key_options("ed25519"))
+            other_elapsed = time.monotonic() - started
+            check(other.returncode == 0, other.stderr)
+            check(other_elapsed < 3.0, f"another client took {other_elapsed:.2f} s")
+            elapsed = flood.finish()
+            check(elapsed is not None, "the flood was never closed")
+            check(elapsed < 4.0, f"the flood lasted {elapsed:.2f} s for a limit of 1.50 s")
+            print(f"    the flood ended after {elapsed:.2f} s, and another client took "
+                  f"{other_elapsed:.2f} s")
+            image.process.poll()
+
+    def case_stop_ends_a_flood(self):
+        with self.image("auth-ms=60000", "connections=4") as image:
+            flood = Flood()
+            time.sleep(0.3)
+            mark = image.mark()
+            started = time.monotonic()
+            self.client.run("stop", self.client.key_options("ed25519"))
+            image.wait_for(r"^STOPPED 0", 10.0, mark)
+            print(f"    stop returned {time.monotonic() - started:.2f} s after it was asked")
+            check(flood.finish() is not None, "the flood's connection was not ended")
+
+    def case_rekey_during_a_transfer(self):
+        with self.image() as image:
+            data = os.urandom(200000)
+            result = self.client.run("cat", self.client.key_options("ed25519") +
+                                     ["-o", "RekeyLimit=32K"], stdin=data, verbose=("-v",))
+            check(result.returncode == 0, (result.returncode, result.stderr[-400:]))
+            check(result.stdout == data, f"{len(result.stdout)} bytes came back")
+            rekeys = result.stderr.count(b"SSH2_MSG_NEWKEYS sent") - 1
+            check(rekeys >= 2, f"{rekeys} rekeys")
+            print(f"    {rekeys} rekeys during 200 kB each way")
+            image.process.poll()
+
+    def case_rekey_while_a_shell_waits(self):
+        with self.image() as image:
+            shell = self.client.popen(None, self.client.key_options("ed25519") +
+                                      ["-o", "RekeyLimit=default 2"], verbose=("-v",))
+            check(shell.stdout.readline() == b"terminal=0\n", "no greeting")
+            time.sleep(5.0)
+            check(shell.poll() is None, "the rekey ended the shell")
+            shell.stdin.write(b"still here\n")
+            shell.stdin.flush()
+            check(shell.stdout.readline() == b"still here\n", "no echo after the rekey")
+            output, errors = shell.communicate(timeout=20)
+            check(shell.returncode == 0, (shell.returncode, errors[-400:]))
+            rekeys = errors.count(b"SSH2_MSG_NEWKEYS sent") - 1
+            check(rekeys >= 1, f"{rekeys} rekeys")
+            image.process.poll()
+
+    def case_rekey_while_sftp_waits(self):
+        with self.image() as image:
+            mark = image.mark()
+            arguments = self.client.key_options("ed25519") + ["-o", "RekeyLimit=default 2", "-s"]
+            sftp = self.client.popen("sftp", arguments, verbose=("-v",))
+            sftp.stdin.write(sftp_packet(1, struct.pack(">I", 3)))
+            sftp.stdin.flush()
+            check(read_sftp_packet(sftp.stdout)[0] == 2, "no SSH_FXP_VERSION")
+            time.sleep(5.0)
+            check(sftp.poll() is None, "the rekey ended SFTP")
+            # A request of an unknown type, which the server answers with a status.
+            sftp.stdin.write(sftp_packet(200, struct.pack(">II", 9, 0)))
+            sftp.stdin.flush()
+            check(read_sftp_packet(sftp.stdout)[0] == 101, "no SSH_FXP_STATUS after the rekey")
+            _, errors = sftp.communicate(timeout=20)
+            check(errors.count(b"SSH2_MSG_NEWKEYS sent") >= 2, "no rekey")
+            image.wait_for(r"^SFTP close", start=mark)
+
+    def case_exit_status_survives_back_pressure(self):
+        # Every third send reports that the socket would block, as a slow client makes it do.
+        with self.image("send-block=3", "connections=4") as image:
+            options = self.client.key_options("ed25519")
+            for status in 7, 0, 255, 1, 42:
+                result = self.client.run(f"exit {status}", options)
+                check(result.returncode == status, (status, result.returncode, result.stderr))
+            result = self.client.run("whoami", self.client.password_options())
+            check(result.returncode == 0, result.stderr)
+            check(result.stdout == b"operator administrator\n", result.stdout)
+            result = self.client.run("output 100000", options)
+            check(result.returncode == 0, (result.returncode, result.stderr))
+            check(len(result.stdout) == 100000, len(result.stdout))
+            data = os.urandom(30000)
+            result = self.client.run("cat", options, stdin=data)
+            check(result.returncode == 0 and result.stdout == data, result.returncode)
+            image.process.poll()
+
+    def small_arena_fails_closed(self):
+        # Run by itself, on an image built with a small arena: see scripts/test-ssh-provider.sh.
+        with self.image("connections=4", "auth-ms=20000") as image:
+            options = self.client.key_options("ed25519")
+            held = [hold_with_large_packet() for _ in range(3)]
+            time.sleep(0.5)
+            result = self.client.run("whoami", options)
+            check(result.returncode == 255, f"a login fitted: {result.stdout}")
+            print(f"    with three clients holding memory, a login got: "
+                  f"{result.stderr.decode(errors='replace').strip()[-80:]}")
+            for connection in held:
+                connection.close()
+            time.sleep(0.5)
+            result = self.client.run("whoami", options)
+            check(result.returncode == 0, f"no recovery: {result.stderr}")
+
     def case_concurrent_logins_do_not_stall_others(self):
         # A sleep inside the derivation stands for a slow verifier, because CPU work takes no
         # simulated time. The sleep holds its worker only if the provider is right.
@@ -576,6 +732,11 @@ class Cases:
                 process.communicate(timeout=30)
             time.sleep(0.2)
             measure("back to none")
+            held = hold_with_large_packet()
+            time.sleep(0.3)
+            measure("one client before keys, with a 34,988 B packet announced")
+            held.close()
+            time.sleep(0.3)
 
     def case_forwarding_is_refused(self):
         with self.image() as image:
@@ -635,12 +796,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("binary", type=Path)
     parser.add_argument("--only", action="append", default=[])
+    parser.add_argument("--small-arena", action="store_true")
     arguments = parser.parse_args()
-    version = subprocess.run(["ssh", "-V"], capture_output=True, text=True).stderr.strip()
+    # A hang must end the run and say where it was, since one run stopped silently under emulation.
+    faulthandler.dump_traceback_later(420, exit=True)
+    version = subprocess.run(["ssh", "-V"], capture_output=True, text=True, timeout=60).stderr.strip()
     print(f"Client: {version}")
     failed = []
     with tempfile.TemporaryDirectory() as directory:
         cases = Cases(arguments.binary.resolve(), Client(directory))
+        if arguments.small_arena:
+            cases.small_arena_fails_closed()
+            print("All cases passed.")
+            return 0
         names = [name for name in dir(cases) if name.startswith("case_")]
         names.sort(key=lambda name: getattr(Cases, name).__code__.co_firstlineno)
         for name in names:

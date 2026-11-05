@@ -34,6 +34,11 @@
 #error "Owner decision: no RSA in SSH"
 #endif
 
+/* Workers share a priority, so without a time slice one long verification holds the others. */
+#if !defined(CONFIG_TIMESLICING) || !defined(CONFIG_TIMESLICE_SIZE) || CONFIG_TIMESLICE_SIZE <= 0
+#error "The SSH workers need CONFIG_TIMESLICING and a CONFIG_TIMESLICE_SIZE above zero"
+#endif
+
 /* The longest a worker or the listener goes without looking at its limits and for a stop. */
 #define WOLF_TICK_MS 50
 
@@ -64,6 +69,9 @@
 #define WOLF_DRAIN_MS 2000
 /* How often a login with no session yet asks whether its access session still stands. */
 #define WOLF_PRESESSION_POLL_MS 30000
+
+/* How much a worker receives before it looks at its limits again. */
+#define WOLF_RECEIVE_BUDGET_BYTES 16384u
 
 /* How many refused sockets wait to close, and for how long. */
 #define WOLF_REFUSALS_HELD 2
@@ -109,6 +117,8 @@ typedef struct {
     crux_ssh_file_handle_t *file_handle;
     bool session_running;
     bool transport_failed;
+    size_t received_since_wait;
+    int64_t flush_until;
     int64_t auth_deadline;
     int64_t last_poll;
 #ifdef CRUX_SSH_WOLF_TESTING
@@ -116,9 +126,9 @@ typedef struct {
 #endif
 } connection_t;
 
-K_THREAD_STACK_ARRAY_DEFINE(worker_stacks, CRUX_SSH_WOLF_CONNECTIONS_MAX,
-                            CRUX_SSH_WOLF_WORKER_STACK_BYTES);
-K_THREAD_STACK_DEFINE(listener_stack, CRUX_SSH_WOLF_LISTENER_STACK_BYTES);
+static K_THREAD_STACK_ARRAY_DEFINE(worker_stacks, CRUX_SSH_WOLF_CONNECTIONS_MAX,
+                                   CRUX_SSH_WOLF_WORKER_STACK_BYTES);
+static K_THREAD_STACK_DEFINE(listener_stack, CRUX_SSH_WOLF_LISTENER_STACK_BYTES);
 static K_MUTEX_DEFINE(server_lock);
 
 typedef struct {
@@ -234,34 +244,6 @@ static int io_result(void)
     }
 }
 
-static int io_receive(WOLFSSH *ssh, void *buffer, word32 size, void *context)
-{
-    connection_t *connection = context;
-    ssize_t received = zsock_recv(connection->socket, buffer, size, ZSOCK_MSG_DONTWAIT);
-
-    ARG_UNUSED(ssh);
-    if (received > 0) {
-        return (int)received;
-    }
-    return received == 0 ? WS_CBIO_ERR_CONN_CLOSE : io_result();
-}
-
-static int io_send(WOLFSSH *ssh, void *buffer, word32 size, void *context)
-{
-    connection_t *connection = context;
-    ssize_t sent;
-
-    ARG_UNUSED(ssh);
-#ifdef CRUX_SSH_WOLF_TESTING
-    if (connection->drop_on_write && connection->session_running) {
-        (void)zsock_shutdown(connection->socket, ZSOCK_SHUT_RDWR);
-        return WS_CBIO_ERR_CONN_RST;
-    }
-#endif
-    sent = zsock_send(connection->socket, buffer, size, ZSOCK_MSG_DONTWAIT);
-    return sent >= 0 ? (int)sent : io_result();
-}
-
 /* Waits until the socket may have changed, for no longer than a tick or wait_ms. */
 static void wait_socket(const connection_t *connection, bool for_write, int32_t wait_ms)
 {
@@ -271,6 +253,81 @@ static void wait_socket(const connection_t *connection, bool for_write, int32_t 
     };
 
     (void)zsock_poll(&poll_entry, 1, MIN(MAX(wait_ms, 0), WOLF_TICK_MS));
+}
+
+/*
+ * wolfSSH goes on receiving for as long as the socket has data, and a client may send
+ * SSH_MSG_IGNORE from before the keys. So this hands back after a budget of data, as if the socket
+ * were empty. Each loop of the worker then sees its limits and a stop, and the sleep lets other
+ * connections run.
+ */
+static int io_receive(WOLFSSH *ssh, void *buffer, word32 size, void *context)
+{
+    connection_t *connection = context;
+    ssize_t received;
+
+    ARG_UNUSED(ssh);
+    if (connection->received_since_wait >= WOLF_RECEIVE_BUDGET_BYTES) {
+        connection->received_since_wait = 0u;
+        k_msleep(1);
+        return WS_CBIO_ERR_WANT_READ;
+    }
+    received = zsock_recv(connection->socket, buffer, size, ZSOCK_MSG_DONTWAIT);
+    if (received > 0) {
+        connection->received_since_wait += (size_t)received;
+        return (int)received;
+    }
+    if (received == 0) {
+        return WS_CBIO_ERR_CONN_CLOSE;
+    }
+    connection->received_since_wait = 0u;
+    return io_result();
+}
+
+#ifdef CRUX_SSH_WOLF_TESTING
+static atomic_t send_block_period;
+static atomic_t send_count;
+
+void crux_ssh_wolf_test_block_sends(unsigned period)
+{
+    atomic_set(&send_block_period, (atomic_val_t)period);
+}
+#endif
+
+static int send_once(const connection_t *connection, void *buffer, word32 size)
+{
+    ssize_t sent;
+
+#ifdef CRUX_SSH_WOLF_TESTING
+    if (connection->drop_on_write && connection->session_running) {
+        (void)zsock_shutdown(connection->socket, ZSOCK_SHUT_RDWR);
+        return WS_CBIO_ERR_CONN_RST;
+    }
+    if (atomic_get(&send_block_period) != 0 &&
+        (atomic_inc(&send_count) + 1) % atomic_get(&send_block_period) == 0) {
+        return WS_CBIO_ERR_WANT_WRITE;
+    }
+#endif
+    sent = zsock_send(connection->socket, buffer, size, ZSOCK_MSG_DONTWAIT);
+    return sent >= 0 ? (int)sent : io_result();
+}
+
+/*
+ * The end of a session is several messages in one wolfSSH call, which stops at the first that would
+ * block and cannot be repeated. So during that call a send waits for room, for a bounded time.
+ */
+static int io_send(WOLFSSH *ssh, void *buffer, word32 size, void *context)
+{
+    connection_t *connection = context;
+    int result = send_once(connection, buffer, size);
+
+    ARG_UNUSED(ssh);
+    while (result == WS_CBIO_ERR_WANT_WRITE && connection->flush_until != 0 && !is_stopping() &&
+           k_uptime_get() < connection->flush_until) {
+        wait_socket(connection, true, WOLF_TICK_MS);
+        result = send_once(connection, buffer, size);
+    }
+    return result;
 }
 
 /* ---- Authentication. These run while a packet is parsed, on the connection's worker. ---- */
@@ -470,6 +527,13 @@ static crux_status_t channel_state(const crux_ssh_channel_t *channel)
     return CRUX_OK;
 }
 
+/* The worker handled something, and the caller's own call decides what that means for it. */
+static bool worker_made_progress(int result)
+{
+    return result >= 0 || result == WS_CHAN_RXD || result == WS_EOF || result == WS_REKEYING ||
+           result == WS_CHANNEL_CLOSED;
+}
+
 static crux_status_t channel_read(crux_ssh_channel_t *channel, void *buffer, size_t length,
                                   size_t *transferred)
 {
@@ -505,11 +569,16 @@ static crux_status_t channel_read(crux_ssh_channel_t *channel, void *buffer, siz
             result == WS_CHANNEL_CLOSED || result == WS_BAD_ARGUMENT) {
             return CRUX_ERR_NO_DATA;
         }
-        if (error == WS_REKEYING) {
-            (void)wolfSSH_worker(connection->ssh, NULL);
+        if (error == WS_REKEYING || result == WS_REKEYING) {
+            /* Only the client's next message can finish it, and a finished worker call is no error.
+             */
+            result = wolfSSH_worker(connection->ssh, NULL);
             error = wolfSSH_get_error(connection->ssh);
+            if (worker_made_progress(result)) {
+                continue;
+            }
         }
-        if (error != WS_WANT_READ && error != WS_WANT_WRITE && error != WS_REKEYING) {
+        if (error != WS_WANT_READ && error != WS_WANT_WRITE) {
             connection->transport_failed = true;
             return CRUX_ERR_IO;
         }
@@ -562,7 +631,7 @@ static crux_status_t channel_write(crux_ssh_channel_t *channel, const void *buff
                 connection->transport_failed = true;
                 return CRUX_ERR_IO;
             }
-            if (result >= 0 || result == WS_CHAN_RXD || result == WS_EOF || result == WS_REKEYING) {
+            if (worker_made_progress(result)) {
                 continue;
             }
         }
@@ -671,12 +740,15 @@ static void serve_sftp(connection_t *connection)
             connection->last_poll = k_uptime_get();
             continue;
         }
-        if (error == WS_WINDOW_FULL || error == WS_REKEYING) {
+        if (error == WS_WINDOW_FULL || error == WS_REKEYING || result == WS_REKEYING) {
             /* A reply is waiting on the client, and SFTP does not read while it waits. */
             result = wolfSSH_worker(connection->ssh, NULL);
             error = wolfSSH_get_error(connection->ssh);
             if (result == WS_CHANNEL_CLOSED) {
                 return;
+            }
+            if (worker_made_progress(result)) {
+                continue;
             }
             if (error == WS_WINDOW_FULL || error == WS_REKEYING) {
                 wait_socket(connection, false, WOLF_TICK_MS);
@@ -724,6 +796,8 @@ static void run_session(connection_t *connection)
     if (connection->request == REQUEST_SHELL) {
         status = server.callbacks.shell(server.callbacks.context, connection->attachment,
                                         &connection->channel, connection->terminal);
+    } else if (wolfSSH_GetSessionCommand(connection->ssh) == NULL) {
+        status = 255;
     } else {
         status =
             server.callbacks.exec(server.callbacks.context, connection->attachment,
@@ -737,7 +811,9 @@ static void run_session(connection_t *connection)
     if (!connection->transport_failed) {
         /* The client can lose the exit status if the socket closes under it, so wait for its close.
          */
+        connection->flush_until = k_uptime_get() + WOLF_DRAIN_MS;
         (void)wolfSSH_stream_exit(connection->ssh, status);
+        connection->flush_until = 0;
         drain(connection);
     }
 }
@@ -906,6 +982,8 @@ static void start_connection(int socket, const struct net_sockaddr_storage *addr
     connection->file_handle = NULL;
     connection->session_running = false;
     connection->transport_failed = false;
+    connection->received_since_wait = 0u;
+    connection->flush_until = 0;
 #ifdef CRUX_SSH_WOLF_TESTING
     connection->drop_on_write = false;
 #endif
@@ -936,6 +1014,8 @@ static void listener_thread(void *first, void *second, void *third)
             zsock_accept(server.listener_socket, (struct net_sockaddr *)&address, &address_length);
         if (socket >= 0) {
             start_connection(socket, &address);
+        } else {
+            k_msleep(WOLF_TICK_MS); /* Out of sockets, perhaps, so do not spin on it. */
         }
     }
     close_refused_sockets(true);

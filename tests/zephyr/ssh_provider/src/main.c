@@ -84,6 +84,8 @@ static void parse_arguments(void)
             options.config.max_connections = (uint8_t)atoi(value);
         } else if (strncmp(argv[i], "attempts=", 9) == 0) {
             options.config.max_auth_attempts = (uint8_t)atoi(value);
+        } else if (strncmp(argv[i], "send-block=", 11) == 0) {
+            crux_ssh_wolf_test_block_sends((unsigned)atoi(value));
         } else if (strncmp(argv[i], "auth-ms=", 8) == 0) {
             options.config.auth_timeout_ms = (uint32_t)atoi(value);
         }

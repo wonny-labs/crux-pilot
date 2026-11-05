@@ -4,6 +4,7 @@
  */
 #include "credential_test.h"
 #include "crux_ssh_access.h"
+#include "fake_file.h"
 #include "ssh_check.h"
 
 static void start_blank_store(void)
@@ -81,6 +82,29 @@ static void test_unavailable_store_gives_no_key(void)
     SSH_CHECK(crux_ssh_host_key_load(CRUX_SSH_KEY_ED25519, &key) == CRUX_ERR_NOT_READY);
 }
 
+static void test_failed_ensure_is_not_saved_by_a_good_read(void)
+{
+    crux_ssh_host_key_t key;
+    uint8_t record[CRUX_CREDENTIAL_KEY_RECORD_BYTES_MAX];
+    size_t length = 0;
+
+    /* The key can be read from one slot, and the other is damaged and cannot be written. Ensure
+     * says no, which means that the key is not yet safe to use, so a good read must not bring it
+     * back. */
+    start_blank_store();
+    SSH_CHECK(crux_ssh_host_key_load(CRUX_SSH_KEY_ED25519, &key) == CRUX_OK);
+    test_slot_flip(TEST_SLOT_B, CRUX_CREDENTIAL_HEADER_BYTES, 0x80u);
+    crux_file_fake_fail(CRUX_FILE_FAKE_WRITE, 0u, CRUX_FILE_ERR_IO);
+    SSH_CHECK(test_boot() == CRUX_CREDENTIAL_OK);
+    SSH_CHECK(crux_credential_read(CRUX_CREDENTIAL_RECORD_SSH_HOST_KEY, record, sizeof(record),
+                                   &length) == CRUX_CREDENTIAL_OK);
+    crux_file_fake_fail(CRUX_FILE_FAKE_WRITE, 0u, CRUX_FILE_ERR_IO);
+    memset(&key, 0x5a, sizeof(key));
+    SSH_CHECK(crux_ssh_host_key_load(CRUX_SSH_KEY_ED25519, &key) == CRUX_ERR_NOT_READY);
+    SSH_CHECK(key.length == 0u && key.key[0] == 0u);
+    SSH_CHECK(credential_fake_keygen_count() == 1u);
+}
+
 static void test_arguments_and_clear(void)
 {
     crux_ssh_host_key_t key;
@@ -101,6 +125,7 @@ int main(void)
     test_private_part_comes_first();
     test_existing_key_keeps_its_type();
     test_unavailable_store_gives_no_key();
+    test_failed_ensure_is_not_saved_by_a_good_read();
     test_arguments_and_clear();
     printf("%u failures\n", ssh_check_failures);
     return ssh_check_failures == 0 ? 0 : 1;

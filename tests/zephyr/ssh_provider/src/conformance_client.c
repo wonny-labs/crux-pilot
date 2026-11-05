@@ -1236,6 +1236,117 @@ static bool prepare_client(void)
     return true;
 }
 
+/* ---- A read during a flood must keep its timeout. ---- */
+
+#define FLOOD_PACKETS 2000u
+#define FLOOD_PAYLOAD_BYTES 8192u
+
+static volatile unsigned flood_sent;
+static volatile bool flood_read_returned;
+static volatile unsigned flood_sent_at_return;
+static crux_status_t flood_read_status;
+
+static int flood_reader(void *context, crux_ssh_attachment_t *attachment,
+                        crux_ssh_channel_t *channel, bool terminal)
+{
+    char buffer[16];
+    size_t count = 0;
+
+    ARG_UNUSED(context);
+    ARG_UNUSED(attachment);
+    ARG_UNUSED(terminal);
+    flood_read_status = crux_ssh_wolf_provider()->read(channel, buffer, sizeof(buffer), &count);
+    flood_sent_at_return = flood_sent;
+    flood_read_returned = true;
+    return 0;
+}
+
+static crux_ssh_auth_result_t flood_password(void *context, const crux_ssh_peer_t *peer,
+                                             const char *user, const uint8_t *password,
+                                             size_t password_length,
+                                             crux_ssh_attachment_t **attachment)
+{
+    static int any_attachment;
+
+    ARG_UNUSED(context);
+    ARG_UNUSED(peer);
+    ARG_UNUSED(user);
+    ARG_UNUSED(password);
+    ARG_UNUSED(password_length);
+    *attachment = (crux_ssh_attachment_t *)&any_attachment;
+    return CRUX_SSH_AUTH_ACCEPTED;
+}
+
+static void flood_connection_closed(void *context, crux_ssh_attachment_t *attachment)
+{
+    ARG_UNUSED(context);
+    ARG_UNUSED(attachment);
+}
+
+/* SSH_MSG_IGNORE after login. Without a limit on what one receive call takes, the read never
+ * returns to its deadline while the client keeps sending. */
+static unsigned check_read_timeout_during_flood(void)
+{
+    static uint8_t message[FLOOD_PAYLOAD_BYTES + 16u];
+    crux_ssh_callbacks_t callbacks = *crux_ssh_callback_table();
+    crux_ssh_config_t config = {
+        .port = SERVER_PORT,
+        .max_connections = 1,
+        .max_auth_attempts = 1,
+        .auth_timeout_ms = 1000,
+        .io_timeout_ms = 100,
+        .host_key_type = CRUX_SSH_KEY_ED25519,
+        .host_key = host_key.host_key,
+        .host_key_length = host_key.host_key_length,
+    };
+    const size_t length = 1u + put_bytes(message + 1, NULL, 0u) + FLOOD_PAYLOAD_BYTES;
+    unsigned failures = 0;
+    connection_t *connection;
+    uint8_t request[64];
+    size_t at = 0;
+    int id = -1;
+
+    callbacks.password = flood_password;
+    callbacks.connection_closed = flood_connection_closed;
+    callbacks.shell = flood_reader;
+    flood_sent = 0u;
+    flood_read_returned = false;
+    message[0] = 2u; /* SSH_MSG_IGNORE */
+    sys_put_be32(FLOOD_PAYLOAD_BYTES, message + 1);
+    if (crux_ssh_wolf_provider()->start(&config, &callbacks) != CRUX_OK ||
+        !client.connect(&client.peer_a, &id) || !client.password(id, "operator", 8, "secret") ||
+        !client.open_channel(id, "session")) {
+        printf("FAIL flood: no session\n");
+        reset_all();
+        return 1u;
+    }
+    connection = &connections[id];
+    grant_window(connection);
+    request[at++] = MSG_CHANNEL_REQUEST;
+    at += put_u32(request + at, connection->remote_channel);
+    at += put_text(request + at, "shell");
+    request[at++] = 1u;
+    (void)send_packet(connection, request, at);
+    while (flood_sent < FLOOD_PACKETS && !flood_read_returned) {
+        if (!send_packet(connection, message, length)) {
+            break;
+        }
+        flood_sent = flood_sent + 1u;
+    }
+    k_msleep(500);
+    if (!flood_read_returned || flood_sent_at_return >= FLOOD_PACKETS ||
+        flood_read_status != CRUX_ERR_TIMEOUT) {
+        printf("FAIL flood: returned %d after %u of %u packets, status %d\n",
+               (int)flood_read_returned, flood_sent_at_return, FLOOD_PACKETS,
+               (int)flood_read_status);
+        ++failures;
+    }
+    printf("%-48s %s (returned after %u packets)\n", "read_timeout_during_flood",
+           failures == 0u ? "ok" : "FAILED", flood_sent_at_return);
+    reset_all();
+    return failures;
+}
+
 /* What this provider adds to the interface, which the shared cases cannot know about. */
 static unsigned check_host_key_rules(void)
 {
@@ -1335,6 +1446,7 @@ int test_conformance_run(const char *only)
     reset_all();
     if (only == NULL) {
         failed += check_host_key_rules() != 0u;
+        failed += check_read_timeout_during_flood() != 0u;
     }
     test_print_measurements();
     printf("%u cases, %u failed\n", ran, failed);

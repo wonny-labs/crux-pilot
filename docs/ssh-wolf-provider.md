@@ -96,7 +96,7 @@ fingerprint comes from the public part while wolfSSH derives what it sends from 
 
 ## Results
 
-Revision, tools and commands are in the pull request. `scripts/test-ssh-provider.sh` repeats all of this. No workflow runs it: see decision 15.
+Revision, tools and commands are in the pull request. `scripts/test-ssh-provider.sh` repeats all of this except the OpenSSH 9.9 run, which was by hand: its client is outside the container, and the script needs none. No workflow runs the script: see decision 15.
 
 | Kind | What | Result |
 | --- | --- | --- |
@@ -104,7 +104,7 @@ Revision, tools and commands are in the pull request. `scripts/test-ssh-provider
 | `native_sim`, run | The 51 conformance cases of `tests/ssh` on this provider, over real sockets, with the scripted client | 51 pass, and the provider's own host key rules. The earlier failures are [below](#how-the-cases-went-from-red-to-green). |
 | `native_sim`, run | `openssh_test.py`, with OpenSSH 9.6 | All cases pass. See the table below. |
 | `native_sim`, run | OpenSSH 9.9 on the development machine, through a relay into the container | `mlkem768x25519-sha256`, `curve25519-sha256` and `ecdh-sha2-nistp256` each log in by key |
-| RT1060-EVKB, compile only | The test image, without the TLS socket backend | Links: 298,560 B Flash, 703,820 B RAM, of which the test configures a 512 KiB arena |
+| RT1060-EVKB, compile only | The test image, without the TLS socket backend | Links: 298,848 B Flash, 703,884 B RAM, of which the test configures a 512 KiB arena |
 | Control | `CONFIG_MBEDTLS=y` | Stops at configuration, with the message in `provider_sources.cmake` |
 
 What each OpenSSH case shows, on a real socket:
@@ -122,6 +122,11 @@ What each OpenSSH case shows, on a real socket:
 | `connection_limit` | A third client reads "too many connections", no access event runs, held connections stay, and a freed slot works |
 | `unauthenticated_time_limit` | A silent client closes about 20 ms after a limit of 1.50 s, and a session may outlast the limit |
 | `concurrent_logins_do_not_stall_others` | During a 3 s verification, a key login and its session finish in about 0.2 s and a second password login is refused as busy in under 0.5 s. The first login then succeeds at about 3.1 s. |
+| `flood_before_keys_meets_the_login_limit` | A client sending `SSH_MSG_IGNORE` as fast as it can from before the keys ends about 10 ms after a limit of 1.50 s, and another client logs in and finishes in about 0.2 s meanwhile |
+| `stop_ends_a_flood` | `stop` returns in about 0.2 s with the flood running |
+| `rekey_during_a_transfer` | `RekeyLimit=32K` gives over 20 rekeys while 200 kB goes each way, and the data and exit status arrive |
+| `rekey_while_a_shell_waits`, `rekey_while_sftp_waits` | A rekey on a timer does not end a session waiting in `read`, or SFTP waiting for a request |
+| `exit_status_survives_back_pressure` | With every third send reporting that it would block, each exit status arrives, and logins, 100 kB out and a 30 kB round trip work |
 | `clean_close` | Exit statuses 0, 1, 7 and 255 arrive. 200 kB out, five times, arrives intact and with its status. 50 kB round trip. A terminal is reported with `-tt` and not without. |
 | `nothing_is_left_behind` | The heap is the same before and after repeated logins, refusals and dropped connections. After `stop`, 128 B stays allocated. |
 | `forwarding_is_refused` | `-R` fails, and `-L` is refused when used |
@@ -133,6 +138,7 @@ What each OpenSSH case shows, on a real socket:
 | Step | Observed | Change |
 | --- | --- | --- |
 | Adapter test on the stand-in | 55 failures | The real mapping |
+| Review of `383f0bf`, the cases below added first | Flood: another client timed out, `stop` never returned, a read ran past its timeout through 2,000 packets. Rekey: `cat` and an idle shell ended with status 255. Back-pressure: `exit 7` gave 255. | A receive budget, a worker's success kept as success, and a bounded wait around the end of a session. See decisions 17 and 18. |
 | First connection | `socket error` at once | Set the I/O contexts after `wolfSSH_set_fd()` |
 | 51 cases, first run | 46 pass | Below |
 | Data sent before a session | Connection ended | wolfSSH's rule, so the client holds it. See [Findings](#findings). |
@@ -148,14 +154,18 @@ finds the deepest change, because `k_thread_stack_space_get` says nothing on `na
 
 Each figure comes from the image's heap statistics and the stack probe, with OpenSSH as the client. Host stack: **13,808 B** at most on a worker, with `exec`, password and both key types, and about the same at every window size. 2,344 B on the listener.
 
-| Window | One idle session | Peak after 300 kB down and 100 kB up | Four sessions at once |
-| --- | --- | --- | --- |
-| 8 KiB | 12,616 B | 20,872 B | 48,304 B |
-| **16 KiB, the default** | **20,808 B** | **37,256 B** | **81,072 B** |
-| 32 KiB | 37,192 B | 53,640 B | 146,608 B |
-| 128 KiB, wolfSSH's default | 135,496 B | 151,944 B | 539,824 B |
+| Window | One idle session | Peak after 300 kB down and 100 kB up | Four sessions at once | One client before keys |
+| --- | --- | --- | --- | --- |
+| 8 KiB | 12,616 B | 20,872 B | 48,304 B | 44,688 B |
+| **16 KiB, the default** | **20,808 B** | **37,256 B** | **81,072 B** | **44,688 B** |
+| 32 KiB | 37,192 B | 53,640 B | 146,608 B | 44,688 B |
+| 128 KiB, wolfSSH's default | 135,496 B | 151,944 B | 539,824 B | 44,688 B |
 
-So, as the contract's note expected, the window decides the heap. A session costs about one window and 4.4 KiB, and one direction of a transfer about one more window. A 512 KiB arena served four sessions at 16 KiB, and **failed the fourth at 128 KiB**. The rule of thumb on these figures is `max_connections` times (two windows and 5 KiB), which is 148 KiB for four at the default.
+So, as the contract's note expected, the window decides the heap of a logged-in session: about one window and 4.4 KiB, and one direction of a transfer about one more window. A 512 KiB arena served four sessions at 16 KiB, and **failed the fourth at 128 KiB**.
+
+**A client that has not logged in can cost more.** It announces a packet of up to 34,988 B before any key exchange, and wolfSSH's input buffer grows to fit, whatever the window. That is more than a logged-in session at the default, and it costs the client nothing. Decision 19 says why the limit stays.
+
+**The rule on these figures is `max_connections` × max(45 KiB, two windows + 5 KiB)**, which is 180 KiB for four connections at the default window. In a 151,552 B arena, three clients before keys made a valid login fail, closed, until they left.
 
 The kernel's report on these stacks would have read 16,344 B free of 16,384 B, because a thread's Zephyr stack sees almost nothing on `native_sim`. The target's stack is the open question, and a CLI or file service adds its own use on top: issue #197 measures it. A worker's 16 KiB default leaves little margin even if a Cortex-M7 build needs only what this 64-bit build does.
 
@@ -166,8 +176,8 @@ Measured with `CONFIG_WOLFSSL_MLKEM=y` and `CRUX_SSH_WOLF_OFFER_MLKEM`, on the m
 
 | Measure | `curve25519-sha256` in the same image | `mlkem768x25519-sha256` | Difference |
 | --- | --- | --- | --- |
-| RT1060 Flash, compile only, both builds one commit before the final revision | 298,352 B (image without ML-KEM) | 306,088 B | +7,736 B |
-| RT1060 static RAM, compile only | 703,756 B | 703,756 B | None |
+| RT1060 Flash, compile only | 298,848 B (image without ML-KEM) | 306,584 B | +7,736 B |
+| RT1060 static RAM, compile only | 703,884 B | 703,884 B | None |
 | `native_sim` heap peak, one login | 22,320 B | 25,456 B | +3,136 B during the exchange |
 | `native_sim` heap in a session | 22,160 B | 22,160 B | None, though the build adds 1,352 B per session over one without ML-KEM |
 | `native_sim` worker stack | 13,152 B | 13,152 B | None seen. `ecdh-sha2-nistp256` was the deepest at 13,600 B. |
@@ -198,6 +208,10 @@ Each was taken without the owner, and the narrower choice was taken where there 
 | 14 | `tests/zephyr/ssh_wolf_probe` gains `src/access_refused.c` and three lines of CMake, outside the contract's list for #192 | The entry points now call `crux_access`, so the probe would not link. #193 will meet the same with `crux_cli`. | The probe could link the core and ports instead |
 | 15 | wolfSSH stays out of default CI, and no workflow runs `scripts/test-ssh-provider.sh` | `scripts/check-ssh-boundaries.py` forbids a default workflow to select the stack, and #247 owns that rule. Naming the script differently to pass the check would defeat it. | #247 can add this script to its workflow |
 | 16 | `tests/ssh/conformance.c` gains two lines beyond the follow-up, so that `session_alive` answers true unless a case says otherwise | A real provider polls during a case that takes its time, and a fake never does. No check changed. | Each SFTP case would set it |
+| 17 | `io_receive` hands back after 16 KiB with a 1 ms sleep, as if the socket were empty | wolfSSH loops while the socket has data, so with no budget a sender held off every limit, and every other connection in simulated time. It bounds a connection to about 16 MB/s, more than the target's link. | A bigger budget |
+| 18 | While `wolfSSH_stream_exit` runs, a send that would block waits for room, for up to 2 s. It is not retried from the worker loop. | That call stops at the first message that would block, and repeating it would send the status twice. A stop cuts the wait short. A very slow client can hold its own worker for that long, and no other. | None |
+| 19 | wolfSSH's `MAX_PACKET_SZ` stays, and the memory rule below allows for it | RFC 4253 section 6.1 requires packets up to 35,000 bytes, and a client announces the size before keys | A lower limit would be a shared setting that refuses a conforming client |
+| 20 | **The slot lockout stays, as a recorded limit.** `max_connections` silent clients hold every slot for `auth_timeout_ms`, and a real user is refused meanwhile. | Nothing unauthenticated can be told from a slow login, and a reserved slot needs a policy for who may use it. A composition chooses the two numbers. The limit is short and repeats only while an attacker keeps connecting. | A slot reserved for clients that have logged in before, or by source |
 
 ## Findings
 
@@ -218,14 +232,19 @@ The provider wipes a password from wolfSSH's input buffer once the callback retu
 | Item | Why |
 | --- | --- |
 | Anything on a board, stack use on Cortex-M7, handshake time, timing of the verifier | Hardware is excluded |
-| Time slicing between workers of equal priority on a target | CPU work takes no simulated time on `native_sim`, so a verifier was modelled with a sleep. A composition needs `CONFIG_TIMESLICE_SIZE` above zero, or a long verification holds other workers of its priority. |
+| Time slicing between workers of equal priority on a target | CPU work takes no simulated time on `native_sim`, so a verifier was modelled with a sleep. The provider refuses to compile without `CONFIG_TIMESLICING` and a `CONFIG_TIMESLICE_SIZE` above zero. Zephyr's default is on, at 20 ms, and a composition should check that it suits. |
+| Rekey | **Shown on `native_sim`** with OpenSSH on bytes and on time, for `exec`, a shell and SFTP waiting. Not during an SFTP transfer, not started by the server, and not with PuTTY or WinSCP. |
+| Back-pressure on send | **Shown by injection** at every third send, for logins, `exec`, shell input and output, and the end of a session. Not with a real full socket and a client that stops reading, and not in SFTP. |
+| Floods | **Shown on `native_sim`** for a sender before keys, against the login limit, another client and `stop`, and for a read's timeout after login. On a target, the budget's effect on throughput and on control work is not known. |
+| Arena exhaustion | **Shown on `native_sim`** in a 151,552 B arena: clients before keys can use it up, a login then fails closed, and it works once they leave. wolfSSL's behaviour at each allocation failure was not walked. |
+| The slot lockout | Recorded as decision 20, and not fixed |
 | Real PSA ports, a host key generated and stored through the credential store in an image | #242 |
 | SFTP file transfer, and the window-full path in the SFTP loop | #194. The port refuses every operation. |
 | WinSCP | Needs a Windows host, and belongs to #194's acceptance |
 | `ssh-audit` | Not installed, and not fetched. The OpenSSH cases read the server's `KEXINIT` directly and test strict key exchange with a control. |
 | IPv6 through the provider | Decision 10 |
-| `scripts/test-ssh-wolf-settings.sh`, and with it the provider beside the TLS socket backend | This workspace is a shallow clone, and the recipe's patch needs blobs it lacks. The probe was built without the backend instead. See the pull request. |
-| wolfSSH in CI | Decision 15. Host suites run in CI, and the `native_sim` results here are from one local run. |
+| `scripts/test-ssh-wolf-settings.sh`, and with it the provider beside the TLS socket backend | This author's workspace is a shallow clone, and the recipe's patch needs blobs it lacks. The probe was built without the backend instead. The independent review measured the probe with a reference to the provider at 426,196 B Flash and 291,028 B RAM. |
+| wolfSSH in CI | Decision 15. Host suites run in CI, and the `native_sim` results here are from local runs. |
 | OpenSSH 10.1's warning | No such client here. 9.9 was the newest available. |
 
 ## What #193 and #194 need

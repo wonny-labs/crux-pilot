@@ -46,6 +46,8 @@ crux_status_t crux_ssh_wolf_host_key_fingerprint(crux_ssh_key_type_t type, const
  * measurements that only this file can take. A connection is named by the client's port. */
 void crux_ssh_wolf_test_drop_on_write(uint16_t peer_port);
 crux_ssh_file_handle_t *crux_ssh_wolf_test_file_handle(uint16_t peer_port);
+/** Every nth send reports that the socket would block. Zero stops this. */
+void crux_ssh_wolf_test_block_sends(unsigned period);
 /** On native_sim, the deepest host stack seen on a worker since boot, and on a finished listener.
  */
 void crux_ssh_wolf_test_stack_used(size_t *worker, size_t *listener);

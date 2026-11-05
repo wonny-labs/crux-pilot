@@ -24,4 +24,7 @@ set_tests_properties(Ssh.access_adapter Ssh.host_key PROPERTIES TIMEOUT 30)
 add_test(NAME Ssh.ProviderTypes
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_provider_types.py
             --root ${PROJECT_SOURCE_DIR})
-set_tests_properties(Ssh.ProviderTypes PROPERTIES TIMEOUT 30)
+add_test(NAME Ssh.ProviderTypesControl
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_provider_types_test.py
+            --root ${PROJECT_SOURCE_DIR})
+set_tests_properties(Ssh.ProviderTypes Ssh.ProviderTypesControl PROPERTIES TIMEOUT 30)
