@@ -41,6 +41,8 @@ jobs:
         run: ./scripts/test-access.sh
       - name: Validate the command line on Host
         run: ./scripts/test-cli.sh
+      - name: Validate the command line over SSH under ThreadSanitizer
+        run: ./tests/ssh/cli/test-thread-sanitizer.sh
       - name: Validate the credential store on Host
         run: ./scripts/test-credential.sh
       - name: Validate Security events on Host

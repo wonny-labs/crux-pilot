@@ -151,14 +151,14 @@ The shared files and every hook are in place now, so no session has to change a 
 | Session | May change | How it adds code |
 | --- | --- | --- |
 | Provider and authentication, #192 | `components/ssh/access/`, `components/ssh/ports/zephyr/provider_sources.cmake` and the provider sources it lists, `tests/ssh/access/`, new `tests/zephyr/ssh_*`, new `scripts/test-ssh*.sh` | The provider sources go in `provider_sources.cmake`, and `crux_ssh_wolf_settings()` builds them with the wolfSSH settings. The access entry points and `struct crux_ssh_attachment` replace the stand-in in `components/ssh/access/`, with `sources.cmake` and `CMakeLists.txt` there. Its tests go in `tests/ssh/access/CMakeLists.txt`. |
-| CLI over SSH, #193 | `components/ssh/cli/`, `tests/ssh/cli/` | `crux_ssh_cli_shell` and `crux_ssh_cli_exec` replace the stand-in, with `sources.cmake` and `CMakeLists.txt` there. It uses `read`, `write` and `close`, with the fake provider on the Host, and links `crux_cli_adapter`, which arrives with #238, PRIVATE from its own `CMakeLists.txt`. |
+| CLI over SSH, #193 | `components/ssh/cli/`, `tests/ssh/cli/` | `crux_ssh_cli_shell` and `crux_ssh_cli_exec` replace the stand-in, with `sources.cmake` and `CMakeLists.txt` there. It uses `read`, `write` and `close`, with the fake provider on the Host, and links `crux_cli_adapter`, which arrives with #238, PRIVATE from its own `CMakeLists.txt`. A composition selects it with `CRUX_SSH_CLI_COMMAND_LINE` and names its provider with `crux_ssh_cli_set_provider`: see [the CLI over SSH](cli-over-ssh.md). |
 | SFTP, #194 | `components/ssh/sftp/`, `tests/ssh/sftp/` | `crux_ssh_sftp_open` and `crux_ssh_sftp_close` replace the stand-in. The real `myFilesystem.h` replaces the refusing one in `components/ssh/sftp/port/`, whose directory `sources.cmake` names, so `crux_ssh_wolf_settings()` puts it on the include path of the wolfSSH sources in `app`. |
 | Shared, by one reviewed PR that all sessions rebase onto | `components/ssh/CMakeLists.txt`, `components/ssh/src/`, `components/ssh/adapter/`, `components/ssh/ports/zephyr/crux_wolfssh_settings.h`, `wolf-ssh.conf`, `wolf_ssh_settings.cmake`, `tests/ssh/CMakeLists.txt` and the files directly in `tests/ssh/` | The callback table is here, in `components/ssh/src/crux_ssh_callbacks.c`, and already names every entry point. This is the rule that gate #183 records. |
 
 **Which port #192 builds against.** `wolfssh/port.h` includes `myFilesystem.h` whenever SFTP is on, so wolfSSH cannot compile without one.
 #192 builds against the refusing port in `components/ssh/sftp/port/` until #194 replaces it. It compiles and links, every operation in it
 fails, and the stand-in `crux_ssh_sftp_open` refuses before any of it runs. The probe uses the same port, so no probe holds a private
-copy. #192 does not edit that directory.
+copy. #192 does not edit that directory. Since #194 the macros there are real, and they reach refusing operations unless a composition sets `CRUX_SSH_SFTP_FILE_SERVICE`.
 
 Each stand-in fails closed, and `tests/ssh/{cli,sftp}/stub_test.c` show that. #192 has replaced the access one. The session that replaces a stand-in replaces its test as
 well. It keeps the file names that `scripts/analyze-host.sh` lists, or changes that list under the protected-path rule.
@@ -324,7 +324,7 @@ Those belong to #192 on `native_sim`.
 
 ## Findings for the SFTP session
 
-From reading wolfSSH v1.6.0 source. None of this has run.
+From reading wolfSSH v1.6.0 source. None of this had run when it was written. [The SFTP design](sftp-design.md) settles the refused `OPEN`, and has what the provider needs from the port.
 
 - `WOLFSSH_SFTP_ERRNO`, named in the design and in #194, does not occur anywhere in this revision. A failed `WOPEN` is sent
   as `WOLFSSH_FTP_FAILURE`. `WS_PERMISSIONS` becomes a permission status from a few places, such as path confinement and the

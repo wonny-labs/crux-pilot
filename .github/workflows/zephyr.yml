@@ -144,6 +144,11 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-cli.sh --zephyr
 
+      - name: Compile the command line's SSH entry points without hardware
+        if: matrix.shard == 'io'
+        working-directory: crux-pilot
+        run: tests/ssh/cli/test-compile.sh
+
       - name: Validate portable GPIO without hardware
         if: matrix.shard == 'io'
         working-directory: crux-pilot
