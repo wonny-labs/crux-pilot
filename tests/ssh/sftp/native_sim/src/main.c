@@ -208,6 +208,7 @@ int main(void)
     size_t listener = 0;
     size_t last_peak = 0;
     size_t last_worker = 0;
+    size_t last_now = 0;
 
     parse_arguments();
     if (!make_medium() || !make_accounts() ||
@@ -220,12 +221,14 @@ int main(void)
     config.host_key_type = host_key.type;
     config.host_key = host_key.host_key;
     config.host_key_length = host_key.host_key_length;
-    crux_status_t status =
-        crux_ssh_wolf_provider()->start(&config, crux_ssh_callback_table());
+    crux_status_t status = crux_ssh_wolf_provider()->start(&config, crux_ssh_callback_table());
     if (status != CRUX_OK) {
         printk("START failed %d\n", (int)status);
         nsi_exit(3);
         return 0;
+    }
+    if (malloc_runtime_stats_get(&stats) == 0) {
+        printk("BASELINE heap_now=%zu\n", stats.allocated_bytes);
     }
     printk("READY port=%u\n", config.port);
     /* Simulation results only: a 64-bit image with a host stack under each thread. */
@@ -233,9 +236,11 @@ int main(void)
         k_msleep(2000);
         crux_ssh_wolf_test_stack_used(&worker, &listener);
         if (malloc_runtime_stats_get(&stats) == 0 &&
-            (stats.max_allocated_bytes != last_peak || worker != last_worker)) {
+            (stats.max_allocated_bytes != last_peak || worker != last_worker ||
+             stats.allocated_bytes != last_now)) {
             last_peak = stats.max_allocated_bytes;
             last_worker = worker;
+            last_now = stats.allocated_bytes;
             printk("MEASURE heap_peak=%zu heap_now=%zu worker_stack=%zu\n", last_peak,
                    stats.allocated_bytes, worker);
         }

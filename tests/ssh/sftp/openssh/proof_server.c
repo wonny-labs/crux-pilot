@@ -55,10 +55,8 @@ static const char *const dropper_permissions[] = {"inbox.write"};
 static const char *const stranger_permissions[] = {"status.read"};
 static const char *const auditor_permissions[] = {"data.read", "logs.read", "inbox.read"};
 static const crux_access_role_t roles[] = {
-    {"administrator", root_permissions, 4},
-    {"viewer", viewer_permissions, 2},
-    {"dropper", dropper_permissions, 1},
-    {"stranger", stranger_permissions, 1},
+    {"administrator", root_permissions, 4}, {"viewer", viewer_permissions, 2},
+    {"dropper", dropper_permissions, 1},    {"stranger", stranger_permissions, 1},
     {"auditor", auditor_permissions, 3},
 };
 static crux_access_policy_t policy = {roles, 5, 0, 3600u, NULL};
@@ -286,8 +284,7 @@ static void make_accounts(void)
     crux_access_session_t root = {0};
     uint32_t retry_after_ms = 0;
     static const char *const people[][2] = {
-        {"vera", "viewer"}, {"dora", "dropper"}, {"stan", "stranger"},
-                                               {"audit", "auditor"}};
+        {"vera", "viewer"}, {"dora", "dropper"}, {"stan", "stranger"}, {"audit", "auditor"}};
 
     if (crux_access_provision_first_account("root", password, length, "administrator",
                                             &origin_serial) != CRUX_ACCESS_OK ||

@@ -60,7 +60,17 @@ cases=(python3 -I "$repo/tests/ssh/sftp/openssh/cases.py" --key "$work/user_key"
 status=0
 start_image "$port" 900 "$log"
 "${cases[@]}" --port "$port" --server-log "$log" "$@" || status=$?
-grep 'MEASURE' "$log" | tail -1 || true
+# Simulation results only. With every client gone the heap must be back where it started.
+if [[ $# -eq 0 ]]; then
+    sleep 5
+    baseline="$(grep -m 1 '^BASELINE' "$log" | sed 's/.*heap_now=//')"
+    measured="$(grep '^MEASURE' "$log" | tail -1)"
+    printf 'Baseline heap %s bytes. %s\n' "$baseline" "$measured"
+    if [[ "${measured##*heap_now=}" != "$baseline worker_stack="* ]]; then
+        printf 'The heap did not come back to its baseline.\n' >&2
+        status=1
+    fi
+fi
 stop_server
 
 # An image of its own, because every other case would have to outrun a short idle limit.
