@@ -36,7 +36,7 @@ W1 is explained, is the owner's decision, listed under [approvals needed](#appro
 | The offload's FIN fix | **Test image only**: a build-local copy of the driver's host side | `native_sim`, with a control |
 | Entropy, key confidentiality | **Test-only**, as [#242 declares](native-management-composition.md#declarations) | |
 | Firefox 159.0.1 over TLS | **Run by hand** in the container, not in CI | `native_sim` |
-| Results | Retained in [`docs/evidence/https-composition/`](evidence/https-composition/): from `4ed6eb9`, and `*-after-review.json` from `b9c9fbc` with the review fixes | |
+| Results | Retained in [`docs/evidence/https-composition/`](evidence/https-composition/): from `4ed6eb9`, and `*-after-review.json` from `b9c9fbc` plus the uncommitted review fixes (working tree: 6 changed), later committed as `b197d15` | |
 | Wolf profile in CI | **Not run.** A default workflow must not fetch a GPL stack. | Local |
 | RT1060-EVKB | Compile and link of `tests/zephyr/web_compile` with the declared profile: Mbed 197,364 B Flash and 209,856 B RAM, Wolf 336,836 B and 213,652 B, from the linker report, so RAM is configured and not used. Handshake time and memory not measured. | Compile |
 | Safari, Chromium over TLS | Not run | |
@@ -161,10 +161,10 @@ plain one. Then 14 more TLS cases run, the Firefox check when a browser is given
 | Suite cases replaced by a TLS variant, below | 2 of 2 | 2 of 2 |
 | Other TLS cases, with `hello_retry` added after review | 14 of 14 | 14 of 14 |
 | Separate images: no certificate, and the offload without the FIN fix, each now asserting | 2 of 2 | 2 of 2 |
-| **Total, `scripts/test-web.sh https both` at `b9c9fbc` with the review fixes, without Firefox** | **55 of 55** | **54 of 55**, 1 excused on W1's assertion alone |
+| **Total, `scripts/test-web.sh https both` at `b9c9fbc` plus the uncommitted review fixes (working tree: 6 changed), later committed as `b197d15`, without Firefox** | **55 of 55** | **54 of 55**, 1 excused on W1's assertion alone |
 | Firefox, at `4ed6eb9`, not run again since nothing it uses changed | 1 of 1 | 1 of 1 |
 | Earlier total at `4ed6eb9`, with Firefox | 55 of 55, of which `offload_fin_control` only recorded | 54 of 55 |
-| CI, PSA workflow, Mbed profile, without Firefox | 53 of 53 at `8e506a2`, 54 of 54 at `0a06de0` | Not run |
+| CI, PSA workflow, Mbed profile, without Firefox | 53 of 53 at `8e506a2`, 54 of 54 at `0a06de0`, 55 of 55 at `b197d15` | Not run |
 
 Two suite cases measure what one send costs when a reader stops, and that differs over TLS for a reason in the stack,
 so the HTTPS driver runs a TLS variant in their place. It holds the same properties and records the mechanism.
@@ -335,7 +335,11 @@ client. Five cheap explanations were ruled out: a CPU cost per connection, the o
 ahead during the handshake, the handshake loop's 100 ms wait, and the abrupt close. A system call trace is unreadable under
 the emulation used here. It costs the suite one case, `deadline_then_silent_closes_before_inactivity`, whose deadline runs
 from a first callback that W1 can delay, so the driver lists it as a known limit on Wolf: it still runs, its result is
-recorded either way, and only its "not closed within" assertion is excused. Any other failure in it fails the run. Whether W1 exists on a target, or with Zephyr's own TCP, is unknown. New issue
+recorded either way, and only its "not closed within" assertion is excused. Any other failure in it fails the run, with one
+gap: when W1's assertion fires first, the case's two later checks, that the close sends nothing and that the route is
+free again (`wait_route_free`, in `tests/native/web_http/test_driver.py`), do not run, so a close that sent data would be
+masked in that run. That gap, and Wolf's next-request bound of 2.5 s, loose against the largest wait measured, about 1.0
+to 1.07 s, are declared, and both go away when #280 is fixed. Whether W1 exists on a target, or with Zephyr's own TCP, is unknown. New issue
 [#280](https://github.com/wonny-labs/crux-pilot/issues/280) tracks it.
 
 ## How a product applies the wolfSSL patch
@@ -407,7 +411,7 @@ with 1.2 as the minimum, which the patch does not offer at this pin. TLS 1.2 wou
 | 10 | Mbed heap stays 120,000 B for three clients, by the formula above | Measured | Scale with `HTTP_SERVER_MAX_CLIENTS` |
 | 11 | RT1060 compile configurations take the declared profile: TLS 1.3 and its suite, 16 KiB records, 120,000 B heap | A compile of the sample's settings would not be the profile this declares | |
 | 12 | The wolfSSL patch: a build-time copy for checks, a pinned fork recommended for a product | Its terms keep it out of this repository | Owner's decision |
-| 13 | On Wolf, `deadline_then_silent_closes_before_inactivity` is a known limit only for its "not closed within" assertion: it runs and is recorded, and any other failure in it fails the run | W1 delays the first callback that its deadline runs from, by an amount that depends on timing | Removed when #280 is fixed |
+| 13 | On Wolf, `deadline_then_silent_closes_before_inactivity` is a known limit only for its "not closed within" assertion: it runs and is recorded, and any other failure in it fails the run. When that assertion fires first, the case's later checks, no data on the close and the route free again, do not run in that run. | W1 delays the first callback that its deadline runs from, by an amount that depends on timing | Removed when #280 is fixed, with Wolf's 2.5 s next-request bound |
 | 14 | The Wolf arena is declared at the RT1060 compile's 131,072 B, not from a measurement at 16 KiB records | Only small records were measured | #197 |
 | 15 | The no-certificate case expects no listener at all | The TLS layer refuses a tag with no credential, so the service does not start. That fails closed, and no plain fallback exists. | |
 
