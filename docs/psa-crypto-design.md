@@ -4,8 +4,8 @@ Status: design for review under [Issue #142](https://github.com/wonny-labs/crux-
 results, provider declarations and decisions are in [the qualification record](psa-crypto-qualification.md). The declared API
 subset is in [the native-free consumer policy](native-interface-policy.md#qualified-psa-crypto-subset).
 
-This issue qualifies the provider. It adds no PSA code to a Crux component. This document says how the components will reach
-a provider and what the next issue, [#242, the `native_sim` management composition](https://github.com/wonny-labs/crux-pilot/issues/242), has to supply.
+Issue #142 qualified the provider and added no PSA code to a Crux component. This document says how the components reach
+a provider. [#242](https://github.com/wonny-labs/crux-pilot/issues/242) supplied the provider code, and [the composition](native-management-composition.md) holds its results and what stays open.
 
 ## What is built, faked and untested
 
@@ -15,10 +15,10 @@ a provider and what the next issue, [#242, the `native_sim` management compositi
 | Provider selection in a composition | Built for the test compositions in `tests/psa_crypto/` |
 | Host dependency, `cmake/CruxPsaCrypto.cmake` | Built. Used by the Host test composition, and the root build does not call it. |
 | Manifest and module arrangement | Adopted. The `crux-secure-management` group already holds the projects. |
-| PSA provider of the `crux_access` ports | **Not built.** `tests/access` still uses fakes. |
-| PSA provider of the credential store ports | **Not built.** `tests/credential` still uses fakes. |
-| A consumer calling a real provider | **Untested.** The cases call PSA directly, in the way this document says a provider will. |
-| TLS over PSA on the Mbed profile | **Not qualified.** Mbed TLS calls PSA itself, beyond this subset, in the same provider. See below. |
+| PSA provider of the `crux_access` ports | Built, #242. `tests/access` keeps its fakes for fault injection. |
+| PSA provider of the credential store ports | Built, #242. `tests/credential` keeps its fakes for fault injection. |
+| A consumer calling a real provider | Run on `native_sim`, on both providers, in [the composition](native-management-composition.md#composition-results) |
+| TLS over PSA on the Mbed profile | **Not qualified.** Mbed TLS calls PSA itself, beyond this subset, in the same provider. It ran beside the Crux providers in the composition, which qualifies nothing beyond that run. See below. |
 | TLS and SSH on the Wolf profile | Not through PSA. They call wolfCrypt directly. |
 | RT1060-EVKB | Compile only. Nothing was flashed, reset or run. |
 
@@ -37,9 +37,9 @@ flowchart TB
         accessPort["access_port.h<br/>derive, random, hmac"]
         storePort["credential_port.h<br/>declaration, seal, open,<br/>generate_key, random"]
     end
-    subgraph next["Next issue #242: native_sim management composition"]
-        accessPsa["PSA provider of the Access ports<br/>NOT BUILT"]
-        storePsa["PSA provider of the store ports<br/>NOT BUILT"]
+    subgraph next["#242: selected by a composition"]
+        accessPsa["PSA provider of the Access ports<br/>access/ports/psa"]
+        storePsa["PSA provider of the store ports<br/>credential/ports/psa"]
         compose["Composition settings<br/>provider conf, wolfCrypt definitions,<br/>device ID, entropy label"]
     end
     subgraph api["Qualified subset"]
@@ -58,12 +58,12 @@ flowchart TB
     mbedTls["Mbed profile: Mbed TLS"]
     access --> accessPort
     store --> storePort
-    accessPort -.-> accessPsa
-    storePort -.-> storePsa
-    accessPsa -.-> psa
-    storePsa -.-> psa
-    compose -.-> wolf
-    compose -.-> tf
+    accessPort --> accessPsa
+    storePort --> storePsa
+    accessPsa --> psa
+    storePsa --> psa
+    compose --> wolf
+    compose --> tf
     psa --> wolf
     psa --> tf
     wolfTls -->|"wolfCrypt directly, not PSA"| wolf
@@ -75,8 +75,6 @@ flowchart TB
     tf --> sim
     tf --> trng
 ```
-
-Dashed lines do not exist yet.
 
 How TLS reaches the provider depends on the profile, and the subset covers neither route:
 
@@ -117,8 +115,7 @@ Each row uses only the [qualified subset](native-interface-policy.md#qualified-p
 
 ## What the next issue must supply
 
-[#242](https://github.com/wonny-labs/crux-pilot/issues/242) already lists the ports and the event providers. These are the parts that come from what this issue found. Nothing else is
-missing from PSA, so the composition can start from this PR, and no small piece was added to a component here.
+[#242](https://github.com/wonny-labs/crux-pilot/issues/242) listed the ports and the event providers, and these are the parts that came from what #142 found. [The composition](native-management-composition.md#what-142-asked-of-this-issue) says where each one went.
 
 | # | Piece | Detail |
 | --- | --- | --- |
@@ -133,7 +130,7 @@ missing from PSA, so the composition can start from this PR, and no small piece 
 | 8 | Provider tests | Run the existing Access and credential suites on the real providers where a Host or `native_sim` composition allows it. Their fakes stay for fault injection. |
 | 9 | The Mbed profile's limits | #242 runs each TLS profile that can run the ports. On the Mbed profile the store's provider has P-256 and no Ed25519, the TLS key slots come from the same table, and #242 has to find a way to make the Access and store providers safe beside TLS threads, or record that it cannot. Serialising Crux's own calls is not enough. |
 
-#242 says that wolfPSA has been built only for RT1060. This issue changes that: wolfPSA now runs the cases on `native_sim`, without a TLS socket backend. Whether it runs alongside the offloaded TLS socket stays with #242's probe.
+#242 said that wolfPSA had been built only for RT1060. #142 changed that, with wolfPSA running the cases on `native_sim` without a TLS socket backend, and [#242's probe](native-management-composition.md#tls-probe) ran it beside the offloaded TLS socket.
 
 The device ID on `native_sim` comes from `HWINFO_NATIVE`: 4 bytes, from the host's `gethostid()` or `--device_id`. It is an
 identifier and is not secret, as on the target, so the provider's declaration is the same.
@@ -183,10 +180,9 @@ Each was taken without asking the owner, as the task instructs, and the narrower
 
 ## Not verified
 
-- Any consumer calling a provider. The port mappings above are designs, checked only by cases that make the same calls.
-- Concurrency. The cases run on one thread. wolfPSA has a global lock by default (`CONFIG_WOLFPSA_THREAD_SAFE`). Zephyr's module offers no `MBEDTLS_THREADING_C` for TF-PSA-Crypto at this pin, so its core has no lock, and on the Mbed profile TLS threads call it too. How that profile is made safe is open for #242.
-- TLS over PSA on the Mbed profile, which goes beyond the subset.
-- wolfPSA and the wolfSSL TLS socket backend in one `native_sim` image, with the socket patch. The test image holds the TLS layer but no socket backend.
+- Any consumer calling a provider beyond [the composition](native-management-composition.md).
+- Concurrency. The cases run on one thread. wolfPSA has a global lock by default (`CONFIG_WOLFPSA_THREAD_SAFE`). Zephyr's module offers no `MBEDTLS_THREADING_C` for TF-PSA-Crypto at this pin, so its core has no lock by default, and on the Mbed profile TLS threads call it too. [The composition's locks](native-management-composition.md#locks-on-the-mbed-profile) take a way through and show no absence of a race.
+- TLS over PSA on the Mbed profile, as a qualification. It goes beyond the subset.
 - Stack, heap and timing. The verifier cost is still the placeholder, and Issue #197 measures memory.
 - Entropy quality, TRNG health checks and start-up on a board.
 - `psa-arch-tests`, which stays a reference only.
