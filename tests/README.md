@@ -406,6 +406,21 @@ that the correction refuses a drifted source and output inside Zephyr. `scripts/
 runs all of these and requires the executed cases of each scenario. It is not in the Zephyr CI
 workflow.
 
+`tests/native/emmc_powercut` replays power cuts on FatFs. One program, built as `fat-fix` (with the
+correction) and `fat-nofix` (without it), provisions a baseline on the no-cache profile, runs three
+workloads with a trace mark after each acknowledged step (W1 appends records, W2 replaces a file
+through a temporary and a rename, W3 creates, overwrites and removes files and a directory), and
+verifies a medium in a new process. `run_replay.py` rebuilds the medium from the baseline and the
+trace at chosen cut points with four models (`lost`, `prefix`, `reordered`, `torn`; only `prefix`
+and `torn` without a cache): each side of every flush always, and other positions drawn by seed. It records
+the invariants (mount, acknowledged data, a complete replaced file, an untouched file byte-exact, a
+new write and remount) as observations, because FatFs does not claim them, and requires two
+controls to fail: `fat-nofix` on the cached profile loses acknowledged W1 data at every mark, and a
+baseline with its boot sector overwritten does not mount. `test_replay_model.py` tests the model
+without a build. The same seed gives the same JSON apart from timing. Results are about the model,
+not about power loss on a device; see the
+[replay record](../docs/evidence/emmc-reliance/replay-fatfs/README.md).
+
 The simulator is a model written from the stack's needs, by the same author as the tests, and is not
 device evidence. Results show how the stack behaves against that model, not how an eMMC device behaves.
 It models no timing and no wear. Its busy period after CMD6 and after a write lasts one poll unless a

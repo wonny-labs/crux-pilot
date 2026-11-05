@@ -73,3 +73,48 @@ for key, suite in found.items():
     print(f'{key[0]} {key[1]}: {len(passed)} executed cases PASS, '
           f'{len(cases) - len(passed)} skipped for the other profile')
 PY
+
+# Power-cut replay on FatFs: the medium is rebuilt from the simulator's trace at chosen cut points
+# and checked by a new process. FatFs results are observations of the model, never asserted; the
+# flush and damaged-image controls must fail. fat-nofix is the unmodified stack.
+fatfs="$(cd "$workspace" && west list fatfs -f '{abspath}')"
+powercut_dir="$repo/build/zephyr/emmc-powercut"
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/fat-fix" \
+    "$repo/tests/native/emmc_powercut" -- -DZEPHYR_MODULES="$fatfs" \
+    -DEXTRA_CONF_FILE=fatfs.conf -DCONFIG_CRUX_MMC_CACHE_FLUSH=y)
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/fat-nofix" \
+    "$repo/tests/native/emmc_powercut" -- -DZEPHYR_MODULES="$fatfs" \
+    -DEXTRA_CONF_FILE=fatfs.conf -DCONFIG_CRUX_MMC_CACHE_FLUSH=n)
+python3 "$repo/tests/native/emmc_powercut/test_replay_model.py" -v 2>&1 |
+    tee "$powercut_dir/test_replay_model.log"
+grep -Eq '^Ran 14 tests in ' "$powercut_dir/test_replay_model.log"
+# 64 samples took 24 to 25 s in an emulated amd64 container. The bound is 5 minutes on one CI
+# runner.
+python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
+    --exe-fix "$powercut_dir/fat-fix/zephyr/zephyr.exe" \
+    --exe-nofix "$powercut_dir/fat-nofix/zephyr/zephyr.exe" \
+    --fs fatfs --seed 1 --samples 64 --max-seconds 300 --out "$powercut_dir/replay"
+
+# The replay must not pass with fewer cases or a missing profile. The case count is exact for seed
+# 1 and 64 samples at the pinned Zephyr and FatFs.
+python3 - "$powercut_dir/replay/fatfs.json" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+report = json.loads(Path(sys.argv[1]).read_text())
+models = {'cached': {'lost', 'prefix', 'reordered', 'torn'}, 'nocache': {'prefix', 'torn'}}
+for workload in ('W1', 'W2', 'W3'):
+    for profile, expected in models.items():
+        groups = report['observations'][workload][profile]
+        if set(groups) != expected or any(group['cases'] == 0 for group in groups.values()):
+            raise RuntimeError(f'{workload} {profile}: missing observations')
+controls = {control['name']: control['failed_as_required'] for control in report['controls']}
+if controls != {'flush': True, 'damaged image': True}:
+    raise RuntimeError(f'controls: {controls}')
+if report['counts']['cases'] != 1240 or report['failures']:
+    raise RuntimeError(f'counts {report["counts"]}, failures {report["failures"]}')
+print(f'replay fatfs: {report["counts"]["cases"]} cases, '
+      f'{report["counts"]["observed_failures"]} observed failures, '
+      'both controls failed as required')
+PY
