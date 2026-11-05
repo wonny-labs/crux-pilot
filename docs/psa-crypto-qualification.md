@@ -1,6 +1,6 @@
 # PSA Crypto qualification for Zephyr and Linux Host
 
-**Status: provider results recorded and decisions adopted under the owner's approval, in a Draft PR.** This record supports
+**Status: provider results recorded and decisions adopted under the owner's approval, merged in [PR #153](https://github.com/wonny-labs/crux-pilot/pull/153).** This record supports
 [Issue #142](https://github.com/wonny-labs/crux-pilot/issues/142). The design of how consumers reach a provider is in
 [the design document](psa-crypto-design.md), and the declared subset is in [the native-free consumer
 policy](native-interface-policy.md#qualified-psa-crypto-subset). Nothing here is a claim of general PSA Crypto conformance.

@@ -15,7 +15,7 @@ Owner: `components/access`. Public header `<crux/access.h>`, usage target `crux:
 | Item | State |
 | --- | --- |
 | Public and adapter contracts | Implemented as proposed, with the additions below and the accepted requests |
-| Portable core | Builds on Host. It has no provider, so a product image does not link until one exists. |
+| Portable core | Builds on Host. The root build has no provider, so an image links only when a composition supplies the ports, as the rows below and the [`native_sim` composition](native-management-composition.md) show. No product composition exists yet. |
 | Fake ports | Test composition in `tests/access`. They exist only when Crux builds its own tests. |
 | PSA derivation, random and keyed hash | `components/access/ports/psa`, which a composition selects. The root build has no PSA. [Results](native-management-composition.md#provider-results) on both providers. |
 | Clock on the Time contract | `crux_access_time_clock`. A clock that fails reads as one that ran backwards. |
