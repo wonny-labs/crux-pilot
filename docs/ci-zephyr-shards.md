@@ -33,7 +33,7 @@ Times are medians from 12 runs of the single job, taken before the split. Steps 
 | `storage` | Patch style, storage simulators, File RT1060 compile, Flash PoC fault paths, Time and EVKB build, product template | 11.5 |
 | `controller` | Execution candidates, early controller, controller integration, RT1170 cross-build, M5 integrated smoke | 11.5 |
 | `runtime` | Portable execution, Time busy-wait, messaging, out-of-tree consumer, Logging, System | 12.2 |
-| `io` | Serial, command line shell rule and serial wiring, command line SSH entry points, GPIO, I2C, SPI, networking, networking physical fixture | 12.2, measured before the two command line steps were added |
+| `io` | Serial, command line shell rule and serial wiring, command line SSH entry points, GPIO, I2C, SPI, networking, networking physical fixture, web adapter | 12.2, measured before the two command line steps and the web adapter step were added |
 
 Set-up (packages, tools, SDK and workspace) adds about 2.7 minutes to every shard, and the upload 0.1 to 0.2 minutes.
 
@@ -85,7 +85,7 @@ The test scope did not change: runs before and after the split had 77 Twister co
 | 3 | 16.1 | 15.4 | 15.9 | 12.1 | 15.3 |
 | 4 | 26.0 | 15.2 | 15.6 | 16.8 | 24.2 |
 
-The slow runs are not slow checks. In run 2 the `io` job spent 4.8 minutes installing packages and in run 4 it spent 7.7 minutes, against about 0.3 minutes normally. Across 32 shard jobs in 8 measured runs, 5 spent 3.5 to 10.3 minutes in that step, and those 5 lengthened 4 of the 8 runs. All five were `.deb` downloads from the archive mirror. [PR #261](https://github.com/wonny-labs/crux-pilot/pull/261) proposes caching them. It is not merged, so update this page if it is.
+The slow runs are not slow checks. In run 2 the `io` job spent 4.8 minutes installing packages and in run 4 it spent 7.7 minutes, against about 0.3 minutes normally. Across 32 shard jobs in 8 measured runs, 5 spent 3.5 to 10.3 minutes in that step, and those 5 lengthened 4 of the 8 runs. All five were `.deb` downloads from the archive mirror. [PR #261](https://github.com/wonny-labs/crux-pilot/pull/261) then added a cache for them. Each shard restores the packages, `scripts/verify-apt-cache.py` removes every file whose SHA-256 differs from the signed index, and apt downloads whatever is missing. In the hosted runs after that change the install step took 0.1 to 0.3 minutes in every job and downloaded nothing. A typical run was not shorter (16.2 to 17.6 minutes against 14.1 to 16.4 in runs without a slow download), so the gain is that a run no longer waits on the mirror. The times in the tables on this page were measured before the cache.
 
 Another stall seen once: the `io` job took 6.2 minutes to fetch the Zephyr workspace in a `-j 4` run.
 
