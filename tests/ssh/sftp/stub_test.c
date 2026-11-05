@@ -26,6 +26,7 @@ int main(void)
     SSH_CHECK(crux_ssh_sftp_rename(session, "/a/b", "/a/c") < 0);
     SSH_CHECK(crux_ssh_sftp_attributes(session, "/a/b", &attributes) < 0);
     SSH_CHECK(crux_ssh_sftp_set_attributes(session, "/a/b") < 0);
+    SSH_CHECK(crux_ssh_sftp_directory_refused(session, "/a") == 0);
     SSH_CHECK(crux_ssh_sftp_dir_open(session, "/a", &dir) < 0);
     SSH_CHECK(crux_ssh_sftp_dir_read(session, 0, buffer, sizeof(buffer), &attributes) < 0);
     SSH_CHECK(crux_ssh_sftp_dir_close(session, 0) < 0);

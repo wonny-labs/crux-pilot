@@ -118,6 +118,13 @@ int crux_ssh_sftp_set_attributes(void *fs, const char *path)
     return 0;
 }
 
+int crux_ssh_sftp_directory_refused(void *fs, const char *path)
+{
+    saw(fs);
+    seen_pointer = path;
+    return 0;
+}
+
 int crux_ssh_sftp_dir_open(void *fs, const char *path, int *dir)
 {
     saw(fs);
@@ -176,7 +183,9 @@ int main(void)
 
     /* Only here does wolfSSH let a port choose the permission status. */
     SSH_CHECK(WMKDIR(fs, "/a/d", 0755) == WS_PERMISSIONS);
-    SSH_CHECK(WRMDIR(fs, "/a/d") == WS_PERMISSIONS);
+    SSH_CHECK(strcmp(seen_pointer, "/a/d") == 0);
+    SSH_CHECK(WRMDIR(fs, "/a/g") == WS_PERMISSIONS);
+    SSH_CHECK(strcmp(seen_pointer, "/a/g") == 0);
 
     unsigned before = seen_calls;
     SSH_CHECK(WCHMOD(fs, "/a/e", 0600) == 0);

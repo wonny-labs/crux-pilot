@@ -792,31 +792,90 @@ def wire_two_clients_keep_the_writer_rule(config, work):
 
 @case
 def wire_a_refused_name_is_recorded_with_no_text(config, work):
-    root = Wire(config, "root")
-    before = len(config.events())
-    expect_status(root.open("/data/secret name", FXF_WRITE | FXF_CREAT), FX_FAILURE)
-    time.sleep(0.2)
-    new = config.events()[before:]
-    expect_true(new, "no event for a refused name")
-    expect_true(all(" name=- " in line and "secret" not in line for line in new), f"{new}")
-    root.finish()
+    # With read permission, and with write permission alone.
+    for user, path in (("root", "/data/secret name"), ("dora", "/inbox/secret name")):
+        wire = Wire(config, user)
+        before = len(config.events())
+        expect_status(wire.open(path, FXF_WRITE | FXF_CREAT), FX_FAILURE)
+        time.sleep(0.2)
+        new = config.events()[before:]
+        expect_true(new, f"no event for a refused name, for {user}")
+        expect_true(all(line.startswith("event 5 ") and " name=- " in line and "secret" not in line
+                        for line in new), f"{new}")
+        wire.finish()
+
+
+def long_path_answer(config, request):
+    """What one request with a long path gets, on a session of its own: a status, or the end."""
+    wire = Wire(config, "root")
+    try:
+        answer = request(wire)
+    except ConnectionEnded:
+        return "ended"
+    finally:
+        wire.finish()
+    if isinstance(answer, Status):
+        return answer.code
+    return "answered"
 
 
 @case
-def wire_a_path_too_long_for_wolfssh_ends_the_connection(config, work):
-    # 256 is WOLFSSH_MAX_FILENAME. Below it the service refuses, and the session goes on. From it,
-    # wolfSSH returns from the handler with no status, and the server has nothing to answer with.
+def wire_a_long_path_depends_on_the_request(config, work):
+    # WOLFSSH_MAX_FILENAME is 256. Under it the service refuses, and the session goes on. From it, each
+    # handler of wolfSSH does its own thing, and some return with no status and nothing to send.
     root = Wire(config, "root")
     expect_status(root.open("/data/" + "a" * 100, FXF_READ), FX_FAILURE, "Open File Error")
     expect_status(root.open("/data/" + "a" * 249, FXF_READ), FX_FAILURE, "Open File Error")
     expect_true(isinstance(expect_attrs(root.stat("/")), Attrs), "the session did not go on")
-    ended = False
-    try:
-        root.open("/data/" + "a" * 250, FXF_READ)
-    except ConnectionEnded:
-        ended = True
-    expect_true(ended, "a path of the buffer's size was answered")
     root.finish()
+    rows = [
+        ("OPEN", lambda wire, path: wire.open(path, FXF_READ), "ended", "ended"),
+        ("OPENDIR", lambda wire, path: wire.opendir(path), "ended", "ended"),
+        ("REALPATH", lambda wire, path: wire.realpath(path), "ended", "ended"),
+        ("MKDIR", lambda wire, path: wire.call(SSH_FXP_MKDIR, wire.text(path) + wire.attrs()), "ended", "ended"),
+        ("REMOVE", lambda wire, path: wire.remove(path), FX_FAILURE, "ended"),
+        ("STAT", lambda wire, path: wire.stat(path, SSH_FXP_STAT), FX_FAILURE, FX_FAILURE),
+        ("LSTAT", lambda wire, path: wire.stat(path), FX_FAILURE, FX_FAILURE),
+        ("RENAME", lambda wire, path: wire.rename(path, "/data/x"), FX_FAILURE, FX_FAILURE),
+        ("SETSTAT", lambda wire, path: wire.setstat(path, ATTR_PERMISSIONS, permissions=0o600), FX_FAILURE,
+         FX_FAILURE),
+        ("RMDIR", lambda wire, path: wire.call(SSH_FXP_RMDIR, wire.text(path)), FX_FAILURE, FX_FAILURE),
+    ]
+    for name, request, at_256, at_406 in rows:
+        for length, wanted in ((256, at_256), (406, at_406)):
+            path = "/data/" + "a" * (length - 6)
+            found = long_path_answer(config, lambda wire: request(wire, path))
+            expect_true(found == wanted, f"{name} at {length} bytes gave {found}, not {wanted}")
+
+
+@case
+def wire_a_busy_listing_reads_as_no_such_file(config, work):
+    # The service has one listing handle, so a viewer's open listing stops an administrator's.
+    viewer = Wire(config, "vera")
+    root = Wire(config, "root")
+    held = expect_handle(viewer.opendir("/data"))
+    expect_status(root.opendir("/data"), FX_NO_SUCH_FILE)
+    expect_status(root.opendir("/logs"), FX_NO_SUCH_FILE)
+    # The root takes no handle.
+    expect_true(isinstance(root.list("/"), list), "the root was stopped too")
+    expect_ok(viewer.close(held))
+    expect_true(isinstance(root.list("/data"), list), "the listing did not come back")
+    viewer.finish()
+    root.finish()
+
+
+@case
+def wire_a_write_only_session_cannot_list_or_stat(config, work):
+    # WinSCP's window reads the directory it opens, so that this role has nothing to navigate.
+    dropper = Wire(config, "dora")
+    expect_true(sorted(name for name, _ in dropper.list("/")) == ["inbox"], "the root")
+    expect_true(expect_attrs(dropper.stat("/inbox")).permissions == 0o040300, "the area")
+    expect_status(dropper.opendir("/inbox"), FX_NO_SUCH_FILE)
+    handle = expect_handle(dropper.open("/inbox/drop", FXF_WRITE | FXF_CREAT | FXF_EXCL))
+    expect_ok(dropper.close(handle))
+    expect_status(dropper.stat("/inbox/drop"), FX_FAILURE)
+    expect_ok(dropper.remove("/inbox/drop"))
+    dropper.finish()
 
 
 # ---- The requests of WinSCP, replayed, from source/core/SftpFileSystem.cpp ----
@@ -960,6 +1019,10 @@ def winscp_name_with_a_space_is_refused_at_every_step(config, work):
     expect_status(wire.open("/data/my file.txt", FXF_WRITE | FXF_CREAT | FXF_EXCL, size=10), FX_FAILURE,
                   "Open File Error")
     expect_status(wire.stat("/data/my file.txt"), FX_FAILURE, "LSTAT error")
+    # Every byte outside the rule does the same, which the rule is [A-Za-z0-9_.-].
+    for name in ("a(1).txt", "a+b.txt", "\ud55c\uae00.txt", "caf\u00e9.txt", "a,b", "a~1"):
+        expect_status(wire.open(f"/data/{name}", FXF_WRITE | FXF_CREAT | FXF_EXCL, size=10), FX_FAILURE,
+                      "Open File Error")
     # Above it: both LSTATs say absent, the partial name fails, it falls back to the target as above.
     winscp_lstat_says_absent(wire, "/data/my file.txt")
     winscp_lstat_says_absent(wire, "/data/my file.txt.filepart")
@@ -1045,6 +1108,19 @@ def idle_session_ends_and_activity_does_not(config, idle_limit):
     wire = Wire(config, "vera")
     expect_true(wire.ended(idle_limit + 3), "the session outlived its idle limit, in silence")
     wire.finish()
+    # Any request refreshes the session, so that a listing held open outlives the idle limit, and it
+    # keeps the service's only listing handle from everyone else all that time.
+    holder = Wire(config, "vera")
+    other = Wire(config, "root")
+    expect_handle(holder.opendir("/data"))
+    deadline = time.monotonic() + idle_limit * 2
+    while time.monotonic() < deadline:
+        expect_attrs(holder.stat("/"))
+        expect_attrs(other.stat("/"))
+        time.sleep(idle_limit / 4)
+    expect_status(other.opendir("/data"), FX_NO_SUCH_FILE)
+    holder.finish()
+    other.finish()
 
 
 def wait_for_server(host, port):

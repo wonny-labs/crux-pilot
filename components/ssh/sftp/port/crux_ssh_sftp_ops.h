@@ -60,6 +60,12 @@ int crux_ssh_sftp_rename(void *fs, const char *from, const char *to);
 int crux_ssh_sftp_attributes(void *fs, const char *path, crux_ssh_sftp_attributes_t *attributes);
 /** Accepted without effect, for a path in an area the session can see. */
 int crux_ssh_sftp_set_attributes(void *fs, const char *path);
+/**
+ * There are no directories to make or remove, whatever the session holds, so the macros always
+ * answer with a permission status. This only records the denial when the path is in a hidden area.
+ * Returns 0.
+ */
+int crux_ssh_sftp_directory_refused(void *fs, const char *path);
 
 int crux_ssh_sftp_dir_open(void *fs, const char *path, int *dir);
 /** Returns 0 with an entry, 1 at the end of the listing, or -1. */

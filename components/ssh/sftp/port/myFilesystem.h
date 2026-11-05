@@ -51,8 +51,8 @@
 
 /* Only these two status paths let a port say "permission denied". There are no directories to make
  * or remove, whatever the session holds, so the result does not depend on it. */
-#define WMKDIR(fs, path, mode) WS_PERMISSIONS
-#define WRMDIR(fs, path) WS_PERMISSIONS
+#define WMKDIR(fs, path, mode) ((void)crux_ssh_sftp_directory_refused((fs), (path)), WS_PERMISSIONS)
+#define WRMDIR(fs, path) ((void)crux_ssh_sftp_directory_refused((fs), (path)), WS_PERMISSIONS)
 
 /* Accepted without effect: there are no permission bits or times (F6). The two macros for a size
  * and the two for an owner stay undefined, so wolfSSH answers those with "unsupported". */

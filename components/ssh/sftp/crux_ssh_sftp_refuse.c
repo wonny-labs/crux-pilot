@@ -114,6 +114,13 @@ int crux_ssh_sftp_set_attributes(void *fs, const char *path)
     return -1;
 }
 
+int crux_ssh_sftp_directory_refused(void *fs, const char *path)
+{
+    (void)fs;
+    (void)path;
+    return 0;
+}
+
 int crux_ssh_sftp_dir_open(void *fs, const char *path, int *dir)
 {
     (void)fs;

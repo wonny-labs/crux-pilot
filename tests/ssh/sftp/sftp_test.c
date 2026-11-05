@@ -482,6 +482,23 @@ static void case_listing_refusals(void)
     CHECK(crux_ssh_sftp_dir_close(fs, first) == 0);
 }
 
+static void case_closing_a_listing_gives_its_handle_back(void)
+{
+    fresh_world();
+    place(ROOT_DATA, "one", "1");
+    void *fs = open_as("root");
+    int dir = -1;
+    int next = -1;
+
+    CHECK(crux_ssh_sftp_dir_open(fs, "/data", &dir) == 0);
+    CHECK(crux_ssh_sftp_dir_open(fs, "/logs", &next) < 0);
+    /* With nothing read, so that only the close can give it back. */
+    CHECK(crux_ssh_sftp_dir_close(fs, dir) == 0);
+    CHECK(crux_ssh_sftp_dir_open(fs, "/logs", &next) == 0);
+    CHECK(crux_ssh_sftp_dir_close(fs, next) == 0);
+    CHECK(crux_ssh_sftp_dir_close(fs, next) < 0);
+}
+
 static void case_listing_error_ends_the_listing(void)
 {
     fresh_world();
@@ -526,12 +543,12 @@ static void case_attributes(void)
     void *stranger = open_as("stan");
     size_t before = denials();
     CHECK(crux_ssh_sftp_attributes(stranger, "/data", &info) < 0);
-    CHECK(denials() == before);
-    CHECK(crux_ssh_sftp_attributes(stranger, "/data/doc", &info) < 0);
     CHECK(denials() == before + 1);
+    CHECK(crux_ssh_sftp_attributes(stranger, "/data/doc", &info) < 0);
+    CHECK(denials() == before + 2);
     CHECK(crux_ssh_sftp_attributes(stranger, "/", &info) == 0);
     CHECK(crux_ssh_sftp_attributes(stranger, "/missing", &info) < 0);
-    CHECK(denials() == before + 1);
+    CHECK(denials() == before + 2);
 }
 
 /* ---- Traversal and names ---- */
@@ -568,6 +585,9 @@ static void case_paths_outside_the_rules_reach_nothing(void)
         "/DATA/doc",
         "/data/doc\n",
         "/data/\xc3\xa9",
+        "/data/a(1).txt",
+        "/data/a+b",
+        "/data/\xed\x95\x9c\xea\xb8\x80",
         "/averyveryverylongareaname/doc",
         "/data/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     };
@@ -593,6 +613,11 @@ static void case_paths_outside_the_rules_reach_nothing(void)
     CHECK(!crux_file_fake_exists(ROOT_DATA, "moved"));
     CHECK(crux_ssh_sftp_file_open(NULL, "/data/doc", O_READ) < 0);
     CHECK(crux_ssh_sftp_file_open(fs, NULL, O_READ) < 0);
+    /* Neither has a name, and the root has no area at all. */
+    CHECK(crux_ssh_sftp_file_open(fs, "/", O_READ) < 0);
+    CHECK(crux_ssh_sftp_file_open(fs, "/", O_REPLACE) < 0);
+    CHECK(crux_ssh_sftp_file_open(fs, "/data", O_READ) < 0);
+    CHECK(crux_ssh_sftp_file_open(fs, "/data", O_REPLACE) < 0);
     CHECK(crux_ssh_sftp_attributes(fs, NULL, &info) < 0);
     CHECK(crux_ssh_sftp_remove(fs, NULL) < 0);
     CHECK(crux_ssh_sftp_rename(fs, NULL, "/data/x") < 0);
@@ -619,6 +644,20 @@ static void case_a_refused_name_is_recorded_once_with_no_text(void)
     /* A name in an area that does not exist has no area to record it against. */
     CHECK(crux_ssh_sftp_file_open(fs, "/missing/my file.txt", O_NEW) < 0);
     CHECK(rejected_names == 4);
+
+    /* Read permission alone, and write permission alone, each record the name, and no denial. */
+    size_t denied = denials();
+    void *viewer = open_as("vera");
+    CHECK(crux_ssh_sftp_file_open(viewer, "/data/my file.txt", O_READ) < 0);
+    CHECK(rejected_names == 5);
+    void *dropper = open_as("dora");
+    CHECK(crux_ssh_sftp_file_open(dropper, "/inbox/my file.txt", O_NEW) < 0);
+    CHECK(rejected_names == 6);
+    CHECK(crux_ssh_sftp_attributes(dropper, "/inbox/my file.txt", &info) < 0);
+    CHECK(rejected_names == 7);
+    CHECK(denials() == denied);
+    CHECK(!rejected_event_had_text);
+    rejected_names = 4;
 
     /* A session that cannot see the area learns nothing, and it is the permission that is refused.
      */
@@ -750,6 +789,9 @@ static void case_permissions_come_from_the_service(void)
     fd = crux_ssh_sftp_file_open(dropper, "/inbox/drop", O_NEW);
     CHECK(fd >= 0);
     CHECK(write_text(dropper, fd, "secret", 0) == 6);
+    CHECK(crux_ssh_sftp_file_attributes(dropper, fd, &info) == 0);
+    CHECK(info.mode == (CRUX_SSH_SFTP_MODE_FILE | 0200u));
+    CHECK(info.size == 6);
     char buffer[6];
     CHECK(crux_ssh_sftp_file_pread(dropper, fd, buffer, sizeof(buffer), OFFSET_0) < 0);
     CHECK(crux_ssh_sftp_file_close(dropper, fd) == 0);
@@ -784,6 +826,110 @@ static void case_a_descriptor_cannot_cross_sessions(void)
     CHECK(crux_ssh_sftp_file_pread(one, fd, buffer, sizeof(buffer), OFFSET_0) < 0);
     CHECK(crux_ssh_sftp_file_pread(one, -1, buffer, sizeof(buffer), OFFSET_0) < 0);
     CHECK(crux_ssh_sftp_file_pread(one, 100000, buffer, sizeof(buffer), OFFSET_0) < 0);
+}
+
+/* Hiding: direct use of something a session may not see gives not found, and a denial event. */
+static void case_each_direct_use_of_a_hidden_area_records_a_denial(void)
+{
+    fresh_world();
+    place(ROOT_DATA, "doc", "abc");
+    crux_ssh_sftp_attributes_t info;
+    void *stranger = open_as("stan");
+    int dir = -1;
+    size_t before = 0;
+
+#define DENIED_ONCE(expression)                                                                    \
+    do {                                                                                           \
+        before = denials();                                                                        \
+        CHECK((expression) < 0);                                                                   \
+        CHECK(denials() == before + 1);                                                            \
+    } while (0)
+
+    DENIED_ONCE(crux_ssh_sftp_attributes(stranger, "/data", &info));
+    DENIED_ONCE(crux_ssh_sftp_attributes(stranger, "/data/doc", &info));
+    DENIED_ONCE(crux_ssh_sftp_set_attributes(stranger, "/data"));
+    DENIED_ONCE(crux_ssh_sftp_set_attributes(stranger, "/data/doc"));
+    DENIED_ONCE(crux_ssh_sftp_dir_open(stranger, "/data", &dir));
+    DENIED_ONCE(crux_ssh_sftp_dir_open(stranger, "/data/doc", &dir));
+    DENIED_ONCE(crux_ssh_sftp_file_open(stranger, "/data/doc", O_READ));
+    DENIED_ONCE(crux_ssh_sftp_file_open(stranger, "/data", O_READ));
+    DENIED_ONCE(crux_ssh_sftp_file_open(stranger, "/data/doc", 0));
+    DENIED_ONCE(crux_ssh_sftp_remove(stranger, "/data"));
+    DENIED_ONCE(crux_ssh_sftp_remove(stranger, "/data/doc"));
+    DENIED_ONCE(crux_ssh_sftp_rename(stranger, "/data/doc", "/data/x"));
+    DENIED_ONCE(crux_ssh_sftp_rename(stranger, "/data", "/data/x"));
+    DENIED_ONCE(crux_ssh_sftp_rename(stranger, "/data/doc", "/"));
+    before = denials();
+    CHECK(crux_ssh_sftp_directory_refused(stranger, "/data/sub") == 0);
+    CHECK(denials() == before + 1);
+    CHECK(crux_ssh_sftp_directory_refused(stranger, "/data") == 0);
+    CHECK(denials() == before + 2);
+
+    /* From a hidden area to one it can see, or the other way, the hidden one is recorded. */
+    void *dropper = open_as("dora");
+    DENIED_ONCE(crux_ssh_sftp_rename(dropper, "/data/doc", "/inbox/x"));
+    DENIED_ONCE(crux_ssh_sftp_rename(dropper, "/inbox/x", "/data/y"));
+    before = denials();
+    CHECK(crux_ssh_sftp_rename(stranger, "/data/doc", "/logs/x") < 0);
+    CHECK(denials() == before + 2);
+
+    /* Past a bound of this session, a hidden area is still a hidden area. */
+    int first = crux_ssh_sftp_file_open(dropper, "/inbox/a", O_REPLACE);
+    int second = crux_ssh_sftp_file_open(dropper, "/inbox/b", O_REPLACE);
+    CHECK(first >= 0);
+    CHECK(second >= 0);
+    DENIED_ONCE(crux_ssh_sftp_file_open(dropper, "/data/doc", O_READ));
+    int roots[8];
+    size_t held = 0;
+    while (held < 8 && crux_ssh_sftp_dir_open(dropper, "/", &roots[held]) == 0) {
+        held++;
+    }
+    DENIED_ONCE(crux_ssh_sftp_dir_open(dropper, "/data", &dir));
+    DENIED_ONCE(crux_ssh_sftp_dir_open(dropper, "/data/doc", &dir));
+#undef DENIED_ONCE
+
+    /* Nothing was changed by any of this, and no area was involved in these. */
+    CHECK(size_on_medium(ROOT_DATA, "doc") == 3);
+    before = denials();
+    CHECK(crux_ssh_sftp_remove(stranger, "/") < 0);
+    CHECK(crux_ssh_sftp_remove(stranger, "/missing") < 0);
+    CHECK(crux_ssh_sftp_directory_refused(stranger, "/missing/sub") == 0);
+    CHECK(crux_ssh_sftp_directory_refused(stranger, "/") == 0);
+    CHECK(denials() == before);
+}
+
+static void case_what_the_service_records_for_an_area_used_as_a_file(void)
+{
+    fresh_world();
+    place(ROOT_DATA, "doc", "abc");
+
+    /* A session that may write is told about the empty name, and one that may not is denied. */
+    void *admin = open_as("root");
+    size_t denied = denials();
+    CHECK(crux_ssh_sftp_remove(admin, "/data") < 0);
+    CHECK(rejected_names == 1);
+    CHECK(crux_ssh_sftp_rename(admin, "/data", "/data/moved") < 0);
+    CHECK(rejected_names == 2);
+    CHECK(crux_ssh_sftp_rename(admin, "/data/doc", "/data") < 0);
+    CHECK(rejected_names == 3);
+    CHECK(denials() == denied);
+    void *viewer = open_as("vera");
+    CHECK(crux_ssh_sftp_remove(viewer, "/data") < 0);
+    CHECK(denials() == denied + 1);
+    CHECK(rejected_names == 3);
+
+    /* Across areas the service has no call to make, and a session that can see both is not denied.
+     * The design states this. */
+    denied = denials();
+    CHECK(crux_ssh_sftp_rename(admin, "/data/doc", "/logs/doc") < 0);
+    CHECK(denials() == denied);
+    CHECK(rejected_names == 3);
+    /* Nor is a directory a denial of a permission that it holds. */
+    CHECK(crux_ssh_sftp_directory_refused(admin, "/data/sub") == 0);
+    CHECK(denials() == denied);
+
+    CHECK(size_on_medium(ROOT_DATA, "doc") == 3);
+    CHECK(!crux_file_fake_exists(ROOT_DATA, "moved"));
 }
 
 /* ---- Reads, writes and limits ---- */
@@ -1200,6 +1346,63 @@ static void case_a_session_that_ends_fails_the_next_chunk(void)
     CHECK(size_on_medium(ROOT_DATA, "up") == 3);
 }
 
+static void case_a_close_that_fails_is_reported_and_gives_the_handle_back(void)
+{
+    fresh_world();
+    void *fs = open_as("root");
+    int fd = crux_ssh_sftp_file_open(fs, "/data/up", O_REPLACE);
+    CHECK(fd >= 0);
+    CHECK(write_text(fs, fd, "abc", 0) == 3);
+    crux_file_fake_fail(CRUX_FILE_FAKE_CLOSE, 0, CRUX_FILE_ERR_IO);
+    CHECK(crux_ssh_sftp_file_close(fs, fd) < 0);
+    CHECK(crux_ssh_sftp_file_close(fs, fd) < 0);
+    int again = crux_ssh_sftp_file_open(fs, "/data/up", O_WRITE);
+    CHECK(again >= 0);
+    CHECK(crux_ssh_sftp_file_close(fs, again) == 0);
+}
+
+static void case_a_session_that_ends_cannot_set_attributes_on_an_open_file(void)
+{
+    fresh_world();
+    place(ROOT_DATA, "doc", "abc");
+    crux_access_session_t root =
+        access_test_session("root", ACCESS_TEST_PASSWORD, &access_test_ssh);
+    crux_ssh_attachment_t *attachment = crux_ssh_fake_attachment(root);
+    crux_ssh_file_handle_t *handle = NULL;
+    CHECK(crux_ssh_sftp_open(NULL, attachment, &handle) == CRUX_OK);
+    void *fs = handle;
+    int fd = crux_ssh_sftp_file_open(fs, "/data/doc", O_READ);
+    CHECK(fd >= 0);
+    CHECK(crux_ssh_sftp_file_set_attributes(fs, fd) == 0);
+    crux_access_logout(&root);
+    CHECK(crux_ssh_sftp_file_set_attributes(fs, fd) < 0);
+    CHECK(crux_ssh_sftp_file_close(fs, fd) == 0);
+    crux_ssh_sftp_close(NULL, attachment, handle);
+}
+
+static void case_open_says_why_it_could_not_start(void)
+{
+    /* Accounts and sessions, with no file service started. */
+    crux_ssh_fake_attachment_reset();
+    access_test_boot(&access_policy);
+    CHECK(crux_access_provision_first_account("root", ACCESS_TEST_PASSWORD,
+                                              strlen(ACCESS_TEST_PASSWORD), "administrator",
+                                              &access_test_serial) == CRUX_ACCESS_OK);
+    crux_access_session_t root =
+        access_test_session("root", ACCESS_TEST_PASSWORD, &access_test_ssh);
+    crux_ssh_file_handle_t *handle = NULL;
+    CHECK(crux_ssh_sftp_open(NULL, crux_ssh_fake_attachment(root), &handle) == CRUX_ERR_NOT_READY);
+    CHECK(handle == NULL);
+
+    CHECK(crux_file_service_start(&service_config) == CRUX_FILE_SERVICE_OK);
+    crux_access_session_t none = {0};
+    CHECK(crux_ssh_sftp_open(NULL, crux_ssh_fake_attachment(none), &handle) ==
+          CRUX_ERR_INVALID_STATE);
+    CHECK(handle == NULL);
+    CHECK(crux_ssh_sftp_open(NULL, crux_ssh_fake_attachment(root), &handle) == CRUX_OK);
+    CHECK(handle != NULL);
+}
+
 static void case_a_medium_that_leaves(void)
 {
     fresh_world();
@@ -1262,6 +1465,7 @@ int main(void)
     RUN(case_root_lists_only_visible_areas_with_no_denial);
     RUN(case_area_lists_files_and_hides_what_the_service_hides);
     RUN(case_listing_refusals);
+    RUN(case_closing_a_listing_gives_its_handle_back);
     RUN(case_listing_error_ends_the_listing);
     RUN(case_attributes);
     RUN(case_paths_outside_the_rules_reach_nothing);
@@ -1271,6 +1475,8 @@ int main(void)
     RUN(case_read_and_write_together);
     RUN(case_permissions_come_from_the_service);
     RUN(case_a_descriptor_cannot_cross_sessions);
+    RUN(case_each_direct_use_of_a_hidden_area_records_a_denial);
+    RUN(case_what_the_service_records_for_an_area_used_as_a_file);
     RUN(case_read_reports_the_end_as_zero);
     RUN(case_write_rules);
     RUN(case_append_writes_at_the_end);
@@ -1284,6 +1490,9 @@ int main(void)
     RUN(case_close_gives_back_all_a_session_holds);
     RUN(case_activity_keeps_the_session_and_idleness_ends_it);
     RUN(case_a_session_that_ends_fails_the_next_chunk);
+    RUN(case_a_close_that_fails_is_reported_and_gives_the_handle_back);
+    RUN(case_a_session_that_ends_cannot_set_attributes_on_an_open_file);
+    RUN(case_open_says_why_it_could_not_start);
     RUN(case_a_medium_that_leaves);
     RUN(case_the_start_directory);
     return access_test_finish("Ssh.sftp");

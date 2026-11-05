@@ -200,11 +200,58 @@ static open_dir_t *dir_from_descriptor(struct crux_ssh_file_handle *handle, int 
 
 typedef enum { PATH_ROOT, PATH_AREA, PATH_FILE, PATH_REFUSED } path_kind_t;
 
+typedef struct {
+    bool readable;
+    bool writable;
+} area_rights_t;
+
+/* What the session may do in an area, as the service says, with no denial event. It only decides
+ * what a client is shown: each operation still goes to the service. False if the area is hidden. */
+static bool area_rights(const struct crux_ssh_file_handle *handle, const crux_file_area_t *area,
+                        area_rights_t *rights)
+{
+    size_t cursor = 0;
+    const crux_file_area_t *found = NULL;
+    while (crux_file_service_area_next(handle->session, &cursor, &found, &rights->writable) ==
+           CRUX_FILE_SERVICE_OK) {
+        if (found == area) {
+            return crux_access_permitted(handle->session, area->read_permission,
+                                         &rights->readable) == CRUX_ACCESS_OK;
+        }
+    }
+    return false;
+}
+
+/*
+ * Direct use of a hidden area gives what a missing one gives, and a denial event: gate #183,
+ * "Hiding". The service records it, and it stops at the permission, so the name plays no part. It
+ * is for the requests that the port refuses with no other call to the service.
+ */
+static void report_hidden_area(const struct crux_ssh_file_handle *handle,
+                               const crux_file_area_t *area)
+{
+    crux_file_info_t ignored;
+    (void)crux_file_service_stat(handle->session, area->name, "x", &ignored);
+}
+
+static void report_if_hidden(const struct crux_ssh_file_handle *handle,
+                             const crux_file_area_t *area)
+{
+    area_rights_t rights = {false, false};
+    if (!area_rights(handle, area, &rights)) {
+        report_hidden_area(handle, area);
+    }
+}
+
 /*
  * crux_file_service_resolve is the only parser of a path. A name that its rules refuse stops here,
  * but the event for it belongs to the service, which alone knows the session may see the area. So
  * this cuts off the first component, only to ask the service about the rest, and the path is
  * refused whatever the answer. The text goes no further than the rule that refuses it.
+ *
+ * A stat needs read permission, so a session that can only write asks with a rename of the text to
+ * itself, which needs write permission. That changes nothing whatever the text is: File refuses a
+ * rename onto its own name.
  */
 static void report_refused_name(const struct crux_ssh_file_handle *handle, const char *path)
 {
@@ -218,9 +265,17 @@ static void report_refused_name(const struct crux_ssh_file_handle *handle, const
     area_path[length] = '\0';
     const crux_file_area_t *area = NULL;
     char name[NAME_CAPACITY];
-    if (crux_file_service_resolve(area_path, &area, name, sizeof(name)) == CRUX_FILE_SERVICE_OK) {
-        crux_file_info_t ignored;
+    if (crux_file_service_resolve(area_path, &area, name, sizeof(name)) != CRUX_FILE_SERVICE_OK) {
+        return;
+    }
+    area_rights_t rights = {false, false};
+    crux_file_info_t ignored;
+    if (!area_rights(handle, area, &rights)) {
+        report_hidden_area(handle, area);
+    } else if (rights.readable) {
         (void)crux_file_service_stat(handle->session, area->name, slash + 1, &ignored);
+    } else {
+        (void)crux_file_service_rename(handle->session, area->name, slash + 1, slash + 1);
     }
 }
 
@@ -242,28 +297,6 @@ static path_kind_t path_resolve(const struct crux_ssh_file_handle *handle, const
     default:
         return PATH_REFUSED;
     }
-}
-
-typedef struct {
-    bool readable;
-    bool writable;
-} area_rights_t;
-
-/* What the session may do in an area, as the service says, with no denial event. It only decides
- * what a client is shown: each operation still goes to the service. False if the area is hidden. */
-static bool area_rights(const struct crux_ssh_file_handle *handle, const crux_file_area_t *area,
-                        area_rights_t *rights)
-{
-    size_t cursor = 0;
-    const crux_file_area_t *found = NULL;
-    while (crux_file_service_area_next(handle->session, &cursor, &found, &rights->writable) ==
-           CRUX_FILE_SERVICE_OK) {
-        if (found == area) {
-            return crux_access_permitted(handle->session, area->read_permission,
-                                         &rights->readable) == CRUX_ACCESS_OK;
-        }
-    }
-    return false;
 }
 
 static uint32_t directory_mode(area_rights_t rights)
@@ -323,11 +356,16 @@ int crux_ssh_sftp_file_open(void *fs, const char *path, int flags)
     }
     const crux_file_area_t *area = NULL;
     char name[NAME_CAPACITY];
-    if (path_resolve(handle, path, &area, name) != PATH_FILE) {
+    path_kind_t kind = path_resolve(handle, path, &area, name);
+    if (kind != PATH_FILE) {
+        if (kind == PATH_AREA) {
+            report_if_hidden(handle, area);
+        }
         return -1;
     }
     crux_file_service_open_t mode = CRUX_FILE_SERVICE_OPEN_READ;
     if (!open_mode(flags, &mode)) {
+        report_if_hidden(handle, area);
         return -1;
     }
     for (size_t i = 0; i < CRUX_SSH_SFTP_FILES_MAX; i++) {
@@ -342,6 +380,7 @@ int crux_ssh_sftp_file_open(void *fs, const char *path, int flags)
             return slot_descriptor(handle, i);
         }
     }
+    report_if_hidden(handle, area);
     return -1;
 }
 
@@ -437,7 +476,14 @@ int crux_ssh_sftp_file_attributes(void *fs, int fd, crux_ssh_sftp_attributes_t *
 int crux_ssh_sftp_file_set_attributes(void *fs, int fd)
 {
     struct crux_ssh_file_handle *handle = session_enter(fs);
-    return handle != NULL && file_from_descriptor(handle, fd) != NULL ? 0 : -1;
+    open_file_t *file = handle != NULL ? file_from_descriptor(handle, fd) : NULL;
+    uint64_t ignored = 0;
+    /* Asking for the size has the service check the session and the permission, as for any chunk.
+     */
+    return file != NULL && crux_file_service_size(handle->session, file->transfer, &ignored) ==
+                               CRUX_FILE_SERVICE_OK
+               ? 0
+               : -1;
 }
 
 /* ---- Names ---- */
@@ -450,11 +496,14 @@ int crux_ssh_sftp_remove(void *fs, const char *path)
     }
     const crux_file_area_t *area = NULL;
     char name[NAME_CAPACITY];
-    if (path_resolve(handle, path, &area, name) != PATH_FILE) {
+    path_kind_t kind = path_resolve(handle, path, &area, name);
+    if (kind != PATH_FILE && kind != PATH_AREA) {
         return -1;
     }
-    return crux_file_service_remove(handle->session, area->name, name) == CRUX_FILE_SERVICE_OK ? 0
-                                                                                               : -1;
+    /* For an area the name is empty, which the service refuses and records, after the permission.
+     */
+    crux_file_service_result_t result = crux_file_service_remove(handle->session, area->name, name);
+    return result == CRUX_FILE_SERVICE_OK && kind == PATH_FILE ? 0 : -1;
 }
 
 int crux_ssh_sftp_rename(void *fs, const char *from, const char *to)
@@ -467,14 +516,31 @@ int crux_ssh_sftp_rename(void *fs, const char *from, const char *to)
     const crux_file_area_t *to_area = NULL;
     char from_name[NAME_CAPACITY];
     char to_name[NAME_CAPACITY];
-    if (path_resolve(handle, from, &from_area, from_name) != PATH_FILE ||
-        path_resolve(handle, to, &to_area, to_name) != PATH_FILE || from_area != to_area) {
+    path_kind_t from_kind = path_resolve(handle, from, &from_area, from_name);
+    if (from_kind == PATH_REFUSED) {
         return -1;
     }
-    return crux_file_service_rename(handle->session, from_area->name, from_name, to_name) ==
-                   CRUX_FILE_SERVICE_OK
-               ? 0
-               : -1;
+    path_kind_t to_kind = path_resolve(handle, to, &to_area, to_name);
+    bool from_named = from_kind == PATH_AREA || from_kind == PATH_FILE;
+    bool to_named = to_kind == PATH_AREA || to_kind == PATH_FILE;
+
+    if (from_named && to_named && from_area == to_area) {
+        /* An area's name is empty, which the service refuses and records, after the permission. */
+        crux_file_service_result_t result =
+            crux_file_service_rename(handle->session, from_area->name, from_name, to_name);
+        return result == CRUX_FILE_SERVICE_OK && from_kind == PATH_FILE && to_kind == PATH_FILE
+                   ? 0
+                   : -1;
+    }
+    /* Rename stays within one area, and the root is not a file. The service has no call for what
+     * the port refuses here, but a hidden area named in it is still direct use of that area. */
+    if (from_named) {
+        report_if_hidden(handle, from_area);
+    }
+    if (to_named) {
+        report_if_hidden(handle, to_area);
+    }
+    return -1;
 }
 
 int crux_ssh_sftp_attributes(void *fs, const char *path, crux_ssh_sftp_attributes_t *attributes)
@@ -498,6 +564,7 @@ int crux_ssh_sftp_attributes(void *fs, const char *path, crux_ssh_sftp_attribute
         return 0;
     case PATH_AREA:
         if (!area_rights(handle, area, &rights)) {
+            report_hidden_area(handle, area);
             return -1;
         }
         attributes->size = 0;
@@ -538,7 +605,11 @@ int crux_ssh_sftp_set_attributes(void *fs, const char *path)
         return session_usable(handle->session, &ignored) ? 0 : -1;
     case PATH_AREA:
     case PATH_FILE:
-        return area_rights(handle, area, &rights) ? 0 : -1;
+        if (!area_rights(handle, area, &rights)) {
+            report_hidden_area(handle, area);
+            return -1;
+        }
+        return 0;
     default:
         return -1;
     }
@@ -556,6 +627,9 @@ int crux_ssh_sftp_dir_open(void *fs, const char *path, int *dir)
     char name[NAME_CAPACITY];
     path_kind_t kind = path_resolve(handle, path, &area, name);
     if (kind != PATH_ROOT && kind != PATH_AREA) {
+        if (kind == PATH_FILE) {
+            report_if_hidden(handle, area);
+        }
         return -1;
     }
     size_t slot = 0;
@@ -563,6 +637,9 @@ int crux_ssh_sftp_dir_open(void *fs, const char *path, int *dir)
         slot++;
     }
     if (slot == CRUX_SSH_SFTP_DIRS_MAX) {
+        if (kind == PATH_AREA) {
+            report_if_hidden(handle, area);
+        }
         return -1;
     }
     open_dir_t opened = {.used = true, .area = area};
@@ -660,6 +737,20 @@ int crux_ssh_sftp_dir_close(void *fs, int dir)
     }
     dir_give_back(opened);
     memset(opened, 0, sizeof(*opened));
+    return 0;
+}
+
+int crux_ssh_sftp_directory_refused(void *fs, const char *path)
+{
+    struct crux_ssh_file_handle *handle = session_enter(fs);
+    if (handle != NULL) {
+        const crux_file_area_t *area = NULL;
+        char name[NAME_CAPACITY];
+        path_kind_t kind = path_resolve(handle, path, &area, name);
+        if (kind == PATH_AREA || kind == PATH_FILE) {
+            report_if_hidden(handle, area);
+        }
+    }
     return 0;
 }
 
