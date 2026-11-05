@@ -183,7 +183,7 @@ static crux_web_step_t run_handler(crux_web_exchange_t *exchange, crux_web_respo
         crux_web_response_begin();
         crux_web_error_response(response, 503, "not_ready");
     }
-    return CRUX_WEB_STEP_RESPOND;
+    return request->close_after ? CRUX_WEB_STEP_RESPOND_CLOSE : CRUX_WEB_STEP_RESPOND;
 }
 
 void crux_web_core_init(const crux_web_config_t *config)
@@ -327,6 +327,15 @@ void crux_web_stats_count_response_deadline(void)
 const crux_web_request_head_t *crux_web_request_head(const crux_web_request_t *request)
 {
     return request->head;
+}
+
+crux_web_result_t crux_web_close_after_response(crux_web_request_t *request)
+{
+    if (request == NULL || request->response == NULL || request->responded) {
+        return CRUX_WEB_ERR_INVALID_ARGUMENT;
+    }
+    request->close_after = true;
+    return CRUX_WEB_OK;
 }
 
 unsigned crux_web_method(const crux_web_request_t *request)

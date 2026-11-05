@@ -31,6 +31,8 @@ typedef struct {
     const char *crux_request;
     const char *content_type;
     const char *content_length;
+    uint8_t source[16];    /**< The peer's address, an IPv6 one as its /64 prefix, for delays. */
+    uint8_t source_length; /**< Bytes used in source, zero when the transport could not tell. */
     bool headers_incomplete; /**< A capture dropped a header, or none was available. Never no
                                 session. */
     bool duplicate_header;   /**< A captured header arrived twice. */
@@ -158,6 +160,12 @@ void crux_web_stats_count_response_deadline(void);
 
 /** The headers of a public route's request, for login and its attempt poll. */
 const crux_web_request_head_t *crux_web_request_head(const crux_web_request_t *request);
+
+/**
+ * Close the connection after this request's response. Closing clears the server's copy of the
+ * request, which on login and on a password change holds a password. Before responding.
+ */
+crux_web_result_t crux_web_close_after_response(crux_web_request_t *request);
 
 /**
  * Respond once with a body that outlives the request, and a header list that the caller owns, for
