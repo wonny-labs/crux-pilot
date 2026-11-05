@@ -28,3 +28,6 @@ target_compile_options(web_cpp_headers PRIVATE -Wall -Wextra -Wpedantic -Werror)
 if(TARGET crux::thread)
     add_subdirectory(session)
 endif()
+
+# The packaged web assets (Issue #189) on the same core and fake transport.
+add_subdirectory(assets)

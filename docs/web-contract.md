@@ -340,7 +340,7 @@ Each would have made results here wrong without being seen.
 | #186 | `crux_web_add_header(request, "Set-Cookie", value)`, up to four headers and 384 bytes | `crux/web.h` |
 | Every composition | `crux_web_routes(app SOURCES ... REVIEWED list ZEPHYR_RESOURCES)`, whose list is mandatory with resources, and which fails the build on a public or session-only route that is not on it | `cmake/CruxWebRoutes.cmake` |
 | #187, projects | `CRUX_WEB_ROUTE`, `CRUX_WEB_ROUTE_BODY`, `crux_web_path_param`, `crux_web_query`, `crux_web_content_type`, `crux_web_body_length`, `crux_web_read_body`, `crux_web_respond`, `crux_web_respond_error` | `crux/web.h` |
-| #189 | `crux_web_respond_static(request, status, headers, count, body, length)`, at most 11 headers, with the packager generating a source of `CRUX_WEB_ROUTE` uses that it names to `crux_web_routes` | `crux_web_adapter.h` |
+| #189 | `crux_web_respond_static(request, status, headers, count, body, length)`, at most 11 headers, with the packager generating a source of `CRUX_WEB_ROUTE` uses that it names to `crux_web_routes`. **Built:** `crux_web_assets()` does both, see [web assets](web-assets.md). | `crux_web_adapter.h`, `cmake/CruxWebAssets.cmake` |
 | #188 | Nothing yet: the probe above is its starting point | |
 
 A copied response body is at most 4 KiB, `CRUX_WEB_RESPONSE_MAX`. A request body is at most `CRUX_WEB_BODY_BUFFER`, 1 KiB,
@@ -359,7 +359,7 @@ fits the 4 KiB.
 | Path parameters hold unreserved characters only, with no decoding | Removes encoded traversal for every later route | Decoding per route. A file name with a space would need this, and rule F4 keeps those out for now. |
 | Duplicate captured headers are refused | No ambiguity over which one a check reads | First or last wins |
 | One copied response buffer shared by all clients | A response is sent before another callback runs, so one suffices, and it saves RAM | One per client |
-| Responses go in 1 KiB pieces with a deadline | A large body is bounded, which the send timeout alone does not do. #189: 3 s can cut a large asset for a slow but honest client, so its size and this deadline need setting together. | A send on one call, with no bound on a slow reader |
+| Responses go in 1 KiB pieces with a deadline | A large body is bounded, which the send timeout alone does not do. #189: 3 s can cut a large asset for a slow but honest client, so its size and this deadline are set together, and [the packager's budget](web-assets.md#budget-and-the-response-deadline) states the largest asset that fits. | A send on one call, with no bound on a slow reader |
 | Default send timeout 250 ms, not 1,000 | Keeps one callback's worst stall under the inactivity timer | A longer timeout is kinder to a poor link |
 | `crux_web_start` checks the route table, and that `fnmatch` behaves | A value changed by a macro between the scan and the compiler, or a C library's own `fnmatch`, stops the start | Trust the build |
 | A source of routes may not `#define` or `#undef` a `CRUX_WEB_*` name, also with a line continuation between the words | The scan and the compiler mostly read the same thing. A continuation inside a word, such as `#def` then `ine` on the next line, passes the scan, and so does a header the source includes. **The table comparison at start is the backstop.** | |

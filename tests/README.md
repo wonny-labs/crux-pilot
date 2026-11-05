@@ -309,6 +309,14 @@ and the [HTTPS composition](../docs/https-composition.md).
 on its PSA ports, over plain HTTP on `native_sim`, and CI runs it in the PSA workflow. `Web.session_*` are its Host
 suites. Entropy there is test-only. See [web login and sessions](../docs/web-session.md).
 
+## Packaged web assets
+
+`scripts/test-web-assets.sh host` runs the packager's and its CMake function's tests (`tests/build/test_web_assets.py`), `Web.assets_*` on
+the real web core with a fake transport for both content policies, clang-tidy on the new C, and the route review and boundary
+checks. `scripts/test-web-assets.sh native` builds `tests/native/web_assets` and runs its driver against the real Zephyr
+server on `native_sim`. The full Host build and `unittest discover tests/build` pick up `Web.assets_*` and the Python tests on their own, and no workflow runs the `native_sim`
+image yet. Nothing here uses a board. See [web assets](../docs/web-assets.md).
+
 ## Portable File software slice
 
 `scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS and FatFs File suites on
