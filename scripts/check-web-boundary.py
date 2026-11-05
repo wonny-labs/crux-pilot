@@ -74,12 +74,14 @@ def source_errors():
     adapter = (COMPONENT / "ports/zephyr/web_http_server.c").read_text(encoding="utf-8")
     code = COMMENT.sub("", adapter)
     # Arguments 5 to 7 are the detail, the fallback resource and the configuration.
-    services = re.findall(r"HTTPS?_SERVICE_DEFINE\(crux_web_service,([^;]*)\);", code, re.DOTALL)
+    # The HTTPS service's configuration creates its listener with the declared TLS profile (#185).
+    services = re.findall(r"(HTTPS?)_SERVICE_DEFINE\(crux_web_service,([^;]*)\);", code, re.DOTALL)
     if len(services) != 2:
         errors.append("expected one HTTPS service and one for native_sim tests")
-    for service in services:
+    for kind, service in services:
         arguments = [argument.strip() for argument in service.split(",")]
-        if arguments[4:7] != ["NULL", "NULL", "NULL"]:
+        expected = ["NULL", "NULL", "&crux_web_tls_config" if kind == "HTTPS" else "NULL"]
+        if arguments[4:7] != expected:
             errors.append(f"the service must have no fallback resource: {arguments[4:7]}")
     if re.search(r"\bEAGAIN\b", code):
         errors.append("a close must not use EAGAIN, with which the server keeps the connection")

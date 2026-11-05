@@ -394,11 +394,12 @@ def case_tls_heap_and_client_limit():
         client.close()
     check(response.status == 200, "the fourth client is served once a slot frees")
     check(waited >= suite.INACTIVITY_S - 1.0, f"the fourth client waited {waited}s")
+    # Each figure includes the measuring connection, so one connection is the step between them.
     results["heap"] = {
-        "profile": profile, "idle_bytes": idle,
+        "profile": profile, "before_held_clients_bytes": idle,
         "with_clients": [{"clients": index + 1, "bytes": used, "largest_bytes": largest}
                          for index, (used, largest) in enumerate(held)],
-        "per_client_bytes": round((held[-1][0] - idle) / 3),
+        "per_connection_bytes": round((held[-1][0] - held[0][0]) / 2),
         "fourth_client_waited_s": waited,
     }
 
@@ -658,7 +659,7 @@ def firefox(binary):
 KNOWN_LIMITS = {
     "wolf": {
         "deadline_then_silent_closes_before_inactivity":
-            "W1: the server reads a new connection's first request up to about 1 s late, so the first "
+            "W1, issue #280: the server reads a new connection's first request up to about 1 s late, so the first "
             "callback, and the deadline that runs from it, can start late",
     },
 }
