@@ -59,7 +59,7 @@ Set-up (packages, tools, SDK and workspace) adds about 2.7 minutes to every shar
 | Anything other than documentation skips the workflow | Code changes would go untested |
 | `host.yml` also skips documentation | Nothing would run the tests that read documentation |
 
-The test has one gap. It does not notice a deleted step, so review the comparison with `main` when a change touches `zephyr.yml`. It does check every step that has a `run:`, whatever command it runs: a step must name a shard of the matrix, unless it is one of the set-up steps listed in `SET_UP_STEPS` in the test. Add a new set-up step to that list only if it must run in every shard.
+The test has two limits. It does not notice a deleted step, so review the comparison with `main` when a change touches `zephyr.yml`. It also cannot tell that a set-up step is still only a set-up step: the steps in `SET_UP_STEPS` (set-up and evidence collection) are exempt by title, and are rejected only if they mention `scripts/`, `python3 ` or `west ` beyond the two set-up scripts. Apart from those, every step that has a `run:` (in any position) or mentions that repository code must name a shard of the matrix, whatever command it runs. Add a step to `SET_UP_STEPS` only if it must run in every shard.
 
 ## Documentation-only changes
 

@@ -20,6 +20,7 @@ SET_UP_STEPS = {
     "name: Fetch pinned Zephyr workspace and install SDK",
     "name: Collect Twister evidence",
 }
+SET_UP_SCRIPTS = re.compile(r"scripts/(bootstrap-zephyr\.sh|verify-apt-cache\.py)")
 SHARD_CONDITION = re.compile(r"^matrix\.shard == '([a-z-]+)'$")
 
 
@@ -60,16 +61,29 @@ def paths_ignore(workflow, event):
     return patterns
 
 
+def runs_a_command(step):
+    """True for a step with a `run:` key, whether it comes first or after `name:`."""
+    return re.search(r"^ {6}- run:|^ {8}run:", step["text"], re.MULTILINE) is not None
+
+
+def mentions_repository_code(step):
+    return "scripts/" in step["text"] or "python3 " in step["text"] or "west " in step["text"]
+
+
 def misplaced_steps(job_steps, shards):
     """Return the steps that run a command but do not name one of the shards.
 
-    Every step with a `run:` is a check unless it is a named set-up step, whatever
-    command it runs: a check that names no shard runs in all of them, and one that
-    names a shard the matrix lacks is skipped while the run stays green.
+    A check is any step with a `run:` and any step that mentions repository code, whatever
+    command it runs: one that names no shard runs in all of them, and one that names a
+    shard the matrix lacks is skipped while the run stays green. A named set-up step is
+    exempt, but only while it mentions no repository code beyond the set-up scripts.
     """
     result = []
     for step in job_steps:
-        if "\n        run:" not in step["text"] or step["title"] in SET_UP_STEPS:
+        if not (runs_a_command(step) or mentions_repository_code(step)):
+            continue
+        if step["title"] in SET_UP_STEPS and (SET_UP_SCRIPTS.search(step["text"])
+                                              or not mentions_repository_code(step)):
             continue
         condition = SHARD_CONDITION.match(step["condition"] or "")
         if condition is None or condition.group(1) not in shards:
@@ -229,6 +243,28 @@ class MisplacedStepsTest(unittest.TestCase):
 
     def test_the_named_set_up_steps_need_no_condition(self):
         self.assertEqual([], misplaced_steps(synthetic_steps(), self.shards))
+
+    def test_a_step_that_starts_with_run_is_checked(self):
+        block = "      - run: tests/ssh/cli/test-compile.sh"
+        self.assertEqual(["run: tests/ssh/cli/test-compile.sh"], self.titles(block))
+
+    def test_a_set_up_step_must_not_gain_a_check_command(self):
+        for command in ("scripts/test-extra.sh", "python3 scripts/check-extra.py", "west build -b native_sim app"):
+            with self.subTest(command=command):
+                block = f"      - name: Collect Twister evidence\n        run: {command}"
+                self.assertEqual(["name: Collect Twister evidence"], self.titles(block))
+
+    def test_a_check_cannot_hide_under_a_set_up_title(self):
+        block = "      - name: Install pinned Python tools\n        run: scripts/test-extra.sh"
+        self.assertEqual(["name: Install pinned Python tools"], self.titles(block))
+
+    def test_a_step_that_only_uses_an_action_is_checked_for_check_commands(self):
+        block = "      - uses: some/action@v1\n        with:\n          command: scripts/test-extra.sh"
+        self.assertEqual(["uses: some/action@v1"], self.titles(block))
+
+    def test_the_set_up_scripts_stay_exempt_in_a_set_up_step(self):
+        block = "      - name: Fetch pinned Zephyr workspace and install SDK\n        run: scripts/bootstrap-zephyr.sh"
+        self.assertEqual([], self.titles(block))
 
 
 if __name__ == "__main__":
