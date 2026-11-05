@@ -561,6 +561,16 @@ a project cannot reach the adapter header, and a service that links the adapter 
 No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
 [Access contract](../docs/access-contract.md).
 
+## Portable command line
+
+Command line (Issue #181): the root Host suite runs `tests/cli` as `Cli.*` in CTest, with a scripted transport, a recording event port, a scripted Serial, and either a scripted access control or the real `crux_access` on its fake ports. These fakes are a test composition: they exist only when Crux builds its own tests.
+`scripts/test-cli.sh` also runs them under the sanitizer preset, runs clang-tidy on the CLI sources, runs `scripts/check-cli-boundary.py`, which configures and builds `tests/cli_consumer` both ways, runs `scripts/check-cli-session-commands.py`, and runs the shell rule's Host tests in `tests/build/test_management_shell.py`.
+`scripts/test-cli.sh --zephyr`, in the Zephyr CI job, runs `tests/build/test_cli_composition.py`: refused compositions at configuration, accepted ones built on `native_sim`, and `tests/zephyr/cli_serial_compile` compiled and linked for the RT1060-EVKB with LPUART3, with the `.config` and image checks of `scripts/check-management-shell.py` on each. No image built here calls the console, and none is flashed or run. Physical serial login needs separate approval. See the [command line contract](../docs/cli-contract.md).
+
+## Command line over SSH
+
+The real entry points of Issue #193 run in `tests/ssh/cli` as `Ssh.cli_*` in the root Host suite. `Ssh.cli_session` compares them, through the fake provider, with the real serial console on a scripted Serial, byte for byte. `Ssh.cli_real_access` runs them on the real `crux_access` core with its fake ports, `Ssh.cli_concurrency` shows one stuck client holding only itself on real threads with a provider double, and `Ssh.cli_entry_symbols` reads what the object files can reach. `tests/ssh/cli/test-compile.sh`, in the Zephyr CI job, compiles them for `native_sim` and the RT1060-EVKB with no wolfSSH. `tests/ssh/cli/test-openssh.sh` runs them on the wolfSSH provider against a real OpenSSH client on `native_sim`. It needs the optional stacks, so no default workflow runs it, and `--target` only compiles for the RT1060-EVKB. None of this flashes, resets or runs a board. See [the CLI over SSH](../docs/cli-over-ssh.md).
+
 ## Portable credential store
 
 The credential store (Issue #178): the root Host suite runs `tests/credential` as `Credential.*` in CTest, on the File
@@ -608,13 +618,18 @@ The standard Host CTest includes `Ssh.ProviderConformance`, which runs the cases
 provider, `Ssh.ConformanceCatchesDefects`, which gives the fake each deliberate defect and requires the named case to fail, and
 `Ssh.Boundaries`, which runs `scripts/check-ssh-boundaries.py`. It also has `Ssh.FakeProvider`, `Ssh.AttachmentDouble`, `Ssh.CallbackTable`
 and a test of each stand-in entry point. The fake needs no SSH library, and the CLI and SFTP Host tests link it. It runs every callback
-on the calling thread, so it shows no concurrency, timing or protocol behaviour. No real provider has run the cases yet.
+on the calling thread, so it shows no concurrency, timing or protocol behaviour.
 `tests/build/test_ssh_boundaries.py` shows that the boundary check rejects each violation.
 
 `scripts/test-ssh-wolf-settings.sh` is not part of any default workflow, because it needs the optional `crux-secure-management`
 west group. It compiles and links `tests/zephyr/ssh_wolf_probe` for `mimxrt1060_evk@B//qspi` with the TLS socket backend, and for
 `native_sim/native/64` both ways, and runs negative controls. It never flashes or runs an image, and the file port it links
 is one that refuses every operation. See [the SSH provider contract](../docs/ssh-provider-contract.md).
+
+`scripts/test-ssh-provider.sh`, also outside every default workflow for the same reason, runs the wolfSSH provider: the conformance cases
+with a scripted client, and `tests/zephyr/ssh_provider/openssh_test.py` with a real OpenSSH client, both on `native_sim/native/64` over the
+native socket offload. It also records resource use as simulation results, compiles for `mimxrt1060_evk@B//qspi`, and shows that the Mbed
+profile fails at configuration. See [the wolfSSH provider](../docs/ssh-wolf-provider.md), which declares the test ports behind these results.
 
 ## PSA Crypto qualification
 
@@ -625,3 +640,8 @@ stub providers that prove the cases can fail. `provider_declarations.cmake` stat
 Twister on `native_sim/native/64` and checks that `native_sim` random stays test-only. `target` compiles both providers for `mimxrt1060_evk@B//qspi`, and never flashes, resets or runs an image. The `psa-crypto` workflow runs all three with the second argument `tf-psa-crypto`, because a default workflow must not select the GPL stacks, so wolfPSA runs only locally.
 No consumer calls a provider here. See the [qualification record](../docs/psa-crypto-qualification.md) and the [design](../docs/psa-crypto-design.md).
 
+## Management composition on `native_sim`
+
+`tests/management_providers` runs in the root Host suite, as `ManagementProviders.*`: the event providers, status sources and the Access clock, each against a controlled answer. `tests/psa_ports` holds the PSA providers' cases, on Linux Host and `native_sim`, and `tests/psa_ports/suites` runs existing Access and credential suites on them, on Host, with `-DCRUX_TEST_SUITES_ON_PSA=ON`. `tests/native/tls_offload_probe` is a TLS socket over the native socket offload with a client on the host, and `tests/native/management_composition` is the services together on real providers.
+
+`scripts/test-tls-offload-probe.sh [all|mbed|wolf]` and `scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]` run them. `mbed` needs the `mbedtls` and `tf-psa-crypto` projects, and the `psa-crypto` workflow runs it. `wolf` needs the `crux-secure-management` group, and no default workflow runs it. `target-*` compiles and never flashes, resets or runs an image. See the [composition](../docs/native-management-composition.md).

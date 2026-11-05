@@ -98,12 +98,12 @@ status                 status.read
 config get <name>      session-only, service checks the parameter's read permission
 config set <name> ...  session-only, service checks the parameter's write permission
 config save            config.save
-account list           session-only, service checks access.manage
+account list           access.manage
 passwd                 session-only, service checks ownership
 logout                 session-only
 ```
 
-The same registry runs on the serial console. A serial session starts with a login prompt, and a
+The same registry runs on the serial console, which is `crux_serial` on LPUART3 on the EVKB. A serial session starts with a login prompt, and a
 development build can keep the Zephyr shell only where the composition marks it development-only.
 
 ## SFTP

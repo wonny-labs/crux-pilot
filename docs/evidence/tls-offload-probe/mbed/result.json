@@ -1,0 +1,120 @@
+{
+  "client_openssl": "OpenSSL 3.0.13 30 Jan 2024",
+  "profile": "mbed",
+  "steps": {
+    "abrupt_closes": {
+      "count": 6,
+      "handshake_seconds_max": 0.071,
+      "handshake_seconds_min": 0.065,
+      "result": "pass",
+      "seconds": 0.792
+    },
+    "after_limit_recovers": {
+      "count": 2,
+      "handshake_seconds_max": 0.068,
+      "handshake_seconds_min": 0.067,
+      "result": "pass",
+      "seconds": 0.234
+    },
+    "after_stall_recovers": {
+      "count": 2,
+      "handshake_seconds_max": 0.069,
+      "handshake_seconds_min": 0.068,
+      "result": "pass",
+      "seconds": 0.259
+    },
+    "concurrent_connections": {
+      "connections_held": 3,
+      "result": "pass",
+      "seconds": 0.365,
+      "still_working": 3,
+      "stopped_by": "ConnectionResetError: [Errno 104] Connection reset by peer",
+      "tried": 9
+    },
+    "eventfd_in_poll_set": {
+      "result": "pass"
+    },
+    "host_tcp_table": {
+      "listening_ports": [
+        14212,
+        14213
+      ],
+      "result": "pass"
+    },
+    "image_alive_at_end": {
+      "result": "pass",
+      "return_code": null
+    },
+    "listener_tls1.2": {
+      "line": "PROBE listener name=tls1.2 port=14212 result=1",
+      "result": "pass"
+    },
+    "listener_tls1.3": {
+      "line": "PROBE listener name=tls1.3 port=14213 result=3",
+      "result": "pass"
+    },
+    "raw_poll_after_abrupt_close": {
+      "cpu_share_after_abrupt_close": 0.55,
+      "cpu_share_idle": 0.02,
+      "result": "pass",
+      "seconds": 5.139,
+      "server_saw_the_close": false
+    },
+    "repeated_connections": {
+      "count": 20,
+      "handshake_seconds_max": 0.072,
+      "handshake_seconds_min": 0.05,
+      "result": "pass",
+      "seconds": 2.354
+    },
+    "stalled_client": {
+      "result": "pass",
+      "second_client_ok": true,
+      "second_client_waited_seconds": 9.576,
+      "seconds": 10.136
+    },
+    "tls1.2_exchange": {
+      "cipher": "ECDHE-ECDSA-AES128-GCM-SHA256",
+      "cipher_bits": 128,
+      "close_notify_from_server": true,
+      "result": "pass",
+      "seconds": 0.154,
+      "version": "TLSv1.2"
+    },
+    "tls1.2_plain_text": {
+      "answer_bytes": 0,
+      "ended": "ConnectionResetError",
+      "result": "pass",
+      "seconds": 0.003
+    },
+    "tls1.2_port_newer_client": {
+      "negotiated": "TLSv1.3",
+      "result": "pass",
+      "seconds": 0.056
+    },
+    "tls1.2_untrusted_refused": {
+      "refused": "self-signed certificate",
+      "result": "pass",
+      "seconds": 0.01
+    },
+    "tls1.3_exchange": {
+      "cipher": "TLS_AES_128_GCM_SHA256",
+      "cipher_bits": 128,
+      "close_notify_from_server": true,
+      "result": "pass",
+      "seconds": 0.159,
+      "version": "TLSv1.3"
+    },
+    "tls1.3_plain_text": {
+      "answer_bytes": 0,
+      "ended": "ConnectionResetError",
+      "result": "pass",
+      "seconds": 0.004
+    },
+    "tls1.3_untrusted_refused": {
+      "refused": "self-signed certificate",
+      "result": "pass",
+      "seconds": 0.064
+    }
+  }
+}

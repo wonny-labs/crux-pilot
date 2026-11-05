@@ -1,6 +1,7 @@
 name: psa-crypto
 
-# Qualifies TF-PSA-Crypto (Issue #142) on Linux Host and native_sim, and compiles it for RT1060-EVKB. A
+# Qualifies TF-PSA-Crypto (Issue #142) on Linux Host and native_sim, and compiles it for RT1060-EVKB, and
+# runs the management composition on it (Issue #242). A
 # default workflow must not select the GPL stacks, so wolfPSA does not run here: see
 # docs/psa-crypto-qualification.md. It takes only the two Apache-2.0 option projects by name.
 
@@ -72,6 +73,22 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-psa-crypto.sh target tf-psa-crypto
 
+      - name: The PSA ports on TF-PSA-Crypto on Linux Host, with sanitizers and controls
+        working-directory: crux-pilot
+        run: scripts/test-native-composition.sh host
+
+      - name: A TLS socket over the native socket offload, Mbed profile, on native_sim
+        working-directory: crux-pilot
+        run: scripts/test-tls-offload-probe.sh mbed
+
+      - name: The management composition, Mbed profile, on native_sim
+        working-directory: crux-pilot
+        run: scripts/test-native-composition.sh mbed
+
+      - name: Compile the PSA ports for RT1060-EVKB, without running them
+        working-directory: crux-pilot
+        run: scripts/test-native-composition.sh target-mbed
+
       - name: Upload logs and reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -81,5 +98,10 @@ jobs:
             crux-pilot/build/psa-crypto/*.txt
             crux-pilot/build/psa-crypto/*.log
             crux-pilot/build/psa-crypto/twister/twister.json
+            crux-pilot/build/tls-offload-probe/*/*.json
+            crux-pilot/build/tls-offload-probe/*/*.txt
+            crux-pilot/build/native-composition/*/*.log
+            crux-pilot/build/native-composition/*/*.txt
+            crux-pilot/build/native-composition/*/*.json
           if-no-files-found: warn
           retention-days: 14

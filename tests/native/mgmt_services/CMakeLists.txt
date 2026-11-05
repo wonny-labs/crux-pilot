@@ -13,7 +13,8 @@ target_sources(app PRIVATE src/main.c
   ${CRUX_ROOT}/components/mgmt_status/src/mgmt_status_json.c
   ${CRUX_ROOT}/components/mgmt_status/src/source_system.c
   ${CRUX_ROOT}/components/mgmt_status/src/source_time.c
-  ${CRUX_ROOT}/components/mgmt_status/src/source_no_security.c
+  ${CRUX_ROOT}/components/mgmt_status/src/source_no_credential.c
+  ${CRUX_ROOT}/components/mgmt_status/src/source_no_security_events.c
   ${CRUX_ROOT}/components/config_service/src/config_service.c
   ${CRUX_ROOT}/components/configuration/src/configuration.c
   ${CRUX_ROOT}/components/configuration/src/configuration_text.c

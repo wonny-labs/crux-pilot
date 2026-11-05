@@ -108,7 +108,7 @@ crux_config_result_t crux_config_save(const crux_config_param_t *parameter);
   bound; the initial software qualification profile supports up to 31 characters.
   This bound is an approved initial test profile, not a measured product requirement.
 - Application owns cross-parameter validation and coherent runtime snapshots.
-  A successful scalar update changes accepted configuration only; it does not
+  A successful update changes accepted configuration only; it does not
   apply changes to running controller services. Caller serialises the object,
   its validator context and conflicting key accesses. Task context only; no
   ISR use, bounded latency, cancellation or internal worker thread is promised.

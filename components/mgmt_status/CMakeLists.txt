@@ -30,7 +30,24 @@ if(TARGET crux::time AND TARGET crux::netif AND TARGET crux::system)
     target_compile_options(crux_mgmt_status_sources PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 
-add_library(crux_mgmt_status_no_security OBJECT src/source_no_security.c)
-target_include_directories(crux_mgmt_status_no_security PRIVATE src)
-target_link_libraries(crux_mgmt_status_no_security PUBLIC crux_mgmt_status_api)
-target_compile_options(crux_mgmt_status_no_security PRIVATE -Wall -Wextra -Wpedantic -Werror)
+# The sources of what a composition links no provider for, whose items are then omitted, and the real
+# ones. Each half goes by itself, and crux_mgmt_status_no_security is both.
+function(crux_mgmt_status_source_target target)
+    add_library(${target} OBJECT ${ARGN})
+    target_include_directories(${target} PRIVATE src)
+    target_link_libraries(${target} PUBLIC crux_mgmt_status_api)
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endfunction()
+
+crux_mgmt_status_source_target(crux_mgmt_status_no_security src/source_no_credential.c
+    src/source_no_security_events.c)
+crux_mgmt_status_source_target(crux_mgmt_status_no_credential src/source_no_credential.c)
+crux_mgmt_status_source_target(crux_mgmt_status_no_security_events src/source_no_security_events.c)
+if(TARGET crux_security_event_api)
+    crux_mgmt_status_source_target(crux_mgmt_status_security_events src/source_security_events.c)
+    target_link_libraries(crux_mgmt_status_security_events PUBLIC crux_security_event_api)
+endif()
+if(TARGET crux_credential_api)
+    crux_mgmt_status_source_target(crux_mgmt_status_credential src/source_credential.c)
+    target_link_libraries(crux_mgmt_status_credential PUBLIC crux_credential_api)
+endif()
