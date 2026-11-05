@@ -1188,6 +1188,7 @@ static void case_a_session_that_ends_fails_the_next_chunk(void)
     CHECK(crux_ssh_sftp_file_open(fs, "/data/doc", O_READ) < 0);
     CHECK(crux_ssh_sftp_remove(fs, "/data/doc") < 0);
     CHECK(crux_ssh_sftp_set_attributes(fs, "/data/doc") < 0);
+    CHECK(crux_ssh_sftp_set_attributes(fs, "/") < 0);
     CHECK(crux_ssh_sftp_dir_read(fs, dir, name, sizeof(name), &info) < 0);
     int root = -1;
     CHECK(crux_ssh_sftp_dir_open(fs, "/", &root) < 0);
