@@ -1356,7 +1356,8 @@ static void case_a_session_that_ends_fails_the_next_chunk(void)
     CHECK(size_on_medium(ROOT_DATA, "up") == 3);
 }
 
-/* Each request tells Access twice about a session that has gone: the touch, and the service. */
+/* These requests each tell Access twice about a session that has gone: the touch, and the
+ * service. Other requests differ, and the design's table gives the counts. */
 static void case_a_session_that_has_ended_is_recorded(void)
 {
     fresh_world();
