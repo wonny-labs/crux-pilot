@@ -63,8 +63,8 @@ bool crux_tls_certificate_port_sha256(const uint8_t *data, size_t length, uint8_
     return true;
 }
 
-bool crux_tls_certificate_port_sign(const uint8_t private_key[32], const uint8_t digest[32],
-                                    uint8_t signature[64])
+bool crux_tls_certificate_port_sign(const uint8_t digest[32], uint8_t signature[64],
+                                    const uint8_t private_key[32])
 {
     if (sign_fails) {
         return false;
@@ -81,7 +81,7 @@ bool crux_tls_certificate_port_random(uint8_t *buffer, size_t length)
         return false;
     }
     for (size_t i = 0; i < length; ++i) {
-        buffer[i] = (uint8_t)(random_counter * 31u + i);
+        buffer[i] = (uint8_t)((size_t)random_counter * 31u + i);
     }
     random_counter += 1u;
     return true;

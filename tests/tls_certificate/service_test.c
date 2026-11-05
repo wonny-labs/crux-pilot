@@ -64,7 +64,7 @@ size_t active_der(uint8_t der[CRUX_TLS_CERTIFICATE_DER_MAX])
     return length;
 }
 
-size_t record_of(const uint8_t *der, size_t length, crux_tls_certificate_source_t source,
+size_t record_of(crux_tls_certificate_source_t source, const uint8_t *der, size_t length,
                  uint8_t *record)
 {
     static const uint8_t header[] = {'C', 'X', 'T', 'C', 1, 0, 0, 0};

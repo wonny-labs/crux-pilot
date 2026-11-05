@@ -1,6 +1,6 @@
-/* The event port of the TLS certificate module, as a thin translation onto the public emit. It holds
- * no state and takes no lock of its own. The subject is a fixed word for the reason, never bytes
- * from a certificate or a client.
+/* The event port of the TLS certificate module, as a thin translation onto the public emit. It
+ * holds no state and takes no lock of its own. The subject is a fixed word for the reason, never
+ * bytes from a certificate or a client.
  */
 #include "tls_certificate_port.h"
 

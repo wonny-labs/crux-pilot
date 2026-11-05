@@ -20,6 +20,9 @@ typedef struct {
 
 static void put(buf_t *out, const void *data, size_t length)
 {
+    if (length == 0u) {
+        return;
+    }
     if (out->n + length > sizeof(out->b)) {
         abort();
     }
@@ -107,8 +110,8 @@ static void validity(buf_t *out, uint8_t tag_a, const char *a, uint8_t tag_b, co
     wrap(out, 0x30, &inner);
 }
 
-static void ec_key(buf_t *out, const uint8_t *curve, size_t curve_length, const uint8_t *point,
-                   size_t point_length, uint8_t unused_bits)
+static void ec_key(buf_t *out, uint8_t unused_bits, const uint8_t *curve, size_t curve_length,
+                   const uint8_t *point, size_t point_length)
 {
     buf_t alg = {0}, alg_seq = {0}, bits = {0}, inner = {0};
     tlv(&alg, 0x06, oid_ec_public_key, sizeof(oid_ec_public_key));
@@ -154,7 +157,7 @@ static void parts_default(parts_t *p)
     name(&p->issuer, 0x0c, "issuer");
     validity(&p->validity, 0x17, "260101000000Z", 0x17, "270101000000Z");
     name(&p->subject, 0x0c, "subject");
-    ec_key(&p->key, oid_p256, sizeof(oid_p256), fixture_device_key, 65, 0);
+    ec_key(&p->key, 0, oid_p256, sizeof(oid_p256), fixture_device_key, 65);
     buf_t list = {0};
     extension(&list, oid_basic_constraints, sizeof(oid_basic_constraints), critical_true,
               sizeof(critical_true), basic_constraints_value, sizeof(basic_constraints_value));
@@ -168,8 +171,8 @@ static void parts_default(parts_t *p)
 static size_t assemble(const parts_t *p, uint8_t *out)
 {
     buf_t tbs = {0}, tbs_tlv = {0}, cert = {0}, all = {0};
-    const buf_t *fields[] = {&p->version, &p->serial,  &p->inner_algorithm,
-                             &p->issuer,  &p->validity, &p->subject,
+    const buf_t *fields[] = {&p->version, &p->serial,     &p->inner_algorithm,
+                             &p->issuer,  &p->validity,   &p->subject,
                              &p->key,     &p->extensions, &p->tbs_extra};
     for (size_t i = 0; i < sizeof(fields) / sizeof(fields[0]); ++i) {
         put(&tbs, fields[i]->b, fields[i]->n);
@@ -197,6 +200,18 @@ static void set(buf_t *field, const void *data, size_t length)
 {
     field->n = 0;
     put(field, data, length);
+}
+
+static bool bytes_equal(const void *a, size_t length, const void *b)
+{
+    const uint8_t *x = a;
+    const uint8_t *y = b;
+    for (size_t i = 0; i < length; ++i) {
+        if (x[i] != y[i]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 /* ---- Certificates from OpenSSL. */
@@ -236,10 +251,10 @@ static void test_output_untouched_on_refusal(void)
     memset(&view, 0x5a, sizeof(view));
     tls_x509_view_t before = view;
     CHECK(tls_x509_parse(fixture_p384, sizeof(fixture_p384), &view) == TLS_X509_INVALID);
-    CHECK(memcmp(&view, &before, sizeof(view)) == 0);
+    CHECK(bytes_equal(&view, sizeof(view), &before));
     CHECK(tls_x509_parse(fixture_ec_self, sizeof(fixture_ec_self) - 1u, &view) ==
           TLS_X509_MALFORMED);
-    CHECK(memcmp(&view, &before, sizeof(view)) == 0);
+    CHECK(bytes_equal(&view, sizeof(view), &before));
 }
 
 /* ---- Hand-made variants. */
@@ -371,7 +386,8 @@ static void test_names(void)
     name(&p.subject, 0x0c, "caf\xc3\xa9\n<b>");
     length = assemble(&p, scratch);
     CHECK(tls_x509_parse(scratch, length, &view) == TLS_X509_OK);
-    CHECK(strcmp(view.subject, "caf??" "?<b>") == 0);
+    CHECK(strcmp(view.subject, "caf??"
+                               "?<b>") == 0);
 
     char long_name[200];
     memset(long_name, 'x', sizeof(long_name) - 1u);
@@ -395,30 +411,30 @@ static void test_validity(void)
     CHECK(view.not_after_s == 1767225600 + 365 * 86400);
 
     struct {
-        uint8_t tag_a;
         const char *a;
-        uint8_t tag_b;
         const char *b;
         tls_x509_result_t expected;
+        uint8_t tag_a;
+        uint8_t tag_b;
     } cases[] = {
-        {0x17, "270101000000Z", 0x17, "260101000000Z", TLS_X509_INVALID}, /* Reversed. */
-        {0x17, "260101000000Z", 0x17, "260101000000Z", TLS_X509_OK},      /* Equal. */
-        {0x17, "500101000000Z", 0x17, "491231235959Z", TLS_X509_OK}, /* 1950, and 2049. */
-        {0x18, "20260101000000Z", 0x18, "99991231235959Z", TLS_X509_OK},
-        {0x17, "261301000000Z", 0x17, "270101000000Z", TLS_X509_MALFORMED}, /* Month 13. */
-        {0x17, "260100000000Z", 0x17, "270101000000Z", TLS_X509_MALFORMED}, /* Day 0. */
-        {0x17, "260229000000Z", 0x17, "270101000000Z", TLS_X509_MALFORMED}, /* Not a leap year. */
-        {0x17, "280229000000Z", 0x17, "290101000000Z", TLS_X509_OK},        /* A leap year. */
-        {0x17, "260101240000Z", 0x17, "270101000000Z", TLS_X509_MALFORMED}, /* Hour 24. */
-        {0x17, "260101006000Z", 0x17, "270101000000Z", TLS_X509_MALFORMED},
-        {0x17, "260101000060Z", 0x17, "270101000000Z", TLS_X509_MALFORMED}, /* Leap second. */
-        {0x17, "2601010000Z", 0x17, "270101000000Z", TLS_X509_MALFORMED},   /* No seconds. */
-        {0x17, "260101000000+0100", 0x17, "270101000000Z", TLS_X509_MALFORMED},
-        {0x17, "26010100000OZ", 0x17, "270101000000Z", TLS_X509_MALFORMED},
-        {0x17, "260101000000z", 0x17, "270101000000Z", TLS_X509_MALFORMED},
-        {0x18, "20260101000000.5Z", 0x17, "270101000000Z", TLS_X509_MALFORMED},
-        {0x18, "2026010100000Z", 0x17, "270101000000Z", TLS_X509_MALFORMED},
-        {0x04, "260101000000Z", 0x17, "270101000000Z", TLS_X509_MALFORMED}, /* Not a time. */
+        {"270101000000Z", "260101000000Z", TLS_X509_INVALID, 0x17, 0x17}, /* Reversed. */
+        {"260101000000Z", "260101000000Z", TLS_X509_OK, 0x17, 0x17},      /* Equal. */
+        {"500101000000Z", "491231235959Z", TLS_X509_OK, 0x17, 0x17},      /* 1950, and 2049. */
+        {"20260101000000Z", "99991231235959Z", TLS_X509_OK, 0x18, 0x18},
+        {"261301000000Z", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17}, /* Month 13. */
+        {"260100000000Z", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17}, /* Day 0. */
+        {"260229000000Z", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17}, /* Not a leap year. */
+        {"280229000000Z", "290101000000Z", TLS_X509_OK, 0x17, 0x17},        /* A leap year. */
+        {"260101240000Z", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17}, /* Hour 24. */
+        {"260101006000Z", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17},
+        {"260101000060Z", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17}, /* Leap second. */
+        {"2601010000Z", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17},   /* No seconds. */
+        {"260101000000+0100", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17},
+        {"26010100000OZ", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17},
+        {"260101000000z", "270101000000Z", TLS_X509_MALFORMED, 0x17, 0x17},
+        {"20260101000000.5Z", "270101000000Z", TLS_X509_MALFORMED, 0x18, 0x17},
+        {"2026010100000Z", "270101000000Z", TLS_X509_MALFORMED, 0x18, 0x17},
+        {"260101000000Z", "270101000000Z", TLS_X509_MALFORMED, 0x04, 0x17}, /* Not a time. */
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
         parts_default(&p);
@@ -453,31 +469,31 @@ static void test_keys(void)
     parts_t p;
     parts_default(&p);
     p.key.n = 0;
-    ec_key(&p.key, oid_p384, sizeof(oid_p384), fixture_device_key, 65, 0);
+    ec_key(&p.key, 0, oid_p384, sizeof(oid_p384), fixture_device_key, 65);
     CHECK(parse_parts(&p) == TLS_X509_INVALID);
     p.key.n = 0;
-    ec_key(&p.key, NULL, 0, fixture_device_key, 65, 0);
+    ec_key(&p.key, 0, NULL, 0, fixture_device_key, 65);
     CHECK(parse_parts(&p) == TLS_X509_INVALID); /* No named curve. */
     p.key.n = 0;
     uint8_t compressed[33];
     memcpy(compressed, fixture_device_key, 33);
     compressed[0] = 0x02;
-    ec_key(&p.key, oid_p256, sizeof(oid_p256), compressed, sizeof(compressed), 0);
+    ec_key(&p.key, 0, oid_p256, sizeof(oid_p256), compressed, sizeof(compressed));
     CHECK(parse_parts(&p) == TLS_X509_INVALID);
     p.key.n = 0;
     uint8_t not_uncompressed[65];
     memcpy(not_uncompressed, fixture_device_key, 65);
     not_uncompressed[0] = 0x06;
-    ec_key(&p.key, oid_p256, sizeof(oid_p256), not_uncompressed, 65, 0);
+    ec_key(&p.key, 0, oid_p256, sizeof(oid_p256), not_uncompressed, 65);
     CHECK(parse_parts(&p) == TLS_X509_INVALID);
     p.key.n = 0;
-    ec_key(&p.key, oid_p256, sizeof(oid_p256), fixture_device_key, 64, 0);
+    ec_key(&p.key, 0, oid_p256, sizeof(oid_p256), fixture_device_key, 64);
     CHECK(parse_parts(&p) == TLS_X509_INVALID);
     p.key.n = 0;
-    ec_key(&p.key, oid_p256, sizeof(oid_p256), fixture_device_key, 65, 1);
+    ec_key(&p.key, 1, oid_p256, sizeof(oid_p256), fixture_device_key, 65);
     CHECK(parse_parts(&p) == TLS_X509_MALFORMED); /* Unused bits in a key. */
     p.key.n = 0;
-    ec_key(&p.key, oid_p256, sizeof(oid_p256), fixture_device_key, 65, 8);
+    ec_key(&p.key, 8, oid_p256, sizeof(oid_p256), fixture_device_key, 65);
     CHECK(parse_parts(&p) == TLS_X509_MALFORMED);
 }
 
@@ -595,6 +611,19 @@ static void test_length_encodings(void)
     static const uint8_t serial_long_form[] = {0x02, 0x81, 0x01, 0x01};
     set(&p.serial, serial_long_form, sizeof(serial_long_form));
     CHECK(parse_parts(&p) == TLS_X509_MALFORMED);
+    /* Two length bytes for a value that fits in one, or in the short form. */
+    static const uint8_t serial_two_bytes[] = {0x02, 0x82, 0x00, 0x01, 0x01};
+    set(&p.serial, serial_two_bytes, sizeof(serial_two_bytes));
+    CHECK(parse_parts(&p) == TLS_X509_MALFORMED);
+    uint8_t serial_two_bytes_long[4 + 0x90] = {0x02, 0x82, 0x00, 0x90, 0x01};
+    set(&p.serial, serial_two_bytes_long, sizeof(serial_two_bytes_long));
+    CHECK(parse_parts(&p) == TLS_X509_MALFORMED);
+    serial_two_bytes_long[1] = 0x81;
+    serial_two_bytes_long[2] = 0x90;
+    serial_two_bytes_long[3] = 0x01;
+    set(&p.serial, serial_two_bytes_long, 3 + 0x90);
+    CHECK(parse_parts(&p) == TLS_X509_INVALID); /* The same, minimal: well formed, too long. */
+    parts_default(&p);
     /* A high tag number form. */
     parts_default(&p);
     static const uint8_t high_tag[] = {0x1f, 0x02, 0x01, 0x01};
@@ -619,7 +648,7 @@ static void test_length_encodings(void)
 
 /* ---- Every truncation, every flipped byte, and random mutation. */
 
-static void check_sane(const uint8_t *input, size_t length, tls_x509_result_t result,
+static void check_sane(tls_x509_result_t result, const uint8_t *input, size_t length,
                        const tls_x509_view_t *view)
 {
     CHECK(result == TLS_X509_OK || result == TLS_X509_MALFORMED || result == TLS_X509_INVALID);
@@ -663,7 +692,7 @@ static void test_flipped_bytes(void)
             copy[at] ^= masks[m];
             tls_x509_view_t view;
             tls_x509_result_t result = tls_x509_parse(copy, sizeof(fixture_ec_self), &view);
-            check_sane(copy, sizeof(fixture_ec_self), result, &view);
+            check_sane(result, copy, sizeof(fixture_ec_self), &view);
             if (result == TLS_X509_OK) {
                 ++accepted;
                 if (memcmp(view.public_key, fixture_device_key, 65) != 0) {
@@ -730,7 +759,7 @@ static void test_random_mutation(void)
         memcpy(exact, work, length);
         tls_x509_view_t view;
         tls_x509_result_t result = tls_x509_parse(exact, length, &view);
-        check_sane(exact, length, result, &view);
+        check_sane(result, exact, length, &view);
         counts[result == TLS_X509_OK ? 0 : result == TLS_X509_MALFORMED ? 1 : 2] += 1u;
         free(exact);
     }
@@ -745,7 +774,7 @@ static const char *const dns_names[] = {"device.example", "*.lan.example"};
 static const uint8_t ipv4[][4] = {{192, 0, 2, 10}};
 static const uint8_t ipv6[][16] = {{0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}};
 static const crux_tls_certificate_names_t full_names = {"Crux device", dns_names, 2, ipv4, 1,
-                                                        ipv6, 1};
+                                                        ipv6,          1};
 static const crux_tls_certificate_names_t cn_only = {"Crux device", NULL, 0, NULL, 0, NULL, 0};
 
 static tls_x509_self_signed_t self_input(const crux_tls_certificate_names_t *names,
@@ -791,8 +820,8 @@ static void test_build_self_signed(void)
     static const uint8_t eku_server_auth[] = {0x06, 0x08, 0x2b, 0x06, 0x01,
                                               0x05, 0x05, 0x07, 0x03, 0x01};
     CHECK(tls_test_contains(out, length, eku_server_auth, sizeof(eku_server_auth)));
-    static const uint8_t san_dns[] = {0x82, 0x0e, 'd', 'e', 'v', 'i', 'c', 'e', '.',
-                                      'e',  'x',  'a', 'm', 'p', 'l', 'e'};
+    static const uint8_t san_dns[] = {0x82, 0x0e, 'd', 'e', 'v', 'i', 'c', 'e',
+                                      '.',  'e',  'x', 'a', 'm', 'p', 'l', 'e'};
     CHECK(tls_test_contains(out, length, san_dns, sizeof(san_dns)));
     static const uint8_t san_ip4[] = {0x87, 0x04, 192, 0, 2, 10};
     CHECK(tls_test_contains(out, length, san_ip4, sizeof(san_ip4)));
@@ -865,8 +894,8 @@ static void test_build_signature_encoding(void)
     static uint8_t out[CRUX_TLS_CERTIFICATE_DER_MAX];
     size_t length = 0;
     tls_test_signer_t signer = {.fixed = true};
-    memset(signer.r, 0x80, 32);         /* High bit: needs a zero byte. */
-    memset(signer.s, 0x00, 31);         /* Leading zeros: stripped. */
+    memset(signer.r, 0x80, 32); /* High bit: needs a zero byte. */
+    memset(signer.s, 0x00, 31); /* Leading zeros: stripped. */
     signer.s[31] = 0x05;
     tls_x509_self_signed_t input = self_input(&cn_only, 1767225600, 0);
     CHECK(tls_x509_build_self_signed(&input, fixture_device_key, tls_test_hash, tls_test_sign,
@@ -918,8 +947,9 @@ static void test_build_bounds(void)
     }
     uint8_t request[CRUX_TLS_CERTIFICATE_CSR_MAX];
     size_t request_length = 0;
-    CHECK(tls_x509_build_request(&full_names, fixture_device_key, tls_test_hash, tls_test_sign, NULL,
-                                 request, sizeof(request), &request_length) == TLS_X509_BUILT);
+    CHECK(tls_x509_build_request(&full_names, fixture_device_key, tls_test_hash, tls_test_sign,
+                                 NULL, request, sizeof(request),
+                                 &request_length) == TLS_X509_BUILT);
     for (size_t capacity = 0; capacity < request_length; ++capacity) {
         size_t length = 77;
         CHECK(tls_x509_build_request(&full_names, fixture_device_key, tls_test_hash, tls_test_sign,
@@ -935,7 +965,11 @@ static void test_build_largest_names(void)
     for (unsigned n = 0; n < 4u; ++n) {
         /* 63-byte labels joined by dots, to exactly 253. */
         for (unsigned i = 0; i < CRUX_TLS_CERTIFICATE_DNS_NAME_MAX; ++i) {
-            labels[n][i] = (i % 64u == 63u) ? '.' : (char)('a' + n);
+            if (i % 64u == 63u) {
+                labels[n][i] = '.';
+            } else {
+                labels[n][i] = (char)('a' + (int)n);
+            }
         }
         labels[n][CRUX_TLS_CERTIFICATE_DNS_NAME_MAX] = '\0';
         names[n] = labels[n];
@@ -984,8 +1018,8 @@ static void test_names_rules(void)
     n.dns_names = one;
     CHECK(tls_x509_names_valid(&n));
 
-    const char *bad_dns[] = {"",      "a..b",  ".a",   "a.",   "a_b.example", "*.",
-                             "a.*.b", "**.a",  "a b", "-a.b"};
+    const char *bad_dns[] = {"",   "a..b",  ".a",   "a.",  "a_b.example",
+                             "*.", "a.*.b", "**.a", "a b", "-a.b"};
     for (size_t i = 0; i < sizeof(bad_dns) / sizeof(bad_dns[0]); ++i) {
         const char *list[] = {bad_dns[i]};
         n.dns_names = list;
@@ -996,7 +1030,7 @@ static void test_names_rules(void)
     }
     char label64[70];
     memset(label64, 'a', 64);
-    strcpy(label64 + 64, ".b");
+    memcpy(label64 + 64, ".b", 3);
     const char *long_label[] = {label64};
     n.dns_names = long_label;
     CHECK(!tls_x509_names_valid(&n));
@@ -1123,10 +1157,10 @@ static void test_build_pkcs8(void)
     CHECK(tls_x509_build_pkcs8(scalar, fixture_device_key, out, sizeof(out), &length) ==
           TLS_X509_BUILT);
     CHECK(length == 138u);
-    static const uint8_t head[] = {0x30, 0x81, 0x87, 0x02, 0x01, 0x00, 0x30, 0x13, 0x06, 0x07, 0x2a,
-                                   0x86, 0x48, 0xce, 0x3d, 0x02, 0x01, 0x06, 0x08, 0x2a, 0x86, 0x48,
-                                   0xce, 0x3d, 0x03, 0x01, 0x07, 0x04, 0x6d, 0x30, 0x6b, 0x02, 0x01,
-                                   0x01, 0x04, 0x20};
+    static const uint8_t head[] = {0x30, 0x81, 0x87, 0x02, 0x01, 0x00, 0x30, 0x13, 0x06,
+                                   0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01, 0x06,
+                                   0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07,
+                                   0x04, 0x6d, 0x30, 0x6b, 0x02, 0x01, 0x01, 0x04, 0x20};
     CHECK(memcmp(out, head, sizeof(head)) == 0);
     CHECK(memcmp(out + sizeof(head), scalar, 32) == 0);
     static const uint8_t public_head[] = {0xa1, 0x44, 0x03, 0x42, 0x00};

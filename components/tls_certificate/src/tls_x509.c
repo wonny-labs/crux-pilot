@@ -23,9 +23,9 @@ static const uint8_t ext_basic_constraints[] = {0x30, 0x0c, 0x06, 0x03, 0x55, 0x
 static const uint8_t ext_key_usage[] = {0x30, 0x0e, 0x06, 0x03, 0x55, 0x1d, 0x0f, 0x01,
                                         0x01, 0xff, 0x04, 0x04, 0x03, 0x02, 0x07, 0x80};
 /* Extended key usage, server authentication. */
-static const uint8_t ext_server_auth[] = {0x30, 0x13, 0x06, 0x03, 0x55, 0x1d, 0x25, 0x04,
-                                          0x0c, 0x30, 0x0a, 0x06, 0x08, 0x2b, 0x06, 0x01,
-                                          0x05, 0x05, 0x07, 0x03, 0x01};
+static const uint8_t ext_server_auth[] = {0x30, 0x13, 0x06, 0x03, 0x55, 0x1d, 0x25,
+                                          0x04, 0x0c, 0x30, 0x0a, 0x06, 0x08, 0x2b,
+                                          0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x01};
 static const uint8_t oid_subject_alt_name[] = {0x06, 0x03, 0x55, 0x1d, 0x11};
 static const uint8_t oid_extension_request[] = {0x06, 0x09, 0x2a, 0x86, 0x48, 0x86,
                                                 0xf7, 0x0d, 0x01, 0x09, 0x0e};
@@ -86,7 +86,7 @@ bool tls_x509_time_from_civil(int year, int month, int day, int hour, int minute
     int64_t day_of_year = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5 + day - 1;
     int64_t day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
     int64_t days = era * 146097 + day_of_era - 719468;
-    *out = days * SECONDS_PER_DAY + hour * 3600 + minute * 60 + second;
+    *out = days * SECONDS_PER_DAY + (int64_t)hour * 3600 + (int64_t)minute * 60 + second;
     return true;
 }
 
@@ -233,7 +233,7 @@ static void copy_shown(span_t value, char out[CRUX_TLS_CERTIFICATE_NAME_SIZE])
                         : CRUX_TLS_CERTIFICATE_NAME_SIZE - 1u;
     for (size_t i = 0; i < length; ++i) {
         uint8_t c = value.p[i];
-        out[i] = c >= 0x20u && c <= 0x7eu ? (char)c : '?';
+        out[i] = (char)(c >= 0x20u && c <= 0x7eu ? c : (uint8_t)'?');
     }
     out[length] = '\0';
 }
@@ -426,8 +426,8 @@ tls_x509_result_t tls_x509_parse(const uint8_t *der, size_t length, tls_x509_vie
     span_t inner_algorithm, inner_whole, issuer, validity, subject, key;
     tls_x509_view_t view;
     if (!der_expect(&tbs, TAG_SEQUENCE, &inner_algorithm, &inner_whole) ||
-        !algorithm_well_formed(inner_algorithm) ||
-        !der_expect(&tbs, TAG_SEQUENCE, &issuer, NULL) || !name_well_formed(issuer, view.issuer) ||
+        !algorithm_well_formed(inner_algorithm) || !der_expect(&tbs, TAG_SEQUENCE, &issuer, NULL) ||
+        !name_well_formed(issuer, view.issuer) ||
         !der_expect(&tbs, TAG_SEQUENCE, &validity, NULL) ||
         !time_value(&validity, &view.not_before_s) || !time_value(&validity, &view.not_after_s) ||
         validity.n != 0u || !der_expect(&tbs, TAG_SEQUENCE, &subject, NULL) ||
@@ -509,7 +509,10 @@ static bool dns_name_valid(const char *text)
     }
     size_t label = 0;
     for (; at <= length; ++at) {
-        char c = at < length ? text[at] : '.';
+        char c = '.';
+        if (at < length) {
+            c = text[at];
+        }
         if (c == '.') {
             if (label == 0u || label > 63u || text[at - 1u] == '-') {
                 return false;
@@ -708,8 +711,8 @@ static tls_x509_build_t put_signature(writer_t *w, size_t from, tls_x509_hash_t 
     }
     uint8_t digest[32];
     uint8_t signature[64];
-    bool signed_ok = hash(w->buffer + from, w->length - from, digest) &&
-                     sign(context, digest, signature);
+    bool signed_ok =
+        hash(w->buffer + from, w->length - from, digest) && sign(context, digest, signature);
     if (!signed_ok) {
         memset(signature, 0, sizeof(signature));
         return TLS_X509_NO_SIGNATURE;

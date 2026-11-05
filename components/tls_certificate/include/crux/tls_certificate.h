@@ -61,9 +61,10 @@ typedef enum {
     CRUX_TLS_CERTIFICATE_ERR_NOT_READY = -2,
     CRUX_TLS_CERTIFICATE_ERR_SESSION_INVALID = -3,
     CRUX_TLS_CERTIFICATE_ERR_DENIED = -4,
-    CRUX_TLS_CERTIFICATE_ERR_BUSY = -5, /**< Another operation, or the TLS side holds both copies. */
-    CRUX_TLS_CERTIFICATE_ERR_MALFORMED = -6,    /**< Not one DER X.509 certificate. */
-    CRUX_TLS_CERTIFICATE_ERR_INVALID = -7,      /**< Well formed, but not one this device can use. */
+    CRUX_TLS_CERTIFICATE_ERR_BUSY =
+        -5, /**< Another operation, or the TLS side holds both copies. */
+    CRUX_TLS_CERTIFICATE_ERR_MALFORMED = -6, /**< Not one DER X.509 certificate. */
+    CRUX_TLS_CERTIFICATE_ERR_INVALID = -7,   /**< Well formed, but not one this device can use. */
     CRUX_TLS_CERTIFICATE_ERR_KEY_MISMATCH = -8, /**< Its public key is not the device key. */
     CRUX_TLS_CERTIFICATE_ERR_TOO_LARGE = -9,    /**< Over the limit, or the output is too small. */
     /**
@@ -137,9 +138,8 @@ crux_tls_certificate_result_t crux_tls_certificate_get(crux_access_session_t ses
  * @retval CRUX_TLS_CERTIFICATE_ERR_TOO_LARGE capacity is below the certificate's size.
  * @return Otherwise as crux_tls_certificate_get().
  */
-crux_tls_certificate_result_t crux_tls_certificate_copy(crux_access_session_t session,
-                                                        uint8_t *der, size_t capacity,
-                                                        size_t *length);
+crux_tls_certificate_result_t crux_tls_certificate_copy(crux_access_session_t session, uint8_t *der,
+                                                        size_t capacity, size_t *length);
 
 /**
  * Create a PKCS #10 certificate request for the device key, signed by it, with these names as its
@@ -154,8 +154,9 @@ crux_tls_certificate_result_t crux_tls_certificate_copy(crux_access_session_t se
  * @return Otherwise a session, permission, NOT_READY or BUSY result.
  */
 crux_tls_certificate_result_t
-crux_tls_certificate_request(crux_access_session_t session, const crux_tls_certificate_names_t *names,
-                             uint8_t *der, size_t capacity, size_t *length);
+crux_tls_certificate_request(crux_access_session_t session,
+                             const crux_tls_certificate_names_t *names, uint8_t *der,
+                             size_t capacity, size_t *length);
 
 /**
  * Replace the active certificate with an operator's, after checking that it is one DER X.509 v3

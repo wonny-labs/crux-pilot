@@ -1,4 +1,5 @@
-/* The event provider: each port event to its web.* record, on the recording fake of the contract. */
+/* The event provider: each port event to its web.* record, on the recording fake of the contract.
+ */
 #include "security_event_fake.h"
 #include "tls_certificate_port.h"
 #include "tls_test.h"
@@ -20,8 +21,8 @@ static void test_replaced(void)
 {
     security_event_fake_reset();
     security_event_fake_boot();
-    crux_tls_certificate_event_t event = event_of(CRUX_TLS_CERTIFICATE_EVENT_REPLACED,
-                                                  CRUX_TLS_CERTIFICATE_REASON_GENERATED, false);
+    crux_tls_certificate_event_t event =
+        event_of(CRUX_TLS_CERTIFICATE_EVENT_REPLACED, CRUX_TLS_CERTIFICATE_REASON_GENERATED, false);
     crux_tls_certificate_port_event(&event);
     const crux_security_event_record_t *record =
         security_event_fake_last(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REPLACED);
@@ -30,13 +31,13 @@ static void test_replaced(void)
     CHECK(record != NULL && strcmp(record->subject, "self_signed") == 0);
     CHECK(record != NULL && record->user[0] == '\0' && record->channel == 0u);
 
-    event = event_of(CRUX_TLS_CERTIFICATE_EVENT_REPLACED, CRUX_TLS_CERTIFICATE_REASON_INSTALLED,
-                     false);
+    event =
+        event_of(CRUX_TLS_CERTIFICATE_EVENT_REPLACED, CRUX_TLS_CERTIFICATE_REASON_INSTALLED, false);
     event.channel = 2;
     event.source_length = 4;
     event.source[0] = 192;
     event.source[3] = 7;
-    strcpy(event.user, "operator");
+    memcpy(event.user, "operator", sizeof("operator"));
     crux_tls_certificate_port_event(&event);
     record = security_event_fake_last(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REPLACED);
     CHECK(strcmp(record->subject, "installed") == 0);
@@ -69,7 +70,7 @@ static void test_rejected(void)
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
         crux_tls_certificate_event_t event =
             event_of(CRUX_TLS_CERTIFICATE_EVENT_REJECTED, cases[i].reason, false);
-        strcpy(event.user, "admin");
+        memcpy(event.user, "admin", sizeof("admin"));
         crux_tls_certificate_port_event(&event);
         const crux_security_event_record_t *record =
             security_event_fake_last(CRUX_SECURITY_EVENT_ID_WEB_CERTIFICATE_REJECTED);

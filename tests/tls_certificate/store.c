@@ -37,8 +37,8 @@ static void boot_access(void)
 {
     static const crux_access_origin_t serial = {CRUX_ACCESS_CHANNEL_SERIAL, {0}, 0};
     access_test_boot(&policy);
-    CHECK(crux_access_provision_first_account("admin", PASSWORD, strlen(PASSWORD),
-                                              "administrator", &serial) == CRUX_ACCESS_OK);
+    CHECK(crux_access_provision_first_account("admin", PASSWORD, strlen(PASSWORD), "administrator",
+                                              &serial) == CRUX_ACCESS_OK);
     admin = access_test_session("admin", PASSWORD, &access_test_web);
 }
 
@@ -68,8 +68,8 @@ static size_t stored(uint8_t *record)
 {
     size_t length = 0;
     CHECK(crux_credential_read(CRUX_CREDENTIAL_RECORD_TLS_CERTIFICATE, record,
-                               CRUX_CREDENTIAL_CERTIFICATE_BYTES_MAX, &length) ==
-          CRUX_CREDENTIAL_OK);
+                               CRUX_CREDENTIAL_CERTIFICATE_BYTES_MAX,
+                               &length) == CRUX_CREDENTIAL_OK);
     return length;
 }
 

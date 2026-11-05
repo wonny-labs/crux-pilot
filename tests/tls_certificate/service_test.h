@@ -40,7 +40,7 @@ crux_tls_certificate_result_t fixture_restart(crux_tls_certificate_start_t *how)
 /* The active certificate, through the public API. */
 size_t active_der(uint8_t der[CRUX_TLS_CERTIFICATE_DER_MAX]);
 /* A stored record of this module's form around der. */
-size_t record_of(const uint8_t *der, size_t length, crux_tls_certificate_source_t source,
+size_t record_of(crux_tls_certificate_source_t source, const uint8_t *der, size_t length,
                  uint8_t *record);
 
 #endif

@@ -52,8 +52,8 @@ typedef bool (*tls_x509_hash_t)(const uint8_t *data, size_t length, uint8_t dige
 /* How a build ended. */
 typedef enum {
     TLS_X509_BUILT = 0,
-    TLS_X509_NO_ROOM,    /* The output is too small. */
-    TLS_X509_BAD_INPUT,  /* Names or dates outside the rules. */
+    TLS_X509_NO_ROOM,     /* The output is too small. */
+    TLS_X509_BAD_INPUT,   /* Names or dates outside the rules. */
     TLS_X509_NO_SIGNATURE /* The hash or the signature failed. */
 } tls_x509_build_t;
 

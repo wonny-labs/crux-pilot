@@ -76,9 +76,9 @@ typedef enum {
  * its type, as the store does.
  *
  * A stored certificate that is malformed or does not match the key is never replaced here. It is
- * logged as web.certificate_rejected, no certificate is active, a TLS provider has nothing to serve,
- * and only crux_tls_certificate_install() or crux_tls_certificate_regenerate(), for example from the
- * serial console, makes one active.
+ * logged as web.certificate_rejected, no certificate is active, a TLS provider has nothing to
+ * serve, and only crux_tls_certificate_install() or crux_tls_certificate_regenerate(), for example
+ * from the serial console, makes one active.
  *
  * @param options Borrowed for the program's life.
  * @param[out] how Written only on success.
@@ -90,13 +90,15 @@ typedef enum {
  * @retval CRUX_TLS_CERTIFICATE_ERR_KEY_MISMATCH The stored certificate is another key's, as after a
  * key rotation. Failed closed.
  * @retval CRUX_TLS_CERTIFICATE_ERR_STORE The key or the new certificate could not be read or saved.
- * @retval CRUX_TLS_CERTIFICATE_ERR_CRYPTO The key could not be generated, or the certificate signed.
+ * @retval CRUX_TLS_CERTIFICATE_ERR_CRYPTO The key could not be generated, or the certificate
+ * signed.
  * @retval CRUX_TLS_CERTIFICATE_ERR_NOT_READY The store is unusable or not started, or a lock could
  * not be made.
  * @retval CRUX_TLS_CERTIFICATE_ERR_BUSY Already started.
  */
-crux_tls_certificate_result_t crux_tls_certificate_start(const crux_tls_certificate_options_t *options,
-                                                         crux_tls_certificate_start_t *how);
+crux_tls_certificate_result_t
+crux_tls_certificate_start(const crux_tls_certificate_options_t *options,
+                           crux_tls_certificate_start_t *how);
 
 /**
  * Take the active certificate and the key for a TLS stack. Its buffer stays unchanged until it is
@@ -110,7 +112,8 @@ crux_tls_certificate_result_t crux_tls_certificate_start(const crux_tls_certific
  * @retval CRUX_TLS_CERTIFICATE_ERR_BUSY Another operation runs.
  * @retval CRUX_TLS_CERTIFICATE_ERR_INVALID_ARGUMENT No output.
  */
-crux_tls_certificate_result_t crux_tls_certificate_material_take(crux_tls_certificate_material_t *out);
+crux_tls_certificate_result_t
+crux_tls_certificate_material_take(crux_tls_certificate_material_t *out);
 
 /**
  * Give back material once the TLS stack no longer refers to it, such as after

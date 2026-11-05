@@ -69,6 +69,8 @@ header and an application do not include `<psa/crypto.h>`: they reach cryptograp
 
 Used only to test the above, and not qualified for a consumer: `psa_sign_hash`, `psa_sign_message`, `psa_verify_message`, `psa_get_key_attributes` and its getters, and `psa_key_derivation_verify_bytes`, which TF-PSA-Crypto does not implement.
 
+The [TLS certificate ports](tls-certificate.md) of Issue #190 call `psa_sign_hash` with ECDSA P-256 and SHA-256 on an imported volatile key. That use is **not qualified** by #142: it ran in #142's tests on both providers, and as a consumer only on TF-PSA-Crypto on Linux Host, in `tests/tls_certificate/psa`.
+
 Limits that go with this subset:
 
 - A provider differs by more than the API. Algorithm support, key storage, entropy source and hardware acceleration are declared apart for each provider, and passing the cases establishes none of the last three.

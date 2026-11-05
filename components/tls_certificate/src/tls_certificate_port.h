@@ -17,11 +17,12 @@
 bool crux_tls_certificate_port_sha256(const uint8_t *data, size_t length, uint8_t digest[32]);
 
 /*
- * ECDSA P-256 over a SHA-256 digest with the device's private scalar, as r then s, each 32 bytes
- * big-endian. The provider clears any copy of the scalar it made. Returns false if it failed.
+ * ECDSA P-256 over a SHA-256 digest with the device's private scalar, written to signature as r then
+ * s, each 32 bytes big-endian. The provider clears any copy of the scalar it made, and the signature
+ * on failure. Returns false if it failed.
  */
-bool crux_tls_certificate_port_sign(const uint8_t private_key[32], const uint8_t digest[32],
-                                    uint8_t signature[64]);
+bool crux_tls_certificate_port_sign(const uint8_t digest[32], uint8_t signature[64],
+                                    const uint8_t private_key[32]);
 
 /* Random bytes, for serial numbers. Returns false if the source failed. */
 bool crux_tls_certificate_port_random(uint8_t *buffer, size_t length);

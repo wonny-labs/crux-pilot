@@ -41,7 +41,8 @@ static void expect_refused(const before_t *before, crux_tls_certificate_reason_t
     CHECK(fake_store_write_count() == before->writes);
     size_t stored_length = 0;
     const uint8_t *stored = fake_store_certificate(&stored_length);
-    CHECK(stored_length == before->store_length && memcmp(stored, before->store, stored_length) == 0);
+    CHECK(stored_length == before->store_length &&
+          memcmp(stored, before->store, stored_length) == 0);
     CHECK(fake_events_count() == before->events + 1u);
     const crux_tls_certificate_event_t *event = fake_event_last();
     CHECK(event != NULL && event->type == CRUX_TLS_CERTIFICATE_EVENT_REJECTED);
@@ -49,6 +50,18 @@ static void expect_refused(const before_t *before, crux_tls_certificate_reason_t
     CHECK(event != NULL && strcmp(event->user, user) == 0);
     CHECK(event != NULL && event->channel == CRUX_ACCESS_CHANNEL_WEB);
     CHECK(event != NULL && event->source_length == 4u && event->source[3] == 1u);
+}
+
+static bool bytes_equal(const void *a, size_t length, const void *b)
+{
+    const uint8_t *x = a;
+    const uint8_t *y = b;
+    for (size_t i = 0; i < length; ++i) {
+        if (x[i] != y[i]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 static void refused(const uint8_t *der, size_t length, crux_tls_certificate_result_t expected,
@@ -59,13 +72,13 @@ static void refused(const uint8_t *der, size_t length, crux_tls_certificate_resu
     crux_tls_certificate_info_t out;
     memset(&out, 0x5a, sizeof(out));
     crux_tls_certificate_info_t untouched = out;
-    crux_tls_certificate_result_t result = crux_tls_certificate_install(s_operator, der, length,
-                                                                        &out);
+    crux_tls_certificate_result_t result =
+        crux_tls_certificate_install(s_operator, der, length, &out);
     if (result != expected) {
         printf("install of %zu bytes: %d, expected %d\n", length, (int)result, (int)expected);
     }
     CHECK(result == expected);
-    CHECK(memcmp(&out, &untouched, sizeof(out)) == 0);
+    CHECK(bytes_equal(&out, sizeof(out), &untouched));
     expect_refused(&before, reason, "operator");
 }
 
@@ -97,8 +110,8 @@ static void test_invalid(void)
     /* fixture_ec_self with its outer signature algorithm made SHA-384: the two differ. */
     uint8_t differing[sizeof(fixture_ec_self)];
     memcpy(differing, fixture_ec_self, sizeof(differing));
-    static const uint8_t ecdsa_sha256[] = {0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03,
-                                           0x02};
+    static const uint8_t ecdsa_sha256[] = {0x06, 0x08, 0x2a, 0x86, 0x48,
+                                           0xce, 0x3d, 0x04, 0x03, 0x02};
     size_t last = 0;
     for (size_t i = 0; i + sizeof(ecdsa_sha256) <= sizeof(differing); ++i) {
         if (memcmp(differing + i, ecdsa_sha256, sizeof(ecdsa_sha256)) == 0) {
@@ -206,8 +219,8 @@ static void test_accepted(void)
     size_t stored_length = 0;
     const uint8_t *stored = fake_store_certificate(&stored_length);
     uint8_t expected[CRUX_CREDENTIAL_CERTIFICATE_BYTES_MAX];
-    size_t expected_length = record_of(fixture_ec_self, sizeof(fixture_ec_self),
-                                       CRUX_TLS_CERTIFICATE_SOURCE_INSTALLED, expected);
+    size_t expected_length = record_of(CRUX_TLS_CERTIFICATE_SOURCE_INSTALLED, fixture_ec_self,
+                                       sizeof(fixture_ec_self), expected);
     CHECK(stored_length == expected_length && memcmp(stored, expected, expected_length) == 0);
     uint8_t der[CRUX_TLS_CERTIFICATE_DER_MAX];
     CHECK(active_der(der) == sizeof(fixture_ec_self));
@@ -311,7 +324,8 @@ int main(void)
     tls_test_case("accepted", test_accepted);
     tls_test_case("expired is installed and reported", test_expired_is_installed_and_reported);
     tls_test_case("save failure keeps the previous", test_save_failure_keeps_the_previous);
-    tls_test_case("arguments and permission log nothing", test_arguments_and_permission_log_nothing);
+    tls_test_case("arguments and permission log nothing",
+                  test_arguments_and_permission_log_nothing);
     tls_test_case("checks statement", test_checks_statement);
     return tls_test_finish("tls_certificate_install");
 }

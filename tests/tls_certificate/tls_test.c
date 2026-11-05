@@ -17,6 +17,8 @@ void tls_test_case(const char *name, void (*body)(void))
         exit(2);
     }
     if (child == 0) {
+        /* Unbuffered, so that a case that crashes still shows what failed before it. */
+        setvbuf(stdout, NULL, _IONBF, 0);
         body();
         fflush(NULL);
         _exit(tls_test_failures == 0 ? 0 : 1);
@@ -54,7 +56,7 @@ static uint32_t rotr(uint32_t value, unsigned count)
 static void block(uint32_t state[8], const uint8_t data[64])
 {
     uint32_t w[64];
-    for (unsigned i = 0; i < 16u; ++i) {
+    for (size_t i = 0; i < 16u; ++i) {
         w[i] = (uint32_t)data[i * 4u] << 24 | (uint32_t)data[i * 4u + 1u] << 16 |
                (uint32_t)data[i * 4u + 2u] << 8 | data[i * 4u + 3u];
     }
@@ -66,8 +68,8 @@ static void block(uint32_t state[8], const uint8_t data[64])
     uint32_t a = state[0], b = state[1], c = state[2], d = state[3], e = state[4], f = state[5],
              g = state[6], h = state[7];
     for (unsigned i = 0; i < 64u; ++i) {
-        uint32_t t1 = h + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + k[i] +
-                      w[i];
+        uint32_t t1 =
+            h + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + k[i] + w[i];
         uint32_t t2 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c));
         h = g;
         g = f;
@@ -111,7 +113,7 @@ void tls_test_sha256(const uint8_t *data, size_t length, uint8_t digest[32])
     if (tail_length == 128u) {
         block(state, tail + 64);
     }
-    for (unsigned i = 0; i < 8u; ++i) {
+    for (size_t i = 0; i < 8u; ++i) {
         digest[i * 4u] = (uint8_t)(state[i] >> 24);
         digest[i * 4u + 1u] = (uint8_t)(state[i] >> 16);
         digest[i * 4u + 2u] = (uint8_t)(state[i] >> 8);

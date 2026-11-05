@@ -44,7 +44,7 @@ static void test_first_boot(void)
     const uint8_t *stored = fake_store_certificate(&stored_length);
     uint8_t expected[CRUX_CREDENTIAL_CERTIFICATE_BYTES_MAX];
     size_t expected_length =
-        record_of(der, length, CRUX_TLS_CERTIFICATE_SOURCE_SELF_SIGNED, expected);
+        record_of(CRUX_TLS_CERTIFICATE_SOURCE_SELF_SIGNED, der, length, expected);
     CHECK(stored_length == expected_length && memcmp(stored, expected, expected_length) == 0);
 
     /* One event, from no one. */
@@ -168,8 +168,8 @@ static void test_first_save_fails(void)
 }
 
 /* A stored record that cannot be served: refused, logged, never replaced, and recoverable. */
-static void stored_refused(const uint8_t *record, size_t length,
-                           crux_tls_certificate_result_t expected)
+static void stored_refused(crux_tls_certificate_result_t expected, const uint8_t *record,
+                           size_t length)
 {
     fixture_boot();
     fake_store_set_certificate(record, length);
@@ -194,16 +194,16 @@ static void stored_refused(const uint8_t *record, size_t length,
     /* A request still works: it needs the key alone. */
     uint8_t request[CRUX_TLS_CERTIFICATE_CSR_MAX];
     size_t request_length = 0;
-    CHECK(crux_tls_certificate_request(s_admin, NULL, request, sizeof(request),
-                                       &request_length) == CRUX_TLS_CERTIFICATE_OK);
+    CHECK(crux_tls_certificate_request(s_admin, NULL, request, sizeof(request), &request_length) ==
+          CRUX_TLS_CERTIFICATE_OK);
 }
 
 static void test_stored_other_key(void)
 {
     uint8_t record[CRUX_CREDENTIAL_CERTIFICATE_BYTES_MAX];
-    size_t length = record_of(fixture_other, sizeof(fixture_other),
-                              CRUX_TLS_CERTIFICATE_SOURCE_INSTALLED, record);
-    stored_refused(record, length, CRUX_TLS_CERTIFICATE_ERR_KEY_MISMATCH);
+    size_t length = record_of(CRUX_TLS_CERTIFICATE_SOURCE_INSTALLED, fixture_other,
+                              sizeof(fixture_other), record);
+    stored_refused(CRUX_TLS_CERTIFICATE_ERR_KEY_MISMATCH, record, length);
     /* An operator installs a matching one. */
     CHECK(crux_tls_certificate_install(s_admin, fixture_ec_self, sizeof(fixture_ec_self), NULL) ==
           CRUX_TLS_CERTIFICATE_OK);
@@ -215,9 +215,9 @@ static void test_stored_other_key(void)
 static void test_stored_malformed(void)
 {
     uint8_t record[CRUX_CREDENTIAL_CERTIFICATE_BYTES_MAX];
-    size_t length = record_of(fixture_ec_self, sizeof(fixture_ec_self) - 3u,
-                              CRUX_TLS_CERTIFICATE_SOURCE_INSTALLED, record);
-    stored_refused(record, length, CRUX_TLS_CERTIFICATE_ERR_MALFORMED);
+    size_t length = record_of(CRUX_TLS_CERTIFICATE_SOURCE_INSTALLED, fixture_ec_self,
+                              sizeof(fixture_ec_self) - 3u, record);
+    stored_refused(CRUX_TLS_CERTIFICATE_ERR_MALFORMED, record, length);
     /* An operator regenerates a self-signed one. */
     crux_tls_certificate_info_t info;
     CHECK(crux_tls_certificate_regenerate(s_admin, NULL, &info) == CRUX_TLS_CERTIFICATE_OK);
@@ -229,13 +229,13 @@ static size_t header_record_length;
 
 static void stored_header_case(void)
 {
-    stored_refused(header_record, header_record_length, CRUX_TLS_CERTIFICATE_ERR_INVALID);
+    stored_refused(CRUX_TLS_CERTIFICATE_ERR_INVALID, header_record, header_record_length);
 }
 
 static void run_header_cases(void)
 {
-    header_record_length = record_of(fixture_ec_self, sizeof(fixture_ec_self),
-                                     CRUX_TLS_CERTIFICATE_SOURCE_INSTALLED, header_record);
+    header_record_length = record_of(CRUX_TLS_CERTIFICATE_SOURCE_INSTALLED, fixture_ec_self,
+                                     sizeof(fixture_ec_self), header_record);
     const size_t positions[] = {0, 3, 4, 5, 6, 7};
     for (size_t i = 0; i < sizeof(positions) / sizeof(positions[0]); ++i) {
         header_record[positions[i]] ^= 0x40u;
@@ -376,8 +376,8 @@ static void test_regenerate(void)
     fixture_start();
     crux_tls_certificate_info_t first, second;
     CHECK(crux_tls_certificate_get(s_admin, &first) == CRUX_TLS_CERTIFICATE_OK);
-    CHECK(crux_tls_certificate_install(s_operator, fixture_ec_self, sizeof(fixture_ec_self), NULL) ==
-          CRUX_TLS_CERTIFICATE_OK);
+    CHECK(crux_tls_certificate_install(s_operator, fixture_ec_self, sizeof(fixture_ec_self),
+                                       NULL) == CRUX_TLS_CERTIFICATE_OK);
     CHECK(crux_tls_certificate_regenerate(s_operator, NULL, &second) == CRUX_TLS_CERTIFICATE_OK);
     CHECK(second.source == CRUX_TLS_CERTIFICATE_SOURCE_SELF_SIGNED);
     CHECK(memcmp(first.fingerprint, second.fingerprint, 32) != 0); /* A new serial. */
@@ -450,8 +450,8 @@ static void test_material(void)
     size_t length = active_der(der);
     CHECK(held.certificate_length == length && memcmp(held.certificate, der, length) == 0);
 
-    CHECK(crux_tls_certificate_install(s_operator, fixture_ec_self, sizeof(fixture_ec_self), NULL) ==
-          CRUX_TLS_CERTIFICATE_OK);
+    CHECK(crux_tls_certificate_install(s_operator, fixture_ec_self, sizeof(fixture_ec_self),
+                                       NULL) == CRUX_TLS_CERTIFICATE_OK);
     CHECK(changes == 1u);
     CHECK(held.certificate_length == sizeof(fixture_ec_self));
     CHECK(memcmp(held.certificate, fixture_ec_self, sizeof(fixture_ec_self)) == 0);
@@ -471,8 +471,8 @@ static void test_material_held_blocks_overwrite(void)
     uint8_t old_copy[CRUX_TLS_CERTIFICATE_DER_MAX];
     memcpy(old_copy, old_material.certificate, old_material.certificate_length);
 
-    CHECK(crux_tls_certificate_install(s_operator, fixture_ec_self, sizeof(fixture_ec_self), NULL) ==
-          CRUX_TLS_CERTIFICATE_OK);
+    CHECK(crux_tls_certificate_install(s_operator, fixture_ec_self, sizeof(fixture_ec_self),
+                                       NULL) == CRUX_TLS_CERTIFICATE_OK);
     /* The old material is unchanged while held. */
     CHECK(memcmp(old_material.certificate, old_copy, old_material.certificate_length) == 0);
     CHECK(crux_tls_certificate_material_take(&new_material) == CRUX_TLS_CERTIFICATE_OK);
@@ -525,8 +525,8 @@ static void test_contention(void)
 {
     fixture_start();
     fake_store_write_hook(during_save);
-    CHECK(crux_tls_certificate_install(s_operator, fixture_ec_self, sizeof(fixture_ec_self), NULL) ==
-          CRUX_TLS_CERTIFICATE_OK);
+    CHECK(crux_tls_certificate_install(s_operator, fixture_ec_self, sizeof(fixture_ec_self),
+                                       NULL) == CRUX_TLS_CERTIFICATE_OK);
     fake_store_write_hook(NULL);
     fake_events_hook(during_event);
     CHECK(crux_tls_certificate_install(s_operator, fixture_other, sizeof(fixture_other), NULL) ==
@@ -557,8 +557,8 @@ static void test_private_key_in_no_output(void)
     CHECK(crux_tls_certificate_regenerate(s_admin, NULL, &info) == CRUX_TLS_CERTIFICATE_OK);
     CHECK(!tls_test_contains((const uint8_t *)&info, sizeof(info), scalar, 32));
     for (size_t i = 0; i < fake_events_count(); ++i) {
-        CHECK(!tls_test_contains((const uint8_t *)fake_event(i), sizeof(*fake_event(i)), scalar,
-                                 32));
+        CHECK(
+            !tls_test_contains((const uint8_t *)fake_event(i), sizeof(*fake_event(i)), scalar, 32));
     }
     /* In RAM, only the PKCS #8 copy the TLS stack points to holds it. */
     CHECK(!crux_tls_certificate_test_ram_holds(scalar, 32));

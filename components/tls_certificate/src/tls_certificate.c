@@ -83,7 +83,7 @@ static bool hash(const uint8_t *data, size_t length, uint8_t digest[32])
 static bool sign_with_device_key(void *context, const uint8_t digest[32], uint8_t signature[64])
 {
     (void)context;
-    return crux_tls_certificate_port_sign(key_der + KEY_SCALAR_OFFSET, digest, signature);
+    return crux_tls_certificate_port_sign(digest, signature, key_der + KEY_SCALAR_OFFSET);
 }
 
 /* ---- Events. */
@@ -161,9 +161,9 @@ static crux_tls_certificate_result_t from_store(crux_credential_result_t result)
 
 static crux_tls_certificate_result_t from_parse(tls_x509_result_t result)
 {
-    return result == TLS_X509_OK         ? CRUX_TLS_CERTIFICATE_OK
+    return result == TLS_X509_OK        ? CRUX_TLS_CERTIFICATE_OK
            : result == TLS_X509_INVALID ? CRUX_TLS_CERTIFICATE_ERR_INVALID
-                                         : CRUX_TLS_CERTIFICATE_ERR_MALFORMED;
+                                        : CRUX_TLS_CERTIFICATE_ERR_MALFORMED;
 }
 
 static crux_tls_certificate_reason_t reason_of(crux_tls_certificate_result_t result)
@@ -186,7 +186,8 @@ static crux_tls_certificate_reason_t reason_of(crux_tls_certificate_result_t res
 static crux_tls_certificate_result_t judge(slot_t *slot, size_t length)
 {
     tls_x509_view_t view;
-    crux_tls_certificate_result_t result = from_parse(tls_x509_parse(slot_der(slot), length, &view));
+    crux_tls_certificate_result_t result =
+        from_parse(tls_x509_parse(slot_der(slot), length, &view));
     if (result != CRUX_TLS_CERTIFICATE_OK) {
         return result;
     }
@@ -249,8 +250,8 @@ static void make_active(slot_t *slot)
 static crux_tls_certificate_result_t build_self_signed(slot_t *slot,
                                                        const crux_tls_certificate_names_t *names)
 {
-    tls_x509_self_signed_t input = {names, {0}, start_options->not_before_s,
-                                    start_options->validity_days};
+    tls_x509_self_signed_t input = {
+        names, {0}, start_options->not_before_s, start_options->validity_days};
     if (!crux_tls_certificate_port_random(input.serial, sizeof(input.serial))) {
         return CRUX_TLS_CERTIFICATE_ERR_CRYPTO;
     }
@@ -327,8 +328,9 @@ static crux_tls_certificate_result_t load_stored(size_t length)
     return judge(slot, length - RECORD_HEADER_BYTES);
 }
 
-crux_tls_certificate_result_t crux_tls_certificate_start(const crux_tls_certificate_options_t *options,
-                                                         crux_tls_certificate_start_t *how)
+crux_tls_certificate_result_t
+crux_tls_certificate_start(const crux_tls_certificate_options_t *options,
+                           crux_tls_certificate_start_t *how)
 {
     if (!options_valid(options) || how == NULL) {
         return CRUX_TLS_CERTIFICATE_ERR_INVALID_ARGUMENT;
@@ -361,7 +363,8 @@ crux_tls_certificate_result_t crux_tls_certificate_start(const crux_tls_certific
             return result;
         }
         make_active(&slots[0]);
-        emit(CRUX_TLS_CERTIFICATE_EVENT_REPLACED, CRUX_TLS_CERTIFICATE_REASON_GENERATED, false, NULL);
+        emit(CRUX_TLS_CERTIFICATE_EVENT_REPLACED, CRUX_TLS_CERTIFICATE_REASON_GENERATED, false,
+             NULL);
         *how = CRUX_TLS_CERTIFICATE_GENERATED;
         return CRUX_TLS_CERTIFICATE_OK;
     }
@@ -440,9 +443,8 @@ crux_tls_certificate_result_t crux_tls_certificate_get(crux_access_session_t ses
     return result;
 }
 
-crux_tls_certificate_result_t crux_tls_certificate_copy(crux_access_session_t session,
-                                                        uint8_t *der, size_t capacity,
-                                                        size_t *length)
+crux_tls_certificate_result_t crux_tls_certificate_copy(crux_access_session_t session, uint8_t *der,
+                                                        size_t capacity, size_t *length)
 {
     if (length == NULL || (der == NULL && capacity > 0u)) {
         return CRUX_TLS_CERTIFICATE_ERR_INVALID_ARGUMENT;
@@ -457,7 +459,7 @@ crux_tls_certificate_result_t crux_tls_certificate_copy(crux_access_session_t se
     } else {
         slot_t *slot = &slots[active];
         *length = slot->length;
-        if (capacity < slot->length) {
+        if (capacity < slot->length || der == NULL) {
             result = CRUX_TLS_CERTIFICATE_ERR_TOO_LARGE;
         } else {
             memcpy(der, slot_der(slot), slot->length);
@@ -468,8 +470,9 @@ crux_tls_certificate_result_t crux_tls_certificate_copy(crux_access_session_t se
 }
 
 crux_tls_certificate_result_t
-crux_tls_certificate_request(crux_access_session_t session, const crux_tls_certificate_names_t *names,
-                             uint8_t *der, size_t capacity, size_t *length)
+crux_tls_certificate_request(crux_access_session_t session,
+                             const crux_tls_certificate_names_t *names, uint8_t *der,
+                             size_t capacity, size_t *length)
 {
     if (length == NULL || der == NULL) {
         return CRUX_TLS_CERTIFICATE_ERR_INVALID_ARGUMENT;
@@ -481,9 +484,9 @@ crux_tls_certificate_request(crux_access_session_t session, const crux_tls_certi
     }
     const crux_tls_certificate_names_t *chosen = names != NULL ? names : &start_options->names;
     size_t built_length = 0;
-    tls_x509_build_t built = tls_x509_build_request(chosen, device_public, hash,
-                                                    sign_with_device_key, NULL, request_scratch,
-                                                    sizeof(request_scratch), &built_length);
+    tls_x509_build_t built =
+        tls_x509_build_request(chosen, device_public, hash, sign_with_device_key, NULL,
+                               request_scratch, sizeof(request_scratch), &built_length);
     if (built == TLS_X509_BAD_INPUT) {
         result = CRUX_TLS_CERTIFICATE_ERR_INVALID_ARGUMENT;
     } else if (built != TLS_X509_BUILT) {
@@ -607,7 +610,8 @@ crux_tls_certificate_dates_t crux_tls_certificate_dates_at(const crux_tls_certif
 
 /* ---- For a composition. */
 
-crux_tls_certificate_result_t crux_tls_certificate_material_take(crux_tls_certificate_material_t *out)
+crux_tls_certificate_result_t
+crux_tls_certificate_material_take(crux_tls_certificate_material_t *out)
 {
     if (out == NULL) {
         return CRUX_TLS_CERTIFICATE_ERR_INVALID_ARGUMENT;
