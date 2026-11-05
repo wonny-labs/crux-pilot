@@ -28,3 +28,9 @@ target_compile_options(web_cpp_headers PRIVATE -Wall -Wextra -Wpedantic -Werror)
 if(TARGET crux::thread)
     add_subdirectory(session)
 endif()
+
+# The status and configuration routes on the real services (Issue #187).
+if(TARGET crux::thread AND TARGET crux_config_service_fake_events AND TARGET crux_mgmt_status_core
+   AND TARGET crux_mgmt_status_fake_sources)
+    add_subdirectory(management)
+endif()

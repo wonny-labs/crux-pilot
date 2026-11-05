@@ -36,6 +36,9 @@ extern crux_access_session_t session_admin; /* A session made directly, for acco
 /* Fresh Access with the accounts admin (administrator), viewer and forced (viewer, forced change),
  * a fresh core with the session lookup, and a fresh transport. No worker thread. */
 void session_test_setup(void);
+/* Only the web half of the above: the core, the session module, the fake ports and the transport,
+ * for a suite that boots Access with its own accounts. The caller has initialised Access. */
+void session_test_setup_web(void);
 
 /* Sends a request on a new connection and returns the reply, which stays valid until the next. */
 const fake_reply_t *session_send(const session_request_t *request);

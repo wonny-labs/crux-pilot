@@ -57,14 +57,17 @@ fail() {
 
 run_host() {
     local targets=(web_routing web_enforcement web_requests web_cpp_headers web_session_login web_session_sessions
-        web_session_json web_session_concurrency web_session_cpp_header)
+        web_session_json web_session_concurrency web_session_cpp_header web_management_status web_management_config
+        web_management_save web_management_account web_management_fuzz web_management_cpp_header
+        web_management_openapi_fixture)
     for preset in host-debug host-sanitize; do
         cmake --preset "$preset" -S "$repo" -DFETCHCONTENT_FULLY_DISCONNECTED=ON
         cmake --build --preset "$preset" --target "${targets[@]}"
         ctest --test-dir "$repo/build/linux/${preset#host-}" --output-on-failure --no-tests=error -R '^Web\.'
     done
     "$tidy" -p "$repo/build/linux/debug" "$repo"/components/web/src/*.c "$repo"/tests/web/*.c \
-        "$repo"/components/web/session/*.c "$repo"/tests/web/session/*.c
+        "$repo"/components/web/session/*.c "$repo"/tests/web/session/*.c \
+        "$repo"/components/web/management/*.c "$repo"/tests/web/management/*.c
     python3 "$repo/scripts/check-web-boundary.py"
     python3 -m unittest discover -s "$repo/tests/build" -p test_web_routes.py
     python3 -m unittest discover -s "$repo/tests/build" -p test_web_tls_profile.py
