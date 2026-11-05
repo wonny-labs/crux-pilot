@@ -29,7 +29,8 @@ static void test_escapes(void)
 {
     web_json_field_t fields[2] = {{"user", user, sizeof(user), 0u, false, false},
                                   {"password", password, sizeof(password), 0u, false, false}};
-    static const char body[] = "{\"user\":\"\\\"\\\\\\/\\b\\f\\n\\r\\t\",\"password\":\"\\u00e9\\ud83d\\ude00\"}";
+    static const char body[] =
+        "{\"user\":\"\\\"\\\\\\/\\b\\f\\n\\r\\t\",\"password\":\"\\u00e9\\ud83d\\ude00\"}";
 
     CHECK(web_json_parse_strings((const uint8_t *)body, strlen(body), fields, 2u));
     CHECK(strcmp(user, "\"\\/\b\f\n\r\t") == 0);

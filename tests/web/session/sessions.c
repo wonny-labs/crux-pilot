@@ -1,5 +1,6 @@
-/* The session lookup: missing, forged and expired sessions, the forgery rules, the idle and absolute
- * limits, sessions ended by account changes, logout, the current user and the response headers. */
+/* The session lookup: missing, forged and expired sessions, the forgery rules, the idle and
+ * absolute limits, sessions ended by account changes, logout, the current user and the response
+ * headers. */
 #include "session_test.h"
 
 extern crux_access_session_t session_test_route_session;
@@ -20,10 +21,8 @@ static void expect_error(const fake_reply_t *reply, int status, const char *code
 
 static const fake_reply_t *get_with_cookie(const char *cookie, const char *url)
 {
-    session_request_t request = {.method = CRUX_WEB_GET,
-                                 .url = url,
-                                 .cookie = cookie,
-                                 .host = SESSION_TEST_HOST};
+    session_request_t request = {
+        .method = CRUX_WEB_GET, .url = url, .cookie = cookie, .host = SESSION_TEST_HOST};
 
     return session_send(&request);
 }
@@ -79,8 +78,7 @@ static void test_forged_sessions(void)
     expect_error(get_with_cookie(cookie, "/api/v1/session/me"), 401, "unauthorized");
     snprintf(cookie, sizeof(cookie), "Crux_session=%s", jar.session);
     expect_error(get_with_cookie(cookie, "/api/v1/session/me"), 401, "unauthorized");
-    snprintf(cookie, sizeof(cookie), "crux_session=%s; crux_session=%s", jar.session,
-             jar.session);
+    snprintf(cookie, sizeof(cookie), "crux_session=%s; crux_session=%s", jar.session, jar.session);
     expect_error(get_with_cookie(cookie, "/api/v1/session/me"), 401, "unauthorized");
     snprintf(cookie, sizeof(cookie),
              "crux_session=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA; crux_session=%s",
@@ -178,13 +176,13 @@ static void test_configured_origins(void)
     CHECK(crux_web_session_init(&config) == CRUX_WEB_OK);
     CHECK(session_login("viewer", SESSION_TEST_PASSWORD, &jar)->status == 403);
     {
-        session_request_t login = {.method = CRUX_WEB_POST,
-                                   .url = "/api/v1/session",
-                                   .origin = "https://192.0.2.10",
-                                   .host = "anything",
-                                   .content_type = "application/json",
-                                   .body = "{\"user\":\"viewer\",\"password\":\"" SESSION_TEST_PASSWORD
-                                           "\"}"};
+        session_request_t login = {
+            .method = CRUX_WEB_POST,
+            .url = "/api/v1/session",
+            .origin = "https://192.0.2.10",
+            .host = "anything",
+            .content_type = "application/json",
+            .body = "{\"user\":\"viewer\",\"password\":\"" SESSION_TEST_PASSWORD "\"}"};
         const fake_reply_t *reply = session_send(&login);
         char id[80];
 
@@ -195,7 +193,11 @@ static void test_configured_origins(void)
     }
     {
         const crux_web_session_config_t bad = {"ftp", NULL, 0u};
+        const crux_web_session_config_t plain = {"http", NULL, 0u};
         const crux_web_session_config_t missing = {"https", NULL, 1u};
+
+        /* Plain HTTP needs the test image's build definition, which this build lacks. */
+        CHECK(crux_web_session_init(&plain) == CRUX_WEB_ERR_INVALID_ARGUMENT);
 
         CHECK(crux_web_session_init(&bad) == CRUX_WEB_ERR_INVALID_ARGUMENT);
         CHECK(crux_web_session_init(&missing) == CRUX_WEB_ERR_INVALID_ARGUMENT);
@@ -240,8 +242,7 @@ static void test_idle_and_absolute_expiry(void)
     session_clock_advance(800000u);
     CHECK(session_with(&jar, CRUX_WEB_GET, "/api/v1/session/me", NULL)->status == 200);
     session_clock_advance(200000u);
-    expect_error(session_with(&jar, CRUX_WEB_GET, "/api/v1/session/me", NULL), 401,
-                 "unauthorized");
+    expect_error(session_with(&jar, CRUX_WEB_GET, "/api/v1/session/me", NULL), 401, "unauthorized");
     CHECK(web_session_table_count() == 0u);
 
     session_test_setup();
@@ -272,8 +273,7 @@ static void test_account_changes_end_sessions(void)
     CHECK(session_login("viewer", SESSION_TEST_PASSWORD, &jar)->status == 200);
     CHECK(session_login("admin", SESSION_TEST_PASSWORD, &admin)->status == 200);
     CHECK(crux_access_account_set_role(session_admin, "viewer", "administrator") == CRUX_ACCESS_OK);
-    expect_error(session_with(&jar, CRUX_WEB_GET, "/api/v1/session/me", NULL), 401,
-                 "unauthorized");
+    expect_error(session_with(&jar, CRUX_WEB_GET, "/api/v1/session/me", NULL), 401, "unauthorized");
     CHECK(session_with(&admin, CRUX_WEB_GET, "/api/v1/session/me", NULL)->status == 200);
 
     session_test_setup();
@@ -286,8 +286,7 @@ static void test_account_changes_end_sessions(void)
     session_test_setup();
     CHECK(session_login("viewer", SESSION_TEST_PASSWORD, &jar)->status == 200);
     CHECK(crux_access_account_disable(session_admin, "viewer") == CRUX_ACCESS_OK);
-    expect_error(session_with(&jar, CRUX_WEB_GET, "/api/v1/session/me", NULL), 401,
-                 "unauthorized");
+    expect_error(session_with(&jar, CRUX_WEB_GET, "/api/v1/session/me", NULL), 401, "unauthorized");
 }
 
 static const fake_reply_t *change_password(const session_jar_t *jar, const char *current,
@@ -320,8 +319,9 @@ static void test_own_password_change(void)
     CHECK(session_login("viewer", SESSION_TEST_PASSWORD, &jar)->status == 200);
     CHECK(session_login("viewer", SESSION_TEST_PASSWORD, &second)->status == 200);
 
-    CHECK(change_password(&jar, "wrong current pw", "a brand new password", id, sizeof(id))
-              ->status == 202);
+    CHECK(
+        change_password(&jar, "wrong current pw", "a brand new password", id, sizeof(id))->status ==
+        202);
     CHECK(web_session_work_once());
     reply = session_poll(id);
     CHECK(strcmp(reply->body, "{\"state\":\"rejected\",\"code\":\"invalid_field\",\"fields\":[{"
@@ -391,14 +391,12 @@ static void test_logout(void)
     reply = session_with(&jar, CRUX_WEB_DELETE, "/api/v1/session", NULL);
     CHECK(reply->status == 200 && reply->body_length == 0u);
     CHECK(session_reply_headers(reply, "Set-Cookie", cookies, 4u) == 2u);
-    CHECK(strcmp(cookies[0], "crux_session=; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=0") ==
-          0);
+    CHECK(strcmp(cookies[0],
+                 "crux_session=; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=0") == 0);
     CHECK(strcmp(cookies[1], "XSRF-TOKEN=; Secure; SameSite=Strict; Path=/; Max-Age=0") == 0);
     CHECK(web_session_table_count() == 0u);
-    expect_error(session_with(&jar, CRUX_WEB_GET, "/api/v1/session/me", NULL), 401,
-                 "unauthorized");
-    expect_error(session_with(&jar, CRUX_WEB_DELETE, "/api/v1/session", NULL), 401,
-                 "unauthorized");
+    expect_error(session_with(&jar, CRUX_WEB_GET, "/api/v1/session/me", NULL), 401, "unauthorized");
+    expect_error(session_with(&jar, CRUX_WEB_DELETE, "/api/v1/session", NULL), 401, "unauthorized");
 }
 
 /* Every reply from these routes carries the security headers, and none carries HSTS or CORS. */

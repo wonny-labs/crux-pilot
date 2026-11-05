@@ -228,10 +228,8 @@ const fake_reply_t *session_post_login(const char *user, const char *password, c
 const fake_reply_t *session_poll(const char *id)
 {
     char url[160];
-    session_request_t request = {.method = CRUX_WEB_GET,
-                                 .url = url,
-                                 .host = SESSION_TEST_HOST,
-                                 .crux_request = "1"};
+    session_request_t request = {
+        .method = CRUX_WEB_GET, .url = url, .host = SESSION_TEST_HOST, .crux_request = "1"};
 
     snprintf(url, sizeof(url), "/api/v1/session/attempt/%s", id);
     return session_send(&request);

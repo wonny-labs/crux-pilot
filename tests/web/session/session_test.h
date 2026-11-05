@@ -1,5 +1,5 @@
-/* What the session Host suites share: the real Web, session and Access cores, the fake Access ports,
- * fake session ports, and the fake transport of tests/web. */
+/* What the session Host suites share: the real Web, session and Access cores, the fake Access
+ * ports, fake session ports, and the fake transport of tests/web. */
 #ifndef CRUX_WEB_SESSION_TEST_H
 #define CRUX_WEB_SESSION_TEST_H
 

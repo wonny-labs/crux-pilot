@@ -114,11 +114,11 @@ void web_session_count_session(void);
 /* A JSON object of string members, each named once. Anything else in the body is malformed. */
 typedef struct {
     const char *name;
-    char *buffer;     /* Receives the decoded value, terminated, cut at size - 1. */
+    char *buffer; /* Receives the decoded value, terminated, cut at size - 1. */
     size_t size;
-    size_t length;    /* Decoded length, which can exceed size - 1. */
+    size_t length; /* Decoded length, which can exceed size - 1. */
     bool seen;
-    bool holds_nul;   /* The value held \u0000. */
+    bool holds_nul; /* The value held \u0000. */
 } web_json_field_t;
 
 /* True when the body is one object whose members are exactly these fields, in any order. */

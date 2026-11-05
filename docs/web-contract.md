@@ -15,7 +15,7 @@ internal target `crux_web_adapter`.
 | Portable core: whole-path comparison, form checks, enforcement, body, deadline | Built | Host on the real Access core |
 | Adapter over the Zephyr HTTP server | Built | `native_sim`, plain HTTP on loopback |
 | Wildcard resources on RT1060 | Compile and link only | Mbed TLS and wolfSSL profiles, not run |
-| Login, sessions, CSRF and `Origin` rules | **Faked.** A session lookup port, which #186 implements | Host and `native_sim` use stand-ins |
+| Login, sessions, CSRF and `Origin` rules | **Built** in #186: see [web-session.md](web-session.md). This suite still uses stand-ins. | Host, and `native_sim` in `tests/native/web_session` |
 | Access core on Zephyr | **Faked on `native_sim`** by a double, until #242. The real core and its fake ports run on Host | |
 | Socket shutdown on `native_sim` | **Shimmed in the test image**, see [below](#three-limits-of-native_sim-found-here) | |
 | A send that returns `-EAGAIN` on `native_sim` | **Injected in the test image** by a wrapped send, because the offload rarely produces one | |
@@ -297,6 +297,7 @@ The capture holds seven headers, and a request whose capture dropped anything ge
 | Longest Cookie, 511 bytes, and one more | `native_sim` | Accepted, then `400` |
 | A capture overflow across headers | `native_sim` | `400` |
 | Other headers of 2,000 bytes | `native_sim` | Ignored |
+| Safari | Not run | Not run in #186 either: Safari cannot run unattended on the machine that did #186, so the criterion stays open |
 
 **Safari has not run**, because it cannot run unattended here, so that part moved to #186, where real login first gives a
 reason to open the interface in one. Both browsers ran over plain HTTP on `localhost`, so a real address, and HTTPS, may

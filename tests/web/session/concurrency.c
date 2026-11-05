@@ -87,8 +87,9 @@ static void test_held_verification_stalls_nobody(void)
     CHECK(crux_web_session_start_worker() == CRUX_WEB_OK);
 
     access_fake_derive_hook(hold_derive, NULL);
-    CHECK(session_post_login("viewer", "wrong password here", polled_id, sizeof(polled_id))
-              ->status == 202);
+    CHECK(
+        session_post_login("viewer", "wrong password here", polled_id, sizeof(polled_id))->status ==
+        202);
     CHECK(wait_for(derive_held, 5000u));
 
     for (unsigned round = 0; round < 50u; ++round) {

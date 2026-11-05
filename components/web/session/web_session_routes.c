@@ -17,7 +17,8 @@
 _Static_assert(2u * (sizeof("Set-Cookie") + COOKIE_LINE_MAX) <= 384u,
                "both cookies fit the core's extra header store");
 
-static const char cookie_session_set[] = "crux_session=%s; Secure; HttpOnly; SameSite=Strict; Path=/";
+static const char cookie_session_set[] =
+    "crux_session=%s; Secure; HttpOnly; SameSite=Strict; Path=/";
 static const char cookie_xsrf_set[] = "XSRF-TOKEN=%s; Secure; SameSite=Strict; Path=/";
 static const char cookie_session_clear[] =
     "crux_session=; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=0";
@@ -145,7 +146,8 @@ static crux_web_result_t on_login(crux_web_request_t *request, crux_access_sessi
     attempt.kind = WEB_ATTEMPT_LOGIN;
     /* A name outside the account rules is an ordinary attempt that ends as rejected. One that does
      * not fit, or holds a NUL, becomes the empty name, which crux_access refuses the same way. */
-    attempt.user = fields[0].length < CRUX_ACCESS_NAME_SIZE && !fields[0].holds_nul ? field_one : "";
+    attempt.user =
+        fields[0].length < CRUX_ACCESS_NAME_SIZE && !fields[0].holds_nul ? field_one : "";
     attempt.secret = field_two;
     attempt.secret_length = fields[1].length;
     attempt.origin = web_origin(head);
@@ -359,13 +361,12 @@ static crux_web_result_t on_me(crux_web_request_t *request, crux_access_session_
     return respond_text(request, 200, body);
 }
 
-CRUX_WEB_ROUTE_BODY(crux_session_login, "/api/v1/session", CRUX_WEB_POST, CRUX_WEB_PUBLIC,
-                    on_login, NULL, WEB_SESSION_BODY_MAX);
-CRUX_WEB_ROUTE(crux_session_logout, "/api/v1/session", CRUX_WEB_DELETE, CRUX_WEB_SESSION,
-               on_logout, NULL);
-CRUX_WEB_ROUTE(crux_session_attempt, "/api/v1/session/attempt/{id}", CRUX_WEB_GET,
-               CRUX_WEB_PUBLIC, on_attempt, NULL);
-CRUX_WEB_ROUTE(crux_session_me, "/api/v1/session/me", CRUX_WEB_GET, CRUX_WEB_SESSION, on_me,
+CRUX_WEB_ROUTE_BODY(crux_session_login, "/api/v1/session", CRUX_WEB_POST, CRUX_WEB_PUBLIC, on_login,
+                    NULL, WEB_SESSION_BODY_MAX);
+CRUX_WEB_ROUTE(crux_session_logout, "/api/v1/session", CRUX_WEB_DELETE, CRUX_WEB_SESSION, on_logout,
                NULL);
+CRUX_WEB_ROUTE(crux_session_attempt, "/api/v1/session/attempt/{id}", CRUX_WEB_GET, CRUX_WEB_PUBLIC,
+               on_attempt, NULL);
+CRUX_WEB_ROUTE(crux_session_me, "/api/v1/session/me", CRUX_WEB_GET, CRUX_WEB_SESSION, on_me, NULL);
 CRUX_WEB_ROUTE_BODY(crux_session_password, "/api/v1/session/me/password", CRUX_WEB_POST,
                     CRUX_WEB_SESSION, on_change_password, NULL, WEB_SESSION_BODY_MAX);

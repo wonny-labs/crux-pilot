@@ -172,8 +172,8 @@ static web_session_slot_t *find_by_hash(const uint8_t hash[CRUX_WEB_SESSION_HASH
     web_session_slot_t *found = NULL;
 
     for (size_t index = 0; index < CRUX_WEB_SESSION_MAX; ++index) {
-        bool match = web_session_equal(web_sessions[index].token_hash, hash,
-                                       CRUX_WEB_SESSION_HASH_SIZE);
+        bool match =
+            web_session_equal(web_sessions[index].token_hash, hash, CRUX_WEB_SESSION_HASH_SIZE);
 
         if (match && web_sessions[index].used && found == NULL) {
             found = &web_sessions[index];
@@ -346,10 +346,20 @@ crux_web_auth_t crux_web_session_authenticate(const crux_web_request_head_t *hea
     return CRUX_WEB_AUTH_OK;
 }
 
+/* Plain HTTP exists only in a native_sim test image, whose build defines this. */
+static bool scheme_allowed(const char *scheme)
+{
+#if defined(CRUX_WEB_SESSION_PLAIN_HTTP_FOR_TESTS)
+    if (strcmp(scheme, "http") == 0) {
+        return true;
+    }
+#endif
+    return strcmp(scheme, "https") == 0;
+}
+
 crux_web_result_t crux_web_session_init(const crux_web_session_config_t *config)
 {
-    if (config == NULL || config->scheme == NULL ||
-        (strcmp(config->scheme, "https") != 0 && strcmp(config->scheme, "http") != 0) ||
+    if (config == NULL || config->scheme == NULL || !scheme_allowed(config->scheme) ||
         (config->origin_count != 0u && config->origins == NULL)) {
         return CRUX_WEB_ERR_INVALID_ARGUMENT;
     }

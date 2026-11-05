@@ -15,9 +15,8 @@ typedef struct {
 
 static void skip_space(reader_t *reader)
 {
-    while (reader->cursor < reader->end &&
-           (*reader->cursor == ' ' || *reader->cursor == '\t' || *reader->cursor == '\n' ||
-            *reader->cursor == '\r')) {
+    while (reader->cursor < reader->end && (*reader->cursor == ' ' || *reader->cursor == '\t' ||
+                                            *reader->cursor == '\n' || *reader->cursor == '\r')) {
         ++reader->cursor;
     }
 }

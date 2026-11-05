@@ -53,13 +53,15 @@ fail() {
 }
 
 run_host() {
-    local targets=(web_routing web_enforcement web_requests web_cpp_headers)
+    local targets=(web_routing web_enforcement web_requests web_cpp_headers web_session_login web_session_sessions
+        web_session_json web_session_concurrency web_session_cpp_header)
     for preset in host-debug host-sanitize; do
         cmake --preset "$preset" -S "$repo" -DFETCHCONTENT_FULLY_DISCONNECTED=ON
         cmake --build --preset "$preset" --target "${targets[@]}"
         ctest --test-dir "$repo/build/linux/${preset#host-}" --output-on-failure --no-tests=error -R '^Web\.'
     done
-    "$tidy" -p "$repo/build/linux/debug" "$repo"/components/web/src/*.c "$repo"/tests/web/*.c
+    "$tidy" -p "$repo/build/linux/debug" "$repo"/components/web/src/*.c "$repo"/tests/web/*.c \
+        "$repo"/components/web/session/*.c "$repo"/tests/web/session/*.c
     python3 "$repo/scripts/check-web-boundary.py"
     python3 -m unittest discover -s "$repo/tests/build" -p test_web_routes.py
     python3 "$repo/scripts/check-web-routes.py"
@@ -130,6 +132,11 @@ run_target() { # profile
     for symbol in fnmatch crux_web_zephyr_callback "$tls_symbol"; do
         grep -q " $symbol\$" "$build/symbols.txt" || fail "$symbol is missing from the image"
     done
+    # The session module of #186 compiles for the target. It is not linked, see the CMakeLists.
+    local session_objects=4
+    if [[ "$selected" == mbedtls ]]; then session_objects=5; fi
+    [[ "$(find "$build" -path '*crux_web_session_compile.dir*' -name '*.obj' | wc -l)" -eq "$session_objects" ]] ||
+        fail "the session module did not compile for the target"
     printf 'Target compile result (not flashed): %s on the %s profile.\n' "$target_board" "$selected"
 }
 

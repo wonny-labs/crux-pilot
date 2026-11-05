@@ -285,9 +285,9 @@ static void run_job(web_job_t *job, web_attempt_result_t *result)
         crux_access_session_t session = {0};
 
         /* The empty name is refused as one that no account can hold, with its event. */
-        result->result = crux_access_login_password(input->user, input->secret,
-                                                    input->secret_length, &input->origin, &session,
-                                                    &result->retry_after_ms);
+        result->result =
+            crux_access_login_password(input->user, input->secret, input->secret_length,
+                                       &input->origin, &session, &result->retry_after_ms);
         result->session = session;
         if (result->result == CRUX_ACCESS_OK) {
             issue_tokens(result);
@@ -308,7 +308,8 @@ bool web_session_work_once(void)
     uint64_t elapsed;
 
     memset(&job, 0, sizeof(job));
-    if (!sync_created || crux_mutex_lock(attempt_lock, CRUX_WEB_SESSION_WORKER_WAIT_MS) != CRUX_OK) {
+    if (!sync_created ||
+        crux_mutex_lock(attempt_lock, CRUX_WEB_SESSION_WORKER_WAIT_MS) != CRUX_OK) {
         return false;
     }
     if (!take_job(&job)) {

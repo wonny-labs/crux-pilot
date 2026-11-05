@@ -31,8 +31,8 @@ typedef struct {
     const char *crux_request;
     const char *content_type;
     const char *content_length;
-    uint8_t source[16];    /**< The peer's address, an IPv6 one as its /64 prefix, for delays. */
-    uint8_t source_length; /**< Bytes used in source, zero when the transport could not tell. */
+    uint8_t source[16];      /**< The peer's address, an IPv6 one as its /64 prefix, for delays. */
+    uint8_t source_length;   /**< Bytes used in source, zero when the transport could not tell. */
     bool headers_incomplete; /**< A capture dropped a header, or none was available. Never no
                                 session. */
     bool duplicate_header;   /**< A captured header arrived twice. */

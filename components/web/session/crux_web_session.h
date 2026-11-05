@@ -33,8 +33,8 @@ extern "C" {
 /** The settings of the session module. Strings are borrowed for the program's life. */
 typedef struct {
     /**
-     * "https" in every product image. "http" only in a native_sim test image over plain HTTP,
-     * where the composition must say so.
+     * "https". "http" is refused unless the build defines CRUX_WEB_SESSION_PLAIN_HTTP_FOR_TESTS,
+     * which only a native_sim test image over plain HTTP does.
      */
     const char *scheme;
     /**
@@ -47,12 +47,12 @@ typedef struct {
 
 /** Counters, for tests and the design's measurements. */
 typedef struct {
-    uint32_t attempts;       /**< Attempts queued. */
-    uint32_t busy;           /**< Logins and changes refused with 503 before queueing. */
-    uint32_t verified;       /**< Attempts the worker finished. */
-    uint32_t expired;        /**< Attempts that expired before anyone collected them. */
-    uint32_t sessions;       /**< Sessions handed out by a poll. */
-    uint32_t worker_max_ms;  /**< Longest attempt on the worker, by the web clock. */
+    uint32_t attempts;      /**< Attempts queued. */
+    uint32_t busy;          /**< Logins and changes refused with 503 before queueing. */
+    uint32_t verified;      /**< Attempts the worker finished. */
+    uint32_t expired;       /**< Attempts that expired before anyone collected them. */
+    uint32_t sessions;      /**< Sessions handed out by a poll. */
+    uint32_t worker_max_ms; /**< Longest attempt on the worker, by the web clock. */
 } crux_web_session_stats_t;
 
 /**
@@ -69,8 +69,8 @@ crux_web_result_t crux_web_session_start_worker(void);
 
 /**
  * The crux_web_authenticate_t of a composition, with a NULL context. It reads the crux_session
- * cookie, and on any method but GET it also checks Origin and the X-XSRF-TOKEN header, and refreshes
- * the session's idle timer. It never waits on storage or a password.
+ * cookie, and on any method but GET it also checks Origin and the X-XSRF-TOKEN header, and
+ * refreshes the session's idle timer. It never waits on storage or a password.
  */
 crux_web_auth_t crux_web_session_authenticate(const crux_web_request_head_t *head,
                                               crux_access_session_t *session, void *context);
