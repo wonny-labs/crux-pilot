@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 REPO = Path(__file__).resolve().parents[2]
@@ -507,6 +508,44 @@ class Routes(Fixture):
         assets = [(a["path"], embedded(text)[i]) for i, a in enumerate(self.hashes()["assets"])]
         self.assertEqual(form.render_source("strict", assets)[0], text)
 
+    def test_a_rename_of_the_handler_the_table_or_the_access_class_is_refused_everywhere(self):
+        """Each name the routes depend on, renamed at every occurrence and at each one alone.
+
+        Both doors are tried: the shared form, and the route tool, whose own check of the handler stays
+        as a second line. A change that lets the form read the handler from the file fails the first,
+        and removing the route tool's check as well fails the second.
+        """
+        form = load("web_assets_form_under_test3", REPO / "components/web/tools/web_assets_form.py")
+        self.ok()
+        text = self.generated()
+        listing = self.root / "rev.txt"
+        listing.write_text("public GET @assets\n", encoding="utf-8")
+        renames = {"crux_web_assets_serve": ["do_factory_reset", "crux_web_assets_servf"],
+                   "crux_web_asset_table": ["secrets_table", "crux_web_asset_tabl"],
+                   "CRUX_WEB_PUBLIC": ["CRUX_WEB_SESSION", '"app.read"']}
+        tried = 0
+        for old, news in renames.items():
+            occurrences = [m.start() for m in re.finditer(re.escape(old), text)]
+            self.assertGreaterEqual(len(occurrences), 5, old)
+            for new in news:
+                variants = {"every occurrence": text.replace(old, new)}
+                for number, start in enumerate(occurrences):
+                    variants[f"occurrence {number} alone"] = text[:start] + new + text[start + len(old):]
+                for label, mutated in variants.items():
+                    tried += 1
+                    path = self.root / "renamed.c"
+                    path.write_bytes(mutated.encode("utf-8"))
+                    with self.subTest(door="form", old=old, new=new, which=label):
+                        with self.assertRaises(form.FormError):
+                            form.check_source(mutated)
+                    with self.subTest(door="tool", old=old, new=new, which=label):
+                        with self.assertRaises(web_routes.RouteError):
+                            web_routes.parse_sources([], bundle=[str(path)])
+                        self.assertEqual(web_routes.main(["--bundle", str(path), "--table",
+                                                          str(self.root / "t.c"), "--reviewed",
+                                                          str(listing)]), 1)
+        self.assertGreater(tried, 30)
+
     def test_the_generated_source_is_refused_if_one_byte_of_form_changes(self):
         form = load("web_assets_form_under_test2", REPO / "components/web/tools/web_assets_form.py")
         self.ok()
@@ -992,6 +1031,35 @@ class BuildFunction(Fixture):
                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
         self.assertNotEqual(built.returncode, 0)
         self.assertIn("at most 2", built.stdout)
+
+    def test_an_edit_to_the_shared_form_reruns_packaging_and_route_generation(self):
+        directory = self.project(f"crux_web_assets(app FOLDER {self.site} RESPONSE_DEADLINE_MS 3000)\n"
+                                 "crux_web_routes(app SOURCES routes.c REVIEWED reviewed.txt)\n"
+                                 "add_custom_target(generated DEPENDS "
+                                 "${CMAKE_CURRENT_BINARY_DIR}/crux_web_generated/app/crux_web_routes.c)\n")
+        (directory / "reviewed.txt").write_text("public GET @assets\n", encoding="utf-8")
+        self.assertEqual(self.configure(directory).returncode, 0)
+
+        def build():
+            result = subprocess.run(["cmake", "--build", str(directory / "build"), "--target", "generated"],
+                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+            self.assertEqual(result.returncode, 0, result.stdout)
+            return result.stdout
+
+        first = build()
+        self.assertIn("Packaging the web folder of app", first)
+        self.assertIn("Generating the web route table of app", first)
+        quiet = build()
+        self.assertNotIn("Packaging the web folder", quiet)
+        self.assertNotIn("Generating the web route table", quiet)
+        form = REPO / "components/web/tools/web_assets_form.py"
+        before = form.stat()
+        self.addCleanup(os.utime, form, ns=(before.st_atime_ns, before.st_mtime_ns))
+        # A later time than the generated files have, without waiting for the clock.
+        os.utime(form, ns=(before.st_atime_ns, int(time.time_ns() + 60e9)))
+        again = build()
+        self.assertIn("Packaging the web folder of app", again)
+        self.assertIn("Generating the web route table of app", again)
 
     def test_a_build_without_assets_has_none_of_it(self):
         directory = self.project("crux_web_routes(app SOURCES routes.c)\n")

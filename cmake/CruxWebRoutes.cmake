@@ -22,6 +22,8 @@ function(crux_web_routes target)
             "the list of its public and session-only routes")
     endif()
     set(tool "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../components/web/tools/web_routes.py")
+    # Checks a packaged bundle against the form that web_assets.py writes, so an edit to it re-runs this.
+    set(form "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../components/web/tools/web_assets_form.py")
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     # The packaged web folder of crux_web_assets() (Issue #189): its generated routes are scanned as a
     # bundle, which the reviewed list holds as the one entry `public GET @assets`.
@@ -62,7 +64,7 @@ function(crux_web_routes target)
     endif()
     add_custom_command(OUTPUT ${outputs}
         COMMAND "${Python3_EXECUTABLE}" "${tool}" ${arguments} ${sources}
-        DEPENDS "${tool}" ${sources} ${bundle} ${reviewed}
+        DEPENDS "${tool}" "${form}" ${sources} ${bundle} ${reviewed}
         COMMENT "Generating the web route table of ${target}"
         VERBATIM)
     target_sources(${target} PRIVATE ${outputs})

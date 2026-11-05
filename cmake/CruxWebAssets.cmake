@@ -62,6 +62,8 @@ function(crux_web_assets target)
     endif()
 
     set(tool "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../components/web/tools/web_assets.py")
+    # The form that the source is written in is shared with the route tool, so an edit re-runs both.
+    set(form "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../components/web/tools/web_assets_form.py")
     get_filename_component(runtime "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../components/web/assets" ABSOLUTE)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     set(directory "${CMAKE_CURRENT_BINARY_DIR}/crux_web_assets/${target}")
@@ -88,7 +90,7 @@ function(crux_web_assets target)
     file(GLOB_RECURSE contents CONFIGURE_DEPENDS LIST_DIRECTORIES false "${ARG_FOLDER}/*")
     add_custom_command(OUTPUT "${source}" "${hash_list}"
         COMMAND "${Python3_EXECUTABLE}" "${tool}" ${arguments}
-        DEPENDS "${tool}" ${contents} ${deny}
+        DEPENDS "${tool}" "${form}" ${contents} ${deny}
         COMMENT "Packaging the web folder of ${target}"
         VERBATIM)
     # Building this target alone packages and checks the folder, for the hash list and a budget check.
