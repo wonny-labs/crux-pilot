@@ -4,7 +4,8 @@
 #
 #   scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]
 #
-# host:   the PSA ports on TF-PSA-Crypto on Linux Host, under ASan and UBSan, with controls.
+# host:   the PSA ports on TF-PSA-Crypto on Linux Host, under ASan and UBSan, with controls, and the existing
+#         Access and credential suites on them.
 # mbed:   the ports and the composition on native_sim, on TF-PSA-Crypto and Mbed TLS.
 # wolf:   the same on wolfPSA and wolfSSL, on a patched copy of Zephyr.
 # target-*: the ports compiled for RT1060-EVKB, and the guard against a test random generator there.
@@ -49,6 +50,9 @@ run_host() {
         { tail -40 "$out/host-ports.log" >&2; fail 'the Host build of the ports failed'; }
     UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 "$build/psa_port_cases" ||
         fail 'the PSA ports on TF-PSA-Crypto on Host'
+    run_suites_on_the_real_ports
+    "$build/psa_port_seal_mapping" || fail 'what the seal port reports for a provider failure'
+    check_refusals "$build"
     local control
     for control in 0 1; do
         if "$build/psa_port_cases_stub_$control" > "$out/host-ports-stub-$control.txt"; then
@@ -56,6 +60,48 @@ run_host() {
         fi
         printf 'control ok: a stub provider, control %s, fails: %s\n' "$control" "$(tail -1 "$out/host-ports-stub-$control.txt")"
     done
+}
+
+# A guard that refuses must refuse for its stated reason. These need no Zephyr: they compile one file or run
+# the composition's CMake function, with the settings of a board.
+check_refusals() { # Host build directory, for the provider's headers
+    local psa_include="$cache_dir/cmake/tf_psa_crypto-src" source guarded log="$out/refusals.log" cc="${CC:-gcc}"
+    local includes=("-I$psa_include/include" "-I$psa_include/drivers/builtin/include"
+        "-I$repo/components/base/include" "-I$repo/components/file/include"
+        "-I$repo/components/access/include" "-I$repo/components/access/adapter" "-I$repo/components/access/src"
+        "-I$repo/components/credential/include" "-I$repo/components/credential/adapter"
+        "-I$repo/components/credential/src" "-I$repo/components/credential/ports/psa")
+    for source in components/access/ports/psa/access_psa.c components/credential/ports/psa/credential_psa.c; do
+        for guarded in CONFIG_TEST_RANDOM_GENERATOR CONFIG_FAKE_ENTROPY_NATIVE_SIM; do
+            if "$cc" -std=c17 -fsyntax-only "-D$guarded=1" "${includes[@]}" "$repo/$source" > "$log" 2>&1; then
+                fail "$source compiled for a board with $guarded"
+            fi
+            grep -q 'A test random generator must not reach' "$log" || fail "$source: refused for another reason: $(cat "$log")"
+            "$cc" -std=c17 -fsyntax-only "-D$guarded=1" -DCONFIG_BOARD_NATIVE_SIM=1 "${includes[@]}" "$repo/$source" ||
+                fail "$source: refused on native_sim with $guarded"
+        done
+    done
+    printf 'control ok: the PSA ports refuse a test random generator on a board\n'
+    if "$cc" -std=c17 -fsyntax-only -x c "$repo/tests/native/tls_offload_probe/credentials/test_tls_credentials.h" > "$log" 2>&1; then
+        fail 'the test certificate compiled outside native_sim'
+    fi
+    grep -q 'native_sim only' "$log" || fail "the test certificate: refused for another reason: $(cat "$log")"
+    printf 'control ok: the test certificate refuses any board but native_sim\n'
+    python3 "$composition/check_cmake_guard.py"
+}
+
+# The existing Access and credential suites, with the fakes' hooks kept and their crypto real.
+run_suites_on_the_real_ports() {
+    local build="$out/host-suites" targets=() suite
+    for suite in conformance accounts security keys secrets events; do targets+=("psa_access_$suite"); done
+    for suite in conformance_fake security faults_default_slot concurrency; do targets+=("psa_credential_$suite"); done
+    cmake --preset host-debug -S "$repo" -B "$build" -DCRUX_TEST_SUITES_ON_PSA=ON > "$out/host-suites.log" 2>&1 ||
+        { tail -40 "$out/host-suites.log" >&2; fail 'configuring the suites on the real ports'; }
+    cmake --build "$build" -j "$jobs" --target "${targets[@]}" >> "$out/host-suites.log" 2>&1 ||
+        { tail -40 "$out/host-suites.log" >&2; fail 'building the suites on the real ports'; }
+    ctest --test-dir "$build" -R '^RealPorts\.' --no-tests=error --output-on-failure -j 2 | tail -3
+    [[ "${PIPESTATUS[0]}" == 0 ]] || fail 'a suite on the real ports'
+    rm -rf "$build"
 }
 
 run_ports() { # Twister tag
@@ -92,7 +138,7 @@ run_target() { # profile: mbed or wolf, conf file
         > "$out/target-$1-guard.log" 2>&1; then
         fail "$1: a board built with a test random generator"
     fi
-    grep -q 'A test random generator must not reach' "$out/target-$1-guard.log" ||
+    grep -q 'A test random generator must not reach a build of these ports' "$out/target-$1-guard.log" ||
         fail "$1: the build failed for another reason: see $out/target-$1-guard.log"
     printf 'control ok: %s: a board cannot build with a test random generator\n' "$1"
     rm -rf "$build"

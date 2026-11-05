@@ -311,17 +311,23 @@ static void store_random(void)
 }
 
 /* TF-PSA-Crypto has 16 static key slots on native_sim, so any port that leaves one behind runs out
- * long before this ends. */
+ * long before this ends. On Host its slots grow, and wolfPSA keeps a list, so there this case
+ * cannot see a leak and shows only that the ports keep working. */
 static void ports_leave_no_key_slot(void)
 {
     uint8_t hash[CRUX_ACCESS_HASH_SIZE];
     uint8_t plain[sizeof(vec_seal_plain)];
+    uint8_t sealed[sizeof(vec_seal_plain)];
+    uint8_t tag[CRUX_CREDENTIAL_TAG_BYTES];
     uint8_t public_key[80];
     uint8_t private_key[48];
     size_t lengths[2];
     use_vector_device();
     for (unsigned round = 0; round < 40u; ++round) {
         CHECK(crux_access_port_hmac(vec_hmac_key, NULL, 0u, hash));
+        CHECK(crux_credential_port_seal(vec_seal_aad, sizeof(vec_seal_aad), vec_seal_plain,
+                                        sizeof(vec_seal_plain), sealed, vec_seal_nonce,
+                                        tag) == CRUX_CREDENTIAL_OK);
         CHECK(crux_credential_port_open(vec_seal_aad, sizeof(vec_seal_aad), vec_seal_cipher,
                                         sizeof(vec_seal_cipher), vec_seal_nonce, vec_seal_tag,
                                         plain) == CRUX_CREDENTIAL_OK);

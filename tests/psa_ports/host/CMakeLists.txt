@@ -47,3 +47,15 @@ foreach(control IN ITEMS 0 1)
     target_compile_definitions(psa_port_cases_stub_${control} PRIVATE PSA_PORTS_HAS_ED25519=0
         CRUX_PSA_STUB_PERMISSIVE=${control})
 endforeach()
+
+add_executable(psa_port_seal_mapping seal_mapping.c ../device_id_double.c ../../psa_crypto/stubs/stub.c
+    ${CRUX_ROOT}/components/credential/ports/psa/credential_psa.c)
+target_include_directories(psa_port_seal_mapping PRIVATE ..
+    ${CRUX_ROOT}/components/base/include
+    ${CRUX_ROOT}/components/credential/include ${CRUX_ROOT}/components/credential/adapter
+    ${CRUX_ROOT}/components/credential/src ${CRUX_ROOT}/components/credential/ports/psa
+    ${CRUX_ROOT}/components/file/include)
+target_include_directories(psa_port_seal_mapping SYSTEM PRIVATE
+    "${_crux_tf_psa_crypto_dir}/include" "${_crux_tf_psa_crypto_dir}/drivers/builtin/include")
+target_compile_definitions(psa_port_seal_mapping PRIVATE CRUX_PSA_STUB_PERMISSIVE=1)
+target_link_options(psa_port_seal_mapping PRIVATE -Wl,--wrap=psa_aead_encrypt_setup)

@@ -13,7 +13,7 @@ repo="$(git rev-parse --show-toplevel)"
 export CRUX_CACHE_DIR="${CRUX_CACHE_DIR:-${repo}/../.crux-cache}"
 tidy="${CLANG_TIDY:-clang-tidy-18}"
 targets=(crux_access_core access_conformance access_accounts access_security access_keys
-    access_faults access_secrets access_events access_cpp_headers)
+    access_faults access_secrets access_events access_clock_fault access_cpp_headers)
 
 for preset in host-debug host-sanitize; do
     cmake --preset "$preset" -S "$repo" -DFETCHCONTENT_FULLY_DISCONNECTED=ON

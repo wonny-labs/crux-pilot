@@ -31,10 +31,10 @@ fail() {
 }
 
 # Every step passed, this configuration holds, and a limit the record states still holds.
-check_result() { # profile, provider, whether a server sees a close with no close_notify through poll
-    python3 - "$out/$1/result.json" "$out/$1/probe-lines.txt" "$2" "$3" <<'PY'
+check_result() { # profile, provider, whether a server sees a close with no close_notify through poll, TLS 1.2 port with a newer client
+    python3 - "$out/$1/result.json" "$out/$1/probe-lines.txt" "$2" "$3" "$4" <<'PY'
 import json, re, sys
-result, lines, provider, sees_close = sys.argv[1:]
+result, lines, provider, sees_close, newer_client = sys.argv[1:]
 steps = json.load(open(result))["steps"]
 lines = open(lines).read()
 failed = [name for name, step in steps.items() if step["result"] != "pass"]
@@ -54,6 +54,8 @@ if steps["concurrent_connections"]["still_working"] != steps["concurrent_connect
 seen = steps["raw_poll_after_abrupt_close"]["server_saw_the_close"]
 if seen != (sees_close == "yes"):
     sys.exit(f"a close with no close_notify: the server saw it: {seen}. Review the limit in the record.")
+if steps["tls1.2_port_newer_client"]["negotiated"] != newer_client:
+    sys.exit(f"the TLS 1.2 listener gave a newer client {steps['tls1.2_port_newer_client']['negotiated']}. Review limit 7a.")
 print(f"{provider}: every step passed, TLS 1.2 and 1.3, close seen through poll: {seen}")
 PY
 }
@@ -68,7 +70,7 @@ check_config() { # profile, build directory
         "$config" > "$out/$1/config.txt"
 }
 
-run_profile() { # profile, provider, ZEPHYR_BASE, whether poll shows a close with no close_notify
+run_profile() { # profile, provider, ZEPHYR_BASE, whether poll shows a close with no close_notify, TLS 1.2 port with a newer client
     local profile="$1" build="$out/$1/build"
     mkdir -p "$out/$profile"
     (cd "$workspace" && ZEPHYR_BASE="$3" west build -p always -b "$board" -d "$build" -o="-j$jobs" "$source_dir" \
@@ -77,16 +79,16 @@ run_profile() { # profile, provider, ZEPHYR_BASE, whether poll shows a close wit
     check_config "$profile" "$build"
     python3 "$source_dir/tls_probe_client.py" "$build/zephyr/zephyr.exe" --profile "$profile" --output "$out/$profile" ||
         fail "$profile: a step failed"
-    check_result "$profile" "$2" "$4"
+    check_result "$profile" "$2" "$4" "$5"
     rm -rf "$build"
 }
 
 printf 'Crux revision: %s\n' "$(git -C "$repo" rev-parse HEAD)"
 if [[ "$scope" != wolf ]]; then
-    run_profile mbed tf-psa-crypto "$workspace/zephyr" no
+    run_profile mbed tf-psa-crypto "$workspace/zephyr" no TLSv1.3
 fi
 if [[ "$scope" != mbed ]]; then
     "$repo/scripts/prepare-wolf-tls-zephyr.sh" "$out/zephyr-wolf"
-    run_profile wolf wolfpsa "$out/zephyr-wolf" yes
+    run_profile wolf wolfpsa "$out/zephyr-wolf" yes TLSv1.2
 fi
 printf 'TLS offload probe (%s) finished.\n' "$scope"

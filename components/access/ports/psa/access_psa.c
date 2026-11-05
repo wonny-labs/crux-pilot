@@ -9,6 +9,15 @@
 
 #include <string.h>
 
+/*
+ * Keys from a test generator repeat, so a board must never build with one. native_sim has no other,
+ * and is declared test-only: see docs/psa-crypto-design.md. A Host build has no such setting.
+ */
+#if !defined(CONFIG_BOARD_NATIVE_SIM) &&                                                           \
+    (defined(CONFIG_FAKE_ENTROPY_NATIVE_SIM) || defined(CONFIG_TEST_RANDOM_GENERATOR))
+#error "A test random generator must not reach a build of these ports for a board"
+#endif
+
 static void wipe(void *buffer, size_t length)
 {
     volatile uint8_t *bytes = buffer;

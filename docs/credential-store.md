@@ -276,7 +276,7 @@ still uses the test-only protection. The other suites do not run there: a walk n
 
 | Item | Why |
 | --- | --- |
-| These suites on the real provider | They depend on the fake's fault injection and its declaration. [`tests/psa_ports` and the composition](native-management-composition.md) run the store's reads, saves, keys and refusals on the real provider instead, and the cut walks stay on the fake. |
+| Some of these suites on the real provider | [`conformance_fake`, `security`, `faults_default_slot` and `concurrency`](native-management-composition.md#the-existing-suites-on-the-real-ports) run on TF-PSA-Crypto on Host. The rest, and every suite on wolfPSA, do not. |
 | Entropy | It needs the target. `native_sim` random is [test-only](psa-crypto-design.md#what-real-means-on-native_sim). |
 | Behaviour across real power loss, on a real card | Target work is out of scope. The fake's model is simpler than FatFs: nothing reorders. |
 | FAT chain damage while a slot is created | Needs a real file system under a cut |

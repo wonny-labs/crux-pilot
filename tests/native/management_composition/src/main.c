@@ -11,6 +11,7 @@
 #include "crux_tf_psa_threading.h"
 #endif
 
+#include <access_port.h>
 #include <crux/file.h>
 #include <crux/management_status.h>
 #include <crux/security_event.h>
@@ -22,6 +23,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/tls_credentials.h>
+#include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/ztest.h>
 
@@ -305,6 +307,33 @@ ZTEST(first_boot, test_06_events)
            stats.emitted, stats.delivered, stats.dropped, stats.log_errors, stats.high_water);
 }
 
+/* The first account's verifier as stored, against the real provider: its cost is what the build
+ * states, and its value is that password's. A core that stored less would pass everything above.
+ * The layout is record version 1 in access_record.c, and a change to it fails here. */
+ZTEST(first_boot, test_07_stored_verifier_is_real)
+{
+    static uint8_t record[CRUX_CREDENTIAL_ACCOUNTS_BYTES_MAX];
+    uint8_t derived[CRUX_ACCESS_DERIVED_SIZE];
+    size_t length = 0;
+    /* Record header, user, role, then the state and the algorithm. */
+    size_t cost_at = 4u + 2u * CRUX_ACCESS_NAME_SIZE + 3u;
+    zassert_equal(
+        crux_credential_read(CRUX_CREDENTIAL_RECORD_ACCOUNTS, record, sizeof(record), &length),
+        CRUX_CREDENTIAL_OK);
+    zassert_true(length > cost_at + 4u + CRUX_ACCESS_SALT_SIZE + CRUX_ACCESS_DERIVED_SIZE);
+    zassert_mem_equal(&record[4], CRUX_NATIVE_MANAGEMENT_TEST_USER,
+                      sizeof(CRUX_NATIVE_MANAGEMENT_TEST_USER));
+    uint32_t cost = sys_get_le32(&record[cost_at]);
+    /* A literal, because a change to the build's cost is what this looks for. */
+    zassert_equal(cost, 10000u, "the stored cost is %u", cost);
+    zassert_true(crux_access_port_derive(CRUX_ACCESS_VERIFIER_PBKDF2_HMAC_SHA256, cost,
+                                         &record[cost_at + 4u],
+                                         CRUX_NATIVE_MANAGEMENT_TEST_PASSWORD,
+                                         strlen(CRUX_NATIVE_MANAGEMENT_TEST_PASSWORD), derived));
+    zassert_mem_equal(derived, &record[cost_at + 4u + CRUX_ACCESS_SALT_SIZE], sizeof(derived));
+    memset(record, 0, sizeof(record));
+}
+
 static bool holds(const uint8_t *image, size_t length, const char *text)
 {
     size_t text_length = strlen(text);
@@ -318,9 +347,10 @@ static bool holds(const uint8_t *image, size_t length, const char *text)
 
 /* What a reader of the medium sees: the real format, sealed. This shows only that the records are
  * not plain, because someone with the device ID can open them. */
-ZTEST(first_boot, test_07_medium)
+ZTEST(first_boot, test_08_medium)
 {
     static uint8_t image[SLOT_BYTES];
+    uint8_t nonces[2][12];
     for (crux_file_root_t root = ROOT_SLOT_A; root <= ROOT_SLOT_B; ++root) {
         crux_file_t *file = NULL;
         size_t total = 0;
@@ -343,7 +373,10 @@ ZTEST(first_boot, test_07_medium)
         zassert_false(holds(image, total, CRUX_NATIVE_MANAGEMENT_TEST_USER));
         zassert_false(holds(image, total, OPERATOR));
         zassert_false(holds(image, total, CHANGED_PASSWORD));
+        memcpy(nonces[root - ROOT_SLOT_A], &image[20], sizeof(nonces[0]));
     }
+    /* Two generations by now, so a core that repeated a nonce on one key would show here. */
+    zassert_true(memcmp(nonces[0], nonces[1], sizeof(nonces[0])) != 0);
 }
 
 /* A TLS socket beside the services: a server and a client in this image, over the offload, on one
@@ -392,7 +425,7 @@ static void tls_server(void *a, void *b, void *c)
     zsock_close(listener);
 }
 
-ZTEST(first_boot, test_08_tls_beside_the_services)
+ZTEST(first_boot, test_09_tls_beside_the_services)
 {
     static const char message[] = "beside the services";
     static const sec_tag_t tags[] = {TLS_CLIENT_TAG};

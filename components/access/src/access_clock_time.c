@@ -5,9 +5,14 @@
 #include <crux/time.h>
 
 /*
- * A clock that failed reads as one that ran backwards, which expires sessions and never clears a
- * delay bucket. Holding the last reading instead would keep a session alive for as long as the
- * clock stays broken.
+ * The port has no way to report a failure, so a clock that failed reads as 0, like one that ran
+ * backwards. crux_monotonic_now fails only for a NULL argument, in an ISR or on a provider error.
+ *
+ * While it reads 0, sessions from before the fault expire, and a bucket with a window stays closed.
+ * Two limits follow, and tests/access/clock_fault.c holds them. A login during the fault succeeds,
+ * and that session stays valid while the clock is broken. A failure during the fault sets a
+ * bucket's last failure to 0 and shrinks its window, so once the clock returns past the quiet
+ * period the bucket clears, however recent its real failures were.
  */
 uint64_t crux_access_port_now_ms(void)
 {
