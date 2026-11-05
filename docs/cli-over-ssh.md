@@ -108,7 +108,8 @@ Recorded on 5 November 2026, in the Dev Container image under emulation, with Op
 | Host, Clang 18 | `ctest --preset host-debug -R '^Ssh\.cli'` | 5 of 5. `Ssh.cli_session` makes 6,384 checks. |
 | Host, ASan and UBSan, GCC 13 | The same on a local build with `CC=gcc`, because the image lacks Clang's sanitizer runtime | 5 of 5, and `Ssh.CallbackTable` |
 | Host, clang-tidy 18 | The entry points and `tests/ssh/cli/*.c` | No finding |
-| Host, ThreadSanitizer | `tests/ssh/cli/test-thread-sanitizer.sh` | **Not run locally**: it cannot map its shadow memory under emulation. The Host CI job runs it. |
+| Host, ThreadSanitizer | `tests/ssh/cli/test-thread-sanitizer.sh` | Passes in the Host CI job. It cannot run locally, because it cannot map its shadow memory under emulation. |
+| CI, at `8e708ef` | `host`, `links`, `psa-crypto` and the four Zephyr shards | All pass, including Clang's ASan and UBSan on `Ssh.cli_*`, and `test-compile.sh` in the `io` shard |
 | `native_sim`, real OpenSSH, real provider from #192's branch | `tests/ssh/cli/test-openssh.sh` | 13 of 13 cases |
 | RT1060-EVKB, compile and link only, not flashed or run | `tests/ssh/cli/test-openssh.sh --target`, the same image with #192's `rt1060.conf` | Links: 306,712 B Flash, 703,820 B RAM, which includes the test's 512 KiB arena and 32 KiB main stack. The shell rule passes on the image. |
 | `native_sim` and RT1060-EVKB, compile only, no wolfSSH | `tests/ssh/cli/test-compile.sh`, also in the Zephyr CI job | Both build, with the limits' flags on the source, and the shell rule passes on `.config` |
