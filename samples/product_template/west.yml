@@ -16,7 +16,7 @@ manifest:
     # names and URLs stay in this file. Crux's manifest names only public modules.
     #
     # - name: acme
-    #   url-base: https://bitbucket.example/scm/acme
+    #   url-base: https://git.example/scm/acme
 
   projects:
     # The first definition of a name wins, so an entry here beats the import.

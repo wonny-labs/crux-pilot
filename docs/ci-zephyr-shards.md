@@ -50,8 +50,8 @@ Set-up (packages, tools, SDK and workspace) adds about 2.7 minutes to every shar
 
 | Defect | Why it matters |
 | --- | --- |
-| A check names an unknown shard | The step would be skipped while the run stays green |
-| A check has no shard condition | The step would run in all four shards |
+| A step that runs a command names an unknown shard | The step would be skipped while the run stays green |
+| A step that runs a command has no shard condition and is not a set-up step | The step would run in all four shards |
 | A shard has no checks | The matrix and the steps have drifted apart |
 | The networking steps are in different shards | The fixture step would not find its library |
 | Two shards could share an artifact name | The upload would be refused |
@@ -59,7 +59,7 @@ Set-up (packages, tools, SDK and workspace) adds about 2.7 minutes to every shar
 | Anything other than documentation skips the workflow | Code changes would go untested |
 | `host.yml` also skips documentation | Nothing would run the tests that read documentation |
 
-The test has two gaps. It does not notice a deleted step, so review the comparison with `main` when a change touches `zephyr.yml`. It also recognises a check only by `scripts/`, `python3 ` or `west ` in the step text, so a step that runs another command directly, such as `tests/ssh/cli/test-compile.sh`, is not caught if it has no shard condition or names an unknown shard. Give every new step a condition whatever it runs.
+The test has two limits. It does not notice a deleted step, so review the comparison with `main` when a change touches `zephyr.yml`. It also cannot tell that a set-up step is still only a set-up step: the steps in `SET_UP_STEPS` (set-up and evidence collection) are exempt by title, and are rejected if they mention `scripts/`, `python3 ` or `west `, unless the step runs `scripts/bootstrap-zephyr.sh` or `scripts/verify-apt-cache.py`, in which case it is exempt whatever else it runs. Apart from those, every step that has a `run:` (in any position) or mentions that repository code must name a shard of the matrix, whatever command it runs. Add a step to `SET_UP_STEPS` only if it must run in every shard.
 
 ## Documentation-only changes
 
