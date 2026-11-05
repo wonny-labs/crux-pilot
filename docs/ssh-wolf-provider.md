@@ -223,6 +223,7 @@ From running wolfSSH v1.6.0, for whoever works on this next.
 | `wolfSSH_set_fd()` points the I/O contexts at wolfSSH's copy of the socket | Set the contexts after it, or the callbacks read an `int` as a connection |
 | An SFTP request with no body ends the session (`SFTP_CheckRecvSz`) | Not a client's normal behaviour. #194's traces should show it if it matters. |
 | The key exchange list also holds `ext-info-s` and `kex-strict-s` | Markers added by wolfSSH. They name nothing that can be negotiated. |
+| One run of `openssh_test.py` under the script stopped silently before its first case, and did not recur in nine later runs. The cause is unknown, and fork under emulation on a loaded machine is only a guess | The harness now dumps its stacks and exits after 7 minutes, and runs unbuffered, so that another will say where it was |
 | A concurrent password login gets `CRUX_ACCESS_ERR_BUSY`, which is a denial on the wire and counts as an attempt | The contract asks for this. A user can see a refused password while another login is verifying. |
 
 The provider wipes a password from wolfSSH's input buffer once the callback returns. That covers the plain text in that one buffer, and no copy that the TCP path or the client keeps.
@@ -260,4 +261,5 @@ The provider wipes a password from wolfSSH's input buffer once the callback retu
 | #193 | The exit status goes out when your callback returns, and the provider waits for the client's close. Do not send it yourself. |
 | #194 | `sftp_open` runs before `SSH_FXP_INIT`. The handle is set with `wolfSSH_SetFilesystemHandle`, and `wolfSSH_SFTP_free` runs before `sftp_close`, so that closing what a client left open happens with the handle still valid. |
 | #194 | Measure transfers against the 16 KiB window and packet, and change `CRUX_SSH_WOLF_WINDOW_BYTES` if needed. The `WS_WINDOW_FULL` branch of `serve_sftp` has never run. |
+| #194 | A receive hands back after 16 KiB with `WS_WANT_READ` while data waits, so a loop must go round again and not treat it as idle. The send wait of decision 18 applies at the end of a session only. |
 | #194 | `session_alive` is polled each `io_timeout_ms` with no request, and only an SFTP request resets that. |
