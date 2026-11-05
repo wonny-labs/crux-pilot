@@ -887,6 +887,43 @@ def case_stalled_reader_split_request_alone():
     wait_for_settled()
 
 
+def send_dot_split_request(client):
+    """A split request whose URL, appended to the old one, folds back to it.
+
+    Zephyr v4.4.2 removes dot segments from the whole URL buffer when headers complete, so
+    `/probe/fail/21` with `/../21` appended becomes `/probe/fail/21` again: same length, same content.
+    """
+    request = encode("GET", f"/../{SENDS_BEFORE_SECOND_BODY_PIECE}")
+    client.send(request[:len(request) // 2])
+    time.sleep(0.2)
+    client.send(request[len(request) // 2:])
+
+
+def case_stalled_reader_dot_split_request_after_other_client():
+    """Only the store generation can see this one, so this is what removing it breaks."""
+    client = stalled_response()
+    other_clients_response()
+    send_dot_split_request(client)
+    expect_closed_with_only_own_bytes(client)
+    wait_for_settled()
+
+
+def case_stalled_reader_dot_split_request_alone():
+    """Nothing can tell this from the server's own piece loop. It may resume its own response."""
+    client = stalled_response()
+    send_dot_split_request(client)
+    closed = client.is_closed_within(1.0)
+    data = client.buffer
+    client.close()
+    check(stats()["send_eagain"] == client.eagain_before + 1, "the send must have returned -EAGAIN")
+    check(b"B" * 4 not in data, "only this client's own bytes")
+    own = data.count(b"A")
+    # Resumed, it misses the piece whose send failed: 1,024 before it and the 2,048 after it.
+    check(own in (1024, 3072), f"its own body, either cut or resumed past the lost piece: {own} bytes")
+    results["stalled_reader_dot_split_alone"] = {"closed": closed, "own_body_bytes": own}
+    wait_for_settled()
+
+
 def case_stalled_reader_byte_alone():
     client = stalled_response()
     client.send(b"\r\n")

@@ -191,7 +191,7 @@ and with pieces, the response deadline plus that.
 | --- | --- |
 | Test image, 500 ms | 21 x 0.5 = 10.5 s. Measured 10.19 s. |
 | Default, 250 ms | 21 x 0.25 = 5.25 s, by that sum. Not measured. |
-| Most headers on a response, 11 | (6 + 3 x 11) x 0.25 = 9.75 s, by that sum, under the 10 s timer. `crux_web_respond_static` refuses more. Sixteen would be 13.5 s. |
+| Most headers on a response, 11 | (6 + 3 x 11) x 0.25 = 9.75 s, by that sum, under the 10 s timer. `crux_web_respond_static` refuses more, and refuses a list without Content-Type, which the server would add as a twelfth for 10.0 s. Sixteen would be 13.5 s. |
 
 The response deadline does not help here, because it is checked only between pieces, and a response of one piece has
 none. A stall past the inactivity timer has a second effect: the system work queue still runs that timer, so another
@@ -208,19 +208,26 @@ The client stays, and so do its holder and this adapter's slot. The next byte it
 independent review found it, the adapter then went on with the next piece, from `store.body`, which all clients share, so
 a stalled client could read another client's response.
 
-The callback now closes on any re-entry. Three values, recorded when the response begins, are stable inside the server's piece
-loop, and each of them catches a re-entry that another can miss:
+Three values, recorded when the response begins, are stable inside the server's piece loop. A re-entry closes the client when
+any of them has changed:
 
 | Re-entry | What changes | Why |
 | --- | --- | --- |
 | A byte, or a request that arrives in one read | `client->data_len` | The parser stays past its header state, so the server does not take these bytes off before the callback |
-| A request that arrives in two or more reads | `strlen(client->url_buffer)` | The first read sets the parser back to its header state, so on the last read the server takes the header bytes off and `data_len` returns to its recorded value. A trace showed `rest 3072 dl 0/0 gen 87/86`. But `on_url` appends every new URL. |
-| Any of them, after another client's response | The store's generation | Nothing else needs to change |
+| A request that arrives in two or more reads | `strlen(client->url_buffer)` | The first read sets the parser back to its header state, so on the last read the server takes the header bytes off and `data_len` returns to its recorded value. A trace showed `rest 3072 dl 0/0 gen 87/86`. `on_url` appends every new URL. |
+| Any of them, after another client's response | The store's generation | The core has built a response since |
 
-Every request has a URL, and a callback runs only after a read with bytes in it or after a URL, so the first two cover every
-re-entry. The generation is a further guard for what the rest points at. Mutation controls are in the pull request. With the
-URL and generation checks off, a split request carries 2,048 bytes of another client's body to the stalled client. A split
-request alone, with only the URL check off, resumes and finishes its old response.
+**The generation is what keeps another client's bytes out**, because once the core has built any other response no piece of
+the old one is sent. `data_len` and the URL's length catch the ordinary re-entries, but not every one. Zephyr v4.4.2 removes
+dot segments from the whole URL buffer when headers complete, so a split request for `/../21` appended to `/probe/fail/21`
+folds back to `/probe/fail/21`, with the same length and content. After another client's response the generation closes it,
+and with the generation check removed, 2,048 bytes of that client's body arrive. Alone, nothing tells it from the server's own
+piece loop, and the client's old response resumes past the piece whose send failed: 3,072 of its 4,096 bytes arrive, in a
+broken chunked stream.
+
+**That resumption is accepted, and declared.** It sends only bytes of a response that was already built for this client
+under its access check, it cannot carry another client's bytes, and only the client that caused it receives a broken
+stream. Telling it apart would need state the server does not expose. Mutation controls are in the pull request.
 
 The injected send proves the path runs: `send_eagain` in `/probe/stats` counts each one, because the suite reached it zero
 times before. Real `-EAGAIN` on Zephyr's own stack has not been run.
@@ -353,7 +360,7 @@ fits the 4 KiB.
 | Responses go in 1 KiB pieces with a deadline | A large body is bounded, which the send timeout alone does not do. #189: 3 s can cut a large asset for a slow but honest client, so its size and this deadline need setting together. | A send on one call, with no bound on a slow reader |
 | Default send timeout 250 ms, not 1,000 | Keeps one callback's worst stall under the inactivity timer | A longer timeout is kinder to a poor link |
 | `crux_web_start` checks the route table, and that `fnmatch` behaves | A value changed by a macro between the scan and the compiler, or a C library's own `fnmatch`, stops the start | Trust the build |
-| A source of routes may not `#define` or `#undef` a `CRUX_WEB_*` name, also across a `\\` continuation | The scan and the compiler then read the same thing. A header the source includes can still do it, unseen, and the table comparison at start is the backstop. | |
+| A source of routes may not `#define` or `#undef` a `CRUX_WEB_*` name, also with a line continuation between the words | The scan and the compiler mostly read the same thing. A continuation inside a word, such as `#def` then `ine` on the next line, passes the scan, and so does a header the source includes. **The table comparison at start is the backstop.** | |
 | `ZEPHYR_RESOURCES` needs `REVIEWED` | Every real image then has its public and session-only routes held to a list | An optional list, which a project could forget |
 | `/api/v1/config/save` shadows a parameter named `save` | Follows from the server's exact pass, so declared | Move fixed routes elsewhere, in #187 |
 | The route scan reads named sources, not preprocessed output | Simple, and it fails closed in both directions above, and start compares the two | A scan of compiled objects |

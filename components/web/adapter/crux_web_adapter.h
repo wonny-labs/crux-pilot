@@ -164,6 +164,7 @@ const crux_web_request_head_t *crux_web_request_head(const crux_web_request_t *r
  * firmware-embedded assets. The core adds nothing, so the caller supplies Content-Type and the
  * security headers.
  *
+ * @param headers Must include Content-Type, or the server would add one beyond the cap.
  * @param header_count One to CRUX_WEB_RESPONSE_HEADERS_MAX.
  */
 crux_web_result_t crux_web_respond_static(crux_web_request_t *request, int status,

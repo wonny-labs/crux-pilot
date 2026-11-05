@@ -221,6 +221,18 @@ crux_web_result_t crux_web_respond_error(crux_web_request_t *request, int status
     return CRUX_WEB_OK;
 }
 
+/* The server adds its own Content-Type to a response without one, which the header cap must count.
+ */
+static bool has_content_type(const crux_web_header_t *headers, size_t count)
+{
+    for (size_t index = 0; index < count; ++index) {
+        if (headers[index].name != NULL && same_name(headers[index].name, "Content-Type")) {
+            return true;
+        }
+    }
+    return false;
+}
+
 crux_web_result_t crux_web_respond_static(crux_web_request_t *request, int status,
                                           const crux_web_header_t *headers, size_t header_count,
                                           const void *body, size_t length)
@@ -232,7 +244,7 @@ crux_web_result_t crux_web_respond_static(crux_web_request_t *request, int statu
     }
     if (status < 200 || status > 599 || status == 204 || status == 304 ||
         (body == NULL && length != 0u) || headers == NULL || header_count == 0u ||
-        header_count > CRUX_WEB_RESPONSE_HEADERS_MAX) {
+        header_count > CRUX_WEB_RESPONSE_HEADERS_MAX || !has_content_type(headers, header_count)) {
         return CRUX_WEB_ERR_INVALID_ARGUMENT;
     }
     request->response->status = status;

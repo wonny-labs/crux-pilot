@@ -17,11 +17,11 @@
  * - A send that fails with -EAGAIN comes back through the server, which swallows it and leaves the
  *   client open with its resource and this slot held. The response stops there, and what the client
  *   sends next runs the callback again, possibly long after another client's response has been
- * built in the same store. A callback that finds a finished exchange is that re-entry, and so is a
- * piece whose data_len, URL length or store generation has changed since its response began. Each
- * is stable inside the server's piece loop. A request in one read changes data_len. A request in
- * two sets the parser back to headers, and then the server takes its bytes off data_len again, but
- *   every new URL is appended to the buffer. Every re-entry closes.
+ * built in the same store. The store generation is what keeps another client's bytes out: a piece
+ * is never sent once the core has built any other response. data_len and the URL's length catch the
+ *   ordinary re-entries, a request in one read and one in two, but not a URL that folds back to the
+ *   old one under the dot-segment removal of v4.4.2, which can resume the client's own response.
+ *   That only sends it bytes of the response it was already given, and is declared.
  * - The server calls back without returning to poll until a response is final, so a large body goes
  * in pieces, and a callback between pieces closes a response that has run over its deadline. A
  * response of one piece never reaches that check.

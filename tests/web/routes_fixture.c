@@ -58,6 +58,11 @@ static crux_web_result_t on_route(crux_web_request_t *request, crux_access_sessi
             {"X-K", "b"},
         };
 
+        /* Without Content-Type the server adds its own, which is one more header than counted. */
+        CHECK(crux_web_respond_static(request, 200, headers + 1, CRUX_WEB_RESPONSE_HEADERS_MAX, "x",
+                                      1u) == CRUX_WEB_ERR_INVALID_ARGUMENT);
+        CHECK(crux_web_respond_static(request, 200, headers + 1, 1u, "x", 1u) ==
+              CRUX_WEB_ERR_INVALID_ARGUMENT);
         /* Each header is three sends that can each wait out the send timeout on one callback. */
         CHECK(crux_web_respond_static(request, 200, headers, CRUX_WEB_RESPONSE_HEADERS_MAX + 1u,
                                       "x", 1u) == CRUX_WEB_ERR_INVALID_ARGUMENT);
