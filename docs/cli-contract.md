@@ -240,9 +240,11 @@ int crux_cli_write_terminal(crux_cli_line_ends_t *state,
 | `write`: `CRUX_ERR_IO`, `CRUX_ERR_INVALID_STATE` | -1 |
 
 ```c
-static int cli_shell(void *context, crux_ssh_attachment_t *attachment, crux_ssh_channel_t *channel)
+static int cli_shell(void *context, crux_ssh_attachment_t *attachment, crux_ssh_channel_t *channel,
+                     bool terminal)
 {
-    /* transport wraps provider->read and provider->write as in the table. */
+    /* transport wraps provider->read and provider->write as in the table, and terminal sets echo
+     * and the line-end mapping. */
     crux_cli_result_t result = crux_cli_run(&cli, &io, CRUX_ACCESS_CHANNEL_SSH, session);
     return result == CRUX_CLI_OK ? 0 : 1;
 }

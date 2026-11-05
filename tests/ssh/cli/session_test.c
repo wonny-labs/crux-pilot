@@ -5,6 +5,7 @@
 #include "cli_session_test.h"
 #include "fake_serial.h"
 #include "ssh_cli_harness.h"
+#include "zephyr_shell_lines.h"
 
 #include <crux/thread.h>
 
@@ -84,6 +85,7 @@ static const line_t lines[] = {
     BYTES("refused"),
     BYTES("no-such"),
     BYTES("no-such x"),
+    BYTES("!setup"),
     BYTES("help"),
     BYTES("help any"),
     BYTES("help refused"),
@@ -118,60 +120,6 @@ static const line_t editing[] = {
     BYTES("perm\0itted"),          /* NUL */
     BYTES("any \"\x9B\""),         /* A byte above 0x7F, echoed raw, as #181 declares */
     BYTES("\x7f\x7f"),             /* Backspace at the start */
-};
-
-/* The built-in commands of the Zephyr shell and the roots that its modules register. None exists.
- */
-static const char *const zephyr_shell_lines[] = {
-    "kernel",
-    "kernel thread list",
-    "kernel stacks",
-    "kernel reboot cold",
-    "device",
-    "device list",
-    "devmem",
-    "devmem 0x0",
-    "shell",
-    "shell colors",
-    "shell colors off",
-    "shell echo off",
-    "shell stats",
-    "history",
-    "resize",
-    "resize default",
-    "select",
-    "select kernel",
-    "retval",
-    "clear",
-    "date",
-    "date get",
-    "log",
-    "log status",
-    "net",
-    "net iface",
-    "net ping 127.0.0.1",
-    "gpio",
-    "gpio get",
-    "i2c",
-    "i2c scan",
-    "spi",
-    "flash",
-    "flash read",
-    "fs",
-    "fs ls /",
-    "nvs",
-    "sensor",
-    "pm",
-    "stats",
-    "mcuboot",
-    "rtc",
-    "hwinfo",
-    "bt",
-    "wifi",
-    "uart:~$",
-    "help -h",
-    "kernel -h",
-    "shell -h",
 };
 
 static void begin_with(const crux_cli_command_t *commands, size_t count)
@@ -581,6 +529,7 @@ static void exec_status_table(void)
         {"passwd", "not available for exec\n", CRUX_CLI_OK, 2},
         {"refused", "unknown command\n", CRUX_CLI_OK, 127},
         {"no-such", "unknown command\n", CRUX_CLI_OK, 127},
+        {"!setup", "unknown command\n", CRUX_CLI_OK, 127},
         {"permitted\n", "invalid line\n", CRUX_CLI_OK, 2},
         {"perm\titted", "invalid line\n", CRUX_CLI_OK, 2},
         {"\"unterminated", "invalid line\n", CRUX_CLI_OK, 2},
@@ -629,6 +578,36 @@ static void exec_status_table(void)
     CHECK_TEXT(result.text, "session ended\n");
     CHECK(result.has_status && result.status == 1);
     CHECK(handler_runs == 0);
+
+    /* A session lost at the permission check: it looks hidden, so 127, and then the words. */
+    begin();
+    CHECK(ssh_cli_connect(SESSION, &connection));
+    cli_fake_access.check_result = CRUX_ACCESS_ERR_SESSION_INVALID;
+    CHECK(ssh_cli_exec(connection, "permitted", 9));
+    result = ssh_cli_result(connection);
+    CHECK_TEXT(result.text, "unknown command\nsession ended\n");
+    CHECK(result.has_status && result.status == 127);
+    CHECK(handler_runs == 0);
+
+    /* The same at the forced-change query, which every class passes. */
+    begin();
+    CHECK(ssh_cli_connect(SESSION, &connection));
+    cli_fake_access.must_change_result = CRUX_ACCESS_ERR_SESSION_INVALID;
+    CHECK(ssh_cli_exec(connection, "any", 3));
+    result = ssh_cli_result(connection);
+    CHECK_TEXT(result.text, "unknown command\nsession ended\n");
+    CHECK(result.has_status && result.status == 127);
+    CHECK(handler_runs == 0);
+
+    /* The shell has one status for a lost session, whichever point lost it. */
+    begin();
+    CHECK(ssh_cli_connect(SESSION, &connection));
+    cli_fake_access.check_result = CRUX_ACCESS_ERR_SESSION_INVALID;
+    CHECK(ssh_cli_input(connection, "permitted\n", 10, true));
+    CHECK(ssh_cli_shell(connection, false));
+    result = ssh_cli_result(connection);
+    CHECK_TEXT(result.text, "> unknown command\nsession ended\n");
+    CHECK(result.has_status && result.status == 1);
 
     /* A registry that is not ready. */
     begin();
@@ -703,7 +682,7 @@ static void expect_zephyr_line_unknown(const char *line)
     CHECK(ssh_cli_connect(SESSION, &connection));
     CHECK(ssh_cli_input(connection, input, (size_t)length, true));
     CHECK(ssh_cli_shell(connection, true));
-    char expected[128];
+    char expected[160];
     snprintf(expected, sizeof(expected), "> %s\r\nunknown command\r\n> ", line);
     CHECK_TEXT(ssh_cli_result(connection).text, expected);
     CHECK(handler_runs == 0);

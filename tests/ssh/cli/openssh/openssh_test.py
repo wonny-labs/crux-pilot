@@ -28,10 +28,12 @@ NEW_PASSWORD = "a different long password"
 LINE_MAX = 400
 FLOOD_BYTES = 3 * 1024 * 1024
 
-# The built-in commands of the Zephyr shell, and the roots its modules register.
-ZEPHYR_SHELL_LINES = ("kernel", "kernel thread list", "kernel reboot cold", "device list", "devmem 0x0",
-                      "shell colors off", "history", "resize", "select", "retval", "clear", "date get",
-                      "log status", "net iface", "gpio get", "i2c scan", "flash read", "fs ls /")
+# A sample through exec, where each line costs a login. The shell case below runs the whole list.
+ZEPHYR_SHELL_LINES = ("kernel", "kernel thread list", "kernel reboot cold", "kernel uptime", "kernel panic",
+                      "device list", "devmem 0x0", "shell colors off", "history", "resize", "select", "retval",
+                      "clear", "rem", "app", "zyclictest", "date get", "log status", "net iface", "gpio get",
+                      "i2c scan", "flash read", "fs ls /")
+ALL_ZEPHYR_SHELL_LINES = tuple(re.findall(r'^    "(.*)",$', (HERE / "../zephyr_shell_lines.h").read_text(), re.M))
 
 
 def check(condition, message):
@@ -70,6 +72,7 @@ class Cases:
                     ("passwd", b"not available for exec\n", 2),
                     ("\"unterminated", b"invalid line\n", 2),
                     ("no-such", b"unknown command\n", 127),
+                    ("!setup", b"unknown command\n", 127),
                     ("serial-only", b"unknown command\n", 127),
                     ("logout", b"", 0)):
                 expect(self.exec(command), stdout, status, command)
@@ -145,13 +148,15 @@ class Cases:
         with self.image() as image:
             for line in ZEPHYR_SHELL_LINES:
                 expect(self.exec(line), b"unknown command\n", 127, line)
-            typed = "".join(f"{line}\r" for line in ZEPHYR_SHELL_LINES) + "logout\r"
-            result = self.shell(typed.encode(), True)
+            # One shell for the whole generated list. A help line answers for itself, with no event.
+            typed = "".join(f"{line}\r" for line in ALL_ZEPHYR_SHELL_LINES) + "logout\r"
+            result = self.shell(typed.encode(), True, timeout=180)
             check(result.returncode == 0, result)
-            check(b"uart:~$" not in result.stdout, result.stdout)
-            check(result.stdout.count(b"unknown command\r\n") == len(ZEPHYR_SHELL_LINES), result.stdout)
+            check(b"uart:~$\r\n" not in result.stdout.replace(b"> uart:~$\r\n", b""), result.stdout)
+            check(result.stdout.count(b"unknown command\r\n") == len(ALL_ZEPHYR_SHELL_LINES), result.stdout)
+            events = sum(not line.startswith("help ") for line in ALL_ZEPHYR_SHELL_LINES)
             check(image.count(r"^CLI event type=0 outcome=0 channel=3 user=operator$") ==
-                  2 * len(ZEPHYR_SHELL_LINES), "one event for each rejected line")
+                  len(ZEPHYR_SHELL_LINES) + events, "one event for each rejected line")
             # Tab completes nothing.
             expect(self.shell(b"ker\t\rlogout\r", True), b"> ker\r\nunknown command\r\n> logout\r\n", 0)
 
@@ -199,6 +204,18 @@ class Cases:
             check(process.returncode == 1, process.returncode)
             check(4 <= time.monotonic() - start < 40, "not at the limit")
             process.stdin.close()
+
+    def case_a_rekey_during_a_session(self):
+        # The client asks for a new key every few KiB, which reaches read and write in the provider.
+        rekey = ["-o", "RekeyLimit=16K"]
+        with self.image():
+            result = self.client.run("flood 262144", self.password + rekey)
+            check(result.returncode == 0, result.stderr)
+            check(len(result.stdout) == 262144, f"{len(result.stdout)} bytes")
+            lines = b"probe-read\n" * 2000 + b"logout\n"
+            result = self.client.run(None, self.password + rekey + ["-T"], stdin=lines, timeout=180)
+            check(result.returncode == 0, result.stderr)
+            check(result.stdout.count(b"ran\n") == 2000, result.stdout[-200:])
 
     def case_resource_use(self):
         # Simulation results only, on a 64-bit image.

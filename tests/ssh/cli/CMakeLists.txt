@@ -9,9 +9,19 @@ target_compile_features(ssh_cli_stub_test PRIVATE c_std_17)
 add_test(NAME Ssh.cli_stub COMMAND ssh_cli_stub_test)
 set_tests_properties(Ssh.cli_stub PROPERTIES TIMEOUT 30)
 
-# The real entry points, on the compositions of tests/cli and tests/access. Those exist in a build with
-# the command line and Serial, and these tests need no other part of them.
-if(TARGET crux_ssh_cli_sessions AND TARGET cli_test_scripted)
+# The real entry points, on the compositions of tests/cli and tests/access. A build that leaves out the
+# command line, Serial or Thread has none of them, and says so. One that has them must run these suites,
+# so a missing target is an error and not a smaller test run.
+if(NOT (CRUX_BUILD_CLI AND CRUX_BUILD_SERIAL AND CRUX_BUILD_THREAD))
+    message(STATUS "The CLI over SSH suites need CRUX_BUILD_CLI, _SERIAL and _THREAD, and do not run here")
+else()
+    foreach(needed IN ITEMS crux_ssh_cli_sessions cli_test_scripted cli_test_core
+                            crux_access_test_composition Threads::Threads)
+        if(NOT TARGET ${needed})
+            message(FATAL_ERROR "The CLI over SSH suites need ${needed}, which this build does not have")
+        endif()
+    endforeach()
+
     set(SSH_CLI_TEST_WARNINGS -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
 
     add_library(ssh_cli_harness STATIC ssh_cli_harness.c)
@@ -56,4 +66,19 @@ if(TARGET crux_ssh_cli_sessions AND TARGET cli_test_scripted)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_entry_symbols.py
                 --nm ${CMAKE_NM} $<TARGET_OBJECTS:crux_ssh_cli_sessions>)
     set_tests_properties(Ssh.cli_entry_symbols PROPERTIES TIMEOUT 30)
+
+    # A longer line than a worker's stack is sized for does not compile, and the bound itself does.
+    set(components ${PROJECT_SOURCE_DIR}/components)
+    set(ssh_cli_syntax_only ${CMAKE_C_COMPILER} -std=c17 -fsyntax-only -DCRUX_CLI_TOKENS_MAX=10
+        -I${components}/ssh/src -I${components}/ssh/adapter -I${components}/base/include
+        -I${components}/access/include -I${components}/access/adapter
+        -I${components}/cli/include -I${components}/cli/adapter)
+    add_test(NAME Ssh.cli_line_at_the_stack_bound
+        COMMAND ${ssh_cli_syntax_only} -DCRUX_CLI_LINE_MAX=1024 ${components}/ssh/cli/crux_ssh_cli.c)
+    add_test(NAME Ssh.cli_line_over_the_stack_bound
+        COMMAND ${ssh_cli_syntax_only} -DCRUX_CLI_LINE_MAX=1025 ${components}/ssh/cli/crux_ssh_cli.c)
+    set_tests_properties(Ssh.cli_line_over_the_stack_bound PROPERTIES
+        PASS_REGULAR_EXPRESSION "A longer line needs a larger SSH worker stack")
+    set_tests_properties(Ssh.cli_line_at_the_stack_bound Ssh.cli_line_over_the_stack_bound PROPERTIES
+        TIMEOUT 30)
 endif()

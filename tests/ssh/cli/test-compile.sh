@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Compiles the real SSH entry points of the command line (Issue #193) for native_sim and for the RT1060-EVKB,
-# with no wolfSSH, and checks the flags that keep a session's context the size the CLI core was built with.
+# with no wolfSSH, and checks the flags that keep a session's context the size the CLI core was built with. It
+# also holds the list of Zephyr shell commands that the Host tests use to what this Zephyr registers.
 # It never flashes, resets or runs an image. tests/ssh/cli/test-openssh.sh is the run on a real provider.
 set -euo pipefail
 
@@ -32,6 +33,8 @@ CHECK
         { printf 'No object for the entry points in %s\n' "$1" >&2; exit 1; }
     python3 "$repo/scripts/check-management-shell.py" --config "$1/zephyr/.config"
 }
+
+python3 "$repo/tests/ssh/cli/check_zephyr_shell_lines.py" --zephyr "$ZEPHYR_BASE"
 
 for board in native_sim/native/64 'mimxrt1060_evk@B//qspi'; do
     build="$output/${board%%/*}"

@@ -13,6 +13,17 @@
 
 #include <crux_cli_adapter.h>
 
+/*
+ * A session's context holds a line and lives on the worker's stack, whose size is fixed by the
+ * provider. A composition that needs a longer line raises that stack first, then this bound. See
+ * docs/cli-over-ssh.md.
+ */
+#ifndef CRUX_SSH_CLI_LINE_MAX_ON_STACK
+#define CRUX_SSH_CLI_LINE_MAX_ON_STACK 1024
+#endif
+_Static_assert(CRUX_CLI_LINE_MAX <= CRUX_SSH_CLI_LINE_MAX_ON_STACK,
+               "A longer line needs a larger SSH worker stack: raise it, then this bound");
+
 /* The provider sends this for a session that never started, as for any status out of range. */
 #define CRUX_SSH_CLI_REFUSED 255
 
