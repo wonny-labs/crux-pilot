@@ -1,0 +1,90 @@
+PROBE start tls_backend=mbedtls
+PROBE psa provider=tf-psa-crypto init=0 random=0 sha256=0 known_answer=1
+PROBE credential certificate result=0
+PROBE credential key result=0
+PROBE eventfd fd=0
+PROBE listener name=tls1.2 port=14212 result=1
+PROBE listener name=tls1.3 port=14213 result=3
+PROBE ready
+PROBE accept listener=tls1.2 ok revents=0x1 sim_ms=50 accepted=1
+PROBE close clean=1 closed_clean=1 closed_error=0 echoed=69648
+PROBE eventfd wakes the poll set
+PROBE accept listener=tls1.2 errno=103 revents=0x1 sim_ms=0
+PROBE accept listener=tls1.2 errno=103 revents=0x1 sim_ms=0
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=80 accepted=2
+PROBE close clean=1 closed_clean=2 closed_error=0 echoed=139296
+PROBE accept listener=tls1.3 errno=104 revents=0x1 sim_ms=60
+PROBE accept listener=tls1.3 errno=103 revents=0x1 sim_ms=0
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=3
+PROBE close clean=1 closed_clean=3 closed_error=0 echoed=139360
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=4
+PROBE close clean=1 closed_clean=4 closed_error=0 echoed=139424
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=5
+PROBE close clean=1 closed_clean=5 closed_error=0 echoed=139488
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=6
+PROBE close clean=1 closed_clean=6 closed_error=0 echoed=139552
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=7
+PROBE close clean=1 closed_clean=7 closed_error=0 echoed=139616
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=8
+PROBE close clean=1 closed_clean=8 closed_error=0 echoed=139680
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=9
+PROBE close clean=1 closed_clean=9 closed_error=0 echoed=139744
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=10
+PROBE close clean=1 closed_clean=10 closed_error=0 echoed=139808
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=11
+PROBE close clean=1 closed_clean=11 closed_error=0 echoed=139872
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=12
+PROBE close clean=1 closed_clean=12 closed_error=0 echoed=139936
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=13
+PROBE close clean=1 closed_clean=13 closed_error=0 echoed=140000
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=14
+PROBE close clean=1 closed_clean=14 closed_error=0 echoed=140064
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=15
+PROBE close clean=1 closed_clean=15 closed_error=0 echoed=140128
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=16
+PROBE close clean=1 closed_clean=16 closed_error=0 echoed=140192
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=17
+PROBE close clean=1 closed_clean=17 closed_error=0 echoed=140256
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=18
+PROBE close clean=1 closed_clean=18 closed_error=0 echoed=140320
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=19
+PROBE close clean=1 closed_clean=19 closed_error=0 echoed=140384
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=20
+PROBE close clean=1 closed_clean=20 closed_error=0 echoed=140448
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=21
+PROBE close clean=1 closed_clean=21 closed_error=0 echoed=140512
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=22
+PROBE close clean=1 closed_clean=22 closed_error=0 echoed=140576
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=23
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=24
+PROBE poll returned 0 with no timeout
+PROBE close clean=1 closed_clean=23 closed_error=0 echoed=140640
+PROBE close clean=1 closed_clean=24 closed_error=0 echoed=140704
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=25
+PROBE close clean=1 closed_clean=25 closed_error=0 echoed=140768
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=26
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=27
+PROBE close clean=1 closed_clean=26 closed_error=0 echoed=140832
+PROBE close clean=1 closed_clean=27 closed_error=0 echoed=140896
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=28
+PROBE close clean=1 closed_clean=28 closed_error=0 echoed=140960
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=29
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=30
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=31
+PROBE accept listener=tls1.3 errno=22 revents=0x1 sim_ms=0
+PROBE close clean=1 closed_clean=29 closed_error=0 echoed=141344
+PROBE close clean=1 closed_clean=30 closed_error=0 echoed=141344
+PROBE close clean=1 closed_clean=31 closed_error=0 echoed=141344
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=80 accepted=32
+PROBE close clean=1 closed_clean=32 closed_error=0 echoed=141408
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=33
+PROBE close clean=1 closed_clean=33 closed_error=0 echoed=141472
+PROBE accept listener=tls1.3 errno=110 revents=0x1 sim_ms=10010
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=60 accepted=34
+PROBE close clean=1 closed_clean=34 closed_error=0 echoed=141536
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=35
+PROBE close clean=1 closed_clean=35 closed_error=0 echoed=141600
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=70 accepted=36
+PROBE close clean=1 closed_clean=36 closed_error=0 echoed=141664
+PROBE accept listener=tls1.3 ok revents=0x1 sim_ms=80 accepted=37
+PROBE sweep off
