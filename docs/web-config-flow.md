@@ -233,9 +233,10 @@ request.
 | `configuration lists each…` and `an update sends…` on the Preact example before the screen existed | Browser, red | Both failed after 30 s, with the group not found. The forced change cases passed, because Preact already had that screen. |
 | `forced change completes`, `wrong current password` and `configuration lists each…` on the Angular example before its screens existed | Browser, red | All three failed after 30 s |
 | A test that typed before a value was read | Browser, red | Failed on the first run of the case `no value or password reaches browser storage…`, because the read replaced what was typed. The fix is `edited` on a row, and the case `a value read after the person started typing…` holds a read back until after the typing. |
-| `npm run check` in `web`, and `check-dom` on the Angular source | Node.js | See the pull request |
-| Shared cases on the Preact example, the Preact configuration cases, the shared cases on the Angular example, and the policy walks | Browser, mock | See the pull request |
-| Full CI presets | GitHub Actions | See the pull request |
+| `check:pins`, `check:types`, `typecheck`, `check:dom` on `web`, `check-dom` on the Angular source, `test:unit`, `build` | Node.js | Pass. 575 unit tests, 27 of them new, and 548 before. The Preact build is 23144 compressed bytes against its limit of 32768. |
+| `e2e/reference-shared.test.ts`, `reference-config.test.ts`, `angular-shared.test.ts` and `angular-policy.test.ts`, each run alone | Browser, mock | Pass: 57, 6, 57 and 4 of 57, 6, 57 and 4. Run again in one invocation of four files, a Preact policy case timed out and a worker then stopped at 0% CPU. It was killed and not reproduced, so its cause is unknown. |
+| `e2e/reference-home`, `reference-project` and `reference-network`, which the navigation and the fixtures could affect | Browser, mock | Pass, 38 of 38. The other `reference-*` files were not run locally. |
+| Full CI presets, and the remaining browser files | GitHub Actions | See the pull request |
 
 ## What is not verified
 
