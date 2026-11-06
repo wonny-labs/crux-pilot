@@ -1,0 +1,49 @@
+CI run 42309152801, workflow psa-crypto, head 6b2287a (the test without the correction), Zephyr v4.4.2, native_sim/native/64
+Step: TF-PSA-Crypto on native_sim, with the entropy declaration (scripts/test-psa-crypto.sh zephyr tf-psa-crypto). Excerpt of the failed-step log.
+
+INFO    - Total complete:    1/   1  100%  built (not run):    0, filtered:    2, failed:    0, error:    0
+INFO    - 3 test scenarios (3 configurations) selected, 2 configurations filtered (2 by static filter, 0 at runtime).
+INFO    - 1 of 1 executed test configurations passed (100.00%), 0 built (not run), 0 failed, 0 errored, with no warnings in 30.93 seconds.
+INFO    - 43 of 43 executed test cases passed (100.00%) on 1 out of total 1473 platforms (0.07%).
+INFO    - 3 selected test cases not executed: 3 skipped.
+...
+ERROR   - native_sim/native/64      crux.psa_entropy.fail_closed.failing_read          FAILED: rc=1
+INFO    - /home/runner/work/crux-pilot/crux-pilot/crux-pilot/build/psa-crypto/twister-entropy/native_sim_native_64/host_gnu/crux-pilot/tests/psa_entropy/zephyr/crux.psa_entropy.fail_closed.failing_read/handler.log
+ERROR   - *** Booting Zephyr OS build v4.4.2 ***
+Running TESTSUITE psa_entropy
+===================================================================
+START - test_initialisation_follows_the_entropy_read
+psa_crypto_init: 0, entropy reads: 4
+
+    Assertion failed at WEST_TOPDIR/crux-pilot/tests/psa_entropy/zephyr/src/main.c:28: psa_entropy_test_initialisation_follows_the_entropy_read: (status equal to PSA_SUCCESS)
+PSA initialised although every entropy read failed
+ FAIL - test_initialisation_follows_the_entropy_read in 0.000 seconds
+===================================================================
+TESTSUITE psa_entropy failed.
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE FAIL -   0.00% [psa_entropy]: pass = 0, fail = 1, skip = 0, total = 1 duration = 0.000 seconds
+ - FAIL - [psa_entropy.test_initialisation_follows_the_entropy_read] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+RunID: 4dce90b1e06e248dedcb4b4d7d3a9fee
+PROJECT EXECUTION FAILED
+
+INFO    - /home/runner/work/crux-pilot/crux-pilot/crux-pilot/build/psa-crypto/twister-entropy/native_sim_native_64/host_gnu/crux-pilot/tests/psa_entropy/zephyr/crux.psa_entropy.fail_closed.failing_read/handler.log
+INFO    - Total complete:    1/   3  33%  built (not run):    0, filtered:    0, failed:    1, error:    0
+INFO    - Total complete:    2/   3  66%  built (not run):    0, filtered:    0, failed:    1, error:    0
+INFO    - Total complete:    3/   3  100%  built (not run):    0, filtered:    0, failed:    1, error:    0
+INFO    - 3 test scenarios (3 configurations) selected, 0 configurations filtered (0 by static filter, 0 at runtime).
+INFO    - 2 of 3 executed test configurations passed (66.67%), 0 built (not run), 1 failed, 0 errored, with no warnings in 33.18 seconds.
+INFO    - 2 of 3 executed test cases passed (66.67%), 1 failed on 1 out of total 1473 platforms (0.07%).
+INFO    - 3 test configurations executed on platforms, 0 test configurations were only built.
+INFO    - Saving reports...
+INFO    - Writing JSON report /home/runner/work/crux-pilot/crux-pilot/crux-pilot/build/psa-crypto/twister-entropy/twister.json
+INFO    - Writing xunit report /home/runner/work/crux-pilot/crux-pilot/crux-pilot/build/psa-crypto/twister-entropy/twister.xml...
+INFO    - Writing xunit report /home/runner/work/crux-pilot/crux-pilot/crux-pilot/build/psa-crypto/twister-entropy/twister_report.xml...
+INFO    - -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+INFO    - The following issues were found (showing the top 10 items):
+INFO    - 1) crux.psa_entropy.fail_closed.failing_read on native_sim/native/64 failed (rc=1)

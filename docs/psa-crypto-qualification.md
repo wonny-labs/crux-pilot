@@ -142,7 +142,7 @@ The review of `00db0bf` found that these two used to be declared on whole cases.
 | --- | --- | --- |
 | 1 | UBSan reports 4 issues inside wolfSSL under wolfPSA's standalone Host settings: signed overflow in `sp_256_num_bits_29_9` in `sp_c32.c`, and misaligned loads and stores in `ByteReverseWords64` in `misc.c` and the 64-bit `GMULT` in `aes.c`. The cases still pass, and the script pins the count, so a new one fails. Whether the Zephyr builds reach them: `sp_c32.c` and `aes.c` are compiled on `native_sim` and RT1060, and `misc.c` is included. Preprocessed with their own flags, neither `sp_256_num_bits_29_9` nor that `GMULT` is present on either, so the Zephyr settings select other variants. `ByteReverseWords64` is defined there with no caller in `aes.c`. UBSan itself ran only on Host, so this shows only that those functions are absent. | Recorded, not fixed. Vendor code. [Reports](evidence/psa-crypto/v4.4.2-revised/host-wolfpsa-ubsan-reports.txt), [source check](evidence/psa-crypto/v4.4.2-revised/zephyr-ubsan-sources.txt). |
 | 2 | `native_sim` random repeats on every run, for both providers. | [Declared test-only](#provider-declarations) |
-| 3 | Zephyr's glue for TF-PSA-Crypto can fall back to `sys_rand_get()` when the entropy read fails (`allow_non_cs` in `zephyr_entropy.c`). wolfCrypt's seed returns `RNG_FAILURE_E` instead. On RT1060 `sys_rand_get()` is a non-cryptographic generator. | Source read. Weighs for the Wolf profile. Whether a TRNG read can fail in practice is untested. |
+| 3 | Zephyr's glue for TF-PSA-Crypto falls back to `sys_rand_get()` when the entropy read fails (`allow_non_cs` is `true` in `mbedtls_platform_get_entropy`, `zephyr_entropy.c`), and reports full entropy. wolfCrypt's seed returns `RNG_FAILURE_E` instead. On RT1060 `sys_rand_get()` is a non-cryptographic generator. The fallback is reachable on RT1060 at Zephyr v4.4.2, where `entropy_mcux_trng.c` returns `-EIO` on a failed read. At v4.4.0 it asserted and returned success, so a read failure did not reach the fallback there. | **Corrected for TF-PSA-Crypto on the entropy driver route**: see [Entropy failure](#entropy-failure). Whether a TRNG read can fail in practice is untested, and nothing ran on a board. |
 | 4 | `CSPRNG_ENABLED` depends only on `ENTROPY_HAS_DRIVER`, so it is `y` with the test generator and certifies nothing. | Source and configuration read |
 | 5 | Zephyr's module has no `MBEDTLS_THREADING_C` option at this pin, so TF-PSA-Crypto's core has no lock, and on the Mbed profile TLS threads call the same core. wolfPSA defaults `CONFIG_WOLFPSA_THREAD_SAFE=y`. | Source and configuration read. Concurrency is untested for both. Open for #242. |
 | 6 | `tf-psa-crypto` is a commit in Zephyr's fork, whose relation to the upstream `v1.1.0` tag was not established. | Open, unchanged |
@@ -244,6 +244,31 @@ The root build does not call it yet, and Host CI has no west workspace. wolfPSA 
 ### API subset
 
 **Adopted:** the [subset in the policy](native-interface-policy.md#qualified-psa-crypto-subset). `psa_key_derivation_verify_bytes` is out, because the Access core compares and TF-PSA-Crypto lacks it, which closes the record's earlier open point. The subset is for Crux's own code. TLS and SSH are not in it. On the Wolf profile they call wolfCrypt directly. On the Mbed profile Mbed TLS calls PSA itself, beyond this subset, in the same provider, and that use is **not qualified here**.
+
+### Entropy failure
+
+**Adopted: a failed entropy read fails PSA, with no fallback to `sys_rand_get()`.** Owner decision of 6 November 2026, in the working session ("추천대로(fail-closed)"), on the independent review of #153, which raised it as O4. The route is a build-local copy of Zephyr's `modules/mbedtls/zephyr_entropy.c` with the one fallback flag changed, made by [`scripts/prepare-mbedtls-entropy.py`](../scripts/prepare-mbedtls-entropy.py) after it checks the original's SHA-256, and applied by [`cmake/CruxMbedtlsEntropy.cmake`](../cmake/CruxMbedtlsEntropy.cmake). See [the patch notes](../patches/zephyr/README.md#mbed-tls-entropy-without-a-fallback). The Zephyr checkout is not modified.
+
+| Option | Result |
+| --- | --- |
+| **Build-local copy of the one source, hash-checked** | **Chosen.** The repository already does this for the MDIO driver, and a changed Zephyr source fails configuration. |
+| Upstream change | Not relied on: it cannot be waited for, and proposing it outside the repository needs its own approval. It can run alongside. |
+| Link-time `--wrap` of `mbedtls_platform_get_entropy` | Rejected. A renamed or removed symbol would pass silently, and a separate link check would be needed. |
+| `MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG` | Rejected. Zephyr's driver comment says this TRNG supplies a seed and not a continuous stream, and PSA would then use the raw device output with no DRBG. Its rate and quality were not assessed. |
+| No real key generation on the Mbed route | Not enough alone: TLS on that route still reaches the fallback. It holds until the correction is applied to an image. |
+
+What ran, and where. All of it on Zephyr v4.4.2 in CI, [first without the correction](evidence/psa-entropy/red-without-correction.txt) and [then with it](evidence/psa-entropy/green-with-correction.txt):
+
+| Configuration | Result |
+| --- | --- |
+| `crux.psa_entropy.fail_closed.healthy_read` | Passed: PSA initialises and returns random bytes |
+| `crux.psa_entropy.fail_closed.failing_read` | Without the correction: **failed**, `psa_crypto_init` returned success after 4 failed reads. With it: passed, PSA did not initialise. |
+| `crux.psa_entropy.upstream_fallback.failing_read` | Passed: without the correction PSA still initialises. This control records that the upstream behaviour exists. If it fails, upstream changed and the correction can be reconsidered. |
+| `scripts/test-psa-crypto.sh target`, TF-PSA-Crypto for RT1060-EVKB | Compile only: the corrected source is the one compiled, and Zephyr's own is not |
+
+Each configuration also requires that the test entropy device was read, so a pass cannot come from another source.
+
+**Not covered.** The test fails the read before initialisation. A reseed after a successful start goes through the same function, and was not exercised. The test device is not the RT1060 TRNG, and no TRNG read ran on a board. The correction is applied to the TF-PSA-Crypto conformance image. Any other composition on the Mbed legacy RNG route, such as the Mbed web adapter compile for RT1060-EVKB, must call `crux_mbedtls_fail_closed_entropy()` before it generates a key, and does not yet. The `native_sim` compositions use the external RNG, which already refuses a non-secure source. wolfPSA is unaffected, because wolfCrypt's seed fails on a failed read.
 
 ### Licence basis
 
