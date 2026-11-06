@@ -1,6 +1,6 @@
 // Client-side checks of IPv4 settings, for usability only. The server remains the authority, and the rules here
 // are those of the firmware's network settings service (components/network_settings), which the shared vectors in
-// api/network-validation-vectors.tsv hold both sides to. The server reports its result with the specification's
+// tests/network_settings/validation-vectors.tsv hold both sides to. The server reports its result with the specification's
 // field codes. not_ipv4 and gateway_not_usable are this client's own: the server answers a malformed address with
 // bad_request, and every refusal of a gateway with gateway_outside_subnet.
 import type { Ipv4Settings } from './api-types.generated.ts';

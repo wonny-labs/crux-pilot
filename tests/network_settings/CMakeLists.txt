@@ -36,7 +36,7 @@ foreach(suite IN ITEMS validation boot service power_loss foreign_save busy conc
     crux_network_settings_suite(${suite})
 endforeach()
 target_compile_definitions(network_settings_validation PRIVATE
-    NETWORK_VECTORS_PATH="${PROJECT_SOURCE_DIR}/web/api/network-validation-vectors.tsv")
+    NETWORK_VECTORS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/validation-vectors.tsv")
 target_link_options(network_settings_foreign_save PRIVATE
     -Wl,--wrap=crux_config_service_try_update)
 target_link_options(network_settings_lock_faults PRIVATE -Wl,--wrap=crux_mutex_lock)

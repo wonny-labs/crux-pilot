@@ -165,7 +165,7 @@ export interface ConfigUpdate {
   value: boolean | number | string;
 }
 
-/** Static IPv4 settings. The server also checks them, and reports each failure as a field error. The address must be of unicast class, which leaves out 0.0.0.0/8, 127.0.0.0/8 and everything from 224.0.0.0, and it must not be the network or the broadcast address of its subnet. The prefix length must be 1 to 30. A gateway must be of unicast class, must not be the address itself, and must lie in the subnet of the address without being its network or broadcast address. An address that is not a dotted quad of four decimal numbers from 0 to 255 with no leading zero, and a member of another type, are `bad_request`. The rules are the firmware's, and `network-validation-vectors.tsv` holds the client's checks to them. */
+/** Static IPv4 settings. The server also checks them, and reports each failure as a field error. The address must be of unicast class, which leaves out 0.0.0.0/8, 127.0.0.0/8 and everything from 224.0.0.0, and it must not be the network or the broadcast address of its subnet. The prefix length must be 1 to 30. A gateway must be of unicast class, must not be the address itself, and must lie in the subnet of the address without being its network or broadcast address. An address that is not a dotted quad of four decimal numbers from 0 to 255 with no leading zero, and a member of another type, are `bad_request`. The rules are the firmware's, and the shared test vectors of the firmware hold the client's checks to them. */
 export interface Ipv4Settings {
   address: string;
   prefix_length: number;

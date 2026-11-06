@@ -1830,7 +1830,7 @@ components:
         30. A gateway must be of unicast class, must not be the address itself, and must lie in the subnet of
         the address without being its network or broadcast address. An address that is not a dotted quad of four
         decimal numbers from 0 to 255 with no leading zero, and a member of another type, are `bad_request`.
-        The rules are the firmware's, and `network-validation-vectors.tsv` holds the client's checks to them.
+        The rules are the firmware's, and the shared test vectors of the firmware hold the client's checks to them.
       additionalProperties: false
       required: [address, prefix_length]
       properties:

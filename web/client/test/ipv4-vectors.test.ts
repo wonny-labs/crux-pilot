@@ -5,7 +5,7 @@ import { checkIpv4Settings } from '../src/index.ts';
 
 // The vectors are shared with the firmware: tests/network_settings/validation.c reads the same file and holds
 // the service's rules to every line. A client that disagrees with a line is wrong, since the server decides.
-const VECTORS = new URL('../../api/network-validation-vectors.tsv', import.meta.url);
+const VECTORS = new URL('../../../tests/network_settings/validation-vectors.tsv', import.meta.url);
 
 /** What the server answers for the settings that the client checked, in the vectors' notation. */
 function asServerAnswer(address: string, prefix: string, gateway: string): string {

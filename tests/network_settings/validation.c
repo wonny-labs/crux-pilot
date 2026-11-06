@@ -6,7 +6,7 @@
 #include <inttypes.h>
 
 #ifndef NETWORK_VECTORS_PATH
-#error "NETWORK_VECTORS_PATH names web/api/network-validation-vectors.tsv"
+#error "NETWORK_VECTORS_PATH names tests/network_settings/validation-vectors.tsv"
 #endif
 
 #define ip(a, b, c, d)                                                                             \
