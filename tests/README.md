@@ -680,8 +680,11 @@ is one that refuses every operation. See [the SSH provider contract](../docs/ssh
 
 `scripts/test-ssh-provider.sh`, also outside every default workflow for the same reason, runs the wolfSSH provider: the conformance cases
 with a scripted client, and `tests/zephyr/ssh_provider/openssh_test.py` with a real OpenSSH client, both on `native_sim/native/64` over the
-native socket offload. It also records resource use as simulation results, compiles for `mimxrt1060_evk@B//qspi`, and shows that the Mbed
-profile fails at configuration. See [the wolfSSH provider](../docs/ssh-wolf-provider.md), which declares the test ports behind these results.
+native socket offload. It then boots an image built with `CRUX_SSH_TEST_STORED_HOST_KEY` several times on one flash file, with the host key
+from the credential store on its PSA ports over wolfPSA. It also records resource use as simulation results, compiles for
+`mimxrt1060_evk@B//qspi`, and shows that the Mbed profile fails at configuration. The provider's checks on client input are in the Host
+suite as `Ssh.wire`, with seeded mutations against an oracle, and `Ssh.wire_mutations`, which needs each of 22 source mutants to fail it
+under sanitizers. See [the wolfSSH provider](../docs/ssh-wolf-provider.md), which declares the test ports behind these results.
 
 ## PSA Crypto qualification
 

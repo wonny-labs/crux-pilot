@@ -4,6 +4,13 @@ add_library(crux_ssh_provider INTERFACE)
 target_include_directories(crux_ssh_provider INTERFACE src)
 target_link_libraries(crux_ssh_provider INTERFACE crux::base)
 
+# The checks a provider applies to what a client sends, with no SSH library type, so that the Host tests
+# them (#192). A provider build compiles the same source: see ports/zephyr/provider_sources.cmake.
+add_library(crux_ssh_wire STATIC src/crux_ssh_wire.c)
+target_link_libraries(crux_ssh_wire PUBLIC crux_ssh_provider)
+target_compile_options(crux_ssh_wire PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_compile_features(crux_ssh_wire PRIVATE c_std_17)
+
 add_library(crux_ssh_adapter INTERFACE)
 target_include_directories(crux_ssh_adapter INTERFACE adapter)
 target_link_libraries(crux_ssh_adapter INTERFACE crux_ssh_provider crux_access_api)
