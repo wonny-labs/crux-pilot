@@ -33,6 +33,8 @@ async function walk(config: AppConfig, trustedTypes: boolean): Promise<OpenApp> 
   // The configuration screen too: an update and a save, with their notices and field errors.
   await app.page.getByRole('link', { name: 'Configuration' }).click();
   await waitForHeading(app.page, 'Configuration');
+  // The last value is read last, so that no read lands while the walk types.
+  await app.page.getByRole('group', { name: 'build_limit', exact: true }).getByText('Current value: 64', { exact: true }).waitFor();
   const block = app.page.getByRole('group', { name: 'report_interval', exact: true });
   await block.getByLabel('New value').fill('0');
   await block.getByRole('button', { name: 'Update' }).click();

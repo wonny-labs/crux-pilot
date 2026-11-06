@@ -3,24 +3,29 @@
 // in shared-cases.ts.
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
-import { after, before, test } from 'node:test';
-import type { Browser } from 'playwright-core';
-import { launchBrowser, requireBuilt, runCase, signIn, waitForHeading, webRoot } from './harness.ts';
+import { after, test } from 'node:test';
+import type { Page } from 'playwright-core';
+import { lazyBrowser, requireBuilt, runCase, signIn, waitForHeading, webRoot } from './harness.ts';
 import type { AppConfig, OpenApp, OpenOptions } from './harness.ts';
 
 const config: AppConfig = { name: 'reference', dist: join(webRoot, 'reference', 'dist'), stylePolicy: 'strict' };
 
-let browser: Browser;
-before(async () => {
-  requireBuilt(config);
-  browser = await launchBrowser();
-});
-after(async () => {
-  await browser.close();
-});
+const shared = lazyBrowser();
+after(() => shared.close());
 
 function run(name: string, body: (app: OpenApp) => Promise<void>, options: OpenOptions = {}) {
-  test(name, () => runCase(browser, config, name, options, body));
+  test(name, async () => {
+    requireBuilt(config);
+    return runCase(await shared.get(), config, name, options, body);
+  });
+}
+
+/** Open the screen and wait for the last value, so that no read lands while a case is typing. */
+async function openSettled(page: Page, user = 'operator'): Promise<void> {
+  await page.goto('/#/config');
+  await signIn(page, user);
+  await waitForHeading(page, 'Configuration');
+  await page.getByRole('group', { name: 'build_limit', exact: true }).getByText('Current value: 64', { exact: true }).waitFor();
 }
 
 run('the configuration link marks the page, and focus and the title follow it', async ({ page }) => {
@@ -36,9 +41,7 @@ run('the configuration link marks the page, and focus and the title follow it', 
 });
 
 run('a value is updated with the keyboard alone, and the field error is tied to its field', async ({ page }) => {
-  await page.goto('/#/config');
-  await signIn(page);
-  await waitForHeading(page, 'Configuration');
+  await openSettled(page);
   const field = page.getByRole('group', { name: 'report_interval', exact: true }).getByLabel('New value');
   await field.focus();
   await page.keyboard.press('Control+A');
@@ -56,9 +59,7 @@ run('a value is updated with the keyboard alone, and the field error is tied to 
 });
 
 run('a switch is reached and changed with the keyboard', async ({ page }) => {
-  await page.goto('/#/config');
-  await signIn(page);
-  await waitForHeading(page, 'Configuration');
+  await openSettled(page);
   const box = page.getByRole('group', { name: 'verbose', exact: true }).getByRole('checkbox');
   await box.focus();
   await page.keyboard.press('Space');
@@ -68,9 +69,7 @@ run('a switch is reached and changed with the keyboard', async ({ page }) => {
 });
 
 run('the save is announced as it runs, and the page stays quiet otherwise', async ({ page }) => {
-  await page.goto('/#/config');
-  await signIn(page);
-  await waitForHeading(page, 'Configuration');
+  await openSettled(page);
   assert.equal(await page.getByRole('alert').count(), 0);
   await page.getByRole('button', { name: 'Save changes' }).click();
   await page.getByRole('status').getByText('The changes are saved.').waitFor();
@@ -78,9 +77,7 @@ run('the save is announced as it runs, and the page stays quiet otherwise', asyn
 });
 
 run('configuration passes the strict policy with Trusted Types added', async ({ page, violations }) => {
-  await page.goto('/#/config');
-  await signIn(page);
-  await waitForHeading(page, 'Configuration');
+  await openSettled(page);
   await page.getByRole('group', { name: 'report_interval', exact: true }).getByLabel('New value').fill('9');
   await page.getByRole('group', { name: 'report_interval', exact: true }).getByRole('button', { name: 'Update' }).click();
   await page.getByText('Changed, not yet saved').waitFor();
@@ -88,14 +85,3 @@ run('configuration passes the strict policy with Trusted Types added', async ({ 
   await page.getByText('The changes are saved.').waitFor();
   assert.deepEqual(violations, []);
 }, { trustedTypes: true });
-
-run('a device value is shown as text, never as markup', async ({ page, mock }) => {
-  await page.goto('/#/config');
-  await signIn(page);
-  await waitForHeading(page, 'Configuration');
-  await page.getByRole('group', { name: 'device_label', exact: true }).getByLabel('New value').fill('<img src=x onerror=alert(1)><b>x</b>');
-  await page.getByRole('group', { name: 'device_label', exact: true }).getByRole('button', { name: 'Update' }).click();
-  await page.getByText('Current value: <img src=x onerror=alert(1)><b>x</b>', { exact: true }).waitFor();
-  assert.equal(await page.locator('main img, main b').count(), 0);
-  assert.equal(mock.control.requests.some((request) => request.method === 'PUT'), true);
-});

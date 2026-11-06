@@ -209,6 +209,7 @@ export class Configuration implements OnInit, OnDestroy {
   /** A new load makes an older one stop, and leaving the screen stops them all. */
   private generation = 0;
   private stopped = false;
+  private readonly leaving = new AbortController();
 
   ngOnInit(): void {
     void this.load();
@@ -216,6 +217,7 @@ export class Configuration implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopped = true;
+    this.leaving.abort();
   }
 
   protected description(item: ConfigItem): string {
@@ -410,6 +412,8 @@ export class Configuration implements OnInit, OnDestroy {
         });
         void this.load();
         break;
+      case 'aborted':
+        break;
       case 'failed_request':
         this.saveMessage.set(this.failed(outcome.failure, 'This account may not save changes.'));
         break;
@@ -430,7 +434,7 @@ export class Configuration implements OnInit, OnDestroy {
       this.saveMessage.set(this.failed(failureOf(error), 'This account may not save changes.'));
       return;
     }
-    const outcome = await this.api.watchSave();
+    const outcome = await this.api.watchSave(this.leaving.signal);
     if (this.stopped) {
       return;
     }

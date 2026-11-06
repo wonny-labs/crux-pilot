@@ -41,6 +41,8 @@ export interface ClientTiming {
   rebootLimitMs: number;
   savePollMs: number;
   saveLimitMs: number;
+  /** The longest sleep between two reads while a save runs, whatever Retry-After says. */
+  saveWaitMaxMs: number;
 }
 
 export const defaultClientTiming: ClientTiming = {
@@ -59,6 +61,7 @@ export const defaultClientTiming: ClientTiming = {
   rebootLimitMs: 180_000,
   savePollMs: 1000,
   saveLimitMs: 15_000,
+  saveWaitMaxMs: 5000,
 };
 
 export interface ClientOptions {
@@ -558,10 +561,12 @@ export function createClient(options: ClientOptions = {}): CruxClient {
               return { kind: 'failed_request', error };
           }
         }
-        if (now() - start >= timing.saveLimitMs) {
+        const left = timing.saveLimitMs - (now() - start);
+        if (left <= 0) {
           return { kind: 'not_confirmed' };
         }
-        if (!(await pause(delay, watch.signal))) {
+        // The device's wait is honoured up to a cap, and never past the limit of this wait.
+        if (!(await pause(Math.min(delay, timing.saveWaitMaxMs, left), watch.signal))) {
           return { kind: 'aborted' };
         }
       }

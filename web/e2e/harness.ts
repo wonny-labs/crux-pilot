@@ -48,6 +48,22 @@ export async function launchBrowser(): Promise<Browser> {
     : chromium.launch({ headless: true, channel: 'chrome' });
 }
 
+/**
+ * A browser that starts with the first test that needs it. Nothing launches when a name pattern matches no test
+ * of a file, so no hook is left waiting to close a browser that would idle the process.
+ */
+export function lazyBrowser(): { get(): Promise<Browser>; close(): Promise<void> } {
+  let started: Promise<Browser> | undefined;
+  return {
+    get: () => (started ??= launchBrowser()),
+    async close() {
+      if (started !== undefined) {
+        await (await started).close();
+      }
+    },
+  };
+}
+
 export function requireBuilt(config: AppConfig): void {
   if (!existsSync(join(config.dist, 'index.html'))) {
     throw new Error(`${config.dist} has not been built`);

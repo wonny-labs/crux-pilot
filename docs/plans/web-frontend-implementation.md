@@ -321,10 +321,10 @@ by file.
 | Limit | Value | Measured |
 | --- | --- | --- |
 | Files | 4: index, one script, one style, one icon | 4 |
-| Compressed bytes | 32768 | 23144 |
+| Compressed bytes | 32768 | 23184 |
 
-The Preact example's parts, in bytes then compressed bytes: script 64269 and 21331, style 3931 and 1307, index 548 and 347, icon 174
-and 159. The configuration screen of #243 added 2,738 compressed bytes, and the budget is unchanged, so 9,624 bytes remain.
+The Preact example's parts, in bytes then compressed bytes: script 64419 and 21371, style 3931 and 1307, index 548 and 347, icon 174
+and 159. The configuration screen of #243 added 2,729 compressed bytes, and the budget is unchanged, so 9,584 bytes remain.
 
 ## Supply chain
 
@@ -359,13 +359,13 @@ sign-in, home, configuration with an update and a save, and sign-out, in `e2e/an
 
 | Build | Files | Bytes | Compressed bytes | Production packages | Locked packages |
 | --- | --- | --- | --- | --- | --- |
-| Preact example, all six screens | 4 | 68922 | 23144 | 1 | 38 |
-| Preact example, core screens: sign-in, forced change, home and configuration | 4 | 58559 | 20715 | 1 | 38 |
-| Angular example, the same core screens | 5 | 292950 | 88961 | 7 | 362 |
+| Preact example, all six screens | 4 | 69072 | 23184 | 1 | 38 |
+| Preact example, core screens: sign-in, forced change, home and configuration | 4 | 58709 | 20761 | 1 | 38 |
+| Angular example, the same core screens | 5 | 298780 | 91197 | 7 | 362 |
 
 Before #243 the Angular row held sign-in and home alone, at 249403 bytes and 76710 compressed, against 48485 and 17922 for
 Preact, so those earlier rows do not compare with these. Both builds now hold the same four core flows. The fifth Angular file is `3rdpartylicenses.txt`, at 4822 compressed bytes,
-which the build writes by default, so the example's code and style are 84,139 compressed bytes. The Preact build writes no
+which the build writes by default, so the example's code and style are 86,375 compressed bytes. The Preact build writes no
 licence file, and the SBOM names Preact's MIT licence but holds no copyright notice. MIT requires that notice in copies, so
 this build alone does not meet it, and a product must add the text of Preact's `LICENSE` to its own notices. Installed tools measured 55 MB, 13 packages and 1,252 files for
 `web`, and 237 MB, 240 packages and 16,245 files for the Angular example, on macOS arm64.
@@ -386,7 +386,7 @@ What this shows, on the mock only:
 | Question | Result |
 | --- | --- |
 | Does Angular work with the web foundation? | Yes, on these two screens, with the same browser cases as the Preact example. |
-| Compressed size against Preact on the same screens | About 4.3 times on the core screens: 88,961 against 20,715 bytes. Excluding the licence file, 4.1 times. On sign-in and home alone it was 4.3 and 4.0 times. |
+| Compressed size against Preact on the same screens | About 4.4 times on the core screens: 91,197 against 20,761 bytes. Excluding the licence file, 4.2 times. On sign-in and home alone it was 4.3 and 4.0 times. |
 | File count | No lazy loading is used, so one script and one style, as for Preact. |
 | CSRF | `HttpClient`'s default names work with no configuration, shown by the sign-out case. |
 | Hash routing | `withHashLocation` works, and the server sees only API and asset paths. |

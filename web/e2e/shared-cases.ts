@@ -1,9 +1,10 @@
-// The browser cases that the Preact reference and the Angular sample both pass, for sign-in and home.
+// The browser cases that the Preact reference and the Angular sample both pass: sign-in, home, the forced
+// password change and configuration.
 // They find elements by role, label and visible text only, so they hold for any framework.
 import assert from 'node:assert/strict';
-import { after, before, test } from 'node:test';
-import type { Browser, Locator, Page } from 'playwright-core';
-import { launchBrowser, PASSWORD, requireBuilt, runCase, signIn, waitForHeading } from './harness.ts';
+import { after, test } from 'node:test';
+import type { Locator, Page } from 'playwright-core';
+import { lazyBrowser, PASSWORD, requireBuilt, runCase, signIn, waitForHeading } from './harness.ts';
 import type { AppConfig, OpenApp } from './harness.ts';
 
 const NEW_PASSWORD = 'example-new-password-not-real';
@@ -13,13 +14,20 @@ function parameter(page: Page, name: string): Locator {
   return page.getByRole('group', { name, exact: true });
 }
 
-async function openConfiguration(page: Page, user = 'operator'): Promise<void> {
+/**
+ * Open the screen and, unless told not to, wait until every value is read. A value that lands while a case is
+ * typing would change the field under it, so a case that types waits first.
+ */
+async function openConfiguration(page: Page, user = 'operator', settled = true): Promise<void> {
   await page.goto('/');
   await signIn(page, user);
   await waitForHeading(page, 'Home');
   await page.getByRole('link', { name: 'Configuration' }).click();
   await waitForHeading(page, 'Configuration');
   await parameter(page, 'report_interval').waitFor();
+  if (settled && user !== 'writer' && user !== 'guest') {
+    await waitForValues(page);
+  }
 }
 
 /** The operator's last parameter is read last, so its value shows that the reading has ended. */
@@ -49,17 +57,14 @@ async function fillPasswords(page: Page, current: string, next: string, repeat =
 const PROTECTED = ['/api/v1/status', '/api/v1/config', '/api/v1/network', '/api/v1/system/reboot'];
 
 export function sharedCases(config: AppConfig): void {
-  let browser: Browser;
-  before(async () => {
-    requireBuilt(config);
-    browser = await launchBrowser();
-  });
-  after(async () => {
-    await browser.close();
-  });
+  const shared = lazyBrowser();
+  after(() => shared.close());
 
   const run = (name: string, body: (app: OpenApp) => Promise<void>) =>
-    test(`${config.name}: ${name}`, () => runCase(browser, config, name, {}, body));
+    test(`${config.name}: ${name}`, async () => {
+      requireBuilt(config);
+      return runCase(await shared.get(), config, name, {}, body);
+    });
 
   run('a visit with no session shows sign-in', async ({ page, mock }) => {
     await page.goto('/');
@@ -648,7 +653,7 @@ export function sharedCases(config: AppConfig): void {
       await gate;
       await route.continue();
     });
-    await openConfiguration(page);
+    await openConfiguration(page, 'operator', false);
     await parameter(page, 'device_label').getByLabel('New value').fill('typed-before-the-read');
     release();
     await waitForValues(page);
@@ -669,5 +674,106 @@ export function sharedCases(config: AppConfig): void {
     assert.deepEqual(seen.session, {});
     assert.equal(seen.databases, 0);
     assert.equal(seen.address.includes('marker-value-123'), false);
+  });
+
+  // Overlapping work on one screen
+
+  /** Hold every PUT of one parameter until released, and say when one is waiting. */
+  async function holdUpdates(page: Page, name: string): Promise<{ release: () => void }> {
+    let release = (): void => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route(`**/api/v1/config/${name}`, async (route) => {
+      if (route.request().method() === 'PUT') {
+        await gate;
+      }
+      await route.continue();
+    });
+    return { release };
+  }
+
+  const puts = (mock: OpenApp['mock']): string[] =>
+    mock.control.requests.filter((request) => request.method === 'PUT').map((request) => request.path);
+
+  run('a second update while the first is in flight waits for it, and neither screen nor save stays stuck', async ({ page, mock }) => {
+    await openConfiguration(page);
+    const held = await holdUpdates(page, 'report_interval');
+    await update(page, 'report_interval', '10');
+    await parameter(page, 'report_interval').getByText(/sending the value/i).waitFor();
+    await parameter(page, 'device_label').getByLabel('New value').fill('second');
+    await parameter(page, 'device_label').getByLabel('New value').press('Enter');
+    await page.waitForTimeout(400);
+    assert.deepEqual(puts(mock), [], 'the first request is still held, and the second was not sent');
+    held.release();
+    await parameter(page, 'report_interval').getByText('Current value: 10', { exact: true }).waitFor();
+    assert.equal(await page.getByText(/sending the value/i).count(), 0);
+    assert.deepEqual(puts(mock), ['/api/v1/config/report_interval'], 'the first update was not abandoned or doubled');
+    // Nothing is stuck: the second update works when asked again, and so does the save.
+    await parameter(page, 'device_label').getByRole('button', { name: 'Update' }).click();
+    await parameter(page, 'device_label').getByText('Current value: second', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await page.getByText('The changes are saved.').waitFor();
+  });
+
+  run('a save asked for while an update is in flight is not sent, and works afterwards', async ({ page, mock }) => {
+    await openConfiguration(page);
+    const held = await holdUpdates(page, 'report_interval');
+    await update(page, 'report_interval', '10');
+    await parameter(page, 'report_interval').getByText(/sending the value/i).waitFor();
+    // The button is marked disabled, which Playwright will not click, and a person's click can still land.
+    await page.getByRole('button', { name: 'Save changes' }).click({ force: true });
+    await page.waitForTimeout(400);
+    assert.equal(mock.control.requests.some((request) => request.path === '/api/v1/config/save'), false);
+    held.release();
+    await parameter(page, 'report_interval').getByText('Current value: 10', { exact: true }).waitFor();
+    assert.equal(await page.getByText(/sending the value/i).count(), 0);
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await page.getByText('The changes are saved.').waitFor();
+    assert.equal(mock.control.requests.filter((request) => request.path === '/api/v1/config/save').length, 1);
+  });
+
+  run('an update asked for while a save runs is not sent', async ({ page, mock }) => {
+    await openConfiguration(page);
+    await update(page, 'report_interval', '10');
+    await parameter(page, 'report_interval').getByText('Changed, not yet saved').waitFor();
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await page.getByRole('status').getByText(/saving the changes/i).waitFor();
+    await parameter(page, 'device_label').getByLabel('New value').fill('during');
+    await parameter(page, 'device_label').getByLabel('New value').press('Enter');
+    await page.getByText('The changes are saved.').waitFor();
+    assert.deepEqual(puts(mock), ['/api/v1/config/report_interval']);
+  });
+
+  // Guards that the device's own filtering makes unreachable, and that the screens keep anyway
+
+  run('a parameter flagged sensitive is never read or shown, whatever else its flags say', async ({ page, mock }) => {
+    // A device must never send readable and sensitive together, but the screen does not rely on that.
+    await page.route('**/api/v1/config', async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as { items: { name: string; sensitive: boolean; readable: boolean }[] };
+      for (const item of body.items) {
+        if (item.name === 'device_label') {
+          item.sensitive = true;
+          item.readable = true;
+        }
+      }
+      await route.fulfill({ response, json: body });
+    });
+    await openConfiguration(page);
+    const block = parameter(page, 'device_label');
+    await block.getByText('A sensitive value is never shown.').waitFor();
+    assert.equal(await block.getByRole('button').count(), 0);
+    assert.equal(await block.getByRole('textbox').count(), 0);
+    assert.equal((await page.locator('body').innerText()).includes('pilot'), false);
+    assert.equal(mock.control.requests.some((request) => request.path === '/api/v1/config/device_label'), false);
+  });
+
+  run('a value from the device is shown as text, never as markup', async ({ page }) => {
+    await openConfiguration(page);
+    const markup = '<img src=x onerror=alert(1)><b>x</b>';
+    await update(page, 'device_label', markup);
+    await parameter(page, 'device_label').getByText(`Current value: ${markup}`, { exact: true }).waitFor();
+    assert.equal(await page.locator('main img, main b').count(), 0);
   });
 }

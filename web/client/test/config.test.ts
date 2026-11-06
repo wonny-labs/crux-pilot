@@ -206,3 +206,28 @@ test('an aborted wait ends as aborted', async () => {
   controller.abort();
   assert.deepEqual(await client.watchConfigSave({ signal: controller.signal }), { kind: 'aborted' });
 });
+
+test('a long Retry-After does not make the wait for a save sleep that long', async () => {
+  const { client, sleeps } = harness([json(503, { code: 'busy' }, { 'Retry-After': '3600' }), list({ save: { state: 'saved' } })]);
+  assert.equal((await client.watchConfigSave()).kind, 'saved');
+  assert.deepEqual(sleeps, [5000]);
+});
+
+test('a wait for a save never sleeps past its own limit', async () => {
+  const { client, sleeps, clock } = harness(() => json(503, { code: 'busy' }, { 'Retry-After': '3600' }), {
+    timing: { saveLimitMs: 2000, savePollMs: 1000 },
+  });
+  const start = clock.now;
+  assert.deepEqual(await client.watchConfigSave(), { kind: 'not_confirmed' });
+  assert.ok(sleeps.every((ms) => ms <= 2000), sleeps.join());
+  assert.ok(clock.now - start <= 2000);
+});
+
+test('an abort during the sleep ends the wait as aborted', async () => {
+  const controller = new AbortController();
+  const { client } = harness(() => {
+    controller.abort();
+    return list({ save: { state: 'pending' } });
+  });
+  assert.deepEqual(await client.watchConfigSave({ signal: controller.signal }), { kind: 'aborted' });
+});

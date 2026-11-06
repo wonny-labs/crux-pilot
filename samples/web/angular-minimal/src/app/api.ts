@@ -41,10 +41,13 @@ export type SaveOutcome =
   | { kind: 'failed'; code: ConfigSaveFailed['code']; list: ConfigList }
   | { kind: 'not_visible' }
   | { kind: 'not_confirmed' }
+  | { kind: 'aborted' }
   | { kind: 'failed_request'; failure: Failure };
 
 const SAVE_POLL_MS = 1000;
 const SAVE_LIMIT_MS = 15_000;
+/** The device's Retry-After is honoured up to this long between two reads. */
+const SAVE_WAIT_MAX_MS = 5000;
 
 const BUSY_DELAYS_MS = [300, 600, 1200];
 const POLL_START_MS = 250;
@@ -153,9 +156,12 @@ export class Api {
   }
 
   /** Read the list until the latest save has ended. Busy means that the worker is still inside storage. */
-  async watchSave(): Promise<SaveOutcome> {
+  async watchSave(signal: AbortSignal): Promise<SaveOutcome> {
     const start = Date.now();
     for (;;) {
+      if (signal.aborted) {
+        return { kind: 'aborted' };
+      }
       let delay = SAVE_POLL_MS;
       try {
         const list = await this.listConfig();
@@ -176,10 +182,11 @@ export class Api {
           return { kind: 'failed_request', failure };
         }
       }
-      if (Date.now() - start >= SAVE_LIMIT_MS) {
+      const left = SAVE_LIMIT_MS - (Date.now() - start);
+      if (left <= 0) {
         return { kind: 'not_confirmed' };
       }
-      await wait(delay);
+      await wait(Math.min(delay, SAVE_WAIT_MAX_MS, left));
     }
   }
 

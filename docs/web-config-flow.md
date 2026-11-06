@@ -18,8 +18,8 @@ component library. The API is the one in [`web/api/openapi.yaml`](../web/api/ope
 | Built | `web/client`: `listConfig`, `getConfigItem`, `putConfigItem`, `saveConfig` and `watchConfigSave`, and `parseConfigInput` for the text of a field |
 | Built | Preact example: a configuration screen at `#/config`, in the navigation |
 | Built | Angular example: the same screen, the forced password change screen, and a navigation. A route guard keeps a session that must change its password on that screen. |
-| Built | Shared browser cases in `web/e2e/shared-cases.ts`, run on both examples: 12 for the forced change and 26 for configuration |
-| Built | Preact-only configuration cases in `web/e2e/reference-config.test.ts`: 6 |
+| Built | Shared browser cases in `web/e2e/shared-cases.ts`, run on both examples: 12 for the forced change and 31 for configuration |
+| Built | Preact-only configuration cases in `web/e2e/reference-config.test.ts`: 5 |
 | Faked | The device. The mock keeps the parameters and the state of a save, over plain HTTP on the loopback address, and holds one session at a time |
 | Untested | TLS, real sessions, the device's single server thread, the save's time on a target, and the device's answers while the worker is inside storage (the mock forces them) |
 | Untested | Firefox, Edge and Safari. The cases ran on Chromium only. |
@@ -137,8 +137,8 @@ replace what was typed.
 | `parseConfigInput(type, text)` | None | A number or a string, or `empty`, `not_integer` or `not_text`. It holds no range rule. |
 
 A name outside `A-Z a-z 0-9 _ - .` of 1 to 30 characters, and `.`, `..` and `save`, is refused before any request, because
-`save` is a fixed route and the others cannot be keys. The Angular example does not import the client at run time. It uses
-`HttpClient` with the generated types and keeps its own, smaller code for the same rules.
+`save` is a fixed route and the others cannot be keys. While a save runs, `watchConfigSave` sleeps the longer of one second and the device's `Retry-After`, up to 5 s (`saveWaitMaxMs`), and never past its 15 s limit, and an abort ends it. The Angular example does not import the client at run time. It uses
+`HttpClient` with the generated types and keeps its own, smaller code for the same rules, with the same cap and an abort when the screen is left. It puts `encodeURIComponent` on a parameter name. Every name the device lists is from `A-Z a-z 0-9 _ - .`, which that function leaves as it is, so removing the call changes no result: it is an equivalent mutant and no case is written for it. The client refuses any other name before it sends anything.
 
 ## The two examples
 
@@ -169,8 +169,10 @@ mock answer is checked against the specification.
 | Case group | Count, per example | Covers |
 | --- | --- | --- |
 | Forced password change | 12 | Held on the screen whatever the route and asking for nothing protected, a protected route refused before the change, completion with the token and the poll header, wrong current password, refused new password, passwords that differ, failed save, a lost result either way, a session that ended, expiry, sign-out |
-| Configuration, update | 14 | Listing, no sensitive value or read of it, an update with the token, a switch and a text value, the three field codes, text that is no whole number, a read-only session, a write-only session, `403`, `404`, `409`, busy with its wait, not ready, a value read after typing |
+| Configuration, update | 15 | Listing, no sensitive value or read of it, an update with the token, a switch and a text value, the three field codes, text that is no whole number, a read-only session, a write-only session, `403`, `404`, `409`, busy with its wait, not ready, a value read after typing, device text shown as text |
 | Configuration, save | 6 | Pending then saved, failed, no provider, busy, not ready, busy while the worker saves |
+| Configuration, overlapping work | 3 | A second update while the first is in flight, a save asked for while an update is in flight, and an update asked for while a save runs. Each shows that nothing is sent twice, abandoned or left stuck, and that the next update and save work. |
+| Configuration, guards | 1 | A parameter flagged `sensitive` and `readable` together, which a device never sends, is still never read and has no control. Held by rewriting the list in the browser. |
 | Configuration, sessions and the list | 6 | The list failing with a way to try again, expiry during an update and during a save, no session, an empty list, nothing in browser storage |
 
 The mock accounts decide who sees what: `operator` holds everything, `viewer` may read, `writer` may write and not read or
@@ -181,12 +183,12 @@ save, `guest` sees nothing and `newuser` must change its password.
 | Build | Files | Bytes | Compressed bytes | Limit |
 | --- | --- | --- | --- | --- |
 | Preact example, all six screens, before #243 | 4 | 59061 | 20455 | 32768 |
-| Preact example, all six screens | 4 | 68922 | 23144 | 32768 |
-| Preact example, core screens | 4 | 58559 | 20715 | |
+| Preact example, all six screens | 4 | 69072 | 23184 | 32768 |
+| Preact example, core screens | 4 | 58709 | 20761 | |
 | Angular example, before #243, sign-in and home | 5 | 249403 | 76710 | 300 kB raw initial, error |
-| Angular example, core screens | 5 | 292950 | 88961 | 300 kB raw initial: 275.28 kB used |
+| Angular example, core screens | 5 | 298780 | 91197 | 300 kB raw initial: 281.11 kB used |
 
-The Preact budget in `web/reference/budget.json` is unchanged, with 9,624 bytes left. The Angular example uses 275.28 kB of its
+The Preact budget in `web/reference/budget.json` is unchanged, with 9,584 bytes left. The Angular example uses 281.11 kB of its
 300 kB raw limit for the initial bundle, so a further screen needs a decision about that limit. The rows before #243 were measured on the base commit, and the Preact one differs from the earlier record of 20406 compressed bytes in
 `web-frontend-implementation.md`, which is older than it. `node tools/compare.ts` gives the table, and the two-screens fixture now holds home and configuration so that
 it matches the Angular example's core flows.
@@ -218,12 +220,15 @@ Each was taken for lack of an answer, as the narrower choice.
 | 8 | The Angular example shows a short `503` and does not retry it | The sample keeps its code small. The wait is shown with its length, and a second click is safe, because the device did not process the request. | Copy the client's one retry |
 | 9 | The two-screens fixture now holds home and configuration | CI builds it by that name for the comparison, `.github/` is protected, and the two builds should hold the same core flows | A new fixture and a change to the workflow |
 | 10 | The Angular policy walk includes the configuration screen | The strict-policy count must cover a screen that has component styles. The strict count changed from 1 to 4, all style events. | Leave the walk as it was |
-| 11 | The Angular size limit of 300 kB is kept | 24.7 kB are left. A change to it is the owner's call. | Raise it now |
+| 11 | The Angular size limit of 300 kB is kept | 18.9 kB are left. A change to it is the owner's call. | Raise it now |
+| 12 | One update or save at a time on the screen, and a second request is ignored until the first ends | An update and a save used one abort signal, so a second update abandoned the first, which left its row waiting and the save refused for good. The device handles one request at a time anyway. The button is marked disabled, and a click that lands is dropped. | Queue the second request |
+| 13 | The wait for a save sleeps at most 5 s between two reads, and never past its own 15 s limit, whatever `Retry-After` says | An unbounded `Retry-After` could hold the wait for as long as a device or a fault chose. The Angular example takes the same cap and stops when the screen is left. | No cap |
+| 14 | A value read after the person has focused a field, but before the first keystroke, still fills the field | The `edited` mark starts at the first keystroke. A guard on focus would leave an empty draft, and an update of an empty text parameter would then send an empty string. The browser cases wait for the values before they type. | Mark the field edited on focus, and refuse an update of an untouched empty draft |
 
 ## Results
 
 Local runs in container `crux-243`, image `crux-pilot-devcontainer:local` under amd64 emulation, Node.js 24.22.2, Chromium 156
-from Playwright 1.64.1 headless in that container. The container held the only install of the packages. CI results are in the pull
+as a binary that Playwright's installer put in that container and `CRUX_CHROME` names. The harness otherwise uses the Chrome of the machine. The container held the only install of the packages. CI results are in the pull
 request.
 
 | Check | Level | Result |

@@ -57,6 +57,8 @@ function Configuration() {
   const loading = useRef<AbortController | null>(null);
   const working = useRef<AbortController | null>(null);
   const focusName = useRef<string | null>(null);
+  // One update or save at a time, answered at once, because a state change shows only after the next render.
+  const inFlight = useRef(false);
 
   function freshSignal(task: { current: AbortController | null }): AbortSignal {
     task.current?.abort();
@@ -157,7 +159,7 @@ function Configuration() {
 
   async function update(row: Row): Promise<void> {
     const { item } = row;
-    if (row.working || saving) {
+    if (inFlight.current) {
       return;
     }
     setMessage(null);
@@ -174,10 +176,12 @@ function Configuration() {
       }
       value = parsed.value;
     }
+    inFlight.current = true;
     patch(item.name, { working: true, error: undefined });
     const signal = freshSignal(working);
     const result = await client.putConfigItem(item.name, value, { signal });
     if (signal.aborted) {
+      inFlight.current = false;
       return;
     }
     if (result.ok) {
@@ -186,8 +190,10 @@ function Configuration() {
       setMessage({ kind: 'success', text: t.updated(item.name) });
       // The device's own value is what is shown, and a session that may not read it keeps what it had.
       await readValue(result.value, signal);
+      inFlight.current = false;
       return;
     }
+    inFlight.current = false;
     patch(item.name, { working: false });
     const { error } = result;
     if (error.kind === 'invalid_field') {
@@ -234,23 +240,27 @@ function Configuration() {
   }
 
   async function save(): Promise<void> {
-    if (saving || (rows ?? []).some((row) => row.working)) {
+    if (inFlight.current) {
       return;
     }
+    inFlight.current = true;
     setMessage(null);
     setSaveMessage(null);
     setSaving(true);
     const signal = freshSignal(working);
     const queued = await client.saveConfig({ signal });
     if (signal.aborted) {
+      inFlight.current = false;
       return;
     }
     if (!queued.ok) {
+      inFlight.current = false;
       setSaving(false);
       setSaveMessage(failureMessage(queued.error, t.saveDenied));
       return;
     }
     const outcome = await client.watchConfigSave({ signal });
+    inFlight.current = false;
     if (signal.aborted) {
       return;
     }
