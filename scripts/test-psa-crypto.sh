@@ -328,6 +328,7 @@ PY
 run_entropy_failure() {
     local report="$out/twister-entropy"
     require_module Zephyr "$workspace/zephyr"
+    ZEPHYR_BASE="$workspace/zephyr" python3 -m unittest discover -s "$repo/tests/psa_entropy" -p 'test_prepare_entropy.py' -v
     require_module mbedtls "$modules/mbedtls"
     require_module tf-psa-crypto "$modules/tf-psa-crypto"
     export ZEPHYR_BASE="$workspace/zephyr"
@@ -382,6 +383,18 @@ if not re.search(r'zephyr,entropy\s*=\s*&trng\s*;', text):
 if not re.search(r'trng:\s*random@400cc000\s*\{[^}]*compatible\s*=\s*"nxp,kinetis-trng"', text):
     sys.exit("trng is not the nxp,kinetis-trng block at 0x400cc000")
 PY
+        if [[ "$provider" == tf-psa-crypto ]]; then
+            # The PSA source here is the legacy RNG over the TRNG, so the glue must not fall back to
+            # sys_rand_get(): the image compiles the corrected copy and not Zephyr's own source.
+            grep -qx 'CONFIG_MBEDTLS_PSA_DRIVER_GET_ENTROPY=y' "$config" ||
+                fail "$provider: the entropy driver route is not selected, so the correction is unchecked"
+            [[ -f "$build/crux-mbedtls/zephyr_entropy.json" ]] || fail "$provider: no corrected entropy source was generated"
+            grep -q 'crux-mbedtls/zephyr_entropy\.c' "$build/compile_commands.json" ||
+                fail "$provider: the corrected entropy source is not compiled"
+            ! grep -q 'modules/mbedtls/zephyr_entropy\.c' "$build/compile_commands.json" ||
+                fail "$provider: Zephyr's own entropy source is still compiled"
+            printf '%s: the corrected Mbed TLS entropy source is compiled\n' "$provider"
+        fi
         printf '%s on %s, compile only: ENTROPY_MCUX_TRNG, zephyr,entropy = &trng at 0x400cc000, no DCP, nothing run\n' \
             "$provider" "$board"
         grep -E '^CONFIG_(ENTROPY_MCUX_TRNG|ENTROPY_NEEDS_PRNG|MBEDTLS_PSA_CRYPTO_LEGACY_RNG|MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG|MBEDTLS_PSA_DRIVER_GET_ENTROPY|CSPRNG_ENABLED|XOSHIRO_RANDOM_GENERATOR|WOLFPSA|WOLFSSL_AES_TOUCH_LINES|MBEDTLS_PSA_STATIC_KEY_SLOTS|PSA_CRYPTO_PROVIDER_[A-Z]*)=' \

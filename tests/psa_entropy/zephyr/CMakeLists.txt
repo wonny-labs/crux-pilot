@@ -6,3 +6,8 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_psa_entropy C)
 target_sources(app PRIVATE src/main.c src/test_entropy.c)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
+
+if(CONFIG_CRUX_FAIL_CLOSED_ENTROPY)
+    include("${CMAKE_CURRENT_LIST_DIR}/../../../cmake/CruxMbedtlsEntropy.cmake")
+    crux_mbedtls_fail_closed_entropy()
+endif()
