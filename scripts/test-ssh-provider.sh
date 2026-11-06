@@ -74,6 +74,14 @@ if [[ "$run_native" == true ]]; then
     python3 -u "$app/openssh_test.py" "$output/native/zephyr/zephyr.exe" | tee "$output/openssh.log"
     tail -n 1 "$output/openssh.log" | grep -q '^All cases passed\.$' ||
         fail 'The OpenSSH cases did not all pass.'
+    # The host key from the credential store on its PSA ports over wolfPSA, across restarts on one disk.
+    [[ -e "$workspace/modules/crypto/wolfpsa/.git" && -e "$workspace/modules/crypto/mbedtls/.git" ]] ||
+        fail 'The stored host key image needs wolfpsa, and mbedtls for the PSA options. Run: west update wolfpsa mbedtls'
+    build "$output/stored" "$native_board" -DEXTRA_CONF_FILE=native_sim.conf -DCRUX_SSH_TEST_STORED_HOST_KEY=ON
+    python3 -u "$app/openssh_test.py" "$output/stored/zephyr/zephyr.exe" --stored-host-key |
+        tee "$output/stored-host-key.log"
+    tail -n 1 "$output/stored-host-key.log" | grep -q '^All cases passed\.$' ||
+        fail 'The stored host key cases did not all pass.'
 fi
 
 if [[ "$run_measure" == true ]]; then
