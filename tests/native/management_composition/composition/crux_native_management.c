@@ -94,8 +94,11 @@ static const crux_config_service_entry_t table[] = {
 /* The reference table and then the five entries of the network settings service, which it hands
  * over in the order the table must keep. They sit under network.private, which no role holds. */
 static crux_config_service_entry_t
-    services_table[ARRAY_SIZE(table) + CRUX_NETWORK_SETTINGS_ENTRY_COUNT];
+    services_table[MAX(ARRAY_SIZE(table), CRUX_NATIVE_MANAGEMENT_PROFILE_ENTRIES_MAX) +
+                   CRUX_NETWORK_SETTINGS_ENTRY_COUNT];
 #endif
+/* The image's profile, or NULL for the reference one. Set once, before anything starts. */
+static const crux_native_management_profile_t *profile_in_use;
 
 static FATFS fat;
 static struct fs_mount_t mount = {
@@ -135,7 +138,7 @@ static bool medium_ready(void)
 /* Copies the network settings service's entries into the table and runs its boot, which must come
  * before the Configuration service starts. The defaults are from the documentation range, RFC 5737.
  * Nothing is applied to an interface: the composition links the no-op apply port. */
-static bool network_settings_booted(void)
+static bool network_settings_booted(const crux_config_service_entry_t *own, size_t own_count)
 {
     static const crux_network_settings_config_t network = {.defaults = {.address = 0xC000020Au,
                                                                         .prefix_length = 24u,
@@ -147,27 +150,49 @@ static bool network_settings_booted(void)
     if (entries == NULL || count != CRUX_NETWORK_SETTINGS_ENTRY_COUNT) {
         return false;
     }
-    memcpy(services_table, table, sizeof(table));
-    memcpy(&services_table[ARRAY_SIZE(table)], entries, sizeof(services_table[0]) * count);
+    if (own_count + count > ARRAY_SIZE(services_table)) {
+        return false;
+    }
+    memcpy(services_table, own, sizeof(services_table[0]) * own_count);
+    memcpy(&services_table[own_count], entries, sizeof(services_table[0]) * count);
     return crux_network_settings_boot(&network, NULL) == CRUX_NETWORK_OK;
 }
 #endif
 
+static bool reference_parameters_ready(void)
+{
+    return crux_config_init_string(&param_name, &spec_name, storage_name, sizeof(storage_name)) ==
+               CRUX_CONFIG_OK &&
+           crux_config_init(&param_interval, &spec_interval) == CRUX_CONFIG_OK &&
+           crux_config_init_string(&param_token, &spec_token, storage_token,
+                                   sizeof(storage_token)) == CRUX_CONFIG_OK;
+}
+
 static bool config_ready(void)
 {
-    if (crux_config_init_string(&param_name, &spec_name, storage_name, sizeof(storage_name)) !=
-            CRUX_CONFIG_OK ||
-        crux_config_init(&param_interval, &spec_interval) != CRUX_CONFIG_OK ||
-        crux_config_init_string(&param_token, &spec_token, storage_token, sizeof(storage_token)) !=
-            CRUX_CONFIG_OK) {
+    const crux_config_service_entry_t *own = table;
+    size_t own_count = ARRAY_SIZE(table);
+    bool (*init)(void) = reference_parameters_ready;
+
+    if (profile_in_use != NULL && profile_in_use->entry_count != 0u) {
+        if (profile_in_use->entries == NULL || profile_in_use->init_parameters == NULL ||
+            profile_in_use->entry_count > CRUX_NATIVE_MANAGEMENT_PROFILE_ENTRIES_MAX) {
+            return false;
+        }
+        own = profile_in_use->entries;
+        own_count = profile_in_use->entry_count;
+        init = profile_in_use->init_parameters;
+    }
+    if (!init()) {
         return false;
     }
 #if defined(CRUX_NATIVE_MANAGEMENT_SERVICES)
-    return network_settings_booted() &&
-           crux_config_service_start(services_table, ARRAY_SIZE(services_table)) ==
+    return network_settings_booted(own, own_count) &&
+           crux_config_service_start(services_table,
+                                     own_count + CRUX_NETWORK_SETTINGS_ENTRY_COUNT) ==
                CRUX_CONFIG_SERVICE_OK;
 #else
-    return crux_config_service_start(table, ARRAY_SIZE(table)) == CRUX_CONFIG_SERVICE_OK;
+    return crux_config_service_start(own, own_count) == CRUX_CONFIG_SERVICE_OK;
 #endif
 }
 
@@ -185,6 +210,13 @@ static void device_keys_ensure(void)
 
 crux_native_management_start_t crux_native_management_start(void)
 {
+    return crux_native_management_start_profile(NULL);
+}
+
+crux_native_management_start_t
+crux_native_management_start_profile(const crux_native_management_profile_t *profile)
+{
+    profile_in_use = profile;
     /* First, so that everything that follows can emit. */
     if (crux_security_event_init(NULL, 0) != CRUX_OK) {
         return CRUX_NATIVE_MANAGEMENT_FAILED_EVENTS;
@@ -203,7 +235,8 @@ crux_native_management_start_t crux_native_management_start(void)
     state_at_start = crux_credential_state();
 
     /* An unusable store reads NOT_READY here and stays so: it fails closed. */
-    crux_access_result_t access = crux_access_init(&policy);
+    crux_access_result_t access =
+        crux_access_init(profile != NULL && profile->policy != NULL ? profile->policy : &policy);
     if (access != CRUX_ACCESS_OK && access != CRUX_ACCESS_ERR_NOT_READY) {
         return CRUX_NATIVE_MANAGEMENT_FAILED_ACCESS;
     }
@@ -212,12 +245,20 @@ crux_native_management_start_t crux_native_management_start(void)
         return CRUX_NATIVE_MANAGEMENT_FAILED_CONFIG;
     }
     crux_reset_cause_t cause = {0};
-    const crux_mgmt_status_config_t status = {
+    crux_mgmt_status_config_t status = {
         .platform_version = "native_sim composition",
         .project_version = "test",
         .boot_reset_cause_status = crux_system_reset_cause_get(&cause),
         .boot_reset_cause = cause,
     };
+    if (profile != NULL) {
+        status.platform_version =
+            profile->platform_version != NULL ? profile->platform_version : status.platform_version;
+        status.project_version =
+            profile->project_version != NULL ? profile->project_version : status.project_version;
+        status.project_items = profile->status_items;
+        status.project_item_count = profile->status_item_count;
+    }
     if (crux_mgmt_status_start(&status) != CRUX_OK) {
         return CRUX_NATIVE_MANAGEMENT_FAILED_STATUS;
     }

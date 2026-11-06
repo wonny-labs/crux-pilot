@@ -221,6 +221,17 @@ class ReviewList(unittest.TestCase):
         for suffix in (".c", ".cc", ".cpp", ".inc", ".def", ".h"):
             self.assertIn(suffix, module.SOURCE_SUFFIXES)
 
+    def test_a_sample_with_its_own_list_is_left_to_it(self):
+        check = importlib.util.spec_from_file_location("check_web_routes", CHECK)
+        module = importlib.util.module_from_spec(check)
+        check.loader.exec_module(module)
+        sample = REPO / "samples/web_project"
+        self.assertEqual(module.own_list(sample / "src/greeting_route.c"), sample / "reviewed-routes.txt")
+        # Only a list under samples/ counts: components and the repository root keep the default list.
+        self.assertIsNone(module.own_list(REPO / "components/web/session/web_session_routes.c"))
+        self.assertIsNone(module.own_list(REPO / "samples/time/src/time_command.c"))
+        self.assertNotIn(sample / "src/greeting_route.c", module.default_sources())
+
     def test_repository_list_holds(self):
         result = subprocess.run([sys.executable, str(CHECK)], stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, text=True, check=False)

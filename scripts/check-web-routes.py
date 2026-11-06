@@ -9,7 +9,9 @@ so does an entry with no route, so the list changes with the code and shows up i
     scripts/check-web-routes.py [--reviewed FILE] [SOURCE ...]
 
 With no source it reads every tracked source outside tests/ that uses the macro, which cannot see a
-generated source: for those, name the list at build, with crux_web_routes(... REVIEWED file). A line of
+generated source: for those, name the list at build, with crux_web_routes(... REVIEWED file). A sample
+under samples/ that keeps its own reviewed-routes.txt beside its sources, as a product would, is left to
+that list, which its build names (Issue #220); it is listed here as skipped. A line of
 the reviewed list reads `public POST /api/v1/session`, and # starts a comment.
 """
 import argparse
@@ -29,6 +31,17 @@ DEFAULT_LIST = REPO / "components/web/reviewed-routes.txt"
 SOURCE_SUFFIXES = {".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".inc", ".def"}
 
 
+def own_list(path):
+    """The reviewed list a sample keeps beside its sources, or None."""
+    samples = REPO / "samples"
+    for parent in path.parents:
+        if parent == samples or samples not in parent.parents:
+            return None
+        if (parent / "reviewed-routes.txt").is_file():
+            return parent / "reviewed-routes.txt"
+    return None
+
+
 def default_sources():
     tracked = subprocess.run(["git", "-C", str(REPO), "ls-files", "--cached", "--others",
                               "--exclude-standard"], stdout=subprocess.PIPE, text=True, check=True)
@@ -39,6 +52,9 @@ def default_sources():
                 path == REPO / "components/web/include/crux/web.h"):
             continue
         if web_routes.MACRO.search(web_routes.strip_comments(path.read_text(encoding="utf-8"))):
+            if own_list(path) is not None:
+                print(f"skipped: {name}, held to {own_list(path).relative_to(REPO)} by its build")
+                continue
             found.append(path)
     return found
 

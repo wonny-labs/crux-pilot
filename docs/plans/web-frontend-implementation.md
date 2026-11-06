@@ -1,6 +1,7 @@
 # Web frontend implementation, M13
 
-Status: merged in #228 for issues #215, #216, #217, #218 and #219, and shown on the mock only. Issue #220 needs firmware and is not started. It
+Status: merged in #228 for issues #215, #216, #217, #218 and #219, and shown on the mock only. Issue #220 runs both examples on `native_sim` over HTTPS, in a Draft PR: see
+[the web examples end to end](../e2e-native-220.md). It
 follows the [web frontend foundation design](web-frontend-foundation-design.md), whose decisions W1 to W18 are accepted,
 and the [management API specification](../../web/api/openapi.yaml). Since
 [the owner's decision of 4 November 2026](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084), W13, Preact and Angular are examples and the product owns its application UI.
@@ -22,7 +23,7 @@ behind the gate. It covers no hardware, and nothing here was run on a board.
 | Built | The core configuration flow in both examples, on the mock only, in #243: see [the configuration flow](../web-config-flow.md) |
 | Built | `.github/workflows/web.yml`: the specification lint, `tests/management_api`, web checks, browser tests and the Angular job |
 | Faked | The whole device. The mock runs on the loopback address over plain HTTP, and it holds one session at a time |
-| Untested | TLS, real sessions, connection limits, the Zephyr server's real `409`, timing, load time, Flash and RAM. All are in #220 |
+| Untested | Flash, RAM and timing on a target. TLS, real sessions, connection limits, the server's real `409` and load time on `native_sim` are in [#220](../e2e-native-220.md) |
 | Untested | Firefox and Edge. The browser tests ran on Chrome only, because playwright-core cannot drive a stock Firefox |
 | Untested | A screen reader. Accessibility is checked through roles, labels, focus and the keyboard |
 
@@ -33,13 +34,13 @@ flows on the Preact example with service tests underneath. Host here means the C
 
 | Flow | Kind | Mock | Host | `native_sim` | Physical |
 | --- | --- | --- | --- | --- | --- |
-| Sign-in and sign-out | Core | Both examples | Access contract. Web sessions in #186. | Not run, #220 | Not run |
-| Session expiry | Core | Both examples | Access contract. Web sessions in #186. | Not run, #220 | Not run |
-| Forced password change | Core | Both examples | Access contract. Web route in #187. | Not run, #220 | Not run |
-| Status | Core | Both examples | Service in #180. Web route in #187. | Not run, #220 | Not run |
-| Simple configuration update | Core | Both examples | Service in #180. Web route in #187. | Not run, #220 | Not run |
-| Network settings | Advanced | Preact | Not started, #213 | Not run, #220 after #213 | Not run |
-| Reboot | Advanced | Preact | Not started, #214 | Not run, #220 after #214 | Not run |
+| Sign-in and sign-out | Core | Both examples | Access contract. Web sessions in #186. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
+| Session expiry | Core | Both examples | Access contract. Web sessions in #186. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
+| Forced password change | Core | Both examples | Access contract. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
+| Status | Core | Both examples | Service in #180. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
+| Simple configuration update | Core | Both examples | Service in #180. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
+| Network settings | Advanced | Preact | Service in #213 | Preact over HTTPS: read, and a change refused as not saved with no Configuration provider, [#220](../e2e-native-220.md#results) | Not run |
+| Reboot | Advanced | Preact | #214, in review | Mock only until #214 merges, [#220](../e2e-native-220.md) | Not run |
 
 ```mermaid
 flowchart LR
