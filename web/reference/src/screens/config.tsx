@@ -45,6 +45,15 @@ function fresh(item: ConfigItem): Row {
   return { item, shown, value: undefined, draft: draftOf(item, undefined), edited: false, error: undefined, working: false };
 }
 
+/**
+ * A call that rejects is reported to the person in one sentence that cannot tell a project's own fault from a
+ * fault in this screen, so the error goes to the console, where a developer can see which it was. It holds
+ * no value of a parameter: the error is the one thrown, and the client puts no value in one.
+ */
+function logFailure(what: string, error: unknown): void {
+  console.error(`configuration ${what} failed`, error);
+}
+
 function Configuration() {
   const { client, text } = useApp();
   const t = text.config;
@@ -189,7 +198,16 @@ function Configuration() {
         patch(item.name, { working: false, item: result.value, edited: false });
         setMessage({ kind: 'success', text: t.updated(item.name) });
         // The device's own value is what is shown, and a session that may not read it keeps what it had.
-        await readValue(result.value, signal);
+        try {
+          await readValue(result.value, signal);
+        } catch (error) {
+          // The update was accepted, so this is not a failed update, but the value on show is no longer known.
+          if (!signal.aborted) {
+            logFailure('read-back', error);
+            patch(item.name, { shown: 'failed' });
+            setMessage({ kind: 'warning', text: t.readBackFailed(item.name) });
+          }
+        }
         return;
       }
       patch(item.name, { working: false });
@@ -204,9 +222,13 @@ function Configuration() {
       } else {
         setMessage(failureMessage(error, t.updateDenied(item.name)));
       }
-    } catch {
-      // The client does not throw for an HTTP or network failure, but a reader or a fetch that a project
-      // supplied can. Whatever happened, the screen is released and the person is told.
+    } catch (error) {
+      if (signal.aborted) {
+        return;
+      }
+      // The client does not throw for an HTTP or network failure, but a reader, a response or a callback of
+      // a project's own can. Whatever happened, the screen is released and the person is told.
+      logFailure('update', error);
       patch(item.name, { working: false });
       setMessage({ kind: 'error', text: text.errors.unexpected });
     } finally {
@@ -270,7 +292,11 @@ function Configuration() {
       }
       setSaving(false);
       showSaveOutcome(outcome);
-    } catch {
+    } catch (error) {
+      if (signal.aborted) {
+        return;
+      }
+      logFailure('save', error);
       setSaving(false);
       setSaveMessage({ kind: 'error', text: text.errors.unexpected });
     } finally {
