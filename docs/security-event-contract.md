@@ -20,8 +20,9 @@ Provider of the Access event port: object target `crux_security_event_access_por
 | Provider of `crux_access_port_event` | Implemented, every port event and result mapped |
 | Recording fake of the public contract | `tests/security_event/fake`, for consumers' Host tests |
 | Provider of `crux_credential_port_event` | `crux_credential_security_events`, in the store's component, because this component names no storage type |
-| Emitters outside Access: file, CLI, web, SSH, reboot | Identifiers exist. The emitters are other issues. The credential store, the configuration service and the network settings service emit, through their providers. |
+| Emitters outside Access: file, CLI, web, SSH | Identifiers exist. The emitters are other issues. The credential store, the configuration service, the network settings service and the reboot service emit, through their providers. |
 | Provider of the network settings service's port | `crux_network_settings_security_events`, in that component. It records `network.changed`, `network.save_failed` and `network.saved_ignored`, with no subject: [network settings service](network-settings-service.md#security-events). |
+| Provider of the reboot service's port | `crux_reboot_security_events`, in that component. It records `system.reboot_requested`, `system.reboot_refused` and `system.reboot_failed`, with a user and a channel and no subject: [reboot service](reboot-service.md#security-events). It also answers whether recorded events are still waiting for Logging, from the counts of `crux_security_event_get_stats`. |
 | `GET /api/v1/events` | Not implemented, M11. The read function it needs exists. |
 | Status items from the counts | `crux_mgmt_status_security_events`, in [the status service](status-configuration-services.md) |
 | Zephyr composition on `native_sim` | [For tests](native-management-composition.md), on the Crux Logging provider with an emulated UART, which shows the drain's counts and nothing on a wire |
@@ -267,9 +268,9 @@ Values are stable. A later change adds values and never reuses one. Projects use
 | 0x0800 | `network.changed` | C | Network settings service |
 | 0x0801 | `network.save_failed` | C | Network settings service |
 | 0x0802 | `network.saved_ignored` | C | Network settings service |
-| 0x0900 | `system.reboot_requested` | C | Reboot service |
-| 0x0901 | `system.reboot_refused` | R | Reboot service |
-| 0x0902 | `system.reboot_failed` | C | Reboot service |
+| 0x0900 | `system.reboot_requested` | C | Reboot service, #214: an accepted request, including one made while another was pending |
+| 0x0901 | `system.reboot_refused` | R | Reboot service, #214: the policy refused, at the request or at the check before the reset |
+| 0x0902 | `system.reboot_failed` | C | Reboot service, #214: the restart did not happen, because the reset returned or because a save stayed in flight for the whole wait |
 | 0x0F00 | `event.unknown` | R | This component |
 | 0x0F01 | `event.lost` | R | This component, a line only |
 

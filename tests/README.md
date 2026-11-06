@@ -323,6 +323,14 @@ port. `scripts/test-network-settings.sh` runs them under both presets with clang
 `tests/network_settings/validation-vectors.tsv` holds the firmware's checks and the TypeScript client's to the same lines. Nothing here
 applies an address to an interface or operates a board. See [network settings service](../docs/network-settings-service.md).
 
+`Reboot.*` and `Web.reboot_*` are the Host suites of the reboot service and of `GET` and `POST /api/v1/system/reboot`, on the real
+Access core, with fake ports for the reset, the sleep, the events that are still pending and the event record. The sleep is virtual, so
+the delay and the bounded wait are held to exact numbers. `Reboot.pending` runs the wait against the real network settings and
+configuration saves. `scripts/test-reboot.sh` runs them under both presets with clang-tidy, and `scripts/test-web.sh host` runs the
+`Web.reboot_*` ones. `Web.reboot_openapi` holds their real answers to the schemas of `web/api/openapi.yaml`, and
+`Web.reboot_no_service` shows that a composition without the service has no reboot route. Nothing here resets a device or operates a
+board. See [reboot service](../docs/reboot-service.md).
+
 ## Packaged web assets
 
 `scripts/test-web-assets.sh host` runs the packager's and its CMake function's tests (`tests/build/test_web_assets.py`), `Web.assets_*` on
