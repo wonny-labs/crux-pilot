@@ -79,7 +79,7 @@ write a matching key.
 ## Rules
 
 One definition, `crux_network_settings_validate()`, decides. The web routes, the command line and the boot all call it, and
-`web/api/network-validation-vectors.tsv` holds the TypeScript client to the same lines.
+`tests/network_settings/validation-vectors.tsv` holds the TypeScript client to the same lines.
 
 | Rule | Finding | Notes |
 | --- | --- | --- |
@@ -197,13 +197,37 @@ overwritten in place, so the old set is already gone. This is a limit, and it is
 save part of a set between two of this service's `try_update` calls. The check key catches that exactly as it catches a power
 loss, and the suite lands a foreign save after each of the five updates, with and without a cut after it. The converse also
 holds: `save_local` writes any mark that another part of the image made, so **a network save also saves other pending
-configuration**. That is the Configuration service's design, and its document states it.
+configuration**. That is the Configuration service's design, and its document states it. Three effects follow, and none is
+hidden by the routes:
+
+| Effect | Where it shows |
+| --- | --- |
+| A session holding only `network.write` can cause another session's pending configuration changes to be persisted, without `config.save` | A change that an administrator made and had not yet saved |
+| `save_local` records no `config.saved` event, so those parameters are persisted with only `network.changed` (or `network.save_failed`) in the log, which does not name them | The security event log |
+| The `unsaved` markers that `GET /api/v1/config` shows for those parameters are cleared by a network save | The configuration list. The mock does not model this: its `unsaved` follows only configuration saves. |
+
+A composition that cannot accept the first effect has to keep configuration changes and network changes apart in time, which
+the service cannot enforce.
 
 ### State after a failure
 
 After a failed save the service shows no saved set and `save: failed`: stored bytes may have changed, so it cannot say that the
-stored set is whole. An unrelated session's `config.save` could later complete the set and make it bootable. The display then
-lags until the next `PUT`. This is the narrower statement, and it matches the specification's `save_failed` example.
+stored set is whole.
+
+A failed phase leaves marks behind. Without more, the next save of any session would write them: the check key of the set that
+failed is among them, and a write of it would complete a set that the display calls failed. So after a failed save the worker
+updates the check key in memory to **zero**, which is never a valid key. Every later save then writes a zero, which cannot match
+any set. The recovery command does the same first when the last save failed, so that a power loss after its first write cannot make
+the failed set bootable. Both are best effort: the update waits for a busy Configuration service for the same bounded time as a
+save, and gives up after it. The next accepted `PUT` replaces the zero with the key of its own set.
+
+The consequence is one more way to lose the old set: after a failed save, a save by anyone of the pending marks writes a zero, and
+the old set, which a failure at the first write left whole, stops booting. That is the safe side. The display already says that
+no set is saved.
+
+`NetworkSettings.power_loss` fails a save at each of the five keys, runs the recovery command, and cuts it after 0 to 3 writes, in
+both ways. What boots is the old set, or the new set only when the flag, the last write, was the one that failed. Without the zero,
+a failure at the check key and a cut after the first write of the recovery boots the new set.
 
 ## Recovery
 
@@ -214,6 +238,7 @@ lags until the next `PUT`. This is the narrower statement, and it matches the sp
 | Undo | The next successful save sets the flag back to true as its last record. |
 | Failure | One fixed line, `not saved, run the command again`, `network.save_failed`, and the session goes on. The flag may or may not be stored. |
 | With a save queued or running | `busy, try again` |
+| After a failed recovery | `GET` still shows the saved set, the opposite of a failed save: the flag may or may not be stored, the command told the operator to run it again, and the saved set is the state before it ran |
 | With no provider | `nothing can be saved on this device` |
 
 It waits on storage, so it runs on the console's own thread and never on the server thread. A composition with no serial console
@@ -288,7 +313,7 @@ the worker ran leaves the event with no origin and no user, as the configuration
 | Nothing is applied live, and DHCP is not offered | W7 and W8 |
 | An address change can invalidate a certificate that names the old address | #190 states how the certificate model behaves |
 | The records are overwritten in place | A save cut in the middle uses the defaults and not the old set |
-| A network save also saves other marks, and a session's `config.save` also writes this service's marks | The Configuration service's design. The check key covers the second. |
+| A network save also saves other marks, and a session's `config.save` also writes this service's marks | The Configuration service's design. The check key covers the second. The first persists other sessions' pending changes without `config.save` and without a `config.saved` event, and clears their `unsaved` markers: [Another session's save](#another-sessions-save) |
 | After a failed save the display says `saved` is absent until the next `PUT` | [State after a failure](#state-after-a-failure) |
 | The five parameters belong to this component's storage | One instance for the program. A second table cannot hold them. |
 | No role may hold `network.private` | A role that held it would list and edit the five parameters through the configuration routes, without the check key |
@@ -335,7 +360,7 @@ compiled in this environment, and shipping code that no check has built would be
 | `NetworkSettings.validation` | 7 | Every line of the shared vectors, the address text and its formatter, each rule at each edge, 200,000 random settings against an oracle written as arithmetic, 100,000 random strings, and every mix of 80 sets and of 250,000 random pairs against the check key |
 | `NetworkSettings.boot` | 6 | Every row of the decision, a first boot, saved values, each fault, a refused apply, bad arguments |
 | `NetworkSettings.service` | 21 | Not ready, start, both permissions with every kind of session, the state, validation, the save and its write order, each of five failed writes, a refused write, an ended session, other marks, recovery |
-| `NetworkSettings.power_loss` | 50 | The table above, a torn record in each key at each length, and the 14 mixes of two stored sets |
+| `NetworkSettings.power_loss` | 77 | The table above, again with the table in the opposite order, a failed save at each key followed by the recovery cut after any write, a failed save at each key followed by another session's `config.save`, a failure at the first value that leaves the old set whole whatever the table's order, a torn record in each key at each length, and the 14 mixes of two stored sets |
 | `NetworkSettings.foreign_save` | 20 | A foreign `config.save` after each update, with and without a cut |
 | `NetworkSettings.busy` | 3 | A short hold waited out, a long hold failing the save with nothing half done, and a server thread that never waits |
 | `NetworkSettings.concurrency` | 1 | Three requesters, two readers and the worker, with consistent states and one event for each accepted request |
@@ -343,6 +368,8 @@ compiled in this environment, and shipping code that no check has built would be
 | `NetworkSettings.no_provider` | 1 | The target's behaviour above |
 | `NetworkSettings.cli` | 6 | The table through the real registry, serial and not SSH, hidden without the permission, a failed save, a save in progress |
 | `Web.network_routes` | 18 | Both routes for success, no session, no permission, the forgery checks, each rule, 39 malformed bodies, content type, size, methods, one save at a time, a failed save, the closed connection, an ended session |
+| `Web.network_short_reads` | 1 | The same bodies, with the core handing them over 1, 2, 3, 7, 16, 255 and 256 bytes at a time through a wrapped `crux_web_read_body`, and the same answers |
+| `ManagementProviders.events` | | Now also the real event provider of this service: the three identifiers, their results, the user and channel of the session, no subject, and an ended session |
 | `Web.network_fuzz` | 4 | 20,000 generated bodies with every cut, 60,000 mutated bodies, 40,000 random byte strings, and 3,000 bodies through the route |
 | `Web.network_no_provider` | 1 | The `501` |
 | `Web.network_openapi` | 1 | 27 real answers against the merged specification, with 17 negative controls |
@@ -413,8 +440,14 @@ no test fails on is listed with its reason.
 | the reader accepts a leading zero in the prefix length | `Web.network_routes` |
 | the reader accepts a NUL in a key | `Web.network_routes` |
 | a negative prefix length reads as a large one | Equivalent: both values are not usable, and both give the same `prefix_not_usable` |
+| the check key is saved in the first phase, with a reversed table | `NetworkSettings.power_loss` |
+| a failed save leaves its check key marked | `NetworkSettings.power_loss` |
+| the body of the `PUT` is read once | `Web.network_short_reads` |
+| the real event provider maps a change to a failure | `ManagementProviders.events`, `Web.network_fuzz`, `Web.network_openapi` |
+| the real event provider drops the user | `ManagementProviders.events` |
+| the real event provider swaps two identifiers | `ManagementProviders.events` |
 
-54 mutations: 50 caught, and 4 equivalent. Mutations of the Web core, the session module and the Configuration service were not tried: they belong to earlier changes.
+60 mutations: 56 caught, and 4 equivalent. The last six were added with the review's findings. Mutations of the Web core, the session module and the Configuration service were not tried: they belong to earlier changes.
 
 ## Results
 
@@ -422,15 +455,16 @@ Local runs in container `crux-213`, image `crux-pilot-devcontainer:local` under 
 
 | Check | Level | Result |
 | --- | --- | --- |
-| `NetworkSettings.*`, 10 suites with 117 cases, and `Web.network_*`, 4 suites, debug preset, clang 18 | Host | Pass |
-| The same 14 CTest entries on GCC 13 with `-fsanitize=address,undefined -fno-omit-frame-pointer -Wno-format-truncation` | Host, sanitizer | Pass. The local clang has no sanitizer runtime, so `host-sanitize` itself was **not** run locally, and CI's host workflow runs it. |
-| The whole host build and `ctest`, 293 tests of which 14 are this change's | Host | Pass, with the new suites included |
+| `NetworkSettings.*`, 10 suites with 144 cases, `Web.network_*`, 5 suites, and `ManagementProviders.events`, debug preset, clang 18 | Host | Pass |
+| The same CTest entries on GCC 13 with `-fsanitize=address,undefined -fno-omit-frame-pointer -Wno-format-truncation` | Host, sanitizer | Pass. The local clang has no sanitizer runtime, so `host-sanitize` itself was **not** run locally, and CI's host workflow runs it. |
+| The whole host build and `ctest`, 294 tests of which 15 are this change's | Host | Pass, with the new suites included |
 | clang-tidy 18 on the component, the web sources and every new suite | Host | No finding after six fixes |
 | `clang-format` 18 on every changed C and C++ file | Host | Clean |
 | `check-native-interfaces.py`, `check-web-routes.py`, `check-web-boundary.py`, `check-mgmt-services-boundary.py`, `check-cli-boundary.py` | Host | Pass |
 | `scripts/check-management-api.sh` (Spectral 6.16.3, Node.js 24.22.2) and `python3 -m unittest discover -s tests/management_api` | Node.js | Pass |
-| `npm run check:types`, `typecheck`, and the unit tests of the client, the mock and the type generator (491 tests), regenerated types | Node.js | Pass. Run in the container, on a copy of `web/` in its own file system. `tools/test/boundary.test.ts` and `check:pins` need the repository around `web/`, which that copy lacks, so they were **not** run. |
-| First run of the service suites against a stub of every function | Host, red | boot 6 of 6 cases failed, service 21 of 21, power loss 50 of 50, foreign save 20 of 20, no provider 1 of 1, concurrency 1 of 1. Validation crashed the stub and busy hung it, so neither printed a total. The web, fuzz and command line suites were written after the code they test, and the mutations above are their check. |
+| `npm run check:types`, `typecheck`, `check:pins`, `check:dom`, and the unit tests of the client, the mock, the type generator and the build tools (556 tests), regenerated types | Node.js | Pass. Run in the container, on a copy of `web/` and `.github/` in its own file system. |
+| `node --test tools/test/boundary.test.ts` in `web/`, on the repository itself | Node.js | Pass, 43 of 43. The shared vectors moved out of `web/api` for it: [decision 22](#decisions-taken-without-an-answer). |
+| First run of the service suites against a stub of every function | Host, red | boot 6 of 6 cases failed, service 21 of 21, power loss 50 of 50, foreign save 20 of 20, no provider 1 of 1, concurrency 1 of 1. After the review, the recovery cut and the foreign save after a failed save failed on the code without the zero check key (the failed key 3 in each), and passed with it. Validation crashed the stub and busy hung it, so neither printed a total. The web, fuzz and command line suites were written after the code they test, and the mutations above are their check. |
 | 54 mutations | Host | 50 caught, 4 equivalent, as above |
 | `native_sim`, RT1060 compile, `host-sanitize` with clang, a browser against the routes, any board | | **Not run** |
 
@@ -445,20 +479,21 @@ Local runs in container `crux-213`, image `crux-pilot-devcontainer:local` under 
 | 5 | A malformed address is `400` `bad_request`, and a prefix length that is a plain integer of any sign or size is `prefix_not_usable` | The mock did the same, and the specification has no field code for malformed text | A field code for malformed addresses, which is a specification change |
 | 6 | Every refusal of a gateway is `gateway_outside_subnet`, and a gateway of non-unicast class is refused | The specification has one code, and the mock already did this. The class rule closes a gap that a small prefix length opens. | A new code, which changes the specification and the generated types |
 | 7 | 169.254.0.0/16 is accepted | The client accepted it, and the issue lists the checks | Refuse link-local |
-| 8 | After a failed save, no saved set is shown | The stored bytes may have changed, and the specification's example agrees | Re-read the store, which the Configuration service does not offer after start |
+| 8 | After a failed save, no saved set is shown, and the check key is updated to zero so that no later save can complete it | The stored bytes may have changed, and the specification's example agrees. The zero closes the one way that a later save, or an interrupted recovery, made a failed set bootable. | Re-read the store, which the Configuration service does not offer after start |
 | 9 | `network.changed` is recorded when the save ends, not when the request is accepted | The contract names a change, and an accepted request that never saves is not one. Every accepted request ends in one event. | Record at acceptance as well |
 | 10 | No event at boot | There is no session, and no identifier names it | A new identifier, which is a change to the contract's table |
 | 11 | The service owns its worker thread, and `crux_network_settings_work_once()` is public | The command line and a Host test can use the same step | The web module owns the worker, as for the configuration save |
 | 12 | No provider is detected from the boot's loads, and answers `501` after the rules | No flag for a composition to get wrong, and the mock's order made the same | A setting |
 | 13 | The mock's `501` moved after the rules and before `busy` | The device decides in that order, and the specification now says so | Change the device to answer `501` first |
 | 14 | `PUT` closes the connection after every answer | The convention of the other management updates | Close only after a refusal |
-| 15 | The content-type check is repeated in the network source | #187's file stays unchanged | Move it to a shared file |
+| 15 | The content-type check and the body read loop are repeated in the network source | #187's file stays unchanged | Move them to a shared file |
 | 16 | The network routes are separate sources, so a composition without them compiles none of this | They need `crux::network_settings`, which the other routes do not | Add them to the existing list |
 | 17 | No Zephyr apply port | It cannot be compiled here, and the last criterion needs separately approved physical evidence anyway | Write it untested |
 | 18 | `scripts/test-web.sh` gains the targets and the tidy path of the new suites, and `scripts/test-network-settings.sh` is new | A protected path, edited only to add targets and a source directory, as the test runner of a component that this change adds. No suite, board, option or warning flag is removed. | Leave the suites to the full host preset alone |
 | 19 | `tests/configuration/fault_provider.c` gains a log of the written keys | Additive, and the only way to see the order of the writes | A provider of its own |
 | 20 | The top-level `CMakeLists.txt` gains the option `CRUX_BUILD_NETWORK_SETTINGS`, on by default as the other components are | The component list | None |
 | 21 | The web network sources include `web_management_internal.h`, which includes the status header | The writer functions are there, and `crux_mgmt_status_api` is headers only | Split the writer out |
+| 22 | The shared validation vectors are in `tests/network_settings/validation-vectors.tsv`, and the client's Node.js test reads them there | A C build may name `web/api/openapi.yaml` and no other file of `web/api`, and the rule is `web/tools/c-boundary.ts`. A frontend test reading a firmware test-data file breaks no rule. | Extend the rule to this one file, which is the owner's decision to take |
 
 ## Acceptance criteria
 

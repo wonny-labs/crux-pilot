@@ -20,7 +20,8 @@ Provider of the Access event port: object target `crux_security_event_access_por
 | Provider of `crux_access_port_event` | Implemented, every port event and result mapped |
 | Recording fake of the public contract | `tests/security_event/fake`, for consumers' Host tests |
 | Provider of `crux_credential_port_event` | `crux_credential_security_events`, in the store's component, because this component names no storage type |
-| Emitters outside Access: file, CLI, web, SSH, network settings, reboot | Identifiers exist. The emitters are other issues. The credential store and configuration service emit, through their providers. |
+| Emitters outside Access: file, CLI, web, SSH, reboot | Identifiers exist. The emitters are other issues. The credential store, the configuration service and the network settings service emit, through their providers. |
+| Provider of the network settings service's port | `crux_network_settings_security_events`, in that component. It records `network.changed`, `network.save_failed` and `network.saved_ignored`, with no subject: [network settings service](network-settings-service.md#security-events). |
 | `GET /api/v1/events` | Not implemented, M11. The read function it needs exists. |
 | Status items from the counts | `crux_mgmt_status_security_events`, in [the status service](status-configuration-services.md) |
 | Zephyr composition on `native_sim` | [For tests](native-management-composition.md), on the Crux Logging provider with an emulated UART, which shows the drain's counts and nothing on a wire |
