@@ -3,6 +3,7 @@
 #include "config_service_port.h"
 #include "credential_port.h"
 #include "mgmt_status_port.h"
+#include "network_settings_port.h"
 
 #include "access_test.h"
 
@@ -77,6 +78,57 @@ static void config_events(void)
         CHECK(record->channel == 0u);
         CHECK(record->source_length == 0u);
         CHECK(strcmp(record->subject, "net.hostname") == 0);
+    }
+}
+
+static void network_events(void)
+{
+    static const struct {
+        crux_network_settings_event_t event;
+        crux_security_event_id_t id;
+        crux_security_event_result_t result;
+    } rows[] = {
+        {CRUX_NETWORK_SETTINGS_EVENT_CHANGED, CRUX_SECURITY_EVENT_ID_NETWORK_CHANGED,
+         CRUX_SECURITY_EVENT_OK},
+        {CRUX_NETWORK_SETTINGS_EVENT_SAVE_FAILED, CRUX_SECURITY_EVENT_ID_NETWORK_SAVE_FAILED,
+         CRUX_SECURITY_EVENT_FAILED},
+        {CRUX_NETWORK_SETTINGS_EVENT_SAVED_IGNORED, CRUX_SECURITY_EVENT_ID_NETWORK_SAVED_IGNORED,
+         CRUX_SECURITY_EVENT_OK},
+    };
+    crux_access_session_t session = web_session();
+    for (size_t index = 0; index < sizeof(rows) / sizeof(rows[0]); ++index) {
+        security_event_fake_reset();
+        security_event_fake_boot();
+        crux_network_settings_port_event(rows[index].event, session);
+        CHECK(security_event_fake_count() == 1u);
+        CHECK(security_event_fake_count_of(rows[index].id) == 1u);
+        const crux_security_event_record_t *record = security_event_fake_last(rows[index].id);
+        CHECK(record != NULL);
+        if (record != NULL) {
+            CHECK(record->id == rows[index].id);
+            CHECK(record->result == rows[index].result);
+            /* No subject: an event of this service names no address and no value. */
+            CHECK(record->subject[0] == '\0');
+            CHECK(strcmp(record->user, ACCESS_TEST_ADMIN) == 0);
+            CHECK(record->channel == access_test_web.channel);
+            CHECK(record->source_length == access_test_web.source_length);
+            CHECK(memcmp(record->source, access_test_web.source, access_test_web.source_length) ==
+                  0);
+        }
+    }
+
+    /* A session that has ended still leaves the record, naming nobody. */
+    security_event_fake_reset();
+    security_event_fake_boot();
+    const crux_access_session_t ended = {0};
+    crux_network_settings_port_event(CRUX_NETWORK_SETTINGS_EVENT_CHANGED, ended);
+    const crux_security_event_record_t *record =
+        security_event_fake_last(CRUX_SECURITY_EVENT_ID_NETWORK_CHANGED);
+    CHECK(record != NULL);
+    if (record != NULL) {
+        CHECK(record->user[0] == '\0');
+        CHECK(record->channel == 0u);
+        CHECK(record->source_length == 0u);
     }
 }
 
@@ -240,6 +292,7 @@ static void credential_events(void)
 int main(void)
 {
     config_events();
+    network_events();
     status_event_counts();
     status_credential_words();
     credential_events();

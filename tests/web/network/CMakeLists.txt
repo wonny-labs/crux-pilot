@@ -19,7 +19,7 @@ crux_web_routes(crux_web_network_test_core SOURCES ${CRUX_WEB_SESSION_ROUTES}
     ${CRUX_WEB_MANAGEMENT_NETWORK_ROUTES} ../session/test_routes.c FAKE_MANIFEST
     REVIEWED reviewed-routes.txt)
 
-foreach(suite IN ITEMS routes fuzz openapi_fixture)
+foreach(suite IN ITEMS routes fuzz short_reads openapi_fixture)
     add_executable(web_network_${suite} ${suite}.c $<TARGET_OBJECTS:network_settings_test_fixture>)
     target_link_libraries(web_network_${suite} PRIVATE crux_web_network_test_core
         crux_configuration_fake_provider)
@@ -30,6 +30,8 @@ foreach(suite IN ITEMS routes fuzz openapi_fixture)
         set_tests_properties(Web.network_${suite} PROPERTIES TIMEOUT 240)
     endif()
 endforeach()
+
+target_link_options(web_network_short_reads PRIVATE -Wl,--wrap=crux_web_read_body)
 
 # Over the no-provider port: the 501.
 foreach(suite IN ITEMS no_provider openapi_fixture)

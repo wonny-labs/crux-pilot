@@ -21,7 +21,7 @@ targets=(network_settings_validation network_settings_boot network_settings_serv
     network_settings_power_loss network_settings_foreign_save network_settings_busy
     network_settings_concurrency network_settings_lock_faults network_settings_no_provider
     network_settings_cli network_settings_cpp_headers
-    web_network_routes web_network_fuzz web_network_no_provider web_network_openapi_fixture
+    web_network_routes web_network_fuzz web_network_short_reads web_network_no_provider web_network_openapi_fixture
     web_network_openapi_fixture_no_provider web_network_cpp_header)
 
 for preset in host-debug host-sanitize; do
