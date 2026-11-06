@@ -358,6 +358,19 @@ encoded names decode, and that names this provider could not have written stay o
 sequence, in forked children, under the fake's own simple model. None of these is power-loss
 evidence about FatFs or a card, and no physical run covers the additions.
 
+`tests/native/file_reliance` runs the Reliance Edge file system behind the Zephyr VFS over a RAM disk
+named `MMC`, and the File provider on top of it. The `file_reliance` suite covers the adapter: mount
+and format, handles, flags, errors in Zephyr's numbering (the build uses the minimal C library, whose
+numbers differ from Reliance Edge's), a media error that makes the volume read-only, and the close
+that reports lost data. The `file_reliance_file` suite runs the File contract and the File additions
+of `tests/file/conformance.c` on it, with names stored unencoded, and also checks that identifiers
+of threads are distinct, that a thread beyond the limit is refused without reaching the file system,
+that a mismatched profile does not mount, and that writes stay inside the configured sectors. The
+`crux.file.reliance.offset` scenario runs the same cases on a volume that starts 128 sectors into the
+disk and is 4096 sectors long. `scripts/test-storage-emmc.sh` requires the executed cases of both.
+These are simulation results on a RAM disk, in one process. They are not persistence evidence and
+not evidence about an eMMC device.
+
 `scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
 a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
 the fake File provider and a double for access, and walk a power cut across every mutation of a commit

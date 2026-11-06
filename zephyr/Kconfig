@@ -184,10 +184,24 @@ config CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
       object-only check. This does not link or select a target File provider,
       mount media, format media, or enable runtime File operations.
 
+config CRUX_FILE_RELIANCE_EDGE
+    bool "Crux File provider on Reliance Edge"
+    depends on CRUX_PILOT_MODULE && CRUX_FS_RELIANCE_EDGE
+    depends on !CRUX_FILE_SIMULATOR && !CRUX_FILE_FATFS_SIMULATOR
+    depends on !CRUX_FILE_FATFS_RT1060 && !CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
+    help
+      Link the File provider over the Reliance Edge file system of the Zephyr VFS. It
+      works on any board that has the file system, and names are stored as they are, with no
+      encoding. It mounts and formats nothing by itself; the composition owns the mount, the
+      format and the recovery. The image links GPLv2 source, so it is for testing and is not
+      distributed. No physical-board result exists for this selection.
+
 # The USDHC HAL invalidates a read target by whole D-cache lines when a transfer completes, so the
-# RT1060 selections take line-aligned targets only. file_native.c refuses a smaller SDHC value.
+# RT1060 selections and Reliance Edge take line-aligned targets only. file_native.c and the
+# adapter refuse a smaller SDHC value.
 configdefault SDHC_BUFFER_ALIGNMENT
-    default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
+    default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK || \
+                  CRUX_FILE_RELIANCE_EDGE
 
 # Keeps the FatFs sector window out of the SD layer's bounce path.
 configdefault FS_FATFS_WINDOW_ALIGNMENT

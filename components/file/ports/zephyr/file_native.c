@@ -7,8 +7,13 @@
 #include <zephyr/fs/fs.h>
 #include <zephyr/kernel.h>
 
-/* RT1060 selections: a linked provider, or an unlinked compile check. */
-#if defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK) || defined(CONFIG_CRUX_FILE_FATFS_RT1060)
+/* Selections: Reliance Edge on any board, an RT1060 provider or compile check, or a simulator. */
+#if defined(CONFIG_CRUX_FILE_RELIANCE_EDGE)
+#if defined(CONFIG_CRUX_FILE_SIMULATOR) || defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR) ||            \
+    defined(CONFIG_CRUX_FILE_FATFS_RT1060) || defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
+#error "The Reliance Edge File provider cannot be combined with another File selection"
+#endif
+#elif defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK) || defined(CONFIG_CRUX_FILE_FATFS_RT1060)
 #if !defined(CONFIG_BOARD_MIMXRT1060_EVK) || !defined(CONFIG_SOC_MIMXRT1062) ||                    \
     !defined(CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI) || !defined(CONFIG_BOARD_REVISION_B) ||  \
     !defined(CONFIG_FAT_FILESYSTEM_ELM) || !defined(CONFIG_DISK_DRIVER_SDMMC) ||                   \
@@ -16,16 +21,17 @@
     !defined(CONFIG_FS_FATFS_REENTRANT) || defined(CONFIG_FS_FATFS_MOUNT_MKFS)
 #error "RT1060 File selections require the Rev B QSPI board and the guarded FatFs/SDHC composition"
 #endif
-#if defined(CONFIG_DCACHE)
-/* The USDHC HAL invalidates a read target by whole cache lines on completion, so a buffer that
- * shares a line with another object can drop that object's write made during the transfer. The SD
- * layer bounces every buffer that is not aligned to this value. */
-_Static_assert(CONFIG_SDHC_BUFFER_ALIGNMENT >= CONFIG_DCACHE_LINE_SIZE,
-               "SDHC DMA buffers must be aligned to a whole D-cache line");
-#endif
 #elif !defined(CONFIG_BOARD_NATIVE_SIM) ||                                                         \
     (!defined(CONFIG_CRUX_FILE_SIMULATOR) && !defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR))
 #error "File provider requires an approved simulator composition"
+#endif
+#if defined(CONFIG_SDHC) && defined(CONFIG_DCACHE)
+/* The USDHC HAL invalidates a read target by whole cache lines on completion, so a buffer that
+ * shares a line with another object can drop that object's write made during the transfer. The SD
+ * layer bounces every buffer that is not aligned to this value. The symbol exists with the SD host
+ * driver only, so a selection on a board without one has nothing to check. */
+_Static_assert(CONFIG_SDHC_BUFFER_ALIGNMENT >= CONFIG_DCACHE_LINE_SIZE,
+               "SDHC DMA buffers must be aligned to a whole D-cache line");
 #endif
 #if defined(CONFIG_CRUX_FILE_SIMULATOR) && defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
 #error "File simulator compositions must be mutually exclusive"
@@ -47,6 +53,18 @@ _Static_assert(CONFIG_FS_FATFS_NUM_DIRS >= CRUX_FILE_DIR_POOL_SIZE,
                "FatFs must hold every File listing handle");
 #else
 #define CRUX_FILE_NATIVE_LEAF_MAX CRUX_FILE_NAME_MAX
+#endif
+#if defined(CONFIG_CRUX_FILE_RELIANCE_EDGE)
+/* Names are stored as they are, and Zephyr's directory entries must hold the longest one. With only
+ * an external file system Zephyr's limit falls back to 12, so the setting is required. */
+BUILD_ASSERT(CONFIG_FILE_SYSTEM_MAX_FILE_NAME >= CRUX_FILE_NATIVE_LEAF_MAX,
+             "set CONFIG_FILE_SYSTEM_MAX_FILE_NAME to at least the File name limit");
+/* Every open file and every open listing takes a Reliance Edge handle, and the File pools hold
+ * them all at once. REDCONF_HANDLE_COUNT is this Kconfig value in the repository's configuration,
+ * and this file includes no Reliance Edge header. */
+BUILD_ASSERT(CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT >=
+                 CRUX_FILE_POOL_SIZE + CRUX_FILE_DIR_POOL_SIZE,
+             "CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT must cover the File handle pools");
 #endif
 K_MUTEX_DEFINE(file_lock);
 static struct fs_file_t handles[CRUX_FILE_POOL_SIZE];

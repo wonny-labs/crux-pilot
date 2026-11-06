@@ -74,6 +74,18 @@ static void crux_red_unlock(void)
     }
 }
 
+/* Every call into Reliance Edge starts here. A thread that cannot have a slot is refused before the
+ * call, so that Reliance Edge never sees its identifier: its own table registers an identifier in
+ * a separate step after asking for it, so a thread without a slot could otherwise take the last
+ * registration from one that has a slot. The same refusal covers a handle that another thread
+ * opened, because the calling thread is what counts. */
+#define CRUX_RED_ENTER()                                                                           \
+    do {                                                                                           \
+        if (!crux_red_task_enter()) {                                                              \
+            return -ENOMEM;                                                                        \
+        }                                                                                          \
+    } while (0)
+
 static int crux_red_to_errno(REDSTATUS status)
 {
     switch (status) {
@@ -101,8 +113,10 @@ static int crux_red_to_errno(REDSTATUS status)
         return -EISDIR;
     case RED_EINVAL:
         return -EINVAL;
+    /* No inode left, although blocks may be free: to a caller that is a volume without room, and
+     * the File provider reports it as no space. */
     case RED_ENFILE:
-        return -ENFILE;
+        return -ENOSPC;
     case RED_EMFILE:
         return -EMFILE;
     case RED_EFBIG:
@@ -191,6 +205,7 @@ static int crux_red_open(struct fs_file_t *zfp, const char *path, fs_mode_t flag
 {
     uint32_t mode;
 
+    CRUX_RED_ENTER();
     if ((flags & ~FS_O_MASK) != 0) {
         return -EINVAL;
     }
@@ -251,6 +266,10 @@ static int crux_red_close(struct fs_file_t *zfp)
     if (slot == NULL) {
         return -EBADF;
     }
+    /* A thread without a slot cannot close. The handle stays open for a thread with a slot, as long
+     * as the caller keeps its VFS object: one that discards the object after a failed close loses
+     * the handle, and the volume then cannot be unmounted. */
+    CRUX_RED_ENTER();
     /* A volume made read-only by an earlier error makes red_close skip the commit and succeed, so a
      * handle with unsaved changes asks for the commit itself, to learn that they were lost. The
      * descriptor is closed whatever the result, and the first failure is the one reported. */
@@ -275,6 +294,7 @@ static ssize_t crux_red_read(struct fs_file_t *zfp, void *dest, size_t nbytes)
     if (slot == NULL) {
         return -EBADF;
     }
+    CRUX_RED_ENTER();
     if (nbytes > INT32_MAX) {
         return -EINVAL;
     }
@@ -289,6 +309,7 @@ static ssize_t crux_red_write(struct fs_file_t *zfp, const void *src, size_t nby
     if (slot == NULL) {
         return -EBADF;
     }
+    CRUX_RED_ENTER();
     if (nbytes > INT32_MAX) {
         return -EINVAL;
     }
@@ -311,6 +332,7 @@ static int crux_red_lseek(struct fs_file_t *zfp, off_t off, int whence)
     if (slot == NULL) {
         return -EBADF;
     }
+    CRUX_RED_ENTER();
     switch (whence) {
     case FS_SEEK_SET:
         from = RED_SEEK_SET;
@@ -334,6 +356,7 @@ static off_t crux_red_tell(struct fs_file_t *zfp)
     if (slot == NULL) {
         return -EBADF;
     }
+    CRUX_RED_ENTER();
     int64_t position = red_lseek(slot->fd, 0, RED_SEEK_CUR);
     if (position < 0) {
         return crux_red_error();
@@ -351,6 +374,7 @@ static int crux_red_truncate(struct fs_file_t *zfp, off_t length)
     if (slot == NULL) {
         return -EBADF;
     }
+    CRUX_RED_ENTER();
     if (length < 0) {
         return -EINVAL;
     }
@@ -368,6 +392,7 @@ static int crux_red_sync(struct fs_file_t *zfp)
     if (slot == NULL) {
         return -EBADF;
     }
+    CRUX_RED_ENTER();
     if (red_fsync(slot->fd) != 0) {
         return crux_red_error();
     }
@@ -377,6 +402,7 @@ static int crux_red_sync(struct fs_file_t *zfp)
 
 static int crux_red_opendir(struct fs_dir_t *zdp, const char *path)
 {
+    CRUX_RED_ENTER();
     REDDIR *dir = red_opendir(crux_red_path(zdp->mp, path));
 
     if (dir == NULL) {
@@ -388,6 +414,7 @@ static int crux_red_opendir(struct fs_dir_t *zdp, const char *path)
 
 static int crux_red_readdir(struct fs_dir_t *zdp, struct fs_dirent *entry)
 {
+    CRUX_RED_ENTER();
     /* The end of the directory is a NULL entry with no error set. */
     red_errno = 0;
     REDDIRENT *found = red_readdir((REDDIR *)zdp->dirp);
@@ -404,6 +431,7 @@ static int crux_red_readdir(struct fs_dir_t *zdp, struct fs_dirent *entry)
 
 static int crux_red_closedir(struct fs_dir_t *zdp)
 {
+    CRUX_RED_ENTER();
     return (red_closedir((REDDIR *)zdp->dirp) != 0) ? crux_red_error() : 0;
 }
 
@@ -411,6 +439,7 @@ static int crux_red_mount(struct fs_mount_t *mountp)
 {
     int rc;
 
+    CRUX_RED_ENTER();
     if (mountp->storage_dev == NULL) {
         return -EINVAL;
     }
@@ -440,6 +469,7 @@ static int crux_red_unmount(struct fs_mount_t *mountp)
 {
     int rc = 0;
 
+    CRUX_RED_ENTER();
     crux_red_lock();
     if (mountp != crux_red_mounted) {
         rc = -EINVAL;
@@ -454,11 +484,13 @@ static int crux_red_unmount(struct fs_mount_t *mountp)
 
 static int crux_red_unlink(struct fs_mount_t *mountp, const char *name)
 {
+    CRUX_RED_ENTER();
     return (red_unlink(crux_red_path(mountp, name)) != 0) ? crux_red_error() : 0;
 }
 
 static int crux_red_rename(struct fs_mount_t *mountp, const char *from, const char *to)
 {
+    CRUX_RED_ENTER();
     return (red_rename(crux_red_path(mountp, from), crux_red_path(mountp, to)) != 0)
                ? crux_red_error()
                : 0;
@@ -466,6 +498,7 @@ static int crux_red_rename(struct fs_mount_t *mountp, const char *from, const ch
 
 static int crux_red_mkdir(struct fs_mount_t *mountp, const char *name)
 {
+    CRUX_RED_ENTER();
     return (red_mkdir(crux_red_path(mountp, name)) != 0) ? crux_red_error() : 0;
 }
 
@@ -474,6 +507,7 @@ static int crux_red_stat(struct fs_mount_t *mountp, const char *path, struct fs_
     const char *local = crux_red_path(mountp, path);
     REDSTAT stat;
 
+    CRUX_RED_ENTER();
     if (red_stat(local, &stat) != 0) {
         return crux_red_error();
     }
@@ -495,6 +529,7 @@ static int crux_red_statvfs(struct fs_mount_t *mountp, const char *path, struct 
 
     ARG_UNUSED(mountp);
     ARG_UNUSED(path);
+    CRUX_RED_ENTER();
     if (red_statvfs(CRUX_RED_VOLUME, &volume) != 0) {
         return crux_red_error();
     }
@@ -512,6 +547,7 @@ static int crux_red_mkfs(uintptr_t dev_id, void *cfg, int flags)
     int rc;
 
     ARG_UNUSED(flags);
+    CRUX_RED_ENTER();
     if (dev_id == 0U || cfg != NULL) {
         return -EINVAL;
     }

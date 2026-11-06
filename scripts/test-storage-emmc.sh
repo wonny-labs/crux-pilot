@@ -129,8 +129,8 @@ print(f'replay fatfs: {report["counts"]["cases"]} cases, '
       'both controls failed as required')
 PY
 
-# Reliance Edge behind the Zephyr VFS on a RAM disk named MMC. The images link the GPLv2 source and
-# are test images only.
+# Reliance Edge behind the Zephyr VFS, and the File provider on it, on a RAM disk named MMC. The
+# images link the GPLv2 source and are test images only.
 (cd "$workspace" && west twister -j 2 "${platforms[@]}" \
     -T "$repo/tests/native/file_reliance" \
     -O "$repo/build/zephyr/twister-file-reliance" --inline-logs)
@@ -140,7 +140,9 @@ import os
 from pathlib import Path
 import sys
 
-executed = {'crux.file.reliance': 22}
+# 22 adapter cases and 30 File cases in each scenario; the offset scenario runs the same cases on a
+# volume that starts 128 sectors into the disk.
+executed = {'crux.file.reliance': 52, 'crux.file.reliance.offset': 52}
 platforms = ['native_sim/native/64']
 if os.environ.get('CRUX_STORAGE_32BIT') == '1':
     platforms.append('native_sim/native')

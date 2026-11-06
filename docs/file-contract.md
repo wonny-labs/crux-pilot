@@ -174,8 +174,36 @@ reaches that path. The Linux provider uses `fstatat` and then `renameat` for the
 `CONFIG_FS_FATFS_NUM_DIRS` must be at least the listing pool, and the build checks this.
 
 `struct fs_dirent` has no modification time, which is why decision F6 leaves time out. On
-`native_sim` these additions have run on FatFs only. The LittleFS simulator composition compiles
-them and has not run them. Earlier physical runs do not extend to them.
+`native_sim` these additions have run on FatFs and on Reliance Edge, over a RAM disk. The LittleFS
+simulator composition compiles them and has not run them. Earlier physical runs do not extend to
+them.
+
+### Reliance Edge mapping
+
+`CONFIG_CRUX_FILE_RELIANCE_EDGE` selects the same provider over the Reliance Edge file system of
+the Zephyr VFS (`CONFIG_CRUX_FS_RELIANCE_EDGE`). Every statement of the contract above is unchanged.
+What differs is the mapping:
+
+- A name is stored as it is, with no encoding, so a file can be seen on the medium by its own name.
+  A name that fails the File name rule, or a directory, is not listed.
+- The destination of a rename is checked first under the File lock, as on FatFs, because Reliance
+  Edge's own rename replaces an existing file.
+- A full volume gives `CRUX_FILE_ERR_NO_SPACE`, including for an empty file when no inode is left
+  although blocks are free.
+- After a media error the file system is read-only until it is mounted again, and every change then
+  gives `CRUX_FILE_ERR_ACCESS`. A close that has unsaved data on such a volume gives it too.
+- A thread that uses the file system takes one of `CONFIG_CRUX_FS_RELIANCE_EDGE_TASK_COUNT` slots for
+  good. A thread beyond them gets `CRUX_FILE_ERR_NO_RESOURCES` from every call, and a call from it
+  never reaches the file system, so it cannot take a slot from another thread. That includes closing
+  or reading a handle that another thread opened. The File provider retires a handle whenever its
+  close returns, so a refused close leaves the file system's handle open until the volume is
+  mounted again. A composition keeps its threads within the limit.
+- The File pools hold open files and listings together, so the file system's handle count must
+  cover both, and `CONFIG_FILE_SYSTEM_MAX_FILE_NAME` must hold the longest name. The build checks
+  both.
+
+The selection works on any board that has the file system and excludes the other File selections.
+The run on `native_sim` is a software result, and no physical-board result exists for it.
 
 ## Verified native mapping and limits
 

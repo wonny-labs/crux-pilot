@@ -1,5 +1,12 @@
+common:
+  platform_allow: [native_sim/native, native_sim/native/64]
+  tags: [filesystem, crux]
+  timeout: 180
 tests:
-  crux.file.reliance:
-    platform_allow: [native_sim/native, native_sim/native/64]
-    tags: [filesystem, crux]
-    timeout: 180
+  crux.file.reliance: {}
+  # The volume starts 128 sectors into the disk and ends 4096 sectors later, so that a write below
+  # the offset or past the end is a failure. The same cases run on it.
+  crux.file.reliance.offset:
+    extra_configs:
+      - CONFIG_CRUX_FS_RELIANCE_EDGE_SECTOR_OFFSET=128
+      - CONFIG_CRUX_FS_RELIANCE_EDGE_SECTOR_COUNT=4096
