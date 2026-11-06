@@ -23,6 +23,10 @@
 #define CRUX_NATIVE_MANAGEMENT_PARAM_TOKEN "demo.token"
 #define CRUX_NATIVE_MANAGEMENT_PERMISSION_CONFIG_READ "config.read"
 #define CRUX_NATIVE_MANAGEMENT_PERMISSION_CONFIG_WRITE "config.write"
+/* Added only by the services composition of Issue #242, services.cmake. */
+#define CRUX_NATIVE_MANAGEMENT_PERMISSION_FILE_READ "file.read"
+#define CRUX_NATIVE_MANAGEMENT_PERMISSION_FILE_WRITE "file.write"
+#define CRUX_NATIVE_MANAGEMENT_PERMISSION_TLS_MANAGE "tls.manage"
 
 /* The first account: the declared test step, until the serial console of #181 is composed. */
 #define CRUX_NATIVE_MANAGEMENT_TEST_USER "admin"
@@ -46,6 +50,14 @@ typedef enum {
  * start failure: it fails closed, and the services report it.
  */
 crux_native_management_start_t crux_native_management_start(void);
+
+#if defined(CRUX_NATIVE_MANAGEMENT_SERVICES)
+#include <crux/file.h>
+/* The root of the file service's one area, bound on the same disk. Services composition only. */
+crux_file_root_t crux_native_management_file_root(void);
+/* The store's two roots, which no file area may use. */
+void crux_native_management_store_roots(crux_file_root_t roots[2]);
+#endif
 
 /* What the store said at start, which is how a test tells a first boot from a later one. */
 crux_credential_state_t crux_native_management_store_state_at_start(void);
