@@ -25,7 +25,7 @@ class GeneratedEntropySourceTests(unittest.TestCase):
         self.assertEqual(original.count(CALL + "true)"), 1)
         self.assertEqual(generated.count(CALL + "false)"), 1)
         self.assertNotIn(CALL + "true)", generated)
-        # The external-RNG route keeps its Kconfig-controlled flag, which already refuses a non-secure source.
+        # The external-RNG route keeps its Kconfig-controlled flag, which refuses the sys_rand_get() fallback.
         self.assertIn("IS_ENABLED(CONFIG_MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG_ALLOW_NON_CSPRNG)", generated)
         removed = [line for line in original.splitlines() if line not in generated.splitlines()]
         self.assertEqual(removed, ["\tif (get_random_data(output, output_size, true) < 0) {"])
