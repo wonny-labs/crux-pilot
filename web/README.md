@@ -8,7 +8,7 @@ a design system. The firmware build needs none of it: it takes a built folder, a
 | --- | --- |
 | [`api`](api/README.md) | The management API specification, shared with the firmware track |
 | `client` | An optional TypeScript client with no framework: login polling, CSRF, error mapping and retry timing |
-| `reference` | The Preact example, in a folder that keeps its earlier name: sign-in, forced password change, home, and network settings and reboot as advanced examples |
+| `reference` | The Preact example, in a folder that keeps its earlier name: sign-in, forced password change, home, configuration, and network settings and reboot as advanced examples |
 | `mock` | A small mock server that follows the specification, and its conformance check |
 | `e2e` | Browser tests on the mock |
 | `tools` | Type generation, the build, the packaging budget and the source rules |
@@ -26,9 +26,9 @@ tests underneath, and the Angular example does not copy them.
 | --- | --- | --- | --- |
 | Sign-in and sign-out | Core | Built | Built |
 | Session expiry | Core | Built | Built |
-| Forced password change | Core | Built | A notice only, screen in #243 |
+| Forced password change | Core | Built | Built |
 | Status | Core | Built | Built |
-| Simple configuration update | Core | In #243 | In #243 |
+| Simple configuration update | Core | Built, on the mock | Built, on the mock |
 | Network settings | Advanced | Built | Not planned |
 | Reboot | Advanced | Built | Not planned |
 
@@ -95,6 +95,10 @@ if (status.ok) {
   showError(status.error.kind);
 }
 ```
+
+The configuration calls follow the same rule. `listConfig` and `getConfigItem` read, `putConfigItem` changes a value in the
+device's memory, and `saveConfig` then `watchConfigSave` write it, with the outcome as a result and never a throw. The
+[configuration flow](../docs/web-config-flow.md) says how the examples use them.
 
 ## The mock server
 

@@ -49,3 +49,54 @@ dd {
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+nav {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+nav a.current {
+  font-weight: 600;
+}
+
+.params {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.params fieldset {
+  max-width: 26rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem 1rem;
+}
+
+.params p {
+  margin: 0.25rem 0;
+}
+
+.hint {
+  color: GrayText;
+  font-size: 0.875rem;
+}
+
+.field-error {
+  margin: 0.25rem 0 0;
+  font-weight: 600;
+}
+
+.unsaved {
+  font-weight: 600;
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.switch input {
+  width: 1.25rem;
+  height: 1.25rem;
+}
