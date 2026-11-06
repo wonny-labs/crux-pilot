@@ -69,7 +69,7 @@ memory_report() { # log of a build
 if [[ "$run_native" == true ]]; then
     build "$output/native" "$native_board" -DEXTRA_CONF_FILE=native_sim.conf
     "$output/native/zephyr/zephyr.exe" -testargs conformance | tee "$output/conformance.log"
-    grep -qE '^51 cases, 0 failed$|^[0-9]+ cases, 0 failed$' "$output/conformance.log" ||
+    grep -qE '^[1-9][0-9]* cases, 0 failed$' "$output/conformance.log" ||
         fail 'The conformance cases did not all pass.'
     python3 -u "$app/openssh_test.py" "$output/native/zephyr/zephyr.exe" | tee "$output/openssh.log"
     tail -n 1 "$output/openssh.log" | grep -q '^All cases passed\.$' ||

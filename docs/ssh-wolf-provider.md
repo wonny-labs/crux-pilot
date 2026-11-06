@@ -197,9 +197,16 @@ flowchart LR
 | `crux_ssh_wire_host_key_blob`, `crux_ssh_wire_fingerprint_text` | The public part alone, as OpenSSH shows it | A buffer too small | The same, inline, with SHA-256 still in the provider |
 
 **What the change narrows.** A malformed blob of an accepted type now counts as a refused attempt with no callback, as an RSA
-key does, where before it reached `key_check` and `crux_access` refused it. A signed request with such a blob therefore no
-longer records a `LOGIN_FAILURE` event: [decision 22](#decisions-for-review). The interface header says so, and the fake
-provider makes the same check so that the conformance case holds both.
+key does, where before it reached `key_check` and `crux_access` refused it as an unlisted key. A *signed* request with such a
+blob therefore no longer writes a delay entry or an access event: [decision 22](#decisions-for-review) lists which event it
+was and what that costs. The interface header says so, and the fake provider makes the same check so that the conformance
+case holds both.
+
+**The name rule is the wire's, not the account rule.** `crux_ssh_wire_user_name` takes 1 to 31 bytes with no NUL and checks
+no character set. `crux_access_name_valid` allows only `[a-z0-9_.-]`, up to 31 bytes. So a name such as `Admin` or `a b`
+passes the wire and reaches `crux_access`, which refuses it: as an invalid argument with `LOGIN_FAILURE` for a password or a
+signed key, and with no event for a key probe. Only an empty name, one of 32 bytes or more, or one with a NUL stops at the
+wire with no event, as #265 already did.
 
 ### Tests
 
@@ -386,13 +393,28 @@ Each was taken without the owner, and the narrower choice was taken where there 
 | 19 | wolfSSH's `MAX_PACKET_SZ` stays, and the memory rule below allows for it | RFC 4253 section 6.1 requires packets up to 35,000 bytes, and a client announces the size before keys | A lower limit would be a shared setting that refuses a conforming client |
 | 20 | **The slot lockout stays, as a recorded limit.** `max_connections` silent clients hold every slot for `auth_timeout_ms`, and a real user is refused meanwhile. | Nothing unauthenticated can be told from a slow login, and a reserved slot needs a policy for who may use it. A composition chooses the two numbers. The limit is short and repeats only while an attacker keeps connecting. | A slot reserved for clients that have logged in before, or by source |
 | 21 | The checks on client input move into `crux_ssh_wire.c`, a module with no library type that the provider compiles, and the provider keeps only the calls | The Host can then fuzz the very source the provider runs, under sanitizers and in CI, which a `native_sim` image cannot | The checks stay inline, tested only through a socket |
-| 22 | **A user key whose blob is not its type's exact form is refused before `key_check`**, and counts as an attempt on the connection, as an RSA key does | Such a blob can never match a stored key, because `crux_access` refuses one at `add_key`, so no login is lost, and less unparsed data reaches Crux. **What it costs:** a *signed* request with such a blob used to reach `crux_access`, which recorded a `LOGIN_FAILURE` event and a delay entry. Now, as for an RSA key, it records neither. It cannot guess a credential, and `max_auth_attempts`, `auth_timeout_ms` and `max_connections` still bound it. | Pass it to `crux_access` again, for the event, and keep the check for the type name only |
+| 22 | **A user key whose blob is not its type's exact form is refused before `key_check`**, and counts as an attempt on the connection, as an RSA key does | Such a blob can never match a stored key, because `crux_access_key_acceptable` refuses one at `add_key`, so no login is lost, and less unparsed data reaches Crux. **What it costs:** a *signed* request with such a blob, and a name that meets the account rule, used to reach `crux_access_key_is_authorised` as an unlisted key. That wrote a delay entry and emitted `KEY_FAILURE` (`access.key_failed`), or `LOGIN_REFUSED` for an account whose role is missing or that must change its password, or `DELAY_APPLIED` inside a delay window (`components/access/src/access_login.c`, and `adapter_test.c` expects one `KEY_FAILURE` for a signed unlisted key). A name outside the account rule gave `LOGIN_FAILURE` and no delay entry. Now, as for an RSA key, it gives none of these. See [the trade-off](#decision-22-the-trade-off). | Pass such blobs to `crux_access` again, for the event and the delay entry, and keep only the type-name check before the callback |
 | 23 | The fake provider makes the same check, and its two keys became well-formed blobs with key bytes of zero | The new conformance case must hold for both, and a new fault in the fake shows the case can fail | The case would run on the real provider only |
 | 24 | **Replacing the host key is not built.** No command or route calls `crux_credential_key_replace()`. | The design makes it a deliberate, recorded operation, and its permission, confirmation and user guidance belong with the command line and management APIs, not the provider | A command under `access.manage` that calls it and restarts the server |
 | 25 | The stored host key runs in the existing test image behind `CRUX_SSH_TEST_STORED_HOST_KEY`, not in the management composition | No TLS socket backend, so no patched Zephyr, and #197 owns the integrated image. The Access ports there stay fakes. | The provider beside the socket backend and wolfPSA stays unbuilt until #197 |
 | 26 | That image formats a blank disk only when the test passes `format` | So a test can show the store refusing, and no key generated, on a disk that does not mount. A product composition sets its own medium policy. | Always format, as the management composition does |
 | 27 | `Ssh.wire_mutations` uses the build's compiler, and GCC where that compiler lacks the sanitizer runtimes, and fails if neither has them | One mutant reads past a buffer without changing a result, so only a sanitizer kills it. The Dev Container's Clang 18 lacks the runtimes, and its GCC 13 has them. | Drop that mutant, or skip the test |
 | 28 | `scripts/analyze-host.sh` gains the two new Host sources, add-only | So `clang-tidy` covers them in CI, as it covers the rest of `components/ssh` | They go unanalysed in CI |
+
+### Decision 22: the trade-off
+
+For the owner to judge. Each line was checked against the source at this revision.
+
+| Question | Answer |
+| --- | --- |
+| Who loses an event? | Only a crafted client. OpenSSH sends the blob of a key it holds, which is always well formed, so it never reaches this refusal. |
+| Is the audit gap new? | The class is new, the gap is not. Since #265 the provider refuses RSA, DSA, other curves, security keys, certificates, an empty, overlong or NUL-holding name, and the attempt that ends a connection at `max_auth_attempts`, all before any callback and with no event. This change adds malformed blobs of the accepted types to that list. |
+| Does it open a guessing channel? | No. A malformed blob can never match a stored key, and `max_auth_attempts`, `auth_timeout_ms` and `max_connections` still bound the attempts of one client. What it loses is the shared delay entry, which counts across connections. |
+| Does it open an enumeration or timing channel? | No. The refusal comes before any account lookup, whatever the name. |
+| How does the web compare? | Its login answers a malformed body with `400 bad_request` and no event. It turns a name that does not fit or holds a NUL into the empty name, which `crux_access` refuses with `LOGIN_FAILURE`, where SSH refuses such a name at the wire with no event. That asymmetry predates this change. |
+
+**Follow-up proposed, not opened:** a counter or event for refusals before a callback, covering every class in the second row,
+so that a crafted client's attempts are visible on both channels. The text is in the pull request.
 
 ## Findings
 
@@ -426,6 +448,8 @@ The provider wipes a password from wolfSSH's input buffer once the callback retu
 | Real PSA ports, a host key generated and stored through the credential store in an image | **Shown on `native_sim`** for the store's ports on wolfPSA, in the stored host key image. The Access ports there are still fakes, and nothing ran on TF-PSA-Crypto, which has no Ed25519. |
 | The provider beside the TLS socket backend and wolfPSA in one image | Decision 25. #197's integrated image. |
 | Replacing the host key, and reading its fingerprint under `access.manage` | Decision 24, and the `device fingerprint` command of the CLI contract |
+| How a product composition holds the host key | **Test only here.** `tests/zephyr/ssh_provider/src/main.c` keeps the private key in a static `test_key_t` for the life of the process and never wipes it, because `start()` borrows the bytes until `stop()`. The stored host key path clears its own copy from the store. A product composition, #197, must hold the borrowed key under rules like those for the TLS key's PKCS #8 hand-off of #284, which is still a question for the owner: decision B of [the TLS certificate model](tls-certificate.md). |
+| A conformance run that runs no case | Closed: `scripts/test-ssh-provider.sh` accepted `0 cases, 0 failed`, and now requires at least one case. It does not check the count, so a run that lost some cases would still pass. |
 | The second change on RT1060-EVKB | **Not compiled.** This workspace has no `hal_nxp`, and fetching it was not worth the disk. The wire module is plain C17 with no platform header. The compile figures above are the first change's. |
 | `--measure` after the second change | Not rerun. The wire module allocates nothing. Its object is 1,512 B of text and 64 B of data on `native_sim/native/64`, of which the provider lost the inline checks it replaces. No target size was measured. |
 | SFTP file transfer, and the window-full path in the SFTP loop | #194. The port refuses every operation. |
