@@ -14,7 +14,7 @@ that the protocols and the algorithms run for real. It does not mean that any se
 
 | Item | State | Evidence level |
 | --- | --- | --- |
-| One image with every management service: web, sessions, status, configuration, CLI, security events, file service, TLS certificate, network settings, and the packaged web folder | **Built**, `tests/native/management_services`, from `composition/services.cmake` beside `composition.cmake` | `native_sim`, Mbed profile. Wolf profile: [results](#results). |
+| One image with every management service: web, sessions, status, configuration, CLI, security events, file service, TLS certificate, network settings, and the packaged web folder | **Built**, `tests/native/management_services`, from `composition/services.cmake` beside `composition.cmake` | `native_sim`, both profiles: [results](#results) |
 | PSA ports: Access, store, web sessions, TLS certificate | **Real**, the qualified providers: TF-PSA-Crypto on the Mbed profile, wolfPSA on the Wolf profile | Image check reads each from its source |
 | Event providers of the command line and the file service | **Built here**, `crux_cli_security_events` and `crux_file_service_security_events`, [mapped](security-event-contract.md#from-the-command-line-and-file-service-ports) like the existing providers | Host against the recording fake, `native_sim` end to end |
 | Network settings apply port | **No-op provider** of #287, `network_settings_no_apply.c`. Nothing is applied to an interface, and no Zephyr `net_if` port is written. | `native_sim` |
@@ -186,13 +186,40 @@ The Python rows hold the check itself to synthetic images, in `tests/build/test_
 | --- | --- | --- |
 | A, the reference validity to 9999-12-31 | Starts the module with `CRUX_TLS_CERTIFICATE_DEFAULT_NOT_BEFORE_S` and no expiry, the reference options | Uses the reference as it stands. OpenSSL reads `Not After : Dec 31 23:59:59 9999 GMT`. |
 | B, the private key as PKCS #8 bytes handed to Zephyr's TLS credentials | **Does not hand it over.** The listener keeps the declared test certificate. | Not relied on. Registering the module's material with the listener waits for B. |
-| C, `psa_sign_hash` outside #142's subset | Signs the self-signed certificate at first boot with the module's PSA port | **Relied on**: the port runs here on TF-PSA-Crypto, and on wolfPSA when the Wolf profile runs. A run is not a qualification, and #142's subset is unchanged. |
+| C, `psa_sign_hash` outside #142's subset | Signs the self-signed certificate at first boot with the module's PSA port | **Relied on**: the port ran here on TF-PSA-Crypto and on wolfPSA, and OpenSSL verified both certificates. A run is not a qualification, and #142's subset is unchanged. |
 
 ## Results
 
 Host, `native_sim` and physical evidence stay apart. No physical claim is made.
 
-RESULTS_PLACEHOLDER
+Run in the Dev Container image on `native_sim/native/64`, by `scripts/test-native-composition.sh mbed` and `wolf` at
+`2d22c54`, which the later commits change only in documents and retained results. Retained in
+[`docs/evidence/native-services/`](evidence/native-services/). CI's `psa-crypto` workflow runs the Mbed mode, and so the
+services image, with no workflow change. The Wolf profile is local only, as for #263 and #185.
+
+| Check | Mbed profile | Wolf profile |
+| --- | --- | --- |
+| The services image builds, with every service and the profile's TLS stack and PSA provider | Yes, TF-PSA-Crypto and Mbed TLS | Yes, wolfPSA and the wolfSSL socket backend, on the patched copy of #185 |
+| `check-composition-image.py --services`: 50 listed symbols from their sources, no test double, the random path, and exactly the 12 component routes and the folder's | Pass | Pass |
+| The services' own cases, 17 a boot, on two boots of one disk | 34 of 34 | 34 of 34 |
+| Web cases over HTTPS, TLS 1.3 `TLS_AES_128_GCM_SHA256`, the declared test certificate | 35 of 35 | 35 of 35 |
+| A configuration update over HTTPS, and `security.events_emitted` before and after | 30 then 32 | 31 then 33 |
+| TLS certificate module: generated at first boot through `psa_sign_hash`, and loaded at the second with the same fingerprint | Yes, on TF-PSA-Crypto | Yes, **on wolfPSA**, a run and not a qualification |
+| OpenSSL 3.0.13 on that certificate: version 3, `ecdsa-with-SHA256`, P-256, `DNS:localhost, IP Address:127.0.0.1`, no expiry, self-signed verify for the server purpose, the device's fingerprint text | Pass | Pass |
+| The existing parts of the mode, unchanged: the PSA ports on Twister, and the composition of #263 on three boots | Pass, 1 of 1 and three boots | Pass, 1 of 1 and three boots |
+| Whole mode | 9 min 49 s | 11 min 9 s |
+
+| Host check | Result |
+| --- | --- |
+| `ManagementProviders.events` with the two new providers, red on stubs that emit nothing, then green | Red: 250 checks, 29 failures. Green: 320 checks, 0 failures. |
+| `tests/build/test_composition_image.py` | 24 tests pass. Five mutations of the check itself, each caught. |
+| `check_cmake_guard.py`, with the services' three refusals and the C guard's five settings | Pass. Red first: the C guard's header did not exist. |
+| `check-cli-boundary.py`, `check-credential-boundary.py`, `check-security-event-boundary.py`, `check-access-boundary.py`, `check-mgmt-services-boundary.py`, `check-web-routes.py`, `check-native-interfaces.py`, `check_docs.py` | Pass |
+| clang-format 18 on every changed C file | Pass |
+| The full Host presets, sanitizers and clang-tidy | **Not run locally.** CI's Host workflow runs them. |
+
+Not run: `native_sim/native`, the 32-bit width; any browser; the serial console; a save provider; RT1060 compile of this
+image; anything physical.
 
 ## Limits
 

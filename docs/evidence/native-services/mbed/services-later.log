@@ -1,0 +1,26 @@
+WARNING: Using a test - not safe - entropy source
+uart connected to pseudotty: /dev/pts/0
+*** Booting Zephyr OS build v4.4.2 ***
+CASE cli_permitted ok account list as the administrator
+CASE cli_unpermitted ok exit 127, no account named
+CASE cli_unauthenticated ok an ended session is refused
+CASE cli_line_rejected_event ok cli.line_rejected through crux_cli_security_events
+CASE cli_network_recover ok administrator exit 0, guest exit 127
+CASE file_permitted ok a managed write and commit, and file.created
+CASE file_unpermitted ok the viewer reads and may not write, the guest does not see the area
+CASE file_unauthenticated ok an ended session
+CASE tls_certificate_permitted ok get, fingerprint and copy
+CASE tls_certificate_unpermitted ok the viewer holds no tls.manage
+CASE tls_certificate_unauthenticated ok an ended session
+CERTIFICATE generated=0 fingerprint=25:FE:51:5F:4F:94:E3:17:01:33:EA:70:33:CA:FF:C9:06:D2:19:5E:73:BF:D3:FA:CF:57:64:D5:E6:B4:D7:2F
+CERTIFICATE der=3082018f30820135a0030201020210677ac1db312e24219e97878084d955fa300a06082a8648ce3d040302301f311d301b06035504030c1463727578206e61746976655f73696d20746573743020170d3236303130313030303030305a180f39393939313233313233353935395a301f311d301b06035504030c1463727578206e61746976655f73696d20746573743059301306072a8648ce3d020106082a8648ce3d03010703420004509fae6a34decf3623c31c885fb583df2ce2d621bdaef653762ea2ec0d696269935fc6ce92a773f60aac0440699473cb38ef69bb90143807bd33af21d7e3e950a351304f300c0603551d130101ff04023000300e0603551d0f0101ff04040302078030130603551d25040c300a06082b06010505070301301a0603551d110413301182096c6f63616c686f737487047f000001300a06082a8648ce3d04030203480030450221008f563946620ada991f18b111f785fd6c251e4569e0247da56f805caa0681a85802207d037b18cdc44baec8cb40d467e7ea1551637e3efc3a79e28c75af8ad4e0481d
+CASE network_permitted ok the no-op apply port reports no running values
+CASE network_unpermitted ok the guest
+CASE network_unauthenticated ok an ended session
+CASE network_boot ok no Configuration provider, decision C6
+CASE config_update_event ok config.updated with its user and parameter
+CASE status_event_counts ok security.events_emitted at least the emitted count, nothing dropped
+CRUX_SERVICES_CASES failures=0
+CRUX_SERVICES_READY 18242
+
+Stopped at 1.990s
