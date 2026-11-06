@@ -45,6 +45,15 @@ function fresh(item: ConfigItem): Row {
   return { item, shown, value: undefined, draft: draftOf(item, undefined), edited: false, error: undefined, working: false };
 }
 
+/**
+ * A call that rejects is reported to the person in one sentence that cannot tell a project's own fault from a
+ * fault in this screen, so the error goes to the console, where a developer can see which it was. It holds
+ * no value of a parameter: the error is the one thrown, and the client puts no value in one.
+ */
+function logFailure(what: string, error: unknown): void {
+  console.error(`configuration ${what} failed`, error);
+}
+
 function Configuration() {
   const { client, text } = useApp();
   const t = text.config;
@@ -126,11 +135,17 @@ function Configuration() {
 
   useEffect(() => {
     void load();
-    return () => {
+  }, []);
+
+  // A passive effect's cleanup runs after the next paint, so a call that ended in the gap would still find the
+  // screen live. A layout effect stops them in the same step as the screen changes.
+  useLayoutEffect(
+    () => () => {
       loading.current?.abort();
       working.current?.abort();
-    };
-  }, []);
+    },
+    [],
+  );
 
   useLayoutEffect(() => {
     if (focusName.current !== null) {
@@ -179,32 +194,51 @@ function Configuration() {
     inFlight.current = true;
     patch(item.name, { working: true, error: undefined });
     const signal = freshSignal(working);
-    const result = await client.putConfigItem(item.name, value, { signal });
-    if (signal.aborted) {
+    try {
+      const result = await client.putConfigItem(item.name, value, { signal });
+      if (signal.aborted) {
+        return;
+      }
+      if (result.ok) {
+        // The typed value is now the device's, so the read-back may replace the draft.
+        patch(item.name, { working: false, item: result.value, edited: false });
+        setMessage({ kind: 'success', text: t.updated(item.name) });
+        // The device's own value is what is shown, and a session that may not read it keeps what it had.
+        try {
+          await readValue(result.value, signal);
+        } catch (error) {
+          // The update was accepted, so this is not a failed update, but the value on show is no longer known.
+          if (!signal.aborted) {
+            logFailure('read-back', error);
+            patch(item.name, { shown: 'failed' });
+            setMessage({ kind: 'warning', text: t.readBackFailed(item.name) });
+          }
+        }
+        return;
+      }
+      patch(item.name, { working: false });
+      const { error } = result;
+      if (error.kind === 'invalid_field') {
+        const field = (error.fields ?? []).find((entry) => entry.name === 'value');
+        focusName.current = item.name;
+        patch(item.name, { error: (field && lookup(t.fieldErrors, field.code)) ?? t.fieldUnknown });
+      } else if (error.kind === 'not_found') {
+        setMessage({ kind: 'error', text: t.updateMissing(item.name) });
+        void load();
+      } else {
+        setMessage(failureMessage(error, t.updateDenied(item.name)));
+      }
+    } catch (error) {
+      if (signal.aborted) {
+        return;
+      }
+      // The client does not throw for an HTTP or network failure, but a reader, a response or a callback of
+      // a project's own can. Whatever happened, the screen is released and the person is told.
+      logFailure('update', error);
+      patch(item.name, { working: false });
+      setMessage({ kind: 'error', text: text.errors.unexpected });
+    } finally {
       inFlight.current = false;
-      return;
-    }
-    if (result.ok) {
-      // The typed value is now the device's, so the read-back may replace the draft.
-      patch(item.name, { working: false, item: result.value, edited: false });
-      setMessage({ kind: 'success', text: t.updated(item.name) });
-      // The device's own value is what is shown, and a session that may not read it keeps what it had.
-      await readValue(result.value, signal);
-      inFlight.current = false;
-      return;
-    }
-    inFlight.current = false;
-    patch(item.name, { working: false });
-    const { error } = result;
-    if (error.kind === 'invalid_field') {
-      const field = (error.fields ?? []).find((entry) => entry.name === 'value');
-      focusName.current = item.name;
-      patch(item.name, { error: (field && lookup(t.fieldErrors, field.code)) ?? t.fieldUnknown });
-    } else if (error.kind === 'not_found') {
-      setMessage({ kind: 'error', text: t.updateMissing(item.name) });
-      void load();
-    } else {
-      setMessage(failureMessage(error, t.updateDenied(item.name)));
     }
   }
 
@@ -248,24 +282,32 @@ function Configuration() {
     setSaveMessage(null);
     setSaving(true);
     const signal = freshSignal(working);
-    const queued = await client.saveConfig({ signal });
-    if (signal.aborted) {
-      inFlight.current = false;
-      return;
-    }
-    if (!queued.ok) {
-      inFlight.current = false;
+    try {
+      const queued = await client.saveConfig({ signal });
+      if (signal.aborted) {
+        return;
+      }
+      if (!queued.ok) {
+        setSaving(false);
+        setSaveMessage(failureMessage(queued.error, t.saveDenied));
+        return;
+      }
+      const outcome = await client.watchConfigSave({ signal });
+      if (signal.aborted) {
+        return;
+      }
       setSaving(false);
-      setSaveMessage(failureMessage(queued.error, t.saveDenied));
-      return;
+      showSaveOutcome(outcome);
+    } catch (error) {
+      if (signal.aborted) {
+        return;
+      }
+      logFailure('save', error);
+      setSaving(false);
+      setSaveMessage({ kind: 'error', text: text.errors.unexpected });
+    } finally {
+      inFlight.current = false;
     }
-    const outcome = await client.watchConfigSave({ signal });
-    inFlight.current = false;
-    if (signal.aborted) {
-      return;
-    }
-    setSaving(false);
-    showSaveOutcome(outcome);
   }
 
   const anyWritable = (rows ?? []).some((row) => row.item.writable);
