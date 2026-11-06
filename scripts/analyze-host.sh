@@ -119,6 +119,7 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/components/ssh/src/crux_ssh_callbacks.c" \
     "$repo/components/ssh/access/crux_ssh_access.c" \
     "$repo/components/ssh/access/crux_ssh_host_key.c" \
+    "$repo/components/ssh/src/crux_ssh_wire.c" \
     "$repo/components/ssh/cli/crux_ssh_cli.c" \
     "$repo/components/ssh/sftp/crux_ssh_sftp.c" \
     "$repo/tests/ssh/fake_provider.c" \
@@ -130,4 +131,5 @@ tidy="${CLANG_TIDY:-clang-tidy-18}"
     "$repo/tests/ssh/attachment_test.c" \
     "$repo/tests/ssh/callback_table_test.c" \
     "$repo/tests/ssh/access/adapter_test.c" \
-    "$repo/tests/ssh/access/host_key_test.c"
+    "$repo/tests/ssh/access/host_key_test.c" \
+    "$repo/tests/ssh/wire/wire_test.c"
