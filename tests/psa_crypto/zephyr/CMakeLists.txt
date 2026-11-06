@@ -21,7 +21,7 @@ elseif(CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS)
     set(_crux_psa_declared "${CRUX_PSA_UNSUPPORTED_TF_PSA_CRYPTO}")
     set(_crux_psa_deviations "${CRUX_PSA_DEVIATIONS_TF_PSA_CRYPTO}")
     # Where the PSA source is the legacy RNG over an entropy driver, as on RT1060-EVKB, a failed read
-    # must fail PSA. native_sim uses the external RNG, which already refuses a non-secure source.
+    # must fail PSA. native_sim uses the external RNG, which has no such fallback unless it is told to.
     if(CONFIG_MBEDTLS_PSA_DRIVER_GET_ENTROPY)
         include("${CMAKE_CURRENT_LIST_DIR}/../../../cmake/CruxMbedtlsEntropy.cmake")
         crux_mbedtls_fail_closed_entropy()

@@ -132,5 +132,4 @@ recorded in the [qualification record](../../docs/psa-crypto-qualification.md#en
 
 `scripts/prepare-mbedtls-entropy.py` checks the original's hash, applies the patch in a temporary directory and checks the result's hash. `cmake/CruxMbedtlsEntropy.cmake`
 replaces exactly one source in the one library that compiles it, with the build-local copy, and never edits the Zephyr checkout. Source drift, a missing library or a
-second one fails configuration. It applies only on the entropy driver route (`CONFIG_MBEDTLS_PSA_DRIVER_GET_ENTROPY`); the external-RNG route already refuses a non-secure
-source. It does not touch the TLS socket patch above, and does not change what an image that does not call it does.
+second one in `modules/mbedtls` fails configuration. A compile of the file from another directory would not, and only the RT1060-EVKB conformance image checks the compile commands. It applies only on the entropy driver route (`CONFIG_MBEDTLS_PSA_DRIVER_GET_ENTROPY`). The external-RNG route does not fall back to `sys_rand_get()` unless `CONFIG_MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG_ALLOW_NON_CSPRNG` is set, but it accepts whatever its entropy driver returns. It does not touch the TLS socket patch above, and does not change what an image that does not call it does.
