@@ -251,6 +251,27 @@ services image, with no workflow change. The Wolf profile is local only, as for 
 Not run: `native_sim/native`, the 32-bit width; any browser; the serial console; a save provider; RT1060 compile of this
 image; anything physical.
 
+### After review
+
+The review of `3edebd8` found the guard's scope overclaimed and gaps in the image check. Both modes ran again at `36b047f`,
+which holds the stricter check and the driver's revision fields, and **both passed with a clean tree**. These results are
+retained as additions in [`docs/evidence/native-services/after-review/`](evidence/native-services/after-review/), and each
+results file names `36b047f` with `dirty: false`. The earlier set is unchanged.
+
+| Check at `36b047f` | Mbed profile | Wolf profile |
+| --- | --- | --- |
+| `check-composition-image.py --services`, with the HTTP sections, folder output, random entry point and seed rules | Pass | Pass. `wc_GenerateSeed` comes from wolfCrypt's `random.c`. |
+| The services' own cases, web cases, OpenSSL checks | 34, 35 and 7, all passing | The same |
+| PSA ports on Twister, and #263's composition on three boots | Pass | Pass |
+| Whole mode | 515 s | 849 s, including preparing the patched copy |
+
+| Real mutation, built for real on the Mbed profile | Check of `3edebd8` | Check of `36b047f` |
+| --- | --- | --- |
+| A raw `HTTP_RESOURCE_DEFINE(probe_resource, crux_web_service, "/probe", ...)` in the image's `main.c` | **Passed it**: 12 component routes and no other | Refused: an HTTP resource that the route table did not generate |
+
+The new Python cases ran red first against the check of `3edebd8`: 20 errors in 34 tests, before the check took the HTTP
+sections and the build directory.
+
 ## Limits
 
 | Limit | Seen as |
