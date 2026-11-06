@@ -234,13 +234,14 @@ request.
 | Check | Level | Result |
 | --- | --- | --- |
 | `client/test/config.test.ts` before the client had the calls | Node.js, red | 22 of 22 failed, with `is not a function` |
-| `client/test/config.test.ts` and `config-input.test.ts` | Node.js | 27 of 27 pass |
+| `client/test/config.test.ts` and `config-input.test.ts` | Node.js | 30 of 30 pass, with the cap on the wait for a save written first: its two cases failed before the cap |
 | `configuration lists each…` and `an update sends…` on the Preact example before the screen existed | Browser, red | Both failed after 30 s, with the group not found. The forced change cases passed, because Preact already had that screen. |
 | `forced change completes`, `wrong current password` and `configuration lists each…` on the Angular example before its screens existed | Browser, red | All three failed after 30 s |
 | A test that typed before a value was read | Browser, red | Failed on the first run of the case `no value or password reaches browser storage…`, because the read replaced what was typed. The fix is `edited` on a row, and the case `a value read after the person started typing…` holds a read back until after the typing. |
-| `check:pins`, `check:types`, `typecheck`, `check:dom` on `web`, `check-dom` on the Angular source, `test:unit`, `build` | Node.js | Pass. 575 unit tests, 27 of them new, and 548 before. The Preact build is 23144 compressed bytes against its limit of 32768. |
-| `e2e/reference-shared.test.ts`, `reference-config.test.ts`, `angular-shared.test.ts` and `angular-policy.test.ts`, each run alone | Browser, mock | Pass: 57, 6, 57 and 4 of 57, 6, 57 and 4. Run again in one invocation of four files, a Preact policy case timed out and a worker then stopped at 0% CPU. It was killed and not reproduced, so its cause is unknown. |
-| `e2e/reference-home`, `reference-project` and `reference-network`, which the navigation and the fixtures could affect | Browser, mock | Pass, 38 of 38. The other `reference-*` files were not run locally. |
+| `check:pins`, `check:types`, `typecheck`, `check:dom` on `web`, `check-dom` on the Angular source, `test:unit`, `build` | Node.js | Pass. 578 unit tests, 30 of them new, and 548 before. The Preact build is 23184 compressed bytes against its limit of 32768. |
+| Browser case for a second update while the first is in flight, on the Preact example before the guard | Browser, red | Failed: the second request was sent and aborted the first, whose row kept "Sending the value to the device" for good. The save-while-updating case first failed only because the test clicked a button marked disabled, and passes with a forced click, since the guard already held there. |
+| The guard for a parameter flagged `sensitive` and `readable`, with the check on the flag removed from the Preact screen | Browser, mutation | The case failed, and the screen was restored. Not repeated on the Angular example, whose code has the same check. |
+| Each of 10 browser files run alone, after a fresh install in a new container: `reference-shared` 62 of 62, `reference-config` 5, `angular-shared` 62, `angular-policy` 4, `reference-home` 10, `reference-project` 2, `reference-network` 26, `reference-signin` 28, `reference-reboot` 18 | Browser, mock | All pass. `reference-screens` skipped its one test, because `CRUX_SCREENSHOTS` was not set. |
 | Full CI presets, and the remaining browser files | GitHub Actions | See the pull request |
 
 ## What is not verified
@@ -251,3 +252,4 @@ request.
 - Concurrent clients, and another session's save showing in this session's list.
 - Browsers other than Chromium, and any screen reader.
 - The Angular example under the strict style setting, which still breaks on component styles as before.
+- The cause of one earlier hang. A run of four browser files in one `node --test` call timed out in a Preact policy case, and a worker then idled at 0% CPU. **Found:** the policy walk typed into a field right after opening the screen, so a value read that landed between the focus and the first keystroke filled the field and the typed `0` made `50`, which the device accepts, so the expected field error never came. Every case that types now waits for the last value first. **Likely, not confirmed:** a top-level hook that launches a browser and closes it in `after()` can leave an idle process when a name pattern matches no test of a file. That run used no pattern, so it does not explain the idle worker. The two files this work owns now launch the browser on first use, so a file with no matching test launches nothing. The older files still use the top-level hooks. No four-file run was repeated, and the idle worker was not reproduced.
