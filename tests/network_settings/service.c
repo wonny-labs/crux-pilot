@@ -125,7 +125,7 @@ static void saved_values_show_as_the_source(void)
 {
     crux_network_boot_report_t report;
     crux_network_state_t state;
-    const net_options_t keep = {true, 0};
+    const net_options_t keep = {true, 0, false};
 
     config_fault_reset();
     net_store_set(&net_set_a, true);
@@ -341,7 +341,7 @@ static void recovery_saves_the_flag_false(void)
     crux_network_boot_report_t report;
     crux_network_state_t state;
     crux_network_settings_t reboot_values;
-    const net_options_t keep = {true, 0};
+    const net_options_t keep = {true, 0, false};
 
     config_fault_reset();
     net_store_set(&net_set_a, true);

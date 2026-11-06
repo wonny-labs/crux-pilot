@@ -149,7 +149,7 @@ static void first_boot_uses_defaults(void)
 static void saved_values_apply(void)
 {
     crux_network_boot_report_t report = {0};
-    const net_options_t keep = {true, 0};
+    const net_options_t keep = {true, 0, false};
 
     config_fault_reset();
     net_store_set(&net_set_a, true);
@@ -171,7 +171,7 @@ static void saved_values_apply(void)
 static crux_network_boot_reason_t boot_reason_with(const crux_network_settings_t *set, bool flag,
                                                    crux_network_boot_report_t *report)
 {
-    const net_options_t keep = {true, 0};
+    const net_options_t keep = {true, 0, false};
 
     config_fault_reset();
     if (set != NULL) {
@@ -197,7 +197,7 @@ static void every_fault_falls_back(void)
         CRUX_NETWORK_SETTINGS_KEY_GATEWAY, CRUX_NETWORK_SETTINGS_KEY_CHECK,
         CRUX_NETWORK_SETTINGS_KEY_USE_SAVED};
     for (size_t index = 0; index < 5; ++index) {
-        const net_options_t keep = {true, 0};
+        const net_options_t keep = {true, 0, false};
 
         config_fault_reset();
         net_store_set(&net_set_a, true);
@@ -213,7 +213,7 @@ static void every_fault_falls_back(void)
     net_store_set(&net_set_a, true);
     net_store_u32(CRUX_NETWORK_SETTINGS_KEY_CHECK, crux_network_settings_check_key(&net_set_b));
     {
-        const net_options_t keep = {true, 0};
+        const net_options_t keep = {true, 0, false};
 
         net_boot_with(&keep, &report);
     }
@@ -224,7 +224,7 @@ static void every_fault_falls_back(void)
     net_store_set(&net_set_a, true);
     net_store_bool(CRUX_NETWORK_SETTINGS_KEY_ADDRESS, true);
     {
-        const net_options_t keep = {true, 0};
+        const net_options_t keep = {true, 0, false};
 
         net_boot_with(&keep, &report);
     }
@@ -238,7 +238,7 @@ static void every_fault_falls_back(void)
     config_fault_reset();
     net_store_u32(CRUX_NETWORK_SETTINGS_KEY_ADDRESS, net_set_a.address);
     {
-        const net_options_t keep = {true, 0};
+        const net_options_t keep = {true, 0, false};
 
         net_boot_with(&keep, &report);
     }
@@ -250,7 +250,7 @@ static void every_fault_falls_back(void)
     net_store_set(&net_set_a, true);
     config_fault_read((config_fault_read_options_t){CRUX_CONFIG_ERR_IO, SIZE_MAX});
     {
-        const net_options_t keep = {true, 0};
+        const net_options_t keep = {true, 0, false};
 
         net_boot_with(&keep, &report);
     }
@@ -261,7 +261,7 @@ static void every_fault_falls_back(void)
 static void a_refused_apply_falls_back(void)
 {
     crux_network_boot_report_t report = {0};
-    net_options_t options = {true, 1};
+    net_options_t options = {true, 1, false};
 
     /* The port refuses the saved values: the defaults are tried, and the report says why. */
     config_fault_reset();

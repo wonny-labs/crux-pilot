@@ -118,7 +118,7 @@ void net_boot_with(const net_options_t *options, crux_network_boot_report_t *rep
     table[0] = (crux_config_service_entry_t){&param_limit, "cfg.read", "cfg.write", false,
                                              CRUX_CONFIG_ACTIVATION_APPLICATION};
     for (size_t index = 0; index < count; ++index) {
-        table[1 + index] = entries[index];
+        table[1 + index] = entries[options->reverse_table ? count - 1u - index : index];
     }
     table[NET_TABLE_ENTRIES - 1u] = (crux_config_service_entry_t){
         &param_tail, "cfg.read", "cfg.write", false, CRUX_CONFIG_ACTIVATION_APPLICATION};
@@ -128,7 +128,7 @@ void net_boot_with(const net_options_t *options, crux_network_boot_report_t *rep
 
 void net_boot(crux_network_boot_report_t *report)
 {
-    const net_options_t options = {false, 0};
+    const net_options_t options = {false, 0, false};
 
     net_boot_with(&options, report);
 }
@@ -144,8 +144,13 @@ void net_start(void)
 
 void net_start_on_store(void)
 {
+    net_start_on_store_with((net_options_t){true, 0, false});
+}
+
+void net_start_on_store_with(net_options_t options)
+{
     crux_network_boot_report_t report;
-    const net_options_t keep = {true, 0};
+    const net_options_t keep = {true, options.apply_failures, options.reverse_table};
 
     net_boot_with(&keep, &report);
     CHECK(crux_config_service_start(table, NET_TABLE_ENTRIES) == CRUX_CONFIG_SERVICE_OK);

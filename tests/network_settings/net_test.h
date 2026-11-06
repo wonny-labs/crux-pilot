@@ -43,6 +43,7 @@ extern const crux_network_settings_t net_set_a, net_set_b;
 typedef struct {
     bool keep_store;       /* Do not empty the fake Configuration store: a reboot. */
     size_t apply_failures; /* The first applies that the fake port refuses. */
+    bool reverse_table;    /* Put the five entries in the table in the opposite order. */
 } net_options_t;
 
 /* Boots Access, the accounts and the Configuration store, then runs crux_network_settings_boot()
@@ -97,5 +98,7 @@ void net_power_cut_after(size_t writes, bool last_write_lands);
 
 /* Starts the service on a store that already holds what the case wrote with net_store_*. */
 void net_start_on_store(void);
+/* The same, with the options of net_boot_with(). keep_store is set. */
+void net_start_on_store_with(net_options_t options);
 
 #endif

@@ -568,6 +568,12 @@ bool crux_network_settings_work_once(void)
     unlock_state();
 
     failure = save_set(&set);
+    if (failure != CRUX_NETWORK_FAILURE_NONE) {
+        /* A failed save leaves marks that a later save of any session would write, among them the
+         * check key of this set, which would then complete a set that the display calls failed. The
+         * key is never zero, so a mark of zero makes the stored set one that cannot boot. */
+        (void)update_parameter(P_CHECK, 0u, false);
+    }
 
     /* Nothing else ends a running save, so the state is still this thread's. A server-thread call
      * waits briefly, and this thread may wait longer, because nothing waits on it. */
@@ -629,6 +635,7 @@ crux_network_result_t crux_network_settings_recover(crux_access_session_t sessio
     crux_network_failure_t failure;
     crux_config_service_result_t updated;
     crux_network_result_t result;
+    bool failed_before = false;
 
     if (!svc.started) {
         return CRUX_NETWORK_ERR_NOT_READY;
@@ -648,6 +655,7 @@ crux_network_result_t crux_network_settings_recover(crux_access_session_t sessio
         return CRUX_NETWORK_ERR_BUSY;
     }
     svc.recovering = true;
+    failed_before = svc.job == JOB_FAILED;
     unlock_state();
 
     if (crux_mutex_lock(op_lock, CRUX_NETWORK_SETTINGS_OP_WAIT_MS) != CRUX_OK) {
@@ -657,7 +665,13 @@ crux_network_result_t crux_network_settings_recover(crux_access_session_t sessio
         unlock_state();
         return CRUX_NETWORK_ERR_BUSY;
     }
-    /* Only the flag. The values stay stored and are not used until a save sets the flag again. */
+    /* Only the flag, and after a failed save also a check key of zero, which the failed save tried
+     * to leave and may not have. The values stay stored and are not used until a save sets the flag
+     * again. Without the zero, the check key that a failed save left marked would be written first,
+     * and a power loss after it would make the failed set bootable. */
+    if (failed_before) {
+        (void)update_parameter(P_CHECK, 0u, false);
+    }
     updated = update_parameter(P_FLAG, 0u, false);
     failure = updated == CRUX_CONFIG_SERVICE_OK ? save_marks() : failure_of_update(updated);
     while (!lock_state(CRUX_NETWORK_SETTINGS_WORKER_WAIT_MS)) {
