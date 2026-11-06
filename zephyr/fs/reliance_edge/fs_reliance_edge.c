@@ -213,7 +213,12 @@ static int crux_red_open(struct fs_file_t *zfp, const char *path, fs_mode_t flag
     if ((flags & FS_O_APPEND) != 0) {
         mode |= RED_O_APPEND;
     }
-    /* FS_O_TRUNC is applied by the VFS, through truncate, after a successful open. */
+    /* The truncation happens inside the open, so a failure of it leaves no descriptor and no slot
+     * behind, whatever the VFS does after a failed truncate of its own. The VFS still truncates
+     * once more after a successful open, which finds an empty file. */
+    if ((flags & FS_O_TRUNC) != 0) {
+        mode |= RED_O_TRUNC;
+    }
 
     int rc = -EMFILE;
     crux_red_lock();
@@ -227,7 +232,8 @@ static int crux_red_open(struct fs_file_t *zfp, const char *path, fs_mode_t flag
             rc = crux_red_error();
         } else {
             slot->fd = fd;
-            slot->dirty = false;
+            /* A truncation is a change that a later commit has to save. */
+            slot->dirty = (flags & FS_O_TRUNC) != 0;
             zfp->filep = slot;
             rc = 0;
         }
@@ -245,7 +251,13 @@ static int crux_red_close(struct fs_file_t *zfp)
     if (slot == NULL) {
         return -EBADF;
     }
-    if (red_close(slot->fd) != 0) {
+    /* A volume made read-only by an earlier error makes red_close skip the commit and succeed, so a
+     * handle with unsaved changes asks for the commit itself, to learn that they were lost. The
+     * descriptor is closed whatever the result, and the first failure is the one reported. */
+    if (slot->dirty && red_fsync(slot->fd) != 0) {
+        rc = crux_red_error();
+    }
+    if (red_close(slot->fd) != 0 && rc == 0) {
         rc = crux_red_error();
     }
     crux_red_lock();
@@ -281,7 +293,14 @@ static ssize_t crux_red_write(struct fs_file_t *zfp, const void *src, size_t nby
         return -EINVAL;
     }
     int32_t count = red_write(slot->fd, src, (uint32_t)nbytes);
-    return (count < 0) ? crux_red_error() : count;
+    if (count < 0) {
+        return crux_red_error();
+    }
+    /* Only a write that took data leaves something unsaved. */
+    if (count > 0) {
+        slot->dirty = true;
+    }
+    return count;
 }
 
 static int crux_red_lseek(struct fs_file_t *zfp, off_t off, int whence)
@@ -335,7 +354,11 @@ static int crux_red_truncate(struct fs_file_t *zfp, off_t length)
     if (length < 0) {
         return -EINVAL;
     }
-    return (red_ftruncate(slot->fd, (uint64_t)length) != 0) ? crux_red_error() : 0;
+    if (red_ftruncate(slot->fd, (uint64_t)length) != 0) {
+        return crux_red_error();
+    }
+    slot->dirty = true;
+    return 0;
 }
 
 static int crux_red_sync(struct fs_file_t *zfp)
@@ -345,7 +368,11 @@ static int crux_red_sync(struct fs_file_t *zfp)
     if (slot == NULL) {
         return -EBADF;
     }
-    return (red_fsync(slot->fd) != 0) ? crux_red_error() : 0;
+    if (red_fsync(slot->fd) != 0) {
+        return crux_red_error();
+    }
+    slot->dirty = false;
+    return 0;
 }
 
 static int crux_red_opendir(struct fs_dir_t *zdp, const char *path)

@@ -140,7 +140,7 @@ import os
 from pathlib import Path
 import sys
 
-executed = {'crux.file.reliance': 10}
+executed = {'crux.file.reliance': 22}
 platforms = ['native_sim/native/64']
 if os.environ.get('CRUX_STORAGE_32BIT') == '1':
     platforms.append('native_sim/native')

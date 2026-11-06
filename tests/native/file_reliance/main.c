@@ -7,6 +7,7 @@
 #include <string.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>
+#include <zephyr/sys/printk.h>
 #include <zephyr/ztest.h>
 
 #define DISK "MMC"
@@ -14,6 +15,7 @@
 #define SECTOR_BYTES 512U
 #define BATCH_SECTORS 16U
 #define BLOCK_BYTES 4096U
+#define HANDLES CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT
 
 static struct fs_mount_t mnt = {
     .type = CRUX_FS_RELIANCE_EDGE,
@@ -34,6 +36,7 @@ static struct fs_mount_t other = {
 static struct fs_file_t file;
 static struct fs_file_t helper;
 static struct fs_dir_t dir;
+static struct fs_file_t handles[HANDLES];
 
 /* Faults at the disk access layer, counted per kind of call: the first `skip` matching calls pass,
  * the next `count` return `value`. A negative value fails without a transfer. A positive value
@@ -46,6 +49,7 @@ static struct {
     int value;
 } fault;
 static uint32_t write_calls;
+static uint32_t read_calls;
 
 static void fault_arm(enum disk_op op, uint32_t skip, uint32_t count, int value)
 {
@@ -82,6 +86,7 @@ int __real_disk_access_ioctl(const char *pdrv, uint8_t cmd, void *buff);
 int __wrap_disk_access_read(const char *pdrv, uint8_t *data_buf, uint32_t start_sector,
                             uint32_t num_sector)
 {
+    read_calls++;
     if (fault_take(DISK_OP_READ)) {
         if (fault.value > 0) {
             (void)__real_disk_access_read(pdrv, data_buf, start_sector, num_sector);
@@ -106,7 +111,8 @@ int __wrap_disk_access_write(const char *pdrv, const uint8_t *data_buf, uint32_t
 
 int __wrap_disk_access_ioctl(const char *pdrv, uint8_t cmd, void *buff)
 {
-    if (fault_take(DISK_OP_IOCTL)) {
+    /* Only the flush is faulted; the geometry queries of a mount pass. */
+    if (cmd == DISK_IOCTL_CTRL_SYNC && fault_take(DISK_OP_IOCTL)) {
         if (fault.value > 0) {
             (void)__real_disk_access_ioctl(pdrv, cmd, buff);
         }
@@ -170,9 +176,13 @@ static void before(void *fixture)
     ARG_UNUSED(fixture);
     fault_clear();
     write_calls = 0;
+    read_calls = 0;
     mnt.flags = 0;
     fs_file_t_init(&file);
     fs_file_t_init(&helper);
+    for (size_t i = 0; i < HANDLES; ++i) {
+        fs_file_t_init(&handles[i]);
+    }
     fs_dir_t_init(&dir);
 }
 
@@ -182,6 +192,9 @@ static void after(void *fixture)
     fault_clear();
     (void)fs_close(&file);
     (void)fs_close(&helper);
+    for (size_t i = 0; i < HANDLES; ++i) {
+        (void)fs_close(&handles[i]);
+    }
     if (dir.mp != NULL) {
         (void)fs_closedir(&dir);
     }
@@ -523,6 +536,430 @@ ZTEST(file_reliance, test_error_values_are_zephyr_errno)
     fault_clear();
     zassert_ok(fs_mount(&mnt));
     expect_file("/MMC:/e/f", "f");
+}
+
+/* Unmount and mount again: the buffers are dropped, and a read-only volume can be written again. */
+static void remount(void)
+{
+    zassert_ok(fs_unmount(&mnt));
+    zassert_ok(fs_mount(&mnt));
+}
+
+/* A close that failed leaves the VFS object marked open, although the adapter has released the
+ * slot, so the object is initialised again before it is used for another file. */
+static void close_reports_loss(struct fs_file_t *f)
+{
+    zassert_equal(fs_close(f), -EROFS);
+    fs_file_t_init(f);
+}
+
+/* After a media error, every change is refused, whatever handle or path it comes by. */
+static void expect_volume_read_only(struct fs_file_t *open_handle)
+{
+    struct fs_file_t created;
+    fs_file_t_init(&created);
+    zassert_equal(fs_write(open_handle, "x", 1), -EROFS);
+    zassert_equal(fs_sync(open_handle), -EROFS);
+    zassert_equal(fs_mkdir("/MMC:/after-error"), -EROFS);
+    zassert_equal(fs_open(&created, "/MMC:/created-after-error", FS_O_CREATE | FS_O_WRITE), -EROFS);
+}
+
+/* Handle B writes and its commit fails on the first block write, which makes the volume read-only.
+ * B stays open with its unsaved write. */
+static void fail_a_commit_on_b(void)
+{
+    zassert_ok(fs_open(&helper, "/MMC:/b", FS_O_CREATE | FS_O_WRITE));
+    zassert_equal(fs_write(&helper, "b", 1), 1);
+    fault_arm(DISK_OP_WRITE, 0, 1, -EIO);
+    zassert_equal(fs_sync(&helper), -EIO);
+    zassert_equal(fault.count, 0U, "the commit must have reached the fault");
+    fault_clear();
+}
+
+static void open_every_handle_and_no_more(void)
+{
+    char path[16];
+    struct fs_file_t extra;
+
+    fs_file_t_init(&extra);
+    for (size_t i = 0; i < HANDLES; ++i) {
+        snprintk(path, sizeof(path), "/MMC:/h%u", (unsigned int)i);
+        zassert_ok(fs_open(&handles[i], path, FS_O_CREATE | FS_O_RDWR), "handle %zu of %u", i,
+                   (unsigned int)HANDLES);
+    }
+    zassert_equal(fs_open(&extra, "/MMC:/hx", FS_O_CREATE | FS_O_RDWR), -EMFILE);
+    for (size_t i = 0; i < HANDLES; ++i) {
+        zassert_ok(fs_close(&handles[i]));
+    }
+}
+
+static uint8_t pattern[5U * BLOCK_BYTES];
+static uint8_t readback[5U * BLOCK_BYTES + 1U];
+
+static void write_pattern(struct fs_file_t *f, uint8_t byte, size_t length)
+{
+    memset(pattern, byte, length);
+    zassert_equal(fs_write(f, pattern, length), (ssize_t)length);
+}
+
+/* The file holds one whole pattern: 0 for the previous one, 1 for the new one. */
+static int which_pattern(const char *path, uint8_t previous, size_t previous_length, uint8_t next,
+                         size_t next_length)
+{
+    fs_file_t_init(&helper);
+    zassert_ok(fs_open(&helper, path, FS_O_READ));
+    ssize_t got = fs_read(&helper, readback, sizeof(readback));
+    zassert_ok(fs_close(&helper));
+    zassert_true(got >= 0);
+    if ((size_t)got == previous_length) {
+        for (size_t i = 0; i < previous_length; ++i) {
+            zassert_equal(readback[i], previous, "previous pattern torn at %zu", i);
+        }
+        return 0;
+    }
+    zassert_equal((size_t)got, next_length, "length %zd is neither version", got);
+    for (size_t i = 0; i < next_length; ++i) {
+        zassert_equal(readback[i], next, "new pattern torn at %zu", i);
+    }
+    return 1;
+}
+
+ZTEST(file_reliance, test_block_write_failure_makes_the_volume_read_only)
+{
+    provision();
+
+    /* A commit whose first block write fails: the sync reports it, and nothing can change. */
+    zassert_ok(fs_open(&file, "/MMC:/w", FS_O_CREATE | FS_O_WRITE));
+    zassert_equal(fs_write(&file, "data", 4), 4);
+    fault_arm(DISK_OP_WRITE, 0, 1, -EIO);
+    zassert_equal(fs_sync(&file), -EIO);
+    zassert_equal(fault.count, 0U, "the commit must have reached the fault");
+    expect_volume_read_only(&file);
+    zassert_equal(fs_close(&file), -EROFS, "the unsaved write is lost, and close says so");
+    fs_file_t_init(&file);
+    remount();
+
+    /* A write call that reaches the disk itself, through a buffer that has to be evicted: the call
+     * that reaches the fault gets the error, and the volume is read-only after it. */
+    static uint8_t chunk[BLOCK_BYTES];
+    zassert_ok(fs_open(&file, "/MMC:/bulk", FS_O_CREATE | FS_O_WRITE));
+    fault_arm(DISK_OP_WRITE, 0, 1, -EIO);
+    ssize_t rc = (ssize_t)sizeof(chunk);
+    for (size_t i = 0; i < 128U && rc == (ssize_t)sizeof(chunk); ++i) {
+        rc = fs_write(&file, chunk, sizeof(chunk));
+    }
+    zassert_equal(fault.count, 0U, "the writes never reached the disk");
+    zassert_equal(rc, -EIO);
+    fault_clear();
+    zassert_equal(fs_write(&file, chunk, sizeof(chunk)), -EROFS);
+    zassert_equal(fs_sync(&file), -EROFS);
+}
+
+ZTEST(file_reliance, test_block_read_failure_makes_the_volume_read_only)
+{
+    char value[8];
+
+    provision();
+    write_file("/MMC:/a", "alpha");
+    write_file("/MMC:/b", "beta");
+    remount();
+
+    /* Both are open before the fault, so that the open does not meet it. The buffers are cold. */
+    zassert_ok(fs_open(&file, "/MMC:/a", FS_O_READ));
+    zassert_ok(fs_open(&helper, "/MMC:/b", FS_O_RDWR));
+    fault_arm(DISK_OP_READ, 0, 1, -EIO);
+    zassert_equal(fs_read(&file, value, sizeof(value)), -EIO);
+    zassert_equal(fault.count, 0U, "the read must have reached the fault");
+
+    zassert_equal(fs_write(&helper, "x", 1), -EROFS);
+    zassert_equal(fs_mkdir("/MMC:/after-error"), -EROFS);
+    /* Reading is still attempted, and another file can be read. */
+    zassert_equal(fs_read(&helper, value, sizeof(value)), 4);
+    zassert_mem_equal(value, "beta", 4);
+
+    /* Neither handle holds an unsaved write, so closing them is not an error. */
+    zassert_ok(fs_close(&file));
+    zassert_ok(fs_close(&helper));
+    zassert_ok(fs_unmount(&mnt));
+}
+
+ZTEST(file_reliance, test_flush_failure_reports_and_remount_holds_a_complete_transaction)
+{
+    const size_t previous_length = 3U * BLOCK_BYTES;
+    const size_t next_length = 5U * BLOCK_BYTES;
+    const enum disk_op kinds[] = {DISK_OP_WRITE, DISK_OP_IOCTL};
+    unsigned int outcomes[2] = {0, 0};
+
+    provision();
+    for (size_t k = 0; k < ARRAY_SIZE(kinds); ++k) {
+        unsigned int failed_syncs = 0;
+        bool reached = true;
+
+        /* Fail the first, second, ... call of a commit, until a commit has fewer calls. */
+        for (uint32_t skip = 0; skip < 16U && reached; ++skip) {
+            zassert_ok(fs_open(&file, "/MMC:/t", FS_O_CREATE | FS_O_WRITE | FS_O_TRUNC));
+            write_pattern(&file, 'P', previous_length);
+            zassert_ok(fs_close(&file));
+
+            zassert_ok(fs_open(&file, "/MMC:/t", FS_O_WRITE | FS_O_TRUNC));
+            write_pattern(&file, 'N', next_length);
+            fault_arm(kinds[k], skip, 1, -EIO);
+            int rc = fs_sync(&file);
+            reached = (fault.count == 0U);
+            fault_clear();
+
+            if (reached) {
+                zassert_equal(rc, -EIO, "kind %zu skip %u: sync returned %d", k, (unsigned)skip,
+                              rc);
+                failed_syncs++;
+                zassert_equal(fs_write(&file, "x", 1), -EROFS);
+                close_reports_loss(&file);
+            } else {
+                zassert_ok(rc);
+                zassert_ok(fs_close(&file));
+            }
+            remount();
+            outcomes[which_pattern("/MMC:/t", 'P', previous_length, 'N', next_length)]++;
+        }
+        zassert_true(failed_syncs >= 2U, "kind %zu: only %u commit calls were faulted", k,
+                     failed_syncs);
+    }
+    /* The unfaulted commit at the end of each kind ends with the new content. */
+    zassert_true(outcomes[1] >= 2U, "the new transaction never survived");
+}
+
+ZTEST(file_reliance, test_positive_disk_result_is_a_failure)
+{
+    char value[8];
+    const struct {
+        enum disk_op op;
+        const char *name;
+    } writes[] = {{DISK_OP_WRITE, "write"}, {DISK_OP_IOCTL, "flush"}};
+
+    provision();
+    write_file("/MMC:/r", "read");
+
+    /* A positive result of a block write or of the flush fails the commit. */
+    for (size_t i = 0; i < ARRAY_SIZE(writes); ++i) {
+        zassert_ok(fs_open(&file, "/MMC:/p", FS_O_CREATE | FS_O_WRITE));
+        zassert_equal(fs_write(&file, "data", 4), 4);
+        fault_arm(writes[i].op, 0, 1, 1);
+        zassert_equal(fs_sync(&file), -EIO, "a positive %s result is a failure", writes[i].name);
+        zassert_equal(fault.count, 0U, "the %s fault was not reached", writes[i].name);
+        fault_clear();
+        expect_volume_read_only(&file);
+        close_reports_loss(&file);
+        remount();
+    }
+
+    /* So does a positive result of a block read, whose transfer did complete. */
+    zassert_ok(fs_open(&file, "/MMC:/r", FS_O_READ));
+    fault_arm(DISK_OP_READ, 0, 1, 1);
+    zassert_equal(fs_read(&file, value, sizeof(value)), -EIO);
+    zassert_equal(fault.count, 0U, "the read fault was not reached");
+    fault_clear();
+    zassert_equal(fs_mkdir("/MMC:/after-error"), -EROFS);
+    zassert_ok(fs_close(&file));
+}
+
+ZTEST(file_reliance, test_close_with_unsaved_writes_on_read_only_volume_reports_erofs)
+{
+    provision();
+    zassert_ok(fs_open(&file, "/MMC:/a", FS_O_CREATE | FS_O_WRITE));
+    zassert_equal(fs_write(&file, "aaa", 3), 3);
+    fail_a_commit_on_b();
+
+    zassert_equal(fs_close(&file), -EROFS, "A's write was lost, so its close must say so");
+    /* The handle is released all the same. */
+    zassert_equal(fs_close(&file), -EBADF);
+    zassert_equal(fs_close(&helper), -EROFS);
+    zassert_equal(fs_close(&helper), -EBADF);
+
+    /* Nothing is leaked: the volume unmounts, and every handle is available again. */
+    remount();
+    open_every_handle_and_no_more();
+}
+
+ZTEST(file_reliance, test_close_after_a_good_sync_on_read_only_volume_reports_ok)
+{
+    provision();
+    zassert_ok(fs_open(&file, "/MMC:/a", FS_O_CREATE | FS_O_WRITE));
+    zassert_equal(fs_write(&file, "aaa", 3), 3);
+    zassert_ok(fs_sync(&file));
+    fail_a_commit_on_b();
+
+    zassert_ok(fs_close(&file), "A's write was saved, so its close is not an error");
+    zassert_equal(fs_close(&helper), -EROFS);
+    remount();
+    expect_file("/MMC:/a", "aaa");
+}
+
+ZTEST(file_reliance, test_close_with_only_reads_on_read_only_volume_reports_ok)
+{
+    char value[8];
+
+    provision();
+    write_file("/MMC:/a", "alpha");
+    zassert_ok(fs_open(&file, "/MMC:/a", FS_O_RDWR));
+    zassert_equal(fs_read(&file, value, sizeof(value)), 5);
+    fail_a_commit_on_b();
+
+    zassert_ok(fs_close(&file), "a read-write handle that only read has nothing to lose");
+    zassert_equal(fs_close(&helper), -EROFS);
+    zassert_ok(fs_unmount(&mnt));
+}
+
+ZTEST(file_reliance, test_close_after_a_truncate_on_read_only_volume_reports_erofs)
+{
+    provision();
+    write_file("/MMC:/a", "alpha");
+    zassert_ok(fs_open(&file, "/MMC:/a", FS_O_RDWR));
+    zassert_ok(fs_truncate(&file, 2));
+    fail_a_commit_on_b();
+
+    zassert_equal(fs_close(&file), -EROFS, "the truncation was lost, so its close must say so");
+    zassert_equal(fs_close(&helper), -EROFS);
+    remount();
+    open_every_handle_and_no_more();
+}
+
+ZTEST(file_reliance, test_remount_after_a_critical_error_restores_writing)
+{
+    provision();
+    write_file("/MMC:/old", "old");
+    fail_a_commit_on_b();
+    expect_volume_read_only(&helper);
+    zassert_equal(fs_close(&helper), -EROFS);
+
+    remount();
+    write_file("/MMC:/new", "new");
+    zassert_ok(fs_mkdir("/MMC:/dir"));
+    remount();
+    expect_file("/MMC:/old", "old");
+    expect_file("/MMC:/new", "new");
+}
+
+ZTEST(file_reliance, test_read_only_mount_refuses_writes_and_never_writes_the_disk)
+{
+    char value[8];
+    struct fs_dirent entry;
+
+    provision();
+    write_file("/MMC:/keep", "keep");
+    zassert_ok(fs_unmount(&mnt));
+    uint64_t digest = medium_digest();
+    write_calls = 0;
+
+    /* The VFS flag is cleared after mounting, so that a change reaches the adapter instead of being
+     * refused by the VFS. */
+    mnt.flags = FS_MOUNT_FLAG_READ_ONLY;
+    zassert_ok(fs_mount(&mnt));
+    mnt.flags = 0;
+    expect_file("/MMC:/keep", "keep");
+
+    zassert_equal(fs_open(&file, "/MMC:/keep", FS_O_WRITE), -EROFS);
+    zassert_equal(fs_open(&file, "/MMC:/keep", FS_O_RDWR), -EROFS);
+    zassert_equal(fs_open(&file, "/MMC:/keep", FS_O_WRITE | FS_O_TRUNC), -EROFS);
+    zassert_equal(fs_open(&file, "/MMC:/new", FS_O_CREATE | FS_O_WRITE), -EROFS);
+    zassert_equal(fs_mkdir("/MMC:/dir"), -EROFS);
+    zassert_equal(fs_unlink("/MMC:/keep"), -EROFS);
+    zassert_equal(fs_rename("/MMC:/keep", "/MMC:/moved"), -EROFS);
+
+    /* A handle opened for reading cannot write, truncate or sync, and closes without error. */
+    zassert_ok(fs_open(&file, "/MMC:/keep", FS_O_READ));
+    zassert_true(fs_write(&file, "x", 1) < 0);
+    zassert_true(fs_truncate(&file, 0) < 0);
+    zassert_equal(fs_sync(&file), -EROFS);
+    zassert_equal(fs_read(&file, value, sizeof(value)), 4);
+    zassert_ok(fs_close(&file));
+    zassert_ok(fs_stat("/MMC:/keep", &entry));
+    zassert_equal(entry.size, 4);
+    zassert_equal(fs_stat("/MMC:/new", &entry), -ENOENT);
+    zassert_equal(fs_stat("/MMC:/moved", &entry), -ENOENT);
+
+    zassert_ok(fs_unmount(&mnt));
+    zassert_equal(write_calls, 0U, "a read-only mount must not write the disk");
+    zassert_equal(medium_digest(), digest);
+}
+
+/* A file of more blocks than the direct pointers of an inode, so that truncating it reads the
+ * blocks that point to the rest. */
+#define BIG_BLOCKS 25U
+static void write_big(const char *path)
+{
+    static uint8_t chunk[BLOCK_BYTES];
+
+    memset(chunk, 0x5A, sizeof(chunk));
+    zassert_ok(fs_open(&helper, path, FS_O_CREATE | FS_O_WRITE | FS_O_TRUNC));
+    for (size_t i = 0; i < BIG_BLOCKS; ++i) {
+        zassert_equal(fs_write(&helper, chunk, sizeof(chunk)), (ssize_t)sizeof(chunk));
+    }
+    zassert_ok(fs_close(&helper));
+}
+
+ZTEST(file_reliance, test_open_with_truncate_empties_the_file_and_keeps_every_slot)
+{
+    struct fs_dirent entry;
+
+    provision();
+    write_file("/MMC:/t", "content");
+    zassert_ok(fs_open(&file, "/MMC:/t", FS_O_WRITE | FS_O_TRUNC));
+    zassert_ok(fs_stat("/MMC:/t", &entry));
+    zassert_equal(entry.size, 0U);
+    zassert_equal(fs_write(&file, "x", 1), 1);
+    zassert_ok(fs_close(&file));
+    expect_file("/MMC:/t", "x");
+
+    /* A truncating open that succeeded holds exactly one slot, released by its close. */
+    for (size_t i = 0; i < HANDLES + 1U; ++i) {
+        zassert_ok(fs_open(&file, "/MMC:/t", FS_O_WRITE | FS_O_TRUNC));
+        zassert_ok(fs_close(&file));
+    }
+    open_every_handle_and_no_more();
+    zassert_ok(fs_unmount(&mnt));
+}
+
+ZTEST(file_reliance, test_failing_truncate_on_open_does_not_leak_a_slot)
+{
+    struct fs_dirent entry;
+    uint32_t reads_of_open;
+    uint32_t reads_of_truncating_open;
+
+    provision();
+    write_big("/MMC:/t");
+
+    /* Cold buffers each time, and the reads of a plain open and of a truncating open counted, so
+     * that the fault below can land after the open and inside the truncation. */
+    remount();
+    read_calls = 0;
+    zassert_ok(fs_open(&file, "/MMC:/t", FS_O_WRITE));
+    reads_of_open = read_calls;
+    zassert_ok(fs_close(&file));
+    remount();
+    read_calls = 0;
+    zassert_ok(fs_open(&file, "/MMC:/t", FS_O_WRITE | FS_O_TRUNC));
+    reads_of_truncating_open = read_calls;
+    zassert_ok(fs_close(&file));
+    zassert_true(reads_of_truncating_open > reads_of_open,
+                 "truncation reads %u blocks beyond the open's %u, or the fault cannot land in it",
+                 (unsigned)reads_of_truncating_open, (unsigned)reads_of_open);
+
+    write_big("/MMC:/t");
+    remount();
+    fault_arm(DISK_OP_READ, reads_of_open, 1, -EIO);
+    zassert_equal(fs_open(&file, "/MMC:/t", FS_O_WRITE | FS_O_TRUNC), -EIO);
+    zassert_equal(fault.count, 0U, "the truncation did not reach the fault");
+    fault_clear();
+    zassert_is_null(file.mp, "a failed open leaves no handle");
+
+    /* The VFS does not call close after a failed open, so the adapter must hold nothing: the
+     * volume unmounts, and every handle can be opened. */
+    zassert_ok(fs_unmount(&mnt));
+    zassert_ok(fs_mount(&mnt));
+    zassert_ok(fs_stat("/MMC:/t", &entry));
+    zassert_equal(entry.size, BIG_BLOCKS * BLOCK_BYTES, "the failed truncation changed the file");
+    open_every_handle_and_no_more();
+    zassert_ok(fs_unmount(&mnt));
 }
 
 ZTEST_SUITE(file_reliance, NULL, NULL, before, after, NULL);
