@@ -4,6 +4,7 @@
 #include "credential_port.h"
 #include "mgmt_status_port.h"
 #include "network_settings_port.h"
+#include "reboot_port.h"
 
 #include "access_test.h"
 
@@ -129,6 +130,91 @@ static void network_events(void)
         CHECK(record->user[0] == '\0');
         CHECK(record->channel == 0u);
         CHECK(record->source_length == 0u);
+    }
+}
+
+static void reboot_events(void)
+{
+    static const struct {
+        crux_reboot_event_t event;
+        crux_security_event_id_t id;
+        crux_security_event_result_t result;
+    } rows[] = {
+        {CRUX_REBOOT_EVENT_REQUESTED, CRUX_SECURITY_EVENT_ID_SYSTEM_REBOOT_REQUESTED,
+         CRUX_SECURITY_EVENT_OK},
+        {CRUX_REBOOT_EVENT_REFUSED, CRUX_SECURITY_EVENT_ID_SYSTEM_REBOOT_REFUSED,
+         CRUX_SECURITY_EVENT_DENIED},
+        {CRUX_REBOOT_EVENT_FAILED, CRUX_SECURITY_EVENT_ID_SYSTEM_REBOOT_FAILED,
+         CRUX_SECURITY_EVENT_FAILED},
+    };
+    crux_access_session_t session = web_session();
+    for (size_t index = 0; index < sizeof(rows) / sizeof(rows[0]); ++index) {
+        security_event_fake_reset();
+        security_event_fake_boot();
+        crux_reboot_port_event(rows[index].event, session);
+        CHECK(security_event_fake_count() == 1u);
+        CHECK(security_event_fake_count_of(rows[index].id) == 1u);
+        const crux_security_event_record_t *record = security_event_fake_last(rows[index].id);
+        CHECK(record != NULL);
+        if (record != NULL) {
+            CHECK(record->id == rows[index].id);
+            CHECK(record->result == rows[index].result);
+            /* No subject: the application's reason is policy data, and stays out of a line. */
+            CHECK(record->subject[0] == '\0');
+            CHECK(strcmp(record->user, ACCESS_TEST_ADMIN) == 0);
+            CHECK(record->channel == access_test_web.channel);
+            CHECK(record->source_length == access_test_web.source_length);
+            CHECK(memcmp(record->source, access_test_web.source, access_test_web.source_length) ==
+                  0);
+        }
+    }
+
+    /* A session that has ended still leaves the record, naming nobody. */
+    security_event_fake_reset();
+    security_event_fake_boot();
+    const crux_access_session_t ended = {0};
+    crux_reboot_port_event(CRUX_REBOOT_EVENT_REFUSED, ended);
+    const crux_security_event_record_t *record =
+        security_event_fake_last(CRUX_SECURITY_EVENT_ID_SYSTEM_REBOOT_REFUSED);
+    CHECK(record != NULL);
+    if (record != NULL) {
+        CHECK(record->user[0] == '\0');
+        CHECK(record->channel == 0u);
+        CHECK(record->source_length == 0u);
+    }
+}
+
+/* Whether recorded events are still waiting for Logging, from the counts of the public contract. */
+static void reboot_pending_events(void)
+{
+    static const struct {
+        uint32_t emitted, delivered, log_errors;
+        bool pending;
+    } rows[] = {
+        {0u, 0u, 0u, false},
+        {5u, 5u, 0u, false},
+        {5u, 3u, 0u, true},
+        {5u, 3u, 2u, false}, /* a line that failed is no longer waiting */
+        {5u, 3u, 1u, true},
+        {5u, 6u, 0u, false},         /* a report of lost records is a line too, and reads low */
+        {2u, 0xFFFFFFFFu, 0u, true}, /* both counts wrap, emitted three ahead */
+        {0u, 0xFFFFFFFEu, 0u, true}, /* emitted wrapped past 2^32, two ahead */
+        {0xFFFFFFFFu, 0xFFFFFFFFu, 0u, false},
+    };
+
+    for (size_t index = 0; index < sizeof(rows) / sizeof(rows[0]); ++index) {
+        crux_security_event_stats_t stats = {0};
+
+        security_event_fake_reset();
+        security_event_fake_boot();
+        stats.emitted = rows[index].emitted;
+        stats.delivered = rows[index].delivered;
+        stats.log_errors = rows[index].log_errors;
+        security_event_fake_stats_set(&stats);
+        if (crux_reboot_port_events_pending() != rows[index].pending) {
+            printf("  row %zu: expected pending %d\n", index, rows[index].pending ? 1 : 0);
+        }
+        CHECK(crux_reboot_port_events_pending() == rows[index].pending);
     }
 }
 
@@ -293,6 +379,8 @@ int main(void)
 {
     config_events();
     network_events();
+    reboot_events();
+    reboot_pending_events();
     status_event_counts();
     status_credential_words();
     credential_events();

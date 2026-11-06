@@ -18,7 +18,8 @@ void net_run_case(const char *name, void (*body)(void));
 int net_finish(const char *suite);
 
 /* The sessions. Each account has the password ACCESS_TEST_PASSWORD.
- *   admin     access.manage, network.read, network.write, config.save, cfg.read, cfg.write
+ *   admin     access.manage, network.read, network.write, config.save, cfg.read, cfg.write and, for
+ *             the reboot service's suite, system.reboot
  *   reader    network.read
  *   writer    network.write
  *   both      network.read and network.write
