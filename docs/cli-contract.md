@@ -23,7 +23,7 @@ Owner: `components/cli`.
 | Built-in commands `help`, `logout`, `passwd`, `account list` | Built | Host, on a scripted and on the real `crux_access` |
 | Serial login loop and first-account setup `!setup` (L4) | Built | Host, on both |
 | Serial console over `crux_serial` (L1) | Built | Host: a scripted Serial and the real Linux provider on a pseudo-terminal |
-| Security events | Port and recording fake. #234 is on `main`, and **the provider that connects them is not added here**, as below. | Host |
+| Security events | Port and recording fake. #234 is on `main`, and the provider that connects them was not added here. **#242 added it**, `crux_cli_security_events`, mapped as [the event contract](security-event-contract.md#from-the-command-line-and-file-service-ports) states. | Host here. The provider: Host, and `native_sim` in the [services image](native-composition-242.md). |
 | Shell rule (L5) at configuration, at compilation, by script and by image check | Built | Host for the rule's logic. Real builds in `scripts/test-cli.sh --zephyr`, which runs in the Zephyr CI job. |
 | LPUART3 wiring | Compile only: `tests/zephyr/cli_serial_compile` | RT1060-EVKB compile and link, in CI. **Never flashed, and not evidence of a console.** |
 | `crux_access` on Zephyr | Not available, so nothing links the console into an image | |
