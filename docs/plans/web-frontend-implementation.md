@@ -379,7 +379,7 @@ The production packages are, for Preact, `preact`; and for Angular, `@angular/co
 | Preact example, strict with Trusted Types | 0 |
 | Angular example, inline styles | 0 |
 | Angular example, inline styles with Trusted Types | 0 |
-| Angular example, strict | 4, all `style-src-elem`, the component style that Angular inserts. It was 1 on the shorter walk of sign-in and home, so the count follows how often a screen with that style appears. No script was blocked. |
+| Angular example, strict | 4, all `style-src-elem`, the component style that Angular inserts. Measured 4 in each of four runs of `e2e/angular-policy.test.ts` on main at 47ff265, and 1 on the shorter walk of sign-in and home. Why the walk with configuration gives 4 and not one per screen was not examined. No script was blocked. |
 
 What this shows, on the mock only:
 
