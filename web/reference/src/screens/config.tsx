@@ -179,32 +179,38 @@ function Configuration() {
     inFlight.current = true;
     patch(item.name, { working: true, error: undefined });
     const signal = freshSignal(working);
-    const result = await client.putConfigItem(item.name, value, { signal });
-    if (signal.aborted) {
+    try {
+      const result = await client.putConfigItem(item.name, value, { signal });
+      if (signal.aborted) {
+        return;
+      }
+      if (result.ok) {
+        // The typed value is now the device's, so the read-back may replace the draft.
+        patch(item.name, { working: false, item: result.value, edited: false });
+        setMessage({ kind: 'success', text: t.updated(item.name) });
+        // The device's own value is what is shown, and a session that may not read it keeps what it had.
+        await readValue(result.value, signal);
+        return;
+      }
+      patch(item.name, { working: false });
+      const { error } = result;
+      if (error.kind === 'invalid_field') {
+        const field = (error.fields ?? []).find((entry) => entry.name === 'value');
+        focusName.current = item.name;
+        patch(item.name, { error: (field && lookup(t.fieldErrors, field.code)) ?? t.fieldUnknown });
+      } else if (error.kind === 'not_found') {
+        setMessage({ kind: 'error', text: t.updateMissing(item.name) });
+        void load();
+      } else {
+        setMessage(failureMessage(error, t.updateDenied(item.name)));
+      }
+    } catch {
+      // The client does not throw for an HTTP or network failure, but a reader or a fetch that a project
+      // supplied can. Whatever happened, the screen is released and the person is told.
+      patch(item.name, { working: false });
+      setMessage({ kind: 'error', text: text.errors.unexpected });
+    } finally {
       inFlight.current = false;
-      return;
-    }
-    if (result.ok) {
-      // The typed value is now the device's, so the read-back may replace the draft.
-      patch(item.name, { working: false, item: result.value, edited: false });
-      setMessage({ kind: 'success', text: t.updated(item.name) });
-      // The device's own value is what is shown, and a session that may not read it keeps what it had.
-      await readValue(result.value, signal);
-      inFlight.current = false;
-      return;
-    }
-    inFlight.current = false;
-    patch(item.name, { working: false });
-    const { error } = result;
-    if (error.kind === 'invalid_field') {
-      const field = (error.fields ?? []).find((entry) => entry.name === 'value');
-      focusName.current = item.name;
-      patch(item.name, { error: (field && lookup(t.fieldErrors, field.code)) ?? t.fieldUnknown });
-    } else if (error.kind === 'not_found') {
-      setMessage({ kind: 'error', text: t.updateMissing(item.name) });
-      void load();
-    } else {
-      setMessage(failureMessage(error, t.updateDenied(item.name)));
     }
   }
 
@@ -248,24 +254,28 @@ function Configuration() {
     setSaveMessage(null);
     setSaving(true);
     const signal = freshSignal(working);
-    const queued = await client.saveConfig({ signal });
-    if (signal.aborted) {
-      inFlight.current = false;
-      return;
-    }
-    if (!queued.ok) {
-      inFlight.current = false;
+    try {
+      const queued = await client.saveConfig({ signal });
+      if (signal.aborted) {
+        return;
+      }
+      if (!queued.ok) {
+        setSaving(false);
+        setSaveMessage(failureMessage(queued.error, t.saveDenied));
+        return;
+      }
+      const outcome = await client.watchConfigSave({ signal });
+      if (signal.aborted) {
+        return;
+      }
       setSaving(false);
-      setSaveMessage(failureMessage(queued.error, t.saveDenied));
-      return;
+      showSaveOutcome(outcome);
+    } catch {
+      setSaving(false);
+      setSaveMessage({ kind: 'error', text: text.errors.unexpected });
+    } finally {
+      inFlight.current = false;
     }
-    const outcome = await client.watchConfigSave({ signal });
-    inFlight.current = false;
-    if (signal.aborted) {
-      return;
-    }
-    setSaving(false);
-    showSaveOutcome(outcome);
   }
 
   const anyWritable = (rows ?? []).some((row) => row.item.writable);
