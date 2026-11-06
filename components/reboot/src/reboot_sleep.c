@@ -17,6 +17,7 @@ bool crux_reboot_port_sleep(uint32_t milliseconds)
         }
         created = true;
     }
-    (void)crux_semaphore_take(sleeper, milliseconds);
-    return true;
+    /* The semaphore is never given, so a take that times out is the sleep. Anything else returned
+     * at once and has not slept, and saying that it had would collapse the delay and the wait. */
+    return crux_semaphore_take(sleeper, milliseconds) == CRUX_ERR_TIMEOUT;
 }

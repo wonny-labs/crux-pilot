@@ -26,6 +26,16 @@ endforeach()
 
 target_link_options(reboot_lock_faults PRIVATE -Wl,--wrap=crux_mutex_lock)
 
+# The sleep provider, over Sync's semaphore, with the take wrapped. It is an object library, which a
+# composition links by name, so the suite names its object.
+add_executable(reboot_sleep_provider sleep_provider.c $<TARGET_OBJECTS:crux_reboot_sleep>)
+target_include_directories(reboot_sleep_provider PRIVATE ../../components/reboot/src)
+target_link_libraries(reboot_sleep_provider PRIVATE crux_reboot_api crux::sync crux::thread Threads::Threads)
+target_compile_options(reboot_sleep_provider PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_link_options(reboot_sleep_provider PRIVATE -Wl,--wrap=crux_semaphore_take)
+add_test(NAME Reboot.sleep_provider COMMAND reboot_sleep_provider)
+set_tests_properties(Reboot.sleep_provider PROPERTIES TIMEOUT 60)
+
 # Every public declaration must also compile for a C++ consumer.
 add_library(reboot_cpp_headers OBJECT cpp_headers.cpp)
 target_link_libraries(reboot_cpp_headers PRIVATE crux_reboot_api)
@@ -50,7 +60,7 @@ endif()
 
 # A composition must not be able to ignore ERR_NO_POLICY. The first object uses the result and builds with
 # everything else. The second throws it away, is left out of the normal build, and Reboot.nodiscard builds
-# it with -Werror=unused-result and expects that to fail.
+# it with -Werror=unused-result and expects that to fail, with the attribute named in the output.
 add_library(reboot_nodiscard_ok OBJECT nodiscard_ok.c)
 target_link_libraries(reboot_nodiscard_ok PRIVATE crux_reboot_api)
 target_compile_options(reboot_nodiscard_ok PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -59,4 +69,7 @@ target_link_libraries(reboot_nodiscard_probe PRIVATE crux_reboot_api)
 target_compile_options(reboot_nodiscard_probe PRIVATE -Werror=unused-result)
 add_test(NAME Reboot.nodiscard
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target reboot_nodiscard_probe)
-set_tests_properties(Reboot.nodiscard PROPERTIES WILL_FAIL TRUE TIMEOUT 120)
+# The build must fail for this reason and no other: a header that does not compile, or a typo in the probe,
+# would fail it too, and the output must name the attribute.
+set_tests_properties(Reboot.nodiscard PROPERTIES PASS_REGULAR_EXPRESSION "warn_unused_result"
+    TIMEOUT 120)

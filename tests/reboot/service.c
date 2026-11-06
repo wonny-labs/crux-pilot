@@ -266,6 +266,46 @@ static void a_refusal_does_not_cancel_a_request_accepted_meanwhile(void)
     CHECK(reboot_reset_calls() == 1u);
 }
 
+static unsigned overtaking_calls;
+
+/* A policy that allows, and that is asked while another request overtakes the one it is asked for:
+ * on its first call it makes a second request, which is asked in turn and accepted. */
+static bool allow_while_another_overtakes(void *context, crux_reboot_refusal_t *refusal)
+{
+    (void)context;
+    (void)refusal;
+    if (++overtaking_calls == 1u) {
+        CHECK(crux_reboot_request(s_admin, NULL) == CRUX_REBOOT_OK);
+    }
+    return true;
+}
+
+static void a_request_that_is_overtaken_is_a_duplicate_and_leaves_the_first_job_alone(void)
+{
+    const crux_reboot_config_t config = {CRUX_REBOOT_POLICY_CALLBACK, allow_while_another_overtakes,
+                                         NULL, NULL, 0u};
+
+    reboot_boot();
+    CHECK(crux_reboot_start(&config) == CRUX_REBOOT_OK);
+    overtaking_calls = 0u;
+    /* The request of the rebooter is asked first, and the administrator's overtakes it and is
+     * accepted. When the rebooter's comes to be accepted, a request is pending, so it is a
+     * duplicate: it starts nothing, and it does not take the job over. */
+    CHECK(crux_reboot_request(s_rebooter, NULL) == CRUX_REBOOT_OK);
+    CHECK(reboot_events_of(CRUX_REBOOT_EVENT_REQUESTED) == 2u);
+    /* The policy was asked for the administrator's, and not again for the duplicate. */
+    CHECK(overtaking_calls == 2u);
+    /* One job, one reset. */
+    CHECK(crux_reboot_work_once());
+    CHECK(!crux_reboot_work_once());
+    CHECK(reboot_reset_calls() == 1u);
+    CHECK(reboot_events_of(CRUX_REBOOT_EVENT_FAILED) == 1u);
+    /* The job is the first one's, so its end is recorded for the session that was accepted first.
+     */
+    CHECK(reboot_event_session(CRUX_REBOOT_EVENT_FAILED).value == s_admin.value);
+    CHECK(reboot_event_session(CRUX_REBOOT_EVENT_FAILED).value != s_rebooter.value);
+}
+
 int main(void)
 {
     reboot_run_case("an unset policy fails the start", an_unset_policy_fails_the_start);
@@ -284,5 +324,7 @@ int main(void)
                     a_request_while_pending_runs_no_policy_and_starts_nothing);
     reboot_run_case("a refusal does not cancel a request accepted meanwhile",
                     a_refusal_does_not_cancel_a_request_accepted_meanwhile);
+    reboot_run_case("a request that is overtaken is a duplicate and leaves the first job alone",
+                    a_request_that_is_overtaken_is_a_duplicate_and_leaves_the_first_job_alone);
     return reboot_finish("reboot_service");
 }

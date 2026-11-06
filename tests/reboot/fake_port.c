@@ -5,6 +5,8 @@
 #include "reboot_port.h"
 
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static pthread_mutex_t guard = PTHREAD_MUTEX_INITIALIZER;
@@ -33,12 +35,16 @@ static size_t sleep_fails_from;
 static void record(reboot_step_kind_t kind, int64_t value, crux_access_session_t session)
 {
     pthread_mutex_lock(&guard);
-    if (step_count < STEPS) {
-        steps[step_count].kind = kind;
-        steps[step_count].value = value;
-        steps[step_count].session = session;
-        ++step_count;
+    if (step_count >= STEPS) {
+        /* A record that is dropped makes every count after it wrong, so a case that fills it stops.
+         */
+        fprintf(stderr, "reboot fake: the record of steps is full (%d)\n", (int)STEPS);
+        abort();
     }
+    steps[step_count].kind = kind;
+    steps[step_count].value = value;
+    steps[step_count].session = session;
+    ++step_count;
     pthread_mutex_unlock(&guard);
 }
 

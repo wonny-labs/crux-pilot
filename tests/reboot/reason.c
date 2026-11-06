@@ -76,6 +76,8 @@ static void shown(const unsigned char bytes[SIZE], size_t given, char from_reque
 {
     crux_reboot_state_t state;
 
+    /* Each round records three steps, and 60,000 of them would fill the record of the fake. */
+    reboot_trace_clear();
     reboot_policy_always(false);
     reboot_policy_reason(bytes, given);
     memset(from_request, 0xA5, SIZE);

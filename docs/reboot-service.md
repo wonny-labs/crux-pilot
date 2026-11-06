@@ -344,12 +344,13 @@ exits a `native_sim` image was not checked.
 
 | Suite | Cases | Covers |
 | --- | --- | --- |
-| `Reboot.service` | 12 | Each row of the policy statement, wait sources checked at start, nothing before start, the permission of a request and of a read for every kind of session, the state, the first check and what a refusal leaves, a refusal that comes after another request was accepted, a request while pending |
+| `Reboot.service` | 13 | Each row of the policy statement, wait sources checked at start, nothing before start, the permission of a request and of a read for every kind of session, the state, the first check and what a refusal leaves, a refusal that comes after another request was accepted, a request that is overtaken while the policy is asked, a request while pending |
 | `Reboot.steps` | 22 | The order of the steps to the exact step, the delay, the wait to the exact poll and millisecond, a source that frees on the last poll and one poll later, blocking and non-blocking sources, events alone, the second check and its refusal, a reset that returns each status, a request after a failure, an ended session, an event recorded before the job can run, a blocking source that a later non-blocking one must not hide, the end event recorded before the state changes for each way a request ends, and a sleep that cannot sleep at the delay and in the wait |
 | `Reboot.concurrency` | 3 | Two posts at once for 200 rounds, 900 requests with readers and the real worker thread, a post, a get and a second worker from inside each sleep of the worker |
 | `Reboot.reason` | 2 | 26 named vectors, and 60,000 generated texts against an oracle written apart from the rule that the service uses |
 | `Reboot.lock_faults` | 4 | The state's lock failing to come in time: the server-thread calls say busy and change nothing, also after the policy was asked, and the worker keeps its job and ends it |
-| `Reboot.nodiscard` | 1 | A call that throws away the result of `crux_reboot_start()` must not build under `-Werror=unused-result`. The test builds it and expects the build to fail, beside an object that uses the result and does build. |
+| `Reboot.nodiscard` | 1 | A call that throws away the result of `crux_reboot_start()` must not build under `-Werror=unused-result`. The test builds it and passes only if the output names `warn_unused_result`, so a build that fails for another reason does not pass. A sibling object that uses the result does build. |
+| `Reboot.sleep_provider` | 1 | The sleep provider with Sync's take wrapped: only a take that times out is a sleep, and an error, or a take that got the semaphore, is not |
 | `Reboot.pending` | 9 | The two probes, a network save and a configuration save waited for, a save accepted during the wait, a save that never ends for each kind, a save started while the policy is asked at the request, the save queued after the last poll, and probes whose lock is late |
 | `Web.reboot_routes` | 17 | Both routes for success, no session, no permission, the forgery checks, a refusal, escapes in the reason, a refusal at the second check, a failed reset, a second post while pending, bodies, other methods, a service not started, a lock that is late, the table |
 | `Web.reboot_no_service` | 2 | The route table without the source, and a request that finds nothing |
@@ -436,10 +437,12 @@ Each was applied alone to the committed source, the suites above were built and 
 | a sleep that cannot sleep is ignored in the wait | `Reboot.concurrency`, `Reboot.pending`, `Reboot.steps` |
 | the failure of a lost timer is reported as a save in flight | `Reboot.steps` |
 | the start result is not marked | `Reboot.nodiscard` |
+| a request that was overtaken during the policy callback is judged by the snapshot taken before it (the state is not read again under the lock) | `Reboot.service` |
+| the sleep provider says that it slept when the take failed at once | `Reboot.sleep_provider` |
 | the failure of a refusal is shown | **Equivalent.** A refusal always stores no failure, so the mutated read returns the same bytes. |
 | the worker gives up its job when the lock is late at the end | **Not caught.** The lock guards a copy, and without it a single thread still stores the same state. Only a second thread could see the difference, and the retry loop is shown by `Reboot.lock_faults` to take the failing wait once. |
 
-73 mutations: 71 caught, 1 equivalent and 1 not caught, which is explained in its row. Mutations of the Web core, the session module, Access and the security events were not tried: they belong to earlier changes. Eight mutations first broke the build, with an unused variable under `-Werror`, or were not caught. That led to `Reboot.lock_faults`, the nested refusal case, the nested worker in `Reboot.concurrency`, the busy answer of the routes and the late-lock probe case, and the eight were run again and caught. An independent review then found three more gaps, a blocking flag that a later source overwrote, a state that changed before the end event, and a save started during the first check. `Reboot.steps` and `Reboot.pending` now hold them, and the six mutations above them are caught. The mutations were run by the author, and are not an independent review.
+75 mutations: 73 caught, 1 equivalent and 1 not caught, which is explained in its row. Mutations of the Web core, the session module, Access and the security events were not tried: they belong to earlier changes. Eight mutations first broke the build, with an unused variable under `-Werror`, or were not caught. That led to `Reboot.lock_faults`, the nested refusal case, the nested worker in `Reboot.concurrency`, the busy answer of the routes and the late-lock probe case, and the eight were run again and caught. An independent review then found three more gaps. First, a blocking flag that a later source overwrote, and a state that changed before the end event: `Reboot.steps` holds both. Second, an acceptance that trusted the unlocked snapshot of the state taken before the policy was asked, and not the state read again under the lock: a request that overtook it during the policy callback was then taken over by the first one, which overwrote its session. `Reboot.service` holds that with a case in which the callback's first call makes a second request: two `requested` events, one job, one reset, and the end event for the session that was accepted first. It failed on the mutant and passes on the real code. A separate case in `Reboot.pending`, a save started during the first check, shows that such a save is waited for. It is not that gap. A later re-check added the sleep provider's answer, shown red before the fix by `Reboot.sleep_provider`. The mutations were run by the author, and are not an independent review.
 
 ## Results
 
@@ -448,7 +451,7 @@ results are in the pull request.
 
 | Check | Level | Result |
 | --- | --- | --- |
-| `Reboot.*`, 6 suites with 52 cases and the build test `Reboot.nodiscard`, `Web.reboot_*`, 3 suites, and `ManagementProviders.events`, debug preset, clang 18 | Host | Pass |
+| `Reboot.*`, 7 suites with 54 cases and the build test `Reboot.nodiscard`, `Web.reboot_*`, 3 suites, and `ManagementProviders.events`, debug preset, clang 18 | Host | Pass |
 | The same CTest entries, with `NetworkSettings.service` and `Web.network_routes`, on GCC 13 with `-fsanitize=address,undefined -fno-omit-frame-pointer -Wno-format-truncation` | Host, sanitizer | Pass, 12 of 12. The local clang has no sanitizer runtime, so `host-sanitize` itself was **not** run locally, and CI's host workflow runs it. |
 | The whole host build and `ctest`, 311 tests of which 9 are this change's suites and `ManagementProviders.events` also covers it | Host | Pass, with the new suites included |
 | clang-tidy 18 on the component, the route source and every new suite | Host | No finding in this change's files. `tests/management_providers/events.c` has one finding of `bugprone-easily-swappable-parameters` in `credential_event_row`, which is not this change's and which no existing script runs tidy on. |
@@ -458,7 +461,7 @@ results are in the pull request.
 | First run of the component suites against a stub of every function | Host, red | service 10 of 11 cases failed, steps 15 of 15, concurrency 3 of 3, reason 2 of 2. The one that passed asks for the answers of a service that is not started. |
 | First run of the route suites with every route answering `503 not_ready` | Host, red | routes 11 of 16 cases failed and the specification check failed. `Web.reboot_no_service` passed, because with no route there is nothing for it to see. The routes source existed in the worktree before the first run, and was swapped for that placeholder to record the red. |
 | The cases of `Reboot.lock_faults`, the nested refusal, the nested worker, the busy answer of the routes and the late-lock probe | Host | Written after the first mutation run, which showed that nothing caught the mutations they now catch. They were green when first run. |
-| 73 mutations | Host | 71 caught, 1 equivalent and 1 not caught, as above |
+| 75 mutations | Host | 73 caught, 1 equivalent and 1 not caught, as above |
 | `scripts/check-management-api.sh`, `npm run check`, the mock and the client | | **Not run, and not needed:** `web/` is unchanged |
 | `native_sim`, RT1060 compile, `host-sanitize` with clang, a browser against the routes, any board | | **Not run** |
 
@@ -488,7 +491,7 @@ results are in the pull request.
 | 19 | `scripts/test-web.sh` gains the targets and the tidy path of the new suites, and `scripts/test-reboot.sh` is new | A protected path, edited only to add targets and a source directory, as the test runner of a component that this change adds. No suite, board, option or warning flag is removed. | Leave the suites to the full host preset alone |
 | 20 | The top-level `CMakeLists.txt` gains the option `CRUX_BUILD_REBOOT`, on by default as the other components are | The component list | None |
 | 21 | The delay, the wait and the poll are 1 s, 15 s and 50 ms | They are assumptions, as the client's reboot limits are. No boot or save time was measured. | Measure first, which needs a target |
-| 22 | A sleep that cannot sleep fails the request, with the failure `NO_TIMER`, and the reset is not called | The sleep provider creates its semaphore at the first sleep, which is the first request. If that failed, the delay and the wait would return at once and the reset would follow with nothing waited for. | Create the semaphore at start, which needs one more port |
+| 22 | A sleep that cannot sleep fails the request, with the failure `NO_TIMER`, and the reset is not called | The sleep provider creates its semaphore at the first sleep, which is the first request. A take that returns without timing out is not counted as a sleep either. If that failed, the delay and the wait would return at once and the reset would follow with nothing waited for. | Create the semaphore at start, which needs one more port |
 | 23 | `crux_reboot_start()` is marked `warn_unused_result`, with a macro in the header for C and C++ | A composition that ignores the result ignores an unset policy. The codebase has no such macro yet. `Reboot.nodiscard` builds a call that discards the result and expects the build to fail. | Leave it to the reader of the header |
 
 ## Acceptance criteria
