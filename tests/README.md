@@ -633,6 +633,19 @@ sanitizer preset, runs clang-tidy on the sources and tests, and runs `scripts/ch
 `tests/security_event_consumer` in both directions. None of this runs on Zephyr or a target. See the
 [Security event contract](../docs/security-event-contract.md).
 
+## TLS certificate
+
+The TLS certificate model (Issue #190): the root Host suite runs `tests/tls_certificate` as `TlsCertificate.*` in CTest.
+The parser suite uses no state and no crypto; the service suites use the real Access core with its fake ports, a fake
+credential adapter and fake hash, signature and random ports, where the signature is not ECDSA; `tls_certificate_store`
+runs on the real credential store with its test-only protection. `scripts/test-tls-certificate.sh host` also runs them
+under the sanitizer preset and runs clang-tidy. Where CMake finds OpenSSL's headers, `tls_certificate_differential`
+holds the parser to OpenSSL's decoder on 300,000 seeded mutations. `TlsCertificate.boundary_*` configure a separate
+project to show that a consumer reaching the adapter is refused. `scripts/test-tls-certificate.sh psa` builds `tests/tls_certificate/psa`
+on TF-PSA-Crypto and checks a real key's certificate, request and PKCS #8 key with OpenSSL, including a TLS 1.3
+handshake; CI does not run it. Nothing here registers the material with Zephyr or runs on `native_sim` or a target. See
+the [TLS certificate design](../docs/tls-certificate.md).
+
 ## Web frontend
 
 The web frontend has its own tools under `web/` and needs Node.js, while no C build does. Its commands are in the
