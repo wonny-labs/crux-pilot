@@ -21,6 +21,7 @@ Provider of the Access event port: object target `crux_security_event_access_por
 | Recording fake of the public contract | `tests/security_event/fake`, for consumers' Host tests |
 | Provider of `crux_credential_port_event` | `crux_credential_security_events`, in the store's component, because this component names no storage type |
 | Emitters outside Access: file, CLI, web, SSH | Identifiers exist. The emitters are other issues. The credential store, the configuration service, the network settings service and the reboot service emit, through their providers. |
+| Providers of the command line's and the file service's ports | `crux_cli_security_events` and `crux_file_service_security_events`, in those components, added by #242: [below](#from-the-command-line-and-file-service-ports). Host against the recording fake, and `native_sim` in the [services image](native-composition-242.md). |
 | Provider of the network settings service's port | `crux_network_settings_security_events`, in that component. It records `network.changed`, `network.save_failed` and `network.saved_ignored`, with no subject: [network settings service](network-settings-service.md#security-events). |
 | Provider of the reboot service's port | `crux_reboot_security_events`, in that component. It records `system.reboot_requested`, `system.reboot_refused` and `system.reboot_failed`, with a user and a channel and no subject: [reboot service](reboot-service.md#security-events). It also answers whether recorded events are still waiting for Logging, from the counts of `crux_security_event_get_stats`. |
 | `GET /api/v1/events` | Not implemented, M11. The read function it needs exists. |
@@ -296,6 +297,20 @@ The provider adds no meaning. A user is what Access named, and an empty field st
 | `NO_RESOURCES` | `LIMIT` |
 | `INVALID_ARGUMENT`, `NOT_FOUND`, `ALREADY_EXISTS`, `PASSWORD_REJECTED` | `INVALID` |
 | `NOT_READY`, `STORE` | `FAILED` |
+
+### From the command line and file service ports
+
+Added by #242. Each provider adds no meaning, as for Access. Neither records client input: the command line's port carries no
+line, and the file service's provider leaves out the file names that its port passes.
+
+| Port event | Identifier | Result | `user` | `channel`, `source` | `subject` |
+| --- | --- | --- | --- | --- | --- |
+| CLI `LINE_REJECTED` | `cli.line_rejected` | From the outcome: `INVALID`, `LIMIT`, `DENIED` | The session's user, or none before login | The CLI's channel, 1 or 3. No source. | None |
+| CLI `CONSOLE_ERROR` | `cli.console_error` | From the outcome, `FAILED` | The same | The same | None |
+| File `CREATED`, `REMOVED`, `RENAMED`, `PARTIAL_REMOVED` | Its own | `OK` | The session's user, or none | The session's origin, or none | The area |
+| File `RECOVERY_NEEDED`, `COMMIT_FAILED` | Its own | `FAILED` | The same | The same | The area |
+| File `NAME_REJECTED` | `file.name_rejected` | `INVALID` | The same | The same | The area |
+| File `STORAGE_FAILED` | `file.storage_failed` | `LIMIT` for a full medium, otherwise `FAILED` | The same | The same | The area |
 
 ## Decisions for review
 

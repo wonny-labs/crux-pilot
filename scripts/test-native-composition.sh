@@ -6,7 +6,9 @@
 #
 # host:   the PSA ports on TF-PSA-Crypto on Linux Host, under ASan and UBSan, with controls, and the existing
 #         Access and credential suites on them.
-# mbed:   the ports and the composition on native_sim, on TF-PSA-Crypto and Mbed TLS.
+# mbed:   the ports and the composition on native_sim, on TF-PSA-Crypto and Mbed TLS, then the services image,
+#         tests/native/management_services: every management service over HTTPS on the same providers, its
+#         image check with --services, and its driver over TLS.
 # wolf:   the same on wolfPSA and wolfSSL, on a patched copy of Zephyr.
 # target-*: the ports compiled for RT1060-EVKB, and the guard against a test random generator there.
 # all:    host, mbed and wolf.
@@ -88,6 +90,7 @@ check_refusals() { # Host build directory, for the provider's headers
     grep -q 'native_sim only' "$log" || fail "the test certificate: refused for another reason: $(cat "$log")"
     printf 'control ok: the test certificate refuses any board but native_sim\n'
     python3 "$composition/check_cmake_guard.py"
+    python3 -m unittest discover -s "$repo/tests/build" -p test_composition_image.py
 }
 
 # The existing Access and credential suites, with the fakes' hooks kept and their crypto real.
@@ -119,6 +122,22 @@ run_composition() { # profile, ZEPHYR_BASE, more configuration
     python3 "$composition/run_composition.py" "$build/zephyr/zephyr.exe" --profile "$profile" --output "$out/$profile"
     grep -E '^CONFIG_(NET_NATIVE_OFFLOADED_SOCKETS|NET_SOCKETS_OFFLOAD|FAKE_ENTROPY_NATIVE_SIM|HWINFO_NATIVE|PSA_CRYPTO_PROVIDER_[A-Z]*|MBEDTLS|MBEDTLS_HEAP_SIZE|MBEDTLS_PSA_STATIC_KEY_SLOTS|WOLFSSL|WOLFPSA|WOLFPSA_THREAD_SAFE|CRUX_SYNC_MUTEX_COUNT|CRUX_FILE_FATFS_SIMULATOR)=' \
         "$build/zephyr/.config" > "$out/$profile/config.txt"
+    rm -rf "$build"
+}
+
+# Every management service over HTTPS on the composition (Issue #242): the image check holds each service, its
+# ports, its random path and its route table, and the driver runs the services' cases and the web cases.
+run_services() { # profile, ZEPHYR_BASE
+    local profile="$1" build="$out/$1/services-build"
+    mkdir -p "$out/$profile"
+    (cd "$workspace" && ZEPHYR_BASE="$2" west build -p always -b "$board" -d "$build" -o="-j$jobs" \
+        "$repo/tests/native/management_services" -- "-DCRUX_WEB_PROFILE=$profile") > "$out/$profile/services-build.log" 2>&1 ||
+        { tail -40 "$out/$profile/services-build.log" >&2; fail "$profile: the services image failed to build"; }
+    python3 "$repo/scripts/check-composition-image.py" "$build/zephyr/zephyr.exe" --profile "$profile" --services
+    python3 "$repo/tests/native/management_services/driver.py" "$build/zephyr/zephyr.exe" --profile "$profile" \
+        --output "$out/$profile"
+    grep -E '^CONFIG_(NET_NATIVE_OFFLOADED_SOCKETS|FAKE_ENTROPY_NATIVE_SIM|TEST_RANDOM_GENERATOR|PSA_CRYPTO_PROVIDER_[A-Z]*|MBEDTLS_HEAP_SIZE|WOLFSSL|WOLFPSA|CRUX_WEB|CRUX_WEB_PORT|CRUX_WEB_PLAIN_HTTP_FOR_TESTS|CRUX_SYNC_MUTEX_COUNT|CRUX_THREAD_COUNT)=' \
+        "$build/zephyr/.config" > "$out/$profile/services-config.txt"
     rm -rf "$build"
 }
 
@@ -159,12 +178,14 @@ else
     case "$mode" in mbed | all)
         run_ports psa-ports-tf-psa-crypto
         run_composition mbed "$workspace/zephyr" ";mbed-threading.conf"
+        run_services mbed "$workspace/zephyr"
         ;;
     esac
     case "$mode" in wolf | all)
         run_ports psa-ports-wolfpsa
         "$repo/scripts/prepare-wolf-tls-zephyr.sh" "$out/zephyr-wolf"
         run_composition wolf "$out/zephyr-wolf" ""
+        run_services wolf "$out/zephyr-wolf"
         ;;
     esac
 fi
