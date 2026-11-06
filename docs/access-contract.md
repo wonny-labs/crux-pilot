@@ -71,7 +71,7 @@ open to review, and a changed choice is small while nothing depends on it.
 | --- | --- | --- |
 | Second delay check at step 3 | Steps 2 and 3 share one lock hold | Claiming the slot never waits, so nothing can change between them |
 | Clock | Read under the state lock | Stored times are then in order, so an elapsed time cannot wrap and clear a bucket or expire a live session. This is a new requirement on the provider: the clock must not wait. |
-| Clock running backwards | Expires sessions, and never clears a bucket | Fails closed. A monotonic port never does this. |
+| Clock running backwards | Expires sessions, and never clears a bucket | Fails closed. A monotonic port never does this. **One exception:** a clock that fails reads 0 through `crux_access_port_now_ms`, and a bucket dated 0 during the fault does clear once the clock returns past the quiet period, as `tests/access/clock_fault.c` shows. See [the composition's port choices](native-management-composition.md#what-each-port-maps). |
 | Serial bucket after a success | Not cleared | "Success clears the name bucket only", and serial has no name bucket. A user who mistypes keeps counting until the quiet period. |
 | Serial when slot 0 is taken | May use any free slot | Slot 0 is reserved against the network, not a limit on serial |
 | Own password change | Rule first, then the delay, then the verification slot for the current password only. A new verifier takes no slot, in this or any other operation. | The rule result never confirms the current password, and a login flood cannot block an administrator's reset. |

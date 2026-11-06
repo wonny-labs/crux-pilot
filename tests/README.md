@@ -680,8 +680,11 @@ is one that refuses every operation. See [the SSH provider contract](../docs/ssh
 
 `scripts/test-ssh-provider.sh`, also outside every default workflow for the same reason, runs the wolfSSH provider: the conformance cases
 with a scripted client, and `tests/zephyr/ssh_provider/openssh_test.py` with a real OpenSSH client, both on `native_sim/native/64` over the
-native socket offload. It also records resource use as simulation results, compiles for `mimxrt1060_evk@B//qspi`, and shows that the Mbed
-profile fails at configuration. See [the wolfSSH provider](../docs/ssh-wolf-provider.md), which declares the test ports behind these results.
+native socket offload. It then boots an image built with `CRUX_SSH_TEST_STORED_HOST_KEY` several times on one flash file, with the host key
+from the credential store on its PSA ports over wolfPSA. It also records resource use as simulation results, compiles for
+`mimxrt1060_evk@B//qspi`, and shows that the Mbed profile fails at configuration. The provider's checks on client input are in the Host
+suite as `Ssh.wire`, with seeded mutations against an oracle, and `Ssh.wire_mutations`, which needs each of 22 source mutants to fail it
+under sanitizers. See [the wolfSSH provider](../docs/ssh-wolf-provider.md), which declares the test ports behind these results.
 
 ## PSA Crypto qualification
 
@@ -694,6 +697,6 @@ No consumer calls a provider here. See the [qualification record](../docs/psa-cr
 
 ## Management composition on `native_sim`
 
-`tests/management_providers` runs in the root Host suite, as `ManagementProviders.*`: the event providers, status sources and the Access clock, each against a controlled answer. `tests/psa_ports` holds the PSA providers' cases, on Linux Host and `native_sim`, and `tests/psa_ports/suites` runs existing Access and credential suites on them, on Host, with `-DCRUX_TEST_SUITES_ON_PSA=ON`. `tests/native/tls_offload_probe` is a TLS socket over the native socket offload with a client on the host, and `tests/native/management_composition` is the services together on real providers.
+`tests/management_providers` runs in the root Host suite, as `ManagementProviders.*`: the event providers, status sources and the Access clock, each against a controlled answer. `tests/psa_ports` holds the PSA providers' cases, on Linux Host and `native_sim`, and `tests/psa_ports/suites` runs existing Access and credential suites on them, on Host, with `-DCRUX_TEST_SUITES_ON_PSA=ON`. `tests/native/tls_offload_probe` is a TLS socket over the native socket offload with a client on the host, and `tests/native/management_composition` is the services together on real providers. `tests/native/management_services` adds every other management service on the same providers behind HTTPS, the command line and file service event providers among them, and `driver.py` runs its cases over TLS; see [every management service on `native_sim`](../docs/native-composition-242.md).
 
-`scripts/test-tls-offload-probe.sh [all|mbed|wolf]` and `scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]` run them. `mbed` needs the `mbedtls` and `tf-psa-crypto` projects, and the `psa-crypto` workflow runs it. `wolf` needs the `crux-secure-management` group, and no default workflow runs it. `target-*` compiles and never flashes, resets or runs an image. See the [composition](../docs/native-management-composition.md).
+`scripts/test-tls-offload-probe.sh [all|mbed|wolf]` and `scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]` run them. `mbed` needs the `mbedtls` and `tf-psa-crypto` projects, and the `psa-crypto` workflow runs it. `wolf` needs the `crux-secure-management` group, and no default workflow runs it. `mbed` and `wolf` also build the services image, check it with `scripts/check-composition-image.py --services` and run its driver. `target-*` compiles and never flashes, resets or runs an image. See the [composition](../docs/native-management-composition.md).
