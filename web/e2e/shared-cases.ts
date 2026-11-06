@@ -826,4 +826,53 @@ export function sharedCases(config: AppConfig): void {
     await parameter(page, 'device_label').getByText(`Current value: ${markup}`, { exact: true }).waitFor();
     assert.equal(await page.locator('main img, main b').count(), 0);
   });
+
+  // After a completed save, and while a save waits
+
+  run('after a save has completed, the next update and the next save both work', async ({ page, requests }) => {
+    await openConfiguration(page);
+    await update(page, 'report_interval', '10');
+    await parameter(page, 'report_interval').getByText('Current value: 10', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await page.getByText('The changes are saved.').waitFor();
+    assert.equal(await page.getByText('Changed, not yet saved').count(), 0);
+    await update(page, 'report_interval', '11');
+    await parameter(page, 'report_interval').getByText('Current value: 11', { exact: true }).waitFor();
+    await parameter(page, 'report_interval').getByText('Changed, not yet saved').waitFor();
+    assert.equal(await page.getByText('The changes are saved.').count(), 0, 'the old result is gone');
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await page.getByText('The changes are saved.').waitFor();
+    assert.equal(requests.filter((request) => request.path === '/api/v1/config/save').length, 2);
+    assert.equal(puts(requests).length, 2);
+  }, ['configuration-provider']);
+
+  run('a long Retry-After while a save runs does not hold the wait past a few seconds', async ({ page, mock }) => {
+    await openConfiguration(page);
+    await update(page, 'report_interval', '10');
+    // Without a cap this sleeps its whole limit of 15 s and ends as not confirmed.
+    mock.control.force('listConfig', { status: 503, example: 'busy', retryAfter: 60 });
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await page.getByText('The changes are saved.').waitFor({ timeout: 12_000 });
+  }, ['mock-control']);
+
+  run('leaving the screen stops the wait for a save, and nothing reads the list afterwards', async ({ page, mock }) => {
+    await openConfiguration(page);
+    await update(page, 'report_interval', '10');
+    mock.control.force('listConfig', { status: 503, example: 'busy', retryAfter: 60 });
+    const reads = (): number =>
+      mock.control.requests.filter((request) => request.method === 'GET' && request.path === '/api/v1/config').length;
+    const before = reads();
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    // The wait has begun once its first read, which is the forced busy answer, has reached the mock.
+    for (let tries = 0; reads() === before && tries < 100; tries += 1) {
+      await page.waitForTimeout(100);
+    }
+    assert.equal(reads(), before + 1);
+    await page.getByRole('link', { name: 'Home' }).click();
+    await waitForHeading(page, 'Home');
+    const after = reads();
+    // Longer than the cap on one sleep, so a wait that kept going would have read again.
+    await page.waitForTimeout(7000);
+    assert.equal(reads(), after);
+  }, ['mock-control']);
 }

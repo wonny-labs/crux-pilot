@@ -22,7 +22,7 @@ pieces can build and test on the Host with no SSH library. `scripts/check-ssh-bo
 in the Host CTest as `Ssh.Boundaries`.
 
 SSH user keys are Ed25519 and ECDSA, by owner decision, and the design's algorithm table fixes the ECDSA curve to P-256. The key
-type enum has no RSA value, the provider refuses any other key before a callback, and `crux_wolfssh_settings.h` removes RSA from wolfSSH. wolfSSL keeps RSA for TLS.
+type enum has no RSA value, the provider refuses any other key, and a blob that is not exactly its type's form, before a callback, and `crux_wolfssh_settings.h` removes RSA from wolfSSH. wolfSSL keeps RSA for TLS.
 
 ## Ownership
 
@@ -302,8 +302,8 @@ server does not look up names. It is Zephyr's source, so it stays as it is, and 
 
 | Test | What it holds |
 | --- | --- |
-| `Ssh.ProviderConformance` | The 51 cases in [`tests/ssh/conformance.c`](../tests/ssh/conformance.c), on the fake provider |
-| `Ssh.ConformanceCatchesDefects` | Each of the fake's 60 deliberate defects must fail its named case |
+| `Ssh.ProviderConformance` | The 52 cases in [`tests/ssh/conformance.c`](../tests/ssh/conformance.c), on the fake provider |
+| `Ssh.ConformanceCatchesDefects` | Each of the fake's 61 deliberate defects must fail its named case |
 | `Ssh.FakeProvider` | What the fake promises to other tests: a buffer of at least 1 KiB, a failed `send` reported, and key blobs of real size |
 | `Ssh.AttachmentDouble` | `crux_ssh_attachment_session()` on the Host double. A test links the double or the table, not both, because each brings a definition of it. |
 | `Ssh.CallbackTable` | Every member of the shared table is the named entry point, and a provider accepts it |

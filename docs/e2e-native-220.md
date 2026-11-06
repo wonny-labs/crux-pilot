@@ -24,7 +24,7 @@ deep-link fallback, connection limits, the real session clock, the real `409` an
 | Offload shutdown | **Test-only shim**, `src/offload_shutdown.c`: the native socket offload has no shutdown, so the server's inactivity timer does nothing there. A copy of the shutdown part of #184's shim. | Measured with and without, [below](#connection-limits) |
 | Listener certificate | **The declared test certificate** of #263, as in #242 | Chrome accepts its key alone, [below](#how-the-browser-trusts-the-test-certificate) |
 | Configuration save | **No provider**, decision C6: a save fails with `not_supported`, and a network change gets `501` | The cases that need a successful save are skipped on `native_sim` and say why |
-| Reboot | **Not in the image.** #214 is not merged (PR #290 in review). The reboot flow stays mock-only, and results say so. | Skipped with that reason |
+| Reboot | **Not composed.** #214's service is merged on `main` (479342f) but is not composed in the services image, whose image check holds exactly the 12 component routes. **The reboot flow is mock-only**, and results say so. | Skipped with that reason |
 | The small example project, `samples/web_project` | **Built**: a page and a project route through the public route contract, with no native header | Host: `Web.project_sample` |
 | Firefox, Safari, Edge | **Not run.** Chrome only. | |
 | Anything on RT1060-EVKB | **Not run, not compiled here** | |
@@ -108,7 +108,7 @@ passed by default.
 | --- | --- | --- |
 | `mock-control` | The case forces an answer through the mock's control. Where a real path exists, it is a case of its own [below](#cases-only-a-real-server-shows). | 20 |
 | `configuration-provider` | A save that succeeds needs a Configuration provider, and this image has none (decision C6) | 4 |
-| `reboot-service` | #214 is not merged and not in this image | 1, Preact |
+| `reboot-service` | #214's service is merged but not composed in the services image | 1, Preact |
 | `no-configuration-provider` | Runs on `native_sim`, because there it is the real behaviour; on the mock its control sets it | Runs on both |
 
 Changes to the existing cases, none of which weakens a mock assertion:
@@ -248,7 +248,7 @@ flowchart LR
 | Timing is an emulated amd64 container on an arm64 machine with other sessions running | Not device timing. The figures bound the server's behaviour, not a target's speed. |
 | The native socket offload has no shutdown | A test-only shim, declared |
 | No Configuration provider | Four shared cases and the save half of the network flow are not shown |
-| Reboot | Mock-only until #214 merges |
+| Reboot | Mock-only: #214's service is merged but not composed in the services image. Composing it needs its route source in the image and a reviewed extension of the 12-route image check. |
 | W1, #280, on Wolf | Not fixed. A new connection's first request is read up to about 1 s late. The Wolf slack of 2.5 s comes from #185 for that reason. |
 | Chrome only | Firefox, Safari and Edge not run |
 | The listener's certificate is the declared test certificate | Decision B of #284 is open |

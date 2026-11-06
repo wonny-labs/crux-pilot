@@ -18,6 +18,7 @@ internal target `crux_web_adapter`.
 | Login, sessions, CSRF and `Origin` rules | **Built** in #186: see [web-session.md](web-session.md). This suite still uses stand-ins. | Host, and `native_sim` in `tests/native/web_session` |
 | Status, configuration and account routes | **Built** in #187: see [web-management-apis.md](web-management-apis.md). Host only, and no composition serves them yet. | Host |
 | Network settings routes | **Built** in #213: see [network-settings-service.md](network-settings-service.md). Host only, with no composition and no saving on the target until #16. | Host |
+| Reboot routes | **Built** in #214: see [reboot-service.md](reboot-service.md). Host only, with no composition and no real reset. A composition that leaves the service out has no reboot route. | Host |
 | Access core on Zephyr | **Faked on `native_sim`** by a double, until #242. The real core and its fake ports run on Host | |
 | Socket shutdown on `native_sim` | **Shimmed in the test image**, see [below](#three-limits-of-native_sim-found-here) | |
 | A send that returns `-EAGAIN` on `native_sim` | **Injected in the test image** by a wrapped send, because the offload rarely produces one | |

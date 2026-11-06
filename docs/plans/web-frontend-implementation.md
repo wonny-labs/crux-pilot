@@ -40,7 +40,7 @@ flows on the Preact example with service tests underneath. Host here means the C
 | Status | Core | Both examples | Service in #180. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
 | Simple configuration update | Core | Both examples | Service in #180. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
 | Network settings | Advanced | Preact | Service in #213 | Preact over HTTPS: read, and a change refused as not saved with no Configuration provider, [#220](../e2e-native-220.md#results) | Not run |
-| Reboot | Advanced | Preact | #214, in review | Mock only until #214 merges, [#220](../e2e-native-220.md) | Not run |
+| Reboot | Advanced | Preact | Service in #214 | Mock only: #214's service is merged but not composed in the services image, [#220](../e2e-native-220.md) | Not run |
 
 ```mermaid
 flowchart LR
@@ -380,7 +380,7 @@ The production packages are, for Preact, `preact`; and for Angular, `@angular/co
 | Preact example, strict with Trusted Types | 0 |
 | Angular example, inline styles | 0 |
 | Angular example, inline styles with Trusted Types | 0 |
-| Angular example, strict | 4, all `style-src-elem`, the component style that Angular inserts. It was 1 on the shorter walk of sign-in and home, so the count follows how often a screen with that style appears. No script was blocked. |
+| Angular example, strict | 3 or 4, and it varies from run to run, all `style-src-elem inline`, the component style that Angular inserts. Four runs of `e2e/angular-policy.test.ts` on main at 47ff265 showed 4 each. A reviewer's five runs (x86 Chrome 157, emulated on arm64) showed 4 three times and 3 twice. The test asserts only that the count is above 0. It was 1 on the shorter walk of sign-in and home. Why it varies was not examined. No script was blocked. |
 
 What this shows, on the mock only:
 

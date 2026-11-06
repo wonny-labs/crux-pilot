@@ -87,7 +87,7 @@ export function missingNeed(config: AppConfig, needs: Need[]): string | undefine
       return 'needs a device with no Configuration provider, and this one has one';
     }
     if (need === 'reboot-service' && config.target) {
-      return 'the reboot service of #214 is not merged and not in this image, so the reboot flow stays mock-only';
+      return 'the reboot service of #214 is merged but not composed in the services image, so the reboot flow stays mock-only';
     }
     if (need === 'unavailable-item' && !fixture.unavailableItem) {
       return 'needs a status item that reports itself not available, which this image does not have';
@@ -110,6 +110,8 @@ export interface OpenOptions {
   recordViolationsOnly?: boolean;
   /** The test sends an answer outside the specification on purpose. */
   allowNonConforming?: boolean;
+  /** Console errors that the test expects. They are kept in `loggedErrors` and do not fail the test. */
+  allowConsoleError?: RegExp;
 }
 
 export interface OpenApp {
@@ -133,6 +135,8 @@ export interface OpenApp {
   violations: string[];
   pageErrors: string[];
   consoleErrors: string[];
+  /** The console errors that `allowConsoleError` matched. */
+  loggedErrors: string[];
   foreignRequests: string[];
   /** Waits for the checks of answers still being read. */
   settle(): Promise<void>;
@@ -207,6 +211,7 @@ async function openDevice(browser: Browser, config: AppConfig, target: NativeTar
   const violations: string[] = [];
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
+  const loggedErrors: string[] = [];
   const foreignRequests: string[] = [];
   const requests: RecordedRequest[] = [];
   const unread: string[] = [];
@@ -220,7 +225,7 @@ async function openDevice(browser: Browser, config: AppConfig, target: NativeTar
     if (text.startsWith('CSP-VIOLATION') || /Content Security Policy|Trusted Type/i.test(text)) {
       violations.push(text);
     } else if (message.type() === 'error' && !text.startsWith('Failed to load resource')) {
-      consoleErrors.push(text);
+      (options.allowConsoleError?.test(text) ? loggedErrors : consoleErrors).push(text);
     }
   });
   page.on('pageerror', (error) => pageErrors.push(String(error)));
@@ -311,6 +316,7 @@ async function openDevice(browser: Browser, config: AppConfig, target: NativeTar
     violations,
     pageErrors,
     consoleErrors,
+    loggedErrors,
     foreignRequests,
     async settle() {
       await Promise.all(checks);
@@ -358,6 +364,7 @@ export async function openApp(browser: Browser, config: AppConfig, options: Open
   const violations: string[] = [];
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
+  const loggedErrors: string[] = [];
   const foreignRequests: string[] = [];
   await page.addInitScript(() => {
     document.addEventListener('securitypolicyviolation', (event) => {
@@ -369,7 +376,7 @@ export async function openApp(browser: Browser, config: AppConfig, options: Open
     if (text.startsWith('CSP-VIOLATION') || /Content Security Policy|Trusted Type/i.test(text)) {
       violations.push(text);
     } else if (message.type() === 'error' && !text.startsWith('Failed to load resource')) {
-      consoleErrors.push(text);
+      (options.allowConsoleError?.test(text) ? loggedErrors : consoleErrors).push(text);
     }
   });
   page.on('pageerror', (error) => pageErrors.push(String(error)));
@@ -396,6 +403,7 @@ export async function openApp(browser: Browser, config: AppConfig, options: Open
     violations,
     pageErrors,
     consoleErrors,
+    loggedErrors,
     foreignRequests,
     async settle() {},
     finish() {

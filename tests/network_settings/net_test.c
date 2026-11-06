@@ -45,9 +45,13 @@ int net_finish(const char *suite)
     return cases_failed == 0 ? 0 : 1;
 }
 
-static const char *const admin_permissions[] = {
-    CRUX_ACCESS_PERMISSION_MANAGE,       "network.read", "network.write",
-    CRUX_CONFIG_SERVICE_PERMISSION_SAVE, "cfg.read",     "cfg.write"};
+static const char *const admin_permissions[] = {CRUX_ACCESS_PERMISSION_MANAGE,
+                                                "network.read",
+                                                "network.write",
+                                                CRUX_CONFIG_SERVICE_PERMISSION_SAVE,
+                                                "cfg.read",
+                                                "cfg.write",
+                                                "system.reboot"};
 static const char *const reader_permissions[] = {"network.read"};
 static const char *const writer_permissions[] = {"network.write"};
 static const char *const both_permissions[] = {"network.read", "network.write"};
@@ -55,7 +59,7 @@ static const char *const saver_permissions[] = {CRUX_CONFIG_SERVICE_PERMISSION_S
                                                 "cfg.write"};
 static const char *const stranger_permissions[] = {"other.thing"};
 static const crux_access_role_t roles[] = {
-    {"administrator", admin_permissions, 6}, {"reader", reader_permissions, 1},
+    {"administrator", admin_permissions, 7}, {"reader", reader_permissions, 1},
     {"writer", writer_permissions, 1},       {"both", both_permissions, 2},
     {"saver", saver_permissions, 3},         {"stranger", stranger_permissions, 1},
 };
