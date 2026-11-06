@@ -20,3 +20,11 @@ set(CRUX_WEB_MANAGEMENT_NETWORK_SOURCES
     CACHE INTERNAL "Web management network sources")
 set(CRUX_WEB_MANAGEMENT_NETWORK_ROUTES "${CMAKE_CURRENT_LIST_DIR}/web_management_network.c"
     CACHE INTERNAL "Web management network routes")
+
+# Reboot routes (Issue #214): GET and POST /api/v1/system/reboot, for a composition that includes the
+# reboot service. Name this one source to crux_web_routes(... SOURCES ...) and link crux::reboot. A
+# composition that leaves it out has no reboot route. It needs none of the sources above, and both
+# routes have a permission as their access class, so components/web/reviewed-routes.txt does not list
+# them.
+set(CRUX_WEB_MANAGEMENT_REBOOT_ROUTES "${CMAKE_CURRENT_LIST_DIR}/web_management_reboot.c"
+    CACHE INTERNAL "Web management reboot routes")

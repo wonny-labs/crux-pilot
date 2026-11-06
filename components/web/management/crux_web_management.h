@@ -20,6 +20,7 @@
 
 #include "crux_web_adapter.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -52,6 +53,16 @@ crux_web_result_t crux_web_management_init(void);
 
 /** Start the one worker thread that runs configuration saves, at low priority. */
 crux_web_result_t crux_web_management_start_worker(void);
+
+/**
+ * Whether a configuration save is queued or running, for a service that must not cut one short,
+ * such as the reboot service's wait. Takes no session and records nothing. A lock that does not
+ * come in time reads as pending, the safe answer. Before crux_web_management_init() there is no
+ * save to wait for.
+ *
+ * @return True while a save that a session queued has not ended.
+ */
+bool crux_web_management_save_pending(void);
 
 /** A snapshot of the counters. */
 void crux_web_management_stats_get(crux_web_management_stats_t *stats);

@@ -290,7 +290,7 @@ stateDiagram-v2
 ```
 
 Applying nothing live is W7: a change cannot cut off the user's own session. `reboot_required` tells a client that the saved
-values wait for a reset. This service does not reboot: that is #214.
+values wait for a reset. This service does not reboot: the [reboot service](reboot-service.md) does, and its wait for pending saves asks `crux_network_settings_save_pending()`, which is true while a save or a recovery is queued or running.
 
 ## Security events
 

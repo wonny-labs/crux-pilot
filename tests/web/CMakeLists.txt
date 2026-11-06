@@ -42,3 +42,8 @@ endif()
 if(TARGET crux::thread AND TARGET network_settings_test_fixture AND TARGET crux_mgmt_status_api)
     add_subdirectory(network)
 endif()
+
+# GET and POST /api/v1/system/reboot over the reboot service (Issue #214).
+if(TARGET crux::thread AND TARGET reboot_test_fixture)
+    add_subdirectory(reboot)
+endif()

@@ -60,7 +60,8 @@ run_host() {
         web_session_json web_session_concurrency web_session_cpp_header web_management_status web_management_config
         web_management_save web_management_account web_management_fuzz web_management_cpp_header
         web_management_openapi_fixture web_network_routes web_network_fuzz web_network_short_reads web_network_no_provider
-        web_network_openapi_fixture web_network_openapi_fixture_no_provider web_network_cpp_header)
+        web_network_openapi_fixture web_network_openapi_fixture_no_provider web_network_cpp_header
+        web_reboot_routes web_reboot_no_service web_reboot_openapi_fixture)
     for preset in host-debug host-sanitize; do
         cmake --preset "$preset" -S "$repo" -DFETCHCONTENT_FULLY_DISCONNECTED=ON
         cmake --build --preset "$preset" --target "${targets[@]}"
@@ -68,7 +69,8 @@ run_host() {
     done
     "$tidy" -p "$repo/build/linux/debug" "$repo"/components/web/src/*.c "$repo"/tests/web/*.c \
         "$repo"/components/web/session/*.c "$repo"/tests/web/session/*.c \
-        "$repo"/components/web/management/*.c "$repo"/tests/web/management/*.c "$repo"/tests/web/network/*.c
+        "$repo"/components/web/management/*.c "$repo"/tests/web/management/*.c "$repo"/tests/web/network/*.c \
+        "$repo"/tests/web/reboot/*.c
     python3 "$repo/scripts/check-web-boundary.py"
     python3 -m unittest discover -s "$repo/tests/build" -p test_web_routes.py
     python3 -m unittest discover -s "$repo/tests/build" -p test_web_tls_profile.py

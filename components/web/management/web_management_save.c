@@ -96,6 +96,13 @@ web_save_view_t web_mgmt_save_view(void)
     return view;
 }
 
+bool crux_web_management_save_pending(void)
+{
+    web_save_view_t view = web_mgmt_save_view();
+
+    return view.state == WEB_SAVE_QUEUED || view.state == WEB_SAVE_RUNNING;
+}
+
 const char *web_mgmt_save_code(crux_config_service_result_t result,
                                crux_config_result_t failed_result)
 {

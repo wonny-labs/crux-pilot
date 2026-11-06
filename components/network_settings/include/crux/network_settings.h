@@ -326,6 +326,16 @@ bool crux_network_settings_work_once(void);
  */
 crux_network_result_t crux_network_settings_recover(crux_access_session_t session);
 
+/**
+ * Whether a save or a recovery is queued or running, for a service that must not cut one short,
+ * such as the reboot service's wait. Takes no session and records nothing. It polls its lock for a
+ * short time and never waits on storage, and a lock that does not come in time reads as pending,
+ * the safe answer.
+ *
+ * @return True while a save or a recovery is in flight. False before crux_network_settings_start().
+ */
+bool crux_network_settings_save_pending(void);
+
 /** What the boot decided, for the composition to log. Zeroed before crux_network_settings_boot().
  */
 void crux_network_settings_boot_report(crux_network_boot_report_t *report);
