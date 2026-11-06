@@ -8,7 +8,7 @@ Owner: `components/file_service/include/crux/file_service.h`; usage target `crux
 
 The service stops a remote client with a valid session from reaching anything but declared areas, and from acting without the area's permission. SFTP and web adapters translate protocols into these calls, and enforcement stays here, in one place. It does not isolate code in the image, and File names are not a security sandbox.
 
-It runs on the [File additions](file-contract.md) and the [access contract](access-contract.md). A private event port, `crux_file_service_port_event`, carries the `file.*` identifiers of Issue #182 until that component exists. No product composition supplies it yet, so an image cannot link this service today.
+It runs on the [File additions](file-contract.md) and the [access contract](access-contract.md). A private event port, `crux_file_service_port_event`, carries the `file.*` identifiers of Issue #182 until that component exists. #242 added its provider, `crux_file_service_security_events`, mapped as [the event contract](security-event-contract.md#from-the-command-line-and-file-service-ports) states, and the [`native_sim` services image](native-composition-242.md) links the service with it. No product composition supplies it yet.
 
 ## Areas
 
