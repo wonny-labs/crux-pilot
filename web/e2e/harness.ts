@@ -27,6 +27,8 @@ export interface OpenOptions {
   recordViolationsOnly?: boolean;
   /** The test sends an answer outside the specification on purpose. */
   allowNonConforming?: boolean;
+  /** Console errors that the test expects. They are kept in `loggedErrors` and do not fail the test. */
+  allowConsoleError?: RegExp;
 }
 
 export interface OpenApp {
@@ -36,6 +38,8 @@ export interface OpenApp {
   violations: string[];
   pageErrors: string[];
   consoleErrors: string[];
+  /** The console errors that `allowConsoleError` matched. */
+  loggedErrors: string[];
   foreignRequests: string[];
   finish(): void;
   close(): Promise<void>;
@@ -87,6 +91,7 @@ export async function openApp(browser: Browser, config: AppConfig, options: Open
   const violations: string[] = [];
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
+  const loggedErrors: string[] = [];
   const foreignRequests: string[] = [];
   await page.addInitScript(() => {
     document.addEventListener('securitypolicyviolation', (event) => {
@@ -98,7 +103,7 @@ export async function openApp(browser: Browser, config: AppConfig, options: Open
     if (text.startsWith('CSP-VIOLATION') || /Content Security Policy|Trusted Type/i.test(text)) {
       violations.push(text);
     } else if (message.type() === 'error' && !text.startsWith('Failed to load resource')) {
-      consoleErrors.push(text);
+      (options.allowConsoleError?.test(text) ? loggedErrors : consoleErrors).push(text);
     }
   });
   page.on('pageerror', (error) => pageErrors.push(String(error)));
@@ -115,6 +120,7 @@ export async function openApp(browser: Browser, config: AppConfig, options: Open
     violations,
     pageErrors,
     consoleErrors,
+    loggedErrors,
     foreignRequests,
     finish() {
       const all = [

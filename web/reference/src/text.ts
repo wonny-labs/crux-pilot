@@ -145,6 +145,8 @@ export const englishText = {
     update: 'Update',
     updating: 'Sending the value to the device…',
     updated: (name: string) => `Updated ${name}. Save the changes to keep them after a restart.`,
+    readBackFailed: (name: string) =>
+      `Updated ${name}, but its new value could not be read back. Save the changes to keep them after a restart.`,
     needValue: 'Enter a value.',
     needInteger: 'Enter a whole number.',
     fieldErrors: {
