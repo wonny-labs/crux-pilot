@@ -365,6 +365,17 @@ test('a device with no Configuration provider answers 501 and keeps its values',
   assert.equal(((await h.call('GET', '/api/v1/network')).body as { saved?: unknown }).saved, undefined);
 });
 
+test('the rules answer before a device with no Configuration provider says 501, and 501 before busy', async () => {
+  await h.login();
+  h.mock.control.set({ networkProvider: false });
+  const invalid = await h.call('PUT', '/api/v1/network', { body: { address: '224.0.0.1', prefix_length: 24 } });
+  assert.equal(invalid.status, 400);
+  assert.deepEqual(invalid.body, { code: 'invalid_field', fields: [{ name: 'address', code: 'not_unicast' }] });
+  const malformed = await h.call('PUT', '/api/v1/network', { body: { address: 'nope', prefix_length: 24 } });
+  assert.equal(malformed.status, 400);
+  assert.deepEqual(malformed.body, { code: 'bad_request' });
+});
+
 test('a reboot needs system.reboot', async () => {
   await h.login('viewer');
   assert.deepEqual((await h.call('POST', '/api/v1/system/reboot')).body, { code: 'permission_denied' });
