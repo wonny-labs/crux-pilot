@@ -411,6 +411,21 @@ crux_network_result_t crux_network_settings_get(crux_access_session_t session,
     return CRUX_NETWORK_OK;
 }
 
+bool crux_network_settings_save_pending(void)
+{
+    bool pending;
+
+    if (!svc.started) {
+        return false;
+    }
+    if (!lock_state(CRUX_NETWORK_SETTINGS_LOCK_WAIT_MS)) {
+        return true;
+    }
+    pending = svc.job == JOB_QUEUED || svc.job == JOB_RUNNING || svc.recovering;
+    unlock_state();
+    return pending;
+}
+
 /* PUT. */
 
 crux_network_result_t crux_network_settings_request(crux_access_session_t session,
