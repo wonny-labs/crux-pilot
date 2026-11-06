@@ -8,9 +8,9 @@ clock must come from their providers too. The test in tests/build holds this che
 It reads symbol names and sources, and it shows nothing about what they do.
 
 --services checks the image of tests/native/management_services (Issue #242) as well: each further service and
-port from its real source, the random path through the entropy driver, and a route table of exactly the routes
-that the components' route sources and the packaged folder define, so that no service is missing and no route
-is added.
+port from its real source, the random path through the entropy driver, a route table of exactly the routes that
+the components' route sources and the packaged folder define, and, from `objdump -t`, one HTTP service whose every
+resource the route table generated, so that no service is missing and no served path is added outside the table.
 """
 import argparse
 import importlib.util
@@ -87,12 +87,26 @@ ROUTE_SOURCES = (
 )
 ROUTE_SYMBOL = "crux_web_route_"
 ROUTE_TABLE_SYMBOLS = {"crux_web_route_table", "crux_web_route_expected", "crux_web_route_count"}
-# A packaged folder's routes are generated, and web_routes.py holds each to the asset handler.
-BUNDLE_SOURCE = re.compile(r"/crux_web_assets/[^/]+/crux_web_assets\.c$")
+# A packaged folder's routes are generated, and web_routes.py holds each to the asset handler. The source must be
+# exactly what crux_web_assets() writes for `app` in this build.
+BUNDLE_SOURCE = "crux_web_assets/app/crux_web_assets.c"
+# The HTTP server iterates these output sections, so a resource or a service defined outside the route table, with
+# HTTP_RESOURCE_DEFINE or a second HTTP_SERVICE_DEFINE, is served even though no crux route names it.
+RESOURCE_SECTION = "http_resource_desc_crux_web_service_area"
+SERVICE_SECTION = "http_service_desc_area"
+RESOURCE_PREFIX = "http_resource_desc_"
+RESOURCE_NAME = re.compile(r"^crux_web_resource_\d{4}$")
+RESOURCE_SOURCE = "crux_web_generated/app/crux_web_resources.c"
+SERVICE = ("crux_web_service", "components/web/ports/zephyr/web_http_server.c")
 # The random path: Zephyr's random API over the entropy driver, which is the declared test-only one.
 RANDOM_SOURCES = {"subsys/random/random_entropy_device.c"}
 ENTROPY_DRIVER = ("entropy_native_sim_get_entropy", "drivers/entropy/fake_entropy_native_sim.c")
-PROFILE_RANDOM = {"mbed": ("mbedtls_psa_external_get_random", "modules/mbedtls/zephyr_entropy.c")}
+PROFILE_RANDOM = {"mbed": ("mbedtls_psa_external_get_random", "modules/mbedtls/zephyr_entropy.c"),
+                  # wolfCrypt's Zephyr seed reads the chosen entropy driver, so one Hash-DRBG under wolfPSA and the
+                  # TLS backend is seeded from it. A custom seed would replace this function.
+                  "wolf": ("wc_GenerateSeed", "wolfcrypt/src/random.c")}
+# Zephyr's random entry points: each that the image holds must come from the entropy device source, with its line.
+RANDOM_ENTRY_POINTS = ("z_impl_sys_rand_get", "z_impl_sys_csrand_get", "z_impl_sys_rand32_get")
 # Anything from a test double. Each name is the prefix of a fake's own functions.
 FAKE_SYMBOL = re.compile(
     r"^(?:access_fake_|credential_fake_|security_event_fake_|config_events_|mgmt_status_fake_|"
@@ -149,7 +163,7 @@ def expected_routes(root=REPOSITORY):
     return expected
 
 
-def route_errors(symbols, root=REPOSITORY, expected=None):
+def route_errors(symbols, root=REPOSITORY, build=None, expected=None):
     expected = expected_routes(root) if expected is None else expected
     errors = []
     # Routes are data objects. The core's own functions share the prefix.
@@ -165,7 +179,7 @@ def route_errors(symbols, root=REPOSITORY, expected=None):
     for name, sources in sorted(linked.items()):
         if name in expected:
             continue
-        if all(source and BUNDLE_SOURCE.search(source) for source in sources):
+        if build and all(source == f"{build}/{BUNDLE_SOURCE}" for source in sources):
             bundle += 1
             continue
         errors.append(f"{name}: a route that no component route source defines, from {sources}")
@@ -177,7 +191,40 @@ def route_errors(symbols, root=REPOSITORY, expected=None):
     return errors
 
 
-def service_errors(symbols, profile, root=REPOSITORY):
+OBJDUMP_LINE = re.compile(r"^[0-9a-fA-F]+ (.{7}) (\S+)\t[0-9a-fA-F]+\s+(?:\.hidden\s+)?(\S+)\s*$")
+
+
+def read_sections(text):
+    """Each data object's output section, from objdump -t. Section bounds are not objects, so they are left out."""
+    sections = {}
+    for line in text.splitlines():
+        match = OBJDUMP_LINE.match(line)
+        if match and "O" in match.group(1):
+            sections.setdefault(match.group(3), []).append(match.group(2))
+    return sections
+
+
+def http_errors(symbols, sections, root=REPOSITORY, build=None):
+    errors = []
+    services = [name for name, found in sections.items() if SERVICE_SECTION in found]
+    if not services:
+        errors.append("no HTTP service in the image")
+    for name in services:
+        if name != SERVICE[0] or symbols.get(name) != [f"{root}/{SERVICE[1]}"]:
+            errors.append(f"{name}: an HTTP service other than {SERVICE[0]} from {SERVICE[1]}, from {symbols.get(name)}")
+    for name, found in sections.items():
+        for section in found:
+            if not section.startswith(RESOURCE_PREFIX):
+                continue
+            if section != RESOURCE_SECTION:
+                errors.append(f"{name}: a resource of another HTTP service, in {section}")
+            elif not RESOURCE_NAME.match(name) or not build or \
+                    symbols.get(name) != [f"{build}/{RESOURCE_SOURCE}"]:
+                errors.append(f"{name}: an HTTP resource that the route table did not generate, from {symbols.get(name)}")
+    return errors
+
+
+def service_errors(symbols, profile, root=REPOSITORY, sections=None, build=None):
     errors = []
     for table in (SERVICE_PORTS, SERVICES):
         for name, source in table.items():
@@ -191,15 +238,20 @@ def service_errors(symbols, profile, root=REPOSITORY):
             if source and "/subsys/random/" in source and \
                     not any(source.endswith("/" + allowed) for allowed in RANDOM_SOURCES):
                 errors.append(f"{name}: a random source other than the entropy driver, {source}")
+    for name in RANDOM_ENTRY_POINTS:
+        for source in symbols.get(name, []):
+            if not source or not any(source.endswith("/" + allowed) for allowed in RANDOM_SOURCES):
+                errors.append(f"{name}: a random entry point from {source}, and only the entropy device source may "
+                              "provide it")
     checks = [ENTROPY_DRIVER] + ([PROFILE_RANDOM[profile]] if profile in PROFILE_RANDOM else [])
     for name, suffix in checks:
         found = symbols.get(name)
         if not found or not all(source and source.endswith("/" + suffix) for source in found):
             errors.append(f"{name}: must come from {suffix}, and comes from {found}")
-    return errors + route_errors(symbols, root)
+    return errors + route_errors(symbols, root, build) + http_errors(symbols, sections or {}, root, build)
 
 
-def errors_in(symbols, profile, root=REPOSITORY, services=False):
+def errors_in(symbols, profile, root=REPOSITORY, services=False, sections=None, build=None):
     errors = []
     test_source = SERVICES_TEST_SOURCE if services else TEST_SOURCE
     for port, source in PORTS.items():
@@ -227,7 +279,7 @@ def errors_in(symbols, profile, root=REPOSITORY, services=False):
         if name in symbols:
             errors.append(f"{name}: the other profile's provider is in the image")
     if services:
-        errors += service_errors(symbols, profile, root)
+        errors += service_errors(symbols, profile, root, sections, build)
     return errors
 
 
@@ -240,13 +292,20 @@ def main():
     args = parser.parse_args()
     output = subprocess.run(["nm", "--defined-only", "-l", args.image], check=True, capture_output=True,
                             text=True).stdout
-    errors = errors_in(read_symbols(output), args.profile, services=args.services)
+    sections, build = None, None
+    if args.services:
+        sections = read_sections(subprocess.run(["objdump", "-t", args.image], check=True, capture_output=True,
+                                                text=True).stdout)
+        # The image is <build>/zephyr/zephyr.exe, and the generated sources sit under <build>.
+        build = str(Path(args.image).resolve().parents[1])
+    errors = errors_in(read_symbols(output), args.profile, services=args.services, sections=sections, build=build)
     for error in errors:
         print(error, file=sys.stderr)
     if errors:
         return 1
     listed = len(PORTS) + (len(SERVICE_PORTS) + len(SERVICES) if args.services else 0)
-    extra = f", and {len(expected_routes())} component routes and no other" if args.services else ""
+    extra = (f", and {len(expected_routes())} component routes and no other, and one HTTP service whose resources the "
+             "route table generated") if args.services else ""
     print(f"{args.image}: {listed} listed symbols from their real sources, no test double, {args.profile} profile"
           f"{extra}")
     return 0

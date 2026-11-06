@@ -22,7 +22,7 @@ that the protocols and the algorithms run for real. It does not mean that any se
 | Listener certificate | **The declared test certificate** of #263, as in #185's image. The TLS certificate module's own certificate is generated and checked, and **not handed to the listener**: see [how #242 relies on #284](#how-this-relies-on-the-tls-certificate-decisions). | Named in results |
 | First account | **Declared test step**: serial provisioning called directly, in place of the console of #181 | Named in results |
 | Command line transport | **Test transport**: `crux_cli_exec` on the serial channel into a buffer. The serial console over Crux Serial is not composed on `native_sim`, as the [CLI contract](cli-contract.md) records. | `native_sim` |
-| Entropy | **Test-only**, `fake_entropy_native_sim`, now refused by a guard in any build that has not declared itself a `native_sim` test image | `native_sim`, [guards](#entropy-guards) |
+| Entropy | **Test-only**, `fake_entropy_native_sim`. In any build of the services composition, a tripwire refuses it unless the image declares itself a `native_sim` test image. Other builds, such as #263's and #185's images, are outside its reach. | `native_sim`, [guards](#entropy-guards) |
 | Routes | **Exactly the components' routes**: 12 from three route sources, and the packaged folder. No test route. | Image check, driver |
 | SSH, SFTP | **Not composed**: not in the list of #242's services, and wolfSSH is not in this image | |
 | Anything on RT1060-EVKB | **Not run, not compiled here** | |
@@ -130,8 +130,18 @@ as `/probe/echo`, are `404`.
 
 ## Routes
 
-The image names only the components' route sources to `crux_web_routes()`, and `--services` holds the linked table to
-exactly their routes, read from the image.
+The image names only the components' route sources to `crux_web_routes()`. `--services` reads the linked image and checks
+both levels that can serve a path:
+
+- **The crux route table** holds exactly the components' routes. Packaged-folder routes count only when their source is
+  the file that `crux_web_assets()` writes for `app` in the build being checked.
+- **The HTTP server's own sections.** `crux_web_service`, from `web_http_server.c`, is the only member of
+  `http_service_desc_area`. Every member of `http_resource_desc_crux_web_service_area` is a `crux_web_resource_NNNN` from
+  the generated `crux_web_resources.c`, and no other service has a resource section. This needs `objdump -t` beside
+  `nm -l`, so a raw `HTTP_RESOURCE_DEFINE` or a second HTTP service in the image fails the check, though no crux route
+  names it.
+
+The check reads names, sources and sections. It cannot see a handler that answers paths its route does not name.
 
 | Source | Routes | Access classes |
 | --- | --- | --- |
@@ -146,8 +156,21 @@ exactly their routes, read from the image.
 ## Entropy guards
 
 A real PSA provider here is TF-PSA-Crypto or wolfPSA, the providers #142 qualified, fed by the entropy driver. On
-`native_sim` the only driver is `fake_entropy_native_sim`, which stays declared test-only. These guards keep that from
-reaching any other build.
+`native_sim` the only driver is `fake_entropy_native_sim`, which stays declared test-only.
+
+**Scope.** The first three guards below are reached only by a build that calls `crux_native_management_compose_services()`,
+which today is `tests/native/management_services` alone. They are a **tripwire, not a boundary**:
+
+- `tests/native/management_composition` (#263) and `tests/native/web_https` (#185) set `CONFIG_FAKE_ENTROPY_NATIVE_SIM=y`
+  with no mark and still build, because they do not call that function.
+- Any services build that passes `-DCRUX_NATIVE_MANAGEMENT_TEST_IMAGE=ON` gets through. Such a build is possible only on
+  `native_sim`.
+
+What stops a board build is unchanged:
+
+- The `#error` in each PSA port: `access_psa.c:16`, `credential_psa.c`, `tls_certificate_psa.c` and `web_session_psa.c`.
+- `FAKE_ENTROPY_NATIVE_SIM`'s Kconfig dependency on `DT_HAS_ZEPHYR_NATIVE_SIM_RNG_ENABLED`, the `native_sim` RNG node, at the
+  Zephyr pin.
 
 | Guard | Where | Refuses | Control |
 | --- | --- | --- | --- |
@@ -155,7 +178,7 @@ reaching any other build.
 | The same in C | `composition/entropy_guard.h` | The same, and any board but `native_sim` with the mark | `check_cmake_guard.py` compiles it with five settings |
 | Zephyr's test random generator | Both of the above | `CONFIG_TEST_RANDOM_GENERATOR`, in any build of the services composition | The same |
 | A board build | The PSA ports of #263, #186 and #190, unchanged | A test generator on any board | `scripts/test-native-composition.sh target-*` |
-| The random path in the image | `check-composition-image.py --services` | A symbol from any `subsys/random` source but `random_entropy_device.c`, a missing entropy driver, and on Mbed a PSA random source other than Zephyr's `zephyr_entropy.c` | Python mutations |
+| The random path in the image | `check-composition-image.py --services` | A symbol from any `subsys/random` source but `random_entropy_device.c`; Zephyr's random entry points from anywhere else or with no line information; a missing entropy driver; on Mbed a PSA random source other than Zephyr's `zephyr_entropy.c`; on Wolf a wolfCrypt seed other than `wc_GenerateSeed` in wolfCrypt's `random.c`, which at the pin reads the chosen entropy driver | Python mutations |
 | Plain HTTP | `services.cmake` | `CONFIG_CRUX_WEB_PLAIN_HTTP_FOR_TESTS`, or no `CONFIG_CRUX_WEB` | `check_cmake_guard.py` |
 
 ## Mutations of the wiring
@@ -174,7 +197,10 @@ The Python rows hold the check itself to synthetic images, in `tests/build/test_
 | Test entropy accepted on a non-test build: the image's test mark removed | Configuration fails, `services.cmake` |
 | A test random generator, synthetic: three `subsys/random` sources | Image check |
 | Route table: the network routes left out | Image check: two routes missing |
-| Route table, synthetic: a test route added, a route moved to test code, a generated route that is not the folder's | Image check |
+| Route table, synthetic: a test route added, a route moved to test code, a generated route that is not the folder's, a folder route outside this build's packager output | Image check |
+| HTTP sections, synthetic: a raw `HTTP_RESOURCE_DEFINE` in the image's code, a resource of another HTTP service, a second HTTP service, no HTTP service | Image check, added after review |
+| A service port missing, or from another component's source, for each of the 11 ports. Every listed service and port is named in the test. | Image check, added after review |
+| Random, synthetic: a random entry point with no line information, a Wolf seed missing or from test code | Image check, added after review |
 | The packaged folder left out | The build: the reviewed line `public GET @assets` has no route |
 | The check itself: services skipped, routes skipped, random sources skipped, extra routes allowed, the test-code rule off | The Python suite, each |
 
@@ -186,14 +212,18 @@ The Python rows hold the check itself to synthetic images, in `tests/build/test_
 | --- | --- | --- |
 | A, the reference validity to 9999-12-31 | Starts the module with `CRUX_TLS_CERTIFICATE_DEFAULT_NOT_BEFORE_S` and no expiry, the reference options | Uses the reference as it stands. OpenSSL reads `Not After : Dec 31 23:59:59 9999 GMT`. |
 | B, the private key as PKCS #8 bytes handed to Zephyr's TLS credentials | **Does not hand it over.** The listener keeps the declared test certificate. | Not relied on. Registering the module's material with the listener waits for B. |
-| C, `psa_sign_hash` outside #142's subset | Signs the self-signed certificate at first boot with the module's PSA port | **Relied on**: the port ran here on TF-PSA-Crypto and on wolfPSA, and OpenSSL verified both certificates. A run is not a qualification, and #142's subset is unchanged. |
+| C, `psa_sign_hash` outside #142's subset | Signs the self-signed certificate at first boot with the module's PSA port | **Relied on**: the port ran here on TF-PSA-Crypto and on wolfPSA, and OpenSSL verified both certificates. #284's recommendation for C is to accept it for review now and "qualify it on wolfPSA before a Wolf-profile composition". **This test image is such a composition**, and that qualification has not been done: a run is not a qualification, and #142's subset is unchanged. The owner decides whether the Wolf profile of this image waits for it. |
 
 ## Results
 
 Host, `native_sim` and physical evidence stay apart. No physical claim is made.
 
 Run in the Dev Container image on `native_sim/native/64`, by `scripts/test-native-composition.sh mbed` and `wolf` at
-`2d22c54`, which the later commits change only in documents and retained results. Retained in
+`2d22c54`. The commits from `2d22c54` to `3edebd8` change only documents and retained evidence. The retained files do
+not name their revision, and #263's evidence has the same gap. From now on, the driver writes `revision` and `dirty`
+into every results file it writes, and any new retained results carry them. After review, the image check gained the
+HTTP section, folder, random entry point and Wolf seed rules. The Mbed and Wolf runs that tested those rules are in
+[after review](#after-review). Retained in
 [`docs/evidence/native-services/`](evidence/native-services/). CI's `psa-crypto` workflow runs the Mbed mode, and so the
 services image, with no workflow change. The Wolf profile is local only, as for #263 and #185.
 
@@ -244,7 +274,7 @@ image; anything physical.
 | 4 | `file.recovery_needed` is `FAILED`, and `file.storage_failed` is `LIMIT` for a full medium | The contract gave no result for them. The record's result follows what happened, as for `credential.*`. | Per the owner |
 | 5 | The file service's records carry the area as subject and never a file name | A file name is client input, and the port's own comment keeps refused names out | |
 | 6 | Permissions `file.read`, `file.write` and `tls.manage` are added to the composition's roles only in the services image | The file area and the certificate need them, and the other images stay unchanged | |
-| 7 | A guard refuses test entropy unless the image declares itself a `native_sim` test image, and refuses Zephyr's test random generator outright | The task asks for a guard on a non-test build, and `native_sim` has no other entropy driver | A product composition sets neither |
+| 7 | In any build of the services composition, a tripwire refuses test entropy unless the image declares itself a `native_sim` test image, and refuses Zephyr's test random generator outright. The PSA ports' own guards stay what stops a board. | The task asks for a guard on a non-test build, and `native_sim` has no other entropy driver | A product composition sets neither |
 | 8 | The command line runs through `crux_cli_exec` on a test transport | No `native_sim` serial console exists, and the CLI's own checks are what #242 needs | Compose the console on a UART emulator |
 | 9 | The checks join the existing family: `check-composition-image.py --services`, `scripts/test-native-composition.sh` mbed and wolf, `check_cmake_guard.py`, `tests/build/test_composition_image.py`, `tests/management_providers` | The task asks for it, and CI's PSA workflow already runs `test-native-composition.sh mbed`, so no workflow changes | |
 | 10 | The image reuses #185's offload FIN fix copy | Without it a client that closes TCP without `close_notify` spins the Mbed server | Drop it when the driver is fixed upstream |

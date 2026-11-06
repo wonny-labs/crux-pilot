@@ -214,7 +214,7 @@ The mapping is [the design's](psa-crypto-design.md#what-each-port-calls), and th
 | Mutation, each tried once | Caught by |
 | --- | --- |
 | The core reuses a zero nonce | 3 of these credential suites, and the composition's check that the two slots' nonces differ |
-| The stored cost is 1 PBKDF2 iteration, by the stored cost alone | `test_07_stored_verifier_is_real` in the composition, which also recomputes the stored verifier. Not by these suites. The mutation of the account's own field, `account->iterations = 1u`, is caught by them, at `security.c:82`. |
+| The stored cost is 1 PBKDF2 iteration, by the stored cost alone | `test_07_stored_verifier_is_real` in the composition, which also recomputes the stored verifier. Not by these suites. The mutation of the account's own field, `account->iterations = 1u`, is caught by them, at `tests/access/security.c:82`. |
 | Seal ignores its additional data | `credential_conformance_fake` here |
 | Seal keeps its key slot | `ports_leave_no_key_slot`, on TF-PSA-Crypto on `native_sim` only |
 

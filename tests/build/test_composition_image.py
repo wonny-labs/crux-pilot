@@ -15,6 +15,19 @@ errors_in = CHECK["errors_in"]
 SERVICE_PORTS = CHECK["SERVICE_PORTS"]
 SERVICES = CHECK["SERVICES"]
 REPOSITORY = Path(__file__).resolve().parents[2]
+BUILD = "/ws/crux-pilot/build/x"
+EXPECTED_SERVICES = {
+    "crux_web_start", "crux_web_session_init", "crux_web_management_init", "crux_web_assets_serve",
+    "crux_network_settings_start", "crux_network_settings_cli_commands", "crux_tls_certificate_start",
+    "crux_cli_init", "crux_file_service_start", "crux_config_service_start", "crux_mgmt_status_start",
+    "crux_security_event_init", "crux_access_init", "crux_credential_start",
+}
+EXPECTED_SERVICE_PORTS = {
+    "crux_web_session_port_random", "crux_web_session_port_hash", "crux_tls_certificate_port_sha256",
+    "crux_tls_certificate_port_sign", "crux_tls_certificate_port_random", "crux_tls_certificate_port_event",
+    "crux_network_settings_port_apply", "crux_network_settings_port_running", "crux_network_settings_port_event",
+    "crux_cli_port_event", "crux_file_service_port_event",
+}
 
 
 ROOT = "/ws/crux-pilot"
@@ -99,7 +112,7 @@ def services_image(profile="mbed"):
     for table in (SERVICE_PORTS, SERVICES):
         lines += [f"0000000000400000 T {name}\t{ROOT}/{source}:10" for name, source in table.items()]
     lines += [f"0000000000400000 R {name}\t{source}:1" for name, source in CHECK["expected_routes"](ROOT).items()]
-    generated = f"{ROOT}/build/x/crux_web_assets/app/crux_web_assets.c"
+    generated = f"{BUILD}/crux_web_assets/app/crux_web_assets.c"
     lines.append(f"0000000000400000 R crux_web_route_crux_web_asset_route_0\t{generated}:5")
     lines += [f"0000000000400000 R {name}\t{ROOT}/build/x/crux_web_generated/app/crux_web_routes.c:3"
               for name in CHECK["ROUTE_TABLE_SYMBOLS"]]
@@ -107,14 +120,29 @@ def services_image(profile="mbed"):
     lines.append("0000000000400000 T z_impl_sys_rand_get\t/ws/zephyr/subsys/random/random_entropy_device.c:61")
     if profile == "mbed":
         lines.append("0000000000400000 t mbedtls_psa_external_get_random\t/ws/zephyr/modules/mbedtls/zephyr_entropy.c:59")
+    else:
+        lines.append("0000000000400000 T wc_GenerateSeed\t/ws/modules/crypto/wolfssl/wolfcrypt/src/random.c:9433")
+    lines += [f"0000000000400000 r crux_web_resource_{index:04d}\t{BUILD}/crux_web_generated/app/crux_web_resources.c:3"
+              for index in range(3)]
+    lines.append(f"0000000000400000 r crux_web_service\t{ROOT}/components/web/ports/zephyr/web_http_server.c:120")
     lines.append(f"0000000000400000 T main\t{ROOT}/tests/native/management_services/src/main.c:1")
     # The core's functions share the routes' prefix, and are not routes.
     lines.append(f"0000000000400000 T crux_web_route_find\t{ROOT}/components/web/src/web_route.c:20")
     return lines
 
 
-def service_errors(lines, profile="mbed"):
-    return errors_in(read_symbols("\n".join(lines)), profile, ROOT, services=True)
+def image_sections(extra=()):
+    """What objdump -t gives for the HTTP sections of the image: each name and its output section."""
+    sections = {f"crux_web_resource_{index:04d}": [CHECK["RESOURCE_SECTION"]] for index in range(3)}
+    sections["crux_web_service"] = [CHECK["SERVICE_SECTION"]]
+    for name, section in extra:
+        sections.setdefault(name, []).append(section)
+    return sections
+
+
+def service_errors(lines, profile="mbed", sections=None):
+    return errors_in(read_symbols("\n".join(lines)), profile, ROOT, services=True,
+                     sections=image_sections() if sections is None else sections, build=BUILD)
 
 
 class ServicesImageTest(unittest.TestCase):
@@ -132,11 +160,23 @@ class ServicesImageTest(unittest.TestCase):
             self.assertIn(f"{name}: not in the image, so its service or provider is missing",
                           service_errors(lines), name)
 
-    def test_every_listed_service_is_named(self):
-        for name in ("crux_web_session_init", "crux_web_management_init", "crux_network_settings_start",
-                     "crux_tls_certificate_start", "crux_cli_init", "crux_file_service_start",
-                     "crux_config_service_start", "crux_mgmt_status_start", "crux_security_event_init"):
-            self.assertIn(name, SERVICES)
+    def test_every_listed_service_and_port_is_named(self):
+        self.assertEqual(set(SERVICES), EXPECTED_SERVICES)
+        self.assertEqual(set(SERVICE_PORTS), EXPECTED_SERVICE_PORTS)
+
+    def test_a_missing_service_port_fails(self):
+        for name in SERVICE_PORTS:
+            lines = [line for line in services_image() if f" {name}\t" not in line]
+            self.assertIn(f"{name}: not in the image, so its service or provider is missing",
+                          service_errors(lines), name)
+
+    def test_a_service_port_from_another_component_source_fails(self):
+        for name, source in SERVICE_PORTS.items():
+            other = f"{ROOT}/components/web/ports/psa/another_provider.c"
+            lines = [line.replace(f"{ROOT}/{source}", other) if f" {name}\t" in line else line
+                     for line in services_image()]
+            found = service_errors(lines)
+            self.assertIn(f"{name}: comes from ['{other}'], and must come from {ROOT}/{source}", found, name)
 
     def test_a_service_port_from_a_fake_fails(self):
         fakes = {"crux_cli_port_event": "tests/cli/fake_events.c",
@@ -147,8 +187,9 @@ class ServicesImageTest(unittest.TestCase):
             lines = [line.replace(f"{ROOT}/{SERVICE_PORTS[name]}", f"{ROOT}/{fake}") if f" {name}\t" in line
                      else line for line in services_image()]
             found = service_errors(lines)
-            self.assertTrue(any(f"{name}: comes from" in error for error in found), found)
-            self.assertTrue(any("comes from test code" in error for error in found), found)
+            self.assertIn(f"{name}: comes from ['{ROOT}/{fake}'], and must come from {ROOT}/{SERVICE_PORTS[name]}",
+                          found)
+            self.assertIn(f"{name}: comes from test code, {ROOT}/{fake}", found)
 
     def test_the_wrong_psa_provider_fails(self):
         lines = [re.sub(r"\t/ws/modules/crypto/tf-psa-crypto/.*", "\t/ws/modules/crypto/wolfpsa/src/psa_engine.c:1",
@@ -167,6 +208,64 @@ class ServicesImageTest(unittest.TestCase):
         lines = [line for line in services_image() if "entropy_native_sim_get_entropy" not in line]
         self.assertTrue(any("entropy_native_sim_get_entropy: must come from" in error
                             for error in service_errors(lines)))
+
+    def test_a_random_entry_point_without_line_information_fails(self):
+        for name in ("z_impl_sys_rand_get", "z_impl_sys_csrand_get"):
+            lines = [line for line in services_image() if f" {name}\t" not in line]
+            lines.append(f"0000000000400000 T {name}")
+            found = service_errors(lines)
+            self.assertTrue(any(f"{name}: a random entry point" in error for error in found), found)
+
+    def test_the_wolf_seed_comes_from_wolfcrypt_over_the_entropy_driver(self):
+        lines = [line for line in services_image("wolf") if " wc_GenerateSeed\t" not in line]
+        self.assertTrue(any("wc_GenerateSeed: must come from" in error for error in service_errors(lines, "wolf")))
+        lines = [line.replace("/wolfssl/wolfcrypt/src/random.c", "/tests/native/management_services/seed.c")
+                 for line in services_image("wolf")]
+        self.assertTrue(any("wc_GenerateSeed: must come from" in error for error in service_errors(lines, "wolf")))
+
+    def test_a_folder_route_outside_the_packager_output_fails(self):
+        for source in (f"{ROOT}/tests/native/management_services/crux_web_assets/x/crux_web_assets.c",
+                       "/elsewhere/crux_web_assets/app/crux_web_assets.c"):
+            lines = [line.replace(f"{BUILD}/crux_web_assets/app/crux_web_assets.c", source)
+                     for line in services_image()]
+            found = service_errors(lines)
+            self.assertTrue(any("crux_web_asset_route_0: a route that no component" in error for error in found),
+                            found)
+
+    def test_a_raw_http_resource_fails(self):
+        lines = services_image() + [
+            f"0000000000400000 r probe_resource\t{ROOT}/tests/native/management_services/src/main.c:9"]
+        found = service_errors(lines, sections=image_sections([("probe_resource", CHECK["RESOURCE_SECTION"])]))
+        self.assertTrue(any("probe_resource: an HTTP resource that the route table did not generate" in error
+                            for error in found), found)
+
+    def test_a_resource_of_another_http_service_fails(self):
+        lines = services_image() + [
+            f"0000000000400000 r other_resource\t{ROOT}/tests/native/management_services/src/main.c:9"]
+        found = service_errors(lines, sections=image_sections([("other_resource", "http_resource_desc_other_area")]))
+        self.assertTrue(any("other_resource: a resource of another HTTP service" in error for error in found), found)
+
+    def test_a_second_http_service_fails(self):
+        lines = services_image() + [
+            f"0000000000400000 r plain_service\t{ROOT}/tests/native/management_services/src/main.c:9"]
+        found = service_errors(lines, sections=image_sections([("plain_service", CHECK["SERVICE_SECTION"])]))
+        self.assertTrue(any("plain_service: an HTTP service other than crux_web_service" in error for error in found),
+                        found)
+
+    def test_no_http_section_is_read_as_a_failure(self):
+        self.assertTrue(any("no HTTP service" in error for error in service_errors(services_image(), sections={})))
+
+    def test_objdump_lines_give_each_name_its_section(self):
+        text = ("000000000047d678 l     O http_resource_desc_crux_web_service_area\t0000000000000010"
+                "              .hidden crux_web_resource_0000\n"
+                "000000000047cf60 l       http_service_desc_area\t0000000000000000              _http_service_desc_list_start\n"
+                "000000000047cf60 g     O http_service_desc_area\t0000000000000040 crux_web_service\n"
+                "0000000000400000 g     F .text\t0000000000000010 main\n")
+        sections = CHECK["read_sections"](text)
+        self.assertEqual(sections["crux_web_resource_0000"], ["http_resource_desc_crux_web_service_area"])
+        self.assertEqual(sections["crux_web_service"], ["http_service_desc_area"])
+        self.assertNotIn("_http_service_desc_list_start", sections)
+        self.assertNotIn("main", sections)
 
     def test_an_added_route_fails(self):
         for source in ("tests/native/web_http/src/probe_routes.c", "components/web/management/extra.c"):

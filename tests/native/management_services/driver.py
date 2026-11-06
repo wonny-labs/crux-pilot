@@ -351,6 +351,16 @@ def openssl_checks(der, fingerprint, directory):
             failures.append(f"OpenSSL on the generated certificate: {name}")
 
 
+def revision():
+    """The commit and whether the tree had changes, so that a retained result names what produced it."""
+    def git(*arguments):
+        result = subprocess.run(["git", "-C", str(REPOSITORY), *arguments], capture_output=True, text=True)
+        return result.stdout.strip() if result.returncode == 0 else None
+    head = git("rev-parse", "HEAD")
+    status = git("status", "--porcelain")
+    return {"revision": head or "unknown", "dirty": None if status is None else bool(status)}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("executable", type=pathlib.Path)
@@ -359,6 +369,7 @@ def main():
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     results["profile"] = args.profile
+    results.update(revision())
     with tempfile.TemporaryDirectory() as temporary:
         directory = pathlib.Path(temporary)
         disk = directory / "disk.bin"
