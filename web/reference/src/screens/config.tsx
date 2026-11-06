@@ -135,11 +135,17 @@ function Configuration() {
 
   useEffect(() => {
     void load();
-    return () => {
+  }, []);
+
+  // A passive effect's cleanup runs after the next paint, so a call that ended in the gap would still find the
+  // screen live. A layout effect stops them in the same step as the screen changes.
+  useLayoutEffect(
+    () => () => {
       loading.current?.abort();
       working.current?.abort();
-    };
-  }, []);
+    },
+    [],
+  );
 
   useLayoutEffect(() => {
     if (focusName.current !== null) {
