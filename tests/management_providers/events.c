@@ -1,12 +1,16 @@
 /* The event providers and the status sources over the public contracts they call: the fake of the
  * Security event contract, a real Access session and a stand-in for the store's public getter. */
+#include "cli_port.h"
 #include "config_service_port.h"
 #include "credential_port.h"
+#include "file_service_port.h"
 #include "mgmt_status_port.h"
+#include "network_settings_port.h"
 
 #include "access_test.h"
 
 #include <crux/security_event.h>
+#include <crux_access_adapter.h>
 #include <security_event_fake.h>
 
 #include <stdio.h>
@@ -77,6 +81,57 @@ static void config_events(void)
         CHECK(record->channel == 0u);
         CHECK(record->source_length == 0u);
         CHECK(strcmp(record->subject, "net.hostname") == 0);
+    }
+}
+
+static void network_events(void)
+{
+    static const struct {
+        crux_network_settings_event_t event;
+        crux_security_event_id_t id;
+        crux_security_event_result_t result;
+    } rows[] = {
+        {CRUX_NETWORK_SETTINGS_EVENT_CHANGED, CRUX_SECURITY_EVENT_ID_NETWORK_CHANGED,
+         CRUX_SECURITY_EVENT_OK},
+        {CRUX_NETWORK_SETTINGS_EVENT_SAVE_FAILED, CRUX_SECURITY_EVENT_ID_NETWORK_SAVE_FAILED,
+         CRUX_SECURITY_EVENT_FAILED},
+        {CRUX_NETWORK_SETTINGS_EVENT_SAVED_IGNORED, CRUX_SECURITY_EVENT_ID_NETWORK_SAVED_IGNORED,
+         CRUX_SECURITY_EVENT_OK},
+    };
+    crux_access_session_t session = web_session();
+    for (size_t index = 0; index < sizeof(rows) / sizeof(rows[0]); ++index) {
+        security_event_fake_reset();
+        security_event_fake_boot();
+        crux_network_settings_port_event(rows[index].event, session);
+        CHECK(security_event_fake_count() == 1u);
+        CHECK(security_event_fake_count_of(rows[index].id) == 1u);
+        const crux_security_event_record_t *record = security_event_fake_last(rows[index].id);
+        CHECK(record != NULL);
+        if (record != NULL) {
+            CHECK(record->id == rows[index].id);
+            CHECK(record->result == rows[index].result);
+            /* No subject: an event of this service names no address and no value. */
+            CHECK(record->subject[0] == '\0');
+            CHECK(strcmp(record->user, ACCESS_TEST_ADMIN) == 0);
+            CHECK(record->channel == access_test_web.channel);
+            CHECK(record->source_length == access_test_web.source_length);
+            CHECK(memcmp(record->source, access_test_web.source, access_test_web.source_length) ==
+                  0);
+        }
+    }
+
+    /* A session that has ended still leaves the record, naming nobody. */
+    security_event_fake_reset();
+    security_event_fake_boot();
+    const crux_access_session_t ended = {0};
+    crux_network_settings_port_event(CRUX_NETWORK_SETTINGS_EVENT_CHANGED, ended);
+    const crux_security_event_record_t *record =
+        security_event_fake_last(CRUX_SECURITY_EVENT_ID_NETWORK_CHANGED);
+    CHECK(record != NULL);
+    if (record != NULL) {
+        CHECK(record->user[0] == '\0');
+        CHECK(record->channel == 0u);
+        CHECK(record->source_length == 0u);
     }
 }
 
@@ -237,9 +292,135 @@ static void credential_events(void)
                          CRUX_SECURITY_EVENT_FAILED, "");
 }
 
+/* Issue #242: the command line's events. The record names the session's user and channel, never
+ * the line, and has no subject. */
+static void cli_events(void)
+{
+    static const struct {
+        crux_cli_event_type_t type;
+        crux_cli_event_outcome_t outcome;
+        crux_security_event_id_t id;
+        crux_security_event_result_t result;
+    } rows[] = {
+        {CRUX_CLI_EVENT_LINE_REJECTED, CRUX_CLI_EVENT_INVALID,
+         CRUX_SECURITY_EVENT_ID_CLI_LINE_REJECTED, CRUX_SECURITY_EVENT_INVALID},
+        {CRUX_CLI_EVENT_LINE_REJECTED, CRUX_CLI_EVENT_LIMIT,
+         CRUX_SECURITY_EVENT_ID_CLI_LINE_REJECTED, CRUX_SECURITY_EVENT_LIMIT},
+        {CRUX_CLI_EVENT_LINE_REJECTED, CRUX_CLI_EVENT_DENIED,
+         CRUX_SECURITY_EVENT_ID_CLI_LINE_REJECTED, CRUX_SECURITY_EVENT_DENIED},
+        {CRUX_CLI_EVENT_CONSOLE_ERROR, CRUX_CLI_EVENT_FAILED,
+         CRUX_SECURITY_EVENT_ID_CLI_CONSOLE_ERROR, CRUX_SECURITY_EVENT_FAILED},
+    };
+    for (size_t index = 0; index < sizeof(rows) / sizeof(rows[0]); ++index) {
+        crux_cli_event_t event = {.type = rows[index].type,
+                                  .outcome = rows[index].outcome,
+                                  .channel = CRUX_ACCESS_CHANNEL_SERIAL};
+        (void)snprintf(event.user, sizeof(event.user), "%s", ACCESS_TEST_ADMIN);
+        security_event_fake_reset();
+        security_event_fake_boot();
+        crux_cli_port_event(&event);
+        CHECK(security_event_fake_count_of(rows[index].id) == 1u);
+        const crux_security_event_record_t *record = security_event_fake_last(rows[index].id);
+        CHECK(record != NULL);
+        if (record != NULL) {
+            CHECK(record->result == rows[index].result);
+            CHECK(strcmp(record->user, ACCESS_TEST_ADMIN) == 0);
+            CHECK(record->channel == CRUX_ACCESS_CHANNEL_SERIAL);
+            CHECK(record->source_length == 0u);
+            CHECK(record->subject[0] == '\0');
+        }
+    }
+
+    /* Before login there is no user: the record names nobody, and nothing is counted invalid. */
+    security_event_fake_reset();
+    security_event_fake_boot();
+    const crux_cli_event_t anonymous = {.type = CRUX_CLI_EVENT_LINE_REJECTED,
+                                        .outcome = CRUX_CLI_EVENT_INVALID,
+                                        .channel = CRUX_ACCESS_CHANNEL_SSH};
+    crux_cli_port_event(&anonymous);
+    const crux_security_event_record_t *record =
+        security_event_fake_last(CRUX_SECURITY_EVENT_ID_CLI_LINE_REJECTED);
+    CHECK(record != NULL);
+    if (record != NULL) {
+        CHECK(record->user[0] == '\0');
+        CHECK(record->channel == CRUX_ACCESS_CHANNEL_SSH);
+    }
+    crux_security_event_stats_t stats = {0};
+    CHECK(crux_security_event_get_stats(&stats) == CRUX_OK);
+    CHECK(stats.invalid_fields == 0u);
+    crux_cli_port_event(NULL);
+    CHECK(security_event_fake_count_of(CRUX_SECURITY_EVENT_ID_CLI_LINE_REJECTED) == 1u);
+}
+
+/* Issue #242: the file service's events. The subject is the area, never a file name, and the
+ * session gives the user and the origin. */
+static void file_events(void)
+{
+    static const struct {
+        crux_file_service_event_t event;
+        bool storage_limit;
+        crux_security_event_id_t id;
+        crux_security_event_result_t result;
+    } rows[] = {
+        {CRUX_FILE_SERVICE_EVENT_CREATED, false, CRUX_SECURITY_EVENT_ID_FILE_CREATED,
+         CRUX_SECURITY_EVENT_OK},
+        {CRUX_FILE_SERVICE_EVENT_REMOVED, false, CRUX_SECURITY_EVENT_ID_FILE_REMOVED,
+         CRUX_SECURITY_EVENT_OK},
+        {CRUX_FILE_SERVICE_EVENT_RENAMED, false, CRUX_SECURITY_EVENT_ID_FILE_RENAMED,
+         CRUX_SECURITY_EVENT_OK},
+        {CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED, false,
+         CRUX_SECURITY_EVENT_ID_FILE_PARTIAL_REMOVED, CRUX_SECURITY_EVENT_OK},
+        {CRUX_FILE_SERVICE_EVENT_RECOVERY_NEEDED, false,
+         CRUX_SECURITY_EVENT_ID_FILE_RECOVERY_NEEDED, CRUX_SECURITY_EVENT_FAILED},
+        {CRUX_FILE_SERVICE_EVENT_NAME_REJECTED, false, CRUX_SECURITY_EVENT_ID_FILE_NAME_REJECTED,
+         CRUX_SECURITY_EVENT_INVALID},
+        {CRUX_FILE_SERVICE_EVENT_COMMIT_FAILED, false, CRUX_SECURITY_EVENT_ID_FILE_COMMIT_FAILED,
+         CRUX_SECURITY_EVENT_FAILED},
+        {CRUX_FILE_SERVICE_EVENT_STORAGE_FAILED, false, CRUX_SECURITY_EVENT_ID_FILE_STORAGE_FAILED,
+         CRUX_SECURITY_EVENT_FAILED},
+        {CRUX_FILE_SERVICE_EVENT_STORAGE_FAILED, true, CRUX_SECURITY_EVENT_ID_FILE_STORAGE_FAILED,
+         CRUX_SECURITY_EVENT_LIMIT},
+    };
+    crux_access_session_t session = web_session();
+    for (size_t index = 0; index < sizeof(rows) / sizeof(rows[0]); ++index) {
+        security_event_fake_reset();
+        security_event_fake_boot();
+        crux_file_service_port_event(rows[index].event, session, "logs", "secret-name.txt",
+                                     "other-name.txt", rows[index].storage_limit);
+        CHECK(security_event_fake_count_of(rows[index].id) == 1u);
+        const crux_security_event_record_t *record = security_event_fake_last(rows[index].id);
+        CHECK(record != NULL);
+        if (record != NULL) {
+            CHECK(record->result == rows[index].result);
+            CHECK(strcmp(record->subject, "logs") == 0);
+            CHECK(strcmp(record->user, ACCESS_TEST_ADMIN) == 0);
+            CHECK(record->channel == access_test_web.channel);
+            CHECK(record->source_length == access_test_web.source_length);
+        }
+    }
+
+    /* What start finds has no session: the record names nobody and keeps the area. */
+    security_event_fake_reset();
+    security_event_fake_boot();
+    const crux_access_session_t none = {0};
+    crux_file_service_port_event(CRUX_FILE_SERVICE_EVENT_PARTIAL_REMOVED, none, "logs", NULL, NULL,
+                                 false);
+    const crux_security_event_record_t *record =
+        security_event_fake_last(CRUX_SECURITY_EVENT_ID_FILE_PARTIAL_REMOVED);
+    CHECK(record != NULL);
+    if (record != NULL) {
+        CHECK(record->user[0] == '\0');
+        CHECK(record->channel == 0u);
+        CHECK(strcmp(record->subject, "logs") == 0);
+    }
+}
+
 int main(void)
 {
     config_events();
+    cli_events();
+    file_events();
+    network_events();
     status_event_counts();
     status_credential_words();
     credential_events();

@@ -2,6 +2,9 @@
 
 #include "file_native.h"
 #include "test_tls_credentials.h"
+#if defined(CRUX_NATIVE_MANAGEMENT_SERVICES)
+#include <crux/network_settings.h>
+#endif
 
 #include <crux/management_status.h>
 #include <crux/security_event.h>
@@ -17,13 +20,23 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 
-enum { ROOT_SLOT_A = 1, ROOT_SLOT_B = 2 };
+enum { ROOT_SLOT_A = 1, ROOT_SLOT_B = 2, ROOT_FILES = 3 };
 #define MOUNT_POINT "/SD:"
 #define DISK_NAME "SD:"
 #define PATH_SLOT_A MOUNT_POINT "/secure-a"
 #define PATH_SLOT_B MOUNT_POINT "/secure-b"
+#define PATH_FILES MOUNT_POINT "/files"
 
-static const char *const viewer_permissions[] = {CRUX_MGMT_STATUS_PERMISSION_READ};
+/* network.* and app.pump.read are the web suite's routes, which tests/native/web_https runs here.
+ * The services composition of Issue #242 adds the file area's and the TLS certificate's
+ * permissions, and nothing else: see services.cmake. */
+static const char *const viewer_permissions[] = {CRUX_MGMT_STATUS_PERMISSION_READ, "network.read",
+                                                 "app.pump.read"
+#if defined(CRUX_NATIVE_MANAGEMENT_SERVICES)
+                                                 ,
+                                                 CRUX_NATIVE_MANAGEMENT_PERMISSION_FILE_READ
+#endif
+};
 static const char *const operator_permissions[] = {CRUX_MGMT_STATUS_PERMISSION_READ,
                                                    CRUX_NATIVE_MANAGEMENT_PERMISSION_CONFIG_READ,
                                                    CRUX_NATIVE_MANAGEMENT_PERMISSION_CONFIG_WRITE};
@@ -33,7 +46,17 @@ static const char *const administrator_permissions[] = {
     CRUX_NATIVE_MANAGEMENT_PERMISSION_CONFIG_WRITE,
     CRUX_CONFIG_SERVICE_PERMISSION_SAVE,
     CRUX_SECURITY_EVENT_PERMISSION_READ,
-    CRUX_ACCESS_PERMISSION_MANAGE};
+    CRUX_ACCESS_PERMISSION_MANAGE,
+    "network.read",
+    "network.write",
+    "app.pump.read"
+#if defined(CRUX_NATIVE_MANAGEMENT_SERVICES)
+    ,
+    CRUX_NATIVE_MANAGEMENT_PERMISSION_FILE_READ,
+    CRUX_NATIVE_MANAGEMENT_PERMISSION_FILE_WRITE,
+    CRUX_NATIVE_MANAGEMENT_PERMISSION_TLS_MANAGE
+#endif
+};
 /* A permission no service names, so that this role can be refused by every service. */
 static const char *const guest_permissions[] = {"guest.only"};
 static const crux_access_role_t roles[] = {
@@ -67,6 +90,12 @@ static const crux_config_service_entry_t table[] = {
     {&param_token, CRUX_NATIVE_MANAGEMENT_PERMISSION_CONFIG_READ,
      CRUX_NATIVE_MANAGEMENT_PERMISSION_CONFIG_WRITE, true, CRUX_CONFIG_ACTIVATION_APPLICATION},
 };
+#if defined(CRUX_NATIVE_MANAGEMENT_SERVICES)
+/* The reference table and then the five entries of the network settings service, which it hands
+ * over in the order the table must keep. They sit under network.private, which no role holds. */
+static crux_config_service_entry_t
+    services_table[ARRAY_SIZE(table) + CRUX_NETWORK_SETTINGS_ENTRY_COUNT];
+#endif
 
 static FATFS fat;
 static struct fs_mount_t mount = {
@@ -94,8 +123,35 @@ static bool medium_ready(void)
     }
     return directory_ready(PATH_SLOT_A) && directory_ready(PATH_SLOT_B) &&
            crux_file_zephyr_bind_root(ROOT_SLOT_A, PATH_SLOT_A) == CRUX_FILE_OK &&
-           crux_file_zephyr_bind_root(ROOT_SLOT_B, PATH_SLOT_B) == CRUX_FILE_OK;
+           crux_file_zephyr_bind_root(ROOT_SLOT_B, PATH_SLOT_B) == CRUX_FILE_OK
+#if defined(CRUX_NATIVE_MANAGEMENT_SERVICES)
+           && directory_ready(PATH_FILES) &&
+           crux_file_zephyr_bind_root(ROOT_FILES, PATH_FILES) == CRUX_FILE_OK
+#endif
+        ;
 }
+
+#if defined(CRUX_NATIVE_MANAGEMENT_SERVICES)
+/* Copies the network settings service's entries into the table and runs its boot, which must come
+ * before the Configuration service starts. The defaults are from the documentation range, RFC 5737.
+ * Nothing is applied to an interface: the composition links the no-op apply port. */
+static bool network_settings_booted(void)
+{
+    static const crux_network_settings_config_t network = {.defaults = {.address = 0xC000020Au,
+                                                                        .prefix_length = 24u,
+                                                                        .has_gateway = true,
+                                                                        .gateway = 0xC0000201u}};
+    size_t count = 0;
+    const crux_config_service_entry_t *entries = crux_network_settings_entries(&count);
+
+    if (entries == NULL || count != CRUX_NETWORK_SETTINGS_ENTRY_COUNT) {
+        return false;
+    }
+    memcpy(services_table, table, sizeof(table));
+    memcpy(&services_table[ARRAY_SIZE(table)], entries, sizeof(services_table[0]) * count);
+    return crux_network_settings_boot(&network, NULL) == CRUX_NETWORK_OK;
+}
+#endif
 
 static bool config_ready(void)
 {
@@ -106,7 +162,13 @@ static bool config_ready(void)
             CRUX_CONFIG_OK) {
         return false;
     }
+#if defined(CRUX_NATIVE_MANAGEMENT_SERVICES)
+    return network_settings_booted() &&
+           crux_config_service_start(services_table, ARRAY_SIZE(services_table)) ==
+               CRUX_CONFIG_SERVICE_OK;
+#else
     return crux_config_service_start(table, ARRAY_SIZE(table)) == CRUX_CONFIG_SERVICE_OK;
+#endif
 }
 
 /* Each profile's device keys, as its listeners would ask for them. A failure stops that listener
@@ -164,6 +226,19 @@ crux_native_management_start_t crux_native_management_start(void)
     }
     return CRUX_NATIVE_MANAGEMENT_STARTED;
 }
+
+#if defined(CRUX_NATIVE_MANAGEMENT_SERVICES)
+crux_file_root_t crux_native_management_file_root(void)
+{
+    return ROOT_FILES;
+}
+
+void crux_native_management_store_roots(crux_file_root_t roots[2])
+{
+    roots[0] = ROOT_SLOT_A;
+    roots[1] = ROOT_SLOT_B;
+}
+#endif
 
 crux_credential_state_t crux_native_management_store_state_at_start(void)
 {

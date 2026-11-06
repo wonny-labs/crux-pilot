@@ -2,6 +2,8 @@
 
 Status: delivered on `native_sim` in [PR #263](https://github.com/wonny-labs/crux-pilot/pull/263), under review for [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), which stays open. Decision W17 makes PSA a prerequisite of real HTTPS on `native_sim`, and W18 makes Host and `native_sim` completion an interim result, with physical evidence tracked apart.
 
+The second part of #242, every other management service composed on these providers behind HTTPS, is in [Every management service on `native_sim`](native-composition-242.md).
+
 Nothing here is physical evidence. `native_sim` results use the host's TCP stack, and the simulator's clock, memory and entropy. They say nothing about a device. [Real here means](psa-crypto-design.md#what-real-means-on-native_sim) that the protocol and the algorithms run for real, and it does not mean that any secret is safe.
 
 ## What is built, faked and untested
@@ -134,7 +136,7 @@ Connection limits, timing and memory here come from the host's stack and the sim
 
 | # | Limit | Profile | Seen as |
 | --- | --- | --- | --- |
-| 1 | **A TCP close with no `close_notify` is invisible to `poll`.** A host socket reports a peer's FIN as `POLLIN` alone, where Zephyr's native sockets add `POLLHUP`. `mbedtls_ssl_read` turns the end of the stream into a length of 0, which the TLS layer reads as "a partial record, try again". So `zsock_poll` with no timeout returns 0, at once and every time, for as long as that client stays. | Mbed | `raw_poll_after_abrupt_close`: the server never saw the close, and the image's CPU share rose from about 0.02 to between 0.55 and 0.86 across runs, locally and in CI. In a debugging trace, not retained, the simulated clock also stopped while this ran, because a `native_sim` thread that never sleeps stops it. A `recv` finds the end of the stream at once, which is how the probe's server gets past it: `abrupt_closes` passes. |
+| 1 | **A TCP close with no `close_notify` is invisible to `poll`.** A host socket reports a peer's FIN as `POLLIN` alone, where Zephyr's native sockets add `POLLHUP`. `mbedtls_ssl_read` turns the end of the stream into a length of 0, which the TLS layer reads as "a partial record, try again". So `zsock_poll` with no timeout returns 0, at once and every time, for as long as that client stays. | Mbed | `raw_poll_after_abrupt_close`: the server never saw the close, and the image's CPU share rose from about 0.02 to between 0.55 and about 0.9 across runs, locally and in CI. In a debugging trace, not retained, the simulated clock also stopped while this ran, because a `native_sim` thread that never sleeps stops it. A `recv` finds the end of the stream at once, which is how the probe's server gets past it: `abrupt_closes` passes. |
 | 2 | wolfSSL peeks instead, and reports it | Wolf | The same step: the close is seen, and CPU stays at 0.01 to 0.03 |
 | 3 | The handshake runs inside `accept`, on the caller's thread, for non-blocking sockets too. A client that connects and says nothing holds a one-thread server for `NET_SOCKETS_TLS_CONNECT_TIMEOUT`, default 10 s. | Both | `stalled_client`: a second client waited 9.6 s and 9.5 s, and then worked |
 | 4 | A 120,000 B Mbed TLS heap held 3 connections at a 16 KiB record size. **The fourth `accept` fails with `EINVAL`**, not `ENOMEM`. The socket layer maps a failed certificate parse to it, which fits a full heap, and heap use was not measured. Held connections keep working, and later ones work once these close. | Mbed | `concurrent_connections`, and `PROBE accept ... errno=22` |
@@ -212,7 +214,7 @@ The mapping is [the design's](psa-crypto-design.md#what-each-port-calls), and th
 | Mutation, each tried once | Caught by |
 | --- | --- |
 | The core reuses a zero nonce | 3 of these credential suites, and the composition's check that the two slots' nonces differ |
-| The stored cost is 1 PBKDF2 iteration | `test_07_stored_verifier_is_real` in the composition, which also recomputes the stored verifier. Not by these suites. |
+| The stored cost is 1 PBKDF2 iteration, by the stored cost alone | `test_07_stored_verifier_is_real` in the composition, which also recomputes the stored verifier. Not by these suites. The mutation of the account's own field, `account->iterations = 1u`, is caught by them, at `tests/access/security.c:82`. |
 | Seal ignores its additional data | `credential_conformance_fake` here |
 | Seal keeps its key slot | `ports_leave_no_key_slot`, on TF-PSA-Crypto on `native_sim` only |
 
@@ -240,7 +242,7 @@ sequenceDiagram
 | Check, on `native_sim/native/64` | Mbed profile | Wolf profile |
 | --- | --- | --- |
 | Builds, with the TLS stack and the PSA provider in one image | Yes | Yes, on the patched copy |
-| No fake linked: 25 listed ports and contracts, each exactly from its real source under the repository, read from the image with `nm -l`. PSA from its module, and no other test code. This reads names and sources, and it shows nothing about what they do. | Yes | Yes |
+| No fake linked: 25 listed ports and contracts, each exactly from its real source under the repository, read from the image with `nm -l`. PSA from its module, and no other test code: the composition's own directory and the declared certificate are exempt from that test-code rule, since they are what the image is. This reads names and sources, and it shows nothing about what they do. | Yes | Yes |
 | Device keys generated at start | P-256 | P-256 and Ed25519 |
 | Ed25519 asked for | `ERR_ENTROPY`, and no record | Generated |
 

@@ -183,7 +183,7 @@ static crux_web_step_t run_handler(crux_web_exchange_t *exchange, crux_web_respo
         crux_web_response_begin();
         crux_web_error_response(response, 503, "not_ready");
     }
-    return CRUX_WEB_STEP_RESPOND;
+    return request->close_after ? CRUX_WEB_STEP_RESPOND_CLOSE : CRUX_WEB_STEP_RESPOND;
 }
 
 void crux_web_core_init(const crux_web_config_t *config)
@@ -289,12 +289,13 @@ crux_web_step_t crux_web_exchange_data(crux_web_exchange_t *exchange, const void
         return reject(exchange, response, 400, "bad_request", false);
     }
     exchange->body_expected = false;
-    /* What a session may do can change while a long body arrives. */
+    /* What a session may do can change while a long body arrives. A refusal then closes, so that
+     * the server clears its copy of a body that may hold a password. */
     if (exchange->data_calls > 1u && strcmp(request->route->access, CRUX_WEB_PUBLIC) != 0) {
         crux_web_step_t step = check_class(exchange, response);
 
         if (step != CRUX_WEB_STEP_MORE) {
-            return step;
+            return step == CRUX_WEB_STEP_RESPOND ? CRUX_WEB_STEP_RESPOND_CLOSE : step;
         }
     }
     return run_handler(exchange, response);
@@ -327,6 +328,15 @@ void crux_web_stats_count_response_deadline(void)
 const crux_web_request_head_t *crux_web_request_head(const crux_web_request_t *request)
 {
     return request->head;
+}
+
+crux_web_result_t crux_web_close_after_response(crux_web_request_t *request)
+{
+    if (request == NULL || request->response == NULL || request->responded) {
+        return CRUX_WEB_ERR_INVALID_ARGUMENT;
+    }
+    request->close_after = true;
+    return CRUX_WEB_OK;
 }
 
 unsigned crux_web_method(const crux_web_request_t *request)

@@ -64,10 +64,10 @@ export async function caller(options: Partial<MockOptions> = {}): Promise<Caller
       }
       const init: RequestInit = { method, headers };
       if (callOptions.body !== undefined) {
-        headers['Content-Type'] = 'application/json';
+        headers['Content-Type'] ??= 'application/json';
         init.body = JSON.stringify(callOptions.body);
       } else if (callOptions.rawBody !== undefined) {
-        headers['Content-Type'] = 'application/json';
+        headers['Content-Type'] ??= 'application/json';
         init.body = callOptions.rawBody;
       }
       const response = await fetch(mock.url + path, init);

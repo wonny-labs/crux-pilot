@@ -219,7 +219,9 @@ not been exercised.
 use only public Crux names, and its manifest pins nothing Crux pins. Real west then takes the
 template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
 against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
-runs the frozen-manifest flow and the build record's input capture. These cases skip when west or
+runs the frozen-manifest flow, the build record's input capture and the guide's routes: a vendor
+branch across two deliveries, a commercial edition under a new project name, a reused project name
+that must fail and a hand-pinned manifest with no import. These cases skip when west or
 PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <board>` runs them with
 `tests/build/test_crux_pins.py`, runs `west crux-pins` on Crux's own workspace and so on a real Zephyr
 manifest, then cross-builds the application in that workspace. It does not operate hardware. The
@@ -300,8 +302,34 @@ None of this operates hardware, and no target has run these services. See the
 `scripts/test-web.sh host` runs `Web.*` on the real web and Access cores with a fake transport, and the
 boundary, generator and route review checks. `scripts/test-web.sh native` runs the adapter on the real
 Zephyr server on `native_sim`, over plain HTTP on loopback. `scripts/test-web.sh target` compiles for
-RT1060 on the TLS profiles: Mbed TLS runs in CI in the PSA workflow, and wolfSSL does not. Nothing here runs TLS or uses a
-board. See the [web contract](../docs/web-contract.md).
+RT1060 on the TLS profiles: Mbed TLS runs in CI in the PSA workflow, and wolfSSL does not. `scripts/test-web.sh https`
+runs the native suite over TLS on the management composition, with the TLS cases of `tests/native/web_https`, on each
+profile: Mbed in the PSA workflow, Wolf locally. Nothing here uses a board. See the [web contract](../docs/web-contract.md)
+and the [HTTPS composition](../docs/https-composition.md).
+
+`scripts/test-web-session.sh native` runs login and sessions on the management composition, with the real Access core
+on its PSA ports, over plain HTTP on `native_sim`, and CI runs it in the PSA workflow. `Web.session_*` are its Host
+suites. Entropy there is test-only. See [web login and sessions](../docs/web-session.md).
+
+`Web.management_*` are the Host suites of the status, configuration and account routes, on the real status and configuration
+services. `scripts/test-web.sh host` runs them, and `Web.management_openapi` holds their real answers to the schemas of
+`web/api/openapi.yaml`. Nothing serves these routes on `native_sim` yet. See
+[status, configuration and account web APIs](../docs/web-management-apis.md).
+
+`NetworkSettings.*` and `Web.network_*` are the Host suites of the network settings service and of `GET` and `PUT /api/v1/network`,
+on the real Access core and Configuration service, with the fake Configuration provider, a fake apply port and a recording event
+port. `scripts/test-network-settings.sh` runs them under both presets with clang-tidy, and `scripts/test-web.sh host` runs the
+`Web.network_*` ones. `Web.network_openapi` holds their real answers to the schemas of `web/api/openapi.yaml`, and
+`tests/network_settings/validation-vectors.tsv` holds the firmware's checks and the TypeScript client's to the same lines. Nothing here
+applies an address to an interface or operates a board. See [network settings service](../docs/network-settings-service.md).
+
+## Packaged web assets
+
+`scripts/test-web-assets.sh host` runs the packager's and its CMake function's tests (`tests/build/test_web_assets.py`), `Web.assets_*` on
+the real web core with a fake transport for both content policies, clang-tidy on the new C, and the route review and boundary
+checks. `scripts/test-web-assets.sh native` builds `tests/native/web_assets` and runs its driver against the real Zephyr
+server on `native_sim`. The full Host build and `unittest discover tests/build` pick up `Web.assets_*` and the Python tests on their own, and `zephyr.yml`, shard `io`, runs the
+`native_sim` image. Nothing here uses a board. See [web assets](../docs/web-assets.md).
 
 ## Portable File software slice
 
@@ -605,6 +633,19 @@ sanitizer preset, runs clang-tidy on the sources and tests, and runs `scripts/ch
 `tests/security_event_consumer` in both directions. None of this runs on Zephyr or a target. See the
 [Security event contract](../docs/security-event-contract.md).
 
+## TLS certificate
+
+The TLS certificate model (Issue #190): the root Host suite runs `tests/tls_certificate` as `TlsCertificate.*` in CTest.
+The parser suite uses no state and no crypto; the service suites use the real Access core with its fake ports, a fake
+credential adapter and fake hash, signature and random ports, where the signature is not ECDSA; `tls_certificate_store`
+runs on the real credential store with its test-only protection. `scripts/test-tls-certificate.sh host` also runs them
+under the sanitizer preset and runs clang-tidy. Where CMake finds OpenSSL's headers, `tls_certificate_differential`
+holds the parser to OpenSSL's decoder on 300,000 seeded mutations. `TlsCertificate.boundary_*` configure a separate
+project to show that a consumer reaching the adapter is refused. `scripts/test-tls-certificate.sh psa` builds `tests/tls_certificate/psa`
+on TF-PSA-Crypto and checks a real key's certificate, request and PKCS #8 key with OpenSSL, including a TLS 1.3
+handshake; CI does not run it. Nothing here registers the material with Zephyr or runs on `native_sim` or a target. See
+the [TLS certificate design](../docs/tls-certificate.md).
+
 ## Web frontend
 
 The web frontend has its own tools under `web/` and needs Node.js, while no C build does. Its commands are in the
@@ -653,6 +694,6 @@ No consumer calls a provider here. See the [qualification record](../docs/psa-cr
 
 ## Management composition on `native_sim`
 
-`tests/management_providers` runs in the root Host suite, as `ManagementProviders.*`: the event providers, status sources and the Access clock, each against a controlled answer. `tests/psa_ports` holds the PSA providers' cases, on Linux Host and `native_sim`, and `tests/psa_ports/suites` runs existing Access and credential suites on them, on Host, with `-DCRUX_TEST_SUITES_ON_PSA=ON`. `tests/native/tls_offload_probe` is a TLS socket over the native socket offload with a client on the host, and `tests/native/management_composition` is the services together on real providers.
+`tests/management_providers` runs in the root Host suite, as `ManagementProviders.*`: the event providers, status sources and the Access clock, each against a controlled answer. `tests/psa_ports` holds the PSA providers' cases, on Linux Host and `native_sim`, and `tests/psa_ports/suites` runs existing Access and credential suites on them, on Host, with `-DCRUX_TEST_SUITES_ON_PSA=ON`. `tests/native/tls_offload_probe` is a TLS socket over the native socket offload with a client on the host, and `tests/native/management_composition` is the services together on real providers. `tests/native/management_services` adds every other management service on the same providers behind HTTPS, the command line and file service event providers among them, and `driver.py` runs its cases over TLS; see [every management service on `native_sim`](../docs/native-composition-242.md).
 
-`scripts/test-tls-offload-probe.sh [all|mbed|wolf]` and `scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]` run them. `mbed` needs the `mbedtls` and `tf-psa-crypto` projects, and the `psa-crypto` workflow runs it. `wolf` needs the `crux-secure-management` group, and no default workflow runs it. `target-*` compiles and never flashes, resets or runs an image. See the [composition](../docs/native-management-composition.md).
+`scripts/test-tls-offload-probe.sh [all|mbed|wolf]` and `scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]` run them. `mbed` needs the `mbedtls` and `tf-psa-crypto` projects, and the `psa-crypto` workflow runs it. `wolf` needs the `crux-secure-management` group, and no default workflow runs it. `mbed` and `wolf` also build the services image, check it with `scripts/check-composition-image.py --services` and run its driver. `target-*` compiles and never flashes, resets or runs an image. See the [composition](../docs/native-management-composition.md).

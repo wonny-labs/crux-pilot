@@ -18,8 +18,8 @@ behind the gate. It covers no hardware, and nothing here was run on a board.
 | Built | `web/reference`: the Preact example, with sign-in, forced password change and home as core screens, and network settings and reboot as advanced examples |
 | Built | `web/mock`: a mock server from the specification, and a conformance check that M11 can reuse |
 | Built | `web/tools`: type generation, the build, the packaging budget, source rules and pin checks |
-| Built | `samples/web/angular-minimal`: the Angular example, with sign-in and home, using the generated types |
-| Not built | A simple configuration update in either example, and a forced password change screen in the Angular example. Both are in #243. |
+| Built | `samples/web/angular-minimal`: the Angular example, with sign-in, the forced password change, home and configuration, using the generated types |
+| Built | The core configuration flow in both examples, on the mock only, in #243: see [the configuration flow](../web-config-flow.md) |
 | Built | `.github/workflows/web.yml`: the specification lint, `tests/management_api`, web checks, browser tests and the Angular job |
 | Faked | The whole device. The mock runs on the loopback address over plain HTTP, and it holds one session at a time |
 | Untested | TLS, real sessions, connection limits, the Zephyr server's real `409`, timing, load time, Flash and RAM. All are in #220 |
@@ -35,9 +35,9 @@ flows on the Preact example with service tests underneath. Host here means the C
 | --- | --- | --- | --- | --- | --- |
 | Sign-in and sign-out | Core | Both examples | Access contract. Web sessions in #186. | Not run, #220 | Not run |
 | Session expiry | Core | Both examples | Access contract. Web sessions in #186. | Not run, #220 | Not run |
-| Forced password change | Core | Preact. Angular shows a notice, #243. | Access contract. Web route in #187. | Not run, #220 | Not run |
+| Forced password change | Core | Both examples | Access contract. Web route in #187. | Not run, #220 | Not run |
 | Status | Core | Both examples | Service in #180. Web route in #187. | Not run, #220 | Not run |
-| Simple configuration update | Core | Neither, #243 | Service in #180. Web route in #187. | Not run, #220 | Not run |
+| Simple configuration update | Core | Both examples | Service in #180. Web route in #187. | Not run, #220 | Not run |
 | Network settings | Advanced | Preact | Not started, #213 | Not run, #220 after #213 | Not run |
 | Reboot | Advanced | Preact | Not started, #214 | Not run, #220 after #214 | Not run |
 
@@ -121,7 +121,7 @@ The client turns every answer into one result form. It never throws for an HTTP 
 | Request | Header |
 | --- | --- |
 | Attempt poll | `X-Crux-Request: 1` |
-| Logout, password change, network save, reboot | `X-XSRF-TOKEN`, the raw value of the `XSRF-TOKEN` cookie, read again for each try |
+| Logout, password change, configuration update, configuration save, network save, reboot | `X-XSRF-TOKEN`, the raw value of the `XSRF-TOKEN` cookie, read again for each try |
 | Login | Neither. A stale token cookie is ignored. |
 
 Every request uses `credentials: same-origin`, `redirect: error` and `cache: no-store`.
@@ -297,6 +297,7 @@ example's code is not published as a package, so a project copies or vendors the
 | Sign-in | Core | Public | Rejected, delay, busy and lost are each shown. The wait holds the form, and the count sits outside the live region. A login followed by a `401` on the current user says that the session was not there on the next request, and names both causes: the browser refusing the cookie, which is what real HTTPS would show, and the device ending the session. |
 | Forced password change | Core | Holds the session on this screen, whatever the route. The server also enforces it. | Field errors, failed save, delay and busy. A lost result asks the device through `GET /api/v1/session/me`. An `incorrect` after a lost, failed or timed-out poll says that the earlier change may have taken effect, and it never reports success from that. |
 | Home | Core | The server filters, and an empty list shows "nothing to show" | One failed source shows as unavailable. A failed read keeps the last values and says how old they are. |
+| Configuration | Core | The server filters the list. A write-only parameter shows no value, a sensitive one is never read, and a read-only one has no form. A `403` on an update or a save is shown as such. | Field errors from the device's codes, a busy or not ready answer with its wait, and a save shown as pending, saved or failed. [Details](../web-config-flow.md) |
 | Network settings | Advanced | A `403` on the read says so and leaves the form, because a session may be able to write but not read | Client checks before a warning, field errors from the server, failed and unconfirmed saves, and `501` |
 | Reboot | Advanced | A `403` on the read says so and hides the button | Refused, late refusal, failed reset, never restarts and stays away |
 
@@ -320,10 +321,10 @@ by file.
 | Limit | Value | Measured |
 | --- | --- | --- |
 | Files | 4: index, one script, one style, one icon | 4 |
-| Compressed bytes | 32768 | 20406 |
+| Compressed bytes | 32768 | 23184 |
 
-The Preact example's parts, in bytes then compressed bytes: script 54656 and 18687, style 3465 and 1214, index 548 and 346, icon 174
-and 159.
+The Preact example's parts, in bytes then compressed bytes: script 64419 and 21371, style 3931 and 1307, index 548 and 347, icon 174
+and 159. The configuration screen of #243 added 2,729 compressed bytes, and the budget is unchanged, so 9,584 bytes remain.
 
 ## Supply chain
 
@@ -354,17 +355,17 @@ ahead under the owner's advance approval, because Node.js 20 is past its end of 
 
 Measured with `node tools/compare.ts` on built folders. Compressed bytes are gzip at level 9, file by file. A production
 package is a lockfile entry that is not marked development. Violations are counted by a browser test that walks through
-sign-in, home and sign-out, in `e2e/angular-policy.test.ts`.
+sign-in, home, configuration with an update and a save, and sign-out, in `e2e/angular-policy.test.ts`. #243 added the configuration step to the walk, so the Angular strict count below changed with it.
 
 | Build | Files | Bytes | Compressed bytes | Production packages | Locked packages |
 | --- | --- | --- | --- | --- | --- |
-| Preact example, all five screens | 4 | 58843 | 20406 | 1 | 38 |
-| Preact example, sign-in and home | 4 | 48485 | 17922 | 1 | 38 |
-| Angular example, sign-in and home | 5 | 249403 | 76710 | 7 | 362 |
+| Preact example, all six screens | 4 | 69072 | 23184 | 1 | 38 |
+| Preact example, core screens: sign-in, forced change, home and configuration | 4 | 58709 | 20761 | 1 | 38 |
+| Angular example, the same core screens | 5 | 298780 | 91197 | 7 | 362 |
 
-The two-screen Preact build still holds the forced password change, which the shell needs, and the Angular example does
-not, so the comparison slightly favours Angular. The fifth Angular file is `3rdpartylicenses.txt`, at 4822 compressed bytes,
-which the build writes by default, so the example's code and style are 71,384 compressed bytes. The Preact build writes no
+Before #243 the Angular row held sign-in and home alone, at 249403 bytes and 76710 compressed, against 48485 and 17922 for
+Preact, so those earlier rows do not compare with these. Both builds now hold the same four core flows. The fifth Angular file is `3rdpartylicenses.txt`, at 4822 compressed bytes,
+which the build writes by default, so the example's code and style are 86,375 compressed bytes. The Preact build writes no
 licence file, and the SBOM names Preact's MIT licence but holds no copyright notice. MIT requires that notice in copies, so
 this build alone does not meet it, and a product must add the text of Preact's `LICENSE` to its own notices. Installed tools measured 55 MB, 13 packages and 1,252 files for
 `web`, and 237 MB, 240 packages and 16,245 files for the Angular example, on macOS arm64.
@@ -378,14 +379,14 @@ The production packages are, for Preact, `preact`; and for Angular, `@angular/co
 | Preact example, strict with Trusted Types | 0 |
 | Angular example, inline styles | 0 |
 | Angular example, inline styles with Trusted Types | 0 |
-| Angular example, strict | 1, `style-src-elem`, the component style that Angular inserts. No script was blocked. |
+| Angular example, strict | 4, all `style-src-elem`, the component style that Angular inserts. It was 1 on the shorter walk of sign-in and home, so the count follows how often a screen with that style appears. No script was blocked. |
 
 What this shows, on the mock only:
 
 | Question | Result |
 | --- | --- |
 | Does Angular work with the web foundation? | Yes, on these two screens, with the same browser cases as the Preact example. |
-| Compressed size against Preact on the same screens | About 4.3 times: 76,710 against 17,922 bytes. Excluding the licence file, 4.0 times. |
+| Compressed size against Preact on the same screens | About 4.4 times on the core screens: 91,197 against 20,761 bytes. Excluding the licence file, 4.2 times. On sign-in and home alone it was 4.3 and 4.0 times. |
 | File count | No lazy loading is used, so one script and one style, as for Preact. |
 | CSRF | `HttpClient`'s default names work with no configuration, shown by the sign-out case. |
 | Hash routing | `withHashLocation` works, and the server sees only API and asset paths. |
@@ -408,7 +409,8 @@ Results are in the PR, for the revision that it names.
 | Mock behaviour | `mock/test/behaviour.test.ts` | The stateful flows, with every answer passing through the conformance check |
 | Tools | `tools/test` | The generator refuses each schema form and combination outside its list, the source rules catch their targets, a build over budget fails, the pins and lockfiles agree, and the C-build boundary catches its fixtures. Tests remove their temporary folders. |
 | Browser | `e2e/reference-*.test.ts` | Each screen, on Chrome. A test fails on a policy violation, a page error, a request to another origin or a mock answer outside the specification. |
-| Shared browser cases | `e2e/shared-cases.ts` | One list, run on both the Preact example and the Angular example, finding elements by role, label and visible text |
+| Shared browser cases | `e2e/shared-cases.ts` | One list, run on both the Preact example and the Angular example, finding elements by role, label and visible text. It covers sign-in, home, the forced password change and the configuration flow, which [its own document](../web-config-flow.md) lists. |
+| Preact configuration cases | `e2e/reference-config.test.ts` | Focus, title, keyboard use, the policy with Trusted Types, and device text shown as text |
 
 Tests went first where that could work: generator, client, mock, tools and browser cases each failed before their code
 existed, because the module or the build was missing. The client-against-mock tests, the boundary test and the policy
@@ -448,6 +450,33 @@ Faults that this found on the way:
 | Two test helpers: a reused `Response` body, and an order that assumed sorted file names | The test failing for the wrong reason |
 
 The mock has no idle timer, session cap or real delay window, so those paths are forced and not modelled. It records every request, including assets, so a test can say which paths the server saw.
+
+### The C-build boundary rule
+
+`tools/test/boundary.test.ts` holds every CMake, Kconfig, preset and component file to one rule: no C build needs
+Node.js. `tools/c-boundary.ts` decides what counts as a use. The web workflow runs it only when a path under `web/`
+changes, so firmware PRs that name a frontend path were not checked until the next `web/` change. Two kinds of
+firmware file then broke it, and the matcher is narrowed for exactly these two.
+
+```mermaid
+flowchart LR
+    text[File text] --> nodeuse{Node.js, npm or a frontend path?}
+    nodeuse -- "web/client, reference, mock, tools, e2e, package" --> reds[Counts, unless web/ follows a components/ segment]
+    nodeuse -- "web/api/lint or any other web/api path" --> reds
+    nodeuse -- "web/api/openapi.yaml" --> okspec[Does not count: plain YAML, no Node.js runs on it]
+    nodeuse -- "components/web/tools, the route generator" --> okgen[Does not count: firmware Python, not the frontend]
+```
+
+| Text | Counts | Reason |
+| --- | --- | --- |
+| `components/web/tools/web_routes.py`, in `cmake/CruxWebRoutes.cmake` and the generated header | No | The firmware component `components/web` has its own `tools`. The old pattern matched the `web/tools` inside that path. A path segment named exactly `components` exempts it. `mycomponents/`, `xcomponents/` and `.components/` do not. A scan cannot tell `src/components/` from `${DIR}/components/`, and the repository has no nested components directory, so `src/components/web/...` is taken as the firmware tree. |
+| `web/api/openapi.yaml`, in component comments and `tests/mgmt_status/CMakeLists.txt` | No | The specification is the contract between firmware and frontend, and firmware tests read it as data with Python. A path that goes on from the file name (`openapi.yaml/../lint`, `openapi.yaml/`, `openapi.yaml.orig`) still counts. |
+| `web/api/lint`, `web/api` as a directory, any other file in `web/api` | Yes | The lint tools need Node.js. |
+| `web/tools`, `web/client` and the rest, in any path whose `web/` does not follow a `components/` segment | Yes | Unchanged. `components/web/../../web/tools` still counts. |
+| `redocly lint web/api/openapi.yaml`, `spectral lint web/api/openapi.yaml` | **No, a known gap** | A Node.js tool run on the specification by its bare path is no longer caught by the path rule. This is the accepted cost of exempting the file. The npm and npx rules still catch `npx spectral`. A fixture pins the gap. |
+
+The test gained fixtures for each row, including the cases that must still count. A scan of the repository with a new
+tracked offending file in `cmake/` and in `components/web/` fails, as before.
 
 ## Findings for the firmware track
 

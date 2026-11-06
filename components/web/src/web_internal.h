@@ -38,6 +38,7 @@ struct crux_web_request {
     uint8_t *body;
     bool responded;
     bool static_response;
+    bool close_after;
     crux_web_response_t *response; /* Set only while the handler runs. */
 };
 

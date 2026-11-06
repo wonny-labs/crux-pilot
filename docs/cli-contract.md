@@ -23,7 +23,7 @@ Owner: `components/cli`.
 | Built-in commands `help`, `logout`, `passwd`, `account list` | Built | Host, on a scripted and on the real `crux_access` |
 | Serial login loop and first-account setup `!setup` (L4) | Built | Host, on both |
 | Serial console over `crux_serial` (L1) | Built | Host: a scripted Serial and the real Linux provider on a pseudo-terminal |
-| Security events | Port and recording fake. #234 is on `main`, and **the provider that connects them is not added here**, as below. | Host |
+| Security events | Port and recording fake. #234 is on `main`, and the provider that connects them was not added here. **#242 added it**, `crux_cli_security_events`, mapped as [the event contract](security-event-contract.md#from-the-command-line-and-file-service-ports) states. | Host here. The provider: Host, and `native_sim` in the [services image](native-composition-242.md). |
 | Shell rule (L5) at configuration, at compilation, by script and by image check | Built | Host for the rule's logic. Real builds in `scripts/test-cli.sh --zephyr`, which runs in the Zephyr CI job. |
 | LPUART3 wiring | Compile only: `tests/zephyr/cli_serial_compile` | RT1060-EVKB compile and link, in CI. **Never flashed, and not evidence of a console.** |
 | `crux_access` on Zephyr | Not available, so nothing links the console into an image | |
@@ -295,13 +295,13 @@ The identifiers `cli.line_rejected` and `cli.console_error` exist at 0x0500 and 
 
 ## Registering the recovery command of #213
 
-The registry takes what #213 needs with no change, and `tests/cli/registry.c` tests this shape, which is a two-word serial-only permission command with its own context:
+The registry takes what #213 needs with no change, and `tests/cli/registry.c` tests this shape, which is a two-word serial-only permission command with its own context. The command itself is `crux_network_settings_cli_commands()` of `<crux/network_settings_cli.h>`, tested through the real registry by `NetworkSettings.cli`. It is this entry:
 
 ```c
-static const crux_cli_command_t recovery[] = {
-    CRUX_CLI_COMMAND("network recover", "use the composition's default address at the next boot",
-                     CRUX_CLI_PERMISSION("network.write"), 0, 0, CRUX_CLI_CHANNEL_SERIAL,
-                     network_recover, &service),
+static const crux_cli_command_t commands[] = {
+    CRUX_CLI_COMMAND("network recover", "ignore the saved address at the next boot",
+                     CRUX_CLI_PERMISSION(CRUX_NETWORK_SETTINGS_PERMISSION_WRITE), 0, 0,
+                     CRUX_CLI_CHANNEL_SERIAL, recover, NULL),
 };
 ```
 

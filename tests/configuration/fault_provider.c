@@ -17,6 +17,9 @@ static config_fault_hook_t write_hook;
 static void *write_hook_context;
 static const char *fail_key;
 static crux_config_result_t fail_key_result;
+enum { WRITE_LOG = 64 };
+static char write_log[WRITE_LOG][KEY_BYTES];
+static size_t write_log_count;
 
 static size_t find(const char *key)
 {
@@ -39,6 +42,7 @@ void config_fault_reset(void)
     write_hook_context = NULL;
     fail_key = NULL;
     fail_key_result = CRUX_CONFIG_OK;
+    write_log_count = 0;
 }
 
 void config_fault_record(const char *key, const uint8_t *bytes, size_t length)
@@ -79,6 +83,21 @@ void config_fault_write_fail_key(const char *key, crux_config_result_t result)
 {
     fail_key = key;
     fail_key_result = result;
+}
+
+void config_fault_write_log_clear(void)
+{
+    write_log_count = 0;
+}
+
+size_t config_fault_write_log_count(void)
+{
+    return write_log_count;
+}
+
+const char *config_fault_write_log_key(size_t index)
+{
+    return index < write_log_count ? write_log[index] : NULL;
 }
 
 size_t config_fault_reads(void)
@@ -126,6 +145,9 @@ crux_config_result_t crux_config_record_read(const char *key, uint8_t *buffer, s
 crux_config_result_t crux_config_record_write(const char *key, const uint8_t *buffer, size_t length)
 {
     ++writes;
+    if (write_log_count < WRITE_LOG && strlen(key) < KEY_BYTES) {
+        memcpy(write_log[write_log_count++], key, strlen(key) + 1);
+    }
     if (write_hook != NULL) {
         write_hook(write_hook_context);
     }

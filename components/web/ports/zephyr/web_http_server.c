@@ -88,9 +88,37 @@ HTTP_SERVICE_DEFINE(crux_web_service, NULL, &crux_web_port, CONFIG_HTTP_SERVER_M
                     CONFIG_CRUX_WEB_BACKLOG, NULL, NULL, NULL);
 #else
 static const sec_tag_t crux_web_sec_tags[] = {CONFIG_CRUX_WEB_TLS_SEC_TAG};
+/* TLS_AES_128_GCM_SHA256, the one suite every TLS 1.3 client implements (RFC 8446, 9.1). */
+static const int crux_web_tls_suites[] = {0x1301};
+
+/* The declared TLS profile, set on the listener, which every accepted socket copies. The server
+ * asks for NET_IPPROTO_TLS_1_2, which Mbed TLS reads as a minimum and the wolfSSL backend as exact,
+ * so the two profiles would differ. TLS 1.3 means TLS 1.3 alone on both. See
+ * docs/https-composition.md.
+ */
+static int crux_web_tls_socket(const struct http_service_desc *service, int family, int protocol)
+{
+    int fd;
+
+    ARG_UNUSED(service);
+    ARG_UNUSED(protocol);
+    fd = zsock_socket(family, NET_SOCK_STREAM, NET_IPPROTO_TLS_1_3);
+    if (fd >= 0 && zsock_setsockopt(fd, ZSOCK_SOL_TLS, ZSOCK_TLS_CIPHERSUITE_LIST,
+                                    crux_web_tls_suites, sizeof(crux_web_tls_suites)) < 0) {
+        int error = errno;
+
+        (void)zsock_close(fd);
+        errno = error;
+        fd = -1;
+    }
+    return fd;
+}
+
+static const struct http_service_config crux_web_tls_config = {.socket_create =
+                                                                   crux_web_tls_socket};
 
 HTTPS_SERVICE_DEFINE(crux_web_service, NULL, &crux_web_port, CONFIG_HTTP_SERVER_MAX_CLIENTS,
-                     CONFIG_CRUX_WEB_BACKLOG, NULL, NULL, NULL, crux_web_sec_tags,
+                     CONFIG_CRUX_WEB_BACKLOG, NULL, NULL, &crux_web_tls_config, crux_web_sec_tags,
                      sizeof(crux_web_sec_tags));
 #endif
 
@@ -142,10 +170,42 @@ static void capture(const char **field, const char *value, crux_web_request_head
     *field = value;
 }
 
+/* The peer for crux_access's delays: IPv4 whole, IPv6 as its /64 prefix. Unknown leaves none. */
+static void read_source(const struct http_client_ctx *client, crux_web_request_head_t *head)
+{
+    struct net_sockaddr_storage peer;
+    net_socklen_t length = sizeof(peer);
+
+    if (zsock_getpeername(client->fd, (struct net_sockaddr *)&peer, &length) != 0) {
+        return;
+    }
+    if (peer.ss_family == NET_AF_INET) {
+        memcpy(head->source, &((struct net_sockaddr_in *)&peer)->sin_addr, 4u);
+        head->source_length = 4u;
+    }
+#if defined(CONFIG_NET_IPV6)
+    if (peer.ss_family == NET_AF_INET6) {
+        static const uint8_t mapped[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff};
+        const uint8_t *address = (const uint8_t *)&((struct net_sockaddr_in6 *)&peer)->sin6_addr;
+
+        /* An IPv4 client on a dual-stack socket keeps its own bucket, and not the /64 of ::ffff:0:0
+         * that every IPv4 client would share. */
+        if (memcmp(address, mapped, sizeof(mapped)) == 0) {
+            memcpy(head->source, address + sizeof(mapped), 4u);
+            head->source_length = 4u;
+        } else {
+            memcpy(head->source, address, 8u);
+            head->source_length = 8u;
+        }
+    }
+#endif
+}
+
 static void read_head(struct http_client_ctx *client, const struct http_request_ctx *request,
                       crux_web_request_head_t *head)
 {
     memset(head, 0, sizeof(*head));
+    read_source(client, head);
     head->method = method_bit(client->method);
     head->url = (const char *)client->url_buffer;
     head->chunked = (client->parser.flags & F_CHUNKED) != 0u;

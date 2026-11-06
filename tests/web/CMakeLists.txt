@@ -23,3 +23,22 @@ endforeach()
 add_library(web_cpp_headers OBJECT cpp_headers.cpp)
 target_link_libraries(web_cpp_headers PRIVATE crux_web_adapter crux_web_api)
 target_compile_options(web_cpp_headers PRIVATE -Wall -Wextra -Wpedantic -Werror)
+
+# The session module on the real web and Access cores (Issue #186).
+if(TARGET crux::thread)
+    add_subdirectory(session)
+endif()
+
+# The packaged web assets (Issue #189) on the same core and fake transport.
+add_subdirectory(assets)
+
+# The status and configuration routes on the real services (Issue #187).
+if(TARGET crux::thread AND TARGET crux_config_service_fake_events AND TARGET crux_mgmt_status_core
+   AND TARGET crux_mgmt_status_fake_sources)
+    add_subdirectory(management)
+endif()
+
+# GET and PUT /api/v1/network over the network settings service (Issue #213).
+if(TARGET crux::thread AND TARGET network_settings_test_fixture AND TARGET crux_mgmt_status_api)
+    add_subdirectory(network)
+endif()

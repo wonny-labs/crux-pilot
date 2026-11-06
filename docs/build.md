@@ -244,7 +244,7 @@ The external application tests also cover C++17, independently selected Thread/S
 | Configuration | Select `CRUX_BUILD_CONFIGURATION=ON`. A composition with no provider links `crux_configuration_no_provider`, and a load or save then returns `NOT_SUPPORTED`. `CRUX_CONFIG_STRING_MAX` changes the longest string for every user of the header. See the [contract](configuration-contract.md) |
 | Configuration service | Select `CRUX_BUILD_CONFIG_SERVICE=ON`, which requires `CRUX_BUILD_ACCESS=ON` and `CRUX_BUILD_CONFIGURATION=ON`. A composition links its event provider, the object target `crux_config_service_security_events`, and an image that calls it without one does not link. The [services contract](status-configuration-services.md) holds its rules and limits |
 | Status service | Select `CRUX_BUILD_MGMT_STATUS=ON`, which requires Access, System, and Configuration for its library `crux_configuration_text`. A composition links `crux_mgmt_status_sources` and `crux_mgmt_status_no_security`, or its own providers. The [services contract](status-configuration-services.md) holds its rules and limits |
-| Web | Select `CRUX_BUILD_WEB=ON`, which requires Access. Name the sources that hold routes with `crux_web_routes` from `cmake/CruxWebRoutes.cmake`. On Zephyr select `CONFIG_CRUX_WEB`, and a composition supplies Access and starts the server. See the [web contract](web-contract.md). |
+| Web | Select `CRUX_BUILD_WEB=ON`, which requires Access. Name the sources that hold routes with `crux_web_routes` from `cmake/CruxWebRoutes.cmake`. On Zephyr select `CONFIG_CRUX_WEB`, and a composition supplies Access and starts the server. To serve a built frontend folder from firmware, call `crux_web_assets` from `cmake/CruxWebAssets.cmake` before `crux_web_routes`: see [web assets](web-assets.md). See the [web contract](web-contract.md). |
 | Queue | Portable targets use `crux::queue`. The final Linux executable additionally links `crux::queue_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and TTY binding belongs to platform composition |
 | I2C | Select `CRUX_BUILD_I2C=ON`; the Host provider is a deterministic loopback fixture for portable consumer tests. Zephyr applications compile the native provider and bind `crux-i2c0` to a selected controller |
@@ -266,7 +266,7 @@ For the focused external-application integration suite, from the Crux source roo
 python3 -m unittest discover -s tests/build -p test_external_application.py -v
 ~~~
 
-For all existing Python build checks, use `python3 -m unittest discover -s tests/build -v`. Independent Host consumers and Zephyr composition runners are listed in the [test guide](../tests/README.md). The current CI definitions are [Host](../.github/workflows/host.yml) and [Zephyr](../.github/workflows/zephyr.yml). Run tests appropriate to the claimed change rather than assuming Host success qualifies Zephyr or hardware behaviour.
+For all existing Python build checks, use `python3 -m unittest discover -s tests/build -v`. Independent Host consumers and Zephyr composition runners are listed in the [test guide](../tests/README.md). The current CI definitions are [Host](../.github/workflows/host.yml) and [Zephyr](../.github/workflows/zephyr.yml). The Zephyr workflow runs in parallel jobs, described in [Zephyr CI shards](ci-zephyr-shards.md). Run tests appropriate to the claimed change rather than assuming Host success qualifies Zephyr or hardware behaviour.
 
 | Symptom | Check |
 | --- | --- |

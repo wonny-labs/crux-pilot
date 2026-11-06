@@ -30,3 +30,11 @@ target_compile_options(crux_web_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_library(crux_web INTERFACE)
 add_library(crux::web ALIAS crux_web)
 target_link_libraries(crux_web INTERFACE crux_web_api crux_web_core)
+
+# Login, sessions and request forgery protection (Issue #186): sources that a composition compiles
+# with the core, with crux::sync, crux::thread and the ports of session/web_session_port.h.
+include(${CMAKE_CURRENT_LIST_DIR}/session/sources.cmake)
+
+# Status and configuration routes (Issue #187): sources that a composition compiles with the core, the
+# session module, crux::config_service, crux::mgmt_status, crux::sync and crux::thread.
+include(${CMAKE_CURRENT_LIST_DIR}/management/sources.cmake)
