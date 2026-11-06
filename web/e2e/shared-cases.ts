@@ -603,6 +603,9 @@ export function sharedCases(config: AppConfig): void {
     }
     await openConfiguration(page);
     await update(page, 'report_interval', '10');
+    // The read-back after the update has ended. Until then the Preact example drops a click on the save, which
+    // a device's slower read-back showed: see docs/e2e-native-220.md.
+    await parameter(page, 'report_interval').getByText('Current value: 10', { exact: true }).waitFor();
     await page.getByRole('button', { name: 'Save changes' }).click();
     await page.getByRole('alert').getByText(/no Configuration provider.*retrying will not help/i).waitFor();
   }, ['no-configuration-provider']);
