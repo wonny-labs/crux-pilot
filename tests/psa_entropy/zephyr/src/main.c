@@ -1,16 +1,18 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* What Zephyr's Mbed TLS glue does when the entropy device fails.
  *
- * Mbed TLS seeds the PSA random generator from the entropy device. Zephyr's glue, unchanged, answers
- * a failed read with sys_rand_get() and reports full entropy, and on RT1060-EVKB sys_rand_get() is not
- * cryptographically secure. Crux requires a failed read to fail PSA instead (owner decision of
- * 6 November 2026, docs/psa-crypto-qualification.md, finding 3). The three Twister configurations in
- * testcase.yaml state the three outcomes:
+ * Mbed TLS seeds the PSA random generator from the entropy device. Zephyr's glue, unchanged,
+ * answers a failed read with sys_rand_get() and reports full entropy, and on RT1060-EVKB
+ * sys_rand_get() is not cryptographically secure. Crux requires a failed read to fail PSA
+ * instead (owner decision of 6 November 2026, docs/psa-crypto-qualification.md, finding 3).
+ * The three Twister configurations in testcase.yaml state the three outcomes:
  *   - a healthy device, with the correction: PSA works;
  *   - a failing device, with the correction: PSA does not initialise;
- *   - a failing device, without it: PSA initialises. This control records that the upstream behaviour
- *     exists. If it fails, upstream changed and the correction can be reconsidered.
- * Every outcome also requires that the device was read, so a pass cannot come from another source. */
+ *   - a failing device, without it: PSA initialises. This control records that the upstream
+ *     behaviour exists. If it fails, upstream changed and the correction can be reconsidered.
+ * Every outcome also requires that the device was read, so a pass cannot come from another
+ * source.
+ */
 #include <zephyr/ztest.h>
 
 #include <psa/crypto.h>

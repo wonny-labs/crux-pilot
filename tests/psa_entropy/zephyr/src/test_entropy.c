@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* An entropy device for tests. It is not a source of entropy: the bytes repeat, and with
- * CONFIG_CRUX_TEST_ENTROPY_FAILS every read fails the way a TRNG read can. It counts the reads, so a
- * test can show that the code under test went through it. */
+ * CONFIG_CRUX_TEST_ENTROPY_FAILS every read fails the way a TRNG read can. It counts the reads,
+ * so a test can show that the code under test went through it.
+ */
 #define DT_DRV_COMPAT crux_test_entropy
 
 #include <errno.h>
