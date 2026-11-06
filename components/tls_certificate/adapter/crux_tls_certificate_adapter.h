@@ -76,9 +76,9 @@ typedef enum {
  * its type, as the store does.
  *
  * A stored certificate that is malformed or does not match the key is never replaced here. It is
- * logged as web.certificate_rejected, no certificate is active, a TLS provider has nothing to
- * serve, and only crux_tls_certificate_install() or crux_tls_certificate_regenerate(), for example
- * from the serial console, makes one active.
+ * logged as web.certificate_unusable, with the reason as its subject, no certificate is active, a
+ * TLS provider has nothing to serve, and only crux_tls_certificate_install() or
+ * crux_tls_certificate_regenerate(), for example from the serial console, makes one active.
  *
  * @param options Borrowed for the program's life.
  * @param[out] how Written only on success.

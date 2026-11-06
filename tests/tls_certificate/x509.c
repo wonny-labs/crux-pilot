@@ -782,7 +782,8 @@ static void test_extension_values(void)
         {bc, "\x30\x00\x00", 3, true, TLS_X509_MALFORMED}, /* After the value. */
         {ku, "\x03\x02\x07\x80", 4, true, TLS_X509_OK},
         {ku, "\x03\x02\x08\x80", 4, true, TLS_X509_MALFORMED},
-        {ku, "\x03\x01\x00", 3, true, TLS_X509_MALFORMED}, /* No bits. */
+        {ku, "\x03\x02\x07\x81", 4, true, TLS_X509_MALFORMED}, /* An unused bit set. */
+        {ku, "\x03\x01\x00", 3, true, TLS_X509_MALFORMED},     /* No bits. */
         {ku, "\x04\x01\x80", 3, true, TLS_X509_MALFORMED},
         {eku, "\x30\x0a\x06\x08\x2b\x06\x01\x05\x05\x07\x03\x01", 12, false, TLS_X509_OK},
         {eku, "\x30\x00", 2, false, TLS_X509_MALFORMED},
@@ -796,8 +797,10 @@ static void test_extension_values(void)
         {san, "\x30\x04\xa4\x02\x30\x00", 6, false, TLS_X509_OK},    /* An empty Name. */
         {san, "\x30\x02\xa4\x00", 4, false, TLS_X509_MALFORMED},     /* No Name. */
         {san, "\x30\x04\xa4\x02\x31\x00", 6, false, TLS_X509_MALFORMED},
+        {san, "\x30\x06\xa4\x04\x30\x02\x31\x00", 8, false, TLS_X509_MALFORMED}, /* Empty RDN. */
         {ski, "\x04\x02\x01\x02", 4, false, TLS_X509_OK},
         {ski, "\x30\x00", 2, false, TLS_X509_MALFORMED},
+        {ski, "\x04\x01\x01\x05\x00", 5, false, TLS_X509_MALFORMED}, /* After the value. */
         {other, "\xff\xff", 2, false, TLS_X509_OK}, /* An unknown value is not parsed. */
         {other, "\xff\xff", 2, true, TLS_X509_INVALID},
     };

@@ -238,6 +238,11 @@ The parser has no recursion and no allocation. Each read is checked against what
 must be used up exactly. It copies the subject's and issuer's first common name, with any byte outside printable ASCII
 shown as `?`, so a description never carries raw input.
 
+PrintableString is checked against its specified character set, which is stricter than OpenSSL: OpenSSL loads a
+PrintableString holding `*`, `@`, `_` or `&`, and this parser refuses it. An older CA's certificate with a wildcard
+common name in a PrintableString is therefore refused as malformed. That follows the specification and fails safe:
+nothing is installed, and the previous certificate stays.
+
 A differential test holds the parser to OpenSSL's decoder: of 300,000 seeded mutations of the OpenSSL fixtures, every one
 the parser accepts must also decode with `d2i_X509`. Before the review fixes, 9,994 did not. After them, none.
 
@@ -363,7 +368,9 @@ CI runs. `scripts/test-tls-certificate.sh psa` runs the PSA composition and the 
 ### Mutations
 
 Each was applied once to the source on Host, at the review fixes, and the parser, service, install, store and
-differential suites were run. A count is the failing checks. 42 mutations: 41 caught, one equivalent. The first run, at
+differential suites were run. A count is the failing checks. 45 mutations: 44 caught, one equivalent. Three came from
+the re-check of `c73ed8d`, which no case caught until one was added for each, with no change to the parser. The first
+run, at
 `f51e277`, also found a gap, a two-byte length that fits one byte, which a case now covers.
 
 | Mutation | Caught by |
@@ -395,6 +402,9 @@ differential suites were run. A count is the failing checks. 42 mutations: 41 ca
 | GeneralizedTime before 2050 accepted | 2 in `x509.c` |
 | Parsed extension values not checked | 16 in `x509.c` |
 | Subject alternative names not checked | 6 in `x509.c` |
+| Key usage with an unused bit set accepted, from the re-check | 1 in `x509.c`, after a case was added |
+| Subject alternative names: directoryName content not checked, from the re-check | 1 in `x509.c`, after a case was added |
+| Subject key identifier with data after it accepted, from the re-check | 1 in `x509.c`, after a case was added |
 | Unknown critical extension accepted | 2 in `x509.c` |
 | Bound of 32 extensions removed | 1 in `x509.c` |
 | Element after the key accepted | 1 in `x509.c` |
@@ -425,7 +435,7 @@ Container `crux-190`, image `crux-pilot-devcontainer:local` under amd64 emulatio
 | `scripts/check-dependencies.sh`, `scripts/check-credential-boundary.py`, `scripts/check_docs.py` | Host | Pass |
 | Negative probe by hand, before the automated one: `crux::tls_certificate` made to link the adapter, root configure | Host | Refused by `cmake/CruxCredentialBoundary.cmake`, as intended. Reverted. |
 | `scripts/test-tls-certificate.sh psa`, gcc with ASan and UBSan, TF-PSA-Crypto `dc575a2`, OpenSSL 3.0.13 | Host | Pass |
-| The mutations above | Host | 41 of 42 caught, one equivalent |
+| The mutations above | Host | 44 of 45 caught, one equivalent |
 | Review fixes, tests first | Host | Red before the fixes: `x509` 6 of 32 cases failed, the event tests did not build without `web.certificate_unusable`, and the wipe test did not link without its hook |
 | `tls_certificate_differential`, 300,000 rounds | Host | 0 disagreements with OpenSSL 3.0.13's `d2i_X509`; 9,994 on the parser before the fixes |
 | `TlsCertificate.boundary_leak`, `boundary_clean` | Host | Leak refused by `cmake/CruxCredentialBoundary.cmake`, clean accepted |
