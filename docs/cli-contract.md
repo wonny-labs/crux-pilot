@@ -295,13 +295,13 @@ The identifiers `cli.line_rejected` and `cli.console_error` exist at 0x0500 and 
 
 ## Registering the recovery command of #213
 
-The registry takes what #213 needs with no change, and `tests/cli/registry.c` tests this shape, which is a two-word serial-only permission command with its own context:
+The registry takes what #213 needs with no change, and `tests/cli/registry.c` tests this shape, which is a two-word serial-only permission command with its own context. The command itself is `crux_network_settings_cli_commands()` of `<crux/network_settings_cli.h>`, tested through the real registry by `NetworkSettings.cli`. It is this entry:
 
 ```c
-static const crux_cli_command_t recovery[] = {
-    CRUX_CLI_COMMAND("network recover", "use the composition's default address at the next boot",
-                     CRUX_CLI_PERMISSION("network.write"), 0, 0, CRUX_CLI_CHANNEL_SERIAL,
-                     network_recover, &service),
+static const crux_cli_command_t commands[] = {
+    CRUX_CLI_COMMAND("network recover", "ignore the saved address at the next boot",
+                     CRUX_CLI_PERMISSION(CRUX_NETWORK_SETTINGS_PERMISSION_WRITE), 0, 0,
+                     CRUX_CLI_CHANNEL_SERIAL, recover, NULL),
 };
 ```
 

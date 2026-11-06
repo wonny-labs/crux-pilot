@@ -37,3 +37,8 @@ if(TARGET crux::thread AND TARGET crux_config_service_fake_events AND TARGET cru
    AND TARGET crux_mgmt_status_fake_sources)
     add_subdirectory(management)
 endif()
+
+# GET and PUT /api/v1/network over the network settings service (Issue #213).
+if(TARGET crux::thread AND TARGET network_settings_test_fixture AND TARGET crux_mgmt_status_api)
+    add_subdirectory(network)
+endif()

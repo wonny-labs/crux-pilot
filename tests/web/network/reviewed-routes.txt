@@ -1,0 +1,13 @@
+# The network route suites' public and session-only routes: the session routes of #186 and the session
+# suites' test routes, which the shared test fixture links. The network routes have a permission as their
+# access class, so they are not listed.
+public POST /api/v1/session
+session DELETE /api/v1/session
+public GET /api/v1/session/attempt/{id}
+session GET /api/v1/session/me
+session POST /api/v1/session/me/password
+session GET /api/v1/test/session
+session POST /api/v1/test/session
+session PUT /api/v1/test/session
+session DELETE /api/v1/test/session
+session PATCH /api/v1/test/session
