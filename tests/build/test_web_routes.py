@@ -221,6 +221,85 @@ class ReviewList(unittest.TestCase):
         for suffix in (".c", ".cc", ".cpp", ".inc", ".def", ".h"):
             self.assertIn(suffix, module.SOURCE_SUFFIXES)
 
+    def load_check(self):
+        check = importlib.util.spec_from_file_location("check_web_routes", CHECK)
+        module = importlib.util.module_from_spec(check)
+        check.loader.exec_module(module)
+        return module
+
+    def sample(self, root, listing=None, cmake=None):
+        """A sample under root/samples/rogue with one public route, and optionally its list and a build file."""
+        source = root / "samples/rogue/src/r.c"
+        source.parent.mkdir(parents=True)
+        source.write_text('#include <crux/web.h>\nCRUX_WEB_ROUTE(rogue_route, "/api/v1/rogue", CRUX_WEB_POST, '
+                          'CRUX_WEB_PUBLIC, h, NULL);\n', encoding="utf-8")
+        if listing is not None:
+            (root / "samples/rogue/reviewed-routes.txt").write_text(listing, encoding="utf-8")
+        if cmake is not None:
+            (root / "tests/rogue").mkdir(parents=True)
+            (root / "tests/rogue/CMakeLists.txt").write_text(cmake, encoding="utf-8")
+        return source
+
+    def sample_errors(self, root):
+        module = self.load_check()
+        source = root / "samples/rogue/src/r.c"
+        listing = module.own_list(source, root)
+        if listing is None:
+            return ["no own list"]
+        return module.sample_errors({listing: [source]}, root)
+
+    NAMED = "crux_web_routes(app SOURCES r.c REVIEWED ${CMAKE_CURRENT_LIST_DIR}/../../samples/rogue/reviewed-routes.txt)\n"
+
+    def test_an_empty_list_of_a_sample_does_not_exempt_its_route(self):
+        # The review's repro: an empty list beside a public route, which the old exemption skipped.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.sample(root, listing="", cmake=self.NAMED)
+            self.assertIn("not reviewed: public POST /api/v1/rogue", " ".join(self.sample_errors(root)))
+
+    def test_a_list_that_no_build_names_exempts_nothing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.sample(root, listing="public POST /api/v1/rogue\n")
+            errors = self.sample_errors(root)
+            self.assertTrue(any("no build names it" in error for error in errors), errors)
+            # A build file that names the list without REVIEWED does not count either.
+            (root / "tests/rogue").mkdir(parents=True)
+            (root / "tests/rogue/CMakeLists.txt").write_text(
+                "# samples/rogue/reviewed-routes.txt\n", encoding="utf-8")
+            self.assertTrue(any("no build names it" in error for error in self.sample_errors(root)))
+
+    def test_a_named_list_that_holds_the_routes_passes_and_a_stale_entry_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.sample(root, listing="public POST /api/v1/rogue\npublic GET @assets\n", cmake=self.NAMED)
+            # The packaged folder's line is held by the build, which sees the generated source; the scan cannot.
+            self.assertEqual(self.sample_errors(root), [])
+            (root / "samples/rogue/reviewed-routes.txt").write_text(
+                "public POST /api/v1/rogue\nsession GET /api/v1/gone\n", encoding="utf-8")
+            self.assertIn("reviewed, but no such route: session GET /api/v1/gone",
+                          " ".join(self.sample_errors(root)))
+
+    def test_without_a_list_a_sample_falls_to_the_default_list(self):
+        module = self.load_check()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = self.sample(root)
+            self.assertIsNone(module.own_list(source, root))
+
+    def test_the_example_project_is_checked_against_its_named_list(self):
+        module = self.load_check()
+        sample = REPO / "samples/web_project"
+        listing = module.own_list(sample / "src/greeting_route.c")
+        self.assertEqual(listing, sample / "reviewed-routes.txt")
+        self.assertTrue(module.named_by_build(listing))
+        self.assertEqual(module.sample_errors({listing: [sample / "src/greeting_route.c"]}), [])
+        self.assertIsNone(module.own_list(REPO / "components/web/session/web_session_routes.c"))
+        self.assertIsNone(module.own_list(REPO / "samples/time/src/time_command.c"))
+        default, owned = module.default_sources()
+        self.assertNotIn(sample / "src/greeting_route.c", default)
+        self.assertEqual(owned, {listing: [sample / "src/greeting_route.c"]})
+
     def test_repository_list_holds(self):
         result = subprocess.run([sys.executable, str(CHECK)], stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, text=True, check=False)

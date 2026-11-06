@@ -10,6 +10,7 @@
 #include <crux/access.h>
 #include <crux/config_service.h>
 #include <crux/credential_store.h>
+#include <crux/management_status.h>
 
 #include <stdbool.h>
 
@@ -45,11 +46,34 @@ typedef enum {
 } crux_native_management_start_t;
 
 /*
+ * What a test image may give in place of the reference roles, parameter table and versions, so that
+ * a browser suite meets the accounts and parameters it was written for (Issue #220). A NULL field,
+ * or a zero count, keeps the reference one. The image initialises its parameters in
+ * init_parameters, which runs where the reference table is initialised. Test images only, like the
+ * rest of this file.
+ */
+#define CRUX_NATIVE_MANAGEMENT_PROFILE_ENTRIES_MAX 12u
+typedef struct {
+    const crux_access_policy_t *policy;
+    const crux_config_service_entry_t *entries; /**< At most ..._PROFILE_ENTRIES_MAX. */
+    size_t entry_count;
+    bool (*init_parameters)(void);
+    const char *platform_version;
+    const char *project_version;
+    const crux_mgmt_status_item_t *status_items;
+    size_t status_item_count;
+} crux_native_management_profile_t;
+
+/*
  * Boots the services in the order the contracts state, from one thread. It mounts the simulated
  * disk, formatting a blank one, because this medium belongs to the test. An unusable store is not a
  * start failure: it fails closed, and the services report it.
  */
 crux_native_management_start_t crux_native_management_start(void);
+
+/* The same, with an image's profile in place of the reference one. NULL is the reference. */
+crux_native_management_start_t
+crux_native_management_start_profile(const crux_native_management_profile_t *profile);
 
 #if defined(CRUX_NATIVE_MANAGEMENT_SERVICES)
 #include <crux/file.h>

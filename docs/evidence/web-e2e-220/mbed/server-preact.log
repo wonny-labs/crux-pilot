@@ -1,0 +1,6 @@
+WARNING: Using a test - not safe - entropy source
+uart connected to pseudotty: /dev/pts/0
+*** Booting Zephyr OS build dccb09599635 ***
+CRUX_E2E_READY 18220 first=0 idle=30
+
+Stopped at 96.060s

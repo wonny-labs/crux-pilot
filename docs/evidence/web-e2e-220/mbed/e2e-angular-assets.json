@@ -1,0 +1,74 @@
+{
+  "assets": [
+    {
+      "bytes": 16954,
+      "cache": "revalidate",
+      "encoding": "gzip",
+      "file": "3rdpartylicenses.txt",
+      "path": "/3rdpartylicenses.txt",
+      "served_bytes": 4828,
+      "served_sha256": "83afc95d884cb0887d250fde24df046a12ef16618226cffcf929fb791474fe63",
+      "sha256": "826d77b6b3f125519073a19783e45c85d96e8daadc3ad87c14439c9398a3f259",
+      "type": "text/plain; charset=utf-8"
+    },
+    {
+      "bytes": 174,
+      "cache": "revalidate",
+      "encoding": "gzip",
+      "file": "favicon.svg",
+      "path": "/favicon.svg",
+      "served_bytes": 159,
+      "served_sha256": "413e8bd2edd2e68fa7a5f885ff822a005f46f0169c12da83aacbf1a62e289fef",
+      "sha256": "e4e38206ba428235a922e312c18c81920a48c0ac2c2027f68dff9d4804c9a371",
+      "type": "image/svg+xml"
+    },
+    {
+      "bytes": 541,
+      "cache": "revalidate",
+      "encoding": "gzip",
+      "file": "index.html",
+      "path": "/index.html",
+      "served_bytes": 345,
+      "served_sha256": "b75f40d8b2b9b2c51ad622a03453696d3ff25056f1a24105617d109ef65ae2b4",
+      "sha256": "2b287d5744b3dde6123a95d041979e0098542e07d87328588b0bed7c76e25b14",
+      "type": "text/html; charset=utf-8"
+    },
+    {
+      "bytes": 280163,
+      "cache": "immutable",
+      "encoding": "gzip",
+      "file": "main-W7U54RFG.js",
+      "path": "/main-W7U54RFG.js",
+      "served_bytes": 85384,
+      "served_sha256": "c3b247063dc024bbc111272f0b51aee71113dbe7b16014e4b712c7ac52ae8778",
+      "sha256": "713f39b016da062b7e7872d7caa9c3d0176315241c70663241ee85346773f4ee",
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "bytes": 948,
+      "cache": "immutable",
+      "encoding": "gzip",
+      "file": "styles-AK5LBXAW.css",
+      "path": "/styles-AK5LBXAW.css",
+      "served_bytes": 485,
+      "served_sha256": "4107c176e3384844f29932bd782c1d5b09f6074e5b3c2806654554249e20cdec",
+      "sha256": "6a60049ba6e20982ce5f291e2350077a431e24af93e67c38b7eb56fb67f6cdab",
+      "type": "text/css; charset=utf-8"
+    }
+  ],
+  "budget": {
+    "client_rate_bytes_per_second": 32768,
+    "max_asset_bytes": 98304,
+    "max_files": 32,
+    "max_total_bytes": 393216,
+    "response_deadline_ms": 3000
+  },
+  "format": "crux-web-assets/1",
+  "style": "inline",
+  "totals": {
+    "bytes": 298780,
+    "files": 5,
+    "routes": 6,
+    "served_bytes": 91201
+  }
+}

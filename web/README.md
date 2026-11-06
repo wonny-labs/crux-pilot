@@ -10,7 +10,7 @@ a design system. The firmware build needs none of it: it takes a built folder, a
 | `client` | An optional TypeScript client with no framework: login polling, CSRF, error mapping and retry timing |
 | `reference` | The Preact example, in a folder that keeps its earlier name: sign-in, forced password change, home, configuration, and network settings and reboot as advanced examples |
 | `mock` | A small mock server that follows the specification, and its conformance check |
-| `e2e` | Browser tests on the mock |
+| `e2e` | Browser tests on the mock, and the same cases on a `native_sim` image over HTTPS |
 | `tools` | Type generation, the build, the packaging budget and the source rules |
 
 The second example is the [Angular example](../samples/web/angular-minimal/README.md). The
@@ -41,7 +41,7 @@ Each state is recorded on its own, and none stands in for another. The flow-by-f
 | --- | --- | --- |
 | Mock | The examples and the client against the specification, over plain HTTP on the loopback address | Run in CI |
 | Host | The management services in C, with no web server | Some services pass, with no web route yet |
-| `native_sim` | Real TLS, sessions and limits with a browser | Not run, #220 |
+| `native_sim` | Real TLS, sessions and limits with a browser | Both examples packaged and run over HTTPS in Chrome, #220: [end-to-end design](../docs/e2e-native-220.md) |
 | Physical | RT1060-EVKB, with separate approval | Not run |
 
 Host and `native_sim` functional completion is an interim result. Physical evidence stays tracked separately and is not
@@ -64,6 +64,7 @@ npm ci
 | `npm run check` | Pins, generated types, `tsc`, source rules, unit tests and the build, with its budget |
 | `npm run test:browser` | Browser tests of the Preact example on the mock |
 | `npm run test:angular` | The shared browser cases on the Angular example, once it is built |
+| `npm run test:native` | The shared and real-server cases on `native_sim` images named by `CRUX_E2E_IMAGE_PREACT` and `CRUX_E2E_IMAGE_ANGULAR`. `scripts/test-native-composition.sh e2e-mbed` builds the images and runs them. |
 | `npm run gen:types` | Regenerate `client/src/api-types.generated.ts` after a specification change |
 | `npm run build` | Build `reference/dist`. It fails over the budget in `reference/budget.json`. |
 | `npm run dev` | Build, then serve the Preact example from the mock on <http://127.0.0.1:8080> |
@@ -118,4 +119,5 @@ curl -X POST http://127.0.0.1:8080/__mock/control -d '{"action":"reset"}'
 ```
 
 The mock shows nothing about TLS, sessions, connection limits or timing on a real device. Those need the firmware, and
-results from the mock do not stand in for them.
+results from the mock do not stand in for them. The [end-to-end design](../docs/e2e-native-220.md) runs the same cases on
+`native_sim`, and records each target's results apart.

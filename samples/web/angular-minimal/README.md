@@ -18,7 +18,7 @@ this example, but Crux does not maintain it as a starting template. The product 
 | --- | --- |
 | Mock | Shared browser cases, run in CI |
 | Host | Not applicable, since this example runs only in a browser |
-| `native_sim` | Not run, #220 |
+| `native_sim` | Packaged under the inline style setting at the default response deadline, and run over HTTPS in Chrome with the shared cases: [end-to-end design](../../../docs/e2e-native-220.md) |
 | Physical | Not run, and it needs separate approval |
 
 | Topic | How it is set here |

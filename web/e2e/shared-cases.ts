@@ -1,11 +1,16 @@
 // The browser cases that the Preact reference and the Angular sample both pass: sign-in, home, the forced
 // password change and configuration.
 // They find elements by role, label and visible text only, so they hold for any framework.
+//
+// The same list runs on the mock and, with a target in the AppConfig, on a native_sim image over HTTPS
+// (Issue #220). A case that forces an answer through the mock's control is marked with that need and is
+// skipped elsewhere, with its reason recorded. Where the data differ, a case reads the target's fixture.
 import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
 import type { Locator, Page } from 'playwright-core';
-import { lazyBrowser, PASSWORD, requireBuilt, runCase, signIn, waitForHeading } from './harness.ts';
-import type { AppConfig, OpenApp } from './harness.ts';
+import type { RecordedRequest } from '../mock/server.ts';
+import { browserArgs, lazyBrowser, missingNeed, PASSWORD, recordResult, requireBuilt, runCase, signIn, waitForHeading } from './harness.ts';
+import type { AppConfig, Need, OpenApp } from './harness.ts';
 
 const NEW_PASSWORD = 'example-new-password-not-real';
 
@@ -56,28 +61,61 @@ async function fillPasswords(page: Page, current: string, next: string, repeat =
 
 const PROTECTED = ['/api/v1/status', '/api/v1/config', '/api/v1/network', '/api/v1/system/reboot'];
 
-export function sharedCases(config: AppConfig): void {
-  const shared = lazyBrowser();
-  after(() => shared.close());
+/** The token cookie's value, which a state-changing request must carry, and the mock's fixed value there. */
+async function xsrfCookie(app: OpenApp): Promise<string> {
+  const value = (await app.context.cookies()).find((cookie) => cookie.name === 'XSRF-TOKEN')?.value ?? '';
+  assert.ok(value.length > 0, 'the token cookie is set');
+  if (app.fixture.fixedXsrfToken !== undefined) {
+    assert.equal(value, app.fixture.fixedXsrfToken);
+  }
+  return value;
+}
 
-  const run = (name: string, body: (app: OpenApp) => Promise<void>) =>
-    test(`${config.name}: ${name}`, async () => {
+/** Runs one case of a list, or skips it where the target lacks its need, and records the result either way. */
+export function caseRunner(
+  config: AppConfig,
+  shared: ReturnType<typeof lazyBrowser>,
+): (name: string, body: (app: OpenApp) => Promise<void>, needs?: Need[]) => void {
+  return (name, body, needs = []) => {
+    const reason = missingNeed(config, needs);
+    if (reason !== undefined) {
+      recordResult(config, { case: name, outcome: 'skipped', reason });
+      test(`${config.name}: ${name}`, { skip: reason }, () => undefined);
+      return;
+    }
+    // On a device a case that waits for ever fails at a bound instead, so that one hang does not stop the run.
+    test(`${config.name}: ${name}`, config.target ? { timeout: 240_000 } : {}, async () => {
       requireBuilt(config);
-      return runCase(await shared.get(), config, name, {}, body);
+      const started = Date.now();
+      try {
+        await runCase(await shared.get(), config, name, {}, body);
+        recordResult(config, { case: name, outcome: 'passed', ms: Date.now() - started });
+      } catch (cause) {
+        recordResult(config, { case: name, outcome: 'failed', ms: Date.now() - started, error: String(cause).slice(0, 2000) });
+        throw cause;
+      }
     });
+  };
+}
 
-  run('a visit with no session shows sign-in', async ({ page, mock }) => {
+export function sharedCases(config: AppConfig): void {
+  const shared = lazyBrowser(browserArgs(config));
+  after(() => shared.close());
+  const run = caseRunner(config, shared);
+
+  run('a visit with no session shows sign-in', async ({ page, requests }) => {
     await page.goto('/');
     await waitForHeading(page, 'Sign in');
-    assert.equal(mock.control.requests.some((request) => request.path === '/api/v1/status'), false);
+    assert.equal(requests.some((request) => request.path === '/api/v1/status'), false);
   });
 
-  run('a correct sign-in reaches home and shows the items', async ({ page }) => {
+  run('a correct sign-in reaches home and shows the items', async ({ page, fixture }) => {
     await page.goto('/');
     await signIn(page);
     await waitForHeading(page, 'Home');
-    await page.getByText('192.0.2.10').waitFor();
-    await page.getByText('0.1.0-mock').waitFor();
+    for (const text of fixture.homeTexts) {
+      await page.getByText(text).first().waitFor();
+    }
   });
 
   run('the session cookie stays out of page scripts, and the token cookie stays readable', async ({ page, context }) => {
@@ -111,12 +149,12 @@ export function sharedCases(config: AppConfig): void {
     assert.equal(seen.address.includes(PASSWORD), false);
   });
 
-  run('every poll carries the required header', async ({ page, mock }) => {
+  run('every poll carries the required header', async ({ page, requests, fixture }) => {
     await page.goto('/');
     await signIn(page);
     await waitForHeading(page, 'Home');
-    const polls = mock.control.requests.filter((request) => request.path.includes('/session/attempt/'));
-    assert.ok(polls.length >= 2);
+    const polls = requests.filter((request) => request.path.includes('/session/attempt/'));
+    assert.ok(polls.length >= fixture.minPolls);
     assert.ok(polls.every((request) => request.headers['x-crux-request'] === '1'));
   });
 
@@ -154,7 +192,7 @@ export function sharedCases(config: AppConfig): void {
     });
     await page.getByRole('button', { name: 'Sign in' }).click();
     await waitForHeading(page, 'Home');
-  });
+  }, ['mock-control']);
 
   run('a busy verifier is shown with the wait, and a later try works', async ({ page, mock }) => {
     mock.control.set({ attemptBusySeconds: 1 });
@@ -165,7 +203,7 @@ export function sharedCases(config: AppConfig): void {
     await page.waitForFunction(() => !document.body.textContent?.match(/try again in \d/i), undefined, { timeout: 5000 });
     await page.getByRole('button', { name: 'Sign in' }).click();
     await waitForHeading(page, 'Home');
-  });
+  }, ['mock-control']);
 
   run('a held login route is retried without the user doing anything', async ({ page, mock }) => {
     mock.control.force('createSession', { status: 409 }, { status: 409 });
@@ -173,7 +211,7 @@ export function sharedCases(config: AppConfig): void {
     await signIn(page);
     await waitForHeading(page, 'Home');
     assert.equal(mock.control.requests.filter((request) => request.method === 'POST').length, 3);
-  });
+  }, ['mock-control']);
 
   run('a lost attempt asks the user to sign in again and does not resend the password', async ({ page, mock }) => {
     await page.goto('/');
@@ -181,34 +219,36 @@ export function sharedCases(config: AppConfig): void {
     await signIn(page);
     await page.getByRole('alert').getByText(/sign in again/i).waitFor();
     assert.equal(mock.control.requests.filter((request) => request.method === 'POST').length, 1);
-  });
+  }, ['mock-control']);
 
-  run('an expired session returns to sign-in with a notice, and signing in shows home again', async ({ page, mock }) => {
+  run('an expired session returns to sign-in with a notice, and signing in shows home again', async ({ page, expireSessions }) => {
     await page.goto('/');
     await signIn(page);
     await waitForHeading(page, 'Home');
-    mock.control.expireSessions();
+    await expireSessions();
     await page.getByText(/session has ended/i).waitFor({ timeout: 15_000 });
     await waitForHeading(page, 'Sign in');
     await signIn(page);
     await waitForHeading(page, 'Home');
   });
 
-  run('sign out ends the session with the CSRF token and returns to sign-in', async ({ page, mock, context }) => {
+  run('sign out ends the session with the CSRF token and returns to sign-in', async (app) => {
+    const { page, requests, context } = app;
     await page.goto('/');
     await signIn(page);
     await waitForHeading(page, 'Home');
+    const token = await xsrfCookie(app);
     await page.getByRole('button', { name: 'Sign out' }).click();
     await waitForHeading(page, 'Sign in');
-    const request = mock.control.requests.find((entry) => entry.method === 'DELETE');
-    assert.equal(request?.headers['x-xsrf-token'], 'example-xsrf-token-not-real');
+    const request = requests.find((entry) => entry.method === 'DELETE');
+    assert.equal(request?.headers['x-xsrf-token'], token);
     assert.deepEqual(
       (await context.cookies()).map((cookie) => cookie.name),
       [],
     );
   });
 
-  run('a reload keeps the session, and the server sees only the root path', async ({ page, mock }) => {
+  run('a reload keeps the session, and the server sees only the root path', async ({ page, requests }) => {
     await page.goto('/#/');
     await signIn(page);
     await waitForHeading(page, 'Home');
@@ -216,7 +256,7 @@ export function sharedCases(config: AppConfig): void {
     await page.reload();
     await waitForHeading(page, 'Home');
     // The route stays in the fragment, so besides the API the server sees only the root and the assets.
-    const other = mock.control.requests.map((request) => request.path).filter((path) => !path.startsWith('/api/'));
+    const other = requests.map((request) => request.path).filter((path) => !path.startsWith('/api/'));
     assert.ok(other.includes('/'), 'the page itself was loaded');
     assert.deepEqual(
       other.filter((path) => path !== '/' && !/^\/[\w./-]+\.(js|css|svg|ico)$/.test(path)),
@@ -224,11 +264,11 @@ export function sharedCases(config: AppConfig): void {
     );
   });
 
-  run('home shows only what the session may read', async ({ page }) => {
+  run('home shows only what the session may read', async ({ page, fixture }) => {
     await page.goto('/');
     await signIn(page, 'viewer');
     await waitForHeading(page, 'Home');
-    await page.getByText('192.0.2.10').waitFor();
+    await page.getByText(fixture.viewerText).first().waitFor();
     assert.equal(await page.getByText('app.cycle_count').count(), 0);
   });
 
@@ -240,13 +280,13 @@ export function sharedCases(config: AppConfig): void {
     assert.equal(await page.getByRole('alert').count(), 0);
   });
 
-  run('one failed source shows as unavailable without hiding the rest', async ({ page }) => {
+  run('one failed source shows as unavailable without hiding the rest', async ({ page, fixture }) => {
     await page.goto('/');
     await signIn(page);
     await waitForHeading(page, 'Home');
     await page.getByText(/not available/i).first().waitFor();
-    await page.getByText('192.0.2.10').waitFor();
-  });
+    await page.getByText(fixture.viewerText).first().waitFor();
+  }, ['unavailable-item']);
 
   run('an item named like a built-in JavaScript property keeps its name as its label', async ({ page, mock }) => {
     mock.control.set({
@@ -262,7 +302,7 @@ export function sharedCases(config: AppConfig): void {
       await page.getByText(name, { exact: true }).waitFor();
     }
     await page.getByText('100', { exact: true }).waitFor();
-  });
+  }, ['mock-control']);
 
   run('a project item that the interface does not know is shown by its name', async ({ page }) => {
     await page.goto('/');
@@ -274,7 +314,7 @@ export function sharedCases(config: AppConfig): void {
 
   // Forced password change
 
-  run('a forced change holds the session on its screen whatever the route, and asks for nothing protected', async ({ page, mock }) => {
+  run('a forced change holds the session on its screen whatever the route, and asks for nothing protected', async ({ page, requests }) => {
     await reachForcedChange(page);
     await page.evaluate(() => {
       window.location.hash = '#/config';
@@ -282,7 +322,7 @@ export function sharedCases(config: AppConfig): void {
     await page.waitForTimeout(300);
     await waitForHeading(page, 'Change your password');
     assert.equal(await page.getByRole('link', { name: 'Configuration' }).count(), 0);
-    const asked = mock.control.requests.map((request) => request.path);
+    const asked = requests.map((request) => request.path);
     assert.deepEqual(
       asked.filter((path) => PROTECTED.some((protectedPath) => path.startsWith(protectedPath))),
       [],
@@ -313,14 +353,16 @@ export function sharedCases(config: AppConfig): void {
     await page.getByText('Current value: 5', { exact: true }).waitFor();
   });
 
-  run('a forced change completes with the token, and the session goes to home with its permissions', async ({ page, mock }) => {
+  run('a forced change completes with the token, and the session goes to home with its permissions', async (app) => {
+    const { page, requests, fixture } = app;
     await reachForcedChange(page);
+    const token = await xsrfCookie(app);
     await fillPasswords(page, PASSWORD, NEW_PASSWORD);
     await waitForHeading(page, 'Home');
-    await page.getByText('192.0.2.10').waitFor();
-    const change = mock.control.requests.find((request) => request.path === '/api/v1/session/me/password');
-    assert.equal(change?.headers['x-xsrf-token'], 'example-xsrf-token-not-real');
-    const polls = mock.control.requests.filter((request) => request.path.includes('/session/attempt/'));
+    await page.getByText(fixture.viewerText).first().waitFor();
+    const change = requests.find((request) => request.path === '/api/v1/session/me/password');
+    assert.equal(change?.headers['x-xsrf-token'], token);
+    const polls = requests.filter((request) => request.path.includes('/session/attempt/'));
     assert.ok(polls.length >= 1);
     assert.ok(polls.every((request) => request.headers['x-crux-request'] === '1'));
   });
@@ -342,11 +384,11 @@ export function sharedCases(config: AppConfig): void {
     assert.equal(await page.getByLabel('New password', { exact: true }).getAttribute('aria-invalid'), 'true');
   });
 
-  run('passwords that differ are refused before any request', async ({ page, mock }) => {
+  run('passwords that differ are refused before any request', async ({ page, requests }) => {
     await reachForcedChange(page);
     await fillPasswords(page, PASSWORD, NEW_PASSWORD, 'something-else-entirely');
     await page.getByText(/passwords do not match/i).waitFor();
-    assert.equal(mock.control.requests.some((request) => request.path === '/api/v1/session/me/password'), false);
+    assert.equal(requests.some((request) => request.path === '/api/v1/session/me/password'), false);
   });
 
   run('a failed save says what is true of the running password', async ({ page, mock }) => {
@@ -355,7 +397,7 @@ export function sharedCases(config: AppConfig): void {
     await fillPasswords(page, PASSWORD, NEW_PASSWORD);
     await page.getByRole('alert').getByText(/could not be saved.*running password is unchanged/i).waitFor();
     await waitForHeading(page, 'Change your password');
-  });
+  }, ['mock-control']);
 
   run('a lost result where the device shows the change succeeded counts as done', async ({ page, mock }) => {
     await reachForcedChange(page);
@@ -363,7 +405,7 @@ export function sharedCases(config: AppConfig): void {
     mock.control.force('getCurrentUser', { status: 200, example: 'normal' });
     await fillPasswords(page, PASSWORD, NEW_PASSWORD);
     await waitForHeading(page, 'Home');
-  });
+  }, ['mock-control']);
 
   run('a lost result with the change still required never claims success', async ({ page, mock }) => {
     await reachForcedChange(page);
@@ -372,7 +414,7 @@ export function sharedCases(config: AppConfig): void {
     await page.getByRole('alert').getByText(/result was lost/i).waitFor();
     await waitForHeading(page, 'Change your password');
     assert.equal(await page.getByLabel('Current password').inputValue(), '');
-  });
+  }, ['mock-control']);
 
   run('a session that ended during the change returns to sign-in', async ({ page, mock }) => {
     await reachForcedChange(page);
@@ -380,11 +422,11 @@ export function sharedCases(config: AppConfig): void {
     await fillPasswords(page, PASSWORD, NEW_PASSWORD);
     await page.getByText(/session has ended/i).waitFor();
     await waitForHeading(page, 'Sign in');
-  });
+  }, ['mock-control']);
 
-  run('an expired session during a forced change returns to sign-in', async ({ page, mock }) => {
+  run('an expired session during a forced change returns to sign-in', async ({ page, expireSessions }) => {
     await reachForcedChange(page);
-    mock.control.expireSessions();
+    await expireSessions();
     await fillPasswords(page, PASSWORD, NEW_PASSWORD);
     await page.getByText(/session has ended/i).waitFor();
     await waitForHeading(page, 'Sign in');
@@ -398,7 +440,7 @@ export function sharedCases(config: AppConfig): void {
 
   // Configuration
 
-  run('configuration lists each parameter with its value, and never shows a sensitive one', async ({ page, mock }) => {
+  run('configuration lists each parameter with its value, and never shows a sensitive one', async ({ page, requests }) => {
     await openConfiguration(page);
     for (const name of ['verbose', 'report_interval', 'device_label', 'link_secret', 'build_limit']) {
       await parameter(page, name).waitFor();
@@ -413,20 +455,21 @@ export function sharedCases(config: AppConfig): void {
     assert.equal(await parameter(page, 'link_secret').getByRole('button').count(), 0);
     assert.equal(await parameter(page, 'build_limit').getByRole('button').count(), 0);
     assert.equal((await page.locator('body').innerText()).includes('unset'), false);
-    const asked = mock.control.requests.map((request) => request.path);
+    const asked = requests.map((request) => request.path);
     assert.equal(asked.includes('/api/v1/config/link_secret'), false);
     assert.equal(asked.includes('/api/v1/config/build_limit'), true);
   });
 
-  run('an update sends the token and the typed value, and shows the parameter as changed and not yet saved', async ({ page, mock }) => {
+  run('an update sends the token and the typed value, and shows the parameter as changed and not yet saved', async (app) => {
+    const { page, requests } = app;
     await openConfiguration(page);
     await update(page, 'report_interval', '10');
     await page.getByRole('status').getByText(/updated report_interval/i).waitFor();
     await parameter(page, 'report_interval').getByText('Current value: 10', { exact: true }).waitFor();
     await parameter(page, 'report_interval').getByText('Changed, not yet saved').waitFor();
-    const put = mock.control.requests.find((request) => request.method === 'PUT');
+    const put = requests.find((request) => request.method === 'PUT');
     assert.equal(put?.path, '/api/v1/config/report_interval');
-    assert.equal(put?.headers['x-xsrf-token'], 'example-xsrf-token-not-real');
+    assert.equal(put?.headers['x-xsrf-token'], await xsrfCookie(app));
     assert.equal(put?.headers['content-type'], 'application/json');
   });
 
@@ -463,15 +506,15 @@ export function sharedCases(config: AppConfig): void {
     mock.control.force('putConfigItem', { status: 400, example: 'wrong_type' });
     await update(page, 'report_interval', '10');
     await parameter(page, 'report_interval').getByText('This is not the kind of value this parameter takes.').waitFor();
-  });
+  }, ['mock-control']);
 
-  run('text that is no whole number is refused before any request', async ({ page, mock }) => {
+  run('text that is no whole number is refused before any request', async ({ page, requests }) => {
     await openConfiguration(page);
     await update(page, 'report_interval', 'ten');
     await parameter(page, 'report_interval').getByText('Enter a whole number.').waitFor();
     await update(page, 'report_interval', '');
     await parameter(page, 'report_interval').getByText('Enter a value.').waitFor();
-    assert.equal(mock.control.requests.some((request) => request.method === 'PUT'), false);
+    assert.equal(requests.some((request) => request.method === 'PUT'), false);
   });
 
   run('a session that may read and not write sees the values and no way to change them', async ({ page }) => {
@@ -482,10 +525,10 @@ export function sharedCases(config: AppConfig): void {
     await parameter(page, 'report_interval').getByText('Read only for this account.').waitFor();
   });
 
-  run('a session that may write and not read can update, cannot see the value, and is refused the save', async ({ page, mock }) => {
+  run('a session that may write and not read can update, cannot see the value, and is refused the save', async ({ page, requests }) => {
     await openConfiguration(page, 'writer');
     await parameter(page, 'report_interval').getByText('The value is not shown to this account.').waitFor();
-    assert.equal(mock.control.requests.some((request) => request.path.startsWith('/api/v1/config/') && request.method === 'GET'), false);
+    assert.equal(requests.some((request) => request.path.startsWith('/api/v1/config/') && request.method === 'GET'), false);
     await update(page, 'report_interval', '7');
     await parameter(page, 'report_interval').getByText('Changed, not yet saved').waitFor();
     await page.getByRole('button', { name: 'Save changes' }).click();
@@ -498,14 +541,14 @@ export function sharedCases(config: AppConfig): void {
     await update(page, 'report_interval', '10');
     await page.getByRole('alert').getByText(/this account may not change report_interval/i).waitFor();
     await parameter(page, 'report_interval').getByText('Current value: 5', { exact: true }).waitFor();
-  });
+  }, ['mock-control']);
 
   run('an update of a parameter that has gone says so', async ({ page, mock }) => {
     await openConfiguration(page);
     mock.control.force('putConfigItem', { status: 404 });
     await update(page, 'report_interval', '10');
     await page.getByRole('alert').getByText(/no parameter report_interval/i).waitFor();
-  });
+  }, ['mock-control']);
 
   run('a held route during an update is retried without the user doing anything', async ({ page, mock }) => {
     await openConfiguration(page);
@@ -513,7 +556,7 @@ export function sharedCases(config: AppConfig): void {
     await update(page, 'report_interval', '10');
     await parameter(page, 'report_interval').getByText('Current value: 10', { exact: true }).waitFor();
     assert.equal(mock.control.requests.filter((request) => request.method === 'PUT').length, 2);
-  });
+  }, ['mock-control']);
 
   run('a busy device on an update shows the wait and keeps the typed value', async ({ page, mock }) => {
     await openConfiguration(page);
@@ -521,16 +564,17 @@ export function sharedCases(config: AppConfig): void {
     await update(page, 'report_interval', '10');
     await page.getByRole('alert').getByText(/busy.*try again in 30 seconds/i).waitFor();
     assert.equal(await parameter(page, 'report_interval').getByLabel('New value').inputValue(), '10');
-  });
+  }, ['mock-control']);
 
   run('a service that is not ready on an update is reported', async ({ page, mock }) => {
     await openConfiguration(page);
     mock.control.force('putConfigItem', { status: 503, example: 'not_ready' });
     await update(page, 'report_interval', '10');
     await page.getByRole('alert').getByText(/not ready/i).waitFor();
-  });
+  }, ['mock-control']);
 
-  run('a save shows pending, then saved, with the token and no body', async ({ page, mock }) => {
+  run('a save shows pending, then saved, with the token and no body', async (app) => {
+    const { page, requests } = app;
     await openConfiguration(page);
     await update(page, 'report_interval', '10');
     await parameter(page, 'report_interval').getByText('Changed, not yet saved').waitFor();
@@ -538,10 +582,10 @@ export function sharedCases(config: AppConfig): void {
     await page.getByRole('status').getByText(/saving the changes/i).waitFor();
     await page.getByRole('status').getByText('The changes are saved.').waitFor();
     assert.equal(await page.getByText('Changed, not yet saved').count(), 0);
-    const post = mock.control.requests.find((request) => request.path === '/api/v1/config/save');
+    const post = requests.find((request) => request.path === '/api/v1/config/save');
     assert.equal(post?.method, 'POST');
-    assert.equal(post?.headers['x-xsrf-token'], 'example-xsrf-token-not-real');
-  });
+    assert.equal(post?.headers['x-xsrf-token'], await xsrfCookie(app));
+  }, ['configuration-provider']);
 
   run('a failed save says what is true, and the parameter stays unsaved', async ({ page, mock }) => {
     mock.control.set({ saveResult: 'fail' });
@@ -551,15 +595,20 @@ export function sharedCases(config: AppConfig): void {
     await page.getByRole('alert').getByText(/the save failed.*could not store the changes/i).waitFor();
     await parameter(page, 'report_interval').getByText('Changed, not yet saved').waitFor();
     assert.equal(await page.getByText('The changes are saved.').count(), 0);
-  });
+  }, ['mock-control']);
 
-  run('a device with no Configuration provider says that retrying will not help', async ({ page, mock }) => {
-    mock.control.set({ networkProvider: false });
+  run('a device with no Configuration provider says that retrying will not help', async ({ page, mock, target }) => {
+    if (target === 'mock') {
+      mock.control.set({ networkProvider: false });
+    }
     await openConfiguration(page);
     await update(page, 'report_interval', '10');
+    // The read-back after the update has ended. Until then the Preact example drops a click on the save, which
+    // a device's slower read-back showed: see docs/e2e-native-220.md.
+    await parameter(page, 'report_interval').getByText('Current value: 10', { exact: true }).waitFor();
     await page.getByRole('button', { name: 'Save changes' }).click();
     await page.getByRole('alert').getByText(/no Configuration provider.*retrying will not help/i).waitFor();
-  });
+  }, ['no-configuration-provider']);
 
   run('a busy device on a save shows the wait', async ({ page, mock }) => {
     await openConfiguration(page);
@@ -570,7 +619,7 @@ export function sharedCases(config: AppConfig): void {
     // The button works again, and a later save succeeds.
     await page.getByRole('button', { name: 'Save changes' }).click();
     await page.getByText('The changes are saved.').waitFor();
-  });
+  }, ['mock-control']);
 
   run('a service that is not ready on a save is reported, and a later save works', async ({ page, mock }) => {
     await openConfiguration(page);
@@ -580,7 +629,7 @@ export function sharedCases(config: AppConfig): void {
     await page.getByRole('alert').getByText(/not ready/i).waitFor();
     await page.getByRole('button', { name: 'Save changes' }).click();
     await page.getByText('The changes are saved.').waitFor();
-  });
+  }, ['mock-control']);
 
   run('a device that answers busy while it saves is still waited for', async ({ page, mock }) => {
     await openConfiguration(page);
@@ -589,7 +638,7 @@ export function sharedCases(config: AppConfig): void {
     mock.control.force('listConfig', { status: 503, example: 'busy', retryAfter: 1 });
     await page.getByRole('button', { name: 'Save changes' }).click();
     await page.getByText('The changes are saved.').waitFor({ timeout: 15_000 });
-  });
+  }, ['mock-control']);
 
   run('the configuration list failing shows the error and a way to try again', async ({ page, mock }) => {
     await page.goto('/');
@@ -601,12 +650,12 @@ export function sharedCases(config: AppConfig): void {
     await page.getByRole('alert').getByText(/not ready/i).waitFor();
     await page.getByRole('button', { name: 'Try again' }).click();
     await parameter(page, 'report_interval').waitFor();
-  });
+  }, ['mock-control']);
 
-  run('a session that expires during an update returns to sign-in, and signing in works again', async ({ page, mock }) => {
+  run('a session that expires during an update returns to sign-in, and signing in works again', async ({ page, expireSessions }) => {
     await openConfiguration(page);
     await waitForValues(page);
-    mock.control.expireSessions();
+    await expireSessions();
     await update(page, 'report_interval', '10');
     await page.getByText(/session has ended/i).waitFor();
     await waitForHeading(page, 'Sign in');
@@ -615,22 +664,22 @@ export function sharedCases(config: AppConfig): void {
     await waitForHeading(page, /^(Home|Configuration)$/);
   });
 
-  run('a session that expires during a save returns to sign-in', async ({ page, mock }) => {
+  run('a session that expires during a save returns to sign-in', async ({ page, expireSessions }) => {
     await openConfiguration(page);
     await waitForValues(page);
     await update(page, 'report_interval', '10');
     // The read-back after the update has ended, so that the 401 below meets the save and nothing else.
     await parameter(page, 'report_interval').getByText('Current value: 10', { exact: true }).waitFor();
-    mock.control.expireSessions();
+    await expireSessions();
     await page.getByRole('button', { name: 'Save changes' }).click();
     await page.getByText(/session has ended/i).waitFor();
     await waitForHeading(page, 'Sign in');
   });
 
-  run('configuration with no session shows sign-in and asks for nothing', async ({ page, mock }) => {
+  run('configuration with no session shows sign-in and asks for nothing', async ({ page, requests }) => {
     await page.goto('/#/config');
     await waitForHeading(page, 'Sign in');
-    assert.equal(mock.control.requests.some((request) => request.path.startsWith('/api/v1/config')), false);
+    assert.equal(requests.some((request) => request.path.startsWith('/api/v1/config')), false);
   });
 
   run('a session that may see no parameter gets an empty list and no error', async ({ page }) => {
@@ -693,10 +742,10 @@ export function sharedCases(config: AppConfig): void {
     return { release };
   }
 
-  const puts = (mock: OpenApp['mock']): string[] =>
-    mock.control.requests.filter((request) => request.method === 'PUT').map((request) => request.path);
+  const puts = (requests: RecordedRequest[]): string[] =>
+    requests.filter((request) => request.method === 'PUT').map((request) => request.path);
 
-  run('a second update while the first is in flight waits for it, and neither screen nor save stays stuck', async ({ page, mock }) => {
+  run('a second update while the first is in flight waits for it, and neither screen nor save stays stuck', async ({ page, requests }) => {
     await openConfiguration(page);
     const held = await holdUpdates(page, 'report_interval');
     await update(page, 'report_interval', '10');
@@ -704,19 +753,19 @@ export function sharedCases(config: AppConfig): void {
     await parameter(page, 'device_label').getByLabel('New value').fill('second');
     await parameter(page, 'device_label').getByLabel('New value').press('Enter');
     await page.waitForTimeout(400);
-    assert.deepEqual(puts(mock), [], 'the first request is still held, and the second was not sent');
+    assert.deepEqual(puts(requests), [], 'the first request is still held, and the second was not sent');
     held.release();
     await parameter(page, 'report_interval').getByText('Current value: 10', { exact: true }).waitFor();
     assert.equal(await page.getByText(/sending the value/i).count(), 0);
-    assert.deepEqual(puts(mock), ['/api/v1/config/report_interval'], 'the first update was not abandoned or doubled');
+    assert.deepEqual(puts(requests), ['/api/v1/config/report_interval'], 'the first update was not abandoned or doubled');
     // Nothing is stuck: the second update works when asked again, and so does the save.
     await parameter(page, 'device_label').getByRole('button', { name: 'Update' }).click();
     await parameter(page, 'device_label').getByText('Current value: second', { exact: true }).waitFor();
     await page.getByRole('button', { name: 'Save changes' }).click();
     await page.getByText('The changes are saved.').waitFor();
-  });
+  }, ['configuration-provider']);
 
-  run('a save asked for while an update is in flight is not sent, and works afterwards', async ({ page, mock }) => {
+  run('a save asked for while an update is in flight is not sent, and works afterwards', async ({ page, requests }) => {
     await openConfiguration(page);
     const held = await holdUpdates(page, 'report_interval');
     await update(page, 'report_interval', '10');
@@ -724,16 +773,16 @@ export function sharedCases(config: AppConfig): void {
     // The button is marked disabled, which Playwright will not click, and a person's click can still land.
     await page.getByRole('button', { name: 'Save changes' }).click({ force: true });
     await page.waitForTimeout(400);
-    assert.equal(mock.control.requests.some((request) => request.path === '/api/v1/config/save'), false);
+    assert.equal(requests.some((request) => request.path === '/api/v1/config/save'), false);
     held.release();
     await parameter(page, 'report_interval').getByText('Current value: 10', { exact: true }).waitFor();
     assert.equal(await page.getByText(/sending the value/i).count(), 0);
     await page.getByRole('button', { name: 'Save changes' }).click();
     await page.getByText('The changes are saved.').waitFor();
-    assert.equal(mock.control.requests.filter((request) => request.path === '/api/v1/config/save').length, 1);
-  });
+    assert.equal(requests.filter((request) => request.path === '/api/v1/config/save').length, 1);
+  }, ['configuration-provider']);
 
-  run('an update asked for while a save runs is not sent', async ({ page, mock }) => {
+  run('an update asked for while a save runs is not sent', async ({ page, requests }) => {
     await openConfiguration(page);
     await update(page, 'report_interval', '10');
     await parameter(page, 'report_interval').getByText('Changed, not yet saved').waitFor();
@@ -742,23 +791,27 @@ export function sharedCases(config: AppConfig): void {
     await parameter(page, 'device_label').getByLabel('New value').fill('during');
     await parameter(page, 'device_label').getByLabel('New value').press('Enter');
     await page.getByText('The changes are saved.').waitFor();
-    assert.deepEqual(puts(mock), ['/api/v1/config/report_interval']);
-  });
+    assert.deepEqual(puts(requests), ['/api/v1/config/report_interval']);
+  }, ['configuration-provider']);
 
   // Guards that the device's own filtering makes unreachable, and that the screens keep anyway
 
-  run('a parameter flagged sensitive is never read or shown, whatever else its flags say', async ({ page, mock }) => {
+  run('a parameter flagged sensitive is never read or shown, whatever else its flags say', async ({ page, requests, fetchThrough }) => {
     // A device must never send readable and sensitive together, but the screen does not rely on that.
     await page.route('**/api/v1/config', async (route) => {
-      const response = await route.fetch();
-      const body = (await response.json()) as { items: { name: string; sensitive: boolean; readable: boolean }[] };
+      const response = await fetchThrough(route);
+      const body = JSON.parse(response.body) as { items: { name: string; sensitive: boolean; readable: boolean }[] };
       for (const item of body.items) {
         if (item.name === 'device_label') {
           item.sensitive = true;
           item.readable = true;
         }
       }
-      await route.fulfill({ response, json: body });
+      // The body changes, so its length and framing do not carry over.
+      const headers = Object.fromEntries(
+        Object.entries(response.headers).filter(([name]) => !/^(content-length|transfer-encoding|content-encoding)$/i.test(name)),
+      );
+      await route.fulfill({ status: response.status, headers, json: body });
     });
     await openConfiguration(page);
     const block = parameter(page, 'device_label');
@@ -766,7 +819,7 @@ export function sharedCases(config: AppConfig): void {
     assert.equal(await block.getByRole('button').count(), 0);
     assert.equal(await block.getByRole('textbox').count(), 0);
     assert.equal((await page.locator('body').innerText()).includes('pilot'), false);
-    assert.equal(mock.control.requests.some((request) => request.path === '/api/v1/config/device_label'), false);
+    assert.equal(requests.some((request) => request.path === '/api/v1/config/device_label'), false);
   });
 
   run('a value from the device is shown as text, never as markup', async ({ page }) => {
@@ -779,7 +832,7 @@ export function sharedCases(config: AppConfig): void {
 
   // After a completed save, and while a save waits
 
-  run('after a save has completed, the next update and the next save both work', async ({ page, mock }) => {
+  run('after a save has completed, the next update and the next save both work', async ({ page, requests }) => {
     await openConfiguration(page);
     await update(page, 'report_interval', '10');
     await parameter(page, 'report_interval').getByText('Current value: 10', { exact: true }).waitFor();
@@ -792,9 +845,9 @@ export function sharedCases(config: AppConfig): void {
     assert.equal(await page.getByText('The changes are saved.').count(), 0, 'the old result is gone');
     await page.getByRole('button', { name: 'Save changes' }).click();
     await page.getByText('The changes are saved.').waitFor();
-    assert.equal(mock.control.requests.filter((request) => request.path === '/api/v1/config/save').length, 2);
-    assert.equal(puts(mock).length, 2);
-  });
+    assert.equal(requests.filter((request) => request.path === '/api/v1/config/save').length, 2);
+    assert.equal(puts(requests).length, 2);
+  }, ['configuration-provider']);
 
   run('a long Retry-After while a save runs does not hold the wait past a few seconds', async ({ page, mock }) => {
     await openConfiguration(page);
@@ -803,7 +856,7 @@ export function sharedCases(config: AppConfig): void {
     mock.control.force('listConfig', { status: 503, example: 'busy', retryAfter: 60 });
     await page.getByRole('button', { name: 'Save changes' }).click();
     await page.getByText('The changes are saved.').waitFor({ timeout: 12_000 });
-  });
+  }, ['mock-control']);
 
   run('leaving the screen stops the wait for a save, and nothing reads the list afterwards', async ({ page, mock }) => {
     await openConfiguration(page);
@@ -824,5 +877,5 @@ export function sharedCases(config: AppConfig): void {
     // Longer than the cap on one sleep, so a wait that kept going would have read again.
     await page.waitForTimeout(7000);
     assert.equal(reads(), after);
-  });
+  }, ['mock-control']);
 }
