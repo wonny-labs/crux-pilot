@@ -557,11 +557,18 @@ static void close_reports_loss(struct fs_file_t *f)
 static void expect_volume_read_only(struct fs_file_t *open_handle)
 {
     struct fs_file_t created;
+    int rc;
+
     fs_file_t_init(&created);
     zassert_equal(fs_write(open_handle, "x", 1), -EROFS);
     zassert_equal(fs_sync(open_handle), -EROFS);
     zassert_equal(fs_mkdir("/MMC:/after-error"), -EROFS);
-    zassert_equal(fs_open(&created, "/MMC:/created-after-error", FS_O_CREATE | FS_O_WRITE), -EROFS);
+    rc = fs_open(&created, "/MMC:/created-after-error", FS_O_CREATE | FS_O_WRITE);
+    if (rc == 0) {
+        /* Release the slot so the teardown unmount is not blocked by the unexpected open. */
+        (void)fs_close(&created);
+    }
+    zassert_equal(rc, -EROFS);
 }
 
 /* Handle B writes and its commit fails on the first block write, which makes the volume read-only.
@@ -580,6 +587,7 @@ static void open_every_handle_and_no_more(void)
 {
     char path[16];
     struct fs_file_t extra;
+    int rc;
 
     fs_file_t_init(&extra);
     for (size_t i = 0; i < HANDLES; ++i) {
@@ -587,7 +595,12 @@ static void open_every_handle_and_no_more(void)
         zassert_ok(fs_open(&handles[i], path, FS_O_CREATE | FS_O_RDWR), "handle %zu of %u", i,
                    (unsigned int)HANDLES);
     }
-    zassert_equal(fs_open(&extra, "/MMC:/hx", FS_O_CREATE | FS_O_RDWR), -EMFILE);
+    rc = fs_open(&extra, "/MMC:/hx", FS_O_CREATE | FS_O_RDWR);
+    if (rc == 0) {
+        /* Release the slot so the teardown unmount is not blocked by the unexpected open. */
+        (void)fs_close(&extra);
+    }
+    zassert_equal(rc, -EMFILE);
     for (size_t i = 0; i < HANDLES; ++i) {
         zassert_ok(fs_close(&handles[i]));
     }
@@ -867,6 +880,8 @@ ZTEST(file_reliance, test_read_only_mount_refuses_writes_and_never_writes_the_di
 
     /* A handle opened for reading cannot write, truncate or sync, and closes without error. */
     zassert_ok(fs_open(&file, "/MMC:/keep", FS_O_READ));
+    /* The VFS does not check the open mode of write or truncate, so the adapter refuses these and
+     * its errno is not pinned here: the looser check is deliberate. */
     zassert_true(fs_write(&file, "x", 1) < 0);
     zassert_true(fs_truncate(&file, 0) < 0);
     zassert_equal(fs_sync(&file), -EROFS);
