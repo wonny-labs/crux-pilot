@@ -8,7 +8,7 @@ an example, not a template that Crux maintains, and it holds no product-ready in
 | --- | --- | --- |
 | The page | `site/index.html`, `site/greeting.js`, `site/page.css` | Any tool, or none. It loads under the strict content policy: no inline script or style, nothing from another origin. |
 | The route | `src/greeting_route.c` | `CRUX_WEB_ROUTE` from `<crux/web.h>`, and `crux_web_respond`. No Zephyr, board or vendor header. |
-| The review | `reviewed-routes.txt` | One line for the route, which a person reviews, and one for the packaged folder |
+| The review | `reviewed-routes.txt` | One line for the route, which a person reviews, and one for the packaged folder. `scripts/check-web-routes.py` holds the route to this list, which a build must name after `REVIEWED`. |
 
 The route answers `GET /api/v1/project/greeting` with JSON, for a signed-in session only: its access class is
 `CRUX_WEB_SESSION`, which the composition's session lookup checks before the handler runs. A route that needs a

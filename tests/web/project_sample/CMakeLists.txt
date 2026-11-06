@@ -18,7 +18,7 @@ target_compile_options(web_project_sample_core PRIVATE -Wall -Wextra -Wpedantic 
 crux_web_assets(web_project_sample_core FOLDER ${project_sample}/site STYLE strict
     RESPONSE_DEADLINE_MS 3000)
 crux_web_routes(web_project_sample_core SOURCES ${project_sample}/src/greeting_route.c FAKE_MANIFEST
-    REVIEWED ${project_sample}/reviewed-routes.txt)
+    REVIEWED ${CMAKE_CURRENT_LIST_DIR}/../../../samples/web_project/reviewed-routes.txt)
 
 add_executable(web_project_sample project_sample.c)
 target_link_libraries(web_project_sample PRIVATE web_project_sample_core)

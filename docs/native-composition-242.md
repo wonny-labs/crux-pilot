@@ -284,6 +284,7 @@ sections and the build directory.
 | Timing, connection limits and memory are the host's and the simulator's | Not device evidence |
 | A race in a provider cannot show: a `native_sim` thread that does not sleep is never preempted | As #263 records |
 | `native_sim/native`, the 32-bit width, was not run | Not run |
+| The image has no offload shutdown, so its inactivity timer does nothing on `native_sim`: an idle keep-alive connection keeps its client slot for ever there. Found by #220, whose browser image adds the shutdown part of #184's shim. The `prj.conf` comment that the shortened timer makes "the same cases and bounds apply" is aspirational for the inactivity timer. | A latent gap on `native_sim` only. The claims and retained evidence of this image do not cover inactivity behaviour. |
 
 ## Decisions for review
 
