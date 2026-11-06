@@ -10,7 +10,7 @@ import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
-import type { Browser, BrowserContext, LaunchOptions, Page } from 'playwright-core';
+import type { Browser, BrowserContext, LaunchOptions, Page, Route } from 'playwright-core';
 import { checkResponse } from '../mock/conformance.ts';
 import type { ResponseRecord } from '../mock/conformance.ts';
 import { startMock } from '../mock/server.ts';
@@ -18,6 +18,7 @@ import type { MockHandle, RecordedRequest, StylePolicy } from '../mock/server.ts
 import { loadSpec } from '../mock/spec.ts';
 import type { Spec } from '../mock/spec.ts';
 import type { Device, DeviceFactory } from './device.ts';
+import { request as rawRequest } from './native-raw.ts';
 
 export const webRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const PASSWORD = 'example-password-not-real';
@@ -122,6 +123,12 @@ export interface OpenApp {
   requests: RecordedRequest[];
   /** Ends every session: the mock's control, or on native_sim the real session clock's idle limit. */
   expireSessions(): Promise<void>;
+  /**
+   * Sends an intercepted request on to the server and returns its answer, for a case that changes an answer.
+   * Playwright's own route.fetch() runs outside Chrome, so on native_sim it would meet the test certificate
+   * untrusted; there the request goes through native-raw.ts, which trusts that certificate alone.
+   */
+  fetchThrough(route: Route): Promise<{ status: number; headers: Record<string, string>; body: string }>;
   device?: Device;
   violations: string[];
   pageErrors: string[];
@@ -285,6 +292,18 @@ async function openDevice(browser: Browser, config: AppConfig, target: NativeTar
     fixture: target.fixture,
     requests,
     device,
+    async fetchThrough(route) {
+      const sent = route.request();
+      const headers = await sent.allHeaders();
+      const forwarded: Record<string, string> = {};
+      for (const name of ['cookie', 'origin', 'x-xsrf-token', 'x-crux-request']) {
+        if (headers[name] !== undefined) {
+          forwarded[name] = headers[name];
+        }
+      }
+      const reply = await rawRequest(sent.method(), new URL(sent.url()).pathname, forwarded, sent.postData() ?? undefined);
+      return { status: reply.status, headers: reply.headers, body: reply.body };
+    },
     async expireSessions() {
       // The real clock: GET does not refresh the idle timer, so a session left this long has ended.
       await page.waitForTimeout((target.idleSeconds + 2) * 1000);
@@ -369,6 +388,10 @@ export async function openApp(browser: Browser, config: AppConfig, options: Open
     requests: mock.control.requests,
     async expireSessions() {
       mock.control.expireSessions();
+    },
+    async fetchThrough(route) {
+      const response = await route.fetch();
+      return { status: response.status(), headers: response.headers(), body: await response.text() };
     },
     violations,
     pageErrors,

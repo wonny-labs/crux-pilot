@@ -793,18 +793,22 @@ export function sharedCases(config: AppConfig): void {
 
   // Guards that the device's own filtering makes unreachable, and that the screens keep anyway
 
-  run('a parameter flagged sensitive is never read or shown, whatever else its flags say', async ({ page, requests }) => {
+  run('a parameter flagged sensitive is never read or shown, whatever else its flags say', async ({ page, requests, fetchThrough }) => {
     // A device must never send readable and sensitive together, but the screen does not rely on that.
     await page.route('**/api/v1/config', async (route) => {
-      const response = await route.fetch();
-      const body = (await response.json()) as { items: { name: string; sensitive: boolean; readable: boolean }[] };
+      const response = await fetchThrough(route);
+      const body = JSON.parse(response.body) as { items: { name: string; sensitive: boolean; readable: boolean }[] };
       for (const item of body.items) {
         if (item.name === 'device_label') {
           item.sensitive = true;
           item.readable = true;
         }
       }
-      await route.fulfill({ response, json: body });
+      // The body changes, so its length and framing do not carry over.
+      const headers = Object.fromEntries(
+        Object.entries(response.headers).filter(([name]) => !/^(content-length|transfer-encoding|content-encoding)$/i.test(name)),
+      );
+      await route.fulfill({ status: response.status, headers, json: body });
     });
     await openConfiguration(page);
     const block = parameter(page, 'device_label');

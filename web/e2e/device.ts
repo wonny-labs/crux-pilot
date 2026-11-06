@@ -10,13 +10,15 @@ import { createHash, X509Certificate } from 'node:crypto';
 import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { connect } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { webRoot } from './harness.ts';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export const DEVICE_PORT = 18220;
 export const DEVICE_HOST = 'localhost';
 export const DEVICE_URL = `https://${DEVICE_HOST}:${DEVICE_PORT}`;
-export const TEST_CERTIFICATE = join(webRoot, '..', 'tests', 'native', 'tls_offload_probe', 'credentials', 'test-server.crt');
+// The repository root, from this file, so that this module and the harness do not import each other.
+const repository = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+export const TEST_CERTIFICATE = join(repository, 'tests', 'native', 'tls_offload_probe', 'credentials', 'test-server.crt');
 
 export interface Device {
   url: string;
