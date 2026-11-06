@@ -1,0 +1,81 @@
+✔ angular: a visit with no session shows sign-in (4898.36696ms)
+✔ angular: a correct sign-in reaches home and shows the items (3735.86796ms)
+✔ angular: the session cookie stays out of page scripts, and the token cookie stays readable (3679.110876ms)
+✔ angular: the password reaches no browser storage, readable cookie or address (3703.483502ms)
+✔ angular: every poll carries the required header (3656.411169ms)
+✔ angular: a wrong password shows a rejection with no reason, and allows another try (4047.700126ms)
+✔ angular: an unknown account looks the same as a wrong password (3168.055627ms)
+﹣ angular: a delay shows the wait, holds the form during it and allows a later try (0.744583ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: a busy verifier is shown with the wait, and a later try works (0.155833ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: a held login route is retried without the user doing anything (0.261167ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: a lost attempt asks the user to sign in again and does not resend the password (0.126458ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ angular: an expired session returns to sign-in with a notice, and signing in shows home again (37984.152392ms)
+✔ angular: sign out ends the session with the CSRF token and returns to sign-in (3736.982211ms)
+✔ angular: a reload keeps the session, and the server sees only the root path (3751.455752ms)
+✔ angular: home shows only what the session may read (3666.800085ms)
+✔ angular: a session that may read nothing sees an empty home, and no error (3656.27121ms)
+✔ angular: one failed source shows as unavailable without hiding the rest (3727.37746ms)
+﹣ angular: an item named like a built-in JavaScript property keeps its name as its label (0.618667ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ angular: a project item that the interface does not know is shown by its name (3682.684877ms)
+✔ angular: a forced change holds the session on its screen whatever the route, and asks for nothing protected (4018.256169ms)
+answers left unchecked, whose body Chrome no longer held: PUT /api/v1/config/report_interval 404, POST /api/v1/config/save 403
+✔ angular: a protected route cannot be used before the change is made (8951.263754ms)
+✔ angular: a forced change completes with the token, and the session goes to home with its permissions (4559.26021ms)
+✔ angular: a wrong current password is a field error on that field (4569.374628ms)
+✔ angular: a refused new password is a field error on the new password (4561.561127ms)
+✔ angular: passwords that differ are refused before any request (3716.826169ms)
+﹣ angular: a failed save says what is true of the running password (0.412375ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: a lost result where the device shows the change succeeded counts as done (0.108291ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: a lost result with the change still required never claims success (0.088667ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: a session that ended during the change returns to sign-in (0.086208ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ angular: an expired session during a forced change returns to sign-in (36724.719351ms)
+✔ angular: sign out works during a forced change (3779.376293ms)
+✔ angular: configuration lists each parameter with its value, and never shows a sensitive one (4114.82296ms)
+✔ angular: an update sends the token and the typed value, and shows the parameter as changed and not yet saved (4176.457669ms)
+✔ angular: a switch and a text parameter are updated in their own types (5099.319127ms)
+✔ angular: a value the device refuses shows its field error, keeps the old value and moves focus to the field (7461.211337ms)
+﹣ angular: a field error for the wrong type is shown too (0.369958ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ angular: text that is no whole number is refused before any request (4241.473336ms)
+✔ angular: a session that may read and not write sees the values and no way to change them (4116.882085ms)
+✔ angular: a session that may write and not read can update, cannot see the value, and is refused the save (4210.62496ms)
+﹣ angular: an update that the device refuses as not permitted says so, and changes nothing on screen (0.559167ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: an update of a parameter that has gone says so (0.107375ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: a held route during an update is retried without the user doing anything (0.060042ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: a busy device on an update shows the wait and keeps the typed value (0.04975ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: a service that is not ready on an update is reported (0.068292ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: a save shows pending, then saved, with the token and no body (0.037042ms) # needs a save that succeeds; this image has no Configuration provider (decision C6)
+﹣ angular: a failed save says what is true, and the parameter stays unsaved (0.038208ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ angular: a device with no Configuration provider says that retrying will not help (4350.181335ms)
+﹣ angular: a busy device on a save shows the wait (0.256041ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: a service that is not ready on a save is reported, and a later save works (0.060458ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: a device that answers busy while it saves is still waited for (0.06375ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: the configuration list failing shows the error and a way to try again (0.071042ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ angular: a session that expires during an update returns to sign-in, and signing in works again (37944.456101ms)
+✔ angular: a session that expires during a save returns to sign-in (36584.956475ms)
+✔ angular: configuration with no session shows sign-in and asks for nothing (2683.646668ms)
+✔ angular: a session that may see no parameter gets an empty list and no error (3944.871709ms)
+✔ angular: a value read after the person started typing does not replace what was typed (4702.197627ms)
+✔ angular: no value or password reaches browser storage or the address during configuration (4257.039669ms)
+﹣ angular: a second update while the first is in flight waits for it, and neither screen nor save stays stuck (0.829083ms) # needs a save that succeeds; this image has no Configuration provider (decision C6)
+﹣ angular: a save asked for while an update is in flight is not sent, and works afterwards (0.089958ms) # needs a save that succeeds; this image has no Configuration provider (decision C6)
+﹣ angular: an update asked for while a save runs is not sent (0.0615ms) # needs a save that succeeds; this image has no Configuration provider (decision C6)
+✔ angular: a parameter flagged sensitive is never read or shown, whatever else its flags say (8443.619421ms)
+✔ angular: a value from the device is shown as text, never as markup (4721.890044ms)
+﹣ angular: after a save has completed, the next update and the next save both work (0.950583ms) # needs a save that succeeds; this image has no Configuration provider (decision C6)
+﹣ angular: a long Retry-After while a save runs does not hold the wait past a few seconds (1.578833ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ angular: leaving the screen stops the wait for a save, and nothing reads the list afterwards (0.768792ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ angular: the page comes over TLS 1.3 with the declared certificate, and every asset carries its policy and cache header (4547.490461ms)
+✔ angular: a path the interface routes is not served: the route lives in the fragment (4693.038543ms)
+✔ angular: a cold load fits its declared budget (9776.348505ms)
+✔ angular: a stalled handshake delays a load by at most the TLS connect timeout (7757.42392ms)
+✔ angular: with every client slot held by an idle connection, a load waits and is served (7880.627337ms)
+✔ angular: a route another client holds answers the real 409, and the example retries it (9294.490545ms)
+✔ angular: a full login table answers the real 503 busy, which the example shows, and a later sign-in works (24631.732844ms)
+ℹ tests 72
+ℹ suites 0
+ℹ pass 45
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 27
+ℹ todo 0
+ℹ duration_ms 374007.962754

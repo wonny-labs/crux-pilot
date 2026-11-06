@@ -106,8 +106,8 @@ passed by default.
 
 | Need | Skipped on `native_sim` because | Cases |
 | --- | --- | --- |
-| `mock-control` | The case forces an answer through the mock's control. Where a real path exists, it is a case of its own [below](#cases-only-a-real-server-shows). | 20 |
-| `configuration-provider` | A save that succeeds needs a Configuration provider, and this image has none (decision C6) | 4 |
+| `mock-control` | The case forces an answer through the mock's control. Where a real path exists, it is a case of its own [below](#cases-only-a-real-server-shows). | 22 |
+| `configuration-provider` | A save that succeeds needs a Configuration provider, and this image has none (decision C6) | 5 |
 | `reboot-service` | #214's service is merged but not composed in the services image | 1, Preact |
 | `no-configuration-provider` | Runs on `native_sim`, because there it is the real behaviour; on the mock its control sets it | Runs on both |
 
@@ -119,6 +119,8 @@ Changes to the existing cases, none of which weakens a mock assertion:
 | A token compared with the literal `example-xsrf-token-not-real` is compared with the `XSRF-TOKEN` cookie's value, and on the mock also with that literal | A device draws a new token for each session |
 | `polls.length >= 2` became `>= fixture.minPolls`, 2 on the mock | The mock answers pending once. A device may finish the derivation before the first poll. |
 | `192.0.2.10` and `0.1.0-mock` became the fixture's texts | The device shows its own versions, and `net.ipv4` has no data on the offload |
+| The no-provider case waits for the read-back after its update before it clicks **Save changes** | Since #289 the Preact example drops a save clicked during the read-back, which only a device's slower read-back showed. See [findings](#findings). |
+| An intercepted answer is fetched through `fetchThrough()` | Playwright's `route.fetch()` runs outside Chrome and would meet the test certificate untrusted. On the mock it is `route.fetch()` as before. |
 
 ## Cases only a real server shows
 
@@ -171,15 +173,128 @@ no issue.
 | Each asset | Within 3,000 ms | The response deadline: no asset is cut |
 | The page usable, the sign-in form shown | Within 10,000 ms of the navigation | The default inactivity timer, after which a waiting connection would be closed |
 
-RESULT TABLE
+Measured in Chrome 157 headless, in an amd64 container emulated on an arm64 machine, three cold loads each in a fresh
+context, to the sign-in form. **Not device timing**: the server and the browser share one emulated machine.
+
+| Example, profile | Page usable, ms | Largest asset, ms | `load` event, ms | Within budget |
+| --- | --- | --- | --- | --- |
+| Preact, Mbed | 866, 829, 817 | 130, 133, 125 | 460, 449, 426 | Yes |
+| Angular, Mbed | 953, 908, 875 | 132, 136, 131 | 617, 586, 570 | Yes |
+| Preact, Wolf | 2,336, 2,491, 2,557 | 906, 908, 907 | 1,945, 2,134, 2,191 | Yes |
+| Angular, Wolf | 2,591, 2,351, 2,527 | 952, 958, 961 | 2,209, 2,069, 2,245 | Yes |
+
+Chrome opened one new connection for the assets of each load and reused it. Under heavier load of the shared machine,
+earlier runs during development measured up to 5.6 s for the page, still within the budget.
 
 ## Connection limits
 
-RESULT TABLE
+What a real client sees at the server's limits. The image keeps #242's shortened settings: three client slots,
+an inactivity timer of 3 s, a TLS connect timeout of 2 s. The bound of each row adds the slack the HTTPS precedent
+declares for the emulated container: 1.5 s on Mbed, 2.5 s on Wolf for W1.
+
+| Case | Mbed, Preact image | Mbed, Angular image | Wolf, Preact image | Wolf, Angular image |
+| --- | --- | --- | --- | --- |
+| One request alone, no browser | 0.134 s | 0.134 s | 1.011 s | 1.013 s |
+| A fourth client behind three idle keep-alive connections, no browser | 2.737 s | 2.750 s | 0.973 s | 0.972 s |
+| A request behind one stalled handshake, no browser | 1.934 s | 1.938 s | 2.829 s | 2.828 s |
+| A request behind two stalled handshakes, no browser | 3.946 s | 3.950 s | 4.846 s | 4.849 s |
+| A page load beside one stalled handshake, Chrome: before, during, bound | 0.78, 2.36 and 4.28 s | 0.87, 2.44 and 4.37 s | 2.34, 3.56 and 6.84 s | 2.49, 3.55 and 6.99 s |
+| A page load while three idle connections hold the slots, Chrome: before, during, bound | 0.81, 2.97 and 5.31 s | 0.87, 3.14 and 5.37 s | 2.44, 1.12 and 7.94 s | 2.52, 1.16 and 8.02 s |
+| A route another client holds | Plain `409 Conflict`, no body; Chrome's update met `409` then `200` | The same | The same | The same |
+| A full login table | `503 {"code":"busy"}`, `Retry-After: 1`; free after 17.1 s; Chrome met `503` 16 times and signed in once the table freed, 18.0 s on | The same, 17.8 s | The same, free after 17.2 s; Chrome met `503` 12 times, signed in 17.5 s on | The same, 17.5 s |
+| A session polled with `GET` every 5 s, idle limit 30 s | `200` six times, then `401` | The same | The same | The same |
+
+What these show:
+
+- **A stalled client holds every other client for the TLS connect timeout**, about 2 s each, as #185 measured, and a
+  browser's page load waits for it. Two stallers hold for twice as long. This is the declared bound, not a defence.
+- **Idle keep-alive connections hold the three slots for one inactivity period.** A fourth client, a browser among them,
+  waits in the host's backlog and is served when a slot frees. It is not refused and gets no `503`: the server stops
+  accepting at its limit.
+- **Without the offload shutdown shim the inactivity timer does nothing on `native_sim`**: in a development build of this
+  image without it, three idle connections kept their slots and a fourth client's handshake timed out after 30 s. The
+  services image of #242 has the same gap, which none of its cases met. This is the offload, not the product: Zephyr's own
+  TCP closes the client. That run was not retained, because the shim was added before the first commit.
+- **The full login table's `Retry-After` is 1 s while the table frees only when its results expire**, after about 17 to
+  20 s. A person sees "try again in 1 second" about 15 times. This is the declared limit of decision 2 of #186, now seen in
+  a browser; the specification's `Retry-After` is honest about one attempt, not about the table.
+
+## TLS profile limits
+
+The same images on the two TLS profiles, from the same runs. **W1 of #280 is not fixed**: on the Wolf profile a new
+connection's first request is read late by about 1 s, and these figures show it again with a browser.
+
+| Measure | Mbed | Wolf | Reading |
+| --- | --- | --- | --- |
+| One request on a new connection, no browser | 0.134 s | 1.011 s | W1, as #185 measured: 0.13 s and about 1 s |
+| Each asset of a cold load, Chrome | 125 to 136 ms | 906 to 961 ms | W1 on each new request |
+| A cold page load, Chrome | 0.82 to 0.95 s | 2.34 to 2.59 s | Within the 10 s budget on both, with W1 |
+| A request behind one stalled handshake | 1.93 s | 2.83 s | The 2 s connect timeout, plus W1 on Wolf |
+| A page load while three idle connections hold the slots | 2.97 and 3.14 s | 1.12 and 1.16 s, under the load before it | On Wolf the load was faster than the one before it. Not explained here: W1's delay depends on how recently the server closed another client, as #185 found, and this case closes three. Recorded, not claimed as a property. |
+| A fourth client behind three idle connections | 2.74 s | 0.97 s | The same effect as the row above |
+
+The Wolf profile's limits stay those #185 declared: W1, and the 2.5 s slack on Wolf that it needs. The Mbed profile's heap
+formula and the per-connection figures of #185 are not measured again here.
 
 ## Results
 
-RESULTS
+Host, `native_sim` and physical evidence stay apart, and so do the mock's results. **No physical claim is made.** Run in
+container `crux-220` from `crux-pilot-devcontainer:local`, amd64 emulated on an arm64 machine with other sessions running,
+Zephyr v4.4.2 on `native_sim/native/64`, Node.js 24.22.2, Chrome 157, by `scripts/test-native-composition.sh e2e-mbed` and
+`e2e-wolf` at `37b8b50`, each results file with `dirty: false`. The commits after `37b8b50` change only this document and the retained evidence. Mbed took 21 min 22 s and Wolf 27 min 26 s, each with both examples built, packaged, checked and run, and the mock run. Retained as additions in
+[`docs/evidence/web-e2e-220/`](evidence/web-e2e-220/). No CI workflow runs these modes.
+
+### By evidence state
+
+| State | What ran | Result |
+| --- | --- | --- |
+| Mock | The 65 shared cases on each example, plain HTTP on loopback, in the same run | **130 of 130 pass**. Not TLS, session or limit evidence. |
+| Host | `Web.project_sample`, `test_e2e_server_checks.py`, `test_project_sample.py`, `test_web_routes.py` | Pass: [below](#host-and-python) |
+| `native_sim`, Mbed | Both images, the image check, `server_checks.py`, the shared and real-server browser cases | **Preact 46 pass, 0 fail, 28 skipped with their reasons. Angular 45 pass, 0 fail, 27 skipped.** Server checks 23 of 23 on each. |
+| `native_sim`, Wolf | The same, on the patched copy of Zephyr that `prepare-wolf-tls-zephyr.sh` makes | **Preact 46 pass, 0 fail, 28 skipped. Angular 45 pass, 0 fail, 27 skipped.** Server checks 23 of 23 on each. Local only, as for #185 and #242. |
+| Physical | Nothing | Not run. RT1060-EVKB needs its separate approval. |
+
+### On `native_sim`, by check
+
+| Check | Mbed, Preact | Mbed, Angular | Wolf, Preact | Wolf, Angular |
+| --- | --- | --- | --- | --- |
+| `check-composition-image.py --services`: 50 symbols from their sources, no double, exactly the 12 component routes and the folder's, one HTTP service | Pass | Pass | Pass | Pass |
+| Packaged under its setting, with the hash list's style | `strict`, 4 files | `inline`, 5 files | `strict`, 4 files | `inline`, 5 files |
+| TLS 1.3 only: OpenSSL `-tls1_2` refused with alert 70, `-tls1_3` verified | Pass | Pass | Pass | Pass |
+| No plain HTTP answer | Pass | Pass | Pass | Pass |
+| Every asset: bytes, policy, `nosniff`, `no-referrer`, cache class, encoding | 4 of 4 | 5 of 5 | 4 of 4 | 5 of 5 |
+| Seven fragment routes `404`, `/` the index | Pass | Pass | Pass | Pass |
+| The API's `401` keeps the core's headers | Pass | Pass | Pass | Pass |
+| Shared cases that run on a device: sign-in and sign-out, session expiry on the real clock, forced password change, status, configuration update, a device with no Configuration provider | 38 of 38 | 38 of 38 | 38 of 38 | 38 of 38 |
+| Real-server browser cases: TLS and headers, fragment routes, load budget, a stalled handshake, held slots, the real `409`, the real `503` | 7 of 7 | 7 of 7 | 7 of 7 | 7 of 7 |
+| Network settings, Preact only: no running address on the no-op port, a change refused with "nothing was changed" on the real `501` | Pass | Not planned | Pass | Not planned |
+| Reboot | Skipped: mock-only | Not planned | Skipped | Not planned |
+| Every real API answer against the specification, in every case, but those whose body Chrome no longer held, which are listed in the log | No problem found | No problem found | No problem found | No problem found |
+
+The skipped cases are 22 that force an answer through the mock, 5 that need a save that succeeds, and on Preact the
+reboot flow. Each is in the results file with its reason.
+
+### Host and Python
+
+| Check | Result |
+| --- | --- |
+| `Web.project_sample`, Host debug preset, clang 18 | 33 checks, 0 failures; two mutations caught, [above](#the-small-example-project) |
+| `tests/build/test_e2e_server_checks.py` | Red on stubbed checks, 18 failures in 17 tests; green, 17 pass |
+| `tests/build/test_project_sample.py` | 5 pass |
+| `tests/build/test_web_routes.py`, with the samples exemption | Pass |
+| `scripts/check-web-routes.py`, `check-native-interfaces.py`, `check-mgmt-services-boundary.py` | Pass |
+| `web`: `tsc`, `check-pins`, `check-dom`, `tools/test/boundary.test.ts` | Pass |
+| clang-format 18 on every new or changed C file | Pass |
+| The full Host presets, sanitizers, clang-tidy, the `psa-crypto` and `web` workflows | **Not run locally.** CI runs them on the PR. |
+
+### Findings
+
+| Finding | For |
+| --- | --- |
+| Since #289 the Preact configuration screen holds its in-flight flag through the read-back after an update, while the **Save** button already shows as enabled, so a click on it in that window is dropped with no message. The mock's read-back is too fast to show it; a device's is not. The shared case now waits for the read-back, as a person reading the value would; the example's behaviour needs an issue of its own, drafted in the PR. | #289 follow-up |
+| The services image of #242 has no offload shutdown, so its inactivity timer does nothing on `native_sim`: an idle connection keeps its slot for ever there | #242's image, `native_sim` only |
+| The full login table answers `Retry-After: 1` while it frees after about 17 to 20 s | #186, decision 2, declared |
+| A browser opens one connection for these small examples and reuses it, so the three client slots were never all taken by one page | Load evidence on a target, #197 |
 
 ## The small example project
 
@@ -222,7 +337,7 @@ flowchart LR
 | An API answer with the asset policy, `no-cache`, no `nosniff` | The same |
 | All five checks stubbed to pass | Red: 18 failures in 17 tests. Green after: 17 pass. |
 | A case that uses the mock's control on `native_sim` without its mark | The harness throws |
-| No offload shutdown: the inactivity timer does nothing | Real build: a fourth client's handshake timed out after 30 s behind three idle connections. With the shim: served in RESULT s. |
+| No offload shutdown: the inactivity timer does nothing | Real build: a fourth client's handshake timed out after 30 s behind three idle connections. With the shim: served in 2.74 s. |
 
 ## Decisions for review
 
