@@ -233,7 +233,7 @@ through `crux_ssh_host_key_load()` and the provider's `start()`, and nothing pri
 
 ```mermaid
 sequenceDiagram
-    participant T as openssh_test.py --stored-host-key
+    participant T as openssh_test.py, stored host key mode
     participant I as Image, one boot
     participant S as Credential store on PSA, wolfPSA
     participant D as FatFs on the flash file
