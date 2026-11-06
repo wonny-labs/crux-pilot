@@ -69,8 +69,20 @@ static void *requester_main(void *argument)
 {
     crux_access_session_t session = *(const crux_access_session_t *)argument;
 
-    for (unsigned round = 0; round < 300u; ++round) {
-        crux_reboot_result_t result = crux_reboot_request(session, NULL);
+    /* 300 rounds at least. A request made while another is pending runs no policy, so on a loaded
+     * machine, where the worker is slow to take its turn, every request can be a duplicate and none
+     * refused. The loop therefore goes on, to a bound, until both an acceptance and a refusal were
+     * seen, giving the worker a turn between requests. */
+    for (unsigned round = 0;
+         round < 300u || (round < 20000u && (__atomic_load_n(&accepted, __ATOMIC_RELAXED) == 0u ||
+                                             __atomic_load_n(&refused, __ATOMIC_RELAXED) == 0u));
+         ++round) {
+        crux_reboot_result_t result;
+
+        if (round >= 300u) {
+            nanosleep(&(struct timespec){0, 100000L}, NULL);
+        }
+        result = crux_reboot_request(session, NULL);
 
         if (result == CRUX_REBOOT_OK) {
             __atomic_add_fetch(&accepted, 1u, __ATOMIC_RELAXED);
@@ -91,6 +103,9 @@ static void *reader_main(void *argument)
     while (!stop) {
         crux_reboot_state_t state;
 
+        /* A reader that spins starves the requesters' 20 ms wait for the lock, and then every
+         * request answers busy. A real client polls every few seconds. */
+        nanosleep(&(struct timespec){0, 200000L}, NULL);
         if (crux_reboot_get(s_admin, &state) != CRUX_REBOOT_OK) {
             continue;
         }
@@ -106,17 +121,30 @@ static void *reader_main(void *argument)
     return NULL;
 }
 
+static unsigned policy_asked;
+
+/* Refuses every third call, for ever, on the server's side and on the worker's. A script that ends
+ * would leave a loaded run with refusals that fell on the worker's checks only. */
+static bool refuse_every_third_call(void *context, crux_reboot_refusal_t *refusal)
+{
+    (void)context;
+    if (__atomic_add_fetch(&policy_asked, 1u, __ATOMIC_RELAXED) % 3u == 0u) {
+        memcpy(refusal->reason, "Not now", 8u);
+        return false;
+    }
+    return true;
+}
+
 static void requests_reads_and_the_real_worker(void)
 {
-    /* The policy refuses now and then, on the server's side and on the worker's. */
-    static const bool script[] = {true, true, false, true, true, true, false, true};
+    const crux_reboot_config_t config = {CRUX_REBOOT_POLICY_CALLBACK, refuse_every_third_call, NULL,
+                                         NULL, 0u};
     pthread_t requesters[3], readers[2];
     crux_access_session_t sessions[3];
     struct timespec nap = {0, 2000000L};
 
-    reboot_start();
-    reboot_policy_script(script, sizeof(script) / sizeof(script[0]));
-    reboot_policy_reason("Not now", 8u);
+    reboot_boot();
+    CHECK(crux_reboot_start(&config) == CRUX_REBOOT_OK);
     reboot_sleep_hook(count_the_worker_in_its_sleeps);
     CHECK(crux_reboot_start_worker() == CRUX_REBOOT_OK);
     CHECK(crux_reboot_start_worker() == CRUX_REBOOT_OK);

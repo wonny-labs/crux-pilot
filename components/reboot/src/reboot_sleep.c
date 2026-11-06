@@ -4,16 +4,19 @@
 
 #include <crux/sync.h>
 
-void crux_reboot_port_sleep(uint32_t milliseconds)
+bool crux_reboot_port_sleep(uint32_t milliseconds)
 {
     static crux_semaphore_t sleeper;
     static bool created;
 
     if (!created) {
+        /* Created on the first sleep, which is the first request. A failure is a request that
+         * fails, and not a delay and a wait that return at once. */
         if (crux_semaphore_create(0u, 1u, &sleeper) != CRUX_OK) {
-            return;
+            return false;
         }
         created = true;
     }
     (void)crux_semaphore_take(sleeper, milliseconds);
+    return true;
 }

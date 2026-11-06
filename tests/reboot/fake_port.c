@@ -8,7 +8,7 @@
 #include <string.h>
 
 static pthread_mutex_t guard = PTHREAD_MUTEX_INITIALIZER;
-enum { STEPS = 4096 };
+enum { STEPS = 65536 };
 static reboot_step_t steps[STEPS];
 static size_t step_count;
 
@@ -27,6 +27,7 @@ static uint64_t slept_ms;
 static size_t sleep_count;
 static reboot_sleep_hook_t sleep_hook_fn;
 static reboot_event_hook_t event_hook_fn;
+static size_t sleep_fails_from;
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters): the kind, the value and the session differ
 static void record(reboot_step_kind_t kind, int64_t value, crux_access_session_t session)
@@ -58,6 +59,7 @@ void reboot_fakes_reset(void)
     sleep_count = 0;
     sleep_hook_fn = NULL;
     event_hook_fn = NULL;
+    sleep_fails_from = 0;
     pthread_mutex_unlock(&guard);
 }
 
@@ -227,21 +229,29 @@ size_t reboot_reset_calls(void)
     return reset_call_count;
 }
 
-void crux_reboot_port_sleep(uint32_t milliseconds)
+void reboot_sleep_fails_from(size_t nth)
+{
+    sleep_fails_from = nth;
+}
+
+bool crux_reboot_port_sleep(uint32_t milliseconds)
 {
     reboot_sleep_hook_t hook;
     uint64_t elapsed;
+    bool slept;
 
     pthread_mutex_lock(&guard);
     slept_ms += milliseconds;
     ++sleep_count;
     elapsed = slept_ms;
     hook = sleep_hook_fn;
+    slept = sleep_fails_from == 0u || sleep_count < sleep_fails_from;
     pthread_mutex_unlock(&guard);
     record(STEP_SLEEP, (int64_t)milliseconds, (crux_access_session_t){0});
-    if (hook != NULL) {
+    if (hook != NULL && slept) {
         hook(elapsed);
     }
+    return slept;
 }
 
 void reboot_sleep_hook(reboot_sleep_hook_t hook)

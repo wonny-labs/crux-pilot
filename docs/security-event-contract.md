@@ -270,7 +270,7 @@ Values are stable. A later change adds values and never reuses one. Projects use
 | 0x0802 | `network.saved_ignored` | C | Network settings service |
 | 0x0900 | `system.reboot_requested` | C | Reboot service, #214: an accepted request, including one made while another was pending |
 | 0x0901 | `system.reboot_refused` | R | Reboot service, #214: the policy refused, at the request or at the check before the reset |
-| 0x0902 | `system.reboot_failed` | C | Reboot service, #214: the restart did not happen, because the reset returned or because a save stayed in flight for the whole wait |
+| 0x0902 | `system.reboot_failed` | C | Reboot service, #214: the restart did not happen, because the reset returned, because a save stayed in flight for the whole wait, or because the sleep port could not sleep |
 | 0x0F00 | `event.unknown` | R | This component |
 | 0x0F01 | `event.lost` | R | This component, a line only |
 

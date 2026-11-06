@@ -55,6 +55,10 @@ void reboot_events_pending_for(size_t polls);
 void reboot_reset_returns(crux_status_t result);
 size_t reboot_reset_calls(void);
 
+/* The nth sleep of the worker, counted from 1, and every one after it, fails: the sleep port could
+ * not sleep. 0 for none. */
+void reboot_sleep_fails_from(size_t nth);
+
 /* A hook that runs inside every sleep of the worker, with the virtual time so far in ms. */
 typedef void (*reboot_sleep_hook_t)(uint64_t elapsed_ms);
 void reboot_sleep_hook(reboot_sleep_hook_t hook);

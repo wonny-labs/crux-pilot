@@ -29,6 +29,7 @@ application refuse, records the request, gives events and saves a bounded time, 
 | The routes' answers against the specification | **Built** | `Web.reboot_openapi`: 25 real answers, with 12 negative controls |
 | Event provider over the security events, and the pending-events question | **Built** | `ManagementProviders.events`, with the real mapping and the fake of the contract |
 | Probes of other components' saves | **Built, small** | `crux_network_settings_save_pending()` and `crux_web_management_save_pending()`: [decision 15](#decisions-taken-without-an-answer) |
+| A sleep that cannot sleep ends the request as failed, and `crux_reboot_start()` cannot be ignored | **Built** | `Reboot.steps`, `Reboot.nodiscard` |
 | Reset port over `crux_system_reset()`, and the sleep port over Sync | **Built, thin**, linked by no suite | The Host `crux_system_reset()` returns not supported |
 | A composition that serves the routes, links the service or states a policy | **Not here.** | |
 | `native_sim` | **Not run.** There is no composition, so there is nothing to run. | |
@@ -166,7 +167,7 @@ stateDiagram-v2
     Failed --> Refused: POST refused by the policy
     Pending --> Pending: POST accepted again, nothing new starts
     Pending --> Refused: the second check refuses
-    Pending --> Failed: a blocking save stays in flight, or the reset returns
+    Pending --> Failed: a blocking save stays in flight, a sleep cannot sleep, or the reset returns
     Pending --> [*]: the reset works, and the device restarts
 ```
 
@@ -186,8 +187,8 @@ The order is a rule, and tests hold it to the step.
 
 | Step | What the worker does | Bound |
 | --- | --- | --- |
-| 1 | Sleeps `CRUX_REBOOT_DELAY_MS`, so that the `202` has left the device | 1,000 ms |
-| 2 | Polls events and every wait source, then sleeps `CRUX_REBOOT_POLL_MS`, until none is pending | At most `CRUX_REBOOT_SETTLE_WAIT_MS`, 15,000 ms, in steps of 50 ms: 301 polls |
+| 1 | Sleeps `CRUX_REBOOT_DELAY_MS`, so that the `202` has left the device. A sleep that cannot sleep ends the request as failed, with no reset. | 1,000 ms |
+| 2 | Polls events and every wait source, then sleeps `CRUX_REBOOT_POLL_MS`, until none is pending | At most `CRUX_REBOOT_SETTLE_WAIT_MS`, 15,000 ms **of sleep**, in steps of 50 ms: 301 polls. The bound counts sleep time and not the time of the polls: [Wall time](#limits). A sleep that cannot sleep ends the request as failed, with no reset. |
 | 3 | If a source that blocks the reset is still pending, ends the request as failed. The reset is not called, and the work is left alone. | |
 | 4 | Asks the policy again, and ends the request as refused if it refuses | |
 | 5 | Calls the reset. Whatever it returns is a restart that did not happen, and ends the request as failed. | |
@@ -217,6 +218,16 @@ and it always asks the event port.
 | A network settings save or recovery | Queued or running | `crux_network_settings_save_pending()` | Chosen by the composition, in `crux_reboot_wait_source_t.blocks_reset`. Recommended: yes. |
 | A configuration save from the web routes | Queued or running | `crux_web_management_save_pending()` | Chosen by the composition. Recommended: yes. |
 | The application's own save, or anything else | Whatever the composition's function says | The composition | Chosen by the composition |
+
+These are **not** wait sources, and the service does not see them. A composition that wants the reset to wait for one writes a source
+for it, and a reset that comes while one runs can cut it.
+
+| Writer | Why it is not seen |
+| --- | --- |
+| The credential store's saves, with the accounts, keys and certificates | It holds its own lock across storage, and nothing here asks it |
+| The TLS certificate's install and regeneration | Its lock is held across the save of the store, and nothing here asks it |
+| The file service's writes and managed uploads | A file write in progress has no probe |
+| A configuration save that a CLI session or the application starts, rather than the web route | Only the web routes' queue is asked. A save that is running holds the Configuration service's lock, which no probe polls, and one that is not queued by a route is not queued at all. |
 
 ```mermaid
 flowchart TD
@@ -260,7 +271,7 @@ The three identifiers already exist in the contract and the identifier table, so
 | --- | --- | --- | --- | --- |
 | `system.reboot_requested` (0x0900) | Change | An accepted request, including one made while another was pending. Recorded before the answer and before the job can be taken. | OK | User and channel from the session that asked |
 | `system.reboot_refused` (0x0901) | Routine | The policy refused, at the request or at the check before the reset | DENIED | The same |
-| `system.reboot_failed` (0x0902) | Change | The restart did not happen: the reset returned, or a blocking save stayed in flight | FAILED | The same |
+| `system.reboot_failed` (0x0902) | Change | The restart did not happen: the reset returned, a blocking save stayed in flight, or a sleep could not sleep | FAILED | The same |
 
 The classes are the contract's, and they are right for these uses. A request that can restart the machine is a change, so it is
 still admitted when the ring is nearly full. A refusal changes nothing, so a flood of them must not push a change out. A failure is a
@@ -277,7 +288,7 @@ reads has its record behind it. A session that ended before the worker ran leave
 | A `POST` while the worker sleeps or polls | `202`, no policy call, no new job, one event, one reset in all | `Reboot.concurrency` |
 | A `GET` while the worker sleeps or polls | `200` `pending`, at once | `Reboot.concurrency` |
 | A `POST` that the policy would now refuse, while one is pending | `202`: the pending request's own second check decides | `Reboot.service`, `Web.reboot_routes` |
-| Three requesters, two readers and the real worker thread, 900 requests | Only states that exist, a reason only with `refused`, one worker at a time, every accepted request recorded once, every job ending in one event | `Reboot.concurrency` |
+| Three requesters, two readers and the real worker thread, 900 requests or more, until an acceptance and a refusal were both seen | Only states that exist, a reason only with `refused`, one worker at a time, every accepted request recorded once, every job ending in one event. The readers pause between reads and the policy refuses every third call for ever, so that a loaded machine cannot starve a requester's 20 ms wait or leave a run with no refusal. | `Reboot.concurrency`: 0 failures in 100 runs in a row, and in 200 runs eight at a time. Before the change it failed 14 of 100 runs four at a time. |
 | A worker that comes by while the `requested` event is being recorded | Finds nothing: the job is taken only after its event | `Reboot.steps` |
 | A session that ends, or loses its role, before the worker runs | The request is **not** cancelled: [decision 8](#decisions-taken-without-an-answer) | `Reboot.steps` |
 
@@ -287,7 +298,7 @@ reads has its record behind it. A session that ended before the worker ran leave
 | --- | --- |
 | A save that is accepted after the last poll is not waited for | The second policy check, a callback, runs after the last poll, and the reset follows at once. A save queued in that gap is cut, or stays queued and is lost with the RAM. Nothing blocks new saves while a reboot is pending. `Reboot.pending` pins this. |
 | The wait is a bound and not a guarantee about events | The counts say that Logging was handed the lines, not that a backend wrote them. A lost-records report counts as a line and can make the count read low. A backend that buffers is not seen. |
-| A save that outlives 15 s stops the reset | A slow Configuration save can be waited out and a slower one cannot. The request fails, says so, and can be made again. No timing was measured on a target. |
+| A save that outlives 15 s stops the reset | A slow Configuration save can be waited out and a slower one cannot. The request fails, says so, and can be made again. No timing was measured on a target. **A save that hangs for ever leaves only a power cycle or the watchdog.** There is no override, and no CLI `reboot` command ([decision 16](#decisions-taken-without-an-answer)), so every later request fails the same way. This is the price of decision 7, which the owner should weigh with it. |
 | A source that does not block lets the reset cut its work | The composition's choice, in `blocks_reset`. The application's own save needs its own entry, or it is not seen. |
 | `crux_system_reset()` does not flush storage, drain logs or run safe-state actions | This service only gives events and the named saves a bounded time. Anything else is the application's, in its policy callback. |
 | A native reset failure may hang | Only a watchdog or an operator recovers it. No state can be reported. |
@@ -295,7 +306,9 @@ reads has its record behind it. A session that ended before the worker ran leave
 | A reason is shown to anyone with `system.reboot` | It is the application's text, held to a character rule and a length and not to a meaning. |
 | Saved network values apply at any later reset | A reboot applies them, which is what the network screen warns about: [network settings service](network-settings-service.md#limits). |
 | The worker has no stop or join | `crux_reboot_start()` resets the state and is safe only before the worker starts. |
-| Wall time from the request to the reset is 1 s plus up to 15 s | On a machine that must restart within a deadline, the policy decides, not this service. |
+| Wall time from the request to the reset is 1 s plus up to 15 s of sleep, and more | The bound counts the time that the service sleeps, not the time of the polls. Each probe may wait up to 20 ms for its lock, so with two wait sources 301 polls can add 301 x 2 x 20 ms, about 12 s, and a sleep may return late. On a machine that must restart within a deadline, the policy decides, not this service. |
+| A holder of `system.reboot` can fill the event ring with `system.reboot_requested` | Each accepted request is recorded, a duplicate while another is pending included, and the event is of the change class, so it is admitted into the ring's reserve. A flood of them can push other change events out, `system.reboot_failed` included, and they then show as `event.lost`. It is limited by one TLS handshake per `POST`, because the connection closes after every answer, and by the need for a valid session, the token and the permission: an unauthenticated flood never reaches the handler and records only what the core records. [Decision 5](#decisions-taken-without-an-answer). |
+| The service adds two semaphores, a mutex and a thread | The state's mutex, the worker's signal and the sleep provider's semaphore, and one worker thread at low priority. The gate resource table does not record them, as it does not record those of the network settings service. |
 | The `409` the server sends for a busy registered path | The server's own, with no body. No code here produces it. |
 
 ## Specification, mock and client
@@ -332,15 +345,16 @@ exits a `native_sim` image was not checked.
 | Suite | Cases | Covers |
 | --- | --- | --- |
 | `Reboot.service` | 12 | Each row of the policy statement, wait sources checked at start, nothing before start, the permission of a request and of a read for every kind of session, the state, the first check and what a refusal leaves, a refusal that comes after another request was accepted, a request while pending |
-| `Reboot.steps` | 15 | The order of the steps to the exact step, the delay, the wait to the exact poll and millisecond, a source that frees on the last poll and one poll later, blocking and non-blocking sources, events alone, the second check and its refusal, a reset that returns each status, a request after a failure, an ended session, an event recorded before the job can run |
+| `Reboot.steps` | 22 | The order of the steps to the exact step, the delay, the wait to the exact poll and millisecond, a source that frees on the last poll and one poll later, blocking and non-blocking sources, events alone, the second check and its refusal, a reset that returns each status, a request after a failure, an ended session, an event recorded before the job can run, a blocking source that a later non-blocking one must not hide, the end event recorded before the state changes for each way a request ends, and a sleep that cannot sleep at the delay and in the wait |
 | `Reboot.concurrency` | 3 | Two posts at once for 200 rounds, 900 requests with readers and the real worker thread, a post, a get and a second worker from inside each sleep of the worker |
 | `Reboot.reason` | 2 | 26 named vectors, and 60,000 generated texts against an oracle written apart from the rule that the service uses |
 | `Reboot.lock_faults` | 4 | The state's lock failing to come in time: the server-thread calls say busy and change nothing, also after the policy was asked, and the worker keeps its job and ends it |
-| `Reboot.pending` | 8 | The two probes, a network save and a configuration save waited for, a save accepted during the wait, a save that never ends for each kind, the save queued after the last poll, and probes whose lock is late |
+| `Reboot.nodiscard` | 1 | A call that throws away the result of `crux_reboot_start()` must not build under `-Werror=unused-result`. The test builds it and expects the build to fail, beside an object that uses the result and does build. |
+| `Reboot.pending` | 9 | The two probes, a network save and a configuration save waited for, a save accepted during the wait, a save that never ends for each kind, a save started while the policy is asked at the request, the save queued after the last poll, and probes whose lock is late |
 | `Web.reboot_routes` | 17 | Both routes for success, no session, no permission, the forgery checks, a refusal, escapes in the reason, a refusal at the second check, a failed reset, a second post while pending, bodies, other methods, a service not started, a lock that is late, the table |
 | `Web.reboot_no_service` | 2 | The route table without the source, and a request that finds nothing |
 | `Web.reboot_openapi` | 1 | 25 real answers against the merged specification, with 12 negative controls |
-| `ManagementProviders.events` | | Now also the real event provider of this service: the three identifiers, their results, the user and channel of the session, no subject, an ended session, and nine rows of the pending-events question, wrap-around included |
+| `ManagementProviders.events` | | Now also the real event provider of this service: the three identifiers, their results, the user and channel of the session, no subject, an ended session, and nine rows of the pending-events question, wrap-around included. `tests/management_providers/CMakeLists.txt` returns early when a provider target is missing, so with `CRUX_BUILD_REBOOT=OFF` the whole suite silently drops out, as it does for `CRUX_BUILD_NETWORK_SETTINGS=OFF` since #287. |
 
 The reason fuzz is deterministic: a fixed seed. For each text it checks that what is shown is exactly what the oracle says, that
 it follows the rule, and that it fits. There is no other parser: the `POST` takes no body.
@@ -416,10 +430,16 @@ Each was applied alone to the committed source, the suites above were built and 
 | pending events read the difference as unsigned | `ManagementProviders.events` |
 | a late lock at the end of a request is taken as success | `Reboot.lock_faults` |
 | a late lock when the worker takes the job loses it | `Reboot.lock_faults` |
+| the blocking flag is overwritten by the last source | `Reboot.steps` |
+| the state changes before the end event | `Reboot.steps` |
+| a sleep that cannot sleep is ignored at the delay | `Reboot.concurrency`, `Reboot.pending`, `Reboot.steps`, `Web.reboot_routes` |
+| a sleep that cannot sleep is ignored in the wait | `Reboot.concurrency`, `Reboot.pending`, `Reboot.steps` |
+| the failure of a lost timer is reported as a save in flight | `Reboot.steps` |
+| the start result is not marked | `Reboot.nodiscard` |
 | the failure of a refusal is shown | **Equivalent.** A refusal always stores no failure, so the mutated read returns the same bytes. |
 | the worker gives up its job when the lock is late at the end | **Not caught.** The lock guards a copy, and without it a single thread still stores the same state. Only a second thread could see the difference, and the retry loop is shown by `Reboot.lock_faults` to take the failing wait once. |
 
-67 mutations: 65 caught, 1 equivalent and 1 not caught, which is explained in its row. Mutations of the Web core, the session module, Access and the security events were not tried: they belong to earlier changes. Eight mutations first broke the build, with an unused variable under `-Werror`, or were not caught. That led to `Reboot.lock_faults`, the nested refusal case, the nested worker in `Reboot.concurrency`, the busy answer of the routes and the late-lock probe case, and the eight were run again and caught. The mutations were run by the author, and are not an independent review.
+73 mutations: 71 caught, 1 equivalent and 1 not caught, which is explained in its row. Mutations of the Web core, the session module, Access and the security events were not tried: they belong to earlier changes. Eight mutations first broke the build, with an unused variable under `-Werror`, or were not caught. That led to `Reboot.lock_faults`, the nested refusal case, the nested worker in `Reboot.concurrency`, the busy answer of the routes and the late-lock probe case, and the eight were run again and caught. An independent review then found three more gaps, a blocking flag that a later source overwrote, a state that changed before the end event, and a save started during the first check. `Reboot.steps` and `Reboot.pending` now hold them, and the six mutations above them are caught. The mutations were run by the author, and are not an independent review.
 
 ## Results
 
@@ -428,7 +448,7 @@ results are in the pull request.
 
 | Check | Level | Result |
 | --- | --- | --- |
-| `Reboot.*`, 6 suites with 44 cases, `Web.reboot_*`, 3 suites, and `ManagementProviders.events`, debug preset, clang 18 | Host | Pass |
+| `Reboot.*`, 6 suites with 52 cases and the build test `Reboot.nodiscard`, `Web.reboot_*`, 3 suites, and `ManagementProviders.events`, debug preset, clang 18 | Host | Pass |
 | The same CTest entries, with `NetworkSettings.service` and `Web.network_routes`, on GCC 13 with `-fsanitize=address,undefined -fno-omit-frame-pointer -Wno-format-truncation` | Host, sanitizer | Pass, 12 of 12. The local clang has no sanitizer runtime, so `host-sanitize` itself was **not** run locally, and CI's host workflow runs it. |
 | The whole host build and `ctest`, 311 tests of which 9 are this change's suites and `ManagementProviders.events` also covers it | Host | Pass, with the new suites included |
 | clang-tidy 18 on the component, the route source and every new suite | Host | No finding in this change's files. `tests/management_providers/events.c` has one finding of `bugprone-easily-swappable-parameters` in `credential_event_row`, which is not this change's and which no existing script runs tidy on. |
@@ -438,7 +458,7 @@ results are in the pull request.
 | First run of the component suites against a stub of every function | Host, red | service 10 of 11 cases failed, steps 15 of 15, concurrency 3 of 3, reason 2 of 2. The one that passed asks for the answers of a service that is not started. |
 | First run of the route suites with every route answering `503 not_ready` | Host, red | routes 11 of 16 cases failed and the specification check failed. `Web.reboot_no_service` passed, because with no route there is nothing for it to see. The routes source existed in the worktree before the first run, and was swapped for that placeholder to record the red. |
 | The cases of `Reboot.lock_faults`, the nested refusal, the nested worker, the busy answer of the routes and the late-lock probe | Host | Written after the first mutation run, which showed that nothing caught the mutations they now catch. They were green when first run. |
-| 67 mutations | Host | 65 caught, 1 equivalent and 1 not caught, as above |
+| 73 mutations | Host | 71 caught, 1 equivalent and 1 not caught, as above |
 | `scripts/check-management-api.sh`, `npm run check`, the mock and the client | | **Not run, and not needed:** `web/` is unchanged |
 | `native_sim`, RT1060 compile, `host-sanitize` with clang, a browser against the routes, any board | | **Not run** |
 
@@ -451,9 +471,9 @@ results are in the pull request.
 | 2 | An unset policy fails `crux_reboot_start()`, not the build | A value that a composition computes cannot be seen at build time. A test shows it, and a refused start leaves nothing that answers. | A compile-time macro that a composition must define |
 | 3 | The callback is not given the session | Whether a machine may restart does not depend on who asks | Pass the session, so a policy can name a user |
 | 4 | A refusal at the request shows as `refused` on `GET` | The mock does, and the client's reboot screen reads it on arrival | Show nothing for a refusal that was answered |
-| 5 | A request made while another is pending runs no policy, and is recorded | The specification says so for the policy. Recording it keeps the log of who asked. | Do not record it |
+| 5 | A request made while another is pending runs no policy, and is recorded | The specification says so for the policy. Recording it keeps the log of who asked. **The cost is that a holder of the permission can flood the ring with change events: [limits](#limits).** | Record only the first request of a pending one, or coalesce duplicates into one event with a count. Not done: it changes what the log says, and the owner should decide it. |
 | 6 | Wait sources are named by the composition, with a `blocks_reset` flag each. Events are always waited for and never block. | The service cannot see saves, and a generic registry is not wanted | The service reads the Configuration and web components itself |
-| 7 | **At the bound, a blocking save that is still in flight stops the reset, and the request fails.** A non-blocking source and pending events do not. | A reset that cuts a save is the one outcome that loses data without saying so. A failed request can be made again. | Reset anyway at the bound, and say so in the event. Both are one flag per source. |
+| 7 | **At the bound, a blocking save that is still in flight stops the reset, and the request fails.** A non-blocking source and pending events do not. | A reset that cuts a save is the one outcome that loses data without saying so. A failed request can be made again. **A save that hangs for ever then leaves only a power cycle or the watchdog, because there is no override and no CLI command.** | Reset anyway at the bound, and say so in the event. Both are one flag per source. |
 | 8 | A session that ends or loses its role before the worker runs does not cancel the request | To a browser, a lost session reads as a restart. A cancelled request behind it would be reported as done to nobody. The policy is the second check. | Re-check the permission on the worker |
 | 9 | The identifiers already exist, so no new identifier. The result of a refusal is `DENIED`, and an event has no subject. | The contract's table already lists them, with their classes | New identifiers, which change the contract's table |
 | 10 | The state is set after the event is recorded, and the job is taken only after its `requested` event | A state that a client reads has its record behind it, and nothing the worker records can come before the request | State first, as the network settings service does |
@@ -468,6 +488,8 @@ results are in the pull request.
 | 19 | `scripts/test-web.sh` gains the targets and the tidy path of the new suites, and `scripts/test-reboot.sh` is new | A protected path, edited only to add targets and a source directory, as the test runner of a component that this change adds. No suite, board, option or warning flag is removed. | Leave the suites to the full host preset alone |
 | 20 | The top-level `CMakeLists.txt` gains the option `CRUX_BUILD_REBOOT`, on by default as the other components are | The component list | None |
 | 21 | The delay, the wait and the poll are 1 s, 15 s and 50 ms | They are assumptions, as the client's reboot limits are. No boot or save time was measured. | Measure first, which needs a target |
+| 22 | A sleep that cannot sleep fails the request, with the failure `NO_TIMER`, and the reset is not called | The sleep provider creates its semaphore at the first sleep, which is the first request. If that failed, the delay and the wait would return at once and the reset would follow with nothing waited for. | Create the semaphore at start, which needs one more port |
+| 23 | `crux_reboot_start()` is marked `warn_unused_result`, with a macro in the header for C and C++ | A composition that ignores the result ignores an unset policy. The codebase has no such macro yet. `Reboot.nodiscard` builds a call that discards the result and expects the build to fail. | Leave it to the reader of the header |
 
 ## Acceptance criteria
 

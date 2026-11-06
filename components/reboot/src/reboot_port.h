@@ -18,9 +18,10 @@ crux_status_t crux_reboot_port_reset(void);
 
 /*
  * Sleep for about this long on the worker thread, for the delay before the wait and for each step
- * of the wait. Never called on the server thread.
+ * of the wait. Never called on the server thread. Returns false if it could not sleep, and then the
+ * delay and the bound of the wait are lost, so the service fails the request and does not reset.
  */
-void crux_reboot_port_sleep(uint32_t milliseconds);
+bool crux_reboot_port_sleep(uint32_t milliseconds);
 
 /*
  * Whether security events that were recorded have not yet been handed to Logging. A port that

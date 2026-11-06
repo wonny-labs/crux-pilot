@@ -7,7 +7,8 @@
  *
  * The order for the worker, which the suites hold to:
  *
- *   1. sleep for CRUX_REBOOT_DELAY_MS, so that the answer to the request gets out,
+ *   1. sleep for CRUX_REBOOT_DELAY_MS, so that the answer to the request gets out. A sleep that
+ *      cannot sleep ends the request as failed, with no reset,
  *   2. poll events and the wait sources, sleeping CRUX_REBOOT_POLL_MS between polls, until nothing
  *      is pending or CRUX_REBOOT_SETTLE_WAIT_MS has passed,
  *   3. if a source that blocks the reset is still pending, end the request as failed,
@@ -314,21 +315,28 @@ static bool poll_pending(bool *blocking_pending)
     return pending;
 }
 
-/* Waits for events and sources for at most CRUX_REBOOT_SETTLE_WAIT_MS. Returns false if a source
- * that blocks the reset was still pending when the wait ended. */
-static bool wait_for_work(void)
+typedef enum {
+    WAIT_DONE,    /* Nothing is pending, or only what the reset may cut. */
+    WAIT_BLOCKED, /* A source that blocks the reset was still pending when the wait ended. */
+    WAIT_NO_TIMER /* The sleep port could not sleep, so the bound is not one. */
+} wait_result_t;
+
+/* Waits for events and sources for at most CRUX_REBOOT_SETTLE_WAIT_MS of sleep. */
+static wait_result_t wait_for_work(void)
 {
     uint32_t waited = 0u;
     bool blocking;
 
     for (;;) {
         if (!poll_pending(&blocking)) {
-            return true;
+            return WAIT_DONE;
         }
         if (waited >= CRUX_REBOOT_SETTLE_WAIT_MS) {
-            return !blocking;
+            return blocking ? WAIT_BLOCKED : WAIT_DONE;
         }
-        crux_reboot_port_sleep(CRUX_REBOOT_POLL_MS);
+        if (!crux_reboot_port_sleep(CRUX_REBOOT_POLL_MS)) {
+            return WAIT_NO_TIMER;
+        }
         waited += CRUX_REBOOT_POLL_MS;
     }
 }
@@ -373,10 +381,22 @@ bool crux_reboot_work_once(void)
     session = svc.session;
     unlock_state();
 
-    crux_reboot_port_sleep(CRUX_REBOOT_DELAY_MS);
-    if (!wait_for_work()) {
+    /* A sleep that cannot sleep makes the delay and the bound of the wait return at once, so the
+     * request fails instead, and the reset is not called. */
+    if (!crux_reboot_port_sleep(CRUX_REBOOT_DELAY_MS)) {
+        end_job(CRUX_REBOOT_STATE_FAILED, CRUX_REBOOT_FAILURE_NO_TIMER, NULL, session);
+        return true;
+    }
+    switch (wait_for_work()) {
+    case WAIT_BLOCKED:
         end_job(CRUX_REBOOT_STATE_FAILED, CRUX_REBOOT_FAILURE_SAVE_IN_FLIGHT, NULL, session);
         return true;
+    case WAIT_NO_TIMER:
+        end_job(CRUX_REBOOT_STATE_FAILED, CRUX_REBOOT_FAILURE_NO_TIMER, NULL, session);
+        return true;
+    case WAIT_DONE:
+    default:
+        break;
     }
     /* The machine may have started while the request waited, so the application is asked again. */
     if (!policy_allows(reason)) {

@@ -43,6 +43,9 @@ static bool configuration_probe(void *context)
     return crux_web_management_save_pending();
 }
 
+/* What the policy callback does as a side effect on its first call, at the request, and on its
+ * second call, at the check before the reset. */
+static void (*first_check_effect)(void);
 static void (*second_check_effect)(void);
 static size_t policy_calls;
 
@@ -50,7 +53,11 @@ static bool policy(void *context, crux_reboot_refusal_t *refusal)
 {
     (void)context;
     (void)refusal;
-    if (++policy_calls == 2u && second_check_effect != NULL) {
+    ++policy_calls;
+    if (policy_calls == 1u && first_check_effect != NULL) {
+        first_check_effect();
+    }
+    if (policy_calls == 2u && second_check_effect != NULL) {
         second_check_effect();
     }
     return true;
@@ -76,6 +83,7 @@ static void start_everything(void)
     CHECK(crux_web_management_init() == CRUX_WEB_OK);
     reboot_fakes_reset();
     policy_calls = 0u;
+    first_check_effect = NULL;
     second_check_effect = NULL;
     CHECK(crux_reboot_start(&config) == CRUX_REBOOT_OK);
     net_events_clear();
@@ -236,11 +244,36 @@ static void a_configuration_save_that_never_ends_stops_the_reset(void)
     CHECK(web_mgmt_save_view().state == WEB_SAVE_SAVED);
 }
 
+/* A save that is started while the policy is asked at the request is waited for like any other: the
+ * wait polls after the delay, and not before the policy. */
+
+static void queue_a_network_save_now(void);
+
+static void a_save_started_during_the_first_check_is_waited_for(void)
+{
+    start_everything();
+    first_check_effect = queue_a_network_save_now;
+    CHECK(crux_reboot_request(s_admin, NULL) == CRUX_REBOOT_OK);
+    CHECK(crux_network_settings_save_pending());
+    sleeps_seen = 0u;
+    reboot_sleep_hook(finish_the_network_save);
+    CHECK(crux_reboot_work_once());
+    CHECK(reboot_sleeps() == 3u);
+    CHECK(!crux_network_settings_save_pending());
+    CHECK(reboot_reset_calls() == 1u);
+    expect_whole_set(&net_set_a);
+}
+
 /* The limit: a save that is queued after the last poll. */
 
 static void queue_a_save(void)
 {
     CHECK(crux_network_settings_request(s_admin, &net_set_a, NULL) == CRUX_NETWORK_OK);
+}
+
+static void queue_a_network_save_now(void)
+{
+    queue_a_save();
 }
 
 static void a_save_queued_after_the_last_poll_is_not_seen(void)
@@ -299,6 +332,8 @@ int main(void)
                  a_save_that_never_ends_stops_the_reset_and_is_not_lost);
     net_run_case("a configuration save that never ends stops the reset",
                  a_configuration_save_that_never_ends_stops_the_reset);
+    net_run_case("a save started during the first check is waited for",
+                 a_save_started_during_the_first_check_is_waited_for);
     net_run_case("a save queued after the last poll is not seen",
                  a_save_queued_after_the_last_poll_is_not_seen);
     net_run_case("a lock that is late reads as pending", a_lock_that_is_late_reads_as_pending);

@@ -303,6 +303,135 @@ static void the_event_is_recorded_before_the_job_can_run(void)
     CHECK(reboot_reset_calls() == 1u);
 }
 
+static void a_blocking_source_is_not_forgotten_by_a_later_one(void)
+{
+    crux_reboot_config_t config = reboot_config();
+    crux_reboot_wait_source_t sources[2];
+
+    reboot_boot();
+    sources[0] = config.wait_sources[0];
+    sources[1] = config.wait_sources[1];
+    /* The first source blocks the reset and the second does not, and both stay busy for ever. The
+     * second one's answer must not hide the first one's. */
+    sources[1].blocks_reset = false;
+    config.wait_sources = sources;
+    CHECK(crux_reboot_start(&config) == CRUX_REBOOT_OK);
+    CHECK(request(s_rebooter) == CRUX_REBOOT_OK);
+    reboot_source_busy(0u, REBOOT_FOREVER);
+    reboot_source_busy(1u, REBOOT_FOREVER);
+    CHECK(crux_reboot_work_once());
+    CHECK(reboot_reset_calls() == 0u);
+    CHECK(reboot_state_of(s_admin).failure == CRUX_REBOOT_FAILURE_SAVE_IN_FLIGHT);
+}
+
+/* The end of a request is recorded before its state changes, as its start is: a state that a client
+ * reads has its record behind it. The hook reads the state from inside each end event. */
+
+static crux_reboot_state_kind_t state_at_end_event;
+static bool end_event_seen;
+
+static void read_the_state_at_the_end(crux_reboot_event_t event)
+{
+    crux_reboot_state_t state;
+
+    if (event != CRUX_REBOOT_EVENT_REQUESTED) {
+        end_event_seen = true;
+        CHECK(crux_reboot_get(s_admin, &state) == CRUX_REBOOT_OK);
+        state_at_end_event = state.state;
+    }
+}
+
+static void expect_the_state_still_pending_at_the_end_event(void)
+{
+    CHECK(end_event_seen);
+    CHECK(state_at_end_event == CRUX_REBOOT_STATE_PENDING);
+}
+
+static void the_end_is_recorded_before_the_state_changes_after_a_failed_reset(void)
+{
+    reboot_start();
+    CHECK(request(s_rebooter) == CRUX_REBOOT_OK);
+    reboot_event_hook(read_the_state_at_the_end);
+    CHECK(crux_reboot_work_once());
+    expect_the_state_still_pending_at_the_end_event();
+    CHECK(reboot_state_of(s_admin).state == CRUX_REBOOT_STATE_FAILED);
+}
+
+static void the_end_is_recorded_before_the_state_changes_after_a_save_in_flight(void)
+{
+    reboot_start();
+    CHECK(request(s_rebooter) == CRUX_REBOOT_OK);
+    reboot_source_busy(0u, REBOOT_FOREVER);
+    reboot_event_hook(read_the_state_at_the_end);
+    CHECK(crux_reboot_work_once());
+    expect_the_state_still_pending_at_the_end_event();
+    CHECK(reboot_state_of(s_admin).state == CRUX_REBOOT_STATE_FAILED);
+}
+
+static void the_end_is_recorded_before_the_state_changes_after_a_refusal(void)
+{
+    const bool script[] = {true, false};
+
+    reboot_start();
+    reboot_policy_script(script, 2u);
+    CHECK(request(s_rebooter) == CRUX_REBOOT_OK);
+    reboot_event_hook(read_the_state_at_the_end);
+    CHECK(crux_reboot_work_once());
+    expect_the_state_still_pending_at_the_end_event();
+    CHECK(reboot_state_of(s_admin).state == CRUX_REBOOT_STATE_REFUSED);
+}
+
+/* A sleep that cannot sleep: the delay and the bound of the wait would be lost, so the request
+ * fails and the reset is not called. */
+
+static void expect_failed_for_want_of_a_timer(void)
+{
+    crux_reboot_state_t state = reboot_state_of(s_admin);
+
+    CHECK(reboot_reset_calls() == 0u);
+    CHECK(state.state == CRUX_REBOOT_STATE_FAILED);
+    CHECK(state.failure == CRUX_REBOOT_FAILURE_NO_TIMER);
+    CHECK(reboot_events_of(CRUX_REBOOT_EVENT_FAILED) == 1u);
+    CHECK(reboot_event_session(CRUX_REBOOT_EVENT_FAILED).value == s_rebooter.value);
+    /* No second check: nothing will be reset. */
+    CHECK(reboot_policy_calls() == 1u);
+}
+
+static void a_delay_that_cannot_sleep_fails_the_request(void)
+{
+    reboot_start();
+    reboot_sleep_fails_from(1u);
+    CHECK(request(s_rebooter) == CRUX_REBOOT_OK);
+    CHECK(crux_reboot_work_once());
+    expect_failed_for_want_of_a_timer();
+    CHECK(reboot_trace_count_of(STEP_EVENTS_PENDING) == 0u);
+}
+
+static void a_wait_that_cannot_sleep_fails_the_request(void)
+{
+    reboot_start();
+    /* The delay sleeps, a save is pending, and the first step of the wait cannot. */
+    reboot_sleep_fails_from(2u);
+    CHECK(request(s_rebooter) == CRUX_REBOOT_OK);
+    reboot_source_busy(0u, 5u);
+    CHECK(crux_reboot_work_once());
+    expect_failed_for_want_of_a_timer();
+    CHECK(reboot_source_polls(0u) == 1u);
+}
+
+static void a_sleep_that_is_never_needed_is_never_asked_for(void)
+{
+    reboot_start();
+    /* Only the delay sleeps when nothing is pending, so a second sleep that would fail is not made.
+     */
+    reboot_sleep_fails_from(2u);
+    CHECK(request(s_rebooter) == CRUX_REBOOT_OK);
+    CHECK(crux_reboot_work_once());
+    CHECK(reboot_sleeps() == 1u);
+    CHECK(reboot_reset_calls() == 1u);
+    CHECK(reboot_state_of(s_admin).failure == CRUX_REBOOT_FAILURE_RESET_RETURNED);
+}
+
 int main(void)
 {
     reboot_run_case("the steps come in order", the_steps_come_in_order);
@@ -328,5 +457,19 @@ int main(void)
                     a_session_that_ends_before_the_worker_does_not_cancel_the_request);
     reboot_run_case("the event is recorded before the job can run",
                     the_event_is_recorded_before_the_job_can_run);
+    reboot_run_case("a blocking source is not forgotten by a later one",
+                    a_blocking_source_is_not_forgotten_by_a_later_one);
+    reboot_run_case("the end is recorded before the state changes after a failed reset",
+                    the_end_is_recorded_before_the_state_changes_after_a_failed_reset);
+    reboot_run_case("the end is recorded before the state changes after a save in flight",
+                    the_end_is_recorded_before_the_state_changes_after_a_save_in_flight);
+    reboot_run_case("the end is recorded before the state changes after a refusal",
+                    the_end_is_recorded_before_the_state_changes_after_a_refusal);
+    reboot_run_case("a delay that cannot sleep fails the request",
+                    a_delay_that_cannot_sleep_fails_the_request);
+    reboot_run_case("a wait that cannot sleep fails the request",
+                    a_wait_that_cannot_sleep_fails_the_request);
+    reboot_run_case("a sleep that is never needed is never asked for",
+                    a_sleep_that_is_never_needed_is_never_asked_for);
     return reboot_finish("reboot_steps");
 }

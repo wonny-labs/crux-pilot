@@ -32,6 +32,18 @@
 extern "C" {
 #endif
 
+/**
+ * A call whose result must be used. A composition that ignores the result of crux_reboot_start()
+ * ignores an unset policy, so the compiler is asked to warn.
+ */
+#if defined(__cplusplus)
+#define CRUX_REBOOT_NODISCARD [[nodiscard]]
+#elif defined(__GNUC__) || defined(__clang__)
+#define CRUX_REBOOT_NODISCARD __attribute__((warn_unused_result))
+#else
+#define CRUX_REBOOT_NODISCARD
+#endif
+
 /** Permission that a request and a read of the state need. */
 #define CRUX_REBOOT_PERMISSION "system.reboot"
 
@@ -131,10 +143,12 @@ typedef enum {
 /** Why a restart failed, for an operator. It never reaches a client. */
 typedef enum {
     CRUX_REBOOT_FAILURE_NONE = 0,
-    CRUX_REBOOT_FAILURE_RESET_RETURNED =
-        1, /**< The reset came back, which it only does on error. */
-    CRUX_REBOOT_FAILURE_SAVE_IN_FLIGHT =
-        2 /**< A blocking wait source stayed busy for the whole wait. */
+    /** The reset came back, which it only does on error. */
+    CRUX_REBOOT_FAILURE_RESET_RETURNED = 1,
+    /** A blocking wait source stayed busy for the whole wait. */
+    CRUX_REBOOT_FAILURE_SAVE_IN_FLIGHT = 2,
+    /** The sleep port could not sleep, so the delay and the bound of the wait would be lost. */
+    CRUX_REBOOT_FAILURE_NO_TIMER = 3
 } crux_reboot_failure_t;
 
 /** What a read shows. The state stays until the next accepted request. */
@@ -155,7 +169,7 @@ typedef struct {
  * @retval CRUX_REBOOT_ERR_NO_POLICY The policy is unset, or the callback kind has no callback.
  * @retval CRUX_REBOOT_ERR_NOT_READY A lock or signal could not be created.
  */
-crux_reboot_result_t crux_reboot_start(const crux_reboot_config_t *config);
+CRUX_REBOOT_NODISCARD crux_reboot_result_t crux_reboot_start(const crux_reboot_config_t *config);
 
 /**
  * Start the one worker thread that carries out requests, at low priority. A composition with no

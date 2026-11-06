@@ -47,3 +47,16 @@ if(TARGET network_settings_test_fixture AND TARGET crux_web_adapter)
     add_test(NAME Reboot.pending COMMAND reboot_pending)
     set_tests_properties(Reboot.pending PROPERTIES TIMEOUT 240)
 endif()
+
+# A composition must not be able to ignore ERR_NO_POLICY. The first object uses the result and builds with
+# everything else. The second throws it away, is left out of the normal build, and Reboot.nodiscard builds
+# it with -Werror=unused-result and expects that to fail.
+add_library(reboot_nodiscard_ok OBJECT nodiscard_ok.c)
+target_link_libraries(reboot_nodiscard_ok PRIVATE crux_reboot_api)
+target_compile_options(reboot_nodiscard_ok PRIVATE -Wall -Wextra -Wpedantic -Werror)
+add_library(reboot_nodiscard_probe OBJECT EXCLUDE_FROM_ALL probe/nodiscard_probe.c)
+target_link_libraries(reboot_nodiscard_probe PRIVATE crux_reboot_api)
+target_compile_options(reboot_nodiscard_probe PRIVATE -Werror=unused-result)
+add_test(NAME Reboot.nodiscard
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target reboot_nodiscard_probe)
+set_tests_properties(Reboot.nodiscard PROPERTIES WILL_FAIL TRUE TIMEOUT 120)
