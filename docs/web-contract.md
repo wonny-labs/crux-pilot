@@ -270,11 +270,7 @@ design's fallback of pausing other clients during writes is what this is.
 
 ### Latency baseline
 
-Each small response takes about 50 ms here, whichever route. The server writes the status line, each header and each chunk
-as separate sends. On the host's TCP stack that meets Nagle's algorithm and the delayed acknowledgement, and the client
-receives it in pieces. The wait is in the network and the thread goes on serving. Zephyr's own stack is not measured, so
-this is noted and not changed. If a target shows it, `TCP_NODELAY` on each client socket is one line in the adapter. TLS
-will also make each send its own record.
+Each small response takes about 50 ms on `native_sim`, because the server writes the status line, each header and each chunk as separate sends, which meets Nagle's algorithm and the delayed acknowledgement on the host's TCP stack. The measurement and what TLS changes are in [HTTPS composition](https-composition.md#sends-of-a-small-response). `TCP_NODELAY` is not set, and Zephyr's own stack is not measured.
 
 ## Header capture
 
@@ -318,8 +314,7 @@ lowered the limit to 2 s: see [the HTTPS composition](https-composition.md#stall
 | wolfSSL | The patch's `ztls_accept_ctx` does the same through `tls_wolfssl_handshake`. |
 | Both | The wait is bounded by `CONFIG_NET_SOCKETS_TLS_CONNECT_TIMEOUT`, **10 seconds by default**. |
 
-So one client that opens a TCP connection and sends nothing stops every client for 10 seconds, and it can repeat that. #185
-should set this much lower and measure both profiles. The whole-request deadline does not help, since no callback runs.
+So one client that opens a TCP connection and sends nothing stops every client for the timeout, and it can repeat that. The whole-request deadline does not help, since no callback runs. The measured stall and the 2 s setting are in [HTTPS composition](https-composition.md#stalled-handshake).
 
 ## Three limits of `native_sim` found here
 

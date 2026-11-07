@@ -245,11 +245,7 @@ about 1 to 2 KB for 32 files. This is an estimate from the struct, **not measure
 | Preact example | 4 files, 23,208 bytes served, the largest asset 21,394 (with network settings and restart, as measured in [#220](e2e-native-220.md#packaging-both-examples)): **fits with about 4.6 times to spare**. At the default rate its script takes about 0.65 s (21,394 B at 32,768 B/s, computed, not measured). |
 | Angular example | 97,990 compressed bytes in 5 files with network settings and restart (`tools/compare.ts`; `web_assets.py` counts 97,952 served, the figure in [#220](e2e-native-220.md#packaging-both-examples)). The largest file, the script, is 92,064, under 98,304, so it fits the defaults with 6,240 bytes to spare. |
 
-What a slow client costs the others, by the sums in the [web contract](web-contract.md#the-slow-reader-bound) and not measured at the default settings: the deadline, 3 s,
-plus the sends of the callback in flight. A response has 5 or 6 headers, which is 24 sends in its first callback, at 250 ms each: up to 6 s, and later pieces take 4 sends, up to 1 s. That is
-about 7 s in the worst case, under the 10 s inactivity timer, so another client waits and is not closed. Over TLS a response also stops at
-the first send that cannot finish within the send timeout, so a slow client is cut sooner than on plain text:
-[HTTPS composition](https-composition.md#negative-handshakes). Raising the deadline raises this stall by the same amount, and the largest asset with it.
+What a slow client costs the others is in [the slow reader bound](web-contract.md#the-slow-reader-bound), and over TLS in [HTTPS composition](https-composition.md#negative-handshakes). Raising the response deadline raises that stall by the same amount, and the largest asset with it.
 
 ## Measured on `native_sim`
 
