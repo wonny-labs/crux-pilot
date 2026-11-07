@@ -366,15 +366,15 @@ sign-in, home, configuration with an update and a save, and sign-out, in `e2e/an
 | --- | --- | --- | --- | --- | --- |
 | Preact example, all six screens | 4 | 69583 | 23302 | 1 | 38 |
 | Preact example, core screens: sign-in, forced change, home and configuration | 4 | 59212 | 20874 | 1 | 38 |
-| Angular example, all six screens | 5 | 326609 | 97941 | 7 | 362 |
+| Angular example, all six screens | 5 | 326893 | 97990 | 7 | 362 |
 
 Before #243 the Angular row held sign-in and home alone, at 249403 bytes and 76710 compressed, against 48485 and 17922 for
 Preact, and then the four core flows, at 298780 bytes and 91197 compressed, against 58709 and 20761. Those earlier rows do not
 compare with these. Both builds now hold all six screens: the four core flows, network settings and restart. Network settings and
-restart added 27,829 bytes and 6,744 compressed bytes to Angular, which is 308.94 kB raw and 81.68 kB transferred for its initial
-bundle, over the former 300 kB limit. The limit in `angular.json` is now 320 kB, which leaves 11.06 kB, and that change is the owner's
+restart added 28,113 bytes and 6,793 compressed bytes to Angular, which is 309.22 kB raw and 81.73 kB transferred for its initial
+bundle, over the former 300 kB limit. The limit in `angular.json` is now 320 kB, which leaves 10.78 kB, and that change is the owner's
 call: see [the advanced flows](../web-advanced-flows.md). The fifth Angular file is `3rdpartylicenses.txt`, at 4,849 compressed bytes,
-which the build writes by default, so the example's code and style are 93,092 compressed bytes. The Preact build writes no
+which the build writes by default, so the example's code and style are 93,141 compressed bytes. The Preact build writes no
 licence file, and the SBOM names Preact's MIT licence but holds no copyright notice. MIT requires that notice in copies, so
 this build alone does not meet it, and a product must add the text of Preact's `LICENSE` to its own notices. Installed tools measured 55 MB, 13 packages and 1,252 files for
 `web`, and 237 MB, 240 packages and 16,245 files for the Angular example, on macOS arm64.
@@ -394,8 +394,8 @@ What this shows, on the mock only:
 
 | Question | Result |
 | --- | --- |
-| Does Angular work with the web foundation? | Yes, on these two screens, with the same browser cases as the Preact example. |
-| Compressed size against Preact on the same screens | About 4.2 times on all six screens: 97,941 against 23,302 bytes. Excluding the licence file, 4.0 times. On the core screens alone it was 4.4 and 4.2 times, and on sign-in and home alone 4.3 and 4.0 times. |
+| Does Angular work with the web foundation? | Yes, on all six screens, with the same browser cases as the Preact example. |
+| Compressed size against Preact on the same screens | About 4.2 times on all six screens: 97,990 against 23,302 bytes. Excluding the licence file, 4.0 times. On the core screens alone it was 4.4 and 4.2 times, and on sign-in and home alone 4.3 and 4.0 times. |
 | File count | No lazy loading is used, so one script and one style, as for Preact. |
 | CSRF | `HttpClient`'s default names work with no configuration, shown by the sign-out case. |
 | Hash routing | `withHashLocation` works, and the server sees only API and asset paths. |
@@ -506,7 +506,7 @@ Each was taken for lack of an answer, as the narrower choice.
 | One PR with one commit for each issue | The issues build on each other and PRs must be based on `main` |
 | A small local type generator, not `openapi-typescript` | Keeps the package count low, and it refuses schema forms it does not know. Any project can still use another generator. |
 | `ajv` for the conformance check | A real validator is worth five development packages here, because a home-made one could hide a fault |
-| Exact budget numbers, and a raw limit of 300 kB in the Angular example's `angular.json` | The design gives none |
+| Exact budget numbers, and a raw limit in the Angular example's `angular.json`: 300 kB, and 320 kB since network settings and restart | The design gives none |
 | Reboot and save time limits | No measurement exists, so they are assumptions and can be changed through an option |
 | No automatic new attempt after a `429`, a `503` or a `404` | The specification says that the client starts a new attempt, and the safer reading is that the user asks for it. The only time a password is sent again without a user action is after a `409`, which the server did not process, so no verification ran. Nothing keeps a password after the form. |
 | Forced change only, with no general change-password link | Account management stays on the CLI, as the design says |

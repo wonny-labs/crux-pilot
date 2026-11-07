@@ -86,13 +86,16 @@ stateDiagram-v2
 | Deep link | `#/network` survives sign-in | Sign-in returns to home. The case for it is Preact-only. |
 | A short `503` | The client retries one `503` with a `Retry-After` of 5 s or less | Shown at once with its wait, as for the other Angular screens |
 | Words | `src/text.ts`, with project overrides | `src/app/texts.ts`, copied from it, with no overrides |
+| Requests when a person leaves the screen | The signal goes into each request, which stops | `HttpClient` calls run on, and their results are dropped, so a late answer changes nothing |
+| Wait past the limit | The save wait ends at 15 s | The same, but each read retries a held route, so a held `409` can add about 2 s |
+| Error words | One table in `src/text.ts` | `src/app/texts.ts` holds the codes these two screens meet, and the plain `404` and `405` get the Preact words by their status. The screens of the configuration flow keep their own table. |
 | Style policy | Strict | Inline, which Angular's component styles need. Unchanged. |
 | Navigation | `Network` and `Restart` beside Home and Configuration | The same, as links |
 
 ## The shared cases
 
 The cases that were Preact-only now sit in one list that both examples run. They find elements by role, label and visible text, and
-open each screen from home through the navigation. All 44 drive the mock's control or its clock, so on a `native_sim` image
+open each screen from home through the navigation. All 44 drive the mock's control or its clock, and each is marked `mock-control`, so on a `native_sim` image
 they skip with the reason `needs the mock control`; the real service has its own case.
 
 | Where | Cases | Runs on |
@@ -114,18 +117,18 @@ Measured with `node tools/compare.ts` on built folders. Compressed bytes are gzi
 | --- | --- | --- | --- | --- |
 | Preact example, all six screens | 4 | 69583 | 23302 | 32768 compressed, in `samples/web/preact/budget.json`, unchanged. 9,466 bytes are left. |
 | Angular example, core screens, before this step | 5 | 298780 | 91197 | 300 kB raw initial, 281.11 kB used |
-| Angular example, all six screens | 5 | 326609 | 97941 | **320 kB** raw initial, 308.94 kB used, 81.68 kB transferred. 11.06 kB are left. |
+| Angular example, all six screens | 5 | 326893 | 97990 | **320 kB** raw initial, 309.22 kB used, 81.73 kB transferred. 10.78 kB are left. |
 
-Network settings and restart added 27,829 bytes, 6,744 compressed, to Angular, which is 4.2 times Preact on the same six screens.
-The Angular script, the largest asset, is 92,011 compressed bytes, and the largest asset that fits the default 3,000 ms response deadline
-is 98,304, so **6,293 bytes remain** before the Angular example stops fitting a native_sim image at the default deadline. `web_assets.py`
+Network settings and restart added 28,113 bytes, 6,793 compressed, to Angular, which is 4.2 times Preact on the same six screens.
+The Angular script, the largest asset, is 92,064 compressed bytes, and the largest asset that fits the default 3,000 ms response deadline
+is 98,304, so **6,240 bytes remain** before the Angular example stops fitting a native_sim image at the default deadline. `web_assets.py`
 still refuses it at 1,500 ms, which the `e2e-*` runner holds as a control.
 
 ## Decisions for review
 
 | # | Decision taken here | Why | Alternative |
 | --- | --- | --- | --- |
-| 1 | The Angular limit in `angular.json` goes from 300 kB to 320 kB | The two screens took the initial bundle to 308.94 kB. The limit was set in #243 and its change was left to the owner. | Keep 300 kB and drop a screen, or lazy-load the two screens, which the example avoids so that it ships one script like Preact |
+| 1 | The Angular limit in `angular.json` goes from 300 kB to 320 kB | The two screens took the initial bundle to 309.22 kB. The limit was set in #243 and its change was left to the owner. | Keep 300 kB and drop a screen, or lazy-load the two screens, which the example avoids so that it ships one script like Preact |
 | 2 | The Angular screens use the client's `checkIpv4Settings` as code, not only its types | The rules are held by shared test vectors, so one copy cannot drift from the firmware's | Write the checks again in the Angular example, so that it imports only types |
 | 3 | The deep link that survives sign-in stays Preact-only | It is a shell behaviour, and the Angular example always returns to home | Add a return address to the Angular sign-in |
 | 4 | The shared advanced cases skip on `native_sim` | They need the mock's control and clock, and the real service has its own case | Real-service versions of more of them, which wait on the services image |
@@ -134,14 +137,15 @@ still refuses it at 1,500 ms, which the `e2e-*` runner holds as a control.
 ## Results
 
 Run on macOS with Node.js 24.22.2 and Chrome from `/Applications/Google Chrome.app`, against the mock, on the code of commit
-`0f05306`. Another build shared the machine, so heavy runs went one at a time.
+`06a5969`. Another build shared the machine, so heavy runs went one at a time. A first review found that one shared case lacked
+the `mock-control` mark, which the commit fixed, so the runs below are those of the fixed code.
 
 | Check | Result |
 | --- | --- |
 | New shared cases against the Angular code of the step before (3 of them) | Red: 3 of 3 failed, because the Angular example had no `Network` link or restart screen |
-| `npm run check` in `web`: pins, types, `tsc`, source rules on 22 files, 630 unit tests, build | Pass, 630 of 630. An earlier run of the same tree failed one timing test in `client/test/against-mock.test.ts` under load, which passed 14 of 14 in 3 of 3 runs alone and does not touch this change. |
+| `npm run check` in `web`: pins, types, `tsc`, source rules on 22 files, 630 unit tests, build | Pass, 630 of 630. An earlier run of an earlier tree failed one timing test in `client/test/against-mock.test.ts` under load. It passed 14 of 14 in 3 of 3 runs alone, again on this code, and this change does not touch it. |
 | `node tools/check-dom.ts ../samples/web/angular/src` | 15 files clean |
 | `npm run test:angular`, Angular built from its lockfile, `CRUX_REQUIRE_ANGULAR=1` | Pass, 113 of 113: the shared list with the 44 advanced cases, and the policy cases |
-| `npm run test:browser`, Preact | 158 of 160 pass, 1 skipped (screenshots, not asked for), 1 fails: "a value is updated with the keyboard alone…" in `preact-config.test.ts`. It fails the same way on unmodified `origin/main` on this machine, where I read `Control+A` as the cause, which moves the cursor on macOS. Not measured. The Linux job in CI is the evidence for it. |
-| `web_assets.py` on the Angular folder at 3,000 ms and at 1,500 ms | Packages at 3,000 ms, and is refused at 1,500 ms, as the control expects |
+| `npm run test:browser`, Preact | 158 of 160 pass, 1 skipped (screenshots, not asked for), 1 fails, in two runs: "a value is updated with the keyboard alone…" in `preact-config.test.ts`. It fails the same way on unmodified `origin/main` on this machine, where I read `Control+A` as the cause, which moves the cursor on macOS. Not measured. The Linux job in CI is the evidence for it. |
+| `web_assets.py` on the Angular folder at 3,000 ms and at 1,500 ms | Packages at 3,000 ms, and is refused at 1,500 ms, as the control expects. The script is 92,064 compressed bytes. |
 | `native_sim` end to end, `scripts/test-native-composition.sh e2e-*` | **NOT RUN.** The Angular case is written and not run. |

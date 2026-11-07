@@ -171,10 +171,10 @@ one key and refuses any other certificate. Nothing else turns certificate checki
 | Example | Setting | Files | Served, compressed | Largest asset | Fits 1,500 ms (49,152 B) | Fits 3,000 ms (98,304 B) |
 | --- | --- | --- | --- | --- | --- | --- |
 | Preact | `strict` | 4 | 23,208 | 21,394 | Yes | Yes |
-| Angular | `inline` | 5 | 97,899 | 92,011, `main-OCIKOYKQ.js` | **No** | Yes, with 6,293 bytes to spare |
+| Angular | `inline` | 5 | 97,952 | 92,064, `main-7ET2HXBZ.js` | **No** | Yes, with 6,240 bytes to spare |
 
 The sizes are those of the examples with network settings and restart in both (#243), measured with `web_assets.py` on the built folders. They were
-23,103 and 21,290 for Preact, and 91,201 and 85,384 for Angular, before. The Angular script is now 6.4 percent below the largest asset that fits 3,000 ms.
+23,103 and 21,290 for Preact, and 91,201 and 85,384 for Angular, before. The Angular script is now 6.3 percent below the largest asset that fits 3,000 ms.
 
 The services image of #242 runs `CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS=1500`, shortened from #184, and at the declared
 client rate of 32,768 B/s that allows 49,152 bytes for one asset. Angular's script is larger, so the packager refuses it
