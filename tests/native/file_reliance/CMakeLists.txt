@@ -13,6 +13,7 @@ target_include_directories(app PRIVATE ${CRUX_ROOT}/zephyr/fs/reliance_edge
   ${CRUX_ROOT}/components/file/src ${CRUX_ROOT}/components/file/ports/zephyr
   ${CRUX_ROOT}/tests/file)
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
-# Faults are injected below the file system, at the disk access calls the adapter makes.
+# Faults are injected below the file system, at the disk access calls the adapter makes. The task
+# identifier service is wrapped too, to see which threads Reliance Edge asks about.
 target_link_options(app PUBLIC -Wl,--wrap=disk_access_read -Wl,--wrap=disk_access_write
-  -Wl,--wrap=disk_access_ioctl)
+  -Wl,--wrap=disk_access_ioctl -Wl,--wrap=RedOsTaskId)

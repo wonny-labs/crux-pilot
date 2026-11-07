@@ -193,11 +193,13 @@ What differs is the mapping:
 - After a media error the file system is read-only until it is mounted again, and every change then
   gives `CRUX_FILE_ERR_ACCESS`. A close that has unsaved data on such a volume gives it too.
 - A thread that uses the file system takes one of `CONFIG_CRUX_FS_RELIANCE_EDGE_TASK_COUNT` slots for
-  good. A thread beyond them gets `CRUX_FILE_ERR_NO_RESOURCES` from every call, and a call from it
-  never reaches the file system, so it cannot take a slot from another thread. That includes closing
-  or reading a handle that another thread opened. The File provider retires a handle whenever its
-  close returns, so a refused close leaves the file system's handle open until the volume is
-  mounted again. A composition keeps its threads within the limit.
+  good. A thread beyond them can still close a file or a listing, including one that another thread
+  opened: the file system's task table has one spare entry for such closes, and they take it one at
+  a time, so a close may wait for another thread's close. Every other call from such a thread gets
+  `CRUX_FILE_ERR_NO_RESOURCES` and never reaches the file system, so it cannot take a slot from
+  another thread. That includes reading a handle that another thread opened. The thread limit
+  therefore leaves no handle open, and the volume can be unmounted once every handle is closed. A
+  composition keeps its threads within the limit, because the other calls are refused.
 - The File pools hold open files and listings together, so the file system's handle count must
   cover both, and `CONFIG_FILE_SYSTEM_MAX_FILE_NAME` must hold the longest name. The build checks
   both.

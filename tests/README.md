@@ -364,8 +364,10 @@ and format, handles, flags, errors in Zephyr's numbering (the build uses the min
 numbers differ from Reliance Edge's), a media error that makes the volume read-only, and the close
 that reports lost data. The `file_reliance_file` suite runs the File contract and the File additions
 of `tests/file/conformance.c` on it, with names stored unencoded, and also checks that identifiers
-of threads are distinct, that a thread beyond the limit is refused without reaching the file system,
-that a mismatched profile does not mount, and that writes stay inside the configured sectors. The
+of threads are distinct, that a thread beyond the limit is refused every call but close and
+closedir without reaching the file system, that such a thread can close files and listings that
+another thread opened, one such close at a time, so that the volume unmounts afterwards, that a
+mismatched profile does not mount, and that writes stay inside the configured sectors. The
 `crux.file.reliance.offset` scenario runs the same cases on a volume that starts 128 sectors into the
 disk and is 4096 sectors long. `scripts/test-storage-emmc.sh` requires the executed cases of both.
 These are simulation results on a RAM disk, in one process. They are not persistence evidence and

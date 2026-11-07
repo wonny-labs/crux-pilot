@@ -140,9 +140,9 @@ import os
 from pathlib import Path
 import sys
 
-# 22 adapter cases and 30 File cases in each scenario; the offset scenario runs the same cases on a
+# 22 adapter cases and 33 File cases in each scenario; the offset scenario runs the same cases on a
 # volume that starts 128 sectors into the disk.
-executed = {'crux.file.reliance': 52, 'crux.file.reliance.offset': 52}
+executed = {'crux.file.reliance': 55, 'crux.file.reliance.offset': 55}
 platforms = ['native_sim/native/64']
 if os.environ.get('CRUX_STORAGE_32BIT') == '1':
     platforms.append('native_sim/native')
@@ -162,6 +162,32 @@ for key, suite in found.items():
         raise RuntimeError(f'{key}: the cases did not all execute and pass')
     print(f'{key[0]} {key[1]}: {len(passed)} executed cases PASS')
 PY
+
+# The File provider on Reliance Edge links no FatFs: no image of the suite holds f_mount, and each
+# holds the File provider, so the check looks at the right images. One image per scenario and
+# platform; platforms holds a "-p name" pair per platform.
+images=()
+while IFS= read -r image; do
+    images+=("$image")
+done < <(find "$repo/build/zephyr/twister-file-reliance" -type f -path '*/zephyr/zephyr.exe' \
+    -path '*crux.file.reliance*' | sort)
+expected_images=$((2 * (${#platforms[@]} / 2)))
+if (( ${#images[@]} != expected_images )); then
+    printf 'Expected %d Reliance Edge images, found %d\n' "$expected_images" "${#images[@]}" >&2
+    exit 1
+fi
+for image in "${images[@]}"; do
+    symbols="$(nm "$image")"
+    if grep -q 'f_mount' <<<"$symbols"; then
+        printf 'FatFs is linked into %s\n' "$image" >&2
+        exit 1
+    fi
+    grep -Eq '[[:space:]]crux_file_open$' <<<"$symbols" || {
+        printf 'The File provider is not in %s\n' "$image" >&2
+        exit 1
+    }
+done
+printf 'Reliance Edge images: %d without FatFs, each with the File provider\n' "${#images[@]}"
 
 # Negative builds, configuration only. Reliance Edge on an MMC disk without the cache flush
 # correction must fail, naming the option; the correction or the fixture-only control lets it
@@ -205,3 +231,61 @@ folded="$(tr -s '[:space:]' ' ' <"$missing_log")"
     exit 1
 }
 printf 'Reliance Edge missing tree: refused, naming the west group crux-reliance\n'
+
+# The File provider's build checks on Reliance Edge. Each build must fail for its own reason: a
+# handle count below the File pools, and a VFS name limit below the File name limit. The build
+# keeps going after the first error, so that every check that fires is in the log.
+selection_dir="$repo/build/zephyr/reliance-file-checks"
+selection_log="$selection_dir.log"
+check_refused_build() {
+    local reason="$1"
+    shift
+    if (cd "$workspace" && west build -p always -b native_sim/native/64 -d "$selection_dir" \
+            -o=-k0 "$repo/tests/native/file_reliance" -- "$@") >"$selection_log" 2>&1; then
+        printf 'The File provider on Reliance Edge built with %s\n' "$*" >&2
+        exit 1
+    fi
+    folded="$(tr -s '[:space:]' ' ' <"$selection_log")"
+    [[ "$folded" == *"$reason"* ]] || {
+        printf 'The build with %s did not fail for the stated reason; see %s\n' "$*" \
+            "$selection_log" >&2
+        exit 1
+    }
+}
+check_refused_build 'CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT must cover the File handle pools' \
+    -DCONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT=5
+check_refused_build 'set CONFIG_FILE_SYSTEM_MAX_FILE_NAME to at least the File name limit' \
+    -DCONFIG_FILE_SYSTEM_MAX_FILE_NAME=62
+printf 'Reliance Edge File checks: refused below the File pools and below the File name limit\n'
+
+# The selection excludes the other File selections in Kconfig, which drops the Reliance Edge
+# selection with a warning naming the dependency. With the flash simulator alone the selection
+# stays, so the drop with the VFS simulator selection is the exclusion's.
+flash=(-DCONFIG_FLASH=y -DCONFIG_FLASH_SIMULATOR=y)
+selection_config="$selection_dir/zephyr/.config"
+(cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$selection_dir" \
+    "$repo/tests/native/file_reliance" -- "${flash[@]}") >"$selection_log" 2>&1 || {
+    printf 'The Reliance Edge suite did not configure with the flash simulator; see %s\n' \
+        "$selection_log" >&2
+    exit 1
+}
+grep -qx 'CONFIG_CRUX_FILE_RELIANCE_EDGE=y' "$selection_config" || {
+    printf 'The flash simulator alone dropped the Reliance Edge selection; see %s\n' \
+        "$selection_log" >&2
+    exit 1
+}
+(cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 \
+    -d "$selection_dir" "$repo/tests/native/file_reliance" -- "${flash[@]}" \
+    -DCONFIG_CRUX_FILE_SIMULATOR=y) >"$selection_log" 2>&1 || true
+if [[ ! -f "$selection_config" ]] || grep -qx 'CONFIG_CRUX_FILE_RELIANCE_EDGE=y' \
+        "$selection_config"; then
+    printf 'The Reliance Edge selection was kept together with CONFIG_CRUX_FILE_SIMULATOR\n' >&2
+    exit 1
+fi
+folded="$(tr -s '[:space:]' ' ' <"$selection_log")"
+[[ "$folded" == *"CRUX_FILE_RELIANCE_EDGE"*"was assigned the value 'y' but got the value 'n'"*'(!CRUX_FILE_SIMULATOR)'* ]] || {
+    printf 'The Reliance Edge selection was not dropped by the exclusion; see %s\n' \
+        "$selection_log" >&2
+    exit 1
+}
+printf 'Reliance Edge File selection: dropped together with another File selection\n'

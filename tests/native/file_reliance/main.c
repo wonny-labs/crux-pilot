@@ -113,9 +113,64 @@ int __wrap_disk_access_read(const char *pdrv, uint8_t *data_buf, uint32_t start_
     return __real_disk_access_read(pdrv, data_buf, start_sector, num_sector);
 }
 
+/* The identifier of the calling thread, as Reliance Edge asks for it. The link wraps it, so that
+ * a case can count how often Reliance Edge asks on behalf of one thread. */
+uint32_t RedOsTaskId(void);
+uint32_t __real_RedOsTaskId(void);
+static k_tid_t asked_for;
+static uint32_t asked_count;
+
+uint32_t __wrap_RedOsTaskId(void)
+{
+    if (asked_for != NULL && asked_for == k_current_get()) {
+        asked_count++;
+    }
+    return __real_RedOsTaskId();
+}
+
+/* A thread to stop at its next block write until the case lets it go, and the identifier that
+ * Reliance Edge gets for it once it goes on. The wait is bounded, so that a case that fails while
+ * the thread is stopped cannot leave the file system locked for the cases after it. */
+static struct {
+    k_tid_t thread;
+    struct k_sem entered;
+    struct k_sem release;
+    uint32_t id_after_release;
+} hold;
+
+/* The threads whose identifiers are recorded at each block write. */
+#define WATCHED_THREADS 2
+#define WATCH_LOG_SIZE 128
+static k_tid_t watched[WATCHED_THREADS];
+static struct {
+    size_t thread;
+    uint32_t id;
+} watch_log[WATCH_LOG_SIZE];
+static size_t watch_count;
+
+static void watch_write(void)
+{
+    k_tid_t self = k_current_get();
+
+    if (hold.thread != NULL && hold.thread == self) {
+        hold.thread = NULL;
+        k_sem_give(&hold.entered);
+        (void)k_sem_take(&hold.release, K_SECONDS(30));
+        hold.id_after_release = RedOsTaskId();
+    }
+    for (size_t i = 0; i < WATCHED_THREADS; ++i) {
+        if (watched[i] != NULL && watched[i] == self && watch_count < WATCH_LOG_SIZE) {
+            watch_log[watch_count].thread = i;
+            watch_log[watch_count].id = RedOsTaskId();
+            watch_count++;
+        }
+    }
+}
+
 int __wrap_disk_access_write(const char *pdrv, const uint8_t *data_buf, uint32_t start_sector,
                              uint32_t num_sector)
 {
+    watch_write();
     write_calls++;
     if (num_sector > 0U) {
         written_first = MIN(written_first, start_sector);
@@ -1084,6 +1139,8 @@ static void *file_setup(void)
     medium_fill(0x00);
     zassert_not_equal(fs_mount(&mnt), 0, "an unformatted medium must not mount");
     rebuild_volume();
+    k_sem_init(&hold.entered, 0, 1);
+    k_sem_init(&hold.release, 0, 1);
     zassert_equal(crux_file_zephyr_bind("/MMC:/a"), CRUX_FILE_OK, "the original bind is root 0");
     zassert_equal(crux_file_zephyr_bind_root(1, "/MMC:/b"), CRUX_FILE_OK);
     return NULL;
@@ -1127,6 +1184,10 @@ static void empty_root(const char *root)
 
 static void thread_cases_cleanup(void);
 
+/* A File handle that a case leaves to the teardown if it fails while the handle is open: an
+ * open handle keeps the volume from being unmounted, and so from being made writable again. */
+static crux_file_t *kept_file;
+
 /* Leave a mounted volume with empty roots, whatever the case did or where it failed. */
 static void file_after(void *fixture)
 {
@@ -1135,9 +1196,14 @@ static void file_after(void *fixture)
     ARG_UNUSED(fixture);
     fault_clear();
     thread_cases_cleanup();
-    if (fs_stat("/MMC:/a", &entry) != 0) {
-        (void)fs_mount(&mnt);
+    if (kept_file != NULL) {
+        (void)crux_file_close(&kept_file);
     }
+    /* A media error leaves the volume read-only until it is mounted again, so it is mounted again
+     * whatever the case did, and a case that failed before its own remount does not fail the cases
+     * after it. A volume that does not mount, or has lost its roots, is formatted again. */
+    (void)fs_unmount(&mnt);
+    (void)fs_mount(&mnt);
     if (fs_stat("/MMC:/a", &entry) != 0) {
         (void)fs_unmount(&mnt);
         rebuild_volume();
@@ -1717,48 +1783,54 @@ ZTEST(file_reliance_file, test_names_are_stored_unencoded)
 
 ZTEST(file_reliance_file, test_access_after_a_critical_error_reports_access)
 {
-    crux_file_t *file = NULL;
     crux_file_t *other = NULL;
     size_t count = 0;
 
-    zassert_equal(crux_file_open("crit", CRUX_FILE_CREATE_REPLACE, &file), CRUX_FILE_OK);
-    zassert_equal(crux_file_write(file, "x", 1, &count), CRUX_FILE_OK);
+    zassert_equal(crux_file_open("crit", CRUX_FILE_CREATE_REPLACE, &kept_file), CRUX_FILE_OK);
+    zassert_equal(crux_file_write(kept_file, "x", 1, &count), CRUX_FILE_OK);
     fault_arm(DISK_OP_WRITE, 0, 1, -EIO);
-    zassert_equal(crux_file_sync(file), CRUX_FILE_ERR_IO);
+    zassert_equal(crux_file_sync(kept_file), CRUX_FILE_ERR_IO);
     zassert_equal(fault.count, 0U, "the commit must have reached the fault");
     fault_clear();
 
     /* The volume is read-only now, and every change says so as an access error. */
-    zassert_equal(crux_file_write(file, "y", 1, &count), CRUX_FILE_ERR_ACCESS);
+    zassert_equal(crux_file_write(kept_file, "y", 1, &count), CRUX_FILE_ERR_ACCESS);
     zassert_equal(count, 0);
-    zassert_equal(crux_file_sync(file), CRUX_FILE_ERR_ACCESS);
+    zassert_equal(crux_file_sync(kept_file), CRUX_FILE_ERR_ACCESS);
     zassert_equal(crux_file_open("late", CRUX_FILE_CREATE_REPLACE, &other), CRUX_FILE_ERR_ACCESS);
     zassert_is_null(other);
     zassert_equal(crux_file_remove("crit"), CRUX_FILE_ERR_INVALID_STATE, "still open");
-    zassert_equal(crux_file_close(&file), CRUX_FILE_ERR_ACCESS, "the unsaved write was lost");
-    zassert_is_null(file);
+    zassert_equal(crux_file_close(&kept_file), CRUX_FILE_ERR_ACCESS, "the unsaved write was lost");
+    zassert_is_null(kept_file);
     zassert_equal(crux_file_remove("crit"), CRUX_FILE_ERR_ACCESS);
 
     /* Reading still works, and a remount restores writing. */
-    zassert_equal(crux_file_open("crit", CRUX_FILE_READ, &file), CRUX_FILE_OK);
-    zassert_equal(crux_file_close(&file), CRUX_FILE_OK);
+    zassert_equal(crux_file_open("crit", CRUX_FILE_READ, &kept_file), CRUX_FILE_OK);
+    zassert_equal(crux_file_close(&kept_file), CRUX_FILE_OK);
     zassert_ok(fs_unmount(&mnt));
     zassert_ok(fs_mount(&mnt));
     put_file("late", "ok");
     expect_content("late", "ok");
 }
 
-/* The identifier of the calling thread, as Reliance Edge asks for it. */
-uint32_t RedOsTaskId(void);
-
 #define PROBE_STACK_BYTES 4096
 #define PROBE_THREADS (TASKS + 2)
+
+struct probe;
+/* What a thread does once the case lets it go; probe_operations unless a case sets another. */
+typedef void (*probe_job_t)(struct probe *probe);
+/* Results of a job other than probe_operations, in the job's own order. */
+#define PROBE_RESULTS 20
 
 /* What a thread found when it used the file system, recorded for the case to judge: a failed
  * assertion in a helper thread would not fail the case. */
 struct probe {
     struct k_thread thread;
     bool started;
+    /* The thread was let go, so it may be inside the file system and must be waited for. */
+    bool released;
+    probe_job_t job;
+    int results[PROBE_RESULTS];
     struct k_sem ready;
     struct k_sem go;
     struct k_sem done;
@@ -1774,11 +1846,13 @@ struct probe {
     crux_file_result_t file_dir_read;
 };
 
-/* Directories opened by the case's own thread, for another thread to read. */
+/* Directories opened by the case's own thread, for another thread to read or close. */
 static struct fs_dir_t shared_dir;
-/* A file opened by this thread. A thread that was refused leaves it open. */
+/* Files opened by the case's own thread, for another thread to use or close. */
 static struct fs_file_t shared_file;
+static struct fs_file_t shared_second;
 static crux_file_dir_t *shared_file_dir;
+static crux_file_t *shared_crux_file;
 
 static void probe_operations(struct probe *probe)
 {
@@ -1825,55 +1899,16 @@ static void probe_entry(void *p1, void *p2, void *p3)
     probe->id = RedOsTaskId();
     k_sem_give(&probe->ready);
     k_sem_take(&probe->go, K_FOREVER);
-    probe_operations(probe);
+    if (probe->job != NULL) {
+        probe->job(probe);
+    } else {
+        probe_operations(probe);
+    }
     k_sem_give(&probe->done);
 }
 
 K_THREAD_STACK_ARRAY_DEFINE(probe_stacks, PROBE_THREADS, PROBE_STACK_BYTES);
 static struct probe probes[PROBE_THREADS];
-
-static void probe_start(struct probe *probe, size_t index)
-{
-    probe->id = 0;
-    probe->ran = false;
-    probe->started = true;
-    k_sem_init(&probe->ready, 0, 1);
-    k_sem_init(&probe->go, 0, 1);
-    k_sem_init(&probe->done, 0, 1);
-    (void)k_thread_create(&probe->thread, probe_stacks[index],
-                          K_THREAD_STACK_SIZEOF(probe_stacks[index]), probe_entry, probe, NULL,
-                          NULL, K_PRIO_PREEMPT(8), 0, K_NO_WAIT);
-    zassert_ok(k_sem_take(&probe->ready, K_SECONDS(10)), "thread %zu did not start", index);
-}
-
-static void probe_run(struct probe *probe)
-{
-    k_sem_give(&probe->go);
-    zassert_ok(k_sem_take(&probe->done, K_SECONDS(20)), "a thread did not finish");
-    zassert_ok(k_thread_join(&probe->thread, K_SECONDS(10)));
-}
-
-/* After a case that failed half way: stop its threads and close what it opened. */
-static void thread_cases_cleanup(void)
-{
-    for (size_t i = 0; i < PROBE_THREADS; ++i) {
-        if (probes[i].started) {
-            k_thread_abort(&probes[i].thread);
-            probes[i].started = false;
-        }
-    }
-    if (shared_file.mp != NULL) {
-        (void)fs_close(&shared_file);
-        fs_file_t_init(&shared_file);
-    }
-    if (shared_dir.mp != NULL) {
-        (void)fs_closedir(&shared_dir);
-        fs_dir_t_init(&shared_dir);
-    }
-    if (shared_file_dir != NULL) {
-        (void)crux_file_dir_close(&shared_file_dir);
-    }
-}
 
 /* Each thread asks for its identifier. A thread that used the file system keeps its slot after it
  * has exited, and several threads that shared one identifier would still all work, so only the
@@ -1882,6 +1917,92 @@ static void thread_cases_cleanup(void)
 #define ID_THREADS 3
 K_THREAD_STACK_ARRAY_DEFINE(id_stacks, ID_THREADS, PROBE_STACK_BYTES);
 static struct probe id_probes[ID_THREADS];
+
+static void probe_start_on(struct probe *probe, k_thread_stack_t *stack, size_t stack_size)
+{
+    probe->id = 0;
+    probe->ran = false;
+    probe->released = false;
+    probe->job = NULL;
+    memset(probe->results, 0, sizeof(probe->results));
+    probe->started = true;
+    k_sem_init(&probe->ready, 0, 1);
+    k_sem_init(&probe->go, 0, 1);
+    k_sem_init(&probe->done, 0, 1);
+    (void)k_thread_create(&probe->thread, stack, stack_size, probe_entry, probe, NULL, NULL,
+                          K_PRIO_PREEMPT(8), 0, K_NO_WAIT);
+    zassert_ok(k_sem_take(&probe->ready, K_SECONDS(10)), "a thread did not start");
+}
+
+static void probe_start(struct probe *probe, size_t index)
+{
+    probe_start_on(probe, probe_stacks[index], K_THREAD_STACK_SIZEOF(probe_stacks[index]));
+}
+
+static void probe_release(struct probe *probe)
+{
+    probe->released = true;
+    k_sem_give(&probe->go);
+}
+
+static void probe_finish(struct probe *probe)
+{
+    zassert_ok(k_sem_take(&probe->done, K_SECONDS(40)), "a thread did not finish");
+    zassert_ok(k_thread_join(&probe->thread, K_SECONDS(10)));
+    probe->started = false;
+}
+
+static void probe_run(struct probe *probe)
+{
+    probe_release(probe);
+    probe_finish(probe);
+}
+
+/* Stop the threads of a case that failed half way. A thread that was let go may be inside the file
+ * system, holding its locks, so it is let finish first; the stopped write lets it go after a
+ * bounded wait, and this gives the release too. */
+static void probes_stop(struct probe *set, size_t count)
+{
+    for (size_t i = 0; i < count; ++i) {
+        if (!set[i].started) {
+            continue;
+        }
+        if (set[i].released) {
+            (void)k_thread_join(&set[i].thread, K_SECONDS(40));
+        }
+        k_thread_abort(&set[i].thread);
+        set[i].started = false;
+    }
+}
+
+/* After a case that failed half way: stop its threads and close what it opened. */
+static void thread_cases_cleanup(void)
+{
+    hold.thread = NULL;
+    asked_for = NULL;
+    k_sem_give(&hold.release);
+    probes_stop(probes, PROBE_THREADS);
+    probes_stop(id_probes, ID_THREADS);
+    memset(watched, 0, sizeof(watched));
+    if (shared_file.mp != NULL) {
+        (void)fs_close(&shared_file);
+        fs_file_t_init(&shared_file);
+    }
+    if (shared_second.mp != NULL) {
+        (void)fs_close(&shared_second);
+        fs_file_t_init(&shared_second);
+    }
+    if (shared_dir.mp != NULL) {
+        (void)fs_closedir(&shared_dir);
+        fs_dir_t_init(&shared_dir);
+    }
+    if (shared_file_dir != NULL) {
+        (void)crux_file_dir_close(&shared_file_dir);
+    }
+    if (shared_crux_file != NULL) {
+        (void)crux_file_close(&shared_crux_file);
+    }
+}
 
 ZTEST(file_reliance_file, test_task_ids_are_unique_across_threads)
 {
@@ -1912,14 +2033,35 @@ ZTEST(file_reliance_file, test_task_ids_are_unique_across_threads)
     }
 }
 
+/* Start threads until one finds every slot taken, and return that one. The threads before it have
+ * slots and wait to be let go. A probe object keeps its slot from one case to the next, because the
+ * slot follows the thread object. */
+static struct probe *probes_until_refused(size_t *holders)
+{
+    struct probe *refused = NULL;
+
+    *holders = 0;
+    for (size_t i = 0; i < PROBE_THREADS && refused == NULL; ++i) {
+        probe_start(&probes[i], i);
+        if (probes[i].id > TASKS) {
+            refused = &probes[i];
+        } else {
+            (*holders)++;
+        }
+    }
+    zassert_not_null(refused, "no thread was refused within %d threads", PROBE_THREADS);
+    return refused;
+}
+
 /*
  * Threads take slots until the table is full, and the next one is refused by the adapter before it
  * reaches Reliance Edge. The refused thread reads a directory that this thread opened, which must
  * be refused too. The threads that already had a slot then still work, which they would not if
- * the refused one had taken the last registration of Reliance Edge's own table: the threads below
- * ask for an identifier and make no file system call, so that table has room until they do.
- * Threads that exit keep their slots, so the number of threads that fit depends on the cases that
- * ran before; at least two must remain.
+ * the refused one had taken a registration of Reliance Edge's own table with an identifier other
+ * than the spare one: the threads below ask for an identifier and make no file system call, so
+ * that table has room until they do. The refused thread may close a file that this thread opened,
+ * through the spare identifier. Threads that exit keep their slots, so the number of threads that
+ * fit depends on the cases that ran before; at least two must remain.
  */
 ZTEST(file_reliance_file, test_thread_limit_reports_no_resources)
 {
@@ -1936,15 +2078,7 @@ ZTEST(file_reliance_file, test_thread_limit_reports_no_resources)
     shared_file_dir = NULL;
     zassert_equal(crux_file_dir_open(0, &shared_file_dir), CRUX_FILE_OK);
 
-    for (size_t i = 0; i < PROBE_THREADS && refused == NULL; ++i) {
-        probe_start(&probes[i], i);
-        if (probes[i].id > TASKS) {
-            refused = &probes[i];
-        } else {
-            holders++;
-        }
-    }
-    zassert_not_null(refused, "no thread was refused within %d threads", PROBE_THREADS);
+    refused = probes_until_refused(&holders);
     zassert_true(holders >= 2U, "only %zu threads fitted: raise the thread count", holders);
 
     probe_run(refused);
@@ -1953,7 +2087,7 @@ ZTEST(file_reliance_file, test_thread_limit_reports_no_resources)
     zassert_equal(refused->vfs_open, -ENOMEM);
     zassert_equal(refused->vfs_opendir, -ENOMEM);
     zassert_equal(refused->vfs_readdir, -ENOMEM, "a directory opened by another thread");
-    zassert_equal(refused->vfs_close, -ENOMEM, "a file opened by another thread");
+    zassert_ok(refused->vfs_close, "a file opened by another thread");
     zassert_equal(refused->file_stat, CRUX_FILE_ERR_NO_RESOURCES);
     zassert_equal(refused->file_open, CRUX_FILE_ERR_NO_RESOURCES);
     zassert_equal(refused->file_dir_read, CRUX_FILE_ERR_NO_RESOURCES);
@@ -1972,10 +2106,296 @@ ZTEST(file_reliance_file, test_thread_limit_reports_no_resources)
     }
     zassert_ok(fs_stat("/MMC:/a/probe-file", &entry));
     zassert_equal(crux_file_stat(0, "probe-file", &info), CRUX_FILE_OK);
-    /* The refused close left the file open, and a thread with a slot closes it. */
-    zassert_ok(fs_close(&shared_file));
+    /* The refused thread closed the file. */
+    zassert_is_null(shared_file.mp);
     zassert_ok(fs_closedir(&shared_dir));
     zassert_equal(crux_file_dir_close(&shared_file_dir), CRUX_FILE_OK);
+}
+
+/* Every thread with a slot makes one file system call, so that Reliance Edge has registered every
+ * slot's identifier and its table has only the spare entry left. That includes the threads of the
+ * identifier case, which only asked for theirs: a thread on the same object has the same slot. */
+static void job_register(struct probe *probe)
+{
+    struct fs_dirent entry;
+
+    probe->results[0] = fs_stat("/MMC:/a", &entry);
+}
+
+static void register_every_slot(size_t holders)
+{
+    for (size_t i = 0; i < ID_THREADS; ++i) {
+        probe_start_on(&id_probes[i], id_stacks[i], K_THREAD_STACK_SIZEOF(id_stacks[i]));
+        id_probes[i].job = job_register;
+        probe_run(&id_probes[i]);
+        /* An object that never had a slot has nothing to register. */
+        if (id_probes[i].id <= TASKS) {
+            zassert_ok(id_probes[i].results[0], "identifier thread %zu", i);
+        }
+    }
+    for (size_t i = 0; i < holders; ++i) {
+        probes[i].job = job_register;
+        probe_run(&probes[i]);
+        zassert_ok(probes[i].results[0], "thread %zu", i);
+    }
+}
+
+enum { CLOSE_VFS_FILE, CLOSE_VFS_DIR, CLOSE_FILE, CLOSE_FILE_DIR, CLOSE_FILE_NULL };
+
+static void job_close_shared(struct probe *probe)
+{
+    probe->results[CLOSE_VFS_FILE] = fs_close(&shared_file);
+    probe->results[CLOSE_VFS_DIR] = fs_closedir(&shared_dir);
+    probe->results[CLOSE_FILE] = (int)crux_file_close(&shared_crux_file);
+    probe->results[CLOSE_FILE_DIR] = (int)crux_file_dir_close(&shared_file_dir);
+    probe->results[CLOSE_FILE_NULL] = shared_crux_file == NULL && shared_file_dir == NULL;
+}
+
+/*
+ * A thread without a slot closes files and directories that a thread with a slot opened, through
+ * the VFS and through File. Every slot is registered with Reliance Edge first, so the closes need
+ * the spare entry. With every handle closed, the volume unmounts and mounts again, and the writes
+ * that the closes committed are there.
+ */
+ZTEST(file_reliance_file, test_thread_without_a_slot_can_close_what_another_thread_opened)
+{
+    size_t holders = 0;
+    size_t count = 0;
+
+    fs_file_t_init(&shared_file);
+    zassert_ok(fs_open(&shared_file, "/MMC:/a/closed-elsewhere", FS_O_CREATE | FS_O_WRITE));
+    zassert_equal(fs_write(&shared_file, "v", 1), 1);
+    fs_dir_t_init(&shared_dir);
+    zassert_ok(fs_opendir(&shared_dir, "/MMC:/a"));
+    zassert_equal(
+        crux_file_open("file-closed-elsewhere", CRUX_FILE_CREATE_REPLACE, &shared_crux_file),
+        CRUX_FILE_OK);
+    zassert_equal(crux_file_write(shared_crux_file, "f", 1, &count), CRUX_FILE_OK);
+    zassert_equal(crux_file_dir_open(1, &shared_file_dir), CRUX_FILE_OK);
+
+    struct probe *refused = probes_until_refused(&holders);
+    register_every_slot(holders);
+    refused->job = job_close_shared;
+    asked_count = 0;
+    asked_for = &refused->thread;
+    probe_run(refused);
+    asked_for = NULL;
+    /* The closes reached Reliance Edge, which also shows that the count used by the refusal case
+     * sees Reliance Edge's requests. */
+    zassert_true(asked_count > 0U, "Reliance Edge was never asked about the closing thread");
+
+    zassert_ok(refused->results[CLOSE_VFS_FILE], "VFS close");
+    zassert_ok(refused->results[CLOSE_VFS_DIR], "VFS closedir");
+    zassert_equal(refused->results[CLOSE_FILE], CRUX_FILE_OK, "File close");
+    zassert_equal(refused->results[CLOSE_FILE_DIR], CRUX_FILE_OK, "File listing close");
+    zassert_true(refused->results[CLOSE_FILE_NULL], "File clears the handles");
+    zassert_is_null(shared_file.mp);
+    zassert_is_null(shared_dir.mp);
+
+    zassert_ok(fs_unmount(&mnt), "a handle is still open");
+    zassert_ok(fs_mount(&mnt));
+    expect_content("file-closed-elsewhere", "f");
+    fs_file_t_init(&helper);
+    zassert_ok(fs_open(&helper, "/MMC:/a/closed-elsewhere", FS_O_READ));
+    char value = 0;
+    zassert_equal(fs_read(&helper, &value, 1), 1);
+    zassert_equal(value, 'v');
+    zassert_ok(fs_close(&helper));
+}
+
+static void job_close_first(struct probe *probe)
+{
+    probe->results[0] = fs_close(&shared_file);
+}
+
+static void job_close_second(struct probe *probe)
+{
+    probe->results[0] = fs_close(&shared_second);
+}
+
+/* The identifier of Reliance Edge's spare entry: one past the adapter's slots. */
+#define SPARE_ID ((uint32_t)TASKS + 1U)
+
+/*
+ * Two threads without a slot close at the same time. The first is stopped inside its commit, while
+ * it holds the spare identifier, and the second is let go then. Reliance Edge's own mutex alone
+ * would hold the second back from the file system, but not from the adapter's record of who holds
+ * the spare identifier: the first must still have it when it goes on. Both closes succeed.
+ *
+ * What this shows: the second thread does not take the identifier from the first, and nothing it
+ * does reaches the disk before the first has finished. It does not show which lock the second
+ * waits on, and the second's own commit may find nothing left to write, because the first commit
+ * saves the whole volume. native_sim runs one thread at a time, so true simultaneity is not tested.
+ */
+ZTEST(file_reliance_file, test_thread_without_a_slot_closes_one_at_a_time)
+{
+    size_t holders = 0;
+
+    fs_file_t_init(&shared_file);
+    zassert_ok(fs_open(&shared_file, "/MMC:/a/first", FS_O_CREATE | FS_O_WRITE));
+    zassert_equal(fs_write(&shared_file, "1", 1), 1);
+    fs_file_t_init(&shared_second);
+    zassert_ok(fs_open(&shared_second, "/MMC:/a/second", FS_O_CREATE | FS_O_WRITE));
+    zassert_equal(fs_write(&shared_second, "2", 1), 1);
+
+    struct probe *first = probes_until_refused(&holders);
+    size_t next = (size_t)(first - probes) + 1U;
+    zassert_true(next < PROBE_THREADS);
+    struct probe *second = &probes[next];
+    probe_start(second, next);
+    zassert_true(second->id > TASKS, "the second thread has a slot");
+    /* The threads with slots are not needed here; let them finish. */
+    for (size_t i = 0; i < holders; ++i) {
+        probes[i].job = job_register;
+        probe_run(&probes[i]);
+    }
+
+    first->job = job_close_first;
+    second->job = job_close_second;
+    k_sem_init(&hold.entered, 0, 1);
+    k_sem_init(&hold.release, 0, 1);
+    hold.id_after_release = 0;
+    watch_count = 0;
+    watched[0] = &first->thread;
+    watched[1] = &second->thread;
+    hold.thread = &first->thread;
+
+    probe_release(first);
+    int entered = k_sem_take(&hold.entered, K_SECONDS(10));
+    probe_release(second);
+    k_sleep(K_MSEC(200));
+    size_t log_while_held = watch_count;
+    bool second_done_early = k_sem_count_get(&second->done) != 0U;
+    hold.thread = NULL;
+    k_sem_give(&hold.release);
+    probe_finish(first);
+    probe_finish(second);
+    memset(watched, 0, sizeof(watched));
+
+    zassert_ok(entered, "the first close did not reach a block write");
+    zassert_false(second_done_early, "the second close finished while the first was stopped");
+    zassert_equal(log_while_held, 0U, "a block write ran while the first was stopped");
+    zassert_equal(hold.id_after_release, SPARE_ID,
+                  "the first thread lost the spare identifier: it has %u",
+                  (unsigned int)hold.id_after_release);
+    zassert_ok(first->results[0], "first close");
+    zassert_ok(second->results[0], "second close");
+    zassert_true(watch_count > 0U);
+    bool second_seen = false;
+    for (size_t i = 0; i < watch_count; ++i) {
+        zassert_equal(watch_log[i].id, SPARE_ID, "write %zu by thread %zu had id %u", i,
+                      watch_log[i].thread, (unsigned int)watch_log[i].id);
+        if (watch_log[i].thread == 1U) {
+            second_seen = true;
+        } else {
+            zassert_false(second_seen, "the first wrote after the second had started writing");
+        }
+    }
+    expect_file("/MMC:/a/first", "1");
+    expect_file("/MMC:/a/second", "2");
+}
+
+/* Every operation of the adapter except close and closedir, from a thread without a slot. */
+enum {
+    REFUSED_OPEN,
+    REFUSED_READ,
+    REFUSED_WRITE,
+    REFUSED_LSEEK,
+    REFUSED_TELL,
+    REFUSED_TRUNCATE,
+    REFUSED_SYNC,
+    REFUSED_OPENDIR,
+    REFUSED_READDIR,
+    REFUSED_MOUNT,
+    REFUSED_UNMOUNT,
+    REFUSED_UNLINK,
+    REFUSED_RENAME,
+    REFUSED_MKDIR,
+    REFUSED_STAT,
+    REFUSED_STATVFS,
+    REFUSED_MKFS,
+    REFUSED_COUNT
+};
+BUILD_ASSERT(REFUSED_COUNT <= PROBE_RESULTS);
+
+static const char *const refused_names[REFUSED_COUNT] = {
+    "open",  "read",    "write",  "lseek",  "tell",  "truncate", "sync",    "opendir", "readdir",
+    "mount", "unmount", "unlink", "rename", "mkdir", "stat",     "statvfs", "mkfs",
+};
+
+static void job_refused_calls(struct probe *probe)
+{
+    struct fs_file_t opened;
+    struct fs_dir_t listing;
+    struct fs_dirent entry;
+    struct fs_statvfs volume;
+    char byte;
+    int *r = probe->results;
+
+    fs_file_t_init(&opened);
+    r[REFUSED_OPEN] = fs_open(&opened, "/MMC:/a/refused", FS_O_READ);
+    r[REFUSED_READ] = (int)fs_read(&shared_file, &byte, 1);
+    r[REFUSED_WRITE] = (int)fs_write(&shared_file, "z", 1);
+    r[REFUSED_LSEEK] = fs_seek(&shared_file, 0, FS_SEEK_SET);
+    r[REFUSED_TELL] = (int)fs_tell(&shared_file);
+    r[REFUSED_TRUNCATE] = fs_truncate(&shared_file, 0);
+    r[REFUSED_SYNC] = fs_sync(&shared_file);
+    fs_dir_t_init(&listing);
+    r[REFUSED_OPENDIR] = fs_opendir(&listing, "/MMC:/a");
+    r[REFUSED_READDIR] = fs_readdir(&shared_dir, &entry);
+    r[REFUSED_MOUNT] = fs_mount(&other);
+    r[REFUSED_UNMOUNT] = fs_unmount(&mnt);
+    r[REFUSED_UNLINK] = fs_unlink("/MMC:/a/refused");
+    r[REFUSED_RENAME] = fs_rename("/MMC:/a/refused", "/MMC:/a/refused-moved");
+    r[REFUSED_MKDIR] = fs_mkdir("/MMC:/a/refused-dir");
+    r[REFUSED_STAT] = fs_stat("/MMC:/a/refused", &entry);
+    r[REFUSED_STATVFS] = fs_statvfs("/MMC:", &volume);
+    r[REFUSED_MKFS] = fs_mkfs(CRUX_FS_RELIANCE_EDGE, (uintptr_t)DISK, NULL, 0);
+}
+
+/* A thread without a slot is refused every other operation, with no effect: nothing is written,
+ * the shared file keeps its position, length and name, and the volume stays mounted. */
+ZTEST(file_reliance_file, test_thread_without_a_slot_is_refused_every_other_call)
+{
+    struct fs_dirent entry;
+    size_t holders = 0;
+
+    fs_file_t_init(&shared_file);
+    zassert_ok(fs_open(&shared_file, "/MMC:/a/refused", FS_O_CREATE | FS_O_RDWR));
+    zassert_equal(fs_write(&shared_file, "abc", 3), 3);
+    zassert_ok(fs_sync(&shared_file));
+    zassert_ok(fs_seek(&shared_file, 1, FS_SEEK_SET));
+    fs_dir_t_init(&shared_dir);
+    zassert_ok(fs_opendir(&shared_dir, "/MMC:/a"));
+
+    struct probe *refused = probes_until_refused(&holders);
+    refused->job = job_refused_calls;
+    uint32_t writes_before = write_calls;
+    asked_count = 0;
+    asked_for = &refused->thread;
+    probe_run(refused);
+    asked_for = NULL;
+    uint32_t writes_after = write_calls;
+
+    for (size_t i = 0; i < REFUSED_COUNT; ++i) {
+        zassert_equal(refused->results[i], -ENOMEM, "%s returned %d", refused_names[i],
+                      refused->results[i]);
+    }
+    /* Reliance Edge itself refuses an identifier it has no room for, with the same error, so the
+     * results alone cannot show where a call was refused. That it never asked for this thread's
+     * identifier shows that no call reached it. */
+    zassert_equal(asked_count, 0U, "Reliance Edge was called %u times for the refused thread",
+                  (unsigned int)asked_count);
+    zassert_equal(writes_after, writes_before, "a refused call wrote to the disk");
+    zassert_equal(fs_tell(&shared_file), 1);
+    zassert_ok(fs_seek(&shared_file, 0, FS_SEEK_END));
+    zassert_equal(fs_tell(&shared_file), 3);
+    zassert_ok(fs_close(&shared_file));
+    zassert_ok(fs_closedir(&shared_dir));
+    zassert_ok(fs_stat("/MMC:/a/refused", &entry));
+    zassert_equal(fs_stat("/MMC:/a/refused-moved", &entry), -ENOENT);
+    zassert_equal(fs_stat("/MMC:/a/refused-dir", &entry), -ENOENT);
+    zassert_ok(fs_unlink("/MMC:/a/refused"));
 }
 
 /* Where two values of this profile sit in the first block of the volume, found by looking at a
@@ -2033,8 +2453,8 @@ ZTEST(file_reliance_file, test_mismatched_profile_mount_fails_and_digest_is_unch
     crux_file_t *file = NULL;
     zassert_equal(crux_file_open("kept", CRUX_FILE_READ, &file), CRUX_FILE_ERR_NOT_READY);
 
-    /* The same block with its own value and a recomputed checksum mounts, so the refusal above
-     * was the block size and not the checksum. */
+    /* The original block mounts again. Its stored checksum equals the one computed above with the
+     * same function, so the refusal above was the block size and not the checksum. */
     write_first_block(original);
     zassert_ok(fs_mount(&mnt));
     expect_content("kept", "kept");

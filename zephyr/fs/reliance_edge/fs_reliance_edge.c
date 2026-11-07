@@ -19,6 +19,11 @@
 
 #include <redposix.h>
 
+/* The File provider's build checks the handle count through the Kconfig value, so a replaced
+ * configuration must keep the two equal. */
+BUILD_ASSERT(REDCONF_HANDLE_COUNT == CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT,
+             "REDCONF_HANDLE_COUNT must equal CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT");
+
 /* With only an external file system, Zephyr's name limit falls back to 12. */
 BUILD_ASSERT(MAX_FILE_NAME >= REDCONF_NAME_MAX,
              "set CONFIG_FILE_SYSTEM_MAX_FILE_NAME to at least the Reliance Edge name limit");
@@ -74,11 +79,12 @@ static void crux_red_unlock(void)
     }
 }
 
-/* Every call into Reliance Edge starts here. A thread that cannot have a slot is refused before the
- * call, so that Reliance Edge never sees its identifier: its own table registers an identifier in
- * a separate step after asking for it, so a thread without a slot could otherwise take the last
- * registration from one that has a slot. The same refusal covers a handle that another thread
- * opened, because the calling thread is what counts. */
+/* Every call into Reliance Edge starts here, except close and closedir. A thread that cannot have a
+ * slot is refused before the call, so that Reliance Edge never sees its identifier: its own table
+ * registers an identifier in a separate step after asking for it, so a thread without a slot could
+ * otherwise take the last registration from one that has a slot. The same refusal covers a handle
+ * that another thread opened, because the calling thread is what counts. Close and closedir use
+ * crux_red_spare_take instead, because a handle that is never closed keeps the volume mounted. */
 #define CRUX_RED_ENTER()                                                                           \
     do {                                                                                           \
         if (!crux_red_task_enter()) {                                                              \
@@ -266,10 +272,9 @@ static int crux_red_close(struct fs_file_t *zfp)
     if (slot == NULL) {
         return -EBADF;
     }
-    /* A thread without a slot cannot close. The handle stays open for a thread with a slot, as long
-     * as the caller keeps its VFS object: one that discards the object after a failed close loses
-     * the handle, and the volume then cannot be unmounted. */
-    CRUX_RED_ENTER();
+    /* Any thread may close, one without a slot through the spare identifier, which it holds until
+     * it has read the error of its last call. */
+    bool spare = crux_red_spare_take();
     /* A volume made read-only by an earlier error makes red_close skip the commit and succeed, so a
      * handle with unsaved changes asks for the commit itself, to learn that they were lost. The
      * descriptor is closed whatever the result, and the first failure is the one reported. */
@@ -278,6 +283,9 @@ static int crux_red_close(struct fs_file_t *zfp)
     }
     if (red_close(slot->fd) != 0 && rc == 0) {
         rc = crux_red_error();
+    }
+    if (spare) {
+        crux_red_spare_release();
     }
     crux_red_lock();
     slot->fd = CRUX_RED_FD_FREE;
@@ -431,8 +439,14 @@ static int crux_red_readdir(struct fs_dir_t *zdp, struct fs_dirent *entry)
 
 static int crux_red_closedir(struct fs_dir_t *zdp)
 {
-    CRUX_RED_ENTER();
-    return (red_closedir((REDDIR *)zdp->dirp) != 0) ? crux_red_error() : 0;
+    /* As close: any thread may close a directory. */
+    bool spare = crux_red_spare_take();
+    int rc = (red_closedir((REDDIR *)zdp->dirp) != 0) ? crux_red_error() : 0;
+
+    if (spare) {
+        crux_red_spare_release();
+    }
+    return rc;
 }
 
 static int crux_red_mount(struct fs_mount_t *mountp)
