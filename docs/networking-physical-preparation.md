@@ -471,8 +471,8 @@ or `FAILED` line are the evidence. A failed start retires the log with `STOPPED`
 | --- | --- |
 | Coverage | DiskArbitration vetoes mounts requested through it. A mount made directly by root (`mount_msdos`, `mount(2)`) or a raw write to `/dev/disk4` is not covered. |
 | Trust | The owner starts it as root from a checkout only the owner can write. `sys.path[0]` is that directory, so `m3_clock.py` and `m5_bench.py` are imported unhashed, and the record binds the hash of the script only. This is acceptable for an owner-only machine and is stated, not mitigated. |
-| Process identity | `ps` text depends on the locale. The guard runs it with `LC_ALL=C` and a fixed `PATH`; run the capture with `LC_ALL=C` too, or the repository check refuses the guard (it fails closed). |
+| Process identity | `ps` text depends on locale, time zone and terminal width. The guard runs it with `LC_ALL=C`, a fixed `PATH`, no `TZ` and no `COLUMNS`; run the capture with `LC_ALL=C` and with `TZ` and `COLUMNS` unset, or the repository check refuses the guard (it fails closed). |
 | Slow host commands | The run loop is pumped between registration, unmount and the self-test. The unmount can still block for up to 20 s; whether `diskarbitrationd` stops consulting a slow approver is not known. |
-| Reporting | The caller waits at most 90 s for `READY` or `FAILED`; on timeout it prints the child's pid. The child stays alive and will log `STOPPED` when it ends. |
+| Reporting | The caller waits at most 90 s for `READY` or `FAILED` (a slow start can exceed this: `ioreg` alone may take 30 s). After a timeout it prints the child's pid. A child that reports later finds the pipe closed, removes its record, retires and exits. |
 | Known small leaks | One CoreFoundation string per veto and one `DADisk` per start; bounded by the lifetime. |
 
