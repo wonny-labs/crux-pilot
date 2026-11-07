@@ -9,12 +9,20 @@
 #include <zephyr/settings/settings.h>
 #include <zephyr/sys/util.h>
 
+#if defined(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
+/* The target selection: Settings File on Reliance Edge, with the corrected backend that the
+ * module stages. It is a target selection and has no simulator restriction. */
+#if !defined(CONFIG_SETTINGS_FILE)
+#error "The Settings File selection requires CONFIG_SETTINGS_FILE"
+#endif
+#else
 #if !defined(CRUX_CONFIGURATION_SETTINGS_SIMULATOR) || !CONFIG_BOARD_NATIVE_SIM ||                 \
     !CONFIG_FLASH_SIMULATOR || !CONFIG_SETTINGS_NVS || !CONFIG_NVS_DATA_CRC
 #error "Configuration Settings candidate requires explicit simulator-only composition"
 #endif
 BUILD_ASSERT(!IS_ENABLED(CONFIG_SETTINGS_NVS_NAME_CACHE));
 BUILD_ASSERT(!IS_ENABLED(CONFIG_NVS_INIT_BAD_MEMORY_REGION));
+#endif
 
 enum { NAME_CAPACITY = 36, RECORD_CAPACITY = 256 };
 static bool initialized;

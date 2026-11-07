@@ -108,3 +108,21 @@ if(CONFIG_CRUX_FS_RELIANCE_EDGE)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/fs/reliance_edge"
         "${CMAKE_CURRENT_BINARY_DIR}/fs_reliance_edge")
 endif()
+
+if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/configuration/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/configuration")
+    # The Settings File backend of the pinned Zephyr hides I/O faults. The provider is built with
+    # the corrected build-local copies of its sources, which the fixture of
+    # tests/native/configuration_settings_file also uses, so a product build reaches a file under
+    # tests/. CRUX_SETTINGS_FILE_CONTROL keeps the unpatched backend, for the fixture's negative
+    # control only.
+    if(CRUX_SETTINGS_FILE_CONTROL)
+        if(NOT CONFIG_BOARD_NATIVE_SIM)
+            message(FATAL_ERROR "CRUX_SETTINGS_FILE_CONTROL is a native_sim test fixture setting "
+                "and is refused on any other board")
+        endif()
+    else()
+        include("${CMAKE_CURRENT_LIST_DIR}/../tests/native/configuration_settings_file/candidate.cmake")
+    endif()
+endif()

@@ -218,4 +218,16 @@ config CRUX_MMC_CACHE_FLUSH
       the card completes it. The Zephyr checkout is never edited, and a pinned
       source that differs from the expected one fails the configuration.
 
+config CRUX_CONFIGURATION_SETTINGS_FILE
+    bool "Crux Configuration on the Settings File backend over Reliance Edge"
+    depends on CRUX_PILOT_MODULE && CRUX_FS_RELIANCE_EDGE && SETTINGS_FILE
+    help
+      Link the Configuration component over the Zephyr Settings File backend, on the Reliance
+      Edge file system only. The backend of the pinned Zephyr hides I/O faults, so the build
+      stages corrected copies of three of its sources from
+      tests/native/configuration_settings_file, and an image that selects this needs that
+      directory. Settings are initialised by the composition, after its layout check:
+      crux_config_zephyr_init creates no directory itself only if the settings directory
+      exists. Set CONFIG_SETTINGS_FILE_PATH under the volume's mount point.
+
 rsource "fs/reliance_edge/Kconfig"

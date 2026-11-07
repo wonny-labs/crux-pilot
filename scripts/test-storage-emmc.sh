@@ -387,3 +387,90 @@ for key, suite in found.items():
     print(f'{key[0]} {key[1]}: {len(passed)} executed cases PASS, '
           f'{len(cases) - len(passed)} skipped for the other scenario')
 PY
+
+# Configuration on the Settings File backend over Reliance Edge, through the target provider
+# (CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE) and not through the provider copy of the FatFs suite. The
+# cases of tests/native/configuration_settings_file run here on a RAM disk named MMC, with the
+# corrected backend that the module stages, and so do the cases of the target provider. 64-bit
+# native_sim only, as the FatFs suite. The images link the GPLv2 source and are test images only.
+(cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
+    -T "$repo/tests/native/configuration_settings_reliance" \
+    -O "$repo/build/zephyr/twister-settings-reliance" --inline-logs)
+python3 - "$repo/build/zephyr/twister-settings-reliance" <<'PY'
+import json
+from pathlib import Path
+import subprocess
+import sys
+
+output = Path(sys.argv[1])
+# Twister scans only the cases of extra_cases.c. The others are in the shared main.c, and the exact
+# names are required here, so that a case dropped from either source cannot go unnoticed.
+shared = {
+    'a_callback_error_is_returned_by_the_load', 'a_missing_settings_file_reads_as_missing',
+    'callback_short_count_preserves_active', 'compaction_close_error_is_not_success',
+    'compaction_read_error_keeps_other_records', 'compaction_read_fault_never_loses_a_record',
+    'each_load_read_fault_preserves_active', 'full_volume_never_acknowledges_a_lost_save',
+    'interrupted_save_never_yields_a_wrong_value', 'malformed_records_are_rejected',
+    'many_saves_keep_every_key_across_compactions', 'missing_and_valid_roundtrip',
+    'missing_file_with_a_compaction_leftover_is_an_error', 'name_write_error_is_failure',
+    'read_fault_never_yields_a_stale_value', 'roundtrip_survives_remount_for_u32_and_bool',
+    'save_after_a_torn_tail_records_the_outcome', 'save_scan_error_is_not_success',
+    'scan_read_error_is_not_missing', 'short_write_is_failure', 'staging_limit_boundary',
+    'truncated_tail_keeps_earlier_records', 'value_only_corruption_is_not_detected',
+    'zero_write_is_failure',
+}
+extra = {
+    'compaction_leaves_no_cmp_file',
+    'start_on_a_medium_without_settings_dir_does_not_init_settings',
+    'start_on_a_provisioned_medium_inits_settings_once',
+}
+init_failure = {'a_failed_settings_init_is_reported'}
+# The main scenario skips the case of the other one, and that scenario skips the other cases, because
+# the File root binds once per process.
+expected = {
+    'crux.configuration.settings_reliance': (shared | extra, init_failure),
+    'crux.configuration.settings_reliance.init_failure': (init_failure, extra),
+}
+
+suites = json.loads((output / 'twister.json').read_text())['testsuites']
+found = {suite['name'].rsplit('/', 1)[-1]: suite for suite in suites}
+if len(suites) != len(found) or set(found) != set(expected):
+    raise RuntimeError(f'unexpected or missing Settings File suites: {sorted(found)}')
+for name, suite in found.items():
+    prefix = name + '.configuration_settings_reliance.'
+    cases = {c['identifier'][len(prefix):]: c['status'] for c in suite.get('testcases', [])}
+    passed = {case for case, status in cases.items() if status == 'passed'}
+    skipped = {case for case, status in cases.items() if status == 'skipped'}
+    if (suite.get('platform') != 'native_sim/native/64' or suite.get('status') != 'passed' or
+            not suite.get('runnable') or (passed, skipped) != expected[name] or
+            len(cases) != len(passed) + len(skipped)):
+        raise RuntimeError(f'{name}: passed {sorted(passed)}, skipped {sorted(skipped)}')
+    print(f'{name}: {len(passed)} executed cases PASS, {len(skipped)} skipped for the other scenario')
+
+# The main image holds the real provider and not the probe copy, no FatFs, and was built from the
+# corrected copies of the Settings File sources and not from the pinned originals.
+builds = [p for p in output.rglob('compile_commands.json')
+          if p.parent.name == 'crux.configuration.settings_reliance']
+if len(builds) != 1:
+    raise RuntimeError(f'expected one main build, found {len(builds)}')
+build = builds[0].parent
+commands = json.loads(builds[0].read_text())
+files = {str(Path(entry['directory'], entry['file']).resolve()) for entry in commands}
+staged = {name for name in ('settings_file.c', 'settings_line.c', 'settings_store.c')
+          if str((build / 'settings-file-candidate' / name).resolve()) in files}
+originals = [f for f in files if f.endswith(('subsys/settings/src/settings_file.c',
+                                                'subsys/settings/src/settings_line.c',
+                                                'subsys/settings/src/settings_store.c'))]
+if staged != {'settings_file.c', 'settings_line.c', 'settings_store.c'} or originals:
+    raise RuntimeError(f'staged copies {sorted(staged)}, pinned originals built {originals}')
+symbols = subprocess.run(['nm', str(build / 'zephyr/zephyr.exe')], check=True, capture_output=True,
+                         text=True).stdout.split()
+for wanted in ('crux_config_zephyr_init', 'crux_config_save', 'emmc_configuration_start'):
+    if wanted not in symbols:
+        raise RuntimeError(f'{wanted} is not in the image')
+for unwanted in ('crux_probe_read_back', 'f_mount'):
+    if unwanted in symbols:
+        raise RuntimeError(f'{unwanted} is in the image of the target provider')
+print('Settings File on Reliance Edge: the real provider with the staged corrections, no FatFs, '
+      'no probe copy')
+PY
