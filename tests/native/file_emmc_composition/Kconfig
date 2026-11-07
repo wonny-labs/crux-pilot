@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 rsource "../../support/emmc_sim/Kconfig"
 
-# The sample's setting, which emmc_storage.c reads; the fixture takes the default.
+# The sample's setting, which emmc_storage.c reads; the fixture takes the default. It repeats
+# samples/storage_emmc/Kconfig because the test compiles that source but not that Kconfig, and
+# app.overlay names the same disk "MMC": change the default in all three places together.
 config SAMPLE_EMMC_DISK_NAME
 	string "Disk name of the eMMC"
 	default "MMC"

@@ -27,7 +27,9 @@ enum emmc_storage_status emmc_storage_start(void);
 /* Application-owned unmount and remount, valid only after a successful start. The File provider
  * stays bound to the same root. Reliance Edge refuses an unmount while a handle is open, so close
  * every handle first. stop is not a power-down: the disk stays initialised. After a stop, start
- * reports ALREADY_STARTED and remount is the way back. A card swap needs a reboot.
+ * reports ALREADY_STARTED and remount is the way back. A soldered eMMC has no card to swap and no
+ * card detect, so this composition has no removal path: nothing here re-initialises a disk that
+ * did initialise.
  * Return 0 on success; -EINVAL out of order (stop when not mounted, remount before start),
  * -EALREADY for a remount of a mounted volume, else an errno. */
 int emmc_storage_stop(void);

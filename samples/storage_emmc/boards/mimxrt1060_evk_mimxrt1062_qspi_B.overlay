@@ -1,0 +1,16 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* This overlay exists to link only. The RT1060-EVKB has no eMMC: it swaps the microSD disk on
+ * uSDHC1 for a four-bit MMC disk so that the MMC stack, the flush correction and Reliance Edge
+ * link into one image and their size can be measured. It does not describe any board, and the image
+ * must not be flashed to an EVKB. Card detection goes, because a soldered device has none. */
+&usdhc1 {
+    /delete-property/ cd-gpios;
+    /delete-node/ sdmmc;
+
+    mmc {
+        compatible = "zephyr,mmc-disk";
+        disk-name = "MMC";
+        bus-width = <4>;
+        status = "okay";
+    };
+};

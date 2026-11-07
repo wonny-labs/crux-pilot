@@ -387,6 +387,20 @@ the start reports no media. It is a scenario of its own because a disk that an e
 not initialised again. Cases of the other scenario skip themselves, so the executed counts are 9 and 1.
 These are simulation results in one process, not evidence about an eMMC device.
 
+`scripts/test-file-emmc-compile.sh` links `samples/storage_emmc` for `mimxrt1060_evk@B/mimxrt1062/qspi`, with
+and without the mount at boot, and never programs or runs anything. A link-only overlay stands in for an eMMC
+that the EVKB does not have. The script reads the generated `.config` of each image (the MMC disk driver and
+the cache flush on, the SD disk driver and the formatter off, `CONFIG_SDHC_BUFFER_ALIGNMENT=32`), requires
+that `red_format` and FatFs are not linked, that the generated `mmc.c` was compiled and `subsys/sd/mmc.c` was
+not, and that the generated `mmc.json` carries the expected hashes. It then requires two configurations to fail
+at CMake for the stated reason: the same sample without the flush option, and one with the fixture-only
+`CRUX_EMMC_FLUSH_CONTROL`. It needs the optional west group `crux-reliance`. `CRUX_FILE_EMMC_SKIP_BUILD=1`
+checks the images already under the output directory, which is how each check was shown to fail on a wrong
+copy. It builds no image that is kept or uploaded. The sizes and stack frames are in the
+[link record](../docs/evidence/emmc-reliance/rt1060-link/README.md) and the
+[composition document](../docs/emmc-reliance-composition.md). This is a link, not evidence about an eMMC device or
+a board.
+
 `scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
 a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
 the fake File provider and a double for access, and walk a power cut across every mutation of a commit
