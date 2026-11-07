@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Issue | [#299](https://github.com/wonny-labs/crux-pilot/issues/299) "Investigate how a deployed bootloader is updated or recovered" |
-| Status | **Draft. Desk investigation.** Nothing in this record is adopted. No build, hardware, debugger, fuse or manifest operation was performed, and no dependency checkout was altered. Independent review: round 1 REVISE, round 2 (the single re-check) ESCALATE for two residual one-line findings, fixed afterwards without a further check. The owner decides (see [Review record](#review-record)). |
+| Status | **Draft. Desk investigation.** Nothing in this record is adopted. No build, hardware, debugger, fuse or manifest operation was performed, and no dependency checkout was altered. Independent review: round 1 REVISE, round 2 (the single re-check) ESCALATE, round 3 on the fix commit ESCALATE; see the [Review record](#review-record). The owner decides. |
 | Target | RT1060-EVKB Rev B (`mimxrt1060_evk@B/mimxrt1062/qspi`) for the NOR configuration. RT1170-EVK Rev A1 only where the public sources show a difference. The eMMC configuration is a set of expectations, not a result for any device. |
 | Pinned upstream | Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0). MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`. `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. The pins are those of the #141 record. |
 | Read on | 7 November 2026, against `main` at `3e0a5d7` |
@@ -19,7 +19,7 @@ field?
 | Point | Result |
 | --- | --- |
 | Stock MCUboot | Cannot update itself, and the `mcuboot` partition is not an image slot. A project maintainer's stated view is that an updatable MCUboot only makes sense behind a separate, unmodifiable first stage. |
-| Boot ROM recovery | The RT1060 manual says an error during internal boot falls through to the serial downloader. That is the main recovery path found for a damaged bootloader. SD manufacturing boot, an LPSPI recovery device and a ROM secondary image are also described, and they need an SD card, a second memory or fuses. The serial downloader, SD and LPSPI paths need physical access, and the ROM secondary image needs fuse writes. In a closed security configuration the serial downloader needs a signed flashloader. A bootloader that is valid but defective is not caught by it. Whether a corrupt first sector counts as an error was not stated, and it was not tested. |
+| Boot ROM recovery | The RT1060 manual says an error during internal boot falls through to the serial downloader. That is the main recovery path found for a damaged bootloader. SD manufacturing boot, an LPSPI recovery device and a ROM secondary image are also described, and they need an SD card, a second memory or fuses. The serial downloader and SD paths need physical access. The LPSPI recovery device needs fuse writes and a second memory on the board. The ROM secondary image needs fuse writes. In a closed security configuration the serial downloader needs a signed flashloader. A bootloader that is valid but defective is not caught by it. Whether a corrupt first sector counts as an error was not stated, and it was not tested. |
 | Options for NOR | Five options compared. Only a two-stage design (N2: a small first stage that never writes flash, plus an updatable second stage in two banks) gives a safe field update without fuse writes. N3 (a ROM secondary copy) needs an irreversible fuse write and an unverified ROM algorithm. N1 (in-place rewrite) is unsafe. N2 is a custom bootloader and an architecture decision. Every option that writes NOR still depends on #165. |
 | Options for eMMC | Two boot partitions and a selector byte make an A/B pattern possible at the eMMC level. Pinned Zephyr has no API for it. The RT1060 manual says the ROM reads the boot partition selector. Fallback between the two boot partitions was not found. Handed to #298 as expectations. |
 | Trust | Without HAB in closed configuration, "immutable" is a convention. An updatable bootloader then adds an attack surface without adding a root of trust. HAB closed adds ROM enforcement and key revocation, and revocation needs a bootloader update path to be usable. |
@@ -411,14 +411,21 @@ was confirmed against the manual text.
 | Finding | Status | Disposition |
 | --- | --- | --- |
 | R1-5, the B-48 caveat still claimed that its search hits were exhaustive, while the manual also matches the ROM API image selection and register definitions | Not resolved | The caveat was reworded to list the further hits and make no exhaustive claim. |
-| New: the Summary said every recovery path needs physical access, which contradicts the ROM secondary image row and the N3 column | New | The sentence now separates the paths that need physical access from the one that needs fuse writes. |
+| New: the Summary said every recovery path needs physical access, which contradicts the ROM secondary image row and the N3 column | New | The sentence now separates the paths that need physical access from the ones that need fuse writes. Round 3 found it wrong for the LPSPI path, see below. |
 
 Other observations were also fixed: the RAUC row cite (C-16 now includes
 `advanced.rst` L1637-L1641), "B-84 names three fields in two fuse words", the
 plural "fix commits", and the label of the trust row that cites B-4.
 
-The two residual findings were fixed in the commit after this re-check. **That
-commit has not been reviewed.** AGENTS.md allows one re-check, so the record
-does not claim PASS. The owner decides whether the fixes are accepted without a
-further review round, or whether a new independent reviewer should check them.
+The two residual findings were fixed in `1985a66`.
 
+**Round 3, 7 November 2026, requested by the session that started this work.**
+A fourth reviewer (the `reviewer` agent, model `claude-opus-5-5`, read-only
+tools, no part in earlier rounds) checked `1985a66` only. Verdict
+**ESCALATE**. The B-48 finding was resolved. The Summary fix wrongly grouped
+the LPSPI recovery device with the paths that need physical access. The manual
+and ROM table row 6 say the ROM tries it automatically once its fuses are set
+and a memory is present. The Summary sentence was corrected, together with the
+B-48 antecedent and the C-16 summary of the RAUC power-loss text.
+
+**Round 4 (one narrow re-check of the round 3 fix commit):** pending.
