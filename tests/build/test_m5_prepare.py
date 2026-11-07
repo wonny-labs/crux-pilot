@@ -27,7 +27,7 @@ class Preparation(unittest.TestCase):
         (self.build / 'compile_commands.json').write_text('[]')
         self.inputs = self.root / 'inputs.json'
         self.inputs.write_text(json.dumps(dict(source=self.source, west_projects=[
-            dict(name=k, revision=v, git_commit=v, dirty=False)
+            dict(name=k, revision=v, path=subject.PINNED_PATHS[k], git_commit=v, dirty=False)
             for k, v in subject.PINNED.items()])))
         provenance = json.loads(self.inputs.read_text())
         provenance['artifacts'] = [dict(path=str(p.relative_to(self.root)), size_bytes=p.stat().st_size,
@@ -123,6 +123,12 @@ class Preparation(unittest.TestCase):
                ('unknown field', dict(good, note='x')),
                ('manifest path', dict(good, path='crux-pilot')), ('absolute path', dict(good, path='/etc')),
                ('parent path', dict(good, path='../escape')), ('empty path', dict(good, path='')),
+               ('manifest path with dot', dict(good, path='./crux-pilot')), ('manifest path with slash', dict(good, path='crux-pilot/')),
+               ('inside the manifest checkout', dict(good, path='crux-pilot/sub')), ('current directory', dict(good, path='.')),
+               ('backslash path', dict(good, path='modules\\x')), ('dot segment', dict(good, path='modules/./x')),
+               ('revision HEAD', dict(good, revision='HEAD')),
+               ('uppercase commit', dict(good, git_commit=good['git_commit'].upper(), revision=good['git_commit'].upper())),
+               ('uppercase revision differing', dict(good, revision='F' * 40)),
                ('empty revision', dict(good, revision='')),
                ('name of a pinned project', dict(good, name='zephyr', path='zephyr2'))]
         for label, record in bad:
@@ -132,6 +138,32 @@ class Preparation(unittest.TestCase):
                               ('duplicate path', [good, self.extra('fatfs', path=good['path'])])):
             with self.subTest(label), self.assertRaises(ValueError):
                 subject.frozen_inputs(self.with_extras(extras))
+
+    def test_an_other_project_cannot_shadow_a_pinned_one_by_path(self):
+        for name, path in subject.PINNED_PATHS.items():
+            for label, where in (('equal', path), ('with dot segment', './' + path), ('trailing slash', path + '/'),
+                                 ('nested under', path + '/sub'), ('containing', str(Path(path).parent) if '/' in path else '')):
+                if not where or where in ('.', 'modules'):
+                    continue
+                with self.subTest(pinned=name, how=label), self.assertRaises(ValueError):
+                    subject.frozen_inputs(self.with_extras([self.extra('cmsis-alt', path=where)]))
+        with self.assertRaises(ValueError):
+            subject.frozen_inputs(self.with_extras([self.extra('wrapper', path='modules/hal')]))   # contains cmsis, cmsis_6 and hal_nxp
+        subject.frozen_inputs(self.with_extras([self.extra('littlefs', path='modules/fs/littlefs')]))   # a sibling is fine
+
+    def test_pinned_records_are_exact_including_their_build_path(self):
+        baseline = json.loads(self.inputs.read_text())
+        for name in subject.PINNED:
+            for label, change in (('wrong path', dict(path='elsewhere/' + name)), ('missing path', None), ('extra field', dict(note='x')),
+                                  ('dirty as 0', dict(dirty=0)), ('dirty as None', dict(dirty=None))):
+                projects = []
+                for project in baseline['west_projects']:
+                    if project['name'] == name:
+                        project = {k: v for k, v in project.items() if k != 'path'} if change is None else dict(project, **change)
+                    projects.append(project)
+                with self.subTest(name=name, change=label), self.assertRaises(ValueError):
+                    subject.frozen_inputs(dict(baseline, west_projects=projects))
+        subject.frozen_inputs(baseline)
 
     def test_the_four_pins_stay_exact_when_other_projects_are_present(self):
         baseline = json.loads(self.inputs.read_text())

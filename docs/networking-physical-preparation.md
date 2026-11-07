@@ -530,19 +530,22 @@ accepted M3 runners. Not shown on a device: real Commander output for a verify m
 ## Frozen inputs and other west projects
 
 The image manifest of the M5 image froze the west workspace as exactly the four pinned dependencies
-(zephyr, cmsis, cmsis_6, hal_nxp). Since then `west.yml` has made more projects active (for example
-littlefs, fatfs, mbedtls and tf-psa-crypto), and the provenance recorder lists every active project, so a
-real freeze on current `main` was refused with "Unexpected/missing/duplicate dependencies". Owner decision,
-chat 2026-11-08: "방안 A승인".
+(zephyr, cmsis, cmsis_6, hal_nxp). Since then `west.yml` has made more projects active (littlefs and fatfs in
+the default groups), and the provenance recorder lists every active project, so a real freeze on current `main`
+was refused with "Unexpected/missing/duplicate dependencies". Owner decision, relayed from the owner's chat
+of 2026-11-08 (Korea time): "방안 A승인".
 
 | Rule in `prepare_m5_network.frozen_inputs` | Before | Now |
 | --- | --- | --- |
-| The four pinned dependencies | exactly these four, exact revision, clean | unchanged: each present once, exact revision and commit, clean |
-| Any other west project | refused | accepted and recorded in the manifest only if it has exactly the fields `name`, `path`, `revision`, `git_commit`, `dirty`; is clean; has a 40-hex commit that equals the revision when the revision is itself a commit; has a unique name and a unique relative path that is not absolute, has no `..` and is not the manifest checkout |
+| The four pinned dependencies | exactly these four by name, exact revision, clean | each present once with exactly the fields `name`, `path`, `revision`, `git_commit`, `dirty`; revision and commit equal to the pin; `dirty` is `False`; `path` equal to the directory the build compiles (`zephyr`, `modules/hal/cmsis`, `modules/hal/cmsis_6`, `modules/hal/nxp`) |
+| Any other west project | refused | accepted and recorded only if: the same five fields; clean; a lowercase 40-hex commit; a revision that is not empty or `HEAD` and, when it is a 40-hex commit (any case), equals the commit; a unique name; a relative path with no `..`, no `.` segment, no backslash; and a path that is not, does not contain and is not inside the manifest checkout or any pinned path |
 | Workspace manifest context | optional, canonical | unchanged |
 
-The recorder already refuses any project whose `HEAD` differs from its manifest revision or that is dirty,
-and the check repeats that on the record at every verification. The extra projects never enter the image:
-`scripts/test-networking-physical.sh` names its modules explicitly (the repository, cmsis, cmsis_6 and
-hal_nxp), so the compiled inputs are still exactly the four pinned dependencies. Not shown: that no other
-module is pulled in by Kconfig or the module list; the cross-build and the manifest hashes cover that.
+A tag or branch name as an extra project's revision is accepted because the recorder, not this check, resolves
+it: `scripts/record-build-provenance.py` refuses any project whose `HEAD` differs from `rev-parse <revision>`
+or that is dirty. This check repeats only the dirty flag, the commit format and the commit-equals-revision rule
+on the stored record at every verification. The extra projects do not enter the image: the build passes
+`-DZEPHYR_MODULES` with the repository, cmsis, cmsis_6 and hal_nxp, and Zephyr then skips west module
+discovery. The environment variables `ZEPHYR_EXTRA_MODULES` and `EXTRA_ZEPHYR_MODULES` would still add modules;
+the freeze must run with both unset (the recorded `compile_commands.json` and the manifest hash do not refuse
+an added module by themselves). Not shown: a real `west list` against a relocated project.
