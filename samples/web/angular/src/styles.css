@@ -100,3 +100,34 @@ nav a.current {
   width: 1.25rem;
   height: 1.25rem;
 }
+
+.items .item {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) 2fr;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+}
+
+.panel {
+  max-width: 36rem;
+  margin: 1rem 0;
+  padding: 0.75rem 1rem 1rem;
+  border: 1px solid currentColor;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.narrow {
+  max-width: 26rem;
+}
+
+.primary {
+  font-weight: 600;
+}
+
+.danger {
+  font-weight: 700;
+}

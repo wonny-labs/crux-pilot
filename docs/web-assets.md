@@ -241,9 +241,9 @@ about 1 to 2 KB for 32 files. This is an estimate from the struct, **not measure
 | Declared client rate, 32,768 B/s, 256 kbit/s | **A decision, not a measurement.** [#184](web-contract.md#bounds-and-measurements) measured a reader draining 20 KB/s being cut by the deadline, and no document measures an honest client. 32 KiB a second is a poor but working link, and a real browser on a local network is far faster. |
 | Deadline, 3,000 ms | #184's default, unchanged. The `native_sim` images use 1,500. |
 | 32 files | Browsers open several connections and the server has three clients. The Preact example has 4 files and the Angular example 5. |
-| 393,216 bytes | Room for the Angular example, 76,710 compressed bytes, five times over. It is a budget for Flash use, not a server limit. RT1060 Flash use is not measured. |
+| 393,216 bytes | Room for the Angular example, 97,990 compressed bytes by `tools/compare.ts` with all six screens, four times over. It is a budget for Flash use, not a server limit. RT1060 Flash use is not measured. |
 | Preact example, built here | 4 files, 20,314 bytes served, the largest asset 18,599: **fits with 5 times to spare**. At the default rate its script takes 0.57 s. |
-| Angular example | 76,710 compressed bytes in 5 files by the frontend session's own measure, so no file is over 98,304 and it fits the defaults. Not packaged here. |
+| Angular example | 97,990 compressed bytes in 5 files with network settings and restart (`tools/compare.ts`; `web_assets.py` counts 97,952 served). The largest file, the script, is 92,064, under 98,304, so it fits the defaults with 6,240 bytes to spare. Not packaged here. |
 
 What a slow client costs the others, by the sums in the [web contract](web-contract.md#the-slow-reader-bound) and not measured at the default settings: the deadline, 3 s,
 plus the sends of the callback in flight. A response has 5 or 6 headers, which is 24 sends in its first callback, at 250 ms each: up to 6 s, and later pieces take 4 sends, up to 1 s. That is

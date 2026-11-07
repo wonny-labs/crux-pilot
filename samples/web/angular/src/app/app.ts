@@ -12,6 +12,8 @@ import { Session } from './session';
           <nav aria-label="Main">
             <a routerLink="/" routerLinkActive="current" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">Home</a>
             <a routerLink="/config" routerLinkActive="current" ariaCurrentWhenActive="page">Configuration</a>
+            <a routerLink="/network" routerLinkActive="current" ariaCurrentWhenActive="page">Network</a>
+            <a routerLink="/reboot" routerLinkActive="current" ariaCurrentWhenActive="page">Restart</a>
           </nav>
         }
         <span>Signed in as {{ user.user }} ({{ user.role }})</span>

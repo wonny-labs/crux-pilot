@@ -3,6 +3,8 @@ import { Router, type Routes } from '@angular/router';
 import { ChangePassword } from './change-password';
 import { Configuration } from './config';
 import { Home } from './home';
+import { Network } from './network';
+import { Reboot } from './reboot';
 import { Session } from './session';
 import { SignIn } from './sign-in';
 
@@ -34,6 +36,8 @@ export const routes: Routes = [
   { path: 'sign-in', component: SignIn },
   { path: 'change-password', component: ChangePassword, canActivate: [mustChange] },
   { path: 'config', component: Configuration, canActivate: [signedIn] },
+  { path: 'network', component: Network, canActivate: [signedIn] },
+  { path: 'reboot', component: Reboot, canActivate: [signedIn] },
   { path: '', component: Home, canActivate: [signedIn] },
   { path: '**', redirectTo: '' },
 ];

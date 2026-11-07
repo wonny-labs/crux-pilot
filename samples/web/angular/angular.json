@@ -31,7 +31,7 @@
                 "fonts": false,
                 "styles": { "minify": true, "inlineCritical": false }
               },
-              "budgets": [{ "type": "initial", "maximumError": "300kB" }]
+              "budgets": [{ "type": "initial", "maximumError": "320kB" }]
             }
           },
           "defaultConfiguration": "production"
