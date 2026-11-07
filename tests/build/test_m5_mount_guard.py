@@ -61,8 +61,8 @@ class Host:
 
 class DA:
     """Fake DiskArbitration. A mount request is judged by the registered approval handler."""
-    def __init__(self, clock, host, identity=None, ignore_approval=False, register_error=None, fail_run=None):
-        self.clock, self.host, self.handler = clock, host, None
+    def __init__(self, clock, host, identity=None, ignore_approval=False, register_error=None, fail_run=None, silent=False):
+        self.clock, self.host, self.handler, self.silent = clock, host, None, silent
         self.identity = identity or dict(bsd='disk4', protocol='USB', serial=SERIAL, vid=0x0d28, pid=0x0204, error=None)
         self.ignore_approval, self.register_error, self.fail_run = ignore_approval, register_error, fail_run
         self.pending, self.calls = [], []
@@ -71,17 +71,24 @@ class DA:
         if self.register_error:
             raise self.register_error
         self.handler = handler
-    def request_mount(self, bsd):
+    def request_mount(self, bsd, done):
         self.calls.append('request_mount ' + bsd)
-        self.pending.append(bsd)
+        self.pending.append(done)
     def run_for(self, seconds):
         if self.fail_run:
             raise self.fail_run
+        if seconds == 0:
+            self.calls.append('pump')
         self.clock.value += seconds
         while self.pending:
-            self.pending.pop()
+            done = self.pending.pop()
+            if self.silent:
+                continue
             if self.ignore_approval or self.handler is None or self.handler(self.identity) is None:
                 self.host.mounted = True
+                done(0)
+            else:
+                done(guard.DENY_STATUS)
     def appeared(self, seconds=3.0):
         return [dict(self.identity), dict(bsd='disk0', protocol='Apple Fabric', serial=None, vid=None, pid=None, error=None)]
 
@@ -126,8 +133,11 @@ class Decision(unittest.TestCase):
     def test_exact_serial_vendor_and_product_are_denied(self):
         self.assertEqual(guard.decide(self.info()), (True, 'exact'))
 
-    def test_each_identity_part_must_match_to_count_as_exact(self):
-        for change in (dict(serial='02290000325182c3'), dict(vid=0x1366), dict(pid=0x1020), dict(serial=None)):
+    def test_the_exact_serial_alone_is_enough_and_a_different_serial_is_not(self):
+        for change in (dict(vid=0x1366), dict(pid=0x1020), dict(vid=None, pid=None)):
+            with self.subTest(change=change):
+                self.assertEqual(guard.decide(self.info(**change)), (True, 'exact'))
+        for change in (dict(serial='02290000325182c3'), dict(serial=None), dict(serial='')):
             with self.subTest(change=change):
                 self.assertEqual(guard.decide(self.info(**change)), (False, ''))
 
@@ -212,7 +222,7 @@ class Start(Case):
         text = self.log_text()
         order = [text.index(word) for word in ('APPROVAL_REGISTERED', 'UNMOUNT', 'SELFTEST', 'READY')]
         self.assertEqual(order, sorted(order))
-        self.assertEqual(self.da.calls, ['register', 'request_mount disk4'])
+        self.assertEqual(self.da.calls, ['register', 'pump', 'pump', 'request_mount disk4'])   # the loop is pumped around the slow host commands
         self.assertIn('umount /Volumes/RT1060-EVK', self.host.calls)
         self.assertFalse(self.host.mounted)
         self.assertNotIn('STOPPED', text)
@@ -237,10 +247,38 @@ class Start(Case):
         self.assertEqual(record['sha256'], guard.sha256_file(self.executable))
         self.assertEqual(record['process_identity'], IDENTITY)
         self.assertEqual((record['pid'], record['log'], record['lifetime']), (os.getpid(), self.log, 7200))
-        self.assertAlmostEqual(record['deadline'], self.clock() + 7200, delta=1)
+        self.assertAlmostEqual(record['deadline'], self.clock() + 7200, delta=5)   # fixed at start; the fake clock moves during the self-test
         self.assertEqual(stat.S_IMODE(os.stat(self.session).st_mode), 0o644)
         self.assertEqual(stat.S_IMODE(os.stat(self.log).st_mode), 0o644)
         self.assertEqual([p.name for p in self.root.iterdir() if '.tmp' in p.name], [])
+
+
+class FileModes(Case):
+    def test_modes_do_not_depend_on_the_umask(self):
+        previous = os.umask(0o077)
+        self.addCleanup(os.umask, previous)
+        self.started()
+        for path in (self.session, self.log):
+            self.assertEqual(stat.S_IMODE(os.stat(path).st_mode), 0o644)
+
+
+class ProcessIdentity(unittest.TestCase):
+    def test_ps_runs_with_a_fixed_environment_and_the_exact_columns(self):
+        host = guard.SystemHost()
+        seen = {}
+        def run(command, timeout=10, env=None):
+            seen.update(command=command, env=env)
+            return 0, ' 1 x Sat\n', ''
+        host.run = run
+        self.assertEqual(host.identity(1), ' 1 x Sat\n')
+        self.assertEqual(seen['command'], ['ps', '-p', '1', '-o', 'pid=,comm=,lstart='])
+        self.assertEqual(seen['env']['LC_ALL'], 'C')
+        self.assertNotIn('COLUMNS', seen['env'])
+
+
+class MountArguments(unittest.TestCase):
+    def test_the_self_test_mount_is_read_only_and_hidden(self):
+        self.assertEqual(guard.MOUNT_ARGUMENTS, ('rdonly', 'nobrowse'))
 
 
 class StartFailures(Case):
@@ -255,7 +293,7 @@ class StartFailures(Case):
     def test_unmount_failure(self):
         self.host.umount_code = 1
         self.fails('unmount of /Volumes/RT1060-EVK failed')
-        self.assertEqual(self.da.calls, ['register'])           # no self-test mount was requested
+        self.assertEqual(self.da.calls, ['register', 'pump'])    # no self-test mount was requested
 
     def test_still_mounted_after_a_successful_unmount_report(self):
         self.host.umount = lambda point: (0, '', '')
@@ -263,8 +301,70 @@ class StartFailures(Case):
 
     def test_no_veto_evidence_when_the_guard_does_not_deny(self):
         self.da.ignore_approval = True
-        self.fails('no veto evidence')
+        self.fails('no veto evidence: the self-test mount completed with 0.*unmounted again')
         self.assertFalse(self.host.mounted)                     # the stray mount was put back
+
+    def test_failed_cleanup_is_reported_loudly(self):
+        self.da.ignore_approval = True
+        original = self.host.umount
+        calls = []
+        def umount(point):
+            calls.append(point)
+            if len(calls) == 1:
+                return original(point)                                         # the first unmount works
+            return 1, '', 'busy'                                               # the cleanup one does not
+        self.host.umount = umount
+        self.fails('STILL MOUNTED.*busy.*/sbin/umount')
+        self.assertTrue(self.host.mounted)
+
+    def test_no_completion_in_time_is_a_failure(self):
+        self.da.silent = True
+        self.fails('no answer in time')
+
+    def test_other_completion_status_is_not_veto_evidence(self):
+        original = self.da.run_for
+        def other(seconds):
+            original(seconds)
+        self.da.ignore_approval = False
+        self.da.handler_override = None
+        def request(bsd, done):
+            self.da.calls.append('request_mount ' + bsd)
+            done(guard.DENY_STATUS + 1)                         # some other dissent, not the guard's veto
+        self.da.request_mount = request
+        self.fails('no veto evidence: the self-test mount completed with %d' % (guard.DENY_STATUS + 1))
+
+    def test_guard_logged_a_veto_but_the_completion_says_something_else(self):
+        def request(bsd, done):
+            self.da.calls.append('request_mount ' + bsd)
+            self.assertIsNotNone(self.da.handler(self.da.identity))        # the guard did veto and log ...
+            done(0)                                                         # ... but the completion reports a mount
+        self.da.request_mount = request
+        self.fails('no veto evidence: the self-test mount completed with 0')
+
+    def test_a_veto_that_arrives_after_the_wait_loop_is_still_counted(self):
+        pending = []
+        ticks = []
+        def request(bsd, done):
+            self.da.calls.append('request_mount ' + bsd)
+            pending.append(done)
+        original = self.da.run_for
+        def slow(seconds):
+            original(seconds)
+            ticks.append(seconds)
+            if len(ticks) == 7 and pending:                                  # after the 4 waits of evidence_wait=2 plus 2 late pumps
+                self.da.handler(self.da.identity)
+                pending.pop()(guard.DENY_STATUS)
+        self.da.request_mount, self.da.run_for = request, slow
+        instance = self.started()
+        instance.retire('test')
+        self.assertTrue(os.path.exists(self.session))
+
+    def test_veto_completion_without_a_guard_denied_line_is_not_evidence(self):
+        def request(bsd, done):
+            self.da.calls.append('request_mount ' + bsd)
+            done(guard.DENY_STATUS)                             # completion says denied, but the guard never judged anything
+        self.da.request_mount = request
+        self.fails('no veto evidence')
 
     def test_denied_request_that_still_mounts_is_refused(self):
         original = self.da.run_for
@@ -272,7 +372,7 @@ class StartFailures(Case):
             original(seconds)
             self.host.mounted = True
         self.da.run_for = deny_then_mount
-        self.fails('mounted')
+        self.fails('vetoed but the volume is mounted')
 
     def test_registration_failure(self):
         self.da.register_error = guard.GuardError('framework refused the callback')
@@ -290,6 +390,26 @@ class StartFailures(Case):
         self.assertEqual(Path(self.session).read_text(), 'FOREIGN')
         self.assertIn('STOPPED reason=start_failed', self.log_text())
 
+    def test_failed_start_removes_a_record_it_wrote(self):
+        instance = self.make()
+        original = instance.say
+        def failing(text):
+            if text.startswith('READY'):
+                raise OSError('log write failed after the record was written')
+            original(text)
+        instance.say = failing
+        with self.assertRaises(OSError):
+            instance.start()
+        self.assertFalse(os.path.exists(self.session))
+        self.assertIn('STOPPED reason=start_failed', self.log_text())
+
+    def test_a_temporary_file_is_never_left_behind_when_the_write_fails(self):
+        instance = self.make()
+        with patch.object(guard.os, 'write', side_effect=OSError('disk full')), self.assertRaises(OSError):
+            instance.start()
+        self.assertEqual([p.name for p in self.root.iterdir() if '.tmp' in p.name], [])
+        self.assertFalse(os.path.exists(self.session))
+
     def test_unreadable_boot_session_or_identity(self):
         for name in ('boot_session', 'identity'):
             with self.subTest(name=name):
@@ -298,6 +418,78 @@ class StartFailures(Case):
                     raise guard.GuardError('cannot read')
                 setattr(self.host, name, broken)
                 self.fails('cannot read')
+
+
+class Child(Case):
+    """The detached guard's life without fork: readiness report, run, retire, and every failure of the report."""
+
+    def test_ready_then_runs_to_the_deadline_and_retires(self):
+        reports = []
+        installed = []
+        code = guard.run_child(self.make(lifetime=300), reports.append, installed.append)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(installed), 1)
+        self.assertTrue(reports[0].startswith('READY pid=%d disk=disk4 session=%s log=%s deadline_in=300s' % (os.getpid(), self.session, self.log)))
+        self.assertTrue(self.log_text().rstrip().endswith('STOPPED reason=deadline'))
+        self.assertTrue(os.path.exists(self.session))              # evidence stays after a normal retirement
+
+    def test_report_failure_after_ready_removes_the_record_and_retires(self):
+        def broken_pipe(text):
+            raise BrokenPipeError('caller went away')
+        self.assertEqual(guard.run_child(self.make(), broken_pipe), 1)
+        self.assertFalse(os.path.exists(self.session))
+        self.assertTrue(self.log_text().rstrip().endswith('STOPPED reason=child_failed'))
+
+    def test_start_failure_reports_failed_and_leaves_nothing(self):
+        self.host.umount_code = 1
+        reports = []
+        self.assertEqual(guard.run_child(self.make(), reports.append), 1)
+        self.assertEqual(len(reports), 1)
+        self.assertTrue(reports[0].startswith('FAILED unmount of /Volumes/RT1060-EVK failed'))
+        self.assertFalse(os.path.exists(self.session))
+        self.assertIn('STOPPED', self.log_text())
+
+    def test_signal_installation_failure_is_a_clean_failure(self):
+        def broken(_guard):
+            raise RuntimeError('cannot install handlers')
+        reports = []
+        self.assertEqual(guard.run_child(self.make(), reports.append, broken), 1)
+        self.assertTrue(reports[0].startswith('FAILED cannot install handlers'))
+        self.assertEqual(self.da.calls, [])                        # nothing was registered
+
+
+class Report(unittest.TestCase):
+    def pipe(self):
+        reader, writer = os.pipe()
+        self.addCleanup(lambda: [os.close(fd) for fd in (reader, writer) if self.alive(fd)])
+        return reader, writer
+
+    @staticmethod
+    def alive(fd):
+        try:
+            os.fstat(fd)
+            return True
+        except OSError:
+            return False
+
+    def test_one_line_is_enough_even_if_the_pipe_stays_open(self):
+        reader, writer = self.pipe()
+        os.write(writer, b'READY pid=1\n')
+        self.assertEqual(guard.read_report(reader, 5), ('READY pid=1', True))
+
+    def test_eof_without_a_line_returns_what_was_sent(self):
+        reader, writer = self.pipe()
+        os.write(writer, b'FAILED half')
+        os.close(writer)
+        self.assertEqual(guard.read_report(reader, 5), ('FAILED half', True))
+
+    def test_silence_times_out_instead_of_hanging(self):
+        reader, writer = self.pipe()
+        clock = Clock(0.0)
+        def tick():
+            clock.value += 0.6
+            return clock.value
+        self.assertEqual(guard.read_report(reader, 2, clock=tick), ('', False))
 
 
 class Approval(Case):

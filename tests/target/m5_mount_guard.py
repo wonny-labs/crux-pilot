@@ -21,14 +21,23 @@ disk.
   3. detach into the background, then register the mount approval callback;
   4. unmount the volume if it is mounted (``/sbin/umount`` with a timeout; never
      ``diskutil``, which stalls on some hosts);
-  5. ask DiskArbitration to mount the disk once and require that the guard vetoed it
-     (this is the "actual current-session veto evidence" the check demands);
+  5. ask DiskArbitration to mount the disk once, read-only and hidden (``rdonly``,
+     ``nobrowse``), and require that the guard vetoed it: the mount completion must report
+     the veto, not a mount (this is the "actual current-session veto evidence" the check
+     demands). If the volume did mount, it is unmounted again and the start fails saying
+     whether that worked;
   6. only then write the session record, and keep vetoing until the deadline or SIGTERM;
   7. retire: log ``STOPPED`` (which makes the repository check refuse the guard) and exit.
+     A failure at any point retires the log, removes a record this run wrote and exits.
 
-A deny rule matches the exact DAPLink USB serial, vendor and product. A disk that reports
+A deny rule matches the exact DAPLink USB serial. A disk that reports
 the USB protocol but whose serial cannot be read is also denied, since it could be the
 probe. Every other disk, including objects without I/O media, is approved untouched.
+
+Limits: DiskArbitration vetoes mounts requested through it. A mount made directly by root
+(``mount_msdos``, ``mount(2)``) or a raw write to the device is not covered. The record
+binds the hash of this script only; run it from a checkout only the owner can write.
+Run the capture with ``LC_ALL=C`` so the process identity text matches the guard's.
 """
 import argparse
 import ctypes
@@ -48,6 +57,8 @@ SERIAL = BENCH['uart_usb_serial']
 VENDOR, PRODUCT = 0x0d28, 0x0204
 UART = BENCH['uart']
 DENY_STATUS = 0xF8DA0008          # kDAReturnNotPermitted
+MOUNT_ARGUMENTS = ('rdonly', 'nobrowse')   # the self-test mount, if it ever happens, is read-only and hidden
+REPORT_TIMEOUT = 90                       # seconds the parent waits for READY or FAILED
 DEFAULT_LIFETIME, MIN_LIFETIME, MAX_LIFETIME = 7200, 300, 14400
 EVIDENCE_WAIT = 20
 UMOUNT_TIMEOUT = 20
@@ -62,10 +73,10 @@ class GuardError(Exception):
 def decide(info, serial=SERIAL):
     """Return (deny, kind) for one mount request described by ``info``.
 
-    kind is ``exact`` for the DAPLink device, ``unresolved`` for a disk that reports USB but
+    kind is ``exact`` for the DAPLink device (any disk whose USB serial is the DAPLink's), ``unresolved`` for a disk that reports USB but
     whose identity could not be read, and ``''`` when the disk is not ours and is approved.
     """
-    if info.get('serial') == serial and info.get('vid') == VENDOR and info.get('pid') == PRODUCT:
+    if info.get('serial') == serial:
         return True, 'exact'
     if info.get('error') and info.get('protocol') == 'USB':
         return True, 'unresolved'
@@ -120,8 +131,8 @@ class SystemHost:
     def euid(self):
         return os.geteuid()
 
-    def run(self, command, timeout=10):
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+    def run(self, command, timeout=10, env=None):
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, env=env)
         try:
             out, err = process.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
@@ -148,7 +159,8 @@ class SystemHost:
         return self.run(['/sbin/umount', point], timeout=UMOUNT_TIMEOUT)
 
     def identity(self, pid):
-        code, out, _ = self.run(['ps', '-p', str(pid), '-o', 'pid=,comm=,lstart='])
+        # Fixed environment: the repository check runs the same command, so the capture is run with LC_ALL=C too.
+        code, out, _ = self.run(['ps', '-p', str(pid), '-o', 'pid=,comm=,lstart='], env=dict(PATH='/bin:/usr/bin:/usr/sbin:/sbin', LC_ALL='C'))
         if code != 0 or not out.strip():
             raise GuardError('cannot read own process identity')
         return out
@@ -175,6 +187,7 @@ class Guard:
         self.stop_reason = None
         self.disk = None
         self.deadline = None
+        self.session_written = False
 
     # ---- logging -----------------------------------------------------------------
     def say(self, text):
@@ -229,17 +242,21 @@ class Guard:
     def start(self):
         self.validate()
         self.log = os.open(self.log_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_APPEND, 0o644)
+        os.fchmod(self.log, 0o644)
         self.deadline = self.clock() + self.lifetime
         try:
             self.say('GUARD_STARTING serial=%s disk=%s pid=%d lifetime=%d' % (self.serial, self.disk, os.getpid(), self.lifetime))
             self.da.register_mount_approval(self.approve)
             self.say('APPROVAL_REGISTERED')
+            self.da.run_for(0)                  # keep answering approvals between slow host commands
             self.unmount_if_mounted()
+            self.da.run_for(0)
             self.selftest()
             self.write_session()
             self.say('READY disk=%s deadline=%.3f' % (self.disk, self.deadline))
         except BaseException as error:
             self.say('START_FAILED ' + str(error))
+            self.discard_session()
             self.retire('start_failed')
             raise
 
@@ -254,21 +271,33 @@ class Guard:
             raise GuardError('DAPLink volume is still mounted after unmount')
 
     def selftest(self):
+        """Ask for one read-only mount and require the guard's veto in the completion."""
         before = self.denied
-        self.say('SELFTEST mount request for ' + self.disk)
-        self.da.request_mount(self.disk)
+        outcome = []
+        self.say('SELFTEST read-only mount request for ' + self.disk)
+        self.da.request_mount(self.disk, outcome.append)
         waited = 0.0
-        while self.denied == before and waited < self.evidence_wait:
+        while not outcome and waited < self.evidence_wait:
             self.da.run_for(0.5)
             waited += 0.5
-        if self.denied == before:
-            # The veto did not happen. If the volume mounted, put it back.
-            if mounted_points(self.host.mounts(), self.disk):
-                for _, point in mounted_points(self.host.mounts(), self.disk):
-                    self.host.umount(point)
-            raise GuardError('no veto evidence: the self-test mount was not denied by the guard')
+        for _ in range(4):                      # a late completion must not slip past the check below
+            self.da.run_for(0.5)
+        vetoed = bool(outcome) and outcome[0] == DENY_STATUS and self.denied > before
+        mounted = mounted_points(self.host.mounts(), self.disk)
+        if vetoed and not mounted:
+            return
+        problem = ('self-test mount was vetoed but the volume is mounted' if vetoed else
+                   'no veto evidence: the self-test mount completed with %s' % (outcome[0] if outcome else 'no answer in time'))
+        failed = []
+        for _, point in mounted:
+            code, _, err = self.host.umount(point)
+            if code != 0:
+                failed.append('%s (%s)' % (point, err.strip()))
         if mounted_points(self.host.mounts(), self.disk):
-            raise GuardError('self-test mount was denied but the volume is mounted')
+            problem += '; THE DAPLINK VOLUME IS STILL MOUNTED read-only (could not unmount %s): run /sbin/umount before anything else' % ', '.join(failed or [self.disk])
+        elif mounted:
+            problem += '; the volume had mounted and was unmounted again'
+        raise GuardError(problem)
 
     def write_session(self):
         pid = os.getpid()
@@ -283,13 +312,24 @@ class Guard:
         temporary = self.session_path + '.tmp%d' % pid
         handle = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
         try:
-            os.write(handle, json.dumps(record, indent=2).encode() + b'\n')
-        finally:
-            os.close(handle)
-        try:
+            try:
+                os.fchmod(handle, 0o644)
+                os.write(handle, json.dumps(record, indent=2).encode() + b'\n')
+            finally:
+                os.close(handle)
             os.link(temporary, self.session_path)        # fails if the file appeared meanwhile: never overwrite
+            self.session_written = True
         finally:
             os.unlink(temporary)
+
+    def discard_session(self):
+        """Remove the record only when this run wrote it (a failed or abandoned start)."""
+        if self.session_written:
+            try:
+                os.unlink(self.session_path)
+            except OSError:
+                pass
+            self.session_written = False
 
     # ---- run and retire --------------------------------------------------------------
     def run(self):
@@ -341,7 +381,7 @@ class DiskArbitration:
                 (da.DADiskCopyIOMedia, u32, [vp]),
                 (da.DADiskCopyWholeDisk, vp, [vp]),
                 (da.DADiskCreateFromBSDName, vp, [vp, vp, ctypes.c_char_p]),
-                (da.DADiskMount, None, [vp, vp, u32, vp, vp]),
+                (da.DADiskMountWithArguments, None, [vp, vp, u32, vp, vp, vp]),
                 (da.DADissenterCreate, vp, [vp, u32, vp]),
                 (da.DADissenterGetStatus, ctypes.c_int32, [vp]),
                 (io.IORegistryEntrySearchCFProperty, vp, [u32, ctypes.c_char_p, vp, vp, u32]),
@@ -408,26 +448,33 @@ class DiskArbitration:
     def register_mount_approval(self, handler):
         def approval(disk, _context):
             try:
-                message = handler(self.describe(disk))
-            except Exception:       # fail closed
-                message = 'Mount vetoed by the Crux physical-test guard (internal error)'
-            if message is None:
-                return None
-            return self.da.DADissenterCreate(None, DENY_STATUS, self.string(message))
+                try:
+                    message = handler(self.describe(disk))
+                except Exception:       # fail closed
+                    message = 'Mount vetoed by the Crux physical-test guard (internal error)'
+                if message is None:
+                    return None
+                return self.da.DADissenterCreate(None, DENY_STATUS, self.string(message))
+            except Exception:           # even building the answer failed: still try to veto
+                return self.da.DADissenterCreate(None, DENY_STATUS, None)
         callback = self.approve_type(approval)
         self.keep.append(callback)
         self.da.DARegisterDiskMountApprovalCallback(self.session, None, ctypes.cast(callback, ctypes.c_void_p), None)
 
-    def request_mount(self, bsd):
+    def request_mount(self, bsd, done):
+        """Request one read-only, hidden mount; ``done(status)`` gets the dissenter status or 0 on success."""
         disk = self.da.DADiskCreateFromBSDName(None, self.session, bsd.encode())
         if not disk:
             raise GuardError('DiskArbitration has no disk ' + bsd)
 
-        def done(_disk, dissenter, _context):
-            pass            # the veto evidence is the approval callback's own log line
-        callback = self.mount_type(done)
+        def completed(_disk, dissenter, _context):
+            done(self.da.DADissenterGetStatus(dissenter) & 0xFFFFFFFF if dissenter else 0)
+        callback = self.mount_type(completed)
         self.keep.append(callback)
-        self.da.DADiskMount(disk, None, 0, ctypes.cast(callback, ctypes.c_void_p), None)
+        strings = [self.string(argument) for argument in MOUNT_ARGUMENTS]
+        arguments = (ctypes.c_void_p * (len(strings) + 1))(*strings, None)
+        self.keep.append((arguments, strings))
+        self.da.DADiskMountWithArguments(disk, None, 0, ctypes.cast(callback, ctypes.c_void_p), None, ctypes.cast(arguments, ctypes.c_void_p))
 
     def run_for(self, seconds):
         self.cf.CFRunLoopRunInMode(self.mode, seconds, 0)
@@ -459,6 +506,45 @@ def probe(host=None, da=None, out=print):
     return rows
 
 
+def read_report(descriptor, timeout, clock=m3_clock.monotonic):
+    """Read the child's report until EOF or the timeout; returns (text, finished)."""
+    import select
+    data, deadline = b'', clock() + timeout
+    while True:
+        remaining = deadline - clock()
+        if remaining <= 0:
+            return data.decode(errors='replace').strip(), False
+        ready, _, _ = select.select([descriptor], [], [], min(remaining, 1.0))
+        if ready:
+            chunk = os.read(descriptor, 4096)
+            data += chunk
+            if not chunk or b'\n' in data:      # one report line, or the child closed the pipe
+                return data.decode(errors='replace').strip(), True
+
+
+def run_child(guard, report, install_signals=None):
+    """The detached guard's life: start, report READY, run, retire. Returns the exit code.
+
+    A failure at any point (including the report failing because the caller went away)
+    retires the log with STOPPED and removes a session record this run wrote.
+    """
+    try:
+        if install_signals:
+            install_signals(guard)
+        guard.start()
+        report('READY pid=%d disk=%s session=%s log=%s deadline_in=%ds' % (os.getpid(), guard.disk, guard.session_path, guard.log_path, guard.lifetime))
+        guard.run()
+        return 0
+    except BaseException as error:
+        guard.discard_session()
+        guard.retire('child_failed')
+        try:
+            report('FAILED ' + str(error))
+        except BaseException:
+            pass
+        return 1
+
+
 def start_detached(args, host=None):
     """Validate, detach, run the guard in the child, and report its readiness to the caller."""
     host = host or SystemHost()
@@ -467,36 +553,44 @@ def start_detached(args, host=None):
     pid = os.fork()
     if pid:
         os.close(writer)
-        data = b''
-        os.set_blocking(reader, True)
-        while True:
-            chunk = os.read(reader, 4096)
-            if not chunk:
-                break
-            data += chunk
-        text = data.decode().strip()
+        text, finished = read_report(reader, REPORT_TIMEOUT)
+        if not finished:
+            print('NO REPORT within %d s from guard pid %d: read %s; stop it with: sudo kill %d' % (REPORT_TIMEOUT, pid, args.log, pid))
+            return 1
         print(text or 'guard child exited without a report')
         return 0 if text.startswith('READY') else 1
     os.close(reader)
-    os.setsid()
-    devnull = os.open(os.devnull, os.O_RDWR)
-    for descriptor in (0, 1, 2):
-        os.dup2(devnull, descriptor)
-    guard = None
+    code = 1
+    sent = []
     try:
-        guard = Guard(DiskArbitration(), host, m3_clock.monotonic, args.session, args.log, args.lifetime)
-        signal.signal(signal.SIGTERM, lambda *_: guard.request_stop('sigterm'))
-        signal.signal(signal.SIGINT, lambda *_: guard.request_stop('sigint'))
-        guard.start()
-        os.write(writer, ('READY pid=%d disk=%s session=%s log=%s deadline_in=%ds\n' % (os.getpid(), guard.disk, args.session, args.log, args.lifetime)).encode())
-        os.close(writer)
-        guard.run()
-        os._exit(0)
+        os.setsid()
+        os.umask(0o022)
+        devnull = os.open(os.devnull, os.O_RDWR)
+        for descriptor in (0, 1, 2):
+            os.dup2(devnull, descriptor)
+
+        def report(text):
+            """One report only, then the pipe is closed so the caller is never kept waiting."""
+            if sent:
+                return
+            sent.append(text)
+            try:
+                os.write(writer, (text + '\n').encode())
+            finally:
+                os.close(writer)
+
+        def install(guard):
+            signal.signal(signal.SIGTERM, lambda *_: guard.request_stop('sigterm'))
+            signal.signal(signal.SIGINT, lambda *_: guard.request_stop('sigint'))
+        code = run_child(Guard(DiskArbitration(), host, m3_clock.monotonic, args.session, args.log, args.lifetime), report, install)
     except BaseException as error:
         try:
-            os.write(writer, ('FAILED ' + str(error) + '\n').encode())
-        finally:
-            os._exit(1)
+            if not sent:
+                report('FAILED ' + str(error))
+        except BaseException:
+            pass
+    finally:
+        os._exit(code)
 
 
 def main(argv=None):
