@@ -41,7 +41,7 @@ What is **not built**, and so is the product's work or an open decision:
 | **Host key holding.** The provider borrows the key's bytes until `stop()`. | The test images keep it in a static buffer that is never wiped. A product must define how to hold and wipe it. There is no command to replace the key or to print its fingerprint. | [wolfSSH provider](ssh-wolf-provider.md) decision 24, [integrated image](ssh-integrated-image.md#the-test-image-declaration) |
 | **First account.** | The test images provision it in code. The serial `!setup` loop exists on Host, and the serial console is composed in no image. | [Command line contract](cli-contract.md) |
 | **User key registration.** | No command or web route registers an SSH user key. Only test code calls `crux_access_account_add_key`. | [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) |
-| **Certificate registration.** | No composition registers the device certificate with the listener, and no web route exists for it. | [TLS certificate](tls-certificate.md), decision B |
+| **Certificate registration.** | No composition registers the device certificate with the listener, and no web route exists for it. No decision about how a product does this is recorded. | [TLS certificate](tls-certificate.md) (status line, and "Registration with Zephyr's TLS credentials") |
 | **A frontend.** | The product builds its own. Crux serves a built folder. | [Web guide](../web/README.md) |
 | **Interface binding.** | Which interface a listener binds is the composition's. | [Integrated image](ssh-integrated-image.md#what-a-consumer-uses-and-what-is-test-only) |
 | Persisting a configuration or network change | No provider until Issue #16. A save answers `not_supported`. | [Management APIs](web-management-apis.md) |
@@ -54,11 +54,11 @@ The numbers follow the order of a first integration. Steps 1 to 3 are the same f
 
 1. **Import Crux and fetch the optional stacks.** Import `crux-pilot` in your west manifest, as the [product template](../samples/product_template/west.yml) does, and enable the group that holds the TLS and SSH libraries: `west config manifest.group-filter -- +crux-secure-management`, then `west update`. The group is off by default. See [product composition](product-composition.md).
 2. **Choose a TLS profile.** The Mbed profile gives HTTPS only. The Wolf profile gives HTTPS and SSH, because wolfSSH needs wolfSSL, and `CONFIG_CRUX_SSH` is refused with Mbed at configuration. The Wolf profile also needs a Zephyr patch for its TLS socket backend that this repository does not store, and the route a product takes is an open owner decision (option B, a Zephyr fork in your own manifest, is recommended): [HTTPS composition](https-composition.md#how-a-product-applies-the-wolfssl-patch). The public wolfSSL and wolfSSH are offered under GPL-3.0-or-later or a commercial licence: [product composition](product-composition.md), licence bullet.
-3. **Set the Kconfig symbols.** The table [below](#kconfig) lists every symbol that Crux defines. The network, TLS credentials, PSA and file system symbols come from the profile files that the test images use, which are the reference: [`tests/native/management_composition/profile-psa.conf`](../tests/native/management_composition/profile-psa.conf), [`tests/native/web_https/mbed.conf`](../tests/native/web_https/mbed.conf) or [`wolf.conf`](../tests/native/web_https/wolf.conf), and [`tests/native/management_services/prj.conf`](../tests/native/management_services/prj.conf).
+3. **Set the Kconfig symbols.** The table [below](#kconfig) lists the web and SSH symbols that Crux defines. `zephyr/Kconfig` has others, such as `CRUX_CLI` and `CRUX_DEVELOPMENT_IMAGE`, which the command line contract describes. The network, TLS credentials, PSA and file system symbols come from the profile files that the test images use, which are the reference: [`tests/native/management_composition/profile-psa.conf`](../tests/native/management_composition/profile-psa.conf), [`tests/native/web_https/mbed.conf`](../tests/native/web_https/mbed.conf) or [`wolf.conf`](../tests/native/web_https/wolf.conf), and [`tests/native/management_services/prj.conf`](../tests/native/management_services/prj.conf). **For SSH** the reference list is the one in [`tests/native/management_ssh/CMakeLists.txt`](../tests/native/management_ssh/CMakeLists.txt): it adds [`tests/native/tls_offload_probe/wolf.conf`](../tests/native/tls_offload_probe/wolf.conf) and [`components/ssh/ports/zephyr/wolf-ssh.conf`](../components/ssh/ports/zephyr/wolf-ssh.conf). The module refuses `CONFIG_CRUX_SSH` unless `CONFIG_WOLFSSH_SETTINGS_FILE` is `crux_wolfssh_settings.h`, which `wolf-ssh.conf` sets.
 4. **Name the routes and the frontend in CMake.** See the snippet below.
 5. **Write the composition.** Start the layers in the [boot order](#boot-order). A product writes this code. The test composition is [`tests/native/management_composition/composition`](../tests/native/management_composition/composition), and it is **test-only**: it refuses to build outside a declared `native_sim` test image.
 6. **Provide what is not built**: the host key, the first account, user keys, the certificate, the frontend, the interface binding. See the table above.
-7. **Review the route list.** `crux_web_routes(... REVIEWED <file>)` fails the build for a public or session-only route that is not on your reviewed list. Start from [`components/web/reviewed-routes.txt`](../components/web/reviewed-routes.txt).
+7. **Review the route list.** `crux_web_routes(... REVIEWED <file>)` fails the build for a public or session-only route that is not on your reviewed list. Start from [`components/web/reviewed-routes.txt`](../components/web/reviewed-routes.txt), and add the one line `public GET @assets` if you package a folder, as [`tests/native/management_services/reviewed-routes.txt`](../tests/native/management_services/reviewed-routes.txt) does.
 
 The snippet below shows the Crux part of a product's `CMakeLists.txt` and `prj.conf`. `CRUX_DIR` is the directory of the `crux-pilot` project in your workspace, and the product sets it. The test images compute their own from the location of their `CMakeLists.txt`.
 
@@ -67,11 +67,15 @@ The snippet below shows the Crux part of a product's `CMakeLists.txt` and `prj.c
 include(${CRUX_DIR}/cmake/CruxWebAssets.cmake)
 include(${CRUX_DIR}/cmake/CruxWebRoutes.cmake)
 
-# The route sources of the Crux services you compose. Each variable is set by the module's own
-# sources.cmake files, which the composition includes. Leave out a service to leave out its routes.
+# The module does not include these files for you: a product's CMake must, as the test composition does
+# in tests/native/management_composition/composition/services.cmake. Each sets the variables below.
+include(${CRUX_DIR}/components/web/session/sources.cmake)
+include(${CRUX_DIR}/components/web/management/sources.cmake)
+
+# The route sources of the Crux services you compose. Leave out a service to leave out its routes.
 set(route_sources
-    ${CRUX_WEB_SESSION_ROUTES}               # session routes, 5
-    ${CRUX_WEB_MANAGEMENT_ROUTES}            # status, configuration, account, 5
+    ${CRUX_WEB_SESSION_ROUTES}               # session routes, including the password change, 5
+    ${CRUX_WEB_MANAGEMENT_ROUTES}            # status and configuration, 5
     ${CRUX_WEB_MANAGEMENT_NETWORK_ROUTES}    # network settings, 2
     # ${CRUX_WEB_MANAGEMENT_REBOOT_ROUTES}   # reboot: composed in no image yet
     src/my_routes.c)                         # your own CRUX_WEB_ROUTE() uses
@@ -97,7 +101,9 @@ CONFIG_CRUX_SSH_SFTP=y
 CONFIG_CRUX_SSH_PORT=22
 ```
 
-**Which snippets were compiled or run.** None was compiled or run as written. The names and arguments were checked by reading `cmake/CruxWebAssets.cmake`, `cmake/CruxWebRoutes.cmake`, `components/ssh/ports/zephyr/wolf_ssh_settings.cmake`, `zephyr/Kconfig`, the `sources.cmake` files that set the four `CRUX_WEB_*_ROUTES` variables, and the two test images `tests/native/management_services` and `tests/native/management_ssh`, which use the same calls and ran. A product's own paths, `src/my_routes.c`, and a product build were **not** tried. The Mac that wrote this guide ran no Dev Container and no west build.
+**The snippet is not complete.** The route sources also need their `CRUX_WEB_SESSION_SOURCES`, `CRUX_WEB_SESSION_PSA_PORT`, `CRUX_WEB_MANAGEMENT_SOURCES` and `CRUX_WEB_MANAGEMENT_NETWORK_SOURCES` added to `app`, the adapter linked, and the services started, which `services.cmake` and `crux_native_management_services.c` show for the test image. A product writes this part.
+
+**Which snippets were compiled or run.** None was compiled or run as written. The names and arguments were checked by reading `cmake/CruxWebAssets.cmake`, `cmake/CruxWebRoutes.cmake`, `components/ssh/ports/zephyr/wolf_ssh_settings.cmake`, `zephyr/Kconfig`, the `sources.cmake` files that set the four `CRUX_WEB_*_ROUTES` variables, and the two test images `tests/native/management_services` and `tests/native/management_ssh`, which use the same calls and ran. A product's own paths, `src/my_routes.c`, and a product build were **not** tried. No Dev Container and no west build ran for this guide.
 
 ## Boot order
 
@@ -119,20 +125,21 @@ sequenceDiagram
 
 ## Kconfig
 
-All symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig). "Read by" says who uses the value.
+The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are others that this table leaves out, such as `CRUX_CLI`, `CRUX_CLI_LINE_MAX` and `CRUX_DEVELOPMENT_IMAGE`: see the [command line contract](cli-contract.md). "Read by" says who uses the value.
 
 | Symbol | Default | What it sets | Read by |
 | --- | --- | --- | --- |
 | `CRUX_WEB` | off | The web adapter. Selects the Zephyr HTTP server with header capture, wildcard resources and status phrases. Needs `NETWORKING`. | Module |
-| `CRUX_WEB_PORT` | 443 | Listening port, or 0 for an ephemeral one | Composition |
-| `CRUX_WEB_BACKLOG` | 4 | Connections the listening socket queues | Composition |
-| `CRUX_WEB_TLS_SEC_TAG` | 1 | TLS security tag of the credentials | Composition |
+| `CRUX_WEB_PORT` | 443 | Listening port, or 0 for an ephemeral one | Adapter |
+| `CRUX_WEB_BACKLOG` | 4 | Connections the listening socket queues | Adapter |
+| `CRUX_WEB_TLS_SEC_TAG` | 1 | TLS security tag of the credentials | Adapter, composition |
 | `CRUX_WEB_BODY_BUFFER` | 1024 | Bytes of request body held per client | Adapter |
 | `CRUX_WEB_SEND_TIMEOUT_MS` | 250 | Longest wait of one socket send, on the server thread | Adapter |
 | `CRUX_WEB_RESPONSE_PIECE` | 1024 | Bytes of a response body passed to the server at a time | Adapter |
 | `CRUX_WEB_RESPONSE_DEADLINE_MS` | 3000 | Longest time one response may keep the server thread. It also sizes the largest asset: a different value in `crux_web_assets` fails the build. | Adapter, packager |
 | `CRUX_WEB_REQUEST_DEADLINE_MS` | 5000 | Whole-request deadline, from the headers to the last body byte | Composition, in `crux_web_config_t` |
 | `CRUX_WEB_PLAIN_HTTP_FOR_TESTS` | off | Plain HTTP on loopback. `native_sim` only, for adapter tests. | Module |
+| `HTTP_SERVER_VERSION_2` | n | Set to `n` when `CRUX_WEB` is on (`configdefault`) | Zephyr |
 | `HTTP_SERVER_MAX_HEADER_LEN`, `_CAPTURE_HEADER_COUNT`, `_CAPTURE_HEADER_BUFFER_SIZE`, `_STACK_SIZE` | 512, 7, 1024, 4096 | Defaults that Crux sets when `CRUX_WEB` is on (`configdefault`). The header sizes fit the two cookies and the custom header. | Zephyr |
 | `NET_SOCKETS_TLS_CONNECT_TIMEOUT` | 2000 | Default when `CRUX_WEB` is on. **A client that opens a connection and sends nothing stops every client for this long**, and it also bounds every outbound TLS connect of the image. | Zephyr |
 | `CRUX_SSH` | off | The wolfSSH provider and the access adapter. Needs wolfSSH, IPv4 and sockets, and **refuses the Mbed profile**. A dependency that is not met only warns in Zephyr, so the symbol silently becomes `n`: check it in your CMake. | Module |
@@ -161,7 +168,7 @@ Every figure is a `native_sim` or source figure, unless the row says otherwise. 
 | One login verification at a time | A second `POST /api/v1/session` gets `503 busy` | [Web session](web-session.md#rules) |
 | Response document | 4 KiB (`CRUX_WEB_RESPONSE_MAX`) | [Web contract](web-contract.md) |
 | Configuration list | At most 27 parameters of 30-character names, 31 of 12 characters | [Management APIs](web-management-apis.md) |
-| Request body | 1 KiB by default | [Web contract](web-contract.md) |
+| Request body | 512 B per route by default, up to the 1 KiB per-client buffer (`CRUX_WEB_BODY_BUFFER`) | [Web contract](web-contract.md) |
 | Request headers | 7 captured, 512 B for any one value, `Cookie` up to 511 B. A longer one gets `400` for every route until the browser's cookies are cleared. | [Web contract](web-contract.md#header-capture) |
 | Largest packaged asset | 98,304 B at the default 3,000 ms deadline and 32,768 B/s client rate. Preact: 4 files, 23,208 B served. Angular: 5 files, 97,952 B served, largest file 92,064 B. | [Web assets](web-assets.md), [end to end](e2e-native-220.md#packaging-both-examples) |
 | Mbed TLS heap for three clients | 120,000 B, by a formula measured on `native_sim` | [HTTPS composition](https-composition.md) |
@@ -183,26 +190,26 @@ Every figure is a `native_sim` or source figure, unless the row says otherwise. 
 | `POST /api/v1/session/me/password` | session | `CRUX_WEB_SESSION_ROUTES` | Services image |
 | `GET /api/v1/status` | session, filtered per item | `CRUX_WEB_MANAGEMENT_ROUTES` | Services image |
 | `GET /api/v1/config`, `GET` and `PUT /api/v1/config/{name}` | session, per parameter | `CRUX_WEB_MANAGEMENT_ROUTES` | Services image |
-| `POST /api/v1/config/save` | permission `config.save` | `CRUX_WEB_MANAGEMENT_ROUTES` | Services image. No save provider: it cannot succeed. |
+| `POST /api/v1/config/save` | permission `config.save` | `CRUX_WEB_MANAGEMENT_ROUTES` | Services image. No save provider: it answers `202`, and the list then shows `"save":{"state":"failed","code":"not_supported"}`. |
 | `GET` and `PUT /api/v1/network` | permissions `network.read`, `network.write` | `CRUX_WEB_MANAGEMENT_NETWORK_ROUTES` | Services image. A change answers `501`. |
 | `GET` and `POST /api/v1/system/reboot` | permission `system.reboot` | `CRUX_WEB_MANAGEMENT_REBOOT_ROUTES` | **No image** |
 | One `GET` per packaged file, and `/` | public | `crux_web_assets` | Services image |
 
 No route exists for the TLS certificate, events, file upload or download. The services image holds exactly the 12 component routes above plus the packaged folder: [services image](native-composition-242.md#boot-order). The reviewed list is [`components/web/reviewed-routes.txt`](../components/web/reviewed-routes.txt).
 
-**What a custom frontend must send.** A route that a product defines with `CRUX_WEB_ROUTE()` and a session class gets the session lookup, the `Origin` check, the CSRF token check and the idle refresh from the adapter, on every method but `GET`. The frontend must:
+**What a custom frontend must send.** A route that a product defines with `CRUX_WEB_ROUTE()` and a session class gets the session lookup on every method, and the `Origin` check, the CSRF token check and the idle refresh on every method but `GET`, from `crux_web_session_authenticate` of the session module. The frontend must:
 
 | Send | Value | Why |
 | --- | --- | --- |
 | Cookies | `crux_session` (HttpOnly) and `XSRF-TOKEN`, both `Secure; SameSite=Strict`, set by the login | [Web session](web-session.md#rules) |
 | Header `X-XSRF-TOKEN` | The `XSRF-TOKEN` cookie's value, unchanged: base64url with no `%` and no quotes | Angular's `HttpClient` decodes percent escapes, which the token rules make harmless |
-| Header `Origin` | Added by the browser. Must equal the request's scheme, `://` and own `Host` exactly. | [Web session](web-session.md#rules) |
+| Header `Origin` | Added by the browser. Must equal the request's scheme, `://` and own `Host` exactly, unless the composition gives an exact list. | [Web session](web-session.md#rules) |
 | Header `X-Crux-Request: 1` | On the login attempt poll | Rejected with `403 csrf_rejected` otherwise |
 | Hash routing, no secrets in the bundle | The server has no deep-link fallback, and the bundle loads before login | [Frontend implementation](plans/web-frontend-implementation.md#how-a-product-builds-its-own-interface-or-starts-from-an-example) |
 
 ## Errors and events
 
-**Status and code.** The authority is the common forms table of the specification. `Retry-After` is `1` on every `503` that the core builds.
+**Status and code.** The authority is the common forms table of the specification. `Retry-After` is `1` on every `503` that the core builds (`components/web/src/web_response.c`).
 
 | Situation | Answer | Retry | Source |
 | --- | --- | --- | --- |
@@ -213,7 +220,8 @@ No route exists for the TLS certificate, events, file upload or download. The se
 | Unknown or hidden item | `404 not_found` | No | [Web contract](web-contract.md) |
 | Body over the route's limit | `413 payload_too_large`, closed | No | [Web contract](web-contract.md#answering-early) |
 | Login attempt inside a delay window | `429 retry_later` on the poll, with `Retry-After` | After `Retry-After`, with a new attempt | [Web session](web-session.md) |
-| No provider for the operation (a change to network settings, a save) | `501 not_supported` | No | [Management APIs](web-management-apis.md) |
+| No provider for a network change | `501 not_supported` | No | [Network settings](network-settings-service.md) |
+| No provider for a configuration save | `202` with `"state":"pending"`, then `GET /api/v1/config` shows `"save":{"state":"failed","code":"not_supported"}` | No | [Management APIs](web-management-apis.md) |
 | Reboot refused by the application | `423 reboot_refused` | No | Specification |
 | Busy, or not ready | `503 busy` or `not_ready`, with `Retry-After` | Yes | [Web contract](web-contract.md) |
 | **Server-generated, before any Crux code**: no resource, wrong method, another client holds the path, malformed request, `Upgrade` | Plain `404`, `405`, `409` (no body, connection closed), `500`, `426`. No JSON and no security header. | `409`: on a new connection | [Web contract](web-contract.md#responses-from-the-server-declared) |
@@ -246,7 +254,7 @@ The authority is the [identifier table](security-event-contract.md#what-exists).
 | Key exchange | `curve25519-sha256`, `ecdh-sha2-nistp256`. `mlkem768x25519-sha256` only if built with `CRUX_SSH_WOLF_OFFER_MLKEM`, **off by default**. Strict key exchange is on. | `diffie-hellman` groups |
 | Ciphers | `aes128-gcm@openssh.com`, `aes256-gcm@openssh.com`, `aes128-ctr`. No `chacha20-poly1305`. | `aes128-cbc`, `aes256-cbc`, `3des-cbc` |
 | MAC | `hmac-sha2-256` | `hmac-sha1` |
-| User keys | `ssh-ed25519`, `ecdsa-sha2-nistp256` (P-256 only). **No RSA**, by owner decision. | `ssh-rsa`, `rsa-sha2-256`, P-384, P-521. Access accepts P-384 and P-521 keys that SSH never offers: [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316). |
+| User keys | `ssh-ed25519`, `ecdsa-sha2-nistp256` (P-256 only). **No RSA**, by owner decision. | `ssh-rsa` and `rsa-sha2-256` (refused by OpenSSH in the cases), P-384 and P-521 (refused by the Host wire checks). Access accepts P-384 and P-521 keys that SSH never offers: [Issue #316](https://github.com/wonny-labs/crux-pilot/issues/316). |
 | Host key | Ed25519 or ECDSA P-256 | |
 
 **Clients that ran.**
@@ -256,7 +264,7 @@ The authority is the [identifier table](security-event-contract.md#what-exists).
 | OpenSSH 9.6 | Every case of the provider, CLI and SFTP records, in a container, against `native_sim`. Rekeys that the client starts. | [Provider record](ssh-wolf-provider.md#results) |
 | OpenSSH 9.9 | `mlkem768x25519-sha256`, `curve25519-sha256` and `ecdh-sha2-nistp256` each log in by key, on the development machine | [Provider record](ssh-wolf-provider.md#results) |
 | WinSCP 6.7 on Windows 11 | Two recorded SFTP runs against a `native_sim` image, one with keepalive on | [SFTP design](sftp-design.md#winscp) |
-| PuTTY, interactive | **None.** Only `psftp`'s raw log was requested for one failure. | [SFTP design](sftp-design.md#winscp) |
+| PuTTY, interactive | **None.** PuTTY 0.81 `psftp` ran in the author's attempts to reproduce the per-file-limit failure, and a `psftp -sshrawlog` run was requested from the tester. | [SFTP design](sftp-design.md#winscp) |
 | Any other client, OpenSSH 10.1 | **Not run** | [Provider record](ssh-wolf-provider.md#what-was-not-verified) |
 
 **Licence.** wolfSSL and wolfSSH are offered under GPL-3.0-or-later or a commercial licence. Check their terms before enabling the optional group: [product composition](product-composition.md). The Mbed profile avoids wolfSSL, and then has no SSH.
@@ -275,7 +283,7 @@ The authority is the [identifier table](security-event-contract.md#what-exists).
 
 | Assumption | State | Source |
 | --- | --- | --- |
-| The test certificate `tests/native/tls_offload_probe/credentials/test-server.crt` has a public key and is a `CA:TRUE` certificate. **It must never ship in a product.** The listener of every image serves it today. | A product must install its own: decision B of the TLS certificate model is open. | [TLS certificate](tls-certificate.md), [services image](native-composition-242.md) |
+| The test certificate `tests/native/tls_offload_probe/credentials/test-server.crt` has a public key and is a `CA:TRUE` certificate. **It must never ship in a product.** The listener of every image serves it today. | A product must install its own. No document records how, and no composition registers one. | [TLS certificate](tls-certificate.md), [services image](native-composition-242.md) |
 | First connection to a device: the product's user checks the SHA-256 fingerprint by hand, which is trust on first use. | Procedure written. The composition must print the fingerprint. | [TLS certificate](tls-certificate.md#the-first-connection) |
 | The private key of the device certificate sits in RAM as PKCS #8 for the life of the program. | By design. The store's confidentiality basis applies to the stored copy only. | [TLS certificate](tls-certificate.md) |
 | The credential store is **not confidential** on the planned pilot basis, and entropy on `native_sim` is test-only, so no token or key strength is shown. | Declared | [Credential store](credential-store.md), [PSA design](psa-crypto-design.md) |
@@ -294,7 +302,7 @@ The authority is the [identifier table](security-event-contract.md#what-exists).
 | --- | --- | --- |
 | Web adapter, Host | `host.yml`: `scripts/test-web.sh host`, Access, command line, the command line over SSH under ThreadSanitizer | |
 | Web adapter on `native_sim` | `zephyr.yml`: plain HTTP (`scripts/test-web.sh native`) and packaged assets (`scripts/test-web-assets.sh native`) | |
-| HTTPS, Mbed profile | `psa-crypto.yml`: the management composition, the adapter over HTTPS, login and sessions. The services image runs in the same Mbed mode. | |
+| HTTPS, Mbed profile | `psa-crypto.yml`: the management composition, and the adapter over HTTPS. Login and sessions run there over plain HTTP. The services image runs in the same Mbed mode. | |
 | HTTPS, **Wolf profile** | | Local only. A default workflow must not fetch a GPL stack. |
 | SSH on `native_sim` (provider, CLI, SFTP, integrated image) | CLI entry points compile for `native_sim` and RT1060-EVKB in `zephyr.yml`. | **OpenSSH runs on `native_sim`**: `scripts/test-ssh-provider.sh`, `scripts/test-ssh-sftp-native.sh`, `scripts/test-ssh-integrated.sh` |
 | Browser cases against firmware (`e2e-mbed`, `e2e-wolf`) | | **Local only.** No workflow runs them. |
