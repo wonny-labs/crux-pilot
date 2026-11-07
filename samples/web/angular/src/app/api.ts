@@ -1,6 +1,7 @@
 // The management API through HttpClient, with the generated types. It covers what the screens need: the
 // two-request attempts for sign-in and the password change, the required poll header, the retry of a held
-// route, the plain answers, and the configuration calls with the wait for a save.
+// route, the plain answers, the configuration calls with the wait for a save, and the network settings and
+// restart calls with their waits.
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
@@ -14,6 +15,10 @@ import type {
   CurrentUser,
   ErrorCode,
   FieldError,
+  Ipv4Settings,
+  NetworkState,
+  RebootAccepted,
+  RebootState,
   SaveQueued,
   SessionAttempt,
   StatusReport,
@@ -34,6 +39,8 @@ export interface Failure {
   status: number;
   fields: FieldError[];
   retryAfterSeconds: number | undefined;
+  /** The text that the device's reboot policy gave with a refusal. */
+  reason: string | undefined;
 }
 
 export type SaveOutcome =
@@ -44,10 +51,40 @@ export type SaveOutcome =
   | { kind: 'aborted' }
   | { kind: 'failed_request'; failure: Failure };
 
+/** The end of the wait for a network settings save. */
+export type NetworkSaveOutcome =
+  | { kind: 'saved'; state: NetworkState }
+  | { kind: 'failed'; state: NetworkState }
+  /** This session may write but not read, so it cannot see the result. */
+  | { kind: 'unreadable' }
+  | { kind: 'not_confirmed' }
+  | { kind: 'aborted' }
+  | { kind: 'failed_request'; failure: Failure };
+
+/** The end of the wait for a restart. Only the end of the session counts as one: the running device also answers. */
+export type RebootOutcome =
+  | { kind: 'restarted' }
+  | { kind: 'failed' }
+  | { kind: 'refused'; reason: string }
+  | { kind: 'not_confirmed'; lastSeen: 'running' | 'away' }
+  | { kind: 'aborted' }
+  | { kind: 'failed_request'; failure: Failure };
+
+export interface RebootUpdate {
+  /** Whether the latest poll got an answer from a running device. */
+  lastSeen: 'running' | 'away';
+  overdue: boolean;
+}
+
 const SAVE_POLL_MS = 1000;
 const SAVE_LIMIT_MS = 15_000;
 /** The device's Retry-After is honoured up to this long between two reads. */
 const SAVE_WAIT_MAX_MS = 5000;
+
+/** The same limits as the framework-free client: poll every 2 s, flag at 60 s, stop at 180 s. */
+const REBOOT_POLL_MS = 2000;
+const REBOOT_EXPECTED_MS = 60_000;
+const REBOOT_LIMIT_MS = 180_000;
 
 const BUSY_DELAYS_MS = [300, 600, 1200];
 const POLL_START_MS = 250;
@@ -56,6 +93,29 @@ const ATTEMPT_LIMIT_MS = 30_000;
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Sleep, and say whether the sleep ran its course: false means that the signal stopped it. */
+function pause(ms: number, signal: AbortSignal): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve(false);
+      return;
+    }
+    const stop = (): void => {
+      clearTimeout(timer);
+      resolve(false);
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', stop);
+      resolve(true);
+    }, ms);
+    signal.addEventListener('abort', stop, { once: true });
+  });
+}
+
+function sameSettings(a: Ipv4Settings | undefined, b: Ipv4Settings): boolean {
+  return a !== undefined && a.address === b.address && a.prefix_length === b.prefix_length && a.gateway === b.gateway;
 }
 
 function retryAfter(error: HttpErrorResponse): number {
@@ -77,13 +137,14 @@ export function codeOf(error: unknown): ErrorCode | 'network' | 'unexpected' {
 
 export function failureOf(error: unknown): Failure {
   const status = error instanceof HttpErrorResponse ? error.status : 0;
-  const body = error instanceof HttpErrorResponse ? (error.error as { fields?: FieldError[] } | null) : null;
+  const body = error instanceof HttpErrorResponse ? (error.error as { fields?: FieldError[]; reason?: unknown } | null) : null;
   const header = error instanceof HttpErrorResponse ? (error.headers.get('Retry-After') ?? '') : '';
   return {
     code: codeOf(error),
     status,
     fields: Array.isArray(body?.fields) ? body.fields : [],
     retryAfterSeconds: /^[1-9][0-9]*$/.test(header) ? Number(header) : undefined,
+    reason: typeof body?.reason === 'string' ? body.reason : undefined,
   };
 }
 
@@ -187,6 +248,110 @@ export class Api {
         return { kind: 'not_confirmed' };
       }
       await wait(Math.min(delay, SAVE_WAIT_MAX_MS, left));
+    }
+  }
+
+  network(): Promise<NetworkState> {
+    return this.retryBusy(() => firstValueFrom(this.http.get<NetworkState>('api/v1/network')));
+  }
+
+  /** Saved values take effect at the next boot. The token header is added by HttpClient. */
+  putNetwork(settings: Ipv4Settings): Promise<SaveQueued> {
+    return this.retryBusy(() => firstValueFrom(this.http.put<SaveQueued>('api/v1/network', settings)));
+  }
+
+  /** Read the network state until the save shows: the saved values are the expected ones and no save is pending. */
+  async watchNetworkSave(expected: Ipv4Settings, signal: AbortSignal): Promise<NetworkSaveOutcome> {
+    const start = Date.now();
+    for (;;) {
+      if (signal.aborted) {
+        return { kind: 'aborted' };
+      }
+      try {
+        const state = await this.network();
+        if (state.save?.state === 'failed') {
+          return { kind: 'failed', state };
+        }
+        if (state.save === undefined && sameSettings(state.saved, expected)) {
+          return { kind: 'saved', state };
+        }
+      } catch (error) {
+        const failure = failureOf(error);
+        if (failure.code === 'permission_denied') {
+          return { kind: 'unreadable' };
+        }
+        if (failure.code === 'unauthorized') {
+          return { kind: 'failed_request', failure };
+        }
+      }
+      if (Date.now() - start >= SAVE_LIMIT_MS) {
+        return { kind: 'not_confirmed' };
+      }
+      if (!(await pause(SAVE_POLL_MS, signal))) {
+        return { kind: 'aborted' };
+      }
+    }
+  }
+
+  rebootState(): Promise<RebootState> {
+    return this.retryBusy(() => firstValueFrom(this.http.get<RebootState>('api/v1/system/reboot')));
+  }
+
+  requestReboot(): Promise<RebootAccepted> {
+    return this.retryBusy(() => firstValueFrom(this.http.post<RebootAccepted>('api/v1/system/reboot', null)));
+  }
+
+  /**
+   * Read the restart state until it ends. A 401 is the expected end, so the one thing that counts as a restart
+   * is a session that is no longer valid. No answer is a device that is away, and an answer is a device that
+   * runs, so neither alone is success. A read is not retried, so that a held route does not hide a restart.
+   */
+  async watchReboot(signal: AbortSignal, onUpdate: (update: RebootUpdate) => void): Promise<RebootOutcome> {
+    const start = Date.now();
+    let lastSeen: RebootUpdate['lastSeen'] = 'running';
+    for (;;) {
+      let delay = REBOOT_POLL_MS;
+      try {
+        const state = await firstValueFrom(this.http.get<RebootState>('api/v1/system/reboot'));
+        lastSeen = 'running';
+        if (state.state === 'failed') {
+          return { kind: 'failed' };
+        }
+        if (state.state === 'refused') {
+          return { kind: 'refused', reason: state.reason };
+        }
+      } catch (error) {
+        const failure = failureOf(error);
+        switch (failure.code) {
+          case 'unauthorized':
+            return { kind: 'restarted' };
+          case 'network':
+            lastSeen = 'away';
+            break;
+          case 'busy':
+          case 'not_ready':
+            lastSeen = 'running';
+            delay = Math.max(delay, (failure.retryAfterSeconds ?? 0) * 1000);
+            break;
+          case 'unexpected':
+            // The device answered, even if not as the specification says, so it is running.
+            lastSeen = 'running';
+            break;
+          default:
+            return { kind: 'failed_request', failure };
+        }
+      }
+      if (signal.aborted) {
+        return { kind: 'aborted' };
+      }
+      const elapsed = Date.now() - start;
+      if (elapsed >= REBOOT_LIMIT_MS) {
+        return { kind: 'not_confirmed', lastSeen };
+      }
+      onUpdate({ lastSeen, overdue: elapsed >= REBOOT_EXPECTED_MS });
+      if (!(await pause(delay, signal))) {
+        return { kind: 'aborted' };
+      }
     }
   }
 

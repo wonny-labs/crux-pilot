@@ -1,5 +1,5 @@
 // The browser cases that the Preact and Angular examples both pass: sign-in, home, the forced
-// password change and configuration.
+// password change and configuration, and the advanced flows of shared-advanced-cases.ts.
 // They find elements by role, label and visible text only, so they hold for any framework.
 //
 // The same list runs on the mock and, with a target in the AppConfig, on a native_sim image over HTTPS
@@ -11,6 +11,7 @@ import type { Locator, Page } from 'playwright-core';
 import type { RecordedRequest } from '../mock/server.ts';
 import { browserArgs, lazyBrowser, missingNeed, PASSWORD, recordResult, requireBuilt, runCase, signIn, waitForHeading } from './harness.ts';
 import type { AppConfig, Need, OpenApp } from './harness.ts';
+import { advancedCases } from './shared-advanced-cases.ts';
 
 const NEW_PASSWORD = 'example-new-password-not-real';
 
@@ -72,10 +73,9 @@ async function xsrfCookie(app: OpenApp): Promise<string> {
 }
 
 /** Runs one case of a list, or skips it where the target lacks its need, and records the result either way. */
-export function caseRunner(
-  config: AppConfig,
-  shared: ReturnType<typeof lazyBrowser>,
-): (name: string, body: (app: OpenApp) => Promise<void>, needs?: Need[]) => void {
+export type RunCase = (name: string, body: (app: OpenApp) => Promise<void>, needs?: Need[]) => void;
+
+export function caseRunner(config: AppConfig, shared: ReturnType<typeof lazyBrowser>): RunCase {
   return (name, body, needs = []) => {
     const reason = missingNeed(config, needs);
     if (reason !== undefined) {
@@ -878,4 +878,7 @@ export function sharedCases(config: AppConfig): void {
     await page.waitForTimeout(7000);
     assert.equal(reads(), after);
   }, ['mock-control']);
+
+  // Network settings and restart, in their own file.
+  advancedCases(run);
 }

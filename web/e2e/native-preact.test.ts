@@ -1,5 +1,5 @@
 // The shared browser cases and the real-server cases on the Preact example, packaged under the strict
-// setting into a native_sim image and served over HTTPS (Issue #220). The advanced flows run here only.
+// setting into a native_sim image and served over HTTPS (Issue #220). The advanced flows run here and on the Angular example.
 import { join } from 'node:path';
 import { after } from 'node:test';
 import { webRoot } from './harness.ts';

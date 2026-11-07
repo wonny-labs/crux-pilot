@@ -34,6 +34,13 @@ export class Session {
     void this.router.navigateByUrl('/sign-in');
   }
 
+  /** The device restarted, which ended this session. Sign-in says so, and not that the session ended. */
+  restarted(): void {
+    this.user.set(null);
+    this.notice.set('The device has restarted. Sign in again to continue.');
+    void this.router.navigateByUrl('/sign-in');
+  }
+
   async signOut(): Promise<void> {
     try {
       await this.api.logout();

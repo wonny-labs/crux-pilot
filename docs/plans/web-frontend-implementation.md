@@ -29,8 +29,9 @@ behind the gate. It covers no hardware, and nothing here was run on a board.
 
 ## Core and Advanced evidence
 
-Each evidence state is recorded on its own, and none stands in for another. Core flows run on both examples, and advanced
-flows on the Preact example with service tests underneath. Host here means the C services, which have no web route yet.
+Each evidence state is recorded on its own, and none stands in for another. Core and advanced flows run on both examples on
+the mock, since #243 added network settings and restart to the Angular example, with service tests underneath. Host here means
+the C services, which have no web route yet.
 
 | Flow | Kind | Mock | Host | `native_sim` | Physical |
 | --- | --- | --- | --- | --- | --- |
@@ -39,8 +40,8 @@ flows on the Preact example with service tests underneath. Host here means the C
 | Forced password change | Core | Both examples | Access contract. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
 | Status | Core | Both examples | Service in #180. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
 | Simple configuration update | Core | Both examples | Service in #180. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
-| Network settings | Advanced | Preact | Service in #213 | Preact over HTTPS: read, and a change refused as not saved with no Configuration provider, [#220](../e2e-native-220.md#results) | Not run |
-| Reboot | Advanced | Preact | Service in #214 | Mock only: #214's service is merged but not composed in the services image, [#220](../e2e-native-220.md) | Not run |
+| Network settings | Advanced | Both examples | Service in #213 | Preact over HTTPS: read, and a change refused as not saved with no Configuration provider, [#220](../e2e-native-220.md#results). The Angular case is written and **NOT RUN**. | Not run |
+| Reboot | Advanced | Both examples | Service in #214 | Mock only: #214's service is merged but not composed in the services image, [#220](../e2e-native-220.md) | Not run |
 
 ```mermaid
 flowchart LR
@@ -322,10 +323,13 @@ by file.
 | Limit | Value | Measured |
 | --- | --- | --- |
 | Files | 4: index, one script, one style, one icon | 4 |
-| Compressed bytes | 32768 | 23184 |
+| Compressed bytes | 32768 | 23302 |
 
 The Preact example's parts, in bytes then compressed bytes: script 64419 and 21371, style 3931 and 1307, index 548 and 347, icon 174
-and 159. The configuration screen of #243 added 2,729 compressed bytes, and the budget is unchanged, so 9,584 bytes remain.
+and 159, as measured before the move to `samples/web/preact`. The configuration screen of #243 added 2,729 compressed bytes, and the
+budget is unchanged. The build on `origin/main` before this change and the build after it both measured 69,583 bytes and 23,301 to
+23,302 compressed bytes here (the last byte follows the hashed file names), so 9,466 bytes remain. The earlier record of 23,184
+is older than that.
 
 ## Supply chain
 
@@ -360,13 +364,17 @@ sign-in, home, configuration with an update and a save, and sign-out, in `e2e/an
 
 | Build | Files | Bytes | Compressed bytes | Production packages | Locked packages |
 | --- | --- | --- | --- | --- | --- |
-| Preact example, all six screens | 4 | 69072 | 23184 | 1 | 38 |
-| Preact example, core screens: sign-in, forced change, home and configuration | 4 | 58709 | 20761 | 1 | 38 |
-| Angular example, the same core screens | 5 | 298780 | 91197 | 7 | 362 |
+| Preact example, all six screens | 4 | 69583 | 23302 | 1 | 38 |
+| Preact example, core screens: sign-in, forced change, home and configuration | 4 | 59212 | 20874 | 1 | 38 |
+| Angular example, all six screens | 5 | 326893 | 97990 | 7 | 362 |
 
 Before #243 the Angular row held sign-in and home alone, at 249403 bytes and 76710 compressed, against 48485 and 17922 for
-Preact, so those earlier rows do not compare with these. Both builds now hold the same four core flows. The fifth Angular file is `3rdpartylicenses.txt`, at 4822 compressed bytes,
-which the build writes by default, so the example's code and style are 86,375 compressed bytes. The Preact build writes no
+Preact, and then the four core flows, at 298780 bytes and 91197 compressed, against 58709 and 20761. Those earlier rows do not
+compare with these. Both builds now hold all six screens: the four core flows, network settings and restart. Network settings and
+restart added 28,113 bytes and 6,793 compressed bytes to Angular, which is 309.22 kB raw and 81.73 kB transferred for its initial
+bundle, over the former 300 kB limit. The limit in `angular.json` is now 320 kB, which leaves 10.78 kB, and that change is the owner's
+call: see [the advanced flows](../web-advanced-flows.md). The fifth Angular file is `3rdpartylicenses.txt`, at 4,849 compressed bytes,
+which the build writes by default, so the example's code and style are 93,141 compressed bytes. The Preact build writes no
 licence file, and the SBOM names Preact's MIT licence but holds no copyright notice. MIT requires that notice in copies, so
 this build alone does not meet it, and a product must add the text of Preact's `LICENSE` to its own notices. Installed tools measured 55 MB, 13 packages and 1,252 files for
 `web`, and 237 MB, 240 packages and 16,245 files for the Angular example, on macOS arm64.
@@ -386,8 +394,8 @@ What this shows, on the mock only:
 
 | Question | Result |
 | --- | --- |
-| Does Angular work with the web foundation? | Yes, on these two screens, with the same browser cases as the Preact example. |
-| Compressed size against Preact on the same screens | About 4.4 times on the core screens: 91,197 against 20,761 bytes. Excluding the licence file, 4.2 times. On sign-in and home alone it was 4.3 and 4.0 times. |
+| Does Angular work with the web foundation? | Yes, on all six screens, with the same browser cases as the Preact example. |
+| Compressed size against Preact on the same screens | About 4.2 times on all six screens: 97,990 against 23,302 bytes. Excluding the licence file, 4.0 times. On the core screens alone it was 4.4 and 4.2 times, and on sign-in and home alone 4.3 and 4.0 times. |
 | File count | No lazy loading is used, so one script and one style, as for Preact. |
 | CSRF | `HttpClient`'s default names work with no configuration, shown by the sign-out case. |
 | Hash routing | `withHashLocation` works, and the server sees only API and asset paths. |
@@ -498,7 +506,7 @@ Each was taken for lack of an answer, as the narrower choice.
 | One PR with one commit for each issue | The issues build on each other and PRs must be based on `main` |
 | A small local type generator, not `openapi-typescript` | Keeps the package count low, and it refuses schema forms it does not know. Any project can still use another generator. |
 | `ajv` for the conformance check | A real validator is worth five development packages here, because a home-made one could hide a fault |
-| Exact budget numbers, and a raw limit of 300 kB in the Angular example's `angular.json` | The design gives none |
+| Exact budget numbers, and a raw limit in the Angular example's `angular.json`: 300 kB, and 320 kB since network settings and restart | The design gives none |
 | Reboot and save time limits | No measurement exists, so they are assumptions and can be changed through an option |
 | No automatic new attempt after a `429`, a `503` or a `404` | The specification says that the client starts a new attempt, and the safer reading is that the user asks for it. The only time a password is sent again without a user action is after a `409`, which the server did not process, so no verification ran. Nothing keeps a password after the form. |
 | Forced change only, with no general change-password link | Account management stays on the CLI, as the design says |
