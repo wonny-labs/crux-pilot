@@ -451,6 +451,24 @@ filtered out instead of built. `scripts/test-storage-simulators.sh` and this scr
 Zephyr CI workflow; `scripts/test-file-persistence.sh` is not.
 It also refuses to build on Rev C and on the hyperflash variant (a negative control, checked by the Kconfig message).
 
+### eMMC simulator on `native_sim`
+
+`tests/support/emmc_sim` is a `native_sim` SD host driver that behaves as one eMMC device, so that the
+unmodified `drivers/disk/mmc_subsys.c` and `subsys/sd` run without hardware. It cannot be selected on a
+target. `tests/native/emmc_stack` runs the stack against it, with and without a cache: initialisation,
+geometry, reads and writes, the bounce path for unaligned buffers, bounds, injected faults and retries,
+a busy card, and a sync that sends no flush at the pinned revision. `tests/native/emmc_restart` runs
+separate processes on the host file behind the simulator: data on the medium outlives the process,
+data held in the cache does not, an image of the wrong size is an error, and the trace holds what was
+written. The stack sends no flush, so that run reaches the simulator's flush path with a command of its
+own. `scripts/test-storage-emmc.sh` runs both and requires the executed cases of each scenario. It is
+not in the Zephyr CI workflow.
+
+The simulator is a model written from the stack's needs, by the same author as the tests, and is not
+device evidence. Results show how the stack behaves against that model, not how an eMMC device behaves.
+It models no timing and no wear. Its busy period after CMD6 and after a write lasts one poll unless a
+longer one is injected, and it holds cached writes until a flush whatever the size it reports. A process exit is not a power loss.
+
 ## Portable queue and monotonic timing
 
 Queue owns its native ports under `components/queue/ports/<os>/`. Portable
