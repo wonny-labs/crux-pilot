@@ -1,0 +1,14 @@
+/* Replace native_sim's test generator with a device whose reads can fail. */
+/ {
+	chosen {
+		zephyr,entropy = &crux_test_entropy;
+	};
+
+	crux_test_entropy: crux-test-entropy {
+		compatible = "crux,test-entropy";
+	};
+};
+
+&rng {
+	status = "disabled";
+};
