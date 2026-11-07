@@ -222,7 +222,7 @@ TF-PSA-Crypto `dc575a2` and Mbed TLS `a3e190f`. CI results are in the pull reque
 - The worker's stack, the verifier's and the save's time on a target, and the stall they cause. The stall of a password change or a cost upgrade is declared above and not measured.
 - The PSA ports' guard is a deny-list of `CONFIG_FAKE_ENTROPY_NATIVE_SIM` and `CONFIG_TEST_RANDOM_GENERATOR`. Where those Kconfig macros are not visible to the file, as in a build without Zephyr's `autoconf.h`, or with another test generator, it passes silently.
 - The Wolf profile in #186's own `native_sim` image: only the Mbed profile runs there. Both profiles ran the sessions over HTTPS later, in [the services image](native-composition-242.md).
-- Security events for a refused CSRF token or `Origin`: none are emitted, because the event contract has no identifier for them.
+- Security events for a refused CSRF token or `Origin`: none are emitted. The identifier `web.csrf_rejected` exists, and nothing emits it ([Issue #319](https://github.com/wonny-labs/crux-pilot/issues/319)).
 
 ## Decisions taken without an answer
 

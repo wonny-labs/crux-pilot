@@ -189,7 +189,7 @@ clients are OpenSSH 9.6 `ssh` and `sftp`, and `curl` against the declared test c
 
 Host: Apple silicon, Docker with an `amd64` Dev Container image under emulation, Zephyr v4.4.2 with the TLS socket patch,
 OpenSSH 9.6p1, curl 8.5 and OpenSSL 3.0.13. **The wall times below are not a target's.** `native_sim` gives CPU work no simulated time, and the
-container is emulated and shared, so they only compare one run with another, and they moved by up to a factor of two between runs of the same revision (the idle HTTPS call read 0.18 s in one run of #313 and 0.26 s in the run below). The figures and the revision: one run of `scripts/test-ssh-integrated.sh all` at `22dafed`, 86 checks. Sizes belong to the revision. The heap peak read 97,496 B in two runs of this PR and 100,448 B in a third, so read it as a size class.
+container is emulated and shared, so they only compare one run with another, and they moved by up to a factor of two between runs of the same revision (the idle HTTPS call read 0.18 s in one run of #313 and 0.26 s in the run below). The figures and the revision: one run of `scripts/test-ssh-integrated.sh all` at `22dafed`, 86 checks. Sizes belong to the revision. The heap peak read 97,496 B in two runs of #313 and 100,448 B in a third, so read it as a size class.
 
 | Kind | What | Result |
 | --- | --- | --- |
