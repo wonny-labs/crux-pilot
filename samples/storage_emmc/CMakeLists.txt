@@ -15,6 +15,9 @@ target_link_libraries(app PRIVATE crux::file)
 if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
   target_sources(app PRIVATE emmc_configuration.c)
   target_link_libraries(app PRIVATE crux::configuration)
+  # The private header of the provider (crux_config_zephyr_init), which crux::configuration does not
+  # expose: the composition wires it itself.
+  target_include_directories(app PRIVATE ${CRUX_ROOT}/components/configuration/ports/zephyr)
 endif()
 target_include_directories(app PRIVATE ${CRUX_ROOT}/zephyr/fs/reliance_edge
   ${CRUX_ROOT}/components/file/ports/zephyr)

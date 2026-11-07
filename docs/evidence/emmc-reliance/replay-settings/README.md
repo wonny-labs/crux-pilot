@@ -124,7 +124,7 @@ links nothing that runs. It is the link-only check that the issue asks for, with
 
 - The image links `emmc_configuration_start`, `crux_config_zephyr_init` and the Zephyr Settings File backend, and
   not `red_format` or FatFs. The sample has no Configuration consumer, so `crux_config_save` is not referenced
-  and `configuration.c` is not in the image.
+  and the image check does not require it.
 - `.config` has `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE=y`, `CONFIG_SETTINGS=y`, `CONFIG_SETTINGS_FILE=y` and
   `CONFIG_SETTINGS_FILE_PATH="/MMC:/settings/cfg"`. The other two images have neither of the first two.
 - The build used the three staged copies (`settings_file.c`, `settings_line.c`, `settings_store.c`) and none of the

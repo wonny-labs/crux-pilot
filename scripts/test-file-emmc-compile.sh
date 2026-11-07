@@ -126,8 +126,8 @@ for name, start, settings in SCENARIOS:
     if start:
         wanted += ['emmc_storage_start', 'crux_file_zephyr_bind', 'disk_access_init']
     if settings:
-        # The sample has no Configuration consumer, so crux_config_save is not referenced and the
-        # static library does not bring configuration.c in: the provider's init is what links.
+        # The sample has no Configuration consumer, so crux_config_save is not referenced and is not
+        # required here: the provider's init is what the gate requires.
         wanted += ['emmc_configuration_start', 'crux_config_zephyr_init', 'settings_backend_init']
     for symbol in wanted:
         if symbol not in present:

@@ -19,9 +19,6 @@ target_link_libraries(crux_configuration_zephyr PRIVATE crux_configuration_api z
 add_dependencies(crux_configuration_zephyr zephyr_generated_headers)
 target_compile_options(crux_configuration_zephyr PRIVATE -Wall -Wextra -Werror)
 
-# The private header of the provider, for a composition that initialises it.
-target_include_directories(crux_configuration_api INTERFACE "${CMAKE_CURRENT_LIST_DIR}")
-
 add_library(crux_configuration INTERFACE)
 add_library(crux::configuration ALIAS crux_configuration)
 target_link_libraries(crux_configuration INTERFACE crux_configuration_api)
