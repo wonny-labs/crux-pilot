@@ -47,6 +47,14 @@ Controls on Reliance Edge, each required to fail:
            mark
   damaged image  the baseline with both metaroots overwritten: mount=0
 
+With --workload W4 only W4 runs, on images built with the Settings File backend (settings.conf):
+W4 saves three keys through the backend, which compacts its file
+through a temporary and a rename, and marks after each save. It is a separate run with its own
+JSON (reliance-w4.json), so the counts and pins of the W1 to W3 run do not move. On red-fix every
+invariant is asserted on both profiles, I3 meaning that the active settings file is complete, and
+the flush, early acknowledgement and damaged image controls must fail as required. A temporary
+(.cmp) left behind by a cut is counted and is not a failure; an active file that is missing is.
+
 The profile commits when a file is created, so a W3 step that creates a file commits twice and a
 cut between the two can leave the new file present and empty. On Reliance Edge the W3 verifier runs
 with --create-may-be-empty, which accepts exactly that state in the step after the acknowledged
@@ -86,7 +94,7 @@ METAROOT_MODELS = ('prefix', 'torn', 'reordered')
 FIELDS = ('mount', 'data', 'read_error', 'replace', 'untouched', 'recommit')
 VIOLATIONS = {'mount': 'I1', 'data': 'I2', 'replace': 'I3', 'untouched': 'I4', 'recommit': 'I5'}
 LINE = re.compile(r'POWERCUT ' + ' '.join(f'{field}=([01])' for field in FIELDS) +
-                  r'(?: created_empty=([01]))?')
+                  r'(?: created_empty=([01]))?(?: cmp=([01]))?')
 TIMEOUT = 60
 # On W1 the other copy of the file's inode is a valid older inode and file data has no check, so a
 # draw that keeps the new metaroot only gives data=0, which an older state explains: the barrier
@@ -99,8 +107,10 @@ W3_CREATE_STEPS = {2: 'files/w3b', 4: 'files/w3dir/e', 6: 'files/w3c', 11: 'file
 # The W3 files and their indices in workloads.c, for --phase=stage --empty=INDEX.
 W3_FILES = {'files/w3a': 0, 'files/w3b': 1, 'files/w3c': 2, 'files/w3d': 3, 'files/w3dir/e': 5}
 W3_STEPS = 12
+W4_STEPS = 24
 IMAGES = {'fatfs': {'fix': 'fat-fix', 'nofix': 'fat-nofix'},
-          'reliance': {'fix': 'red-fix', 'nofix': 'red-nofix'}}
+          'reliance': {'fix': 'red-fix', 'nofix': 'red-nofix'},
+          'reliance-w4': {'fix': 'red-fix-settings', 'nofix': 'red-nofix-settings'}}
 
 
 def derive(*parts):
@@ -124,11 +134,14 @@ class Replay:
     def __init__(self, args):
         self.args = args
         self.exes = {'fix': args.exe_fix, 'nofix': args.exe_nofix}
-        self.work = os.path.join(args.out, f'work-{args.fs}')
-        self.kept = os.path.join(args.out, f'failed-{args.fs}')
+        self.w4 = args.workload == 'W4'
+        self.tag = args.fs + ('-w4' if self.w4 else '')
+        self.workloads = ('W4',) if self.w4 else WORKLOADS
+        self.work = os.path.join(args.out, f'work-{self.tag}')
+        self.kept = os.path.join(args.out, f'failed-{self.tag}')
         self.image = os.path.join(self.work, 'medium.bin')
         self.reliance = args.fs == 'reliance'
-        self.names = IMAGES[args.fs]
+        self.names = IMAGES[self.tag]
         self.metaroot = metaroot_sectors() if self.reliance else frozenset()
         self.traces = {}
         self.created_empty = []
@@ -187,6 +200,7 @@ class Replay:
         if not acked_only:
             self.cases += 1
         create_empty = self.reliance and workload == 'W3'
+        has_cmp = workload == 'W4'
         key = (exe, workload, acked, acked_only, hashlib.sha256(image).digest())
         if key in self.memo:
             return self.memo[key]
@@ -199,13 +213,16 @@ class Replay:
         self.processes += 1
         lines = [LINE.fullmatch(line) for line in out]
         if (rc != 0 or len(out) != 1 or lines[0] is None or
-                (lines[0].group(len(FIELDS) + 1) is not None) != create_empty):
+                (lines[0].group(len(FIELDS) + 1) is not None) != create_empty or
+                (lines[0].group(len(FIELDS) + 2) is not None) != has_cmp):
             answer = (None, f'rc {rc} {out} {err[-500:]}')
             print(f'verifier gave no result: {answer[1]}', file=sys.stderr)
         else:
             result = {field: int(value) for field, value in zip(FIELDS, lines[0].groups())}
             if create_empty:
                 result['created_empty'] = int(lines[0].group(len(FIELDS) + 1))
+            if has_cmp:
+                result['cmp'] = int(lines[0].group(len(FIELDS) + 2))
             answer = (result, None)
         self.memo[key] = answer
         return answer
@@ -297,6 +314,8 @@ class Replay:
                 self.fail(record, 'the verifier gave no result', image)
                 continue
             found = violations(result)
+            if result.get('cmp'):
+                group['cmp_leftover'] = group.get('cmp_leftover', 0) + 1
             if result.get('created_empty'):
                 self.created_empty.append(dict(record, result=result))
                 group['created_empty'] = group.get('created_empty', 0) + 1
@@ -324,14 +343,15 @@ class Replay:
             return False
         return result['data'] == 1
 
-    def flush_control(self):
-        """The nofix image, cached, lost: W1 must lose acknowledged data after each mark."""
-        events = self.trace('nofix', 'W1', 'cached')
+    def flush_control(self, workload='W1'):
+        """The nofix image, cached, lost: the workload must lose acknowledged data after each mark."""
+        events = self.trace('nofix', workload, 'cached')
         cases = []
         failed = False
         marks = [index + 1 for index, event in enumerate(events) if event.kind == 'mark']
         for position in marks:
-            record, image, result = self.case('nofix', events, 'W1', 'cached', 'lost', position)
+            record, image, result = self.case('nofix', events, workload, 'cached', 'lost',
+                                              position)
             ok = result is not None and result['mount'] == 1 and result['data'] == 0
             cases.append(dict(record, result=result, failed_as_required=ok))
             if not ok:
@@ -339,7 +359,7 @@ class Replay:
                 self.fail(record, 'the flush control did not report data=0 with mount=1', image)
         return {
             'name': 'flush', 'image': self.names['nofix'], 'profile': 'cached', 'model': 'lost',
-            'workload': 'W1', 'required': 'mount=1 and data=0 at every position after a mark',
+            'workload': workload, 'required': 'mount=1 and data=0 at every position after a mark',
             'flushes_in_trace': sum(1 for event in events if event.kind == 'flush'),
             'cases': cases, 'failed_as_required': bool(marks) and not failed,
         }
@@ -361,14 +381,14 @@ class Replay:
                                  if case['result'] is not None and case['result']['data'] == 0),
         }
 
-    def early_ack_control(self):
-        """red-fix, run-early, cached, lost, W1: each mark precedes its sync, so data=0 after it."""
-        events = self.trace('fix', 'W1', 'cached', phase='run-early')
+    def early_ack_control(self, workload='W1'):
+        """red-fix, run-early, cached, lost: each mark precedes its sync, so data=0 after it."""
+        events = self.trace('fix', workload, 'cached', phase='run-early')
         cases = []
         failed = False
         marks = [index + 1 for index, event in enumerate(events) if event.kind == 'mark']
         for position in marks:
-            record, image, result = self.case('fix', events, 'W1', 'cached', 'lost', position)
+            record, image, result = self.case('fix', events, workload, 'cached', 'lost', position)
             record['phase'] = 'run-early'
             ok = result is not None and result['mount'] == 1 and result['data'] == 0
             cases.append(dict(record, result=result, failed_as_required=ok))
@@ -377,8 +397,8 @@ class Replay:
                 self.fail(record, 'the early acknowledgement control did not report data=0 '
                           'with mount=1', image)
         return {
-            'name': 'early acknowledgement', 'image': 'red-fix', 'phase': 'run-early',
-            'profile': 'cached', 'model': 'lost', 'workload': 'W1',
+            'name': 'early acknowledgement', 'image': self.names['fix'], 'phase': 'run-early',
+            'profile': 'cached', 'model': 'lost', 'workload': workload,
             'required': 'mount=1 and data=0 at every position after a mark',
             'cases': cases, 'failed_as_required': bool(marks) and not failed,
         }
@@ -551,6 +571,43 @@ class Replay:
             'detail': cases,
         }
 
+    def staged_w4_checks(self):
+        """The W4 check against states made on purpose, on the image after a complete run.
+
+        red-fix --phase=stage-w4 removes the active settings file, leaves an empty temporary beside
+        it, or changes nothing. The check must accept the intact file and the leftover, which it
+        counts, and must refuse the missing file as an incomplete active file, with mount=1. A
+        missing active file is a finding against the claim that no recovery step is needed, so this
+        shows that the check would report one.
+        """
+        events = self.trace('fix', 'W4', 'cached')
+        complete = build_image(self.baseline, events, len(events), 'prefix', 0)
+        stage_image = os.path.join(self.work, 'stage.bin')
+        required = {'none': (1, 0), 'leftover': (1, 1), 'missing': (0, None)}
+        cases = []
+        for damage, (accepted, leftover) in required.items():
+            with open(stage_image, 'wb') as handle:
+                handle.write(complete)
+            rc, out, err = self.run('fix', f'--emmc-image={stage_image}', '--emmc-cache-kb=0',
+                                    '--phase=stage-w4', '--workload=W4', f'--damage={damage}')
+            if rc != 0 or out != ['STAGED']:
+                raise RunError(f'stage-w4 {damage} failed: {rc} {out} {err}')
+            with open(stage_image, 'rb') as handle:
+                image = handle.read()
+            result, reason = self.verify('fix', image, 'W4', W4_STEPS)
+            if result is None:
+                ok = False
+            elif accepted:
+                ok = not violations(result) and result['cmp'] == leftover
+            else:
+                ok = result['mount'] == 1 and result['replace'] == 0 and result['data'] == 0
+            case = {'damage': damage, 'accepted': bool(accepted), 'result': result,
+                    'no_result': reason, 'as_required': ok}
+            cases.append(case)
+            if not ok:
+                self.fail(case, 'the W4 check did not treat a staged state as required', image)
+        return {'cases': cases, 'as_required': all(c['as_required'] for c in cases)}
+
     def damaged_metaroot_control(self):
         """red-fix, the baseline with both metaroots overwritten, must not mount.
 
@@ -581,7 +638,7 @@ class Replay:
         ok = record['result'] is not None and record['result']['mount'] == 0
         if not ok:
             self.fail(record, 'the damaged image control did not report mount=0', image)
-        return {'name': 'damaged image', 'image': 'red-fix', 'required': 'mount=0',
+        return {'name': 'damaged image', 'image': self.names['fix'], 'required': 'mount=0',
                 'case': record,
                 'single_metaroot_observations': {name: results[name][0]
                                                  for name in ('first metaroot',
@@ -610,7 +667,7 @@ class Replay:
         report = {'fs': self.args.fs, 'seed': self.args.seed, 'samples': self.args.samples,
                   'medium_bytes': MEDIUM, 'asserted': [], 'traces': {}, 'sanity': [],
                   'observations': {}, 'observed_failures': [], 'controls': []}
-        for workload in WORKLOADS:
+        for workload in self.workloads:
             for profile in PROFILES:
                 events = self.trace('fix', workload, profile)
                 info = report['traces'].setdefault(workload, {})[profile] = {
@@ -627,7 +684,13 @@ class Replay:
                 groups, failed = self.observe(events, workload, profile)
                 report['observations'].setdefault(workload, {})[profile] = groups
                 report['observed_failures'] += failed
-        if self.reliance:
+        if self.w4:
+            report['asserted'] = ['I1', 'I2', 'I3', 'I4', 'I5', 'read_error=0']
+            report['workload'] = 'W4'
+            report['controls'] = [self.flush_control('W4'), self.early_ack_control('W4'),
+                                  self.damaged_metaroot_control()]
+            report['staged_w4'] = self.staged_w4_checks()
+        elif self.reliance:
             report['asserted'] = ['I1', 'I2', 'I3', 'I4', 'I5', 'read_error=0']
             report['controls'] = [self.flush_control(), self.barrier_control(),
                                   self.early_ack_control(), self.damaged_metaroot_control()]
@@ -656,7 +719,7 @@ def summarise(report):
             for model, group in groups.items():
                 found = ' '.join(f'{k}={v}' for k, v in sorted(group['violations'].items()))
                 for key in ('tore', 'I2_acknowledged_intact', 'I2_acknowledged_lost',
-                            'created_empty'):
+                            'created_empty', 'cmp_leftover'):
                     if key in group:
                         found += f' {key}={group[key]}'
                 print(f'{workload} {profile:7} {model:9} cases {group["cases"]:4} '
@@ -672,6 +735,10 @@ def summarise(report):
         print(f'barrier draw on {observed["workload"]}, recorded: {observed["positions"]} '
               f'positions, {observed["unexplained"]} unexplained, '
               f'{observed["unexplained_by_field"]}')
+    staged = report.get('staged_w4')
+    if staged is not None:
+        print('W4 staged states (intact, leftover temporary, missing active file): '
+              f'{"as required" if staged["as_required"] else "NOT AS REQUIRED"}')
     created = report.get('created_empty')
     if created is not None:
         print(f'W3 created and still empty: {created["cases"]} cases in steps '
@@ -695,6 +762,9 @@ def main():
     parser.add_argument('--exe-nofix', required=True,
                         help='image built without it (fat-nofix or red-nofix)')
     parser.add_argument('--fs', required=True, choices=('fatfs', 'reliance'))
+    parser.add_argument('--workload', choices=('W4',),
+                        help='run W4 alone, on images with the Settings File backend; without it '
+                             'W1 to W3 run')
     parser.add_argument('--seed', type=int, required=True)
     parser.add_argument('--samples', type=int, required=True,
                         help='sampled positions per workload, profile and model')
@@ -703,6 +773,8 @@ def main():
     args = parser.parse_args()
     if args.samples < 0:
         parser.error('--samples must not be negative')
+    if args.workload == 'W4' and args.fs != 'reliance':
+        parser.error('--workload W4 needs --fs reliance')
 
     os.makedirs(args.out, exist_ok=True)
     replay = Replay(args)
@@ -712,7 +784,7 @@ def main():
         print(f'FAIL {error}', file=sys.stderr)
         report = {'fs': args.fs, 'seed': args.seed, 'samples': args.samples,
                   'error': str(error), 'failures': replay.failures}
-    with open(os.path.join(args.out, f'{args.fs}.json'), 'w') as handle:
+    with open(os.path.join(args.out, f'{replay.tag}.json'), 'w') as handle:
         json.dump(report, handle, indent=1, sort_keys=True)
         handle.write('\n')
     if 'error' in report:
@@ -722,6 +794,8 @@ def main():
     if 'created_empty' in report and not (report['created_empty']['checks_failed_as_required'] and
                                           report['created_empty']['staged']['as_required']):
         bad_controls.append('narrowed W3 check')
+    if 'staged_w4' in report and not report['staged_w4']['as_required']:
+        bad_controls.append('staged W4 states')
     if report['failures'] or bad_controls:
         print(f'FAIL: {len(report["failures"])} failures; controls that did not fail: '
               f'{bad_controls}', file=sys.stderr)

@@ -391,6 +391,41 @@ persistence, power-loss behaviour or recovery on a real card, and the format lim
 recorded by the tests (no checksum or resynchronisation, a non-atomic compaction, a torn
 tail that can lose the latest save or leave the file unreadable) remain. A missing settings file reads as an empty store unless a compaction leftover (`.cmp`) exists, which is an I/O error until the next save. The backend's inner duplicate scans can still resurrect a deleted key after a read fault; they are neither fixed nor tested, and Crux never deletes.
 
+`tests/native/configuration_settings_reliance` runs the same Settings File suite on Reliance Edge, over a RAM
+disk named `MMC`, against the target provider. It compiles `main.c` of `configuration_settings_file` with
+`fixture_reliance.h` (the volume, given `/MMC:/files` and `/MMC:/settings` before anything is initialised, as an
+operator would) and under the suite name `configuration_settings_reliance`, so each case is the same code on both
+file systems. The provider is the real `configuration_settings.c`, selected by
+`CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE`, and not the probe copy that `prepare_provider.py` makes, so the
+read-back case does not run and 25 of the 26 cases do, all of them passing. Three cases are added
+(`extra_cases.c`): a compaction leaves no `.cmp` file, `emmc_configuration_start` on a medium without the
+settings directory does not initialise the settings and does not write the medium, and the same call on a
+provisioned medium initialises them once. A fourth, a failing settings initialisation after a ready storage,
+needs a scenario of its own (`crux.configuration.settings_reliance.init_failure`), because the File root binds
+once per process, so the cases of the other scenario skip themselves there. The corrected backend comes from
+the module (`zephyr/CMakeLists.txt` includes `candidate.cmake` of the FatFs suite), so **a product build that
+selects the provider reaches a file under `tests/`**. The corrections were not moved: that would touch the hash
+record of `tests/native/settings_error`, `.gitattributes` and frozen evidence for no change in behaviour.
+Twister scans only the cases of `extra_cases.c`, so `scripts/test-storage-emmc.sh` requires the exact case names
+of both scenarios (28 executed and 1 skipped, then 1 executed and 3 skipped), and that the build used the three
+staged sources and no pinned original, the real provider and no FatFs. A negative control builds the suite with
+`CRUX_SETTINGS_FILE_CONTROL` (the unpatched backend, native_sim only, refused at CMake on any other board) and
+requires exactly 12 failing cases, 16 passing and 1 skipped. FatFs fails 13: the one that differs,
+`test_full_volume_never_acknowledges_a_lost_save`, passes on Reliance Edge because a write that finds no free
+block gets `-ENOSPC`, which the unpatched backend returns, where FatFs answers with a short or zero count that
+the backend turns into success. The script records that reason beside the set. These are 64-bit `native_sim`
+results on a RAM disk. They show no persistence and nothing about an eMMC device.
+
+W4 of the power-cut replay (`--workload W4`) saves three keys through the same backend with a low line limit, so
+that a save often compacts the file through a temporary and a rename, and marks after each save. It runs on
+images built from `reliance.conf` and `settings.conf`, as a run of its own with its own JSON, so the counts and
+controls of the W1 to W3 run do not move. The invariants are asserted on both profiles, with I3 meaning that the
+active settings file exists, loads and holds a valid record for every key. A cut that leaves the temporary
+behind is counted and is not a failure. Three controls (a stack without the flush, a mark before each save,
+overwritten metaroots) and three staged states (an intact file, a leftover temporary, a missing active file)
+must come out as required. The result is in the
+[settings replay record](../docs/evidence/emmc-reliance/replay-settings/README.md).
+
 The [File contract](../docs/file-contract.md) and
 [qualification/handoff record](../docs/file-validation.md) cover the Linux Host
 provider and private deterministic failure tests. Normal Host CTest includes
@@ -453,13 +488,17 @@ not initialised again. Cases of the other scenario skip themselves, so the execu
 These are simulation results in one process, not evidence about an eMMC device.
 
 `scripts/test-file-emmc-compile.sh` links `samples/storage_emmc` for `mimxrt1060_evk@B/mimxrt1062/qspi`, with
-and without the mount at boot, and never programs or runs anything. A link-only overlay stands in for an eMMC
+and without the mount at boot and with Configuration on the Settings File backend, and never programs or runs
+anything. A link-only overlay stands in for an eMMC
 that the EVKB does not have. The script reads the generated `.config` of each image (the MMC disk driver and
 the cache flush on, the SD disk driver and the formatter off, `CONFIG_SDHC_BUFFER_ALIGNMENT=32`), requires
 that `red_format` and FatFs are not linked, that the generated `mmc.c` was compiled and `subsys/sd/mmc.c` was
 not, and that the generated `mmc.json` carries the expected hashes. It then requires two configurations to fail
 at CMake for the stated reason: the same sample without the flush option, and one with the fixture-only
-`CRUX_EMMC_FLUSH_CONTROL`. It needs the optional west group `crux-reliance`. `CRUX_FILE_EMMC_SKIP_BUILD=1`
+`CRUX_EMMC_FLUSH_CONTROL`. A third refused configuration is the Settings scenario with
+`CRUX_SETTINGS_FILE_CONTROL`. The Settings image must have the provider, the settings path
+`/MMC:/settings/cfg` under the volume's mount point, and the three staged Settings File sources in its build
+and none of the pinned ones; the other images must have none of this. It needs the optional west group `crux-reliance`. `CRUX_FILE_EMMC_SKIP_BUILD=1`
 checks the images already under the output directory, which is how each check was shown to fail on a wrong
 copy. It builds no image that is kept or uploaded. The sizes and stack frames are in the
 [link record](../docs/evidence/emmc-reliance/rt1060-link/README.md) and the

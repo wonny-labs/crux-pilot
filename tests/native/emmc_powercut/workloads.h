@@ -13,7 +13,8 @@
 
 enum powercut_workload { POWERCUT_W1, POWERCUT_W2, POWERCUT_W3, POWERCUT_W4 };
 
-int powercut_prepare(enum powercut_workload w); /* baseline content, on the no-cache profile */
+/* Baseline content, on the no-cache profile. W4 needs an image with the Settings File backend. */
+int powercut_prepare(enum powercut_workload w);
 int powercut_run(enum powercut_workload w, bool early_ack);
 
 #define POWERCUT_NO_PATH UINT32_MAX
@@ -25,8 +26,17 @@ int powercut_run(enum powercut_workload w, bool early_ack);
  */
 int powercut_stage_w3(uint32_t steps, uint32_t empty_path);
 
+/*
+ * A test of the W4 check itself, on an image after a complete run: "missing" removes the settings
+ * file, "leftover" creates an empty temporary (.cmp) beside it, "none" changes nothing. Needs an
+ * image with the Settings File backend, else -ENOTSUP.
+ */
+int powercut_stage_w4(const char *damage);
+
 struct powercut_result {
     bool mounted, data, read_error, replaced, untouched, recommit;
+    /* W4 only: the Settings File backend's temporary (.cmp) is left behind. Not a failure. */
+    bool cmp_left;
 };
 
 /* Expects the volume unmounted; mounts it without formatting and leaves it mounted. */

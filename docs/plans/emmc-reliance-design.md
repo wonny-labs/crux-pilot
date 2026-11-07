@@ -1,8 +1,9 @@
 # Transactional storage on eMMC: design
 
 Status: design approved by the owner for software-only development on 3 November 2026 (session), with the decisions under
-Intent. No result here shows that anything works: the findings are source readings, and the tests and tools described below
-are being built under M14. This document authorises no physical operation, merge or upstream contribution.
+Intent; the decisions below were approved with it and on 4 November 2026 (session). The findings are source readings. Test
+results and their limits are recorded in `docs/evidence/emmc-reliance/` and in the pull requests of M14, and none of them is
+physical evidence. This document authorises no physical operation, merge or upstream contribution.
 
 Baseline: main `a80acd7`, Zephyr v4.4.2 `dccb095`, Reliance Edge v3.0 `6706984`.
 
@@ -71,7 +72,7 @@ Paths are in the pinned Zephyr unless they begin with `reliance-edge/` or `linux
 | F17 | On the RT1060 the USDHC HAL invalidates a read target by whole D-cache lines, so a target that shares a line with another object can lose that object's write. The two existing RT1060 File selections set `SDHC_BUFFER_ALIGNMENT` to 32, and the SD layer bounces anything less aligned. The setting and the check name those selections only. | `zephyr/Kconfig` (`configdefault SDHC_BUFFER_ALIGNMENT`), `components/file/ports/zephyr/file_native.c:19-25`, `docs/microsd-composition.md` | A new target selection must set and check the same value, or it would silently have the 4-byte default. |
 | F18 | The File contract gained roots, stat, size, rename and listing (#224). `crux_file_rename` refuses an existing destination. The additions are accepted for Host and `native_sim` work, and target and physical work on them "stays behind M7 and needs its own approval". | `docs/file-contract.md`, `components/file/src/file_port.h`, `tests/native/file_roots/` | The provider must run them on this file system too. Atomic replace is reachable through the VFS, not through `crux_file_rename`. |
 
-## Decisions proposed
+## Decisions
 
 ### D1. Integrate as a Zephyr VFS file system
 
@@ -322,7 +323,9 @@ anything unknown is `-EIO`; `RED_EUSERS` is `-ENOMEM`, which the File provider r
 - The task ID is a unique, non-zero 32-bit value for each thread on both `native_sim` widths, from a small table rather than
   a truncated pointer. The table has its own lock, because `RedOsTaskId` is also called outside the file system mutex
   (`reliance-edge/posix/posix.c:5130`). The adapter has no hook for thread exit, so a thread that exits keeps its slot, and
-  `REDCONF_TASK_COUNT` bounds the threads that ever use the file system. This limit is documented and tested.
+  the Kconfig thread count bounds the threads that ever use the file system. `REDCONF_TASK_COUNT` is that count plus one
+  reserved spare registration, which only a thread without a slot uses, and only to close a file or directory it must
+  release, under an adapter mutex; every other call from such a thread is refused. This limit is documented and tested.
 - The port also supplies the OS type and configuration headers, and whatever clock functions `redosserv.h` needs with
   timestamps off.
 

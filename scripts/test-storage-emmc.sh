@@ -387,3 +387,215 @@ for key, suite in found.items():
     print(f'{key[0]} {key[1]}: {len(passed)} executed cases PASS, '
           f'{len(cases) - len(passed)} skipped for the other scenario')
 PY
+
+# Configuration on the Settings File backend over Reliance Edge, through the target provider
+# (CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE) and not through the provider copy of the FatFs suite. The
+# cases of tests/native/configuration_settings_file run here on a RAM disk named MMC, with the
+# corrected backend that the module stages, and so do the cases of the target provider. 64-bit
+# native_sim only, as the FatFs suite. The images link the GPLv2 source and are test images only.
+(cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
+    -T "$repo/tests/native/configuration_settings_reliance" \
+    -O "$repo/build/zephyr/twister-settings-reliance" --inline-logs)
+python3 - "$repo/build/zephyr/twister-settings-reliance" <<'PY'
+import json
+from pathlib import Path
+import subprocess
+import sys
+
+output = Path(sys.argv[1])
+# Twister scans only the cases of extra_cases.c. The others are in the shared main.c, and the exact
+# names are required here, so that a case dropped from either source cannot go unnoticed.
+shared = {
+    'a_callback_error_is_returned_by_the_load', 'a_missing_settings_file_reads_as_missing',
+    'callback_short_count_preserves_active', 'compaction_close_error_is_not_success',
+    'compaction_read_error_keeps_other_records', 'compaction_read_fault_never_loses_a_record',
+    'each_load_read_fault_preserves_active', 'full_volume_never_acknowledges_a_lost_save',
+    'interrupted_save_never_yields_a_wrong_value', 'malformed_records_are_rejected',
+    'many_saves_keep_every_key_across_compactions', 'missing_and_valid_roundtrip',
+    'missing_file_with_a_compaction_leftover_is_an_error', 'name_write_error_is_failure',
+    'read_fault_never_yields_a_stale_value', 'roundtrip_survives_remount_for_u32_and_bool',
+    'save_after_a_torn_tail_records_the_outcome', 'save_scan_error_is_not_success',
+    'scan_read_error_is_not_missing', 'short_write_is_failure', 'staging_limit_boundary',
+    'string_roundtrip_survives_remount',
+    'truncated_tail_keeps_earlier_records', 'value_only_corruption_is_not_detected',
+    'zero_write_is_failure',
+}
+extra = {
+    'compaction_leaves_no_cmp_file',
+    'start_on_a_medium_without_settings_dir_does_not_init_settings',
+    'start_on_a_provisioned_medium_inits_settings_once',
+}
+init_failure = {'a_failed_settings_init_is_reported'}
+# The main scenario skips the case of the other one, and that scenario skips the other cases, because
+# the File root binds once per process.
+expected = {
+    'crux.configuration.settings_reliance': (shared | extra, init_failure),
+    'crux.configuration.settings_reliance.init_failure': (init_failure, extra),
+}
+
+suites = json.loads((output / 'twister.json').read_text())['testsuites']
+found = {suite['name'].rsplit('/', 1)[-1]: suite for suite in suites}
+if len(suites) != len(found) or set(found) != set(expected):
+    raise RuntimeError(f'unexpected or missing Settings File suites: {sorted(found)}')
+for name, suite in found.items():
+    prefix = name + '.configuration_settings_reliance.'
+    cases = {c['identifier'][len(prefix):]: c['status'] for c in suite.get('testcases', [])}
+    passed = {case for case, status in cases.items() if status == 'passed'}
+    skipped = {case for case, status in cases.items() if status == 'skipped'}
+    if (suite.get('platform') != 'native_sim/native/64' or suite.get('status') != 'passed' or
+            not suite.get('runnable') or (passed, skipped) != expected[name] or
+            len(cases) != len(passed) + len(skipped)):
+        raise RuntimeError(f'{name}: passed {sorted(passed)}, skipped {sorted(skipped)}')
+    print(f'{name}: {len(passed)} executed cases PASS, {len(skipped)} skipped for the other scenario')
+
+# The main image holds the real provider and not the probe copy, no FatFs, and was built from the
+# corrected copies of the Settings File sources and not from the pinned originals.
+builds = [p for p in output.rglob('compile_commands.json')
+          if p.parent.name == 'crux.configuration.settings_reliance']
+if len(builds) != 1:
+    raise RuntimeError(f'expected one main build, found {len(builds)}')
+build = builds[0].parent
+commands = json.loads(builds[0].read_text())
+files = {str(Path(entry['directory'], entry['file']).resolve()) for entry in commands}
+staged = {name for name in ('settings_file.c', 'settings_line.c', 'settings_store.c')
+          if str((build / 'settings-file-candidate' / name).resolve()) in files}
+originals = [f for f in files if f.endswith(('subsys/settings/src/settings_file.c',
+                                                'subsys/settings/src/settings_line.c',
+                                                'subsys/settings/src/settings_store.c'))]
+if staged != {'settings_file.c', 'settings_line.c', 'settings_store.c'} or originals:
+    raise RuntimeError(f'staged copies {sorted(staged)}, pinned originals built {originals}')
+symbols = subprocess.run(['nm', str(build / 'zephyr/zephyr.exe')], check=True, capture_output=True,
+                         text=True).stdout.split()
+for wanted in ('crux_config_zephyr_init', 'crux_config_save', 'emmc_configuration_start'):
+    if wanted not in symbols:
+        raise RuntimeError(f'{wanted} is not in the image')
+for unwanted in ('crux_probe_read_back', 'f_mount'):
+    if unwanted in symbols:
+        raise RuntimeError(f'{unwanted} is in the image of the target provider')
+print('Settings File on Reliance Edge: the real provider with the staged corrections, no FatFs, '
+      'no probe copy')
+PY
+
+# Negative control: the same suite on the unpatched upstream backend (the native_sim-only
+# CRUX_SETTINGS_FILE_CONTROL, which the module refuses on any other board) must fail exactly the
+# cases that characterise its defects on this file system, and pass the rest. It is not a Twister
+# scenario, because a scenario that must fail would stop the gate.
+control="$repo/build/zephyr/settings-reliance-control"
+(cd "$workspace" && west build -b native_sim/native/64 -d "$control" -p always \
+    "$repo/tests/native/configuration_settings_reliance" -- \
+    -DCRUX_SETTINGS_FILE_CONTROL=ON > "$control.build.log" 2>&1)
+if timeout 180 "$control/zephyr/zephyr.exe" > "$control.run.log" 2>&1; then
+    echo "settings-reliance control unexpectedly passed on the unpatched backend" >&2
+    exit 1
+fi
+python3 - "$control.run.log" <<'PY'
+import re
+import sys
+
+# The 13 cases that fail on the FatFs RAM disk (scripts/test-storage-simulators.sh) less one. The
+# 12 below fail here for the same reason: the unpatched backend turns an I/O fault that the fixture
+# injects into success, into a missing key or into a lost record, and the injection is the same.
+# test_full_volume_never_acknowledges_a_lost_save fails on FatFs and passes here. The backend's
+# write handler returns a negative result and turns a byte count into success. FatFs answers a
+# write that finds no room with a short or a zero count, which is lost without an error. Reliance
+# Edge answers a write that finds no free block with -ENOSPC, which the unpatched backend returns,
+# so on this file system the case ends in an error that reaches the caller. The unpatched handler
+# still hides a short count here, which test_short_write_is_failure shows with an injected one. The
+# set is exact, so a change in what this file system does at a full volume shows up as a
+# difference to review. The ones that skip are the init-failure case, which has a scenario of its
+# own.
+expected = {
+    'test_a_callback_error_is_returned_by_the_load',
+    'test_compaction_close_error_is_not_success',
+    'test_compaction_read_error_keeps_other_records',
+    'test_compaction_read_fault_never_loses_a_record',
+    'test_each_load_read_fault_preserves_active',
+    'test_interrupted_save_never_yields_a_wrong_value',
+    'test_missing_file_with_a_compaction_leftover_is_an_error',
+    'test_name_write_error_is_failure',
+    'test_save_scan_error_is_not_success',
+    'test_scan_read_error_is_not_missing',
+    'test_short_write_is_failure',
+    'test_zero_write_is_failure',
+}
+log = open(sys.argv[1], errors='replace').read()
+failed = set(re.findall(r'^ - FAIL - \[configuration_settings_reliance\.(\w+)\]', log, re.M))
+if failed != expected or 'pass = 16, fail = 12, skip = 1, total = 29' not in log:
+    raise RuntimeError(f'settings-reliance control differs: unexpected {sorted(failed - expected)}, '
+                       f'missing {sorted(expected - failed)}')
+print(f'settings-reliance control (unpatched backend): {len(failed)} of 29 cases fail as expected, '
+      '16 pass and 1 skips')
+PY
+
+# Power-cut replay of W4: three keys saved through the Settings File backend, which compacts its
+# file through a temporary and a rename. The images are built from reliance.conf and settings.conf,
+# so they hold the corrected backend that the module stages. The invariants are asserted on
+# red-fix-settings for both profiles, and three controls must fail as required. W4 is a run of its
+# own with its own JSON, so the counts and the controls of the W1 to W3 run above do not move.
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/red-fix-settings" \
+    "$repo/tests/native/emmc_powercut" -- "-DEXTRA_CONF_FILE=reliance.conf;settings.conf" \
+    -DCONFIG_CRUX_MMC_CACHE_FLUSH=y)
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/red-nofix-settings" \
+    "$repo/tests/native/emmc_powercut" -- "-DEXTRA_CONF_FILE=reliance.conf;settings.conf" \
+    -DCONFIG_CRUX_MMC_CACHE_FLUSH=n -DCRUX_EMMC_FLUSH_CONTROL=ON)
+# 8 samples took about 32 s in an emulated amd64 container, most of it the mandatory positions.
+python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
+    --exe-fix "$powercut_dir/red-fix-settings/zephyr/zephyr.exe" \
+    --exe-nofix "$powercut_dir/red-nofix-settings/zephyr/zephyr.exe" \
+    --fs reliance --workload W4 --seed 1 --samples 8 --max-seconds 300 --out "$powercut_dir/replay"
+
+# The counts are exact for seed 1 and 8 samples. They depend on the traces, so on the pinned Zephyr
+# and Reliance Edge, and on the algorithms of Python's random module. A cut that leaves the
+# backend's temporary behind is counted, and is not a failure. A missing active file would be.
+python3 - "$powercut_dir/replay/reliance-w4.json" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+report = json.loads(Path(sys.argv[1]).read_text())
+if report.get('workload') != 'W4' or list(report['observations']) != ['W4']:
+    raise RuntimeError(f'not a W4 report: {sorted(report)}')
+models = {'cached': {'lost', 'prefix', 'reordered', 'torn'}, 'nocache': {'prefix', 'torn'}}
+leftovers = 0
+for profile, expected in models.items():
+    groups = report['observations']['W4'][profile]
+    if (set(groups) != expected or
+            any(group['cases'] == 0 or group['passed'] != group['cases'] for group in groups.values())):
+        raise RuntimeError(f'W4 {profile}: missing or failing cases')
+    leftovers += sum(group.get('cmp_leftover', 0) for group in groups.values())
+    trace = report['traces']['W4'][profile]
+    if trace['metaroot_positions'] == 0 or (profile == 'cached' and trace['commits'] == 0):
+        raise RuntimeError(f'W4 {profile}: no metaroot write was recognised')
+if leftovers == 0:
+    raise RuntimeError('no W4 cut left a temporary behind, so none reached the compaction')
+controls = {control['name']: control['failed_as_required'] for control in report['controls']}
+if controls != {'flush': True, 'early acknowledgement': True, 'damaged image': True}:
+    raise RuntimeError(f'controls: {controls}')
+staged = report['staged_w4']
+if (not staged['as_required'] or
+        sorted(case['damage'] for case in staged['cases']) != ['leftover', 'missing', 'none']):
+    raise RuntimeError(f'staged W4 states: {staged}')
+if report['counts']['cases'] != 2232 or report['failures']:
+    raise RuntimeError(f'counts {report["counts"]}, failures {report["failures"]}')
+print(f'replay reliance W4: {report["counts"]["cases"]} cases, invariants held on red-fix-settings, '
+      f'{leftovers} cases with a temporary left behind, all three controls failed as required')
+PY
+
+# The Settings File selection exists on Reliance Edge only. Without the file system, Kconfig drops
+# the selection and warns, naming the dependency, and the build is refused because the assignment of
+# the suite is not honoured. A selection that did not depend on Reliance Edge would configure.
+selection_dir="$repo/build/zephyr/settings-selection"
+selection_log="$selection_dir.log"
+if (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$selection_dir" \
+        "$repo/tests/native/configuration_settings_reliance" -- -DCONFIG_CRUX_FS_RELIANCE_EDGE=n) \
+        >"$selection_log" 2>&1; then
+    printf 'The Settings File selection configured without CONFIG_CRUX_FS_RELIANCE_EDGE\n' >&2
+    exit 1
+fi
+folded="$(tr -s '[:space:]' ' ' <"$selection_log")"
+[[ "$folded" == *"warning: CRUX_CONFIGURATION_SETTINGS_FILE (defined at"*"was assigned the value 'y' but got the value 'n'. Check these unsatisfied dependencies: CRUX_FS_RELIANCE_EDGE (=n)"* ]] || {
+    printf 'The Settings File selection was not dropped for the missing file system; see %s\n' \
+        "$selection_log" >&2
+    exit 1
+}
+printf 'Settings File selection: dropped without Reliance Edge, naming the dependency\n'

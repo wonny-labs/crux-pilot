@@ -17,6 +17,7 @@ enum emmc_storage_status {
     EMMC_STORAGE_LAYOUT_MISSING, /* a required directory is missing; never created */
     EMMC_STORAGE_BIND_FAILED,
     EMMC_STORAGE_ALREADY_STARTED,
+    EMMC_STORAGE_CONFIGURATION_FAILED, /* only emmc_configuration_start returns this */
 };
 
 /* Disk init, mount without format, layout check, then File root binding. A failure unmounts the
