@@ -1,7 +1,6 @@
 # Reboot service
 
-Status: implementation for review under Issue #214, as a Draft PR. Host only. Nothing here has run on a board, no composition
-serves these routes or links this service yet, and nothing here calls a real reset. Host results are interim results, and physical
+Status: merged in [PR #290](https://github.com/wonny-labs/crux-pilot/pull/290) for Issue #214. Host only. Nothing here has run on a board, **no image composes this service, not even [the services image](native-composition-242.md)**, so no image serves these routes, and nothing here calls a real reset. Host results are interim results, and physical
 evidence stays tracked apart. Decision W9 and the reboot section of [the frontend foundation
 design](plans/web-frontend-foundation-design.md#reboot), and [the owner's approval on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084)
 (W13: reboot is Advanced and optional) are the basis.

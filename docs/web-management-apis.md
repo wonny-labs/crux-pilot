@@ -1,7 +1,7 @@
 # Status, configuration and account web APIs
 
-Status: implementation for review under Issue #187. Nothing here has run on a board, nothing here uses TLS, which is #185, and no
-composition names these routes yet, so no image serves them. Host results are interim results, and physical evidence stays
+Status: merged in [PR #281](https://github.com/wonny-labs/crux-pilot/pull/281) for Issue #187. Nothing here has run on a board. #187's own suites are Host only, and
+[the services image](native-composition-242.md) of #242 serves these routes over HTTPS on `native_sim`. Host and `native_sim` results are interim results, and physical evidence stays
 tracked apart.
 
 Owner: `components/web`. Internal header `components/web/management/crux_web_management.h`, for a composition only, like
@@ -22,8 +22,8 @@ frontend tracks rebase onto.
 | The mock server's configuration routes | **Built**, in the same change as the specification | Node unit tests, every answer checked against the specification |
 | The routes' real answers against the specification | **Built.** `Web.management_openapi` holds 57 real answers to the merged schemas and statuses. | Host, standard library only |
 | Fuzz of the reader, the routes and oversized input | **Built**, deterministic with fixed seeds | Host, and `host-sanitize` in CI |
-| A composition that serves these routes | **Not here.** #277 composes HTTPS and touches the composition files, so this change leaves them alone. | |
-| `native_sim` | **Not run.** It needs a composition, which needs #242's access composition and #277. | |
+| A composition that serves these routes | **Not in #187.** [The services image](native-composition-242.md) of #242 does, over HTTPS. | `native_sim` |
+| `native_sim` | **Not run by #187.** Run later in [the services image](native-composition-242.md), and in the browser cases of [#220](e2e-native-220.md). | `native_sim` |
 | RT1060 compile of the new sources | **Not run.** | |
 | Anything on a board | Not run. No hardware was operated. | |
 
@@ -271,7 +271,7 @@ Local runs in container `crux-187`, image `crux-pilot-devcontainer:local` under 
 | clang-tidy 18 on the management sources and suites | Host | No finding |
 | `scripts/check-format.sh` (clang-format 18), `check-web-routes.py`, `check-web-boundary.py`, `check-mgmt-services-boundary.py`, the generator's tests | Host | Pass |
 | `scripts/check-management-api.sh` (Spectral 6.16.3, Node.js 24.22.2) and `python3 -m unittest discover -s tests/management_api` | Node.js | Pass |
-| `npm run check:types`, `typecheck` and the unit tests in `web` | Node.js | 521 of 523 pass. The 2 failures, in `tools/test/boundary.test.ts`, are on `main` before this change, [decision 17](#decisions-taken-without-an-answer). |
+| `npm run check:types`, `typecheck` and the unit tests in `web` | Node.js | 521 of 523 pass. The 2 failures, in `tools/test/boundary.test.ts`, were on `main` before #187, and [#282](https://github.com/wonny-labs/crux-pilot/pull/282) has since fixed the boundary rule: [decision 17](#decisions-taken-without-an-answer). |
 | 20 mutations of the routes, the reader and the save | Host | 18 caught, 2 equivalent, [above](#tests). Review found 2 more that are not caught, listed there. |
 | `native_sim`, RT1060 compile, `host-sanitize` with clang | | **Not run** |
 
@@ -284,7 +284,7 @@ Local runs in container `crux-187`, image `crux-pilot-devcontainer:local` under 
 
 ## What is not verified
 
-- `native_sim`, TLS and a board. No composition serves the routes.
+- A board. `native_sim` and TLS ran after #187, in [the services image](native-composition-242.md); the cases of #187 itself are Host only.
 - The routes on a target: the save's time, the worker's stack, the stall it causes on the server thread, and the time of a status
   poll or a list on the server thread.
 - Concurrent clients. The Host suites drive one request at a time through the fake transport. A real worker thread runs in one case.
@@ -313,7 +313,7 @@ Local runs in container `crux-187`, image `crux-pilot-devcontainer:local` under 
 | 14 | The mock reuses `networkProvider` for a save, and `savePolls` counts reads of the configuration list as well as of the network state | One switch for "no Configuration provider", as on a device | A second setting |
 | 15 | `scripts/test-web.sh` is edited to build and tidy the new suites | A protected path, edited only to add targets and sources, as the test runner of a component that this change adds. No suite, board, option or warning flag is removed. | Leave CI to the full host preset alone |
 | 16 | `tests/web/session/session_test.c` gains `session_test_setup_web`, the web half of its setup | The management suites boot Access with their own accounts. Its other behaviour is unchanged. | Copy the fixture |
-| 17 | `web/tools/test/boundary.test.ts` fails two tests on `main` and is left alone | They fail before this change: `cmake/CruxWebRoutes.cmake`, `tests/mgmt_status/CMakeLists.txt` and four sources in `components/` already name `web/api`. New files avoid the pattern. | Fix the earlier files in this change |
+| 17 | `web/tools/test/boundary.test.ts` failed two tests on `main`, and was left alone in #187. **Fixed by #282.** | They fail before this change: `cmake/CruxWebRoutes.cmake`, `tests/mgmt_status/CMakeLists.txt` and four sources in `components/` already name `web/api`. New files avoid the pattern. | Fix the earlier files in this change |
 
 ## What the composition and #243 need
 

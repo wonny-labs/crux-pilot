@@ -1,6 +1,6 @@
 # Web frontend implementation, M13
 
-Status: merged in #228 for issues #215, #216, #217, #218 and #219, and shown on the mock only. Issue #220 runs both examples on `native_sim` over HTTPS, in a Draft PR: see
+Status: merged in #228 for issues #215, #216, #217, #218 and #219, and shown on the mock only. Issue #220 ran both examples on `native_sim` over HTTPS in [PR #293](https://github.com/wonny-labs/crux-pilot/pull/293): see
 [the web examples end to end](../e2e-native-220.md). It
 follows the [web frontend foundation design](web-frontend-foundation-design.md), whose decisions W1 to W18 are accepted,
 and the [management API specification](../../web/api/openapi.yaml). Since
@@ -31,13 +31,13 @@ behind the gate. It covers no hardware, and nothing here was run on a board.
 
 Each evidence state is recorded on its own, and none stands in for another. Core and advanced flows run on both examples on
 the mock, since #243 added network settings and restart to the Angular example, with service tests underneath. Host here means
-the C services, which have no web route yet.
+the C services and their routes on the Host fake transport, plus the routes served by the `native_sim` images.
 
 | Flow | Kind | Mock | Host | `native_sim` | Physical |
 | --- | --- | --- | --- | --- | --- |
 | Sign-in and sign-out | Core | Both examples | Access contract. Web sessions in #186. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
 | Session expiry | Core | Both examples | Access contract. Web sessions in #186. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
-| Forced password change | Core | Both examples | Access contract. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
+| Forced password change | Core | Both examples | Access contract. Web route in #186. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
 | Status | Core | Both examples | Service in #180. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
 | Simple configuration update | Core | Both examples | Service in #180. Web route in #187. | Both examples over HTTPS, [#220](../e2e-native-220.md#results) | Not run |
 | Network settings | Advanced | Both examples | Service in #213 | Preact over HTTPS: read, and a change refused as not saved with no Configuration provider, [#220](../e2e-native-220.md#results). The Angular case is written and **NOT RUN**. | Not run |
@@ -510,8 +510,8 @@ Each was taken for lack of an answer, as the narrower choice.
 | Reboot and save time limits | No measurement exists, so they are assumptions and can be changed through an option |
 | No automatic new attempt after a `429`, a `503` or a `404` | The specification says that the client starts a new attempt, and the safer reading is that the user asks for it. The only time a password is sent again without a user action is after a `409`, which the server did not process, so no verification ran. Nothing keeps a password after the form. |
 | Forced change only, with no general change-password link | Account management stays on the CLI, as the design says |
-| A malformed address gets `bad_request` from the mock, because the field codes have no format error | The specification does not say. #213 decides for the real service. |
-| The client's IPv4 checks also refuse a subnet's network and broadcast addresses, reported as `not_unicast` | The design says "unicast address". If #213 allows these, the client check must follow. |
-| The client refuses a gateway of `0.0.0.0`, the address itself and the subnet's network and broadcast addresses, with a client-only reason. The mock reports these as `gateway_outside_subnet`. | The specification rules out `0.0.0.0` and has one code for a gateway. #213 decides for the real service. |
+| A malformed address gets `bad_request` from the mock, because the field codes have no format error | The specification did not say. **Decided by #213**: the real service answers `400 bad_request` too, as [its rules](../network-settings-service.md#rules) say. |
+| The client's IPv4 checks also refuse a subnet's network and broadcast addresses, reported as `not_unicast` | The design says "unicast address". **Decided by #213**: the service refuses them too, with `not_unicast`, so the client check matches. |
+| The client refuses a gateway of `0.0.0.0`, the address itself and the subnet's network and broadcast addresses, with a client-only reason. The mock reports these as `gateway_outside_subnet`. | The specification rules out `0.0.0.0` and has one code for a gateway. **Decided by #213**: the service reports `gateway_outside_subnet` for each of them, as [its rules](../network-settings-service.md#rules) say. |
 | Node.js 24, not 26 | Both are long-term support, and 24 has been in use longer. Only 24 was run. |
 | The Angular job is in `web.yml` | The approval names the web checks, and #219 asks for a job. It is a separate job, so it can be removed alone. |

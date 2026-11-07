@@ -1,6 +1,6 @@
 # One `native_sim` image with HTTPS, the command line over SSH and SFTP
 
-Status: first part of [Issue #197](https://github.com/wonny-labs/crux-pilot/issues/197), for review in a Draft PR. It is
+Status: merged in [PR #313](https://github.com/wonny-labs/crux-pilot/pull/313), the first part of [Issue #197](https://github.com/wonny-labs/crux-pilot/issues/197). It is
 the integration that [the wolfSSH provider](ssh-wolf-provider.md#decisions-for-review) (decision 25) and
 [the command line over SSH](cli-over-ssh.md) left open: the provider beside the TLS socket backend and wolfPSA in one image, selected by a
 Kconfig symbol, on the real Access core and the real PSA providers. It authorises no hardware operation, and **nothing here ran on a
@@ -189,7 +189,7 @@ clients are OpenSSH 9.6 `ssh` and `sftp`, and `curl` against the declared test c
 
 Host: Apple silicon, Docker with an `amd64` Dev Container image under emulation, Zephyr v4.4.2 with the TLS socket patch,
 OpenSSH 9.6p1, curl 8.5 and OpenSSL 3.0.13. **The wall times below are not a target's.** `native_sim` gives CPU work no simulated time, and the
-container is emulated and shared, so they only compare one run with another, and they moved by up to a factor of two between runs of the same revision (the idle HTTPS call read 0.18 s in one run of this PR and 0.26 s in the run below). The figures and the revision: one run of `scripts/test-ssh-integrated.sh all` at `22dafed`, 86 checks. Sizes belong to the revision. The heap peak read 97,496 B in two runs of this PR and 100,448 B in a third, so read it as a size class.
+container is emulated and shared, so they only compare one run with another, and they moved by up to a factor of two between runs of the same revision (the idle HTTPS call read 0.18 s in one run of #313 and 0.26 s in the run below). The figures and the revision: one run of `scripts/test-ssh-integrated.sh all` at `22dafed`, 86 checks. Sizes belong to the revision. The heap peak read 97,496 B in two runs of this PR and 100,448 B in a third, so read it as a size class.
 
 | Kind | What | Result |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 # SFTP over the file service
 
-Status: implemented on Host, Issue #194, for review. [Gate #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497) has passed, and the owner approved this work in advance. It authorises no hardware operation.
+Status: merged in [PR #264](https://github.com/wonny-labs/crux-pilot/pull/264), with the WinSCP runs of [PR #303](https://github.com/wonny-labs/crux-pilot/pull/303) and [PR #308](https://github.com/wonny-labs/crux-pilot/pull/308), for Issue #194. It runs on Host, on `native_sim` against the provider of #192, and in [the integrated image](ssh-integrated-image.md) of [PR #313](https://github.com/wonny-labs/crux-pilot/pull/313). [Gate #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497) has passed, and the owner approved this work in advance. It authorises no hardware operation.
 
 This document says what is built, what is faked, what is untested, and which decisions were taken for lack of an answer. The evidence is of six kinds, and none implies another.
 
@@ -399,7 +399,7 @@ From the first run. The server's own events are in [the table of refusals](#each
 | Medium | Fake File in `Ssh.sftp`, the Linux File provider in the Linux run, and real FatFs over a RAM disk on `native_sim`. No card |
 | What the cases see of the medium | On Linux, the directory itself. On `native_sim`, the same server's answers, to an account that may read each area |
 | WinSCP | One run of 6.7 on Windows 11, and a second short run with keepalive on: see [the first run](#the-first-run) and [the second](#a-second-run-with-keepalive-on). Not run: download and delete as the write-only role, an upload of 100 KiB or more by that role, a rekey, two clients at once, any other WinSCP version or any other Windows client. Keepalive on was run once (two timed connections, and at least one more), without a WinSCP log and without decoding its packets. The cause of the drop past the per-file limit is open |
-| Composition | The image is a test one. #242's composition is not used, and no product composition holds this yet |
+| Composition | The acceptance image of #194 is a test one that does not use #242's composition. [The integrated image](ssh-integrated-image.md) of #313 composes SFTP with HTTPS on real PSA providers on `native_sim`. No product composition holds this yet |
 | The target | Compiled, never linked with the service, never run. No board was touched |
 | Concurrency | Two sessions at once were held open in the cases, but nothing stresses a race |
 | Stack and heap on a target | Not measured. See [the simulation figures](#simulation-figures) |

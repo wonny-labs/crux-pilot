@@ -1,6 +1,6 @@
 # HTTPS composition on the Wolf and Mbed TLS profiles
 
-Status: for review under [Issue #185](https://github.com/wonny-labs/crux-pilot/issues/185), in a Draft PR. Host and
+Status: merged in [PR #277](https://github.com/wonny-labs/crux-pilot/pull/277) for [Issue #185](https://github.com/wonny-labs/crux-pilot/issues/185). Host and
 `native_sim` evidence only, an interim result by decision W18. **Nothing here ran on a board.** RT1060-EVKB results are
 compile only, and the handshake time and memory on RT1060 stay open for a separately approved run.
 
@@ -32,14 +32,14 @@ W1 is explained, is the owner's decision, listed under [approvals needed](#appro
 | The management composition of #263: real Access, store, events, status, configuration, PSA | **Composed**, `tests/native/web_https` | `native_sim` |
 | Declared test certificate of #263 | **Declared test input**, in place of #190 | Named in results |
 | First account | **Declared test step**, serial provisioning called directly, in place of #181 | |
-| Session lookup and CSRF | **Faked.** A cookie names one of two real sessions that start logs in. #186 implements them. | |
+| Session lookup and CSRF | **Faked in this image only.** A cookie names one of two real sessions that start logs in. #186 implements them, and the sessions run over HTTPS in [the services image](native-composition-242.md). | |
 | The offload's FIN fix | **Test image only**: a build-local copy of the driver's host side | `native_sim`, with a control |
 | Entropy, key confidentiality | **Test-only**, as [#242 declares](native-management-composition.md#declarations) | |
 | Firefox 159.0.1 over TLS | **Run by hand** in the container, not in CI | `native_sim` |
 | Results | Retained in [`docs/evidence/https-composition/`](evidence/https-composition/): from `4ed6eb9`, and `*-after-review.json` from `b9c9fbc` plus the uncommitted review fixes (working tree: 6 changed), later committed as `b197d15` | |
 | Wolf profile in CI | **Not run.** A default workflow must not fetch a GPL stack. | Local |
 | RT1060-EVKB | Compile and link of `tests/zephyr/web_compile` with the declared profile: Mbed 197,364 B Flash and 209,856 B RAM, Wolf 336,836 B and 213,652 B, from the linker report, so RAM is configured and not used. Handshake time and memory not measured. | Compile |
-| Safari, Chromium over TLS | Not run | |
+| Safari, Chromium over TLS | Not run by #185. Chrome ran both examples over HTTPS later: [#220](e2e-native-220.md). Safari was never run. | |
 
 ## How a connection runs
 
