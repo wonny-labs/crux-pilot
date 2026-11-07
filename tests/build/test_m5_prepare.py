@@ -88,6 +88,66 @@ class Preparation(unittest.TestCase):
             with self.subTest(extra=extra), self.assertRaises(ValueError):
                 subject.frozen_inputs(data)
 
+    EXTRAS = ('littlefs', 'fatfs', 'mbedtls', 'tf-psa-crypto')
+
+    def extra(self, name, **changes):
+        commit = (hashlib.sha1(name.encode()).hexdigest())
+        record = dict(name=name, revision=commit, path='modules/' + name, git_commit=commit, dirty=False)
+        record.update(changes)
+        return record
+
+    def with_extras(self, extras, baseline=None):
+        baseline = baseline or json.loads(self.inputs.read_text())
+        return dict(baseline, west_projects=baseline['west_projects'] + list(extras))
+
+    def test_accepts_other_clean_projects_beside_the_four_exact_pins(self):
+        data = self.with_extras([self.extra(n) for n in self.EXTRAS])
+        subject.frozen_inputs(data)
+        # A tag or branch name is accepted when the recorder resolved it to a clean checkout (it refuses otherwise).
+        subject.frozen_inputs(self.with_extras([self.extra('littlefs', revision='v2.9.3')]))
+        self.inputs.write_text(json.dumps(data))
+        provenance = json.loads((self.build / 'provenance.json').read_text())
+        provenance['west_projects'] = data['west_projects']
+        (self.build / 'provenance.json').write_text(json.dumps(provenance))
+        record = self.prepare()
+        self.assertEqual([p['name'] for p in record['west_projects'][-4:]], list(self.EXTRAS))
+        self.assertEqual(self.verify()['west_projects'], record['west_projects'])
+
+    def test_rejects_an_other_project_that_is_dirty_unresolved_duplicated_or_misplaced(self):
+        good = self.extra('littlefs')
+        bad = [('dirty', dict(good, dirty=True)), ('dirty missing', {k: v for k, v in good.items() if k != 'dirty'}),
+               ('dirty not bool', dict(good, dirty=0)), ('commit not hex', dict(good, git_commit='not-a-commit')),
+               ('commit short', dict(good, git_commit='abc123')),
+               ('revision commit differs', dict(good, revision='f' * 40)),
+               ('missing field', {k: v for k, v in good.items() if k != 'path'}),
+               ('unknown field', dict(good, note='x')),
+               ('manifest path', dict(good, path='crux-pilot')), ('absolute path', dict(good, path='/etc')),
+               ('parent path', dict(good, path='../escape')), ('empty path', dict(good, path='')),
+               ('empty revision', dict(good, revision='')),
+               ('name of a pinned project', dict(good, name='zephyr', path='zephyr2'))]
+        for label, record in bad:
+            with self.subTest(label), self.assertRaises(ValueError):
+                subject.frozen_inputs(self.with_extras([record]))
+        for label, extras in (('duplicate name', [good, dict(good, path='modules/other')]),
+                              ('duplicate path', [good, self.extra('fatfs', path=good['path'])])):
+            with self.subTest(label), self.assertRaises(ValueError):
+                subject.frozen_inputs(self.with_extras(extras))
+
+    def test_the_four_pins_stay_exact_when_other_projects_are_present(self):
+        baseline = json.loads(self.inputs.read_text())
+        extras = [self.extra(n) for n in self.EXTRAS]
+        for index, name in enumerate(subject.PINNED):
+            missing = dict(baseline, west_projects=[p for p in baseline['west_projects'] if p['name'] != name] + extras)
+            with self.subTest(missing=name), self.assertRaises(ValueError):
+                subject.frozen_inputs(missing)
+            for change in (dict(git_commit='d' * 40), dict(revision='d' * 40), dict(dirty=True)):
+                projects = [dict(p, **change) if p['name'] == name else p for p in baseline['west_projects']]
+                with self.subTest(changed=name, change=change), self.assertRaises(ValueError):
+                    subject.frozen_inputs(dict(baseline, west_projects=projects + extras))
+        twice = dict(baseline, west_projects=baseline['west_projects'] + [baseline['west_projects'][0]] + extras)
+        with self.assertRaises(ValueError):
+            subject.frozen_inputs(twice)
+
     def test_freezes_all_artifacts_and_compiler_and_verifies_read_only(self):
         record = self.prepare()
         names = {Path(a['path']).name for a in record['artifacts']}

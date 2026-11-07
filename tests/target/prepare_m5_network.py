@@ -44,16 +44,32 @@ def frozen_inputs(data):
     # bootstrap context, not the built source: source above identifies that worktree.
     contexts = [p for p in projects if p['name'] == 'manifest']
     dependencies = [p for p in projects if p['name'] != 'manifest']
-    require(len(contexts) <= 1 and len(dependencies) == len(PINNED) and
-            {p['name'] for p in dependencies} == set(PINNED),
+    pinned = [p for p in dependencies if p['name'] in PINNED]
+    others = [p for p in dependencies if p['name'] not in PINNED]
+    # The four pinned dependencies are exact and each appears once. Any other project that the manifest
+    # makes active is recorded but never part of this image, because the build names its modules
+    # explicitly (see scripts/test-networking-physical.sh); it must still be a clean, resolved checkout.
+    require(len(contexts) <= 1 and len(pinned) == len(PINNED) and {p['name'] for p in pinned} == set(PINNED),
             'Unexpected/missing/duplicate dependencies or manifest context')
+    fields = {'name', 'path', 'revision', 'git_commit', 'dirty'}
+    require(len({p['name'] for p in others}) == len(others) and
+            len({p.get('path') for p in others}) == len(others), 'Duplicate other west project')
+    for project in others:
+        revision, path = project.get('revision'), project.get('path')
+        require(set(project) == fields and project['dirty'] is False and
+                re.fullmatch(r'[0-9a-f]{40}', str(project['git_commit'])) is not None and
+                isinstance(revision, str) and revision != '' and
+                (re.fullmatch(r'[0-9a-f]{40}', revision) is None or revision == project['git_commit']) and
+                isinstance(path, str) and path != '' and not path.startswith('/') and
+                '..' not in Path(path).parts and path != 'crux-pilot',
+                'Other west project is dirty, unresolved or misplaced: ' + str(project.get('name')))
     for context in contexts:
         require(set(context) == {'name', 'path', 'revision', 'git_commit', 'dirty'} and
                 context['path'] == 'crux-pilot' and context['revision'] == 'HEAD' and
                 context['dirty'] is False and
                 re.fullmatch(r'[0-9a-f]{40}', context['git_commit']) is not None,
                 'Unfrozen/noncanonical workspace manifest context')
-    for project in dependencies:
+    for project in pinned:
         require(project['revision'] == project['git_commit'] == PINNED[project['name']] and
                 not project['dirty'], 'Dependency changed')
 

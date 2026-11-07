@@ -526,3 +526,23 @@ only against images that are supplied. Whether the driver's own hash belongs in 
 schema is an owner decision; it is bound by the clean-tree check and recorded in `inputs.json`, as in the
 accepted M3 runners. Not shown on a device: real Commander output for a verify mismatch, whether
 `connect` halts a running core, and `loadfile` duration against the 30 s limit for the image sizes.
+
+## Frozen inputs and other west projects
+
+The image manifest of the M5 image froze the west workspace as exactly the four pinned dependencies
+(zephyr, cmsis, cmsis_6, hal_nxp). Since then `west.yml` has made more projects active (for example
+littlefs, fatfs, mbedtls and tf-psa-crypto), and the provenance recorder lists every active project, so a
+real freeze on current `main` was refused with "Unexpected/missing/duplicate dependencies". Owner decision,
+chat 2026-11-08: "방안 A승인".
+
+| Rule in `prepare_m5_network.frozen_inputs` | Before | Now |
+| --- | --- | --- |
+| The four pinned dependencies | exactly these four, exact revision, clean | unchanged: each present once, exact revision and commit, clean |
+| Any other west project | refused | accepted and recorded in the manifest only if it has exactly the fields `name`, `path`, `revision`, `git_commit`, `dirty`; is clean; has a 40-hex commit that equals the revision when the revision is itself a commit; has a unique name and a unique relative path that is not absolute, has no `..` and is not the manifest checkout |
+| Workspace manifest context | optional, canonical | unchanged |
+
+The recorder already refuses any project whose `HEAD` differs from its manifest revision or that is dirty,
+and the check repeats that on the record at every verification. The extra projects never enter the image:
+`scripts/test-networking-physical.sh` names its modules explicitly (the repository, cmsis, cmsis_6 and
+hal_nxp), so the compiled inputs are still exactly the four pinned dependencies. Not shown: that no other
+module is pulled in by Kconfig or the module list; the cross-build and the manifest hashes cover that.
