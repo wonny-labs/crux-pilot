@@ -101,7 +101,7 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 
 ### Secure management
 
-The documents for accounts, the management services, HTTPS web management, the command line over serial and SSH, and SFTP. Nothing here has run on a board. The [capability inventory](docs/architecture.md#current-capability-integration) gives each component's validation level.
+The documents for accounts, the management services, HTTPS web management, the command line over serial and SSH, and SFTP. **A product team that consumes Crux as a west module starts with [Secure management in a product](docs/management-in-a-product.md)**: what to enable, what is not built, limits, tested clients and browsers, and the open decisions. Nothing here has run on a board. The [capability inventory](docs/architecture.md#current-capability-integration) gives each component's validation level.
 
 | Topic | Documents |
 | --- | --- |
