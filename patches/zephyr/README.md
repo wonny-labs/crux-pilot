@@ -111,7 +111,8 @@ this patch, and the patch also calls wolfSSL, so Crux refers to it by revision u
 
 Upstream generated these for Zephyr 4.4.1. On v4.4.2, `git apply --check` of the core patch fails in `sockets_tls.c`, and
 `git apply --3way` merges it with no conflict. The result differs from the patched 4.4.1 file by exactly the upstream changes
-between those tags. It has been compiled and has not been run. How a composition applies it without editing the Zephyr
+between those tags. It runs on `native_sim` in the [TLS probe](../../docs/native-management-composition.md#tls-probe), on a patched copy of the tree that
+`scripts/prepare-wolf-tls-zephyr.sh` makes for a test, and it has run on nothing else. How a product composition applies it without editing the Zephyr
 checkout is decided under Issue #185. The wolfSSL, wolfSSH and wolfPSA projects are fetched only when a workspace enables the
 `crux-secure-management` group. wolfSSL and wolfSSH are offered under GPL-3.0-or-later or a commercial licence. wolfPSA's source
 states GPL-3.0-or-later only. A vendor article says it has the same licence options as wolfSSL, and its commercial terms need

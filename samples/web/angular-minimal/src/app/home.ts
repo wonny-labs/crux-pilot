@@ -24,12 +24,6 @@ const LABELS: Record<string, string> = {
   imports: [Notice],
   template: `
     <h1>Home</h1>
-    @if (session.user()?.must_change_password) {
-      <crux-notice kind="error">
-        This account must change its password. This sample has no such screen, so use the reference interface or the
-        command line.
-      </crux-notice>
-    }
     @if (problem(); as text) {
       <crux-notice kind="error">{{ text }}</crux-notice>
     }
@@ -50,7 +44,7 @@ const LABELS: Record<string, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Home implements OnInit, OnDestroy {
-  protected readonly session = inject(Session);
+  private readonly session = inject(Session);
   private readonly api = inject(Api);
 
   protected readonly items = signal<StatusItem[] | null>(null);

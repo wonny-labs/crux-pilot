@@ -17,6 +17,7 @@ class ConfigurationConsumers(unittest.TestCase):
                 ["cmake", "--build", directory],
                 [str(Path(directory) / "configuration_c")],
                 [str(Path(directory) / "configuration_cpp")],
+                [str(Path(directory) / "configuration_string_cpp")],
             ):
                 result = subprocess.run(command, capture_output=True, text=True, timeout=90)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

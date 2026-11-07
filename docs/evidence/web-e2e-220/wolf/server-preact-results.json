@@ -1,0 +1,114 @@
+{
+ "checks": {
+  "the first boot creates the accounts and serves": true,
+  "a later boot finds the accounts and serves": true,
+  "TLS 1.3 only, with the declared certificate": true,
+  "no plain HTTP answer on the port": true,
+  "the hash list records the strict style": true,
+  "every listed asset, 4, as listed, with its headers": true,
+  "/ serves the index": true,
+  "no fallback at /config: 404": true,
+  "no fallback at /home: 404": true,
+  "no fallback at /network: 404": true,
+  "no fallback at /signin: 404": true,
+  "no fallback at /password: 404": true,
+  "no fallback at /reboot: 404": true,
+  "no fallback at /index.html/config: 404": true,
+  "the API's 401 keeps the core's headers": true,
+  "a fourth client is served within one inactivity period: 0.97 s": true,
+  "1 stalled handshake(s): served in 2.83 s": true,
+  "2 stalled handshake(s): served in 4.85 s": true,
+  "writer signs in": true,
+  "a held route answers the server's plain 409, with no body": true,
+  "the route is free once the holder leaves: 200": true,
+  "a full login table answers 503 busy, with Retry-After": true,
+  "a session polled with GET ends at the idle limit, 30 s": true
+ },
+ "measured": {
+  "boot_s": [
+   0.2,
+   0.2
+  ],
+  "openssl_tls1_2": {
+   "established": false,
+   "protocol": null,
+   "verified": false,
+   "output": "40A7FEFEFF7F0000:error:0A00042E:SSL routines:ssl3_read_bytes:tlsv1 alert protocol version:../ssl/record/rec_layer_s3.c:1599:SSL alert number 70\n"
+  },
+  "openssl_tls1_3": {
+   "established": true,
+   "protocol": "TLSv1.3",
+   "verified": true,
+   "output": "CONNECTION ESTABLISHED\nProtocol version: TLSv1.3\nCiphersuite: TLS_AES_128_GCM_SHA256\nPeer certificate: O = Crux test only, CN = localhost\nHash used: SHA256\nSignature type: ECDSA\nVerification: OK\nServer Temp Key: X25519, 253 bits\nDONE\n"
+  },
+  "assets": [
+   {
+    "path": "/assets/app.BHPFZVMB.css",
+    "cache": "max-age=31536000, immutable",
+    "encoding": "gzip",
+    "bytes": 1308,
+    "errors": []
+   },
+   {
+    "path": "/assets/app.O3M57AFR.js",
+    "cache": "max-age=31536000, immutable",
+    "encoding": "gzip",
+    "bytes": 21394,
+    "errors": []
+   },
+   {
+    "path": "/favicon.svg",
+    "cache": "no-cache",
+    "encoding": "gzip",
+    "bytes": 159,
+    "errors": []
+   },
+   {
+    "path": "/index.html",
+    "cache": "no-cache",
+    "encoding": "gzip",
+    "bytes": 346,
+    "errors": []
+   }
+  ],
+  "request_alone_s": 1.011,
+  "fourth_client_behind_three_idle_s": 0.973,
+  "request_behind_1_stalled_handshakes_s": 2.829,
+  "request_behind_2_stalled_handshakes_s": 4.846,
+  "held_route": {
+   "status": 409,
+   "raw": "HTTP/1.1 409 Conflict\r\n\r\n"
+  },
+  "full_login_table": {
+   "queued": [
+    202,
+    202,
+    202,
+    202
+   ],
+   "status": 503,
+   "retry_after": "1",
+   "body": "{\"code\":\"busy\"}"
+  },
+  "login_table_free_after_s": 17.2,
+  "idle_expiry": {
+   "idle_s": 30,
+   "polled": [
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    401
+   ],
+   "after": 401
+  }
+ },
+ "app": "preact",
+ "profile": "wolf",
+ "style": "strict",
+ "revision": "37b8b50c619296db8e13f874dfb841cd7f18adf2",
+ "dirty": false,
+ "failures": []
+}

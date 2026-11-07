@@ -1,0 +1,63 @@
+{
+  "assets": [
+    {
+      "bytes": 3931,
+      "cache": "immutable",
+      "encoding": "gzip",
+      "file": "assets/app.BHPFZVMB.css",
+      "path": "/assets/app.BHPFZVMB.css",
+      "served_bytes": 1308,
+      "served_sha256": "4f30a263ae90482e90555640231f8dec5aa65611244e3dff81d2732c5e6df54d",
+      "sha256": "bcec56b1cd4a656f0a66844ff136dd2e0bf1e3019d0737ddab50a47ea7fba030",
+      "type": "text/css; charset=utf-8"
+    },
+    {
+      "bytes": 64930,
+      "cache": "immutable",
+      "encoding": "gzip",
+      "file": "assets/app.O3M57AFR.js",
+      "path": "/assets/app.O3M57AFR.js",
+      "served_bytes": 21394,
+      "served_sha256": "6ea1af317e7b793b3722dfda64aa13145855c0a7fe103a3b0bb8b241e71654da",
+      "sha256": "2dd04c7fdc1d79a4a1861ae1e28afee24caf1499131bd0757641dc09ffdc0282",
+      "type": "text/javascript; charset=utf-8"
+    },
+    {
+      "bytes": 174,
+      "cache": "revalidate",
+      "encoding": "gzip",
+      "file": "favicon.svg",
+      "path": "/favicon.svg",
+      "served_bytes": 159,
+      "served_sha256": "413e8bd2edd2e68fa7a5f885ff822a005f46f0169c12da83aacbf1a62e289fef",
+      "sha256": "e4e38206ba428235a922e312c18c81920a48c0ac2c2027f68dff9d4804c9a371",
+      "type": "image/svg+xml"
+    },
+    {
+      "bytes": 548,
+      "cache": "revalidate",
+      "encoding": "gzip",
+      "file": "index.html",
+      "path": "/index.html",
+      "served_bytes": 346,
+      "served_sha256": "5cf29ac250a54f3b1e50f6e68a1186193b590f32d14d5eafeba0f05a4af22519",
+      "sha256": "becf61c27a4dc0dd426f3da92a3fa4dfa4d7a79bea8269a47be17946591342d4",
+      "type": "text/html; charset=utf-8"
+    }
+  ],
+  "budget": {
+    "client_rate_bytes_per_second": 32768,
+    "max_asset_bytes": 98304,
+    "max_files": 32,
+    "max_total_bytes": 393216,
+    "response_deadline_ms": 3000
+  },
+  "format": "crux-web-assets/1",
+  "style": "strict",
+  "totals": {
+    "bytes": 69583,
+    "files": 4,
+    "routes": 5,
+    "served_bytes": 23207
+  }
+}

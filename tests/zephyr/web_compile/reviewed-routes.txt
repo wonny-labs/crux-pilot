@@ -1,0 +1,3 @@
+# The compile image's public and session-only routes. It only has to link.
+session GET /api/v1/status
+public GET /api/v1/session/attempt/{id}

@@ -232,6 +232,7 @@ W12 follows from this:
 - With that option, the server's `FNM_LEADING_DIR` flag lets any route also match deeper paths, so `/api/v1/status/x` reaches the status route, and a trailing `*` crosses `/`. The adapter therefore compares the whole path with the route table before it checks access, and answers `404` to anything else.
 - The wildcard pass takes the first match in section order, which is sorted by name, so `/api/v1/session` could capture `/api/v1/session/attempt/x`. The generator must place wildcard resources first, or the parent resource must accept the method.
 - The server always sends `Transfer-Encoding: chunked` on a dynamic HTTP/1.1 response, so no route uses `204`. A path with no registered resource gets the server's plain `404`, and a wrong method its plain `405`, neither with JSON or security headers.
+- #184 implemented and measured this model. See the [web contract](../web-contract.md), which also records two limits of `native_sim` found there: the host's C library reads the server's `fnmatch` flags differently, and the native socket offload has no `shutdown`, which the inactivity timer uses.
 - Hash routing removes the need for a deep-link fallback.
 - A `GET` completes in one server pass, while a `POST` or `PUT` whose body spans several reads holds its route until the body completes or the connection closes.
 - The client treats a `409` with no JSON body as busy and retries. A refused reboot therefore uses `423`, so that the two cannot be confused.

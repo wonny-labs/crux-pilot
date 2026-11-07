@@ -24,6 +24,7 @@ static const expectation_t expectations[] = {
     {CRUX_SSH_FAKE_FAULT_NO_AUTH_TIME_LIMIT, "auth_time_is_bounded"},
     {CRUX_SSH_FAKE_FAULT_NO_CONNECTION_LIMIT, "connections_are_bounded"},
     {CRUX_SSH_FAKE_FAULT_ACCEPTS_RSA, "rsa_keys_are_refused"},
+    {CRUX_SSH_FAKE_FAULT_ACCEPTS_MALFORMED_KEY, "malformed_key_blobs_are_refused"},
     {CRUX_SSH_FAKE_FAULT_SESSION_FROM_PROBE, "probe_never_creates_a_session"},
     {CRUX_SSH_FAKE_FAULT_SIGNATURE_NOT_CHECKED, "failed_signature_reports_and_denies"},
     {CRUX_SSH_FAKE_FAULT_KEY_FAILURE_SILENT, "failed_signature_reports_and_denies"},
