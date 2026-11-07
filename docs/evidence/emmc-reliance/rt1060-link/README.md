@@ -152,5 +152,7 @@ step is unchanged. `scripts/test-storage-emmc.sh` already writes `twister-*` dir
 the same Reliance Edge source, so the existing step would upload their `zephyr.map` and `compile_commands.json` once the
 script runs in CI. It uploads no `zephyr.elf` or `zephyr.bin` from those directories: the named image paths of the upload
 step do not cover them. The step's direct globs (`build/zephyr/*/compile_commands.json`, `*/CMakeCache.txt`,
-`*/zephyr/.config`) also match the script's direct build directories (`emmc-restart*`, `reliance-*`,
-`file-emmc-noflush` and `file-emmc-control`), again maps and configuration files and no image. A reviewer decides whether maps of images that link GPLv2 source should be collected.
+`*/zephyr/.config`) also match the direct build directories of `test-storage-emmc.sh` (`emmc-restart*`,
+`reliance-*`) and of `test-file-emmc-compile.sh` (`file-emmc-noflush`, `file-emmc-control`). They collect build
+commands, CMake caches and `.config` files, and no map and no image.
+A reviewer decides whether maps of images that link GPLv2 source should be collected.
