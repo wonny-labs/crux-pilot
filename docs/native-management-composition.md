@@ -1,6 +1,6 @@
 # `native_sim` management composition
 
-Status: for review under [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), in a Draft PR. Decision W17 makes PSA a prerequisite of real HTTPS on `native_sim`, and W18 makes Host and `native_sim` completion an interim result, with physical evidence tracked apart.
+Status: delivered on `native_sim` in [PR #263](https://github.com/wonny-labs/crux-pilot/pull/263), under review for [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), which stays open. Decision W17 makes PSA a prerequisite of real HTTPS on `native_sim`, and W18 makes Host and `native_sim` completion an interim result, with physical evidence tracked apart.
 
 The second part of #242, every other management service composed on these providers behind HTTPS, is in [Every management service on `native_sim`](native-composition-242.md).
 

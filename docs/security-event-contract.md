@@ -337,7 +337,7 @@ The owner could not be asked. Each is the narrow choice, and a changed choice is
 | 17 | `get_stats` before init | Answers `OK`, with the counts so far | A failed init is the case a status page most needs to show. |
 | 18 | Build settings | `RING`, `RESERVE`, `DRAIN_BURST` and `DRAIN_PAUSE_MS` are CMake cache values. `LOCK_MS`, `DRAIN_WAIT_MS` and the stack size are macros with defaults. | A composition sizes the ring and reserve, and matches the burst and its pause to its log buffer. The rest keep the proposal's defaults. |
 | 19 | The fake's rules | Field, identifier and project table rules are the real source. Ring, reserve and drain are not modelled, and a test asks for a drop. | A consumer's tests then hold on the core, and it stays small. |
-| 20 | `native_sim` | Not attempted | Gate decision G-B approves contract work with fakes and Host tests here. `crux_access` has no Zephyr composition yet, so this needs that first. |
+| 20 | `native_sim` | Covered for tests by the [#242 composition](native-management-composition.md). A target is not attempted. | Gate decision G-B approved contract work with fakes and Host tests here. The composition came later and shows the drain's counts and nothing on a wire. |
 
 ## What is built, faked and untested
 
@@ -347,7 +347,7 @@ The owner could not be asked. Each is the narrow choice, and a changed choice is
 | Never real | Time's realtime provider, which is the controlled `memory` one even in `integration`. Access's crypto and storage ports, which are `tests/access/fake_ports.c` wherever Access runs. |
 | Controlled in every suite but `integration`, `public_fake` and `fake_cases` | Through linker wraps: the monotonic clock, unless a case asks for the real one, the Time snapshot, `crux_log_write`, `crux_is_in_isr`, and failures of Sync and Thread creation. The signal and the pause pass through and are counted, and a case can change what a wait reports. |
 | Stubbed in `conformance`, `ring`, `ring_small`, `drain`, `time_cases`, `init`, `concurrency` and `public_core` | `crux_access_check`, from `tests/security_event/access_check_stub.c`, which answers what a case sets. These suites do not link Access. |
-| Untested | Anything on Zephyr, `native_sim` or a target. The native log queue dropping after `OK`. Emit time on a real thread, and loss under real management load. Stack use of the drain on Zephyr. Whether a pause of 100 ms after every 4 lines suits a real log buffer. |
+| Untested | Anything on a target, and anything on Zephyr or `native_sim` beyond the [test composition](native-management-composition.md), which shows the drain's counts and nothing on a wire. The native log queue dropping after `OK`. Emit time on a real thread, and loss under real management load. Stack use of the drain on Zephyr. Whether a pause of 100 ms after every 4 lines suits a real log buffer. |
 
 ## What is not known
 
