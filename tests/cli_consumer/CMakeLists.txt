@@ -1,0 +1,72 @@
+cmake_minimum_required(VERSION 3.28)
+project(crux_cli_consumer LANGUAGES C CXX)
+if(NOT CRUX_SOURCE_DIR)
+    get_filename_component(CRUX_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+endif()
+# Selects what scripts/check-cli-boundary.py asks this project to do. See that script for each
+# probe's expected outcome.
+set(CLI_PROBE "consumer" CACHE STRING "Boundary probe")
+set(CRUX_BUILD_SYNC ON CACHE BOOL "Required by Access")
+set(CRUX_BUILD_ACCESS ON CACHE BOOL "Required by the command line")
+set(CRUX_BUILD_CLI ON CACHE BOOL "Capability under test")
+add_subdirectory("${CRUX_SOURCE_DIR}" crux)
+include("${CRUX_SOURCE_DIR}/cmake/CruxAccessBoundary.cmake")
+crux_assert_portable_usage(crux::cli)
+crux_assert_access_adapter_unreachable(crux::cli)
+
+# A fake access control or event port must not exist in a build that a product could use.
+foreach(fake IN ITEMS cli_test_core cli_test_scripted)
+    if(TARGET ${fake})
+        message(FATAL_ERROR "the CLI test composition must not exist outside Crux's own tests")
+    endif()
+endforeach()
+
+if(CLI_PROBE STREQUAL "consumer")
+    # A project: declares commands, and compiles as C17 and C++17.
+    add_library(cli_consumer_c OBJECT consumer.c)
+    add_library(cli_consumer_cpp OBJECT consumer.cpp)
+    foreach(target IN ITEMS cli_consumer_c cli_consumer_cpp)
+        target_link_libraries(${target} PRIVATE crux::cli)
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+        crux_assert_portable_consumer(${target})
+        crux_assert_access_consumer(${target})
+    endforeach()
+    set_target_properties(cli_consumer_c PROPERTIES C_STANDARD 17 C_EXTENSIONS OFF)
+    set_target_properties(cli_consumer_cpp PROPERTIES CXX_STANDARD 17 CXX_EXTENSIONS OFF)
+elseif(CLI_PROBE STREQUAL "private_adapter")
+    # The arrangement the SSH adapter will use: must be accepted, and must not expose the header.
+    add_library(cli_ssh_shaped_adapter STATIC adapter_user.c)
+    target_link_libraries(cli_ssh_shaped_adapter PUBLIC crux::cli PRIVATE crux_cli_adapter)
+    add_library(cli_adapter_consumer OBJECT consumer.c)
+    target_link_libraries(cli_adapter_consumer PRIVATE cli_ssh_shaped_adapter)
+    crux_assert_access_consumer(cli_adapter_consumer)
+elseif(CLI_PROBE STREQUAL "private_adapter_include")
+    # The same arrangement, with a project that tries to use the header anyway: must not compile.
+    add_library(cli_ssh_shaped_adapter STATIC adapter_user.c)
+    target_link_libraries(cli_ssh_shaped_adapter PUBLIC crux::cli PRIVATE crux_cli_adapter)
+    add_library(cli_adapter_consumer OBJECT include_adapter.c)
+    target_link_libraries(cli_adapter_consumer PRIVATE cli_ssh_shaped_adapter)
+elseif(CLI_PROBE STREQUAL "include_adapter")
+    # Includes the adapter header through crux::cli alone: must not compile.
+    add_library(cli_include_consumer OBJECT include_adapter.c)
+    target_link_libraries(cli_include_consumer PRIVATE crux::cli)
+elseif(CLI_PROBE STREQUAL "include_port")
+    # Includes the private port header through crux::cli alone: must not compile.
+    add_library(cli_include_consumer OBJECT include_port.c)
+    target_link_libraries(cli_include_consumer PRIVATE crux::cli)
+elseif(CLI_PROBE STREQUAL "no_access_class")
+    # A command with no access class: must not compile.
+    add_library(cli_no_class OBJECT no_access_class.c)
+    target_link_libraries(cli_no_class PRIVATE crux::cli)
+elseif(CLI_PROBE STREQUAL "no_provider")
+    # A product image with no provider selected: must not link.
+    add_executable(cli_no_provider no_provider.c)
+    target_link_libraries(cli_no_provider PRIVATE crux::cli)
+elseif(CLI_PROBE STREQUAL "line_too_short")
+    # A build setting too small for the longest config set line: must not compile.
+    add_library(cli_short_line_consumer OBJECT consumer.c)
+    target_link_libraries(cli_short_line_consumer PRIVATE crux::cli)
+    add_dependencies(cli_short_line_consumer crux_cli_core)
+else()
+    message(FATAL_ERROR "unknown CLI_PROBE: ${CLI_PROBE}")
+endif()

@@ -1,0 +1,27 @@
+# scripts/test-psa-crypto.sh zephyr, native_sim/native/64, Twister. Local run. Build lines removed.
+Crux revision: a0fa5061289b42129a64e6ceb058d9d72f1bd1fb
+pin ok: mbedtls a3e190fe44c78d1ba67f55979e1257328cc7d0d8
+pin ok: tf-psa-crypto dc575a2ddcc8cb16275d24c42a52eaf79ebe2231
+pin ok: wolfssl 3c5eead44904df64e6a5a1f4ebdce377d35a849a
+pin ok: wolfpsa 55ae0ec58cd2ef4c528f44e8466095550c16ca8a
+INFO    - 3 of 3 executed test configurations passed (100.00%), 0 built (not run), 0 failed, 0 errored, with no warnings in 169.82 seconds.
+INFO    - 131 of 131 executed test cases passed (100.00%) on 1 out of total 1473 platforms (0.07%).
+INFO    - 7 selected test cases not executed: 7 skipped.
+crux.psa_crypto.conformance.tf_psa_crypto {'passed': 43, 'skipped': 3}
+crux.psa_crypto.conformance.wolfpsa {'passed': 44, 'skipped': 2}
+crux.psa_crypto.conformance.wolfpsa_with_tls {'passed': 44, 'skipped': 2}
+default	PSA_RANDOM_PROBE 3bdb31ccb6d508aad2e1be87e47b88ae
+default	PSA_RANDOM_PROBE 3bdb31ccb6d508aad2e1be87e47b88ae
+seed=7	PSA_RANDOM_PROBE f5df5243e2193b07daaf9c7b6d1a4f1b
+seed=7	PSA_RANDOM_PROBE f5df5243e2193b07daaf9c7b6d1a4f1b
+seed-random	PSA_RANDOM_PROBE 5534552c46340da00ab78974c7d80fa0
+seed-random	PSA_RANDOM_PROBE ec48aa0815f3fe9f59d302482f90556f
+entropy declaration holds: tf_psa_crypto, native_sim random is test-only
+default	PSA_RANDOM_PROBE a2eff5b81eea4763a5c79a14b0c1409d
+default	PSA_RANDOM_PROBE a2eff5b81eea4763a5c79a14b0c1409d
+seed=7	PSA_RANDOM_PROBE 684a14af51401317e9275764d0cd667a
+seed=7	PSA_RANDOM_PROBE 684a14af51401317e9275764d0cd667a
+seed-random	PSA_RANDOM_PROBE 1c3659982fcd7afdc917729741625b06
+seed-random	PSA_RANDOM_PROBE 944d49ee0f34d238e4ce0726e27dfed4
+entropy declaration holds: wolfpsa, native_sim random is test-only
+PSA Crypto qualification (zephyr) finished.

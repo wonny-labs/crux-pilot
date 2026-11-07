@@ -1,0 +1,31 @@
+# scripts/test-psa-crypto.sh target, mimxrt1060_evk@B//qspi. Local run. Compile only: nothing was flashed, reset or run.
+# CRUX_WORKSPACE and CRUX_PSA_OUTPUT named the real paths, because this container reached the workspace through symbolic links.
+Crux revision: a0fa5061289b42129a64e6ceb058d9d72f1bd1fb
+pin ok: mbedtls a3e190fe44c78d1ba67f55979e1257328cc7d0d8
+pin ok: tf-psa-crypto dc575a2ddcc8cb16275d24c42a52eaf79ebe2231
+pin ok: wolfssl 3c5eead44904df64e6a5a1f4ebdce377d35a849a
+pin ok: wolfpsa 55ae0ec58cd2ef4c528f44e8466095550c16ca8a
+           FLASH:      120672 B         8 MB      1.44%
+             RAM:       84480 B        32 MB      0.25%
+           OCRAM:           0 B       256 KB      0.00%
+tf-psa-crypto on mimxrt1060_evk@B//qspi, compile only: ENTROPY_MCUX_TRNG, zephyr,entropy = &trng at 0x400cc000, no DCP, nothing run
+CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS=y
+CONFIG_MBEDTLS_PSA_DRIVER_GET_ENTROPY=y
+CONFIG_MBEDTLS_PSA_CRYPTO_LEGACY_RNG=y
+CONFIG_MBEDTLS_PSA_STATIC_KEY_SLOTS=y
+CONFIG_ENTROPY_MCUX_TRNG=y
+CONFIG_ENTROPY_NEEDS_PRNG=y
+CONFIG_XOSHIRO_RANDOM_GENERATOR=y
+CONFIG_CSPRNG_ENABLED=y
+           FLASH:        251 KB         8 MB      3.06%
+             RAM:       72960 B        32 MB      0.22%
+           OCRAM:           0 B       256 KB      0.00%
+wolfpsa on mimxrt1060_evk@B//qspi, compile only: ENTROPY_MCUX_TRNG, zephyr,entropy = &trng at 0x400cc000, no DCP, nothing run
+CONFIG_PSA_CRYPTO_PROVIDER_CUSTOM=y
+CONFIG_WOLFSSL_AES_TOUCH_LINES=y
+CONFIG_WOLFPSA=y
+CONFIG_ENTROPY_MCUX_TRNG=y
+CONFIG_ENTROPY_NEEDS_PRNG=y
+CONFIG_XOSHIRO_RANDOM_GENERATOR=y
+CONFIG_CSPRNG_ENABLED=y
+PSA Crypto qualification (target) finished.

@@ -4,16 +4,26 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 @Component({
   selector: 'crux-notice',
-  template: `<div class="notice" [attr.role]="kind() === 'error' ? 'alert' : 'status'"><ng-content /></div>`,
+  template: `<div [class]="'notice ' + kind()" [attr.role]="kind() === 'error' ? 'alert' : 'status'"><ng-content /></div>`,
   styles: `
     .notice {
       margin: 1rem 0;
       padding: 0.75rem 1rem;
       border-left: 4px solid currentColor;
     }
+    .error {
+      border-left-width: 6px;
+      font-weight: 600;
+    }
+    .warning {
+      border-left-style: double;
+    }
+    .success {
+      border-left-style: dashed;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Notice {
-  readonly kind = input<'error' | 'info'>('info');
+  readonly kind = input<'error' | 'warning' | 'success' | 'info'>('info');
 }

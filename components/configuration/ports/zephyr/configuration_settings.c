@@ -25,6 +25,8 @@ BUILD_ASSERT(!IS_ENABLED(CONFIG_NVS_INIT_BAD_MEMORY_REGION));
 #endif
 
 enum { NAME_CAPACITY = 36, RECORD_CAPACITY = 256 };
+/* A longer record returns IO from this provider, not a rejection, so a string must fit in one. */
+BUILD_ASSERT(CRUX_CONFIG_STRING_MAX <= RECORD_CAPACITY - 4);
 static bool initialized;
 
 static crux_config_result_t result(int rc)

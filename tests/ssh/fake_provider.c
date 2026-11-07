@@ -1,5 +1,7 @@
 #include "fake_provider.h"
 
+#include "crux_ssh_wire.h"
+
 #include <string.h>
 
 #define FAKE_CAPACITY 4u
@@ -58,9 +60,13 @@ static struct {
 } fake;
 
 static const uint8_t fake_host_key[FAKE_ED25519_KEY_LENGTH] = {0x48, 0x4f, 0x53, 0x54};
+/* Each type's exact form, which a provider checks before key_check, around key bytes of zero. */
 static const uint8_t fake_ed25519_key[FAKE_ED25519_KEY_LENGTH] = {
-    0, 0, 0, 11, 's', 's', 'h', '-', 'e', 'd', '2', '5', '5', '1', '9'};
-static const uint8_t fake_ecdsa_key[FAKE_ECDSA_KEY_LENGTH] = {0, 0, 0, 19, 'e', 'c', 'd', 's', 'a'};
+    0, 0, 0, 11, 's', 's', 'h', '-', 'e', 'd', '2', '5', '5', '1', '9', 0, 0, 0, 32};
+static const uint8_t fake_ecdsa_key[FAKE_ECDSA_KEY_LENGTH] = {
+    0,   0,   0,   19,  'e', 'c', 'd', 's', 'a', '-', 's', 'h', 'a', '2',
+    '-', 'n', 'i', 's', 't', 'p', '2', '5', '6', 0,   0,   0,   8,   'n',
+    'i', 's', 't', 'p', '2', '5', '6', 0,   0,   0,   65,  4};
 /* Stands for a handle that is not the one Crux returned. It is only ever compared. */
 static char wrong_handle;
 
@@ -475,14 +481,17 @@ static bool client_none_request(int id, const char *user)
     return false;
 }
 
-static bool key_type_from_name(const char *algorithm, crux_ssh_key_type_t *type)
+/* The provider's own check, as the wolfSSH provider makes it: crux_ssh_wire.c. */
+static bool key_type_of(const char *algorithm, const uint8_t *key, size_t key_length,
+                        crux_ssh_key_type_t *type)
 {
-    if (strcmp(algorithm, "ssh-ed25519") == 0) {
-        *type = CRUX_SSH_KEY_ED25519;
+    if (crux_ssh_wire_user_key((const uint8_t *)algorithm, strlen(algorithm), key, key_length,
+                               type)) {
         return true;
     }
-    if (strcmp(algorithm, "ecdsa-sha2-nistp256") == 0) {
-        *type = CRUX_SSH_KEY_ECDSA_P256;
+    if (has_fault(CRUX_SSH_FAKE_FAULT_ACCEPTS_MALFORMED_KEY) &&
+        strcmp(algorithm, "ssh-ed25519") == 0) {
+        *type = CRUX_SSH_KEY_ED25519;
         return true;
     }
     if (has_fault(CRUX_SSH_FAKE_FAULT_ACCEPTS_RSA) && strncmp(algorithm, "rsa-", 4) == 0) {
@@ -523,7 +532,7 @@ static bool client_key_probe(int id, const char *user, const char *algorithm, co
     if (!may_attempt(connection) || !admit_name(connection, user, strlen(user))) {
         return false;
     }
-    if (!key_type_from_name(algorithm, &type)) {
+    if (!key_type_of(algorithm, key, key_length, &type)) {
         if (!has_fault(CRUX_SSH_FAKE_FAULT_NOT_COUNTED_REFUSED_TYPE)) {
             count_failure(connection);
         }
@@ -557,7 +566,7 @@ static bool client_key_login(int id, const char *user, const char *algorithm, co
     if (!may_attempt(connection) || !admit_name(connection, user, strlen(user))) {
         return false;
     }
-    if (!key_type_from_name(algorithm, &type)) {
+    if (!key_type_of(algorithm, key, key_length, &type)) {
         if (!has_fault(CRUX_SSH_FAKE_FAULT_NOT_COUNTED_REFUSED_TYPE)) {
             count_failure(connection);
         }

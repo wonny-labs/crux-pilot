@@ -57,11 +57,10 @@ protected data must call a service or `crux_access_check`. `CRUX_WEB_PUBLIC` is 
 result and the static sign-in assets, and a check script lists every public and session-only route for review.
 Handlers never see the Zephyr client context or a socket.
 
-The macro builds a Crux route table. One private catch-all resource passes requests to the adapter,
-which finds the route, checks the session and the access class, and only then runs the handler. The
-Zephyr service fallback resource is the first candidate, since the wildcard option pulls in extra
-POSIX support. If neither suits, the adapter generates Zephyr resources at build time. This is the
-first thing that track M11 proves.
+The macro builds a Crux route table. The build generates one registered resource per path, and the
+adapter finds the route, checks the session and the access class, and only then runs the handler. The
+[web contract](../web-contract.md) records what #184 implemented and measured, which replaces the
+catch-all and fallback candidates that this section proposed.
 
 ## Threading and large transfers
 

@@ -1,5 +1,9 @@
 message(STATUS "Crux Zephyr integration module discovered")
 
+# Rule L5 of the command line contract applies to every image, including one with no management.
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxManagementShell.cmake")
+crux_check_management_shell()
+
 if(CONFIG_CRUX_PILOT_MODULE)
     include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxZephyrBaseline.cmake")
     crux_check_zephyr_baseline()
@@ -64,6 +68,11 @@ if(CONFIG_CRUX_SERIAL)
         "${CMAKE_CURRENT_BINARY_DIR}/serial")
 endif()
 
+if(CONFIG_CRUX_CLI)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/cli/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/cli")
+endif()
+
 if(CONFIG_CRUX_I2C)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/i2c/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/i2c")
@@ -125,4 +134,10 @@ if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
     else()
         include("${CMAKE_CURRENT_LIST_DIR}/../tests/native/configuration_settings_file/candidate.cmake")
     endif()
+endif()
+
+if(CONFIG_CRUX_WEB)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/web/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/web")
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::web)
 endif()

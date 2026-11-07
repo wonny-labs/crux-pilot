@@ -1,0 +1,23 @@
+mainmenu "PSA entropy failure test"
+
+source "Kconfig.zephyr"
+
+config CRUX_TEST_ENTROPY
+	bool "Entropy device for tests, whose reads can be made to fail"
+	default y
+	depends on DT_HAS_CRUX_TEST_ENTROPY_ENABLED
+	select ENTROPY_HAS_DRIVER
+	# As the RT1060 TRNG driver does, so that the PSA source is the legacy RNG over this device.
+	select ENTROPY_NEEDS_PRNG
+	help
+	  A test-only driver. It is not a source of entropy.
+
+config CRUX_TEST_ENTROPY_FAILS
+	bool "Every read of the entropy device fails with -EIO"
+	depends on CRUX_TEST_ENTROPY
+
+config CRUX_FAIL_CLOSED_ENTROPY
+	bool "Apply Crux's correction of Zephyr's Mbed TLS entropy glue"
+	help
+	  Replaces modules/mbedtls/zephyr_entropy.c with a build-local copy that does not fall back to
+	  sys_rand_get(). See cmake/CruxMbedtlsEntropy.cmake.

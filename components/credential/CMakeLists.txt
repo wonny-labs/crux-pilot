@@ -45,3 +45,13 @@ if(CRUX_BUILD_ACCESS)
         PRIVATE crux_credential_adapter crux_access_adapter)
     target_compile_options(crux_credential_access_store PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
+
+# The provider of crux_credential_port_event, which a composition links by name. It is an object target,
+# so that a final link always takes it, and a second provider of the port is a duplicate symbol.
+if(CRUX_BUILD_SECURITY_EVENT)
+    add_library(crux_credential_security_events OBJECT src/credential_security_events.c)
+    target_include_directories(crux_credential_security_events PRIVATE src)
+    target_link_libraries(crux_credential_security_events
+        PRIVATE crux_credential_adapter crux_security_event_api)
+    target_compile_options(crux_credential_security_events PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()

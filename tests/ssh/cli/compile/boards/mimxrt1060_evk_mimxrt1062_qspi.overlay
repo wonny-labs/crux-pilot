@@ -1,0 +1,5 @@
+/* The command line's serial console (rule L1). LPUART1 stays with Logging and the debug USB port.
+ * Compile evidence only: the Serial contract states that this wiring's electrical suitability is
+ * unverified, and checking it needs its own approval. */
+/ { aliases { crux-serial0 = &lpuart3; }; };
+&lpuart3 { status = "okay"; current-speed = <115200>; };
