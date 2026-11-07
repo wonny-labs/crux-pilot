@@ -211,7 +211,7 @@ stack and is an Inference for the slot read through a backend that does not exis
    relied upon (P13, P14, Inference). Reads the slot into SDRAM, validates it and jumps.
 3. **Application.** Initialises the stack again where it needs it, which also resets the host and the card.
 
-Two points that matter for the design, both Inference (a third, in the stage list above, is marked where it occurs):
+Two points that matter for the design, both Inference. The DCD write order in step 1 above is a third Inference.
 
 - **The first stage can itself be loaded into SDRAM.** The non-XIP boot data in Zephyr defaults to the SRAM base, which is
   SDRAM on this board (P4, P11), and the manual says the ROM performs a DCD check and extraction before it takes the destination
