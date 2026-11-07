@@ -1,8 +1,9 @@
 # Angular example
 
-This example shows that a product can use Angular with Crux. It holds sign-in, the forced password change, home and a configuration screen, uses the types generated from
+This example shows that a product can use Angular with Crux. It holds sign-in, the forced password change, home, a configuration screen, network settings and restart, uses the types generated from
 the [management API specification](../../../web/api/openapi.yaml), and passes the same browser cases as the
-[Preact example](../../../web/README.md) on those screens. The [configuration flow](../../../docs/web-config-flow.md) describes the last two. Crux ships no Angular components. A product may copy or adapt
+[Preact example](../preact) on those screens. The [configuration flow](../../../docs/web-config-flow.md) describes the configuration screen, and
+[the advanced flows](../../../docs/web-advanced-flows.md) describe the last two. Crux ships no Angular components. A product may copy or adapt
 this example, but Crux does not maintain it as a starting template. The product owns its application UI.
 
 | Flow | Kind | Here |
@@ -12,7 +13,8 @@ this example, but Crux does not maintain it as a starting template. The product 
 | Status | Core | Built, as home |
 | Forced password change | Core | Built |
 | Simple configuration update | Core | Built, on the mock |
-| Network settings and reboot | Advanced | Not planned. They stay in the Preact example. |
+| Network settings | Advanced | Built, on the mock. The `native_sim` case is written and not run. |
+| Reboot | Advanced | Built, on the mock. Mock only on `native_sim` too: the reboot service is not composed in the image. |
 
 | Evidence state | Here |
 | --- | --- |
@@ -63,6 +65,7 @@ The build writes `dist`, which the mock serves. Run `node tools/compare.ts` in `
 
 - It retries a held route (`409`) and nothing else by itself. A `503` is shown to the person with its wait, where the Preact example's client also retries one short `503` once.
 - Its configuration screen edits parameters one at a time and has no sensitive-parameter write, as the Preact example.
-- It has no network or reboot screen, because those are advanced flows.
+- Sign-in always returns to home, so a link to a screen that is opened first does not survive it. The Preact example keeps it.
+- Network settings and restart use the same words and the same checks as the Preact example (`src/app/texts.ts` holds the words, and the address checks are the client's own `checkIpv4Settings`). Its bundle is about 28 kB larger raw for them, and `angular.json` allows 320 kB.
 - A login followed by a `401` on the current user returns to sign-in with no message.
 - It has not been packaged into firmware. Issue #220 covers that, against real HTTPS on `native_sim`.

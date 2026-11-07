@@ -2,6 +2,7 @@
 // packager gave each asset, hash routes with no deep-link fallback, the load time against its declared budget,
 // what a page sees when a stalled handshake or idle connections hold the server, and the real 409 and 503 that
 // the mock can only force. They run on a native_sim image over HTTPS, and nothing here is device timing.
+// The advanced flows run on both examples.
 import assert from 'node:assert/strict';
 import { after } from 'node:test';
 import type { Browser, Response } from 'playwright-core';
@@ -256,8 +257,11 @@ export function nativeCases(config: AppConfig, options: { advanced: boolean }): 
 
   if (options.advanced) {
     run('network settings: the real service shows no running address and refuses a change it cannot save', async ({ page }) => {
-      await page.goto('/#/network');
+      // Opened through the navigation, which both examples have: Angular returns to home after sign-in.
+      await page.goto('/');
       await signIn(page);
+      await waitForHeading(page, 'Home');
+      await page.getByRole('link', { name: 'Network', exact: true }).click();
       await waitForHeading(page, 'Network settings');
       await page.getByText(/no ipv4 address at the moment/i).waitFor();
       await page.getByLabel('IPv4 address').fill('192.0.2.20');
