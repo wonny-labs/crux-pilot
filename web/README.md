@@ -8,12 +8,14 @@ a design system. The firmware build needs none of it: it takes a built folder, a
 | --- | --- |
 | [`api`](api/README.md) | The management API specification, shared with the firmware track |
 | `client` | An optional TypeScript client with no framework: login polling, CSRF, error mapping and retry timing |
-| `reference` | The Preact example, in a folder that keeps its earlier name: sign-in, forced password change, home, configuration, and network settings and reboot as advanced examples |
 | `mock` | A small mock server that follows the specification, and its conformance check |
 | `e2e` | Browser tests on the mock, and the same cases on a `native_sim` image over HTTPS |
 | `tools` | Type generation, the build, the packaging budget and the source rules |
 
-The second example is the [Angular example](../samples/web/angular-minimal/README.md). The
+The two examples are outside this folder, in `samples/web`: the Preact example in [`preact`](../samples/web/preact) (sign-in, forced
+password change, home, configuration, and network settings and reboot as advanced examples) and the
+[Angular example](../samples/web/angular/README.md). This folder holds what both use: the specification, the client, the mock
+server and the browser tests. The Preact example takes its one dependency, `preact`, from this folder's install. The
 [implementation design](../docs/plans/web-frontend-implementation.md) has the diagrams and decisions, and it says how
 a product builds its own interface or starts from an example.
 
@@ -66,7 +68,7 @@ npm ci
 | `npm run test:angular` | The shared browser cases on the Angular example, once it is built |
 | `npm run test:native` | The shared and real-server cases on `native_sim` images named by `CRUX_E2E_IMAGE_PREACT` and `CRUX_E2E_IMAGE_ANGULAR`. `scripts/test-native-composition.sh e2e-mbed` builds the images and runs them. |
 | `npm run gen:types` | Regenerate `client/src/api-types.generated.ts` after a specification change |
-| `npm run build` | Build `reference/dist`. It fails over the budget in `reference/budget.json`. |
+| `npm run build` | Build `../samples/web/preact/dist`. It fails over the budget in `../samples/web/preact/budget.json`. |
 | `npm run dev` | Build, then serve the Preact example from the mock on <http://127.0.0.1:8080> |
 | `npm run sbom` | Print a CycloneDX record of the production packages |
 | `npm run audit:prod` | Audit the production packages |

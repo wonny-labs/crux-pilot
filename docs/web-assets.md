@@ -242,7 +242,7 @@ about 1 to 2 KB for 32 files. This is an estimate from the struct, **not measure
 | Deadline, 3,000 ms | #184's default, unchanged. The `native_sim` images use 1,500. |
 | 32 files | Browsers open several connections and the server has three clients. The Preact example has 4 files and the Angular example 5. |
 | 393,216 bytes | Room for the Angular example, 76,710 compressed bytes, five times over. It is a budget for Flash use, not a server limit. RT1060 Flash use is not measured. |
-| Preact reference, built here | 4 files, 20,314 bytes served, the largest asset 18,599: **fits with 5 times to spare**. At the default rate its script takes 0.57 s. |
+| Preact example, built here | 4 files, 20,314 bytes served, the largest asset 18,599: **fits with 5 times to spare**. At the default rate its script takes 0.57 s. |
 | Angular example | 76,710 compressed bytes in 5 files by the frontend session's own measure, so no file is over 98,304 and it fits the defaults. Not packaged here. |
 
 What a slow client costs the others, by the sums in the [web contract](web-contract.md#the-slow-reader-bound) and not measured at the default settings: the deadline, 3 s,

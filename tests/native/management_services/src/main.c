@@ -9,6 +9,9 @@
  * account and the CLI's transport are declared test steps.
  */
 #include "crux_native_management_services.h"
+#if defined(CRUX_NATIVE_MANAGEMENT_SSH)
+#include "crux_native_management_ssh.h"
+#endif
 
 #include <crux/cli.h>
 #include <crux/file_service.h>
@@ -275,12 +278,44 @@ int main(void)
         printk("CRUX_SERVICES_START_FAILED services %d\n", (int)services);
         return 1;
     }
+#if defined(CRUX_NATIVE_MANAGEMENT_SSH)
+    /* Issue #197: SSH beside the HTTPS listener. Started before the cases, so that they run with
+     * its listener, threads and sessions present, and any interference shows in them. */
+    static const char *const ssh_users[] = {CRUX_NATIVE_MANAGEMENT_TEST_USER, VIEWER};
+    if (!crux_native_management_ssh_add_keys(admin, ssh_users, ARRAY_SIZE(ssh_users))) {
+        printk("CRUX_SERVICES_START_FAILED ssh key\n");
+        return 1;
+    }
+    crux_native_management_ssh_start_t ssh = crux_native_management_ssh_start();
+    if (ssh != CRUX_NATIVE_MANAGEMENT_SSH_STARTED) {
+        printk("CRUX_SERVICES_START_FAILED ssh %d\n", (int)ssh);
+        return 1;
+    }
+    printk("SSH_READY %d\n", CONFIG_CRUX_SSH_PORT);
+#endif
     case_cli();
     case_file_service();
     case_tls_certificate();
     case_network_settings();
     case_config_event_and_status();
+#if defined(CRUX_NATIVE_MANAGEMENT_SSH)
+    /* The cases' three sessions are held for the life of the services image, and each takes one of
+     * the core's network session slots, which HTTPS and SSH share. They end here, so that the slots
+     * that a client of this image finds are the ones a deployment would have.
+     * docs/ssh-integrated-image.md has the numbers. */
+    crux_access_logout(&admin);
+    crux_access_logout(&viewer);
+    crux_access_logout(&guest);
+#endif
     printk("CRUX_SERVICES_CASES failures=%u\n", failures);
     printk("CRUX_SERVICES_READY %d\n", CONFIG_CRUX_WEB_PORT);
+#if defined(CRUX_NATIVE_MANAGEMENT_SSH)
+    /* The image keeps running for the clients on the host. The main thread reports what the run has
+     * used every second, for the driver to read: simulation results only. */
+    for (;;) {
+        k_msleep(1000);
+        crux_native_management_ssh_report();
+    }
+#endif
     return 0;
 }

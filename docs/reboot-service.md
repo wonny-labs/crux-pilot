@@ -318,7 +318,7 @@ reads has its record behind it. A session that ended before the worker ran leave
 | `web/api/openapi.yaml`: both operations, the `423` with its reason, `RebootState`, `RebootAccepted`, and the pending `POST` that runs no policy | **Unchanged.** It already holds everything above. `Web.reboot_openapi` holds the real answers to it. |
 | The `413` of a `POST` with a body | Not listed for this operation, as the common forms table covers it. The route takes no body, and the client sends none. |
 | `web/mock/server.ts` | **Unchanged.** It already refuses at the request with `423`, shows `refused` with the reason, answers `202` to a request while pending without the policy, and ends in `refused` or `failed`. |
-| `web/client` and `web/reference` | **Unchanged.** |
+| `web/client` and `samples/web/preact` | **Unchanged.** |
 | Where the device and the mock differ | The mock's states follow polls and the device's follow the worker. The device never shows a `reason` outside `refused`. |
 
 ## What a composition needs

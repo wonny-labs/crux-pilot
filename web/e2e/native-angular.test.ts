@@ -11,7 +11,7 @@ const image = imageFor('CRUX_E2E_IMAGE_ANGULAR');
 if (image) {
   const target = nativeTarget(image);
   after(() => target.devices.close());
-  const dist = join(webRoot, '..', 'samples', 'web', 'angular-minimal', 'dist');
+  const dist = join(webRoot, '..', 'samples', 'web', 'angular', 'dist');
   const config = { name: 'angular', dist, stylePolicy: 'inline' as const, target };
   if (process.env['CRUX_E2E_ONLY'] !== 'native') {
     sharedCases(config);
