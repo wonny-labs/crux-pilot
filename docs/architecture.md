@@ -74,7 +74,80 @@ For a concrete example, [Time](time-contract.md) owns typed clocks, optional [CP
 
 Thread and Sync are separate component-owned capabilities. `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.
 
-Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples and reference applications remain under `samples/`. A sample-owned helper is not automatically part of the Crux public API.
+Tests remain under top-level `tests/`, grouped by capability or validation purpose. Samples and reference applications remain under `samples/`. A sample-owned helper is not automatically part of the Crux public API. The [proposed layout and naming of samples](#layout-and-naming-of-samples-proposed) is awaiting the owner's decision.
+
+### Layout and naming of samples (proposed)
+
+**Status: proposed, for the owner's decision.** It is a structure decision, so nothing here is adopted yet, and no existing sample was moved
+for it. It is the third step of the owner's review of 8 November 2026 (Refs #243). Once adopted, new samples follow it, and the
+samples that do not are listed below for the owner to move, or to leave, one by one.
+
+A sample is a small composition that shows one capability, one framework or one scenario through Crux's public contracts. It is
+not part of the platform API, and Crux does not maintain it as a product template.
+
+| # | Rule | Why |
+| --- | --- | --- |
+| 1 | A sample is one folder, `samples/<name>`. When a family has two or more samples, they sit under one folder for the family, `samples/<family>/<name>`. | One place to find a sample, and the web samples already do it |
+| 2 | `<name>` is lowercase `snake_case` and says what the sample is about: a capability (`networking`), a framework (`preact`, `angular`) or a purpose (`product_template`). It never carries `reference`, `minimal`, `poc`, `demo`, `example` or `sample`. | A word about how finished or how big a sample is goes stale and forces a rename. It belongs in the README, which changes without one. |
+| 3 | Each sample has a `README.md` that says what it shows, how to build and run it, and which evidence it has: Host, `native_sim` and physical results, each on its own, and what it does not show. | A reader cannot tell a sample's limits from its sources |
+| 4 | The compositions sit in folders of their own: `host/` for the Linux development composition, and `zephyr/` for a Zephyr application with its `CMakeLists.txt`, `prj.conf`, `Kconfig`, `boards/` and overlays. The sample's root holds neither composition's build files. | A Host change cannot reach a Zephyr build, and a board choice stays in one folder |
+| 5 | Scenario code that both compositions share sits in `core/` and includes only public Crux headers and the C standard library. A Zephyr, board or vendor header appears only under `zephyr/`. | The portable part stays portable, as the engineering approach requires |
+| 6 | Tests stay under `tests/`. A Twister `testcase.yaml` is the one test file beside a Zephyr application, because Twister looks for it there. | One place for tests, as the layout above already says |
+| 7 | A web sample is one folder per framework under `samples/web/`, built by that framework's tools. What the web samples share, the specification, the client, the mock server and the browser tests, stays in `web/`. | No C build may name `samples/web` or the web tools. `web/tools/c-boundary.ts` counts that as a use of Node.js, and only the specification file `web/api/openapi.yaml` is allowed. |
+| 8 | A sample's helper is not Crux public API | Already the rule above |
+
+```mermaid
+flowchart TB
+    root["samples/&lt;name&gt;/"]
+    readme["README.md<br/>what it shows, how to run it, which evidence"]
+    core["core/<br/>shared scenario code, public headers only"]
+    host["host/<br/>Linux development composition<br/>CMakeLists.txt, main"]
+    zephyr["zephyr/<br/>Zephyr application<br/>CMakeLists.txt, prj.conf, Kconfig, boards/, testcase.yaml"]
+    tests["tests/&lt;name&gt;/<br/>tests, outside the sample"]
+    root --> readme
+    root --> core
+    root --> host
+    root --> zephyr
+    host --> core
+    zephyr --> core
+    tests -. exercise .-> root
+```
+
+How a name is chosen:
+
+| The sample is about | The name is | Example |
+| --- | --- | --- |
+| A framework | The framework, in a family folder when it is one of several of a kind | `samples/web/preact`, `samples/web/angular` |
+| A capability | The capability, and a variant joins a family folder | `samples/networking`, `samples/storage/sd`, `samples/storage/emmc` |
+| A purpose that is neither | A short noun for the purpose | `samples/product_template` |
+
+#### Existing samples that do not follow it
+
+Nothing is moved by this proposal. A rule number refers to the table above.
+
+| Sample | What differs | Rule |
+| --- | --- | --- |
+| `controller` | Follows it: a README, `core/`, `host/` and `zephyr/` | |
+| `web/angular` | Follows it: a README, named by its framework, with the tools it shares in `web/` | |
+| `web/preact` | No README of its own. Its commands and flows are in the [web guide](../web/README.md). | 3 |
+| `networking` | No README. `host/` and `zephyr/` are separate. | 3 |
+| `time` | No README. The Zephyr application's `CMakeLists.txt`, `prj.conf`, `boards/` and `src/` sit in the sample's root beside `host/`. | 3, 4 |
+| `logging`, `serial` | No README, and no composition folder: `controller.c` and `controller.h` are scenario sources that `tests/logging_consumer` and `tests/serial_consumer` build | 3, 4 |
+| `messaging` | Has a README, and the same shape: `controller.c` is built by `tests/messaging_consumer` | 4 |
+| `storage_emmc`, `storage_sd`, `storage_sd_probe` | No README. A Zephyr application sits in the root with no `zephyr/` folder. The names belong to one storage family but are not grouped. | 1, 3, 4 |
+| `storage_sd_interrupt`, `storage_sd_replace` | The same, and `host/` holds a Python capture helper and its test, not a Host composition | 1, 3, 4, 6 |
+| `flash_safety_poc` | `poc` in the name, no README (`docs/flash-safety-poc.md` describes it), and the Zephyr application in the root | 2, 3, 4 |
+| `product_template` | Has a README. Its Zephyr application is in `app/`, beside a west manifest, because it is a repository skeleton that a product copies. It is better treated as outside rule 4 than renamed. | 4 |
+| `web_project` | Has a README. It is a page and a route, named for the web but not grouped under `samples/web/`. The owner kept it in place on 8 November 2026. It holds sources and a reviewed route list, and the images that package it are under `tests/native`. | 1, 4 |
+
+Choices for the owner:
+
+| # | Question | Recommendation |
+| --- | --- | --- |
+| 1 | Adopt the rules for new samples, as written? | Yes, after the owner reads rules 2 and 4: they are the ones that existing samples break most |
+| 2 | Move or rename any existing sample? | No move now. Each move touches scripts, tests and documents that name its path, so take them one at a time, when a sample is next changed. |
+| 3 | Treat `product_template` as a separate kind of folder, outside rule 4? | Yes, since a product copies it as it is |
+| 4 | Group the storage samples under `samples/storage/`? | Only with a move of its own, because four scripts, ten documents and several folders under `tests/` name `samples/storage_sd` and `samples/storage_emmc` |
 
 ### Current capability integration
 
