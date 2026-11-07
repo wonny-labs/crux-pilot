@@ -1,0 +1,85 @@
+# Step 5 checks, build build-a-ramload-revert (RAM load with revert)
+Build dir (container): /opt/crux-cache/trial/build-a-ramload-revert-build
+
+## 1. MCUboot .config
+  CONFIG_BOOT_USE_TINYCRYPT=y
+  CONFIG_BOOT_SIGNATURE_TYPE_ECDSA_P256=y
+  CONFIG_BOOT_ECDSA_TINYCRYPT=y
+  CONFIG_BOOT_VALIDATE_SLOT0=y
+  # CONFIG_BOOT_SWAP_USING_OFFSET is not set
+  CONFIG_BOOT_RAM_LOAD=y
+  CONFIG_BOOT_RAM_LOAD_REVERT=y
+  CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_START=0x80000000
+  CONFIG_BOOT_IMAGE_EXECUTABLE_RAM_SIZE=33554432
+  CONFIG_BOOT_SHARE_BACKEND_AVAILABLE=y
+  CONFIG_BOOT_SHARE_BACKEND_RETENTION=y
+  CONFIG_BOOT_SHARE_DATA=y
+  CONFIG_BOOT_SHARE_DATA_BOOTINFO=y
+  CONFIG_RETAINED_MEM=y
+  CONFIG_RETAINED_MEM_INIT_PRIORITY=40
+  CONFIG_RETAINED_MEM_MUTEXES=y
+  CONFIG_RETAINED_MEM_LOG_LEVEL_DEFAULT=y
+  CONFIG_RETAINED_MEM_LOG_LEVEL=0
+  CONFIG_RETAINED_MEM_ZEPHYR_RAM=y
+  CONFIG_RETENTION=y
+  CONFIG_RETENTION_INIT_PRIORITY=86
+  CONFIG_RETENTION_MUTEXES=y
+  CONFIG_RETENTION_BUFFER_SIZE=16
+  CONFIG_RETENTION_LOG_LEVEL_DEFAULT=y
+  CONFIG_RETENTION_LOG_LEVEL=0
+
+## 2. Application .config
+  # CONFIG_XIP is not set
+  CONFIG_BOOTLOADER_MCUBOOT=y
+  CONFIG_MCUBOOT_BOOTLOADER_MODE_RAM_LOAD_WITH_REVERT=y
+  CONFIG_RETENTION_BOOTLOADER_INFO=y
+  CONFIG_RETENTION_BOOTLOADER_INFO_TYPE_MCUBOOT=y
+  CONFIG_RETENTION_BOOTLOADER_INFO_INIT_PRIORITY=87
+  CONFIG_RETENTION_BOOTLOADER_INFO_OUTPUT_FUNCTION=y
+  occurrences of NXP_IMXRT_BOOT_HEADER in application .config: 0 (0 = symbol not set/not defined)
+
+## 3. NXP boot header at 0x60000000 in MCUboot image: see mcuboot-boot-header.txt
+  FCFB tag at bin offset 0 : yes
+  IVT header bytes at offset 0x1000: d1002041
+
+## 4. Linker memory usage per image (from build log)
+### MCUboot
+  Memory region         Used Size  Region Size  %age Used
+             SDRAM:           0 B        32 MB      0.00%
+             FLASH:       51760 B       128 KB     39.49%
+               RAM:       14656 B       511 KB      2.80%
+              ITCM:        8544 B       128 KB      6.52%
+              DTCM:           0 B       128 KB      0.00%
+             OCRAM:           0 B       256 KB      0.00%
+            OCRAM2:           0 B     524032 B      0.00%
+       RetainedMem:           0 B        256 B      0.00%
+          IDT_LIST:           0 B        32 KB      0.00%
+### Application
+  Memory region         Used Size  Region Size  %age Used
+             FLASH:           0 B    3145530 B      0.00%
+               RAM:       41536 B        32 MB      0.12%
+              ITCM:           0 B       128 KB      0.00%
+              DTCM:           0 B       128 KB      0.00%
+             OCRAM:           0 B       256 KB      0.00%
+            OCRAM2:           0 B     524032 B      0.00%
+       RetainedMem:           0 B        256 B      0.00%
+          IDT_LIST:           0 B        32 KB      0.00%
+  MCUboot FLASH used 51760 B of 131072 B (partition 'mcuboot' = 0x20000 = 131072 B): FITS, headroom 79312 B (60.51%)
+
+## 5. Write alignment and trailer size
+  dts: 136:					erase-block-size = < 0x1000 >; /* in zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts:41 */
+  dts: 137:					write-block-size = < 0x1 >;    /* in zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts:42 */
+  CONFIG_MCUBOOT_BOOT_MAX_ALIGN: CONFIG_MCUBOOT_BOOT_MAX_ALIGN=1
+  imgtool arguments passed for the application (key path redacted):
+    imgtool.py sign --version 0.0.0+0 --header-size 0x400 --slot-size 3145728 --align 1 --load-addr 0x80000000 --key <DEV-KEY-PATH:/opt/crux-cache/keys/dev-ecdsa-p256.pem> --hex-addr 0x20000 /opt/crux-cache/trial/build-a-ramload-revert-build/zephyr/zephyr/zephyr.bin /opt/crux-cache/trial/build-a-ramload-revert-build/zephyr/zephyr/zephyr.signed.bin
+  MCUboot estimate mcuboot_image_footer_size = 198 B
+  MCUboot estimate mcuboot_image_upgrade_footer_size = 48 B
+  Note: imgtool receives --align and --slot-size only; it is not passed a trailer size. The estimates above come from MCUboot's CMake and are
+  not given to imgtool. (App CONFIG_MCUBOOT_UPDATE_FOOTER_SIZE is ignored: MCUBOOT_IMG_MANAGER=n, see Kconfig warning in the log.)
+
+## 6. Flash driver linked by MCUboot: see mcuboot-flash-driver.txt
+  CONFIG_FLASH_MCUX_FLEXSPI_XIP=y
+  CONFIG_FLASH_MCUX_FLEXSPI_NOR=y
+  map objects: *flash_mcux_flexspi_nor.c.obj; zephyr/drivers/flash/libdrivers__flash.a(flash_mcux_flexspi_nor.c.obj
+
+## 7. Application sections/symbols in FlexSPI window: see app-flexspi-window-report.txt (required for build A)
