@@ -335,6 +335,86 @@ config CRUX_WEB_PLAIN_HTTP_FOR_TESTS
 
 endif # CRUX_WEB
 
+menuconfig CRUX_SSH
+    bool "Crux SSH management service on the wolfSSH provider"
+    depends on CRUX_PILOT_MODULE && NETWORKING && NET_IPV4 && NET_SOCKETS && MULTITHREADING
+    depends on WOLFSSH
+    help
+      Selects the wolfSSH provider behind the private provider interface, with the access adapter, and
+      optionally the command line over SSH and SFTP. SSH has no public header and no crux:: target: a
+      composition starts the provider itself, and provides the Access core, a host key, and the CLI
+      core and file service that the two options below name. Only the Wolf profile can carry it: wolfSSH
+      needs wolfSSL, and a build with CONFIG_MBEDTLS is refused at configuration. Without the
+      crux-secure-management west group there is no wolfSSH, and the symbol cannot be set. See
+      docs/ssh-wolf-provider.md and docs/ssh-integrated-image.md.
+
+if CRUX_SSH
+
+config CRUX_SSH_CLI
+    bool "Command line over SSH, shell and exec"
+    default y
+    help
+      Links the real CLI entry points. The composition then also links the CLI core and a provider of
+      its event port, and calls crux_ssh_cli_set_provider(). Without this every shell and exec
+      request is refused with exit status 255.
+
+config CRUX_SSH_SFTP
+    bool "SFTP, on the file service"
+    default y
+    help
+      Links the real SFTP entry points and the wolfSSH file port. The composition then also links the
+      file service. Without this every SFTP request is refused.
+
+config CRUX_SSH_PORT
+    int "Port of the SSH service, or 0 for an ephemeral one"
+    default 22
+    range 0 65535
+    help
+      Like the four symbols below it, this is read by the composition's own start code, which fills
+      crux_ssh_config_t. The module's CMake does not apply it.
+
+config CRUX_SSH_MAX_CONNECTIONS
+    int "Connections at once, authenticated or not"
+    default 4
+    range 1 4
+    help
+      Each has a worker thread and a static stack. The provider's compile-time bound is 4.
+
+config CRUX_SSH_MAX_AUTH_ATTEMPTS
+    int "Failed attempts on one connection before it is closed"
+    default 3
+    range 1 255
+
+config CRUX_SSH_AUTH_TIMEOUT_MS
+    int "Time to log in, from accept"
+    default 30000
+    range 100 600000
+
+config CRUX_SSH_IO_TIMEOUT_MS
+    int "Longest that one read or write of a session waits"
+    default 200
+    range 10 60000
+
+config CRUX_SSH_WORKER_STACK_BYTES
+    int "Stack of each connection's worker thread"
+    default 16384
+    range 4096 65536
+    help
+      Not measured on a target: see docs/ssh-wolf-provider.md#resource-use and
+      docs/ssh-integrated-image.md.
+
+config CRUX_SSH_LISTENER_STACK_BYTES
+    int "Stack of the listener thread"
+    default 4096
+    range 2048 32768
+
+config CRUX_SSH_WINDOW_BYTES
+    int "Channel window, which decides the heap of a logged-in session"
+    default 16384
+    range 4096 131072
+
+endif # CRUX_SSH
+
 # The two cookies and the X-Crux-Request of the attempt poll fit, with room for what else a device's
 # address may carry. Sized in docs/web-contract.md, and each is checked when the adapter compiles.
 configdefault HTTP_SERVER_VERSION_2
