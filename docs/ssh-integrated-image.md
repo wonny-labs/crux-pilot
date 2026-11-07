@@ -138,7 +138,7 @@ the form in any other build, at three levels:
 | Level | Refuses | Where | Shown by |
 | --- | --- | --- | --- |
 | CMake | A board; native_sim that is not a declared test image; a test random generator; the Mbed profile; no `CONFIG_CRUX_SSH`; CLI or SFTP not selected | `composition/ssh.cmake` | `check_ssh_guard.py`, in CMake script mode |
-| C | The same two conditions at compilation: not `native_sim` and test image, and a test random generator | `composition/ssh_test_host_key_guard.h`, included first by `crux_native_management_ssh.c` | `check_ssh_guard.py` compiles the header, and the source, with each setting |
+| C | The same two conditions at compilation: not `native_sim` and test image, and a test random generator | `composition/ssh_test_host_key_guard.h`, which `crux_native_management_ssh.c` includes before anything of Zephyr's or the stack's | `check_ssh_guard.py` compiles the header, and the source, with each setting |
 | Configuration | The Mbed profile, and an image that does not select SSH | `zephyr/CMakeLists.txt`, `ssh.cmake` | `scripts/test-ssh-integrated.sh build` configures with each |
 
 The guards were each broken on purpose: turning the C `#error` into a warning, and removing the CMake test-image check, failed
@@ -153,9 +153,9 @@ clients are OpenSSH 9.6 `ssh` and `sftp`, and `curl` against the declared test c
 | Case | What it shows |
 | --- | --- |
 | `case_boot` | The 17 cases that the services image prints pass **with SSH running**, and the printed host key fingerprint is what `ssh-keyscan` and `ssh-keygen -l` report |
-| `case_ssh_cli` | Ed25519 key login of `admin`: `help`, `account list` showing the accounts of the image's own cases, `logout`. The viewer's `account list` and `network recover`, which is serial only, exit 127. Unknown command 127. An unlisted Ed25519, an ECDSA and an RSA key are refused. A shell, a password login and a wrong password. |
+| `case_ssh_cli` | Ed25519 key login of `admin`: `help`, `account list` showing the accounts of the image's own cases, `logout`. The viewer's `account list` exits 127, and so does the administrator's `network recover`, which is serial only. Unknown command 127. An unlisted Ed25519, an ECDSA and an RSA key are refused. A shell, a password login and a wrong password. |
 | `case_sftp` | `sftp` upload of 3,000 and 60,000 bytes and download with identical SHA-256. A file that the **file service API** wrote is read by SFTP, so one file area is behind both. The viewer reads and cannot write. Remove. |
-| `case_https` | `curl`: the two-request login, `session/me`, `status` with 20 items and the events that SSH raised, a configuration update that reads back, the missing CSRF token 403, no cookie 401, a wrong password, logout, the packaged page and its script |
+| `case_https` | `curl`: the two-request login, `session/me`, `status` with 20 items whose security event count **rises after SSH logins**, a configuration update that reads back, the missing CSRF token 403, no cookie 401, a wrong password, logout, the packaged page and its script |
 | `case_ports` | The process holds exactly the two declared listening sockets, read from `/proc` |
 | `case_sessions_across_channels` | An account's fourth session ends its oldest, **whichever channel opened it**: a web login ended an SSH shell |
 | `case_slots_with_both_busy` | Four SSH shells, then three web logins, then an eighth session refused, and one shell leaving frees the slot: [below](#session-limits-when-both-listeners-are-busy) |
@@ -236,7 +236,7 @@ a deployment would have. Sizing `CRUX_ACCESS_SESSION_MAX`, `CONFIG_CRUX_SSH_MAX_
 
 | Situation | Observed | Verdict |
 | --- | --- | --- |
-| Load on every listener at once: 12 HTTPS calls, 8 CLI commands, 4 SFTP put, get and remove of 48 kB | Every operation succeeded. HTTPS median 0.13 s loaded and 0.18 s idle, CLI 0.19 s and 0.20 s, SFTP 0.46 s and 0.49 s. The sockets returned to 2, and the heap to its baseline. | **No interference seen.** Simulated CPU work takes no time, so this shows no failure and no starvation of a thread, and says nothing about a CPU's contention. |
+| Load on every listener at once: 12 HTTPS calls, 8 CLI commands, 4 SFTP put, get and remove of 48 kB | Every operation succeeded. HTTPS median 0.13 s loaded and 0.18 s idle, CLI 0.19 s and 0.20 s, SFTP 0.46 s and 0.49 s. The sockets returned to 2, and 616 B of the heap stayed allocated, which is what the image holds idle: no baseline was taken before the load. | **No interference seen.** Simulated CPU work takes no time, so this shows no failure and no starvation of a thread, and says nothing about a CPU's contention. |
 | Four silent clients hold every SSH slot | HTTPS login and call 0.50 s. A real SSH user is refused until the clients leave (`auth_timeout_ms`). | **SSH lockout, as [decision 20](ssh-wolf-provider.md#decisions-for-review) records. HTTPS is not affected.** |
 | Three silent clients on the HTTPS port | An SSH command 0.23 s. An HTTPS request answered after 5.4 s. | **The web's own limit**: each silent TLS client costs the server thread its handshake limit, 2 s. **SSH is not affected.** |
 | Failed SSH logins, then a web login from the same address | The web login succeeded each time | No interference seen, though both use one delay table |
@@ -297,7 +297,7 @@ diff build/ssh-demo/hello.txt build/ssh-demo/hello.down && echo "identical"
 ```bash
 CURL="curl -sS --cacert tests/native/tls_offload_probe/credentials/test-server.crt --resolve localhost:18242:127.0.0.1 -b build/ssh-demo/jar -c build/ssh-demo/jar"
 ID=$($CURL -H 'Origin: https://localhost:18242' -H 'Content-Type: application/json' -d '{"user":"admin","password":"composition test password"}' https://localhost:18242/api/v1/session | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
-$CURL -H 'X-Crux-Request: 1' https://localhost:18242/api/v1/session/attempt/$ID; echo
+for i in 1 2 3 4 5; do R=$($CURL -H 'X-Crux-Request: 1' https://localhost:18242/api/v1/session/attempt/$ID); echo "$R"; case "$R" in *pending*) sleep 1 ;; *) break ;; esac; done
 $CURL https://localhost:18242/api/v1/session/me; echo
 $CURL https://localhost:18242/api/v1/status | python3 -m json.tool | head -20
 ```
@@ -322,7 +322,7 @@ times and watch the oldest of three SSH shells of `admin` end.
 | --- | --- |
 | `composition.cmake` builds `app` with `-Werror`, and the wolfSSH module adds its sources to `app` | The first build stopped on wolfSSH's own unused parameters. `ssh.cmake` gives those files `-Wno-error`: [decision 3](#decisions-for-review) |
 | An unsatisfied Kconfig dependency only warns | `CONFIG_CRUX_SSH=y` fell to `n` on `NET_TCP` and the build went on with no SSH, until the composition's check stopped it: [decision 2](#decisions-for-review) |
-| The SSH listener binds every IPv4 address, and the HTTPS listener every IPv6 address, read from `/proc/net/tcp` and `tcp6` | On a device both would answer on every interface. Which interface a management listener may use is a product choice that no setting here makes. The "only the declared listeners" check of #197 needs a device and its addresses. |
+| The SSH listener binds every IPv4 address, and the HTTPS listener the IPv6 any address, which is dual-stack, so that IPv4 reaches it too (read from `/proc/net/tcp` and `tcp6`) | On a device both would answer on every interface. Which interface a management listener may use is a product choice that no setting here makes. The "only the declared listeners" check of #197 needs a device and its addresses. |
 | With `CONFIG_MBEDTLS=y`, the `mbedtls` module's own CMake fails first when `tf-psa-crypto` is not on the module path | The Mbed control then stops for the module's reason and not ours, so the script puts both in the module list, as a west workspace with the group does |
 | With one `-seed`, every blank disk generates the same host key | Known from [#192](ssh-wolf-provider.md#findings). The demonstration uses one seed. |
 | An abandoned web session holds a shared slot until its idle limit | [Session limits](#session-limits-when-both-listeners-are-busy) |

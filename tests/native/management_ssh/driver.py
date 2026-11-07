@@ -321,6 +321,17 @@ def case_sftp(run, clients):
     check(done.returncode == 0, "sftp: remove works for the administrator")
 
 
+def events_emitted(curl):
+    """security.events_emitted of the status route, as the web reads it, or None."""
+    for item in (curl.run("GET", "/api/v1/status")["json"] or {}).get("items", []):
+        if item.get("name") == "security.events_emitted":
+            try:
+                return int(item.get("value"))
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
 def case_https(run, clients):
     curl = Curl(clients.directory)
     check(curl.login(ADMIN, ADMIN_PASSWORD), "curl: the two-request HTTPS login of the first account works")
@@ -344,12 +355,16 @@ def case_https(run, clients):
           "management API" in script["body"], "curl: the packaged page and its script that a browser opens are served")
     wrong = Curl(clients.directory)
     check(not wrong.login(ADMIN, "not the password"), "curl: a wrong password does not log in")
-    # The SSH key login of the same account ran above, and its events are in the same store.
-    emitted = None
-    for item in (status["json"] or {}).get("items", []):
-        if item.get("name") == "security.events_emitted":
-            emitted = item.get("value")
-    check(isinstance(emitted, int) and emitted > 0, f"curl: status counts the security events that SSH raised too: {emitted}")
+    # Events that SSH raises reach the same store that the web's status counts. The count is read before and after
+    # SSH logins, one that succeeds and one that fails, and the status source refreshes every second.
+    before = events_emitted(curl)
+    done, _ = clients.key_run("help")
+    refused = clients.password_run("help", ADMIN, "not the password")
+    check(done.returncode == 0 and refused.returncode == 255, "curl: the SSH logins that raise the events ran")
+    time.sleep(3)
+    after = events_emitted(curl)
+    check(isinstance(before, int) and isinstance(after, int) and after > before,
+          f"curl: status counts the security events that SSH logins raised: {before} then {after}")
     check(curl.run("DELETE", "/api/v1/session", curl.write_headers())["status"] in (200, 204), "curl: logout")
     check(curl.run("GET", "/api/v1/status")["status"] == 401, "curl: an ended session is 401")
 

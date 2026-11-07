@@ -35,7 +35,7 @@ static size_t decode_hex(const char *text, uint8_t *out, size_t capacity)
 {
     size_t length = strlen(text) / 2u;
 
-    if (length == 0u || length > capacity) {
+    if (length == 0u || length > capacity || strlen(text) % 2u != 0u) {
         return 0u;
     }
     for (size_t i = 0; i < length; ++i) {
