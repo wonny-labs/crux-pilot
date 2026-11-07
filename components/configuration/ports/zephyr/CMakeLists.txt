@@ -10,7 +10,8 @@ target_include_directories(crux_configuration_api INTERFACE
   "${CRUX_CONFIGURATION_COMPONENT_DIR}/include")
 
 add_library(crux_configuration_zephyr STATIC
-  "${CRUX_CONFIGURATION_COMPONENT_DIR}/src/configuration.c" configuration_settings.c)
+  "${CRUX_CONFIGURATION_COMPONENT_DIR}/src/configuration.c"
+  "${CRUX_CONFIGURATION_COMPONENT_DIR}/src/configuration_text.c" configuration_settings.c)
 target_include_directories(crux_configuration_zephyr PRIVATE
   "${CRUX_CONFIGURATION_COMPONENT_DIR}/src" ".")
 zephyr_append_cmake_library(crux_configuration_zephyr)

@@ -397,7 +397,7 @@ disk named `MMC`, against the target provider. It compiles `main.c` of `configur
 operator would) and under the suite name `configuration_settings_reliance`, so each case is the same code on both
 file systems. The provider is the real `configuration_settings.c`, selected by
 `CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE`, and not the probe copy that `prepare_provider.py` makes, so the
-read-back case does not run and 24 of the 25 cases do, all of them passing. Three cases are added
+read-back case does not run and 25 of the 26 cases do, all of them passing. Three cases are added
 (`extra_cases.c`): a compaction leaves no `.cmp` file, `emmc_configuration_start` on a medium without the
 settings directory does not initialise the settings and does not write the medium, and the same call on a
 provisioned medium initialises them once. A fourth, a failing settings initialisation after a ready storage,
@@ -407,10 +407,10 @@ the module (`zephyr/CMakeLists.txt` includes `candidate.cmake` of the FatFs suit
 selects the provider reaches a file under `tests/`**. The corrections were not moved: that would touch the hash
 record of `tests/native/settings_error`, `.gitattributes` and frozen evidence for no change in behaviour.
 Twister scans only the cases of `extra_cases.c`, so `scripts/test-storage-emmc.sh` requires the exact case names
-of both scenarios (27 executed and 1 skipped, then 1 executed and 3 skipped), and that the build used the three
+of both scenarios (28 executed and 1 skipped, then 1 executed and 3 skipped), and that the build used the three
 staged sources and no pinned original, the real provider and no FatFs. A negative control builds the suite with
 `CRUX_SETTINGS_FILE_CONTROL` (the unpatched backend, native_sim only, refused at CMake on any other board) and
-requires exactly 12 failing cases, 15 passing and 1 skipped. FatFs fails 13: the one that differs,
+requires exactly 12 failing cases, 16 passing and 1 skipped. FatFs fails 13: the one that differs,
 `test_full_volume_never_acknowledges_a_lost_save`, passes on Reliance Edge because a write that finds no free
 block gets `-ENOSPC`, which the unpatched backend returns, where FatFs answers with a short or zero count that
 the backend turns into success. The script records that reason beside the set. These are 64-bit `native_sim`

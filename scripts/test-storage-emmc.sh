@@ -416,6 +416,7 @@ shared = {
     'read_fault_never_yields_a_stale_value', 'roundtrip_survives_remount_for_u32_and_bool',
     'save_after_a_torn_tail_records_the_outcome', 'save_scan_error_is_not_success',
     'scan_read_error_is_not_missing', 'short_write_is_failure', 'staging_limit_boundary',
+    'string_roundtrip_survives_remount',
     'truncated_tail_keeps_earlier_records', 'value_only_corruption_is_not_detected',
     'zero_write_is_failure',
 }
@@ -519,11 +520,11 @@ expected = {
 }
 log = open(sys.argv[1], errors='replace').read()
 failed = set(re.findall(r'^ - FAIL - \[configuration_settings_reliance\.(\w+)\]', log, re.M))
-if failed != expected or 'pass = 15, fail = 12, skip = 1, total = 28' not in log:
+if failed != expected or 'pass = 16, fail = 12, skip = 1, total = 29' not in log:
     raise RuntimeError(f'settings-reliance control differs: unexpected {sorted(failed - expected)}, '
                        f'missing {sorted(expected - failed)}')
-print(f'settings-reliance control (unpatched backend): {len(failed)} of 28 cases fail as expected, '
-      '15 pass and 1 skips')
+print(f'settings-reliance control (unpatched backend): {len(failed)} of 29 cases fail as expected, '
+      '16 pass and 1 skips')
 PY
 
 # Power-cut replay of W4: three keys saved through the Settings File backend, which compacts its
