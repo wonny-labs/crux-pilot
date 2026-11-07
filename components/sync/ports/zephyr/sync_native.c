@@ -3,36 +3,38 @@
 #include <errno.h>
 #include <limits.h>
 
-K_MUTEX_DEFINE(sync_metadata);
+/*
+ * Metadata sections are short and never wait, so a locked scheduler protects them.
+ * A metadata k_mutex would save and restore its holder's priority around the native
+ * mutex operations inside those sections, which undoes priority inheritance.
+ *
+ * One exception: a native unlock that lowers the caller can leave a higher thread
+ * selected, which an interrupt then switches to despite the lock. Common code writes
+ * no slot state after that call, so the section is already finished by then.
+ */
+BUILD_ASSERT(!IS_ENABLED(CONFIG_SMP) && CONFIG_NUM_METAIRQ_PRIORITIES == 0,
+             "A locked scheduler excludes other threads only on one CPU without meta-IRQ threads");
 
 bool crux_sync_context_allowed(void)
 {
-    return !crux_is_in_isr();
+    return !crux_is_in_isr() && !k_is_pre_kernel();
 }
 
 void sync_native_metadata_lock(void)
 {
-    (void)k_mutex_lock(&sync_metadata, K_FOREVER);
+    k_sched_lock();
 }
 
 crux_status_t sync_native_metadata_lock_until(const sync_native_deadline_t *deadline)
 {
-    int result = k_mutex_lock(&sync_metadata, deadline->timeout);
-    if (result == 0) {
-        return CRUX_OK;
-    }
-    if (result == -EAGAIN) {
-        return CRUX_ERR_TIMEOUT;
-    }
-    if (result == -EBUSY) {
-        return CRUX_ERR_BUSY;
-    }
-    return CRUX_ERR_IO;
+    (void)deadline; /* Admission never waits: no thread is switched out inside a section. */
+    k_sched_lock();
+    return CRUX_OK;
 }
 
 void sync_native_metadata_unlock(void)
 {
-    (void)k_mutex_unlock(&sync_metadata);
+    k_sched_unlock();
 }
 
 crux_status_t crux_sync_make_deadline(uint32_t timeout_ms, sync_native_deadline_t *out)

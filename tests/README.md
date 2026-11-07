@@ -236,6 +236,11 @@ and their execution boundary checks. Standalone configurations build only the se
 component; portable C/C++ translation units cannot see the opposite public header or
 private headers. Final ELF symbol and compile-command checks reject the unselected
 provider. Sync-only ownership is exercised from a native OS-created worker.
+`tests/sync/zephyr` checks on `native_sim` that a mutex holder keeps and then returns
+from an inherited priority, that wake-ups are not deferred, that a thread switch after the
+native unlock cannot corrupt a slot, that pre-kernel calls are refused, and that the
+largest mutex pool works. `scripts/test-portable-execution.sh` also cross-builds it for
+the EVKB.
 The full `scripts/test-portable-execution.sh` also runs Zephyr `native_sim` and EVKB
 cross-builds for the combined and two standalone component configurations. Common conformance and Host failure/poll regressions run in the standard
 Host debug/sanitizer checks. Private admission tests prove lifecycle races without

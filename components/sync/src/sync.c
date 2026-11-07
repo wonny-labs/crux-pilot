@@ -146,9 +146,12 @@ crux_status_t crux_mutex_unlock(crux_mutex_t mutex)
         sync_native_metadata_unlock();
         return CRUX_ERR_INVALID_STATE;
     }
+    /* A provider's native unlock may lower this thread and let another one run before the
+     * metadata protection ends, so nothing in the slot may be written after it. */
+    slot->held = false;
     crux_status_t result = crux_mutex_impl_unlock(&slot->native);
-    if (result == CRUX_OK) {
-        slot->held = false;
+    if (result != CRUX_OK) {
+        slot->held = true;
     }
     sync_native_metadata_unlock();
     return result;

@@ -142,7 +142,16 @@ lifetime rules remain separate.
 - Zephyr uses native priority inheritance with its nested-lock limitations; Host
   validates functional exclusion and ownership. Portable priority inheritance or
   bounded inversion is not guaranteed. Nested-lock scheduling qualification is out
-  of scope; consumers must define a consistent lock order.
+  of scope; consumers must define a consistent lock order. For example, a thread
+  that releases two held mutexes out of order can keep an inherited priority with no
+  waiter left, and one that takes a second mutex and then inherits through the first
+  loses that priority when it releases the second.
+- On Zephyr, Sync metadata sections run with the scheduler locked and interrupts
+  enabled, so one Sync call can delay every other thread, including threads that do
+  not use Sync. The longest section sets that delay: most are constant-time, and may
+  include a native wake-up or priority change, while mutex and semaphore create scan
+  the pool and grow with its configured size. Create pools at start-up if that delay
+  matters. No maximum has been measured.
 - Semaphore operations: `crux_semaphore_create(initial, maximum)`,
   `crux_semaphore_take`, `crux_semaphore_give`, `crux_semaphore_destroy`.
   Maximum is 1..`INT32_MAX`; initial must be <= maximum. Give at maximum returns
@@ -163,7 +172,8 @@ lifetime rules remain separate.
   wakeups against one original deadline. No early expiry caused by truncation.
 - A zero-time poll never waits for provider metadata or native object locks. It returns
   busy if either lock cannot be acquired immediately, even when the resource might be
-  available; no handle lifetime or token state changes in that case. Otherwise an
+  available; no handle lifetime or token state changes in that case. Zephyr metadata
+  admission always succeeds at once, so only the native object can refuse a poll there. Otherwise an
   unavailable resource returns busy. Once admitted, polls complete their native try
   and private bookkeeping before releasing provider metadata, so they never block on
   a second metadata acquisition after changing resource state. A finite wait uses one
@@ -175,8 +185,8 @@ lifetime rules remain separate.
   function return; no maximum observed latency or realtime guarantee follows from this
   API.
 - Thread context only, including give and poll. ISR, signal-handler and native
-  callback contexts that forbid blocking are unsupported. Zephyr rejects ISR entry
-  before calling blocking native primitives. Host asynchronous-signal use is a
+  callback contexts that forbid blocking are unsupported. Zephyr rejects ISR and
+  pre-kernel entry before calling blocking native primitives. Host asynchronous-signal use is a
   caller precondition, not a claim of detectable signal context.
 
 ## Build selection and provider limits
@@ -185,9 +195,11 @@ lifetime rules remain separate.
 | --- | --- | --- |
 | Linux Host | `CRUX_BUILD_THREAD` and `CRUX_BUILD_SYNC`, independently selectable; Thread also requires `CRUX_BUILD_TIME=ON` and an explicit Time provider (`memory` for controlled Host realtime); top-level defaults ON, dependency defaults OFF | Default 4 workers, 8 mutexes and 8 semaphores; current thread provider requests 65536 stack bytes for every worker and rejects requests above 65536 |
 | Zephyr Thread | `CONFIG_CRUX_THREAD` | `CONFIG_CRUX_THREAD_COUNT` (default 4, range 1..64), `CONFIG_CRUX_THREAD_STACK_BYTES` (default 4096, range 1024..65536 usable bytes) |
-| Zephyr Sync | `CONFIG_CRUX_SYNC` | `CONFIG_CRUX_SYNC_MUTEX_COUNT` and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT` (each default 8, range 1..64) |
+| Zephyr Sync | `CONFIG_CRUX_SYNC` | `CONFIG_CRUX_SYNC_MUTEX_COUNT` (default 8, range 1..256) and `CONFIG_CRUX_SYNC_SEMAPHORE_COUNT` (default 8, range 1..64) |
 
 Zephyr Thread and Sync each require multithreading and select 64-bit timeouts.
+Zephyr Sync also requires one CPU and no meta-IRQ threads, enforced at build time,
+and supervisor-mode callers.
 Thread selects Time for monotonic sleep without requiring RTC.
 Thread requires more than six preemptive priority levels for its 4/5/6 mapping.
 The native Thread port owns static worker stacks; the Sync port owns native
