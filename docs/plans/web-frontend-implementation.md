@@ -6,7 +6,7 @@ follows the [web frontend foundation design](web-frontend-foundation-design.md),
 and the [management API specification](../../web/api/openapi.yaml). Since
 [the owner's decision of 4 November 2026](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084), W13, Preact and Angular are examples and the product owns its application UI.
 Since the owner's review of 8 November 2026 (Refs #243), the Preact example is in `samples/web/preact` and the Angular example in
-`samples/web/angular`, with the test files named `preact-*` and the function `mountPreactInterface`. The approval is the owner's comment on
+`samples/web/angular`, with the test files named `preact-*` and the function `mountPreactInterface`. The M13 work's approval is the owner's comment on
 [#183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497), with its
 [correction](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6619502432) that M13 other than #220 is not
 behind the gate. It covers no hardware, and nothing here was run on a board.
