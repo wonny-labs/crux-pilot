@@ -1,6 +1,6 @@
 // All user text, in English, in one table ready for translation. A project passes overrides through
-// the `text` option of mountReferenceInterface and changes no other file.
-import type { ApiErrorKind } from '../../client/src/index.ts';
+// the `text` option of mountPreactInterface and changes no other file.
+import type { ApiErrorKind } from '../../../../web/client/src/index.ts';
 
 function seconds(count: number): string {
   return count === 1 ? '1 second' : `${count} seconds`;

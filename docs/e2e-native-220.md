@@ -50,8 +50,8 @@ Chrome and no workspace. That is a `.github` change, which needs its own approva
 ```mermaid
 flowchart LR
     subgraph web["web/, Node.js 24 in the container only"]
-        build["Preact build<br/>web/reference/dist"]
-        ngbuild["Angular build<br/>samples/web/angular-minimal/dist"]
+        build["Preact build<br/>samples/web/preact/dist"]
+        ngbuild["Angular build<br/>samples/web/angular/dist"]
         cases["shared-cases.ts<br/>one list, two targets"]
         native["native-cases.ts<br/>real-server cases"]
         harness["harness.ts<br/>mock or native_sim target"]

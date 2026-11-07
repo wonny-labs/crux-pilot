@@ -8,7 +8,7 @@ import type { Page } from 'playwright-core';
 import { lazyBrowser, requireBuilt, runCase, signIn, waitForHeading, webRoot } from './harness.ts';
 import type { AppConfig, OpenApp, OpenOptions } from './harness.ts';
 
-const config: AppConfig = { name: 'reference', dist: join(webRoot, 'reference', 'dist'), stylePolicy: 'strict' };
+const config: AppConfig = { name: 'preact', dist: join(webRoot, '..', 'samples', 'web', 'preact', 'dist'), stylePolicy: 'strict' };
 
 const shared = lazyBrowser();
 after(() => shared.close());

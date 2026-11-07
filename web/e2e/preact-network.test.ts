@@ -1,4 +1,4 @@
-// Network settings cases for the Preact reference. Values take effect at the next boot, and the server
+// Network settings cases for the Preact example. Values take effect at the next boot, and the server
 // remains the authority.
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
@@ -7,7 +7,7 @@ import type { Browser, Page } from 'playwright-core';
 import { launchBrowser, requireBuilt, runCase, signIn, waitForHeading, webRoot } from './harness.ts';
 import type { AppConfig, OpenApp } from './harness.ts';
 
-const config: AppConfig = { name: 'reference', dist: join(webRoot, 'reference', 'dist'), stylePolicy: 'strict' };
+const config: AppConfig = { name: 'preact', dist: join(webRoot, '..', 'samples', 'web', 'preact', 'dist'), stylePolicy: 'strict' };
 
 let browser: Browser;
 before(async () => {

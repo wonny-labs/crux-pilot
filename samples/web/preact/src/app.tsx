@@ -1,9 +1,9 @@
-// The reference interface: a small shell around the screens. A project reuses it through the options of
-// mountReferenceInterface, or replaces it entirely with any folder of built files.
+// The Preact interface: a small shell around the screens. A project reuses it through the options of
+// mountPreactInterface, or replaces it entirely with any folder of built files.
 import { render } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { createClient } from '../../client/src/index.ts';
-import type { ApiError, ClientOptions, CruxClient, CurrentUser } from '../../client/src/index.ts';
+import { createClient } from '../../../../web/client/src/index.ts';
+import type { ApiError, ClientOptions, CruxClient, CurrentUser } from '../../../../web/client/src/index.ts';
 import { Heading, Notice } from './components.tsx';
 import { AppContext } from './context.ts';
 import type { AppValue, HomeItemDefinition, Screen, Timing } from './context.ts';
@@ -14,7 +14,7 @@ import type { SignInNotice } from './screens/sign-in.tsx';
 import { englishText, mergeText } from './text.ts';
 import type { Text, TextOverrides } from './text.ts';
 
-export interface ReferenceOptions {
+export interface PreactOptions {
   /** The screens after sign-in. The first one answers the root route. */
   screens: Screen[];
   /** Labels and formats for a project's own status items. An item with none is shown by its name. */
@@ -50,7 +50,7 @@ function useFocusOnChange(key: string, title: string, product: string): void {
   }, [key, title, product]);
 }
 
-function Shell(props: { options: ReferenceOptions; text: Text }) {
+function Shell(props: { options: PreactOptions; text: Text }) {
   const { options, text } = props;
   const [session, setSession] = useState<Session>({ phase: 'checking' });
   const [shellMessage, setShellMessage] = useState<string | null>(null);
@@ -215,7 +215,7 @@ function Shell(props: { options: ReferenceOptions; text: Text }) {
   );
 }
 
-export function mountReferenceInterface(root: Element, options: ReferenceOptions): void {
+export function mountPreactInterface(root: Element, options: PreactOptions): void {
   const text = mergeText(englishText, options.text);
   render(<Shell options={options} text={text} />, root);
 }

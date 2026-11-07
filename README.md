@@ -80,7 +80,7 @@ A separate Linux CMake project can consume Crux from source with `add_subdirecto
 | `samples/` | Capability examples and reference controller applications |
 | `zephyr/` | Out-of-tree Zephyr module integration |
 | `tests/` | Host, Zephyr, build-policy and target validation |
-| `web/` | Management API specification, TypeScript client and reference browser interface. No C build needs it. See the [web guide](web/README.md). |
+| `web/` | Management API specification, TypeScript client, mock server and browser tests for the web examples in `samples/web`. No C build needs it. See the [web guide](web/README.md). |
 | `scripts/` | Setup, build, analysis and test commands |
 | `tools/` | Test tooling for a machine that holds a board's probe and UART; outside the runtime build |
 | `.devcontainer/` | Linux development environment |

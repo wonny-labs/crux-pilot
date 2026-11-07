@@ -1,15 +1,15 @@
-// A project that reuses the reference interface and changes no reference file: it labels its own status
+// A project that reuses the Preact interface and changes no Preact file: it labels its own status
 // item, changes some text and gives its device a longer restart limit.
-import '../../reference/src/style.css';
-import { mountReferenceInterface } from '../../reference/src/app.tsx';
-import { configScreen } from '../../reference/src/screens/config.tsx';
-import { homeScreen } from '../../reference/src/screens/home.tsx';
-import { networkScreen } from '../../reference/src/screens/network.tsx';
-import { rebootScreen } from '../../reference/src/screens/reboot.tsx';
+import '../../../samples/web/preact/src/style.css';
+import { mountPreactInterface } from '../../../samples/web/preact/src/app.tsx';
+import { configScreen } from '../../../samples/web/preact/src/screens/config.tsx';
+import { homeScreen } from '../../../samples/web/preact/src/screens/home.tsx';
+import { networkScreen } from '../../../samples/web/preact/src/screens/network.tsx';
+import { rebootScreen } from '../../../samples/web/preact/src/screens/reboot.tsx';
 
 const root = document.getElementById('app');
 if (root !== null) {
-  mountReferenceInterface(root, {
+  mountPreactInterface(root, {
     screens: [homeScreen, configScreen, networkScreen, rebootScreen],
     homeItems: [
       {

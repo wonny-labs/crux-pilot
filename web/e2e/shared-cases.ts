@@ -1,4 +1,4 @@
-// The browser cases that the Preact reference and the Angular sample both pass: sign-in, home, the forced
+// The browser cases that the Preact and Angular examples both pass: sign-in, home, the forced
 // password change and configuration.
 // They find elements by role, label and visible text only, so they hold for any framework.
 //

@@ -1,7 +1,7 @@
 // Sign-in, through the two-request login. The password stays in this form's state only, and it is dropped
 // as soon as the device has judged it.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import type { AttemptProgress, CruxClient } from '../../../client/src/index.ts';
+import type { AttemptProgress, CruxClient } from '../../../../../web/client/src/index.ts';
 import { Field, Heading, Notice, useCountdown, WaitNotice } from '../components.tsx';
 import type { Text } from '../text.ts';
 

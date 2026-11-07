@@ -1,4 +1,4 @@
-// A project adds a home item, text and timing without changing any reference file, and can drop screens.
+// A project adds a home item, text and timing without changing any Preact file, and can drop screens.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
