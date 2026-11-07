@@ -499,6 +499,7 @@ class Approval(Case):
         self.assertIn('DENIED unresolved_usb_identity disk=disk6', self.log_text())
         self.assertNotIn('exact_DAPLink', self.log_text())
         self.assertEqual(instance.denied, 0)       # an unresolved veto is not the veto evidence the check needs
+        self.assertEqual(instance.vetoed, [])      # nor does it name the disk of an arm-mode record
 
     def test_internal_error_fails_closed(self):
         instance = self.make()
@@ -595,7 +596,11 @@ class Arm(Case):
     def arm(self, pump=3, identity=None, after=None, **options):
         self.da.arrivals = [(pump, identity or self.IDENTITY, self.PLUGGED if after is None else after)]
         instance = self.make(arm=True, arm_wait=60, **options)
-        instance.progress = self.messages.append
+        self.registered_when_armed = []
+        def progress(text):
+            self.messages.append(text)
+            self.registered_when_armed.append(self.da.handler is not None)
+        instance.progress = progress
         return instance
 
     def test_armed_before_the_replug_the_real_mount_request_is_the_evidence(self):
@@ -608,6 +613,7 @@ class Arm(Case):
         self.assertFalse(any(c.startswith('request_mount') for c in self.da.calls))     # no self-test mount
         self.assertFalse(any(c.startswith('umount') for c in self.host.calls))          # no unmount
         self.assertTrue(self.messages[0].startswith('ARMED'))
+        self.assertEqual(self.registered_when_armed, [True])           # the owner is told to replug only once the veto is registered
         record = self.record()
         self.assertEqual((record['disk'], record['evidence'], record['mode']), ('/dev/disk4', 'armed_replug_veto', 'arm'))
         instance.retire('test')
@@ -624,6 +630,12 @@ class Arm(Case):
         self.arm(identity=dict(self.IDENTITY, bsd='disk7s1'), after=tree(disks=('disk7',))).start()
         self.assertEqual(self.record()['disk'], '/dev/disk7')
         self.assertIn('disk=disk7 mount_target=disk7s1', self.log_text())
+
+    def test_the_lifetime_counts_from_ready_not_from_the_start_of_the_wait(self):
+        instance = self.arm(pump=100, lifetime=300)                   # replugged 50 s into the wait
+        instance.start()
+        self.assertGreater(self.record()['deadline'], self.clock() + 290)
+        instance.retire('test')
 
     def test_refused_when_the_daplink_is_already_present(self):
         self.host.tree = tree()
@@ -654,7 +666,8 @@ class Arm(Case):
 
     def test_wrong_ancestry_after_the_replug_fails(self):
         for after, why in ((tree(disks=('disk4', 'disk5')), 'two disks'), (tree(uarts=('/dev/cu.usbmodem11302',)), 'other uart'),
-                           (tree(uarts=()), 'no serial port'), (tree(disks=('disk9',)), 'other disk')):
+                           (tree(uarts=()), 'no serial port'), (tree(disks=('disk9',)), 'other disk'),
+                           (tree(uarts=(UART, '/dev/cu.usbmodem99')), 'reviewed port plus another')):
             with self.subTest(why):
                 self.setUp()
                 with self.assertRaisesRegex(guard.GuardError, 'ancestry is not exactly'):
@@ -695,6 +708,23 @@ class SimpleNamespaceCase:
         self.case, self.root, self.mounts = case, case.root, OTHER
     def record(self):
         return self.case.record()
+
+
+class Reporter(unittest.TestCase):
+    def test_progress_keeps_the_pipe_open_and_the_final_line_closes_it_once(self):
+        reader, writer = os.pipe()
+        self.addCleanup(os.close, reader)
+        sent = []
+        report = guard.make_reporter(writer, sent)
+        report('ARMED x', False)
+        os.fstat(writer)                                                # still open after a progress line
+        report('READY pid=1')
+        with self.assertRaises(OSError):
+            os.fstat(writer)                                            # closed by the final line
+        report('FAILED late')                                           # no-op: no double close, nothing written
+        report('ARMED late', False)
+        self.assertEqual(os.read(reader, 4096), b'ARMED x\nREADY pid=1\n')
+        self.assertEqual(sent, ['READY pid=1'])
 
 
 class Report(unittest.TestCase):

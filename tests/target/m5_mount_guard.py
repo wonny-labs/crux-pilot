@@ -150,9 +150,9 @@ assert ctypes.sizeof(Statfs) == 2168
 libc.getfsstat64.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 count = libc.getfsstat64(None, 0, 2)
 assert count > 0
-buffer = (Statfs * count)()
+buffer = (Statfs * (count + 16))()   # room for mounts added between the two calls
 filled = libc.getfsstat64(buffer, ctypes.sizeof(buffer), 2)
-assert filled > 0
+assert 0 < filled < len(buffer)
 for entry in buffer[:filled]:
     print("%s on %s (%s)" % (entry.f_mntfromname.decode(), entry.f_mntonname.decode(), entry.f_fstypename.decode()))
 '''
@@ -307,6 +307,7 @@ class Guard:
             self.say('APPROVAL_REGISTERED')
             if self.arm:
                 self.arm_and_wait()
+                self.deadline = self.clock() + self.lifetime      # the lifetime counts from READY, not from the start of the wait
                 self.write_session()
                 self.say('READY disk=%s deadline=%.3f' % (self.disk, self.deadline))
                 return
@@ -656,6 +657,21 @@ def run_child(guard, report, install_signals=None):
         return 1
 
 
+def make_reporter(writer, sent):
+    """Progress lines keep the pipe open; the one final line closes it so the caller is never kept waiting."""
+    def report(text, final=True):
+        if sent:
+            return
+        if final:
+            sent.append(text)
+        try:
+            os.write(writer, (text + '\n').encode())
+        finally:
+            if final:
+                os.close(writer)
+    return report
+
+
 def start_detached(args, host=None):
     """Validate, detach, run the guard in the child, and report its progress and readiness to the caller."""
     host = host or SystemHost()
@@ -683,17 +699,7 @@ def start_detached(args, host=None):
         for descriptor in (0, 1, 2):
             os.dup2(devnull, descriptor)
 
-        def report(text, final=True):
-            """Progress lines keep the pipe open; the one final line closes it so the caller is never kept waiting."""
-            if sent:
-                return
-            if final:
-                sent.append(text)
-            try:
-                os.write(writer, (text + '\n').encode())
-            finally:
-                if final:
-                    os.close(writer)
+        report = make_reporter(writer, sent)
 
         def install(guard):
             signal.signal(signal.SIGTERM, lambda *_: guard.request_stop('sigterm'))

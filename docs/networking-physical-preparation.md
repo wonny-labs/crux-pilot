@@ -552,15 +552,15 @@ an added module by themselves). Not shown: a real `west list` against a relocate
 
 ### First real run: a wedged volume, and arm mode
 
-The first root start (`guard-1`, 2026-11-08) failed closed: `APPROVAL_REGISTERED`, then `UNMOUNT`, then 20 s later
+The first root start (`guard-1`, 2026-11-08 Korea time, 21:46 GMT on 2026-11-07) failed closed: `APPROVAL_REGISTERED`, then `UNMOUNT`, then 20 s later
 `START_FAILED host command timed out: /sbin/umount /Volumes/RT1060-EVK` and `STOPPED reason=start_failed`. No
 record was written and no guard was left running. Read-only `ps` and a mount-table read afterwards showed:
 
 | Observation | Meaning |
 | --- | --- |
-| `/sbin/umount` (and later two `mount` commands) in state `U` for minutes | They wait inside the kernel; `SIGKILL` cannot end them. |
-| `com.apple.fskit.msdos` (the user-space FAT driver of the DAPLink volume) running since the volume was mounted, state `Us`, about 39 % CPU on average | The file system is served by that process; `unmount(2)` and every `statfs` of the mount wait on it. The guard did not cause this: the owner had already seen `diskutil` stall on this volume. |
-| `getfsstat64(MNT_NOWAIT)` returned in 0.05 s and listed `/dev/disk4 on /Volumes/RT1060-EVK (msdos)` | The kernel's cached mount list can be read without asking the wedged file system. `/sbin/mount` asks each file system and blocks. |
+| `/sbin/umount` and, started after it, three `mount` listings in state `U` for minutes | They wait inside the kernel; `SIGKILL` cannot end them. The guard's own first `/sbin/mount` listing, just before its `umount`, did return and showed the volume; the listings hung only once the unmount was pending. |
+| `com.apple.fskit.msdos` (the user-space FAT driver of the DAPLink volume) running since the volume was mounted, state `Us`, about 39 % CPU on average | The file system is served by that process, and `unmount(2)` waits on it. The busy driver predates the guard (the owner had already seen `diskutil` stall on this volume); that the guard's own `umount` request then made later `statfs` calls of the mount block is the observed order, not something shown to be independent of it. |
+| `getfsstat64(MNT_NOWAIT)` returned in 0.05 s and listed `/dev/disk4 on /Volumes/RT1060-EVK (msdos)` | The kernel's cached mount list can be read without asking the wedged file system. `/sbin/mount` asks each file system, and it blocked once the unmount was pending. |
 
 Consequences and changes:
 
@@ -576,3 +576,4 @@ Not shown on a device: that macOS asks for the mount of a replugged DAPLink thro
 root process before any other program mounts it, that the serial port keeps the name `usbmodem11402` after the
 replug, and the real `getfsstat64` reader on a wedged mount (it ran once, read-only, and answered in 0.05 s).
 
+The arm wait and the ancestry wait are approximate: one `ioreg` call can take up to 30 s, during which the run loop does not answer DiskArbitration (as in the normal start), and the deadline is checked after each call. In arm mode the lifetime counts from `READY`, so `deadline_in` is the real time left. The mount-table reader allocates room for 16 more mounts than the first call counted and fails if the table still overflows it.
