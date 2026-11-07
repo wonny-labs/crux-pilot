@@ -179,7 +179,7 @@ e2e_prepare() {
     [[ -d "$repo/web/node_modules" ]] || (cd "$repo/web" && npm ci --no-audit --no-fund) > "$out/e2e-npm.log" 2>&1 ||
         fail 'npm ci in web'
     (cd "$repo/web" && node tools/build.ts) > "$out/e2e-web-build.log" 2>&1 || fail 'the Preact build'
-    local angular="$repo/samples/web/angular-minimal"
+    local angular="$repo/samples/web/angular"
     [[ -d "$angular/node_modules" ]] || (cd "$angular" && npm ci --no-audit --no-fund) >> "$out/e2e-npm.log" 2>&1 ||
         fail 'npm ci in the Angular example'
     (cd "$angular" && npm run build) > "$out/e2e-angular-build.log" 2>&1 || fail 'the Angular build'
@@ -223,12 +223,12 @@ run_e2e_app() { # profile, ZEPHYR_BASE, app, folder, style, test file
 
 run_e2e() { # profile, ZEPHYR_BASE
     local status=0
-    run_e2e_app "$1" "$2" preact "$repo/web/reference/dist" strict native-reference.test.ts || status=1
-    run_e2e_app "$1" "$2" angular "$repo/samples/web/angular-minimal/dist" inline native-angular.test.ts || status=1
+    run_e2e_app "$1" "$2" preact "$repo/samples/web/preact/dist" strict native-preact.test.ts || status=1
+    run_e2e_app "$1" "$2" angular "$repo/samples/web/angular/dist" inline native-angular.test.ts || status=1
     # The mock's run of the same shared cases, recorded apart: it is not TLS, session or limit evidence.
     rm -f "$out/$1/e2e-mock-browser.jsonl"
     (cd "$repo/web" && CRUX_E2E_RESULTS="$out/$1/e2e-mock-browser.jsonl" CRUX_REQUIRE_ANGULAR=1 \
-        node --test --test-concurrency=1 --test-reporter=spec e2e/reference-shared.test.ts e2e/angular-shared.test.ts) \
+        node --test --test-concurrency=1 --test-reporter=spec e2e/preact-shared.test.ts e2e/angular-shared.test.ts) \
         > "$out/$1/e2e-mock-browser.log" 2>&1 || status=1
     tail -8 "$out/$1/e2e-mock-browser.log"
     python3 "$repo/tests/native/management_services/e2e/collect_results.py" "$out/$1/e2e-mock-browser.jsonl" \

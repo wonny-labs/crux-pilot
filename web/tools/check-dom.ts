@@ -105,7 +105,7 @@ function listFiles(folder: string): string[] {
 
 function main(argv: string[]): number {
   const web = join(dirname(fileURLToPath(import.meta.url)), '..');
-  const folders = argv.length > 0 ? argv : [join(web, 'reference'), join(web, 'client', 'src')];
+  const folders = argv.length > 0 ? argv : [join(web, '..', 'samples', 'web', 'preact'), join(web, 'client', 'src')];
   const problems: string[] = [];
   let count = 0;
   for (const folder of folders) {

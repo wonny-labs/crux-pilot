@@ -1,5 +1,5 @@
-// Print the size comparison between the Preact reference and the Angular sample, as a Markdown table.
-// Build all three folders first. See samples/web/angular-minimal/README.md for the commands.
+// Print the size comparison between the Preact example and the Angular sample, as a Markdown table.
+// Build all three folders first. See samples/web/angular/README.md for the commands.
 //   node tools/compare.ts
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { measureFolder } from './budget.ts';
 
 const web = join(dirname(fileURLToPath(import.meta.url)), '..');
-const sample = join(web, '..', 'samples', 'web', 'angular-minimal');
+const sample = join(web, '..', 'samples', 'web', 'angular');
 
 interface LockEntry {
   dev?: boolean;
@@ -26,8 +26,8 @@ export function packageCounts(lockfile: string): { production: number; locked: n
 }
 
 const rows = [
-  { name: 'Preact reference, all six screens', dist: join(web, 'reference', 'dist'), lock: join(web, 'package-lock.json') },
-  { name: 'Preact reference, core screens', dist: join(web, 'build', 'two-screens'), lock: join(web, 'package-lock.json') },
+  { name: 'Preact example, all six screens', dist: join(web, '..', 'samples', 'web', 'preact', 'dist'), lock: join(web, 'package-lock.json') },
+  { name: 'Preact example, core screens', dist: join(web, 'build', 'two-screens'), lock: join(web, 'package-lock.json') },
   { name: 'Angular sample, core screens', dist: join(sample, 'dist'), lock: join(sample, 'package-lock.json') },
 ];
 
