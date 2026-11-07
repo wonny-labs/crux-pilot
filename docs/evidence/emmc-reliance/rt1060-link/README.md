@@ -94,7 +94,7 @@ high-water mark.
 | Adapter | `crux_red_statvfs` 72, `crux_red_stat` 56, `crux_red_open` 40; the rest 24 or less |
 | Flush path (generated `mmc.c`) | `mmc_ioctl` 96, `mmc_card_init` 160. `mmc_flush_cache` and its locked helper have no frame of their own in the listing, so they were inlined into `mmc_ioctl` |
 | SD layer and host driver | `imx_usdhc_request` 224, `card_write` 144, `imx_usdhc_execute_tuning` 128, `card_read` 80 |
-| File provider (the largest of the image) | `crux_file_impl_rename` 352, `crux_file_impl_stat` 224, `crux_file_impl_remove` 144 |
+| File provider (holds the largest frame of the image) | `crux_file_impl_rename` 352, `crux_file_impl_stat` 224, `crux_file_impl_remove` 144 |
 
 Two `dynamic` frames exist in the whole image (`rb_insert` 48, `rb_remove` 64, both in the kernel), and none in Reliance
 Edge, the adapter, the SD layer or the File provider. The microSD record has `f_open` at 360 and `f_stat` at 336 for

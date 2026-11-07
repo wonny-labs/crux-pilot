@@ -144,8 +144,8 @@ the figures above): the largest Reliance Edge frames are `CoreRename` 248, `Core
 `red_getdirpath` 64, and `red_write`, `red_read`, `red_fsync` and `red_close` are 24 each. In the flush path the
 generated `mmc.c` has `mmc_ioctl` at 96 and `mmc_card_init` at 160. `mmc_flush_cache` and its locked helper have no
 frame of their own in the listing, so the compiler inlined them into `mmc_ioctl`. Below them, `imx_usdhc_request` is 224 and `card_write`
-144. The adapter's own entry points are at most 72. The File provider's `crux_file_impl_rename` (352) and
-`crux_file_impl_stat` (224) are the largest frames of the whole image. These are single frames, not call-chain
+144. The adapter's own entry points are at most 72. The File provider's `crux_file_impl_rename` (352) is the
+largest frame of the whole image, followed by `CoreRename` (248), and `crux_file_impl_stat` and `imx_usdhc_request` (224 each). These are single frames, not call-chain
 maxima, (the microSD record has `f_open` at 360 and `f_stat` at 336 for comparison), and no run measured a high-water mark, so the 8,192 B main stack is a choice that no measurement supports yet.
 The method and the full figures are in the link record.
 
