@@ -5,7 +5,7 @@ in both web examples. Nothing here ran on a device, over TLS or on `native_sim`,
 board. Mock results are mock evidence and stand in for none of those.
 
 Crux provides the services, the APIs and HTTPS hosting, and the product owns its application UI. The Preact example in
-`web/reference` and the Angular example in `samples/web/angular-minimal` are examples, with no promise of feature parity and no
+`samples/web/preact` and the Angular example in `samples/web/angular` are examples, with no promise of feature parity and no
 component library. The API is the one in [`web/api/openapi.yaml`](../web/api/openapi.yaml), described on the firmware side in
 [status, configuration and account web APIs](web-management-apis.md). Design background:
 [web frontend foundation](plans/web-frontend-foundation-design.md) (W13 and W15) and the
@@ -19,8 +19,8 @@ component library. The API is the one in [`web/api/openapi.yaml`](../web/api/ope
 | Built | Preact example: a configuration screen at `#/config`, in the navigation |
 | Built | Angular example: the same screen, the forced password change screen, and a navigation. A route guard keeps a session that must change its password on that screen. |
 | Built | Shared browser cases in `web/e2e/shared-cases.ts`, run on both examples: 12 for the forced change and 34 for configuration |
-| Built | Preact-only configuration cases in `web/e2e/reference-config.test.ts`: 5 |
-| Built | `web/e2e/reference-config-throw.test.ts`: 4 cases, on a build of the Preact example with a cookie reader that throws once and a response that throws when read. They show that an update and a save whose call rejects log it and release the screen, that a read-back that rejects after an accepted update says so, and that a call that rejects after the screen was left changes nothing |
+| Built | Preact-only configuration cases in `web/e2e/preact-config.test.ts`: 5 |
+| Built | `web/e2e/preact-config-throw.test.ts`: 4 cases, on a build of the Preact example with a cookie reader that throws once and a response that throws when read. They show that an update and a save whose call rejects log it and release the screen, that a read-back that rejects after an accepted update says so, and that a call that rejects after the screen was left changes nothing |
 | Faked | The device. The mock keeps the parameters and the state of a save, over plain HTTP on the loopback address, and holds one session at a time |
 | Untested | TLS, real sessions, the device's single server thread, the save's time on a target, and the device's answers while the worker is inside storage (the mock forces them) |
 | Untested | Firefox, Edge and Safari. The cases ran on Chromium only. |
@@ -190,7 +190,7 @@ save, `guest` sees nothing and `newuser` must change its password.
 | Angular example, before #243, sign-in and home | 5 | 249403 | 76710 | 300 kB raw initial, error |
 | Angular example, core screens | 5 | 298780 | 91197 | 300 kB raw initial: 281.11 kB used |
 
-The Preact budget in `web/reference/budget.json` is unchanged, with 9,584 bytes left. The Angular example uses 281.11 kB of its
+The Preact budget in `samples/web/preact/budget.json` is unchanged, with 9,584 bytes left. The Angular example uses 281.11 kB of its
 300 kB raw limit for the initial bundle, so a further screen needs a decision about that limit. The rows before #243 were measured on the base commit, and the Preact one differs from the earlier record of 20406 compressed bytes in
 `web-frontend-implementation.md`, which is older than it. `node tools/compare.ts` gives the table, and the two-screens fixture now holds home and configuration so that
 it matches the Angular example's core flows.
@@ -231,7 +231,8 @@ Each was taken for lack of an answer, as the narrower choice.
 
 Local runs in container `crux-243`, image `crux-pilot-devcontainer:local` under amd64 emulation, Node.js 24.22.2, Chromium 156
 as a binary that Playwright's installer put in that container and `CRUX_CHROME` names. The harness otherwise uses the Chrome of the machine. The container held the only install of the packages. CI results are in the pull
-request.
+request. These rows record runs made before the examples were renamed on 8 November 2026: `reference-*` is now `preact-*`, and
+`web/reference` is now `samples/web/preact`. The rows are kept as measured.
 
 | Check | Level | Result |
 | --- | --- | --- |

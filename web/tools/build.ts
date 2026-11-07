@@ -11,11 +11,12 @@ import { checkBudget, measureFolder } from './budget.ts';
 import type { Budget } from './budget.ts';
 
 const web = join(dirname(fileURLToPath(import.meta.url)), '..');
+const preact = join(web, '..', 'samples', 'web', 'preact');
 const { values } = parseArgs({
   options: {
-    entry: { type: 'string', default: join(web, 'reference', 'src', 'main.tsx') },
-    out: { type: 'string', default: join(web, 'reference', 'dist') },
-    budget: { type: 'string', default: join(web, 'reference', 'budget.json') },
+    entry: { type: 'string', default: join(preact, 'src', 'main.tsx') },
+    out: { type: 'string', default: join(preact, 'dist') },
+    budget: { type: 'string', default: join(preact, 'budget.json') },
   },
 });
 
@@ -32,6 +33,8 @@ const result = await build({
   target: ['chrome120', 'edge120', 'firefox120'],
   jsx: 'automatic',
   jsxImportSource: 'preact',
+  // The Preact example sits outside web, and takes its one dependency from web's own install.
+  nodePaths: [join(web, 'node_modules')],
   outdir: join(out, 'assets'),
   entryNames: '[name].[hash]',
   metafile: true,
@@ -54,11 +57,11 @@ if (script === undefined || style === undefined) {
   process.exit(1);
 }
 
-const index = readFileSync(join(web, 'reference', 'index.html'), 'utf8')
+const index = readFileSync(join(preact, 'index.html'), 'utf8')
   .replace('./assets/app.js', `./assets/${script}`)
   .replace('./assets/app.css', `./assets/${style}`);
 writeFileSync(join(out, 'index.html'), index);
-copyFileSync(join(web, 'reference', 'favicon.svg'), join(out, 'favicon.svg'));
+copyFileSync(join(preact, 'favicon.svg'), join(out, 'favicon.svg'));
 
 const measure = measureFolder(out);
 const budget = JSON.parse(readFileSync(values.budget, 'utf8')) as Budget;

@@ -108,9 +108,9 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version-file: samples/web/angular-minimal/package.json
+          node-version-file: samples/web/angular/package.json
       - name: Build the Angular sample from its own lockfile
-        working-directory: samples/web/angular-minimal
+        working-directory: samples/web/angular
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build
@@ -119,11 +119,11 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Check the sample's sources
         working-directory: web
-        run: node tools/check-dom.ts ../samples/web/angular-minimal/src
+        run: node tools/check-dom.ts ../samples/web/angular/src
       - name: Run the shared browser cases on the sample
         working-directory: web
         run: npm run test:angular
-      - name: Record the comparison with the reference
+      - name: Record the comparison with the Preact example
         working-directory: web
         run: |
           set -o pipefail

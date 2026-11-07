@@ -16,7 +16,7 @@ Status: draft for review, Issue #193, approved in advance under gate #183. It co
 | wolfSSH provider and OpenSSH | **Real** on `native_sim`, from #265, which is on `main` | `tests/ssh/cli/openssh/` |
 | Commands in the `native_sim` image | **Test commands**. No product has `probe-read` or `flood`. | `tests/ssh/cli/openssh/src/main.c` |
 | Security event provider | **Not connected.** It prints in the image, and records on the Host. | [The contract](cli-contract.md#connecting-the-real-security-events) |
-| A product composition | **Not built.** No Kconfig symbol selects SSH yet. | #197 |
+| A composition that selects SSH | **Built, on `native_sim` only.** `CONFIG_CRUX_SSH` and `CONFIG_CRUX_SSH_CLI` select the entry points with the wolfSSH provider, and [one image](ssh-integrated-image.md) runs this command line over SSH beside the HTTPS web, on the real Access core and the real PSA providers. A product composition and its host key handling are not built. | `zephyr/Kconfig`, `tests/native/management_ssh/`, [the integrated image](ssh-integrated-image.md) |
 | Anything on a board, and stack use on a Cortex-M7 | **Untested.** RT1060 is compile only. | |
 
 ## How a session runs
