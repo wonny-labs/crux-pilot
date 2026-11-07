@@ -118,3 +118,18 @@ checkout is decided under Issue #185. The wolfSSL, wolfSSH and wolfPSA projects 
 states GPL-3.0-or-later only. A vendor article says it has the same licence options as wolfSSL, and its commercial terms need
 confirming with the vendor. Binaries built with these stacks are subject to those terms when distributed. The `mbedtls` and `tf-psa-crypto` projects in the same group are
 Apache-2.0 OR GPL-2.0-or-later.
+
+## Mbed TLS entropy without a fallback
+
+`mbedtls-entropy-fail-closed.patch` changes one line of `modules/mbedtls/zephyr_entropy.c` at Zephyr
+`dccb09599635bdff17633fa7e9dab014b91dce90`: `mbedtls_platform_get_entropy` passes `false` instead of `true` for whether
+a failed entropy read may fall back to `sys_rand_get()`. The file is Nordic Semiconductor copyright, Apache-2.0 licensed, and its notice remains in the
+generated copy. The file has the same SHA-256 at v4.4.0 and v4.4.2 (`302e3738…`), and the patched copy has `65ed87b0…`.
+
+Without it, a failed read on RT1060-EVKB seeds the PSA random generator from a non-cryptographic source and still reports full entropy. At v4.4.2 the TRNG
+driver returns `-EIO` on a failed read, so that path is reachable. With it, Mbed TLS reports the failure and PSA does not initialise. Owner decision of 6 November 2026,
+recorded in the [qualification record](../../docs/psa-crypto-qualification.md#entropy-failure).
+
+`scripts/prepare-mbedtls-entropy.py` checks the original's hash, applies the patch in a temporary directory and checks the result's hash. `cmake/CruxMbedtlsEntropy.cmake`
+replaces exactly one source in the one library that compiles it, with the build-local copy, and never edits the Zephyr checkout. Source drift, a missing library or a
+second one in `modules/mbedtls` fails configuration. A compile of the file from another directory would not, and only the RT1060-EVKB conformance image checks the compile commands. It applies only on the entropy driver route (`CONFIG_MBEDTLS_PSA_DRIVER_GET_ENTROPY`). The external-RNG route does not fall back to `sys_rand_get()` unless `CONFIG_MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG_ALLOW_NON_CSPRNG` is set, but it accepts whatever its entropy driver returns. It does not touch the TLS socket patch above, and does not change what an image that does not call it does.
