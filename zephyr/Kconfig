@@ -226,6 +226,17 @@ configdefault SDHC_BUFFER_ALIGNMENT
 configdefault FS_FATFS_WINDOW_ALIGNMENT
     default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK
 
+config CRUX_MMC_CACHE_FLUSH
+    bool "Flush the eMMC cache on disk sync (build-local MMC stack correction)"
+    depends on CRUX_PILOT_MODULE && MMC_STACK
+    default n
+    help
+      Replace subsys/sd/mmc.c in this build with a copy generated from
+      patches/zephyr/mmc-cache-flush.patch. When the stack has turned the eMMC
+      cache on, DISK_IOCTL_CTRL_SYNC sends FLUSH_CACHE and returns an error unless
+      the card completes it. The Zephyr checkout is never edited, and a pinned
+      source that differs from the expected one fails the configuration.
+
 menuconfig CRUX_WEB
     bool "Crux web server adapter"
     depends on CRUX_PILOT_MODULE && NETWORKING

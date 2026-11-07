@@ -7,3 +7,10 @@ tests:
   crux.emmc.stack.nocache:
     extra_configs:
       - CONFIG_CRUX_EMMC_SIM_CACHE_KB=0
+  crux.emmc.stack.flush.cached:
+    extra_configs:
+      - CONFIG_CRUX_MMC_CACHE_FLUSH=y
+  crux.emmc.stack.flush.nocache:
+    extra_configs:
+      - CONFIG_CRUX_MMC_CACHE_FLUSH=y
+      - CONFIG_CRUX_EMMC_SIM_CACHE_KB=0

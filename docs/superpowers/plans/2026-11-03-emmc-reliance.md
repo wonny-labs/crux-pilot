@@ -197,7 +197,7 @@ Expected: both scenarios PASS with 13 executed cases each. If the stack sends a 
 
 - [ ] **Step 5: Write the restart test**
 
-`tests/native/emmc_restart/main.c` has phases `write` and `verify`, selected by its own `--phase` option. Its `prj.conf` sets `CONFIG_NATIVE_SIM_SLOWDOWN_TO_REAL_TIME=n`, because without Ztest the default is real time. `run_restart.py --exe PATH`:
+`tests/native/emmc_restart/main.c` has phases `write` and `verify`, selected by its own `--phase` option. Its `prj.conf` sets `CONFIG_NATIVE_SIM_SLOWDOWN_TO_REAL_TIME=n`, because without Ztest the default is real time. `run_restart.py --exe PATH` also takes `--flush-exe PATH`, the build with the flush correction on, for a cached restart check through the stack (added in Task 3):
 
 - `test_flushed_data_survives_a_process_restart`: write with sync, new process reads it back.
 - `test_unflushed_cache_does_not_survive_exit`: cached profile, write without flush, new process reads the old bytes.

@@ -457,12 +457,19 @@ It also refuses to build on Rev C and on the hyperflash variant (a negative cont
 unmodified `drivers/disk/mmc_subsys.c` and `subsys/sd` run without hardware. It cannot be selected on a
 target. `tests/native/emmc_stack` runs the stack against it, with and without a cache: initialisation,
 geometry, reads and writes, the bounce path for unaligned buffers, bounds, injected faults and retries,
-a busy card, and a sync that sends no flush at the pinned revision. `tests/native/emmc_restart` runs
-separate processes on the host file behind the simulator: data on the medium outlives the process,
-data held in the cache does not, an image of the wrong size is an error, and the trace holds what was
-written. The stack sends no flush, so that run reaches the simulator's flush path with a command of its
-own. `scripts/test-storage-emmc.sh` runs both and requires the executed cases of each scenario. It is
-not in the Zephyr CI workflow.
+a busy card, and a sync that sends no flush at the pinned revision. Its `flush.cached` and
+`flush.nocache` scenarios build the stack with `CONFIG_CRUX_MMC_CACHE_FLUSH`, the build-local correction
+in [`patches/zephyr`](../patches/zephyr/README.md), and check that a sync flushes the cache only when it
+is on, and that a rejected flush, a switch error in any status response, a failed command, and a card
+busy before or after the flush each return an error. Cases for the other profile skip themselves.
+`tests/native/emmc_restart` runs separate processes on the host file behind the simulator: data on the
+medium outlives the process, data held in the cache does not, an image of the wrong size is an error,
+and the trace holds what was written. The unmodified stack sends no flush, so that run reaches the
+simulator's flush path with a command of its own; a second build with the correction checks that a sync
+through the stack outlives a restart with the cache on. `tests/native/emmc_stack/test_prepare.py` checks
+that the correction refuses a drifted source and output inside Zephyr. `scripts/test-storage-emmc.sh`
+runs all of these and requires the executed cases of each scenario. It is not in the Zephyr CI
+workflow.
 
 The simulator is a model written from the stack's needs, by the same author as the tests, and is not
 device evidence. Results show how the stack behaves against that model, not how an eMMC device behaves.
