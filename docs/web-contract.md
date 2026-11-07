@@ -331,7 +331,9 @@ Each would have made results here wrong without being seen.
 | The native socket offload has no `shutdown` operation, so `zsock_shutdown` fails, and the server's inactivity timer does nothing. | A client on the offload is never closed for inactivity. | The test image wraps that call and shuts the host socket down, which is the effect it has on Zephyr's own stack. This is test code that depends on a private driver struct at this pin. **The wrap has not been compared with Zephyr's own TCP stack**, which needs a target or a TAP interface. |
 | The offload's send waits out its whole timeout and then sends if it can, so `-EAGAIN` hardly ever reaches the server, while on a real stack it would. | The suite reached that path zero times, and a defect there went unseen until independent review. | The test image wraps the send, and a probe route makes a chosen send return `-EAGAIN`. |
 
-## Signatures for the next issues
+## Signatures that the other web components use
+
+The table was written for the issues that followed #184, and each now uses these. `Issue` names the one that introduced the use.
 
 | Issue | What it uses | From |
 | --- | --- | --- |
@@ -345,8 +347,7 @@ Each would have made results here wrong without being seen.
 | #188 | Nothing yet: the probe above is its starting point | |
 
 A copied response body is at most 4 KiB, `CRUX_WEB_RESPONSE_MAX`. A request body is at most `CRUX_WEB_BODY_BUFFER`, 1 KiB,
-per client, and 512 bytes on a route unless `CRUX_WEB_ROUTE_BODY` says otherwise. #187 must check that a status response
-fits the 4 KiB.
+per client, and 512 bytes on a route unless `CRUX_WEB_ROUTE_BODY` says otherwise. A status document that does not fit the 4 KiB is answered `503 not_ready` ([management APIs](web-management-apis.md)).
 
 ## Decisions taken without an answer
 

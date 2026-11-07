@@ -314,16 +314,9 @@ Each is a statement about `native_sim`, and none is device evidence.
 | 8 | Provider tests | `tests/psa_ports`, the composition, and [the existing suites](#the-existing-suites-on-the-real-ports) on Host |
 | 9 | The Mbed profile's limits | [Locks](#locks-on-the-mbed-profile). No Ed25519, as shown. Slots: `ports_leave_no_key_slot` shows that the providers hold none between calls, on TF-PSA-Crypto on `native_sim`, and it cannot see a leak on Host or wolfPSA. How many TLS takes from the 16 was not measured. |
 
-## What later issues can use
+## What later issues used
 
-| Issue | What it has now | What it must still do |
-| --- | --- | --- |
-| #184, HTTP adapter | `tests/native/management_composition/composition`: `crux_native_management_start`, sessions from `crux_native_management_login`, and real status and configuration services behind the adapter's routes. Link with `composition.cmake`. | Its own routes. The composition starts no listener. |
-| #185, HTTPS | The [probe's result](#what-185-needs-to-know), both profile configurations, the patched tree for a test, the declared certificate through `crux_native_management_tls_test_credentials`, and the core locks | Decide how a product applies the Wolf patch. Declare versions and suites. Test an abrupt client close on the Mbed profile. |
-| #186, login and sessions | Real PBKDF2 verifiers, the real session table, and a PSA provider to draw attempt identifiers and tokens from | Entropy stays test-only here, so a token's strength is not shown |
-| #190, certificate model | `crux_credential_key_ensure(CRUX_CREDENTIAL_RECORD_TLS_KEY, P256)` generates and persists a key at start, and survives a restart. The event port is real. | Connect a stored key and certificate to the TLS credentials. The composition's TLS still uses the declared certificate, not this key. |
-| #192, SSH provider | On the Wolf profile: a persisted Ed25519 host key, one wolfCrypt with the wolfSSH definitions beside the TLS backend and wolfPSA, and real Access for keys and passwords | wolfSSH is not in this image, so it has not been built with these. |
-| #187, #193, #220 | The same services on real ports | |
+#184, #185, #186, #187, #190, #192, #193 and #220 built on this composition and have merged. Their results are in [the services image](native-composition-242.md), [HTTPS composition](https-composition.md), [the integrated image](ssh-integrated-image.md) and [the end-to-end record](e2e-native-220.md).
 
 ## Decisions for review
 

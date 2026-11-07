@@ -320,23 +320,7 @@ reboot predate the Angular network settings and restart screens of #243. The sha
 
 ## The small example project
 
-`samples/web_project` adds a page and an API route of a project's own, with Crux's public contracts and no native
-header.
-
-| Part | What it uses | What it does not use |
-| --- | --- | --- |
-| `site/` | Plain HTML, one script and one style, loaded under the strict policy | No inline script or style, no other origin, no build tool |
-| `src/greeting_route.c` | `<crux/web.h>`: `CRUX_WEB_ROUTE`, `CRUX_WEB_SESSION` and `crux_web_respond` | No Zephyr, board, vendor or adapter header |
-| `reviewed-routes.txt` | One line for the route and one for the folder. `scripts/check-web-routes.py`'s repository scan checks the sample's routes against this list, by the same comparison as `--reviewed`, in place of the default list, and only while a tracked CMake file names it after `REVIEWED`, as `tests/web/project_sample/CMakeLists.txt` does. An empty or unnamed list exempts nothing. The `public GET @assets` line is left to the build, which sees the generated source. | |
-| A composition | `crux_web_assets()` and the route source named to `crux_web_routes()` | No change to any component |
-
-```mermaid
-flowchart LR
-    page["site/index.html<br/>greeting.js"] -- "GET /api/v1/project/greeting" --> core["Web core<br/>session lookup, access class"]
-    core --> route["greeting_route.c<br/>CRUX_WEB_ROUTE, crux_web_respond"]
-    pack["crux_web_assets(... STYLE strict)"] --> assets["Packaged page,<br/>public GET"]
-    assets --> page
-```
+`samples/web_project` adds a page and an API route of a project's own, with Crux's public contracts and no native header. What it uses, and what a composition writes, are in [its README](../samples/web_project/README.md). The checks below are the evidence.
 
 | Check | Level | Result |
 | --- | --- | --- |

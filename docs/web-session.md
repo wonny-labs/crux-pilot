@@ -245,13 +245,15 @@ TF-PSA-Crypto `dc575a2` and Mbed TLS `a3e190f`. CI results are in the pull reque
 | 15 | The `native_sim` image uses `CONFIG_MINIMAL_LIBC`, as `tests/native/web_http` does, for Zephyr's `fnmatch` | Upstream sources warn of implicit declarations under it, as in that image | Picolibc |
 | 16 | RT1060: compiled as objects, not linked | A link needs the Access core's store and events, which only a product composition brings | Stub ports in a compile test |
 
-## What #187 needs
+## What a route that needs a session can rely on
+
+Written for #187, whose routes now use it. [The product guide](management-in-a-product.md#routes) says what a frontend must send.
 
 | Item | Where |
 | --- | --- |
 | The session lookup for its routes | Compose `crux_web_session_authenticate` and name `web_session_routes.c` to `crux_web_routes`, as `tests/native/web_session` does |
 | Session-only routes get `Origin`, the CSRF token and the idle refresh for free on any method but `GET` | `crux_web_session_authenticate` |
 | A handler checks its own permissions with the session it is given | Unchanged from #184 |
-| The account routes must not add a password change: it exists, at `POST /api/v1/session/me/password` | `web_session_routes.c` |
+| The password change exists, at `POST /api/v1/session/me/password`, so no other route adds one | `web_session_routes.c` |
 | An account change that ends sessions needs nothing more here: the next lookup answers `401` | `sessions.c` shows it |
 | Slow work goes to a worker, and the web stall above applies to any worker at a `crux_thread` priority, which is always above the server thread's | This document |

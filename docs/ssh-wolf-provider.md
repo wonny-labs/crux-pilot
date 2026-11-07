@@ -397,7 +397,7 @@ Each was taken without the owner, and the narrower choice was taken where there 
 | 19 | wolfSSH's `MAX_PACKET_SZ` stays, and the memory rule below allows for it | RFC 4253 section 6.1 requires packets up to 35,000 bytes, and a client announces the size before keys | A lower limit would be a shared setting that refuses a conforming client |
 | 20 | **The slot lockout stays, as a recorded limit.** `max_connections` silent clients hold every slot for `auth_timeout_ms`, and a real user is refused meanwhile. | Nothing unauthenticated can be told from a slow login, and a reserved slot needs a policy for who may use it. A composition chooses the two numbers. The limit is short and repeats only while an attacker keeps connecting. | A slot reserved for clients that have logged in before, or by source |
 | 21 | The checks on client input move into `crux_ssh_wire.c`, a module with no library type that the provider compiles, and the provider keeps only the calls | The Host can then fuzz the very source the provider runs, under sanitizers and in CI, which a `native_sim` image cannot | The checks stay inline, tested only through a socket |
-| 22 | **A user key whose blob is not its type's exact form is refused before `key_check`**, and counts as an attempt on the connection, as an RSA key does | Such a blob can never match a stored key, because `crux_access_key_acceptable` refuses one at `add_key`, so no login is lost, and less unparsed data reaches Crux. **What it costs:** a *signed* request with such a blob, and a name that meets the account rule, used to reach `crux_access_key_is_authorised` as an unlisted key. That wrote a delay entry and emitted `KEY_FAILURE` (`access.key_failed`), or `LOGIN_REFUSED` for an account whose role is missing or that must change its password, or `DELAY_APPLIED` inside a delay window (`components/access/src/access_login.c`, and `adapter_test.c` expects one `KEY_FAILURE` for a signed unlisted key). A name outside the account rule gave `LOGIN_FAILURE` and no delay entry. Now, as for an RSA key, it gives none of these. See [the trade-off](#decision-22-the-trade-off). | Pass such blobs to `crux_access` again, for the event and the delay entry, and keep only the type-name check before the callback |
+| 22 | **A user key whose blob is not its type's exact form is refused before `key_check`**, and counts as an attempt on the connection, as an RSA key does | Such a blob can never match a stored key, because `crux_access_key_acceptable` refuses one at `add_key`, so no login is lost, and less unparsed data reaches Crux. **What it costs:** a signed request with such a blob no longer records an event or a delay entry, as one for an RSA key does not: see [the trade-off](#decision-22-the-trade-off). | Pass such blobs to `crux_access` again, for the event and the delay entry, and keep only the type-name check before the callback |
 | 23 | The fake provider makes the same check, and its two keys became well-formed blobs with key bytes of zero | The new conformance case must hold for both, and a new fault in the fake shows the case can fail | The case would run on the real provider only |
 | 24 | **Replacing the host key is not built.** No command or route calls `crux_credential_key_replace()`. | The design makes it a deliberate, recorded operation, and its permission, confirmation and user guidance belong with the command line and management APIs, not the provider | A command under `access.manage` that calls it and restarts the server |
 | 25 | The stored host key runs in the existing test image behind `CRUX_SSH_TEST_STORED_HOST_KEY`, not in the management composition | No TLS socket backend, so no patched Zephyr, and #197 owns the integrated image. The Access ports there stay fakes. | **Since #197:** the provider beside the socket backend and wolfPSA is built on `native_sim`, in [the integrated image](ssh-integrated-image.md), with the host key from the store and the Access ports real. This test image is unchanged. |
@@ -408,6 +408,8 @@ Each was taken without the owner, and the narrower choice was taken where there 
 ### Decision 22: the trade-off
 
 For the owner to judge. Each line was checked against the source at this revision.
+
+**What it costs, in detail.** A *signed* request with such a blob, and a name that meets the account rule, used to reach `crux_access_key_is_authorised` as an unlisted key. That wrote a delay entry and emitted `KEY_FAILURE` (`access.key_failed`), or `LOGIN_REFUSED` for an account whose role is missing or that must change its password, or `DELAY_APPLIED` inside a delay window (`components/access/src/access_login.c`, and `adapter_test.c` expects one `KEY_FAILURE` for a signed unlisted key). A name outside the account rule gave `LOGIN_FAILURE` and no delay entry. Now, as for an RSA key, it gives none of these.
 
 | Question | Answer |
 | --- | --- |
@@ -457,25 +459,27 @@ The provider wipes a password from wolfSSH's input buffer once the callback retu
 | The second change on RT1060-EVKB | **Not compiled.** This workspace has no `hal_nxp`, and fetching it was not worth the disk. The wire module is plain C17 with no platform header. The compile figures above are the first change's. |
 | `--measure` after the second change | Not rerun. The wire module allocates nothing. Its object is 1,512 B of text and 64 B of data on `native_sim/native/64`, of which the provider lost the inline checks it replaces. No target size was measured. |
 | SFTP file transfer, and the window-full path in the SFTP loop | #194. The port refuses every operation. |
-| WinSCP | Needs a Windows host, and belongs to #194's acceptance. A first run is recorded in [the SFTP design](sftp-design.md#the-first-run). |
+| WinSCP | Needs a Windows host, and belongs to #194's acceptance. Two runs are recorded in [the WinSCP evidence record](evidence/sftp-winscp-runs.md), summarised in [the SFTP design](sftp-design.md#the-first-run). |
 | `ssh-audit` | Not installed, and not fetched. The OpenSSH cases read the server's `KEXINIT` directly and test strict key exchange with a control. |
 | IPv6 through the provider | Decision 10 |
 | `scripts/test-ssh-wolf-settings.sh`, and with it the provider beside the TLS socket backend | This author's workspace is a shallow clone, and the recipe's patch needs blobs it lacks. The probe was built without the backend instead. The independent review measured the probe with a reference to the provider at 426,196 B Flash and 291,028 B RAM. |
 | wolfSSH in CI | Decision 15. Host suites run in CI, and the `native_sim` results here are from local runs. |
 | OpenSSH 10.1's warning | No such client here. 9.9 was the newest available. |
 
-## What #193 and #194 need
+## Rules for an entry point on this provider
 
-| Session | What to know |
+Written for the command line and SFTP entry points of #193 and #194, which have since merged. The rules still hold for any entry point.
+
+| Entry point | What to know |
 | --- | --- |
-| Both | `tests/zephyr/ssh_provider` and `scripts/test-ssh-provider.sh` are the end-to-end path. Replace the stand-ins in `src/test_sessions.c` and add cases to `openssh_test.py`. |
-| Both | A callback runs on a worker whose stack wolfSSH already uses heavily. Set `CRUX_SSH_WOLF_WORKER_STACK_BYTES` for your own use on top: see [Resource use](#resource-use). |
-| Both | `crux_ssh_attachment_session()` is real. `crux_access_touch` is yours to call on user activity. The session ends when `connection_closed` runs. |
-| Both | Your entry points must link in `tests/zephyr/ssh_wolf_probe`, as `src/access_refused.c` does for access. |
-| #193 | `read` and `write` wait up to `io_timeout_ms`, which the composition sets. `CRUX_ERR_TIMEOUT` leaves the channel usable. `CRUX_ERR_NO_DATA` is EOF, and a short write is success. `terminal` is true when `pty-req` came first. |
-| #193 | Host key display: `crux_ssh_wolf_host_key_fingerprint()` needs no SSH type. It belongs to the composition to pass the string to the CLI, so that the CLI does not link a provider header. |
-| #193 | The exit status goes out when your callback returns, and the provider waits for the client's close. Do not send it yourself. |
-| #194 | `sftp_open` runs before `SSH_FXP_INIT`. The handle is set with `wolfSSH_SetFilesystemHandle`, and `wolfSSH_SFTP_free` runs before `sftp_close`, so that closing what a client left open happens with the handle still valid. |
-| #194 | Measure transfers against the 16 KiB window and packet, and change `CRUX_SSH_WOLF_WINDOW_BYTES` if needed. No case of this image reached the `WS_WINDOW_FULL` branch of `serve_sftp`; whether the transfers of #194 reached it is argued in [the SFTP design](sftp-design.md#how-this-fits-the-provider-of-192), and no counter shows it. |
-| #194 | A receive hands back after 16 KiB with `WS_WANT_READ` while data waits, so a loop must go round again and not treat it as idle. The send wait of decision 18 applies at the end of a session only. |
-| #194 | `session_alive` is polled each `io_timeout_ms` with no request, and only an SFTP request resets that. |
+| Any | `tests/zephyr/ssh_provider` and `scripts/test-ssh-provider.sh` are the end-to-end path for the provider itself, with test entry points in `src/test_sessions.c`. |
+| Any | A callback runs on a worker whose stack wolfSSH already uses heavily. Set `CRUX_SSH_WOLF_WORKER_STACK_BYTES` for your own use on top: see [Resource use](#resource-use). |
+| Any | `crux_ssh_attachment_session()` is real. `crux_access_touch` is yours to call on user activity. The session ends when `connection_closed` runs. |
+| Any | Entry points must link in `tests/zephyr/ssh_wolf_probe`, as `src/access_refused.c` does for access. |
+| Shell and `exec` | `read` and `write` wait up to `io_timeout_ms`, which the composition sets. `CRUX_ERR_TIMEOUT` leaves the channel usable. `CRUX_ERR_NO_DATA` is EOF, and a short write is success. `terminal` is true when `pty-req` came first. |
+| Shell and `exec` | Host key display: `crux_ssh_wolf_host_key_fingerprint()` needs no SSH type. It belongs to the composition to pass the string to the CLI, so that the CLI does not link a provider header. |
+| Shell and `exec` | The exit status goes out when your callback returns, and the provider waits for the client's close. Do not send it yourself. |
+| SFTP | `sftp_open` runs before `SSH_FXP_INIT`. The handle is set with `wolfSSH_SetFilesystemHandle`, and `wolfSSH_SFTP_free` runs before `sftp_close`, so that closing what a client left open happens with the handle still valid. |
+| SFTP | Measure transfers against the 16 KiB window and packet, and change `CRUX_SSH_WOLF_WINDOW_BYTES` if needed. No case of this image reached the `WS_WINDOW_FULL` branch of `serve_sftp`; whether the transfers of #194 reached it is argued in [the SFTP design](sftp-design.md#how-this-fits-the-provider-of-192), and no counter shows it. |
+| SFTP | A receive hands back after 16 KiB with `WS_WANT_READ` while data waits, so a loop must go round again and not treat it as idle. The send wait of decision 18 applies at the end of a session only. |
+| SFTP | `session_alive` is polled each `io_timeout_ms` with no request, and only an SFTP request resets that. |

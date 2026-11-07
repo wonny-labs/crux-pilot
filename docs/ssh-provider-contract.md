@@ -145,27 +145,11 @@ crux_ssh_attachment_session`, so a CLI or SFTP test links the double and its own
 
 A session belongs to one SSH connection. `crux_access_touch` is the caller's job, so #193 and #194 call it on user activity.
 
-### Which files each session changes
+### Which files a change touches
 
-The shared files and every hook are in place now, so no session has to change a shared file to add a source or a test.
+The three sessions that shared this ownership table, #192, #193 and #194, have merged, and the stand-ins they replaced are gone from the images that use the real entry points. What stays is the rule about shared files: a change to `components/ssh/CMakeLists.txt`, `components/ssh/src/`, `components/ssh/adapter/`, `components/ssh/ports/zephyr/crux_wolfssh_settings.h`, `wolf-ssh.conf`, `wolf_ssh_settings.cmake`, `tests/ssh/CMakeLists.txt` or the files directly in `tests/ssh/` is one reviewed change, because every channel's build and tests read them. The access mapping, the CLI entry points and the SFTP entry points each live in their own directory (`components/ssh/access/`, `cli/`, `sftp/`) with their own `sources.cmake`.
 
-| Session | May change | How it adds code |
-| --- | --- | --- |
-| Provider and authentication, #192 | `components/ssh/access/`, `components/ssh/ports/zephyr/provider_sources.cmake` and the provider sources it lists, `tests/ssh/access/`, new `tests/zephyr/ssh_*`, new `scripts/test-ssh*.sh` | The provider sources go in `provider_sources.cmake`, and `crux_ssh_wolf_settings()` builds them with the wolfSSH settings. The access entry points and `struct crux_ssh_attachment` replace the stand-in in `components/ssh/access/`, with `sources.cmake` and `CMakeLists.txt` there. Its tests go in `tests/ssh/access/CMakeLists.txt`. |
-| CLI over SSH, #193 | `components/ssh/cli/`, `tests/ssh/cli/` | `crux_ssh_cli_shell` and `crux_ssh_cli_exec` replace the stand-in, with `sources.cmake` and `CMakeLists.txt` there. It uses `read`, `write` and `close`, with the fake provider on the Host, and links `crux_cli_adapter`, which arrives with #238, PRIVATE from its own `CMakeLists.txt`. A composition selects it with `CRUX_SSH_CLI_COMMAND_LINE` and names its provider with `crux_ssh_cli_set_provider`: see [the CLI over SSH](cli-over-ssh.md). |
-| SFTP, #194 | `components/ssh/sftp/`, `tests/ssh/sftp/` | `crux_ssh_sftp_open` and `crux_ssh_sftp_close` replace the stand-in. The real `myFilesystem.h` replaces the refusing one in `components/ssh/sftp/port/`, whose directory `sources.cmake` names, so `crux_ssh_wolf_settings()` puts it on the include path of the wolfSSH sources in `app`. |
-| Shared, by one reviewed PR that all sessions rebase onto | `components/ssh/CMakeLists.txt`, `components/ssh/src/`, `components/ssh/adapter/`, `components/ssh/ports/zephyr/crux_wolfssh_settings.h`, `wolf-ssh.conf`, `wolf_ssh_settings.cmake`, `tests/ssh/CMakeLists.txt` and the files directly in `tests/ssh/` | The callback table is here, in `components/ssh/src/crux_ssh_callbacks.c`, and already names every entry point. This is the rule that gate #183 records. |
-
-**Which port #192 builds against.** `wolfssh/port.h` includes `myFilesystem.h` whenever SFTP is on, so wolfSSH cannot compile without one.
-#192 builds against the refusing port in `components/ssh/sftp/port/` until #194 replaces it. It compiles and links, every operation in it
-fails, and the stand-in `crux_ssh_sftp_open` refuses before any of it runs. The probe uses the same port, so no probe holds a private
-copy. #192 does not edit that directory. Since #194 the macros there are real, and they reach refusing operations unless a composition sets `CRUX_SSH_SFTP_FILE_SERVICE`.
-
-Each stand-in fails closed, and `tests/ssh/{cli,sftp}/stub_test.c` show that. #192 has replaced the access one. The session that replaces a stand-in replaces its test as
-well. It keeps the file names that `scripts/analyze-host.sh` lists, or changes that list under the protected-path rule.
-
-The three sessions can run separately after this issue and the gate. #193 and #194 do not need a working provider: they
-test against the fake. Their end-to-end acceptance with OpenSSH needs #192.
+The refusing entry points remain for an image that selects no command line or no SFTP, and `tests/ssh/{cli,sftp}/stub_test.c` show that they fail closed. `wolfssh/port.h` includes `myFilesystem.h` whenever SFTP is on, so wolfSSH cannot compile without a file port: the refusing one in `components/ssh/sftp/port/` is used until a composition sets `CRUX_SSH_SFTP_FILE_SERVICE`, as [the SFTP design](sftp-design.md) says.
 
 ## wolfSSL and wolfSSH settings
 
@@ -237,13 +221,9 @@ Flash is higher than the 369,152 B of the first probe. That probe had no Ed25519
 preferred algorithms, and it also lacked the SFTP `SETSTAT` handlers. RAM includes the same configured 32 KB main stack and 128 KB
 allocation arena, so it is not measured use.
 
-### If SFTP needs the mount fallback
+### The mount fallback is not used
 
-If #194 records a decision for the file system mount fallback, wolfSSH uses its own Zephyr file port instead of `myFilesystem.h`. That
-port calls `z_fs_open` and `z_fs_close` from wolfSSL, which do not exist while wolfSSL keeps `NO_FILESYSTEM`: the build fails on them.
-So that path needs the wrapper above, with `WOLFSSH_ZEPHYR` left defined. It was built once for the target in a scratch copy, with no
-vendor file edited: 415,384 B Flash, 219,988 B RAM. It leaves `SETSTAT` and `FSETSTAT` compiled out, and that is a change to the shared
-files, so it would be one reviewed PR.
+[The SFTP design](sftp-design.md) chose the file port and not wolfSSH's own Zephyr mount code (its decision 2), so the wrapper that the mount code would need is not built. It was built once for the target in a scratch copy: 415,384 B Flash, 219,988 B RAM, with `SETSTAT` and `FSETSTAT` compiled out.
 
 ### Recipe
 
@@ -292,23 +272,18 @@ server does not look up names. It is Zephyr's source, so it stays as it is, and 
 
 ## Findings for the provider session
 
-- **Heap.** The probe's 128 KB allocation arena links, and it cannot run a session. `DEFAULT_WINDOW_SZ` in `wolfssh/internal.h:657` is 128 KiB, and
-  the review's server needed a 1 MiB arena. So the probe's RAM figure says nothing about a working image. #192 measures this, and sets the window with
-  `wolfSSH_CTX_SetWindowPacketSize` or the macro.
-- **Exit status.** After `wolfSSH_stream_exit`, the provider drains the connection before closing it, or the client can lose the exit status.
-- **Callback answers.** `sftp_open` runs after the request is granted, as noted above. `key_verified` maps onto the `wolfSSH_SetUserAuthResult`
-  return value, and any value other than `WS_SUCCESS` overrides the success (`src/internal.c:11764`).
+Superseded by [the wolfSSH provider](ssh-wolf-provider.md): the heap and window are in [resource use](ssh-wolf-provider.md#resource-use), the wait while `wolfSSH_stream_exit` runs is its decision 18.
 
 ## Host tests
 
 | Test | What it holds |
 | --- | --- |
-| `Ssh.ProviderConformance` | The 52 cases in [`tests/ssh/conformance.c`](../tests/ssh/conformance.c), on the fake provider |
-| `Ssh.ConformanceCatchesDefects` | Each of the fake's 61 deliberate defects must fail its named case |
+| `Ssh.ProviderConformance` | The cases in [`tests/ssh/conformance.c`](../tests/ssh/conformance.c), on the fake provider: 52 now, and 51 when #239 recorded its results below |
+| `Ssh.ConformanceCatchesDefects` | Each of the fake's deliberate defects must fail its named case: 61 now, 60 at #239 |
 | `Ssh.FakeProvider` | What the fake promises to other tests: a buffer of at least 1 KiB, a failed `send` reported, and key blobs of real size |
 | `Ssh.AttachmentDouble` | `crux_ssh_attachment_session()` on the Host double. A test links the double or the table, not both, because each brings a definition of it. |
 | `Ssh.CallbackTable` | Every member of the shared table is the named entry point, and a provider accepts it |
-| `Ssh.cli_stub`, `Ssh.sftp_stub` | The stand-ins fail closed, until each session replaces them |
+| `Ssh.cli_stub`, `Ssh.sftp_stub` | The refusing entry points of an image with no command line or no SFTP fail closed |
 | `Ssh.access_adapter`, `Ssh.host_key` | The access mapping on the real `crux_access` core, and the host key's way from the credential store, with fake ports |
 | `Ssh.ProviderTypes` | SSH library names stay in the provider and the file port |
 | `Ssh.Boundaries` | `scripts/check-ssh-boundaries.py` |
@@ -325,16 +300,7 @@ Those belong to #192 on `native_sim`.
 
 ## Findings for the SFTP session
 
-From reading wolfSSH v1.6.0 source. None of this had run when it was written. [The SFTP design](sftp-design.md) settles the refused `OPEN`, and has what the provider needs from the port.
-
-- `WOLFSSH_SFTP_ERRNO`, named in the design and in #194, does not occur anywhere in this revision. A failed `WOPEN` is sent
-  as `WOLFSSH_FTP_FAILURE`. `WS_PERMISSIONS` becomes a permission status from a few places, such as path confinement and the
-  results of `WMKDIR` and `WRMDIR`. So #194 must find out how a refused open reaches the client, or accept a general failure
-  there. This does not change any file listed above, and it is a question for the first proof of the port.
-- The port is `myFilesystem.h`, included by that name from `wolfssh/port.h`. Beyond the file macros it must supply functions
-  `SFTP_GetAttributes` and `SFTP_GetAttributes_Handle`, and with `WOLFSSH_SFTP_NAME_READDIR` the hook `SFTP_Name_readdir`. The
-  refusing port in `components/ssh/sftp/port/` lists what compiled.
-- With `WOLFSSH_ZEPHYR` removed, `SETSTAT` and `FSETSTAT` are compiled in, and call `WSETTIME`, `WFSETTIME`, `WCHMOD` and `WFCHMOD`.
+Superseded by [the SFTP design](sftp-design.md), which settles how a refused `OPEN` reaches the client, what the port must supply (`myFilesystem.h`, `SFTP_GetAttributes`, `SFTP_Name_readdir`) and what `SETSTAT` does.
 
 ## Evidence and limits
 

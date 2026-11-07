@@ -36,7 +36,7 @@ W1 is explained, is the owner's decision, listed under [approvals needed](#appro
 | The offload's FIN fix | **Test image only**: a build-local copy of the driver's host side | `native_sim`, with a control |
 | Entropy, key confidentiality | **Test-only**, as [#242 declares](native-management-composition.md#declarations) | |
 | Firefox 159.0.1 over TLS | **Run by hand** in the container, not in CI | `native_sim` |
-| Results | Retained in [`docs/evidence/https-composition/`](evidence/https-composition/): from `4ed6eb9`, and `*-after-review.json` from `b9c9fbc` plus the uncommitted review fixes (working tree: 6 changed), later committed as `b197d15` | |
+| Results | Retained in [`docs/evidence/https-composition/`](evidence/https-composition/): from `4ed6eb9`, and `*-after-review.json` from `b9c9fbc` plus the review fixes that are in `b197d15` | |
 | Wolf profile in CI | **Not run.** A default workflow must not fetch a GPL stack. | Local |
 | RT1060-EVKB | Compile and link of `tests/zephyr/web_compile` with the declared profile: Mbed 197,364 B Flash and 209,856 B RAM, Wolf 336,836 B and 213,652 B, from the linker report, so RAM is configured and not used. Handshake time and memory not measured. | Compile |
 | Safari, Chromium over TLS | Not run by #185. Chrome ran both examples over HTTPS later: [#220](e2e-native-220.md). Safari was never run. | |
@@ -161,7 +161,7 @@ plain one. Then 14 more TLS cases run, the Firefox check when a browser is given
 | Suite cases replaced by a TLS variant, below | 2 of 2 | 2 of 2 |
 | Other TLS cases, with `hello_retry` added after review | 14 of 14 | 14 of 14 |
 | Separate images: no certificate, and the offload without the FIN fix, each now asserting | 2 of 2 | 2 of 2 |
-| **Total, `scripts/test-web.sh https both` at `b9c9fbc` plus the uncommitted review fixes (working tree: 6 changed), later committed as `b197d15`, without Firefox** | **55 of 55** | **54 of 55**, 1 excused on W1's assertion alone |
+| **Total, `scripts/test-web.sh https both` at `b9c9fbc` plus the review fixes that are in `b197d15`, without Firefox** | **55 of 55** | **54 of 55**, 1 excused on W1's assertion alone |
 | Firefox, at `4ed6eb9`, not run again since nothing it uses changed | 1 of 1 | 1 of 1 |
 | Earlier total at `4ed6eb9`, with Firefox | 55 of 55, of which `offload_fin_control` only recorded | 54 of 55 |
 | CI, PSA workflow, Mbed profile, without Firefox | 53 of 53 at `8e506a2`, 54 of 54 at `0a06de0`, 55 of 55 at `b197d15` | Not run |
@@ -246,10 +246,7 @@ handshake here at 45 ms on the Mbed profile and 53 ms on the Wolf profile, under
 
 Each figure is read over a connection, so the step between rows is one connection.
 
-**The retained JSON of `4ed6eb9` shows `per_client_bytes` 23,275 on Mbed and 3,520 on Wolf.** Those came from a formula
-that `5c3a2b5` corrected, which divided by three a total that held the measuring connection too. The correct figures,
-from the same rows, are 34,912 and 5,280 B per connection, as below. Later results name the field
-`per_connection_bytes`.
+**The retained JSON of `4ed6eb9` shows `per_client_bytes` 23,275 on Mbed and 3,520 on Wolf.** `5c3a2b5` corrected the formula, which divided by three a total that held the measuring connection too. The right figures are 34,912 and 5,280 B per connection, as below, and later results name the field `per_connection_bytes`.
 
 | Measurement | Mbed: Mbed TLS's own buffer | Wolf: the C library's arena, which wolfSSL allocates from |
 | --- | --- | --- |
@@ -376,7 +373,6 @@ because it is a product decision and the owner's.
 | A2 | **TLS 1.3 only**, a security and compatibility decision, below | Keep TLS 1.3 only, the narrower choice and this pull request's default, or the alternative below |
 | A3 | How a product applies the wolfSSL patch | [Above](#how-a-product-applies-the-wolfssl-patch) |
 | A4 | A separately approved physical run | RT1060 handshake time, memory, and the connect timeout's target value, criterion 3 |
-| A5 | Merge | After independent review |
 
 ### TLS 1.3 only: who cannot connect
 
@@ -415,12 +411,13 @@ with 1.2 as the minimum, which the patch does not offer at this pin. TLS 1.2 wou
 | 14 | The Wolf arena is declared at the RT1060 compile's 131,072 B, not from a measurement at 16 KiB records | Only small records were measured | #197 |
 | 15 | The no-certificate case expects no listener at all | The TLS layer refuses a tag with no credential, so the service does not start. That fails closed, and no plain fallback exists. | |
 
-## What later issues can use
+## What the later work builds on
 
-| Issue | What it has now | What it must still do |
+Written when #186 to #197 were to come. #186, #187, #189 and #190 have merged, so the third column of their rows is history. The facts in the second column still hold.
+
+| Issue | What it has now | What it had to do |
 | --- | --- | --- |
 | #186, login and sessions | An HTTPS image with the real Access core and the composition behind the adapter, `tests/native/web_https`, and a driver that runs any case over TLS: set `test_driver.TLS`. `https_authenticate` in `src/main.c` is the stand-in to replace. `Origin` over HTTPS is 23 bytes from Firefox. | Real session tokens, CSRF and `Origin` rules, the attempt worker |
-| #187, status and configuration APIs | The same image and driver, with the status and configuration services already started | Its routes, and fitting a status response in 4 KiB |
 | #189, assets | Over TLS a response stops at the first send that cannot finish within the send timeout, so a slow client gets a cut asset sooner than on plain text | Size assets and the response deadline together, as #266 said. Done in the [packager's budget](web-assets.md#budget-and-the-response-deadline), with no TLS run of its own. |
 | #190, certificate model | The listener takes whatever certificate is under `CRUX_WEB_TLS_SEC_TAG`, and with none it does not listen at all | Put the stored key and certificate under that tag before `crux_web_start` |
 | #197, integrated image | The declared heap formula, the client limit's backlog behaviour, and the Nagle figure | Measure them on RT1060 |
