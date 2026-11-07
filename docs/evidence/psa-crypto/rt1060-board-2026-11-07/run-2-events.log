@@ -1,0 +1,22 @@
+17:32:05 lock taken: /var/tmp/crux-board-locks/mimxrt1060-evkb-revB%2Fjlink-602003106.lock for mimxrt1060-evkb-revB/jlink-602003106
+17:32:06 DAPLink serial port: /dev/cu.usbmodem1402
+17:32:06 preflight ok; image copied and hashed
+17:32:06 serial port opens and reads (this does not show that data arrives)
+17:32:06 run /usr/local/bin/JLinkExe -USB 602003106 -Device MIMXRT1062xxx6A -If SWD -Speed 400 -NoGui 1 -ExitOnError 1 -CommandFile <psa-board>/evidence/rt1060-run-2/1-identify.jlink
+17:32:11 1-identify exit code 0
+17:32:11 FCFB word 42464346, IVT word 412000D1, SBMR1 00000000, SBMR2 02000009 (BOOT_CFG1[7:4] of SBMR1 recorded, not gated)
+17:32:11 target identified as QSPI internal boot; first 128 KB saved
+17:32:11 run /usr/local/bin/JLinkExe -USB 602003106 -Device MIMXRT1062xxx6A -If SWD -Speed 400 -NoGui 1 -ExitOnError 1 -CommandFile <psa-board>/evidence/rt1060-run-2/2-flash-verify.jlink
+17:32:16 2-flash-verify exit code 0
+17:32:16 image programmed and verified
+17:32:27 run started by the download ended with PROJECT EXECUTION SUCCESSFUL (13598 bytes, informational, not one of the three boots)
+17:32:29 run /usr/local/bin/JLinkExe -USB 602003106 -Device MIMXRT1062xxx6A -If SWD -Speed 400 -NoGui 1 -ExitOnError 1 -CommandFile <psa-board>/evidence/rt1060-run-2/3-reset-run-1.jlink
+17:32:30 3-reset-run-1 exit code 0
+17:32:39 boot 1: successful=True summary=[['43', '0', '3', '46']] probe=['52c8082c1e0a63b4a644f7528503f385']
+17:32:41 run /usr/local/bin/JLinkExe -USB 602003106 -Device MIMXRT1062xxx6A -If SWD -Speed 400 -NoGui 1 -ExitOnError 1 -CommandFile <psa-board>/evidence/rt1060-run-2/3-reset-run-2.jlink
+17:32:41 3-reset-run-2 exit code 0
+17:32:50 boot 2: successful=True summary=[['43', '0', '3', '46']] probe=['3fe91c72958a3a5810fcd002c8396d69']
+17:32:52 run /usr/local/bin/JLinkExe -USB 602003106 -Device MIMXRT1062xxx6A -If SWD -Speed 400 -NoGui 1 -ExitOnError 1 -CommandFile <psa-board>/evidence/rt1060-run-2/3-reset-run-3.jlink
+17:32:53 3-reset-run-3 exit code 0
+17:33:02 boot 3: successful=True summary=[['43', '0', '3', '46']] probe=['bf38c6ed99fd2a80749a47697ff65bfe']
+17:33:02 done; logs and console text are in <psa-board>/evidence/rt1060-run-2
