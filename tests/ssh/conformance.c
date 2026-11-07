@@ -714,6 +714,19 @@ static void case_request_after_login_ends_the_connection(const crux_ssh_test_cli
     CHECK(count_events(EVENT_CONNECTION_CLOSED) == 2);
     event = last_event(EVENT_CONNECTION_CLOSED);
     CHECK(event != NULL && event->attachment_id == 2);
+
+    /* A key probe, and the request that is free only as the opening one. */
+    connection = connect_ok(client, &client->peer_b);
+    CHECK(client->password(connection, "operator", 8, "secret"));
+    CHECK(!client->key_probe(connection, "operator", ed25519, ED25519_KEY(client)));
+    CHECK(!client->is_connected(connection));
+    connection = connect_ok(client, &client->peer_b);
+    CHECK(client->password(connection, "operator", 8, "secret"));
+    CHECK(!client->none_request(connection, "operator"));
+    CHECK(!client->is_connected(connection));
+    CHECK(count_events(EVENT_KEY_CHECK) == 0);
+    CHECK(count_events(EVENT_PASSWORD) == 4);
+    CHECK(count_events(EVENT_CONNECTION_CLOSED) == 4);
 }
 
 /* Two connections at once, so a provider that mixes them up reports the wrong address. */
@@ -824,6 +837,57 @@ static void case_rsa_keys_are_refused(const crux_ssh_test_client_t *client)
     CHECK(state.event_count == 0);
     CHECK(!client->key_login(connection, "operator", "rsa-sha2-256", ED25519_KEY(client), true));
     CHECK(state.event_count == 0);
+}
+
+/*
+ * A key of an accepted type whose blob is not that type's exact form stops before key_check, as an
+ * RSA key does. The client's own blob, with one change each, keeps the rest of the request real.
+ */
+static void case_malformed_key_blobs_are_refused(const crux_ssh_test_client_t *client)
+{
+    static const uint8_t p256_header[] = {
+        0,   0,   0,   19,  'e', 'c', 'd', 's', 'a', '-', 's', 'h', 'a', '2', '-', 'n', 'i', 's',
+        't', 'p', '2', '5', '6', 0,   0,   0,   8,   'n', 'i', 's', 't', 'p', '2', '5', '6'};
+    crux_ssh_config_t config = valid_config(client);
+    crux_ssh_callbacks_t callbacks = all_callbacks();
+    uint8_t blob[160];
+    size_t length;
+    int connection;
+
+    /* Each refusal counts as an attempt, so this case allows for all of them. */
+    config.max_auth_attempts = 10;
+    CHECK(client->provider->start(&config, &callbacks) == CRUX_OK);
+    state.key_check_result = CRUX_SSH_AUTH_ACCEPTED;
+    connection = connect_ok(client, &client->peer_a);
+    CHECK(client->ed25519_key_length < sizeof(blob) && client->ecdsa_key_length < sizeof(blob));
+
+    /* A byte after the key. */
+    memcpy(blob, client->ed25519_key, client->ed25519_key_length);
+    blob[client->ed25519_key_length] = 0;
+    CHECK(
+        !client->key_probe(connection, "operator", ed25519, blob, client->ed25519_key_length + 1u));
+    /* Each accepted blob under the other accepted name. */
+    CHECK(!client->key_probe(connection, "operator", ecdsa, ED25519_KEY(client)));
+    CHECK(!client->key_probe(connection, "operator", ed25519, ECDSA_KEY(client)));
+    /* A compressed P-256 point: the uncompressed key's x with the 0x02 prefix. */
+    length = sizeof(p256_header);
+    memcpy(blob, p256_header, length);
+    blob[length++] = 0;
+    blob[length++] = 0;
+    blob[length++] = 0;
+    blob[length++] = 33;
+    blob[length++] = 0x02;
+    memcpy(blob + length, client->ecdsa_key + sizeof(p256_header) + 5u, 32u);
+    length += 32u;
+    CHECK(!client->key_probe(connection, "operator", ecdsa, blob, length));
+    /* A short Ed25519 key, signed. */
+    CHECK(!client->key_login(connection, "operator", ed25519, client->ed25519_key,
+                             client->ed25519_key_length - 1u, true));
+    CHECK(state.event_count == 0);
+
+    /* The well-formed key still reaches the check on the same connection. */
+    CHECK(client->key_probe(connection, "operator", ed25519, ED25519_KEY(client)));
+    CHECK(count_events(EVENT_KEY_CHECK) == 1);
 }
 
 static void case_probe_never_creates_a_session(const crux_ssh_test_client_t *client)
@@ -1717,6 +1781,7 @@ const crux_ssh_conformance_case_t crux_ssh_conformance_cases[] = {
     CASE(connections_are_bounded),
     CASE(key_types),
     CASE(rsa_keys_are_refused),
+    CASE(malformed_key_blobs_are_refused),
     CASE(probe_never_creates_a_session),
     CASE(session_only_after_verified_signature),
     CASE(failed_signature_reports_and_denies),
@@ -1768,6 +1833,8 @@ unsigned crux_ssh_conformance_run_case(const crux_ssh_conformance_case_t *test,
     verbose_output = verbose;
     current_case = test->name;
     state.client = client;
+    /* A real provider polls during a case that takes its time, as the fake never does. */
+    state.session_alive_result = true;
     test->run(client);
     return failures;
 }

@@ -1,8 +1,9 @@
 # Transactional storage on eMMC: design
 
 Status: design approved by the owner for software-only development on 3 November 2026 (session), with the decisions under
-Intent. No result here shows that anything works: the findings are source readings, and the tests and tools described below
-are being built under M14. This document authorises no physical operation, merge or upstream contribution.
+Intent; the decisions below were approved with it and on 4 November 2026 (session). The findings are source readings. Test
+results and their limits are recorded in `docs/evidence/emmc-reliance/` and in the pull requests of M14, and none of them is
+physical evidence. This document authorises no physical operation, merge or upstream contribution.
 
 Baseline: main `a80acd7`, Zephyr v4.4.2 `dccb095`, Reliance Edge v3.0 `6706984`.
 
@@ -71,7 +72,7 @@ Paths are in the pinned Zephyr unless they begin with `reliance-edge/` or `linux
 | F17 | On the RT1060 the USDHC HAL invalidates a read target by whole D-cache lines, so a target that shares a line with another object can lose that object's write. The two existing RT1060 File selections set `SDHC_BUFFER_ALIGNMENT` to 32, and the SD layer bounces anything less aligned. The setting and the check name those selections only. | `zephyr/Kconfig` (`configdefault SDHC_BUFFER_ALIGNMENT`), `components/file/ports/zephyr/file_native.c:19-25`, `docs/microsd-composition.md` | A new target selection must set and check the same value, or it would silently have the 4-byte default. |
 | F18 | The File contract gained roots, stat, size, rename and listing (#224). `crux_file_rename` refuses an existing destination. The additions are accepted for Host and `native_sim` work, and target and physical work on them "stays behind M7 and needs its own approval". | `docs/file-contract.md`, `components/file/src/file_port.h`, `tests/native/file_roots/` | The provider must run them on this file system too. Atomic replace is reachable through the VFS, not through `crux_file_rename`. |
 
-## Decisions proposed
+## Decisions
 
 ### D1. Integrate as a Zephyr VFS file system
 
@@ -274,7 +275,7 @@ does not claim them.
 | --- | --- | --- | --- |
 | FatFs flush | `fat-nofix`, cached, Lost | I2 in W1 | A sync does not reach the medium without the correction. |
 | Reliance Edge flush | `red-nofix`, cached, Lost | I2 in W1 | The same on this file system. Any file system would fail this, so it does not show replay's power. |
-| Barrier | `red-fix` trace, cached, Reordered, with the flush before each metaroot write not treated as a barrier, and a directed draw that keeps the whole metaroot and randomises the rest | I1 or I4 fails, or a read of acknowledged data reports an error: a result that an old state cannot explain | Replay catches the window in F3. |
+| Barrier | `red-fix` trace of W2, cached, Reordered, with the flush before each metaroot write not treated as a barrier, and a directed draw that keeps the whole metaroot and randomises the rest. Not W1: there the other copy of the file's inode is a valid older inode and file data has no check value, so a kept metaroot over stale blocks only gives a wrong W1 content, which an old state explains, and the control cannot fail. On W2 and W3 it does fail, because their windows hold directory and new inode blocks | I1 or I4 fails, or a read of acknowledged data reports an error (`mount=0`, `untouched=0` or `read_error=1`; `data=0` alone does not count): a result that an old state cannot explain | Replay catches the window in F3. |
 | Early acknowledgement | A workload that marks before its sync, `red-fix`, cached, Lost | I2 | The marks and I2 work. |
 | Damaged image | A verifier given a deliberately damaged image | It reports the damage | The verifier can fail. |
 
@@ -322,7 +323,9 @@ anything unknown is `-EIO`; `RED_EUSERS` is `-ENOMEM`, which the File provider r
 - The task ID is a unique, non-zero 32-bit value for each thread on both `native_sim` widths, from a small table rather than
   a truncated pointer. The table has its own lock, because `RedOsTaskId` is also called outside the file system mutex
   (`reliance-edge/posix/posix.c:5130`). The adapter has no hook for thread exit, so a thread that exits keeps its slot, and
-  `REDCONF_TASK_COUNT` bounds the threads that ever use the file system. This limit is documented and tested.
+  the Kconfig thread count bounds the threads that ever use the file system. `REDCONF_TASK_COUNT` is that count plus one
+  reserved spare registration, which only a thread without a slot uses, and only to close a file or directory it must
+  release, under an adapter mutex; every other call from such a thread is refused. This limit is documented and tested.
 - The port also supplies the OS type and configuration headers, and whatever clock functions `redosserv.h` needs with
   timestamps off.
 
@@ -386,6 +389,12 @@ used by the provider and the fixture alike, because the pinned backend hides I/O
 | Volume full | `NO_SPACE` or `PARTIAL` per the File contract, and space returns after removal. |
 | Too many threads | `NO_RESOURCES`, with no effect on other threads. |
 | Power cut | The invariants above. |
+
+**Create, then write.** Under this profile, creating a file and then writing and syncing it are two Reliance Edge
+commits, because the profile commits on create (`RED_TRANSACT_CREAT`). A power cut between them can leave the new file
+present and empty, with everything acknowledged before it intact. W3 accepts exactly that state, only in the step that is
+creating the file, and counts it apart. Dropping `RED_TRANSACT_CREAT` from the profile would make the step one commit, but
+it departs from the transaction list above, so it was not taken.
 
 ## Verification
 
@@ -452,6 +461,10 @@ information. Each issue up to 8 has its own Draft PR and independent review. Iss
 - **Synchronous cost.** `sdmmc_wait_ready` and the flush poll busy-wait in the calling thread, and each commit flushes twice
   (`subsys/sd/sd_ops.c:65-90`, F3). File and Settings callers should not be high priority threads. Only a board can measure
   this.
+- **An empty new file after a cut.** A consumer that creates a file and then writes it can find the file present and
+  empty after a power cut between the two commits. The File contract promises nothing for data that was not synced, so this
+  is allowed, but a consumer that treats existence as completeness must check the size or content. The profile keeps the
+  commit on create (see Failure behaviour).
 - **One error stops writes.** A single media error makes the volume read-only until a remount (F14). The composition has no
   automatic remount, in line with D9, so the application sees it and decides.
 - **Wear.** Automatic transactions on every close and create write more than a batched policy. The profile prefers safety.

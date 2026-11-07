@@ -10,7 +10,7 @@ const CRUX_HEADERS = ['content-security-policy', 'x-content-type-options', 'refe
 const ATTEMPT_ID = 'k3Jq9sZp0vXw2LmN7bYt1A';
 
 function pathOf(path: string): string {
-  return path.replace('{id}', ATTEMPT_ID);
+  return path.replace('{id}', ATTEMPT_ID).replace('{name}', 'report_interval');
 }
 
 let harness: Caller;
@@ -69,7 +69,7 @@ for (const operation of spec.operations.values()) {
 }
 
 test('every operation in the specification has a route in the mock, with no forced answer', async () => {
-  assert.equal(spec.operations.size, 10);
+  assert.equal(spec.operations.size, 14);
   for (const operation of spec.operations.values()) {
     harness.mock.control.reset();
     harness.jar.clear();

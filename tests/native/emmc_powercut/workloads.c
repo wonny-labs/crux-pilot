@@ -5,6 +5,8 @@
  *   W1  appends records to files/w1, with a sync and a mark after each
  *   W2  writes settings/w2.tmp, syncs, closes and renames it onto settings/w2, then marks
  *   W3  creates, overwrites and removes files and a directory, each change synced and marked
+ *   W4  saves through the Settings File backend, which compacts through a temporary and a rename;
+ *       only in an image with CONFIG_SETTINGS_FILE, built from reliance.conf and settings.conf
  * files/keep and settings/w2 generation 0 are written at provision; files/keep never again.
  */
 #include "workloads.h"
@@ -16,6 +18,9 @@
 #include <stddef.h>
 #include <string.h>
 #include <zephyr/fs/fs.h>
+#ifdef CONFIG_SETTINGS_FILE
+#include <zephyr/settings/settings.h>
+#endif
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/crc.h>
 #include <zephyr/sys/util.h>
@@ -49,10 +54,22 @@
 static uint8_t buffer[MAX_FILE];
 static uint8_t expected[MAX_FILE];
 static bool acked_only;
+static bool create_may_be_empty;
+static bool created_empty;
 
 void powercut_set_acked_only(bool on)
 {
     acked_only = on;
+}
+
+void powercut_set_create_may_be_empty(bool on)
+{
+    create_may_be_empty = on;
+}
+
+bool powercut_created_empty(void)
+{
+    return created_empty;
 }
 
 static void fill(uint8_t *to, size_t size, uint32_t tag)
@@ -132,6 +149,7 @@ enum w3_op { W3_WRITE, W3_REMOVE, W3_MKDIR, W3_RMDIR };
 
 #define W3_ABSENT 0x00U
 #define W3_IS_DIR 0xffU
+#define W3_EMPTY 0xfeU /* a file that exists with size 0; no step writes this tag */
 #define W3_STEPS 12U
 #define W3_MAX 1024U
 
@@ -228,6 +246,8 @@ static int prepare_common(void)
     return rc;
 }
 
+static int prepare_w4(void);
+
 int powercut_prepare(enum powercut_workload w)
 {
     int rc = prepare_common();
@@ -242,8 +262,10 @@ int powercut_prepare(enum powercut_workload w)
         return 0;
     case POWERCUT_W3:
         return w3_write(W3_A, w3_baseline[W3_A], 0, false);
+    case POWERCUT_W4:
+        return prepare_w4();
     default:
-        return -ENOTSUP; /* W4 saves through the Settings backend, which issue 7 adds */
+        return -EINVAL;
     }
 }
 
@@ -306,6 +328,37 @@ static int run_w3(bool early_ack)
     return rc;
 }
 
+int powercut_stage_w3(uint32_t steps, uint32_t empty_path)
+{
+    int rc = 0;
+    struct fs_dirent entry;
+
+    if (steps > W3_STEPS ||
+        (empty_path != POWERCUT_NO_PATH && (empty_path >= W3_PATHS || empty_path == W3_DIR))) {
+        return -EINVAL;
+    }
+    for (uint32_t number = 1; rc == 0 && number <= steps; number++) {
+        const struct w3_step *step = &w3_steps[number - 1U];
+
+        if (step->op == W3_WRITE) {
+            rc = w3_write(step->path, step->tag, 0U, false);
+        } else {
+            rc = step->op == W3_MKDIR ? fs_mkdir(w3_paths[step->path])
+                                      : fs_unlink(w3_paths[step->path]);
+        }
+    }
+    if (rc != 0 || empty_path == POWERCUT_NO_PATH) {
+        return rc;
+    }
+    /* A file in a directory that does not exist at this step cannot be staged. */
+    if (empty_path == W3_E && fs_stat(w3_paths[W3_DIR], &entry) != 0) {
+        return POWERCUT_STAGE_SKIP;
+    }
+    return replace_content(w3_paths[empty_path], buffer, 0U, 0U, false);
+}
+
+static int run_w4(bool early_ack);
+
 int powercut_run(enum powercut_workload w, bool early_ack)
 {
     switch (w) {
@@ -315,8 +368,10 @@ int powercut_run(enum powercut_workload w, bool early_ack)
         return run_w2(early_ack);
     case POWERCUT_W3:
         return run_w3(early_ack);
+    case POWERCUT_W4:
+        return run_w4(early_ack);
     default:
-        return -ENOTSUP;
+        return -EINVAL;
     }
 }
 
@@ -437,6 +492,10 @@ static bool w3_matches(const uint8_t state[W3_PATHS])
             if (found->rc != 0 || !found->dir) {
                 return false;
             }
+        } else if (state[p] == W3_EMPTY) {
+            if (found->rc != 0 || found->dir || found->size != 0U) {
+                return false;
+            }
         } else {
             fill(expected, w3_size(state[p]), state[p]);
             if (found->rc != 0 || found->dir || found->size != w3_size(state[p]) ||
@@ -448,7 +507,33 @@ static bool w3_matches(const uint8_t state[W3_PATHS])
     return true;
 }
 
-/* I2 for W3: the files are as after some step from the acknowledged one to the last. */
+/*
+ * The one state that a file system which commits on create can leave inside a step: the step after
+ * the acknowledged one creates a file, the create is on the medium and the data is not, so the new
+ * file exists with size 0 and every other path is as after the acknowledged step.
+ */
+static bool w3_create_in_progress(uint32_t acked)
+{
+    uint8_t state[W3_PATHS];
+    const struct w3_step *step;
+
+    if (acked >= W3_STEPS) {
+        return false;
+    }
+    step = &w3_steps[acked];
+    w3_state(acked, state);
+    if (step->op != W3_WRITE || state[step->path] != W3_ABSENT) {
+        return false;
+    }
+    state[step->path] = W3_EMPTY;
+    created_empty = w3_matches(state);
+    return created_empty;
+}
+
+/*
+ * I2 for W3: the files are as after some step from the acknowledged one to the last. With
+ * create_may_be_empty, the state of w3_create_in_progress is accepted too.
+ */
 static bool check_w3(uint32_t acked, struct powercut_result *out)
 {
     uint8_t state[W3_PATHS];
@@ -473,8 +558,241 @@ static bool check_w3(uint32_t acked, struct powercut_result *out)
             return true;
         }
     }
-    return false;
+    return create_may_be_empty && w3_create_in_progress(acked);
 }
+
+#ifdef CONFIG_SETTINGS_FILE
+/*
+ * W4: three keys of the Settings File backend, saved in turn. Step n saves key (n - 1) % 3 with a
+ * record of the step, so the newest acknowledged value of each key is known from the number of
+ * acknowledged steps. The baseline holds every key at step 0. The file has few lines, so a save
+ * often compacts it: the backend writes a temporary file next to it, closes it and renames it onto
+ * the settings file. A cut inside that sequence can leave the temporary behind, which is not an
+ * error. The active file must be complete and not older than acknowledged.
+ */
+#define W4_KEYS 3U
+#define W4_STEPS 24U
+#define W4_RECORD 16U
+#define W4_MAGIC 0x34565357U /* "WSV4" */
+#define W4_RECOMMIT_STEP 0x7000U
+#define W4_CFG_PATH CONFIG_SETTINGS_FILE_PATH
+#define W4_TMP_PATH CONFIG_SETTINGS_FILE_PATH ".cmp"
+
+static const char *const w4_names[W4_KEYS] = {"w4/a", "w4/b", "w4/c"};
+
+static void w4_record(uint32_t key, uint32_t step, uint8_t out[W4_RECORD])
+{
+    sys_put_le32(W4_MAGIC, &out[0]);
+    sys_put_le32(step, &out[4]);
+    sys_put_le32(key, &out[8]);
+    sys_put_le32(crc32_ieee(out, 12), &out[12]);
+}
+
+/* The newest step of `key` among the first `acked` steps, or 0 for the baseline. */
+static uint32_t w4_floor(uint32_t key, uint32_t acked)
+{
+    uint32_t newest = 0;
+
+    for (uint32_t step = 1; step <= MIN(acked, W4_STEPS); step++) {
+        if ((step - 1U) % W4_KEYS == key) {
+            newest = step;
+        }
+    }
+    return newest;
+}
+
+static int w4_init(void)
+{
+    static bool done;
+    int rc;
+
+    if (done) {
+        return 0;
+    }
+    rc = settings_subsys_init();
+    done = rc == 0;
+    return rc;
+}
+
+struct w4_read {
+    uint8_t bytes[W4_RECORD];
+    size_t length;
+    unsigned calls;
+    int error;
+};
+
+static int w4_receive(const char *name, size_t length, settings_read_cb read_cb, void *cb_arg,
+                      void *param)
+{
+    struct w4_read *ctx = param;
+
+    if (name != NULL && name[0] != '\0') {
+        return 0;
+    }
+    ctx->calls++;
+    ctx->length = length;
+    if (length == W4_RECORD && read_cb(cb_arg, ctx->bytes, W4_RECORD) != (ssize_t)W4_RECORD) {
+        ctx->error = -EIO;
+    }
+    return ctx->error;
+}
+
+enum w4_status { W4_VALID, W4_MISSING, W4_DAMAGED, W4_FAILED };
+
+/* Loads one key. A valid record carries the key's own number and a matching checksum. */
+static enum w4_status w4_load(uint32_t key, uint32_t *step)
+{
+    struct w4_read ctx = {0};
+    uint8_t expected_record[W4_RECORD];
+
+    if (settings_load_subtree_direct(w4_names[key], w4_receive, &ctx) != 0 || ctx.error != 0) {
+        return W4_FAILED;
+    }
+    if (ctx.calls == 0U) {
+        return W4_MISSING;
+    }
+    if (ctx.calls != 1U || ctx.length != W4_RECORD) {
+        return W4_DAMAGED;
+    }
+    *step = sys_get_le32(&ctx.bytes[4]);
+    w4_record(key, *step, expected_record);
+    return memcmp(ctx.bytes, expected_record, W4_RECORD) == 0 ? W4_VALID : W4_DAMAGED;
+}
+
+static int w4_save(uint32_t key, uint32_t step)
+{
+    uint8_t record[W4_RECORD];
+
+    w4_record(key, step, record);
+    return settings_save_one(w4_names[key], record, W4_RECORD);
+}
+
+static int prepare_w4(void)
+{
+    uint32_t step;
+    int rc = w4_init();
+
+    for (uint32_t key = 0; rc == 0 && key < W4_KEYS; key++) {
+        rc = w4_save(key, 0U);
+    }
+    for (uint32_t key = 0; rc == 0 && key < W4_KEYS; key++) {
+        rc = w4_load(key, &step) == W4_VALID && step == 0U ? 0 : -EIO;
+    }
+    return rc;
+}
+
+static int run_w4(bool early_ack)
+{
+    struct fs_dirent entry;
+    uint32_t step;
+    int rc = w4_init();
+
+    /* The load also tells the backend how many lines the file holds, which decides compaction. */
+    for (uint32_t key = 0; rc == 0 && key < W4_KEYS; key++) {
+        rc = w4_load(key, &step) == W4_VALID && step == 0U ? 0 : -EIO;
+    }
+    for (uint32_t number = 1; rc == 0 && number <= W4_STEPS; number++) {
+        if (early_ack) {
+            ack(number);
+        }
+        rc = w4_save((number - 1U) % W4_KEYS, number);
+        if (rc == 0 && !early_ack) {
+            ack(number);
+        }
+    }
+    if (rc == 0) {
+        /* Without a compaction the file would hold a line for every save. */
+        rc = fs_stat(W4_CFG_PATH, &entry);
+        if (rc == 0 && entry.size >= (size_t)(W4_KEYS + W4_STEPS) * W4_RECORD) {
+            rc = -ENOTSUP;
+        }
+    }
+    return rc;
+}
+
+/*
+ * I3 for W4 is that the active settings file is complete: it exists and loads, and every key has a
+ * valid record of a step that saves that key. I2 adds that no key is older than acknowledged.
+ */
+static void check_w4(uint32_t acked, struct powercut_result *out)
+{
+    struct fs_dirent entry;
+    bool complete = fs_stat(W4_CFG_PATH, &entry) == 0 && entry.type == FS_DIR_ENTRY_FILE;
+    bool fresh = true;
+
+    if (w4_init() != 0) {
+        out->read_error = true;
+        return;
+    }
+    for (uint32_t key = 0; key < W4_KEYS; key++) {
+        uint32_t step = 0;
+        enum w4_status status = w4_load(key, &step);
+
+        if (status == W4_FAILED) {
+            out->read_error = true;
+        }
+        if (status != W4_VALID || step > W4_STEPS || (step != 0U && (step - 1U) % W4_KEYS != key)) {
+            complete = false;
+        } else if (step < w4_floor(key, acked)) {
+            fresh = false;
+        }
+    }
+    out->replaced = complete;
+    out->data = complete && fresh;
+    out->cmp_left = fs_stat(W4_TMP_PATH, &entry) == 0;
+}
+
+/* I5 for W4: a save succeeds, and is there after a remount. */
+static bool check_w4_recommit(void)
+{
+    uint32_t step = 0;
+    int rc = w4_save(0U, W4_RECOMMIT_STEP);
+
+    if (rc == 0) {
+        rc = powercut_fs_unmount();
+    }
+    if (rc == 0) {
+        rc = powercut_fs_mount();
+    }
+    return rc == 0 && w4_load(0U, &step) == W4_VALID && step == W4_RECOMMIT_STEP;
+}
+
+int powercut_stage_w4(const char *damage)
+{
+    struct fs_file_t file;
+    int rc = 0;
+
+    if (strcmp(damage, "missing") == 0) {
+        rc = fs_unlink(W4_CFG_PATH);
+    } else if (strcmp(damage, "leftover") == 0) {
+        fs_file_t_init(&file);
+        rc = fs_open(&file, W4_TMP_PATH, FS_O_CREATE | FS_O_WRITE);
+        if (rc == 0) {
+            rc = fs_close(&file);
+        }
+    } else if (strcmp(damage, "none") != 0) {
+        rc = -EINVAL;
+    }
+    return rc;
+}
+#else
+static int prepare_w4(void)
+{
+    return -ENOTSUP; /* W4 needs the Settings File options of settings.conf */
+}
+
+int powercut_stage_w4(const char *damage)
+{
+    ARG_UNUSED(damage);
+    return -ENOTSUP;
+}
+
+static int run_w4(bool early_ack)
+{
+    ARG_UNUSED(early_ack);
+    return -ENOTSUP;
+}
+#endif
 
 /* I5: the volume takes a new write, sync and remount. */
 static bool check_recommit(struct powercut_result *out)
@@ -513,8 +831,14 @@ void powercut_verify(enum powercut_workload w, uint32_t acked, struct powercut_r
     case POWERCUT_W3:
         out->data = check_w3(acked, out);
         break;
+    case POWERCUT_W4:
+#ifdef CONFIG_SETTINGS_FILE
+        check_w4(acked, out);
+        out->recommit = check_w4_recommit();
+#endif
+        break;
     default:
         break;
     }
-    out->recommit = check_recommit(out);
+    out->recommit = check_recommit(out) && (w != POWERCUT_W4 || out->recommit);
 }

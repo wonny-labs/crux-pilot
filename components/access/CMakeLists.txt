@@ -29,3 +29,12 @@ target_compile_options(crux_access_core PRIVATE -Wall -Wextra -Wpedantic -Werror
 add_library(crux_access INTERFACE)
 add_library(crux::access ALIAS crux_access)
 target_link_libraries(crux_access INTERFACE crux_access_api crux_access_core)
+
+# The clock port over the Time contract, which a composition links by name. It is an object target,
+# so that a final link always takes it, and a second provider of the port is a duplicate symbol.
+if(TARGET crux::time)
+    add_library(crux_access_time_clock OBJECT src/access_clock_time.c)
+    target_include_directories(crux_access_time_clock PRIVATE src)
+    target_link_libraries(crux_access_time_clock PRIVATE crux_access_adapter PUBLIC crux::time)
+    target_compile_options(crux_access_time_clock PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()

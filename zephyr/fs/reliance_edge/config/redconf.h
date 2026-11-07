@@ -51,7 +51,9 @@
 #define REDCONF_PATH_SEPARATOR '/'
 
 /* Concurrency and handles. */
-#define REDCONF_TASK_COUNT CONFIG_CRUX_FS_RELIANCE_EDGE_TASK_COUNT
+/* One entry more than the adapter's thread slots: the spare one is for a thread without a slot
+ * while it closes a file or a directory. */
+#define REDCONF_TASK_COUNT (CONFIG_CRUX_FS_RELIANCE_EDGE_TASK_COUNT + 1)
 #define REDCONF_HANDLE_COUNT CONFIG_CRUX_FS_RELIANCE_EDGE_HANDLE_COUNT
 
 /* CPU. */

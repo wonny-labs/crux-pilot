@@ -1,5 +1,9 @@
 message(STATUS "Crux Zephyr integration module discovered")
 
+# Rule L5 of the command line contract applies to every image, including one with no management.
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxManagementShell.cmake")
+crux_check_management_shell()
+
 if(CONFIG_CRUX_PILOT_MODULE)
     include("${CMAKE_CURRENT_LIST_DIR}/../cmake/CruxZephyrBaseline.cmake")
     crux_check_zephyr_baseline()
@@ -64,6 +68,11 @@ if(CONFIG_CRUX_SERIAL)
         "${CMAKE_CURRENT_BINARY_DIR}/serial")
 endif()
 
+if(CONFIG_CRUX_CLI)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/cli/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/cli")
+endif()
+
 if(CONFIG_CRUX_I2C)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/i2c/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/i2c")
@@ -90,11 +99,12 @@ if(CONFIG_CRUX_SYSTEM)
 endif()
 
 if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
-   CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
+   CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK OR
+   CONFIG_CRUX_FILE_RELIANCE_EDGE)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/file/ports/zephyr"
         "${CMAKE_CURRENT_BINARY_DIR}/file")
     if(CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
-       CONFIG_CRUX_FILE_FATFS_RT1060)
+       CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_RELIANCE_EDGE)
         cmake_language(DEFER CALL crux_assert_portable_usage crux::file)
     endif()
 endif()
@@ -106,4 +116,28 @@ endif()
 if(CONFIG_CRUX_FS_RELIANCE_EDGE)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/fs/reliance_edge"
         "${CMAKE_CURRENT_BINARY_DIR}/fs_reliance_edge")
+endif()
+
+if(CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/configuration/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/configuration")
+    # The Settings File backend of the pinned Zephyr hides I/O faults. The provider is built with
+    # the corrected build-local copies of its sources, which the fixture of
+    # tests/native/configuration_settings_file also uses, so a product build reaches a file under
+    # tests/. CRUX_SETTINGS_FILE_CONTROL keeps the unpatched backend, for the fixture's negative
+    # control only.
+    if(CRUX_SETTINGS_FILE_CONTROL)
+        if(NOT CONFIG_BOARD_NATIVE_SIM)
+            message(FATAL_ERROR "CRUX_SETTINGS_FILE_CONTROL is a native_sim test fixture setting "
+                "and is refused on any other board")
+        endif()
+    else()
+        include("${CMAKE_CURRENT_LIST_DIR}/../tests/native/configuration_settings_file/candidate.cmake")
+    endif()
+endif()
+
+if(CONFIG_CRUX_WEB)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../components/web/ports/zephyr"
+        "${CMAKE_CURRENT_BINARY_DIR}/web")
+    cmake_language(DEFER CALL crux_assert_portable_usage crux::web)
 endif()

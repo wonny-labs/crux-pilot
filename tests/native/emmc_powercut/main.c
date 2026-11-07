@@ -5,8 +5,15 @@
  *   provision  format and write the baseline content of every workload
  *   run        run a workload, with a trace mark after each acknowledged step
  *   run-early  the same, with each mark before the step's sync: a deliberate defect for a control
+ *   stage      W3 only, a test of the check: the state after --acked steps, with the W3 file
+ *              --empty=INDEX, if given, left with size 0
+ *   stage-w4   W4 only, a test of the check: --damage=missing|leftover|none on an image after a
+ *              complete run (removes the settings file, adds a temporary beside it, or nothing)
  *   verify     mount without formatting, check the invariants and print one POWERCUT line;
- *              --acked-only narrows the W1 data check to the acknowledged records
+ *              --acked-only narrows the W1 data check to the acknowledged records;
+ *              --create-may-be-empty lets the W3 check accept a created, still empty file of the
+ *              step in progress, and appends created_empty=0|1 to the line; for W4 the line ends
+ *              with cmp=0|1, whether the Settings File backend's temporary is left behind
  */
 #include "fs_backend.h"
 #include "workloads.h"
@@ -23,6 +30,9 @@ static const char *phase;
 static const char *workload;
 static uint32_t acked;
 static bool acked_only;
+static bool create_may_be_empty;
+static uint32_t empty_path;
+static const char *damage;
 
 static void add_options(void)
 {
@@ -31,7 +41,7 @@ static void add_options(void)
          .name = "phase",
          .type = 's',
          .dest = (void *)&phase,
-         .descript = "provision, run, run-early or verify"},
+         .descript = "provision, run, run-early, verify, stage or stage-w4"},
         {.option = "workload",
          .name = "W",
          .type = 's',
@@ -47,6 +57,22 @@ static void add_options(void)
          .type = 'b',
          .dest = (void *)&acked_only,
          .descript = "verify: W1 data checks only the acknowledged records"},
+        {.option = "empty",
+         .name = "index",
+         .type = 'u',
+         .dest = (void *)&empty_path,
+         .descript = "stage: the W3 file to leave with size 0"},
+        {.option = "damage",
+         .name = "what",
+         .type = 's',
+         .dest = (void *)&damage,
+         .descript = "stage-w4: missing, leftover or none"},
+        {.option = "create-may-be-empty",
+         .is_switch = true,
+         .type = 'b',
+         .dest = (void *)&create_may_be_empty,
+         .descript = "verify: W3 data also accepts a file created and still empty by the step "
+                     "after the acknowledged one; adds created_empty to the line"},
         ARG_TABLE_ENDMARKER,
     };
 
@@ -103,6 +129,13 @@ static void provision(void)
             fail("prepare", rc);
         }
     }
+    /* W4 saves through the Settings File backend, so only an image with it has a W4 baseline. */
+    if (IS_ENABLED(CONFIG_SETTINGS_FILE)) {
+        rc = powercut_prepare(POWERCUT_W4);
+        if (rc != 0) {
+            fail("prepare W4", rc);
+        }
+    }
     rc = powercut_fs_unmount();
     if (rc != 0) {
         fail("unmount", rc);
@@ -128,15 +161,57 @@ static void run(enum powercut_workload w, bool early_ack)
     finish(0, "RAN");
 }
 
+static void stage(void)
+{
+    int rc = powercut_fs_mount();
+
+    if (rc != 0) {
+        fail("mount", rc);
+    }
+    rc = powercut_stage_w3(acked, empty_path);
+    if (rc != 0 && rc != POWERCUT_STAGE_SKIP) {
+        fail("stage", rc);
+    }
+    if (powercut_fs_unmount() != 0) {
+        fail("unmount", -1);
+    }
+    finish(0, rc == POWERCUT_STAGE_SKIP ? "STAGE-SKIP" : "STAGED");
+}
+
+static void stage_w4(void)
+{
+    int rc = powercut_fs_mount();
+
+    if (rc != 0) {
+        fail("mount", rc);
+    }
+    rc = powercut_stage_w4(damage != NULL ? damage : "");
+    if (rc != 0) {
+        fail("stage-w4", rc);
+    }
+    if (powercut_fs_unmount() != 0) {
+        fail("unmount", -1);
+    }
+    finish(0, "STAGED");
+}
+
 static void verify(enum powercut_workload w)
 {
     struct powercut_result result;
 
     powercut_set_acked_only(acked_only);
+    powercut_set_create_may_be_empty(create_may_be_empty);
     powercut_verify(w, acked, &result);
-    printf("POWERCUT mount=%d data=%d read_error=%d replace=%d untouched=%d recommit=%d\n",
+    printf("POWERCUT mount=%d data=%d read_error=%d replace=%d untouched=%d recommit=%d",
            result.mounted, result.data, result.read_error, result.replaced, result.untouched,
            result.recommit);
+    if (create_may_be_empty) {
+        printf(" created_empty=%d", powercut_created_empty());
+    }
+    if (w == POWERCUT_W4) {
+        printf(" cmp=%d", result.cmp_left);
+    }
+    printf("\n");
     fflush(stdout);
     posix_exit(0);
 }
@@ -158,6 +233,14 @@ int main(void)
     if (phase_is("verify") && acked != UINT32_MAX) {
         verify(w);
     }
-    finish(64, "FAIL usage: --phase=provision|run|run-early|verify, and verify needs --acked");
+    if (phase_is("stage") && w == POWERCUT_W3 && acked != UINT32_MAX) {
+        stage();
+    }
+    if (phase_is("stage-w4") && w == POWERCUT_W4 && damage != NULL) {
+        stage_w4();
+    }
+    finish(64, "FAIL usage: --phase=provision|run|run-early|verify|stage|stage-w4, verify needs "
+               "--acked, stage needs --workload=W3 and --acked, stage-w4 needs --workload=W4 and "
+               "--damage");
     return 0;
 }

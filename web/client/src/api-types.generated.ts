@@ -1,12 +1,12 @@
 // Generated from web/api/openapi.yaml by web/tools/gen-types.ts. Do not edit.
 // Run `npm run gen:types` after a change to the specification.
 
-/** Stable error codes. A new code is a change to this file. `storage_failed` appears in an attempt result only, and no HTTP error status carries it. */
+/** Stable error codes. A new code is a change to this file. `storage_failed` appears in an attempt result and in the `code` of a failed configuration save only, and no HTTP error status carries it. */
 export type ErrorCode = 'bad_request' | 'invalid_field' | 'unauthorized' | 'permission_denied' | 'csrf_rejected' | 'origin_rejected' | 'not_found' | 'payload_too_large' | 'reboot_refused' | 'retry_later' | 'not_supported' | 'busy' | 'not_ready' | 'storage_failed';
 
 export interface FieldError {
   name: string;
-  code: 'not_unicast' | 'prefix_not_usable' | 'gateway_outside_subnet' | 'incorrect' | 'rule_not_met';
+  code: 'not_unicast' | 'prefix_not_usable' | 'gateway_outside_subnet' | 'incorrect' | 'rule_not_met' | 'wrong_type' | 'out_of_range';
 }
 
 /** The JSON error form, which every response from the API's own code uses for an error. */
@@ -109,7 +109,63 @@ export interface StatusItemFailed {
   status: 'invalid_argument' | 'out_of_range' | 'not_ready' | 'no_data' | 'io' | 'busy' | 'timeout' | 'no_resources' | 'not_supported' | 'invalid_state';
 }
 
-/** Static IPv4 settings. The server also checks that the address is unicast, that the prefix leaves usable hosts and that a gateway lies inside the subnet, and it reports each failure as a field error. */
+/** A parameter's key, as in the `name` path parameter. */
+export type ConfigName = string;
+
+/** A parameter as this session may know it. It never holds a value. `readable` is always `false` for a sensitive parameter, and `unsaved` is always `false` for a session that may not write it. */
+export interface ConfigItem {
+  name: ConfigName;
+  type: 'bool' | 'u32' | 'string';
+  activation: 'application' | 'restart' | 'safe_state';
+  sensitive: boolean;
+  readable: boolean;
+  writable: boolean;
+  unsaved: boolean;
+}
+
+export interface ConfigList {
+  items: ConfigItem[];
+  save?: ConfigSaveState;
+}
+
+/** The latest save since this boot, for a session that holds `config.save`. `pending` covers a save that is queued or running. A `saved` or `failed` stays until the next accepted save. The code of a failure names no parameter, because a save also writes parameters this session cannot see. */
+export type ConfigSaveState = ConfigSaveOpen | ConfigSaveFailed;
+
+export interface ConfigSaveOpen {
+  state: 'pending' | 'saved';
+}
+
+export interface ConfigSaveFailed {
+  state: 'failed';
+  code: 'storage_failed' | 'not_supported' | 'not_ready' | 'busy' | 'unauthorized' | 'permission_denied';
+}
+
+/** A parameter and its accepted value, in the JSON form of its type. */
+export type ConfigValue = ConfigValueBool | ConfigValueU32 | ConfigValueString;
+
+export interface ConfigValueBool {
+  name: ConfigName;
+  type: 'bool';
+  value: boolean;
+}
+
+export interface ConfigValueU32 {
+  name: ConfigName;
+  type: 'u32';
+  value: number;
+}
+
+export interface ConfigValueString {
+  name: ConfigName;
+  type: 'string';
+  value: string;
+}
+
+export interface ConfigUpdate {
+  value: boolean | number | string;
+}
+
+/** Static IPv4 settings. The server also checks them, and reports each failure as a field error. The address must be of unicast class, which leaves out 0.0.0.0/8, 127.0.0.0/8 and everything from 224.0.0.0, and it must not be the network or the broadcast address of its subnet. The prefix length must be 1 to 30. A gateway must be of unicast class, must not be the address itself, and must lie in the subnet of the address without being its network or broadcast address. An address that is not a dotted quad of four decimal numbers from 0 to 255 with no leading zero, and a member of another type, are `bad_request`. The rules are the firmware's, and the shared test vectors of the firmware hold the client's checks to them. */
 export interface Ipv4Settings {
   address: string;
   prefix_length: number;
@@ -156,6 +212,10 @@ export const operations = {
   getCurrentUser: { method: 'GET', path: '/api/v1/session/me' },
   changeOwnPassword: { method: 'POST', path: '/api/v1/session/me/password' },
   getStatus: { method: 'GET', path: '/api/v1/status' },
+  listConfig: { method: 'GET', path: '/api/v1/config' },
+  saveConfig: { method: 'POST', path: '/api/v1/config/save' },
+  getConfigItem: { method: 'GET', path: '/api/v1/config/{name}' },
+  putConfigItem: { method: 'PUT', path: '/api/v1/config/{name}' },
   getNetwork: { method: 'GET', path: '/api/v1/network' },
   putNetwork: { method: 'PUT', path: '/api/v1/network' },
   getRebootState: { method: 'GET', path: '/api/v1/system/reboot' },

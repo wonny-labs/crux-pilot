@@ -42,7 +42,10 @@ config CRUX_FS_RELIANCE_EDGE_TASK_COUNT
     help
       The adapter gives each thread an identifier the first time it uses the
       file system and has no hook for thread exit, so this bounds the threads
-      that ever use it. A thread beyond the bound gets -ENOMEM.
+      that ever use it. A thread beyond the bound gets -ENOMEM from every
+      operation except close and closedir, which such threads perform one at
+      a time through one spare identifier. Reliance Edge's own task table has
+      this many entries plus the spare one.
 
 config CRUX_FS_RELIANCE_EDGE_SECTOR_OFFSET
     int "First sector of the volume"

@@ -1,0 +1,14 @@
+--- a/modules/mbedtls/zephyr_entropy.c
++++ b/modules/mbedtls/zephyr_entropy.c
+@@ -45,7 +45,10 @@
+ {
+ 	ARG_UNUSED(flags);
+ 
+-	if (get_random_data(output, output_size, true) < 0) {
++	/* Crux: a failed entropy read must fail, not seed the DRBG from sys_rand_get(), which is
++	 * not cryptographically secure on this platform. Mbed TLS then reports the failure.
++	 */
++	if (get_random_data(output, output_size, false) < 0) {
+ 		return -EIO;
+ 	}
+ 

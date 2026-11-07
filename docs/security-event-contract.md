@@ -19,10 +19,15 @@ Provider of the Access event port: object target `crux_security_event_access_por
 | Drain to Logging on a low-priority thread | Runs on Host, with the Linux Logging provider |
 | Provider of `crux_access_port_event` | Implemented, every port event and result mapped |
 | Recording fake of the public contract | `tests/security_event/fake`, for consumers' Host tests |
-| Emitters outside Access: credential, file, config, CLI, web, SSH, network settings, reboot | Identifiers exist. The emitters are other issues. |
+| Provider of `crux_credential_port_event` | `crux_credential_security_events`, in the store's component, because this component names no storage type |
+| Emitters outside Access: file, CLI, web, SSH | Identifiers exist. The emitters are other issues. The credential store, the configuration service, the network settings service and the reboot service emit, through their providers. |
+| Providers of the command line's and the file service's ports | `crux_cli_security_events` and `crux_file_service_security_events`, in those components, added by #242: [below](#from-the-command-line-and-file-service-ports). Host against the recording fake, and `native_sim` in the [services image](native-composition-242.md). |
+| Provider of the network settings service's port | `crux_network_settings_security_events`, in that component. It records `network.changed`, `network.save_failed` and `network.saved_ignored`, with no subject: [network settings service](network-settings-service.md#security-events). |
+| Provider of the reboot service's port | `crux_reboot_security_events`, in that component. It records `system.reboot_requested`, `system.reboot_refused` and `system.reboot_failed`, with a user and a channel and no subject: [reboot service](reboot-service.md#security-events). It also answers whether recorded events are still waiting for Logging, from the counts of `crux_security_event_get_stats`. |
 | `GET /api/v1/events` | Not implemented, M11. The read function it needs exists. |
-| Status items from the counts | Not implemented, Issue #180. The getter it needs exists. |
-| Zephyr composition, `native_sim`, target | Not implemented. See [What is not known](#what-is-not-known). |
+| Status items from the counts | `crux_mgmt_status_security_events`, in [the status service](status-configuration-services.md) |
+| Zephyr composition on `native_sim` | [For tests](native-management-composition.md), on the Crux Logging provider with an emulated UART, which shows the drain's counts and nothing on a wire |
+| Target | Not implemented. See [What is not known](#what-is-not-known). |
 | Persistence | None, by decision E5. A reset loses the ring. |
 
 ## Structure
@@ -256,15 +261,17 @@ Values are stable. A later change adds values and never reuses one. Projects use
 | 0x0501 | `cli.console_error` | R | CLI |
 | 0x0600 | `web.tls_failed` | R | M11 |
 | 0x0601 | `web.csrf_rejected` | R | M11 |
-| 0x0602 | `web.certificate_replaced` | C | M11 |
+| 0x0602 | `web.certificate_replaced` | C | M11, the [TLS certificate](tls-certificate.md), #190 |
+| 0x0603 | `web.certificate_rejected` | R | The [TLS certificate](tls-certificate.md), #190 |
+| 0x0604 | `web.certificate_unusable` | C | The [TLS certificate](tls-certificate.md), #190: the stored certificate refused at start, so nothing is served |
 | 0x0700 | `ssh.auth_limit` | R | M12 |
 | 0x0701 | `ssh.host_key_missing` | C | M12 |
 | 0x0800 | `network.changed` | C | Network settings service |
 | 0x0801 | `network.save_failed` | C | Network settings service |
 | 0x0802 | `network.saved_ignored` | C | Network settings service |
-| 0x0900 | `system.reboot_requested` | C | Reboot service |
-| 0x0901 | `system.reboot_refused` | R | Reboot service |
-| 0x0902 | `system.reboot_failed` | C | Reboot service |
+| 0x0900 | `system.reboot_requested` | C | Reboot service, #214: an accepted request, including one made while another was pending |
+| 0x0901 | `system.reboot_refused` | R | Reboot service, #214: the policy refused, at the request or at the check before the reset |
+| 0x0902 | `system.reboot_failed` | C | Reboot service, #214: the restart did not happen, because the reset returned, because a save stayed in flight for the whole wait, or because the sleep port could not sleep |
 | 0x0F00 | `event.unknown` | R | This component |
 | 0x0F01 | `event.lost` | R | This component, a line only |
 
@@ -290,6 +297,20 @@ The provider adds no meaning. A user is what Access named, and an empty field st
 | `NO_RESOURCES` | `LIMIT` |
 | `INVALID_ARGUMENT`, `NOT_FOUND`, `ALREADY_EXISTS`, `PASSWORD_REJECTED` | `INVALID` |
 | `NOT_READY`, `STORE` | `FAILED` |
+
+### From the command line and file service ports
+
+Added by #242. Each provider adds no meaning, as for Access. Neither records client input: the command line's port carries no
+line, and the file service's provider leaves out the file names that its port passes.
+
+| Port event | Identifier | Result | `user` | `channel`, `source` | `subject` |
+| --- | --- | --- | --- | --- | --- |
+| CLI `LINE_REJECTED` | `cli.line_rejected` | From the outcome: `INVALID`, `LIMIT`, `DENIED` | The session's user, or none before login | The CLI's channel, 1 or 3. No source. | None |
+| CLI `CONSOLE_ERROR` | `cli.console_error` | From the outcome, `FAILED` | The same | The same | None |
+| File `CREATED`, `REMOVED`, `RENAMED`, `PARTIAL_REMOVED` | Its own | `OK` | The session's user, or none | The session's origin, or none | The area |
+| File `RECOVERY_NEEDED`, `COMMIT_FAILED` | Its own | `FAILED` | The same | The same | The area |
+| File `NAME_REJECTED` | `file.name_rejected` | `INVALID` | The same | The same | The area |
+| File `STORAGE_FAILED` | `file.storage_failed` | `LIMIT` for a full medium, otherwise `FAILED` | The same | The same | The area |
 
 ## Decisions for review
 

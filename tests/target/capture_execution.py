@@ -12,9 +12,17 @@ import subprocess
 import termios
 import time
 
+from m3_image import check_optimization
+
 REPO = Path(__file__).resolve().parents[2]
 MIN_UNUSED = 1024  # Predeclared headroom objective for these short unloaded runs only.
 STACK_OBJECT_BYTES = 4160  # 4096 usable + 64-byte MPU guard in the verified ARM configuration.
+
+
+def verify_optimization(manifest):
+    configs = [Path(r["path"]) for r in manifest["artifacts"] if r["path"].endswith("/.config")]
+    assert len(configs) == 1, "Manifest must bind exactly one build configuration"
+    check_optimization(configs[0].read_text().splitlines())
 
 
 def validate(output, mode):
@@ -105,6 +113,7 @@ def main():
     assert manifest["source"]["recoverable_from_git"] and not manifest["source"]["dirty"]
     for record in manifest["artifacts"]:
         assert sha(Path(record["path"])) == record["sha256"], record["path"]
+    verify_optimization(manifest)
     binary = Path(next(r["path"] for r in manifest["artifacts"] if r["path"].endswith("/zephyr.bin")))
     assert manifest["bin_address"] == 0x60000000
     assert manifest["elf_segments_match_bin"] and manifest["rom_start_at_bin_base"]

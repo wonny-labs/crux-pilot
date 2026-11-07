@@ -156,8 +156,8 @@ product's threat model, such as physical access, and compliance owns that decisi
 
 ## Not done
 
-wolfPSA was built only for the RT1060 target, and not for `native_sim`. No PSA conformance case has run, which Issue #142
-covers. Stack use is unmeasured, and so is a full image's footprint, which Issue #197 covers. Handshake time and verifier cost
+wolfPSA was built only for the RT1060 target here. Since then, Issue #142 has run wolfPSA on Linux Host and `native_sim` with
+[the PSA conformance cases](../psa-crypto-qualification.md). Stack use is unmeasured, and so is a full image's footprint, which Issue #197 covers. Handshake time and verifier cost
 need hardware approval. Whether a low-cost evaluation kit can represent other boot
 media or execution from external RAM was not studied here.
 

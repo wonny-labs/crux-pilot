@@ -12,6 +12,15 @@ REPO = Path(__file__).resolve().parents[2]
 ZEPHYR = REPO / ".github/workflows/zephyr.yml"
 HOST = REPO / ".github/workflows/host.yml"
 DOCS_ONLY = ["docs/**", "**.md"]
+# Steps that run in every shard: they prepare the runner or collect what the shard produced.
+SET_UP_STEPS = {
+    "name: List host packages from the signed index",
+    "name: Install Zephyr host packages",
+    "name: Install pinned Python tools",
+    "name: Fetch pinned Zephyr workspace and install SDK",
+    "name: Collect Twister evidence",
+}
+SET_UP_SCRIPTS = re.compile(r"scripts/(bootstrap-zephyr\.sh|verify-apt-cache\.py)")
 SHARD_CONDITION = re.compile(r"^matrix\.shard == '([a-z-]+)'$")
 
 
@@ -52,10 +61,35 @@ def paths_ignore(workflow, event):
     return patterns
 
 
-def is_check(step):
-    """A check is any step that runs repository code after the common set-up."""
-    text = step["text"]
-    return "scripts/" in text or "python3 " in text or "west " in text
+def runs_a_command(step):
+    """True for a step with a `run:` key, whether it comes first or after `name:`."""
+    return re.search(r"^ {6}- run:|^ {8}run:", step["text"], re.MULTILINE) is not None
+
+
+def mentions_repository_code(step):
+    return "scripts/" in step["text"] or "python3 " in step["text"] or "west " in step["text"]
+
+
+def misplaced_steps(job_steps, shards):
+    """Return the steps that run a command but do not name one of the shards.
+
+    A check is any step with a `run:` and any step that mentions repository code, whatever
+    command it runs: one that names no shard runs in all of them, and one that names a
+    shard the matrix lacks is skipped while the run stays green. A named set-up step is
+    exempt while it mentions no repository code. One that runs a set-up script is exempt
+    whatever else it runs, as it was under the earlier rule.
+    """
+    result = []
+    for step in job_steps:
+        if not (runs_a_command(step) or mentions_repository_code(step)):
+            continue
+        if step["title"] in SET_UP_STEPS and (SET_UP_SCRIPTS.search(step["text"])
+                                              or not mentions_repository_code(step)):
+            continue
+        condition = SHARD_CONDITION.match(step["condition"] or "")
+        if condition is None or condition.group(1) not in shards:
+            result.append(step)
+    return result
 
 
 class ZephyrShardsTest(unittest.TestCase):
@@ -75,13 +109,9 @@ class ZephyrShardsTest(unittest.TestCase):
         return condition.group(1)
 
     def test_every_check_runs_in_a_named_shard(self):
-        for step in self.steps:
-            if not is_check(step) or "scripts/bootstrap-zephyr.sh" in step["text"]:
-                continue
+        for step in misplaced_steps(self.steps, self.shards):
             with self.subTest(step=step["title"]):
-                condition = SHARD_CONDITION.match(step["condition"] or "")
-                self.assertIsNotNone(condition, "check has no shard condition")
-                self.assertIn(condition.group(1), self.shards)
+                self.fail("step runs a command but names no shard of the matrix")
 
     def test_every_shard_runs_a_check(self):
         used = set()
@@ -115,11 +145,127 @@ class ZephyrShardsTest(unittest.TestCase):
         self.assertEqual(DOCS_ONLY, paths_ignore(self.workflow, "push"))
         self.assertEqual(DOCS_ONLY, paths_ignore(self.workflow, "pull_request"))
 
+    def step_using(self, action):
+        matches = [s for s in self.steps if f"uses: {action}" in s["text"]]
+        self.assertEqual(1, len(matches), f"{action} must be used by exactly one step")
+        return matches[0]
+
+    def test_host_packages_are_restored_before_they_are_installed(self):
+        # Slow mirrors cost one job in six up to ten minutes, which sets a run's length.
+        titles = [s["title"] for s in self.steps]
+        install = self.install_step()
+        self.assertIn("Dir::Cache::archives=", install["text"])
+        restore = self.step_using("actions/cache/restore@")
+        save = self.step_using("actions/cache/save@")
+        self.assertLess(titles.index(restore["title"]), titles.index(install["title"]))
+        self.assertLess(titles.index(install["title"]), titles.index(save["title"]))
+
+    def install_step(self):
+        matches = [s for s in self.steps if re.search(r"apt-get install -y -o", s["text"])]
+        self.assertEqual(1, len(matches), "one step must install from the package cache")
+        return matches[0]
+
+    def test_restored_packages_are_verified_before_apt_reads_them(self):
+        # apt accepts a cached file by name and size alone, so a poisoned cache would install.
+        text = self.install_step()["text"]
+        self.assertIn("scripts/verify-apt-cache.py", text)
+        self.assertLess(text.index("scripts/verify-apt-cache.py"), text.index("apt-get install"))
+
+    def test_package_list_comes_from_the_index_with_a_strong_hash(self):
+        # --print-uris reports MD5 unless a hash is forced.
+        listing = next(s for s in self.steps if "--print-uris" in s["text"])
+        self.assertIn("Acquire::ForceHash=SHA256", listing["text"])
+        self.assertIn("apt-get update", listing["text"])
+        self.assertIn("$CI_HOST_PACKAGES", listing["text"])
+        self.assertIn("$CI_HOST_PACKAGES", self.install_step()["text"])
+
+    def test_restored_and_saved_packages_use_one_path_and_key(self):
+        field = re.compile(r"^\s+(path|key): (.+)$", re.MULTILINE)
+        self.assertEqual(field.findall(self.step_using("actions/cache/restore@")["text"]),
+                         field.findall(self.step_using("actions/cache/save@")["text"]))
+
+    def test_cache_paths_are_accepted_by_the_cache_action(self):
+        # actions/cache only warns about a path with "..", then stores nothing: every run
+        # stays cold while the workflow stays green.
+        for step in (s for s in self.steps if "actions/cache" in s["text"]):
+            with self.subTest(step=step["title"]):
+                path = re.search(r"^\s+path: (.+)$", step["text"], re.MULTILINE).group(1)
+                self.assertNotIn("..", path)
+
     def test_host_workflow_still_runs_for_documentation(self):
         # tests/build reads documentation, so one workflow must keep running on such changes.
         host = HOST.read_text()
         self.assertNotIn("paths-ignore", host)
         self.assertIn("unittest discover -s tests/build", host)
+
+
+SYNTHETIC_JOB = """  shard:
+    steps:
+      - name: Install pinned Python tools
+        run: pip install west
+{steps}
+"""
+
+
+def synthetic_steps(*blocks):
+    """Build the steps of a small job: the named set-up step plus the given step blocks."""
+    return steps(SYNTHETIC_JOB.format(steps="\n".join(blocks)).splitlines())
+
+
+def step_block(run, condition=None):
+    lines = ["      - name: A check"]
+    if condition:
+        lines.append(f"        if: {condition}")
+    lines.append(f"        run: {run}")
+    return "\n".join(lines)
+
+
+class MisplacedStepsTest(unittest.TestCase):
+    """The rule must see every step that runs a command, whatever command it runs."""
+
+    shards = ["storage", "io"]
+
+    def titles(self, *blocks):
+        return [s["title"] for s in misplaced_steps(synthetic_steps(*blocks), self.shards)]
+
+    def test_a_step_in_a_named_shard_is_accepted(self):
+        self.assertEqual([], self.titles(step_block("tests/ssh/cli/test-compile.sh", "matrix.shard == 'io'")))
+
+    def test_a_step_without_a_condition_is_reported_even_for_an_unfamiliar_command(self):
+        for run in ("tests/ssh/cli/test-compile.sh", "make check", "./run.sh", "cmake --build build"):
+            with self.subTest(run=run):
+                self.assertEqual(["name: A check"], self.titles(step_block(run)))
+
+    def test_a_shard_name_that_is_not_in_the_matrix_is_reported(self):
+        self.assertEqual(["name: A check"], self.titles(step_block("make check", "matrix.shard == 'oi'")))
+
+    def test_a_condition_that_is_not_a_shard_is_reported(self):
+        self.assertEqual(["name: A check"], self.titles(step_block("make check", "always()")))
+
+    def test_the_named_set_up_steps_need_no_condition(self):
+        self.assertEqual([], misplaced_steps(synthetic_steps(), self.shards))
+
+    def test_a_step_that_starts_with_run_is_checked(self):
+        block = "      - run: tests/ssh/cli/test-compile.sh"
+        self.assertEqual(["run: tests/ssh/cli/test-compile.sh"], self.titles(block))
+
+    def test_a_set_up_step_must_not_gain_a_check_command(self):
+        for command in ("scripts/test-extra.sh", "python3 scripts/check-extra.py", "west build -b native_sim app"):
+            with self.subTest(command=command):
+                block = f"      - name: Collect Twister evidence\n        run: {command}"
+                self.assertEqual(["name: Collect Twister evidence"], self.titles(block))
+
+    def test_a_check_cannot_hide_under_a_set_up_title(self):
+        block = "      - name: Install pinned Python tools\n        run: scripts/test-extra.sh"
+        self.assertEqual(["name: Install pinned Python tools"], self.titles(block))
+
+    def test_a_step_that_only_uses_an_action_is_checked_for_check_commands(self):
+        block = "      - uses: some/action@v1\n        with:\n          command: scripts/test-extra.sh"
+        self.assertEqual(["uses: some/action@v1"], self.titles(block))
+
+    def test_the_set_up_scripts_stay_exempt_in_a_set_up_step(self):
+        block = "      - name: Fetch pinned Zephyr workspace and install SDK\n        run: scripts/bootstrap-zephyr.sh"
+        self.assertEqual([], self.titles(block))
 
 
 if __name__ == "__main__":

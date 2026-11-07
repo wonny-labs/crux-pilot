@@ -17,6 +17,7 @@
     "test:unit": "node --test --test-reporter=spec \"client/test/*.test.ts\" \"tools/test/*.test.ts\" \"mock/test/*.test.ts\"",
     "test:browser": "node tools/build.ts && node --test --test-concurrency=1 --test-reporter=spec \"e2e/reference-*.test.ts\"",
     "test:angular": "node tools/build.ts && node --test --test-concurrency=1 --test-reporter=spec \"e2e/angular-*.test.ts\"",
+    "test:native": "node --test --test-concurrency=1 --test-reporter=spec \"e2e/native-*.test.ts\"",
     "build": "node tools/build.ts",
     "measure": "node tools/measure.ts",
     "mock": "node mock/cli.ts",

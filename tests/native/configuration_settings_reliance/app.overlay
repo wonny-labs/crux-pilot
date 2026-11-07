@@ -1,0 +1,11 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* A RAM disk named like the eMMC disk. Reliance Edge's block size is 4096, so the volume needs at
+ * least 4 MiB for its profile. */
+/ {
+    ramdisk0 {
+        compatible = "zephyr,ram-disk";
+        disk-name = "MMC";
+        sector-size = <512>;
+        sector-count = <8192>;
+    };
+};

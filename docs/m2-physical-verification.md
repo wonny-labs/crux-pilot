@@ -29,7 +29,8 @@ The maintained macOS runner is `tests/target/capture_execution.py`. It requires 
 It validates manifest artefact hashes, acquires exclusive UART, checks probe/CPU/voltage,
 programs and verifies the full BIN, then resets/captures three runs. It does not erase
 the full chip. The manifest must establish actual ELF load-segment/BIN agreement,
-`rom_start` at the BIN base and the verified QSPI range before this command.
+`rom_start` at the BIN base and the verified QSPI range before this command. It must also
+list exactly one `.config` artefact, which the runner checks for the verified `-Os` level.
 
 The local Linux container could not restart during preparation, although Docker's daemon
 remained responsive. No new local firmware build was accepted from that attempt. Use

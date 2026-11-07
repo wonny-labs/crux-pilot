@@ -162,6 +162,7 @@ The proposals do not change these designs, apart from the user key table of the 
 | Order | Lock | Held across storage |
 | --- | --- | --- |
 | 1 | Access change lock | Yes, the save |
+| 1a | TLS certificate lock, #190 | Yes, the save of an install or regeneration. Taken after `crux_access_check`; under it run the store's operations, the Access session getters, which take the leaf state lock, and the event emit. Polled: nothing waits for it except a material release, for at most 100 ms. |
 | 2 | Credential store lock | Yes |
 | 3 | Configuration service lock | Yes, during `save` only. Others poll. |
 | 4 | File service lock | No |
@@ -180,7 +181,7 @@ A service calls `crux_access_check` before taking its own lock. Account operatio
 | File directory handles | 2, `CONFIG_FS_FATFS_NUM_DIRS` 4 | File service |
 | File roots | 8 | 2 for the store, the rest for root 0 and areas |
 | Crux threads | 4, at a uniform 4096 B usable stack per slot on Zephyr | Console, web worker, event drain and up to 2 SSH sessions if those use Crux threads. **This exceeds the default**, so the integrated composition must raise it. The uniform stack is also unlikely to suit: the storage probe alone used 2,264 B of a 4,096 B main stack, and upstream's wolfSSH sample configures 32 KB. |
-| Crux mutexes | 8 | Access 2, store 1 or 2, configuration, file service, event ring, status snapshot, which can reach all 8 |
+| Crux mutexes | 8 | Access 2, store 1 or 2, configuration, file service, event ring, status snapshot, which can reach all 8. The TLS certificate module of #190 takes one more, so a composition with every service exceeds the default and must raise it. For #197. |
 | Crux semaphores | 8 | Event drain |
 | FatFs file objects | 4, shared | A future Settings File provider takes one outside the Crux File pool, so its count must rise then |
 | RAM, estimates | | Store image 16 KiB, event ring about 4.1 KB, one CLI context of at least 320 B per session |
@@ -191,4 +192,4 @@ A service calls `crux_access_check` before taking its own lock. Account operatio
 
 ## Limits of this record
 
-Decisions here come from reading source at the stated revisions. Since then the File additions (#224), access (#210) and file service (#232) have run on Host, and no contract has run on a target or been flashed. Whether wolfPSA can generate Ed25519, how FatFs and the card behave across a cut in the store's save sequence, and the timing of status sources on the HTTP thread are all open. WinSCP was read at its current upstream tip, not at a release, and no client trace exists yet.
+Decisions here come from reading source at the stated revisions. Since then the File additions (#224), access (#210) and file service (#232) have run on Host, and no contract has run on a target or been flashed. Issue #142 has since shown that wolfPSA can generate Ed25519 on Linux Host and `native_sim`, and RT1060 is compile only. How FatFs and the card behave across a cut in the store's save sequence, and the timing of status sources on the HTTP thread are all open. WinSCP was read at its current upstream tip, not at a release, and no client trace exists yet.
