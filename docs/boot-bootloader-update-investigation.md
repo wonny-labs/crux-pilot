@@ -395,7 +395,7 @@ in a downloaded source pack, because they had no shell. The author ran
 
 All blocking and other findings were fixed in the fix commit of this PR.
 Where the fix added a statement (B-84), the author read the manual text
-himself. Reviewer 1 could not check rows A-7, A-27 to A-32, A-33, A-34, A-37,
+directly. Reviewer 1 could not check rows A-7, A-27 to A-32, A-33, A-34, A-37,
 A-38, B-14, B-18, B-50, B-52 to B-56 and B-62, because their sources were not
 in the pack (the author re-read A-33). Reviewer 2 did not check C-1, C-3, C-5,
 C-6, C-15, C-19, C-20, C-22 to C-26, C-29, C-31, C-32, C-40 to C-50 beyond label
