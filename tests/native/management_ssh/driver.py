@@ -356,7 +356,8 @@ def case_https(run, clients):
     wrong = Curl(clients.directory)
     check(not wrong.login(ADMIN, "not the password"), "curl: a wrong password does not log in")
     # Events that SSH raises reach the same store that the web's status counts. The count is read before and after
-    # SSH logins, one that succeeds and one that fails, and the status source refreshes every second.
+    # SSH logins, one that succeeds and one that fails. The count is read live, and the wait lets the drain thread
+    # record the events.
     before = events_emitted(curl)
     done, _ = clients.key_run("help")
     refused = clients.password_run("help", ADMIN, "not the password")
