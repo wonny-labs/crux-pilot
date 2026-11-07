@@ -50,6 +50,13 @@ fatfs="$(cd "$workspace" && west list fatfs -f '{abspath}')"
     -O "$repo/build/zephyr/twister-storage-sd-check" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$fatfs")
 
+# The seek and remove check of the same sample (scratch file, seek, read back, remove).
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/file_sd_ops" \
+    -O "$repo/build/zephyr/twister-storage-sd-ops" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
 # The interrupted-write test: record format and recovery logic of samples/storage_sd_interrupt.
 (cd "$workspace" && west twister -j 2 \
     -p native_sim/native -p native_sim/native/64 \
