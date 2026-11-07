@@ -98,7 +98,9 @@ sequenceDiagram
 
 SSH keeps no public header and no `crux::` target, so `check-ssh-boundaries.py` still holds. **Selection is a Kconfig symbol and a CMake
 call**, as the web adapter's is a symbol and a port directory. The module checks what no composition could make work, and the
-composition calls `crux_ssh_wolf_settings()`, which reads the symbols below.
+composition calls `crux_ssh_wolf_settings()`. That function reads the selectors and the three provider sizes below: `CONFIG_CRUX_SSH`, `_CLI`, `_SFTP`, and
+`_WORKER_STACK_BYTES`, `_LISTENER_STACK_BYTES` and `_WINDOW_BYTES`. The port, the connection limit, the attempts and the timeouts are read by the composition's own start
+code, which puts them into `crux_ssh_config_t`: this image's is `crux_native_management_ssh.c`.
 
 | Symbol | Default | What it does |
 | --- | --- | --- |
@@ -137,7 +139,7 @@ component. This change therefore gives the parts a composition reuses, in the Ze
 | Part | Who uses it | Where |
 | --- | --- | --- |
 | The Kconfig symbols above | A composition sets them in its configuration | `zephyr/Kconfig` |
-| `crux_ssh_wolf_settings()` | The composition's CMake calls it after `find_package(Zephyr)`. It reads the symbols, builds the entry points, the file port and the provider with the wolfSSH settings, and keeps wolfSSH's own warnings out of an application built with `-Werror`. | `components/ssh/ports/zephyr/wolf_ssh_settings.cmake` |
+| `crux_ssh_wolf_settings()` | The composition's CMake calls it after `find_package(Zephyr)`. It reads the selectors and the three provider sizes, builds the entry points, the file port and the provider with the wolfSSH settings, and keeps wolfSSH's own warnings out of an application built with `-Werror`. | `components/ssh/ports/zephyr/wolf_ssh_settings.cmake` |
 | `crux_ssh_callback_table()`, `crux_ssh_cli_set_provider()`, the provider's `start()` and `crux_ssh_wolf_host_key_fingerprint()` | The composition's own C code, to start the provider. The interface stays private: there is no public header. | `components/ssh/src`, `cli`, `ports/zephyr` |
 | `crux_ssh_host_key_load()` and `_clear()` | A composition with a credential store, as one way to get a host key | `components/ssh/access/crux_ssh_host_key.c` |
 | The CLI core, a provider of its event port, the file service and Access | The composition links them: the symbols above only select the entry points | the components |
@@ -329,7 +331,7 @@ forwarded to the machine that runs the browser, which VS Code does for a port th
 **This step was not run in a browser.** The built-in browser of the session refuses a self-signed certificate, and changing what the machine trusts is
 the user's to do. The same page was fetched with `curl` in the driver.
 
-With the image running, log in on the web with `curl` as `admin` three times while three `ssh` shells of `admin` are open, and the oldest shell ends.
+The driver's `case_sessions_across_channels` shows the account cap across channels: with three `ssh` shells of `admin` open, one web login of `admin` ends the oldest shell. This sentence is a description of that case and is not a step to run here.
 
 **7. Stop it** with Ctrl-C in the first terminal. Starting it again on the same `disk.bin` gives the same host key and the same accounts.
 

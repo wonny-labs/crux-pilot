@@ -369,6 +369,9 @@ config CRUX_SSH_PORT
     int "Port of the SSH service, or 0 for an ephemeral one"
     default 22
     range 0 65535
+    help
+      Like the four symbols below it, this is read by the composition's own start code, which fills
+      crux_ssh_config_t. The module's CMake does not apply it.
 
 config CRUX_SSH_MAX_CONNECTIONS
     int "Connections at once, authenticated or not"
