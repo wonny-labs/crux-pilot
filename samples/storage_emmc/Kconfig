@@ -12,6 +12,7 @@ config SAMPLE_EMMC_START
 	bool "Run the eMMC mount sequence at boot"
 	help
 	  Off by default. When on, the image initialises the disk and mounts the volume without
-	  formatting it. Physical use needs approval for the current task.
+	  formatting it, and with CRUX_CONFIGURATION_SETTINGS_FILE it then initialises the settings,
+	  only if the layout check passed. Physical use needs approval for the current task.
 
 source "Kconfig.zephyr"

@@ -579,3 +579,22 @@ if report['counts']['cases'] != 2232 or report['failures']:
 print(f'replay reliance W4: {report["counts"]["cases"]} cases, invariants held on red-fix-settings, '
       f'{leftovers} cases with a temporary left behind, all three controls failed as required')
 PY
+
+# The Settings File selection exists on Reliance Edge only. Without the file system, Kconfig drops
+# the selection and warns, naming the dependency, and the build is refused because the assignment of
+# the suite is not honoured. A selection that did not depend on Reliance Edge would configure.
+selection_dir="$repo/build/zephyr/settings-selection"
+selection_log="$selection_dir.log"
+if (cd "$workspace" && west build --cmake-only -p always -b native_sim/native/64 -d "$selection_dir" \
+        "$repo/tests/native/configuration_settings_reliance" -- -DCONFIG_CRUX_FS_RELIANCE_EDGE=n) \
+        >"$selection_log" 2>&1; then
+    printf 'The Settings File selection configured without CONFIG_CRUX_FS_RELIANCE_EDGE\n' >&2
+    exit 1
+fi
+folded="$(tr -s '[:space:]' ' ' <"$selection_log")"
+[[ "$folded" == *"warning: CRUX_CONFIGURATION_SETTINGS_FILE (defined at"*"was assigned the value 'y' but got the value 'n'. Check these unsatisfied dependencies: CRUX_FS_RELIANCE_EDGE (=n)"* ]] || {
+    printf 'The Settings File selection was not dropped for the missing file system; see %s\n' \
+        "$selection_log" >&2
+    exit 1
+}
+printf 'Settings File selection: dropped without Reliance Edge, naming the dependency\n'
