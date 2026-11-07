@@ -1,5 +1,6 @@
 // The English text of the network settings and restart screens, as the Preact example words it, so that the
-// two examples say the same thing and the shared browser cases hold for both. A name from the device is looked
+// two examples say the same thing and the shared browser cases hold for both. The error table holds the
+// codes that these two screens meet. The Preact table also holds `aborted`, which Angular never reports. A name from the device is looked
 // up with `lookup`, which does not reach built-in properties such as constructor.
 import type { Failure } from './api';
 
@@ -97,6 +98,8 @@ export const ERRORS: Record<string, string> = {
   reboot_refused: 'The device refused the restart.',
   retry_later: 'Too many attempts. Try again later.',
   not_supported: 'This device does not support this operation.',
+  no_route: 'This device does not offer this feature.',
+  method_not_allowed: 'This device does not offer this operation.',
   unexpected: 'The device gave an answer that this interface does not understand.',
 };
 
@@ -104,6 +107,13 @@ export function lookup(table: Record<string, string>, key: string): string | und
   return Object.hasOwn(table, key) ? table[key] : undefined;
 }
 
+/** The server's own plain `404` and `405` have no JSON body, so they come as `unexpected` with their status. */
 export function errorText(failure: Failure): string {
+  if (failure.code === 'unexpected' && failure.status === 404) {
+    return ERRORS['no_route'] as string;
+  }
+  if (failure.code === 'unexpected' && failure.status === 405) {
+    return ERRORS['method_not_allowed'] as string;
+  }
   return lookup(ERRORS, failure.code) ?? (ERRORS['unexpected'] as string);
 }

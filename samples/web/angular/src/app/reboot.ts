@@ -231,6 +231,9 @@ export class Reboot implements OnInit, OnDestroy {
   }
 
   protected cancel(): void {
+    // As in the Preact example, what an earlier request left is shown on arrival only.
+    this.previousFailed.set(false);
+    this.previousReason.set(null);
     this.phase.set('idle');
     this.focusId('reboot-start');
   }

@@ -70,7 +70,7 @@ export function advancedCases(run: RunCase): void {
     await running.getByText('192.0.2.10/24').waitFor();
     await page.getByText(/defaults of this firmware/i).waitFor();
     await page.getByText(/nothing is saved/i).waitFor();
-  });
+  }, ['mock-control']);
 
   run('the form starts from the running values when nothing is saved', async ({ page }) => {
     await openNetwork(page);
