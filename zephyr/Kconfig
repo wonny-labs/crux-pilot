@@ -227,7 +227,9 @@ config CRUX_CONFIGURATION_SETTINGS_FILE
       stages corrected copies of three of its sources from
       tests/native/configuration_settings_file, and an image that selects this needs that
       directory. Settings are initialised by the composition, after its layout check:
-      crux_config_zephyr_init creates no directory, so the settings directory must
-      already exist. Set CONFIG_SETTINGS_FILE_PATH under the volume's mount point.
+      crux_config_zephyr_init lets the backend create the directories of
+      CONFIG_SETTINGS_FILE_PATH, so the composition calls it only after its layout
+      check has found the settings directory. Set CONFIG_SETTINGS_FILE_PATH under the
+      volume's mount point.
 
 rsource "fs/reliance_edge/Kconfig"
