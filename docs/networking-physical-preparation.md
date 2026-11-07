@@ -484,32 +484,45 @@ design, and the accepted M3 loader sequence was wired only into the M3 network r
 the stage 1 run had no way to program an M5 image or restore the normal image inside the
 gate. This driver does that and nothing else.
 
-| Subcommand | Probe commands, in order | Approval operations it needs |
-| --- | --- | --- |
-| `identify` | `q` (identity only), then `verifybin` of each candidate image | `acquire_exclusive_probe_uart_and_nic`, `verify_entry_image` |
-| `program` | `q`; `verifybin` of the identified entry image, **stop if it differs**; `loadfile` + `verifybin` + `r` + `g` of the exact M5 BIN | the four of `identify` plus `establish_usb_mount_guard`, `program_and_start` |
-| `restore` | `q`; UART capture opened; `loadfile` + `verifybin` + `r` + `g` of the exact normal BIN; a second read-only full `verifybin`; capture closed | `establish_usb_mount_guard`, `acquire_exclusive_probe_uart_and_nic`, `restore_identified_normal_image`, `verify_normal_image`, `normal_acceptance_capture` |
+Every mode needs `--execute-hardware`, a clean committed tree, and the complete approval of
+its plan (the runner's approval check requires **every** operation of the plan to be true,
+whichever mode runs). It takes the board lock and the exclusive UART before its first probe
+command and holds both to the end, and it runs once per evidence parent directory.
+
+| Mode | Probe commands, in order |
+| --- | --- |
+| `identify` | `q` (identity only), then `verifybin` + `IsHalted` of each candidate image. A clean verify mismatch is a result; it changes no flash and starts no reset, but may leave the core halted |
+| `program` | `q`; `verifybin` + `IsHalted` of the identified entry image, **stop if it differs**; then `loadfile` + `verifybin` + `r` + `g` of the exact M5 BIN |
+| `restore` | `q`; `loadfile` + `verifybin` of the exact normal BIN (no start); a second read-only full `verifybin`; the UART capture opens; `r` + `g` (the only start) |
 
 ```mermaid
 flowchart TD
-    A[plan + approval + manifests + J-Link pins verified] --> B[guard check, UART and probe ownership, adapter identity]
-    B --> C[one probe command]
+    A[plan, approval, manifests, J-Link pins, clean tree verified; mode consumed] --> L[board lock and exclusive UART taken]
+    L --> B[guard check, owner inventory, adapter identity]
+    B --> R[series budget, image hashes and manifests rechecked]
+    R --> C[one probe command]
     C --> D{identity, voltage, expected output?}
-    D -- no --> X[HardwareStop: nothing else runs, no retry]
+    D -- no --> X[HardwareStop, failure.json: nothing else runs, no retry]
     D -- yes --> E{more steps?}
     E -- yes --> B
-    E -- no --> F[result.json and operations.json]
+    E -- no --> F[result.json, operations.json, ports released]
 ```
 
 | Property | Behaviour |
 | --- | --- |
-| Reuses | `capture_m3.commander` (pinned `JLinkExe` and DLL hashes, probe `602003106`, firmware-update guard, 30 s limit), `capture_m3_network.image_commands`, `guard_check`, `check_owners`, `select_uart`, `verify_manifest`, `prepare_m5_network.verify`, and the runner's approval check |
-| Before every probe command | fresh guard check, UART and debugger ownership inventory, the dedicated adapter's MAC and static address (carrier is **not** required, because the running firmware may have the Ethernet down), a series budget check, and exact image-path validation (absolute, no quote or newline) before the first command |
-| After every probe command | core, debug port, probe serial and 3.0 to 3.6 V target voltage must match; `Verify successful` is required where the step programs or verifies |
-| Never | retry, erase, touch fuses or option bytes, issue a second command after a failed one, run without `--execute-hardware`, or reuse an evidence directory |
-| Restoration evidence | the exact BIN is programmed and fully verified twice, then a passive UART capture of the fresh boot (raw bytes kept) must show the normal image's `M3_BOOT source=<12 hex> profile=integrated commands=0 fault_default=off`. The accepted baseline checks (unarmed status, idle resources, queue-zero checkpoint) are a separate **offline replay** with the accepted oracles, not part of the driver. |
+| Reuses | `capture_m3.commander` (pinned `JLinkExe` and DLL hashes, probe `602003106`, firmware-update guard, 30 s limit), `capture_m3_network.image_commands`, `guard_check`, `check_owners`, `select_uart`, `verify_manifest`, `prepare_m5_network.verify`, the runner's approval check, and the lease's owned-port inventory |
+| Before every probe command | fresh guard check; ownership inventory (before the UART is taken: nobody owns it; afterwards: only this process owns it and no debugger runs); the dedicated adapter's MAC and static address (carrier **not** required, since the running firmware may have the Ethernet down); at least 120 s of series budget; for a step that uses an image: the file hash against the approval and a full manifest reverification; exact image-path validation before the first command |
+| After the guard | at least 45 s of series budget remain, as in the accepted wrappers |
+| After every probe command | core, debug port, probe serial and 3.0 to 3.6 V target voltage must match; `Verify successful` is required where a step programs or verifies |
+| Records | `inputs.json` (commit, driver hash, every `tests/target` tool hash, plan, approval and manifest hashes), `operations.json` (each step logged before its checks and after its outcome), `failure.json` on any failure, `result.json`, one log per probe command |
+| Never | retry, erase, touch fuses or option bytes, issue a second command after a failed one, run without `--execute-hardware`, run on an uncommitted tree, or reuse an evidence directory or a mode |
+| Verify mismatch | Commander exits non-zero on `Verify failed`. Only `identify` and the entry check of `program` accept that exact outcome (log shows `Verify failed`, identity block valid, no firmware maintenance text); any other failure re-raises unchanged |
+| Restoration evidence | the exact BIN is programmed and fully verified twice before it starts; a passive UART capture of the fresh boot (raw bytes kept, drained first) must show the normal image's `M3_BOOT source=<12 hex> profile=integrated commands=0 fault_default=off`. Only the `integrated-normal` role is accepted for restoration. The accepted baseline checks (unarmed status, idle resources, queue-zero checkpoint) are a separate **offline replay** with the accepted oracles |
 
-Open points (unchanged by this PR): the accepted normal image BIN (107,872 bytes, SHA-256
-`ad729684…1e02`, source `ec94fbe`) is not stored with the M3 evidence archives. It must be rebuilt
-and its hash compared, or supplied, before `restore` can name it. The firmware now on the board is
-unknown; `identify` compares it only against images that are supplied.
+Open points: the accepted normal image BIN (107,872 bytes, SHA-256 `ad729684…1e02`, source
+`ec94fbe`) is not stored with the M3 evidence archives. It must be rebuilt and its hash compared, or
+supplied, before `restore` can name it. The firmware now on the board is unknown; `identify` compares it
+only against images that are supplied. Whether the driver's own hash belongs in the plan and approval
+schema is an owner decision; it is bound by the clean-tree check and recorded in `inputs.json`, as in the
+accepted M3 runners. Not shown on a device: real Commander output for a verify mismatch, whether
+`connect` halts a running core, and `loadfile` duration against the 30 s limit for the image sizes.
