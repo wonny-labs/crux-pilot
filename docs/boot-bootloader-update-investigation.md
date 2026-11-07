@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Issue | [#299](https://github.com/wonny-labs/crux-pilot/issues/299) "Investigate how a deployed bootloader is updated or recovered" |
-| Status | **Draft. Desk investigation.** Nothing in this record is adopted. No build, hardware, debugger, fuse or manifest operation was performed, and no dependency checkout was altered. The record has not yet had its independent review (see [Review record](#review-record)). |
+| Status | **Draft. Desk investigation.** Nothing in this record is adopted. No build, hardware, debugger, fuse or manifest operation was performed, and no dependency checkout was altered. The record is under independent review (see [Review record](#review-record)). |
 | Target | RT1060-EVKB Rev B (`mimxrt1060_evk@B/mimxrt1062/qspi`) for the NOR configuration. RT1170-EVK Rev A1 only where the public sources show a difference. The eMMC configuration is a set of expectations, not a result for any device. |
 | Pinned upstream | Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0). MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`. `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. The pins are those of the #141 record. |
 | Read on | 7 November 2026, against `main` at `3e0a5d7` |
@@ -18,13 +18,15 @@ field?
 
 | Point | Result |
 | --- | --- |
-| Stock MCUboot | Cannot update itself, and the `mcuboot` partition is not an image slot. The MCUboot project's own position is that an updatable MCUboot belongs behind a separate, unmodifiable first stage. |
-| Boot ROM recovery | The RT1060 manual says an error during internal boot falls through to the serial downloader. That is the only recovery path found for a damaged bootloader. It needs physical access, and in a closed security configuration it needs a signed flashloader. A bootloader that is valid but defective is not caught by it. Whether a corrupt first sector counts as an error was not stated, and it was not tested. |
-| Options for NOR | Five options compared. Only a two-stage design (a small first stage that never writes flash, plus an updatable second stage in two banks) gives a field update. It is a custom bootloader and an architecture decision. Every option that writes NOR still depends on #165. |
-| Options for eMMC | Two boot partitions and a selector byte make an A/B pattern possible at the eMMC level. Pinned Zephyr has no API for it, and the RT1060 ROM behaviour is not found in public material. Handed to #298 as expectations. |
+| Stock MCUboot | Cannot update itself, and the `mcuboot` partition is not an image slot. A project maintainer's stated view is that an updatable MCUboot only makes sense behind a separate, unmodifiable first stage. |
+| Boot ROM recovery | The RT1060 manual says an error during internal boot falls through to the serial downloader. That is the main recovery path found for a damaged bootloader. SD manufacturing boot, an LPSPI recovery device and a ROM secondary image are also described, and they need an SD card, a second memory or fuses. Every path needs physical access, and in a closed security configuration the serial downloader needs a signed flashloader. A bootloader that is valid but defective is not caught by it. Whether a corrupt first sector counts as an error was not stated, and it was not tested. |
+| Options for NOR | Five options compared. Only a two-stage design (N2: a small first stage that never writes flash, plus an updatable second stage in two banks) gives a safe field update without fuse writes. N3 (a ROM secondary copy) needs an irreversible fuse write and an unverified ROM algorithm. N1 (in-place rewrite) is unsafe. N2 is a custom bootloader and an architecture decision. Every option that writes NOR still depends on #165. |
+| Options for eMMC | Two boot partitions and a selector byte make an A/B pattern possible at the eMMC level. Pinned Zephyr has no API for it. The RT1060 manual says the ROM reads the boot partition selector. Fallback between the two boot partitions was not found. Handed to #298 as expectations. |
 | Trust | Without HAB in closed configuration, "immutable" is a convention. An updatable bootloader then adds an attack surface without adding a root of trust. HAB closed adds ROM enforcement and key revocation, and revocation needs a bootloader update path to be usable. |
 | Recommendation | **No option becomes a milestone now.** Declare the bootloader's update and recovery level in the M9 results. Run a bounded ROM recovery check on the EVKB later, under its own approval. Keep the two-stage design as the candidate if a field-update requirement is confirmed. |
 | Product decisions | Fuse programming, closed security configurations, key custody and revocation, eMMC boot partition protection, whether a field-updatable bootloader is required at all. |
+
+The summary restates the labelled sections below. Each row's label is given in the section it comes from.
 
 ## Purpose, scope and boundaries
 
@@ -60,7 +62,7 @@ Zephyr and public designs), [B](evidence/boot-bootloader-update/b-nxp-rom-fuses-
 | Item | How it was done |
 | --- | --- |
 | Sources | Public upstream source and documents, read through `gh api`, raw files at the pins and web fetches. Nothing was cloned into this repository. The full MCUboot tree at its pin was read as a tarball outside the repository and searched. |
-| Delegation | Three research agents read the sources in parallel and wrote the three evidence files. The record's author then re-read a sample of high-impact rows at the source: MCUboot issue #1403 (A-33), the `IOMUXC_GPR` remap registers (B-46), the ROM API wrapper (B-30) and the MCUboot no-bootable-image path (A-22). All four matched. The rest is not re-read by the author. The independent review covers it. |
+| Delegation | Three research agents read the sources in parallel and wrote the three evidence files. The record's author then re-read a sample of high-impact rows at the source: MCUboot issue #1403 (A-33), the `IOMUXC_GPR` remap registers (B-46), the ROM API wrapper (B-30) and the MCUboot no-bootable-image path (A-22). All four matched. After the first review the author also read the manual's MMC boot details (B-84). The rest is not re-read by the author. The independent review covers it. |
 | Absence claims | Limited to the files or paths each row names. |
 | NXP reference manual | Read from a third-party-hosted copy of revision 3 (07/2021), because NXP's own download needs a login. Authenticity and the current revision were not checked. Rows from it say "manual" and are labelled as vendor document. |
 | Not readable | RT1060 Security Reference Manual, AN12079, the Code Signing Tool guide, any RT1170 reference manual, the JEDEC eMMC standard. |
@@ -110,7 +112,7 @@ was run on a board.
 | 4 | Serial downloader in closed configuration | The downloaded image is authenticated like any other. NXP's flow loads a signed flashloader. A recovery of a closed device therefore needs the SRK hash fuses, a flashloader signed under that key tree, and a bootloader signed with its own signature structure. | Key custody that outlives the product's service life | B-17 to B-19 | Verified by public vendor document for the flow. The consequence: Inference (B-19). |
 | 5 | Application re-enters the serial downloader | The ROM API `runBootloader` takes an argument word. One documented value enters the serial downloader over USB. Another selects the redundant image after an update. | A running application. Not available when the bootloader is defective. | B-30 to B-33 | Verified by public vendor document and Verified on pinned source for the wrapper. Use from an application: Inference. Pinned Zephyr does not enable the ROM API for RT10xx (B-38). |
 | 6 | Recovery device on LPSPI | A serial NOR or EEPROM on an LPSPI port is tried if the primary boot device fails. | Fuses (disabled by default) and extra memory on the board. | B-9 | Verified by public vendor document. |
-| 7 | SD manufacturing boot | The ROM tries SD/MMC manufacturing boot before the serial downloader when internal and recovery boot fail. | Not examined further. #298 should check it. | B-5 | Verified by public vendor document (figure read as extracted text). |
+| 7 | SD manufacturing boot | The ROM tries SD/MMC manufacturing boot before the serial downloader when internal and recovery boot fail. | An SD card in the slot. The flow is gated by an "SDMMC MFG mode disabled?" check. The fuse behind it was not examined. #298 should check it. | B-5 | Verified by public vendor document (figure read as extracted text). |
 | 8 | ROM secondary image | Fuse-configured secondary image offset for NOR (units of 256 KiB) and a persistent bit that selects the image. For SD and eMMC the manual gives the full rule. For NOR it gives the fuse fields only. | Irreversible fuse writes (see the option N3). | B-48, B-49, B-51 | Verified by public vendor document for the fields. The NOR algorithm: Not verified. |
 | 9 | Fuses that remove recovery | `SDP_DISABLE`, `FORCE_INTERNAL_BOOT` and `BOOT_CFG_LOCK` can remove the pin-selected serial downloader or lock the boot configuration. | A product choice | B-20, B-21 | Verified by public vendor document for the fields. The effect on recovery: Inference. The polarity of the UART disable fuse differs between SPSDK and the manual: Not verified (B-22). |
 
@@ -166,7 +168,7 @@ All cells are Inference from the cited rows unless a row says otherwise. "Layout
 
 | | N0 | N1 | N2 | N3 | N4 |
 | --- | --- | --- | --- | --- | --- |
-| Failure classes helped | D1 and D2 by service, not remotely | None safely | D1 and D2 for a second stage that fails validation. D3 and D4 by update. A second stage that validates but is defective needs a confirm state (below). | D1 for a copy that the ROM rejects. D3 and D4 by update. | None. It updates the application only. |
+| Failure classes helped | D1 to D4 by service, not remotely. By the mode pins (path 1), and for D1 possibly by the ROM fall-through (Inference). | None safely | A second stage that fails validation is rejected and the other bank starts (a D1-type failure of the second stage). D3 and D4 by update. A second stage that validates but is defective (D2) needs a confirm state (below). | D1 for a copy that the ROM rejects. D3 and D4 by update. | None. It updates the application only. |
 | Field update of the bootloader | No | Yes, unsafe | Yes, of the second stage. Not of the first. | Yes, of the secondary copy and, if the roles can swap, the primary | No |
 | Effect on layout | None | None | The region before the slots grows from 128 KiB to at least 192 KiB, see below. | The second copy starts at `0x40000` or later (multiples of 256 KiB). With 128 KiB per copy the region grows to about 384 KiB. | A 256 KiB bootloader region and 2 MiB slots in the vendor port, see below. |
 | NOR writes of the bootloader itself | None added | The update rewrites the boot sectors (#22, #165 hazards, plus power-cut brick) | The first stage can stay write-free. Bank writes are done by the application or the second stage, see below. | Same as N2 for the copy | None added |
@@ -184,7 +186,7 @@ until the erase size is measured. One bank for MCUboot therefore takes 64 KiB.
 | Option | Layout consequence | Label |
 | --- | --- | --- |
 | N2a, N2b, N2c | First stage with the boot header in the first 64 KiB (FCB at `0x0`, IVT at `0x1000`, vectors at `0x2000`), then two 64 KiB banks: `0x00000` to `0x30000`. Slots then start at `0x30000`, 64 KiB later than in #141. With 3 MiB slots, `image-1` ends at `0x630000` and `storage` shrinks by 64 KiB to 1,856 KiB. `storage` has no owner in M8, so nothing is lost. A bank larger than 64 KiB, or a first stage larger than the space before the banks, adds more. | Inference (arithmetic) |
-| N2b | Only one bank image is needed, but RAM must hold the second stage. The MCUboot RAM region in the RAM load trial is a trimmed OCRAM2 region, so RAM size is unlikely to be the limit. Whether code can run there with the ROM and boot flow is Not verified. | Inference. Feasibility: Not verified (A-51). |
+| N2b | Only one bank image is needed, but RAM must hold the second stage. The MCUboot RAM region in the RAM load trial is a trimmed OCRAM2 region (#141 Stage 6 section 1.3), so RAM size is unlikely to be the limit. Whether code can run there with the ROM and boot flow is Not verified. | Inference. Feasibility: Not verified (A-51). |
 | N3 | The ROM secondary offset is in 256 KiB units (B-48). The second copy therefore lies at `0x40000` or beyond. Whether the secondary copy needs its own FCB and IVT at fixed positions is Not verified. | Verified by public vendor document for the unit. Rest: Not verified. |
 | N4 | The vendor port places the application slots at `0x40000` and `0x240000` after a 256 KiB bootloader region (B-52). That differs from #141's `0x20000` start, which shows the #141 layout is not the only one. | Verified by public vendor document |
 
@@ -205,7 +207,7 @@ bootloader NOR write on hardware.
 | Question | Result | Label |
 | --- | --- | --- |
 | Does an updatable bootloader add NOR writers? | Yes. Whoever writes a new bootloader or bank is a new NOR writer, on top of the writers already in #141 (application slot writes and the bootloader's `copy_done` and revert erases). | Inference |
-| Can a first stage avoid the hazard? | Only if it writes nothing. A first stage that selects, verifies and jumps has no write path, so it needs no #22 closure for writes. TF-M's first stage works this way (A-38). Nordic's first stage also updates the second stage, so it would inherit the write path (A-30). | Inference from A-30, A-38 |
+| Can a first stage avoid the hazard? | Only if it writes nothing. A first stage that selects, verifies and jumps has no write path, so it needs no #22 closure for writes. TF-M's first stage works this way (A-38). Nordic's documents say its immutable bootloader is responsible for upgrading the second stage but do not say which code writes the slot, so whether its first stage has a write path is unresolved (A-30, A-32). | Inference from A-30, A-38 |
 | Who may write a bank? | A second stage that writes the other bank executes in place from NOR while it programs NOR, the exact #22 case. An application that executes from SDRAM, as in the #141 rank 1 RAM load, does not execute from NOR while it writes. It still needs the #22 items for bus masters, cache and FlexSPI state, which #141 lists as not verified. | Inference from #141 Stage 6 section 2 and #22 |
 | Does it change the #165 scope? | It widens it. #165 asks which phases apply to the bootloader. A bank write adds a phase (write a candidate second stage while the running one is in NOR). A first stage with no write path leaves #165 unchanged for that stage. | Inference |
 | What if power fails during the bank write? | The first stage must then reject the incomplete bank and fall back to the other. That requires full signature verification of the bank at every boot. The cost is one hash of the bank per boot. No source gives the guarantee. | Inference from A-32, A-37, A-38, A-54 |
@@ -216,9 +218,8 @@ bootloader NOR write on hardware.
 
 This section does not answer #298. It states what the public sources suggest,
 so #298 can check each point. All rows are from [evidence C](evidence/boot-bootloader-update/c-emmc-expectations.md)
-unless marked. The JEDEC standard and the RT1060 reference manual's eMMC
-chapters were not read for these rows (the manual's recovery chapter was read,
-see B rows).
+unless marked. The JEDEC standard was not read for these rows. The RT1060 reference
+manual was read only where the B rows cite it (B-5, B-48, B-49, B-84).
 
 ### Options
 
@@ -233,15 +234,15 @@ see B rows).
 
 | Point | Expectation | Label | Rows |
 | --- | --- | --- | --- |
-| Two boot partitions and a selector | An eMMC has two boot partitions of equal size and one selector byte (`PARTITION_CONFIG`, byte 179, bits 5:3). Four independent tools agree on the layout. | Verified by public vendor document | C-2, C-4 |
-| A/B pattern | RAUC reads the active partition, writes the other one, switches the selector, and fails if the switch does not take effect. SWUpdate only switches. Both claim atomicity only for the switch, not for the write. | Verified by public vendor document | C-16, C-17, C-21 |
+| Two boot partitions and a selector | An eMMC has two boot partitions of equal size and one selector byte (`PARTITION_CONFIG`, byte 179, bits 5:3). Three independent projects (mmc-utils, U-Boot and RAUC) agree on the layout. | Verified by public vendor document | C-2, C-4 |
+| A/B pattern | RAUC reads the active partition, writes the other one, switches the selector, and fails if the switch does not take effect. SWUpdate only switches. RAUC states that the switch is atomic and that this prevents a non-bootable system after an error or power loss during the update. SWUpdate makes no atomicity statement. Neither source states the power-fail behaviour of the image write itself. | Verified by public vendor document | C-16, C-17, C-21 |
 | Write protection | Boot partitions can be write protected by a power-on setting, cleared only by a power cycle or a reset-pin toggle, or by a permanent setting that cannot be undone. No tool or kernel code read can clear either by software. | Verified by public vendor document for the semantics (a vendor white paper summary, not the standard). Absence of a clearing path: Inference | C-7 to C-12 |
 | The A/B pattern needs unprotected boot partitions at update time | Because protection is set but not cleared by software, E1 and the second-stage update of E3 depend on the product's protection policy. Permanent protection of both boot partitions ends any software replacement of the bootloader in them. | Inference | C-18, C-46 |
 | Reset pin | Whether power-on protection can be undone outside software depends on the reset pin wiring and the write-once reset function setting. | Inference | C-14, C-47 |
 | Interrupted register write | Power-fail behaviour of the selector write is not stated in any source read. | Not verified | C-15 |
 | Zephyr | The public MMC API has only block read, block write and ioctl. The stack writes only four EXT_CSD bytes (bus width, timing, power class, cache control). It does not parse or write the partition configuration or write protection. A boot partition update would be new code, probably through the host controller API, which the documentation says applications should not use directly. | Verified on pinned source. Use of the host API: Inference | C-27 to C-35 |
 | `hal_nxp` | The `fsl_usdhc` driver has host-side MMC boot registers, not card partition selection. No MMC card middleware exists in the tree. | Verified on pinned source | C-36, C-37 |
-| RT1060 ROM and eMMC | SPSDK data for the RT1060 lists SD, MMC and eMMC boot layouts through an alias to another device, and the RT1060 file itself lists only NOR memory configuration. The manual gives the SD and eMMC redundancy rule and the SD manufacturing boot order (B-5, B-49). How the ROM selects a boot partition and what it does when one is corrupt was not found in public material. | Verified by public vendor document for the rules and the tool data. Boot partition selection and fallback: Not verified | C-39 to C-44, B-5, B-49 |
+| RT1060 ROM and eMMC | SPSDK data for the RT1060 lists SD, MMC and eMMC boot layouts through an alias to another device, and the RT1060 file itself lists only NOR memory configuration. Whether the aliased entries apply to the RT1060 is Not verified (C-39). The manual says that after card initialisation the ROM reads `BOOT_PARTITION_ENABLE` in EXT_CSD byte 179 and boots from that boot partition, or from the user area if none or the user area is selected. It ties fast boot and boot acknowledgement to boot configuration fuses (B-84). The manual also gives the SD and eMMC redundancy rule and the SD manufacturing boot order (B-5, B-49). What the ROM does when a boot partition is corrupt, and whether it falls back to the other one, was not found. | Verified by public vendor document for the selection, the rules and the tool data. Fallback between boot partitions and behaviour on hardware: Not verified | B-84, B-5, B-49, C-39 to C-44 |
 | NOR hazards | #22 and #165 are about code that executes from the NOR it writes. An update written to eMMC through the uSDHC does not use FlexSPI. The corresponding hazards are DMA and cache coherence in the SDRAM-resident application, which are not part of #22. | Inference | |
 | Product-owned settings | Permanent write protection, the reset function setting, protection disable bits, the first programming path and return handling are decisions outside firmware. No public source on return handling of permanently protected parts was found. | Inference for the ownership. No source: Not verified | C-45 to C-50 |
 
@@ -249,31 +250,34 @@ see B rows).
 
 | #298 question | What #299 expects it to settle for the bootloader update | Rows |
 | --- | --- | --- |
-| 1. What does the ROM load from the boot area, and is it authenticated? | Whether the boot area is a boot partition or the user area, where the HAB container sits, and whether the ROM secondary image rule (B-49) applies to the eMMC boot partitions or to the user area. | B-5, B-49, B-60, C-39, C-41 |
-| 3. How is a damaged bootloader recovered, given boot partitions and write protection? | Whether the ROM falls back between the two boot partitions, whether `PARTITION_CONFIG` alone decides the boot source (other i.MX forum threads suggest fuses or pins may also matter), and which protection state the product will use. | C-9 to C-14, C-25, C-26, C-44, C-46 |
+| 1. What does the ROM load from the boot area, and is it authenticated? | The manual says the ROM boots from the partition named by `BOOT_PARTITION_ENABLE` or from the user area (B-84). #298 should check where the HAB container sits, and whether the ROM secondary image rule (B-49) applies to the boot partitions or to the user area. | B-5, B-49, B-60, B-84, C-39, C-41 |
+| 3. How is a damaged bootloader recovered, given boot partitions and write protection? | Whether the ROM falls back between the two boot partitions when one is damaged, how the boot configuration fuses interact with `PARTITION_CONFIG` (B-84 names two; other i.MX forum threads suggest fuses or pins may also matter), and which protection state the product will use. | B-84, C-9 to C-14, C-25, C-26, C-44, C-46 |
 | 2. Can the MCUboot port read slots from eMMC? | Not needed for the bootloader update. A bootloader in a boot partition is not an image slot of MCUboot, so a slot backend does not decide E1. | A-3, A-4 |
 | 4. Which stage initialises SDRAM and the card controller? | A first stage that loads a second stage needs the same initialisation as the bootloader does today. | #141 Stage 3 D6 to D11 |
 | 5. What does a transactional store prove about atomic activation? | For the bootloader, activation is the selector write or the secondary-table sector write, not a file system operation. | C-16, C-17, B-49 |
+
+All cells of the handoff table are Inference from the rows named.
 
 ## Trust consequence of an updatable bootloader
 
 | Point | Result | Label |
 | --- | --- | --- |
-| Today (#141) | The boot ROM does not authenticate the bootloader in open configuration. A Zephyr-built bootloader has no CSF. Anyone with flash or debug access can replace the bootloader and its embedded public key. | #141, Verified on pinned source and Inference |
+| Today (#141) | The boot ROM does not enforce authentication of the bootloader in open configuration (errors are only logged, B-4). A Zephyr-built bootloader has no CSF. Anyone with flash or debug access can replace the bootloader and its embedded public key. | #141, Verified on pinned source and Inference |
 | An updatable bootloader without HAB | The update path becomes a way to change the root of trust at run time, not only the application. Whoever can reach it can replace the embedded key. It improves availability and key rotation (D3, D4). It adds no enforcement. MCUboot's maintainers say a second MCUboot behind no unmodifiable first stage is mostly redundant. | Verified by public vendor document for the maintainer view (A-33). The reading: Inference |
-| What HAB adds when closed | The ROM authenticates the first image against an SRK hash in fuses on every boot, and a failed authentication aborts the boot to the serial downloader. The key hash in fuses is the hardware root of trust that "immutable" needs. In open configuration, authentication errors are logged and the boot continues, so a signed bootloader is not enforced (B-4, B-69). | Verified by public vendor document (B-4, B-17). Open-configuration reading: Inference |
+| What HAB adds when closed | The ROM authenticates the first image against an SRK hash in fuses on every boot, and a failed authentication aborts the boot to the serial downloader, after any redundant-image retry (B-5). The key hash in fuses is the hardware root of trust that "immutable" needs. In open configuration, authentication errors are logged and the boot continues, so a signed bootloader is not enforced (B-4, B-69). | Verified by public vendor document (B-4, B-17). Open-configuration reading: Inference |
 | What HAB can verify later | The ROM exposes a HAB API at `0x0020_0300`, so a first stage could authenticate a second stage. The calling convention for RT1060 was not read. | Verified by public vendor document for the entry point (B-63). Use: Inference (B-65) |
 | Key revocation | HAB documents up to four root keys and revocation by fuse. Revocation is permanent. How many of the four RT1060 revoke bits are valid, and whether the last key is protected, is not confirmed. | Verified by public vendor document for the existence (B-24, B-61). Behaviour: Not verified (B-62) |
 | Revocation needs an update path | After a revocation, the old bootloader signed with the revoked key does not boot. The device then needs a bootloader signed under another key, which only an update path or a service recovery delivers. Using revocation without a plan for installing the new bootloader strands units. | Inference from B-62 and B-19 |
-| Version rollback of the bootloader | No ROM-checked version field appears in the IVT, boot data or CSF commands read. HAB offers key revocation, not version-based anti-rollback. A second-stage downgrade check would be software, with a counter held in fuses or another persistent store. The vendor direct-XIP mode says it has no rollback support. | Inference (B-67, B-68). Counter choice: Not verified |
+| Version rollback of the bootloader | No ROM-checked version field appears in the IVT, boot data or CSF commands read. HAB offers key revocation, not version-based anti-rollback. The manual's security overview lists "image version control/image revocation (on-chip OTP-based)" as a feature and the pages read do not describe it (B-67). A second-stage downgrade check would be software, with a counter held in fuses or another persistent store. The vendor direct-XIP mode says it has no rollback support. | Inference (B-67, B-68). Counter choice: Not verified |
 | Closed configuration and recovery | Closed configuration also gates the serial downloader. Recovery then needs the signing keys and a signed flashloader. Key custody must last as long as the service life. | Inference (B-19) |
 | Separate keys | Nordic's design allows a different signing key for each bootloader stage, so a leaked application key does not allow a bootloader replacement. | Verified by public vendor document (A-31) |
 | No ROM protection without fuses | Without fuse programming none of the ROM-side gains exist. The trust level stays that of #141. | Inference |
 
 ## What each option needs from hardware or fuse settings
 
-None of this was exercised. Every fuse write is irreversible (the manual lists
-the fuse array as one-time programmable, B-26) and stays a product decision.
+None of this was exercised. Fuse writes are expected to be irreversible (Inference: the manual lists
+the fuse array as one-time programmable and does not state it per field, B-26).
+Every fuse write stays a product decision.
 
 | Option | Hardware | Fuses | Other | Label |
 | --- | --- | --- | --- | --- |
@@ -367,7 +371,7 @@ owner decides which steps to take.
 | JEDEC eMMC semantics: `BOOT_CONFIG_PROT`, write-once protection disable bits, power-fail behaviour of register writes (C-6, C-13, C-15) | The standard or a data sheet |
 | RT1060 ROM eMMC boot partition selection, fallback and fuse dependence (C-39 to C-44) | #298 |
 | Everything about RT1170 ROM redundancy and fall-through (B-83) | The RT1170 reference manual |
-| The author's sample re-read covered four rows. The remaining rows of evidence A, B and C were not re-read by the author. | The independent review |
+| The author re-read five rows (A-22, A-33, B-30, B-46, B-84). The remaining rows of evidence A, B and C were not re-read by the author. Reviewers could not check rows whose source was not in their pack (see the Review record). | A later full re-read, or the independent review of a later revision |
 
 This record does not claim that any option works on hardware, that the serial
 downloader recovers a damaged bootloader, that a first stage of any size can be
@@ -376,4 +380,25 @@ partitions can be used on RT1060, or that any M8 or M9 criterion is met.
 
 ## Review record
 
-Pending. The independent review is recorded here after it runs.
+**Round 1, 7 November 2026.** Two independent reviewers, both the repository's
+`reviewer` agent (model `claude-opus-5-5`, read-only tools, neither wrote the
+record), each took one scope: (1) the NOR options, ROM recovery, trust and
+evidence A and B, and (2) the eMMC section, evidence C and the record-wide
+label and boundary checks. They read the files and checked the cited sources
+in a downloaded source pack, because they had no shell. The author ran
+`scripts/check_docs.py` (857 links, 0 errors). CI results are on the PR.
+
+| Reviewer | Verdict | Blocking findings | Other findings |
+| --- | --- | --- | --- |
+| 1 | REVISE | 5: the summary called the serial downloader fall-through the only recovery path although three more paths are in the ROM table. The summary said only a two-stage design gives a field update, against the comparison table. The N0 cell omitted D3 and D4 that the reading covers. The trust table said the ROM does not authenticate the bootloader in open configuration, against B-4. Evidence B-48 claimed a manual search found only five places, but NAND text also matched. | 7: wording of "project position", D1 and D2 mix-up in the N2 cell, Nordic first-stage write path unresolved, irreversibility label, image version control line, redundant-image retry, a missing row cite |
+| 2 | REVISE | 2: the claim that the RT1060 ROM boot partition selection was not found in public material, while the manual copy in use states it (new row B-84). A label stronger than its evidence on atomicity, and a wrong statement about SWUpdate. | 5: unlabelled handoff cells, "four tools" count, SPSDK alias caveat, evidence C header, minor row wording |
+
+All blocking and other findings were fixed in the fix commit of this PR.
+Where the fix added a statement (B-84), the author read the manual text
+himself. Reviewer 1 could not check rows A-7, A-27 to A-32, A-33, A-34, A-37,
+A-38, B-14, B-18, B-50, B-52 to B-56 and B-62, because their sources were not
+in the pack (the author re-read A-33). Reviewer 2 did not check C-1, C-3, C-5,
+C-6, C-15, C-19, C-20, C-22 to C-26, C-29, C-31, C-32, C-40 to C-50 beyond label
+fit. These rows stay as the research agents recorded them.
+
+**Round 2 (narrow re-check of the fix commit only):** pending.

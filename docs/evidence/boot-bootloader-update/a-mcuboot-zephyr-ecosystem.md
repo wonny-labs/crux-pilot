@@ -1,6 +1,6 @@
 # Research A for #299: what MCUboot, Zephyr and the public ecosystem offer for updating or recovering a deployed bootloader
 
-> **Evidence A for the [decision record](../../boot-bootloader-update-investigation.md) of #299.** What MCUboot, Zephyr and public ecosystems offer for updating or recovering a bootloader (rows A-1 to A-55). Desk evidence read on 7 November 2026. It was gathered by a delegated research agent and then checked by the record's author at a sample of rows (see the record's Method section). It is not a hardware result. Row IDs are local to this file. The labels are defined in the [README](README.md#evidence-labels).
+> **Evidence A for the [decision record](../../boot-bootloader-update-investigation.md) of #299.** What MCUboot, Zephyr and public ecosystems offer for updating or recovering a bootloader (rows A-1 to A-55). Desk evidence read on 7 November 2026. It was gathered by a delegated research agent then checked by the record's author at rows A-22 and A-33 only (both matched), and by the independent review at the rows it names in the record's Review record. It is not a hardware result. Row IDs are local to this file. The labels are defined in the [README](README.md#evidence-labels).
 
 Desk investigation, read 7 Nov 2026. Read-only, public upstream sources only. No build, no hardware, nothing claimed to work on a board.
 
