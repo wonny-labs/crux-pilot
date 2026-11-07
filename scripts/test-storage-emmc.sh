@@ -474,3 +474,54 @@ for unwanted in ('crux_probe_read_back', 'f_mount'):
 print('Settings File on Reliance Edge: the real provider with the staged corrections, no FatFs, '
       'no probe copy')
 PY
+
+# Negative control: the same suite on the unpatched upstream backend (the native_sim-only
+# CRUX_SETTINGS_FILE_CONTROL, which the module refuses on any other board) must fail exactly the
+# cases that characterise its defects on this file system, and pass the rest. It is not a Twister
+# scenario, because a scenario that must fail would stop the gate.
+control="$repo/build/zephyr/settings-reliance-control"
+(cd "$workspace" && west build -b native_sim/native/64 -d "$control" -p always \
+    "$repo/tests/native/configuration_settings_reliance" -- \
+    -DCRUX_SETTINGS_FILE_CONTROL=ON > "$control.build.log" 2>&1)
+if timeout 180 "$control/zephyr/zephyr.exe" > "$control.run.log" 2>&1; then
+    echo "settings-reliance control unexpectedly passed on the unpatched backend" >&2
+    exit 1
+fi
+python3 - "$control.run.log" <<'PY'
+import re
+import sys
+
+# The 13 cases that fail on the FatFs RAM disk (scripts/test-storage-simulators.sh) less one. The
+# 12 below fail here for the same reason: the unpatched backend turns an I/O fault that the fixture
+# injects into success, into a missing key or into a lost record, and the injection is the same.
+# test_full_volume_never_acknowledges_a_lost_save fails on FatFs and passes here. The backend's
+# write handler returns a negative result and turns a byte count into success. FatFs answers a
+# write that finds no room with a short or a zero count, which is lost without an error. Reliance
+# Edge answers a write that finds no free block with -ENOSPC, which the unpatched backend returns,
+# so on this file system the case ends in an error that reaches the caller. The unpatched handler
+# still hides a short count here, which test_short_write_is_failure shows with an injected one. The
+# set is exact, so a change in what this file system does at a full volume shows up as a
+# difference to review. The ones that skip are the init-failure case, which has a scenario of its
+# own.
+expected = {
+    'test_a_callback_error_is_returned_by_the_load',
+    'test_compaction_close_error_is_not_success',
+    'test_compaction_read_error_keeps_other_records',
+    'test_compaction_read_fault_never_loses_a_record',
+    'test_each_load_read_fault_preserves_active',
+    'test_interrupted_save_never_yields_a_wrong_value',
+    'test_missing_file_with_a_compaction_leftover_is_an_error',
+    'test_name_write_error_is_failure',
+    'test_save_scan_error_is_not_success',
+    'test_scan_read_error_is_not_missing',
+    'test_short_write_is_failure',
+    'test_zero_write_is_failure',
+}
+log = open(sys.argv[1], errors='replace').read()
+failed = set(re.findall(r'^ - FAIL - \[configuration_settings_reliance\.(\w+)\]', log, re.M))
+if failed != expected or 'pass = 15, fail = 12, skip = 1, total = 28' not in log:
+    raise RuntimeError(f'settings-reliance control differs: unexpected {sorted(failed - expected)}, '
+                       f'missing {sorted(expected - failed)}')
+print(f'settings-reliance control (unpatched backend): {len(failed)} of 28 cases fail as expected, '
+      '15 pass and 1 skips')
+PY
