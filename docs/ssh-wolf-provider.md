@@ -453,7 +453,7 @@ The provider wipes a password from wolfSSH's input buffer once the callback retu
 | The second change on RT1060-EVKB | **Not compiled.** This workspace has no `hal_nxp`, and fetching it was not worth the disk. The wire module is plain C17 with no platform header. The compile figures above are the first change's. |
 | `--measure` after the second change | Not rerun. The wire module allocates nothing. Its object is 1,512 B of text and 64 B of data on `native_sim/native/64`, of which the provider lost the inline checks it replaces. No target size was measured. |
 | SFTP file transfer, and the window-full path in the SFTP loop | #194. The port refuses every operation. |
-| WinSCP | Needs a Windows host, and belongs to #194's acceptance |
+| WinSCP | Needs a Windows host, and belongs to #194's acceptance. A first run is recorded in [the SFTP design](sftp-design.md#the-first-run). |
 | `ssh-audit` | Not installed, and not fetched. The OpenSSH cases read the server's `KEXINIT` directly and test strict key exchange with a control. |
 | IPv6 through the provider | Decision 10 |
 | `scripts/test-ssh-wolf-settings.sh`, and with it the provider beside the TLS socket backend | This author's workspace is a shallow clone, and the recipe's patch needs blobs it lacks. The probe was built without the backend instead. The independent review measured the probe with a reference to the provider at 426,196 B Flash and 291,028 B RAM. |
