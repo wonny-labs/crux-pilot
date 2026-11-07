@@ -219,7 +219,9 @@ not been exercised.
 use only public Crux names, and its manifest pins nothing Crux pins. Real west then takes the
 template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
 against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
-runs the frozen-manifest flow and the build record's input capture. These cases skip when west or
+runs the frozen-manifest flow, the build record's input capture and the guide's routes: a vendor
+branch across two deliveries, a commercial edition under a new project name, a reused project name
+that must fail and a hand-pinned manifest with no import. These cases skip when west or
 PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <board>` runs them with
 `tests/build/test_crux_pins.py`, runs `west crux-pins` on Crux's own workspace and so on a real Zephyr
 manifest, then cross-builds the application in that workspace. It does not operate hardware. The
@@ -273,6 +275,69 @@ the independent C17/C++17 consumer build without private consumer dependencies.
 See [Configuration qualification](../docs/configuration-validation.md) for the
 focused manual `native_sim` and pinned Settings source-wrapper probe commands.
 These checks do not operate Flash or qualify an adopted persistence backend.
+`Configuration.Conformance` also runs the string cases of `string_conformance.c`, and
+`Configuration.NoProvider` runs a parameter over the no-provider port. The storage gate runs the
+same cases on `native_sim` from `tests/configuration/zephyr`, and a string case on each of the two
+Settings backends.
+
+## Status and configuration services
+
+`scripts/test-mgmt-services.sh` runs the services on Host, with and without sanitizers, then their
+thread suites under ThreadSanitizer, their clang-tidy selection, a C and C++ consumer built from
+public headers, and `scripts/check-mgmt-services-boundary.py`. `ConfigService.*` and `MgmtStatus.*`
+run on the real Access core with its fake ports, the fake Configuration store, a recording event port
+and fake status sources with fault injection per source. `MgmtStatus.openapi_schema` holds the
+service's JSON to the status schema read from `web/api/openapi.yaml`, with negative controls.
+`MgmtStatus.source_mapping` holds each mapping in the thin providers to a stand-in for the contract it
+calls, and `MgmtStatus.real_sources` runs them on the real System, Time and Netif on Linux.
+
+The storage gate also runs `tests/native/mgmt_services` on `native_sim`, with the real System, Time
+and Sync and a double for access: after any number of status polls,
+`crux_system_reset_cause_clear` still returns `INVALID_STATE` until the boot owner makes its own read.
+None of this operates hardware, and no target has run these services. See the
+[services contract](../docs/status-configuration-services.md).
+
+## Web contract and HTTP adapter
+
+`scripts/test-web.sh host` runs `Web.*` on the real web and Access cores with a fake transport, and the
+boundary, generator and route review checks. `scripts/test-web.sh native` runs the adapter on the real
+Zephyr server on `native_sim`, over plain HTTP on loopback. `scripts/test-web.sh target` compiles for
+RT1060 on the TLS profiles: Mbed TLS runs in CI in the PSA workflow, and wolfSSL does not. `scripts/test-web.sh https`
+runs the native suite over TLS on the management composition, with the TLS cases of `tests/native/web_https`, on each
+profile: Mbed in the PSA workflow, Wolf locally. Nothing here uses a board. See the [web contract](../docs/web-contract.md)
+and the [HTTPS composition](../docs/https-composition.md).
+
+`scripts/test-web-session.sh native` runs login and sessions on the management composition, with the real Access core
+on its PSA ports, over plain HTTP on `native_sim`, and CI runs it in the PSA workflow. `Web.session_*` are its Host
+suites. Entropy there is test-only. See [web login and sessions](../docs/web-session.md).
+
+`Web.management_*` are the Host suites of the status, configuration and account routes, on the real status and configuration
+services. `scripts/test-web.sh host` runs them, and `Web.management_openapi` holds their real answers to the schemas of
+`web/api/openapi.yaml`. Nothing serves these routes on `native_sim` yet. See
+[status, configuration and account web APIs](../docs/web-management-apis.md).
+
+`NetworkSettings.*` and `Web.network_*` are the Host suites of the network settings service and of `GET` and `PUT /api/v1/network`,
+on the real Access core and Configuration service, with the fake Configuration provider, a fake apply port and a recording event
+port. `scripts/test-network-settings.sh` runs them under both presets with clang-tidy, and `scripts/test-web.sh host` runs the
+`Web.network_*` ones. `Web.network_openapi` holds their real answers to the schemas of `web/api/openapi.yaml`, and
+`tests/network_settings/validation-vectors.tsv` holds the firmware's checks and the TypeScript client's to the same lines. Nothing here
+applies an address to an interface or operates a board. See [network settings service](../docs/network-settings-service.md).
+
+`Reboot.*` and `Web.reboot_*` are the Host suites of the reboot service and of `GET` and `POST /api/v1/system/reboot`, on the real
+Access core, with fake ports for the reset, the sleep, the events that are still pending and the event record. The sleep is virtual, so
+the delay and the bounded wait are held to exact numbers. `Reboot.pending` runs the wait against the real network settings and
+configuration saves. `scripts/test-reboot.sh` runs them under both presets with clang-tidy, and `scripts/test-web.sh host` runs the
+`Web.reboot_*` ones. `Web.reboot_openapi` holds their real answers to the schemas of `web/api/openapi.yaml`, and
+`Web.reboot_no_service` shows that a composition without the service has no reboot route. Nothing here resets a device or operates a
+board. See [reboot service](../docs/reboot-service.md).
+
+## Packaged web assets
+
+`scripts/test-web-assets.sh host` runs the packager's and its CMake function's tests (`tests/build/test_web_assets.py`), `Web.assets_*` on
+the real web core with a fake transport for both content policies, clang-tidy on the new C, and the route review and boundary
+checks. `scripts/test-web-assets.sh native` builds `tests/native/web_assets` and runs its driver against the real Zephyr
+server on `native_sim`. The full Host build and `unittest discover tests/build` pick up `Web.assets_*` and the Python tests on their own, and `zephyr.yml`, shard `io`, runs the
+`native_sim` image. Nothing here uses a board. See [web assets](../docs/web-assets.md).
 
 ## Portable File software slice
 
@@ -321,7 +386,7 @@ and `settings_error/settings_store.patch`. It compares the pinned sources byte f
 outside the Zephyr checkout and fails on drift. The fixture's provider copy can read each
 saved record back; that read-back is tested, not yet part of any product provider. A
 negative control builds the same suite against the unpatched backend and requires its
-characterised result: the named cases that expose the defects fail and the 12 others pass. These are simulator results. They do not show
+characterised result: the named cases that expose the defects fail and the 13 others pass. These are simulator results. They do not show
 persistence, power-loss behaviour or recovery on a real card, and the format limits
 recorded by the tests (no checksum or resynchronisation, a non-atomic compaction, a torn
 tail that can lose the latest save or leave the file unreadable) remain. A missing settings file reads as an empty store unless a compaction leftover (`.cmp`) exists, which is an I/O error until the next save. The backend's inner duplicate scans can still resurrect a deleted key after a read fault; they are neither fixed nor tested, and Crux never deletes.
@@ -642,6 +707,16 @@ a project cannot reach the adapter header, and a service that links the adapter 
 No real provider exists yet, so none of this says anything about entropy, storage or timing on the target. See the
 [Access contract](../docs/access-contract.md).
 
+## Portable command line
+
+Command line (Issue #181): the root Host suite runs `tests/cli` as `Cli.*` in CTest, with a scripted transport, a recording event port, a scripted Serial, and either a scripted access control or the real `crux_access` on its fake ports. These fakes are a test composition: they exist only when Crux builds its own tests.
+`scripts/test-cli.sh` also runs them under the sanitizer preset, runs clang-tidy on the CLI sources, runs `scripts/check-cli-boundary.py`, which configures and builds `tests/cli_consumer` both ways, runs `scripts/check-cli-session-commands.py`, and runs the shell rule's Host tests in `tests/build/test_management_shell.py`.
+`scripts/test-cli.sh --zephyr`, in the Zephyr CI job, runs `tests/build/test_cli_composition.py`: refused compositions at configuration, accepted ones built on `native_sim`, and `tests/zephyr/cli_serial_compile` compiled and linked for the RT1060-EVKB with LPUART3, with the `.config` and image checks of `scripts/check-management-shell.py` on each. No image built here calls the console, and none is flashed or run. Physical serial login needs separate approval. See the [command line contract](../docs/cli-contract.md).
+
+## Command line over SSH
+
+The real entry points of Issue #193 run in `tests/ssh/cli` as `Ssh.cli_*` in the root Host suite. `Ssh.cli_session` compares them, through the fake provider, with the real serial console on a scripted Serial, byte for byte. `Ssh.cli_real_access` runs them on the real `crux_access` core with its fake ports, `Ssh.cli_concurrency` shows one stuck client holding only itself on real threads with a provider double, and `Ssh.cli_entry_symbols` reads what the object files can reach. `tests/ssh/cli/test-compile.sh`, in the Zephyr CI job, compiles them for `native_sim` and the RT1060-EVKB with no wolfSSH. `tests/ssh/cli/test-openssh.sh` runs them on the wolfSSH provider against a real OpenSSH client on `native_sim`. It needs the optional stacks, so no default workflow runs it, and `--target` only compiles for the RT1060-EVKB. None of this flashes, resets or runs a board. See [the CLI over SSH](../docs/cli-over-ssh.md).
+
 ## Portable credential store
 
 The credential store (Issue #178): the root Host suite runs `tests/credential` as `Credential.*` in CTest, on the File
@@ -668,6 +743,19 @@ sanitizer preset, runs clang-tidy on the sources and tests, and runs `scripts/ch
 `tests/security_event_consumer` in both directions. None of this runs on Zephyr or a target. See the
 [Security event contract](../docs/security-event-contract.md).
 
+## TLS certificate
+
+The TLS certificate model (Issue #190): the root Host suite runs `tests/tls_certificate` as `TlsCertificate.*` in CTest.
+The parser suite uses no state and no crypto; the service suites use the real Access core with its fake ports, a fake
+credential adapter and fake hash, signature and random ports, where the signature is not ECDSA; `tls_certificate_store`
+runs on the real credential store with its test-only protection. `scripts/test-tls-certificate.sh host` also runs them
+under the sanitizer preset and runs clang-tidy. Where CMake finds OpenSSL's headers, `tls_certificate_differential`
+holds the parser to OpenSSL's decoder on 300,000 seeded mutations. `TlsCertificate.boundary_*` configure a separate
+project to show that a consumer reaching the adapter is refused. `scripts/test-tls-certificate.sh psa` builds `tests/tls_certificate/psa`
+on TF-PSA-Crypto and checks a real key's certificate, request and PKCS #8 key with OpenSSL, including a TLS 1.3
+handshake; CI does not run it. Nothing here registers the material with Zephyr or runs on `native_sim` or a target. See
+the [TLS certificate design](../docs/tls-certificate.md).
+
 ## Web frontend
 
 The web frontend has its own tools under `web/` and needs Node.js, while no C build does. Its commands are in the
@@ -689,10 +777,38 @@ The standard Host CTest includes `Ssh.ProviderConformance`, which runs the cases
 provider, `Ssh.ConformanceCatchesDefects`, which gives the fake each deliberate defect and requires the named case to fail, and
 `Ssh.Boundaries`, which runs `scripts/check-ssh-boundaries.py`. It also has `Ssh.FakeProvider`, `Ssh.AttachmentDouble`, `Ssh.CallbackTable`
 and a test of each stand-in entry point. The fake needs no SSH library, and the CLI and SFTP Host tests link it. It runs every callback
-on the calling thread, so it shows no concurrency, timing or protocol behaviour. No real provider has run the cases yet.
+on the calling thread, so it shows no concurrency, timing or protocol behaviour.
 `tests/build/test_ssh_boundaries.py` shows that the boundary check rejects each violation.
 
 `scripts/test-ssh-wolf-settings.sh` is not part of any default workflow, because it needs the optional `crux-secure-management`
 west group. It compiles and links `tests/zephyr/ssh_wolf_probe` for `mimxrt1060_evk@B//qspi` with the TLS socket backend, and for
 `native_sim/native/64` both ways, and runs negative controls. It never flashes or runs an image, and the file port it links
 is one that refuses every operation. See [the SSH provider contract](../docs/ssh-provider-contract.md).
+
+`Ssh.sftp` runs the SFTP operations through the fake provider on the real file service and Access core, and `Ssh.sftp_port_shape` calls the port's macros as wolfSSH does.
+`scripts/test-ssh-sftp-openssh.sh` is not part of any default workflow, for the same reason. It runs OpenSSH against the unedited wolfSSH handlers on Linux, through the real port and file service, with a server in `tests/ssh/sftp/openssh` that stands in for the provider, and replays the requests of WinSCP. `scripts/test-ssh-sftp-native.sh` runs the same cases on `native_sim`, through the provider of #192, the real file service and FatFs over a RAM disk, and it stops at once on a tree without that provider. `scripts/test-ssh-sftp-compile.sh` compiles the real operations for the target and `native_sim`. See [the SFTP design](../docs/sftp-design.md).
+
+`scripts/test-ssh-provider.sh`, also outside every default workflow for the same reason, runs the wolfSSH provider: the conformance cases
+with a scripted client, and `tests/zephyr/ssh_provider/openssh_test.py` with a real OpenSSH client, both on `native_sim/native/64` over the
+native socket offload. It then boots an image built with `CRUX_SSH_TEST_STORED_HOST_KEY` several times on one flash file, with the host key
+from the credential store on its PSA ports over wolfPSA. It also records resource use as simulation results, compiles for
+`mimxrt1060_evk@B//qspi`, and shows that the Mbed profile fails at configuration. The provider's checks on client input are in the Host
+suite as `Ssh.wire`, with seeded mutations against an oracle, and `Ssh.wire_mutations`, which needs each of 22 source mutants to fail it
+under sanitizers. See [the wolfSSH provider](../docs/ssh-wolf-provider.md), which declares the test ports behind these results.
+
+## PSA Crypto qualification
+
+`tests/psa_crypto` holds provider-neutral PSA Crypto conformance cases (Issue #142), a standalone Linux Host project, a `native_sim` Ztest app and two
+stub providers that prove the cases can fail. `provider_declarations.cmake` states what each provider does not support or fails, and the harnesses compare it with the run in both directions.
+
+`scripts/test-psa-crypto.sh [host|zephyr|target|all]` needs a west workspace with the optional `crux-secure-management` group. `host` runs the controls and both providers with and without sanitizers. `zephyr` runs
+Twister on `native_sim/native/64` and checks that `native_sim` random stays test-only. `target` compiles both providers for `mimxrt1060_evk@B//qspi`, and never flashes, resets or runs an image. The `psa-crypto` workflow runs all three with the second argument `tf-psa-crypto`, because a default workflow must not select the GPL stacks, so wolfPSA runs only locally.
+No consumer calls a provider here. See the [qualification record](../docs/psa-crypto-qualification.md) and the [design](../docs/psa-crypto-design.md).
+
+`tests/psa_entropy` shows what Zephyr's Mbed TLS glue does when the entropy device fails: a `native_sim` application over a test entropy device whose reads can be made to fail, on the legacy RNG as on RT1060-EVKB, with three Twister configurations. `scripts/test-psa-crypto.sh zephyr` runs them, and the unit test of `scripts/prepare-mbedtls-entropy.py`, in the `psa-crypto` workflow. The test fails a read before initialisation only, and reseeding and a board's TRNG are not covered. See [Entropy failure](../docs/psa-crypto-qualification.md#entropy-failure).
+
+## Management composition on `native_sim`
+
+`tests/management_providers` runs in the root Host suite, as `ManagementProviders.*`: the event providers, status sources and the Access clock, each against a controlled answer. `tests/psa_ports` holds the PSA providers' cases, on Linux Host and `native_sim`, and `tests/psa_ports/suites` runs existing Access and credential suites on them, on Host, with `-DCRUX_TEST_SUITES_ON_PSA=ON`. `tests/native/tls_offload_probe` is a TLS socket over the native socket offload with a client on the host, and `tests/native/management_composition` is the services together on real providers. `tests/native/management_services` adds every other management service on the same providers behind HTTPS, the command line and file service event providers among them, and `driver.py` runs its cases over TLS; see [every management service on `native_sim`](../docs/native-composition-242.md). `tests/native/management_services/e2e` packages the built Preact or Angular example into the same image with the mock's accounts and parameters, and `scripts/test-native-composition.sh e2e-mbed` or `e2e-wolf` runs `server_checks.py` and the browser cases of `web/e2e` against it; `tests/web/project_sample` serves the small example project on Host; see [the web examples end to end](../docs/e2e-native-220.md).
+
+`scripts/test-tls-offload-probe.sh [all|mbed|wolf]` and `scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]` run them. `mbed` needs the `mbedtls` and `tf-psa-crypto` projects, and the `psa-crypto` workflow runs it. `wolf` needs the `crux-secure-management` group, and no default workflow runs it. `mbed` and `wolf` also build the services image, check it with `scripts/check-composition-image.py --services` and run its driver. `target-*` compiles and never flashes, resets or runs an image. See the [composition](../docs/native-management-composition.md).

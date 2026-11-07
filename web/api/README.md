@@ -1,7 +1,7 @@
 # Management API specification
 
 [`openapi.yaml`](openapi.yaml) describes the management API for the first screens: session, attempt polling,
-current user, own password change, status, network settings and reboot. It lets the firmware and frontend
+current user, own password change, status, configuration, network settings and reboot. It lets the firmware and frontend
 tracks work in parallel, and it depends on no framework.
 
 **Change rule.** A change to the specification is one reviewed PR that the firmware and frontend tracks rebase

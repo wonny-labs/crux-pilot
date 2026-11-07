@@ -5,8 +5,8 @@
  * CRUX_ERR_TIMEOUT at once, or CRUX_ERR_NO_DATA after send_eof. It is not thread safe, and only
  * tests can link it.
  *
- * Signature checks are modelled: key_login says whether the signature verifies. The keys are the
- * size of real SSH key blobs, and nothing parses them.
+ * Signature checks are modelled: key_login says whether the signature verifies. The keys have the
+ * form of real SSH key blobs, which the fake checks as a provider does, with key bytes of zero.
  */
 #ifndef CRUX_SSH_FAKE_PROVIDER_H
 #define CRUX_SSH_FAKE_PROVIDER_H
@@ -83,6 +83,7 @@ typedef enum {
     CRUX_SSH_FAKE_FAULT_SECOND_LOGIN_KEEPS_CONNECTION,
     CRUX_SSH_FAKE_FAULT_SESSION_ALIVE_OTHER_CONNECTION,
     CRUX_SSH_FAKE_FAULT_TERMINAL_ACROSS_CONNECTIONS,
+    CRUX_SSH_FAKE_FAULT_ACCEPTS_MALFORMED_KEY,
     CRUX_SSH_FAKE_FAULT_COUNT
 } crux_ssh_fake_fault_t;
 

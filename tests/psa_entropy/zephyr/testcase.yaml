@@ -1,0 +1,15 @@
+common:
+  platform_allow: [native_sim/native/64]
+  timeout: 120
+  tags: [crypto, crux, psa-entropy]
+tests:
+  crux.psa_entropy.fail_closed.healthy_read:
+    extra_configs:
+      - CONFIG_CRUX_FAIL_CLOSED_ENTROPY=y
+  crux.psa_entropy.fail_closed.failing_read:
+    extra_configs:
+      - CONFIG_CRUX_FAIL_CLOSED_ENTROPY=y
+      - CONFIG_CRUX_TEST_ENTROPY_FAILS=y
+  crux.psa_entropy.upstream_fallback.failing_read:
+    extra_configs:
+      - CONFIG_CRUX_TEST_ENTROPY_FAILS=y

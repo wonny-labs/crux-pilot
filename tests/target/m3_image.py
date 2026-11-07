@@ -8,6 +8,12 @@ def require(condition, message):
         raise ValueError(message)
 
 
+def check_optimization(config):
+    """Verification evidence is for -Os images; a debug build's stack use and timing differ."""
+    require({'CONFIG_SIZE_OPTIMIZATIONS=y', 'CONFIG_COMPILER_OPT=""'}.issubset(config),
+            'Image not built at the verified -Os optimisation level')
+
+
 def check_image_bytes(binary_path, elf_path):
     binary = Path(binary_path).read_bytes()
     elf = Path(elf_path).read_bytes()
@@ -90,6 +96,7 @@ def check_image(binary_path, elf_path, config_path, profile):
     if integrated:
         require(symbols.get('network_stack', {}).get('bytes') == 4160, 'Unexpected network stack object')
     config = Path(config_path).read_text().splitlines()
+    check_optimization(config)
     if {'CONFIG_CRUX_M3_DEFERRED_OUTPUT=y', 'CONFIG_CRUX_M3_NATIVE_OUTPUT=y'}.intersection(config):
         require((profile == 'network' or (integrated and 'CONFIG_CRUX_M3_NATIVE_OUTPUT=y' in config))
                 and symbols.get('logging_stack', {}).get('bytes') == 2112,

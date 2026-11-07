@@ -1,0 +1,16 @@
+# Red: the classifier before it was narrowed, with the split cases, 4 November 2026. Local run, Dev Container image.
+# The permissive stub accepted an all-zero signature, and the run reported a declared DEVIATION. The second part is wolfPSA on
+# Linux Host, where the truncated-signature and missing-prefix checks ran for the first time.
+[18/18] Linking C executable psa_conformance_hidden
+--- red: permissive stub accepts an all-zero signature, with that case declared a deviation
+DEVIATION ecdsa_p256_zero_signature_invalid (declared): psa_cases.c:485: psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample, zeros, sizeof zeros) returned 0, expected -149
+[17/17] Linking C executable psa_conformance_hidden
+--- wolfPSA on Host, the checks that had never run
+PASS ecdsa_p256_flipped_signature_invalid
+DEVIATION ecdsa_p256_zero_signature_invalid (declared): psa_cases.c:485: psa_verify_hash(r->key, ECDSA_SHA256, vec_sha256_sample, sizeof vec_sha256_sample, zeros, sizeof zeros) returned -132, expected -149
+PASS ecdsa_p256_truncated_signature_rejected
+DEVIATION ecdsa_p256_off_curve_import_rejected (declared): psa_cases.c:536: import_p256_public(r, VERIFY_USAGE, ECDSA_SHA256, off_curve, sizeof off_curve) returned 0, expected -135
+PASS ecdsa_p256_missing_prefix_import_rejected
+PASS ecdsa_p256_off_curve_key_never_verifies
+PASS hmac_sha256_empty_input_known_answer
+45 cases, 0 failed, 0 declared unsupported, 2 declared deviations
