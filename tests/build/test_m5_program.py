@@ -260,9 +260,11 @@ class Identify(Case):
         with self.driver('identify') as driver:
             held = driver.identify([('integrated-normal', self.normal), ('normal', self.entry)])
         self.assertEqual(held, ['integrated-normal', 'normal'])
-        joined = ''.join(self.commands)
+        # Compare the Commander words only: image paths are quoted and contain random temporary names.
+        import re
+        joined = re.sub(r'"[^"]*"', '""', ''.join(self.commands)).replace('verifybin', '')
         for forbidden in ('loadfile', 'erase', 'r\n', 'g\n', 'w4', 'wreg', 'unlock'):
-            self.assertNotIn(forbidden, joined.replace('verifybin', ''), forbidden)
+            self.assertNotIn(forbidden, joined, forbidden)
         self.assertTrue(all('IsHalted' in c for c in self.commands[1:]))
         self.assertEqual(self.commands[0], 'q\n')
 
