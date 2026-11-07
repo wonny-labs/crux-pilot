@@ -145,7 +145,7 @@ The Zephyr J-Link runner needs a local J-Link Commander even when it is given a 
 
 The verified external-consumer contract uses the **root** `add_subdirectory()` entry point. When included as a dependency, Crux selects **Base only** by default. The parent project's `BUILD_TESTING`, enabled languages and language-standard settings remain its own. Crux's tests and samples default OFF in this mode.
 
-Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `DELAY`, `THREAD`, `SYNC`, `QUEUE`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `SERIAL`, `LOGGING` and `SYSTEM`. Base is always available.
+Enable only the needed capabilities before inclusion with `CRUX_BUILD_<COMPONENT>`. The available choices are `TIME`, `THREAD`, `SYNC`, `QUEUE`, `NETIF`, `SOCKETS`, `CONFIGURATION`, `FILE`, `GPIO`, `SERIAL`, `LOGGING`, `SYSTEM`, `I2C`, `SPI`, `ACCESS`, `FILE_SERVICE`, `CREDENTIAL`, `SECURITY_EVENT`, `CONFIG_SERVICE`, `MGMT_STATUS` and `CLI`. Base is always available. Some choices require others, and the [capability and provider table](#capability-and-provider-selection) lists the requirements.
 
 ### Complete Queue, Time and Thread example
 
@@ -247,6 +247,7 @@ The external application tests also cover C++17, independently selected Thread/S
 | Web | Select `CRUX_BUILD_WEB=ON`, which requires Access. Name the sources that hold routes with `crux_web_routes` from `cmake/CruxWebRoutes.cmake`. On Zephyr select `CONFIG_CRUX_WEB`, and a composition supplies Access and starts the server. To serve a built frontend folder from firmware, call `crux_web_assets` from `cmake/CruxWebAssets.cmake` before `crux_web_routes`: see [web assets](web-assets.md). See the [web contract](web-contract.md). |
 | Queue | Portable targets use `crux::queue`. The final Linux executable additionally links `crux::queue_linux` |
 | Serial | Select `CRUX_BUILD_SERIAL=ON`. The existing Linux provider value is `CRUX_SERIAL_PROVIDER=host` and TTY binding belongs to platform composition |
+| GPIO | Select `CRUX_BUILD_GPIO=ON`; the Host provider is an in-memory test simulation, and `host` is the only `CRUX_GPIO_PROVIDER` value in the root build. Zephyr applications compile the native provider and bind `crux-gpio0` to a node with a `gpios` property. See the [GPIO contract](gpio-contract.md) |
 | I2C | Select `CRUX_BUILD_I2C=ON`; the Host provider is a deterministic loopback fixture for portable consumer tests. Zephyr applications compile the native provider and bind `crux-i2c0` to a selected controller |
 | SPI | Select `CRUX_BUILD_SPI=ON`; the Host provider is a deterministic loopback fixture. Zephyr applications compile the native provider and bind `crux-spi0` to a selected peripheral |
 | Logging | Select `CRUX_BUILD_LOGGING=ON`. The existing Linux provider value is `CRUX_LOGGING_PROVIDER=host` |

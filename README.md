@@ -15,8 +15,10 @@ Applications select the components they need. Portable application and runtime-p
 | Communication and networking | `serial`, `sockets`, `netif` | Serial byte streams, IPv4 TCP clients/connected UDP and network-interface status |
 | Storage and configuration | `file`, `configuration` | File access and application-supplied parameter validation and save/load |
 | Diagnostics and system | `logging`, `system` | Diagnostic logging, service status, reset diagnostics and watchdog operations |
+| Device I/O | `gpio`, `i2c`, `spi` | Synchronous GPIO input, I2C transfers and SPI exchange, each on one statically composed resource |
+| Management and security | `access`, `credential`, `security_event`, `file_service`, `config_service`, `mgmt_status`, `cli` | Accounts and permission checks, a credential and key store, security events, and management services for files, configuration, status and a command line |
 
-All listed components have implemented source, but available OS implementations and validation levels differ. The Sockets capability uses a documented, tested POSIX socket API subset rather than a Crux socket wrapper. For each component's contract, available implementations and limitations, see the [capability inventory](docs/architecture.md#current-capability-integration).
+All listed components have implemented source, but available OS implementations and validation levels differ. Most of the management and security components are portable cores tested on Host. Their providers so far are linked only by Crux's own test compositions, and no product composition uses them yet. The Sockets capability uses a documented, tested POSIX socket API subset rather than a Crux socket wrapper. For each component's contract, available implementations and limitations, see the [capability inventory](docs/architecture.md#current-capability-integration).
 
 ## Architecture
 
