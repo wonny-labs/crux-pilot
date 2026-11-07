@@ -34,6 +34,19 @@ config SAMPLE_RELIANCE_SD_REPLACE_TEST
 	  and fs_rename in a loop until power is cut. This WRITES to the card and is meant to be
 	  interrupted; physical use needs approval for the current task.
 
+config SAMPLE_RELIANCE_SD_FORMAT
+	bool "Format the card once at boot (format image)"
+	depends on !SAMPLE_RELIANCE_SD_APPEND_TEST && !SAMPLE_RELIANCE_SD_REPLACE_TEST && \
+		   !SAMPLE_EMMC_START
+	select FILE_SYSTEM_MKFS
+	select CRUX_FS_RELIANCE_EDGE_FORMAT
+	help
+	  Off by default. When on, the image is the format image: it has its own main, compiles the
+	  Reliance Edge formatter and no other scenario's source, tries to mount first, and formats the
+	  card and creates /MMC:/files and /MMC:/settings only if that mount failed. A card that
+	  already holds a volume is left as it is. It excludes the other three options. This WRITES to
+	  the card; physical use needs approval for the current task.
+
 # The reused main.c files of samples/storage_sd_interrupt and samples/storage_sd_replace test these
 # names. They follow the two options above and are not set on their own.
 config SAMPLE_SD_INTERRUPT_TEST

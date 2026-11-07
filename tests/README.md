@@ -507,13 +507,16 @@ a board.
 
 The same script also links `samples/storage_reliance_sd`, the Stage A images of the
 [eMMC physical gate](../docs/emmc-reliance-physical-gate.md) that run Reliance Edge on the EVKB's own microSD
-slot (disk `SD`, mount point `/MMC:`): the default image, the mount check (`.start`), and the append and
-replace tests, whose `main.c`, `sd_interrupt.c` and `sd_replace.c` are those of `samples/storage_sd_interrupt` and
-`samples/storage_sd_replace`, compiled unchanged behind a shim header. For each of the four scenarios the script
-requires the microSD disk driver and Reliance Edge in `.config`, `CONFIG_SDHC_BUFFER_ALIGNMENT=32`, no MMC driver
-and no formatter, and that `red_format` is not linked. The default image must link none of `emmc_storage_start`,
-`sd_interrupt_append` and `sd_replace_generation`, so it provably touches no card; each other image links exactly its
-own. No image may load above `0x60600000`, the end of the flash range that the Stage A procedure backs up. The ELF
+slot (disk `SD`, mount point `/MMC:`): the default image, the mount check (`.start`), the append and replace
+tests, whose `main.c`, `sd_interrupt.c` and `sd_replace.c` are those of `samples/storage_sd_interrupt` and
+`samples/storage_sd_replace`, compiled unchanged behind a shim header, and the format image (`.format`), which has
+its own `main` in `format.c` and, only when no volume mounts on the card, formats it once and creates `/MMC:/files`
+and `/MMC:/settings`. For each of the five scenarios the script requires the microSD disk driver and Reliance Edge
+in `.config`, `CONFIG_SDHC_BUFFER_ALIGNMENT=32` and no MMC driver. The formatter is in the `.format` image only:
+`CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT=y` and `red_format` are in that image and in no other. The default
+image must link none of `emmc_storage_start`, `sd_interrupt_append`, `sd_replace_generation` and
+`reliance_format_once`, so it provably touches no card; each other image links what its scenario needs and none of another scenario's test or format code.
+No image may load above `0x60600000`, the end of the flash range that the Stage A procedure backs up. The ELF
 SHA-256 of each image goes to the log only. Nothing is programmed or run, and no image is kept or uploaded.
 
 `scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds

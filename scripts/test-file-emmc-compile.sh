@@ -205,7 +205,7 @@ expect_cmake_failure "$repo/build/zephyr/file-emmc-settings-control" \
 
 # Link only: the Stage A images of the eMMC physical gate, which run Reliance Edge on the EVKB's own
 # microSD slot (samples/storage_reliance_sd): the default image that touches no card, the mount
-# check, and the append and replace tests. Nothing is programmed, reset or run, and no image is kept
+# check, the append and replace tests, and the one-shot format image. Nothing is programmed, reset or run, and no image is kept
 # or uploaded: each image links GPLv2 source and is a test image. The ELF SHA-256 of each image goes
 # to the log only. The same CRUX_FILE_EMMC_SKIP_BUILD=1 rule applies to this output directory.
 sd_output="${CRUX_FILE_RELIANCE_SD_OUTPUT:-$repo/build/zephyr/file-reliance-sd-link}"
@@ -226,28 +226,36 @@ output, board = Path(sys.argv[1]), sys.argv[2]
 suites = json.load(open(output / 'twister.json'))['testsuites']
 names = sorted(s['name'] for s in suites)
 expected = ['crux.sample.storage_reliance_sd', 'crux.sample.storage_reliance_sd.append',
-            'crux.sample.storage_reliance_sd.replace', 'crux.sample.storage_reliance_sd.start']
+            'crux.sample.storage_reliance_sd.format', 'crux.sample.storage_reliance_sd.replace',
+            'crux.sample.storage_reliance_sd.start']
 if (names != expected or any(s['platform'] != board or s.get('status') != 'not run' or
                              s.get('runnable') for s in suites)):
-    raise RuntimeError(f'RT1060 microSD Stage A link check did not build the four scenarios: '
+    raise RuntimeError(f'RT1060 microSD Stage A link check did not build the five scenarios: '
                        f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
 
 REQUIRED = ['CONFIG_DISK_DRIVER_SDMMC=y', 'CONFIG_CRUX_FS_RELIANCE_EDGE=y',
             'CONFIG_CRUX_FILE_RELIANCE_EDGE=y', 'CONFIG_SDHC_BUFFER_ALIGNMENT=32']
-UNSET = ['CONFIG_DISK_DRIVER_MMC', 'CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT']
+UNSET = ['CONFIG_DISK_DRIVER_MMC']
 OPTIONS = ['CONFIG_SAMPLE_EMMC_START', 'CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST',
-           'CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST']
+           'CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST', 'CONFIG_SAMPLE_RELIANCE_SD_FORMAT']
+# The Reliance Edge formatter (red_format) is compiled only for the format image, which sets
+# CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT through its option; every other image must have neither.
+FORMAT_SCENARIO = 'crux.sample.storage_reliance_sd.format'
+FORMAT_SYMBOL = 'CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT'
 # Each scenario is (name, the one option it sets, symbols that must be linked, symbols that must not
-# be). The default image calls none of the three, so it provably touches no card.
+# be). The default image calls none of the four, so it provably touches no card. The format image
+# does not mount through emmc_storage_start: it has its own mount and the one function that formats.
 SCENARIOS = [
     ('crux.sample.storage_reliance_sd', None, [],
-     ['emmc_storage_start', 'sd_interrupt_append', 'sd_replace_generation']),
+     ['emmc_storage_start', 'sd_interrupt_append', 'sd_replace_generation', 'reliance_format_once']),
     ('crux.sample.storage_reliance_sd.start', 'CONFIG_SAMPLE_EMMC_START', ['emmc_storage_start'],
-     ['sd_interrupt_append', 'sd_replace_generation']),
+     ['sd_interrupt_append', 'sd_replace_generation', 'reliance_format_once']),
     ('crux.sample.storage_reliance_sd.append', 'CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST',
-     ['emmc_storage_start', 'sd_interrupt_append'], ['sd_replace_generation']),
+     ['emmc_storage_start', 'sd_interrupt_append'], ['sd_replace_generation', 'reliance_format_once']),
     ('crux.sample.storage_reliance_sd.replace', 'CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST',
-     ['emmc_storage_start', 'sd_replace_generation'], ['sd_interrupt_append']),
+     ['emmc_storage_start', 'sd_replace_generation'], ['sd_interrupt_append', 'reliance_format_once']),
+    (FORMAT_SCENARIO, 'CONFIG_SAMPLE_RELIANCE_SD_FORMAT', ['reliance_format_once'],
+     ['emmc_storage_start', 'sd_interrupt_append', 'sd_replace_generation']),
 ]
 # The Stage A procedure backs up the first 6 MiB of the QSPI flash only, so no image may load above.
 IMAGE_LIMIT = 0x60600000
@@ -288,6 +296,10 @@ for name, option, wanted, forbidden in SCENARIOS:
     for symbol in UNSET:
         if any(line.startswith(symbol + '=') for line in lines):
             raise RuntimeError(f'{name}: {symbol} is set in {config}')
+    format_set = FORMAT_SYMBOL + '=y' in lines
+    if format_set != (name == FORMAT_SCENARIO) or (
+            name != FORMAT_SCENARIO and any(line.startswith(FORMAT_SYMBOL + '=') for line in lines)):
+        raise RuntimeError(f'{name}: {FORMAT_SYMBOL} must be set in the format image only, see {config}')
     for symbol in OPTIONS:
         if (symbol + '=y' in lines) != (symbol == option):
             raise RuntimeError(f'{name}: {symbol} is {"set" if symbol + "=y" in lines else "unset"}, '
@@ -297,8 +309,9 @@ for name, option, wanted, forbidden in SCENARIOS:
     symbols = subprocess.run([find_nm(build), str(elf)], check=True, capture_output=True,
                              text=True).stdout.splitlines()
     present = {line.split()[-1] for line in symbols if len(line.split()) >= 3}
-    if 'red_format' in present:
-        raise RuntimeError(f'{name}: red_format is linked into {elf}')
+    if ('red_format' in present) != (name == FORMAT_SCENARIO):
+        raise RuntimeError(f'{name}: red_format is {"linked" if "red_format" in present else "missing"} '
+                           f'in {elf}, expected it in the format image only')
     for symbol in wanted:
         if symbol not in present:
             raise RuntimeError(f'{name}: {symbol} is not linked into {elf}')
