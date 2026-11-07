@@ -141,3 +141,23 @@ if(CONFIG_CRUX_WEB)
         "${CMAKE_CURRENT_BINARY_DIR}/web")
     cmake_language(DEFER CALL crux_assert_portable_usage crux::web)
 endif()
+
+# SSH has no crux:: target and no public header, so the module builds nothing for it. It refuses what no
+# composition could make work, at configuration, and a composition then calls crux_ssh_wolf_settings() from
+# components/ssh/ports/zephyr/wolf_ssh_settings.cmake, which reads CONFIG_CRUX_SSH_CLI, CONFIG_CRUX_SSH_SFTP
+# and the sizes of the provider from the Kconfig symbols.
+if(CONFIG_CRUX_SSH)
+    # The design gives the Mbed profile no SSH provider, and two TLS stacks are not a supported image.
+    if(CONFIG_MBEDTLS OR CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS)
+        message(FATAL_ERROR "CONFIG_CRUX_SSH needs the Wolf profile. The Mbed profile has no SSH provider: "
+                            "see docs/plans/secure-management-design.md#provider-profiles")
+    endif()
+    if(NOT CONFIG_WOLFSSL OR NOT CONFIG_WOLFSSH)
+        message(FATAL_ERROR "CONFIG_CRUX_SSH needs CONFIG_WOLFSSL and CONFIG_WOLFSSH, from the "
+                            "crux-secure-management west group")
+    endif()
+    if(NOT CONFIG_WOLFSSH_SETTINGS_FILE STREQUAL "crux_wolfssh_settings.h")
+        message(FATAL_ERROR "CONFIG_CRUX_SSH needs CONFIG_WOLFSSH_SETTINGS_FILE=\"crux_wolfssh_settings.h\": "
+                            "add components/ssh/ports/zephyr/wolf-ssh.conf to EXTRA_CONF_FILE")
+    endif()
+endif()

@@ -4,6 +4,15 @@
 # backend and wolfSSH agree. The module's user_settings.h leaves each of these undefined, so none of them
 # redefines a macro there. It also builds the entry points, the file port and the provider from the lists
 # that each session owns, so that no session changes this file to add a source.
+# An image that selects SSH with Kconfig (CONFIG_CRUX_SSH, zephyr/Kconfig) takes the command line and SFTP from
+# CONFIG_CRUX_SSH_CLI and CONFIG_CRUX_SSH_SFTP, which have to be known before the lists below are read. An image
+# that sets the variables itself, as the test images of #192 to #194 do, has no CONFIG_CRUX_SSH and is unchanged.
+if(CONFIG_CRUX_SSH_CLI)
+    set(CRUX_SSH_CLI_COMMAND_LINE ON)
+endif()
+if(CONFIG_CRUX_SSH_SFTP)
+    set(CRUX_SSH_SFTP_FILE_SERVICE ON)
+endif()
 set(CRUX_SSH_WOLF_SETTINGS_DIR "${CMAKE_CURRENT_LIST_DIR}")
 get_filename_component(CRUX_SSH_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 get_filename_component(CRUX_REPOSITORY_DIR "${CRUX_SSH_DIR}/../.." ABSOLUTE)
@@ -67,6 +76,15 @@ function(crux_ssh_wolf_settings)
     if(CRUX_SSH_PROVIDER_SOURCES)
         _crux_ssh_owned_objects(crux_ssh_wolf_provider ${CRUX_SSH_PROVIDER_SOURCES})
         crux_ssh_wolfssh_client(crux_ssh_wolf_provider)
+        if(CONFIG_CRUX_SSH)
+            # The sizes come from Kconfig, so that a composition sets them in one place. The provider's own
+            # defaults are the same numbers. CRUX_SSH_WOLF_CONNECTIONS_MAX stays at its bound of 4, which the
+            # range of CONFIG_CRUX_SSH_MAX_CONNECTIONS also holds.
+            target_compile_definitions(crux_ssh_wolf_provider PRIVATE
+                CRUX_SSH_WOLF_WORKER_STACK_BYTES=${CONFIG_CRUX_SSH_WORKER_STACK_BYTES}
+                CRUX_SSH_WOLF_LISTENER_STACK_BYTES=${CONFIG_CRUX_SSH_LISTENER_STACK_BYTES}
+                CRUX_SSH_WOLF_WINDOW_BYTES=${CONFIG_CRUX_SSH_WINDOW_BYTES})
+        endif()
         target_include_directories(crux_ssh_wolf_provider PRIVATE
             "${CRUX_SSH_DIR}/src" "${CRUX_SSH_DIR}/adapter"
             "${CRUX_REPOSITORY_DIR}/components/access/include"
