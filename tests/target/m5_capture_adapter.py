@@ -153,7 +153,8 @@ class M3UARTLease:
             runner.oracle.require(observed['active'],'Initial carrier unknown/inactive')
             parse_direct_route((self.directory/(label+'-route.txt')).read_text(),observed['source'])
             service=m3.run_checked(['networksetup','-getinfo',BENCH['service']],self.directory/(label+'-service.txt'))
-            runner.oracle.require('Manual Configuration' in service.splitlines() and 'IP address: '+BENCH['host'] in service and 'Subnet mask: 255.255.255.0' in service and 'Router: (null)' in service and 'Ethernet Address: '+BENCH['nic_mac'] in service,'Isolated service changed')
+            lines=service.splitlines()
+            runner.oracle.require(all(line in lines for line in ('Manual Configuration','IP address: '+BENCH['host'],'Subnet mask: 255.255.255.0','Router: (null)','Ethernet Address: '+BENCH['nic_mac'])),'Isolated service changed')
         else:
             # The accepted owner is this process only; deny every other UART
             # owner and all debugger processes while this capture owns UART.

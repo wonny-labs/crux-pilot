@@ -1,9 +1,11 @@
 """The one reviewed identity block of the dedicated M5 physical bench.
 
-Every M5 physical gate (runner plan, approval binding, host NIC and route checks,
-service check, UART lease, series replay) reads these values; none keeps its own
-copy. A value changes only with an independent review and the owner's approval of
-the new identity, because this block is what makes the gates fail closed on any
+The M5 identity gates (runner plan, approval binding, host NIC and route checks,
+service check, UART lease, series replay) read these values and keep no copy. Values
+that did not change stay where they were: the probe serial in the J-Link identity
+pattern and lock file name, the peer address and ports, and the M3 helpers' USB serial.
+A value changes only with an independent review and the owner's approval of the new
+identity, because this block is what makes the gates fail closed on any
 other adapter, port or board.
 
 The values below come from the read-only host inventory of 2026-11-07 (uhubctl
@@ -20,7 +22,6 @@ BENCH = dict(
     nic_interface='en13',
     nic_model='AX88179',
     nic_mac='00:24:9b:6e:f7:7f',
-    nic_usb_serial='0000249B6EF77F',
     service='AX88179 3',
     host='192.168.77.1',
     target='192.168.77.2',

@@ -42,7 +42,7 @@ class BenchIdentity(unittest.TestCase):
     def test_reviewed_block_is_exact(self):
         # Values come from the 2026-11-07 Phase A inventory of the current bench.
         self.assertEqual(m5_bench.BENCH, dict(
-            nic_interface='en13', nic_model='AX88179', nic_mac='00:24:9b:6e:f7:7f', nic_usb_serial='0000249B6EF77F',
+            nic_interface='en13', nic_model='AX88179', nic_mac='00:24:9b:6e:f7:7f',
             service='AX88179 3', host='192.168.77.1', target='192.168.77.2', prefix=24,
             uart='/dev/cu.usbmodem11402', uart_usb_serial='02290000325182c300000000000000000000000097969905',
             probe_serial='602003106'))
@@ -122,6 +122,7 @@ class LeaseIdentity(unittest.TestCase):
         iface = 'ether 00:24:9b:6e:f7:7f\ninet 192.168.77.1 netmask 0xffffff00\nstatus: active\n'
         route = '   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en13\n      flags: <UP,DONE,STATIC>\n'
         for bad in (good.replace('00:24:9b:6e:f7:7f', '00:0a:cd:41:89:cc'), good.replace('Manual Configuration', 'DHCP Configuration'),
+                    good.replace('IP address: 192.168.77.1', 'IP address: 192.168.77.10'),
                     good.replace('Router: (null)', 'Router: 192.168.77.254'), good.replace('Ethernet Address: 00:24:9b:6e:f7:7f', 'Ethernet Address: (null)')):
             def run_checked(command, path, bad=bad):
                 text = {'ifconfig': iface, 'route': route, 'networksetup': bad}[command[0]]
@@ -247,7 +248,7 @@ class ReducedPlan(unittest.TestCase):
         runner.validate_approval(approval, plan)
         full = runner.plan('a' * 64, [31, 32, 33], 'b' * 64, 'c' * 64)
         with self.assertRaises(ValueError):
-            runner.validate_approval(approve(full), plan)          # 28-operation approval against a reduced plan
+            runner.validate_approval(approve(full), plan)          # 19-operation approval against a reduced plan
         with self.assertRaises(ValueError):
             runner.validate_approval(approval, full)               # reduced approval against the full plan
         extra = copy.deepcopy(approval); extra['operations']['boot_1_cable_disconnect'] = True
@@ -369,17 +370,24 @@ class ReducedCapture(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path, record = runner.series_session(directory, plan, 1, 10., 'host-boot-A')
             self.assertEqual(record['reduced'], plan['reduced'])
-            with self.assertRaises(ValueError):
+            with self.assertRaisesRegex(ValueError, 'only boot 1'):
                 runner.series_session(directory, plan, 2, 20., 'host-boot-A')       # no second reduced boot
-            full_plan = runner.plan('a' * 64, [31, 32, 33], 'b' * 64, 'c' * 64)
-            with self.assertRaises(ValueError):
-                runner.series_session(directory, full_plan, 1, 20., 'host-boot-A')  # a reduced session never starts a full series
+            # Same manifest and nonce, only the reduced marker differs: the marker alone must refuse it.
+            looks_full = {key: value for key, value in plan.items() if key != 'reduced'}
+            with self.assertRaisesRegex(ValueError, 'foreign capture session'):
+                runner.series_session(directory, looks_full, 1, 20., 'host-boot-A')
+        with tempfile.TemporaryDirectory() as directory:
+            path, record = runner.series_session(directory, looks_full, 1, 10., 'host-boot-A')
+            self.assertNotIn('reduced', record)
+            with self.assertRaisesRegex(ValueError, 'foreign capture session'):
+                runner.series_session(directory, plan, 1, 20., 'host-boot-A')       # and a full session never accepts a reduced plan
 
     def test_replay_refuses_a_reduced_bundle(self):
         with tempfile.TemporaryDirectory() as directory:
             index = Path(directory) / 'index.json'
             index.write_text(json.dumps(dict(schema=1, source=SOURCE, clock=m5_series.CLOCK, boots=[], reduced=dict(through_phase=6))))
-            with self.assertRaises(ValueError):
+            # The message pins the refusal to the reduced-marker check, not to the empty boot list.
+            with self.assertRaisesRegex(ValueError, 'Reduced non-qualifying evidence'):
                 runner.replay_bundle(index, SOURCE, ABI)
 
 
@@ -395,7 +403,8 @@ class ReducedAdapter(unittest.TestCase):
     def test_only_boot_one_exists(self):
         with tempfile.TemporaryDirectory() as directory:
             for boot in (2, 3, 4):
-                with self.subTest(boot=boot), self.assertRaises((ValueError, IndexError)):
+                # ValueError by message: an IndexError from nonces[boot-1] would mean the explicit check is gone.
+                with self.subTest(boot=boot), self.assertRaisesRegex(ValueError, 'Invalid fresh boot number'):
                     self.make(Path(directory) / str(boot), boot)
 
     def test_any_operator_cable_receipt_is_refused(self):

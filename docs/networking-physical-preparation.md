@@ -301,14 +301,13 @@ found the following, so every identity gate failed closed.
 | --- | --- | --- | --- |
 | Host interface | `en5` | `en13` | yes, before first use |
 | Adapter MAC | `00:0a:cd:41:89:cc` | `00:24:9b:6e:f7:7f` | yes |
-| Adapter USB serial | not recorded | `0000249B6EF77F` (informational, hub `0-2.1` port 3) | yes |
 | macOS service name | `AX88179` | `AX88179 3` (static `192.168.77.1/255.255.255.0`, no router) | yes |
 | UART device | `/dev/cu.usbmodem11302` | `/dev/cu.usbmodem11402` | yes |
 | DAPLink USB serial | `0229…9905` | unchanged | no |
 | J-Link probe serial | `602003106` | unchanged | no |
 | Board, image base, addresses, ports | EVKB rev B, `0x60000000`, `192.168.77.2/24`, TCP 42420, UDP 42421 | unchanged | no |
 
-The service name is a label that macOS can renumber. Duplicate stale services named
+The adapter USB serial (`0000249B6EF77F`, hub `0-2.1` port 3) was seen in the inventory but is not used by any gate and is not recorded in the code. The service name is a label that macOS can renumber. Duplicate stale services named
 `AX88179` and `AX88179 2` also exist. The service check therefore requires the adapter
 MAC in the `networksetup -getinfo` output as well, and now also requires
 `Manual Configuration`; a service with another MAC, DHCP or a router stops the run.
@@ -319,7 +318,7 @@ MAC in the `networksetup -getinfo` output as well, and now also requires
 | --- | --- | --- |
 | One reviewed identity block | `tests/target/m5_bench.py`, read by the runner, adapter, lease and series replay | None removed. Plan, approval and the lease bind `uart_device` and the service name in addition to interface and MAC. |
 | Selectors on shared M3 helpers | `capture_m3_network.guard_check(..., uart=)` and `check_route(..., interface=, mac=)` | Defaults stay the accepted M3 values, so the M3 runners behave exactly as before. The M5 lease passes the reviewed identity explicitly. |
-| Reduced run `--through-phase N` (2 to 6) | `capture_m5_network.py` `plan`, `capture`, `Supervisor` | New, separately labelled plan. The full plan is byte for byte unchanged. |
+| Reduced run `--through-phase N` (2 to 6) | `capture_m5_network.py` `plan`, `capture`, `Supervisor` | New, separately labelled plan. The full plan changes only by the new identity values and two added identity fields, `uart_device` and `nic.service`; its operations, commands, procedure and evidence are unchanged. |
 
 ### Reduced run
 
@@ -370,7 +369,7 @@ reads a JSON file given as `--guard-session` (its path is not fixed) and require
 | `disk` | the DAPLink drive device, `/dev/diskN`; the same `diskN` must be the only disk below the DAPLink USB device in `ioreg` |
 | `boot_session_uuid` (preferred) or `boot_identity` | equal to `sysctl -n kern.bootsessionuuid` or `kern.boottime` now, so a guard from before a reboot is refused |
 | `executable`, `sha256` | file hash must still match at every check |
-| `deadline` | CLOCK_MONOTONIC seconds; must exceed now plus the reserve the caller asks for (90 s per M5 lease operation; the preflight additionally needs 120 s of whole-series budget; the M3 runners ask for more) |
+| `deadline` | CLOCK_MONOTONIC seconds; must exceed now plus the reserve the caller asks for: 0.25 to 10 s for a UART write, 90 s for the lease acquisition and each preflight or reset probe command (which also need 120 s and 45 s of whole-series budget), more for some M3 entry checks |
 | `pid`, `process_identity` | the process must be alive and its `ps -p <pid> -o pid=,comm=,lstart=` output must equal `process_identity` exactly |
 | `log` | a file that contains `DENIED exact_DAPLink_USB_serial=<serial> disk=<diskN>` and never the text `STOPPED` |
 
