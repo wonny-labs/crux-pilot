@@ -146,7 +146,7 @@ Choices for the owner:
 | --- | --- | --- |
 | 1 | Adopt the rules for new samples, as written? | Yes, after the owner reads rules 2 and 4: they are the ones that existing samples break most |
 | 2 | Move or rename any existing sample? | No move now. Each move touches scripts, tests and documents that name its path, so take them one at a time, when a sample is next changed. |
-| 3 | Treat `product_template` as a separate kind of folder, outside rule 4? | Yes, since a product copies it as it is |
+| 3 | Treat `product_template` as a separate kind of folder, outside rules 3 and 4? | Yes, since a product copies it as it is |
 | 4 | Group the storage samples under `samples/storage/`? | Only with a move of its own, because four scripts, ten documents and eighteen files under `tests/` name a storage sample folder |
 
 ### Current capability integration
