@@ -148,11 +148,11 @@ Why option 3, if the evidence allows it:
 
 Why not now: [O] nothing physical exists for Reliance Edge, and a contract sentence that promises atomic replace needs physical evidence, as the File contract and the service contract already require for cuts. The owner's decision of 4 November 2026 says the same.
 
-**The evidence that decides it** is in the draft physical gate (`docs/emmc-reliance-physical-gate.md`, Draft pull request #312, which may change):
+**The evidence that decides it** is in the [physical gate](emmc-reliance-physical-gate.md):
 
-- **Stage A, step 6 of the draft.** Replace cuts through the VFS rename on Reliance Edge on the EVKB microSD, at least 100 judged cuts, compared outcome by outcome with the FatFs record above. The gate states that zero cases in 100 bounds the rate only to about 4% at 95% and must not be read as absence.
-- **Stage B, item 7 of the draft.** W2 and W4 on a board with a real eMMC.
-- **Stage B, item 4 of the draft.** Flush latency, which prices the seven transactions.
+- **Stage A, step 6.** Replace cuts through the VFS rename on Reliance Edge on the EVKB microSD, at least 100 judged cuts, compared outcome by outcome with the FatFs record above. The gate states that zero cases in 100 bounds the rate only to about 4% at 95% and must not be read as absence.
+- **Stage B, item 7.** W2 and W4 on a board with a real eMMC.
+- **Stage B, item 4.** Flush latency, which prices the seven transactions.
 - **Not in the gate and proposed here:** a run of the File-level sequences (remove then rename, and the service's commit) next to the VFS rename on each provider that would claim atomicity. The service contract already says that physical cuts during a rename and commit need their own approval.
 
 **What would change my mind:**
@@ -180,7 +180,7 @@ This recommendation needs the owner's decision. It is not a decision, and it doe
 
 - **[O] The service contract says that no part of the service has run on Zephyr, and one case has.** [`file-service-contract.md`](file-service-contract.md), line 106, says "No part of the service has run on Zephyr or on a target." The same file says in line 11 that the `native_sim` services image links the service. `tests/native/management_services/src/main.c:151-188` runs a managed upload, a commit and permission checks through the real service on FatFs on `native_sim`, and `docs/native-composition-242.md` lists the image. That case removes the target first, so the commit's replace path, with an existing target, has run on no real file system. I report both and have not changed either.
 - **[O] The issue and the design say "a cut between the two can leave no target", and the service repairs that state at the next start.** Issue #257 and the design's open items (`docs/plans/emmc-reliance-design.md`, lines 480-482) leave out the recovery in `FS:591-598`. Both are true at different times. It is a nuance and not a conflict.
-- **[O] The physical gate that the task and the issue name is not on `main`.** `docs/emmc-reliance-physical-gate.md` is in Draft pull request #312. The [composition record](emmc-reliance-composition.md) refers to it by issue number. The paragraphs above that quote its stages rest on that draft, which may change.
+- **[O] The physical gate is merged, and its numbering is cited here.** [`emmc-reliance-physical-gate.md`](emmc-reliance-physical-gate.md) came in with pull request #312. This document cites its Stage A step 6 and its Stage B items 4 and 7 by the numbers they have there; a reordering of the gate would move them.
 
 Checked and consistent with the code: the design's F9 numbers match the replace-cut record (29 of 100). The adapter's close rule (F16) and read-only rule (F14) match `AD:277-296` and the tests at `FR:870-931`. The profile's transaction list and asserts-off setting match `RC:85` and `RC:88-91`. The File contract's Reliance Edge section matches the adapter and `FN:57-68`. FatFs-only code in the provider is compiled out on Reliance Edge (`FN:40-43`).
 
@@ -195,7 +195,7 @@ None is opened by this document. Each is a proposal for the owner. Items 1 to 6 
 5. **Overwrite and erase on a full volume.** A `native_sim` test that fills the volume, then saves a slot and forces a failed save, and a search of the simulator image for the old bytes after an erase. Answers rows 10 and 12.
 6. **Thread inventory.** List the threads of the management composition that call File or the store, set `CRUX_FS_RELIANCE_EDGE_TASK_COUNT` from it, and add a test that a start in a thread beyond the limit fails visibly. Answers row 18.
 7. **Recovery after a media error.** A composition decision, then a record in the [service contract](file-service-contract.md) and the [credential store](credential-store.md) documents: who closes the handles, who remounts, and whether the service needs a rescan call. Row 17.
-8. **A host reader for a Reliance Edge volume, or a rule for the same-size state.** Row 4 needs one or the other: a repair route for a held name, or option 4's resolution. The draft gate lists a host reader as a separate item.
+8. **A host reader for a Reliance Edge volume, or a rule for the same-size state.** Row 4 needs one or the other: a repair route for a held name, or option 4's resolution. The gate lists a host reader as a separate item.
 9. **A File-level replace-cut run in the physical gate.** Add the File-level sequences next to the VFS rename in Stage A and Stage B of the gate. Needs the owner's approval for any hardware run, and the gate's own review.
 
 Smaller documentation items: correct line 106 of the service contract (see above), and add a Reliance Edge section to the service and credential documents once items 1 and 2 have run. If the owner adopts option 3, a contract proposal in the style of [pull request #206](https://github.com/wonny-labs/crux-pilot/pull/206) should come first.
