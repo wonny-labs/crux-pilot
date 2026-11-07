@@ -155,7 +155,7 @@ Changes to the existing cases, none of which weakens a mock assertion:
 | The real `409` | Another client holds `PUT /api/v1/config/report_interval` with part of a body; the example's update meets the plain `409` and its retry goes through once the holder leaves | The plain `409`, no body, then `200` once freed |
 | The real `503 busy` | Four uncollected login results fill the attempt table; the example shows the wait, and a later sign-in works once they expire | `503`, `{"code":"busy"}`, `Retry-After: 1` |
 | The real session clock | Four shared cases, through `expireSessions()` | A session polled with `GET` every 5 s ends at 30 s |
-| Network settings, Preact only | No running address on the no-op apply port; a change says nothing was saved, on the real `501` | |
+| Network settings | No running address on the no-op apply port; a change says nothing was saved, on the real `501`. Both examples: the Angular case is written and **NOT RUN**. | |
 
 ## How the browser trusts the test certificate
 
@@ -170,8 +170,11 @@ one key and refuses any other certificate. Nothing else turns certificate checki
 
 | Example | Setting | Files | Served, compressed | Largest asset | Fits 1,500 ms (49,152 B) | Fits 3,000 ms (98,304 B) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Preact | `strict` | 4 | 23,103 | 21,290 | Yes | Yes |
-| Angular | `inline` | 5 | 91,201 | 85,384, `main-W7U54RFG.js` | **No** | Yes |
+| Preact | `strict` | 4 | 23,208 | 21,394 | Yes | Yes |
+| Angular | `inline` | 5 | 97,952 | 92,064, `main-7ET2HXBZ.js` | **No** | Yes, with 6,240 bytes to spare |
+
+The sizes are those of the examples with network settings and restart in both (#243), measured with `web_assets.py` on the built folders. They were
+23,103 and 21,290 for Preact, and 91,201 and 85,384 for Angular, before. The Angular script is now 6.3 percent below the largest asset that fits 3,000 ms.
 
 The services image of #242 runs `CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS=1500`, shortened from #184, and at the declared
 client rate of 32,768 B/s that allows 49,152 bytes for one asset. Angular's script is larger, so the packager refuses it
@@ -283,12 +286,15 @@ Zephyr v4.4.2 on `native_sim/native/64`, Node.js 24.22.2, Chrome 157, by `script
 | The API's `401` keeps the core's headers | Pass | Pass | Pass | Pass |
 | Shared cases that run on a device: sign-in and sign-out, session expiry on the real clock, forced password change, status, configuration update, a device with no Configuration provider | 38 of 38 | 38 of 38 | 38 of 38 | 38 of 38 |
 | Real-server browser cases: TLS and headers, fragment routes, load budget, a stalled handshake, held slots, the real `409`, the real `503` | 7 of 7 | 7 of 7 | 7 of 7 | 7 of 7 |
-| Network settings, Preact only: no running address on the no-op port, a change refused with "nothing was changed" on the real `501` | Pass | Not planned | Pass | Not planned |
-| Reboot | Skipped: mock-only | Not planned | Skipped | Not planned |
+| Network settings: no running address on the no-op port, a change refused with "nothing was changed" on the real `501` | Pass | Written, **NOT RUN** | Pass | Written, **NOT RUN** |
+| Reboot | Skipped: mock-only | Written, skipped as on Preact, **NOT RUN** | Skipped | Written, skipped as on Preact, **NOT RUN** |
 | Every real API answer against the specification, in every case, but those whose body Chrome no longer held, which are listed in the log | No problem found | No problem found | No problem found | No problem found |
 
-The skipped cases are 22 that force an answer through the mock, 5 that need a save that succeeds, and on Preact the
-reboot flow. Each is in the results file with its reason.
+The skipped cases are 22 that force an answer through the mock, 5 that need a save that succeeds, and the
+reboot flow. Each is in the results file with its reason. These counts and the Angular columns for network settings and
+reboot predate the Angular network settings and restart screens of #243. The shared advanced cases that came with them
+(44 on each example, all of them driving the mock's control) skip on a device with the reason
+`needs the mock control`, and the runs here were not repeated with them.
 
 ### Host and Python
 
