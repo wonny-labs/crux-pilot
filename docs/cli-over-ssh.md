@@ -56,6 +56,8 @@ Everything between `shell` or `exec` and its return runs on the worker of one co
 
 ## What follows `terminal`
 
+`terminal` is true when the client asked for a pseudo-terminal (`pty-req`, RFC 4254 §6.2) before the shell. The `exec` callback does not carry it ([Issue #269](https://github.com/wonny-labs/crux-pilot/issues/269)).
+
 | Client | `pty-req` | Form | Echo | LF on the wire | Example |
 | --- | --- | --- | --- | --- | --- |
 | `ssh host` from a terminal | Yes | Shell | Yes | CR LF | `> status\r\nran\r\n> ` |

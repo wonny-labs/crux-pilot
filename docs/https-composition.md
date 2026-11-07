@@ -10,11 +10,11 @@ under amd64 emulation, on a loaded machine. It says nothing about a target.
 ## Acceptance criteria of #185
 
 **Not every criterion is met.** Accepting this pull request with criterion 1 partly met and #280 open, or holding it until
-W1 is explained, is the owner's decision, listed under [approvals needed](#approvals-needed).
+the #280 late first read is explained, is the owner's decision, listed under [approvals needed](#approvals-needed).
 
 | # | Criterion | State | Evidence |
 | --- | --- | --- | --- |
-| 1 | The same conformance suite passes on both profiles, on `native_sim` where the stack allows | **Met on Mbed. On Wolf one case stays open**, `deadline_then_silent_closes_before_inactivity`, on [W1](#w1-wolf-reads-a-new-connections-first-request-late), issue #280. The driver excuses only that case's "not closed within" assertion on Wolf. Any other failure fails the run. | [Suite](#the-conformance-suite-over-tls) |
+| 1 | The same conformance suite passes on both profiles, on `native_sim` where the stack allows | **Met on Mbed. On Wolf one case stays open**, `deadline_then_silent_closes_before_inactivity`, on [the #280 late first read](#the-280-late-first-read-wolf-reads-a-new-connections-first-request-late), issue #280. The driver excuses only that case's "not closed within" assertion on Wolf. Any other failure fails the run. | [Suite](#the-conformance-suite-over-tls) |
 | 2 | No plain HTTP listener or redirect in the reference configuration | Met on `native_sim`, both profiles | [Listener check](#no-plain-http-listener-and-no-redirect) |
 | 3 | Handshake time and memory on RT1060-EVKB, with separately approved physical evidence | **Open.** Compile only. | Needs a separately approved run |
 | 4 | A stalled TLS handshake measured and declared on both profiles | Met on `native_sim` | [Stalled handshake](#stalled-handshake) |
@@ -157,11 +157,11 @@ plain one. Then 14 more TLS cases run, the Firefox check when a browser is given
 
 | Part | Mbed | Wolf |
 | --- | --- | --- |
-| Suite cases unchanged | 37 of 37 | 36 of 37, and `deadline_then_silent_closes_before_inactivity` fails on [W1](#w1-wolf-reads-a-new-connections-first-request-late) |
+| Suite cases unchanged | 37 of 37 | 36 of 37, and `deadline_then_silent_closes_before_inactivity` fails on [the #280 late first read](#the-280-late-first-read-wolf-reads-a-new-connections-first-request-late) |
 | Suite cases replaced by a TLS variant, below | 2 of 2 | 2 of 2 |
 | Other TLS cases, with `hello_retry` added after review | 14 of 14 | 14 of 14 |
 | Separate images: no certificate, and the offload without the FIN fix, each now asserting | 2 of 2 | 2 of 2 |
-| **Total, `scripts/test-web.sh https both` at `b9c9fbc` plus the review fixes that are in `b197d15`, without Firefox** | **55 of 55** | **54 of 55**, 1 excused on W1's assertion alone |
+| **Total, `scripts/test-web.sh https both` at `b9c9fbc` plus the review fixes that are in `b197d15`, without Firefox** | **55 of 55** | **54 of 55**, 1 excused on the #280 late first read's assertion alone |
 | Firefox, at `4ed6eb9`, not run again since nothing it uses changed | 1 of 1 | 1 of 1 |
 | Earlier total at `4ed6eb9`, with Firefox | 55 of 55, of which `offload_fin_control` only recorded | 54 of 55 |
 | CI, PSA workflow, Mbed profile, without Firefox | 53 of 53 at `8e506a2`, 54 of 54 at `0a06de0`, 55 of 55 at `b197d15` | Not run |
@@ -180,16 +180,16 @@ cases of the suite, which cover what follows it, pass.
 ## Negative handshakes
 
 The next request after each case must come within a declared bound per profile: 0.5 s on Mbed, which measured 0.12 to
-0.13 s, and 2.5 s on Wolf, a bound the size of [W1](#w1-wolf-reads-a-new-connections-first-request-late), declared
+0.13 s, and 2.5 s on Wolf, a bound the size of [the #280 late first read](#the-280-late-first-read-wolf-reads-a-new-connections-first-request-late), declared
 for that reason and to be narrowed when #280 is fixed.
 
 | Case | Mbed | Wolf |
 | --- | --- | --- |
-| Bad version: a TLS 1.2 client | Refused, then the next request is served in 0.12 s | Refused, next request in 0.86 s, which is W1 |
+| Bad version: a TLS 1.2 client | Refused, then the next request is served in 0.12 s | Refused, next request in 0.86 s, which is the #280 late first read |
 | Bad cipher: TLS 1.3 offering only AES-256-GCM, or only ChaCha20 | Refused, next request in 0.12 s | Refused, next request in 0.83 and 0.92 s |
 | No certificate | No listener, connect refused | No listener, connect refused |
 | Untrusted certificate, client side | The client refuses | The client refuses |
-| Abrupt close after a request, mid-handshake by FIN, mid-handshake by reset, mid-request | Each: CPU share 0.02 to 0.04 over the next 2 s, next request in 0.12 to 0.13 s. Four such closes, then three clients at once: all served in 0.15 s. | CPU share 0.02, next request in 0.90 to 1.02 s, which is W1. Three clients after four closes: 1.06 s. |
+| Abrupt close after a request, mid-handshake by FIN, mid-handshake by reset, mid-request | Each: CPU share 0.02 to 0.04 over the next 2 s, next request in 0.12 to 0.13 s. Four such closes, then three clients at once: all served in 0.15 s. | CPU share 0.02, next request in 0.90 to 1.02 s, which is the #280 late first read. Three clients after four closes: 1.06 s. |
 
 ## Measurements and decisions
 
@@ -228,7 +228,7 @@ sends part of a ClientHello, holds every other client until the timeout.
 | Two silent clients, then a request | | 3.97 s | 4.85 s |
 | The staller | | Dropped by the server | Dropped by the server |
 
-On Wolf each figure also holds up to about 1 s of [W1](#w1-wolf-reads-a-new-connections-first-request-late).
+On Wolf each figure also holds up to about 1 s of [the #280 late first read](#the-280-late-first-read-wolf-reads-a-new-connections-first-request-late).
 
 **Declared: `NET_SOCKETS_TLS_CONNECT_TIMEOUT` is 2,000 ms whenever `CRUX_WEB` is on.** Firefox's own timing puts its
 handshake here at 45 ms on the Mbed profile and 53 ms on the Wolf profile, under emulation. The value is a proposal from
@@ -304,7 +304,7 @@ The test certificate is `CA:TRUE`, so it cannot be trusted as a server's certifi
 | Check | Mbed | Wolf |
 | --- | --- | --- |
 | Handshake, Firefox's `connectEnd - secureConnectionStart` | 45 ms | 53 ms |
-| Navigation, start of request to end of response | 53 ms | 543 ms, which is W1 |
+| Navigation, start of request to end of response | 53 ms | 543 ms, which is the #280 late first read |
 | Protocol | `http/1.1` | `http/1.1` |
 | Header capture over HTTPS, `POST` with the CSRF and poll headers | Cookie 113, Origin 23, Host 15, X-XSRF-TOKEN 43, X-Crux-Request 1, Content-Type 16, Content-Length 1 | The same |
 | `GET` | No `Origin` | No `Origin` |
@@ -313,7 +313,7 @@ The test certificate is `CA:TRUE`, so it cannot be trusted as a server's certifi
 Over HTTPS `Origin` is `https://localhost:18443`, 23 bytes, one more than over plain HTTP, and inside the 128 the capture
 reserves. Chromium and Safari did not run here.
 
-### W1: Wolf reads a new connection's first request late
+### The #280 late first read: Wolf reads a new connection's first request late
 
 Found here, measured, **not explained**. On the Wolf profile the server answers a new connection's first request late, by
 up to about 1 s, and by about 1 s when the server has just closed another client. Nothing uses the CPU meanwhile, and a
@@ -331,12 +331,12 @@ A packet capture shows the request arriving and the server silent until the answ
 client. Five cheap explanations were ruled out: a CPU cost per connection, the offload's poll interval of 1 ms, data read
 ahead during the handshake, the handshake loop's 100 ms wait, and the abrupt close. A system call trace is unreadable under
 the emulation used here. It costs the suite one case, `deadline_then_silent_closes_before_inactivity`, whose deadline runs
-from a first callback that W1 can delay, so the driver lists it as a known limit on Wolf: it still runs, its result is
+from a first callback that the #280 late first read can delay, so the driver lists it as a known limit on Wolf: it still runs, its result is
 recorded either way, and only its "not closed within" assertion is excused. Any other failure in it fails the run, with one
-gap: when W1's assertion fires first, the case's two later checks, that the close sends nothing and that the route is
+gap: when the #280 late first read's assertion fires first, the case's two later checks, that the close sends nothing and that the route is
 free again (`wait_route_free`, in `tests/native/web_http/test_driver.py`), do not run, so a close that sent data would be
 masked in that run. That gap, and Wolf's next-request bound of 2.5 s, loose against the largest wait measured, about 1.0
-to 1.07 s, are declared, and both go away when #280 is fixed. Whether W1 exists on a target, or with Zephyr's own TCP, is unknown. New issue
+to 1.07 s, are declared, and both go away when #280 is fixed. Whether the #280 late first read exists on a target, or with Zephyr's own TCP, is unknown. New issue
 [#280](https://github.com/wonny-labs/crux-pilot/issues/280) tracks it.
 
 ## How a product applies the wolfSSL patch
@@ -362,14 +362,14 @@ because it is a product decision and the owner's.
 | 3 | With the minimal C library, `strpbrk`, `strcasecmp` and `strdup` are implicitly declared in the server and the offload at v4.4.2 | A pointer returned as `int` is cut to 32 bits on a 64-bit host. It works because the buffers are in low static memory. **The plain HTTP image of #266 has the same warnings.** | Recorded. A 32-bit target does not truncate. |
 | 4 | Both the TLS 1.3 limit and the cipher list go through socket options that the server does not set | A product that wants other versions changes the adapter, under review | Declared |
 | 5 | The Mbed profile in CI covers only one backend, since a default workflow must not fetch wolfSSL | Wolf results are local, as for #242 and #247 | |
-| 6 | W1: on Wolf a new connection's first request is read up to about 1 s late | One suite case fails on Wolf, and every first request is slower | Measured, [above](#w1-wolf-reads-a-new-connections-first-request-late), issue #280 |
+| 6 | The #280 late first read: on Wolf a new connection's first request is read up to about 1 s late | One suite case fails on Wolf, and every first request is slower | Measured, [above](#the-280-late-first-read-wolf-reads-a-new-connections-first-request-late), issue #280 |
 | 7 | Marionette did not accept the self-signed certificate with `acceptInsecureCerts` | The browser check writes the override a user's acceptance writes | Declared in the driver |
 
 ## Approvals needed
 
 | # | Approval | Options |
 | --- | --- | --- |
-| A1 | **Criterion 1 with one case open on Wolf** | Accept the issue's software result as partly met with #280 open, or have W1 explained first |
+| A1 | **Criterion 1 with one case open on Wolf** | Accept the issue's software result as partly met with #280 open, or have the #280 late first read explained first |
 | A2 | **TLS 1.3 only**, a security and compatibility decision, below | Keep TLS 1.3 only, the narrower choice and this pull request's default, or the alternative below |
 | A3 | How a product applies the wolfSSL patch | [Above](#how-a-product-applies-the-wolfssl-patch) |
 | A4 | A separately approved physical run | RT1060 handshake time, memory, and the connect timeout's target value, criterion 3 |
@@ -407,7 +407,7 @@ with 1.2 as the minimum, which the patch does not offer at this pin. TLS 1.2 wou
 | 10 | Mbed heap stays 120,000 B for three clients, by the formula above | Measured | Scale with `HTTP_SERVER_MAX_CLIENTS` |
 | 11 | RT1060 compile configurations take the declared profile: TLS 1.3 and its suite, 16 KiB records, 120,000 B heap | A compile of the sample's settings would not be the profile this declares | |
 | 12 | The wolfSSL patch: a build-time copy for checks, a pinned fork recommended for a product | Its terms keep it out of this repository | Owner's decision |
-| 13 | On Wolf, `deadline_then_silent_closes_before_inactivity` is a known limit only for its "not closed within" assertion: it runs and is recorded, and any other failure in it fails the run. When that assertion fires first, the case's later checks, no data on the close and the route free again, do not run in that run. | W1 delays the first callback that its deadline runs from, by an amount that depends on timing | Removed when #280 is fixed, with Wolf's 2.5 s next-request bound |
+| 13 | On Wolf, `deadline_then_silent_closes_before_inactivity` is a known limit only for its "not closed within" assertion: it runs and is recorded, and any other failure in it fails the run. When that assertion fires first, the case's later checks, no data on the close and the route free again, do not run in that run. | The #280 late first read delays the first callback that its deadline runs from, by an amount that depends on timing | Removed when #280 is fixed, with Wolf's 2.5 s next-request bound |
 | 14 | The Wolf arena is declared at the RT1060 compile's 131,072 B, not from a measurement at 16 KiB records | Only small records were measured | #197 |
 | 15 | The no-certificate case expects no listener at all | The TLS layer refuses a tag with no credential, so the service does not start. That fails closed, and no plain fallback exists. | |
 

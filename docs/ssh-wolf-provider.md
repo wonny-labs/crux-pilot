@@ -68,7 +68,7 @@ flowchart TB
 ```mermaid
 stateDiagram-v2
     [*] --> Refused: past max_connections
-    Refused --> [*]: version line, disconnect 12, half closed for 500 ms, close
+    Refused --> [*]: version line, `SSH_DISCONNECT_TOO_MANY_CONNECTIONS` (RFC 4253 §11.1), half closed for 500 ms, close
     [*] --> Handshake: slot taken
     Handshake --> Closed: auth_timeout_ms, a failure, or stop
     Handshake --> Authenticated: password, or key with a verified signature
@@ -395,7 +395,7 @@ Each was taken without the owner, and the narrower choice was taken where there 
 | 17 | `io_receive` hands back after 16 KiB with a 1 ms sleep, as if the socket were empty | wolfSSH loops while the socket has data, so with no budget a sender held off every limit, and every other connection in simulated time. It bounds a connection to about 16 MB/s, more than the target's link. | A bigger budget |
 | 18 | While `wolfSSH_stream_exit` runs, a send that would block waits for room, for up to 2 s. It is not retried from the worker loop. | That call stops at the first message that would block, and repeating it would send the status twice. A stop cuts the wait short. A very slow client can hold its own worker for that long, and no other. | None |
 | 19 | wolfSSH's `MAX_PACKET_SZ` stays, and the memory rule below allows for it | RFC 4253 section 6.1 requires packets up to 35,000 bytes, and a client announces the size before keys | A lower limit would be a shared setting that refuses a conforming client |
-| 20 | **The slot lockout stays, as a recorded limit.** `max_connections` silent clients hold every slot for `auth_timeout_ms`, and a real user is refused meanwhile. | Nothing unauthenticated can be told from a slow login, and a reserved slot needs a policy for who may use it. A composition chooses the two numbers. The limit is short and repeats only while an attacker keeps connecting. | A slot reserved for clients that have logged in before, or by source |
+| 20 | **Pre-auth connection exhaustion stays, as a recorded limit** (CWE-400, as OpenSSH's `MaxStartups` addresses; called the slot lockout elsewhere in this record). `max_connections` silent clients hold every slot for `auth_timeout_ms`, and a real user is refused meanwhile. | Nothing unauthenticated can be told from a slow login, and a reserved slot needs a policy for who may use it. A composition chooses the two numbers. The limit is short and repeats only while an attacker keeps connecting. | A slot reserved for clients that have logged in before, or by source |
 | 21 | The checks on client input move into `crux_ssh_wire.c`, a module with no library type that the provider compiles, and the provider keeps only the calls | The Host can then fuzz the very source the provider runs, under sanitizers and in CI, which a `native_sim` image cannot | The checks stay inline, tested only through a socket |
 | 22 | **A user key whose blob is not its type's exact form is refused before `key_check`**, and counts as an attempt on the connection, as an RSA key does | Such a blob can never match a stored key, because `crux_access_key_acceptable` refuses one at `add_key`, so no login is lost, and less unparsed data reaches Crux. **What it costs:** a signed request with such a blob no longer records an event or a delay entry, as one for an RSA key does not: see [the trade-off](#decision-22-the-trade-off). | Pass such blobs to `crux_access` again, for the event and the delay entry, and keep only the type-name check before the callback |
 | 23 | The fake provider makes the same check, and its two keys became well-formed blobs with key bytes of zero | The new conformance case must hold for both, and a new fault in the fake shows the case can fail | The case would run on the real provider only |
@@ -431,7 +431,7 @@ From running wolfSSH v1.6.0, for whoever works on this next.
 | Channel data before a session request makes `wolfSSH_accept()` fail, because `WS_CHAN_RXD` is not a retry there | The connection ends. OpenSSH does not do this. The conformance client holds such data until the grant, and says so. |
 | `wolfSSH_set_fd()` points the I/O contexts at wolfSSH's copy of the socket | Set the contexts after it, or the callbacks read an `int` as a connection |
 | An SFTP request with no body ends the session (`SFTP_CheckRecvSz`) | Not a client's normal behaviour. #194's traces should show it if it matters. |
-| The key exchange list also holds `ext-info-s` and `kex-strict-s` | Markers added by wolfSSH. They name nothing that can be negotiated. |
+| The key exchange list also holds `ext-info-s` and `kex-strict-s-v00@openssh.com` | Markers added by wolfSSH. They name nothing that can be negotiated. |
 | One run of `openssh_test.py` under the script stopped silently before its first case, and did not recur in nine later runs. The cause is unknown, and fork under emulation on a loaded machine is only a guess | The harness now dumps its stacks and exits after 7 minutes, and runs unbuffered, so that another will say where it was |
 | A concurrent password login gets `CRUX_ACCESS_ERR_BUSY`, which is a denial on the wire and counts as an attempt | The contract asks for this. A user can see a refused password while another login is verifying. |
 | With one `-seed`, every blank disk of the stored host key image generates the same host key | `native_sim`'s test generator repeats its numbers, as declared. The control in `generated_once_then_kept` uses another seed for that reason. |
@@ -450,7 +450,7 @@ The provider wipes a password from wolfSSH's input buffer once the callback retu
 | Back-pressure on send | **Shown by injection** at every third send, for logins, `exec`, shell input and output, and the end of a session. Not with a real full socket and a client that stops reading, and not in SFTP. |
 | Floods | **Shown on `native_sim`** for a sender before keys, against the login limit, another client and `stop`, and for a read's timeout after login. On a target, the budget's effect on throughput and on control work is not known. |
 | Arena exhaustion | **Shown on `native_sim`** in a 151,552 B arena: clients before keys can use it up, a login then fails closed, and it works once they leave. wolfSSL's behaviour at each allocation failure was not walked. |
-| The slot lockout | Recorded as decision 20, and not fixed |
+| Pre-auth connection exhaustion (the slot lockout) | Recorded as decision 20, and not fixed |
 | Real PSA ports, a host key generated and stored through the credential store in an image | **Shown on `native_sim`** for the store's ports on wolfPSA, in the stored host key image. The Access ports there are still fakes, and nothing ran on TF-PSA-Crypto, which has no Ed25519. |
 | The provider beside the TLS socket backend and wolfPSA in one image | **Built on `native_sim` under #197**, on a patched Zephyr: [the integrated image](ssh-integrated-image.md). Not built for a board. |
 | Replacing the host key, and reading its fingerprint under `access.manage` | Decision 24, and the `device fingerprint` command of the CLI contract |

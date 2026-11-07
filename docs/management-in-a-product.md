@@ -4,7 +4,7 @@ Status: a guide for a product team that uses Crux as a west module and wants HTT
 
 **Nothing in this guide has run on a board.** Every result is Host, `native_sim` or a compile for RT1060-EVKB. `native_sim` uses the host's TCP stack and a test entropy source, so a result there shows that protocols and algorithms run, and not that anything is fast, small or safe on a device. See [what "real" means on `native_sim`](psa-crypto-design.md#what-real-means-on-native_sim).
 
-How to read the tables:
+The terms are in [the glossary](management-glossary.md). How to read the tables:
 
 | Word | Meaning here |
 | --- | --- |

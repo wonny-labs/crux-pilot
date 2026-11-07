@@ -165,7 +165,7 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 | Trickled body, one byte every 200 ms | `native_sim` | Closed at 2.02 s with nothing sent, no plain `500`, and the login route free straight after | At most the deadline plus the gap to the next chunk, and that gap is at most the inactivity timer. The deadline returns `-ECONNABORTED`, because `-EAGAIN` would not close. |
 | Silent partial body | `native_sim` | Closed at 3.02 s by the inactivity timer | The route is held, and others get the plain `409`, until then. Anyone who can reach the port can do this, including to login, so network login can be kept busy by repeating it, as the frontend design declares. The serial console is not affected. |
 | Disconnect mid-request | Host and `native_sim` | Route free within 10 ms of a FIN or a reset, and on Host the body cleared | The registered resources get the server's release, which a fallback resource would not |
-| Trickled headers, three clients, one byte per second | `native_sim` | All three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s | **Limit declared, see below.** |
+| Trickled headers (Slowloris), three clients, one byte per second | `native_sim` | All three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s | **Limit declared, see below.** |
 | Client slots, three idle keep-alive connections | `native_sim` | A fourth request waited 3.0 s | An idle browser connection holds a slot for one inactivity period. A real browser's eight parallel requests all succeeded through three slots. |
 | Slow handler, 500 ms | `native_sim` | Another client's largest wait 506 ms, against a median of 48 ms, and the overrun counted | A handler stalls every client for as long as it runs |
 | Reader that reads nothing, 8 MB body | `native_sim` | Another client's largest wait 2.09 s | See [the slow reader bound](#the-slow-reader-bound) |
@@ -174,7 +174,7 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 | A send that returns `-EAGAIN`, then more from that client | `native_sim`, injected | Closed within a second, with none of another client's bytes | See [below](#a-response-that-stops-part-way) |
 | A send that returns `-EAGAIN`, then silence | `native_sim`, injected | Closed by the inactivity timer at 2.81 s | |
 | Stop just after the deadline | `native_sim` | Closed 7 ms after the byte that found it late, well before the inactivity timer | A `-EAGAIN` here would not close, and a mutation control shows this case fails then |
-| A reader that stops, then drains | `native_sim` | Released after 1.97 s in this run, by the response deadline. | **Not a stalled reader**, since the case drains. It varies between the response deadline and the inactivity timer, so the case records which. The stalled reader's own figure is the row with the injected `-EAGAIN` above. |
+| A reader that stops, then drains (slow-read attack) | `native_sim` | Released after 1.97 s in this run, by the response deadline. | **Not a stalled reader**, since the case drains. It varies between the response deadline and the inactivity timer, so the case records which. The stalled reader's own figure is the row with the injected `-EAGAIN` above. |
 | Flow control probe, see below | `native_sim` | Another client's largest wait 211 ms | The stall is the storage stall |
 | Baseline | `native_sim` | Median 50 ms, on an otherwise idle server | See below. This is not on the server thread. |
 

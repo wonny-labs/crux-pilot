@@ -49,6 +49,8 @@ flowchart TB
 
 Each statement about a status was seen on the wire in `wire_a_refused_open_is_a_general_failure` or a case beside it, except a failure from the port itself in `FSTAT` and in `CLOSE`, which no client can provoke here, and which is read from source (`wolfsftp.c:5958` and the `RecvClose` handler). A client can send an unknown handle, and wolfSSH answers that alone: `CLOSE` gets `FAILURE`, "Close File Error", and `FSTAT` ends that client's connection with no status.
 
+In this table `INIT` is `SSH_FXP_INIT`, and `FAILURE`, `NO_SUCH_FILE` are the status codes `SSH_FX_FAILURE` (4) and `SSH_FX_NO_SUCH_FILE` (2) of the SFTP draft.
+
 | SFTP request | Port | Service | On refusal the client gets |
 | --- | --- | --- | --- |
 | `INIT`, `REALPATH` | None. `WGETCWD` gives `/` once | None | Handled by wolfSSH. See [long paths](#long-paths) |
