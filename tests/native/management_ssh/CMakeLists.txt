@@ -51,8 +51,7 @@ set(route_sources ${CRUX_WEB_SESSION_ROUTES} ${CRUX_WEB_MANAGEMENT_ROUTES}
 # The services image's main.c, which starts SSH when CRUX_NATIVE_MANAGEMENT_SSH is defined, so that every
 # case and route of that image runs here too, with the SSH listener and threads present.
 target_sources(app PRIVATE "${services_dir}/src/main.c" ${route_sources})
-# Its own small folder: a login form, the status and one configuration value through the real API, for a person
-# to watch in a browser. As the services image, it has no test route.
-crux_web_assets(app FOLDER ${CMAKE_CURRENT_LIST_DIR}/site STYLE strict)
+# The services image's one-page folder, as a product's frontend tool would leave it. This image adds no frontend.
+crux_web_assets(app FOLDER ${services_dir}/site STYLE strict)
 # Exactly the components' routes: SSH adds none.
 crux_web_routes(app SOURCES ${route_sources} ZEPHYR_RESOURCES REVIEWED ${services_dir}/reviewed-routes.txt)

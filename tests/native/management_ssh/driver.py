@@ -350,9 +350,7 @@ def case_https(run, clients):
     anonymous = Curl(clients.directory)
     check(anonymous.run("GET", "/api/v1/status", jar=False)["status"] == 401, "curl: no cookie, 401")
     page = anonymous.run("GET", "/", jar=False, compressed=True)
-    script = anonymous.run("GET", "/app.js", jar=False, compressed=True)
-    check(page["status"] == 200 and "Crux native_sim test image" in page["body"] and script["status"] == 200 and
-          "management API" in script["body"], "curl: the packaged page and its script that a browser opens are served")
+    check(page["status"] == 200 and "Issue #242" in page["body"], "curl: the packaged one-page folder is served")
     wrong = Curl(clients.directory)
     check(not wrong.login(ADMIN, "not the password"), "curl: a wrong password does not log in")
     # Events that SSH raises reach the same store that the web's status counts. The count is read before and after

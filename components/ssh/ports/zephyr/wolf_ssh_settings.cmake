@@ -91,4 +91,21 @@ function(crux_ssh_wolf_settings)
             "${CRUX_REPOSITORY_DIR}/components/base/include"
             ${CRUX_SSH_PROVIDER_INCLUDES})
     endif()
+
+    if(CONFIG_CRUX_SSH)
+        # The wolfSSH module adds its sources to `app`. They are upstream code at a pin, and unedited, so they
+        # keep their own warnings: an application that builds `app` with -Werror still builds, and Crux's own
+        # sources, which are built apart above, keep their -Werror.
+        get_target_property(app_sources app SOURCES)
+        set(wolfssh_sources)
+        foreach(source IN LISTS app_sources)
+            if(source MATCHES "/wolfssh/src/[^/]+\\.c$")
+                list(APPEND wolfssh_sources "${source}")
+            endif()
+        endforeach()
+        if(NOT wolfssh_sources)
+            message(FATAL_ERROR "No wolfSSH source is in the application: is CONFIG_WOLFSSH on and the module found?")
+        endif()
+        set_source_files_properties(${wolfssh_sources} TARGET_DIRECTORY app PROPERTIES COMPILE_OPTIONS "-Wno-error")
+    endif()
 endfunction()

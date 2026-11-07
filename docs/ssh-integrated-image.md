@@ -128,6 +128,25 @@ and are unchanged.
 a build would go on with no SSH. The first configuration of this image did exactly that, on `NET_TCP`, which an image on offloaded sockets
 does not set. The composition therefore stops with `CONFIG_CRUX_SSH is not selected`. That is [decision 2](#decisions-for-review).
 
+## What a consumer uses, and what is test-only
+
+A platform composition, its board and project configuration, its provider selection and its linkage, belongs to the product and not to a Crux
+component. This change therefore gives the parts a composition reuses, in the Zephyr layer, and keeps **one thin test composition** that calls them, as
+`tests/native/management_services` does.
+
+| Part | Who uses it | Where |
+| --- | --- | --- |
+| The Kconfig symbols above | A composition sets them in its configuration | `zephyr/Kconfig` |
+| `crux_ssh_wolf_settings()` | The composition's CMake calls it after `find_package(Zephyr)`. It reads the symbols, builds the entry points, the file port and the provider with the wolfSSH settings, and keeps wolfSSH's own warnings out of an application built with `-Werror`. | `components/ssh/ports/zephyr/wolf_ssh_settings.cmake` |
+| `crux_ssh_callback_table()`, `crux_ssh_cli_set_provider()`, the provider's `start()` and `crux_ssh_wolf_host_key_fingerprint()` | The composition's own C code, to start the provider. The interface stays private: there is no public header. | `components/ssh/src`, `cli`, `ports/zephyr` |
+| `crux_ssh_host_key_load()` and `_clear()` | A composition with a credential store, as one way to get a host key | `components/ssh/access/crux_ssh_host_key.c` |
+| The CLI core, a provider of its event port, the file service and Access | The composition links them: the symbols above only select the entry points | the components |
+| **Test-only:** `ssh.cmake`, `crux_native_management_ssh.c`, the test host key and its guards, the services `main.c` hook, the accounts and the key from `-testargs`, the driver and the script | This image alone | `tests/native/management_composition`, `tests/native/management_ssh`, `scripts/test-ssh-integrated.sh` |
+
+Everything product-shaped is a named hook or an owner decision, and none is built here: **how the host key is held and wiped** (the test image keeps it in a
+static buffer), **the first account** (a declared test step), **a frontend** (the image serves the services image's one-page folder, with no login),
+**the TLS certificate** (the declared test certificate, as in the existing images), **which interface a listener binds**, and **the session sizes**.
+
 ## The test image declaration
 
 The image declares itself a `native_sim` test image with `CRUX_NATIVE_MANAGEMENT_TEST_IMAGE`, as the services image does for its test
@@ -155,7 +174,7 @@ clients are OpenSSH 9.6 `ssh` and `sftp`, and `curl` against the declared test c
 | `case_boot` | The 17 cases that the services image prints pass **with SSH running**, and the printed host key fingerprint is what `ssh-keyscan` and `ssh-keygen -l` report |
 | `case_ssh_cli` | Ed25519 key login of `admin`: `help`, `account list` showing the accounts of the image's own cases, `logout`. The viewer's `account list` exits 127, and so does the administrator's `network recover`, which is serial only. Unknown command 127. An unlisted Ed25519, an ECDSA and an RSA key are refused. A shell, a password login and a wrong password. |
 | `case_sftp` | `sftp` upload of 3,000 and 60,000 bytes and download with identical SHA-256. A file that the **file service API** wrote is read by SFTP, so one file area is behind both. The viewer reads and cannot write. Remove. |
-| `case_https` | `curl`: the two-request login, `session/me`, `status` with 20 items whose security event count **rises after SSH logins**, a configuration update that reads back, the missing CSRF token 403, no cookie 401, a wrong password, logout, the packaged page and its script |
+| `case_https` | `curl`: the two-request login, `session/me`, `status` with 20 items whose security event count **rises after SSH logins**, a configuration update that reads back, the missing CSRF token 403, no cookie 401, a wrong password, logout, the packaged one-page folder |
 | `case_ports` | The process holds exactly the two declared listening sockets, read from `/proc` |
 | `case_sessions_across_channels` | An account's fourth session ends its oldest, **whichever channel opened it**: a web login ended an SSH shell |
 | `case_slots_with_both_busy` | Four SSH shells, then three web logins, then an eighth session refused, and one shell leaving frees the slot: [below](#session-limits-when-both-listeners-are-busy) |
@@ -302,17 +321,15 @@ $CURL https://localhost:18242/api/v1/session/me; echo
 $CURL https://localhost:18242/api/v1/status | python3 -m json.tool | head -20
 ```
 
-**6. A browser.** Open `https://localhost:18242/`. The certificate is self-signed, so the browser warns: continue, or import
-`tests/native/tls_offload_probe/credentials/test-server.crt`. In a Dev Container the port must be forwarded to the machine that runs the
-browser, which VS Code does for a port that a process listens on, and the Ports panel can do by hand for 18242 and 2222. The page logs in
-through the same API, shows the status, and edits `demo.display_name`. It is a small demonstration and not a product frontend.
+**6. A browser.** Open `https://localhost:18242/`. It shows the services image's one-page folder, which proves the TLS listener and the packaged folder
+and has no login: the management API is for `curl`, as in step 5, and a product brings its own frontend. The certificate is self-signed, so
+the browser warns: continue, or import `tests/native/tls_offload_probe/credentials/test-server.crt`. In a Dev Container the port must be
+forwarded to the machine that runs the browser, which VS Code does for a port that a process listens on, and the Ports panel can do by hand for 18242 and 2222.
 
 **This step was not run in a browser.** The built-in browser of the session refuses a self-signed certificate, and changing what the machine trusts is
-the user's to do. The page's own request sequence, with the headers that `app.js` sends, was run with `curl` and works: login, `session/me`,
-a configuration update that reads back, and logout. How the page renders, and its strict content policy in a browser, are untested.
+the user's to do. The same page was fetched with `curl` in the driver.
 
-While the browser is logged in, `ssh` in as `admin` and run `account list`: it shows the same accounts. Log in on the web as `admin` three
-times and watch the oldest of three SSH shells of `admin` end.
+With the image running, log in on the web with `curl` as `admin` three times while three `ssh` shells of `admin` are open, and the oldest shell ends.
 
 **7. Stop it** with Ctrl-C in the first terminal. Starting it again on the same `disk.bin` gives the same host key and the same accounts.
 
@@ -320,7 +337,7 @@ times and watch the oldest of three SSH shells of `admin` end.
 
 | Finding | Effect |
 | --- | --- |
-| `composition.cmake` builds `app` with `-Werror`, and the wolfSSH module adds its sources to `app` | The first build stopped on wolfSSH's own unused parameters. `ssh.cmake` gives those files `-Wno-error`: [decision 3](#decisions-for-review) |
+| `composition.cmake` builds `app` with `-Werror`, and the wolfSSH module adds its sources to `app` | The first build stopped on wolfSSH's own unused parameters. `crux_ssh_wolf_settings()` gives those files `-Wno-error` under `CONFIG_CRUX_SSH`: [decision 3](#decisions-for-review) |
 | An unsatisfied Kconfig dependency only warns | `CONFIG_CRUX_SSH=y` fell to `n` on `NET_TCP` and the build went on with no SSH, until the composition's check stopped it: [decision 2](#decisions-for-review) |
 | The SSH listener binds every IPv4 address, and the HTTPS listener the IPv6 any address, which is dual-stack, so that IPv4 reaches it too (read from `/proc/net/tcp` and `tcp6`) | On a device both would answer on every interface. Which interface a management listener may use is a product choice that no setting here makes. The "only the declared listeners" check of #197 needs a device and its addresses. |
 | With `CONFIG_MBEDTLS=y`, the `mbedtls` module's own CMake fails first when `tf-psa-crypto` is not on the module path | The Mbed control then stops for the module's reason and not ours, so the script puts both in the module list, as a west workspace with the group does |
@@ -335,14 +352,13 @@ Each was taken without the owner, and the narrower choice was taken where there 
 | --- | --- | --- | --- |
 | 1 | The symbols of [the table above](#selecting-ssh-the-kconfig-symbols), and `CONFIG_CRUX_SSH` as the selector, with no `crux::ssh` target | The web adapter's pattern, and `check-ssh-boundaries.py` holds SSH private. They are new public configuration names, which `CONTRIBUTING.md` says to review. | Renames before any consumer uses them are free |
 | 2 | `CONFIG_CRUX_SSH` depends on `NET_SOCKETS`, not `NET_TCP`, and the composition stops when the symbol dropped out | An image on offloaded sockets has no `NET_TCP`, and Zephyr only warns about an unsatisfied dependency | A target image keeps `NET_TCP` through its sockets anyway |
-| 3 | The wolfSSH sources keep their own warnings in this image, with `-Wno-error` on those files only | `composition.cmake` builds `app` with `-Werror` and the wolfSSH module adds its sources to `app`. wolfSSH 1.6.0 is unedited, and Crux's own sources, built apart, keep `-Werror`. | A separate library for wolfSSH, which the module would have to provide |
+| 3 | The wolfSSH sources keep their own warnings, with `-Wno-error` on those files only, set by `crux_ssh_wolf_settings()` when `CONFIG_CRUX_SSH` is on | An application that builds `app` with `-Werror` would otherwise stop on wolfSSH's own unused parameters, as this image's first build did. wolfSSH 1.6.0 is unedited, and Crux's own sources, built apart, keep `-Werror`. | A separate library for wolfSSH, which the module would have to provide |
 | 4 | The image is a declared test image, and the host key is in test form with three guards | See [the declaration](#the-test-image-declaration) | |
 | 5 | The session capacity of the shared Access table, 7 network slots, is not changed | It is the Access contract's default, and the right numbers depend on how many web users and SSH sessions a product expects. **Owner decision**: `CRUX_ACCESS_SESSION_MAX`, `CONFIG_CRUX_SSH_MAX_CONNECTIONS` and the idle limit, and whether an abandoned web session should end sooner than 15 minutes. | One setting each |
 | 6 | The file service's area in this image allows managed and direct writes, 64 KiB a file, 256 KiB an area, 16 entries and `.filepart` | A managed-only area refuses every SFTP write. The partition is 512 KiB. | The services image keeps its own area: the change is behind `CRUX_NATIVE_MANAGEMENT_SSH` |
 | 7 | The image ends the cases' three test sessions before it reports ready | They would take three of the seven slots for ever. The services image is unchanged. | The first run's 503 would return |
 | 8 | **The Wolf profile only.** The Mbed profile cannot carry SSH. | wolfSSH needs wolfSSL, and two TLS stacks in one image are not a supported composition. `provider_sources.cmake`, `zephyr/CMakeLists.txt` and `ssh.cmake` refuse it, and the control shows the message. | A wolfSSH on Mbed TLS would be a new provider |
 | 9 | `scripts/test-ssh-integrated.sh` is a new file in the protected `scripts/`, and no workflow runs it | A new check script is allowed within the task. Naming it in a workflow would break `check-ssh-boundaries.py`, which keeps wolfSSH out of default CI (decision 15 of the provider). **Owner decision**: whether and how to wire it into a workflow that already has the secure management group. | |
-| 10 | A small page in `tests/native/management_ssh/site` | The services image's page has no login. The page uses only the real API, and its strict content policy needs a script file. | The services image's page could be used instead, with curl only |
 
 **Owner decisions that this work lists and does not take:**
 
@@ -362,7 +378,7 @@ Each was taken without the owner, and the narrower choice was taken where there 
 | The sizing of the web defaults of #184 against this image | Not done. The figures above show where SSH and the web meet, and do not size the web's client limit, inactivity timer, header capture, deadlines, stack or send timeout. |
 | A port scan from outside | The listeners are read from `/proc`, for the process. A scan of a device's address needs a device. |
 | Time slicing between SSH workers, the web thread and Crux threads | No CPU time is simulated. `CONFIG_TIMESLICING` and `CONFIG_TIMESLICE_SIZE` are as the provider requires. |
-| A browser against this page, and the Preact and Angular examples against this image | The page was served and its request sequence run with `curl`. No browser was used, and `web/e2e` was not run against this image: it needs Node.js 24.22.2 and Chrome. |
+| A browser against this image, and the Preact and Angular examples against it | The one-page folder was fetched with `curl`. No browser was used, and `web/e2e` was not run against this image: it needs Node.js 24.22.2 and Chrome. |
 | WinSCP, PuTTY, any client but OpenSSH 9.6 | OpenSSH is what the harnesses use |
 | Real TAP networking, IPv6 | The offload reaches the host through loopback |
 | Concurrent large transfers with CPU contention, a full file area, a full arena | Not walked in this image. #192 walked the arena on its own image. |

@@ -47,21 +47,6 @@ function(crux_native_management_compose_ssh)
     # The entry points build apart from the application, so they take the CLI core's settings from here.
     target_compile_definitions(crux_ssh_entries PRIVATE CRUX_CLI_LINE_MAX=320 CRUX_CLI_TOKENS_MAX=10)
 
-    # composition.cmake builds `app` with -Werror, and the wolfSSH module adds its sources to `app`. They are
-    # upstream code at a pin, and unedited, so they keep their own warnings: Crux's sources are the ones that
-    # -Werror is for. The SSH test images build the same way, with no -Werror on `app`.
-    get_target_property(app_sources app SOURCES)
-    set(wolfssh_sources)
-    foreach(source IN LISTS app_sources)
-        if(source MATCHES "/wolfssh/src/[^/]+\\.c$")
-            list(APPEND wolfssh_sources "${source}")
-        endif()
-    endforeach()
-    if(NOT wolfssh_sources)
-        message(FATAL_ERROR "No wolfSSH source is in the application: is CONFIG_WOLFSSH on and the module found?")
-    endif()
-    set_source_files_properties(${wolfssh_sources} TARGET_DIRECTORY app PROPERTIES COMPILE_OPTIONS "-Wno-error")
-
     target_sources(app PRIVATE
         "${CRUX_NATIVE_MANAGEMENT_DIR}/crux_native_management_ssh.c"
         ${CRUX_SSH_HOST_KEY_SOURCES})
