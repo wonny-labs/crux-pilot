@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20.0)
 get_filename_component(CRUX_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
+# The rehearsal on native_sim (tests/native/reliance_stage_a) runs these images on the eMMC simulator
+# of tests/support/emmc_sim. Only a native_sim build takes the simulator's binding and source; no
+# other board's build is changed.
+if(BOARD MATCHES "^native_sim")
+  include(${CRUX_ROOT}/tests/support/emmc_sim/emmc_sim.cmake)
+  list(APPEND DTS_ROOT "${CRUX_ROOT}/tests/support/emmc_sim")
+endif()
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_storage_reliance_sd C)
 # An unsatisfied Kconfig dependency only warns, which would build an image without the provider or
@@ -34,6 +41,9 @@ else()
     # The default image and the mount check: main.c mounts only with CONFIG_SAMPLE_EMMC_START.
     target_sources(app PRIVATE ${EMMC_DIR}/main.c)
   endif()
+endif()
+if(CONFIG_BOARD_NATIVE_SIM)
+  crux_emmc_sim_add(app)
 endif()
 target_link_libraries(app PRIVATE crux::file)
 target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR} ${EMMC_DIR} ${INTERRUPT_DIR}

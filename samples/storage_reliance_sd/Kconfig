@@ -58,4 +58,8 @@ config SAMPLE_SD_REPLACE_TEST
 	bool
 	default y if SAMPLE_RELIANCE_SD_REPLACE_TEST
 
+# The simulator's options exist for the native_sim rehearsal only: the symbols depend on
+# BOARD_NATIVE_SIM and are inert on the RT1060.
+rsource "../../tests/support/emmc_sim/Kconfig"
+
 source "Kconfig.zephyr"

@@ -599,3 +599,40 @@ folded="$(tr -s '[:space:]' ' ' <"$selection_log")"
     exit 1
 }
 printf 'Settings File selection: dropped without Reliance Edge, naming the dependency\n'
+
+# The Stage A images of samples/storage_reliance_sd, rehearsed on the eMMC simulator. This exercises
+# the application logic of the images, the File provider and Reliance Edge on a model. It does not
+# exercise the SD host driver, the SD layer or a real card, and it is not evidence about the EVKB.
+# The rehearsal and its judging helpers are tests/native/reliance_stage_a.
+python3 "$repo/tests/native/reliance_stage_a/test_rehearsal.py"
+rehearsal_dir="$repo/build/zephyr/reliance-stage-a-native"
+(cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
+    -T "$repo/samples/storage_reliance_sd" --build-only -O "$rehearsal_dir" --inline-logs)
+python3 - "$rehearsal_dir/twister.json" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+# All five images must have been built for native_sim: a filtered scenario must not be skipped.
+suites = json.loads(Path(sys.argv[1]).read_text())['testsuites']
+built = sorted(suite['name'].rsplit('/', 1)[-1] for suite in suites
+               if suite['platform'] == 'native_sim/native/64' and suite.get('status') == 'not run')
+expected = sorted(f'crux.sample.storage_reliance_sd.native{suffix}'
+                  for suffix in ('', '.start', '.append', '.replace', '.format'))
+if built != expected or len(suites) != len(expected):
+    raise RuntimeError(f'the Stage A rehearsal images were not all built: {built}')
+print(f'Stage A rehearsal images built for native_sim: {len(built)}')
+PY
+rehearsal_exe() {
+    local found
+    found="$(find "$rehearsal_dir" -type f -path "*/crux.sample.storage_reliance_sd.native$1/zephyr/zephyr.exe")"
+    if [[ -z "$found" || "$(wc -l <<<"$found")" -ne 1 ]]; then
+        printf 'Expected one Stage A rehearsal image for "%s", found: %s\n' "$1" "$found" >&2
+        exit 1
+    fi
+    printf '%s\n' "$found"
+}
+python3 "$repo/tests/native/reliance_stage_a/run_rehearsal.py" \
+    --default-exe "$(rehearsal_exe '')" --start-exe "$(rehearsal_exe .start)" \
+    --append-exe "$(rehearsal_exe .append)" --replace-exe "$(rehearsal_exe .replace)" \
+    --format-exe "$(rehearsal_exe .format)" --image "$rehearsal_dir/medium.bin"

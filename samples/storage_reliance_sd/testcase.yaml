@@ -33,3 +33,35 @@ tests:
     tags: [filesystem, crux, link_only]
     extra_configs:
       - CONFIG_SAMPLE_RELIANCE_SD_FORMAT=y
+  # The rehearsal on native_sim (tests/native/reliance_stage_a): the same five images on the eMMC
+  # simulator, named SD like the EVKB's microSD disk. Build only here; run_rehearsal.py runs them.
+  # The model exercises the application logic, the File provider and Reliance Edge, and not the SD
+  # host driver, the SD layer or a card.
+  crux.sample.storage_reliance_sd.native:
+    build_only: true
+    platform_allow: [native_sim/native/64]
+    tags: [filesystem, crux, rehearsal]
+  crux.sample.storage_reliance_sd.native.start:
+    build_only: true
+    platform_allow: [native_sim/native/64]
+    tags: [filesystem, crux, rehearsal]
+    extra_configs:
+      - CONFIG_SAMPLE_EMMC_START=y
+  crux.sample.storage_reliance_sd.native.append:
+    build_only: true
+    platform_allow: [native_sim/native/64]
+    tags: [filesystem, crux, rehearsal]
+    extra_configs:
+      - CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST=y
+  crux.sample.storage_reliance_sd.native.replace:
+    build_only: true
+    platform_allow: [native_sim/native/64]
+    tags: [filesystem, crux, rehearsal]
+    extra_configs:
+      - CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST=y
+  crux.sample.storage_reliance_sd.native.format:
+    build_only: true
+    platform_allow: [native_sim/native/64]
+    tags: [filesystem, crux, rehearsal]
+    extra_configs:
+      - CONFIG_SAMPLE_RELIANCE_SD_FORMAT=y
