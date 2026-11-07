@@ -189,9 +189,11 @@ save, `guest` sees nothing and `newuser` must change its password.
 | Preact example, core screens | 4 | 58709 | 20761 | |
 | Angular example, before #243, sign-in and home | 5 | 249403 | 76710 | 300 kB raw initial, error |
 | Angular example, core screens | 5 | 298780 | 91197 | 300 kB raw initial: 281.11 kB used |
+| Angular example, all six screens, after network settings and restart | 5 | 326609 | 97941 | 320 kB raw initial: 308.94 kB used |
 
-The Preact budget in `samples/web/preact/budget.json` is unchanged, with 9,584 bytes left. The Angular example uses 281.11 kB of its
-300 kB raw limit for the initial bundle, so a further screen needs a decision about that limit. The rows before #243 were measured on the base commit, and the Preact one differs from the earlier record of 20406 compressed bytes in
+The Preact budget in `samples/web/preact/budget.json` is unchanged, with 9,584 bytes left at #243. The Angular example used 281.11 kB of its
+300 kB raw limit for the initial bundle, so a further screen needed a decision about that limit. The network settings and restart screens that
+followed took it to 308.94 kB, and the limit is now 320 kB: see [the advanced flows](web-advanced-flows.md). The rows before #243 were measured on the base commit, and the Preact one differs from the earlier record of 20406 compressed bytes in
 `web-frontend-implementation.md`, which is older than it. `node tools/compare.ts` gives the table, and the two-screens fixture now holds home and configuration so that
 it matches the Angular example's core flows.
 

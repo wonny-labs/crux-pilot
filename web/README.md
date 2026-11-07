@@ -21,8 +21,8 @@ a product builds its own interface or starts from an example.
 
 ## Core and Advanced flows
 
-Core flows belong in both examples and in the shared browser cases. Advanced flows are in the Preact example, with service
-tests underneath, and the Angular example does not copy them.
+Core and advanced flows are in both examples and in the shared browser cases, with service tests underneath. The advanced flows
+are described in [the advanced flows](../docs/web-advanced-flows.md).
 
 | Flow | Kind | Preact example | Angular example |
 | --- | --- | --- | --- |
@@ -31,8 +31,8 @@ tests underneath, and the Angular example does not copy them.
 | Forced password change | Core | Built | Built |
 | Status | Core | Built | Built |
 | Simple configuration update | Core | Built, on the mock | Built, on the mock |
-| Network settings | Advanced | Built | Not planned |
-| Reboot | Advanced | Built | Not planned |
+| Network settings | Advanced | Built | Built |
+| Reboot | Advanced | Built | Built |
 
 ## Evidence
 
