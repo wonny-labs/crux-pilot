@@ -110,8 +110,8 @@ tests underneath. Neither kind is a product promise, and a new API does not by i
 | Forced password change | Core | Accounts, #186 and #187 | Built | A notice only. The screen is in #243. |
 | Status | Core | Status, #180 and #187 | Built, as home | Built, as home |
 | Simple configuration update | Core | Configuration, #180 and #187 | In #243 | In #243 |
-| Network settings | Advanced | #213, after the HTTPS core | Built. The advanced label is in the documents only, not on the screen. | Not planned |
-| Reboot | Advanced | #214, optional and policy-controlled | Built. The advanced label is in the documents only, not on the screen. | Not planned |
+| Network settings | Advanced | #213, after the HTTPS core | Built. The advanced label is in the documents only, not on the screen. | Built, since #243 |
+| Reboot | Advanced | #214, optional and policy-controlled | Built. The advanced label is in the documents only, not on the screen. | Built, since #243 |
 | Browser console | Optional follow-up in M13 | Endpoint in #204 | No page | No page |
 
 The state above covers the mock only. The evidence for each flow is in the

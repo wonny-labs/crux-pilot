@@ -28,7 +28,7 @@ export function packageCounts(lockfile: string): { production: number; locked: n
 const rows = [
   { name: 'Preact example, all six screens', dist: join(web, '..', 'samples', 'web', 'preact', 'dist'), lock: join(web, 'package-lock.json') },
   { name: 'Preact example, core screens', dist: join(web, 'build', 'two-screens'), lock: join(web, 'package-lock.json') },
-  { name: 'Angular sample, core screens', dist: join(sample, 'dist'), lock: join(sample, 'package-lock.json') },
+  { name: 'Angular example, all six screens', dist: join(sample, 'dist'), lock: join(sample, 'package-lock.json') },
 ];
 
 process.stdout.write('| Build | Files | Bytes | Compressed bytes | Production packages | Locked packages |\n');
