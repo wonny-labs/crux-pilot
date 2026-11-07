@@ -505,6 +505,17 @@ copy. It builds no image that is kept or uploaded. The sizes and stack frames ar
 [composition document](../docs/emmc-reliance-composition.md). This is a link, not evidence about an eMMC device or
 a board.
 
+The same script also links `samples/storage_reliance_sd`, the Stage A images of the
+[eMMC physical gate](../docs/emmc-reliance-physical-gate.md) that run Reliance Edge on the EVKB's own microSD
+slot (disk `SD`, mount point `/MMC:`): the default image, the mount check (`.start`), and the append and
+replace tests, whose `main.c`, `sd_interrupt.c` and `sd_replace.c` are those of `samples/storage_sd_interrupt` and
+`samples/storage_sd_replace`, compiled unchanged behind a shim header. For each of the four scenarios the script
+requires the microSD disk driver and Reliance Edge in `.config`, `CONFIG_SDHC_BUFFER_ALIGNMENT=32`, no MMC driver
+and no formatter, and that `red_format` is not linked. The default image must link none of `emmc_storage_start`,
+`sd_interrupt_append` and `sd_replace_generation`, so it provably touches no card; each other image links exactly its
+own. No image may load above `0x60600000`, the end of the flash range that the Stage A procedure backs up. The ELF
+SHA-256 of each image goes to the log only. Nothing is programmed or run, and no image is kept or uploaded.
+
 `scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
 a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
 the fake File provider and a double for access, and walk a power cut across every mutation of a commit

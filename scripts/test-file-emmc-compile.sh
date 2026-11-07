@@ -202,3 +202,113 @@ expect_cmake_failure "$repo/build/zephyr/file-emmc-settings-control" \
     -DCONFIG_SAMPLE_EMMC_START=y -DCONFIG_SETTINGS=y -DCONFIG_SETTINGS_FILE=y \
     '-DCONFIG_SETTINGS_FILE_PATH="/MMC:/settings/cfg"' -DCONFIG_CRUX_CONFIGURATION_SETTINGS_FILE=y \
     -DCRUX_SETTINGS_FILE_CONTROL=ON
+
+# Link only: the Stage A images of the eMMC physical gate, which run Reliance Edge on the EVKB's own
+# microSD slot (samples/storage_reliance_sd): the default image that touches no card, the mount
+# check, and the append and replace tests. Nothing is programmed, reset or run, and no image is kept
+# or uploaded: each image links GPLv2 source and is a test image. The ELF SHA-256 of each image goes
+# to the log only. The same CRUX_FILE_EMMC_SKIP_BUILD=1 rule applies to this output directory.
+sd_output="${CRUX_FILE_RELIANCE_SD_OUTPUT:-$repo/build/zephyr/file-reliance-sd-link}"
+if [[ "${CRUX_FILE_EMMC_SKIP_BUILD:-0}" != 1 ]]; then
+    (cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_reliance_sd" \
+        --build-only -O "$sd_output" --inline-logs)
+fi
+
+python3 - "$sd_output" "$board" <<'PY'
+import hashlib
+import json
+import struct
+import subprocess
+import sys
+from pathlib import Path
+
+output, board = Path(sys.argv[1]), sys.argv[2]
+suites = json.load(open(output / 'twister.json'))['testsuites']
+names = sorted(s['name'] for s in suites)
+expected = ['crux.sample.storage_reliance_sd', 'crux.sample.storage_reliance_sd.append',
+            'crux.sample.storage_reliance_sd.replace', 'crux.sample.storage_reliance_sd.start']
+if (names != expected or any(s['platform'] != board or s.get('status') != 'not run' or
+                             s.get('runnable') for s in suites)):
+    raise RuntimeError(f'RT1060 microSD Stage A link check did not build the four scenarios: '
+                       f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
+
+REQUIRED = ['CONFIG_DISK_DRIVER_SDMMC=y', 'CONFIG_CRUX_FS_RELIANCE_EDGE=y',
+            'CONFIG_CRUX_FILE_RELIANCE_EDGE=y', 'CONFIG_SDHC_BUFFER_ALIGNMENT=32']
+UNSET = ['CONFIG_DISK_DRIVER_MMC', 'CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT']
+OPTIONS = ['CONFIG_SAMPLE_EMMC_START', 'CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST',
+           'CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST']
+# Each scenario is (name, the one option it sets, symbols that must be linked, symbols that must not
+# be). The default image calls none of the three, so it provably touches no card.
+SCENARIOS = [
+    ('crux.sample.storage_reliance_sd', None, [],
+     ['emmc_storage_start', 'sd_interrupt_append', 'sd_replace_generation']),
+    ('crux.sample.storage_reliance_sd.start', 'CONFIG_SAMPLE_EMMC_START', ['emmc_storage_start'],
+     ['sd_interrupt_append', 'sd_replace_generation']),
+    ('crux.sample.storage_reliance_sd.append', 'CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST',
+     ['emmc_storage_start', 'sd_interrupt_append'], ['sd_replace_generation']),
+    ('crux.sample.storage_reliance_sd.replace', 'CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST',
+     ['emmc_storage_start', 'sd_replace_generation'], ['sd_interrupt_append']),
+]
+# The Stage A procedure backs up the first 6 MiB of the QSPI flash only, so no image may load above.
+IMAGE_LIMIT = 0x60600000
+FLASH_BASE = 0x60000000
+
+
+def find_nm(build):
+    for line in (build / 'CMakeCache.txt').read_text().splitlines():
+        if line.startswith('CMAKE_NM:'):
+            return line.split('=', 1)[1]
+    raise RuntimeError(f'no CMAKE_NM in {build}/CMakeCache.txt')
+
+
+def image_end(elf):
+    """The highest load address (LMA) of a file-backed segment of a 32-bit little-endian ELF."""
+    data = elf.read_bytes()
+    if data[:7] != b'\x7fELF\x01\x01\x01':
+        raise RuntimeError(f'{elf} is not a little-endian ELF32')
+    table, entry_size, count = struct.unpack_from('<I', data, 28)[0], *struct.unpack_from('<HH', data, 42)
+    end = 0
+    for index in range(count):
+        kind, _, _, physical, filesz, _, _, _ = struct.unpack_from('<8I', data, table + index * entry_size)
+        if kind == 1 and filesz:
+            end = max(end, physical + filesz)
+    return end
+
+
+for name, option, wanted, forbidden in SCENARIOS:
+    configs = [p for p in output.rglob('.config') if p.parent.parent.name == name]
+    if len(configs) != 1:
+        raise RuntimeError(f'expected one build configuration for {name}, found {len(configs)}')
+    config = configs[0]
+    build = config.parent.parent
+    lines = config.read_text().splitlines()
+    for line in REQUIRED:
+        if line not in lines:
+            raise RuntimeError(f'{name}: {line} is missing from {config}')
+    for symbol in UNSET:
+        if any(line.startswith(symbol + '=') for line in lines):
+            raise RuntimeError(f'{name}: {symbol} is set in {config}')
+    for symbol in OPTIONS:
+        if (symbol + '=y' in lines) != (symbol == option):
+            raise RuntimeError(f'{name}: {symbol} is {"set" if symbol + "=y" in lines else "unset"}, '
+                               f'expected only {option} set')
+
+    elf = build / 'zephyr/zephyr.elf'
+    symbols = subprocess.run([find_nm(build), str(elf)], check=True, capture_output=True,
+                             text=True).stdout.splitlines()
+    present = {line.split()[-1] for line in symbols if len(line.split()) >= 3}
+    if 'red_format' in present:
+        raise RuntimeError(f'{name}: red_format is linked into {elf}')
+    for symbol in wanted:
+        if symbol not in present:
+            raise RuntimeError(f'{name}: {symbol} is not linked into {elf}')
+    for symbol in forbidden:
+        if symbol in present:
+            raise RuntimeError(f'{name}: {symbol} is linked into {elf}')
+    end = image_end(elf)
+    if not FLASH_BASE < end < IMAGE_LIMIT:
+        raise RuntimeError(f'{name}: the image ends at {end:#x}, expected below {IMAGE_LIMIT:#x}')
+    digest = hashlib.sha256(elf.read_bytes()).hexdigest()
+    print(f'RT1060 microSD Stage A link check: {name} linked, ends at {end:#x}, '
+          f'zephyr.elf sha256 {digest}')
+PY

@@ -1,0 +1,28 @@
+sample:
+  name: Crux Reliance Edge microSD Stage A images (link only)
+# Each scenario states its own platforms, because scenarios for other platforms share this file.
+tests:
+  # The default image touches no card: no option is set, so main does nothing.
+  crux.sample.storage_reliance_sd:
+    build_only: true
+    platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
+    tags: [filesystem, crux, link_only]
+  # The mount check of Stage A: initialise the disk and mount without formatting.
+  crux.sample.storage_reliance_sd.start:
+    build_only: true
+    platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
+    tags: [filesystem, crux, link_only]
+    extra_configs:
+      - CONFIG_SAMPLE_EMMC_START=y
+  crux.sample.storage_reliance_sd.append:
+    build_only: true
+    platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
+    tags: [filesystem, crux, link_only]
+    extra_configs:
+      - CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST=y
+  crux.sample.storage_reliance_sd.replace:
+    build_only: true
+    platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
+    tags: [filesystem, crux, link_only]
+    extra_configs:
+      - CONFIG_SAMPLE_RELIANCE_SD_REPLACE_TEST=y
