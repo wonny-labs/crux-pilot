@@ -1,4 +1,4 @@
-/* Until #193 replaces the stand-in, every session fails. #193 replaces this test with its own. */
+/* An image with no command line refuses every session, so it links with no CLI or access core. */
 #include "crux_ssh_callbacks.h"
 #include "ssh_check.h"
 

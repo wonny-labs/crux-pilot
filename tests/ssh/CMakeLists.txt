@@ -2,7 +2,7 @@
 # CLI (#193) and SFTP (#194) Host tests link.
 add_library(crux_ssh_fake STATIC fake_provider.c)
 target_include_directories(crux_ssh_fake PUBLIC .)
-target_link_libraries(crux_ssh_fake PUBLIC crux_ssh_provider)
+target_link_libraries(crux_ssh_fake PUBLIC crux_ssh_provider PRIVATE crux_ssh_wire)
 target_compile_options(crux_ssh_fake PRIVATE -Wall -Wextra -Wpedantic -Werror)
 target_compile_features(crux_ssh_fake PRIVATE c_std_17)
 
@@ -48,5 +48,6 @@ set_tests_properties(Ssh.Boundaries PROPERTIES TIMEOUT 30)
 
 # Each session's own tests. It adds them in its directory, so it has no need to change this file.
 add_subdirectory(access)
+add_subdirectory(wire)
 add_subdirectory(cli)
 add_subdirectory(sftp)

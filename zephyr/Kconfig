@@ -109,6 +109,39 @@ config CRUX_SERIAL
     help
       One explicitly dedicated UART, 256-byte RX and TX buffers. Task context only.
 
+config CRUX_CLI
+    bool "Crux command line and serial console"
+    depends on CRUX_PILOT_MODULE && CRUX_SERIAL && CRUX_THREAD
+    help
+      The command registry and the serial console over Crux Serial. Access and a provider of the
+      event port have no Zephyr composition yet, so an image that calls it does not link.
+      Without CRUX_DEVELOPMENT_IMAGE, an image with this has no Zephyr shell.
+
+if CRUX_CLI
+
+config CRUX_CLI_LINE_MAX
+    int "Longest input line, in bytes before the line end"
+    default 320
+    range 301 4096
+    help
+      At least `config set <31-byte name> "<128-byte value>"` with every value byte escaped.
+
+config CRUX_CLI_TOKENS_MAX
+    int "Most tokens in a line, counting the command's words"
+    default 10
+    range 4 32
+
+endif # CRUX_CLI
+
+config CRUX_DEVELOPMENT_IMAGE
+    bool "Mark this image as a development image"
+    depends on CRUX_PILOT_MODULE
+    help
+      Opt-in. It allows the Zephyr shell, on its serial backend only, in an image that also has Crux
+      management. No image may have a network shell backend or MCUMGR_GRP_SHELL, with or without
+      this mark. A development image says so in its identifier and in its evidence, and it is never
+      the subject of a production result.
+
 config CRUX_I2C
     bool "Crux synchronous I2C transfers"
     depends on CRUX_PILOT_MODULE && I2C
@@ -203,3 +236,96 @@ config CRUX_MMC_CACHE_FLUSH
       cache on, DISK_IOCTL_CTRL_SYNC sends FLUSH_CACHE and returns an error unless
       the card completes it. The Zephyr checkout is never edited, and a pinned
       source that differs from the expected one fails the configuration.
+
+menuconfig CRUX_WEB
+    bool "Crux web server adapter"
+    depends on CRUX_PILOT_MODULE && NETWORKING
+    select HTTP_SERVER
+    select HTTP_SERVER_CAPTURE_HEADERS
+    select HTTP_SERVER_RESOURCE_WILDCARD
+    select HTTP_SERVER_COMPLETE_STATUS_PHRASES
+    select NET_CONTEXT_SNDTIMEO if NET_NATIVE
+    help
+      The private adapter over the Zephyr HTTP server, for routes defined with crux/web.h. HTTPS
+      only, unless a native_sim test asks otherwise. A composition starts it, and provides the
+      Access core. See docs/web-contract.md.
+
+if CRUX_WEB
+
+config CRUX_WEB_PORT
+    int "Port of the web service, or 0 for an ephemeral one"
+    default 443
+    range 0 65535
+
+config CRUX_WEB_BACKLOG
+    int "Connections the listening socket queues"
+    default 4
+    range 1 32
+
+config CRUX_WEB_TLS_SEC_TAG
+    int "TLS security tag of the service's credentials"
+    default 1
+    depends on !CRUX_WEB_PLAIN_HTTP_FOR_TESTS
+
+config CRUX_WEB_BODY_BUFFER
+    int "Bytes of request body held per client"
+    default 1024
+    range 64 16384
+
+config CRUX_WEB_SEND_TIMEOUT_MS
+    int "Longest wait of one socket send, on the server thread"
+    default 250
+    range 10 60000
+    help
+      A small response is about twenty sends in one callback, and each can wait this long while the
+      server thread serves nobody else. A stall past the inactivity timer also closes other clients.
+
+config CRUX_WEB_RESPONSE_PIECE
+    int "Bytes of a response body passed to the server at a time"
+    default 1024
+    range 64 65536
+
+config CRUX_WEB_RESPONSE_DEADLINE_MS
+    int "Longest time one response may keep the server thread"
+    default 3000
+    range 10 600000
+
+config CRUX_WEB_REQUEST_DEADLINE_MS
+    int "Whole-request deadline, from the headers to the last body byte"
+    default 5000
+    range 10 600000
+    help
+      Every received byte restarts the server's inactivity timer, so that timer does not bound a
+      client that trickles a body. A composition passes this in crux_web_config_t.
+
+config CRUX_WEB_PLAIN_HTTP_FOR_TESTS
+    bool "Plain HTTP on loopback, for tests of the adapter only"
+    depends on BOARD_NATIVE_SIM
+    help
+      The design excludes plain HTTP. This exists so the adapter can run on native_sim before the
+      TLS profiles of Issue #185 do, and no other board can select it.
+
+endif # CRUX_WEB
+
+# The two cookies and the X-Crux-Request of the attempt poll fit, with room for what else a device's
+# address may carry. Sized in docs/web-contract.md, and each is checked when the adapter compiles.
+configdefault HTTP_SERVER_VERSION_2
+    default n if CRUX_WEB
+
+configdefault HTTP_SERVER_MAX_HEADER_LEN
+    default 512 if CRUX_WEB
+
+configdefault HTTP_SERVER_CAPTURE_HEADER_COUNT
+    default 7 if CRUX_WEB
+
+configdefault HTTP_SERVER_CAPTURE_HEADER_BUFFER_SIZE
+    default 1024 if CRUX_WEB
+
+configdefault HTTP_SERVER_STACK_SIZE
+    default 4096 if CRUX_WEB
+
+# The server thread runs each TLS handshake inside accept, so a client that sends nothing stops every
+# client for this long. Proposed from native_sim in docs/https-composition.md, until RT1060 evidence.
+# It also bounds every outbound TLS connect in an image with CRUX_WEB.
+configdefault NET_SOCKETS_TLS_CONNECT_TIMEOUT
+    default 2000 if CRUX_WEB

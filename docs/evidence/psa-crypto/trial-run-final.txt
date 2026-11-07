@@ -1,0 +1,65 @@
+# scripts/test-psa-crypto.sh all, run 2 Nov 2026 inside the Linux Dev Container image (linux/amd64), on a clean tree
+# Environment evidence only: Host and native_sim. No cross-build, CI or hardware is implied.
+
+Crux revision: 1d8ef0b3a48c69e31ede20206cec05ad125c9213
+tf-psa-crypto: dc575a2ddcc8cb16275d24c42a52eaf79ebe2231
+mbedtls module: a3e190fe44c78d1ba67f55979e1257328cc7d0d8
+control ok: no provider selected fails to configure
+control ok: unsupported stub fails every case
+control ok: permissive stub fails every case that expects an error status
+
+## Linux Host, Debug (22 cases)
+provider: tf-psa-crypto
+PASS init_is_idempotent
+PASS random_fills_requested_bytes_only
+PASS random_large_request_succeeds
+PASS sha256_known_answer_one_shot
+PASS sha256_multipart_matches_known_answer
+PASS sha256_update_after_finish_is_bad_state
+PASS sha256_buffer_too_small
+PASS sha256_verify_mismatch_invalid_signature
+PASS hash_unsupported_algorithm_not_supported
+PASS ecdsa_p256_import_is_volatile
+PASS ecdsa_p256_verify_hash_known_answer
+PASS ecdsa_p256_wrong_signature_invalid
+PASS ecdsa_p256_tampered_input_invalid
+PASS ecdsa_p256_invalid_public_key_rejected
+PASS ecdsa_p256_key_policy_not_permitted
+PASS pbkdf2_hmac_sha256_known_answer_rfc7914
+PASS pbkdf2_hmac_sha256_known_answer_4096
+PASS pbkdf2_wrong_password_derives_different_output
+PASS pbkdf2_verify_bytes_when_supported (note: psa_key_derivation_verify_bytes is not supported by this provider)
+PASS kdf_output_on_inactive_operation_is_bad_state
+PASS kdf_unsupported_algorithm_not_supported
+PASS destroyed_key_is_invalid_handle
+22 cases, 0 failed
+
+## Linux Host, ASan+UBSan (22 cases)
+provider: tf-psa-crypto
+PASS init_is_idempotent
+PASS random_fills_requested_bytes_only
+PASS random_large_request_succeeds
+PASS sha256_known_answer_one_shot
+PASS sha256_multipart_matches_known_answer
+PASS sha256_update_after_finish_is_bad_state
+PASS sha256_buffer_too_small
+PASS sha256_verify_mismatch_invalid_signature
+PASS hash_unsupported_algorithm_not_supported
+PASS ecdsa_p256_import_is_volatile
+PASS ecdsa_p256_verify_hash_known_answer
+PASS ecdsa_p256_wrong_signature_invalid
+PASS ecdsa_p256_tampered_input_invalid
+PASS ecdsa_p256_invalid_public_key_rejected
+PASS ecdsa_p256_key_policy_not_permitted
+PASS pbkdf2_hmac_sha256_known_answer_rfc7914
+PASS pbkdf2_hmac_sha256_known_answer_4096
+PASS pbkdf2_wrong_password_derives_different_output
+PASS pbkdf2_verify_bytes_when_supported (note: psa_key_derivation_verify_bytes is not supported by this provider)
+PASS kdf_output_on_inactive_operation_is_bad_state
+PASS kdf_unsupported_algorithm_not_supported
+PASS destroyed_key_is_invalid_handle
+22 cases, 0 failed
+
+## Twister, native_sim/native/64 (Ztest)
+INFO    - Total complete:    1/   1  100%  built (not run):    0, filtered:    0, failed:    0, error:    0
+INFO    - 1 of 1 executed test configurations passed (100.00%), 0 built (not run), 0 failed, 0 errored, with no warnings in 54.68 seconds.
