@@ -9,6 +9,7 @@ import argparse
 import copy
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 import m3_uart
@@ -17,6 +18,8 @@ import m5_series
 
 PROBE='602003106'
 UART_USB='02290000325182c300000000000000000000000097969905'
+BANNER_PREFIX=b'*** Booting Zephyr OS build'
+PREFIX_LIMIT=4096
 NIC=dict(interface='en5',model='AX88179',mac='00:0a:cd:41:89:cc',host='192.168.77.1',target='192.168.77.2',prefix=24)
 
 
@@ -29,11 +32,11 @@ def digest(value):
     return value
 
 
-def command(nonce,sequence,count,ticket):
+def command(nonce,sequence,count,ticket,profile=m5_series.FULL):
     oracle.require(type(nonce) is int and 0<nonce<=0xffffffff and type(ticket) is int and 0<ticket<=0xffffffff,'Invalid nonce/readiness ticket')
-    expected=next((c for s,c,_ in m5_series.PHASES if s==sequence),None)
+    expected=next((c for s,c,_ in profile['phases'] if s==sequence),None)
     oracle.require(expected is not None and count==expected,'Command outside fixed phase matrix')
-    action='I' if not count else 'L' if sequence==7 else 'P'
+    action='I' if not count else 'L' if sequence==profile['loss'] else 'P'
     fields=[action,str(nonce),str(sequence)]
     if action=='P':fields.append(str(count))
     return ' '.join(fields+[str(ticket)])+'\n'
@@ -114,9 +117,36 @@ def qualified_uart_lines(directory,rows):
     return rows[cut[0]:]
 
 
-def uart_records(directory):
+def prefix_record(head):
+    return dict(raw_start=0,raw_end=len(head),sha256=hashlib.sha256(head).hexdigest(),reason='pre-banner bytes retained, not parsed')
+
+
+def focused_rows(directory):
+    """Cut retained pre-banner bytes (any junk, possibly sharing the banner's line) before the first banner."""
+    directory=Path(directory);raw=(directory/'uart-rx.bin').read_bytes()
+    at=raw.find(BANNER_PREFIX);oracle.require(at>=0,'No Zephyr banner in retained UART bytes')
+    head=raw[:at]
+    oracle.require(len(head)<=PREFIX_LIMIT and b'M5' not in head and json.loads((directory/'focused-prefix.json').read_text())==prefix_record(head),'Retained pre-banner prefix differs or looks like target output')
+    # Rebuild lines from the raw bytes after the cut, so pre-banner junk is never decoded.
+    events=[json.loads(line) for line in (directory/'receive.jsonl').read_text().splitlines()]
+    chunks=[bytes.fromhex(e['hex']) for e in events];stamps=[e['monotonic'] for e in events]
+    oracle.require(all(type(v) in (int,float) and math.isfinite(v) for v in stamps) and all(a<=b for a,b in zip(stamps,stamps[1:])),'UART event clock invalid')
+    oracle.require(b''.join(chunks)==raw and raw.endswith(b'\n'),'Incomplete or mismatched exact UART event stream')
+    ends=[];total=0
+    for chunk in chunks:
+        total+=len(chunk);ends.append(total)
+    rows=[];position=at
+    for line in raw[at:].split(b'\n')[:-1]:
+        position+=len(line)+1
+        stamp=stamps[next(i for i,end in enumerate(ends) if end>=position)]
+        rows.append((stamp,(line[:-1] if line.endswith(b'\r') else line).decode('ascii')))
+    return rows
+
+
+def uart_records(directory,focused=False):
     result=[]
-    for monotonic,line in qualified_uart_lines(directory,m3_uart.exact_event_rows(directory)):
+    rows=focused_rows(directory) if focused else qualified_uart_lines(directory,m3_uart.exact_event_rows(directory))
+    for monotonic,line in rows:
         if line.startswith('M5_BOOT '):
             match=re.fullmatch(r'M5_BOOT source=([0-9a-f]{12})',line)
             oracle.require(match is not None,'Malformed M5 source banner')
@@ -133,7 +163,7 @@ def uart_records(directory):
     return result
 
 
-def replay_bundle(index_path,source,abi):
+def replay_bundle(index_path,source,abi,profile=m5_series.FULL):
     """Load acceptance input from retained raw files, never embedded UART rows.
 
     Index schema1 contains source/clock and three boots with nonce, reset,
@@ -149,13 +179,17 @@ def replay_bundle(index_path,source,abi):
     def jsonl(name):
         return [json.loads(line) for line in path(name).read_text().splitlines()]
     for boot in index['boots']:
-        directory=path(boot['uart_directory']);uart=uart_records(directory)
+        directory=path(boot['uart_directory']);uart=uart_records(directory,profile['name']=='focused')
         polls=[json.loads(line) for line in (directory/'poll.jsonl').read_text().splitlines()]
         stamps=m5_series.times(polls)
         oracle.require(stamps and stamps[0]<=uart[0]['monotonic'] and stamps[-1]>=uart[-1]['monotonic'],'Incomplete UART reader supervision')
         oracle.require(all(0<=p['gap']<=.25 for p in polls) and all(b-a<=.25 for a,b in zip(stamps,stamps[1:])),'UART reader continuity gap')
         boots.append(dict(nonce=boot['nonce'],reset=boot['reset'],uart=uart,writes=jsonl(boot['writes_file']),controls=jsonl(boot['controls_file']),peer_stops=jsonl(boot['peer_stops_file']),peers={phase:jsonl(name) for phase,name in boot['peer_files'].items()}))
-    return m5_series.validate_series(dict(schema=index['schema'],source=index['source'],clock=index['clock'],boots=boots),source,abi)
+    result=m5_series.validate_series(dict(schema=index['schema'],source=index['source'],clock=index['clock'],boots=boots),source,abi,profile)
+    if 'reset_witness' in profile:
+        oracle.require(index.get('reset_semantics')==profile['reset_witness'],'Bundle does not declare the profile reset witness')
+        result['reset_witness']=profile['reset_witness']
+    return result
 
 
 def supervised(method):
@@ -176,13 +210,16 @@ class Supervisor:
     not authorise any physical operation. tick() must run at least every250ms;
     adapter failure/late evidence aborts rather than cancels target execution.
     """
-    def __init__(self,nonce,source,started,ABI,series_deadline=None):
+    def __init__(self,nonce,source,started,ABI,series_deadline=None,profile=m5_series.FULL):
         oracle.require(type(nonce) is int and 0<nonce<=0xffffffff,'Invalid nonce')
         oracle.require(re.fullmatch('[0-9a-f]{12}',source) is not None,'Invalid source')
-        self.nonce=nonce;self.source=source;self.abi=ABI;self.deadline=started+1800 if series_deadline is None else min(started+1800,series_deadline)
+        self.profile=profile;self.nonce=nonce;self.source=source;self.abi=ABI;self.deadline=started+1800 if series_deadline is None else min(started+1800,series_deadline)
         self.last=started;self.wait=started+90;self.state='boot';self.sequence=1
         self.aborted=False;self.ticket=None;self.used=set();self.watch=None
         self.rows=[];self.peer=None;self.peer_phase=None;self.stopped_phase=None;self.request=None;self.cued=False;self.controls=[];self.up=None;self.last_link=None
+
+    def first_traffic(self):
+        return next(sequence for sequence,count,_ in self.profile['phases'] if count)
 
     def now(self,now):
         oracle.require(type(now) in (int,float) and self.last<=now<min(self.deadline,self.wait),'External absolute/operator deadline expired')
@@ -212,11 +249,11 @@ class Supervisor:
             oracle.require(event=='ARM','Expected ARM');self.state='ready';return
         if event=='READY':
             oracle.require(self.state=='ready' and row['seq']==self.sequence and row['ticket']>0 and row['ticket'] not in self.used,'Missing completion/stale READY')
-            self.ticket=row['ticket'];self.state='finished' if self.sequence==10 else 'prepared';self.wait=min(self.deadline,now+90);return
+            self.ticket=row['ticket'];self.state='finished' if self.sequence==len(self.profile['phases'])+1 else 'prepared';self.wait=min(self.deadline,now+90);return
         oracle.require(self.state=='running' and row['seq']==self.sequence,'Unsolicited/misordered target traffic')
         self.watch.feed(event,now if received is None else received);self.rows.append(row)
         if event=='DONE':
-            sequence,count,mode=m5_series.PHASES[self.sequence-1]
+            sequence,count,mode=self.profile['phases'][self.sequence-1]
             if count:
                 result=oracle.validate_command(self.rows,self.nonce,sequence,count,mode,self.abi)
                 oracle.require(result['status']=='PASS','Observed latency requires independent review')
@@ -227,7 +264,7 @@ class Supervisor:
 
     @supervised
     def peer_ready(self,row,now):
-        self.now(now);_,count,mode=m5_series.PHASES[self.sequence-1]
+        self.now(now);_,count,mode=self.profile['phases'][self.sequence-1]
         oracle.require(self.state=='prepared' and count and self.peer is None and (self.peer_phase is None or self.stopped_phase==self.peer_phase),'Unsolicited/duplicate peer readiness or previous peer not reaped')
         oracle.require(row.get('event')=='ready' and row.get('token')==self.nonce and row.get('phase')==self.sequence and row.get('mode')==mode and row.get('address')=='192.168.77.1' and row.get('tcp_port')==42420 and row.get('udp_port')==42421,'Peer readiness does not match phase')
         self.peer=row;self.peer_phase=self.sequence
@@ -241,15 +278,15 @@ class Supervisor:
     @supervised
     def next_command(self,now):
         self.now(now);oracle.require(self.state=='prepared' and self.ticket is not None,'No fresh readiness/no command queueing')
-        sequence,count,_=m5_series.PHASES[self.sequence-1]
+        sequence,count,_=self.profile['phases'][self.sequence-1]
         oracle.require(not count or self.peer is not None,'Peer must be ready before traffic')
-        if sequence==2:oracle.require(self.last_link==2,'Configured primary UP required before initial traffic')
-        if sequence==8:
+        if sequence==self.first_traffic():oracle.require(self.last_link==2,'Configured primary UP required before initial traffic')
+        if sequence==self.profile['recovery']:
             required=['cable_disconnect_cue','cable_disconnect_receipt','host_down','cable_connect_receipt','host_up','route']
             oracle.require(len(self.controls)==6 and {r['event'] for r in self.controls}==set(required) and self.up is not None and self.last_link==2,'Recovery host/route/target UP gates incomplete')
             reconnect=next(r['monotonic'] for r in self.controls if r['event']=='cable_connect_receipt')
             oracle.require(reconnect<=self.up[1]<=now and now-reconnect<=15,'Restoration observation deadline')
-        result=command(self.nonce,sequence,count,self.ticket)
+        result=command(self.nonce,sequence,count,self.ticket,self.profile)
         self.used.add(self.ticket);self.ticket=None;self.rows=[];self.state='running'
         self.wait=min(self.deadline,now+150);self.watch=oracle.Watch(now,now+150,self.deadline)
         return result
@@ -264,9 +301,9 @@ class Supervisor:
     @supervised
     def peer_request(self,row,now):
         self.now(now)
-        oracle.require(self.state=='running' and self.sequence==7 and self.request is None,'Unexpected loss request')
-        expected=__import__('struct').pack('!4sIHHI16s',b'M5N1',self.nonce,7,1,1,b'crux-m5-echo-v1\0').hex()
-        oracle.require(row.get('event')=='request' and row.get('token')==self.nonce and row.get('phase')==7 and row.get('protocol')=='tcp' and row.get('transaction')==1 and row.get('request_hex')==expected,'Loss peer request identity mismatch')
+        oracle.require(self.state=='running' and self.sequence==self.profile['loss'] and self.request is None,'Unexpected loss request')
+        expected=__import__('struct').pack('!4sIHHI16s',b'M5N1',self.nonce,self.profile['loss'],1,1,b'crux-m5-echo-v1\0').hex()
+        oracle.require(row.get('event')=='request' and row.get('token')==self.nonce and row.get('phase')==self.profile['loss'] and row.get('protocol')=='tcp' and row.get('transaction')==1 and row.get('request_hex')==expected,'Loss peer request identity mismatch')
         main=[r for r in self.rows if r['event']!='LINK']
         oracle.require(not any(r['event']=='END' and r.get('udp')==0 for r in main),'Loss TCP already completed')
         self.request=row
@@ -275,7 +312,7 @@ class Supervisor:
     def disconnect_cue(self,now):
         self.now(now)
         main=[r for r in self.rows if r['event']!='LINK']
-        oracle.require(self.request is not None and self.sequence==7 and self.state=='running' and self.watch.active and main and main[-1]['event']=='BEGIN' and main[-1]['udp']==0 and not self.cued,'No confirmed in-flight disconnect window')
+        oracle.require(self.request is not None and self.sequence==self.profile['loss'] and self.state=='running' and self.watch.active and main and main[-1]['event']=='BEGIN' and main[-1]['udp']==0 and not self.cued,'No confirmed in-flight disconnect window')
         self.cued=True;record=dict(event='cable_disconnect_cue',monotonic=now);self.controls.append(record);return record
 
     @supervised
@@ -285,7 +322,7 @@ class Supervisor:
         seen={r['event'] for r in self.controls};event=row.get('event')
         oracle.require(event in required and event not in seen and type(row.get('monotonic')) in (int,float) and row['monotonic']<=now,'Unexpected/duplicate physical witness')
         oracle.require('cable_disconnect_cue' in seen,'No approved disconnect cue')
-        if event=='cable_connect_receipt':oracle.require(self.sequence==8 and self.state=='prepared' and self.stopped_phase==7 and {'host_down','cable_disconnect_receipt'}<=seen,'Reconnect requires complete L7 DONE/READY8 and independent loss witnesses')
+        if event=='cable_connect_receipt':oracle.require(self.sequence==self.profile['recovery'] and self.state=='prepared' and self.stopped_phase==self.profile['loss'] and {'host_down','cable_disconnect_receipt'}<=seen,'Reconnect requires complete L7 DONE/READY8 and independent loss witnesses')
         if event=='host_up':oracle.require('cable_connect_receipt' in seen,'UP before reconnect')
         if event=='route':oracle.require('host_up' in seen,'Route before carrier UP')
         if row['event'] in ('host_down','host_up','route'):oracle.require(row.get('interface')=='en5','Wrong dedicated NIC')
@@ -313,7 +350,7 @@ def run_boot(supervisor,adapter,clock):
     an adapter blocked inside native I/O. The operational adapter is implemented in m5_capture_adapter; its
     device/process dependencies are exercised with software fakes. Existing accepted M3 capture/probe/guard procedures remain mandatory.
     """
-    peer_phase=None;primary=None
+    peer_phase=None;primary=None;restored=False
     try:
         while supervisor.state!='finished':
             supervisor.tick(clock())
@@ -324,24 +361,31 @@ def run_boot(supervisor,adapter,clock):
                 elif kind=='target':supervisor.target(row,now,received=received)
                 elif kind=='peer_ready':supervisor.peer_ready(row,now)
                 elif kind=='peer_request':
-                    if row.get('phase')==7:
+                    if row.get('phase')==supervisor.profile['loss']:
                         supervisor.peer_request(row,now)
                 elif kind=='control':supervisor.control(row,now)
                 else:raise ValueError('Unknown adapter event')
             supervisor.tick(clock())
             main=[r for r in supervisor.rows if r['event']!='LINK']
-            if supervisor.sequence==7 and supervisor.state=='running' and supervisor.request is not None and supervisor.watch.active and main and main[-1]['event']=='BEGIN' and main[-1]['udp']==0 and not supervisor.cued:
+            if supervisor.sequence==supervisor.profile['loss'] and supervisor.state=='running' and supervisor.request is not None and supervisor.watch.active and main and main[-1]['event']=='BEGIN' and main[-1]['udp']==0 and not supervisor.cued:
                 adapter.notify_operator(supervisor.disconnect_cue(clock()))
             if supervisor.state=='prepared':
-                sequence,count,mode=m5_series.PHASES[supervisor.sequence-1]
+                sequence,count,mode=supervisor.profile['phases'][supervisor.sequence-1]
                 if count and peer_phase!=sequence:
                     receipt=adapter.stop_peer()
                     if supervisor.peer_phase is not None and supervisor.stopped_phase!=supervisor.peer_phase:
                         oracle.require(isinstance(receipt,dict),'Missing bounded peer stop/reap receipt')
                         supervisor.peer_stopped(receipt['phase'],receipt['reaped'],clock())
+                    restore=getattr(adapter,'restore_link',None)
+                    # The host link returns before the recovery peer binds its sockets.
+                    if restore is not None and sequence==supervisor.profile['recovery'] and supervisor.stopped_phase==supervisor.profile['loss'] and not restored:
+                        restore();restored=True
                     adapter.prepare_peer(supervisor.nonce,sequence,count,mode);peer_phase=sequence
-                recovery_ready=sequence!=8 or ({r['event'] for r in supervisor.controls}=={'cable_disconnect_cue','cable_disconnect_receipt','host_down','cable_connect_receipt','host_up','route'} and supervisor.up is not None)
-                if (not count or supervisor.peer is not None) and recovery_ready:
+                recovery_ready=sequence!=supervisor.profile['recovery'] or ({r['event'] for r in supervisor.controls}=={'cable_disconnect_cue','cable_disconnect_receipt','host_down','cable_connect_receipt','host_up','route'} and supervisor.up is not None)
+                # The first command (also in the full profile) waits for the target's own LINK record: its
+                # print holds interrupts (CONFIG_PRINTK_SYNC) and would eat the command bytes.
+                link_ready=supervisor.sequence!=1 or supervisor.last_link==2
+                if (not count or supervisor.peer is not None) and recovery_ready and link_ready:
                     line=supervisor.next_command(clock())
                     started=adapter.write_uart(line,deadline=min(supervisor.watch.absolute,supervisor.watch.progress))
                     if started is not None:supervisor.command_written(started,clock())
