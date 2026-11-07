@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Issue | [#141](https://github.com/wonny-labs/crux-pilot/issues/141) "Investigate verified boot and firmware update feasibility for RT1060-EVKB and RT1170-EVK" |
-| Status | **Draft. Desk results and build-only trial results.** Stages 0 to 4 and 7 are desk results. Stages 5, 6 and 8 record the A1 trial builds of 2 November 2026 for RT1060-EVKB (cross-compilation only, results archive SHA-256 `8e2e9839eae863b79a42a7a294a97e39f093a83c3f48d0598f9fb582f01cd3ed`). Stage 7 (RT1170-EVK Rev A1) is a desk study only. No RT1170 build was run. No hardware or fuse operation was performed. Nothing in this record is adopted. Revised after independent review 1 of PR #151 (verdict REVISE, findings F1 to F15) and independent review 2 (verdict PASS, optional findings N1 to N5). Stages 5, 6 and 8 were added after review 2 and have not had an independent review. |
+| Status | **Draft. Desk results and build-only trial results.** Stages 0 to 4 and 7 are desk results. Stages 5, 6 and 8 record the A1 trial builds of 2 November 2026 for RT1060-EVKB (cross-compilation only, results archive SHA-256 `8e2e9839eae863b79a42a7a294a97e39f093a83c3f48d0598f9fb582f01cd3ed`). Stage 7 (RT1170-EVK Rev A1) is a desk study only. No RT1170 build was run. No hardware or fuse operation was performed. Nothing in this record is adopted except the owner decisions listed under [Approvals](#approvals) and [Owner decisions needed](#owner-decisions-needed), which include the acceptance of 7 November 2026 for rows 1, 3, 4, 5, 6, 8, 9, 10 and 11. Revised after independent review 1 of PR #151 (verdict REVISE, findings F1 to F15) and independent review 2 (verdict PASS, optional findings N1 to N5). Stages 5, 6 and 8 were added after review 2 and have not had an independent review. |
 | Target | Primary target and the only board for physical validation: RT1060-EVKB Rev B, `mimxrt1060_evk@B/mimxrt1062/qspi`. Secondary, desk and build-only: RT1170-EVK Rev A1, `mimxrt1170_evk@A/mimxrt1176/cm7` (owner decision of 2 November 2026). RT1170 hardware verification is deferred and tracked in [#155](https://github.com/wonny-labs/crux-pilot/issues/155). |
 | Pinned upstream | Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0). MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`. `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. |
 | crux-pilot read | `f67e22a` (Stages 0, 3 and 4) and `f57ff22` (Stage 2, after #147 merged). The trial builds of Stages 5 and 8 used `1d6ac4f`, an older ancestor of `f57ff22` (see [Stage 5](evidence/boot-update/stage5-trial-builds.md#1-inputs-and-provenance)). |
@@ -47,8 +47,8 @@ RAM load for SDRAM execution, and microSD on uSDHC for eMMC.
 | A0 | Start the #141 work package: desk work, decision record and Draft PR | Given by the owner |
 | A1 | Fetch MCUboot at the pin outside the repository, install imgtool dependencies in a separate virtual environment, generate development keys outside the repository | Given on 1 November 2026, for two RT1060 trial builds: rank 1 (RAM load with revert) and rank 2 (swap using offset). Used on 2 November 2026 for both builds (Stages 5, 6 and 8). Extended by the owner on 2 November 2026 to an RT1170 sysbuild configure and bootloader cross-build (owner decision 14). The RT1170 extension has not been used yet. |
 | A2 | Licence review before any NXP signing tool is downloaded (CST, SPSDK, SEC) | Given by the owner for the SPSDK download (recorded on 2 November 2026). Not used yet: no SPSDK result is in this record. Stage 3 stayed documentation-only. CST and SEC are not covered. |
-| A3 | Gate 1: accept or reject the recommendations in this record | Pending, after independent review |
-| A4 | Gate 2: merge the PR | Pending, after A3 |
+| A3 | Gate 1: accept or reject the recommendations in this record | Accepted in part by the owner on 7 November 2026, after independent review: for rows 1, 3, 4, 5, 6, 8, 9, 10 and 11 of the owner decisions table. Rows 12 and 15 are not decided. Recommendations that are not decision rows, such as the update mode ranking, the staging medium and the signing tools, are not covered by this acceptance. |
+| A4 | Gate 2: merge the PR | Pending. It follows the update of this record with the A3 acceptance and a narrow independent review of that update. The owner is told before the merge. |
 | A5 | Any manifest, module or Dev Container change | Not part of this investigation |
 
 ## Evidence labels
@@ -509,8 +509,9 @@ item needs its own approval.
 
 Nothing in this record is adopted. The owner decisions for #141 are the
 RT1170-EVK scope decisions of 1 and 2 November 2026, A0, A1 with its RT1170
-extension of 2 November 2026, and A2 for the SPSDK download. All other rows are
-recommendations for A3.
+extension of 2 November 2026, and A2 for the SPSDK download. On 7 November 2026 the owner also accepted the
+recommendations for rows 1, 3, 4, 5, 6, 8, 9, 10 and 11 of the owner decisions
+table (A3 in part). All other rows are recommendations for A3.
 
 | Item | Content | Status |
 | --- | --- | --- |
@@ -519,10 +520,10 @@ recommendations for A3.
 | Rank 1 test request | Application code that marks the inactive slot, or images signed with trailer magic | Owner decision needed |
 | Trial builds | Rank 1 and rank 2 | Approved (A1, 1 November 2026). Done as build-only evidence on 2 November 2026 (Stages 5 and 8). |
 | Staging medium | Variant (c), NOR slot, optionally through an SDRAM buffer | Recommendation |
-| Execution model | RAM load into SDRAM as M8 reference candidate, after M7 target validation. No build blocker found. Timing supported by Stage 6 (Inference). | Recommendation |
-| Application version policy | Reject older images in the application before any NOR write | Recommendation, owner decision needed |
+| Execution model | RAM load into SDRAM as M8 reference candidate, after M7 target validation. No build blocker found. Timing supported by Stage 6 (Inference). | Accepted by the owner on 7 November 2026 (row 3) |
+| Application version policy | Reject older images in the application before any NOR write | Accepted by the owner on 7 November 2026 (row 4) |
 | Signing tools | `imgtool` for application images (used in the trial). SPSDK under A2, not yet run. SEC optional. No CST. | Recommendation |
-| BEE | Not part of the candidate path | Recommendation, owner decision needed |
+| BEE | Not part of the candidate path | Accepted by the owner on 7 November 2026 (row 10) |
 | HAB | Documentation result only. Event readback and closed configuration are later, separately approved work. | Recommendation |
 | Fenced layout | Upstream partitions kept for both modes, 64 KiB aligned boundaries, `storage` kept with no owner and no writer in M8 (Stage 6) | Recommendation (PROPOSAL, not adopted) |
 | Bootloader data-closure failure | The #22 data-closure failure is present in the MCUboot write path of both trial modes (Stage 6 section 3) | Owner decision needed (16) |
@@ -534,22 +535,23 @@ recommendations for A3.
 The recommended options summarise the stage recommendations. Rows 8, 11, 12
 and 15 have no stage recommendation and are left to the owner. Rows 16 to 18
 come from Stages 6 and 8. On 2 November 2026 the owner accepted the
-recommended options for rows 13, 16, 17 and 18. Each row says what was
-accepted. Acceptance is an owner decision. It is not an implementation.
+recommended options for rows 13, 16, 17 and 18, and on 7 November 2026 for
+rows 1, 3, 4, 5, 6, 8, 9, 10 and 11. Rows 12 and 15 are not decided. Each row says
+what was accepted. Acceptance is an owner decision. It is not an implementation.
 
 | # | Decision | Recommended option | Source |
 | --- | --- | --- | --- |
-| 1 | Accept the constraint that no stock mode avoids NOR writes during XIP with test, confirm and recovery, or open a separate scope for bootloader customisation (variant b) | Accept the constraint for M8 | Stage 2 decision 1 |
+| 1 | Accept the constraint that no stock mode avoids NOR writes during XIP with test, confirm and recovery, or open a separate scope for bootloader customisation (variant b) | Accept the constraint for M8. **Accepted by the owner on 7 November 2026:** the constraint is accepted for M8. Bootloader customisation (variant b) stays a separate scope that is not started. | Stage 2 decision 1 |
 | 2 | Ranked candidates for the trial build | Done: A1 approved on 1 November 2026 with both builds, rank 1 and rank 2 | Stage 2 decision 2 |
-| 3 | Pursue RAM load into SDRAM as the M8 reference execution model, and when the reference composition may change relative to M7 | Pursue it, change at M8 start after M7 target validation. Stages 5 and 6 found no build blocker and support the timing (Inference). Owner decision 16 limits any M8 hardware step in which the bootloader writes. | Stage 2 decision 3, Stage 6 section 4.1 |
-| 4 | Require an application-side version policy (no older image, compared on major, minor and revision) | Require it, because the RAM load bootloader provides none | Stage 2 decision 4 |
-| 5 | Before any network-facing update interface (M9), require authentication and authorisation of update requests and an application-side check before any NOR write | Require it | Stage 2 decision 5 |
-| 6 | Whether the microSD may later hold a staging path (variant a), which would change the #147 card layout | Defer. Stage 2 rates variant (a) as an optional later variant. | Stage 2 decision 6 |
+| 3 | Pursue RAM load into SDRAM as the M8 reference execution model, and when the reference composition may change relative to M7 | Pursue it, change at M8 start after M7 target validation. Stages 5 and 6 found no build blocker and support the timing (Inference). Owner decision 16 limits any M8 hardware step in which the bootloader writes. **Accepted by the owner on 7 November 2026:** RAM load into SDRAM is the M8 reference execution model, and the reference composition changes at the start of M8, after M7 target validation. | Stage 2 decision 3, Stage 6 section 4.1 |
+| 4 | Require an application-side version policy (no older image, compared on major, minor and revision) | Require it, because the RAM load bootloader provides none. **Accepted by the owner on 7 November 2026:** an application-side check rejects an older image. | Stage 2 decision 4 |
+| 5 | Before any network-facing update interface (M9), require authentication and authorisation of update requests and an application-side check before any NOR write | Require it. **Accepted by the owner on 7 November 2026:** authentication and authorisation of update requests, and an application-side check before any NOR write, are required before any network-facing update. | Stage 2 decision 5 |
+| 6 | Whether the microSD may later hold a staging path (variant a), which would change the #147 card layout | Defer. Stage 2 rates variant (a) as an optional later variant. **Accepted by the owner on 7 November 2026:** deferred. | Stage 2 decision 6 |
 | 7 | A2 licence review before any download of SPSDK and its binary dependencies, SEC or CST | Partly done: A2 given for the SPSDK download. Not yet used. SEC and CST stay without approval. | Stage 3 decision 1 |
-| 8 | Whether a later, separately approved hardware step may read HAB events in open configuration, without fuse writes | Owner choice | Stage 3 decision 2 |
-| 9 | Accept the plan corrections listed below | Accept | Stage 3 decision 3 |
-| 10 | Whether BEE stays out of M8, since it needs customised MCUboot and overwrite-only | Keep it out | Stage 3 decision 4 |
-| 11 | Whether to plan a dedicated board for future closed-configuration work | Owner choice. The EVKB is listed as no longer manufactured (Stage 3 E2). | Stage 3 decision 5 |
+| 8 | Whether a later, separately approved hardware step may read HAB events in open configuration, without fuse writes | Owner choice. **Accepted by the owner on 7 November 2026:** a later HAB event read in open configuration, without fuse writes, is allowed only as a separately approved hardware task, which may share a session with the ROM serial downloader check (#309). | Stage 3 decision 2 |
+| 9 | Accept the plan corrections listed below | Accept. **Accepted by the owner on 7 November 2026:** the plan corrections below are accepted. | Stage 3 decision 3 |
+| 10 | Whether BEE stays out of M8, since it needs customised MCUboot and overwrite-only | Keep it out. **Accepted by the owner on 7 November 2026:** BEE stays out of M8. | Stage 3 decision 4 |
+| 11 | Whether to plan a dedicated board for future closed-configuration work | Owner choice. The EVKB is listed as no longer manufactured (Stage 3 E2). **Accepted by the owner on 7 November 2026:** deferred until a closed configuration decision. | Stage 3 decision 5 |
 | 12 | Whether to adopt the #141 scope wording corrections in plan section 9 | Owner choice | Plan section 9 |
 | 13 | Rank 1 needs either application code that marks the inactive slot for test, or images signed with trailer magic (imgtool `--pad`). Which one should the trial and M8 use? | **Accepted by the owner on 2 November 2026:** M8 test images are signed with `--pad` and placed with development tools. The application-driven update path is designed in M9, where application code that marks the inactive slot is preferred. Basis: both options are stock on source. Padding makes every written higher-version image a test request (Inference). A padded binary is the full slot size, so the network transfer, the SDRAM buffer and the NOR write become 3 MiB per update on RT1060, while the hex output is sparse (imgtool `image.py`:432-454). RAM load with revert does not imply `MCUBOOT_GENERATE_CONFIRMED_IMAGE`, unlike direct-XIP with revert, so confirmed images must be enabled explicitly (Zephyr `modules/Kconfig.mcuboot`:270-290 and 312). Build evidence (Stage 5 section 9): the trial sysbuild signed both applications without `--pad` and without `--confirm`, and `MCUBOOT_GENERATE_CONFIRMED_IMAGE` is not set. The unpadded signed application is 33,032 B against a 3 MiB padded image. This is build evidence of the default only, not a hardware result. | Independent review 1, F1. Independent review 2, N2. Stage 2 decision 7. Stage 5 section 9. |
 | 14 | Extend A1 (the Stage 5 approval) to an RT1170 sysbuild configure and bootloader cross-build for rank 1 and rank 2 in the Dev Container | Done: the owner extended A1 on 2 November 2026. The RT1170 builds have not been run yet. | Stage 7 section 6 |
@@ -659,7 +661,7 @@ Corrections between stages:
 | Stage 7 | Independent review of the Stage 7 desk study. RT1170 sysbuild configure and bootloader cross-build under the A1 extension of 2 November 2026, in the Dev Container. |
 | SPSDK | Optional tool check under A2 (given for SPSDK): offline HAB image structure of the bootloader, and whether SPSDK accepts a Zephyr image with FCB and IVT |
 | Stage 9 | Independent review by a reviewer who did not author this record, recorded as PASS, REVISE or ESCALATE |
-| A3, A4 | Owner decision on the recommendations, then merge approval |
+| A3, A4 | A3 is accepted in part (7 November 2026). The remaining rows are 12 and 15. Merge approval (A4) follows a narrow independent review of this update. |
 
 This record does not claim that any image boots, that a layout is safe or
 adopted, that MCUboot is adopted, that secure boot, a hardware root of trust or
@@ -667,4 +669,4 @@ anti-rollback is achieved, that HAB authentication was observed, that microSD
 staging works, that Flash writes during XIP are safe, that the bootloader write
 path is safe, that the build is reproducible beyond the tested comparison, or
 that any M8 or M9 criterion is met. All trial results are cross-compilation
-evidence only. #141 stays open until A3 and its acceptance evidence.
+evidence only. #141 stays open until A3 is complete for rows 12 and 15 and until its acceptance evidence.
