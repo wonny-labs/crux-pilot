@@ -8,8 +8,9 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from replay_model import (SECTOR, TraceError, acked_at, build_image,  # noqa: E402
-                          mandatory_positions, parse_trace)
+from replay_model import (SECTOR, CommitPatternError, TraceError, acked_at,  # noqa: E402
+                          build_image, flushes_before_metaroot, mandatory_positions,
+                          metaroot_sectors, parse_trace)
 
 SECTORS = 16
 MODELS = ('lost', 'prefix', 'reordered', 'torn')
@@ -167,6 +168,42 @@ class ReplayModelTest(unittest.TestCase):
     def test_acked_at_counts_marks_up_to_position(self):
         self.assertEqual([acked_at(TRACE, p) for p in range(len(TRACE) + 1)],
                          [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2])
+
+    def test_metaroot_sectors_cover_both_blocks(self):
+        # Blocks 1 and 2 of 4 KiB, so sectors 8 to 23, moved by the volume's sector offset.
+        self.assertEqual(metaroot_sectors(), frozenset(range(8, 24)))
+        self.assertEqual(metaroot_sectors(128), frozenset(range(136, 152)))
+
+    def test_flushes_before_metaroot_finds_the_first_of_each_pair(self):
+        events = parse_trace(cache_on() + write(40, *range(1, 9)) + flush() +
+                             write(8, *range(0x80, 0x88)) + flush() + mark(1) +
+                             write(48, 0x30) + flush() + write(16, *range(0x90, 0x98)) +
+                             flush() + mark(2))
+        first, second = 9, 21  # after cache_on and 8 data sectors; after a mark and 1 sector
+        self.assertEqual([events[i].kind for i in (first, second)], ['flush', 'flush'])
+        self.assertEqual(flushes_before_metaroot(events), frozenset({first, second}))
+        # The other flush of each pair stays a barrier.
+        self.assertEqual(events[first + 9].kind, 'flush')
+        self.assertNotIn(first + 9, flushes_before_metaroot(events))
+        self.assertEqual(flushes_before_metaroot(parse_trace(write(40, 1) + flush())),
+                         frozenset())
+        moved = parse_trace(flush() + write(136, *range(8)) + flush())
+        self.assertEqual(flushes_before_metaroot(moved, offset=128), frozenset({0}))
+
+    def test_unexpected_commit_pattern_is_an_error(self):
+        whole = write(8, *range(8))
+        layouts = {
+            'no flush before': write(40, 1) + whole + flush(),
+            'no flush after': flush() + whole + write(40, 1) + flush(),
+            'trace ends inside': flush() + whole,
+            'part of a metaroot': flush() + write(8, *range(4)) + flush(),
+            'both metaroots in one run': flush() + whole + write(16, *range(8)) + flush(),
+            'out of order': flush() + write(12, *range(4)) + write(8, *range(4)) + flush(),
+            'a metaroot sector twice': flush() + whole + write(15, 9) + flush(),
+        }
+        for name, raw in layouts.items():
+            with self.assertRaises(CommitPatternError, msg=name):
+                flushes_before_metaroot(parse_trace(raw))
 
     def test_arguments_are_checked(self):
         for position in (-1, len(TRACE) + 1):

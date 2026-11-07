@@ -96,7 +96,7 @@ powercut_dir="$repo/build/zephyr/emmc-powercut"
     -DEXTRA_CONF_FILE=fatfs.conf -DCONFIG_CRUX_MMC_CACHE_FLUSH=n)
 python3 "$repo/tests/native/emmc_powercut/test_replay_model.py" -v 2>&1 |
     tee "$powercut_dir/test_replay_model.log"
-grep -Eq '^Ran 14 tests in ' "$powercut_dir/test_replay_model.log"
+grep -Eq '^Ran 17 tests in ' "$powercut_dir/test_replay_model.log"
 # 64 samples took about 25 s in an emulated amd64 container. The bound is 5 minutes on one CI
 # runner.
 python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
@@ -127,6 +127,63 @@ if report['counts']['cases'] != 1182 or report['failures']:
 print(f'replay fatfs: {report["counts"]["cases"]} cases, '
       f'{report["counts"]["observed_failures"]} observed failures, '
       'both controls failed as required')
+PY
+
+# Power-cut replay on Reliance Edge: the invariants are asserted on red-fix for W1 to W3 on both
+# profiles, and four controls must fail. red-nofix is the unmodified stack, allowed by the
+# native_sim-only control variable. The images link the GPLv2 source and are test images only.
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/red-fix" \
+    "$repo/tests/native/emmc_powercut" -- -DEXTRA_CONF_FILE=reliance.conf \
+    -DCONFIG_CRUX_MMC_CACHE_FLUSH=y)
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/red-nofix" \
+    "$repo/tests/native/emmc_powercut" -- -DEXTRA_CONF_FILE=reliance.conf \
+    -DCONFIG_CRUX_MMC_CACHE_FLUSH=n -DCRUX_EMMC_FLUSH_CONTROL=ON)
+# 64 samples took about 97 s in an emulated amd64 container, most of it the mandatory positions.
+python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
+    --exe-fix "$powercut_dir/red-fix/zephyr/zephyr.exe" \
+    --exe-nofix "$powercut_dir/red-nofix/zephyr/zephyr.exe" \
+    --fs reliance --seed 1 --samples 64 --max-seconds 300 --out "$powercut_dir/replay"
+
+# The counts are exact for seed 1 and 64 samples. They depend on the traces, so on the pinned
+# Zephyr and Reliance Edge, and on the algorithms of Python's random module.
+python3 - "$powercut_dir/replay/reliance.json" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+report = json.loads(Path(sys.argv[1]).read_text())
+models = {'cached': {'lost', 'prefix', 'reordered', 'torn'}, 'nocache': {'prefix', 'torn'}}
+for workload in ('W1', 'W2', 'W3'):
+    for profile, expected in models.items():
+        groups = report['observations'][workload][profile]
+        if (set(groups) != expected or
+                any(group['cases'] == 0 or group['passed'] != group['cases']
+                    for group in groups.values())):
+            raise RuntimeError(f'{workload} {profile}: missing or failing cases')
+        trace = report['traces'][workload][profile]
+        if trace['metaroot_positions'] == 0 or (profile == 'cached' and trace['commits'] == 0):
+            raise RuntimeError(f'{workload} {profile}: no metaroot write was recognised')
+controls = {control['name']: control['failed_as_required'] for control in report['controls']}
+expected_controls = {'flush': True, 'barrier': True, 'early acknowledgement': True,
+                     'damaged image': True}
+if controls != expected_controls:
+    raise RuntimeError(f'controls: {controls}')
+barrier = next(control for control in report['controls'] if control['name'] == 'barrier')
+observed = sorted(entry['workload'] for entry in report['barrier_observations'])
+created = report['created_empty']
+staged = created['staged']
+if (barrier['workload'] != 'W2' or observed != ['W1', 'W3'] or created['cases'] != 253 or
+        sorted(created['steps']) != ['11', '2', '4', '6'] or
+        not created['acknowledged_intact'] or len(created['checks']) != 16 or
+        not created['checks_failed_as_required'] or not staged['as_required'] or
+        (staged['cases'], staged['accepted_empty'], staged['refused_empty']) != (67, 4, 51)):
+    raise RuntimeError(f'barrier on {barrier["workload"]}, created-empty {created["cases"]}, '
+                       f'staged {staged["cases"]}')
+if report['counts']['cases'] != 4947 or report['failures']:
+    raise RuntimeError(f'counts {report["counts"]}, failures {report["failures"]}')
+print(f'replay reliance: {report["counts"]["cases"]} cases, invariants held on red-fix, '
+      f'{created["cases"]} W3 cases with a created, still empty file, all four controls '
+      'failed as required')
 PY
 
 # Reliance Edge behind the Zephyr VFS, and the File provider on it, on a RAM disk named MMC. The

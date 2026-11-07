@@ -122,3 +122,60 @@ def build_image(baseline: bytes, events, position: int, model: str, seed: int,
                       for i, (was, new) in enumerate(zip(old, event.data)))
         _apply(image, Event('write', event.sector, mixed, None))
     return bytes(image)
+
+
+
+# Reliance Edge in the Crux profile (zephyr/fs/reliance_edge/config): blocks of 4 KiB, so eight
+# sectors each, with block 0 the master block and the two metaroots in the blocks numbered from
+# BLOCK_NUM_FIRST_METAROOT, which is 1.
+BLOCK_SECTORS = 4096 // SECTOR
+FIRST_METAROOT_BLOCK = 1
+METAROOTS = 2
+
+
+class CommitPatternError(TraceError):
+    """A metaroot write is not a whole metaroot between two flushes."""
+
+
+def metaroot_sectors(offset: int = 0) -> frozenset:
+    """The sectors of both metaroots of a volume that starts `offset` sectors into the disk."""
+    first = offset + FIRST_METAROOT_BLOCK * BLOCK_SECTORS
+    return frozenset(range(first, first + METAROOTS * BLOCK_SECTORS))
+
+
+def _metaroot_blocks(offset):
+    first = offset + FIRST_METAROOT_BLOCK * BLOCK_SECTORS
+    return [list(range(first + n * BLOCK_SECTORS, first + (n + 1) * BLOCK_SECTORS))
+            for n in range(METAROOTS)]
+
+
+def flushes_before_metaroot(events, offset: int = 0) -> frozenset:
+    """The flush before each metaroot write: the first of the pair that brackets a commit.
+
+    A commit is expected as a flush, every sector of one metaroot in order, then a flush. Any other
+    write to a metaroot sector raises CommitPatternError, because treating the wrong flush as the
+    barrier would make a barrier control test nothing.
+    """
+    sectors = metaroot_sectors(offset)
+    blocks = _metaroot_blocks(offset)
+    found = set()
+    index = 0
+    while index < len(events):
+        event = events[index]
+        if event.kind != 'write' or event.sector not in sectors:
+            index += 1
+            continue
+        end = index
+        while end < len(events) and events[end].kind == 'write' and events[end].sector in sectors:
+            end += 1
+        run = [e.sector for e in events[index:end]]
+        if run not in blocks:
+            raise CommitPatternError(f'events {index} to {end - 1} write metaroot sectors {run}, '
+                                     'not one whole metaroot in order')
+        if index == 0 or events[index - 1].kind != 'flush':
+            raise CommitPatternError(f'the metaroot write at event {index} has no flush before it')
+        if end == len(events) or events[end].kind != 'flush':
+            raise CommitPatternError(f'the metaroot write at event {index} has no flush after it')
+        found.add(index - 1)
+        index = end
+    return frozenset(found)

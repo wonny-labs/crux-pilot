@@ -439,6 +439,22 @@ without a build. The same seed gives the same JSON apart from timing. Results ar
 not about power loss on a device; see the
 [replay record](../docs/evidence/emmc-reliance/replay-fatfs/README.md).
 
+The same program built with `reliance.conf` runs on Reliance Edge as `red-fix` (with the correction)
+and `red-nofix` (without it, with `CRUX_EMMC_FLUSH_CONTROL`). There, `run_replay.py --fs reliance`
+asserts every invariant and no read error on `red-fix` for W1 to W3 on both profiles. Metaroot
+writes are recognised by their sectors (`metaroot_sectors`), each side of every metaroot sector is
+always tested, so every metaroot sector is torn, and `lost` is tested after every mark. The driver
+confirms on each cached trace that a commit is a flush, one whole metaroot, then a flush, and stops
+if it is not. Four controls must fail: `red-nofix` loses acknowledged W1 data at every mark; the W2
+trace, with the flush before each metaroot not a barrier and the metaroot kept, gives a mount
+failure, a changed untouched file or a read error somewhere (W1 cannot, because its stale blocks
+are a valid older state); a `run-early` W1 trace loses the step marked before its sync; and a
+baseline with both metaroots overwritten does not mount. The profile commits on create, so the W3
+verifier accepts, with `--create-may-be-empty`, a new file that is present and empty in the step
+creating it. These cases are counted apart, and checks that must fail show that the same state is
+refused as a lost acknowledged file or at another step. See the
+[Reliance Edge replay record](../docs/evidence/emmc-reliance/replay-reliance/README.md).
+
 The simulator is a model written from the stack's needs, by the same author as the tests, and is not
 device evidence. Results show how the stack behaves against that model, not how an eMMC device behaves.
 It models no timing and no wear. Its busy period after CMD6 and after a write lasts one poll unless a
