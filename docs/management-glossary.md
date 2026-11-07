@@ -33,7 +33,7 @@ The terms of the HTTPS web, SSH command line and SFTP documents, with the one me
 | --- | --- |
 | **Refuse** | A component said no on the wire or at an interface: a refused login, a refusing entry point, a refused request |
 | **Deny** | An access decision: `crux_access` denied a permission, and the event is `access.permission_denied` |
-| **Reject** | Only inside names that exist: `csrf_rejected`, `origin_rejected`, `config.rejected`, `cli.line_rejected`, and the `rejected` state of a login attempt |
+| **Reject** | Only inside names that exist, such as `csrf_rejected` and `origin_rejected` (error codes), `web.csrf_rejected`, `config.rejected`, `cli.line_rejected`, `file.name_rejected`, `access.change_rejected` and `web.certificate_rejected` (events), and the `rejected` state of a login attempt |
 
 ## Web
 
@@ -56,7 +56,7 @@ The terms of the HTTPS web, SSH command line and SFTP documents, with the one me
 | **Declared TLS configuration** | TLS 1.3 only, with `TLS_AES_128_GCM_SHA256` |
 | **Device certificate**, **test certificate** | The certificate the TLS certificate model makes for a device, and the declared certificate of the `native_sim` images, whose key is public and which must never ship |
 | **Trust on first use** | The procedure of comparing a fingerprint by hand at the first connection: [TLS certificate](tls-certificate.md#the-first-connection) |
-| **#280 late first read** | On the Wolf profile a new connection's first request is read up to about 1 s late: [Issue #280](https://github.com/wonny-labs/crux-pilot/issues/280). Earlier records call it W1. The decisions W1 to W18 of the [frontend foundation design](plans/web-frontend-foundation-design.md) are a different list. |
+| **#280 late first read** | On the Wolf profile a new connection's first request is read up to about 1 s late: [Issue #280](https://github.com/wonny-labs/crux-pilot/issues/280). Earlier records, and the comments of `tests/native/web_https/https_driver.py`, `tests/native/management_services/e2e/server_checks.py` and `web/e2e/native-cases.ts`, call it W1. The decisions W1 to W18 of the [frontend foundation design](plans/web-frontend-foundation-design.md) are a different list. |
 
 ## SSH and SFTP
 
@@ -64,7 +64,7 @@ The terms of the HTTPS web, SSH command line and SFTP documents, with the one me
 | --- | --- |
 | **Pre-auth connection exhaustion** | Silent clients that hold every connection slot until `auth_timeout_ms`: CWE-400, which OpenSSH's `MaxStartups` addresses. Earlier records call it the slot lockout. |
 | **`SSH_DISCONNECT_TOO_MANY_CONNECTIONS`** | Disconnect reason 12 of RFC 4253 §11.1, sent to a connection past `max_connections` |
-| **`kex-strict-s-v00@openssh.com`** | The strict key exchange marker that the server offers |
+| **`kex-strict-s-v00@openssh.com`** | The strict key exchange marker that OpenSSH recognises. wolfSSH also offers a bare `kex-strict-s` and `ext-info-s`. |
 | **`SSH_FXP_INIT`**, **`SSH_FX_FAILURE`** (4), **`SSH_FX_NO_SUCH_FILE`** (2) | The SFTP request and status names. The SFTP design writes `INIT`, `FAILURE` and `NO_SUCH_FILE` for them. |
 
 ## Platform

@@ -251,7 +251,7 @@ This section was written when #234 had landed on `main` and the CLI was to stay 
 
 The provider is a few lines: it translates the port's four outcomes (`INVALID`, `LIMIT`, `DENIED`, `FAILED`) to the matching security event results, picks `cli.line_rejected` or `cli.console_error` by the event type, and passes the channel and the user name, or none for an empty name. It is `components/cli/src/cli_security_events.c`.
 
-The identifiers `cli.line_rejected` and `cli.console_error` exist at 0x0500 and 0x0501, and the emit needs no session and does not wait on storage, as the port requires. The snippet above was compiled once against the public header in a scratch directory. The provider in the tree is `components/cli/src/cli_security_events.c`, the object target `crux_cli_security_events`. `tests/management_providers` tests it, and it runs in the [services image](native-composition-242.md). Only that file changes if the header does, because nothing else in `components/cli` names a security event. An image with no provider does not link.
+The identifiers `cli.line_rejected` and `cli.console_error` exist at 0x0500 and 0x0501, and the emit needs no session and does not wait on storage, as the port requires. An earlier version of this provider, written as a snippet, was compiled once against the public header in a scratch directory. The provider in the tree is `components/cli/src/cli_security_events.c`, the object target `crux_cli_security_events`. `tests/management_providers` tests it, and it runs in the [services image](native-composition-242.md). Only that file changes if the header does, because nothing else in `components/cli` names a security event. An image with no provider does not link.
 
 ## Registering the recovery command of #213
 

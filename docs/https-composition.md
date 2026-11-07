@@ -413,7 +413,7 @@ with 1.2 as the minimum, which the patch does not offer at this pin. TLS 1.2 wou
 
 ## What the later work builds on
 
-Written when #186 to #197 were to come. #186, #187, #189 and #190 have merged, so the third column of their rows is history. The facts in the second column still hold.
+Written when #186 to #197 were to come. #186, #189 and #190 have merged, so the third column of their rows is history. The row of #187, which has merged too, is gone: its routes are in [the management APIs](web-management-apis.md). The facts in the second column still hold.
 
 | Issue | What it has now | What it had to do |
 | --- | --- | --- |

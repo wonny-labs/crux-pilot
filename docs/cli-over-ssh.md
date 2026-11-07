@@ -105,7 +105,7 @@ A `write` timeout does not refresh the idle timer, so a stuck client cannot keep
 | `the_zephyr_shell_is_not_reachable` with OpenSSH | 23 of those lines through exec, all 180 through one terminal shell, and no `uart:~$` prompt | Pass |
 | `scripts/check-management-shell.py --config --elf` on the running image | `CONFIG_SHELL=n`, no shell symbol, and its sections empty | Pass |
 
-Rule L5 of the command line contract applies once `CONFIG_CRUX_SSH` exists. The image here has `CONFIG_CRUX_CLI`, which the same rule covers.
+Rule L5 of the command line contract applies to an image that sets `CONFIG_CRUX_SSH`, which now exists, and to one that sets `CONFIG_CRUX_CLI`, as the image here does.
 
 ## Results
 

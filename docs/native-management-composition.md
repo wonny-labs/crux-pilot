@@ -316,7 +316,7 @@ Each is a statement about `native_sim`, and none is device evidence.
 
 ## What later issues used
 
-#184, #185, #186, #187, #190, #192, #193 and #220 built on this composition and have merged. Their results are in [the services image](native-composition-242.md), [HTTPS composition](https-composition.md), [the integrated image](ssh-integrated-image.md) and [the end-to-end record](e2e-native-220.md).
+#184, #185, #186, #187, #190 and #220 built on this composition and have merged. #192 and #193 reached it only through the integrated image of #197. Their results are in [web contract](web-contract.md), [HTTPS composition](https-composition.md), [web session](web-session.md), [TLS certificate](tls-certificate.md), [the services image](native-composition-242.md), [the integrated image](ssh-integrated-image.md) and [the end-to-end record](e2e-native-220.md).
 
 ## Decisions for review
 

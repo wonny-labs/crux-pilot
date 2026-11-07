@@ -431,7 +431,7 @@ From running wolfSSH v1.6.0, for whoever works on this next.
 | Channel data before a session request makes `wolfSSH_accept()` fail, because `WS_CHAN_RXD` is not a retry there | The connection ends. OpenSSH does not do this. The conformance client holds such data until the grant, and says so. |
 | `wolfSSH_set_fd()` points the I/O contexts at wolfSSH's copy of the socket | Set the contexts after it, or the callbacks read an `int` as a connection |
 | An SFTP request with no body ends the session (`SFTP_CheckRecvSz`) | Not a client's normal behaviour. #194's traces should show it if it matters. |
-| The key exchange list also holds `ext-info-s` and `kex-strict-s-v00@openssh.com` | Markers added by wolfSSH. They name nothing that can be negotiated. |
+| The key exchange list also holds `ext-info-s`, `kex-strict-s` and `kex-strict-s-v00@openssh.com` | Markers added by wolfSSH. They name nothing that can be negotiated. |
 | One run of `openssh_test.py` under the script stopped silently before its first case, and did not recur in nine later runs. The cause is unknown, and fork under emulation on a loaded machine is only a guess | The harness now dumps its stacks and exits after 7 minutes, and runs unbuffered, so that another will say where it was |
 | A concurrent password login gets `CRUX_ACCESS_ERR_BUSY`, which is a denial on the wire and counts as an attempt | The contract asks for this. A user can see a refused password while another login is verifying. |
 | With one `-seed`, every blank disk of the stored host key image generates the same host key | `native_sim`'s test generator repeats its numbers, as declared. The control in `generated_once_then_kept` uses another seed for that reason. |

@@ -2,7 +2,8 @@
 
 Evidence record. These sections were moved without change of content from [the SFTP design](../sftp-design.md) (`## WinSCP`, at `f72a1e4`), so that the design keeps a summary and the operator table, and this record keeps what ran. Links that pointed into the design now name it. The logs and screenshots are not published: see the first section.
 
-The summary and what WinSCP shows an operator are in [the SFTP design](../sftp-design.md#winscp).
+The summary and what WinSCP shows an operator are in [the SFTP design](../sftp-design.md#winscp). In the moved text, "the table above" is the table of WinSCP behaviours in that design, and "this document" is that design, not this record.
+
 ## The first run
 
 **What ran.** WinSCP 6.7 (build 17845) on Windows 11, SFTP, against the `native_sim` SFTP image of `main` (`f15f69a`) over a network. The server had the test accounts `root` (administrator), `vera` (viewer, read-only), `dora` (dropper, write-only, sees only `inbox`), `audit` and `stan`, a limit of 1 MiB per file, 3 MiB per area and 16 entries per area, a RAM disk and test Access ports. Nothing ran on a board. WinSCP's own keepalive was off: the sampled TCP counters showed no packet for the first minutes of the quiet period (see row 12), and `Ping type: Off` is in logs A, B and C, which are other sessions with the same WinSCP configuration. A second, short run on the same image, with keepalive on, is described in [a second run](#a-second-run-with-keepalive-on).

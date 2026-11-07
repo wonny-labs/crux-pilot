@@ -149,7 +149,7 @@ A session belongs to one SSH connection. `crux_access_touch` is the caller's job
 
 The three sessions that shared this ownership table, #192, #193 and #194, have merged, and the stand-ins they replaced are gone from the images that use the real entry points. What stays is the rule about shared files: a change to `components/ssh/CMakeLists.txt`, `components/ssh/src/`, `components/ssh/adapter/`, `components/ssh/ports/zephyr/crux_wolfssh_settings.h`, `wolf-ssh.conf`, `wolf_ssh_settings.cmake`, `tests/ssh/CMakeLists.txt` or the files directly in `tests/ssh/` is one reviewed change, because every channel's build and tests read them. The access mapping, the CLI entry points and the SFTP entry points each live in their own directory (`components/ssh/access/`, `cli/`, `sftp/`) with their own `sources.cmake`.
 
-The refusing entry points remain for an image that selects no command line or no SFTP, and `tests/ssh/{cli,sftp}/stub_test.c` show that they fail closed. `wolfssh/port.h` includes `myFilesystem.h` whenever SFTP is on, so wolfSSH cannot compile without a file port: the refusing one in `components/ssh/sftp/port/` is used until a composition sets `CRUX_SSH_SFTP_FILE_SERVICE`, as [the SFTP design](sftp-design.md) says.
+The refusing entry points remain for an image that selects no command line or no SFTP, and `tests/ssh/{cli,sftp}/stub_test.c` show that they fail closed. `wolfssh/port.h` includes `myFilesystem.h` whenever SFTP is on, so wolfSSH cannot compile without a file port. `components/ssh/sftp/port/` holds the real macros, and they reach refusing operations unless a composition sets `CRUX_SSH_SFTP_FILE_SERVICE`, as [the SFTP design](sftp-design.md) says.
 
 ## wolfSSL and wolfSSH settings
 
