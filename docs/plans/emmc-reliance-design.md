@@ -274,7 +274,7 @@ does not claim them.
 | --- | --- | --- | --- |
 | FatFs flush | `fat-nofix`, cached, Lost | I2 in W1 | A sync does not reach the medium without the correction. |
 | Reliance Edge flush | `red-nofix`, cached, Lost | I2 in W1 | The same on this file system. Any file system would fail this, so it does not show replay's power. |
-| Barrier | `red-fix` trace, cached, Reordered, with the flush before each metaroot write not treated as a barrier, and a directed draw that keeps the whole metaroot and randomises the rest | I1 or I4 fails, or a read of acknowledged data reports an error: a result that an old state cannot explain | Replay catches the window in F3. |
+| Barrier | `red-fix` trace of W2, cached, Reordered, with the flush before each metaroot write not treated as a barrier, and a directed draw that keeps the whole metaroot and randomises the rest. Not W1: there the other copy of the file's inode is a valid older inode and file data has no check value, so a kept metaroot over stale blocks only gives a wrong W1 content, which an old state explains, and the control cannot fail. On W2 and W3 it does fail, because their windows hold directory and new inode blocks | I1 or I4 fails, or a read of acknowledged data reports an error (`mount=0`, `untouched=0` or `read_error=1`; `data=0` alone does not count): a result that an old state cannot explain | Replay catches the window in F3. |
 | Early acknowledgement | A workload that marks before its sync, `red-fix`, cached, Lost | I2 | The marks and I2 work. |
 | Damaged image | A verifier given a deliberately damaged image | It reports the damage | The verifier can fail. |
 
@@ -387,6 +387,12 @@ used by the provider and the fixture alike, because the pinned backend hides I/O
 | Too many threads | `NO_RESOURCES`, with no effect on other threads. |
 | Power cut | The invariants above. |
 
+**Create, then write.** Under this profile, creating a file and then writing and syncing it are two Reliance Edge
+commits, because the profile commits on create (`RED_TRANSACT_CREAT`). A power cut between them can leave the new file
+present and empty, with everything acknowledged before it intact. W3 accepts exactly that state, only in the step that is
+creating the file, and counts it apart. Dropping `RED_TRANSACT_CREAT` from the profile would make the step one commit, but
+it departs from the transaction list above, so it was not taken.
+
 ## Verification
 
 | Layer | Runs | Shows | Does not show |
@@ -452,6 +458,10 @@ information. Each issue up to 8 has its own Draft PR and independent review. Iss
 - **Synchronous cost.** `sdmmc_wait_ready` and the flush poll busy-wait in the calling thread, and each commit flushes twice
   (`subsys/sd/sd_ops.c:65-90`, F3). File and Settings callers should not be high priority threads. Only a board can measure
   this.
+- **An empty new file after a cut.** A consumer that creates a file and then writes it can find the file present and
+  empty after a power cut between the two commits. The File contract promises nothing for data that was not synced, so this
+  is allowed, but a consumer that treats existence as completeness must check the size or content. The profile keeps the
+  commit on create (see Failure behaviour).
 - **One error stops writes.** A single media error makes the volume read-only until a remount (F14). The composition has no
   automatic remount, in line with D9, so the application sees it and decides.
 - **Wear.** Automatic transactions on every close and create write more than a batched policy. The profile prefers safety.

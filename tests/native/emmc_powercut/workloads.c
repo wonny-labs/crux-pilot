@@ -49,10 +49,22 @@
 static uint8_t buffer[MAX_FILE];
 static uint8_t expected[MAX_FILE];
 static bool acked_only;
+static bool create_may_be_empty;
+static bool created_empty;
 
 void powercut_set_acked_only(bool on)
 {
     acked_only = on;
+}
+
+void powercut_set_create_may_be_empty(bool on)
+{
+    create_may_be_empty = on;
+}
+
+bool powercut_created_empty(void)
+{
+    return created_empty;
 }
 
 static void fill(uint8_t *to, size_t size, uint32_t tag)
@@ -132,6 +144,7 @@ enum w3_op { W3_WRITE, W3_REMOVE, W3_MKDIR, W3_RMDIR };
 
 #define W3_ABSENT 0x00U
 #define W3_IS_DIR 0xffU
+#define W3_EMPTY 0xfeU /* a file that exists with size 0; no step writes this tag */
 #define W3_STEPS 12U
 #define W3_MAX 1024U
 
@@ -306,6 +319,35 @@ static int run_w3(bool early_ack)
     return rc;
 }
 
+int powercut_stage_w3(uint32_t steps, uint32_t empty_path)
+{
+    int rc = 0;
+    struct fs_dirent entry;
+
+    if (steps > W3_STEPS ||
+        (empty_path != POWERCUT_NO_PATH && (empty_path >= W3_PATHS || empty_path == W3_DIR))) {
+        return -EINVAL;
+    }
+    for (uint32_t number = 1; rc == 0 && number <= steps; number++) {
+        const struct w3_step *step = &w3_steps[number - 1U];
+
+        if (step->op == W3_WRITE) {
+            rc = w3_write(step->path, step->tag, 0U, false);
+        } else {
+            rc = step->op == W3_MKDIR ? fs_mkdir(w3_paths[step->path])
+                                      : fs_unlink(w3_paths[step->path]);
+        }
+    }
+    if (rc != 0 || empty_path == POWERCUT_NO_PATH) {
+        return rc;
+    }
+    /* A file in a directory that does not exist at this step cannot be staged. */
+    if (empty_path == W3_E && fs_stat(w3_paths[W3_DIR], &entry) != 0) {
+        return POWERCUT_STAGE_SKIP;
+    }
+    return replace_content(w3_paths[empty_path], buffer, 0U, 0U, false);
+}
+
 int powercut_run(enum powercut_workload w, bool early_ack)
 {
     switch (w) {
@@ -437,6 +479,10 @@ static bool w3_matches(const uint8_t state[W3_PATHS])
             if (found->rc != 0 || !found->dir) {
                 return false;
             }
+        } else if (state[p] == W3_EMPTY) {
+            if (found->rc != 0 || found->dir || found->size != 0U) {
+                return false;
+            }
         } else {
             fill(expected, w3_size(state[p]), state[p]);
             if (found->rc != 0 || found->dir || found->size != w3_size(state[p]) ||
@@ -448,7 +494,33 @@ static bool w3_matches(const uint8_t state[W3_PATHS])
     return true;
 }
 
-/* I2 for W3: the files are as after some step from the acknowledged one to the last. */
+/*
+ * The one state that a file system which commits on create can leave inside a step: the step after
+ * the acknowledged one creates a file, the create is on the medium and the data is not, so the new
+ * file exists with size 0 and every other path is as after the acknowledged step.
+ */
+static bool w3_create_in_progress(uint32_t acked)
+{
+    uint8_t state[W3_PATHS];
+    const struct w3_step *step;
+
+    if (acked >= W3_STEPS) {
+        return false;
+    }
+    step = &w3_steps[acked];
+    w3_state(acked, state);
+    if (step->op != W3_WRITE || state[step->path] != W3_ABSENT) {
+        return false;
+    }
+    state[step->path] = W3_EMPTY;
+    created_empty = w3_matches(state);
+    return created_empty;
+}
+
+/*
+ * I2 for W3: the files are as after some step from the acknowledged one to the last. With
+ * create_may_be_empty, the state of w3_create_in_progress is accepted too.
+ */
 static bool check_w3(uint32_t acked, struct powercut_result *out)
 {
     uint8_t state[W3_PATHS];
@@ -473,7 +545,7 @@ static bool check_w3(uint32_t acked, struct powercut_result *out)
             return true;
         }
     }
-    return false;
+    return create_may_be_empty && w3_create_in_progress(acked);
 }
 
 /* I5: the volume takes a new write, sync and remount. */

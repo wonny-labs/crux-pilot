@@ -16,6 +16,15 @@ enum powercut_workload { POWERCUT_W1, POWERCUT_W2, POWERCUT_W3, POWERCUT_W4 };
 int powercut_prepare(enum powercut_workload w); /* baseline content, on the no-cache profile */
 int powercut_run(enum powercut_workload w, bool early_ack);
 
+#define POWERCUT_NO_PATH UINT32_MAX
+#define POWERCUT_STAGE_SKIP 2
+/*
+ * A test of the W3 check itself: makes the state after `steps` W3 steps, without marks, then leaves
+ * the W3 file `empty_path` (an index in workloads.c, or POWERCUT_NO_PATH) with size 0. Returns
+ * POWERCUT_STAGE_SKIP when that file's directory does not exist at that step.
+ */
+int powercut_stage_w3(uint32_t steps, uint32_t empty_path);
+
 struct powercut_result {
     bool mounted, data, read_error, replaced, untouched, recommit;
 };
@@ -30,5 +39,15 @@ void powercut_verify(enum powercut_workload w, uint32_t acked, struct powercut_r
  * complete later generation, or for W3.
  */
 void powercut_set_acked_only(bool acked_only);
+
+/*
+ * With create_may_be_empty, the W3 data check also accepts one state inside a step: the step after
+ * the acknowledged one creates a file, which exists with size 0, and every other path is as after
+ * the acknowledged step. A file system that commits on create, as Reliance Edge does in the Crux
+ * profile, leaves this state at a cut between the create and the sync. Nothing else is accepted.
+ * powercut_created_empty tells whether a verify accepted that state.
+ */
+void powercut_set_create_may_be_empty(bool create_may_be_empty);
+bool powercut_created_empty(void);
 
 #endif /* CRUX_TESTS_EMMC_POWERCUT_WORKLOADS_H */

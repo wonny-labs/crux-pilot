@@ -423,6 +423,21 @@ encoded names decode, and that names this provider could not have written stay o
 sequence, in forked children, under the fake's own simple model. None of these is power-loss
 evidence about FatFs or a card, and no physical run covers the additions.
 
+`tests/native/file_reliance` runs the Reliance Edge file system behind the Zephyr VFS over a RAM disk
+named `MMC`, and the File provider on top of it. The `file_reliance` suite covers the adapter: mount
+and format, handles, flags, errors in Zephyr's numbering (the build uses the minimal C library, whose
+numbers differ from Reliance Edge's), a media error that makes the volume read-only, and the close
+that reports lost data. The `file_reliance_file` suite runs the File contract and the File additions
+of `tests/file/conformance.c` on it, with names stored unencoded, and also checks that identifiers
+of threads are distinct, that a thread beyond the limit is refused every call but close and
+closedir without reaching the file system, that such a thread can close files and listings that
+another thread opened, one such close at a time, so that the volume unmounts afterwards, that a
+mismatched profile does not mount, and that writes stay inside the configured sectors. The
+`crux.file.reliance.offset` scenario runs the same cases on a volume that starts 128 sectors into the
+disk and is 4096 sectors long. `scripts/test-storage-emmc.sh` requires the executed cases of both.
+These are simulation results on a RAM disk, in one process. They are not persistence evidence and
+not evidence about an eMMC device.
+
 `scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
 a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
 the fake File provider and a double for access, and walk a power cut across every mutation of a commit
@@ -488,6 +503,22 @@ sync, is recorded as well. `test_replay_model.py` tests the model
 without a build. The same seed gives the same JSON apart from timing. Results are about the model,
 not about power loss on a device; see the
 [replay record](../docs/evidence/emmc-reliance/replay-fatfs/README.md).
+
+The same program built with `reliance.conf` runs on Reliance Edge as `red-fix` (with the correction)
+and `red-nofix` (without it, with `CRUX_EMMC_FLUSH_CONTROL`). There, `run_replay.py --fs reliance`
+asserts every invariant and no read error on `red-fix` for W1 to W3 on both profiles. Metaroot
+writes are recognised by their sectors (`metaroot_sectors`), each side of every metaroot sector is
+always tested, so every metaroot sector is torn, and `lost` is tested after every mark. The driver
+confirms on each cached trace that a commit is a flush, one whole metaroot, then a flush, and stops
+if it is not. Four controls must fail: `red-nofix` loses acknowledged W1 data at every mark; the W2
+trace, with the flush before each metaroot not a barrier and the metaroot kept, gives a mount
+failure, a changed untouched file or a read error somewhere (W1 cannot, because its stale blocks
+are a valid older state); a `run-early` W1 trace loses the step marked before its sync; and a
+baseline with both metaroots overwritten does not mount. The profile commits on create, so the W3
+verifier accepts, with `--create-may-be-empty`, a new file that is present and empty in the step
+creating it. These cases are counted apart, and checks that must fail show that the same state is
+refused as a lost acknowledged file or at another step. See the
+[Reliance Edge replay record](../docs/evidence/emmc-reliance/replay-reliance/README.md).
 
 The simulator is a model written from the stack's needs, by the same author as the tests, and is not
 device evidence. Results show how the stack behaves against that model, not how an eMMC device behaves.
