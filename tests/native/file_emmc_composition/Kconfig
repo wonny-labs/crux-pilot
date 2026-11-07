@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+rsource "../../support/emmc_sim/Kconfig"
+
+# The sample's setting, which emmc_storage.c reads; the fixture takes the default.
+config SAMPLE_EMMC_DISK_NAME
+	string "Disk name of the eMMC"
+	default "MMC"
+
+config EMMC_COMPOSITION_TEST_INIT_FAILURE
+	bool "Run only the card initialisation failure case"
+	help
+	  A failed disk init is only a fresh init if no earlier case initialised the disk, so this
+	  case is a scenario of its own, and the other cases skip themselves in it.
+
+source "Kconfig.zephyr"

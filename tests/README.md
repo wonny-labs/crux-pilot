@@ -373,6 +373,20 @@ disk and is 4096 sectors long. `scripts/test-storage-emmc.sh` requires the execu
 These are simulation results on a RAM disk, in one process. They are not persistence evidence and
 not evidence about an eMMC device.
 
+`tests/native/file_emmc_composition` runs the mount sequence of `samples/storage_emmc` (disk init, mount
+without format, layout check, File root binding) on the eMMC simulator with Reliance Edge and the cache
+flush on, native_sim only. The cases keep the order of `file_sd_composition`, because the provider binds once
+per process: the medium digest sees one changed byte, stop and remount before start are refused, a blank
+medium fails closed and is not formatted, missing directories are not created, a provisioned medium starts
+after the earlier failures, a second start is rejected, and the provider survives an application unmount and
+remount. Each "unchanged" check compares the persistent image and requires that the simulator received no
+write request, because a write still held in the simulated cache is not in the image. A further case shows
+that `crux_file_sync` sends a flush command and that the synced bytes are then in the persistent image. The
+`crux.file.emmc_composition.init_failure` scenario holds the case where the card fails its first CMD1 and
+the start reports no media. It is a scenario of its own because a disk that an earlier case initialised is
+not initialised again. Cases of the other scenario skip themselves, so the executed counts are 9 and 1.
+These are simulation results in one process, not evidence about an eMMC device.
+
 `scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
 a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
 the fake File provider and a double for access, and walk a power cut across every mutation of a commit

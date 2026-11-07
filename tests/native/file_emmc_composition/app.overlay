@@ -1,0 +1,16 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The eMMC simulator, with the unmodified MMC stack on top, as a disk named like the composition's
+ * default. */
+/ {
+    emmc_sim0: emmc_sim {
+        compatible = "crux,emmc-sim";
+        status = "okay";
+
+        mmc {
+            compatible = "zephyr,mmc-disk";
+            disk-name = "MMC";
+            bus-width = <4>;
+            status = "okay";
+        };
+    };
+};
