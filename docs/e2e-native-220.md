@@ -1,6 +1,6 @@
 # The web examples end to end on `native_sim`
 
-Status: for review under [Issue #220](https://github.com/wonny-labs/crux-pilot/issues/220), in a Draft PR. Host and
+Status: merged in [PR #293](https://github.com/wonny-labs/crux-pilot/pull/293) for [Issue #220](https://github.com/wonny-labs/crux-pilot/issues/220). Host and
 `native_sim` evidence only. **Nothing here ran on a board, and nothing here is device timing, memory or physical
 evidence.** Measuring on RT1060-EVKB is separately approved and is not part of this work. Preact and Angular are examples,
 and Crux promises no product-ready interface.

@@ -1,8 +1,8 @@
 # Web examples: the core configuration flow
 
-Status: implementation for review under Issue #243. It shows the core configuration flow end to end on the **mock server only**,
-in both web examples. Nothing here ran on a device, over TLS or on `native_sim`, which is #220, and nothing was run on a
-board. Mock results are mock evidence and stand in for none of those.
+Status: merged in [PR #288](https://github.com/wonny-labs/crux-pilot/pull/288) and [PR #289](https://github.com/wonny-labs/crux-pilot/pull/289) for Issue #243. It shows the core configuration flow end to end on the **mock server only**,
+in both web examples. Nothing here ran on a device, over TLS or on `native_sim`, and nothing was run on a
+board. Mock results are mock evidence and stand in for none of those. [#220](e2e-native-220.md) ran the shared browser cases against real HTTPS on `native_sim`: 38 of the 65 shared cases ran and passed on each example, and a successful save is not shown there, because the image has no Configuration save provider.
 
 Crux provides the services, the APIs and HTTPS hosting, and the product owns its application UI. The Preact example in
 `samples/web/preact` and the Angular example in `samples/web/angular` are examples, with no promise of feature parity and no
@@ -257,7 +257,7 @@ request. These rows record runs made before the examples were renamed on 8 Novem
 
 ## What is not verified
 
-- Any of this on a device, on `native_sim`, over TLS or on a board. #220 does the first two against real HTTPS.
+- Any of this on a device or a board. `native_sim` and TLS ran in [#220](e2e-native-220.md) for 38 of the 65 shared cases, with no successful save.
 - The device's `503` while a save runs, the save's time, and the single server thread's response to the values being read one
   at a time. The mock never does these.
 - Concurrent clients, and another session's save showing in this session's list.

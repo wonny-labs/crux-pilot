@@ -1,7 +1,6 @@
 # Web contract and private HTTP adapter
 
-Status: implementation for review under Issue #184. Nothing here has run on a board, and nothing here uses TLS, which
-is #185 and the probe in #242.
+Status: merged in [PR #266](https://github.com/wonny-labs/crux-pilot/pull/266) for Issue #184. Nothing here has run on a board. #184's own image uses plain HTTP, and the adapter runs over TLS in [HTTPS composition](https-composition.md) (#185) and [the services image](native-composition-242.md) (#242).
 
 Owner: `components/web`. Public header `<crux/web.h>`, usage target `crux::web`. Adapter header `crux_web_adapter.h`,
 internal target `crux_web_adapter`.
@@ -16,9 +15,9 @@ internal target `crux_web_adapter`.
 | Adapter over the Zephyr HTTP server | Built | `native_sim`, plain HTTP on loopback |
 | Wildcard resources on RT1060 | Compile and link only | Mbed TLS and wolfSSL profiles, not run |
 | Login, sessions, CSRF and `Origin` rules | **Built** in #186: see [web-session.md](web-session.md). This suite still uses stand-ins. | Host, and `native_sim` in `tests/native/web_session` |
-| Status, configuration and account routes | **Built** in #187: see [web-management-apis.md](web-management-apis.md). Host only, and no composition serves them yet. | Host |
-| Network settings routes | **Built** in #213: see [network-settings-service.md](network-settings-service.md). Host only, with no composition and no saving on the target until #16. | Host |
-| Reboot routes | **Built** in #214: see [reboot-service.md](reboot-service.md). Host only, with no composition and no real reset. A composition that leaves the service out has no reboot route. | Host |
+| Status, configuration and account routes | **Built** in #187: see [web-management-apis.md](web-management-apis.md). Host, and served over HTTPS by [the services image](native-composition-242.md) on `native_sim`. | Host, `native_sim` |
+| Network settings routes | **Built** in #213: see [network-settings-service.md](network-settings-service.md). Host, and served by [the services image](native-composition-242.md) on `native_sim`, with no saving on the target until #16. | Host, `native_sim` |
+| Reboot routes | **Built** in #214: see [reboot-service.md](reboot-service.md). Host only: **no image composes it**, not even [the services image](native-composition-242.md), and nothing calls a real reset. A composition that leaves the service out has no reboot route. | Host |
 | Access core on Zephyr | **Faked on `native_sim`** by a double, until #242. The real core and its fake ports run on Host | |
 | Socket shutdown on `native_sim` | **Shimmed in the test image**, see [below](#three-limits-of-native_sim-found-here) | |
 | A send that returns `-EAGAIN` on `native_sim` | **Injected in the test image** by a wrapped send, because the offload rarely produces one | |
@@ -301,10 +300,9 @@ The capture holds seven headers, and a request whose capture dropped anything ge
 | Longest Cookie, 511 bytes, and one more | `native_sim` | Accepted, then `400` |
 | A capture overflow across headers | `native_sim` | `400` |
 | Other headers of 2,000 bytes | `native_sim` | Ignored |
-| Safari | Not run | Not run in #186 either: Safari cannot run unattended on the machine that did #186, so the criterion stays open |
+| Safari | Not run | Header capture was not run in #186 either: Safari cannot run unattended on the machine that did #186. A by-hand observation of a `Secure` cookie on the mock is under the paragraph below |
 
-**Safari has not run**, because it cannot run unattended here, so that part moved to #186, where real login first gives a
-reason to open the interface in one. Both browsers ran over plain HTTP on `localhost`, so a real address, and HTTPS, may
+**Safari has not run** for header capture, because it cannot run unattended here. One observation exists: on 2026-11-08, by hand, on the mock server of the web examples only, a `Secure` cookie set over plain HTTP did not work in Safari ([web session decision 14](web-session.md#decisions-taken-without-an-answer)). Firmware served over HTTPS in Safari was not run. Both browsers above ran over plain HTTP on `localhost`, so a real address, and HTTPS, may
 change `Origin` and `Host`, which the reservation above allows for. Other cookies on the device's address are a browser's
 own: a device that shares an address with something else that sets many cookies can exceed 511 bytes. That client then
 gets `400` on every route, and clearing its cookies fixes it.

@@ -1,10 +1,11 @@
 # SSH provider contract
 
-Status: proposal for review, Issue #205, part of gate #183. It fixes what the SSH, CLI and SFTP sessions share. Nothing
-here is adopted until it is reviewed, and it authorises no hardware operation.
+Status: merged in [PR #239](https://github.com/wonny-labs/crux-pilot/pull/239) for Issue #205, part of gate #183, which has
+passed. It fixes what the SSH, CLI and SFTP session channels share, and [the wolfSSH provider](ssh-wolf-provider.md), the
+[command line over SSH](cli-over-ssh.md) and [SFTP](sftp-design.md) now implement it. It authorises no hardware operation.
 
 The evidence is of three different kinds. Host tests run the fake provider and the conformance cases. Build results come
-from compiling and linking probe images, which this PR never ran. Statements about wolfSSH behaviour come from reading its
+from compiling and linking probe images, which the work of #239 never ran. Statements about wolfSSH behaviour come from reading its
 source at v1.6.0 (`8221e4e`). See [Evidence and limits](#evidence-and-limits).
 
 Issue #192 has since implemented the provider: [the wolfSSH provider](ssh-wolf-provider.md) records what it chose and what ran.
@@ -265,7 +266,7 @@ holds the settings: `CONFIG_POSIX_API=n`, `CONFIG_POSIX_SYSTEM_INTERFACES=y`, no
 how OpenSSH on the host is meant to reach the image, with `CONFIG_ETH_NATIVE_TAP=n` as upstream's `overlay-nsos.conf` sets it. It uses
 Zephyr's minimal C library, and has no file system.
 
-This builds for `native_sim/native/64` on Zephyr v4.4.2. This PR did not run it. An SSH test has no use for TLS, and this way #192, #193 and #194
+This builds for `native_sim/native/64` on Zephyr v4.4.2. #239 did not run it. An SSH test has no use for TLS, and this way #192, #193 and #194
 do not depend on a patch that is not stored in this repository.
 
 ### The combined image also builds
@@ -281,7 +282,7 @@ it finished because the settings above made it unnecessary, so that attempt has 
 
 ### What is still open
 
-This PR has no evidence that wolfSSH's socket callbacks work over the native socket offload. The independent review of this PR reported that
+#239 had no evidence that wolfSSH's socket callbacks work over the native socket offload. Its independent review reported that
 a review-only server on these settings ran OpenSSH 9.6 through a handshake, password login, key login, `exec` and a shell over the offload. #192 now
 shows this with [the design's OpenSSH cases](ssh-wolf-provider.md#results), so the TAP fallback was not needed.
 
@@ -337,7 +338,7 @@ From reading wolfSSH v1.6.0 source. None of this had run when it was written. [T
 
 ## Evidence and limits
 
-Recorded on 4 November 2026 at the revision in the PR that adds this document, with Zephyr v4.4.2 `dccb095`, `hal_nxp` `7554bc0`, wolfSSL
+Recorded on 4 November 2026 at the revision of #239 that added this document, with Zephyr v4.4.2 `dccb095`, `hal_nxp` `7554bc0`, wolfSSL
 `3c5eead`, wolfSSH `8221e4e` and Zephyr SDK 1.0.1, in the Dev Container image. Size figures are from the linker memory report.
 
 | Kind | What | Result |
@@ -356,4 +357,4 @@ Compiling wolfSSH gives two warnings in `wolfsftp.c` from the vendor source (`ma
 build, because the module's sources are not under the warning policy for owned code.
 
 Not shown by any of this: that wolfSSH works with these settings at run time, a handshake, a login, a transfer, stack use,
-timing, or any behaviour on a board. The review's server run, noted above, is the review's evidence, not this PR's. [#192's own results](ssh-wolf-provider.md#results) cover the run time on `native_sim`.
+timing, or any behaviour on a board. The review's server run, noted above, is the review's evidence, not #239's. [#192's own results](ssh-wolf-provider.md#results) cover the run time on `native_sim`.

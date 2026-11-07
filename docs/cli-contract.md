@@ -1,6 +1,6 @@
 # Command line contract
 
-Status: Host implementation for review under Issue #181, with fake providers and a scripted transport. Not adopted until this review and gate #183 pass. The decisions and reasoning are in
+Status: merged in [PR #238](https://github.com/wonny-labs/crux-pilot/pull/238) for Issue #181, on Host with fake providers and a scripted transport, and gate #183 has passed. It runs on `native_sim` in [the services image](native-composition-242.md), over a test transport and over SSH in [the integrated image](ssh-integrated-image.md). The serial console has not run on `native_sim` or a board. The decisions and reasoning are in
 [the accepted proposal](plans/cli-contract-proposal.md), which this document does not repeat. L1 to L6 are accepted and AC2 is declined, as [the gate record, PR #209](https://github.com/wonny-labs/crux-pilot/pull/209) says. Where this document and the proposal differ, the choices below say why.
 
 Owner: `components/cli`.
@@ -26,7 +26,7 @@ Owner: `components/cli`.
 | Security events | Port and recording fake. #234 is on `main`, and the provider that connects them was not added here. **#242 added it**, `crux_cli_security_events`, mapped as [the event contract](security-event-contract.md#from-the-command-line-and-file-service-ports) states. | Host here. The provider: Host, and `native_sim` in the [services image](native-composition-242.md). |
 | Shell rule (L5) at configuration, at compilation, by script and by image check | Built | Host for the rule's logic. Real builds in `scripts/test-cli.sh --zephyr`, which runs in the Zephyr CI job. |
 | LPUART3 wiring | Compile only: `tests/zephyr/cli_serial_compile` | RT1060-EVKB compile and link, in CI. **Never flashed, and not evidence of a console.** |
-| `crux_access` on Zephyr | Not available, so nothing links the console into an image | |
+| `crux_access` on Zephyr | Available to a composition, which lists the PSA ports: it runs on `native_sim` in [the management composition](native-management-composition.md). **The serial console is composed in no image**, so it has not run there. | `native_sim` for Access. None for the console. |
 | `status`, `config *`, `device fingerprint` | Not built. They need #180 and #178. They register in a table when those land. | |
 | Recovery command of #213 | Not built. Its shape is tested, below. | Host |
 | SSH shell and exec | Built in [the CLI over SSH](cli-over-ssh.md), as below | Host through the fake provider. `native_sim` with OpenSSH: see that document. |
@@ -52,7 +52,7 @@ flowchart TB
     core --> port["crux_cli_port_event"]
     console --> port
     port -.->|"Host tests"| fake["Recording fake"]
-    port -.->|"thin provider, not added yet"| events["crux_security_event_emit"]
+    port -.->|"thin provider, #242"| events["crux_security_event_emit"]
 ```
 
 Serial and SSH are two users of one transport. `crux_cli_adapter.h` names no serial or SSH type, and `scripts/check-cli-boundary.py` fails if it does.
@@ -69,7 +69,7 @@ Defaults, each a build setting: `CRUX_CLI_LINE_MAX` and `CRUX_CLI_TOKENS_MAX` as
 | Quoted value | Double quotes, with `\"` and `\\` inside | Anything else is `invalid line`, status 2, before any lookup |
 | Escape sequence | 32 bytes | Later bytes are ordinary input again |
 
-A build check refuses a line limit below the 301 bytes that `config set <31-byte name> "<128-byte value>"` needs with every value byte escaped. That size comes from the proposal, because #180 is not merged.
+A build check refuses a line limit below the 301 bytes that `config set <31-byte name> "<128-byte value>"` needs with every value byte escaped. That size comes from the proposal: no `config set` command is registered yet.
 
 Memory: a `crux_cli_context_t` is about 800 bytes on 64-bit Linux, with the line, the argument pointers and three password buffers, and it belongs to the caller, one per session. Keeping the secrets there rather than on the stack makes "cleared on every path" testable. No session allocates. **Stack use is unmeasured.** `account list` holds up to 8 account records on the stack, about 640 bytes. The component's objects for the RT1060-EVKB hold about 6.5 KB of text and 20 bytes of BSS, compiled against Zephyr v4.4.0 with default options. That is a compile result, not an image's cost.
 
@@ -265,7 +265,7 @@ The `shell` callback says whether the client asked for a terminal, and that sets
 
 ## Connecting the real security events
 
-#234 landed on `main` while this was in review, and this PR was asked to leave the two connected only through the port. Nothing in `components/cli` changes. A composition adds one file, the thin provider of the port, which translates and holds no state:
+This section was written when #234 had landed on `main` and the CLI was to stay connected to security events only through the port. #242 then added the provider, `crux_cli_security_events`, and this is its shape. A composition adds one file, the thin provider of the port, which translates and holds no state:
 
 ```c
 #include "cli_port.h"
@@ -291,7 +291,7 @@ void crux_cli_port_event(const crux_cli_event_t *event)
 }
 ```
 
-The identifiers `cli.line_rejected` and `cli.console_error` exist at 0x0500 and 0x0501, and the emit needs no session and does not wait on storage, as the port requires. This file was compiled against the public header on `main`, in a scratch directory, and has not run. Only this file would change if that header does, because nothing else in `components/cli` names a security event. It and the target `crux::security_event` then join the composition, and `Cli.*` can run a further case through the real ring. Until then an image has no provider, and it does not link.
+The identifiers `cli.line_rejected` and `cli.console_error` exist at 0x0500 and 0x0501, and the emit needs no session and does not wait on storage, as the port requires. The snippet above was compiled once against the public header in a scratch directory. The provider in the tree is `components/cli/src/cli_security_events.c`, the object target `crux_cli_security_events`. `tests/management_providers` tests it, and it runs in the [services image](native-composition-242.md). Only that file changes if the header does, because nothing else in `components/cli` names a security event. An image with no provider does not link.
 
 ## Registering the recovery command of #213
 

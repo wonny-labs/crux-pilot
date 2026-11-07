@@ -1,7 +1,6 @@
 # Network settings service
 
-Status: implementation for review under Issue #213, as a Draft PR. Host only. Nothing here has run on a board, no composition
-serves these routes or links this service yet, and nothing applies an address to a real interface. Host results are interim
+Status: merged in [PR #287](https://github.com/wonny-labs/crux-pilot/pull/287) for Issue #213. Host results, and the routes run over HTTPS on `native_sim` in [the services image](native-composition-242.md) with a no-op apply port. Nothing here has run on a board, and nothing applies an address to a real interface. Host and `native_sim` results are interim
 results, and physical evidence stays tracked apart. Decisions W5 to W8 and W14 of [the frontend foundation
 design](plans/web-frontend-foundation-design.md#network-settings) and [the owner's approval on #183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084)
 are the basis.
@@ -26,8 +25,8 @@ The routes are in `components/web/management/web_management_network.c` and are d
 | The mock and the TypeScript client | **Changed, small** | Node.js unit tests, including the shared vectors |
 | Apply port: Host fake, and a no-op provider for a composition that applies nothing | **Built** | The fake is used by every suite. The no-op is linked by no suite. |
 | Apply port on Zephyr, over `net_if` | **Not built.** [Decision 17](#decisions-taken-without-an-answer). | |
-| A composition that serves the routes, links the service or owns the table | **Not here.** | |
-| `native_sim` | **Not run.** There is no composition, so there is nothing to run. | |
+| A composition that serves the routes, links the service or owns the table | **Not in #213.** [The services image](native-composition-242.md) of #242 does, with a no-op apply port. | `native_sim` |
+| `native_sim` | **Not run by #213.** Run later in [the services image](native-composition-242.md): the read, and a change that answers `501 not_supported` because nothing can be saved. | `native_sim` |
 | RT1060 compile | **Not run.** | |
 | Saving on the target | **No provider** until #16: [what the target does](#what-the-target-does-until-16) | |
 | Applying saved values on RT1060-EVKB | **Not run.** It needs separately approved physical evidence. | |

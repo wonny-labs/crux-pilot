@@ -1,8 +1,8 @@
 # Packaged web assets
 
-Status: for review under [Issue #189](https://github.com/wonny-labs/crux-pilot/issues/189), in a Draft PR. Host and
-`native_sim` evidence only, and the `native_sim` run is plain HTTP on loopback. **Nothing here ran on a board, and no
-asset was served over TLS by this work.** Every timing below is an emulated container's figure on a loaded machine, and says
+Status: merged in [PR #283](https://github.com/wonny-labs/crux-pilot/pull/283) for [Issue #189](https://github.com/wonny-labs/crux-pilot/issues/189). Host and
+`native_sim` evidence only, and the `native_sim` run of #189 is plain HTTP on loopback. Both examples were later packaged and served over TLS to Chrome
+in [the end-to-end record of #220](e2e-native-220.md). **Nothing here ran on a board, and #189's own image served no asset over TLS.** Every timing below is an emulated container's figure on a loaded machine, and says
 nothing about a target.
 
 A product builds its frontend with any tool, names the built folder in its firmware composition, and serves it. The firmware
@@ -23,11 +23,11 @@ interface, and firmware-embedded assets only.
 | Secret and device data check, with an optional deny list | Built, **pattern-based** | Python tests |
 | Hash list for the SBOM | Built | Python tests, compared with the bytes the server sent on `native_sim` |
 | Content policy setting, strict or inline styles | Built | Host, both values |
-| Serving over TLS | **Not run by this work.** Same adapter as #185's image, which runs its suite over TLS. | |
+| Serving over TLS | **Not run by #189's image.** Same adapter as #185's image, which runs its suite over TLS. Packaged assets over TLS ran later, to Chrome: [#220](e2e-native-220.md#packaging-both-examples). | |
 | Asset size and speed on RT1060 | **Not measured.** The declared client rate is a decision. | |
-| Safari, Chrome, Firefox loading a packaged folder | **Not run** | |
-| Angular example folder | **Not packaged.** Its size is from the [implementation design](plans/web-frontend-implementation.md#packaging-budget). | |
-| CI running the `native_sim` image | **Added** as one step in `zephyr.yml`, shard `io`, beside `scripts/test-web.sh native`. A change under `.github/` is listed in the PR for the owner's approval. | Not yet seen to run on CI |
+| Safari, Chrome, Firefox loading a packaged folder | **Not run by #189.** Chrome loaded both packaged examples over HTTPS in [#220](e2e-native-220.md). Safari and Edge were never run, and Firefox did not load a packaged folder over HTTPS here. | |
+| Angular example folder | **Not packaged by #189.** Packaged in [#220](e2e-native-220.md#packaging-both-examples), under 3,000 ms and refused at 1,500 ms. Its size is from the [implementation design](plans/web-frontend-implementation.md#packaging-budget). | |
+| CI running the `native_sim` image | **Added** as one step in `zephyr.yml`, shard `io`, beside `scripts/test-web.sh native`. The step exists in the merged `zephyr.yml`. | Merged |
 
 ## Acceptance criteria of #189
 
@@ -242,8 +242,8 @@ about 1 to 2 KB for 32 files. This is an estimate from the struct, **not measure
 | Deadline, 3,000 ms | #184's default, unchanged. The `native_sim` images use 1,500. |
 | 32 files | Browsers open several connections and the server has three clients. The Preact example has 4 files and the Angular example 5. |
 | 393,216 bytes | Room for the Angular example, 97,990 compressed bytes by `tools/compare.ts` with all six screens, four times over. It is a budget for Flash use, not a server limit. RT1060 Flash use is not measured. |
-| Preact example, built here | 4 files, 20,314 bytes served, the largest asset 18,599: **fits with 5 times to spare**. At the default rate its script takes 0.57 s. |
-| Angular example | 97,990 compressed bytes in 5 files with network settings and restart (`tools/compare.ts`; `web_assets.py` counts 97,952 served). The largest file, the script, is 92,064, under 98,304, so it fits the defaults with 6,240 bytes to spare. Not packaged here. |
+| Preact example | 4 files, 23,208 bytes served, the largest asset 21,394 (with network settings and restart, as measured in [#220](e2e-native-220.md#packaging-both-examples)): **fits with about 4.6 times to spare**. At the default rate its script takes about 0.65 s (21,394 B at 32,768 B/s, computed, not measured). |
+| Angular example | 97,990 compressed bytes in 5 files with network settings and restart (`tools/compare.ts`; `web_assets.py` counts 97,952 served, the figure in [#220](e2e-native-220.md#packaging-both-examples)). The largest file, the script, is 92,064, under 98,304, so it fits the defaults with 6,240 bytes to spare. |
 
 What a slow client costs the others, by the sums in the [web contract](web-contract.md#the-slow-reader-bound) and not measured at the default settings: the deadline, 3 s,
 plus the sends of the callback in flight. A response has 5 or 6 headers, which is 24 sends in its first callback, at 250 ms each: up to 6 s, and later pieces take 4 sends, up to 1 s. That is
@@ -303,8 +303,8 @@ product joins the two. The embedded bytes are in the signed firmware image, so t
 | A response over TLS | Not run by this work. The adapter is the one #185 runs over TLS, and the `native_sim` image here uses plain HTTP. |
 | A slow reader and a reset mid-asset, on `native_sim` | Run with the send buffer of one connection shrunk by a probe route of the test image, as on a small target, because loopback buffers otherwise take the whole asset and the server is never part-way. [Measured](#measured-on-native_sim). The probe is test code that depends on a private driver struct, as #184 declares. |
 | RT1060 Flash, RAM and load time | Not measured. No board was used. |
-| Real browsers | Not run against a packaged folder, so neither policy value was checked in one, and no page load was timed. |
-| The Angular example | Not built or packaged here. |
+| Real browsers | Not run by #189 against a packaged folder. Chrome ran both examples over HTTPS in [#220](e2e-native-220.md). |
+| The Angular example | Not built or packaged by #189. Packaged in [#220](e2e-native-220.md#packaging-both-examples). |
 | Brotli, `HEAD`, ranges, conditional requests | Not provided |
 | A frontend that needs `'unsafe-eval'`, a nonce or an external origin | Cannot be served. That is the design. |
 | Two files with one name that differ only in case, on a case-folding file system | Not testable on macOS, so the test skips there and runs on Linux |

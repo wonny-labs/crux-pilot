@@ -1,6 +1,6 @@
 # The command line over SSH
 
-Status: draft for review, Issue #193, approved in advance under gate #183. It connects the provider interface of [the SSH provider contract](ssh-provider-contract.md) to the session entry points of [the command line contract](cli-contract.md). No board was operated, and nothing here is evidence about one.
+Status: merged in [PR #267](https://github.com/wonny-labs/crux-pilot/pull/267) for Issue #193, approved in advance under gate #183. It runs with the wolfSSH provider and the real Access core in [the integrated image](ssh-integrated-image.md) of [PR #313](https://github.com/wonny-labs/crux-pilot/pull/313). It connects the provider interface of [the SSH provider contract](ssh-provider-contract.md) to the session entry points of [the command line contract](cli-contract.md). No board was operated, and nothing here is evidence about one.
 
 ## What is built, faked and untested
 
@@ -145,7 +145,7 @@ Starting the exec status at 0 did not fail, and is equivalent, because `crux_cli
 
 ## Found with #192
 
-Running the CLI on the provider found two things that #265 has since fixed, both at `800d0af`. Neither fix is in this PR, so this PR's OpenSSH run needs that revision or later.
+Running the CLI on the provider found two things that #265 has since fixed, both at `800d0af`. Both changes are merged in #265, so the OpenSSH run of #267 needs that revision or later.
 
 | Finding | Effect | Fix in #265 |
 | --- | --- | --- |
@@ -192,8 +192,8 @@ No owner answer was available for these, so each is the narrow choice.
 
 - Anything on a board, timing, or the worker's stack on a Cortex-M7.
 - WinSCP, or any SSH client other than OpenSSH 9.6.
-- A key login through the CLI: the cases use passwords, and #192 covers keys up to its stand-in sessions.
-- A rekey started by the server, or with any client but OpenSSH. Rekeys that OpenSSH starts pass, both during output and while a shell reads, in `a_rekey_during_output` and `a_rekey_during_input`. The independent review measured stack peaks with a rekey of 10,152 B with an Ed25519 host key and 11,232 B with an ECDSA one. Those are its figures, and this PR did not repeat them.
+- A key login through the CLI at the time of #267: its cases use passwords. The integrated image of #313 later ran an Ed25519 key login of `admin` through the CLI (`case_ssh_cli`, [results](ssh-integrated-image.md#results)). No SSH route registers a user key: [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318).
+- A rekey started by the server, or with any client but OpenSSH. Rekeys that OpenSSH starts pass, both during output and while a shell reads, in `a_rekey_during_output` and `a_rekey_during_input`. The independent review measured stack peaks with a rekey of 10,152 B with an Ed25519 host key and 11,232 B with an ECDSA one. Those are its figures, and #267 did not repeat them.
 - `window-change` over the wire: the Host covers it through the fake, and it has no effect by contract.
-- The real security event provider.
+- The `ssh.*` security events: the CLI's own events run on the real provider in the [services image](native-composition-242.md) and the integrated image, but the SSH identifiers are defined and never emitted ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317)).
 - The OpenSSH and target results on any revision after `ea24a94`, where they last ran. CI does not run that script.

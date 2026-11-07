@@ -1,6 +1,6 @@
 # `native_sim` management composition
 
-Status: for review under [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), in a Draft PR. Decision W17 makes PSA a prerequisite of real HTTPS on `native_sim`, and W18 makes Host and `native_sim` completion an interim result, with physical evidence tracked apart.
+Status: merged in [PR #263](https://github.com/wonny-labs/crux-pilot/pull/263), the first part of [Issue #242](https://github.com/wonny-labs/crux-pilot/issues/242), which stays open. Decision W17 makes PSA a prerequisite of real HTTPS on `native_sim`, and W18 makes Host and `native_sim` completion an interim result, with physical evidence tracked apart.
 
 The second part of #242, every other management service composed on these providers behind HTTPS, is in [Every management service on `native_sim`](native-composition-242.md).
 
@@ -23,7 +23,7 @@ Nothing here is physical evidence. `native_sim` results use the host's TCP stack
 | Configuration save | **No provider**, `configuration_no_provider`, by decision C6 until #16. A save returns `ERR_STORE` with `NOT_SUPPORTED`. | `native_sim` |
 | Logging | The Crux provider on an **emulated UART**: a line counts as delivered when `crux_log_write` returns `CRUX_OK`, and nothing reads the wire | `native_sim` |
 | Reset causes, watchdog | Real System on `native_sim`. `system.watchdog_state` reads `not_supported`. | `native_sim` |
-| HTTPS listener, login routes, TLS certificate from the store | **Not built here**: #185, #186, #190 | |
+| HTTPS listener, login routes, TLS certificate from the store | **Not built here**: #185, #186 and #190 are in other documents, and [the services image](native-composition-242.md) composes them | |
 | Access and credential suites on the real ports | **Run on Host, on TF-PSA-Crypto**: 10 suites, [below](#the-existing-suites-on-the-real-ports). Not on wolfPSA, and not on `native_sim`. | Host |
 | A race in a provider | **Untested and untestable here**: a `native_sim` thread that does not sleep is never preempted | |
 | Anything on RT1060-EVKB beyond the ports compiling | **Not run.** No board was touched. | |

@@ -42,7 +42,7 @@ Each state is recorded on its own, and none stands in for another. The flow-by-f
 | State | What it shows | Today |
 | --- | --- | --- |
 | Mock | The examples and the client against the specification, over plain HTTP on the loopback address | Run in CI |
-| Host | The management services in C, with no web server | Some services pass, with no web route yet |
+| Host | The management services in C and their web routes, through a fake transport | Run in the Host CI job |
 | `native_sim` | Real TLS, sessions and limits with a browser | Both examples packaged and run over HTTPS in Chrome, #220: [end-to-end design](../docs/e2e-native-220.md) |
 | Physical | RT1060-EVKB, with separate approval | Not run |
 
