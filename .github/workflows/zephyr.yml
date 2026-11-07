@@ -263,6 +263,19 @@ jobs:
         working-directory: crux-pilot
         run: scripts/test-product-template.sh "$CRUX_BOARD_TARGET"
 
+      # The GPLv2 Reliance Edge source is the optional west group crux-reliance, and bootstrap-zephyr.sh
+      # runs a plain west update, so this step enables the group itself. It is the last storage check,
+      # so that no earlier check runs with the group enabled. Images that link the source are test
+      # images: nothing here is uploaded as a named zephyr.elf or zephyr.bin, and the link check writes
+      # outside the twister-* directories that the evidence collection below matches.
+      - name: Validate the eMMC composition on Reliance Edge without hardware
+        if: matrix.shard == 'storage'
+        working-directory: crux-pilot
+        run: |
+          (cd "$CRUX_WORKSPACE" && west config manifest.group-filter -- +crux-reliance && west update reliance-edge)
+          CRUX_STORAGE_32BIT=1 scripts/test-storage-emmc.sh
+          scripts/test-file-emmc-compile.sh
+
       # Avoid repeated glob traversals through large Twister build trees.
       - name: Collect Twister evidence
         if: always()

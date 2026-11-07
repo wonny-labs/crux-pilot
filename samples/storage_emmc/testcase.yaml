@@ -1,0 +1,14 @@
+sample:
+  name: Crux eMMC composition (link only)
+common:
+  build_only: true
+  # The board that boards/mimxrt1060_evk_mimxrt1062_qspi_B.overlay names. Link only: the EVKB has no
+  # eMMC, so the image is never flashed.
+  platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
+  tags: [filesystem, crux, link_only]
+tests:
+  crux.sample.storage_emmc:
+    extra_args: []
+  crux.sample.storage_emmc.start:
+    extra_configs:
+      - CONFIG_SAMPLE_EMMC_START=y

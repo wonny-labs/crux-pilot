@@ -346,3 +346,44 @@ folded="$(tr -s '[:space:]' ' ' <"$selection_log")"
     exit 1
 }
 printf 'Reliance Edge File selection: dropped together with another File selection\n'
+
+# The eMMC reference composition, samples/storage_emmc, on the eMMC simulator with Reliance Edge and
+# the cache flush: the microSD composition's cases, a File sync that must send a flush command, and
+# a card that fails its first initialisation. The images link the GPLv2 source and are test images
+# only.
+(cd "$workspace" && west twister -j 2 "${platforms[@]}" \
+    -T "$repo/tests/native/file_emmc_composition" \
+    -O "$repo/build/zephyr/twister-file-emmc-composition" --inline-logs)
+python3 - "$repo/build/zephyr/twister-file-emmc-composition/twister.json" <<'PY'
+import json
+import os
+from pathlib import Path
+import sys
+
+# The init_failure scenario must be a process of its own, so its one case is the only one that
+# executes there and every other case skips itself; the main scenario skips that case instead.
+executed = {'crux.file.emmc_composition': 9, 'crux.file.emmc_composition.init_failure': 1}
+init_failure_case = 'h_card_init_failure_reports_no_media'
+platforms = ['native_sim/native/64']
+if os.environ.get('CRUX_STORAGE_32BIT') == '1':
+    platforms.append('native_sim/native')
+expected = {(scenario, platform): count
+            for scenario, count in executed.items()
+            for platform in platforms}
+
+suites = json.loads(Path(sys.argv[1]).read_text())['testsuites']
+found = {(suite['name'].rsplit('/', 1)[-1], suite['platform']): suite for suite in suites}
+if len(suites) != len(found) or set(found) != set(expected):
+    raise RuntimeError(f'unexpected or missing eMMC composition suites: {sorted(found)}')
+for key, suite in found.items():
+    cases = suite.get('testcases', [])
+    passed = [c for c in cases if c.get('status') == 'passed']
+    ran_init_failure = [c for c in passed if c['identifier'].endswith('.' + init_failure_case)]
+    if (suite.get('status') != 'passed' or not suite.get('runnable') or
+            len(passed) != expected[key] or len(cases) != 10 or
+            any(c.get('status') not in ('passed', 'skipped') for c in cases) or
+            bool(ran_init_failure) != key[0].endswith('.init_failure')):
+        raise RuntimeError(f'{key}: the cases did not all execute and pass')
+    print(f'{key[0]} {key[1]}: {len(passed)} executed cases PASS, '
+          f'{len(cases) - len(passed)} skipped for the other scenario')
+PY
