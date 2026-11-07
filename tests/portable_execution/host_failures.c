@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
+#include <unistd.h>
 
 #define CHECK(value)                                                                               \
     do {                                                                                           \
@@ -74,7 +75,10 @@ int main(void)
     crux_thread_t thread;
     options.stack_size_bytes = 32768;
     CHECK(crux_thread_create(&options, noop, NULL, &thread) == CRUX_OK);
-    CHECK(observed_stack == 65536);
+    /* 64 KiB, or the libc minimum when that is larger, as on aarch64. */
+    const long libc_minimum = sysconf(_SC_THREAD_STACK_MIN);
+    const size_t expected_stack = libc_minimum > 65536 ? (size_t)libc_minimum : (size_t)65536;
+    CHECK(observed_stack == expected_stack);
     CHECK(crux_thread_join(&thread, 1000) == CRUX_OK);
     options.stack_size_bytes = 65537;
     CHECK(crux_thread_create(&options, noop, NULL, &thread) == CRUX_ERR_OUT_OF_RANGE);

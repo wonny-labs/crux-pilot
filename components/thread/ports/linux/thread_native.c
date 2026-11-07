@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <limits.h>
+#include <unistd.h>
 
 static pthread_mutex_t thread_metadata = PTHREAD_MUTEX_INITIALIZER;
 
@@ -81,7 +82,12 @@ crux_status_t crux_thread_impl_create(thread_native_thread_t *thread, crux_threa
     if (pthread_attr_init(&attributes) != 0) {
         return CRUX_ERR_NO_RESOURCES;
     }
+    /* The accepted range stays 64 KiB, but a libc minimum above it, as on aarch64, wins. */
     size_t actual_stack = 65536;
+    const long minimum_stack = sysconf(_SC_THREAD_STACK_MIN);
+    if (minimum_stack > 0 && (size_t)minimum_stack > actual_stack) {
+        actual_stack = (size_t)minimum_stack;
+    }
     int result = pthread_attr_setstacksize(&attributes, actual_stack);
     if (result == 0) {
         thread->entry = entry;
