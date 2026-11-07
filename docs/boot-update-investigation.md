@@ -507,7 +507,7 @@ item needs its own approval.
 
 ## Recommendations and decisions
 
-Nothing in this record is adopted. The owner decisions for #141 are the
+Nothing in this record is adopted except the owner decisions below. The owner decisions for #141 are the
 RT1170-EVK scope decisions of 1 and 2 November 2026, A0, A1 with its RT1170
 extension of 2 November 2026, and A2 for the SPSDK download. On 7 November 2026 the owner also accepted the
 recommendations for rows 1, 3, 4, 5, 6, 8, 9, 10 and 11 of the owner decisions
@@ -517,23 +517,24 @@ table (A3 in part). All other rows are recommendations for A3.
 | --- | --- | --- |
 | Bootloader | MCUboot at the Zephyr pin, ECDSA P-256 with tinycrypt | Recommendation |
 | Update mode | Rank 1 RAM load with revert, rank 2 swap using offset, rank 3 direct-XIP with revert | Recommendation |
-| Rank 1 test request | Application code that marks the inactive slot, or images signed with trailer magic | Owner decision needed |
+| Rank 1 test request | Application code that marks the inactive slot, or images signed with trailer magic | Accepted by the owner on 2 November 2026 (row 13) |
 | Trial builds | Rank 1 and rank 2 | Approved (A1, 1 November 2026). Done as build-only evidence on 2 November 2026 (Stages 5 and 8). |
 | Staging medium | Variant (c), NOR slot, optionally through an SDRAM buffer | Recommendation |
-| Execution model | RAM load into SDRAM as M8 reference candidate, after M7 target validation. No build blocker found. Timing supported by Stage 6 (Inference). | Accepted by the owner on 7 November 2026 (row 3) |
+| Execution model | RAM load into SDRAM as M8 reference execution model, after M7 target validation. No build blocker found. Timing supported by Stage 6 (Inference). | Accepted by the owner on 7 November 2026 (row 3) |
 | Application version policy | Reject older images in the application before any NOR write | Accepted by the owner on 7 November 2026 (row 4) |
 | Signing tools | `imgtool` for application images (used in the trial). SPSDK under A2, not yet run. SEC optional. No CST. | Recommendation |
 | BEE | Not part of the candidate path | Accepted by the owner on 7 November 2026 (row 10) |
 | HAB | Documentation result only. Event readback and closed configuration are later, separately approved work. | Recommendation |
 | Fenced layout | Upstream partitions kept for both modes, 64 KiB aligned boundaries, `storage` kept with no owner and no writer in M8 (Stage 6) | Recommendation (PROPOSAL, not adopted) |
-| Bootloader data-closure failure | The #22 data-closure failure is present in the MCUboot write path of both trial modes (Stage 6 section 3) | Owner decision needed (16) |
-| Development keys | Fixed development key outside the repository for board tests, temporary CI key with the bootloader rebuilt per run. Move or delete the trial key. | Recommendation, owner decision needed (18) |
+| Bootloader data-closure failure | The #22 data-closure failure is present in the MCUboot write path of both trial modes (Stage 6 section 3) | Accepted by the owner on 2 November 2026 (row 16) |
+| Development keys | Fixed development key outside the repository for board tests, temporary CI key with the bootloader rebuilt per run. Move or delete the trial key. | Accepted by the owner on 2 November 2026 (row 18) |
 | RT1170-EVK Rev A1 | Desk differences recorded. Hardware deferred to #155. A1 extended to RT1170 builds on 2 November 2026, builds not yet run. | Owner decision of 2 November 2026 (scope and A1 extension). Content is a desk result. |
 
 ## Owner decisions needed
 
 The recommended options summarise the stage recommendations. Rows 8, 11, 12
-and 15 have no stage recommendation and are left to the owner. Rows 16 to 18
+and 15 have no stage recommendation and are left to the owner. For rows 8 and 11 a
+recommendation was given on 7 November 2026 and accepted. Rows 16 to 18
 come from Stages 6 and 8. On 2 November 2026 the owner accepted the
 recommended options for rows 13, 16, 17 and 18, and on 7 November 2026 for
 rows 1, 3, 4, 5, 6, 8, 9, 10 and 11. Rows 12 and 15 are not decided. Each row says
