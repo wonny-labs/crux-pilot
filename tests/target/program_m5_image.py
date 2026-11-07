@@ -92,11 +92,13 @@ class Driver:
         return self
 
     def __exit__(self, kind, error, trace):
-        if kind is not None:
-            self.fail(error)
-        if self.port is not None:
-            self.port.close()
-            self.port = None
+        try:
+            if kind is not None:
+                self.fail(error)
+        finally:
+            if self.port is not None:
+                self.port.close()
+                self.port = None
         return False
 
     def note(self, **entry):
@@ -136,7 +138,7 @@ class Driver:
                 raise
             # A verify that finds different bytes makes Commander exit non-zero; that one outcome is a result, not a fault.
             text = output.read_text(errors='replace') if output.exists() else ''
-            if 'Verify failed' not in text or re.search(r'Updating firmware:|Replacing firmware:|Waiting for new firmware', text):
+            if not self.clean_mismatch(error, text, output):
                 raise error
             check_identity(text)
             self.note(step=label, state='verify-mismatch')
@@ -144,6 +146,21 @@ class Driver:
         check_identity(text)
         self.note(step=label, state='done')
         return text
+
+    @staticmethod
+    def clean_mismatch(error, text, output):
+        """Only Commander's plain non-zero exit with a `Verify failed` log and nothing else wrong in it.
+
+        A timeout (state uncertain, `.timeout.json`), a firmware-maintenance message or any other diagnostic of
+        Commander's own scan (warning, could not, cannot, error, ...) is a fault and is never a result.
+        """
+        if str(error) != 'Probe exited unsuccessfully; state uncertain' or output.with_suffix('.timeout.json').exists():
+            return False
+        if 'Verify failed' not in text or re.search(r'Updating firmware:|Replacing firmware:|Waiting for new firmware', text):
+            return False
+        rest = re.sub(r'Verify failed(?: @ address 0x[0-9A-Fa-f]+)?', '', text)
+        diagnostics = '\n'.join(line for line in rest.splitlines() if line.strip() != 'J-Link Commander will now exit on Error')
+        return not re.search(r'(?i)\b(error|failed|failure|could not|cannot|warning|unable|unknown command|timed out)\b', diagnostics)
 
     def identify(self, candidates):
         """Names of the candidate images that the flash holds byte for byte. Stops on anything but a clean match or mismatch."""

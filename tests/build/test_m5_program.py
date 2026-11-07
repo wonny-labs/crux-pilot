@@ -166,6 +166,13 @@ class Program(Case):
         self.assertEqual(states.count('checks'), 3)
         self.assertEqual(self.reverified, [1, 1])                     # before the entry compare and before the load
 
+    def test_failure_record_write_error_still_releases_the_port(self):
+        self.responses = [GOOD.replace('602003106', '1')]
+        with self.assertRaises(OSError), patch.object(program.Driver, 'fail', side_effect=OSError('disk full')):
+            with self.driver() as driver:
+                driver.program(self.m5, self.entry)
+        self.assertTrue(self.port.closed)
+
     def test_unknown_entry_image_stops_before_any_change(self):
         self.responses = [GOOD, MISMATCH]
         with self.assertRaisesRegex(HardwareStop, 'differs from the identified entry image'), self.driver() as driver:
@@ -264,6 +271,33 @@ class Identify(Case):
             self.assertNotIn(forbidden, joined.replace('verifybin', ''), forbidden)
         self.assertTrue(all('IsHalted' in c for c in self.commands[1:]))
         self.assertEqual(self.commands[0], 'q\n')
+
+    def test_a_timeout_or_diagnostic_is_never_a_clean_mismatch(self):
+        timeout = HardwareStop('Probe timeout; state uncertain; no further hardware changes')
+        cases = [('timeout with a Verify failed log', timeout, MISMATCH, True),
+                 ('timeout without a marker file', timeout, MISMATCH, False),
+                 ('other stop with a Verify failed log', HardwareStop('Probe diagnostic; stop hardware changes'), MISMATCH, False),
+                 ('warning next to the mismatch', HardwareStop('Probe exited unsuccessfully; state uncertain'),
+                  MISMATCH + 'WARNING: CPU could not be halted\n', False),
+                 ('cannot next to the mismatch', HardwareStop('Probe exited unsuccessfully; state uncertain'),
+                  MISMATCH + 'Cannot connect to target.\n', False),
+                 ('wrong probe in a mismatch', HardwareStop('Probe exited unsuccessfully; state uncertain'),
+                  MISMATCH.replace('602003106', '1'), False)]
+        for name, error, log, marker in cases:
+            with self.subTest(name):
+                self.setUp()
+                def probe(commands, output, error=error, log=log, marker=marker):
+                    self.commands.append(commands)
+                    if len(self.commands) == 1:
+                        Path(output).write_text(GOOD)
+                        return GOOD
+                    Path(output).write_text(log)
+                    if marker:
+                        Path(output).with_suffix('.timeout.json').write_text('{}')
+                    raise error
+                with self.assertRaises(HardwareStop), self.driver('identify', probe=probe) as driver:
+                    driver.identify([('a', self.normal), ('b', self.entry)])
+                self.assertEqual(len(self.commands), 2)                  # nothing ran after the failed command
 
     def test_a_fault_during_identification_still_stops_everything(self):
         self.responses = [GOOD, HardwareStop('Probe timeout')]
