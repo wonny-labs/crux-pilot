@@ -39,6 +39,7 @@ class Host:
     """Fake host. ``mounted`` tracks whether the volume is mounted."""
     def __init__(self, mounted=True, root=True, ioreg=None, umount_code=0):
         self.root, self.mounted, self.tree, self.umount_code = root, mounted, ioreg or tree(), umount_code
+        self.hang = set()                              # names of host calls that never return (as a GuardError timeout)
         self.calls, self.boot, self.identity_text = [], BOOT, IDENTITY
     def euid(self):
         return 0 if self.root else 502
@@ -47,9 +48,13 @@ class Host:
         return self.tree
     def mounts(self):
         self.calls.append('mounts')
+        if 'mounts' in self.hang:
+            raise guard.GuardError('host command timed out: mount table')
         return OTHER + (VOLUME if self.mounted else '')
     def umount(self, point):
         self.calls.append('umount ' + point)
+        if 'umount' in self.hang:
+            raise guard.GuardError('host command timed out: /sbin/umount ' + point)
         if self.umount_code == 0:
             self.mounted = False
         return self.umount_code, '', 'busy' if self.umount_code else ''
@@ -66,6 +71,7 @@ class DA:
         self.identity = identity or dict(bsd='disk4', protocol='USB', serial=SERIAL, vid=0x0d28, pid=0x0204, error=None)
         self.ignore_approval, self.register_error, self.fail_run = ignore_approval, register_error, fail_run
         self.pending, self.calls = [], []
+        self.arrivals, self.pumps = [], 0              # (pump number, identity, tree after the arrival): the DAPLink gets plugged in
     def register_mount_approval(self, handler):
         self.calls.append('register')
         if self.register_error:
@@ -79,6 +85,13 @@ class DA:
             raise self.fail_run
         if seconds == 0:
             self.calls.append('pump')
+        self.pumps += 1
+        for arrival in [a for a in self.arrivals if a[0] <= self.pumps]:
+            self.arrivals.remove(arrival)
+            _, identity, after = arrival
+            if after is not None:
+                self.host.tree = after
+            self.handler(identity)                     # macOS asks for a mount of the newly appeared disk
         self.clock.value += seconds
         while self.pending:
             done = self.pending.pop()
@@ -426,7 +439,7 @@ class Child(Case):
     def test_ready_then_runs_to_the_deadline_and_retires(self):
         reports = []
         installed = []
-        code = guard.run_child(self.make(lifetime=300), reports.append, installed.append)
+        code = guard.run_child(self.make(lifetime=300), lambda text, final=True: reports.append(text), installed.append)
         self.assertEqual(code, 0)
         self.assertEqual(len(installed), 1)
         self.assertTrue(reports[0].startswith('READY pid=%d disk=disk4 session=%s log=%s deadline_in=300s' % (os.getpid(), self.session, self.log)))
@@ -434,7 +447,7 @@ class Child(Case):
         self.assertTrue(os.path.exists(self.session))              # evidence stays after a normal retirement
 
     def test_report_failure_after_ready_removes_the_record_and_retires(self):
-        def broken_pipe(text):
+        def broken_pipe(text, final=True):
             raise BrokenPipeError('caller went away')
         self.assertEqual(guard.run_child(self.make(), broken_pipe), 1)
         self.assertFalse(os.path.exists(self.session))
@@ -443,7 +456,7 @@ class Child(Case):
     def test_start_failure_reports_failed_and_leaves_nothing(self):
         self.host.umount_code = 1
         reports = []
-        self.assertEqual(guard.run_child(self.make(), reports.append), 1)
+        self.assertEqual(guard.run_child(self.make(), lambda text, final=True: reports.append(text)), 1)
         self.assertEqual(len(reports), 1)
         self.assertTrue(reports[0].startswith('FAILED unmount of /Volumes/RT1060-EVK failed'))
         self.assertFalse(os.path.exists(self.session))
@@ -453,43 +466,9 @@ class Child(Case):
         def broken(_guard):
             raise RuntimeError('cannot install handlers')
         reports = []
-        self.assertEqual(guard.run_child(self.make(), reports.append, broken), 1)
+        self.assertEqual(guard.run_child(self.make(), lambda text, final=True: reports.append(text), broken), 1)
         self.assertTrue(reports[0].startswith('FAILED cannot install handlers'))
         self.assertEqual(self.da.calls, [])                        # nothing was registered
-
-
-class Report(unittest.TestCase):
-    def pipe(self):
-        reader, writer = os.pipe()
-        self.addCleanup(lambda: [os.close(fd) for fd in (reader, writer) if self.alive(fd)])
-        return reader, writer
-
-    @staticmethod
-    def alive(fd):
-        try:
-            os.fstat(fd)
-            return True
-        except OSError:
-            return False
-
-    def test_one_line_is_enough_even_if_the_pipe_stays_open(self):
-        reader, writer = self.pipe()
-        os.write(writer, b'READY pid=1\n')
-        self.assertEqual(guard.read_report(reader, 5), ('READY pid=1', True))
-
-    def test_eof_without_a_line_returns_what_was_sent(self):
-        reader, writer = self.pipe()
-        os.write(writer, b'FAILED half')
-        os.close(writer)
-        self.assertEqual(guard.read_report(reader, 5), ('FAILED half', True))
-
-    def test_silence_times_out_instead_of_hanging(self):
-        reader, writer = self.pipe()
-        clock = Clock(0.0)
-        def tick():
-            clock.value += 0.6
-            return clock.value
-        self.assertEqual(guard.read_report(reader, 2, clock=tick), ('', False))
 
 
 class Approval(Case):
@@ -556,6 +535,205 @@ class RunAndRetire(Case):
         instance.say('late')
         instance.retire('again')
         self.assertEqual(len(self.log_text()), size)
+
+
+class Wedge(Case):
+    """A wedged FSKit volume: umount never returns. The guard must stop with the way out, never hang or continue."""
+
+    def test_a_hung_unmount_ends_the_start_with_the_instruction_to_unplug_and_arm(self):
+        self.host.hang = {'umount'}
+        with self.assertRaisesRegex(guard.GuardError, 'wedged.*Unplug the DAPLink USB.*--arm.*timed out: /sbin/umount'):
+            self.make().start()
+        self.assertIn('STOPPED reason=start_failed', self.log_text())
+        self.assertFalse(os.path.exists(self.session))
+        self.assertEqual(self.da.calls, ['register', 'pump'])      # no self-test mount and no further host call after the hang
+        self.assertEqual([c for c in self.host.calls if c == 'mounts'], ['mounts'])
+
+    def test_a_mount_table_that_does_not_answer_fails_closed(self):
+        self.host.hang = {'mounts'}
+        with self.assertRaisesRegex(guard.GuardError, 'timed out'):
+            self.make().start()
+        self.assertIn('STOPPED', self.log_text())
+        self.assertFalse(os.path.exists(self.session))
+        self.assertFalse(any(c.startswith('umount') for c in self.host.calls))
+
+    def test_a_host_command_that_never_returns_is_killed_and_not_waited_for(self):
+        import time
+        host = guard.SystemHost()
+        started = time.monotonic()
+        with self.assertRaisesRegex(guard.GuardError, 'timed out: sleep'):
+            host.run(['sleep', '30'], timeout=1)
+        self.assertLess(time.monotonic() - started, 8)
+
+
+@unittest.skipUnless(sys.platform == 'darwin', 'reads the macOS mount table')
+class MountReader(unittest.TestCase):
+    def test_the_real_mount_table_is_read_without_asking_file_systems(self):
+        text = guard.SystemHost().mounts()
+        self.assertIn(' on / (', text)
+        self.assertEqual(guard.mounted_points(text, 'disk999'), [])
+        for line in text.splitlines():
+            self.assertRegex(line, r'^.+ on .+ \(.+\)$')
+
+    def test_garbage_or_failure_is_an_error_not_an_empty_table(self):
+        host = guard.SystemHost()
+        for result in ((0, 'nothing useful\n', ''), (1, '', 'AssertionError'), (0, '', '')):
+            host.run = lambda command, timeout=10, env=None, result=result: result
+            with self.assertRaisesRegex(guard.GuardError, 'could not be read'):
+                host.mounts()
+
+
+class Arm(Case):
+    PLUGGED = tree()
+    IDENTITY = dict(bsd='disk4', protocol='USB', serial=SERIAL, vid=0x0d28, pid=0x0204, error=None)
+
+    def setUp(self):
+        super().setUp()
+        self.host.tree, self.host.mounted = [], False        # the DAPLink is unplugged
+        self.messages = []
+
+    def arm(self, pump=3, identity=None, after=None, **options):
+        self.da.arrivals = [(pump, identity or self.IDENTITY, self.PLUGGED if after is None else after)]
+        instance = self.make(arm=True, arm_wait=60, **options)
+        instance.progress = self.messages.append
+        return instance
+
+    def test_armed_before_the_replug_the_real_mount_request_is_the_evidence(self):
+        instance = self.arm()
+        instance.start()
+        text = self.log_text()
+        order = [text.index(word) for word in ('mode=arm', 'APPROVAL_REGISTERED', 'ARMED', 'DENIED exact_DAPLink_USB_serial=' + SERIAL + ' disk=disk4', 'READY')]
+        self.assertEqual(order, sorted(order))
+        self.assertEqual(self.da.calls[0], 'register')
+        self.assertFalse(any(c.startswith('request_mount') for c in self.da.calls))     # no self-test mount
+        self.assertFalse(any(c.startswith('umount') for c in self.host.calls))          # no unmount
+        self.assertTrue(self.messages[0].startswith('ARMED'))
+        record = self.record()
+        self.assertEqual((record['disk'], record['evidence'], record['mode']), ('/dev/disk4', 'armed_replug_veto', 'arm'))
+        instance.retire('test')
+
+    def test_the_record_passes_the_repository_check_in_arm_mode(self):
+        self.arm().start()
+        RepositoryCheck.run_check(SimpleNamespaceCase(self), mounts=OTHER)
+
+    def test_a_partition_request_maps_to_the_whole_disk(self):
+        self.arm(identity=dict(self.IDENTITY, bsd='disk4s1')).start()
+        self.assertEqual(self.record()['disk'], '/dev/disk4')
+
+    def test_the_disk_in_the_record_is_the_one_that_was_vetoed(self):
+        self.arm(identity=dict(self.IDENTITY, bsd='disk7s1'), after=tree(disks=('disk7',))).start()
+        self.assertEqual(self.record()['disk'], '/dev/disk7')
+        self.assertIn('disk=disk7 mount_target=disk7s1', self.log_text())
+
+    def test_refused_when_the_daplink_is_already_present(self):
+        self.host.tree = tree()
+        with self.assertRaisesRegex(guard.GuardError, 'unplug its USB first'):
+            self.make(arm=True, arm_wait=60).start()
+        self.assertEqual(self.da.calls, [])
+        self.assertFalse(os.path.exists(self.log))
+
+    def test_an_arm_wait_outside_the_bounds_is_refused(self):
+        for wait in (0, 59, 1801, 60.5, '60', None, True):
+            with self.subTest(wait=wait), self.assertRaisesRegex(guard.GuardError, 'arm wait'):
+                self.make(arm=True, arm_wait=wait).start()
+        self.assertEqual(self.da.calls, [])
+
+    def test_no_replug_in_time_fails_without_a_record(self):
+        instance = self.make(arm=True, arm_wait=60)
+        with self.assertRaisesRegex(guard.GuardError, 'no mount request for the DAPLink within 60 s'):
+            instance.start()
+        self.assertIn('STOPPED reason=start_failed', self.log_text())
+        self.assertFalse(os.path.exists(self.session))
+
+    def test_a_request_for_another_disk_is_not_evidence(self):
+        other = dict(self.IDENTITY, serial='another-device')
+        instance = self.arm(identity=other)
+        with self.assertRaisesRegex(guard.GuardError, 'no mount request'):
+            instance.start()
+        self.assertNotIn('DENIED', self.log_text())
+
+    def test_wrong_ancestry_after_the_replug_fails(self):
+        for after, why in ((tree(disks=('disk4', 'disk5')), 'two disks'), (tree(uarts=('/dev/cu.usbmodem11302',)), 'other uart'),
+                           (tree(uarts=()), 'no serial port'), (tree(disks=('disk9',)), 'other disk')):
+            with self.subTest(why):
+                self.setUp()
+                with self.assertRaisesRegex(guard.GuardError, 'ancestry is not exactly'):
+                    self.arm(after=after).start()
+                self.assertFalse(os.path.exists(self.session))
+
+    def test_the_serial_port_may_appear_a_little_after_the_disk(self):
+        instance = self.arm()
+        state = dict(calls=0)
+        sequence = [tree(uarts=()), tree(uarts=()), tree()]
+        original = self.host.ioreg
+        def ioreg():
+            state['calls'] += 1
+            if state['calls'] == 1:
+                return original()                              # the start-up check: still unplugged
+            return sequence[min(state['calls'] - 2, 2)]       # disk first, serial port a little later
+        self.host.ioreg = ioreg
+        instance.start()
+        self.assertGreaterEqual(state['calls'], 4)
+        self.assertTrue(os.path.exists(self.session))
+
+    def test_a_mounted_volume_after_the_veto_fails(self):
+        self.host.mounted = True
+        with self.assertRaisesRegex(guard.GuardError, 'mounted although its mount request was vetoed'):
+            self.arm().start()
+        self.assertFalse(os.path.exists(self.session))
+
+    def test_progress_and_final_lines_in_the_child(self):
+        reports = []
+        code = guard.run_child(self.arm(), lambda text, final=True: reports.append((text.split()[0], final)))
+        self.assertEqual(code, 0)
+        self.assertEqual(reports, [('ARMED', False), ('READY', True)])
+
+
+class SimpleNamespaceCase:
+    """Lets RepositoryCheck.run_check run against an Arm case's own record and files."""
+    def __init__(self, case):
+        self.case, self.root, self.mounts = case, case.root, OTHER
+    def record(self):
+        return self.case.record()
+
+
+class Report(unittest.TestCase):
+    def pipe(self):
+        reader, writer = os.pipe()
+        self.addCleanup(lambda: [os.close(fd) for fd in (reader, writer) if self.alive(fd)])
+        return reader, writer
+
+    @staticmethod
+    def alive(fd):
+        try:
+            os.fstat(fd)
+            return True
+        except OSError:
+            return False
+
+    def test_progress_lines_are_shown_as_they_arrive_then_the_final_line_is_returned(self):
+        reader, writer = self.pipe()
+        os.write(writer, b'ARMED plug it in\nREADY pid=1\n')
+        seen = []
+        self.assertEqual(guard.read_report(reader, 5, on_line=seen.append), ('READY pid=1', True))
+        self.assertEqual(seen, ['ARMED plug it in'])
+
+    def test_a_failed_line_ends_the_wait_even_if_the_pipe_stays_open(self):
+        reader, writer = self.pipe()
+        os.write(writer, b'ARMED x\nFAILED no mount request\n')
+        self.assertEqual(guard.read_report(reader, 5), ('FAILED no mount request', True))
+
+    def test_eof_returns_the_last_line_and_silence_times_out(self):
+        reader, writer = self.pipe()
+        os.write(writer, b'ARMED x\nFAILED half')
+        os.close(writer)
+        self.assertEqual(guard.read_report(reader, 5), ('FAILED half', True))
+        reader2, writer2 = self.pipe()
+        clock = Clock(0.0)
+        def tick():
+            clock.value += 0.6
+            return clock.value
+        self.assertEqual(guard.read_report(reader2, 2, clock=tick), ('', False))
 
 
 class RepositoryCheck(Case):
