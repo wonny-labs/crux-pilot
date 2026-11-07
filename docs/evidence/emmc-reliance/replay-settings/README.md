@@ -73,8 +73,9 @@ Every case passed I1 to I5 with `read_error=0`, including every metaroot sector 
 the torn cases tore a write). The cached trace holds 24 marks, 80 flushes and 40 commits (a flush, one whole
 metaroot, a flush), in 1321 events and 1216 written sectors. The no-cache trace holds 1240 events.
 
-- **The active settings file was never missing.** Across 2232 cases (and 864 cases that left a temporary),
-  `replace=1` held everywhere. The spec says that with an atomic rename the `.cmp` recovery step of
+- **The active settings file was never missing.** Across the 2174 cut cases (864 of them left a temporary),
+  `replace=1` held everywhere. The 2232 of the run also count 4 sanity cases, 24 flush and 24 early-acknowledgement
+  controls, 3 damaged-image controls and 3 staged states, some of which break the invariants on purpose. The spec says that with an atomic rename the `.cmp` recovery step of
   `samples/storage_sd` should not be needed here, and W4 tests that rather than assuming it. In the model it is
   not needed: a cut between the temporary's creation and the rename leaves the old file whole and a stray
   temporary, which the next compaction replaces (`settings_file_create_or_replace` removes an existing one) and
@@ -165,6 +166,8 @@ emulated, most of it Reliance Edge and the Zephyr kernel, which ccache shortens.
   every metaroot sector write. The sample count alone selects positions.
 - The corrected backend, not the pinned one. The pinned backend fails 12 cases of the Settings File suite on this
   file system, in the control of `scripts/test-storage-emmc.sh`.
+- There is no barrier control on W4: it would need about 1700 verifier runs for one recorded observation, so the
+  barrier control stays on W2 of the Reliance Edge record.
 - Three keys, 24 saves and a line limit of 6. A larger file compacts more slowly and the cut windows are longer.
 - I5 is checked by a save and a remount in the verifier, and has no control of its own: nothing here makes a
   further save fail.
