@@ -12,8 +12,9 @@ approval documents of ``capture_m5_network`` (the approval must be complete). It
 board lock and the exclusive UART before the first probe command and holds both to the end.
 A mode runs once per evidence parent directory.
 
-  identify  identity probe, then ``verifybin`` of each candidate image with ``IsHalted``;
-            changes no flash and starts no reset, but may leave the core halted
+  identify  identity probe, then ``verifybin`` of each candidate image with ``IsHalted``, until
+            the first one that does not match (a mismatch ends the run); changes no flash and
+            starts no reset, but may leave the core halted
   program   identity probe, ``verifybin`` of the identified entry image (stop if it differs),
             then the exact M5 BIN: ``loadfile``, ``verifybin``, reset, go
   restore   identity probe, ``loadfile`` + ``verifybin`` of the exact normal BIN, a second
@@ -94,7 +95,11 @@ class Driver:
     def __exit__(self, kind, error, trace):
         try:
             if kind is not None:
-                self.fail(error)
+                try:
+                    self.fail(error)
+                except OSError as secondary:
+                    error.evidence_failure = repr(secondary)
+                    raise
         finally:
             if self.port is not None:
                 self.port.close()
@@ -118,7 +123,7 @@ class Driver:
         self.safe(path)
         return 'verifybin "%s", 0x%X\n%sq\n' % (path, BASE, 'IsHalted\n' if halted else '')
 
-    def run(self, label, commands, *, images=(), mismatch_ok=False):
+    def run(self, label, commands, *, images=()):
         """One guarded probe command. Anything unexpected raises HardwareStop and nothing else runs."""
         self.step += 1
         label = '%02d-%s' % (self.step, label)
@@ -131,44 +136,22 @@ class Driver:
         if images and self.reverify:
             self.reverify()
         output = self.directory / (label + '.log')
-        try:
-            text = self.probe_command(commands, output)
-        except HardwareStop as error:
-            if not mismatch_ok:
-                raise
-            # A verify that finds different bytes makes Commander exit non-zero; that one outcome is a result, not a fault.
-            text = output.read_text(errors='replace') if output.exists() else ''
-            if not self.clean_mismatch(error, text, output):
-                raise error
-            check_identity(text)
-            self.note(step=label, state='verify-mismatch')
-            return text
+        text = self.probe_command(commands, output)
         check_identity(text)
         self.note(step=label, state='done')
         return text
 
-    @staticmethod
-    def clean_mismatch(error, text, output):
-        """Only Commander's plain non-zero exit with a `Verify failed` log and nothing else wrong in it.
-
-        A timeout (state uncertain, `.timeout.json`), a firmware-maintenance message or any other diagnostic of
-        Commander's own scan (warning, could not, cannot, error, ...) is a fault and is never a result.
-        """
-        if str(error) != 'Probe exited unsuccessfully; state uncertain' or output.with_suffix('.timeout.json').exists():
-            return False
-        if 'Verify failed' not in text or re.search(r'Updating firmware:|Replacing firmware:|Waiting for new firmware', text):
-            return False
-        rest = re.sub(r'Verify failed(?: @ address 0x[0-9A-Fa-f]+)?', '', text)
-        diagnostics = '\n'.join(line for line in rest.splitlines() if line.strip() != 'J-Link Commander will now exit on Error')
-        return not re.search(r'(?i)\b(error|failed|failure|could not|cannot|warning|unable|unknown command|timed out)\b', diagnostics)
-
     def identify(self, candidates):
-        """Names of the candidate images that the flash holds byte for byte. Stops on anything but a clean match or mismatch."""
+        """Names of the candidate images that the flash holds byte for byte.
+
+        A verify that finds different bytes makes Commander exit non-zero, which is a fault here like any other:
+        the run stops. Candidates are therefore checked only until the first one that does not match.
+        """
         self.safe(*[path for _, path in candidates])
         self.run('identity-only', 'q\n')
         held = []
         for name, path in candidates:
-            text = self.run('candidate-' + name, self.verify_command(path, True), images=[path], mismatch_ok=True)
+            text = self.run('candidate-' + name, self.verify_command(path, True), images=[path])
             if 'Verify successful' in text:
                 held.append(name)
         return held
@@ -176,7 +159,7 @@ class Driver:
     def program(self, m5_binary, entry_binary):
         self.safe(m5_binary, entry_binary)
         self.run('identity-only', 'q\n')
-        entry = self.run('entry-image', self.verify_command(entry_binary, True), images=[entry_binary], mismatch_ok=True)
+        entry = self.run('entry-image', self.verify_command(entry_binary, True), images=[entry_binary])
         require('Verify successful' in entry, 'Current firmware differs from the identified entry image; stop before changes')
         text = self.run('program-m5', m3net.image_commands(m5_binary, True), images=[m5_binary])
         require('Verify successful' in text, 'Complete M5 image verification absent')

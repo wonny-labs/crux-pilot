@@ -52,9 +52,9 @@ class Case(unittest.TestCase):
         response = self.responses.pop(0) if self.responses else GOOD
         if isinstance(response, Exception):
             raise response
-        if response is MISMATCH:                       # Commander exits non-zero on a verify mismatch but keeps its log
+        if response is MISMATCH:                       # Commander exits non-zero on a verify mismatch; commander() wraps it
             Path(output).write_text(response)
-            raise HardwareStop('Probe exited unsuccessfully; state uncertain')
+            raise HardwareStop('Probe command or its evidence failed; stop hardware changes')
         Path(output).write_text(response)
         return response
 
@@ -174,20 +174,14 @@ class Program(Case):
         self.assertTrue(self.port.closed)
 
     def test_unknown_entry_image_stops_before_any_change(self):
-        self.responses = [GOOD, MISMATCH]
-        with self.assertRaisesRegex(HardwareStop, 'differs from the identified entry image'), self.driver() as driver:
-            driver.program(self.m5, self.entry)
-        self.assertEqual(len(self.commands), 2)
-        self.assertFalse(any('loadfile' in c for c in self.commands))
-
-    def test_a_mismatch_with_wrong_identity_or_firmware_maintenance_is_not_a_clean_mismatch(self):
-        for text in (MISMATCH.replace('602003106', '1'), MISMATCH + 'Updating firmware: J-Link', GOOD + 'Could not connect'):
-            with self.subTest(text=text[-30:]):
+        for response in (MISMATCH, GOOD):                              # a mismatch as Commander reports it, and a run without the success line
+            with self.subTest(response=response is MISMATCH):
                 self.setUp()
-                self.responses = [GOOD, text]
+                self.responses = [GOOD, response]
                 with self.assertRaises(HardwareStop), self.driver() as driver:
                     driver.program(self.m5, self.entry)
                 self.assertEqual(len(self.commands), 2)
+                self.assertFalse(any('loadfile' in c for c in self.commands))
 
     def test_other_probe_failure_propagates_unchanged(self):
         self.responses = [GOOD, HardwareStop('Probe timeout; state uncertain; no further hardware changes')]
@@ -261,49 +255,25 @@ class Program(Case):
 
 
 class Identify(Case):
-    def test_only_read_only_commands_and_mismatch_is_a_result(self):
-        self.responses = [GOOD, MISMATCH, OK, MISMATCH]
+    def test_only_read_only_commands_and_matches_are_listed(self):
+        self.responses = [GOOD, OK, OK]
         with self.driver('identify') as driver:
-            held = driver.identify([('integrated-normal', self.normal), ('normal', self.entry), ('network', self.m5)])
-        self.assertEqual(held, ['normal'])
+            held = driver.identify([('integrated-normal', self.normal), ('normal', self.entry)])
+        self.assertEqual(held, ['integrated-normal', 'normal'])
         joined = ''.join(self.commands)
         for forbidden in ('loadfile', 'erase', 'r\n', 'g\n', 'w4', 'wreg', 'unlock'):
             self.assertNotIn(forbidden, joined.replace('verifybin', ''), forbidden)
         self.assertTrue(all('IsHalted' in c for c in self.commands[1:]))
         self.assertEqual(self.commands[0], 'q\n')
 
-    def test_a_timeout_or_diagnostic_is_never_a_clean_mismatch(self):
-        timeout = HardwareStop('Probe timeout; state uncertain; no further hardware changes')
-        cases = [('timeout with a Verify failed log', timeout, MISMATCH, True),
-                 ('timeout without a marker file', timeout, MISMATCH, False),
-                 ('other stop with a Verify failed log', HardwareStop('Probe diagnostic; stop hardware changes'), MISMATCH, False),
-                 ('warning next to the mismatch', HardwareStop('Probe exited unsuccessfully; state uncertain'),
-                  MISMATCH + 'WARNING: CPU could not be halted\n', False),
-                 ('cannot next to the mismatch', HardwareStop('Probe exited unsuccessfully; state uncertain'),
-                  MISMATCH + 'Cannot connect to target.\n', False),
-                 ('wrong probe in a mismatch', HardwareStop('Probe exited unsuccessfully; state uncertain'),
-                  MISMATCH.replace('602003106', '1'), False)]
-        for name, error, log, marker in cases:
-            with self.subTest(name):
+    def test_a_mismatch_or_any_fault_ends_the_run_after_that_command(self):
+        for response in (MISMATCH, HardwareStop('Probe timeout; state uncertain')):
+            with self.subTest(response=str(response)[:20]):
                 self.setUp()
-                def probe(commands, output, error=error, log=log, marker=marker):
-                    self.commands.append(commands)
-                    if len(self.commands) == 1:
-                        Path(output).write_text(GOOD)
-                        return GOOD
-                    Path(output).write_text(log)
-                    if marker:
-                        Path(output).with_suffix('.timeout.json').write_text('{}')
-                    raise error
-                with self.assertRaises(HardwareStop), self.driver('identify', probe=probe) as driver:
-                    driver.identify([('a', self.normal), ('b', self.entry)])
+                self.responses = [GOOD, response]
+                with self.assertRaises(HardwareStop), self.driver('identify') as driver:
+                    driver.identify([('a', self.normal), ('b', self.entry), ('c', self.m5)])
                 self.assertEqual(len(self.commands), 2)                  # nothing ran after the failed command
-
-    def test_a_fault_during_identification_still_stops_everything(self):
-        self.responses = [GOOD, HardwareStop('Probe timeout')]
-        with self.assertRaises(HardwareStop), self.driver('identify') as driver:
-            driver.identify([('a', self.normal), ('b', self.entry)])
-        self.assertEqual(len(self.commands), 2)
 
 
 class FakeReceiver:
