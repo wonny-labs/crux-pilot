@@ -525,3 +525,57 @@ if failed != expected or 'pass = 15, fail = 12, skip = 1, total = 28' not in log
 print(f'settings-reliance control (unpatched backend): {len(failed)} of 28 cases fail as expected, '
       '15 pass and 1 skips')
 PY
+
+# Power-cut replay of W4: three keys saved through the Settings File backend, which compacts its
+# file through a temporary and a rename. The images are built from reliance.conf and settings.conf,
+# so they hold the corrected backend that the module stages. The invariants are asserted on
+# red-fix-settings for both profiles, and three controls must fail as required. W4 is a run of its
+# own with its own JSON, so the counts and the controls of the W1 to W3 run above do not move.
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/red-fix-settings" \
+    "$repo/tests/native/emmc_powercut" -- "-DEXTRA_CONF_FILE=reliance.conf;settings.conf" \
+    -DCONFIG_CRUX_MMC_CACHE_FLUSH=y)
+(cd "$workspace" && west build -p always -b native_sim/native/64 -d "$powercut_dir/red-nofix-settings" \
+    "$repo/tests/native/emmc_powercut" -- "-DEXTRA_CONF_FILE=reliance.conf;settings.conf" \
+    -DCONFIG_CRUX_MMC_CACHE_FLUSH=n -DCRUX_EMMC_FLUSH_CONTROL=ON)
+# 8 samples took about 32 s in an emulated amd64 container, most of it the mandatory positions.
+python3 "$repo/tests/native/emmc_powercut/run_replay.py" \
+    --exe-fix "$powercut_dir/red-fix-settings/zephyr/zephyr.exe" \
+    --exe-nofix "$powercut_dir/red-nofix-settings/zephyr/zephyr.exe" \
+    --fs reliance --workload W4 --seed 1 --samples 8 --max-seconds 300 --out "$powercut_dir/replay"
+
+# The counts are exact for seed 1 and 8 samples. They depend on the traces, so on the pinned Zephyr
+# and Reliance Edge, and on the algorithms of Python's random module. A cut that leaves the
+# backend's temporary behind is counted, and is not a failure. A missing active file would be.
+python3 - "$powercut_dir/replay/reliance-w4.json" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+report = json.loads(Path(sys.argv[1]).read_text())
+if report.get('workload') != 'W4' or list(report['observations']) != ['W4']:
+    raise RuntimeError(f'not a W4 report: {sorted(report)}')
+models = {'cached': {'lost', 'prefix', 'reordered', 'torn'}, 'nocache': {'prefix', 'torn'}}
+leftovers = 0
+for profile, expected in models.items():
+    groups = report['observations']['W4'][profile]
+    if (set(groups) != expected or
+            any(group['cases'] == 0 or group['passed'] != group['cases'] for group in groups.values())):
+        raise RuntimeError(f'W4 {profile}: missing or failing cases')
+    leftovers += sum(group.get('cmp_leftover', 0) for group in groups.values())
+    trace = report['traces']['W4'][profile]
+    if trace['metaroot_positions'] == 0 or (profile == 'cached' and trace['commits'] == 0):
+        raise RuntimeError(f'W4 {profile}: no metaroot write was recognised')
+if leftovers == 0:
+    raise RuntimeError('no W4 cut left a temporary behind, so none reached the compaction')
+controls = {control['name']: control['failed_as_required'] for control in report['controls']}
+if controls != {'flush': True, 'early acknowledgement': True, 'damaged image': True}:
+    raise RuntimeError(f'controls: {controls}')
+staged = report['staged_w4']
+if (not staged['as_required'] or
+        sorted(case['damage'] for case in staged['cases']) != ['leftover', 'missing', 'none']):
+    raise RuntimeError(f'staged W4 states: {staged}')
+if report['counts']['cases'] != 2232 or report['failures']:
+    raise RuntimeError(f'counts {report["counts"]}, failures {report["failures"]}')
+print(f'replay reliance W4: {report["counts"]["cases"]} cases, invariants held on red-fix-settings, '
+      f'{leftovers} cases with a temporary left behind, all three controls failed as required')
+PY
