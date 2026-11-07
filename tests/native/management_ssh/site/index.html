@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crux native_sim test image: HTTPS and SSH</title>
+<script src="app.js" defer></script>
+</head>
+<body>
+<h1>Crux native_sim test image</h1>
+<p>One image with HTTPS web management, the command line over SSH and SFTP (Issue #197). This page is a small
+demonstration through the real management API: it is not a product frontend. Test only: the entropy is
+test-only and the certificate's key is public.</p>
+
+<form id="login">
+  <p><label>User <input id="user" value="admin" autocomplete="username"></label></p>
+  <p><label>Password <input id="password" type="password" autocomplete="current-password"></label></p>
+  <p><button type="submit">Log in</button> <span id="login-result"></span></p>
+</form>
+
+<section id="session" hidden>
+  <p>Logged in as <strong id="who"></strong> <button id="logout" type="button">Log out</button></p>
+  <h2>Configuration, demo.display_name</h2>
+  <p><input id="name"> <button id="save" type="button">Save</button> <span id="save-result"></span></p>
+  <h2>Status</h2>
+  <p><button id="refresh" type="button">Refresh</button></p>
+  <table id="status" border="1"><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody></tbody></table>
+</section>
+</body>
+</html>
