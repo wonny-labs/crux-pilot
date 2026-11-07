@@ -71,8 +71,8 @@ touches no medium. Do not flash an image with it set until the physical gate is 
   nothing selects FatFs for an MMC disk. A project that mounts FatFs on one still needs the flush option, and its
   behaviour on the simulator is covered by the FatFs power-cut replay only, not by the composition.
 - The sample's `prj.conf` names `CONFIG_DISK_DRIVER_MMC=y` and `CONFIG_IMX_USDHC=y`. The flush option depends on the MMC
-  stack that the driver selects, so without them Kconfig would drop the option, and an explicit assignment turns that into
-  an error. `scripts/test-file-emmc-compile.sh` also reads the generated `.config`.
+  stack that the driver selects, so without them Kconfig would drop the option with only a warning. The gate is
+  `scripts/test-file-emmc-compile.sh`, which reads the generated `.config` and fails when an option did not take.
 - **The link-only overlay.** `samples/storage_emmc/boards/mimxrt1060_evk_mimxrt1062_qspi_B.overlay` removes the
   card-detect GPIO and the `sdmmc` child of `usdhc1` and adds a four-bit `zephyr,mmc-disk` named `MMC`. It exists to
   link only, and it does not describe any board. Zephyr applies it to every build of this sample for this board, so an

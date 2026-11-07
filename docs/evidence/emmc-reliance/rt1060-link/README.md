@@ -115,7 +115,7 @@ the FatFs side, from a different build, so those do not compare directly.
 `CRUX_FILE_EMMC_SKIP_BUILD=1` runs the script's checks on an existing output directory. Each row changed one thing, on a
 copy of the good output (the copy's `compile_commands.json` was repointed at the copy) or in a guard, ran the script, and
 required a non-zero exit and the stated message. Every mutant was removed or reverted afterwards. The harness is not kept.
-All 23 were caught.
+All 22 were caught (the three `mmc.json` hash mutants are one table row).
 
 | Mutant | Message that the script gave |
 | --- | --- |
@@ -151,4 +151,6 @@ image's map and `compile_commands.json` do not match the CI evidence step's `bui
 step is unchanged. `scripts/test-storage-emmc.sh` already writes `twister-*` directories for `native_sim` builds that link
 the same Reliance Edge source, so the existing step would upload their `zephyr.map` and `compile_commands.json` once the
 script runs in CI. It uploads no `zephyr.elf` or `zephyr.bin` from those directories: the named image paths of the upload
-step do not cover them. A reviewer decides whether maps of images that link GPLv2 source should be collected.
+step do not cover them. The step's direct globs (`build/zephyr/*/compile_commands.json`, `*/CMakeCache.txt`,
+`*/zephyr/.config`) also match the script's direct build directories (`emmc-restart*`, `reliance-*`,
+`file-emmc-noflush` and `file-emmc-control`), again maps and configuration files and no image. A reviewer decides whether maps of images that link GPLv2 source should be collected.
