@@ -20,8 +20,9 @@ enum reliance_format_status reliance_format_once(void)
     if (disk_access_init(EMMC_STORAGE_DISK) != 0) {
         return RELIANCE_FORMAT_NO_MEDIA;
     }
-    /* Nothing is formatted or created before this check. A mount never formats, so it fails on a
-     * card without a volume and succeeds on one that has a volume. */
+    /* Nothing is formatted or created before this check. A mount never formats. It fails on a card
+     * without a volume, and it can also fail on a card that holds one (an I/O error, damage, or a
+     * different sector range in this build); that card is formatted below. */
     if (fs_mount(&mount) == 0) {
         (void)fs_unmount(&mount);
         return RELIANCE_FORMAT_VOLUME_PRESENT;

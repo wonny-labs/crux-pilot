@@ -17,6 +17,7 @@ enum reliance_format_status {
 /* Formats the card once, and only when no Reliance Edge volume mounts on it. The sequence is: disk
  * init, a mount attempt (success: unmount and return VOLUME_PRESENT), format, mount, create
  * /MMC:/files and /MMC:/settings, unmount. The format is reached only after the mount attempt has
- * failed, so a card that already holds a volume is never formatted. The volume stays unmounted on
- * return. */
+ * failed. A card on which a volume mounts is never formatted. A volume that exists but fails to
+ * mount (an I/O error, damage, or a different sector range in the build) is formatted, so use only
+ * a card that the test owns. The volume is unmounted on return unless an unmount failed. */
 enum reliance_format_status reliance_format_once(void);

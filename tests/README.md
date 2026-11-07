@@ -515,7 +515,8 @@ and `/MMC:/settings`. For each of the five scenarios the script requires the mic
 in `.config`, `CONFIG_SDHC_BUFFER_ALIGNMENT=32` and no MMC driver. The formatter is in the `.format` image only:
 `CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT=y` and `red_format` are in that image and in no other. The default
 image must link none of `emmc_storage_start`, `sd_interrupt_append`, `sd_replace_generation` and
-`reliance_format_once`, so it provably touches no card; each other image links what its scenario needs and none of another scenario's test or format code.
+`reliance_format_once`, so it contains no code that mounts or writes the card (the disk drivers still initialise at boot).
+The script also checks that the other images link none of those entry points that belong to another scenario (and the format image no `emmc_storage_start`).
 No image may load above `0x60600000`, the end of the flash range that the Stage A procedure backs up. The ELF
 SHA-256 of each image goes to the log only. Nothing is programmed or run, and no image is kept or uploaded.
 

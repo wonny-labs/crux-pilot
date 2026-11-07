@@ -43,9 +43,10 @@ config SAMPLE_RELIANCE_SD_FORMAT
 	help
 	  Off by default. When on, the image is the format image: it has its own main, compiles the
 	  Reliance Edge formatter and no other scenario's source, tries to mount first, and formats the
-	  card and creates /MMC:/files and /MMC:/settings only if that mount failed. A card that
-	  already holds a volume is left as it is. It excludes the other three options. This WRITES to
-	  the card; physical use needs approval for the current task.
+	  card and creates /MMC:/files and /MMC:/settings only if that mount failed. A card on which a
+	  volume mounts is left as it is, but a volume that fails to mount (an I/O error, damage) is
+	  formatted, so use only a card that the test owns. It excludes the other three options. This
+	  WRITES to the card; physical use needs approval for the current task.
 
 # The reused main.c files of samples/storage_sd_interrupt and samples/storage_sd_replace test these
 # names. They follow the two options above and are not set on their own.
