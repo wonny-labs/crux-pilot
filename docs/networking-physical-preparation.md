@@ -282,3 +282,115 @@ Safety gates must remain valid at each operation. Reset-based recovery requires
 new approval and cannot satisfy phase-8 recovery without reset. Replay PASS alone
 cannot establish physical acceptance. Issue #28 remains Open; this preparation
 performs no hardware operation, merge or Issue closure.
+
+## Stage 1 bench identity and reduced one-boot run (software only)
+
+Status: software preparation. This section authorises no physical operation. It records
+two changes to the M5 tooling that the first attempt to use it on the current bench
+required, and what the guard check expects. Nothing here was run on hardware.
+
+### Why the runner needed a change
+
+The prepared runner pinned the accepted M3 bench: interface `en5`, adapter MAC
+`00:0a:cd:41:89:cc`, UART `/dev/cu.usbmodem11302`. The bench was rewired. A read-only
+host inventory on 2026-11-07 (`uhubctl` listing, `system_profiler`, `ifconfig`,
+`networksetup`, `ls /dev/cu.*`; no probe connection, no UART open, no power change)
+found the following, so every identity gate failed closed.
+
+| Identity | Accepted M3 bench | Current bench (inventory 2026-11-07) | Owner approval needed |
+| --- | --- | --- | --- |
+| Host interface | `en5` | `en13` | yes, before first use |
+| Adapter MAC | `00:0a:cd:41:89:cc` | `00:24:9b:6e:f7:7f` | yes |
+| Adapter USB serial | not recorded | `0000249B6EF77F` (informational, hub `0-2.1` port 3) | yes |
+| macOS service name | `AX88179` | `AX88179 3` (static `192.168.77.1/255.255.255.0`, no router) | yes |
+| UART device | `/dev/cu.usbmodem11302` | `/dev/cu.usbmodem11402` | yes |
+| DAPLink USB serial | `0229…9905` | unchanged | no |
+| J-Link probe serial | `602003106` | unchanged | no |
+| Board, image base, addresses, ports | EVKB rev B, `0x60000000`, `192.168.77.2/24`, TCP 42420, UDP 42421 | unchanged | no |
+
+The service name is a label that macOS can renumber. Duplicate stale services named
+`AX88179` and `AX88179 2` also exist. The service check therefore requires the adapter
+MAC in the `networksetup -getinfo` output as well, and now also requires
+`Manual Configuration`; a service with another MAC, DHCP or a router stops the run.
+
+### What changed
+
+| Change | Where | Effect on gates |
+| --- | --- | --- |
+| One reviewed identity block | `tests/target/m5_bench.py`, read by the runner, adapter, lease and series replay | None removed. Plan, approval and the lease bind `uart_device` and the service name in addition to interface and MAC. |
+| Selectors on shared M3 helpers | `capture_m3_network.guard_check(..., uart=)` and `check_route(..., interface=, mac=)` | Defaults stay the accepted M3 values, so the M3 runners behave exactly as before. The M5 lease passes the reviewed identity explicitly. |
+| Reduced run `--through-phase N` (2 to 6) | `capture_m5_network.py` `plan`, `capture`, `Supervisor` | New, separately labelled plan. The full plan is byte for byte unchanged. |
+
+### Reduced run
+
+A reduced run is one fresh boot, phases 1 to `N`, with no cable operation. It is
+**non-qualifying**: it cannot satisfy the three-boot M5 series, the link event criteria,
+the recovery criterion or the final idle baseline.
+
+```mermaid
+flowchart LR
+    A[program_and_start<br/>separately approved] --> B[preflight identity + current BIN verify]
+    B --> C[one fresh reset]
+    C --> D[phase 1 idle baseline]
+    D --> E[phase 2 TCP and UDP echo]
+    E --> F[phases 3 to 6<br/>only if N is 6]
+    F --> G[READY for phase N+1<br/>run finished]
+    G --> H[restore and verify accepted normal image]
+    X[phase 7 link loss, 8 recovery, 9 final idle] -. never run .-> G
+```
+
+| Property | Reduced run | Full series |
+| --- | --- | --- |
+| Boots / nonces | 1 / exactly 1 | 3 / 3 distinct |
+| Operations bound by the approval | 9, listed exactly: `establish_usb_mount_guard`, `acquire_exclusive_probe_uart_and_nic`, `verify_entry_image`, `program_and_start`, `qualification_preflight_1`, `qualification_reset_1`, `restore_identified_normal_image`, `verify_normal_image`, `normal_acceptance_capture` | 19 |
+| Cable disconnect / reconnect | none; any operator receipt aborts the run | six, with matching boot and phase |
+| Finished when | the READY for phase `N+1` is received | the READY for phase 10 is received |
+| Per-phase checks | the same functional, latency, liveness and resource oracle, applied online at each DONE | same, plus replay |
+| Plan status / result status | `SOFTWARE_PREPARED_REDUCED_NON_QUALIFYING_…` / `REDUCED_BOOT_PROTOCOL_COMPLETE_NON_QUALIFYING` with `qualifying=false`, `satisfies_m5_series=false` | unchanged |
+| Approval | binds the `reduced` block and the nine operations; a 19-operation approval, a reduced approval on the full plan, extra or missing operations, and a changed `reduced` block are all refused | unchanged |
+| `replay` | refuses any bundle with a `reduced` marker | unchanged |
+| Session record | `reduced` marker; boot 1 only; a reduced session never starts or continues a full series | unchanged |
+
+What a reduced run can show: the idle baseline and the TCP and connected-UDP echo
+phases on the real board, with exact raw UART bytes retained (`uart-replay` works on its
+boot directory). What it cannot show: link loss and recovery, three-boot repeatability,
+the final idle baseline, or anything about the management stack.
+
+### Guard session: exactly what the check expects
+
+The capture needs a guard that keeps macOS from mounting the DAPLink virtual drive.
+The repository checks a guard but contains no program that creates one; the owner has
+not yet named the program used for the M3 `guard11`. The check (`capture_m3_network._guard_check`)
+reads a JSON file given as `--guard-session` (its path is not fixed) and requires:
+
+| Field | Required content |
+| --- | --- |
+| `clock` | `clock_gettime(CLOCK_MONOTONIC)` |
+| `serial` | `02290000325182c300000000000000000000000097969905` |
+| `disk` | the DAPLink drive device, `/dev/diskN`; the same `diskN` must be the only disk below the DAPLink USB device in `ioreg` |
+| `boot_session_uuid` (preferred) or `boot_identity` | equal to `sysctl -n kern.bootsessionuuid` or `kern.boottime` now, so a guard from before a reboot is refused |
+| `executable`, `sha256` | file hash must still match at every check |
+| `deadline` | CLOCK_MONOTONIC seconds; must exceed now plus the reserve the caller asks for (90 s per M5 lease operation; the preflight additionally needs 120 s of whole-series budget; the M3 runners ask for more) |
+| `pid`, `process_identity` | the process must be alive and its `ps -p <pid> -o pid=,comm=,lstart=` output must equal `process_identity` exactly |
+| `log` | a file that contains `DENIED exact_DAPLink_USB_serial=<serial> disk=<diskN>` and never the text `STOPPED` |
+
+Also checked on every operation: the DAPLink USB device (vendor `0x0d28`, product
+`0x0204`, that serial) exposes exactly one `IOCalloutDevice`, equal to the reviewed UART
+device, and no partition of `disk` appears in `mount`. The code does **not** verify that
+the guard process is owned by root or that it really vetoes a mount; that remains the
+owner's procedure. A missing, expired, rebooted or unmatched guard stops every
+operation before any owner query, probe command or UART write.
+
+### Decisions and open points for review
+
+| # | Decision or finding | Reason |
+| --- | --- | --- |
+| 1 | Identity values come only from the Phase A inventory and are listed above for approval | The owner required it; no value was guessed |
+| 2 | M3 helpers keep their defaults | Their accepted evidence and tests stay valid |
+| 3 | Reduced mode is limited to phases 2 to 6, one boot | Phases 7 to 9 need the cable and cannot be cut short |
+| 4 | Reduced mode has no offline replay of its own | The full replay needs three boots; per-phase oracles run online and the raw bytes are retained |
+| 5 | No programming or restoration driver exists for an M5 image | The runner never programs by design; the accepted M3 loader sequence (`loadfile`, `verifybin`, `r`, `g`) is wired only into the M3 network runner. Needs a decision before the plan can be executed |
+| 6 | Full plan has 19 operations, not 28 | Counting error in an earlier planning note; the code and tests use 19 |
+
+Not verified: everything here is host-side. No hardware, no guard, no real `ifconfig`,
+`networksetup` or `route` output of this bench was run through the checks.

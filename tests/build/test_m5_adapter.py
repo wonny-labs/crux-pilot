@@ -132,7 +132,7 @@ class Failures(unittest.TestCase):
 class Carrier(unittest.TestCase):
     def test_exact_carrier_status_only(self):
         from unittest.mock import patch
-        prefix='ether 00:0a:cd:41:89:cc\ninet 192.168.77.1 netmask 0xffffff00\n'
+        prefix='ether 00:24:9b:6e:f7:7f\ninet 192.168.77.1 netmask 0xffffff00\n'
         for status,event in [('status: active\n','host_up'),('status: inactive\n','host_down'),('',None),('status: unknown\n',None),('status: active\nstatus: inactive\n',None)]:
             with self.subTest(status=status),tempfile.TemporaryDirectory() as directory:
                 class Process:
@@ -147,11 +147,11 @@ class Carrier(unittest.TestCase):
 
 class DirectRoute(unittest.TestCase):
     # Synthetic examples of Apple route.c print_getmsg output; never query a NIC.
-    NETWORK='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,DONE,CLONING,STATIC,IFSCOPE>\n'
-    HOST='   route to: 192.168.77.2\ndestination: 192.168.77.2\n  interface: en5\n      flags: <UP,HOST,DONE,LLINFO,WASCLONED,IFSCOPE,IFREF>\n'
+    NETWORK='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en13\n      flags: <UP,DONE,CLONING,STATIC,IFSCOPE>\n'
+    HOST='   route to: 192.168.77.2\ndestination: 192.168.77.2\n  interface: en13\n      flags: <UP,HOST,DONE,LLINFO,WASCLONED,IFSCOPE,IFREF>\n'
     def probe(self,text,source='192.168.77.1'):
         from unittest.mock import patch
-        outputs=[f'ether 00:0a:cd:41:89:cc\ninet {source} netmask 0xffffff00\nstatus: active\n',text]
+        outputs=[f'ether 00:24:9b:6e:f7:7f\ninet {source} netmask 0xffffff00\nstatus: active\n',text]
         class Process:
             def poll(self):return 0
             def wait(self,timeout):return 0
@@ -187,8 +187,8 @@ class DirectRoute(unittest.TestCase):
                self.NETWORK.replace('192.168.77.0','0.0.0.0'),
                self.NETWORK.replace('255.255.255.0','255.255.0.0'),
                self.NETWORK.replace('route to: 192.168.77.2','route to: 192.168.77.3'),
-               self.NETWORK.replace('interface: en5','interface: en0'),
-               'interface: en5\n',self.NETWORK+'interface: en5\n',
+               self.NETWORK.replace('interface: en13','interface: en0'),
+               'interface: en13\n',self.NETWORK+'interface: en13\n',
                self.NETWORK.replace('<UP,','<'),
                self.HOST.replace('192.168.77.2\n  interface','192.168.77.3\n  interface')]
         for text in cases:
@@ -235,7 +235,7 @@ class LeaseCleanup(unittest.TestCase):
             lease=adapter.M3UARTLease({},safety);lease.verify=lambda *_:None
             serial=ModuleType('serial');serial.__path__=[];serial.Serial=lambda *_,**__:port
             tools=ModuleType('serial.tools');tools.__path__=[]
-            ports=ModuleType('serial.tools.list_ports');ports.comports=lambda:[SimpleNamespace(device='/dev/cu.usbmodem11302',serial_number=runner.UART_USB,vid=0x0d28,pid=0x0204)]
+            ports=ModuleType('serial.tools.list_ports');ports.comports=lambda:[SimpleNamespace(device='/dev/cu.usbmodem11402',serial_number=runner.UART_USB,vid=0x0d28,pid=0x0204)]
             serial.tools=tools;tools.list_ports=ports
             p,a,_,_,_=Adapter.make(self,root)
             with patch.dict(sys.modules,{'serial':serial,'serial.tools':tools,'serial.tools.list_ports':ports}),patch.object(fcntl,'ioctl',side_effect=OSError('Software injected ioctl failure')):

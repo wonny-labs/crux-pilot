@@ -14,10 +14,17 @@ import re
 import m3_uart
 import m5_network_oracle as oracle
 import m5_series
+from m5_bench import BENCH
 
-PROBE='602003106'
-UART_USB='02290000325182c300000000000000000000000097969905'
-NIC=dict(interface='en5',model='AX88179',mac='00:0a:cd:41:89:cc',host='192.168.77.1',target='192.168.77.2',prefix=24)
+PROBE=BENCH['probe_serial']
+UART_USB=BENCH['uart_usb_serial']
+UART_DEVICE=BENCH['uart']
+NIC=dict(interface=BENCH['nic_interface'],model=BENCH['nic_model'],mac=BENCH['nic_mac'],service=BENCH['service'],host=BENCH['host'],target=BENCH['target'],prefix=BENCH['prefix'])
+REDUCED_OPERATIONS=['establish_usb_mount_guard','acquire_exclusive_probe_uart_and_nic','verify_entry_image','program_and_start','qualification_preflight_1','qualification_reset_1','restore_identified_normal_image','verify_normal_image','normal_acceptance_capture']
+
+
+def valid_through_phase(value):
+    return type(value) is int and 2<=value<=6
 
 
 def sha(path):
@@ -39,9 +46,19 @@ def command(nonce,sequence,count,ticket):
     return ' '.join(fields+[str(ticket)])+'\n'
 
 
-def plan(manifest_sha256,nonces,entry_manifest_sha256=None,recovery_manifest_sha256=None):
+def plan(manifest_sha256,nonces,entry_manifest_sha256=None,recovery_manifest_sha256=None,through_phase=None):
+    """Full three-boot plan, or with through_phase 2..6 the reduced one-boot NON-QUALIFYING plan.
+
+    The reduced plan has its own exact operation list (one boot, no cable operation) and
+    commands only for phases 1..through_phase. It never satisfies the M5 series.
+    """
     digest(manifest_sha256)
-    oracle.require(len(nonces)==3 and len(set(nonces))==3 and all(type(n) is int and 0<n<=0xffffffff for n in nonces),'Three distinct nonzero uint32 boot nonces required')
+    reduced=through_phase is not None
+    if reduced:
+        oracle.require(valid_through_phase(through_phase),'Reduced run must stop after phase 2 to 6')
+        oracle.require(len(nonces)==1 and type(nonces[0]) is int and 0<nonces[0]<=0xffffffff,'Exactly one nonzero uint32 boot nonce required for a reduced run')
+    else:
+        oracle.require(len(nonces)==3 and len(set(nonces))==3 and all(type(n) is int and 0<n<=0xffffffff for n in nonces),'Three distinct nonzero uint32 boot nonces required')
     for value in (entry_manifest_sha256,recovery_manifest_sha256):
         if value is not None:digest(value)
     operations=['establish_usb_mount_guard','acquire_exclusive_probe_uart_and_nic','verify_entry_image','program_and_start']
@@ -49,15 +66,18 @@ def plan(manifest_sha256,nonces,entry_manifest_sha256=None,recovery_manifest_sha
     operations += ['qualification_reset_'+str(n) for n in range(1,4)]
     for n in range(1,4):operations+=['boot_'+str(n)+'_cable_disconnect','boot_'+str(n)+'_cable_reconnect']
     operations+=['restore_identified_normal_image','verify_normal_image','normal_acceptance_capture']
+    phases=m5_series.PHASES
+    if reduced:
+        operations=list(REDUCED_OPERATIONS);phases=m5_series.PHASES[:through_phase]
     boots=[]
     for index,nonce in enumerate(nonces,1):
         commands=[]
-        for sequence,count,mode in m5_series.PHASES:
+        for sequence,count,mode in phases:
             action='I' if count==0 else 'L' if sequence==7 else 'P'
             template=' '.join([action,str(nonce),str(sequence)]+([str(count)] if action=='P' else [])+['<fresh READY ticket>'])
             commands.append(dict(sequence=sequence,count=count,peer_mode=mode,template=template,peer_command=None if not count else ['python3','tests/target/m5_network_peer.py','--token',str(nonce),'--phase',str(sequence),'--count',str(count),'--mode',mode,'--output','boot-'+str(index)+'-phase-'+str(sequence)+'-peer.jsonl']))
         boots.append(dict(nonce=nonce,reset_operation='qualification_reset_'+str(index),arm_command='A '+str(nonce)+'\n',commands=commands))
-    return dict(schema=1,status='SOFTWARE_PREPARED_HARDWARE_NOT_AUTHORIZED',manifest_sha256=manifest_sha256,entry_manifest_sha256=entry_manifest_sha256,recovery_manifest_sha256=recovery_manifest_sha256,runner_sha256=sha(__file__),adapter_sha256=sha(Path(__file__).with_name('m5_capture_adapter.py')),probe_serial=PROBE,uart_usb_serial=UART_USB,nic=dict(NIC),nonces=list(nonces),operations=operations,boots=boots,
+    prepared=dict(schema=1,status='SOFTWARE_PREPARED_HARDWARE_NOT_AUTHORIZED',manifest_sha256=manifest_sha256,entry_manifest_sha256=entry_manifest_sha256,recovery_manifest_sha256=recovery_manifest_sha256,runner_sha256=sha(__file__),adapter_sha256=sha(Path(__file__).with_name('m5_capture_adapter.py')),probe_serial=PROBE,uart_usb_serial=UART_USB,uart_device=UART_DEVICE,nic=dict(NIC),nonces=list(nonces),operations=operations,boots=boots,
         procedure=[
             'Before any device operation: operator verifies written approval of exact operation, manifest, runner, entry and normal recovery image. Read approved M3 procedure; retain pinned J-Link executable/DLL hashes, boot UUID, exclusive owner PID and fresh root USB mount guard. Unknown state: STOP with no automatic reset or retry.',
             'Use accepted M3 exact UART identity, ownership/inventory, isolated NIC identity/static route, no writable storage and QSPI geometry. Revalidate mount guard and exclusive ownership immediately before each device operation. No unapproved firmware maintenance/update.',
@@ -68,17 +88,24 @@ def plan(manifest_sha256,nonces,entry_manifest_sha256=None,recovery_manifest_sha
             'Monitor target per-stream clocks, BEGIN/END receipt liveness10s, command150s and series1800s absolute caps; operator wait90s clamped to remaining caps. Functional budget2000ms, whole-call observation above2500ms REVIEW_REQUIRED. Any liveness expiry is ABORT/INCONCLUSIVE; target may still execute; no cancellation/reset is implied.',
             'On completion or functional failure: perform only the separately approved identified normal image restore/verify and accepted normal baseline capture while safety state remains known. On unknown transport, ownership or evidence state stop; restoration/reset/retry is not automatic. Retain all operation and safety evidence for independent review.',
         ],evidence=dict(series='schema1 source/clock/boots; each boot reset(operation,monotonic), nonce, uart_directory, writes_file, controls_file, peer_stops_file and peer_files keyed by phase; relative retained raw artifact paths',raw='Per boot: uart-rx.bin + receive.jsonl + poll.jsonl, peer JSONL per phase; operator controls JSONL; safety/program/verify/restore logs retained separately',control_events=['cable_disconnect_cue','cable_disconnect_receipt','host_down','cable_connect_receipt','host_up','route']))
+    if reduced:
+        prepared['status']='SOFTWARE_PREPARED_REDUCED_NON_QUALIFYING_HARDWARE_NOT_AUTHORIZED'
+        prepared['reduced']=dict(through_phase=through_phase,qualifying=False,satisfies_m5_series=False,boots=1,excluded_phases=list(range(through_phase+1,10)),cable_operations=False)
+        full=prepared['procedure']
+        prepared['procedure']=['REDUCED NON-QUALIFYING run: one fresh boot, phases 1 to '+str(through_phase)+' only, no cable operation and no phase 7 to 9. It cannot satisfy the M5 series, the three-boot criterion or the link event criteria; its result and evidence say so. Every other step below applies unchanged.']+[full[i] for i in (0,1,2,3,6,7)]
+        prepared['evidence']=dict(series='reduced non-qualifying schema1: one boot, phases 1..'+str(through_phase)+'; relative retained raw artifact paths; replay_bundle refuses it',raw=prepared['evidence']['raw'],control_events=[])
+    return prepared
 
 
 def approval_template(prepared):
-    names=('manifest_sha256','entry_manifest_sha256','recovery_manifest_sha256','runner_sha256','adapter_sha256','probe_serial','uart_usb_serial','nic','nonces')
+    names=('manifest_sha256','entry_manifest_sha256','recovery_manifest_sha256','runner_sha256','adapter_sha256','probe_serial','uart_usb_serial','uart_device','nic','nonces')+(('reduced',) if 'reduced' in prepared else ())
     return dict(schema=1,authorization='NOT_AUTHORIZED',plan_sha256=hashlib.sha256(json.dumps(prepared,sort_keys=True,separators=(',',':')).encode()).hexdigest(),**{name:copy.deepcopy(prepared[name]) for name in names},operations={name:False for name in prepared['operations']})
 
 
 def validate_approval(approval,prepared):
     if set(prepared)=={'plan','approval_template'}:prepared=prepared['plan']
-    try:canonical=plan(prepared['manifest_sha256'],prepared['nonces'],prepared['entry_manifest_sha256'],prepared['recovery_manifest_sha256'])
-    except (KeyError,TypeError) as error:raise ValueError('Malformed preparation plan') from error
+    try:canonical=plan(prepared['manifest_sha256'],prepared['nonces'],prepared['entry_manifest_sha256'],prepared['recovery_manifest_sha256'],through_phase=prepared['reduced'].get('through_phase') if 'reduced' in prepared else None)
+    except (KeyError,TypeError,AttributeError) as error:raise ValueError('Malformed preparation plan') from error
     oracle.require(prepared==canonical,'Preparation differs from complete canonical safety plan')
     expected=approval_template(canonical)
     oracle.require(set(approval)==set(expected),'Missing/extra approval fields')
@@ -142,6 +169,7 @@ def replay_bundle(index_path,source,abi):
     """
     index_path=Path(index_path);base=index_path.resolve().parent
     index=json.loads(index_path.read_text());boots=[]
+    oracle.require('reduced' not in index,'Reduced non-qualifying evidence cannot satisfy the M5 series')
     def path(name):
         candidate=(base/name).resolve()
         oracle.require(candidate.is_relative_to(base),'Evidence path escapes bundle')
@@ -176,8 +204,10 @@ class Supervisor:
     not authorise any physical operation. tick() must run at least every250ms;
     adapter failure/late evidence aborts rather than cancels target execution.
     """
-    def __init__(self,nonce,source,started,ABI,series_deadline=None):
+    def __init__(self,nonce,source,started,ABI,series_deadline=None,through_phase=None):
         oracle.require(type(nonce) is int and 0<nonce<=0xffffffff,'Invalid nonce')
+        oracle.require(through_phase is None or valid_through_phase(through_phase),'Reduced run must stop after phase 2 to 6')
+        self.through_phase=through_phase;self.last_sequence=10 if through_phase is None else through_phase+1
         oracle.require(re.fullmatch('[0-9a-f]{12}',source) is not None,'Invalid source')
         self.nonce=nonce;self.source=source;self.abi=ABI;self.deadline=started+1800 if series_deadline is None else min(started+1800,series_deadline)
         self.last=started;self.wait=started+90;self.state='boot';self.sequence=1
@@ -212,7 +242,7 @@ class Supervisor:
             oracle.require(event=='ARM','Expected ARM');self.state='ready';return
         if event=='READY':
             oracle.require(self.state=='ready' and row['seq']==self.sequence and row['ticket']>0 and row['ticket'] not in self.used,'Missing completion/stale READY')
-            self.ticket=row['ticket'];self.state='finished' if self.sequence==10 else 'prepared';self.wait=min(self.deadline,now+90);return
+            self.ticket=row['ticket'];self.state='finished' if self.sequence==self.last_sequence else 'prepared';self.wait=min(self.deadline,now+90);return
         oracle.require(self.state=='running' and row['seq']==self.sequence,'Unsolicited/misordered target traffic')
         self.watch.feed(event,now if received is None else received);self.rows.append(row)
         if event=='DONE':
@@ -288,8 +318,8 @@ class Supervisor:
         if event=='cable_connect_receipt':oracle.require(self.sequence==8 and self.state=='prepared' and self.stopped_phase==7 and {'host_down','cable_disconnect_receipt'}<=seen,'Reconnect requires complete L7 DONE/READY8 and independent loss witnesses')
         if event=='host_up':oracle.require('cable_connect_receipt' in seen,'UP before reconnect')
         if event=='route':oracle.require('host_up' in seen,'Route before carrier UP')
-        if row['event'] in ('host_down','host_up','route'):oracle.require(row.get('interface')=='en5','Wrong dedicated NIC')
-        if row['event']=='route':oracle.require((row.get('source'),row.get('destination'))==('192.168.77.1','192.168.77.2'),'Wrong route')
+        if row['event'] in ('host_down','host_up','route'):oracle.require(row.get('interface')==BENCH['nic_interface'],'Wrong dedicated NIC')
+        if row['event']=='route':oracle.require((row.get('source'),row.get('destination'))==(BENCH['host'],BENCH['target']),'Wrong route')
         self.controls.append(row)
         if event=='cable_connect_receipt':self.wait=min(self.wait,row['monotonic']+15)
 
@@ -359,16 +389,24 @@ def run_boot(supervisor,adapter,clock):
             primary.evidence_failure=repr(cleanup)
 
 
+def boot_result(supervisor,reduced):
+    """Result record of one finished boot; a reduced run is labelled non-qualifying in the record itself."""
+    if reduced is None:return dict(status='BOOT_PROTOCOL_COMPLETE_PENDING_RAW_REPLAY',nonce=supervisor.nonce)
+    return dict(status='REDUCED_BOOT_PROTOCOL_COMPLETE_NON_QUALIFYING',nonce=supervisor.nonce,qualifying=False,satisfies_m5_series=False,through_phase=reduced['through_phase'],
+                note='Reduced run: not an M5 series boot; link event, recovery and final idle phases were not run')
+
+
 def series_session(directory,prepared,boot,now,host_boot=None):
     """Persist one nonrenewable 1800s series budget across three capture CLIs."""
-    path=Path(directory)/'m5-series-session.json'
+    path=Path(directory)/'m5-series-session.json';reduced=prepared.get('reduced')
+    oracle.require(reduced is None or boot==1,'Reduced non-qualifying run has only boot 1')
     if not path.exists():
         oracle.require(boot==1,'Fresh series must start at boot1')
         oracle.require(isinstance(host_boot,str) and host_boot.strip(),'Current guard host boot identity required')
-        record=dict(schema=1,host_boot=host_boot,clock=m5_series.CLOCK,manifest_sha256=prepared['manifest_sha256'],nonces=prepared['nonces'],started=now,completed=[],status='RUNNING')
+        record=dict(schema=1,host_boot=host_boot,clock=m5_series.CLOCK,manifest_sha256=prepared['manifest_sha256'],nonces=prepared['nonces'],started=now,completed=[],status='RUNNING',**(dict(reduced=reduced) if reduced else {}))
         with path.open('x') as output:json.dump(record,output)
     else:record=json.loads(path.read_text())
-    oracle.require(record['schema']==1 and record.get('host_boot')==host_boot and record['clock']==m5_series.CLOCK and record['manifest_sha256']==prepared['manifest_sha256'] and record['nonces']==prepared['nonces'] and record['status']=='RUNNING','Stale/aborted/foreign capture session')
+    oracle.require(record['schema']==1 and record.get('host_boot')==host_boot and record['clock']==m5_series.CLOCK and record['manifest_sha256']==prepared['manifest_sha256'] and record['nonces']==prepared['nonces'] and record.get('reduced')==reduced and record['status']=='RUNNING','Stale/aborted/foreign capture session')
     oracle.require(record['completed']==list(range(1,boot)) and record['started']<=now<record['started']+1800,'Boot order/whole-series absolute deadline')
     return path,record
 
@@ -384,6 +422,9 @@ def capture_approved_boot(args):
     prepared=json.loads(Path(args.plan).read_text())
     if 'plan' in prepared:prepared=prepared['plan']
     approval=json.loads(Path(args.approval).read_text());validate_approval(approval,prepared)
+    reduced=prepared.get('reduced');flag=getattr(args,'through_phase',None)
+    oracle.require((reduced is None and flag is None) or (reduced is not None and flag==reduced['through_phase']),'--through-phase must match the approved plan exactly')
+    oracle.require(reduced is None or args.boot==1,'Reduced non-qualifying run has only boot 1')
     oracle.require(prepared['runner_sha256']==sha(__file__) and prepared['adapter_sha256']==sha(Path(__file__).with_name('m5_capture_adapter.py')),'Runner/adapter changed since approval')
     oracle.require(sha(args.entry_manifest)==prepared['entry_manifest_sha256'] and sha(args.recovery_manifest)==prepared['recovery_manifest_sha256'],'Entry/recovery manifests differ from approval')
     from prepare_m5_network import verify
@@ -409,13 +450,16 @@ def capture_approved_boot(args):
     adapter=CaptureAdapter(prepared,approval,args.boot,evidence,lease,manifest_check=reverify)
     primary=None
     try:
+        if reduced:adapter.emit('reduced.jsonl',dict(reduced,note='NON-QUALIFYING reduced run; cannot satisfy the M5 series'))
         adapter.perform_approved_reset(deadline=session['started']+1800)
-        supervisor=Supervisor(prepared['nonces'][args.boot-1],image['source']['git_commit'][:12],m3_clock.monotonic(),image['errno_values'],series_deadline=session['started']+1800)
-        result=run_boot(supervisor,adapter,m3_clock.monotonic)
+        supervisor=Supervisor(prepared['nonces'][args.boot-1],image['source']['git_commit'][:12],m3_clock.monotonic(),image['errno_values'],series_deadline=session['started']+1800,through_phase=reduced['through_phase'] if reduced else None)
+        run_boot(supervisor,adapter,m3_clock.monotonic)
+        result=boot_result(supervisor,reduced)
         adapter.emit('result.jsonl',result)
         adapter.close()
         session['completed'].append(args.boot)
-        if args.boot==3:session['status']='PROTOCOL_COMPLETE_PENDING_RAW_REPLAY'
+        if reduced:session['status']='REDUCED_COMPLETE_NON_QUALIFYING'
+        elif args.boot==3:session['status']='PROTOCOL_COMPLETE_PENDING_RAW_REPLAY'
         session_path.write_text(json.dumps(session,indent=2)+'\n')
         return result
     except BaseException as error:
@@ -433,7 +477,7 @@ def capture_approved_boot(args):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     sub=parser.add_subparsers(dest='mode',required=True)
-    p=sub.add_parser('plan');p.add_argument('--manifest',required=True);p.add_argument('--entry-manifest',required=True);p.add_argument('--recovery-manifest',required=True);p.add_argument('--nonces',type=int,nargs=3,required=True)
+    p=sub.add_parser('plan');p.add_argument('--manifest',required=True);p.add_argument('--entry-manifest',required=True);p.add_argument('--recovery-manifest',required=True);p.add_argument('--nonces',type=int,nargs='+',required=True,help='three distinct nonces, or exactly one with --through-phase');p.add_argument('--through-phase',type=int,choices=range(2,7),default=None,help='reduced one-boot NON-QUALIFYING plan through this phase (2 to 6); no cable operation')
     p=sub.add_parser('check-approval');p.add_argument('--plan',required=True);p.add_argument('--approval',required=True)
     p=sub.add_parser('uart-replay');p.add_argument('directory')
     p=sub.add_parser('replay');p.add_argument('--series',required=True,help='Raw evidence bundle index, not embedded UART JSON');p.add_argument('--source',required=True);p.add_argument('--abi',required=True)
@@ -443,11 +487,12 @@ def main():
     for name in ('plan','approval','manifest','entry-manifest','recovery-manifest','guard-session','evidence'):
         p.add_argument('--'+name,required=True)
     p.add_argument('--boot',type=int,choices=(1,2,3),required=True)
+    p.add_argument('--through-phase',type=int,choices=range(2,7),default=None,help='must equal the approved reduced plan; boot 1 only; NON-QUALIFYING')
     args=parser.parse_args()
     if args.mode=='capture':
         result=capture_approved_boot(args)
     elif args.mode=='plan':
-        prepared=plan(sha(args.manifest),args.nonces,sha(args.entry_manifest),sha(args.recovery_manifest));result=dict(plan=prepared,approval_template=approval_template(prepared))
+        prepared=plan(sha(args.manifest),args.nonces,sha(args.entry_manifest),sha(args.recovery_manifest),through_phase=args.through_phase);result=dict(plan=prepared,approval_template=approval_template(prepared))
     elif args.mode=='check-approval':result=validate_approval(json.loads(Path(args.approval).read_text()),json.loads(Path(args.plan).read_text()))
     elif args.mode=='uart-replay':result=uart_records(args.directory)
     else:result=replay_bundle(args.series,args.source,json.loads(Path(args.abi).read_text()))

@@ -252,4 +252,4 @@ class CanonicalApproval(unittest.TestCase):
             else:prepared['operations'].remove(mutation)
             approval=runner.approval_template(prepared);approval['authorization']='APPROVED_FOR_PHYSICAL_EXECUTION';approval['operations']={key:True for key in approval['operations']}
             with self.subTest(mutation=mutation),self.assertRaises(ValueError):runner.validate_approval(approval,prepared)
-        self.assertEqual(runner.NIC['interface'],'en5')
+        self.assertEqual(runner.NIC['interface'],'en13')
