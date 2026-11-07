@@ -1,0 +1,60 @@
+# Step 5 checks, build build-b-swap-offset (swap using offset)
+Build dir (container): /opt/crux-cache/trial/build-b-swap-offset-build
+
+## 1. MCUboot .config
+  CONFIG_BOOT_USE_TINYCRYPT=y
+  CONFIG_BOOT_SIGNATURE_TYPE_ECDSA_P256=y
+  CONFIG_BOOT_ECDSA_TINYCRYPT=y
+  CONFIG_BOOT_VALIDATE_SLOT0=y
+  CONFIG_BOOT_SWAP_USING_OFFSET=y
+  # CONFIG_BOOT_RAM_LOAD is not set
+  CONFIG_BOOT_SHARE_BACKEND_DISABLED=y
+
+## 2. Application .config
+  CONFIG_XIP=y
+  CONFIG_BOOTLOADER_MCUBOOT=y
+  CONFIG_MCUBOOT_BOOTLOADER_MODE_SWAP_USING_OFFSET=y
+  occurrences of NXP_IMXRT_BOOT_HEADER in application .config: 0 (0 = symbol not set/not defined)
+
+## 3. NXP boot header at 0x60000000 in MCUboot image: see mcuboot-boot-header.txt
+  FCFB tag at bin offset 0 : yes
+  IVT header bytes at offset 0x1000: d1002041
+
+## 4. Linker memory usage per image (from build log)
+### MCUboot
+  Memory region         Used Size  Region Size  %age Used
+             FLASH:       53940 B       128 KB     41.15%
+               RAM:       27904 B        32 MB      0.08%
+              ITCM:        8544 B       128 KB      6.52%
+              DTCM:           0 B       128 KB      0.00%
+             OCRAM:           0 B       256 KB      0.00%
+            OCRAM2:           0 B       512 KB      0.00%
+          IDT_LIST:           0 B        32 KB      0.00%
+### Application
+  Memory region         Used Size  Region Size  %age Used
+             FLASH:       30688 B    3141482 B      0.98%
+               RAM:        8704 B        32 MB      0.03%
+              ITCM:           0 B       128 KB      0.00%
+              DTCM:           0 B       128 KB      0.00%
+             OCRAM:           0 B       256 KB      0.00%
+            OCRAM2:           0 B       512 KB      0.00%
+          IDT_LIST:           0 B        32 KB      0.00%
+  MCUboot FLASH used 53940 B of 131072 B (partition 'mcuboot' = 0x20000 = 131072 B): FITS, headroom 77132 B (58.85%)
+
+## 5. Write alignment and trailer size
+  dts: 135:					erase-block-size = < 0x1000 >; /* in zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts:41 */
+  dts: 136:					write-block-size = < 0x1 >;    /* in zephyr/boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts:42 */
+  CONFIG_MCUBOOT_BOOT_MAX_ALIGN: CONFIG_MCUBOOT_BOOT_MAX_ALIGN=1
+  imgtool arguments passed for the application (key path redacted):
+    imgtool.py sign --version 0.0.0+0 --header-size 0x400 --slot-size 3145728 --align 1 --key <DEV-KEY-PATH:/opt/crux-cache/keys/dev-ecdsa-p256.pem> /opt/crux-cache/trial/build-b-swap-offset-build/zephyr/zephyr/zephyr.bin /opt/crux-cache/trial/build-b-swap-offset-build/zephyr/zephyr/zephyr.signed.bin
+  MCUboot estimate mcuboot_image_footer_size = 4246 B
+  MCUboot estimate mcuboot_image_upgrade_footer_size = 4096 B
+  Note: imgtool receives --align and --slot-size only; it is not passed a trailer size. The estimates above come from MCUboot's CMake and are
+  not given to imgtool. (App CONFIG_MCUBOOT_UPDATE_FOOTER_SIZE is ignored: MCUBOOT_IMG_MANAGER=n, see Kconfig warning in the log.)
+
+## 6. Flash driver linked by MCUboot: see mcuboot-flash-driver.txt
+  CONFIG_FLASH_MCUX_FLEXSPI_XIP=y
+  CONFIG_FLASH_MCUX_FLEXSPI_NOR=y
+  map objects: *flash_mcux_flexspi_nor.c.obj; zephyr/drivers/flash/libdrivers__flash.a(flash_mcux_flexspi_nor.c.obj
+
+## 7. Application sections/symbols in FlexSPI window: see app-flexspi-window-report.txt (required for build A)
