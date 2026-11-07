@@ -187,7 +187,7 @@ clients are OpenSSH 9.6 `ssh` and `sftp`, and `curl` against the declared test c
 
 Host: Apple silicon, Docker with an `amd64` Dev Container image under emulation, Zephyr v4.4.2 with the TLS socket patch,
 OpenSSH 9.6p1, curl 8.5 and OpenSSL 3.0.13. **The wall times below are not a target's.** `native_sim` gives CPU work no simulated time, and the
-container is emulated and shared, so they only compare one run with another, and they moved by up to a factor of two between runs of the same revision (an earlier run of this PR read 0.18 s and 0.30 s for the idle HTTPS call). The figures and the revision: one run of `scripts/test-ssh-integrated.sh all` at `4e741be`, 86 checks. Sizes belong to the revision. The heap peak moved from 97,496 B to 100,448 B between two runs of this PR, so read it as a size class.
+container is emulated and shared, so they only compare one run with another, and they moved by up to a factor of two between runs of the same revision (the idle HTTPS call read 0.18 s in one run of this PR and 0.26 s in the run below). The figures and the revision: one run of `scripts/test-ssh-integrated.sh all` at `22dafed`, 86 checks. Sizes belong to the revision. The heap peak read 97,496 B in two runs of this PR and 100,448 B in a third, so read it as a size class.
 
 | Kind | What | Result |
 | --- | --- | --- |
@@ -207,10 +207,10 @@ These are `native_sim` 64-bit figures, which rank choices and are not a Cortex-M
 
 | Measure | `management_services`, Wolf | Integrated image | Note |
 | --- | --- | --- | --- |
-| Text | 719,118 B | 815,908 B | +96,790 B: wolfSSH, the provider, the entries, the file port |
-| Data | 21,698 B | 22,714 B | |
+| Text | 719,118 B | 814,046 B | +94,928 B: wolfSSH, the provider, the entries, the file port |
+| Data | 21,698 B | 22,402 B | |
 | Bss | 561,384 B | 1,432,416 B | +871,032 B, of which 786,432 B is the arena going from 256 KiB to 1 MiB, so that the run shows use and not a limit |
-| Heap peak, all of it | Not recorded | 100,448 B | The whole run, TLS and SSH together, with every load below. After the load, 616 B stay allocated. |
+| Heap peak, all of it | Not recorded | 97,496 B | The whole run, TLS and SSH together, with every load below. After the load, 616 B stay allocated. |
 | SSH worker stack, used | | 9,216 B of 16,384 B | Deepest on a worker, with `ecdh-sha2-nistp256`, Ed25519, SFTP and the CLI. [#192's probe image](ssh-wolf-provider.md#resource-use) measured 13,808 B with `exec` and every key type, so **the stack stays an open question for a target** |
 | SSH listener stack | | Not read | The probe reads a finished listener only |
 | Configured stacks | | HTTP server 4,096 B, SSH workers 4 × 16,384 B, SSH listener 4,096 B, Crux threads 8 × 8,192 B | `native_sim` cannot report a Zephyr stack's use |
@@ -255,9 +255,9 @@ a deployment would have. Sizing `CRUX_ACCESS_SESSION_MAX`, `CONFIG_CRUX_SSH_MAX_
 
 | Situation | Observed | Verdict |
 | --- | --- | --- |
-| Load on every listener at once: 12 HTTPS calls, 8 CLI commands, 4 SFTP put, get and remove of 48 kB | Every operation succeeded. HTTPS median 0.16 s loaded and 0.22 s idle, CLI 0.20 s and 0.21 s, SFTP 0.47 s and 0.51 s. The sockets returned to 2, and 616 B of the heap stayed allocated at rest after the load. No baseline was taken before it. | **No interference seen.** Simulated CPU work takes no time, so this shows no failure and no starvation of a thread, and says nothing about a CPU's contention. |
-| Four silent clients hold every SSH slot | HTTPS login and call 0.50 s. A real SSH user is refused until the clients leave (`auth_timeout_ms`). | **SSH lockout, as [decision 20](ssh-wolf-provider.md#decisions-for-review) records. HTTPS is not affected.** |
-| Three silent clients on the HTTPS port | An SSH command 0.20 s. An HTTPS request answered after 5.4 s. | **The web's own limit**: each silent TLS client costs the server thread its handshake limit, 2 s. **SSH is not affected.** |
+| Load on every listener at once: 12 HTTPS calls, 8 CLI commands, 4 SFTP put, get and remove of 48 kB | Every operation succeeded. HTTPS median 0.32 s loaded and 0.26 s idle, CLI 0.39 s and 0.37 s, SFTP 0.80 s and 0.72 s. The sockets returned to 2, and 616 B of the heap stayed allocated at rest after the load. No baseline was taken before it. | **No interference seen.** Simulated CPU work takes no time, so this shows no failure and no starvation of a thread, and says nothing about a CPU's contention. |
+| Four silent clients hold every SSH slot | HTTPS login and call 0.62 s. A real SSH user is refused until the clients leave (`auth_timeout_ms`). | **SSH lockout, as [decision 20](ssh-wolf-provider.md#decisions-for-review) records. HTTPS is not affected.** |
+| Three silent clients on the HTTPS port | An SSH command 0.21 s. An HTTPS request answered after 5.5 s. | **The web's own limit**: each silent TLS client costs the server thread its handshake limit, 2 s. **SSH is not affected.** |
 | Failed SSH logins, then a web login from the same address | The web login succeeded each time | No interference seen, though both use one delay table |
 | A web login when the table is full | 503 busy | **Shared slots**: see above |
 | A web login with three SSH shells of the account open | The oldest SSH shell ended | **Shared account cap**: a user can lose an SSH session by logging in on the web |
