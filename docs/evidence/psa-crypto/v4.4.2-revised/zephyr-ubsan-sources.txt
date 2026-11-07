@@ -1,0 +1,8 @@
+# Are the functions in the UBSan reports in the Zephyr wolfPSA builds? Each source preprocessed with its own compile command, revision a0fa506.
+# Counts are matches in the preprocessed text. UBSan itself ran only on Linux Host.
+== crux.psa_crypto.conformance.wolfpsa
+sp_c32.c rc 0 lines 10286 {'sp_256_num_bits_29_9\\s*\\(': 0, '\\bsp_256_mul_9\\s*\\(': 7} 
+aes.c rc 0 lines 8340 {'void\\s+GMULT\\s*\\(\\s*word64': 0, 'ByteReverseWords64\\s*\\(': 1} 
+== rt1060-wolfpsa
+sp_c32.c rc 0 lines 15950 {'sp_256_num_bits_29_9\\s*\\(': 0, '\\bsp_256_mul_9\\s*\\(': 7} 
+aes.c rc 0 lines 13901 {'void\\s+GMULT\\s*\\(\\s*word64': 0, 'ByteReverseWords64\\s*\\(': 1} 

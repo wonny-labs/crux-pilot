@@ -3,6 +3,7 @@
  * backend, so that the settings arrangement is built as a real image would use it. It is never run.
  */
 #include "crux_ssh_callbacks.h"
+#include "crux_ssh_wolf_provider.h"
 #include <wolfssh/internal.h>
 #include <wolfssh/ssh.h>
 #include <wolfssh/wolfsftp.h>
@@ -85,6 +86,10 @@ int main(void)
 #endif
 
     if (crux_ssh_callback_table()->password == NULL) {
+        return 1;
+    }
+    /* Keeps the provider in the image, so that its link is shown and not only its compile. */
+    if (crux_ssh_wolf_provider()->start(NULL, NULL) != CRUX_ERR_INVALID_ARGUMENT) {
         return 1;
     }
     wolfSSH_Init();

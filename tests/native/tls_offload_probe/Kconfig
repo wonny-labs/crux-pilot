@@ -1,0 +1,9 @@
+config CRUX_TLS_PROBE_PORT_TLS12
+	int "Host TCP port of the TLS 1.2 listener"
+	default 14212
+
+config CRUX_TLS_PROBE_PORT_TLS13
+	int "Host TCP port of the TLS 1.3 listener"
+	default 14213
+
+source "Kconfig.zephyr"

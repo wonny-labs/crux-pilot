@@ -1,0 +1,14 @@
+# The public and session-only routes of the browser image (Issue #220), the same as the services
+# image of Issue #242: exactly those of components/web/reviewed-routes.txt, which
+# tests/build/test_composition_image.py compares line for line, and the packaged folder. The network
+# routes and the save carry a permission as their access class, so neither list names them.
+public POST /api/v1/session
+session DELETE /api/v1/session
+public GET /api/v1/session/attempt/{id}
+session GET /api/v1/session/me
+session POST /api/v1/session/me/password
+session GET /api/v1/status
+session GET /api/v1/config
+session GET /api/v1/config/{name}
+session PUT /api/v1/config/{name}
+public GET @assets

@@ -2,7 +2,7 @@
 from pathlib import Path
 import struct,sys,tempfile,unittest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'target'))
-from test_m3_image import fixture
+from test_m3_image import OTHER_OPTIMIZATIONS,fixture
 import m5_image
 class Image(unittest.TestCase):
     def image(self,root):
@@ -22,5 +22,11 @@ class Image(unittest.TestCase):
                 if mutate=='storage':p[2].write_text(p[2].read_text()+'CONFIG_FLASH=y\n')
                 if mutate=='stack':
                     data=bytearray(p[1].read_bytes());struct.pack_into('<I',data,0x2318,4160);p[1].write_bytes(data)
+                with self.assertRaises(ValueError):m5_image.check_image(*p)
+    def test_image_not_built_at_the_verified_level_is_rejected(self):
+        for old,new in OTHER_OPTIMIZATIONS:
+            with self.subTest(new=new),tempfile.TemporaryDirectory() as tmp:
+                p=self.image(Path(tmp));m5_image.check_image(*p)
+                p[2].write_text(p[2].read_text().replace(old,new))
                 with self.assertRaises(ValueError):m5_image.check_image(*p)
 if __name__=='__main__':unittest.main()

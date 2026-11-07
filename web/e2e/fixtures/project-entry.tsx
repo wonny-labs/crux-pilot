@@ -2,6 +2,7 @@
 // item, changes some text and gives its device a longer restart limit.
 import '../../reference/src/style.css';
 import { mountReferenceInterface } from '../../reference/src/app.tsx';
+import { configScreen } from '../../reference/src/screens/config.tsx';
 import { homeScreen } from '../../reference/src/screens/home.tsx';
 import { networkScreen } from '../../reference/src/screens/network.tsx';
 import { rebootScreen } from '../../reference/src/screens/reboot.tsx';
@@ -9,7 +10,7 @@ import { rebootScreen } from '../../reference/src/screens/reboot.tsx';
 const root = document.getElementById('app');
 if (root !== null) {
   mountReferenceInterface(root, {
-    screens: [homeScreen, networkScreen, rebootScreen],
+    screens: [homeScreen, configScreen, networkScreen, rebootScreen],
     homeItems: [
       {
         name: 'app.cycle_count',

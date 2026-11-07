@@ -1,8 +1,7 @@
 /*
  * What the conformance cases need from the far end of a provider: a client they can script, and key
  * and address material fit for that provider. The fake provider supplies one. A real provider
- * supplies its own, for example on native_sim with a client on a host-reachable link. No real
- * provider has run these cases yet: #192 is the first.
+ * supplies its own: tests/zephyr/ssh_provider has the one for wolfSSH on native_sim.
  */
 #ifndef CRUX_SSH_TEST_CLIENT_H
 #define CRUX_SSH_TEST_CLIENT_H
