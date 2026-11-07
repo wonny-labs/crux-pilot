@@ -5,8 +5,8 @@ Status: merged in #228 for issues #215, #216, #217, #218 and #219, and shown on 
 follows the [web frontend foundation design](web-frontend-foundation-design.md), whose decisions W1 to W18 are accepted,
 and the [management API specification](../../web/api/openapi.yaml). Since
 [the owner's decision of 4 November 2026](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6637976084), W13, Preact and Angular are examples and the product owns its application UI.
-The folder `web/reference`, the test files named `reference-*` and the function `mountReferenceInterface` keep their names,
-and here they mean the Preact example. The approval is the owner's comment on
+Since the owner's review of 8 November 2026 (Refs #243), the Preact example is in `samples/web/preact` and the Angular example in
+`samples/web/angular`, with the test files named `preact-*` and the function `mountPreactInterface`. The M13 work's approval is the owner's comment on
 [#183](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6617722497), with its
 [correction](https://github.com/wonny-labs/crux-pilot/issues/183#issuecomment-6619502432) that M13 other than #220 is not
 behind the gate. It covers no hardware, and nothing here was run on a board.
@@ -16,10 +16,10 @@ behind the gate. It covers no hardware, and nothing here was run on a board.
 | State | Item |
 | --- | --- |
 | Built | `web/client`: an optional framework-free client for login polling, CSRF, error mapping and retry timing |
-| Built | `web/reference`: the Preact example, with sign-in, forced password change and home as core screens, and network settings and reboot as advanced examples |
+| Built | `samples/web/preact`: the Preact example, with sign-in, forced password change and home as core screens, and network settings and reboot as advanced examples |
 | Built | `web/mock`: a mock server from the specification, and a conformance check that M11 can reuse |
 | Built | `web/tools`: type generation, the build, the packaging budget, source rules and pin checks |
-| Built | `samples/web/angular-minimal`: the Angular example, with sign-in, the forced password change, home and configuration, using the generated types |
+| Built | `samples/web/angular`: the Angular example, with sign-in, the forced password change, home and configuration, using the generated types |
 | Built | The core configuration flow in both examples, on the mock only, in #243: see [the configuration flow](../web-config-flow.md) |
 | Built | `.github/workflows/web.yml`: the specification lint, `tests/management_api`, web checks, browser tests and the Angular job |
 | Faked | The whole device. The mock runs on the loopback address over plain HTTP, and it holds one session at a time |
@@ -71,8 +71,8 @@ The firmware takes a built folder, so it needs no Node.js. The dotted lines are 
 ```mermaid
 flowchart TB
     subgraph browser["Browser"]
-        ref["web/reference<br/>Preact example"]
-        ang["samples/web/angular-minimal<br/>Angular example, HttpClient"]
+        ref["samples/web/preact<br/>Preact example"]
+        ang["samples/web/angular<br/>Angular example, HttpClient"]
         client["web/client<br/>session, polling, CSRF, errors, retry"]
         types["client/src/api-types.generated.ts"]
         ref --> client
@@ -271,7 +271,7 @@ The product owns its application UI. The Preact example is a folder of static fi
 | Need | What the project does | Changes to Crux files |
 | --- | --- | --- |
 | A new status item on home | Registers the item in firmware. Home shows it by its name, with no frontend change. | None |
-| A label, section and format for that item | Passes `homeItems` to `mountReferenceInterface` in its own entry file | None |
+| A label, section and format for that item | Passes `homeItems` to `mountPreactInterface` in its own entry file | None |
 | Different text or another language | Passes `text`, which is laid over the English table | None |
 | A longer restart limit | Passes `client: { timing: { rebootLimitMs } }` | None |
 | Fewer screens, or its own screens | Passes its own `screens` list. A screen is a route, a title, a link and a component. | None |
@@ -316,7 +316,7 @@ browser test shows that a device with no account only ever gets login requests a
 ## Packaging budget
 
 The design requires a budget for file count and compressed size, which fails the build when exceeded, and it states no
-numbers. These are this work's numbers, in `web/reference/budget.json`, for review. Compressed size is gzip at level 9, file
+numbers. These are this work's numbers, in `samples/web/preact/budget.json`, for review. Compressed size is gzip at level 9, file
 by file.
 
 | Limit | Value | Measured |
@@ -409,9 +409,9 @@ Results are in the PR, for the revision that it names.
 | Conformance | `mock/test/conformance.test.ts` | Every named example of every response is served as written, and every operation answers with no forced response. The check covers bodies, headers and cookies, and it is itself shown to reject wrong answers. |
 | Mock behaviour | `mock/test/behaviour.test.ts` | The stateful flows, with every answer passing through the conformance check |
 | Tools | `tools/test` | The generator refuses each schema form and combination outside its list, the source rules catch their targets, a build over budget fails, the pins and lockfiles agree, and the C-build boundary catches its fixtures. Tests remove their temporary folders. |
-| Browser | `e2e/reference-*.test.ts` | Each screen, on Chrome. A test fails on a policy violation, a page error, a request to another origin or a mock answer outside the specification. |
+| Browser | `e2e/preact-*.test.ts` | Each screen, on Chrome. A test fails on a policy violation, a page error, a request to another origin or a mock answer outside the specification. |
 | Shared browser cases | `e2e/shared-cases.ts` | One list, run on both the Preact example and the Angular example, finding elements by role, label and visible text. It covers sign-in, home, the forced password change and the configuration flow, which [its own document](../web-config-flow.md) lists. |
-| Preact configuration cases | `e2e/reference-config.test.ts` | Focus, title, keyboard use, the policy with Trusted Types, and device text shown as text |
+| Preact configuration cases | `e2e/preact-config.test.ts` | Focus, title, keyboard use, the policy with Trusted Types, and device text shown as text |
 
 Tests went first where that could work: generator, client, mock, tools and browser cases each failed before their code
 existed, because the module or the build was missing. The client-against-mock tests, the boundary test and the policy
@@ -462,7 +462,7 @@ firmware file then broke it, and the matcher is narrowed for exactly these two.
 ```mermaid
 flowchart LR
     text[File text] --> nodeuse{Node.js, npm or a frontend path?}
-    nodeuse -- "web/client, reference, mock, tools, e2e, package" --> reds[Counts, unless web/ follows a components/ segment]
+    nodeuse -- "web/client, mock, tools, e2e, package, and samples/web" --> reds[Counts, unless web/ follows a components/ segment]
     nodeuse -- "web/api/lint or any other web/api path" --> reds
     nodeuse -- "web/api/openapi.yaml" --> okspec[Does not count: plain YAML, no Node.js runs on it]
     nodeuse -- "components/web/tools, the route generator" --> okgen[Does not count: firmware Python, not the frontend]

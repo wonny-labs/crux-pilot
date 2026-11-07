@@ -1,7 +1,7 @@
 // Home: the status items that this session may read, refreshed at a low rate because the server has one
 // thread. It takes what the device sends and hides nothing itself: the server filters.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import type { ApiError, StatusItem } from '../../../client/src/index.ts';
+import type { ApiError, StatusItem } from '../../../../../web/client/src/index.ts';
 import { Heading, Notice } from '../components.tsx';
 import { useApp } from '../context.ts';
 import type { HomeItemDefinition, Screen } from '../context.ts';

@@ -1,4 +1,4 @@
-# Minimal Angular example
+# Angular example
 
 This example shows that a product can use Angular with Crux. It holds sign-in, the forced password change, home and a configuration screen, uses the types generated from
 the [management API specification](../../../web/api/openapi.yaml), and passes the same browser cases as the

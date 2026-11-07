@@ -4,7 +4,7 @@
   "cli": { "analytics": false, "packageManager": "npm" },
   "newProjectRoot": "projects",
   "projects": {
-    "angular-minimal": {
+    "angular": {
       "projectType": "application",
       "root": "",
       "sourceRoot": "src",

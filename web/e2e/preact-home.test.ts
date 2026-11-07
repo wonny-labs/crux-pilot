@@ -1,4 +1,4 @@
-// Home cases for the Preact reference, beyond the shared ones.
+// Home cases for the Preact example, beyond the shared ones.
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
@@ -6,7 +6,7 @@ import type { Browser } from 'playwright-core';
 import { launchBrowser, requireBuilt, runCase, signIn, waitForHeading, webRoot } from './harness.ts';
 import type { AppConfig, OpenApp, OpenOptions } from './harness.ts';
 
-const config: AppConfig = { name: 'reference', dist: join(webRoot, 'reference', 'dist'), stylePolicy: 'strict' };
+const config: AppConfig = { name: 'preact', dist: join(webRoot, '..', 'samples', 'web', 'preact', 'dist'), stylePolicy: 'strict' };
 
 let browser: Browser;
 before(async () => {

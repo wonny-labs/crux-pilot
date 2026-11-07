@@ -1,5 +1,5 @@
 // A call that rejects must release the configuration screen. The client never throws for an HTTP or a network
-// failure, so a project's own reader is made to throw, in a build of the reference with that one change.
+// failure, so a project's own reader is made to throw, in a build of the Preact example with that one change.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';

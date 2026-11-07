@@ -2,8 +2,8 @@
 // one save that writes them. The list never holds a value, so each readable value is read on its own, and a
 // sensitive one is never read. The checks here are for usability, and the device decides what it accepts.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { parseConfigInput } from '../../../client/src/index.ts';
-import type { ApiError, ConfigItem, ConfigSaveOutcome, ConfigValue } from '../../../client/src/index.ts';
+import { parseConfigInput } from '../../../../../web/client/src/index.ts';
+import type { ApiError, ConfigItem, ConfigSaveOutcome, ConfigValue } from '../../../../../web/client/src/index.ts';
 import { Field, Heading, Notice } from '../components.tsx';
 import { useApp } from '../context.ts';
 import type { Screen } from '../context.ts';

@@ -1,7 +1,7 @@
 // The forced password change. The session can do nothing else until it completes, and the server enforces
 // that. A lost result never counts as success on its own: only the device's own answer does.
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { AttemptProgress, CruxClient, FieldError } from '../../../client/src/index.ts';
+import type { AttemptProgress, CruxClient, FieldError } from '../../../../../web/client/src/index.ts';
 import { Field, Heading, Notice, useCountdown, WaitNotice } from '../components.tsx';
 import type { Text } from '../text.ts';
 

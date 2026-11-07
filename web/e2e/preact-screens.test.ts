@@ -8,7 +8,7 @@ import { launchBrowser, openApp, signIn, waitForHeading, webRoot } from './harne
 import type { AppConfig, OpenApp } from './harness.ts';
 
 const folder = process.env['CRUX_SCREENSHOTS'];
-const config: AppConfig = { name: 'reference', dist: join(webRoot, 'reference', 'dist'), stylePolicy: 'strict' };
+const config: AppConfig = { name: 'preact', dist: join(webRoot, '..', 'samples', 'web', 'preact', 'dist'), stylePolicy: 'strict' };
 
 let browser: Browser;
 before(async () => {

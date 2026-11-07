@@ -2,7 +2,7 @@
 import { createContext } from 'preact';
 import type { ComponentType } from 'preact';
 import { useContext } from 'preact/hooks';
-import type { CruxClient, CurrentUser } from '../../client/src/index.ts';
+import type { CruxClient, CurrentUser } from '../../../../web/client/src/index.ts';
 import type { Text } from './text.ts';
 
 export interface HomeItemDefinition {

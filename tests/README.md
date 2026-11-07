@@ -804,7 +804,7 @@ The web frontend has its own tools under `web/` and needs Node.js, while no C bu
 | --- | --- | --- |
 | Specification lint and its rejection tests | `scripts/check-management-api.sh`, `python3 -m unittest discover -s tests/management_api` | Node.js |
 | Pins, generated types, `tsc`, source rules, client and mock unit tests, build and budget | `npm run check` in `web` | Node.js |
-| Browser tests of the reference on the mock | `npm run test:browser` in `web` | Node.js and Chrome |
+| Browser tests of the Preact example on the mock | `npm run test:browser` in `web` | Node.js and Chrome |
 | The shared browser cases on the Angular sample | `npm run test:angular` in `web`, after building the sample | Node.js and Chrome |
 
 All of these run against the mock server, on the loopback address and over plain HTTP. They show nothing about TLS, real

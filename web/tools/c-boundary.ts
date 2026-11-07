@@ -15,7 +15,7 @@ const USES: RegExp[] = [
   // firmware code and tests read. Its lint tools, which need Node.js, and any other file there still
   // count, and so does a path that goes on from the file name, as in `openapi.yaml/../lint`. A Node.js
   // tool run on the file by its bare path is a known gap: the npm and npx rules catch `npx`, no more.
-  /(?<!(?:^|[^\w.-])components\/)\bweb\/(client|reference|mock|tools|e2e|package)\b/,
+  /(?<!(?:^|[^\w.-])components\/)\bweb\/(client|mock|tools|e2e|package)\b/,
   /(?<!(?:^|[^\w.-])components\/)\bweb\/api\b(?!\/openapi\.yaml(?![\w/-]|\.\w))/,
   /\bsamples\/web\b/,
 ];

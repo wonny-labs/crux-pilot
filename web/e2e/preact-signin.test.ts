@@ -1,4 +1,4 @@
-// Sign-in and forced password change cases for the Preact reference.
+// Sign-in and forced password change cases for the Preact example.
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
@@ -6,7 +6,7 @@ import type { Browser, Page } from 'playwright-core';
 import { launchBrowser, PASSWORD, requireBuilt, runCase, signIn, waitForHeading, webRoot } from './harness.ts';
 import type { AppConfig, OpenApp, OpenOptions } from './harness.ts';
 
-const config: AppConfig = { name: 'reference', dist: join(webRoot, 'reference', 'dist'), stylePolicy: 'strict' };
+const config: AppConfig = { name: 'preact', dist: join(webRoot, '..', 'samples', 'web', 'preact', 'dist'), stylePolicy: 'strict' };
 const NEW_PASSWORD = 'example-new-password-not-real';
 
 let browser: Browser;

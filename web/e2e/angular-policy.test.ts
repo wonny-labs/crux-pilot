@@ -1,5 +1,5 @@
 // What the Angular sample needs from the content policy, measured on sign-in, home, configuration and
-// sign-out, with the reference measured the same way. Scripts must stay strict in every case.
+// sign-out, with the Preact example measured the same way. Scripts must stay strict in every case.
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,7 +9,7 @@ import { launchBrowser, openApp, signIn, waitForHeading, webRoot } from './harne
 import type { AppConfig, OpenApp } from './harness.ts';
 import type { StylePolicy } from '../mock/server.ts';
 
-const angular = join(webRoot, '..', 'samples', 'web', 'angular-minimal', 'dist');
+const angular = join(webRoot, '..', 'samples', 'web', 'angular', 'dist');
 const built = existsSync(join(angular, 'index.html'));
 if (!built && process.env['CRUX_REQUIRE_ANGULAR']) {
   throw new Error(`${angular} has not been built`);
@@ -102,11 +102,11 @@ test('the Angular sample has no violation with Trusted Types added', { skip }, a
   }
 });
 
-test('the reference has no violation under the strict setting with Trusted Types', async (t) => {
-  const { config, trustedTypes } = measured('reference', join(webRoot, 'reference', 'dist'), 'strict', true);
+test('the Preact example has no violation under the strict setting with Trusted Types', async (t) => {
+  const { config, trustedTypes } = measured('preact', join(webRoot, '..', 'samples', 'web', 'preact', 'dist'), 'strict', true);
   const app = await walk(config, trustedTypes);
   try {
-    t.diagnostic(`reference, strict with Trusted Types: ${events(app).length} violations`);
+    t.diagnostic(`preact, strict with Trusted Types: ${events(app).length} violations`);
     assert.deepEqual(app.violations, []);
   } finally {
     await app.close();

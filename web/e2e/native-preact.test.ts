@@ -11,7 +11,7 @@ const image = imageFor('CRUX_E2E_IMAGE_PREACT');
 if (image) {
   const target = nativeTarget(image);
   after(() => target.devices.close());
-  const config = { name: 'reference', dist: join(webRoot, 'reference', 'dist'), stylePolicy: 'strict' as const, target };
+  const config = { name: 'preact', dist: join(webRoot, '..', 'samples', 'web', 'preact', 'dist'), stylePolicy: 'strict' as const, target };
   if (process.env['CRUX_E2E_ONLY'] !== 'native') {
     sharedCases(config);
   }

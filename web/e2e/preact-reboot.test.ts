@@ -1,4 +1,4 @@
-// Reboot cases for the Preact reference. Success is a session that is no longer valid, because the running
+// Reboot cases for the Preact example. Success is a session that is no longer valid, because the running
 // device also answers. The clock is moved by hand, so the wait limits run in no real time.
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
@@ -7,7 +7,7 @@ import type { Browser, Page } from 'playwright-core';
 import { launchBrowser, requireBuilt, runCase, signIn, waitForHeading, webRoot } from './harness.ts';
 import type { AppConfig, OpenApp } from './harness.ts';
 
-const config: AppConfig = { name: 'reference', dist: join(webRoot, 'reference', 'dist'), stylePolicy: 'strict' };
+const config: AppConfig = { name: 'preact', dist: join(webRoot, '..', 'samples', 'web', 'preact', 'dist'), stylePolicy: 'strict' };
 
 let browser: Browser;
 before(async () => {

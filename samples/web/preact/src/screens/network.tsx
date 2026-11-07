@@ -2,8 +2,8 @@
 // here are for usability, and the server remains the authority. A session that may not read can still
 // submit, because a screen learns what it may do from each route's own answer.
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { checkIpv4Settings } from '../../../client/src/index.ts';
-import type { ApiError, FieldError, Ipv4Settings, NetworkState } from '../../../client/src/index.ts';
+import { checkIpv4Settings } from '../../../../../web/client/src/index.ts';
+import type { ApiError, FieldError, Ipv4Settings, NetworkState } from '../../../../../web/client/src/index.ts';
 import { Field, Heading, Notice } from '../components.tsx';
 import { useApp } from '../context.ts';
 import type { Screen } from '../context.ts';
