@@ -11,8 +11,9 @@ operation was part of it. The decision record is [boot-emmc-investigation.md](..
 
 Common limits:
 
-- Pages on `nxp.com/docs` and `jedec.org` could not be read from the environment. The RT1060 reference manual and the JEDEC
-  eMMC standard are therefore not sources of any row.
+- Pages on `nxp.com/docs` and `jedec.org` could not be read from the environment. The JEDEC eMMC standard is not a source of
+  any row. The RT1060 reference manual was read in a **third-party-hosted copy of Rev. 3**, downloaded with the owner's approval,
+  and is a source of rows R1 to R12 of `vendor-documents.md` only. That copy was not compared with `nxp.com`.
 - Community forum threads returned HTTP 403. They are not used as evidence.
 - Row identifiers (P, V, E, H, X, Y) are local to each file.
 - Each file says which rows were re-read by the author of the record and which were read by a research subagent only.
