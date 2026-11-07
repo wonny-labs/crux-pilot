@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Issue | [#299](https://github.com/wonny-labs/crux-pilot/issues/299) "Investigate how a deployed bootloader is updated or recovered" |
-| Status | **Draft. Desk investigation.** Nothing in this record is adopted. No build, hardware, debugger, fuse or manifest operation was performed, and no dependency checkout was altered. Independent review: round 1 REVISE, round 2 (the single re-check) ESCALATE, round 3 on the fix commit ESCALATE; see the [Review record](#review-record). The owner decides. |
+| Status | **Draft. Desk investigation.** Nothing in this record is adopted. No build, hardware, debugger, fuse or manifest operation was performed, and no dependency checkout was altered. Independent review: round 1 REVISE, round 2 (the single re-check) ESCALATE, round 3 on the fix commit ESCALATE, round 4 (the narrow re-check of the round 3 fix) PASS; see the [Review record](#review-record). The owner decides. |
 | Target | RT1060-EVKB Rev B (`mimxrt1060_evk@B/mimxrt1062/qspi`) for the NOR configuration. RT1170-EVK Rev A1 only where the public sources show a difference. The eMMC configuration is a set of expectations, not a result for any device. |
 | Pinned upstream | Zephyr `684c9e8f32e4373a21098559f748f06915f950c9` (v4.4.0). MCUboot `ee39e2d694bd827ffd1bebbce2f571a9154e6ec2`. `hal_nxp` `2c2f28ac333e995d7279777409817c4b4f92c1ec`. The pins are those of the #141 record. |
 | Read on | 7 November 2026, against `main` at `3e0a5d7` |
@@ -411,7 +411,7 @@ was confirmed against the manual text.
 | Finding | Status | Disposition |
 | --- | --- | --- |
 | R1-5, the B-48 caveat still claimed that its search hits were exhaustive, while the manual also matches the ROM API image selection and register definitions | Not resolved | The caveat was reworded to list the further hits and make no exhaustive claim. |
-| New: the Summary said every recovery path needs physical access, which contradicts the ROM secondary image row and the N3 column | New | The sentence now separates the paths that need physical access from the ones that need fuse writes. Round 3 found it wrong for the LPSPI path, see below. |
+| New: the Summary said every recovery path needs physical access, which contradicts the ROM secondary image row and the N3 column | New | The sentence then separated the paths that need physical access from the one that needs fuse writes. Round 3 found it wrong for the LPSPI path, see below. |
 
 Other observations were also fixed: the RAUC row cite (C-16 now includes
 `advanced.rst` L1637-L1641), "B-84 names three fields in two fuse words", the
@@ -428,4 +428,12 @@ and ROM table row 6 say the ROM tries it automatically once its fuses are set
 and a memory is present. The Summary sentence was corrected, together with the
 B-48 antecedent and the C-16 summary of the RAUC power-loss text.
 
-**Round 4 (one narrow re-check of the round 3 fix commit):** pending.
+**Round 4, 7 November 2026: the narrow re-check of `fa62f0c`.** A fifth
+reviewer (the `reviewer` agent, model `claude-opus-5-5`, read-only tools, no
+part in earlier rounds) checked `fa62f0c` only. Verdict **PASS**. The LPSPI
+finding was resolved against RM3 sections 9.10 and 9.11. Non-blocking
+observations, recorded on the PR and not fixed here: the D2 to D4 reading omits
+the application call of path 5 for D3 and D4; the eMMC A/B row ties the general
+RAUC power-loss text to `boot-emmc`; and "physical access" for the SD path is an
+Inference. This PASS covers the review gate only. It gives no merge or scope
+authority.
