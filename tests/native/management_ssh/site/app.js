@@ -19,7 +19,8 @@ async function call(method, path, body) {
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
   }
-  if (method !== "GET") {
+  // The token cookie exists once logged in. The login itself is public and needs none.
+  if (method !== "GET" && cookie("XSRF-TOKEN") !== "") {
     headers["X-XSRF-TOKEN"] = cookie("XSRF-TOKEN");
   }
   const reply = await fetch(API + path, {

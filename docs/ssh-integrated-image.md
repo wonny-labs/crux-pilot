@@ -179,7 +179,8 @@ container is emulated, so they only compare one run with another.
 | Host | `scripts/check-ssh-boundaries.py`, `scripts/check-format.sh` with clang-format 18 | Pass |
 | Control | `scripts/test-ssh-integrated.sh build`: `CONFIG_MBEDTLS=y`, and `CONFIG_CRUX_SSH=n` | Each stops at configuration, for its reason |
 | Kconfig | `tests/native/web_http`, no wolfSSH in the workspace | Configures with no warning and no `CRUX_SSH` in `.config` |
-| Not run | CI, a board, RT1060-EVKB, a browser in Chrome, WinSCP, PuTTY | |
+| Try it yourself | Every command block of the section, run as written by a script that reads them from this file, except the build block, which `scripts/test-ssh-integrated.sh build` had run, and the browser step | Pass: the shell, a command, the viewer's 127, SFTP put and get with `diff`, and the `curl` login and calls |
+| Not run | A board, RT1060-EVKB, a browser, WinSCP, PuTTY | |
 
 ### Flash, RAM, stacks, sockets and heap
 
@@ -306,10 +307,25 @@ $CURL https://localhost:18242/api/v1/status | python3 -m json.tool | head -20
 browser, which VS Code does for a port that a process listens on, and the Ports panel can do by hand for 18242 and 2222. The page logs in
 through the same API, shows the status, and edits `demo.display_name`. It is a small demonstration and not a product frontend.
 
+**This step was not run in a browser.** The built-in browser of the session refuses a self-signed certificate, and changing what the machine trusts is
+the user's to do. The page's own request sequence, with the headers that `app.js` sends, was run with `curl` and works: login, `session/me`,
+a configuration update that reads back, and logout. How the page renders, and its strict content policy in a browser, are untested.
+
 While the browser is logged in, `ssh` in as `admin` and run `account list`: it shows the same accounts. Log in on the web as `admin` three
 times and watch the oldest of three SSH shells of `admin` end.
 
 **7. Stop it** with Ctrl-C in the first terminal. Starting it again on the same `disk.bin` gives the same host key and the same accounts.
+
+## Other findings
+
+| Finding | Effect |
+| --- | --- |
+| `composition.cmake` builds `app` with `-Werror`, and the wolfSSH module adds its sources to `app` | The first build stopped on wolfSSH's own unused parameters. `ssh.cmake` gives those files `-Wno-error`: [decision 3](#decisions-for-review) |
+| An unsatisfied Kconfig dependency only warns | `CONFIG_CRUX_SSH=y` fell to `n` on `NET_TCP` and the build went on with no SSH, until the composition's check stopped it: [decision 2](#decisions-for-review) |
+| The SSH listener binds every IPv4 address, and the HTTPS listener every IPv6 address, read from `/proc/net/tcp` and `tcp6` | On a device both would answer on every interface. Which interface a management listener may use is a product choice that no setting here makes. The "only the declared listeners" check of #197 needs a device and its addresses. |
+| With `CONFIG_MBEDTLS=y`, the `mbedtls` module's own CMake fails first when `tf-psa-crypto` is not on the module path | The Mbed control then stops for the module's reason and not ours, so the script puts both in the module list, as a west workspace with the group does |
+| With one `-seed`, every blank disk generates the same host key | Known from [#192](ssh-wolf-provider.md#findings). The demonstration uses one seed. |
+| An abandoned web session holds a shared slot until its idle limit | [Session limits](#session-limits-when-both-listeners-are-busy) |
 
 ## Decisions for review
 
@@ -346,7 +362,7 @@ Each was taken without the owner, and the narrower choice was taken where there 
 | The sizing of the web defaults of #184 against this image | Not done. The figures above show where SSH and the web meet, and do not size the web's client limit, inactivity timer, header capture, deadlines, stack or send timeout. |
 | A port scan from outside | The listeners are read from `/proc`, for the process. A scan of a device's address needs a device. |
 | Time slicing between SSH workers, the web thread and Crux threads | No CPU time is simulated. `CONFIG_TIMESLICING` and `CONFIG_TIMESLICE_SIZE` are as the provider requires. |
-| A browser in Chrome against this page, and the Preact and Angular examples against this image | The page was served and its script fetched with `curl`. `web/e2e` was not run against this image: it needs Node.js 24.22.2 and Chrome. |
+| A browser against this page, and the Preact and Angular examples against this image | The page was served and its request sequence run with `curl`. No browser was used, and `web/e2e` was not run against this image: it needs Node.js 24.22.2 and Chrome. |
 | WinSCP, PuTTY, any client but OpenSSH 9.6 | OpenSSH is what the harnesses use |
 | Real TAP networking, IPv6 | The offload reaches the host through loopback |
 | Concurrent large transfers with CPU contention, a full file area, a full arena | Not walked in this image. #192 walked the arena on its own image. |

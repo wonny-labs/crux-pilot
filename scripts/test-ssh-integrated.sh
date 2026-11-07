@@ -2,13 +2,15 @@
 # One native_sim image with HTTPS web management, the command line over SSH and SFTP (Issue #197), driven from
 # outside by OpenSSH and curl. It is native_sim only, and it never flashes, resets or runs anything on a board.
 #
-#   scripts/test-ssh-integrated.sh [guards|build|run|all]
+#   scripts/test-ssh-integrated.sh [guards|build|controls|run|all]
 #
 # guards: the guards that refuse the test host key outside a declared native_sim test image, in CMake and in C.
 #         They need cmake and cc only, so they run on any host.
 # build:  the image, tests/native/management_ssh, on the Wolf profile: a patched copy of Zephyr for the TLS socket
 #         backend (scripts/prepare-wolf-tls-zephyr.sh), then wolfSSL, wolfSSH and wolfPSA at their pins. Then the
-#         configuration controls: the Mbed profile must stop, for its reason.
+#         configuration controls.
+# controls: only the configuration controls, on an image that `build` prepared: the Mbed profile must stop, and so
+#         must an image that does not select SSH, each for its reason.
 # run:    tests/native/management_ssh/driver.py against the built image: ssh, sftp and curl, and the listeners
 #         together. It needs the OpenSSH client tools, curl and OpenSSL.
 # all:    guards, build and run.
@@ -21,8 +23,8 @@
 set -euo pipefail
 
 mode="${1:-all}"
-case "$mode" in guards | build | run | all) ;; *)
-    printf 'usage: %s [guards|build|run|all]\n' "$0" >&2
+case "$mode" in guards | build | controls | run | all) ;; *)
+    printf 'usage: %s [guards|build|controls|run|all]\n' "$0" >&2
     exit 2
     ;;
 esac
@@ -49,10 +51,15 @@ need_linux() {
     [[ "$(uname -s)" == Linux ]] || { printf 'Run this script in the Linux Dev Container image.\n' >&2; exit 2; }
 }
 
+# Every module of the stack. mbedtls and tf-psa-crypto are not built: the control needs them to be found.
+module_list() {
+    printf '%s' "$crypto/wolfssl;$crypto/wolfssh;$crypto/wolfpsa;$crypto/mbedtls;$crypto/tf-psa-crypto;$workspace/modules/fs/fatfs"
+}
+
 run_build() {
     need_linux
     local module
-    for module in wolfssl wolfssh wolfpsa mbedtls; do
+    for module in wolfssl wolfssh wolfpsa mbedtls tf-psa-crypto; do
         [[ -e "$crypto/$module/.git" ]] ||
             fail "$module is missing. Enable the optional stacks: west config manifest.group-filter -- +crux-secure-management && west update"
     done
@@ -60,7 +67,7 @@ run_build() {
     mkdir -p "$out"
     export ZEPHYR_TOOLCHAIN_VARIANT=host
     "$repo/scripts/prepare-wolf-tls-zephyr.sh" "$out/zephyr-wolf"
-    local modules="$crypto/wolfssl;$crypto/wolfssh;$crypto/wolfpsa;$crypto/mbedtls;$workspace/modules/fs/fatfs"
+    local modules; modules="$(module_list)"
     ZEPHYR_BASE="$out/zephyr-wolf" cmake -S "$image_dir" -B "$build" -G Ninja -DBOARD=native_sim/native/64 \
         "-DZEPHYR_MODULES=$modules" "-DPython3_EXECUTABLE=$(command -v python3)" > "$out/configure.log" 2>&1 ||
         { tail -40 "$out/configure.log" >&2; fail 'the configuration failed'; }
@@ -83,7 +90,7 @@ run_controls() { # module list
         "-DZEPHYR_MODULES=$1" "-DCRUX_SSH_TEST_EXTRA_CONF=$mbed" "-DPython3_EXECUTABLE=$(command -v python3)" > "$log" 2>&1; then
         fail 'Control: an image on the Mbed profile configured'
     fi
-    tr '\n' ' ' < "$log" | tr -s ' ' | grep -q 'need the Wolf profile' ||
+    tr '\n' ' ' < "$log" | tr -s ' ' | grep -q 'The Mbed profile has no SSH provider' ||
         fail "Control: the Mbed image stopped for another reason: see $log"
     printf 'control ok: CONFIG_MBEDTLS=y stops the image at configuration, for its reason\n'
     printf 'CONFIG_CRUX_SSH=n\n' > "$mbed"
@@ -106,5 +113,6 @@ run_driver() {
 
 case "$mode" in guards | all) run_guards ;; esac
 case "$mode" in build | all) run_build ;; esac
+case "$mode" in controls) need_linux; run_controls "$(module_list)" ;; esac
 case "$mode" in run | all) run_driver ;; esac
 printf 'SSH integrated image (%s): native_sim only. No board was operated.\n' "$mode"
