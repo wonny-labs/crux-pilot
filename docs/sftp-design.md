@@ -11,7 +11,7 @@ This document says what is built, what is faked, what is untested, and which dec
 | `native_sim`, real provider | `scripts/test-ssh-sftp-native.sh`: OpenSSH 9.6 against the provider of #192, merged in #265, the real access adapter, the port, the file service, and real FatFs over a RAM disk | The acceptance path of #194. **Run on this branch with `main` merged**: 28 cases and the idle case pass. Access ports and the host key are test ones |
 | Target compile | `scripts/test-ssh-wolf-settings.sh` and `scripts/test-ssh-sftp-compile.sh` | That it compiles for RT1060 and `native_sim`. Nothing ran |
 | Read from source | wolfSSH v1.6.0 `8221e4e`, WinSCP `246bbd4` | What each of them should do. Each statement says so |
-| A recorded WinSCP run | WinSCP 6.7 on Windows 11, over a network, against the `native_sim` image of `main` (`f15f69a`), test accounts, a RAM disk and test Access ports. Evidence: the WinSCP 6.7 Debug 1 logs of the run of 7 November 2026, the report on issue #194, and an investigation report on #194 | What WinSCP sent and showed in that run. **One run, one client version, no board.** See [the first run](#the-first-run) |
+| A recorded WinSCP run | WinSCP 6.7 on Windows 11, over a network, against the `native_sim` image of `main` (`f15f69a`), test accounts, a RAM disk and test Access ports. Evidence: three WinSCP 6.7 Debug 1 logs of the run of 7 November 2026, the tester's report with screenshots, server-side records, and the author's investigation, kept as unpublished notes. **None of it is published**; the comments on #194 summarise it | What WinSCP sent and showed in that run, **as the author read it**. One run, one client version, no board. See [the first run](#the-first-run) |
 
 **OpenSSH on `native_sim` passes on `main`**, through the provider of #192 as merged in #265 (`af4c9e6`): 28 cases and the idle case. See [Acceptance](#acceptance).
 
@@ -185,8 +185,8 @@ WinSCP can send one, for a long local name.
 | --- | --- | --- |
 | A request reaches the port | `crux_access_touch`, ignoring the result, so that the service stays the one that decides | `case_activity_keeps_the_session_and_idleness_ends_it` |
 | Nothing for the idle limit | The provider's poll of `session_alive` finds it expired, and it ends the connection | The same, and `idle_session_ends_and_activity_does_not` |
-| `REALPATH`, the WinSCP keepalive | It reaches no port, so it does not refresh the session, and a client that only keeps alive still ends at the limit. **Untested with a real WinSCP**: its keepalive was off in the recorded run (`Ping type: Off` in the log), so this rests on the replay and on the source | `idle_session_ends_and_activity_does_not` |
-| A quiet WinSCP connection, keepalive off | The server closed it 900 s after its last traffic, measured from the TCP connection (12:44:02 to 12:59:02), which is the reference policy's 15 minutes. WinSCP then logged in again on the next click, with no prompt | The recorded run: see [the first run](#the-first-run) |
+| `REALPATH`, the WinSCP keepalive | It reaches no port, so it does not refresh the session, and a client that only keeps alive still ends at the limit. **Untested with a real WinSCP**: its keepalive was off in the recorded run (the connection monitor saw no packet in the quiet period, and `Ping type: Off` is in the logs of the other sessions with the same configuration), so this rests on the replay and on the source | `idle_session_ends_and_activity_does_not` |
+| A quiet WinSCP connection, keepalive off | The server closed it 900 s after its last traffic. A TCP connection monitor (polled every 5 s) and the server log show the last traffic at 12:44:02 and the close at 12:59:02, the reference policy's 15 minutes. The tester reported that the window kept working on the next click with no prompt. No WinSCP log shows either | The recorded run: see [the first run](#the-first-run) |
 | A session ends mid-transfer | The next chunk fails, as the file service says. A close needs no session | `case_a_session_that_ends_fails_the_next_chunk` |
 | A client disconnects | Every transfer and listing comes back. A partial direct write stays where it is, and counts against the area | `case_disconnect_keeps_...`, `wire_disconnect_gives_every_handle_back`, `sftp_disconnect_...` |
 | The stale rule needs room | Files with the area's `partial_suffix` go, as the file service states (F5) | `case_partial_counts_until_the_stale_rule_needs_its_room`, Host only |
@@ -250,24 +250,25 @@ From the image's heap statistics and #192's stack probe, over the 28 cases on `m
 | It takes a small file with all rights set for a link, and stops resuming | `:4616` | Replay | The port never sends all rights |
 | Writes are pipelined in order, and `CLOSE` goes out before the answers are read | `:4888` | Replay in part | wolfSSH handles requests in order, so no sparse write results |
 | Block size follows throughput, limited by the channel's maximum packet | `:2243` to `:2296` | Source | See [the provider](#how-this-fits-the-provider-of-192) |
-| `REALPATH /` as a keepalive, only if the session is set to send a dummy command | `:2063` to `:2070` | Replay. **Not run with WinSCP**: its keepalive was off in the recorded run | Does not refresh the idle timer. Untested with a real WinSCP |
+| `REALPATH /` as a keepalive, only if the session is set to send a dummy command | `:2063` to `:2070` | Replay. **Not run with WinSCP**: its keepalive was off in the recorded run (no packet seen in the quiet period) | Does not refresh the idle timer. Untested with a real WinSCP |
 | Uses `RENAME`, not `posix-rename`, by default, and no `limits@openssh.com` | `:3352`, `:3884` | Source | This server advertises neither |
 
 **Not settled by the first run:** whether sorting and "synchronize by time" behave sensibly for entries with no time (the run showed only the dates in [the table](#predicted-and-observed), and the long name, which always says "Jan  1 00:00", was not looked at); how the listing's long name parses; the order of its pipelined requests beyond the two uploads in the logs; and the dialogs that the run did not meet.
 
 ### The first run
 
-**What ran.** WinSCP 6.7 (build 17845) on Windows 11, SFTP, against the `native_sim` SFTP image of `main` (`f15f69a`) over a network. The server had the test accounts `root` (administrator), `vera` (viewer, read-only), `dora` (dropper, write-only, sees only `inbox`), `audit` and `stan`, a limit of 1 MiB per file, 3 MiB per area and 16 entries per area, a RAM disk and test Access ports. Nothing ran on a board. WinSCP's own keepalive was off (`Ping type: Off` in each log).
+**What ran.** WinSCP 6.7 (build 17845) on Windows 11, SFTP, against the `native_sim` SFTP image of `main` (`f15f69a`) over a network. The server had the test accounts `root` (administrator), `vera` (viewer, read-only), `dora` (dropper, write-only, sees only `inbox`), `audit` and `stan`, a limit of 1 MiB per file, 3 MiB per area and 16 entries per area, a RAM disk and test Access ports. Nothing ran on a board. WinSCP's own keepalive was off: the connection monitor saw no packet during the quiet period (see row 12), and `Ping type: Off` is in logs A, B and C, which are other sessions with the same WinSCP configuration.
 
-| Evidence | Covers |
+| Evidence | What it covers |
 | --- | --- |
-| WinSCP 6.7 Debug 1 log, run of 7 November 2026, **log A** | The dropper uploads a 2-byte file whose name is already in `/inbox` |
-| The same, **log B** | The administrator uploads a 2,077,166-byte file to `/data`, past the 1 MiB per-file limit |
+| WinSCP 6.7 Debug 1 log, run of 7 November 2026, **log A** | The dropper uploads a 2-byte file to `/inbox` under a name that was already there. The log starts with the tail of an older session and has no earlier `OPEN` of that name. That the name existed rests on the tester's account and on the server log of the run, where an earlier dropper session shows a create event for the same name before the logged session |
+| The same, **log B** | The administrator uploads a 2,077,166-byte file to `/data`, past the 1 MiB per-file limit. It ends at `Answer: Abort` |
 | The same, **log C** | The dropper uploads a new 2-byte file to `/inbox` |
-| The report on issue #194 | Every other step below, and the idle measurement. No log of those steps is cited here |
-| The investigation report on #194 (7 November 2026) | What was tried to reproduce the channel error, and how the code reads. See [the limit](#an-upload-past-the-per-file-limit-with-winscp) |
+| The tester's report: what the WinSCP window showed, in screenshots and a chat report | Name refusals, read-only refusals, the dates, the buttons of the error window, that Reconnect works, and that the window kept working after the idle close. **Not a log** |
+| Server-side records of the run | The server log (denial and create events), a read-back of the stored files as the auditor, and a TCP connection monitor that polled every 5 s |
+| The author's investigation, kept as unpublished notes and summarised here | What was tried to reproduce the channel error, and how the code reads. See [the limit](#an-upload-past-the-per-file-limit-with-winscp) |
 
-The three logs are not in the repository: they hold the tester's account, host and path names.
+The logs and screenshots are held by the tester, and the notes by the author. **None is published**: the logs hold the tester's account, host and path names. So what this document says about them **rests on the author's reading, and a reader of this repository cannot check it against them**.
 
 | Step | Run | Not run, or not recorded |
 | --- | --- | --- |
@@ -275,7 +276,7 @@ The three logs are not in the repository: they hold the tester's account, host a
 | A name outside the rule | A name with a space, and a Korean name | The other characters that [the F4 section](#a-file-name-outside-the-rule-f4) names |
 | Read-only role | Upload, rename and remove, all refused | Download, as that role (no file was reported) |
 | Write-only role | List `/inbox` (refused), upload a new file, upload a name that exists | **Download and delete.** The role cannot list, so no file could be selected, and the path box could not be edited. A first upload of 100 KiB or more, which takes a different path in the source |
-| Idle | One quiet connection, keepalive off, measured from the TCP connection | **Keepalive on.** The claim that WinSCP's `REALPATH` keepalive does not refresh the idle timer is still untested with a real WinSCP |
+| Idle | One quiet connection, keepalive off, measured by the connection monitor and the server log (no WinSCP log) | **Keepalive on.** The claim that WinSCP's `REALPATH` keepalive does not refresh the idle timer is still untested with a real WinSCP |
 | Upload past the per-file limit | Twice, with the same result | A retry of the same upload, which would meet the partial file |
 
 ### Predicted and observed
@@ -284,19 +285,19 @@ Each prediction is from the table above, from the design, or from the rows named
 
 | # | Predicted | Observed | Verdict |
 | --- | --- | --- | --- |
-| 1 | Version 3 with no extensions, `REALPATH`, list the root, enter an area | As the administrator, all worked | Matched |
-| 2 | Upload, download, rename and delete work for the administrator | All four worked, and the downloaded content was identical | Matched |
+| 1 | Version 3 with no extensions, `REALPATH`, list the root, enter an area | As the administrator, all worked | Matched, from the tester's report |
+| 2 | Upload, download, rename and delete work for the administrator | All four worked, and the downloaded content was identical | Matched, from the tester's report |
 | 3 | From 100 KiB, `LSTAT` of the target and of `.filepart`, with a refusal read as "not there", then `OPEN` of the `.filepart` | Log B: both `LSTAT`s got status 4, "LSTAT error", and WinSCP went on to `OPEN` | Matched |
-| 4 | A name outside the rule is refused as code 4, with the generic dialog | A space and Korean characters: `Error code: 4`, server text `Open File Error`, with WinSCP's generic list of common reasons | Matched |
-| 5 | A read-only session's refusals are `FAILURE` | Upload, rename and remove: status 4, with `Open File Error`, `Rename File Error` and `Remove File Error`. One denial event each, according to the report on #194 | Matched |
+| 4 | A name outside the rule is refused as code 4, with the generic dialog | A space and Korean characters: `Error code: 4`, server text `Open File Error`, with WinSCP's generic list of common reasons. This is what the window showed, in the tester's report and screenshots, with server-side checks. No log is cited | Matched, from the tester's report |
+| 5 | A read-only session's refusals are `FAILURE` | Upload, rename and remove: status 4, with `Open File Error`, `Rename File Error` and `Remove File Error`. One denial event each in the server log. The refusals are what the window showed, in the tester's report and screenshots. No log is cited | Matched, from the tester's report |
 | 6 | The write-only role cannot list, and so cannot navigate | Logs A and C: `OPENDIR /inbox` got status 2, "Unable To Open Directory", and WinSCP showed `Error code: 2` | Matched |
-| 7 | A write-only upload of a new file works, and `SETSTAT` is accepted | Log C: `OPEN` gets a handle, one `WRITE` gets 0, `CLOSE` 0, `SETSTAT` 0, and WinSCP logs `Transfer done`. The file is stored complete (read back as the auditor). WinSCP sent `WRITE`, `CLOSE` and `SETSTAT` before the first answer came back | Matched |
+| 7 | A write-only upload of a new file works, and `SETSTAT` is accepted | Log C: `OPEN` gets a handle, one `WRITE` gets 0, `CLOSE` 0, `SETSTAT` 0, and WinSCP logs `Transfer done`. The file is stored complete (read back as the auditor, server side). WinSCP sent `WRITE`, `CLOSE` and `SETSTAT` before the first answer came back | Matched |
 | 8 | Not predicted: what WinSCP shows after that upload | It refreshes the directory, `OPENDIR /inbox` gets status 2, and WinSCP shows `Error listing directory '/inbox'` | **New**: see [below](#a-session-with-write-permission-alone) |
-| 9 | An existing name: `EXCL` fails, `LSTAT` is tried, a failed `LSTAT` throws the first error (the row for existing files above) | Log A, as the dropper: `OPEN` got status 4, "Open File Error", `LSTAT` of the file got status 4, "LSTAT error", and WinSCP reported `Cannot create remote file` with the `OPEN` error | Matches the sequence. **Why the `OPEN` was refused is not yet explained as a decision**: see [below](#a-session-with-write-permission-alone) |
-| 10 | No times (F6) | WinSCP shows `30/12/1899` for folders and for files in some areas, and `03/01/0001` for `logs/boot.log`, a file in a read-only area. Both are how WinSCP shows an unset time | Matched. The dates were not predicted |
-| 11 | Rights are never all set, so WinSCP does not read a link (decision 13) | `inbox`, which the write-only role sees, shows as `-wx------` | Matched |
-| 12 | A quiet session ends at the idle limit | The server closed it exactly 900 s after its last traffic (12:44:02 to 12:59:02, from the TCP connection), which is the 15 minutes of the reference policy. On the next click WinSCP logged in again with the stored credentials, with no prompt and nothing shown | Matched. The silent login was **new** |
-| 13 | A `REALPATH` keepalive does not refresh the idle timer | Not run. Keepalive was off | **Untested** |
+| 9 | An existing name: `EXCL` fails, `LSTAT` is tried, a failed `LSTAT` throws the first error (the row for existing files above) | Log A, as the dropper, for a name that the server log shows an earlier session had created: `OPEN` got status 4, "Open File Error", `LSTAT` of the file got status 4, "LSTAT error", and WinSCP reported `Cannot create remote file` with the `OPEN` error | Matches the sequence. **Why the `OPEN` was refused is not yet explained as a decision**: see [below](#a-session-with-write-permission-alone) |
+| 10 | No times (F6). The text above this section said that the long name always says "Jan  1 00:00", and that sorting was suspect | Folders and the files in the `data` area show `30/12/1899` on the tester's screen. In logs A, B and C, folders carry `1899-12-30T00:00:00`, which is the zero of WinSCP's date type. `logs/boot.log`, in a read-only area, showed `03/01/0001`. No log lists a file or shows 0001, so that comes from the screenshots and the tester's report. **Why 0001 appears for that one file is not understood** | Matched (no time was sent). **How WinSCP shows it is new**: it is not "Jan  1 00:00" |
+| 11 | Rights are never all set, so WinSCP does not read a link (decision 13) | `inbox`, which the write-only role sees, shows as `-wx------` (the listing in log A) | Matched |
+| 12 | A quiet session ends at the idle limit | The server closed the connection 900 s after its last traffic. The source is server-side: a TCP connection monitor that polled every 5 s and the server log, with the last traffic at 12:44:02 and the close at 12:59:02, the 15 minutes of the reference policy. **No WinSCP log shows the close or a re-login.** The tester reported that the window kept working after the next click, with no prompt. The monitor saw no packet in the quiet period, so WinSCP sent no keepalive | Matched on the server side. The silent re-login is **new**, and is from the tester's report |
+| 13 | A `REALPATH` keepalive does not refresh the idle timer | Not run. Keepalive was off: the monitor saw no packet in the quiet period | **Untested** |
 | 14 | A write past the per-file limit gets "Write File Error", and the session goes on (the `WRITE` row and the limit row of the tables above) | The refusal came as predicted. **The session then ended**: [the limit](#an-upload-past-the-per-file-limit-with-winscp) | **Not matched** |
 | 15 | Download and delete as the write-only role | Not run | **Not run** |
 
@@ -319,8 +320,9 @@ sequenceDiagram
 ```
 
 - **The upload succeeded.** The error comes after `Transfer done`. A user can take it for a failed upload, and nothing in the window says otherwise: see [what WinSCP shows an operator](#what-winscp-shows-an-operator).
+- **Three denials in the server log, one of them for the upload.** The server log showed three denials around one first upload by the write-only role: the listing of `/inbox` before it, wolfSSH's `stat` before `OPEN`, and WinSCP's directory refresh after it. The one denial that [the table of refusals](#each-refusal-and-its-event) gives for a successful write-only upload belongs to the upload itself, wolfSSH's `stat`. The other two come from WinSCP's directory reads. So three is what the design gives for this client.
 - **An upload by path was not run.** The run entered `/inbox` from the root and uploaded to it. The sequence above is what WinSCP sent.
-- **A name that already exists is refused.** Log A: `OPEN` got status 4, "Open File Error", and so did WinSCP's `LSTAT` of the file, since the role cannot read. The design says two things that fit: a new file below 100 KiB is opened with `WRITE`, `CREAT` and `EXCL` (the table above), and `EXCL` maps to `OPEN_DIRECT_EXCLUSIVE`, which the file service contract defines as "Stat, then `ERR_EXISTS` or create". So the refusal is what an exclusive create gives for a name that exists. **Two things are not established.** Debug 1 does not print the flags of an `OPEN`, so that WinSCP sent `EXCL` here is from its source, not from the log. And the reason the service gave for this refusal was not read from the server's events in this run. **This document does not say that a write-only role may not replace a file, so it is not claimed as a decision.** What the design does show is the consequence: WinSCP's way to an overwrite is `LSTAT`, a confirmation and `TRUNC`, and `LSTAT` is refused to this role. An upload of 100 KiB or more takes a different path in the source (`OPEN` of a `.filepart` with `TRUNC`, then `REMOVE` and `RENAME`) and was not run for this role. Whether a dropper should be able to replace a file is for the owner to decide if it matters.
+- **A name that already exists is refused.** That the name existed is **not shown by log A**, which holds no earlier `OPEN` of it. The basis is the tester's account and the server log, where an earlier dropper session created the name before the logged session. Log A: `OPEN` got status 4, "Open File Error", and so did WinSCP's `LSTAT` of the file, since the role cannot read. The design says two things that fit: a new file below 100 KiB is opened with `WRITE`, `CREAT` and `EXCL` (the table above), and `EXCL` maps to `OPEN_DIRECT_EXCLUSIVE`, which the file service contract defines as "Stat, then `ERR_EXISTS` or create". So the refusal is what an exclusive create gives for a name that exists. **Two things are not established.** Debug 1 does not print the flags of an `OPEN`, so that WinSCP sent `EXCL` here is from its source, not from the log. And the reason the service gave for this refusal was not read from the server's events in this run. **This document does not say that a write-only role may not replace a file, so it is not claimed as a decision.** What the design does show is the consequence: WinSCP's way to an overwrite is `LSTAT`, a confirmation and `TRUNC`, and `LSTAT` is refused to this role. An upload of 100 KiB or more takes a different path in the source (`OPEN` of a `.filepart` with `TRUNC`, then `REMOVE` and `RENAME`) and was not run for this role. Whether a dropper should be able to replace a file is for the owner to decide if it matters.
 
 ### A file name outside the rule (F4)
 
@@ -350,12 +352,12 @@ From the first run. The server's own events are in [the table of refusals](#each
 
 | WinSCP shows | What it means here | Evidence |
 | --- | --- | --- |
-| `Error code: 4`, with the server text `Open File Error`, `Rename File Error` or `Remove File Error`, and a list of "common reasons": a name that exists, a directory that exists, another file system, a full file system, a user disk quota | **Any refusal**: a name outside the rule, a missing permission, a name that exists for the write-only role, or a bound. The server sends one general failure by design, and WinSCP's list never mentions a name rule or a permission, so **a user is pointed at disks and quotas**. The cause is in the server's security events for the refusals that have one | Rows 4, 5 and 9 above, log A |
-| Dates `30/12/1899` or `03/01/0001` for entries | **No time was sent** (F6). They are WinSCP's display of an unset time, not a clock fault | Row 10 |
+| `Error code: 4`, with the server text `Open File Error`, `Rename File Error` or `Remove File Error`, and a list of "common reasons": a name that exists, a directory that exists, another file system, a full file system, a user disk quota | **Any refusal**: a name outside the rule, a missing permission, a name that exists for the write-only role, or a bound. The server sends one general failure by design, and WinSCP's list never mentions a name rule or a permission, so **a user is pointed at disks and quotas**. The cause is in the server's security events for the refusals that have one | Rows 4, 5 and 9 above: the tester's report for names and refusals, log A for the existing name |
+| Dates `30/12/1899` or `03/01/0001` for entries | **No time was sent** (F6). `30/12/1899` is the zero of WinSCP's date type, so it is how WinSCP shows an unset time, not a clock fault. Why a file in a read-only area showed `03/01/0001` is **not understood** | Row 10, from the tester's screen |
 | `Error listing directory '/inbox'`, `Error code: 2`, right after an upload by the write-only role | The role cannot list. **The upload had finished** (`Transfer done` in the log, and the file complete when read by someone who may read). Check the result as an account that can read | Log C |
-| `Cannot create remote file ... Error code: 4 ... Open File Error`, by the write-only role, for a name that is already in the area | A name that exists is refused: see [above](#a-session-with-write-permission-alone). It is not a full disk | Log A |
-| After a quiet period, the next click works with no prompt | The server ended the session at the idle limit (900 s in the run) and WinSCP logged in again with the stored credentials. **The user sees nothing, and a new session is a new login.** With WinSCP's keepalive on, this was not run | Row 12 |
-| An error window with `Received SSH2_MSG_CHANNEL_DATA for nonexistent channel 0` and Abort, Reconnect and Help, in the middle of a large upload | An upload past the per-file limit: the session is dropped. See [the limit](#an-upload-past-the-per-file-limit-with-winscp) | Log B |
+| `Cannot create remote file ... Error code: 4 ... Open File Error`, by the write-only role, for a name that was already in the area (by the server log, not by log A) | A name that exists is refused: see [above](#a-session-with-write-permission-alone). It is not a full disk | Log A |
+| After a quiet period, the next click works with no prompt | The server ended the session at the idle limit (900 s in the run, from the server side). The tester reported that the window kept working with no prompt. **WinSCP is understood to have logged in again with the stored credentials, and no WinSCP log shows it.** With WinSCP's keepalive on, this was not run | Row 12 |
+| An error window with `Received SSH2_MSG_CHANNEL_DATA for nonexistent channel 0` and Abort, Reconnect and Help, in the middle of a large upload | An upload past the per-file limit: the session is dropped. See [the limit](#an-upload-past-the-per-file-limit-with-winscp) | Log B for the message, the tester's screenshot for the buttons |
 
 ## What is faked and what is untested
 
@@ -393,9 +395,9 @@ From the first run. The server's own events are in [the table of refusals](#each
 
 | What | State |
 | --- | --- |
-| The session | Dropped. WinSCP shows an error window, `Received SSH2_MSG_CHANNEL_DATA for nonexistent channel 0`, with Abort, Reconnect and Help. Abort ends the session and the file list is gone until Reconnect. Reconnect works |
+| The session | Dropped. Log B records `Received SSH2_MSG_CHANNEL_DATA for nonexistent channel 0` and ends at `Answer: Abort`. The error window with Abort, Reconnect and Help is from the tester's screenshot. According to the tester, after Abort the file list is gone until Reconnect, and Reconnect works |
 | The partial file | **It stays.** It was `<name>.filepart` in the `data` area, 1,045,504 bytes both times, and it counts against the area's bytes and entries. A later create or write that would hit a limit may remove it, under the stale rule of the file service (F5), because the `data` area of this image declares `.filepart`. An area with no partial suffix never removes it |
-| Stored data | Nothing in the run showed damage. The refused write stored nothing, as the file service says, and the partial's size is exactly the writes that were accepted. The partial's content was not compared with the source, and the files around it were not compared byte for byte |
+| Stored data | Nothing was seen to be damaged, but **the only thing checked was the size of the partial file**, which is exactly the writes that were accepted. The refused write stored nothing, as the file service says. The partial's content was not compared with the source and the files around it were not compared. Because the cause is open, and one candidate is damage in the server's memory, "no damage" is not shown |
 | What to tell a user | Keep a file under the per-file limit (1 MiB in this image), reconnect, and remove the partial |
 | How often | Twice out of two with WinSCP 6.7 |
 | The cause | **Not understood.** No fix is made: see decision 18 |
@@ -416,10 +418,9 @@ sequenceDiagram
     Note over S: The file service refuses it whole and writes nothing
     S-->>W: STATUS 4, Write File Error
     Note over W: Four more writes are already sent
-    S-->>W: A data packet that WinSCP rejects
-    Note over W: 18 ms later. Received SSH2_MSG_CHANNEL_DATA for nonexistent channel 0, fatal
+    Note over W: 18 ms later WinSCP logs a CHANNEL_DATA message it does not accept (field 0). Received SSH2_MSG_CHANNEL_DATA for nonexistent channel 0, fatal
     W->>S: Closes the connection
-    Note over W: Error window with Abort, Reconnect and Help
+    Note over W: Error window with Abort, Reconnect and Help, from a screenshot
     Note over S: The .filepart stays with 1,045,504 bytes
 ```
 
@@ -434,13 +435,13 @@ What the log shows (WinSCP 6.7 Debug 1 log, run of 7 November 2026, log B):
 | Refused | The 65th write, at offset 1,045,504, got status 4, "Write File Error". It is refused whole because it would cross 1,048,576, as the file service contract says. OpenSSH with 32 KiB writes stopped at exactly 1,048,576 |
 | After the refusal | Four more writes were already sent (the last at offset 1,110,848). About 18 ms after the status, WinSCP logged `Received SSH2_MSG_CHANNEL_DATA for nonexistent channel 0`, an SSH-level error that it treats as fatal, and closed the connection |
 
-**What the investigation found** (the investigation report on #194, 7 November 2026). It could not reproduce the drop, and no code that it read explains it:
+**What the investigation found.** This is the author's investigation of 7 November 2026, kept as unpublished notes and summarised here, so it cannot be checked from this repository. It could not reproduce the drop, and no code that it read explains it:
 
 | Question | Answer |
 | --- | --- |
-| Reproduced without WinSCP? | **No.** About 40 runs, on the image and on the Linux proof server, with a client that uses channel id 256 as WinSCP does and keeps reading after the first error, with delays and chunking, and with PuTTY 0.81 `psftp`, whose SSH layer WinSCP derives from. In each, the refusal got status 4, later writes got status 4, every server message named the client's channel, and the session went on |
+| Reproduced without WinSCP? | **No.** About 40 runs, on the image and on the Linux proof server, with a client that uses channel id 256 as WinSCP does and keeps reading after the first error, with delays and chunking, and with PuTTY 0.81 `psftp`, whose SSH layer WinSCP derives from. **In every paramiko run** the refusal got status 4, later writes got status 4, every server message named the client's channel, and the session went on. `psftp` stops at the first error, so channel messages are not applicable to it. The runs with a read-only account and a closed handle tested other error paths, not the limit |
 | What does the message mean? | WinSCP prints the first 32-bit field of the packet. Its first channel id is 256. PuTTY's reader returns 0 for a packet shorter than 4 bytes. So the packet had recipient 0 **or** a body shorter than 4 bytes |
-| Is the packet the server's? | Very likely: with the cipher and MAC of the run (aes128-ctr, HMAC-SHA-256) a packet changed on the way would have failed the MAC first |
+| Is the packet the server's? | Probably, as an inference with no capture: with the cipher and MAC of the run (aes128-ctr, HMAC-SHA-256) a packet changed on the way would have failed the MAC first |
 | Does the code send one? | None that it read. The refused write takes the same path as an accepted one, except for the status text, and every data packet is addressed to the channel's peer id, which is set once when the channel opens |
 | Where is it then? | **Not located.** The candidates are memory damage in the server that zeroes a field, a path that only WinSCP's traffic reaches, and the network path of the test. Each is a hypothesis, not a finding |
 
@@ -448,7 +449,7 @@ What the log shows (WinSCP 6.7 Debug 1 log, run of 7 November 2026, log B):
 
 | Step | Needs |
 | --- | --- |
-| The same WinSCP upload against a debug image with wolfSSH logging on (a build setting, as the investigation used on a scratch copy), and the server log | The tester at the Windows machine, and a rebuilt image |
+| The same WinSCP upload against a debug image with wolfSSH logging on (a build setting, `DEBUG_WOLFSSH`, which needs no edit to wolfSSH, as the investigation used on a scratch copy), and the server log | The tester at the Windows machine, and a rebuilt image |
 | The same upload with PuTTY's `psftp.exe -sshrawlog`, which logs the decrypted packet that breaks the session | The tester at the Windows machine |
 | A diagnostic log of the peer channel and payload size inside wolfSSH's data send | **A patch to wolfSSH, which needs the owner's approval**, as issue #194 says, even for a scratch build |
 
@@ -477,7 +478,7 @@ Each was taken without asking, as the narrow and safer choice.
 | 15 | The `native_sim` image is in `tests/ssh/sftp/native_sim`, and reuses #192's test Access ports and keys by path | So that it stays within the files of #194, and adds no copy of them. It needs the provider, which `main` holds since #265, and on a tree without it the script says so | Add cases to `tests/zephyr/ssh_provider`, as #192's document suggests, which changes #192's files |
 | 16 | The port records direct use of a hidden area with a service `stat` that stops at the permission, and sends `REMOVE` and `RENAME` of an area to the service with an empty name | So that Hiding holds with no new interface, and the one rule that decides stays in the service | A new service call for each |
 | 17 | No new event identifier for the refusals with none, and a rule outside the file service does not emit one | The event port is the service's, and a new identifier changes the service and #182, outside the files of #194 | Add identifiers in [#270](https://github.com/wonny-labs/crux-pilot/issues/270), as a shared change under G-A and #182 |
-| 18 | The upload past the per-file limit is documented as a limit, and no code changes for it | No cause was found, so a change would be a guess, and the only code that a diagnostic needs is wolfSSH, whose patch needs the owner's approval | A diagnostic wolfSSH build, or a composition change (a larger window, which costs heap per connection), neither with evidence that it helps |
+| 18 | The upload past the per-file limit is documented as a limit, and no code changes for it | No cause was found, so a change would be a guess. A debug build with wolfSSH logging needs no wolfSSH edit. Only a diagnostic patch inside wolfSSH would, and that needs the owner's approval | A diagnostic wolfSSH build, or a composition change (a larger window, which costs heap per connection), neither with evidence that it helps |
 
 ## Follow-ups on #179
 
