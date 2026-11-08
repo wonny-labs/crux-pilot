@@ -1,0 +1,11 @@
+$ scan, the bench build (image files may hold the raw bytes; the linked image must hold them exactly once)
+no plaintext of the password, or an encoding of it, in 3 scanned tree(s) (image files may hold it)
+exit 0
+
+$ scan again with no allowance: it must list exactly the files that are the image
+LEAK raw app/libapp.a
+LEAK raw CMakeFiles/app.dir/bench_first_account_password.S.obj
+LEAK raw zephyr/zephyr.bin
+LEAK raw zephyr/zephyr_pre0.elf
+LEAK raw zephyr/zephyr.elf
+exit 1 (each hit is a file that is the image)

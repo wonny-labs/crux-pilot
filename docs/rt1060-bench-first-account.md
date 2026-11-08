@@ -7,7 +7,7 @@ Status: **stage 2 row C4** of [the RT1060-EVKB feasibility report](rt1060-manage
 | Question | Answer |
 | --- | --- |
 | Where does the password come from? | A file **outside the repository**, named by the environment variable `CRUX_BENCH_PASSWORD_FILE`. One line, 16 to 128 printable ASCII characters, no space, mode 600, outside every git work tree. `bench_first_account_file.py generate` makes one from the system's random source and prints only its hash. |
-| What does a build with a missing, empty or short file do? | **It stops at configuration**, with a reason that names what is wrong with the file and never what is in it. Checked on the real image: [configure-only runs](#configure-only-refusals), and in script mode for 14 kinds of defective file. |
+| What does a build with a missing, empty or short file do? | **It stops at configuration**, with a reason that names what is wrong with the file and never what is in it. Checked on the real image in [four configure-only runs](#configure-only-refusals), and in script mode for each kind of defective file. |
 | Which account? | `admin`, role `administrator`, created on the serial origin that Access requires, as the native images do. Name and role are in `bench_declaration.json` (`first_account`), which CMake, C, the manifest and the tests all read. |
 | Is the plaintext in the linked image? | **Yes, and it cannot be otherwise today.** `crux_access_provision_first_account()` takes a plaintext password and derives its own record inside Access, so no pre-derived form exists to embed. The bytes are embedded by an assembler `.incbin` of the file: [what the image holds](#what-the-image-holds). |
 | Where is it **not**? | In the repository, the configuration, any generated source or header, `.config`, the link map, the listings, the build and configure logs, the manifest, the UART lines and the evidence. `bench_first_account_file.py scan` fails on any of them: [the scan](#the-scan). |
@@ -33,10 +33,10 @@ flowchart LR
 | Question | Answer |
 | --- | --- |
 | Why plaintext? | See [the options](#why-the-plaintext-is-in-the-image). Access has one entry that creates the first account, and it takes the password. Its record (`access_record.c`, version 1: name, role, flags, algorithm, iterations, salt, derived) is internal and written only by Access. |
-| Where is it in the image? | **Read-only data in QSPI Flash**, in the section `.rodata.crux_bench_first_account`, symbols `crux_bench_first_account_password` (the file's bytes, with the newline) and `crux_bench_first_account_password_size`. It is read in place and never copied to RAM by this code. `@@ELF-FACTS@@` |
+| Where is it in the image? | **Read-only data in QSPI Flash**, in the section `.rodata.crux_bench_first_account`, symbols `crux_bench_first_account_password` (the file's bytes, with the newline) and `crux_bench_first_account_password_size`. It is read in place and never copied to RAM by this code. In the linked image: `crux_bench_first_account_password` is 25 bytes (24 characters and the newline) at `0x6007f798` in the output section `rodata`, which the linker places in the `FLASH` region (the symbol type is `R`, read-only), and `zephyr.elf` and `zephyr.bin` each hold the bytes **exactly once** ([evidence](evidence/rt1060-management-image-feasibility/first-account-c4/build/first-account-symbol-sections.txt)). |
 | Who can read it? | Anyone who can read the board's QSPI Flash (a probe, or the programmer file) or who has `zephyr.elf` or `zephyr.bin`. The RT1060 has no readout protection set here. **It is the same exposure as the test host key's static buffer, and unlike it the bytes are chosen by the owner and fixed.** |
 | What limits the harm | The password is made for this one image and for nothing else (the generator); the image answers on one dedicated link (`192.168.77.2`, D10); the file system is a RAM disk (D2, row C3), so nothing persists and every boot makes the account again with the same password; the account is an administrator **only on the bench image**; and the image refuses to start until a reviewed change after the approval. **Not a protection:** encoding, XOR or splitting the bytes in the image, which hides nothing from anyone who reads Flash and is refused here as theatre. |
-| `.config`, map, listings | `@@CONFIG-FACTS@@` |
+| `.config`, map, listings | The resolved `.config` holds `CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE=y` and nothing about the password. The link map holds the two symbol names and no contents. This build produced no listing. The scan of the build directory, of the repository and of the logs found no plaintext and no encoding outside the image files, and in a scan with no allowance it lists exactly the five files that are the image: `libapp.a`, the object of the assembler file, `zephyr.bin`, `zephyr_pre0.elf` and `zephyr.elf` ([scan](evidence/rt1060-management-image-feasibility/first-account-c4/host/scan-bench.txt)). |
 | What the next product build must not do | Carry the form. `CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE` depends on the bench declaration in Kconfig, is refused by the CMake guard without it, and its source stops at compile time without it. |
 
 ### Why the plaintext is in the image
@@ -114,21 +114,42 @@ Forms searched, each made independently of the tool in its tests: raw, reversed,
 
 | Layer | Where | What it shows | Result |
 | --- | --- | --- | --- |
-| Access, on the real core and fake ports (Host) | `tests/bench_first_account/first_account.c`, ctest `BenchFirstAccount.provision` | The account has the right name and role, can manage accounts, holds no key and need not change its password; the stored record does not contain the password; a file with or without its newline gives the same account; a wrong, shorter, longer or newline-ended password and an unknown name are refused; **a boot with an empty store creates it again, three times in a row; a boot that kept the store does not, and the changed password is the one that works**; a password outside the file's rules (short, 12 characters, long, a space, tab, control byte, NUL, CR, a second newline) never reaches Access (no derivation); null arguments, an unknown role and a role without `access.manage` are refused; an unusable store never opens provisioning; a failed save leaves it open | `@@HOST-RESULT@@` |
-| The file rules and the scan | `tests/build/test_bench_first_account_file.py` | 51 cases, every password made at run time | `@@PY1@@` |
-| The CMake level, the declaration, the sources | `tests/build/test_bench_first_account_build.py` | The check refuses each defective file in script mode, the assembler file holds no password, five weakened copies of the CMake file are noticed, and the limits agree between the declaration, the tool and the header | `@@PY2@@` |
-| The guards | `check_bench_guard.py` | The C1 guards and the new lines, 40 of 40 mutants | `@@GUARD@@` |
-| A real configure and build for the board | Dev Container | [below](#target-build) | `@@BUILD@@` |
+| Access, on the real core and fake ports (Host) | `tests/bench_first_account/first_account.c`, ctest `BenchFirstAccount.provision` | The account has the right name and role, can manage accounts, holds no key and need not change its password; the stored record does not contain the password; a file with or without its newline gives the same account; a wrong, shorter, longer or newline-ended password and an unknown name are refused; **a boot with an empty store creates it again, three times in a row; a boot that kept the store does not, and the changed password is the one that works**; a password outside the file's rules (short, 12 characters, long, a space, tab, control byte, NUL, CR, a second newline) never reaches Access (no derivation); null arguments, an unknown role and a role without `access.manage` are refused; an unusable store never opens provisioning; a failed save leaves it open | **156 checks, 0 failures**, and the same under ASan and UBSan (which found an overflow of a buffer in the test itself, fixed). Nine of eleven mutants of the step are killed. The two that are not change nothing that can be seen: the step's upper length limit and its null-user test repeat what Access checks itself (`CRUX_ACCESS_PASSWORD_MAX` and `crux_access_name_valid`), so they are defence in depth that no result can show. |
+| The file rules and the scan | `tests/build/test_bench_first_account_file.py` | 51 cases, every password made at run time | 51 pass, and **13 of 13 mutants of the tool are killed** (run on a copy) |
+| The CMake level, the declaration, the sources | `tests/build/test_bench_first_account_build.py` | The check refuses each defective file in script mode, the assembler file holds no password, five weakened copies of the CMake file are noticed, and the limits agree between the declaration, the tool and the header | 24 pass |
+| The guards | `check_bench_guard.py` | The C1 guards and the new lines, 40 of 40 mutants | **40 of 40 mutants killed**, 61 refusals shown. With the other two files: 89 Python tests pass on the host and in the CI-like container. |
+| A real configure and build for the board | Dev Container | [below](#target-build) | Linked, Flash 601,744 B, RAM 837,804 B |
 
 Every password in these tests is generated at run time from the system's random source and lives in memory or in a temporary folder outside the repository. A failing assertion names a line, not a value.
 
 ## Target build
 
-@@TARGET-BUILD@@
+`mimxrt1060_evk@B//qspi`, the Dev Container (Zephyr SDK 1.0.1, GCC 14.3.0, linux/amd64 under emulation, `-j2`, one build), the pins and the build-local Zephyr copy of C1, the Wolf profile. The password file was a random 24-character file made by the generator, outside the repository, mounted read-only. Built once from `75f0f5ed`, then reconfigured and rebuilt incrementally from the committed tree **`304206cc`** (clang-format 18 and a test fix; the manifest says `source_tree_modified: false`), with a **new** password file, which also shows that a changed file is embedded again and hashed again.
+
+| Item | C1 (`a47c159`) | C4 |
+| --- | ---: | ---: |
+| FLASH (`0x60000000`, 8 MB) | 601,004 B (7.16 %) | **601,744 B** (7.17 %), **740 B more**: the step, the byte rules, the embedded 25 bytes and two lines of text |
+| RAM = SDRAM | 837,804 B (2.50 %) | **837,804 B**, unchanged |
+| `size`: text, data, bss | 596,504, 4,480, 833,254 | 597,244, 4,480, 833,254 |
+| Steps, warnings | 551, 3 | 553, **the same 3**, all in wolfSSH `wolfsftp.c` |
+| `crux_bench_first_account_password` | not in the image | 25 bytes, `rodata`, Flash, once in `zephyr.elf` and once in `zephyr.bin` |
+| The public test password in `zephyr.elf` (`strings -a`) | 0 times | **0 times** |
+| `bench-manifest.json` | no first account | `first_account`: `admin`, `administrator`, the environment variable's name, `file_sha256`, `plaintext_in_image: true`; `test_forms.first_account_file.set: true`; `source_commit` is the committed tree and `source_tree_modified` is false |
+
+The ELF and binary hashes depend on the password file, so they are in the evidence record and not here. The image still refuses to start: `run_refused` is true in the manifest.
 
 ### Configure-only refusals
 
-@@CONFIGURE@@
+Four real configurations of the bench image, with the environment variable unset, naming an empty file, naming a file of 8 characters, and naming a file that does not exist. Each stops at configuration, before anything is compiled, and the reason names the file's fault and not its content:
+
+| Run | CMake's message |
+| --- | --- |
+| unset | `set CRUX_BENCH_PASSWORD_FILE to its path. Make one with: python3 .../bench_first_account_file.py generate --file <path outside any repository>` |
+| empty file | `the password file is refused. refused: the password file is empty` |
+| 8 characters | `the password file is refused. refused: the password is too short: at least 16 characters` |
+| no such file | `the password file is refused. refused: the password file does not exist` |
+
+[Excerpts](evidence/rt1060-management-image-feasibility/first-account-c4/build/configure-refusals.txt). Script mode adds the rest (a long file, a group-readable file, a file in a work tree or in the repository, the public password, one line too many, a space), and the tests above cover each.
 
 ## What a product does instead
 
