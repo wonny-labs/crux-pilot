@@ -4,7 +4,9 @@ manifest:
   # ordinary workspace fetches no GPLv3 stack. See patches/zephyr/README.md.
   # The crux-reliance group is off by default for the same reason: an ordinary
   # workspace does not fetch the GPLv2 Reliance Edge source.
-  group-filter: [-crux-secure-management, -crux-reliance]
+  # The crux-boot group holds MCUboot (Apache-2.0). It is off by default only to
+  # keep an ordinary workspace's fetch small.
+  group-filter: [-crux-secure-management, -crux-reliance, -crux-boot]
   remotes:
     - name: zephyrproject-rtos
       url-base: https://github.com/zephyrproject-rtos
@@ -24,6 +26,15 @@ manifest:
           - hal_nxp
           - littlefs
           - fatfs
+    # MCUboot follows the revision in Zephyr's own west.yml at the tag above.
+    # A name-allowlist entry would fetch it in every workspace, so it is a plain
+    # project in an optional group instead.
+    - name: mcuboot
+      remote: zephyrproject-rtos
+      revision: 6d3b3d2c38ab20c242e5b9abb04d050086383eb2
+      path: bootloader/mcuboot
+      groups:
+        - crux-boot
     # These two follow the revisions in Zephyr's own west.yml at the tag above.
     - name: mbedtls
       remote: zephyrproject-rtos

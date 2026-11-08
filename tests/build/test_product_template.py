@@ -308,6 +308,15 @@ class ManifestTest(unittest.TestCase):
         self.assertEqual(["crux-reliance"], projects["reliance-edge"].get("groups"))
         self.assertIn("-crux-reliance", self.crux["group-filter"])
 
+    def test_mcuboot_stays_in_its_optional_group_at_the_revision_zephyr_pins(self):
+        # A name-allowlist entry would fetch MCUboot in every workspace, because an imported
+        # project cannot be given a group. A plain project in an optional group fetches nothing
+        # by default, and west crux-pins compares its revision with Zephyr's manifest.
+        projects = {entry["name"]: entry for entry in self.crux["projects"]}
+        self.assertEqual(["crux-boot"], projects["mcuboot"].get("groups"))
+        self.assertIn("-crux-boot", self.crux["group-filter"])
+        self.assertNotIn("mcuboot", projects["zephyr"]["import"]["name-allowlist"])
+
 
 @unittest.skipUnless(WEST and GIT and yaml, "west, git and PyYAML are required for the workspace tests")
 class TemplateWorkspaceTest(unittest.TestCase):
