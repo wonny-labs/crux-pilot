@@ -121,7 +121,8 @@ def frozen_inputs(data, profile=None):
     # The pinned dependencies are exact and each appears once. An image whose build names its modules explicitly
     # (M5, see scripts/test-networking-physical.sh) records any other project the manifest makes active but never
     # builds it; it must still be a clean, resolved checkout. An image built by west module discovery (profile
-    # modules) builds every active project, so its modules are pinned the same way and nothing else is accepted.
+    # modules) builds every active project that carries Zephyr module metadata, and the freeze cannot see which
+    # do, so its modules are pinned the same way and no other project is accepted.
     require(len(contexts) <= 1 and len(locked) == len(pinned) and {p['name'] for p in locked} == set(pinned),
             'Unexpected/missing/duplicate dependencies or manifest context')
     require(not (profile.modules and others),

@@ -1,8 +1,8 @@
 """The S2 image profile, and the rule for an image built by west module discovery.
 
 M5 builds name their modules explicitly, so a west project that is not pinned is recorded and never part of the
-image. An image built by module discovery (S2) takes every active west project as a build module, so each one is
-pinned exactly and an unpinned project is refused. The tests also pin that the M5 rules did not change.
+image. An image built by module discovery (S2) takes every active west project that carries Zephyr module metadata as a
+build module. The freeze cannot see which do, so each is pinned exactly and an unpinned project is refused. The tests also pin that the M5 rules did not change.
 """
 import contextlib
 import io

@@ -20,9 +20,10 @@ class ImageProfile:
     commit_tag: bool                            # whether the first 12 characters of the source commit are embedded in the binary
     errno_suffix: Optional[str] = None          # source file for the errno map evidence; None keeps no errno evidence
     tool_scripts: Tuple[str, ...] = ()          # frozen scripts of the tool repository, besides tests/target/*.py
-    # An image built by west module discovery takes every active west project as a build module. Its modules are
-    # pinned exactly like ``pinned`` and no other project is accepted. Empty for an image whose build names its
-    # modules explicitly: there, a project that is not pinned is recorded and never part of the image.
+    # An image built by west module discovery takes every active west project that carries Zephyr module metadata
+    # as a build module. The freeze cannot see which projects do, so such a profile pins its modules exactly like
+    # ``pinned`` and accepts no other project. Empty for an image whose build names its modules explicitly: there,
+    # a project that is not pinned is recorded and never part of the image.
     modules: Mapping[str, str] = field(default_factory=dict)
     module_paths: Mapping[str, str] = field(default_factory=dict)
 

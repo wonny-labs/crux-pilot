@@ -68,6 +68,7 @@ class S2Check(unittest.TestCase):
     def test_every_required_configuration_line_is_enforced(self):
         self.assertIn('CONFIG_MAIN_STACK_SIZE=4096', s2_image.REQUIRED)
         self.assertIn('CONFIG_CRUX_CONTROLLER_PEER_ADDRESS="192.168.77.1"', s2_image.REQUIRED)
+        self.assertIn('CONFIG_NET_CONFIG_MY_IPV4_ADDR="192.168.77.2"', s2_image.REQUIRED)
         lines = CONFIG.splitlines()
         for line in sorted(s2_image.REQUIRED):
             with self.subTest(line=line):
@@ -80,7 +81,11 @@ class S2Check(unittest.TestCase):
         for old, new in (('CONFIG_MAIN_STACK_SIZE=4096', 'CONFIG_MAIN_STACK_SIZE=4097'),
                          ('CONFIG_NET_MAX_CONTEXTS=4', 'CONFIG_NET_MAX_CONTEXTS=8'),
                          ('CONFIG_CRUX_CONTROLLER_PEER_PORT=42420', 'CONFIG_CRUX_CONTROLLER_PEER_PORT=42421'),
-                         ('CONFIG_CRUX_CONTROLLER_PEER_ADDRESS="192.168.77.1"', 'CONFIG_CRUX_CONTROLLER_PEER_ADDRESS="192.168.77.9"')):
+                         ('CONFIG_CRUX_CONTROLLER_PEER_ADDRESS="192.168.77.1"', 'CONFIG_CRUX_CONTROLLER_PEER_ADDRESS="192.168.77.9"'),
+                         # The static address of the board, its mask and the absence of a gateway are Kconfig values too.
+                         ('CONFIG_NET_CONFIG_MY_IPV4_ADDR="192.168.77.2"', 'CONFIG_NET_CONFIG_MY_IPV4_ADDR="192.168.77.3"'),
+                         ('CONFIG_NET_CONFIG_MY_IPV4_NETMASK="255.255.255.0"', 'CONFIG_NET_CONFIG_MY_IPV4_NETMASK="255.255.0.0"'),
+                         ('CONFIG_NET_CONFIG_MY_IPV4_GW=""', 'CONFIG_NET_CONFIG_MY_IPV4_GW="192.168.77.1"')):
             with self.subTest(new=new):
                 self.assertIn(old, CONFIG)
                 with self.assertRaises(ValueError):

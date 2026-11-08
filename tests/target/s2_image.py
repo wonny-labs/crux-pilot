@@ -2,8 +2,8 @@
 
 The configuration lines and symbol sizes were measured in a local build of the S2 image (see
 docs/board-image-profiles.md). Nothing here ran on a board. The checks need only the BIN, the ELF and the resolved
-``.config`` that the freeze already holds. What cannot be derived from them is not checked here: the static IPv4
-address of the board (192.168.77.2/24) is not a Kconfig value, and the UART output of the image is unverified.
+``.config`` that the freeze already holds. The static IPv4 configuration (192.168.77.2/24, no gateway) is a set of
+Kconfig values and is checked there. The UART output of the image is unverified and nothing checks it here.
 """
 from pathlib import Path
 from m3_image import check_image_bytes, check_optimization, require
@@ -20,7 +20,9 @@ REQUIRED = frozenset({
     'CONFIG_CRUX_SOCKETS=y', 'CONFIG_CRUX_NETIF=y', 'CONFIG_NET_IPV4=y', 'CONFIG_NET_TCP=y', 'CONFIG_NET_UDP=y',
     'CONFIG_NET_SOCKETS=y', 'CONFIG_NET_MAX_CONTEXTS=4', 'CONFIG_NET_MAX_CONN=4', 'CONFIG_NET_PKT_RX_COUNT=16',
     'CONFIG_NET_PKT_TX_COUNT=16', 'CONFIG_NET_BUF_RX_COUNT=32', 'CONFIG_NET_BUF_TX_COUNT=32',
-    # The S2 workload and its network peer.
+    # The static address of the board (no DHCP, no gateway) and the S2 workload with its network peer.
+    'CONFIG_NET_CONFIG_SETTINGS=y', 'CONFIG_NET_CONFIG_NEED_IPV4=y', 'CONFIG_NET_CONFIG_MY_IPV4_ADDR="192.168.77.2"',
+    'CONFIG_NET_CONFIG_MY_IPV4_NETMASK="255.255.255.0"', 'CONFIG_NET_CONFIG_MY_IPV4_GW=""',
     'CONFIG_CRUX_CONTROLLER_S2=y', 'CONFIG_CRUX_CONTROLLER_PEER_ADDRESS="192.168.77.1"',
     'CONFIG_CRUX_CONTROLLER_PEER_PORT=42420', 'CONFIG_CRUX_CONTROLLER_WORKER_STACK=8192',
     'CONFIG_CRUX_THREAD_COUNT=4', 'CONFIG_CRUX_THREAD_STACK_BYTES=8192',
