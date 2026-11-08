@@ -63,6 +63,8 @@ jobs:
         run: ./scripts/test-messaging.sh --host-only
       - name: Check build provenance safeguards
         run: python3 -m unittest discover -s tests/build -v
+      - name: Test the power-cut wrapper with fake commands
+        run: python3 -m unittest discover -s tests/power_cut -v
       - name: Check format
         run: ./scripts/check-format.sh
       - name: Validate public Serial consumers
