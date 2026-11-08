@@ -213,6 +213,15 @@ and transitive wrappers. This does not inspect all provider-private requirements
 or restrict the supported public capability facades. Zephyr selection and the
 Sockets declaration/selected-sysroot exceptions remain unchanged.
 
+The Zephyr File root binding follows the same pattern. `crux::file_zephyr` (header
+`<crux/file_zephyr.h>`) is a composition interface for a product's platform composition, the code
+that also mounts the file system. It is not a portable usage target, and application code must not
+link it. It names Zephyr on purpose, and `crux::file_zephyr` is rejected by the native-free consumer
+check through the `zephyr` token in its name and through its port include root under
+`components/file/ports/zephyr`. The negative test `tests/build/test_file_zephyr_boundary.py` shows
+that for a direct link, a transitive wrapper and the usage check. The check does not restrict `crux::file`, which stays the portable File target.
+[File root binding](file-composition-interface.md) states the role and its limits.
+
 ### System consumer boundary
 
 System's public usage target is `crux::system`, with `<crux/system.h>` owned by

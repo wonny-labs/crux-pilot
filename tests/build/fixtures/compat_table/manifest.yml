@@ -1,0 +1,62 @@
+# Invented manifest for tests/build/test_compat_table.py. The projects are in no
+# particular order on purpose: the generated table must not depend on it.
+# A comment that mentions GPLv9 here must never become a licence claim.
+manifest:
+  version: "1.2"
+  group-filter: [-crux-secure-management, -crux-reliance]
+  remotes:
+    - name: upstream
+      url-base: https://example.invalid/upstream
+  projects:
+    - name: extra-mod
+      remote: upstream
+      revision: 781276ddcf6c3745cfb00cea5754c33b9053e4d5 # 2.0.1
+    - name: wolfssh
+      remote: upstream
+      revision: 11846a9add6be879c67acc91d7292f6428eec597 # v1.6.0-stable
+      path: modules/crypto/wolfssh
+      groups:
+        - crux-secure-management
+    - name: reliance-edge
+      remote: upstream
+      revision: b5b4f341309013435d4746a3a7eca55136bb8252 # v3.0
+      path: modules/fs/reliance-edge
+      groups:
+        - crux-reliance
+      userdata:
+        crux-licence-class: fixture-class
+    - name: zephyr
+      remote: upstream
+      revision: 4edf19ddec5a82b9b7fb321f562fc796e5def49f # v4.4.2
+      import:
+        name-allowlist:
+          - hal_nxp
+          - cmsis
+    - name: tf-psa-crypto
+      remote: upstream
+      revision: 6345d9d62a013d54862f63da34071d845589f347
+      groups:
+        - crux-secure-management
+    - name: wolfpsa
+      remote: upstream
+      revision: "fe2acee1331c3de37a558e6a29148ae9aaf36ee0" # v5.9.4
+      groups:
+        - crux-secure-management
+    - name: dual-mod
+      remote: upstream
+      revision: c1393802f822b0ac438b2a7bcd52aeab663645b6 # follows upstream
+      groups:
+        - crux-reliance
+        - crux-extra
+    - name: mbedtls
+      remote: upstream
+      revision: d64b74f82b920a171dbaf347168be29cf101b033
+      groups:
+        - crux-secure-management
+    - name: wolfssl
+      remote: upstream
+      revision: 1cced69c0d644e892a7d302dc232d32545c02105 # v5.9.4-stable
+      groups:
+        - crux-secure-management
+  self:
+    path: crux-pilot

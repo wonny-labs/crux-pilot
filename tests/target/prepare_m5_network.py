@@ -68,6 +68,11 @@ S2_MODULE_PATHS = {'crux-pilot': 'crux-pilot', 'picolibc': 'modules/lib/picolibc
                    'littlefs': 'modules/fs/littlefs'}
 
 
+# The window of the raw UART capture after the S2 start command. A proposal of the crux-controller plan (180 s: the
+# workload starts only after the network init wait of up to 30 s), bounded by MAX_CAPTURE_SECONDS; the owner decides it.
+S2_CAPTURE_SECONDS = 180
+
+
 def firmware_identity_of(image_sha256, config_bytes, target=s2_image.TARGET):
     """The firmware identity digest as scripts/record-build-provenance.py computes it, from the recorder's own functions."""
     identity = dict(algorithm=_PROVENANCE.FIRMWARE_IDENTITY_ALGORITHM, target=target, image_sha256=image_sha256,
@@ -86,7 +91,8 @@ def s2_profile():
     """The crux-controller S2 image: no commit tag, no errno evidence, modules found by west module discovery."""
     return ImageProfile(name=S2_NAME, manifest_path=S2_MANIFEST_PATH, pinned=S2_PINNED, pinned_paths=S2_PINNED_PATHS,
                         check_image=s2_check_image, commit_tag=False, errno_suffix=None,
-                        tool_scripts=('record-build-provenance.py',), modules=S2_MODULES, module_paths=S2_MODULE_PATHS)
+                        tool_scripts=('record-build-provenance.py',), modules=S2_MODULES, module_paths=S2_MODULE_PATHS,
+                        capture='raw', capture_seconds=S2_CAPTURE_SECONDS)
 
 
 PROFILES = {M5_NAME: m5_profile, S2_NAME: s2_profile}

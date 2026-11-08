@@ -1,6 +1,6 @@
 # Product Composition Guide
 
-**Status: adopted practice, 2026-11-04.** The routes below are provisional until the first products have tried them. No Crux release tag exists yet: the first tag waits for that trial. The release bundle is a convention. A first schema and checker exist in a product repository, and Crux has adopted neither. The baseline gate warns by default until consumers reach the baseline. This guide records how a product on Crux can compose, check, version and release its firmware, and what was run to support that. See [Limits](#limits).
+**Status: adopted practice, 2026-11-04.** The routes below are provisional until the first products have tried them. No Crux release tag exists yet: the first tag waits for that trial. A provisional schema and checker for the release bundle now exist in this repository, see [Release bundle](#release-bundle). They are not frozen, and no product release has been made with them. The baseline gate warns by default until consumers reach the baseline. This guide records how a product on Crux can compose, check, version and release its firmware, and what was run to support that. See [Limits](#limits).
 
 Use it with the [product template](../samples/product_template/README.md), a small directory you copy to start a product repository. For other ways to consume Crux, see the [Build and Integration Guide](build.md).
 
@@ -15,7 +15,7 @@ Dependencies run one way: product to Crux to Zephyr. Crux knows nothing about an
 | Checks | `west crux-pins`, the Zephyr baseline gate and `scripts/record-build-provenance.py` | Running them in its own CI and keeping the results |
 | Third-party changes | Only what Crux itself needs | The route it takes and the pin in its manifest. The organisation, not a product, owns each fork and vendor repository, its tags, its `-acmeN` counter and its carried-changes list |
 | Versions | Its own tags, once they exist | The product version and its security counter |
-| Release | No adopted bundle schema or checker, and no signing or SBOM reduction tool | The release branch, the lock file, signing and what goes outward. A public product repository publishes hashes only, see [Release bundle](#release-bundle) |
+| Release | A provisional [bundle schema and checker](release-bundle-checker.md), not frozen. No assembler, no signing and no SBOM reduction tool | The release branch, the lock file, signing and what goes outward. A public product repository publishes hashes only, see [Release bundle](#release-bundle) |
 | Commercial modules | Nothing. Crux's manifest names only public modules | Their names, URLs and licences, in product or organisation manifests |
 
 ## Structure
@@ -321,7 +321,7 @@ This public repository replaces some Zephyr sources in the build without editing
 
 The field widths limit the product version to major and minor up to 255, patch up to 65535 and build up to 4294967295. MCUboot is only an example. A product with another boot loader records its own image identity.
 
-`v0.y.z` promises a recorded pin set, a stated Zephyr baseline and listed breaking changes. It makes no compatibility promise before `v1`. A Zephyr baseline move or a change to a pinned module is listed in the release notes and raises `y`.
+`v0.y.z` promises a recorded pin set, a stated Zephyr baseline and listed breaking changes. It makes no compatibility promise before `v1`. A Zephyr baseline move or a change to a pinned module is listed in the release notes and raises `y`. The table of pinned revisions in the release notes is generated from `west.yml`, never written by hand: see the [compatibility table](compatibility-table.md), a provisional generator.
 
 ## Upgrades and security fixes
 
@@ -434,14 +434,16 @@ west spdx -d product-x/build/app
 
 ### Release bundle
 
-This is a convention. A first schema and checker exist in a product repository. Crux has adopted neither.
+A bundle is a folder of text items and one `release-manifest.json` that lists the hash of each other item. It holds hashes and identities, never an image.
+
+A provisional schema and checker for it exist in this repository: the manifest schema [`docs/schemas/release-manifest.schema.json`](schemas/release-manifest.schema.json) and the checker [`scripts/check-release-bundle.py`](../scripts/check-release-bundle.py). [Release bundle schema and checker](release-bundle-checker.md) describes them, what the checker refuses and what it cannot detect. They are not frozen before a product's first real release, and no product release has been made with them. The assembler that writes the bundle is not built, so a product writes its own bundle for now. The checker is the last step before an item leaves the repository, and it only reads.
 
 | Item | Source | Audience |
 | --- | --- | --- |
 | Firmware image | `build/app/zephyr/zephyr.bin` | Outward to customers through a private delivery channel only. In a public product repository, publish only its SHA-256, in the release manifest. Never attach the image, `.elf` or `.map` as a release asset or CI artefact |
 | `licences/` | The licence texts of what the image contains | Outward |
 | Outward SBOM | Reduced by the product from the full set | Customers |
-| `release-manifest.json` | Product version, security counter, release tag, SDK version, container image, hashes of the bundle's items. Per vendor project, its delivery tag and the hash of its hash list. Each module replaced under a new name. Any other delivery the build record does not cover | Internal |
+| `release-manifest.json` | Schema version, product version, release tag, toolchain (SDK) version, build image (container, runner or host), build target, hashes of the bundle's items, the SHA-256 of the image, the firmware identity and the name of its algorithm. Per vendor project, its delivery tag and the hash of its hash list. Each module replaced under a new name. The schema refuses any other top-level field, so a product's own fields, such as a security counter, and any other delivery the build record does not cover go in `extensions` | Internal |
 | Build record | `build/app/provenance.json` | Internal |
 | Lock file | `locks/west.frozen.yml` at the release tag | Internal |
 | Pin report | Output of `west crux-pins` | Internal |
@@ -449,7 +451,9 @@ This is a convention. A first schema and checker exist in a product repository. 
 | Full SBOM | `build/app/spdx/` | Internal. Authorities receive it on request |
 | Debug files | `build/app/zephyr/zephyr.elf` and `zephyr.map` | Internal only |
 
-A public product repository publishes hashes only. This is the owner's binaries policy for product repositories: the firmware image, `.elf` and `.map` are never a release asset or a CI artefact, and customers receive the image through a private delivery channel. The rule is not a Crux-wide rule. The CI of crux-pilot itself uploads test and sample images built from public source (ELF, BIN and map files, kept 14 days) as provenance checks and board-test evidence, an exception the owner accepted.
+A public product repository publishes hashes only. This is the owner's binaries policy for product repositories: the firmware image, `.elf` and `.map` are never a release asset or a CI artefact, and customers receive the image through a private delivery channel. For the bundle, the checker enforces hashes only by default, and it has no mode that allows an image. It refuses a bundle that holds a file with an image suffix such as `.bin`, `.elf` or `.map`, a file that starts like an ELF, or a file whose SHA-256 equals the manifest's image hash. So in a public product repository the firmware image and the debug files of the table are not bundle items, and the manifest holds the image's hash. A mode for a private product that keeps the image in its bundle does not exist. It would be added when such a product needs it, with its own review. The rule is not a Crux-wide rule. The CI of crux-pilot itself uploads test and sample images built from public source (ELF, BIN and map files, kept 14 days) as provenance checks and board-test evidence, an exception the owner accepted.
+
+The checker's no-image rules are structural, its path scan is a pattern and its private-string scan is a substring match, and the manifest is not signed, so the hashes show integrity and not origin. See [What is faked or heuristic](release-bundle-checker.md#what-is-faked-or-heuristic).
 
 Repairing identity and adding prebuilt libraries applies from the first release, also for the internal set. See [SBOM](#sbom). The reduction tool waits until an SBOM first goes outward.
 
@@ -507,6 +511,7 @@ Linux products are not covered yet. There is no Yocto layer, and none is planned
 - A real commercial module or vendor delivery. `vendor-runtime` was an invented stand-in. A vendor merge with a conflict was not tried.
 - The comparison of a soft fork with patch files on a fresh workspace.
 - `west blobs`, or a delivery kept outside the checkout. What this guide says of `west blobs` comes from reading its source at v4.4.2.
+- A real product bundle through the [release bundle checker](release-bundle-checker.md). Its tests use invented bundles, and nothing was built with Zephyr for them. The assembler is not built.
 - Signing, a physical board, or a baseline upgrade through a fork.
 - A real Zephyr patch release, or the baseline gate on one. The steps above ran on fake repositories only.
 - A vendor project built as a Zephyr module. What this guide says of its place in the SBOM, and of a purl on an `https://` URL, comes from reading `zspdx/walker.py` at v4.4.2.
