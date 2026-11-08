@@ -1,0 +1,40 @@
+# Stage 1 Phase B plan, revision 7 (third reduced run, after the supervisor arrival-order fix PR #341)
+
+Status: PLAN, not yet independently re-checked. Written 2026-11-08T12:44Z (GMT, system clock). Base: revision 6 (independent PASS, executed as the second run; its record is PR #342, `docs/evidence/networking-physical-stage1-run2/`) and revisions 2 to 5. Everything not named here is as in revision 6.
+
+## 1. What happened since revision 6 (record)
+
+- The second run (revision 6) ended in phase 1: the board's link came up and the idle samples were clean, but the runner rejected the idle phase (`Resource settling/idle sampling deadline failed`). Cause (independent replay of both real captures through the real supervisor): the supervisor records link rows while a command runs and used the first recorded row's board time as the start of the idle window; the late `LINK seq=1 at=3827` row was later than the first idle sample (`at=3001`). The first run had passed the same phase by the luck of a USB chunk split (a boot-time link row delivered after the command). B5 restored the accepted normal image (written, verified twice, started; offline replay PASS).
+- Fix #341 (squash-merged as `94a4a7da879f41e9b0b720e661bfab104810d4f0`): the idle phase is validated on the non-link rows with the first sample as its start, and link rows are recorded while a command runs only when their `seq` equals the running phase (as the raw replay does). Independent review REVISE at `cf0df98` (two factual errors in the replay label and the PR body, no code defect), PASS at head `c3ba3133`; CI green for all eight checks at that head (earlier red jobs were GitHub release download errors and passed on re-runs); the real captures of both runs are replayed through the supervisor per receive chunk and in 20 ms and 250 ms batches with every placement of the command write; 264 M5 and 140 M3 tests pass. Audit of the other arrival-order checks of phases 2 to 6: `docs/networking-physical-preparation.md`, section "Supervisor arrival order".
+- The hashed trees of main `94a4a7d` (`tests/` `373ae225b464`, `tests/target` `accdac3af9bd`, `docs/networking-physical-preparation.md` `75573057347d`) are identical to the reviewed `c3ba313`; the differing files are the two evidence records (`docs/evidence/networking-physical-stage1*`), merged by the main session (#337, #342); they are not hashed.
+- Guard-3 (started 11:12Z by the owner, READY, deadline about 15:12Z) is alive and unchanged; it runs from `crux-pilot-3/tests/target/m5_mount_guard.py`, which must not be touched.
+
+## 2. Exact source and artefacts (replace section 2 of revision 6)
+
+| Item | Value |
+| --- | --- |
+| Source | `94a4a7da879f41e9b0b720e661bfab104810d4f0`; checkout `.worktrees/stage1-ws/crux-pilot-5` (new, detached, `git status --porcelain --untracked-files=all`: 0 lines); `crux-pilot-3` stays (guard-3), the others void |
+| M5 manifest | `crux-pilot-5/build/evidence/m5-preparation/frozen-94a4a7da879f/image-manifest.json`, SHA-256 `c8171c1fcd4b69692a1316296b73b4e4eda0315ac00984cf07f4eb064b8bfed0`; `prepare_m5_network.py verify`: success; 54 artefacts, 31 tools, dependency pins as in revision 3 |
+| M5 BIN | 97,544 bytes, SHA-256 `d4a59b032133096b6ee2744af4ed30c1142b54986ffb5c2763434793873195bf`; compared with the `b44b66a` build it differs in the 12-byte commit tag only (`cmp -l` bytes 94136 to 94147, 1-based; 11 bytes differ, one tag byte is equal) |
+| M5 ELF / configuration | 2,255,292 bytes `b736ccd6f001826aebb8b25a43a817485515227b147ba5cc7629e3e7e02664b7` / 43,797 bytes `f925c7a9c0771cfbf6394b4d8efeb0797625fff6ef4daeb3e8c9c4968ec673d6` |
+| Plan | `.worktrees/stage1-ws/plan-m5-stage1-94a4a7d.json` (file SHA-256 `39cda83484621544686a8c423d0037c8aa6f1dc04391fdd580217089f83742b7`); `plan_sha256` `d9d69b37c4840e48ce504143539918c40eda65695e6b00fedce80778efe0418a`; runner `27f426ae21d543ee15e341e09572501c357a41a9f9661a3eb9820be28251f8f9` (changed by #341), adapter `e8c446b4404b7fff0a0d139c4f18a4f8942fe200a347f8205944e8fd3595d809` (unchanged); one new nonce `671604249` (`secrets.randbelow(0xfffffffe)+1`); same nine operations, reduced through phase 6, non-qualifying, no cable operations |
+| Approval | `approval-m5-stage1-94a4a7d.json` (file SHA-256 `f315aabf05082b715ab6ecc6188e84f278d8c8dd971c372606dd545198b73a1e`), the template with all nine flags true; `check-approval`: complete; **used only after this plan's independent PASS** |
+| Void | plans and approvals of `f720c95`, `1b3ea3a`, `3ef758d`, `b44b66a` |
+| Unchanged | entry and recovery image (`ad729684…1e02f`, manifest `07fce1ea…290c`), J-Link tools, pyserial venv, bench identities, guard script `0baad879…616c` |
+
+## 3. Operations (as revision 6; new evidence parent `.worktrees/stage1-ws/stage1-run-6/`, exists, empty; commands from `crux-pilot-5/tests/target`; `--guard-session /var/tmp/crux-guard/session-3.json`)
+
+B1 read-only inventory (disk, guard-3 alive, no J-Link name in any command line), B2' read-only `identify` of the normal image (must match; a mismatch stops the run), B3 `program` of the M5 image, B3b carrier check, B4 `capture --boot 1 --through-phase 6` (host-address gate of #338 and the supervisor fix of #341 now both in force), B5 `restore`, B6 offline replays, B7 end state; a Draft PR with the evidence of this run. After a failure of B3, B4 or B3b: B5 as the only follow-up in `stage1-run-6`; after a failure of B2': stop, nothing written. All stop conditions and the J-Link-name rule of revisions 2 to 6 apply.
+
+## 4. Unknowns
+
+Phases 2 to 6 have not run on the board; the first packets after the link returns (ARP) are untested; the window between the gate's observation and the peer's bind still ends in `Peer failed during capture` if the address disappears again; the pre-existing items of the audit table (the guard check inside the command write counts against the watch of `next_command`; the settle-window edge of about one millisecond; the phase 2 link-up gate aborts instead of waiting) stay as documented; the second `DENIED` of 10:29Z and the DAPLink's unguarded interval (10:41Z to 11:13Z) remain unexplained.
+
+## 5. Timing and authorisation
+
+Authorisation as revision 6 (the owner's approval of stage 1 board operations and the standing approval after independent PASS, relayed by the main session; the main session set 14:30Z as the last time to start the board window, guard-3 lives until about 15:12Z). Expected: plan re-check about 13:00Z, B2' about 13:05Z, window about 30 min.
+
+## 6. Independent check (Opus, read-only, 2026-11-08, handed back about 12:52Z): PASS, no blocking finding; incorporated notes
+- Recomputed and found true: trees equal to the reviewed `c3ba313` (only evidence directories differ), the fix is exactly the two described spots, manifest verify (exit 0, and 1 for a wrong hash), BIN differing from the `b44b66a` build only in the commit tag (11 of the 12 tag bytes), byte-identical plan regeneration, six tampered approvals refused, 264 M5 and 140 M3 tests pass; guard-3 alive and unchanged; nothing physical done under r7.
+- **Disk floor:** free space was 3.83 GiB at 12:50Z, below the 5 GB floor of the plan; B1 does not start below it. By the owner's decision relayed by the main session ("지워서 진행해줘") the author deleted its own scratchpad copies and the merged `stage1-*` worktrees and old checkouts (`crux-pilot`, `crux-pilot-2`, `crux-pilot-4`) after verifying each was clean and its content in main, and the main session cleared an npm cache; free space is then 7.98 GiB. Kept: `crux-pilot-3` (guard-3), `crux-pilot-5` (this freeze), `stage1-artifacts`, the venv, the evidence parents and the west workspace.
+- **Added unknown:** guard-3 logged a third `DENIED` of a DAPLink mount attempt at about 12:31Z (monotonic 142052.448) with nobody operating; the earlier ones came about 74 and 73 minutes after the end of each board window (10:29Z, 12:31Z). Cause unknown; a re-enumeration during a step would stop the run through the ownership or USB checks (fails safe, inconclusive).

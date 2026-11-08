@@ -1,0 +1,6 @@
+exec DisableAutoUpdateFW
+usb 602003106
+connect
+loadfile "<artifacts>/normal-ec94fbe/build/zephyr/zephyr.bin", 0x60000000
+verifybin "<artifacts>/normal-ec94fbe/build/zephyr/zephyr.bin", 0x60000000
+q

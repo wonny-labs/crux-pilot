@@ -1,0 +1,17 @@
+{"event": "gate_start", "phase": 2, "deadline_s": 20.0, "monotonic": 143437.474218}
+{"event": "host_observation", "observed": "host_pending", "monotonic": 143437.512156}
+{"event": "host_observation", "observed": "host_pending", "monotonic": 143437.765545}
+{"event": "host_observation", "observed": "host_up", "monotonic": 143438.015458}
+{"event": "peer_start", "phase": 2, "waited": 0.5442930000135675, "monotonic": 143438.018516}
+{"event": "gate_start", "phase": 3, "deadline_s": 20.0, "monotonic": 143480.472264}
+{"event": "host_observation", "observed": "host_up", "monotonic": 143480.501671}
+{"event": "peer_start", "phase": 3, "waited": 0.032657999981893227, "monotonic": 143480.504938}
+{"event": "gate_start", "phase": 4, "deadline_s": 20.0, "monotonic": 143491.614435}
+{"event": "host_observation", "observed": "host_up", "monotonic": 143491.640056}
+{"event": "peer_start", "phase": 4, "waited": 0.027795999980298802, "monotonic": 143491.642244}
+{"event": "gate_start", "phase": 5, "deadline_s": 20.0, "monotonic": 143497.103882}
+{"event": "host_observation", "observed": "host_up", "monotonic": 143497.134772}
+{"event": "peer_start", "phase": 5, "waited": 0.03464900000835769, "monotonic": 143497.138542}
+{"event": "gate_start", "phase": 6, "deadline_s": 20.0, "monotonic": 143502.533855}
+{"event": "host_observation", "observed": "host_up", "monotonic": 143502.566871}
+{"event": "peer_start", "phase": 6, "waited": 0.03778499999316409, "monotonic": 143502.571663}

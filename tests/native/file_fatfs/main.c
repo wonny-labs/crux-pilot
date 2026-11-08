@@ -1,6 +1,6 @@
-#include "file_native.h"
 #include "file_port.h"
 #include <crux/file.h>
+#include <crux/file_zephyr.h>
 #include <ff.h>
 #include <stdint.h>
 #include <stdio.h>

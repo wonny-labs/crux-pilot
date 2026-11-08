@@ -1,0 +1,6 @@
+{
+  "mode": "identify",
+  "error": "HardwareStop('Probe command or its evidence failed; stop hardware changes')",
+  "steps": 2,
+  "automatic_retry": false
+}

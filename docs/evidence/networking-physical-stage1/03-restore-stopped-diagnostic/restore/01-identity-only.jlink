@@ -1,0 +1,4 @@
+exec DisableAutoUpdateFW
+usb 602003106
+connect
+q

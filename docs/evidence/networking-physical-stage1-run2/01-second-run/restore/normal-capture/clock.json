@@ -1,0 +1,4 @@
+{
+  "name": "clock_gettime(CLOCK_MONOTONIC)",
+  "resolution_seconds": 1.0000000000000002e-06
+}

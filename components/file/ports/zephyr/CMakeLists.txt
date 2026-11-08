@@ -1,4 +1,14 @@
 get_filename_component(CRUX_FILE_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+
+# The Zephyr root binding is a composition interface (see include/crux/file_zephyr.h). The target gives a
+# product's platform composition the header and crux::file; it is not a portable usage target and the
+# native-free consumer check rejects it by name. The provider library is added to Zephyr separately.
+function(crux_file_zephyr_composition)
+  add_library(crux_file_zephyr_composition INTERFACE)
+  add_library(crux::file_zephyr ALIAS crux_file_zephyr_composition)
+  target_include_directories(crux_file_zephyr_composition INTERFACE "${CRUX_FILE_COMPONENT_DIR}/ports/zephyr/include")
+  target_link_libraries(crux_file_zephyr_composition INTERFACE crux_file)
+endfunction()
 if(CONFIG_CRUX_FILE_FATFS_RT1060 AND CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
   message(FATAL_ERROR "The RT1060 provider and its compile-only check are mutually exclusive")
 endif()
@@ -56,6 +66,7 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060)
   add_library(crux_file INTERFACE)
   add_library(crux::file ALIAS crux_file)
   target_link_libraries(crux_file INTERFACE crux_file_api)
+  crux_file_zephyr_composition()
   return()
 endif()
 
@@ -81,6 +92,7 @@ if(CONFIG_CRUX_FILE_RELIANCE_EDGE)
   add_library(crux_file INTERFACE)
   add_library(crux::file ALIAS crux_file)
   target_link_libraries(crux_file INTERFACE crux_file_api)
+  crux_file_zephyr_composition()
   return()
 endif()
 
@@ -120,3 +132,4 @@ target_compile_options(crux_file_zephyr PRIVATE -Wall -Wextra -Werror)
 add_library(crux_file INTERFACE)
 add_library(crux::file ALIAS crux_file)
 target_link_libraries(crux_file INTERFACE crux_file_api)
+crux_file_zephyr_composition()

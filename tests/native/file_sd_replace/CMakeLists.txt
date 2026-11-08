@@ -6,7 +6,7 @@ project(crux_file_sd_replace C)
 target_sources(app PRIVATE main.c ${CRUX_ROOT}/samples/storage_sd/sd_storage.c
   ${CRUX_ROOT}/samples/storage_sd_interrupt/sd_interrupt.c
   ${CRUX_ROOT}/samples/storage_sd_replace/sd_replace.c)
-target_link_libraries(app PRIVATE crux::file)
+target_link_libraries(app PRIVATE crux::file crux::file_zephyr)
 target_include_directories(app PRIVATE ${CRUX_ROOT}/samples/storage_sd
   ${CRUX_ROOT}/samples/storage_sd_interrupt ${CRUX_ROOT}/samples/storage_sd_replace
   ${CRUX_ROOT}/components/file/ports/zephyr)
