@@ -14,7 +14,8 @@ crux_access_result_t crux_bench_first_account_provision(const char *user, const 
     if (length > 0u && file[length - 1u] == (uint8_t)'\n') {
         length -= 1u;
     }
-    if (length < CRUX_BENCH_FIRST_ACCOUNT_LENGTH_MIN || length > CRUX_BENCH_FIRST_ACCOUNT_LENGTH_MAX) {
+    if (length < CRUX_BENCH_FIRST_ACCOUNT_LENGTH_MIN ||
+        length > CRUX_BENCH_FIRST_ACCOUNT_LENGTH_MAX) {
         return CRUX_ACCESS_ERR_PASSWORD_REJECTED;
     }
     /* Printable ASCII, so no space, no newline, no NUL and nothing above 0x7e. */
