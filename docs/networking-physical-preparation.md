@@ -526,3 +526,26 @@ only against images that are supplied. Whether the driver's own hash belongs in 
 schema is an owner decision; it is bound by the clean-tree check and recorded in `inputs.json`, as in the
 accepted M3 runners. Not shown on a device: real Commander output for a verify mismatch, whether
 `connect` halts a running core, and `loadfile` duration against the 30 s limit for the image sizes.
+
+## Frozen inputs and other west projects
+
+The image manifest of the M5 image froze the west workspace as exactly the four pinned dependencies
+(zephyr, cmsis, cmsis_6, hal_nxp). Since then `west.yml` has made more projects active (littlefs and fatfs in
+the default groups), and the provenance recorder lists every active project, so a real freeze on current `main`
+was refused with "Unexpected/missing/duplicate dependencies". Owner decision, relayed from the owner's chat
+of 2026-11-08 (Korea time): "방안 A승인".
+
+| Rule in `prepare_m5_network.frozen_inputs` | Before | Now |
+| --- | --- | --- |
+| The four pinned dependencies | exactly these four by name, exact revision, clean | each present once with exactly the fields `name`, `path`, `revision`, `git_commit`, `dirty`; revision and commit equal to the pin; `dirty` is `False`; `path` equal to the directory the build compiles (`zephyr`, `modules/hal/cmsis`, `modules/hal/cmsis_6`, `modules/hal/nxp`) |
+| Any other west project | refused | accepted and recorded only if: the same five fields; clean; a lowercase 40-hex commit; a revision that is not empty or `HEAD` and, when it is a 40-hex commit (any case), equals the commit; a unique name; a relative path with no `..`, no `.` segment, no backslash; and a path that is not, does not contain and is not inside the manifest checkout or any pinned path |
+| Workspace manifest context | optional, canonical | unchanged |
+
+A tag or branch name as an extra project's revision is accepted because the recorder, not this check, resolves
+it: `scripts/record-build-provenance.py` refuses any project whose `HEAD` differs from `rev-parse <revision>`
+or that is dirty. This check repeats only the dirty flag, the commit format and the commit-equals-revision rule
+on the stored record at every verification. The extra projects do not enter the image: the build passes
+`-DZEPHYR_MODULES` with the repository, cmsis, cmsis_6 and hal_nxp, and Zephyr then skips west module
+discovery. The environment variables `ZEPHYR_EXTRA_MODULES` and `EXTRA_ZEPHYR_MODULES` would still add modules;
+the freeze must run with both unset (the recorded `compile_commands.json` and the manifest hash do not refuse
+an added module by themselves). Not shown: a real `west list` against a relocated project.
