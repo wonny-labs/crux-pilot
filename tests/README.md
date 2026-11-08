@@ -505,6 +505,39 @@ copy. It builds no image that is kept or uploaded. The sizes and stack frames ar
 [composition document](../docs/emmc-reliance-composition.md). This is a link, not evidence about an eMMC device or
 a board.
 
+The same script also links `samples/storage_reliance_sd`, the Stage A images of the
+[eMMC physical gate](../docs/emmc-reliance-physical-gate.md) that run Reliance Edge on the EVKB's own microSD
+slot (disk `SD`, mount point `/MMC:`): the default image, the mount check (`.start`), the append and replace
+tests, whose `main.c`, `sd_interrupt.c` and `sd_replace.c` are those of `samples/storage_sd_interrupt` and
+`samples/storage_sd_replace`, compiled unchanged behind a shim header, and the format image (`.format`), which has
+its own `main` in `format.c` and, only when no volume mounts on the card, formats it once and creates `/MMC:/files`
+and `/MMC:/settings`. For each of the five scenarios the script requires the microSD disk driver and Reliance Edge
+in `.config`, `CONFIG_SDHC_BUFFER_ALIGNMENT=32` and no MMC driver. The formatter is in the `.format` image only:
+`CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT=y` and `red_format` are in that image and in no other. The default
+image must link none of `emmc_storage_start`, `sd_interrupt_append`, `sd_replace_generation` and
+`reliance_format_once`, so nothing in it starts a mount or a write of the card (the file system code is still linked, and the disk drivers still initialise at boot).
+The script checks only the entry points that it names: the other images link none of those that belong to another scenario, and the format image no `emmc_storage_start`.
+No image may load above `0x60600000`, the end of the flash range that the Stage A procedure backs up. The ELF
+SHA-256 of each image goes to the log only. Nothing is programmed or run, and no image is kept or uploaded.
+
+`tests/native/reliance_stage_a` rehearses the same five images on `native_sim`, on the eMMC simulator, with the disk
+named `SD` and the cache flush correction on (the scenarios `crux.sample.storage_reliance_sd.native` and its
+`.start`, `.append`, `.replace` and `.format` variants, which `scripts/test-storage-emmc.sh` builds and
+`run_rehearsal.py` runs; `test_rehearsal.py` holds the unit tests of its judging helpers, which reuse the line parsers
+and judging functions of the two host scripts). **The limit: the rehearsal exercises the application logic of the
+images, the File provider and Reliance Edge on a model of a disk. It does not exercise the SD host driver, the SD layer
+or a real card, and it is not evidence about the EVKB or about power loss.** Each scenario starts from a blank simulator
+image file, which the format image formats first (the format scenario runs on the blank file itself, and the mount check also runs on a blank one), and runs on two simulator profiles, without a cache and with a 64 KiB cache that a process exit drops. The format
+image prints `reliance_format: 0` on a blank medium and `reliance_format: 2` on the next run, which leaves the image file
+unchanged. The mount-check image prints `emmc_storage_start: 0` on the formatted medium and `2` on a blank one, and
+neither run sends the simulator a write request; the default image prints nothing and writes nothing. The append and the
+replace images are killed with `SIGKILL` after the run itself has printed at least 200 ACK or GEN lines (counted per run, because a
+replace run continues at the next generation number; a seeded few more, and a short seeded pause, so that the kill
+lands at varying points), and restarted five times. The first output line prints the seed, and the passing lines of the append and replace runs the number of lines of each run. Every report of the
+append image must hold at least the last ACK seen and no damaged record. After the first generation, `cfg` of the
+replace image must be valid and no older than the last GEN printed; leftover temporaries are counted and printed. A
+`SIGKILL` drops the simulated cache and keeps the image file. It is not a power cut.
+
 `scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
 a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
 the fake File provider and a double for access, and walk a power cut across every mutation of a commit
