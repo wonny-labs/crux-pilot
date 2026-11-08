@@ -253,6 +253,34 @@ def consume(parent, mode):
     handle.close()
 
 
+DISCONNECT_DIAGNOSTIC = '****** Error: Could not start CPU core. (ErrorCode: -1)'
+_DIAGNOSTIC = re.compile(r'(?i)\b(error|failed|failure|could not|cannot|warning|unable|unknown command|timed out)\b')
+
+
+def accepted_disconnect_diagnostic(text, commands):
+    """The one disconnect diagnostic that the repository already documents (docs/m2-physical-verification.md).
+
+    J-Link Commander V9.86a prints ``Could not start CPU core. (ErrorCode: -1)`` while it disconnects after a
+    ``loadfile`` and ``verifybin`` command file that ends with a bare ``q``, and still exits 0 (the real run of
+    2026-11-08 showed it again). The M3 wrapper stops on every diagnostic. This accepts exactly that text, and
+    only when: the command file has a ``verifybin`` and ends with ``q``; the last ``verifybin`` reported
+    ``Verify successful.`` before the quit; the line is the only error and the only diagnostic text of the log; and
+    it is the last non-blank thing in the log, after ``J-Link>q``. Everything else stays a stop.
+    """
+    if 'verifybin' not in commands or not commands.endswith('q\n'):
+        return False
+    lines = text.splitlines()
+    errors = [i for i, line in enumerate(lines) if line.startswith('****** Error:')]
+    if len(errors) != 1 or lines[errors[0]] != DISCONNECT_DIAGNOSTIC or any(line.strip() for line in lines[errors[0] + 1:]):
+        return False
+    quits = [i for i, line in enumerate(lines) if line == 'J-Link>q']
+    verifies = [i for i, line in enumerate(lines) if line.startswith('J-Link>verifybin ')]
+    if not quits or not verifies or 'Verify successful.' not in lines[verifies[-1]:quits[-1]]:
+        return False
+    rest = [line for i, line in enumerate(lines) if i != errors[0] and line.strip() != 'J-Link Commander will now exit on Error']
+    return not any(_DIAGNOSTIC.search(line) for line in rest)
+
+
 def real_parts(args, guard_session):
     """Bind the real accepted helpers. Imported lazily so the tests and `--help` never touch a device."""
     state = dict(owned=False)
@@ -278,7 +306,17 @@ def real_parts(args, guard_session):
         check_nic_identity(directory, label, m3net.run_checked)
 
     def probe(commands, output):
-        return capture_m3.commander(runner.PROBE, commands, output)
+        try:
+            return capture_m3.commander(runner.PROBE, commands, output)
+        except HardwareStop as error:
+            if str(error) != 'Probe diagnostic; stop hardware changes':
+                raise
+            text = Path(output).read_text(errors='replace')
+            if not accepted_disconnect_diagnostic(text, commands):
+                raise
+            Path(output).with_suffix('.diagnostic-accepted.json').write_text(json.dumps(
+                dict(diagnostic=DISCONNECT_DIAGNOSTIC, rule='exit 0, successful read-back, reported after the quit and last in the log'), indent=2))
+            return text
 
     def acquire():
         import serial
