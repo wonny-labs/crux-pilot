@@ -55,8 +55,10 @@ confirms that nothing is written. If the storage is ready and the settings initi
 bound, so a second `emmc_configuration_start()` reports `ALREADY_STARTED` and retries nothing. The application retries
 with `crux_config_zephyr_init()`, which is what the test does.
 
-`CONFIG_SAMPLE_EMMC_START` (off by default) makes the sample image run the sequence at boot. The default image
-touches no medium. Do not flash an image with it set until the physical gate is approved for the current task.
+`CONFIG_SAMPLE_EMMC_START` (off by default) makes the sample image run the sequence at boot. The default image does
+not call the sequence, so the application starts no mount and writes nothing; the image still links the file system and
+the disk driver, and this document states nothing about what they do at boot. Do not flash an image with it set until
+the physical gate is approved for the current task.
 
 ## Selection
 
@@ -145,7 +147,7 @@ checks can fail, not that the model matches a device.
 | W4 of the power-cut replay, `native_sim`, `--workload W4` | 2174 cut cases on both profiles (2232 with the sanity cases, controls and staged states), I1 to I5 held on `red-fix-settings` in every cut case, the active settings file never missing; 864 cuts left a `.cmp` temporary behind, which is not a failure; three controls and three staged states as required. See the [settings replay record](evidence/emmc-reliance/replay-settings/README.md) |
 | `scripts/test-file-emmc-compile.sh` | the three scenarios (`crux.sample.storage_emmc`, `.start` and `.settings`) build and link on `mimxrt1060_evk@B/mimxrt1062/qspi`; the Settings image has the provider, `CONFIG_SETTINGS_FILE_PATH="/MMC:/settings/cfg"` and the three staged Settings File sources in its build and none of the pinned ones, and the other two have none of this; the Settings scenario with the fixture-only control fails at CMake; in every image the generated `.config` has `CONFIG_DISK_DRIVER_MMC=y`, `CONFIG_CRUX_MMC_CACHE_FLUSH=y` and `CONFIG_SDHC_BUFFER_ALIGNMENT=32`, and has neither `CONFIG_DISK_DRIVER_SDMMC` nor the formatter; `red_format` and FatFs are not in the image; the build used the generated `mmc.c` with the expected hashes and not `subsys/sd/mmc.c`; the same sample without the flush option fails at CMake, and so does one with the fixture-only control |
 | Symbols | only the two mount-at-boot images (`.start` and `.settings`) call the composition, so only they link `emmc_storage_start`, `disk_access_init` and `crux_file_zephyr_bind`, and only `.settings` links the Settings provider. The base image keeps the file system and the stack through the VFS table, so "never formats" and "never creates directories" are properties of the composition code, and the image check shows only the absence of the formatter |
-| CI | the check is not yet run by CI. The change that adds it to `.github/workflows/zephyr.yml` is proposed in its own commit and needs review. Until it runs there, the 32-bit runs and the property that CI uploads no such image are not shown |
+| CI | the `storage` shard of `.github/workflows/zephyr.yml` enables the `crux-reliance` group and then runs `CRUX_STORAGE_32BIT=1 scripts/test-storage-emmc.sh` and `scripts/test-file-emmc-compile.sh`. It passed on the head of [PR #332](https://github.com/wonny-labs/crux-pilot/pull/332) (`d9af542`, run 42430864401), so the 32-bit runs and the link check have run in CI for that revision. The workflow's own comment says that no image is uploaded under a named `zephyr.elf` or `zephyr.bin`; this document does not audit the uploaded file list. A CI pass is not a physical result |
 
 ## Resource measurements (static, from linked images)
 
