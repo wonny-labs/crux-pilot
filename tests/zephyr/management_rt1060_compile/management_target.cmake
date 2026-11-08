@@ -71,9 +71,11 @@ function(crux_management_target_compose)
         "${component}/cli/src/cli_session.c"
         "${component}/cli/src/cli_security_events.c"
         "${component}/file_service/src/file_service.c"
-        "${component}/file_service/src/file_service_security_events.c")
+        "${component}/file_service/src/file_service_security_events.c"
+        # The boot check of the random source (C5): the first read, and its one line on the UART.
+        "${CRUX_ROOT}/tests/zephyr/entropy_boot/entropy_boot.c")
     target_include_directories(app PRIVATE
-        "${CRUX_MGMT_NATIVE_DIR}"
+        "${CRUX_MGMT_NATIVE_DIR}" "${CRUX_ROOT}/tests/zephyr/entropy_boot"
         "${root}/tests/native/tls_offload_probe/credentials"
         "${component}/access/include" "${component}/access/adapter" "${component}/access/src"
         "${component}/credential/include" "${component}/credential/adapter"
