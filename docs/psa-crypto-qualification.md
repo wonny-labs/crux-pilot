@@ -38,8 +38,7 @@ Exception: Failed to fetch: 403, {"message":"API rate limit exceeded for 20.172.
 ```
 
 `west sdk install` looks up SDK releases through the GitHub API without a token, and the runner shared a rate limit. It had nothing to do
-with PSA, and no test ran. #164 fixed it on `main` by passing `CRUX_GITHUB_TOKEN`, and this branch has it from the merge of `origin/main`.
-After the merge that step passes, in run [41891057049](https://github.com/wonny-labs/crux-pilot/actions/runs/41891057049). The Pull Request has the full result of the latest run.
+with PSA, and no test ran. #164 fixed it on `main` by passing `CRUX_GITHUB_TOKEN`. The step passed afterwards, in run [41891057049](https://github.com/wonny-labs/crux-pilot/actions/runs/41891057049).
 
 ## Conformance cases
 
@@ -144,7 +143,7 @@ The review of `00db0bf` found that these two used to be declared on whole cases.
 | 2 | `native_sim` random repeats on every run, for both providers. | [Declared test-only](#provider-declarations) |
 | 3 | Zephyr's glue for TF-PSA-Crypto falls back to `sys_rand_get()` when the entropy read fails (`allow_non_cs` is `true` in `mbedtls_platform_get_entropy`, `zephyr_entropy.c`), and reports full entropy. wolfCrypt's seed returns `RNG_FAILURE_E` instead, which weighs for the Wolf profile. On RT1060 `sys_rand_get()` is a non-cryptographic generator. The fallback is reachable on RT1060 at Zephyr v4.4.2, where `entropy_mcux_trng.c` returns `-EIO` on a failed read. At v4.4.0 it asserted and returned success, so a read failure did not reach the fallback there. | **Corrected for TF-PSA-Crypto on the entropy driver route**: see [Entropy failure](#entropy-failure). Whether a TRNG read can fail in practice is untested, and nothing ran on a board. |
 | 4 | `CSPRNG_ENABLED` depends only on `ENTROPY_HAS_DRIVER`, so it is `y` with the test generator and certifies nothing. | Source and configuration read |
-| 5 | Zephyr's module has no `MBEDTLS_THREADING_C` option at this pin, so TF-PSA-Crypto's core has no lock, and on the Mbed profile TLS threads call the same core. wolfPSA defaults `CONFIG_WOLFPSA_THREAD_SAFE=y`. | Source and configuration read. Concurrency is untested for both. Open for #242. |
+| 5 | Zephyr's module has no `MBEDTLS_THREADING_C` option at this pin, so TF-PSA-Crypto's core has no lock, and on the Mbed profile TLS threads call the same core. wolfPSA defaults `CONFIG_WOLFPSA_THREAD_SAFE=y`. | Source and configuration read. Concurrency is untested for both. #242 (#263, #291) gives the core locks in its test composition: [locks on the Mbed profile](native-management-composition.md#locks-on-the-mbed-profile). The [services image](native-composition-242.md) ran HTTPS on both profiles, and the [integrated image](ssh-integrated-image.md) of #197 ran HTTPS and SSH on the Wolf profile. Concurrency is still untested: a `native_sim` thread that does not sleep is never preempted, and no case was written for the race. |
 | 6 | `tf-psa-crypto` is a commit in Zephyr's fork, whose relation to the upstream `v1.1.0` tag was not established. | Open, unchanged |
 | 7 | The archive hash is a GitHub property that was not examined for stability. GoogleTest has the same exposure. If it changes, a Host configure fails loudly. | Accepted |
 

@@ -267,30 +267,7 @@ stateDiagram-v2
 
 ## How a product builds its own interface or starts from an example
 
-The product owns its application UI. The Preact example is a folder of static files that calls only the API, so changing it changes no firmware logic, and a product may reuse, copy or ignore it.
-
-| Need | What the project does | Changes to Crux files |
-| --- | --- | --- |
-| A new status item on home | Registers the item in firmware. Home shows it by its name, with no frontend change. | None |
-| A label, section and format for that item | Passes `homeItems` to `mountPreactInterface` in its own entry file | None |
-| Different text or another language | Passes `text`, which is laid over the English table | None |
-| A longer restart limit | Passes `client: { timing: { rebootLimitMs } }` | None |
-| Fewer screens, or its own screens | Passes its own `screens` list. A screen is a route, a title, a link and a component. | None |
-| Different styling | Imports its own stylesheet in its own entry file | None |
-| Its own framework, using the client | Imports `web/client/src/index.ts`, which has no framework dependency | None |
-| Its own framework and client | Generates types from the specification, as `web/tools/gen-types.ts` or any generator does, and follows the same rules for the poll header, CSRF and plain answers | None |
-
-To use none of it, a product builds any folder and names it to the asset packaging in its firmware composition, which
-is M11's. The folder must meet four conditions:
-
-1. It runs under the content policy that the composition selects, strict or inline styles, with no external asset.
-2. It uses hash routing, because the server has no deep-link fallback.
-3. It stays within the packaging budget, because the server has few clients.
-4. It holds no secret or device data, because the bundle is public: a browser must load it before login.
-
-`e2e/fixtures/project-entry.tsx` is a working example of the reuse rows, and a browser test runs it. **Limit:** a project
-cannot add a route to the Preact example's navigation without an entry file of its own, which is the intended seam, and the
-example's code is not published as a package, so a project copies or vendors the folder. #220 adds a small example project.
+Moved to [the web guide](../../web/README.md#how-a-product-builds-its-own-interface-or-starts-from-an-example), which is maintained. This plan is a record of the M13 design and its decisions.
 
 ## Screens
 

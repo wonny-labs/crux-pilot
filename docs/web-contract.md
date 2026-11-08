@@ -165,10 +165,10 @@ test image uses shortened settings, in the first row. The revision and raw outpu
 | Trickled body, one byte every 200 ms | `native_sim` | Closed at 2.02 s with nothing sent, no plain `500`, and the login route free straight after | At most the deadline plus the gap to the next chunk, and that gap is at most the inactivity timer. The deadline returns `-ECONNABORTED`, because `-EAGAIN` would not close. |
 | Silent partial body | `native_sim` | Closed at 3.02 s by the inactivity timer | The route is held, and others get the plain `409`, until then. Anyone who can reach the port can do this, including to login, so network login can be kept busy by repeating it, as the frontend design declares. The serial console is not affected. |
 | Disconnect mid-request | Host and `native_sim` | Route free within 10 ms of a FIN or a reset, and on Host the body cleared | The registered resources get the server's release, which a fallback resource would not |
-| Trickled headers, three clients, one byte per second | `native_sim` | All three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s | **Limit declared, see below.** |
+| Trickled headers (Slowloris), three clients, one byte per second | `native_sim` | All three outlived four inactivity periods, 12.3 s, and a fourth client was served only when they stopped, after 12.0 s | **Limit declared, see below.** |
 | Client slots, three idle keep-alive connections | `native_sim` | A fourth request waited 3.0 s | An idle browser connection holds a slot for one inactivity period. A real browser's eight parallel requests all succeeded through three slots. |
 | Slow handler, 500 ms | `native_sim` | Another client's largest wait 506 ms, against a median of 48 ms, and the overrun counted | A handler stalls every client for as long as it runs |
-| Reader that reads nothing, 8 MB body | `native_sim` | Another client's largest wait 2.09 s | See [the slow reader bound](#the-slow-reader-bound) |
+| Reader that reads nothing, 8 MB body (slow-read attack) | `native_sim` | Another client's largest wait 2.09 s | See [the slow reader bound](#the-slow-reader-bound) |
 | Reader that drains 20 KB/s, 8 MB body | `native_sim` | Another client's largest wait 1.76 s. The response was cut by its deadline, and counted. | By the source, without pieces this would hold the thread for the whole body. That was not run. |
 | Silent reader with a full socket, small responses | `native_sim` | Another client's largest wait about 10.2 s, about 20 sends at 0.5 s each, in the attempts that reach it. With no room at all a send fails instead, and the server closes that reader on its next request, so the case tries up to four times. In some runs, as the timer allows, another client's connection was closed meanwhile. | **The worst case.** See below. |
 | A send that returns `-EAGAIN`, then more from that client | `native_sim`, injected | Closed within a second, with none of another client's bytes | See [below](#a-response-that-stops-part-way) |
@@ -270,11 +270,7 @@ design's fallback of pausing other clients during writes is what this is.
 
 ### Latency baseline
 
-Each small response takes about 50 ms here, whichever route. The server writes the status line, each header and each chunk
-as separate sends. On the host's TCP stack that meets Nagle's algorithm and the delayed acknowledgement, and the client
-receives it in pieces. The wait is in the network and the thread goes on serving. Zephyr's own stack is not measured, so
-this is noted and not changed. If a target shows it, `TCP_NODELAY` on each client socket is one line in the adapter. TLS
-will also make each send its own record.
+Each small response takes about 50 ms on `native_sim`, because the server writes the status line, each header and each chunk as separate sends, which meets Nagle's algorithm and the delayed acknowledgement on the host's TCP stack. The measurement and what TLS changes are in [HTTPS composition](https-composition.md#sends-of-a-small-response). `TCP_NODELAY` is not set, and Zephyr's own stack is not measured.
 
 ## Header capture
 
@@ -318,8 +314,7 @@ lowered the limit to 2 s: see [the HTTPS composition](https-composition.md#stall
 | wolfSSL | The patch's `ztls_accept_ctx` does the same through `tls_wolfssl_handshake`. |
 | Both | The wait is bounded by `CONFIG_NET_SOCKETS_TLS_CONNECT_TIMEOUT`, **10 seconds by default**. |
 
-So one client that opens a TCP connection and sends nothing stops every client for 10 seconds, and it can repeat that. #185
-should set this much lower and measure both profiles. The whole-request deadline does not help, since no callback runs.
+So one client that opens a TCP connection and sends nothing stops every client for the timeout, and it can repeat that. The whole-request deadline does not help, since no callback runs. The measured stall and the 2 s setting are in [HTTPS composition](https-composition.md#stalled-handshake).
 
 ## Three limits of `native_sim` found here
 
@@ -331,7 +326,9 @@ Each would have made results here wrong without being seen.
 | The native socket offload has no `shutdown` operation, so `zsock_shutdown` fails, and the server's inactivity timer does nothing. | A client on the offload is never closed for inactivity. | The test image wraps that call and shuts the host socket down, which is the effect it has on Zephyr's own stack. This is test code that depends on a private driver struct at this pin. **The wrap has not been compared with Zephyr's own TCP stack**, which needs a target or a TAP interface. |
 | The offload's send waits out its whole timeout and then sends if it can, so `-EAGAIN` hardly ever reaches the server, while on a real stack it would. | The suite reached that path zero times, and a defect there went unseen until independent review. | The test image wraps the send, and a probe route makes a chosen send return `-EAGAIN`. |
 
-## Signatures for the next issues
+## Signatures that the other web components use
+
+The table was written for the issues that followed #184, and each now uses these. `Issue` names the one that introduced the use.
 
 | Issue | What it uses | From |
 | --- | --- | --- |
@@ -345,8 +342,7 @@ Each would have made results here wrong without being seen.
 | #188 | Nothing yet: the probe above is its starting point | |
 
 A copied response body is at most 4 KiB, `CRUX_WEB_RESPONSE_MAX`. A request body is at most `CRUX_WEB_BODY_BUFFER`, 1 KiB,
-per client, and 512 bytes on a route unless `CRUX_WEB_ROUTE_BODY` says otherwise. #187 must check that a status response
-fits the 4 KiB.
+per client, and 512 bytes on a route unless `CRUX_WEB_ROUTE_BODY` says otherwise. A status document that does not fit the 4 KiB is answered `503 not_ready` ([management APIs](web-management-apis.md)).
 
 ## Decisions taken without an answer
 

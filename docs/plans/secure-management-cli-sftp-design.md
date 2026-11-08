@@ -129,7 +129,7 @@ directory reads in the shape the handlers expect. Track M12 proves this port bef
 An earlier version of this design relied on `WOLFSSH_SFTP_ERRNO` to report a refusal as a permission error.
 That name does not occur in wolfSSH v1.6.0, the pinned revision. Reading its source, a refused `OPEN` is sent
 as a general failure, so Issue #194 has to settle how a refusal reaches the client. See
-[the SSH provider contract](../ssh-provider-contract.md#findings-for-the-sftp-session).
+[the SFTP design](../sftp-design.md).
 [The SFTP design](../sftp-design.md) settles it: a general failure.
 
 ### Client view and operations

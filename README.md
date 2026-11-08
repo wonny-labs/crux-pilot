@@ -105,6 +105,7 @@ The documents for accounts, the management services, HTTPS web management, the c
 
 | Topic | Documents |
 | --- | --- |
+| Terms | [Glossary](docs/management-glossary.md): session channel and access session, provider and adapter, refuse and deny, route, listener, profiles |
 | Accounts, roles, sessions and security events | [Access contract](docs/access-contract.md), [credential store](docs/credential-store.md), [security events](docs/security-event-contract.md) |
 | Management services | [Status and configuration services](docs/status-configuration-services.md), [file service](docs/file-service-contract.md), [network settings](docs/network-settings-service.md), [reboot](docs/reboot-service.md) |
 | HTTPS web management | [HTTPS composition](docs/https-composition.md), [web contract](docs/web-contract.md), [sessions and login](docs/web-session.md), [management APIs](docs/web-management-apis.md), [packaged web assets](docs/web-assets.md), [TLS certificate](docs/tls-certificate.md), [API specification](web/api/openapi.yaml) |

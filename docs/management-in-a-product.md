@@ -4,7 +4,7 @@ Status: a guide for a product team that uses Crux as a west module and wants HTT
 
 **Nothing in this guide has run on a board.** Every result is Host, `native_sim` or a compile for RT1060-EVKB. `native_sim` uses the host's TCP stack and a test entropy source, so a result there shows that protocols and algorithms run, and not that anything is fast, small or safe on a device. See [what "real" means on `native_sim`](psa-crypto-design.md#what-real-means-on-native_sim).
 
-How to read the tables:
+The terms are in [the glossary](management-glossary.md). How to read the tables:
 
 | Word | Meaning here |
 | --- | --- |
@@ -205,7 +205,7 @@ No route exists for the TLS certificate, events, file upload or download. The se
 | Header `X-XSRF-TOKEN` | The `XSRF-TOKEN` cookie's value, unchanged: base64url with no `%` and no quotes | Angular's `HttpClient` decodes percent escapes, which the token rules make harmless |
 | Header `Origin` | Added by the browser. Must equal the request's scheme, `://` and own `Host` exactly, unless the composition gives an exact list. | [Web session](web-session.md#rules) |
 | Header `X-Crux-Request: 1` | On the login attempt poll | Rejected with `403 csrf_rejected` otherwise |
-| Hash routing, no secrets in the bundle | The server has no deep-link fallback, and the bundle loads before login | [Frontend implementation](plans/web-frontend-implementation.md#how-a-product-builds-its-own-interface-or-starts-from-an-example) |
+| Hash routing, no secrets in the bundle | The server has no deep-link fallback, and the bundle loads before login | [Web guide](../web/README.md#how-a-product-builds-its-own-interface-or-starts-from-an-example) |
 
 ## Errors and events
 

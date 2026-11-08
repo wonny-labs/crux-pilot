@@ -37,7 +37,7 @@ deep-link fallback, connection limits, the real session clock, the real `409` an
 | 2 | The advanced flows pass on Preact on `native_sim`, and their service tests in #213 and #214 | **Not met yet**, mock-only as the issue allows | #213 and #214 are merged now. Network settings: read, and a change refused on the real `501`, only; the change cannot be saved without a Configuration provider (C6). Reboot and a restarted session: mock-only, because #214's service is not composed in the services image. |
 | 3 | Each example loads in real browsers within the client limit, against a declared budget, and stalls are measured | **Partly met** | Chrome only, emulated timing, a budget derived from the server's bounds. Stalls measured: a stalled handshake, held slots. |
 | 4 | The Angular example works once packaged, or each gap has an issue | **Met at 3,000 ms** | The 1,500 ms gap is held by a control in the runner |
-| 5 | A limit of a TLS profile on `native_sim` is recorded with its evidence | **Met** | W1 on Wolf, about 1 s per new connection; TLS 1.2 refused with alert 70 on both profiles |
+| 5 | A limit of a TLS profile on `native_sim` is recorded with its evidence | **Met** | The #280 late first read on Wolf, about 1 s per new connection; TLS 1.2 refused with alert 70 on both profiles |
 | 6 | Results distinguish mock, Host, `native_sim` and physical evidence | **Met** | [Results](#results), and each result file names its target |
 
 **No CI workflow runs `e2e-mbed` or `e2e-wolf`.** The `native_sim` evidence here is the worker's local run only. A
@@ -209,7 +209,7 @@ earlier runs during development measured up to 5.6 s for the page, still within 
 
 What a real client sees at the server's limits. The image keeps #242's shortened settings: three client slots,
 an inactivity timer of 3 s, a TLS connect timeout of 2 s. The bound of each row adds the slack the HTTPS precedent
-declares for the emulated container: 1.5 s on Mbed, 2.5 s on Wolf for W1.
+declares for the emulated container: 1.5 s on Mbed, 2.5 s on Wolf for the #280 late first read.
 
 | Case | Mbed, Preact image | Mbed, Angular image | Wolf, Preact image | Wolf, Angular image |
 | --- | --- | --- | --- | --- |
@@ -240,19 +240,19 @@ What these show:
 
 ## TLS profile limits
 
-The same images on the two TLS profiles, from the same runs. **W1 of #280 is not fixed**: on the Wolf profile a new
+The same images on the two TLS profiles, from the same runs. **The #280 late first read is not fixed**: on the Wolf profile a new
 connection's first request is read late by about 1 s, and these figures show it again with a browser.
 
 | Measure | Mbed | Wolf | Reading |
 | --- | --- | --- | --- |
-| One request on a new connection, no browser | 0.134 s | 1.011 s | W1, as #185 measured: 0.13 s and about 1 s |
-| Each asset of a cold load, Chrome | 125 to 136 ms | 906 to 961 ms | W1 on each new request |
-| A cold page load, Chrome | 0.82 to 0.95 s | 2.34 to 2.59 s | Within the 10 s budget on both, with W1 |
-| A request behind one stalled handshake | 1.93 s | 2.83 s | The 2 s connect timeout, plus W1 on Wolf |
-| A page load while three idle connections hold the slots | 2.97 and 3.14 s | 1.12 and 1.16 s, under the load before it | On Wolf the load was faster than the one before it. Not explained here: W1's delay depends on how recently the server closed another client, as #185 found, and this case closes three. Recorded, not claimed as a property. |
+| One request on a new connection, no browser | 0.134 s | 1.011 s | The #280 late first read, as #185 measured: 0.13 s and about 1 s |
+| Each asset of a cold load, Chrome | 125 to 136 ms | 906 to 961 ms | The #280 late first read on each new request |
+| A cold page load, Chrome | 0.82 to 0.95 s | 2.34 to 2.59 s | Within the 10 s budget on both, with the #280 late first read |
+| A request behind one stalled handshake | 1.93 s | 2.83 s | The 2 s connect timeout, plus the #280 late first read on Wolf |
+| A page load while three idle connections hold the slots | 2.97 and 3.14 s | 1.12 and 1.16 s, under the load before it | On Wolf the load was faster than the one before it. Not explained here: the #280 late first read's delay depends on how recently the server closed another client, as #185 found, and this case closes three. Recorded, not claimed as a property. |
 | A fourth client behind three idle connections | 2.74 s | 0.97 s | The same effect as the row above |
 
-The Wolf profile's limits stay those #185 declared: W1, and the 2.5 s slack on Wolf that it needs. The Mbed profile's heap
+The Wolf profile's limits stay those #185 declared: the #280 late first read, and the 2.5 s slack on Wolf that it needs. The Mbed profile's heap
 formula and the per-connection figures of #185 are not measured again here.
 
 ## Results
@@ -320,23 +320,7 @@ reboot predate the Angular network settings and restart screens of #243. The sha
 
 ## The small example project
 
-`samples/web_project` adds a page and an API route of a project's own, with Crux's public contracts and no native
-header.
-
-| Part | What it uses | What it does not use |
-| --- | --- | --- |
-| `site/` | Plain HTML, one script and one style, loaded under the strict policy | No inline script or style, no other origin, no build tool |
-| `src/greeting_route.c` | `<crux/web.h>`: `CRUX_WEB_ROUTE`, `CRUX_WEB_SESSION` and `crux_web_respond` | No Zephyr, board, vendor or adapter header |
-| `reviewed-routes.txt` | One line for the route and one for the folder. `scripts/check-web-routes.py`'s repository scan checks the sample's routes against this list, by the same comparison as `--reviewed`, in place of the default list, and only while a tracked CMake file names it after `REVIEWED`, as `tests/web/project_sample/CMakeLists.txt` does. An empty or unnamed list exempts nothing. The `public GET @assets` line is left to the build, which sees the generated source. | |
-| A composition | `crux_web_assets()` and the route source named to `crux_web_routes()` | No change to any component |
-
-```mermaid
-flowchart LR
-    page["site/index.html<br/>greeting.js"] -- "GET /api/v1/project/greeting" --> core["Web core<br/>session lookup, access class"]
-    core --> route["greeting_route.c<br/>CRUX_WEB_ROUTE, crux_web_respond"]
-    pack["crux_web_assets(... STYLE strict)"] --> assets["Packaged page,<br/>public GET"]
-    assets --> page
-```
+`samples/web_project` adds a page and an API route of a project's own, with Crux's public contracts and no native header. What it uses, and what a composition writes, are in [its README](../samples/web_project/README.md). The checks below are the evidence.
 
 | Check | Level | Result |
 | --- | --- | --- |
@@ -398,7 +382,7 @@ flowchart LR
 | The native socket offload has no shutdown | A test-only shim, declared |
 | No Configuration provider | Five shared cases and the save half of the network flow are not shown |
 | Reboot | Mock-only: #214's service is merged but not composed in the services image. Composing it needs its route source in the image and a reviewed extension of the 12-route image check. |
-| W1, #280, on Wolf | Not fixed. A new connection's first request is read up to about 1 s late. The Wolf slack of 2.5 s comes from #185 for that reason. |
+| The #280 late first read, on Wolf | Not fixed. A new connection's first request is read up to about 1 s late. The Wolf slack of 2.5 s comes from #185 for that reason. |
 | Chrome only | Firefox, Safari and Edge not run |
 | The listener's certificate is the declared test certificate | Decision B of #284 is open |
 | Entropy is test-only | Declared, and guarded as in #242 |
