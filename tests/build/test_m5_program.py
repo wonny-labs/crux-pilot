@@ -512,6 +512,18 @@ class RealParts(Case):
         record = json.loads(output.with_suffix('.diagnostic-accepted.json').read_text())
         self.assertEqual(record['diagnostic'], '****** Error: Could not start CPU core. (ErrorCode: -1)')
 
+    def test_the_read_only_verify_with_ishalted_shape_is_accepted_too(self):
+        import host_fixtures
+        (preconditions, probe, acquire), port = self.wired()
+        real = (host_fixtures.DIRECTORY / 'jlink-loadfile-verifybin-quit-diagnostic.log').read_text()
+        text = real.replace('J-Link>q', 'J-Link>IsHalted\nCPU is halted (PC = 0x600156C2).\nJ-Link>q', 1)
+        commands = 'verifybin "<image>.bin", 0x60000000\nIsHalted\nq\n'
+        def commander(probe_id, given, output):
+            output.write_text(text)
+            raise HardwareStop('Probe diagnostic; stop hardware changes')
+        with patch.object(capture_m3, 'commander', commander):
+            self.assertEqual(probe(commands, self.directory / 'halted.log'), text)
+
     def test_any_other_diagnostic_or_context_still_stops(self):
         import host_fixtures
         (preconditions, probe, acquire), port = self.wired()
@@ -532,22 +544,27 @@ class RealParts(Case):
             'a step without a verify': (real, 'r\ng\nq\n'),
             'the identity-only step': (real, 'q\n'),
             'text after the error': (real + 'J-Link>g\n', loading),
+            'the program load step with its start (r, g) after the verify': (real, loading.replace('q\n', 'r\ng\nq\n')),
+            'a command that merely ends in the letter q': (real, loading.replace('q\n', 'xq\n')),
+            'two verifies, the last without output': (real.replace('J-Link>q', 'J-Link>verifybin "<image>.bin", 0x60000000\nJ-Link>q', 1),
+                                                       loading.replace('q\n', 'verifybin "<image>.bin", 0x60000000\nq\n')),
         }
-        for name, (text, commands) in cases.items():
+        for number, (name, (text, commands)) in enumerate(cases.items()):
             with self.subTest(name):
                 def commander(probe_id, given, output, text=text):
                     output.write_text(text)
                     raise HardwareStop('Probe diagnostic; stop hardware changes')
+                output = self.directory / ('case%d.log' % number)         # one output per case: a wrong acceptance cannot leak into the next
                 with patch.object(capture_m3, 'commander', commander):
                     with self.assertRaisesRegex(HardwareStop, 'Probe diagnostic'):
-                        probe(commands, self.directory / 'x.log')
-                self.assertFalse((self.directory / 'x.diagnostic-accepted.json').exists())
+                        probe(commands, output)
+                self.assertFalse(output.with_suffix('.diagnostic-accepted.json').exists())
 
     def test_other_wrapper_failures_are_never_reinterpreted(self):
         import host_fixtures
         (preconditions, probe, acquire), port = self.wired()
         real = (host_fixtures.DIRECTORY / 'jlink-loadfile-verifybin-quit-diagnostic.log').read_text()
-        for message in ('Probe exited unsuccessfully; state uncertain', 'Probe command or its evidence failed; stop hardware changes',
+        for message in ('Probe command or its evidence failed; stop hardware changes',      # a non-zero exit ends up as this one
                         'Probe timeout; state uncertain; no further hardware changes',
                         'Unexpected probe firmware maintenance; stop all target operations'):
             with self.subTest(message):
