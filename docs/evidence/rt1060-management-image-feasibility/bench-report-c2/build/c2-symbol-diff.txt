@@ -1,6 +1,6 @@
 NEW (bytes, nm type, symbol)
   2112 b report_stack
-   356 T bench_report_core_snapshot
+   364 T bench_report_core_snapshot
    220 T bench_report_sanitize_name
    200 b report_thread
    200 T bench_report_format_stack
@@ -48,7 +48,6 @@ NEW (bytes, nm type, symbol)
      4 b ended_count
      4 b bursts_seen
      2 t net_tc_rx_stats_priority_setup
-GONE
 CHANGED (delta)
  +1728 r rows
   +222 t tcp_recv
@@ -90,4 +89,3 @@ CHANGED (delta)
     +4 t net_if_get_by_index
     +2 T net_arp_input
     +2 T net_if_ipv4_addr_add
-net symbol totals {'FLASH': 6192, 'RAM': 3008}

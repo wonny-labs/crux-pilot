@@ -80,5 +80,5 @@ BENCH-STACK seq=4 thread=thread@4144c0 size=512 used=40 unused=472 state=live
 BENCH-STACK seq=4 thread=main size=4096 used=40 unused=4056 state=ended
 BENCH-STACK seq=4 thread=ssh_worker size=16384 used=10384 unused=6000 state=ended
 BENCH-HEAP seq=4 arena=65536 in_use=0 peak=0 free=65424
-BENCH-REPORT v=1 end seq=4 lines=51 missed=18
+BENCH-REPORT v=1 end seq=4 lines=51 missed=17
 BENCH_REPORT_TEST complete

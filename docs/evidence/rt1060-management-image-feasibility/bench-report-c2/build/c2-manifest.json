@@ -128,7 +128,7 @@
     "CONFIG_NET_MAX_ROUTERS" : "1",
     "CONFIG_NET_SOCKETS_TLS_MAX_CONTEXTS" : "6"
   },
-  "source_commit" : "ff1946dbb5d6e462b606066087b95f946baa213d",
+  "source_commit" : "75934e04b8e9ba28434cb5888e3343bb0b63493f",
   "source_tree_modified" : "false",
   "sources" : 
   [
@@ -446,7 +446,7 @@
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/report/bench_report_core.c",
-      "sha256" : "0941b41317d04c3e227bf0b5b447a675a72f5f1cfc82a8da2b325d31b09b7800"
+      "sha256" : "5c1625a1b02e2dcaca87a7311e207360b9cf6ccb243f6fedbf48ddcf3df76825"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/report/bench_report_format.c",

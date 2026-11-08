@@ -181,13 +181,13 @@
   ]
  },
  "collect": {
-  "bytes": 80,
+  "bytes": 88,
   "chain": [
    "collect",
    "bench_report_sanitize_name"
   ],
   "frames": [
-   48,
+   56,
    32
   ]
  },

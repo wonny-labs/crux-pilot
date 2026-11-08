@@ -22,10 +22,13 @@ test_report_without_end_fails (tests.build.test_management_bench_report.Grammar)
 test_size_comes_from_the_manifest (tests.build.test_management_bench_report.Grammar) ... ok
 test_size_must_match_the_declared_stack (tests.build.test_management_bench_report.Grammar) ... ok
 test_the_http_row_under_the_margin_fails (tests.build.test_management_bench_report.Grammar) ... ok
+test_the_http_thread_with_two_sizes_fails (tests.build.test_management_bench_report.Grammar) ... ok
 test_the_lowest_row_over_all_reports_counts (tests.build.test_management_bench_report.Grammar) ... ok
 test_the_margin_is_a_parameter (tests.build.test_management_bench_report.Grammar) ... ok
 test_too_long_line_fails (tests.build.test_management_bench_report.Grammar) ... ok
 test_torn_report_fails (tests.build.test_management_bench_report.Grammar) ... ok
+test_two_threads_with_one_name_and_two_sizes_are_judged_apart (tests.build.test_management_bench_report.Grammar) ... ok
+test_ordered_regexes_match_the_recorded_run_in_order (tests.build.test_management_bench_report.NativeTestcase) ... ok
 test_board_names_agree (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
 test_both_listeners_are_bound_by_the_product_code_only_when_asked (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
 test_http_server_stack_starts_at_8192_and_the_declaration_does_not_pin_it (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
@@ -42,6 +45,6 @@ test_no_native_test_declaration_reaches_the_bench_image (tests.build.test_manage
 test_vehicle_copies_are_the_native_files_with_only_the_declared_edits (tests.build.test_management_target_lists.ManagementTargetLists) ... ok
 
 ----------------------------------------------------------------------
-Ran 42 tests in 19.642s
+Ran 45 tests in 16.999s
 
 OK

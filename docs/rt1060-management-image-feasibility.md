@@ -194,8 +194,8 @@ Row C2 makes the bench image **say, on the UART, what a board run has to read**:
 | Is the HTTP stack different? | **No: 8,192 B**, as C1 set it. C2 adds the means to read it. The next size is **16,384 B**, taken when a run leaves under 2,048 B unused ([when](#the-next-size-and-when-to-take-it)). |
 | Did a guard change? | **No.** `bench_guard.h`, `bench_guard.cmake`, `Kconfig.bench`, `bench_declaration.json` and `check_bench_guard.py` are untouched. The new file in `src/` includes `bench_guard.h`, as the script requires, and the script's 38 mutants (37 in C1, one more for the new source's include) are all killed. |
 | What else changed in product code? | One optional setting, **off by default, and then every other image is unchanged**: `CONFIG_CRUX_SSH_STACK_REPORT` in `zephyr/Kconfig`, read by the SSH provider ([why](#why-the-ssh-provider-changed)). |
-| Cost on the target | **Flash +5,000 B** (601,004 B to 606,004 B, 7.22 % of 8 MB), **RAM +4,736 B** (837,804 B to 842,540 B, in SDRAM, 2.51 % of 32 MB). Stack of the printing thread: 2,048 B configured, about 0.5 KB by a static estimate. [Cost](#what-the-report-costs). |
-| What ran | Host: the formatter and the policy built with `-Wall -Wextra -Werror` and the address and undefined-behaviour sanitizers, 42 unit tests, the guard script, three boundary scripts, 9 + 13 mutants killed. `native_sim`: the kernel side with 66 threads and a minute of kernel time. Target: compile and link of the bench image and, for the delta, of `origin/main`. [Checks](#checks-in-c2). |
+| Cost on the target | **Flash +5,008 B** (601,004 B to 606,012 B, 7.22 % of 8 MB), **RAM +4,736 B** (837,804 B to 842,540 B, in SDRAM, 2.51 % of 32 MB). Stack of the printing thread: 2,048 B configured, about 0.5 KB by a static estimate. [Cost](#what-the-report-costs). |
+| What ran | Host: the formatter and the policy built with `-Wall -Wextra -Werror` and the address and undefined-behaviour sanitizers, 45 unit tests, the guard script, three boundary scripts, 9 + 13 mutants killed. `native_sim`: the kernel side with 66 threads and a minute of kernel time. Target: compile and link of the bench image and, for the delta, of `origin/main`. [Checks](#checks-in-c2). |
 
 ```mermaid
 flowchart LR
@@ -234,7 +234,7 @@ Every line starts with a marker that nothing else prints, and is at most 159 cha
 | `BENCH-HEAP seq=N arena=A in_use=I peak=P free=R` | The configured arena (`CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE`) and `sys_memory_stats`. TLS, wolfSSH and wolfPSA all allocate here. | One per report |
 | `BENCH-REPORT v=1 end seq=N lines=L missed=M` | `L` is the number of `BENCH-STACK` and `BENCH-HEAP` lines before it. `M` is the threads that the 48-row table could not hold, or whose row did not format. | Closes a report. The checker fails on an `L` that is not what arrived, and on `M` above 0. |
 
-A thread name is cut to 23 characters, and any byte other than `A-Z a-z 0-9 _ . [ ] -` becomes `_`. A thread without a name prints as `thread@<address>`.
+A thread name is cut to 23 characters, and any byte other than `A-Z a-z 0-9 _ . [ ] -` becomes `_`. A thread without a name prints as `thread@<address>`. If the certificate line cannot be printed the image stops before `BENCH ready` and the SSH start, but the HTTPS listener that the services started keeps serving, as the existing `BENCH ssh failed` path also leaves it: the image is a bench vehicle that does not claim to be ready, not one that shuts itself down.
 
 ### When it prints
 
@@ -269,7 +269,7 @@ A stack figure is a **high-water mark**, so a report after a burst shows the dee
 | Main | The kernel list until `main()` returns, then the figure that `main()` records on every way out | `main` | 16,384 B. The main thread ends at `BENCH ready`, so its row is `state=ended` in every report after that. |
 | Crux workers, logging, system work queue, network threads, the report thread, idle | The kernel list | The kernel's name, or `thread@<address>` where Zephyr gives none | The report thread's own row shows what printing costs on its stack. The first report cannot show it all: the deepest part, `printk`, runs after the row is read. |
 
-The table holds 48 rows. A 49th thread is counted in `missed=` and fails the check, so a thread that is not seen is never silent. The `native_sim` run with 66 threads printed 48 rows and `missed=18`, and the checker failed it for that reason and for the HTTP row that fell outside the table.
+The table holds 48 rows. A 49th thread is counted in `missed=` and fails the check, so a thread that is not seen is never silent. The `native_sim` run with 66 threads printed 48 rows and `missed=17`, and the checker failed it for that reason and for the HTTP row that fell outside the table.
 
 ### The HTTP server stack headroom in C2
 
@@ -284,7 +284,7 @@ The stack is **8,192 B** (`CONFIG_HTTP_SERVER_STACK_SIZE` in `target.conf`, the 
 | Sum | 1,912 | |
 | Margin | **2,048** | 25 percent of 8,192 B: the sum rounded up to a quarter of the stack |
 
-This is a proposal for the owner to adopt or change, **not a measurement**, and the script takes it as a parameter.
+The margin sits on top of a **measured** watermark, which already includes the socket layer's and the server's own frames that the static chain leaves out. What it covers is the paths a run did not take and the exception frames. This is a proposal for the owner to adopt or change, **not a measurement**, and the script takes it as a parameter.
 
 ### The next size and when to take it
 
@@ -311,11 +311,11 @@ Measured from the linker's report of two target builds of the same recipe: the b
 
 | Item | C1 (`a47c1590`) | C2 | Delta |
 | --- | ---: | ---: | ---: |
-| FLASH | 601,004 B | **606,004 B** (7.22 %) | **+5,000 B** (0.83 %) |
+| FLASH | 601,004 B | **606,012 B** (7.22 %) | **+5,008 B** (0.83 %) |
 | RAM (SDRAM) | 837,804 B | **842,540 B** (2.51 %) | **+4,736 B** |
-| `size`: text, data, bss | 596,504, 4,480, 833,254 | 601,320, 4,668, 837,802 | +4,816, +188, +4,548 |
+| `size`: text, data, bss | 596,504, 4,480, 833,254 | 601,328, 4,668, 837,802 | +4,824, +188, +4,548 |
 | Steps, warnings | 551, 3 | 557, the same 3 (wolfSSH `wolfsftp.c`) | +6, 0 |
-| `zephyr.bin` SHA-256 | `8b557969dc8c...` | `8b3bd6a54eaf...` | |
+| `zephyr.bin` SHA-256 | `8b557969dc8c...` | `459cab7dff38...` | |
 
 | Where the bytes go | Flash | RAM |
 | --- | ---: | ---: |
@@ -330,8 +330,8 @@ Measured from the linker's report of two target builds of the same recipe: the b
 
 | Cost | Value |
 | --- | --- |
-| Stack of the printing thread | **2,048 B** configured. A static estimate along direct calls is **528 B**: the loop 40 B, the snapshot 72 B, `printk` and the log core 416 B (`build/c2-static-chains.json`). That is not a measurement: the report thread's row says what a run used. |
-| CPU | A report reads each thread's stack once (the longest, 16 KiB, is one pass) and sleeps 15 ms per line, so about 0.3 s of wall time at the lowest priority for 20 lines. The activity counter is read every 250 ms. `NET_STATISTICS` adds a counter update per TCP segment. |
+| Stack of the printing thread | **2,048 B** configured. A static estimate along direct calls is **528 B**: the loop 40 B and the snapshot 72 B (the frames in `build/c2-report-frames.txt`; the formatter and the line printer are inlined into the snapshot), plus `printk` and the log core 416 B (`build/c2-static-chains.json`). The call-graph tool's own entries for the loop and the snapshot (632 B, 592 B) follow another function that is also called `emit` and are not used. This is not a measurement: the report thread's row says what a run used. |
+| CPU | A report reads each thread's stack once (the longest, 16 KiB, is one pass) and sleeps 15 ms per line, so about 0.3 s of wall time at the lowest priority for 20 lines. The walk over the thread list runs with the scheduler locked, which takes a few milliseconds for the stacks of all threads (about 100 KB of reads), so that a worker cannot end and its slot start a new connection while the list is being followed: Zephyr says the memory of an aborted thread must not be reused during an iteration. The activity counter is read every 250 ms. `NET_STATISTICS` adds a counter update per TCP segment. |
 | Printing bound | At most one report per 5 s, each of at most 48 + 2 + 1 + 2 lines, each at most 159 characters, from static buffers. No allocation in the path. |
 
 ### Checks in C2
@@ -339,13 +339,13 @@ Measured from the linker's report of two target builds of the same recipe: the b
 | Check | Result | Who ran it |
 | --- | --- | --- |
 | The formatter and the policy, `bench_report_host_test.c`, built with `-Wall -Wextra -Werror` and the address and undefined-behaviour sanitizers | Pass. Red first: four checks failed (a 134-character certificate line against a 128-character limit, now 160, and an unclean buffer after a refusal). **9 of 9 mutants killed**; two survived at first (idle not re-armed by a burst, the clock wrap tested on the wrong side of the wrap) and two cases were added. [Output](evidence/rt1060-management-image-feasibility/bench-report-c2/host/c-mutants.txt) | The author, on the host |
-| `check_bench_uart.py`, `tests/build/test_management_bench_report.py` | 28 tests pass, over hand-made captures and over the C code's own sample report. Red first (no script). **13 of 13 mutants of the script killed**; one survived at first (the line limit, which a malformed line also trips) and its test now asserts the reason. [Output](evidence/rt1060-management-image-feasibility/bench-report-c2/host/checker-mutants.txt) | The author, on the host |
-| `python3 -m unittest` of that file and the two C1 files | 42 tests pass | The author, on the host |
+| `check_bench_uart.py`, `tests/build/test_management_bench_report.py` | 31 tests pass, over hand-made captures and over the C code's own sample report. Red first (no script). **13 of 13 mutants of the script killed**; one survived at first (the line limit, which a malformed line also trips) and its test now asserts the reason. [Output](evidence/rt1060-management-image-feasibility/bench-report-c2/host/checker-mutants.txt) | The author, on the host |
+| `python3 -m unittest` of that file and the two C1 files | 45 tests pass | The author, on the host |
 | `check_bench_guard.py --verbose` | CMake, C and Kconfig levels ok, **38 of 38 mutants killed** ([output](evidence/rt1060-management-image-feasibility/bench-report-c2/host/check_bench_guard-verbose.txt)) | The author, on the host |
 | `check-ssh-boundaries.py`, `check-native-interfaces.py`, `check-mgmt-services-boundary.py` | Pass | The author, on the host |
 | clang-format 18 over the new and changed C | Clean after formatting | The author, in the Dev Container |
-| `native_sim` run of the kernel side (`tests/native/bench_report`) | Built with `-Werror` and no warning. The run (`-no-rt`) printed 4 reports with the bench image's log settings, **no dropped message**, no duplicate line: boot at 0 ms, quiet at 12.8 s (the burst ended at 10.5 s), idle at 40.9 s, and the overflow report `lines=51 missed=18`. `check_bench_uart.py` passes reports 1 to 3 and fails report 4, as it must. **The stack numbers of `native_sim` mean nothing** (a thread runs on a host stack). [Output](evidence/rt1060-management-image-feasibility/bench-report-c2/native/run-no-rt.txt) | The author, in the Dev Container |
-| Compile and link for `mimxrt1060_evk@B//qspi` | **Linked** from the committed tree `ff1946db`, `source_tree_modified: false`, the bench guards inside the configure, three warnings as before. [Cost](#what-the-report-costs) | The author, in the Dev Container |
+| `native_sim` run of the kernel side (`tests/native/bench_report`) | Built with `-Werror` and no warning. The run (`-no-rt`) printed 4 reports with the bench image's log settings, **no dropped message**, no duplicate line: boot at 0 ms, quiet at 12.8 s (the burst ended at 10.5 s), idle at 40.9 s, and the overflow report `lines=51 missed=17`. `check_bench_uart.py` passes reports 1 to 3 and fails report 4, as it must. **The stack numbers of `native_sim` mean nothing** (a thread runs on a host stack). [Output](evidence/rt1060-management-image-feasibility/bench-report-c2/native/run-no-rt.txt) | The author, in the Dev Container |
+| Compile and link for `mimxrt1060_evk@B//qspi` | **Linked** from the committed tree `75934e04`, `source_tree_modified: false`, the bench guards inside the configure, three warnings as before. [Cost](#what-the-report-costs) | The author, in the Dev Container |
 | `strings` on the linked image | The marker strings are in it. The public test password occurs 0 times. | The author |
 | **Not run** | A board and any client, the image's own boot and its report lines, the TLS handshake and its stack, the log path on the real UART, the script against a real capture, `--connect` against a listener (the openssl step ran against a certificate that openssl made), the CI workflows | |
 
@@ -366,6 +366,8 @@ Taken without the owner, each the narrower choice. The owner's decisions are rec
 | C2-9 | A thread other than the HTTP server **warns** under the margin, and fails only with `--strict` or `--fail-thread` | The task asks for the HTTP stack to fail a run. The other figures are findings for C6 and the owner, and some of those stacks have defaults that nobody here chose. |
 | C2-10 | A heap peak over 80 percent of the arena fails | A proposal in the same spirit, as a parameter. The paper rule is 60 percent and `native_sim` read 19 percent. |
 | C2-11 | `CONFIG_NET_STATISTICS` (TCP, per interface) is on in the bench image | It is the signal for "a client is talking" without touching a component, for about 1.7 KB in all. Row C6 may want the network buffer counts as well: not added here. |
+| C2-12 | The thread walk runs with the scheduler locked | A worker that ends and whose slot starts the next connection during the walk would make the iterator follow a reused thread object. It costs a few milliseconds every 5 s at most, at a quiet moment. |
+| C2-13 | Two threads with one name and different stack sizes are judged apart (`name/size`) and only warn, except for the HTTP thread's name, which fails | Names are cut to 23 characters and drivers may name two threads alike. A good run must not fail for that. |
 
 ## What the vehicle is and is not
 

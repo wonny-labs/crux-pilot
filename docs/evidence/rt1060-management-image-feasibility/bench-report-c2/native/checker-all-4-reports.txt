@@ -57,7 +57,7 @@ thread@416f58                512        40         472     92.2%
 thread@417040               1024        40         984     96.1%
 heap: peak 0 B of 65536 B (0.0 percent, limit 80), in use at most 0 B
 certificate: None
-FAIL report seq=4: 18 threads missed (the table was full)
+FAIL report seq=4: 17 threads missed (the table was full)
 FAIL report seq=4: no row for http_server_tid
 FAIL
 rc=1

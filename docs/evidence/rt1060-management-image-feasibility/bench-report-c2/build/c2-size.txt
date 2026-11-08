@@ -1,3 +1,3 @@
    text	   data	    bss	    dec	    hex	filename
- 601320	   4668	 837802	1443790	 1607ce	/build/bench_c2/zephyr/zephyr.elf
--rwxr-xr-x 1 root root 606004 Nov  8 22:42 /build/bench_c2/zephyr/zephyr.bin
+ 601328	   4668	 837802	1443798	 1607d6	/build/bench_c2/zephyr/zephyr.elf
+-rwxr-xr-x 1 root root 606012 Nov  8 23:33 /build/bench_c2/zephyr/zephyr.bin
