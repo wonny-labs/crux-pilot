@@ -43,7 +43,7 @@ Each cell holds what the manifest says about that project and nothing more:
 | Part of a cell | Source | Rule |
 | --- | --- | --- |
 | Commit | `revision:` | Shortened to 12 characters. Must be a full 40-character commit in the manifest |
-| Version in brackets | The comment at the end of the `revision:` line | Shown only when the whole comment looks like a version, such as `v4.4.2`. It is the author's comment and is **not checked against the commit** |
+| Version in brackets | The comment at the end of the `revision:` line | Shown only when the whole comment looks like a version: digits with at least one dot, an optional leading `v` and an optional suffix, such as `v4.4.2`, `2.0.1` or `v5.9.4-stable`. A date or a word is not shown. It is the author's comment and is **not checked against the commit** |
 | `optional: group ...` | `groups:` of the project and `group-filter:` of the manifest | A project is optional when it has groups and the manifest's `group-filter` turns every one of them off, the last entry for a group winning. This is west's rule for an inactive project |
 | `licence class ...` | `userdata:` of the project, key `crux-licence-class` | Shown only when the project declares it. Never read from a comment or from a project's name |
 | `imported from ..., not pinned here` | `import: name-allowlist:` of another project | A project that the manifest imports by name and does not pin, such as `hal_nxp` through Zephyr. It gets no commit |
@@ -58,16 +58,16 @@ An example, generated from the invented manifest of the tests with `python3 scri
 - Optional means inactive unless one of its groups is enabled. The manifest's `group-filter` turns off: `crux-reliance`, `crux-secure-management`.
 - `zephyr` imports without a pin here: `cmsis`, `hal_nxp`.
 
-The manifest of this repository gives the same shape with its own commits. Its `hal_nxp` is imported through Zephyr and carries no pin of its own. To put a commit in that column, generate from a frozen manifest of a workspace (`west manifest --freeze`), which pins every project. A frozen-style manifest is covered by a test, and the generator was not run on real `west manifest --freeze` output for this change.
+The manifest of this repository gives the same shape with its own commits. Its `hal_nxp` is imported through Zephyr and carries no pin of its own. To put a commit in that column, generate from a frozen manifest of a workspace (`west manifest --freeze`), which pins every project. It carries no trailing comments, so a table built from it shows no version in brackets at all, Zephyr's included. A frozen-style manifest is covered by a test, the generator was not run on real `west manifest --freeze` output for this change, and whether `--freeze` works while the off-by-default projects are not cloned is not verified here.
 
 ## What is refused
 
 | Input | Result |
 | --- | --- |
 | A project whose revision is a branch, a tag, a short commit or a number | Exit 1, naming the project and the revision |
-| A project with no `revision:`, even when the manifest has a default revision | Exit 1. A default is a branch name |
+| A project with no `revision:`, even when the manifest has a default revision | Exit 1. The manifest's default revision is not used: a project that names no revision is not a pin |
 | A manifest that is not YAML, has no `manifest:` mapping, has no projects, names a project twice, has a project without a name, a malformed `group-filter` or a licence class that is not one plain word | Exit 1 with the reason |
-| A label with a space, a `|`, a backtick, a newline or nothing | Exit 1 |
+| A label with a space, a pipe character, a backtick, a newline or nothing | Exit 1 |
 | A missing file | Exit 1 |
 | A missing PyYAML | Exit 1 with a message, no traceback |
 

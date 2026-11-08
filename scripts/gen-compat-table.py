@@ -35,7 +35,7 @@ LICENCE_KEY = "crux-licence-class"
 FULL_COMMIT = re.compile(r"[0-9a-fA-F]{40}")
 NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+-]*")
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._@/+-]*")
-VERSION = re.compile(r"v?[0-9][0-9A-Za-z._+-]*")
+VERSION = re.compile(r"v?[0-9]+(\.[0-9]+)+([-+][0-9A-Za-z.]+)*")
 
 
 class ManifestError(Exception):
@@ -73,10 +73,12 @@ def project_nodes(yaml, text, source):
 
 
 def revision_node(node):
+    """Return the value node of the project's revision. The last of two equal keys wins, as in west."""
+    found = None
     for key, value in node.value:
         if key.value == "revision":
-            return value
-    return None
+            found = value
+    return found
 
 
 def read_manifest(text, source):
@@ -99,11 +101,7 @@ def read_manifest(text, source):
     if not isinstance(entries, list) or not entries:
         raise ManifestError(f"cannot read {source}: the manifest has no projects")
     nodes = project_nodes(yaml, text, source)
-    if len(nodes) != len(entries):
-        raise ManifestError(f"cannot read the projects of {source}: an alias or merge key hides a project")
     lines = text.splitlines()
-    defaults = manifest.get("defaults")
-    default_revision = defaults.get("revision") if isinstance(defaults, dict) else None
 
     group_state = {}
     group_filter = manifest.get("group-filter", [])
@@ -123,7 +121,8 @@ def read_manifest(text, source):
             raise ManifestError(f"{source}: the project name {name!r} has characters that a table cell cannot hold")
         if name in projects:
             raise ManifestError(f"{source}: the project {name} is listed twice")
-        revision = entry.get("revision", default_revision)
+        # The manifest's default revision is not used: a project that names no revision is not a pin.
+        revision = entry.get("revision")
         if revision is None:
             raise ManifestError(f"{name}: no revision. The table needs a full 40-character commit")
         if not isinstance(revision, str) or not FULL_COMMIT.fullmatch(revision):
@@ -144,8 +143,12 @@ def read_manifest(text, source):
         projects[name] = {"commit": revision.lower(), "version": version_of(comment),
                           "groups": sorted(groups), "licence": licence}
         spec = entry.get("import")
-        if isinstance(spec, dict) and isinstance(spec.get("name-allowlist"), list):
-            imports[name] = sorted(str(item) for item in spec["name-allowlist"])
+        if isinstance(spec, dict) and "name-allowlist" in spec:
+            allowed = spec["name-allowlist"]
+            allowed = [allowed] if isinstance(allowed, str) else allowed
+            if not isinstance(allowed, list) or not all(isinstance(n, str) and NAME.fullmatch(n) for n in allowed):
+                raise ManifestError(f"{name}: name-allowlist must be project names")
+            imports[name] = sorted(allowed)
         elif spec not in (None, False):
             imports[name] = None
     return projects, group_state, imports

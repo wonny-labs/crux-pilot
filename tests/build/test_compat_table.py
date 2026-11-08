@@ -188,7 +188,15 @@ class RefusalTest(unittest.TestCase):
 
     def test_the_default_revision_of_the_manifest_does_not_rescue_a_missing_one(self):
         text = manifest_text("- name: zephyr\npath: zephyr", extra="  defaults:\n    revision: main\n")
-        self.refuse(text, "zephyr", "main", "40-character")
+        self.refuse(text, "zephyr", "no revision")
+
+    def test_a_default_commit_does_not_rescue_a_missing_revision_either(self):
+        text = manifest_text("- name: zephyr\npath: zephyr", extra=f"  defaults:\n    revision: {SHA}\n")
+        self.refuse(text, "zephyr", "no revision")
+
+    def test_a_malformed_import_allowlist_entry_is_refused(self):
+        text = manifest_text(project("zephyr", extra="import:\n  name-allowlist: ['a`b']"))
+        self.refuse(text, "zephyr", "name-allowlist")
 
     def test_a_non_string_revision_is_refused(self):
         self.refuse(manifest_text(project("zephyr", revision="1234")), "zephyr", "1234")
@@ -356,6 +364,21 @@ class CellTest(unittest.TestCase):
         cells = self.cells(manifest_text(project("zephyr", comment="follows the Zephyr manifest")))
         self.assertEqual(f"`{SHA[:12]}`", cells["zephyr"])
 
+    def test_words_and_dates_that_start_with_a_digit_are_not_versions(self):
+        for comment in ("2026-11-08", "3-clause-BSD", "4ever", "1"):
+            with self.subTest(comment=comment):
+                cells = self.cells(manifest_text(project("zephyr", comment=comment)))
+                self.assertEqual(f"`{SHA[:12]}`", cells["zephyr"])
+
+    def test_with_two_revision_keys_the_commit_and_its_comment_are_the_last_pair(self):
+        # yaml.safe_load, like west, keeps the last of two equal keys. The comment must come from it too.
+        text = manifest_text(f"- name: zephyr\nrevision: {OTHER} # v1.0\nrevision: {SHA} # v2.0")
+        self.assertEqual(f"`{SHA[:12]}` (v2.0)", self.cells(text)["zephyr"])
+
+    def test_an_allowlist_given_as_one_string_is_read_as_one_name(self):
+        text = manifest_text(project("zephyr", extra="import:\n  name-allowlist: hal_nxp"))
+        self.assertEqual("imported from `zephyr`, not pinned here", self.cells(text)["hal_nxp"])
+
     def test_a_comment_after_a_quoted_revision_is_found(self):
         cells = self.cells(manifest_text(project("zephyr", revision=f'"{SHA}"', comment="v1.0")))
         self.assertEqual(f"`{SHA[:12]}` (v1.0)", cells["zephyr"])
@@ -393,9 +416,9 @@ class CellTest(unittest.TestCase):
         self.assertNotIn("imported from", out)
 
     def test_extra_pinned_projects_get_a_column(self):
-        cells = self.cells(manifest_text(project("zephyr"), project("zz-extra", revision=OTHER, comment="v2"),
+        cells = self.cells(manifest_text(project("zephyr"), project("zz-extra", revision=OTHER, comment="v2.1"),
                                          project("aa-extra", revision=SHA)))
-        self.assertEqual(f"`{OTHER[:12]}` (v2)", cells["zz-extra"])
+        self.assertEqual(f"`{OTHER[:12]}` (v2.1)", cells["zz-extra"])
         header = list(cells)
         self.assertLess(header.index("aa-extra"), header.index("zz-extra"))
 
@@ -430,6 +453,11 @@ class ScopeTest(unittest.TestCase):
 class DocumentTest(unittest.TestCase):
     def test_the_document_shows_the_golden_table_so_that_it_cannot_drift(self):
         self.assertIn(EXPECTED.read_text(), GUIDE.read_text())
+
+    def test_no_table_cell_of_the_document_holds_a_bare_pipe_in_a_code_span(self):
+        for line in GUIDE.read_text().splitlines():
+            if line.startswith("|"):
+                self.assertNotIn("`|`", line)
 
     def test_the_document_says_that_no_tag_exists_and_has_a_diagram(self):
         text = GUIDE.read_text()
