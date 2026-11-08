@@ -1,8 +1,10 @@
 # The integrated management image on RT1060-EVKB: a build and feasibility report
 
-Status: **stage 0 of putting the integrated management image on the real board**, for review in a Draft PR. Refs #197. It authorises no hardware
-operation, and **nothing here ran on a board**: every result is a compile and link for `mimxrt1060_evk@B//qspi`, or a reading of source and of the
-linked image. The owner approved this stage in the working session on 2026-11-08 ("0 단게 시작해"). It writes no approval document for a board stage.
+Status: **stage 0 of putting the integrated management image on the real board** (merged, #344), **and its stage 2 row C1** ([below](#stage-2-row-c1-the-bench-composition)),
+for review in a Draft PR. Refs #197. It authorises no hardware operation, and **nothing here ran on a board**: every result is a compile and link for
+`mimxrt1060_evk@B//qspi`, a host script or a `native_sim` check, or a reading of source and of the linked image. The owner approved stage 0 in the working
+session on 2026-11-08 ("0 단게 시작해") and took the decisions D1 to D11 the same day ([Owner decisions](#owner-decisions)). **Nothing here reads as an approval of a
+board stage**: the image still refuses to start, and the approval documents are the main session's.
 
 ## Result
 
@@ -12,7 +14,8 @@ linked image. The owner approved this stage in the working session on 2026-11-08
 | Why not the native composition as it is? | It refuses a board at three places on purpose ([guards](#the-guards-the-native-composition-puts-in-the-way)). The vehicle does not edit or relax any of them. |
 | Real size | **Flash 601,172 B of 8 MB (7.2 %), 601,252 B in the committed tree. RAM 833,708 B, all of it in the 32 MB SDRAM** (ITCM, DTCM and OCRAM hold nothing). [Numbers](#sizes-measured-on-the-target-build). |
 | Biggest risks found | **The HTTP server thread's 4,096 B stack** runs the TLS handshake, and a static estimate of one handshake path is 4,272 B. **The SSH worker's 16,384 B** leaves about 3 KB over a static 13.3 KB key-exchange chain. Neither is measured on a target. [Stacks](#thread-stacks). |
-| Ready for a board run? | **No.** Eleven owner decisions and nine code changes come first, about 7 to 10 working days of agent work in sequence. [Decisions](#owner-decisions), [changes and order](#code-changes-and-their-order). |
+| Ready for a board run? | **No.** The eleven owner decisions are taken (2026-11-08) and row C1 is done. Rows C2 to C9, the first account and the approval documents of the main session still come first. [What still blocks a board run](#what-still-blocks-a-board-run), [changes and order](#code-changes-and-their-order). |
+| What did C1 change? | The vehicle is now a **bench composition** under a declaration for RT1060-EVKB rev B, with guards at three levels, a host script that breaks each guard, a manifest, and listeners bound to the bench address. [Stage 2, row C1](#stage-2-row-c1-the-bench-composition). |
 
 ```mermaid
 flowchart LR
@@ -22,7 +25,152 @@ flowchart LR
     a --> s3["Stage 3: the board<br/>program, boot, curl, ssh, sftp, browser<br/>restore the normal image"]
 ```
 
+## Stage 2, row C1: the bench composition
+
+Row C1 promotes the compile vehicle of stage 0 to a **bench composition**: the same components, under a declaration for RT1060-EVKB rev B and its bench, with guards that accept the test forms there
+and nowhere else. It adds no hardware step. The directory is still `tests/zephyr/management_rt1060_compile`, because the evidence of stage 0 names that path. **The image still refuses to start**, and nothing in
+C1 approves running it.
+
+| Question | Answer |
+| --- | --- |
+| What is the declaration? | `tests/zephyr/management_rt1060_compile/bench_declaration.json`: the image identity `crux-mgmt-bench-rt1060-evkb-b`, the board `mimxrt1060_evk@B//qspi`, the bench address `192.168.77.2/24` (host `192.168.77.1`) on the dedicated link, the listener ports, the four test forms with their decisions, and the build-local Zephyr copy of D8. CMake, the host script, the unit test and the manifest all read this one file. |
+| What do the guards allow? | The test host key form (D5) and no time source (D7), on that board, with the TRNG, on the Wolf profile, with both listeners bound to the bench address. Everything else is refused: [the list](#what-each-guard-refuses). |
+| Did a native guard change? | **No.** `composition.cmake:13/17`, `ssh.cmake:16/20`, `ssh_test_host_key_guard.h:12` and `test_tls_credentials.h:10` are untouched and still refuse every board. |
+| What else changed in product code? | One optional setting for each listener, **empty by default, which keeps every address as before**: `CONFIG_CRUX_WEB_BIND_ADDRESS` (the HTTPS adapter) and `CONFIG_CRUX_SSH_BIND_ADDRESS`, passed to the provider as the new field `crux_ssh_config_t.bind_address`. [Listeners](#listeners-d10). |
+| Size | **Flash 601,004 B of 8 MB (7.16 %), RAM 833,708 B (SDRAM, 2.48 %)**, ITCM, DTCM and OCRAM empty. Flash is 248 B less and RAM identical to the stage 0 committed tree: [Build in C1](#build-in-c1). |
+| Can it run? | **No.** [What still blocks a board run](#what-still-blocks-a-board-run). |
+
+### The three levels of the bench guards
+
+A build passes the Kconfig level first, then the CMake level at configuration, then the C level at every compile. A level that is removed leaves the other two, and the host script shows that each level refuses on its own.
+
+```mermaid
+flowchart TB
+    decl["bench_declaration.json<br/>board, address, ports, test forms, patched Zephyr"]
+    native["Native guards, unchanged<br/>composition.cmake, ssh.cmake, ssh_test_host_key_guard.h, test_tls_credentials.h<br/>refuse every board"]
+    subgraph kc["1. Kconfig: Kconfig.bench"]
+        k1["CRUX_MANAGEMENT_BENCH_IMAGE needs<br/>this board, revision B, TRNG, no test entropy, no DHCP, no IPv6"]
+        k2["every CRUX_BENCH_ test form needs the declaration<br/>an unmet assignment drops to n, and Zephyr only warns"]
+    end
+    subgraph cm["2. CMake: bench_guard.cmake"]
+        c1["the declaration variable, the exact board target, the Kconfig symbol"]
+        c2["TRNG, Wolf profile, HTTPS only, SSH with CLI and SFTP, Logging"]
+        c3["static address only, both bind addresses, ports, no RTC, no mkfs on mount"]
+        c4["each test form in the state the declaration says, no unlisted form"]
+        c5["ZEPHYR_BASE is the patched copy: pin, patch hash, patched file hash"]
+    end
+    subgraph ch["3. C: src/bench_guard.h and each form's own source"]
+        h1["both declarations, board symbols, TRNG, address and identity definitions"]
+        h2["compile-time check that both bind addresses equal the bench address"]
+        h3["ssh_target.c needs CONFIG_CRUX_BENCH_TEST_HOST_KEY"]
+    end
+    decl --> kc --> cm --> ch --> img["bench image, which still refuses to start in main()"]
+    decl -.-> cm
+    native -.->|"not touched"| img
+    script["check_bench_guard.py<br/>breaks each guard, then weakens each guard"] -.-> kc
+    script -.-> cm
+    script -.-> ch
+```
+
+### What each guard refuses
+
+| Setting that is broken | Kconfig | CMake | C |
+| --- | :---: | :---: | :---: |
+| No CMake declaration (`CRUX_MANAGEMENT_BENCH_IMAGE`), or only a native test image's | | refused | refused |
+| No Kconfig declaration | | refused | refused |
+| `native_sim`, another board, another target of this board, revision A | refused | refused | refused |
+| A test random generator, fake entropy, no TRNG driver | refused | refused | refused |
+| Mbed profile, no wolfPSA | | refused | |
+| No SSH, CLI or SFTP, no web, plain HTTP, no Crux Logging | | refused | |
+| DHCP, IPv6, automatic address configuration | refused (DHCP, IPv6) | refused | |
+| A listener on every address, on `0.0.0.0`, on another address or the host's | | refused | refused (compile-time string compare) |
+| Another listener port | | refused | |
+| A time source (`CONFIG_RTC`), mkfs on mount | refused (RTC) | refused | |
+| A test form without the declaration | refused | | |
+| A selected form that is not set, a reserved form that is set, a form the declaration does not list | | refused | |
+| A source that holds a test form compiled without the guard header, or without its form symbol | | | refused |
+| ZEPHYR_BASE without the patch marker, on another pin, with another patched file | | refused | |
+
+### Listeners (D10)
+
+| Listener | Setting | Where it takes effect | If the text is not an address |
+| --- | --- | --- | --- |
+| HTTPS | `CONFIG_CRUX_WEB_BIND_ADDRESS`, the `host` of Zephyr's `HTTPS_SERVICE_DEFINE` | `components/web/ports/zephyr/web_http_server.c` | **Zephyr's server falls back to every address**, so the bench guards compare the text with the declared address at configuration and at compile time |
+| SSH | `CONFIG_CRUX_SSH_BIND_ADDRESS`, filled by the composition into `crux_ssh_config_t.bind_address` | `open_listener()` in `components/ssh/ports/zephyr/crux_ssh_wolf_provider.c` | The provider **fails to start** (`zsock_inet_pton` must return 1) |
+
+Both default to empty, which is the behaviour of every earlier image. `main()` also checks at run time that the interface holds the bench address and no other IPv4 address. **Not exercised on a target or on `native_sim`**: the provider and adapter lines compile for the board, and the behaviour on a socket is read from source ([not covered](#what-c1-did-not-cover)).
+
+### Build in C1
+
+The same method as stage 0 (`commands/zbuild_wolf.sh`, a fresh patched Zephyr copy, `-j2`, the Dev Container under emulation, one build), on the tree of this PR and the same pins. The bench guards ran inside the real configure and passed, and the manifest was written.
+
+| Item | Stage 0, committed tree (`a0ef59db`) | C1 |
+| --- | ---: | ---: |
+| FLASH (`0x60000000`, 8 MB) | 601,252 B | **601,004 B** (7.16 %), 248 B less |
+| RAM = SDRAM (`0x80000000`, 32 MB) | 833,708 B | **833,708 B** (2.48 %) |
+| ITCM, DTCM, OCRAM, OCRAM2 | 0 B | 0 B |
+| `size`: text, data, bss | 596,748, 4,480, 829,154 | 596,504, 4,480, 829,158 |
+| Steps, warnings | 544 steps, 3 warnings | 551 steps, **the same 3 warnings**, all in wolfSSH `wolfsftp.c`, outside `-Werror` as before |
+| `zephyr.bin` SHA-256 | `3af5b464...a522f` | `771985a1105b275150b618b3e84ea267a1a11573a4b9676254704fb2b58b5194` |
+| `zephyr.elf` SHA-256 | `5c9c04c3...d607` | `e70b2cce41659af0bef0eae6a0e9a290c401a290d217162631f91de85f683686` (the build path differs, so the hash may) |
+
+Why 248 B less: the public-password step and its `strlen` are gone, and the bench banner is longer than the old refusal string. **No stack, buffer, arena or session size changed**, so the RAM figure is the same.
+Reading the linked image: the string `composition test password` occurs **0 times** in `zephyr.elf` (`strings -a`), and the bench banner lines, the image identity and the bench address do occur ([evidence](evidence/rt1060-management-image-feasibility/bench-composition-c1/README.md)).
+The link map, the resolved configuration, the build and configure logs, the manifest and the sizes are in that evidence record.
+
+### The manifest
+
+CMake writes `bench-manifest.json` into the build directory at configuration. It is a record and not a check: the declaration, the resolved `CONFIG_CRUX_*` settings and a few sizes, the state of each test form, the patched Zephyr copy (D8: pin, patch name and hash, patched file and hash), the source revision of the repository and whether the tree was modified, and the SHA-256 of every source of the image's own targets (`app`, the SSH provider and its entries). `run_refused` records the switch in `main()`. Row C8 builds the plan and the frozen-input manifest on the stage 1 pattern from it.
+
+### What the next rows need to know
+
+| Row | Files it touches | What C1 left for it |
+| --- | --- | --- |
+| C2 (HTTP stack, stack and heap lines) | `target.conf` (`CONFIG_HTTP_SERVER_STACK_SIZE`), `src/main.c` or a new `src/bench_stats.c` listed in `CMakeLists.txt` | No guard pins a stack size. The manifest records `CONFIG_HTTP_SERVER_STACK_SIZE` and `CONFIG_MAIN_STACK_SIZE`. A new source includes `bench_guard.h` as the first project header. |
+| C3 (RAM disk) | `zephyr/Kconfig` and the file provider's CMake for the backend, a mount rule in a copy of `medium_ready()`, `target.conf` | `CONFIG_CRUX_BENCH_FILE_RAM_DISK` is declared in `Kconfig.bench`, **reserved**, and refused by `bench_guard.cmake` until `bench_declaration.json` says `"state": "selected"` for `ram_disk`. The declaration test and the host script then require it to be set in `target.conf`. `medium_ready()` in `src/mgmt_start.c` still calls `fs_mkfs` after a failed mount, which formats a card: the copy test pins that line, so C3 changes the copy and its declared edit together. |
+| C4 (first account) | `src/bench_first_account.c`, `target.conf`, `bench_declaration.json` | `crux_bench_first_account()` is called from `main()` on an empty store and returns false today. The public test password is not in the image and the copy test pins that. Flip `first_account_file` to `selected` when it is implemented. |
+| C5 (TRNG failure path) | A native test, `src/` for a boot line | Needs nothing from C1 beyond `bench_guard.h`. |
+| every row | `check_bench_guard.py`, `tests/build/test_management_bench_declaration.py` | Run both. A new source in `src/` must include `bench_guard.h`, or the script says so. A new `CRUX_BENCH_` symbol must be listed in `bench_declaration.json` and sit under the declaration in `Kconfig.bench`. |
+
+| What | Where |
+| --- | --- |
+| The declaration | `tests/zephyr/management_rt1060_compile/bench_declaration.json` |
+| Kconfig level | `tests/zephyr/management_rt1060_compile/Kconfig` (sources `Kconfig.bench`), symbols `CRUX_MANAGEMENT_BENCH_IMAGE`, `CRUX_BENCH_TEST_HOST_KEY`, `CRUX_BENCH_NO_TIME_SOURCE`, `CRUX_BENCH_FILE_RAM_DISK`, `CRUX_BENCH_FIRST_ACCOUNT_FILE` |
+| CMake level, definitions, manifest | `bench_guard.cmake`: `crux_bench_guard()`, `crux_bench_definitions()`, `crux_bench_manifest()`, called from `management_target.cmake` and `CMakeLists.txt` |
+| C level | `src/bench_guard.h`, included by every source in `src/` |
+| Refusal in `main()` | `set(CRUX_BENCH_RUN_REFUSED ON)` in `CMakeLists.txt`, read by `src/main.c`, pinned by a unit test |
+| Listener settings | `zephyr/Kconfig` (`CRUX_WEB_BIND_ADDRESS`, `CRUX_SSH_BIND_ADDRESS`), `target.conf` |
+| Host checks | `check_bench_guard.py` (breaks each guard and weakens each guard), `tests/build/test_management_bench_declaration.py`, `tests/build/test_management_target_lists.py` |
+
+### What still blocks a board run
+
+| Blocker | Row or owner | State |
+| --- | --- | --- |
+| The refusal in `main()` | A reviewed change after the approval | **Stays** |
+| HTTP server thread stack of 8,192 B or more, stack and heap lines on the UART | C2 | Not done |
+| A RAM disk as the file backend, and a mount rule that never formats a card | C3 (D2) | Not done. The image still links the microSD provider and its `fs_mkfs` call. |
+| The first account from an untracked file, hashed into the manifest | C4 (D3) | Not done. The step fails, so the image cannot serve. |
+| A native test of the failing TRNG path, and a boot line for the first random read | C5 | Not done |
+| Network buffer counts and the arena for 16 KiB records and an SFTP window | C6 | Not done, needs C2's measurements |
+| The programmer's limit raised and `loadfile` split from `verifybin` | C7 (D11) | Not done. `tests/target/` is not touched here. |
+| The image manifest on the stage 1 pattern and the plan for the board | C8 | Not done. The approval documents are the main session's and are not written here. |
+| RSA trimmed from the wolfSSL settings | C9 (D11) | Not done |
+| The certificate fingerprint printed on the UART (D4) | **No row** | Not in C1 to C9. The report's plan step 3 expects it. The main session decides where it goes. |
+| The owner's approval of the board stage, the root mount guard, the profile of the generalised tools | Main session, owner, `Crux Pilot` session | Not given |
+
+### What C1 did not cover
+
+| Item | Why |
+| --- | --- |
+| Anything on a board | No hardware in this stage |
+| The listeners' behaviour on a socket | Not run: the bind code compiles for the target and is read from source. No `native_sim` run was made. |
+| The Kconfig level as a refusal on its own | **It is not one.** Zephyr only warns when Kconfig drops an assignment, and the build goes on: the configure-only breaks below show the warning and then the CMake level stopping it. The Kconfig level is checked with Kconfiglib over a stub of the Zephyr symbols it names, and it makes the CMake level's test of `CONFIG_CRUX_MANAGEMENT_BENCH_IMAGE` mean something. |
+| The CMake guard inside a real configure, for every setting | The target build passes it, and six broken configurations were configured for real ([below](#checks-and-controls)). The other settings of the 40 run in script mode only. |
+| The CI workflow | `.github/` is protected and not changed. The script and the unit tests are not wired into a workflow. |
+
 ## What the vehicle is and is not
+
+This section and the ones below it are the report of stage 0. Where C1 changed a statement, the row says so, and [Stage 2, row C1](#stage-2-row-c1-the-bench-composition) is the current state. The word "vehicle" is the same image, now under the bench declaration.
 
 The vehicle composes the same component sources as `tests/native/management_composition` (the list is repeated and compared by
 `tests/build/test_management_target_lists.py`), on the real Wolf profile: wolfSSL behind Zephyr's TLS sockets (on a build-local patched Zephyr, as for the
@@ -57,25 +205,25 @@ flowchart TB
 | Components, Access, store, services, SSH, SFTP, web adapter | **Real**, compiled for the target |
 | Entropy | **The TRNG driver**, with no test generator and no fake entropy. The vehicle's CMake refuses both. |
 | TLS certificate | **Generated** by the certificate module and handed to the TLS credentials with `crux_tls_certificate_material_take` ([`docs/tls-certificate.md`](tls-certificate.md), step 6). The declared test certificate is not used. |
-| Host key | **Test form**: the store generates it, and the provider borrows it from a static buffer that is never wiped, as on `native_sim`. |
-| First account | **A declared test step with a public password** (`crux_native_management.h:34`). It must not reach a reachable board: [D3](#owner-decisions). |
+| Host key | **Test form** (D5): the store generates it, and the provider borrows it from a static buffer that is never wiped, as on `native_sim`. **Since C1 it is accepted only under the bench declaration.** |
+| First account | In stage 0: a declared test step with a public password (`crux_native_management.h:34`). **Since C1 that step is not in the image**: the copy of `crux_native_management.c` has no such function, and `bench_first_account.c` is a placeholder that fails until row C4 ([D3](#owner-decisions)). |
 | File service backend | The microSD provider of the board. **Nothing was run on any card.** |
 | Network settings | The no-op apply port. The static address comes from `main.c`, as in the M5 image. |
 | Time | No source. The wall clock is Zephyr's realtime clock, which nothing sets. |
 | Frontend | The services image's one-page folder, as on `native_sim` |
-| Refusal | `main()` prints `MGMT_RT1060 compile-only vehicle: refusing to start` and returns, because the image would otherwise create an account with a public password, hold the test host key form and could format a card. The check reads a `volatile const` flag, so all the code stays linked. It was made after the first build. The clean rebuild of the committed tree is 80 B larger in Flash and identical in RAM ([rebuild](evidence/rt1060-management-image-feasibility/rebuild-of-committed-tree/README.md)). |
-| Not built | A product composition, a product host key rule, a serial console, a board run |
+| Refusal | In stage 0, `main()` printed `MGMT_RT1060 compile-only vehicle: refusing to start` and returned. **Since C1** it prints the bench banner and `BENCH refusing to start: this image is not approved to run`. The check reads a `volatile const` flag that `CRUX_BENCH_RUN_REFUSED` in `CMakeLists.txt` sets, so all the code stays linked. The clean rebuild of the stage 0 tree was 80 B larger in Flash and identical in RAM ([rebuild](evidence/rt1060-management-image-feasibility/rebuild-of-committed-tree/README.md)). |
+| Not built | A product composition, a product host key rule, a serial console, a board run, and since C1 also a first account, a RAM disk and the stack and heap lines (rows C2 to C4) |
 
 ## The guards the native composition puts in the way
 
-The native files hold the declared test forms, so each refuses a board. None was edited or weakened. The vehicle has its own, narrower guards.
+The native files hold the declared test forms, so each refuses a board. None was edited or weakened, in stage 0 or in C1. The bench image has its own guards, which accept the test forms on one board and one bench ([the three levels](#the-three-levels-of-the-bench-guards)).
 
 | Where | Refuses | Consequence for the vehicle |
 | --- | --- | --- |
 | `composition/composition.cmake:13` and `:17` | A board, and test entropy that changed | The vehicle repeats the source lists in `management_target.cmake` |
-| `composition/ssh.cmake:16` and `:20`, `ssh_test_host_key_guard.h:12` | A board, an image that is not a declared native test image, the test host key | `ssh_target.c` is a copy without the native parts, and declares itself compile-only |
+| `composition/ssh.cmake:16` and `:20`, `ssh_test_host_key_guard.h:12` | A board, an image that is not a declared native test image, the test host key | `ssh_target.c` is a copy without the native parts, and holds the test host key form only under the bench declaration (C1) |
 | `tests/native/tls_offload_probe/credentials/test_tls_credentials.h:10` | Any build but `native_sim`, because the key of the declared test certificate is public. **The first build failed here.** | The vehicle compiles copies of two native files (`mgmt_start.c`, `mgmt_services.c`) whose only difference is the certificate hand-off. `test_management_target_lists.py` fails when a copy differs from its native file by anything else. |
-| The vehicle's own `management_target.cmake` | Not RT1060 rev B, a test random generator, fake entropy, no TRNG, the Mbed profile, no SSH or CLI or SFTP, plain HTTP, no Logging | Shown by the [controls](#checks-and-controls) |
+| The bench image's own guards (`bench_guard.cmake`, `src/bench_guard.h`, `Kconfig.bench`) | Anything that is not the declared bench: [the list](#what-each-guard-refuses) | Broken one at a time by `check_bench_guard.py`: [controls](#checks-and-controls) |
 
 ## Item by item
 
@@ -234,61 +382,67 @@ The image's other random consumers are Zephyr's own (TCP initial sequence number
 ## The test-image declaration for a bench board
 
 Today the declaration is `CRUX_NATIVE_MANAGEMENT_TEST_IMAGE`, on `native_sim` only, with a tripwire in CMake, in C and in Kconfig
-([`ssh-integrated-image.md`](ssh-integrated-image.md#the-test-image-declaration)). **This is a decision, and none of it is implemented.** The change is not pure configuration: the
+([`ssh-integrated-image.md`](ssh-integrated-image.md#the-test-image-declaration)). Stage 0 proposed a second, distinct declaration for a bench board; the owner took it as D1, and **row C1 implemented it**
+([below](#stage-2-row-c1-the-bench-composition)). The table is the proposal of stage 0, with the C1 result in the last column. The change is not pure configuration: the
 guards are code, so it needs review as code.
 
-| Level | Today | Proposed for a declared bench image |
-| --- | --- | --- |
-| Name | `CRUX_NATIVE_MANAGEMENT_TEST_IMAGE`, set by the image's CMake | A second, distinct declaration, `CRUX_MANAGEMENT_BENCH_IMAGE`, that no native image can set |
-| Board | `native_sim` | **Exactly** `mimxrt1060_evk@B//qspi`, and nothing else |
-| Entropy | Test entropy is allowed, a test random generator is not | The TRNG driver is required, and both test sources are refused, as the vehicle's CMake already does |
-| Certificate | The declared test certificate, whose header refuses a board | **Unchanged**: the header stays native only. The bench uses the generated certificate. |
-| Host key | Test form, static buffer, never wiped | Test form is accepted **only under the bench declaration**, generated on the board by the store from the TRNG, so it is not public. Its fingerprint is printed on the UART. |
-| First account | A public password | The public password is refused. The password comes from an untracked input or from the serial step: [D3](#owner-decisions). |
-| Network | The host's loopback | The listeners answer on the bench address only: a refusal of DHCP and of any other interface address |
-| Evidence | The test image's output | The banner and the image manifest name the declaration, so that a bench image cannot be mistaken for a product |
-| Where it is refused | CMake, C, and a host script that compiles the guards with each setting (`check_ssh_guard.py`) | The same three levels, with a script that breaks each guard on purpose |
+| Level | Today | Proposed for a declared bench image | In C1 |
+| --- | --- | --- | --- |
+| Name | `CRUX_NATIVE_MANAGEMENT_TEST_IMAGE`, set by the image's CMake | A second, distinct declaration, `CRUX_MANAGEMENT_BENCH_IMAGE`, that no native image can set | Done: a CMake variable of that name set only by the bench image, a Kconfig symbol and a compile definition, all three required. |
+| Board | `native_sim` | **Exactly** `mimxrt1060_evk@B//qspi`, and nothing else | Done at all three levels. |
+| Entropy | Test entropy is allowed, a test random generator is not | The TRNG driver is required, and both test sources are refused, as the vehicle's CMake already does | Done. |
+| Certificate | The declared test certificate, whose header refuses a board | **Unchanged**: the header stays native only. The bench uses the generated certificate. | As proposed. The generated certificate names the bench address. |
+| Host key | Test form, static buffer, never wiped | Test form is accepted **only under the bench declaration**, generated on the board by the store from the TRNG, so it is not public. Its fingerprint is printed on the UART. | Accepted only under the declaration, by `CONFIG_CRUX_BENCH_TEST_HOST_KEY`. The fingerprint line existed already (`SSH-HOST-KEY`). |
+| First account | A public password | The public password is refused. The password comes from an untracked input or from the serial step: [D3](#owner-decisions). | The public password is **not in the image**. The step is a placeholder that fails until row C4. |
+| Network | The host's loopback | The listeners answer on the bench address only: a refusal of DHCP and of any other interface address | Done: both listeners are bound to the bench address, DHCP, IPv6 and automatic configuration are refused, and `main()` checks at run time that the interface has no other IPv4 address. |
+| Evidence | The test image's output | The banner and the image manifest name the declaration, so that a bench image cannot be mistaken for a product | Done: the banner and `bench-manifest.json`. |
+| Where it is refused | CMake, C, and a host script that compiles the guards with each setting (`check_ssh_guard.py`) | The same three levels, with a script that breaks each guard on purpose | Done: `check_bench_guard.py`, with mutation checks. |
 
 ## Owner decisions
 
-Each has a recommendation. None is taken here.
+Each has a recommendation. **The owner took all of them on 2026-11-08, in the working chat, after being shown these recommendations: "추천대로 진행해주고"** ("proceed as recommended").
+The column *Taken* records that, and what it means for the row that implements it. Taking a decision does not approve a board stage.
 
-| # | Decision | Options | Recommendation |
-| --- | --- | --- | --- |
-| D1 | Adopt a bench declaration and tripwire for RT1060-EVKB rev B | [As above](#the-test-image-declaration-for-a-bench-board); or keep the vehicle compile-only and run nothing | **Adopt**, as the condition for any board run |
-| D2 | File backend of the bench image | microSD (the existing provider, persistent, the card is touched and `fs_mkfs` can format it); a RAM disk (needs a small change, nothing persists, no card) | **RAM disk for the first board run**: no card and no format risk. SD in a later run, with the M4 microSD tools. |
-| D3 | The first account on a reachable board | A password in an untracked file, hashed into the manifest; the serial setup step (not composed, more work); the public test password (refused) | **An untracked file** for the first run, a serial step later |
-| D4 | The listener certificate | Generated by the certificate module (what the vehicle does); the declared test certificate (refused on a board) | **Generated**, with the fingerprint on the UART |
-| D5 | The host key's hold and wipe rule | Static buffer, never wiped, bench only; a rule like the TLS key's hand-off | **Static buffer under the bench declaration only** for the first run. A product rule stays open ([`ssh-integrated-image.md`](ssh-integrated-image.md#decisions-for-review)). |
-| D6 | Network settings apply | The M5 static address in `main` and no apply port; a Zephyr apply port | **The M5 address in `main`.** The network routes then show no running values. |
-| D7 | Time | No source (the vehicle); an RTC label overlay so that `CONFIG_RTC` compiles with wolfSSL; a host-set clock | **No source** for the first run. Events carry boot-relative times. |
-| D8 | The wolfSSL TLS socket patch on a board image | A build-local patched Zephyr copy, as the vehicle; wait for #185 | **Build-local copy**, declared in the bench manifest |
-| D9 | Session sizes | 7 network slots, 4 SSH connections, 15 minute idle, 3 HTTPS clients (#197 decision 5) | **Keep** for the bench, and read what a board shows |
-| D10 | Listener exposure | SSH on every IPv4 address and HTTPS dual stack (as on `native_sim`); the bench address only | **The bench address only**, in the bench declaration |
-| D11 | The programmer's 30 s limit | Raise it for a 601 KB image, and split `loadfile` from `verifybin`; shrink the image (drop RSA, which is unused) | **Raise and split**, reviewed, and also trim RSA |
+| # | Decision | Options | Recommendation | Taken |
+| --- | --- | --- | --- | --- |
+| D1 | Adopt a bench declaration and tripwire for RT1060-EVKB rev B | [As above](#the-test-image-declaration-for-a-bench-board); or keep the vehicle compile-only and run nothing | **Adopt**, as the condition for any board run | **Taken** 2026-11-08, "추천대로 진행해주고". Implemented in C1. |
+| D2 | File backend of the bench image | microSD (the existing provider, persistent, the card is touched and `fs_mkfs` can format it); a RAM disk (needs a small change, nothing persists, no card) | **RAM disk for the first board run**: no card and no format risk. SD in a later run, with the M4 microSD tools. | **Taken** 2026-11-08, same quote. Row C3 implements it. C1 reserves `CONFIG_CRUX_BENCH_FILE_RAM_DISK`. |
+| D3 | The first account on a reachable board | A password in an untracked file, hashed into the manifest; the serial setup step (not composed, more work); the public test password (refused) | **An untracked file** for the first run, a serial step later | **Taken** 2026-11-08, same quote. Row C4 implements it. C1 removed the public password from the image and reserved `CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE`. |
+| D4 | The listener certificate | Generated by the certificate module (what the vehicle does); the declared test certificate (refused on a board) | **Generated**, with the fingerprint on the UART | **Taken** 2026-11-08, same quote. The image already generates the certificate. **The fingerprint line on the UART is not in any row C1 to C9**: see [open](#what-still-blocks-a-board-run). |
+| D5 | The host key's hold and wipe rule | Static buffer, never wiped, bench only; a rule like the TLS key's hand-off | **Static buffer under the bench declaration only** for the first run. A product rule stays open ([`ssh-integrated-image.md`](ssh-integrated-image.md#decisions-for-review)). | **Taken** 2026-11-08, same quote. Implemented in C1 as `CONFIG_CRUX_BENCH_TEST_HOST_KEY`. |
+| D6 | Network settings apply | The M5 static address in `main` and no apply port; a Zephyr apply port | **The M5 address in `main`.** The network routes then show no running values. | **Taken** 2026-11-08, same quote. C1 keeps the M5 address in `main()` and adds the one-address check. |
+| D7 | Time | No source (the vehicle); an RTC label overlay so that `CONFIG_RTC` compiles with wolfSSL; a host-set clock | **No source** for the first run. Events carry boot-relative times. | **Taken** 2026-11-08, same quote. Implemented in C1 as `CONFIG_CRUX_BENCH_NO_TIME_SOURCE`, which excludes `CONFIG_RTC`. |
+| D8 | The wolfSSL TLS socket patch on a board image | A build-local patched Zephyr copy, as the vehicle; wait for #185 | **Build-local copy**, declared in the bench manifest | **Taken** 2026-11-08, same quote. C1 declares the copy in `bench_declaration.json`, checks it at configuration and records it in the manifest. |
+| D9 | Session sizes | 7 network slots, 4 SSH connections, 15 minute idle, 3 HTTPS clients (#197 decision 5) | **Keep** for the bench, and read what a board shows | **Taken** 2026-11-08, same quote. C1 changes no session size. |
+| D10 | Listener exposure | SSH on every IPv4 address and HTTPS dual stack (as on `native_sim`); the bench address only | **The bench address only**, in the bench declaration | **Taken** 2026-11-08, same quote. Implemented in C1. |
+| D11 | The programmer's 30 s limit | Raise it for a 601 KB image, and split `loadfile` from `verifybin`; shrink the image (drop RSA, which is unused) | **Raise and split**, reviewed, and also trim RSA | **Taken** 2026-11-08, same quote. Rows C7 and C9, not C1. |
+
+The owner added, in the same message, a requirement on the HTTP server thread stack (4,096 B today; a static estimate of one handshake path is 4,272 B): it must be made big enough that it is no
+problem, **8,192 B or larger** if the measurement or the estimate leaves less than a safe margin. That is row C2. The bench declaration pins no stack size, so it does not prevent it.
 
 ## Code changes and their order
 
-Rough effort is agent time for the change and its tests, without the board. Hardware is never part of stage 2.
+Rough effort is agent time for the change and its tests, without the board. Hardware is never part of stage 2. The state column is as of the C1 PR.
 
-| Order | Change | Needs | Effort |
-| --- | --- | --- | --- |
-| 1 | **C1.** Promote the vehicle to a bench composition: the declaration and guards at three levels, a host script that breaks each guard, and a manifest recording the declaration | D1 | 1.5 to 2 days |
-| 2 | **C2.** `CONFIG_HTTP_SERVER_STACK_SIZE` at 8,192 B in the bench image, a stack watermark and heap line printed on the UART at idle and after each client | none | 0.5 to 1 day |
-| 2 | **C3.** The file backend of D2: a RAM disk selection (Kconfig and CMake) and a mount and format rule that never formats a card | D2 | 0.5 to 1 day |
-| 2 | **C4.** The first account of D3, with the password never in the repository or the log | D3 | 0.5 to 1 day |
-| 2 | **C5.** A native test of the failing-TRNG path on the Wolf profile, and a boot line that says the first random read succeeded | none | 1 day |
-| 3 | **C6.** Network buffer counts and the arena for 16 KiB records and an SFTP window, from the measurements of C2 | C2 | 0.5 day, then a board read |
-| 3 | **C7.** The programmer's limit: raise it, split the commands, test the change | D11 | 0.5 to 1 day |
-| 3 | **C8.** The image manifest and the plan for the bench image, on the stage 1 pattern. **The approval documents are the main session's, and are not written here.** | C1 to C7 | 1 to 2 days |
-| 4 | **C9.** Trim RSA from the wolfSSL settings and re-measure | D11 | 0.5 day |
+| Order | Change | Needs | Effort | State |
+| --- | --- | --- | --- | --- |
+| 1 | **C1.** Promote the vehicle to a bench composition: the declaration and guards at three levels, a host script that breaks each guard, and a manifest recording the declaration | D1 | 1.5 to 2 days | **Done in the C1 PR** |
+| 2 | **C2.** `CONFIG_HTTP_SERVER_STACK_SIZE` at 8,192 B in the bench image, a stack watermark and heap line printed on the UART at idle and after each client | none | 0.5 to 1 day | Not started |
+| 2 | **C3.** The file backend of D2: a RAM disk selection (Kconfig and CMake) and a mount and format rule that never formats a card | D2 | 0.5 to 1 day | Not started |
+| 2 | **C4.** The first account of D3, with the password never in the repository or the log | D3 | 0.5 to 1 day | Not started |
+| 2 | **C5.** A native test of the failing-TRNG path on the Wolf profile, and a boot line that says the first random read succeeded | none | 1 day | Not started |
+| 3 | **C6.** Network buffer counts and the arena for 16 KiB records and an SFTP window, from the measurements of C2 | C2 | 0.5 day, then a board read | Not started |
+| 3 | **C7.** The programmer's limit: raise it, split the commands, test the change | D11 | 0.5 to 1 day | Not started |
+| 3 | **C8.** The image manifest and the plan for the bench image, on the stage 1 pattern. **The approval documents are the main session's, and are not written here.** | C1 to C7 | 1 to 2 days | Not started |
+| 4 | **C9.** Trim RSA from the wolfSSL settings and re-measure | D11 | 0.5 day | Not started |
 
-Order: decisions D1 to D11, then C1, then C2 to C5, which touch different files and may run in parallel, then C6 and C7, then C8, then the approval, then the board. About 7 to 10 working days if all of it is done in sequence, less if C2 to C5 run in parallel. A
+Order: decisions D1 to D11 (taken 2026-11-08), then C1 (done), then C2 to C5, which touch different files and may run in parallel, then C6 and C7, then C8, then the approval, then the board. About 7 to 10 working days if all of it is done in sequence, less if C2 to C5 run in parallel. A
 Zephyr apply port for the network settings (2 to 3 days) is not needed for the first run and is not in this list.
 
 ## The plan outline for the board stage
 
-Not an approval and not a run plan. It reuses the stage 1 tools and the same safety gates. Each step needs the approval of its own stage.
+Not an approval and not a run plan. It reuses the stage 1 tools and the same safety gates. Each step needs the approval of its own stage. C1 changes nothing here, except that the banner now reads `BENCH image=... declaration=CRUX_MANAGEMENT_BENCH_IMAGE ...`
+and the lines of the other steps start with `BENCH` and not `MGMT_RT1060`. Step 3 expects a certificate fingerprint line that no row implements yet ([open](#what-still-blocks-a-board-run)).
 
 | Step | Who | What |
 | --- | --- | --- |
@@ -310,8 +464,19 @@ Not covered by that stage: persistence and power loss (RAM disk), a card, the co
 | Compile and link of the vehicle for `mimxrt1060_evk@B//qspi` | Linked, see [Build](#build) | The author, in the Dev Container |
 | A second, clean build from the committed tree `a0ef59db` | Linked: Flash 601,252 B, RAM 833,708 B, the resolved configuration identical, the same three warnings ([record](evidence/rt1060-management-image-feasibility/rebuild-of-committed-tree/README.md)). An earlier attempt was stopped at step 56 because free disk was under the 5 GB floor, and was redone when it was not. | The author |
 | `python3 -m unittest tests/build/test_management_target_lists.py` | 3 tests pass. **Two mutations fail it** (a changed line in a copy, and a removed source from the list), and the restored files pass. | The author, on the host |
-| `scripts/check-ssh-boundaries.py`, `check-native-interfaces.py`, `check-mgmt-services-boundary.py` | Pass | The author, on the host |
-| Not run | A board, the image, any client, the native images (unchanged), CI | |
+| `scripts/check-ssh-boundaries.py`, `check-native-interfaces.py`, `check-mgmt-services-boundary.py` | Pass (stage 0, and again in C1) | The author, on the host |
+
+C1 adds these. The record is [`evidence/.../bench-composition-c1/`](evidence/rt1060-management-image-feasibility/bench-composition-c1/README.md).
+
+| Check | Result | Who ran it |
+| --- | --- | --- |
+| `python3 tests/zephyr/management_rt1060_compile/check_bench_guard.py --verbose` | **40 CMake and 17 C refusals, each for its reason**, the declared bench passing at every level, the Kconfig level over a Kconfiglib stub, and **37 of 37 mutants killed** (each guard weakened in turn: a refusal that only logs, an `#error` that only warns, a static assertion that always holds, a removed include, a removed `depends on`, a removed block). [Output](evidence/rt1060-management-image-feasibility/bench-composition-c1/host/check_bench_guard-verbose.txt) | The author, on the host |
+| The same script, before it was right | Two mutants survived in its first version, because it accepted a reason that appeared in a `#warning`, and counted an `#error` inside a comment. Both fixed in the script. | The author |
+| `python3 -m unittest tests/build/test_management_bench_declaration.py tests/build/test_management_target_lists.py` | 13 tests pass. Six mutations of the files each fail a test (a changed line in a copy, a removed source, the refusal switched off, an emptied bind address, a changed declared address, the public password in a bench source), and the restored files pass. | The author, on the host |
+| Compile and link for `mimxrt1060_evk@B//qspi` | **Linked**, with the bench guards inside the configure: Flash 601,004 B, RAM 833,708 B, the same three warnings. [Build in C1](#build-in-c1) | The author, in the Dev Container |
+| Six configure-only runs with one setting broken | Each stops: five at the CMake level, one earlier at a module guard. **Two show that Zephyr only warns when Kconfig drops an assignment.** | The author, in the Dev Container |
+| `strings` on the linked image | The public test password occurs 0 times | The author |
+| Not run | A board, the image, any client, any `native_sim` image (none built in C1), the native images (their files are unchanged), the CI workflows | |
 
 ## What was not measured
 
@@ -338,14 +503,42 @@ Taken here without the owner, each the narrower choice.
 | 2 | The vehicle compiles two **copies** of native files, held to the originals by an exact test | The native test certificate's header refuses a board and must stay so |
 | 3 | `CONFIG_RTC` is off | It breaks wolfSSL on this board: [item 12](#item-by-item) |
 | 4 | The File provider is the microSD one | It is the only one that exists for the board. It was compiled, not used. |
-| 5 | The HTTP server stack stays at the default 4,096 B in the vehicle | So that the report shows the declared default and its estimate, and not a value chosen to pass |
+| 5 | The HTTP server stack stays at the default 4,096 B in the vehicle | So that the report shows the declared default and its estimate, and not a value chosen to pass. **Unchanged in C1**: row C2 raises it, and the owner has asked for 8,192 B or more. |
 | 6 | The arena is 524,288 B, as the existing target image's | Between the web profile's 131,072 B and the native run's 1 MiB. It is a configuration, not a measured need. |
-| 7 | No script is added to `scripts/`. The commands that ran are kept as evidence. | A script that was not run to the end would be a claim without a check. A script is a stage 2 item (C1). |
+| 7 | No script is added to `scripts/`. The commands that ran are kept as evidence. | A script that was not run to the end would be a claim without a check. A script is a stage 2 item (C1). **Done in C1**, beside the image: `check_bench_guard.py`. |
 | 8 | The evidence record holds the maps, the resolved configuration, the logs, the static chains and the commands, and not the ELF or the binary | The binary is not reproducible bit for bit from another path, and `*.bin` is ignored by the repository |
-| 9 | The report proposes the bench declaration and implements none of it | A security-sensitive design decision and not a pure configuration change |
-| 10 | The vehicle declares itself compile-only with `CRUX_MGMT_RT1060_COMPILE_ONLY`, which only its own CMake sets, and refuses to start at run time | It is the one place where a test form (the test host key, the public test password) is compiled for a board. It is allowed only in this vehicle, which cannot run, and is not a bench declaration: that is D1. |
+| 9 | The report proposes the bench declaration and implements none of it | A security-sensitive design decision and not a pure configuration change. **Superseded**: the owner took D1 and C1 implemented it. |
+| 10 | The vehicle declares itself compile-only with `CRUX_MGMT_RT1060_COMPILE_ONLY`, which only its own CMake sets, and refuses to start at run time | It is the one place where a test form (the test host key, the public test password) is compiled for a board. It is allowed only in this vehicle, which cannot run, and is not a bench declaration: that is D1. **Superseded in C1**: `CRUX_MGMT_RT1060_COMPILE_ONLY` is gone, and the test forms are accepted only under the bench declaration. |
+
+### Decisions taken in C1
+
+Taken without the owner, each the narrower choice. The owner's decisions D1 to D11 are recorded above and are not repeated.
+
+| # | Decision | Why |
+| --- | --- | --- |
+| C1-1 | The directory keeps the name `management_rt1060_compile` | The stage 0 evidence under `docs/evidence/` is protected and names that path. A rename would leave it pointing at nothing. |
+| C1-2 | One declaration file, `bench_declaration.json`, read by CMake, the host script, the unit test and the manifest | Two copies of the address or the board would drift, which is what the guards exist to prevent |
+| C1-3 | The Kconfig symbols live in the application's own `Kconfig.bench`, not in `zephyr/Kconfig` | Another build cannot assign them: they do not exist there. The only shared symbols are the two bind addresses, which default to empty and change no other image. |
+| C1-4 | The reserved forms (`CRUX_BENCH_FILE_RAM_DISK`, `CRUX_BENCH_FIRST_ACCOUNT_FILE`) are declared, and refused until their rows change the declaration | The guards then cannot be satisfied by selecting a form that nothing implements |
+| C1-5 | The copy of `crux_native_management.c` loses `crux_native_management_provision_test_account`, a declared edit that the copy test pins | The public password is then not in the linked image at all, whatever `main()` does |
+| C1-6 | `crux_ssh_config_t` gains a trailing `bind_address` field | The SSH settings are composition input in this design (`CRUX_SSH_PORT` is the precedent), and a NULL field keeps the old behaviour. It is a private interface, but it is a change to one. |
+| C1-7 | `main()` checks at run time that the interface has only the bench address, and the stub for the first account makes the image unable to serve | Both are belt and braces behind the refusal |
+| C1-8 | The refusal is a CMake switch (`CRUX_BENCH_RUN_REFUSED`) and a unit test pins it on | Removing it must be one reviewed line that changes a test |
+| C1-9 | An existing assertion of `test_management_target_lists.py` moved from `management_target.cmake` to `bench_guard.cmake`, and the copy test follows the declared edits | The approved behaviour changed (the entropy guard moved, and the first account step left the copy). No assertion was weakened: the new test asserts the same guards at their new place, and more. |
+| C1-10 | The script lives beside the image, not in `scripts/` | `scripts/` is protected, and `check_ssh_guard.py` is beside its image too |
 
 ## Reproduce
+
+C1 checks, on any host with `cmake`, a C compiler and Python 3 (Kconfiglib comes from `ZEPHYR_BASE`, `CRUX_WORKSPACE` or the Zephyr checkout beside the repository; without it the Kconfig level is reported as skipped and the script exits 2):
+
+```bash
+python3 tests/zephyr/management_rt1060_compile/check_bench_guard.py --verbose
+python3 -m unittest tests/build/test_management_bench_declaration.py tests/build/test_management_target_lists.py
+```
+
+The target build, as below, needs the five crypto modules at their `west.yml` pins on `/ws/modules/crypto` (`evidence/.../bench-composition-c1/commands/container.sh`) and writes `bench-manifest.json` into the build directory.
+
+Stage 0:
 
 In the Dev Container image, with the workspace mounts of `commands/container.sh` (Zephyr, hal_nxp, cmsis, fatfs, and the five crypto modules at their `west.yml` pins), run
 `commands/zbuild_wolf.sh mgmt_v1 /ws/crux-pilot/tests/zephyr/management_rt1060_compile`. Nothing here touches a board. It needs about 400 MB of disk for the patched Zephyr copy and the build.

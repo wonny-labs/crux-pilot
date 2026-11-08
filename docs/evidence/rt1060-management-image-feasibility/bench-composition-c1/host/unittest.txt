@@ -1,0 +1,18 @@
+test_board_names_agree (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_both_listeners_are_bound_by_the_product_code_only_when_asked (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_kconfig_names_the_declared_test_forms_and_each_depends_on_the_declaration (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_network_is_one_consistent_bench (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_patched_zephyr_matches_the_prepare_script_and_the_manifest (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_target_conf_carries_the_declaration (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_the_certificate_names_the_bench_address (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_the_public_test_password_and_the_native_declaration_are_not_in_the_bench_image (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_the_refusal_in_main_stays_until_a_reviewed_change_removes_it (tests.build.test_management_bench_declaration.BenchDeclaration) ... ok
+test_every_guard_refuses_and_every_mutant_is_killed (tests.build.test_management_bench_declaration.BenchGuardBreaks) ... ok
+test_component_sources_match_the_native_composition (tests.build.test_management_target_lists.ManagementTargetLists) ... ok
+test_no_native_test_declaration_reaches_the_bench_image (tests.build.test_management_target_lists.ManagementTargetLists) ... ok
+test_vehicle_copies_are_the_native_files_with_only_the_declared_edits (tests.build.test_management_target_lists.ManagementTargetLists) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 12.778s
+
+OK

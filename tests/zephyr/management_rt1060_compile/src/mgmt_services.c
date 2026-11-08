@@ -1,6 +1,7 @@
-/* RT1060 compile vehicle: a copy of tests/native/management_composition/composition/
+/* RT1060-EVKB bench image: a copy of tests/native/management_composition/composition/
  * crux_native_management_services.c whose listener takes the generated certificate and the store's
- * key, in place of the declared test certificate. */
+ * key, in place of the declared test certificate, and whose certificate names the bench address. */
+#include "bench_guard.h"
 #include "crux_native_management_services.h"
 #include "entropy_guard.h"
 

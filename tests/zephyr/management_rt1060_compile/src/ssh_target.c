@@ -1,18 +1,18 @@
 /*
- * SSH start for the RT1060 compile vehicle. It repeats
+ * SSH start for the RT1060-EVKB bench image. It repeats
  * tests/native/management_composition/composition/ crux_native_management_ssh.c without its
- * native_sim parts (the test arguments, the heap report and the stack probe), and it declares
- * itself compile-only. The host key is in test form: the store generates it, and the provider
- * borrows it from a static buffer that is never wiped. A board run needs a decision on how the host
- * key is held and wiped: docs/rt1060-management-image-feasibility.md.
+ * native_sim parts (the test arguments, the heap report and the stack probe). The host key is in
+ * test form (D5): the store generates it, and the provider borrows it from a static buffer that is
+ * never wiped. That is allowed only under the bench declaration, and the listener is bound to the
+ * bench address only (D10). See docs/rt1060-management-image-feasibility.md.
  */
 #include "ssh_target.h"
 
-#ifndef CRUX_MGMT_RT1060_COMPILE_ONLY
-#error "The test host key is allowed only in the declared RT1060 compile-only image"
-#endif
-#if defined(CONFIG_TEST_RANDOM_GENERATOR) || defined(CONFIG_FAKE_ENTROPY_NATIVE_SIM)
-#error "The SSH composition draws random values from its PSA provider over the TRNG driver"
+#include "bench_guard.h"
+
+#ifndef CONFIG_CRUX_BENCH_TEST_HOST_KEY
+#error                                                                                             \
+    "The test host key form is declared only with CONFIG_CRUX_BENCH_TEST_HOST_KEY of the bench image"
 #endif
 
 #include "crux_ssh_access.h"
@@ -49,6 +49,7 @@ bool crux_mgmt_rt1060_ssh_start(void)
         .host_key_type = held_host_key.type,
         .host_key = held_host_key.key,
         .host_key_length = held_host_key.length,
+        .bind_address = CONFIG_CRUX_SSH_BIND_ADDRESS,
     };
     return crux_ssh_wolf_provider()->start(&config, crux_ssh_callback_table()) == CRUX_OK;
 }
