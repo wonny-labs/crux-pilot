@@ -1,0 +1,14 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/ {
+    emmc_sim0: emmc_sim {
+        compatible = "crux,emmc-sim";
+        status = "okay";
+
+        mmc {
+            compatible = "zephyr,mmc-disk";
+            disk-name = "MMC";
+            bus-width = <4>;
+            status = "okay";
+        };
+    };
+};

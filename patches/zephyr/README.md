@@ -111,9 +111,72 @@ this patch, and the patch also calls wolfSSL, so Crux refers to it by revision u
 
 Upstream generated these for Zephyr 4.4.1. On v4.4.2, `git apply --check` of the core patch fails in `sockets_tls.c`, and
 `git apply --3way` merges it with no conflict. The result differs from the patched 4.4.1 file by exactly the upstream changes
-between those tags. It has been compiled and has not been run. How a composition applies it without editing the Zephyr
+between those tags. It runs on `native_sim` in the [TLS probe](../../docs/native-management-composition.md#tls-probe), on a patched copy of the tree that
+`scripts/prepare-wolf-tls-zephyr.sh` makes for a test, and it has run on nothing else. How a product composition applies it without editing the Zephyr
 checkout is decided under Issue #185. The wolfSSL, wolfSSH and wolfPSA projects are fetched only when a workspace enables the
 `crux-secure-management` group. wolfSSL and wolfSSH are offered under GPL-3.0-or-later or a commercial licence. wolfPSA's source
 states GPL-3.0-or-later only. A vendor article says it has the same licence options as wolfSSL, and its commercial terms need
 confirming with the vendor. Binaries built with these stacks are subject to those terms when distributed. The `mbedtls` and `tf-psa-crypto` projects in the same group are
 Apache-2.0 OR GPL-2.0-or-later.
+
+## Mbed TLS entropy without a fallback
+
+`mbedtls-entropy-fail-closed.patch` changes one line of `modules/mbedtls/zephyr_entropy.c` at Zephyr
+`dccb09599635bdff17633fa7e9dab014b91dce90`: `mbedtls_platform_get_entropy` passes `false` instead of `true` for whether
+a failed entropy read may fall back to `sys_rand_get()`. The file is Nordic Semiconductor copyright, Apache-2.0 licensed, and its notice remains in the
+generated copy. The file has the same SHA-256 at v4.4.0 and v4.4.2 (`302e3738…`), and the patched copy has `65ed87b0…`.
+
+Without it, a failed read on RT1060-EVKB seeds the PSA random generator from a non-cryptographic source and still reports full entropy. At v4.4.2 the TRNG
+driver returns `-EIO` on a failed read, so that path is reachable. With it, Mbed TLS reports the failure and PSA does not initialise. Owner decision of 6 November 2026,
+recorded in the [qualification record](../../docs/psa-crypto-qualification.md#entropy-failure).
+
+`scripts/prepare-mbedtls-entropy.py` checks the original's hash, applies the patch in a temporary directory and checks the result's hash. `cmake/CruxMbedtlsEntropy.cmake`
+replaces exactly one source in the one library that compiles it, with the build-local copy, and never edits the Zephyr checkout. Source drift, a missing library or a
+second one in `modules/mbedtls` fails configuration. A compile of the file from another directory would not, and only the RT1060-EVKB conformance image checks the compile commands. It applies only on the entropy driver route (`CONFIG_MBEDTLS_PSA_DRIVER_GET_ENTROPY`). The external-RNG route does not fall back to `sys_rand_get()` unless `CONFIG_MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG_ALLOW_NON_CSPRNG` is set, but it accepts whatever its entropy driver returns. It does not touch the TLS socket patch above, and does not change what an image that does not call it does.
+
+# eMMC cache flush on disk sync
+
+`mmc-cache-flush.patch` is an opt-in correction of the Zephyr MMC stack. It applies only to `subsys/sd/mmc.c` at Zephyr
+`dccb09599635bdff17633fa7e9dab014b91dce90`. The original file is NXP copyright, Apache-2.0 licensed; its notice remains in
+the generated copy.
+
+At the pin, `mmc_card_init` turns on the eMMC cache whenever the device reports one, and `DISK_IOCTL_CTRL_SYNC` only waits
+for the card to be ready. No flush command exists in the stack, so on a device with a cache a successful sync does not mean
+that the data reached the medium. The eMMC simulator in `tests/support/emmc_sim` reproduces this; it has not been observed
+on a device.
+
+With the correction, `mmc_set_cache` records in a private bit of `card->flags` that it turned the cache on, after it has sent the cache-on command and waited for the card. It does not read back whether the card accepted the command, as `sdmmc_wait_ready` discards the switch error bit; if the card rejected it, an extra flush is sent, which is the safe direction. `sd_init`
+clears the flags on each initialisation. When that bit is set, a sync holds the card lock and:
+
+1. Waits for the card with `sdmmc_wait_ready`, which finishes earlier writes and clears any stale status.
+2. Sends CMD6 to write `FLUSH_CACHE` (EXT_CSD byte 32) with value 1, with `CONFIG_SD_DATA_TIMEOUT` as its timeout.
+3. Polls `sdhc_card_busy`, bounded by the same timeout.
+4. Sends CMD13 until the card is ready in the transfer state, bounded by the same timeout.
+
+A failure in any step returns an error: the wait's own value in step 1 (`-EBUSY` when the card stays busy), the host's
+value for a failed command, `-ETIMEDOUT` for a busy period or status poll that does not end, and `-EIO` when a status
+response carries the switch error bit (bit 7). Steps 3 and 4 do not use `sdmmc_wait_ready`, because its status reads
+discard bit 7, which the card clears when it is read. CMD13 is sent without retries, since a lost response may have held
+that bit. Without a cache, or before initialisation, the sync behaves as at the pin and sends no flush.
+
+`CONFIG_CRUX_MMC_CACHE_FLUSH` defaults off and needs `MMC_STACK`. This is not a platform API, a driver replacement or a
+qualification claim. Only the bit 7 error is read from the status; other R1 error bits are not. Linux allows 30 s for a
+flush, while `CONFIG_SD_DATA_TIMEOUT` defaults to 10 s; a composition that needs longer raises that value. The timeouts are
+counted in polling delays, as `sdmmc_wait_ready` does, so they are a lower bound. The disk de-initialisation path also
+sends the sync and discards its result. The drift check covers `mmc.c` only. The correction also relies on bit 15 of
+`card->flags` staying unused in `sd_spec.h`, on `sd_init_io` clearing the flags, and on `sdmmc_wait_ready` behaving as at the pin, so a Zephyr update that leaves `mmc.c` unchanged still needs this reviewed. CMD13 is sent without retries as a named decision: a transient status error makes the sync fail, and the caller gets that error. With the Reliance Edge file system, as designed, the volume then becomes read-only until a remount, which is the safe direction; that adapter does not exist yet.
+
+`scripts/prepare-mmc-cache-flush.py` checks the exact original source hash, applies the patch in a temporary directory and
+verifies the generated hash. `zephyr/mmc_cache_flush.cmake` replaces exactly one `subsys/sd/mmc.c` in the existing
+`subsys__sd` library with this build-local copy, adds `subsys/sd` to that library's private include path, and builds the
+copy with `-Wall -Wextra -Werror`. It never edits the Zephyr checkout. The generated `.json` records original, patch and
+output hashes. Source drift or a missing or ambiguous library member fails configuration.
+
+`tests/native/emmc_stack` runs the corrected stack against the simulator in the `crux.emmc.stack.flush.cached` and
+`.flush.nocache` scenarios, and `tests/native/emmc_restart` checks that a sync through it outlives a process restart with
+the cache on. `tests/native/emmc_stack/test_prepare.py` checks the drift and output-path refusals. The simulator is a model
+written from the stack's needs, so these results are not device evidence. Target compilation and physical evidence are
+separate gates.
+
+The upstream change is the intended end state and needs its own approval. The patch is removed when the correction is
+available at the pinned Zephyr.

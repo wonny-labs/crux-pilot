@@ -5,7 +5,8 @@ Status: **decisions accepted by the owner on 3 November 2026; see [Decisions](#d
 The [consumer test guide](build.md#testing-a-consumer-application), the maintained
 [out-of-tree consumer](../tests/consumer_poc/README.md) and the
 [device-control tool](../tools/device_control/README.md) implement steps 2 to 4 of the
-[recommended order](#recommended-order). No milestone, CI job, runtime code or public API is added.
+[recommended order](#recommended-order). The consumer's levels run in CI. No milestone, runtime code
+or public API is added.
 
 Principle: **applications own their tests; Crux makes those tests easy to build, run and
 automate.** Test tooling stays outside the platform runtime: this proposal adds no `crux::` target,
@@ -22,10 +23,10 @@ Nothing here has run on hardware or on Windows, and none of it qualifies a physi
 
 | Part | Implemented | Tested | Not tested |
 | --- | --- | --- | --- |
-| Consumer test guide | [Build guide](build.md#testing-a-consumer-application) and [test guide](../tests/README.md#testing-a-consumer-application) | Its `west build`, `west twister` and harness commands, through `run_poc.sh` on Linux at Zephyr v4.4.0 | Listing Crux in an application's manifest. `ZEPHYR_MODULES` without a workspace, beyond configuring |
-| Maintained consumer check | `tests/consumer_poc` and `tests/build/test_consumer_poc.py` | Unit and Host integration levels, in Host CI through `tests/build` discovery. `native_sim` and functional levels, opt-in, on Linux at Zephyr v4.4.0, with the controlled defect | The `native_sim` and functional levels at the current `west.yml` pin, Zephyr v4.4.2. No CI job runs them |
+| Consumer test guide | [Build guide](build.md#testing-a-consumer-application) and [test guide](../tests/README.md#testing-a-consumer-application) | Its `west build`, `west twister` and harness commands, through `run_poc.sh` on Linux and in `zephyr-software` | Listing Crux in an application's manifest. `ZEPHYR_MODULES` without a workspace, beyond configuring |
+| Maintained consumer check | `tests/consumer_poc` and `tests/build/test_consumer_poc.py` | Unit and Host integration levels, in Host CI through `tests/build` discovery. `native_sim` and functional levels, in `zephyr-software`, at the `west.yml` pin, with the controlled defect | The consumer workspace layout, which ran at Zephyr v4.4.0 only. CI's workspace already lists Crux, so it cannot show that `EXTRA_ZEPHYR_MODULES` is what supplies it |
 | Device-control tool | `tools/device_control` | Fake transports and scripted tools: Linux in Host CI and macOS by hand. Locking across real processes on both. Real pyserial on one disposable pseudo-terminal | Windows. Any real serial port, probe, reset or flash. No CI job runs it on macOS |
-| Harness findings | [Recorded below](#pytest-twister-harness-findings) | Linux import chain and `native` device at Zephyr v4.4.0 | Everything else in that section is source reading |
+| Harness findings | [Recorded below](#pytest-twister-harness-findings) | Linux import chain and `native` device, at Zephyr v4.4.0 and then in `zephyr-software` at the `west.yml` pin | Everything else in that section is source reading |
 | Hand-off manifest writer, pytest plugin for the gate flags | No. Both wait for the first real consumer | None | Not applicable |
 | Use from a real consumer (step 5) | No. Not started in this repository, and needs its own approval | None | Not applicable |
 
@@ -121,8 +122,8 @@ process at test time: `pytest --twister-harness --device-type=native --build-dir
 Upstream marks it Alpha, version 0.0.1.
 
 `west.yml` now pins Zephyr v4.4.2. Upstream's history shows no commit between the two pins under
-`scripts/pylib/pytest-twister-harness`, so the source reading below still applies, but nothing here
-was rerun at v4.4.2.
+`scripts/pylib/pytest-twister-harness`, so the source reading below still applies. The `zephyr-software`
+workflow runs the `native` device at the pin; nothing else in this section was rerun.
 
 **Executed: only the Linux import chain and the `native` device, marked "ran" below. Every other
 entry in this section is source reading, not execution.** No macOS, Windows, serial or hardware
@@ -180,9 +181,8 @@ repository and needs its own approval.
 2. Done: add a short consumer test guide to `docs/build.md` and `tests/README.md`, with the
    no-workspace warning above.
 3. Done: promote the PoC to a maintained check, as `tests/build/test_external_application.py` does
-   for the external fixture. No workflow file changed. Its Host cases run wherever `tests/build` is
-   discovered, which includes Host CI. Its Zephyr levels are opt-in, and CI for them is a separate
-   decision.
+   for the external fixture. Its Host cases run wherever `tests/build` is discovered, which includes
+   Host CI. Its Zephyr levels are opt-in, and the `zephyr-software` workflow opts in.
 4. Done for Linux and macOS: implement the device-control tool with fake transports and no hardware,
    and test locking and evidence. **Windows was not run**; see the
    [tool's README](../tools/device_control/README.md#tests-and-what-they-do-not-show).

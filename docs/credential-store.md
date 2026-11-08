@@ -1,7 +1,6 @@
 # Credential and key store
 
-Status: Host implementation for review under Issue #178, with test-only protection. The contract is not adopted until
-this review and gate #183 pass. The decisions and reasoning are in the
+Status: merged in [PR #235](https://github.com/wonny-labs/crux-pilot/pull/235) for Issue #178, on Host with test-only protection, and gate #183 has passed. Issue #178 stays open. A device-ID PSA provider runs on `native_sim` in [the management composition](native-management-composition.md). The decisions and reasoning are in the
 [accepted proposal](plans/credential-store-contract-proposal.md), which this document does not repeat. S1 to S7 are
 accepted, recorded in [the owner's decision of 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894).
 
@@ -21,10 +20,10 @@ read every secret. See [Limits](#limits). Results must state this, and `crux_cre
 | Store port of `crux_access` | Implemented, target `crux_credential_access_store` | The real Access core on the real store, on Host |
 | Slot access | Crux File, unchanged | Host on the Linux provider and on the fake. See [native\_sim](#tests) for FatFs. |
 | Fake ports | **Test only.** CRC in place of a tag, a keystream that is not encryption, deterministic randomness and key generation | Refuses to compile outside a test composition, and a product core refuses it at start |
-| Device-ID protection through PSA | **Not implemented, Issue #142.** PSA is not qualified or in the Host build. | Gap: nothing here has run AES-256-GCM or a real key derivation |
-| Event identifiers | Six private event types, named for their `credential.*` identifiers. The mapping waits for Issue #182. | Gap |
+| Device-ID protection through PSA | Implemented for a composition, `components/credential/ports/psa`, with the device ID from `hwinfo` in `ports/zephyr`. The root build has no PSA, so no target holds it. | [`tests/psa_ports`](native-management-composition.md#provider-results) on both providers, and [this store on it](native-management-composition.md#composition-results) on a file-backed disk on `native_sim`. No target run. |
+| Event identifiers | Six private event types, mapped to the `credential.*` records by `crux_credential_security_events`, which a composition links | `ManagementProviders.events`, and the composition |
 | Reserved roots in the file service | `crux_credential_roots` feeds the reserved list of the file service from #232 | `credential_file_service_roots`, on the real service |
-| Pilot card layout, Zephyr composition, target runs | Not implemented. Target and physical work is out of scope and needs separate approval. | Gap |
+| Pilot card layout, target runs | Not implemented. Target and physical work is out of scope and needs separate approval. A Zephyr composition on `native_sim` exists: [management composition](native-management-composition.md). | Gap on a target |
 
 Host tests show contract behaviour. They do not establish confidentiality, entropy quality, or behaviour across real
 power loss.
@@ -50,7 +49,7 @@ flowchart TB
     subgraph below["Selected by the composition"]
         file["crux::file<br/>Linux, FatFs or the fake"]
         fake["Fake ports<br/>TEST ONLY"]
-        psa["Device-ID provider through PSA<br/>not implemented, #142"]
+        psa["Device-ID provider through PSA<br/>a composition selects it, #242"]
     end
     status --> public
     tls --> adapter
@@ -63,7 +62,7 @@ flowchart TB
     core --> port
     core --> file
     port --> fake
-    port -.-> psa
+    port --> psa
 ```
 
 | Target | Who links it | What it exposes |
@@ -189,7 +188,7 @@ Each of these was taken without the owner, who was unavailable. The narrower, sa
 | --- | --- | --- | --- |
 | 1 | `crux_credential_port_seal` takes the nonce as a `const` input, and the core draws it from `crux_credential_port_random` | The proposal's format says the tag covers the nonce as additional data, which needs the nonce before sealing, while its signature has seal return the nonce. Its port table already lists `crux_credential_port_random` for nonces. | One private signature, and the fake |
 | 2 | The protection identifier is the declared basis, and there is no separate port for it | The proposal requires an identifier, gives the fake 0 and defines no way to get it. `BASIS_NONE` is 0. | One more port function. Two different hardware-bound providers share an identifier, and their keys tell them apart at the tag. |
-| 3 | `crux_credential_port_event` takes a private `crux_credential_event_t`, not `crux_security_event_t` | Issue #182 has not landed. Access did the same. Each type names its `credential.*` identifier, and the struct holds no bytes from a record. | A thin provider maps it, or the signature changes once #182 lands |
+| 3 | `crux_credential_port_event` takes a private `crux_credential_event_t`, not `crux_security_event_t` | Issue #182 had not landed then, and Access did the same. Each type names its `credential.*` identifier, and the struct holds no bytes from a record. | `crux_credential_security_events` maps it, so the store's core has no dependency on the event contract |
 | 4 | The store has two static buffers, sealed and plain, so about 32 KiB of RAM, not the 16 KiB in the gate record | Sealing and opening in place would rely on overlap behaviour that #142 has not qualified on both providers | Halves the RAM if #142 shows that overlap is safe. Issue #197 measures it. |
 
 ### Additions and choices the proposal left open
@@ -226,7 +225,7 @@ These are the proposal's, and each has a test where a Host test can show it.
 
 | Limit | Shown by |
 | --- | --- |
-| Not confidential on the pilot against the medium and chip ID. **No real provider exists yet, and the fake's cipher is not encryption.** | `get_info` carries the declaration, in `test_info_carries_the_declaration` |
+| Not confidential on the pilot against the medium and chip ID. The PSA provider declares this: `BASIS_DEVICE_ID_KEY`, with no confidentiality. The fake's cipher is not encryption. | `get_info` carries the declaration, in `test_info_carries_the_declaration`, and `first_boot.test_01_declaration` on the provider |
 | Rollback is not detected, including the return of a record's absence | `test_accepted_limits` |
 | S6: losing both directory entries reads as `EMPTY` and reopens provisioning | `test_accepted_limits`, `test_lost_directory_entries_reopen_provisioning` |
 | A writer without the chip ID can overwrite both headers with an exact pending header, which has no tag, and the store reads `EMPTY` with no event. This is wider than S6's wording, which speaks of a lost directory entry, and it equals blanking the card under limit A7. | `test_accepted_limits` |
@@ -236,6 +235,8 @@ These are the proposal's, and each has a test where a Host test can show it.
 | A card moved to another board reads `UNUSABLE` | `test_wrong_device_key` |
 | A cut inside the single header write can leave a corrupt slot, which fails closed and needs local recovery | The byte walks of a first save, which assert that this happens |
 | A record whose second write failed is active but not acknowledged, and one slot holds it until a save or the repair at start reaches the other. If that slot rots first, the record reads as absent, which is the old state, because its save returned an error. For an account, which a reset loads and a login can then use, this can reopen provisioning, and it takes a failed second write, the repair at start also failing or no reset yet, and then damage. **A device key cannot be regenerated this way**, because `key_ensure` says `OK` only once both slots hold it. | `test_failed_second_write`, `test_key_used_after_a_failed_second_write` |
+| A key can go unannounced. After a failed second write, a save of another record finishes the key's second slot, and `key_ensure` then returns `OK` with `credential.key_generated` never sent, even after a reset. A plain power cut during the second write does the same. This goes against the reason given in decision 21, and a RAM mask of unannounced keys would close the first case. | **Not shown.** Found in the review of #235. |
+| `key_ensure` also makes a fallback to the older slot permanent, as the next save does, and with a corrupt newest slot it does so at boot with no save | **Not shown.** Found in the review of #235. |
 | The two-slot assumption depends on the medium: a card's mapping can disturb another sector | **Not shown.** A Host fake cannot. |
 | Creating a slot writes FAT sectors that can hold the other slot's chain | **Not shown.** A Host fake cannot. |
 | The pinned FatFs lacks a range check on its direct-write path that upstream labels `CVE-2026-6685`, and every save uses that path | **Not assessed.** It is for dependency review. |
@@ -274,15 +275,13 @@ still uses the test-only protection. The other suites do not run there: a walk n
 
 | Item | Why |
 | --- | --- |
-| AES-256-GCM, the device-ID derivation, key generation, `hwinfo` | Issue #142 is open, and no PSA provider or Host dependency has been adopted |
-| Entropy | The same, and it needs the target |
+| Some of these suites on the real provider | [`conformance_fake`, `security`, `faults_default_slot` and `concurrency`](native-management-composition.md#the-existing-suites-on-the-real-ports) run on TF-PSA-Crypto on Host. The rest, and every suite on wolfPSA, do not. |
+| Entropy | It needs the target. `native_sim` random is [test-only](psa-crypto-design.md#what-real-means-on-native_sim). |
 | Behaviour across real power loss, on a real card | Target work is out of scope. The fake's model is simpler than FatFs: nothing reorders. |
 | FAT chain damage while a slot is created | Needs a real file system under a cut |
 | Timing and RAM measurements | Issue #197 |
 
 ### Gaps to close before this is usable on a target
 
-1. A protection provider through PSA, with AES-256-GCM and a key that is SHA-256 of a fixed label and the `hwinfo` device ID, once Issue #142 qualifies PSA. It implements the ports in `credential_port.h`, with `BASIS_DEVICE_ID_KEY` and `confidential_against_medium_reader` false. Key generation and nonces come with it.
-2. A mapping of `crux_credential_event_t` to `crux_security_event_emit`, once Issue #182 lands.
-3. `samples/storage_sd` checking `secure-a` and `secure-b` through a build setting, and a Zephyr composition.
-4. Target runs, under separate approval: cuts during a save on the card, entropy and timing.
+1. `samples/storage_sd` checking `secure-a` and `secure-b` through a build setting, and a Zephyr composition.
+2. Target runs, under separate approval: cuts during a save on the card, entropy and timing.

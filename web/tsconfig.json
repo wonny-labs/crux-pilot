@@ -17,6 +17,10 @@
     "skipLibCheck": true,
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
+    "paths": {
+      "preact": ["./node_modules/preact"],
+      "preact/*": ["./node_modules/preact/*"]
+    },
     "types": ["node"]
   },
   "include": [
@@ -25,8 +29,8 @@
     "tools/**/*.ts",
     "e2e/**/*.ts",
     "e2e/**/*.tsx",
-    "reference/src/**/*.ts",
-    "reference/src/**/*.tsx"
+    "../samples/web/preact/src/**/*.ts",
+    "../samples/web/preact/src/**/*.tsx"
   ],
-  "exclude": ["node_modules", "reference/dist", "build"]
+  "exclude": ["node_modules", "../samples/web/preact/dist", "build"]
 }

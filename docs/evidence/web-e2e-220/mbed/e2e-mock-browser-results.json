@@ -1,0 +1,921 @@
+{
+ "revision": "37b8b50c619296db8e13f874dfb841cd7f18adf2",
+ "dirty": false,
+ "target": "mock",
+ "profile": "none",
+ "outcomes": {
+  "passed": 130
+ },
+ "cases": [
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a visit with no session shows sign-in",
+   "outcome": "passed",
+   "ms": 2699
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a correct sign-in reaches home and shows the items",
+   "outcome": "passed",
+   "ms": 2386
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "the session cookie stays out of page scripts, and the token cookie stays readable",
+   "outcome": "passed",
+   "ms": 2385
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "the password reaches no browser storage, readable cookie or address",
+   "outcome": "passed",
+   "ms": 2388
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "every poll carries the required header",
+   "outcome": "passed",
+   "ms": 2362
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a wrong password shows a rejection with no reason, and allows another try",
+   "outcome": "passed",
+   "ms": 3208
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "an unknown account looks the same as a wrong password",
+   "outcome": "passed",
+   "ms": 2328
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a delay shows the wait, holds the form during it and allows a later try",
+   "outcome": "passed",
+   "ms": 4662
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a busy verifier is shown with the wait, and a later try works",
+   "outcome": "passed",
+   "ms": 3673
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a held login route is retried without the user doing anything",
+   "outcome": "passed",
+   "ms": 3398
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a lost attempt asks the user to sign in again and does not resend the password",
+   "outcome": "passed",
+   "ms": 1808
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "an expired session returns to sign-in with a notice, and signing in shows home again",
+   "outcome": "passed",
+   "ms": 8726
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "sign out ends the session with the CSRF token and returns to sign-in",
+   "outcome": "passed",
+   "ms": 2552
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a reload keeps the session, and the server sees only the root path",
+   "outcome": "passed",
+   "ms": 2401
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "home shows only what the session may read",
+   "outcome": "passed",
+   "ms": 2318
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a session that may read nothing sees an empty home, and no error",
+   "outcome": "passed",
+   "ms": 2314
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "one failed source shows as unavailable without hiding the rest",
+   "outcome": "passed",
+   "ms": 2355
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "an item named like a built-in JavaScript property keeps its name as its label",
+   "outcome": "passed",
+   "ms": 2353
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a project item that the interface does not know is shown by its name",
+   "outcome": "passed",
+   "ms": 2289
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a forced change holds the session on its screen whatever the route, and asks for nothing protected",
+   "outcome": "passed",
+   "ms": 2825
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a protected route cannot be used before the change is made",
+   "outcome": "passed",
+   "ms": 3498
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a forced change completes with the token, and the session goes to home with its permissions",
+   "outcome": "passed",
+   "ms": 3354
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a wrong current password is a field error on that field",
+   "outcome": "passed",
+   "ms": 3328
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a refused new password is a field error on the new password",
+   "outcome": "passed",
+   "ms": 3224
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "passwords that differ are refused before any request",
+   "outcome": "passed",
+   "ms": 2577
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a failed save says what is true of the running password",
+   "outcome": "passed",
+   "ms": 2732
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a lost result where the device shows the change succeeded counts as done",
+   "outcome": "passed",
+   "ms": 2871
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a lost result with the change still required never claims success",
+   "outcome": "passed",
+   "ms": 3302
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a session that ended during the change returns to sign-in",
+   "outcome": "passed",
+   "ms": 2790
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "an expired session during a forced change returns to sign-in",
+   "outcome": "passed",
+   "ms": 2554
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "sign out works during a forced change",
+   "outcome": "passed",
+   "ms": 2441
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "configuration lists each parameter with its value, and never shows a sensitive one",
+   "outcome": "passed",
+   "ms": 2579
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "an update sends the token and the typed value, and shows the parameter as changed and not yet saved",
+   "outcome": "passed",
+   "ms": 2667
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a switch and a text parameter are updated in their own types",
+   "outcome": "passed",
+   "ms": 2747
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a value the device refuses shows its field error, keeps the old value and moves focus to the field",
+   "outcome": "passed",
+   "ms": 2953
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a field error for the wrong type is shown too",
+   "outcome": "passed",
+   "ms": 2756
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "text that is no whole number is refused before any request",
+   "outcome": "passed",
+   "ms": 2914
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a session that may read and not write sees the values and no way to change them",
+   "outcome": "passed",
+   "ms": 2589
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a session that may write and not read can update, cannot see the value, and is refused the save",
+   "outcome": "passed",
+   "ms": 2668
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "an update that the device refuses as not permitted says so, and changes nothing on screen",
+   "outcome": "passed",
+   "ms": 2718
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "an update of a parameter that has gone says so",
+   "outcome": "passed",
+   "ms": 2678
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a held route during an update is retried without the user doing anything",
+   "outcome": "passed",
+   "ms": 3405
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a busy device on an update shows the wait and keeps the typed value",
+   "outcome": "passed",
+   "ms": 2592
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a service that is not ready on an update is reported",
+   "outcome": "passed",
+   "ms": 2739
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a save shows pending, then saved, with the token and no body",
+   "outcome": "passed",
+   "ms": 4107
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a failed save says what is true, and the parameter stays unsaved",
+   "outcome": "passed",
+   "ms": 4049
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a device with no Configuration provider says that retrying will not help",
+   "outcome": "passed",
+   "ms": 4088
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a busy device on a save shows the wait",
+   "outcome": "passed",
+   "ms": 4144
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a service that is not ready on a save is reported, and a later save works",
+   "outcome": "passed",
+   "ms": 4217
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a device that answers busy while it saves is still waited for",
+   "outcome": "passed",
+   "ms": 5332
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "the configuration list failing shows the error and a way to try again",
+   "outcome": "passed",
+   "ms": 2642
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a session that expires during an update returns to sign-in, and signing in works again",
+   "outcome": "passed",
+   "ms": 3544
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a session that expires during a save returns to sign-in",
+   "outcome": "passed",
+   "ms": 2769
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "configuration with no session shows sign-in and asks for nothing",
+   "outcome": "passed",
+   "ms": 1344
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a session that may see no parameter gets an empty list and no error",
+   "outcome": "passed",
+   "ms": 2437
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a value read after the person started typing does not replace what was typed",
+   "outcome": "passed",
+   "ms": 2506
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "no value or password reaches browser storage or the address during configuration",
+   "outcome": "passed",
+   "ms": 2650
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a second update while the first is in flight waits for it, and neither screen nor save stays stuck",
+   "outcome": "passed",
+   "ms": 4547
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a save asked for while an update is in flight is not sent, and works afterwards",
+   "outcome": "passed",
+   "ms": 4474
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "an update asked for while a save runs is not sent",
+   "outcome": "passed",
+   "ms": 4131
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a parameter flagged sensitive is never read or shown, whatever else its flags say",
+   "outcome": "passed",
+   "ms": 2575
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a value from the device is shown as text, never as markup",
+   "outcome": "passed",
+   "ms": 2623
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "after a save has completed, the next update and the next save both work",
+   "outcome": "passed",
+   "ms": 5537
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "a long Retry-After while a save runs does not hold the wait past a few seconds",
+   "outcome": "passed",
+   "ms": 9324
+  },
+  {
+   "suite": "angular",
+   "target": "mock",
+   "case": "leaving the screen stops the wait for a save, and nothing reads the list afterwards",
+   "outcome": "passed",
+   "ms": 9961
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a visit with no session shows sign-in",
+   "outcome": "passed",
+   "ms": 2630
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a correct sign-in reaches home and shows the items",
+   "outcome": "passed",
+   "ms": 2326
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "the session cookie stays out of page scripts, and the token cookie stays readable",
+   "outcome": "passed",
+   "ms": 2268
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "the password reaches no browser storage, readable cookie or address",
+   "outcome": "passed",
+   "ms": 2289
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "every poll carries the required header",
+   "outcome": "passed",
+   "ms": 2497
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a wrong password shows a rejection with no reason, and allows another try",
+   "outcome": "passed",
+   "ms": 3200
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "an unknown account looks the same as a wrong password",
+   "outcome": "passed",
+   "ms": 2217
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a delay shows the wait, holds the form during it and allows a later try",
+   "outcome": "passed",
+   "ms": 4568
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a busy verifier is shown with the wait, and a later try works",
+   "outcome": "passed",
+   "ms": 3576
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a held login route is retried without the user doing anything",
+   "outcome": "passed",
+   "ms": 3322
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a lost attempt asks the user to sign in again and does not resend the password",
+   "outcome": "passed",
+   "ms": 1697
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "an expired session returns to sign-in with a notice, and signing in shows home again",
+   "outcome": "passed",
+   "ms": 8115
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "sign out ends the session with the CSRF token and returns to sign-in",
+   "outcome": "passed",
+   "ms": 2391
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a reload keeps the session, and the server sees only the root path",
+   "outcome": "passed",
+   "ms": 2306
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "home shows only what the session may read",
+   "outcome": "passed",
+   "ms": 2298
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a session that may read nothing sees an empty home, and no error",
+   "outcome": "passed",
+   "ms": 2273
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "one failed source shows as unavailable without hiding the rest",
+   "outcome": "passed",
+   "ms": 2237
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "an item named like a built-in JavaScript property keeps its name as its label",
+   "outcome": "passed",
+   "ms": 2715
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a project item that the interface does not know is shown by its name",
+   "outcome": "passed",
+   "ms": 3308
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a forced change holds the session on its screen whatever the route, and asks for nothing protected",
+   "outcome": "passed",
+   "ms": 2861
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a protected route cannot be used before the change is made",
+   "outcome": "passed",
+   "ms": 3436
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a forced change completes with the token, and the session goes to home with its permissions",
+   "outcome": "passed",
+   "ms": 3227
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a wrong current password is a field error on that field",
+   "outcome": "passed",
+   "ms": 3256
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a refused new password is a field error on the new password",
+   "outcome": "passed",
+   "ms": 3299
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "passwords that differ are refused before any request",
+   "outcome": "passed",
+   "ms": 2390
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a failed save says what is true of the running password",
+   "outcome": "passed",
+   "ms": 2732
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a lost result where the device shows the change succeeded counts as done",
+   "outcome": "passed",
+   "ms": 2677
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a lost result with the change still required never claims success",
+   "outcome": "passed",
+   "ms": 2665
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a session that ended during the change returns to sign-in",
+   "outcome": "passed",
+   "ms": 2736
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "an expired session during a forced change returns to sign-in",
+   "outcome": "passed",
+   "ms": 2389
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "sign out works during a forced change",
+   "outcome": "passed",
+   "ms": 2310
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "configuration lists each parameter with its value, and never shows a sensitive one",
+   "outcome": "passed",
+   "ms": 2540
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "an update sends the token and the typed value, and shows the parameter as changed and not yet saved",
+   "outcome": "passed",
+   "ms": 2568
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a switch and a text parameter are updated in their own types",
+   "outcome": "passed",
+   "ms": 2875
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a value the device refuses shows its field error, keeps the old value and moves focus to the field",
+   "outcome": "passed",
+   "ms": 3223
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a field error for the wrong type is shown too",
+   "outcome": "passed",
+   "ms": 2525
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "text that is no whole number is refused before any request",
+   "outcome": "passed",
+   "ms": 2589
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a session that may read and not write sees the values and no way to change them",
+   "outcome": "passed",
+   "ms": 2427
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a session that may write and not read can update, cannot see the value, and is refused the save",
+   "outcome": "passed",
+   "ms": 2543
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "an update that the device refuses as not permitted says so, and changes nothing on screen",
+   "outcome": "passed",
+   "ms": 2526
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "an update of a parameter that has gone says so",
+   "outcome": "passed",
+   "ms": 2632
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a held route during an update is retried without the user doing anything",
+   "outcome": "passed",
+   "ms": 3345
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a busy device on an update shows the wait and keeps the typed value",
+   "outcome": "passed",
+   "ms": 2556
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a service that is not ready on an update is reported",
+   "outcome": "passed",
+   "ms": 2585
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a save shows pending, then saved, with the token and no body",
+   "outcome": "passed",
+   "ms": 3946
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a failed save says what is true, and the parameter stays unsaved",
+   "outcome": "passed",
+   "ms": 4024
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a device with no Configuration provider says that retrying will not help",
+   "outcome": "passed",
+   "ms": 4037
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a busy device on a save shows the wait",
+   "outcome": "passed",
+   "ms": 3982
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a service that is not ready on a save is reported, and a later save works",
+   "outcome": "passed",
+   "ms": 4010
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a device that answers busy while it saves is still waited for",
+   "outcome": "passed",
+   "ms": 4971
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "the configuration list failing shows the error and a way to try again",
+   "outcome": "passed",
+   "ms": 2526
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a session that expires during an update returns to sign-in, and signing in works again",
+   "outcome": "passed",
+   "ms": 3519
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a session that expires during a save returns to sign-in",
+   "outcome": "passed",
+   "ms": 2705
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "configuration with no session shows sign-in and asks for nothing",
+   "outcome": "passed",
+   "ms": 1256
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a session that may see no parameter gets an empty list and no error",
+   "outcome": "passed",
+   "ms": 2293
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a value read after the person started typing does not replace what was typed",
+   "outcome": "passed",
+   "ms": 2460
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "no value or password reaches browser storage or the address during configuration",
+   "outcome": "passed",
+   "ms": 2704
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a second update while the first is in flight waits for it, and neither screen nor save stays stuck",
+   "outcome": "passed",
+   "ms": 4484
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a save asked for while an update is in flight is not sent, and works afterwards",
+   "outcome": "passed",
+   "ms": 4520
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "an update asked for while a save runs is not sent",
+   "outcome": "passed",
+   "ms": 3951
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a parameter flagged sensitive is never read or shown, whatever else its flags say",
+   "outcome": "passed",
+   "ms": 2523
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a value from the device is shown as text, never as markup",
+   "outcome": "passed",
+   "ms": 2817
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "after a save has completed, the next update and the next save both work",
+   "outcome": "passed",
+   "ms": 5530
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "a long Retry-After while a save runs does not hold the wait past a few seconds",
+   "outcome": "passed",
+   "ms": 9262
+  },
+  {
+   "suite": "reference",
+   "target": "mock",
+   "case": "leaving the screen stops the wait for a save, and nothing reads the list afterwards",
+   "outcome": "passed",
+   "ms": 9886
+  }
+ ]
+}

@@ -1,5 +1,5 @@
-// What the Angular sample needs from the content policy, measured on sign-in and home, with the reference
-// measured the same way. Scripts must stay strict in every case.
+// What the Angular sample needs from the content policy, measured on sign-in, home, configuration and
+// sign-out, with the Preact example measured the same way. Scripts must stay strict in every case.
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,7 +9,7 @@ import { launchBrowser, openApp, signIn, waitForHeading, webRoot } from './harne
 import type { AppConfig, OpenApp } from './harness.ts';
 import type { StylePolicy } from '../mock/server.ts';
 
-const angular = join(webRoot, '..', 'samples', 'web', 'angular-minimal', 'dist');
+const angular = join(webRoot, '..', 'samples', 'web', 'angular', 'dist');
 const built = existsSync(join(angular, 'index.html'));
 if (!built && process.env['CRUX_REQUIRE_ANGULAR']) {
   throw new Error(`${angular} has not been built`);
@@ -30,6 +30,20 @@ async function walk(config: AppConfig, trustedTypes: boolean): Promise<OpenApp> 
   await signIn(app.page);
   await waitForHeading(app.page, 'Home');
   await app.page.getByText('192.0.2.10').waitFor();
+  // The configuration screen too: an update and a save, with their notices and field errors.
+  await app.page.getByRole('link', { name: 'Configuration' }).click();
+  await waitForHeading(app.page, 'Configuration');
+  // The last value is read last, so that no read lands while the walk types.
+  await app.page.getByRole('group', { name: 'build_limit', exact: true }).getByText('Current value: 64', { exact: true }).waitFor();
+  const block = app.page.getByRole('group', { name: 'report_interval', exact: true });
+  await block.getByLabel('New value').fill('0');
+  await block.getByRole('button', { name: 'Update' }).click();
+  await block.getByText('The device does not accept this value.').waitFor();
+  await block.getByLabel('New value').fill('9');
+  await block.getByRole('button', { name: 'Update' }).click();
+  await block.getByText('Changed, not yet saved').waitFor();
+  await app.page.getByRole('button', { name: 'Save changes' }).click();
+  await app.page.getByText('The changes are saved.').waitFor();
   await app.page.getByRole('button', { name: 'Sign out' }).click();
   await waitForHeading(app.page, 'Sign in');
   return app;
@@ -88,11 +102,11 @@ test('the Angular sample has no violation with Trusted Types added', { skip }, a
   }
 });
 
-test('the reference has no violation under the strict setting with Trusted Types', async (t) => {
-  const { config, trustedTypes } = measured('reference', join(webRoot, 'reference', 'dist'), 'strict', true);
+test('the Preact example has no violation under the strict setting with Trusted Types', async (t) => {
+  const { config, trustedTypes } = measured('preact', join(webRoot, '..', 'samples', 'web', 'preact', 'dist'), 'strict', true);
   const app = await walk(config, trustedTypes);
   try {
-    t.diagnostic(`reference, strict with Trusted Types: ${events(app).length} violations`);
+    t.diagnostic(`preact, strict with Trusted Types: ${events(app).length} violations`);
     assert.deepEqual(app.violations, []);
   } finally {
     await app.close();

@@ -12,6 +12,7 @@ import signal
 import subprocess
 import sys
 import m3_clock as shared_clock
+from m5_bench import BENCH, only_process_owns
 import capture_m5_network as runner
 
 
@@ -57,12 +58,14 @@ class ProcessBackend:
 def parse_interface(text):
     """Observed dedicated IPv4 address/carrier; ambiguous inventory is unknown."""
     addresses=re.findall(r'(?m)^[ \t]*inet ([0-9.]+) netmask (0x[0-9a-f]+)\b',text)
-    runner.oracle.require(addresses==[('192.168.77.1','0xffffff00')] and
-        re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$',text)==['00:0a:cd:41:89:cc'],
-        'NIC identity/static address mismatch')
     statuses=re.findall(r'(?m)^[ \t]*status:[ \t]*(\S+)[ \t]*$',text)
     runner.oracle.require(statuses in (['active'],['inactive']),'NIC carrier status missing/unknown/ambiguous')
-    return dict(source=addresses[0][0],active=statuses==['active'])
+    active=statuses==['active']
+    # macOS shows the manual address only while the link is up: the real link-down output of the dedicated adapter has no inet line.
+    runner.oracle.require((addresses==[('192.168.77.1','0xffffff00')] or (not active and addresses==[])) and
+        re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$',text)==[BENCH['nic_mac']],
+        'NIC identity/static address mismatch')
+    return dict(source=addresses[0][0] if addresses else None,active=active)
 
 
 def parse_direct_route(text,source):
@@ -84,7 +87,7 @@ def parse_direct_route(text,source):
     allowed={'UP','DONE','HOST','STATIC','CLONING','PRCLONING','LLINFO','WASCLONED','IFSCOPE','IFREF','PINNED'}
     runner.oracle.require(len(flags)==len(set(flags)) and set(flags)<=allowed and 'UP' in flags,
                          'Gateway/reject/blackhole/unknown or inactive route')
-    runner.oracle.require(source=='192.168.77.1' and lookup=='192.168.77.2' and interface=='en5','Isolated route source/destination/interface mismatch')
+    runner.oracle.require(source==BENCH['host'] and lookup==BENCH['target'] and interface==BENCH['nic_interface'],'Isolated route source/destination/interface mismatch')
     if 'HOST' in flags:
         runner.oracle.require(destination==lookup and mask in (None,'255.255.255.255'),'Unexpected direct host route')
     else:
@@ -101,7 +104,7 @@ class NICProbe:
     def start(self,route=False):
         runner.oracle.require(self.process is None,'NIC inventory already running')
         self.serial+=1;self.route=route
-        command=['route','-n','get','192.168.77.2'] if route else ['ifconfig','en5']
+        command=['route','-n','get',BENCH['target']] if route else ['ifconfig',BENCH['nic_interface']]
         self.path=self.directory/('nic-'+str(self.serial)+'.txt');self.stream=self.path.open('xb')
         self.process=subprocess.Popen(command,stdout=self.stream,stderr=subprocess.STDOUT,start_new_session=True);self.deadline=self.clock()+1
     def poll(self):
@@ -121,7 +124,7 @@ class NICProbe:
                                   'Fresh validated dedicated source observation required')
             return parse_direct_route(text,observed['source'])
         observed=parse_interface(text);self.interface_observation=dict(observed,at=self.clock())
-        return dict(event='host_up' if observed['active'] else 'host_down',interface='en5')
+        return dict(event='host_up' if observed['active'] else 'host_down',interface=BENCH['nic_interface'])
     def close(self):
         if self.process is not None:
             self.process.kill()
@@ -137,27 +140,32 @@ class M3UARTLease:
     has validated exact physical approval. The root-created mount guard is an
     external prerequisite and is never created/escalated by this runner.
     """
-    def __init__(self,guard_session,directory,uart='/dev/cu.usbmodem11302',*,image_binary=None,image_sha256=None):
+    def __init__(self,guard_session,directory,uart=BENCH['uart'],*,image_binary=None,image_sha256=None):
         self.session=guard_session;self.directory=Path(directory);self.uart=uart;self.image_binary=Path(image_binary).resolve() if image_binary else None;self.image_sha256=image_sha256;self.port=None;self.lock=None;self.count=0
     def verify(self,operation,remaining=90):
         import capture_m3_network as m3
         import capture_m3
         self.count+=1;label='lease-'+str(self.count)
-        m3.guard_check(self.session,self.directory,label,remaining)
+        m3.guard_check(self.session,self.directory,label,remaining,uart=self.uart)
         if self.port is None:
             capture_m3.check_owners(self.uart,self.directory/(label+'-owners.txt'))
-            runner.oracle.require(m3.check_route(self.directory,label),'Initial isolated NIC not active')
-            interface=m3.run_checked(['ifconfig','en5'],self.directory/(label+'-carrier.txt'))
+            runner.oracle.require(m3.check_route(self.directory,label,interface=BENCH['nic_interface'],mac=BENCH['nic_mac']),'Initial isolated NIC not active')
+            interface=m3.run_checked(['ifconfig',BENCH['nic_interface']],self.directory/(label+'-carrier.txt'))
             observed=parse_interface(interface)
             runner.oracle.require(observed['active'],'Initial carrier unknown/inactive')
             parse_direct_route((self.directory/(label+'-route.txt')).read_text(),observed['source'])
-            service=m3.run_checked(['networksetup','-getinfo','AX88179'],self.directory/(label+'-service.txt'))
-            runner.oracle.require('IP address: 192.168.77.1' in service and 'Subnet mask: 255.255.255.0' in service and 'Router: (null)' in service and 'Ethernet Address: 00:0a:cd:41:89:cc' in service,'Isolated service changed')
+            service=m3.run_checked(['networksetup','-getinfo',BENCH['service']],self.directory/(label+'-service.txt'))
+            lines=service.splitlines()
+            runner.oracle.require(all(line in lines for line in ('Manual Configuration','IP address: '+BENCH['host'],'Subnet mask: 255.255.255.0','Router: (null)','Ethernet Address: '+BENCH['nic_mac'])),'Isolated service changed')
         else:
             # The accepted owner is this process only; deny every other UART
             # owner and all debugger processes while this capture owns UART.
-            result=capture_m3.inventory(['lsof','-Fp',self.uart,self.uart.replace('/dev/cu.','/dev/tty.')],self.directory/(label+'-owners-timeout.json'))
-            runner.oracle.require(result.returncode==0 and not result.stderr and result.stdout.splitlines() and all(line=='p'+str(os.getpid()) for line in result.stdout.splitlines()),'Exclusive UART ownership changed')
+            # The port is opened through the cu node only and lsof exits 1 when any named file is not open: ask the nodes one by one.
+            held=capture_m3.inventory(['lsof','-Fp',self.uart],self.directory/(label+'-owners-timeout.json'))
+            (self.directory/(label+'-owners-cu.txt')).write_text('%d\n%s%s'%(held.returncode,held.stdout,held.stderr))
+            other=capture_m3.inventory(['lsof','-Fp',self.uart.replace('/dev/cu.','/dev/tty.')],self.directory/(label+'-owners-timeout.json'))
+            (self.directory/(label+'-owners-tty.txt')).write_text('%d\n%s%s'%(other.returncode,other.stdout,other.stderr))
+            runner.oracle.require(held.returncode==0 and not held.stderr and only_process_owns(held.stdout,os.getpid()) and other.returncode==1 and not other.stdout and not other.stderr,'Exclusive UART ownership changed')
             result=capture_m3.inventory(['ps','-axo','pid=,comm=,args='],self.directory/(label+'-probe-timeout.json'))
             runner.oracle.require(result.returncode==0 and not result.stderr and result.stdout.strip() and all(re.match(r'^\s*\d+\s+\S+',line) for line in result.stdout.splitlines()) and not re.search(r'(?im)(?:/|\s)(?:JLink\S*|openocd|pyocd(?:\.\S+)?)(?:\s|$)',result.stdout),'Probe ownership changed')
     def __call__(self):
@@ -165,7 +173,7 @@ class M3UARTLease:
         import serial
         from serial.tools import list_ports
         import capture_m3
-        runner.oracle.require(self.uart=='/dev/cu.usbmodem11302','UART differs from accepted M3 inventory')
+        runner.oracle.require(self.uart==BENCH['uart'],'UART differs from the reviewed bench identity')
         self.verify('acquire_exclusive_probe_uart_and_nic')
         capture_m3.select_uart([dict(device=p.device,serial_number=p.serial_number,vid=p.vid,pid=p.pid) for p in list_ports.comports()],self.uart,runner.UART_USB)
         self.lock=(self.directory.parent/'evkb-602003106.lock').open('a')
@@ -219,7 +227,8 @@ class CaptureAdapter:
         runner.oracle.require(software_only or callable(manifest_check),'Live adapter requires exact immutable manifest verification')
         if manifest_check:manifest_check()
         if 'plan' in prepared:prepared=prepared['plan']
-        runner.oracle.require(boot in (1,2,3),'Invalid fresh boot number')
+        runner.oracle.require(boot in (1,2,3) and boot<=len(prepared['nonces']),'Invalid fresh boot number')
+        self.reduced=prepared.get('reduced')
         self.prepared=prepared;self.boot=boot;self.nonce=prepared['nonces'][boot-1];self.clock=clock;self.factory=uart_factory
         self.safety=getattr(uart_factory,'verify',None)
         runner.oracle.require(software_only or callable(self.safety),'Live adapter requires accepted M3 guard/ownership lease')
@@ -316,6 +325,7 @@ class CaptureAdapter:
             code=self.process.poll()
             runner.oracle.require(code is None or code==0,'Peer failed during capture')
         for row in self.lines(self.operator_path):
+            runner.oracle.require(self.reduced is None,'Reduced non-qualifying run has no cable operations; operator receipt refused')
             runner.oracle.require(set(row)=={'event','monotonic'} and row['event'] in ('cable_disconnect_receipt','cable_connect_receipt'),'Unexpected operator instruction')
             runner.oracle.require(row['monotonic']<=self.clock() and row['monotonic']>=0,'Invalid operator receipt clock')
             result.append(dict(kind='control',monotonic=row['monotonic'],record=row));self.emit('controls.jsonl',row)

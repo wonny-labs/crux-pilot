@@ -1,10 +1,11 @@
-// The reference with sign-in and home only, for the size comparison with the Angular sample. The forced
-// password change is built into the shell, so it stays in this build.
-import '../../reference/src/style.css';
-import { mountReferenceInterface } from '../../reference/src/app.tsx';
-import { homeScreen } from '../../reference/src/screens/home.tsx';
+// The Preact example with home and configuration, which with the sign-in and the forced password change that the
+// shell holds are its core flows, for the size comparison with the Angular sample.
+import '../../../samples/web/preact/src/style.css';
+import { mountPreactInterface } from '../../../samples/web/preact/src/app.tsx';
+import { configScreen } from '../../../samples/web/preact/src/screens/config.tsx';
+import { homeScreen } from '../../../samples/web/preact/src/screens/home.tsx';
 
 const root = document.getElementById('app');
 if (root !== null) {
-  mountReferenceInterface(root, { screens: [homeScreen] });
+  mountPreactInterface(root, { screens: [homeScreen, configScreen] });
 }
