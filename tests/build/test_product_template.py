@@ -20,6 +20,7 @@ REPO = Path(__file__).resolve().parents[2]
 TEMPLATE = REPO / "samples/product_template"
 MANIFEST = TEMPLATE / "west.yml"
 GUIDE = REPO / "docs/product-composition.md"
+RELEASE = TEMPLATE / "RELEASE.md"
 WEST = shutil.which("west")
 GIT = shutil.which("git")
 PUBLIC_BASE = "https://github.com/"
@@ -88,7 +89,7 @@ class TemplateFilesTest(unittest.TestCase):
         self.source = (TEMPLATE / "app/src/main.c").read_text()
 
     def test_every_file_a_team_copies_exists(self):
-        for name in ("west.yml", ".gitignore", "README.md"):
+        for name in ("west.yml", ".gitignore", "README.md", "RELEASE.md"):
             with self.subTest(name=name):
                 self.assertTrue((TEMPLATE / name).is_file())
 
@@ -263,6 +264,236 @@ class GuideTest(unittest.TestCase):
     def test_release_build_requires_the_verified_zephyr(self):
         self.assertIn("west build -b <board> -d product-x/build/app product-x/app -- "
                       "-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON\n", GUIDE.read_text())
+
+
+def release_text():
+    return RELEASE.read_text()
+
+
+def release_section(heading):
+    """Return one `## ` section of the release template, without its heading line."""
+    lines = []
+    inside = False
+    fenced = False
+    for line in release_text().splitlines():
+        if line.startswith("```"):
+            fenced = not fenced
+        if not fenced and line.startswith("## "):
+            if inside:
+                break
+            inside = line == f"## {heading}"
+        elif inside:
+            lines.append(line)
+    if not inside:
+        raise AssertionError(f"RELEASE.md has no section {heading!r}")
+    return "\n".join(lines)
+
+
+def table_header(text):
+    """Return the cell names of the first Markdown table in a text."""
+    for line in text.splitlines():
+        if line.startswith("|"):
+            return [cell.strip() for cell in line.strip().strip("|").split("|")]
+    raise AssertionError("no table")
+
+
+SECTIONS = (
+    "Release identity",
+    "Dependency inventory",
+    "Modified upstreams",
+    "Support period",
+    "Release steps",
+    "Bundle contents",
+    "Release revision",
+    "Checks run",
+    "Vulnerability check",
+)
+# Names that a neutral sample must not carry: an employer, a commercial product or edition,
+# a vendor SDK, or a private or consumer repository.
+FORBIDDEN_NAMES = (
+    "codesys", "wolfssl", "wolfssh", "nxp", "mcuxpresso", "datalight", "reliance",
+    "crux-controller", "crux-codesys", "bitbucket", "employer",
+)
+ALLOWED_URL_PREFIXES = ("https://github.com/wonny-labs/crux-pilot/", "https://git.example/")
+
+
+class ReleaseTemplateTest(unittest.TestCase):
+    """The release record that a product copies, fills in and keeps with a release."""
+
+    def setUp(self):
+        self.text = release_text()
+
+    def test_the_template_exists_and_the_readme_lists_and_links_it(self):
+        readme = (TEMPLATE / "README.md").read_text()
+        self.assertTrue(RELEASE.is_file())
+        self.assertIn("](RELEASE.md)", readme)
+        self.assertRegex(readme, r"(?m)^\| `RELEASE.md` \|")
+
+    def test_it_has_each_required_section(self):
+        headings = re.findall(r"(?m)^## (.+)$", self.text)
+        for section in SECTIONS:
+            with self.subTest(section=section):
+                self.assertTrue(any(heading.startswith(section) for heading in headings), headings)
+        self.assertRegex(self.text, r"(?m)^# Release record")
+
+    def test_it_never_links_a_relative_path_that_a_copy_would_break(self):
+        self.assertNotRegex(self.text, r"\]\((?!https://|#)")
+
+    def test_the_inventory_asks_for_revision_licence_and_an_optional_end_of_support(self):
+        section = release_section("Dependency inventory")
+        header = table_header(section)
+        for column in ("Project", "Pinned revision", "Licence"):
+            with self.subTest(column=column):
+                self.assertIn(column, header)
+        self.assertTrue(any(re.match(r"End of support \(optional\)", cell) for cell in header), header)
+        self.assertIn("every", section.lower())
+        self.assertIn("west.frozen.yml", section)
+
+    def test_the_inventory_leaves_the_end_of_support_to_the_upstream_and_the_product(self):
+        section = release_section("Dependency inventory")
+        self.assertNotRegex(section, r"(?i)\b(years?|months?)\b")
+        self.assertNotRegex(section, r"\b\d{4}-\d{2}-\d{2}\b", "no example date")
+
+    def test_modified_upstreams_name_the_guides_routes_and_ask_why(self):
+        section = release_section("Modified upstreams")
+        guide = GUIDE.read_text().lower()
+        routes = ("vendor branch", "commercial edition", "soft fork", "west patch",
+                  "binary-only", "outside the checkout")
+        for route in routes:
+            with self.subTest(route=route):
+                self.assertIn(route, section.lower())
+                self.assertIn(route, guide, "the template must use the guide's own route names")
+        header = table_header(section)
+        for column in ("Project", "Route", "Why"):
+            with self.subTest(column=column):
+                self.assertTrue(any(cell.startswith(column) for cell in header), header)
+        self.assertIn("provisional", section.lower())
+        self.assertRegex(section, r"(?i)nothing (is )?modified")
+        self.assertRegex(section, r"(?i)short-term development check")
+
+    def test_the_support_period_is_a_field_the_product_sets_with_no_figure(self):
+        section = release_section("Support period")
+        self.assertRegex(section, r"(?m)^- Support period: `<[^>]+>`$")
+        self.assertRegex(section, r"(?i)the product sets")
+        self.assertRegex(section, r"(?i)crux (does not|sets no)")
+        self.assertNotRegex(section, r"\d", "no digit may sit in the support-period section")
+
+    def test_no_support_period_figure_appears_anywhere(self):
+        self.assertNotRegex(self.text, r"(?i)\b(years?|yrs?)\b")
+        self.assertNotRegex(self.text, r"(?i)\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+)[- ]+(years?|months?|yrs?)\b")
+        self.assertNotRegex(self.text, r"(?i)\b\d+\s*(y|yr|yrs|mo|months?|years?)\b")
+        for line in self.text.splitlines():
+            if re.search(r"(?i)support period", line):
+                with self.subTest(line=line):
+                    self.assertNotRegex(line, r"\d")
+
+    def test_no_owner_field_is_filled_in(self):
+        fields = re.findall(r"(?im)^[-*|]\s*(?:owner|support owner|decided by|responsible)[^:\n]*:\s*(.*)$", self.text)
+        self.assertTrue(fields, "the support section needs a decided-by field")
+        for value in fields:
+            with self.subTest(value=value):
+                self.assertRegex(value.strip(), r"^`<[^>]+>`$")
+
+    def test_release_steps_link_the_guide_at_a_pinned_revision_placeholder(self):
+        urls = re.findall(r"https://\S*product-composition\.md\S*?(?=[`)\s]|$)", self.text)
+        self.assertTrue(urls)
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertTrue(url.startswith("https://github.com/wonny-labs/crux-pilot/blob/<crux-revision>/"), url)
+        self.assertNotRegex(self.text, r"/(blob|tree)/(main|master|HEAD)\b")
+        self.assertIn("## Release", GUIDE.read_text().splitlines())
+        self.assertIn("product-composition.md#release`", self.text)
+        section = release_section("Release steps")
+        self.assertRegex(section, r"(?i)moving branch")
+        self.assertRegex(section, r"(?m)^1\. ")
+
+    def test_release_steps_use_commands_the_guide_gives(self):
+        section = release_section("Release steps")
+        guide = GUIDE.read_text()
+        for command in ("west crux-pins", "west manifest --freeze --active-only",
+                        "-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON", "record-build-provenance.py"):
+            with self.subTest(command=command):
+                self.assertIn(command, section)
+                self.assertIn(command, guide)
+
+    def test_the_bundle_may_hold_hashes_only_and_a_public_repository_must(self):
+        section = release_section("Bundle contents")
+        lowered = section.lower()
+        self.assertIn("hashes only", lowered)
+        for artefact in ("`.elf`", "`.map`", "image"):
+            with self.subTest(artefact=artefact):
+                self.assertIn(artefact, lowered)
+        self.assertRegex(lowered, r"public product repository")
+        self.assertRegex(lowered, r"never[^.\n]*release asset")
+        self.assertIn("sha-256", lowered)
+
+    def test_the_bundle_table_says_what_goes_outward_and_what_stays_internal(self):
+        section = release_section("Bundle contents")
+        header = table_header(section)
+        self.assertIn("Item", header)
+        self.assertIn("Audience", header)
+        self.assertTrue(any(cell.startswith("In this bundle") for cell in header), header)
+        self.assertRegex(section, r"\| Outward")
+        self.assertRegex(section, r"\| Internal")
+        for item in ("Firmware image", "licences/", "release-manifest.json", "Build record",
+                     "Lock file", "Pin report", "Full SBOM", "Debug files"):
+            with self.subTest(item=item):
+                self.assertIn(item, section)
+
+    def test_the_schema_and_checker_are_named_by_existing_paths_and_called_provisional(self):
+        paths = set(re.findall(r"\b((?:docs|scripts)/[A-Za-z0-9_./-]*[A-Za-z0-9_])", self.text))
+        self.assertGreaterEqual(paths, {"docs/schemas/release-manifest.schema.json",
+                                        "scripts/check-release-bundle.py"})
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertTrue((REPO / path).exists(), f"{path} does not exist in the repository")
+        paragraphs = [p for p in self.text.split("\n\n") if "release-manifest.schema.json" in p]
+        self.assertTrue(paragraphs)
+        for paragraph in paragraphs:
+            with self.subTest(paragraph=paragraph[:40]):
+                self.assertIn("provisional", paragraph.lower())
+                self.assertIn("not frozen", paragraph.lower())
+
+    def test_the_release_revision_section_records_each_identity(self):
+        section = release_section("Release revision")
+        for field in ("Release tag", "Product commit", "Crux revision", "Zephyr revision",
+                      "Image SHA-256", "Firmware identity"):
+            with self.subTest(field=field):
+                self.assertRegex(section, rf"(?m)^- {field}: `<[^>]+>`")
+        self.assertRegex(section, r"(?i)cannot name its own commit")
+
+    def test_the_checks_section_records_command_result_who_and_what_was_skipped(self):
+        section = release_section("Checks run")
+        header = table_header(section)
+        for column in ("Check", "Command", "Result", "Run by"):
+            with self.subTest(column=column):
+                self.assertIn(column, header)
+        self.assertRegex(section, r"(?i)skipped")
+        self.assertRegex(section, r"(?i)not run|did not run")
+
+    def test_the_vulnerability_check_is_a_marked_placeholder_with_no_procedure(self):
+        section = release_section("Vulnerability check")
+        self.assertRegex(section, r"(?i)not defined yet")
+        self.assertRegex(section, r"(?i)placeholder")
+        self.assertIn("SBOM", section)
+        self.assertNotIn("```", section)
+        self.assertNotRegex(section, r"(?m)^\s*(\d+\.|- \[ \])", "no steps: none is defined")
+        self.assertNotRegex(section, r"(?i)\b(grype|trivy|osv|cve-|nvd|dependency-check)\b")
+
+    def test_the_template_names_no_employer_commercial_product_or_private_repository(self):
+        lowered = self.text.lower()
+        for name in FORBIDDEN_NAMES:
+            with self.subTest(name=name):
+                self.assertNotIn(name, lowered)
+        for url in re.findall(r"https?://[^\s`)>]+", self.text):
+            with self.subTest(url=url):
+                self.assertTrue(url.startswith(ALLOWED_URL_PREFIXES), url)
+        self.assertNotRegex(self.text, r"git@|ssh://")
+
+    def test_the_template_leaves_the_manifest_alone(self):
+        manifest = MANIFEST.read_text()
+        self.assertIn("revision: main", manifest)
+        self.assertNotIn("RELEASE.md", manifest)
 
 
 @unittest.skipUnless(yaml, "PyYAML is required to parse the manifests; west installs it")
