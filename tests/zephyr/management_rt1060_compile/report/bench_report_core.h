@@ -1,14 +1,14 @@
 /*
- * The bench report's kernel side (row C2 of docs/rt1060-management-image-feasibility.md): a thread that
- * watches an activity counter, and prints the stack watermark of every thread and the heap's in-use
- * and peak on the UART, in the lines of bench_report_format.h. Generic Zephyr: no board and no
- * bench symbol, so tests/native/bench_report builds it on native_sim. The bench image adds its own
- * activity counter and its extra rows in ../src/bench_report.c.
+ * The bench report's kernel side (row C2 of docs/rt1060-management-image-feasibility.md): a thread
+ * that watches an activity counter, and prints the stack watermark of every thread and the heap's
+ * in-use and peak on the UART, in the lines of bench_report_format.h. Generic Zephyr: no board and
+ * no bench symbol, so tests/native/bench_report builds it on native_sim. The bench image adds its
+ * own activity counter and its extra rows in ../src/bench_report.c.
  *
- * Bounded by construction: a table of BENCH_REPORT_THREADS_MAX rows and one line buffer, both static;
- * no allocation; one line is printed, then the thread sleeps BENCH_REPORT_LINE_PACE_MS so that the
- * log buffer that printk goes through never holds more than a line or two; prints are at most one
- * per BENCH_REPORT_MIN_GAP_MS (bench_report_policy.h).
+ * Bounded by construction: a table of BENCH_REPORT_THREADS_MAX rows and one line buffer, both
+ * static; no allocation; one line is printed, then the thread sleeps BENCH_REPORT_LINE_PACE_MS so
+ * that the log buffer that printk goes through never holds more than a line or two; prints are at
+ * most one per BENCH_REPORT_MIN_GAP_MS (bench_report_policy.h).
  */
 #ifndef CRUX_BENCH_REPORT_CORE_H
 #define CRUX_BENCH_REPORT_CORE_H
@@ -18,7 +18,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/** Rows of threads in one report. More threads than this are counted in `missed=` of the end line. */
+/** Rows of threads in one report. More threads than this are counted in `missed=` of the end line.
+ */
 #define BENCH_REPORT_THREADS_MAX 48u
 /** Rows of threads that have ended, which no thread list shows any more. */
 #define BENCH_REPORT_ENDED_MAX 4u
@@ -48,7 +49,8 @@ bool bench_report_core_start(const bench_report_core_config_t *config);
 bool bench_report_core_note_ended(const char *name, uint32_t size, uint32_t unused,
                                   bool supersedes_live);
 
-/** Prints one report now, from the calling thread. The reporting thread calls it, and a test may. */
+/** Prints one report now, from the calling thread. The reporting thread calls it, and a test may.
+ */
 void bench_report_core_snapshot(bench_report_reason_t reason);
 
 #endif

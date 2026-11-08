@@ -127,8 +127,8 @@ static int bench_main(void)
     return 0;
 }
 
-/* The main thread ends when main() returns, and the kernel's thread list then no longer shows it, so
- * its stack figure is taken here, on every way out. */
+/* The main thread ends when main() returns, and the kernel's thread list then no longer shows it,
+ * so its stack figure is taken here, on every way out. */
 int main(void)
 {
     int result = bench_main();

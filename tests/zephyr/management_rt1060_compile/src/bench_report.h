@@ -1,7 +1,8 @@
 /*
  * What the bench image reports on the UART so that a board run can read its stack and heap limits
  * and check its listener certificate (row C2 of docs/rt1060-management-image-feasibility.md). The
- * lines and their grammar are in ../report/bench_report_format.h, and check_bench_uart.py judges them.
+ * lines and their grammar are in ../report/bench_report_format.h, and check_bench_uart.py judges
+ * them.
  */
 #ifndef CRUX_MGMT_RT1060_BENCH_REPORT_H
 #define CRUX_MGMT_RT1060_BENCH_REPORT_H
@@ -17,7 +18,8 @@
  */
 bool crux_bench_report_certificate(bool generated);
 
-/** Starts the thread that prints the stack and heap lines at boot, after each client and at idle. */
+/** Starts the thread that prints the stack and heap lines at boot, after each client and at idle.
+ */
 bool crux_bench_report_start(void);
 
 /**

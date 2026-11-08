@@ -1,8 +1,8 @@
 /*
  * The bench image's report: the glue between the generic report (../report/bench_report_core.c) and
- * what only this image has. TCP segments of the one interface tell the report that a client is talking
- * (no hook in any component), the SSH provider keeps the figure of the workers that ended, and the
- * certificate module has the fingerprint. See bench_report.h.
+ * what only this image has. TCP segments of the one interface tell the report that a client is
+ * talking (no hook in any component), the SSH provider keeps the figure of the workers that ended,
+ * and the certificate module has the fingerprint. See bench_report.h.
  */
 #include "bench_guard.h"
 
@@ -20,7 +20,8 @@
 #include <zephyr/sys/printk.h>
 
 #if !defined(CONFIG_NET_STATISTICS_PER_INTERFACE) || !defined(CONFIG_NET_STATISTICS_TCP)
-#error "The bench report counts TCP segments per interface: NET_STATISTICS_PER_INTERFACE and NET_STATISTICS_TCP"
+#error                                                                                             \
+    "The bench report counts TCP segments per interface: NET_STATISTICS_PER_INTERFACE and NET_STATISTICS_TCP"
 #endif
 #if !defined(CONFIG_CRUX_SSH_STACK_REPORT)
 #error "The bench report reads the SSH workers' stacks: CONFIG_CRUX_SSH_STACK_REPORT"

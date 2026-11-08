@@ -5,11 +5,12 @@
  *   t = 10 s     a "client": the activity counter moves for half a second
  *   t = 12.5 s   a quiet report, with the ended rows (main, ssh_worker) that the fixture noted
  *   t = 40.5 s   one idle report
- *   t = 46 s     a table overflow on purpose: 60 more threads, so the report must say missed=N and stop at the
- *                table's size and not print past it
+ *   t = 46 s     a table overflow on purpose: 60 more threads, so the report must say missed=N and
+ * stop at the table's size and not print past it
  *
- * The output is the bench image's own lines. tests/build/test_management_bench_report.py documents how the
- * capture is fed to check_bench_uart.py. The stack numbers are native_sim's and mean nothing.
+ * The output is the bench image's own lines. tests/build/test_management_bench_report.py documents
+ * how the capture is fed to check_bench_uart.py. The stack numbers are native_sim's and mean
+ * nothing.
  */
 #include "bench_report_core.h"
 
@@ -88,7 +89,8 @@ int main(void)
                               0, K_NO_WAIT);
     }
     k_msleep(100);
-    /* Not through the policy: the policy would wait for the minimum gap, and this one is a bound. */
+    /* Not through the policy: the policy would wait for the minimum gap, and this one is a bound.
+     */
     bench_report_core_snapshot(BENCH_REPORT_IDLE);
     k_msleep(1000);
     printk("BENCH_REPORT_TEST complete\n");

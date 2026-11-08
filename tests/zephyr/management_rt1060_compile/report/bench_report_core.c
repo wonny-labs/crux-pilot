@@ -9,7 +9,8 @@
 
 #if !defined(CONFIG_THREAD_MONITOR) || !defined(CONFIG_THREAD_STACK_INFO) ||                       \
     !defined(CONFIG_INIT_STACKS) || !defined(CONFIG_THREAD_NAME)
-#error "The bench report reads stack use: it needs THREAD_MONITOR, THREAD_STACK_INFO, INIT_STACKS and THREAD_NAME"
+#error                                                                                             \
+    "The bench report reads stack use: it needs THREAD_MONITOR, THREAD_STACK_INFO, INIT_STACKS and THREAD_NAME"
 #endif
 #if !defined(CONFIG_SYS_HEAP_RUNTIME_STATS)
 #error "The bench report reads the heap's peak: it needs SYS_HEAP_RUNTIME_STATS"
@@ -154,8 +155,7 @@ void bench_report_core_snapshot(bench_report_reason_t reason)
         }
     }
     if (bench_report_format_heap(line, sizeof(line), sequence, config.arena_bytes,
-                                 (uint32_t)heap.allocated_bytes,
-                                 (uint32_t)heap.max_allocated_bytes,
+                                 (uint32_t)heap.allocated_bytes, (uint32_t)heap.max_allocated_bytes,
                                  (uint32_t)heap.free_bytes) != 0u) {
         emit();
         printed++;

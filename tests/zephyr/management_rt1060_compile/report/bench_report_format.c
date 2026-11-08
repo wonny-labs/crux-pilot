@@ -73,8 +73,8 @@ static size_t finish(writer_t *w)
 
 static bool name_valid(char c)
 {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
-           c == '_' || c == '.' || c == '[' || c == ']' || c == '-' || c == '@';
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' ||
+           c == '.' || c == '[' || c == ']' || c == '-' || c == '@';
 }
 
 size_t bench_report_sanitize_name(char *out, size_t capacity, const char *name,
@@ -129,8 +129,7 @@ static const char *reason_text(bench_report_reason_t reason)
 }
 
 size_t bench_report_format_begin(char *out, size_t capacity, uint32_t seq,
-                                 bench_report_reason_t reason, uint32_t uptime_ms,
-                                 uint32_t bursts)
+                                 bench_report_reason_t reason, uint32_t uptime_ms, uint32_t bursts)
 {
     writer_t w;
     const char *text = reason_text(reason);
@@ -218,8 +217,7 @@ static bool fingerprint_valid(const char *text)
     return text[BENCH_REPORT_FINGERPRINT_CHARS] == '\0';
 }
 
-size_t bench_report_format_cert(char *out, size_t capacity, const char *fingerprint,
-                                bool generated)
+size_t bench_report_format_cert(char *out, size_t capacity, const char *fingerprint, bool generated)
 {
     writer_t w;
 

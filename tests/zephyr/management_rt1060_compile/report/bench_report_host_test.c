@@ -1,8 +1,8 @@
 /*
- * Host test of the pure parts of the bench report: the line formatter (bench_report_format.c) and the
- * activity policy (bench_report_policy.c). It builds with any C compiler, with no Zephyr, and prints a
- * sample report on stdout with --sample so that the Python checker reads what the C code wrote.
- * tests/build/test_management_bench_report.py compiles and runs it.
+ * Host test of the pure parts of the bench report: the line formatter (bench_report_format.c) and
+ * the activity policy (bench_report_policy.c). It builds with any C compiler, with no Zephyr, and
+ * prints a sample report on stdout with --sample so that the Python checker reads what the C code
+ * wrote. tests/build/test_management_bench_report.py compiles and runs it.
  */
 #include "bench_report_format.h"
 #include "bench_report_policy.h"
@@ -34,16 +34,18 @@ static void test_lines(void)
 {
     char buffer[BENCH_REPORT_LINE_MAX];
 
-    CHECK_LINE(bench_report_format_begin(buffer, sizeof(buffer), 3u, BENCH_REPORT_QUIET, 123456u, 2u),
-               "BENCH-REPORT v=1 begin seq=3 reason=quiet uptime_ms=123456 bursts=2");
-    CHECK_LINE(bench_report_format_stack(buffer, sizeof(buffer), 3u, "http_server_tid", 8192u,
-                                         5088u, false),
-               "BENCH-STACK seq=3 thread=http_server_tid size=8192 used=3104 unused=5088 state=live");
+    CHECK_LINE(
+        bench_report_format_begin(buffer, sizeof(buffer), 3u, BENCH_REPORT_QUIET, 123456u, 2u),
+        "BENCH-REPORT v=1 begin seq=3 reason=quiet uptime_ms=123456 bursts=2");
+    CHECK_LINE(
+        bench_report_format_stack(buffer, sizeof(buffer), 3u, "http_server_tid", 8192u, 5088u,
+                                  false),
+        "BENCH-STACK seq=3 thread=http_server_tid size=8192 used=3104 unused=5088 state=live");
     CHECK_LINE(bench_report_format_stack(buffer, sizeof(buffer), 3u, "main", 16384u, 100u, true),
                "BENCH-STACK seq=3 thread=main size=16384 used=16284 unused=100 state=ended");
-    CHECK_LINE(bench_report_format_heap(buffer, sizeof(buffer), 3u, 524288u, 90000u, 100448u,
-                                        400000u),
-               "BENCH-HEAP seq=3 arena=524288 in_use=90000 peak=100448 free=400000");
+    CHECK_LINE(
+        bench_report_format_heap(buffer, sizeof(buffer), 3u, 524288u, 90000u, 100448u, 400000u),
+        "BENCH-HEAP seq=3 arena=524288 in_use=90000 peak=100448 free=400000");
     CHECK_LINE(bench_report_format_end(buffer, sizeof(buffer), 3u, 17u, 0u),
                "BENCH-REPORT v=1 end seq=3 lines=17 missed=0");
     CHECK_LINE(bench_report_format_cert(buffer, sizeof(buffer), fingerprint, true),
@@ -67,8 +69,8 @@ static void test_longest_line_fits(void)
 
     memset(name, 'n', BENCH_REPORT_NAME_MAX - 1u);
     name[BENCH_REPORT_NAME_MAX - 1u] = '\0';
-    length = bench_report_format_stack(buffer, sizeof(buffer), 4294967295u, name, 4294967295u,
-                                       0u, true);
+    length =
+        bench_report_format_stack(buffer, sizeof(buffer), 4294967295u, name, 4294967295u, 0u, true);
     CHECK(length != 0u);
     CHECK(length < BENCH_REPORT_LINE_MAX);
     CHECK(strlen(buffer) == length);
@@ -149,8 +151,9 @@ static void test_names(void)
     CHECK(strcmp(name, "thread@80012abc") == 0);
     CHECK(bench_report_sanitize_name(name, sizeof(name), "", 0xffu) > 0u);
     CHECK(strcmp(name, "thread@ff") == 0);
-    CHECK(bench_report_sanitize_name(name, sizeof(name), "a_name_that_is_far_too_long_for_the_limit", 0u) ==
-          BENCH_REPORT_NAME_MAX - 1u);
+    CHECK(bench_report_sanitize_name(name, sizeof(name),
+                                     "a_name_that_is_far_too_long_for_the_limit",
+                                     0u) == BENCH_REPORT_NAME_MAX - 1u);
     CHECK(strlen(name) == BENCH_REPORT_NAME_MAX - 1u);
     CHECK(bench_report_sanitize_name(name, 0u, "x", 0u) == 0u);
     CHECK(bench_report_sanitize_name(NULL, 8u, "x", 0u) == 0u);
@@ -275,9 +278,12 @@ static void print_sample(void)
         const char *name;
         uint32_t size, unused;
         bool ended;
-    } rows[] = {{"main", 16384u, 2000u, true}, {"idle", 320u, 200u, false},
-                {"http_server_tid", 8192u, 4608u, false}, {"ssh_listener", 4096u, 2900u, false},
-                {"ssh_worker", 16384u, 6000u, false},   {"ssh_worker", 16384u, 5200u, true},
+    } rows[] = {{"main", 16384u, 2000u, true},
+                {"idle", 320u, 200u, false},
+                {"http_server_tid", 8192u, 4608u, false},
+                {"ssh_listener", 4096u, 2900u, false},
+                {"ssh_worker", 16384u, 6000u, false},
+                {"ssh_worker", 16384u, 5200u, true},
                 {"bench_report", 2048u, 1500u, false}};
     uint32_t lines = 0u;
 
@@ -286,8 +292,9 @@ static void print_sample(void)
     }
     for (unsigned seq = 1u; seq <= 2u; seq++) {
         lines = 0u;
-        bench_report_format_begin(line, sizeof(line), seq, seq == 1u ? BENCH_REPORT_BOOT : BENCH_REPORT_QUIET,
-                                  1000u * seq, seq - 1u);
+        bench_report_format_begin(line, sizeof(line), seq,
+                                  seq == 1u ? BENCH_REPORT_BOOT : BENCH_REPORT_QUIET, 1000u * seq,
+                                  seq - 1u);
         puts(line);
         for (size_t i = 0; i < sizeof(rows) / sizeof(rows[0]); i++) {
             bench_report_format_stack(line, sizeof(line), seq, rows[i].name, rows[i].size,
@@ -295,7 +302,8 @@ static void print_sample(void)
             puts(line);
             lines++;
         }
-        bench_report_format_heap(line, sizeof(line), seq, 524288u, 90000u * seq, 100448u * seq, 300000u);
+        bench_report_format_heap(line, sizeof(line), seq, 524288u, 90000u * seq, 100448u * seq,
+                                 300000u);
         puts(line);
         lines++;
         bench_report_format_end(line, sizeof(line), seq, lines, 0u);
