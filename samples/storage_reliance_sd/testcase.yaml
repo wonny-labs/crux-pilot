@@ -2,7 +2,7 @@ sample:
   name: Crux Reliance Edge microSD Stage A images (link only)
 # Each scenario states its own platforms, because scenarios for other platforms share this file.
 tests:
-  # The default image touches no card: no option is set, so main does nothing.
+  # The default image mounts and writes nothing: no option is set, so main does nothing.
   crux.sample.storage_reliance_sd:
     build_only: true
     platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]

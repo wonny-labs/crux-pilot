@@ -204,7 +204,7 @@ expect_cmake_failure "$repo/build/zephyr/file-emmc-settings-control" \
     -DCRUX_SETTINGS_FILE_CONTROL=ON
 
 # Link only: the Stage A images of the eMMC physical gate, which run Reliance Edge on the EVKB's own
-# microSD slot (samples/storage_reliance_sd): the default image that touches no card, the mount
+# microSD slot (samples/storage_reliance_sd): the default image that calls no mount, the mount
 # check, the append and replace tests, and the one-shot format image. Nothing is programmed, reset or run, and no image is kept
 # or uploaded: each image links GPLv2 source and is a test image. The ELF SHA-256 of each image goes
 # to the log only. The same CRUX_FILE_EMMC_SKIP_BUILD=1 rule applies to this output directory.
@@ -243,7 +243,7 @@ OPTIONS = ['CONFIG_SAMPLE_EMMC_START', 'CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST',
 FORMAT_SCENARIO = 'crux.sample.storage_reliance_sd.format'
 FORMAT_SYMBOL = 'CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT'
 # Each scenario is (name, the one option it sets, symbols that must be linked, symbols that must not
-# be). The default image calls none of the four, so it provably touches no card. The format image
+# be). The default image calls none of the four, so it contains no code that starts a mount or a write of the card. The format image
 # does not mount through emmc_storage_start: it has its own mount and the one function that formats.
 SCENARIOS = [
     ('crux.sample.storage_reliance_sd', None, [],

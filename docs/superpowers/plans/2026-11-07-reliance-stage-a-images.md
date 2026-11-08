@@ -96,4 +96,4 @@
 ## Self-review
 
 - **Spec coverage:** gate Precondition 6 (images exist, options off by default, `red_format` only in the format image, alignment and size recorded) is Tasks 1 and 2; Stage A steps 2 to 6 have an image each; step 1 and step 7 use the existing restore image; the supply and flash-backup preconditions are board work and stay in the gate document.
-- **Not in this plan:** any board work, an independent review of the images for the board (done by the whole-branch review before the session), a host reader for a Reliance Edge volume, the flash-write failure seen on 2026-11-07, and the unexplained return of the supply.
+- **Not in this plan:** any board work, an independent review of the images for the board (the gate's precondition 6 requires it against the approved board task before flashing; the whole-branch review of the PR is a software review, not that one), a host reader for a Reliance Edge volume, the flash-write failure seen on 2026-11-07, and the unexplained return of the supply.
