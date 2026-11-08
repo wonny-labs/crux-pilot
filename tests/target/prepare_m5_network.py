@@ -15,6 +15,7 @@ from m3_errno import verify_errno_map
 from m3_image import require
 from m5_image import check_image
 from prepare_m3_errno import prepare as prepare_errno
+import s2_image
 
 _SPEC = importlib.util.spec_from_file_location(
     'm5_build_provenance', Path(__file__).resolve().parents[2] / 'scripts/record-build-provenance.py')
@@ -42,7 +43,52 @@ def m5_profile():
                         tool_scripts=('test-networking-physical.sh', 'record-build-provenance.py'))
 
 
-PROFILES = {M5_NAME: m5_profile}
+S2_NAME = 's2-controller-physical'
+S2_MANIFEST_PATH = 'crux-controller'
+# The S2 build uses the same four dependencies at the same west paths as the M5 build. They are listed again so
+# that a later change of the M5 pins does not silently move the S2 image.
+S2_PINNED = {
+    'zephyr': 'dccb09599635bdff17633fa7e9dab014b91dce90',
+    'cmsis': '512cc7e895e8491696b61f7ba8066b4a182569b8',
+    'cmsis_6': '30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74',
+    'hal_nxp': '7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0',
+}
+S2_PINNED_PATHS = {'zephyr': 'zephyr', 'cmsis': 'modules/hal/cmsis', 'cmsis_6': 'modules/hal/cmsis_6',
+                   'hal_nxp': 'modules/hal/nxp'}
+# The S2 build finds its modules by west module discovery (zephyr.meta lists these four besides the dependencies
+# above), so each is part of the image and is pinned exactly.
+S2_MODULES = {
+    'crux-pilot': 'db5adca28bd313caaf3899e959920fac4d508699',
+    'picolibc': '01254932e8e81085817ed61fd858648584ffe37c',
+    'fatfs': 'f4ead3bf4a6dab3a07d7b5f5315795c073db568d',
+    'littlefs': '8f5ca347843363882619d8f96c00d8dbd88a8e79',
+}
+S2_MODULE_PATHS = {'crux-pilot': 'crux-pilot', 'picolibc': 'modules/lib/picolibc', 'fatfs': 'modules/fs/fatfs',
+                   'littlefs': 'modules/fs/littlefs'}
+
+
+def firmware_identity_of(image_sha256, config_bytes, target=s2_image.TARGET):
+    """The firmware identity digest as scripts/record-build-provenance.py computes it, from the recorder's own functions."""
+    identity = dict(algorithm=_PROVENANCE.FIRMWARE_IDENTITY_ALGORITHM, target=target, image_sha256=image_sha256,
+                    configuration_sha256=hashlib.sha256(_PROVENANCE.normalised_config(config_bytes)).hexdigest())
+    return _PROVENANCE.firmware_digest(identity)
+
+
+def s2_check_image(binary, elf, config):
+    """The S2 checks plus the firmware identity, which the manifest records because the binary has no commit tag."""
+    facts = s2_image.check_image(binary, elf, config)
+    facts['firmware_identity'] = firmware_identity_of(sha(binary), Path(config).read_bytes())
+    return facts
+
+
+def s2_profile():
+    """The crux-controller S2 image: no commit tag, no errno evidence, modules found by west module discovery."""
+    return ImageProfile(name=S2_NAME, manifest_path=S2_MANIFEST_PATH, pinned=S2_PINNED, pinned_paths=S2_PINNED_PATHS,
+                        check_image=s2_check_image, commit_tag=False, errno_suffix=None,
+                        tool_scripts=('record-build-provenance.py',), modules=S2_MODULES, module_paths=S2_MODULE_PATHS)
+
+
+PROFILES = {M5_NAME: m5_profile, S2_NAME: s2_profile}
 
 
 def profile_named(name):
@@ -59,7 +105,7 @@ def sha(path):
 
 def frozen_inputs(data, profile=None):
     profile = profile or m5_profile()
-    pinned, pinned_paths = profile.pinned, profile.pinned_paths
+    pinned, pinned_paths = profile.locked()
     source = data['source']
     require(not source['dirty'] and source['recoverable_from_git'], 'Unfrozen build inputs')
     require(re.fullmatch(r'[0-9a-f]{40}', source['git_commit']) is not None and
@@ -72,11 +118,16 @@ def frozen_inputs(data, profile=None):
     dependencies = [p for p in projects if p['name'] != 'manifest']
     locked = [p for p in dependencies if p['name'] in pinned]
     others = [p for p in dependencies if p['name'] not in pinned]
-    # The four pinned dependencies are exact and each appears once. Any other project that the manifest
-    # makes active is recorded but never part of this image, because the build names its modules
-    # explicitly (see scripts/test-networking-physical.sh); it must still be a clean, resolved checkout.
+    # The pinned dependencies are exact and each appears once. An image whose build names its modules explicitly
+    # (M5, see scripts/test-networking-physical.sh) records any other project the manifest makes active but never
+    # builds it; it must still be a clean, resolved checkout. An image built by west module discovery (profile
+    # modules) builds every active project that carries Zephyr module metadata, and the freeze cannot see which
+    # do, so its modules are pinned the same way and no other project is accepted.
     require(len(contexts) <= 1 and len(locked) == len(pinned) and {p['name'] for p in locked} == set(pinned),
             'Unexpected/missing/duplicate dependencies or manifest context')
+    require(not (profile.modules and others),
+            'Unpinned west project in an image built by module discovery, where it would be a build module: ' +
+            ', '.join(sorted(str(p.get('name')) for p in others)))
     fields = {'name', 'path', 'revision', 'git_commit', 'dirty'}
     require(len({p['name'] for p in others}) == len(others), 'Duplicate other west project')
     reserved = [PurePosixPath(profile.manifest_path)] + [PurePosixPath(v) for v in pinned_paths.values()]
@@ -217,21 +268,31 @@ def verify(manifest, expected_sha256, profile=None):
     return record
 
 
-def main():
+def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     actions = parser.add_subparsers(dest='action', required=True)
     create = actions.add_parser('prepare')
     for name in ('build', 'inputs', 'output', 'repo'):
         create.add_argument('--' + name, type=Path, required=True)
+    create.add_argument('--tool-repo', type=Path, default=None,
+                        help='repository whose tests/target and scripts are frozen as the board tooling (default: --repo)')
     check = actions.add_parser('verify')
     check.add_argument('--manifest', type=Path, required=True)
     check.add_argument('--sha256', required=True)
-    args = parser.parse_args()
+    for action in (create, check):
+        action.add_argument('--profile', choices=sorted(PROFILES), default=M5_NAME,
+                            help='image profile (image facts only; the hardware safety gates are the same for every profile)')
+    return parser
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    profile = profile_named(args.profile)
     if args.action == 'prepare':
-        prepare(args.build, args.inputs, args.output, args.repo)
+        prepare(args.build, args.inputs, args.output, args.repo, profile=profile, tool_repo=args.tool_repo)
         print(json.dumps(dict(manifest_sha256=sha(args.output))))
     else:
-        result = verify(args.manifest, args.sha256)
+        result = verify(args.manifest, args.sha256, profile)
         print(json.dumps(dict(profile=result['profile'], source=result['source']['git_commit'],
                               binary_sha256=sha(result['files']['binary']))))
 
