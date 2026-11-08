@@ -18,6 +18,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 BENCH = ROOT / "tests/zephyr/management_rt1060_compile"
 CHECKER = BENCH / "check_bench_uart.py"
+# Importing the checker must not leave a __pycache__ in the image's folder: test_management_bench_declaration.py reads
+# every file there as text, and a bytecode file is not text.
+sys.dont_write_bytecode = True
 sys.path.insert(0, str(BENCH))
 import check_bench_uart as checker  # noqa: E402
 
