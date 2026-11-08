@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# The sample's setting, which emmc_storage.c reads; the fixture takes the default. It repeats
+# samples/storage_emmc/Kconfig because the test compiles that source but not that Kconfig, and
+# app.overlay names the same disk "MMC".
+config SAMPLE_EMMC_DISK_NAME
+	string "Disk name of the eMMC"
+	default "MMC"
+
+config SETTINGS_RELIANCE_TEST_INIT_FAILURE
+	bool "Run only the case whose settings initialisation fails"
+	help
+	  The File root binds once per process, so this case is a scenario of its own, with a suite of
+	  its own. The cases of the shared suite are not built in it.
+
+source "Kconfig.zephyr"

@@ -1,0 +1,40 @@
+{
+  "name": "crux-web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Crux web frontend: TypeScript client, mock server and browser test harness for the examples in ../samples/web. Nothing here is needed by a C build.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": "24.22.2"
+  },
+  "scripts": {
+    "gen:types": "node tools/gen-types.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "check:types": "node tools/gen-types.ts --check",
+    "check:pins": "node tools/check-pins.ts",
+    "check:dom": "node tools/check-dom.ts",
+    "test:unit": "node --test --test-reporter=spec \"client/test/*.test.ts\" \"tools/test/*.test.ts\" \"mock/test/*.test.ts\"",
+    "test:browser": "node tools/build.ts && node --test --test-concurrency=1 --test-reporter=spec \"e2e/preact-*.test.ts\"",
+    "test:angular": "node tools/build.ts && node --test --test-concurrency=1 --test-reporter=spec \"e2e/angular-*.test.ts\"",
+    "test:native": "node --test --test-concurrency=1 --test-reporter=spec \"e2e/native-*.test.ts\"",
+    "build": "node tools/build.ts",
+    "measure": "node tools/measure.ts",
+    "mock": "node mock/cli.ts",
+    "dev": "node tools/build.ts && node mock/cli.ts --static ../samples/web/preact/dist",
+    "sbom": "npm sbom --omit=dev --sbom-format=cyclonedx --sbom-type=application",
+    "audit:prod": "npm audit --omit=dev --audit-level=low",
+    "check": "npm run check:pins && npm run check:types && npm run typecheck && npm run check:dom && npm run test:unit && npm run build"
+  },
+  "dependencies": {
+    "preact": "11.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "ajv": "8.20.0",
+    "esbuild": "0.28.2",
+    "playwright-core": "1.64.1",
+    "typescript": "6.0.3",
+    "yaml": "2.9.1"
+  }
+}

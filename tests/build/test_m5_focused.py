@@ -11,10 +11,11 @@ import capture_m5_network as runner
 import m5_focused_adapter as focused
 import capture_m5_focused as focused_cli
 
-NIC_TEXT='en5: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\tether 00:0a:cd:41:89:cc\n\tinet 192.168.77.1 netmask 0xffffff00 broadcast 192.168.77.255\n\tstatus: %s\n'
-NO_ADDRESS_TEXT='en5: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\tether 00:0a:cd:41:89:cc\n\tstatus: %s\n'
-ASSIGN=['sudo','-n','/sbin/ifconfig','en5','inet','192.168.77.1','netmask','255.255.255.0','up']
-ROUTE_TEXT='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,DONE,CLONING,STATIC>\n'
+IF=runner.NIC['interface'];MAC=runner.NIC['mac'];HOST=runner.NIC['host']
+NIC_TEXT='en5: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\tether 00:0a:cd:41:89:cc\n\tinet 192.168.77.1 netmask 0xffffff00 broadcast 192.168.77.255\n\tstatus: %s\n'.replace('en5',IF).replace('00:0a:cd:41:89:cc',MAC).replace('192.168.77.1',HOST)
+NO_ADDRESS_TEXT='en5: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\tether 00:0a:cd:41:89:cc\n\tstatus: %s\n'.replace('en5',IF).replace('00:0a:cd:41:89:cc',MAC).replace('192.168.77.1',HOST)
+ASSIGN=['sudo','-n','/sbin/ifconfig',IF,'inet',HOST,'netmask','255.255.255.0','up']
+ROUTE_TEXT='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,DONE,CLONING,STATIC>\n'.replace('en5',IF).replace('00:0a:cd:41:89:cc',MAC).replace('192.168.77.1',HOST)
 BANNER=b'*** Booting Zephyr OS build v4.1.0 ***\r\n'
 BOOT=b'M5_BOOT source=123456789abc\r\n'
 
@@ -27,7 +28,7 @@ class Time:
 
 class Host:
     """Fake host: ifconfig/route/sudo with a small NIC model."""
-    def __init__(self,time,carrier_delay=0.,sudo_rc=0,stuck=False,address=True,drops_address=False,ignores_assign=False,mac='00:0a:cd:41:89:cc'):
+    def __init__(self,time,carrier_delay=0.,sudo_rc=0,stuck=False,address=True,drops_address=False,ignores_assign=False,mac=MAC):
         self.time=time;self.calls=[];self.admin=True;self.carrier_delay=carrier_delay;self.up_at=None;self.sudo_rc=sudo_rc;self.stuck=stuck;self.address=address;self.drops_address=drops_address;self.ignores_assign=ignores_assign;self.mac=mac
     def __call__(self,argv,**kwargs):
         self.calls.append(list(argv))
@@ -40,9 +41,9 @@ class Host:
                 if argv[4:5]==['inet'] and not self.ignores_assign:self.address=True
                 if not self.admin and self.drops_address:self.address=False
                 if self.admin:self.up_at=self.time()+self.carrier_delay
-        elif argv[:2]==['ifconfig','en5']:
+        elif argv[:2]==['ifconfig',IF]:
             active=self.admin and (self.up_at is None or self.time()>=self.up_at) and not self.stuck
-            result.stdout=((NIC_TEXT if self.address else NO_ADDRESS_TEXT)%('active' if active else 'inactive')).replace('00:0a:cd:41:89:cc',self.mac)
+            result.stdout=((NIC_TEXT if self.address else NO_ADDRESS_TEXT)%('active' if active else 'inactive')).replace(MAC,self.mac)
         elif argv[:3]==['route','-n','get']:result.stdout=ROUTE_TEXT
         else:raise AssertionError(argv)
         return result
@@ -57,10 +58,10 @@ class HostLink(unittest.TestCase):
         link,host,time=self.link()
         rows=link.down()
         self.assertEqual([r['event'] for r in rows],['host_down','cable_disconnect_receipt'])
-        self.assertEqual(rows[0]['interface'],'en5')
+        self.assertEqual(rows[0]['interface'],IF)
         self.assertLessEqual(rows[0]['monotonic'],rows[1]['monotonic'])
         sudo=[c for c in host.calls if c[0]=='sudo']
-        self.assertEqual(sudo,[['sudo','-n','/sbin/ifconfig','en5','down']])
+        self.assertEqual(sudo,[['sudo','-n','/sbin/ifconfig',IF,'down']])
 
     def test_down_stops_when_sudo_would_prompt(self):
         link,host,time=self.link(sudo_rc=1)
@@ -72,7 +73,7 @@ class HostLink(unittest.TestCase):
         original=host.__call__
         def never_down(argv,**kwargs):
             result=original(argv,**kwargs)
-            if argv[:2]==['ifconfig','en5']:result.stdout=NIC_TEXT%'active'
+            if argv[:2]==['ifconfig',IF]:result.stdout=NIC_TEXT%'active'
             return result
         link=focused.HostLink(run=never_down,clock=time,sleep=time.sleep)
         with self.assertRaises(ValueError):link.down()
@@ -84,7 +85,7 @@ class HostLink(unittest.TestCase):
         stamps=[r['monotonic'] for r in rows]
         self.assertEqual(stamps,sorted(stamps))
         self.assertGreaterEqual(stamps[0],2.5)
-        self.assertEqual((rows[2]['source'],rows[2]['destination'],rows[2]['interface']),('192.168.77.1','192.168.77.2','en5'))
+        self.assertEqual((rows[2]['source'],rows[2]['destination'],rows[2]['interface']),('192.168.77.1','192.168.77.2',IF))
         self.assertEqual([c for c in host.calls if c[0]=='sudo'],[ASSIGN])
 
     def test_up_reassigns_the_static_address_the_host_dropped_while_down(self):
@@ -117,7 +118,7 @@ class HostLink(unittest.TestCase):
         time=Time();host=Host(time);original=host.__call__;seen=[]
         def flaky(argv,**kwargs):
             result=original(argv,**kwargs)
-            if argv[:2]==['ifconfig','en5']:
+            if argv[:2]==['ifconfig',IF]:
                 seen.append(1)
                 if len(seen)>=3:result.stdout=NIC_TEXT%'inactive'
             return result
@@ -131,7 +132,7 @@ class HostLink(unittest.TestCase):
     def test_identity_needs_the_dedicated_mac_but_not_an_address_or_carrier(self):
         link,host,time=self.link(address=False)
         link.identity()
-        other=lambda argv,**k:type('R',(),dict(returncode=0,stdout=NO_ADDRESS_TEXT.replace('00:0a:cd:41:89:cc','aa:bb:cc:dd:ee:ff')%'inactive'))()
+        other=lambda argv,**k:type('R',(),dict(returncode=0,stdout=NO_ADDRESS_TEXT.replace(MAC,'aa:bb:cc:dd:ee:ff')%'inactive'))()
         with self.assertRaises(ValueError):focused.HostLink(run=other,clock=time,sleep=time.sleep).identity()
 
     def test_up_without_carrier_times_out(self):
@@ -170,9 +171,9 @@ class Backend:
 class FakeLink:
     def __init__(self):self.calls=[]
     def down(self):
-        self.calls.append('down');return [dict(event='host_down',monotonic=2.,interface='en5'),dict(event='cable_disconnect_receipt',monotonic=2.1)]
+        self.calls.append('down');return [dict(event='host_down',monotonic=2.,interface=IF),dict(event='cable_disconnect_receipt',monotonic=2.1)]
     def up(self):
-        self.calls.append('up');return [dict(event='cable_connect_receipt',monotonic=3.),dict(event='host_up',monotonic=3.1,interface='en5'),dict(event='route',monotonic=3.2,interface='en5',source='192.168.77.1',destination='192.168.77.2')]
+        self.calls.append('up');return [dict(event='cable_connect_receipt',monotonic=3.),dict(event='host_up',monotonic=3.1,interface=IF),dict(event='route',monotonic=3.2,interface=IF,source='192.168.77.1',destination='192.168.77.2')]
 
 
 class Adapter(unittest.TestCase):

@@ -252,7 +252,7 @@ class CanonicalApproval(unittest.TestCase):
             else:prepared['operations'].remove(mutation)
             approval=runner.approval_template(prepared);approval['authorization']='APPROVED_FOR_PHYSICAL_EXECUTION';approval['operations']={key:True for key in approval['operations']}
             with self.subTest(mutation=mutation),self.assertRaises(ValueError):runner.validate_approval(approval,prepared)
-        self.assertEqual(runner.NIC['interface'],'en5')
+        self.assertEqual(runner.NIC['interface'],'en13')
 
 
 class FocusedProfile(unittest.TestCase):
@@ -308,7 +308,7 @@ class FocusedProfile(unittest.TestCase):
         if restore:
             def restore_link(self):
                 self.restores+=1;self.order.append('restore');base=self.clock.now
-                rows=[dict(event='cable_connect_receipt',monotonic=base+.001),dict(event='host_up',monotonic=base+.002,interface='en5'),dict(event='route',monotonic=base+.003,interface='en5',source='192.168.77.1',destination='192.168.77.2')]
+                rows=[dict(event='cable_connect_receipt',monotonic=base+.001),dict(event='host_up',monotonic=base+.002,interface='en13'),dict(event='route',monotonic=base+.003,interface='en13',source='192.168.77.1',destination='192.168.77.2')]
                 self.events += [dict(kind='control',monotonic=r['monotonic'],record=r) for r in rows]
                 self.events.append(dict(kind='target',monotonic=base+.004,record=recovery['record']))
                 self.events.sort(key=lambda e:e['monotonic'])

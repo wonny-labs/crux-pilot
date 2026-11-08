@@ -1,0 +1,51 @@
+��m���~{���������������������~{���������������������~{��������������������������o��������������������������������)�����N�*54
+RECOVER run=38 present=1 last_vlid=1402 torn=0 damage=0 *C1
+ACK 14689 *3D
+ACK 14690 *53
+ACK 14691 *54
+... (10 ACK lines omitted) ...
+ACK 14702 *FF
+ACK 14703 *00
+ACK 14704 *01
+BOOT 39 *54
+RECOVER run=38 present=1 last_valid=1402 torn=0 damaged=0 *C1
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 14705 *02
+ACK 14706 *03
+ACK 14707 *04
+... (117 ACK lines omitted) ...
+ACK 14825 *01
+ACK 14826 *02
+ACK 14827 *03
+BOOT 40 *6A
+RECOVER run=39 present=1 last_valid=14853 torn=0 damaged=0 *EC
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (20933 ACK lines omitted) ...
+ACK 20937 *E8
+ACK 20938 *E9
+ACK 20939 *EA
+BOOT 41 *6B
+RECOVER run=40 present=1 last_valid=20964 torn=0 damaged=0 *DC
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (14940 ACK lines omitted) ...
+ACK 14944 *FF
+ACK 14945 *00
+ACK 14946 *01
+BOOT 42 *6C
+RECOVER run=41 present=1 last_valid=14946 torn=0 damaged=0 *7E
+ACK 1 *3A
+ACK 2 *3B
+ACK 3 *3C
+... (14428 ACK lines omitted) ...
+ACK 14432 *19
+ACK 14433 *1A
+ACK 14434 *1B

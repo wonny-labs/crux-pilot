@@ -7,7 +7,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 
 from m3_errno import verify_errno_map
@@ -21,11 +21,15 @@ _PROVENANCE = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(_PROVENANCE)
 source_snapshot = _PROVENANCE.source_snapshot
 PINNED = {
-    'zephyr': '684c9e8f32e4373a21098559f748f06915f950c9',
+    'zephyr': 'dccb09599635bdff17633fa7e9dab014b91dce90',
     'cmsis': '512cc7e895e8491696b61f7ba8066b4a182569b8',
     'cmsis_6': '30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74',
-    'hal_nxp': '2c2f28ac333e995d7279777409817c4b4f92c1ec',
+    'hal_nxp': '7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0',
 }
+# Where the build finds each pinned dependency (scripts/test-networking-physical.sh names these directories).
+PINNED_PATHS = {'zephyr': 'zephyr', 'cmsis': 'modules/hal/cmsis', 'cmsis_6': 'modules/hal/cmsis_6',
+                'hal_nxp': 'modules/hal/nxp'}
+MANIFEST_PATH = 'crux-pilot'
 ROLES = {'binary', 'elf', 'config', 'map', 'dts', 'compilation', 'inputs', 'provenance', 'errno'}
 
 
@@ -44,18 +48,41 @@ def frozen_inputs(data):
     # bootstrap context, not the built source: source above identifies that worktree.
     contexts = [p for p in projects if p['name'] == 'manifest']
     dependencies = [p for p in projects if p['name'] != 'manifest']
-    require(len(contexts) <= 1 and len(dependencies) == len(PINNED) and
-            {p['name'] for p in dependencies} == set(PINNED),
+    pinned = [p for p in dependencies if p['name'] in PINNED]
+    others = [p for p in dependencies if p['name'] not in PINNED]
+    # The four pinned dependencies are exact and each appears once. Any other project that the manifest
+    # makes active is recorded but never part of this image, because the build names its modules
+    # explicitly (see scripts/test-networking-physical.sh); it must still be a clean, resolved checkout.
+    require(len(contexts) <= 1 and len(pinned) == len(PINNED) and {p['name'] for p in pinned} == set(PINNED),
             'Unexpected/missing/duplicate dependencies or manifest context')
+    fields = {'name', 'path', 'revision', 'git_commit', 'dirty'}
+    require(len({p['name'] for p in others}) == len(others), 'Duplicate other west project')
+    reserved = [PurePosixPath(MANIFEST_PATH)] + [PurePosixPath(v) for v in PINNED_PATHS.values()]
+    seen = set()
+    for project in others:
+        revision, path = project.get('revision'), project.get('path')
+        require(set(project) == fields and project['dirty'] is False and
+                re.fullmatch(r'[0-9a-f]{40}', str(project['git_commit'])) is not None and
+                isinstance(revision, str) and revision not in ('', 'HEAD') and
+                (re.fullmatch(r'[0-9a-fA-F]{40}', revision) is None or revision == project['git_commit']) and
+                isinstance(path, str) and path != '' and '\\' not in path and not path.startswith('/') and
+                '..' not in PurePosixPath(path).parts and '.' not in path.split('/')[:-1] and
+                PurePosixPath(path).parts not in ((), ('.',)),
+                'Other west project is dirty, unresolved or misplaced: ' + str(project.get('name')))
+        where = PurePosixPath(path)
+        # No other project may be, contain or sit inside the manifest checkout or a directory the build compiles.
+        require(not any(where == r or r in where.parents or where in r.parents for r in reserved) and where not in seen,
+                'Other west project overlaps a pinned dependency or the manifest checkout: ' + str(project.get('name')))
+        seen.add(where)
     for context in contexts:
         require(set(context) == {'name', 'path', 'revision', 'git_commit', 'dirty'} and
                 context['path'] == 'crux-pilot' and context['revision'] == 'HEAD' and
                 context['dirty'] is False and
                 re.fullmatch(r'[0-9a-f]{40}', context['git_commit']) is not None,
                 'Unfrozen/noncanonical workspace manifest context')
-    for project in dependencies:
-        require(project['revision'] == project['git_commit'] == PINNED[project['name']] and
-                not project['dirty'], 'Dependency changed')
+    for project in pinned:
+        require(set(project) == fields and project['revision'] == project['git_commit'] == PINNED[project['name']] and
+                project['dirty'] is False and project['path'] == PINNED_PATHS[project['name']], 'Dependency changed')
 
 
 def default_tools(repo):

@@ -1,0 +1,7 @@
+tests:
+  crux.spi.flash_id.native_sim:
+    tags:
+      - crux
+      - spi
+    platform_allow:
+      - native_sim

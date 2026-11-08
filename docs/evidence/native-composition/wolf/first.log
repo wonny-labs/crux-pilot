@@ -1,0 +1,63 @@
+WARNING: Using a test - not safe - entropy source
+uart connected to pseudotty: /dev/pts/0
+*** Booting Zephyr OS build 4.4.2 ***
+COMPOSITION started=0 store_at_start=1 profile=wolf
+Running TESTSUITE first_boot
+===================================================================
+START - test_01_declaration
+COMPOSITION tls_key type=1 public=0487ccfaef3b8d263b04bc003550437cd56e09bb2933a9e51409f291f4ce9b08394d744caf657015dfed94a169c56b335ca7df46d072934447f6c3c2c739e61125
+ PASS - test_01_declaration in 0.610 seconds
+===================================================================
+START - test_02_ssh_host_key_by_profile
+COMPOSITION ssh_host_key type=2 public=37e8f836540b299f3e991821a0afc984128159fdf23a89d37a278e5976bd83de
+ PASS - test_02_ssh_host_key_by_profile in 0.610 seconds
+===================================================================
+START - test_03_login
+ PASS - test_03_login in 1.220 seconds
+===================================================================
+START - test_04_status
+COMPOSITION status {"items":[{"name":"system.uptime_ms","status":"ok","type":"u64","value":"2990"},{"name":"system.clock","status":"ok","type":"text","value":"unset"},{"name":"system.watchdog_state","status":"not_supported"},{"name":"reset.causes","status":"ok","type":"u32","value":1},{"name":"reset.supported","status":"ok","type":"u32","value":5},{"name":"net.link","status":"ok","type":"bool","value":true},{"name":"net.admin_up","status":"ok","type":"bool","value":true},{"name":"net.ipv4","status":"no_data"},{"name":"version.platform","status":"ok","type":"text","value":"native_sim composition"},{"name":"version.project","status":"ok","type":"text","value":"test"},{"name":"security.credential_state","status":"ok","type":"text","value":"valid"},{"name":"security.credential_basis","status":"ok","type":"text","value":"device_id_key"},{"name":"security.credential_evidence","status":"ok","type":"text","value":"software"},{"name":"security.credential_confidential","status":"ok","type":"bool","value":false},{"name":"security.credential_forgery_detected","status":"ok","type":"bool","value":true},{"name":"security.credential_rollback_detected","status":"ok","type":"bool","value":false},{"name":"security.events_emitted","status":"ok","type":"u32","value":21},{"name":"security.events_dropped","status":"ok","type":"u32","value":0},{"name":"security.events_delivered","status":"ok","type":"u32","value":21},{"name":"security.events_log_errors","status":"ok","type":"u32","value":0}]}
+ PASS - test_04_status in 0.610 seconds
+===================================================================
+START - test_05_configuration
+ PASS - test_05_configuration in 0.610 seconds
+===================================================================
+START - test_06_events
+COMPOSITION events emitted=32 delivered=32 dropped=0 log_errors=0 high_water=9
+ PASS - test_06_events in 2.120 seconds
+===================================================================
+START - test_07_stored_verifier_is_real
+ PASS - test_07_stored_verifier_is_real in 0.610 seconds
+===================================================================
+START - test_08_medium
+ PASS - test_08_medium in 0.610 seconds
+===================================================================
+START - test_09_tls_beside_the_services
+COMPOSITION first boot complete
+ PASS - test_09_tls_beside_the_services in 0.730 seconds
+===================================================================
+TESTSUITE first_boot succeeded
+
+------ TESTSUITE SUMMARY START ------
+
+SUITE PASS - 100.00% [first_boot]: pass = 9, fail = 0, skip = 0, total = 9 duration = 7.730 seconds
+ - PASS - [first_boot.test_01_declaration] duration = 0.610 seconds
+ - PASS - [first_boot.test_02_ssh_host_key_by_profile] duration = 0.610 seconds
+ - PASS - [first_boot.test_03_login] duration = 1.220 seconds
+ - PASS - [first_boot.test_04_status] duration = 0.610 seconds
+ - PASS - [first_boot.test_05_configuration] duration = 0.610 seconds
+ - PASS - [first_boot.test_06_events] duration = 2.120 seconds
+ - PASS - [first_boot.test_07_stored_verifier_is_real] duration = 0.610 seconds
+ - PASS - [first_boot.test_08_medium] duration = 0.610 seconds
+ - PASS - [first_boot.test_09_tls_beside_the_services] duration = 0.730 seconds
+
+SUITE SKIP -   0.00% [later_boot]: pass = 0, fail = 0, skip = 1, total = 1 duration = 0.000 seconds
+ - SKIP - [later_boot.test_01_accounts_and_keys_survive] duration = 0.000 seconds
+
+SUITE SKIP -   0.00% [other_device]: pass = 0, fail = 0, skip = 1, total = 1 duration = 0.000 seconds
+ - SKIP - [other_device.test_01_everything_stays_closed] duration = 0.000 seconds
+
+------ TESTSUITE SUMMARY END ------
+
+===================================================================
+PROJECT EXECUTION SUCCESSFUL

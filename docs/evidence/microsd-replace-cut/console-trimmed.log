@@ -1,0 +1,1087 @@
+GEN 1179 *F2
+GEN 1180 *08
+GEN 1181 *09
+... (5 GEN lines omitted) ...
+GEN 2126 *B3
+GEN 2127 *B4
+GEN 2128 *B5
+BOOT 1 *83
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 2129 *B6
+GEN 2130 *CC
+GEN 2131 *CD
+... (31 GEN lines omitted) ...
+GEN 2163 *2C
+GEN 2164 *2D
+GEN 2165 *2E
+BOOT 2 *84
+CLASS run=1 cfg=valid cfg_gen=2173 cmp=valid cmp_gen=2174 *94
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 2175 *4D
+GEN 2176 *4E
+GEN 2177 *4F
+... (37 GEN lines omitted) ...
+GEN 2215 *54
+GEN 2216 *55
+GEN 2217 *56
+BOOT 3 *85
+CLASS run=2 cfg=valid cfg_gen=2224 cmp=bad cmp_gen=0 *C7
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 2225 *73
+GEN 2226 *74
+GEN 2227 *75
+... (55 GEN lines omitted) ...
+GEN 2283 *2B
+GEN 2284 *2C
+GEN 2285 *2D
+BOOT 4 *86
+CLASS run=3 cfg=valid cfg_gen=2293 cmp=bad cmp_gen=0 *BE
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 2294 *4B
+GEN 2295 *4C
+GEN 2296 *4D
+... (123 GEN lines omitted) ...
+GEN 2420 *F0
+GEN 2421 *F1
+GEN 2422 *F2
+BOOT 5 *87
+CLASS run=4 cfg=valid cfg_gen=2430 cmp=valid cmp_gen=2431 *D7
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 2432 *11
+GEN 2433 *12
+GEN 2434 *13
+... (193 GEN lines omitted) ...
+GEN 2628 *7A
+GEN 2629 *7B
+GEN 2630 *91
+BOOT 6 *88
+CLASS run=5 cfg=valid cfg_gen=2638 cmp=bad cmp_gen=0 *8B
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 2639 *9A
+GEN 2640 *B0
+GEN 2641 *B1
+... (62 GEN lines omitted) ...
+GEN 2704 *F9
+GEN 2705 *FA
+GEN 2706 *FB
+BOOT 7 *89
+CLASS run=6 cfg=valid cfg_gen=2711 cmp=bad cmp_gen=0 *26
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+BOOT 8 *8A
+CLASS run=7 cfg=none cfg_gen=0 cmp=valid cmp_gen=2712 *4B
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 2713 *17
+GEN 2714 *18
+GEN 2715 *19
+... (89 GEN lines omitted) ...
+GEN 2805 *BB
+GEN 2806 *BC
+GEN 2807 *BD
+BOOT 9 *8B
+CLASS run=8 cfg=none cfg_gen=0 cmp=valid cmp_gen=2815 *D0
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 2816 *DB
+GEN 2817 *DC
+GEN 2818 *DD
+... (215 GEN lines omitted) ...
+GEN 3034 *6E
+GEN 3035 *6F
+GEN 3036 *70
+BOOT 10 *0D
+CLASS run=9 cfg=valid cfg_gen=3044 cmp=bad cmp_gen=0 *FB
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 3045 *8E
+GEN 3046 *8F
+GEN 3047 *90
+... (69 GEN lines omitted) ...
+GEN 3117 *F4
+GEN 3118 *F5
+GEN 3119 *F6
+BOOT 11 *0E
+CLASS run=10 cfg=valid cfg_gen=3127 cmp=none cmp_gen=0 *AA
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 3128 *14
+GEN 3129 *15
+GEN 3130 *2B
+... (202 GEN lines omitted) ...
+GEN 3333 *B0
+GEN 3334 *B1
+GEN 3335 *B2
+BOOT 12 *0F
+CLASS run=11 cfg=valid cfg_gen=3342 cmp=bad cmp_gen=0 *81
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 3343 *CF
+GEN 3344 *D0
+GEN 3345 *D1
+... (175 GEN lines omitted) ...
+GEN 3521 *11
+GEN 3522 *12
+GEN 3523 *13
+BOOT 13 *10
+CLASS run=12 cfg=valid cfg_gen=3531 cmp=valid cmp_gen=3532 *D8
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 3533 *32
+GEN 3534 *33
+GEN 3535 *34
+... (56 GEN lines omitted) ...
+GEN 3592 *EB
+GEN 3593 *EC
+GEN 3594 *ED
+BOOT 14 *11
+CLASS run=13 cfg=none cfg_gen=0 cmp=valid cmp_gen=3602 *E9
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 3603 *96
+GEN 3604 *97
+GEN 3605 *98
+... (141 GEN lines omitted) ...
+GEN 3747 *D7
+GEN 3748 *D8
+GEN 3749 *D9
+BOOT 15 *12
+CLASS run=14 cfg=none cfg_gen=0 cmp=valid cmp_gen=3757 *0B
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 3758 *F7
+GEN 3759 *F8
+GEN 3760 *0E
+... (139 GEN lines omitted) ...
+GEN 3900 *D6
+GEN 3901 *D7
+GEN 3902 *D8
+BOOT 16 *13
+CLASS run=15 cfg=none cfg_gen=0 cmp=valid cmp_gen=3910 *CB
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 3911 *F6
+GEN 3912 *F7
+GEN 3913 *F8
+... (128 GEN lines omitted) ...
+GEN 4042 *EA
+GEN 4043 *EB
+GEN 4044 *EC
+BOOT 17 *14
+CLASS run=16 cfg=valid cfg_gen=4052 cmp=valid cmp_gen=4053 *BC
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 4054 *0B
+GEN 4055 *0C
+GEN 4056 *0D
+... (26 GEN lines omitted) ...
+GEN 4083 *67
+GEN 4084 *68
+GEN 4085 *69
+BOOT 18 *15
+CLASS run=17 cfg=none cfg_gen=0 cmp=valid cmp_gen=4086 *C2
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 4087 *6B
+GEN 4088 *6C
+GEN 4089 *6D
+... (47 GEN lines omitted) ...
+GEN 4137 *91
+GEN 4138 *92
+GEN 4139 *93
+BOOT 19 *16
+CLASS run=18 cfg=valid cfg_gen=4146 cmp=valid cmp_gen=4147 *7E
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 4148 *B1
+GEN 4149 *B2
+GEN 4150 *C8
+... (32 GEN lines omitted) ...
+GEN 4183 *28
+GEN 4184 *29
+GEN 4185 *2A
+BOOT 20 *2C
+CLASS run=19 cfg=valid cfg_gen=4192 cmp=bad cmp_gen=0 *F1
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 4193 *47
+GEN 4194 *48
+GEN 4195 *49
+... (234 GEN lines omitted) ...
+GEN 4430 *CD
+GEN 4431 *CE
+GEN 4432 *CF
+BOOT 21 *2D
+CLASS run=20 cfg=none cfg_gen=0 cmp=valid cmp_gen=4440 *5C
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 4441 *ED
+GEN 4442 *EE
+GEN 4443 *EF
+... (47 GEN lines omitted) ...
+GEN 4491 *88
+GEN 4492 *89
+GEN 4493 *8A
+BOOT 22 *2E
+CLASS run=21 cfg=valid cfg_gen=4501 cmp=bad cmp_gen=0 *A6
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 4502 *33
+GEN 4503 *34
+GEN 4504 *35
+... (78 GEN lines omitted) ...
+GEN 4583 *2C
+GEN 4584 *2D
+GEN 4585 *2E
+BOOT 23 *2F
+CLASS run=22 cfg=valid cfg_gen=4593 cmp=bad cmp_gen=0 *9E
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 4594 *4C
+GEN 4595 *4D
+GEN 4596 *4E
+... (35 GEN lines omitted) ...
+GEN 4632 *51
+GEN 4633 *52
+GEN 4634 *53
+BOOT 24 *30
+CLASS run=23 cfg=none cfg_gen=0 cmp=valid cmp_gen=4642 *23
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 4643 *71
+GEN 4644 *72
+GEN 4645 *73
+... (116 GEN lines omitted) ...
+GEN 4762 *6F
+GEN 4763 *70
+GEN 4764 *71
+BOOT 25 *31
+CLASS run=24 cfg=valid cfg_gen=4771 cmp=valid cmp_gen=4772 *99
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 4773 *8F
+GEN 4774 *90
+GEN 4775 *91
+... (262 GEN lines omitted) ...
+GEN 5038 *30
+GEN 5039 *31
+GEN 5040 *47
+BOOT 26 *32
+CLASS run=25 cfg=valid cfg_gen=5048 cmp=bad cmp_gen=0 *FF
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 5049 *50
+GEN 5050 *66
+GEN 5051 *67
+... (55 GEN lines omitted) ...
+GEN 5107 *93
+GEN 5108 *94
+GEN 5109 *95
+BOOT 27 *33
+CLASS run=26 cfg=valid cfg_gen=5116 cmp=valid cmp_gen=5117 *9B
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 5118 *B3
+GEN 5119 *B4
+GEN 5120 *CA
+... (79 GEN lines omitted) ...
+GEN 5200 *4D
+GEN 5201 *4E
+GEN 5202 *4F
+BOOT 28 *34
+CLASS run=27 cfg=none cfg_gen=0 cmp=valid cmp_gen=5210 *23
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 5211 *6D
+GEN 5212 *6E
+GEN 5213 *6F
+... (163 GEN lines omitted) ...
+GEN 5377 *EE
+GEN 5378 *EF
+GEN 5379 *F0
+BOOT 29 *35
+CLASS run=28 cfg=valid cfg_gen=5386 cmp=bad cmp_gen=0 *D9
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 5387 *0D
+GEN 5388 *0E
+GEN 5389 *0F
+... (154 GEN lines omitted) ...
+GEN 5544 *10
+GEN 5545 *11
+GEN 5546 *12
+BOOT 30 *4B
+CLASS run=29 cfg=valid cfg_gen=5554 cmp=bad cmp_gen=0 *5B
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 5555 *30
+GEN 5556 *31
+GEN 5557 *32
+... (244 GEN lines omitted) ...
+GEN 5802 *D5
+GEN 5803 *D6
+GEN 5804 *D7
+BOOT 31 *4C
+CLASS run=30 cfg=valid cfg_gen=5812 cmp=none cmp_gen=0 *E7
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 5813 *F5
+GEN 5814 *F6
+GEN 5815 *F7
+... (222 GEN lines omitted) ...
+GEN 6038 *8F
+GEN 6039 *90
+GEN 6040 *A6
+BOOT 32 *4D
+CLASS run=31 cfg=valid cfg_gen=6047 cmp=valid cmp_gen=6048 *B5
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 6049 *AF
+GEN 6050 *C5
+GEN 6051 *C6
+... (110 GEN lines omitted) ...
+GEN 6162 *A7
+GEN 6163 *A8
+GEN 6164 *A9
+BOOT 33 *4E
+CLASS run=32 cfg=valid cfg_gen=6171 cmp=valid cmp_gen=6172 *F6
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 6173 *C7
+GEN 6174 *C8
+GEN 6175 *C9
+... (41 GEN lines omitted) ...
+GEN 6217 *D2
+GEN 6218 *D3
+GEN 6219 *D4
+BOOT 34 *4F
+CLASS run=33 cfg=valid cfg_gen=6219 cmp=bad cmp_gen=0 *C7
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 6220 *EA
+GEN 6221 *EB
+GEN 6222 *EC
+... (4 GEN lines omitted) ...
+GEN 6227 *F1
+GEN 6228 *F2
+GEN 6229 *F3
+BOOT 35 *50
+CLASS run=34 cfg=none cfg_gen=0 cmp=valid cmp_gen=6237 *E3
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 6238 *11
+GEN 6239 *12
+GEN 6240 *28
+... (262 GEN lines omitted) ...
+GEN 6503 *F2
+GEN 6504 *F3
+GEN 6505 *F4
+BOOT 36 *51
+CLASS run=35 cfg=valid cfg_gen=6512 cmp=bad cmp_gen=0 *41
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 6513 *11
+GEN 6514 *12
+GEN 6515 *13
+... (35 GEN lines omitted) ...
+GEN 6551 *8B
+GEN 6552 *8C
+GEN 6553 *8D
+BOOT 37 *52
+CLASS run=36 cfg=valid cfg_gen=6560 cmp=none cmp_gen=0 *98
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 6561 *AA
+GEN 6562 *AB
+GEN 6563 *AC
+... (160 GEN lines omitted) ...
+GEN 6724 *B3
+GEN 6725 *B4
+GEN 6726 *B5
+BOOT 38 *53
+CLASS run=37 cfg=valid cfg_gen=6734 cmp=none cmp_gen=0 *90
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 6735 *D3
+GEN 6736 *D4
+GEN 6737 *D5
+... (149 GEN lines omitted) ...
+GEN 6887 *31
+GEN 6888 *32
+GEN 6889 *33
+BOOT 39 *54
+CLASS run=38 cfg=none cfg_gen=0 cmp=valid cmp_gen=6897 *27
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 6898 *51
+GEN 6899 *52
+GEN 6900 *F3
+... (190 GEN lines omitted) ...
+GEN 7091 *A1
+GEN 7092 *A2
+GEN 7093 *A3
+BOOT 40 *6A
+CLASS run=39 cfg=none cfg_gen=0 cmp=valid cmp_gen=7101 *E3
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 7102 *4C
+GEN 7103 *4D
+GEN 7104 *4E
+... (71 GEN lines omitted) ...
+GEN 7176 *29
+GEN 7177 *2A
+GEN 7178 *2B
+BOOT 41 *6B
+CLASS run=40 cfg=valid cfg_gen=7185 cmp=bad cmp_gen=0 *DE
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 7186 *48
+GEN 7187 *49
+GEN 7188 *4A
+... (196 GEN lines omitted) ...
+GEN 7385 *C9
+GEN 7386 *CA
+GEN 7387 *CB
+BOOT 42 *6C
+CLASS run=41 cfg=valid cfg_gen=7394 cmp=valid cmp_gen=7395 *54
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 7396 *E9
+GEN 7397 *EA
+GEN 7398 *EB
+... (188 GEN lines omitted) ...
+GEN 7587 *4D
+GEN 7588 *4E
+GEN 7589 *4F
+BOOT 43 *6D
+CLASS run=42 cfg=valid cfg_gen=7597 cmp=valid cmp_gen=7598 *F5
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 7599 *6E
+GEN 7600 *0F
+GEN 7601 *10
+... (72 GEN lines omitted) ...
+GEN 7674 *EC
+GEN 7675 *ED
+GEN 7676 *EE
+BOOT 44 *6E
+CLASS run=43 cfg=valid cfg_gen=7683 cmp=bad cmp_gen=0 *3E
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 7684 *0B
+GEN 7685 *0C
+GEN 7686 *0D
+... (176 GEN lines omitted) ...
+GEN 7863 *4E
+GEN 7864 *4F
+GEN 7865 *50
+BOOT 45 *6F
+CLASS run=44 cfg=valid cfg_gen=7873 cmp=none cmp_gen=0 *31
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 7874 *6E
+GEN 7875 *6F
+GEN 7876 *70
+... (82 GEN lines omitted) ...
+GEN 7959 *F6
+GEN 7960 *0C
+GEN 7961 *0D
+BOOT 46 *70
+CLASS run=45 cfg=valid cfg_gen=7969 cmp=valid cmp_gen=7970 *AD
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 7971 *2C
+GEN 7972 *2D
+GEN 7973 *2E
+... (39 GEN lines omitted) ...
+GEN 8013 *0A
+GEN 8014 *0B
+GEN 8015 *0C
+BOOT 47 *71
+CLASS run=46 cfg=valid cfg_gen=8022 cmp=bad cmp_gen=0 *39
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 8023 *29
+BOOT 48 *72
+CLASS run=47 cfg=none cfg_gen=0 cmp=valid cmp_gen=8024 *9F
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 8025 *2B
+GEN 8026 *2C
+GEN 8027 *2D
+... (21 GEN lines omitted) ...
+GEN 8049 *6D
+GEN 8050 *83
+GEN 8051 *84
+BOOT 49 *73
+CLASS run=48 cfg=none cfg_gen=0 cmp=valid cmp_gen=8059 *C2
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 8060 *A2
+GEN 8061 *A3
+GEN 8062 *A4
+... (123 GEN lines omitted) ...
+GEN 8186 *A7
+GEN 8187 *A8
+GEN 8188 *A9
+BOOT 50 *89
+CLASS run=49 cfg=valid cfg_gen=8196 cmp=valid cmp_gen=8197 *7C
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 8198 *C8
+GEN 8199 *C9
+GEN 8200 *6A
+... (176 GEN lines omitted) ...
+GEN 8377 *0B
+GEN 8378 *0C
+GEN 8379 *0D
+BOOT 51 *8A
+CLASS run=50 cfg=valid cfg_gen=8387 cmp=none cmp_gen=0 *AF
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 8388 *2B
+GEN 8389 *2C
+GEN 8390 *42
+... (219 GEN lines omitted) ...
+GEN 8610 *8D
+GEN 8611 *8E
+GEN 8612 *8F
+BOOT 52 *8B
+CLASS run=51 cfg=valid cfg_gen=8620 cmp=bad cmp_gen=0 *E3
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 8621 *AD
+GEN 8622 *AE
+GEN 8623 *AF
+... (244 GEN lines omitted) ...
+GEN 8868 *B2
+GEN 8869 *B3
+GEN 8870 *C9
+BOOT 53 *8C
+CLASS run=52 cfg=valid cfg_gen=8877 cmp=bad cmp_gen=0 *26
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 8878 *D1
+GEN 8879 *D2
+GEN 8880 *E8
+... (257 GEN lines omitted) ...
+GEN 9138 *6D
+GEN 9139 *6E
+GEN 9140 *84
+BOOT 54 *8D
+CLASS run=53 cfg=valid cfg_gen=9147 cmp=valid cmp_gen=9148 *35
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 9149 *8D
+GEN 9150 *A3
+GEN 9151 *A4
+... (95 GEN lines omitted) ...
+GEN 9247 *4C
+GEN 9248 *4D
+GEN 9249 *4E
+BOOT 55 *8E
+CLASS run=54 cfg=none cfg_gen=0 cmp=valid cmp_gen=9258 *FD
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 9259 *6D
+GEN 9260 *83
+GEN 9261 *84
+... (136 GEN lines omitted) ...
+GEN 9398 *A9
+GEN 9399 *AA
+GEN 9400 *4B
+BOOT 56 *8F
+CLASS run=55 cfg=none cfg_gen=0 cmp=valid cmp_gen=9408 *A5
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 9409 *54
+GEN 9410 *6A
+GEN 9411 *6B
+... (96 GEN lines omitted) ...
+GEN 9508 *14
+GEN 9509 *15
+GEN 9510 *2B
+BOOT 57 *90
+CLASS run=56 cfg=valid cfg_gen=9518 cmp=bad cmp_gen=0 *45
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 9519 *34
+GEN 9520 *4A
+GEN 9521 *4B
+... (69 GEN lines omitted) ...
+GEN 9591 *24
+GEN 9592 *25
+GEN 9593 *26
+BOOT 58 *91
+CLASS run=57 cfg=valid cfg_gen=9600 cmp=bad cmp_gen=0 *7E
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 9601 *CE
+GEN 9602 *CF
+GEN 9603 *D0
+... (122 GEN lines omitted) ...
+GEN 9726 *D2
+GEN 9727 *D3
+GEN 9728 *D4
+BOOT 59 *92
+CLASS run=58 cfg=none cfg_gen=0 cmp=valid cmp_gen=9736 *86
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 9737 *F2
+GEN 9738 *F3
+GEN 9739 *F4
+... (151 GEN lines omitted) ...
+GEN 9891 *67
+GEN 9892 *68
+GEN 9893 *69
+BOOT 60 *A8
+CLASS run=59 cfg=none cfg_gen=0 cmp=valid cmp_gen=9899 *C5
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 9900 *10
+GEN 9901 *11
+GEN 9902 *12
+... (186 GEN lines omitted) ...
+GEN 10089 *C2
+GEN 10090 *D8
+GEN 10091 *D9
+BOOT 61 *A9
+CLASS run=60 cfg=valid cfg_gen=10099 cmp=bad cmp_gen=0 *98
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 10100 *82
+GEN 10101 *83
+GEN 10102 *84
+... (52 GEN lines omitted) ...
+GEN 10155 *22
+GEN 10156 *23
+GEN 10157 *24
+BOOT 62 *AA
+CLASS run=61 cfg=valid cfg_gen=10164 cmp=bad cmp_gen=0 *F8
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 10165 *41
+GEN 10166 *42
+GEN 10167 *43
+... (62 GEN lines omitted) ...
+GEN 10230 *A0
+GEN 10231 *A1
+GEN 10232 *A2
+BOOT 63 *AB
+CLASS run=62 cfg=none cfg_gen=0 cmp=valid cmp_gen=10240 *11
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 10241 *C0
+GEN 10242 *C1
+GEN 10243 *C2
+... (218 GEN lines omitted) ...
+GEN 10462 *81
+GEN 10463 *82
+GEN 10464 *83
+BOOT 64 *AC
+CLASS run=63 cfg=none cfg_gen=0 cmp=valid cmp_gen=10472 *51
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 10473 *A1
+GEN 10474 *A2
+GEN 10475 *A3
+... (154 GEN lines omitted) ...
+GEN 10630 *A4
+GEN 10631 *A5
+GEN 10632 *A6
+BOOT 65 *AD
+CLASS run=64 cfg=valid cfg_gen=10639 cmp=bad cmp_gen=0 *68
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 10640 *C3
+GEN 10641 *C4
+GEN 10642 *C5
+... (68 GEN lines omitted) ...
+GEN 10711 *28
+GEN 10712 *29
+GEN 10713 *2A
+BOOT 66 *AE
+CLASS run=65 cfg=valid cfg_gen=10713 cmp=bad cmp_gen=0 *66
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+BOOT 67 *AF
+CLASS run=66 cfg=valid cfg_gen=10714 cmp=bad cmp_gen=0 *E8
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 10715 *2C
+GEN 10716 *2D
+GEN 10717 *2E
+... (119 GEN lines omitted) ...
+GEN 10837 *2D
+GEN 10838 *2E
+GEN 10839 *2F
+BOOT 68 *B0
+CLASS run=67 cfg=none cfg_gen=0 cmp=valid cmp_gen=10847 *79
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 10848 *4D
+GEN 10849 *4E
+GEN 10850 *64
+... (245 GEN lines omitted) ...
+GEN 11096 *3D
+GEN 11097 *3E
+GEN 11098 *3F
+BOOT 69 *B1
+CLASS run=68 cfg=valid cfg_gen=11105 cmp=bad cmp_gen=0 *65
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 11106 *E7
+GEN 11107 *E8
+GEN 11108 *E9
+... (88 GEN lines omitted) ...
+GEN 11197 *FF
+GEN 11198 *00
+GEN 11199 *01
+BOOT 70 *C7
+CLASS run=69 cfg=valid cfg_gen=11199 cmp=bad cmp_gen=0 *81
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 11200 *A2
+GEN 11201 *A3
+GEN 11202 *A4
+... (232 GEN lines omitted) ...
+GEN 11435 *86
+GEN 11436 *87
+GEN 11437 *88
+BOOT 71 *C8
+CLASS run=70 cfg=valid cfg_gen=11444 cmp=bad cmp_gen=0 *FA
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 11445 *A5
+GEN 11446 *A6
+GEN 11447 *A7
+... (72 GEN lines omitted) ...
+GEN 11520 *23
+GEN 11521 *24
+GEN 11522 *25
+BOOT 72 *C9
+CLASS run=71 cfg=valid cfg_gen=11528 cmp=valid cmp_gen=11529 *65
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 11530 *42
+GEN 11531 *43
+GEN 11532 *44
+... (133 GEN lines omitted) ...
+GEN 11666 *66
+GEN 11667 *67
+GEN 11668 *68
+BOOT 73 *CA
+CLASS run=72 cfg=none cfg_gen=0 cmp=valid cmp_gen=11676 *58
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 11677 *86
+GEN 11678 *87
+GEN 11679 *88
+... (207 GEN lines omitted) ...
+GEN 11887 *27
+GEN 11888 *28
+GEN 11889 *29
+BOOT 74 *CB
+CLASS run=73 cfg=none cfg_gen=0 cmp=valid cmp_gen=11897 *78
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 11898 *47
+GEN 11899 *48
+GEN 11900 *E9
+... (132 GEN lines omitted) ...
+GEN 12033 *DF
+GEN 12034 *E0
+GEN 12035 *E1
+BOOT 75 *CC
+CLASS run=74 cfg=valid cfg_gen=12042 cmp=valid cmp_gen=12043 *0C
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 12044 *FF
+GEN 12045 *00
+GEN 12046 *01
+... (210 GEN lines omitted) ...
+GEN 12257 *A3
+GEN 12258 *A4
+GEN 12259 *A5
+BOOT 76 *CD
+CLASS run=75 cfg=valid cfg_gen=12267 cmp=none cmp_gen=0 *74
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 12268 *C3
+GEN 12269 *C4
+GEN 12270 *DA
+... (152 GEN lines omitted) ...
+GEN 12423 *C4
+GEN 12424 *C5
+GEN 12425 *C6
+BOOT 77 *CE
+CLASS run=76 cfg=valid cfg_gen=12432 cmp=bad cmp_gen=0 *3E
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 12433 *E3
+GEN 12434 *E4
+GEN 12435 *E5
+... (53 GEN lines omitted) ...
+GEN 12489 *84
+GEN 12490 *9A
+GEN 12491 *9B
+BOOT 78 *CF
+CLASS run=77 cfg=valid cfg_gen=12498 cmp=none cmp_gen=0 *52
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 12499 *A3
+GEN 12500 *44
+GEN 12501 *45
+... (47 GEN lines omitted) ...
+GEN 12549 *C9
+GEN 12550 *DF
+GEN 12551 *E0
+BOOT 79 *D0
+CLASS run=78 cfg=none cfg_gen=0 cmp=valid cmp_gen=12559 *F5
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 12560 *FE
+GEN 12561 *FF
+GEN 12562 *00
+... (235 GEN lines omitted) ...
+GEN 12798 *E5
+GEN 12799 *E6
+GEN 12800 *87
+BOOT 80 *E6
+CLASS run=79 cfg=valid cfg_gen=12807 cmp=none cmp_gen=0 *A4
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 12808 *8F
+GEN 12809 *90
+GEN 12810 *A6
+... (1 GEN lines omitted) ...
+GEN 12812 *A8
+GEN 12813 *A9
+GEN 12814 *AA
+BOOT 81 *E7
+CLASS run=80 cfg=valid cfg_gen=12814 cmp=valid cmp_gen=12815 *81
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 12816 *AC
+BOOT 82 *E8
+CLASS run=81 cfg=valid cfg_gen=12816 cmp=bad cmp_gen=0 *22
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 12817 *AD
+GEN 12818 *AE
+GEN 12819 *AF
+... (25 GEN lines omitted) ...
+GEN 12845 *08
+GEN 12846 *09
+GEN 12847 *0A
+BOOT 83 *E9
+CLASS run=82 cfg=none cfg_gen=0 cmp=valid cmp_gen=12854 *7A
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 12855 *27
+GEN 12856 *28
+GEN 12857 *29
+... (194 GEN lines omitted) ...
+GEN 13052 *7B
+GEN 13053 *7C
+GEN 13054 *7D
+BOOT 84 *EA
+CLASS run=83 cfg=valid cfg_gen=13062 cmp=none cmp_gen=0 *5F
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 13063 *9B
+GEN 13064 *9C
+GEN 13065 *9D
+... (218 GEN lines omitted) ...
+GEN 13284 *5C
+GEN 13285 *5D
+GEN 13286 *5E
+BOOT 85 *EB
+CLASS run=84 cfg=valid cfg_gen=13293 cmp=bad cmp_gen=0 *B3
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 13294 *7B
+GEN 13295 *7C
+GEN 13296 *7D
+... (124 GEN lines omitted) ...
+GEN 13421 *21
+GEN 13422 *22
+GEN 13423 *23
+BOOT 86 *EC
+CLASS run=85 cfg=valid cfg_gen=13430 cmp=bad cmp_gen=0 *F9
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 13431 *40
+GEN 13432 *41
+GEN 13433 *42
+... (131 GEN lines omitted) ...
+GEN 13565 *62
+GEN 13566 *63
+GEN 13567 *64
+BOOT 87 *ED
+CLASS run=86 cfg=valid cfg_gen=13574 cmp=none cmp_gen=0 *D6
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 13575 *81
+GEN 13576 *82
+GEN 13577 *83
+... (198 GEN lines omitted) ...
+GEN 13776 *04
+GEN 13777 *05
+GEN 13778 *06
+BOOT 88 *EE
+CLASS run=87 cfg=valid cfg_gen=13785 cmp=bad cmp_gen=0 *9E
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 13786 *23
+GEN 13787 *24
+GEN 13788 *25
+... (87 GEN lines omitted) ...
+GEN 13876 *C5
+GEN 13877 *C6
+GEN 13878 *C7
+BOOT 89 *EF
+CLASS run=88 cfg=valid cfg_gen=13885 cmp=bad cmp_gen=0 *E0
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 13886 *E4
+GEN 13887 *E5
+GEN 13888 *E6
+... (114 GEN lines omitted) ...
+GEN 14003 *40
+GEN 14004 *41
+GEN 14005 *42
+BOOT 90 *05
+CLASS run=89 cfg=valid cfg_gen=14012 cmp=bad cmp_gen=0 *5C
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 14013 *5F
+GEN 14014 *60
+GEN 14015 *61
+... (134 GEN lines omitted) ...
+GEN 14150 *99
+GEN 14151 *9A
+GEN 14152 *9B
+BOOT 91 *06
+CLASS run=90 cfg=none cfg_gen=0 cmp=valid cmp_gen=14153 *B3
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 14154 *9D
+GEN 14155 *9E
+GEN 14156 *9F
+GEN 14157 *A0
+GEN 14158 *A1
+BOOT 92 *07
+CLASS run=91 cfg=none cfg_gen=0 cmp=valid cmp_gen=14166 *34
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 14167 *BF
+GEN 14168 *C0
+GEN 14169 *C1
+... (40 GEN lines omitted) ...
+GEN 14210 *DE
+GEN 14211 *DF
+GEN 14212 *E0
+BOOT 93 *08
+CLASS run=92 cfg=none cfg_gen=0 cmp=valid cmp_gen=14220 *D2
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 14221 *FE
+GEN 14222 *FF
+GEN 14223 *00
+... (58 GEN lines omitted) ...
+GEN 14282 *B9
+GEN 14283 *BA
+GEN 14284 *BB
+BOOT 94 *09
+CLASS run=93 cfg=none cfg_gen=0 cmp=valid cmp_gen=14292 *0C
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 14293 *D9
+GEN 14294 *DA
+GEN 14295 *DB
+... (62 GEN lines omitted) ...
+GEN 14358 *23
+GEN 14359 *24
+GEN 14360 *3A
+BOOT 95 *0A
+CLASS run=94 cfg=valid cfg_gen=14368 cmp=none cmp_gen=0 *97
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 14369 *43
+GEN 14370 *59
+GEN 14371 *5A
+... (196 GEN lines omitted) ...
+GEN 14568 *C4
+GEN 14569 *C5
+GEN 14570 *DB
+BOOT 96 *0B
+CLASS run=95 cfg=valid cfg_gen=14577 cmp=bad cmp_gen=0 *3B
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 14578 *E3
+GEN 14579 *E4
+GEN 14580 *FA
+... (189 GEN lines omitted) ...
+GEN 14770 *5D
+GEN 14771 *5E
+GEN 14772 *5F
+BOOT 97 *0C
+CLASS run=96 cfg=valid cfg_gen=14780 cmp=none cmp_gen=0 *DB
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 14781 *7D
+GEN 14782 *7E
+GEN 14783 *7F
+... (117 GEN lines omitted) ...
+GEN 14901 *07
+GEN 14902 *08
+GEN 14903 *09
+BOOT 98 *0D
+CLASS run=97 cfg=valid cfg_gen=14903 cmp=valid cmp_gen=14904 *65
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 14905 *0B
+GEN 14906 *0C
+GEN 14907 *0D
+... (207 GEN lines omitted) ...
+GEN 15115 *81
+GEN 15116 *82
+GEN 15117 *83
+BOOT 99 *0E
+CLASS run=98 cfg=valid cfg_gen=15125 cmp=bad cmp_gen=0 *BC
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 15126 *A1
+GEN 15127 *A2
+GEN 15128 *A3
+... (90 GEN lines omitted) ...
+GEN 15219 *46
+GEN 15220 *5C
+GEN 15221 *5D
+BOOT 100 *C3
+CLASS run=99 cfg=valid cfg_gen=15227 cmp=bad cmp_gen=0 *80
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+GEN 15228 *64
+GEN 15229 *65
+GEN 15230 *7B
+... (207 GEN lines omitted) ...
+GEN 15438 *05
+GEN 15439 *06
+GEN 15440 *1C
+BOOT 101 *C4
+CLASS run=100 cfg=valid cfg_gen=15447 cmp=bad cmp_gen=0 *5D
+GEN 15448 *24
+GEN 15449 *25
+GEN 15450 *3B
+... (244 GEN lines omitted) ...
+GEN 15695 *3E
+GEN 15696 *3F
+GEN 15697 *40

@@ -2,7 +2,7 @@
 
 Programming, restore and the board power cycle stay separate operator/LinkServer steps; this tool
 only reads the DAPLink VCOM, writes runner commands, runs the peer and switches the dedicated host
-NIC en5 down/up with `sudo -n`. It never resets the board and never reads a password.
+NIC (from the bench identity block) down/up with `sudo -n`. It never resets the board and never reads a password.
 """
 import argparse
 import json
@@ -89,7 +89,7 @@ def terminate(signum, frame):
 
 
 def install_signal_handlers():
-    """Closing the terminal or SIGTERM must run the cleanup that restores en5."""
+    """Closing the terminal or SIGTERM must run the cleanup that restores the dedicated NIC."""
     for number in (signal.SIGTERM, signal.SIGHUP):
         signal.signal(number, terminate)
 

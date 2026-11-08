@@ -7,7 +7,7 @@ from m3_health_oracle import validate
 
 
 def fixture():
-    rows = [(0., '*** Booting Zephyr OS build v4.4.0 ***'),
+    rows = [(0., '*** Booting Zephyr OS build v4.4.2 ***'),
             (0.01, 'M3_BOOT source=0123456789ab profile=independent-health commands=1 fault_default=off'),
             (0.02, 'M3_RESET support_status=0 supported=0x1f cause_status=0 cause=0x1 clear_status=0 remaining_status=0 remaining=0x0'),
             (2.05, 'M3_WDT_ARMED timeout_ms=2000 debug_pause=1 freshness_ms=500')]
@@ -19,7 +19,7 @@ def fixture():
             rows.append((ms / 1000 + .01, f'M3_WDT_FEED monotonic_ms={ms} sequence={completed // 100} completed_ms={completed}'))
     rows.extend([(15.01, 'M3_HEALTH_STALE monotonic_ms=15000 sequence=144'),
                  (16., 'M3_OBSERVER_ALIVE monotonic_ms=16000 healthy=0 sequence=144 readiness=0'),
-                 (17., '*** Booting Zephyr OS build v4.4.0 ***'),
+                 (17., '*** Booting Zephyr OS build v4.4.2 ***'),
                  (17.01, 'M3_BOOT source=0123456789ab profile=independent-health commands=1 fault_default=off'),
                  (17.02, 'M3_RESET support_status=0 supported=0x1f cause_status=0 cause=0x10 clear_status=0 remaining_status=0 remaining=0x0')])
     for n in range(1, 5):

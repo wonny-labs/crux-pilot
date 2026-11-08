@@ -1,0 +1,12 @@
+sample:
+  name: Crux microSD interrupted-write test (link only)
+common:
+  build_only: true
+  platform_allow: [mimxrt1060_evk@B/mimxrt1062/qspi]
+  tags: [filesystem, crux, link_only]
+tests:
+  crux.sample.storage_sd_interrupt:
+    extra_args: []
+  crux.sample.storage_sd_interrupt.test:
+    extra_configs:
+      - CONFIG_SAMPLE_SD_INTERRUPT_TEST=y

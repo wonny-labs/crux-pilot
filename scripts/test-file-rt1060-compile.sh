@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "$(uname -s)" != Linux ]]; then
+    printf 'Zephyr tests are configured for Linux only; reopen this repository in the Dev Container.\n' >&2
+    exit 2
+fi
+
+repo="$(git rev-parse --show-toplevel)"
+workspace="${CRUX_WORKSPACE:-$(dirname "$repo")}"
+if [[ ! -f "$workspace/.west/config" || ! -d "$workspace/zephyr" ]]; then
+    printf 'Run scripts/bootstrap-zephyr.sh before Zephyr tests.\n' >&2
+    exit 2
+fi
+export ZEPHYR_BASE="$workspace/zephyr"
+board='mimxrt1060_evk@B/mimxrt1062/qspi'
+output="${CRUX_FILE_RT1060_OUTPUT:-$repo/build/zephyr/twister-file-rt1060}"
+
+# Compile only: the File sources and the RT1060 FatFs/SDHC composition become an unlinked object.
+# Nothing is linked into a runnable File provider and no board is programmed or reset.
+(cd "$workspace" && west twister -p "$board" -T "$repo/tests/zephyr/file_fatfs_compile" \
+    --build-only -O "$output" --inline-logs)
+
+# A filtered testcase exits successfully with nothing built; require the configuration to build.
+python3 - "$output/twister.json" "$board" <<'PY'
+import json
+import sys
+
+suites = json.load(open(sys.argv[1]))['testsuites']
+# A build-only testcase that built reports "not run"; filtered or failed ones report otherwise.
+if (len(suites) != 1 or suites[0]['platform'] != sys.argv[2] or
+        suites[0].get('status') != 'not run' or suites[0].get('runnable')):
+    raise RuntimeError(f'RT1060 File compile check did not build on {sys.argv[2]}: '
+                       f"{[(s['platform'], s.get('status')) for s in suites]}")
+print(f"RT1060 File compile check built on {sys.argv[2]}: {suites[0]['name']}")
+PY
+
+# Link only: the microSD composition image links the File provider and FatFs for the same board.
+# Both scenarios must build (the mount sequence compiled out, and compiled in). No board is
+# programmed, and the mount-at-boot scenario must not be flashed without physical approval.
+link_output="${CRUX_FILE_RT1060_LINK_OUTPUT:-$repo/build/zephyr/twister-file-rt1060-link}"
+(cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_sd" \
+    --build-only -O "$link_output" --inline-logs)
+
+python3 - "$link_output/twister.json" "$board" <<'PY'
+import json
+import sys
+
+suites = json.load(open(sys.argv[1]))['testsuites']
+names = sorted(s['name'] for s in suites)
+expected = ['crux.sample.storage_sd', 'crux.sample.storage_sd.start']
+if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 'not run' or
+                             s.get('runnable') for s in suites)):
+    raise RuntimeError(f'RT1060 File link check did not build both scenarios: '
+                       f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
+# The mount-at-boot scenario must really enable it, and the base scenario must not.
+from pathlib import Path
+root = Path(sys.argv[1]).parent
+for name, wanted in [('crux.sample.storage_sd', False), ('crux.sample.storage_sd.start', True)]:
+    configs = [p for p in root.rglob('.config') if p.parent.parent.name == name]
+    if len(configs) != 1:
+        raise RuntimeError(f'expected one build configuration for {name}, found {len(configs)}')
+    enabled = 'CONFIG_SAMPLE_SD_START=y' in configs[0].read_text().splitlines()
+    if enabled != wanted:
+        raise RuntimeError(f'{name}: CONFIG_SAMPLE_SD_START enabled={enabled}, expected {wanted}')
+print(f'RT1060 File link check built {len(suites)} scenarios on {sys.argv[2]}')
+PY
+
+# Link only: the interrupted-write test image. It writes to a card until power is cut, so the scenario
+# that enables it must never be flashed without physical approval.
+interrupt_output="${CRUX_FILE_RT1060_INTERRUPT_OUTPUT:-$repo/build/zephyr/twister-file-rt1060-interrupt}"
+(cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_sd_interrupt" \
+    --build-only -O "$interrupt_output" --inline-logs)
+
+python3 - "$interrupt_output/twister.json" "$board" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+suites = json.load(open(sys.argv[1]))['testsuites']
+names = sorted(s['name'] for s in suites)
+expected = ['crux.sample.storage_sd_interrupt', 'crux.sample.storage_sd_interrupt.test']
+if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 'not run' or
+                             s.get('runnable') for s in suites)):
+    raise RuntimeError(f'RT1060 interrupted-write link check did not build both scenarios: '
+                       f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
+root = Path(sys.argv[1]).parent
+for name, wanted in [('crux.sample.storage_sd_interrupt', False),
+                     ('crux.sample.storage_sd_interrupt.test', True)]:
+    configs = [p for p in root.rglob('.config') if p.parent.parent.name == name]
+    if len(configs) != 1:
+        raise RuntimeError(f'expected one build configuration for {name}, found {len(configs)}')
+    enabled = 'CONFIG_SAMPLE_SD_INTERRUPT_TEST=y' in configs[0].read_text().splitlines()
+    if enabled != wanted:
+        raise RuntimeError(f'{name}: CONFIG_SAMPLE_SD_INTERRUPT_TEST enabled={enabled}, expected {wanted}')
+print(f'RT1060 interrupted-write link check built {len(suites)} scenarios on {sys.argv[2]}')
+PY
+
+# Link only: the replace-pattern power-cut image. It writes to a card until power is cut, so the scenario
+# that enables it must never be flashed without physical approval.
+replace_output="${CRUX_FILE_RT1060_REPLACE_OUTPUT:-$repo/build/zephyr/twister-file-rt1060-replace}"
+(cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_sd_replace" \
+    --build-only -O "$replace_output" --inline-logs)
+
+python3 - "$replace_output/twister.json" "$board" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+suites = json.load(open(sys.argv[1]))['testsuites']
+names = sorted(s['name'] for s in suites)
+expected = ['crux.sample.storage_sd_replace', 'crux.sample.storage_sd_replace.test']
+if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 'not run' or
+                             s.get('runnable') for s in suites)):
+    raise RuntimeError(f'RT1060 replace-pattern link check did not build both scenarios: '
+                       f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
+root = Path(sys.argv[1]).parent
+for name, wanted in [('crux.sample.storage_sd_replace', False),
+                     ('crux.sample.storage_sd_replace.test', True)]:
+    configs = [p for p in root.rglob('.config') if p.parent.parent.name == name]
+    if len(configs) != 1:
+        raise RuntimeError(f'expected one build configuration for {name}, found {len(configs)}')
+    enabled = 'CONFIG_SAMPLE_SD_REPLACE_TEST=y' in configs[0].read_text().splitlines()
+    if enabled != wanted:
+        raise RuntimeError(f'{name}: CONFIG_SAMPLE_SD_REPLACE_TEST enabled={enabled}, expected {wanted}')
+print(f'RT1060 replace-pattern link check built {len(suites)} scenarios on {sys.argv[2]}')
+PY
+
+# Link only: the physical-gate probes (stack use, card removal). Both write to a card, so the scenarios
+# that enable them must never be flashed without physical approval.
+probe_output="${CRUX_FILE_RT1060_PROBE_OUTPUT:-$repo/build/zephyr/twister-file-rt1060-probe}"
+(cd "$workspace" && west twister -p "$board" -T "$repo/samples/storage_sd_probe" \
+    --build-only -O "$probe_output" --inline-logs)
+
+python3 - "$probe_output/twister.json" "$board" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+suites = json.load(open(sys.argv[1]))['testsuites']
+names = sorted(s['name'] for s in suites)
+expected = ['crux.sample.storage_sd_probe', 'crux.sample.storage_sd_probe.removal',
+            'crux.sample.storage_sd_probe.stack']
+if (names != expected or any(s['platform'] != sys.argv[2] or s.get('status') != 'not run' or
+                             s.get('runnable') for s in suites)):
+    raise RuntimeError(f'RT1060 probe link check did not build all scenarios: '
+                       f"{[(s['name'], s['platform'], s.get('status')) for s in suites]}")
+root = Path(sys.argv[1]).parent
+wanted = {'crux.sample.storage_sd_probe': 'CONFIG_SAMPLE_SD_PROBE_NONE=y',
+          'crux.sample.storage_sd_probe.stack': 'CONFIG_SAMPLE_SD_STACK_PROBE=y',
+          'crux.sample.storage_sd_probe.removal': 'CONFIG_SAMPLE_SD_REMOVAL_PROBE=y'}
+for name, line in wanted.items():
+    configs = [p for p in root.rglob('.config') if p.parent.parent.name == name]
+    if len(configs) != 1:
+        raise RuntimeError(f'expected one build configuration for {name}, found {len(configs)}')
+    if line not in configs[0].read_text().splitlines():
+        raise RuntimeError(f'{name}: expected {line}')
+print(f'RT1060 probe link check built {len(suites)} scenarios on {sys.argv[2]}')
+PY
+
+# Negative control: the same check on Rev C and on the hyperflash variant must be refused, not
+# skipped. An unsatisfied Kconfig dependency only warns, so the testcase's CMake rejects it.
+for other in 'mimxrt1060_evk@C/mimxrt1062/qspi' 'mimxrt1060_evk@B/mimxrt1062/hyperflash'; do
+    control="$repo/build/zephyr/file-rt1060-refused-${other//[@\/]/_}"
+    if (cd "$workspace" && west build -p always -b "$other" -d "$control" \
+            "$repo/tests/zephyr/file_fatfs_compile" > "$control.log" 2>&1); then
+        echo "RT1060 File compile check was not refused on $other" >&2
+        exit 1
+    fi
+    # The refusal must come from the guard: Kconfig names the unmet Rev B / QSPI dependency.
+    grep -q 'BOARD_REVISION_B (=n)\|BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI (=n)' <(tr '\n' ' ' < "$control.log") || {
+        echo "RT1060 File compile check was refused on $other without the board guard" >&2
+        exit 1
+    }
+    grep -q 'compile check is not selected' "$control.log" || {
+        echo "RT1060 File compile check failed on $other for another reason" >&2
+        exit 1
+    }
+    echo "RT1060 File compile check refused on $other, as intended"
+done

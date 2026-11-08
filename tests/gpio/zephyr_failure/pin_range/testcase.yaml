@@ -1,0 +1,7 @@
+tests:
+  crux.gpio.zephyr_failure.pin_range:
+    platform_allow:
+      - native_sim/native/64
+    tags:
+      - gpio
+      - crux

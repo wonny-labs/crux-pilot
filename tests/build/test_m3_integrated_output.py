@@ -73,7 +73,7 @@ class IntegratedNativeOutputControls(unittest.TestCase):
         self.assertEqual(seen,[5.])
 
     def test_planned_reset_preserves_exact_new_epoch_and_old_fragment(self):
-        banner='*** Booting Zephyr OS build v4.4.0 ***'
+        banner='*** Booting Zephyr OS build v4.4.2 ***'
         rows=[(1.,'Thread analyze:'),(2.,' shell_uart          : STACK: '+banner),
               (2.1,'M3_BOOT source=ec94fbec22cd profile=integrated commands=0 fault_default=off')]
         result,excluded=planned_reset_rows(rows)
@@ -82,7 +82,7 @@ class IntegratedNativeOutputControls(unittest.TestCase):
         self.assertTrue(rows[1][1].startswith(' shell_uart'))
 
     def test_planned_reset_rejects_unrecognised_or_later_fragments(self):
-        banner='*** Booting Zephyr OS build v4.4.0 ***'
+        banner='*** Booting Zephyr OS build v4.4.2 ***'
         for prefix in ('garbage','M3_WORK ',' shell_uart          : STACK: unused 1 '):
             with self.subTest(prefix=prefix),self.assertRaises(ValueError):
                 planned_reset_rows([(1.,'Thread analyze:'),(2.,prefix+banner)])

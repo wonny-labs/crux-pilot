@@ -1,5 +1,9 @@
 # RT1170-EVK Rev A1 Cortex-M7 software feasibility
 
+Status: software scope of M6 and M7 by owner decision of 2 November 2026 (Issue #33). This record is
+software-only evidence. Hardware verification is deferred to Issue #155, and the board is not a
+qualified or supported physical target until that evidence exists.
+
 ## Scope and evidence boundary
 
 This is a source and build-configuration review for Issue #33. No RT1170 board,
@@ -65,6 +69,8 @@ places:
 | Serial | `serial_binding.c` only allows the qualified RT1060 LPUART3 resource or native_sim. | A Rev A UART resource and any external connector route need an explicit composition decision. The board console is LPUART1, already owned by console output. |
 | Logging | `logging_binding.c` only allows the qualified RT1060 LPUART1 resource or native_sim, with RT1060-specific console sharing constraints. | The Rev A default console also uses LPUART1. A compatible logging selection and owner-conflict policy have not been established for this board. |
 | GPIO | The portable GPIO capability cross-builds for this target with the board's own `user_button` (`sw0`, GPIO13 pin 0) selected by an alias overlay; see its contract. | Compile and link evidence only. RT1170 is not an accepted GPIO target for physical use, and a cross-build does not establish pin routing, polarity or behavior. |
+| I2C | The portable TMP117 consumer cross-builds for this target with `crux-i2c0` bound to `arduino_i2c` (`lpi2c5`) by an overlay in `tests/i2c/evkb/boards`. | Compile and link evidence only. `lpi2c5` is also the MIPI display bus and carries the board's `nxp,fxos8700` accelerometer child (the board's own DTS comment says zero-ohm resistors R256 and R270 isolate the sensor's interrupt lines, and that fitting them conflicts with the camera and Ethernet PHY resets), so a physical bus has other users. Repeated start on the native driver is not observed. |
+| SPI | The portable flash-identification consumer cross-builds for this target with `crux-spi0` bound to a generic peripheral node on `arduino_spi` (`lpspi1`, with eDMA channels) by an overlay in `tests/spi/evkb/boards`. | Compile and link evidence only. No part is assumed to be fitted, chip-select behaviour is not observed, and the Arduino header pins used by `lpspi1` have not been checked for conflicts on this board. |
 | Network | Crux NetIf uses Zephyr's default interface. | Upstream board support lists Ethernet, but PHY/link and fixture suitability are unverified for this Rev A board. No Crux network qualification is claimed. |
 
 The M3-only profile in this assessment enables `CONFIG_CRUX_CONTROLLER_M3`
@@ -171,6 +177,42 @@ Later runs on `main` changed `.config`, in the first two by one added line
 changes had been merged by then; they do not test reproducibility. A rebuild of the same
 commit was not run.
 
+## Review of boot, Flash, fitted devices and debug path
+
+Criterion 2 of Issue #33, from the pinned Zephyr 4.4.0 sources only. Nothing here was observed on a
+board, and no probe, programming or erase was attempted.
+
+| Topic | RT1060-EVKB Rev B (`mimxrt1060_evk@B//qspi`) | RT1170-EVK Rev A (`mimxrt1170_evk@A/mimxrt1176/cm7`) |
+| --- | --- | --- |
+| Board variant | The target needs a Flash variant qualifier (`qspi` or `hyperflash`); the board CMake file stops the build without one. | No variant qualifier; the revision and core select the configuration. |
+| External Flash window | The QSPI variant's DTS maps an 8 MiB `is25wp064` at `0x60000000`, and the J-Link loader uses bank address `0x60000000`. | The shared DTS maps the 16 MiB `is25wp128` node at `0x30000000` (FlexSPI NOR). |
+| Flash layout | Defined by the RT1060 board files. | Inherited from `mimxrt1170_evk.dtsi`: 128 KiB `mcuboot`, two 7 MiB image slots, and a 1.875 MiB `storage` partition. Rev B replaces it, so the Rev B layout must not be reused. |
+| Boot configuration | RT1060 boot header and flash configuration. | `evkmimxrt1170_flexspi_nor_config.c` for revision A (the EVKB file differs); XMCD and external SDRAM are enabled by default for the M7. The 64 MiB SDRAM is `zephyr,sram`, so the main RAM is external SDRAM. |
+| Boot mode and recovery | Pinned board documentation: SW7 DIP switches select boot from QSPI or not, and give the documented recovery after a corrupted boot header. | Pinned board documentation: SW1 is set to `0001b` before flashing and changed to `0010b` for the boot step after flashing; the documentation does not name the boot modes these values select. It gives no erase or recovery procedure (searched for erase); recovery from a bad boot image is therefore not documented for Rev A and must be established before any programming. |
+| Debug probe | OpenSDA or probe choice depends on the board revision; runner defaults cover pyOCD, J-Link and LinkServer. | On-board OpenSDA/DAPLink debugger on Rev A (USB port J11 per the pinned documentation); runner defaults are LinkServer (device `MIMXRT1176xxxxx:MIMXRT1170-EVK`, core `cm7`, no reset), J-Link (`MIMXRT1176xxxA_M7`, no reset) and pyOCD (target `mimxrt1170_cm7`; the upstream documentation says it does not test or support pyOCD). |
+| Console | LPUART1 through OpenSDA; jumpers J45 and J46. | LPUART1 through the on-board debugger; J31 and J32 shorted by default. The console owns LPUART1. |
+| Fitted devices | Not assumed. | Not assumed. The Flash part name `is25wp128` and the sensor, display and Ethernet nodes come from the shared DTS; none was read from the board. |
+
+Reading for the later hardware item (#155), not for this Issue:
+
+- `west flash` and `west debug` erase and program the board's Flash. With the Rev A defaults above, an image written with the wrong boot configuration or at the wrong address can leave the board unable to boot, and the pinned documentation offers no recovery procedure for that case. No programming is approved by this review.
+- Before any programming, identify the PCB revision and silkscreen, confirm that SW1 and the J31/J32 jumpers are as described, record which probe firmware is on the on-board debugger, and decide the recovery path (an external probe or a different boot mode) in advance.
+- The debug runners default to no reset, which is a property of the runner arguments, not a statement about what a debug session does to the target.
+
+## Recorded limits
+
+Criterion 5 of Issue #33. What this software scope does not establish for the RT1170-EVK:
+
+- No physical evidence of any kind (boot, serial, GPIO, I2C, SPI, network, timing). Hardware verification is Issue #155.
+- Cross-builds compile and link only. The GPIO, I2C and SPI consumers are built with overlays that use the board's own labels (`user_button`, `arduino_i2c`, `arduino_spi`); no pin routing, polarity, bus, chip-select or repeated-start behaviour was observed.
+- The SoC part number is Zephyr's configuration, and the mapping from the PCB marking Rev A1 to Zephyr revision `A` is not independently verified.
+- Fitted components, the Flash part, board straps, boot mode and debug path are source assumptions.
+- Flash persistence, erase and program behaviour, and recovery are not qualified. No Flash or boot overlay is used, and the RT1060 partitions are not copied.
+- Crux System, Serial, Logging and NetIf are not enabled for this board; their bindings accept only RT1060-EVK and `native_sim`, as the integration gaps above record.
+- Target timings, stack and memory use under load were not measured.
+- Image hashes differ across CI builds of the same source, and a same-commit rebuild was not run.
+- Upstream board support (Ethernet, display, camera, sensors) is not evidence that those peripherals are usable through Crux.
+
 ## Remaining evidence
 
 - Rebuild the same commit, on a developer machine or in another CI run, and
@@ -190,4 +232,4 @@ commit was not run.
 - Keep RT1060 and RT1170 consumers on common portable source and rerun the
   native-interface checks after the RT1170 port is added.
 
-No Issue #33 acceptance criterion is marked complete by this assessment.
+Of the criteria of Issue #33, criteria 2 and 5 are addressed by the review and limits above with software evidence only; criterion 3 (physical evidence) is deferred to Issue #155 and is not claimed.

@@ -1,0 +1,136 @@
+--- a/subsys/sd/mmc.c
++++ b/subsys/sd/mmc.c
+@@ -4,6 +4,7 @@
+  * SPDX-License-Identifier: Apache-2.0
+  */
+ 
++#include <zephyr/drivers/disk.h>
+ #include <zephyr/drivers/sdhc.h>
+ #include <zephyr/kernel.h>
+ #include <zephyr/logging/log.h>
+@@ -49,8 +50,20 @@
+ #define MMC_SWITCH_CACHE_ON_ARG                                                                    \
+ 	(0xFC000000 & (0U << 26)) + (0x03000000 & (0b11 << 24)) + (0x00FF0000 & (33U << 16)) +     \
+ 		(0x0000FF00 & (1U << 8)) + (0x000000F7 & (0U << 3)) + (0x00000000 & (3U << 0))
++#define MMC_SWITCH_FLUSH_CACHE_ARG                                                                 \
++	(0xFC000000 & (0U << 26)) + (0x03000000 & (0b11 << 24)) + (0x00FF0000 & (32U << 16)) +     \
++		(0x0000FF00 & (1U << 8)) + (0x000000F7 & (0U << 3)) + (0x00000000 & (3U << 0))
+ 
++/* R1 status bit set when the card rejects a switch; reading the status clears it */
++#define MMC_R1_SWITCH_ERROR BIT(7)
++
++/* Private card flag: the cache was turned on. sd_init clears card->flags on each init. */
++#define MMC_CACHE_ON_FLAG BIT(15)
++
+ LOG_MODULE_DECLARE(sd, CONFIG_SD_LOG_LEVEL);
++
++/* Writes FLUSH_CACHE and waits for the card to finish it */
++static int mmc_flush_cache(struct sd_card *card);
+ 
+ inline int mmc_write_blocks(struct sd_card *card, const uint8_t *wbuf, uint32_t start_block,
+ 			    uint32_t num_blocks)
+@@ -66,6 +79,10 @@
+ 
+ inline int mmc_ioctl(struct sd_card *card, uint8_t cmd, void *buf)
+ {
++	/* With the cache on, a sync must reach the medium, so it flushes the cache */
++	if (cmd == DISK_IOCTL_CTRL_SYNC && (card->flags & MMC_CACHE_ON_FLAG)) {
++		return mmc_flush_cache(card);
++	}
+ 	return card_ioctl(card, cmd, buf);
+ }
+ 
+@@ -634,6 +651,93 @@
+ 		LOG_DBG("Error turning on card cache: %d", ret);
+ 		return ret;
+ 	}
++	ret = sdmmc_wait_ready(card);
++	if (ret == 0) {
++		card->flags |= MMC_CACHE_ON_FLAG;
++	}
++	return ret;
++}
++
++/*
++ * Called with the card lock held. sdmmc_wait_ready is not used after the switch: its status
++ * reads discard bit 7, which the card clears once it has been read. Any failure returns an
++ * error, because a flush that is not known to have completed must not report success.
++ */
++static int mmc_flush_cache_locked(struct sd_card *card)
++{
++	struct sdhc_command cmd = {0};
++	struct sdhc_command status = {0};
++	int timeout;
++	int ret;
++
++	/* Finish earlier writes and clear any stale status */
+ 	ret = sdmmc_wait_ready(card);
++	if (ret) {
++		return ret;
++	}
++
++	/* CMD6 to write FLUSH_CACHE in EXT CSD */
++	cmd.opcode = SD_SWITCH;
++	cmd.arg = MMC_SWITCH_FLUSH_CACHE_ARG;
++	cmd.response_type = SD_RSP_TYPE_R1b;
++	cmd.timeout_ms = CONFIG_SD_DATA_TIMEOUT;
++	ret = sdhc_request(card->sdhc, &cmd, NULL);
++	if (ret) {
++		return ret;
++	}
++
++	/* Wait for the busy period to end; an error from the host counts as busy */
++	timeout = CONFIG_SD_DATA_TIMEOUT * 1000;
++	while (sdhc_card_busy(card->sdhc) != 0) {
++		if (timeout <= 0) {
++			return -ETIMEDOUT;
++		}
++		k_busy_wait(125);
++		timeout -= 125;
++	}
++
++	/*
++	 * CMD13 until ready in the transfer state. No retries: a lost response may have held
++	 * the switch error, so a failed read is an error.
++	 */
++	status.opcode = SD_SEND_STATUS;
++	status.arg = MMC_REL_ADR_ARG;
++	status.response_type = SD_RSP_TYPE_R1;
++	status.timeout_ms = CONFIG_SD_CMD_TIMEOUT;
++	timeout = CONFIG_SD_DATA_TIMEOUT * 1000;
++	while (true) {
++		ret = sdhc_request(card->sdhc, &status, NULL);
++		if (ret) {
++			return ret;
++		}
++		if (status.response[0U] & MMC_R1_SWITCH_ERROR) {
++			return -EIO;
++		}
++		if ((status.response[0U] & SD_R1_RDY_DATA) &&
++		    (SD_R1_CURRENT_STATE(status.response[0U]) == SDMMC_R1_TRANSFER)) {
++			return 0;
++		}
++		if (timeout <= 0) {
++			return -ETIMEDOUT;
++		}
++		k_busy_wait(125);
++		timeout -= 125;
++	}
++}
++
++static int mmc_flush_cache(struct sd_card *card)
++{
++	int ret;
++
++	ret = k_mutex_lock(&card->lock, K_MSEC(CONFIG_SD_DATA_TIMEOUT));
++	if (ret) {
++		LOG_WRN("Could not get SD card mutex");
++		return ret;
++	}
++	ret = mmc_flush_cache_locked(card);
++	k_mutex_unlock(&card->lock);
++	if (ret) {
++		LOG_ERR("Cache flush failed: %d", ret);
++	}
+ 	return ret;
+ }

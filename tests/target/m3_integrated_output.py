@@ -13,7 +13,7 @@ def planned_reset_rows(rows):
     return the excluded fragment for the capture manifest. Later reset epochs
     and every other joined/malformed banner remain subject to strict parsing.
     """
-    banner = '*** Booting Zephyr OS build v4.4.0 ***'
+    banner = '*** Booting Zephyr OS build v4.4.2 ***'
     result = []
     excluded = []
     seen_boot = False

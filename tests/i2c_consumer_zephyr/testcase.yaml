@@ -1,0 +1,7 @@
+tests:
+  crux.i2c.tmp117.native_sim:
+    tags:
+      - crux
+      - i2c
+    platform_allow:
+      - native_sim

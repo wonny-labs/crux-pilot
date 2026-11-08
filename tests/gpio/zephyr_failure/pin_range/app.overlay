@@ -1,0 +1,17 @@
+/*
+ * The line uses a pin that the emulated controller does not implement (it has 8 pins). The GPIO
+ * emulator reports -EINVAL, which the provider must map to an I/O failure.
+ */
+&gpio0 {
+	ngpios = <8>;
+};
+
+/ {
+	aliases { crux-gpio0 = &crux_gpio0; };
+	crux_gpio_keys {
+		compatible = "gpio-keys";
+		crux_gpio0: input_0 {
+			gpios = <&gpio0 31 GPIO_ACTIVE_LOW>;
+		};
+	};
+};

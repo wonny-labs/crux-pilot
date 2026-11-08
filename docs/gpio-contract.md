@@ -31,8 +31,10 @@ GPIO drivers. A composition must select the line with the `crux-gpio0`
 Devicetree alias; a missing, disabled or malformed selection fails the provider
 build. Current software configurations are Zephyr `native_sim/native/64` using
 GPIO emulation, the RT1060-EVKB Rev B cross-build using the `user_button`
-resource (Zephyr's `sw0` alias), and the RT1170-EVK board revision A Cortex-M7
-cross-build, which selects the board's own `user_button` (GPIO13 pin 0). The
+resource (Zephyr's `sw0` alias), a second RT1060-EVKB composition of the same
+consumer source that selects Arduino header D2 as an active-high input through an
+overlay (`tests/gpio/evkb/compositions/arduino_d2.overlay`), and the RT1170-EVK
+board revision A Cortex-M7 cross-build, which selects the board's own `user_button` (GPIO13 pin 0). The
 cross-builds do not qualify pin routing, electrical behaviour, timing or physical
 operation. Neither board is qualified for physical use of this capability.
 
@@ -41,7 +43,14 @@ The representative consumer configures and reads one input. The existing control
 contract and physical validation status are independent of this new public
 capability.
 
-The Zephyr tests cannot induce a native driver failure or a controller that is
-not ready, because the GPIO emulator has no fault injection. Those statuses are
-verified only through the Host test of the native-result mapping and by review of
-the provider's use of it.
+Two native_sim apps reach native driver failures through the GPIO emulator. A
+Devicetree flag that requests open drain on the input line makes the emulator
+return `-ENOTSUP`, which maps to `CRUX_ERR_NOT_SUPPORTED`. A pin that the emulated
+controller does not implement makes it return `-EINVAL`, which maps to
+`CRUX_ERR_IO`. After either failure the line stays unconfigured and a read returns
+`CRUX_ERR_NOT_READY`. These apps run with Zephyr assertions disabled, because with
+assertions enabled Zephyr's generic GPIO layer asserts on both requests before the
+driver can return an error. A composition should therefore not request open drain,
+open source or an unimplemented pin for this input line. A controller that is not
+ready cannot be induced with the emulator; that status is verified only by review
+of the provider and through the Host test of the native-result mapping.

@@ -1,0 +1,6 @@
+# Installed tools and build output stay out of the repository.
+node_modules/
+/dist/
+/build/
+/.tools/
+*.cdx.json

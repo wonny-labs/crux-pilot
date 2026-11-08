@@ -14,10 +14,10 @@ def prepare(build, inputs, profile, output):
         check_record_output(paths['config'])
     data = json.loads(inputs.read_text())
     require(not data['source']['dirty'] and data['source']['recoverable_from_git'], 'Unfrozen build inputs')
-    expected = {'zephyr': '684c9e8f32e4373a21098559f748f06915f950c9',
+    expected = {'zephyr': 'dccb09599635bdff17633fa7e9dab014b91dce90',
                 'cmsis': '512cc7e895e8491696b61f7ba8066b4a182569b8',
                 'cmsis_6': '30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74',
-                'hal_nxp': '2c2f28ac333e995d7279777409817c4b4f92c1ec'}
+                'hal_nxp': '7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0'}
     require({p['name'] for p in data['west_projects']} == set(expected), 'Unexpected dependencies')
     for project in data['west_projects']:
         require(project['git_commit'] == project['revision'] == expected[project['name']] and not project['dirty'],

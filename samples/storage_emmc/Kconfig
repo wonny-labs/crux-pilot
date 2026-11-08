@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+mainmenu "Crux eMMC composition"
+
+config SAMPLE_EMMC_DISK_NAME
+	string "Disk name of the eMMC"
+	default "MMC"
+	help
+	  The disk_access name that emmc_storage.c initialises and mounts. The mount point stays
+	  /MMC:, so the name can differ without changing the paths that the File component sees.
+
+config SAMPLE_EMMC_START
+	bool "Run the eMMC mount sequence at boot"
+	help
+	  Off by default. When on, the image initialises the disk and mounts the volume without
+	  formatting it, and with CRUX_CONFIGURATION_SETTINGS_FILE it then initialises the settings,
+	  only if the layout check passed. Physical use needs approval for the current task.
+
+source "Kconfig.zephyr"

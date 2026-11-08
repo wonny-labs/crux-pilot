@@ -1,0 +1,9 @@
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+sd_file_check: status=0 boot=1 pattern_created=1
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+sd_file_check: status=0 boot=2 pattern_created=0
+*** Booting Zephyr OS build v4.4.0 ***
+sd_storage_start: 0
+sd_file_check: status=0 boot=3 pattern_created=0

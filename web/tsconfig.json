@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "paths": {
+      "preact": ["./node_modules/preact"],
+      "preact/*": ["./node_modules/preact/*"]
+    },
+    "types": ["node"]
+  },
+  "include": [
+    "client/**/*.ts",
+    "mock/**/*.ts",
+    "tools/**/*.ts",
+    "e2e/**/*.ts",
+    "e2e/**/*.tsx",
+    "../samples/web/preact/src/**/*.ts",
+    "../samples/web/preact/src/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "../samples/web/preact/dist", "build"]
+}

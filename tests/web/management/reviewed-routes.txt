@@ -1,0 +1,17 @@
+# The management suites' public and session-only routes: the session routes of #186, the status and
+# configuration routes of #187, and the session suites' test routes, which the shared test fixture
+# links. The save route has a permission as its access class, so it is not listed.
+public POST /api/v1/session
+session DELETE /api/v1/session
+public GET /api/v1/session/attempt/{id}
+session GET /api/v1/session/me
+session POST /api/v1/session/me/password
+session GET /api/v1/status
+session GET /api/v1/config
+session GET /api/v1/config/{name}
+session PUT /api/v1/config/{name}
+session GET /api/v1/test/session
+session POST /api/v1/test/session
+session PUT /api/v1/test/session
+session DELETE /api/v1/test/session
+session PATCH /api/v1/test/session

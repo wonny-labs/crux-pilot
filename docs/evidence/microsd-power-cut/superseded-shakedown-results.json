@@ -1,0 +1,73 @@
+{
+  "summary": {
+    "cycles": 5,
+    "judged": 5,
+    "no_report": 0,
+    "previous_run_not_observed": 0,
+    "with_acked_lost": 1,
+    "with_torn_tail": 0,
+    "with_damaged_record": 0
+  },
+  "cycles": [
+    {
+      "cycle": 1,
+      "boot": 2,
+      "start_status": 0,
+      "last_ack": 73166,
+      "last_valid": 7890,
+      "torn_bytes": 0,
+      "damaged_record": false,
+      "run_present": true,
+      "acked_lost": 65276,
+      "unacked_present": 0
+    },
+    {
+      "cycle": 2,
+      "boot": 3,
+      "start_status": 0,
+      "last_ack": 1177,
+      "last_valid": 1210,
+      "torn_bytes": 0,
+      "damaged_record": false,
+      "run_present": true,
+      "acked_lost": 0,
+      "unacked_present": 33
+    },
+    {
+      "cycle": 3,
+      "boot": 4,
+      "start_status": 0,
+      "last_ack": 976,
+      "last_valid": 1008,
+      "torn_bytes": 0,
+      "damaged_record": false,
+      "run_present": true,
+      "acked_lost": 0,
+      "unacked_present": 32
+    },
+    {
+      "cycle": 4,
+      "boot": 5,
+      "start_status": 0,
+      "last_ack": 1648,
+      "last_valid": 1680,
+      "torn_bytes": 0,
+      "damaged_record": false,
+      "run_present": true,
+      "acked_lost": 0,
+      "unacked_present": 32
+    },
+    {
+      "cycle": 5,
+      "boot": 6,
+      "start_status": 0,
+      "last_ack": 1134,
+      "last_valid": 1166,
+      "torn_bytes": 0,
+      "damaged_record": false,
+      "run_present": true,
+      "acked_lost": 0,
+      "unacked_present": 32
+    }
+  ]
+}

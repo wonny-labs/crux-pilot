@@ -1,0 +1,3 @@
+description: Crux software model of a TMP117 temperature sensor
+compatible: "vnd,crux-tmp117-emulator"
+include: i2c-device.yaml

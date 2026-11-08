@@ -1,0 +1,61 @@
+Host-side checks for the 3 November 2026 card-state and stack-probe runs (macOS, one USB card reader).
+The lines below are transcribed from the terminal output of the session; no raw capture file exists for them.
+Disk numbers changed with each re-plug (the card was disk5, disk4, disk5); the card was identified each time
+by its media name "USB3.0 CRW   -SD" and its exact size, 15931539456 bytes (31116288 512-byte units).
+
+== Backup of the card before it was erased (host image, kept outside the repository)
+$ sudo dd if=/dev/rdisk5 bs=1m | gzip -1 > <local path>/card-backup/sd-card-before-erase.img.gz
+15193+1 records in / 15193+1 records out
+15931539456 bytes transferred in 222.859880 secs
+gzip -t: ok; compressed 1,964,225,495 bytes; SHA-256 90d5060a8b5bbcc964b92e500903a06c1289b2fd0d4cfdea7f1ff0df93e10c19
+(gzip -l shows 3046637568 uncompressed: the size modulo 4 GiB, 15931539456 mod 4294967296.)
+
+== Making the card blank
+`diskutil zeroDisk` was started; it sat idle (no card I/O, iostat 0.00 MB/s) for 53 minutes and was killed,
+after which diskutil hung until the reader was re-plugged. How much was zeroed is unknown. After the re-plug:
+  Device / Media Name: USB3.0 CRW   -SD ; Disk Size 15931539456 B ; File System: None ; Content (IOContent): None
+  diskutil list: no partition map, no volume (macOS offered "The disk you attached was not readable").
+That is the "blank" state used below: no partition table and no FAT volume. Bytes beyond the first sectors may
+still hold the old data; the content of the rest of the card was not read.
+
+== After the blank-card run (card back on the host)
+  Device / Media Name: USB3.0 CRW   -SD ; Disk Size 15931539456 B ; File System: None ; Content (IOContent): None
+  (the layout is unchanged; no sector hash was compared: see the README)
+
+== Making the wrong-layout card
+$ diskutil eraseDisk FAT32 TESTCARD MBRFormat disk5
+  Formatting disk5s1 as MS-DOS (FAT32) with name TESTCARD
+  /dev/rdisk5s1: 31082816 sectors in 1942676 FAT32 clusters (8192 bytes/cluster)
+  root after mount: .Spotlight-V100 and .fseventsd only (created by macOS), no files, no settings
+
+== After the wrong-layout run
+  Mounted by macOS automatically on re-plug. root: .Spotlight-V100, .fseventsd (its time changed to 11:41, when
+  macOS mounted it), no "files", no "settings".
+  $ diskutil verifyVolume disk5s1   (unmounted, fsck_msdos -n)
+  Phase 2 - Checking Directories / Phase 3 - Checking for Orphan Clusters
+  Warning: 108 files, 15540112 KiB free (1942514 clusters)
+  File system check exit code is 0
+
+== Making the provisioned card
+  mkdir files settings on the mounted volume (macOS also wrote ._files and ._settings AppleDouble files).
+  fsck_msdos -n afterwards: exit code 0.
+
+== After the stack-probe run
+  $ diskutil verifyVolume disk5s1   (unmounted, fsck_msdos -n)
+  Warning: 114 files, 15540064 KiB free (1942508 clusters)
+  File system check exit code is 0
+  Mounted read-only. /files holds two files, named by the File provider's hex encoding:
+    f626f6f74636f756e74  ("bootcount", 1 byte, content 0x32 = "2")
+    f7061747465726e      ("pattern", 4096 bytes, byte-identical to hw/pattern.expected of the 2 November runs;
+                          SHA-256 ad5dc1725525b3889fae9f1037ad5f9baca84655a6621fe8843cffead05b20f0 for both)
+  /settings is empty. Root: .Spotlight-V100, ._files, ._settings, files, settings (listed after a
+  read-only re-mount; the earlier listings also showed .fseventsd, which this listing lacks; why was not investigated).
+
+== After the card-removal run
+  $ diskutil verifyVolume disk5s1   (unmounted, fsck_msdos -n)
+  Warning: 119 files, 15540024 KiB free (1942503 clusters)
+  File system check exit code is 0
+  Mounted read-only. /files: f626f6f74636f756e74 (bootcount, 1 byte, "2"), f7061747465726e (pattern, 4096 bytes,
+  SHA-256 prefix ad5dc1725525b3889fae9f10, same as pattern.expected), f70726f6265 ("probe", 32 bytes, all 0x00:
+  the probe's record is a zero-filled 32-byte array). /settings is empty. Root: .Spotlight-V100, ._files,
+  ._settings, .fseventsd, files, settings.

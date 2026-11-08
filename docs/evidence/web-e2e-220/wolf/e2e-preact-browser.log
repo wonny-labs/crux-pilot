@@ -1,0 +1,83 @@
+✔ reference: a visit with no session shows sign-in (4886.780378ms)
+✔ reference: a correct sign-in reaches home and shows the items (3707.139793ms)
+✔ reference: the session cookie stays out of page scripts, and the token cookie stays readable (3657.862335ms)
+✔ reference: the password reaches no browser storage, readable cookie or address (3641.158377ms)
+✔ reference: every poll carries the required header (3601.887585ms)
+✔ reference: a wrong password shows a rejection with no reason, and allows another try (3966.229168ms)
+✔ reference: an unknown account looks the same as a wrong password (3032.099835ms)
+﹣ reference: a delay shows the wait, holds the form during it and allows a later try (0.731792ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: a busy verifier is shown with the wait, and a later try works (0.215792ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: a held login route is retried without the user doing anything (0.246541ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: a lost attempt asks the user to sign in again and does not resend the password (0.13375ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ reference: an expired session returns to sign-in with a notice, and signing in shows home again (37996.660142ms)
+✔ reference: sign out ends the session with the CSRF token and returns to sign-in (3686.514002ms)
+✔ reference: a reload keeps the session, and the server sees only the root path (3848.467544ms)
+✔ reference: home shows only what the session may read (3606.928794ms)
+✔ reference: a session that may read nothing sees an empty home, and no error (3583.833169ms)
+✔ reference: one failed source shows as unavailable without hiding the rest (3647.217294ms)
+﹣ reference: an item named like a built-in JavaScript property keeps its name as its label (1.189625ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ reference: a project item that the interface does not know is shown by its name (3217.618668ms)
+✔ reference: a forced change holds the session on its screen whatever the route, and asks for nothing protected (3947.30821ms)
+answers left unchecked, whose body Chrome no longer held: PUT /api/v1/config/report_interval 404, POST /api/v1/config/save 403
+✔ reference: a protected route cannot be used before the change is made (8839.668462ms)
+✔ reference: a forced change completes with the token, and the session goes to home with its permissions (4565.219627ms)
+✔ reference: a wrong current password is a field error on that field (4494.832544ms)
+✔ reference: a refused new password is a field error on the new password (4501.056169ms)
+✔ reference: passwords that differ are refused before any request (3637.59121ms)
+﹣ reference: a failed save says what is true of the running password (0.38375ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: a lost result where the device shows the change succeeded counts as done (0.078875ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: a lost result with the change still required never claims success (0.052583ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: a session that ended during the change returns to sign-in (0.056667ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ reference: an expired session during a forced change returns to sign-in (36631.956809ms)
+✔ reference: sign out works during a forced change (3685.92671ms)
+✔ reference: configuration lists each parameter with its value, and never shows a sensitive one (4068.80571ms)
+✔ reference: an update sends the token and the typed value, and shows the parameter as changed and not yet saved (4187.069252ms)
+✔ reference: a switch and a text parameter are updated in their own types (6043.716503ms)
+✔ reference: a value the device refuses shows its field error, keeps the old value and moves focus to the field (6848.789879ms)
+﹣ reference: a field error for the wrong type is shown too (0.695625ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ reference: text that is no whole number is refused before any request (4214.20396ms)
+✔ reference: a session that may read and not write sees the values and no way to change them (3944.271252ms)
+✔ reference: a session that may write and not read can update, cannot see the value, and is refused the save (4020.290751ms)
+﹣ reference: an update that the device refuses as not permitted says so, and changes nothing on screen (0.2125ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: an update of a parameter that has gone says so (0.055958ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: a held route during an update is retried without the user doing anything (0.073667ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: a busy device on an update shows the wait and keeps the typed value (0.038667ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: a service that is not ready on an update is reported (0.049875ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: a save shows pending, then saved, with the token and no body (0.031834ms) # needs a save that succeeds; this image has no Configuration provider (decision C6)
+﹣ reference: a failed save says what is true, and the parameter stays unsaved (0.031833ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ reference: a device with no Configuration provider says that retrying will not help (4299.591669ms)
+﹣ reference: a busy device on a save shows the wait (1.427667ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: a service that is not ready on a save is reported, and a later save works (0.09775ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: a device that answers busy while it saves is still waited for (0.055417ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: the configuration list failing shows the error and a way to try again (0.046834ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ reference: a session that expires during an update returns to sign-in, and signing in works again (37892.902643ms)
+✔ reference: a session that expires during a save returns to sign-in (37245.679767ms)
+✔ reference: configuration with no session shows sign-in and asks for nothing (2606.038043ms)
+✔ reference: a session that may see no parameter gets an empty list and no error (3765.335627ms)
+✔ reference: a value read after the person started typing does not replace what was typed (3958.863335ms)
+✔ reference: no value or password reaches browser storage or the address during configuration (4330.468585ms)
+﹣ reference: a second update while the first is in flight waits for it, and neither screen nor save stays stuck (0.260084ms) # needs a save that succeeds; this image has no Configuration provider (decision C6)
+﹣ reference: a save asked for while an update is in flight is not sent, and works afterwards (0.064041ms) # needs a save that succeeds; this image has no Configuration provider (decision C6)
+﹣ reference: an update asked for while a save runs is not sent (0.050791ms) # needs a save that succeeds; this image has no Configuration provider (decision C6)
+✔ reference: a parameter flagged sensitive is never read or shown, whatever else its flags say (4560.325627ms)
+✔ reference: a value from the device is shown as text, never as markup (5142.410752ms)
+﹣ reference: after a save has completed, the next update and the next save both work (0.495042ms) # needs a save that succeeds; this image has no Configuration provider (decision C6)
+﹣ reference: a long Retry-After while a save runs does not hold the wait past a few seconds (0.254166ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+﹣ reference: leaving the screen stops the wait for a save, and nothing reads the list afterwards (0.110208ms) # needs the mock control to force an answer; the real path is a case of its own where one exists
+✔ reference: the page comes over TLS 1.3 with the declared certificate, and every asset carries its policy and cache header (4468.930211ms)
+✔ reference: a path the interface routes is not served: the route lives in the fragment (3642.056168ms)
+✔ reference: a cold load fits its declared budget (9693.593463ms)
+✔ reference: a stalled handshake delays a load by at most the TLS connect timeout (7670.873462ms)
+✔ reference: with every client slot held by an idle connection, a load waits and is served (7786.159879ms)
+✔ reference: a route another client holds answers the real 409, and the example retries it (7532.86542ms)
+✔ reference: a full login table answers the real 503 busy, which the example shows, and a later sign-in works (24677.775886ms)
+✔ reference: network settings: the real service shows no running address and refuses a change it cannot save (3767.826711ms)
+﹣ reference: reboot and a restarted session (0.370375ms) # the reboot service of #214 is merged but not composed in the services image, so the reboot flow stays mock-only
+ℹ tests 74
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 28
+ℹ todo 0
+ℹ duration_ms 369304.958252

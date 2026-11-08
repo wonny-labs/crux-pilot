@@ -6,13 +6,25 @@ export ZEPHYR_BASE="$workspace/zephyr"
 CRUX_WORKSPACE="$workspace" CRUX_GPIO_COMPOSITION_TESTS=1 \
     python3 "$repo/tests/build/test_gpio_composition.py"
 (cd "$workspace" && west twister -j 2 -p native_sim/native/64 \
-    -T "$repo/tests/gpio/zephyr" -O "$repo/build/zephyr/twister-gpio" --inline-logs \
+    -T "$repo/tests/gpio/zephyr" -T "$repo/tests/gpio/zephyr_failure" \
+    -O "$repo/build/zephyr/twister-gpio" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$repo")
 mapfile -t modules < <(cd "$workspace" && west list cmsis cmsis_6 hal_nxp -f '{abspath}')
 modules+=("$repo")
 modules_text="$(IFS=';'; printf '%s' "${modules[*]}")"
 (cd "$workspace" && west build -b 'mimxrt1060_evk@B//qspi' \
     -d "$repo/build/zephyr/gpio-evkb" "$repo/tests/gpio/evkb" -- \
+    -DZEPHYR_MODULES="$modules_text" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+# The same consumer source for a second RT1060-EVKB composition: the alias is replaced by the
+# overlay in tests/gpio/evkb/compositions, which Zephyr applies after the board overlay.
+(cd "$workspace" && west build -p always -b 'mimxrt1060_evk@B//qspi' \
+    -d "$repo/build/zephyr/gpio-evkb-arduino-d2" "$repo/tests/gpio/evkb" -- \
+    -DZEPHYR_MODULES="$modules_text" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DEXTRA_DTC_OVERLAY_FILE="$repo/tests/gpio/evkb/compositions/arduino_d2.overlay")
+# The physical P1 application (docs/physical-verification-plan.md) must keep building; it is
+# built here and never run.
+(cd "$workspace" && west build -p always -b 'mimxrt1060_evk@B//qspi' \
+    -d "$repo/build/zephyr/gpio-physical-p1" "$repo/tests/gpio_physical" -- \
     -DZEPHYR_MODULES="$modules_text" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
 # The same consumer for RT1170-EVK board revision A (Cortex-M7). Zephyr's CMake honours these
 # variables, so clear them: the build must use only the board's own configuration plus the

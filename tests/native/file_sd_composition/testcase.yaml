@@ -1,0 +1,5 @@
+tests:
+  crux.file.sd_composition:
+    platform_allow: [native_sim/native, native_sim/native/64]
+    tags: [filesystem, crux]
+    timeout: 180

@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+mainmenu "Crux microSD replace-pattern power-cut test"
+
+config SAMPLE_SD_REPLACE_TEST
+	bool "Run the replace-pattern test at boot"
+	help
+	  Off by default. When on, the image mounts the card without formatting it, classifies the
+	  settings files a previous power cut left behind, then replaces "cfg" through "cfg.cmp" and
+	  fs_rename in a loop until power is cut. This WRITES to the card and is meant to be
+	  interrupted; physical use needs approval for the current task.
+
+source "Kconfig.zephyr"

@@ -1,0 +1,52 @@
+Crux revision: 37b8b50c619296db8e13f874dfb841cd7f18adf2
+......................
+----------------------------------------------------------------------
+Ran 22 tests in 0.008s
+
+OK
+control ok: the Angular example needs the default 3,000 ms deadline: web_assets: /main-W7U54RFG.js: 85384 bytes served exceeds the largest asset that fits, 49152 bytes: the response deadline 1500 ms at 32768 bytes/s. Split the file, or set CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS and the declared client rate together
+/ws/out-220/final-mbed/mbed/e2e-preact-build/zephyr/zephyr.exe: 50 listed symbols from their real sources, no test double, mbed profile, and 12 component routes and no other, and one HTTP service whose resources the route table generated
+server checks, preact on the mbed profile: 0 failures, 23 checks, results in /ws/out-220/final-mbed/mbed/server-preact-results.json
+✔ reference: a route another client holds answers the real 409, and the example retries it (4126.124002ms)
+✔ reference: a full login table answers the real 503 busy, which the example shows, and a later sign-in works (23541.814427ms)
+✔ reference: network settings: the real service shows no running address and refuses a change it cannot save (2707.088501ms)
+﹣ reference: reboot and a restarted session (0.228541ms) # the reboot service of #214 is merged but not composed in the services image, so the reboot flow stays mock-only
+ℹ tests 74
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 28
+ℹ todo 0
+ℹ duration_ms 300278.857801
+/ws/out-220/final-mbed/mbed/e2e-preact-browser-results.json: {'measured': 6, 'passed': 46, 'skipped': 28}
+/ws/out-220/final-mbed/mbed/e2e-angular-build/zephyr/zephyr.exe: 50 listed symbols from their real sources, no test double, mbed profile, and 12 component routes and no other, and one HTTP service whose resources the route table generated
+server checks, angular on the mbed profile: 0 failures, 23 checks, results in /ws/out-220/final-mbed/mbed/server-angular-results.json
+✔ angular: a stalled handshake delays a load by at most the TLS connect timeout (4990.887002ms)
+✔ angular: with every client slot held by an idle connection, a load waits and is served (6108.162128ms)
+✔ angular: a route another client holds answers the real 409, and the example retries it (4088.678002ms)
+✔ angular: a full login table answers the real 503 busy, which the example shows, and a later sign-in works (23463.923885ms)
+ℹ tests 72
+ℹ suites 0
+ℹ pass 45
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 27
+ℹ todo 0
+ℹ duration_ms 296941.642925
+/ws/out-220/final-mbed/mbed/e2e-angular-browser-results.json: {'measured': 6, 'passed': 45, 'skipped': 27}
+ℹ tests 130
+ℹ suites 0
+ℹ pass 130
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 429262.032446
+/ws/out-220/final-mbed/mbed/e2e-mock-browser-results.json: {'passed': 130}
+Native composition (e2e-mbed) finished.
+
+real	21m21.687s
+user	4m25.666s
+sys	0m46.372s
+mbed exit 0

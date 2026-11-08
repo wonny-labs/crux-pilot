@@ -1,0 +1,7 @@
+tests:
+  crux.spi.native_sim:
+    tags:
+      - crux
+      - spi
+    platform_allow:
+      - native_sim

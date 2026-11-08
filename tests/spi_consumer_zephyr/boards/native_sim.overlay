@@ -1,0 +1,16 @@
+/* Software-only serial NOR flash for the portable flash-identification consumer test. */
+/ {
+	aliases {
+		crux-spi0 = &crux_flash;
+	};
+};
+
+&spi0 {
+	status = "okay";
+	crux_flash: flash@0 {
+		compatible = "vnd,crux-spi-flash-emulator";
+		reg = <0>;
+		spi-max-frequency = <1000000>;
+		status = "okay";
+	};
+};

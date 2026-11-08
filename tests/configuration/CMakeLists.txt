@@ -1,9 +1,16 @@
-add_executable(crux_configuration_tests main.c conformance.c fault_provider.c)
+add_executable(crux_configuration_tests main.c conformance.c string_conformance.c fault_provider.c)
 target_include_directories(crux_configuration_tests PRIVATE . ../../components/configuration/src)
 target_link_libraries(crux_configuration_tests PRIVATE crux::configuration)
 target_compile_options(crux_configuration_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_test(NAME Configuration.Conformance COMMAND crux_configuration_tests)
 set_tests_properties(Configuration.Conformance PROPERTIES TIMEOUT 10)
+# The port a composition selects until #16 decides a target provider, linked as a composition would.
+add_executable(crux_configuration_no_provider_test no_provider.c)
+target_link_libraries(crux_configuration_no_provider_test PRIVATE crux::configuration
+    crux_configuration_no_provider)
+target_compile_options(crux_configuration_no_provider_test PRIVATE -Wall -Wextra -Wpedantic -Werror)
+add_test(NAME Configuration.NoProvider COMMAND crux_configuration_no_provider_test)
+set_tests_properties(Configuration.NoProvider PROPERTIES TIMEOUT 10)
 add_library(configuration_controller_portable OBJECT ../../samples/controller/configuration/scenario.c)
 target_link_libraries(configuration_controller_portable PRIVATE crux::configuration crux_controller_core)
 target_compile_options(configuration_controller_portable PRIVATE -Wall -Wextra -Wpedantic -Werror)

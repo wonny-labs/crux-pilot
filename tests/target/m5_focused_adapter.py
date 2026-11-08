@@ -1,8 +1,8 @@
 """Focused one-boot M5 network adapter: DAPLink VCOM, peer processes and host NIC link control.
 
 Inert until constructed. It never programs, erases, resets or power-cycles the board. The only
-host state it changes is the dedicated NIC en5 (administrative down/up) through the exact
-non-interactive command `sudo -n /sbin/ifconfig en5 down` or `... en5 inet 192.168.77.1 netmask 255.255.255.0 up`; without a credential cached by the
+host state it changes is the dedicated NIC of the bench identity block (administrative down/up) through the exact
+non-interactive command `sudo -n /sbin/ifconfig <interface> down` or `... <interface> inet <host> netmask <mask> up`; without a credential cached by the
 operator in the same terminal that command fails and the run stops. It never reads a password.
 """
 import hashlib
@@ -19,8 +19,12 @@ import capture_m5_network as runner
 from m5_capture_adapter import CaptureAdapter, ProcessBackend, parse_direct_route, parse_interface
 
 BANNER = runner.BANNER_PREFIX
-ASSIGN = ['sudo', '-n', '/sbin/ifconfig', 'en5', 'inet', '192.168.77.1', 'netmask', '255.255.255.0', 'up']
-MAC = '00:0a:cd:41:89:cc'
+# The dedicated adapter comes from the reviewed bench identity block, never from a copy here.
+INTERFACE = runner.NIC['interface']
+MAC = runner.NIC['mac']
+HOST = runner.NIC['host']
+NETMASK = '.'.join(str((0xffffffff << (32 - runner.NIC['prefix']) >> shift) & 255) for shift in (24, 16, 8, 0))
+ASSIGN = ['sudo', '-n', '/sbin/ifconfig', INTERFACE, 'inet', HOST, 'netmask', NETMASK, 'up']
 CARRIER_TIMEOUT = 15
 # Target prints with CONFIG_PRINTK_SYNC (interrupts locked for a whole record): a command that arrives
 # while the observer prints M5 LINK loses bytes. Write only after the UART has been quiet this long.
@@ -45,12 +49,12 @@ class HostLink:
         return result.stdout
 
     def observe(self):
-        return parse_interface(self.command(['ifconfig', 'en5']))
+        return parse_interface(self.command(['ifconfig', INTERFACE]))
 
     def identity(self):
         """The dedicated adapter by MAC; macOS drops the static address while the link is inactive."""
-        text = self.command(['ifconfig', 'en5'])
-        runner.oracle.require(re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$', text) == [MAC], 'en5 is not the dedicated adapter')
+        text = self.command(['ifconfig', INTERFACE])
+        runner.oracle.require(re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$', text) == [MAC], INTERFACE + ' is not the dedicated adapter')
 
     def switch(self, up):
         # macOS also drops the manual address while the link is inactive, so `up` reassigns it.
@@ -58,7 +62,7 @@ class HostLink:
             self.identity()
             self.command(ASSIGN)
         else:
-            self.command(['sudo', '-n', '/sbin/ifconfig', 'en5', 'down'])
+            self.command(['sudo', '-n', '/sbin/ifconfig', INTERFACE, 'down'])
 
     def configure(self):
         """Assign the static address and wait until the carrier is active with that address present."""
@@ -76,13 +80,13 @@ class HostLink:
                 if assignments < 3:
                     assignments += 1
                     self.command(ASSIGN)
-            runner.oracle.require(self.clock() < deadline, 'en5 did not become active with the static address: ' + str(last))
+            runner.oracle.require(self.clock() < deadline, INTERFACE + ' did not become active with the static address: ' + str(last))
             self.sleep(.1)
 
     def carrier(self):
         """Carrier state of the dedicated adapter; needs no address (the host may have dropped it)."""
-        text = self.command(['ifconfig', 'en5'])
-        runner.oracle.require(re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$', text) == [MAC], 'en5 is not the dedicated adapter')
+        text = self.command(['ifconfig', INTERFACE])
+        runner.oracle.require(re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$', text) == [MAC], INTERFACE + ' is not the dedicated adapter')
         statuses = re.findall(r'(?m)^[ \t]*status:[ \t]*(\S+)[ \t]*$', text)
         runner.oracle.require(statuses in (['active'], ['inactive']), 'NIC carrier status missing/unknown/ambiguous')
         return statuses == ['active']
@@ -98,7 +102,7 @@ class HostLink:
     def down(self):
         """host_down: the administrative change returned; receipt: carrier observed inactive."""
         self.switch(False)
-        down = dict(event='host_down', monotonic=self.clock(), interface='en5')
+        down = dict(event='host_down', monotonic=self.clock(), interface=INTERFACE)
         self.wait_carrier(False, SETTLE_TIMEOUT)
         return [down, dict(event='cable_disconnect_receipt', monotonic=self.clock())]
 
@@ -110,7 +114,7 @@ class HostLink:
         self.wait_carrier(True, SETTLE_TIMEOUT)
         observed = self.observe()  # strict: the static address must be back
         runner.oracle.require(observed['active'], 'Carrier dropped before the address check')
-        up = dict(event='host_up', monotonic=self.clock(), interface='en5')
+        up = dict(event='host_up', monotonic=self.clock(), interface=INTERFACE)
         route = parse_direct_route(self.command(['route', '-n', 'get', '192.168.77.2']), observed['source'])
         route['monotonic'] = self.clock()
         return [connect, up, route]

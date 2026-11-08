@@ -1,13 +1,22 @@
 manifest:
   version: "1.2"
+  # Stacks for the secure management work. They are off by default, so that an
+  # ordinary workspace fetches no GPLv3 stack. See patches/zephyr/README.md.
+  # The crux-reliance group is off by default for the same reason: an ordinary
+  # workspace does not fetch the GPLv2 Reliance Edge source.
+  group-filter: [-crux-secure-management, -crux-reliance]
   remotes:
     - name: zephyrproject-rtos
       url-base: https://github.com/zephyrproject-rtos
+    - name: wolfssl
+      url-base: https://github.com/wolfSSL
+    - name: tuxera
+      url-base: https://github.com/tuxera
   projects:
     - name: zephyr
       remote: zephyrproject-rtos
       repo-path: zephyr
-      revision: 684c9e8f32e4373a21098559f748f06915f950c9
+      revision: dccb09599635bdff17633fa7e9dab014b91dce90 # v4.4.2
       import:
         name-allowlist:
           - cmsis
@@ -15,5 +24,44 @@ manifest:
           - hal_nxp
           - littlefs
           - fatfs
+    # These two follow the revisions in Zephyr's own west.yml at the tag above.
+    - name: mbedtls
+      remote: zephyrproject-rtos
+      revision: a3e190fe44c78d1ba67f55979e1257328cc7d0d8
+      path: modules/crypto/mbedtls
+      groups:
+        - crux-secure-management
+    - name: tf-psa-crypto
+      remote: zephyrproject-rtos
+      revision: dc575a2ddcc8cb16275d24c42a52eaf79ebe2231
+      path: modules/crypto/tf-psa-crypto
+      groups:
+        - crux-secure-management
+    - name: wolfssl
+      remote: wolfssl
+      revision: 3c5eead44904df64e6a5a1f4ebdce377d35a849a # v5.9.4-stable
+      path: modules/crypto/wolfssl
+      groups:
+        - crux-secure-management
+    - name: wolfssh
+      remote: wolfssl
+      revision: 8221e4ee48c93da6cea3325a91de2ecc00ae5f56 # v1.6.0-stable
+      path: modules/crypto/wolfssh
+      groups:
+        - crux-secure-management
+    - name: wolfpsa
+      remote: wolfssl
+      repo-path: wolfPSA
+      revision: 55ae0ec58cd2ef4c528f44e8466095550c16ca8a # v5.9.4
+      path: modules/crypto/wolfpsa
+      groups:
+        - crux-secure-management
+    - name: reliance-edge
+      remote: tuxera
+      revision: 6706984258c5bb61c778fe8ca2edd04b559efb78 # v3.0
+      path: modules/fs/reliance-edge
+      groups:
+        - crux-reliance
   self:
     path: crux-pilot
+    west-commands: scripts/west-commands.yml
