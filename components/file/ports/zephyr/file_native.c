@@ -10,14 +10,16 @@
 /* Selections: Reliance Edge on any board, an RT1060 provider or compile check, or a simulator. */
 #if defined(CONFIG_CRUX_FILE_RELIANCE_EDGE)
 #if defined(CONFIG_CRUX_FILE_SIMULATOR) || defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR) ||            \
-    defined(CONFIG_CRUX_FILE_FATFS_RT1060) || defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK) || \
+    defined(CONFIG_CRUX_FILE_FATFS_RT1060) ||                                                      \
+    defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK) ||                                        \
     defined(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK)
 #error "The Reliance Edge File provider cannot be combined with another File selection"
 #endif
 #elif defined(CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK)
 /* The RT1060 provider over a RAM disk: the board, and no card driver anywhere in the image. */
-#if defined(CONFIG_CRUX_FILE_FATFS_RT1060) || defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK) ||   \
-    defined(CONFIG_CRUX_FILE_SIMULATOR) || defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
+#if defined(CONFIG_CRUX_FILE_FATFS_RT1060) ||                                                      \
+    defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK) || defined(CONFIG_CRUX_FILE_SIMULATOR) || \
+    defined(CONFIG_CRUX_FILE_FATFS_SIMULATOR)
 #error "The RT1060 RAM disk File provider cannot be combined with another File selection"
 #endif
 #if !defined(CONFIG_BOARD_MIMXRT1060_EVK) || !defined(CONFIG_SOC_MIMXRT1062) ||                    \
@@ -26,7 +28,8 @@
     defined(CONFIG_DISK_DRIVER_SDMMC) || defined(CONFIG_IMX_USDHC) ||                              \
     defined(CONFIG_DISK_DRIVER_FLASH) || !defined(CONFIG_FS_FATFS_LFN) ||                          \
     !defined(CONFIG_FS_FATFS_REENTRANT) || defined(CONFIG_FS_FATFS_MOUNT_MKFS)
-#error "The RT1060 RAM disk File provider requires the Rev B QSPI board, the RAM disk as the only disk driver and no auto-format"
+#error                                                                                             \
+    "The RT1060 RAM disk File provider requires the Rev B QSPI board, the RAM disk as the only disk driver and no auto-format"
 #endif
 #elif defined(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK) || defined(CONFIG_CRUX_FILE_FATFS_RT1060)
 #if !defined(CONFIG_BOARD_MIMXRT1060_EVK) || !defined(CONFIG_SOC_MIMXRT1062) ||                    \

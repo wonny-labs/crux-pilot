@@ -1,9 +1,9 @@
 /*
- * Host test of the Zephyr glue of the bench medium (src/bench_medium_fs.c), the one source of the bench
- * image that mounts the file medium and, for the RAM disk only, formats it. The file system layer and the
- * devices are fakes: a RAM disk named RAM: and a card named SD:. Which of the two the glue is built for is
- * set by the compile definition, as the Kconfig form sets it in the image; the test is built once for each.
- * Nothing here touches a board, a card or a card reader.
+ * Host test of the Zephyr glue of the bench medium (src/bench_medium_fs.c), the one source of the
+ * bench image that mounts the file medium and, for the RAM disk only, formats it. The file system
+ * layer and the devices are fakes: a RAM disk named RAM: and a card named SD:. Which of the two the
+ * glue is built for is set by the compile definition, as the Kconfig form sets it in the image; the
+ * test is built once for each. Nothing here touches a board, a card or a card reader.
  */
 #include "../src/bench_medium_fs.c"
 
@@ -38,7 +38,7 @@ static fake_disk_t *by_mount_point(const char *mount_point)
 {
     return strcmp(mount_point, ram_disk.mount_point) == 0 ? &ram_disk
            : strcmp(mount_point, card.mount_point) == 0   ? &card
-                                                           : NULL;
+                                                          : NULL;
 }
 
 int fs_mount(struct fs_mount_t *mp)
@@ -82,12 +82,15 @@ int main(void)
     CHECK(bench_medium_mount(), "a blank RAM disk is mounted");
     CHECK(ram_disk.format_calls == 1 && ram_disk.mount_calls == 2, "RAM disk calls %u %u",
           ram_disk.format_calls, ram_disk.mount_calls);
-    CHECK(card.format_calls == 0 && card.mount_calls == 0, "the card was touched by a RAM disk image");
+    CHECK(card.format_calls == 0 && card.mount_calls == 0,
+          "the card was touched by a RAM disk image");
     /* The same image mounts a RAM disk that already holds a file system without another format. */
     ram_disk.mount_calls = 0;
     ram_disk.format_calls = 0;
-    CHECK(bench_medium_mount() && ram_disk.format_calls == 0, "a formatted RAM disk is not formatted");
-    CHECK(strcmp(BENCH_MEDIUM_MOUNT_POINT, "/RAM:") == 0, "mount point %s", BENCH_MEDIUM_MOUNT_POINT);
+    CHECK(bench_medium_mount() && ram_disk.format_calls == 0,
+          "a formatted RAM disk is not formatted");
+    CHECK(strcmp(BENCH_MEDIUM_MOUNT_POINT, "/RAM:") == 0, "mount point %s",
+          BENCH_MEDIUM_MOUNT_POINT);
 #elif defined(CONFIG_CRUX_BENCH_FILE_MICROSD)
     /* A blank card, and then a card whose mount fails for another reason: never a format. */
     CHECK(!bench_medium_mount(), "a blank card is not mounted");
@@ -97,13 +100,15 @@ int main(void)
     CHECK(ram_disk.mount_calls == 0 && ram_disk.format_calls == 0, "the RAM disk was touched");
     card.has_file_system = true;
     CHECK(bench_medium_mount() && card.format_calls == 0, "a card with a file system is mounted");
-    CHECK(strcmp(BENCH_MEDIUM_MOUNT_POINT, "/SD:") == 0, "mount point %s", BENCH_MEDIUM_MOUNT_POINT);
+    CHECK(strcmp(BENCH_MEDIUM_MOUNT_POINT, "/SD:") == 0, "mount point %s",
+          BENCH_MEDIUM_MOUNT_POINT);
 #else
 #error "built for no file backend"
 #endif
     CHECK(unknown_calls == 0, "calls on a device that is neither");
     CHECK(mount_without_no_format_flag == 0, "a mount without FS_MOUNT_FLAG_NO_FORMAT");
-    printf(failures == 0 ? "bench medium glue: all checks passed\n" : "bench medium glue: %d FAILED\n",
+    printf(failures == 0 ? "bench medium glue: all checks passed\n"
+                         : "bench medium glue: %d FAILED\n",
            failures);
     return failures == 0 ? 0 : 1;
 }

@@ -23,10 +23,10 @@ static int failures;
 
 /* A fake device. `blank` is what a blank card or a zeroed RAM disk looks like. */
 typedef struct {
-    bool blank;              /* No file system yet: mount fails until a format */
-    bool format_would_help;  /* The dangerous fake: it mounts after a format */
-    int mount_error;         /* The error a failing mount returns */
-    int format_error;        /* 0, or the error a format returns */
+    bool blank;             /* No file system yet: mount fails until a format */
+    bool format_would_help; /* The dangerous fake: it mounts after a format */
+    int mount_error;        /* The error a failing mount returns */
+    int format_error;       /* 0, or the error a format returns */
     bool mounted;
     unsigned mount_calls;
     unsigned format_calls;
@@ -74,8 +74,8 @@ static void ram_disk_blank_is_formatted_once_and_mounted(void)
     bench_medium_ops_t ops = ops_of(&fake);
     CHECK(bench_medium_prepare(BENCH_MEDIUM_RAM_DISK, &ops) == BENCH_MEDIUM_FORMATTED_AND_MOUNTED,
           "blank RAM disk");
-    CHECK(fake.format_calls == 1 && fake.mount_calls == 2 && fake.mounted,
-          "format %u mount %u", fake.format_calls, fake.mount_calls);
+    CHECK(fake.format_calls == 1 && fake.mount_calls == 2 && fake.mounted, "format %u mount %u",
+          fake.format_calls, fake.mount_calls);
 }
 
 static void ram_disk_already_formatted_is_mounted_without_a_format(void)
@@ -108,12 +108,13 @@ static void ram_disk_that_does_not_mount_after_a_format_does_not_loop(void)
           fake.format_calls, fake.mount_calls);
 }
 
-/* The card: every failing mount, including the one that a format would cure, ends with no format. */
+/* The card: every failing mount, including the one that a format would cure, ends with no format.
+ */
 static void card_is_never_formatted_whatever_the_mount_says(void)
 {
-    static const int errors[] = {-EINVAL, -EIO,   -ENODEV, -ENOENT,    -EBUSY, -ENOMEM,
-                                 -ENOTSUP, -ETIMEDOUT, -EFAULT, -EROFS, -1,    -100000,
-                                 1,        EIO,       255};
+    static const int errors[] = {-EINVAL, -EIO,     -ENODEV,    -ENOENT, -EBUSY,
+                                 -ENOMEM, -ENOTSUP, -ETIMEDOUT, -EFAULT, -EROFS,
+                                 -1,      -100000,  1,          EIO,     255};
     for (size_t i = 0; i < sizeof(errors) / sizeof(errors[0]); i++) {
         fake_t fake = blank();
         fake.mount_error = errors[i];
@@ -148,8 +149,8 @@ static void card_without_any_format_function_is_the_same(void)
           "a RAM disk with no format function fails and does not crash");
 }
 
-/* The property: over every value of the kind that a caller could pass, a format happens only for the RAM
- * disk. A kind that is not one of the two is refused before any call at all. */
+/* The property: over every value of the kind that a caller could pass, a format happens only for
+ * the RAM disk. A kind that is not one of the two is refused before any call at all. */
 static void a_format_is_reachable_for_the_ram_disk_only(void)
 {
     for (int kind = -1000; kind <= 1000; kind++) {
@@ -180,7 +181,8 @@ static void a_missing_operation_is_refused_before_any_call(void)
 {
     fake_t fake = blank();
     bench_medium_ops_t no_mount = {.mount = NULL, .format = fake_format, .context = &fake};
-    CHECK(bench_medium_prepare(BENCH_MEDIUM_RAM_DISK, &no_mount) == BENCH_MEDIUM_INVALID, "no mount");
+    CHECK(bench_medium_prepare(BENCH_MEDIUM_RAM_DISK, &no_mount) == BENCH_MEDIUM_INVALID,
+          "no mount");
     CHECK(bench_medium_prepare(BENCH_MEDIUM_RAM_DISK, NULL) == BENCH_MEDIUM_INVALID, "no ops");
     CHECK(fake.format_calls == 0, "a format without a mount");
 }

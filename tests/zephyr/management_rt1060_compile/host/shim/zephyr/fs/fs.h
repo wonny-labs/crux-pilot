@@ -1,5 +1,5 @@
-/* Host stand-in for Zephyr's fs.h, with only what the bench medium glue calls. The two functions are
- * defined by the test, which stands in for the file system layer and the devices under it. */
+/* Host stand-in for Zephyr's fs.h, with only what the bench medium glue calls. The two functions
+ * are defined by the test, which stands in for the file system layer and the devices under it. */
 #ifndef HOST_SHIM_ZEPHYR_FS_FS_H
 #define HOST_SHIM_ZEPHYR_FS_FS_H
 #include <stdint.h>

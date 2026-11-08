@@ -41,8 +41,9 @@ _Static_assert(__builtin_strcmp(CONFIG_CRUX_WEB_BIND_ADDRESS, CRUX_BENCH_ADDRESS
 _Static_assert(__builtin_strcmp(CONFIG_CRUX_SSH_BIND_ADDRESS, CRUX_BENCH_ADDRESS) == 0,
                "The SSH listener must listen on the bench address only");
 
-/* The file backend (D2, row C3): the glue and the decision of src/bench_medium*.c rely on these. Each form is
- * checked when it is set, so a source that does not use the medium compiles without one. */
+/* The file backend (D2, row C3): the glue and the decision of src/bench_medium*.c rely on these.
+ * Each form is checked when it is set, so a source that does not use the medium compiles without
+ * one. */
 #if defined(CONFIG_FS_FATFS_MOUNT_MKFS)
 #error "A mount never formats a card: CONFIG_FS_FATFS_MOUNT_MKFS is refused in the bench image"
 #endif

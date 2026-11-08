@@ -1,12 +1,14 @@
 /*
- * The RAM disk of the RT1060-EVKB bench image (row C3, decision D2), on native_sim, with the real FatFs of the
- * bench image's configuration (long names on the stack, 127 characters, six open files, no format on mount).
+ * The RAM disk of the RT1060-EVKB bench image (row C3, decision D2), on native_sim, with the real
+ * FatFs of the bench image's configuration (long names on the stack, 127 characters, six open
+ * files, no format on mount).
  *
- * Question: does the disk of ../../zephyr/management_rt1060_compile/ram_disk.overlay hold the largest content
- * that the image's File service and credential store allow, with room to spare? The File service reserves bytes
- * against its area's limits, so the area can never hold more than its limit; the credential store writes two
- * slot files. The test builds that worst case on the real FatFs, in the order that hurts most (the area full
- * first, the store's slots after it) and reports the free space it leaves. Nothing here touches a board or a card.
+ * Question: does the disk of ../../zephyr/management_rt1060_compile/ram_disk.overlay hold the
+ * largest content that the image's File service and credential store allow, with room to spare? The
+ * File service reserves bytes against its area's limits, so the area can never hold more than its
+ * limit; the credential store writes two slot files. The test builds that worst case on the real
+ * FatFs, in the order that hurts most (the area full first, the store's slots after it) and reports
+ * the free space it leaves. Nothing here touches a board or a card.
  */
 #include "bench_limits.h"
 #include "credential_port.h"
@@ -40,7 +42,8 @@ static void format_and_mount(void)
         zassert_ok(fs_unmount(&mount));
         mounted = false;
     }
-    /* A RAM disk is blank at every boot, and what a blank disk answers a mount with is the bench's trigger. */
+    /* A RAM disk is blank at every boot, and what a blank disk answers a mount with is the bench's
+     * trigger. */
     memset(chunk, 0, sizeof(chunk));
     zassert_ok(fs_mkfs(FS_FATFS, (uintptr_t) "RAM:", NULL, 0));
     zassert_ok(fs_mount(&mount));
@@ -96,10 +99,11 @@ static void write_store_slots(void)
 static void report(const char *what, space_t before, space_t after)
 {
     uint32_t free_bytes = after.free_clusters * after.cluster_bytes;
-    printk("RAMDISK %s: disk %u B, cluster %u B, data clusters %u (%u B), free before %u B, free after %u B (%u %% of the disk)\n",
-           what, DISK_BYTES, after.cluster_bytes, after.clusters, after.clusters * after.cluster_bytes,
-           before.free_clusters * before.cluster_bytes, free_bytes,
-           (unsigned)((uint64_t)free_bytes * 100u / DISK_BYTES));
+    printk("RAMDISK %s: disk %u B, cluster %u B, data clusters %u (%u B), free before %u B, free "
+           "after %u B (%u %% of the disk)\n",
+           what, DISK_BYTES, after.cluster_bytes, after.clusters,
+           after.clusters * after.cluster_bytes, before.free_clusters * before.cluster_bytes,
+           free_bytes, (unsigned)((uint64_t)free_bytes * 100u / DISK_BYTES));
 }
 
 ZTEST(ram_disk_size, test_geometry_is_the_one_of_the_overlay)
@@ -114,16 +118,16 @@ ZTEST(ram_disk_size, test_geometry_is_the_one_of_the_overlay)
 
 ZTEST(ram_disk_size, test_a_blank_ram_disk_is_not_formatted_by_the_mount)
 {
-    /* FS_MOUNT_FLAG_NO_FORMAT and no automatic format: a blank disk is a failed mount. The bench's decision
-     * (src/bench_medium.c) is what formats it, and only a RAM disk. */
+    /* FS_MOUNT_FLAG_NO_FORMAT and no automatic format: a blank disk is a failed mount. The bench's
+     * decision (src/bench_medium.c) is what formats it, and only a RAM disk. */
     zassert_not_equal(fs_mount(&mount), 0, "a blank disk was mounted or formatted by the mount");
     zassert_ok(fs_mkfs(FS_FATFS, (uintptr_t) "RAM:", NULL, 0));
     zassert_ok(fs_mount(&mount));
     mounted = true;
     zassert_ok(fs_unmount(&mount));
     mounted = false;
-    /* A second boot, in effect: the memory is zero again. The disk is formatted from nothing every time, so a file
-     * that was there is not. */
+    /* A second boot, in effect: the memory is zero again. The disk is formatted from nothing every
+     * time, so a file that was there is not. */
 }
 
 ZTEST(ram_disk_size, test_the_area_at_its_limit_four_files_of_the_largest_size_and_the_store_fit)
@@ -148,8 +152,9 @@ ZTEST(ram_disk_size, test_the_area_at_its_limit_with_the_most_entries_and_the_st
     format_and_mount();
     space_t blank = space();
     make_directories();
-    /* Sixteen entries with names of 63 characters (the longest the File names allow: the most directory entries
-     * per file), each one byte over a cluster boundary where the limit allows it: the most slack per file. */
+    /* Sixteen entries with names of 63 characters (the longest the File names allow: the most
+     * directory entries per file), each one byte over a cluster boundary where the limit allows it:
+     * the most slack per file. */
     uint32_t each = BENCH_AREA_MAX_BYTES / BENCH_AREA_MAX_ENTRIES;
     uint32_t whole_clusters = (each - 1u) / blank.cluster_bytes;
     uint32_t size = whole_clusters * blank.cluster_bytes + 1u;
@@ -164,14 +169,17 @@ ZTEST(ram_disk_size, test_the_area_at_its_limit_with_the_most_entries_and_the_st
         zassert_ok(write_file(path, size), "entry %u", i);
     }
     write_store_slots();
-    report("area as 16 entries of 63-character names at the worst slack, then both slots", blank, space());
-    zassert_true(space().free_clusters > BENCH_COMMIT_LEFTOVERS, "the leftovers of a commit do not fit");
+    report("area as 16 entries of 63-character names at the worst slack, then both slots", blank,
+           space());
+    zassert_true(space().free_clusters > BENCH_COMMIT_LEFTOVERS,
+                 "the leftovers of a commit do not fit");
 }
 
 ZTEST(ram_disk_size, test_one_more_file_than_the_disk_has_room_for_fails_cleanly)
 {
-    /* The File service reserves against its limits and the disk is larger than they sum to, so the disk is never
-     * the first to refuse. If it were (a limit raised, a disk lowered), it would say so with ENOSPC and not hang. */
+    /* The File service reserves against its limits and the disk is larger than they sum to, so the
+     * disk is never the first to refuse. If it were (a limit raised, a disk lowered), it would say
+     * so with ENOSPC and not hang. */
     format_and_mount();
     make_directories();
     int rc = 0;

@@ -1,5 +1,6 @@
-/* Host stand-in for the devicetree macros that the bench medium glue reads: the geometry of the RAM disk
- * node. The values are the ones of ../../../ram_disk.overlay, which a unit test compares with this. */
+/* Host stand-in for the devicetree macros that the bench medium glue reads: the geometry of the RAM
+ * disk node. The values are the ones of ../../../ram_disk.overlay, which a unit test compares with
+ * this. */
 #ifndef HOST_SHIM_ZEPHYR_DEVICETREE_H
 #define HOST_SHIM_ZEPHYR_DEVICETREE_H
 #define DT_NODELABEL(label) label

@@ -1,4 +1,5 @@
-/* Host override of FatFs's ffconf.h with the options of the bench image's target.conf (Zephyr's own defaults for the rest) */
+/* Host override of FatFs's ffconf.h with the options of the bench image's target.conf (Zephyr's own
+ * defaults for the rest) */
 #undef FF_USE_MKFS
 #define FF_USE_MKFS 1
 #undef FF_CODE_PAGE
