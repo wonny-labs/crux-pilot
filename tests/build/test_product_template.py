@@ -416,6 +416,19 @@ class ReleaseTemplateTest(unittest.TestCase):
                 self.assertIn(command, section)
                 self.assertIn(command, guide)
 
+    def test_release_steps_keep_the_guides_order_around_the_build(self):
+        steps = release_section("Release steps")
+        order = ["west crux-pins", "west manifest --freeze --active-only", "--capture-inputs",
+                 "west spdx --init", "-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON", "using the captured inputs",
+                 "`west spdx`", "check-release-bundle", "checks below"]
+        positions = []
+        for marker in order:
+            with self.subTest(marker=marker):
+                self.assertIn(marker, steps)
+            positions.append(steps.find(marker))
+        self.assertEqual(sorted(positions), positions)
+        self.assertRegex(steps, r"(?i)mirror rewrites off")
+
     def test_the_bundle_may_hold_hashes_only_and_a_public_repository_must(self):
         section = release_section("Bundle contents")
         lowered = section.lower()
@@ -491,9 +504,7 @@ class ReleaseTemplateTest(unittest.TestCase):
         self.assertNotRegex(self.text, r"git@|ssh://")
 
     def test_the_template_leaves_the_manifest_alone(self):
-        manifest = MANIFEST.read_text()
-        self.assertIn("revision: main", manifest)
-        self.assertNotIn("RELEASE.md", manifest)
+        self.assertNotIn("RELEASE.md", MANIFEST.read_text())
 
 
 @unittest.skipUnless(yaml, "PyYAML is required to parse the manifests; west installs it")

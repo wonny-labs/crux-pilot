@@ -62,17 +62,18 @@ The steps in order, with the one command that each is known by. Tick each step w
 2. [ ] Run `west crux-pins`, so that a failure does not burn a tag.
 3. [ ] Freeze the manifest with `west manifest --freeze --active-only`, commit the lock on a release branch and tag it.
 4. [ ] In a fresh workspace, initialise from the tagged frozen manifest, run `west update` and run `west crux-pins` again.
-5. [ ] Build with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`, or record here why another Zephyr release is used on purpose.
-6. [ ] Write the build record with `crux-pilot/scripts/record-build-provenance.py`.
-7. [ ] Write the SBOM with `west spdx`, and reduce it before it goes outward.
-8. [ ] Assemble the release bundle and check it, as described below.
-9. [ ] Fill in the revision and the checks below.
+5. [ ] With mirror rewrites off, capture the build inputs with `crux-pilot/scripts/record-build-provenance.py --capture-inputs` and run `west spdx --init`, both before the build.
+6. [ ] Build with `-DCRUX_REQUIRE_VERIFIED_ZEPHYR=ON`, or record here why another Zephyr release is used on purpose.
+7. [ ] Write the build record with `crux-pilot/scripts/record-build-provenance.py`, using the captured inputs.
+8. [ ] Write the SBOM with `west spdx`, and reduce it before it goes outward.
+9. [ ] Assemble the release bundle and check it with `crux-pilot/scripts/check-release-bundle.py`, as described under Bundle contents.
+10. [ ] Fill in the revision and the checks below.
 
 ## Bundle contents
 
 A release bundle is a folder of text items and one `release-manifest.json` that holds the hash of each other item.
 
-**Hashes only.** A public product repository publishes the SHA-256 of the firmware image, in the release manifest, and nothing more. The image, the `.elf` file and the `.map` file never appear in its bundle, and are never a release asset or a CI artefact. Customers receive the image through a private delivery channel. A bundle of hashes only is the allowed form, and the only form that the provisional checker accepts.
+**Hashes only.** A public product repository publishes the SHA-256 of the firmware image, in the release manifest, and nothing more. The image, the `.elf` file and the `.map` file never appear in its bundle, and are never a release asset or a CI artefact. Customers receive the image through a private delivery channel. A bundle of hashes only is allowed, and it is the only form that the provisional checker accepts. What a private product's bundle may hold is an open question of the checker, listed in `docs/release-bundle-checker.md`.
 
 Mark each item as in this bundle, as a hash only, or as not in it.
 
@@ -121,6 +122,6 @@ Record every check of this release, including those that failed. A check that wa
 
 ## Vulnerability check
 
-Placeholder. A procedure for checking the dependencies against known vulnerabilities in the SBOM before a release is not defined yet. It is an open follow-up of the guide. Record "not run" here until a procedure exists, and do not treat this line as a check.
+Placeholder. A procedure for checking the dependencies against known vulnerabilities in the SBOM before a release is not defined yet. It is an open item of the Crux platform, tracked in `wonny-labs/crux-pilot` issue 301. Record "not run" here until a procedure exists, and do not treat this line as a check.
 
 - Result: `<not run>`
