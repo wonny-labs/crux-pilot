@@ -127,11 +127,12 @@ class Nic(unittest.TestCase):
         with self.assertRaises(Exception):
             adapter.parse_direct_route(route.replace('destination: 192.168.77.0', 'destination: default').replace('interface: en13', 'interface: en0'), HOST)
 
-    def test_the_cloned_host_route_form_is_accepted_and_a_router_flag_is_not(self):
+    def test_the_cloned_host_route_form_is_accepted_and_gateway_forms_are_not(self):
         route = real.text('route_get_cloned_host_proxy')
         self.assertEqual(adapter.parse_direct_route(route, HOST)['route_flags'], ['UP', 'HOST', 'DONE', 'LLINFO', 'WASCLONED', 'IFSCOPE', 'IFREF'])
-        with self.assertRaises(Exception):
-            adapter.parse_direct_route(route.replace('<UP,', '<UP,GATEWAY,'), HOST)
+        for flag in ('GATEWAY', 'ROUTER'):
+            with self.subTest(flag), self.assertRaises(Exception):
+                adapter.parse_direct_route(route.replace('<UP,', '<UP,%s,' % flag), HOST)
 
     def test_the_route_and_carrier_check_accepts_the_active_forms_and_stops_without_carrier(self):
         def checked(texts):

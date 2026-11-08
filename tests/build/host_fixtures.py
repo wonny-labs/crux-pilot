@@ -10,9 +10,9 @@ route, cloned host route). The fakes of the tests are built from these, so a par
 the real tool fails here and not on the first real run.
 
 ``jlink-loadfile-verifybin-restart.log`` is a real J-Link Commander V9.86a transcript of this probe and
-target (``usb 602003106``, ``loadfile``, ``verifybin``, ``r``, ``g``, ``q``), copied from the owner's local
-backup folder (``crux-backup/rt1060/codesys-night-20261104/n50-restore.log``, file dated 2026-11-05) with the
-image path replaced by ``<image>.bin``; it is another firmware and another day than this run.
+target (``usb 602003106``, ``loadfile``, ``verifybin``, ``r``, ``g``, ``q``) from the owner's local backups,
+written on 2026-11-05, with the image path replaced by ``<image>.bin``; it is another firmware and another
+day than this run. The exact source file is recorded in the review record, not in the repository.
 """
 import json
 import os
