@@ -5,7 +5,7 @@
 | Work | Work package WP1a of [issue #296](https://github.com/wonny-labs/crux-pilot/issues/296): Task 0 (re-baseline), Task 1 (MCUboot in the manifest), Task 2 (layout) and the baseline of Task 6. Tasks 3 to 5 and 7 are not done. |
 | Date | Builds and checks run on 8 November 2026, 06:50 to 07:50 UTC. |
 | Evidence class | **Cross-compilation and `native_sim` builds only (build-only).** This is not Host test, CI or physical-board evidence. No image was programmed, booted or run, and no probe, Flash, reset, fuse, HAB or key-generation operation took place. |
-| Labels | **Verified by build**: read from the output of a build that exited 0. **Inference**: derived from source or output, not run. **Not verified**: not checked, or needs a board. |
+| Labels | **Verified by build**: read from the output of a build that exited 0. **Verified by command**: read from the output of a non-build command that exited as stated (`west`, a configure, a test). **Inference**: derived from source or output, not run. **Not verified**: not checked, or needs a board. |
 | Approvals | The scope was approved by the owner on 7 November 2026 for Tasks 0, 1 (steps 1 and 2) and 6 (step 1), with MCUboot's published public test key for build-only signing. The manifest change of Task 1 step 3 and the files of Task 2 were approved by the owner on 8 November 2026. The pull request description quotes both. |
 | Not committed | The build logs and the build directories. The commands below reproduce them. |
 
@@ -59,26 +59,29 @@ Paths are in Zephyr `dccb09599635bdff17633fa7e9dab014b91dce90`. The label is the
 | --- | --- | --- | --- | --- |
 | 1 | `-D<image>_EXTRA_CONF_FILE`, `-D<image>_EXTRA_DTC_OVERLAY_FILE` | `cmake/modules/configuration_files.cmake:95-96` (`zephyr_get(... SYSBUILD LOCAL MERGE REVERSE)`) | A per-image list that is merged with the image's own files and applied after them. | **Verified by build** at v4.4.2 for `mcuboot` and `zephyr` (section 2). |
 | 2 | Image name of the main application | `share/sysbuild/cmake/modules/sysbuild_images.cmake:29-30` | `DEFAULT_IMAGE` is the base name of the application directory. `samples/controller/zephyr` is the image `zephyr`, a product's `app` directory is the image `app`. | Inference. Consistent with section 2, where `-Dzephyr_*` took effect. |
-| 3 | `sysbuild/<image>.conf`, `sysbuild/<image>.overlay` beside the application | `share/sysbuild/cmake/modules/sysbuild_extensions.cmake:263-306`, with the guard at 280-285 | Picked up automatically, but only when `<image>_EXTRA_CONF_FILE` and `<image>_OVERLAY_CONFIG` are not set. The directory is the application's, so a file in this repository is not reached without copying. | Inference. |
+| 3 | `sysbuild/<image>.conf`, `sysbuild/<image>.overlay` beside the application | `share/sysbuild/cmake/modules/sysbuild_extensions.cmake:263-306`, with the `.conf` guard at 280-285 and the `.overlay` guard at about 288-305 | The whole block is skipped when `<image>_CONF_FILE` is set. Otherwise the `.conf` fragment is picked up only when neither `<image>_OVERLAY_CONFIG` nor `<image>_EXTRA_CONF_FILE` is set, and the `.overlay` is picked up when `<image>_DTC_OVERLAY_FILE` is not set. `<image>_EXTRA_DTC_OVERLAY_FILE` does not switch the `.overlay` pick-up off, so naming the same overlay in that argument applies it twice. The directory is the application's, so a file in this repository is not reached without copying. | Inference. |
 | 4 | `sysbuild/<image>/` as the image's configuration directory, with `boards/<board>.conf` and `.overlay` | `share/sysbuild/cmake/modules/sysbuild_extensions.cmake:264-270`, `cmake/modules/configuration_files.cmake:33-42, 71-72` | Board files per image, again beside the application. | Inference. Same limit as row 3. |
 | 5 | `sysbuild.conf` and `SB_EXTRA_CONF_FILE` | `share/sysbuild/cmake/modules/sysbuild_kconfig.cmake:40-50` | The `SB_CONFIG_*` options, from a file beside the application or from a named file. | Inference. The three `SB_CONFIG_*` options were passed with `-D` in section 2, which is the form documented. |
 | 6 | Snippets, `SNIPPET`, `<image>_SNIPPET`, `snippet_root` of a module | `share/sysbuild/cmake/modules/sysbuild_snippets.cmake:5-14`, `cmake/modules/snippets.cmake:62, 95-104`, `doc/develop/modules.rst:929-934` | A snippet named with `-D<image>_SNIPPET` could carry a board's conf and overlay and be found through a module's `snippet_root`, so the product would pass a name and no paths. Crux's `zephyr/module.yml` has no `snippet_root`. | Inference. Not tried. |
-| 7 | MCUboot module directory and default key | `share/sysbuild/images/bootloader/CMakeLists.txt:6-18`, `share/sysbuild/images/bootloader/Kconfig:197-203` | The bootloader image is built from `ZEPHYR_MCUBOOT_MODULE_DIR`. The ECDSA P-256 key defaults to `<module>/root-ec-p256.pem`. | **Verified by build**: the build used the default path and logged the warning that it is for debug use. |
+| 7 | MCUboot module directory and default key | `share/sysbuild/images/bootloader/CMakeLists.txt:6-18`, `share/sysbuild/images/bootloader/Kconfig:197-203` | The bootloader image is built from `ZEPHYR_MCUBOOT_MODULE_DIR`. The ECDSA P-256 key defaults to `<module>/root-ec-p256.pem`. | **Verified by command** for the default: a `--cmake-only` configure without the key argument exits 0 and logs the warning that the default key is for debug use. The one full build passed the same path explicitly and logged the same warning, so a signing build without the key argument is **Inference**. |
 | 8 | Confirmed image for RAM load with revert | `modules/Kconfig.mcuboot:274`, commit `c219dde148e` (1 July 2026, in v4.4.2, not in v4.4.0) | `MCUBOOT_BOOTLOADER_MODE_RAM_LOAD_WITH_REVERT` implies `MCUBOOT_GENERATE_CONFIRMED_IMAGE`. | **Verified by build** that `zephyr.signed.confirmed.bin` is produced (finding F4). |
 
-## 4. Layout chosen for the composition
+## 4. Layout of the composition files (open owner question)
 
-**Decision proposed for review.**
+**Not decided here.** The four files need a home in this repository, and the home is a structure decision for the owner. `docs/architecture.md` holds a pending proposal, "Layout and naming of samples (proposed)", which says that a sample is one folder with a `README.md` and `host/` and `zephyr/` compositions (rules 1 to 5), with `boards/` and overlays under `zephyr/`. A folder of board files alone is not a sample under that proposal. The paths in [the build documentation](../../boot-composition.md) are therefore provisional.
 
-| Question | Choice |
-| --- | --- |
-| Where the files live | `samples/boot_composition/boards/<board>/` with `mcuboot.conf`, `mcuboot.overlay`, `app.conf` and `app.overlay`. For the RT1060-EVK Rev B, the board directory is `mimxrt1060_evk_mimxrt1062_qspi_B`, as in `samples/storage_emmc/boards/`. |
-| How a product selects it | The eight arguments of [the build documentation](../../boot-composition.md#the-argument-set): three `SB_CONFIG_*` options and four per-image file arguments (mechanism 1), plus `ZEPHYR_EXTRA_MODULES`. Nothing is copied. |
-| Why this | Mechanisms 3 to 5 look only beside the application, so a product repository would have to copy files. Mechanism 1 is the one that was built, and it takes a path. `samples/` is where this repository keeps composition files, so no new top-level directory and no new public contract is needed. The files contain a board's memory placement and nothing of an application, which keeps them valid for any application on that board. |
-| Public surface | None added: no header, no CMake target, no Kconfig symbol. The argument set is documentation. `CONTRIBUTING.md` keeps sample-owned files out of the platform API, and the guide says so. |
-| Rejected | Files copied by the product (the plan's other option). A `sysbuild/` directory in a Crux sample as the only route (works for a Crux sample, not for a product). Snippets (mechanism 6): an attractive route with a name and no paths, but not tried. It can replace the paths later without changing the files' content. |
-| The M7 reference composition | Unchanged. The files are added beside it, and no file under `samples/controller/` is touched. |
-| Open | The slot sizes in the overlays are provisional until a product measures its image with the boot loader. Whether the application overlay may stay board-level once a product has its own flash layout is a question for the task that adds the files. |
+What does not depend on the answer: a product selects the files with the per-image arguments (mechanism 1), which take any path, so moving the files later changes only the paths in the documentation. Mechanisms 3 to 5 look only beside the application, so a product repository would have to copy files, and the composition does not use them. No public surface is added by any option: no header, no CMake target, no Kconfig symbol. The files hold a board's memory placement and nothing of an application. The M7 reference composition and `samples/controller/` are untouched under every option.
+
+| Option | Files | For | Against |
+| --- | --- | --- | --- |
+| A | `samples/boot_composition/boards/<board>/` (the path used in the documentation for now) | `samples/` is where this repository keeps composition files | Not a sample under the pending proposal (no application, no `README.md` of evidence, no `zephyr/` folder). The proposal would have to admit it, or A conflicts with it. |
+| B | A folder of the Crux module, for example `zephyr/boot/<board>/` | Module-owned and not a sample, so the sample proposal does not apply | Puts build inputs in the module root next to `module.yml`, `CMakeLists.txt` and `Kconfig`. Nothing now keeps data files there. |
+| C | A real boot sample, `samples/<name>/` with a `README.md` and `zephyr/boards/`, whose board files a product points at | Fits the proposal | It is a sample application, which is more than WP1a builds. |
+| D | A new top-level folder | Separates build recipes from samples | A new top-level structure, which is the largest decision of the four. |
+
+Existing board files in `samples/` are one file per board, for example `samples/storage_emmc/boards/mimxrt1060_evk_mimxrt1062_qspi_B.overlay`. This composition needs four files per board (an MCUboot and an application `.conf` and `.overlay`), so a directory per board would be new.
+
+Other points, not owner questions: snippets (mechanism 6) could replace the paths with a name, but were not tried. The slot sizes in the overlays are provisional until a product measures its image with the boot loader.
 
 ## 5. Task 1: `mcuboot` in a group `crux-boot` (scratch workspace)
 
@@ -89,13 +92,13 @@ The manifest change was first tried in a scratch clone (the repository `west.yml
 | Group defined, default filter | `west manifest --validate` exit 0. `west list --all` shows `mcuboot` in `crux-boot`, with no clash with Zephyr's `name-allowlist`. `west update` fetches nothing for it. `west crux-pins` is identical to the unmodified manifest. |
 | `+crux-boot` | `west update` clones exactly `6d3b3d2c`. `west crux-pins` adds `OK mcuboot 6d3b3d2c38ab` and reports `OK` for the rest. |
 | Filter removed again | `mcuboot` is inactive again, the checkout stays on disk, `west crux-pins` is identical to the first state. |
-| Sysbuild configure (`--cmake-only`) | With the group on, the section 2 arguments without `-DEXTRA_ZEPHYR_MODULES` exit 0 and `mcuboot` is a Zephyr module. With the group off and the checkout still on disk, configure exits 1 with `No download info given for 'mcuboot'`. |
+| Sysbuild configure (`--cmake-only`) | With the group on, the section 2 arguments without `-DEXTRA_ZEPHYR_MODULES` and without the key argument exit 0, `mcuboot` is a Zephyr module, and the default-key warning is logged. With the group off and the checkout still on disk, configure exits 1 with `No download info given for 'mcuboot'`. A **full build** of that argument set was not run. |
 
-All **Verified** by the commands named. The repository tests are listed in the pull request.
+All **Verified by command**, with the commands named above. The repository tests are listed in the pull request.
 
 ## 6. The M7 baseline
 
-Builds of the M7 configurations of `scripts/test-controller.sh` and `scripts/test-controller-integration.sh`, with the scripts' arguments and the build directories outside the repository. All 12 exited 0. `firmware_identity` and its digest come from `firmware_identity()` and `firmware_digest()` of `scripts/record-build-provenance.py`, target `mimxrt1060_evk@B//qspi`. The full records are in [`m7-baseline-1447750.json`](m7-baseline-1447750.json).
+Builds of the M7 configurations of `scripts/test-controller.sh` and `scripts/test-controller-integration.sh`, with the scripts' arguments and the build directories outside the repository. All 12 exited 0. `firmware_identity` and its digest come from `firmware_identity()` and `firmware_digest()` of `scripts/record-build-provenance.py`, target `mimxrt1060_evk@B//qspi`. The full records are in [`m7-baseline-1447750.json`](m7-baseline-1447750.json). The file holds only the per-build records. The revision, date, Zephyr pin and tool versions are in section 1.
 
 | Configuration | `zephyr.bin` B | `zephyr.bin` SHA-256 | `firmware_digest` |
 | --- | --- | --- | --- |
@@ -118,16 +121,18 @@ Not built: the Twister suites and `test_driver.py` of `test-controller-integrati
 
 ## 7. Findings
 
-- **F1. `main` moved.** The plan cited `ce50bcf`. The measurement is at `1447750` and the pull request base is `3ef758d`, with no firmware input changed in between (section 1).
-- **F3. The public test key is the sysbuild default.** No key argument and no key generation is needed for a build-only slice (section 3, row 7).
-- **F4. The build also writes a padded, confirmed image.** `zephyr.signed.confirmed.bin` is 3,145,728 B, the slot size, with MCUboot's trailer magic and the confirm flag at the end. It follows from a Zephyr change after v4.4.0 (section 3, row 8). It bears on the earlier note in Stage 5 section 9 that the default signed image would be erased by RAM load with revert, and on owner decision 13 about padded test images: the stock build now makes the padded variant itself. How MCUboot treats it is **Not verified**.
+- **F1. `main` moved.** The revision named when the work started, `ce50bcf`, is older than `1447750`. Between them `zephyr/CMakeLists.txt` (+20), `zephyr/Kconfig` (+80) and four scripts under `scripts/` (`test-file-emmc-compile.sh`, `test-native-composition.sh`, `test-ssh-integrated.sh`, `test-storage-emmc.sh`) changed, so the measurements use `1447750`. Between `1447750` and the pull request base `3ef758d` only files under `docs/`, `tests/build/` and `tests/target/` changed (**Inference**: the builds were not repeated, section 1). `west.yml` and `samples/controller/` did not change in either range.
+- **F3. The public test key is the sysbuild default.** A configure needs no key argument and no key generation, and a build-only slice needs no generated key (section 3, row 7). A full signing build without the key argument was not run (**Inference**).
+- **F4. The build also writes a padded, confirmed image.** `zephyr.signed.confirmed.bin` is 3,145,728 B, the slot size, with MCUboot's trailer magic and the confirm flag at the end. It follows from a Zephyr change after v4.4.0 (section 3, row 8). It bears on the earlier note in Stage 5 section 9 that the default signed image would be erased by RAM load with revert, and on owner decision 13 about padded test images: the stock build now makes the padded variant itself. How MCUboot treats it is **Not verified**. The `docs/boot-update-investigation.md` rows on decision 13 and two others say that RAM load with revert does not imply a confirmed image. They describe v4.4.0 and need a follow-up (this record does not edit that file).
 - **F5. imgtool dependencies.** The Python of the bootstrapped Dev Container has no `cryptography` and no `cbor2`, which imgtool imports (**Inference**: no build was run there). A signing build needs a Python environment that has them. Changing the Dev Container is outside this pull request.
 - **F6. `native_sim` has no `zephyr.bin`** and its `zephyr.exe` depends on the build path (section 6).
+
+Finding numbers follow the list of the original run. The gaps are intentional: F2 concerned the author's own workspace and F7 and F8 are folded into section 2 and the header.
 
 ## 8. Not verified
 
 - Anything about booting: ROM acceptance of the layout, the jump into the application, shared boot information, confirm and revert, and the padded image. A board is needed.
 - Rejection of an oversized or misaligned image, and reproducibility of the bootloader and signed output (later WP1a tasks).
-- A build through the `crux-boot` group alone, and a build from the `samples/boot_composition/` files (the files are not added yet).
+- A full build of the published argument set (group route, no key argument, no `-DEXTRA_ZEPHYR_MODULES`), and a build from the composition files at any repository path (the files are not added yet).
 - Rank 2 (swap using offset) at the current pin, and the RT1170-EVK Rev A1 bootloader build.
 - The `west update` behaviour of an unmodified product repository that imports this manifest, beyond the repository's own workspace test.
