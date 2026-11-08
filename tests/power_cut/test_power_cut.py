@@ -212,13 +212,14 @@ class PowerCutTest(unittest.TestCase):
     def test_an_unexpected_error_after_the_cut_is_logged_and_exits_6_not_1(self):
         sys.path.insert(0, os.path.join(HERE, "..", "..", "scripts"))
         import power_cut
-        original = power_cut.time.sleep
-        def boom(_seconds):
+        original = power_cut.parse_reading
+        def boom(_output):
             raise RuntimeError("simulated")
-        power_cut.time.sleep = boom
-        self.addCleanup(setattr, power_cut.time, "sleep", original)
+        # parse_reading is reached by the wrapper only, so no library call can hit the patch.
+        power_cut.parse_reading = boom
+        self.addCleanup(setattr, power_cut, "parse_reading", original)
         status = power_cut.main(["--off-cmd", py("pass"), "--read-cmd", py("print(0)"),
-                                 "--pause", "0.2", "--max-mv", "300", "--read-timeout", "2",
+                                 "--pause", "0", "--max-mv", "300", "--read-timeout", "2",
                                  "--log", self.log])
         self.assertEqual(status, 6)
         record = self.records()[-1]
