@@ -344,16 +344,31 @@ def real_parts(args, guard_session):
     return preconditions, probe, acquire
 
 
-def main(argv=None):
+def build_parser():
+    from prepare_m5_network import M5_NAME, PROFILES
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('mode', choices=MODES)
     parser.add_argument('--execute-hardware', action='store_true', required=True)
     for name in ('plan', 'approval', 'manifest', 'entry-manifest', 'recovery-manifest', 'guard-session', 'evidence'):
         parser.add_argument('--' + name, required=True, type=Path)
     parser.add_argument('--candidate', action='append', default=[], type=Path, help='identify: manifest of an image to compare, repeatable')
-    args = parser.parse_args(argv)
-    from prepare_m5_network import verify
-    plan, approval, m5, entry, normal = load_inputs(args, verify_m5=verify, verify_m3=capture_m3.verify_manifest,
+    parser.add_argument('--profile', choices=sorted(PROFILES), default=M5_NAME,
+                        help='image profile of --manifest (image facts only; the safety gates are the same for every profile)')
+    return parser
+
+
+def bind_profile(name):
+    """The selected profile and the one manifest verification of it that the driver uses everywhere."""
+    from prepare_m5_network import profile_named, verify
+    profile = profile_named(name)
+    return profile, lambda manifest, digest: verify(manifest, digest, profile)
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    profile, verify_profile = bind_profile(args.profile)
+    plan, approval, m5, entry, normal = load_inputs(args, verify_m5=verify_profile,
+                                                    verify_m3=capture_m3.verify_manifest,
                                                     verify_tools=capture_m3.verify_jlink_tools)
     candidates = [(m['profile'], m['binary']) for m in (capture_m3.verify_manifest(path) for path in args.candidate)]
     images = {Path(m5['files']['binary']).as_posix(): sha(m5['files']['binary']), Path(entry['binary']).as_posix(): sha(entry['binary']),
@@ -364,7 +379,7 @@ def main(argv=None):
     preconditions, probe, acquire = real_parts(args, guard_session)
 
     def reverify():
-        verify(args.manifest, plan['manifest_sha256'])
+        verify_profile(args.manifest, plan['manifest_sha256'])
         capture_m3.verify_manifest(args.entry_manifest)
         capture_m3.verify_manifest(args.recovery_manifest)
         require(runner.sha(args.entry_manifest) == plan['entry_manifest_sha256'] and
