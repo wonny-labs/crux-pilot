@@ -533,7 +533,7 @@ unchanged. The mount-check image prints `emmc_storage_start: 0` on the formatted
 neither run sends the simulator a write request; the default image prints nothing and writes nothing. The append and the
 replace images are killed with `SIGKILL` after the run itself has printed at least 200 ACK or GEN lines (counted per run, because a
 replace run continues at the next generation number; a seeded few more, and a short seeded pause, so that the kill
-lands at varying points), and restarted five times. The summary prints the seed and the number of lines of each run. Every report of the
+lands at varying points), and restarted five times. The first output line prints the seed, and each passing line the number of lines of each run. Every report of the
 append image must hold at least the last ACK seen and no damaged record. After the first generation, `cfg` of the
 replace image must be valid and no older than the last GEN printed; leftover temporaries are counted and printed. A
 `SIGKILL` drops the simulated cache and keeps the image file. It is not a power cut.
