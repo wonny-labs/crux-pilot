@@ -438,7 +438,7 @@ This is a convention. A first schema and checker exist in a product repository. 
 
 | Item | Source | Audience |
 | --- | --- | --- |
-| Firmware image | `build/app/zephyr/zephyr.bin` | Outward to customers through a private delivery channel only. In a public repository, publish only its SHA-256, in the release manifest. Never attach the image, `.elf` or `.map` as a release asset or CI artefact |
+| Firmware image | `build/app/zephyr/zephyr.bin` | Outward to customers through a private delivery channel only. In a public product repository, publish only its SHA-256, in the release manifest. Never attach the image, `.elf` or `.map` as a release asset or CI artefact |
 | `licences/` | The licence texts of what the image contains | Outward |
 | Outward SBOM | Reduced by the product from the full set | Customers |
 | `release-manifest.json` | Product version, security counter, release tag, SDK version, container image, hashes of the bundle's items. Per vendor project, its delivery tag and the hash of its hash list. Each module replaced under a new name. Any other delivery the build record does not cover | Internal |
@@ -449,7 +449,7 @@ This is a convention. A first schema and checker exist in a product repository. 
 | Full SBOM | `build/app/spdx/` | Internal. Authorities receive it on request |
 | Debug files | `build/app/zephyr/zephyr.elf` and `zephyr.map` | Internal only |
 
-A public repository publishes hashes only. This is the owner's binaries policy for public repositories: the firmware image, `.elf` and `.map` are never a release asset or a CI artefact, and customers receive the image through a private delivery channel.
+A public product repository publishes hashes only. This is the owner's binaries policy for product repositories: the firmware image, `.elf` and `.map` are never a release asset or a CI artefact, and customers receive the image through a private delivery channel. The rule is not a Crux-wide rule. The CI of crux-pilot itself uploads test and sample images built from public source (ELF, BIN and map files, kept 14 days) as provenance checks and board-test evidence, an exception the owner accepted.
 
 Repairing identity and adding prebuilt libraries applies from the first release, also for the internal set. See [SBOM](#sbom). The reduction tool waits until an SBOM first goes outward.
 
