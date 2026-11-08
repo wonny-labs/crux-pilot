@@ -70,6 +70,10 @@ build, clean command or native test run fails. Run
 `python3 -m unittest discover -s tests/build -v` on Linux; host CI runs it too.
 No additional test framework is required.
 
+`tests/build/test_compat_table.py` holds the checks of `scripts/gen-compat-table.py`, the provisional
+compatibility table generator, see [the compatibility table](../docs/compatibility-table.md). The cases
+that parse a manifest need PyYAML and skip without it.
+
 `tests/build/test_release_bundle.py` holds the checks of the provisional release bundle checker,
 `scripts/check-release-bundle.py`, and of its schema. They write small bundles by hand and need no
 west workspace or Zephyr build. See [the release bundle checker](../docs/release-bundle-checker.md) for

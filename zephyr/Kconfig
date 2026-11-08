@@ -230,8 +230,9 @@ config CRUX_FILE_RELIANCE_EDGE
       distributed. No physical-board result exists for this selection.
 
 # The USDHC HAL invalidates a read target by whole D-cache lines when a transfer completes, so the
-# RT1060 selections and Reliance Edge take line-aligned targets only. file_native.c and the
-# adapter refuse a smaller SDHC value.
+# RT1060 selections and Reliance Edge take line-aligned targets only. With an SD host and a data
+# cache, file_native.c refuses a value below the cache line size. With an SD host, the Reliance Edge
+# adapter refuses a REDCONF_BUFFER_ALIGNMENT below this value.
 configdefault SDHC_BUFFER_ALIGNMENT
     default 32 if CRUX_FILE_FATFS_RT1060 || CRUX_FILE_FATFS_RT1060_COMPILE_CHECK || \
                   CRUX_FILE_RELIANCE_EDGE
