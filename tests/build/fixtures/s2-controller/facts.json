@@ -33,6 +33,17 @@
       "fatfs": ["modules/fs/fatfs", "f4ead3bf4a6dab3a07d7b5f5315795c073db568d"],
       "littlefs": ["modules/fs/littlefs", "8f5ca347843363882619d8f96c00d8dbd88a8e79"]
     },
+    "pin_updates": {
+      "crux-pilot": {
+        "from": "db5adca28bd313caaf3899e959920fac4d508699",
+        "to": "37c92b18b44b7dfb95c2109f036f23d00f05cb4c",
+        "product_commit": "c36f00c1ca6da08ac8559b7a1260f0d133b141d4",
+        "manifest_diff_between_the_two_pins": "empty",
+        "unchanged_pins": "zephyr, cmsis, cmsis_6, hal_nxp, fatfs, littlefs; picolibc is pinned at 01254932e8e81085817ed61fd858648584ffe37c by the product manifest, as before",
+        "image_identity": "reported unchanged by the product session; not recomputed here",
+        "note": "build_modules above records the measured build of image_source_commit and is kept as history. The S2 profile expects the 'to' pin."
+      }
+    },
     "module_selection": "west module discovery; the build lists these seven projects (and not a -DZEPHYR_MODULES list) as its modules"
   },
   "measured_symbols_bytes": {
