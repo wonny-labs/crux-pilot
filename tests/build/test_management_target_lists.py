@@ -52,6 +52,12 @@ class ManagementTargetLists(unittest.TestCase):
         start = start.replace('#include "test_tls_credentials.h"\n', "")
         start = start.replace("#include <ff.h>\n", "#include <errno.h>\n#include <ff.h>\n", 1)
         start = start.replace('#include "crux_native_management.h"\n', HEAD_START, 1)
+        # Row C3 (D2): the medium is mounted by bench_medium.c, which formats a RAM disk and never a card. The copy
+        # has no format call, no disk name of its own and no mount structure.
+        start = start.replace('#define MOUNT_POINT "/SD:"\n#define DISK_NAME "SD:"\n',
+                              "#define MOUNT_POINT BENCH_MEDIUM_MOUNT_POINT\n", 1)
+        start = start.replace(MOUNT_STRUCT, "", 1)
+        start = start.replace(MOUNT_AND_FORMAT, MOUNT_BY_THE_BENCH_MEDIUM, 1)
         # The first account with the public test password has no copy: the bench image's is bench_first_account.h.
         first = start.index("crux_access_result_t crux_native_management_provision_test_account(void)")
         start = start[:first] + start[start.index("crux_access_result_t crux_native_management_login"):]
@@ -74,14 +80,17 @@ class ManagementTargetLists(unittest.TestCase):
 
 
 HEAD_START = """/* RT1060-EVKB bench image: a copy of
- * tests/native/management_composition/composition/crux_native_management.c with two differences.
+ * tests/native/management_composition/composition/crux_native_management.c with three differences.
  * The TLS credentials: the native file includes the declared test certificate, whose header refuses
  * any build that is not native_sim, so this copy hands the generated certificate and the store's
  * key to the TLS credentials, as docs/tls-certificate.md step 6 says. And the first account: the
  * native file's step uses a password that is public in this repository, so this copy has no such
- * step, and the bench image's first account is bench_first_account.h (D3). Nothing else is
+ * step, and the bench image's first account is bench_first_account.h (D3). And the medium: the
+ * native file formats the disk when the first mount fails, which would format a card, so this copy
+ * mounts through bench_medium.h (D2), which formats a RAM disk and never a card. Nothing else is
  * changed. */
 #include "bench_guard.h"
+#include "bench_medium.h"
 #include "crux_native_management.h"
 #include <crux_tls_certificate_adapter.h>
 """
@@ -90,6 +99,24 @@ HEAD_SERVICES = """/* RT1060-EVKB bench image: a copy of tests/native/management
  * key, in place of the declared test certificate, and whose certificate names the bench address. */
 #include "bench_guard.h"
 #include "crux_native_management_services.h"
+"""
+MOUNT_STRUCT = """static FATFS fat;
+static struct fs_mount_t mount = {
+    .type = FS_FATFS,
+    .mnt_point = MOUNT_POINT,
+    .fs_data = &fat,
+    .flags = FS_MOUNT_FLAG_NO_FORMAT,
+};
+"""
+MOUNT_AND_FORMAT = """    if (fs_mount(&mount) != 0) {
+        if (fs_mkfs(FS_FATFS, (uintptr_t)DISK_NAME, NULL, 0) != 0 || fs_mount(&mount) != 0) {
+            return false;
+        }
+    }
+"""
+MOUNT_BY_THE_BENCH_MEDIUM = """    if (!bench_medium_mount()) {
+        return false;
+    }
 """
 TLS_FUNCTION = """int crux_mgmt_rt1060_tls_credentials(int sec_tag)
 {

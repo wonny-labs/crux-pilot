@@ -48,6 +48,10 @@ config NET_IPV6
 	bool "stub"
 config RTC
 	bool "stub"
+config DISK_DRIVER_RAM
+	bool "stub"
+config DISK_DRIVER_SDMMC
+	bool "stub"
 source "{kconfig_bench}"
 """
 
@@ -95,7 +99,7 @@ class Tree:
 # ---- CMake level -----------------------------------------------------------------------------------------------
 
 
-def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=None):
+def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=None, states=None):
     """A stand-in for the build-local Zephyr copy, and a declaration copy that names its hash."""
     patch = tree.declaration["patched_zephyr"]
     base = Path(directory) / "zephyr"
@@ -105,16 +109,33 @@ def make_zephyr_base(tree, directory, marker=None, patched_text="patched", pin=N
     pin = pin or patch["zephyr_pin"]
     if marker is not False:
         (base / patch["marker_file"]).write_text(marker or f"{pin} {patch['patch_sha256']}\n")
-    declaration = json.loads(json.dumps(tree.declaration))
+    declaration = declared_with(tree, states)
     declaration["patched_zephyr"]["patched_file_sha256"] = hashlib.sha256(patched_text.encode()).hexdigest()
     declared = Path(directory) / "declaration.json"
     declared.write_text(json.dumps(declaration))
     return base, declared
 
 
-def good_cmake_settings(tree):
-    net = tree.declaration["network"]
-    listeners = tree.declaration["listeners"]
+def declared_with(tree, states=None):
+    """A copy of the declaration, with the state of some test forms changed: {form name: state}."""
+    declaration = json.loads(json.dumps(tree.declaration))
+    for name, state in (states or {}).items():
+        declaration["test_forms"][name]["state"] = state
+    return declaration
+
+
+def backend_settings(declaration):
+    """The File provider and disk drivers that the declared file backend goes with (row C3, D2)."""
+    forms = declaration["test_forms"]
+    if forms["microsd_card"]["state"] == "selected":
+        return {"CONFIG_CRUX_FILE_FATFS_RT1060": "y", "CONFIG_DISK_DRIVER_SDMMC": "y"}
+    return {"CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": "y", "CONFIG_DISK_DRIVER_RAM": "y"}
+
+
+def good_cmake_settings(tree, declaration=None):
+    declaration = declaration or tree.declaration
+    net = declaration["network"]
+    listeners = declaration["listeners"]
     settings = {
         "CRUX_MANAGEMENT_BENCH_IMAGE": "ON",
         "CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI": "y",
@@ -133,8 +154,10 @@ def good_cmake_settings(tree):
         "CONFIG_CRUX_WEB_PORT": str(listeners["https_port"]),
         "CONFIG_CRUX_SSH_PORT": str(listeners["ssh_port"]),
     }
-    for symbol in tree.selected_forms():
-        settings[f"CONFIG_{symbol}"] = "y"
+    for form in declaration["test_forms"].values():
+        if form["state"] == "selected":
+            settings[f"CONFIG_{form['symbol']}"] = "y"
+    settings.update(backend_settings(declaration))
     return settings
 
 
@@ -185,6 +208,34 @@ def cmake_cases(tree):
         ("mkfs on mount", {"CONFIG_FS_FATFS_MOUNT_MKFS": "y"}, "never formats a card"),
         ("an unknown bench test form", {"CONFIG_CRUX_BENCH_INVENTED_FORM": "y"},
          "does not list"),
+        # The file backend (row C3, D2): the provider, the disk drivers and the form agree, and no card is reachable.
+        ("no RAM disk provider", {"CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": None},
+         "needs the RAM disk File provider and the RAM disk driver"),
+        ("no RAM disk driver", {"CONFIG_DISK_DRIVER_RAM": None},
+         "needs the RAM disk File provider and the RAM disk driver"),
+        ("the SD card driver in the RAM disk image", {"CONFIG_DISK_DRIVER_SDMMC": "y"}, "has no card"),
+        ("the USDHC host in the RAM disk image", {"CONFIG_IMX_USDHC": "y"}, "has no card"),
+        ("the microSD provider in the RAM disk image", {"CONFIG_CRUX_FILE_FATFS_RT1060": "y"}, "has no card"),
+        ("a flash disk in the RAM disk image", {"CONFIG_DISK_DRIVER_FLASH": "y"}, "has no card"),
+        ("both file forms declared selected and set",
+         {"DECLARATION_STATES": {"microsd_card": "selected"}, "CONFIG_CRUX_BENCH_FILE_MICROSD": "y"},
+         "has exactly one file backend"),
+        ("no file form declared selected and none set",
+         {"DECLARATION_STATES": {"ram_disk": "reserved"}, "CONFIG_CRUX_BENCH_FILE_RAM_DISK": None,
+          "CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": None, "CONFIG_DISK_DRIVER_RAM": None},
+         "needs a file backend"),
+        ("the microSD form declared selected, with no microSD provider",
+         {"DECLARATION_STATES": {"ram_disk": "reserved", "microsd_card": "selected"},
+          "CONFIG_CRUX_FILE_FATFS_RT1060": None}, "needs the microSD File provider and the SD card driver"),
+        ("the microSD form declared selected, with no SD card driver",
+         {"DECLARATION_STATES": {"ram_disk": "reserved", "microsd_card": "selected"},
+          "CONFIG_DISK_DRIVER_SDMMC": None}, "needs the microSD File provider and the SD card driver"),
+        ("the microSD form declared selected, with the RAM disk provider",
+         {"DECLARATION_STATES": {"ram_disk": "reserved", "microsd_card": "selected"},
+          "CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": "y"}, "has no RAM disk"),
+        ("the microSD form declared selected, with the RAM disk driver",
+         {"DECLARATION_STATES": {"ram_disk": "reserved", "microsd_card": "selected"},
+          "CONFIG_DISK_DRIVER_RAM": "y"}, "has no RAM disk"),
     ]
     for name, form in tree.declaration["test_forms"].items():
         symbol = f"CONFIG_{form['symbol']}"
@@ -227,8 +278,23 @@ def check_cmake(tree):
         control = run_cmake(tree, good_cmake_settings(tree), zephyr, declaration)
         if control.returncode != 0 or "bench guard passed" not in control.stderr + control.stdout:
             failures.append(f"bench_guard.cmake refused the declared bench: {squeeze(control.stderr)}")
+        # The microSD state of the declaration, which a later run would take, is accepted by the same guard with
+        # the card's provider and driver, and is what the RAM disk settings above are refused under.
+        card_dir = Path(scratch) / "card"
+        card_dir.mkdir()
+        card_states = {"ram_disk": "reserved", "microsd_card": "selected"}
+        zephyr, declaration = make_zephyr_base(tree, card_dir, states=card_states)
+        card = run_cmake(tree, good_cmake_settings(tree, declared_with(tree, card_states)), zephyr, declaration)
+        if card.returncode != 0 or "bench guard passed" not in card.stderr + card.stdout:
+            failures.append(f"bench_guard.cmake refused the microSD state of the declaration: {squeeze(card.stderr)}")
+        zephyr, declaration = make_zephyr_base(tree, card_dir, states=card_states)
+        under_card = run_cmake(tree, good_cmake_settings(tree), zephyr, declaration)
+        if under_card.returncode == 0 or "is declared selected" not in squeeze(under_card.stderr):
+            failures.append("bench_guard.cmake accepted the RAM disk settings under the microSD state: "
+                            f"{squeeze(under_card.stderr)}")
         for index, (name, change, reason) in enumerate(cmake_cases(tree)):
-            settings = good_cmake_settings(tree)
+            states = change.get("DECLARATION_STATES")
+            settings = good_cmake_settings(tree, declared_with(tree, states))
             case_dir = Path(scratch) / f"case{index}"
             case_dir.mkdir()
             broken = change.get("ZEPHYR_BASE_BROKEN")
@@ -243,9 +309,9 @@ def check_cmake(tree):
                 zephyr, declaration = make_zephyr_base(tree, case_dir)
                 (zephyr / tree.declaration["patched_zephyr"]["patched_file"]).write_text("another file")
             else:
-                zephyr, declaration = make_zephyr_base(tree, case_dir)
+                zephyr, declaration = make_zephyr_base(tree, case_dir, states=states)
             for key, value in change.items():
-                if key == "ZEPHYR_BASE_BROKEN":
+                if key in ("ZEPHYR_BASE_BROKEN", "DECLARATION_STATES"):
                     continue
                 if value is None:
                     settings.pop(key, None)
@@ -273,6 +339,12 @@ C_GUARD_MESSAGES = (
     "HTTPS listener must listen on the bench address only",
     "SSH listener must listen on the bench address only",
     "declared only with CONFIG_CRUX_BENCH_TEST_HOST_KEY",
+    "A mount never formats a card",
+    "has exactly one file backend",
+    "needs the RAM disk File provider and the RAM disk driver",
+    "The RAM disk image has no card",
+    "needs the microSD File provider and the SD card driver",
+    "The microSD image has no RAM disk",
 )
 
 
@@ -290,6 +362,10 @@ def good_c_definitions(tree):
         "CONFIG_CRUX_WEB_BIND_ADDRESS": f'"{net["address"]}"',
         "CONFIG_CRUX_SSH_BIND_ADDRESS": f'"{net["address"]}"',
         "CONFIG_CRUX_BENCH_TEST_HOST_KEY": "1",
+        # The file backend of the declared bench: the RAM disk (row C3, D2).
+        "CONFIG_CRUX_BENCH_FILE_RAM_DISK": "1",
+        "CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": "1",
+        "CONFIG_DISK_DRIVER_RAM": "1",
     }
 
 
@@ -318,6 +394,40 @@ def c_cases(tree):
          "SSH listener must listen on the bench address only"),
         ("SSH on 0.0.0.0", {"CONFIG_CRUX_SSH_BIND_ADDRESS": '"0.0.0.0"'},
          "SSH listener must listen on the bench address only"),
+        ("mkfs on mount", {"CONFIG_FS_FATFS_MOUNT_MKFS": "1"}, "A mount never formats a card"),
+        ("both file forms", {"CONFIG_CRUX_BENCH_FILE_MICROSD": "1"}, "has exactly one file backend"),
+        ("the RAM disk form without its provider", {"CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": None},
+         "needs the RAM disk File provider and the RAM disk driver"),
+        ("the RAM disk form without its driver", {"CONFIG_DISK_DRIVER_RAM": None},
+         "needs the RAM disk File provider and the RAM disk driver"),
+        ("the SD card driver in the RAM disk image", {"CONFIG_DISK_DRIVER_SDMMC": "1"}, "The RAM disk image has no card"),
+        ("the USDHC host in the RAM disk image", {"CONFIG_IMX_USDHC": "1"}, "The RAM disk image has no card"),
+        ("the microSD provider in the RAM disk image", {"CONFIG_CRUX_FILE_FATFS_RT1060": "1"},
+         "The RAM disk image has no card"),
+        ("a flash disk in the RAM disk image", {"CONFIG_DISK_DRIVER_FLASH": "1"}, "The RAM disk image has no card"),
+    ] + microsd_c_cases()
+
+
+def card_definitions(good):
+    """The definitions of a build that took the microSD state of the declaration, as a later run would."""
+    card = dict(good)
+    card.update({"CONFIG_CRUX_BENCH_FILE_RAM_DISK": None, "CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": None,
+                 "CONFIG_DISK_DRIVER_RAM": None, "CONFIG_CRUX_BENCH_FILE_MICROSD": "1",
+                 "CONFIG_CRUX_FILE_FATFS_RT1060": "1", "CONFIG_DISK_DRIVER_SDMMC": "1"})
+    return card
+
+
+def microsd_c_cases():
+    """Cases that break the microSD state: a change to the card definitions, and the reason."""
+    return [
+        ("the microSD form without its provider", {"CONFIG_CRUX_FILE_FATFS_RT1060": None, "__card": True},
+         "needs the microSD File provider and the SD card driver"),
+        ("the microSD form without the SD card driver", {"CONFIG_DISK_DRIVER_SDMMC": None, "__card": True},
+         "needs the microSD File provider and the SD card driver"),
+        ("the microSD form with the RAM disk provider", {"CONFIG_CRUX_FILE_FATFS_RT1060_RAM_DISK": "1", "__card": True},
+         "The microSD image has no RAM disk"),
+        ("the microSD form with the RAM disk driver", {"CONFIG_DISK_DRIVER_RAM": "1", "__card": True},
+         "The microSD image has no RAM disk"),
     ]
 
 
@@ -338,8 +448,12 @@ def check_c(tree):
     control = compile_c(tree, guard, good)
     if control.returncode != 0:
         failures.append(f"bench_guard.h refused the declared bench: {control.stderr}")
+    card = compile_c(tree, guard, card_definitions(good))
+    if card.returncode != 0:
+        failures.append(f"bench_guard.h refused the microSD state of the declaration: {card.stderr}")
     for name, change, reason in c_cases(tree):
-        definitions = dict(good)
+        change = dict(change)
+        definitions = dict(card_definitions(good) if change.pop("__card", False) else good)
         definitions.update(change)
         result = compile_c(tree, guard, definitions)
         if not refused_for(result, reason):
@@ -365,7 +479,7 @@ def check_c(tree):
     form = tree.form("test_host_key")["symbol"]
     without = {k: v for k, v in good.items() if k != f"CONFIG_{form}"}
     refused = compile_c(tree, tree.root / "src" / "ssh_target.c", without)
-    if not refused_for(refused, C_GUARD_MESSAGES[-1]):
+    if not refused_for(refused, "declared only with CONFIG_CRUX_BENCH_TEST_HOST_KEY"):
         failures.append(f"ssh_target.c without CONFIG_{form}: not refused: {refused.stderr}")
     return failures
 
@@ -414,6 +528,12 @@ def check_kconfig(tree, kconfiglib):
         kconf.syms["BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI"].set_value("y")
         kconf.syms["BOARD_REVISION"].set_value(tree.board["revision"])
         kconf.syms["ENTROPY_MCUX_TRNG"].set_value("y")
+        kconf.syms["DISK_DRIVER_RAM"].set_value("y")  # the RAM disk's driver, which the declared file backend needs
+
+    def card_board(kconf):
+        good_board(kconf)
+        kconf.syms["DISK_DRIVER_RAM"].set_value("n")
+        kconf.syms["DISK_DRIVER_SDMMC"].set_value("y")
 
     kconf, directory = load()
     defined = {name for name in kconf.syms if name.startswith("CRUX_BENCH_")}
@@ -428,8 +548,11 @@ def check_kconfig(tree, kconfiglib):
     if kconf.syms["CRUX_MANAGEMENT_BENCH_IMAGE"].str_value != "y":
         failures.append("Kconfig.bench refuses the declaration on the declared board")
     for name in sorted(declared):
-        if kconf.syms[name].str_value != "y":
+        # The microSD form excludes the RAM disk form: with both set it drops, which is the rule (checked below).
+        if kconf.syms[name].str_value != "y" and name != "CRUX_BENCH_FILE_MICROSD":
             failures.append(f"Kconfig.bench refuses {name} under the declaration")
+    if kconf.syms["CRUX_BENCH_FILE_MICROSD"].str_value != "n":
+        failures.append("Kconfig.bench accepts the microSD form beside the RAM disk form")
     shutil.rmtree(directory)
 
     # Each broken condition: the declaration drops to n, and so does every test form with it.
@@ -458,11 +581,39 @@ def check_kconfig(tree, kconfiglib):
     # Every test form alone, with the declaration not set on a board that would allow it.
     for form in sorted(declared):
         kconf, directory = load()
-        good_board(kconf)
+        (card_board if form == "CRUX_BENCH_FILE_MICROSD" else good_board)(kconf)
         kconf.syms[form].set_value("y")
         if kconf.syms[form].str_value != "n":
             failures.append(f"Kconfig.bench: {form} is accepted without the declaration")
         shutil.rmtree(directory)
+    # The file backend (row C3, D2). Each pair is the board and what is broken, and the form that must drop.
+    def under_declaration(board, forms, change):
+        kconf, directory = load()
+        board(kconf)
+        change(kconf)
+        kconf.syms["CRUX_MANAGEMENT_BENCH_IMAGE"].set_value("y")
+        for form in forms:
+            kconf.syms[form].set_value("y")
+        values = {name: kconf.syms[name].str_value for name in declared}
+        shutil.rmtree(directory)
+        return values
+
+    ram, card = "CRUX_BENCH_FILE_RAM_DISK", "CRUX_BENCH_FILE_MICROSD"
+    if under_declaration(card_board, [card], lambda k: None)[card] != "y":
+        failures.append("Kconfig.bench refuses the microSD form on the card's drivers: the state a later run takes")
+    for name, board, forms, change, dropped in (
+            ("the RAM disk form with the SD card driver", good_board, [ram],
+             lambda k: k.syms["DISK_DRIVER_SDMMC"].set_value("y"), ram),
+            ("the RAM disk form without the RAM disk driver", good_board, [ram],
+             lambda k: k.syms["DISK_DRIVER_RAM"].set_value("n"), ram),
+            ("the microSD form with the RAM disk driver", card_board, [card],
+             lambda k: k.syms["DISK_DRIVER_RAM"].set_value("y"), card),
+            ("the microSD form without the SD card driver", card_board, [card],
+             lambda k: k.syms["DISK_DRIVER_SDMMC"].set_value("n"), card),
+            ("the microSD form beside the RAM disk form", good_board, [ram, card], lambda k: None, card)):
+        values = under_declaration(board, forms, change)
+        if values[dropped] != "n":
+            failures.append(f"Kconfig.bench, {name}: {dropped} is not dropped")
     # A time source and the no-time-source form exclude each other.
     kconf, directory = load()
     good_board(kconf)

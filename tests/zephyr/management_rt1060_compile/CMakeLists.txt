@@ -21,7 +21,8 @@ set(EXTRA_CONF_FILE
     "${CMAKE_CURRENT_LIST_DIR}/target.conf")
 set(DTC_OVERLAY_FILE
     "${CRUX_ROOT}/samples/controller/zephyr/m3-network.overlay"
-    "${CMAKE_CURRENT_LIST_DIR}/target.overlay")
+    "${CMAKE_CURRENT_LIST_DIR}/target.overlay"
+    "${CMAKE_CURRENT_LIST_DIR}/ram_disk.overlay")
 list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 # The declaration, which no native image sets. bench_guard.cmake refuses a build without it.
