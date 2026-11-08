@@ -146,7 +146,9 @@ def install_tool(policy, root=ROOT):
             return response.read()
 
     # GitHub Releases sometimes answers 5xx for a while. A checksum mismatch is never retried.
-    archive_bytes = retry_transient.retry(download)
+    # The docs-links job has ten minutes in all. No new attempt starts after 180 s of waiting
+    # and failing, so with the 120 s timeout of one attempt the download ends within about 300 s.
+    archive_bytes = retry_transient.retry(download, deadline=180)
     if hashlib.sha256(archive_bytes).hexdigest() != digest:
         raise ValueError("lychee release archive SHA-256 mismatch")
 

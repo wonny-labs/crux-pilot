@@ -2,6 +2,8 @@
 import io
 import os
 from pathlib import Path
+import re
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -82,6 +84,54 @@ class RetryFunctionTest(unittest.TestCase):
         self.assertIsInstance(error, ValueError)
         self.assertEqual(1, downloader.calls)
         self.assertEqual([], sleeps)
+
+    def test_a_tls_certificate_failure_is_not_retried(self):
+        # urllib wraps the certificate error in a URLError, which is otherwise retried.
+        failure = ssl.SSLCertVerificationError(1, "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed")
+        for error in (urllib.error.URLError(failure), failure, ssl.SSLError("tls failure")):
+            with self.subTest(error=type(error).__name__):
+                downloader = FakeDownloader(error)
+                caught, sleeps, _ = self.run_retry(downloader)
+                self.assertIs(error, caught)
+                self.assertEqual(1, downloader.calls)
+                self.assertEqual([], sleeps)
+
+    def test_a_name_resolution_failure_is_retried(self):
+        downloader = FakeDownloader(urllib.error.URLError(OSError(-2, "Name or service not known")))
+        result, _, _ = self.run_retry(downloader)
+        self.assertEqual("payload", result)
+        self.assertEqual(2, downloader.calls)
+
+    def test_no_new_attempt_starts_when_its_wait_would_pass_the_deadline(self):
+        clock = [0.0]
+        sleeps = []
+
+        def sleep(seconds):
+            sleeps.append(seconds)
+            clock[0] += seconds
+
+        downloader = FakeDownloader(*[http_error(504)] * 10)
+        output = io.StringIO()
+        with self.assertRaises(urllib.error.HTTPError):
+            retry.retry(downloader, attempts=10, base_delay=10, max_delay=60, deadline=30,
+                        sleep=sleep, clock=lambda: clock[0], log=output.write)
+        self.assertEqual([10, 20], sleeps)  # The third wait, 40 s, would end at 70 s.
+        self.assertEqual(3, downloader.calls)
+        self.assertIn("deadline of 30 s", output.getvalue())
+
+    def test_the_time_an_attempt_takes_counts_towards_the_deadline(self):
+        clock = [0.0]
+
+        def slow_failure():
+            clock[0] += 25
+            raise http_error(504)
+
+        sleeps = []
+        with self.assertRaises(urllib.error.HTTPError):
+            retry.retry(slow_failure, attempts=10, base_delay=10, deadline=60,
+                        sleep=lambda seconds: (sleeps.append(seconds), clock.__setitem__(0, clock[0] + seconds)),
+                        clock=lambda: clock[0], log=lambda text: None)
+        self.assertEqual([10], sleeps)  # At 60 s elapsed the next wait (20 s) is refused.
 
     def test_network_errors_and_timeouts_are_retried(self):
         for error in (urllib.error.URLError("connection reset"), TimeoutError("timed out"),
@@ -165,6 +215,33 @@ class RetryCommandTest(unittest.TestCase):
         self.assertEqual(1, result.returncode)
         self.assertEqual(1, self.calls())
 
+    def test_a_tls_certificate_failure_is_not_retried(self):
+        message = ("requests.exceptions.SSLError: HTTPSConnectionPool(host='github.com', port=443): "
+                   "Max retries exceeded with url: /a (Caused by SSLError(SSLCertVerificationError(1, "
+                   "'[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed')))")
+        result = self.run_wrapped(self.fake_downloader(99, message))
+        self.assertEqual(1, result.returncode)
+        self.assertEqual(1, self.calls())
+
+    def test_a_dropped_connection_is_repeated(self):
+        message = ("requests.exceptions.ConnectionError: HTTPSConnectionPool(host='github.com', port=443): "
+                   "Max retries exceeded with url: /a (Caused by NewConnectionError('Connection reset'))")
+        result = self.run_wrapped(self.fake_downloader(1, message))
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(2, self.calls())
+
+    def test_a_5xx_that_is_only_mentioned_is_not_a_failed_download(self):
+        result = self.run_wrapped(self.fake_downloader(99, "FAIL: expected HTTP 500 response from the fixture"))
+        self.assertEqual(1, result.returncode)
+        self.assertEqual(1, self.calls())
+
+    def test_the_deadline_stops_the_repeats(self):
+        message = "Exception: Failed to download https://example.invalid/sdk.tar.xz: 504"
+        result = self.run_wrapped(self.fake_downloader(99, message), "--base-delay", "5", "--deadline", "1")
+        self.assertEqual(1, result.returncode)
+        self.assertEqual(1, self.calls())
+        self.assertIn("deadline of 1 s", result.stderr)
+
     def test_a_4xx_is_not_retried(self):
         message = "Exception: Failed to download https://example.invalid/sdk.tar.xz: 404"
         result = self.run_wrapped(self.fake_downloader(99, message))
@@ -193,7 +270,7 @@ class WiringTest(unittest.TestCase):
 
     def test_the_sdk_install_goes_through_the_helper(self):
         script = (REPO / "scripts/bootstrap-zephyr.sh").read_text()
-        self.assertRegex(script, r'retry_transient\.py" -- \\\n\s+west sdk install')
+        self.assertRegex(script, r'retry_transient\.py" --deadline [0-9]+ -- \\\n\s+west sdk install')
 
     def test_the_lychee_download_is_retried_and_a_mismatch_is_still_fatal(self):
         import check_docs as docs
@@ -209,6 +286,13 @@ class WiringTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "SHA-256 mismatch"):
                     docs.install_tool(policy, root=Path(folder))
             self.assertEqual(3, download.call_count)
+
+    def test_the_lychee_download_has_a_deadline_inside_the_docs_job_timeout(self):
+        # docs.yml allows the job ten minutes in all.
+        source = (REPO / "scripts/check_docs.py").read_text()
+        match = re.search(r"retry_transient\.retry\(download, deadline=(\d+)\)", source)
+        self.assertIsNotNone(match)
+        self.assertLessEqual(int(match[1]) + 120, 300)  # Deadline plus one last attempt of 120 s.
 
 
 if __name__ == "__main__":

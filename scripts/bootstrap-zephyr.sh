@@ -41,7 +41,9 @@ if [[ "${1:-}" == "--install-sdk" ]]; then
     # A repeat is safe: west downloads into a temporary directory that it removes, and moves the SDK
     # into place only after the checksum matched; the SDK's setup.sh removes a partial toolchain
     # download, creates the toolchain directory only after it, and skips a toolchain already there.
-    (cd "$workspace/zephyr" && "$python_bin" "$repo/scripts/retry_transient.py" -- \
+    # No new attempt starts after 600 s. One attempt is not interrupted: on 8 November the toolchain
+    # download of one job ran for 2.6 minutes before it failed.
+    (cd "$workspace/zephyr" && "$python_bin" "$repo/scripts/retry_transient.py" --deadline 600 -- \
         west sdk install "${sdk_args[@]}")
 elif [[ $# -eq 0 ]]; then
     printf 'SDK prerequisite: Zephyr SDK v1.0.1; arm-zephyr-eabi toolchain.\n'
