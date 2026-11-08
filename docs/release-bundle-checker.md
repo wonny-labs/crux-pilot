@@ -29,7 +29,7 @@ A bundle is a folder of text items and one `release-manifest.json` that lists th
 ```mermaid
 flowchart LR
     subgraph build[Product build, not part of this change]
-        B[zephyr.bin, .config, build record] --> A[Assembler: follow-up]
+        B[Zephyr example: zephyr.bin, .config, build record] --> A[Assembler: follow-up]
     end
     A --> D[(Bundle folder: text items + release-manifest.json)]
     D --> C{{check-release-bundle.py}}
@@ -40,27 +40,27 @@ flowchart LR
     B -. image and ELF stay out .-> X[Not in a bundle of a public product repository]
 ```
 
-The assembler is dashed because it does not exist in this repository yet. Today a product writes its own bundle, as the controller does.
+The assembler is dashed because it does not exist in this repository yet. Today a product writes its own bundle, as the controller does. `zephyr.bin`, `.config`, `west.frozen.yml` and `west crux-pins` appear in this document only as examples of a Zephyr and west product. The checker requires no west file and names no Zephyr file: a bundle of any text items passes if its manifest and hashes are right.
 
 ## The manifest
 
 `additionalProperties` is `false` at the top level and in each `vendor_deliveries` and `replaced_modules` entry, so a typo is refused and a product cannot add a top-level field without a schema change. `bundle_hashes` is a map whose values must be SHA-256, and `extensions` is free-form.
 
-| Field | Required | Form | Note |
-| --- | --- | --- | --- |
-| `schema_version` | Yes | The integer `1` | A change that an older checker would misread raises it |
-| `identity_algorithm` | Yes | `crux-firmware-identity-v1` | The name that `scripts/record-build-provenance.py` records. A test holds the two equal |
-| `product_version` | Yes | SemVer 2.0 in form, pre-release and build metadata allowed (see [heuristics](#what-is-faked-or-heuristic)) | `+N` is allowed and not required |
-| `release_tag` | Yes | Letters, digits, `.`, `_`, `-` | Not tied to `vX.Y.Z`: the guide's own example tag is `product-x-1.2.3` |
-| `sdk_version` | Yes | `X.Y.Z` | |
-| `build_image` | Yes | A container or runner image name, tag or digest | Never a path. Renamed from the controller's `runner_image` |
-| `target` | Yes | Board target, for example `board@rev//variant` | **No default** |
-| `bundle_hashes` | Yes | Path inside the bundle to SHA-256 | Every item except the manifest |
-| `image_sha256` | Yes | SHA-256 | The image is not in the bundle. Renamed from `zephyr_bin_sha256` |
-| `firmware_identity` | Yes | SHA-256 | Of the canonical JSON of the identity record that `identity_algorithm` defines |
-| `vendor_deliveries` | No | List of `project`, `delivery_tag`, `hash_list_sha256` | The guide's per-vendor-project record |
-| `replaced_modules` | No | List of `original`, `replacement` | The guide's "module replaced under a new name" |
-| `extensions` | No | Any object | The only place for a product's own fields, such as a security counter. The checker does not look inside it, except for paths and private strings, as for the rest of the file |
+| Field | Required | Form | Zephyr or west specific? | Note |
+| --- | --- | --- | --- | --- |
+| `schema_version` | Yes | The integer `1` | No | A change that an older checker would misread raises it |
+| `identity_algorithm` | Yes | A lower-case name that ends in `-v` and a number | No in the field, **yes in the one known value** | `crux-firmware-identity-v1` is the Zephyr and Kconfig algorithm that `scripts/record-build-provenance.py` records (a test holds the name equal). A product that does not build with Zephyr names its own, such as `acme-image-v2`. The checker does not recompute the identity, so it loses no check by not knowing the algorithm |
+| `product_version` | Yes | SemVer 2.0 in form, pre-release and build metadata allowed (see [heuristics](#what-is-faked-or-heuristic)) | No | `+N` is allowed and not required |
+| `release_tag` | Yes | Letters, digits, `.`, `_`, `-` | No | Not tied to `vX.Y.Z`: the guide's own example tag is `product-x-1.2.3` |
+| `toolchain_version` | Yes | Letters, digits, `.`, `_`, `-` (the form of `release_tag`) | No | The SDK or toolchain release that built the image, such as a Zephyr SDK version. The controller's manifest still calls this `sdk_version` with an `X.Y.Z` form, and it migrates when it adopts this schema |
+| `build_image` | Yes | A container or runner image, or build host, as a name, tag or digest | No | Never a path. Renamed from the controller's `runner_image` |
+| `target` | Yes | The build target the product names | No in the field, **yes in the example** | The Zephyr form is a board target, for example `board@rev//variant`. **No default** |
+| `bundle_hashes` | Yes | Path inside the bundle to SHA-256 | No | Every item except the manifest |
+| `image_sha256` | Yes | SHA-256 | No | The image is not in the bundle. Renamed from `zephyr_bin_sha256` |
+| `firmware_identity` | Yes | SHA-256 | No | Of the canonical JSON of the identity record that `identity_algorithm` defines |
+| `vendor_deliveries` | No | List of `project`, `delivery_tag`, `hash_list_sha256` | Partly: the guide's per-vendor-project record of a west-based product | A product with no vendor project leaves it out |
+| `replaced_modules` | No | List of `original`, `replacement` | Partly: the guide's "module replaced under a new name" | A product with no module leaves it out |
+| `extensions` | No | Any object | No | The only place for a product's own fields, such as a security counter. The checker does not look inside it, except for paths and private strings, as for the rest of the file |
 
 Left out on purpose: a support-period field (the wording is an open owner question), `security_counter` and the `+N` build suffix (product extensions), and any default target.
 
@@ -91,7 +91,8 @@ The private-string list is optional. Without it the checker prints a warning on 
 | Point | Controller (`f03dc79`) | Here |
 | --- | --- | --- |
 | Required fields | 9, including `security_counter` and a `+N` version | 10, none product-specific |
-| Schema version, algorithm name | None | `schema_version` and `identity_algorithm` |
+| Schema version, algorithm name | None | `schema_version` and `identity_algorithm` (any `-vN` name; `crux-firmware-identity-v1` is the Zephyr one) |
+| SDK field | `sdk_version`, `X.Y.Z` | `toolchain_version`, the form of `release_tag`. The controller migrates when it adopts this schema |
 | Default target | `mimxrt1060_evk@B//qspi` in the assembler and the comparison script | None: `target` is required |
 | Unknown top-level field | Refused | Refused, and product fields have `extensions` |
 | Schema location | Fixed next to the script | `--schema`, default `docs/schemas/` |
@@ -112,14 +113,15 @@ Not ported: the assembler (`assemble_bundle.py`, which imports a budget collecto
 | Schema and checker are provisional | Owner | Not frozen before a product's first real release |
 | `release_tag`, `product_version` and `build_image` are looser than the controller's | Author | The guide's example tag is not `vX.Y.Z`, and a container image is not a runner name. Recorded for review |
 | `extensions` is an unconstrained object | Author | The smallest way to keep the top level strict. Its content is not validated |
-| `schema_version` and `identity_algorithm` are fixed values, not ranges | Author | One version exists. A checker that does not know a value refuses it |
+| `schema_version` is a fixed value. `identity_algorithm` is a pattern, not a list | Author, after an independent review | One schema version exists, and a checker that does not know it refuses it. A product without Zephyr must be able to name its own algorithm, and the checker never recomputes an identity, so a pattern loses no check |
+| `sdk_version` becomes `toolchain_version`, and `target` and `build_image` are described without Zephyr | Author, after an independent review | So that a product with no west or Zephyr can reuse the format. Strictness is unchanged: unknown fields are refused |
 | `firmware_identity` is the digest, not the record | Author | The record's `image_sha256` is already a field, and the digest is what `firmware_digest` in the build record script gives |
 | Refuse symbolic links and NUL bytes | Author | Every item is text, and a link could pull in a file from outside the folder |
 
 ## What is built
 
 - The schema, the checker and the tests that are listed under [Result](#result). The tests write their bundles by hand and take the firmware identity from the real `firmware_identity` and `firmware_digest` functions of `scripts/record-build-provenance.py`.
-- The tests were written first. They failed against a missing script (one import error), then against a stub that accepted every bundle (94 failures and 6 errors across the first 57 tests), and passed against the checker. Two groups of cases came later and were each run red before their code: the NUL byte (one failure) and the stricter schema nodes (six failures, two errors). The path-flag fix came from a failing test (`product-x/build/app`), and its extra flag cases would also pass against the source pattern. The PR records the commands and counts.
+- The tests were written first. They failed against a missing script (one import error), then against a stub that accepted every bundle (94 failures and 6 errors across the first 57 tests), and passed against the checker. Two groups of cases came later and were each run red before their code: the NUL byte (one failure) and the stricter schema nodes (six failures, two errors). The path-flag fix came from a failing test (`product-x/build/app`), and its extra flag cases would also pass against the source pattern. The identity-algorithm, toolchain and target changes that followed an independent review were run red first too (32 failures and 1 error of 68 tests, then green). The PR records the commands and counts.
 
 ## What is faked or heuristic
 
@@ -144,7 +146,7 @@ Not ported: the assembler (`assemble_bundle.py`, which imports a budget collecto
 | --- | --- |
 | Change the guide's "Release bundle" section from "convention" to a link to this document, and say that the hashes-only mode refuses the table's firmware image and debug-file rows | Owner decision on the next row |
 | An assembler that writes this manifest, with no budget import and a required `--target`, adapted from the controller's | Approval |
-| `west crux-pins` output and the build record as bundle items, and a bundle step in `samples/product_template` | Approval |
+| `west crux-pins` output and the build record as bundle items, and a bundle step in `samples/product_template`. The pin report stays an optional item: the checker never requires it, and a product without west leaves it out | Approval |
 | The controller calls this script by a pinned commit once it is merged, and moves its product fields under `extensions` | The controller's owner. Nothing was posted or changed there |
 | An "included" mode for a private product, if one needs the image inside its bundle | A private product and its own review |
 | Recompute `firmware_identity` from a build directory (the controller's `rebuild_compare.py` is the model) | Approval |

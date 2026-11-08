@@ -9,6 +9,7 @@ target, the hashes-only default and the other additions of this checker are new.
 There is no assembler yet, so the tests write bundles by hand. The firmware identity in them comes
 from the real functions of scripts/record-build-provenance.py.
 """
+import ast
 import hashlib
 import importlib.util
 import json
@@ -43,7 +44,7 @@ PINS = "CONTRACT crux-pilot db5adca28bd3\nOK zephyr dccb09599635\n"
 HASH_A = "a" * 64
 HASH_B = "b" * 64
 REQUIRED = (
-    "schema_version", "identity_algorithm", "product_version", "release_tag", "sdk_version",
+    "schema_version", "identity_algorithm", "product_version", "release_tag", "toolchain_version",
     "build_image", "target", "bundle_hashes", "image_sha256", "firmware_identity",
 )
 
@@ -82,7 +83,7 @@ def make_bundle(base, **overrides):
         "identity_algorithm": PROVENANCE.FIRMWARE_IDENTITY_ALGORITHM,
         "product_version": "1.2.3",
         "release_tag": "product-x-1.2.3",
-        "sdk_version": "1.0.1",
+        "toolchain_version": "1.0.1",
         "build_image": "ubuntu-24.04",
         "target": TARGET,
         "bundle_hashes": {
@@ -141,16 +142,33 @@ class SchemaFile(BundleTestCase):
         self.assertNotIn("security_counter", properties)
         self.assertNotIn("runner_image", properties)
         self.assertNotIn("support_period", properties)
+        self.assertNotIn("sdk_version", properties)
 
     def test_schema_names_no_default_target(self):
         text = SCHEMA.read_text() + SCRIPT.read_text()
         self.assertNotIn('"default"', text)
         self.assertNotIn("mimxrt1060", text)
 
-    def test_identity_algorithm_is_the_one_of_the_build_record(self):
-        schema = json.loads(SCHEMA.read_text())
-        listed = schema["properties"]["identity_algorithm"]["enum"]
-        self.assertEqual([PROVENANCE.FIRMWARE_IDENTITY_ALGORITHM], listed)
+    def test_the_zephyr_identity_algorithm_is_named_as_such_and_equals_the_build_record(self):
+        properties = json.loads(SCHEMA.read_text())["properties"]
+        description = properties["identity_algorithm"]["description"]
+        self.assertIn("Zephyr", description)
+        self.assertIn("Kconfig", description)
+        self.assertIn(PROVENANCE.FIRMWARE_IDENTITY_ALGORITHM, description)
+        self.assertNotIn("enum", properties["identity_algorithm"])
+
+    def test_descriptions_say_what_is_zephyr_and_what_is_generic(self):
+        properties = json.loads(SCHEMA.read_text())["properties"]
+        self.assertIn("SDK or toolchain release", properties["toolchain_version"]["description"])
+        self.assertIn("such as a Zephyr board target", properties["target"]["description"])
+        self.assertIn("There is no default", properties["target"]["description"])
+        self.assertIn("build host", properties["build_image"]["description"])
+
+    def test_the_checker_names_no_zephyr_or_west_file_in_its_code(self):
+        source = SCRIPT.read_text()
+        code = source.replace(ast.get_docstring(ast.parse(source), clean=False), "").lower()
+        for word in ("west", "zephyr", "kconfig", ".config"):
+            self.assertNotIn(word, code)
 
     def test_every_keyword_of_the_schema_is_one_that_the_checker_applies(self):
         def keywords(node):
@@ -188,7 +206,7 @@ class ManifestFields(BundleTestCase):
         self.assertRefused(CHECKER.check(self.bundle(colour="red")), "colour")
 
     def test_product_fields_are_refused_at_the_top_level(self):
-        for name, value in (("security_counter", 0), ("runner_image", "ubuntu-24.04"), ("support_period", "5 years")):
+        for name, value in (("security_counter", 0), ("runner_image", "ubuntu-24.04"), ("support_period", "5 years"), ("sdk_version", "1.0.1")):
             with self.subTest(name=name), tempfile.TemporaryDirectory() as base:
                 self.assertRefused(CHECKER.check(make_bundle(base, **{name: value})), name)
 
@@ -198,9 +216,33 @@ class ManifestFields(BundleTestCase):
                 self.assertRefused(CHECKER.check(make_bundle(base, schema_version=value)), "schema_version")
 
     def test_identity_algorithm_must_be_a_known_one(self):
-        for value in ("crux-firmware-identity-v2", "sha256", ""):
+        for value in ("sha256", "", "Crux-Firmware-v1", "no-version", "x-v", "-v1", "has space-v1", "a/b-v1"):
             with self.subTest(value=value), tempfile.TemporaryDirectory() as base:
                 self.assertRefused(CHECKER.check(make_bundle(base, identity_algorithm=value)), "identity_algorithm")
+
+    def test_a_product_may_name_its_own_identity_algorithm(self):
+        for value in ("crux-firmware-identity-v1", "acme-image-v2", "linux-rootfs-digest-v10", "x1.y-v3"):
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as base:
+                self.assertEqual([], CHECKER.check(make_bundle(base, identity_algorithm=value)))
+
+    def test_the_toolchain_version_and_the_target_are_not_tied_to_zephyr(self):
+        for name, value in (
+            ("toolchain_version", "1.0.1"), ("toolchain_version", "gcc-13.2"), ("toolchain_version", "17"),
+            ("target", "linux-aarch64"), ("target", "my_board"), ("target", "board@2//qspi"),
+        ):
+            with self.subTest(name=name, value=value), tempfile.TemporaryDirectory() as base:
+                self.assertEqual([], CHECKER.check(make_bundle(base, **{name: value})))
+
+    def test_a_bundle_needs_no_west_file(self):
+        with tempfile.TemporaryDirectory() as base:
+            bundle = make_bundle(base)
+            (bundle / "west.lock.yml").unlink()
+            (bundle / "pins-report.txt").unlink()
+            put_item(bundle, "build-notes.txt", b"built by a script, no west\n")
+            manifest = read_manifest(bundle)
+            manifest["bundle_hashes"] = {"build-notes.txt": sha256(b"built by a script, no west\n")}
+            write_manifest(bundle, manifest)
+            self.assertEqual([], CHECKER.check(bundle))
 
     def test_malformed_values_are_refused(self):
         cases = (
@@ -210,7 +252,8 @@ class ManifestFields(BundleTestCase):
             ("product_version", "v1.2.3"),
             ("release_tag", "has space"),
             ("release_tag", "../escape"),
-            ("sdk_version", "1.0"),
+            ("toolchain_version", "has space"),
+            ("toolchain_version", "../escape"),
             ("build_image", "/abs/path"),
             ("target", "bad target"),
             ("bundle_hashes", {"x": "short"}),

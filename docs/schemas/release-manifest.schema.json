@@ -9,7 +9,7 @@
     "identity_algorithm",
     "product_version",
     "release_tag",
-    "sdk_version",
+    "toolchain_version",
     "build_image",
     "target",
     "bundle_hashes",
@@ -23,9 +23,9 @@
       "const": 1
     },
     "identity_algorithm": {
-      "description": "The algorithm that gave firmware_identity. It is the name that scripts/record-build-provenance.py records.",
+      "description": "The name of the algorithm that gave firmware_identity, ending in -v and a number. crux-firmware-identity-v1 is the Zephyr and Kconfig algorithm of scripts/record-build-provenance.py. A product that does not build with Zephyr names its own. The checker does not recompute the identity.",
       "type": "string",
-      "enum": ["crux-firmware-identity-v1"]
+      "pattern": "^[a-z0-9][a-z0-9.-]*-v[0-9]+$"
     },
     "product_version": {
       "description": "A SemVer 2.0 version. Pre-release and build metadata, such as +7, are allowed and not required.",
@@ -37,18 +37,18 @@
       "type": "string",
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
     },
-    "sdk_version": {
-      "description": "The version of the Zephyr SDK that built the image.",
+    "toolchain_version": {
+      "description": "The SDK or toolchain release that built the image, such as a Zephyr SDK version.",
       "type": "string",
-      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
     },
     "build_image": {
-      "description": "The container or runner image that built the image, as a name, tag or digest, never a path.",
+      "description": "The container or runner image, or the build host, that built the image, as a name, tag or digest, never a path.",
       "type": "string",
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@-]*(/[A-Za-z0-9][A-Za-z0-9._:@-]*)*$"
     },
     "target": {
-      "description": "The Zephyr board target. There is no default.",
+      "description": "The build target the product names, such as a Zephyr board target. There is no default.",
       "type": "string",
       "pattern": "^[A-Za-z0-9_@/.-]+$"
     },
