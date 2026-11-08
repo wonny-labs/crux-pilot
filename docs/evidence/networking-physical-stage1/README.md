@@ -86,7 +86,9 @@ Earlier freezes of the same image code, void after the fixes below: `f720c95` (B
 
 ## 9. Order of the independent checks
 
-The independent check of plan revision 5 (PASS, no blocking finding) was received before the first board step of the run (R0', 09:12:26) and the plan file itself was last edited at 09:12:17 to add its notes; the time written as `09:2xZ` in an earlier note of that file was a placeholder error and is corrected in `inputs/plans/stage1-phase-b-plan-r5.md`. The other plans and amendments each had their independent PASS before the board step that used them (r3 before B2, r4a before R0, r4b before the read-only identify).
+The independent check of plan revision 5 handed back its PASS (no blocking finding) at 09:12:03Z, before the first board step that used the plan (R0', 09:12:26Z); the notes it contained were appended to the plan file at 09:12:17Z. The other plans each had their independent PASS before the board step that used them: r3 at 08:00:28Z (B2 at 08:01:32), r4a at 08:09:13Z after a REVISE at 08:08:22Z (R0 at 08:21:25), r4b at 08:27:05Z (identify at 08:27:15). The times are those of the reviewers' hand-back messages.
+
+**Correction after the run, stated openly:** the plan r5 file was edited once more at 09:29:49Z, after the run, in a single place: the heading of its section 6, which read `Independent check (Opus, read-only, 2026-11-08T09:2xZ): PASS ...` (the placeholder `09:2xZ` was a mistake) and now reads `... 2026-11-08, received before 09:12Z (R0 prime started 09:12:26Z) ...`. The committed copy `inputs/plans/stage1-phase-b-plan-r5.md` is the corrected file; the run-time version was overwritten in place and is not retained, so its row in `SHA256SUMS.tsv` has no original hash and is marked as corrected after the run. The accurate check time is the 09:12:03Z hand-back above, not the corrected heading's wording. The plan documents are session notes of the author; editing them after the fact is recorded here and reported to the main session.
 
 ## 10. Files
 
