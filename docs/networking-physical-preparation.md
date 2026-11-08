@@ -358,8 +358,9 @@ the final idle baseline, or anything about the management stack.
 ### Guard session: exactly what the check expects
 
 The capture needs a guard that keeps macOS from mounting the DAPLink virtual drive.
-The repository checks a guard but contains no program that creates one; the owner has
-not yet named the program used for the M3 `guard11`. The check (`capture_m3_network._guard_check`)
+The M3 `guard11` program is not in the repository and its source was not found; the
+"Replacement mount guard" section below describes the program that writes this record.
+The check (`capture_m3_network._guard_check`)
 reads a JSON file given as `--guard-session` (its path is not fixed) and requires:
 
 | Field | Required content |
@@ -393,3 +394,85 @@ operation before any owner query, probe command or UART write.
 
 Not verified: everything here is host-side. No hardware, no guard, no real `ifconfig`,
 `networksetup` or `route` output of this bench was run through the checks.
+
+## Replacement mount guard (`tests/target/m5_mount_guard.py`)
+
+Status: software preparation. Nothing here ran as root and no mount was vetoed yet; the
+first real start is the first test of the approval path. The M3 `guard11` program is not
+in the repository and its source was not found, so this guard replaces it. It writes
+exactly the record and log described in "Guard session: exactly what the check expects".
+
+### What it does
+
+```mermaid
+sequenceDiagram
+    participant O as Owner (root, once)
+    participant P as Guard parent
+    participant G as Guard (detached)
+    participant DA as DiskArbitration
+    participant V as DAPLink volume
+    O->>P: start --session S --log L
+    P->>P: root? arguments? files absent? ioreg: one disk, reviewed UART?
+    P->>G: fork, new session, stdio to /dev/null
+    G->>DA: register mount approval (root only)
+    G->>V: /sbin/umount if mounted (20 s limit, never diskutil)
+    G->>DA: mount disk4 once (self-test)
+    DA->>G: approval callback
+    G-->>DA: veto, log DENIED exact_DAPLink_USB_serial=... disk=disk4
+    G->>G: write session record (atomic, never overwrite)
+    G-->>P: READY pid=... deadline_in=...
+    P-->>O: READY line, parent exits
+    loop until deadline or SIGTERM
+        DA->>G: every later mount request
+        G-->>DA: veto the DAPLink disk, approve all others
+    end
+    G->>G: log STOPPED, exit
+```
+
+| Property | Behaviour |
+| --- | --- |
+| Needs | Root, `/usr/bin/python3` (3.9 from the Command Line Tools), and the macOS frameworks DiskArbitration, CoreFoundation and IOKit through `ctypes`. Nothing is installed or downloaded. |
+| Deny rule | The exact USB serial of the DAPLink (serial alone is enough; vendor `0x0d28` and product `0x0204` are what the probe reports). A disk that reports USB but whose serial cannot be read is also denied, so a USB stick without a readable serial is blocked while the guard runs. Every other disk, including objects without I/O media, is approved untouched. An internal error while judging a request is denied. |
+| Already mounted | The guard registers the veto first, then unmounts with `/sbin/umount` (20 s limit). It never calls `diskutil`, which stalls on some hosts. If the volume is busy it stops with a message, nothing else changed, and nothing keeps running. |
+| Veto evidence | After the unmount it asks DiskArbitration for one read-only, hidden (`rdonly`, `nobrowse`) mount of the disk and requires the mount completion to report the veto and its own approval callback to have logged it. Only then is the session record written. If the volume mounted anyway, the guard unmounts it again, checks that, and the failure message says whether the volume is **still mounted**; it also fails if no answer arrives within 20 s. |
+| Record and log | Mode `0644` regardless of umask, never overwritten, session record linked atomically; a temporary file is removed when the write fails. The `executable` is the guard script itself; the record also holds the interpreter and its hash, which no check reads. |
+| Lifetime | Default 7200 s, allowed 300 to 14400 s. At the deadline, on SIGTERM or on SIGINT it logs `STOPPED` and exits; the repository check then refuses the guard. |
+| Stop | `sudo kill <pid>` (the pid is printed and is in the record). |
+| Never | Write to the volume, program, touch the probe, change any system setting, or mount, unmount or write any other disk. It only vetoes mount requests for other disks that are USB with an unreadable serial. |
+
+### Non-root probe
+
+`python3 tests/target/m5_mount_guard.py probe` reads the I/O registry, the mount table and
+every disk DiskArbitration reports, and prints the decision the guard would take for each,
+without root and without vetoing anything. On 2026-11-08 it identified the DAPLink disk
+(`disk4`, USB, exact serial, vendor 3368, product 516) as `deny:exact`, found exactly one
+disk and the reviewed UART below it, and showed the volume mounted. The repository's own
+guard check, run against a hand-made record on the same host, passed the identity,
+ancestry and boot checks and refused only because the volume was mounted.
+
+### Tests and what they do not show
+
+`tests/build/test_m5_mount_guard.py` uses a fake DiskArbitration, a fake host and fake
+records; it needs no root. It checks the start order, each refusal before any side effect,
+each start failure, the decision table, retirement, the record against the repository's
+real `guard_check` with one refusal test per check (retired, no veto line, wrong disk or
+serial in the log, changed file, deadline, boot session, process identity, disk, UART,
+mounted, clock), and the non-root refusal through the real command line.
+
+Not shown: the real approval callback body (its fail-closed handlers and the callback-lifetime list), the fork itself (`start_detached`; its readiness logic is tested without fork in `run_child` and `read_report`), that macOS passes a `DADiskMount` self-test and a real re-enumeration through
+the approval callback of a root process on this macOS version (an `fskit` msdos mount), the
+detach and readiness handshake, signal handling in a real run, and the `umount` of the
+real volume. The first root start exercises all of these; its log and the printed `READY`
+or `FAILED` line are the evidence. A failed start retires the log with `STOPPED`, removes a record this run wrote and exits; a failure to deliver the `READY` report does the same. If the self-test mount did succeed, the failure message says whether the unmount worked.
+
+### Limits and operating requirements
+
+| Item | Detail |
+| --- | --- |
+| Coverage | DiskArbitration vetoes mounts requested through it. A mount made directly by root (`mount_msdos`, `mount(2)`) or a raw write to `/dev/disk4` is not covered. |
+| Trust | The owner starts it as root from a checkout only the owner can write. `sys.path[0]` is that directory, so `m3_clock.py` and `m5_bench.py` are imported unhashed, and the record binds the hash of the script only. This is acceptable for an owner-only machine and is stated, not mitigated. |
+| Process identity | `ps` text depends on locale, time zone and terminal width. The guard runs it with `LC_ALL=C`, a fixed `PATH`, no `TZ` and no `COLUMNS`; run the capture with `LC_ALL=C` and with `TZ` and `COLUMNS` unset, or the repository check refuses the guard (it fails closed). |
+| Slow host commands | The run loop is pumped between registration, unmount and the self-test. The unmount can still block for up to 20 s; whether `diskarbitrationd` stops consulting a slow approver is not known. |
+| Reporting | The caller waits at most 90 s for `READY` or `FAILED` (a slow start can exceed this: `ioreg` alone may take 30 s). After a timeout it prints the child's pid. A child that reports later finds the pipe closed, removes its record, retires and exits. |
+| Known small leaks | One CoreFoundation string per veto and one `DADisk` per start; bounded by the lifetime. |
+
