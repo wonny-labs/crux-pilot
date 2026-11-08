@@ -357,11 +357,17 @@ def build_parser():
     return parser
 
 
+def bind_profile(name):
+    """The selected profile and the one manifest verification of it that the driver uses everywhere."""
+    from prepare_m5_network import profile_named, verify
+    profile = profile_named(name)
+    return profile, lambda manifest, digest: verify(manifest, digest, profile)
+
+
 def main(argv=None):
     args = build_parser().parse_args(argv)
-    from prepare_m5_network import profile_named, verify
-    profile = profile_named(args.profile)
-    plan, approval, m5, entry, normal = load_inputs(args, verify_m5=lambda manifest, digest: verify(manifest, digest, profile),
+    profile, verify_profile = bind_profile(args.profile)
+    plan, approval, m5, entry, normal = load_inputs(args, verify_m5=verify_profile,
                                                     verify_m3=capture_m3.verify_manifest,
                                                     verify_tools=capture_m3.verify_jlink_tools)
     candidates = [(m['profile'], m['binary']) for m in (capture_m3.verify_manifest(path) for path in args.candidate)]
@@ -373,7 +379,7 @@ def main(argv=None):
     preconditions, probe, acquire = real_parts(args, guard_session)
 
     def reverify():
-        verify(args.manifest, plan['manifest_sha256'], profile)
+        verify_profile(args.manifest, plan['manifest_sha256'])
         capture_m3.verify_manifest(args.entry_manifest)
         capture_m3.verify_manifest(args.recovery_manifest)
         require(runner.sha(args.entry_manifest) == plan['entry_manifest_sha256'] and

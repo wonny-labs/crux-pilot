@@ -18,7 +18,7 @@ The reviewed freeze (`tests/target/prepare_m5_network.py`) and driver (`tests/ta
 | `errno_suffix`, the source file of the errno evidence, or none | Pinned image hashes, manifest re-verification before a load |
 | `tool_scripts`, the extra frozen scripts of the tool repository | One use per mode and evidence directory, restore of the accepted normal image |
 
-A profile is a frozen dataclass of data and one checking function. `Driver`, `check_identity`, `consume` and the precondition functions do not take a profile, so a profile has no way to relax a gate.
+A profile is a frozen dataclass of data and one checking function. `Driver`, `check_identity`, `consume` and the precondition functions do not take a profile, so a profile has no way to relax a gate. A profile does control how strictly an image is checked (its checks, its pinned set, whether a commit tag or errno evidence is required), so a weak profile is possible. The control is that a profile only exists as a registered entry in `PROFILES`, which is a reviewed code change with its own plan review, and that the driver accepts registered names only.
 
 ```mermaid
 flowchart LR
@@ -39,9 +39,10 @@ flowchart LR
 | `ImageProfile` dataclass | `tests/target/image_profile.py` (new) |
 | `frozen_inputs`, `prepare`, `verify` and `default_tools` take a `profile`; without one they use the M5 profile, built from the unchanged M5 constants | `tests/target/prepare_m5_network.py` |
 | `PROFILES` registry and `profile_named`; unknown names are refused | `tests/target/prepare_m5_network.py` |
-| `--profile` option of the driver, restricted to registered names, default `m5-network-physical` | `tests/target/program_m5_image.py` |
+| `--profile` option of the driver, restricted to registered names, default `m5-network-physical`; `bind_profile` gives the selected profile and the one manifest verification that `main` uses for both the first load and the re-verification before each load | `tests/target/program_m5_image.py` |
+| `profile_named` refuses a registered factory whose profile name differs from its key | `tests/target/prepare_m5_network.py` |
 | `prepare(..., tool_repo=...)`: the image source and the frozen tooling may live in different repositories | `tests/target/prepare_m5_network.py` |
-| Tests | `tests/build/test_m5_image_profile.py` (10 cases) |
+| Tests | `tests/build/test_m5_image_profile.py` (13 cases) |
 
 The M5 behaviour is unchanged: the 264 existing M5 tests pass without modification, and an M5 manifest, plan and approval are used exactly as before.
 
@@ -67,7 +68,7 @@ The M5 behaviour is unchanged: the 264 existing M5 tests pass without modificati
 
 | # | Decision | Why |
 |---|---|---|
-| 1 | The profile registry lives in `prepare_m5_network.py` and keeps its name | Renaming a reviewed, frozen module is out of scope; the module hashes are part of past evidence |
+| 1 | The profile registry lives in `prepare_m5_network.py` and keeps its name | Renaming the reviewed module is out of scope. Its name is a key in the recorded tool hashes (`inputs.json` `scripts`) and in the plans and evidence that cite it |
 | 2 | The default profile is M5 | Existing commands, plans and approvals keep working unchanged |
 | 3 | The workspace manifest context path is the profile's `manifest_path` | Inference: a west workspace names its manifest repository by path. To be checked against a real product workspace in the profile PR |
 | 4 | `tool_repo` defaults to the source repository | M5 uses one repository for both |
@@ -76,4 +77,6 @@ The M5 behaviour is unchanged: the 264 existing M5 tests pass without modificati
 
 - Nothing in this change ran on hardware, and none of it can: the tests use synthetic images and temporary directories.
 - The profile facts of any real product image are not exercised. The tests use a synthetic profile.
-- `build_parser` is tested for the profile choice only. `main` is hardware bound and keeps its previous tests.
+- `main` itself has no unit test, as before. The profile wiring is the small `bind_profile` helper, which is tested; that `main` passes its result to both `load_inputs` and the re-verification is by reading the code.
+- `prepare(..., tool_repo=...)` does not check that the tool repository is clean or committed. The driver already requires a clean tree for itself (`require_clean_tree`); a profile PR that uses a separate tool repository must show how that repository is frozen.
+- Real errno verification under a non-M5 profile and the exact M5 `default_tools` list are covered only through the M5 tests that were not changed.

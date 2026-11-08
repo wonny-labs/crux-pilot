@@ -48,7 +48,9 @@ PROFILES = {M5_NAME: m5_profile}
 def profile_named(name):
     """A registered profile. Unknown names are refused; a new image adds its factory to PROFILES."""
     require(name in PROFILES, 'Unknown image profile: ' + str(name))
-    return PROFILES[name]()
+    profile = PROFILES[name]()
+    require(profile.name == name, 'Registered image profile name differs from its key: ' + str(name))
+    return profile
 
 
 def sha(path):

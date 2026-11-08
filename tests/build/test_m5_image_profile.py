@@ -174,6 +174,28 @@ class Selection(unittest.TestCase):
         with self.assertRaises(SystemExit):
             program.build_parser().parse_args(base + ['--profile', 'not-registered'])
 
+    def test_a_registered_name_must_build_a_profile_of_that_name(self):
+        with patch.dict(subject.PROFILES, {'alias-physical': lambda: product_profile()}):
+            with self.assertRaises(ValueError):
+                subject.profile_named('alias-physical')     # would verify manifests of 'product-x-physical'
+        with patch.dict(subject.PROFILES, {'product-x-physical': product_profile}):
+            self.assertEqual(subject.profile_named('product-x-physical').manifest_path, 'product-x')
+
+
+class DriverWiring(unittest.TestCase):
+    def test_the_selected_profile_reaches_every_manifest_verification_of_the_driver(self):
+        with patch.dict(subject.PROFILES, {'product-x-physical': product_profile}), \
+                patch.object(subject, 'verify', return_value={'verified': True}) as verify:
+            profile, verifier = program.bind_profile('product-x-physical')
+            self.assertEqual(verifier('/m.json', 'f' * 64), {'verified': True})
+        self.assertEqual(profile.name, 'product-x-physical')
+        verify.assert_called_once_with('/m.json', 'f' * 64, profile)
+
+    def test_the_default_driver_binding_is_the_m5_profile(self):
+        self.assertEqual(program.bind_profile('m5-network-physical')[0].name, 'm5-network-physical')
+        with self.assertRaises(ValueError):
+            program.bind_profile('product-x-physical')
+
 
 if __name__ == '__main__':
     unittest.main()
