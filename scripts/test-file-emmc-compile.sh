@@ -243,8 +243,9 @@ OPTIONS = ['CONFIG_SAMPLE_EMMC_START', 'CONFIG_SAMPLE_RELIANCE_SD_APPEND_TEST',
 FORMAT_SCENARIO = 'crux.sample.storage_reliance_sd.format'
 FORMAT_SYMBOL = 'CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT'
 # Each scenario is (name, the one option it sets, symbols that must be linked, symbols that must not
-# be). The default image calls none of the four, so it contains no code that starts a mount or a write of the card. The format image
-# does not mount through emmc_storage_start: it has its own mount and the one function that formats.
+# be). The default image calls none of the four, so nothing in it starts a mount or a write of the
+# card (the file system code is still linked). The format image does not mount through
+# emmc_storage_start: it has its own mount and the one function that formats.
 SCENARIOS = [
     ('crux.sample.storage_reliance_sd', None, [],
      ['emmc_storage_start', 'sd_interrupt_append', 'sd_replace_generation', 'reliance_format_once']),
