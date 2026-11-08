@@ -240,6 +240,20 @@ class RamDiskSize(unittest.TestCase):
         need = area + 2 * slot
         self.assertGreaterEqual(disk, need * 5 // 4, f"the disk of {disk} B is under 125 % of the {need} B that the limits allow")
 
+    def test_target_conf_turns_the_card_drivers_off_explicitly(self):
+        # Zephyr defaults both to y on this board when the card's node is in the devicetree, so leaving them out
+        # puts a card driver in the image (the first configure of C3 showed it).
+        values = {}
+        for line in (BENCH / "target.conf").read_text().splitlines():
+            m = re.match(r"^CONFIG_([A-Z0-9_]+)=(.*)$", line)
+            if m:
+                values[m.group(1)] = m.group(2)
+        self.assertEqual(values["DISK_DRIVER_SDMMC"], "n")
+        self.assertEqual(values["IMX_USDHC"], "n")
+        self.assertEqual(values["DISK_DRIVER_RAM"], "y")
+        self.assertEqual(values["CRUX_FILE_FATFS_RT1060_RAM_DISK"], "y")
+        self.assertNotIn("CRUX_FILE_FATFS_RT1060", values)
+
     def test_the_host_shim_has_the_geometry_of_the_overlay(self):
         overlay = (BENCH / "ram_disk.overlay").read_text()
         shim = (HOST / "shim/zephyr/devicetree.h").read_text()
