@@ -498,6 +498,83 @@ class RealParts(Case):
         self.assertTrue((self.directory / 'owned-owners-cu.txt').read_text().startswith('0\np'))
         self.assertEqual((self.directory / 'owned-owners-tty.txt').read_text(), '1\n')
 
+    def test_the_documented_disconnect_diagnostic_after_a_verified_load_is_accepted_and_recorded(self):
+        import host_fixtures
+        (preconditions, probe, acquire), port = self.wired()
+        text = (host_fixtures.DIRECTORY / 'jlink-loadfile-verifybin-quit-diagnostic.log').read_text()
+        commands = 'loadfile "<image>.bin", 0x60000000\nverifybin "<image>.bin", 0x60000000\nq\n'
+        def commander(probe_id, given, output):
+            output.write_text(text)
+            raise HardwareStop('Probe diagnostic; stop hardware changes')       # as the M3 wrapper does after a zero exit
+        output = self.directory / 'load.log'
+        with patch.object(capture_m3, 'commander', commander):
+            self.assertEqual(probe(commands, output), text)
+        record = json.loads(output.with_suffix('.diagnostic-accepted.json').read_text())
+        self.assertEqual(record['diagnostic'], '****** Error: Could not start CPU core. (ErrorCode: -1)')
+
+    def test_the_read_only_verify_with_ishalted_shape_is_accepted_too(self):
+        import host_fixtures
+        (preconditions, probe, acquire), port = self.wired()
+        real = (host_fixtures.DIRECTORY / 'jlink-loadfile-verifybin-quit-diagnostic.log').read_text()
+        text = real.replace('J-Link>q', 'J-Link>IsHalted\nCPU is halted (PC = 0x600156C2).\nJ-Link>q', 1)
+        commands = 'verifybin "<image>.bin", 0x60000000\nIsHalted\nq\n'
+        def commander(probe_id, given, output):
+            output.write_text(text)
+            raise HardwareStop('Probe diagnostic; stop hardware changes')
+        with patch.object(capture_m3, 'commander', commander):
+            self.assertEqual(probe(commands, self.directory / 'halted.log'), text)
+
+    def test_any_other_diagnostic_or_context_still_stops(self):
+        import host_fixtures
+        (preconditions, probe, acquire), port = self.wired()
+        real = (host_fixtures.DIRECTORY / 'jlink-loadfile-verifybin-quit-diagnostic.log').read_text()
+        error = '****** Error: Could not start CPU core. (ErrorCode: -1)'
+        loading = 'loadfile "<image>.bin", 0x60000000\nverifybin "<image>.bin", 0x60000000\nq\n'
+        cases = {
+            'a different error text': (real.replace('Could not start CPU core. (ErrorCode: -1)', 'Could not connect to the target device.'), loading),
+            'another error code': (real.replace('(ErrorCode: -1)', '(ErrorCode: -2)'), loading),
+            'the error before the quit': (real.replace('J-Link>q', error + '\nJ-Link>q', 1).replace('\n\n\n' + error, '\n'), loading),
+            'two error lines': (real + '\n' + error + '\n', loading),
+            'a warning beside it': (real + 'WARNING: unexpected target\n', loading),
+            'a warning before the quit': (real.replace('J-Link>q', 'WARNING: unexpected target\nJ-Link>q', 1), loading),
+            'a failure word elsewhere in the log': (real.replace('O.K.\nJ-Link>verifybin', 'Flash download failed once\nJ-Link>verifybin', 1), loading),
+            'no quit in the log': (real.replace('J-Link>q\n', ''), loading),
+            'no successful verify': (real.replace('Verify successful.', 'Verify skipped.'), loading),
+            'a failed verify': (real.replace('Verify successful.', 'Verify failed @ address 0x60001024.'), loading),
+            'a step without a verify': (real, 'r\ng\nq\n'),
+            'the identity-only step': (real, 'q\n'),
+            'text after the error': (real + 'J-Link>g\n', loading),
+            'the program load step with its start (r, g) after the verify': (real, loading.replace('q\n', 'r\ng\nq\n')),
+            'a command that merely ends in the letter q': (real, loading.replace('q\n', 'xq\n')),
+            'two verifies, the last without output': (real.replace('J-Link>q', 'J-Link>verifybin "<image>.bin", 0x60000000\nJ-Link>q', 1),
+                                                       loading.replace('q\n', 'verifybin "<image>.bin", 0x60000000\nq\n')),
+        }
+        for number, (name, (text, commands)) in enumerate(cases.items()):
+            with self.subTest(name):
+                def commander(probe_id, given, output, text=text):
+                    output.write_text(text)
+                    raise HardwareStop('Probe diagnostic; stop hardware changes')
+                output = self.directory / ('case%d.log' % number)         # one output per case: a wrong acceptance cannot leak into the next
+                with patch.object(capture_m3, 'commander', commander):
+                    with self.assertRaisesRegex(HardwareStop, 'Probe diagnostic'):
+                        probe(commands, output)
+                self.assertFalse(output.with_suffix('.diagnostic-accepted.json').exists())
+
+    def test_other_wrapper_failures_are_never_reinterpreted(self):
+        import host_fixtures
+        (preconditions, probe, acquire), port = self.wired()
+        real = (host_fixtures.DIRECTORY / 'jlink-loadfile-verifybin-quit-diagnostic.log').read_text()
+        for message in ('Probe command or its evidence failed; stop hardware changes',      # a non-zero exit ends up as this one
+                        'Probe timeout; state uncertain; no further hardware changes',
+                        'Unexpected probe firmware maintenance; stop all target operations'):
+            with self.subTest(message):
+                def commander(probe_id, given, output, message=message):
+                    output.write_text(real)
+                    raise HardwareStop(message)
+                with patch.object(capture_m3, 'commander', commander):
+                    with self.assertRaisesRegex(HardwareStop, message.split(';')[0]):
+                        probe('verifybin "<image>.bin", 0x60000000\nq\n', self.directory / 'y.log')
+
     def test_acquisition_releases_the_lock_when_the_port_cannot_be_opened(self):
         (preconditions, probe, acquire), port = self.wired()
         sys.modules['serial'].Serial = lambda *a, **k: (_ for _ in ()).throw(OSError('busy'))

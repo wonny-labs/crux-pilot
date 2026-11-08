@@ -172,6 +172,20 @@ class JLinkOutput(unittest.TestCase):
         self.assertIn('Verify successful', text)
         program.check_identity(text)
 
+    def test_the_real_identify_transcripts_of_the_bench_run(self):
+        identity = self.commander((real.DIRECTORY / 'jlink-identity-only.log').read_text())
+        program.check_identity(identity)
+        match = self.commander((real.DIRECTORY / 'jlink-verifybin-ishalted-match.log').read_text())
+        program.check_identity(match)
+        self.assertIn('Verify successful.', match)
+        self.assertIn('CPU is halted (PC = 0x', match)                   # the real IsHalted text after the connect
+
+    def test_the_real_verify_mismatch_transcript_stops_even_if_the_exit_code_were_zero(self):
+        mismatch = (real.DIRECTORY / 'jlink-verifybin-mismatch.log').read_text()
+        self.assertIn('Verify failed @ address', mismatch)
+        with self.assertRaisesRegex(HardwareStop, 'diagnostic'):
+            self.commander(mismatch)
+
     def test_the_real_connection_failure_transcript_is_a_diagnostic_stop(self):
         text = 'SEGGER J-Link Commander V9.86a\nJ-Link>connect\nFailed to power up DAP.\nError occurred: Could not connect to the target device.\n'
         with self.assertRaisesRegex(HardwareStop, 'diagnostic'):
