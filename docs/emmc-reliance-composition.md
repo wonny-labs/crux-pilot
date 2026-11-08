@@ -64,8 +64,10 @@ the physical gate is approved for the current task.
 
 - `CONFIG_CRUX_FILE_RELIANCE_EDGE` links the File provider over the Reliance Edge file system, on any board that has
   the file system. It is mutually exclusive with the other File selections, and names are stored unencoded. It sets
-  `CONFIG_SDHC_BUFFER_ALIGNMENT` to 32, as the two RT1060 FatFs selections do, and the adapter refuses a smaller value
-  at compile time, because the USDHC HAL invalidates a read target by whole D-cache lines.
+  `CONFIG_SDHC_BUFFER_ALIGNMENT` to 32, as the two RT1060 FatFs selections do, because the USDHC HAL invalidates a read
+  target by whole D-cache lines. Two compile-time checks guard it: with an SD host and a data cache, `file_native.c`
+  refuses a value below the cache line size, and with an SD host the adapter refuses a `REDCONF_BUFFER_ALIGNMENT` below
+  it.
 - Reliance Edge source is not in this repository. It comes from the optional west group `crux-reliance`, which is off by
   default: `west config manifest.group-filter -- +crux-reliance`, then `west update reliance-edge`. A configuration
   without the tree fails and names the group. The sample's CMake fails if the File selection did not take effect, because
