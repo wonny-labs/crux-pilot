@@ -1,6 +1,7 @@
 """What differs between two images that share the reviewed board path. Never touches hardware.
 
-A profile names only image facts. The safety gates of the programming and restore driver (guard check before
+A profile names only image facts, and whether the UART of the freshly started image is recorded raw and for how long
+(``capture``, ``capture_seconds``: a bounded window, never a switch of a gate). The safety gates of the programming and restore driver (guard check before
 every command, ownership inventory, voltage check, bounded commands, no retry, identity-only probe, entry-image
 verify, restore of the accepted normal image) are not part of a profile and cannot be changed through one.
 """
@@ -8,6 +9,9 @@ from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 import re
 from typing import Callable, Mapping, Optional, Tuple
+
+CAPTURE_MODES = ('none', 'raw')
+MAX_CAPTURE_SECONDS = 300                       # the window after the start command; 300 s at 115200 baud is about 3.5 MB of raw bytes
 
 
 @dataclass(frozen=True)
@@ -26,6 +30,11 @@ class ImageProfile:
     # a project that is not pinned is recorded and never part of the image.
     modules: Mapping[str, str] = field(default_factory=dict)
     module_paths: Mapping[str, str] = field(default_factory=dict)
+    # Passive UART capture of the ``program`` mode: ``none`` keeps the reviewed M5 behaviour (the driver reads nothing),
+    # ``raw`` records the port that the driver already owns from just before the load command to ``capture_seconds``
+    # after it. The window is a whole number of seconds from 1 to MAX_CAPTURE_SECONDS and part of the registered profile.
+    capture: str = 'none'
+    capture_seconds: int = 0
 
     def __post_init__(self):
         problems = []
@@ -37,6 +46,13 @@ class ImageProfile:
             problems.append('a project is both pinned and a module')
         if any(re.fullmatch(r'[0-9a-f]{40}', str(revision)) is None for revision in self.modules.values()):
             problems.append('a module revision is not a full commit')
+        if self.capture not in CAPTURE_MODES:
+            problems.append('capture is not one of ' + ', '.join(CAPTURE_MODES))
+        elif self.capture == 'none':
+            if type(self.capture_seconds) is not int or self.capture_seconds != 0:
+                problems.append('capture none has no window')
+        elif type(self.capture_seconds) is not int or not 1 <= self.capture_seconds <= MAX_CAPTURE_SECONDS:
+            problems.append('capture raw needs a window of 1 to %d whole seconds' % MAX_CAPTURE_SECONDS)
         places = [PurePosixPath(self.manifest_path)] + [PurePosixPath(p) for p in self.pinned_paths.values()] + \
                  [PurePosixPath(p) for p in self.module_paths.values()]
         if any(a == b or a in b.parents or b in a.parents for i, a in enumerate(places) for b in places[i + 1:]):
