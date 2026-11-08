@@ -71,7 +71,7 @@ requires a separately verified support contract; POSIX calls alone do not establ
 cross-OS support. These names do not imply production qualification.
 
 A composition target is not a portable usage target: the native-free consumer check rejects it, and only platform
-composition code links it. `crux::file_zephyr` is the Zephyr example, the binding of a mounted directory to the File
+composition code or a final application executable links it. `crux::file_zephyr` is the Zephyr example, the binding of a mounted directory to the File
 provider; see [File root binding](file-composition-interface.md).
 
 For a concrete example, [Time](time-contract.md) owns typed clocks, optional [CPU Busy-wait](time-busy-wait.md) and authority state, with a controlled memory realtime implementation separately from Linux/Zephyr system realtime and an optional Zephyr RTC adapter. The final composition must select an appropriate implementation rather than silently falling back to a test provider.
