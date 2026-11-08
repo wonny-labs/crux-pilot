@@ -10,5 +10,4 @@ endif()
 target_sources(app PRIVATE main.c sd_probe.c ${CRUX_ROOT}/samples/storage_sd/sd_storage.c
   ${CRUX_ROOT}/samples/storage_sd/sd_file_check.c)
 target_link_libraries(app PRIVATE crux::file crux::file_zephyr)
-target_include_directories(app PRIVATE ${CRUX_ROOT}/samples/storage_sd
-  ${CRUX_ROOT}/components/file/ports/zephyr)
+target_include_directories(app PRIVATE ${CRUX_ROOT}/samples/storage_sd)

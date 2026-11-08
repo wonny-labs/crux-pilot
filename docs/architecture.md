@@ -70,6 +70,10 @@ Reserve `host` for the development/test role. An API-family name such as `posix`
 requires a separately verified support contract; POSIX calls alone do not establish
 cross-OS support. These names do not imply production qualification.
 
+A composition target is not a portable usage target: the native-free consumer check rejects it, and only platform
+composition code links it. `crux::file_zephyr` is the Zephyr example, the binding of a mounted directory to the File
+provider; see [File root binding](file-composition-interface.md).
+
 For a concrete example, [Time](time-contract.md) owns typed clocks, optional [CPU Busy-wait](time-busy-wait.md) and authority state, with a controlled memory realtime implementation separately from Linux/Zephyr system realtime and an optional Zephyr RTC adapter. The final composition must select an appropriate implementation rather than silently falling back to a test provider.
 
 Thread and Sync are separate component-owned capabilities. `<crux/thread.h>` and `crux::thread` provide bounded joinable workers; `<crux/sync.h>` and `crux::sync` provide nonrecursive mutexes and counting semaphores. Sync uses native OS identity without depending on Crux Thread. Each owns its private metadata protection and deadline handling. The [Thread/Sync contract](thread-sync.md) defines current usage, Timeout, Ownership, Lifetime and provider limits, with links to historical decisions and validation evidence.

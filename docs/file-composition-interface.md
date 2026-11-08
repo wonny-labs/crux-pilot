@@ -37,7 +37,8 @@ flowchart LR
 | Target `crux::file_zephyr`: an INTERFACE target that adds the include root and links `crux::file`; defined in each provider branch (RT1060 FatFs, Reliance Edge, simulators) | `components/file/ports/zephyr/CMakeLists.txt` |
 | The microSD sample and the FatFs `native_sim` test use the public target and no private include path | `samples/storage_sd`, `tests/native/file_fatfs` |
 | `sd_storage.c` now includes the public header, so the eight other builds that compile it link `crux::file_zephyr` too | `samples/storage_sd_interrupt`, `samples/storage_sd_probe`, `samples/storage_sd_replace`, `tests/native/file_sd_check`, `file_sd_composition`, `file_sd_interrupt`, `file_sd_probe`, `file_sd_replace` |
-| Host tests | `tests/build/test_file_zephyr_public.py` |
+| Follow-up: the eMMC composition includes the public header, and the samples `storage_emmc` and `storage_reliance_sd` and the native_sim fixtures `file_emmc_composition` and `configuration_settings_reliance` that compile `emmc_storage.c` link the target. The three microSD samples `storage_sd_interrupt`, `storage_sd_replace` and `storage_sd_probe` and the two eMMC samples no longer add the port directory as a private include path. Other builds keep the private spelling `file_native.h` | `samples/storage_emmc`, `samples/storage_reliance_sd`, `samples/storage_sd_*`, `tests/native/file_emmc_composition`, `tests/native/configuration_settings_reliance` |
+| Host tests | `tests/build/test_file_zephyr_public.py` and `tests/build/test_file_zephyr_boundary.py` |
 
 ## Decisions taken
 
@@ -62,5 +63,7 @@ A product that wants a strict boundary for its application code needs a composit
 | Every build that compiles `sd_storage.c` links the target; header lines fit the 100-column format limit; the header has a C++ guard and a lifetime rule that matches the File contract | `tests/build/test_file_zephyr_public.py`, Host | run locally and in Host CI |
 | The ten builds that use the target (the FatFs `native_sim` test and the nine that compile `sd_storage.c`) | Zephyr CI: `scripts/test-file-rt1060-compile.sh` (RT1060 compile check of the samples) and `scripts/test-storage-simulators.sh` (`native_sim`) | **not run locally** (Docker, disk); left to CI |
 | `scripts/check-format.sh` (clang-format 18) | Host CI | **not run locally** (not installed); the changed lines were kept to 100 columns by hand |
+| The native-free consumer check rejects a consumer that links the target: a direct link, a transitive wrapper and the usage check, with the real guard and the real target definition, and the same projects pass against a weakened copy of the guard | `tests/build/test_file_zephyr_boundary.py`, Host | run locally and in Host CI |
+| The follow-up builds: the three microSD samples (RT1060 compile, `scripts/test-file-rt1060-compile.sh`), `storage_emmc` and `storage_reliance_sd` (RT1060 link, `scripts/test-file-emmc-compile.sh`; `native_sim`, `scripts/test-storage-emmc.sh`), and the two eMMC native_sim fixtures (`scripts/test-storage-emmc.sh`) | Zephyr CI | **not run locally** (Docker, disk); left to CI |
 | A product repository builds against the target | not done; the first product consumer is the evaluation of this interface | open |
 | Any run on a board | none | not authorised and not part of this change |
