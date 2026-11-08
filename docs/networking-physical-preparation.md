@@ -624,3 +624,24 @@ Audit of the other host timing assumptions between the board's `READY`, the peer
 | Peer stop and reap between phases | `stop_peer` | unchanged; a pending gate is cleared by `stop_peer` and `close` |
 
 Tests: `tests/build/test_m5_adapter.py` (`PeerHostGate`: down, pending and up in order with the peer starting only after `host_up`, never ready gives a bounded inconclusive abort without a start, a wrong identity aborts, no second prepare while pending), `tests/build/test_m5_host_output.py` (the pending form on the real link-down and active forms).
+
+## Supervisor arrival order: the idle phase and late link rows (2026-11-08)
+
+The second reduced capture aborted in phase 1 with `Resource settling/idle sampling deadline failed` although the board's idle samples were clean. The first capture had passed the same phase 1 by the luck of a USB chunk split. The firmware prints its link rows at once (`tests/networking_physical/fixture.c`, the link observer) and its three idle samples of a checkpoint together after the third sample (`settle`), so a link row of the same phase carries a later board time than the first idle sample (second capture: `LINK seq=1 at=3827`, first `IDLE at=3001`) and reaches the host before it. `Supervisor.next_command` clears the rows and starts recording before the guard-checked write (about 1.2 s), and `Supervisor.target` kept every link row that arrived while a command ran; the idle check then used `rows[0]['at']` as the time the resources had returned, which was that link row (second capture, `3827 > 3001`: abort) or, in the first capture, the boot-time link-down row that a split chunk delivered after the command (`1810`: pass, against a meaningless value). The raw replay (`m5_series.validate_series`) selects link rows of the same phase inside the command window and takes the idle start from the first non-link row; the supervisor now does the same: link rows are recorded while a command runs only when their `seq` equals the running phase, and the idle phase is validated on the non-link rows with the first sample as its start.
+
+Replay of the real captures: `tests/build/fixtures/m5-real-captures/run4` and `run5` (the `receive.jsonl`, `writes.jsonl` and `operations.jsonl` of the two captures) go through the real supervisor chunk by chunk and in 20 ms and 250 ms batches (`tests/build/test_m5_supervisor_order.py`); both pass phase 1 with the fix, the second capture fails without it. The placement of the command write between the two link rows is permuted (before both, between, after both) with the numbers of both captures.
+
+Audit of the other checks of phases 2 to 6 that depend on arrival order or on a timing window the board could cross (file:line in `tests/target`):
+
+| Check | Where | Finding |
+| --- | --- | --- |
+| Rows of a count phase all carry the running phase's `seq` | `m5_network_oracle.py` `validate_command` | a late link row of the previous phase would abort with `Foreign epoch/phase`; fixed by the `seq` filter in `Supervisor.target` |
+| Link rows ordered and without duplicate `(at, link)` | `validate_command` | board order is arrival order for link rows; no change |
+| Idle samples at least 1000 ms apart and within 5000 ms of the phase's return time | `validate_idle` | the supervisor start value was wrong (above); in count phases `returned` is the `END` row's own board time, so arrival order does not matter |
+| `BEGIN` within 10 s of the command write, next record within 10 s of the last `BEGIN`/`END` (host receive times) | `m5_network_oracle.Watch`, `capture_m5_network.py` `command_written` | the firmware emits `BEGIN`/`END` as they happen and the idle burst follows each `END` within `settle`'s 5 s, so the 10 s progress window holds with margin; not yet seen on the board for phases 2 to 6 |
+| Link UP observed before the first traffic | `Supervisor.next_command` (phase 2), `m5_series.py` (observer events before the command) | the link-up row (3.8 s after boot in both captures) arrives before phase 1 ends (about 5 s); a link slower than phase 1 aborts phase 2 as inconclusive |
+| Command write before the first non-link row after `READY` | `m5_series.py` raw replay | holds (the command precedes the idle burst) |
+| Peer ready before the command | `Supervisor.next_command`, `CaptureAdapter` host-address gate | holds; the gate adds at most 20 s inside the 90 s window after `READY` |
+| Link rows of phases 7 to 9 (cable pull) | `Supervisor.target`, `validate_command` loss mode | out of scope here; the `seq` filter applies there too and matches the raw replay |
+
+Not covered: phases 2 to 6 on the board, and the first packets after the link returns (ARP).
