@@ -197,5 +197,7 @@ scope.
 The procedure, preconditions and stop conditions are a separate document of the eMMC design (issue
 [#256](https://github.com/wonny-labs/crux-pilot/issues/256)). It authorises nothing: every hardware step needs
 explicit approval for the current task.
-The Stage A images that run this composition on the EVKB's microSD slot, and the commands for each step, are in the
-[Stage A run sheet](emmc-reliance-physical-gate.md#stage-a-run-sheet).
+The Stage A images (`samples/storage_reliance_sd`) and the commands for each step are in the
+[Stage A run sheet](emmc-reliance-physical-gate.md#stage-a-run-sheet). Its mount-check, append and replace images run this
+composition's mount sequence on the EVKB's microSD slot (disk `SD`). The format image has its own mount and format, and
+the default image calls none.
