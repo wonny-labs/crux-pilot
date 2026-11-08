@@ -1,0 +1,6 @@
+{
+  "mode": "restore",
+  "error": "HardwareStop('Probe diagnostic; stop hardware changes')",
+  "steps": 2,
+  "automatic_retry": false
+}
