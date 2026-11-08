@@ -16,6 +16,8 @@ import tomllib
 import urllib.request
 from pathlib import Path
 
+import retry_transient
+
 ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "doc-links.toml"
 LYCHEE_CONFIG = ROOT / "lychee.toml"
@@ -138,8 +140,13 @@ def install_tool(policy, root=ROOT):
         return binary
 
     print(f"Downloading pinned lychee {version} from the official release")
-    with urllib.request.urlopen(url, timeout=120) as response:
-        archive_bytes = response.read()
+
+    def download():
+        with urllib.request.urlopen(url, timeout=120) as response:
+            return response.read()
+
+    # GitHub Releases sometimes answers 5xx for a while. A checksum mismatch is never retried.
+    archive_bytes = retry_transient.retry(download)
     if hashlib.sha256(archive_bytes).hexdigest() != digest:
         raise ValueError("lychee release archive SHA-256 mismatch")
 
