@@ -1,6 +1,69 @@
 {
   "address" : "192.168.77.2/24",
   "board" : "mimxrt1060_evk@B//qspi",
+  "configuration_files" : 
+  [
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/bench_declaration.json",
+      "sha256" : "f76ea0b1b6d2cb5b09a77368cfbbc1d852a2e36a35dcb7996d86bd971c4172c8"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/bench_guard.cmake",
+      "sha256" : "52989860c1c2cf799624b505a08962b837918da50dd759059eb5ab9ade036f18"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/management_target.cmake",
+      "sha256" : "3dab42f7c247361beb32d63e74ecc50e88e877f6b956b745c1ce10f0f3da988f"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/CMakeLists.txt",
+      "sha256" : "3df0289460b49fa42d99cff006d392a4171c6cc2058a4ff5daa2bd6c87733fb6"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/Kconfig",
+      "sha256" : "9c4dc1dac7af6e6605a21c710efd4d1b2619102490933858e001cb3a83d42841"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/Kconfig.bench",
+      "sha256" : "9407bfc8c6a5fc5faf0b976b9d92fe09d1ec87dcf2c2efb73d9ff3e07377798b"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/prj.conf",
+      "sha256" : "f39e2e9a4298a78154deba592b746eb2380cf2e18414298601b8e0982e6aed22"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/target.conf",
+      "sha256" : "36f5a684e288e653575985b6fe349166ac85d49e30f65171768688cb1dc1f05d"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/target.overlay",
+      "sha256" : "65dc3997636b6578bb0d1cf76ac0fe9ef94c479b32d51111477e6489a9bf94b2"
+    },
+    {
+      "path" : "tests/native/tls_offload_probe/wolf.conf",
+      "sha256" : "3216db51bb0d05776ce5bc0b86522dbb4ace12520eef6b2253d2611bf3cced54"
+    },
+    {
+      "path" : "tests/native/management_composition/profile-psa.conf",
+      "sha256" : "9b38c6fd9679d6041e04cb90487aaad273c758eb6af51935d55454bfca7121c1"
+    },
+    {
+      "path" : "components/ssh/ports/zephyr/wolf-ssh.conf",
+      "sha256" : "cdb3e5b647690caa28f9ba344e1aa6cbf08ac0bcf648a1c16a9254d83b9cf1e6"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/target.conf",
+      "sha256" : "36f5a684e288e653575985b6fe349166ac85d49e30f65171768688cb1dc1f05d"
+    },
+    {
+      "path" : "samples/controller/zephyr/m3-network.overlay",
+      "sha256" : "c7e10e2a610d2884df6e4366ea8bd1598fad0c511056443a344426ad8c5b2969"
+    },
+    {
+      "path" : "tests/zephyr/management_rt1060_compile/target.overlay",
+      "sha256" : "65dc3997636b6578bb0d1cf76ac0fe9ef94c479b32d51111477e6489a9bf94b2"
+    }
+  ],
   "declaration" : "CRUX_MANAGEMENT_BENCH_IMAGE",
   "image_id" : "crux-mgmt-bench-rt1060-evkb-b",
   "patched_zephyr" : 
@@ -57,15 +120,15 @@
     "CONFIG_CRUX_WEB_SEND_TIMEOUT_MS" : "250",
     "CONFIG_CRUX_WEB_TLS_SEC_TAG" : "1",
     "CONFIG_ENTROPY_MCUX_TRNG" : "y",
-    "CONFIG_HTTP_SERVER_STACK_SIZE" : "4096",
+    "CONFIG_HTTP_SERVER_STACK_SIZE" : "8192",
     "CONFIG_MAIN_STACK_SIZE" : "16384",
     "CONFIG_NET_MAX_CONN" : "32",
     "CONFIG_NET_MAX_CONTEXTS" : "32",
     "CONFIG_NET_MAX_ROUTERS" : "1",
     "CONFIG_NET_SOCKETS_TLS_MAX_CONTEXTS" : "6"
   },
-  "source_commit" : "5bb754539ad57c94c0fbd5c96fb053aa2f3e6af3",
-  "source_tree_modified" : "true",
+  "source_commit" : "26433622e75c9db6fe7ac2aeb4451ff05fae437f",
+  "source_tree_modified" : "false",
   "sources" : 
   [
     {
@@ -358,7 +421,7 @@
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/src/ssh_target.c",
-      "sha256" : "b30b40ece0e4dc49e9aea45774acea6103066b584bd6d4e9ed2ea8abde5b6081"
+      "sha256" : "72fad758c5cdaa9146cab15c56c78ce218d4ad96dc7b5c894b67d55f5ab00eec"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/src/bench_first_account.c",
@@ -377,7 +440,7 @@
       "sha256" : "2fd73cf0f6e5e8573c895d22bac61ebcbc69d109ee9a0d8033a3f4c115248492"
     },
     {
-      "path" : "../../build/bench_c1/crux_web_assets/app/crux_web_assets.c",
+      "path" : "build/crux_web_assets/app/crux_web_assets.c",
       "sha256" : "generated in the build directory"
     },
     {
@@ -385,11 +448,11 @@
       "sha256" : "206fe1234d1dfa58e03cda27aed0550cad7a42b3a6548a4c3c5d30d4863bf356"
     },
     {
-      "path" : "../../build/bench_c1/crux_web_generated/app/crux_web_routes.c",
+      "path" : "build/crux_web_generated/app/crux_web_routes.c",
       "sha256" : "generated in the build directory"
     },
     {
-      "path" : "../../build/bench_c1/crux_web_generated/app/crux_web_resources.c",
+      "path" : "build/crux_web_generated/app/crux_web_resources.c",
       "sha256" : "generated in the build directory"
     },
     {

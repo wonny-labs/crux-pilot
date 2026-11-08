@@ -36,6 +36,7 @@
   refused  CMake the reserved test form ram_disk set: The test form ram_disk (D2) is reserved and nothing implements it: CONFIG_CRUX_BENCH_FILE_RAM_DISK is refused until its row changes the declaration
   refused  CMake the reserved test form first_account_file set: The test form first_account_file (D3) is reserved and nothing implements it: CONFIG_CRUX_BENCH_FIRST_ACCOUNT_FILE is refused until its row changes the declaration
   refused  CMake no build-local Zephyr copy: ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket patch (scripts/prepare-wolf-tls-zephyr.sh): .crux-wolf-tls is missing
+  refused  CMake a marker without the patched file: ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket patch (scripts/prepare-wolf-tls-zephyr.sh): .crux-wolf-tls is missing
   refused  CMake a Zephyr copy on another pin: ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket patch that the declaration names (zephyr-tls-4.4.1.patch on dccb09599635bdff17633fa7e9dab014b91dce90)
   refused  CMake a Zephyr copy with another patch: ZEPHYR_BASE is not the build-local Zephyr copy with the wolfSSL TLS socket patch that the declaration names (zephyr-tls-4.4.1.patch on dccb09599635bdff17633fa7e9dab014b91dce90)
   refused  C     no CMake declaration: "A bench test form reaches a build that CMake did not declare as the RT1060-EVKB bench image"

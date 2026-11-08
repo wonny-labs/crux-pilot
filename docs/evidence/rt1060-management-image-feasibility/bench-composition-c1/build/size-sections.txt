@@ -1,4 +1,4 @@
-/build/bench_c1/zephyr/zephyr.elf  :
+/build/bench_c1b/zephyr/zephyr.elf  :
 section                                        size         addr
 rom_start                                      8896   1610612736
 text                                         506040   1610621632
@@ -44,15 +44,15 @@ http_header_name_area                            28   1611213708
 .debug_aranges                                48440            0
 .debug_info                                 5104731            0
 .debug_abbrev                                296341            0
-.debug_line                                 1293190            0
+.debug_line                                 1293264            0
 .debug_frame                                 155260            0
-.debug_str                                   381671            0
+.debug_str                                   381677            0
 .debug_loc                                  1907398            0
 .debug_ranges                                177152            0
 .ARM.attributes                                  50            0
 .last_section                                     4   1611213736
 bss                                          135182   2147488448
-noinit                                       693676   2147623680
-Total                                      10794406
+noinit                                       697772   2147623680
+Total                                      10798582
 
 

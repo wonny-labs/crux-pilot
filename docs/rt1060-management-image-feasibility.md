@@ -37,7 +37,7 @@ C1 approves running it.
 | What do the guards allow? | The test host key form (D5) and no time source (D7), on that board, with the TRNG, on the Wolf profile, with both listeners bound to the bench address. Everything else is refused: [the list](#what-each-guard-refuses). |
 | Did a native guard change? | **No.** `composition.cmake:13/17`, `ssh.cmake:16/20`, `ssh_test_host_key_guard.h:12` and `test_tls_credentials.h:10` are untouched and still refuse every board. |
 | What else changed in product code? | One optional setting for each listener, **empty by default, which keeps every address as before**: `CONFIG_CRUX_WEB_BIND_ADDRESS` (the HTTPS adapter) and `CONFIG_CRUX_SSH_BIND_ADDRESS`, passed to the provider as the new field `crux_ssh_config_t.bind_address`. [Listeners](#listeners-d10). |
-| Size | **Flash 601,004 B of 8 MB (7.16 %), RAM 833,708 B (SDRAM, 2.48 %)**, ITCM, DTCM and OCRAM empty. Flash is 248 B less and RAM identical to the stage 0 committed tree: [Build in C1](#build-in-c1). |
+| Size | **Flash 601,004 B of 8 MB (7.16 %), RAM 837,804 B (SDRAM, 2.50 %)**, ITCM, DTCM and OCRAM empty. Flash is 248 B less than the stage 0 committed tree, and RAM 4,096 B more, which is the HTTP server stack at 8,192 B: [Build in C1](#build-in-c1). |
 | Can it run? | **No.** [What still blocks a board run](#what-still-blocks-a-board-run). |
 
 ### The three levels of the bench guards
@@ -102,19 +102,19 @@ Both default to empty, which is the behaviour of every earlier image. `main()` a
 
 ### Build in C1
 
-The same method as stage 0 (`commands/zbuild_wolf.sh`, a fresh patched Zephyr copy, `-j2`, the Dev Container under emulation, one build), on the tree of this PR and the same pins. The bench guards ran inside the real configure and passed, and the manifest was written.
+The same method as stage 0 (`commands/zbuild_wolf.sh`, a fresh patched Zephyr copy, `-j2`, the Dev Container under emulation, one build), on the **committed tree `26433622`** of this PR (the manifest says `source_tree_modified: false`) and the same pins. The bench guards ran inside the real configure and passed, and the manifest was written. A first build of the tree before the review fixes (Flash 601,004 B, RAM 833,708 B, HTTP stack 4,096 B) is what the guard breaks ran against; only the stack, the SSH bind line and the manifest changed since.
 
 | Item | Stage 0, committed tree (`a0ef59db`) | C1 |
 | --- | ---: | ---: |
 | FLASH (`0x60000000`, 8 MB) | 601,252 B | **601,004 B** (7.16 %), 248 B less |
-| RAM = SDRAM (`0x80000000`, 32 MB) | 833,708 B | **833,708 B** (2.48 %) |
+| RAM = SDRAM (`0x80000000`, 32 MB) | 833,708 B | **837,804 B** (2.50 %), 4,096 B more: the HTTP server stack, 4,096 B to 8,192 B |
 | ITCM, DTCM, OCRAM, OCRAM2 | 0 B | 0 B |
-| `size`: text, data, bss | 596,748, 4,480, 829,154 | 596,504, 4,480, 829,158 |
+| `size`: text, data, bss | 596,748, 4,480, 829,154 | 596,504, 4,480, 833,254 |
 | Steps, warnings | 544 steps, 3 warnings | 551 steps, **the same 3 warnings**, all in wolfSSH `wolfsftp.c`, outside `-Werror` as before |
-| `zephyr.bin` SHA-256 | `3af5b464...a522f` | `771985a1105b275150b618b3e84ea267a1a11573a4b9676254704fb2b58b5194` |
-| `zephyr.elf` SHA-256 | `5c9c04c3...d607` | `e70b2cce41659af0bef0eae6a0e9a290c401a290d217162631f91de85f683686` (the build path differs, so the hash may) |
+| `zephyr.bin` SHA-256 | `3af5b464...a522f` | `8b557969dc8c34fbb015d2f361bf3e8837af7d7cbe1623b56c87a86c8fb3a420` |
+| `zephyr.elf` SHA-256 | `5c9c04c3...d607` | `f6765d538a68c6132a00be08aa1508cf229c5032f647b4dc7bba6c754a1bb7fb` (the build path differs, so the hash may) |
 
-Why 248 B less: the public-password step and its `strlen` are gone, and the bench banner is longer than the old refusal string. **No stack, buffer, arena or session size changed**, so the RAM figure is the same.
+Why 248 B less: the public-password step and its `strlen` are gone, and the bench banner is longer than the old refusal string. The only size that changed is the HTTP server stack (`CONFIG_HTTP_SERVER_STACK_SIZE=8192`, in `.config`), and the RAM figure moved by exactly that, 4,096 B. No other stack, buffer, arena or session size changed.
 Reading the linked image: the string `composition test password` occurs **0 times** in `zephyr.elf` (`strings -a`), and the bench banner lines, the image identity and the bench address do occur ([evidence](evidence/rt1060-management-image-feasibility/bench-composition-c1/README.md)).
 The link map, the resolved configuration, the build and configure logs, the manifest and the sizes are in that evidence record.
 
@@ -128,7 +128,7 @@ The link map, the resolved configuration, the build and configure logs, the mani
 | Other server frames seen in the stage 0 frame table | 256 B (`handle_http1_request`), 568 B (`http1_dynamic_response`) | `integrated-vehicle/frames-top200.txt`. They sit on the request path, not under `accept`. |
 | Margin of 8,192 B over the handshake chain alone | 1.9 times | 8,192 / 4,272 |
 | Margin if the socket layer and the server add about 1 KB, which is a guess and not a number | about 1.6 times | |
-| RAM cost | **See [Build in C1](#build-in-c1)**: the image total is measured, and the stack is in SDRAM (32 MB) | Link map |
+| RAM cost | **+4,096 B**: RAM 833,708 B to 837,804 B (2.50 % of the 32 MB SDRAM), measured from the linker's report of the same tree with only that setting differing | [Build in C1](#build-in-c1), `build/build.log` |
 
 Nothing in the code needs more as far as the static view goes: a 16 KiB TLS record is held in wolfSSL's heap buffers and not on this stack, and the response piece is a static buffer (`CONFIG_CRUX_WEB_RESPONSE_PIECE` 1,024 B, shared by every exchange). **This is not a measurement.** The static chains follow direct calls only and are neither an upper nor a lower bound (see Thread stacks). Row C2 reads the watermark on a target run, and the starting value goes higher only if that says so.
 
@@ -485,10 +485,10 @@ C1 adds these. The record is [`evidence/.../bench-composition-c1/`](evidence/rt1
 
 | Check | Result | Who ran it |
 | --- | --- | --- |
-| `python3 tests/zephyr/management_rt1060_compile/check_bench_guard.py --verbose` | **40 CMake and 17 C refusals, each for its reason**, the declared bench passing at every level, the Kconfig level over a Kconfiglib stub, and **37 of 37 mutants killed** (each guard weakened in turn: a refusal that only logs, an `#error` that only warns, a static assertion that always holds, a removed include, a removed `depends on`, a removed block). [Output](evidence/rt1060-management-image-feasibility/bench-composition-c1/host/check_bench_guard-verbose.txt) | The author, on the host |
+| `python3 tests/zephyr/management_rt1060_compile/check_bench_guard.py --verbose` | **41 CMake and 17 C refusals, each for its reason**, the declared bench passing at every level, the Kconfig level over a Kconfiglib stub, and **37 of 37 mutants killed** (each guard weakened in turn: a refusal that only logs, an `#error` that only warns, a static assertion that always holds, a removed include, a removed `depends on`, a removed block). [Output](evidence/rt1060-management-image-feasibility/bench-composition-c1/host/check_bench_guard-verbose.txt) | The author, on the host |
 | The same script, before it was right | Two mutants survived in its first version, because it accepted a reason that appeared in a `#warning`, and counted an `#error` inside a comment. Both fixed in the script. | The author |
-| `python3 -m unittest tests/build/test_management_bench_declaration.py tests/build/test_management_target_lists.py` | 13 tests pass. Six mutations of the files each fail a test (a changed line in a copy, a removed source, the refusal switched off, an emptied bind address, a changed declared address, the public password in a bench source), and the restored files pass. | The author, on the host |
-| Compile and link for `mimxrt1060_evk@B//qspi` | **Linked**, with the bench guards inside the configure: Flash 601,004 B, RAM 833,708 B, the same three warnings. [Build in C1](#build-in-c1) | The author, in the Dev Container |
+| `python3 -m unittest tests/build/test_management_bench_declaration.py tests/build/test_management_target_lists.py` | 14 tests pass. Six mutations of the files each fail a test (a changed line in a copy, a removed source, the refusal switched off, an emptied bind address, a changed declared address, the public password in a bench source), and the restored files pass. | The author, on the host |
+| Compile and link for `mimxrt1060_evk@B//qspi` | **Linked**, with the bench guards inside the configure, on the committed tree: Flash 601,004 B, RAM 837,804 B, the same three warnings. [Build in C1](#build-in-c1) | The author, in the Dev Container |
 | Six configure-only runs with one setting broken | Each stops: five at the CMake level, one earlier at a module guard. **Two show that Zephyr only warns when Kconfig drops an assignment.** | The author, in the Dev Container |
 | `strings` on the linked image | The public test password occurs 0 times | The author |
 | Not run | A board, the image, any client, any `native_sim` image (none built in C1), the native images (their files are unchanged), the CI workflows | |
