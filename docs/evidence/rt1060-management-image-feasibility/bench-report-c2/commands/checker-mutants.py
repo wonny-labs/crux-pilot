@@ -1,7 +1,7 @@
+# Mutants of check_bench_uart.py: each weakens one rule, and the unit tests must fail. Run from the repository root.
 import subprocess, shutil
 P='tests/zephyr/management_rt1060_compile/check_bench_uart.py'
 orig=open(P).read()
-S='/private/tmp/claude-502/-Users-jiwonkim-Projects/62404e4d-6996-484d-bf84-9ae6f358d48f/scratchpad/'
 M=[('if http["unused_min"] < needed:','if http["unused_min"] <= needed:','margin compared with <= (off by one)'),
 ('entry["unused_min"] = min(entry["unused_min"], row["unused"])','pass','lowest unused not kept over reports'),
 ('if used + unused != size:','if False:','row that does not add up accepted'),
