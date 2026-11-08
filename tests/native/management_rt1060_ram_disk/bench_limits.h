@@ -8,8 +8,10 @@
 #define BENCH_AREA_MAX_FILE_BYTES 65536u
 #define BENCH_AREA_MAX_BYTES 262144u
 #define BENCH_AREA_MAX_ENTRIES 16u
-/* The credential store: two slot files, each CRUX_CREDENTIAL_SLOT_BYTES (credential_port.h). */
+/* The credential store: two slot files, each CRUX_CREDENTIAL_SLOT_BYTES (credential_port.h,
+ * compared by the unit test). */
 #define BENCH_STORE_SLOTS 2u
+#define BENCH_STORE_SLOT_BYTES 16384u
 /* The directories of the medium: secure-a, secure-b and files. */
 #define BENCH_DIRECTORIES 3u
 /* What the File service keeps beside the files and counts against the area's limit only after a

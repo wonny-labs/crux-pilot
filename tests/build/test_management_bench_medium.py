@@ -220,6 +220,9 @@ class RamDiskSize(unittest.TestCase):
         limits = {k: int(v) for k, v in re.findall(r"\.(max_\w+) = (\d+)u", area)}
         header = (ROOT / "tests/native/management_rt1060_ram_disk/bench_limits.h").read_text()
         declared = {k: int(v) for k, v in re.findall(r"#define (BENCH_AREA_\w+) (\d+)u", header)}
+        slot = re.search(r"#define CRUX_CREDENTIAL_SLOT_BYTES (\d+)u",
+                         (ROOT / "components/credential/src/credential_port.h").read_text()).group(1)
+        self.assertEqual(int(slot), int(re.search(r"BENCH_STORE_SLOT_BYTES (\d+)u", header).group(1)))
         self.assertEqual(limits, {"max_file_bytes": declared["BENCH_AREA_MAX_FILE_BYTES"],
                                   "max_area_bytes": declared["BENCH_AREA_MAX_BYTES"],
                                   "max_entries": declared["BENCH_AREA_MAX_ENTRIES"]})

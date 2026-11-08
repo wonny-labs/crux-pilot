@@ -9,4 +9,3 @@ set(DTC_OVERLAY_FILE "${CRUX_ROOT}/tests/zephyr/management_rt1060_compile/ram_di
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_management_rt1060_ram_disk C)
 target_sources(app PRIVATE main.c)
-target_include_directories(app PRIVATE "${CRUX_ROOT}/components/credential/src")

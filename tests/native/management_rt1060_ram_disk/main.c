@@ -11,7 +11,6 @@
  * the free space it leaves. Nothing here touches a board or a card.
  */
 #include "bench_limits.h"
-#include "credential_port.h"
 
 #include <ff.h>
 #include <stdint.h>
@@ -92,8 +91,8 @@ static void make_directories(void)
 /* The store's slots, after the area is full: the order that leaves it the least room. */
 static void write_store_slots(void)
 {
-    zassert_ok(write_file("/RAM:/secure-a/slot", CRUX_CREDENTIAL_SLOT_BYTES));
-    zassert_ok(write_file("/RAM:/secure-b/slot", CRUX_CREDENTIAL_SLOT_BYTES));
+    zassert_ok(write_file("/RAM:/secure-a/slot", BENCH_STORE_SLOT_BYTES));
+    zassert_ok(write_file("/RAM:/secure-b/slot", BENCH_STORE_SLOT_BYTES));
 }
 
 static void report(const char *what, space_t before, space_t after)
