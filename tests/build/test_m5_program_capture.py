@@ -157,15 +157,20 @@ class Refusals(Case):
         self.assertNoCapture(spec)
         self.assertEqual(len(self.commands), 2)
 
-    def test_series_budget_before_and_after_the_checks(self):
-        for seconds, pattern in ((120, 'budget'), (130, 'exhausted by the guard')):
-            with self.subTest(seconds=seconds):
+    def test_series_budget_before_and_after_the_checks_of_the_load_step(self):
+        for series, pattern in ((200, 'Insufficient series budget'), (130, 'exhausted by the guard')):
+            with self.subTest(series=series):
                 self.setUp()
                 spec = self.spec()
-                self.check_seconds = 90 if seconds == 130 else 0
+                seconds = {'02-entry-image': 100, '03-program-m5': 0} if series == 200 else {'03-program-m5': 90}
+                def timed(directory, label, seconds=seconds):
+                    Case.preconditions(self, directory, label)
+                    self.now += seconds.get(label, 0)
+                self.preconditions = timed
                 with self.assertRaisesRegex(HardwareStop, pattern):
-                    self.program(spec, series_seconds=seconds)
+                    self.program(spec, series_seconds=series)
                 self.assertNoCapture(spec)
+                self.assertEqual(len(self.commands), 2)                       # the refusal is at the load step, not before
 
     def test_a_changed_image_or_manifest_never_opens_a_capture(self):
         spec = self.spec()
@@ -308,18 +313,33 @@ class Ports(Case):
         analysis = json.loads((self.directory / 'capture' / 'analysis.json').read_text())
         self.assertEqual(analysis['final_line']['state'], 'cut')
 
-    def test_the_lock_and_the_port_are_taken_once_before_the_capture_and_released_once_after_it(self):
+    def test_the_port_is_acquired_once_before_the_capture_and_released_once_after_it(self):
         self.port = self.Port(self)
         self.program(raw.CaptureSpec(1))
         self.assertEqual(self.events.count('acquire'), 1)
         self.assertEqual(self.events.count('port-close'), 1)
-        self.assertLess(self.events.index('acquire'), self.events.index('capture-open') if 'capture-open' in self.events else 99)
+        self.assertEqual(self.events[0], 'acquire')
+        self.assertTrue((self.directory / 'capture' / 'analysis.json').exists())          # closed only after the capture was complete
+
+    def test_a_missing_port_or_a_port_that_fails_its_first_read_stops_before_the_load(self):
+        class Dead(self.Port):
+            def read(self, size):
+                raise OSError('device gone')
+        for port, cause in ((None, 'UART port'), (Dead(self), 'UART capture reader failed')):
+            with self.subTest(cause=cause):
+                self.setUp()
+                self.port = port
+                with self.assertRaises(HardwareStop):
+                    self.program(raw.CaptureSpec(1))
+                self.assertEqual(len(self.commands), 2)
+                self.assertFalse(any('loadfile' in c for c in self.commands))
 
     def test_a_port_that_dies_mid_window_is_reported_without_a_second_command(self):
         class Dying(self.Port):
             def read(self, size):
                 self.reads += 1
-                if self.reads > 3:
+                time.sleep(.002)
+                if self.reads > 40:                     # well after the capture opened
                     raise OSError('device disconnected')
                 return b''
         self.port = Dying(self)

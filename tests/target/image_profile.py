@@ -11,7 +11,7 @@ import re
 from typing import Callable, Mapping, Optional, Tuple
 
 CAPTURE_MODES = ('none', 'raw')
-MAX_CAPTURE_SECONDS = 300                       # the window after the start command; 300 s at 115200 baud is about 3.5 MB of raw bytes
+MAX_CAPTURE_SECONDS = 300                       # the window after the start command; 300 s plus the 30 s Commander run at 115200 baud is at most about 3.8 MB
 
 
 @dataclass(frozen=True)

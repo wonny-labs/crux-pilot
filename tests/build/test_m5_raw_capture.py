@@ -269,6 +269,48 @@ class Failure(Case):
         with self.assertRaisesRegex(HardwareStop, 'UART capture reader failed'):
             capture.abort('x')
 
+    def test_a_file_that_cannot_be_written_never_loses_the_chunk_that_was_read(self):
+        class Broken:
+            def write(self, data):
+                raise OSError('disk full')
+            def flush(self):
+                pass
+        for broken in ('polls', 'events', 'raw_file'):
+            with self.subTest(broken=broken):
+                self.setUp()
+                capture, port, clock = self.capture([(100.01, b'kept\r\n')], seconds=5)
+                setattr(capture, broken, Broken())
+                with self.assertRaisesRegex(HardwareStop, 'UART capture reader failed'):
+                    capture.window()
+                analysis = self.json('analysis.json')
+                self.assertEqual(analysis['raw']['bytes'], 6)                       # the chunk is in the analysed bytes in every case
+                self.assertIn('disk full', analysis['reader_failure'])
+                on_disk = (self.directory / 'uart-rx.bin').read_bytes()
+                self.assertEqual(analysis['raw']['file_bytes'], len(on_disk))
+                self.assertEqual(on_disk, b'' if broken == 'raw_file' else b'kept\r\n')
+
+    def test_a_port_that_fails_on_its_first_read_is_not_an_opened_capture(self):
+        class Dead:
+            def read(self, size):
+                raise OSError('device gone')
+        before = threading.active_count()
+        with self.assertRaisesRegex(HardwareStop, 'UART capture reader failed'):
+            subject.RawCapture(self.directory, Dead(), seconds=1)
+        self.assertEqual(threading.active_count(), before)
+        self.assertEqual(sorted(p.name for p in self.directory.iterdir() if p.suffix == '.json' and p.name == 'analysis.json'), [])
+
+    def test_a_reader_that_never_completes_its_first_read_is_not_an_opened_capture(self):
+        release = threading.Event()
+
+        class Stuck:
+            def read(self, size):
+                release.wait(5)
+                return b''
+
+        self.addCleanup(release.set)
+        with self.assertRaisesRegex(HardwareStop, 'UART capture reader did not initialise'):
+            subject.RawCapture(self.directory, Stuck(), seconds=1)
+
     def test_an_interrupt_during_the_window_still_stops_the_reader_and_writes_the_evidence(self):
         capture, port, clock = self.capture([(100.1, b'kept\r\n')], seconds=120)
         original = port.read
@@ -334,8 +376,12 @@ class Threaded(Case):
         release = threading.Event()
 
         class Stuck:
+            reads = 0
+
             def read(self, size):
-                release.wait(5)
+                self.reads += 1
+                if self.reads > 1:                      # the first read completes, so the capture opens; the next one hangs
+                    release.wait(5)
                 return b''
 
         self.addCleanup(release.set)

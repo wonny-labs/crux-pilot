@@ -183,6 +183,7 @@ class Driver:
 
         def open_capture():
             label = '%02d-program-m5' % self.step
+            require(self.port is not None, 'UART port not owned; no capture and no probe command')
             require(self.clock() + COMMAND_SECONDS + spec.seconds < self.end, 'Capture window does not fit the series budget')
             try:
                 opened.append(spec.open(self.port, self.directory / 'capture'))

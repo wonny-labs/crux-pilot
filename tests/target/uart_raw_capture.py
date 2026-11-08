@@ -77,7 +77,7 @@ def _non_ascii(raw):
     return count, ranges
 
 
-def analyse(raw, chunks, gaps, marks, failure, opened):
+def analyse(raw, chunks, gaps, marks, failure, opened, file_bytes=None):
     """Observations only. Nothing here raises for any content and nothing decides acceptance."""
     rows = line_view(raw, chunks)
     count, ranges = _non_ascii(raw)
@@ -93,7 +93,7 @@ def analyse(raw, chunks, gaps, marks, failure, opened):
     return dict(
         schema=1,
         acceptance='none: the offline analysis of the raw bytes decides',
-        raw=dict(file='uart-rx.bin', bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest(), chunks=len(chunks)),
+        raw=dict(file='uart-rx.bin', bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest(), chunks=len(chunks), file_bytes=file_bytes),
         lines=len(rows),
         complete_lines=sum(1 for row in rows if row['complete']),
         final_line=final,
@@ -137,6 +137,8 @@ class RawCapture:
                 self.thread.start()
                 if not self.ready.wait(READY_SECONDS):
                     raise HardwareStop('UART capture reader did not initialise')
+                if self.failure is not None:
+                    raise HardwareStop('UART capture reader failed: ' + self.failure)
         except BaseException:
             self.stop.set()
             if self.thread is not None:
@@ -154,19 +156,19 @@ class RawCapture:
             chunk = self.port.read(READ_SIZE)
             now = self.clock()
             gap = now - self.previous
-            self.polls.write(_line(dict(monotonic=now, gap=gap)))
             if gap > GAP_THRESHOLD:
                 self.gaps.append(dict(monotonic=now, gap=gap, raw_offset=len(self.raw)))
             self.previous = now
-            if chunk:
+            offset = len(self.raw)
+            if chunk:                                  # in memory first: no file failure can lose a chunk that was read
                 chunk = bytes(chunk)
-                offset = len(self.raw)
                 self.raw += chunk
                 self.chunks.append((now, offset, len(chunk)))
-                self.raw_file.write(chunk)
+                self.raw_file.write(chunk)             # the raw file before any record about it
                 self.raw_file.flush()
                 self.events.write(_line(dict(monotonic=now, offset=offset, hex=chunk.hex())))
                 self.events.flush()
+            self.polls.write(_line(dict(monotonic=now, gap=gap)))
         except Exception as error:
             self.failure = repr(error)
             return False
@@ -174,8 +176,9 @@ class RawCapture:
 
     def read(self):
         try:
+            first = self.poll_once()                   # a port that cannot be read is found before the capture counts as open
             self.ready.set()
-            while not self.stop.is_set() and self.poll_once():
+            while first and not self.stop.is_set() and self.poll_once():
                 pass
         except BaseException as error:
             self.failure = repr(error)
@@ -219,7 +222,8 @@ class RawCapture:
             finally:
                 for handle in self.files:
                     handle.close()
-            analysis = analyse(raw, self.chunks, self.gaps, self.marks, self.failure, self.opened)
+            analysis = analyse(raw, self.chunks, self.gaps, self.marks, self.failure, self.opened,
+                               (self.directory / 'uart-rx.bin').stat().st_size)
             rows = line_view(raw, self.chunks)
             (self.directory / 'marks.json').write_text(json.dumps(self.marks, indent=2) + '\n')
             (self.directory / 'lines.json').write_text(json.dumps(rows, indent=2) + '\n')
