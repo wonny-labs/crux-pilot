@@ -2,6 +2,8 @@
 
 Status: software preparation only. No physical result, programming, reset, cable operation, merge or Issue closure is authorised by this document. Baseline is merged PR #38 (`df52a62c0475fe87e67bde1fa50c49090a146936`). The approved BSD/POSIX client profile and read-only primary-interface contract remain unchanged.
 
+A proposal to let other images use the same reviewed programming and restore path through image profiles is in [Image profiles](board-image-profiles.md). It changes no gate.
+
 ## Test composition and evidence scope
 
 `tests/networking_physical` is a dedicated composition, not a production application. `transaction.c` uses only the approved standard profile. Native context/pool/stack observation, static address setup and the observer thread belong to this composition. Existing `samples/networking/client.[ch]` and runtime-port consumers remain unchanged. Physical results would qualify this private M5 consumer; they would not demonstrate physical execution of those unchanged consumers.

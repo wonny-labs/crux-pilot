@@ -10,6 +10,7 @@ import json
 from pathlib import Path, PurePosixPath
 import re
 
+from image_profile import ImageProfile
 from m3_errno import verify_errno_map
 from m3_image import require
 from m5_image import check_image
@@ -31,13 +32,32 @@ PINNED_PATHS = {'zephyr': 'zephyr', 'cmsis': 'modules/hal/cmsis', 'cmsis_6': 'mo
                 'hal_nxp': 'modules/hal/nxp'}
 MANIFEST_PATH = 'crux-pilot'
 ROLES = {'binary', 'elf', 'config', 'map', 'dts', 'compilation', 'inputs', 'provenance', 'errno'}
+M5_NAME = 'm5-network-physical'
+
+
+def m5_profile():
+    """The M5 test image. Built at call time so that these module constants stay the single source of its facts."""
+    return ImageProfile(name=M5_NAME, manifest_path=MANIFEST_PATH, pinned=PINNED, pinned_paths=PINNED_PATHS,
+                        check_image=check_image, commit_tag=True, errno_suffix='/transaction.c',
+                        tool_scripts=('test-networking-physical.sh', 'record-build-provenance.py'))
+
+
+PROFILES = {M5_NAME: m5_profile}
+
+
+def profile_named(name):
+    """A registered profile. Unknown names are refused; a new image adds its factory to PROFILES."""
+    require(name in PROFILES, 'Unknown image profile: ' + str(name))
+    return PROFILES[name]()
 
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def frozen_inputs(data):
+def frozen_inputs(data, profile=None):
+    profile = profile or m5_profile()
+    pinned, pinned_paths = profile.pinned, profile.pinned_paths
     source = data['source']
     require(not source['dirty'] and source['recoverable_from_git'], 'Unfrozen build inputs')
     require(re.fullmatch(r'[0-9a-f]{40}', source['git_commit']) is not None and
@@ -48,16 +68,16 @@ def frozen_inputs(data):
     # bootstrap context, not the built source: source above identifies that worktree.
     contexts = [p for p in projects if p['name'] == 'manifest']
     dependencies = [p for p in projects if p['name'] != 'manifest']
-    pinned = [p for p in dependencies if p['name'] in PINNED]
-    others = [p for p in dependencies if p['name'] not in PINNED]
+    locked = [p for p in dependencies if p['name'] in pinned]
+    others = [p for p in dependencies if p['name'] not in pinned]
     # The four pinned dependencies are exact and each appears once. Any other project that the manifest
     # makes active is recorded but never part of this image, because the build names its modules
     # explicitly (see scripts/test-networking-physical.sh); it must still be a clean, resolved checkout.
-    require(len(contexts) <= 1 and len(pinned) == len(PINNED) and {p['name'] for p in pinned} == set(PINNED),
+    require(len(contexts) <= 1 and len(locked) == len(pinned) and {p['name'] for p in locked} == set(pinned),
             'Unexpected/missing/duplicate dependencies or manifest context')
     fields = {'name', 'path', 'revision', 'git_commit', 'dirty'}
     require(len({p['name'] for p in others}) == len(others), 'Duplicate other west project')
-    reserved = [PurePosixPath(MANIFEST_PATH)] + [PurePosixPath(v) for v in PINNED_PATHS.values()]
+    reserved = [PurePosixPath(profile.manifest_path)] + [PurePosixPath(v) for v in pinned_paths.values()]
     seen = set()
     for project in others:
         revision, path = project.get('revision'), project.get('path')
@@ -76,29 +96,32 @@ def frozen_inputs(data):
         seen.add(where)
     for context in contexts:
         require(set(context) == {'name', 'path', 'revision', 'git_commit', 'dirty'} and
-                context['path'] == 'crux-pilot' and context['revision'] == 'HEAD' and
+                context['path'] == profile.manifest_path and context['revision'] == 'HEAD' and
                 context['dirty'] is False and
                 re.fullmatch(r'[0-9a-f]{40}', context['git_commit']) is not None,
                 'Unfrozen/noncanonical workspace manifest context')
-    for project in pinned:
-        require(set(project) == fields and project['revision'] == project['git_commit'] == PINNED[project['name']] and
-                project['dirty'] is False and project['path'] == PINNED_PATHS[project['name']], 'Dependency changed')
+    for project in locked:
+        require(set(project) == fields and project['revision'] == project['git_commit'] == pinned[project['name']] and
+                project['dirty'] is False and project['path'] == pinned_paths[project['name']], 'Dependency changed')
 
 
-def default_tools(repo):
+def default_tools(repo, profile=None):
     # Freeze executable physical tooling separately from the complete source snapshot.
+    profile = profile or m5_profile()
     paths = [p for p in (repo / 'tests/target').glob('*.py') if p.is_file()]
-    paths.extend((repo / 'scripts' / name) for name in (
-        'test-networking-physical.sh', 'record-build-provenance.py'))
+    paths.extend((repo / 'scripts' / name) for name in profile.tool_scripts)
     return sorted(paths)
 
 
-def prepare(build, inputs, output, repo, *, tool_paths=None):
+def prepare(build, inputs, output, repo, *, tool_paths=None, profile=None, tool_repo=None):
+    """``repo`` holds the image source; ``tool_repo`` (default: ``repo``) holds the frozen board tooling."""
+    profile = profile or m5_profile()
     build, inputs, output, repo = map(Path, (build, inputs, output, repo))
+    tool_repo = Path(tool_repo) if tool_repo else repo
     if output.exists():
         raise FileExistsError(output)
     data = json.loads(inputs.read_text())
-    frozen_inputs(data)
+    frozen_inputs(data, profile)
     require(source_snapshot(repo) == data['source'], 'Source changed since input capture')
     folder = build / 'zephyr'
     files = dict(binary=folder / 'zephyr.bin', elf=folder / 'zephyr.elf',
@@ -108,13 +131,14 @@ def prepare(build, inputs, output, repo, *, tool_paths=None):
     provenance = json.loads(files['provenance'].read_text())
     require(provenance['source'] == data['source'] and
             provenance['west_projects'] == data['west_projects'], 'Build provenance differs')
-    checked = check_image(files['binary'], files['elf'], files['config'])
-    require(data['source']['git_commit'][:12].encode() in files['binary'].read_bytes(),
+    checked = profile.check_image(files['binary'], files['elf'], files['config'])
+    require(not profile.commit_tag or data['source']['git_commit'][:12].encode() in files['binary'].read_bytes(),
             'Source tag absent from image')
     # A new directory prevents accidentally combining ABI evidence from another image.
     abi = output.parent / (output.stem + '-errno')
-    prepare_errno(build, inputs, abi, source_suffix='/transaction.c')
-    files['errno'] = abi / 'errno-map.json'
+    if profile.errno_suffix:
+        prepare_errno(build, inputs, abi, source_suffix=profile.errno_suffix)
+        files['errno'] = abi / 'errno-map.json'
     provenance_files = {}
     for artifact in provenance['artifacts']:
         relative = Path(artifact['path'])
@@ -126,30 +150,32 @@ def prepare(build, inputs, output, repo, *, tool_paths=None):
         provenance_files[artifact['path']] = str(path.resolve())
     require(set(str(files[k].resolve()) for k in ('binary', 'elf', 'config', 'map', 'dts')) <=
             set(provenance_files.values()), 'Incomplete build provenance artifacts')
-    tools = list(default_tools(repo) if tool_paths is None else tool_paths)
+    tools = list(default_tools(tool_repo, profile) if tool_paths is None else tool_paths)
     require(tools, 'No frozen runner/tool identities')
-    paths = list(files.values()) + sorted(abi.iterdir()) + tools + [Path(p) for p in provenance_files.values()]
+    paths = list(files.values()) + (sorted(abi.iterdir()) if profile.errno_suffix else []) + tools + [Path(p) for p in provenance_files.values()]
     unique = sorted({p.resolve(strict=True) for p in paths})
-    record = dict(schema=1, profile='m5-network-physical', target='mimxrt1060_evk@B//qspi',
+    record = dict(schema=1, profile=profile.name, target='mimxrt1060_evk@B//qspi',
                   source=data['source'], west_projects=data['west_projects'], image=checked,
                   files={k: str(v.resolve()) for k, v in files.items()},
                   tools=[str(p.resolve()) for p in tools], provenance_files=provenance_files,
                   artifacts=[dict(path=str(p), size_bytes=p.stat().st_size, sha256=sha(p)) for p in unique])
     require(source_snapshot(repo) == data['source'], 'Source changed during preparation')
     output.write_text(json.dumps(record, indent=2, sort_keys=True) + '\n')
-    verify(output, sha(output))
+    verify(output, sha(output), profile)
     return record
 
 
-def verify(manifest, expected_sha256):
+def verify(manifest, expected_sha256, profile=None):
+    profile = profile or m5_profile()
     manifest = Path(manifest)
     require(re.fullmatch(r'[0-9a-f]{64}', expected_sha256) is not None and
             sha(manifest) == expected_sha256, 'Approval manifest digest differs')
     record = json.loads(manifest.read_text())
-    require(record['schema'] == 1 and record['profile'] == 'm5-network-physical' and
+    require(record['schema'] == 1 and record['profile'] == profile.name and
             record['target'] == 'mimxrt1060_evk@B//qspi', 'Unexpected image manifest')
-    frozen_inputs(record)
-    require(set(record['files']) == ROLES, 'Incomplete image roles')
+    frozen_inputs(record, profile)
+    roles = ROLES if profile.errno_suffix else ROLES - {'errno'}
+    require(set(record['files']) == roles, 'Incomplete image roles')
     paths = []
     for artifact in record['artifacts']:
         path = Path(artifact['path'])
@@ -180,11 +206,12 @@ def verify(manifest, expected_sha256):
     require(provenance_paths == set(record['provenance_files']) and
             {files[k] for k in ('binary', 'elf', 'config', 'map', 'dts')} <=
             set(record['provenance_files'].values()), 'Incomplete build provenance artifacts')
-    checked = check_image(files['binary'], files['elf'], files['config'])
-    require(checked == record['image'] and record['source']['git_commit'][:12].encode() in
-            Path(files['binary']).read_bytes(), 'Image geometry/source identity differs')
+    checked = profile.check_image(files['binary'], files['elf'], files['config'])
+    require(checked == record['image'] and (not profile.commit_tag or record['source']['git_commit'][:12].encode() in
+            Path(files['binary']).read_bytes()), 'Image geometry/source identity differs')
     image = dict(source=record['source'], binary=files['binary'], artifacts=record['artifacts'])
-    record['errno_values'] = verify_errno_map(files['errno'], image, source_suffix='/transaction.c')
+    if profile.errno_suffix:
+        record['errno_values'] = verify_errno_map(files['errno'], image, source_suffix=profile.errno_suffix)
     return record
 
 
