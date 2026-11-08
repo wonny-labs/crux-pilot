@@ -127,6 +127,47 @@ class Nic(unittest.TestCase):
         with self.assertRaises(Exception):
             adapter.parse_direct_route(route.replace('destination: 192.168.77.0', 'destination: default').replace('interface: en13', 'interface: en0'), HOST)
 
+    def test_the_pending_address_state_after_the_link_returns_is_only_accepted_when_asked_for(self):
+        down = real.text('ifconfig_en13_link_down')
+        up = real.text('ifconfig_link_up_proxy')
+        pending = re.sub(r'(?m)^\tinet .*\n', '', up)                      # active, address not yet re-added by macOS
+        self.assertEqual(adapter.parse_interface(down, pending_ok=True), dict(source=None, active=False))
+        self.assertEqual(adapter.parse_interface(pending, pending_ok=True), dict(source=None, active=True, pending=True))
+        self.assertEqual(adapter.parse_interface(up, pending_ok=True), dict(source=HOST, active=True))
+        with self.assertRaisesRegex(Exception, 'mismatch'):
+            adapter.parse_interface(pending)                                  # every other use still needs the address
+        with self.assertRaisesRegex(Exception, 'mismatch'):
+            adapter.parse_interface(pending.replace(MAC, '00:24:9b:00:00:01'), pending_ok=True)
+        with self.assertRaisesRegex(Exception, 'mismatch'):
+            adapter.parse_interface(up.replace(HOST, '192.168.99.1'), pending_ok=True)
+
+    def test_the_gate_probe_reports_down_pending_and_up_from_the_real_forms(self):
+        texts = {'host_down': real.text('ifconfig_en13_link_down'), 'host_up': real.text('ifconfig_link_up_proxy'),
+                 'host_pending': re.sub(r'(?m)^\tinet .*\n', '', real.text('ifconfig_link_up_proxy'))}
+        for event, text in texts.items():
+            with self.subTest(event), tempfile.TemporaryDirectory() as directory:
+                class Process:
+                    def poll(self): return 0
+                    def wait(self, timeout): return 0
+                def start(*args, **kwargs):
+                    kwargs['stdout'].write(text.encode()); kwargs['stdout'].flush(); return Process()
+                with patch.object(adapter.subprocess, 'Popen', start):
+                    probe = adapter.NICProbe(Path(directory), lambda: 1.)
+                    probe.pending_ok = True
+                    probe.start()
+                    self.assertEqual(probe.poll()['event'], event)
+        with tempfile.TemporaryDirectory() as directory:                         # without the flag the pending form is refused
+            class Process:
+                def poll(self): return 0
+                def wait(self, timeout): return 0
+            def start(*args, **kwargs):
+                kwargs['stdout'].write(texts['host_pending'].encode()); kwargs['stdout'].flush(); return Process()
+            with patch.object(adapter.subprocess, 'Popen', start):
+                probe = adapter.NICProbe(Path(directory), lambda: 1.)
+                probe.start()
+                with self.assertRaisesRegex(Exception, 'mismatch'):
+                    probe.poll()
+
     def test_the_cloned_host_route_form_is_accepted_and_gateway_forms_are_not(self):
         route = real.text('route_get_cloned_host_proxy')
         self.assertEqual(adapter.parse_direct_route(route, HOST)['route_flags'], ['UP', 'HOST', 'DONE', 'LLINFO', 'WASCLONED', 'IFSCOPE', 'IFREF'])
