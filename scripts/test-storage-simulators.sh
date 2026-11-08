@@ -50,6 +50,13 @@ fatfs="$(cd "$workspace" && west list fatfs -f '{abspath}')"
     -O "$repo/build/zephyr/twister-storage-sd-check" --inline-logs \
     --extra-args="ZEPHYR_MODULES=$fatfs")
 
+# The seek and remove check of the same sample (scratch file, seek, read back, remove).
+(cd "$workspace" && west twister -j 2 \
+    -p native_sim/native -p native_sim/native/64 \
+    -T "$repo/tests/native/file_sd_ops" \
+    -O "$repo/build/zephyr/twister-storage-sd-ops" --inline-logs \
+    --extra-args="ZEPHYR_MODULES=$fatfs")
+
 # The interrupted-write test: record format and recovery logic of samples/storage_sd_interrupt.
 (cd "$workspace" && west twister -j 2 \
     -p native_sim/native -p native_sim/native/64 \
@@ -166,6 +173,7 @@ for directory, expected in [
     ('twister-storage-sd-composition', {'native_sim/native': 8, 'native_sim/native/64': 8}),
     ('twister-storage-sd-probe', {'native_sim/native': 4, 'native_sim/native/64': 4}),
     ('twister-storage-sd-check', {'native_sim/native': 8, 'native_sim/native/64': 8}),
+    ('twister-storage-sd-ops', {'native_sim/native': 4, 'native_sim/native/64': 4}),
     ('twister-storage-sd-interrupt', {'native_sim/native': 7, 'native_sim/native/64': 7}),
     ('twister-storage-sd-replace', {'native_sim/native': 7, 'native_sim/native/64': 7}),
     ('twister-storage-sd-settings-recover', {'native_sim/native': 13, 'native_sim/native/64': 13}),

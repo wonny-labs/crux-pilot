@@ -15,4 +15,12 @@ config SAMPLE_SD_FILE_CHECK
 	  crux_file_*, so a restart shows what the previous boot left on the card. This WRITES to the
 	  card; physical use needs approval for the current task.
 
+config SAMPLE_SD_FILE_OPS
+	bool "Create, seek in and remove a scratch file after the mount"
+	depends on SAMPLE_SD_START
+	help
+	  Off by default. Writes a 256-byte scratch file, seeks and reads inside it, removes it and
+	  checks that it is gone, all through crux_file_*. This WRITES to the card; physical use needs
+	  approval for the current task.
+
 source "Kconfig.zephyr"
