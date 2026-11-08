@@ -2,27 +2,30 @@
 #include "configuration_settings.h"
 #include <crux/configuration.h>
 #include <errno.h>
-#include <ff.h>
 #include <stdint.h>
 #include <string.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/settings/settings.h>
 #include <zephyr/ztest.h>
 
-static FATFS fat;
-static struct fs_mount_t mount = {
-    .type = FS_FATFS,
-    .mnt_point = "/RAM:",
-    .fs_data = &fat,
-    .flags = FS_MOUNT_FLAG_NO_FORMAT,
-};
+/* The volume under the suite comes from a fixture header: FIXTURE_ROOT (the mount point), the mount
+ * object fixture_mount, and fixture_provision(), which makes a volume that the Settings backend can
+ * initialise on and mounts it. Only the FatFs fixture defines FIXTURE_HAS_READ_BACK, because the
+ * read-back probe exists only in the provider copy that prepare_provider.py makes. */
+#ifndef FIXTURE_HEADER
+#define FIXTURE_HEADER "fixture_fatfs.h"
+#endif
+#include FIXTURE_HEADER
+
 static bool fail_read;
 /* Compaction faults: the compaction temp file (*.cmp) marks the start of a compaction. */
 static bool compaction_started, fail_close_in_compaction, fail_read_in_compaction;
 static unsigned write_count, inject_at;
 static unsigned compaction_read_fault_at; /* fail the N-th read after the next compaction starts */
 static bool count_compaction_reads;
+#ifdef FIXTURE_HAS_READ_BACK
 extern bool crux_probe_read_back; /* provider copy: verify every saved record by reading it back */
+#endif
 static unsigned read_calls, fail_read_at; /* fail the N-th fs_read since the counter was reset */
 enum write_fault { WRITE_NONE, WRITE_ZERO, WRITE_SHORT, WRITE_ERROR };
 static enum write_fault write_fault;
@@ -123,8 +126,7 @@ static struct settings_store short_store = {.cs_itf = &short_itf};
 
 static void *setup(void)
 {
-    zassert_ok(fs_mkfs(FS_FATFS, (uintptr_t) "RAM:", NULL, 0));
-    zassert_ok(fs_mount(&mount));
+    fixture_provision();
     zassert_equal(crux_config_zephyr_init(), CRUX_CONFIG_OK);
     settings_src_register(&short_store);
     return NULL;
@@ -138,7 +140,9 @@ static void before(void *unused)
     read_calls = fail_read_at = 0;
     compaction_read_fault_at = 0;
     count_compaction_reads = false;
+#ifdef FIXTURE_HAS_READ_BACK
     crux_probe_read_back = false;
+#endif
     short_record = false;
     compaction_started = fail_close_in_compaction = fail_read_in_compaction = false;
     write_count = inject_at = 0;
@@ -275,7 +279,7 @@ ZTEST(configuration_settings_file, test_truncated_tail_keeps_earlier_records)
     /* An interrupted append leaves a partial length field after the last good record. */
     struct fs_file_t file;
     fs_file_t_init(&file);
-    zassert_ok(fs_open(&file, "/RAM:/settings/cfg", FS_O_RDWR));
+    zassert_ok(fs_open(&file, FIXTURE_ROOT "/settings/cfg", FS_O_RDWR));
     zassert_ok(fs_seek(&file, 0, FS_SEEK_END));
     zassert_equal(fs_write(&file, "\x01", 1), 1);
     zassert_ok(fs_close(&file));
@@ -287,8 +291,8 @@ ZTEST(configuration_settings_file, test_truncated_tail_keeps_earlier_records)
 
 static void remount(void)
 {
-    zassert_ok(fs_unmount(&mount));
-    zassert_ok(fs_mount(&mount));
+    zassert_ok(fs_unmount(&fixture_mount));
+    zassert_ok(fs_mount(&fixture_mount));
 }
 
 static void fresh(crux_config_param_t *p, const crux_config_spec_t *s, uint32_t value)
@@ -304,7 +308,7 @@ static void fill_volume(void)
     ssize_t written;
 
     fs_file_t_init(&file);
-    zassert_ok(fs_open(&file, "/RAM:/filler", FS_O_CREATE | FS_O_WRITE));
+    zassert_ok(fs_open(&file, FIXTURE_ROOT "/filler", FS_O_CREATE | FS_O_WRITE));
     do {
         written = fs_write(&file, chunk, sizeof(chunk));
     } while (written == (ssize_t)sizeof(chunk));
@@ -361,7 +365,7 @@ ZTEST(configuration_settings_file, test_full_volume_never_acknowledges_a_lost_sa
         failed = true;
     }
     zassert_true(failed, "2000 saves to a full volume never failed: saves were lost silently");
-    zassert_ok(fs_unlink("/RAM:/filler"));
+    zassert_ok(fs_unlink(FIXTURE_ROOT "/filler"));
     set_value(&p, 1);
     zassert_equal(crux_config_load(&p), CRUX_CONFIG_OK);
     expect_value(&p, last_acknowledged);
@@ -395,6 +399,44 @@ ZTEST(configuration_settings_file, test_roundtrip_survives_remount_for_u32_and_b
     expect_value(&p, 42);
     zassert_ok(crux_config_read(&b, &flag));
     zassert_true(flag.data.boolean);
+}
+
+/* A string of the maximum length through the real store, and an empty one. */
+ZTEST(configuration_settings_file, test_string_roundtrip_survives_remount)
+{
+    static const crux_config_spec_t text_spec = {
+        .key = "host_name",
+        .schema_version = 1,
+        .default_value = {.type = CRUX_CONFIG_STRING, .data.string = {.text = "crux", .length = 4}},
+    };
+    static char storage[CRUX_CONFIG_STRING_MAX + 1];
+    static char longest[CRUX_CONFIG_STRING_MAX + 1];
+    memset(longest, 'x', CRUX_CONFIG_STRING_MAX);
+    crux_config_param_t p = {0};
+    zassert_ok(crux_config_init_string(&p, &text_spec, storage, sizeof(storage)));
+    zassert_equal(crux_config_load(&p), CRUX_CONFIG_DEFAULT_MISSING);
+
+    crux_config_value_t v = {.type = CRUX_CONFIG_STRING};
+    v.data.string.text = longest;
+    v.data.string.length = CRUX_CONFIG_STRING_MAX;
+    zassert_ok(crux_config_update(&p, &v));
+    zassert_equal(crux_config_save(&p), CRUX_CONFIG_OK);
+    remount();
+    zassert_ok(crux_config_update(&p, &text_spec.default_value));
+    zassert_equal(crux_config_load(&p), CRUX_CONFIG_OK);
+    zassert_ok(crux_config_read(&p, &v));
+    zassert_equal(v.data.string.length, CRUX_CONFIG_STRING_MAX);
+    zassert_str_equal(v.data.string.text, longest);
+
+    v.data.string.text = "";
+    v.data.string.length = 0;
+    zassert_ok(crux_config_update(&p, &v));
+    zassert_equal(crux_config_save(&p), CRUX_CONFIG_OK);
+    remount();
+    zassert_ok(crux_config_update(&p, &text_spec.default_value));
+    zassert_equal(crux_config_load(&p), CRUX_CONFIG_OK);
+    zassert_ok(crux_config_read(&p, &v));
+    zassert_equal(v.data.string.length, 0);
 }
 
 ZTEST(configuration_settings_file, test_each_load_read_fault_preserves_active)
@@ -507,11 +549,11 @@ static void reset_file(void)
 {
     struct fs_file_t file;
 
-    (void)fs_unlink("/RAM:/filler");
-    int rc = fs_unlink("/RAM:/settings/cfg");
+    (void)fs_unlink(FIXTURE_ROOT "/filler");
+    int rc = fs_unlink(FIXTURE_ROOT "/settings/cfg");
     zassert_true(rc == 0 || rc == -ENOENT, "failed to reset the settings file: %d", rc);
     fs_file_t_init(&file);
-    zassert_ok(fs_open(&file, "/RAM:/settings/cfg", FS_O_CREATE | FS_O_WRITE));
+    zassert_ok(fs_open(&file, FIXTURE_ROOT "/settings/cfg", FS_O_CREATE | FS_O_WRITE));
     zassert_ok(fs_close(&file));
 }
 
@@ -520,7 +562,7 @@ ZTEST(configuration_settings_file, test_a_missing_settings_file_reads_as_missing
 {
     crux_config_param_t p = {0};
 
-    zassert_ok(fs_unlink("/RAM:/settings/cfg"));
+    zassert_ok(fs_unlink(FIXTURE_ROOT "/settings/cfg"));
     fresh(&p, &spec, 99);
     crux_config_result_t rc = crux_config_load(&p);
     zassert_equal(rc, CRUX_CONFIG_DEFAULT_MISSING, "a missing settings file gave %d", rc);
@@ -534,14 +576,14 @@ ZTEST(configuration_settings_file, test_missing_file_with_a_compaction_leftover_
     crux_config_param_t p = {0};
     struct fs_file_t leftover;
 
-    zassert_ok(fs_unlink("/RAM:/settings/cfg"));
+    zassert_ok(fs_unlink(FIXTURE_ROOT "/settings/cfg"));
     fs_file_t_init(&leftover);
-    zassert_ok(fs_open(&leftover, "/RAM:/settings/cfg.cmp", FS_O_CREATE | FS_O_WRITE));
+    zassert_ok(fs_open(&leftover, FIXTURE_ROOT "/settings/cfg.cmp", FS_O_CREATE | FS_O_WRITE));
     zassert_ok(fs_close(&leftover));
     fresh(&p, &spec, 99);
     crux_config_result_t rc = crux_config_load(&p);
     zassert_equal(rc, CRUX_CONFIG_ERR_IO, "a lost file reads as %d", rc);
-    zassert_ok(fs_unlink("/RAM:/settings/cfg.cmp"));
+    zassert_ok(fs_unlink(FIXTURE_ROOT "/settings/cfg.cmp"));
 }
 
 static int failing_callback(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg,
@@ -642,7 +684,7 @@ static void append_raw(const uint8_t *bytes, size_t length)
     struct fs_file_t file;
 
     fs_file_t_init(&file);
-    zassert_ok(fs_open(&file, "/RAM:/settings/cfg", FS_O_RDWR));
+    zassert_ok(fs_open(&file, FIXTURE_ROOT "/settings/cfg", FS_O_RDWR));
     zassert_ok(fs_seek(&file, 0, FS_SEEK_END));
     zassert_equal(fs_write(&file, bytes, length), (ssize_t)length);
     zassert_ok(fs_close(&file));
@@ -686,6 +728,7 @@ ZTEST(configuration_settings_file, test_save_after_a_torn_tail_records_the_outco
     }
 }
 
+#ifdef FIXTURE_HAS_READ_BACK
 /* Mitigation prototype in the provider copy: read each saved record back and compare. A save that
  * cannot be read back is reported as an error instead of acknowledged and lost. */
 ZTEST(configuration_settings_file, test_read_back_turns_a_lost_save_into_an_error)
@@ -714,6 +757,7 @@ ZTEST(configuration_settings_file, test_read_back_turns_a_lost_save_into_an_erro
     zassert_equal(crux_config_save(&healthy), CRUX_CONFIG_OK);
     crux_probe_read_back = false;
 }
+#endif /* FIXTURE_HAS_READ_BACK */
 
 ZTEST(configuration_settings_file, test_malformed_records_are_rejected)
 {
@@ -744,7 +788,7 @@ ZTEST(configuration_settings_file, test_value_only_corruption_is_not_detected)
     fresh(&p, &spec, 42);
     zassert_equal(crux_config_save(&p), CRUX_CONFIG_OK);
     fs_file_t_init(&file);
-    zassert_ok(fs_open(&file, "/RAM:/settings/cfg", FS_O_RDWR));
+    zassert_ok(fs_open(&file, FIXTURE_ROOT "/settings/cfg", FS_O_RDWR));
     ssize_t length = fs_read(&file, image, sizeof(image));
     zassert_true(length > (ssize_t)sizeof(wire));
     for (ssize_t i = 0; i + (ssize_t)sizeof(wire) <= length; ++i) {

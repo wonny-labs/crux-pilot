@@ -1,6 +1,6 @@
 # File service contract
 
-Status: implemented on Host with fakes, Issue #179. The owner [accepted decisions F1 to F6 on 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), with F4 for now, and approved the headers, fakes and Host tests. Target and physical work stays behind M7 and needs its own approval. The reasoning, the threat table and the WinSCP evidence are in [the proposal, PR #206](https://github.com/wonny-labs/crux-pilot/pull/206).
+Status: merged in [PR #232](https://github.com/wonny-labs/crux-pilot/pull/232), implemented on Host with fakes, Issue #179. It also runs on FatFs in [the services image](native-composition-242.md) and over SFTP in [the integrated image](ssh-integrated-image.md). The owner [accepted decisions F1 to F6 on 3 November 2026](https://github.com/wonny-labs/crux-pilot/pull/209#issuecomment-6616400894), with F4 for now, and approved the headers, fakes and Host tests. Target and physical work stays behind M7 and needs its own approval. The reasoning, the threat table and the WinSCP evidence are in [the proposal, PR #206](https://github.com/wonny-labs/crux-pilot/pull/206).
 
 Owner: `components/file_service/include/crux/file_service.h`; usage target `crux::file_service`. C17 implementation, C++17 consumption through `extern "C"`.
 
@@ -8,7 +8,7 @@ Owner: `components/file_service/include/crux/file_service.h`; usage target `crux
 
 The service stops a remote client with a valid session from reaching anything but declared areas, and from acting without the area's permission. SFTP and web adapters translate protocols into these calls, and enforcement stays here, in one place. It does not isolate code in the image, and File names are not a security sandbox.
 
-It runs on the [File additions](file-contract.md) and the [access contract](access-contract.md). A private event port, `crux_file_service_port_event`, carries the `file.*` identifiers of Issue #182 until that component exists. No product composition supplies it yet, so an image cannot link this service today.
+It runs on the [File additions](file-contract.md) and the [access contract](access-contract.md). A private event port, `crux_file_service_port_event`, carries the `file.*` identifiers of Issue #182 until that component exists. #242 added its provider, `crux_file_service_security_events`, mapped as [the event contract](security-event-contract.md#from-the-command-line-and-file-service-ports) states, and the [`native_sim` services image](native-composition-242.md) links the service with it. No product composition supplies it yet.
 
 ## Areas
 
@@ -99,7 +99,7 @@ At start, before any client can call:
 - Each kept temporary and each failed commit holds a name in the reservation table until a reset or a host repair. The table is shared by every area. When held names fill it, at `CRUX_FILE_SERVICE_RESERVATIONS` and 8 by default, a new writer, remove or rename in any area gets `ERR_NO_RESOURCES`, in spite of the rule that one area's trouble does not stop the others. A writer of a held name still gets `ERR_BUSY`, and readers are unaffected. If the table is full at start, the area that needed it returns `ERR_IO`.
 - The service keeps its own copy of the File name rule, so that `resolve` touches no storage. A test holds the two together on every byte value and on the length bound.
 - The File lock is global and held across each storage call, so one slow card write delays other File callers. No operation promises a time bound, and M10 measures this.
-- The SFTP adapter, its `SETSTAT` handling and a recorded WinSCP run belong to M12, and none is part of this work.
+- The SFTP adapter, its `SETSTAT` handling and the recorded WinSCP runs are not part of this work. They are in [the SFTP design](sftp-design.md).
 
 ## Validation
 

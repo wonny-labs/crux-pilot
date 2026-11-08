@@ -282,3 +282,326 @@ Safety gates must remain valid at each operation. Reset-based recovery requires
 new approval and cannot satisfy phase-8 recovery without reset. Replay PASS alone
 cannot establish physical acceptance. Issue #28 remains Open; this preparation
 performs no hardware operation, merge or Issue closure.
+
+## Stage 1 bench identity and reduced one-boot run (software only)
+
+Status: software preparation. This section authorises no physical operation. It records
+two changes to the M5 tooling that the first attempt to use it on the current bench
+required, and what the guard check expects. Nothing here was run on hardware.
+
+### Why the runner needed a change
+
+The prepared runner pinned the accepted M3 bench: interface `en5`, adapter MAC
+`00:0a:cd:41:89:cc`, UART `/dev/cu.usbmodem11302`. The bench was rewired. A read-only
+host inventory on 2026-11-07 (`uhubctl` listing, `system_profiler`, `ifconfig`,
+`networksetup`, `ls /dev/cu.*`; no probe connection, no UART open, no power change)
+found the following, so every identity gate failed closed.
+
+| Identity | Accepted M3 bench | Current bench (inventory 2026-11-07) | Owner approval needed |
+| --- | --- | --- | --- |
+| Host interface | `en5` | `en13` | yes, before first use |
+| Adapter MAC | `00:0a:cd:41:89:cc` | `00:24:9b:6e:f7:7f` | yes |
+| macOS service name | `AX88179` | `AX88179 3` (static `192.168.77.1/255.255.255.0`, no router) | yes |
+| UART device | `/dev/cu.usbmodem11302` | `/dev/cu.usbmodem11402` | yes |
+| DAPLink USB serial | `0229…9905` | unchanged | no |
+| J-Link probe serial | `602003106` | unchanged | no |
+| Board, image base, addresses, ports | EVKB rev B, `0x60000000`, `192.168.77.2/24`, TCP 42420, UDP 42421 | unchanged | no |
+
+The adapter USB serial (`0000249B6EF77F`, hub `0-2.1` port 3) was seen in the inventory but is not used by any gate and is not recorded in the code. The service name is a label that macOS can renumber. Duplicate stale services named
+`AX88179` and `AX88179 2` also exist. The service check therefore requires the adapter
+MAC in the `networksetup -getinfo` output as well, and now also requires
+`Manual Configuration`; a service with another MAC, DHCP or a router stops the run.
+
+### What changed
+
+| Change | Where | Effect on gates |
+| --- | --- | --- |
+| One reviewed identity block | `tests/target/m5_bench.py`, read by the runner, adapter, lease and series replay | None removed. Plan, approval and the lease bind `uart_device` and the service name in addition to interface and MAC. |
+| Selectors on shared M3 helpers | `capture_m3_network.guard_check(..., uart=)` and `check_route(..., interface=, mac=)` | Defaults stay the accepted M3 values, so the M3 runners behave exactly as before. The M5 lease passes the reviewed identity explicitly. |
+| Reduced run `--through-phase N` (2 to 6) | `capture_m5_network.py` `plan`, `capture`, `Supervisor` | New, separately labelled plan. The full plan changes only by the new identity values and two added identity fields, `uart_device` and `nic.service`; its operations, commands, procedure and evidence are unchanged. |
+
+### Reduced run
+
+A reduced run is one fresh boot, phases 1 to `N`, with no cable operation. It is
+**non-qualifying**: it cannot satisfy the three-boot M5 series, the link event criteria,
+the recovery criterion or the final idle baseline.
+
+```mermaid
+flowchart LR
+    A[program_and_start<br/>separately approved] --> B[preflight identity + current BIN verify]
+    B --> C[one fresh reset]
+    C --> D[phase 1 idle baseline]
+    D --> E[phase 2 TCP and UDP echo]
+    E --> F[phases 3 to 6<br/>only if N is 6]
+    F --> G[READY for phase N+1<br/>run finished]
+    G --> H[restore and verify accepted normal image]
+    X[phase 7 link loss, 8 recovery, 9 final idle] -. never run .-> G
+```
+
+| Property | Reduced run | Full series |
+| --- | --- | --- |
+| Boots / nonces | 1 / exactly 1 | 3 / 3 distinct |
+| Operations bound by the approval | 9, listed exactly: `establish_usb_mount_guard`, `acquire_exclusive_probe_uart_and_nic`, `verify_entry_image`, `program_and_start`, `qualification_preflight_1`, `qualification_reset_1`, `restore_identified_normal_image`, `verify_normal_image`, `normal_acceptance_capture` | 19 |
+| Cable disconnect / reconnect | none; any operator receipt aborts the run | six, with matching boot and phase |
+| Finished when | the READY for phase `N+1` is received | the READY for phase 10 is received |
+| Per-phase checks | the same functional, latency, liveness and resource oracle, applied online at each DONE | same, plus replay |
+| Plan status / result status | `SOFTWARE_PREPARED_REDUCED_NON_QUALIFYING_…` / `REDUCED_BOOT_PROTOCOL_COMPLETE_NON_QUALIFYING` with `qualifying=false`, `satisfies_m5_series=false` | unchanged |
+| Approval | binds the `reduced` block and the nine operations; a 19-operation approval, a reduced approval on the full plan, extra or missing operations, and a changed `reduced` block are all refused | unchanged |
+| `replay` | refuses any bundle with a `reduced` marker | unchanged |
+| Session record | `reduced` marker; boot 1 only; a reduced session never starts or continues a full series | unchanged |
+
+What a reduced run can show: the idle baseline and the TCP and connected-UDP echo
+phases on the real board, with exact raw UART bytes retained (`uart-replay` works on its
+boot directory). What it cannot show: link loss and recovery, three-boot repeatability,
+the final idle baseline, or anything about the management stack.
+
+### Guard session: exactly what the check expects
+
+The capture needs a guard that keeps macOS from mounting the DAPLink virtual drive.
+The M3 `guard11` program is not in the repository and its source was not found; the
+"Replacement mount guard" section below describes the program that writes this record.
+The check (`capture_m3_network._guard_check`)
+reads a JSON file given as `--guard-session` (its path is not fixed) and requires:
+
+| Field | Required content |
+| --- | --- |
+| `clock` | `clock_gettime(CLOCK_MONOTONIC)` |
+| `serial` | `02290000325182c300000000000000000000000097969905` |
+| `disk` | the DAPLink drive device, `/dev/diskN`; the same `diskN` must be the only disk below the DAPLink USB device in `ioreg` |
+| `boot_session_uuid` (preferred) or `boot_identity` | equal to `sysctl -n kern.bootsessionuuid` or `kern.boottime` now, so a guard from before a reboot is refused |
+| `executable`, `sha256` | file hash must still match at every check |
+| `deadline` | CLOCK_MONOTONIC seconds; must exceed now plus the reserve the caller asks for: 0.25 to 10 s for a UART write, 90 s for the lease acquisition and each preflight or reset probe command (which also need 120 s and 45 s of whole-series budget), more for some M3 entry checks |
+| `pid`, `process_identity` | the process must be alive and its `ps -p <pid> -o pid=,comm=,lstart=` output must equal `process_identity` exactly |
+| `log` | a file that contains `DENIED exact_DAPLink_USB_serial=<serial> disk=<diskN>` and never the text `STOPPED` |
+
+Also checked on every operation: the DAPLink USB device (vendor `0x0d28`, product
+`0x0204`, that serial) exposes exactly one `IOCalloutDevice`, equal to the reviewed UART
+device, and no partition of `disk` appears in `mount`. The code does **not** verify that
+the guard process is owned by root or that it really vetoes a mount; that remains the
+owner's procedure. A missing, expired, rebooted or unmatched guard stops every
+operation before any owner query, probe command or UART write.
+
+### Decisions and open points for review
+
+| # | Decision or finding | Reason |
+| --- | --- | --- |
+| 1 | Identity values come only from the Phase A inventory and are listed above for approval | The owner required it; no value was guessed |
+| 2 | M3 helpers keep their defaults | Their accepted evidence and tests stay valid |
+| 3 | Reduced mode is limited to phases 2 to 6, one boot | Phases 7 to 9 need the cable and cannot be cut short |
+| 4 | Reduced mode has no offline replay of its own | The full replay needs three boots; per-phase oracles run online and the raw bytes are retained |
+| 5 | No programming or restoration driver exists for an M5 image | The runner never programs by design; the accepted M3 loader sequence (`loadfile`, `verifybin`, `r`, `g`) is wired only into the M3 network runner. Needs a decision before the plan can be executed |
+| 6 | Full plan has 19 operations, not 28 | Counting error in an earlier planning note; the code and tests use 19 |
+
+Not verified: everything here is host-side. No hardware, no guard, no real `ifconfig`,
+`networksetup` or `route` output of this bench was run through the checks.
+
+## Replacement mount guard (`tests/target/m5_mount_guard.py`)
+
+Status: software preparation. Nothing here ran as root and no mount was vetoed yet; the
+first real start is the first test of the approval path. The M3 `guard11` program is not
+in the repository and its source was not found, so this guard replaces it. It writes
+exactly the record and log described in "Guard session: exactly what the check expects".
+
+### What it does
+
+```mermaid
+sequenceDiagram
+    participant O as Owner (root, once)
+    participant P as Guard parent
+    participant G as Guard (detached)
+    participant DA as DiskArbitration
+    participant V as DAPLink volume
+    O->>P: start --session S --log L
+    P->>P: root? arguments? files absent? ioreg: one disk, reviewed UART?
+    P->>G: fork, new session, stdio to /dev/null
+    G->>DA: register mount approval (root only)
+    G->>V: /sbin/umount if mounted (20 s limit, never diskutil)
+    G->>DA: mount disk4 once (self-test)
+    DA->>G: approval callback
+    G-->>DA: veto, log DENIED exact_DAPLink_USB_serial=... disk=disk4
+    G->>G: write session record (atomic, never overwrite)
+    G-->>P: READY pid=... deadline_in=...
+    P-->>O: READY line, parent exits
+    loop until deadline or SIGTERM
+        DA->>G: every later mount request
+        G-->>DA: veto the DAPLink disk, approve all others
+    end
+    G->>G: log STOPPED, exit
+```
+
+| Property | Behaviour |
+| --- | --- |
+| Needs | Root, `/usr/bin/python3` (3.9 from the Command Line Tools), and the macOS frameworks DiskArbitration, CoreFoundation and IOKit through `ctypes`. Nothing is installed or downloaded. |
+| Deny rule | The exact USB serial of the DAPLink (serial alone is enough; vendor `0x0d28` and product `0x0204` are what the probe reports). A disk that reports USB but whose serial cannot be read is also denied, so a USB stick without a readable serial is blocked while the guard runs. Every other disk, including objects without I/O media, is approved untouched. An internal error while judging a request is denied. |
+| Already mounted | The guard registers the veto first, then unmounts with `/sbin/umount` (20 s limit). It never calls `diskutil`, which stalls on some hosts. If the volume is busy it stops with a message, nothing else changed, and nothing keeps running. |
+| Veto evidence | After the unmount it asks DiskArbitration for one read-only, hidden (`rdonly`, `nobrowse`) mount of the disk and requires the mount completion to report the veto and its own approval callback to have logged it. Only then is the session record written. If the volume mounted anyway, the guard unmounts it again, checks that, and the failure message says whether the volume is **still mounted**; it also fails if no answer arrives within 20 s. |
+| Record and log | Mode `0644` regardless of umask, never overwritten, session record linked atomically; a temporary file is removed when the write fails. The `executable` is the guard script itself; the record also holds the interpreter and its hash, which no check reads. |
+| Lifetime | Default 7200 s, allowed 300 to 14400 s. At the deadline, on SIGTERM or on SIGINT it logs `STOPPED` and exits; the repository check then refuses the guard. |
+| Stop | `sudo kill <pid>` (the pid is printed and is in the record). |
+| Never | Write to the volume, program, touch the probe, change any system setting, or mount, unmount or write any other disk. It only vetoes mount requests for other disks that are USB with an unreadable serial. |
+
+### Non-root probe
+
+`python3 tests/target/m5_mount_guard.py probe` reads the I/O registry, the mount table and
+every disk DiskArbitration reports, and prints the decision the guard would take for each,
+without root and without vetoing anything. On 2026-11-08 it identified the DAPLink disk
+(`disk4`, USB, exact serial, vendor 3368, product 516) as `deny:exact`, found exactly one
+disk and the reviewed UART below it, and showed the volume mounted. The repository's own
+guard check, run against a hand-made record on the same host, passed the identity,
+ancestry and boot checks and refused only because the volume was mounted.
+
+### Tests and what they do not show
+
+`tests/build/test_m5_mount_guard.py` uses a fake DiskArbitration, a fake host and fake
+records; it needs no root. It checks the start order, each refusal before any side effect,
+each start failure, the decision table, retirement, the record against the repository's
+real `guard_check` with one refusal test per check (retired, no veto line, wrong disk or
+serial in the log, changed file, deadline, boot session, process identity, disk, UART,
+mounted, clock), and the non-root refusal through the real command line.
+
+Not shown: the real approval callback body (its fail-closed handlers and the callback-lifetime list), the fork itself (`start_detached`; its readiness logic is tested without fork in `run_child` and `read_report`), that macOS passes a `DADiskMount` self-test and a real re-enumeration through
+the approval callback of a root process on this macOS version (an `fskit` msdos mount), the
+detach and readiness handshake, signal handling in a real run, and the `umount` of the
+real volume. The first root start exercises all of these; its log and the printed `READY`
+or `FAILED` line are the evidence. A failed start retires the log with `STOPPED`, removes a record this run wrote and exits; a failure to deliver the `READY` report does the same. If the self-test mount did succeed, the failure message says whether the unmount worked.
+
+### Limits and operating requirements
+
+| Item | Detail |
+| --- | --- |
+| Coverage | DiskArbitration vetoes mounts requested through it. A mount made directly by root (`mount_msdos`, `mount(2)`) or a raw write to `/dev/disk4` is not covered. |
+| Trust | The owner starts it as root from a checkout only the owner can write. `sys.path[0]` is that directory, so `m3_clock.py` and `m5_bench.py` are imported unhashed, and the record binds the hash of the script only. This is acceptable for an owner-only machine and is stated, not mitigated. |
+| Process identity | `ps` text depends on locale, time zone and terminal width. The guard runs it with `LC_ALL=C`, a fixed `PATH`, no `TZ` and no `COLUMNS`; run the capture with `LC_ALL=C` and with `TZ` and `COLUMNS` unset, or the repository check refuses the guard (it fails closed). |
+| Slow host commands | The run loop is pumped between registration, unmount and the self-test. The unmount can still block for up to 20 s; whether `diskarbitrationd` stops consulting a slow approver is not known. |
+| Reporting | The caller waits at most 90 s for `READY` or `FAILED` (a slow start can exceed this: `ioreg` alone may take 30 s). After a timeout it prints the child's pid. A child that reports later finds the pipe closed, removes its record, retires and exits. |
+| Known small leaks | One CoreFoundation string per veto and one `DADisk` per start; bounded by the lifetime. |
+
+
+## Programming and restoration driver (`tests/target/program_m5_image.py`)
+
+Status: software preparation. It ran against no device. The runner never programs by
+design, and the accepted M3 loader sequence was wired only into the M3 network runner, so
+the stage 1 run had no way to program an M5 image or restore the normal image inside the
+gate. This driver does that and nothing else.
+
+Every mode needs `--execute-hardware`, a clean committed tree, and the complete approval of
+its plan (the runner's approval check requires **every** operation of the plan to be true,
+whichever mode runs). It takes the board lock and the exclusive UART before its first probe
+command and holds both to the end, and it runs once per evidence parent directory.
+
+| Mode | Probe commands, in order |
+| --- | --- |
+| `identify` | `q` (identity only), then `verifybin` + `IsHalted` of each candidate image, until the first one that does not match (a mismatch ends the run). It changes no flash and starts no reset, but may leave the core halted |
+| `program` | `q`; `verifybin` + `IsHalted` of the identified entry image, **stop if it differs**; then `loadfile` + `verifybin` + `r` + `g` of the exact M5 BIN |
+| `restore` | `q`; `loadfile` + `verifybin` of the exact normal BIN (no start); a second read-only full `verifybin`; the UART capture opens; `r` + `g` (the only start) |
+
+```mermaid
+flowchart TD
+    A[plan, approval, manifests, J-Link pins, clean tree verified; mode consumed] --> L[board lock and exclusive UART taken]
+    L --> B[guard check, owner inventory, adapter identity]
+    B --> R[series budget, image hashes and manifests rechecked]
+    R --> C[one probe command]
+    C --> D{identity, voltage, expected output?}
+    D -- no --> X[HardwareStop, failure.json: nothing else runs, no retry]
+    D -- yes --> E{more steps?}
+    E -- yes --> B
+    E -- no --> F[result.json, operations.json, ports released]
+```
+
+| Property | Behaviour |
+| --- | --- |
+| Reuses | `capture_m3.commander` (pinned `JLinkExe` and DLL hashes, probe `602003106`, firmware-update guard, 30 s limit), `capture_m3_network.image_commands`, `guard_check`, `check_owners`, `select_uart`, `verify_manifest`, `prepare_m5_network.verify`, the runner's approval check, and the lease's owned-port inventory |
+| Before every probe command | fresh guard check; ownership inventory (before the UART is taken: nobody owns it; afterwards: only this process owns it and no debugger runs); the dedicated adapter's MAC and static address (carrier **not** required, since the running firmware may have the Ethernet down); at least 120 s of series budget; for a step that uses an image: the file hash against the approval and a full manifest reverification; exact image-path validation before the first command |
+| After the guard | at least 45 s of series budget remain, as in the accepted wrappers |
+| After every probe command | core, debug port, probe serial and 3.0 to 3.6 V target voltage must match; `Verify successful` is required where a step programs or verifies |
+| Records | `inputs.json` (commit, driver hash, every `tests/target` tool hash, plan, approval and manifest hashes), `operations.json` (each step logged before its checks and after its outcome), `failure.json` on any failure, `result.json`, one log per probe command |
+| Never | retry, erase, touch fuses or option bytes, issue a second command after a failed one, run without `--execute-hardware`, run on an uncommitted tree, or reuse an evidence directory or a mode |
+| Verify mismatch | A verify that finds different bytes makes Commander exit non-zero, and `capture_m3.commander` reports every such exit as one generic `HardwareStop`. The driver treats it as a fault like any other: the run ends after that command. There is no "clean mismatch" path (an earlier version had one; the independent check showed it could never match the real wrapped error, so it was removed as unreviewable dead logic) |
+| Restoration evidence | the exact BIN is programmed and fully verified twice before it starts; a passive UART capture of the fresh boot (raw bytes kept, drained first) must show the normal image's `M3_BOOT source=<12 hex> profile=integrated commands=0 fault_default=off`. Only the `integrated-normal` role is accepted for restoration. The accepted baseline checks (unarmed status, idle resources, queue-zero checkpoint) are a separate **offline replay** with the accepted oracles |
+
+Open points: the accepted normal image BIN (107,872 bytes, SHA-256 `ad729684…1e02`, source
+`ec94fbe`) is not stored with the M3 evidence archives. It must be rebuilt and its hash compared, or
+supplied, before `restore` can name it. The firmware now on the board is unknown; `identify` compares it
+only against images that are supplied. Whether the driver's own hash belongs in the plan and approval
+schema is an owner decision; it is bound by the clean-tree check and recorded in `inputs.json`, as in the
+accepted M3 runners. Not shown on a device: real Commander output for a verify mismatch, whether
+`connect` halts a running core, and `loadfile` duration against the 30 s limit for the image sizes.
+
+## Frozen inputs and other west projects
+
+The image manifest of the M5 image froze the west workspace as exactly the four pinned dependencies
+(zephyr, cmsis, cmsis_6, hal_nxp). Since then `west.yml` has made more projects active (littlefs and fatfs in
+the default groups), and the provenance recorder lists every active project, so a real freeze on current `main`
+was refused with "Unexpected/missing/duplicate dependencies". Owner decision, relayed from the owner's chat
+of 2026-11-08 (Korea time): "방안 A승인".
+
+| Rule in `prepare_m5_network.frozen_inputs` | Before | Now |
+| --- | --- | --- |
+| The four pinned dependencies | exactly these four by name, exact revision, clean | each present once with exactly the fields `name`, `path`, `revision`, `git_commit`, `dirty`; revision and commit equal to the pin; `dirty` is `False`; `path` equal to the directory the build compiles (`zephyr`, `modules/hal/cmsis`, `modules/hal/cmsis_6`, `modules/hal/nxp`) |
+| Any other west project | refused | accepted and recorded only if: the same five fields; clean; a lowercase 40-hex commit; a revision that is not empty or `HEAD` and, when it is a 40-hex commit (any case), equals the commit; a unique name; a relative path with no `..`, no `.` segment, no backslash; and a path that is not, does not contain and is not inside the manifest checkout or any pinned path |
+| Workspace manifest context | optional, canonical | unchanged |
+
+A tag or branch name as an extra project's revision is accepted because the recorder, not this check, resolves
+it: `scripts/record-build-provenance.py` refuses any project whose `HEAD` differs from `rev-parse <revision>`
+or that is dirty. This check repeats only the dirty flag, the commit format and the commit-equals-revision rule
+on the stored record at every verification. The extra projects do not enter the image: the build passes
+`-DZEPHYR_MODULES` with the repository, cmsis, cmsis_6 and hal_nxp, and Zephyr then skips west module
+discovery. The environment variables `ZEPHYR_EXTRA_MODULES` and `EXTRA_ZEPHYR_MODULES` would still add modules;
+the freeze must run with both unset (the recorded `compile_commands.json` and the manifest hash do not refuse
+an added module by themselves). Not shown: a real `west list` against a relocated project.
+
+### First real run: a wedged volume, and arm mode
+
+The first root start (`guard-1`, 2026-11-08 Korea time, 21:46 GMT on 2026-11-07) failed closed: `APPROVAL_REGISTERED`, then `UNMOUNT`, then 20 s later
+`START_FAILED host command timed out: /sbin/umount /Volumes/RT1060-EVK` and `STOPPED reason=start_failed`. No
+record was written and no guard was left running. Read-only `ps` and a mount-table read afterwards showed:
+
+| Observation | Meaning |
+| --- | --- |
+| `/sbin/umount` and, started after it, three `mount` listings in state `U` for minutes | They wait inside the kernel; `SIGKILL` cannot end them. The guard's own first `/sbin/mount` listing, just before its `umount`, did return and showed the volume; the listings hung only once the unmount was pending. |
+| `com.apple.fskit.msdos` (the user-space FAT driver of the DAPLink volume) running since the volume was mounted, state `Us`, about 39 % CPU on average | The file system is served by that process, and `unmount(2)` waits on it. The busy driver predates the guard (the owner had already seen `diskutil` stall on this volume); that the guard's own `umount` request then made later `statfs` calls of the mount block is the observed order, not something shown to be independent of it. |
+| `getfsstat64(MNT_NOWAIT)` returned in 0.05 s and listed `/dev/disk4 on /Volumes/RT1060-EVK (msdos)` | The kernel's cached mount list can be read without asking the wedged file system. `/sbin/mount` asks each file system, and it blocked once the unmount was pending. |
+
+Consequences and changes:
+
+| Question | Answer / change |
+| --- | --- |
+| Can the guard's own mount-table reads hang the same way? | They could: the first version ran `/sbin/mount`. `SystemHost.mounts()` now reads the table with `getfsstat64(MNT_NOWAIT)` in a short-lived `python3 -I -S` child (10 s limit, killed and not waited for). The repository's own `_guard_check` still runs `mount`, so while a wedged mount exists every operation is refused (fail closed, after its 10 s limit); the volume must be gone before a capture. |
+| What does the guard do on a hung `umount`? | It stops at once, does not read the mount table again, and says: unplug the DAPLink USB, wait for the mount to disappear, then start with `--arm`. |
+| Is there a way that avoids unmounting? | Yes: `start --arm`. The DAPLink is unplugged first (this powers the board off). The guard checks that the DAPLink is absent, registers the veto and prints `ARMED`. The owner plugs the DAPLink in; macOS asks to mount the new volume; the guard vetoes that real request (`DENIED exact_DAPLink_USB_serial=… disk=…`, the evidence), waits up to 20 s for the disk and the reviewed serial port to show in the I/O registry (exactly one disk, the vetoed one, and exactly one callout device), checks that nothing is mounted, and writes the record (`evidence`: `armed_replug_veto`, `mode`: `arm`). No self-test mount and no unmount happen. |
+| Progress | The parent prints `ARMED …` as soon as the veto is registered, then `READY …` or `FAILED …`; it waits at most the arm wait (default 600 s, allowed 60 to 1800) plus 90 s. |
+| Names | A failed start leaves its root-owned log. A new start needs new `--session` and `--log` names; the guard never overwrites. |
+
+Not shown on a device: that macOS asks for the mount of a replugged DAPLink through the approval callback of a
+root process before any other program mounts it, that the serial port keeps the name `usbmodem11402` after the
+replug, and the real `getfsstat64` reader on a wedged mount (it ran once, read-only, and answered in 0.05 s).
+
+The arm wait and the ancestry wait are approximate: one `ioreg` call can take up to 30 s, during which the run loop does not answer DiskArbitration (as in the normal start), and the deadline is checked after each call. In arm mode the lifetime counts from `READY`, so `deadline_in` is the real time left. The mount-table reader allocates room for 16 more mounts than the first call counted and fails if the table still overflows it.
+
+## Host-output parsers against real output (2026-11-08)
+
+The first real run of the driver (`identify`, read-only, before any probe command) stopped on `Exclusive UART ownership changed`. Two differences between the tests' fakes and the real `lsof` caused it: `lsof -Fp` prints an `f<fd>` line after each `p<pid>` line, and `lsof` exits 1 when any file it is asked about is not open (the driver opens `/dev/cu.usbmodem11402` and never the `tty` node). The driver and the capture adapter now ask for the two nodes one by one: the `cu` node must be held by this process alone (exit 0, empty stderr), the `tty` node by nobody (exit 1, no output). Both answers are written next to the other evidence files (`<label>-owners-cu.txt`, `<label>-owners-tty.txt`).
+
+`tests/build/fixtures/host-2026-11-08/` keeps real output of every read-only host command that the driver, the capture adapter and the guard check parse, and `tests/build/test_m5_host_output.py` runs the parsers on it:
+
+| Parser (file) | Real input | Result |
+| --- | --- | --- |
+| UART owner check after the port is open (`program_m5_image.py`, `m5_capture_adapter.py`) | PROXY: `lsof -Fp` of a scratch file held open by the capturing process (the UART was never opened for the capture) and the real, unopened `tty` node | two mismatches found and fixed (above) |
+| UART owner check before acquisition (`capture_m3.check_owners`) | `lsof` of the unowned pair, `ps -axo pid=,comm=,args=` | accepted as it is; ran on the real run |
+| Debugger scan (`ps` text, regex for `JLink`, `openocd`, `pyocd`) | `ps -axo pid=,comm=,args=` (trimmed) | no false match |
+| Guard session and ancestry (`capture_m3_network._guard_check`, `usb_association`) | `sysctl -n kern.bootsessionuuid`, `ps -p PID -o pid=,comm=,lstart=`, `ioreg -p IOService -l -w0 -a` (the DAPLink subtree, stored as XML), `mount` | accepted as it is; ran on the real run |
+| Port mapping (`capture_m3.select_uart`) | `serial.tools.list_ports` entry of the DAPLink | accepted as it is |
+| Adapter identity and service (`program_m5_image.check_nic_identity`) | `ifconfig en13` (link down), `networksetup -getinfo "AX88179 3"` | accepted as it is |
+| Interface observation (`m5_capture_adapter.parse_interface`) | `ifconfig en13` with the link down | **mismatch found and fixed**: the real link-down output has no `inet` line (macOS shows the manual address only while the link is up); the parser demanded it, so a cable pull (phase 7) would have stopped the capture instead of recording `host_down`. An active link still needs exactly the static address |
+| Route and carrier check (`check_route`, `parse_direct_route`) | proxies: real `ifconfig` and `route -n get` of the active host interface, the connected-network form and the cloned host-route form, with the bench identity substituted | accepted as it is |
+| J-Link Commander wrapper, identity and verify text (`capture_m3.commander`, `check_identity`, `Verify successful`) | real V9.86a transcripts of this probe and target: the repository's `microsd-card-states-stack` logs and a redacted `loadfile`/`verifybin`/`r`/`g` transcript from the owner's local backups (2026-11-05); the diagnostic regex was also run over every Commander transcript (`.log` and `.out`, 188 files, 170 distinct) in the owner's local backups, which are not in the repository: 9 files match it and all 9 are real failures (`Failed to power up DAP`, `Could not connect`, `Could not read memory`), none is a false stop | accepted as it is |
+
+After this change the prepared plan of the stage 1 run is void (the plan binds `adapter_sha256`): it has to be prepared and approved again from the merged source, and the M5 image rebuilt, because the image carries the 12-character commit tag.
+
+Not covered, because it needs a probe command or a carrier: the real Commander output of `IsHalted` (the pinned `JLinkExe` contains the texts `CPU is halted.` and `CPU is not halted.`; no transcript exists; the text is only checked by the generic diagnostic regex, and an unknown command would also stop the run), the exit status of `JLinkExe` on success as the wrapper sees it, the real output of `verifybin` that finds different bytes, and the real `ifconfig` and `route` output of an active dedicated adapter (only the proxies above).
+
+### First real restore: the disconnect diagnostic after a verified load (2026-11-08)
+
+The first `restore` on the bench (identity probe, then the load over unknown flash content) wrote and verified the normal image (`Verify successful.`), and then stopped: after `q`, J-Link Commander V9.86a printed `****** Error: Could not start CPU core. (ErrorCode: -1)` and exited 0. The repository already documents this message for a similar command file (`docs/m2-physical-verification.md` describes a `Could not start CPU core` diagnostic printed after the post-verify quit although the exit status was zero; that file ran `r`, `h`, `loadfile`, `verifybin`, `q`), and `tests/target/capture_execution.py` accepts it only after `J-Link>q`. The driver's load step ends with a bare `q` after `verifybin`; the message appeared in the one real run so far, and the accepted M3 wrapper stops on every diagnostic (`tests/build/test_m3_capture.py` lists this message as one that must stop the M3 wrapper: the M3 wrapper and that test are unchanged, and only the M5 driver departs from it, narrowly). The tests had faked the Commander text, so they could not show it.
+
+`program_m5_image.accepted_disconnect_diagnostic` now accepts this one message, and only when: the wrapper stopped for a diagnostic after exit 0 (any other wrapper failure is never reinterpreted); the command file has a `verifybin` and nothing after the last one but `q` or `IsHalted` and `q` (so never a start with `r`, `g`, and never the `program` load step, whose `r` and `g` follow the verify); the last `verifybin` printed `Verify successful.` before the quit; the line is the only `****** Error:` line, with exactly that text; it is the last non-blank line of the log; and no other line of the log matches the wrapper's diagnostic words. The acceptance is recorded next to the log (`<step>.diagnostic-accepted.json`). The real log of the first restore is kept as a fixture (`tests/build/fixtures/host-2026-11-08/jlink-loadfile-verifybin-quit-diagnostic.log`, image path redacted). Real transcripts of the identify steps of the same day are kept too (identity only, a matching `verifybin` with `IsHalted` printing `CPU is halted (PC = ...)`, and a mismatching `verifybin`, which exits non-zero). Still unknown: whether the core has started after such a disconnect. The read-only `identify` that followed showed the program counter inside the normal image, so the core had been running it; the `restore` mode starts the image itself with its later `r` and `g`, and the `program` mode does not use this acceptance at all.

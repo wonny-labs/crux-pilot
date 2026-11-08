@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: Apache-2.0
+mainmenu "Crux Reliance Edge microSD Stage A images"
+
+config SAMPLE_EMMC_DISK_NAME
+	string "Disk name of the microSD card"
+	default "SD"
+	help
+	  The disk_access name that emmc_storage.c initialises and mounts. The mount point stays
+	  /MMC:, so the name differs without changing the paths that the File component sees. The
+	  EVKB's microSD slot is the disk "SD".
+
+config SAMPLE_EMMC_START
+	bool "Run the mount sequence at boot"
+	depends on !SAMPLE_RELIANCE_SD_APPEND_TEST && !SAMPLE_RELIANCE_SD_REPLACE_TEST
+	help
+	  Off by default. When on, the image initialises the disk and mounts the volume without
+	  formatting it (the mount-check image). It reads the card and does not write the volume.
+	  Physical use needs approval for the current task.
+
+config SAMPLE_RELIANCE_SD_APPEND_TEST
+	bool "Run the interrupted-write test at boot"
+	help
+	  Off by default. When on, the image mounts the volume without formatting it, reports what the
+	  previous boot's run file holds, then appends and syncs records until power is cut. This
+	  WRITES to the card and is meant to be interrupted; physical use needs approval for the
+	  current task.
+
+config SAMPLE_RELIANCE_SD_REPLACE_TEST
+	bool "Run the replace-pattern test at boot"
+	depends on !SAMPLE_RELIANCE_SD_APPEND_TEST
+	help
+	  Off by default. When on, the image mounts the volume without formatting it, classifies the
+	  settings files that a previous power cut left behind, then replaces "cfg" through "cfg.cmp"
+	  and fs_rename in a loop until power is cut. This WRITES to the card and is meant to be
+	  interrupted; physical use needs approval for the current task.
+
+config SAMPLE_RELIANCE_SD_FORMAT
+	bool "Format the card once at boot (format image)"
+	depends on !SAMPLE_RELIANCE_SD_APPEND_TEST && !SAMPLE_RELIANCE_SD_REPLACE_TEST && \
+		   !SAMPLE_EMMC_START
+	select FILE_SYSTEM_MKFS
+	select CRUX_FS_RELIANCE_EDGE_FORMAT
+	help
+	  Off by default. When on, the image is the format image: it has its own main, compiles the
+	  Reliance Edge formatter and no other scenario's source, tries to mount first, and formats the
+	  card and creates /MMC:/files and /MMC:/settings only if that mount failed. A card on which a
+	  volume mounts is left as it is, but a volume that fails to mount (an I/O error, damage) is
+	  formatted, so use only a card that the test owns. It excludes the other three options. This
+	  WRITES to the card; physical use needs approval for the current task.
+
+# The reused main.c files of samples/storage_sd_interrupt and samples/storage_sd_replace test these
+# names. They follow the two options above and are not set on their own.
+config SAMPLE_SD_INTERRUPT_TEST
+	bool
+	default y if SAMPLE_RELIANCE_SD_APPEND_TEST
+
+config SAMPLE_SD_REPLACE_TEST
+	bool
+	default y if SAMPLE_RELIANCE_SD_REPLACE_TEST
+
+# The simulator's options exist for the native_sim rehearsal only: the symbols depend on
+# BOARD_NATIVE_SIM and are inert on the RT1060.
+rsource "../../tests/support/emmc_sim/Kconfig"
+
+source "Kconfig.zephyr"

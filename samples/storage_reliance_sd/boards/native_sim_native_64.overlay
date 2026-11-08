@@ -1,0 +1,19 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* The rehearsal on native_sim (tests/native/reliance_stage_a): the eMMC simulator of
+ * tests/support/emmc_sim, with the unmodified MMC stack on top, as a disk named like the EVKB's
+ * microSD disk. The name must equal the default of SAMPLE_EMMC_DISK_NAME in the Kconfig of this
+ * sample; a devicetree overlay cannot read a Kconfig value. This is a model of a disk, not of the
+ * SD host driver or of a card. */
+/ {
+    emmc_sim0: emmc_sim {
+        compatible = "crux,emmc-sim";
+        status = "okay";
+
+        mmc {
+            compatible = "zephyr,mmc-disk";
+            disk-name = "SD";
+            bus-width = <4>;
+            status = "okay";
+        };
+    };
+};

@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: Apache-2.0
+# Zephyr refuses a compatible whose vendor prefix is not listed in a DTS root.
+crux	Crux test support

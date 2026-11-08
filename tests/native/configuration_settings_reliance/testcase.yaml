@@ -1,0 +1,11 @@
+common:
+  platform_allow: [native_sim/native/64]
+  tags: [settings, filesystem, crux]
+  timeout: 180
+tests:
+  crux.configuration.settings_reliance: {}
+  # emmc_configuration_start with a settings initialisation that fails; a scenario of its own
+  # because the File root binds once per process.
+  crux.configuration.settings_reliance.init_failure:
+    extra_configs:
+      - CONFIG_SETTINGS_RELIANCE_TEST_INIT_FAILURE=y

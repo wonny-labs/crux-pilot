@@ -1,7 +1,6 @@
 # Access control contract
 
-Status: Host implementation for review under Issue #177, with fake providers. The contract is not adopted
-until this review and gate #183 pass. The decisions and reasoning are in
+Status: merged in [PR #210](https://github.com/wonny-labs/crux-pilot/pull/210) for Issue #177, on Host with fake providers, and gate #183 has passed. It runs on `native_sim` with real PSA ports in [the management composition](native-management-composition.md), and over HTTPS and SSH in [the services image](native-composition-242.md) and [the integrated image](ssh-integrated-image.md). The decisions and reasoning are in
 [the accepted proposal](plans/access-contract-proposal.md), which this document does not repeat. The requests that
 other contracts made of this one, AC1 and AC3 to AC10 in the secure management gate record, are accepted and
 included. AC2 is declined. Where they change the proposal's text, such as its `source` comment and its wording about
@@ -15,12 +14,14 @@ Owner: `components/access`. Public header `<crux/access.h>`, usage target `crux:
 | Item | State |
 | --- | --- |
 | Public and adapter contracts | Implemented as proposed, with the additions below and the accepted requests |
-| Portable core | Builds on Host. It has no provider, so a product image does not link until one exists. |
+| Portable core | Builds on Host. `crux::access` links no port provider. The root build defines targets for the clock (the object target `crux_access_time_clock`), the store (the static library `crux_credential_access_store`) and the events (the object target `crux_security_event_access_port`) when those components are built, and none for derivation, random and keyed hash, because it has no PSA. A composition links them and lists the PSA sources, and an image without them does not link, as the [`native_sim` composition](native-management-composition.md) shows. No product composition exists yet. |
 | Fake ports | Test composition in `tests/access`. They exist only when Crux builds its own tests. |
-| PSA derivation, random and keyed hash | Not implemented, Issue #142 |
-| Credential store | Host implementation under review, Issue #178, with `crux_credential_access_store` as this contract's store port. Its [own suite](credential-store.md#tests) runs this core on it for A6, and these suites still use a fake store. |
+| PSA derivation, random and keyed hash | `components/access/ports/psa`, which a composition selects. The root build has no PSA. [Results](native-management-composition.md#provider-results) on both providers. |
+| Clock on the Time contract | `crux_access_time_clock`. A clock that fails reads as one that ran backwards. |
+| Credential store | Merged in #235 for Issue #178, with `crux_credential_access_store` as this contract's store port. Its [own suite](credential-store.md#tests) runs this core on it for A6, and these suites still use a fake store. |
 | Event identifiers and Logging output | In the [Security event contract](security-event-contract.md), Issue #182, whose provider implements the event port. Access's own Host tests keep their recording fake. |
-| Zephyr composition, target measurements | Not implemented. Target work needs separate hardware approval. |
+| Zephyr composition | [On `native_sim`](native-management-composition.md), for tests |
+| Target measurements | Not implemented. Target work needs separate hardware approval. |
 
 Host tests show contract behaviour. They do not establish entropy quality, storage confidentiality or timing on
 the target. The verifier iteration count, `CRUX_ACCESS_VERIFIER_ITERATIONS`, is an unmeasured placeholder, and is not
@@ -69,7 +70,7 @@ open to review, and a changed choice is small while nothing depends on it.
 | --- | --- | --- |
 | Second delay check at step 3 | Steps 2 and 3 share one lock hold | Claiming the slot never waits, so nothing can change between them |
 | Clock | Read under the state lock | Stored times are then in order, so an elapsed time cannot wrap and clear a bucket or expire a live session. This is a new requirement on the provider: the clock must not wait. |
-| Clock running backwards | Expires sessions, and never clears a bucket | Fails closed. A monotonic port never does this. |
+| Clock running backwards | Expires sessions, and never clears a bucket | Fails closed. A monotonic port never does this. **One exception:** a clock that fails reads 0 through `crux_access_port_now_ms`, and a bucket dated 0 during the fault does clear once the clock returns past the quiet period, as `tests/access/clock_fault.c` shows. See [the composition's port choices](native-management-composition.md#what-each-port-maps). |
 | Serial bucket after a success | Not cleared | "Success clears the name bucket only", and serial has no name bucket. A user who mistypes keeps counting until the quiet period. |
 | Serial when slot 0 is taken | May use any free slot | Slot 0 is reserved against the network, not a limit on serial |
 | Own password change | Rule first, then the delay, then the verification slot for the current password only. A new verifier takes no slot, in this or any other operation. | The rule result never confirms the current password, and a login flood cannot block an administrator's reset. |
