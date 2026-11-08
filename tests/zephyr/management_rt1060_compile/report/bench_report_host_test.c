@@ -216,6 +216,12 @@ static uint32_t one_client(uint32_t t)
     return t < 10000u ? 0u : (t < 12000u ? (t - 10000u) / 50u : 40u);
 }
 
+/* A client at 60 s, after the idle report of the first 30 s. */
+static uint32_t late_client(uint32_t t)
+{
+    return t < 60000u ? 0u : (t < 61000u ? (t - 60000u) / 100u + 1u : 11u);
+}
+
 static uint32_t chatter(uint32_t t)
 {
     return t / 1500u; /* a segment every 1.5 s, for ever: never quiet for the quiet period */
@@ -256,16 +262,26 @@ static void test_policy(void)
     CHECK(trace.boot + trace.quiet + trace.idle <= 600u / (BENCH_REPORT_MIN_GAP_MS / 1000u) + 1u);
     CHECK(trace.quiet >= 1u);
 
-    /* The clock and the counter wrap: a client across the wrap of 32-bit milliseconds is seen. */
-    bench_report_policy_init(&policy, 0xffffff00u, 5u);
+    /* Idle once, then a burst: idle is armed again, so there is a quiet report and one more idle.
+     */
+    bench_report_policy_init(&policy, 0u, 0u);
+    trace = run(&policy, 0u, 600000u, late_client, &last);
+    CHECK(trace.boot == 1u && trace.quiet == 1u && trace.idle == 2u);
+
+    /* The clock and the counter wrap: the burst is before the wrap of 32-bit milliseconds, and the
+     * decision to report is after it. */
+    bench_report_policy_init(&policy, 0xfffff800u, 5u);
     {
         unsigned quiet = 0u, boot = 0u;
-        uint32_t t = 0xffffff00u;
+        uint32_t t = 0xfffff800u;
         for (int i = 0; i < 400; i++, t += BENCH_REPORT_POLL_MS) {
-            uint32_t counter = (i >= 20 && i < 30) ? 0xfffffff0u + (uint32_t)i : 5u;
+            uint32_t counter = (i >= 2 && i < 6) ? 0xfffffff0u + (uint32_t)i : 5u;
             bench_report_action_t action = bench_report_policy_step(&policy, t, counter);
             boot += action == BENCH_REPORT_ACTION_BOOT;
             quiet += action == BENCH_REPORT_ACTION_QUIET;
+            if (action == BENCH_REPORT_ACTION_QUIET) {
+                CHECK(t < 0x10000u); /* after the wrap, because the gap since boot is 5 s */
+            }
         }
         CHECK(boot == 1u && quiet == 1u);
     }
