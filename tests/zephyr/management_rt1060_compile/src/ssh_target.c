@@ -49,7 +49,10 @@ bool crux_mgmt_rt1060_ssh_start(void)
         .host_key_type = held_host_key.type,
         .host_key = held_host_key.key,
         .host_key_length = held_host_key.length,
-        .bind_address = CONFIG_CRUX_SSH_BIND_ADDRESS,
+        /* Empty is every address, and the provider refuses an empty text, so an empty setting is
+         * NULL. The bench guards require the bench address here. */
+        .bind_address =
+            sizeof(CONFIG_CRUX_SSH_BIND_ADDRESS) > 1u ? CONFIG_CRUX_SSH_BIND_ADDRESS : NULL,
     };
     return crux_ssh_wolf_provider()->start(&config, crux_ssh_callback_table()) == CRUX_OK;
 }

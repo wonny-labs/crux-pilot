@@ -390,9 +390,10 @@ config CRUX_SSH_BIND_ADDRESS
     default ""
     help
       Dotted IPv4 text of a local address, which must already be on an interface when the service
-      starts. Empty listens on every IPv4 address. Read by the composition's own start code, which
-      passes it as crux_ssh_config_t.bind_address. The provider refuses a text that is not an IPv4
-      address. The RT1060-EVKB bench image sets the bench address (D10 of
+      starts. Empty means every IPv4 address. Read by the composition's own start code, which
+      passes it as crux_ssh_config_t.bind_address, NULL for an empty setting: the provider itself
+      refuses an empty text, and any other text that is not an IPv4 address, so that a mistyped
+      address never widens the listener. The RT1060-EVKB bench image sets the bench address (D10 of
       docs/rt1060-management-image-feasibility.md).
 
 config CRUX_SSH_MAX_CONNECTIONS

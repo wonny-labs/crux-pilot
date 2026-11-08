@@ -147,7 +147,7 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 | `CRUX_SSH_CLI` | on, with SSH | The real shell and `exec` entry points. Off: every shell and `exec` is refused with status 255. | Module |
 | `CRUX_SSH_SFTP` | on, with SSH | The real SFTP entry points. Off: every SFTP request is refused. | Module |
 | `CRUX_SSH_PORT` | 22 | Listening port, or 0 | Composition, in `crux_ssh_config_t` |
-| `CRUX_SSH_BIND_ADDRESS` | empty | The one IPv4 address to listen on, empty for every address | Composition, in `crux_ssh_config_t.bind_address` |
+| `CRUX_SSH_BIND_ADDRESS` | empty | The one IPv4 address to listen on, empty for every address | Composition, in `crux_ssh_config_t.bind_address` (NULL for empty: the provider refuses an empty text) |
 | `CRUX_SSH_MAX_CONNECTIONS` | 4, range 1 to 4 | Connections at once, authenticated or not. Each has a worker thread and a static stack. | Composition |
 | `CRUX_SSH_MAX_AUTH_ATTEMPTS` | 3 | Failed attempts on one connection | Composition |
 | `CRUX_SSH_AUTH_TIMEOUT_MS` | 30000 | Time to log in, from accept | Composition |

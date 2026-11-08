@@ -2,7 +2,7 @@
 
 Status: **stage 0 of putting the integrated management image on the real board** (merged, #344), **and its stage 2 row C1** ([below](#stage-2-row-c1-the-bench-composition)),
 for review in a Draft PR. Refs #197. It authorises no hardware operation, and **nothing here ran on a board**: every result is a compile and link for
-`mimxrt1060_evk@B//qspi`, a host script or a `native_sim` check, or a reading of source and of the linked image. The owner approved stage 0 in the working
+`mimxrt1060_evk@B//qspi`, a host script, a configure-only run, or a reading of source and of the linked image. The owner approved stage 0 in the working
 session on 2026-11-08 ("0 단게 시작해") and took the decisions D1 to D11 the same day ([Owner decisions](#owner-decisions)). **Nothing here reads as an approval of a
 board stage**: the image still refuses to start, and the approval documents are the main session's.
 
@@ -13,7 +13,7 @@ board stage**: the image still refuses to start, and the approval documents are 
 | Can the integrated image (HTTPS web, the command line over SSH, SFTP) be built for RT1060-EVKB rev B on the Wolf profile? | **Yes, as a compile vehicle** that the existing native files could not give: `tests/zephyr/management_rt1060_compile`. It compiles and links with `-Werror` on Crux's own code, and a clean rebuild of the committed tree gave the same configuration and 80 B more Flash ([Build](#build)). It is not a product. It is a bootable QSPI image (the boot header must be there) that **refuses to start**, so that it cannot be run by mistake: [what it fakes](#what-the-vehicle-is-and-is-not). |
 | Why not the native composition as it is? | It refuses a board at three places on purpose ([guards](#the-guards-the-native-composition-puts-in-the-way)). The vehicle does not edit or relax any of them. |
 | Real size | **Flash 601,172 B of 8 MB (7.2 %), 601,252 B in the committed tree. RAM 833,708 B, all of it in the 32 MB SDRAM** (ITCM, DTCM and OCRAM hold nothing). [Numbers](#sizes-measured-on-the-target-build). |
-| Biggest risks found | **The HTTP server thread's 4,096 B stack** runs the TLS handshake, and a static estimate of one handshake path is 4,272 B. **The SSH worker's 16,384 B** leaves about 3 KB over a static 13.3 KB key-exchange chain. Neither is measured on a target. [Stacks](#thread-stacks). |
+| Biggest risks found | **The HTTP server thread's default 4,096 B stack** runs the TLS handshake, and a static estimate of one handshake path is 4,272 B: **the bench image has 8,192 B from C1** (owner's request, [below](#stage-2-row-c1-the-bench-composition)). **The SSH worker's 16,384 B** leaves about 3 KB over a static 13.3 KB key-exchange chain. Neither is measured on a target. [Stacks](#thread-stacks). |
 | Ready for a board run? | **No.** The eleven owner decisions are taken (2026-11-08) and row C1 is done. Rows C2 to C9, the first account and the approval documents of the main session still come first. [What still blocks a board run](#what-still-blocks-a-board-run), [changes and order](#code-changes-and-their-order). |
 | What did C1 change? | The vehicle is now a **bench composition** under a declaration for RT1060-EVKB rev B, with guards at three levels, a host script that breaks each guard, a manifest, and listeners bound to the bench address. [Stage 2, row C1](#stage-2-row-c1-the-bench-composition). |
 
@@ -42,7 +42,7 @@ C1 approves running it.
 
 ### The three levels of the bench guards
 
-A build passes the Kconfig level first, then the CMake level at configuration, then the C level at every compile. A level that is removed leaves the other two, and the host script shows that each level refuses on its own.
+A build passes the Kconfig level first, then the CMake level at configuration, then the C level at every compile. The CMake level and the C level each refuse on their own, and the host script shows it. The Kconfig level only drops the assignment, because Zephyr warns and goes on, so the CMake level is what turns that into a refusal ([the configure-only breaks](#checks-and-controls)).
 
 ```mermaid
 flowchart TB
@@ -118,6 +118,20 @@ Why 248 B less: the public-password step and its `strlen` are gone, and the benc
 Reading the linked image: the string `composition test password` occurs **0 times** in `zephyr.elf` (`strings -a`), and the bench banner lines, the image identity and the bench address do occur ([evidence](evidence/rt1060-management-image-feasibility/bench-composition-c1/README.md)).
 The link map, the resolved configuration, the build and configure logs, the manifest and the sizes are in that evidence record.
 
+### The HTTP server stack in C1
+
+`CONFIG_HTTP_SERVER_STACK_SIZE=8192` in `target.conf`, against the module default of 4,096 B (`zephyr/Kconfig`). The server thread runs each TLS handshake inside `accept`.
+
+| Item | Number | Source |
+| --- | ---: | --- |
+| Static chain of one handshake path (P-256 client share) | 4,272 B | [Thread stacks](#thread-stacks): 616 B of handshake frames plus 3,656 B, **before** the socket layer's and the server's own frames |
+| Other server frames seen in the stage 0 frame table | 256 B (`handle_http1_request`), 568 B (`http1_dynamic_response`) | `integrated-vehicle/frames-top200.txt`. They sit on the request path, not under `accept`. |
+| Margin of 8,192 B over the handshake chain alone | 1.9 times | 8,192 / 4,272 |
+| Margin if the socket layer and the server add about 1 KB, which is a guess and not a number | about 1.6 times | |
+| RAM cost | **See [Build in C1](#build-in-c1)**: the image total is measured, and the stack is in SDRAM (32 MB) | Link map |
+
+Nothing in the code needs more as far as the static view goes: a 16 KiB TLS record is held in wolfSSL's heap buffers and not on this stack, and the response piece is a static buffer (`CONFIG_CRUX_WEB_RESPONSE_PIECE` 1,024 B, shared by every exchange). **This is not a measurement.** The static chains follow direct calls only and are neither an upper nor a lower bound (see Thread stacks). Row C2 reads the watermark on a target run, and the starting value goes higher only if that says so.
+
 ### The manifest
 
 CMake writes `bench-manifest.json` into the build directory at configuration. It is a record and not a check: the declaration, the resolved `CONFIG_CRUX_*` settings and a few sizes, the state of each test form, the patched Zephyr copy (D8: pin, patch name and hash, patched file and hash), the source revision of the repository and whether the tree was modified, and the SHA-256 of every source of the image's own targets (`app`, the SSH provider and its entries). `run_refused` records the switch in `main()`. Row C8 builds the plan and the frozen-input manifest on the stage 1 pattern from it.
@@ -126,7 +140,7 @@ CMake writes `bench-manifest.json` into the build directory at configuration. It
 
 | Row | Files it touches | What C1 left for it |
 | --- | --- | --- |
-| C2 (HTTP stack, stack and heap lines) | `target.conf` (`CONFIG_HTTP_SERVER_STACK_SIZE`), `src/main.c` or a new `src/bench_stats.c` listed in `CMakeLists.txt` | No guard pins a stack size. The manifest records `CONFIG_HTTP_SERVER_STACK_SIZE` and `CONFIG_MAIN_STACK_SIZE`. A new source includes `bench_guard.h` as the first project header. |
+| C2 (stack watermark and heap line) | `target.conf` (`CONFIG_HTTP_SERVER_STACK_SIZE`, already 8,192 B), `src/main.c` or a new `src/bench_stats.c` listed in `CMakeLists.txt` | No guard pins a stack size, so C2 may raise it. The starting value is 8,192 B (see [the HTTP server stack](#the-http-server-stack-in-c1)). The manifest records `CONFIG_HTTP_SERVER_STACK_SIZE` and `CONFIG_MAIN_STACK_SIZE`. A new source includes `bench_guard.h` as the first project header. |
 | C3 (RAM disk) | `zephyr/Kconfig` and the file provider's CMake for the backend, a mount rule in a copy of `medium_ready()`, `target.conf` | `CONFIG_CRUX_BENCH_FILE_RAM_DISK` is declared in `Kconfig.bench`, **reserved**, and refused by `bench_guard.cmake` until `bench_declaration.json` says `"state": "selected"` for `ram_disk`. The declaration test and the host script then require it to be set in `target.conf`. `medium_ready()` in `src/mgmt_start.c` still calls `fs_mkfs` after a failed mount, which formats a card: the copy test pins that line, so C3 changes the copy and its declared edit together. |
 | C4 (first account) | `src/bench_first_account.c`, `target.conf`, `bench_declaration.json` | `crux_bench_first_account()` is called from `main()` on an empty store and returns false today. The public test password is not in the image and the copy test pins that. Flip `first_account_file` to `selected` when it is implemented. |
 | C5 (TRNG failure path) | A native test, `src/` for a boot line | Needs nothing from C1 beyond `bench_guard.h`. |
@@ -147,7 +161,7 @@ CMake writes `bench-manifest.json` into the build directory at configuration. It
 | Blocker | Row or owner | State |
 | --- | --- | --- |
 | The refusal in `main()` | A reviewed change after the approval | **Stays** |
-| HTTP server thread stack of 8,192 B or more, stack and heap lines on the UART | C2 | Not done |
+| Stack watermark and heap line on the UART, and the read of the HTTP thread's headroom (the stack itself is 8,192 B since C1) | C2 | Not done |
 | A RAM disk as the file backend, and a mount rule that never formats a card | C3 (D2) | Not done. The image still links the microSD provider and its `fs_mkfs` call. |
 | The first account from an untracked file, hashed into the manifest | C4 (D3) | Not done. The step fails, so the image cannot serve. |
 | A native test of the failing TRNG path, and a boot line for the first random read | C5 | Not done |
@@ -336,7 +350,7 @@ configured stack is plainly too small, and where it is tight. Interrupt frames (
 
 | Thread | Configured | `native_sim` (64-bit host, carried) | Static chain on the target ELF | Reading |
 | --- | ---: | --- | --- | --- |
-| HTTP server thread, which also runs each TLS handshake inside `accept` | **4,096 B** (`zephyr/Kconfig:432`) | Not readable on `native_sim` | `wolfSSL_accept` to the key share check of a **P-256** client share: 616 B of handshake frames plus 3,656 B = **4,272 B**, before the socket layer's and the server's own frames. A client that offers an X25519 share takes a path of about 2.6 KB. ECDSA signing from `accept` is about 2.4 KB. | **Over the stack for a client that offers only P-256, and tight for others.** Raise it and measure: [C2](#code-changes-and-their-order). |
+| HTTP server thread, which also runs each TLS handshake inside `accept` | **4,096 B** (`zephyr/Kconfig:432`). **8,192 B in the bench image since C1.** | Not readable on `native_sim` | `wolfSSL_accept` to the key share check of a **P-256** client share: 616 B of handshake frames plus 3,656 B = **4,272 B**, before the socket layer's and the server's own frames. A client that offers an X25519 share takes a path of about 2.6 KB. ECDSA signing from `accept` is about 2.4 KB. | **Over the stack for a client that offers only P-256, and tight for others.** Raise it and measure: [C2](#code-changes-and-their-order). |
 | SSH worker, 4 of them | 16,384 B | 9,216 B used, with `ecdh-sha2-nistp256`, Ed25519, SFTP and the CLI. The probe image of #192 read 13,808 B with `exec` and every key type. | `wolfSSH_worker` chain through the key exchange: **13,336 B**, of which `SendKexDhReply` has a 6,692 B frame | About 3 KB left, 19 %, before interrupt frames. Tight. |
 | SSH listener | 4,096 B | Not read | Not computed | Unknown |
 | Crux worker threads, 4 of them | 8,192 B | 8,192 B configured | `web_session_work_once` through `crux_access_login_password`: 10,364 B along a path that ends in an RSA key decode the stored keys never take | **Unknown**: the PBKDF2 login and the store save run here |
@@ -417,8 +431,9 @@ The column *Taken* records that, and what it means for the row that implements i
 | D10 | Listener exposure | SSH on every IPv4 address and HTTPS dual stack (as on `native_sim`); the bench address only | **The bench address only**, in the bench declaration | **Taken** 2026-11-08, same quote. Implemented in C1. |
 | D11 | The programmer's 30 s limit | Raise it for a 601 KB image, and split `loadfile` from `verifybin`; shrink the image (drop RSA, which is unused) | **Raise and split**, reviewed, and also trim RSA | **Taken** 2026-11-08, same quote. Rows C7 and C9, not C1. |
 
-The owner added, in the same message, a requirement on the HTTP server thread stack (4,096 B today; a static estimate of one handshake path is 4,272 B): it must be made big enough that it is no
-problem, **8,192 B or larger** if the measurement or the estimate leaves less than a safe margin. That is row C2. The bench declaration pins no stack size, so it does not prevent it.
+The owner added a requirement on the HTTP server thread stack (4,096 B by default; a static estimate of one handshake path is 4,272 B): it must be big enough that it is no problem, 8,192 B or larger if
+the estimate leaves less than a safe margin, and later the same day, in chat: **"http 스택의 경우 8kb가 괜찮다면 처음부터 8kb로 해줘"** ("if 8 KB is fine for the HTTP stack, make it 8 KB from the start"). So **C1 sets it to 8,192 B**
+([why](#the-http-server-stack-in-c1)), and row C2 keeps the stack watermark, the heap line and the check of the headroom, and goes higher only if a measurement says so. The bench declaration pins no stack size, so it does not prevent that.
 
 ## Code changes and their order
 
@@ -427,7 +442,7 @@ Rough effort is agent time for the change and its tests, without the board. Hard
 | Order | Change | Needs | Effort | State |
 | --- | --- | --- | --- | --- |
 | 1 | **C1.** Promote the vehicle to a bench composition: the declaration and guards at three levels, a host script that breaks each guard, and a manifest recording the declaration | D1 | 1.5 to 2 days | **Done in the C1 PR** |
-| 2 | **C2.** `CONFIG_HTTP_SERVER_STACK_SIZE` at 8,192 B in the bench image, a stack watermark and heap line printed on the UART at idle and after each client | none | 0.5 to 1 day | Not started |
+| 2 | **C2.** A stack watermark and heap line printed on the UART at idle and after each client, the check of the headroom of the HTTP server thread (8,192 B since C1), and a higher value only if the measurement says so | none | 0.5 to 1 day | Not started |
 | 2 | **C3.** The file backend of D2: a RAM disk selection (Kconfig and CMake) and a mount and format rule that never formats a card | D2 | 0.5 to 1 day | Not started |
 | 2 | **C4.** The first account of D3, with the password never in the repository or the log | D3 | 0.5 to 1 day | Not started |
 | 2 | **C5.** A native test of the failing-TRNG path on the Wolf profile, and a boot line that says the first random read succeeded | none | 1 day | Not started |
@@ -503,7 +518,7 @@ Taken here without the owner, each the narrower choice.
 | 2 | The vehicle compiles two **copies** of native files, held to the originals by an exact test | The native test certificate's header refuses a board and must stay so |
 | 3 | `CONFIG_RTC` is off | It breaks wolfSSL on this board: [item 12](#item-by-item) |
 | 4 | The File provider is the microSD one | It is the only one that exists for the board. It was compiled, not used. |
-| 5 | The HTTP server stack stays at the default 4,096 B in the vehicle | So that the report shows the declared default and its estimate, and not a value chosen to pass. **Unchanged in C1**: row C2 raises it, and the owner has asked for 8,192 B or more. |
+| 5 | **In stage 0:** the HTTP server stack stayed at the default 4,096 B in the vehicle | So that the report shows the declared default and its estimate, and not a value chosen to pass. **Superseded in C1**: the owner asked for 8,192 B from the start, and the bench image has it ([why](#the-http-server-stack-in-c1)). |
 | 6 | The arena is 524,288 B, as the existing target image's | Between the web profile's 131,072 B and the native run's 1 MiB. It is a configuration, not a measured need. |
 | 7 | No script is added to `scripts/`. The commands that ran are kept as evidence. | A script that was not run to the end would be a claim without a check. A script is a stage 2 item (C1). **Done in C1**, beside the image: `check_bench_guard.py`. |
 | 8 | The evidence record holds the maps, the resolved configuration, the logs, the static chains and the commands, and not the ELF or the binary | The binary is not reproducible bit for bit from another path, and `*.bin` is ignored by the repository |

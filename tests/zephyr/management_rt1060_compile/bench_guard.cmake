@@ -280,6 +280,26 @@ function(crux_bench_manifest)
         endforeach()
     endforeach()
     string(JSON manifest SET "${manifest}" sources "${sources}")
+
+    # The files that configure the image, which are not sources: the declaration, the guards, the settings. The
+    # profile files that CMakeLists.txt merges are listed by their repository path.
+    set(configuration "[]")
+    set(count 0)
+    set(configuration_files
+        "${CRUX_BENCH_DIR}/bench_declaration.json" "${CRUX_BENCH_DIR}/bench_guard.cmake"
+        "${CRUX_BENCH_DIR}/management_target.cmake" "${CRUX_BENCH_DIR}/CMakeLists.txt"
+        "${CRUX_BENCH_DIR}/Kconfig" "${CRUX_BENCH_DIR}/Kconfig.bench" "${CRUX_BENCH_DIR}/prj.conf"
+        "${CRUX_BENCH_DIR}/target.conf" "${CRUX_BENCH_DIR}/target.overlay")
+    foreach(file IN LISTS configuration_files EXTRA_CONF_FILE DTC_OVERLAY_FILE)
+        if(NOT EXISTS "${file}")
+            continue()
+        endif()
+        file(RELATIVE_PATH shown "${CRUX_ROOT}" "${file}")
+        file(SHA256 "${file}" hash)
+        string(JSON configuration SET "${configuration}" ${count} "{\"path\": \"${shown}\", \"sha256\": \"${hash}\"}")
+        math(EXPR count "${count} + 1")
+    endforeach()
+    string(JSON manifest SET "${manifest}" configuration_files "${configuration}")
     file(WRITE "${CMAKE_BINARY_DIR}/bench-manifest.json" "${manifest}\n")
     message(STATUS "Bench manifest: ${CMAKE_BINARY_DIR}/bench-manifest.json (${count} sources)")
 endfunction()

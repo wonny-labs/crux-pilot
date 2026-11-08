@@ -72,6 +72,13 @@ class BenchDeclaration(unittest.TestCase):
                           "NET_IPV6", "RTC", "FS_FATFS_MOUNT_MKFS", "CRUX_WEB_PLAIN_HTTP_FOR_TESTS"):
             self.assertIn(values.get(forbidden, "n"), ("n", ""), forbidden)
 
+    def test_http_server_stack_starts_at_8192_and_the_declaration_does_not_pin_it(self):
+        # The owner asked for 8 KB from the start (2026-11-08). Row C2 may raise it, so nothing may cap it.
+        values = settings(BENCH / "target.conf")
+        self.assertGreaterEqual(int(values["HTTP_SERVER_STACK_SIZE"]), 8192)
+        self.assertNotIn("STACK", (BENCH / "bench_declaration.json").read_text().upper())
+        self.assertNotIn("HTTP_SERVER_STACK_SIZE", (BENCH / "bench_guard.cmake").read_text().split("function(crux_bench_manifest")[0])
+
     def test_kconfig_names_the_declared_test_forms_and_each_depends_on_the_declaration(self):
         text = (BENCH / "Kconfig.bench").read_text()
         symbols = set(re.findall(r"^config (CRUX_BENCH_[A-Z0-9_]+)", text, re.MULTILINE))

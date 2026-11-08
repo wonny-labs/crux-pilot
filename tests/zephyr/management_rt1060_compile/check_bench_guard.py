@@ -194,6 +194,7 @@ def cmake_cases(tree):
             cases.append((f"the reserved test form {name} set", {symbol: "y"}, "is reserved and nothing implements it"))
     cases.extend([
         ("no build-local Zephyr copy", {"ZEPHYR_BASE_BROKEN": "no marker"}, "is not the build-local Zephyr copy"),
+        ("a marker without the patched file", {"ZEPHYR_BASE_BROKEN": "no file"}, "is not the build-local Zephyr copy"),
         ("a Zephyr copy on another pin", {"ZEPHYR_BASE_BROKEN": "pin"}, "is not the build-local Zephyr copy"),
         ("a Zephyr copy with another patch", {"ZEPHYR_BASE_BROKEN": "file"}, "is not the build-local Zephyr copy"),
     ])
@@ -230,6 +231,9 @@ def check_cmake(tree):
             broken = change.get("ZEPHYR_BASE_BROKEN")
             if broken == "no marker":
                 zephyr, declaration = make_zephyr_base(tree, case_dir, marker=False)
+            elif broken == "no file":
+                zephyr, declaration = make_zephyr_base(tree, case_dir)
+                (zephyr / tree.declaration["patched_zephyr"]["patched_file"]).unlink()
             elif broken == "pin":
                 zephyr, declaration = make_zephyr_base(tree, case_dir, pin="0" * 40)
             elif broken == "file":
@@ -596,8 +600,8 @@ def main():
     if kconfiglib is None and not args.skip_kconfig:
         print("Kconfiglib was not found: the Kconfig level did not run", file=sys.stderr)
         return 2
-    print("control ok: the bench image refuses every build that is not the declared RT1060-EVKB bench, in CMake, in C "
-          "and in Kconfig")
+    levels_run = "in CMake, in C and in Kconfig" if kconfiglib is not None else "in CMake and in C (Kconfig skipped)"
+    print(f"control ok: the bench image refuses every build that is not the declared RT1060-EVKB bench, {levels_run}")
     return 0
 
 
