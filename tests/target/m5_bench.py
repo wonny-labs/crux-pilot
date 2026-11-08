@@ -30,3 +30,18 @@ BENCH = dict(
     uart_usb_serial='02290000325182c300000000000000000000000097969905',
     probe_serial='602003106',
 )
+
+
+def only_process_owns(listing, pid):
+    """True when an ``lsof -Fp`` listing names exactly this process and nothing else.
+
+    ``lsof -Fp`` prints one ``p<pid>`` line per owning process and, after it, one
+    ``f<descriptor>`` line per open file (the first real run stopped because the
+    descriptor lines were not expected). Any other line, any other pid, or an empty
+    listing is not proof that this process is the only owner.
+    """
+    import re
+    lines = listing.splitlines()
+    owners = [line for line in lines if line.startswith('p')]
+    return (bool(owners) and all(line == 'p%d' % pid for line in owners) and
+            all(re.fullmatch(r'p\d+|f\S+', line) for line in lines))

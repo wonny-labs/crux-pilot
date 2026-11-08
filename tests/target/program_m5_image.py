@@ -35,7 +35,7 @@ import capture_m3_network as m3net
 import capture_m5_network as runner
 import m3_clock
 from capture_m3 import HardwareStop
-from m5_bench import BENCH
+from m5_bench import BENCH, only_process_owns
 
 BASE = 0x60000000
 MODES = ('identify', 'program', 'restore')
@@ -265,8 +265,8 @@ def real_parts(args, guard_session):
         else:                                          # this process is the only accepted owner; no debugger may run
             result = capture_m3.inventory(['lsof', '-Fp', uart, tty], directory / (label + '-owners-timeout.json'))
             import os
-            require(result.returncode == 0 and not result.stderr and result.stdout.splitlines() and
-                    all(line == 'p' + str(os.getpid()) for line in result.stdout.splitlines()), 'Exclusive UART ownership changed')
+            require(result.returncode == 0 and not result.stderr and only_process_owns(result.stdout, os.getpid()),
+                    'Exclusive UART ownership changed')
             result = capture_m3.inventory(['ps', '-axo', 'pid=,comm=,args='], directory / (label + '-probe-timeout.json'))
             require(result.returncode == 0 and not result.stderr and result.stdout.strip() and
                     not re.search(r'(?im)(?:/|\s)(?:JLink\S*|openocd|pyocd(?:\.\S+)?)(?:\s|$)', result.stdout), 'Probe ownership changed')

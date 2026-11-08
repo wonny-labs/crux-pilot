@@ -12,7 +12,7 @@ import signal
 import subprocess
 import sys
 import m3_clock as shared_clock
-from m5_bench import BENCH
+from m5_bench import BENCH, only_process_owns
 import capture_m5_network as runner
 
 
@@ -159,7 +159,7 @@ class M3UARTLease:
             # The accepted owner is this process only; deny every other UART
             # owner and all debugger processes while this capture owns UART.
             result=capture_m3.inventory(['lsof','-Fp',self.uart,self.uart.replace('/dev/cu.','/dev/tty.')],self.directory/(label+'-owners-timeout.json'))
-            runner.oracle.require(result.returncode==0 and not result.stderr and result.stdout.splitlines() and all(line=='p'+str(os.getpid()) for line in result.stdout.splitlines()),'Exclusive UART ownership changed')
+            runner.oracle.require(result.returncode==0 and not result.stderr and only_process_owns(result.stdout,os.getpid()),'Exclusive UART ownership changed')
             result=capture_m3.inventory(['ps','-axo','pid=,comm=,args='],self.directory/(label+'-probe-timeout.json'))
             runner.oracle.require(result.returncode==0 and not result.stderr and result.stdout.strip() and all(re.match(r'^\s*\d+\s+\S+',line) for line in result.stdout.splitlines()) and not re.search(r'(?im)(?:/|\s)(?:JLink\S*|openocd|pyocd(?:\.\S+)?)(?:\s|$)',result.stdout),'Probe ownership changed')
     def __call__(self):

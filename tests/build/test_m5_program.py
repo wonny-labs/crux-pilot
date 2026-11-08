@@ -448,7 +448,7 @@ class RealParts(Case):
         for item in patches:
             item.start()
             self.addCleanup(item.stop)
-        self.inventories['lsof'] = subprocess.CompletedProcess([], 0, 'p%d\n' % os.getpid(), '')
+        self.inventories['lsof'] = subprocess.CompletedProcess([], 0, 'p%d\nf12\n' % os.getpid(), '')
         self.inventories['ps'] = subprocess.CompletedProcess([], 0, '  1 launchd /sbin/launchd\n', '')
         self.directory.mkdir()
         return program.real_parts(SimpleNamespace(evidence=self.directory), {}), port
@@ -466,13 +466,13 @@ class RealParts(Case):
         (preconditions, probe, acquire), port = self.wired()
         acquire()
         import os
-        self.inventories['lsof'] = subprocess.CompletedProcess([], 0, 'p%d\np999\n' % os.getpid(), '')
+        self.inventories['lsof'] = subprocess.CompletedProcess([], 0, 'p%d\nf12\np999\nf3\n' % os.getpid(), '')
         with self.assertRaisesRegex(HardwareStop, 'ownership changed'):
             preconditions(self.directory, 'a')
         self.inventories['lsof'] = subprocess.CompletedProcess([], 0, '', '')
         with self.assertRaisesRegex(HardwareStop, 'ownership changed'):
             preconditions(self.directory, 'b')
-        self.inventories['lsof'] = subprocess.CompletedProcess([], 0, 'p%d\n' % os.getpid(), '')
+        self.inventories['lsof'] = subprocess.CompletedProcess([], 0, 'p%d\nf12\n' % os.getpid(), '')
         self.inventories['ps'] = subprocess.CompletedProcess([], 0, ' 42 JLinkExe /Applications/SEGGER/JLink/JLinkExe -device x\n', '')
         with self.assertRaisesRegex(HardwareStop, 'Probe ownership changed'):
             preconditions(self.directory, 'c')

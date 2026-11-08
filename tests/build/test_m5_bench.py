@@ -417,5 +417,38 @@ class ReducedAdapter(unittest.TestCase):
             live.close()
 
 
+class OwnerInventory(unittest.TestCase):
+    """`lsof -Fp` prints an f<fd> line after every p<pid> line; the first real run stopped on that."""
+    REAL = 'p%d\nf12\n'
+
+    def test_only_this_process_with_its_descriptor_lines_is_accepted(self):
+        import os
+        self.assertTrue(m5_bench.only_process_owns(self.REAL % os.getpid(), os.getpid()))
+        self.assertTrue(m5_bench.only_process_owns('p%d\nf12\nf13\n' % os.getpid(), os.getpid()))   # cu and tty both open
+
+    def test_another_pid_an_empty_listing_or_unknown_lines_are_refused(self):
+        import os
+        me = os.getpid()
+        for text in ('', 'f12\n', 'p%d\nf12\np999\nf3\n' % me, 'p999\nf3\n', 'p%d\nn/dev/x\n' % me, 'p%dx\nf3\n' % me,
+                     'p%d\n\nf3\n' % me):
+            with self.subTest(text=text):
+                self.assertFalse(m5_bench.only_process_owns(text, me))
+
+    def test_the_capture_adapter_accepts_its_own_descriptor_lines_and_refuses_a_foreign_owner(self):
+        import os
+        import capture_m3
+        with tempfile.TemporaryDirectory() as directory:
+            lease = adapter.M3UARTLease({}, Path(directory))
+            lease.port = object()
+            answers = {'lsof': subprocess.CompletedProcess([], 0, self.REAL % os.getpid(), ''),
+                       'ps': subprocess.CompletedProcess([], 0, '  1 launchd /sbin/launchd\n', '')}
+            with patch.object(m3net, 'guard_check', lambda *a, **k: None), \
+                    patch.object(capture_m3, 'inventory', lambda command, output: answers[command[0]]):
+                lease.verify('acquire_exclusive_probe_uart_and_nic')
+                answers['lsof'] = subprocess.CompletedProcess([], 0, (self.REAL % os.getpid()) + 'p999\nf3\n', '')
+                with self.assertRaisesRegex(ValueError, 'ownership changed'):
+                    lease.verify('acquire_exclusive_probe_uart_and_nic')
+
+
 if __name__ == '__main__':
     unittest.main()
