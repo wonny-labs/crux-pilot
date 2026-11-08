@@ -186,6 +186,14 @@ class SourcesOfTheImage(unittest.TestCase):
         sources += [ROOT / "components/file/src/file.c", ROOT / "components/file/ports/zephyr/file_native.c"]
         return sources
 
+    def test_the_image_compiles_both_medium_sources(self):
+        # The first target build of C3 failed to link because the image did not list them.
+        cmake = (BENCH / "CMakeLists.txt").read_text()
+        for name in ("src/bench_medium.c", "src/bench_medium_fs.c"):
+            self.assertIn(name, cmake)
+        for path in sorted((BENCH / "src").glob("*.c")):
+            self.assertIn(f"src/{path.name}", cmake + (BENCH / "management_target.cmake").read_text(), path.name)
+
     def test_only_the_ram_glue_names_the_format_functions(self):
         names = re.compile(r"\b(fs_mkfs|f_mkfs|fatfs_mkfs|FS_FATFS_MOUNT_MKFS)\b")
         found = {}

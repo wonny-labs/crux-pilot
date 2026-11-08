@@ -37,6 +37,8 @@ include(${CRUX_ROOT}/cmake/CruxWebRoutes.cmake)
 set(route_sources ${CRUX_WEB_SESSION_ROUTES} ${CRUX_WEB_MANAGEMENT_ROUTES}
     ${CRUX_WEB_MANAGEMENT_NETWORK_ROUTES})
 target_sources(app PRIVATE src/main.c src/ssh_target.c src/bench_first_account.c ${route_sources})
+# The file medium of row C3: the decision and its Zephyr glue, the only sources that mount it or format a RAM disk.
+target_sources(app PRIVATE src/bench_medium.c src/bench_medium_fs.c)
 if(CRUX_BENCH_RUN_REFUSED)
     target_compile_definitions(app PRIVATE CRUX_BENCH_RUN_REFUSED=1)
 else()
