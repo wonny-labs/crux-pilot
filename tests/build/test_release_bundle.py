@@ -154,6 +154,7 @@ class SchemaFile(BundleTestCase):
         description = properties["identity_algorithm"]["description"]
         self.assertIn("Zephyr", description)
         self.assertIn("Kconfig", description)
+        self.assertEqual("crux-firmware-identity-v1", PROVENANCE.FIRMWARE_IDENTITY_ALGORITHM)
         self.assertIn(PROVENANCE.FIRMWARE_IDENTITY_ALGORITHM, description)
         self.assertNotIn("enum", properties["identity_algorithm"])
 

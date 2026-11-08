@@ -40,7 +40,7 @@ flowchart LR
     B -. image and ELF stay out .-> X[Not in a bundle of a public product repository]
 ```
 
-The assembler is dashed because it does not exist in this repository yet. Today a product writes its own bundle, as the controller does. `zephyr.bin`, `.config`, `west.frozen.yml` and `west crux-pins` appear in this document only as examples of a Zephyr and west product. The checker requires no west file and names no Zephyr file: a bundle of any text items passes if its manifest and hashes are right.
+The assembler is dashed because it does not exist in this repository yet. Today a product writes its own bundle, as the controller does. `zephyr.bin`, `.config`, `west.lock.yml` and `west crux-pins` appear in this document only as examples of a Zephyr and west product. The checker requires no west file and names no Zephyr file: a bundle of any text items passes if its manifest and hashes are right.
 
 ## The manifest
 
