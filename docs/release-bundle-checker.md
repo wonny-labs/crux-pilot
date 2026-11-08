@@ -119,7 +119,7 @@ Not ported: the assembler (`assemble_bundle.py`, which imports a budget collecto
 ## What is built
 
 - The schema, the checker and the tests that are listed under [Result](#result). The tests write their bundles by hand and take the firmware identity from the real `firmware_identity` and `firmware_digest` functions of `scripts/record-build-provenance.py`.
-- The tests were written first. They failed against a missing script (one import error), then against a stub that accepted every bundle (94 failures and 6 errors across the first 57 tests), and passed against the checker. A few cases came later and were each run red before their code: the NUL byte, the stricter schema nodes, and the flag-form path cases. The PR records the commands and counts.
+- The tests were written first. They failed against a missing script (one import error), then against a stub that accepted every bundle (94 failures and 6 errors across the first 57 tests), and passed against the checker. Two groups of cases came later and were each run red before their code: the NUL byte (one failure) and the stricter schema nodes (six failures, two errors). The path-flag fix came from a failing test (`product-x/build/app`), and its extra flag cases would also pass against the source pattern. The PR records the commands and counts.
 
 ## What is faked or heuristic
 
@@ -128,6 +128,7 @@ Not ported: the assembler (`assemble_bundle.py`, which imports a budget collecto
 - **The identity is not recomputed.** The image is not in the bundle, so the checker only checks that `firmware_identity` has the form of a SHA-256. Recomputing it needs the build directory, as the controller's comparison script does.
 - **The "no image" rules are structural.** An image that is valid UTF-8 without a NUL byte, is not byte-equal to `image_sha256`, and has no listed suffix passes. So does an image that is encoded as text, for example in base64. The path and private-string scans read text only.
 - **The schema validator is a subset.** It applies `type` (object, string, integer, array), `required`, `properties`, `additionalProperties`, `pattern`, `minimum`, `const`, `enum` and `items`. It is not a JSON Schema implementation. `pattern` uses Python regular expressions. The SemVer pattern accepts leading zeros and empty identifiers, such as `1.2.3-rc..1`, which SemVer does not.
+- **A custom `--schema` is checked for keywords, not for their values.** A non-string `pattern`, an invalid regular expression or a non-list `required` ends in a traceback (exit 1, never a pass), and a string-valued `enum` is read as a substring test. The shipped schema is not affected.
 - **Nothing checks that `vendor_deliveries` names are unique** or that a `replaced_modules` replacement exists in the lock file.
 
 ## What is untested
