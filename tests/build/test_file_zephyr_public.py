@@ -1,7 +1,7 @@
 """The Zephyr File root binding is a documented composition interface, reachable through a public target.
 
 These checks run on the host: they compile the header alone and read the CMake definition. The Zephyr
-builds that use the target (a sample and a native_sim test) are exercised by the Zephyr CI shards.
+builds that use the target are exercised by the Zephyr CI shards.
 """
 import os
 from pathlib import Path
@@ -84,15 +84,67 @@ class PublicHeader(unittest.TestCase):
             self.assertIn(word, text.lower(), word)
 
 
+SAMPLES_ON_THE_PUBLIC_TARGET = ('storage_sd_interrupt', 'storage_sd_replace', 'storage_sd_probe',
+                                'storage_emmc', 'storage_reliance_sd')
+
+
+def builds_compiling(*sources):
+    return [p for p in ROOT.rglob('CMakeLists.txt')
+            if p.relative_to(ROOT).parts[0] in ('samples', 'tests')
+            and any(source in p.read_text() for source in sources)]
+
+
 class Consumers(unittest.TestCase):
     def test_every_build_that_compiles_the_sd_composition_links_the_target(self):
         # sd_storage.c includes <crux/file_zephyr.h>, so every build that compiles it needs the include root.
-        builds = [p for p in ROOT.rglob('CMakeLists.txt')
-                  if p.relative_to(ROOT).parts[0] in ('samples', 'tests') and 'sd_storage.c' in p.read_text()]
+        builds = builds_compiling('sd_storage.c')
         self.assertGreaterEqual(len(builds), 9)
         for path in builds:
             with self.subTest(build=path.relative_to(ROOT).as_posix()):
                 self.assertIn('crux::file_zephyr', path.read_text())
+
+    def test_every_build_that_compiles_the_emmc_composition_links_the_target(self):
+        # emmc_storage.c includes <crux/file_zephyr.h> as well: the two samples and the two native_sim
+        # fixtures that compile it need the include root.
+        builds = builds_compiling('emmc_storage.c')
+        self.assertGreaterEqual(len(builds), 4)
+        for path in builds:
+            with self.subTest(build=path.relative_to(ROOT).as_posix()):
+                self.assertIn('crux::file_zephyr', path.read_text())
+
+    def test_the_samples_that_only_need_the_binding_header_use_the_public_target(self):
+        for name in SAMPLES_ON_THE_PUBLIC_TARGET:
+            directory = ROOT / 'samples' / name
+            with self.subTest(sample=name):
+                text = (directory / 'CMakeLists.txt').read_text()
+                self.assertRegex(text, r'target_link_libraries\(app PRIVATE[^)]*crux::file_zephyr')
+                self.assertNotIn('components/file/ports/zephyr', text)
+                for source in list(directory.glob('*.c')) + list(directory.glob('*.h')):
+                    self.assertNotIn('file_native.h', source.read_text(), source.name)
+
+    def test_the_emmc_composition_includes_the_public_header_in_format_order(self):
+        lines = (ROOT / 'samples/storage_emmc/emmc_storage.c').read_text().splitlines()
+        includes = [line for line in lines if line.startswith('#include')]
+        self.assertIn('#include <crux/file_zephyr.h>', includes)
+        self.assertNotIn('#include "file_native.h"', includes)
+        # clang-format SortIncludes: CaseSensitive sorts '<crux/file.h>' before '<crux/file_zephyr.h>'
+        # inside the block of angle-bracket includes.
+        angle = [line for line in includes if line.startswith('#include <')]
+        self.assertEqual(angle, sorted(angle))
+
+
+class Documents(unittest.TestCase):
+    def test_the_architecture_and_the_native_policy_name_the_composition_target(self):
+        for name in ('architecture.md', 'native-interface-policy.md'):
+            with self.subTest(document=name):
+                text = ' '.join((ROOT / 'docs' / name).read_text().split())
+                self.assertIn('`crux::file_zephyr`', text)
+                self.assertIn('(file-composition-interface.md)', text)
+                self.assertIn('not a portable usage target', text)
+
+    def test_the_native_policy_says_the_consumer_check_rejects_it(self):
+        text = ' '.join((ROOT / 'docs/native-interface-policy.md').read_text().split())
+        self.assertRegex(text, r'`crux::file_zephyr`[^.]*rejected by the native-free consumer check')
 
 
 class Target(unittest.TestCase):
