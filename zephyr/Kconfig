@@ -285,6 +285,18 @@ config CRUX_WEB_PORT
     default 443
     range 0 65535
 
+config CRUX_WEB_BIND_ADDRESS
+    string "The one IPv4 address the web service listens on, or empty for every address"
+    default ""
+    depends on !CRUX_WEB_PLAIN_HTTP_FOR_TESTS
+    help
+      Dotted IPv4 text of a local address, which must already be on an interface when the service
+      starts. Empty keeps the Zephyr server's default: every address, and IPv6 as well when it is
+      enabled. The RT1060-EVKB bench image sets the bench address (D10 of
+      docs/rt1060-management-image-feasibility.md). A text that is not an IPv4 address makes the
+      Zephyr server fall back to every address, so a composition that sets this checks the text
+      itself, as the bench image's guards do.
+
 config CRUX_WEB_BACKLOG
     int "Connections the listening socket queues"
     default 4
@@ -372,6 +384,17 @@ config CRUX_SSH_PORT
     help
       Like the four symbols below it, this is read by the composition's own start code, which fills
       crux_ssh_config_t. The module's CMake does not apply it.
+
+config CRUX_SSH_BIND_ADDRESS
+    string "The one IPv4 address the SSH service listens on, or empty for every address"
+    default ""
+    help
+      Dotted IPv4 text of a local address, which must already be on an interface when the service
+      starts. Empty means every IPv4 address. Read by the composition's own start code, which
+      passes it as crux_ssh_config_t.bind_address, NULL for an empty setting: the provider itself
+      refuses an empty text, and any other text that is not an IPv4 address, so that a mistyped
+      address never widens the listener. The RT1060-EVKB bench image sets the bench address (D10 of
+      docs/rt1060-management-image-feasibility.md).
 
 config CRUX_SSH_MAX_CONNECTIONS
     int "Connections at once, authenticated or not"

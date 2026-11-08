@@ -1,8 +1,12 @@
-/* RT1060 compile vehicle: a copy of
- * tests/native/management_composition/composition/crux_native_management.c with one difference, the
- * TLS credentials. The native file includes the declared test certificate, whose header refuses any
- * build that is not native_sim, so this copy hands the generated certificate and the store's key to
- * the TLS credentials, as docs/tls-certificate.md step 6 says. Nothing else is changed. */
+/* RT1060-EVKB bench image: a copy of
+ * tests/native/management_composition/composition/crux_native_management.c with two differences.
+ * The TLS credentials: the native file includes the declared test certificate, whose header refuses
+ * any build that is not native_sim, so this copy hands the generated certificate and the store's
+ * key to the TLS credentials, as docs/tls-certificate.md step 6 says. And the first account: the
+ * native file's step uses a password that is public in this repository, so this copy has no such
+ * step, and the bench image's first account is bench_first_account.h (D3). Nothing else is
+ * changed. */
+#include "bench_guard.h"
 #include "crux_native_management.h"
 #include <crux_tls_certificate_adapter.h>
 
@@ -290,15 +294,6 @@ void crux_native_management_store_roots(crux_file_root_t roots[2])
 crux_credential_state_t crux_native_management_store_state_at_start(void)
 {
     return state_at_start;
-}
-
-crux_access_result_t crux_native_management_provision_test_account(void)
-{
-    static const crux_access_origin_t serial = {.channel = CRUX_ACCESS_CHANNEL_SERIAL};
-    return crux_access_provision_first_account(CRUX_NATIVE_MANAGEMENT_TEST_USER,
-                                               CRUX_NATIVE_MANAGEMENT_TEST_PASSWORD,
-                                               strlen(CRUX_NATIVE_MANAGEMENT_TEST_PASSWORD),
-                                               CRUX_NATIVE_MANAGEMENT_ROLE_ADMINISTRATOR, &serial);
 }
 
 crux_access_result_t crux_native_management_login(const char *user, const char *password,

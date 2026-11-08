@@ -43,7 +43,7 @@ What is **not built**, and so is the product's work or an open decision:
 | **User key registration.** | No command or web route registers an SSH user key. Only test code calls `crux_access_account_add_key`. | [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318) |
 | **Certificate registration.** | No composition registers the device certificate with the listener, and no web route exists for it. No decision about how a product does this is recorded. | [TLS certificate](tls-certificate.md) (status line, and "Registration with Zephyr's TLS credentials") |
 | **A frontend.** | The product builds its own. Crux serves a built folder. | [Web guide](../web/README.md) |
-| **Interface binding.** | Which interface a listener binds is the composition's. | [Integrated image](ssh-integrated-image.md#what-a-consumer-uses-and-what-is-test-only) |
+| **Interface binding.** | Which interface a listener binds is the composition's. Both listeners can be bound to one IPv4 address: `CONFIG_CRUX_WEB_BIND_ADDRESS` and `CONFIG_CRUX_SSH_BIND_ADDRESS`, empty by default, which keeps every address. The RT1060-EVKB bench image sets both. Zephyr's HTTP server falls back to every address for a text that is not an address, so a composition that sets it checks the text. | [Integrated image](ssh-integrated-image.md#what-a-consumer-uses-and-what-is-test-only), [RT1060 report](rt1060-management-image-feasibility.md#listeners-d10) |
 | Persisting a configuration or network change | No provider until Issue #16. A save answers `not_supported`. | [Management APIs](web-management-apis.md) |
 | `GET /api/v1/events`, web file upload and download, a browser console | Not built. | [Security event contract](security-event-contract.md), [Issue #188](https://github.com/wonny-labs/crux-pilot/issues/188), [Issue #204](https://github.com/wonny-labs/crux-pilot/issues/204) |
 | A board | Nothing ran on one. | Every document above |
@@ -132,6 +132,7 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 | `CRUX_WEB` | off | The web adapter. Selects the Zephyr HTTP server with header capture, wildcard resources and status phrases. Needs `NETWORKING`. | Module |
 | `CRUX_WEB_PORT` | 443 | Listening port, or 0 for an ephemeral one | Adapter |
 | `CRUX_WEB_BACKLOG` | 4 | Connections the listening socket queues | Adapter |
+| `CRUX_WEB_BIND_ADDRESS` | empty | The one IPv4 address to listen on, empty for every address | Adapter |
 | `CRUX_WEB_TLS_SEC_TAG` | 1 | TLS security tag of the credentials | Adapter, composition |
 | `CRUX_WEB_BODY_BUFFER` | 1024 | Bytes of request body held per client | Adapter |
 | `CRUX_WEB_SEND_TIMEOUT_MS` | 250 | Longest wait of one socket send, on the server thread | Adapter |
@@ -146,6 +147,7 @@ The web and SSH symbols are in [`zephyr/Kconfig`](../zephyr/Kconfig), and so are
 | `CRUX_SSH_CLI` | on, with SSH | The real shell and `exec` entry points. Off: every shell and `exec` is refused with status 255. | Module |
 | `CRUX_SSH_SFTP` | on, with SSH | The real SFTP entry points. Off: every SFTP request is refused. | Module |
 | `CRUX_SSH_PORT` | 22 | Listening port, or 0 | Composition, in `crux_ssh_config_t` |
+| `CRUX_SSH_BIND_ADDRESS` | empty | The one IPv4 address to listen on, empty for every address | Composition, in `crux_ssh_config_t.bind_address` (NULL for empty: the provider refuses an empty text) |
 | `CRUX_SSH_MAX_CONNECTIONS` | 4, range 1 to 4 | Connections at once, authenticated or not. Each has a worker thread and a static stack. | Composition |
 | `CRUX_SSH_MAX_AUTH_ATTEMPTS` | 3 | Failed attempts on one connection | Composition |
 | `CRUX_SSH_AUTH_TIMEOUT_MS` | 30000 | Time to log in, from accept | Composition |

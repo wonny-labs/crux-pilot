@@ -1,0 +1,18 @@
+strings -a zephyr.elf | grep -c 'composition test password'
+0
+strings -a zephyr.elf | grep -E 'BENCH|192.168.77|crux-mgmt-bench|MGMT_RT1060'
+192.168.77.2
+crux-mgmt-bench-rt1060-evkb-b
+BENCH image=%s declaration=CRUX_MANAGEMENT_BENCH_IMAGE board=%s address=%s/%d
+BENCH test forms: host_key=%d no_time_source=%d ram_disk=%d first_account_file=%d
+BENCH refusing to start: this image is not approved to run
+BENCH address failed
+BENCH composition failed
+BENCH first account failed
+BENCH services failed
+BENCH ssh failed
+BENCH ready
+BENCH first account: not implemented (row C4), the image does not serve
+CONFIG_CRUX_MANAGEMENT_BENCH_IMAGE
+CONFIG_CRUX_BENCH_TEST_HOST_KEY
+CONFIG_CRUX_BENCH_NO_TIME_SOURCE

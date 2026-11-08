@@ -33,7 +33,7 @@ The provider owns every thread and all of the wolfSSH state. No other code calls
 
 | Item | Owner | Rule |
 | --- | --- | --- |
-| Listening socket and accept | Provider | A connection past `max_connections` is closed without a callback. |
+| Listening socket and accept | Provider | A connection past `max_connections` is closed without a callback. The listener binds every IPv4 address, or the one address in `crux_ssh_config_t.bind_address` when it is set. A text that is not an IPv4 address makes `start()` fail. |
 | One worker thread per connection | Provider | At most `max_connections` workers and one listener. Stack sizes come from measurement in #192. |
 | `WOLFSSH_CTX`, `WOLFSSH`, socket callbacks | Provider | Each `WOLFSSH` is used by its own worker only. |
 | `wolfSSH_accept`, `wolfSSH_worker`, stream calls, the SFTP loop | Provider | They run on the worker. |

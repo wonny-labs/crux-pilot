@@ -1,0 +1,9 @@
+cmake version 3.28.4
+Python 3.12.3
+CMake: ok; C: ok; Kconfig: SKIPPED (no Kconfiglib; --skip-kconfig); mutants: 32 of 37 killed
+control ok: the bench image refuses every build that is not the declared RT1060-EVKB bench, in CMake and in C (Kconfig skipped)
+rc=0
+----------------------------------------------------------------------
+Ran 14 tests in 151.917s
+
+OK

@@ -1107,7 +1107,7 @@ static bool create_context(const crux_ssh_config_t *config)
            load_host_key(config);
 }
 
-static bool open_listener(uint16_t port)
+static bool open_listener(uint16_t port, const char *bind_address)
 {
     static const int enable = 1;
     struct net_sockaddr_in address = {
@@ -1116,6 +1116,11 @@ static bool open_listener(uint16_t port)
         .sin_addr = NET_INADDR_ANY_INIT,
     };
 
+    /* A mistyped address must not widen the listener to every address. */
+    if (bind_address != NULL &&
+        zsock_inet_pton(NET_AF_INET, bind_address, &address.sin_addr) != 1) {
+        return false;
+    }
     server.listener_socket = zsock_socket(NET_AF_INET, NET_SOCK_STREAM, NET_IPPROTO_TCP);
     if (server.listener_socket < 0) {
         return false;
@@ -1171,7 +1176,7 @@ static crux_status_t provider_start(const crux_ssh_config_t *config,
         status = CRUX_ERR_INVALID_STATE;
     } else if (wolfSSH_Init() != WS_SUCCESS) {
         status = CRUX_ERR_IO;
-    } else if (!create_context(config) || !open_listener(config->port)) {
+    } else if (!create_context(config) || !open_listener(config->port, config->bind_address)) {
         free_context();
         status = CRUX_ERR_IO;
     } else {

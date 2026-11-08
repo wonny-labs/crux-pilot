@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# The bench symbols of the RT1060-EVKB bench image. Only this application has them: any other build that
+# assigns one is refused by Kconfig as an undefined symbol.
+mainmenu "RT1060-EVKB bench image of the integrated management composition"
+
+rsource "Kconfig.bench"
+source "Kconfig.zephyr"

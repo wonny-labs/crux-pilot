@@ -1,0 +1,134 @@
+"""The bench declaration of the RT1060-EVKB bench image agrees with the files that carry it (C1).
+
+tests/zephyr/management_rt1060_compile/bench_declaration.json is the one declaration: the board, the bench
+address, the test forms and the build-local Zephyr copy. This test fails when another file says something else.
+The guards themselves are broken one at a time by check_bench_guard.py, which this test also runs when cmake and a C
+compiler are present. Nothing here touches a board.
+"""
+import ipaddress
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+BENCH = ROOT / "tests/zephyr/management_rt1060_compile"
+DECLARATION = json.loads((BENCH / "bench_declaration.json").read_text())
+
+
+def settings(path):
+    values = {}
+    for line in path.read_text().splitlines():
+        match = re.match(r'^CONFIG_([A-Z0-9_]+)=(.*)$', line)
+        if match:
+            values[match.group(1)] = match.group(2).strip('"')
+    return values
+
+
+class BenchDeclaration(unittest.TestCase):
+    def test_network_is_one_consistent_bench(self):
+        net = DECLARATION["network"]
+        interface = ipaddress.ip_interface(f"{net['address']}/{net['prefix_length']}")
+        self.assertEqual(str(interface.network.netmask), net["netmask"])
+        self.assertIn(ipaddress.ip_address(net["peer"]), interface.network)
+        self.assertNotEqual(net["peer"], net["address"])
+        # The M5 image's bench network, which stage 1 proved: the board is .2 and the host is .1.
+        self.assertEqual((net["address"], net["peer"], net["prefix_length"]), ("192.168.77.2", "192.168.77.1", 24))
+
+    def test_board_names_agree(self):
+        board = DECLARATION["board"]
+        self.assertEqual(board["target"], "mimxrt1060_evk@B//qspi")
+        self.assertEqual(board["kconfig_target"], "mimxrt1060_evk@B/mimxrt1062/qspi")
+        self.assertEqual(board["target"].split("@")[1][0], board["revision"])
+
+    def test_patched_zephyr_matches_the_prepare_script_and_the_manifest(self):
+        patched = DECLARATION["patched_zephyr"]
+        script = (ROOT / "scripts/prepare-wolf-tls-zephyr.sh").read_text()
+        self.assertIn(f"patch_name={patched['patch_name']}", script)
+        self.assertIn(f"patch_sha256={patched['patch_sha256']}", script)
+        self.assertIn(f"result_sha256={patched['patched_file_sha256']}", script)
+        self.assertIn(patched["marker_file"], script)
+        self.assertIn(patched["patched_file"], script)
+        west = (ROOT / "west.yml").read_text()
+        self.assertIn(f"revision: {patched['zephyr_pin']}", west)
+
+    def test_target_conf_carries_the_declaration(self):
+        values = settings(BENCH / "target.conf")
+        net = DECLARATION["network"]
+        self.assertEqual(values["CRUX_MANAGEMENT_BENCH_IMAGE"], "y")
+        self.assertEqual(values["CRUX_WEB_BIND_ADDRESS"], net["address"])
+        self.assertEqual(values["CRUX_SSH_BIND_ADDRESS"], net["address"])
+        self.assertEqual(int(values["CRUX_SSH_PORT"]), DECLARATION["listeners"]["ssh_port"])
+        for name, form in DECLARATION["test_forms"].items():
+            if form["state"] == "selected":
+                self.assertEqual(values.get(form["symbol"]), "y", name)
+            else:
+                self.assertNotIn(form["symbol"], values, f"{name} is reserved for row {form.get('row')}")
+        for forbidden in ("TEST_RANDOM_GENERATOR", "FAKE_ENTROPY_NATIVE_SIM", "NET_DHCPV4", "NET_CONFIG_SETTINGS",
+                          "NET_IPV6", "RTC", "FS_FATFS_MOUNT_MKFS", "CRUX_WEB_PLAIN_HTTP_FOR_TESTS"):
+            self.assertIn(values.get(forbidden, "n"), ("n", ""), forbidden)
+
+    def test_http_server_stack_starts_at_8192_and_the_declaration_does_not_pin_it(self):
+        # The owner asked for 8 KB from the start (2026-11-08). Row C2 may raise it, so nothing may cap it.
+        values = settings(BENCH / "target.conf")
+        self.assertGreaterEqual(int(values["HTTP_SERVER_STACK_SIZE"]), 8192)
+        self.assertNotIn("STACK", (BENCH / "bench_declaration.json").read_text().upper())
+        self.assertNotIn("HTTP_SERVER_STACK_SIZE", (BENCH / "bench_guard.cmake").read_text().split("function(crux_bench_manifest")[0])
+
+    def test_kconfig_names_the_declared_test_forms_and_each_depends_on_the_declaration(self):
+        text = (BENCH / "Kconfig.bench").read_text()
+        symbols = set(re.findall(r"^config (CRUX_BENCH_[A-Z0-9_]+)", text, re.MULTILINE))
+        self.assertEqual(symbols, {form["symbol"] for form in DECLARATION["test_forms"].values()})
+        declared_block = text[text.index("if CRUX_MANAGEMENT_BENCH_IMAGE"):text.index("endif")]
+        for symbol in symbols:
+            self.assertIn(f"config {symbol}", declared_block, f"{symbol} must sit under the declaration")
+
+    def test_the_certificate_names_the_bench_address(self):
+        text = (BENCH / "src/mgmt_services.c").read_text()
+        octets = ", ".join(DECLARATION["network"]["address"].split("."))
+        self.assertIn("{{" + octets + "}}", text)
+
+    def test_the_public_test_password_and_the_native_declaration_are_not_in_the_bench_image(self):
+        for path in sorted(BENCH.rglob("*")):
+            if not path.is_file() or path.name in ("check_bench_guard.py",):
+                continue
+            text = path.read_text()
+            self.assertNotIn("CRUX_NATIVE_MANAGEMENT_TEST_PASSWORD", text, path.name)
+            self.assertNotIn("provision_test_account", text, path.name)
+            self.assertNotIn("composition test password", text, path.name)
+            self.assertNotIn("CRUX_NATIVE_MANAGEMENT_TEST_IMAGE", text, path.name)
+
+    def test_the_refusal_in_main_stays_until_a_reviewed_change_removes_it(self):
+        # Rows C2 to C9 and the approval of the board stage are not done. The switch is one line in CMakeLists.txt,
+        # and changing it must change this test in the same review.
+        self.assertIn("set(CRUX_BENCH_RUN_REFUSED ON)", (BENCH / "CMakeLists.txt").read_text())
+        main = (BENCH / "src/main.c").read_text()
+        self.assertIn("if (run_refused)", main)
+        self.assertLess(main.index("if (run_refused)"), main.index("static_address_up()"))
+
+    def test_both_listeners_are_bound_by_the_product_code_only_when_asked(self):
+        web = (ROOT / "components/web/ports/zephyr/web_http_server.c").read_text()
+        self.assertIn("CRUX_WEB_HOST", web)
+        self.assertIn("sizeof(CONFIG_CRUX_WEB_BIND_ADDRESS) > 1u ? CONFIG_CRUX_WEB_BIND_ADDRESS : NULL", web)
+        kconfig = (ROOT / "zephyr/Kconfig").read_text()
+        for symbol in ("CRUX_WEB_BIND_ADDRESS", "CRUX_SSH_BIND_ADDRESS"):
+            block = kconfig[kconfig.index(f"config {symbol}"):]
+            block = block[:block.index("\nconfig ", 5)]
+            self.assertIn('default ""', block, f"{symbol} must keep every address by default")
+
+
+@unittest.skipUnless(shutil.which("cmake") and shutil.which("cc"), "needs cmake and a C compiler")
+class BenchGuardBreaks(unittest.TestCase):
+    def test_every_guard_refuses_and_every_mutant_is_killed(self):
+        result = subprocess.run([sys.executable, str(BENCH / "check_bench_guard.py"), "--skip-kconfig"],
+                                capture_output=True, text=True, check=False, env=dict(os.environ))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("control ok", result.stdout)
+
+
+if __name__ == "__main__":
+    unittest.main()

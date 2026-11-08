@@ -1,36 +1,25 @@
 # SPDX-License-Identifier: Apache-2.0
 # The source lists of tests/native/management_composition (composition.cmake, services.cmake, ssh.cmake), for
-# RT1060-EVKB, compile and link only. Those three files refuse a board on purpose: their entropy, host key and
+# the RT1060-EVKB bench image. Those three files refuse a board on purpose: their entropy, host key and
 # certificate are test forms for native_sim. This one does not edit them. It repeats their source lists, and
-# replaces their guards with the ones below, which allow only a declared compile-only image. A change to a list
-# in the native files must be repeated here: tests/build/test_management_target_lists.py compares them.
+# replaces their guards with the bench guards of bench_guard.cmake, which accept the test forms only under the
+# bench declaration of bench_declaration.json. A change to a list in the native files must be repeated here:
+# tests/build/test_management_target_lists.py compares them.
 set(CRUX_MGMT_NATIVE_DIR "${CRUX_ROOT}/tests/native/management_composition/composition")
+include("${CMAKE_CURRENT_LIST_DIR}/bench_guard.cmake")
 
 function(crux_management_target_compose)
-    if(NOT CONFIG_BOARD_MIMXRT1060_EVK_MIMXRT1062_QSPI OR NOT CONFIG_BOARD_REVISION_B)
-        message(FATAL_ERROR "This compile vehicle is for RT1060-EVKB revision B, QSPI")
-    endif()
-    if(NOT CONFIG_CRUX_LOGGING)
-        message(FATAL_ERROR "The security events write to Crux Logging: CONFIG_CRUX_LOGGING is required")
-    endif()
-    if(CONFIG_TEST_RANDOM_GENERATOR OR CONFIG_FAKE_ENTROPY_NATIVE_SIM)
-        message(FATAL_ERROR "A test random generator or fake entropy: this composition draws its random values "
-                            "from the PSA provider over the TRNG driver")
-    endif()
-    if(NOT CONFIG_ENTROPY_MCUX_TRNG OR NOT CONFIG_WOLFPSA OR CONFIG_MBEDTLS OR CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS)
-        message(FATAL_ERROR "The Wolf profile on the TRNG is required: CONFIG_ENTROPY_MCUX_TRNG, CONFIG_WOLFPSA")
-    endif()
-    if(NOT CONFIG_CRUX_SSH OR NOT CONFIG_CRUX_SSH_CLI OR NOT CONFIG_CRUX_SSH_SFTP OR
-       NOT CONFIG_CRUX_WEB OR CONFIG_CRUX_WEB_PLAIN_HTTP_FOR_TESTS)
-        message(FATAL_ERROR "HTTPS only, and SSH with CLI and SFTP, are required")
-    endif()
+    # Board, declaration, entropy, profile, services, network, test forms and the patched Zephyr copy.
+    crux_bench_guard()
+    crux_bench_definitions(app)
     set(root "${CRUX_ROOT}")
     set(component "${root}/components")
     include("${component}/web/session/sources.cmake")
     include("${component}/web/management/sources.cmake")
     target_sources(app PRIVATE
         # Copies of crux_native_management.c and crux_native_management_services.c, which include the declared
-        # test certificate or call it, and its header refuses a board. See the head of each copy.
+        # test certificate or call it, and its header refuses a board, and the first one holds the public test
+        # password. See the head of each copy.
         "${CMAKE_CURRENT_LIST_DIR}/src/mgmt_start.c"
         "${CMAKE_CURRENT_LIST_DIR}/src/mgmt_services.c"
         "${component}/access/src/access.c"
@@ -108,7 +97,7 @@ function(crux_management_target_compose)
         CRUX_SECURITY_EVENT_DRAIN_BURST=4 CRUX_SECURITY_EVENT_DRAIN_PAUSE_MS=100
         CRUX_MGMT_STATUS_REFRESH_MS=1000u
         CRUX_NATIVE_MANAGEMENT_SERVICES=1 CRUX_CLI_LINE_MAX=320 CRUX_CLI_TOKENS_MAX=10
-        CRUX_NATIVE_MANAGEMENT_SSH=1 CRUX_MGMT_RT1060_COMPILE_ONLY=1)
+        CRUX_NATIVE_MANAGEMENT_SSH=1)
     target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 
     # One wolfCrypt under wolfPSA, the socket backend and wolfSSH, so that they agree.
