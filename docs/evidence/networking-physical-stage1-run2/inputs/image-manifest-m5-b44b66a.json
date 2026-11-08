@@ -1,0 +1,412 @@
+{
+  "artifacts": [
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/compiler-executable.bin",
+      "sha256": "c669e99869a4e778a99ad473e7b4dd79ec80e22248e6e08bfcee6752c279ed98",
+      "size_bytes": 2071504
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/errno-map.json",
+      "sha256": "f1c9cb35fdca8b4e1fdf44ca05ea3135eccf7a405b67f0fc7b700705b7042490",
+      "size_bytes": 15844
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/header-0-errno.h",
+      "sha256": "27a509fbaa29fd6c381fe94017e8bd161f1950c600e4280fc52cb73e9d1c695b",
+      "size_bytes": 2056
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/header-1-cdefs.h",
+      "sha256": "c9bf4fd409ed28a7b0f61a00193b62164c1a11dddbbfad1370ca2c60bb57d27d",
+      "size_bytes": 19742
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/header-2-config.h",
+      "sha256": "bd471750ae043a6e7417cd4b41a6e48a33dc699e3376501f574fb24cabe0ff00",
+      "size_bytes": 8125
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/header-3-ieeefp.h",
+      "sha256": "7ee7a565c4158658ebd7da2f63e6b5d3147ed94ca68860d62563d421d0ea4cc9",
+      "size_bytes": 14961
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/header-4-features.h",
+      "sha256": "e436459c71f66e9ecb23f6670fa00ed7c693266ba94becc2b8d092a55aa886b9",
+      "size_bytes": 13858
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/header-5-picolibc.h",
+      "sha256": "d939be11c314a7efecf01e677e306adea9e3730c709682d437f0c67c3844394c",
+      "size_bytes": 3488
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/header-6-_default_types.h",
+      "sha256": "27f8a718fc89397117254832c4ac2ab2dabd8e0dc7847b76460b0c0cdb2fa04f",
+      "size_bytes": 8756
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/header-7-errno.h",
+      "sha256": "cf3b9af03e3d2da9e0abacae831324d4883cd0d9630d15ce0a6249da3e094292",
+      "size_bytes": 8757
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/header-trace.txt",
+      "sha256": "5bef302e96a4c5178289a23f0274f1a182255a1dfddec8ad76b3c2a8c5d0c16d",
+      "size_bytes": 1132
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/macros.txt",
+      "sha256": "5cdb34b9067461680f93928579e7c009957d596f2ebb695141b9b8380e5cc231",
+      "size_bytes": 45288
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/inputs.json",
+      "sha256": "b8ea3f67c3f182005ceaf680c6be95716665065437221797a1a994953984d8b7",
+      "size_bytes": 2185
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/compile_commands.json",
+      "sha256": "cd4682c465cb2e1c4f780efe1ee648d4ead1dcea4c0cb4943ab0ea6826c415fb",
+      "size_bytes": 931402
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/provenance.json",
+      "sha256": "a7c5aea19a0135ed8867d41391bc01d089dd9d59fc48796a9f0f908133edd7bc",
+      "size_bytes": 6291
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/ram.json",
+      "sha256": "24c499568fd7b7ce553e0ca3f8d4c1c3e4844f63da8b39f11f6fbe0d184bbc7d",
+      "size_bytes": 147347
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/rom.json",
+      "sha256": "fbb1a29b9bd834d93c217c3de34d0fd452bc6235eaefad286405a0af377fdb05",
+      "size_bytes": 814303
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/.config",
+      "sha256": "3afe989679ebc359a998792103dd0f011edc0d9b82b782cc134d8eb40b8ea4b7",
+      "size_bytes": 43797
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.bin",
+      "sha256": "aecee3541707f14218a18acb4135b5bfb7e04763f85e946bbed071fac66c6c3a",
+      "size_bytes": 97544
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.dts",
+      "sha256": "c9481237e3687e70c46a63f263439678a328500eee0762a179517863d2253d7e",
+      "size_bytes": 370324
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.elf",
+      "sha256": "92575495b89aa1eedfadc955e751366fedf8498a90fd08e0f8c61ebfa2f43bec",
+      "size_bytes": 2255292
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.map",
+      "sha256": "0a22e201bbf951c366150fd4a301da51ef90b97336aa69c06d0d478109c786f3",
+      "size_bytes": 585368
+    },
+    {
+      "path": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.stat",
+      "sha256": "e9b3396cb1c2d4fea0efc6e99cdfc3e63a3d952c754474c928f08c84d946b391",
+      "size_bytes": 6246
+    },
+    {
+      "path": "<ws>/crux-pilot-4/scripts/record-build-provenance.py",
+      "sha256": "b743f798595e06151a254f90da36aa12858f1949b2f62a839157ddac4f169eb8",
+      "size_bytes": 20825
+    },
+    {
+      "path": "<ws>/crux-pilot-4/scripts/test-networking-physical.sh",
+      "sha256": "53641442ca8b119ed40b3b43f4c323748bf6cfc350b71c7d3d6e5714c216027c",
+      "size_bytes": 3095
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/capture_execution.py",
+      "sha256": "82c677bd2a5f60df0df69cab1112ab5c9e784eb2df60a4e9b2932ac1a7bb45d4",
+      "size_bytes": 11509
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/capture_m3.py",
+      "sha256": "e77750872a04caadce8dd82019a6700e7fea6112f2e1ad5035c53812b3980a73",
+      "size_bytes": 24841
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/capture_m3_gpio.py",
+      "sha256": "c3987c9b5d0e95f7de4c36f92f6958242e55cee883fa28455440bf541c1c9bf8",
+      "size_bytes": 16963
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/capture_m3_integrated.py",
+      "sha256": "c08ffec1aba02dade28da1cceca0769a70585b7ad2baca4903a216b66bce1606",
+      "size_bytes": 27921
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/capture_m3_network.py",
+      "sha256": "64b32fd293d21fa70109484820650b9dd15170c2ac4e04c3b201ec1dec0009cc",
+      "size_bytes": 30583
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/capture_m5_network.py",
+      "sha256": "2dcc7a37a49fb263460122c9f84392fbc1f1708032a6634e5bff6a5120565670",
+      "size_bytes": 38339
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/conftest.py",
+      "sha256": "4483ed9728332e2d22aed4907f36e8f6797290f1340db5a27c1e6bef7bbfa3d2",
+      "size_bytes": 5685
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m3_clock.py",
+      "sha256": "4c1c3cb19673c69255bb36ec375db6fb3e6329b60e60b2a28791b5cae5a78eb9",
+      "size_bytes": 602
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m3_errno.py",
+      "sha256": "a00ae48e1376b23d2452c57b38568a03664503a51ce925c6b8b009110ccae5bc",
+      "size_bytes": 3165
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m3_health_oracle.py",
+      "sha256": "3c9c4bbca097fbeaec18c01b6436645f32fbf65ac042841f9944d758a679cdfb",
+      "size_bytes": 8341
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m3_image.py",
+      "sha256": "4012b306fce22746ce44e52b42660e57449807fc7ccbd0f79c00fb780ea69a52",
+      "size_bytes": 12549
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m3_integrated_oracle.py",
+      "sha256": "41c6601b9e865c66f85a40b15f54cb9db9fa157a230617a2b7c32f2f35d45745",
+      "size_bytes": 27859
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m3_integrated_output.py",
+      "sha256": "b6aff5d65806019c323ef83cdf556891c00620087f6c259073d3f99fb4a8330c",
+      "size_bytes": 11173
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m3_network_oracle.py",
+      "sha256": "0f3ee28acece26841eb7fa7d47b7a754e5d54c05f537b857f602953b1a5e68e7",
+      "size_bytes": 9737
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m3_network_output.py",
+      "sha256": "d4b1fdbd95b038a7017dc6088670907a639f3133256aeed61bb7ae4ee7115f79",
+      "size_bytes": 6734
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m3_network_peer.py",
+      "sha256": "e1db2e54edf42dddf0d1ae46e18b9280e59121198ca3c031ce99a2707008779d",
+      "size_bytes": 6313
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m3_uart.py",
+      "sha256": "f06f8214b44dced9350eb03fd1a64079f5729f4263a16d9708198167ea4dba23",
+      "size_bytes": 1149
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m5_bench.py",
+      "sha256": "b4fa7432006c4d61c2113de55321fe3525e677a9f170871235295b8ac5187979",
+      "size_bytes": 2185
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m5_capture_adapter.py",
+      "sha256": "e8c446b4404b7fff0a0d139c4f18a4f8942fe200a347f8205944e8fd3595d809",
+      "size_bytes": 29423
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m5_image.py",
+      "sha256": "d3c3b9c8326e6cf58569b90b72029e03a270e38ebaf8254b624510ff199c7441",
+      "size_bytes": 2079
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m5_mount_guard.py",
+      "sha256": "0baad87914ef73f908a60e3fdbcb951e4993a402ee034baec431a578a39e616c",
+      "size_bytes": 36079
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m5_network_oracle.py",
+      "sha256": "8398e725092f8ee7cff8b963add88fbcf1efab14b0e1d569a70559c34e0a96e0",
+      "size_bytes": 7078
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m5_network_peer.py",
+      "sha256": "cdf9cd4b3c187ece0589993fa7c8edd965c0c22bc5b8a777ebd4858ebe60afde",
+      "size_bytes": 5069
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/m5_series.py",
+      "sha256": "13fbcdc2d26c511a98e39d54a7f820d39af7acae968e9488243b870cc96ae978",
+      "size_bytes": 12007
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/prepare_m3_errno.py",
+      "sha256": "2b1f3dfc8e9175930f0a8a8771c7a809d2c8ffdb98265b44908f87ab6813e49d",
+      "size_bytes": 3784
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/prepare_m3_image.py",
+      "sha256": "c0a44258030d7a2e59c63e93fb230530f6990bc4c7b91478d7ad90929c81dcb9",
+      "size_bytes": 2591
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/prepare_m5_network.py",
+      "sha256": "556bcd1cb97ca932c4a1a571f4c5a7817a2afe4aa286378a162d69b195a56dcd",
+      "size_bytes": 12322
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/program_m5_image.py",
+      "sha256": "875a2d04359048d53aa3d8d4b804c2faef0a7982b7301770372601c3c87a49e5",
+      "size_bytes": 22063
+    },
+    {
+      "path": "<ws>/crux-pilot-4/tests/target/test_time.py",
+      "sha256": "01481a9a00ab11bd6a46daef251846ccda7410dc2feade3e0e1213296abca8a9",
+      "size_bytes": 2728
+    }
+  ],
+  "files": {
+    "binary": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.bin",
+    "compilation": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/compile_commands.json",
+    "config": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/.config",
+    "dts": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.dts",
+    "elf": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.elf",
+    "errno": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/image-manifest-errno/errno-map.json",
+    "inputs": "<ws>/crux-pilot-4/build/evidence/m5-preparation/frozen-b44b66a60bfc/inputs.json",
+    "map": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.map",
+    "provenance": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/provenance.json"
+  },
+  "image": {
+    "bin_address": 1610612736,
+    "bin_bytes": 97544,
+    "elf_sections_match_bin": true,
+    "gap_fill": 255,
+    "main_stack": {
+      "address": 2147511040,
+      "bytes": 4160
+    },
+    "observer_stack": {
+      "address": 2147502080,
+      "bytes": 2112
+    }
+  },
+  "profile": "m5-network-physical",
+  "provenance_files": {
+    "build/zephyr/m5-physical-evkb-b44b66a60bfc/ram.json": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/ram.json",
+    "build/zephyr/m5-physical-evkb-b44b66a60bfc/rom.json": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/rom.json",
+    "build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/.config": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/.config",
+    "build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.bin": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.bin",
+    "build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.dts": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.dts",
+    "build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.elf": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.elf",
+    "build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.map": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.map",
+    "build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.stat": "<ws>/crux-pilot-4/build/zephyr/m5-physical-evkb-b44b66a60bfc/zephyr/zephyr.stat"
+  },
+  "schema": 1,
+  "source": {
+    "dirty": false,
+    "git_branch": null,
+    "git_commit": "b44b66a60bfc74c287fe62d874052e1d0868347c",
+    "git_status_counts": {
+      "deleted": 0,
+      "modified_or_staged": 0,
+      "renamed_or_copied": 0,
+      "untracked": 0
+    },
+    "recoverable_from_git": true,
+    "snapshot_algorithm": "sha256-path-mode-content-v1",
+    "snapshot_file_count": 2761,
+    "snapshot_sha256": "e443acf2e7dae45514e85fd3efe817ec461e1a4f23f420736c27aa882a2e067c",
+    "west_manifest_sha256": "cd4a6a5b24679a1a7a64195c6bb4acee3ab3cf8d3a2b234d3747c38a1c27912a"
+  },
+  "target": "mimxrt1060_evk@B//qspi",
+  "tools": [
+    "<ws>/crux-pilot-4/scripts/record-build-provenance.py",
+    "<ws>/crux-pilot-4/scripts/test-networking-physical.sh",
+    "<ws>/crux-pilot-4/tests/target/capture_execution.py",
+    "<ws>/crux-pilot-4/tests/target/capture_m3.py",
+    "<ws>/crux-pilot-4/tests/target/capture_m3_gpio.py",
+    "<ws>/crux-pilot-4/tests/target/capture_m3_integrated.py",
+    "<ws>/crux-pilot-4/tests/target/capture_m3_network.py",
+    "<ws>/crux-pilot-4/tests/target/capture_m5_network.py",
+    "<ws>/crux-pilot-4/tests/target/conftest.py",
+    "<ws>/crux-pilot-4/tests/target/m3_clock.py",
+    "<ws>/crux-pilot-4/tests/target/m3_errno.py",
+    "<ws>/crux-pilot-4/tests/target/m3_health_oracle.py",
+    "<ws>/crux-pilot-4/tests/target/m3_image.py",
+    "<ws>/crux-pilot-4/tests/target/m3_integrated_oracle.py",
+    "<ws>/crux-pilot-4/tests/target/m3_integrated_output.py",
+    "<ws>/crux-pilot-4/tests/target/m3_network_oracle.py",
+    "<ws>/crux-pilot-4/tests/target/m3_network_output.py",
+    "<ws>/crux-pilot-4/tests/target/m3_network_peer.py",
+    "<ws>/crux-pilot-4/tests/target/m3_uart.py",
+    "<ws>/crux-pilot-4/tests/target/m5_bench.py",
+    "<ws>/crux-pilot-4/tests/target/m5_capture_adapter.py",
+    "<ws>/crux-pilot-4/tests/target/m5_image.py",
+    "<ws>/crux-pilot-4/tests/target/m5_mount_guard.py",
+    "<ws>/crux-pilot-4/tests/target/m5_network_oracle.py",
+    "<ws>/crux-pilot-4/tests/target/m5_network_peer.py",
+    "<ws>/crux-pilot-4/tests/target/m5_series.py",
+    "<ws>/crux-pilot-4/tests/target/prepare_m3_errno.py",
+    "<ws>/crux-pilot-4/tests/target/prepare_m3_image.py",
+    "<ws>/crux-pilot-4/tests/target/prepare_m5_network.py",
+    "<ws>/crux-pilot-4/tests/target/program_m5_image.py",
+    "<ws>/crux-pilot-4/tests/target/test_time.py"
+  ],
+  "west_projects": [
+    {
+      "dirty": false,
+      "git_commit": "f720c956bbf517a5a5bc033e2a4778b3109b7fde",
+      "name": "manifest",
+      "path": "crux-pilot",
+      "revision": "HEAD"
+    },
+    {
+      "dirty": false,
+      "git_commit": "dccb09599635bdff17633fa7e9dab014b91dce90",
+      "name": "zephyr",
+      "path": "zephyr",
+      "revision": "dccb09599635bdff17633fa7e9dab014b91dce90"
+    },
+    {
+      "dirty": false,
+      "git_commit": "512cc7e895e8491696b61f7ba8066b4a182569b8",
+      "name": "cmsis",
+      "path": "modules/hal/cmsis",
+      "revision": "512cc7e895e8491696b61f7ba8066b4a182569b8"
+    },
+    {
+      "dirty": false,
+      "git_commit": "30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74",
+      "name": "cmsis_6",
+      "path": "modules/hal/cmsis_6",
+      "revision": "30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74"
+    },
+    {
+      "dirty": false,
+      "git_commit": "f4ead3bf4a6dab3a07d7b5f5315795c073db568d",
+      "name": "fatfs",
+      "path": "modules/fs/fatfs",
+      "revision": "f4ead3bf4a6dab3a07d7b5f5315795c073db568d"
+    },
+    {
+      "dirty": false,
+      "git_commit": "7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0",
+      "name": "hal_nxp",
+      "path": "modules/hal/nxp",
+      "revision": "7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0"
+    },
+    {
+      "dirty": false,
+      "git_commit": "8f5ca347843363882619d8f96c00d8dbd88a8e79",
+      "name": "littlefs",
+      "path": "modules/fs/littlefs",
+      "revision": "8f5ca347843363882619d8f96c00d8dbd88a8e79"
+    }
+  ]
+}

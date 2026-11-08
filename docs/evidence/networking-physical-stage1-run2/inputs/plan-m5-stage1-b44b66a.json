@@ -1,0 +1,227 @@
+{
+  "approval_template": {
+    "adapter_sha256": "e8c446b4404b7fff0a0d139c4f18a4f8942fe200a347f8205944e8fd3595d809",
+    "authorization": "NOT_AUTHORIZED",
+    "entry_manifest_sha256": "07fce1eaa92d279b82857b1109ec0a0b09629fcb361580dc4267cdfe1ff7290c",
+    "manifest_sha256": "de76001549f7645330bc82bb4a20e6165e016a9537be19507cd3156adf955b95",
+    "nic": {
+      "host": "192.168.77.1",
+      "interface": "en13",
+      "mac": "00:24:9b:6e:f7:7f",
+      "model": "AX88179",
+      "prefix": 24,
+      "service": "AX88179 3",
+      "target": "192.168.77.2"
+    },
+    "nonces": [
+      594231449
+    ],
+    "operations": {
+      "acquire_exclusive_probe_uart_and_nic": false,
+      "establish_usb_mount_guard": false,
+      "normal_acceptance_capture": false,
+      "program_and_start": false,
+      "qualification_preflight_1": false,
+      "qualification_reset_1": false,
+      "restore_identified_normal_image": false,
+      "verify_entry_image": false,
+      "verify_normal_image": false
+    },
+    "plan_sha256": "f11aa7b22019f6a09a9579376253281109c2168eb61ae2906d3ead423078798c",
+    "probe_serial": "602003106",
+    "recovery_manifest_sha256": "07fce1eaa92d279b82857b1109ec0a0b09629fcb361580dc4267cdfe1ff7290c",
+    "reduced": {
+      "boots": 1,
+      "cable_operations": false,
+      "excluded_phases": [
+        7,
+        8,
+        9
+      ],
+      "qualifying": false,
+      "satisfies_m5_series": false,
+      "through_phase": 6
+    },
+    "runner_sha256": "2dcc7a37a49fb263460122c9f84392fbc1f1708032a6634e5bff6a5120565670",
+    "schema": 1,
+    "uart_device": "/dev/cu.usbmodem11402",
+    "uart_usb_serial": "02290000325182c300000000000000000000000097969905"
+  },
+  "plan": {
+    "adapter_sha256": "e8c446b4404b7fff0a0d139c4f18a4f8942fe200a347f8205944e8fd3595d809",
+    "boots": [
+      {
+        "arm_command": "A 594231449\n",
+        "commands": [
+          {
+            "count": 0,
+            "peer_command": null,
+            "peer_mode": "idle",
+            "sequence": 1,
+            "template": "I 594231449 1 <fresh READY ticket>"
+          },
+          {
+            "count": 10,
+            "peer_command": [
+              "python3",
+              "tests/target/m5_network_peer.py",
+              "--token",
+              "594231449",
+              "--phase",
+              "2",
+              "--count",
+              "10",
+              "--mode",
+              "echo",
+              "--output",
+              "boot-1-phase-2-peer.jsonl"
+            ],
+            "peer_mode": "echo",
+            "sequence": 2,
+            "template": "P 594231449 2 10 <fresh READY ticket>"
+          },
+          {
+            "count": 1,
+            "peer_command": [
+              "python3",
+              "tests/target/m5_network_peer.py",
+              "--token",
+              "594231449",
+              "--phase",
+              "3",
+              "--count",
+              "1",
+              "--mode",
+              "silent",
+              "--output",
+              "boot-1-phase-3-peer.jsonl"
+            ],
+            "peer_mode": "silent",
+            "sequence": 3,
+            "template": "P 594231449 3 1 <fresh READY ticket>"
+          },
+          {
+            "count": 1,
+            "peer_command": [
+              "python3",
+              "tests/target/m5_network_peer.py",
+              "--token",
+              "594231449",
+              "--phase",
+              "4",
+              "--count",
+              "1",
+              "--mode",
+              "echo",
+              "--output",
+              "boot-1-phase-4-peer.jsonl"
+            ],
+            "peer_mode": "echo",
+            "sequence": 4,
+            "template": "P 594231449 4 1 <fresh READY ticket>"
+          },
+          {
+            "count": 1,
+            "peer_command": [
+              "python3",
+              "tests/target/m5_network_peer.py",
+              "--token",
+              "594231449",
+              "--phase",
+              "5",
+              "--count",
+              "1",
+              "--mode",
+              "close",
+              "--output",
+              "boot-1-phase-5-peer.jsonl"
+            ],
+            "peer_mode": "close",
+            "sequence": 5,
+            "template": "P 594231449 5 1 <fresh READY ticket>"
+          },
+          {
+            "count": 1,
+            "peer_command": [
+              "python3",
+              "tests/target/m5_network_peer.py",
+              "--token",
+              "594231449",
+              "--phase",
+              "6",
+              "--count",
+              "1",
+              "--mode",
+              "echo",
+              "--output",
+              "boot-1-phase-6-peer.jsonl"
+            ],
+            "peer_mode": "echo",
+            "sequence": 6,
+            "template": "P 594231449 6 1 <fresh READY ticket>"
+          }
+        ],
+        "nonce": 594231449,
+        "reset_operation": "qualification_reset_1"
+      }
+    ],
+    "entry_manifest_sha256": "07fce1eaa92d279b82857b1109ec0a0b09629fcb361580dc4267cdfe1ff7290c",
+    "evidence": {
+      "control_events": [],
+      "raw": "Per boot: uart-rx.bin + receive.jsonl + poll.jsonl, peer JSONL per phase; operator controls JSONL; safety/program/verify/restore logs retained separately",
+      "series": "reduced non-qualifying schema1: one boot, phases 1..6; relative retained raw artifact paths; replay_bundle refuses it"
+    },
+    "manifest_sha256": "de76001549f7645330bc82bb4a20e6165e016a9537be19507cd3156adf955b95",
+    "nic": {
+      "host": "192.168.77.1",
+      "interface": "en13",
+      "mac": "00:24:9b:6e:f7:7f",
+      "model": "AX88179",
+      "prefix": 24,
+      "service": "AX88179 3",
+      "target": "192.168.77.2"
+    },
+    "nonces": [
+      594231449
+    ],
+    "operations": [
+      "establish_usb_mount_guard",
+      "acquire_exclusive_probe_uart_and_nic",
+      "verify_entry_image",
+      "program_and_start",
+      "qualification_preflight_1",
+      "qualification_reset_1",
+      "restore_identified_normal_image",
+      "verify_normal_image",
+      "normal_acceptance_capture"
+    ],
+    "probe_serial": "602003106",
+    "procedure": [
+      "REDUCED NON-QUALIFYING run: one fresh boot, phases 1 to 6 only, no cable operation and no phase 7 to 9. It cannot satisfy the M5 series, the three-boot criterion or the link event criteria; its result and evidence say so. Every other step below applies unchanged.",
+      "Before any device operation: operator verifies written approval of exact operation, manifest, runner, entry and normal recovery image. Read approved M3 procedure; retain pinned J-Link executable/DLL hashes, boot UUID, exclusive owner PID and fresh root USB mount guard. Unknown state: STOP with no automatic reset or retry.",
+      "Use accepted M3 exact UART identity, ownership/inventory, isolated NIC identity/static route, no writable storage and QSPI geometry. Revalidate mount guard and exclusive ownership immediately before each device operation. No unapproved firmware maintenance/update.",
+      "Retain exact raw UART bytes, receive.jsonl and poll.jsonl from continuous reader. Verify known entry image with accepted full verifybin procedure before programming. Program exact M5 BIN with accepted loadfile/verifybin, then r/g; programming implicit resets/start are covered by program_and_start approval. Retain this prefix separately; it is not a qualifying boot.",
+      "For each approved qualification reset, capture distinct M5_BOOT source banner, send exactly one A nonce line; read matching ARM and READY. Before every phase start its exact M5 peer and retain ready record, consume that READY ticket once. Send command immediately; never queue commands, repeat old tickets, send commands after error, or allow another process to write UART.",
+      "Monitor target per-stream clocks, BEGIN/END receipt liveness10s, command150s and series1800s absolute caps; operator wait90s clamped to remaining caps. Functional budget2000ms, whole-call observation above2500ms REVIEW_REQUIRED. Any liveness expiry is ABORT/INCONCLUSIVE; target may still execute; no cancellation/reset is implied.",
+      "On completion or functional failure: perform only the separately approved identified normal image restore/verify and accepted normal baseline capture while safety state remains known. On unknown transport, ownership or evidence state stop; restoration/reset/retry is not automatic. Retain all operation and safety evidence for independent review."
+    ],
+    "recovery_manifest_sha256": "07fce1eaa92d279b82857b1109ec0a0b09629fcb361580dc4267cdfe1ff7290c",
+    "reduced": {
+      "boots": 1,
+      "cable_operations": false,
+      "excluded_phases": [
+        7,
+        8,
+        9
+      ],
+      "qualifying": false,
+      "satisfies_m5_series": false,
+      "through_phase": 6
+    },
+    "runner_sha256": "2dcc7a37a49fb263460122c9f84392fbc1f1708032a6634e5bff6a5120565670",
+    "schema": 1,
+    "status": "SOFTWARE_PREPARED_REDUCED_NON_QUALIFYING_HARDWARE_NOT_AUTHORIZED",
+    "uart_device": "/dev/cu.usbmodem11402",
+    "uart_usb_serial": "02290000325182c300000000000000000000000097969905"
+  }
+}
