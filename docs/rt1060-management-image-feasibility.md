@@ -8,9 +8,9 @@ linked image. The owner approved this stage in the working session on 2026-11-08
 
 | Question | Answer |
 | --- | --- |
-| Can the integrated image (HTTPS web, the command line over SSH, SFTP) be built for RT1060-EVKB rev B on the Wolf profile? | **Yes, as a compile vehicle** that the existing native files could not give: `tests/zephyr/management_rt1060_compile`. It compiled and linked with `-Werror` on Crux's own code (built before the refusal in `main()` and a reformat, which were not rebuilt: [Build](#build)). It is not a product. It is a bootable QSPI image (the boot header must be there) that **refuses to start**, so that it cannot be run by mistake: [what it fakes](#what-the-vehicle-is-and-is-not). |
+| Can the integrated image (HTTPS web, the command line over SSH, SFTP) be built for RT1060-EVKB rev B on the Wolf profile? | **Yes, as a compile vehicle** that the existing native files could not give: `tests/zephyr/management_rt1060_compile`. It compiles and links with `-Werror` on Crux's own code, and a clean rebuild of the committed tree gave the same configuration and 80 B more Flash ([Build](#build)). It is not a product. It is a bootable QSPI image (the boot header must be there) that **refuses to start**, so that it cannot be run by mistake: [what it fakes](#what-the-vehicle-is-and-is-not). |
 | Why not the native composition as it is? | It refuses a board at three places on purpose ([guards](#the-guards-the-native-composition-puts-in-the-way)). The vehicle does not edit or relax any of them. |
-| Real size | **Flash 601,172 B of 8 MB (7.2 %). RAM 833,708 B, all of it in the 32 MB SDRAM** (ITCM, DTCM and OCRAM hold nothing). [Numbers](#sizes-measured-on-the-target-build). |
+| Real size | **Flash 601,172 B of 8 MB (7.2 %), 601,252 B in the committed tree. RAM 833,708 B, all of it in the 32 MB SDRAM** (ITCM, DTCM and OCRAM hold nothing). [Numbers](#sizes-measured-on-the-target-build). |
 | Biggest risks found | **The HTTP server thread's 4,096 B stack** runs the TLS handshake, and a static estimate of one handshake path is 4,272 B. **The SSH worker's 16,384 B** leaves about 3 KB over a static 13.3 KB key-exchange chain. Neither is measured on a target. [Stacks](#thread-stacks). |
 | Ready for a board run? | **No.** Eleven owner decisions and nine code changes come first, about 7 to 10 working days of agent work in sequence. [Decisions](#owner-decisions), [changes and order](#code-changes-and-their-order). |
 
@@ -63,7 +63,7 @@ flowchart TB
 | Network settings | The no-op apply port. The static address comes from `main.c`, as in the M5 image. |
 | Time | No source. The wall clock is Zephyr's realtime clock, which nothing sets. |
 | Frontend | The services image's one-page folder, as on `native_sim` |
-| Refusal | `main()` prints `MGMT_RT1060 compile-only vehicle: refusing to start` and returns, because the image would otherwise create an account with a public password, hold the test host key form and could format a card. The check reads a `volatile const` flag, so all the code stays linked. **This change to `main.c` was made after the build and was not rebuilt**: it adds one flag and one branch, and its size effect was not measured. |
+| Refusal | `main()` prints `MGMT_RT1060 compile-only vehicle: refusing to start` and returns, because the image would otherwise create an account with a public password, hold the test host key form and could format a card. The check reads a `volatile const` flag, so all the code stays linked. It was made after the first build. The clean rebuild of the committed tree is 80 B larger in Flash and identical in RAM ([rebuild](evidence/rt1060-management-image-feasibility/rebuild-of-committed-tree/README.md)). |
 | Not built | A product composition, a product host key rule, a serial console, a board run |
 
 ## The guards the native composition puts in the way
@@ -108,7 +108,7 @@ Verdict: **exists** (nothing to change), **small** (a bounded change) or **decis
 | Toolchain | Zephyr SDK 1.0.1, `arm-zephyr-eabi` GCC 14.3.0, CMake 3.28.4, in `crux-pilot-devcontainer:local` (linux/amd64 under emulation, 2 CPUs, 2 GB, `-j2`, one build at a time) |
 | Board | `mimxrt1060_evk@B//qspi` |
 | Commands | The scripts that ran, in [`evidence/.../commands/`](evidence/rt1060-management-image-feasibility/commands/container.sh): the container, `zbuild_wolf.sh` (patched Zephyr copy, configure, ninja, `size`) and `zbuild.sh` |
-| Sources | The build ran on the vehicle sources listed in `integrated-vehicle/vehicle-source-sha256-at-build.txt`. They were then reformatted with clang-format 18 (comment wrapping, and `<errno.h>` ahead of `<ff.h>` in `mgmt_start.c`): the committed hashes are in `vehicle-source-sha256-committed.txt`. The reformat and the refusal in `main.c` (review finding B1) were made after the build and are **not rebuilt**. |
+| Sources | The build ran on the vehicle sources listed in `integrated-vehicle/vehicle-source-sha256-at-build.txt`. They were then reformatted with clang-format 18 (comment wrapping, and `<errno.h>` ahead of `<ff.h>` in `mgmt_start.c`): the committed hashes are in `vehicle-source-sha256-committed.txt`. The reformat and the refusal in `main.c` (review finding B1) came after it, and the committed tree was rebuilt clean: [Flash 601,252 B, RAM 833,708 B, the same configuration and the same three warnings](evidence/rt1060-management-image-feasibility/rebuild-of-committed-tree/README.md). The map, the static frames and the chains are from the first build. |
 | Result | **Configured with no Kconfig warning, 544 steps, linked**, three warnings, all in wolfSSH's `wolfsftp.c` and kept out of `-Werror` by the existing setting |
 | Image | `zephyr.bin` 601,172 B, SHA-256 `c01ac20308a809374824e49ee43d5d3713e7cce5913c1e2eb8dc6600c95cb07a`; `zephyr.elf` SHA-256 `00d0f2aa02e5cd78b8f86e78cf32e80055b9ce3e59b4699fa6387312738a63d4` (the build path differs from the script's, so the hashes may differ) |
 
@@ -308,7 +308,7 @@ Not covered by that stage: persistence and power loss (RAM disk), a card, the co
 | Check | Result | Who ran it |
 | --- | --- | --- |
 | Compile and link of the vehicle for `mimxrt1060_evk@B//qspi` | Linked, see [Build](#build) | The author, in the Dev Container |
-| A second, clean build from the committed tree | **Not done.** It was started and stopped at step 56 of 550 because free disk fell under the 5 GB floor. The numbers above are from the build of the uncommitted tree whose vehicle sources have the SHA-256 values in `integrated-vehicle/vehicle-source-sha256-at-build.txt`. | The author |
+| A second, clean build from the committed tree `a0ef59db` | Linked: Flash 601,252 B, RAM 833,708 B, the resolved configuration identical, the same three warnings ([record](evidence/rt1060-management-image-feasibility/rebuild-of-committed-tree/README.md)). An earlier attempt was stopped at step 56 because free disk was under the 5 GB floor, and was redone when it was not. | The author |
 | `python3 -m unittest tests/build/test_management_target_lists.py` | 3 tests pass. **Two mutations fail it** (a changed line in a copy, and a removed source from the list), and the restored files pass. | The author, on the host |
 | `scripts/check-ssh-boundaries.py`, `check-native-interfaces.py`, `check-mgmt-services-boundary.py` | Pass | The author, on the host |
 | Not run | A board, the image, any client, the native images (unchanged), CI | |
