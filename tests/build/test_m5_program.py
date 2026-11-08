@@ -434,9 +434,13 @@ class RealParts(Case):
         serial.tools = tools; tools.list_ports = ports
         self.modules = {'serial': serial, 'serial.tools': tools, 'serial.tools.list_ports': ports}
         self.owner_calls, self.inventories = [], {}
-        iface = 'ether 00:24:9b:6e:f7:7f\nstatus: inactive\n'
-        service = 'Manual Configuration\nIP address: 192.168.77.1\nSubnet mask: 255.255.255.0\nRouter: (null)\nEthernet Address: 00:24:9b:6e:f7:7f\n'
+        import host_fixtures
+        iface = host_fixtures.text('ifconfig_en13_link_down')
+        service = host_fixtures.text('networksetup_getinfo')
         def inventory(command, output):
+            if command[0] == 'lsof':                    # one node per call: lsof exits 1 when a named file is not open
+                self.assertEqual(len(command), 3)
+                return self.inventories['lsof-tty' if '/dev/tty.' in command[2] else 'lsof-cu']
             return self.inventories[command[0]]
         patches = [patch.dict(sys.modules, self.modules),
                    patch.object(m3net, 'guard_check', lambda *a, **k: self.owner_calls.append('guard')),
@@ -448,8 +452,9 @@ class RealParts(Case):
         for item in patches:
             item.start()
             self.addCleanup(item.stop)
-        self.inventories['lsof'] = subprocess.CompletedProcess([], 0, 'p%d\n' % os.getpid(), '')
-        self.inventories['ps'] = subprocess.CompletedProcess([], 0, '  1 launchd /sbin/launchd\n', '')
+        self.inventories['lsof-cu'] = host_fixtures.completed('lsof_cu_held_alone')          # real: exit 0, p<pid> and f<fd> lines
+        self.inventories['lsof-tty'] = host_fixtures.completed('lsof_tty_unopened')          # real: exit 1, nothing printed
+        self.inventories['ps'] = host_fixtures.completed('ps_axo_system_processes')
         self.directory.mkdir()
         return program.real_parts(SimpleNamespace(evidence=self.directory), {}), port
 
@@ -466,16 +471,32 @@ class RealParts(Case):
         (preconditions, probe, acquire), port = self.wired()
         acquire()
         import os
-        self.inventories['lsof'] = subprocess.CompletedProcess([], 0, 'p%d\np999\n' % os.getpid(), '')
-        with self.assertRaisesRegex(HardwareStop, 'ownership changed'):
-            preconditions(self.directory, 'a')
-        self.inventories['lsof'] = subprocess.CompletedProcess([], 0, '', '')
-        with self.assertRaisesRegex(HardwareStop, 'ownership changed'):
-            preconditions(self.directory, 'b')
-        self.inventories['lsof'] = subprocess.CompletedProcess([], 0, 'p%d\n' % os.getpid(), '')
+        cu, tty = self.inventories['lsof-cu'], self.inventories['lsof-tty']
+        foreign = subprocess.CompletedProcess([], 0, 'p%d\nf12\np999\nf3\n' % os.getpid(), '')
+        cases = {'a second owner of the cu node': ('lsof-cu', foreign),
+                 'nobody holds the cu node': ('lsof-cu', subprocess.CompletedProcess([], 1, '', '')),
+                 'the cu listing fails': ('lsof-cu', subprocess.CompletedProcess([], 1, cu.stdout, '')),
+                 'the cu listing writes to stderr': ('lsof-cu', subprocess.CompletedProcess([], 0, cu.stdout, 'lsof: WARNING')),
+                 'someone holds the tty node': ('lsof-tty', subprocess.CompletedProcess([], 0, 'p999\nf3\n', '')),
+                 'the tty listing writes to stderr': ('lsof-tty', subprocess.CompletedProcess([], 1, '', 'lsof: WARNING')),
+                 'the tty listing reports exit 0 with nothing': ('lsof-tty', subprocess.CompletedProcess([], 0, '', ''))}
+        for name, (key, answer) in cases.items():
+            with self.subTest(name):
+                self.inventories['lsof-cu'], self.inventories['lsof-tty'] = cu, tty
+                self.inventories[key] = answer
+                with self.assertRaisesRegex(HardwareStop, 'ownership changed'):
+                    preconditions(self.directory, 'x')
+        self.inventories['lsof-cu'], self.inventories['lsof-tty'] = cu, tty
         self.inventories['ps'] = subprocess.CompletedProcess([], 0, ' 42 JLinkExe /Applications/SEGGER/JLink/JLinkExe -device x\n', '')
         with self.assertRaisesRegex(HardwareStop, 'Probe ownership changed'):
             preconditions(self.directory, 'c')
+
+    def test_the_real_lsof_answers_are_recorded_as_evidence_files(self):
+        (preconditions, probe, acquire), port = self.wired()
+        acquire()
+        preconditions(self.directory, 'owned')
+        self.assertTrue((self.directory / 'owned-owners-cu.txt').read_text().startswith('0\np'))
+        self.assertEqual((self.directory / 'owned-owners-tty.txt').read_text(), '1\n')
 
     def test_acquisition_releases_the_lock_when_the_port_cannot_be_opened(self):
         (preconditions, probe, acquire), port = self.wired()

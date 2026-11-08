@@ -577,3 +577,25 @@ root process before any other program mounts it, that the serial port keeps the 
 replug, and the real `getfsstat64` reader on a wedged mount (it ran once, read-only, and answered in 0.05 s).
 
 The arm wait and the ancestry wait are approximate: one `ioreg` call can take up to 30 s, during which the run loop does not answer DiskArbitration (as in the normal start), and the deadline is checked after each call. In arm mode the lifetime counts from `READY`, so `deadline_in` is the real time left. The mount-table reader allocates room for 16 more mounts than the first call counted and fails if the table still overflows it.
+
+## Host-output parsers against real output (2026-11-08)
+
+The first real run of the driver (`identify`, read-only, before any probe command) stopped on `Exclusive UART ownership changed`. Two differences between the tests' fakes and the real `lsof` caused it: `lsof -Fp` prints an `f<fd>` line after each `p<pid>` line, and `lsof` exits 1 when any file it is asked about is not open (the driver opens `/dev/cu.usbmodem11402` and never the `tty` node). The driver and the capture adapter now ask for the two nodes one by one: the `cu` node must be held by this process alone (exit 0, empty stderr), the `tty` node by nobody (exit 1, no output). Both answers are written next to the other evidence files (`<label>-owners-cu.txt`, `<label>-owners-tty.txt`).
+
+`tests/build/fixtures/host-2026-11-08/` keeps real output of every read-only host command that the driver, the capture adapter and the guard check parse, and `tests/build/test_m5_host_output.py` runs the parsers on it:
+
+| Parser (file) | Real input | Result |
+| --- | --- | --- |
+| UART owner check after the port is open (`program_m5_image.py`, `m5_capture_adapter.py`) | PROXY: `lsof -Fp` of a scratch file held open by the capturing process (the UART was never opened for the capture) and the real, unopened `tty` node | two mismatches found and fixed (above) |
+| UART owner check before acquisition (`capture_m3.check_owners`) | `lsof` of the unowned pair, `ps -axo pid=,comm=,args=` | accepted as it is; ran on the real run |
+| Debugger scan (`ps` text, regex for `JLink`, `openocd`, `pyocd`) | `ps -axo pid=,comm=,args=` (trimmed) | no false match |
+| Guard session and ancestry (`capture_m3_network._guard_check`, `usb_association`) | `sysctl -n kern.bootsessionuuid`, `ps -p PID -o pid=,comm=,lstart=`, `ioreg -p IOService -l -w0 -a` (the DAPLink subtree, stored as XML), `mount` | accepted as it is; ran on the real run |
+| Port mapping (`capture_m3.select_uart`) | `serial.tools.list_ports` entry of the DAPLink | accepted as it is |
+| Adapter identity and service (`program_m5_image.check_nic_identity`) | `ifconfig en13` (link down), `networksetup -getinfo "AX88179 3"` | accepted as it is |
+| Interface observation (`m5_capture_adapter.parse_interface`) | `ifconfig en13` with the link down | **mismatch found and fixed**: the real link-down output has no `inet` line (macOS shows the manual address only while the link is up); the parser demanded it, so a cable pull (phase 7) would have stopped the capture instead of recording `host_down`. An active link still needs exactly the static address |
+| Route and carrier check (`check_route`, `parse_direct_route`) | proxies: real `ifconfig` and `route -n get` of the active host interface, the connected-network form and the cloned host-route form, with the bench identity substituted | accepted as it is |
+| J-Link Commander wrapper, identity and verify text (`capture_m3.commander`, `check_identity`, `Verify successful`) | real V9.86a transcripts of this probe and target: the repository's `microsd-card-states-stack` logs and a redacted `loadfile`/`verifybin`/`r`/`g` transcript from the owner's local backups (2026-11-05); the diagnostic regex was also run over every Commander transcript (`.log` and `.out`, 188 files, 170 distinct) in the owner's local backups, which are not in the repository: 9 files match it and all 9 are real failures (`Failed to power up DAP`, `Could not connect`, `Could not read memory`), none is a false stop | accepted as it is |
+
+After this change the prepared plan of the stage 1 run is void (the plan binds `adapter_sha256`): it has to be prepared and approved again from the merged source, and the M5 image rebuilt, because the image carries the 12-character commit tag.
+
+Not covered, because it needs a probe command or a carrier: the real Commander output of `IsHalted` (the pinned `JLinkExe` contains the texts `CPU is halted.` and `CPU is not halted.`; no transcript exists; the text is only checked by the generic diagnostic regex, and an unknown command would also stop the run), the exit status of `JLinkExe` on success as the wrapper sees it, the real output of `verifybin` that finds different bytes, and the real `ifconfig` and `route` output of an active dedicated adapter (only the proxies above).

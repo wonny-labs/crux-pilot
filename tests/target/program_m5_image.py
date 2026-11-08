@@ -35,7 +35,7 @@ import capture_m3_network as m3net
 import capture_m5_network as runner
 import m3_clock
 from capture_m3 import HardwareStop
-from m5_bench import BENCH
+from m5_bench import BENCH, only_process_owns
 
 BASE = 0x60000000
 MODES = ('identify', 'program', 'restore')
@@ -263,10 +263,15 @@ def real_parts(args, guard_session):
         if not state['owned']:
             capture_m3.check_owners(uart, directory / (label + '-owners.txt'))
         else:                                          # this process is the only accepted owner; no debugger may run
-            result = capture_m3.inventory(['lsof', '-Fp', uart, tty], directory / (label + '-owners-timeout.json'))
             import os
-            require(result.returncode == 0 and not result.stderr and result.stdout.splitlines() and
-                    all(line == 'p' + str(os.getpid()) for line in result.stdout.splitlines()), 'Exclusive UART ownership changed')
+            # The port is opened through the cu node only. lsof exits 1 when any named file is not open, so the two
+            # nodes are asked one by one: the cu node must be held by this process alone, the tty node by nobody.
+            held = capture_m3.inventory(['lsof', '-Fp', uart], directory / (label + '-owners-timeout.json'))
+            (directory / (label + '-owners-cu.txt')).write_text('%d\n%s%s' % (held.returncode, held.stdout, held.stderr))
+            other = capture_m3.inventory(['lsof', '-Fp', tty], directory / (label + '-owners-timeout.json'))
+            (directory / (label + '-owners-tty.txt')).write_text('%d\n%s%s' % (other.returncode, other.stdout, other.stderr))
+            require(held.returncode == 0 and not held.stderr and only_process_owns(held.stdout, os.getpid()) and
+                    other.returncode == 1 and not other.stdout and not other.stderr, 'Exclusive UART ownership changed')
             result = capture_m3.inventory(['ps', '-axo', 'pid=,comm=,args='], directory / (label + '-probe-timeout.json'))
             require(result.returncode == 0 and not result.stderr and result.stdout.strip() and
                     not re.search(r'(?im)(?:/|\s)(?:JLink\S*|openocd|pyocd(?:\.\S+)?)(?:\s|$)', result.stdout), 'Probe ownership changed')

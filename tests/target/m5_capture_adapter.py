@@ -12,7 +12,7 @@ import signal
 import subprocess
 import sys
 import m3_clock as shared_clock
-from m5_bench import BENCH
+from m5_bench import BENCH, only_process_owns
 import capture_m5_network as runner
 
 
@@ -58,12 +58,14 @@ class ProcessBackend:
 def parse_interface(text):
     """Observed dedicated IPv4 address/carrier; ambiguous inventory is unknown."""
     addresses=re.findall(r'(?m)^[ \t]*inet ([0-9.]+) netmask (0x[0-9a-f]+)\b',text)
-    runner.oracle.require(addresses==[('192.168.77.1','0xffffff00')] and
-        re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$',text)==[BENCH['nic_mac']],
-        'NIC identity/static address mismatch')
     statuses=re.findall(r'(?m)^[ \t]*status:[ \t]*(\S+)[ \t]*$',text)
     runner.oracle.require(statuses in (['active'],['inactive']),'NIC carrier status missing/unknown/ambiguous')
-    return dict(source=addresses[0][0],active=statuses==['active'])
+    active=statuses==['active']
+    # macOS shows the manual address only while the link is up: the real link-down output of the dedicated adapter has no inet line.
+    runner.oracle.require((addresses==[('192.168.77.1','0xffffff00')] or (not active and addresses==[])) and
+        re.findall(r'(?m)^[ \t]*ether ([0-9a-f:]+)[ \t]*$',text)==[BENCH['nic_mac']],
+        'NIC identity/static address mismatch')
+    return dict(source=addresses[0][0] if addresses else None,active=active)
 
 
 def parse_direct_route(text,source):
@@ -158,8 +160,12 @@ class M3UARTLease:
         else:
             # The accepted owner is this process only; deny every other UART
             # owner and all debugger processes while this capture owns UART.
-            result=capture_m3.inventory(['lsof','-Fp',self.uart,self.uart.replace('/dev/cu.','/dev/tty.')],self.directory/(label+'-owners-timeout.json'))
-            runner.oracle.require(result.returncode==0 and not result.stderr and result.stdout.splitlines() and all(line=='p'+str(os.getpid()) for line in result.stdout.splitlines()),'Exclusive UART ownership changed')
+            # The port is opened through the cu node only and lsof exits 1 when any named file is not open: ask the nodes one by one.
+            held=capture_m3.inventory(['lsof','-Fp',self.uart],self.directory/(label+'-owners-timeout.json'))
+            (self.directory/(label+'-owners-cu.txt')).write_text('%d\n%s%s'%(held.returncode,held.stdout,held.stderr))
+            other=capture_m3.inventory(['lsof','-Fp',self.uart.replace('/dev/cu.','/dev/tty.')],self.directory/(label+'-owners-timeout.json'))
+            (self.directory/(label+'-owners-tty.txt')).write_text('%d\n%s%s'%(other.returncode,other.stdout,other.stderr))
+            runner.oracle.require(held.returncode==0 and not held.stderr and only_process_owns(held.stdout,os.getpid()) and other.returncode==1 and not other.stdout and not other.stderr,'Exclusive UART ownership changed')
             result=capture_m3.inventory(['ps','-axo','pid=,comm=,args='],self.directory/(label+'-probe-timeout.json'))
             runner.oracle.require(result.returncode==0 and not result.stderr and result.stdout.strip() and all(re.match(r'^\s*\d+\s+\S+',line) for line in result.stdout.splitlines()) and not re.search(r'(?im)(?:/|\s)(?:JLink\S*|openocd|pyocd(?:\.\S+)?)(?:\s|$)',result.stdout),'Probe ownership changed')
     def __call__(self):
