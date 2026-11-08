@@ -68,6 +68,11 @@ Python standard-library `unittest` checks the provenance safeguards: changed inp
 actual dependency HEAD/dirty-state checks, and invalidation of stale manifests even when a debug
 build, clean command or native test run fails. Run
 `python3 -m unittest discover -s tests/build -v` on Linux; host CI runs it too.
+
+`tests/build/test_release_bundle.py` holds the checks of the provisional release bundle checker,
+`scripts/check-release-bundle.py`, and of its schema. They write small bundles by hand and need no
+west workspace or Zephyr build. See [the release bundle checker](../docs/release-bundle-checker.md) for
+what the checker covers and what it does not.
 No additional test framework is required.
 
 ## Physical UART: `target/`
