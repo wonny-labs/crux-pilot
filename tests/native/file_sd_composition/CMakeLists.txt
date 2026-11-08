@@ -4,6 +4,6 @@ list(APPEND ZEPHYR_EXTRA_MODULES "${CRUX_ROOT}")
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(crux_file_sd_composition C)
 target_sources(app PRIVATE main.c ${CRUX_ROOT}/samples/storage_sd/sd_storage.c)
-target_link_libraries(app PRIVATE crux::file)
+target_link_libraries(app PRIVATE crux::file crux::file_zephyr)
 target_include_directories(app PRIVATE ${CRUX_ROOT}/samples/storage_sd
   ${CRUX_ROOT}/components/file/ports/zephyr)

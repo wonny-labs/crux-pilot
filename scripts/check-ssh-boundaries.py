@@ -130,6 +130,8 @@ def stack_errors(root):
     manifest = root / "west.yml"
     if manifest.is_file() and "-crux-secure-management" not in manifest.read_text(encoding="utf-8"):
         errors.append("west.yml: the secure management group must stay off by default")
+    if manifest.is_file() and "-crux-reliance" not in manifest.read_text(encoding="utf-8"):
+        errors.append("west.yml: the Reliance Edge group must stay off by default")
     workflows = root / ".github/workflows"
     if workflows.is_dir():
         for path in sorted(workflows.iterdir()):

@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "<ws>/crux-pilot/tests/target/program_m5_image.py", line 347, in <module>
+    sys.exit(main())
+  File "<ws>/crux-pilot/tests/target/program_m5_image.py", line 334, in main
+    result = dict(status='IDENTIFIED', matching=driver.identify(candidates))
+  File "<ws>/crux-pilot/tests/target/program_m5_image.py", line 151, in identify
+    self.run('identity-only', 'q\n')
+  File "<ws>/crux-pilot/tests/target/program_m5_image.py", line 132, in run
+    self.preconditions(self.directory, label)
+  File "<ws>/crux-pilot/tests/target/program_m5_image.py", line 268, in preconditions
+    require(result.returncode == 0 and not result.stderr and result.stdout.splitlines() and
+  File "<ws>/crux-pilot/tests/target/program_m5_image.py", line 48, in require
+    raise HardwareStop(message)
+capture_m3.HardwareStop: Exclusive UART ownership changed
+exit 1

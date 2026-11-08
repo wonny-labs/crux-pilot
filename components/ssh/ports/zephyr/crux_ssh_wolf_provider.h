@@ -34,7 +34,7 @@ const crux_ssh_provider_t *crux_ssh_wolf_provider(void);
  *
  * @retval CRUX_OK Written, and terminated.
  * @retval CRUX_ERR_INVALID_ARGUMENT A pointer is NULL, the buffer is too small, or the key is of an
- * unknown type or the wrong length.
+ * unknown type, the wrong length, or for P-256 its public part is not an uncompressed point.
  * @retval CRUX_ERR_IO The hash failed.
  */
 crux_status_t crux_ssh_wolf_host_key_fingerprint(crux_ssh_key_type_t type, const uint8_t *host_key,

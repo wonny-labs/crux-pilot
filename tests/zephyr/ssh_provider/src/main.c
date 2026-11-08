@@ -36,6 +36,7 @@ static struct {
     size_t key_count;
     crux_ssh_key_type_t host_key_type;
     bool repository_stand_ins;
+    bool format;
     crux_ssh_config_t config;
 } options = {
     .mode = "serve",
@@ -78,6 +79,8 @@ static void parse_arguments(void)
             options.keys[options.key_count++] = value;
         } else if (strcmp(argv[i], "host=ecdsa") == 0) {
             options.host_key_type = CRUX_SSH_KEY_ECDSA_P256;
+        } else if (strcmp(argv[i], "format") == 0) {
+            options.format = true;
         } else if (strcmp(argv[i], "stand-ins=repository") == 0) {
             options.repository_stand_ins = true;
         } else if (strncmp(argv[i], "connections=", 12) == 0) {
@@ -151,12 +154,21 @@ static bool set_up_accounts(void)
     return true;
 }
 
+static bool host_key_ready(void)
+{
+#ifdef CRUX_SSH_TEST_STORED_HOST_KEY
+    return test_stored_host_key_load(options.host_key_type, options.format, &host_key);
+#else
+    return test_key_generate(options.host_key_type, &host_key);
+#endif
+}
+
 static int serve(void)
 {
     crux_ssh_callbacks_t callbacks = *crux_ssh_callback_table();
     crux_status_t status;
 
-    if (!set_up_accounts() || !test_key_generate(options.host_key_type, &host_key)) {
+    if (!set_up_accounts() || !host_key_ready()) {
         printk("SETUP failed\n");
         return 2;
     }

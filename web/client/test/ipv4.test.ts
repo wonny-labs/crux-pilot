@@ -98,3 +98,10 @@ test('every problem is reported at once', () => {
     { name: 'gateway', code: 'not_ipv4' },
   ]);
 });
+
+test('a gateway must be of unicast class, even where the subnet reaches a reserved range', () => {
+  // 100.1.1.1/2 is the subnet 64.0.0.0 to 127.255.255.255, which holds the loopback range.
+  const code = [{ name: 'gateway', code: 'gateway_not_usable' }];
+  assert.deepEqual(problems('100.1.1.1', '2', '127.0.0.1'), code);
+  assert.deepEqual(problems('100.1.1.1', '2', '100.1.1.200'), []);
+});

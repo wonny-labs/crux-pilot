@@ -7,6 +7,7 @@ no subtraction of clocks with unrelated origins is permitted.
 import math
 import re
 import m5_network_oracle as oracle
+from m5_bench import BENCH
 
 PHASES=((1,0,'idle'),(2,10,'echo'),(3,1,'silent'),(4,1,'echo'),(5,1,'close'),(6,1,'echo'),(7,1,'loss'),(8,1,'echo'),(9,0,'idle'))
 CLOCK='clock_gettime(CLOCK_MONOTONIC)'
@@ -28,8 +29,8 @@ def loss_correlation(controls,events,peers):
     times(controls)
     cue=one(controls,'cable_disconnect_cue');receipt=one(controls,'cable_disconnect_receipt');down=one(controls,'host_down')
     connect=one(controls,'cable_connect_receipt');up=one(controls,'host_up');route=one(controls,'route')
-    oracle.require(down.get('interface')==up.get('interface')==route.get('interface')=='en5','Wrong dedicated NIC identity')
-    oracle.require((route.get('source'),route.get('destination'))==('192.168.77.1','192.168.77.2'),'Wrong isolated route')
+    oracle.require(down.get('interface')==up.get('interface')==route.get('interface')==BENCH['nic_interface'],'Wrong dedicated NIC identity')
+    oracle.require((route.get('source'),route.get('destination'))==(BENCH['host'],BENCH['target']),'Wrong isolated route')
     active=[r for r in events if r['record'].get('seq')==7 and r['record']['event'] in ('BEGIN','END') and r['record'].get('udp')==0]
     oracle.require([r['record']['event'] for r in active]==['BEGIN','END'],'Missing active loss stage')
     request=one([r for r in peers['7'] if r.get('protocol')=='tcp'],'request')

@@ -70,6 +70,11 @@ build, clean command or native test run fails. Run
 `python3 -m unittest discover -s tests/build -v` on Linux; host CI runs it too.
 No additional test framework is required.
 
+`tests/build/test_release_bundle.py` holds the checks of the provisional release bundle checker,
+`scripts/check-release-bundle.py`, and of its schema. They write small bundles by hand and need no
+west workspace or Zephyr build. See [the release bundle checker](../docs/release-bundle-checker.md) for
+what the checker covers and what it does not.
+
 ## Physical UART: `target/`
 
 This pytest suite runs on macOS against the already flashed EVKB QSPI sample. It uses
@@ -219,7 +224,9 @@ not been exercised.
 use only public Crux names, and its manifest pins nothing Crux pins. Real west then takes the
 template, and its commented examples, through `west init -l`, `west update` and `west crux-pins`
 against local repositories, with URLs redirected by `url.<base>.insteadOf` and no network. It also
-runs the frozen-manifest flow and the build record's input capture. These cases skip when west or
+runs the frozen-manifest flow, the build record's input capture and the guide's routes: a vendor
+branch across two deliveries, a commercial edition under a new project name, a reused project name
+that must fail and a hand-pinned manifest with no import. These cases skip when west or
 PyYAML is missing, as on the host CI job. `scripts/test-product-template.sh <board>` runs them with
 `tests/build/test_crux_pins.py`, runs `west crux-pins` on Crux's own workspace and so on a real Zephyr
 manifest, then cross-builds the application in that workspace. It does not operate hardware. The
@@ -295,6 +302,48 @@ and Sync and a double for access: after any number of status polls,
 None of this operates hardware, and no target has run these services. See the
 [services contract](../docs/status-configuration-services.md).
 
+## Web contract and HTTP adapter
+
+`scripts/test-web.sh host` runs `Web.*` on the real web and Access cores with a fake transport, and the
+boundary, generator and route review checks. `scripts/test-web.sh native` runs the adapter on the real
+Zephyr server on `native_sim`, over plain HTTP on loopback. `scripts/test-web.sh target` compiles for
+RT1060 on the TLS profiles: Mbed TLS runs in CI in the PSA workflow, and wolfSSL does not. `scripts/test-web.sh https`
+runs the native suite over TLS on the management composition, with the TLS cases of `tests/native/web_https`, on each
+profile: Mbed in the PSA workflow, Wolf locally. Nothing here uses a board. See the [web contract](../docs/web-contract.md)
+and the [HTTPS composition](../docs/https-composition.md).
+
+`scripts/test-web-session.sh native` runs login and sessions on the management composition, with the real Access core
+on its PSA ports, over plain HTTP on `native_sim`, and CI runs it in the PSA workflow. `Web.session_*` are its Host
+suites. Entropy there is test-only. See [web login and sessions](../docs/web-session.md).
+
+`Web.management_*` are the Host suites of the status, configuration and account routes, on the real status and configuration
+services. `scripts/test-web.sh host` runs them, and `Web.management_openapi` holds their real answers to the schemas of
+`web/api/openapi.yaml`. Nothing serves these routes on `native_sim` yet. See
+[status, configuration and account web APIs](../docs/web-management-apis.md).
+
+`NetworkSettings.*` and `Web.network_*` are the Host suites of the network settings service and of `GET` and `PUT /api/v1/network`,
+on the real Access core and Configuration service, with the fake Configuration provider, a fake apply port and a recording event
+port. `scripts/test-network-settings.sh` runs them under both presets with clang-tidy, and `scripts/test-web.sh host` runs the
+`Web.network_*` ones. `Web.network_openapi` holds their real answers to the schemas of `web/api/openapi.yaml`, and
+`tests/network_settings/validation-vectors.tsv` holds the firmware's checks and the TypeScript client's to the same lines. Nothing here
+applies an address to an interface or operates a board. See [network settings service](../docs/network-settings-service.md).
+
+`Reboot.*` and `Web.reboot_*` are the Host suites of the reboot service and of `GET` and `POST /api/v1/system/reboot`, on the real
+Access core, with fake ports for the reset, the sleep, the events that are still pending and the event record. The sleep is virtual, so
+the delay and the bounded wait are held to exact numbers. `Reboot.pending` runs the wait against the real network settings and
+configuration saves. `scripts/test-reboot.sh` runs them under both presets with clang-tidy, and `scripts/test-web.sh host` runs the
+`Web.reboot_*` ones. `Web.reboot_openapi` holds their real answers to the schemas of `web/api/openapi.yaml`, and
+`Web.reboot_no_service` shows that a composition without the service has no reboot route. Nothing here resets a device or operates a
+board. See [reboot service](../docs/reboot-service.md).
+
+## Packaged web assets
+
+`scripts/test-web-assets.sh host` runs the packager's and its CMake function's tests (`tests/build/test_web_assets.py`), `Web.assets_*` on
+the real web core with a fake transport for both content policies, clang-tidy on the new C, and the route review and boundary
+checks. `scripts/test-web-assets.sh native` builds `tests/native/web_assets` and runs its driver against the real Zephyr
+server on `native_sim`. The full Host build and `unittest discover tests/build` pick up `Web.assets_*` and the Python tests on their own, and `zephyr.yml`, shard `io`, runs the
+`native_sim` image. Nothing here uses a board. See [web assets](../docs/web-assets.md).
+
 ## Portable File software slice
 
 `scripts/test-storage-simulators.sh` runs the actual VFS/LittleFS and FatFs File suites on
@@ -347,6 +396,41 @@ persistence, power-loss behaviour or recovery on a real card, and the format lim
 recorded by the tests (no checksum or resynchronisation, a non-atomic compaction, a torn
 tail that can lose the latest save or leave the file unreadable) remain. A missing settings file reads as an empty store unless a compaction leftover (`.cmp`) exists, which is an I/O error until the next save. The backend's inner duplicate scans can still resurrect a deleted key after a read fault; they are neither fixed nor tested, and Crux never deletes.
 
+`tests/native/configuration_settings_reliance` runs the same Settings File suite on Reliance Edge, over a RAM
+disk named `MMC`, against the target provider. It compiles `main.c` of `configuration_settings_file` with
+`fixture_reliance.h` (the volume, given `/MMC:/files` and `/MMC:/settings` before anything is initialised, as an
+operator would) and under the suite name `configuration_settings_reliance`, so each case is the same code on both
+file systems. The provider is the real `configuration_settings.c`, selected by
+`CONFIG_CRUX_CONFIGURATION_SETTINGS_FILE`, and not the probe copy that `prepare_provider.py` makes, so the
+read-back case does not run and 25 of the 26 cases do, all of them passing. Three cases are added
+(`extra_cases.c`): a compaction leaves no `.cmp` file, `emmc_configuration_start` on a medium without the
+settings directory does not initialise the settings and does not write the medium, and the same call on a
+provisioned medium initialises them once. A fourth, a failing settings initialisation after a ready storage,
+needs a scenario of its own (`crux.configuration.settings_reliance.init_failure`), because the File root binds
+once per process, so the cases of the other scenario skip themselves there. The corrected backend comes from
+the module (`zephyr/CMakeLists.txt` includes `candidate.cmake` of the FatFs suite), so **a product build that
+selects the provider reaches a file under `tests/`**. The corrections were not moved: that would touch the hash
+record of `tests/native/settings_error`, `.gitattributes` and frozen evidence for no change in behaviour.
+Twister scans only the cases of `extra_cases.c`, so `scripts/test-storage-emmc.sh` requires the exact case names
+of both scenarios (28 executed and 1 skipped, then 1 executed and 3 skipped), and that the build used the three
+staged sources and no pinned original, the real provider and no FatFs. A negative control builds the suite with
+`CRUX_SETTINGS_FILE_CONTROL` (the unpatched backend, native_sim only, refused at CMake on any other board) and
+requires exactly 12 failing cases, 16 passing and 1 skipped. FatFs fails 13: the one that differs,
+`test_full_volume_never_acknowledges_a_lost_save`, passes on Reliance Edge because a write that finds no free
+block gets `-ENOSPC`, which the unpatched backend returns, where FatFs answers with a short or zero count that
+the backend turns into success. The script records that reason beside the set. These are 64-bit `native_sim`
+results on a RAM disk. They show no persistence and nothing about an eMMC device.
+
+W4 of the power-cut replay (`--workload W4`) saves three keys through the same backend with a low line limit, so
+that a save often compacts the file through a temporary and a rename, and marks after each save. It runs on
+images built from `reliance.conf` and `settings.conf`, as a run of its own with its own JSON, so the counts and
+controls of the W1 to W3 run do not move. The invariants are asserted on both profiles, with I3 meaning that the
+active settings file exists, loads and holds a valid record for every key. A cut that leaves the temporary
+behind is counted and is not a failure. Three controls (a stack without the flush, a mark before each save,
+overwritten metaroots) and three staged states (an intact file, a leftover temporary, a missing active file)
+must come out as required. The result is in the
+[settings replay record](../docs/evidence/emmc-reliance/replay-settings/README.md).
+
 The [File contract](../docs/file-contract.md) and
 [qualification/handoff record](../docs/file-validation.md) cover the Linux Host
 provider and private deterministic failure tests. Normal Host CTest includes
@@ -379,6 +463,86 @@ encoded names decode, and that names this provider could not have written stay o
 sequence, in forked children, under the fake's own simple model. None of these is power-loss
 evidence about FatFs or a card, and no physical run covers the additions.
 
+`tests/native/file_reliance` runs the Reliance Edge file system behind the Zephyr VFS over a RAM disk
+named `MMC`, and the File provider on top of it. The `file_reliance` suite covers the adapter: mount
+and format, handles, flags, errors in Zephyr's numbering (the build uses the minimal C library, whose
+numbers differ from Reliance Edge's), a media error that makes the volume read-only, and the close
+that reports lost data. The `file_reliance_file` suite runs the File contract and the File additions
+of `tests/file/conformance.c` on it, with names stored unencoded, and also checks that identifiers
+of threads are distinct, that a thread beyond the limit is refused every call but close and
+closedir without reaching the file system, that such a thread can close files and listings that
+another thread opened, one such close at a time, so that the volume unmounts afterwards, that a
+mismatched profile does not mount, and that writes stay inside the configured sectors. The
+`crux.file.reliance.offset` scenario runs the same cases on a volume that starts 128 sectors into the
+disk and is 4096 sectors long. `scripts/test-storage-emmc.sh` requires the executed cases of both.
+These are simulation results on a RAM disk, in one process. They are not persistence evidence and
+not evidence about an eMMC device.
+
+`tests/native/file_emmc_composition` runs the mount sequence of `samples/storage_emmc` (disk init, mount
+without format, layout check, File root binding) on the eMMC simulator with Reliance Edge and the cache
+flush on, native_sim only. The cases keep the order of `file_sd_composition`, because the provider binds once
+per process: the medium digest sees one changed byte, stop and remount before start are refused, a blank
+medium fails closed and is not formatted, missing directories are not created, a provisioned medium starts
+after the earlier failures, a second start is rejected, and the provider survives an application unmount and
+remount. Each "unchanged" check compares the persistent image and requires that the simulator received no
+write request, because a write still held in the simulated cache is not in the image. A further case shows
+that `crux_file_sync` sends a flush command and that the synced bytes are then in the persistent image. The
+`crux.file.emmc_composition.init_failure` scenario holds the case where the card fails its first CMD1 and
+the start reports no media. It is a scenario of its own because a disk that an earlier case initialised is
+not initialised again. Cases of the other scenario skip themselves, so the executed counts are 9 and 1.
+These are simulation results in one process, not evidence about an eMMC device.
+
+`scripts/test-file-emmc-compile.sh` links `samples/storage_emmc` for `mimxrt1060_evk@B/mimxrt1062/qspi`, with
+and without the mount at boot and with Configuration on the Settings File backend, and never programs or runs
+anything. A link-only overlay stands in for an eMMC
+that the EVKB does not have. The script reads the generated `.config` of each image (the MMC disk driver and
+the cache flush on, the SD disk driver and the formatter off, `CONFIG_SDHC_BUFFER_ALIGNMENT=32`), requires
+that `red_format` and FatFs are not linked, that the generated `mmc.c` was compiled and `subsys/sd/mmc.c` was
+not, and that the generated `mmc.json` carries the expected hashes. It then requires two configurations to fail
+at CMake for the stated reason: the same sample without the flush option, and one with the fixture-only
+`CRUX_EMMC_FLUSH_CONTROL`. A third refused configuration is the Settings scenario with
+`CRUX_SETTINGS_FILE_CONTROL`. The Settings image must have the provider, the settings path
+`/MMC:/settings/cfg` under the volume's mount point, and the three staged Settings File sources in its build
+and none of the pinned ones; the other images must have none of this. It needs the optional west group `crux-reliance`. `CRUX_FILE_EMMC_SKIP_BUILD=1`
+checks the images already under the output directory, which is how each check was shown to fail on a wrong
+copy. It builds no image that is kept or uploaded. The sizes and stack frames are in the
+[link record](../docs/evidence/emmc-reliance/rt1060-link/README.md) and the
+[composition document](../docs/emmc-reliance-composition.md). This is a link, not evidence about an eMMC device or
+a board.
+
+The same script also links `samples/storage_reliance_sd`, the Stage A images of the
+[eMMC physical gate](../docs/emmc-reliance-physical-gate.md) that run Reliance Edge on the EVKB's own microSD
+slot (disk `SD`, mount point `/MMC:`): the default image, the mount check (`.start`), the append and replace
+tests, whose `main.c`, `sd_interrupt.c` and `sd_replace.c` are those of `samples/storage_sd_interrupt` and
+`samples/storage_sd_replace`, compiled unchanged behind a shim header, and the format image (`.format`), which has
+its own `main` in `format.c` and, only when no volume mounts on the card, formats it once and creates `/MMC:/files`
+and `/MMC:/settings`. For each of the five scenarios the script requires the microSD disk driver and Reliance Edge
+in `.config`, `CONFIG_SDHC_BUFFER_ALIGNMENT=32` and no MMC driver. The formatter is in the `.format` image only:
+`CONFIG_CRUX_FS_RELIANCE_EDGE_FORMAT=y` and `red_format` are in that image and in no other. The default
+image must link none of `emmc_storage_start`, `sd_interrupt_append`, `sd_replace_generation` and
+`reliance_format_once`, so nothing in it starts a mount or a write of the card (the file system code is still linked, and the disk drivers still initialise at boot).
+The script checks only the entry points that it names: the other images link none of those that belong to another scenario, and the format image no `emmc_storage_start`.
+No image may load above `0x60600000`, the end of the flash range that the Stage A procedure backs up. The ELF
+SHA-256 of each image goes to the log only. Nothing is programmed or run, and no image is kept or uploaded.
+
+`tests/native/reliance_stage_a` rehearses the same five images on `native_sim`, on the eMMC simulator, with the disk
+named `SD` and the cache flush correction on (the scenarios `crux.sample.storage_reliance_sd.native` and its
+`.start`, `.append`, `.replace` and `.format` variants, which `scripts/test-storage-emmc.sh` builds and
+`run_rehearsal.py` runs; `test_rehearsal.py` holds the unit tests of its judging helpers, which reuse the line parsers
+and judging functions of the two host scripts). **The limit: the rehearsal exercises the application logic of the
+images, the File provider and Reliance Edge on a model of a disk. It does not exercise the SD host driver, the SD layer
+or a real card, and it is not evidence about the EVKB or about power loss.** Each scenario starts from a blank simulator
+image file, which the format image formats first (the format scenario runs on the blank file itself, and the mount check also runs on a blank one), and runs on two simulator profiles, without a cache and with a 64 KiB cache that a process exit drops. The format
+image prints `reliance_format: 0` on a blank medium and `reliance_format: 2` on the next run, which leaves the image file
+unchanged. The mount-check image prints `emmc_storage_start: 0` on the formatted medium and `2` on a blank one, and
+neither run sends the simulator a write request; the default image prints nothing and writes nothing. The append and the
+replace images are killed with `SIGKILL` after the run itself has printed at least 200 ACK or GEN lines (counted per run, because a
+replace run continues at the next generation number; a seeded few more, and a short seeded pause, so that the kill
+lands at varying points), and restarted five times. The first output line prints the seed, and the passing lines of the append and replace runs the number of lines of each run. Every report of the
+append image must hold at least the last ACK seen and no damaged record. After the first generation, `cfg` of the
+replace image must be valid and no older than the last GEN printed; leftover temporaries are counted and printed. A
+`SIGKILL` drops the simulated cache and keeps the image file. It is not a power cut.
+
 `scripts/test-file-service.sh` runs the file service on Host, with and without sanitizers, and builds
 a C and C++ consumer from its public headers. `FileService.default` and `FileService.small_table` use
 the fake File provider and a double for access, and walk a power cut across every mutation of a commit
@@ -406,6 +570,65 @@ anything on a board. `scripts/test-file-rt1060-compile.sh` runs it and fails if 
 filtered out instead of built. `scripts/test-storage-simulators.sh` and this script are in the
 Zephyr CI workflow; `scripts/test-file-persistence.sh` is not.
 It also refuses to build on Rev C and on the hyperflash variant (a negative control, checked by the Kconfig message).
+
+### eMMC simulator on `native_sim`
+
+`tests/support/emmc_sim` is a `native_sim` SD host driver that behaves as one eMMC device, so that the
+unmodified `drivers/disk/mmc_subsys.c` and `subsys/sd` run without hardware. It cannot be selected on a
+target. `tests/native/emmc_stack` runs the stack against it, with and without a cache: initialisation,
+geometry, reads and writes, the bounce path for unaligned buffers, bounds, injected faults and retries,
+a busy card, and a sync that sends no flush at the pinned revision. Its `flush.cached` and
+`flush.nocache` scenarios build the stack with `CONFIG_CRUX_MMC_CACHE_FLUSH`, the build-local correction
+in [`patches/zephyr`](../patches/zephyr/README.md), and check that a sync flushes the cache only when it
+is on, and that a rejected flush, a switch error in any status response, a failed command, and a card
+busy before or after the flush each return an error. Cases for the other profile skip themselves.
+`tests/native/emmc_restart` runs separate processes on the host file behind the simulator: data on the
+medium outlives the process, data held in the cache does not, an image of the wrong size is an error,
+and the trace holds what was written. The unmodified stack sends no flush, so that run reaches the
+simulator's flush path with a command of its own; a second build with the correction checks that a sync
+through the stack outlives a restart with the cache on. `tests/native/emmc_stack/test_prepare.py` checks
+that the correction refuses a drifted source and output inside Zephyr. `scripts/test-storage-emmc.sh`
+runs all of these and requires the executed cases of each scenario. It is not in the Zephyr CI
+workflow.
+
+`tests/native/emmc_powercut` replays power cuts on FatFs. One program, built as `fat-fix` (with the
+correction) and `fat-nofix` (without it), provisions a baseline on the no-cache profile, runs three
+workloads with a trace mark after each acknowledged step (W1 appends records, W2 replaces a file
+through a temporary and a rename, W3 creates, overwrites and removes files and a directory), and
+verifies a medium in a new process. `run_replay.py` rebuilds the medium from the baseline and the
+trace at chosen cut points with four models (`lost`, `prefix`, `reordered`, `torn`; only `prefix`
+and `torn` without a cache): each side of every flush always, and other positions drawn by seed,
+for `torn` only where a write is cut. It records the invariants (mount, acknowledged data, a complete
+replaced file, an untouched file byte-exact, a new write and remount) as observations, because FatFs
+does not claim them. A W1 data failure is checked again with `--acked-only`, which separates a lost
+acknowledged record from a stale record of a later, unacknowledged step. Two controls must fail:
+`fat-nofix` on the cached profile loses acknowledged W1 data at every mark, and a baseline with its
+boot sector overwritten does not mount. A `run-early` W1 trace, which marks each step before its
+sync, is recorded as well. `test_replay_model.py` tests the model
+without a build. The same seed gives the same JSON apart from timing. Results are about the model,
+not about power loss on a device; see the
+[replay record](../docs/evidence/emmc-reliance/replay-fatfs/README.md).
+
+The same program built with `reliance.conf` runs on Reliance Edge as `red-fix` (with the correction)
+and `red-nofix` (without it, with `CRUX_EMMC_FLUSH_CONTROL`). There, `run_replay.py --fs reliance`
+asserts every invariant and no read error on `red-fix` for W1 to W3 on both profiles. Metaroot
+writes are recognised by their sectors (`metaroot_sectors`), each side of every metaroot sector is
+always tested, so every metaroot sector is torn, and `lost` is tested after every mark. The driver
+confirms on each cached trace that a commit is a flush, one whole metaroot, then a flush, and stops
+if it is not. Four controls must fail: `red-nofix` loses acknowledged W1 data at every mark; the W2
+trace, with the flush before each metaroot not a barrier and the metaroot kept, gives a mount
+failure, a changed untouched file or a read error somewhere (W1 cannot, because its stale blocks
+are a valid older state); a `run-early` W1 trace loses the step marked before its sync; and a
+baseline with both metaroots overwritten does not mount. The profile commits on create, so the W3
+verifier accepts, with `--create-may-be-empty`, a new file that is present and empty in the step
+creating it. These cases are counted apart, and checks that must fail show that the same state is
+refused as a lost acknowledged file or at another step. See the
+[Reliance Edge replay record](../docs/evidence/emmc-reliance/replay-reliance/README.md).
+
+The simulator is a model written from the stack's needs, by the same author as the tests, and is not
+device evidence. Results show how the stack behaves against that model, not how an eMMC device behaves.
+It models no timing and no wear. Its busy period after CMD6 and after a write lasts one poll unless a
+longer one is injected, and it holds cached writes until a flush whatever the size it reports. A process exit is not a power loss.
 
 ## Portable queue and monotonic timing
 
@@ -597,6 +820,19 @@ sanitizer preset, runs clang-tidy on the sources and tests, and runs `scripts/ch
 `tests/security_event_consumer` in both directions. None of this runs on Zephyr or a target. See the
 [Security event contract](../docs/security-event-contract.md).
 
+## TLS certificate
+
+The TLS certificate model (Issue #190): the root Host suite runs `tests/tls_certificate` as `TlsCertificate.*` in CTest.
+The parser suite uses no state and no crypto; the service suites use the real Access core with its fake ports, a fake
+credential adapter and fake hash, signature and random ports, where the signature is not ECDSA; `tls_certificate_store`
+runs on the real credential store with its test-only protection. `scripts/test-tls-certificate.sh host` also runs them
+under the sanitizer preset and runs clang-tidy. Where CMake finds OpenSSL's headers, `tls_certificate_differential`
+holds the parser to OpenSSL's decoder on 300,000 seeded mutations. `TlsCertificate.boundary_*` configure a separate
+project to show that a consumer reaching the adapter is refused. `scripts/test-tls-certificate.sh psa` builds `tests/tls_certificate/psa`
+on TF-PSA-Crypto and checks a real key's certificate, request and PKCS #8 key with OpenSSL, including a TLS 1.3
+handshake; CI does not run it. Nothing here registers the material with Zephyr or runs on `native_sim` or a target. See
+the [TLS certificate design](../docs/tls-certificate.md).
+
 ## Web frontend
 
 The web frontend has its own tools under `web/` and needs Node.js, while no C build does. Its commands are in the
@@ -606,7 +842,7 @@ The web frontend has its own tools under `web/` and needs Node.js, while no C bu
 | --- | --- | --- |
 | Specification lint and its rejection tests | `scripts/check-management-api.sh`, `python3 -m unittest discover -s tests/management_api` | Node.js |
 | Pins, generated types, `tsc`, source rules, client and mock unit tests, build and budget | `npm run check` in `web` | Node.js |
-| Browser tests of the reference on the mock | `npm run test:browser` in `web` | Node.js and Chrome |
+| Browser tests of the Preact example on the mock | `npm run test:browser` in `web` | Node.js and Chrome |
 | The shared browser cases on the Angular sample | `npm run test:angular` in `web`, after building the sample | Node.js and Chrome |
 
 All of these run against the mock server, on the loopback address and over plain HTTP. They show nothing about TLS, real
@@ -631,8 +867,11 @@ is one that refuses every operation. See [the SSH provider contract](../docs/ssh
 
 `scripts/test-ssh-provider.sh`, also outside every default workflow for the same reason, runs the wolfSSH provider: the conformance cases
 with a scripted client, and `tests/zephyr/ssh_provider/openssh_test.py` with a real OpenSSH client, both on `native_sim/native/64` over the
-native socket offload. It also records resource use as simulation results, compiles for `mimxrt1060_evk@B//qspi`, and shows that the Mbed
-profile fails at configuration. See [the wolfSSH provider](../docs/ssh-wolf-provider.md), which declares the test ports behind these results.
+native socket offload. It then boots an image built with `CRUX_SSH_TEST_STORED_HOST_KEY` several times on one flash file, with the host key
+from the credential store on its PSA ports over wolfPSA. It also records resource use as simulation results, compiles for
+`mimxrt1060_evk@B//qspi`, and shows that the Mbed profile fails at configuration. The provider's checks on client input are in the Host
+suite as `Ssh.wire`, with seeded mutations against an oracle, and `Ssh.wire_mutations`, which needs each of 22 source mutants to fail it
+under sanitizers. See [the wolfSSH provider](../docs/ssh-wolf-provider.md), which declares the test ports behind these results.
 
 ## PSA Crypto qualification
 
@@ -643,8 +882,12 @@ stub providers that prove the cases can fail. `provider_declarations.cmake` stat
 Twister on `native_sim/native/64` and checks that `native_sim` random stays test-only. `target` compiles both providers for `mimxrt1060_evk@B//qspi`, and never flashes, resets or runs an image. The `psa-crypto` workflow runs all three with the second argument `tf-psa-crypto`, because a default workflow must not select the GPL stacks, so wolfPSA runs only locally.
 No consumer calls a provider here. See the [qualification record](../docs/psa-crypto-qualification.md) and the [design](../docs/psa-crypto-design.md).
 
+`tests/psa_entropy` shows what Zephyr's Mbed TLS glue does when the entropy device fails: a `native_sim` application over a test entropy device whose reads can be made to fail, on the legacy RNG as on RT1060-EVKB, with three Twister configurations. `scripts/test-psa-crypto.sh zephyr` runs them, and the unit test of `scripts/prepare-mbedtls-entropy.py`, in the `psa-crypto` workflow. The test fails a read before initialisation only, and reseeding and a board's TRNG are not covered. See [Entropy failure](../docs/psa-crypto-qualification.md#entropy-failure).
+
 ## Management composition on `native_sim`
 
-`tests/management_providers` runs in the root Host suite, as `ManagementProviders.*`: the event providers, status sources and the Access clock, each against a controlled answer. `tests/psa_ports` holds the PSA providers' cases, on Linux Host and `native_sim`, and `tests/psa_ports/suites` runs existing Access and credential suites on them, on Host, with `-DCRUX_TEST_SUITES_ON_PSA=ON`. `tests/native/tls_offload_probe` is a TLS socket over the native socket offload with a client on the host, and `tests/native/management_composition` is the services together on real providers.
+`tests/management_providers` runs in the root Host suite, as `ManagementProviders.*`: the event providers, status sources and the Access clock, each against a controlled answer. `tests/psa_ports` holds the PSA providers' cases, on Linux Host and `native_sim`, and `tests/psa_ports/suites` runs existing Access and credential suites on them, on Host, with `-DCRUX_TEST_SUITES_ON_PSA=ON`. `tests/native/tls_offload_probe` is a TLS socket over the native socket offload with a client on the host, and `tests/native/management_composition` is the services together on real providers. `tests/native/management_services` adds every other management service on the same providers behind HTTPS, the command line and file service event providers among them, and `driver.py` runs its cases over TLS; see [every management service on `native_sim`](../docs/native-composition-242.md). `tests/native/management_services/e2e` packages the built Preact or Angular example into the same image with the mock's accounts and parameters, and `scripts/test-native-composition.sh e2e-mbed` or `e2e-wolf` runs `server_checks.py` and the browser cases of `web/e2e` against it; `tests/web/project_sample` serves the small example project on Host; see [the web examples end to end](../docs/e2e-native-220.md).
 
-`scripts/test-tls-offload-probe.sh [all|mbed|wolf]` and `scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]` run them. `mbed` needs the `mbedtls` and `tf-psa-crypto` projects, and the `psa-crypto` workflow runs it. `wolf` needs the `crux-secure-management` group, and no default workflow runs it. `target-*` compiles and never flashes, resets or runs an image. See the [composition](../docs/native-management-composition.md).
+`tests/native/management_ssh` is that services image with the wolfSSH provider beside the HTTPS listener, so that the command line over SSH and SFTP run next to the web on the same Access core, credential store and file service. It is the Wolf profile only, and `CONFIG_CRUX_SSH` in `zephyr/Kconfig` selects the provider. `scripts/test-ssh-integrated.sh [guards|build|controls|run|all]` builds it, runs `check_ssh_guard.py` (the guards that refuse its test-form host key outside a declared `native_sim` test image, which need only `cmake` and `cc`), and runs `driver.py` against the running image with OpenSSH `ssh` and `sftp` and `curl`. It needs the `crux-secure-management` group, and no default workflow runs it; see [the integrated image](../docs/ssh-integrated-image.md).
+
+`scripts/test-tls-offload-probe.sh [all|mbed|wolf]` and `scripts/test-native-composition.sh [host|mbed|wolf|target-mbed|target-wolf|all]` run them. `mbed` needs the `mbedtls` and `tf-psa-crypto` projects, and the `psa-crypto` workflow runs it. `wolf` needs the `crux-secure-management` group, and no default workflow runs it. `mbed` and `wolf` also build the services image, check it with `scripts/check-composition-image.py --services` and run its driver. `target-*` compiles and never flashes, resets or runs an image. See the [composition](../docs/native-management-composition.md).

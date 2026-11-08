@@ -1,6 +1,21 @@
 get_filename_component(CRUX_FILE_COMPONENT_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+
+# The Zephyr root binding is a composition interface (see include/crux/file_zephyr.h). The target gives a
+# product's platform composition the header and crux::file; it is not a portable usage target and the
+# native-free consumer check rejects it by name. The provider library is added to Zephyr separately.
+function(crux_file_zephyr_composition)
+  add_library(crux_file_zephyr_composition INTERFACE)
+  add_library(crux::file_zephyr ALIAS crux_file_zephyr_composition)
+  target_include_directories(crux_file_zephyr_composition INTERFACE "${CRUX_FILE_COMPONENT_DIR}/ports/zephyr/include")
+  target_link_libraries(crux_file_zephyr_composition INTERFACE crux_file)
+endfunction()
 if(CONFIG_CRUX_FILE_FATFS_RT1060 AND CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
   message(FATAL_ERROR "The RT1060 provider and its compile-only check are mutually exclusive")
+endif()
+if(CONFIG_CRUX_FILE_RELIANCE_EDGE AND
+   (CONFIG_CRUX_FILE_SIMULATOR OR CONFIG_CRUX_FILE_FATFS_SIMULATOR OR
+    CONFIG_CRUX_FILE_FATFS_RT1060 OR CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK))
+  message(FATAL_ERROR "The Reliance Edge provider cannot be combined with another File selection")
 endif()
 if(CONFIG_CRUX_FILE_FATFS_RT1060_COMPILE_CHECK)
   if(CONFIG_BOARD_NATIVE_SIM OR NOT CONFIG_BOARD_MIMXRT1060_EVK OR
@@ -51,6 +66,33 @@ if(CONFIG_CRUX_FILE_FATFS_RT1060)
   add_library(crux_file INTERFACE)
   add_library(crux::file ALIAS crux_file)
   target_link_libraries(crux_file INTERFACE crux_file_api)
+  crux_file_zephyr_composition()
+  return()
+endif()
+
+if(CONFIG_CRUX_FILE_RELIANCE_EDGE)
+  # Any board that has the file system. The simulator's compiler flags apply on native_sim only.
+  add_library(crux_file_api INTERFACE)
+  target_include_directories(crux_file_api INTERFACE "${CRUX_FILE_COMPONENT_DIR}/include")
+  target_compile_definitions(crux_file_api INTERFACE CRUX_FILE_POOL_SIZE=4)
+  if(CONFIG_BOARD_NATIVE_SIM)
+    # Match native_sim's non-PIE CPU image, without kernel headers/definitions.
+    target_compile_options(crux_file_api INTERFACE ${TOOLCHAIN_C_FLAGS} -fno-pic -fno-pie)
+    if(CONFIG_64BIT)
+      target_compile_options(crux_file_api INTERFACE -m64)
+    else()
+      target_compile_options(crux_file_api INTERFACE -m32)
+    endif()
+  endif()
+  add_library(crux_file_zephyr STATIC "${CRUX_FILE_COMPONENT_DIR}/src/file.c" file_native.c)
+  target_include_directories(crux_file_zephyr PRIVATE "${CRUX_FILE_COMPONENT_DIR}/src" .)
+  zephyr_append_cmake_library(crux_file_zephyr)
+  target_link_libraries(crux_file_zephyr PRIVATE crux_file_api zephyr_interface)
+  target_compile_options(crux_file_zephyr PRIVATE -Wall -Wextra -Werror)
+  add_library(crux_file INTERFACE)
+  add_library(crux::file ALIAS crux_file)
+  target_link_libraries(crux_file INTERFACE crux_file_api)
+  crux_file_zephyr_composition()
   return()
 endif()
 
@@ -90,3 +132,4 @@ target_compile_options(crux_file_zephyr PRIVATE -Wall -Wextra -Werror)
 add_library(crux_file INTERFACE)
 add_library(crux::file ALIAS crux_file)
 target_link_libraries(crux_file INTERFACE crux_file_api)
+crux_file_zephyr_composition()

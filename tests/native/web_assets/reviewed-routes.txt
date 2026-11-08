@@ -1,0 +1,5 @@
+# The public and session-only routes of the packaged assets test image. Not for a product. One entry
+# covers every route of the packaged folder: the packager's checks and its hash list are what a person
+# reviews for the content.
+public GET @assets
+public GET /probe/send-buffer/{bytes}

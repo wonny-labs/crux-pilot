@@ -1,6 +1,6 @@
 # The command line over SSH
 
-Status: draft for review, Issue #193, approved in advance under gate #183. It connects the provider interface of [the SSH provider contract](ssh-provider-contract.md) to the session entry points of [the command line contract](cli-contract.md). No board was operated, and nothing here is evidence about one.
+Status: merged in [PR #267](https://github.com/wonny-labs/crux-pilot/pull/267) for Issue #193, approved in advance under gate #183. It runs with the wolfSSH provider and the real Access core in [the integrated image](ssh-integrated-image.md) of [PR #313](https://github.com/wonny-labs/crux-pilot/pull/313). It connects the provider interface of [the SSH provider contract](ssh-provider-contract.md) to the session entry points of [the command line contract](cli-contract.md). No board was operated, and nothing here is evidence about one.
 
 ## What is built, faked and untested
 
@@ -15,8 +15,8 @@ Status: draft for review, Issue #193, approved in advance under gate #183. It co
 | Access control | **Scripted** in `Ssh.cli_session`. **Real core with fake ports** in the other suites and in the `native_sim` image. | `tests/cli/fake_access.c`, `tests/access/fake_ports.c`, #192's `test_access_ports.c` |
 | wolfSSH provider and OpenSSH | **Real** on `native_sim`, from #265, which is on `main` | `tests/ssh/cli/openssh/` |
 | Commands in the `native_sim` image | **Test commands**. No product has `probe-read` or `flood`. | `tests/ssh/cli/openssh/src/main.c` |
-| Security event provider | **Not connected.** It prints in the image, and records on the Host. | [The contract](cli-contract.md#connecting-the-real-security-events) |
-| A product composition | **Not built.** No Kconfig symbol selects SSH yet. | #197 |
+| Security event provider | **Connected in the [services image](native-composition-242.md) and the [integrated image](ssh-integrated-image.md)**, where `crux_cli_security_events` records. In the image of #267 it only printed, and on the Host it records on a fake. | [The contract](cli-contract.md#connecting-the-real-security-events) |
+| A composition that selects SSH | **Built, on `native_sim` only.** `CONFIG_CRUX_SSH` and `CONFIG_CRUX_SSH_CLI` select the entry points with the wolfSSH provider, and [one image](ssh-integrated-image.md) runs this command line over SSH beside the HTTPS web, on the real Access core and the real PSA providers. A product composition and its host key handling are not built. | `zephyr/Kconfig`, `tests/native/management_ssh/`, [the integrated image](ssh-integrated-image.md) |
 | Anything on a board, and stack use on a Cortex-M7 | **Untested.** RT1060 is compile only. | |
 
 ## How a session runs
@@ -55,6 +55,8 @@ sequenceDiagram
 Everything between `shell` or `exec` and its return runs on the worker of one connection. The adapter holds a transport and a `crux_cli_context_t` on that stack, and has no lock and no thread of its own.
 
 ## What follows `terminal`
+
+`terminal` is true when the client asked for a pseudo-terminal (`pty-req`, RFC 4254 §6.2) before the shell. The `exec` callback does not carry it ([Issue #269](https://github.com/wonny-labs/crux-pilot/issues/269)).
 
 | Client | `pty-req` | Form | Echo | LF on the wire | Example |
 | --- | --- | --- | --- | --- | --- |
@@ -103,7 +105,7 @@ A `write` timeout does not refresh the idle timer, so a stuck client cannot keep
 | `the_zephyr_shell_is_not_reachable` with OpenSSH | 23 of those lines through exec, all 180 through one terminal shell, and no `uart:~$` prompt | Pass |
 | `scripts/check-management-shell.py --config --elf` on the running image | `CONFIG_SHELL=n`, no shell symbol, and its sections empty | Pass |
 
-Rule L5 of the command line contract applies once `CONFIG_CRUX_SSH` exists. The image here has `CONFIG_CRUX_CLI`, which the same rule covers.
+Rule L5 of the command line contract applies to an image that sets `CONFIG_CRUX_SSH`, which now exists, and to one that sets `CONFIG_CRUX_CLI`, as the image here does.
 
 ## Results
 
@@ -145,12 +147,7 @@ Starting the exec status at 0 did not fail, and is equivalent, because `crux_cli
 
 ## Found with #192
 
-Running the CLI on the provider found two things that #265 has since fixed, both at `800d0af`. Neither fix is in this PR, so this PR's OpenSSH run needs that revision or later.
-
-| Finding | Effect | Fix in #265 |
-| --- | --- | --- |
-| `crux_ssh_wolf_provider.c` and `thread_native.c` both defined a global `worker_stacks` | An image with the command line, which needs `crux::thread`, did not link. #192's own image has no `crux::thread`. | `static` on the provider's array |
-| The provider's `read` returned `CRUX_ERR_IO` when OpenSSH rekeyed during shell input, seen at `383f0bf` | The session ended, with `SSH worker ended: no error`. The adapter passes that status on, as the contract says. | Its rekey handling. The case `a_rekey_during_input` passes at `800d0af`. |
+Two findings from running the CLI on the provider are fixed in #265, at `800d0af`, so the OpenSSH run of #267 needs that revision or later: a global `worker_stacks` defined by both `crux_ssh_wolf_provider.c` and `thread_native.c`, which stopped an image with `crux::thread` from linking (now `static`), and a `CRUX_ERR_IO` from the provider's `read` when OpenSSH rekeyed during shell input, seen at `383f0bf`, which ended the session (fixed in the provider's rekey handling, and the case `a_rekey_during_input` passes).
 
 ## Decisions for review
 
@@ -192,8 +189,8 @@ No owner answer was available for these, so each is the narrow choice.
 
 - Anything on a board, timing, or the worker's stack on a Cortex-M7.
 - WinSCP, or any SSH client other than OpenSSH 9.6.
-- A key login through the CLI: the cases use passwords, and #192 covers keys up to its stand-in sessions.
-- A rekey started by the server, or with any client but OpenSSH. Rekeys that OpenSSH starts pass, both during output and while a shell reads, in `a_rekey_during_output` and `a_rekey_during_input`. The independent review measured stack peaks with a rekey of 10,152 B with an Ed25519 host key and 11,232 B with an ECDSA one. Those are its figures, and this PR did not repeat them.
+- A key login through the CLI at the time of #267: its cases use passwords. The integrated image of #313 later ran an Ed25519 key login of `admin` through the CLI (`case_ssh_cli`, [results](ssh-integrated-image.md#results)). No SSH route registers a user key: [Issue #318](https://github.com/wonny-labs/crux-pilot/issues/318).
+- A rekey started by the server, or with any client but OpenSSH. Rekeys that OpenSSH starts pass, both during output and while a shell reads, in `a_rekey_during_output` and `a_rekey_during_input`. The independent review measured stack peaks with a rekey of 10,152 B with an Ed25519 host key and 11,232 B with an ECDSA one. Those are its figures, and #267 did not repeat them.
 - `window-change` over the wire: the Host covers it through the fake, and it has no effect by contract.
-- The real security event provider.
+- The `ssh.*` security events: the CLI's own events run on the real provider in the [services image](native-composition-242.md) and the integrated image, but the SSH identifiers are defined and never emitted ([Issue #317](https://github.com/wonny-labs/crux-pilot/issues/317)).
 - The OpenSSH and target results on any revision after `ea24a94`, where they last ran. CI does not run that script.

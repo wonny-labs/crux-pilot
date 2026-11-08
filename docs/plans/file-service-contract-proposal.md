@@ -40,7 +40,7 @@ that stays true. Enforcement lives in the service, in one place, and the SFTP an
 | --- | --- | --- |
 | File contract additions | `components/file/include/crux/file.h`, target `crux::file` | File service, credential store, projects |
 | File service | `components/file_service/include/crux/file_service.h`, target `crux::file_service` | SFTP and web adapters, projects |
-| Root binding | `crux_file_zephyr_bind_root` in `file_native.h`, `crux_file_linux_bind_root` in `file_linux.h` | Composition only |
+| Root binding | `crux_file_zephyr_bind_root` in `<crux/file_zephyr.h>` (target `crux::file_zephyr`, see [File root binding](../file-composition-interface.md)), `crux_file_linux_bind_root` in `file_linux.h` | Composition only |
 
 ## File contract additions
 

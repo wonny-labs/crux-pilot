@@ -1,0 +1,53 @@
+Crux revision: 37b8b50c619296db8e13f874dfb841cd7f18adf2
+......................
+----------------------------------------------------------------------
+Ran 22 tests in 0.008s
+
+OK
+control ok: the Angular example needs the default 3,000 ms deadline: web_assets: /main-W7U54RFG.js: 85384 bytes served exceeds the largest asset that fits, 49152 bytes: the response deadline 1500 ms at 32768 bytes/s. Split the file, or set CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS and the declared client rate together
+prepared: /ws/out-220/final-wolf/zephyr-wolf, Zephyr dccb09599635bdff17633fa7e9dab014b91dce90 with zephyr-tls-4.4.1.patch at wolfSSL/osp 8c32b060ac6017b1291a6da0875a48637bfb682d
+/ws/out-220/final-wolf/wolf/e2e-preact-build/zephyr/zephyr.exe: 50 listed symbols from their real sources, no test double, wolf profile, and 12 component routes and no other, and one HTTP service whose resources the route table generated
+server checks, preact on the wolf profile: 0 failures, 23 checks, results in /ws/out-220/final-wolf/wolf/server-preact-results.json
+✔ reference: a route another client holds answers the real 409, and the example retries it (7532.86542ms)
+✔ reference: a full login table answers the real 503 busy, which the example shows, and a later sign-in works (24677.775886ms)
+✔ reference: network settings: the real service shows no running address and refuses a change it cannot save (3767.826711ms)
+﹣ reference: reboot and a restarted session (0.370375ms) # the reboot service of #214 is merged but not composed in the services image, so the reboot flow stays mock-only
+ℹ tests 74
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 28
+ℹ todo 0
+ℹ duration_ms 369304.958252
+/ws/out-220/final-wolf/wolf/e2e-preact-browser-results.json: {'measured': 6, 'passed': 46, 'skipped': 28}
+/ws/out-220/final-wolf/wolf/e2e-angular-build/zephyr/zephyr.exe: 50 listed symbols from their real sources, no test double, wolf profile, and 12 component routes and no other, and one HTTP service whose resources the route table generated
+server checks, angular on the wolf profile: 0 failures, 23 checks, results in /ws/out-220/final-wolf/wolf/server-angular-results.json
+✔ angular: a stalled handshake delays a load by at most the TLS connect timeout (7757.42392ms)
+✔ angular: with every client slot held by an idle connection, a load waits and is served (7880.627337ms)
+✔ angular: a route another client holds answers the real 409, and the example retries it (9294.490545ms)
+✔ angular: a full login table answers the real 503 busy, which the example shows, and a later sign-in works (24631.732844ms)
+ℹ tests 72
+ℹ suites 0
+ℹ pass 45
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 27
+ℹ todo 0
+ℹ duration_ms 374007.962754
+/ws/out-220/final-wolf/wolf/e2e-angular-browser-results.json: {'measured': 6, 'passed': 45, 'skipped': 27}
+ℹ tests 130
+ℹ suites 0
+ℹ pass 130
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 425538.345609
+/ws/out-220/final-wolf/wolf/e2e-mock-browser-results.json: {'passed': 130}
+Native composition (e2e-wolf) finished.
+
+real	27m25.922s
+user	14m28.543s
+sys	1m23.670s
+wolf exit 0

@@ -43,6 +43,14 @@ class FakeNIC:
     def poll(self):return None
     def close(self):self.closed=True
 
+class ReadyNIC(FakeNIC):
+    """The dedicated NIC is up with its static address at every inventory (the host side of the peer gate)."""
+    ready=False
+    def start(self,route=False):self.expected='route' if route else 'host_up';self.ready=True
+    def poll(self):
+        if self.ready:
+            self.ready=False;return dict(event='host_up',interface='en13')
+
 class Adapter(unittest.TestCase):
     def make(self,root,approved=True):
         prepared=runner.plan('a'*64,[31,32,33],'b'*64,'c'*64);approval=runner.approval_template(prepared)
@@ -59,7 +67,7 @@ class Adapter(unittest.TestCase):
     def test_exact_raw_receive_uart_write_and_peer_reap(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);p,a,port,calls,factory=self.make(root)
-            live=adapter.CaptureAdapter(p,a,1,root/'boot',factory,receiver_factory=Receiver,nic_factory=FakeNIC,software_only=True,process_backend=Backend(),clock=Clock())
+            live=adapter.CaptureAdapter(p,a,1,root/'boot',factory,receiver_factory=Receiver,nic_factory=ReadyNIC,software_only=True,process_backend=Backend(),clock=Clock())
             raw=b'M5_BOOT source=123456789abc\r\nM5 ARM token=31 at=0\n'
             (live.directory/'uart-rx.bin').write_bytes(raw)
             (live.directory/'receive.jsonl').write_text(json.dumps(dict(monotonic=1.,hex=raw.hex()))+'\n')
@@ -101,8 +109,8 @@ class Failures(unittest.TestCase):
             def stop_peer(self,process):raise ValueError('Peer unreaped')
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);p,a,port,calls,factory=self.make(root)
-            live=adapter.CaptureAdapter(p,a,1,root/'boot',factory,receiver_factory=Receiver,nic_factory=FakeNIC,process_backend=BadBackend(),software_only=True)
-            live.prepare_peer(31,2,10,'echo')
+            live=adapter.CaptureAdapter(p,a,1,root/'boot',factory,receiver_factory=Receiver,nic_factory=ReadyNIC,process_backend=BadBackend(),software_only=True)
+            live.prepare_peer(31,2,10,'echo');live.poll(0)
             with self.assertRaises(ValueError):live.close()
             self.assertTrue(port.closed);self.assertTrue(live.nic.closed)
             self.assertEqual(port.writes,[])
@@ -123,16 +131,86 @@ class Failures(unittest.TestCase):
                 return super().stop_peer(process)
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);p,a,port,calls,factory=self.make(root)
-            live=adapter.CaptureAdapter(p,a,1,root/'boot',factory,receiver_factory=Receiver,nic_factory=FakeNIC,process_backend=CompletingBackend(),software_only=True,clock=Clock())
+            live=adapter.CaptureAdapter(p,a,1,root/'boot',factory,receiver_factory=Receiver,nic_factory=ReadyNIC,process_backend=CompletingBackend(),software_only=True,clock=Clock())
             live.prepare_peer(31,2,10,'echo');live.poll(0)
             with live.peer_path.open('a') as output:output.write('{"event":')
             live.poll(0)
             self.assertEqual(live.stop_peer(),dict(phase=2,reaped=True));live.close()
 
+class SequenceNIC:
+    """Host-side inventories in order: what ``ifconfig`` showed at each probe (down, address pending, up), advancing a shared clock."""
+    sequences={};clock=None;step=.25
+    def __init__(self,directory,clock):
+        self.directory=directory;self.events=list(SequenceNIC.sequences.get(Path(directory).name,[]));self.running=False;self.closed=False;self.probes=0
+    def start(self,route=False):self.running=True;self.probes+=1;SequenceNIC.clock.value+=self.step
+    def poll(self):
+        if not self.running:return None
+        self.running=False
+        event=self.events.pop(0) if len(self.events)>1 else (self.events[0] if self.events else 'host_down')
+        if event=='error':raise ValueError('NIC identity/static address mismatch')
+        return dict(event=event,interface='en13')
+    def close(self):self.closed=True
+
+class PeerHostGate(unittest.TestCase):
+    """The first real run: the peer of phase 2 started while macOS had no address on the adapter after the link returned (Errno 49)."""
+    def build(self,root,events,backend=None):
+        p,a,port,calls,factory=Adapter.make(None,root);clock=Clock();SequenceNIC.clock=clock;SequenceNIC.sequences={'peer-gate':events}
+        backend=backend or Backend()
+        live=adapter.CaptureAdapter(p,a,1,root/'boot',factory,receiver_factory=Receiver,nic_factory=SequenceNIC,software_only=True,process_backend=backend,clock=clock)
+        return live,backend,clock
+    def test_the_peer_starts_only_after_the_host_address_is_back(self):
+        with tempfile.TemporaryDirectory() as directory:
+            live,backend,clock=self.build(Path(directory),['host_down','host_pending','host_pending','host_up'])
+            live.prepare_peer(31,2,10,'echo')
+            self.assertIsNone(backend.process,'the peer must not start inside prepare_peer')
+            self.assertTrue(live.gate_nic.pending_ok);self.assertFalse(getattr(live.nic,'pending_ok',False))   # only the gate probe may see the pending form
+            kinds=[]
+            for _ in range(40):
+                clock.value+=.25                       # time passes between two polls
+                kinds+=[event['kind'] for event in live.poll(0)]
+                if 'peer_ready' in kinds:break
+                self.assertIsNone(backend.process,'the peer started before the host side was up')
+            self.assertIn('peer_ready',kinds)
+            rows=[json.loads(line) for line in (live.directory/'peer-gate.jsonl').read_text().splitlines()]
+            self.assertEqual([row['event'] for row in rows],['gate_start','host_observation','host_observation','host_observation','host_observation','peer_start'])
+            self.assertEqual([row.get('observed') for row in rows if row['event']=='host_observation'],['host_down','host_pending','host_pending','host_up'])
+            self.assertGreater(rows[-1]['waited'],0)
+            live.stop_peer();live.close()
+    def test_a_host_that_never_comes_up_is_inconclusive_and_never_starts_the_peer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            live,backend,clock=self.build(Path(directory),['host_down'])
+            live.prepare_peer(31,2,10,'echo')
+            with self.assertRaisesRegex(ValueError,'not ready'):
+                for _ in range(400):
+                    clock.value+=.25;live.poll(0)
+            self.assertIsNone(backend.process)
+            self.assertLessEqual(clock.value,1.+adapter.PEER_HOST_READY_WAIT+1.)      # bounded
+            live.close()
+    def test_a_wrong_identity_or_address_during_the_wait_aborts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            live,backend,clock=self.build(Path(directory),['host_down','error'])
+            live.prepare_peer(31,2,10,'echo')
+            with self.assertRaises(ValueError):
+                for _ in range(10):
+                    clock.value+=.25;live.poll(0)
+            self.assertIsNone(backend.process);live.close()
+    def test_a_second_peer_cannot_be_prepared_while_the_gate_is_pending(self):
+        with tempfile.TemporaryDirectory() as directory:
+            live,backend,clock=self.build(Path(directory),['host_down'])
+            live.prepare_peer(31,2,10,'echo')
+            with self.assertRaises(ValueError):live.prepare_peer(31,3,1,'silent')
+            live.close()
+    def test_stopping_a_peer_that_never_started_is_a_no_op_and_clears_the_gate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            live,backend,clock=self.build(Path(directory),['host_down'])
+            live.prepare_peer(31,2,10,'echo')
+            self.assertIsNone(live.stop_peer())
+            live.prepare_peer(31,2,10,'echo');live.close()
+
 class Carrier(unittest.TestCase):
     def test_exact_carrier_status_only(self):
         from unittest.mock import patch
-        prefix='ether 00:0a:cd:41:89:cc\ninet 192.168.77.1 netmask 0xffffff00\n'
+        prefix='ether 00:24:9b:6e:f7:7f\ninet 192.168.77.1 netmask 0xffffff00\n'
         for status,event in [('status: active\n','host_up'),('status: inactive\n','host_down'),('',None),('status: unknown\n',None),('status: active\nstatus: inactive\n',None)]:
             with self.subTest(status=status),tempfile.TemporaryDirectory() as directory:
                 class Process:
@@ -147,11 +225,11 @@ class Carrier(unittest.TestCase):
 
 class DirectRoute(unittest.TestCase):
     # Synthetic examples of Apple route.c print_getmsg output; never query a NIC.
-    NETWORK='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en5\n      flags: <UP,DONE,CLONING,STATIC,IFSCOPE>\n'
-    HOST='   route to: 192.168.77.2\ndestination: 192.168.77.2\n  interface: en5\n      flags: <UP,HOST,DONE,LLINFO,WASCLONED,IFSCOPE,IFREF>\n'
+    NETWORK='   route to: 192.168.77.2\ndestination: 192.168.77.0\n       mask: 255.255.255.0\n  interface: en13\n      flags: <UP,DONE,CLONING,STATIC,IFSCOPE>\n'
+    HOST='   route to: 192.168.77.2\ndestination: 192.168.77.2\n  interface: en13\n      flags: <UP,HOST,DONE,LLINFO,WASCLONED,IFSCOPE,IFREF>\n'
     def probe(self,text,source='192.168.77.1'):
         from unittest.mock import patch
-        outputs=[f'ether 00:0a:cd:41:89:cc\ninet {source} netmask 0xffffff00\nstatus: active\n',text]
+        outputs=[f'ether 00:24:9b:6e:f7:7f\ninet {source} netmask 0xffffff00\nstatus: active\n',text]
         class Process:
             def poll(self):return 0
             def wait(self,timeout):return 0
@@ -187,8 +265,8 @@ class DirectRoute(unittest.TestCase):
                self.NETWORK.replace('192.168.77.0','0.0.0.0'),
                self.NETWORK.replace('255.255.255.0','255.255.0.0'),
                self.NETWORK.replace('route to: 192.168.77.2','route to: 192.168.77.3'),
-               self.NETWORK.replace('interface: en5','interface: en0'),
-               'interface: en5\n',self.NETWORK+'interface: en5\n',
+               self.NETWORK.replace('interface: en13','interface: en0'),
+               'interface: en13\n',self.NETWORK+'interface: en13\n',
                self.NETWORK.replace('<UP,','<'),
                self.HOST.replace('192.168.77.2\n  interface','192.168.77.3\n  interface')]
         for text in cases:
@@ -235,7 +313,7 @@ class LeaseCleanup(unittest.TestCase):
             lease=adapter.M3UARTLease({},safety);lease.verify=lambda *_:None
             serial=ModuleType('serial');serial.__path__=[];serial.Serial=lambda *_,**__:port
             tools=ModuleType('serial.tools');tools.__path__=[]
-            ports=ModuleType('serial.tools.list_ports');ports.comports=lambda:[SimpleNamespace(device='/dev/cu.usbmodem11302',serial_number=runner.UART_USB,vid=0x0d28,pid=0x0204)]
+            ports=ModuleType('serial.tools.list_ports');ports.comports=lambda:[SimpleNamespace(device='/dev/cu.usbmodem11402',serial_number=runner.UART_USB,vid=0x0d28,pid=0x0204)]
             serial.tools=tools;tools.list_ports=ports
             p,a,_,_,_=Adapter.make(self,root)
             with patch.dict(sys.modules,{'serial':serial,'serial.tools':tools,'serial.tools.list_ports':ports}),patch.object(fcntl,'ioctl',side_effect=OSError('Software injected ioctl failure')):

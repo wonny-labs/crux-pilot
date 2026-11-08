@@ -1,0 +1,2 @@
+west build --sysbuild -p always -b mimxrt1060_evk@B//qspi -d /opt/crux-cache/trial/build-b-swap-offset-build /workspaces/crux/crux-pilot/samples/controller/zephyr -- -DZEPHYR_EXTRA_MODULES=/workspaces/crux/crux-pilot -DEXTRA_ZEPHYR_MODULES=/opt/crux-cache/trial/mcuboot -DSB_CONFIG_BOOTLOADER_MCUBOOT=y -DSB_CONFIG_MCUBOOT_MODE_SWAP_USING_OFFSET=y -DSB_CONFIG_BOOT_SIGNATURE_TYPE_ECDSA_P256=y -DSB_CONFIG_BOOT_SIGNATURE_KEY_FILE=\"<DEV-KEY-PATH:/opt/crux-cache/keys/dev-ecdsa-p256.pem>\"
+west build exit: 0

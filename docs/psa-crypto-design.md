@@ -122,7 +122,7 @@ Each row uses only the [qualified subset](native-interface-policy.md#qualified-p
 | 1 | Provider selection, Wolf profile | `CONFIG_PSA_CRYPTO=y`, `CONFIG_PSA_CRYPTO_PROVIDER_CUSTOM=y`, `CONFIG_WOLFSSL=y`, `CONFIG_WOLFSSL_CURVE25519=y`, `CONFIG_ENTROPY_GENERATOR=y`, and the `PSA_WANT` symbols in [`prj.conf`](../tests/psa_crypto/zephyr/prj.conf). |
 | 1a | Provider selection, Mbed profile | `CONFIG_PSA_CRYPTO=y`, `CONFIG_PSA_CRYPTO_PROVIDER_MBEDTLS=y`, and the same `PSA_WANT` symbols, plus whatever TLS needs, which this issue did not qualify. |
 | 2 | One more wolfCrypt definition, Wolf profile | `WOLFSSL_AESGCM_STREAM`, on the module's `wolfSSL` target with those in `wolf_ssh_settings.cmake`. Without it, multipart GCM reports `NOT_SUPPORTED`, and the module's Kconfig has no option for it. |
-| 3 | PSA provider of the Access ports | `crux_access_port_derive`, `_random`, `_hmac`, as above. `_now_ms` is not PSA and also has no provider outside the tests, as #242 notes. |
+| 3 | PSA provider of the Access ports | `crux_access_port_derive`, `_random`, `_hmac`, as above. `_now_ms` is not PSA. `crux_access_time_clock`, from #242, provides it. |
 | 4 | PSA provider of the store ports | `crux_credential_port_seal`, `_open`, `_generate_key`, `_random` and `_declaration`, declaring `BASIS_DEVICE_ID_KEY`, `EVIDENCE_SOFTWARE` and no confidentiality. It needs `CONFIG_HWINFO=y`: see the device ID below. |
 | 5 | The label on what `native_sim` proves | The composition's documents and results state that its random values are test-only. See [What "real" means](#what-real-means-on-native_sim). |
 | 6 | Seed choice in tests | A test that needs values to differ between runs passes `--seed-random`. The default seed repeats every value in every run. |

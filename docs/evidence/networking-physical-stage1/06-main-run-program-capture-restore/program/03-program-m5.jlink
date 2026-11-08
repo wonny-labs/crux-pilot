@@ -1,0 +1,8 @@
+exec DisableAutoUpdateFW
+usb 602003106
+connect
+loadfile "<ws>/crux-pilot-3/build/zephyr/m5-physical-evkb-3ef758d710d4/zephyr/zephyr.bin", 0x60000000
+verifybin "<ws>/crux-pilot-3/build/zephyr/m5-physical-evkb-3ef758d710d4/zephyr/zephyr.bin", 0x60000000
+r
+g
+q

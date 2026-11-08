@@ -7,10 +7,10 @@
  * a stop however quiet the client is. No lock is held across a callback.
  */
 #include "crux_ssh_wolf_provider.h"
+#include "crux_ssh_wire.h"
 
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
-#include <zephyr/sys/byteorder.h>
 #ifdef CRUX_SSH_WOLF_TESTING
 #include <zephyr/sys/printk.h>
 #endif
@@ -77,13 +77,10 @@
 #define WOLF_REFUSALS_HELD 2
 #define WOLF_REFUSAL_HOLD_MS 500
 
-#define HOST_KEY_ED25519_BYTES 64u
-#define HOST_KEY_P256_BYTES 97u
-#define HOST_KEY_PRIVATE_BYTES 32u
+#define HOST_KEY_PRIVATE_BYTES CRUX_SSH_WIRE_HOST_KEY_PRIVATE_BYTES
 
 static const char algorithm_ed25519[] = "ssh-ed25519";
 static const char algorithm_p256[] = "ecdsa-sha2-nistp256";
-static const char curve_p256[] = "nistp256";
 
 #ifdef CRUX_SSH_WOLF_OFFER_MLKEM
 #define WOLF_KEX_LIST "mlkem768x25519-sha256,curve25519-sha256,ecdh-sha2-nistp256"
@@ -330,46 +327,23 @@ static int io_send(WOLFSSH *ssh, void *buffer, word32 size, void *context)
     return result;
 }
 
-/* ---- Authentication. These run while a packet is parsed, on the connection's worker. ---- */
+/*
+ * ---- Authentication. These run while a packet is parsed, on the connection's worker. ----
+ *
+ * The checks of crux_ssh_wire.c decide what reaches Crux, and the Host tests them. wolfSSH has
+ * already refused an empty name, and any name but the first on a connection.
+ */
 
 static bool copy_user_name(const WS_UserAuthData *data, char user[CRUX_SSH_USER_NAME_MAX + 1u])
 {
-    /* wolfSSH has already refused an empty name, and any name but the first on a connection. */
-    if (data->usernameSz == 0u || data->usernameSz > CRUX_SSH_USER_NAME_MAX ||
-        memchr(data->username, '\0', data->usernameSz) != NULL) {
-        return false;
-    }
-    memcpy(user, data->username, data->usernameSz);
-    user[data->usernameSz] = '\0';
-    return true;
+    return crux_ssh_wire_user_name(data->username, data->usernameSz, user);
 }
 
+/* The name and the blob must both be an accepted type's exact form, or no callback runs. */
 static bool key_type_of(const WS_UserAuthData_PublicKey *key, crux_ssh_key_type_t *type)
 {
-    const char *name;
-    size_t name_length;
-    uint32_t blob_name_length;
-
-    if (key->publicKeyTypeSz == sizeof(algorithm_ed25519) - 1u &&
-        memcmp(key->publicKeyType, algorithm_ed25519, key->publicKeyTypeSz) == 0) {
-        *type = CRUX_SSH_KEY_ED25519;
-        name = algorithm_ed25519;
-        name_length = sizeof(algorithm_ed25519) - 1u;
-    } else if (key->publicKeyTypeSz == sizeof(algorithm_p256) - 1u &&
-               memcmp(key->publicKeyType, algorithm_p256, key->publicKeyTypeSz) == 0) {
-        *type = CRUX_SSH_KEY_ECDSA_P256;
-        name = algorithm_p256;
-        name_length = sizeof(algorithm_p256) - 1u;
-    } else {
-        return false;
-    }
-    /* The blob must say the same. A mismatch would be refused later, with a less exact result. */
-    if (key->publicKeySz < sizeof(uint32_t) + name_length) {
-        return false;
-    }
-    blob_name_length = sys_get_be32(key->publicKey);
-    return blob_name_length == name_length &&
-           memcmp(key->publicKey + sizeof(uint32_t), name, name_length) == 0;
+    return crux_ssh_wire_user_key(key->publicKeyType, key->publicKeyTypeSz, key->publicKey,
+                                  key->publicKeySz, type);
 }
 
 static int check_password(connection_t *connection, const char *user,
@@ -446,30 +420,18 @@ static bool request_is(const byte *type, word32 type_length, const char *name)
     return type_length == strlen(name) && memcmp(type, name, type_length) == 0;
 }
 
-/* The string at the start of a request's data, which must fill it. */
-static bool parse_string(const byte *data, word32 data_length, const byte **text, word32 *length)
-{
-    if (data_length < sizeof(uint32_t)) {
-        return false;
-    }
-    *length = sys_get_be32(data);
-    *text = data + sizeof(uint32_t);
-    return *length == data_length - sizeof(uint32_t);
-}
-
 static int session_request(connection_t *connection, request_t request, const byte *data,
                            word32 data_length)
 {
-    const byte *text = NULL;
-    word32 length = 0;
+    const uint8_t *command = NULL;
+    size_t command_length = 0u;
 
     if (request == REQUEST_EXEC &&
-        (!parse_string(data, data_length, &text, &length) || length > CRUX_SSH_WOLF_COMMAND_MAX ||
-         memchr(text, '\0', length) != NULL)) {
+        !crux_ssh_wire_exec_command(data, data_length, CRUX_SSH_WOLF_COMMAND_MAX, &command,
+                                    &command_length)) {
         return WOLFSSH_REQ_REJECT;
     }
-    if (request == REQUEST_SFTP && (!parse_string(data, data_length, &text, &length) ||
-                                    length != 4u || memcmp(text, "sftp", 4u) != 0)) {
+    if (request == REQUEST_SFTP && !crux_ssh_wire_subsystem_is_sftp(data, data_length)) {
         return WOLFSSH_REQ_REJECT;
     }
     connection->request = request;
@@ -1110,13 +1072,15 @@ static bool p256_parts_agree(const crux_ssh_config_t *config)
 
 static bool load_host_key(const crux_ssh_config_t *config)
 {
+    if (!crux_ssh_wire_host_key_form(config->host_key_type, config->host_key,
+                                     config->host_key_length)) {
+        return false;
+    }
     if (config->host_key_type == CRUX_SSH_KEY_ED25519) {
-        return config->host_key_length == HOST_KEY_ED25519_BYTES && ed25519_parts_agree(config) &&
-               load_ed25519_host_key(config) == WS_SUCCESS &&
+        return ed25519_parts_agree(config) && load_ed25519_host_key(config) == WS_SUCCESS &&
                wolfSSH_CTX_SetAlgoListKey(server.ctx, algorithm_ed25519) == WS_SUCCESS;
     }
-    return config->host_key_length == HOST_KEY_P256_BYTES && p256_parts_agree(config) &&
-           load_p256_host_key(config) == WS_SUCCESS &&
+    return p256_parts_agree(config) && load_p256_host_key(config) == WS_SUCCESS &&
            wolfSSH_CTX_SetAlgoListKey(server.ctx, algorithm_p256) == WS_SUCCESS;
 }
 
@@ -1269,62 +1233,26 @@ const crux_ssh_provider_t *crux_ssh_wolf_provider(void)
 
 /* ---- Fingerprint. ---- */
 
-static uint8_t *put_string(uint8_t *at, const void *text, size_t length)
-{
-    sys_put_be32((uint32_t)length, at);
-    memcpy(at + sizeof(uint32_t), text, length);
-    return at + sizeof(uint32_t) + length;
-}
-
-static void base64_without_padding(const uint8_t *data, size_t length, char *out)
-{
-    static const char alphabet[] =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    uint32_t bits = 0u;
-    unsigned bit_count = 0u;
-
-    for (size_t i = 0; i < length; ++i) {
-        bits = (bits << 8u) | data[i];
-        bit_count += 8u;
-        while (bit_count >= 6u) {
-            bit_count -= 6u;
-            *out++ = alphabet[(bits >> bit_count) & 0x3fu];
-        }
-    }
-    if (bit_count > 0u) {
-        *out++ = alphabet[(bits << (6u - bit_count)) & 0x3fu];
-    }
-    *out = '\0';
-}
+BUILD_ASSERT(CRUX_SSH_WOLF_FINGERPRINT_SIZE == CRUX_SSH_WIRE_FINGERPRINT_SIZE);
+BUILD_ASSERT(WC_SHA256_DIGEST_SIZE == CRUX_SSH_WIRE_DIGEST_BYTES);
 
 crux_status_t crux_ssh_wolf_host_key_fingerprint(crux_ssh_key_type_t type, const uint8_t *host_key,
                                                  size_t host_key_length, char *fingerprint,
                                                  size_t size)
 {
-    uint8_t blob[4u + sizeof(algorithm_p256) - 1u + 4u + sizeof(curve_p256) - 1u + 4u + 65u];
+    uint8_t blob[CRUX_SSH_WIRE_KEY_BLOB_MAX];
     uint8_t digest[WC_SHA256_DIGEST_SIZE];
-    uint8_t *at = blob;
-    static const char label[] = "SHA256:";
+    size_t blob_length = 0u;
 
-    if (host_key == NULL || fingerprint == NULL || size < CRUX_SSH_WOLF_FINGERPRINT_SIZE) {
+    if (host_key == NULL || fingerprint == NULL || size < CRUX_SSH_WOLF_FINGERPRINT_SIZE ||
+        !crux_ssh_wire_host_key_blob(type, host_key, host_key_length, blob, sizeof(blob),
+                                     &blob_length)) {
         return CRUX_ERR_INVALID_ARGUMENT;
     }
-    if (type == CRUX_SSH_KEY_ED25519 && host_key_length == HOST_KEY_ED25519_BYTES) {
-        at = put_string(at, algorithm_ed25519, sizeof(algorithm_ed25519) - 1u);
-        at = put_string(at, host_key + HOST_KEY_PRIVATE_BYTES, 32u);
-    } else if (type == CRUX_SSH_KEY_ECDSA_P256 && host_key_length == HOST_KEY_P256_BYTES) {
-        at = put_string(at, algorithm_p256, sizeof(algorithm_p256) - 1u);
-        at = put_string(at, curve_p256, sizeof(curve_p256) - 1u);
-        at = put_string(at, host_key + HOST_KEY_PRIVATE_BYTES, 65u);
-    } else {
-        return CRUX_ERR_INVALID_ARGUMENT;
-    }
-    if (wc_Sha256Hash(blob, (word32)(at - blob), digest) != 0) {
+    if (wc_Sha256Hash(blob, (word32)blob_length, digest) != 0) {
         return CRUX_ERR_IO;
     }
-    memcpy(fingerprint, label, sizeof(label) - 1u);
-    base64_without_padding(digest, sizeof(digest), fingerprint + sizeof(label) - 1u);
-    return CRUX_OK;
+    return crux_ssh_wire_fingerprint_text(digest, fingerprint, size) ? CRUX_OK : CRUX_ERR_IO;
 }
 
 #ifdef CRUX_SSH_WOLF_TESTING

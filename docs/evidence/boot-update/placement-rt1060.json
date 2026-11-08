@@ -1,0 +1,129 @@
+{
+  "scope": "RT1060-EVKB Rev B standalone and XIP compositions, read-only re-verification of Flash placement",
+  "crux_pilot_origin_main": "f67e22a5bf49874aab18f2dbde7ac239fec689d8",
+  "zephyr_revision": "684c9e8f32e4373a21098559f748f06915f950c9",
+  "latest_main_ci_run": {
+    "run_id": 41351833959,
+    "workflow": "zephyr-software",
+    "head_sha": "f67e22a5bf49874aab18f2dbde7ac239fec689d8",
+    "artifact": "zephyr-41351833959-1",
+    "artifact_id": 13103136355,
+    "artifact_status": "listed, not expired; download refused (HTTP 403 from blob host, egress proxy connect_rejected); not read",
+    "retained_files_per_workflow": "zephyr/.config and zephyr/zephyr.dts for EVKB direct cross-builds; zephyr/zephyr.map for system-evkb (.github/workflows/zephyr.yml lines 196 to 215)"
+  },
+  "upstream_partitions": {
+    "source": "boards/nxp/mimxrt1060_evk/mimxrt1060_evk_mimxrt1062_qspi.dts at 684c9e8 (raw GitHub); chosen code-partition at line 13; partition nodes lines 53 to 71",
+    "mcuboot": {"start": "0x000000", "end_exclusive": "0x020000", "dts_label": "mcuboot", "dts_node": "boot_partition", "lines": "53-56"},
+    "image-0": {"start": "0x020000", "end_exclusive": "0x320000", "dts_label": "image-0", "dts_node": "slot0_partition", "lines": "58-61"},
+    "image-1": {"start": "0x320000", "end_exclusive": "0x620000", "dts_label": "image-1", "dts_node": "slot1_partition", "lines": "63-66"},
+    "storage": {"start": "0x620000", "end_exclusive": "0x800000", "dts_label": "storage", "dts_node": "storage_partition", "lines": "68-71"},
+    "chosen_code_partition": "slot0_partition (image-0)"
+  },
+  "compositions": [
+    {
+      "id": "reference-normal",
+      "board_target": "mimxrt1060_evk@B/mimxrt1062/qspi (CONFIG_BOARD=mimxrt1060_evk, CONFIG_BOARD_REVISION=B, CONFIG_SOC=mimxrt1062)",
+      "build_baseline": "fd9e341ed4c49654a8498198627a84092aad912c (historical, not current main)",
+      "source": "docs/evidence/storage-configuration/verification.json, .builds.reference-normal (committed record)",
+      "config_values": {
+        "CONFIG_FLASH_LOAD_OFFSET": "0",
+        "CONFIG_USE_DT_CODE_PARTITION": "n",
+        "CONFIG_BOOTLOADER_MCUBOOT": "n",
+        "CONFIG_NXP_IMXRT_BOOT_HEADER": "y",
+        "CONFIG_XIP": "y",
+        "CONFIG_FLASH_LOAD_SIZE": "0",
+        "CONFIG_FLASH_BASE_ADDRESS": "0x60000000",
+        "CONFIG_FLASH_SIZE": "8192",
+        "CONFIG_FLASH": "n"
+      },
+      "config_sha256": "c505bab731ee102c53017493c1ea33f78464f78bc9e18ade177b87753593337f",
+      "config_file_committed": false,
+      "elf_sha256": "45aa7d6040adb1ffff250ea496c22c89874af9d8c61f080179ce681120d18fb6",
+      "map_sha256": "31729d6aadafb6a586b4fc8b939731b03d91f6e2e7dbc0b9b51bc4e22f266e1e",
+      "boot_addresses": {
+        "qspi_flash_config_fcb": "0x60000000",
+        "image_vector_table_ivt": "0x60001000",
+        "boot_data": "0x60001020",
+        "dcd_data": "0x60001030",
+        "source": "same record, .builds.reference-normal.selected_symbols"
+      },
+      "flash_load_segments": [
+        {"p_vaddr": "0x60000000", "p_paddr_lma": "0x60000000", "p_filesz": "0x1a1b0", "note": "Flash code and rodata"},
+        {"p_vaddr": "0x80000000", "p_paddr_lma": "0x6001a1b0", "p_filesz": "0x3ac", "note": "RAM data, LMA in Flash"},
+        {"p_vaddr": "0x6001a55c", "p_paddr_lma": "0x6001a55c", "p_filesz": "0x4", "note": "Flash"}
+      ],
+      "highest_flash_load_end_exclusive": "0x6001a560",
+      "bin_bytes": 107872,
+      "bin_bytes_check": "0x1a1b0 + 0x3ac + 0x4 = 0x1a560 = 107872, consistent",
+      "exceeds_128_KiB": false,
+      "evidence_status": "Verified by artefact (committed build-output record, baseline fd9e341; .config not committed, so the hash cannot be re-checked)"
+    },
+    {
+      "id": "execution_runtime",
+      "board_target": "mimxrt1060_evk@B//qspi (per map label; exact composition command not recorded in map)",
+      "source": "docs/evidence/m5-execution/execution_runtime-evkb.map.gz (decompressed locally; origin/main efd40de; qualification source b9df57d per docs/evidence/m5-execution/README.md)",
+      "config_values": {
+        "CONFIG_FLASH_LOAD_OFFSET": null,
+        "CONFIG_USE_DT_CODE_PARTITION": null,
+        "CONFIG_BOOTLOADER_MCUBOOT": null,
+        "CONFIG_NXP_IMXRT_BOOT_HEADER": null,
+        "reason": "Map does not contain Kconfig values. The README says *-evkb.config is retained locally only, and it is not in the repository."
+      },
+      "effective_rom_start": "0x60000000 (map lines 1873 to 1874)",
+      "boot_addresses": {
+        "qspi_flash_config_fcb": "0x60000000 (map line 1880)",
+        "image_vector_table_ivt": "0x60001000 (map line 1884)",
+        "boot_data": "0x60001020 (map lines 1887 to 1888)",
+        "dcd_data": "0x60001030, size 0x410 (map lines 1891 to 1893)"
+      },
+      "flash_used_bytes": "0xd148 (map line 5065, _flash_used)",
+      "highest_flash_load_end_exclusive": "0x6000d148 (LOADADDR(.last_section) 0x6000d144 + size 4; map line 5062)",
+      "rom_region_end_aligned": "0x60010000 (map line 3758, power-of-two alignment)",
+      "exceeds_128_KiB": false,
+      "evidence_status": "Verified by artefact (map). CONFIG values Not verified."
+    },
+    {
+      "id": "portable_execution",
+      "board_target": "mimxrt1060_evk@B//qspi (per map label; exact composition command not recorded in map)",
+      "source": "docs/evidence/m5-execution/portable_execution-evkb.map.gz (decompressed locally; origin/main efd40de; qualification source b9df57d)",
+      "config_values": {
+        "CONFIG_FLASH_LOAD_OFFSET": null,
+        "CONFIG_USE_DT_CODE_PARTITION": null,
+        "CONFIG_BOOTLOADER_MCUBOOT": null,
+        "CONFIG_NXP_IMXRT_BOOT_HEADER": null,
+        "reason": "As for execution_runtime: no .config in the repository."
+      },
+      "effective_rom_start": "0x60000000 (map lines 1891 to 1892)",
+      "boot_addresses": {
+        "qspi_flash_config_fcb": "0x60000000 (map line 1898)",
+        "image_vector_table_ivt": "0x60001000 (map line 1902)",
+        "boot_data": "0x60001020 (map lines 1905 to 1906)",
+        "dcd_data": "0x60001030, size 0x410 (map lines 1909 to 1911)"
+      },
+      "flash_used_bytes": "0x10348 = 66376 (map line 5289, _flash_used)",
+      "highest_flash_load_end_exclusive": "0x60010348 (LOADADDR(.last_section) 0x60010344 + size 4; map line 5286)",
+      "rom_region_end_aligned": "0x60020000 (map line 3940). Power-of-two alignment of the region reaches the image-0 start, though used bytes end at 0x60010348.",
+      "exceeds_128_KiB": false,
+      "evidence_status": "Verified by artefact (map). CONFIG values Not verified."
+    }
+  ],
+  "unreconciled": [
+    {
+      "item": "Standalone image Flash size 65,964 bytes and RAM 8,448 bytes",
+      "source": "docs/platform-m1-readiness.md lines 70 to 71",
+      "status": "Not matched to any retained map or record. Neither reference-normal (107,872 bytes) nor the two EVKB maps (53,576 and 66,376 bytes used) gives this value. The composition is not identified, so it is not verified."
+    },
+    {
+      "item": "ITCM relocation Flash LMA 0x600022c0 in docs/flash-xip-evidence.md line 30 (inherited ELF I)",
+      "status": "Both EVKB maps show .itcm load address 0x600022c0 (lines 1914 and 1932), which is consistent. The inherited ELF I is a different composition, so this is cross-consistent only."
+    }
+  ],
+  "not_verified": [
+    "CONFIG_* values for execution_runtime and portable_execution (the .config is not in the repository).",
+    "Latest main CI artefact contents (.config, zephyr.dts, zephyr.map, m5-integrated-evkb provenance.json, rom.json, ram.json): artefact listed, download refused by egress policy.",
+    "Build provenance hash match for every composition (provenance JSON not retained for these maps; no map sha256 recorded).",
+    "Kconfig defaults for FLEXSPI_CONFIG_BLOCK_OFFSET and IMAGE_VECTOR_TABLE_OFFSET for mimxrt1062 (only the MIMXRT1011 default was found in soc/nxp/imxrt/imxrt10xx/Kconfig.defconfig). Effective addresses are verified, not the symbol values.",
+    "readelf -lW for the EVKB maps (load segments taken from the storage record and map output-section lines only).",
+    "Fuse/lock and ROM-recovery behaviour (out of scope for placement; noted in platform-m1-readiness.md lines 98 to 100)."
+  ]
+}

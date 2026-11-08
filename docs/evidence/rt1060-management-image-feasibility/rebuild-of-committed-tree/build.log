@@ -1,0 +1,580 @@
+ninja: Entering directory `/build/head_a0ef59db'
+[0/2] Re-checking globbed directories...
+[1/550] Generating include/generated/zephyr/version.h
+-- git describe failed: fatal: not a git repository (or any parent up to mount point /)
+Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).
+-- Zephyr version: 4.4.2 (/build/zephyr-wolf)
+[2/550] Packaging the web folder of app
+web assets: 1 files, 186 bytes served (compressed), style strict
+  /index.html                              gzip     revalidate      238 ->      186
+largest asset that fits: 98304 bytes (CONFIG_CRUX_WEB_RESPONSE_DEADLINE_MS 3000 ms at 32768 bytes/s)
+[3/550] Preparing syscall dependency handling
+
+[4/550] Generating misc/generated/syscalls_subdirs.trigger
+[5/550] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[6/550] Generating include/generated/zephyr/driver-validation.h
+[7/550] Generating include/generated/zephyr/syscall_dispatch.c, include/generated/zephyr/syscall_exports_llext.c, syscall_weakdefs_llext.c, include/generated/zephyr/syscall_list.h
+[8/550] Generating include/generated/device-api-sections.ld, include/generated/device-api-sections.cmake
+[9/550] Generating include/generated/zephyr/kobj-types-enum.h, include/generated/zephyr/otype-to-str.h, include/generated/zephyr/otype-to-size.h
+[10/550] Building C object zephyr/lib/heap/CMakeFiles/heap_constants.dir/heap_constants.c.obj
+[11/550] Generating ../../include/generated/zephyr/heap_constants.h
+[12/550] Building C object zephyr/CMakeFiles/offsets.dir/arch/arm/core/offsets/offsets.c.obj
+[13/550] Generating include/generated/zephyr/offsets.h
+[14/550] Building C object CMakeFiles/crux_ssh_entries.dir/ws/crux-pilot/components/ssh/src/crux_ssh_callbacks.c.obj
+[15/550] Building C object CMakeFiles/crux_ssh_entries.dir/ws/crux-pilot/components/ssh/access/crux_ssh_access.c.obj
+[16/550] Building C object CMakeFiles/crux_ssh_entries.dir/ws/crux-pilot/components/ssh/cli/crux_ssh_cli.c.obj
+[17/550] Building C object CMakeFiles/crux_ssh_entries.dir/ws/crux-pilot/components/ssh/sftp/crux_ssh_sftp.c.obj
+[18/550] Building C object CMakeFiles/crux_ssh_sftp_port.dir/ws/crux-pilot/components/ssh/sftp/port/crux_ssh_sftp_port.c.obj
+[19/550] Building C object CMakeFiles/crux_ssh_wolf_provider.dir/ws/crux-pilot/components/ssh/src/crux_ssh_wire.c.obj
+[20/550] Building C object CMakeFiles/crux_ssh_wolf_provider.dir/ws/crux-pilot/components/ssh/ports/zephyr/crux_ssh_wolf_provider.c.obj
+[21/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/libc/validate_libc.c.obj
+[22/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/hash/hash_func32_djb2.c.obj
+[23/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/hash/hash_func32_murmur3.c.obj
+[24/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/heap/heap.c.obj
+[25/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/heap/heap_stats.c.obj
+[26/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/clock.c.obj
+[27/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_packaged.c.obj
+[28/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/printk.c.obj
+[29/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/sem.c.obj
+[30/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/thread_entry.c.obj
+[31/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_complete.c.obj
+[32/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/assert.c.obj
+[33/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/mpsc_pbuf.c.obj
+[34/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/reboot.c.obj
+[35/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/dec.c.obj
+[36/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/hex.c.obj
+[37/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/set.c.obj
+[38/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/rb.c.obj
+[39/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/timeutil.c.obj
+[40/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/bitmask.c.obj
+[41/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/bitarray.c.obj
+[42/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt.c.obj
+[43/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/getopt/getopt_common.c.obj
+[44/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/last_section_id.c.obj
+[45/550] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/ring_buffer.c.obj
+[46/550] Building C object zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj
+[47/550] Building C object zephyr/CMakeFiles/zephyr.dir/soc/nxp/imxrt/mpu_regions.c.obj
+[48/550] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_core.c.obj
+[49/550] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_mgmt.c.obj
+[50/550] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_cache.c.obj
+[51/550] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_msg.c.obj
+[52/550] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/log_output.c.obj
+[53/550] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/logging/backends/log_backend_uart.c.obj
+[54/550] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/mem_mgmt/mem_attr.c.obj
+[55/550] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/tracing/tracing_none.c.obj
+[56/550] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/disk/disk_access.c.obj
+[57/550] Generating linker_zephyr_pre0.cmd
+[58/550] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/net/lib/utils/addr_utils.c.obj
+[59/550] Linking C static library zephyr/libzephyr.a
+[60/550] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/sw_isr_common.c.obj
+[61/550] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/init.c.obj
+[62/550] Building C object zephyr/arch/common/CMakeFiles/isr_tables.dir/isr_tables.c.obj
+[63/550] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/xip.c.obj
+[64/550] Linking C static library zephyr/arch/common/libisr_tables.a
+[65/550] Linking C static library zephyr/arch/common/libarch__common.a
+[66/550] Building C object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/fatal.c.obj
+[67/550] Building ASM object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/nmi_on_reset.S.obj
+[68/550] Building C object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/nmi.c.obj
+[69/550] Building C object zephyr/arch/arch/arm/core/CMakeFiles/arch__arm__core.dir/tls.c.obj
+[70/550] Linking C static library zephyr/arch/arch/arm/core/libarch__arm__core.a
+[71/550] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/fault_s.S.obj
+[72/550] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/fault.c.obj
+[73/550] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/reset.S.obj
+[74/550] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/fpu.c.obj
+[75/550] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/vector_table.S.obj
+[76/550] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/svc.S.obj
+[77/550] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/scb.c.obj
+[78/550] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/prep_c.c.obj
+[79/550] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/irq_manage.c.obj
+[80/550] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/cpu_idle.c.obj
+[81/550] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/thread.c.obj
+[82/550] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/exc_exit.c.obj
+[83/550] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/thread_abort.c.obj
+[84/550] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/swap_helper.S.obj
+[85/550] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/irq_init.c.obj
+[86/550] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/isr_wrapper.c.obj
+[87/550] Building ASM object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/__aeabi_read_tp.S.obj
+[88/550] Building C object zephyr/arch/arch/arm/core/mpu/CMakeFiles/arch__arm__core__mpu.dir/arm_core_mpu.c.obj
+[89/550] Building C object zephyr/arch/arch/arm/core/cortex_m/CMakeFiles/arch__arm__core__cortex_m.dir/cache.c.obj
+[90/550] Linking C static library zephyr/arch/arch/arm/core/cortex_m/libarch__arm__core__cortex_m.a
+[91/550] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/assert.c.obj
+[92/550] Building C object zephyr/arch/arch/arm/core/mpu/CMakeFiles/arch__arm__core__mpu.dir/arm_mpu.c.obj
+[93/550] Linking C static library zephyr/arch/arch/arm/core/mpu/libarch__arm__core__mpu.a
+[94/550] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/cbprintf.c.obj
+[95/550] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/chk_fail.c.obj
+[96/550] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/errno_wrap.c.obj
+[97/550] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/exit.c.obj
+[98/550] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/locks.c.obj
+[99/550] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/stdio.c.obj
+[100/550] Linking C static library zephyr/lib/libc/picolibc/liblib__libc__picolibc.a
+[101/550] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/stdlib/abort.c.obj
+[102/550] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/time/time.c.obj
+[103/550] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/stdlib/malloc.c.obj
+[104/550] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/stdio/remove.c.obj
+[105/550] Linking C static library zephyr/lib/libc/common/liblib__libc__common.a
+[106/550] Building C object zephyr/lib/posix/eventfd/CMakeFiles/lib__posix__eventfd.dir/eventfd.c.obj
+[107/550] Building C object zephyr/lib/posix/c_lib_ext/CMakeFiles/lib__posix__c_lib_ext.dir/fnmatch.c.obj
+[108/550] Linking C static library zephyr/lib/posix/eventfd/liblib__posix__eventfd.a
+[109/550] Building C object zephyr/lib/posix/c_lib_ext/CMakeFiles/lib__posix__c_lib_ext.dir/getopt_shim.c.obj
+[110/550] Building C object zephyr/lib/posix/c_lib_ext/CMakeFiles/lib__posix__c_lib_ext.dir/getentropy.c.obj
+[111/550] Generating ../../../include/generated/posix/strsignal_table.h
+[112/550] Linking C static library zephyr/lib/posix/c_lib_ext/liblib__posix__c_lib_ext.a
+[113/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/aio.c.obj
+[114/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/barrier.c.obj
+[115/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/clock_selection.c.obj
+[116/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/perror.c.obj
+[117/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/device_io.c.obj
+[118/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/fd_mgmt.c.obj
+[119/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/file_system_r.c.obj
+[120/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/fs.c.obj
+[121/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/mprotect.c.obj
+[122/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/sleep.c.obj
+[123/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/mmap.c.obj
+[124/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/multi_process.c.obj
+[125/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/net.c.obj
+[126/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/signal.c.obj
+[127/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/confstr.c.obj
+[128/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/env.c.obj
+[129/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/sysconf.c.obj
+[130/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/env_common.c.obj
+[131/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/uname.c.obj
+[132/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/spinlock.c.obj
+[133/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/clock.c.obj
+[134/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/timespec_to_timeout.c.obj
+[135/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/timer.c.obj
+[136/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/rwlock.c.obj
+[137/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/semaphore.c.obj
+[138/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/grp.c.obj
+[139/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/cond.c.obj
+[140/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/key.c.obj
+[141/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/mutex.c.obj
+[142/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/pwd.c.obj
+[143/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/pthread.c.obj
+[144/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/fsync.c.obj
+[145/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/mlockall.c.obj
+[146/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/mlock.c.obj
+[147/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/shm.c.obj
+[148/550] Building C object zephyr/lib/posix/options/CMakeFiles/lib__posix__options.dir/xsi_single_process.c.obj
+[149/550] Linking C static library zephyr/lib/posix/options/liblib__posix__options.a
+[150/550] Building C object zephyr/lib/net_buf/CMakeFiles/lib__net_buf.dir/buf.c.obj
+[151/550] Building C object zephyr/lib/net_buf/CMakeFiles/lib__net_buf.dir/buf_simple.c.obj
+[152/550] Linking C static library zephyr/lib/net_buf/liblib__net_buf.a
+[153/550] Building C object zephyr/lib/os/zvfs/CMakeFiles/lib__os__zvfs.dir/zvfs_fdtable.c.obj
+[154/550] Building C object zephyr/lib/os/zvfs/CMakeFiles/lib__os__zvfs.dir/zvfs_file_vmethods.c.obj
+[155/550] Building C object zephyr/lib/os/zvfs/CMakeFiles/lib__os__zvfs.dir/zvfs_eventfd.c.obj
+[156/550] Building C object zephyr/lib/os/zvfs/CMakeFiles/lib__os__zvfs.dir/zvfs_poll.c.obj
+[157/550] Building C object zephyr/lib/os/zvfs/CMakeFiles/lib__os__zvfs.dir/zvfs_select.c.obj
+[158/550] Linking C static library zephyr/lib/os/zvfs/liblib__os__zvfs.a
+[159/550] Building C object zephyr/soc/soc/mimxrt1062/imxrt10xx/CMakeFiles/soc__nxp__imxrt__imxrt10xx.dir/soc.c.obj
+[160/550] Building C object zephyr/boards/nxp/mimxrt1060_evk/CMakeFiles/boards__nxp__mimxrt1060_evk.dir/xip/evkbmimxrt1060_flexspi_nor_config.c.obj
+[161/550] Linking C static library zephyr/soc/soc/mimxrt1062/imxrt10xx/libsoc__nxp__imxrt__imxrt10xx.a
+[162/550] Building C object zephyr/boards/nxp/mimxrt1060_evk/CMakeFiles/boards__nxp__mimxrt1060_evk.dir/dcd/dcd.c.obj
+[163/550] Linking C static library zephyr/boards/nxp/mimxrt1060_evk/libboards__nxp__mimxrt1060_evk.a
+[164/550] Building C object zephyr/subsys/fs/CMakeFiles/subsys__fs.dir/fs_impl.c.obj
+[165/550] Building C object zephyr/subsys/fs/CMakeFiles/subsys__fs.dir/fs.c.obj
+[166/550] Building C object zephyr/subsys/fs/CMakeFiles/subsys__fs.dir/fat_fs.c.obj
+[167/550] Building C object zephyr/subsys/random/CMakeFiles/subsys__random.dir/random_xoshiro128.c.obj
+[168/550] Linking C static library zephyr/subsys/fs/libsubsys__fs.a
+[169/550] Building C object zephyr/subsys/random/CMakeFiles/subsys__random.dir/random_psa.c.obj
+[170/550] Linking C static library zephyr/subsys/random/libsubsys__random.a
+[171/550] Building C object zephyr/subsys/sd/CMakeFiles/subsys__sd.dir/sd.c.obj
+[172/550] Building C object zephyr/subsys/sd/CMakeFiles/subsys__sd.dir/sdmmc.c.obj
+[173/550] Building C object zephyr/subsys/sd/CMakeFiles/subsys__sd.dir/sd_ops.c.obj
+[174/550] Linking C static library zephyr/subsys/sd/libsubsys__sd.a
+[175/550] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/hostname.c.obj
+[176/550] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/sockets/getaddrinfo.c.obj
+[177/550] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/sockets/sockets_misc.c.obj
+[178/550] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/sockets/sockets.c.obj
+[179/550] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/sockets/getnameinfo.c.obj
+[180/550] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/sockets/sockets_inet.c.obj
+[181/550] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/sockets/sockets_tls.c.obj
+[182/550] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/sockets/socketpair.c.obj
+[183/550] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/tls_credentials/tls_credentials_digest_raw.c.obj
+[184/550] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/tls_credentials/tls_credentials.c.obj
+[185/550] Linking C static library zephyr/subsys/net/libsubsys__net.a
+[186/550] Building C object zephyr/subsys/net/l2/ethernet/CMakeFiles/subsys__net__l2__ethernet.dir/ethernet.c.obj
+[187/550] Building C object zephyr/subsys/net/l2/ethernet/CMakeFiles/subsys__net__l2__ethernet.dir/arp.c.obj
+[188/550] Linking C static library zephyr/subsys/net/l2/ethernet/libsubsys__net__l2__ethernet.a
+[189/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/net_core.c.obj
+[190/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/net_timeout.c.obj
+[191/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/net_if.c.obj
+[192/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/utils.c.obj
+[193/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/net_pkt.c.obj
+[194/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/net_context.c.obj
+[195/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/net_tc.c.obj
+[196/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/icmp.c.obj
+[197/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/connection.c.obj
+[198/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/icmpv4.c.obj
+[199/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/ipv4.c.obj
+[200/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/udp.c.obj
+[201/550] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/tcp.c.obj
+[202/550] Building C object zephyr/subsys/net/lib/http/CMakeFiles/subsys__net__lib__http.dir/http_parser.c.obj
+[203/550] Linking C static library zephyr/subsys/net/ip/libsubsys__net__ip.a
+[204/550] Building C object zephyr/subsys/net/lib/http/CMakeFiles/subsys__net__lib__http.dir/http_parser_url.c.obj
+[205/550] Building C object zephyr/subsys/net/lib/http/CMakeFiles/subsys__net__lib__http.dir/http_server_core.c.obj
+[206/550] Building C object zephyr/subsys/net/lib/http/CMakeFiles/subsys__net__lib__http.dir/http_server_http1.c.obj
+[207/550] Linking C static library zephyr/subsys/net/lib/http/libsubsys__net__lib__http.a
+[208/550] Building C object zephyr/drivers/disk/CMakeFiles/drivers__disk.dir/sdmmc_subsys.c.obj
+[209/550] Linking C static library zephyr/drivers/disk/libdrivers__disk.a
+[210/550] Building C object zephyr/drivers/misc/nxp_flexram/CMakeFiles/drivers__misc__nxp_flexram.dir/nxp_flexram.c.obj
+[211/550] Linking C static library zephyr/drivers/misc/nxp_flexram/libdrivers__misc__nxp_flexram.a
+[212/550] Building C object zephyr/drivers/clock_control/CMakeFiles/drivers__clock_control.dir/clock_control_mcux_ccm.c.obj
+[213/550] Linking C static library zephyr/drivers/clock_control/libdrivers__clock_control.a
+[214/550] Building C object zephyr/drivers/console/CMakeFiles/drivers__console.dir/uart_console.c.obj
+[215/550] Linking C static library zephyr/drivers/console/libdrivers__console.a
+[216/550] Building C object zephyr/drivers/entropy/CMakeFiles/drivers__entropy.dir/entropy_mcux_trng.c.obj
+[217/550] Linking C static library zephyr/drivers/entropy/libdrivers__entropy.a
+[218/550] Building C object zephyr/drivers/ethernet/CMakeFiles/drivers__ethernet.dir/mdio/mdio_nxp_enet.c.obj
+[219/550] Building C object zephyr/drivers/ethernet/CMakeFiles/drivers__ethernet.dir/phy/phy_microchip_ksz8081.c.obj
+[220/550] Building C object zephyr/drivers/ethernet/CMakeFiles/drivers__ethernet.dir/eth_nxp_enet.c.obj
+[221/550] Linking C static library zephyr/drivers/ethernet/libdrivers__ethernet.a
+[222/550] Building C object zephyr/drivers/hwinfo/CMakeFiles/drivers__hwinfo.dir/hwinfo_weak_impl.c.obj
+[223/550] Building C object zephyr/drivers/gpio/CMakeFiles/drivers__gpio.dir/gpio_mcux_igpio.c.obj
+[224/550] Linking C static library zephyr/drivers/gpio/libdrivers__gpio.a
+[225/550] Building C object zephyr/drivers/hwinfo/CMakeFiles/drivers__hwinfo.dir/hwinfo_imxrt.c.obj
+[226/550] Building C object zephyr/drivers/hwinfo/CMakeFiles/drivers__hwinfo.dir/hwinfo_mcux_src.c.obj
+[227/550] Linking C static library zephyr/drivers/hwinfo/libdrivers__hwinfo.a
+[228/550] Building C object zephyr/drivers/pinctrl/CMakeFiles/drivers__pinctrl.dir/common.c.obj
+[229/550] Building C object zephyr/drivers/pinctrl/CMakeFiles/drivers__pinctrl.dir/pinctrl_imx.c.obj
+[230/550] Linking C static library zephyr/drivers/pinctrl/libdrivers__pinctrl.a
+[231/550] Building C object zephyr/drivers/sdhc/CMakeFiles/drivers__sdhc.dir/imx_usdhc.c.obj
+[232/550] Linking C static library zephyr/drivers/sdhc/libdrivers__sdhc.a
+[233/550] Building C object zephyr/drivers/serial/CMakeFiles/drivers__serial.dir/uart_mcux_lpuart.c.obj
+[234/550] Linking C static library zephyr/drivers/serial/libdrivers__serial.a
+[235/550] Building C object zephyr/drivers/timer/CMakeFiles/drivers__timer.dir/sys_clock_init.c.obj
+[236/550] Building C object zephyr/drivers/timer/CMakeFiles/drivers__timer.dir/cortex_m_systick.c.obj
+[237/550] Building C object zephyr/drivers/watchdog/CMakeFiles/drivers__watchdog.dir/wdt_mcux_imx_wdog.c.obj
+[238/550] Linking C static library zephyr/drivers/timer/libdrivers__timer.a
+[239/550] Linking C static library zephyr/drivers/watchdog/libdrivers__watchdog.a
+[240/550] Building C object modules/crux-pilot/interrupt/CMakeFiles/crux_interrupt.dir/ports/zephyr/interrupt_zephyr.c.obj
+[241/550] Linking C static library modules/crux-pilot/interrupt/libcrux_interrupt.a
+[242/550] Building C object modules/crux-pilot/thread/CMakeFiles/crux_thread_zephyr.dir/ws/crux-pilot/components/thread/src/thread.c.obj
+[243/550] Generating the web route table of app
+[244/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/agent.c.obj
+[245/550] Building C object modules/crux-pilot/thread/CMakeFiles/crux_thread_zephyr.dir/ws/crux-pilot/components/thread/src/thread_sleep.c.obj
+[246/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/certman.c.obj
+[247/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/io.c.obj
+[248/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/keygen.c.obj
+[249/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/internal.c.obj
+[250/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/log.c.obj
+[251/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/misc.c.obj
+[252/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/port.c.obj
+[253/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/ossh.c.obj
+[254/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/wolfscp.c.obj
+[255/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/ssh.c.obj
+[256/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/wolfterm.c.obj
+[257/550] Building C object CMakeFiles/app.dir/ws/modules/crypto/wolfssh/src/wolfsftp.c.obj
+/ws/modules/crypto/wolfssh/src/wolfsftp.c: In function 'SFTP_SetMode':
+/ws/modules/crypto/wolfssh/src/wolfsftp.c:6187:54: warning: unused parameter 'mode' [-Wunused-parameter]
+ 6187 | static int SFTP_SetMode(void* fs, char* name, word32 mode) {
+      |                                               ~~~~~~~^~~~
+/ws/modules/crypto/wolfssh/src/wolfsftp.c: In function 'SFTP_SetModeHandle':
+/ws/modules/crypto/wolfssh/src/wolfsftp.c:6201:60: warning: unused parameter 'mode' [-Wunused-parameter]
+ 6201 | static int SFTP_SetModeHandle(void* fs, WFD handle, word32 mode) {
+      |                                                     ~~~~~~~^~~~
+/ws/modules/crypto/wolfssh/src/wolfsftp.c: In function 'wolfSSH_SFTP_Put':
+/ws/modules/crypto/wolfssh/src/wolfsftp.c:10398:26: warning: unused variable 'offset' [-Wunused-variable]
+10398 |                     long offset = state->pOfst[0];
+      |                          ^~~~~~
+[258/550] Building C object CMakeFiles/app.dir/src/mgmt_start.c.obj
+[259/550] Building C object CMakeFiles/app.dir/src/mgmt_services.c.obj
+[260/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/access/src/access.c.obj
+[261/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/access/src/access_accounts.c.obj
+[262/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/access/src/access_delay.c.obj
+[263/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/access/src/access_login.c.obj
+[264/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/access/src/access_record.c.obj
+[265/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/access/src/access_session.c.obj
+[266/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/access/src/access_clock_time.c.obj
+[267/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/access/ports/psa/access_psa.c.obj
+[268/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/src/credential_image.c.obj
+[269/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/src/credential_store.c.obj
+[270/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/access_store/credential_access_store.c.obj
+[271/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/ports/psa/credential_psa.c.obj
+[272/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/ports/zephyr/credential_device_id.c.obj
+[273/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/credential/src/credential_security_events.c.obj
+[274/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/security_event/src/security_event.c.obj
+[275/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/security_event/src/security_event_drain.c.obj
+[276/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/security_event/src/security_event_fields.c.obj
+[277/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/security_event/src/security_event_line.c.obj
+[278/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/security_event/src/security_event_access_port.c.obj
+[279/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/configuration/src/configuration.c.obj
+[280/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/configuration/src/configuration_text.c.obj
+[281/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/configuration/src/configuration_no_provider.c.obj
+[282/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/config_service/src/config_service_events.c.obj
+[283/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/config_service/src/config_service.c.obj
+[284/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/mgmt_status/src/mgmt_status.c.obj
+[285/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/mgmt_status/src/mgmt_status_json.c.obj
+[286/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/mgmt_status/src/source_system.c.obj
+[287/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/mgmt_status/src/source_time.c.obj
+[288/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/mgmt_status/src/source_netif.c.obj
+[289/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/mgmt_status/src/source_credential.c.obj
+[290/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/mgmt_status/src/source_security_events.c.obj
+[291/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/session/web_session.c.obj
+[292/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/session/web_session_attempt.c.obj
+[293/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/ports/psa/web_session_psa.c.obj
+[294/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/session/web_session_json.c.obj
+[295/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/management/web_management_save.c.obj
+[296/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/management/web_management_json.c.obj
+[297/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/management/web_management_network_json.c.obj
+[298/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/network_settings/src/network_settings.c.obj
+[299/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/network_settings/src/network_settings_check.c.obj
+[300/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/network_settings/src/network_settings_events.c.obj
+[301/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/network_settings/src/network_settings_no_apply.c.obj
+[302/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/network_settings/src/network_settings_cli.c.obj
+[303/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/tls_certificate/src/tls_certificate.c.obj
+[304/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/tls_certificate/src/tls_x509.c.obj
+[305/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/tls_certificate/src/tls_certificate_events.c.obj
+[306/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/tls_certificate/ports/psa/tls_certificate_psa.c.obj
+[307/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/cli/src/cli_commands.c.obj
+[308/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/cli/src/cli_input.c.obj
+[309/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/cli/src/cli_parse.c.obj
+[310/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/cli/src/cli_registry.c.obj
+[311/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/cli/src/cli_session.c.obj
+[312/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/cli/src/cli_security_events.c.obj
+[313/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/file_service/src/file_service_security_events.c.obj
+[314/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/file_service/src/file_service.c.obj
+[315/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/ssh/access/crux_ssh_host_key.c.obj
+[316/550] Building C object CMakeFiles/app.dir/src/ssh_target.c.obj
+[317/550] Building C object CMakeFiles/app.dir/src/main.c.obj
+[318/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/session/web_session_routes.c.obj
+[319/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/management/web_management_routes.c.obj
+[320/550] Building C object CMakeFiles/app.dir/crux_web_assets/app/crux_web_assets.c.obj
+[321/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/management/web_management_network.c.obj
+[322/550] Building C object CMakeFiles/app.dir/ws/crux-pilot/components/web/assets/web_assets.c.obj
+[323/550] Building C object CMakeFiles/app.dir/crux_web_generated/app/crux_web_routes.c.obj
+[324/550] Building C object zephyr/CMakeFiles/zephyr_pre0.dir/misc/empty_file.c.obj
+[325/550] Building C object CMakeFiles/app.dir/crux_web_generated/app/crux_web_resources.c.obj
+[326/550] Building C object modules/crux-pilot/thread/CMakeFiles/crux_thread_zephyr.dir/thread_native.c.obj
+[327/550] Linking C static library app/libapp.a
+[328/550] Linking C static library modules/crux-pilot/thread/libcrux_thread_zephyr.a
+[329/550] Building C object modules/crux-pilot/sync/CMakeFiles/crux_sync_zephyr.dir/sync_native.c.obj
+[330/550] Building C object modules/crux-pilot/sync/CMakeFiles/crux_sync_zephyr.dir/ws/crux-pilot/components/sync/src/sync.c.obj
+[331/550] Linking C static library modules/crux-pilot/sync/libcrux_sync_zephyr.a
+[332/550] Building C object modules/crux-pilot/time/CMakeFiles/crux_time_common.dir/ws/crux-pilot/components/time/src/time.c.obj
+[333/550] Building C object modules/crux-pilot/time/CMakeFiles/crux_time_common.dir/ws/crux-pilot/components/time/src/busy_wait.c.obj
+[334/550] Building C object modules/crux-pilot/time/CMakeFiles/crux_time_common.dir/ws/crux-pilot/components/time/src/time_types.c.obj
+[335/550] Building C object modules/crux-pilot/time/CMakeFiles/crux_time_common.dir/ws/crux-pilot/components/time/src/time_clock.c.obj
+[336/550] Building C object modules/crux-pilot/time/CMakeFiles/crux_time_common.dir/ws/crux-pilot/components/time/src/time_calendar.c.obj
+[337/550] Linking C static library modules/crux-pilot/time/libcrux_time_common.a
+[338/550] Building C object modules/crux-pilot/time/CMakeFiles/crux_time_zephyr.dir/time_port_zephyr.c.obj
+[339/550] Building C object modules/crux-pilot/time/CMakeFiles/crux_time_zephyr.dir/ws/crux-pilot/components/time/src/busy_wait_disabled.c.obj
+[340/550] Building C object modules/crux-pilot/time/CMakeFiles/crux_time_zephyr.dir/time_clock_zephyr.c.obj
+[341/550] Linking C static library modules/crux-pilot/time/libcrux_time_zephyr.a
+[342/550] Building C object modules/crux-pilot/netif/CMakeFiles/crux_netif_provider.dir/ws/crux-pilot/components/netif/src/netif.c.obj
+[343/550] Building C object modules/crux-pilot/logging/CMakeFiles/crux_logging_zephyr.dir/ws/crux-pilot/components/logging/src/logging.c.obj
+[344/550] Building C object modules/crux-pilot/netif/CMakeFiles/crux_netif_provider.dir/netif_zephyr.c.obj
+[345/550] Linking C static library modules/crux-pilot/netif/libcrux_netif_provider.a
+[346/550] Building C object modules/crux-pilot/logging/CMakeFiles/crux_logging_zephyr.dir/logging_zephyr.c.obj
+[347/550] Building C object modules/crux-pilot/logging/CMakeFiles/crux_logging_zephyr.dir/logging_binding.c.obj
+[348/550] Linking C static library modules/crux-pilot/logging/libcrux_logging_zephyr.a
+[349/550] Building C object modules/crux-pilot/system/CMakeFiles/crux_system_zephyr.dir/ws/crux-pilot/components/system/src/system.c.obj
+[350/550] Building C object modules/crux-pilot/system/CMakeFiles/crux_system_zephyr.dir/system_zephyr.c.obj
+[351/550] Building C object modules/crux-pilot/system/CMakeFiles/crux_system_zephyr.dir/system_binding.c.obj
+[352/550] Linking C static library modules/crux-pilot/system/libcrux_system_zephyr.a
+[353/550] Building C object modules/crux-pilot/file/CMakeFiles/crux_file_zephyr.dir/ws/crux-pilot/components/file/src/file.c.obj
+[354/550] Building C object modules/crux-pilot/file/CMakeFiles/crux_file_zephyr.dir/file_native.c.obj
+[355/550] Building C object modules/crux-pilot/web/CMakeFiles/crux_web_zephyr.dir/ws/crux-pilot/components/web/src/web_core.c.obj
+[356/550] Linking C static library modules/crux-pilot/file/libcrux_file_zephyr.a
+[357/550] Building C object modules/crux-pilot/web/CMakeFiles/crux_web_zephyr.dir/ws/crux-pilot/components/web/src/web_response.c.obj
+[358/550] Building C object modules/crux-pilot/web/CMakeFiles/crux_web_zephyr.dir/ws/crux-pilot/components/web/src/web_route.c.obj
+[359/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/zephyr_init.c.obj
+[360/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/src/crl.c.obj
+[361/550] Building C object modules/crux-pilot/web/CMakeFiles/crux_web_zephyr.dir/web_http_server.c.obj
+[362/550] Linking C static library modules/crux-pilot/web/libcrux_web_zephyr.a
+[363/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/src/dtls.c.obj
+[364/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/src/dtls13.c.obj
+[365/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/src/keys.c.obj
+[366/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/src/ocsp.c.obj
+[367/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/src/sniffer.c.obj
+[368/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/src/internal.c.obj
+[369/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/src/ssl.c.obj
+[370/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/src/tls.c.obj
+[371/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/src/wolfio.c.obj
+[372/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/src/tls13.c.obj
+[373/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/hmac.c.obj
+[374/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/random.c.obj
+[375/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/kdf.c.obj
+[376/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/rsa.c.obj
+[377/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/ecc.c.obj
+[378/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/aes.c.obj
+[379/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sha.c.obj
+[380/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sha256.c.obj
+[381/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sha512.c.obj
+[382/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/dh.c.obj
+[383/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sha3.c.obj
+[384/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/arc4.c.obj
+[385/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/cmac.c.obj
+[386/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/argon2.c.obj
+[387/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/ascon.c.obj
+[388/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/asm.c.obj
+[389/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/blake2b.c.obj
+[390/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/blake2s.c.obj
+[391/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/camellia.c.obj
+[392/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/chacha.c.obj
+[393/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/asn.c.obj
+[394/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/chacha20_poly1305.c.obj
+[395/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/coding.c.obj
+[396/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/compress.c.obj
+[397/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/cpuid.c.obj
+[398/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/cryptocb.c.obj
+[399/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/curve448.c.obj
+[400/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/curve25519.c.obj
+[401/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_mldsa.c.obj
+[402/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/des3.c.obj
+[403/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/ecc_fp.c.obj
+[404/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/dsa.c.obj
+[405/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/eccsi.c.obj
+[406/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/ed448.c.obj
+[407/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/ed25519.c.obj
+[408/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/error.c.obj
+[409/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/falcon.c.obj
+[410/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/fe_448.c.obj
+[411/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/fe_low_mem.c.obj
+[412/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/ge_448.c.obj
+[413/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/fe_operations.c.obj
+[414/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/ge_low_mem.c.obj
+[415/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/hash.c.obj
+[416/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/ge_operations.c.obj
+[417/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/integer.c.obj
+[418/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/logging.c.obj
+[419/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/md2.c.obj
+[420/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/md4.c.obj
+[421/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/md5.c.obj
+[422/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/memory.c.obj
+[423/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/pkcs7.c.obj
+[424/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/pkcs12.c.obj
+[425/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/poly1305.c.obj
+[426/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/pwdbased.c.obj
+[427/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/ripemd.c.obj
+[428/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sakke.c.obj
+[429/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/siphash.c.obj
+[430/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/signature.c.obj
+[431/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sp_arm32.c.obj
+[432/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sp_arm64.c.obj
+[433/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sp_armthumb.c.obj
+[434/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sp_c64.c.obj
+[435/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sp_cortexm.c.obj
+[436/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sp_c32.c.obj
+[437/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sp_dsp32.c.obj
+[438/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sp_x86_64.c.obj
+[439/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/sp_int.c.obj
+[440/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/srp.c.obj
+[441/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/tfm.c.obj
+[442/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_dsp.c.obj
+[443/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_keystore.c.obj
+[444/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_encrypt.c.obj
+[445/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_mlkem.c.obj
+[446/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_mlkem_poly.c.obj
+[447/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_lms.c.obj
+[448/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_lms_impl.c.obj
+[449/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_pkcs11.c.obj
+[450/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_slhdsa.c.obj
+[451/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_port.c.obj
+[452/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_xmss.c.obj
+[453/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wc_xmss_impl.c.obj
+[454/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wolfevent.c.obj
+[455/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/psa/psa.c.obj
+[456/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/wolfmath.c.obj
+[457/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/psa/psa_aes.c.obj
+[458/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/psa/psa_hash.c.obj
+[459/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/psa/psa_pkcbs.c.obj
+[460/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/st/stm32.c.obj
+[461/550] Building C object modules/wolfssl/CMakeFiles/..__..__ws__modules__crypto__wolfssl__zephyr.dir/ws/modules/crypto/wolfssl/wolfcrypt/src/port/realtek/rtl8735b.c.obj
+[462/550] Linking C static library modules/wolfssl/lib..__..__ws__modules__crypto__wolfssl__zephyr.a
+[463/550] Building C object modules/fatfs/CMakeFiles/modules__fatfs.dir/ws/modules/fs/fatfs/ff.c.obj
+[464/550] Building C object modules/fatfs/CMakeFiles/modules__fatfs.dir/zfs_diskio.c.obj
+[465/550] Building C object modules/fatfs/CMakeFiles/modules__fatfs.dir/zfs_ffsystem.c.obj
+[466/550] Building C object modules/fatfs/CMakeFiles/modules__fatfs.dir/ws/modules/fs/fatfs/option/ffunicode.c.obj
+[467/550] Linking C static library modules/fatfs/libmodules__fatfs.a
+[468/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/common/fsl_common.c.obj
+[469/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/common/fsl_common_arm.c.obj
+[470/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/gpc_1/fsl_gpc.c.obj
+[471/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/enet/fsl_enet.c.obj
+[472/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/igpio/fsl_gpio.c.obj
+[473/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/lpuart/fsl_lpuart.c.obj
+[474/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/ocotp/fsl_ocotp.c.obj
+[475/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/src/fsl_src.c.obj
+[476/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/trng/fsl_trng.c.obj
+[477/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/usdhc/fsl_usdhc.c.obj
+[478/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/wdog01/fsl_wdog.c.obj
+[479/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/drivers/cache/armv7-m7/fsl_cache.c.obj
+[480/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/system_MIMXRT1062.c.obj
+[481/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/misc_impl.c.obj
+[482/550] Building C object modules/hal_nxp/CMakeFiles/modules__hal_nxp.dir/ws/modules/hal/nxp/mcux/mcux-sdk-ng/devices/RT/RT1060/MIMXRT1062/drivers/fsl_clock.c.obj
+[483/550] Linking C static library modules/hal_nxp/libmodules__hal_nxp.a
+[484/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_aead.c.obj
+[485/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_api_stub.c.obj
+[486/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_asymmetric.c.obj
+[487/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_asymmetric_api.c.obj
+[488/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_attestation.c.obj
+[489/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_chacha20_poly1305.c.obj
+[490/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_cipher.c.obj
+[491/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_crypto.c.obj
+[492/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_ecc.c.obj
+[493/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_ed25519_ed448.c.obj
+[494/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_engine.c.obj
+[495/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_hash_engine.c.obj
+[496/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_kem.c.obj
+[497/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_key_derivation.c.obj
+[498/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_key_storage.c.obj
+[499/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_key_wrap.c.obj
+[500/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_lms_xmss.c.obj
+[501/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_mldsa.c.obj
+[502/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_mac.c.obj
+[503/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_mlkem.c.obj
+[504/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_montgomery.c.obj
+[505/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_pq.c.obj
+[506/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_random.c.obj
+[507/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_rsa.c.obj
+[508/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_store_zephyr.c.obj
+[509/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/ws/modules/crypto/wolfpsa/src/psa_xof.c.obj
+[510/550] Building C object modules/wolfpsa/CMakeFiles/..__..__ws__modules__crypto__wolfpsa__zephyr.dir/zephyr_init.c.obj
+[511/550] Linking C static library modules/wolfpsa/lib..__..__ws__modules__crypto__wolfpsa__zephyr.a
+[512/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/main_weak.c.obj
+[513/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/banner.c.obj
+[514/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/busy_wait.c.obj
+[515/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/device.c.obj
+[516/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/errno.c.obj
+[517/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/fatal.c.obj
+[518/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/init.c.obj
+[519/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/kheap.c.obj
+[520/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mem_slab.c.obj
+[521/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/version.c.obj
+[522/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/float.c.obj
+[523/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/idle.c.obj
+[524/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mailbox.c.obj
+[525/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/msg_q.c.obj
+[526/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mutex.c.obj
+[527/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/queue.c.obj
+[528/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sem.c.obj
+[529/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/stack.c.obj
+[530/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/system_work_q.c.obj
+[531/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/condvar.c.obj
+[532/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/work.c.obj
+[533/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/thread.c.obj
+[534/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sched.c.obj
+[535/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/pipe.c.obj
+[536/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeslicing.c.obj
+[537/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/thread_monitor.c.obj
+[538/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeout.c.obj
+[539/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timer.c.obj
+[540/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/poll.c.obj
+[541/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/usage.c.obj
+[542/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mempool.c.obj
+[543/550] Building C object zephyr/kernel/CMakeFiles/kernel.dir/dynamic_disabled.c.obj
+[544/550] Linking C static library zephyr/kernel/libkernel.a
+[545/550] Linking C executable zephyr/zephyr_pre0.elf
+[546/550] Generating linker.cmd
+[547/550] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[548/550] Building C object zephyr/CMakeFiles/zephyr_final.dir/misc/empty_file.c.obj
+[549/550] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[550/550] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:      601252 B         8 MB      7.17%
+             RAM:      833708 B        32 MB      2.48%
+            ITCM:           0 B       128 KB      0.00%
+            DTCM:           0 B       128 KB      0.00%
+           OCRAM:           0 B       256 KB      0.00%
+          OCRAM2:           0 B       512 KB      0.00%
+        IDT_LIST:           0 B        32 KB      0.00%
+Generating files from /build/head_a0ef59db/zephyr/zephyr.elf for board: mimxrt1060_evk/mimxrt1062/qspi

@@ -1,0 +1,4 @@
+{"event": "approved_preflight_started", "operation": "qualification_preflight_1", "monotonic": 137478.787601}
+{"event": "approved_preflight_completed", "operation": "qualification_preflight_1", "monotonic": 137484.700966}
+{"event": "approved_reset_started", "operation": "qualification_reset_1", "monotonic": 137485.921217}
+{"event": "approved_reset_completed", "operation": "qualification_reset_1", "monotonic": 137486.273961}

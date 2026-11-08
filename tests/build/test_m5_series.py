@@ -25,7 +25,7 @@ def complete():
             action='I' if not count else 'L' if seq==7 else 'P'
             writes.append(dict(monotonic=host+.0005,line=' '.join([action,str(token),str(seq)]+([str(count)] if action=='P' else [])+[str(300+seq)])+'\n'))
             if seq==8:
-                controls.extend([dict(event='cable_connect_receipt',monotonic=host+.001),dict(event='host_up',monotonic=host+.002,interface='en5'),dict(event='route',monotonic=host+.003,interface='en5',source='192.168.77.1',destination='192.168.77.2')]);host+=.004
+                controls.extend([dict(event='cable_connect_receipt',monotonic=host+.001),dict(event='host_up',monotonic=host+.002,interface='en13'),dict(event='route',monotonic=host+.003,interface='en13',source='192.168.77.1',destination='192.168.77.2')]);host+=.004
                 put(dict(event='LINK',token=token,seq=7,at=target,link=2,admin=1,address=1,ipv4=3232255234))
                 writes[-1]['monotonic']=host+.0005
             if count:
@@ -37,7 +37,7 @@ def complete():
                         if mode!='loss' or not udp:
                             peer.append(dict(event='request',clock='clock_gettime(CLOCK_MONOTONIC)',monotonic=host+.001,token=token,phase=seq,protocol='udp' if udp else 'tcp',transaction=number+1,request_hex=frame))
                             if mode=='loss':
-                                controls.extend([dict(event='cable_disconnect_cue',monotonic=host+.002),dict(event='cable_disconnect_receipt',monotonic=host+.003),dict(event='host_down',monotonic=host+.004,interface='en5')]);host+=.005
+                                controls.extend([dict(event='cable_disconnect_cue',monotonic=host+.002),dict(event='cable_disconnect_receipt',monotonic=host+.003),dict(event='host_down',monotonic=host+.004,interface='en13')]);host+=.005
                                 put(dict(event='LINK',token=token,seq=seq,at=target+1,link=1,admin=1,address=1,ipv4=3232255234))
                             peer.append(dict(event='exchange',clock='clock_gettime(CLOCK_MONOTONIC)',monotonic=host+.001,token=token,phase=seq,protocol='udp' if udp else 'tcp',transaction=number+1,request_hex=frame,response_hex=frame if mode=='echo' or (mode=='close' and udp) else ''))
                         host+=.002;target+=2000 if mode in ('silent','loss') else 10

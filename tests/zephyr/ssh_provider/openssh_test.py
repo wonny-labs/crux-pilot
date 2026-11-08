@@ -35,8 +35,8 @@ SERVER_TIMEOUT = 60
 
 
 class Image:
-    def __init__(self, binary, *arguments):
-        command = [str(binary)]
+    def __init__(self, binary, *arguments, options=(), ready=True):
+        command = [str(binary), *options]
         if arguments:
             command += ["-testargs", *arguments]
         self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -45,7 +45,8 @@ class Image:
         self.lock = threading.Lock()
         self.reader = threading.Thread(target=self._read, daemon=True)
         self.reader.start()
-        self.wait_for(r"^READY port=", SERVER_TIMEOUT)
+        if ready:
+            self.wait_for(r"^READY port=", SERVER_TIMEOUT)
 
     def _read(self):
         for line in self.process.stdout:
@@ -792,11 +793,125 @@ class Cases:
             check(result.returncode != 0, result.stdout)
 
 
+class StoredCases:
+    """An image built with CRUX_SSH_TEST_STORED_HOST_KEY: the host key comes from the credential
+    store on its PSA ports, on a disk whose host file outlives each boot. Each case boots the image
+    several times on one file, as a device restarts."""
+
+    KEY_GENERATED = r"^STORE event=credential\.key_generated record=4 "
+
+    def __init__(self, binary, client, directory):
+        self.binary = binary
+        self.client = client
+        self.directory = Path(directory)
+        self.keys = [f"key={client.blob_hex('ed25519')}"]
+
+    def boot(self, flash, *arguments, ready=True, seed=None):
+        options = [f"--flash={flash}"] + ([f"-seed={seed}"] if seed is not None else [])
+        return Image(self.binary, *self.keys, *arguments, options=options, ready=ready)
+
+    def fresh(self, name):
+        flash = self.directory / f"{name}.bin"
+        flash.unlink(missing_ok=True)
+        return flash
+
+    def scan(self, kind):
+        scan = subprocess.run(["ssh-keyscan", "-p", str(PORT), "-t", kind, HOST],
+                              capture_output=True, text=True, timeout=30, check=True)
+        return subprocess.run(["ssh-keygen", "-lf", "-"], input=scan.stdout, capture_output=True,
+                              text=True, check=False).stdout
+
+    def login(self, known_hosts, checking):
+        command = ["ssh", "-F", "/dev/null", "-p", str(PORT), "-o", f"StrictHostKeyChecking={checking}",
+                   "-o", f"UserKnownHostsFile={known_hosts}", "-o", "ConnectTimeout=20",
+                   *self.client.key_options("ed25519"), f"{USER}@{HOST}", "whoami"]
+        return subprocess.run(command, capture_output=True, timeout=60, check=False)
+
+    def case_generated_once_then_kept(self):
+        flash = self.fresh("ed25519")
+        known_hosts = self.directory / "known_hosts"
+        known_hosts.unlink(missing_ok=True)
+        with self.boot(flash, "format") as image:
+            first = image.wait_for(r"^HOST-KEY SHA256:").split()[1]
+            check(image.count(self.KEY_GENERATED) == 1, image.snapshot())
+            seen = self.scan("ed25519")
+            check(first in seen, f"printed {first}, OpenSSH saw {seen}")
+            result = self.login(known_hosts, "accept-new")
+            check(result.returncode == 0, result.stderr)
+        check(known_hosts.read_text().count("ssh-ed25519") == 1, known_hosts.read_text())
+        # A restart on the same disk: the same key, no generation, and a strict client trusts it.
+        for _ in range(2):
+            with self.boot(flash) as image:
+                again = image.wait_for(r"^HOST-KEY SHA256:").split()[1]
+                check(again == first, f"first boot {first}, later boot {again}")
+                check(image.count(self.KEY_GENERATED) == 0, image.snapshot())
+                result = self.login(known_hosts, "yes")
+                check(result.returncode == 0, result.stderr)
+                check(result.stdout == b"operator administrator\n", result.stdout)
+        # Asking for another type does not replace the stored key.
+        with self.boot(flash, "host=ecdsa") as image:
+            check(image.wait_for(r"^HOST-KEY SHA256:").split()[1] == first, image.snapshot())
+            check(image.count(self.KEY_GENERATED) == 0, image.snapshot())
+            check(first in self.scan("ed25519"), "the stored Ed25519 key was not offered")
+        # Control: a blank disk gives another key, which the strict client refuses. So the checks
+        # above would see a key generated again at boot. The test generator repeats its numbers for
+        # one seed, so every blank disk would get the same key without another seed.
+        with self.boot(self.fresh("other"), "format", seed=192) as image:
+            other = image.wait_for(r"^HOST-KEY SHA256:").split()[1]
+            check(other != first, f"two blank disks gave one key, {first}")
+            result = self.login(known_hosts, "yes")
+            check(result.returncode == 255, (result.returncode, result.stderr))
+            check(b"HOST IDENTIFICATION HAS CHANGED" in result.stderr, result.stderr)
+
+    def case_ecdsa_key_is_stored_too(self):
+        flash = self.fresh("ecdsa")
+        with self.boot(flash, "format", "host=ecdsa") as image:
+            first = image.wait_for(r"^HOST-KEY SHA256:").split()[1]
+            check(image.count(self.KEY_GENERATED) == 1, image.snapshot())
+            check(first in self.scan("ecdsa"), "OpenSSH saw another ECDSA key")
+        with self.boot(flash) as image:
+            check(image.wait_for(r"^HOST-KEY SHA256:").split()[1] == first, image.snapshot())
+            check(image.count(self.KEY_GENERATED) == 0, image.snapshot())
+            check(first in self.scan("ecdsa"), "OpenSSH saw another ECDSA key after a restart")
+
+    def case_no_store_means_no_server(self):
+        flash = self.fresh("unformatted")
+        with self.boot(flash, ready=False) as image:
+            image.wait_for(r"^EXIT 2$", SERVER_TIMEOUT)
+            check(image.count(r"^STORE medium not ready") == 1, image.snapshot())
+            check(image.count(r"^HOST-KEY unavailable") == 1, image.snapshot())
+            check(image.count(r"^READY ") == 0, image.snapshot())
+            check(image.count(self.KEY_GENERATED) == 0, image.snapshot())
+        with socket.socket() as probe:
+            probe.settimeout(2)
+            check(probe.connect_ex((HOST, PORT)) != 0, "something listens with no host key")
+
+
+def run_cases(cases, only):
+    failed = []
+    names = [name for name in dir(cases) if name.startswith("case_")]
+    names.sort(key=lambda name: getattr(type(cases), name).__code__.co_firstlineno)
+    for name in names:
+        short = name[len("case_"):]
+        if only and short not in only:
+            continue
+        started = time.monotonic()
+        try:
+            getattr(cases, name)()
+            print(f"PASS {short} ({time.monotonic() - started:.1f} s)", flush=True)
+        except Exception as error:  # A case's failure must not stop the others.
+            failed.append(short)
+            print(f"FAIL {short}: {error}", flush=True)
+    return failed
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("binary", type=Path)
     parser.add_argument("--only", action="append", default=[])
     parser.add_argument("--small-arena", action="store_true")
+    parser.add_argument("--stored-host-key", action="store_true",
+                        help="the image was built with CRUX_SSH_TEST_STORED_HOST_KEY")
     arguments = parser.parse_args()
     # A hang must end the run and say where it was, since one run stopped silently under emulation.
     faulthandler.dump_traceback_later(420, exit=True)
@@ -804,24 +919,17 @@ def main():
     print(f"Client: {version}")
     failed = []
     with tempfile.TemporaryDirectory() as directory:
+        if arguments.stored_host_key:
+            stored = StoredCases(arguments.binary.resolve(), Client(directory), directory)
+            failed = run_cases(stored, arguments.only)
+            print(f"{len(failed)} failed: {failed}" if failed else "All cases passed.")
+            return 1 if failed else 0
         cases = Cases(arguments.binary.resolve(), Client(directory))
         if arguments.small_arena:
             cases.small_arena_fails_closed()
             print("All cases passed.")
             return 0
-        names = [name for name in dir(cases) if name.startswith("case_")]
-        names.sort(key=lambda name: getattr(Cases, name).__code__.co_firstlineno)
-        for name in names:
-            short = name[len("case_"):]
-            if arguments.only and short not in arguments.only:
-                continue
-            started = time.monotonic()
-            try:
-                getattr(cases, name)()
-                print(f"PASS {short} ({time.monotonic() - started:.1f} s)", flush=True)
-            except Exception as error:  # A case's failure must not stop the others.
-                failed.append(short)
-                print(f"FAIL {short}: {error}", flush=True)
+        failed = run_cases(cases, arguments.only)
     print(f"{len(failed)} failed: {failed}" if failed else "All cases passed.")
     return 1 if failed else 0
 
