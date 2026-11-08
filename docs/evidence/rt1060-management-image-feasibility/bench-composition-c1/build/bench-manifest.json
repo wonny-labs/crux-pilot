@@ -9,7 +9,7 @@
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/bench_guard.cmake",
-      "sha256" : "52989860c1c2cf799624b505a08962b837918da50dd759059eb5ab9ade036f18"
+      "sha256" : "ae2d6e5e6a346e04e1ef4801630bb158efc4baae7c73c3628b11cfad973166fc"
     },
     {
       "path" : "tests/zephyr/management_rt1060_compile/management_target.cmake",
@@ -127,7 +127,7 @@
     "CONFIG_NET_MAX_ROUTERS" : "1",
     "CONFIG_NET_SOCKETS_TLS_MAX_CONTEXTS" : "6"
   },
-  "source_commit" : "26433622e75c9db6fe7ac2aeb4451ff05fae437f",
+  "source_commit" : "aedc35204fdadfadc564bf83508b4c41f0fa9ecc",
   "source_tree_modified" : "false",
   "sources" : 
   [
