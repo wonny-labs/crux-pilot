@@ -56,9 +56,10 @@ S2_PINNED = {
 S2_PINNED_PATHS = {'zephyr': 'zephyr', 'cmsis': 'modules/hal/cmsis', 'cmsis_6': 'modules/hal/cmsis_6',
                    'hal_nxp': 'modules/hal/nxp'}
 # The S2 build finds its modules by west module discovery (zephyr.meta lists these four besides the dependencies
-# above), so each is part of the image and is pinned exactly.
+# above), so each is part of the image and is pinned exactly. crux-pilot is the module pin of the product's main
+# (crux-controller c36f00c1); the first measured build used db5adca2, see docs/board-image-profiles.md.
 S2_MODULES = {
-    'crux-pilot': 'db5adca28bd313caaf3899e959920fac4d508699',
+    'crux-pilot': '37c92b18b44b7dfb95c2109f036f23d00f05cb4c',
     'picolibc': '01254932e8e81085817ed61fd858648584ffe37c',
     'fatfs': 'f4ead3bf4a6dab3a07d7b5f5315795c073db568d',
     'littlefs': '8f5ca347843363882619d8f96c00d8dbd88a8e79',
