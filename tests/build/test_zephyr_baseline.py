@@ -137,14 +137,15 @@ class ZephyrBaselineTest(unittest.TestCase):
 class ModuleGateTest(unittest.TestCase):
     """Evaluate the real zephyr/CMakeLists.txt, because a text check cannot see a wrong placement."""
 
-    def configure(self, settings=""):
+    def configure(self, settings="", *cache_arguments):
+        """Configure a probe project. cache_arguments are command-line -D options, as a product passes them."""
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "CMakeLists.txt").write_text(
                 'cmake_minimum_required(VERSION 3.28)\nproject(probe LANGUAGES C)\n'
                 f'include("{MOCK}")\n' + settings +
                 f'add_subdirectory("{REPO}/zephyr" zephyr-module)\n')
-            return subprocess.run([CMAKE, "-S", str(root), "-B", str(root / "build")],
+            return subprocess.run([CMAKE, "-S", str(root), "-B", str(root / "build"), *cache_arguments],
                                   capture_output=True, text=True)
 
     @staticmethod
@@ -185,6 +186,49 @@ class ModuleGateTest(unittest.TestCase):
                 self.assertNotEqual(0, result.returncode, output)
                 self.assertIn("CMake Error", output)
                 self.assertIn(CANNOT_READ, output)
+
+    def test_the_option_on_the_command_line_is_never_reported_unused(self):
+        # CMake reports a -D option that no code read. The gate reads it only for a finding, so it
+        # must count the option as used on every path, or a product sees the notice on a clean build.
+        paths = {
+            "matching": "",
+            "another release": "set(KERNEL_PATCHLEVEL 99)\n",
+            "unreadable": "unset(KERNEL_PATCHLEVEL)\n",
+        }
+        for name, settings in paths.items():
+            for value in ("ON", "OFF"):
+                if value == "ON" and name != "matching":
+                    continue  # the option makes these stop the build, which the next test covers
+                with self.subTest(path=name, value=value):
+                    result = self.configure(settings, f"-D{OPTION}={value}")
+                    output = single_line(result)
+                    self.assertEqual(0, result.returncode, output)
+                    self.assertNotIn("Manually-specified variables were not used", output)
+                    self.assertNotIn("unused-cli", output)
+
+    def test_the_option_on_the_command_line_still_stops_a_finding(self):
+        paths = {
+            "another release": ("set(KERNEL_PATCHLEVEL 99)\n", f"{VERIFIED_ON} {declared_baseline()}"),
+            "unreadable": ("unset(KERNEL_PATCHLEVEL)\n", CANNOT_READ),
+        }
+        for name, (settings, finding) in paths.items():
+            with self.subTest(path=name):
+                result = self.configure(settings, f"-D{OPTION}=ON")
+                output = single_line(result)
+                self.assertNotEqual(0, result.returncode, output)
+                self.assertIn("CMake Error", output)
+                self.assertIn(finding, output)
+                self.assertIn("so the build stops", output)
+                self.assertNotIn("Manually-specified variables were not used", output)
+
+    def test_the_option_off_on_the_command_line_still_only_warns(self):
+        result = self.configure("set(KERNEL_PATCHLEVEL 99)\n", f"-D{OPTION}=OFF")
+        output = single_line(result)
+        self.assertEqual(0, result.returncode, output)
+        self.assertIn("CMake Warning", output)
+        self.assertIn(f"{VERIFIED_ON} {declared_baseline()}", output)
+        self.assertNotIn("so the build stops", output)
+        self.assertNotIn("Manually-specified variables were not used", output)
 
     def test_the_module_switch_turns_the_gate_off(self):
         # Kconfig turns the capabilities off with the module, so model that too.
