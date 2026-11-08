@@ -1,0 +1,9 @@
+wc_curve25519_shared_secret_ex
+TLSX_KeyShare_GenKey
+curve25519_smul_blind
+TLSX_KeyShare_Process
+SendTls13Finished
+wc_ecc_sign_hash_ex
+SendTls13CertificateVerify
+wolfSSH_worker
+TLSX_KeyShare_Choose
