@@ -48,7 +48,7 @@ RAM load for SDRAM execution, and microSD on uSDHC for eMMC.
 | A1 | Fetch MCUboot at the pin outside the repository, install imgtool dependencies in a separate virtual environment, generate development keys outside the repository | Given on 1 November 2026, for two RT1060 trial builds: rank 1 (RAM load with revert) and rank 2 (swap using offset). Used on 2 November 2026 for both builds (Stages 5, 6 and 8). Extended by the owner on 2 November 2026 to an RT1170 sysbuild configure and bootloader cross-build (owner decision 14). The RT1170 extension has not been used yet. |
 | A2 | Licence review before any NXP signing tool is downloaded (CST, SPSDK, SEC) | Given by the owner for the SPSDK download (recorded on 2 November 2026). Not used yet: no SPSDK result is in this record. Stage 3 stayed documentation-only. CST and SEC are not covered. |
 | A3 | Gate 1: accept or reject the recommendations in this record | Accepted in part by the owner on 7 November 2026, after independent review: for rows 1, 3, 4, 5, 6, 8, 9, 10 and 11 of the owner decisions table. Rows 12 and 15 are not decided. Recommendations that are not decision rows, such as the update mode ranking, the staging medium and the signing tools, are not covered by this acceptance. |
-| A4 | Gate 2: merge the PR | Pending. It follows the update of this record with the A3 acceptance and a narrow independent review of that update. The owner is told before the merge. |
+| A4 | Gate 2: merge the PR | Exercised on 7 November 2026: the owner instructed the merge of PR #151 after the record was updated with the A3 acceptance and a narrow independent review of that update passed. The text of this row before the merge said Pending. |
 | A5 | Any manifest, module or Dev Container change | Not part of this investigation |
 
 ## Evidence labels
@@ -662,7 +662,7 @@ Corrections between stages:
 | Stage 7 | Independent review of the Stage 7 desk study. RT1170 sysbuild configure and bootloader cross-build under the A1 extension of 2 November 2026, in the Dev Container. |
 | SPSDK | Optional tool check under A2 (given for SPSDK): offline HAB image structure of the bootloader, and whether SPSDK accepts a Zephyr image with FCB and IVT |
 | Stage 9 | Independent review by a reviewer who did not author this record, recorded as PASS, REVISE or ESCALATE |
-| A3, A4 | A3 is accepted in part (7 November 2026). The remaining rows are 12 and 15. Merge approval (A4) follows a narrow independent review of this update. |
+| A3, A4 | A3 is accepted in part (7 November 2026). The remaining rows are 12 and 15. A4 was exercised on 7 November 2026, when PR #151 was merged. |
 
 This record does not claim that any image boots, that a layout is safe or
 adopted, that MCUboot is adopted, that secure boot, a hardware root of trust or
