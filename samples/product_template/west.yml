@@ -6,6 +6,9 @@ manifest:
 
   # Fetch the optional secure management stacks that Crux pins. No revision is
   # repeated here. Check their licences before you distribute a binary.
+  # Crux has a second optional group, crux-reliance, for the GPLv2 Reliance Edge
+  # file system source. It is off by default for the same reason, and its licence
+  # needs the same check.
   #
   # group-filter: [+crux-secure-management]
 
